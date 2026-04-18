@@ -13,8 +13,26 @@
 #include "sim_scene_component.h"
 #include "simulation_engine.h"
 #include "ui/ui.h"
+#include <cmath>
 
 namespace Bess::Canvas {
+    namespace {
+        SimEngine::SlotType toSimSlotType(SlotType slotType) {
+            switch (slotType) {
+            case SlotType::digitalInput:
+            case SlotType::inputsResize:
+                return SimEngine::SlotType::digitalInput;
+            case SlotType::digitalOutput:
+            case SlotType::outputsResize:
+                return SimEngine::SlotType::digitalOutput;
+            case SlotType::analogTerminal:
+                return SimEngine::SlotType::analogTerminal;
+            default:
+                return SimEngine::SlotType::digitalInput;
+            }
+        }
+    } // namespace
+
     std::vector<std::shared_ptr<SceneComponent>> SlotSceneComponent::clone(const SceneState &sceneState) const {
         (void)sceneState;
         auto clonedComponent = std::make_shared<SlotSceneComponent>(*this);
@@ -128,7 +146,7 @@ namespace Bess::Canvas {
         // so that line joins nicely with the components like OR gate or xor gate which have
         // curved edges
         auto startPos = pos;
-        if (m_slotType == SlotType::digitalOutput) {
+        if (m_slotType == SlotType::digitalOutput || m_slotType == SlotType::analogTerminal) {
             offset.x = Styles::compSchematicStyles.pinSize;
         } else {
             offset.x = -Styles::compSchematicStyles.pinSize;
@@ -148,7 +166,7 @@ namespace Bess::Canvas {
 
             float textOffsetX = 4.f;
 
-            if (m_slotType == SlotType::digitalOutput)
+            if (m_slotType == SlotType::digitalOutput || m_slotType == SlotType::analogTerminal)
                 textOffsetX -= textSize.x + 6.f;
 
             const auto parentComp = state.getComponentByUuid<SimulationSceneComponent>(m_parentComponent);
@@ -178,29 +196,9 @@ namespace Bess::Canvas {
         }
 
         auto &simEngine = SimEngine::SimulationEngine::instance();
-        const auto digitalComp = simEngine.getDigitalComponent(parentComp->getSimEngineId());
-        if (!digitalComp) {
-            return {SimEngine::LogicState::unknown, SimEngine::SimTime(0)};
-        }
-
-        if (isInputSlot()) {
-            const auto &compState = digitalComp->state;
-            BESS_ASSERT(static_cast<size_t>(m_index) < compState.inputStates.size(),
-                        "Slot index greater than input states size");
-            if (static_cast<size_t>(m_index) >= compState.inputStates.size()) {
-                return {SimEngine::LogicState::unknown, SimEngine::SimTime(0)};
-            }
-            return compState.inputStates[m_index];
-        }
-
-        const auto &compState = digitalComp->state;
-        BESS_ASSERT(static_cast<size_t>(m_index) < compState.outputStates.size(),
-                    "Slot index greater than output states size");
-        if (static_cast<size_t>(m_index) >= compState.outputStates.size()) {
-            return {SimEngine::LogicState::unknown, SimEngine::SimTime(0)};
-        }
-
-        return compState.outputStates[m_index];
+        return simEngine.getSlotState(parentComp->getSimEngineId(),
+                                      toSimSlotType(m_slotType),
+                                      m_index);
     }
 
     bool SlotSceneComponent::isSlotConnected(const SceneState &state) const {
@@ -210,27 +208,9 @@ namespace Bess::Canvas {
         }
 
         auto &simEngine = SimEngine::SimulationEngine::instance();
-        const auto digitalComp = simEngine.getDigitalComponent(parentComp->getSimEngineId());
-        if (!digitalComp) {
-            return false;
-        }
-        const auto &compState = digitalComp->state;
-
-        if (isInputSlot()) {
-            BESS_ASSERT(static_cast<size_t>(m_index) < compState.inputStates.size(),
-                        "Slot index greater than inputs in sim engine");
-            if (static_cast<size_t>(m_index) >= compState.inputConnected.size()) {
-                return false;
-            }
-            return compState.inputConnected[m_index];
-        } else {
-            BESS_ASSERT(static_cast<size_t>(m_index) < compState.outputStates.size(),
-                        "Slot index greater than outputs in sim engine");
-            if (static_cast<size_t>(m_index) >= compState.outputConnected.size()) {
-                return false;
-            }
-            return compState.outputConnected[m_index];
-        }
+        return simEngine.isSlotConnected(parentComp->getSimEngineId(),
+                                         toSimSlotType(m_slotType),
+                                         m_index);
     }
 
     void SlotSceneComponent::addConnection(const UUID &connectionId) {
@@ -263,6 +243,10 @@ namespace Bess::Canvas {
     }
     bool SlotSceneComponent::isInputSlot() const {
         return m_slotType == SlotType::digitalInput || m_slotType == SlotType::inputsResize;
+    }
+
+    bool SlotSceneComponent::isAnalogSlot() const {
+        return m_slotType == SlotType::analogTerminal;
     }
 
     glm::vec3 SlotSceneComponent::getAbsolutePosition(const SceneState &state) const {

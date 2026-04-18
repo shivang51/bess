@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/bess_uuid.h"
+#include "analog_simulation.h"
 #include "component_definition.h"
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -60,11 +61,21 @@ namespace Bess::Canvas {
             int inSlotIdx = 0, outSlotIdx = 0;
             char inpCh = 'A', outCh = 'a';
 
-            const auto slots = sceneComp->createIOSlots(compDef->getInputSlotsInfo().count,
-                                                        compDef->getOutputSlotsInfo().count);
+            const auto analogTrait = compDef->getTrait<SimEngine::AnalogComponentTrait>();
+            const auto slots = analogTrait
+                                   ? sceneComp->createAnalogTerminalSlots(analogTrait->terminalCount)
+                                   : sceneComp->createIOSlots(compDef->getInputSlotsInfo().count,
+                                                              compDef->getOutputSlotsInfo().count);
 
             for (const auto &slot : slots) {
-                if (slot->getSlotType() == SlotType::digitalInput) {
+                if (slot->getSlotType() == SlotType::analogTerminal) {
+                    const auto terminalIdx = static_cast<size_t>(slot->getIndex());
+                    if (analogTrait && analogTrait->terminalNames.size() > terminalIdx) {
+                        slot->setName(analogTrait->terminalNames[terminalIdx]);
+                    } else {
+                        slot->setName("T" + std::to_string(terminalIdx));
+                    }
+                } else if (slot->getSlotType() == SlotType::digitalInput) {
                     if (inpDetails.names.size() > inSlotIdx)
                         slot->setName(inpDetails.names[inSlotIdx++]);
                     else
@@ -101,6 +112,7 @@ namespace Bess::Canvas {
         // input slots array and output slots array
         std::vector<std::shared_ptr<SlotSceneComponent>> createIOSlots(size_t inputCount,
                                                                        size_t outputCount);
+        std::vector<std::shared_ptr<SlotSceneComponent>> createAnalogTerminalSlots(size_t terminalCount);
 
         void update(Bess::TimeMs timeStep, SceneState &state) override;
 
@@ -155,6 +167,7 @@ namespace Bess::Canvas {
 
         std::vector<SimEngine::LogicState> getInputStates(const SceneState &state) const;
         std::vector<SimEngine::LogicState> getOutputStates(const SceneState &state) const;
+        bool isAnalogComponent() const;
 
         void onTransformChanged() override;
 

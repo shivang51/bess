@@ -304,7 +304,12 @@ namespace Bess::Canvas {
             return;
 
         auto &simEngine = SimEngine::SimulationEngine::instance();
-        m_simEngineId = simEngine.addComponent(m_compDef, false);
+        if (const auto analogTrait = m_compDef->getTrait<SimEngine::AnalogComponentTrait>()) {
+            BESS_ASSERT(analogTrait->factory, "Analog component definition must provide a factory");
+            m_simEngineId = simEngine.addAnalogComponent(analogTrait->factory(), m_compDef);
+        } else {
+            m_simEngineId = simEngine.addComponent(m_compDef, false);
+        }
     }
 
     std::vector<UUID> SimulationSceneComponent::cleanup(SceneState &state, UUID caller) {
@@ -314,7 +319,11 @@ namespace Bess::Canvas {
         removedIds.insert(removedIds.end(), ids.begin(), ids.end());
 
         auto &simEngine = SimEngine::SimulationEngine::instance();
-        simEngine.deleteComponent(m_simEngineId);
+        if (isAnalogComponent()) {
+            simEngine.removeAnalogComponent(m_simEngineId);
+        } else {
+            simEngine.deleteComponent(m_simEngineId);
+        }
         m_simEngineId = UUID::null;
 
         return removedIds;
@@ -478,6 +487,27 @@ namespace Bess::Canvas {
         return slots;
     }
 
+    std::vector<std::shared_ptr<SlotSceneComponent>>
+    SimulationSceneComponent::createAnalogTerminalSlots(size_t terminalCount) {
+        std::vector<std::shared_ptr<SlotSceneComponent>> slots;
+        slots.reserve(terminalCount);
+
+        const size_t leftCount = (terminalCount + 1) / 2;
+        for (size_t i = 0; i < terminalCount; i++) {
+            auto slot = std::make_shared<SlotSceneComponent>();
+            slot->setSlotType(SlotType::analogTerminal);
+            slot->setIndex(static_cast<int>(i));
+            if (i < leftCount) {
+                m_inputSlots.push_back(slot->getUuid());
+            } else {
+                m_outputSlots.push_back(slot->getUuid());
+            }
+            slots.push_back(slot);
+        }
+
+        return slots;
+    }
+
     std::vector<SimEngine::LogicState> SimulationSceneComponent::getInputStates(const SceneState &state) const {
         std::vector<SimEngine::LogicState> states;
         for (const auto &inp : m_inputSlots) {
@@ -500,6 +530,10 @@ namespace Bess::Canvas {
             states.push_back(slotComp->getSlotState(state).state);
         }
         return states;
+    }
+
+    bool SimulationSceneComponent::isAnalogComponent() const {
+        return m_compDef && m_compDef->hasTrait<SimEngine::AnalogComponentTrait>();
     }
 
     std::vector<std::shared_ptr<SceneComponent>> SimulationSceneComponent::cloneSimulationComponent(

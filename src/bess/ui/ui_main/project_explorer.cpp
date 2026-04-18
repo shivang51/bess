@@ -47,11 +47,15 @@ namespace Bess::UI {
             }
 
             auto &simEngine = SimEngine::SimulationEngine::instance();
-            if (!simEngine.getSimEngineState().isComponentValid(simId)) {
+            if (!simEngine.isComponentValid(simId)) {
                 return false;
             }
 
             const auto &definition = simEngine.getComponentDefinition(simId);
+            if (!definition) {
+                return false;
+            }
+
             const auto behaviorType = definition->getBehaviorType();
             const bool isInput = behaviorType == SimEngine::ComponentBehaviorType::input;
             const bool isOutput = behaviorType == SimEngine::ComponentBehaviorType::output;

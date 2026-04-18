@@ -248,6 +248,17 @@ namespace Bess::SimEngine {
         return false;
     }
 
+    AnalogComponentTrait::AnalogComponentTrait(size_t terminalCount,
+                                               std::vector<std::string> terminalNames,
+                                               Factory factory)
+        : terminalCount(terminalCount),
+          terminalNames(std::move(terminalNames)),
+          factory(std::move(factory)) {}
+
+    std::shared_ptr<Trait> AnalogComponentTrait::clone() const {
+        return std::make_shared<AnalogComponentTrait>(*this);
+    }
+
     Resistor::Resistor(double resistanceOhms, std::string name)
         : m_terminals({AnalogUnconnectedNode, AnalogUnconnectedNode}),
           m_resistanceOhms(resistanceOhms),

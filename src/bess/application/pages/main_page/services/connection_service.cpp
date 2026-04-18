@@ -14,6 +14,23 @@
 #include <cstdint>
 
 namespace Bess::Svc {
+    namespace {
+        SimEngine::SlotType toSimSlotType(Canvas::SlotType slotType) {
+            switch (slotType) {
+            case Canvas::SlotType::digitalInput:
+            case Canvas::SlotType::inputsResize:
+                return SimEngine::SlotType::digitalInput;
+            case Canvas::SlotType::digitalOutput:
+            case Canvas::SlotType::outputsResize:
+                return SimEngine::SlotType::digitalOutput;
+            case Canvas::SlotType::analogTerminal:
+                return SimEngine::SlotType::analogTerminal;
+            default:
+                return SimEngine::SlotType::digitalInput;
+            }
+        }
+    } // namespace
+
     SvcConnection &SvcConnection::instance() {
         static SvcConnection instance;
         return instance;
@@ -528,15 +545,22 @@ namespace Bess::Svc {
         const auto &simCompB = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(
             slotCompB->getParentComponent());
 
-        const auto pinTypeA = slotCompA->getSlotType() == Canvas::SlotType::digitalInput
-                                  ? SimEngine::SlotType::digitalInput
-                                  : SimEngine::SlotType::digitalOutput;
-        const auto pinTypeB = slotCompB->getSlotType() == Canvas::SlotType::digitalInput
-                                  ? SimEngine::SlotType::digitalInput
-                                  : SimEngine::SlotType::digitalOutput;
+        const SimEngine::SimulationEngine::SlotEndpoint endpointA{
+            simCompA->getSimEngineId(),
+            slotCompA->getIndex(),
+            toSimSlotType(slotCompA->getSlotType())};
+        const SimEngine::SimulationEngine::SlotEndpoint endpointB{
+            simCompB->getSimEngineId(),
+            slotCompB->getIndex(),
+            toSimSlotType(slotCompB->getSlotType())};
 
-        const auto success = simEngine.connectComponent(simCompA->getSimEngineId(), slotCompA->getIndex(), pinTypeA,
-                                                        simCompB->getSimEngineId(), slotCompB->getIndex(), pinTypeB);
+        const auto [canConnect, error] = simEngine.canConnectSlots(endpointA, endpointB);
+        if (!canConnect) {
+            return error.empty() ? std::optional<std::string>("Failed to connect slots in simulation engine")
+                                 : std::optional<std::string>(error);
+        }
+
+        const auto success = simEngine.connectSlots(endpointA, endpointB);
 
         if (!success) {
             BESS_WARN("[ConnectionSvc] Failed to connect slots in simulation engine between component {} slot {} and component {} slot {}",
@@ -571,17 +595,16 @@ namespace Bess::Svc {
         const auto &simCompB = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(
             slotCompB->getParentComponent());
 
-        const auto pinTypeA = slotCompA->getSlotType() == Canvas::SlotType::digitalInput
-                                  ? SimEngine::SlotType::digitalInput
-                                  : SimEngine::SlotType::digitalOutput;
-        const auto pinTypeB = slotCompB->getSlotType() == Canvas::SlotType::digitalInput
-                                  ? SimEngine::SlotType::digitalInput
-                                  : SimEngine::SlotType::digitalOutput;
+        const SimEngine::SimulationEngine::SlotEndpoint endpointA{
+            simCompA->getSimEngineId(),
+            slotCompA->getIndex(),
+            toSimSlotType(slotCompA->getSlotType())};
+        const SimEngine::SimulationEngine::SlotEndpoint endpointB{
+            simCompB->getSimEngineId(),
+            slotCompB->getIndex(),
+            toSimSlotType(slotCompB->getSlotType())};
 
-        simEngine.deleteConnection(simCompA->getSimEngineId(), pinTypeA, slotCompA->getIndex(),
-                                   simCompB->getSimEngineId(), pinTypeB, slotCompB->getIndex());
-
-        return true;
+        return simEngine.disconnectSlots(endpointA, endpointB);
     }
 
     std::shared_ptr<Canvas::SlotSceneComponent> SvcConnection::getSlot(const UUID &compId) {
@@ -976,14 +999,10 @@ namespace Bess::Svc {
             return {false, "Missing parent simulation components for connection check"};
         }
 
-        const auto pinTypeA = (slotCompA->getSlotType() == Canvas::SlotType::digitalInput || slotCompA->getSlotType() == Canvas::SlotType::inputsResize)
-                                  ? SimEngine::SlotType::digitalInput
-                                  : SimEngine::SlotType::digitalOutput;
-        const auto pinTypeB = (slotCompB->getSlotType() == Canvas::SlotType::digitalInput || slotCompB->getSlotType() == Canvas::SlotType::inputsResize)
-                                  ? SimEngine::SlotType::digitalInput
-                                  : SimEngine::SlotType::digitalOutput;
+        const auto pinTypeA = toSimSlotType(slotCompA->getSlotType());
+        const auto pinTypeB = toSimSlotType(slotCompB->getSlotType());
 
-        if (pinTypeA == pinTypeB) {
+        if (pinTypeA == pinTypeB && pinTypeA != SimEngine::SlotType::analogTerminal) {
             mp_scene = nullptr;
             return {false, "Cannot connect pins of the same type i.e. input -> input or output -> output"};
         }
@@ -998,12 +1017,17 @@ namespace Bess::Svc {
             return {true, ""};
         }
 
-        auto indexA = slotCompA->getIndex();
-        auto indexB = slotCompB->getIndex();
+        const SimEngine::SimulationEngine::SlotEndpoint endpointA{
+            simCompA->getSimEngineId(),
+            slotCompA->getIndex(),
+            pinTypeA};
+        const SimEngine::SimulationEngine::SlotEndpoint endpointB{
+            simCompB->getSimEngineId(),
+            slotCompB->getIndex(),
+            pinTypeB};
 
         mp_scene = nullptr;
-        return simEngine.canConnectComponents(simCompA->getSimEngineId(), indexA, pinTypeA,
-                                              simCompB->getSimEngineId(), indexB, pinTypeB);
+        return simEngine.canConnectSlots(endpointA, endpointB);
     }
 
 } // namespace Bess::Svc

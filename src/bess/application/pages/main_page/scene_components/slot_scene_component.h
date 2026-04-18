@@ -13,6 +13,7 @@ namespace Bess::Canvas {
         none,
         digitalInput,
         digitalOutput,
+        analogTerminal,
         inputsResize,
         outputsResize,
     };
@@ -63,6 +64,7 @@ namespace Bess::Canvas {
         bool isResizeSlot() const;
 
         bool isInputSlot() const;
+        bool isAnalogSlot() const;
 
         std::vector<UUID> getDependants(const SceneState &state) const override;
 

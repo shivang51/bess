@@ -20,6 +20,12 @@ namespace Bess::SimEngine {
 
     class BESS_API SimulationEngine {
       public:
+        struct SlotEndpoint {
+            UUID componentId = UUID::null;
+            int slotIdx = -1;
+            SlotType slotType = SlotType::digitalInput;
+        };
+
         static SimulationEngine &instance();
 
         SimulationEngine();
@@ -37,12 +43,20 @@ namespace Bess::SimEngine {
         std::pair<bool, std::string> canConnectComponents(const UUID &src, int srcSlotIdx, SlotType srcType,
                                                           const UUID &dst, int dstSlotIdx, SlotType dstType) const;
 
+        std::pair<bool, std::string> canConnectSlots(const SlotEndpoint &a,
+                       const SlotEndpoint &b) const;
+        bool connectSlots(const SlotEndpoint &a, const SlotEndpoint &b);
+        bool disconnectSlots(const SlotEndpoint &a, const SlotEndpoint &b);
+
         void deleteComponent(const UUID &uuid);
 
         void deleteConnection(const UUID &compA, SlotType pinAType, int idxA,
                               const UUID &compB, SlotType pinBType, int idxB);
 
-        SlotState getDigitalSlotState(const UUID &uuid, SlotType type, int idx);
+        SlotState getDigitalSlotState(const UUID &uuid, SlotType type, int idx) const;
+        SlotState getSlotState(const UUID &uuid, SlotType type, int idx) const;
+        bool isSlotConnected(const UUID &uuid, SlotType type, int idx) const;
+        bool isComponentValid(const UUID &uuid) const;
 
         ConnectionBundle getConnections(const UUID &uuid);
         std::vector<SlotState> getInputSlotsState(UUID compId) const;
@@ -90,21 +104,46 @@ namespace Bess::SimEngine {
 
         AnalogCircuit &getAnalogCircuit();
         const AnalogCircuit &getAnalogCircuit() const;
-        const UUID &addAnalogComponent(std::shared_ptr<AnalogComponent> component);
+        const UUID &addAnalogComponent(std::shared_ptr<AnalogComponent> component,
+                     const std::shared_ptr<ComponentDefinition> &definition = nullptr);
         const UUID &addAnalogResistor(double resistanceOhms, const std::string &name = {});
         const UUID &addAnalogResistor(AnalogNodeId a, AnalogNodeId b, double resistanceOhms,
                                       const std::string &name = {});
         bool connectAnalogTerminal(const UUID &componentId, size_t terminalIdx, AnalogNodeId node);
         bool disconnectAnalogTerminal(const UUID &componentId, size_t terminalIdx);
+        bool removeAnalogComponent(const UUID &componentId);
         AnalogComponentState getAnalogComponentState(const UUID &componentId) const;
         AnalogSolution solveAnalogCircuit(const AnalogSolveOptions &options = {});
         void clearAnalogCircuit();
 
       private:
+        struct AnalogTerminalRef {
+            UUID componentId = UUID::null;
+            size_t terminalIdx = 0;
+        };
+
+        struct AnalogTerminalConnection {
+            AnalogTerminalRef a;
+            AnalogTerminalRef b;
+        };
+
         bool isSimStableLocked() const;
 
         std::vector<UUID> getConnGraph(UUID start);
 
+        std::pair<bool, std::string> canConnectComponentsLocked(const UUID &src, int srcSlotIdx, SlotType srcType,
+                                                                const UUID &dst, int dstSlotIdx, SlotType dstType) const;
+        std::pair<bool, std::string> canConnectSlotsLocked(const SlotEndpoint &a,
+                       const SlotEndpoint &b) const;
+        bool validateAnalogTerminalLocked(const UUID &componentId,
+                  int slotIdx,
+                  std::string &error) const;
+        static AnalogTerminalConnection normalizeAnalogConnection(const AnalogTerminalRef &a,
+                        const AnalogTerminalRef &b);
+        bool hasAnalogConnectionLocked(const AnalogTerminalConnection &connection) const;
+        bool removeAnalogConnectionLocked(const AnalogTerminalConnection &connection);
+        void removeAnalogConnectionsForComponentLocked(const UUID &componentId);
+        void rebuildAnalogConnectionsLocked();
         void scheduleEvent(UUID id, UUID schedulerId, SimDelayNanoSeconds simTime);
         void clearEventsForEntity(const UUID &id);
         bool simulateComponent(const UUID &compId, const std::vector<SlotState> &inputs);
@@ -130,6 +169,8 @@ namespace Bess::SimEngine {
         SimEngineState m_simEngineState;
         AnalogCircuit m_analogCircuit;
         AnalogSolution m_lastAnalogSolution;
+        std::vector<AnalogTerminalConnection> m_analogConnections;
+        std::unordered_map<UUID, std::shared_ptr<ComponentDefinition>> m_analogComponentDefinitions;
 
         std::unordered_map<UUID, Net> m_nets;
 

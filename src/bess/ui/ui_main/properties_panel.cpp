@@ -62,6 +62,11 @@ namespace Bess::UI {
         // for now only showing first selected component's properties
         const UUID &compId = sceneState.getSelectedComponents().begin()->first;
         auto comp = sceneState.getComponentByUuid(compId);
+        if (!comp) {
+            ImGui::TextUnformatted("Selected component no longer exists.");
+            return;
+        }
+
         const auto compType = comp->getType();
 
         if (Widgets::TextBox("Name", comp->getName())) {
@@ -72,13 +77,25 @@ namespace Bess::UI {
 
         if (compType == Canvas::SceneComponentType::simulation) {
             auto simComp = comp->cast<Canvas::SimulationSceneComponent>();
+            if (!simComp) {
+                ImGui::TextUnformatted("Selected simulation component is invalid.");
+                return;
+            }
+
+            const auto simEngineId = simComp->getSimEngineId();
+            if (simEngineId == UUID::null) {
+                return;
+            }
+
             auto &simEngine = SimEngine::SimulationEngine::instance();
-            auto &def = simEngine.getComponentDefinition(simComp->getSimEngineId());
+            const auto &def = simEngine.getComponentDefinition(simEngineId);
+            if (!def) {
+                return;
+            }
 
             if (def->hasTrait<SimEngine::ClockTrait>()) {
                 bool changed = drawClockTrait(def->getTrait<SimEngine::ClockTrait>(), compId);
                 if (changed) {
-                    auto &def = simEngine.getComponentDefinition(simComp->getSimEngineId());
                     const auto &trait = def->getTrait<SimEngine::ClockTrait>();
 
                     std::string frequencyUnitStr;

@@ -2,6 +2,7 @@
 
 #include "component_catalog.h"
 #include "component_definition.h"
+#include "analog_simulation.h"
 #include "types.h"
 #include <memory>
 
@@ -124,7 +125,25 @@ namespace Bess::SimEngine {
         catalog.registerComponent(outDef);
     }
 
+    inline void initAnalog() {
+        auto &catalog = ComponentCatalog::instance();
+
+        const auto resistorDef = std::make_shared<ComponentDefinition>();
+        resistorDef->setName("Resistor");
+        resistorDef->setGroupName("Analog");
+        resistorDef->setInputSlotsInfo({SlotsGroupType::input, false, 1, {"+"}, {}});
+        resistorDef->setOutputSlotsInfo({SlotsGroupType::output, false, 1, {"-"}, {}});
+        resistorDef->addTrait<AnalogComponentTrait>(
+            AnalogComponentTrait{2,
+                                 {"+", "-"},
+                                 [] {
+                                     return std::make_shared<Resistor>(1000.0, "R");
+                                 }});
+        catalog.registerComponent(resistorDef);
+    }
+
     inline void initComponentCatalog() {
         initIO();
+        initAnalog();
     }
 } // namespace Bess::SimEngine

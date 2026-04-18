@@ -1,5 +1,8 @@
 #include "analog_simulation.h"
+#include "component_catalog.h"
 #include "gtest/gtest.h"
+#include "pages/main_page/scene_components/sim_scene_component.h"
+#include "pages/main_page/scene_components/slot_scene_component.h"
 #include "simulation_engine.h"
 #include <memory>
 #include <string>
@@ -178,4 +181,72 @@ TEST(AnalogSimulationTest, SimulationEngineProvidesAnalogComponentApi) {
     EXPECT_NEAR(state.terminals[0].current, 0.005, 1e-12);
 
     engine.clearAnalogCircuit();
+}
+
+TEST(AnalogSimulationTest, SimulationEngineUnifiedSlotApiSupportsAnalogConnections) {
+    auto &engine = Bess::SimEngine::SimulationEngine::instance();
+    engine.clear();
+
+    const auto resistorA = engine.addAnalogResistor(1000.0, "RA");
+    const auto resistorB = engine.addAnalogResistor(2000.0, "RB");
+
+    const SimulationEngine::SlotEndpoint aTerminal0{resistorA, 0, SlotType::analogTerminal};
+    const SimulationEngine::SlotEndpoint bTerminal0{resistorB, 0, SlotType::analogTerminal};
+
+    const auto [canConnect, error] = engine.canConnectSlots(aTerminal0, bTerminal0);
+    ASSERT_TRUE(canConnect) << error;
+    ASSERT_TRUE(engine.connectSlots(aTerminal0, bTerminal0));
+    EXPECT_TRUE(engine.isSlotConnected(resistorA, SlotType::analogTerminal, 0));
+    EXPECT_TRUE(engine.isSlotConnected(resistorB, SlotType::analogTerminal, 0));
+
+    ASSERT_TRUE(engine.disconnectSlots(aTerminal0, bTerminal0));
+    EXPECT_FALSE(engine.isSlotConnected(resistorA, SlotType::analogTerminal, 0));
+    EXPECT_FALSE(engine.isSlotConnected(resistorB, SlotType::analogTerminal, 0));
+
+    engine.clearAnalogCircuit();
+}
+
+TEST(AnalogSimulationTest, SimulationEngineUnifiedSlotApiRejectsMixedSignalConnections) {
+    auto &engine = Bess::SimEngine::SimulationEngine::instance();
+    engine.clear();
+
+    const auto resistor = engine.addAnalogResistor(1000.0, "RMixed");
+    const auto inputDef = ComponentCatalog::instance().findDefByName("Input");
+    ASSERT_NE(inputDef, nullptr);
+    const auto digitalInput = engine.addComponent(inputDef, false);
+
+    const SimulationEngine::SlotEndpoint analogEndpoint{resistor, 0, SlotType::analogTerminal};
+    const SimulationEngine::SlotEndpoint digitalEndpoint{digitalInput, 0, SlotType::digitalOutput};
+
+    const auto [canConnect, error] = engine.canConnectSlots(analogEndpoint, digitalEndpoint);
+    EXPECT_FALSE(canConnect);
+    EXPECT_EQ(error, "Cannot connect analog terminals to digital pins");
+    EXPECT_FALSE(engine.connectSlots(analogEndpoint, digitalEndpoint));
+
+    engine.clear();
+}
+
+TEST(AnalogSimulationTest, ResistorDefinitionIsCatalogBackedAndCreatesAnalogSceneSlots) {
+    auto &engine = Bess::SimEngine::SimulationEngine::instance();
+    engine.clear();
+
+    const auto resistorDef = ComponentCatalog::instance().findDefByName("Resistor");
+    ASSERT_NE(resistorDef, nullptr);
+    ASSERT_NE(resistorDef->getTrait<AnalogComponentTrait>(), nullptr);
+
+    const auto created = Bess::Canvas::SimulationSceneComponent::createNew(resistorDef);
+    ASSERT_EQ(created.size(), 3u);
+
+    const auto resistorSceneComp = std::dynamic_pointer_cast<Bess::Canvas::SimulationSceneComponent>(created[0]);
+    const auto terminalA = std::dynamic_pointer_cast<Bess::Canvas::SlotSceneComponent>(created[1]);
+    const auto terminalB = std::dynamic_pointer_cast<Bess::Canvas::SlotSceneComponent>(created[2]);
+
+    ASSERT_NE(resistorSceneComp, nullptr);
+    ASSERT_NE(terminalA, nullptr);
+    ASSERT_NE(terminalB, nullptr);
+    EXPECT_TRUE(resistorSceneComp->isAnalogComponent());
+    EXPECT_TRUE(terminalA->isAnalogSlot());
+    EXPECT_TRUE(terminalB->isAnalogSlot());
+    EXPECT_EQ(terminalA->getName(), "+");
+    EXPECT_EQ(terminalB->getName(), "-");
 }

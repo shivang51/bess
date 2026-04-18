@@ -2,7 +2,9 @@
 
 #include "bess_api.h"
 #include "common/bess_uuid.h"
+#include "component_definition.h"
 #include <cstdint>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -103,6 +105,22 @@ namespace Bess::SimEngine {
 
       private:
         UUID m_id;
+    };
+
+    class BESS_API AnalogComponentTrait : public Trait {
+      public:
+        using Factory = std::function<std::shared_ptr<AnalogComponent>()>;
+
+        AnalogComponentTrait() = default;
+        AnalogComponentTrait(size_t terminalCount,
+                             std::vector<std::string> terminalNames,
+                             Factory factory);
+
+        std::shared_ptr<Trait> clone() const override;
+
+        size_t terminalCount = 0;
+        std::vector<std::string> terminalNames;
+        Factory factory;
     };
 
     class BESS_API Resistor final : public AnalogComponent {

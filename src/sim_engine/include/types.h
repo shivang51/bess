@@ -56,7 +56,8 @@ namespace Bess::SimEngine {
 
     enum class SlotType : uint8_t {
         digitalInput,
-        digitalOutput
+        digitalOutput,
+        analogTerminal
     };
 
     struct BESS_API SlotState {

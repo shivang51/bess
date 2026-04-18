@@ -15,11 +15,13 @@
 #include <algorithm>
 #include <cassert>
 #include <chrono>
+#include <cmath>
 #include <condition_variable>
 #include <cstdint>
 #include <exception>
 #include <memory>
 #include <mutex>
+#include <numeric>
 #include <ranges>
 #include <thread>
 #include <tuple>
@@ -65,6 +67,8 @@ namespace Bess::SimEngine {
         m_simEngineState.reset();
         m_analogCircuit.clear();
         m_lastAnalogSolution = {};
+        m_analogConnections.clear();
+        m_analogComponentDefinitions.clear();
         m_nextEventId = 0;
         m_currentSimTime = {};
     }
@@ -90,7 +94,6 @@ namespace Bess::SimEngine {
     }
 
     void SimulationEngine::scheduleEvent(UUID id, UUID schedulerId, SimDelayNanoSeconds simTime) {
-        const auto &digiComp = m_simEngineState.getDigitalComponent(id);
         std::lock_guard lk(m_queueMutex);
         static uint64_t eventId = 0;
         SimulationEvent ev{simTime, id, schedulerId, eventId++};
@@ -108,14 +111,18 @@ namespace Bess::SimEngine {
     const UUID &SimulationEngine::addComponent(const std::shared_ptr<ComponentDefinition> &definition,
                                                bool cloneDef) {
         auto digiComp = std::make_shared<DigitalComponent>(definition, cloneDef);
-        m_simEngineState.addDigitalComponent(digiComp);
 
-        // create a new net for new component
-        Net newNet{};
-        digiComp->netUuid = newNet.getUUID();
-        newNet.addComponent(digiComp->id);
-        m_nets[digiComp->netUuid] = newNet;
-        m_isNetUpdated = true;
+        {
+            std::lock_guard lk(m_registryMutex);
+            m_simEngineState.addDigitalComponent(digiComp);
+
+            // create a new net for new component
+            Net newNet{};
+            digiComp->netUuid = newNet.getUUID();
+            newNet.addComponent(digiComp->id);
+            m_nets[digiComp->netUuid] = newNet;
+            m_isNetUpdated = true;
+        }
 
         scheduleEvent(digiComp->id, UUID::null, m_currentSimTime + definition->getSimDelay());
 
@@ -130,6 +137,16 @@ namespace Bess::SimEngine {
 
     std::pair<bool, std::string> SimulationEngine::canConnectComponents(const UUID &src, int srcSlot, SlotType srcType,
                                                                         const UUID &dst, int dstSlot, SlotType dstType) const {
+        std::lock_guard lk(m_registryMutex);
+        return canConnectComponentsLocked(src, srcSlot, srcType, dst, dstSlot, dstType);
+    }
+
+    std::pair<bool, std::string> SimulationEngine::canConnectComponentsLocked(const UUID &src, int srcSlot, SlotType srcType,
+                                                                              const UUID &dst, int dstSlot, SlotType dstType) const {
+        if (srcType == SlotType::analogTerminal || dstType == SlotType::analogTerminal) {
+            return {false, "Analog terminals must be connected via canConnectSlots"};
+        }
+
         if (src == UUID::null || dst == UUID::null) {
             return {false, "Cannot connect to/from null component"};
         }
@@ -168,10 +185,144 @@ namespace Bess::SimEngine {
         return {!exists, exists ? "Connection already exists" : ""};
     }
 
+    std::pair<bool, std::string> SimulationEngine::canConnectSlots(const SlotEndpoint &a,
+                                                                    const SlotEndpoint &b) const {
+        std::lock_guard lk(m_registryMutex);
+        return canConnectSlotsLocked(a, b);
+    }
+
+    std::pair<bool, std::string> SimulationEngine::canConnectSlotsLocked(const SlotEndpoint &a,
+                                                                          const SlotEndpoint &b) const {
+        if (a.componentId == UUID::null || b.componentId == UUID::null) {
+            return {false, "Cannot connect to/from null component"};
+        }
+
+        if (a.slotIdx < 0 || b.slotIdx < 0) {
+            return {false, "Slot index cannot be negative"};
+        }
+
+        const bool aAnalog = a.slotType == SlotType::analogTerminal;
+        const bool bAnalog = b.slotType == SlotType::analogTerminal;
+
+        if (aAnalog != bAnalog) {
+            return {false, "Cannot connect analog terminals to digital pins"};
+        }
+
+        if (aAnalog) {
+            std::string error;
+            if (!validateAnalogTerminalLocked(a.componentId, a.slotIdx, error)) {
+                return {false, error};
+            }
+            if (!validateAnalogTerminalLocked(b.componentId, b.slotIdx, error)) {
+                return {false, error};
+            }
+
+            if (a.componentId == b.componentId && a.slotIdx == b.slotIdx) {
+                return {false, "Cannot connect a terminal to itself"};
+            }
+
+            const auto connection = normalizeAnalogConnection({a.componentId, static_cast<size_t>(a.slotIdx)},
+                                                              {b.componentId, static_cast<size_t>(b.slotIdx)});
+            if (hasAnalogConnectionLocked(connection)) {
+                return {false, "Connection already exists"};
+            }
+
+            return {true, ""};
+        }
+
+        SlotEndpoint src = a;
+        SlotEndpoint dst = b;
+
+        if (src.slotType == SlotType::digitalInput && dst.slotType == SlotType::digitalOutput) {
+            std::swap(src, dst);
+        }
+
+        return canConnectComponentsLocked(src.componentId,
+                                          src.slotIdx,
+                                          src.slotType,
+                                          dst.componentId,
+                                          dst.slotIdx,
+                                          dst.slotType);
+    }
+
+    bool SimulationEngine::connectSlots(const SlotEndpoint &a, const SlotEndpoint &b) {
+        const bool aAnalog = a.slotType == SlotType::analogTerminal;
+        const bool bAnalog = b.slotType == SlotType::analogTerminal;
+
+        if (aAnalog || bAnalog) {
+            std::lock_guard lk(m_registryMutex);
+            const auto [canConnect, errorMsg] = canConnectSlotsLocked(a, b);
+            if (!canConnect) {
+                BESS_WARN("Cannot connect slots: {}", errorMsg);
+                return false;
+            }
+
+            const auto connection = normalizeAnalogConnection({a.componentId, static_cast<size_t>(a.slotIdx)},
+                                                              {b.componentId, static_cast<size_t>(b.slotIdx)});
+            m_analogConnections.push_back(connection);
+            rebuildAnalogConnectionsLocked();
+            return true;
+        }
+
+        SlotEndpoint src = a;
+        SlotEndpoint dst = b;
+        if (src.slotType == SlotType::digitalInput && dst.slotType == SlotType::digitalOutput) {
+            std::swap(src, dst);
+        }
+
+        return connectComponent(src.componentId,
+                                src.slotIdx,
+                                src.slotType,
+                                dst.componentId,
+                                dst.slotIdx,
+                                dst.slotType);
+    }
+
+    bool SimulationEngine::disconnectSlots(const SlotEndpoint &a, const SlotEndpoint &b) {
+        const bool aAnalog = a.slotType == SlotType::analogTerminal;
+        const bool bAnalog = b.slotType == SlotType::analogTerminal;
+
+        if (aAnalog != bAnalog) {
+            return false;
+        }
+
+        if (aAnalog) {
+            std::lock_guard lk(m_registryMutex);
+            if (a.slotIdx < 0 || b.slotIdx < 0) {
+                return false;
+            }
+
+            const auto connection = normalizeAnalogConnection({a.componentId, static_cast<size_t>(a.slotIdx)},
+                                                              {b.componentId, static_cast<size_t>(b.slotIdx)});
+            const bool removed = removeAnalogConnectionLocked(connection);
+            rebuildAnalogConnectionsLocked();
+            return removed;
+        }
+
+        if (a.slotType == b.slotType) {
+            return false;
+        }
+
+        SlotEndpoint src = a;
+        SlotEndpoint dst = b;
+        if (src.slotType == SlotType::digitalInput && dst.slotType == SlotType::digitalOutput) {
+            std::swap(src, dst);
+        }
+
+        deleteConnection(src.componentId,
+                         src.slotType,
+                         src.slotIdx,
+                         dst.componentId,
+                         dst.slotType,
+                         dst.slotIdx);
+        return true;
+    }
+
     bool SimulationEngine::connectComponent(const UUID &src, int srcSlot, SlotType srcType,
                                             const UUID &dst, int dstSlot, SlotType dstType, bool overrideConn) {
 
-        auto [canConnect, errorMsg] = canConnectComponents(src, srcSlot, srcType, dst, dstSlot, dstType);
+        std::lock_guard lk(m_registryMutex);
+        auto [canConnect, errorMsg] = canConnectComponentsLocked(src, srcSlot, srcType, dst, dstSlot, dstType);
         if (!canConnect) {
             BESS_WARN("Cannot connect components: {}", errorMsg);
             return false;
@@ -253,11 +404,11 @@ namespace Bess::SimEngine {
     }
 
     void SimulationEngine::deleteComponent(const UUID &uuid) {
-        if (uuid == UUID::null && !m_simEngineState.isComponentValid(uuid))
-            return;
-
         std::set<UUID> affected;
         std::lock_guard lk(m_registryMutex);
+        if (uuid == UUID::null || !m_simEngineState.isComponentValid(uuid))
+            return;
+
         clearEventsForEntity(uuid);
 
         // Remove all connections to and from this component
@@ -362,7 +513,12 @@ namespace Bess::SimEngine {
         return true;
     }
 
-    SlotState SimulationEngine::getDigitalSlotState(const UUID &uuid, SlotType type, int idx) {
+    SlotState SimulationEngine::getDigitalSlotState(const UUID &uuid, SlotType type, int idx) const {
+        if (type == SlotType::analogTerminal) {
+            BESS_WARN("[getDigitalPinState] Analog slot type passed to digital state lookup");
+            return {LogicState::unknown, SimTime(0)};
+        }
+
         if (!m_simEngineState.isComponentValid(uuid)) {
             BESS_WARN("[getDigitalPinState] Component with UUID {} is invalid", (uint64_t)uuid);
             return {LogicState::unknown, SimTime(0)};
@@ -387,6 +543,65 @@ namespace Bess::SimEngine {
             return {LogicState::unknown, SimTime(0)};
         }
         return comp->state.inputStates[idx];
+    }
+
+    SlotState SimulationEngine::getSlotState(const UUID &uuid, SlotType type, int idx) const {
+        if (type == SlotType::analogTerminal) {
+            std::lock_guard lk(m_registryMutex);
+            std::string error;
+            if (!validateAnalogTerminalLocked(uuid, idx, error)) {
+                return {LogicState::unknown, SimTime(0)};
+            }
+
+            const auto analogState = m_analogCircuit.getComponentState(uuid);
+            if (analogState.simError || static_cast<size_t>(idx) >= analogState.terminals.size()) {
+                return {LogicState::unknown, SimTime(0)};
+            }
+
+            return {std::abs(analogState.terminals[idx].voltage) > 1e-9
+                        ? LogicState::high
+                        : LogicState::low,
+                    SimTime(0)};
+        }
+
+        return getDigitalSlotState(uuid, type, idx);
+    }
+
+    bool SimulationEngine::isSlotConnected(const UUID &uuid, SlotType type, int idx) const {
+        if (idx < 0) {
+            return false;
+        }
+
+        if (type == SlotType::analogTerminal) {
+            std::lock_guard lk(m_registryMutex);
+            std::string error;
+            if (!validateAnalogTerminalLocked(uuid, idx, error)) {
+                return false;
+            }
+
+            const auto analogState = m_analogCircuit.getComponentState(uuid);
+            return static_cast<size_t>(idx) < analogState.terminals.size() &&
+                   analogState.terminals[idx].connected;
+        }
+
+        const auto digitalComp = m_simEngineState.getDigitalComponent(uuid);
+        if (!digitalComp) {
+            return false;
+        }
+
+        if (type == SlotType::digitalInput) {
+            return static_cast<size_t>(idx) < digitalComp->state.inputConnected.size() &&
+                   digitalComp->state.inputConnected[idx];
+        }
+
+        return static_cast<size_t>(idx) < digitalComp->state.outputConnected.size() &&
+               digitalComp->state.outputConnected[idx];
+    }
+
+    bool SimulationEngine::isComponentValid(const UUID &uuid) const {
+        std::lock_guard lk(m_registryMutex);
+        return m_simEngineState.isComponentValid(uuid) ||
+               (m_analogCircuit.getComponent(uuid) != nullptr);
     }
 
     ConnectionBundle SimulationEngine::getConnections(const UUID &uuid) {
@@ -473,12 +688,27 @@ namespace Bess::SimEngine {
     }
 
     const std::shared_ptr<ComponentDefinition> &SimulationEngine::getComponentDefinition(const UUID &uuid) const {
+        static const std::shared_ptr<ComponentDefinition> nullDefinition;
+
         const auto &comp = m_simEngineState.getDigitalComponent(uuid);
-        return comp->definition;
+        if (comp) {
+            return comp->definition;
+        }
+
+        if (auto it = m_analogComponentDefinitions.find(uuid); it != m_analogComponentDefinitions.end()) {
+            return it->second;
+        }
+
+        return nullDefinition;
     }
 
     void SimulationEngine::deleteConnection(const UUID &compA, SlotType pinAType, int idxA,
                                             const UUID &compB, SlotType pinBType, int idxB) {
+
+        if (pinAType == SlotType::analogTerminal || pinBType == SlotType::analogTerminal) {
+            BESS_WARN("deleteConnection called with analog slot types; use disconnectSlots instead");
+            return;
+        }
 
         assert(m_simEngineState.isComponentValid(compA) ||
                m_simEngineState.isComponentValid(compB));
@@ -1012,9 +1242,14 @@ namespace Bess::SimEngine {
         return m_analogCircuit;
     }
 
-    const UUID &SimulationEngine::addAnalogComponent(std::shared_ptr<AnalogComponent> component) {
+    const UUID &SimulationEngine::addAnalogComponent(std::shared_ptr<AnalogComponent> component,
+                                                     const std::shared_ptr<ComponentDefinition> &definition) {
         std::lock_guard lk(m_registryMutex);
-        return m_analogCircuit.addComponent(std::move(component));
+        const UUID &id = m_analogCircuit.addComponent(std::move(component));
+        if (definition) {
+            m_analogComponentDefinitions[id] = definition;
+        }
+        return id;
     }
 
     const UUID &SimulationEngine::addAnalogResistor(double resistanceOhms, const std::string &name) {
@@ -1038,6 +1273,18 @@ namespace Bess::SimEngine {
         return m_analogCircuit.disconnectTerminal(componentId, terminalIdx);
     }
 
+    bool SimulationEngine::removeAnalogComponent(const UUID &componentId) {
+        std::lock_guard lk(m_registryMutex);
+        removeAnalogConnectionsForComponentLocked(componentId);
+        m_analogComponentDefinitions.erase(componentId);
+
+        const bool removed = m_analogCircuit.removeComponent(componentId);
+        if (removed) {
+            rebuildAnalogConnectionsLocked();
+        }
+        return removed;
+    }
+
     AnalogComponentState SimulationEngine::getAnalogComponentState(const UUID &componentId) const {
         std::lock_guard lk(m_registryMutex);
         return m_analogCircuit.getComponentState(componentId);
@@ -1053,6 +1300,165 @@ namespace Bess::SimEngine {
         std::lock_guard lk(m_registryMutex);
         m_analogCircuit.clear();
         m_lastAnalogSolution = {};
+        m_analogConnections.clear();
+        m_analogComponentDefinitions.clear();
+    }
+
+    bool SimulationEngine::validateAnalogTerminalLocked(const UUID &componentId,
+                                                        int slotIdx,
+                                                        std::string &error) const {
+        const auto component = m_analogCircuit.getComponent(componentId);
+        if (!component) {
+            error = "Source or destination component does not exist";
+            return false;
+        }
+
+        if (slotIdx < 0) {
+            error = "Slot index cannot be negative";
+            return false;
+        }
+
+        const auto terminals = component->terminals();
+        if (static_cast<size_t>(slotIdx) >= terminals.size()) {
+            error = "Invalid terminal index. Valid range: 0 to " +
+                    std::to_string(terminals.empty() ? 0 : terminals.size() - 1);
+            return false;
+        }
+
+        return true;
+    }
+
+    SimulationEngine::AnalogTerminalConnection
+    SimulationEngine::normalizeAnalogConnection(const AnalogTerminalRef &a,
+                                                const AnalogTerminalRef &b) {
+        const auto aId = static_cast<uint64_t>(a.componentId);
+        const auto bId = static_cast<uint64_t>(b.componentId);
+        const bool bBeforeA = (bId < aId) || (bId == aId && b.terminalIdx < a.terminalIdx);
+        if (bBeforeA) {
+            return {b, a};
+        }
+        return {a, b};
+    }
+
+    bool SimulationEngine::hasAnalogConnectionLocked(const AnalogTerminalConnection &connection) const {
+        return std::ranges::any_of(m_analogConnections, [&](const auto &existing) {
+            return existing.a.componentId == connection.a.componentId &&
+                   existing.a.terminalIdx == connection.a.terminalIdx &&
+                   existing.b.componentId == connection.b.componentId &&
+                   existing.b.terminalIdx == connection.b.terminalIdx;
+        });
+    }
+
+    bool SimulationEngine::removeAnalogConnectionLocked(const AnalogTerminalConnection &connection) {
+        const auto before = m_analogConnections.size();
+        std::erase_if(m_analogConnections, [&](const auto &existing) {
+            return existing.a.componentId == connection.a.componentId &&
+                   existing.a.terminalIdx == connection.a.terminalIdx &&
+                   existing.b.componentId == connection.b.componentId &&
+                   existing.b.terminalIdx == connection.b.terminalIdx;
+        });
+        return m_analogConnections.size() != before;
+    }
+
+    void SimulationEngine::removeAnalogConnectionsForComponentLocked(const UUID &componentId) {
+        std::erase_if(m_analogConnections, [&](const auto &connection) {
+            return connection.a.componentId == componentId ||
+                   connection.b.componentId == componentId;
+        });
+    }
+
+    void SimulationEngine::rebuildAnalogConnectionsLocked() {
+        struct DisjointSet {
+            std::vector<size_t> parent;
+
+            explicit DisjointSet(size_t n) : parent(n) {
+                std::iota(parent.begin(), parent.end(), 0);
+            }
+
+            size_t find(size_t x) {
+                if (parent[x] != x) {
+                    parent[x] = find(parent[x]);
+                }
+                return parent[x];
+            }
+
+            void unite(size_t a, size_t b) {
+                const size_t rootA = find(a);
+                const size_t rootB = find(b);
+                if (rootA != rootB) {
+                    parent[rootB] = rootA;
+                }
+            }
+        };
+
+        std::vector<AnalogTerminalRef> terminals;
+        terminals.reserve(64);
+
+        for (const auto &component : m_analogCircuit.components()) {
+            if (!component) {
+                continue;
+            }
+
+            const auto componentId = component->getUUID();
+            const auto componentState = m_analogCircuit.getComponentState(componentId);
+
+            for (size_t terminalIdx = 0; terminalIdx < componentState.terminals.size(); ++terminalIdx) {
+                m_analogCircuit.disconnectTerminal(componentId, terminalIdx);
+                terminals.push_back({componentId, terminalIdx});
+            }
+        }
+
+        if (terminals.empty()) {
+            return;
+        }
+
+        std::unordered_map<std::string, size_t> terminalIndexLookup;
+        terminalIndexLookup.reserve(terminals.size());
+
+        auto keyFor = [](const AnalogTerminalRef &ref) {
+            return std::to_string((uint64_t)ref.componentId) + ":" + std::to_string(ref.terminalIdx);
+        };
+
+        for (size_t idx = 0; idx < terminals.size(); ++idx) {
+            terminalIndexLookup[keyFor(terminals[idx])] = idx;
+        }
+
+        DisjointSet dsu(terminals.size());
+        std::vector<bool> touched(terminals.size(), false);
+
+        std::erase_if(m_analogConnections, [&](const auto &connection) {
+            const auto aKey = keyFor(connection.a);
+            const auto bKey = keyFor(connection.b);
+
+            if (!terminalIndexLookup.contains(aKey) || !terminalIndexLookup.contains(bKey)) {
+                return true;
+            }
+
+            const auto idxA = terminalIndexLookup[aKey];
+            const auto idxB = terminalIndexLookup[bKey];
+
+            dsu.unite(idxA, idxB);
+            touched[idxA] = true;
+            touched[idxB] = true;
+            return false;
+        });
+
+        std::unordered_map<size_t, AnalogNodeId> groupNodes;
+        for (size_t idx = 0; idx < terminals.size(); ++idx) {
+            if (!touched[idx]) {
+                continue;
+            }
+
+            const size_t root = dsu.find(idx);
+            if (!groupNodes.contains(root)) {
+                groupNodes[root] = m_analogCircuit.createNode();
+            }
+
+            const auto &terminalRef = terminals[idx];
+            m_analogCircuit.connectTerminal(terminalRef.componentId,
+                                            terminalRef.terminalIdx,
+                                            groupNodes[root]);
+        }
     }
 
     void SimulationEngine::scheduleDependantsOf(const UUID &compId) {
