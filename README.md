@@ -27,10 +27,10 @@ https://github.com/user-attachments/assets/86f467ee-4160-4be6-a6de-626ed7a3e3a6
 ## Build & Run
 Tested Build On:
 - [x] Linux (Arch Linux: Wayland)
-- [x] Windows (Untested after plugin support was added)
+- [ ] Windows (Broken)
 - [ ] MacOS
 
-Following commands are only valid for Linux, as build scripts for windows have not been written yet.
+Following commands are only valid for Linux.
 All build scripts live in the **scripts/** folder inside the CMake source directory.
 
 1. **Clean previous builds** (if you are building after another build)
@@ -57,5 +57,5 @@ All build scripts live in the **scripts/** folder inside the CMake source direct
 - [x] Usability enhancements - [Details](https://github.com/shivang51/bess/pull/18)
 - [x] Command System - [Details](https://github.com/shivang51/bess/pull/19)
 - [x] Module Support - [Details](https://github.com/shivang51/bess/pull/20)
-- [ ] Basic Verilog Support
+- [x] Basic Verilog Support - [Details](https://github.com/shivang51/bess/pull/22)
 - [ ] Add More components
