@@ -46,10 +46,16 @@ class ResistorComponent(TwoTerminalAnalogComponent):
         if not state.terminals[0].connected or not state.terminals[1].connected:
             return state
 
-        if self._shorted() or not math.isfinite(self._resistance_ohms) or self._resistance_ohms <= 0.0:
+        if (
+            self._shorted()
+            or not math.isfinite(self._resistance_ohms)
+            or self._resistance_ohms <= 0.0
+        ):
             return state
 
-        current = (state.terminals[0].voltage - state.terminals[1].voltage) / self._resistance_ohms
+        current = (
+            state.terminals[0].voltage - state.terminals[1].voltage
+        ) / self._resistance_ohms
         state.terminals[0].current = current
         state.terminals[1].current = -current
         return state
@@ -57,7 +63,7 @@ class ResistorComponent(TwoTerminalAnalogComponent):
 
 resistor_def = AnalogComponentDefinition(
     2,
-    ["+", "-"],
+    [],
     lambda: ResistorComponent(1000.0, "R"),
 )
 resistor_def.name = "Resistor"

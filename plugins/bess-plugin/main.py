@@ -1,7 +1,6 @@
 from typing import override
 from bessplug import Plugin
 from bessplug.api.sim_engine import ComponentDefinition
-from components.analog_components.passive import ResistorComponent
 from components.latches import latches
 from components.digital_gates import (
     digital_gates,

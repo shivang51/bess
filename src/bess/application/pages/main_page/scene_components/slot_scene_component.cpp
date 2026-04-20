@@ -108,6 +108,7 @@ namespace Bess::Canvas {
                                                  border,
                                                  pickingId,
                                                  ir);
+
         drawContext.materialRenderer->drawCircle(pos,
                                                  ir - radiusGap,
                                                  bg,
