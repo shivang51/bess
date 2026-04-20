@@ -58,4 +58,4 @@ All build scripts live in the **scripts/** folder inside the CMake source direct
 - [x] Command System - [Details](https://github.com/shivang51/bess/pull/19)
 - [x] Module Support - [Details](https://github.com/shivang51/bess/pull/20)
 - [x] Basic Verilog Support - [Details](https://github.com/shivang51/bess/pull/22)
-- [ ] Add More components
+- [ ] Add Analog Components
