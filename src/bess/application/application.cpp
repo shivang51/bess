@@ -7,7 +7,7 @@
 #include "imgui_impl_vulkan.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
-#include "plugin_manager.h"
+#include "services/plugin_service/plugin_service.h"
 #include "simulation_engine.h"
 #include "ui/ui.h"
 #include "vulkan_core.h"
@@ -143,12 +143,10 @@ namespace Bess {
         auto &settings = Config::Settings::instance();
         settings.init();
 
-        auto &pluginMangaer = Plugins::PluginManager::getInstance();
-
         if (flags & AppStartupFlag::disablePlugins) {
             BESS_WARN("[Application] Plugin support is disabled");
         } else {
-            pluginMangaer.loadPluginsFromDirectory("plugins");
+            Svc::PluginService::getInstance().init();
         }
 
         m_mainWindow = std::make_shared<Window>(800, 600, "Bess");
@@ -200,8 +198,9 @@ namespace Bess {
         SimEngine::SimulationEngine::instance().destroy();
         Config::Settings::instance().cleanup();
 
-        auto &pluginMangaer = Plugins::PluginManager::getInstance();
-        pluginMangaer.destroy();
+        if (Svc::PluginService::getInstance().getIsInitialized()) {
+            Svc::PluginService::getInstance().destroy();
+        }
 
         BESS_INFO("[Application] Application shutdown complete");
     }

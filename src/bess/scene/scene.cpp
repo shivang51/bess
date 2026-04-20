@@ -6,7 +6,6 @@
 #include "events/application_event.h"
 #include "ext/matrix_transform.hpp"
 #include "fwd.hpp"
-#include "plugin_manager.h"
 #include "scene/scene_events.h"
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -19,7 +18,6 @@
 namespace Bess::Canvas {
     Scene::Scene() {
         reset();
-        loadComponentFromPlugins();
     }
 
     Scene::~Scene() {
@@ -31,7 +29,6 @@ namespace Bess::Canvas {
             return;
 
         BESS_INFO("[Scene] Destroying");
-        cleanupPlugins();
         m_isDestroyed = true;
         m_state.clear();
     }
@@ -58,27 +55,9 @@ namespace Bess::Canvas {
                 const auto data = event.getData<ApplicationEvent::MouseMoveData>();
                 auto pos = getViewportMousePos(glm::vec2(data.x, data.y));
                 m_state.setMousePos(toScenePos(pos));
-                if (!isCursorInViewport(pos)) {
-                    m_mousePos = pos;
-                    if (m_isLeftMousePressed) {
-                        onLeftMouse(false);
-                    }
-                    if (m_isMiddleMousePressed) {
-                        onMiddleMouse(false);
-                    }
-                    break;
-                }
                 onMouseMove(pos);
             } break;
             case ApplicationEventType::MouseButton: {
-                if (!isCursorInViewport(m_mousePos)) {
-                    if (!m_isLeftMousePressed) {
-                        setPickingId(PickingId::invalid());
-                        break;
-                    }
-                    m_isLeftMousePressed = false;
-                    setPickingId(PickingId::invalid());
-                }
                 const auto data = event.getData<ApplicationEvent::MouseButtonData>();
                 const bool isPressed = data.action == MouseButtonAction::press;
                 if (data.button == MouseButton::left) {
@@ -491,38 +470,6 @@ namespace Bess::Canvas {
         }
     }
 
-    void Scene::loadComponentFromPlugins() {
-        const auto &pluginManger = Plugins::PluginManager::getInstance();
-        for (const auto &plugin : pluginManger.getLoadedPlugins()) {
-            plugin.second->onSceneComponentsLoad(m_pluginSceneDrawHooks);
-        }
-        BESS_INFO("[Scene] Loaded {} draw hooks from plugins",
-                  m_pluginSceneDrawHooks.size());
-    }
-
-    std::shared_ptr<SimSceneCompDrawHook> Scene::getPluginDrawHookForComponentHash(uint64_t compHash) const {
-        auto it = m_pluginSceneDrawHooks.find(compHash);
-        if (it != m_pluginSceneDrawHooks.end()) {
-            return it->second;
-        }
-        return nullptr;
-    }
-
-    bool Scene::hasPluginDrawHookForComponentHash(uint64_t compHash) const {
-        return m_pluginSceneDrawHooks.contains(compHash);
-    }
-
-    void Scene::cleanupPlugins() {
-        for (auto &item : m_pluginSceneDrawHooks) {
-            item.second->cleanup();
-        }
-        m_pluginSceneDrawHooks.clear();
-        const auto &pluginManger = Plugins::PluginManager::getInstance();
-        for (const auto &plugin : pluginManger.getLoadedPlugins()) {
-            plugin.second->cleanup();
-        }
-    }
-
     void Scene::updateViewportTransform(const ViewportTransform &transform) {
         m_viewportTransform = transform;
     }
@@ -555,5 +502,12 @@ namespace Bess::Canvas {
 
     const UUID &Scene::getSceneId() const {
         return m_state.getSceneId();
+    }
+
+    glm::vec2 Scene::viewportToWinPos(const glm::vec2 &viewportPos) const {
+        const auto &viewportPos_ = m_viewportTransform.pos;
+        auto x = viewportPos.x + viewportPos_.x;
+        auto y = viewportPos.y + viewportPos_.y;
+        return {x, y};
     }
 } // namespace Bess::Canvas

@@ -38,6 +38,47 @@ namespace Bess::Svc {
         return conn;
     }
 
+    std::shared_ptr<Canvas::ConnectionSceneComponent> SvcConnection::createConnection(const Bess::UUID &fromCompId,
+                                                                                      Bess::Canvas::SlotType fromSlotType,
+                                                                                      int fromSlotIdx,
+                                                                                      const Bess::UUID &toCompId,
+                                                                                      Bess::Canvas::SlotType toSlotType,
+                                                                                      int toSlotIdx,
+                                                                                      Canvas::Scene *scene) {
+        mp_scene = scene;
+        auto &sceneState = getScene()->getState();
+
+        const auto &fromComp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(fromCompId);
+        const auto &toComp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(toCompId);
+
+        if (!fromComp) {
+            BESS_ERROR("From component with id {} not found in scene state", (uint64_t)fromCompId);
+            return nullptr;
+        }
+
+        if (!toComp) {
+            BESS_ERROR("To component with id {} not found in scene state", (uint64_t)toCompId);
+            return nullptr;
+        }
+
+        UUID fromSlotId, toSlotId;
+
+        if (fromSlotType == Canvas::SlotType::digitalInput) {
+            fromSlotId = fromComp->getInputSlots().at(fromSlotIdx);
+        } else {
+            fromSlotId = fromComp->getOutputSlots().at(fromSlotIdx);
+        }
+
+        if (toSlotType == Canvas::SlotType::digitalInput) {
+            toSlotId = toComp->getInputSlots().at(toSlotIdx);
+        } else {
+            toSlotId = toComp->getOutputSlots().at(toSlotIdx);
+        }
+
+        mp_scene = nullptr;
+        return createConnection(fromSlotId, toSlotId, scene);
+    }
+
     std::vector<UUID> SvcConnection::getDependants(const UUID &connection,
                                                    Canvas::Scene *scene) {
         BESS_ASSERT(scene, "[SvcConnection] Scene can't be a nullptr");

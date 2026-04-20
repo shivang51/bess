@@ -3,6 +3,7 @@
 #include "icons/FontAwesomeIcons.h"
 #include "scene/scene_state/components/styles/comp_style.h"
 #include "scene_draw_context.h"
+#include "settings/viewport_theme.h"
 #include "widgets/m_widgets.h"
 #include <unordered_map>
 
@@ -65,7 +66,7 @@ namespace Bess::Canvas {
         }
     }
 
-    glm::vec2 TextComponent::calculateScale(SceneState &state) {
+    glm::vec2 TextComponent::calculateScale(const SceneState &state) {
         auto textSize = Renderer::MaterialRenderer::getTextRenderSize(m_data, (float)m_size);
         textSize.y += Styles::componentStyles.paddingY * 2.f;
         textSize.x += Styles::componentStyles.paddingX * 2.f;

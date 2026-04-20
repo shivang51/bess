@@ -6,6 +6,9 @@
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
+#include "scene_ser_reg.h"
+#include "services/plugin_service/plugin_service.h"
+#include "simulation_engine.h"
 #include "widgets/m_widgets.h"
 
 namespace Bess::UI {
@@ -22,98 +25,117 @@ namespace Bess::UI {
         auto &sceneDriver = mainPageState.getSceneDriver();
         const auto &sceneState = sceneDriver->getState();
 
-        if (ImGui::BeginTabBar("MyTabBar")) {
-            if (ImGui::BeginTabItem("Tab 1")) {
-                ImGui::Text("This is the content of Tab 1");
-                ImGui::EndTabItem();
-            }
-            if (ImGui::BeginTabItem("Tab 2")) {
-                ImGui::Text("This is the content of Tab 2");
-                ImGui::EndTabItem();
-            }
-            if (ImGui::BeginTabItem("Tab 3")) {
-                ImGui::Text("This is the content of Tab 3");
-                ImGui::EndTabItem();
-            }
-            ImGui::EndTabBar();
-        }
-
-        if (sceneDriver.getSceneCount() > 1) {
-
-            ImGui::AlignTextToFramePadding();
-            ImGui::Text("Active Scene: %lu", sceneDriver.getActiveSceneIdx());
-
-            ImGui::SameLine();
-            ImGui::AlignTextToFramePadding();
-            ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
-            ImGui::SameLine();
-
-            ImGui::AlignTextToFramePadding();
-            ImGui::Text("Scene Count: %lu", sceneDriver.getSceneCount());
-
-            ImGui::SameLine();
-            if (ImGui::Button("Prev-Scene")) {
-                size_t activeScene = sceneDriver.getActiveSceneIdx();
-                if (activeScene > 0) {
-                    sceneDriver.setActiveScene(activeScene - 1);
-                }
-            }
-
-            ImGui::SameLine();
-
-            ImGui::AlignTextToFramePadding();
-            if (ImGui::Button("Next-Scene")) {
-                size_t activeScene = sceneDriver.getActiveSceneIdx();
-                if (activeScene < sceneDriver.getSceneCount() - 1) {
-                    sceneDriver.setActiveScene(activeScene + 1);
-                }
-            }
-        }
-
         const auto &hoverId = sceneDriver->getHoveredEntity();
         ImGui::Text("Hovered  Runtime Id: %u | Info: %u", hoverId.runtimeId, hoverId.info);
 
-        if (sceneState.getSelectedComponents().size() >= 1) {
-            const auto &selectedCompId = sceneState.getSelectedComponents().begin()->first;
-            const auto &selectedComp = sceneState.getComponentByUuid(selectedCompId);
-            ImGui::Text("Selected Id: %lu | Runtime Id of component: %u",
-                        (uint64_t)selectedCompId,
-                        selectedComp ? selectedComp->getRuntimeId() : 0);
+        if (ImGui::BeginTabBar("MyTabBar")) {
+            if (ImGui::BeginTabItem("Scene Controls")) {
+                if (sceneDriver.getSceneCount() > 1) {
 
-            drawDependencyGraph(selectedCompId);
-        }
+                    ImGui::AlignTextToFramePadding();
+                    ImGui::Text("Active Scene: %lu", sceneDriver.getActiveSceneIdx());
 
-        if (Widgets::TreeNode(0, "Selected components")) {
-            const auto &selComps = sceneState.getSelectedComponents();
-            ImGui::Indent();
-            for (const auto &[compId, selected] : selComps) {
-                ImGui::BulletText("%lu", (uint64_t)compId);
-            }
-            ImGui::Unindent();
-            ImGui::TreePop();
-        }
+                    ImGui::SameLine();
+                    ImGui::AlignTextToFramePadding();
+                    ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+                    ImGui::SameLine();
 
-        if (Widgets::TreeNode(2, "First Component Serilaized")) {
-            const auto &selComps = sceneState.getSelectedComponents();
-            if (!selComps.empty()) {
-                const auto &compId = selComps.begin()->first;
-                const auto &comp = sceneState.getComponentByUuid(compId);
+                    ImGui::AlignTextToFramePadding();
+                    ImGui::Text("Scene Count: %lu", sceneDriver.getSceneCount());
 
-                const auto &j = comp->toJson();
-                Widgets::SelectableText(compId.toString(), j.toStyledString());
+                    ImGui::SameLine();
+                    if (ImGui::Button("Prev-Scene")) {
+                        size_t activeScene = sceneDriver.getActiveSceneIdx();
+                        if (activeScene > 0) {
+                            sceneDriver.setActiveScene(activeScene - 1);
+                        }
+                    }
 
-                if (comp->getType() == Canvas::SceneComponentType::module ||
-                    comp->getType() == Canvas::SceneComponentType::simulation) {
-                    const auto &simComp = comp->cast<Canvas::SimulationSceneComponent>();
-                    const auto &def = simComp->getCompDef();
-                    BESS_ASSERT(def, "[DEBUGPANEL] def not set");
-                    Json::Value defJson;
-                    JsonConvert::toJsonValue(def, defJson);
-                    ImGui::Separator();
-                    Widgets::SelectableText(std::to_string(def->getHash()), defJson.toStyledString());
+                    ImGui::SameLine();
+
+                    ImGui::AlignTextToFramePadding();
+                    if (ImGui::Button("Next-Scene")) {
+                        size_t activeScene = sceneDriver.getActiveSceneIdx();
+                        if (activeScene < sceneDriver.getSceneCount() - 1) {
+                            sceneDriver.setActiveScene(activeScene + 1);
+                        }
+                    }
+                } else {
+                    ImGui::Text("Only one scene, no controls to show");
                 }
+                ImGui::EndTabItem();
             }
-            ImGui::TreePop();
+            if (ImGui::BeginTabItem("Selected Comps Info")) {
+                if (sceneState.getSelectedComponents().size() >= 1) {
+                    const auto &selectedCompId = sceneState.getSelectedComponents().begin()->first;
+                    const auto &selectedComp = sceneState.getComponentByUuid(selectedCompId);
+                    ImGui::Text("Selected Id: %lu | Runtime Id of component: %u",
+                                (uint64_t)selectedCompId,
+                                selectedComp ? selectedComp->getRuntimeId() : 0);
+
+                    drawDependencyGraph(selectedCompId);
+                }
+
+                if (Widgets::TreeNode(0, "Selected components")) {
+                    const auto &selComps = sceneState.getSelectedComponents();
+                    ImGui::Indent();
+                    for (const auto &[compId, selected] : selComps) {
+                        ImGui::BulletText("%lu", (uint64_t)compId);
+                    }
+                    ImGui::Unindent();
+                    ImGui::TreePop();
+                }
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Serialization Info")) {
+                const auto &selComps = sceneState.getSelectedComponents();
+                const auto &pluginService = Svc::PluginService::getInstance();
+
+                if (!selComps.empty()) {
+                    const auto &compId = selComps.begin()->first;
+                    const auto &comp = sceneState.getComponentByUuid(compId);
+
+                    if (Canvas::SceneSerReg::hasComponent(comp->getTypeName())) {
+                        ImGui::Text("Component type %s supports deserialization", comp->getTypeName().c_str());
+                    } else if (pluginService.hasSceneComp(comp->getTypeName())) {
+                        ImGui::Text("Component type %s is provided by a plugin",
+                                    comp->getTypeName().c_str());
+                        if (pluginService.canDerserialize(comp->getTypeName())) {
+                            ImGui::Text("Plugin can deserialize component type %s", comp->getTypeName().c_str());
+                        } else {
+                            ImGui::Text("Plugin CANNOT deserialize component type %s", comp->getTypeName().c_str());
+                        }
+                    } else {
+                        ImGui::Text("Component type %s NOT found anywhere, cannot be deserialized",
+                                    comp->getTypeName().c_str());
+                    }
+
+                    if (Widgets::TreeNode(2, "First Sel Component Serilaized")) {
+                        if (!selComps.empty()) {
+
+                            const auto &j = comp->toJson();
+                            Widgets::SelectableText(compId.toString(), j.toStyledString());
+
+                            if (comp->getType() == Canvas::SceneComponentType::module ||
+                                comp->getType() == Canvas::SceneComponentType::simulation) {
+                                const auto &simComp = comp->cast<Canvas::SimulationSceneComponent>();
+                                BESS_ASSERT(simComp->getCompDef(), "[DEBUGPANEL] def not set");
+                                Json::Value digCompJson;
+                                const auto &digComp = SimEngine::SimulationEngine::instance().getDigitalComponent(
+                                    simComp->getSimEngineId());
+                                JsonConvert::toJsonValue(digCompJson, *digComp);
+                                ImGui::Separator();
+                                Widgets::SelectableText(std::to_string(simComp->getSimEngineId()),
+                                                        digCompJson.toStyledString());
+                            }
+                        }
+                        ImGui::TreePop();
+                    }
+                }
+
+                ImGui::EndTabItem();
+            }
+            ImGui::EndTabBar();
         }
     }
 

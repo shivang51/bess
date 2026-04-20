@@ -251,4 +251,16 @@ namespace Bess {
         if (mp_window)
             mp_window.reset();
     }
+
+    void Window::setMousePos(const glm::vec2 &pos) const {
+        glfwSetCursorPos(mp_window.get(), pos.x, pos.y);
+    }
+
+    void Window::setEnableCursor(bool enable) const {
+        if (enable) {
+            glfwSetInputMode(mp_window.get(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        } else {
+            glfwSetInputMode(mp_window.get(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        }
+    }
 } // namespace Bess

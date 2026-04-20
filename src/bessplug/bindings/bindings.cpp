@@ -11,7 +11,6 @@ void bind_sim_engine_component_definition(py::module_ &m);
 void bind_scene_schematic_diagram(py::module_ &m);
 void bind_scene_component(py::module_ &m);
 void bind_sim_scene_component(py::module_ &m);
-void bind_sim_comp_draw_hook(py::module_ &m);
 void bind_scene_state(py::module_ &m);
 void bind_path_renderer(py::module_ &m);
 void bind_material_renderer(py::module_ &m);
@@ -20,6 +19,7 @@ void bind_asset_manager(py::module_ &m);
 void bind_ui_hook(py::module_ &m);
 void bind_bess_ui(py::module_ &m);
 void bind_plugin(py::module_ &m);
+void bind_cmds(py::module_ &m);
 
 void bind_api(py::module_ &m);
 
@@ -31,6 +31,8 @@ PYBIND11_MODULE(bessplug, m) {
 
 void bind_api(py::module_ &m) {
     auto mApi = m.def_submodule("api", "BESS API bindings");
+    auto mCmds = m.def_submodule("cmds", "Bess Commands bindings");
+
     auto common = mApi.def_submodule("common", "Common bindings");
     auto simEngine = mApi.def_submodule("sim_engine", "Simulation engine bindings");
     auto simFn = simEngine.def_submodule("sim_functions", "Simulation engine prebuilt simulation functions");
@@ -40,8 +42,10 @@ void bind_api(py::module_ &m) {
     auto uiHook = mApi.def_submodule("ui_hook", "UI Hook bindings");
     auto bessUI = mApi.def_submodule("bess_ui", "Bess UI bindings");
 
+    // IMPORTANT NOTE:
     // Correct order of bindings is important. So that types can be found during
-    // stubs generation, please make sure changes are made meaningfully.
+    // stubs generation, please make sure changes are made meaningfully
+    // and thought fully.
 
     // Common
     bind_common_bindings(common);
@@ -59,7 +63,6 @@ void bind_api(py::module_ &m) {
     bind_scene_state(scene);
     bind_scene_schematic_diagram(scene);
     bind_scene_component(scene);
-    bind_sim_comp_draw_hook(scene);
     bind_sim_scene_component(scene);
 
     // Asset Manager
@@ -68,6 +71,9 @@ void bind_api(py::module_ &m) {
     // UI Hook
     bind_ui_hook(uiHook);
     bind_bess_ui(bessUI);
+
+    // Commands
+    bind_cmds(mCmds);
 
     bind_plugin(m);
 }

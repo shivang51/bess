@@ -15,7 +15,7 @@
 namespace Bess::Canvas {
 #define REG_SCENE_COMP_TYPE(TypeName, type)                      \
     SceneComponentType getType() const override { return type; } \
-    std::string getTypeName() override {                         \
+    std::string getTypeName() const override {                   \
         return TypeName;                                         \
     }                                                            \
     static std::string getStaticTypeName() {                     \
@@ -25,12 +25,13 @@ namespace Bess::Canvas {
 
 #define SCENE_COMP_SER(TClass, TBase, ...)                          \
     Json::Value toJson() const override {                           \
+        onBeforeToJson();                                           \
         auto json = TBase::toJson();                                \
         const auto newJson = SERIALIZE_PROPS(__VA_ARGS__);          \
         for (const auto &member : newJson.getMemberNames()) {       \
             json[member] = newJson[member];                         \
         }                                                           \
-        json["typeName"] = TClass::getStaticTypeName();             \
+        json["typeName"] = getTypeName();                           \
         return json;                                                \
     }                                                               \
     static void fromJson(const Json::Value &j,                      \
@@ -51,6 +52,7 @@ namespace Bess::Canvas {
 
 #define SCENE_COMP_SER_NP(TClass, TBase)                            \
     Json::Value toJson() const override {                           \
+        onBeforeToJson();                                           \
         auto json = TBase::toJson();                                \
         json["typeName"] = TClass::getStaticTypeName();             \
         return json;                                                \
@@ -97,7 +99,7 @@ namespace Bess::Canvas {
             return "SceneComponent";
         }
 
-        virtual std::string getTypeName() {
+        virtual std::string getTypeName() const {
             return "SceneComponent";
         }
 
@@ -174,7 +176,9 @@ namespace Bess::Canvas {
         virtual void onStyleChanged() {}
         virtual void onRuntimeIdChanged() {}
 
-        virtual glm::vec2 calculateScale(SceneState &);
+        virtual void onBeforeToJson() const {}
+
+        virtual glm::vec2 calculateScale(const SceneState &);
 
         virtual void onFirstDraw(SceneDrawContext &);
 

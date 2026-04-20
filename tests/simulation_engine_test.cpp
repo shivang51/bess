@@ -25,6 +25,59 @@ namespace {
         return it == components.end() ? nullptr : *it;
     }
 
+    void ensurePrimitiveGateDefinitions() {
+        auto ensureGate = [](const std::string &name,
+                             size_t inputCount,
+                             const std::function<LogicState(const std::vector<SlotState> &)> &eval) {
+            if (findDefinitionByName(name)) {
+                return;
+            }
+
+            auto definition = std::make_shared<ComponentDefinition>();
+            definition->setName(name);
+            definition->setGroupName("Logic");
+            definition->setInputSlotsInfo({SlotsGroupType::input, false, inputCount, {}, {}});
+            definition->setOutputSlotsInfo({SlotsGroupType::output, false, 1, {}, {}});
+            definition->setSimulationFunction([eval](const std::vector<SlotState> &inputs,
+                                                     SimTime ts,
+                                                     const ComponentState &oldState) {
+                auto newState = oldState;
+                newState.inputStates = inputs;
+                if (newState.outputStates.empty()) {
+                    newState.outputStates.resize(1);
+                }
+
+                const auto next = eval(inputs);
+                const auto prev = oldState.outputStates.empty() ? LogicState::unknown : oldState.outputStates[0].state;
+                newState.outputStates[0].state = next;
+                newState.outputStates[0].lastChangeTime = ts;
+                newState.isChanged = prev != next;
+                return newState;
+            });
+            definition->setSimDelay(SimDelayNanoSeconds(1));
+            ComponentCatalog::instance().registerComponent(definition);
+        };
+
+        ensureGate("NOT Gate", 1, [](const std::vector<SlotState> &inputs) {
+            return inputs[0].state == LogicState::high ? LogicState::low : LogicState::high;
+        });
+        ensureGate("AND Gate", 2, [](const std::vector<SlotState> &inputs) {
+            return (inputs[0].state == LogicState::high && inputs[1].state == LogicState::high)
+                       ? LogicState::high
+                       : LogicState::low;
+        });
+        ensureGate("OR Gate", 2, [](const std::vector<SlotState> &inputs) {
+            return (inputs[0].state == LogicState::high || inputs[1].state == LogicState::high)
+                       ? LogicState::high
+                       : LogicState::low;
+        });
+        ensureGate("XOR Gate", 2, [](const std::vector<SlotState> &inputs) {
+            const bool a = inputs[0].state == LogicState::high;
+            const bool b = inputs[1].state == LogicState::high;
+            return (a != b) ? LogicState::high : LogicState::low;
+        });
+    }
+
     bool waitUntil(const std::function<bool()> &predicate,
                    std::chrono::milliseconds timeout = 250ms,
                    std::chrono::milliseconds poll = 2ms) {
@@ -54,8 +107,12 @@ class SimulationEngineTest : public testing::Test {
         ASSERT_TRUE(pluginManager.loadPluginsFromDirectory("plugins"));
     }
 
+    SimulationEngine *engine = nullptr;
+    std::shared_ptr<ComponentDefinition> inputDef, outputDef, notDef, andDef, orDef, xorDef;
+
     void SetUp() override {
-        engine = std::make_unique<SimulationEngine>();
+        engine = &SimulationEngine::instance();
+        ensurePrimitiveGateDefinitions();
 
         inputDef = findDefinitionByName("Input");
         outputDef = findDefinitionByName("Output");
@@ -80,8 +137,7 @@ class SimulationEngineTest : public testing::Test {
             engine->setSimulationState(SimulationState::paused);
             std::this_thread::sleep_for(10ms);
             engine->clear();
-            engine->destroy();
-            engine.reset();
+            engine = nullptr;
         }
     }
 
@@ -131,13 +187,6 @@ class SimulationEngineTest : public testing::Test {
         }
     }
 
-    std::unique_ptr<SimulationEngine> engine;
-    std::shared_ptr<ComponentDefinition> inputDef;
-    std::shared_ptr<ComponentDefinition> outputDef;
-    std::shared_ptr<ComponentDefinition> notDef;
-    std::shared_ptr<ComponentDefinition> andDef;
-    std::shared_ptr<ComponentDefinition> orDef;
-    std::shared_ptr<ComponentDefinition> xorDef;
 };
 
 TEST_F(SimulationEngineTest, CatalogIncludesBuiltInAndPluginDefinitions) {

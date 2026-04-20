@@ -17,7 +17,6 @@ file(GLOB EXT_LIB_TESS2
 
 set(EXT_OTHERS_SRC
 	"${CMAKE_SOURCE_DIR}/external/stb_image/src/stb_image.cpp"
-	"${CMAKE_SOURCE_DIR}/external/tinyfiledialogs/tinyfiledialogs.c"
 )
 source_group("external/others" FILES ${EXT_OTHERS_SRC})
 
@@ -42,13 +41,13 @@ find_package(PNG REQUIRED)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
 		"${CMAKE_SOURCE_DIR}/external/imgui"
+		"${CMAKE_SOURCE_DIR}/external/portable-file-dialogs"
 		"${CMAKE_SOURCE_DIR}/external/implot"
 		"${CMAKE_SOURCE_DIR}/external/freetype/include"
 		"${CMAKE_SOURCE_DIR}/external/imgui/backends"
 		"${CMAKE_SOURCE_DIR}/external/glm"
 		"${CMAKE_SOURCE_DIR}/external/jsoncpp/include"
 		"${CMAKE_SOURCE_DIR}/external/stb_image/include"
-		"${CMAKE_SOURCE_DIR}/external/tinyfiledialogs"
 		"${CMAKE_SOURCE_DIR}/external/spdlog/include"
 		"${CMAKE_SOURCE_DIR}/external/libtess2/Include"
 		${GLFW_INCLUDE_DIRS}

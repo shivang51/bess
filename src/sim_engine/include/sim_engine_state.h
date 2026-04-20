@@ -14,6 +14,9 @@ namespace Bess::SimEngine {
 
         void reset();
 
+        std::vector<std::shared_ptr<DigitalComponent>> findCompsByName(
+            const std::string &name) const;
+
         bool isComponentValid(const UUID &uuid) const;
 
         void addDigitalComponent(const std::shared_ptr<DigitalComponent> &comp);

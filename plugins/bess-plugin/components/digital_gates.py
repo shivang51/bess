@@ -1,11 +1,9 @@
-from bessplug.api.scene import SimCompDrawHook
-from bessplug.api.common import vec2, vec3
-from bessplug.api.common import theme, time
+from bessplug.api.common import vec2
+from bessplug.api.common import time
 from bessplug.api.sim_engine import ComponentDefinition, SlotsGroupInfo, OperatorInfo
 from bessplug.api.scene.renderer import Path
 from bessplug.api.scene import SchematicDiagram
 import math
-from typing import override
 
 _gates = {
     "BUF": {
@@ -226,39 +224,8 @@ def _init_paths():
 _paths = _init_paths()
 
 
-class DrawHook(SimCompDrawHook):
-    def __init__(self, diagram: SchematicDiagram, name: str):
-        super().__init__()
-        self.schematic_draw_enabled = True
-        self.schematic_diagram = diagram
-        self.label_size = 8
-        self.name = name
-
-    def cleanup(self) -> None:
-        pass
-
-    @override
-    def onSchematicDraw(
-        self,
-        transform,
-        pickingId,
-        materialRenderer,
-        pathRenderer,
-    ) -> vec2:
-        scale = self.schematic_diagram.draw(transform, pickingId, pathRenderer)
-        size = materialRenderer.get_text_render_size(self.name, self.label_size)
-        materialRenderer.draw_text(
-            self.name,
-            transform.position + vec3(-size.x / 2, scale.y / 2 + self.label_size, 0),
-            self.label_size,
-            theme.schematic.text,
-            pickingId.asUint64(),
-        )
-        return scale
-
-
 digital_gates: list[ComponentDefinition] = []
-draw_hooks: dict[int, DrawHook] = {}
+schematic_diagrams: dict[int, SchematicDiagram] = {}
 
 for gate_key, gate_data in _gates.items():
     input_slots_info: SlotsGroupInfo = SlotsGroupInfo()
@@ -286,10 +253,11 @@ for gate_key, gate_data in _gates.items():
         continue
 
     def_gate.compute_hash()
+
     dig = _paths[gate_key]
     dig.normalize_paths()
     dig.stroke_size = 1.0
-    draw_hooks[def_gate.get_hash()] = DrawHook(_paths[gate_key], def_gate.name)
+    schematic_diagrams[def_gate.get_hash()] = dig
 
 
-__all__ = ["digital_gates", "draw_hooks"]
+__all__ = ["digital_gates", "schematic_diagrams"]

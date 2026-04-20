@@ -38,7 +38,7 @@ namespace Bess::Canvas {
         return transform;
     }
 
-    glm::vec2 SceneComponent::calculateScale(SceneState &_) {
+    glm::vec2 SceneComponent::calculateScale(const SceneState &_) {
         const auto labelSize = Renderer::MaterialRenderer::getTextRenderSize(m_name, Styles::componentStyles.headerFontSize);
         float width = labelSize.x + (Styles::componentStyles.paddingX * 2.f);
         return {width, Styles::componentStyles.headerHeight};
@@ -121,7 +121,8 @@ namespace Bess::Canvas {
                                     ("style", getStyle, setStyle),
                                     ("name", getName, setName),
                                     ("parentComponent", getParentComponent, setParentComponent),
-                                    ("childComponents", getChildComponents, setChildComponents));
+                                    ("childComponents", getChildComponents, setChildComponents),
+                                    ("typeName", getTypeName));
 
         return json;
     }
@@ -146,7 +147,7 @@ namespace Bess::Canvas {
 
     void SceneComponent::onScaleChanged() {}
 
-    void SceneComponent::drawPropertiesUI(SceneState& sceneState) {}
+    void SceneComponent::drawPropertiesUI(SceneState &sceneState) {}
 
     std::vector<std::shared_ptr<SceneComponent>> SceneComponent::clone(const SceneState &sceneState) const {
         (void)sceneState;

@@ -6,7 +6,6 @@
 #include "scene/camera.h"
 #include "scene/scene_events.h"
 #include "scene/scene_state/components/scene_component.h"
-#include "scene/scene_state/components/sim_scene_comp_draw_hook.h"
 #include "scene/scene_state/scene_state.h"
 #include "scene/viewport.h"
 #include <memory>
@@ -95,10 +94,6 @@ namespace Bess::Canvas {
 
         bool isHoveredEntityValid();
 
-        std::shared_ptr<SimSceneCompDrawHook> getPluginDrawHookForComponentHash(uint64_t compHash) const;
-
-        bool hasPluginDrawHookForComponentHash(uint64_t compHash) const;
-
         void selectAllEntities();
         void focusCameraOnSelected();
         glm::vec2 toScenePos(const glm::vec2 &mousePos) const;
@@ -107,9 +102,15 @@ namespace Bess::Canvas {
 
         float getNextZCoord();
 
+        MAKE_GETTER(bool, IsLeftMousePressed, m_isLeftMousePressed);
+        MAKE_GETTER(bool, IsMiddleMousePressed, m_isMiddleMousePressed);
+        void processEvents(const std::vector<ApplicationEvent> &events);
+
       private:
         /// to draw testing stuff
         void drawScratchContent(TimeMs ts, const std::shared_ptr<Viewport> &viewport);
+        bool isCursorInViewport(const glm::vec2 &pos) const;
+        glm::vec2 getViewportMousePos(const glm::vec2 &mousePos) const;
 
         void onMouseMove(const glm::vec2 &pos);
         void onLeftMouse(bool isPressed);
@@ -118,16 +119,9 @@ namespace Bess::Canvas {
         void onRightMouse(bool isPressed);
         void onMouseWheel(double x, double y);
 
-        glm::vec2 getViewportMousePos(const glm::vec2 &mousePos) const;
-        bool isCursorInViewport(const glm::vec2 &pos) const;
+        glm::vec2 viewportToWinPos(const glm::vec2 &viewportPos) const;
 
         glm::vec2 getSnappedPos(const glm::vec2 &pos) const;
-
-        void processEvents(const std::vector<ApplicationEvent> &events);
-
-      private:
-        void loadComponentFromPlugins();
-        void cleanupPlugins();
 
       private:
         glm::vec2 m_size, m_mousePos, m_dMousePos;
@@ -160,8 +154,6 @@ namespace Bess::Canvas {
         VkExtent2D vec2Extent2D(const glm::vec2 &vec);
 
         bool m_isDestroyed = false;
-        std::unordered_map<uint64_t, std::shared_ptr<Canvas::SimSceneCompDrawHook>> m_pluginSceneDrawHooks;
-
         bool m_isFirstFrame = true;
     };
 } // namespace Bess::Canvas

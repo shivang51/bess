@@ -21,11 +21,13 @@ void bind_vec3(py::module_ &m);
 void bind_vec4(py::module_ &m);
 void bind_theme(py::module_ &m);
 void bind_bess_uuid(py::module_ &m);
+void bind_json_cpp(py::module_ &m);
 void bind_common_bindings(py::module_ &m) {
     bind_time(m);
     bind_vec2(m);
     bind_vec3(m);
     bind_vec4(m);
+    bind_json_cpp(m);
     bind_theme(m);
     bind_bess_uuid(m);
 
@@ -313,4 +315,75 @@ void bind_time(py::module_ &m) {
         });
 
     // std::chrono::duration<double, std::ratio<1l, 1000l>> alias to TimeMs
+}
+
+template <typename T>
+T get(const Json::Value &v, const std::string &key, const T &defaultVal) {
+    if (!v.isObject())
+        throw py::type_error("Not a JSON Object");
+    return v.get(key, defaultVal).template as<T>();
+}
+
+void bind_json_cpp(py::module_ &m) {
+    auto jsonMod = m.def_submodule("json", "Json bindings");
+
+    py::class_<Json::Value>(m, "JVal")
+        .def(py::init<>())
+        .def(py::init<std::string>())
+        .def(py::init<int>())
+        .def(py::init<double>())
+        .def(py::init<bool>())
+
+        .def("__getitem__", [](Json::Value &v, const std::string &key) {
+            if (!v.isObject())
+                throw py::type_error("Not a JSON Object");
+            return v[key];
+        })
+        .def("__getitem__", [](Json::Value &v, int index) {
+            if (!v.isArray())
+                throw py::type_error("Not a JSON Array");
+            return v[index];
+        })
+        .def("__setitem__", [](Json::Value &v, const std::string &key, const Json::Value &val) {
+            v[key] = val;
+        })
+        .def("__setitem__", [](Json::Value &v, int index, const Json::Value &val) {
+            v[index] = val;
+        })
+
+        .def("__setitem__", [](Json::Value &v, const std::string &key, const int &val) {
+            v[key] = val;
+        })
+        .def("__setitem__", [](Json::Value &v, const std::string &key, const std::string &val) {
+            v[key] = val;
+        })
+        .def("__setitem__", [](Json::Value &v, const std::string &key, const double &val) {
+            v[key] = val;
+        })
+        .def("__setitem__", [](Json::Value &v, const std::string &key, const bool val) {
+            v[key] = val;
+        })
+
+        .def("__len__", &Json::Value::size)
+        .def("is_object", &Json::Value::isObject)
+        .def("is_array", &Json::Value::isArray)
+        .def("has_key", [](const Json::Value &v, const std::string &key) {
+            if (!v.isObject())
+                throw py::type_error("Not a JSON Object");
+            return v.isMember(key);
+        })
+
+        // String conversion (for print() in Python)
+        .def("__str__", [](const Json::Value &v) {
+            Json::StreamWriterBuilder builder;
+            return Json::writeString(builder, v);
+        })
+        .def("__repr__", [](const Json::Value &v) {
+            return "<JsonValue: " + v.asString() + ">";
+        })
+
+        .def("as_str", &Json::Value::asString)
+        .def("as_int", &Json::Value::asInt)
+        .def("as_bool", &Json::Value::asBool)
+        .def("as_float", &Json::Value::asDouble);
 }

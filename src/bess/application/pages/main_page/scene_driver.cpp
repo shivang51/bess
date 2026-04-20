@@ -40,7 +40,9 @@ namespace Bess {
             }
         }
 
-        UI::UIMain::getScenePanels().front()->setAttachedScene(m_activeScene);
+        if (!UI::UIMain::getScenePanels().empty() && UI::UIMain::getScenePanels().front()) {
+            UI::UIMain::getScenePanels().front()->setAttachedScene(m_activeScene);
+        }
         BESS_INFO("[SceneDriver] Active scene set to id {}.", (uint64_t)id);
         return m_activeScene;
     }
@@ -65,7 +67,9 @@ namespace Bess {
                 }
             }
 
-            UI::UIMain::getScenePanels().front()->setAttachedScene(m_activeScene);
+            if (!UI::UIMain::getScenePanels().empty() && UI::UIMain::getScenePanels().front()) {
+                UI::UIMain::getScenePanels().front()->setAttachedScene(m_activeScene);
+            }
             BESS_INFO("[SceneDriver] Active scene set to index {}.", index);
             return m_activeScene;
         }

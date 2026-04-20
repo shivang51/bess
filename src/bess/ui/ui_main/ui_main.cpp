@@ -27,12 +27,70 @@
 #include "ui/ui_main/truth_table_window.h"
 #include "ui_main/scene_viewport_panel.h"
 #include <filesystem>
+#include <vector>
 
 namespace Bess::UI {
     static constexpr ImGuiWindowFlags NO_MOVE_FLAGS =
         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
         ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
         ImGuiWindowFlags_NoDecoration;
+
+    namespace {
+        struct VerilogImportWizardState {
+            bool open = false;
+            bool requestOpenPopup = false;
+            std::string filePath;
+            std::vector<std::string> filePaths;
+            std::string stageMessage = "Select Verilog files";
+            float progress = 0.f;
+            bool importing = false;
+            bool finished = false;
+            bool failed = false;
+        };
+
+        VerilogImportWizardState &getVerilogImportWizardState() {
+            static VerilogImportWizardState state;
+            return state;
+        }
+
+        void resetVerilogImportWizard(VerilogImportWizardState &state) {
+            state.filePath.clear();
+            state.filePaths.clear();
+            state.importing = false;
+            state.finished = false;
+            state.failed = false;
+            state.progress = 0.f;
+            state.stageMessage = "Select Verilog files";
+        }
+
+        std::vector<std::string> selectedVerilogPaths(const VerilogImportWizardState &state) {
+            if (!state.filePaths.empty()) {
+                return state.filePaths;
+            }
+            if (!state.filePath.empty()) {
+                return {state.filePath};
+            }
+            return {};
+        }
+
+        std::string importSelectionLabel(const std::vector<std::string> &paths) {
+            if (paths.empty()) {
+                return {};
+            }
+
+            const auto primary = std::filesystem::path(paths.front()).filename().string();
+            if (paths.size() == 1) {
+                return primary;
+            }
+
+            return std::format("{} (+{} more)", primary, paths.size() - 1);
+        }
+
+        bool hasSupportedVerilogExtension(const std::filesystem::path &path) {
+            const auto extension = path.extension().string();
+            return extension == ".v" || extension == ".sv" || extension == ".vh" || extension == ".svh";
+        }
+    } // namespace
 
     void UIMain::draw() {
         static bool firstFrame = true;
@@ -49,6 +107,7 @@ namespace Bess::UI {
 
         drawMenubar();
         drawStatusbar();
+        drawVerilogImportWizard();
 
         auto &pageState = Pages::MainPage::getInstance()->getState();
         if (pageState.actionFlags.saveProject) {
@@ -147,6 +206,24 @@ namespace Bess::UI {
         const float menuBarHeight = ImGui::GetFrameHeight();
 
         auto &pageState = Pages::MainPage::getInstance()->getState();
+        const auto applyHierarchicalLayout = [&]() {
+            const auto result = pageState.applyHierarchicalLayoutToActiveScene();
+            if (!result.applied) {
+                if (result.laidOutNodes == 0) {
+                    getState()._internalData.statusMessage = "Hierarchical layout skipped: no scene components";
+                } else if (result.uniqueEdges == 0) {
+                    getState()._internalData.statusMessage = "Hierarchical layout skipped: no signal graph to rank";
+                } else {
+                    getState()._internalData.statusMessage = "Hierarchical layout skipped";
+                }
+                return;
+            }
+
+            getState()._internalData.statusMessage =
+                std::format("Applied hierarchical layout to {} components",
+                            result.laidOutNodes);
+        };
+
         if (ImGui::BeginMenu("File")) {
             // New File
             std::string temp_name = Icons::FontAwesomeIcons::FA_FILE;
@@ -173,12 +250,6 @@ namespace Bess::UI {
             ImGui::Separator();
             ImGui::Spacing();
 
-            temp_name = Icons::FontAwesomeIcons::FA_GEAR;
-            temp_name += "  Prefrences";
-            if (ImGui::MenuItem(temp_name.c_str())) {
-                getPanel<SettingsWindow>()->show();
-            }
-
             temp_name = Icons::FontAwesomeIcons::FA_FILE_EXPORT;
             temp_name += "  Export";
             if (ImGui::BeginMenu(temp_name.c_str())) {
@@ -186,6 +257,18 @@ namespace Bess::UI {
                 temp_name += "  Scene View PNG";
                 if (ImGui::MenuItem(temp_name.c_str())) {
                     getPanel<SceneExportWindow>()->show();
+                }
+                ImGui::EndMenu();
+            }
+
+            temp_name = Icons::FontAwesomeIcons::FA_FILE_IMPORT;
+            temp_name += "   Import";
+            if (ImGui::BeginMenu(temp_name.c_str())) {
+                const std::string verilogLabel = std::string(Icons::FontAwesomeIcons::FA_V) +
+                                                 Icons::FontAwesomeIcons::FA_S + "  Verilog Script";
+                if (ImGui::MenuItem(verilogLabel.c_str())) {
+                    auto &wizard = getVerilogImportWizardState();
+                    wizard.requestOpenPopup = true;
                 }
                 ImGui::EndMenu();
             }
@@ -219,10 +302,26 @@ namespace Bess::UI {
             ImGui::Spacing();
             ImGui::Separator();
             ImGui::Spacing();
+            icon = Icons::FontAwesomeIcons::FA_ALIGN_LEFT;
+            if (ImGui::BeginMenu((icon + "  Layout").c_str())) {
+                icon = Icons::CodIcons::LAYOUT;
+                if (ImGui::MenuItem((icon + "  Hierarchical Layout").c_str())) {
+                    applyHierarchicalLayout();
+                }
+                ImGui::EndMenu();
+            }
+
+            ImGui::Separator();
+            ImGui::Spacing();
 
             icon = Icons::FontAwesomeIcons::FA_PENCIL;
             if (ImGui::MenuItem((icon + "  Project Settings").c_str(), "Ctrl+P")) {
                 getPanel<ProjectSettingsWindow>()->show();
+            }
+
+            icon = Icons::FontAwesomeIcons::FA_GEAR;
+            if (ImGui::MenuItem((icon + "  Preferences").c_str(), "")) {
+                getPanel<SettingsWindow>()->show();
             }
 
             ImGui::EndMenu();
@@ -268,7 +367,7 @@ namespace Bess::UI {
         // project name textbox - end
 
         // right aligned controls
-        constexpr size_t buttonCount = 2;
+        constexpr size_t buttonCount = 3;
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
         ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.5f, 0.5f));
 
@@ -287,6 +386,17 @@ namespace Bess::UI {
             auto &simEngine = SimEngine::SimulationEngine::instance();
             const auto isSimPaused = simEngine.getSimulationState() == SimEngine::SimulationState::paused;
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0, 0, 0, 0});
+
+            if (ImGui::Button(Icons::CodIcons::LAYOUT, buttonSize)) {
+                applyHierarchicalLayout();
+            }
+
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                ImGui::SetTooltip("%s", "Apply Hierarchical Layout");
+            }
+
+            ImGui::SameLine();
+            ImGui::SetCursorPosY(((targetHeight - buttonSize.y) * 0.5f) + 2.f);
 
             // Play / Pause
             {
@@ -340,6 +450,122 @@ namespace Bess::UI {
         if (newFileClicked) {
             onNewProject();
         }
+    }
+
+    void UIMain::drawVerilogImportWizard() {
+        auto &wizard = getVerilogImportWizardState();
+        auto &pageState = Pages::MainPage::getInstance()->getState();
+
+        if (wizard.requestOpenPopup) {
+            wizard.requestOpenPopup = false;
+            wizard.open = true;
+            resetVerilogImportWizard(wizard);
+            ImGui::OpenPopup("Import Verilog");
+        }
+
+        if (!wizard.open) {
+            return;
+        }
+
+        ImGui::SetNextWindowSize(ImVec2(520.f, 0.f), ImGuiCond_FirstUseEver);
+        if (!ImGui::BeginPopupModal("Import Verilog", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            return;
+        }
+
+        if (wizard.importing) {
+            std::string errorMessage;
+            const auto status = pageState.advanceVerilogImport(&errorMessage);
+            wizard.progress = status.progress;
+            wizard.stageMessage = status.stageMessage;
+            wizard.importing = status.importing;
+            wizard.finished = status.finished;
+            wizard.failed = status.failed;
+
+            if (status.finished) {
+                if (status.failed) {
+                    getState()._internalData.statusMessage = status.stageMessage;
+                } else {
+                    const auto paths = selectedVerilogPaths(wizard);
+                    getState()._internalData.statusMessage =
+                        std::format("Imported Verilog: {}", importSelectionLabel(paths));
+                    wizard.open = false;
+                    resetVerilogImportWizard(wizard);
+                    pageState.cancelVerilogImport();
+                    ImGui::CloseCurrentPopup();
+                }
+            }
+        }
+
+        ImGui::TextUnformatted("Files");
+        if (Widgets::TextBox("##VerilogImportPath", wizard.filePath, "Select Verilog files")) {
+            wizard.filePaths.clear();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Browse") && !wizard.importing) {
+            const auto paths = Dialogs::showOpenFilesDialog("Import Verilog Files",
+                                                            {"Verilog Source Files", "*.sv *.v *.svh *.vh",
+                                                             "All Files", "*.*"});
+            if (!paths.empty()) {
+                wizard.filePaths = paths;
+                wizard.filePath = importSelectionLabel(paths);
+            }
+        }
+
+        if (ImGui::IsItemHovered() && !wizard.filePaths.empty()) {
+            ImGui::BeginTooltip();
+            for (const auto &path : wizard.filePaths) {
+                ImGui::TextUnformatted(path.c_str());
+            }
+            ImGui::EndTooltip();
+        }
+
+        ImGui::Spacing();
+        ImGui::TextWrapped("%s", wizard.stageMessage.c_str());
+        ImGui::ProgressBar(wizard.progress, ImVec2(420.f, 0.f));
+
+        ImGui::Spacing();
+        const auto selectedPaths = selectedVerilogPaths(wizard);
+
+        ImGui::BeginDisabled(wizard.importing || selectedPaths.empty());
+        if (ImGui::Button("Import", ImVec2(120.f, 0.f))) {
+            bool hasUnsupportedFiles = false;
+            for (const auto &path : selectedPaths) {
+                if (!hasSupportedVerilogExtension(path)) {
+                    hasUnsupportedFiles = true;
+                    break;
+                }
+            }
+
+            if (hasUnsupportedFiles) {
+                wizard.importing = false;
+                wizard.finished = true;
+                wizard.failed = true;
+                wizard.progress = 1.f;
+                wizard.stageMessage = "Import failed: choose only .v, .sv, .vh, or .svh files";
+                getState()._internalData.statusMessage = wizard.stageMessage;
+            } else {
+                pageState.startVerilogImport(selectedPaths);
+                wizard.importing = true;
+                wizard.finished = false;
+                wizard.failed = false;
+                wizard.progress = 0.05f;
+                wizard.stageMessage = "Clearing current project";
+            }
+        }
+        ImGui::EndDisabled();
+
+        ImGui::SameLine();
+        const char *closeLabel = wizard.importing ? "Close Disabled" : "Close";
+        ImGui::BeginDisabled(wizard.importing);
+        if (ImGui::Button(closeLabel, ImVec2(120.f, 0.f))) {
+            wizard.open = false;
+            resetVerilogImportWizard(wizard);
+            pageState.cancelVerilogImport();
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndDisabled();
+
+        ImGui::EndPopup();
     }
 
     void UIMain::resetDockspace() {
@@ -404,7 +630,9 @@ namespace Bess::UI {
 
     void UIMain::onOpenProject() {
         const auto filepath =
-            Dialogs::showOpenFileDialog("Open BESS Project File", "*.bproj|");
+            Dialogs::showOpenFileDialog("Open BESS Project File",
+                                        {"Bess Project", "*.bproj",
+                                         "All Files", "*.*"});
 
         if (filepath == "" || !std::filesystem::exists(filepath)) {
             BESS_WARN("No or invalid file path selcted");

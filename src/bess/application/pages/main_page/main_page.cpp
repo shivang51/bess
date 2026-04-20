@@ -38,13 +38,19 @@
 #include <unordered_set>
 
 namespace Bess::Pages {
+    bool MainPage::s_headless = false;
+
+    void MainPage::setHeadless(bool headless) {
+        s_headless = headless;
+    }
+
     std::shared_ptr<MainPage> &MainPage::getInstance(const std::shared_ptr<Window> &parentWindow) {
         static auto instance = std::make_shared<MainPage>(parentWindow);
         return instance;
     }
 
     MainPage::MainPage(const std::shared_ptr<Window> &parentWindow) {
-        if (m_parentWindow == nullptr && parentWindow == nullptr) {
+        if (!s_headless && m_parentWindow == nullptr && parentWindow == nullptr) {
             throw std::runtime_error("MainPage: parentWindow is nullptr. Need to pass a parent window.");
         }
         m_parentWindow = parentWindow;
@@ -66,7 +72,9 @@ namespace Bess::Pages {
         REG_TO_SER_REGISTRY(Canvas::SlotProbeSceneComponent);
         REG_TO_SER_REGISTRY(Canvas::ModuleSceneComponent);
 
-        UI::UIMain::init();
+        if (!s_headless) {
+            UI::UIMain::init();
+        }
 
         auto scene = m_state.getSceneDriver().createNewScene();
         m_state.getSceneDriver().setRootSceneId(scene->getSceneId());
@@ -104,17 +112,22 @@ namespace Bess::Pages {
         m_state.getCommandSystem().reset();
         m_copiedComponents.clear();
 
-        auto &instance = Bess::Vulkan::VulkanCore::instance();
-        instance.cleanup([&]() {
-            for (const auto &panel : UI::UIMain::getScenePanels()) {
-                panel->destroyViewport();
-            }
+        if (!s_headless) {
+            auto &instance = Bess::Vulkan::VulkanCore::instance();
+            instance.cleanup([&]() {
+                for (const auto &panel : UI::UIMain::getScenePanels()) {
+                    panel->destroyViewport();
+                }
+                m_state.getSceneDriver()->destroy();
+                Assets::AssetManager::instance().clear();
+                UI::vulkanCleanup(instance.getDevice());
+            });
+
+            UI::UIMain::destroy();
+        } else {
             m_state.getSceneDriver()->destroy();
             Assets::AssetManager::instance().clear();
-            UI::vulkanCleanup(instance.getDevice());
-        });
-
-        UI::UIMain::destroy();
+        }
 
         BESS_INFO("[MainPage] Destroyed");
         m_isDestroyed = true;

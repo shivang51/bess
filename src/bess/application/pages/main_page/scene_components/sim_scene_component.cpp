@@ -15,6 +15,7 @@
 #include "ui/widgets/m_widgets.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <unordered_set>
 
 namespace Bess::Canvas {
@@ -30,45 +31,31 @@ namespace Bess::Canvas {
     }
 
     void SimulationSceneComponent::update(Bess::TimeMs timeStep, SceneState &state) {
+        updateScales(state);
+    }
+
+    void SimulationSceneComponent::updateScales(const SceneState &state) {
         if (m_isScaleDirty) {
             setScale(calculateScale(state));
             resetSlotPositions(state);
             m_isScaleDirty = false;
         }
+
         if (m_isSchematicScaleDirty) {
             calculateSchematicScale(state);
             resetSchematicPinsPositions(state);
             m_isSchematicScaleDirty = false;
         }
+
+        if (m_isSchSlotsPosDirty) {
+            resetSchematicPinsPositions(state);
+            m_isSchSlotsPosDirty = false;
+        }
     }
 
     void SimulationSceneComponent::draw(SceneDrawContext &context) {
-        if (m_isFirstDraw) {
-            onFirstDraw(context);
-        }
-
-        const auto pickingId = PickingId{m_runtimeId, 0};
-
-        DrawHookOnDrawResult drawHookResult{.drawChildren = true, .drawOriginal = true};
-        if (m_drawHook && m_drawHook->isDrawEnabled()) {
-            const auto &compState = SimEngine::SimulationEngine::instance().getComponentState(m_simEngineId);
-            drawHookResult = m_drawHook->onDraw(m_transform, pickingId, compState, context.materialRenderer, context.pathRenderer);
-
-            auto &state = *context.sceneState;
-            if (drawHookResult.sizeChanged) {
-                setScale(drawHookResult.newSize);
-                resetSlotPositions(state);
-                setSchematicScaleDirty();
-            }
-        }
-
-        if (drawHookResult.drawOriginal) {
-            drawBackground(context);
-        }
-
-        if (drawHookResult.drawChildren) {
-            drawSlots(context);
-        }
+        drawBackground(context);
+        drawSlots(context);
     }
 
     void SimulationSceneComponent::drawBackground(SceneDrawContext &context) {
@@ -129,65 +116,54 @@ namespace Bess::Canvas {
     }
 
     void SimulationSceneComponent::drawSlots(SceneDrawContext &context) {
-        const auto &state = *context.sceneState;
-        // slots
-        for (const auto &childId : m_childComponents) {
-            auto child = state.getComponentByUuid(childId);
-            child->draw(context);
+        // I know i am repeating my self here :), I have trust issues
+
+        if (context.sceneState->getIsSchematicView()) {
+            for (const auto &childId : m_childComponents) {
+                auto child = context.sceneState->getComponentByUuid(childId);
+                child->drawSchematic(context);
+            }
+        } else {
+            for (const auto &childId : m_childComponents) {
+                auto child = context.sceneState->getComponentByUuid(childId);
+                child->draw(context);
+            }
         }
     }
 
     void SimulationSceneComponent::drawSchematic(SceneDrawContext &context) {
-
         auto &state = *context.sceneState;
-        if (m_isSchematicScaleDirty) {
-            calculateSchematicScale(state);
-            resetSchematicPinsPositions(state);
-            m_isSchematicScaleDirty = false;
-        }
-
         const auto &id = PickingId{m_runtimeId, 0};
 
-        if (m_drawHook && m_drawHook->isSchematicDrawEnabled()) {
-            auto newScale = m_drawHook->onSchematicDraw(m_schematicTransform, id,
-                                                        context.materialRenderer,
-                                                        context.pathRenderer);
-            const auto &prevScale = m_schematicTransform.scale;
-            if (newScale.x != prevScale.x || newScale.y != prevScale.y) {
-                m_schematicTransform.scale = newScale;
-                resetSchematicPinsPositions(state);
-            }
-        } else {
-            const glm::vec3 &pos = getAbsolutePosition(state);
-            float x = pos.x - (m_schematicTransform.scale.x / 2.f);
-            float y = pos.y - (m_schematicTransform.scale.y / 2.f);
-            float x1 = x + m_schematicTransform.scale.x;
-            float y1 = y + m_schematicTransform.scale.y;
-            float nodeWeight = Styles::compSchematicStyles.strokeSize;
-            const auto &textColor = ViewportTheme::schematicViewColors.text;
-            const auto &fillColor = ViewportTheme::schematicViewColors.componentFill;
-            const auto &strokeColor = ViewportTheme::schematicViewColors.componentStroke;
-            context.pathRenderer->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
-            context.pathRenderer->pathLineTo({x1, y, pos.z}, nodeWeight, strokeColor, id);
-            context.pathRenderer->pathLineTo({x1, y1, pos.z}, nodeWeight, strokeColor, id);
-            context.pathRenderer->pathLineTo({x, y1, pos.z}, nodeWeight, strokeColor, id);
-            context.pathRenderer->endPathMode(true, true, fillColor);
+        const glm::vec3 &pos = getAbsolutePosition(state);
+        float x = pos.x - (m_schematicTransform.scale.x / 2.f);
+        float y = pos.y - (m_schematicTransform.scale.y / 2.f);
+        float x1 = x + m_schematicTransform.scale.x;
+        float y1 = y + m_schematicTransform.scale.y;
+        float nodeWeight = Styles::compSchematicStyles.strokeSize;
+        const auto &textColor = ViewportTheme::schematicViewColors.text;
+        const auto &fillColor = ViewportTheme::schematicViewColors.componentFill;
+        const auto &strokeColor = ViewportTheme::schematicViewColors.componentStroke;
+        context.pathRenderer->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
+        context.pathRenderer->pathLineTo({x1, y, pos.z}, nodeWeight, strokeColor, id);
+        context.pathRenderer->pathLineTo({x1, y1, pos.z}, nodeWeight, strokeColor, id);
+        context.pathRenderer->pathLineTo({x, y1, pos.z}, nodeWeight, strokeColor, id);
+        context.pathRenderer->endPathMode(true, true, fillColor);
 
-            const auto textSize = Renderer::MaterialRenderer::getTextRenderSize(m_name,
-                                                                                Styles::compSchematicStyles.nameFontSize);
-            glm::vec3 textPos = {pos.x, y + ((y1 - y) / 2.f), pos.z + 0.0005f};
-            textPos.x -= textSize.x / 2.f;
-            textPos.y += Styles::simCompStyles.headerFontSize / 2.f;
-            context.materialRenderer->drawText(m_name,
-                                               textPos,
-                                               Styles::compSchematicStyles.nameFontSize,
-                                               textColor, id, 0.f);
-        }
+        const auto textSize = Renderer::MaterialRenderer::getTextRenderSize(m_name,
+                                                                            Styles::compSchematicStyles.nameFontSize);
+        glm::vec3 textPos = {pos.x, y + ((y1 - y) / 2.f), pos.z + 0.0005f};
+        textPos.x -= textSize.x / 2.f;
+        textPos.y += Styles::simCompStyles.headerFontSize / 2.f;
+        context.materialRenderer->drawText(m_name,
+                                           textPos,
+                                           Styles::compSchematicStyles.nameFontSize,
+                                           textColor, id, 0.f);
 
-        // slots
-        for (const auto &childId : m_childComponents) {
-            auto child = state.getComponentByUuid(childId);
-            child->drawSchematic(context);
+        drawSlots(context);
+
+        if (m_isFirstSchematicDraw) {
+            m_isFirstSchematicDraw = false;
         }
     }
 
@@ -221,7 +197,7 @@ namespace Bess::Canvas {
         return {inputPositions, outputPositions};
     }
 
-    glm::vec2 SimulationSceneComponent::calculateScale(SceneState &state) {
+    glm::vec2 SimulationSceneComponent::calculateScale(const SceneState &state) {
         const auto labelSize = Renderer::MaterialRenderer::getTextRenderSize(m_name,
                                                                              Styles::simCompStyles.headerFontSize);
         float width = labelSize.x + (Styles::simCompStyles.paddingX * 2.f);
@@ -237,7 +213,7 @@ namespace Bess::Canvas {
         return {width, height};
     }
 
-    void SimulationSceneComponent::resetSlotPositions(SceneState &state) {
+    void SimulationSceneComponent::resetSlotPositions(const SceneState &state) {
         const auto [inpPositions, outPositions] =
             calculateSlotPositions(m_inputSlots.size(), m_outputSlots.size());
 
@@ -255,7 +231,7 @@ namespace Bess::Canvas {
         }
     }
 
-    void SimulationSceneComponent::resetSchematicPinsPositions(SceneState &state) {
+    void SimulationSceneComponent::resetSchematicPinsPositions(const SceneState &state) {
         // Schematic diagram pin positions
         // We will ignore resize slots for schematic view positioning
         // Resize slots will be hidden in schematic view.
@@ -290,14 +266,6 @@ namespace Bess::Canvas {
             pos.y = glm::round(pos.y / SNAP_AMOUNT) * SNAP_AMOUNT;
             slotComp->setSchematicPos(glm::vec3(pos, -0.0005));
         }
-    }
-
-    void SimulationSceneComponent::onFirstDraw(SceneDrawContext &context) {
-        m_isFirstDraw = false;
-    }
-
-    void SimulationSceneComponent::onFirstSchematicDraw(SceneDrawContext &context) {
-        m_isFirstSchematicDraw = false;
     }
 
     size_t SimulationSceneComponent::getInputSlotsCount() const {
@@ -349,14 +317,10 @@ namespace Bess::Canvas {
         simEngine.deleteComponent(m_simEngineId);
         m_simEngineId = UUID::null;
 
-        if (m_drawHook) {
-            // m_drawHook.reset();
-        }
-
         return removedIds;
     }
 
-    void SimulationSceneComponent::calculateSchematicScale(SceneState &state) {
+    void SimulationSceneComponent::calculateSchematicScale(const SceneState &state) {
         auto inpCount = m_inputSlots.size();
         auto outCount = m_outputSlots.size();
         if (inpCount != 0 &&
@@ -399,7 +363,7 @@ namespace Bess::Canvas {
         m_isSchematicScaleDirty = false;
     }
 
-    std::vector<std::shared_ptr<SceneComponent>> SimulationSceneComponent::createNewAndRegister(
+    std::vector<std::shared_ptr<SceneComponent>> SimulationSceneComponent::createNew(
         const std::shared_ptr<SimEngine::ComponentDefinition> &compDef) {
         const bool isInput = compDef->getBehaviorType() == SimEngine::ComponentBehaviorType::input;
         const bool isOutput = compDef->getBehaviorType() == SimEngine::ComponentBehaviorType::output;
@@ -482,8 +446,8 @@ namespace Bess::Canvas {
         return dependants;
     }
 
-    inline void SimulationSceneComponent::setSchematicScaleDirty() {
-        m_isSchematicScaleDirty = true;
+    void SimulationSceneComponent::setSchematicScaleDirty(bool val) {
+        m_isSchematicScaleDirty = val;
     }
 
     void SimulationSceneComponent::onChildrenChanged() {
@@ -668,4 +632,7 @@ namespace Bess::Canvas {
         setSchematicScaleDirty();
     }
 
+    void SimulationSceneComponent::setSchSlotsPosDirty(bool val) {
+        m_isSchSlotsPosDirty = val;
+    }
 } // namespace Bess::Canvas

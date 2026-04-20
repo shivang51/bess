@@ -20,6 +20,7 @@ namespace Bess {
         glm::vec4 clockConnectionLow;
         glm::vec4 clockConnectionHigh;
 
+        glm::vec4 groupColor = glm::vec4(188, 151, 76, 255) / 255.0f;
         glm::vec4 text;
 
         glm::vec4 selectionBoxBorder;

@@ -5,7 +5,7 @@ namespace Bess::Config {
 
     void Settings::init() {
         m_themes = Themes();
-        m_currentTheme = "Bess Dark";
+        m_currentTheme = "Bess Minimal Dark";
         m_scale = 1.0f;
         m_fontSize = 18.0f;
         m_fontRebuild = true;

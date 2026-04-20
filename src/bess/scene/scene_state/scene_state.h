@@ -53,13 +53,14 @@ namespace Bess::Canvas {
                 EventSystem::EventDispatcher::instance().queue(
                     Events::ComponentAddedEvent{.uuid = id,
                                                 .type = component->getType(),
+                                                .sceneId = m_sceneId,
                                                 .state = this});
         }
 
         template <typename T>
         std::shared_ptr<T> getComponentByUuid(const UUID &uuid) const {
             if (m_componentsMap.contains(uuid)) {
-                return m_componentsMap.at(uuid)->cast<T>();
+                return std::dynamic_pointer_cast<T>(m_componentsMap.at(uuid));
             }
             return nullptr;
         }

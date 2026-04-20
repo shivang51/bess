@@ -365,9 +365,24 @@ namespace Bess::SimEngine {
         }
         const auto &comp = m_simEngineState.getDigitalComponent(uuid);
 
-        return type == SlotType::digitalOutput
-                   ? comp->state.outputStates[idx]
-                   : comp->state.inputStates[idx];
+        if (idx < 0) {
+            BESS_WARN("[getDigitalPinState] Negative slot index {} for component {}", idx, (uint64_t)uuid);
+            return {LogicState::unknown, SimTime(0)};
+        }
+
+        if (type == SlotType::digitalOutput) {
+            if (static_cast<size_t>(idx) >= comp->state.outputStates.size()) {
+                BESS_WARN("[getDigitalPinState] Output slot index {} out of range for component {}", idx, (uint64_t)uuid);
+                return {LogicState::unknown, SimTime(0)};
+            }
+            return comp->state.outputStates[idx];
+        }
+
+        if (static_cast<size_t>(idx) >= comp->state.inputStates.size()) {
+            BESS_WARN("[getDigitalPinState] Input slot index {} out of range for component {}", idx, (uint64_t)uuid);
+            return {LogicState::unknown, SimTime(0)};
+        }
+        return comp->state.inputStates[idx];
     }
 
     ConnectionBundle SimulationEngine::getConnections(const UUID &uuid) {
@@ -387,6 +402,17 @@ namespace Bess::SimEngine {
 
     void SimulationEngine::setInputSlotState(const UUID &uuid, int pinIdx, LogicState state) {
         const auto comp = m_simEngineState.getDigitalComponent(uuid);
+        if (!comp) {
+            BESS_WARN("[setInputSlotState] Component with UUID {} is invalid", (uint64_t)uuid);
+            return;
+        }
+
+        if (pinIdx < 0 || static_cast<size_t>(pinIdx) >= comp->state.inputStates.size()) {
+            BESS_WARN("[setInputSlotState] Input slot index {} out of range for component {}",
+                      pinIdx,
+                      (uint64_t)uuid);
+            return;
+        }
 
         comp->state.inputStates[pinIdx].state = state;
         comp->state.inputStates[pinIdx].lastChangeTime = m_currentSimTime;
@@ -395,6 +421,18 @@ namespace Bess::SimEngine {
 
     void SimulationEngine::setOutputSlotState(const UUID &uuid, int pinIdx, LogicState state) {
         const auto comp = m_simEngineState.getDigitalComponent(uuid);
+        if (!comp) {
+            BESS_WARN("[setOutputSlotState] Component with UUID {} is invalid", (uint64_t)uuid);
+            return;
+        }
+
+        if (pinIdx < 0 || static_cast<size_t>(pinIdx) >= comp->state.outputStates.size()) {
+            BESS_WARN("[setOutputSlotState] Output slot index {} out of range for component {}",
+                      pinIdx,
+                      (uint64_t)uuid);
+            return;
+        }
+
         auto oldState = comp->state;
         comp->state.outputStates[pinIdx].state = state;
         comp->state.outputStates[pinIdx].lastChangeTime = m_currentSimTime;
@@ -404,6 +442,18 @@ namespace Bess::SimEngine {
 
     void SimulationEngine::invertInputSlotState(const UUID &uuid, int pinIdx) {
         const auto comp = m_simEngineState.getDigitalComponent(uuid);
+        if (!comp) {
+            BESS_WARN("[invertInputSlotState] Component with UUID {} is invalid", (uint64_t)uuid);
+            return;
+        }
+
+        if (pinIdx < 0 || static_cast<size_t>(pinIdx) >= comp->state.inputStates.size()) {
+            BESS_WARN("[invertInputSlotState] Input slot index {} out of range for component {}",
+                      pinIdx,
+                      (uint64_t)uuid);
+            return;
+        }
+
         const auto state = comp->state.inputStates[pinIdx].state == LogicState::high
                                ? LogicState::low
                                : LogicState::high;
@@ -931,11 +981,18 @@ namespace Bess::SimEngine {
 
     void SimulationEngine::scheduleDependantsOf(const UUID &compId) {
         const auto &dc = m_simEngineState.getDigitalComponent(compId);
+        if (!dc) {
+            return;
+        }
         for (auto &pin : dc->outputConnections) {
             const auto &keyView = pin | std::views::keys;
             const std::set<UUID> uniqueEntities = std::set<UUID>(keyView.begin(), keyView.end());
             for (auto &ent : uniqueEntities) {
-                const auto simDelay = m_simEngineState.getDigitalComponent(ent)->definition->getSimDelay();
+                const auto dependant = m_simEngineState.getDigitalComponent(ent);
+                if (!dependant || !dependant->definition) {
+                    continue;
+                }
+                const auto simDelay = dependant->definition->getSimDelay();
                 scheduleEvent(ent,
                               compId,
                               m_currentSimTime + simDelay);

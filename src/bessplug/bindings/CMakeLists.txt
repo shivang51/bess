@@ -26,13 +26,14 @@ set(BESS_PYBIND_SOURCES
 		scene/scene_common.binding.cpp
 		scene/scene_component.binding.cpp
 		scene/sim_scene_component.binding.cpp
-		scene/sim_comp_draw_hook.binding.cpp
 
     sim_engine/types.cpp
     sim_engine/sim_functions.cpp
     sim_engine/component_definition.binding.cpp
 
 		assets/asset_manager.binding.cpp
+
+    cmds/bess_cmds.binding.cpp
 
 		ui/ui_hook.binding.cpp
 		ui/bess_ui.binding.cpp

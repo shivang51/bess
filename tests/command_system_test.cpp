@@ -76,8 +76,8 @@ TEST_F(CommandSystemTest, DeleteCommandWithUnknownIdDoesNotCreateUndoHistory) {
 }
 
 TEST_F(CommandSystemTest, MacroCommandUndoRedoPreservesMultiStepSceneChanges) {
-    auto createdA = Bess::Canvas::SimulationSceneComponent::createNewAndRegister(inputDef);
-    auto createdB = Bess::Canvas::SimulationSceneComponent::createNewAndRegister(outputDef);
+    auto createdA = Bess::Canvas::SimulationSceneComponent::createNew(inputDef);
+    auto createdB = Bess::Canvas::SimulationSceneComponent::createNew(outputDef);
 
     auto compA = std::dynamic_pointer_cast<Bess::Canvas::SimulationSceneComponent>(createdA.front());
     auto compB = std::dynamic_pointer_cast<Bess::Canvas::SimulationSceneComponent>(createdB.front());
@@ -117,9 +117,9 @@ TEST_F(CommandSystemTest, MacroCommandWithNoOpsStillProducesUndoableEntryWithout
 }
 
 TEST_F(CommandSystemTest, RepeatedUndoRedoCyclesKeepMacroAddedSceneStable) {
-    auto createdA = Bess::Canvas::SimulationSceneComponent::createNewAndRegister(inputDef);
-    auto createdB = Bess::Canvas::SimulationSceneComponent::createNewAndRegister(andDef);
-    auto createdC = Bess::Canvas::SimulationSceneComponent::createNewAndRegister(outputDef);
+    auto createdA = Bess::Canvas::SimulationSceneComponent::createNew(inputDef);
+    auto createdB = Bess::Canvas::SimulationSceneComponent::createNew(andDef);
+    auto createdC = Bess::Canvas::SimulationSceneComponent::createNew(outputDef);
 
     auto compA = std::dynamic_pointer_cast<Bess::Canvas::SimulationSceneComponent>(createdA.front());
     auto compB = std::dynamic_pointer_cast<Bess::Canvas::SimulationSceneComponent>(createdB.front());

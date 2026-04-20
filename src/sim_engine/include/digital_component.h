@@ -13,7 +13,8 @@ namespace Bess::SimEngine {
 
     typedef std::function<void(size_t count)> TOnSlotCountChangeCB;
 
-    struct BESS_API DigitalComponent {
+    class BESS_API DigitalComponent {
+      public:
         DigitalComponent() = default;
         DigitalComponent(const DigitalComponent &) = default;
         DigitalComponent(const std::shared_ptr<ComponentDefinition> &def,
@@ -39,6 +40,8 @@ namespace Bess::SimEngine {
 
         void clearCallbacks();
 
+        MAKE_GETTER_SETTER(std::string, Name, m_name)
+
         UUID id;
         UUID netUuid = UUID::null;
         ComponentState state;
@@ -47,9 +50,13 @@ namespace Bess::SimEngine {
         Connections outputConnections;
 
       private:
-        std::vector<std::pair<UUID, TOnStateChangeCB>> onStateChangeCbs;
-        std::vector<std::pair<UUID, TOnSlotCountChangeCB>> onInputSlotCountChangeCbs;
-        std::vector<std::pair<UUID, TOnSlotCountChangeCB>> onOutputSlotCountChangeCbs;
+        static std::unordered_map<std::string, int> &getNameCountMap();
+
+      private:
+        std::string m_name;
+        std::vector<std::pair<UUID, TOnStateChangeCB>> m_onStateChangeCbs;
+        std::vector<std::pair<UUID, TOnSlotCountChangeCB>> m_onInputSlotCountChangeCbs;
+        std::vector<std::pair<UUID, TOnSlotCountChangeCB>> m_onOutputSlotCountChangeCbs;
     };
 
 } // namespace Bess::SimEngine

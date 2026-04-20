@@ -166,37 +166,69 @@ namespace Bess::Canvas {
         }
     }
 
-    SimEngine::SlotState SlotSceneComponent::getSlotState(const SceneState &state) const {
-        BESS_ASSERT(m_parentComponent != UUID::null, "Parent component UUID is null");
+    SimEngine::SlotState SlotSceneComponent::getSlotState(
+        const SceneState &state) const {
+        BESS_ASSERT(m_parentComponent != UUID::null,
+                    std::format("Parent component UUID is null, {}", (uint64_t)m_uuid));
         BESS_ASSERT(m_index >= 0, "Slot index is negative");
 
         const auto parentComp = state.getComponentByUuid<SimulationSceneComponent>(m_parentComponent);
+        if (!parentComp || m_index < 0) {
+            return {SimEngine::LogicState::unknown, SimEngine::SimTime(0)};
+        }
+
         auto &simEngine = SimEngine::SimulationEngine::instance();
-        const auto &compState = simEngine.getComponentState(parentComp->getSimEngineId());
+        const auto digitalComp = simEngine.getDigitalComponent(parentComp->getSimEngineId());
+        if (!digitalComp) {
+            return {SimEngine::LogicState::unknown, SimEngine::SimTime(0)};
+        }
 
         if (isInputSlot()) {
-            BESS_ASSERT(m_index < compState.inputStates.size(),
+            const auto &compState = digitalComp->state;
+            BESS_ASSERT(static_cast<size_t>(m_index) < compState.inputStates.size(),
                         "Slot index greater than input states size");
+            if (static_cast<size_t>(m_index) >= compState.inputStates.size()) {
+                return {SimEngine::LogicState::unknown, SimEngine::SimTime(0)};
+            }
             return compState.inputStates[m_index];
-        } else {
-            BESS_ASSERT(m_index < compState.outputStates.size(),
-                        "Slot index greater than output states size");
-            return compState.outputStates[m_index];
         }
+
+        const auto &compState = digitalComp->state;
+        BESS_ASSERT(static_cast<size_t>(m_index) < compState.outputStates.size(),
+                    "Slot index greater than output states size");
+        if (static_cast<size_t>(m_index) >= compState.outputStates.size()) {
+            return {SimEngine::LogicState::unknown, SimEngine::SimTime(0)};
+        }
+
+        return compState.outputStates[m_index];
     }
 
     bool SlotSceneComponent::isSlotConnected(const SceneState &state) const {
         const auto parentComp = state.getComponentByUuid<SimulationSceneComponent>(m_parentComponent);
+        if (!parentComp || m_index < 0) {
+            return false;
+        }
+
         auto &simEngine = SimEngine::SimulationEngine::instance();
-        const auto &compState = simEngine.getComponentState(parentComp->getSimEngineId());
+        const auto digitalComp = simEngine.getDigitalComponent(parentComp->getSimEngineId());
+        if (!digitalComp) {
+            return false;
+        }
+        const auto &compState = digitalComp->state;
 
         if (isInputSlot()) {
-            BESS_ASSERT(m_index < compState.inputStates.size(),
+            BESS_ASSERT(static_cast<size_t>(m_index) < compState.inputStates.size(),
                         "Slot index greater than inputs in sim engine");
+            if (static_cast<size_t>(m_index) >= compState.inputConnected.size()) {
+                return false;
+            }
             return compState.inputConnected[m_index];
         } else {
-            BESS_ASSERT(m_index < compState.outputStates.size(),
+            BESS_ASSERT(static_cast<size_t>(m_index) < compState.outputStates.size(),
                         "Slot index greater than outputs in sim engine");
+            if (static_cast<size_t>(m_index) >= compState.outputConnected.size()) {
+                return false;
+            }
             return compState.outputConnected[m_index];
         }
     }

@@ -6,6 +6,7 @@
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene_ser_reg.h"
+#include "services/plugin_service/plugin_service.h"
 #include "simulation_engine.h"
 #include <cstdint>
 #include <memory>
@@ -113,7 +114,12 @@ namespace Bess::Canvas {
 
         if (emitEvent) {
             EventSystem::EventDispatcher::instance().queue(
-                Events::EntityReparentedEvent{childId, parentId, prevParentId, this});
+                Events::EntityReparentedEvent{
+                    .entityUuid = childId,
+                    .newParentUuid = parentId,
+                    .prevParent = prevParentId,
+                    .sceneId = m_sceneId,
+                    .state = this});
         }
 
         m_rootComponents.erase(childId);
@@ -137,7 +143,12 @@ namespace Bess::Canvas {
                   (uint64_t)childId, (uint64_t)parentId);
 
         EventSystem::EventDispatcher::instance().queue(
-            Events::EntityReparentedEvent{childId, UUID::null, parentId, this});
+            Events::EntityReparentedEvent{
+                .entityUuid = childId,
+                .newParentUuid = UUID::null,
+                .prevParent = parentId,
+                .sceneId = m_sceneId,
+                .state = this});
 
         m_rootComponents.insert(childId);
     }
@@ -217,9 +228,11 @@ namespace Bess::Canvas {
         }
 
         EventSystem::EventDispatcher::instance().queue(
-            Events::ComponentRemovedEvent{uuid,
-                                          component->getType(),
-                                          this});
+            Events::ComponentRemovedEvent{
+                .uuid = uuid,
+                .type = component->getType(),
+                .sceneId = m_sceneId,
+                .state = this});
 
         return removedUuids;
     }
@@ -237,7 +250,12 @@ namespace Bess::Canvas {
         BESS_INFO("[SceneState] Orphaned component {}", (uint64_t)uuid);
 
         EventSystem::EventDispatcher::instance().queue(
-            Events::EntityReparentedEvent{uuid, UUID::null, parentId, this});
+            Events::EntityReparentedEvent{
+                .entityUuid = uuid,
+                .newParentUuid = UUID::null,
+                .prevParent = parentId,
+                .sceneId = m_sceneId,
+                .state = this});
     }
 
     bool SceneState::isRootComponent(const UUID &uuid) const {
@@ -271,11 +289,15 @@ namespace Bess::JsonConvert {
         j["components"] = Json::Value(Json::arrayValue);
 
         for (const auto &[uuid, component] : state.getAllComponents()) {
+            if (component->getType() == Canvas::SceneComponentType::simulation) {
+                component->cast<Canvas::SimulationSceneComponent>()->updateScales(state);
+            }
             j["components"].append(component->toJson());
         }
 
         JsonConvert::toJsonValue(state.getSceneId(), j["sceneId"]);
         JsonConvert::toJsonValue(state.getModuleId(), j["moduleId"]);
+        JsonConvert::toJsonValue(state.getParentSceneId(), j["parentSceneId"]);
         j["isRootScene"] = state.getIsRootScene();
     }
 
@@ -288,11 +310,14 @@ namespace Bess::JsonConvert {
 
         JsonConvert::fromJsonValue(j["sceneId"], state.getSceneId());
         JsonConvert::fromJsonValue(j["moduleId"], state.getModuleId());
+        JsonConvert::fromJsonValue(j["parentSceneId"], state.getParentSceneId());
         state.setIsRootScene(j["isRootScene"].asBool());
 
         const auto &simEngine = SimEngine::SimulationEngine::instance();
         std::vector<std::shared_ptr<Canvas::SceneComponent>> deserializedComponents;
         deserializedComponents.reserve(j["components"].size());
+
+        const auto &pluginService = Svc::PluginService::getInstance();
 
         for (const auto &compJson : j["components"]) {
             if (!compJson.isMember("typeName")) {
@@ -300,9 +325,21 @@ namespace Bess::JsonConvert {
                 continue;
             }
 
-            auto comp = Canvas::SceneSerReg::createComponentFromJson(compJson);
+            std::shared_ptr<Canvas::SceneComponent> comp = nullptr;
+
+            const auto typeName = compJson["typeName"].asString();
+
+            if (Canvas::SceneSerReg::hasComponent(typeName)) {
+                comp = Canvas::SceneSerReg::createComponentFromJson(compJson);
+            } else if (pluginService.canDerserialize(typeName)) {
+                comp = pluginService.derserialize(typeName, compJson);
+            } else {
+                BESS_WARN("No derserializer found for {}. Skipping component.", typeName);
+                continue;
+            }
+
             if (!comp) {
-                BESS_WARN("Failed to create component from JSON. Skipping component.");
+                BESS_WARN("Failed to create component from JSON for {}. Skipping component.", typeName);
                 continue;
             }
 

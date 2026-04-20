@@ -13,19 +13,45 @@ namespace Bess::UI::Widgets {
         return 0;
     }
 
-    bool TextBox(const std::string &label, std::string &value, const std::string &hintText) {
+    bool TextBox(const std::string &label,
+                 std::string &value,
+                 const std::string &hintText) {
         ImGui::AlignTextToFramePadding();
         if (!label.empty() && label[0] != '#' && label[1] != '#') {
             ImGui::Text("%s", label.c_str());
             ImGui::SameLine();
         }
-        if (ImGui::InputTextWithHint(("##Tb" + label).c_str(), hintText.c_str(),
-                                     value.data(), value.capacity() + 1, ImGuiInputTextFlags_CallbackResize,
+        if (ImGui::InputTextWithHint(("##Tb" + label).c_str(),
+                                     hintText.c_str(),
+                                     value.data(),
+                                     value.capacity() + 1,
+                                     ImGuiInputTextFlags_CallbackResize,
                                      InputTextCallback, (void *)&value)) {
             return true;
         }
 
         return false;
+    }
+
+    bool TextBoxMultiline(const std::string &label,
+                          std::string &value,
+                          const glm::vec2 &size) {
+        ImGui::AlignTextToFramePadding();
+        if (!label.empty() && label[0] != '#' && label[1] != '#') {
+            ImGui::Text("%s", label.c_str());
+            ImGui::SameLine();
+        }
+
+        const bool changed = ImGui::InputTextMultiline(("##Tbm" + label).c_str(),
+                                                       value.data(),
+                                                       value.capacity() + 1,
+                                                       ImVec2(size.x, size.y),
+                                                       ImGuiInputTextFlags_CallbackResize |
+                                                           ImGuiInputTextFlags_AllowTabInput,
+                                                       InputTextCallback,
+                                                       (void *)&value);
+
+        return changed;
     }
 
     bool CheckboxWithLabel(const char *label, bool *value, bool expandToFullWidth, bool alignToFramePadding) {
@@ -213,7 +239,7 @@ namespace Bess::UI::Widgets {
         ImGuiContext &g = *ImGui::GetCurrentContext();
         ImGuiWindow *window = g.CurrentWindow;
 
-        ImGui::PushID(key);
+        ImGui::PushID((int)key);
 
         const float rowHeight = g.FontSize + (g.Style.FramePadding.y * 2.0f);
         const ImVec2 pos = {window->DC.CursorPos.x - 2.f, window->DC.CursorPos.y};
@@ -247,20 +273,30 @@ namespace Bess::UI::Widgets {
 
         // background
         if (rowHovered || selected) {
-            ImU32 bgColor = 0;
+            ImVec4 bgColorVec = ImVec4(0, 0, 0, 0);
 
             if (rowHovered) {
-                bgColor = ImGui::GetColorU32(ImGuiCol_ButtonHovered);
+                bgColorVec = g.Style.Colors[ImGuiCol_ButtonHovered];
             } else if (selected) {
-                bgColor = ImGui::GetColorU32(ImGuiCol_HeaderActive);
+                bgColorVec = g.Style.Colors[ImGuiCol_HeaderActive];
             }
 
             ImVec2 bgStart(window->Pos.x, pos.y);
             ImVec2 bgEnd(window->Pos.x + window->Size.x, pos.y + rowHeight);
+
+            bgColorVec.w = 200.f / 255.f;
+
+            const ImU32 bgColor = ImGui::GetColorU32(bgColorVec);
+
             window->DrawList->AddRectFilled(bgStart, bgEnd, bgColor);
         }
 
-        const float toggleWidth = g.FontSize + g.Style.ItemInnerSpacing.x;
+        const auto chevronIcon = opened
+                                     ? Icons::FontAwesomeIcons::FA_CHEVRON_DOWN
+                                     : Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT;
+        const auto stateIcon = std::format(" {}  {}", chevronIcon, opened ? "" : " ");
+
+        const float toggleWidth = ImGui::CalcTextSize(stateIcon.c_str()).x + g.Style.ItemInnerSpacing.x;
         const ImRect toggleRect(rowBB.Min, ImVec2(rowBB.Min.x + toggleWidth, rowBB.Max.y));
         bool toggleHovered = false, toggleHeld = false;
 
@@ -271,11 +307,10 @@ namespace Bess::UI::Widgets {
 
         ImGui::ItemAdd(toggleRect, toggleId);
 
-        const auto stateIcon = opened
-                                   ? Icons::FontAwesomeIcons::FA_CHEVRON_DOWN
-                                   : Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT;
         ImGui::PushStyleColor(ImGuiCol_Text, g.Style.Colors[ImGuiCol_TextDisabled]);
-        ImGui::RenderText(ImVec2(toggleRect.Min.x + g.Style.ItemInnerSpacing.x, toggleRect.Min.y + g.Style.FramePadding.y), stateIcon);
+        ImGui::RenderText(ImVec2(toggleRect.Min.x + g.Style.ItemInnerSpacing.x,
+                                 toggleRect.Min.y + g.Style.FramePadding.y),
+                          stateIcon.c_str());
         ImGui::PopStyleColor();
 
         float iconOffsetX = 0.0f;
@@ -422,11 +457,11 @@ namespace Bess::UI::Widgets {
         return {opened, clicked};
     }
 
-    void SelectableText(const std::string &id, const std::string &text) {
+    void SelectableText(const std::string &id, const std::string &text, const glm::vec2 &size) {
         ImGui::InputTextMultiline(std::format("##{}", id).c_str(),
                                   (char *)text.data(),
                                   text.size() + 1,
-                                  ImVec2(0, 800),
+                                  ImVec2(size.x, size.y),
                                   ImGuiInputTextFlags_ReadOnly);
     }
 } // namespace Bess::UI::Widgets

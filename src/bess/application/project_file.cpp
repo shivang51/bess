@@ -134,8 +134,6 @@ namespace Bess {
 
             auto &simEngine = SimEngine::SimulationEngine::instance();
 
-            const auto &pluginManager = Plugins::PluginManager::getInstance();
-
             // decoding scenes
             for (auto &sceneJson : data["scene_data"]["scenes"]) {
                 auto scene = std::make_shared<Canvas::Scene>();
@@ -147,13 +145,6 @@ namespace Bess {
                 float maxZ = 0;
                 for (const auto &[uuid, comp] : sceneState.getAllComponents()) {
                     maxZ = std::max(comp->getTransform().position.z, maxZ);
-                    if (comp->getType() == Canvas::SceneComponentType::simulation) {
-                        auto simComp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(uuid);
-                        const auto &compDef = simEngine.getComponentDefinition(simComp->getSimEngineId());
-                        if (scene->hasPluginDrawHookForComponentHash(compDef->getBaseHash())) {
-                            simComp->setDrawHook(scene->getPluginDrawHookForComponentHash(compDef->getBaseHash()));
-                        }
-                    }
                 }
                 scene->setZCoord(maxZ);
                 BESS_DEBUG("[Decode] Added new scene {}", (uint64_t)scene->getSceneId());
@@ -169,7 +160,8 @@ namespace Bess {
     }
 
     void ProjectFile::browsePath() {
-        const auto pathStr = UI::Dialogs::showSaveFileDialog("Save To", "");
+        const auto pathStr = UI::Dialogs::showSaveFileDialog("Save To",
+                                                             {"Bess Project", "*.bproj"});
 
         if (pathStr.empty()) {
             BESS_WARN("No path selected");

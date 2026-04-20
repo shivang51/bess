@@ -1,43 +1,37 @@
 #include "ui/ui_main/dialogs.h"
-#include "tinyfiledialogs.h"
+#include "portable-file-dialogs.h"
+#include <vector>
 
 namespace Bess::UI {
-    constexpr const char *filterList[1] = {"*.bproj"};
-
-    std::string Dialogs::showSaveFileDialog(const std::string &title, const std::string &filters) {
-
-        const auto filepath = tinyfd_saveFileDialog(title.c_str(),
-                                                    "",
-                                                    1,
-                                                    filterList,
-                                                    "Bess Project");
-
-        if (filepath == nullptr)
-            return "";
+    std::string Dialogs::showSaveFileDialog(const std::string &title, const FilterMap &filters) {
+        const auto filepath = pfd::save_file(title,
+                                             "",
+                                             filters)
+                                  .result();
 
         return filepath;
     }
 
     std::string Dialogs::showSelectPathDialog(const std::string &title) {
-        const auto filepath = tinyfd_selectFolderDialog("Select Location", "");
-
-        if (filepath == nullptr)
-            return "";
-
+        const auto filepath = pfd::select_folder("Select Location", "").result();
         return filepath;
     }
 
-    std::string Dialogs::showOpenFileDialog(const std::string &title, const std::string &filters) {
-        const auto filepath = tinyfd_openFileDialog(title.c_str(),
-                                                    "",
-                                                    1,
-                                                    filterList,
-                                                    "Bess Project",
-                                                    false);
+    std::string Dialogs::showOpenFileDialog(const std::string &title, const FilterMap &filters) {
+        auto selection = pfd::open_file(title,
+                                        "",
+                                        filters)
+                             .result();
 
-        if (filepath == nullptr)
-            return "";
+        return selection.empty() ? "" : selection.front();
+    }
 
-        return filepath;
+    std::vector<std::string> Dialogs::showOpenFilesDialog(const std::string &title,
+                                                          const FilterMap &filters) {
+        return pfd::open_file(title,
+                              "",
+                              filters,
+                              pfd::opt::multiselect)
+            .result();
     }
 } // namespace Bess::UI

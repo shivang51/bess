@@ -5,7 +5,6 @@
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
-#include "scene/scene_state/components/sim_scene_comp_draw_hook.h"
 #include "scene_comp_types.h"
 #include "scene_draw_context.h"
 #include "settings/viewport_theme.h"
@@ -28,7 +27,7 @@ namespace Bess::Canvas {
         // Create a new SimSceneComp
         // [0] -> Component itself
         // [1...] -> Created slots
-        static std::vector<std::shared_ptr<SceneComponent>> createNewAndRegister(
+        static std::vector<std::shared_ptr<SceneComponent>> createNew(
             const std::shared_ptr<SimEngine::ComponentDefinition> &compDef);
 
         template <typename T = SimulationSceneComponent>
@@ -109,16 +108,18 @@ namespace Bess::Canvas {
 
         void drawSchematic(SceneDrawContext &context) override;
 
+        void updateScales(const SceneState &state);
+
         std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const override;
 
         MAKE_GETTER_SETTER(UUID, SimEngineId, m_simEngineId)
         MAKE_GETTER_SETTER(UUID, NetId, m_netId)
         MAKE_GETTER_SETTER(std::vector<UUID>, InputSlots, m_inputSlots)
         MAKE_GETTER_SETTER(std::vector<UUID>, OutputSlots, m_outputSlots)
-        MAKE_GETTER_SETTER(std::shared_ptr<SimSceneCompDrawHook>, DrawHook, m_drawHook)
         MAKE_GETTER_SETTER(Transform, SchematicTransform, m_schematicTransform)
         MAKE_GETTER_SETTER(std::shared_ptr<SimEngine::ComponentDefinition>, CompDef, m_compDef)
 
+        void setSchSlotsPosDirty(bool val = true);
         size_t getInputSlotsCount() const;
         size_t getOutputSlotsCount() const;
 
@@ -127,7 +128,7 @@ namespace Bess::Canvas {
 
         void setScaleDirty(bool val = true);
 
-        inline void setSchematicScaleDirty();
+        void setSchematicScaleDirty(bool val = true);
 
         std::vector<UUID>
         cleanup(SceneState &state, UUID caller = UUID::null) override;
@@ -157,34 +158,30 @@ namespace Bess::Canvas {
 
         void onTransformChanged() override;
 
-      protected:
         std::vector<std::shared_ptr<SceneComponent>> cloneSimulationComponent(
             const SceneState &sceneState,
             const std::shared_ptr<SimulationSceneComponent> &clonedComponent) const;
 
+      protected:
         /**
          * Resets the slot positions based on the current scale and number of slots
          * in the component.
          */
-        void resetSlotPositions(SceneState &state);
+        void resetSlotPositions(const SceneState &state);
 
         /**
          * Resets the schematic pin positions based on the current schematic scale and number of slots
          * in the component. Will ignore slots that are resize slots for the schematic view.
          */
-        void resetSchematicPinsPositions(SceneState &state);
+        void resetSchematicPinsPositions(const SceneState &state);
 
         // Generates the positions relative to the component position
         std::pair<std::vector<glm::vec3>, std::vector<glm::vec3>>
         calculateSlotPositions(size_t inputCount, size_t outputCount) const;
 
-        glm::vec2 calculateScale(SceneState &state) override;
+        glm::vec2 calculateScale(const SceneState &state) override;
 
-        virtual void calculateSchematicScale(SceneState &state);
-
-        void onFirstDraw(SceneDrawContext &context) override;
-
-        void onFirstSchematicDraw(SceneDrawContext &context) override;
+        virtual void calculateSchematicScale(const SceneState &state);
 
         void onChildrenChanged() override;
 
@@ -195,8 +192,8 @@ namespace Bess::Canvas {
         std::vector<UUID> m_inputSlots;
         std::vector<UUID> m_outputSlots;
         bool m_isScaleDirty = true, m_isSchematicScaleDirty = true;
+        bool m_isSchSlotsPosDirty = true;
         Transform m_schematicTransform;
-        std::shared_ptr<SimSceneCompDrawHook> m_drawHook = nullptr;
         std::shared_ptr<SimEngine::ComponentDefinition> m_compDef = nullptr;
     };
 } // namespace Bess::Canvas

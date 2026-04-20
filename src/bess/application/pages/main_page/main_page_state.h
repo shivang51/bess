@@ -1,11 +1,12 @@
 #pragma once
 
 #include "application/pages/main_page/scene_driver.h"
+#include "application/pages/main_page/services/hierarchical_scene_layout.h"
 #include "application/project_file.h"
 #include "command_system.h"
 #include "events/sim_engine_events.h"
-#include "scene.h"
 #include "scene_events.h"
+#include <vector>
 
 namespace Bess {
     namespace Canvas {
@@ -22,9 +23,18 @@ namespace Bess::Pages {
         bool saveProject = false;
     };
 
+    struct VerilogImportStatus {
+        float progress = 0.f;
+        std::string stageMessage;
+        bool importing = false;
+        bool finished = false;
+        bool failed = false;
+    };
+
     class MainPageState {
       public:
-        MainPageState() = default;
+        MainPageState();
+        ~MainPageState();
 
         Cmd::CommandSystem &getCommandSystem();
 
@@ -57,6 +67,13 @@ namespace Bess::Pages {
         void saveCurrentProject() const;
         void loadProject(const std::string &path);
         void updateCurrentProject(const std::shared_ptr<ProjectFile> &project);
+        bool importVerilogFile(const std::string &path, std::string *errorMessage = nullptr);
+        bool importVerilogFiles(const std::vector<std::string> &paths, std::string *errorMessage = nullptr);
+        HierarchicalSceneLayoutResult applyHierarchicalLayoutToActiveScene();
+        void startVerilogImport(const std::string &path);
+        void startVerilogImport(const std::vector<std::string> &paths);
+        VerilogImportStatus advanceVerilogImport(std::string *errorMessage = nullptr);
+        void cancelVerilogImport();
 
         void initCmdSystem();
 
@@ -97,5 +114,7 @@ namespace Bess::Pages {
         std::unordered_set<UUID> m_probes;
         TNetIdToNameMap m_netIdToNameMap;
         std::unordered_map<UUID, TNetIdToCompMap> m_netIdToCompMap;
+        struct VerilogImportSession;
+        std::unique_ptr<VerilogImportSession> m_verilogImportSession;
     };
 } // namespace Bess::Pages

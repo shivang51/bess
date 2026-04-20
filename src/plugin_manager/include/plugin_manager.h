@@ -6,10 +6,6 @@
 #include <unordered_map>
 #include <vector>
 
-namespace Bess::Canvas {
-    class SimSceneCompDrawHook;
-} // namespace Bess::Canvas
-
 namespace Bess::Plugins {
     PyGILState_STATE capturePyThreadState();
     void releasePyThreadState(PyGILState_STATE state);

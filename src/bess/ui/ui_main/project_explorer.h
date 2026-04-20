@@ -3,6 +3,7 @@
 #include "common/bess_uuid.h"
 #include "ui_panel.h"
 #include <cstdint>
+#include <string>
 #include <unordered_set>
 
 namespace Bess::UI {
@@ -12,18 +13,29 @@ namespace Bess::UI {
 
         void onDraw() override;
 
+        void onBeforeDraw() override;
+
+        void onAfterDraw() override;
+
         void groupSelectedNodes();
         void groupOnNets();
 
       private:
+        void drawContextMenu();
+
         static bool drawLeafNode(size_t key, uint64_t nodeId,
                                  const char *label,
                                  bool selected,
                                  bool multiSelectMode);
 
+        bool shouldDisplayEntity(const UUID &entityId) const;
         size_t drawEntites(const std::unordered_set<UUID> &entities);
 
         int32_t m_lastSelectedIndex;
         size_t m_nodesKeyCounter;
+        std::string m_searchQuery;
+        bool m_filterInputs = false;
+        bool m_filterOutputs = false;
+        bool m_isMultiSelected = false;
     };
 } // namespace Bess::UI

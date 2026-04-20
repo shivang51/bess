@@ -41,7 +41,7 @@ class PySceneComponent : public Bess::Canvas::SceneComponent,
             std::ref(state));
     }
 
-    std::string getTypeName() override {
+    std::string getTypeName() const override {
         PYBIND11_OVERRIDE_NAME(
             std::string,
             Bess::Canvas::SceneComponent,

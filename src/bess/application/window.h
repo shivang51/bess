@@ -64,6 +64,10 @@ namespace Bess {
 
         glm::vec2 getMousePos() const;
 
+        void setMousePos(const glm::vec2 &pos) const;
+
+        void setEnableCursor(bool enable) const;
+
         GLFWwindow *getGLFWHandle() const { return mp_window.get(); }
 
         // Vulkan-specific methods

@@ -2,6 +2,7 @@ set(PROJECT_NAME BessApp)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(Header_Files
+"services/plugin_service/plugin_service.h"
 "settings/themes.h"
 "settings/settings.h"
 "settings/viewport_theme.h"
@@ -9,8 +10,10 @@ set(Header_Files
 "pages/main_page/main_page.h"
 "pages/main_page/services/connection_service.h"
 "pages/main_page/services/copy_paste_service.h"
+"pages/main_page/services/hierarchical_scene_layout.h"
 "pages/main_page/scene_driver.h"
 "pages/main_page/main_page_state.h"
+"pages/main_page/verilog_scene_import.h"
 "pages/main_page/cmds/add_comp_cmd.h"
 "pages/main_page/cmds/delete_comp_cmd.h"
 "pages/main_page/cmds/module_comp_cmd.h"
@@ -42,16 +45,19 @@ set(Header_Files
 source_group("include" FILES ${Header_Files})
 
 set(Source_Files
+"services/plugin_service/plugin_service.cpp"
 "settings/viewport_theme.cpp"
 "settings/themes.cpp"
 "settings/settings.cpp"
 "pages/page.cpp"
 "pages/main_page/main_page_state.cpp"
+"pages/main_page/verilog_scene_import.cpp"
 "pages/main_page/main_page.cpp"
 "pages/main_page/scene_driver.cpp"
 # "pages/start_page/start_page.cpp"
 "pages/main_page/services/connection_service.cpp"
 "pages/main_page/services/copy_paste_service.cpp"
+"pages/main_page/services/hierarchical_scene_layout.cpp"
 "pages/main_page/scene_components/proxy_slot_component.cpp"
 "pages/main_page/scene_components/sim_scene_component.cpp"
 "pages/main_page/scene_components/group_scene_component.cpp"
@@ -78,8 +84,8 @@ set(ALL_FILES
 )
 
 add_library(${PROJECT_NAME} OBJECT ${ALL_FILES})
-target_link_libraries(${PROJECT_NAME} PUBLIC common BessExtDeps BessJson BessSimEngine BessVulkan BessPluginManager EventSystem BessScene BessCmdSystem BessUI)
-add_dependencies(${PROJECT_NAME} common BessExtDeps BessJson BessSimEngine BessVulkan BessPluginManager BessScene BessCmdSystem BessUI)
+target_link_libraries(${PROJECT_NAME} PUBLIC common BessExtDeps BessJson BessSimEngine bverilog BessVulkan BessPluginManager EventSystem BessScene BessCmdSystem BessUI)
+add_dependencies(${PROJECT_NAME} common BessExtDeps BessJson BessSimEngine bverilog BessVulkan BessPluginManager BessScene BessCmdSystem BessUI)
 target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}")
 
 target_include_directories(${PROJECT_NAME} PRIVATE

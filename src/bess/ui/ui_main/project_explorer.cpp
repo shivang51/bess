@@ -12,6 +12,7 @@
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "settings/viewport_theme.h"
+#include "simulation_engine.h"
 #include "ui/icons/CodIcons.h"
 #include "ui/widgets/m_widgets.h"
 #include <cstdint>
@@ -25,6 +26,67 @@ namespace Bess::UI {
     ProjectExplorer::ProjectExplorer() : Panel(std::string(windowName.data())) {
         m_defaultDock = Dock::left;
         m_visible = true;
+    }
+
+    namespace {
+        bool matchesProjectExplorerIoFilter(const std::shared_ptr<Canvas::SceneComponent> &comp,
+                                            bool filterInputs,
+                                            bool filterOutputs) {
+            if (!filterInputs && !filterOutputs) {
+                return true;
+            }
+
+            const auto simComp = comp ? comp->cast<Canvas::SimulationSceneComponent>() : nullptr;
+            if (!simComp) {
+                return false;
+            }
+
+            const auto simId = simComp->getSimEngineId();
+            if (simId == UUID::null) {
+                return false;
+            }
+
+            auto &simEngine = SimEngine::SimulationEngine::instance();
+            if (!simEngine.getSimEngineState().isComponentValid(simId)) {
+                return false;
+            }
+
+            const auto &definition = simEngine.getComponentDefinition(simId);
+            const auto behaviorType = definition->getBehaviorType();
+            const bool isInput = behaviorType == SimEngine::ComponentBehaviorType::input;
+            const bool isOutput = behaviorType == SimEngine::ComponentBehaviorType::output;
+
+            return (filterInputs && isInput) || (filterOutputs && isOutput);
+        }
+    } // namespace
+
+    bool ProjectExplorer::shouldDisplayEntity(const UUID &entityId) const {
+        auto &sceneState = Pages::MainPage::getInstance()->getState().getSceneDriver()->getState();
+        const auto comp = sceneState.getComponentByUuid(entityId);
+        if (!comp) {
+            return false;
+        }
+
+        const bool passesIoFilter = matchesProjectExplorerIoFilter(comp, m_filterInputs, m_filterOutputs);
+
+        bool passesSearch = m_searchQuery.empty();
+        if (!passesSearch) {
+            const auto query = Common::Helpers::toLowerCase(m_searchQuery);
+            const auto name = Common::Helpers::toLowerCase(comp->getName());
+            passesSearch = name.find(query) != std::string::npos;
+        }
+
+        if (passesIoFilter && passesSearch) {
+            return true;
+        }
+
+        for (const auto &childId : comp->getChildComponents()) {
+            if (shouldDisplayEntity(childId)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     template <typename Func>
@@ -42,16 +104,94 @@ namespace Bess::UI {
         }
     }
 
+    void ProjectExplorer::onBeforeDraw() {
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 2.f));
+    }
+
+    void ProjectExplorer::onAfterDraw() {
+        ImGui::PopStyleVar();
+    }
+
     void ProjectExplorer::onDraw() {
         const ImColor &itemAltBg = ImGui::GetStyle().Colors[ImGuiCol_TableRowBgAlt];
+        const auto &style = ImGui::GetStyle();
 
         auto &sceneState = Pages::MainPage::getInstance()->getState().getSceneDriver()->getState();
 
         const auto size = sceneState.getRootComponents().size();
         const auto selSize = sceneState.getSelectedComponents().size();
 
-        const bool isMultiSelected = selSize > 1;
+        m_isMultiSelected = selSize > 1;
 
+        ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - 34.f);
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 4.f);
+        Widgets::TextBox("##ProjectExplorerSearch", m_searchQuery, "Search");
+        ImGui::PopItemWidth();
+        ImGui::SameLine();
+        if (ImGui::Button(Icons::FontAwesomeIcons::FA_ELLIPSIS_VERTICAL)) {
+            ImGui::OpenPopup("project_explorer_filters");
+        }
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.f, 4.f));
+        if (ImGui::BeginPopup("project_explorer_filters")) {
+            constexpr auto filterTitle = Common::Helpers::concat(
+                Icons::FontAwesomeIcons::FA_FILTER, " Filters");
+            if (ImGui::BeginMenu(filterTitle.data())) {
+                ImGui::Selectable("Inputs", &m_filterInputs, ImGuiSelectableFlags_DontClosePopups);
+                ImGui::Selectable("Outputs", &m_filterOutputs, ImGuiSelectableFlags_DontClosePopups);
+                ImGui::EndMenu();
+            }
+            ImGui::EndPopup();
+        }
+        ImGui::PopStyleVar();
+
+        const float footerHeight = ImGui::GetTextLineHeightWithSpacing() +
+                                   (style.ItemSpacing.y * 2) + style.WindowPadding.y;
+        if (ImGui::BeginChild("project_explorer_list", ImVec2(0.f, -footerHeight), false)) {
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
+
+            m_nodesKeyCounter = 0;
+            drawEntites(sceneState.getRootComponents());
+
+            const ImGuiContext &g = *ImGui::GetCurrentContext();
+            const ImGuiWindow *window = g.CurrentWindow;
+            const auto drawList = ImGui::GetWindowDrawList();
+            const float height = g.FontSize + (g.Style.FramePadding.y * 2);
+            const float x = window->Pos.x;
+            float y = window->DC.CursorPos.y;
+            ImVec2 bgStart, bgEnd;
+
+            if (m_nodesKeyCounter & 1) { // skipping if its not alternating color row
+                y += height;
+            }
+
+            while (y < window->Pos.y + window->Size.y) {
+                bgStart = ImVec2(x, y);
+                bgEnd = ImVec2(x + window->Size.x, y + height);
+                drawList->AddRectFilled(bgStart, bgEnd, itemAltBg, 0);
+                y += height * 2;
+            }
+
+            ImGui::PopStyleVar(2);
+
+            const ImVec2 remainingSpace = ImGui::GetContentRegionAvail();
+            if (remainingSpace.x > 0.f && remainingSpace.y > 0.f) {
+                if (ImGui::InvisibleButton("project_explorer_root_drop_target", remainingSpace)) {
+                    sceneState.clearSelectedComponents();
+                }
+
+                HandleNodeDropTarget([&](uint64_t id) {
+                    sceneState.detachChild(id);
+                });
+            }
+            drawContextMenu();
+            ImGui::EndChild();
+        }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 4.f);
         if (size == 0) {
             ImGui::Text("No Components Added");
         } else if (size == 1) {
@@ -64,47 +204,12 @@ namespace Bess::UI {
             ImGui::SameLine();
             ImGui::Text("(%lu / %lu Selected)", selSize, size);
         }
+    }
 
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
-
-        m_nodesKeyCounter = 0;
-        drawEntites(sceneState.getRootComponents());
-
-        const ImGuiContext &g = *ImGui::GetCurrentContext();
-        const ImGuiWindow *window = g.CurrentWindow;
-        const auto drawList = ImGui::GetWindowDrawList();
-        const auto colors = ImGui::GetStyle().Colors;
-        const float height = g.FontSize + (g.Style.FramePadding.y * 2);
-        const float x = window->Pos.x;
-        float y = window->DC.CursorPos.y;
-        float startY = y;
-        ImVec2 bgStart, bgEnd;
-
-        if (m_nodesKeyCounter & 1) { // skipping if its not alternating color row
-            y += height;
-        }
-
-        while (y < window->Pos.y + window->Size.y) {
-            bgStart = ImVec2(x, y);
-            bgEnd = ImVec2(x + window->Size.x, y + height);
-            drawList->AddRectFilled(bgStart, bgEnd, itemAltBg, 0);
-            y += height * 2;
-        }
-
-        ImGui::PopStyleVar(2);
-
-        if (ImGui::InvisibleButton("project_explorer_root_drop_target",
-                                   ImVec2(window->Size.x, window->Size.y - startY))) {
-            sceneState.clearSelectedComponents();
-        }
-
-        HandleNodeDropTarget([&](uint64_t id) {
-            sceneState.detachChild(id);
-        });
-
+    void ProjectExplorer::drawContextMenu() {
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.f, 4.f));
         if (ImGui::BeginPopupContextWindow()) {
-            if (isMultiSelected) {
+            if (m_isMultiSelected) {
                 if (ImGui::MenuItem("Group Selected", "Ctrl-G")) {
                     groupSelectedNodes();
                 }
@@ -122,6 +227,7 @@ namespace Bess::UI {
 
             ImGui::EndPopup();
         }
+        ImGui::PopStyleVar();
     }
 
     bool ProjectExplorer::drawLeafNode(const size_t key, const uint64_t nodeId,
@@ -135,6 +241,8 @@ namespace Bess::UI {
         const auto drawList = ImGui::GetWindowDrawList();
 
         const auto colors = ImGui::GetStyle().Colors;
+        const float rowMinX = window->WorkRect.Min.x;
+        const float rowMaxX = window->WorkRect.Max.x;
 
         if ((key & 1) == 0) {
             float x = window->Pos.x;
@@ -164,7 +272,9 @@ namespace Bess::UI {
             ImVec2 avail = ImGui::GetContentRegionAvail();
             ImVec2 bgStart(x, y);
             ImVec2 bgEnd(x + window->Size.x, y + g.FontSize + (g.Style.FramePadding.y * 2));
-            auto color = IM_COL32(bgColor.x * 255, bgColor.y * 255, bgColor.z * 255, 200);
+
+            bgColor.w = 200.f / 255.f;
+            const auto color = ImGui::GetColorU32(bgColor);
             drawList->AddRectFilled(bgStart, bgEnd, color, 0);
         }
 
@@ -295,8 +405,11 @@ namespace Bess::UI {
     }
 
     size_t ProjectExplorer::drawEntites(const std::unordered_set<UUID> &entities) {
-        constexpr auto treeIcon = Icons::FontAwesomeIcons::FA_FOLDER;
+        constexpr auto groupIcon = Icons::FontAwesomeIcons::FA_FOLDER;
+        constexpr auto groupOpenIcon = Icons::FontAwesomeIcons::FA_FOLDER_OPEN;
         constexpr auto nodePopupName = "node_popup";
+        constexpr auto treeFlags = ImGuiTreeNodeFlags_DefaultOpen |
+                                   ImGuiTreeNodeFlags_DrawLinesFull;
 
         auto &sceneState = Pages::MainPage::getInstance()->getState().getSceneDriver()->getState();
         const auto selSize = sceneState.getSelectedComponents().size();
@@ -306,6 +419,10 @@ namespace Bess::UI {
         std::vector<std::pair<UUID, UUID>> pendingMoves;
 
         for (const auto &compId : entities) {
+            if (!shouldDisplayEntity(compId)) {
+                continue;
+            }
+
             const auto &comp = sceneState.getComponentByUuid(compId);
             const auto type = comp->getType();
             if (!((int8_t)type &
@@ -317,18 +434,30 @@ namespace Bess::UI {
 
             bool clicked = false;
             if (comp->getType() == Canvas::SceneComponentType::group) {
-                const auto ret = Widgets::EditableTreeNode(m_nodesKeyCounter++,
+
+                const auto key = m_nodesKeyCounter++;
+
+                ImGui::PushID((int)key);
+
+                const auto &win = ImGui::GetCurrentWindow();
+                const auto &storage = ImGui::GetCurrentWindow()->DC.StateStorage;
+                const ImGuiID openId = win->GetID("open");
+                bool opened = storage->GetInt(openId, 1) != 0;
+                ImGui::PopID();
+
+                const auto icon = opened ? groupOpenIcon : groupIcon;
+
+                const auto ret = Widgets::EditableTreeNode(key,
                                                            comp->getName(),
                                                            comp->getIsSelected(),
-                                                           ImGuiTreeNodeFlags_DefaultOpen |
-                                                               ImGuiTreeNodeFlags_DrawLinesFull,
-                                                           treeIcon,
-                                                           ViewportTheme::colors.selectedWire,
+                                                           treeFlags,
+                                                           icon,
+                                                           ViewportTheme::colors.groupColor,
                                                            nodePopupName,
                                                            comp->getUuid());
 
                 count++;
-                const auto opened = ret.first;
+                opened = ret.first;
                 clicked = ret.second;
 
                 HandleNodeDropTarget([&](uint64_t id) { //\n (just for formatting)
@@ -344,8 +473,13 @@ namespace Bess::UI {
 
             } else {
                 const bool isModule = comp->getType() == Canvas::SceneComponentType::module;
-
-                const auto name = std::format("{} {}", comp->getIcon(), comp->getName());
+                const bool isAtRoot = comp->getParentComponent() == UUID::null;
+                std::string name;
+                if (isAtRoot) {
+                    name = std::format(" {}   {}", comp->getIcon(), comp->getName());
+                } else {
+                    name = std::format("  {} {}", comp->getIcon(), comp->getName());
+                }
 
                 if (isModule) {
                     const auto &moduleColor = ViewportTheme::colors.moduleColor;
@@ -418,4 +552,5 @@ namespace Bess::UI {
 
         return count;
     }
+
 } // namespace Bess::UI

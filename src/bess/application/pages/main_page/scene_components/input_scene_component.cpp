@@ -11,7 +11,6 @@
 #include "ui/ui.h"
 
 #include "simulation_engine.h"
-#include "widgets/m_widgets.h"
 
 namespace Bess::Canvas {
     InputSceneComponent::InputSceneComponent() {
@@ -131,7 +130,7 @@ namespace Bess::Canvas {
                                          : SimEngine::LogicState::high);
     }
 
-    void InputSceneComponent::calculateSchematicScale(SceneState &state) {
+    void InputSceneComponent::calculateSchematicScale(const SceneState &state) {
         SimulationSceneComponent::calculateSchematicScale(state);
         m_schematicTransform.scale.x = 50.f;
     }

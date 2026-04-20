@@ -1,8 +1,6 @@
 #include "plugin_handle.h"
 #include "application/pages/main_page/scene_components/sim_scene_component.h"
 #include "component_definition.h"
-#include "scene/scene_state/components/scene_component.h"
-#include "scene/scene_state/components/sim_scene_comp_draw_hook.h"
 #include <memory>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -12,7 +10,22 @@ namespace py = pybind11;
 namespace Bess::Plugins {
 
     PluginHandle::PluginHandle(const pybind11::object &pluginObj)
-        : m_pluginObj(pluginObj) {}
+        : m_pluginObj(pluginObj) {
+
+        if (py::hasattr(pluginObj, "name")) {
+            m_pluginName = pluginObj.attr("name").cast<std::string>();
+        } else {
+            BESS_WARN("Plugin object does not have 'name' attribute, using default name");
+            m_pluginName = "Unknown";
+        }
+
+        if (py::hasattr(pluginObj, "version")) {
+            m_pluginVersion = pluginObj.attr("version").cast<std::string>();
+        } else {
+            BESS_WARN("Plugin object does not have 'version' attribute, using default version");
+            m_pluginVersion = "Unknown";
+        }
+    }
 
     std::vector<std::shared_ptr<SimEngine::ComponentDefinition>> PluginHandle::onComponentsRegLoad() const {
         std::vector<std::shared_ptr<SimEngine::ComponentDefinition>> components;
@@ -29,19 +42,6 @@ namespace Bess::Plugins {
         }
 
         return components;
-    }
-
-    void PluginHandle::onSceneComponentsLoad(std::unordered_map<uint64_t, std::shared_ptr<Canvas::SimSceneCompDrawHook>> &reg) {
-        py::gil_scoped_acquire gil;
-        if (py::hasattr(m_pluginObj, "on_scene_comp_load")) {
-            py::object compDict = m_pluginObj.attr("on_scene_comp_load")();
-
-            for (auto item : compDict.cast<py::dict>()) {
-                uint64_t key = item.first.cast<uint64_t>();
-                auto hook = item.second.cast<std::shared_ptr<Canvas::SimSceneCompDrawHook>>();
-                reg.emplace(key, std::move(hook));
-            }
-        }
     }
 
     const pybind11::object &PluginHandle::getPluginObject() const {
@@ -67,6 +67,7 @@ namespace Bess::Plugins {
         if (py::hasattr(m_pluginObj, "get_sim_comp")) {
             py::object result = m_pluginObj.attr("get_sim_comp")(def);
             if (!result.is_none()) {
+                result.attr("setup")(def);
                 return result.cast<std::shared_ptr<Canvas::SimulationSceneComponent>>();
             }
         }
@@ -79,5 +80,63 @@ namespace Bess::Plugins {
             return m_pluginObj.attr("has_sim_comp")(baseHash).cast<bool>();
         }
         return false;
+    }
+
+    bool PluginHandle::hasSceneComp(const std::string &typeName) {
+        if (m_availableCompCache.contains(typeName)) {
+            return m_availableCompCache.at(typeName);
+        }
+
+        py::gil_scoped_acquire gil;
+
+        py::module_ sys = py::module_::import("sys");
+
+        auto modules = sys.attr("modules").attr(
+                                              "keys")()
+                           .cast<std::vector<std::string>>();
+
+        bool hasSceneComp = false;
+
+        for (const auto &modName : modules) {
+            py::module_ mod = py::module_::import(modName.c_str());
+            if (py::hasattr(mod, typeName.c_str())) {
+                hasSceneComp = true;
+                m_typeNameModule[typeName] = modName;
+                break;
+            }
+        }
+
+        m_availableCompCache[typeName] = hasSceneComp;
+        return hasSceneComp;
+    }
+
+    bool PluginHandle::canDerserialize(const std::string &typeName) {
+        if (!hasSceneComp(typeName)) {
+            return false;
+        }
+
+        py::gil_scoped_acquire gil;
+
+        const auto &modName = m_typeNameModule.at(typeName);
+        py::module_ mod = py::module_::import(modName.c_str());
+        py::object compClass = mod.attr(typeName.c_str());
+
+        return py::hasattr(compClass, "from_json");
+    }
+
+    std::shared_ptr<Canvas::SceneComponent> PluginHandle::derserialize(const std::string &typeName,
+                                                                       const Json::Value &json) {
+        if (!canDerserialize(typeName)) {
+            return nullptr;
+        }
+
+        py::gil_scoped_acquire gil;
+
+        const auto &modName = m_typeNameModule.at(typeName);
+        py::module_ mod = py::module_::import(modName.c_str());
+        py::object compClass = mod.attr(typeName.c_str());
+
+        py::object compObj = compClass.attr("from_json")(json);
+        return compObj.cast<std::shared_ptr<Canvas::SceneComponent>>();
     }
 } // namespace Bess::Plugins

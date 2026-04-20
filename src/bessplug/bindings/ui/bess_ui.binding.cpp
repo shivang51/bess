@@ -1,5 +1,5 @@
-#include "glm/ext/vector_float2.hpp"
 #include "imgui.h"
+#include "ui/widgets/m_widgets.h"
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -24,9 +24,14 @@ void bind_bess_ui(py::module &m) {
         ImGui::Text("%s", text.c_str());
     });
 
-    m.def("button", [](const std::string &label) {
-        return ImGui::Button(label.c_str());
-    });
+    auto textMultilineFn = [](const std::string &id, const std::string &text, const glm::vec2 &size) {
+        Bess::UI::Widgets::SelectableText(id, text, size);
+    };
+
+    m.def("text_multiline", textMultilineFn,
+          py::arg("id"),
+          py::arg("text"),
+          py::arg("size") = glm::vec2(0.f, 300.f));
 
     m.def("same_line", []() {
         ImGui::SameLine();
@@ -40,6 +45,8 @@ void bind_bess_ui(py::module &m) {
         ImGui::AlignTextToFramePadding();
     });
 
+    /// inputs
+
     m.def("slider_float", [](const std::string &label, float value, float min, float max) {
         bool changed = ImGui::SliderFloat(label.c_str(), &value, min, max);
         return std::make_tuple(changed, value);
@@ -48,4 +55,34 @@ void bind_bess_ui(py::module &m) {
     m.def("checkbox", [](const std::string &label, bool &value) {
         return ImGui::Checkbox(label.c_str(), &value);
     });
+
+    m.def("button", [](const std::string &label) {
+        return ImGui::Button(label.c_str());
+    });
+
+    auto inputTextFn = [](const std::string &label,
+                          std::string &value,
+                          const std::string &hint) {
+        bool changed = Bess::UI::Widgets::TextBox(label, value, hint);
+        return std::make_tuple(changed, value);
+    };
+
+    m.def("input_text",
+          inputTextFn,
+          py::arg("label"),
+          py::arg("value"),
+          py::arg("hint") = "");
+
+    auto inputTextMultilineFn = [](const std::string &label,
+                                   std::string &value,
+                                   const glm::vec2 &size = glm::vec2(0.f, 400.f)) {
+        bool changed = Bess::UI::Widgets::TextBoxMultiline(label, value, size);
+        return std::make_tuple(changed, value);
+    };
+
+    m.def("input_text_multiline",
+          inputTextMultilineFn,
+          py::arg("label"),
+          py::arg("value"),
+          py::arg("size") = glm::vec2(0.f, 400.f));
 }

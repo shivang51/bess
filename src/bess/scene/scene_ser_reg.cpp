@@ -28,4 +28,9 @@ namespace Bess::Canvas {
         static std::unordered_map<std::string, DeSerFunc> registry;
         return registry;
     }
+
+    bool SceneSerReg::hasComponent(const std::string &typeName) {
+        const auto &m_registry = getRegistry();
+        return m_registry.contains(typeName);
+    }
 } // namespace Bess::Canvas

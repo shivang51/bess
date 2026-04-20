@@ -3,6 +3,7 @@
 #include "application/assets.h"
 #include "renderer/font.h"
 #include "scene/scene_state/components/scene_component_types.h"
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <deque>
@@ -400,7 +401,27 @@ namespace Bess::Renderer {
     glm::vec2 MaterialRenderer::getTextRenderSize(const std::string &str,
                                                   float renderSize) {
         auto font = *getFontFile();
-        BESS_ASSERT(font, "Font file not set in MaterialRenderer");
+
+        // for tests when font is not loaded
+        if (!font) {
+            const float safeRenderSize = std::max(renderSize, 1.f);
+            float currentLineWidth = 0.f;
+            float maxLineWidth = 0.f;
+            float totalHeight = safeRenderSize;
+            for (const char ch : str) {
+                if (ch == '\n') {
+                    maxLineWidth = std::max(maxLineWidth, currentLineWidth);
+                    currentLineWidth = 0.f;
+                    totalHeight += safeRenderSize;
+                    continue;
+                }
+                currentLineWidth += safeRenderSize * 0.6f;
+            }
+
+            maxLineWidth = std::max(maxLineWidth, currentLineWidth);
+            return {maxLineWidth, totalHeight};
+        }
+
         const auto renderSizeMilli = static_cast<int32_t>(std::lround(renderSize * 1000.0f));
 
         static constexpr size_t kMaxTextMeasureCacheEntries = 4096;

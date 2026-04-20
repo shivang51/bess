@@ -63,6 +63,7 @@ namespace Bess::UI {
         static void drawProjectExplorer();
         static void drawMenubar();
         static void drawStatusbar();
+        static void drawVerilogImportWizard();
         static void resetDockspace();
         static void onOpenProject();
         static void onSaveProject();

@@ -20,7 +20,7 @@ namespace Bess::Canvas {
 
         void draw(SceneDrawContext &context) override;
 
-        void calculateSchematicScale(SceneState &state) override;
+        void calculateSchematicScale(const SceneState &state) override;
 
         void drawToggleButton(SceneDrawContext &context,
                               UUID slotUuid,
@@ -36,4 +36,5 @@ namespace Bess::Canvas {
     };
 } // namespace Bess::Canvas
 
-REFLECT_DERIVED_EMPTY(Bess::Canvas::InputSceneComponent, Bess::Canvas::SimulationSceneComponent)
+REG_SCENE_COMP_NP(Bess::Canvas::InputSceneComponent,
+                  Bess::Canvas::SimulationSceneComponent)

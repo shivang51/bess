@@ -1,4 +1,6 @@
 #include "sim_engine_state.h"
+#include "bverilog/sim_engine_importer.h"
+#include "common/bess_assert.h"
 #include "common/logger.h"
 #include "component_catalog.h"
 #include "module_def.h"
@@ -59,6 +61,17 @@ namespace Bess::SimEngine {
         return m_digitalComponents.contains(uuid);
     }
 
+    std::vector<std::shared_ptr<DigitalComponent>> SimEngineState::findCompsByName(
+        const std::string &name) const {
+        std::vector<std::shared_ptr<DigitalComponent>> result;
+        for (const auto &[uuid, comp] : m_digitalComponents) {
+            if (comp->getName() == name) {
+                result.push_back(comp);
+            }
+        }
+        return result;
+    }
+
 } // namespace Bess::SimEngine
 
 namespace Bess::JsonConvert {
@@ -67,6 +80,11 @@ namespace Bess::JsonConvert {
         for (const auto &[uuid, comp] : state.getDigitalComponents()) {
             Json::Value compJson;
             JsonConvert::toJsonValue(compJson, *comp);
+            const auto auxData = comp->definition->getAuxData();
+            if (auxData.has_value() && auxData.type() == typeid(Bess::Verilog::VerCompDefAuxData)) {
+                auto verAuxData = std::any_cast<Bess::Verilog::VerCompDefAuxData>(auxData);
+                compJson["definition"]["aux_data"] = verAuxData.toJson();
+            }
             j["digital_components"].append(compJson);
         }
 
@@ -95,9 +113,18 @@ namespace Bess::JsonConvert {
                 };
                 comp->definition->setSimulationFunction(simFn);
             } else {
+                if (compJson["definition"].isMember("aux_data")) {
+                    auto auxDataJson = compJson["definition"]["aux_data"];
+                    // Just to register it in catalog
+                    auto def = Bess::Verilog::getFromAuxDataJson(auxDataJson);
+                }
+
                 if (!compCatalog.isRegistered(comp->definition->getBaseHash())) {
                     BESS_ERROR("Component definition with hash {} is not registered in the catalog. Skipping.",
                                comp->definition->getBaseHash());
+
+                    // temp
+                    BESS_ASSERT(false, compJson.toStyledString());
                     continue;
                 }
 
