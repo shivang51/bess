@@ -25,11 +25,12 @@ class Plugin {
         PYBIND11_OVERRIDE_PURE(SceneMap, Plugin, on_scene_comp_load);
     }
 
-    bool has_sim_comp(const uint64_t &baseHash) const {
+    bool has_scene_comp_with_name(const std::string &name) const {
         return false;
     }
 
-    std::shared_ptr<Bess::Canvas::SimulationSceneComponent> get_sim_comp(const Bess::SimEngine::ComponentDefinition &compDef) const {
+    std::shared_ptr<Bess::Canvas::SimulationSceneComponent> get_scene_comp(
+        const Bess::SimEngine::ComponentDefinition &compDef) const {
         return nullptr;
     }
 
@@ -67,8 +68,8 @@ void bind_plugin(py::module &m) {
                                   self.get_name(), self.get_version()));
         })
         .def("draw_ui", &Plugin::draw_ui)
-        .def("has_sim_comp", &Plugin::has_sim_comp, py::arg("base_hash"))
-        .def("get_sim_comp", &Plugin::get_sim_comp, py::arg("comp_def"))
+        .def("has_scene_comp_with_name", &Plugin::has_scene_comp_with_name, py::arg("name"))
+        .def("get_scene_comp", &Plugin::get_scene_comp, py::arg("comp_def"))
         .def_property("name", &Plugin::get_name, &Plugin::set_name)
         .def_property("version", &Plugin::get_version, &Plugin::set_version);
 }

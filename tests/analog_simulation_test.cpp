@@ -4,6 +4,7 @@
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "simulation_engine.h"
+#include "simulation_engine_serializer.h"
 #include <cmath>
 #include <memory>
 #include <string>
@@ -332,20 +333,20 @@ TEST(AnalogSimulationTest, SimulationEngineUnifiedSlotApiSolvesGroundedSourceRes
     ASSERT_NE(sourceDef, nullptr);
     ASSERT_NE(resistorDef, nullptr);
     ASSERT_NE(groundDef, nullptr);
+    ASSERT_TRUE(sourceDef->isAnalogDefinition());
+    ASSERT_TRUE(resistorDef->isAnalogDefinition());
+    ASSERT_TRUE(groundDef->isAnalogDefinition());
 
-    const auto sourceTrait = sourceDef->getTrait<AnalogComponentTrait>();
-    const auto resistorTrait = resistorDef->getTrait<AnalogComponentTrait>();
-    const auto groundTrait = groundDef->getTrait<AnalogComponentTrait>();
-    ASSERT_NE(sourceTrait, nullptr);
-    ASSERT_NE(sourceTrait->factory, nullptr);
-    ASSERT_NE(resistorTrait, nullptr);
-    ASSERT_NE(resistorTrait->factory, nullptr);
-    ASSERT_NE(groundTrait, nullptr);
-    ASSERT_NE(groundTrait->factory, nullptr);
+    const auto sourceComp = sourceDef->createAnalogComponent();
+    const auto resistorComp = resistorDef->createAnalogComponent();
+    const auto groundComp = groundDef->createAnalogComponent();
+    ASSERT_NE(sourceComp, nullptr);
+    ASSERT_NE(resistorComp, nullptr);
+    ASSERT_NE(groundComp, nullptr);
 
-    const auto source = engine.addAnalogComponent(sourceTrait->factory(), sourceDef);
-    const auto resistor = engine.addAnalogComponent(resistorTrait->factory(), resistorDef);
-    const auto ground = engine.addAnalogComponent(groundTrait->factory(), groundDef);
+    const auto source = engine.addAnalogComponent(sourceComp, sourceDef);
+    const auto resistor = engine.addAnalogComponent(resistorComp, resistorDef);
+    const auto ground = engine.addAnalogComponent(groundComp, groundDef);
 
     const SimulationEngine::SlotEndpoint sourcePlus{source, 0, SlotType::analogTerminal};
     const SimulationEngine::SlotEndpoint sourceMinus{source, 1, SlotType::analogTerminal};
@@ -385,16 +386,16 @@ TEST(AnalogSimulationTest, SimulationEngineUnifiedSlotApiAutoReferencesFloatingS
     const auto resistorDef = ComponentCatalog::instance().findDefByName("Resistor");
     ASSERT_NE(sourceDef, nullptr);
     ASSERT_NE(resistorDef, nullptr);
+    ASSERT_TRUE(sourceDef->isAnalogDefinition());
+    ASSERT_TRUE(resistorDef->isAnalogDefinition());
 
-    const auto sourceTrait = sourceDef->getTrait<AnalogComponentTrait>();
-    const auto resistorTrait = resistorDef->getTrait<AnalogComponentTrait>();
-    ASSERT_NE(sourceTrait, nullptr);
-    ASSERT_NE(sourceTrait->factory, nullptr);
-    ASSERT_NE(resistorTrait, nullptr);
-    ASSERT_NE(resistorTrait->factory, nullptr);
+    const auto sourceComp = sourceDef->createAnalogComponent();
+    const auto resistorComp = resistorDef->createAnalogComponent();
+    ASSERT_NE(sourceComp, nullptr);
+    ASSERT_NE(resistorComp, nullptr);
 
-    const auto source = engine.addAnalogComponent(sourceTrait->factory(), sourceDef);
-    const auto resistor = engine.addAnalogComponent(resistorTrait->factory(), resistorDef);
+    const auto source = engine.addAnalogComponent(sourceComp, sourceDef);
+    const auto resistor = engine.addAnalogComponent(resistorComp, resistorDef);
 
     const SimulationEngine::SlotEndpoint sourcePlus{source, 0, SlotType::analogTerminal};
     const SimulationEngine::SlotEndpoint sourceMinus{source, 1, SlotType::analogTerminal};
@@ -436,33 +437,60 @@ TEST(AnalogSimulationTest, AnalogCatalogIncludesSourceAndProbeComponents) {
     for (const auto &item : expectations) {
         const auto def = ComponentCatalog::instance().findDefByName(item.name);
         ASSERT_NE(def, nullptr) << item.name;
-        const auto analogTrait = def->getTrait<AnalogComponentTrait>();
-        ASSERT_NE(analogTrait, nullptr) << item.name;
-        EXPECT_EQ(analogTrait->terminalCount, item.expectedTerminalCount) << item.name;
+        ASSERT_TRUE(def->isAnalogDefinition()) << item.name;
+        EXPECT_EQ(def->getAnalogTerminalCount(), item.expectedTerminalCount) << item.name;
     }
 }
 
-TEST(AnalogSimulationTest, AnalogTraitIsSerializableThroughComponentDefinitionJson) {
+TEST(AnalogSimulationTest, AnalogDefinitionComponentsAreSerializableThroughSimEngineSerializer) {
+    auto &engine = Bess::SimEngine::SimulationEngine::instance();
+    engine.clear();
+
     const auto resistorDef = ComponentCatalog::instance().findDefByName("Resistor");
+    const auto sourceDef = ComponentCatalog::instance().findDefByName("DC Voltage Source");
     ASSERT_NE(resistorDef, nullptr);
+    ASSERT_NE(sourceDef, nullptr);
+    ASSERT_TRUE(resistorDef->isAnalogDefinition());
+    ASSERT_TRUE(sourceDef->isAnalogDefinition());
 
-    const auto analogTrait = resistorDef->getTrait<AnalogComponentTrait>();
-    ASSERT_NE(analogTrait, nullptr);
+    const auto source = engine.addAnalogComponent(sourceDef->createAnalogComponent(), sourceDef);
+    const auto resistor = engine.addAnalogComponent(resistorDef->createAnalogComponent(), resistorDef);
 
-    const auto traitJson = analogTrait->toJson();
-    ASSERT_TRUE(traitJson.isObject());
-    EXPECT_EQ(traitJson["type"].asString(), "AnalogComponentTrait");
-    EXPECT_EQ(traitJson["terminalCount"].asUInt64(), 2u);
-    ASSERT_TRUE(traitJson["terminalNames"].isArray());
-    ASSERT_EQ(traitJson["terminalNames"].size(), 2u);
-    EXPECT_EQ(traitJson["terminalNames"][0].asString(), "+");
-    EXPECT_EQ(traitJson["terminalNames"][1].asString(), "-");
+    ASSERT_TRUE(engine.connectSlots({source, 0, SlotType::analogTerminal},
+                                    {resistor, 0, SlotType::analogTerminal}));
+    ASSERT_TRUE(engine.connectSlots({source, 1, SlotType::analogTerminal},
+                                    {resistor, 1, SlotType::analogTerminal}));
 
-    Json::Value defJson;
-    Bess::JsonConvert::toJsonValue(*resistorDef, defJson);
-    ASSERT_TRUE(defJson.isObject());
-    ASSERT_TRUE(defJson["traits"].isArray());
-    ASSERT_GE(defJson["traits"].size(), 1u);
+    ASSERT_TRUE(engine.setAnalogResistorValue(resistor, 1500.0));
+
+    SimEngineSerializer serializer;
+    Json::Value simJson;
+    serializer.serialize(simJson);
+
+    ASSERT_TRUE(simJson.isObject());
+    ASSERT_TRUE(simJson["analog_components"].isArray());
+    ASSERT_GE(simJson["analog_components"].size(), 2u);
+    ASSERT_TRUE(simJson["analog_connections"].isArray());
+    ASSERT_GE(simJson["analog_connections"].size(), 2u);
+
+    engine.clear();
+    serializer.deserialize(simJson);
+
+    const auto restoredSourceDef = engine.getComponentDefinition(source);
+    const auto restoredResistorDef = engine.getComponentDefinition(resistor);
+    ASSERT_NE(restoredSourceDef, nullptr);
+    ASSERT_NE(restoredResistorDef, nullptr);
+    EXPECT_TRUE(restoredSourceDef->isAnalogDefinition());
+    EXPECT_TRUE(restoredResistorDef->isAnalogDefinition());
+
+    const auto restoredResistorValue = engine.getAnalogResistorValue(resistor);
+    ASSERT_TRUE(restoredResistorValue.has_value());
+    EXPECT_NEAR(*restoredResistorValue, 1500.0, 1e-12);
+
+    const auto solution = engine.solveAnalogCircuit();
+    ASSERT_TRUE(solution.ok()) << solution.message;
+
+    engine.clear();
 }
 
 TEST(AnalogSimulationTest, SimulationEngineUpdatesResistorAndVoltageSourceValues) {
@@ -580,10 +608,10 @@ TEST(AnalogSimulationTest, SimulationEngineExposesResistorValueForSelectedResist
     const auto resistor = engine.addAnalogResistor(2200.0, "RView");
     const auto sourceDef = ComponentCatalog::instance().findDefByName("DC Voltage Source");
     ASSERT_NE(sourceDef, nullptr);
-    const auto sourceTrait = sourceDef->getTrait<AnalogComponentTrait>();
-    ASSERT_NE(sourceTrait, nullptr);
-    ASSERT_NE(sourceTrait->factory, nullptr);
-    const auto source = engine.addAnalogComponent(sourceTrait->factory(), sourceDef);
+    ASSERT_TRUE(sourceDef->isAnalogDefinition());
+    const auto sourceComp = sourceDef->createAnalogComponent();
+    ASSERT_NE(sourceComp, nullptr);
+    const auto source = engine.addAnalogComponent(sourceComp, sourceDef);
 
     const auto resistorValue = engine.getAnalogResistorValue(resistor);
     ASSERT_TRUE(resistorValue.has_value());
@@ -639,7 +667,8 @@ TEST(AnalogSimulationTest, ResistorDefinitionIsCatalogBackedAndCreatesAnalogScen
 
     const auto resistorDef = ComponentCatalog::instance().findDefByName("Resistor");
     ASSERT_NE(resistorDef, nullptr);
-    ASSERT_NE(resistorDef->getTrait<AnalogComponentTrait>(), nullptr);
+    ASSERT_TRUE(resistorDef->isAnalogDefinition());
+    EXPECT_EQ(resistorDef->getAnalogTerminalCount(), 2u);
 
     const auto created = Bess::Canvas::SimulationSceneComponent::createNew(resistorDef);
     ASSERT_EQ(created.size(), 3u);

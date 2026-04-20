@@ -12,7 +12,7 @@
 
 namespace Bess::SimEngine {
 
-    class AnalogComponentTrait;
+    class AnalogComponent;
 
     enum class CompDefIOGrowthPolicy : uint8_t {
         none,
@@ -77,11 +77,13 @@ namespace Bess::SimEngine {
             return m_simulationFunction;
         }
 
-        Json::Value getTraitsJson() const;
+        // Analog-definition extension points.
+        virtual bool isAnalogDefinition() const;
+        virtual size_t getAnalogTerminalCount() const;
+        virtual const std::vector<std::string> &getAnalogTerminalNames() const;
+        virtual std::shared_ptr<AnalogComponent> createAnalogComponent() const;
 
-        void setAnalogComponentTrait(const std::shared_ptr<AnalogComponentTrait> &trait);
-        std::shared_ptr<AnalogComponentTrait> getAnalogComponentTrait() const;
-        bool hasAnalogComponentTrait() const;
+        Json::Value getTraitsJson() const;
 
         template <typename T>
         T &getAuxDataAs() {

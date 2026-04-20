@@ -2,13 +2,14 @@ import math
 
 from bessplug.api.sim_engine import (
     ANALOG_GROUND_NODE,
-    AnalogComponentTrait,
+    AnalogComponentDefinition,
     AnalogStampContext,
-    ComponentDefinition,
-    SlotsGroupType,
 )
 
-from .common import SingleTerminalAnalogComponent, TwoTerminalAnalogComponent, make_slots_info
+from .common import (
+    SingleTerminalAnalogComponent,
+    TwoTerminalAnalogComponent,
+)
 
 
 class DCVoltageSourceComponent(TwoTerminalAnalogComponent):
@@ -84,44 +85,31 @@ class GroundReferenceComponent(SingleTerminalAnalogComponent):
         return 1
 
 
-dc_voltage_source_def = ComponentDefinition()
+dc_voltage_source_def = AnalogComponentDefinition(
+    2,
+    ["+", "-"],
+    lambda: DCVoltageSourceComponent(5.0, "V1"),
+)
 dc_voltage_source_def.name = "DC Voltage Source"
 dc_voltage_source_def.group_name = "Analog"
-dc_voltage_source_def.input_slots_info = make_slots_info(SlotsGroupType.INPUT, 1, ["+"])
-dc_voltage_source_def.output_slots_info = make_slots_info(SlotsGroupType.OUTPUT, 1, ["-"])
-dc_voltage_source_def.set_analog_trait(
-    AnalogComponentTrait(
-        2,
-        ["+", "-"],
-        lambda: DCVoltageSourceComponent(5.0, "V1"),
-    )
-)
 
-dc_current_source_def = ComponentDefinition()
+
+dc_current_source_def = AnalogComponentDefinition(
+    2,
+    ["+", "-"],
+    lambda: DCCurrentSourceComponent(0.001, "I1"),
+)
 dc_current_source_def.name = "DC Current Source"
 dc_current_source_def.group_name = "Analog"
-dc_current_source_def.input_slots_info = make_slots_info(SlotsGroupType.INPUT, 1, ["+"])
-dc_current_source_def.output_slots_info = make_slots_info(SlotsGroupType.OUTPUT, 1, ["-"])
-dc_current_source_def.set_analog_trait(
-    AnalogComponentTrait(
-        2,
-        ["+", "-"],
-        lambda: DCCurrentSourceComponent(0.001, "I1"),
-    )
-)
 
-ground_def = ComponentDefinition()
+
+ground_def = AnalogComponentDefinition(
+    1,
+    ["GND"],
+    lambda: GroundReferenceComponent("GND"),
+)
 ground_def.name = "Ground"
 ground_def.group_name = "Analog"
-ground_def.input_slots_info = make_slots_info(SlotsGroupType.INPUT, 1, ["GND"])
-ground_def.output_slots_info = make_slots_info(SlotsGroupType.OUTPUT, 0, [])
-ground_def.set_analog_trait(
-    AnalogComponentTrait(
-        1,
-        ["GND"],
-        lambda: GroundReferenceComponent("GND"),
-    )
-)
 
 
 __all__ = ["dc_voltage_source_def", "dc_current_source_def", "ground_def"]

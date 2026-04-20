@@ -21,7 +21,7 @@ namespace Bess::Svc {
         void init();
         void destroy();
 
-        bool hasSimComponent(const uint64_t &compHash) const;
+        bool hasSceneCompWithName(const std::string &name) const;
         bool hasSceneComp(const std::string &typeName) const;
 
         bool canDerserialize(const std::string &typeName) const;

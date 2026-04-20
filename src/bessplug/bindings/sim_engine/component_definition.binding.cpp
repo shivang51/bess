@@ -320,27 +320,6 @@ void bind_sim_engine_component_definition(py::module_ &m) {
             return toJsonString(self.toJson());
         });
 
-    py::class_<AnalogComponentTrait, Trait, std::shared_ptr<AnalogComponentTrait>>(m, "AnalogComponentTrait")
-        .def(py::init<>())
-        .def(py::init<size_t, std::vector<std::string>, AnalogComponentTrait::Factory>(),
-             py::arg("terminal_count"),
-             py::arg("terminal_names"),
-             py::arg("factory"))
-        .def_readwrite("terminal_count", &AnalogComponentTrait::terminalCount)
-        .def_readwrite("terminal_names", &AnalogComponentTrait::terminalNames)
-        .def("set_factory", [](AnalogComponentTrait &self, const AnalogComponentTrait::Factory &factory) {
-            self.factory = factory;
-        })
-        .def("create_component", [](const AnalogComponentTrait &self) {
-            if (!self.factory) {
-                return std::shared_ptr<AnalogComponent>{};
-            }
-            return self.factory();
-        })
-        .def("to_json", [](const AnalogComponentTrait &self) {
-            return toJsonString(self.toJson());
-        });
-
     py::class_<ComponentDefinition,
                PyComponentDefinition,
                py::smart_holder>(m, "ComponentDefinition")
@@ -351,19 +330,10 @@ void bind_sim_engine_component_definition(py::module_ &m) {
         .def("get_traits_json", [](const ComponentDefinition &self) {
             return toJsonString(self.getTraitsJson());
         })
-        .def("has_analog_trait", [](const ComponentDefinition &self) {
-            return self.hasAnalogComponentTrait();
-        })
-        .def("get_analog_trait", [](const ComponentDefinition &self) {
-            return self.getAnalogComponentTrait();
-        })
-        .def("set_analog_trait", [](ComponentDefinition &self,
-                                     const std::shared_ptr<AnalogComponentTrait> &trait) {
-            if (!trait) {
-                throw py::value_error("trait must not be None");
-            }
-            self.setAnalogComponentTrait(trait);
-        })
+        .def("is_analog_definition", &ComponentDefinition::isAnalogDefinition)
+        .def("analog_terminal_count", &ComponentDefinition::getAnalogTerminalCount)
+        .def("analog_terminal_names", &ComponentDefinition::getAnalogTerminalNames)
+        .def("create_analog_component", &ComponentDefinition::createAnalogComponent)
         .def("get_reschedule_time", &ComponentDefinition::getRescheduleTime,
              py::arg("current_time_ns"),
              "Get the next reschedule time given the current time in nanoseconds.")
@@ -406,6 +376,21 @@ void bind_sim_engine_component_definition(py::module_ &m) {
                     py::arg("sim_delay"),
                     py::arg("sim_function"),
                     "Create a ComponentDefinition from a simulation function.");
+
+    py::class_<AnalogComponentDefinition,
+               ComponentDefinition,
+               py::smart_holder>(m, "AnalogComponentDefinition")
+        .def(py::init<>())
+        .def(py::init<size_t, std::vector<std::string>, AnalogComponentDefinition::Factory>(),
+             py::arg("terminal_count"),
+             py::arg("terminal_names"),
+             py::arg("factory"))
+        .def_readwrite("terminal_count", &AnalogComponentDefinition::terminalCount)
+        .def_readwrite("terminal_names", &AnalogComponentDefinition::terminalNames)
+        .def("set_factory", [](AnalogComponentDefinition &self, const AnalogComponentDefinition::Factory &factory) {
+            self.factory = factory;
+        })
+        .def("create_component", &AnalogComponentDefinition::createAnalogComponent);
 }
 
 template <typename T>

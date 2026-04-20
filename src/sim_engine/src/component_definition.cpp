@@ -77,20 +77,21 @@ namespace Bess::SimEngine {
         return traitsJson;
     }
 
-    void ComponentDefinition::setAnalogComponentTrait(const std::shared_ptr<AnalogComponentTrait> &trait) {
-        m_traits.put<AnalogComponentTrait>(trait);
+    bool ComponentDefinition::isAnalogDefinition() const {
+        return false;
     }
 
-    std::shared_ptr<AnalogComponentTrait> ComponentDefinition::getAnalogComponentTrait() const {
-        auto itr = m_traits.find<AnalogComponentTrait>();
-        if (itr == m_traits.end()) {
-            return nullptr;
-        }
-        return std::static_pointer_cast<AnalogComponentTrait>(itr->second);
+    size_t ComponentDefinition::getAnalogTerminalCount() const {
+        return 0;
     }
 
-    bool ComponentDefinition::hasAnalogComponentTrait() const {
-        return m_traits.find<AnalogComponentTrait>() != m_traits.end();
+    const std::vector<std::string> &ComponentDefinition::getAnalogTerminalNames() const {
+        static const std::vector<std::string> kEmptyNames;
+        return kEmptyNames;
+    }
+
+    std::shared_ptr<AnalogComponent> ComponentDefinition::createAnalogComponent() const {
+        return nullptr;
     }
 
     bool ComponentDefinition::onSlotsResizeReq(SlotsGroupType groupType, size_t newSize) {

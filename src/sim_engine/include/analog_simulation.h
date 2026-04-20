@@ -114,17 +114,20 @@ namespace Bess::SimEngine {
         UUID m_id;
     };
 
-    class BESS_API AnalogComponentTrait : public Trait {
+    class BESS_API AnalogComponentDefinition : public ComponentDefinition {
       public:
         using Factory = std::function<std::shared_ptr<AnalogComponent>()>;
 
-        AnalogComponentTrait() = default;
-        AnalogComponentTrait(size_t terminalCount,
-                             std::vector<std::string> terminalNames,
-                             Factory factory);
+        AnalogComponentDefinition() = default;
+        AnalogComponentDefinition(size_t terminalCount,
+                                  std::vector<std::string> terminalNames,
+                                  Factory factory);
 
-        std::shared_ptr<Trait> clone() const override;
-        Json::Value toJson() const override;
+        bool isAnalogDefinition() const override;
+        size_t getAnalogTerminalCount() const override;
+        const std::vector<std::string> &getAnalogTerminalNames() const override;
+        std::shared_ptr<AnalogComponent> createAnalogComponent() const override;
+        std::shared_ptr<ComponentDefinition> clone() const override;
 
         size_t terminalCount = 0;
         std::vector<std::string> terminalNames;

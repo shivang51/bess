@@ -34,7 +34,7 @@ namespace Bess::Plugins {
 
         void drawUI();
 
-        bool hasSimComponent(const uint64_t &baseHash) const;
+        bool hasSceneCompWithName(const std::string &name) const;
 
         bool hasSceneComp(const std::string &typeName);
 
@@ -44,7 +44,7 @@ namespace Bess::Plugins {
             const std::string &typeName,
             const Json::Value &json);
 
-        std::shared_ptr<Canvas::SimulationSceneComponent> getSimComponent(
+        std::shared_ptr<Canvas::SimulationSceneComponent> getSceneComponent(
             const std::shared_ptr<SimEngine::ComponentDefinition> &def) const;
 
         MAKE_GETTER(std::string, Name, m_pluginName)

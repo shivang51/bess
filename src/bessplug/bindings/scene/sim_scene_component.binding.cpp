@@ -122,11 +122,25 @@ void bind_sim_scene_component(py::module_ &m) {
         int inSlotIdx = 0, outSlotIdx = 0;
         char inpCh = 'A', outCh = 'a';
 
-        const auto &slots = comp.createIOSlots(compDef->getInputSlotsInfo().count,
-                                               compDef->getOutputSlotsInfo().count);
+        const bool isAnalogDef = compDef->isAnalogDefinition();
+        const auto &slots = isAnalogDef ? comp.createAnalogTerminalSlots(
+                                              compDef->getAnalogTerminalCount())
+
+                                        : comp.createIOSlots(compDef->getInputSlotsInfo().count,
+                                                             compDef->getOutputSlotsInfo().count);
+
+        const auto &analogTerminalNames = compDef->getAnalogTerminalNames();
 
         std::vector<std::shared_ptr<Bess::Canvas::SlotSceneComponent>> createdSlots;
         for (const auto &slot : slots) {
+            if (slot->getSlotType() == Bess::Canvas::SlotType::analogTerminal) {
+                const auto terminalIdx = static_cast<size_t>(slot->getIndex());
+                if (analogTerminalNames.size() > terminalIdx) {
+                    slot->setName(analogTerminalNames[terminalIdx]);
+                } else {
+                    slot->setName("T" + std::to_string(terminalIdx));
+                }
+            }
             if (slot->getSlotType() == Bess::Canvas::SlotType::digitalInput) {
                 if (inpDetails.names.size() > inSlotIdx)
                     slot->setName(inpDetails.names[inSlotIdx++]);

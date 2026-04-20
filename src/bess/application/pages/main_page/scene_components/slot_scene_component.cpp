@@ -103,8 +103,15 @@ namespace Bess::Canvas {
         const float ir = Styles::simCompStyles.slotRadius -
                          Styles::simCompStyles.slotBorderSize;
         const float r = Styles::simCompStyles.slotRadius;
-        drawContext.materialRenderer->drawCircle(pos, r, border, pickingId, ir);
-        drawContext.materialRenderer->drawCircle(pos, ir - radiusGap, bg, pickingId);
+        drawContext.materialRenderer->drawCircle(pos,
+                                                 r,
+                                                 border,
+                                                 pickingId,
+                                                 ir);
+        drawContext.materialRenderer->drawCircle(pos,
+                                                 ir - radiusGap,
+                                                 bg,
+                                                 pickingId);
 
         if (!m_name.empty()) {
             const float labeldx = Styles::simCompStyles.slotMargin +
@@ -137,7 +144,9 @@ namespace Bess::Canvas {
 
         const auto &state = *drawContext.sceneState;
         const auto &pos = getSchematicPosAbsolute(state);
-        const auto pinId = PickingId{m_runtimeId, PickingId::InfoFlags::unSelectable};
+        const auto pinId = PickingId{
+            m_runtimeId,
+            PickingId::InfoFlags::unSelectable};
         constexpr float nodeWeight = Styles::compSchematicStyles.strokeSize;
         const auto &pinColor = ViewportTheme::schematicViewColors.pin;
         glm::vec2 offset = {0.f, 0.f};
@@ -153,11 +162,20 @@ namespace Bess::Canvas {
             startPos.x += 5.f;
         }
 
-        drawContext.pathRenderer->beginPathMode(startPos, nodeWeight, pinColor, pinId);
+        drawContext.pathRenderer->beginPathMode(startPos,
+                                                nodeWeight,
+                                                pinColor,
+                                                pinId);
         drawContext.pathRenderer->pathLineTo({pos.x + offset.x, pos.y + offset.y, pos.z},
-                                             nodeWeight, pinColor, pinId);
+                                             nodeWeight,
+                                             pinColor,
+                                             pinId);
         drawContext.pathRenderer->endPathMode(false,
-                                              false, {}, true, false, m_invalidateCache);
+                                              false,
+                                              {},
+                                              true,
+                                              false,
+                                              m_invalidateCache);
         m_invalidateCache = true;
 
         if (!m_name.empty()) {

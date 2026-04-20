@@ -336,26 +336,56 @@ namespace Bess::SimEngine {
         return std::nullopt;
     }
 
-    AnalogComponentTrait::AnalogComponentTrait(size_t terminalCount,
-                                               std::vector<std::string> terminalNames,
-                                               Factory factory)
+    AnalogComponentDefinition::AnalogComponentDefinition(size_t terminalCount,
+                                                         std::vector<std::string> terminalNames,
+                                                         Factory factory)
         : terminalCount(terminalCount),
           terminalNames(std::move(terminalNames)),
-          factory(std::move(factory)) {}
+          factory(std::move(factory)) {
+        SlotsGroupInfo inputInfo;
+        inputInfo.type = SlotsGroupType::input;
+        inputInfo.isResizeable = false;
 
-    std::shared_ptr<Trait> AnalogComponentTrait::clone() const {
-        return std::make_shared<AnalogComponentTrait>(*this);
+        SlotsGroupInfo outputInfo;
+        outputInfo.type = SlotsGroupType::output;
+        outputInfo.isResizeable = false;
+
+        const size_t leftCount = (this->terminalCount + 1) / 2;
+        inputInfo.count = leftCount;
+        outputInfo.count = this->terminalCount - leftCount;
+
+        for (size_t i = 0; i < this->terminalNames.size(); ++i) {
+            if (i < leftCount) {
+                inputInfo.names.push_back(this->terminalNames[i]);
+            } else {
+                outputInfo.names.push_back(this->terminalNames[i]);
+            }
+        }
+
+        setInputSlotsInfo(inputInfo);
+        setOutputSlotsInfo(outputInfo);
     }
 
-    Json::Value AnalogComponentTrait::toJson() const {
-        Json::Value json = Trait::toJson();
-        json["type"] = "AnalogComponentTrait";
-        json["terminalCount"] = static_cast<Json::UInt64>(terminalCount);
+    bool AnalogComponentDefinition::isAnalogDefinition() const {
+        return true;
+    }
 
-        Json::Value terminalNamesJson;
-        Bess::JsonConvert::toJsonValue(terminalNames, terminalNamesJson);
-        json["terminalNames"] = terminalNamesJson;
-        return json;
+    size_t AnalogComponentDefinition::getAnalogTerminalCount() const {
+        return terminalCount;
+    }
+
+    const std::vector<std::string> &AnalogComponentDefinition::getAnalogTerminalNames() const {
+        return terminalNames;
+    }
+
+    std::shared_ptr<AnalogComponent> AnalogComponentDefinition::createAnalogComponent() const {
+        return factory ? factory() : nullptr;
+    }
+
+    std::shared_ptr<ComponentDefinition> AnalogComponentDefinition::clone() const {
+        assert(getOwnership() == CompDefinitionOwnership::NativeCpp &&
+               "Cloning of Python-owned ComponentDefinitions is not supported.");
+        return std::make_shared<AnalogComponentDefinition>(*this);
     }
 
         class Resistor final : public AnalogComponent {

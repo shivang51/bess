@@ -225,7 +225,7 @@ _paths = _init_paths()
 
 
 digital_gates: list[ComponentDefinition] = []
-schematic_diagrams: dict[int, SchematicDiagram] = {}
+schematic_diagrams: dict[str, SchematicDiagram] = {}
 
 for gate_key, gate_data in _gates.items():
     input_slots_info: SlotsGroupInfo = SlotsGroupInfo()
@@ -257,7 +257,7 @@ for gate_key, gate_data in _gates.items():
     dig = _paths[gate_key]
     dig.normalize_paths()
     dig.stroke_size = 1.0
-    schematic_diagrams[def_gate.get_hash()] = dig
+    schematic_diagrams[def_gate.name] = dig
 
 
 __all__ = ["digital_gates", "schematic_diagrams"]

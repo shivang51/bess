@@ -1,6 +1,7 @@
 from typing import override
 from bessplug import Plugin
 from bessplug.api.sim_engine import ComponentDefinition
+from components.analog_components.passive import ResistorComponent
 from components.latches import latches
 from components.digital_gates import (
     digital_gates,
@@ -16,6 +17,7 @@ from scene.output_comp import OutputComp
 from scene.digital_gate_comp import DigitalGateComp
 from scene.seven_seg_disp_comp import SevenSegDispComp
 from ui.scripting_panel import ScriptingPanel
+from scene.analog_comps.resistor_scomp import ResistorSComp
 
 
 class BessPlugin(Plugin):
@@ -41,25 +43,28 @@ class BessPlugin(Plugin):
         ]
 
     @override
-    def has_sim_comp(self, base_hash) -> bool:
+    def has_scene_comp_with_name(self, name) -> bool:
         return (
-            base_hash == 15124334025293992558
-            or digital_gates_schematics.get(int(base_hash), None) is not None
-            or seven_segment_display.seven_seg_disp_def.get_hash() == base_hash
+            name == "Output"
+            or name == "Resistor"
+            or digital_gates_schematics.get(name, None) is not None
+            or seven_segment_display.seven_seg_disp_def.name == name
         )
 
     @override
-    def get_sim_comp(self, component_def):
-        base_hash = component_def.get_hash()
-        if not self.has_sim_comp(base_hash):
+    def get_scene_comp(self, comp_def):
+        if not self.has_scene_comp_with_name(comp_def.name):
             return None
 
-        if base_hash == 15124334025293992558:
+        name = comp_def.name
+        if name == "Output":
             return OutputComp()
-        elif seven_segment_display.seven_seg_disp_def.get_hash() == base_hash:
+        elif seven_segment_display.seven_seg_disp_def.name == name:
             return SevenSegDispComp()
+        elif name == "Resistor":
+            return ResistorSComp()
         else:
-            return DigitalGateComp.from_component_def(component_def)
+            return DigitalGateComp.from_component_def(comp_def)
 
     @override
     def draw_ui(self):

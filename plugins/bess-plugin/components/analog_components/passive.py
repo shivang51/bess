@@ -1,15 +1,13 @@
 import math
 
 from bessplug.api.sim_engine import (
+    AnalogComponentDefinition,
     AnalogComponentState,
-    AnalogComponentTrait,
     AnalogSolution,
     AnalogStampContext,
-    ComponentDefinition,
-    SlotsGroupType,
 )
 
-from .common import TwoTerminalAnalogComponent, make_slots_info
+from .common import TwoTerminalAnalogComponent
 
 
 class ResistorComponent(TwoTerminalAnalogComponent):
@@ -57,18 +55,13 @@ class ResistorComponent(TwoTerminalAnalogComponent):
         return state
 
 
-resistor_def = ComponentDefinition()
+resistor_def = AnalogComponentDefinition(
+    2,
+    ["+", "-"],
+    lambda: ResistorComponent(1000.0, "R"),
+)
 resistor_def.name = "Resistor"
 resistor_def.group_name = "Analog"
-resistor_def.input_slots_info = make_slots_info(SlotsGroupType.INPUT, 1, ["+"])
-resistor_def.output_slots_info = make_slots_info(SlotsGroupType.OUTPUT, 1, ["-"])
-resistor_def.set_analog_trait(
-    AnalogComponentTrait(
-        2,
-        ["+", "-"],
-        lambda: ResistorComponent(1000.0, "R"),
-    )
-)
 
 
 __all__ = ["resistor_def"]

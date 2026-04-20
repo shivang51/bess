@@ -139,7 +139,7 @@ namespace Bess::UI {
         auto &pluginSvc = Svc::PluginService::getInstance();
 
         // Try finding in plugins first, if not found the use default.
-        if (pluginSvc.hasSimComponent(def->getHash())) {
+        if (pluginSvc.hasSceneCompWithName(def->getName())) {
             auto simComp = pluginSvc.getSimComp(def);
 
             BESS_ASSERT(simComp, "PluginService returned invalid sim comp");

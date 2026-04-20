@@ -61,17 +61,18 @@ namespace Bess::Canvas {
             int inSlotIdx = 0, outSlotIdx = 0;
             char inpCh = 'A', outCh = 'a';
 
-            const auto analogTrait = compDef->getTrait<SimEngine::AnalogComponentTrait>();
-            const auto slots = analogTrait
-                                   ? sceneComp->createAnalogTerminalSlots(analogTrait->terminalCount)
+            const bool isAnalogDef = compDef->isAnalogDefinition();
+            const auto slots = isAnalogDef
+                                   ? sceneComp->createAnalogTerminalSlots(compDef->getAnalogTerminalCount())
                                    : sceneComp->createIOSlots(compDef->getInputSlotsInfo().count,
                                                               compDef->getOutputSlotsInfo().count);
+            const auto &analogTerminalNames = compDef->getAnalogTerminalNames();
 
             for (const auto &slot : slots) {
                 if (slot->getSlotType() == SlotType::analogTerminal) {
                     const auto terminalIdx = static_cast<size_t>(slot->getIndex());
-                    if (analogTrait && analogTrait->terminalNames.size() > terminalIdx) {
-                        slot->setName(analogTrait->terminalNames[terminalIdx]);
+                    if (analogTerminalNames.size() > terminalIdx) {
+                        slot->setName(analogTerminalNames[terminalIdx]);
                     } else {
                         slot->setName("T" + std::to_string(terminalIdx));
                     }

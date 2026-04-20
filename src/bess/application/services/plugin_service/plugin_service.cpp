@@ -31,7 +31,7 @@ namespace Bess::Svc {
         const auto &pluginMangaer = Plugins::PluginManager::getInstance();
 
         for (const auto &plugin : pluginMangaer.getLoadedPlugins()) {
-            auto comp = plugin.second->getSimComponent(def);
+            auto comp = plugin.second->getSceneComponent(def);
             if (comp) {
                 return comp;
             }
@@ -40,11 +40,11 @@ namespace Bess::Svc {
         return nullptr;
     }
 
-    bool PluginService::hasSimComponent(const uint64_t &compHash) const {
+    bool PluginService::hasSceneCompWithName(const std::string &name) const {
         const auto &pluginMangaer = Plugins::PluginManager::getInstance();
 
         for (const auto &plugin : pluginMangaer.getLoadedPlugins()) {
-            if (plugin.second->hasSimComponent(compHash)) {
+            if (plugin.second->hasSceneCompWithName(name)) {
                 return true;
             }
         }

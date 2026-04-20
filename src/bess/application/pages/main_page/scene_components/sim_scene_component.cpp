@@ -304,9 +304,10 @@ namespace Bess::Canvas {
             return;
 
         auto &simEngine = SimEngine::SimulationEngine::instance();
-        if (const auto analogTrait = m_compDef->getTrait<SimEngine::AnalogComponentTrait>()) {
-            BESS_ASSERT(analogTrait->factory, "Analog component definition must provide a factory");
-            m_simEngineId = simEngine.addAnalogComponent(analogTrait->factory(), m_compDef);
+        if (m_compDef->isAnalogDefinition()) {
+            const auto analogComponent = m_compDef->createAnalogComponent();
+            BESS_ASSERT(analogComponent, "Analog component definition must provide a factory");
+            m_simEngineId = simEngine.addAnalogComponent(analogComponent, m_compDef);
         } else {
             m_simEngineId = simEngine.addComponent(m_compDef, false);
         }
@@ -533,7 +534,7 @@ namespace Bess::Canvas {
     }
 
     bool SimulationSceneComponent::isAnalogComponent() const {
-        return m_compDef && m_compDef->hasTrait<SimEngine::AnalogComponentTrait>();
+        return m_compDef && m_compDef->isAnalogDefinition();
     }
 
     std::vector<std::shared_ptr<SceneComponent>> SimulationSceneComponent::cloneSimulationComponent(
