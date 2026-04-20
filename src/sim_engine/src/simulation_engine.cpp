@@ -80,6 +80,9 @@ namespace Bess::SimEngine {
     void SimulationEngine::destroy() {
         if (m_destroyed)
             return;
+
+        clear();
+
         m_stopFlag.store(true);
         m_queueCV.notify_all();
         m_stateCV.notify_all();
@@ -186,13 +189,13 @@ namespace Bess::SimEngine {
     }
 
     std::pair<bool, std::string> SimulationEngine::canConnectSlots(const SlotEndpoint &a,
-                                                                    const SlotEndpoint &b) const {
+                                                                   const SlotEndpoint &b) const {
         std::lock_guard lk(m_registryMutex);
         return canConnectSlotsLocked(a, b);
     }
 
     std::pair<bool, std::string> SimulationEngine::canConnectSlotsLocked(const SlotEndpoint &a,
-                                                                          const SlotEndpoint &b) const {
+                                                                         const SlotEndpoint &b) const {
         if (a.componentId == UUID::null || b.componentId == UUID::null) {
             return {false, "Cannot connect to/from null component"};
         }
