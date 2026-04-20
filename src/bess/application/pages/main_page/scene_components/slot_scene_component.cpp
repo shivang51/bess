@@ -117,7 +117,11 @@ namespace Bess::Canvas {
             const float labeldx = Styles::simCompStyles.slotMargin +
                                   (Styles::simCompStyles.slotRadius * 2.f);
             float labelX = pos.x;
-            if (m_slotType == SlotType::digitalInput) {
+            const auto parentX = state.getComponentByUuid(
+                                          m_parentComponent)
+                                     ->getAbsolutePosition(state)
+                                     .x;
+            if (pos.x < parentX) {
                 labelX += labeldx;
             } else {
                 const auto labelSize = Renderer::MaterialRenderer::getTextRenderSize(m_name,
