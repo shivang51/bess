@@ -16,30 +16,35 @@
 
 namespace Bess::SimEngine {
 
-    class BESS_API EvtBasedCompDef : public ComponentDef {
+    template <typename TSimFnData>
+    class BESS_API EvtBasedCompDef : public ComponentDef<TSimFnData> {
       public:
         EvtBasedCompDef() = default;
         ~EvtBasedCompDef() override = default;
 
-        MAKE_GETTER_SETTER(bool, ShouldAutoReschedule, m_shouldAutoReschedule)
+        MAKE_GETTER_SETTER(bool, AutoReschedule, m_autoReschedule)
         MAKE_GETTER_SETTER(TimeNs, PropDelay, m_propDelay)
 
         Json::Value toJson() const override {
-            Json::Value json = ComponentDef::toJson();
-            json["shouldAutoReschedule"] = m_shouldAutoReschedule;
+            Json::Value json = ComponentDef<TSimFnData>::toJson();
+            json["shouldAutoReschedule"] = m_autoReschedule;
             json["propDelay"] = m_propDelay.count();
             return json;
         }
 
         static void fromJson(const std::shared_ptr<EvtBasedCompDef> &compDef,
-                             const Json::Value &json);
+                             const Json::Value &json) {}
 
         virtual TimeNs getSelfSimDelay() {
             return TimeNs(0);
         }
 
-      private:
-        bool m_shouldAutoReschedule = false;
+        std::shared_ptr<ComponentDef<TSimFnData>> clone() const override {
+            return std::make_shared<EvtBasedCompDef>(*this);
+        }
+
+      protected:
+        bool m_autoReschedule = false;
         TimeNs m_propDelay{0}; // propogation delay
     };
 
@@ -49,33 +54,31 @@ namespace Bess::SimEngine {
         EvtBasedSimComponent() = default;
         ~EvtBasedSimComponent() override = default;
 
-        MAKE_GETTER_SETTER(std::shared_ptr<EvtBasedCompDef>, Def, m_def)
-
         TimeNs getPropDelay() const {
-            return m_def ? m_def->getPropDelay() : TimeNs(0);
+            auto def = std::dynamic_pointer_cast<EvtBasedCompDef<TSimFnData>>(
+                this->m_def);
+            return def ? def->getPropDelay() : TimeNs(0);
         }
 
         bool getSimSelf() const {
-            return m_def ? m_def->getShouldAutoReschedule() : false;
+            auto def = std::dynamic_pointer_cast<EvtBasedCompDef<TSimFnData>>(
+                this->m_def);
+            return def ? def->getAutoReschedule() : false;
         }
 
         TimeNs getSelfSimDelay() const {
-            return m_def ? m_def->getSelfSimDelay() : TimeNs(0);
+            auto def = std::dynamic_pointer_cast<EvtBasedCompDef<TSimFnData>>(
+                this->m_def);
+            return def ? def->getSelfSimDelay() : TimeNs(0);
         }
 
         Json::Value toJson() const override {
             Json::Value json = SimComponent<TSimFnData>::toJson();
-            if (m_def) {
-                json["def"] = m_def->toJson();
-            }
             return json;
         }
 
         static void fromJson(const std::shared_ptr<EvtBasedSimComponent> &comp,
                              const Json::Value &json);
-
-      private:
-        std::shared_ptr<EvtBasedCompDef> m_def = nullptr;
     };
 
     struct BESS_API SimEvt {

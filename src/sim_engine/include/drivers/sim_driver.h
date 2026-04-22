@@ -1,6 +1,7 @@
 #pragma once
 #include "bess_api.h"
 #include "common/class_helpers.h"
+#include "common/logger.h"
 #include <common/bess_uuid.h>
 #include <functional>
 #include <memory>
@@ -9,60 +10,85 @@
 
 namespace Bess::SimEngine {
 
+    template <typename TData>
     class BESS_API ComponentDef {
       public:
+        typedef std::function<bool(const TData &)> SimFn;
+
         ComponentDef() = default;
         virtual ~ComponentDef() = default;
 
         MAKE_GETTER_SETTER(std::string, TypeName, m_typeName)
+        MAKE_GETTER_SETTER(std::string, Name, m_name)
+        MAKE_GETTER_SETTER(std::string, GroupName, m_groupName)
+        MAKE_VGETTER_VSETTER(SimFn, SimFn, m_simFn)
 
         virtual Json::Value toJson() const {
             Json::Value json;
+            json["groupName"] = m_groupName;
             json["typeName"] = m_typeName;
             json["name"] = m_name;
             return json;
         }
 
         static void fromJson(const std::shared_ptr<ComponentDef> &compDef,
-                             const Json::Value &json);
+                             const Json::Value &json) {}
 
-      private:
+        virtual std::shared_ptr<ComponentDef> clone() const {
+            return std::make_shared<ComponentDef>(*this);
+        }
+
+      protected:
         std::string m_typeName;
         std::string m_name;
+        std::string m_groupName;
+        SimFn m_simFn = nullptr;
     };
 
     template <typename TData>
     class BESS_API SimComponent {
       public:
-        typedef std::function<bool(const TData &)> SimFn;
-
         SimComponent() = default;
         virtual ~SimComponent() = default;
 
         MAKE_GETTER_SETTER(UUID, Uuid, m_uuid)
         MAKE_GETTER_SETTER(std::string, Name, m_name)
-        MAKE_GETTER_SETTER(SimFn, OnSimulate, m_onSimulate)
+        MAKE_GETTER_SETTER(std::shared_ptr<ComponentDef<TData>>,
+                           Definition,
+                           m_def)
 
         virtual Json::Value toJson() const {
             Json::Value json;
             JsonConvert::toJsonValue(m_uuid, json["uuid"]);
             json["name"] = m_name;
+            json["def"] = m_def ? m_def->toJson() : Json::Value();
             return json;
         }
         static void fromJson(const std::shared_ptr<SimComponent> &comp,
                              const Json::Value &json);
 
         virtual bool simulate(const TData &data) {
-            if (m_onSimulate) {
-                return m_onSimulate(data);
+            if (!m_def) {
+                BESS_WARN("(SimComponent.simulate) No definition for component with UUID {}",
+                          (uint64_t)m_uuid);
+                return false;
             }
+
+            auto simFn = m_def->getSimFn();
+
+            if (simFn) {
+                return simFn(data);
+            }
+
+            BESS_WARN("(SimComponent.simulate) No sim function for component definition of component with UUID {}",
+                      (uint64_t)m_uuid);
             return false;
         }
 
-      private:
-        UUID m_uuid = UUID::null;
+      protected:
+        UUID m_uuid; // will auto gen id for each instance
         std::string m_name;
-        SimFn m_onSimulate = nullptr;
+        std::shared_ptr<ComponentDef<TData>> m_def = nullptr;
     };
 
     enum class SimDriverState : uint8_t {

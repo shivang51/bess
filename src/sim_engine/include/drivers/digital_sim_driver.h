@@ -6,7 +6,18 @@
 
 namespace Bess::SimEngine::Digital {
 
-    class BESS_API DigCompDef : public ComponentDef {
+    struct BESS_API DigCompState {
+        std::vector<SlotState> inputStates;
+        std::vector<SlotState> outputStates;
+    };
+
+    struct BESS_API DigCompSimData {
+        std::vector<SlotState> inputStates;
+        DigCompState prevState;
+        TimeNs simTime;
+    };
+
+    class BESS_API DigCompDef : public EvtBasedCompDef<DigCompSimData> {
       public:
         DigCompDef() = default;
 
@@ -15,23 +26,14 @@ namespace Bess::SimEngine::Digital {
 
         ~DigCompDef() override = default;
 
-        MAKE_GETTER_SETTER(bool, ShouldAutoReschedule, m_shouldAutoReschedule)
         MAKE_GETTER_SETTER(SlotsGroupInfo, InputSlotsInfo, m_inputSlotsInfo)
         MAKE_GETTER_SETTER(SlotsGroupInfo, OutputSlotsInfo, m_outputSlotsInfo)
         MAKE_GETTER_SETTER(OperatorInfo, OpInfo, m_opInfo)
-        MAKE_SETTER(SimDelayNanoSeconds, SimDelay, m_simDelay)
-        MAKE_GETTER_SETTER(std::string, Name, m_name)
-        MAKE_GETTER_SETTER(std::string, GroupName, m_groupName)
         MAKE_GETTER_SETTER(ComponentBehaviorType, BehaviorType, m_behaviorType)
-        MAKE_VGETTER_VSETTER(SimulationFunction, SimulationFunction, m_simulationFunction)
         MAKE_GETTER_SETTER_WC(std::vector<std::string>,
                               OutputExpressions,
                               m_outputExpressions,
                               onExpressionsChange)
-
-        virtual SimulationFunction getSimFunctionCopy() const {
-            return m_simulationFunction;
-        }
 
         /**
          * This function will compute the output expressions if needed.
@@ -65,11 +67,11 @@ namespace Bess::SimEngine::Digital {
         virtual void onStateChange(const ComponentState &oldState,
                                    const ComponentState &newState) {}
 
-        virtual void onExpressionsChange();
+        virtual void onExpressionsChange() {}
 
-        virtual std::shared_ptr<ComponentDefinition> clone() const;
-
-        virtual void setAuxData(const std::any &data);
+        std::shared_ptr<ComponentDef> clone() const override {
+            return std::make_shared<DigCompDef>(*this);
+        }
 
         friend bool operator==(ComponentDefinition &a, ComponentDefinition &b) noexcept {
             return a.getHash() == b.getHash();
@@ -81,26 +83,10 @@ namespace Bess::SimEngine::Digital {
         }
 
       protected:
-        bool m_shouldAutoReschedule = false;
         SlotsGroupInfo m_inputSlotsInfo{}, m_outputSlotsInfo{};
         OperatorInfo m_opInfo{};
-        SimDelayNanoSeconds m_simDelay = SimDelayNanoSeconds{0};
         ComponentBehaviorType m_behaviorType = ComponentBehaviorType::none;
-        std::string m_name;
-        std::string m_groupName;
-        SimulationFunction m_simulationFunction = nullptr;
         std::vector<std::string> m_outputExpressions; // A+B or A.B etc.
-    };
-
-    struct BESS_API DigCompState {
-        std::vector<SlotState> inputStates;
-        std::vector<SlotState> outputStates;
-    };
-
-    struct BESS_API DigCompSimData {
-        std::vector<SlotState> inputStates;
-        DigCompState prevState;
-        TimeNs simTime;
     };
 
     class BESS_API DigitalSimComponent : public EvtBasedSimComponent<DigCompSimData> {
@@ -130,6 +116,22 @@ namespace Bess::SimEngine::Digital {
       public:
         DigitalSimDriver() = default;
         ~DigitalSimDriver() override = default;
+
+        std::shared_ptr<DigitalSimComponent> fromDef(
+            const std::shared_ptr<ComponentDef<DigCompSimData>> &compDef) const {
+            if (!compDef) {
+                BESS_WARN("(DigitalSimDriver.fromDef) compDef is nullptr");
+                return nullptr;
+            }
+
+            const auto clone = compDef->clone();
+
+            const auto comp = std::make_shared<DigitalSimComponent>();
+            comp->setName(clone->getName());
+            comp->setDefinition(clone);
+
+            return comp;
+        }
 
         bool simulate(const SimEvt &evt) override {
             const auto &id = evt.compId;
