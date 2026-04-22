@@ -50,3 +50,11 @@
         onAfterChange();                                                             \
     }                                                                                \
     type &get##name() { return varName; }
+
+#define MAKE_GETTER_SETTER_MT(type, name, varName, mutex) \
+    const type &get##name() const { return varName; }     \
+    void set##name(const type &value) {                   \
+        std::lock_guard lk(mutex);                        \
+        varName = value;                                  \
+    }                                                     \
+    type &get##name() { return varName; }
