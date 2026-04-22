@@ -2,6 +2,8 @@
 #include "bess_api.h"
 #include "common/class_helpers.h"
 #include <common/bess_uuid.h>
+#include <functional>
+#include <memory>
 #include <mutex>
 #include <unordered_map>
 
@@ -193,7 +195,7 @@ namespace Bess::SimEngine {
       protected:
         ComponentsMap m_components;
         SimDriverState m_state = SimDriverState::uninitialized;
-        std::mutex m_compMapMutex;
-        std::mutex m_stateMutex;
+        mutable std::mutex m_compMapMutex;
+        mutable std::mutex m_stateMutex;
     };
 } // namespace Bess::SimEngine

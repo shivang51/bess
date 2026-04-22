@@ -7,8 +7,12 @@
 #include "common/types.h"
 #include "sim_driver.h"
 #include "types.h"
+#include <algorithm>
 #include <condition_variable>
+#include <mutex>
 #include <set>
+#include <thread>
+#include <vector>
 
 namespace Bess::SimEngine {
 
@@ -44,6 +48,20 @@ namespace Bess::SimEngine {
       public:
         EvtBasedSimComponent() = default;
         ~EvtBasedSimComponent() override = default;
+
+        MAKE_GETTER_SETTER(std::shared_ptr<EvtBasedCompDef>, Def, m_def)
+
+        TimeNs getPropDelay() const {
+            return m_def ? m_def->getPropDelay() : TimeNs(0);
+        }
+
+        bool getSimSelf() const {
+            return m_def ? m_def->getShouldAutoReschedule() : false;
+        }
+
+        TimeNs getSelfSimDelay() const {
+            return m_def ? m_def->getSelfSimDelay() : TimeNs(0);
+        }
 
         Json::Value toJson() const override {
             Json::Value json = SimComponent<TSimFnData>::toJson();
@@ -83,11 +101,11 @@ namespace Bess::SimEngine {
 
             BESS_ASSERT(this->isInitialized(),
                         "SimDriver must be initialized before running");
-            BESS_ASSERT(this->isDestroyed(),
+            BESS_ASSERT(!this->isDestroyed(),
                         "SimDriver was destroyed, cannot run");
 
             while (!this->isStopped()) {
-                std::unique_lock lk(m_runIterCv);
+                std::unique_lock lk(m_runIterMutex);
                 m_runIterCv.wait(lk, [&] {
                     return this->isStopped() || !this->getComponentsMap().empty();
                 });
@@ -128,11 +146,12 @@ namespace Bess::SimEngine {
 
       private:
         void simulateEvts(const std::vector<SimEvt> &evts) {
+            using EvtComp = EvtBasedSimComponent<TSimFnData>;
+
             for (const auto &evt : evts) {
                 const bool simDependants = simulate(evt);
 
-                const auto &comp = this->template getComponent<EvtBasedSimDriver>(
-                    evt.compId);
+                const auto &comp = this->template getComponent<EvtComp>(evt.compId);
 
                 if (!comp) {
                     BESS_WARN("(EvtBasedSimDriver.run) Component with UUID {} not found",
@@ -140,25 +159,23 @@ namespace Bess::SimEngine {
                     continue;
                 }
 
-                scheduleEvt(evt.compId,
-                            evt.simTime + comp->getPropDelay(),
-                            evt.schedulerId);
-
                 if (simDependants) {
                     scheduleDependantsOf(evt.compId);
                 }
 
                 if (comp->getSimSelf()) {
                     scheduleEvt(evt.compId,
-                                evt.simTime + comp->getSelfSimDelay(),
-                                evt.schedulerId);
+                                m_currentSimTime + comp->getSelfSimDelay(),
+                                UUID::null,
+                                true);
                 }
             }
         }
 
         void scheduleDependantsOf(const UUID &compId) {
-            const auto &comp = this->template getComponent<EvtBasedSimDriver>(
-                compId);
+            using EvtComp = EvtBasedSimComponent<TSimFnData>;
+
+            const auto &comp = this->template getComponent<EvtComp>(compId);
 
             if (!comp) {
                 BESS_WARN("(EvtBasedSimDriver.scheduleDependantsOf) Component with UUID {} not found",
@@ -171,8 +188,11 @@ namespace Bess::SimEngine {
             for (const auto &id : dependants) {
                 scheduleEvt(id,
                             m_currentSimTime + comp->getPropDelay(),
-                            compId);
+                            compId,
+                            false);
             }
+
+            m_runIterCv.notify_all();
         }
 
         // returns the next evt baesd on sim time
@@ -198,13 +218,17 @@ namespace Bess::SimEngine {
 
         void scheduleEvt(const UUID &compId,
                          TimeNs simTime,
-                         const UUID &schedulerId) {
+                         const UUID &schedulerId,
+                         bool notify = true) {
             static uint64_t evtId = 0;
             SimEvt ev{UUID(evtId++),
                       compId,
                       schedulerId,
                       simTime};
             m_events.insert(ev);
+            if (notify) {
+                m_runIterCv.notify_all();
+            }
         }
 
         std::vector<SimEvt> collectEvts() {
@@ -212,7 +236,7 @@ namespace Bess::SimEngine {
             std::vector<SimEvt> evtsToSim = {};
 
             for (const auto &evt : m_events) {
-                if (evt.simTime <= m_currentSimTime) {
+                if (evt.simTime > m_currentSimTime) {
                     continue;
                 }
 
@@ -245,6 +269,7 @@ namespace Bess::SimEngine {
       protected:
         TimeNs m_currentSimTime{0};
         std::condition_variable m_runIterCv;
+                std::mutex m_runIterMutex;
 
       private:
         std::set<SimEvt> m_events;
