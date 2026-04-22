@@ -8,12 +8,16 @@
 #include <mutex>
 #include <unordered_map>
 
-namespace Bess::SimEngine {
+namespace Bess::SimEngine::Drivers {
 
-    template <typename TData>
+    class BESS_API SimFnDataBase {
+      public:
+        virtual ~SimFnDataBase() = default;
+    };
+
     class BESS_API ComponentDef {
       public:
-        typedef std::function<bool(const TData &)> SimFn;
+        typedef std::function<bool(const SimFnDataBase &)> SimFn;
 
         ComponentDef() = default;
         virtual ~ComponentDef() = default;
@@ -45,7 +49,6 @@ namespace Bess::SimEngine {
         SimFn m_simFn = nullptr;
     };
 
-    template <typename TData>
     class BESS_API SimComponent {
       public:
         SimComponent() = default;
@@ -53,7 +56,7 @@ namespace Bess::SimEngine {
 
         MAKE_GETTER_SETTER(UUID, Uuid, m_uuid)
         MAKE_GETTER_SETTER(std::string, Name, m_name)
-        MAKE_GETTER_SETTER(std::shared_ptr<ComponentDef<TData>>,
+        MAKE_GETTER_SETTER(std::shared_ptr<ComponentDef>,
                            Definition,
                            m_def)
 
@@ -67,7 +70,7 @@ namespace Bess::SimEngine {
         static void fromJson(const std::shared_ptr<SimComponent> &comp,
                              const Json::Value &json);
 
-        virtual bool simulate(const TData &data) {
+        virtual bool simulate(const SimFnDataBase &data) {
             if (!m_def) {
                 BESS_WARN("(SimComponent.simulate) No definition for component with UUID {}",
                           (uint64_t)m_uuid);
@@ -88,7 +91,7 @@ namespace Bess::SimEngine {
       protected:
         UUID m_uuid; // will auto gen id for each instance
         std::string m_name;
-        std::shared_ptr<ComponentDef<TData>> m_def = nullptr;
+        std::shared_ptr<ComponentDef> m_def = nullptr;
     };
 
     enum class SimDriverState : uint8_t {
@@ -99,7 +102,6 @@ namespace Bess::SimEngine {
         paused
     };
 
-    template <typename TData>
     class BESS_API SimDriver {
       public:
         SimDriver() = default;
@@ -124,7 +126,7 @@ namespace Bess::SimEngine {
         virtual void onDestroy() {};
 
       public:
-        typedef std::shared_ptr<SimComponent<TData>> SimComponentPtr;
+        typedef std::shared_ptr<SimComponent> SimComponentPtr;
         typedef std::unordered_map<UUID, SimComponentPtr> ComponentsMap;
 
         MAKE_GETTER_SETTER_MT(ComponentsMap,
@@ -224,4 +226,4 @@ namespace Bess::SimEngine {
         mutable std::mutex m_compMapMutex;
         mutable std::mutex m_stateMutex;
     };
-} // namespace Bess::SimEngine
+} // namespace Bess::SimEngine::Drivers

@@ -14,10 +14,9 @@
 #include <thread>
 #include <vector>
 
-namespace Bess::SimEngine {
+namespace Bess::SimEngine::Drivers {
 
-    template <typename TSimFnData>
-    class BESS_API EvtBasedCompDef : public ComponentDef<TSimFnData> {
+    class BESS_API EvtBasedCompDef : public ComponentDef {
       public:
         EvtBasedCompDef() = default;
         ~EvtBasedCompDef() override = default;
@@ -26,7 +25,7 @@ namespace Bess::SimEngine {
         MAKE_GETTER_SETTER(TimeNs, PropDelay, m_propDelay)
 
         Json::Value toJson() const override {
-            Json::Value json = ComponentDef<TSimFnData>::toJson();
+            Json::Value json = ComponentDef::toJson();
             json["shouldAutoReschedule"] = m_autoReschedule;
             json["propDelay"] = m_propDelay.count();
             return json;
@@ -39,7 +38,7 @@ namespace Bess::SimEngine {
             return TimeNs(0);
         }
 
-        std::shared_ptr<ComponentDef<TSimFnData>> clone() const override {
+        std::shared_ptr<ComponentDef> clone() const override {
             return std::make_shared<EvtBasedCompDef>(*this);
         }
 
@@ -48,32 +47,28 @@ namespace Bess::SimEngine {
         TimeNs m_propDelay{0}; // propogation delay
     };
 
-    template <typename TSimFnData>
-    class BESS_API EvtBasedSimComponent : public SimComponent<TSimFnData> {
+    class BESS_API EvtBasedSimComponent : public SimComponent {
       public:
         EvtBasedSimComponent() = default;
         ~EvtBasedSimComponent() override = default;
 
         TimeNs getPropDelay() const {
-            auto def = std::dynamic_pointer_cast<EvtBasedCompDef<TSimFnData>>(
-                this->m_def);
+            auto def = std::dynamic_pointer_cast<EvtBasedCompDef>(m_def);
             return def ? def->getPropDelay() : TimeNs(0);
         }
 
         bool getSimSelf() const {
-            auto def = std::dynamic_pointer_cast<EvtBasedCompDef<TSimFnData>>(
-                this->m_def);
+            auto def = std::dynamic_pointer_cast<EvtBasedCompDef>(m_def);
             return def ? def->getAutoReschedule() : false;
         }
 
         TimeNs getSelfSimDelay() const {
-            auto def = std::dynamic_pointer_cast<EvtBasedCompDef<TSimFnData>>(
-                this->m_def);
+            auto def = std::dynamic_pointer_cast<EvtBasedCompDef>(m_def);
             return def ? def->getSelfSimDelay() : TimeNs(0);
         }
 
         Json::Value toJson() const override {
-            Json::Value json = SimComponent<TSimFnData>::toJson();
+            Json::Value json = SimComponent::toJson();
             return json;
         }
 
@@ -93,8 +88,7 @@ namespace Bess::SimEngine {
         }
     };
 
-    template <typename TSimFnData>
-    class BESS_API EvtBasedSimDriver : public SimDriver<TSimFnData> {
+    class BESS_API EvtBasedSimDriver : public SimDriver {
       public:
         EvtBasedSimDriver() = default;
         ~EvtBasedSimDriver() override = default;
@@ -102,18 +96,18 @@ namespace Bess::SimEngine {
         void run() override {
             onBeforeRun();
 
-            BESS_ASSERT(this->isInitialized(),
+            BESS_ASSERT(isInitialized(),
                         "SimDriver must be initialized before running");
-            BESS_ASSERT(!this->isDestroyed(),
+            BESS_ASSERT(!isDestroyed(),
                         "SimDriver was destroyed, cannot run");
 
-            while (!this->isStopped()) {
+            while (!isStopped()) {
                 std::unique_lock lk(m_runIterMutex);
                 m_runIterCv.wait(lk, [&] {
-                    return this->isStopped() || !this->getComponentsMap().empty();
+                    return isStopped() || !getComponentsMap().empty();
                 });
 
-                if (this->isStopped()) {
+                if (isStopped()) {
                     break;
                 }
 
@@ -133,12 +127,12 @@ namespace Bess::SimEngine {
         virtual bool simulate(const SimEvt &evt) = 0;
 
         virtual void addComponent(
-            const std::shared_ptr<EvtBasedSimComponent<TSimFnData>> &comp,
+            const std::shared_ptr<EvtBasedSimComponent> &comp,
             bool scheduleSim = true) {
 
             {
-                std::lock_guard lk(this->m_compMapMutex);
-                this->m_components[comp->getUuid()] = comp;
+                std::lock_guard lk(m_compMapMutex);
+                m_components[comp->getUuid()] = comp;
             }
 
             if (scheduleSim) {
@@ -160,7 +154,7 @@ namespace Bess::SimEngine {
         virtual void onBeforeRun() {}
 
         void onStop() override {
-            SimDriver<TSimFnData>::onStop();
+            SimDriver::onStop();
             m_runIterCv.notify_all();
         }
 
@@ -181,12 +175,12 @@ namespace Bess::SimEngine {
 
       private:
         void simulateEvts(const std::vector<SimEvt> &evts) {
-            using EvtComp = EvtBasedSimComponent<TSimFnData>;
+            using EvtComp = EvtBasedSimComponent;
 
             for (const auto &evt : evts) {
                 const bool simDependants = simulate(evt);
 
-                const auto &comp = this->template getComponent<EvtComp>(evt.compId);
+                const auto &comp = getComponent<EvtComp>(evt.compId);
 
                 if (!comp) {
                     BESS_WARN("(EvtBasedSimDriver.run) Component with UUID {} not found",
@@ -208,9 +202,9 @@ namespace Bess::SimEngine {
         }
 
         void scheduleDependantsOf(const UUID &compId) {
-            using EvtComp = EvtBasedSimComponent<TSimFnData>;
+            using EvtComp = EvtBasedSimComponent;
 
-            const auto &comp = this->template getComponent<EvtComp>(compId);
+            const auto &comp = getComponent<EvtComp>(compId);
 
             if (!comp) {
                 BESS_WARN("(EvtBasedSimDriver.scheduleDependantsOf) Component with UUID {} not found",
@@ -269,14 +263,13 @@ namespace Bess::SimEngine {
             }
 
             // sort by sim time, then by event id to ensure deterministic order
-            std::sort(evtsToSim.begin(),
-                      evtsToSim.end(),
-                      [](const SimEvt &a, const SimEvt &b) {
-                          if (a.simTime != b.simTime) {
-                              return a.simTime < b.simTime;
-                          }
-                          return a.evtId < b.evtId;
-                      });
+            std::ranges::sort(evtsToSim,
+                              [](const SimEvt &a, const SimEvt &b) {
+                                  if (a.simTime != b.simTime) {
+                                      return a.simTime < b.simTime;
+                                  }
+                                  return a.evtId < b.evtId;
+                              });
 
             // remove collected evts from the event set
             for (const auto &evt : evtsToSim) {
@@ -295,4 +288,4 @@ namespace Bess::SimEngine {
         std::set<SimEvt> m_events;
     };
 
-} // namespace Bess::SimEngine
+} // namespace Bess::SimEngine::Drivers

@@ -4,20 +4,20 @@
 #include "event_based_sim_driver.h"
 #include "types.h"
 
-namespace Bess::SimEngine::Digital {
+namespace Bess::SimEngine::Drivers::Digital {
 
     struct BESS_API DigCompState {
         std::vector<SlotState> inputStates;
         std::vector<SlotState> outputStates;
     };
 
-    struct BESS_API DigCompSimData {
+    struct BESS_API DigCompSimData : SimFnDataBase {
         std::vector<SlotState> inputStates;
         DigCompState prevState;
         TimeNs simTime;
     };
 
-    class BESS_API DigCompDef : public EvtBasedCompDef<DigCompSimData> {
+    class BESS_API DigCompDef : public EvtBasedCompDef {
       public:
         DigCompDef() = default;
 
@@ -89,7 +89,7 @@ namespace Bess::SimEngine::Digital {
         std::vector<std::string> m_outputExpressions; // A+B or A.B etc.
     };
 
-    class BESS_API DigitalSimComponent : public EvtBasedSimComponent<DigCompSimData> {
+    class BESS_API DigitalSimComponent : public EvtBasedSimComponent {
       public:
         DigitalSimComponent() = default;
         ~DigitalSimComponent() override = default;
@@ -98,7 +98,7 @@ namespace Bess::SimEngine::Digital {
         MAKE_GETTER_SETTER(std::vector<SlotState>, OutputStates, m_outputStates)
 
         Json::Value toJson() const override {
-            Json::Value json = EvtBasedSimComponent<DigCompSimData>::toJson();
+            Json::Value json = EvtBasedSimComponent::toJson();
             JsonConvert::toJsonValue(m_inputStates, json["inputStates"]);
             JsonConvert::toJsonValue(m_outputStates, json["outputStates"]);
             return json;
@@ -112,13 +112,13 @@ namespace Bess::SimEngine::Digital {
         std::vector<SlotState> m_outputStates;
     };
 
-    class BESS_API DigitalSimDriver : public EvtBasedSimDriver<DigCompSimData> {
+    class BESS_API DigitalSimDriver : public EvtBasedSimDriver {
       public:
         DigitalSimDriver() = default;
         ~DigitalSimDriver() override = default;
 
         std::shared_ptr<DigitalSimComponent> fromDef(
-            const std::shared_ptr<ComponentDef<DigCompSimData>> &compDef) const {
+            const std::shared_ptr<ComponentDef> &compDef) const {
             if (!compDef) {
                 BESS_WARN("(DigitalSimDriver.fromDef) compDef is nullptr");
                 return nullptr;
@@ -154,7 +154,7 @@ namespace Bess::SimEngine::Digital {
         }
 
         void addComponent(const std::shared_ptr<DigitalSimComponent> &comp) {
-            EvtBasedSimDriver<DigCompSimData>::addComponent(comp);
+            EvtBasedSimDriver::addComponent(comp);
         }
     };
-} // namespace Bess::SimEngine::Digital
+} // namespace Bess::SimEngine::Drivers::Digital

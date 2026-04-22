@@ -7,12 +7,13 @@
 
 namespace {
     using namespace Bess::SimEngine;
-    using namespace Bess::SimEngine::Digital;
+    using namespace Bess::SimEngine::Drivers;
+    using namespace Bess::SimEngine::Drivers::Digital;
 
     TEST(SimDriverTest, CreateBaseDefinitionStoresTypeName) {
         struct SimData {};
 
-        ComponentDef<SimData> definition;
+        ComponentDef definition;
         definition.setTypeName("base.definition");
 
         const auto json = definition.toJson();
@@ -90,8 +91,9 @@ namespace {
 
         auto def = std::make_shared<DigCompDef>();
         def->setName("NAND Gate");
-        def->setSimFn([component, &simulatedByRunLoop](const DigCompSimData &data) {
-            std::cout << "Simulating NAND gate at time " << data.simTime.count() << " ns with inputs: ";
+        def->setSimFn([component, &simulatedByRunLoop](const Drivers::SimFnDataBase &dataBase) {
+            const auto &data = dynamic_cast<const DigCompSimData &>(dataBase);
+
             simulatedByRunLoop.store(true);
 
             const bool aHigh = data.inputStates.size() > 0 &&
@@ -114,7 +116,7 @@ namespace {
                                                          SlotState(LogicState::low, SimTime(0))});
         component->setOutputStates(std::vector<SlotState>{SlotState(LogicState::low, SimTime(0))});
 
-        driver.setState(SimDriverState::running);
+        driver.setState(Drivers::SimDriverState::running);
         std::thread runLoop([&driver]() {
             driver.run();
         });
@@ -138,7 +140,7 @@ namespace {
 
     TEST(SimDriverTest, SimulateReturnsFalseForUnknownComponent) {
         DigitalSimDriver driver;
-        const SimEvt evt{Bess::UUID(1), Bess::UUID(99), Bess::UUID::null, Bess::TimeNs(10.0)};
+        const Drivers::SimEvt evt{Bess::UUID(1), Bess::UUID(99), Bess::UUID::null, Bess::TimeNs(10.0)};
 
         EXPECT_FALSE(driver.simulate(evt));
     }
