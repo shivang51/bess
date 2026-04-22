@@ -1,4 +1,5 @@
 #include "application/window.h"
+#include "common/bess_assert.h"
 #include "common/logger.h"
 #include "events/application_event.h"
 #include "ext/vector_float2.hpp"
@@ -17,6 +18,7 @@ namespace Bess {
     Window::Window(int width, int height, const std::string &title) {
 
         this->initGLFW();
+
 #ifdef __linux__
         glfwWindowHintString(GLFW_WAYLAND_APP_ID, instanceClass);
         glfwWindowHintString(GLFW_X11_CLASS_NAME, "Bess");
@@ -159,12 +161,21 @@ namespace Bess {
 
         BESS_INFO("[Window] GLFW {}.{}", GLFW_VERSION_MAJOR, GLFW_VERSION_MINOR);
 
+        // because renderdoc doesn't support wayland
+#ifdef __linux__
+        if (std::getenv("RENDERDOC_CAPFILE")) {
+            BESS_WARN("[Window] RenderDoc detected, forcing X11 backend");
+            glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+        }
+#endif
+
         const auto res = glfwInit();
-        assert(res == GLFW_TRUE);
+        BESS_ASSERT(res == GLFW_TRUE, "Failed to initialize GLFW");
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
         glfwWindowHint(GLFW_SCALE_FRAMEBUFFER, GLFW_TRUE);
         glfwWindowHint(GLFW_MAXIMIZED, 1);
+
         isGLFWInitialized = true;
     }
 
