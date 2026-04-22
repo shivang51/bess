@@ -6,7 +6,8 @@ set(CMAKE_CXX_STANDARD 23)
 find_package(GTest CONFIG REQUIRED)
 
 add_executable(BessTests
-    main.cpp
+    main_test.cpp
+    sim_driver_test.cpp
     scene_state_test.cpp
     scene_serialization_test.cpp
     scene_component_clone_test.cpp

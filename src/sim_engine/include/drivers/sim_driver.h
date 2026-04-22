@@ -7,6 +7,28 @@
 
 namespace Bess::SimEngine {
 
+    class BESS_API ComponentDef {
+      public:
+        ComponentDef() = default;
+        virtual ~ComponentDef() = default;
+
+        MAKE_GETTER_SETTER(std::string, TypeName, m_typeName)
+
+        virtual Json::Value toJson() const {
+            Json::Value json;
+            json["typeName"] = m_typeName;
+            json["name"] = m_name;
+            return json;
+        }
+
+        static void fromJson(const std::shared_ptr<ComponentDef> &compDef,
+                             const Json::Value &json);
+
+      private:
+        std::string m_typeName;
+        std::string m_name;
+    };
+
     template <typename TData>
     class BESS_API SimComponent {
       public:
@@ -15,9 +37,9 @@ namespace Bess::SimEngine {
         SimComponent() = default;
         virtual ~SimComponent() = default;
 
-        MAKE_GETTER_SETTER(UUID, uuid, m_uuid)
-        MAKE_GETTER_SETTER(std::string, name, m_name)
-        MAKE_GETTER_SETTER(SimFn, onSimulate, m_onSimulate)
+        MAKE_GETTER_SETTER(UUID, Uuid, m_uuid)
+        MAKE_GETTER_SETTER(std::string, Name, m_name)
+        MAKE_GETTER_SETTER(SimFn, OnSimulate, m_onSimulate)
 
         virtual Json::Value toJson() const {
             Json::Value json;
@@ -168,10 +190,9 @@ namespace Bess::SimEngine {
             }
         }
 
-      private:
+      protected:
         ComponentsMap m_components;
         SimDriverState m_state = SimDriverState::uninitialized;
-
         std::mutex m_compMapMutex;
         std::mutex m_stateMutex;
     };

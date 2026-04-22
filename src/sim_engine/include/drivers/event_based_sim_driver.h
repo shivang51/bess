@@ -12,23 +12,44 @@
 
 namespace Bess::SimEngine {
 
+    class BESS_API EvtBasedCompDef : public ComponentDef {
+      public:
+        EvtBasedCompDef() = default;
+        ~EvtBasedCompDef() override = default;
+
+        MAKE_GETTER_SETTER(bool, ShouldAutoReschedule, m_shouldAutoReschedule)
+        MAKE_GETTER_SETTER(TimeNs, PropDelay, m_propDelay)
+
+        Json::Value toJson() const override {
+            Json::Value json = ComponentDef::toJson();
+            json["shouldAutoReschedule"] = m_shouldAutoReschedule;
+            json["propDelay"] = m_propDelay.count();
+            return json;
+        }
+
+        static void fromJson(const std::shared_ptr<EvtBasedCompDef> &compDef,
+                             const Json::Value &json);
+
+        virtual TimeNs getSelfSimDelay() {
+            return TimeNs(0);
+        }
+
+      private:
+        bool m_shouldAutoReschedule = false;
+        TimeNs m_propDelay{0}; // propogation delay
+    };
+
     template <typename TSimFnData>
     class BESS_API EvtBasedSimComponent : public SimComponent<TSimFnData> {
       public:
         EvtBasedSimComponent() = default;
         ~EvtBasedSimComponent() override = default;
 
-        MAKE_GETTER_SETTER(TimeNs, PropDelay, m_propogationDelay)
-        MAKE_GETTER_SETTER(bool, SimSelf, m_simSelf)
-
-        virtual TimeNs getSelfSimDelay() {
-            return TimeNs(0);
-        }
-
         Json::Value toJson() const override {
             Json::Value json = SimComponent<TSimFnData>::toJson();
-            json["propagationDelay"] = m_propogationDelay.count();
-            json["simSelf"] = m_simSelf;
+            if (m_def) {
+                json["def"] = m_def->toJson();
+            }
             return json;
         }
 
@@ -36,8 +57,7 @@ namespace Bess::SimEngine {
                              const Json::Value &json);
 
       private:
-        TimeNs m_propogationDelay{0};
-        bool m_simSelf = false;
+        std::shared_ptr<EvtBasedCompDef> m_def = nullptr;
     };
 
     struct BESS_API SimEvt {
@@ -89,7 +109,7 @@ namespace Bess::SimEngine {
         }
 
         // true if the dependants should be simulated, false otherwise
-        virtual bool simulate(const UUID &id) = 0;
+        virtual bool simulate(const SimEvt &evt) = 0;
 
         virtual std::vector<UUID> getDependants(const UUID &id) {
             return {};
@@ -101,10 +121,15 @@ namespace Bess::SimEngine {
 
         virtual void onBeforeRun() {}
 
+        void onStop() override {
+            SimDriver<TSimFnData>::onStop();
+            m_runIterCv.notify_all();
+        }
+
       private:
         void simulateEvts(const std::vector<SimEvt> &evts) {
             for (const auto &evt : evts) {
-                const bool simDependants = simulate(evt.compId);
+                const bool simDependants = simulate(evt);
 
                 const auto &comp = this->template getComponent<EvtBasedSimDriver>(
                     evt.compId);
@@ -219,10 +244,10 @@ namespace Bess::SimEngine {
 
       protected:
         TimeNs m_currentSimTime{0};
+        std::condition_variable m_runIterCv;
 
       private:
         std::set<SimEvt> m_events;
-        std::condition_variable m_runIterCv;
     };
 
 } // namespace Bess::SimEngine
