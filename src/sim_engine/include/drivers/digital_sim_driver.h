@@ -152,9 +152,7 @@ namespace Bess::SimEngine::Digital {
         }
 
         void addComponent(const std::shared_ptr<DigitalSimComponent> &comp) {
-            std::lock_guard lk(m_compMapMutex);
-            m_components[comp->getUuid()] = comp;
-            m_runIterCv.notify_all();
+            EvtBasedSimDriver<DigCompSimData>::addComponent(comp);
         }
     };
 } // namespace Bess::SimEngine::Digital

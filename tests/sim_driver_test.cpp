@@ -1,6 +1,9 @@
 #include "drivers/digital_sim_driver.h"
 #include "drivers/sim_driver.h"
 #include "gtest/gtest.h"
+#include <atomic>
+#include <chrono>
+#include <thread>
 
 namespace {
 	using namespace Bess::SimEngine;
@@ -98,6 +101,56 @@ namespace {
 		const SimEvt evt{Bess::UUID(1), compId, Bess::UUID::null, Bess::TimeNs(10.0)};
 		EXPECT_TRUE(driver.simulate(evt));
 		EXPECT_TRUE(called);
+	}
+
+	TEST(SimDriverTest, AddNandGateSchedulesAndRunLoopSetsInitialOutputHigh) {
+		DigitalSimDriver driver;
+		const Bess::UUID compId(0xBADD);
+
+		auto component = std::make_shared<DigitalSimComponent>();
+		component->setUuid(compId);
+		component->setName("NAND#1");
+		component->setInputStates(std::vector<SlotState>{SlotState(LogicState::low, SimTime(0)),
+													 SlotState(LogicState::low, SimTime(0))});
+		component->setOutputStates(std::vector<SlotState>{SlotState(LogicState::low, SimTime(0))});
+
+		std::atomic<bool> simulatedByRunLoop{false};
+		component->setOnSimulate([component, &simulatedByRunLoop](const DigCompSimData &data) {
+			simulatedByRunLoop.store(true);
+
+			const bool aHigh = data.inputStates.size() > 0 &&
+							  data.inputStates[0].state == LogicState::high;
+			const bool bHigh = data.inputStates.size() > 1 &&
+							  data.inputStates[1].state == LogicState::high;
+			const auto outState = (aHigh && bHigh) ? LogicState::low : LogicState::high;
+			const SimTime slotTs =
+				std::chrono::duration_cast<SimTime>(data.simTime);
+
+			component->setOutputStates(
+				std::vector<SlotState>{SlotState(outState, slotTs)});
+			return true;
+		});
+
+		driver.setState(SimDriverState::running);
+		std::thread runLoop([&driver]() {
+			driver.run();
+		});
+
+		driver.addComponent(component);
+
+		const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(200);
+		while (!simulatedByRunLoop.load() && std::chrono::steady_clock::now() < deadline) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+		}
+
+		driver.stop();
+		runLoop.join();
+
+		const auto stored = driver.getComponent<DigitalSimComponent>(compId);
+		ASSERT_NE(stored, nullptr);
+		ASSERT_EQ(stored->getOutputStates().size(), 1u);
+		EXPECT_TRUE(simulatedByRunLoop.load());
+		EXPECT_EQ(stored->getOutputStates()[0].state, LogicState::high);
 	}
 
 	TEST(SimDriverTest, SimulateReturnsFalseForUnknownComponent) {

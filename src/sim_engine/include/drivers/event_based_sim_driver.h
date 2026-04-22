@@ -129,6 +129,23 @@ namespace Bess::SimEngine {
         // true if the dependants should be simulated, false otherwise
         virtual bool simulate(const SimEvt &evt) = 0;
 
+        virtual void addComponent(
+            const std::shared_ptr<EvtBasedSimComponent<TSimFnData>> &comp,
+            bool scheduleSim = true) {
+
+            {
+                std::lock_guard lk(this->m_compMapMutex);
+                this->m_components[comp->getUuid()] = comp;
+            }
+
+            if (scheduleSim) {
+                scheduleEvt(comp->getUuid(),
+                            m_currentSimTime + comp->getSelfSimDelay(),
+                            UUID::null,
+                            true);
+            }
+        }
+
         virtual std::vector<UUID> getDependants(const UUID &id) {
             return {};
         }
@@ -142,6 +159,21 @@ namespace Bess::SimEngine {
         void onStop() override {
             SimDriver<TSimFnData>::onStop();
             m_runIterCv.notify_all();
+        }
+
+        void scheduleEvt(const UUID &compId,
+                         TimeNs simTime,
+                         const UUID &schedulerId,
+                         bool notify = true) {
+            static uint64_t evtId = 0;
+            SimEvt ev{UUID(evtId++),
+                      compId,
+                      schedulerId,
+                      simTime};
+            m_events.insert(ev);
+            if (notify) {
+                m_runIterCv.notify_all();
+            }
         }
 
       private:
@@ -216,21 +248,6 @@ namespace Bess::SimEngine {
             return ev;
         }
 
-        void scheduleEvt(const UUID &compId,
-                         TimeNs simTime,
-                         const UUID &schedulerId,
-                         bool notify = true) {
-            static uint64_t evtId = 0;
-            SimEvt ev{UUID(evtId++),
-                      compId,
-                      schedulerId,
-                      simTime};
-            m_events.insert(ev);
-            if (notify) {
-                m_runIterCv.notify_all();
-            }
-        }
-
         std::vector<SimEvt> collectEvts() {
             std::set<UUID> collectedCompIds = {};
             std::vector<SimEvt> evtsToSim = {};
@@ -269,7 +286,7 @@ namespace Bess::SimEngine {
       protected:
         TimeNs m_currentSimTime{0};
         std::condition_variable m_runIterCv;
-                std::mutex m_runIterMutex;
+        std::mutex m_runIterMutex;
 
       private:
         std::set<SimEvt> m_events;
