@@ -5,6 +5,7 @@
 #include "component_catalog.h"
 #include "component_definition.h"
 #include "digital_component.h"
+#include "drivers/digital_sim_driver.h"
 #include "event_dispatcher.h"
 #include "events/sim_engine_events.h"
 #include "init_components.h"
@@ -38,7 +39,11 @@ namespace Bess::SimEngine {
     }
 
     SimulationEngine::SimulationEngine() {
+        loadDrivers();
+        initDrivers();
+
         initComponentCatalog();
+
         const auto &pluginMangaer = Plugins::PluginManager::getInstance();
 
         auto &catalog = ComponentCatalog::instance();
@@ -63,6 +68,8 @@ namespace Bess::SimEngine {
         m_simEngineState.reset();
         m_nextEventId = 0;
         m_currentSimTime = {};
+        m_nets.clear();
+        m_isNetUpdated = false;
     }
 
     SimulationEngine::~SimulationEngine() {
@@ -72,6 +79,13 @@ namespace Bess::SimEngine {
     void SimulationEngine::destroy() {
         if (m_destroyed)
             return;
+
+        clear();
+
+        stopDrivers();
+        destroyDrivers();
+        unloadDrivers();
+
         m_stopFlag.store(true);
         m_queueCV.notify_all();
         m_stateCV.notify_all();
@@ -101,8 +115,22 @@ namespace Bess::SimEngine {
         });
     }
 
-    const UUID &SimulationEngine::addComponent(const std::shared_ptr<ComponentDefinition> &definition,
-                                               bool cloneDef) {
+    const UUID &SimulationEngine::addComponent(
+        const std::shared_ptr<Drivers::ComponentDef> &definition) {
+        for (const auto &driver : m_simDrivers) {
+            if (driver->suuportsDef(definition)) {
+                auto comp = driver->createComp(definition);
+                return comp ? comp->getUuid() : UUID::null;
+            }
+        }
+
+        BESS_WARN("No compatible driver found for {}.", definition->getName());
+        return UUID::null;
+    }
+
+    const UUID &SimulationEngine::addComponent(
+        const std::shared_ptr<ComponentDefinition> &definition,
+        bool cloneDef) {
         auto digiComp = std::make_shared<DigitalComponent>(definition, cloneDef);
         m_simEngineState.addDigitalComponent(digiComp);
 
@@ -675,6 +703,8 @@ namespace Bess::SimEngine {
     }
 
     void SimulationEngine::run() {
+        runDrivers();
+
         auto state = Plugins::capturePyThreadState();
         Plugins::releasePyThreadState(state);
         BESS_INFO("[SimulationEngine] Simulation loop started");
@@ -996,6 +1026,54 @@ namespace Bess::SimEngine {
                 scheduleEvent(ent,
                               compId,
                               m_currentSimTime + simDelay);
+            }
+        }
+    }
+
+    void SimulationEngine::loadDrivers() {
+        auto digDriver = std::make_shared<Drivers::Digital::DigitalSimDriver>();
+        BESS_INFO("Loaded driver {}", digDriver->getName());
+        m_simDrivers.emplace_back(std::move(digDriver));
+    }
+
+    void SimulationEngine::unloadDrivers() {
+        const size_t n = m_simDrivers.size();
+        m_simDrivers.clear();
+        BESS_INFO("Unloaded all({}) drivers", n);
+    }
+
+    void SimulationEngine::initDrivers() {
+        for (auto &driver : m_simDrivers) {
+            driver->init();
+            BESS_INFO("Initialized driver {}", driver->getName());
+        }
+    }
+
+    void SimulationEngine::destroyDrivers() {
+        for (auto &driver : m_simDrivers) {
+            driver->destroy();
+            BESS_INFO("Destroyed driver {}", driver->getName());
+        }
+
+        m_driverThreads.clear();
+    }
+
+    void SimulationEngine::runDrivers() {
+        for (auto &driver : m_simDrivers) {
+            m_driverThreads.emplace_back([driver]() { driver->run(); });
+            BESS_INFO("Started driver thread for {}", driver->getName());
+        }
+    }
+
+    void SimulationEngine::stopDrivers() {
+        for (auto &driver : m_simDrivers) {
+            driver->stop();
+            BESS_INFO("Stopped driver {}", driver->getName());
+        }
+
+        for (auto &thread : m_driverThreads) {
+            if (thread.joinable()) {
+                thread.join();
             }
         }
     }

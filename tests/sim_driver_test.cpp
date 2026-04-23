@@ -1,8 +1,12 @@
+#include "common/bess_uuid.h"
+#include "common/logger.h"
 #include "drivers/digital_sim_driver.h"
 #include "drivers/sim_driver.h"
+#include "simulation_engine.h"
 #include "gtest/gtest.h"
 #include <atomic>
 #include <chrono>
+#include <memory>
 #include <thread>
 
 namespace {
@@ -91,22 +95,24 @@ namespace {
 
         auto def = std::make_shared<DigCompDef>();
         def->setName("NAND Gate");
-        def->setSimFn([component, &simulatedByRunLoop](const Drivers::SimFnDataBase &dataBase) {
-            const auto &data = dynamic_cast<const DigCompSimData &>(dataBase);
+        def->setSimFn([component, &simulatedByRunLoop](const std::shared_ptr<Drivers::SimFnDataBase> &dataBase) {
+            const auto &data = std::dynamic_pointer_cast<DigCompSimData>(dataBase);
+
+            const bool aHigh = data->inputStates.size() > 0 &&
+                               data->inputStates[0].state == LogicState::high;
+            const bool bHigh = data->inputStates.size() > 1 &&
+                               data->inputStates[1].state == LogicState::high;
+            const auto outState = (aHigh && bHigh) ? LogicState::low : LogicState::high;
+            const SimTime slotTs =
+                std::chrono::duration_cast<SimTime>(data->simTime);
+
+            data->outputStates = std::vector<SlotState>{SlotState(outState, slotTs)};
+
+            component->setOutputStates(data->outputStates);
 
             simulatedByRunLoop.store(true);
 
-            const bool aHigh = data.inputStates.size() > 0 &&
-                               data.inputStates[0].state == LogicState::high;
-            const bool bHigh = data.inputStates.size() > 1 &&
-                               data.inputStates[1].state == LogicState::high;
-            const auto outState = (aHigh && bHigh) ? LogicState::low : LogicState::high;
-            const SimTime slotTs =
-                std::chrono::duration_cast<SimTime>(data.simTime);
-
-            component->setOutputStates(
-                std::vector<SlotState>{SlotState(outState, slotTs)});
-            return true;
+            return data;
         });
 
         component->setDefinition(def->clone());
@@ -143,5 +149,50 @@ namespace {
         const Drivers::SimEvt evt{Bess::UUID(1), Bess::UUID(99), Bess::UUID::null, Bess::TimeNs(10.0)};
 
         EXPECT_FALSE(driver.simulate(evt));
+    }
+
+    TEST(SimDriverTest, AddingCompViaSimEngine) {
+        auto &engine = SimulationEngine::instance();
+        std::atomic<bool> simulatedByRunLoop{false};
+        auto def = std::make_shared<DigCompDef>();
+        def->setName("NAND Gate");
+        def->setSimFn([&simulatedByRunLoop](const std::shared_ptr<Drivers::SimFnDataBase> &dataBase) {
+            BESS_DEBUG("Simulating");
+
+            const auto &data = std::dynamic_pointer_cast<DigCompSimData>(dataBase);
+
+            const bool aHigh = data->inputStates.size() > 0 &&
+                               data->inputStates[0].state == LogicState::high;
+            const bool bHigh = data->inputStates.size() > 1 &&
+                               data->inputStates[1].state == LogicState::high;
+            const auto outState = (aHigh && bHigh) ? LogicState::low : LogicState::high;
+            const SimTime slotTs =
+                std::chrono::duration_cast<SimTime>(data->simTime);
+
+            data->outputStates = std::vector<SlotState>{SlotState(outState, slotTs)};
+
+            simulatedByRunLoop.store(true);
+
+            return data;
+        });
+
+        auto id = engine.addComponent(def);
+        EXPECT_NE(id, Bess::UUID::null);
+
+        auto comp = engine.getComponent<DigitalSimComponent>(id);
+        EXPECT_NE(comp, nullptr);
+        EXPECT_EQ(comp->getUuid(), id);
+        EXPECT_EQ(comp->getDefinition()->getName(), "NAND Gate");
+
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(200);
+
+        while (!simulatedByRunLoop.load() && std::chrono::steady_clock::now() < deadline) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+
+        auto outputs = comp->getOutputStates();
+        EXPECT_EQ(outputs.size(), 1u);
+
+        engine.destroy();
     }
 } // namespace

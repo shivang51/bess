@@ -13,11 +13,13 @@ namespace Bess::SimEngine::Drivers {
     class BESS_API SimFnDataBase {
       public:
         virtual ~SimFnDataBase() = default;
+        bool simDependants = false;
     };
 
     class BESS_API ComponentDef {
       public:
-        typedef std::function<bool(const SimFnDataBase &)> SimFn;
+        typedef std::shared_ptr<SimFnDataBase> SimFnDataPtr;
+        typedef std::function<SimFnDataPtr(const SimFnDataPtr &)> SimFn;
 
         ComponentDef() = default;
         virtual ~ComponentDef() = default;
@@ -70,11 +72,12 @@ namespace Bess::SimEngine::Drivers {
         static void fromJson(const std::shared_ptr<SimComponent> &comp,
                              const Json::Value &json);
 
-        virtual bool simulate(const SimFnDataBase &data) {
+        virtual std::shared_ptr<SimFnDataBase> simulate(
+            const std::shared_ptr<SimFnDataBase> &data) {
             if (!m_def) {
                 BESS_WARN("(SimComponent.simulate) No definition for component with UUID {}",
                           (uint64_t)m_uuid);
-                return false;
+                return data;
             }
 
             auto simFn = m_def->getSimFn();
@@ -85,7 +88,7 @@ namespace Bess::SimEngine::Drivers {
 
             BESS_WARN("(SimComponent.simulate) No sim function for component definition of component with UUID {}",
                       (uint64_t)m_uuid);
-            return false;
+            return data;
         }
 
       protected:
@@ -107,12 +110,20 @@ namespace Bess::SimEngine::Drivers {
         SimDriver() = default;
         virtual ~SimDriver() = default;
 
-        virtual void onInit() {};
-
         // will be ran in seperate thread
         virtual void run() = 0;
 
+        virtual std::string getName() const = 0;
+
+        // returns whether driver will accept the component.
+        virtual bool suuportsDef(const std::shared_ptr<ComponentDef> &def) const = 0;
+
+        virtual std::shared_ptr<SimComponent> createComp(
+            const std::shared_ptr<ComponentDef> &def) = 0;
+
       protected:
+        virtual void onInit() {};
+
         virtual void onStop() {};
 
         virtual void onReset() {};
@@ -148,6 +159,12 @@ namespace Bess::SimEngine::Drivers {
             }
             return std::dynamic_pointer_cast<TComp>(
                 m_components.at(id));
+        }
+
+        void init() {
+            onInit();
+            std::lock_guard lk(m_stateMutex);
+            m_state = SimDriverState::stopped;
         }
 
         bool isInitialized() const {

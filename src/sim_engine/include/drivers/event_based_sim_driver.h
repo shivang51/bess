@@ -86,6 +86,10 @@ namespace Bess::SimEngine::Drivers {
                 return simTime < other.simTime;
             return evtId < other.evtId;
         }
+
+        bool operator==(const SimEvt &other) const noexcept {
+            return evtId == other.evtId;
+        }
     };
 
     class BESS_API EvtBasedSimDriver : public SimDriver {
@@ -101,10 +105,15 @@ namespace Bess::SimEngine::Drivers {
             BESS_ASSERT(!isDestroyed(),
                         "SimDriver was destroyed, cannot run");
 
+            setState(SimDriverState::running);
+
             while (!isStopped()) {
                 std::unique_lock lk(m_runIterMutex);
+
+                BESS_DEBUG("Sim waiting for events");
+
                 m_runIterCv.wait(lk, [&] {
-                    return isStopped() || !getComponentsMap().empty();
+                    return isStopped() || !m_events.empty();
                 });
 
                 if (isStopped()) {
@@ -112,6 +121,8 @@ namespace Bess::SimEngine::Drivers {
                 }
 
                 const auto evtsToSim = collectEvts();
+                BESS_DEBUG("Simulating {}", evtsToSim.size());
+
                 if (evtsToSim.empty()) {
                     const auto &nextEvt = getNextEvt();
                     std::this_thread::sleep_for(nextEvt.simTime - m_currentSimTime);
@@ -136,6 +147,9 @@ namespace Bess::SimEngine::Drivers {
             }
 
             if (scheduleSim) {
+                BESS_DEBUG("Scheduling initial event for component {} at time {}ns",
+                           (uint64_t)comp->getUuid(),
+                           (m_currentSimTime + comp->getSelfSimDelay()).count());
                 scheduleEvt(comp->getUuid(),
                             m_currentSimTime + comp->getSelfSimDelay(),
                             UUID::null,
@@ -198,6 +212,11 @@ namespace Bess::SimEngine::Drivers {
                                 UUID::null,
                                 true);
                 }
+            }
+
+            // remove collected evts from the event set
+            for (const auto &evt : evts) {
+                m_events.erase(evt);
             }
         }
 
@@ -270,11 +289,6 @@ namespace Bess::SimEngine::Drivers {
                                   }
                                   return a.evtId < b.evtId;
                               });
-
-            // remove collected evts from the event set
-            for (const auto &evt : evtsToSim) {
-                m_events.erase(evt);
-            }
 
             return evtsToSim;
         }

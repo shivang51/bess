@@ -1,8 +1,10 @@
 #pragma once
 
 #include "component_definition.h"
+#include "drivers/sim_driver.h"
 #include "event_based_sim_driver.h"
 #include "types.h"
+#include <memory>
 
 namespace Bess::SimEngine::Drivers::Digital {
 
@@ -13,6 +15,7 @@ namespace Bess::SimEngine::Drivers::Digital {
 
     struct BESS_API DigCompSimData : SimFnDataBase {
         std::vector<SlotState> inputStates;
+        std::vector<SlotState> outputStates;
         DigCompState prevState;
         TimeNs simTime;
     };
@@ -94,6 +97,22 @@ namespace Bess::SimEngine::Drivers::Digital {
         DigitalSimComponent() = default;
         ~DigitalSimComponent() override = default;
 
+        static std::shared_ptr<DigitalSimComponent> fromDef(
+            const std::shared_ptr<ComponentDef> &compDef) {
+            if (!compDef) {
+                BESS_WARN("(DigitalSimDriver.fromDef) compDef is nullptr");
+                return nullptr;
+            }
+
+            const auto clone = compDef->clone();
+
+            const auto comp = std::make_shared<DigitalSimComponent>();
+            comp->setName(clone->getName());
+            comp->setDefinition(clone);
+
+            return comp;
+        }
+
         MAKE_GETTER_SETTER(std::vector<SlotState>, InputStates, m_inputStates)
         MAKE_GETTER_SETTER(std::vector<SlotState>, OutputStates, m_outputStates)
 
@@ -112,25 +131,37 @@ namespace Bess::SimEngine::Drivers::Digital {
         std::vector<SlotState> m_outputStates;
     };
 
-    class BESS_API DigitalSimDriver : public EvtBasedSimDriver {
+    class BESS_API DigitalSimDriver final : public EvtBasedSimDriver {
       public:
         DigitalSimDriver() = default;
         ~DigitalSimDriver() override = default;
 
-        std::shared_ptr<DigitalSimComponent> fromDef(
-            const std::shared_ptr<ComponentDef> &compDef) const {
-            if (!compDef) {
-                BESS_WARN("(DigitalSimDriver.fromDef) compDef is nullptr");
+        std::shared_ptr<SimComponent> createComp(const std::shared_ptr<ComponentDef> &def) override {
+            if (!suuportsDef(def)) {
+                BESS_WARN("(DigitalSimDriver.addComponent) Unsupported component definition type: {}",
+                          def->getName());
                 return nullptr;
             }
 
-            const auto clone = compDef->clone();
+            const auto comp = DigitalSimComponent::fromDef(def->clone());
 
-            const auto comp = std::make_shared<DigitalSimComponent>();
-            comp->setName(clone->getName());
-            comp->setDefinition(clone);
+            if (!comp) {
+                BESS_WARN("(DigitalSimDriver.addComponent) Failed to create component from definition: {}",
+                          def->getName());
+                return nullptr;
+            }
+
+            addComponent(comp);
 
             return comp;
+        }
+
+        bool suuportsDef(const std::shared_ptr<ComponentDef> &def) const override {
+            return std::dynamic_pointer_cast<DigCompDef>(def) != nullptr;
+        }
+
+        std::string getName() const override {
+            return "DigitalSimDriver";
         }
 
         bool simulate(const SimEvt &evt) override {
@@ -144,17 +175,34 @@ namespace Bess::SimEngine::Drivers::Digital {
                 return false;
             }
 
-            DigCompSimData simData{};
-            simData.simTime = m_currentSimTime;
-            simData.prevState.inputStates = comp->getInputStates();
-            simData.prevState.outputStates = comp->getOutputStates();
-            simData.inputStates = collapseInputs(id);
+            auto simData = std::make_shared<DigCompSimData>();
+            simData->simTime = m_currentSimTime;
+            simData->prevState.inputStates = comp->getInputStates();
+            simData->prevState.outputStates = comp->getOutputStates();
+            simData->inputStates = collapseInputs(id);
 
-            return comp->simulate(simData);
+            auto newData = std::dynamic_pointer_cast<DigCompSimData>(
+                comp->simulate(simData));
+
+            if (!newData) {
+                BESS_WARN("(DigitalSimDriver.simulate) Simulation function for component with UUID {} did not return DigCompSimData",
+                          (uint64_t)id);
+                return false;
+            }
+
+            comp->setOutputStates(newData->outputStates);
+
+            return newData->simDependants;
         }
 
         void addComponent(const std::shared_ptr<DigitalSimComponent> &comp) {
             EvtBasedSimDriver::addComponent(comp);
         }
+
+        void onBeforeRun() override {
+            EvtBasedSimDriver::onBeforeRun();
+            BESS_DEBUG("Starting DigitalSimDriver run loop");
+        }
     };
+
 } // namespace Bess::SimEngine::Drivers::Digital

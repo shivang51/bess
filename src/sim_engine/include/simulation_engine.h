@@ -3,6 +3,7 @@
 #include "bess_api.h"
 #include "common/bess_uuid.h"
 #include "digital_component.h"
+#include "drivers/sim_driver.h"
 #include "net/net.h"
 #include "sim_engine_state.h"
 #include "types.h"
@@ -21,13 +22,24 @@ namespace Bess::SimEngine {
       public:
         static SimulationEngine &instance();
 
-        SimulationEngine();
-        ~SimulationEngine();
-
         void destroy();
+
+        const UUID &addComponent(const std::shared_ptr<Drivers::ComponentDef> &definition);
 
         const UUID &addComponent(const std::shared_ptr<ComponentDefinition> &definition,
                                  bool cloneDef = true);
+
+        template <typename T>
+        std::shared_ptr<T> getComponent(const UUID &uuid) const {
+            for (const auto &driver : m_simDrivers) {
+                auto comp = driver->template getComponent<T>(uuid);
+                if (comp) {
+                    return comp;
+                }
+            }
+
+            return nullptr;
+        }
 
         bool connectComponent(const UUID &src, int srcSlotIdx, SlotType srcType,
                               const UUID &dst, int dstSlotIdx, SlotType dstType, bool overrideConn = false);
@@ -88,6 +100,20 @@ namespace Bess::SimEngine {
         SimEngineState &getSimEngineState();
 
       private:
+        void loadDrivers();
+        void unloadDrivers();
+
+        void initDrivers();
+        void destroyDrivers();
+
+        void runDrivers();
+        void stopDrivers();
+
+      private:
+        SimulationEngine();
+        ~SimulationEngine();
+
+      private:
         bool isSimStableLocked() const;
 
         std::vector<UUID> getConnGraph(UUID start);
@@ -117,6 +143,11 @@ namespace Bess::SimEngine {
         SimEngineState m_simEngineState;
 
         std::unordered_map<UUID, Net> m_nets;
+
+        std::vector<std::shared_ptr<Drivers::SimDriver>> m_simDrivers;
+        std::vector<std::thread> m_driverThreads;
+
+        typedef std::unordered_map<UUID, std::shared_ptr<Drivers::SimDriver>> CompDriverMap;
 
         bool m_destroyed{false};
 
