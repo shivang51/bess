@@ -504,8 +504,10 @@ namespace Bess::Pages {
             return; // most likely the component was deleted, so we can ignore this event
 
         const auto &digitalComp = SimEngine::SimulationEngine::instance().getDigitalComponent(e.componentId);
-        const auto &outSlotsInfo = digitalComp->definition->getOutputSlotsInfo();
-        syncSceneComponentSlots(sceneState, comp, outSlotsInfo, false);
+
+        // FIXME
+        // const auto &outSlotsInfo = digitalComp->definition->getOutputSlotsInfo();
+        // syncSceneComponentSlots(sceneState, comp, outSlotsInfo, false);
     }
 
     void MainPageState::onCompDefInputsResized(const SimEngine::Events::CompDefInputsResizedEvent &e) {
@@ -528,8 +530,10 @@ namespace Bess::Pages {
             return; // most likely the component was deleted, so we can ignore this event
 
         const auto &digitalComp = SimEngine::SimulationEngine::instance().getDigitalComponent(e.componentId);
-        const auto &inSlotsInfo = digitalComp->definition->getInputSlotsInfo();
-        syncSceneComponentSlots(sceneState, comp, inSlotsInfo, true);
+
+        // FIXME
+        // const auto &inSlotsInfo = digitalComp->definition->getInputSlotsInfo();
+        // syncSceneComponentSlots(sceneState, comp, inSlotsInfo, true);
     }
 
     void MainPageState::onEntityAdded(const Canvas::Events::ComponentAddedEvent &e) {

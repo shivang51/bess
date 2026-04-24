@@ -56,6 +56,11 @@ namespace Bess::SimEngine::Drivers {
         SimComponent() = default;
         virtual ~SimComponent() = default;
 
+        template <typename TCompDef>
+        std::shared_ptr<TCompDef> getDefinition() const {
+            return std::dynamic_pointer_cast<TCompDef>(m_def);
+        }
+
         MAKE_GETTER_SETTER(UUID, Uuid, m_uuid)
         MAKE_GETTER_SETTER(std::string, Name, m_name)
         MAKE_GETTER_SETTER(std::shared_ptr<ComponentDef>,
@@ -149,6 +154,11 @@ namespace Bess::SimEngine::Drivers {
                               State,
                               m_state,
                               m_stateMutex)
+
+        bool hasComponent(const UUID &id) const {
+            std::lock_guard lk(m_compMapMutex);
+            return m_components.contains(id);
+        }
 
         template <typename TComp>
         std::shared_ptr<TComp> getComponent(const UUID &id) const {

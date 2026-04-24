@@ -6,27 +6,27 @@
 #include <memory>
 
 namespace Bess::SimEngine {
-    std::shared_ptr<ComponentDefinition> ModuleDefinition::clone() const {
-        auto clone = std::make_shared<ModuleDefinition>(*this);
-
-        clone->m_simulationFunction = [clone](const std::vector<SlotState> &inputs,
-                                              SimTime simTime,
-                                              const ComponentState &prevState) {
-            return clone->simulationFunction(inputs, simTime, prevState);
-        };
-
-        const auto &catalog = ComponentCatalog::instance();
-
-        auto &simEngine = SimulationEngine::instance();
-
-        const auto &inpDef = simEngine.getComponentDefinition(m_input);
-        clone->m_input = simEngine.addComponent(inpDef);
-
-        const auto &outDef = simEngine.getComponentDefinition(m_output);
-        clone->m_output = simEngine.addComponent(outDef);
-
-        return clone;
-    }
+    // std::shared_ptr<ComponentDefinition> ModuleDefinition::clone() const {
+    //     auto clone = std::make_shared<ModuleDefinition>(*this);
+    //
+    //     clone->m_simulationFunction = [clone](const std::vector<SlotState> &inputs,
+    //                                           SimTime simTime,
+    //                                           const ComponentState &prevState) {
+    //         return clone->simulationFunction(inputs, simTime, prevState);
+    //     };
+    //
+    //     const auto &catalog = ComponentCatalog::instance();
+    //
+    //     auto &simEngine = SimulationEngine::instance();
+    //
+    //     const auto &inpDef = simEngine.getComponentDefinition(m_input);
+    //     clone->m_input = simEngine.addComponent(inpDef);
+    //
+    //     const auto &outDef = simEngine.getComponentDefinition(m_output);
+    //     clone->m_output = simEngine.addComponent(outDef);
+    //
+    //     return clone;
+    // }
 
     ComponentState ModuleDefinition::simulationFunction(const std::vector<SlotState> &inputs,
                                                         SimTime simTime,
@@ -77,20 +77,21 @@ namespace Bess::SimEngine {
             .count = 1,
         };
 
-        moduleDef->m_simulationFunction = [moduleDef](const std::vector<SlotState> &inputs,
-                                                      SimTime simTime,
-                                                      const ComponentState &prevState) {
-            return moduleDef->simulationFunction(inputs, simTime, prevState);
-        };
+        // FIXME
+        // moduleDef->m_simulationFunction = [moduleDef](const std::vector<SlotState> &inputs,
+        //                                               SimTime simTime,
+        //                                               const ComponentState &prevState) {
+        //     return moduleDef->simulationFunction(inputs, simTime, prevState);
+        // };
 
         const auto &catalog = ComponentCatalog::instance();
 
         // create a input and output component for the module
-        const auto &inpDef = catalog.getComponentDefinition(5271179154965332885);
+        const auto &inpDef = catalog.getComponentDefinition("Input");
         BESS_ASSERT(inpDef, "Input component definition not found in catalog");
         moduleDef->m_input = simEngine.addComponent(inpDef);
 
-        const auto &outDef = catalog.getComponentDefinition(15124334025293992558ULL);
+        const auto &outDef = catalog.getComponentDefinition("Output");
         BESS_ASSERT(outDef, "Output component definition not found in catalog");
         moduleDef->m_output = simEngine.addComponent(outDef);
 

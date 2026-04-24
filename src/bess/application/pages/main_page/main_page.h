@@ -5,7 +5,7 @@
 #include "application/pages/page.h"
 #include "application/window.h"
 #include "common/types.h"
-#include "component_definition.h"
+#include "drivers/sim_driver.h"
 
 #include <chrono>
 #include <memory>
@@ -14,7 +14,7 @@
 namespace Bess::Pages {
 
     struct CopiedComponent {
-        std::shared_ptr<SimEngine::ComponentDefinition> def;
+        std::shared_ptr<SimEngine::Drivers::ComponentDef> def;
         std::type_index nsComp = typeid(void);
         glm::vec2 pos = {0.f, 0.f};
     };

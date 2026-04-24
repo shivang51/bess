@@ -3,7 +3,7 @@
 /// Responsible for managing plugins, including loading, unloading, and providing access to plugin functionalities.
 /// Simulation DOES NOT use this, it being an independent module handles plugins on its own.
 
-#include "component_definition.h"
+#include "drivers/sim_driver.h"
 
 #include "json/value.h"
 
@@ -31,7 +31,7 @@ namespace Bess::Svc {
             const Json::Value &json) const;
 
         std::shared_ptr<Canvas::SimulationSceneComponent> getSimComp(
-            const std::shared_ptr<SimEngine::ComponentDefinition> &def) const;
+            const std::shared_ptr<SimEngine::Drivers::ComponentDef> &def) const;
 
         MAKE_GETTER(bool, IsInitialized, m_initialized)
 

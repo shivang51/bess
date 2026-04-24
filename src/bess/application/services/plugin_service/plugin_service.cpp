@@ -27,7 +27,7 @@ namespace Bess::Svc {
     }
 
     std::shared_ptr<Canvas::SimulationSceneComponent> PluginService::getSimComp(
-        const std::shared_ptr<SimEngine::ComponentDefinition> &def) const {
+        const std::shared_ptr<SimEngine::Drivers::ComponentDef> &def) const {
         const auto &pluginMangaer = Plugins::PluginManager::getInstance();
 
         for (const auto &plugin : pluginMangaer.getLoadedPlugins()) {

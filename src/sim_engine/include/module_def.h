@@ -2,14 +2,16 @@
 #include "bess_api.h"
 #include "common/bess_uuid.h"
 #include "component_definition.h"
+#include "drivers/digital_sim_driver.h"
 #include <memory>
 
 namespace Bess::SimEngine {
-    class BESS_API ModuleDefinition : public ComponentDefinition {
+    class BESS_API ModuleDefinition : public Drivers::Digital::DigCompDef {
       public:
         static std::shared_ptr<ModuleDefinition> createNew();
 
-        std::shared_ptr<ComponentDefinition> clone() const override;
+        // FIXME: MoudelDef clone
+        // std::shared_ptr<ComponentDefinition> clone() const override;
 
         ComponentState simulationFunction(const std::vector<SlotState> &inputs,
                                           SimTime simTime,
@@ -23,9 +25,9 @@ namespace Bess::SimEngine {
     };
 } // namespace Bess::SimEngine
 
-REFLECT_DERIVED_PROPS(Bess::SimEngine::ModuleDefinition,
-                      Bess::SimEngine::ComponentDefinition,
-                      ("input", getInputId, setInputId),
-                      ("output", getOutputId, setOutputId))
+// REFLECT_DERIVED_PROPS(Bess::SimEngine::ModuleDefinition,
+//                       Bess::SimEngine::ComponentDefinition,
+//                       ("input", getInputId, setInputId),
+//                       ("output", getOutputId, setOutputId))
 
-REFLECT_PROPS_SP(Bess::SimEngine::ModuleDefinition);
+// REFLECT_PROPS_SP(Bess::SimEngine::ModuleDefinition);

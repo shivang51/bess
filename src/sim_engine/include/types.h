@@ -3,6 +3,7 @@
 #include "bess_api.h"
 #include "bess_json/bess_json.h"
 #include "common/bess_uuid.h"
+#include "common/types.h"
 #include <any>
 #include <chrono>
 #include <cstdint>
@@ -10,7 +11,7 @@
 #include <string>
 
 namespace Bess::SimEngine {
-    typedef std::chrono::nanoseconds SimTime;
+    typedef TimeNs SimTime;
     typedef std::chrono::seconds SimDelaySeconds;
     typedef std::chrono::nanoseconds SimDelayNanoSeconds;
 

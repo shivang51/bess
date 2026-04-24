@@ -1,5 +1,7 @@
 #include "pages/main_page/services/hierarchical_scene_layout.h"
 
+#include "drivers/digital_sim_driver.h"
+#include "drivers/sim_driver.h"
 #include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
@@ -63,7 +65,7 @@ namespace Bess::Pages {
         }
 
         glm::vec2 estimateComponentSize(const std::shared_ptr<SimulationSceneComponent> &component,
-                                       const SceneState &sceneState) {
+                                        const SceneState &sceneState) {
             const auto &transform = component->getTransform();
             if (transform.scale.x > 0.f && transform.scale.y > 0.f) {
                 return transform.scale;
@@ -136,10 +138,11 @@ namespace Bess::Pages {
 
                 const auto componentDef = simComponent->getCompDef();
                 if (componentDef) {
+                    auto def = std::dynamic_pointer_cast<SimEngine::Drivers::Digital::DigCompDef>(componentDef);
                     node.boundaryInput =
-                        componentDef->getBehaviorType() == ComponentBehaviorType::input;
+                        def->getBehaviorType() == ComponentBehaviorType::input;
                     node.boundaryOutput =
-                        componentDef->getBehaviorType() == ComponentBehaviorType::output;
+                        def->getBehaviorType() == ComponentBehaviorType::output;
                 }
 
                 nodes.push_back(std::move(node));

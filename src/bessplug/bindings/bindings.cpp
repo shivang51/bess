@@ -1,3 +1,4 @@
+#include "drivers/digital_sim_driver.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -29,6 +30,12 @@ PYBIND11_MODULE(bessplug, m) {
     bind_api(m);
 }
 
+void tempBindings(py::module &m) {
+    py::class_<Bess::SimEngine::Drivers::Digital::DigitalSimDriver>(
+        m,
+        "DigSimDriver");
+}
+
 void bind_api(py::module_ &m) {
     auto mApi = m.def_submodule("api", "BESS API bindings");
     auto mCmds = m.def_submodule("cmds", "Bess Commands bindings");
@@ -49,6 +56,8 @@ void bind_api(py::module_ &m) {
 
     // Common
     bind_common_bindings(common);
+
+    tempBindings(simEngine);
 
     // Sim Engine
     bind_sim_engine_types(simEngine);

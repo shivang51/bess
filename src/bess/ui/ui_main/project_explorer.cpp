@@ -51,7 +51,10 @@ namespace Bess::UI {
                 return false;
             }
 
-            const auto &definition = simEngine.getComponentDefinition(simId);
+            const auto &def = simEngine.getComponentDefinition(simId);
+
+            const auto &definition = std::dynamic_pointer_cast<SimEngine::Drivers::Digital::DigCompDef>(def);
+
             const auto behaviorType = definition->getBehaviorType();
             const bool isInput = behaviorType == SimEngine::ComponentBehaviorType::input;
             const bool isOutput = behaviorType == SimEngine::ComponentBehaviorType::output;

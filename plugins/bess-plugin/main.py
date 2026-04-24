@@ -26,6 +26,7 @@ class BessPlugin(Plugin):
 
     @override
     def on_components_reg_load(self) -> list[ComponentDefinition]:
+        return []
         return [
             *latches,
             *digital_gates,

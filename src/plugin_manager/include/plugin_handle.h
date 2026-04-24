@@ -5,8 +5,8 @@
 #include <pybind11/pybind11.h>
 #include <string>
 
-namespace Bess::SimEngine {
-    class ComponentDefinition;
+namespace Bess::SimEngine::Drivers {
+    class ComponentDef;
 }
 
 namespace Bess::Renderer {
@@ -28,7 +28,7 @@ namespace Bess::Plugins {
 
         const pybind11::object &getPluginObject() const;
 
-        std::vector<std::shared_ptr<SimEngine::ComponentDefinition>> onComponentsRegLoad() const;
+        std::vector<std::shared_ptr<SimEngine::Drivers::ComponentDef>> onComponentsRegLoad() const;
 
         void cleanup();
 
@@ -45,7 +45,7 @@ namespace Bess::Plugins {
             const Json::Value &json);
 
         std::shared_ptr<Canvas::SimulationSceneComponent> getSimComponent(
-            const std::shared_ptr<SimEngine::ComponentDefinition> &def) const;
+            const std::shared_ptr<SimEngine::Drivers::ComponentDef> &def) const;
 
         MAKE_GETTER(std::string, Name, m_pluginName)
         MAKE_GETTER(std::string, Version, m_pluginVersion)

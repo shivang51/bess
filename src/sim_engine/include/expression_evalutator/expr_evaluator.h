@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "types.h"
 #include "common/logger.h"
+#include "types.h"
 #include <stack>
 #include <stdexcept>
 #include <vector>

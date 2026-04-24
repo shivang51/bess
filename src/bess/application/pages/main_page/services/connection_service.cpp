@@ -301,172 +301,172 @@ namespace Bess::Svc {
 
     bool SvcConnection::isSlotRemovable(const std::shared_ptr<Canvas::SlotSceneComponent> &slot,
                                         size_t connectionThreshold) {
-        if (!slot) {
-            BESS_ERROR("[SvcConnection] [isSlotRemovable] Invalid slot given");
-            return false;
-        }
-
-        const size_t idx = slot->getIndex();
-
-        // False: if there are still some connections or is the first or only slot or
-        // if its not a slot (its a joint)
-        if (slot->getConnectedConnections().size() > connectionThreshold ||
-            idx == 0 ||
-            slot->getType() != Canvas::SceneComponentType::slot)
-            return false;
-
-        const auto &sceneState = getScene()->getState();
-        const auto &parentId = slot->getParentComponent();
-        const auto &parent = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(parentId);
-
-        // False: if parent is not valid
-        if (!parent) {
-            BESS_ERROR("Parent component {} of slot {} not valid",
-                       (uint64_t)parentId, (uint64_t)slot->getUuid());
-            BESS_ASSERT(false, "Parent component of slot not valid");
-            return false;
-        }
-
-        const auto &simEngine = getSimEngine();
-        const auto &def = simEngine.getComponentDefinition(parent->getSimEngineId());
-
-        const bool isInput = slot->getSlotType() == Canvas::SlotType::digitalInput;
-
-        const SimEngine::SlotsGroupInfo &slotsInfo = isInput
-                                                         ? def->getInputSlotsInfo()
-                                                         : def->getOutputSlotsInfo();
-
-        // False: if slots group is not resizeable
-        if (!slotsInfo.isResizeable)
-            return false;
-
-        // True: only if its the last slot in the component
-        return (idx + 1) == slotsInfo.count;
+        // if (!slot) {
+        //     BESS_ERROR("[SvcConnection] [isSlotRemovable] Invalid slot given");
+        //     return false;
+        // }
+        //
+        // const size_t idx = slot->getIndex();
+        //
+        // // False: if there are still some connections or is the first or only slot or
+        // // if its not a slot (its a joint)
+        // if (slot->getConnectedConnections().size() > connectionThreshold ||
+        //     idx == 0 ||
+        //     slot->getType() != Canvas::SceneComponentType::slot)
+        //     return false;
+        //
+        // const auto &sceneState = getScene()->getState();
+        // const auto &parentId = slot->getParentComponent();
+        // const auto &parent = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(parentId);
+        //
+        // // False: if parent is not valid
+        // if (!parent) {
+        //     BESS_ERROR("Parent component {} of slot {} not valid",
+        //                (uint64_t)parentId, (uint64_t)slot->getUuid());
+        //     BESS_ASSERT(false, "Parent component of slot not valid");
+        //     return false;
+        // }
+        //
+        // const auto &simEngine = getSimEngine();
+        // const auto &def = simEngine.getComponentDefinition(parent->getSimEngineId());
+        //
+        // const bool isInput = slot->getSlotType() == Canvas::SlotType::digitalInput;
+        //
+        // const SimEngine::SlotsGroupInfo &slotsInfo = isInput
+        //                                                  ? def->getInputSlotsInfo()
+        //                                                  : def->getOutputSlotsInfo();
+        //
+        // // False: if slots group is not resizeable
+        // if (!slotsInfo.isResizeable)
+        //     return false;
+        //
+        // // True: only if its the last slot in the component
+        // return (idx + 1) == slotsInfo.count;
     }
 
     bool SvcConnection::removeSlot(const std::shared_ptr<Canvas::SlotSceneComponent> &slot) {
-        if (!slot) {
-            BESS_ERROR("[SvcConnection] [removeSlot] Invalid slot given");
-            return false;
-        }
-
-        if (!isSlotRemovable(slot)) {
-            BESS_WARN("Cannot remove slot {} because it's not removable", (uint64_t)slot->getUuid());
-            return false;
-        }
-
-        const bool isInput = slot->getSlotType() == Canvas::SlotType::digitalInput;
-
-        auto &sceneState = getScene()->getState();
-        const auto &parentId = slot->getParentComponent();
-        const auto &parent = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(parentId);
-
-        const auto &simEngine = getSimEngine();
-        const auto &digComp = simEngine.getDigitalComponent(parent->getSimEngineId());
-        const auto &def = digComp->definition;
-
-        const SimEngine::SlotsGroupInfo &slotsInfo = isInput
-                                                         ? def->getInputSlotsInfo()
-                                                         : def->getOutputSlotsInfo();
-
-        auto const prevCount = slotsInfo.count;
-        size_t newCount = 0;
-
-        if (isInput) {
-            newCount = digComp->decrementInputCount();
-        } else {
-            newCount = digComp->decrementOutputCount();
-        }
-
-        if (newCount != prevCount - 1) {
-            BESS_ERROR("Failed to decrement slot count for component {}, isInput = {}, prevCount = {}, newCount = {}",
-                       (uint64_t)parent->getSimEngineId(), isInput, prevCount, newCount);
-            BESS_ASSERT(false, "Failed to decrement slot count for component");
-            return false;
-        }
-
-        auto &slots = isInput ? parent->getInputSlots() : parent->getOutputSlots();
-
-        // remove from io slots container
-        slots.erase(std::ranges::remove(slots, slot->getUuid()).begin(),
-                    slots.end());
-
-        // remove from parent child entry
-        parent->removeChildComponent(slot->getUuid());
-
-        // remove from scene
-        sceneState.removeComponent(slot->getUuid(), UUID::master);
-
-        return true;
+        // if (!slot) {
+        //     BESS_ERROR("[SvcConnection] [removeSlot] Invalid slot given");
+        //     return false;
+        // }
+        //
+        // if (!isSlotRemovable(slot)) {
+        //     BESS_WARN("Cannot remove slot {} because it's not removable", (uint64_t)slot->getUuid());
+        //     return false;
+        // }
+        //
+        // const bool isInput = slot->getSlotType() == Canvas::SlotType::digitalInput;
+        //
+        // auto &sceneState = getScene()->getState();
+        // const auto &parentId = slot->getParentComponent();
+        // const auto &parent = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(parentId);
+        //
+        // const auto &simEngine = getSimEngine();
+        // const auto &digComp = simEngine.getDigitalComponent(parent->getSimEngineId());
+        // const auto &def = digComp->definition;
+        //
+        // const SimEngine::SlotsGroupInfo &slotsInfo = isInput
+        //                                                  ? def->getInputSlotsInfo()
+        //                                                  : def->getOutputSlotsInfo();
+        //
+        // auto const prevCount = slotsInfo.count;
+        // size_t newCount = 0;
+        //
+        // if (isInput) {
+        //     newCount = digComp->decrementInputCount();
+        // } else {
+        //     newCount = digComp->decrementOutputCount();
+        // }
+        //
+        // if (newCount != prevCount - 1) {
+        //     BESS_ERROR("Failed to decrement slot count for component {}, isInput = {}, prevCount = {}, newCount = {}",
+        //                (uint64_t)parent->getSimEngineId(), isInput, prevCount, newCount);
+        //     BESS_ASSERT(false, "Failed to decrement slot count for component");
+        //     return false;
+        // }
+        //
+        // auto &slots = isInput ? parent->getInputSlots() : parent->getOutputSlots();
+        //
+        // // remove from io slots container
+        // slots.erase(std::ranges::remove(slots, slot->getUuid()).begin(),
+        //             slots.end());
+        //
+        // // remove from parent child entry
+        // parent->removeChildComponent(slot->getUuid());
+        //
+        // // remove from scene
+        // sceneState.removeComponent(slot->getUuid(), UUID::master);
+        //
+        // return true;
     }
 
     bool SvcConnection::addSlot(const std::shared_ptr<Canvas::SlotSceneComponent> &slot) {
-        if (!slot) {
-            BESS_ERROR("[SvcConnection] [addSlot] Invalid slot given");
-            return false;
-        }
-
-        auto &sceneState = getScene()->getState();
-        const auto &parentId = slot->getParentComponent();
-        const auto &parent = sceneState.getComponentByUuid<
-            Canvas::SimulationSceneComponent>(parentId);
-
-        if (!parent) {
-            BESS_ERROR("Parent component {} of slot {} not valid",
-                       (uint64_t)parentId, (uint64_t)slot->getUuid());
-            BESS_ASSERT(false, "Parent component of slot not valid");
-            return false;
-        }
-
-        const auto &simEngine = getSimEngine();
-        const auto &digComp = simEngine.getDigitalComponent(parent->getSimEngineId());
-        const auto &def = digComp->definition;
-
-        const bool isInput = slot->getSlotType() == Canvas::SlotType::digitalInput;
-
-        const SimEngine::SlotsGroupInfo &slotsInfo = isInput
-                                                         ? def->getInputSlotsInfo()
-                                                         : def->getOutputSlotsInfo();
-
-        if (!slotsInfo.isResizeable) {
-            BESS_WARN("Cannot add slot to component {} because its {} slots are not resizeable",
-                      (uint64_t)parent->getSimEngineId(), isInput ? "input" : "output");
-
-            BESS_ASSERT(false, "Trying to add slot to non-resizeable slots group");
-            return false;
-        }
-
-        const auto slotsCount = slotsInfo.count;
-
-        if (isInput) {
-            const auto newCount = digComp->incrementInputCount();
-            if (newCount != slotsCount + 1) {
-                BESS_ERROR("Failed to increment input slot count for component {}, prevCount = {}, newCount = {}",
-                           (uint64_t)parent->getSimEngineId(), slotsCount, newCount);
-                BESS_ASSERT(false, "Failed to increment input slot count for component");
-                return false;
-            }
-        } else {
-            const auto newCount = digComp->incrementOutputCount();
-            if (newCount != slotsCount + 1) {
-                BESS_ERROR("Failed to increment output slot count for component {}, prevCount = {}, newCount = {}",
-                           (uint64_t)parent->getSimEngineId(), slotsCount, newCount);
-                BESS_ASSERT(false, "Failed to increment output slot count for component");
-                return false;
-            }
-        }
-
-        if (isInput) {
-            parent->addInputSlot(slot->getUuid(), true);
-        } else {
-            parent->addOutputSlot(slot->getUuid(), true);
-        }
-
-        parent->addChildComponent(slot->getUuid());
-
-        sceneState.addComponent(slot);
-
-        return true;
+        // if (!slot) {
+        //     BESS_ERROR("[SvcConnection] [addSlot] Invalid slot given");
+        //     return false;
+        // }
+        //
+        // auto &sceneState = getScene()->getState();
+        // const auto &parentId = slot->getParentComponent();
+        // const auto &parent = sceneState.getComponentByUuid<
+        //     Canvas::SimulationSceneComponent>(parentId);
+        //
+        // if (!parent) {
+        //     BESS_ERROR("Parent component {} of slot {} not valid",
+        //                (uint64_t)parentId, (uint64_t)slot->getUuid());
+        //     BESS_ASSERT(false, "Parent component of slot not valid");
+        //     return false;
+        // }
+        //
+        // const auto &simEngine = getSimEngine();
+        // const auto &digComp = simEngine.getDigitalComponent(parent->getSimEngineId());
+        // const auto &def = digComp->definition;
+        //
+        // const bool isInput = slot->getSlotType() == Canvas::SlotType::digitalInput;
+        //
+        // const SimEngine::SlotsGroupInfo &slotsInfo = isInput
+        //                                                  ? def->getInputSlotsInfo()
+        //                                                  : def->getOutputSlotsInfo();
+        //
+        // if (!slotsInfo.isResizeable) {
+        //     BESS_WARN("Cannot add slot to component {} because its {} slots are not resizeable",
+        //               (uint64_t)parent->getSimEngineId(), isInput ? "input" : "output");
+        //
+        //     BESS_ASSERT(false, "Trying to add slot to non-resizeable slots group");
+        //     return false;
+        // }
+        //
+        // const auto slotsCount = slotsInfo.count;
+        //
+        // if (isInput) {
+        //     const auto newCount = digComp->incrementInputCount();
+        //     if (newCount != slotsCount + 1) {
+        //         BESS_ERROR("Failed to increment input slot count for component {}, prevCount = {}, newCount = {}",
+        //                    (uint64_t)parent->getSimEngineId(), slotsCount, newCount);
+        //         BESS_ASSERT(false, "Failed to increment input slot count for component");
+        //         return false;
+        //     }
+        // } else {
+        //     const auto newCount = digComp->incrementOutputCount();
+        //     if (newCount != slotsCount + 1) {
+        //         BESS_ERROR("Failed to increment output slot count for component {}, prevCount = {}, newCount = {}",
+        //                    (uint64_t)parent->getSimEngineId(), slotsCount, newCount);
+        //         BESS_ASSERT(false, "Failed to increment output slot count for component");
+        //         return false;
+        //     }
+        // }
+        //
+        // if (isInput) {
+        //     parent->addInputSlot(slot->getUuid(), true);
+        // } else {
+        //     parent->addOutputSlot(slot->getUuid(), true);
+        // }
+        //
+        // parent->addChildComponent(slot->getUuid());
+        //
+        // sceneState.addComponent(slot);
+        //
+        // return true;
     }
 
     bool SvcConnection::isResizeTriggerSlot(const std::shared_ptr<Canvas::SlotSceneComponent> &slot) {
@@ -908,51 +908,51 @@ namespace Bess::Svc {
     }
 
     std::shared_ptr<Canvas::SlotSceneComponent> SvcConnection::createSlotFromResizeTrigger(const std::shared_ptr<Canvas::SlotSceneComponent> &resizeSlot) {
-        auto &sceneState = getScene()->getState();
-        const auto parentId = resizeSlot->getParentComponent();
-        const auto parent = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(parentId);
-        const auto &simEngineId = parent->getSimEngineId();
-        const auto &digitalComp = getSimEngine().getDigitalComponent(simEngineId);
-
-        std::shared_ptr<Canvas::SlotSceneComponent> newSlot = std::make_shared<Canvas::SlotSceneComponent>();
-
-        if (resizeSlot->getSlotType() == Canvas::SlotType::inputsResize) {
-            const auto newSize = digitalComp->incrementInputCount();
-            if (newSize == parent->getInputSlotsCount() - 1) {
-                BESS_WARN("[Scene] Failed to resize input slots for component {}", (uint64_t)parent->getUuid());
-                return nullptr;
-            }
-
-            newSlot->setSlotType(Canvas::SlotType::digitalInput);
-            newSlot->setIndex((int)newSize - 1);
-            newSlot->setName(std::string(1, (char)('A' + newSize - 1)));
-            parent->addInputSlot(newSlot->getUuid());
-        } else {
-            const auto newSize = digitalComp->incrementOutputCount();
-            if (newSize == parent->getOutputSlotsCount() - 1) {
-                BESS_WARN("[Scene] Failed to resize output slots for component {}", (uint64_t)parent->getUuid());
-                return nullptr;
-            }
-
-            newSlot->setSlotType(Canvas::SlotType::digitalOutput);
-            newSlot->setIndex((int)newSize - 1);
-            newSlot->setName(std::string(1, (char)('a' + newSize - 1)));
-            parent->addOutputSlot(newSlot->getUuid());
-        }
-
-        sceneState.addComponent<Canvas::SlotSceneComponent>(newSlot);
-        sceneState.attachChild(parent->getUuid(), newSlot->getUuid());
-
-        parent->setScaleDirty();
-
-        BESS_INFO("[Scene] Resized component {}, new slot index = {}, new total slots = {}",
-                  (uint64_t)parent->getUuid(),
-                  newSlot->getIndex(),
-                  newSlot->getSlotType() == Canvas::SlotType::digitalInput
-                      ? parent->getInputSlotsCount()
-                      : parent->getOutputSlotsCount());
-
-        return newSlot;
+        // auto &sceneState = getScene()->getState();
+        // const auto parentId = resizeSlot->getParentComponent();
+        // const auto parent = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(parentId);
+        // const auto &simEngineId = parent->getSimEngineId();
+        // const auto &digitalComp = getSimEngine().getDigitalComponent(simEngineId);
+        //
+        // std::shared_ptr<Canvas::SlotSceneComponent> newSlot = std::make_shared<Canvas::SlotSceneComponent>();
+        //
+        // if (resizeSlot->getSlotType() == Canvas::SlotType::inputsResize) {
+        //     const auto newSize = digitalComp->incrementInputCount();
+        //     if (newSize == parent->getInputSlotsCount() - 1) {
+        //         BESS_WARN("[Scene] Failed to resize input slots for component {}", (uint64_t)parent->getUuid());
+        //         return nullptr;
+        //     }
+        //
+        //     newSlot->setSlotType(Canvas::SlotType::digitalInput);
+        //     newSlot->setIndex((int)newSize - 1);
+        //     newSlot->setName(std::string(1, (char)('A' + newSize - 1)));
+        //     parent->addInputSlot(newSlot->getUuid());
+        // } else {
+        //     const auto newSize = digitalComp->incrementOutputCount();
+        //     if (newSize == parent->getOutputSlotsCount() - 1) {
+        //         BESS_WARN("[Scene] Failed to resize output slots for component {}", (uint64_t)parent->getUuid());
+        //         return nullptr;
+        //     }
+        //
+        //     newSlot->setSlotType(Canvas::SlotType::digitalOutput);
+        //     newSlot->setIndex((int)newSize - 1);
+        //     newSlot->setName(std::string(1, (char)('a' + newSize - 1)));
+        //     parent->addOutputSlot(newSlot->getUuid());
+        // }
+        //
+        // sceneState.addComponent<Canvas::SlotSceneComponent>(newSlot);
+        // sceneState.attachChild(parent->getUuid(), newSlot->getUuid());
+        //
+        // parent->setScaleDirty();
+        //
+        // BESS_INFO("[Scene] Resized component {}, new slot index = {}, new total slots = {}",
+        //           (uint64_t)parent->getUuid(),
+        //           newSlot->getIndex(),
+        //           newSlot->getSlotType() == Canvas::SlotType::digitalInput
+        //               ? parent->getInputSlotsCount()
+        //               : parent->getOutputSlotsCount());
+        //
+        // return newSlot;
     }
 
     std::pair<bool, std::string> SvcConnection::canConnect(const UUID &idA, const UUID &idB,

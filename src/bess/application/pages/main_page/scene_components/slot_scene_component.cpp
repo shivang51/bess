@@ -1,7 +1,6 @@
 #include "slot_scene_component.h"
 #include "conn_joint_scene_component.h"
 #include "connection_scene_component.h"
-#include "expression_evalutator/expr_evaluator.h"
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
@@ -13,6 +12,7 @@
 #include "sim_scene_component.h"
 #include "simulation_engine.h"
 #include "ui/ui.h"
+#include <format>
 
 namespace Bess::Canvas {
     std::vector<std::shared_ptr<SceneComponent>> SlotSceneComponent::clone(const SceneState &sceneState) const {
@@ -184,23 +184,24 @@ namespace Bess::Canvas {
         }
 
         if (isInputSlot()) {
-            const auto &compState = digitalComp->state;
-            BESS_ASSERT(static_cast<size_t>(m_index) < compState.inputStates.size(),
+            const auto &inputs = digitalComp->getInputStates();
+            BESS_ASSERT(static_cast<size_t>(m_index) < inputs.size(),
                         "Slot index greater than input states size");
-            if (static_cast<size_t>(m_index) >= compState.inputStates.size()) {
+            if (static_cast<size_t>(m_index) >= inputs.size()) {
                 return {SimEngine::LogicState::unknown, SimEngine::SimTime(0)};
             }
-            return compState.inputStates[m_index];
+            return inputs[m_index];
         }
 
-        const auto &compState = digitalComp->state;
-        BESS_ASSERT(static_cast<size_t>(m_index) < compState.outputStates.size(),
+        const auto &outputs = digitalComp->getOutputStates();
+
+        BESS_ASSERT(static_cast<size_t>(m_index) < outputs.size(),
                     "Slot index greater than output states size");
-        if (static_cast<size_t>(m_index) >= compState.outputStates.size()) {
+        if (static_cast<size_t>(m_index) >= outputs.size()) {
             return {SimEngine::LogicState::unknown, SimEngine::SimTime(0)};
         }
 
-        return compState.outputStates[m_index];
+        return outputs[m_index];
     }
 
     bool SlotSceneComponent::isSlotConnected(const SceneState &state) const {
@@ -214,22 +215,23 @@ namespace Bess::Canvas {
         if (!digitalComp) {
             return false;
         }
-        const auto &compState = digitalComp->state;
 
         if (isInputSlot()) {
-            BESS_ASSERT(static_cast<size_t>(m_index) < compState.inputStates.size(),
+            const auto &connected = digitalComp->getIsInputConnected();
+            BESS_ASSERT(static_cast<size_t>(m_index) < connected.size(),
                         "Slot index greater than inputs in sim engine");
-            if (static_cast<size_t>(m_index) >= compState.inputConnected.size()) {
+            if (static_cast<size_t>(m_index) >= connected.size()) {
                 return false;
             }
-            return compState.inputConnected[m_index];
+            return connected[m_index];
         } else {
-            BESS_ASSERT(static_cast<size_t>(m_index) < compState.outputStates.size(),
+            const auto &connected = digitalComp->getIsOutputConnected();
+            BESS_ASSERT(static_cast<size_t>(m_index) < connected.size(),
                         "Slot index greater than outputs in sim engine");
-            if (static_cast<size_t>(m_index) >= compState.outputConnected.size()) {
+            if (static_cast<size_t>(m_index) >= connected.size()) {
                 return false;
             }
-            return compState.outputConnected[m_index];
+            return connected[m_index];
         }
     }
 
@@ -344,8 +346,10 @@ namespace Bess::Canvas {
         const auto &simComp = state.getComponentByUuid<SimulationSceneComponent>(
             m_parentComponent);
 
-        const bool isUnirary = SimEngine::ExprEval::isUninaryOperator(
-            simComp->getCompDef()->getOpInfo().op);
+        // FIXME: OperatorInfo
+        const bool isUnirary = false;
+        // SimEngine::ExprEval::isUninaryOperator(
+        //         simComp->getCompDef()->getOpInfo().op);
 
         if (!isUnirary) {
             return dependants;

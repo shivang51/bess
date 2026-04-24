@@ -3,6 +3,7 @@
 #include "bess_api.h"
 #include "common/bess_uuid.h"
 #include "digital_component.h"
+#include "drivers/digital_sim_driver.h"
 #include "drivers/sim_driver.h"
 #include "net/net.h"
 #include "sim_engine_state.h"
@@ -24,9 +25,7 @@ namespace Bess::SimEngine {
 
         void destroy();
 
-        const UUID &addComponent(const std::shared_ptr<Drivers::ComponentDef> &definition);
-
-        const UUID &addComponent(const std::shared_ptr<ComponentDefinition> &definition,
+        const UUID &addComponent(const std::shared_ptr<Drivers::ComponentDef> &definition,
                                  bool cloneDef = true);
 
         template <typename T>
@@ -74,8 +73,9 @@ namespace Bess::SimEngine {
         void stepSimulation();
 
         const ComponentState &getComponentState(const UUID &uuid);
-        const std::shared_ptr<ComponentDefinition> &getComponentDefinition(const UUID &uuid) const;
-        std::shared_ptr<DigitalComponent> getDigitalComponent(const UUID &uuid) const;
+        const std::shared_ptr<Drivers::ComponentDef> &getComponentDefinition(
+            const UUID &uuid) const;
+        std::shared_ptr<Drivers::Digital::DigitalSimComponent> getDigitalComponent(const UUID &uuid) const;
 
         void clear();
 
@@ -118,7 +118,6 @@ namespace Bess::SimEngine {
 
         std::vector<UUID> getConnGraph(UUID start);
 
-        void scheduleEvent(UUID id, UUID schedulerId, SimDelayNanoSeconds simTime);
         void clearEventsForEntity(const UUID &id);
         bool simulateComponent(const UUID &compId, const std::vector<SlotState> &inputs);
         void scheduleDependantsOf(const UUID &compId);

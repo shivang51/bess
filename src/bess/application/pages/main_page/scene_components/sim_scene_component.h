@@ -1,7 +1,8 @@
 #pragma once
 
 #include "common/bess_uuid.h"
-#include "component_definition.h"
+#include "drivers/digital_sim_driver.h"
+#include "drivers/sim_driver.h"
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
@@ -28,21 +29,24 @@ namespace Bess::Canvas {
         // [0] -> Component itself
         // [1...] -> Created slots
         static std::vector<std::shared_ptr<SceneComponent>> createNew(
-            const std::shared_ptr<SimEngine::ComponentDefinition> &compDef);
+            const std::shared_ptr<SimEngine::Drivers::ComponentDef> &compDef);
 
         template <typename T = SimulationSceneComponent>
         static std::vector<std::shared_ptr<SceneComponent>> createNew(
-            const std::shared_ptr<SimEngine::ComponentDefinition> &compDef) {
+            const std::shared_ptr<SimEngine::Drivers::ComponentDef> &compDef) {
             std::vector<std::shared_ptr<SceneComponent>> createdComps;
+
+            const auto def = std::dynamic_pointer_cast<
+                SimEngine::Drivers::Digital::DigCompDef>(compDef);
 
             const UUID uuid;
             std::shared_ptr<T> sceneComp = std::make_shared<T>();
-            sceneComp->setCompDef(compDef);
+            sceneComp->setCompDef(def);
 
             createdComps.push_back(sceneComp);
 
             // setting the name before adding to scene state, so that event listeners can access it
-            sceneComp->setName(compDef->getName());
+            sceneComp->setName(def->getName());
 
             // style
             auto &style = sceneComp->getStyle();
@@ -54,14 +58,14 @@ namespace Bess::Canvas {
             style.borderSize = glm::vec4(1.f);
             style.color = ViewportTheme::colors.componentBG;
 
-            const auto &inpDetails = compDef->getInputSlotsInfo();
-            const auto &outDetails = compDef->getOutputSlotsInfo();
+            const auto &inpDetails = def->getInputSlotsInfo();
+            const auto &outDetails = def->getOutputSlotsInfo();
 
             int inSlotIdx = 0, outSlotIdx = 0;
             char inpCh = 'A', outCh = 'a';
 
-            const auto slots = sceneComp->createIOSlots(compDef->getInputSlotsInfo().count,
-                                                        compDef->getOutputSlotsInfo().count);
+            const auto slots = sceneComp->createIOSlots(def->getInputSlotsInfo().count,
+                                                        def->getOutputSlotsInfo().count);
 
             for (const auto &slot : slots) {
                 if (slot->getSlotType() == SlotType::digitalInput) {
@@ -117,7 +121,7 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(std::vector<UUID>, InputSlots, m_inputSlots)
         MAKE_GETTER_SETTER(std::vector<UUID>, OutputSlots, m_outputSlots)
         MAKE_GETTER_SETTER(Transform, SchematicTransform, m_schematicTransform)
-        MAKE_GETTER_SETTER(std::shared_ptr<SimEngine::ComponentDefinition>, CompDef, m_compDef)
+        MAKE_GETTER_SETTER(std::shared_ptr<SimEngine::Drivers::ComponentDef>, CompDef, m_compDef)
 
         void setSchSlotsPosDirty(bool val = true);
         size_t getInputSlotsCount() const;
@@ -194,7 +198,7 @@ namespace Bess::Canvas {
         bool m_isScaleDirty = true, m_isSchematicScaleDirty = true;
         bool m_isSchSlotsPosDirty = true;
         Transform m_schematicTransform;
-        std::shared_ptr<SimEngine::ComponentDefinition> m_compDef = nullptr;
+        std::shared_ptr<SimEngine::Drivers::ComponentDef> m_compDef = nullptr;
     };
 } // namespace Bess::Canvas
 

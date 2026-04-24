@@ -103,107 +103,108 @@ namespace Bess::Canvas {
             return;
         }
 
-        outputDigitalComp->removeOnStateChangeCB(m_uuid);
-        outputDigitalComp->addOnStateChangeCB(m_uuid, [this](const SimEngine::ComponentState &oldState,
-                                                             const SimEngine::ComponentState &newState) {
-            auto &simEngine = SimEngine::SimulationEngine::instance();
-            auto moduleDigComp = simEngine.getDigitalComponent(this->m_simEngineId);
-            if (!moduleDigComp) {
-                return;
-            }
-
-            const auto maxOutputs = moduleDigComp->state.outputStates.size();
-            const auto copyCount = std::min(maxOutputs, newState.inputStates.size());
-            for (size_t i = 0; i < copyCount; ++i) {
-                simEngine.setOutputSlotState(this->m_simEngineId,
-                                             static_cast<int>(i),
-                                             newState.inputStates[i].state);
-            }
-        });
-
-        outputDigitalComp->removeOnInputSlotCountChangeCB(m_uuid);
-        outputDigitalComp->addOnInputSlotCountChangeCB(m_uuid, [this, ownerSceneId](size_t newCount) {
-            const auto &simEngine = SimEngine::SimulationEngine::instance();
-            auto moduleDigComp = simEngine.getDigitalComponent(this->m_simEngineId);
-            if (!moduleDigComp) {
-                return;
-            }
-            const auto currCount = moduleDigComp->definition->getOutputSlotsInfo().count;
-
-            const auto &sceneDriver = Pages::MainPage::getInstance()->getState().getSceneDriver();
-            const auto ownerScene = sceneDriver.getSceneWithId(ownerSceneId);
-            if (!ownerScene) {
-                return;
-            }
-            auto &ownerSceneState = ownerScene->getState();
-
-            if (newCount > currCount) {
-                for (size_t i = currCount; i < newCount; ++i) {
-                    moduleDigComp->incrementOutputCount(true);
-                    auto slot = std::make_shared<SlotSceneComponent>();
-                    slot->setIndex((int)i);
-                    slot->setSlotType(SlotType::digitalOutput);
-                    m_outputSlots.push_back(slot->getUuid());
-                    ownerSceneState.addComponent(slot, false, false);
-                    ownerSceneState.attachChild(m_uuid, slot->getUuid(), false);
-                }
-            } else if (newCount < currCount) {
-                for (size_t i = newCount; i < currCount; ++i) {
-                    moduleDigComp->decrementOutputCount(true);
-                    ownerSceneState.removeComponent(m_outputSlots.back(), m_uuid);
-                    removeChildComponent(m_outputSlots.back());
-                    m_outputSlots.pop_back();
-                }
-            }
-
-            setScaleDirty();
-            setSchematicScaleDirty();
-
-            const auto modOutCount = moduleDigComp->definition->getOutputSlotsInfo().count;
-            BESS_ASSERT(modOutCount == newCount, "Failed to sync module inputs");
-        });
-
-        inputDigitalComp->removeOnOutputSlotCountChangeCB(m_uuid);
-        inputDigitalComp->addOnOutputSlotCountChangeCB(m_uuid, [this, ownerSceneId](size_t newCount) {
-            const auto &simEngine = SimEngine::SimulationEngine::instance();
-            auto moduleDigComp = simEngine.getDigitalComponent(this->m_simEngineId);
-            if (!moduleDigComp) {
-                return;
-            }
-            const auto currCount = moduleDigComp->definition->getInputSlotsInfo().count;
-
-            const auto &sceneDriver = Pages::MainPage::getInstance()->getState().getSceneDriver();
-            const auto ownerScene = sceneDriver.getSceneWithId(ownerSceneId);
-            if (!ownerScene) {
-                return;
-            }
-            auto &ownerSceneState = ownerScene->getState();
-
-            if (newCount > currCount) {
-                for (size_t i = currCount; i < newCount; ++i) {
-                    moduleDigComp->incrementInputCount(true);
-                    auto slot = std::make_shared<SlotSceneComponent>();
-                    slot->setIndex((int)i);
-                    slot->setSlotType(SlotType::digitalInput);
-                    m_inputSlots.push_back(slot->getUuid());
-                    ownerSceneState.addComponent(slot, false, false);
-                    ownerSceneState.attachChild(m_uuid, slot->getUuid(), false);
-                }
-            } else if (newCount < currCount) {
-                for (size_t i = newCount; i < currCount; ++i) {
-                    moduleDigComp->decrementInputCount(true);
-                    ownerSceneState.removeComponent(m_inputSlots.back(), m_uuid);
-                    removeChildComponent(m_inputSlots.back());
-                    m_inputSlots.pop_back();
-                }
-            }
-
-            setScaleDirty();
-            setSchematicScaleDirty();
-
-            const auto modInpCount = moduleDigComp->definition->getInputSlotsInfo().count;
-            BESS_ASSERT(modInpCount == newCount, "Failed to sync module inputs");
-        });
+        // FIXMe
+        // outputDigitalComp->removeOnStateChangeCB(m_uuid);
+        // outputDigitalComp->addOnStateChangeCB(m_uuid, [this](const SimEngine::ComponentState &oldState,
+        //                                                      const SimEngine::ComponentState &newState) {
+        //     auto &simEngine = SimEngine::SimulationEngine::instance();
+        //     auto moduleDigComp = simEngine.getDigitalComponent(this->m_simEngineId);
+        //     if (!moduleDigComp) {
+        //         return;
+        //     }
+        //
+        //     const auto maxOutputs = moduleDigComp->state.outputStates.size();
+        //     const auto copyCount = std::min(maxOutputs, newState.inputStates.size());
+        //     for (size_t i = 0; i < copyCount; ++i) {
+        //         simEngine.setOutputSlotState(this->m_simEngineId,
+        //                                      static_cast<int>(i),
+        //                                      newState.inputStates[i].state);
+        //     }
+        // });
+        //
+        // outputDigitalComp->removeOnInputSlotCountChangeCB(m_uuid);
+        // outputDigitalComp->addOnInputSlotCountChangeCB(m_uuid, [this, ownerSceneId](size_t newCount) {
+        //     const auto &simEngine = SimEngine::SimulationEngine::instance();
+        //     auto moduleDigComp = simEngine.getDigitalComponent(this->m_simEngineId);
+        //     if (!moduleDigComp) {
+        //         return;
+        //     }
+        //     const auto currCount = moduleDigComp->definition->getOutputSlotsInfo().count;
+        //
+        //     const auto &sceneDriver = Pages::MainPage::getInstance()->getState().getSceneDriver();
+        //     const auto ownerScene = sceneDriver.getSceneWithId(ownerSceneId);
+        //     if (!ownerScene) {
+        //         return;
+        //     }
+        //     auto &ownerSceneState = ownerScene->getState();
+        //
+        //     if (newCount > currCount) {
+        //         for (size_t i = currCount; i < newCount; ++i) {
+        //             moduleDigComp->incrementOutputCount(true);
+        //             auto slot = std::make_shared<SlotSceneComponent>();
+        //             slot->setIndex((int)i);
+        //             slot->setSlotType(SlotType::digitalOutput);
+        //             m_outputSlots.push_back(slot->getUuid());
+        //             ownerSceneState.addComponent(slot, false, false);
+        //             ownerSceneState.attachChild(m_uuid, slot->getUuid(), false);
+        //         }
+        //     } else if (newCount < currCount) {
+        //         for (size_t i = newCount; i < currCount; ++i) {
+        //             moduleDigComp->decrementOutputCount(true);
+        //             ownerSceneState.removeComponent(m_outputSlots.back(), m_uuid);
+        //             removeChildComponent(m_outputSlots.back());
+        //             m_outputSlots.pop_back();
+        //         }
+        //     }
+        //
+        //     setScaleDirty();
+        //     setSchematicScaleDirty();
+        //
+        //     const auto modOutCount = moduleDigComp->definition->getOutputSlotsInfo().count;
+        //     BESS_ASSERT(modOutCount == newCount, "Failed to sync module inputs");
+        // });
+        //
+        // inputDigitalComp->removeOnOutputSlotCountChangeCB(m_uuid);
+        // inputDigitalComp->addOnOutputSlotCountChangeCB(m_uuid, [this, ownerSceneId](size_t newCount) {
+        //     const auto &simEngine = SimEngine::SimulationEngine::instance();
+        //     auto moduleDigComp = simEngine.getDigitalComponent(this->m_simEngineId);
+        //     if (!moduleDigComp) {
+        //         return;
+        //     }
+        //     const auto currCount = moduleDigComp->definition->getInputSlotsInfo().count;
+        //
+        //     const auto &sceneDriver = Pages::MainPage::getInstance()->getState().getSceneDriver();
+        //     const auto ownerScene = sceneDriver.getSceneWithId(ownerSceneId);
+        //     if (!ownerScene) {
+        //         return;
+        //     }
+        //     auto &ownerSceneState = ownerScene->getState();
+        //
+        //     if (newCount > currCount) {
+        //         for (size_t i = currCount; i < newCount; ++i) {
+        //             moduleDigComp->incrementInputCount(true);
+        //             auto slot = std::make_shared<SlotSceneComponent>();
+        //             slot->setIndex((int)i);
+        //             slot->setSlotType(SlotType::digitalInput);
+        //             m_inputSlots.push_back(slot->getUuid());
+        //             ownerSceneState.addComponent(slot, false, false);
+        //             ownerSceneState.attachChild(m_uuid, slot->getUuid(), false);
+        //         }
+        //     } else if (newCount < currCount) {
+        //         for (size_t i = newCount; i < currCount; ++i) {
+        //             moduleDigComp->decrementInputCount(true);
+        //             ownerSceneState.removeComponent(m_inputSlots.back(), m_uuid);
+        //             removeChildComponent(m_inputSlots.back());
+        //             m_inputSlots.pop_back();
+        //         }
+        //     }
+        //
+        //     setScaleDirty();
+        //     setSchematicScaleDirty();
+        //
+        //     const auto modInpCount = moduleDigComp->definition->getInputSlotsInfo().count;
+        //     BESS_ASSERT(modInpCount == newCount, "Failed to sync module inputs");
+        // });
     }
 
     void ModuleSceneComponent::onAttach(SceneState &state) {

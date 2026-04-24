@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/bess_uuid.h"
-#include "digital_component.h"
+#include "drivers/sim_driver.h"
 #include "net/net.h"
 #include <memory>
 #include <unordered_map>
@@ -14,19 +14,30 @@ namespace Bess::SimEngine {
 
         void reset();
 
-        std::vector<std::shared_ptr<DigitalComponent>> findCompsByName(
+        typedef Drivers::SimComponent TSimComp;
+
+        std::vector<std::shared_ptr<TSimComp>> findCompsByName(
             const std::string &name) const;
 
         bool isComponentValid(const UUID &uuid) const;
 
-        void addDigitalComponent(const std::shared_ptr<DigitalComponent> &comp);
-        void removeDigitalComponent(const UUID &uuid);
+        void addComponent(const std::shared_ptr<TSimComp> &comp);
+        void removeComponent(const UUID &uuid);
 
-        const std::unordered_map<UUID, std::shared_ptr<DigitalComponent>> &getDigitalComponents() const;
+        const std::unordered_map<UUID, std::shared_ptr<TSimComp>> &getComponents() const;
 
-        void clearDigitalComponents();
+        void clearComponents();
 
-        std::shared_ptr<DigitalComponent> getDigitalComponent(const UUID &uuid) const;
+        template <typename T>
+        std::shared_ptr<T> getComponent(const UUID &uuid) const {
+            auto comp = getComponent(uuid);
+            if (comp) {
+                return std::dynamic_pointer_cast<T>(comp);
+            }
+            return nullptr;
+        }
+
+        std::shared_ptr<TSimComp> getComponent(const UUID &uuid) const;
 
         void addNet(const Net &net);
         void removeNet(const UUID &uuid);
@@ -36,7 +47,7 @@ namespace Bess::SimEngine {
         void clearNets();
 
       private:
-        std::unordered_map<UUID, std::shared_ptr<DigitalComponent>> m_digitalComponents;
+        std::unordered_map<UUID, std::shared_ptr<TSimComp>> m_components;
         std::unordered_map<UUID, Net> m_nets;
     };
 } // namespace Bess::SimEngine

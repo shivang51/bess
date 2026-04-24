@@ -1,7 +1,9 @@
 #pragma once
 
+#include "common/types.h"
 #include "component_catalog.h"
 #include "component_definition.h"
+#include "drivers/digital_sim_driver.h"
 #include "types.h"
 #include <memory>
 
@@ -93,34 +95,33 @@ namespace Bess::SimEngine {
     inline void initIO() {
         auto &catalog = ComponentCatalog::instance();
 
-        const auto inpDef = std::make_shared<ComponentDefinition>();
+        typedef std::shared_ptr<Drivers::SimFnDataBase> TSimFnData;
+
+        const auto inpDef = std::make_shared<Drivers::Digital::DigCompDef>();
         inpDef->setName("Input");
         inpDef->setGroupName("IO");
         inpDef->setBehaviorType(ComponentBehaviorType::input);
         inpDef->setOutputSlotsInfo({SlotsGroupType::output, true, 1, {}, {}});
-        inpDef->setSimulationFunction([](auto &, auto ts, const auto &oldState) -> ComponentState {
-            auto newState = oldState;
-						newState.isChanged = true;
-						newState.outputStates[0].lastChangeTime = ts;
-						return newState; });
-        inpDef->setSimDelay(SimDelayNanoSeconds(0));
+        inpDef->setSimFn([](const TSimFnData &state) -> TSimFnData {
+            state->simDependants = true;
+            return state;
+        });
+        inpDef->setPropDelay(TimeNs(0));
         catalog.registerComponent(inpDef);
 
-        const auto clockDef = std::make_shared<ClockDefinition>("IO");
-        catalog.registerComponent(clockDef);
+        // const auto clockDef = std::make_shared<ClockDefinition>("IO");
+        // catalog.registerComponent(clockDef);
 
-        const auto outDef = std::make_shared<ComponentDefinition>();
+        const auto outDef = std::make_shared<Drivers::Digital::DigCompDef>();
         outDef->setName("Output");
         outDef->setGroupName("IO");
         outDef->setBehaviorType(ComponentBehaviorType::output);
         outDef->setInputSlotsInfo({SlotsGroupType::input, true, 1, {"LSB"}, {}});
-        outDef->setSimulationFunction([](const std::vector<SlotState> &inputs, SimTime,
-                                         const ComponentState &prevState) -> ComponentState {
-						auto newState = prevState;
-						newState.inputStates = inputs;
-						newState.isChanged = true;
-						return newState; });
-        outDef->setSimDelay(SimDelayNanoSeconds(0));
+        inpDef->setSimFn([](const TSimFnData &state) -> TSimFnData {
+            state->simDependants = true;
+            return state;
+        });
+        outDef->setPropDelay(TimeNs(0));
         catalog.registerComponent(outDef);
     }
 

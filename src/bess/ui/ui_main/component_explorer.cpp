@@ -2,8 +2,10 @@
 #include "application/pages/main_page/cmds/add_comp_cmd.h"
 #include "application/pages/main_page/main_page.h"
 #include "application/pages/main_page/scene_components/non_sim_scene_component.h"
+#include "common/bess_uuid.h"
 #include "common/helpers.h"
 #include "component_catalog.h"
+#include "drivers/sim_driver.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
@@ -94,6 +96,7 @@ namespace Bess::UI {
                         if (Widgets::ButtonWithPopup(name, name + "OptionsMenu", false)) {
                             const auto &mainPageState = Pages::MainPage::getInstance()->getState();
                             const auto &pos = mainPageState.getSceneDriver()->getCameraPos();
+
                             createComponent(comp, pos);
                             hide();
                         }
@@ -129,7 +132,7 @@ namespace Bess::UI {
         ImGui::PopStyleVar(2);
     }
 
-    UUID ComponentExplorer::createComponent(const std::shared_ptr<SimEngine::ComponentDefinition> &def,
+    UUID ComponentExplorer::createComponent(const std::shared_ptr<SimEngine::Drivers::ComponentDef> &def,
                                             const glm::vec2 &pos) {
 
         auto &cmdSystem = Pages::MainPage::getInstance()->getState().getCommandSystem();
@@ -139,47 +142,47 @@ namespace Bess::UI {
         auto &pluginSvc = Svc::PluginService::getInstance();
 
         // Try finding in plugins first, if not found the use default.
-        if (pluginSvc.hasSimComponent(def->getHash())) {
-            auto simComp = pluginSvc.getSimComp(def);
+        // if (pluginSvc.hasSimComponent(def->getName())) {
+        // auto simComp = pluginSvc.getSimComp(def);
+        //
+        // BESS_ASSERT(simComp, "PluginService returned invalid sim comp");
+        //
+        // simComp->getTransform().position.x = pos.x;
+        // simComp->getTransform().position.y = pos.y;
+        // simComp->setCompDef(def->clone());
+        // scene->addComponent(simComp);
+        //
+        // std::vector<std::shared_ptr<Canvas::SceneComponent>> children;
+        // for (const auto &childId : simComp->getInputSlots()) {
+        //     const auto &child = sceneState.getComponentByUuid(childId);
+        //     BESS_ASSERT(child, "Child component not found in scene state");
+        //     children.push_back(child);
+        //     sceneState.attachChild(simComp->getUuid(), childId);
+        // }
+        //
+        // for (const auto &childId : simComp->getOutputSlots()) {
+        //     const auto &child = sceneState.getComponentByUuid(childId);
+        //     BESS_ASSERT(child, "Child component not found in scene state");
+        //     children.push_back(child);
+        //     sceneState.attachChild(simComp->getUuid(), childId);
+        // }
+        //
+        // cmdSystem.push(
+        //     std::make_unique<Cmd::AddCompCmd<Canvas::SimulationSceneComponent>>(simComp, children));
+        //
+        // return simComp->getUuid();
+        // } else {
+        auto components = Canvas::SimulationSceneComponent::createNew(def);
+        auto sceneComp = components.front()->template cast<Canvas::SimulationSceneComponent>();
+        components.erase(components.begin());
+        sceneComp->setCompDef(def->clone());
+        sceneComp->getTransform().position.x = pos.x;
+        sceneComp->getTransform().position.y = pos.y;
 
-            BESS_ASSERT(simComp, "PluginService returned invalid sim comp");
+        cmdSystem.execute(std::make_unique<Cmd::AddCompCmd<Canvas::SimulationSceneComponent>>(sceneComp, components));
 
-            simComp->getTransform().position.x = pos.x;
-            simComp->getTransform().position.y = pos.y;
-            simComp->setCompDef(def->clone());
-            scene->addComponent(simComp);
-
-            std::vector<std::shared_ptr<Canvas::SceneComponent>> children;
-            for (const auto &childId : simComp->getInputSlots()) {
-                const auto &child = sceneState.getComponentByUuid(childId);
-                BESS_ASSERT(child, "Child component not found in scene state");
-                children.push_back(child);
-                sceneState.attachChild(simComp->getUuid(), childId);
-            }
-
-            for (const auto &childId : simComp->getOutputSlots()) {
-                const auto &child = sceneState.getComponentByUuid(childId);
-                BESS_ASSERT(child, "Child component not found in scene state");
-                children.push_back(child);
-                sceneState.attachChild(simComp->getUuid(), childId);
-            }
-
-            cmdSystem.push(
-                std::make_unique<Cmd::AddCompCmd<Canvas::SimulationSceneComponent>>(simComp, children));
-
-            return simComp->getUuid();
-        } else {
-            auto components = Canvas::SimulationSceneComponent::createNew(def);
-            auto sceneComp = components.front()->template cast<Canvas::SimulationSceneComponent>();
-            components.erase(components.begin());
-            sceneComp->setCompDef(def->clone());
-            sceneComp->getTransform().position.x = pos.x;
-            sceneComp->getTransform().position.y = pos.y;
-
-            cmdSystem.execute(std::make_unique<Cmd::AddCompCmd<Canvas::SimulationSceneComponent>>(sceneComp, components));
-
-            return sceneComp->getUuid();
-        }
+        return sceneComp->getUuid();
+        // }
     }
 
     UUID ComponentExplorer::createComponent(std::type_index tIdx, const glm::vec2 &pos) {

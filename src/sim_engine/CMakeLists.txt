@@ -20,6 +20,7 @@ set(Header_Files
 source_group("include" FILES ${Header_Files})
 
 set(Source_Files
+		"src/drivers/digital_sim_driver.cpp"
     "src/simulation_engine.cpp"
 		"src/sim_engine_state.cpp"
 		"src/module_def.cpp"

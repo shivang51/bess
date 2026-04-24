@@ -25,7 +25,8 @@ namespace Bess::Canvas {
         m_icon = UI::Icons::FontAwesomeIcons::FA_MICROCHIP;
     }
 
-    std::vector<std::shared_ptr<SceneComponent>> SimulationSceneComponent::clone(const SceneState &sceneState) const {
+    std::vector<std::shared_ptr<SceneComponent>> SimulationSceneComponent::clone(
+        const SceneState &sceneState) const {
         auto clonedComponent = std::make_shared<SimulationSceneComponent>(*this);
         return cloneSimulationComponent(sceneState, clonedComponent);
     }
@@ -304,7 +305,7 @@ namespace Bess::Canvas {
             return;
 
         auto &simEngine = SimEngine::SimulationEngine::instance();
-        m_simEngineId = simEngine.addComponent(m_compDef, false);
+        m_simEngineId = simEngine.addComponent(m_compDef);
     }
 
     std::vector<UUID> SimulationSceneComponent::cleanup(SceneState &state, UUID caller) {
@@ -364,9 +365,13 @@ namespace Bess::Canvas {
     }
 
     std::vector<std::shared_ptr<SceneComponent>> SimulationSceneComponent::createNew(
-        const std::shared_ptr<SimEngine::ComponentDefinition> &compDef) {
-        const bool isInput = compDef->getBehaviorType() == SimEngine::ComponentBehaviorType::input;
-        const bool isOutput = compDef->getBehaviorType() == SimEngine::ComponentBehaviorType::output;
+        const std::shared_ptr<SimEngine::Drivers::ComponentDef> &compDef) {
+
+        const auto def = std::dynamic_pointer_cast<
+            SimEngine::Drivers::Digital::DigCompDef>(compDef);
+
+        const bool isInput = def->getBehaviorType() == SimEngine::ComponentBehaviorType::input;
+        const bool isOutput = def->getBehaviorType() == SimEngine::ComponentBehaviorType::output;
 
         if (isInput) {
             return createNew<InputSceneComponent>(compDef);

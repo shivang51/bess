@@ -1,17 +1,19 @@
 #include "bverilog/sim_engine_importer.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
+#include "common/types.h"
 #include "component_catalog.h"
 #include "component_definition.h"
 #include "digital_component.h"
+#include "drivers/sim_driver.h"
 #include "expression_evalutator/expr_evaluator.h"
 #include "init_components.h"
 #include "types.h"
-#include <fstream>
 #include <algorithm>
 #include <cctype>
-#include <memory>
+#include <fstream>
 #include <limits>
+#include <memory>
 #include <optional>
 #include <sstream>
 #include <stdexcept>
@@ -218,7 +220,7 @@ namespace Bess::Verilog {
             }
         };
 
-        std::shared_ptr<ComponentDefinition> findDefinitionByName(std::string_view name) {
+        std::shared_ptr<Drivers::ComponentDef> findDefinitionByName(std::string_view name) {
             const auto &components = ComponentCatalog::instance().getComponents();
             for (const auto &component : components) {
                 if (component && component->getName() == name) {
@@ -228,27 +230,31 @@ namespace Bess::Verilog {
             return nullptr;
         }
 
-        void resizeOutputs(const std::shared_ptr<DigitalComponent> &component, size_t count) {
-            while (component->definition->getOutputSlotsInfo().count < count) {
-                component->incrementOutputCount(true);
-            }
-            while (component->definition->getOutputSlotsInfo().count > count &&
-                   component->definition->getOutputSlotsInfo().count > 1) {
-                component->decrementOutputCount(true);
-            }
+        void resizeOutputs(const std::shared_ptr<Drivers::Digital::DigitalSimComponent> &component, size_t count) {
+            // FIXME
+            // const auto &def = component->getDefinition<Drivers::Digital::DigCompDef>();
+            // while (def->getOutputSlotsInfo().count < count) {
+            //
+            //     // component->incrementOutputCount(true);
+            // }
+            // while (component->definition->getOutputSlotsInfo().count > count &&
+            //        component->definition->getOutputSlotsInfo().count > 1) {
+            //     component->decrementOutputCount(true);
+            // }
         }
 
-        void resizeInputs(const std::shared_ptr<DigitalComponent> &component, size_t count) {
-            while (component->definition->getInputSlotsInfo().count < count) {
-                component->incrementInputCount(true);
-            }
-            while (component->definition->getInputSlotsInfo().count > count &&
-                   component->definition->getInputSlotsInfo().count > 1) {
-                component->decrementInputCount(true);
-            }
+        void resizeInputs(const std::shared_ptr<Drivers::Digital::DigitalSimComponent> &component, size_t count) {
+            // FIXME
+            // while (component->definition->getInputSlotsInfo().count < count) {
+            //     component->incrementInputCount(true);
+            // }
+            // while (component->definition->getInputSlotsInfo().count > count &&
+            //        component->definition->getInputSlotsInfo().count > 1) {
+            //     component->decrementInputCount(true);
+            // }
         }
 
-        std::shared_ptr<ComponentDefinition> ensureBuiltinIoDefinition(const std::string &name) {
+        std::shared_ptr<Drivers::ComponentDef> ensureBuiltinIoDefinition(const std::string &name) {
             auto definition = findDefinitionByName(name);
             if (definition) {
                 return definition;
@@ -261,10 +267,10 @@ namespace Bess::Verilog {
             return definition;
         }
 
-        std::shared_ptr<ComponentDefinition> ensureExprDefinition(const std::string &name,
-                                                                  size_t inputs,
-                                                                  size_t outputs,
-                                                                  const std::vector<std::string> &expressions) {
+        std::shared_ptr<Drivers::ComponentDef> ensureExprDefinition(const std::string &name,
+                                                                    size_t inputs,
+                                                                    size_t outputs,
+                                                                    const std::vector<std::string> &expressions) {
             auto definition = findDefinitionByName(name);
             if (definition) {
                 return definition;
@@ -273,14 +279,38 @@ namespace Bess::Verilog {
             BESS_TRACE("Creating new component definition for %s with %zu inputs and %zu outputs",
                        name.c_str(), inputs, outputs);
 
-            auto created = std::make_shared<ComponentDefinition>();
+            // FIXME: exprEvalSimFunc
+            auto exprEvalSimFunc = [](const std::shared_ptr<Drivers::SimFnDataBase> &state) {
+                bool changed = false;
+                // assert(prevState.auxData && "ExprEvalSimFunc requires auxData to be set with expressions");
+                // if (prevState.auxData->type() != typeid(std::vector<std::string>)) {
+                //     throw std::runtime_error(
+                //         std::format(
+                //             "ExprEvalSimFunc auxData must be std::vector<std::string>, got {}",
+                //             prevState.auxData->type().name()));
+                // }
+                // auto expressions = std::any_cast<std::vector<std::string>>(prevState.auxData);
+                // for (int i = 0; i < (int)expressions->size(); i++) {
+                //     std::vector<bool> states;
+                //     states.reserve(inputs.size());
+                //     for (auto &state : inputs)
+                //         states.emplace_back((bool)state);
+                //     bool newStateBool = ExprEval::evaluateExpression(expressions->at(i), states);
+                //     changed = changed || (bool)prevState.outputStates[i] != newStateBool;
+                //     newState.outputStates[i] = {newStateBool ? LogicState::high : LogicState::low, currentTime};
+                // }
+                // newState.isChanged = changed;
+                return state;
+            };
+
+            auto created = std::make_shared<Drivers::Digital::DigCompDef>();
             created->setName(name);
             created->setGroupName("Verilog Imported");
             created->setInputSlotsInfo({SlotsGroupType::input, false, inputs, {}, {}});
             created->setOutputSlotsInfo({SlotsGroupType::output, false, outputs, {}, {}});
             created->setOutputExpressions(expressions);
-            created->setSimulationFunction(ExprEval::exprEvalSimFunc);
-            created->setSimDelay(SimDelayNanoSeconds(2));
+            created->setSimFn(exprEvalSimFunc);
+            created->setPropDelay(SimDelayNanoSeconds(2));
 
             ComponentCatalog::instance().registerComponent(created);
             definition = findDefinitionByName(name);
@@ -447,14 +477,14 @@ namespace Bess::Verilog {
             return name;
         }
 
-        std::shared_ptr<ComponentDefinition> ensureGeneralDffDefinition(const DffParams &p) {
+        std::shared_ptr<Drivers::ComponentDef> ensureGeneralDffDefinition(const DffParams &p) {
             const auto name = dffDefinitionName(p);
             auto definition = findDefinitionByName(name);
             if (definition) {
                 return definition;
             }
 
-            auto created = std::make_shared<ComponentDefinition>();
+            auto created = std::make_shared<Drivers::Digital::DigCompDef>();
             created->setName(name);
             created->setGroupName("Verilog Imported");
 
@@ -463,19 +493,28 @@ namespace Bess::Verilog {
                 {1, SlotCatergory::clock},
             };
             if (p.hasReset) {
-                inputNames.push_back("RST");
-                categories.push_back({static_cast<int>(inputNames.size() - 1), SlotCatergory::clear});
+                inputNames.emplace_back("RST");
+                categories.emplace_back(static_cast<int>(inputNames.size() - 1),
+                                        SlotCatergory::clear);
             }
             if (p.hasEnable) {
-                inputNames.push_back("EN");
-                categories.push_back({static_cast<int>(inputNames.size() - 1), SlotCatergory::enable});
+                inputNames.emplace_back("EN");
+                categories.emplace_back(static_cast<int>(inputNames.size() - 1), SlotCatergory::enable);
             }
 
-            SlotsGroupInfo inputs{SlotsGroupType::input, false, inputNames.size(), inputNames, {}};
+            SlotsGroupInfo inputs{SlotsGroupType::input,
+                                  false,
+                                  inputNames.size(),
+                                  inputNames,
+                                  {}};
             inputs.categories = categories;
             created->setInputSlotsInfo(inputs);
-            created->setOutputSlotsInfo({SlotsGroupType::output, false, 2, {"Q", "Q'"}, {}});
-            created->setSimDelay(SimDelayNanoSeconds(2));
+            created->setOutputSlotsInfo({SlotsGroupType::output,
+                                         false,
+                                         2,
+                                         {"Q", "Q'"},
+                                         {}});
+            created->setPropDelay(TimeNs(2));
             auto paramsToJson = [p]() {
                 Json::Value j;
                 j["risingEdge"] = p.risingEdge;
@@ -488,22 +527,24 @@ namespace Bess::Verilog {
                 return j;
             };
 
-            created->setAuxData(VerCompDefAuxData{
-                .id = "DffParams",
-                .toJsonCb = paramsToJson,
-            });
+            // FIXME: AUXDATA
+            // created->setAuxData(VerCompDefAuxData{
+            //     .id = "DffParams",
+            //     .toJsonCb = paramsToJson,
+            // });
 
             const auto rstIdx = p.rstSlotIndex();
             const auto enIdx = p.enSlotIndex();
 
-            created->setSimulationFunction(
-                [p, rstIdx, enIdx](const std::vector<SlotState> &inputs,
-                                   SimTime simTime,
-                                   const ComponentState &prevState) -> ComponentState {
-                    auto next = prevState;
-                    next.inputStates = inputs;
-                    next.isChanged = false;
+            created->setSimFn(
+                [p, rstIdx, enIdx](const std::shared_ptr<Drivers::SimFnDataBase> &stateBase)
+                    -> std::shared_ptr<Drivers::SimFnDataBase> {
+                    auto state = std::dynamic_pointer_cast<Drivers::Digital::DigCompSimData>(stateBase);
+                    state->simDependants = false;
 
+                    const auto &prevState = state->prevState;
+
+                    const auto &inputs = state->inputStates;
                     const auto currentClock = inputs[1].state == LogicState::high;
                     const auto previousClock = prevState.inputStates.size() > 1 &&
                                                prevState.inputStates[1].state == LogicState::high;
@@ -517,7 +558,7 @@ namespace Bess::Verilog {
                         const bool enabled = p.enableActiveHigh ? enActive : !enActive;
                         if (!enabled && !p.hasReset) {
                             // No reset to check, and not enabled — nothing happens
-                            return next;
+                            return state;
                         }
                         if (!enabled) {
                             // Still need to check async reset below, but clock-triggered
@@ -538,7 +579,7 @@ namespace Bess::Verilog {
                     if (p.asyncReset && resetActive) {
                         // Async reset: applied regardless of clock
                         q.state = resetValue;
-                        q.lastChangeTime = simTime;
+                        q.lastChangeTime = state->simTime;
                     } else if (clockEdge) {
                         // Check enable gate for data capture
                         bool enabled = true;
@@ -550,28 +591,28 @@ namespace Bess::Verilog {
                         if (!p.asyncReset && resetActive) {
                             // Sync reset: applied on clock edge
                             q.state = resetValue;
-                            q.lastChangeTime = simTime;
+                            q.lastChangeTime = state->simTime;
                         } else if (enabled) {
                             q = inputs[0];
-                            q.lastChangeTime = simTime;
+                            q.lastChangeTime = state->simTime;
                         } else {
-                            return next;
+                            return state;
                         }
                     } else {
-                        return next;
+                        return state;
                     }
 
-                    next.outputStates[0] = q;
+                    state->outputStates[0] = q;
                     auto qInv = q;
                     if (qInv.state == LogicState::high) {
                         qInv.state = LogicState::low;
                     } else if (qInv.state == LogicState::low) {
                         qInv.state = LogicState::high;
                     }
-                    next.outputStates[1] = qInv;
-                    next.isChanged = prevState.outputStates.empty() ||
-                                     prevState.outputStates[0].state != next.outputStates[0].state;
-                    return next;
+                    state->outputStates[1] = qInv;
+                    state->simDependants = prevState.outputStates.empty() ||
+                                           prevState.outputStates[0].state != state->outputStates[0].state;
+                    return state;
                 });
 
             ComponentCatalog::instance().registerComponent(created);
@@ -582,49 +623,49 @@ namespace Bess::Verilog {
             return definition;
         }
 
-        std::shared_ptr<ComponentDefinition> resolvePrimitiveDefinition(const std::string &cellType) {
+        std::shared_ptr<Drivers::ComponentDef> resolvePrimitiveDefinition(const std::string &cellType) {
             if (cellType == "$_BUF_" || cellType == "$buf") {
-                return ensureExprDefinition("Buffer Gate", 1, 1, {"0"});
+                return nullptr; // return ensureExprDefinition("Buffer Gate", 1, 1, {"0"});
             }
             if (cellType == "$_NOT_" || cellType == "$not" || cellType == "$logic_not") {
-                return ensureExprDefinition("NOT Gate", 1, 1, {"!0"});
+                return nullptr; // return ensureExprDefinition("NOT Gate", 1, 1, {"!0"});
             }
             if (cellType == "$_AND_" || cellType == "$and") {
-                return ensureExprDefinition("AND Gate", 2, 1, {"0*1"});
+                return nullptr; // return ensureExprDefinition("AND Gate", 2, 1, {"0*1"});
             }
             if (cellType == "$_NAND_" || cellType == "$nand") {
-                return ensureExprDefinition("NAND Gate", 2, 1, {"!(0*1)"});
+                return nullptr; // return ensureExprDefinition("NAND Gate", 2, 1, {"!(0*1)"});
             }
             if (cellType == "$_OR_" || cellType == "$or") {
-                return ensureExprDefinition("OR Gate", 2, 1, {"0+1"});
+                return nullptr; // return ensureExprDefinition("OR Gate", 2, 1, {"0+1"});
             }
             if (cellType == "$_NOR_" || cellType == "$nor") {
-                return ensureExprDefinition("NOR Gate", 2, 1, {"!(0+1)"});
+                return nullptr; // return ensureExprDefinition("NOR Gate", 2, 1, {"!(0+1)"});
             }
             if (cellType == "$_XOR_" || cellType == "$xor") {
-                return ensureExprDefinition("XOR Gate", 2, 1, {"0^1"});
+                return nullptr; // return ensureExprDefinition("XOR Gate", 2, 1, {"0^1"});
             }
             if (cellType == "$_XNOR_" || cellType == "$xnor") {
-                return ensureExprDefinition("XNOR Gate", 2, 1, {"!(0^1)"});
+                return nullptr; // return ensureExprDefinition("XNOR Gate", 2, 1, {"!(0^1)"});
             }
             if (cellType == "$reduce_and") {
-                return ensureExprDefinition("Reduction AND", 2, 1, {"0*1"});
+                return nullptr; // return ensureExprDefinition("Reduction AND", 2, 1, {"0*1"});
             }
             if (cellType == "$reduce_or" || cellType == "$reduce_bool") {
-                return ensureExprDefinition("Reduction OR", 2, 1, {"0+1"});
+                return nullptr; // return ensureExprDefinition("Reduction OR", 2, 1, {"0+1"});
             }
             if (cellType == "$reduce_xor") {
-                return ensureExprDefinition("Reduction XOR", 2, 1, {"0^1"});
+                return nullptr; // return ensureExprDefinition("Reduction XOR", 2, 1, {"0^1"});
             }
             if (cellType == "$reduce_xnor") {
-                return ensureExprDefinition("Reduction XNOR", 2, 1, {"!(0^1)"});
+                return nullptr; // return ensureExprDefinition("Reduction XNOR", 2, 1, {"!(0^1)"});
             }
             if (cellType == "$_MUX_" || cellType == "$mux") {
-                return ensureExprDefinition("2-to-1 Multiplexer", 3, 1, {"(!2*0) + (2*1)"});
+                return nullptr; // return ensureExprDefinition("2-to-1 Multiplexer", 3, 1, {"(!2*0) + (2*1)"});
             }
             const auto dffParams = parseDffCellType(cellType);
             if (dffParams.has_value()) {
-                return ensureGeneralDffDefinition(*dffParams);
+                return nullptr; // return ensureGeneralDffDefinition(*dffParams);
             }
             return nullptr;
         }
@@ -945,18 +986,17 @@ namespace Bess::Verilog {
             return out;
         }
 
-        bool applyOutputBits(ComponentState &next,
-                             const ComponentState &prevState,
+        bool applyOutputBits(std::shared_ptr<Drivers::Digital::DigCompSimData> &state,
                              const BitVector &outputBits,
                              SimTime simTime) {
             bool changed = false;
-            const size_t count = std::min(next.outputStates.size(), outputBits.size());
+            const size_t count = std::min(state->outputStates.size(), outputBits.size());
             for (size_t i = 0; i < count; ++i) {
                 const auto newState = outputBits[i] ? LogicState::high : LogicState::low;
-                changed = changed || prevState.outputStates[i].state != newState;
-                next.outputStates[i] = {newState, simTime};
+                changed = changed || state->prevState.outputStates[i].state != newState;
+                state->outputStates[i] = {newState, simTime};
             }
-            next.isChanged = changed;
+            state->simDependants = changed;
             return changed;
         }
 
@@ -969,23 +1009,23 @@ namespace Bess::Verilog {
             return names;
         }
 
-        std::shared_ptr<ComponentDefinition> ensureCustomDefinition(
+        std::shared_ptr<Drivers::ComponentDef> ensureCustomDefinition(
             const std::string &name,
             const SlotsGroupInfo &inputs,
             const SlotsGroupInfo &outputs,
-            const SimulationFunction &simulationFunction) {
+            const Drivers::ComponentDef::SimFn &simulationFunction) {
             auto definition = findDefinitionByName(name);
             if (definition) {
                 return definition;
             }
 
-            auto created = std::make_shared<ComponentDefinition>();
+            auto created = std::make_shared<Drivers::Digital::DigCompDef>();
             created->setName(name);
             created->setGroupName("Verilog Imported");
             created->setInputSlotsInfo(inputs);
             created->setOutputSlotsInfo(outputs);
-            created->setSimulationFunction(simulationFunction);
-            created->setSimDelay(SimDelayNanoSeconds(2));
+            created->setSimFn(simulationFunction);
+            created->setPropDelay(SimDelayNanoSeconds(2));
 
             ComponentCatalog::instance().registerComponent(created);
             definition = findDefinitionByName(name);
@@ -995,12 +1035,12 @@ namespace Bess::Verilog {
             return definition;
         }
 
-        std::shared_ptr<ComponentDefinition> ensureArithmeticDefinition(const std::string &cellType,
-                                                                        size_t aWidth,
-                                                                        size_t bWidth,
-                                                                        size_t yWidth,
-                                                                        bool aSigned,
-                                                                        bool bSigned) {
+        std::shared_ptr<Drivers::ComponentDef> ensureArithmeticDefinition(const std::string &cellType,
+                                                                          size_t aWidth,
+                                                                          size_t bWidth,
+                                                                          size_t yWidth,
+                                                                          bool aSigned,
+                                                                          bool bSigned) {
             const auto name = std::string("Verilog ") + cellType +
                               " A" + std::to_string(aWidth) +
                               (aSigned ? "s" : "u") +
@@ -1025,13 +1065,10 @@ namespace Bess::Verilog {
             };
 
             auto simFn = [cellType, aWidth, bWidth, yWidth, aSigned, bSigned](
-                             const std::vector<SlotState> &inputs,
-                             SimTime simTime,
-                             const ComponentState &prevState) {
-                auto next = prevState;
-                next.inputStates = inputs;
-                const auto a = readBitVector(inputs, 0, aWidth);
-                const auto b = readBitVector(inputs, aWidth, bWidth);
+                             const std::shared_ptr<Drivers::SimFnDataBase> &stateBase) -> std::shared_ptr<Drivers::SimFnDataBase> {
+                auto state = std::dynamic_pointer_cast<Drivers::Digital::DigCompSimData>(stateBase);
+                const auto a = readBitVector(state->inputStates, 0, aWidth);
+                const auto b = readBitVector(state->inputStates, aWidth, bWidth);
 
                 BitVector result;
                 if (cellType == "$add") {
@@ -1042,19 +1079,19 @@ namespace Bess::Verilog {
                     result = mulBitVectors(a, aSigned, b, bSigned, yWidth);
                 }
 
-                applyOutputBits(next, prevState, result, simTime);
-                return next;
+                applyOutputBits(state, result, state->simTime);
+                return state;
             };
 
-            return ensureCustomDefinition(name, inputs, outputs, simFn);
+            return nullptr; // return ensureCustomDefinition(name, inputs, outputs, simFn);
         }
 
-        std::shared_ptr<ComponentDefinition> ensureComparatorDefinition(const std::string &cellType,
-                                                                        size_t aWidth,
-                                                                        size_t bWidth,
-                                                                        bool aSigned,
-                                                                        bool bSigned,
-                                                                        size_t yWidth) {
+        std::shared_ptr<Drivers::ComponentDef> ensureComparatorDefinition(const std::string &cellType,
+                                                                          size_t aWidth,
+                                                                          size_t bWidth,
+                                                                          bool aSigned,
+                                                                          bool bSigned,
+                                                                          size_t yWidth) {
             const auto name = std::string("Verilog ") + cellType +
                               " A" + std::to_string(aWidth) +
                               (aSigned ? "s" : "u") +
@@ -1107,17 +1144,19 @@ namespace Bess::Verilog {
                 if (!out.empty()) {
                     out[0] = resultBit ? 1 : 0;
                 }
-                applyOutputBits(next, prevState, out, simTime);
+                // FIXME: change to new sim fn
+                // // FIXEME: applyOutputBits(next, prevState, out, simTime);
                 return next;
             };
 
-            return ensureCustomDefinition(name, inputs, outputs, simFn);
+            return nullptr;
+            // return nullptr; // return ensureCustomDefinition(name, inputs, outputs, simFn);
         }
 
-        std::shared_ptr<ComponentDefinition> ensureLogicDefinition(const std::string &cellType,
-                                                                   size_t aWidth,
-                                                                   size_t bWidth,
-                                                                   size_t yWidth) {
+        std::shared_ptr<Drivers::ComponentDef> ensureLogicDefinition(const std::string &cellType,
+                                                                     size_t aWidth,
+                                                                     size_t bWidth,
+                                                                     size_t yWidth) {
             const auto name = std::string("Verilog ") + cellType +
                               " A" + std::to_string(aWidth) +
                               " B" + std::to_string(bWidth) +
@@ -1165,18 +1204,20 @@ namespace Bess::Verilog {
                 if (!out.empty()) {
                     out[0] = resultBit ? 1 : 0;
                 }
-                applyOutputBits(next, prevState, out, simTime);
+                // FIXME: change to new sim fn
+                // // FIXEME: applyOutputBits(next, prevState, out, simTime);
                 return next;
             };
 
-            return ensureCustomDefinition(name, inputs, outputs, simFn);
+            return nullptr;
+            // return nullptr; // return ensureCustomDefinition(name, inputs, outputs, simFn);
         }
 
-        std::shared_ptr<ComponentDefinition> ensureShiftDefinition(const std::string &cellType,
-                                                                   size_t aWidth,
-                                                                   size_t bWidth,
-                                                                   size_t yWidth,
-                                                                   bool aSigned) {
+        std::shared_ptr<Drivers::ComponentDef> ensureShiftDefinition(const std::string &cellType,
+                                                                     size_t aWidth,
+                                                                     size_t bWidth,
+                                                                     size_t yWidth,
+                                                                     bool aSigned) {
             const auto name = std::string("Verilog ") + cellType +
                               " A" + std::to_string(aWidth) +
                               (aSigned ? "s" : "u") +
@@ -1218,15 +1259,17 @@ namespace Bess::Verilog {
                     out = shiftRightBitVector(a, shiftBy, yWidth, arithmetic);
                 }
 
-                applyOutputBits(next, prevState, out, simTime);
+                // FIXME: change to new sim fn
+                // // FIXEME: applyOutputBits(next, prevState, out, simTime);
                 return next;
             };
 
-            return ensureCustomDefinition(name, inputs, outputs, simFn);
+            return nullptr;
+            // return nullptr; // return ensureCustomDefinition(name, inputs, outputs, simFn);
         }
 
-        std::shared_ptr<ComponentDefinition> ensureLatchDefinition(size_t width,
-                                                                   bool enableActiveHigh) {
+        std::shared_ptr<Drivers::ComponentDef> ensureLatchDefinition(size_t width,
+                                                                     bool enableActiveHigh) {
             const auto name = std::string("Verilog Latch ") +
                               (enableActiveHigh ? "EN+" : "EN-") +
                               " W" + std::to_string(width);
@@ -1252,8 +1295,8 @@ namespace Bess::Verilog {
             };
 
             auto simFn = [width, enableActiveHigh](const std::vector<SlotState> &inputs,
-                                                    SimTime simTime,
-                                                    const ComponentState &prevState) {
+                                                   SimTime simTime,
+                                                   const ComponentState &prevState) {
                 auto next = prevState;
                 next.inputStates = inputs;
                 next.isChanged = false;
@@ -1269,15 +1312,15 @@ namespace Bess::Verilog {
                     out[i] = inputs[i].state == LogicState::high ? 1 : 0;
                 }
 
-                applyOutputBits(next, prevState, out, simTime);
+                // FIXEME: applyOutputBits(next, prevState, out, simTime);
                 return next;
             };
 
-            return ensureCustomDefinition(name, inputs, outputs, simFn);
+            return nullptr; // return ensureCustomDefinition(name, inputs, outputs, simFn);
         }
 
-        std::shared_ptr<ComponentDefinition> ensurePmuxDefinition(size_t width,
-                                                                  size_t selectWidth) {
+        std::shared_ptr<Drivers::ComponentDef> ensurePmuxDefinition(size_t width,
+                                                                    size_t selectWidth) {
             const auto name = std::string("Verilog $pmux W") + std::to_string(width) +
                               " S" + std::to_string(selectWidth);
 
@@ -1320,11 +1363,11 @@ namespace Bess::Verilog {
                     break;
                 }
 
-                applyOutputBits(next, prevState, out, simTime);
+                // FIXEME: applyOutputBits(next, prevState, out, simTime);
                 return next;
             };
 
-            return ensureCustomDefinition(name, inputs, outputs, simFn);
+            return nullptr; // return ensureCustomDefinition(name, inputs, outputs, simFn);
         }
 
         struct ImportedMemoryCore {
@@ -1346,7 +1389,7 @@ namespace Bess::Verilog {
             return previousClock && !currentClock;
         }
 
-        std::shared_ptr<ComponentDefinition> ensureMemoryReadDefinition(
+        std::shared_ptr<Drivers::ComponentDef> ensureMemoryReadDefinition(
             const std::string &memoryKey,
             const std::shared_ptr<ImportedMemoryCore> &memory,
             size_t addrWidth,
@@ -1407,14 +1450,14 @@ namespace Bess::Verilog {
                     }
                 }
 
-                applyOutputBits(next, prevState, out, simTime);
+                // FIXEME: applyOutputBits(next, prevState, out, simTime);
                 return next;
             };
 
-            return ensureCustomDefinition(name, inputs, outputs, simFn);
+            return nullptr; // return ensureCustomDefinition(name, inputs, outputs, simFn);
         }
 
-        std::shared_ptr<ComponentDefinition> ensureMemoryWriteDefinition(
+        std::shared_ptr<Drivers::ComponentDef> ensureMemoryWriteDefinition(
             const std::string &memoryKey,
             const std::shared_ptr<ImportedMemoryCore> &memory,
             size_t addrWidth,
@@ -1495,7 +1538,7 @@ namespace Bess::Verilog {
                 return next;
             };
 
-            return ensureCustomDefinition(name, inputs, outputs, simFn);
+            return nullptr; // return ensureCustomDefinition(name, inputs, outputs, simFn);
         }
 
         class Importer {
@@ -1595,7 +1638,7 @@ namespace Bess::Verilog {
             }
 
             std::shared_ptr<ImportedMemoryCore> getOrCreateMemoryCore(const std::string &memoryKey,
-                                                                       size_t width) {
+                                                                      size_t width) {
                 auto it = m_memories.find(memoryKey);
                 if (it != m_memories.end()) {
                     it->second->width = std::max(it->second->width, width);
@@ -1631,7 +1674,7 @@ namespace Bess::Verilog {
                 return endpoint;
             }
 
-            UUID createTopBoundaryComponent(const std::shared_ptr<ComponentDefinition> &definition,
+            UUID createTopBoundaryComponent(const std::shared_ptr<Drivers::ComponentDef> &definition,
                                             size_t slotCount,
                                             const std::vector<std::string> &slotNames,
                                             bool isInputComponent) {
@@ -1639,12 +1682,14 @@ namespace Bess::Verilog {
                 m_createdComponentIds.push_back(id);
                 m_result.componentInstancePathById[id] = m_result.topModuleName;
                 auto component = m_engine.getDigitalComponent(id);
+
+                auto def = component->getDefinition<Drivers::Digital::DigCompDef>();
                 if (isInputComponent) {
                     resizeOutputs(component, std::max<size_t>(1, slotCount));
-                    component->definition->getOutputSlotsInfo().names = slotNames;
+                    def->getOutputSlotsInfo().names = slotNames;
                 } else {
                     resizeInputs(component, std::max<size_t>(1, slotCount));
-                    component->definition->getInputSlotsInfo().names = slotNames;
+                    def->getInputSlotsInfo().names = slotNames;
                 }
                 return id;
             }
@@ -1825,7 +1870,7 @@ namespace Bess::Verilog {
                     m_result.instancesByPath.at(path).internalOutputDrivers[it->second].push_back(toImportedSlotEndpoint(endpoint));
                 };
 
-                auto instantiateVectorPrimitive = [&](const std::shared_ptr<ComponentDefinition> &definition,
+                auto instantiateVectorPrimitive = [&](const std::shared_ptr<Drivers::ComponentDef> &definition,
                                                       const std::vector<SignalBit> &inputBits,
                                                       const std::vector<SignalBit> &outputBits) {
                     const auto componentId = m_engine.addComponent(definition);
@@ -1918,9 +1963,9 @@ namespace Bess::Verilog {
                     const auto &bBits = cell.connections.contains("B") ? cell.connections.at("B") : emptyB;
 
                     auto definition = ensureLogicDefinition(cell.type,
-                                                           aBits.size(),
-                                                           bBits.size(),
-                                                           yBits.size());
+                                                            aBits.size(),
+                                                            bBits.size(),
+                                                            yBits.size());
 
                     std::vector<SignalBit> inputs;
                     inputs.reserve(aBits.size() + bBits.size());
@@ -2174,9 +2219,12 @@ namespace Bess::Verilog {
                     m_createdComponentIds.push_back(componentId);
                     m_result.componentInstancePathById[componentId] = path;
                     auto component = m_engine.getDigitalComponent(componentId);
-                    while (component->definition->getInputSlotsInfo().count < aBits.size()) {
-                        component->incrementInputCount(true);
-                    }
+
+                    auto def = component->getDefinition<Drivers::Digital::DigCompDef>();
+                    // FIXME
+                    // while (def->getInputSlotsInfo().count < aBits.size()) {
+                    // component->incrementInputCount(true);
+                    // }
                     for (size_t i = 0; i < aBits.size(); ++i) {
                         const SlotEndpoint inputEndpoint{componentId, SlotType::digitalInput, static_cast<int>(i)};
                         registerLoad(resolveSignal(path, aBits[i], bindings), inputEndpoint);
@@ -2408,7 +2456,7 @@ namespace Bess::Verilog {
                                                 config.topModuleName);
     }
 
-    std::shared_ptr<SimEngine::ComponentDefinition> getFromAuxDataJson(Json::Value auxDataJson) {
+    std::shared_ptr<SimEngine::Drivers::ComponentDef> getFromAuxDataJson(Json::Value auxDataJson) {
         BESS_ASSERT(auxDataJson["type"].asString() == VerCompDefAuxData::type,
                     std::format("Expected aux data of type VerCompDefAuxData, got {}",
                                 auxDataJson["type"].asString()));
@@ -2422,7 +2470,7 @@ namespace Bess::Verilog {
             params.resetActiveHigh = data["resetActiveHigh"].asBool();
             params.hasEnable = data["hasEnable"].asBool();
             params.enableActiveHigh = data["enableActiveHigh"].asBool();
-            return ensureGeneralDffDefinition(params);
+            return nullptr; // return ensureGeneralDffDefinition(params);
         }
 
         return nullptr;

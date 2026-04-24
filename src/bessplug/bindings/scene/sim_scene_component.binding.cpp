@@ -2,6 +2,7 @@
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "common/bess_uuid.h"
 #include "component_definition.h"
+#include "drivers/digital_sim_driver.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -98,10 +99,9 @@ class PySimSceneComponent : public Bess::Canvas::SimulationSceneComponent,
 };
 
 void bind_sim_scene_component(py::module_ &m) {
-
     const auto setup = [](Bess::Canvas::SimulationSceneComponent &comp,
                           const std::shared_ptr<Bess::SimEngine::ComponentDefinition> &compDef) {
-        comp.setCompDef(compDef);
+        // comp.setCompDef(compDef);
         comp.setName(compDef->getName());
 
         // STYLE

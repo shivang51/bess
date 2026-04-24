@@ -1,6 +1,5 @@
 #include "plugin_handle.h"
 #include "application/pages/main_page/scene_components/sim_scene_component.h"
-#include "component_definition.h"
 #include <memory>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -27,8 +26,8 @@ namespace Bess::Plugins {
         }
     }
 
-    std::vector<std::shared_ptr<SimEngine::ComponentDefinition>> PluginHandle::onComponentsRegLoad() const {
-        std::vector<std::shared_ptr<SimEngine::ComponentDefinition>> components;
+    std::vector<std::shared_ptr<SimEngine::Drivers::ComponentDef>> PluginHandle::onComponentsRegLoad() const {
+        std::vector<std::shared_ptr<SimEngine::Drivers::ComponentDef>> components;
 
         py::gil_scoped_acquire gil;
         if (py::hasattr(m_pluginObj, "on_components_reg_load")) {
@@ -36,7 +35,7 @@ namespace Bess::Plugins {
 
             for (py::handle item : compList) {
                 py::object pyComp = py::reinterpret_borrow<py::object>(item);
-                auto d = item.cast<std::shared_ptr<SimEngine::ComponentDefinition>>();
+                auto d = item.cast<std::shared_ptr<SimEngine::Drivers::ComponentDef>>();
                 components.emplace_back(std::move(d));
             }
         }
@@ -62,7 +61,8 @@ namespace Bess::Plugins {
         }
     }
 
-    std::shared_ptr<Canvas::SimulationSceneComponent> PluginHandle::getSimComponent(const std::shared_ptr<SimEngine::ComponentDefinition> &def) const {
+    std::shared_ptr<Canvas::SimulationSceneComponent> PluginHandle::getSimComponent(
+        const std::shared_ptr<SimEngine::Drivers::ComponentDef> &def) const {
         py::gil_scoped_acquire gil;
         if (py::hasattr(m_pluginObj, "get_sim_comp")) {
             py::object result = m_pluginObj.attr("get_sim_comp")(def);

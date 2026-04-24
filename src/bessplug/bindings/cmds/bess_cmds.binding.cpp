@@ -428,7 +428,8 @@ std::shared_ptr<Bess::SimEngine::DigitalComponent> findUniqueDigCompByName(const
                    compName);
         return nullptr;
     }
-    return comps.front();
+    return nullptr;
+    // return comps.front();
 }
 
 std::shared_ptr<Bess::SimEngine::DigitalComponent> findDigCompBySceneId(uint64_t compId) {
@@ -445,5 +446,6 @@ std::shared_ptr<Bess::SimEngine::DigitalComponent> findDigCompBySceneId(uint64_t
     auto &simEngine = Bess::SimEngine::SimulationEngine::instance();
     const auto &comp = simEngine.getDigitalComponent(simEngineId);
 
-    return comp;
+    return nullptr;
+    // return comp;
 }

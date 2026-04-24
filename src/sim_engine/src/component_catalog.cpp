@@ -1,5 +1,7 @@
 #include "component_catalog.h"
 #include "common/logger.h"
+#include "drivers/sim_driver.h"
+#include <string>
 
 namespace Bess::SimEngine {
 
@@ -8,7 +10,7 @@ namespace Bess::SimEngine {
         return instance;
     }
 
-    const std::vector<std::shared_ptr<ComponentDefinition>> &ComponentCatalog::getComponents() const {
+    const std::vector<std::shared_ptr<Drivers::ComponentDef>> &ComponentCatalog::getComponents() const {
         return m_components;
     }
 
@@ -24,34 +26,34 @@ namespace Bess::SimEngine {
         return m_componentTree;
     }
 
-    std::shared_ptr<ComponentDefinition> ComponentCatalog::getComponentDefinition(uint64_t hash) const {
-        if (m_componentHashMap.contains(hash)) {
-            return m_componentHashMap.at(hash);
+    std::shared_ptr<Drivers::ComponentDef> ComponentCatalog::getComponentDefinition(const std::string &name) const {
+        if (m_compNameMap.contains(name)) {
+            return m_compNameMap.at(name);
         }
 
         return nullptr;
     }
 
-    ComponentDefinition ComponentCatalog::getComponentDefinitionCopy(uint64_t hash) {
-        if (m_componentHashMap.contains(hash)) {
-            return *(m_componentHashMap.at(hash));
+    std::shared_ptr<Drivers::ComponentDef> ComponentCatalog::getComponentDefinitionCopy(const std::string &name) {
+        if (m_compNameMap.contains(name)) {
+            return std::make_shared<Drivers::ComponentDef>(*(m_compNameMap.at(name)));
         }
 
-        BESS_ERROR("Component definition with hash {} not found", hash);
+        BESS_ERROR("Component definition with name {} not found", name);
         throw std::runtime_error("Component definition not found");
     }
 
-    bool ComponentCatalog::isRegistered(uint64_t hash) const {
-        return m_componentHashMap.contains(hash);
+    bool ComponentCatalog::isRegistered(const std::string &name) const {
+        return m_compNameMap.contains(name);
     }
 
     void ComponentCatalog::destroy() {
-        m_componentHashMap.clear();
+        m_compNameMap.clear();
         m_componentTree = nullptr;
         m_components.clear();
     }
 
-    std::shared_ptr<ComponentDefinition> ComponentCatalog::findDefByName(const std::string &name) const {
+    std::shared_ptr<Drivers::ComponentDef> ComponentCatalog::findDefByName(const std::string &name) const {
         for (const auto &comp : m_components) {
             if (comp->getName() == name) {
                 return comp;

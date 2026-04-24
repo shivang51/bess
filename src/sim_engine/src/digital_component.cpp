@@ -265,7 +265,7 @@ namespace Bess::JsonConvert {
         toJsonValue(comp.netUuid, j["net_uuid"]);
         auto moduleDef = std::dynamic_pointer_cast<SimEngine::ModuleDefinition>(comp.definition);
         if (moduleDef) {
-            toJsonValue(*moduleDef, j["definition"]);
+            // toJsonValue(*moduleDef, j["definition"]);
             j["definition"]["is_module"] = true;
         } else {
             toJsonValue(*comp.definition, j["definition"]);
@@ -286,8 +286,8 @@ namespace Bess::JsonConvert {
 
         if (j["definition"].isMember("is_module")) {
             auto modDef = std::make_shared<SimEngine::ModuleDefinition>();
-            fromJsonValue(j["definition"], modDef);
-            comp.definition = std::move(modDef);
+            // fromJsonValue(j["definition"], modDef);
+            // comp.definition = std::move(modDef);
         } else {
             comp.definition = std::make_shared<SimEngine::ComponentDefinition>();
             fromJsonValue(j["definition"], comp.definition);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/bess_uuid.h"
 #include "component_definition.h"
 #include "drivers/sim_driver.h"
 #include "event_based_sim_driver.h"
@@ -110,16 +111,39 @@ namespace Bess::SimEngine::Drivers::Digital {
             comp->setName(clone->getName());
             comp->setDefinition(clone);
 
+            auto digDef = std::dynamic_pointer_cast<DigCompDef>(clone);
+            const auto inpCount = digDef->getInputSlotsInfo().count;
+            const auto outCount = digDef->getOutputSlotsInfo().count;
+
+            comp->m_inputStates.resize(inpCount);
+            comp->m_outputStates.resize(outCount);
+
+            comp->m_isInputConnected.resize(inpCount, false);
+            comp->m_isOutputConnected.resize(outCount, false);
+
+            comp->m_inputConnections.resize(inpCount);
+            comp->m_outputConnections.resize(outCount);
+
             return comp;
         }
 
         MAKE_GETTER_SETTER(std::vector<SlotState>, InputStates, m_inputStates)
         MAKE_GETTER_SETTER(std::vector<SlotState>, OutputStates, m_outputStates)
+        MAKE_GETTER_SETTER(Connections, InputConnections, m_inputConnections)
+        MAKE_GETTER_SETTER(Connections, OutputConnections, m_outputConnections)
+        MAKE_GETTER_SETTER(std::vector<bool>, IsInputConnected, m_isInputConnected)
+        MAKE_GETTER_SETTER(std::vector<bool>, IsOutputConnected, m_isOutputConnected)
+        MAKE_GETTER_SETTER(UUID, NetUuid, m_netUuid)
 
         Json::Value toJson() const override {
             Json::Value json = EvtBasedSimComponent::toJson();
             JsonConvert::toJsonValue(m_inputStates, json["inputStates"]);
             JsonConvert::toJsonValue(m_outputStates, json["outputStates"]);
+            JsonConvert::toJsonValue(m_inputConnections, json["inputConnections"]);
+            JsonConvert::toJsonValue(m_outputConnections, json["outputConnections"]);
+            JsonConvert::toJsonValue(m_isInputConnected, json["isInputConnected"]);
+            JsonConvert::toJsonValue(m_isOutputConnected, json["isOutputConnected"]);
+            JsonConvert::toJsonValue(m_netUuid, json["netUuid"]);
             return json;
         }
 
@@ -129,6 +153,11 @@ namespace Bess::SimEngine::Drivers::Digital {
       private:
         std::vector<SlotState> m_inputStates;
         std::vector<SlotState> m_outputStates;
+        Connections m_inputConnections;
+        Connections m_outputConnections;
+        std::vector<bool> m_isInputConnected;
+        std::vector<bool> m_isOutputConnected;
+        UUID m_netUuid = UUID::null;
     };
 
     class BESS_API DigitalSimDriver final : public EvtBasedSimDriver {
@@ -136,73 +165,25 @@ namespace Bess::SimEngine::Drivers::Digital {
         DigitalSimDriver() = default;
         ~DigitalSimDriver() override = default;
 
-        std::shared_ptr<SimComponent> createComp(const std::shared_ptr<ComponentDef> &def) override {
-            if (!suuportsDef(def)) {
-                BESS_WARN("(DigitalSimDriver.addComponent) Unsupported component definition type: {}",
-                          def->getName());
-                return nullptr;
-            }
-
-            const auto comp = DigitalSimComponent::fromDef(def->clone());
-
-            if (!comp) {
-                BESS_WARN("(DigitalSimDriver.addComponent) Failed to create component from definition: {}",
-                          def->getName());
-                return nullptr;
-            }
-
-            addComponent(comp);
-
-            return comp;
-        }
+        std::shared_ptr<SimComponent> createComp(const std::shared_ptr<ComponentDef> &def) override;
 
         bool suuportsDef(const std::shared_ptr<ComponentDef> &def) const override {
             return std::dynamic_pointer_cast<DigCompDef>(def) != nullptr;
         }
 
-        std::string getName() const override {
-            return "DigitalSimDriver";
-        }
+        std::string getName() const override;
 
-        bool simulate(const SimEvt &evt) override {
-            const auto &id = evt.compId;
+        bool simulate(const SimEvt &evt) override;
 
-            const auto &comp = this->template getComponent<DigitalSimComponent>(id);
+        void addComponent(const std::shared_ptr<DigitalSimComponent> &comp);
 
-            if (!comp) {
-                BESS_WARN("(DigitalSimDriver.simulate) Component with UUID {} not found",
-                          (uint64_t)id);
-                return false;
-            }
-
-            auto simData = std::make_shared<DigCompSimData>();
-            simData->simTime = m_currentSimTime;
-            simData->prevState.inputStates = comp->getInputStates();
-            simData->prevState.outputStates = comp->getOutputStates();
-            simData->inputStates = collapseInputs(id);
-
-            auto newData = std::dynamic_pointer_cast<DigCompSimData>(
-                comp->simulate(simData));
-
-            if (!newData) {
-                BESS_WARN("(DigitalSimDriver.simulate) Simulation function for component with UUID {} did not return DigCompSimData",
-                          (uint64_t)id);
-                return false;
-            }
-
-            comp->setOutputStates(newData->outputStates);
-
-            return newData->simDependants;
-        }
-
-        void addComponent(const std::shared_ptr<DigitalSimComponent> &comp) {
-            EvtBasedSimDriver::addComponent(comp);
-        }
-
-        void onBeforeRun() override {
-            EvtBasedSimDriver::onBeforeRun();
-            BESS_DEBUG("Starting DigitalSimDriver run loop");
-        }
+        void onBeforeRun() override;
     };
 
 } // namespace Bess::SimEngine::Drivers::Digital
+
+namespace Bess::JsonConvert {
+
+    void toJsonValue(Json::Value &json,
+                     const Bess::SimEngine::Drivers::Digital::DigitalSimComponent &data);
+} // namespace Bess::JsonConvert

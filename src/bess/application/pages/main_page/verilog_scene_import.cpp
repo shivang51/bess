@@ -117,24 +117,29 @@ namespace Bess::Pages {
             }
         }
 
-        void resizeOutputs(const std::shared_ptr<DigitalComponent> &component, size_t count) {
-            while (component->definition->getOutputSlotsInfo().count < count) {
-                component->incrementOutputCount(true);
-            }
-            while (component->definition->getOutputSlotsInfo().count > count &&
-                   component->definition->getOutputSlotsInfo().count > 1) {
-                component->decrementOutputCount(true);
-            }
+        void resizeOutputs(const std::shared_ptr<Drivers::Digital::DigitalSimComponent> &component,
+                           size_t count) {
+
+            // FIXME
+            // while (component->getDefinition()->getOutputSlotsInfo().count < count) {
+            //     component->incrementOutputCount(true);
+            // }
+            // while (component->definition->getOutputSlotsInfo().count > count &&
+            //        component->definition->getOutputSlotsInfo().count > 1) {
+            //     component->decrementOutputCount(true);
+            // }
         }
 
-        void resizeInputs(const std::shared_ptr<DigitalComponent> &component, size_t count) {
-            while (component->definition->getInputSlotsInfo().count < count) {
-                component->incrementInputCount(true);
-            }
-            while (component->definition->getInputSlotsInfo().count > count &&
-                   component->definition->getInputSlotsInfo().count > 1) {
-                component->decrementInputCount(true);
-            }
+        void resizeInputs(const std::shared_ptr<Drivers::Digital::DigitalSimComponent> &component,
+                          size_t count) {
+            // FIXME
+            // while (component->definition->getInputSlotsInfo().count < count) {
+            //     component->incrementInputCount(true);
+            // }
+            // while (component->definition->getInputSlotsInfo().count > count &&
+            //        component->definition->getInputSlotsInfo().count > 1) {
+            //     component->decrementInputCount(true);
+            // }
         }
 
         void applySlotNames(SceneState &sceneState,
@@ -347,11 +352,14 @@ namespace Bess::Pages {
             BESS_ASSERT(inputComponent, "Imported module input bridge component was not found");
             BESS_ASSERT(outputComponent, "Imported module output bridge component was not found");
 
+            const auto &inpDef = inputComponent->getDefinition<Drivers::Digital::DigCompDef>();
+            const auto &outDef = outputComponent->getDefinition<Drivers::Digital::DigCompDef>();
+
             resizeOutputs(inputComponent, inputCount);
-            inputComponent->definition->getOutputSlotsInfo().names = instance.inputSlotNames;
+            inpDef->getOutputSlotsInfo().names = instance.inputSlotNames;
 
             resizeInputs(outputComponent, outputCount);
-            outputComponent->definition->getInputSlotsInfo().names = instance.outputSlotNames;
+            outDef->getInputSlotsInfo().names = instance.outputSlotNames;
 
             moduleDef->getInputSlotsInfo().names = instance.inputSlotNames;
             moduleDef->getOutputSlotsInfo().names = instance.outputSlotNames;
