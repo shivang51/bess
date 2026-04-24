@@ -135,10 +135,14 @@ TEST_F(CommandSystemTest, RepeatedUndoRedoCyclesKeepMacroAddedSceneStable) {
     macro->addCommand(std::make_unique<Bess::Cmd::AddCompCmd<Bess::Canvas::SimulationSceneComponent>>(compC, childrenC));
 
     cmdSystem.execute(std::move(macro));
+    const size_t expectedTotalComponents =
+        (1u + childrenA.size()) +
+        (1u + childrenB.size()) +
+        (1u + childrenC.size());
 
     for (int i = 0; i < 4; ++i) {
         EXPECT_EQ(scene->getState().getRootComponents().size(), 3u);
-        EXPECT_EQ(scene->getState().getAllComponents().size(), 11u);
+        EXPECT_EQ(scene->getState().getAllComponents().size(), expectedTotalComponents);
 
         cmdSystem.undo();
         EXPECT_TRUE(scene->getState().getAllComponents().empty());
@@ -154,7 +158,7 @@ TEST_F(CommandSystemTest, RepeatedUndoRedoCyclesKeepMacroAddedSceneStable) {
 TEST_F(CommandSystemTest, LongLinearHistoryCanBeFullyUndoneAndReplayed) {
     std::vector<Bess::UUID> componentIds;
     std::vector<size_t> componentSizes;
-    const std::array<std::shared_ptr<Bess::SimEngine::ComponentDefinition>, 3> defs = {
+    const std::array<std::shared_ptr<Bess::SimEngine::Drivers::ComponentDef>, 3> defs = {
         inputDef,
         andDef,
         outputDef,

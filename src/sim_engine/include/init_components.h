@@ -117,7 +117,7 @@ namespace Bess::SimEngine {
         outDef->setGroupName("IO");
         outDef->setBehaviorType(ComponentBehaviorType::output);
         outDef->setInputSlotsInfo({SlotsGroupType::input, true, 1, {"LSB"}, {}});
-        inpDef->setSimFn([](const TSimFnData &state) -> TSimFnData {
+        outDef->setSimFn([](const TSimFnData &state) -> TSimFnData {
             state->simDependants = true;
             return state;
         });

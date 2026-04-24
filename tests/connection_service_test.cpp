@@ -1,5 +1,5 @@
 #include "component_catalog.h"
-#include "component_definition.h"
+#include "drivers/digital_sim_driver.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
@@ -16,7 +16,7 @@ namespace {
     using namespace Bess::Canvas;
     using namespace Bess::SimEngine;
 
-    std::shared_ptr<ComponentDefinition> findDefinitionByName(std::string_view name) {
+    std::shared_ptr<Drivers::ComponentDef> findDefinitionByName(std::string_view name) {
         const auto &components = ComponentCatalog::instance().getComponents();
         const auto it = std::ranges::find_if(components, [name](const auto &definition) {
             return definition && definition->getName() == name;
@@ -66,7 +66,7 @@ class ConnectionServiceTest : public testing::Test {
         SimulationEngine::instance().clear();
     }
 
-    SimCompFixture addSimComponent(const std::shared_ptr<ComponentDefinition> &definition) {
+    SimCompFixture addSimComponent(const std::shared_ptr<Drivers::ComponentDef> &definition) {
         auto created = SimulationSceneComponent::createNew(definition);
         SimCompFixture fixture;
         if (created.empty()) {
@@ -104,8 +104,8 @@ class ConnectionServiceTest : public testing::Test {
 
     Bess::Svc::SvcConnection *service = nullptr;
     std::unique_ptr<Scene> scene;
-    std::shared_ptr<ComponentDefinition> inputDef;
-    std::shared_ptr<ComponentDefinition> outputDef;
+    std::shared_ptr<Drivers::ComponentDef> inputDef;
+    std::shared_ptr<Drivers::ComponentDef> outputDef;
 };
 
 TEST_F(ConnectionServiceTest, CanConnectRejectsSameDirectionSlots) {

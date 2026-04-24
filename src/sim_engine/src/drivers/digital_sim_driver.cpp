@@ -37,8 +37,9 @@ namespace Bess::SimEngine::Drivers::Digital {
         return newData->simDependants;
     }
 
-    void DigitalSimDriver::addComponent(const std::shared_ptr<DigitalSimComponent> &comp) {
-        EvtBasedSimDriver::addComponent(comp);
+    void DigitalSimDriver::addComponent(const std::shared_ptr<DigitalSimComponent> &comp,
+                                        bool scheduleSim) {
+        EvtBasedSimDriver::addComponent(comp, scheduleSim);
     }
 
     void DigitalSimDriver::onBeforeRun() {
@@ -63,7 +64,9 @@ namespace Bess::SimEngine::Drivers::Digital {
             return nullptr;
         }
 
-        addComponent(comp);
+        // Engine-managed propagation is synchronous; avoid queueing a bootstrap event
+        // for every newly created component from the simulation engine.
+        addComponent(comp, false);
 
         return comp;
     }

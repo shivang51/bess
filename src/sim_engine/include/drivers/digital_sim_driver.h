@@ -175,7 +175,8 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         bool simulate(const SimEvt &evt) override;
 
-        void addComponent(const std::shared_ptr<DigitalSimComponent> &comp);
+        void addComponent(const std::shared_ptr<DigitalSimComponent> &comp,
+                          bool scheduleSim = true);
 
         void onBeforeRun() override;
     };

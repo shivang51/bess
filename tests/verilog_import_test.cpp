@@ -360,16 +360,26 @@ endmodule :half_add
     ASSERT_EQ(h1.inputSlotNames, (std::vector<std::string>{"a", "b"}));
     ASSERT_EQ(h1.internalInputSinks.size(), 2u);
 
-    auto resizeOutputs = [](const std::shared_ptr<DigitalComponent> &component, size_t count) {
-        while (component->definition->getOutputSlotsInfo().count < count) {
-            component->incrementOutputCount(true);
+    auto resizeOutputs = [](const std::shared_ptr<Drivers::Digital::DigitalSimComponent> &component,
+                            size_t count) {
+        auto def = component->getDefinition<Drivers::Digital::DigCompDef>();
+        ASSERT_NE(def, nullptr);
+
+        auto outInfo = def->getOutputSlotsInfo();
+        if (outInfo.count < count) {
+            outInfo.count = count;
+            def->setOutputSlotsInfo(outInfo);
         }
+
+        component->getOutputStates().resize(count);
+        component->getOutputConnections().resize(count);
+        component->getIsOutputConnected().resize(count, false);
     };
 
     const auto topA = result.topInputComponents.at("a");
     const auto inputDefinition = engine->getComponentDefinition(topA);
     const auto bridgeInputId = engine->addComponent(inputDefinition);
-    const auto bridgeInput = engine->getDigitalComponent(bridgeInputId);
+    const auto bridgeInput = engine->getComponent<Drivers::Digital::DigitalSimComponent>(bridgeInputId);
     resizeOutputs(bridgeInput, h1.inputSlotNames.size());
 
     for (const auto &sink : h1.internalInputSinks[0]) {
@@ -469,11 +479,11 @@ endmodule
     const auto aluOut = result.topOutputComponents.at("ALU_Out");
     const auto carryOut = result.topOutputComponents.at("CarryOut");
 
-    EXPECT_EQ(engine->getDigitalComponent(a)->definition->getOutputSlotsInfo().count, 8);
-    EXPECT_EQ(engine->getDigitalComponent(b)->definition->getOutputSlotsInfo().count, 8);
-    EXPECT_EQ(engine->getDigitalComponent(aluSel)->definition->getOutputSlotsInfo().count, 4);
-    EXPECT_EQ(engine->getDigitalComponent(aluOut)->definition->getInputSlotsInfo().count, 8);
-    EXPECT_EQ(engine->getDigitalComponent(carryOut)->definition->getInputSlotsInfo().count, 1);
+    EXPECT_EQ(engine->getComponent<Drivers::Digital::DigitalSimComponent>(a)->getDefinition<Drivers::Digital::DigCompDef>()->getOutputSlotsInfo().count, 8);
+    EXPECT_EQ(engine->getComponent<Drivers::Digital::DigitalSimComponent>(b)->getDefinition<Drivers::Digital::DigCompDef>()->getOutputSlotsInfo().count, 8);
+    EXPECT_EQ(engine->getComponent<Drivers::Digital::DigitalSimComponent>(aluSel)->getDefinition<Drivers::Digital::DigCompDef>()->getOutputSlotsInfo().count, 4);
+    EXPECT_EQ(engine->getComponent<Drivers::Digital::DigitalSimComponent>(aluOut)->getDefinition<Drivers::Digital::DigCompDef>()->getInputSlotsInfo().count, 8);
+    EXPECT_EQ(engine->getComponent<Drivers::Digital::DigitalSimComponent>(carryOut)->getDefinition<Drivers::Digital::DigCompDef>()->getInputSlotsInfo().count, 1);
 
     auto writeBus = [&](const UUID &componentId, uint32_t value, size_t width) {
         for (size_t i = 0; i < width; ++i) {

@@ -1,22 +1,23 @@
 #include "application/pages/main_page/services/hierarchical_scene_layout.h"
-#include "component_definition.h"
+#include "drivers/digital_sim_driver.h"
 #include "event_dispatcher.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
 #include "gtest/gtest.h"
+#include <chrono>
 #include <memory>
 
 namespace {
     using namespace Bess::Canvas;
     using namespace Bess::SimEngine;
 
-    std::shared_ptr<ComponentDefinition> makeDefinition(const std::string &name,
-                                                        ComponentBehaviorType behaviorType,
-                                                        size_t inputCount,
-                                                        size_t outputCount) {
-        auto definition = std::make_shared<ComponentDefinition>();
+    std::shared_ptr<Drivers::ComponentDef> makeDefinition(const std::string &name,
+                                                          ComponentBehaviorType behaviorType,
+                                                          size_t inputCount,
+                                                          size_t outputCount) {
+        auto definition = std::make_shared<Drivers::Digital::DigCompDef>();
         definition->setName(name);
         definition->setBehaviorType(behaviorType);
         definition->setGroupName("Test");
@@ -31,25 +32,26 @@ namespace {
         outputs.count = outputCount;
         definition->setOutputSlotsInfo(outputs);
 
-        definition->setSimulationFunction(
-            [inputCount, outputCount](const std::vector<SlotState> &inputs,
-                                      SimTime,
-                                      const ComponentState &previousState) {
-                auto nextState = previousState;
-                nextState.inputStates = inputs;
-                nextState.inputConnected.resize(inputCount);
-                nextState.outputStates.resize(outputCount);
-                nextState.outputConnected.resize(outputCount);
+        definition->setSimFn(
+            [outputCount](const std::shared_ptr<Drivers::SimFnDataBase> &rawData)
+                -> std::shared_ptr<Drivers::SimFnDataBase> {
+                const auto simData = std::dynamic_pointer_cast<Drivers::Digital::DigCompSimData>(rawData);
+                if (!simData) {
+                    return rawData;
+                }
+
+                simData->outputStates.resize(outputCount);
 
                 for (size_t i = 0; i < outputCount; ++i) {
-                    if (i < inputs.size()) {
-                        nextState.outputStates[i] = inputs[i];
-                    } else if (!inputs.empty()) {
-                        nextState.outputStates[i] = inputs.front();
+                    if (i < simData->inputStates.size()) {
+                        simData->outputStates[i] = simData->inputStates[i];
+                    } else if (!simData->inputStates.empty()) {
+                        simData->outputStates[i] = simData->inputStates.front();
                     }
                 }
 
-                return nextState;
+                simData->simDependants = true;
+                return simData;
             });
 
         return definition;
@@ -60,7 +62,7 @@ namespace {
     };
 
     SimFixture addSimulationComponent(Scene &scene,
-                                      const std::shared_ptr<ComponentDefinition> &definition) {
+                                      const std::shared_ptr<Drivers::ComponentDef> &definition) {
         auto created = SimulationSceneComponent::createNew(definition);
         auto component =
             std::dynamic_pointer_cast<SimulationSceneComponent>(created.front());

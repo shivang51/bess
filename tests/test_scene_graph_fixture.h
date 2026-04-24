@@ -2,7 +2,7 @@
 
 #include "command_system.h"
 #include "component_catalog.h"
-#include "component_definition.h"
+#include "drivers/digital_sim_driver.h"
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/scene_components/conn_joint_scene_component.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
@@ -18,6 +18,7 @@
 #include "scene/scene_ser_reg.h"
 #include "simulation_engine.h"
 #include <gtest/gtest.h>
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <ranges>
@@ -27,7 +28,7 @@ namespace Bess::Tests {
     using namespace Bess::Canvas;
     using namespace Bess::SimEngine;
 
-    inline std::shared_ptr<ComponentDefinition> findDefinitionByName(std::string_view name) {
+    inline std::shared_ptr<Drivers::ComponentDef> findDefinitionByName(std::string_view name) {
         const auto &components = ComponentCatalog::instance().getComponents();
         const auto it = std::ranges::find_if(components, [name](const auto &definition) {
             return definition && definition->getName() == name;
@@ -44,47 +45,58 @@ namespace Bess::Tests {
                 return;
             }
 
-            auto definition = std::make_shared<ComponentDefinition>();
+            auto definition = std::make_shared<Drivers::Digital::DigCompDef>();
             definition->setName(name);
             definition->setGroupName("Logic");
             definition->setInputSlotsInfo({SlotsGroupType::input, false, inputCount, {}, {}});
             definition->setOutputSlotsInfo({SlotsGroupType::output, false, 1, {}, {}});
-            definition->setSimulationFunction([eval](const std::vector<SlotState> &inputs,
-                                                     SimTime ts,
-                                                     const ComponentState &oldState) {
-                auto newState = oldState;
-                newState.inputStates = inputs;
-                if (newState.outputStates.empty()) {
-                    newState.outputStates.resize(1);
+            definition->setSimFn([eval](const std::shared_ptr<Drivers::SimFnDataBase> &rawData)
+                                     -> std::shared_ptr<Drivers::SimFnDataBase> {
+                const auto simData = std::dynamic_pointer_cast<Drivers::Digital::DigCompSimData>(rawData);
+                if (!simData) {
+                    return rawData;
                 }
 
-                const auto next = eval(inputs);
-                const auto prev = oldState.outputStates.empty() ? LogicState::unknown : oldState.outputStates[0].state;
-                newState.outputStates[0].state = next;
-                newState.outputStates[0].lastChangeTime = ts;
-                newState.isChanged = prev != next;
-                return newState;
+                if (simData->outputStates.empty()) {
+                    simData->outputStates.resize(1);
+                }
+
+                const auto next = eval(simData->inputStates);
+                const auto prev = simData->prevState.outputStates.empty()
+                                      ? LogicState::unknown
+                                      : simData->prevState.outputStates[0].state;
+
+                simData->outputStates[0].state = next;
+                simData->outputStates[0].lastChangeTime =
+                    std::chrono::duration_cast<SimTime>(simData->simTime);
+                simData->simDependants = prev != next;
+                return simData;
             });
-            definition->setSimDelay(SimDelayNanoSeconds(1));
+            definition->setPropDelay(Bess::TimeNs(1));
             ComponentCatalog::instance().registerComponent(definition);
         };
 
         ensureGate("NOT Gate", 1, [](const std::vector<SlotState> &inputs) {
-            return inputs[0].state == LogicState::high ? LogicState::low : LogicState::high;
+            const auto inState = inputs.empty() ? LogicState::low : inputs[0].state;
+            return inState == LogicState::high ? LogicState::low : LogicState::high;
         });
         ensureGate("AND Gate", 2, [](const std::vector<SlotState> &inputs) {
-            return (inputs[0].state == LogicState::high && inputs[1].state == LogicState::high)
+            const bool a = inputs.size() > 0 && inputs[0].state == LogicState::high;
+            const bool b = inputs.size() > 1 && inputs[1].state == LogicState::high;
+            return (a && b)
                        ? LogicState::high
                        : LogicState::low;
         });
         ensureGate("OR Gate", 2, [](const std::vector<SlotState> &inputs) {
-            return (inputs[0].state == LogicState::high || inputs[1].state == LogicState::high)
+            const bool a = inputs.size() > 0 && inputs[0].state == LogicState::high;
+            const bool b = inputs.size() > 1 && inputs[1].state == LogicState::high;
+            return (a || b)
                        ? LogicState::high
                        : LogicState::low;
         });
         ensureGate("XOR Gate", 2, [](const std::vector<SlotState> &inputs) {
-            const bool a = inputs[0].state == LogicState::high;
-            const bool b = inputs[1].state == LogicState::high;
+            const bool a = inputs.size() > 0 && inputs[0].state == LogicState::high;
+            const bool b = inputs.size() > 1 && inputs[1].state == LogicState::high;
             return (a != b) ? LogicState::high : LogicState::low;
         });
     }
@@ -193,7 +205,7 @@ namespace Bess::Tests {
         }
 
         SimCompFixture addSimComponentDirect(const std::shared_ptr<Scene> &targetScene,
-                                             const std::shared_ptr<ComponentDefinition> &definition) {
+                                             const std::shared_ptr<Drivers::ComponentDef> &definition) {
             auto created = SimulationSceneComponent::createNew(definition);
             SimCompFixture fixture;
             fixture.comp = std::dynamic_pointer_cast<SimulationSceneComponent>(created.front());
@@ -217,7 +229,7 @@ namespace Bess::Tests {
             return fixture;
         }
 
-        SimCompFixture executeAddSimComponent(const std::shared_ptr<ComponentDefinition> &definition) {
+        SimCompFixture executeAddSimComponent(const std::shared_ptr<Drivers::ComponentDef> &definition) {
             auto created = SimulationSceneComponent::createNew(definition);
             SimCompFixture fixture;
             fixture.comp = std::dynamic_pointer_cast<SimulationSceneComponent>(created.front());
@@ -260,11 +272,11 @@ namespace Bess::Tests {
 
         Bess::Svc::SvcConnection *service = nullptr;
         Bess::Svc::CopyPaste::Context *copyPaste = nullptr;
-        std::shared_ptr<ComponentDefinition> inputDef;
-        std::shared_ptr<ComponentDefinition> outputDef;
-        std::shared_ptr<ComponentDefinition> notDef;
-        std::shared_ptr<ComponentDefinition> andDef;
-        std::shared_ptr<ComponentDefinition> orDef;
+        std::shared_ptr<Drivers::ComponentDef> inputDef;
+        std::shared_ptr<Drivers::ComponentDef> outputDef;
+        std::shared_ptr<Drivers::ComponentDef> notDef;
+        std::shared_ptr<Drivers::ComponentDef> andDef;
+        std::shared_ptr<Drivers::ComponentDef> orDef;
         std::shared_ptr<Scene> scene;
         Bess::Cmd::CommandSystem cmdSystem;
     };

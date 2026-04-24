@@ -49,6 +49,11 @@ namespace Bess::Pages {
             return std::count(path.begin(), path.end(), '/');
         }
 
+        std::string fallbackSlotName(size_t index, bool isInput) {
+            const char base = isInput ? 'A' : 'a';
+            return std::string(1, static_cast<char>(base + (index % 26)));
+        }
+
         ImportedSceneComponent createSceneComponentForImportedSimId(const UUID &simId,
                                                                     SimulationEngine &simEngine) {
             const auto &compDef = simEngine.getComponentDefinition(simId);
@@ -119,27 +124,44 @@ namespace Bess::Pages {
 
         void resizeOutputs(const std::shared_ptr<Drivers::Digital::DigitalSimComponent> &component,
                            size_t count) {
+            if (!component) {
+                return;
+            }
 
-            // FIXME
-            // while (component->getDefinition()->getOutputSlotsInfo().count < count) {
-            //     component->incrementOutputCount(true);
-            // }
-            // while (component->definition->getOutputSlotsInfo().count > count &&
-            //        component->definition->getOutputSlotsInfo().count > 1) {
-            //     component->decrementOutputCount(true);
-            // }
+            const auto def = component->getDefinition<Drivers::Digital::DigCompDef>();
+            if (def) {
+                auto outputInfo = def->getOutputSlotsInfo();
+                outputInfo.count = count;
+                if (outputInfo.names.size() > count) {
+                    outputInfo.names.resize(count);
+                }
+                def->setOutputSlotsInfo(outputInfo);
+            }
+
+            component->getOutputStates().resize(count);
+            component->getOutputConnections().resize(count);
+            component->getIsOutputConnected().resize(count, false);
         }
 
         void resizeInputs(const std::shared_ptr<Drivers::Digital::DigitalSimComponent> &component,
                           size_t count) {
-            // FIXME
-            // while (component->definition->getInputSlotsInfo().count < count) {
-            //     component->incrementInputCount(true);
-            // }
-            // while (component->definition->getInputSlotsInfo().count > count &&
-            //        component->definition->getInputSlotsInfo().count > 1) {
-            //     component->decrementInputCount(true);
-            // }
+            if (!component) {
+                return;
+            }
+
+            const auto def = component->getDefinition<Drivers::Digital::DigCompDef>();
+            if (def) {
+                auto inputInfo = def->getInputSlotsInfo();
+                inputInfo.count = count;
+                if (inputInfo.names.size() > count) {
+                    inputInfo.names.resize(count);
+                }
+                def->setInputSlotsInfo(inputInfo);
+            }
+
+            component->getInputStates().resize(count);
+            component->getInputConnections().resize(count);
+            component->getIsInputConnected().resize(count, false);
         }
 
         void applySlotNames(SceneState &sceneState,
@@ -156,6 +178,100 @@ namespace Bess::Pages {
                 }
                 ++nameIdx;
             }
+        }
+
+        void syncSceneComponentSlots(SceneState &sceneState,
+                                     const std::shared_ptr<SimulationSceneComponent> &comp,
+                                     const SlotsGroupInfo &slotsInfo,
+                                     bool isInput) {
+            if (!comp) {
+                return;
+            }
+
+            auto &slotIds = isInput ? comp->getInputSlots() : comp->getOutputSlots();
+            const auto slotType = isInput ? Canvas::SlotType::digitalInput : Canvas::SlotType::digitalOutput;
+            const auto resizeSlotType = isInput ? Canvas::SlotType::inputsResize : Canvas::SlotType::outputsResize;
+
+            std::vector<UUID> realSlots;
+            realSlots.reserve(slotIds.size());
+            UUID resizeSlotId = UUID::null;
+
+            for (const auto &slotId : slotIds) {
+                const auto slot = sceneState.getComponentByUuid<SlotSceneComponent>(slotId);
+                if (!slot) {
+                    continue;
+                }
+
+                if (slot->getSlotType() == resizeSlotType || slot->isResizeSlot()) {
+                    resizeSlotId = slotId;
+                    continue;
+                }
+
+                realSlots.push_back(slotId);
+            }
+
+            while (realSlots.size() > slotsInfo.count) {
+                const auto slotId = realSlots.back();
+                realSlots.pop_back();
+                comp->removeChildComponent(slotId);
+                sceneState.removeComponent(slotId, UUID::master);
+            }
+
+            while (realSlots.size() < slotsInfo.count) {
+                auto newSlot = std::make_shared<SlotSceneComponent>();
+                newSlot->setSlotType(slotType);
+                sceneState.addComponent<SlotSceneComponent>(newSlot);
+                sceneState.attachChild(comp->getUuid(), newSlot->getUuid(), false);
+                realSlots.push_back(newSlot->getUuid());
+            }
+
+            if (slotsInfo.isResizeable) {
+                if (resizeSlotId == UUID::null) {
+                    auto resizeSlot = std::make_shared<SlotSceneComponent>();
+                    resizeSlot->setSlotType(resizeSlotType);
+                    resizeSlot->setIndex(-1);
+                    sceneState.addComponent<SlotSceneComponent>(resizeSlot);
+                    sceneState.attachChild(comp->getUuid(), resizeSlot->getUuid(), false);
+                    resizeSlotId = resizeSlot->getUuid();
+                }
+            } else if (resizeSlotId != UUID::null) {
+                comp->removeChildComponent(resizeSlotId);
+                sceneState.removeComponent(resizeSlotId, UUID::master);
+                resizeSlotId = UUID::null;
+            }
+
+            slotIds.clear();
+            slotIds.insert(slotIds.end(), realSlots.begin(), realSlots.end());
+            if (resizeSlotId != UUID::null) {
+                slotIds.push_back(resizeSlotId);
+            }
+
+            for (size_t i = 0; i < realSlots.size(); ++i) {
+                const auto slot = sceneState.getComponentByUuid<SlotSceneComponent>(realSlots[i]);
+                if (!slot) {
+                    continue;
+                }
+
+                slot->setSlotType(slotType);
+                slot->setIndex(static_cast<int>(i));
+                if (i < slotsInfo.names.size()) {
+                    slot->setName(slotsInfo.names[i]);
+                } else {
+                    slot->setName(fallbackSlotName(i, isInput));
+                }
+            }
+
+            if (resizeSlotId != UUID::null) {
+                const auto resizeSlot = sceneState.getComponentByUuid<SlotSceneComponent>(resizeSlotId);
+                if (resizeSlot) {
+                    resizeSlot->setSlotType(resizeSlotType);
+                    resizeSlot->setIndex(-1);
+                    resizeSlot->setName("");
+                }
+            }
+
+            comp->setScaleDirty();
+            comp->setSchematicScaleDirty();
         }
 
         void addImportedConnections(Scene &scene,
@@ -349,20 +465,42 @@ namespace Bess::Pages {
 
             const auto inputComponent = simEngine.getDigitalComponent(moduleDef->getInputId());
             const auto outputComponent = simEngine.getDigitalComponent(moduleDef->getOutputId());
+            const auto moduleSimComponent = simEngine.getDigitalComponent(moduleComp->getSimEngineId());
             BESS_ASSERT(inputComponent, "Imported module input bridge component was not found");
             BESS_ASSERT(outputComponent, "Imported module output bridge component was not found");
+            BESS_ASSERT(moduleSimComponent, "Imported module wrapper sim component was not found");
 
-            const auto &inpDef = inputComponent->getDefinition<Drivers::Digital::DigCompDef>();
-            const auto &outDef = outputComponent->getDefinition<Drivers::Digital::DigCompDef>();
+            const auto inpDef = inputComponent->getDefinition<Drivers::Digital::DigCompDef>();
+            const auto outDef = outputComponent->getDefinition<Drivers::Digital::DigCompDef>();
 
             resizeOutputs(inputComponent, inputCount);
-            inpDef->getOutputSlotsInfo().names = instance.inputSlotNames;
+            auto bridgeInputSlots = inpDef->getOutputSlotsInfo();
+            bridgeInputSlots.names = instance.inputSlotNames;
+            inpDef->setOutputSlotsInfo(bridgeInputSlots);
 
             resizeInputs(outputComponent, outputCount);
-            outDef->getInputSlotsInfo().names = instance.outputSlotNames;
+            auto bridgeOutputSlots = outDef->getInputSlotsInfo();
+            bridgeOutputSlots.names = instance.outputSlotNames;
+            outDef->setInputSlotsInfo(bridgeOutputSlots);
 
-            moduleDef->getInputSlotsInfo().names = instance.inputSlotNames;
-            moduleDef->getOutputSlotsInfo().names = instance.outputSlotNames;
+            auto moduleInputSlots = moduleDef->getInputSlotsInfo();
+            moduleInputSlots.count = inputCount;
+            moduleInputSlots.names = instance.inputSlotNames;
+            moduleDef->setInputSlotsInfo(moduleInputSlots);
+
+            auto moduleOutputSlots = moduleDef->getOutputSlotsInfo();
+            moduleOutputSlots.count = outputCount;
+            moduleOutputSlots.names = instance.outputSlotNames;
+            moduleDef->setOutputSlotsInfo(moduleOutputSlots);
+
+            resizeInputs(moduleSimComponent, inputCount);
+            resizeOutputs(moduleSimComponent, outputCount);
+
+            const auto moduleSimDef = moduleSimComponent->getDefinition<Drivers::Digital::DigCompDef>();
+            if (moduleSimDef) {
+                moduleSimDef->setInputSlotsInfo(moduleInputSlots);
+                moduleSimDef->setOutputSlotsInfo(moduleOutputSlots);
+            }
 
             auto &sceneDriver = MainPage::getInstance()->getState().getSceneDriver();
             const auto moduleScene = sceneDriver.getSceneWithId(moduleComp->getSceneId());
@@ -374,14 +512,18 @@ namespace Bess::Pages {
             const auto moduleInput = moduleSceneState.getComponentByUuid<SimulationSceneComponent>(moduleComp->getAssociatedInp());
             const auto moduleOutput = moduleSceneState.getComponentByUuid<SimulationSceneComponent>(moduleComp->getAssociatedOut());
             if (moduleInput) {
+                syncSceneComponentSlots(moduleSceneState, moduleInput, inpDef->getOutputSlotsInfo(), false);
                 moduleInput->setName("Module Input");
                 applySlotNames(moduleSceneState, moduleInput->getOutputSlots(), instance.inputSlotNames);
             }
             if (moduleOutput) {
+                syncSceneComponentSlots(moduleSceneState, moduleOutput, outDef->getInputSlotsInfo(), true);
                 moduleOutput->setName("Module Output");
                 applySlotNames(moduleSceneState, moduleOutput->getInputSlots(), instance.outputSlotNames);
             }
 
+            syncSceneComponentSlots(ownerSceneState, moduleComp, moduleDef->getInputSlotsInfo(), true);
+            syncSceneComponentSlots(ownerSceneState, moduleComp, moduleDef->getOutputSlotsInfo(), false);
             applySlotNames(ownerSceneState,
                            moduleComp->getInputSlots(),
                            instance.inputSlotNames);

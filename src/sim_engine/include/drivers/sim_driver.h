@@ -126,6 +126,8 @@ namespace Bess::SimEngine::Drivers {
         virtual std::shared_ptr<SimComponent> createComp(
             const std::shared_ptr<ComponentDef> &def) = 0;
 
+        virtual void clearPendingEvents() {}
+
       protected:
         virtual void onInit() {};
 
@@ -204,25 +206,31 @@ namespace Bess::SimEngine::Drivers {
 
         void pause() {
             if (isRunning()) {
+                {
+                    std::lock_guard lk(m_stateMutex);
+                    m_state = SimDriverState::paused;
+                }
                 onPause();
-                std::lock_guard lk(m_stateMutex);
-                m_state = SimDriverState::paused;
             }
         }
 
         void resume() {
             if (isPaused()) {
+                {
+                    std::lock_guard lk(m_stateMutex);
+                    m_state = SimDriverState::running;
+                }
                 onResume();
-                std::lock_guard lk(m_stateMutex);
-                m_state = SimDriverState::running;
             }
         }
 
         void stop() {
             if (isRunning() || isPaused()) {
+                {
+                    std::lock_guard lk(m_stateMutex);
+                    m_state = SimDriverState::stopped;
+                }
                 onStop();
-                std::lock_guard lk(m_stateMutex);
-                m_state = SimDriverState::stopped;
             }
         }
 

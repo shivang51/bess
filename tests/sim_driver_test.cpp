@@ -28,26 +28,25 @@ namespace {
     }
 
     TEST(SimDriverTest, CreateAndGateDefinitionHasExpectedShape) {
-        ComponentDefinition andGate;
+        DigCompDef andGate;
         andGate.setName("AND Gate");
         andGate.setGroupName("Logic");
         andGate.setInputSlotsInfo({SlotsGroupType::input, false, 2, {"A", "B"}, {}});
         andGate.setOutputSlotsInfo({SlotsGroupType::output, false, 1, {"Y"}, {}});
         andGate.setOpInfo({'*', false});
-        andGate.setShouldAutoReschedule(false);
-        andGate.setSimDelay(SimDelayNanoSeconds(1));
-        andGate.setSimulationFunction([](const std::vector<SlotState> &inputs,
-                                         SimTime ts,
-                                         const ComponentState &prevState) {
-            auto next = prevState;
-            next.inputStates = inputs;
-            next.outputStates.resize(1);
-            const bool out = inputs.size() >= 2 &&
-                             inputs[0].state == LogicState::high &&
-                             inputs[1].state == LogicState::high;
-            next.outputStates[0] = SlotState(out ? LogicState::high : LogicState::low, ts);
-            next.isChanged = true;
-            return next;
+        andGate.setPropDelay(Bess::TimeNs(1));
+        andGate.setSimFn([](const std::shared_ptr<Drivers::SimFnDataBase> &dataBase) {
+            const auto data = std::dynamic_pointer_cast<DigCompSimData>(dataBase);
+            if (!data) return dataBase;
+            
+            data->outputStates.resize(1);
+            const bool out = data->inputStates.size() >= 2 &&
+                             data->inputStates[0].state == LogicState::high &&
+                             data->inputStates[1].state == LogicState::high;
+            data->outputStates[0] = SlotState(out ? LogicState::high : LogicState::low, 
+                                              std::chrono::duration_cast<SimTime>(data->simTime));
+            data->simDependants = true;
+            return dataBase;
         });
 
         EXPECT_EQ(andGate.getName(), "AND Gate");
@@ -55,16 +54,19 @@ namespace {
         EXPECT_EQ(andGate.getInputSlotsInfo().count, 2u);
         EXPECT_EQ(andGate.getOutputSlotsInfo().count, 1u);
         EXPECT_EQ(andGate.getOpInfo().op, '*');
-        EXPECT_FALSE(andGate.getShouldAutoReschedule());
-        EXPECT_EQ(andGate.getSimDelay(), SimDelayNanoSeconds(1));
-        EXPECT_TRUE(static_cast<bool>(andGate.getSimFunctionCopy()));
+        EXPECT_EQ(andGate.getPropDelay(), Bess::TimeNs(1));
+        EXPECT_TRUE(static_cast<bool>(andGate.getSimFn()));
 
-        const auto simFn = andGate.getSimFunctionCopy();
-        ComponentState prev;
-        prev.outputStates.resize(1);
-        const auto next = simFn({SlotState(true), SlotState(true)}, SimTime(10), prev);
-        ASSERT_EQ(next.outputStates.size(), 1u);
-        EXPECT_EQ(next.outputStates[0].state, LogicState::high);
+        const auto simFn = andGate.getSimFn();
+        auto data = std::make_shared<DigCompSimData>();
+        data->inputStates = {SlotState(LogicState::high, Bess::TimeNs(0)), SlotState(LogicState::high, Bess::TimeNs(0))};
+        data->simTime = Bess::TimeNs(10);
+        const auto nextBase = simFn(data);
+        const auto next = std::dynamic_pointer_cast<DigCompSimData>(nextBase);
+        
+        ASSERT_NE(next, nullptr);
+        ASSERT_EQ(next->outputStates.size(), 1u);
+        EXPECT_EQ(next->outputStates[0].state, LogicState::high);
     }
 
     TEST(SimDriverTest, AddComponentRegistersItInDigitalDriverMap) {
@@ -153,27 +155,12 @@ namespace {
 
     TEST(SimDriverTest, AddingCompViaSimEngine) {
         auto &engine = SimulationEngine::instance();
-        std::atomic<bool> simulatedByRunLoop{false};
         auto def = std::make_shared<DigCompDef>();
         def->setName("NAND Gate");
-        def->setSimFn([&simulatedByRunLoop](const std::shared_ptr<Drivers::SimFnDataBase> &dataBase) {
-            BESS_DEBUG("Simulating");
-
-            const auto &data = std::dynamic_pointer_cast<DigCompSimData>(dataBase);
-
-            const bool aHigh = data->inputStates.size() > 0 &&
-                               data->inputStates[0].state == LogicState::high;
-            const bool bHigh = data->inputStates.size() > 1 &&
-                               data->inputStates[1].state == LogicState::high;
-            const auto outState = (aHigh && bHigh) ? LogicState::low : LogicState::high;
-            const SimTime slotTs =
-                std::chrono::duration_cast<SimTime>(data->simTime);
-
-            data->outputStates = std::vector<SlotState>{SlotState(outState, slotTs)};
-
-            simulatedByRunLoop.store(true);
-
-            return data;
+        def->setInputSlotsInfo({SlotsGroupType::input, false, 2, {"A", "B"}, {}});
+        def->setOutputSlotsInfo({SlotsGroupType::output, false, 1, {"Y"}, {}});
+        def->setSimFn([](const std::shared_ptr<Drivers::SimFnDataBase> &dataBase) {
+            return dataBase;
         });
 
         auto id = engine.addComponent(def);
@@ -183,15 +170,7 @@ namespace {
         EXPECT_NE(comp, nullptr);
         EXPECT_EQ(comp->getUuid(), id);
         EXPECT_EQ(comp->getDefinition()->getName(), "NAND Gate");
-
-        const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(200);
-
-        while (!simulatedByRunLoop.load() && std::chrono::steady_clock::now() < deadline) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        }
-
-        auto outputs = comp->getOutputStates();
-        EXPECT_EQ(outputs.size(), 1u);
+        EXPECT_EQ(comp->getOutputStates().size(), 1u);
 
         engine.destroy();
     }

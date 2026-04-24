@@ -68,6 +68,7 @@ namespace Bess::SimEngine {
         SimulationState toggleSimState();
         SimulationState getSimulationState() const;
         void setSimulationState(SimulationState state);
+        void clearPendingDriverEvents();
 
         // only steps if sim state is paused
         void stepSimulation();
@@ -116,6 +117,9 @@ namespace Bess::SimEngine {
       private:
         bool isSimStableLocked() const;
 
+        void propagateFromComponent(const UUID &sourceId);
+        void processPendingPropagation();
+
         std::vector<UUID> getConnGraph(UUID start);
 
         void clearEventsForEntity(const UUID &id);
@@ -131,11 +135,12 @@ namespace Bess::SimEngine {
 
         std::atomic<bool> m_stopFlag{false};
         std::atomic<bool> m_stepFlag{false};
-        std::atomic<SimulationState> m_simState;
+        std::atomic<SimulationState> m_simState{SimulationState::running};
         std::condition_variable m_queueCV;
         std::condition_variable m_stateCV;
 
         std::set<SimulationEvent> m_eventSet;
+        std::set<UUID> m_pendingSignalSources;
         uint64_t m_nextEventId{0};
         SimTime m_currentSimTime;
 

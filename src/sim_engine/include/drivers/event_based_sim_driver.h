@@ -113,11 +113,15 @@ namespace Bess::SimEngine::Drivers {
                 BESS_DEBUG("Sim waiting for events");
 
                 m_runIterCv.wait(lk, [&] {
-                    return isStopped() || !m_events.empty();
+                    return isStopped() || (!isPaused() && !m_events.empty());
                 });
 
                 if (isStopped()) {
                     break;
+                }
+
+                if (isPaused()) {
+                    continue;
                 }
 
                 const auto evtsToSim = collectEvts();
@@ -167,6 +171,14 @@ namespace Bess::SimEngine::Drivers {
 
         virtual void onBeforeRun() {}
 
+        void onPause() override {
+            m_runIterCv.notify_all();
+        }
+
+        void onResume() override {
+            m_runIterCv.notify_all();
+        }
+
         void onStop() override {
             SimDriver::onStop();
             m_runIterCv.notify_all();
@@ -185,6 +197,12 @@ namespace Bess::SimEngine::Drivers {
             if (notify) {
                 m_runIterCv.notify_all();
             }
+        }
+
+        void clearPendingEvents() override {
+            std::lock_guard lk(m_runIterMutex);
+            m_events.clear();
+            m_runIterCv.notify_all();
         }
 
       private:
