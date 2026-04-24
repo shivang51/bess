@@ -2,11 +2,16 @@
 #include "bess_api.h"
 #include "common/class_helpers.h"
 #include "common/logger.h"
+#include "types.h"
 #include <common/bess_uuid.h>
 #include <functional>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
+
+namespace Bess::SimEngine {
+    class SimulationEngine;
+}
 
 namespace Bess::SimEngine::Drivers {
 
@@ -127,6 +132,22 @@ namespace Bess::SimEngine::Drivers {
             const std::shared_ptr<ComponentDef> &def) = 0;
 
         virtual void clearPendingEvents() {}
+
+        // Connection management
+        virtual std::pair<bool, std::string> canConnectComponents(
+            Bess::SimEngine::SimulationEngine &engine, const UUID &src, int srcSlotIdx, SlotType srcType,
+            const UUID &dst, int dstSlotIdx, SlotType dstType) const = 0;
+
+        virtual bool connectComponent(
+            Bess::SimEngine::SimulationEngine &engine, const UUID &src, int srcSlotIdx, SlotType srcType,
+            const UUID &dst, int dstSlotIdx, SlotType dstType, bool overrideConn) = 0;
+
+        virtual void deleteConnection(
+            Bess::SimEngine::SimulationEngine &engine, const UUID &compA, SlotType pinAType, int idxA,
+            const UUID &compB, SlotType pinBType, int idxB) = 0;
+
+        virtual bool addSlot(Bess::SimEngine::SimulationEngine &engine, const UUID &compId, SlotType type, int index) = 0;
+        virtual bool removeSlot(Bess::SimEngine::SimulationEngine &engine, const UUID &compId, SlotType type, int index) = 0;
 
       protected:
         virtual void onInit() {};

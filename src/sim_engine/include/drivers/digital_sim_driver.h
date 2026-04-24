@@ -60,7 +60,8 @@ namespace Bess::SimEngine::Drivers::Digital {
          * by default it will return value of group.isResizeable
          **/
         virtual bool onSlotsResizeReq(SlotsGroupType groupType, size_t newSize) {
-            return false;
+            if (groupType == SlotsGroupType::input) return m_inputSlotsInfo.isResizeable;
+            return m_outputSlotsInfo.isResizeable;
         }
 
         /**
@@ -179,6 +180,21 @@ namespace Bess::SimEngine::Drivers::Digital {
                           bool scheduleSim = true);
 
         void onBeforeRun() override;
+
+        std::pair<bool, std::string> canConnectComponents(
+            Bess::SimEngine::SimulationEngine &engine, const UUID &src, int srcSlotIdx, SlotType srcType,
+            const UUID &dst, int dstSlotIdx, SlotType dstType) const override;
+
+        bool connectComponent(
+            Bess::SimEngine::SimulationEngine &engine, const UUID &src, int srcSlotIdx, SlotType srcType,
+            const UUID &dst, int dstSlotIdx, SlotType dstType, bool overrideConn) override;
+
+        void deleteConnection(
+            Bess::SimEngine::SimulationEngine &engine, const UUID &compA, SlotType pinAType, int idxA,
+            const UUID &compB, SlotType pinBType, int idxB) override;
+
+        bool addSlot(Bess::SimEngine::SimulationEngine &engine, const UUID &compId, SlotType type, int index) override;
+        bool removeSlot(Bess::SimEngine::SimulationEngine &engine, const UUID &compId, SlotType type, int index) override;
     };
 
 } // namespace Bess::SimEngine::Drivers::Digital

@@ -1912,7 +1912,7 @@ TEST_F(VerilogImportTest, ImportsMemoryReadWriteCellsFromYosysJson) {
     ASSERT_TRUE(waitUntil([&] { return readBus(dout, 4) == 0xA; }));
 }
 
-TEST_F(VerilogImportTest, DISABLED_TemporaryHarvardCpuSmokeExecutesBasicInstructions) {
+TEST_F(VerilogImportTest, TemporaryHarvardCpuSmokeExecutesBasicInstructions) {
     const std::filesystem::path cpuDir =
         "Verilog-Harvard-CPU/01. Single-cycle CPU";
 

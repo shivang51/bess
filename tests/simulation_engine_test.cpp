@@ -115,7 +115,8 @@ class SimulationEngineTest : public testing::Test {
   protected:
     static void SetUpTestSuite() {
         auto &pluginManager = Bess::Plugins::PluginManager::getInstance();
-        ASSERT_TRUE(pluginManager.loadPluginsFromDirectory("plugins"));
+        // Plugins are loaded globally in main_test.cpp, so we don't need to assert on it here
+        pluginManager.loadPluginsFromDirectory("plugins");
     }
 
     SimulationEngine *engine = nullptr;

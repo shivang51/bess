@@ -361,16 +361,6 @@ namespace Bess::Svc {
             return false;
         }
 
-        const auto digComp = getSimEngine().getDigitalComponent(parent->getSimEngineId());
-        if (!digComp) {
-            return false;
-        }
-
-        const auto digDef = digComp->getDefinition<SimEngine::Drivers::Digital::DigCompDef>();
-        if (!digDef) {
-            return false;
-        }
-
         const bool isInput = slot->isInputSlot();
         const int removedIndex = slot->getIndex();
         if (removedIndex < 0) {
@@ -383,53 +373,9 @@ namespace Bess::Svc {
         parent->removeChildComponent(slot->getUuid());
         sceneState.removeComponent(slot->getUuid(), UUID::master);
 
-        if (isInput) {
-            auto &states = digComp->getInputStates();
-            auto &connections = digComp->getInputConnections();
-            auto &connected = digComp->getIsInputConnected();
-
-            if (static_cast<size_t>(removedIndex) < states.size()) {
-                states.erase(states.begin() + removedIndex);
-            }
-            if (static_cast<size_t>(removedIndex) < connections.size()) {
-                connections.erase(connections.begin() + removedIndex);
-            }
-            if (static_cast<size_t>(removedIndex) < connected.size()) {
-                connected.erase(connected.begin() + removedIndex);
-            }
-
-            auto info = digDef->getInputSlotsInfo();
-            if (info.count > 0) {
-                info.count -= 1;
-            }
-            if (static_cast<size_t>(removedIndex) < info.names.size()) {
-                info.names.erase(info.names.begin() + removedIndex);
-            }
-            digDef->setInputSlotsInfo(info);
-        } else {
-            auto &states = digComp->getOutputStates();
-            auto &connections = digComp->getOutputConnections();
-            auto &connected = digComp->getIsOutputConnected();
-
-            if (static_cast<size_t>(removedIndex) < states.size()) {
-                states.erase(states.begin() + removedIndex);
-            }
-            if (static_cast<size_t>(removedIndex) < connections.size()) {
-                connections.erase(connections.begin() + removedIndex);
-            }
-            if (static_cast<size_t>(removedIndex) < connected.size()) {
-                connected.erase(connected.begin() + removedIndex);
-            }
-
-            auto info = digDef->getOutputSlotsInfo();
-            if (info.count > 0) {
-                info.count -= 1;
-            }
-            if (static_cast<size_t>(removedIndex) < info.names.size()) {
-                info.names.erase(info.names.begin() + removedIndex);
-            }
-            digDef->setOutputSlotsInfo(info);
-        }
+        getSimEngine().removeSlot(parent->getSimEngineId(), 
+                                  isInput ? SimEngine::SlotType::digitalInput : SimEngine::SlotType::digitalOutput, 
+                                  removedIndex);
 
         for (size_t i = 0; i < slots.size(); ++i) {
             const auto slotComp = sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(slots[i]);
@@ -458,21 +404,7 @@ namespace Bess::Svc {
             return false;
         }
 
-        const auto digComp = getSimEngine().getDigitalComponent(parent->getSimEngineId());
-        if (!digComp) {
-            return false;
-        }
-
-        const auto digDef = digComp->getDefinition<SimEngine::Drivers::Digital::DigCompDef>();
-        if (!digDef) {
-            return false;
-        }
-
         const bool isInput = slot->isInputSlot();
-        auto info = isInput ? digDef->getInputSlotsInfo() : digDef->getOutputSlotsInfo();
-        if (!info.isResizeable) {
-            return false;
-        }
 
         if (isInput) {
             parent->addInputSlot(slot->getUuid(), true);
@@ -496,24 +428,14 @@ namespace Bess::Svc {
             slotComp->setIndex(static_cast<int>(i));
         }
 
-        if (isInput) {
-            auto &states = digComp->getInputStates();
-            auto &connections = digComp->getInputConnections();
-            auto &connected = digComp->getIsInputConnected();
-            states.insert(states.begin() + static_cast<long>(insertedIndex), SimEngine::SlotState{});
-            connections.insert(connections.begin() + static_cast<long>(insertedIndex), {});
-            connected.insert(connected.begin() + static_cast<long>(insertedIndex), false);
-            info.count += 1;
-            digDef->setInputSlotsInfo(info);
-        } else {
-            auto &states = digComp->getOutputStates();
-            auto &connections = digComp->getOutputConnections();
-            auto &connected = digComp->getIsOutputConnected();
-            states.insert(states.begin() + static_cast<long>(insertedIndex), SimEngine::SlotState{});
-            connections.insert(connections.begin() + static_cast<long>(insertedIndex), {});
-            connected.insert(connected.begin() + static_cast<long>(insertedIndex), false);
-            info.count += 1;
-            digDef->setOutputSlotsInfo(info);
+        if (!getSimEngine().addSlot(parent->getSimEngineId(), 
+                                    isInput ? SimEngine::SlotType::digitalInput : SimEngine::SlotType::digitalOutput, 
+                                    static_cast<int>(insertedIndex))) {
+            // Rollback UI changes if engine rejects
+            parent->removeChildComponent(slot->getUuid());
+            sceneState.removeComponent(slot->getUuid(), UUID::master);
+            std::erase(slots, slot->getUuid());
+            return false;
         }
 
         parent->setScaleDirty();

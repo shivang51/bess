@@ -172,6 +172,6 @@ namespace {
         EXPECT_EQ(comp->getDefinition()->getName(), "NAND Gate");
         EXPECT_EQ(comp->getOutputStates().size(), 1u);
 
-        engine.destroy();
+        engine.clear();
     }
 } // namespace

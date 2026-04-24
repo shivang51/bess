@@ -82,6 +82,9 @@ namespace Bess::SimEngine {
 
         bool updateInputCount(const UUID &uuid, int n);
 
+        bool addSlot(const UUID &compId, SlotType type, int index);
+        bool removeSlot(const UUID &compId, SlotType type, int index);
+
         std::vector<std::pair<float, bool>> getStateMonitorData(UUID uuid);
 
         bool updateNets(const std::vector<UUID> &startCompIds);
@@ -89,9 +92,14 @@ namespace Bess::SimEngine {
         friend class SimEngineSerializer;
 
         bool isNetUpdated() const;
+        void setNetUpdated(bool updated);
 
         // if update is false, the sync flag will not be reset
         const std::unordered_map<UUID, Net> &getNetsMap(bool update = true);
+        std::unordered_map<UUID, Net> &getNetsMapMutable();
+
+        void triggerPropagation(const UUID &sourceId);
+        void markPendingSignalSource(const UUID &sourceId);
 
         TruthTable getTruthTableOfNet(const UUID &netUuid);
 
