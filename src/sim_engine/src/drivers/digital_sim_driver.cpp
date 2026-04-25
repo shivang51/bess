@@ -1,5 +1,7 @@
 #include "drivers/digital_sim_driver.h"
+#include "drivers/event_based_sim_driver.h"
 #include "simulation_engine.h"
+#include "json/value.h"
 
 namespace Bess::SimEngine::Drivers::Digital {
     std::string DigitalSimDriver::getName() const {
@@ -334,6 +336,18 @@ namespace Bess::SimEngine::Drivers::Digital {
         }
 
         return true;
+    }
+
+    Json::Value DigCompDef::toJson() const {
+        Json::Value json = EvtBasedCompDef::toJson();
+
+        JsonConvert::toJsonValue(m_inputSlotsInfo, json["inpSlotsInfo"]);
+        JsonConvert::toJsonValue(m_outputSlotsInfo, json["outSlotsInfo"]);
+        JsonConvert::toJsonValue(m_opInfo, json["opInfo"]);
+        JsonConvert::toJsonValue(m_behaviorType, json["behaviorType"]);
+        JsonConvert::toJsonValue(m_outputExpressions, json["expressions"]);
+
+        return json;
     }
 } // namespace Bess::SimEngine::Drivers::Digital
 

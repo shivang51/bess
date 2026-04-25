@@ -38,8 +38,8 @@ namespace {
             definition->setGroupName("Logic");
             definition->setInputSlotsInfo({SlotsGroupType::input, false, inputCount, {}, {}});
             definition->setOutputSlotsInfo({SlotsGroupType::output, false, 1, {}, {}});
-            definition->setSimFn([eval](const std::shared_ptr<Drivers::SimFnDataBase> &rawData)
-                                     -> std::shared_ptr<Drivers::SimFnDataBase> {
+            definition->setSimFn([eval](const std::shared_ptr<Drivers::Digital::DigCompSimData> &rawData)
+                                     -> std::shared_ptr<Drivers::Digital::DigCompSimData> {
                 const auto simData = std::dynamic_pointer_cast<Drivers::Digital::DigCompSimData>(rawData);
                 if (!simData) {
                     return rawData;

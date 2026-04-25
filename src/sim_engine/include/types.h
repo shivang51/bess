@@ -12,8 +12,8 @@
 
 namespace Bess::SimEngine {
     typedef TimeNs SimTime;
-    typedef std::chrono::seconds SimDelaySeconds;
-    typedef std::chrono::nanoseconds SimDelayNanoSeconds;
+    typedef std::chrono::duration<double> SimDelaySeconds;
+    typedef TimeNs SimDelayNanoSeconds;
 
     typedef std::pair<UUID, int> ComponentPin;
 

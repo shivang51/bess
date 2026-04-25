@@ -12,7 +12,7 @@ namespace py = pybind11;
 
 class Plugin {
   public:
-    using CompVec = std::vector<Bess::SimEngine::ComponentDefinition>;
+    using CompVec = std::vector<Bess::SimEngine::Drivers::CompDef>;
     using SceneMap = std::map<int, py::object>;
 
     Plugin() = default;

@@ -237,7 +237,7 @@ class ResizeSlotConnectionTest : public ConnectionServiceTest {
         def->setOutputSlotsInfo({SlotsGroupType::output, false, 1, {"Y"}, {}});
         def->setOpInfo({'*', false});
         def->setPropDelay(Bess::TimeNs(1));
-        def->setSimFn([](const std::shared_ptr<Drivers::SimFnDataBase> &dataBase) {
+        def->setSimFn([](const std::shared_ptr<Drivers::Digital::DigCompSimData> &dataBase) {
             return dataBase;
         });
         andDef = def;

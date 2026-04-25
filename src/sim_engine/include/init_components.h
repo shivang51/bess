@@ -95,7 +95,7 @@ namespace Bess::SimEngine {
     inline void initIO() {
         auto &catalog = ComponentCatalog::instance();
 
-        typedef std::shared_ptr<Drivers::SimFnDataBase> TSimFnData;
+        typedef std::shared_ptr<Drivers::Digital::DigCompSimData> TSimFnData;
 
         const auto inpDef = std::make_shared<Drivers::Digital::DigCompDef>();
         inpDef->setName("Input");

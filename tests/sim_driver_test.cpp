@@ -1,5 +1,4 @@
 #include "common/bess_uuid.h"
-#include "common/logger.h"
 #include "drivers/digital_sim_driver.h"
 #include "drivers/sim_driver.h"
 #include "simulation_engine.h"
@@ -35,7 +34,7 @@ namespace {
         andGate.setOutputSlotsInfo({SlotsGroupType::output, false, 1, {"Y"}, {}});
         andGate.setOpInfo({'*', false});
         andGate.setPropDelay(Bess::TimeNs(1));
-        andGate.setSimFn([](const std::shared_ptr<Drivers::SimFnDataBase> &dataBase) {
+        andGate.setSimFn([](const std::shared_ptr<Drivers::Digital::DigCompSimData> &dataBase) {
             const auto data = std::dynamic_pointer_cast<DigCompSimData>(dataBase);
             if (!data)
                 return dataBase;
@@ -160,7 +159,7 @@ namespace {
         def->setName("NAND Gate");
         def->setInputSlotsInfo({SlotsGroupType::input, false, 2, {"A", "B"}, {}});
         def->setOutputSlotsInfo({SlotsGroupType::output, false, 1, {"Y"}, {}});
-        def->setSimFn([](const std::shared_ptr<Drivers::SimFnDataBase> &dataBase) {
+        def->setSimFn([](const std::shared_ptr<Drivers::Digital::DigCompSimData> &dataBase) {
             return dataBase;
         });
 

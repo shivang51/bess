@@ -4,15 +4,12 @@
 #include "common/types.h"
 #include "component_catalog.h"
 #include "component_definition.h"
-#include "digital_component.h"
+#include "drivers/digital_sim_driver.h"
 #include "drivers/sim_driver.h"
-#include "expression_evalutator/expr_evaluator.h"
 #include "init_components.h"
 #include "types.h"
 #include <algorithm>
-#include <cctype>
 #include <fstream>
-#include <limits>
 #include <memory>
 #include <optional>
 #include <sstream>
@@ -312,8 +309,10 @@ namespace Bess::Verilog {
             BESS_TRACE("Creating new component definition for %s with %zu inputs and %zu outputs",
                        name.c_str(), inputs, outputs);
 
+            typedef std::shared_ptr<Drivers::Digital::DigCompSimData> TSimFnData;
+
             // FIXME: exprEvalSimFunc
-            auto exprEvalSimFunc = [](const std::shared_ptr<Drivers::SimFnDataBase> &state) {
+            auto exprEvalSimFunc = [](const TSimFnData &state) {
                 bool changed = false;
                 // assert(prevState.auxData && "ExprEvalSimFunc requires auxData to be set with expressions");
                 // if (prevState.auxData->type() != typeid(std::vector<std::string>)) {
@@ -569,10 +568,10 @@ namespace Bess::Verilog {
             const auto rstIdx = p.rstSlotIndex();
             const auto enIdx = p.enSlotIndex();
 
+            typedef std::shared_ptr<Drivers::Digital::DigCompSimData> TSimFnData;
             created->setSimFn(
-                [p, rstIdx, enIdx](const std::shared_ptr<Drivers::SimFnDataBase> &stateBase)
-                    -> std::shared_ptr<Drivers::SimFnDataBase> {
-                    auto state = std::dynamic_pointer_cast<Drivers::Digital::DigCompSimData>(stateBase);
+                [p, rstIdx, enIdx](const TSimFnData &state)
+                    -> TSimFnData {
                     state->simDependants = false;
 
                     const auto &prevState = state->prevState;
@@ -1125,12 +1124,21 @@ namespace Bess::Verilog {
                 return definition;
             }
 
+            // TEMP FIX: wrapping with digital
+
+            typedef std::shared_ptr<Drivers::Digital::DigCompSimData> TSimFnData;
+            auto fn = [simulationFunction](const TSimFnData &state) -> TSimFnData {
+                auto baseState = std::static_pointer_cast<Drivers::SimFnDataBase>(state);
+                auto resultBaseState = simulationFunction(baseState);
+                return std::dynamic_pointer_cast<Drivers::Digital::DigCompSimData>(resultBaseState);
+            };
+
             auto created = std::make_shared<Drivers::Digital::DigCompDef>();
             created->setName(name);
             created->setGroupName("Verilog Imported");
             created->setInputSlotsInfo(inputs);
             created->setOutputSlotsInfo(outputs);
-            created->setSimFn(simulationFunction);
+            created->setSimFn(fn);
             created->setPropDelay(SimDelayNanoSeconds(2));
 
             ComponentCatalog::instance().registerComponent(created);

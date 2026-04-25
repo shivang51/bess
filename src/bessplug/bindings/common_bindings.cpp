@@ -1,4 +1,5 @@
 #include "common/bess_uuid.h"
+#include "common/types.h"
 #include "glm.hpp"
 #include "settings/viewport_theme.h"
 #include "types.h"
@@ -270,26 +271,27 @@ void bind_theme(py::module_ &m) {
 
 void bind_time(py::module_ &m) {
     auto timeModule = m.def_submodule("time");
-    py::class_<std::chrono::nanoseconds>(timeModule, "TimeNS")
+
+    py::class_<Bess::TimeNs>(timeModule, "TimeNS")
         .def(py::init<>())
         .def(py::init<uint64_t>(), py::arg("ns"))
-        .def("__int__", [](const std::chrono::nanoseconds &self) {
+        .def("__int__", [](const Bess::TimeNs &self) {
             return static_cast<uint64_t>(self.count());
         })
-        .def("__repr__", [](const std::chrono::nanoseconds &self) {
+        .def("__repr__", [](const Bess::TimeNs &self) {
             return std::format("<TimeNS {} ns>", static_cast<uint64_t>(self.count()));
         })
-        .def("__eq__", [](const std::chrono::nanoseconds &a, const std::chrono::nanoseconds &b) { return a == b; })
-        .def("__ne__", [](const std::chrono::nanoseconds &a, const std::chrono::nanoseconds &b) { return !(a == b); })
-        .def("__lt__", [](const std::chrono::nanoseconds &a, const std::chrono::nanoseconds &b) { return a < b; })
-        .def("__le__", [](const std::chrono::nanoseconds &a, const std::chrono::nanoseconds &b) { return a <= b; })
-        .def("__gt__", [](const std::chrono::nanoseconds &a, const std::chrono::nanoseconds &b) { return a > b; })
-        .def("__ge__", [](const std::chrono::nanoseconds &a, const std::chrono::nanoseconds &b) { return a >= b; })
-        .def("__add__", [](const std::chrono::nanoseconds &a, const std::chrono::nanoseconds &b) {
-            return std::chrono::nanoseconds(static_cast<uint64_t>(a.count()) + static_cast<uint64_t>(b.count()));
+        .def("__eq__", [](const Bess::TimeNs &a, const Bess::TimeNs &b) { return a == b; })
+        .def("__ne__", [](const Bess::TimeNs &a, const Bess::TimeNs &b) { return !(a == b); })
+        .def("__lt__", [](const Bess::TimeNs &a, const Bess::TimeNs &b) { return a < b; })
+        .def("__le__", [](const Bess::TimeNs &a, const Bess::TimeNs &b) { return a <= b; })
+        .def("__gt__", [](const Bess::TimeNs &a, const Bess::TimeNs &b) { return a > b; })
+        .def("__ge__", [](const Bess::TimeNs &a, const Bess::TimeNs &b) { return a >= b; })
+        .def("__add__", [](const Bess::TimeNs &a, const Bess::TimeNs &b) {
+            return Bess::TimeNs(static_cast<uint64_t>(a.count()) + static_cast<uint64_t>(b.count()));
         })
-        .def("__sub__", [](const std::chrono::nanoseconds &a, const std::chrono::nanoseconds &b) {
-            return std::chrono::nanoseconds(static_cast<uint64_t>(a.count()) - static_cast<uint64_t>(b.count()));
+        .def("__sub__", [](const Bess::TimeNs &a, const Bess::TimeNs &b) {
+            return Bess::TimeNs(static_cast<uint64_t>(a.count()) - static_cast<uint64_t>(b.count()));
         });
 
     py::class_<std::chrono::duration<double, std::milli>>(timeModule, "TimeMS")

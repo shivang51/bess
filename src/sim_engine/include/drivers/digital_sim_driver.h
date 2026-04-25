@@ -25,6 +25,10 @@ namespace Bess::SimEngine::Drivers::Digital {
       public:
         DigCompDef() = default;
 
+        typedef std::function<std::shared_ptr<DigCompSimData>(
+            const std::shared_ptr<DigCompSimData> &)>
+            TDigSimFn;
+
         DigCompDef(const DigCompDef &other) = default;
         DigCompDef(DigCompDef &&) = default;
 
@@ -38,6 +42,19 @@ namespace Bess::SimEngine::Drivers::Digital {
                               OutputExpressions,
                               m_outputExpressions,
                               onExpressionsChange)
+
+        void setSimFn(const TDigSimFn &simFn) {
+            m_simFn = [simFn](const SimFnDataPtr &data) -> SimFnDataPtr {
+                auto digData = std::dynamic_pointer_cast<DigCompSimData>(data);
+                if (!digData) {
+                    BESS_WARN("(DigCompDef.setSimFn) Invalid data type passed to sim function");
+                    return nullptr;
+                }
+                return simFn(digData);
+            };
+        }
+
+        Json::Value toJson() const override;
 
         /**
          * This function will compute the output expressions if needed.

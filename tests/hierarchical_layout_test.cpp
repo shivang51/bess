@@ -33,8 +33,8 @@ namespace {
         definition->setOutputSlotsInfo(outputs);
 
         definition->setSimFn(
-            [outputCount](const std::shared_ptr<Drivers::SimFnDataBase> &rawData)
-                -> std::shared_ptr<Drivers::SimFnDataBase> {
+            [outputCount](const std::shared_ptr<Drivers::Digital::DigCompSimData> &rawData)
+                -> std::shared_ptr<Drivers::Digital::DigCompSimData> {
                 const auto simData = std::dynamic_pointer_cast<Drivers::Digital::DigCompSimData>(rawData);
                 if (!simData) {
                     return rawData;

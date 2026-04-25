@@ -1,5 +1,5 @@
+#include "common/types.h"
 #include "expression_evalutator/expr_evaluator.h"
-#include <pybind11/chrono.h>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -85,7 +85,7 @@ class PyComponentDefinition : public ComponentDefinition,
 
     SimTime getRescheduleTime(SimTime currentTime) const override {
         PYBIND11_OVERRIDE_NAME(
-            SimTime,
+            Bess::TimeNs,
             ComponentDefinition,
             "get_reschedule_time", // very important to match the Python name
             getRescheduleTime,
@@ -195,10 +195,6 @@ void bind_sim_engine_component_definition(py::module_ &m) {
         comp_def->setSimulationFunction(ExprEval::exprEvalSimFunc);
         return comp_def;
     };
-
-    py::class_<Bess::SimEngine::Drivers::CompDef,
-               std::shared_ptr<Bess::SimEngine::Drivers::CompDef>>(m, "ComponentDef")
-        .def("get_name", py::overload_cast<>(&Bess::SimEngine::Drivers::CompDef::getName, py::const_));
 
     py::class_<ComponentDefinition,
                PyComponentDefinition,
