@@ -85,8 +85,6 @@ namespace Bess::SimEngine {
         bool addSlot(const UUID &compId, SlotType type, int index);
         bool removeSlot(const UUID &compId, SlotType type, int index);
 
-        std::vector<std::pair<float, bool>> getStateMonitorData(UUID uuid);
-
         bool updateNets(const std::vector<UUID> &startCompIds);
 
         friend class SimEngineSerializer;

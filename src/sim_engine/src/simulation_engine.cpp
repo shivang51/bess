@@ -176,33 +176,37 @@ namespace Bess::SimEngine {
 
         std::shared_ptr<Drivers::SimDriver> srcDriver, dstDriver;
         for (const auto &driver : m_simDrivers) {
-            if (driver->hasComponent(src)) srcDriver = driver;
-            if (driver->hasComponent(dst)) dstDriver = driver;
+            if (driver->hasComponent(src))
+                srcDriver = driver;
+            if (driver->hasComponent(dst))
+                dstDriver = driver;
         }
-        
+
         if (!srcDriver || !dstDriver) {
             return {false, "Source or destination component does not exist in any driver"};
         }
-        
+
         if (srcDriver != dstDriver) {
             return {false, "Cross-driver connection is not currently supported generically"};
         }
-        
-        return srcDriver->canConnectComponents(*const_cast<SimulationEngine*>(this), src, srcSlot, srcType, dst, dstSlot, dstType);
+
+        return srcDriver->canConnectComponents(*const_cast<SimulationEngine *>(this), src, srcSlot, srcType, dst, dstSlot, dstType);
     }
 
     bool SimulationEngine::connectComponent(const UUID &src, int srcSlot, SlotType srcType,
                                             const UUID &dst, int dstSlot, SlotType dstType, bool overrideConn) {
         std::shared_ptr<Drivers::SimDriver> srcDriver, dstDriver;
         for (const auto &driver : m_simDrivers) {
-            if (driver->hasComponent(src)) srcDriver = driver;
-            if (driver->hasComponent(dst)) dstDriver = driver;
+            if (driver->hasComponent(src))
+                srcDriver = driver;
+            if (driver->hasComponent(dst))
+                dstDriver = driver;
         }
-        
+
         if (!srcDriver || !dstDriver || srcDriver != dstDriver) {
             return false;
         }
-        
+
         std::lock_guard lk(m_registryMutex);
         return srcDriver->connectComponent(*this, src, srcSlot, srcType, dst, dstSlot, dstType, overrideConn);
     }
@@ -460,14 +464,16 @@ namespace Bess::SimEngine {
                                             const UUID &compB, SlotType pinBType, int idxB) {
         std::shared_ptr<Drivers::SimDriver> aDriver, bDriver;
         for (const auto &driver : m_simDrivers) {
-            if (driver->hasComponent(compA)) aDriver = driver;
-            if (driver->hasComponent(compB)) bDriver = driver;
+            if (driver->hasComponent(compA))
+                aDriver = driver;
+            if (driver->hasComponent(compB))
+                bDriver = driver;
         }
-        
+
         if (!aDriver || !bDriver || aDriver != bDriver) {
             return;
         }
-        
+
         std::lock_guard lk(m_registryMutex);
         aDriver->deleteConnection(*this, compA, pinAType, idxA, compB, pinBType, idxB);
     }
@@ -762,18 +768,6 @@ namespace Bess::SimEngine {
         // return true;
     }
 
-    std::vector<std::pair<float, bool>> SimulationEngine::getStateMonitorData(UUID uuid) {
-        if (!m_simEngineState.isComponentValid(uuid)) {
-            BESS_WARN("[SimulationEngine] getStateMonitorData was called on entity with no StateMonitorComponent: {}", (uint64_t)uuid);
-            return {};
-        }
-
-        // FIXME: State monitor is not implemented yet
-        // auto comp = m_simEngineState.getDigitalComponent(uuid);
-        // return comp->timestepedBoolData;
-        return {};
-    }
-
     std::vector<UUID> SimulationEngine::getConnGraph(UUID start) {
         return {};
         // std::vector<UUID> graph;
@@ -860,6 +854,7 @@ namespace Bess::SimEngine {
 
     TruthTable SimulationEngine::getTruthTableOfNet(const UUID &netUuid) {
         return {};
+        // FIXME: Truth table
         // if (!m_nets.contains(netUuid))
         //     return {};
         //
