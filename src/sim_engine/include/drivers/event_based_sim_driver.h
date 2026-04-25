@@ -16,7 +16,7 @@
 
 namespace Bess::SimEngine::Drivers {
 
-    class BESS_API EvtBasedCompDef : public ComponentDef {
+    class BESS_API EvtBasedCompDef : public CompDef {
       public:
         EvtBasedCompDef() = default;
         ~EvtBasedCompDef() override = default;
@@ -25,7 +25,7 @@ namespace Bess::SimEngine::Drivers {
         MAKE_GETTER_SETTER(TimeNs, PropDelay, m_propDelay)
 
         Json::Value toJson() const override {
-            Json::Value json = ComponentDef::toJson();
+            Json::Value json = CompDef::toJson();
             json["shouldAutoReschedule"] = m_autoReschedule;
             json["propDelay"] = m_propDelay.count();
             return json;
@@ -38,7 +38,7 @@ namespace Bess::SimEngine::Drivers {
             return TimeNs(0);
         }
 
-        std::shared_ptr<ComponentDef> clone() const override {
+        std::shared_ptr<CompDef> clone() const override {
             return std::make_shared<EvtBasedCompDef>(*this);
         }
 
@@ -47,10 +47,10 @@ namespace Bess::SimEngine::Drivers {
         TimeNs m_propDelay{0}; // propogation delay
     };
 
-    class BESS_API EvtBasedSimComponent : public SimComponent {
+    class BESS_API EvtBasedSimComp : public SimComponent {
       public:
-        EvtBasedSimComponent() = default;
-        ~EvtBasedSimComponent() override = default;
+        EvtBasedSimComp() = default;
+        ~EvtBasedSimComp() override = default;
 
         TimeNs getPropDelay() const {
             auto def = std::dynamic_pointer_cast<EvtBasedCompDef>(m_def);
@@ -72,7 +72,7 @@ namespace Bess::SimEngine::Drivers {
             return json;
         }
 
-        static void fromJson(const std::shared_ptr<EvtBasedSimComponent> &comp,
+        static void fromJson(const std::shared_ptr<EvtBasedSimComp> &comp,
                              const Json::Value &json);
     };
 
@@ -142,7 +142,7 @@ namespace Bess::SimEngine::Drivers {
         virtual bool simulate(const SimEvt &evt) = 0;
 
         virtual void addComponent(
-            const std::shared_ptr<EvtBasedSimComponent> &comp,
+            const std::shared_ptr<EvtBasedSimComp> &comp,
             bool scheduleSim = true) {
 
             {
@@ -207,7 +207,7 @@ namespace Bess::SimEngine::Drivers {
 
       private:
         void simulateEvts(const std::vector<SimEvt> &evts) {
-            using EvtComp = EvtBasedSimComponent;
+            using EvtComp = EvtBasedSimComp;
 
             for (const auto &evt : evts) {
                 const bool simDependants = simulate(evt);
@@ -239,7 +239,7 @@ namespace Bess::SimEngine::Drivers {
         }
 
         void scheduleDependantsOf(const UUID &compId) {
-            using EvtComp = EvtBasedSimComponent;
+            using EvtComp = EvtBasedSimComp;
 
             const auto &comp = getComponent<EvtComp>(compId);
 

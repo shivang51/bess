@@ -1,9 +1,9 @@
 #include "component_catalog.h"
 #include "drivers/digital_sim_driver.h"
-#include "gtest/gtest.h"
 #include "plugin_manager.h"
 #include "simulation_engine.h"
 #include "types.h"
+#include "gtest/gtest.h"
 #include <chrono>
 #include <memory>
 #include <ranges>
@@ -16,7 +16,7 @@ namespace {
     using Bess::UUID;
     using namespace Bess::SimEngine;
 
-    std::shared_ptr<Drivers::ComponentDef> findDefinitionByName(std::string_view name) {
+    std::shared_ptr<Drivers::CompDef> findDefinitionByName(std::string_view name) {
         const auto &components = ComponentCatalog::instance().getComponents();
         const auto it = std::ranges::find_if(components, [name](const auto &definition) {
             return definition && definition->getName() == name;
@@ -120,7 +120,7 @@ class SimulationEngineTest : public testing::Test {
     }
 
     SimulationEngine *engine = nullptr;
-    std::shared_ptr<Drivers::ComponentDef> inputDef, outputDef, notDef, andDef, orDef, xorDef;
+    std::shared_ptr<Drivers::CompDef> inputDef, outputDef, notDef, andDef, orDef, xorDef;
 
     void SetUp() override {
         engine = &SimulationEngine::instance();
@@ -153,7 +153,7 @@ class SimulationEngineTest : public testing::Test {
         }
     }
 
-    UUID addComponent(const std::shared_ptr<Drivers::ComponentDef> &definition) {
+    UUID addComponent(const std::shared_ptr<Drivers::CompDef> &definition) {
         const auto uuid = engine->addComponent(definition);
         EXPECT_NE(uuid, UUID::null);
         return uuid;
@@ -170,11 +170,12 @@ class SimulationEngineTest : public testing::Test {
                                 std::chrono::milliseconds timeout = 250ms) {
         ASSERT_TRUE(waitUntil([&] {
             return slotStateEquals(*engine, uuid, type, idx, expected);
-        }, timeout))
+        },
+                              timeout))
             << "Timed out waiting for slot state " << static_cast<int>(expected);
     }
 
-    void exerciseBinaryGate(const std::shared_ptr<Drivers::ComponentDef> &gateDef,
+    void exerciseBinaryGate(const std::shared_ptr<Drivers::CompDef> &gateDef,
                             const std::array<bool, 4> &expectedOutputs) {
         const auto inputA = addComponent(inputDef);
         const auto inputB = addComponent(inputDef);
@@ -198,7 +199,6 @@ class SimulationEngineTest : public testing::Test {
             expectOutputEventually(gate, SlotType::digitalOutput, 0, boolToState(expectedOutputs[i]));
         }
     }
-
 };
 
 TEST_F(SimulationEngineTest, CatalogIncludesBuiltInAndPluginDefinitions) {
@@ -339,7 +339,7 @@ TEST_F(SimulationEngineTest, DeleteComponentRemovesItFromStateAndConnections) {
 
     engine->deleteComponent(input);
 
-    EXPECT_EQ(engine->getComponent<Drivers::Digital::DigitalSimComponent>(input), nullptr);
+    EXPECT_EQ(engine->getComponent<Drivers::Digital::DigSimComp>(input), nullptr);
     const auto connections = engine->getConnections(gate);
     ASSERT_EQ(connections.inputs.size(), 1u);
     EXPECT_TRUE(connections.inputs[0].empty());

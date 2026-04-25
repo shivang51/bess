@@ -122,7 +122,7 @@ namespace Bess::Pages {
             }
         }
 
-        void resizeOutputs(const std::shared_ptr<Drivers::Digital::DigitalSimComponent> &component,
+        void resizeOutputs(const std::shared_ptr<Drivers::Digital::DigSimComp> &component,
                            size_t count) {
             if (!component) {
                 return;
@@ -143,7 +143,7 @@ namespace Bess::Pages {
             component->getIsOutputConnected().resize(count, false);
         }
 
-        void resizeInputs(const std::shared_ptr<Drivers::Digital::DigitalSimComponent> &component,
+        void resizeInputs(const std::shared_ptr<Drivers::Digital::DigSimComp> &component,
                           size_t count) {
             if (!component) {
                 return;

@@ -60,7 +60,8 @@ namespace Bess::SimEngine::Drivers::Digital {
          * by default it will return value of group.isResizeable
          **/
         virtual bool onSlotsResizeReq(SlotsGroupType groupType, size_t newSize) {
-            if (groupType == SlotsGroupType::input) return m_inputSlotsInfo.isResizeable;
+            if (groupType == SlotsGroupType::input)
+                return m_inputSlotsInfo.isResizeable;
             return m_outputSlotsInfo.isResizeable;
         }
 
@@ -74,7 +75,7 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         virtual void onExpressionsChange() {}
 
-        std::shared_ptr<ComponentDef> clone() const override {
+        std::shared_ptr<CompDef> clone() const override {
             return std::make_shared<DigCompDef>(*this);
         }
 
@@ -94,13 +95,13 @@ namespace Bess::SimEngine::Drivers::Digital {
         std::vector<std::string> m_outputExpressions; // A+B or A.B etc.
     };
 
-    class BESS_API DigitalSimComponent : public EvtBasedSimComponent {
+    class BESS_API DigSimComp : public EvtBasedSimComp {
       public:
-        DigitalSimComponent() = default;
-        ~DigitalSimComponent() override = default;
+        DigSimComp() = default;
+        ~DigSimComp() override = default;
 
-        static std::shared_ptr<DigitalSimComponent> fromDef(
-            const std::shared_ptr<ComponentDef> &compDef) {
+        static std::shared_ptr<DigSimComp> fromDef(
+            const std::shared_ptr<CompDef> &compDef) {
             if (!compDef) {
                 BESS_WARN("(DigitalSimDriver.fromDef) compDef is nullptr");
                 return nullptr;
@@ -108,7 +109,7 @@ namespace Bess::SimEngine::Drivers::Digital {
 
             const auto clone = compDef->clone();
 
-            const auto comp = std::make_shared<DigitalSimComponent>();
+            const auto comp = std::make_shared<DigSimComp>();
             comp->setName(clone->getName());
             comp->setDefinition(clone);
 
@@ -137,7 +138,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         MAKE_GETTER_SETTER(UUID, NetUuid, m_netUuid)
 
         Json::Value toJson() const override {
-            Json::Value json = EvtBasedSimComponent::toJson();
+            Json::Value json = EvtBasedSimComp::toJson();
             JsonConvert::toJsonValue(m_inputStates, json["inputStates"]);
             JsonConvert::toJsonValue(m_outputStates, json["outputStates"]);
             JsonConvert::toJsonValue(m_inputConnections, json["inputConnections"]);
@@ -148,7 +149,7 @@ namespace Bess::SimEngine::Drivers::Digital {
             return json;
         }
 
-        static void fromJson(const std::shared_ptr<DigitalSimComponent> &comp,
+        static void fromJson(const std::shared_ptr<DigSimComp> &comp,
                              const Json::Value &json);
 
       private:
@@ -166,9 +167,9 @@ namespace Bess::SimEngine::Drivers::Digital {
         DigitalSimDriver() = default;
         ~DigitalSimDriver() override = default;
 
-        std::shared_ptr<SimComponent> createComp(const std::shared_ptr<ComponentDef> &def) override;
+        std::shared_ptr<SimComponent> createComp(const std::shared_ptr<CompDef> &def) override;
 
-        bool suuportsDef(const std::shared_ptr<ComponentDef> &def) const override {
+        bool suuportsDef(const std::shared_ptr<CompDef> &def) const override {
             return std::dynamic_pointer_cast<DigCompDef>(def) != nullptr;
         }
 
@@ -176,7 +177,7 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         bool simulate(const SimEvt &evt) override;
 
-        void addComponent(const std::shared_ptr<DigitalSimComponent> &comp,
+        void addComponent(const std::shared_ptr<DigSimComp> &comp,
                           bool scheduleSim = true);
 
         void onBeforeRun() override;
@@ -202,5 +203,5 @@ namespace Bess::SimEngine::Drivers::Digital {
 namespace Bess::JsonConvert {
 
     void toJsonValue(Json::Value &json,
-                     const Bess::SimEngine::Drivers::Digital::DigitalSimComponent &data);
+                     const Bess::SimEngine::Drivers::Digital::DigSimComp &data);
 } // namespace Bess::JsonConvert

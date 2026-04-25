@@ -17,9 +17,9 @@
 #include "scene/scene.h"
 #include "scene/scene_ser_reg.h"
 #include "simulation_engine.h"
-#include <gtest/gtest.h>
 #include <chrono>
 #include <functional>
+#include <gtest/gtest.h>
 #include <memory>
 #include <ranges>
 #include <string_view>
@@ -28,7 +28,7 @@ namespace Bess::Tests {
     using namespace Bess::Canvas;
     using namespace Bess::SimEngine;
 
-    inline std::shared_ptr<Drivers::ComponentDef> findDefinitionByName(std::string_view name) {
+    inline std::shared_ptr<Drivers::CompDef> findDefinitionByName(std::string_view name) {
         const auto &components = ComponentCatalog::instance().getComponents();
         const auto it = std::ranges::find_if(components, [name](const auto &definition) {
             return definition && definition->getName() == name;
@@ -205,7 +205,7 @@ namespace Bess::Tests {
         }
 
         SimCompFixture addSimComponentDirect(const std::shared_ptr<Scene> &targetScene,
-                                             const std::shared_ptr<Drivers::ComponentDef> &definition) {
+                                             const std::shared_ptr<Drivers::CompDef> &definition) {
             auto created = SimulationSceneComponent::createNew(definition);
             SimCompFixture fixture;
             fixture.comp = std::dynamic_pointer_cast<SimulationSceneComponent>(created.front());
@@ -229,7 +229,7 @@ namespace Bess::Tests {
             return fixture;
         }
 
-        SimCompFixture executeAddSimComponent(const std::shared_ptr<Drivers::ComponentDef> &definition) {
+        SimCompFixture executeAddSimComponent(const std::shared_ptr<Drivers::CompDef> &definition) {
             auto created = SimulationSceneComponent::createNew(definition);
             SimCompFixture fixture;
             fixture.comp = std::dynamic_pointer_cast<SimulationSceneComponent>(created.front());
@@ -272,11 +272,11 @@ namespace Bess::Tests {
 
         Bess::Svc::SvcConnection *service = nullptr;
         Bess::Svc::CopyPaste::Context *copyPaste = nullptr;
-        std::shared_ptr<Drivers::ComponentDef> inputDef;
-        std::shared_ptr<Drivers::ComponentDef> outputDef;
-        std::shared_ptr<Drivers::ComponentDef> notDef;
-        std::shared_ptr<Drivers::ComponentDef> andDef;
-        std::shared_ptr<Drivers::ComponentDef> orDef;
+        std::shared_ptr<Drivers::CompDef> inputDef;
+        std::shared_ptr<Drivers::CompDef> outputDef;
+        std::shared_ptr<Drivers::CompDef> notDef;
+        std::shared_ptr<Drivers::CompDef> andDef;
+        std::shared_ptr<Drivers::CompDef> orDef;
         std::shared_ptr<Scene> scene;
         Bess::Cmd::CommandSystem cmdSystem;
     };

@@ -14,7 +14,7 @@
 namespace Bess::Pages {
 
     struct CopiedComponent {
-        std::shared_ptr<SimEngine::Drivers::ComponentDef> def;
+        std::shared_ptr<SimEngine::Drivers::CompDef> def;
         std::type_index nsComp = typeid(void);
         glm::vec2 pos = {0.f, 0.f};
     };

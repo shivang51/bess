@@ -16,7 +16,7 @@ namespace {
     using namespace Bess::Canvas;
     using namespace Bess::SimEngine;
 
-    std::shared_ptr<Drivers::ComponentDef> findDefinitionByName(std::string_view name) {
+    std::shared_ptr<Drivers::CompDef> findDefinitionByName(std::string_view name) {
         const auto &components = ComponentCatalog::instance().getComponents();
         const auto it = std::ranges::find_if(components, [name](const auto &definition) {
             return definition && definition->getName() == name;
@@ -66,7 +66,7 @@ class ConnectionServiceTest : public testing::Test {
         SimulationEngine::instance().clear();
     }
 
-    SimCompFixture addSimComponent(const std::shared_ptr<Drivers::ComponentDef> &definition) {
+    SimCompFixture addSimComponent(const std::shared_ptr<Drivers::CompDef> &definition) {
         auto created = SimulationSceneComponent::createNew(definition);
         SimCompFixture fixture;
         if (created.empty()) {
@@ -104,8 +104,8 @@ class ConnectionServiceTest : public testing::Test {
 
     Bess::Svc::SvcConnection *service = nullptr;
     std::unique_ptr<Scene> scene;
-    std::shared_ptr<Drivers::ComponentDef> inputDef;
-    std::shared_ptr<Drivers::ComponentDef> outputDef;
+    std::shared_ptr<Drivers::CompDef> inputDef;
+    std::shared_ptr<Drivers::CompDef> outputDef;
 };
 
 TEST_F(ConnectionServiceTest, CanConnectRejectsSameDirectionSlots) {
@@ -243,7 +243,7 @@ class ResizeSlotConnectionTest : public ConnectionServiceTest {
         andDef = def;
     }
 
-    std::shared_ptr<Drivers::ComponentDef> andDef;
+    std::shared_ptr<Drivers::CompDef> andDef;
 };
 
 TEST_F(ResizeSlotConnectionTest, AddSlotIncreasesSimEngineInputCountAndDefMetadata) {

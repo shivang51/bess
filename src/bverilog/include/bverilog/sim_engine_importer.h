@@ -77,5 +77,5 @@ namespace Bess::Verilog {
         Bess::SimEngine::SimulationEngine &engine,
         const YosysRunnerConfig &config = {});
 
-    BESS_API std::shared_ptr<SimEngine::Drivers::ComponentDef> getFromAuxDataJson(Json::Value auxDataJson);
+    BESS_API std::shared_ptr<SimEngine::Drivers::CompDef> getFromAuxDataJson(Json::Value auxDataJson);
 } // namespace Bess::Verilog

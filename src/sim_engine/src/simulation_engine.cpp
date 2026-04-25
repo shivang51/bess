@@ -140,7 +140,7 @@ namespace Bess::SimEngine {
     }
 
     const UUID &SimulationEngine::addComponent(
-        const std::shared_ptr<Drivers::ComponentDef> &definition,
+        const std::shared_ptr<Drivers::CompDef> &definition,
         bool cloneDef) {
         for (const auto &driver : m_simDrivers) {
             if (driver->suuportsDef(definition)) {
@@ -152,7 +152,7 @@ namespace Bess::SimEngine {
                 std::lock_guard lk(m_registryMutex);
                 m_simEngineState.addComponent(comp);
 
-                if (const auto digiComp = std::dynamic_pointer_cast<Drivers::Digital::DigitalSimComponent>(comp)) {
+                if (const auto digiComp = std::dynamic_pointer_cast<Drivers::Digital::DigSimComp>(comp)) {
                     Net net;
                     net.addComponent(comp->getUuid());
                     digiComp->setNetUuid(net.getUUID());
@@ -220,7 +220,7 @@ namespace Bess::SimEngine {
 
         std::lock_guard lk(m_registryMutex);
 
-        const auto comp = getComponent<Drivers::Digital::DigitalSimComponent>(uuid);
+        const auto comp = getComponent<Drivers::Digital::DigSimComp>(uuid);
         if (!comp) {
             m_simEngineState.removeComponent(uuid);
             return;
@@ -229,7 +229,7 @@ namespace Bess::SimEngine {
         auto removeBackReferences = [&](Connections &pins, bool removeFromInputs) {
             for (const auto &pin : pins) {
                 for (const auto &[otherId, otherIdx] : pin) {
-                    const auto other = getComponent<Drivers::Digital::DigitalSimComponent>(otherId);
+                    const auto other = getComponent<Drivers::Digital::DigSimComp>(otherId);
                     if (!other) {
                         continue;
                     }
@@ -322,7 +322,7 @@ namespace Bess::SimEngine {
             return {LogicState::unknown, SimTime(0)};
         }
 
-        const auto &comp = getComponent<Drivers::Digital::DigitalSimComponent>(uuid);
+        const auto &comp = getComponent<Drivers::Digital::DigSimComp>(uuid);
 
         if (idx < 0) {
             BESS_WARN("[getDigitalPinState] Negative slot index {} for component {}", idx, (uint64_t)uuid);
@@ -353,7 +353,7 @@ namespace Bess::SimEngine {
             return bundle;
         }
 
-        const auto comp = getComponent<Drivers::Digital::DigitalSimComponent>(uuid);
+        const auto comp = getComponent<Drivers::Digital::DigSimComp>(uuid);
         if (!comp) {
             return bundle;
         }
@@ -442,7 +442,7 @@ namespace Bess::SimEngine {
         static thread_local ComponentState snapshot;
         snapshot = {};
 
-        const auto comp = getComponent<Drivers::Digital::DigitalSimComponent>(uuid);
+        const auto comp = getComponent<Drivers::Digital::DigSimComp>(uuid);
         if (!comp) {
             return snapshot;
         }
@@ -454,7 +454,7 @@ namespace Bess::SimEngine {
         return snapshot;
     }
 
-    const std::shared_ptr<Drivers::ComponentDef> &SimulationEngine::getComponentDefinition(
+    const std::shared_ptr<Drivers::CompDef> &SimulationEngine::getComponentDefinition(
         const UUID &uuid) const {
         const auto &comp = getComponent<Drivers::SimComponent>(uuid);
         return comp->getDefinition();
@@ -479,7 +479,7 @@ namespace Bess::SimEngine {
     }
 
     std::vector<SlotState> SimulationEngine::getInputSlotsState(UUID compId) const {
-        const auto comp = getComponent<Drivers::Digital::DigitalSimComponent>(compId);
+        const auto comp = getComponent<Drivers::Digital::DigSimComp>(compId);
         if (!comp) {
             return {};
         }
@@ -501,7 +501,7 @@ namespace Bess::SimEngine {
             bool anyKnown = false;
 
             for (const auto &[srcId, srcSlotIdx] : pinConns) {
-                const auto srcComp = getComponent<Drivers::Digital::DigitalSimComponent>(srcId);
+                const auto srcComp = getComponent<Drivers::Digital::DigSimComp>(srcId);
                 if (!srcComp || srcSlotIdx < 0) {
                     continue;
                 }
@@ -972,9 +972,9 @@ namespace Bess::SimEngine {
         return m_eventSet.empty();
     }
 
-    std::shared_ptr<Drivers::Digital::DigitalSimComponent> SimulationEngine::getDigitalComponent(
+    std::shared_ptr<Drivers::Digital::DigSimComp> SimulationEngine::getDigitalComponent(
         const UUID &uuid) const {
-        return getComponent<Drivers::Digital::DigitalSimComponent>(uuid);
+        return getComponent<Drivers::Digital::DigSimComp>(uuid);
     }
 
     const SimEngineState &SimulationEngine::getSimEngineState() const {
@@ -1001,7 +1001,7 @@ namespace Bess::SimEngine {
             queue.pop();
             queued.erase(currentId);
 
-            const auto sourceComp = getComponent<Drivers::Digital::DigitalSimComponent>(currentId);
+            const auto sourceComp = getComponent<Drivers::Digital::DigSimComp>(currentId);
             if (!sourceComp) {
                 continue;
             }
@@ -1019,7 +1019,7 @@ namespace Bess::SimEngine {
                         continue;
                     }
 
-                    const auto targetComp = getComponent<Drivers::Digital::DigitalSimComponent>(targetId);
+                    const auto targetComp = getComponent<Drivers::Digital::DigSimComp>(targetId);
                     if (!targetComp) {
                         continue;
                     }

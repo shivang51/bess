@@ -15,7 +15,7 @@ namespace Bess::UI {
 
         void onBeforeDraw() override;
 
-        static UUID createComponent(const std::shared_ptr<SimEngine::Drivers::ComponentDef> &def,
+        static UUID createComponent(const std::shared_ptr<SimEngine::Drivers::CompDef> &def,
                                     const glm::vec2 &pos = {0.f, 0.f});
         static UUID createComponent(std::type_index tIdx, const glm::vec2 &pos = {0.f, 0.f});
 

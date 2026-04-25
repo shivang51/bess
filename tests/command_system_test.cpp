@@ -158,7 +158,7 @@ TEST_F(CommandSystemTest, RepeatedUndoRedoCyclesKeepMacroAddedSceneStable) {
 TEST_F(CommandSystemTest, LongLinearHistoryCanBeFullyUndoneAndReplayed) {
     std::vector<Bess::UUID> componentIds;
     std::vector<size_t> componentSizes;
-    const std::array<std::shared_ptr<Bess::SimEngine::Drivers::ComponentDef>, 3> defs = {
+    const std::array<std::shared_ptr<Bess::SimEngine::Drivers::CompDef>, 3> defs = {
         inputDef,
         andDef,
         outputDef,

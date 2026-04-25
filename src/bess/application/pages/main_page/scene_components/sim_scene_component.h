@@ -29,11 +29,11 @@ namespace Bess::Canvas {
         // [0] -> Component itself
         // [1...] -> Created slots
         static std::vector<std::shared_ptr<SceneComponent>> createNew(
-            const std::shared_ptr<SimEngine::Drivers::ComponentDef> &compDef);
+            const std::shared_ptr<SimEngine::Drivers::CompDef> &compDef);
 
         template <typename T = SimulationSceneComponent>
         static std::vector<std::shared_ptr<SceneComponent>> createNew(
-            const std::shared_ptr<SimEngine::Drivers::ComponentDef> &compDef) {
+            const std::shared_ptr<SimEngine::Drivers::CompDef> &compDef) {
             std::vector<std::shared_ptr<SceneComponent>> createdComps;
 
             const auto def = std::dynamic_pointer_cast<
@@ -121,7 +121,7 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(std::vector<UUID>, InputSlots, m_inputSlots)
         MAKE_GETTER_SETTER(std::vector<UUID>, OutputSlots, m_outputSlots)
         MAKE_GETTER_SETTER(Transform, SchematicTransform, m_schematicTransform)
-        MAKE_GETTER_SETTER(std::shared_ptr<SimEngine::Drivers::ComponentDef>, CompDef, m_compDef)
+        MAKE_GETTER_SETTER(std::shared_ptr<SimEngine::Drivers::CompDef>, CompDef, m_compDef)
 
         void setSchSlotsPosDirty(bool val = true);
         size_t getInputSlotsCount() const;
@@ -198,7 +198,7 @@ namespace Bess::Canvas {
         bool m_isScaleDirty = true, m_isSchematicScaleDirty = true;
         bool m_isSchSlotsPosDirty = true;
         Transform m_schematicTransform;
-        std::shared_ptr<SimEngine::Drivers::ComponentDef> m_compDef = nullptr;
+        std::shared_ptr<SimEngine::Drivers::CompDef> m_compDef = nullptr;
     };
 } // namespace Bess::Canvas
 

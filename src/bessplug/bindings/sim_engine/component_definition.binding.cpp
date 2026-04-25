@@ -1,17 +1,17 @@
 #include "expression_evalutator/expr_evaluator.h"
+#include <pybind11/chrono.h>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <pybind11/chrono.h>
 
 #ifdef DEBUG
     #define PYBIND11_DEBUG
 #endif
 
 #include "component_definition.h"
+#include "drivers/sim_driver.h"
 #include "internal_types.h"
 #include "types.h"
-#include "drivers/sim_driver.h"
 
 #include <iostream>
 #include <pystate.h>
@@ -196,9 +196,9 @@ void bind_sim_engine_component_definition(py::module_ &m) {
         return comp_def;
     };
 
-    py::class_<Bess::SimEngine::Drivers::ComponentDef,
-               std::shared_ptr<Bess::SimEngine::Drivers::ComponentDef>>(m, "ComponentDef")
-        .def("get_name", py::overload_cast<>(&Bess::SimEngine::Drivers::ComponentDef::getName, py::const_));
+    py::class_<Bess::SimEngine::Drivers::CompDef,
+               std::shared_ptr<Bess::SimEngine::Drivers::CompDef>>(m, "ComponentDef")
+        .def("get_name", py::overload_cast<>(&Bess::SimEngine::Drivers::CompDef::getName, py::const_));
 
     py::class_<ComponentDefinition,
                PyComponentDefinition,

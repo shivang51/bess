@@ -21,13 +21,13 @@ namespace Bess::SimEngine::Drivers {
         bool simDependants = false;
     };
 
-    class BESS_API ComponentDef {
+    class BESS_API CompDef {
       public:
         typedef std::shared_ptr<SimFnDataBase> SimFnDataPtr;
         typedef std::function<SimFnDataPtr(const SimFnDataPtr &)> SimFn;
 
-        ComponentDef() = default;
-        virtual ~ComponentDef() = default;
+        CompDef() = default;
+        virtual ~CompDef() = default;
 
         MAKE_GETTER_SETTER(std::string, TypeName, m_typeName)
         MAKE_GETTER_SETTER(std::string, Name, m_name)
@@ -42,11 +42,11 @@ namespace Bess::SimEngine::Drivers {
             return json;
         }
 
-        static void fromJson(const std::shared_ptr<ComponentDef> &compDef,
+        static void fromJson(const std::shared_ptr<CompDef> &compDef,
                              const Json::Value &json) {}
 
-        virtual std::shared_ptr<ComponentDef> clone() const {
-            return std::make_shared<ComponentDef>(*this);
+        virtual std::shared_ptr<CompDef> clone() const {
+            return std::make_shared<CompDef>(*this);
         }
 
       protected:
@@ -68,7 +68,7 @@ namespace Bess::SimEngine::Drivers {
 
         MAKE_GETTER_SETTER(UUID, Uuid, m_uuid)
         MAKE_GETTER_SETTER(std::string, Name, m_name)
-        MAKE_GETTER_SETTER(std::shared_ptr<ComponentDef>,
+        MAKE_GETTER_SETTER(std::shared_ptr<CompDef>,
                            Definition,
                            m_def)
 
@@ -104,7 +104,7 @@ namespace Bess::SimEngine::Drivers {
       protected:
         UUID m_uuid; // will auto gen id for each instance
         std::string m_name;
-        std::shared_ptr<ComponentDef> m_def = nullptr;
+        std::shared_ptr<CompDef> m_def = nullptr;
     };
 
     enum class SimDriverState : uint8_t {
@@ -126,10 +126,10 @@ namespace Bess::SimEngine::Drivers {
         virtual std::string getName() const = 0;
 
         // returns whether driver will accept the component.
-        virtual bool suuportsDef(const std::shared_ptr<ComponentDef> &def) const = 0;
+        virtual bool suuportsDef(const std::shared_ptr<CompDef> &def) const = 0;
 
         virtual std::shared_ptr<SimComponent> createComp(
-            const std::shared_ptr<ComponentDef> &def) = 0;
+            const std::shared_ptr<CompDef> &def) = 0;
 
         virtual void clearPendingEvents() {}
 

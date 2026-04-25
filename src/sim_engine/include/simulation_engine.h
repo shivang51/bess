@@ -25,7 +25,7 @@ namespace Bess::SimEngine {
 
         void destroy();
 
-        const UUID &addComponent(const std::shared_ptr<Drivers::ComponentDef> &definition,
+        const UUID &addComponent(const std::shared_ptr<Drivers::CompDef> &definition,
                                  bool cloneDef = true);
 
         template <typename T>
@@ -74,9 +74,9 @@ namespace Bess::SimEngine {
         void stepSimulation();
 
         const ComponentState &getComponentState(const UUID &uuid);
-        const std::shared_ptr<Drivers::ComponentDef> &getComponentDefinition(
+        const std::shared_ptr<Drivers::CompDef> &getComponentDefinition(
             const UUID &uuid) const;
-        std::shared_ptr<Drivers::Digital::DigitalSimComponent> getDigitalComponent(const UUID &uuid) const;
+        std::shared_ptr<Drivers::Digital::DigSimComp> getDigitalComponent(const UUID &uuid) const;
 
         void clear();
 

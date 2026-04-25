@@ -17,7 +17,7 @@ namespace {
     TEST(SimDriverTest, CreateBaseDefinitionStoresTypeName) {
         struct SimData {};
 
-        ComponentDef definition;
+        CompDef definition;
         definition.setTypeName("base.definition");
 
         const auto json = definition.toJson();
@@ -37,13 +37,14 @@ namespace {
         andGate.setPropDelay(Bess::TimeNs(1));
         andGate.setSimFn([](const std::shared_ptr<Drivers::SimFnDataBase> &dataBase) {
             const auto data = std::dynamic_pointer_cast<DigCompSimData>(dataBase);
-            if (!data) return dataBase;
-            
+            if (!data)
+                return dataBase;
+
             data->outputStates.resize(1);
             const bool out = data->inputStates.size() >= 2 &&
                              data->inputStates[0].state == LogicState::high &&
                              data->inputStates[1].state == LogicState::high;
-            data->outputStates[0] = SlotState(out ? LogicState::high : LogicState::low, 
+            data->outputStates[0] = SlotState(out ? LogicState::high : LogicState::low,
                                               std::chrono::duration_cast<SimTime>(data->simTime));
             data->simDependants = true;
             return dataBase;
@@ -63,7 +64,7 @@ namespace {
         data->simTime = Bess::TimeNs(10);
         const auto nextBase = simFn(data);
         const auto next = std::dynamic_pointer_cast<DigCompSimData>(nextBase);
-        
+
         ASSERT_NE(next, nullptr);
         ASSERT_EQ(next->outputStates.size(), 1u);
         EXPECT_EQ(next->outputStates[0].state, LogicState::high);
@@ -73,15 +74,15 @@ namespace {
         DigitalSimDriver driver;
         const Bess::UUID compId(0xAA11);
 
-        auto component = std::make_shared<DigitalSimComponent>();
+        auto component = std::make_shared<DigSimComp>();
         component->setUuid(compId);
         component->setName("AND#1");
 
-        EXPECT_EQ(driver.getComponent<DigitalSimComponent>(compId), nullptr);
+        EXPECT_EQ(driver.getComponent<DigSimComp>(compId), nullptr);
 
         driver.addComponent(component);
 
-        const auto stored = driver.getComponent<DigitalSimComponent>(compId);
+        const auto stored = driver.getComponent<DigSimComp>(compId);
         ASSERT_NE(stored, nullptr);
         EXPECT_EQ(stored->getUuid(), compId);
         EXPECT_EQ(driver.getComponentsMap().size(), 1u);
@@ -92,7 +93,7 @@ namespace {
         DigitalSimDriver driver;
         const Bess::UUID compId(0xBADD);
 
-        auto component = std::make_shared<DigitalSimComponent>();
+        auto component = std::make_shared<DigSimComp>();
         std::atomic<bool> simulatedByRunLoop{false};
 
         auto def = std::make_shared<DigCompDef>();
@@ -139,7 +140,7 @@ namespace {
         driver.stop();
         runLoop.join();
 
-        const auto stored = driver.getComponent<DigitalSimComponent>(compId);
+        const auto stored = driver.getComponent<DigSimComp>(compId);
         ASSERT_NE(stored, nullptr);
         ASSERT_EQ(stored->getOutputStates().size(), 1u);
         EXPECT_TRUE(simulatedByRunLoop.load());
@@ -166,7 +167,7 @@ namespace {
         auto id = engine.addComponent(def);
         EXPECT_NE(id, Bess::UUID::null);
 
-        auto comp = engine.getComponent<DigitalSimComponent>(id);
+        auto comp = engine.getComponent<DigSimComp>(id);
         EXPECT_NE(comp, nullptr);
         EXPECT_EQ(comp->getUuid(), id);
         EXPECT_EQ(comp->getDefinition()->getName(), "NAND Gate");

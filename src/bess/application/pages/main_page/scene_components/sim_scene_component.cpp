@@ -365,7 +365,7 @@ namespace Bess::Canvas {
     }
 
     std::vector<std::shared_ptr<SceneComponent>> SimulationSceneComponent::createNew(
-        const std::shared_ptr<SimEngine::Drivers::ComponentDef> &compDef) {
+        const std::shared_ptr<SimEngine::Drivers::CompDef> &compDef) {
 
         const auto def = std::dynamic_pointer_cast<
             SimEngine::Drivers::Digital::DigCompDef>(compDef);

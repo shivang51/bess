@@ -13,10 +13,10 @@ namespace {
     using namespace Bess::Canvas;
     using namespace Bess::SimEngine;
 
-    std::shared_ptr<Drivers::ComponentDef> makeDefinition(const std::string &name,
-                                                          ComponentBehaviorType behaviorType,
-                                                          size_t inputCount,
-                                                          size_t outputCount) {
+    std::shared_ptr<Drivers::CompDef> makeDefinition(const std::string &name,
+                                                     ComponentBehaviorType behaviorType,
+                                                     size_t inputCount,
+                                                     size_t outputCount) {
         auto definition = std::make_shared<Drivers::Digital::DigCompDef>();
         definition->setName(name);
         definition->setBehaviorType(behaviorType);
@@ -62,7 +62,7 @@ namespace {
     };
 
     SimFixture addSimulationComponent(Scene &scene,
-                                      const std::shared_ptr<Drivers::ComponentDef> &definition) {
+                                      const std::shared_ptr<Drivers::CompDef> &definition) {
         auto created = SimulationSceneComponent::createNew(definition);
         auto component =
             std::dynamic_pointer_cast<SimulationSceneComponent>(created.front());

@@ -132,7 +132,7 @@ namespace Bess::UI {
         ImGui::PopStyleVar(2);
     }
 
-    UUID ComponentExplorer::createComponent(const std::shared_ptr<SimEngine::Drivers::ComponentDef> &def,
+    UUID ComponentExplorer::createComponent(const std::shared_ptr<SimEngine::Drivers::CompDef> &def,
                                             const glm::vec2 &pos) {
 
         auto &cmdSystem = Pages::MainPage::getInstance()->getState().getCommandSystem();

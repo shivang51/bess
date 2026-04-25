@@ -10,7 +10,7 @@ namespace Bess::SimEngine {
         return instance;
     }
 
-    const std::vector<std::shared_ptr<Drivers::ComponentDef>> &ComponentCatalog::getComponents() const {
+    const std::vector<std::shared_ptr<Drivers::CompDef>> &ComponentCatalog::getComponents() const {
         return m_components;
     }
 
@@ -26,7 +26,7 @@ namespace Bess::SimEngine {
         return m_componentTree;
     }
 
-    std::shared_ptr<Drivers::ComponentDef> ComponentCatalog::getComponentDefinition(const std::string &name) const {
+    std::shared_ptr<Drivers::CompDef> ComponentCatalog::getComponentDefinition(const std::string &name) const {
         if (m_compNameMap.contains(name)) {
             return m_compNameMap.at(name);
         }
@@ -34,9 +34,9 @@ namespace Bess::SimEngine {
         return nullptr;
     }
 
-    std::shared_ptr<Drivers::ComponentDef> ComponentCatalog::getComponentDefinitionCopy(const std::string &name) {
+    std::shared_ptr<Drivers::CompDef> ComponentCatalog::getComponentDefinitionCopy(const std::string &name) {
         if (m_compNameMap.contains(name)) {
-            return std::make_shared<Drivers::ComponentDef>(*(m_compNameMap.at(name)));
+            return std::make_shared<Drivers::CompDef>(*(m_compNameMap.at(name)));
         }
 
         BESS_ERROR("Component definition with name {} not found", name);
@@ -53,7 +53,7 @@ namespace Bess::SimEngine {
         m_components.clear();
     }
 
-    std::shared_ptr<Drivers::ComponentDef> ComponentCatalog::findDefByName(const std::string &name) const {
+    std::shared_ptr<Drivers::CompDef> ComponentCatalog::findDefByName(const std::string &name) const {
         for (const auto &comp : m_components) {
             if (comp->getName() == name) {
                 return comp;

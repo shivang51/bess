@@ -31,7 +31,7 @@ namespace Bess::Svc {
             const Json::Value &json) const;
 
         std::shared_ptr<Canvas::SimulationSceneComponent> getSimComp(
-            const std::shared_ptr<SimEngine::Drivers::ComponentDef> &def) const;
+            const std::shared_ptr<SimEngine::Drivers::CompDef> &def) const;
 
         MAKE_GETTER(bool, IsInitialized, m_initialized)
 
