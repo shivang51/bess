@@ -24,23 +24,14 @@ namespace Bess::SimEngine::Drivers {
         MAKE_GETTER_SETTER(bool, AutoReschedule, m_autoReschedule)
         MAKE_GETTER_SETTER(TimeNs, PropDelay, m_propDelay)
 
-        Json::Value toJson() const override {
-            Json::Value json = CompDef::toJson();
-            json["shouldAutoReschedule"] = m_autoReschedule;
-            json["propDelay"] = m_propDelay.count();
-            return json;
-        }
+        Json::Value toJson() const override;
 
         static void fromJson(const std::shared_ptr<EvtBasedCompDef> &compDef,
                              const Json::Value &json) {}
 
-        virtual TimeNs getSelfSimDelay() {
-            return TimeNs(0);
-        }
+        virtual TimeNs getSelfSimDelay();
 
-        std::shared_ptr<CompDef> clone() const override {
-            return std::make_shared<EvtBasedCompDef>(*this);
-        }
+        std::shared_ptr<CompDef> clone() const override;
 
       protected:
         bool m_autoReschedule = false;
@@ -52,25 +43,13 @@ namespace Bess::SimEngine::Drivers {
         EvtBasedSimComp() = default;
         ~EvtBasedSimComp() override = default;
 
-        TimeNs getPropDelay() const {
-            auto def = std::dynamic_pointer_cast<EvtBasedCompDef>(m_def);
-            return def ? def->getPropDelay() : TimeNs(0);
-        }
+        TimeNs getPropDelay() const;
 
-        bool getSimSelf() const {
-            auto def = std::dynamic_pointer_cast<EvtBasedCompDef>(m_def);
-            return def ? def->getAutoReschedule() : false;
-        }
+        bool getSimSelf() const;
 
-        TimeNs getSelfSimDelay() const {
-            auto def = std::dynamic_pointer_cast<EvtBasedCompDef>(m_def);
-            return def ? def->getSelfSimDelay() : TimeNs(0);
-        }
+        TimeNs getSelfSimDelay() const;
 
-        Json::Value toJson() const override {
-            Json::Value json = SimComponent::toJson();
-            return json;
-        }
+        Json::Value toJson() const override;
 
         static void fromJson(const std::shared_ptr<EvtBasedSimComp> &comp,
                              const Json::Value &json);
@@ -97,219 +76,43 @@ namespace Bess::SimEngine::Drivers {
         EvtBasedSimDriver() = default;
         ~EvtBasedSimDriver() override = default;
 
-        void run() override {
-            onBeforeRun();
-
-            BESS_ASSERT(isInitialized(),
-                        "SimDriver must be initialized before running");
-            BESS_ASSERT(!isDestroyed(),
-                        "SimDriver was destroyed, cannot run");
-
-            setState(SimDriverState::running);
-
-            while (!isStopped()) {
-                std::unique_lock lk(m_runIterMutex);
-
-                BESS_DEBUG("Sim waiting for events");
-
-                m_runIterCv.wait(lk, [&] {
-                    return isStopped() || (!isPaused() && !m_events.empty());
-                });
-
-                if (isStopped()) {
-                    break;
-                }
-
-                if (isPaused()) {
-                    continue;
-                }
-
-                const auto evtsToSim = collectEvts();
-                BESS_DEBUG("Simulating {}", evtsToSim.size());
-
-                if (evtsToSim.empty()) {
-                    const auto &nextEvt = getNextEvt();
-                    std::this_thread::sleep_for(nextEvt.simTime - m_currentSimTime);
-                    m_currentSimTime = nextEvt.simTime;
-                    continue;
-                }
-
-                simulateEvts(evtsToSim);
-            }
-        }
+        void run() override;
 
         // true if the dependants should be simulated, false otherwise
         virtual bool simulate(const SimEvt &evt) = 0;
 
         virtual void addComponent(
             const std::shared_ptr<EvtBasedSimComp> &comp,
-            bool scheduleSim = true) {
+            bool scheduleSim = true);
 
-            {
-                std::lock_guard lk(m_compMapMutex);
-                m_components[comp->getUuid()] = comp;
-            }
+        virtual std::vector<UUID> getDependants(const UUID &id);
 
-            if (scheduleSim) {
-                BESS_DEBUG("Scheduling initial event for component {} at time {}ns",
-                           (uint64_t)comp->getUuid(),
-                           (m_currentSimTime + comp->getSelfSimDelay()).count());
-                scheduleEvt(comp->getUuid(),
-                            m_currentSimTime + comp->getSelfSimDelay(),
-                            UUID::null,
-                            true);
-            }
-        }
+        virtual std::vector<SlotState> collapseInputs(const UUID &id);
 
-        virtual std::vector<UUID> getDependants(const UUID &id) {
-            return {};
-        }
+        virtual void onBeforeRun();
 
-        virtual std::vector<SlotState> collapseInputs(const UUID &id) {
-            return {};
-        }
+        void onPause() override;
 
-        virtual void onBeforeRun() {}
+        void onResume() override;
 
-        void onPause() override {
-            m_runIterCv.notify_all();
-        }
-
-        void onResume() override {
-            m_runIterCv.notify_all();
-        }
-
-        void onStop() override {
-            SimDriver::onStop();
-            m_runIterCv.notify_all();
-        }
+        void onStop() override;
 
         void scheduleEvt(const UUID &compId,
                          TimeNs simTime,
                          const UUID &schedulerId,
-                         bool notify = true) {
-            static uint64_t evtId = 0;
-            SimEvt ev{UUID(evtId++),
-                      compId,
-                      schedulerId,
-                      simTime};
-            m_events.insert(ev);
-            if (notify) {
-                m_runIterCv.notify_all();
-            }
-        }
+                         bool notify = true);
 
-        void clearPendingEvents() override {
-            std::lock_guard lk(m_runIterMutex);
-            m_events.clear();
-            m_runIterCv.notify_all();
-        }
+        void clearPendingEvents() override;
 
       private:
-        void simulateEvts(const std::vector<SimEvt> &evts) {
-            using EvtComp = EvtBasedSimComp;
+        void simulateEvts(const std::vector<SimEvt> &evts);
 
-            for (const auto &evt : evts) {
-                const bool simDependants = simulate(evt);
-
-                const auto &comp = getComponent<EvtComp>(evt.compId);
-
-                if (!comp) {
-                    BESS_WARN("(EvtBasedSimDriver.run) Component with UUID {} not found",
-                              (uint64_t)evt.compId);
-                    continue;
-                }
-
-                if (simDependants) {
-                    scheduleDependantsOf(evt.compId);
-                }
-
-                if (comp->getSimSelf()) {
-                    scheduleEvt(evt.compId,
-                                m_currentSimTime + comp->getSelfSimDelay(),
-                                UUID::null,
-                                true);
-                }
-            }
-
-            // remove collected evts from the event set
-            for (const auto &evt : evts) {
-                m_events.erase(evt);
-            }
-        }
-
-        void scheduleDependantsOf(const UUID &compId) {
-            using EvtComp = EvtBasedSimComp;
-
-            const auto &comp = getComponent<EvtComp>(compId);
-
-            if (!comp) {
-                BESS_WARN("(EvtBasedSimDriver.scheduleDependantsOf) Component with UUID {} not found",
-                          (uint64_t)compId);
-                return;
-            }
-
-            const auto dependants = getDependants(compId);
-
-            for (const auto &id : dependants) {
-                scheduleEvt(id,
-                            m_currentSimTime + comp->getPropDelay(),
-                            compId,
-                            false);
-            }
-
-            m_runIterCv.notify_all();
-        }
+        void scheduleDependantsOf(const UUID &compId);
 
         // returns the next evt baesd on sim time
-        SimEvt getNextEvt() const {
-            SimEvt ev;
-            if (m_events.empty()) {
-                // if no events so return with currentSimTime,
-                // so it just continues to wait for new events to be scheduled
-                ev.simTime = m_currentSimTime;
-                return ev;
-            }
+        SimEvt getNextEvt() const;
 
-            ev.simTime = TimeNs::max();
-
-            for (const auto &evt : m_events) {
-                if (evt.simTime < ev.simTime) {
-                    ev = evt;
-                }
-            }
-
-            return ev;
-        }
-
-        std::vector<SimEvt> collectEvts() {
-            std::set<UUID> collectedCompIds = {};
-            std::vector<SimEvt> evtsToSim = {};
-
-            for (const auto &evt : m_events) {
-                if (evt.simTime > m_currentSimTime) {
-                    continue;
-                }
-
-                if (collectedCompIds.contains(evt.compId)) {
-                    continue;
-                }
-
-                collectedCompIds.insert(evt.compId);
-                evtsToSim.push_back(evt);
-            }
-
-            // sort by sim time, then by event id to ensure deterministic order
-            std::ranges::sort(evtsToSim,
-                              [](const SimEvt &a, const SimEvt &b) {
-                                  if (a.simTime != b.simTime) {
-                                      return a.simTime < b.simTime;
-                                  }
-                                  return a.evtId < b.evtId;
-                              });
-
-            return evtsToSim;
-        }
+        std::vector<SimEvt> collectEvts();
 
       protected:
         TimeNs m_currentSimTime{0};

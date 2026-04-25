@@ -1,4 +1,3 @@
-#include "drivers/digital_sim_driver.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -9,6 +8,7 @@ void bind_renderer_path(py::module_ &m);
 void bind_sim_engine_types(py::module_ &m);
 void bind_sim_functions(py::module_ &m);
 void bind_sim_engine_component_definition(py::module_ &m);
+void bind_sim_engine_driver(py::module_ &m);
 void bind_scene_schematic_diagram(py::module_ &m);
 void bind_scene_component(py::module_ &m);
 void bind_sim_scene_component(py::module_ &m);
@@ -30,18 +30,13 @@ PYBIND11_MODULE(bessplug, m) {
     bind_api(m);
 }
 
-void tempBindings(py::module &m) {
-    py::class_<Bess::SimEngine::Drivers::Digital::DigitalSimDriver>(
-        m,
-        "DigSimDriver");
-}
-
 void bind_api(py::module_ &m) {
     auto mApi = m.def_submodule("api", "BESS API bindings");
     auto mCmds = m.def_submodule("cmds", "Bess Commands bindings");
 
     auto common = mApi.def_submodule("common", "Common bindings");
     auto simEngine = mApi.def_submodule("sim_engine", "Simulation engine bindings");
+    auto simEngineDriver = simEngine.def_submodule("driver", "Simulation driver bindings");
     auto simFn = simEngine.def_submodule("sim_functions", "Simulation engine prebuilt simulation functions");
     auto scene = mApi.def_submodule("scene", "Scene bindings");
     auto renderer = scene.def_submodule("renderer", "Scene Renderer bindings");
@@ -57,11 +52,10 @@ void bind_api(py::module_ &m) {
     // Common
     bind_common_bindings(common);
 
-    tempBindings(simEngine);
-
     // Sim Engine
     bind_sim_engine_types(simEngine);
     bind_sim_engine_component_definition(simEngine);
+    bind_sim_engine_driver(simEngineDriver);
     bind_sim_functions(simFn);
 
     // Scene

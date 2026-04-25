@@ -21,6 +21,8 @@ source_group("include" FILES ${Header_Files})
 
 set(Source_Files
 		"src/drivers/digital_sim_driver.cpp"
+    "src/drivers/sim_driver.cpp"
+    "src/drivers/event_based_sim_driver.cpp"
     "src/simulation_engine.cpp"
 		"src/sim_engine_state.cpp"
 		"src/module_def.cpp"

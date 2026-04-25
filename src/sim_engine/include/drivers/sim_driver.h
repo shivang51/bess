@@ -34,20 +34,12 @@ namespace Bess::SimEngine::Drivers {
         MAKE_GETTER_SETTER(std::string, GroupName, m_groupName)
         MAKE_VGETTER_VSETTER(SimFn, SimFn, m_simFn)
 
-        virtual Json::Value toJson() const {
-            Json::Value json;
-            json["groupName"] = m_groupName;
-            json["typeName"] = m_typeName;
-            json["name"] = m_name;
-            return json;
-        }
+        virtual Json::Value toJson() const;
 
         static void fromJson(const std::shared_ptr<CompDef> &compDef,
                              const Json::Value &json) {}
 
-        virtual std::shared_ptr<CompDef> clone() const {
-            return std::make_shared<CompDef>(*this);
-        }
+        virtual std::shared_ptr<CompDef> clone() const;
 
       protected:
         std::string m_typeName;
@@ -72,34 +64,13 @@ namespace Bess::SimEngine::Drivers {
                            Definition,
                            m_def)
 
-        virtual Json::Value toJson() const {
-            Json::Value json;
-            JsonConvert::toJsonValue(m_uuid, json["uuid"]);
-            json["name"] = m_name;
-            json["def"] = m_def ? m_def->toJson() : Json::Value();
-            return json;
-        }
+        virtual Json::Value toJson() const;
+
         static void fromJson(const std::shared_ptr<SimComponent> &comp,
                              const Json::Value &json);
 
         virtual std::shared_ptr<SimFnDataBase> simulate(
-            const std::shared_ptr<SimFnDataBase> &data) {
-            if (!m_def) {
-                BESS_WARN("(SimComponent.simulate) No definition for component with UUID {}",
-                          (uint64_t)m_uuid);
-                return data;
-            }
-
-            auto simFn = m_def->getSimFn();
-
-            if (simFn) {
-                return simFn(data);
-            }
-
-            BESS_WARN("(SimComponent.simulate) No sim function for component definition of component with UUID {}",
-                      (uint64_t)m_uuid);
-            return data;
-        }
+            const std::shared_ptr<SimFnDataBase> &data);
 
       protected:
         UUID m_uuid; // will auto gen id for each instance
@@ -147,6 +118,7 @@ namespace Bess::SimEngine::Drivers {
             const UUID &compB, SlotType pinBType, int idxB) = 0;
 
         virtual bool addSlot(Bess::SimEngine::SimulationEngine &engine, const UUID &compId, SlotType type, int index) = 0;
+
         virtual bool removeSlot(Bess::SimEngine::SimulationEngine &engine, const UUID &compId, SlotType type, int index) = 0;
 
       protected:
@@ -178,10 +150,7 @@ namespace Bess::SimEngine::Drivers {
                               m_state,
                               m_stateMutex)
 
-        bool hasComponent(const UUID &id) const {
-            std::lock_guard lk(m_compMapMutex);
-            return m_components.contains(id);
-        }
+        bool hasComponent(const UUID &id) const;
 
         template <typename TComp>
         std::shared_ptr<TComp> getComponent(const UUID &id) const {
@@ -194,87 +163,29 @@ namespace Bess::SimEngine::Drivers {
                 m_components.at(id));
         }
 
-        void init() {
-            onInit();
-            std::lock_guard lk(m_stateMutex);
-            m_state = SimDriverState::stopped;
-        }
+        void init();
 
-        bool isInitialized() const {
-            std::lock_guard lk(m_stateMutex);
-            return m_state != SimDriverState::uninitialized;
-        }
+        bool isInitialized() const;
 
-        bool isRunning() const {
-            std::lock_guard lk(m_stateMutex);
-            return m_state == SimDriverState::running;
-        }
+        bool isRunning() const;
 
-        bool isPaused() const {
-            std::lock_guard lk(m_stateMutex);
-            return m_state == SimDriverState::paused;
-        }
+        bool isPaused() const;
 
-        bool isStopped() const {
-            std::lock_guard lk(m_stateMutex);
-            return m_state == SimDriverState::stopped;
-        }
+        bool isStopped() const;
 
-        bool isDestroyed() const {
-            std::lock_guard lk(m_stateMutex);
-            return m_state == SimDriverState::destroyed;
-        }
+        bool isDestroyed() const;
 
-        void pause() {
-            if (isRunning()) {
-                {
-                    std::lock_guard lk(m_stateMutex);
-                    m_state = SimDriverState::paused;
-                }
-                onPause();
-            }
-        }
+        void pause();
 
-        void resume() {
-            if (isPaused()) {
-                {
-                    std::lock_guard lk(m_stateMutex);
-                    m_state = SimDriverState::running;
-                }
-                onResume();
-            }
-        }
+        void resume();
 
-        void stop() {
-            if (isRunning() || isPaused()) {
-                {
-                    std::lock_guard lk(m_stateMutex);
-                    m_state = SimDriverState::stopped;
-                }
-                onStop();
-            }
-        }
+        void stop();
 
-        void reset() {
-            onReset();
-            std::lock_guard lk(m_stateMutex);
-            m_state = SimDriverState::uninitialized;
-        }
+        void reset();
 
-        void destroy() {
-            if (isDestroyed())
-                return;
+        void destroy();
 
-            onDestroy();
-            std::lock_guard lk(m_stateMutex);
-            m_state = SimDriverState::destroyed;
-        }
-
-        void step() {
-            if (isPaused()) {
-                onStep();
-            }
-        }
+        void step();
 
       protected:
         ComponentsMap m_components;
