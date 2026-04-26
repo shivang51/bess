@@ -4,6 +4,7 @@ from bessplug import Plugin
 from bessplug.api.sim_engine.driver import CompDef
 
 # from components import seven_segment_display, seven_segment_display_driver
+
 # from components.alu_74LS181 import dm74ls181
 # from components.combinational_circuits import combinational_circuits
 from components.digital_gates import (
@@ -12,7 +13,8 @@ from components.digital_gates import (
 )
 from components.latches import latches
 
-# from components.flip_flops import flip_flops
+from components.flip_flops import flip_flops
+
 # from components.tristate_buffer import tristate_buffer_def
 from scene.digital_gate_comp import DigitalGateComp
 from scene.output_comp import OutputComp
@@ -30,7 +32,11 @@ class BessPlugin(Plugin):
 
     @override
     def on_comp_catalog_load(self) -> list[CompDef]:
-        return [*latches, *digital_gates]
+        return [
+            *digital_gates,
+            *flip_flops,
+            *latches,
+        ]
         # return [
         #     *latches,
         #     *digital_gates,

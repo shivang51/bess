@@ -1,13 +1,12 @@
 from enum import Enum
 from bessplug.api.common.time import TimeNS
 from bessplug.api.sim_engine import (
-    ComponentDefinition,
-    ComponentState,
     PinState,
     LogicState,
 )
 from bessplug.api.sim_engine import SlotCategory
 from bessplug.api.sim_engine import SlotsGroupInfo
+from bessplug.api.sim_engine.driver import DigCompDef, DigCompSimData
 
 CLK_PIN_NAME = "CLK"
 CLR_PIN_NAME = "CLR"
@@ -64,36 +63,35 @@ class FlipFlopAuxData:
         )
 
 
-def _simulate_flip_flop(
-    inputs: list[PinState], simTime: float, oldState: ComponentState
-) -> ComponentState:
-    newState = oldState.copy()
-    newState.input_states = inputs.copy()
+def _simulate_flip_flop(state: DigCompSimData) -> DigCompSimData:
+    enum_key = FlipFlopType[state.expressions[0]]
+    aux_data: FlipFlopAuxData = _flip_flops[enum_key]["aux_data"]
 
-    aux_data: FlipFlopAuxData = oldState.aux_data
-
+    inputs = state.input_states
     clr_input = inputs[aux_data.clr_pin_idx]
     if clr_input.state == LogicState.HIGH:
         newQ = PinState()
         newQ.state = LogicState.LOW
-        newQ.last_change_time_ns = simTime
+        newQ.last_change_time_ns = state.sim_time
         inv = newQ.copy()
         inv.invert()
-        newState.output_states = [newQ, inv]
-        newState.is_changed = True
-        return newState
+        state.output_states = [newQ, inv]
+        state.sim_dependants = True
+        return state
 
     clk_input = inputs[aux_data.clk_pin_idx]
-    old_clk_input = oldState.input_states[aux_data.clk_pin_idx]
+
+    prev_state = state.prev_state
+    old_clk_input = prev_state.input_states[aux_data.clk_pin_idx]
 
     is_rising_edge = (
         old_clk_input.state != LogicState.HIGH and clk_input.state == LogicState.HIGH
     )
 
     if not is_rising_edge:
-        return newState
+        return state
 
-    current_q = oldState.output_states[0]
+    current_q = prev_state.output_states[0]
     newQ = PinState()
 
     ff_type: FlipFlopType = aux_data.flip_flop_type
@@ -139,14 +137,14 @@ def _simulate_flip_flop(
         raise ValueError(f"Unsupported flip-flop type: {ff_type}")
 
     if current_q.state == newQ.state:
-        return newState
+        return state
 
-    newQ.last_change_time_ns = simTime
+    newQ.last_change_time_ns = state.sim_time
     newQInv = newQ.copy()
     newQInv.invert()
-    newState.output_states = [newQ, newQInv]
-    newState.is_changed = True
-    return newState
+    state.output_states = [newQ, newQInv]
+    state.sim_dependants = True
+    return state
 
 
 flip_flops = []
@@ -161,19 +159,20 @@ for ff_type, ff_data in _flip_flops.items():
         (aux_data.clr_pin_idx, SlotCategory.CLEAR),
     ]
 
+    _flip_flops[ff_type]["aux_data"] = aux_data
+
     out_grp_info = SlotsGroupInfo()
     out_grp_info.count = len(ff_data["output_pins"])
     out_grp_info.names = ff_data["output_pins"]
 
-    def_ff = ComponentDefinition.from_sim_fn(
-        name=ff_data["name"],
-        group_name="Flip Flops",
-        inputs=inp_grp_info,
-        outputs=out_grp_info,
-        sim_delay=TimeNS(2),
-        sim_function=_simulate_flip_flop,
-    )
-    def_ff.aux_data = aux_data
+    def_ff = DigCompDef()
+    def_ff.name = ff_data["name"]
+    def_ff.group_name = "Flip Flops"
+    def_ff.input_slots_info = inp_grp_info
+    def_ff.output_slots_info = out_grp_info
+    def_ff.prop_delay = TimeNS(2)
+    def_ff.sim_fn = _simulate_flip_flop
+    def_ff.output_expressions = [ff_type.name]
 
     flip_flops.append(def_ff)
 
