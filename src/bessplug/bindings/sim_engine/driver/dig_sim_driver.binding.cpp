@@ -47,6 +47,42 @@ void bind_dig_sim_driver(py::module_ &m) {
         return comp_def;
     };
 
+    auto from_output_expressions = [](const std::string &name,
+                                      const std::string &group_name,
+                                      const SlotsGroupInfo &inputs,
+                                      const SlotsGroupInfo &outputs,
+                                      Bess::TimeNs prop_delay,
+                                      const std::vector<std::string> &output_expressions)
+        -> std::shared_ptr<Digital::DigCompDef> {
+        py::gil_scoped_acquire gil;
+        auto comp_def = std::make_shared<Digital::DigCompDef>();
+        comp_def->setName(name);
+        comp_def->setGroupName(group_name);
+        comp_def->setInputSlotsInfo(inputs);
+        comp_def->setOutputSlotsInfo(outputs);
+        comp_def->setPropDelay(prop_delay);
+        comp_def->setOutputExpressions(output_expressions);
+        comp_def->setSimFn(ExprEval::exprEvalSimFunc);
+        return comp_def;
+    };
+
+    auto from_sim_fn = [](const std::string &name,
+                          const std::string &group_name,
+                          const SlotsGroupInfo &inputs,
+                          const SlotsGroupInfo &outputs,
+                          Bess::TimeNs prop_delay,
+                          const py::function &sim_function) -> std::shared_ptr<Digital::DigCompDef> {
+        py::gil_scoped_acquire gil;
+        auto comp_def = std::make_shared<Digital::DigCompDef>();
+        comp_def->setName(name);
+        comp_def->setGroupName(group_name);
+        comp_def->setInputSlotsInfo(inputs);
+        comp_def->setOutputSlotsInfo(outputs);
+        comp_def->setPropDelay(prop_delay);
+        comp_def->setSimFn(sim_function.cast<Digital::DigCompDef::TDigSimFn>());
+        return comp_def;
+    };
+
     py::class_<Digital::DigCompDef,
                EvtBasedCompDef,
                std::shared_ptr<Digital::DigCompDef>>(m, "DigCompDef")
@@ -59,6 +95,22 @@ void bind_dig_sim_driver(py::module_ &m) {
                     py::arg("prop_delay"),
                     py::arg("op_info"),
                     "Create a ComponentDefinition from operator info.")
+        .def_static("from_output_expressions", from_output_expressions,
+                    py::arg("name"),
+                    py::arg("group_name"),
+                    py::arg("inputs"),
+                    py::arg("outputs"),
+                    py::arg("prop_delay"),
+                    py::arg("output_expressions"),
+                    "Create a ComponentDefinition from output expressions.")
+        .def_static("from_sim_fn", from_sim_fn,
+                    py::arg("name"),
+                    py::arg("group_name"),
+                    py::arg("inputs"),
+                    py::arg("outputs"),
+                    py::arg("prop_delay"),
+                    py::arg("sim_function"),
+                    "Create a ComponentDefinition from a custom simulation function.")
         .def_property("input_slots_info",
                       py::overload_cast<>(&Digital::DigCompDef::getInputSlotsInfo),
                       py::overload_cast<const SlotsGroupInfo &>(
