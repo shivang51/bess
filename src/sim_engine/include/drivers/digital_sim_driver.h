@@ -99,34 +99,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         DigSimComp() = default;
         ~DigSimComp() override = default;
 
-        static std::shared_ptr<DigSimComp> fromDef(
-            const std::shared_ptr<CompDef> &compDef) {
-            if (!compDef) {
-                BESS_WARN("(DigitalSimDriver.fromDef) compDef is nullptr");
-                return nullptr;
-            }
-
-            const auto clone = compDef->clone();
-
-            const auto comp = std::make_shared<DigSimComp>();
-            comp->setName(clone->getName());
-            comp->setDefinition(clone);
-
-            auto digDef = std::dynamic_pointer_cast<DigCompDef>(clone);
-            const auto inpCount = digDef->getInputSlotsInfo().count;
-            const auto outCount = digDef->getOutputSlotsInfo().count;
-
-            comp->m_inputStates.resize(inpCount);
-            comp->m_outputStates.resize(outCount);
-
-            comp->m_isInputConnected.resize(inpCount, false);
-            comp->m_isOutputConnected.resize(outCount, false);
-
-            comp->m_inputConnections.resize(inpCount);
-            comp->m_outputConnections.resize(outCount);
-
-            return comp;
-        }
+        static std::shared_ptr<DigSimComp> fromDef(const std::shared_ptr<CompDef> &compDef);
 
         MAKE_GETTER_SETTER(std::vector<SlotState>, InputStates, m_inputStates)
         MAKE_GETTER_SETTER(std::vector<SlotState>, OutputStates, m_outputStates)

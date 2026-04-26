@@ -1,4 +1,5 @@
 #include "expression_evalutator/expr_evaluator.h"
+#include "common/bess_assert.h"
 #include "drivers/digital_sim_driver.h"
 
 #include "common/logger.h"

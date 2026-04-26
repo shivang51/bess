@@ -1,17 +1,13 @@
 #pragma once
 
 #include "bess_api.h"
-#include "common/bess_assert.h"
 #include "common/bess_uuid.h"
-#include "common/logger.h"
 #include "common/types.h"
 #include "sim_driver.h"
 #include "types.h"
-#include <algorithm>
 #include <condition_variable>
 #include <mutex>
 #include <set>
-#include <thread>
 #include <vector>
 
 namespace Bess::SimEngine::Drivers {

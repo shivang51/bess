@@ -1,5 +1,15 @@
 #include "drivers/event_based_sim_driver.h"
+#include "common/bess_assert.h"
+#include "common/logger.h"
 #include "drivers/sim_driver.h"
+
+// #define BESS_ENABLE_LOG_EVENTS
+
+#ifdef BESS_ENABLE_LOG_EVENTS
+    #define BESS_LOG_EVENT(...) BESS_TRACE(__VA_ARGS__);
+#else
+    #define BESS_LOG_EVENT(...)
+#endif // !BESS_LOG_EVENT
 
 namespace Bess::SimEngine::Drivers {
 
@@ -185,17 +195,35 @@ namespace Bess::SimEngine::Drivers {
             inputsMap[ev.compId] = collapseInputs(ev.compId);
         }
 
+        BESS_LOG_EVENT("(EvtBasedSimDriver.simulateEvts) Simulating {} events at time {}ns",
+                       evts.size(),
+                       m_currentSimTime.count());
+
         for (const auto &evt : evts) {
             const auto &comp = getComponent<EvtComp>(evt.compId);
-
-            const bool simDependants = simulate(evt,
-                                                inputsMap[evt.compId]);
 
             if (!comp) {
                 BESS_WARN("(EvtBasedSimDriver.run) Component with UUID {} not found",
                           (uint64_t)evt.compId);
                 continue;
             }
+
+#ifdef BESS_ENABLE_LOG_EVENTS
+            BESS_LOG_EVENT("(EvtBasedSimDriver.simulateEvts) Simulating event {} for component {} ({}) with inputs: ",
+                           (uint64_t)evt.evtId,
+                           comp->getName(),
+                           (uint64_t)evt.compId);
+
+            for (const auto &input : inputsMap[evt.compId]) {
+                BESS_LOG_EVENT("    state: {}, lastChangeTime: {}ns",
+                               static_cast<int>(input.state),
+                               input.lastChangeTime.count());
+            }
+
+#endif // BESS_ENABLE_LOG_EVENTS
+
+            const bool simDependants = simulate(evt,
+                                                inputsMap[evt.compId]);
 
             if (simDependants) {
                 scheduleDependantsOfLocked(evt.compId);
