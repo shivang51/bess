@@ -3,7 +3,7 @@ from typing import override
 from bessplug import Plugin
 from bessplug.api.sim_engine.driver import CompDef
 
-# from components import seven_segment_display, seven_segment_display_driver
+from components import seven_segment_display, seven_segment_display_driver
 
 # from components.alu_74LS181 import dm74ls181
 from components.combinational_circuits import combinational_circuits
@@ -19,7 +19,7 @@ from components.tristate_buffer import tristate_buffer_def
 from scene.digital_gate_comp import DigitalGateComp
 from scene.output_comp import OutputComp
 
-# from scene.seven_seg_disp_comp import SevenSegDispComp
+from scene.seven_seg_disp_comp import SevenSegDispComp
 from ui.scripting_panel import ScriptingPanel
 
 
@@ -38,6 +38,8 @@ class BessPlugin(Plugin):
             *flip_flops,
             *latches,
             tristate_buffer_def,
+            seven_segment_display.seven_seg_disp_def,
+            seven_segment_display_driver.seven_seg_disp_driver_def,
         ]
         # return [
         #     *latches,
@@ -56,7 +58,7 @@ class BessPlugin(Plugin):
         return (
             def_name == "Output"
             or digital_gates_schematics.get(def_name, None) is not None
-            # or seven_segment_display.seven_seg_disp_def.get_hash() == base_hash
+            or seven_segment_display.seven_seg_disp_def.name == def_name
         )
 
     @override
@@ -67,8 +69,8 @@ class BessPlugin(Plugin):
 
         if name == "Output":
             return OutputComp()
-        # elif seven_segment_display.seven_seg_disp_def.get_hash() == base_hash:
-        #     return SevenSegDispComp()
+        elif seven_segment_display.seven_seg_disp_def.name == comp_def.name:
+            return SevenSegDispComp()
         else:
             return DigitalGateComp.from_component_def(comp_def)
 
