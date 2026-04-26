@@ -4,6 +4,7 @@
 #include "json/value.h"
 
 #include <algorithm>
+#include <memory>
 
 namespace Bess::SimEngine::Drivers::Digital {
     std::string DigitalSimDriver::getName() const {
@@ -31,7 +32,6 @@ namespace Bess::SimEngine::Drivers::Digital {
         }
         simData->expressions = &comp->getDefinition<DigCompDef>()->getOutputExpressions();
 
-        BESS_TRACE("Set expressions ", simData->expressions->size());
         BESS_ASSERT(simData->expressions, "Failed to set expressions ptr");
 
         auto newData = std::dynamic_pointer_cast<DigCompSimData>(
@@ -52,6 +52,9 @@ namespace Bess::SimEngine::Drivers::Digital {
     void DigitalSimDriver::addComponent(const std::shared_ptr<DigSimComp> &comp,
                                         bool scheduleSim) {
         EvtBasedSimDriver::addComponent(comp, scheduleSim);
+        std::dynamic_pointer_cast<DigCompDef>(
+            comp->getDefinition())
+            ->computeExpressionsIfNeeded();
     }
 
     void DigitalSimDriver::onBeforeRun() {
@@ -486,8 +489,8 @@ namespace Bess::SimEngine::Drivers::Digital {
         return collapsed;
     }
 
-    std::vector<SlotState> DigitalSimDriver::getInputSlotsState(const UUID &compId) const {
-        return const_cast<DigitalSimDriver *>(this)->collapseInputs(compId);
+    std::vector<SlotState> DigitalSimDriver::getInputSlotsState(const UUID &compId) {
+        return collapseInputs(compId);
     }
 
     SlotState DigitalSimDriver::getSlotState(const UUID &uuid, SlotType type, int idx) const {

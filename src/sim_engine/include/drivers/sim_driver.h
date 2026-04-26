@@ -1,7 +1,6 @@
 #pragma once
 #include "bess_api.h"
 #include "common/class_helpers.h"
-#include "common/logger.h"
 #include "net/net.h"
 #include "types.h"
 #include <common/bess_uuid.h>
@@ -126,7 +125,7 @@ namespace Bess::SimEngine::Drivers {
 
         virtual ConnectionBundle getConnections(const UUID &uuid) const;
 
-        virtual std::vector<SlotState> getInputSlotsState(const UUID &compId) const;
+        virtual std::vector<SlotState> getInputSlotsState(const UUID &compId);
 
         virtual SlotState getSlotState(const UUID &uuid, SlotType type, int idx) const;
 

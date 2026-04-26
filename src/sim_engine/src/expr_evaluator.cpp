@@ -134,7 +134,9 @@ namespace Bess::SimEngine::ExprEval {
                               : LogicState::low,
                           simData->simTime};
         }
+
         simData->simDependants = changed;
+
         return simData;
     }
 } // namespace Bess::SimEngine::ExprEval

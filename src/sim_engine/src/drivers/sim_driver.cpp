@@ -1,4 +1,5 @@
 #include "drivers/sim_driver.h"
+#include "common/logger.h"
 
 namespace Bess::SimEngine::Drivers {
 
@@ -70,7 +71,7 @@ namespace Bess::SimEngine::Drivers {
         return {};
     }
 
-    std::vector<SlotState> SimDriver::getInputSlotsState(const UUID &compId) const {
+    std::vector<SlotState> SimDriver::getInputSlotsState(const UUID &compId) {
         return {};
     }
 

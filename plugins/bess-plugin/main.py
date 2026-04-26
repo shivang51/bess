@@ -40,7 +40,7 @@ class AndGateDef(DigCompDef):
         self.group_name = "Digital Gates"
 
         self.prop_delay = TimeNS(2)
-        self.op_info.op = "&"
+        self.op_info.op = "*"
 
         self.sim_fn = sim_functions.expr_eval_sim_func
 

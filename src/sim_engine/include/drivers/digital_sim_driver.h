@@ -205,7 +205,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         ConnectionBundle getConnections(const UUID &uuid) const override;
         std::vector<UUID> getDependants(const UUID &id) override;
         std::vector<SlotState> collapseInputs(const UUID &id) override;
-        std::vector<SlotState> getInputSlotsState(const UUID &compId) const override;
+        std::vector<SlotState> getInputSlotsState(const UUID &compId) override;
         SlotState getSlotState(const UUID &uuid, SlotType type, int idx) const override;
         bool setInputSlotState(const UUID &uuid, int pinIdx, LogicState state) override;
         bool setOutputSlotState(const UUID &uuid, int pinIdx, LogicState state) override;
