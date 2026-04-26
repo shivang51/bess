@@ -17,12 +17,15 @@ namespace Bess::SimEngine::Drivers::Digital {
     struct BESS_API DigCompSimData : SimFnDataBase {
         std::vector<SlotState> inputStates;
         std::vector<SlotState> outputStates;
-        DigCompState prevState;
+        std::vector<std::string> *expressions = nullptr;
         TimeNs simTime;
+        DigCompState prevState;
     };
 
     class BESS_API DigCompDef : public EvtBasedCompDef {
       public:
+        static constexpr const char *TypeName = "digital_compdef";
+
         DigCompDef() = default;
 
         typedef std::function<std::shared_ptr<DigCompSimData>(
@@ -43,29 +46,16 @@ namespace Bess::SimEngine::Drivers::Digital {
                               m_outputExpressions,
                               onExpressionsChange)
 
-        void setSimFn(const TDigSimFn &simFn) {
-            m_simFn = [simFn](const SimFnDataPtr &data) -> SimFnDataPtr {
-                auto digData = std::dynamic_pointer_cast<DigCompSimData>(data);
-                if (!digData) {
-                    BESS_WARN("(DigCompDef.setSimFn) Invalid data type passed to sim function");
-                    return nullptr;
-                }
-                return simFn(digData);
-            };
-        }
+        void setSimFn(const TDigSimFn &simFn);
 
         Json::Value toJson() const override;
 
-        /**
-         * This function will compute the output expressions if needed.
-         * i.e. when operator info is set and expressions are based on it.
-         * returns: true if expressions were computed, false otherwise;
-         **/
-        virtual bool computeExpressionsIfNeeded() {
-            return false;
-        }
+        virtual bool computeExpressionsIfNeeded();
 
-        // callbacks
+        std::string getTypeName() const override;
+
+        std::shared_ptr<CompDef> clone() const override;
+
       public:
         /**
          * This function will be called when resize of the slots group is requested;
@@ -76,11 +66,7 @@ namespace Bess::SimEngine::Drivers::Digital {
          * Note: if not overrriden and implemented,
          * by default it will return value of group.isResizeable
          **/
-        virtual bool onSlotsResizeReq(SlotsGroupType groupType, size_t newSize) {
-            if (groupType == SlotsGroupType::input)
-                return m_inputSlotsInfo.isResizeable;
-            return m_outputSlotsInfo.isResizeable;
-        }
+        virtual bool onSlotsResizeReq(SlotsGroupType groupType, size_t newSize);
 
         /**
          * This function will be called when the component state changes;
@@ -88,13 +74,9 @@ namespace Bess::SimEngine::Drivers::Digital {
          * newState: new state of the component;
          **/
         virtual void onStateChange(const ComponentState &oldState,
-                                   const ComponentState &newState) {}
+                                   const ComponentState &newState);
 
-        virtual void onExpressionsChange() {}
-
-        std::shared_ptr<CompDef> clone() const override {
-            return std::make_shared<DigCompDef>(*this);
-        }
+        virtual void onExpressionsChange();
 
         friend bool operator==(ComponentDefinition &a, ComponentDefinition &b) noexcept {
             return a.getHash() == b.getHash();

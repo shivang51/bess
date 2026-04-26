@@ -99,9 +99,13 @@ class PySimSceneComponent : public Bess::Canvas::SimulationSceneComponent,
 };
 
 void bind_sim_scene_component(py::module_ &m) {
+    typedef Bess::SimEngine::Drivers::CompDef TCompDef;
+    typedef Bess::SimEngine::Drivers::Digital::DigCompDef TDigCompDef;
+    typedef std::shared_ptr<TCompDef> TCompDefPtr;
+
     const auto setup = [](Bess::Canvas::SimulationSceneComponent &comp,
-                          const std::shared_ptr<Bess::SimEngine::ComponentDefinition> &compDef) {
-        // comp.setCompDef(compDef);
+                          const TCompDefPtr &compDef) {
+        comp.setCompDef(compDef);
         comp.setName(compDef->getName());
 
         // STYLE
@@ -115,46 +119,56 @@ void bind_sim_scene_component(py::module_ &m) {
         style.borderSize = glm::vec4(1.f);
         style.color = colors.componentBG;
 
-        // SLOTS
-        const auto &inpDetails = compDef->getInputSlotsInfo();
-        const auto &outDetails = compDef->getOutputSlotsInfo();
-
-        int inSlotIdx = 0, outSlotIdx = 0;
-        char inpCh = 'A', outCh = 'a';
-
-        const auto &slots = comp.createIOSlots(compDef->getInputSlotsInfo().count,
-                                               compDef->getOutputSlotsInfo().count);
-
+        Bess::SimEngine::SlotsGroupInfo inpDetails, outDetails;
         std::vector<std::shared_ptr<Bess::Canvas::SlotSceneComponent>> createdSlots;
-        for (const auto &slot : slots) {
-            if (slot->getSlotType() == Bess::Canvas::SlotType::digitalInput) {
-                if (inpDetails.names.size() > inSlotIdx)
-                    slot->setName(inpDetails.names[inSlotIdx++]);
-                else
-                    slot->setName(std::string(1, inpCh++));
-            } else {
-                if (outDetails.names.size() > outSlotIdx)
-                    slot->setName(outDetails.names[outSlotIdx++]);
-                else
-                    slot->setName(std::string(1, outCh++));
+
+        if (compDef->getTypeName() == TDigCompDef::TypeName) {
+
+            auto digDef = std::dynamic_pointer_cast<TDigCompDef>(compDef);
+
+            BESS_ASSERT(digDef, std::format("Component definition with type {} cannot be cast to DigCompDef",
+                                            compDef->getTypeName()));
+
+            // SLOTS
+            const auto &inpDetails = digDef->getInputSlotsInfo();
+            const auto &outDetails = digDef->getOutputSlotsInfo();
+
+            int inSlotIdx = 0, outSlotIdx = 0;
+            char inpCh = 'A', outCh = 'a';
+
+            const auto &slots = comp.createIOSlots(inpDetails.count,
+                                                   outDetails.count);
+
+            for (const auto &slot : slots) {
+                if (slot->getSlotType() == Bess::Canvas::SlotType::digitalInput) {
+                    if (inpDetails.names.size() > inSlotIdx)
+                        slot->setName(inpDetails.names[inSlotIdx++]);
+                    else
+                        slot->setName(std::string(1, inpCh++));
+                } else {
+                    if (outDetails.names.size() > outSlotIdx)
+                        slot->setName(outDetails.names[outSlotIdx++]);
+                    else
+                        slot->setName(std::string(1, outCh++));
+                }
+                createdSlots.push_back(slot);
             }
-            createdSlots.push_back(slot);
-        }
 
-        if (inpDetails.isResizeable) {
-            auto slot = std::make_shared<Bess::Canvas::SlotSceneComponent>();
-            slot->setSlotType(Bess::Canvas::SlotType::inputsResize);
-            slot->setIndex(-1); // assign -1 for resize slots
-            comp.addInputSlot(slot->getUuid(), false);
-            createdSlots.push_back(slot);
-        }
+            if (inpDetails.isResizeable) {
+                auto slot = std::make_shared<Bess::Canvas::SlotSceneComponent>();
+                slot->setSlotType(Bess::Canvas::SlotType::inputsResize);
+                slot->setIndex(-1); // assign -1 for resize slots
+                comp.addInputSlot(slot->getUuid(), false);
+                createdSlots.push_back(slot);
+            }
 
-        if (outDetails.isResizeable) {
-            auto slot = std::make_shared<Bess::Canvas::SlotSceneComponent>();
-            slot->setSlotType(Bess::Canvas::SlotType::outputsResize);
-            slot->setIndex(-1); // assign -1 for resize slots
-            comp.addOutputSlot(slot->getUuid(), false);
-            createdSlots.push_back(slot);
+            if (outDetails.isResizeable) {
+                auto slot = std::make_shared<Bess::Canvas::SlotSceneComponent>();
+                slot->setSlotType(Bess::Canvas::SlotType::outputsResize);
+                slot->setIndex(-1); // assign -1 for resize slots
+                comp.addOutputSlot(slot->getUuid(), false);
+                createdSlots.push_back(slot);
+            }
         }
 
         auto &scene = Bess::Pages::MainPage::getInstance()->getState().getSceneDriver();

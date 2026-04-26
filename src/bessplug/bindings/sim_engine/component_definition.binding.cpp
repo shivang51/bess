@@ -9,7 +9,6 @@
 #endif
 
 #include "component_definition.h"
-#include "drivers/sim_driver.h"
 #include "internal_types.h"
 #include "types.h"
 
@@ -174,7 +173,7 @@ void bind_sim_engine_component_definition(py::module_ &m) {
         comp_def->setOutputSlotsInfo(outputs);
         comp_def->setSimDelay(sim_delay);
         comp_def->setOpInfo(info);
-        comp_def->setSimulationFunction(ExprEval::exprEvalSimFunc);
+        // comp_def->setSimulationFunction(ExprEval::exprEvalSimFunc);
         return comp_def;
     };
 
@@ -192,7 +191,7 @@ void bind_sim_engine_component_definition(py::module_ &m) {
         comp_def->setOutputSlotsInfo(outputs);
         comp_def->setSimDelay(sim_delay);
         comp_def->setOutputExpressions(output_expressions);
-        comp_def->setSimulationFunction(ExprEval::exprEvalSimFunc);
+        // comp_def->setSimulationFunction(ExprEval::exprEvalSimFunc);
         return comp_def;
     };
 

@@ -36,7 +36,7 @@ namespace Bess::SimEngine {
 
     std::shared_ptr<Drivers::CompDef> ComponentCatalog::getComponentDefinitionCopy(const std::string &name) {
         if (m_compNameMap.contains(name)) {
-            return std::make_shared<Drivers::CompDef>(*(m_compNameMap.at(name)));
+            return m_compNameMap.at(name)->clone();
         }
 
         BESS_ERROR("Component definition with name {} not found", name);

@@ -16,14 +16,13 @@ namespace {
     TEST(SimDriverTest, CreateBaseDefinitionStoresTypeName) {
         struct SimData {};
 
-        CompDef definition;
-        definition.setTypeName("base.definition");
+        Digital::DigCompDef definition;
 
         const auto json = definition.toJson();
 
-        EXPECT_EQ(definition.getTypeName(), "base.definition");
+        EXPECT_EQ(definition.getTypeName(), DigCompDef::TypeName);
         ASSERT_TRUE(json.isMember("typeName"));
-        EXPECT_EQ(json["typeName"].asString(), "base.definition");
+        EXPECT_EQ(json["typeName"].asString(), DigCompDef::TypeName);
     }
 
     TEST(SimDriverTest, CreateAndGateDefinitionHasExpectedShape) {

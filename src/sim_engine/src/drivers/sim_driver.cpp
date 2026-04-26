@@ -2,14 +2,10 @@
 
 namespace Bess::SimEngine::Drivers {
 
-    std::shared_ptr<CompDef> CompDef::clone() const {
-        return std::make_shared<CompDef>(*this);
-    }
-
     Json::Value CompDef::toJson() const {
         Json::Value json;
         json["groupName"] = m_groupName;
-        json["typeName"] = m_typeName;
+        json["typeName"] = getTypeName();
         json["name"] = m_name;
         return json;
     }

@@ -29,7 +29,6 @@ namespace Bess::SimEngine::Drivers {
         CompDef() = default;
         virtual ~CompDef() = default;
 
-        MAKE_GETTER_SETTER(std::string, TypeName, m_typeName)
         MAKE_GETTER_SETTER(std::string, Name, m_name)
         MAKE_GETTER_SETTER(std::string, GroupName, m_groupName)
         MAKE_VGETTER_VSETTER(SimFn, SimFn, m_simFn)
@@ -39,10 +38,11 @@ namespace Bess::SimEngine::Drivers {
         static void fromJson(const std::shared_ptr<CompDef> &compDef,
                              const Json::Value &json) {}
 
-        virtual std::shared_ptr<CompDef> clone() const;
+        virtual std::shared_ptr<CompDef> clone() const = 0;
+
+        virtual std::string getTypeName() const = 0;
 
       protected:
-        std::string m_typeName;
         std::string m_name;
         std::string m_groupName;
         SimFn m_simFn = nullptr;

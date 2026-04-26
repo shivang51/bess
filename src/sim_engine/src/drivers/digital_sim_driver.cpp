@@ -1,5 +1,6 @@
 #include "drivers/digital_sim_driver.h"
 #include "drivers/event_based_sim_driver.h"
+#include "expression_evalutator/expr_evaluator.h"
 #include "simulation_engine.h"
 #include "json/value.h"
 
@@ -24,7 +25,13 @@ namespace Bess::SimEngine::Drivers::Digital {
         simData->prevState.inputStates = comp->getInputStates();
         simData->prevState.outputStates = comp->getOutputStates();
         simData->inputStates = collapseInputs(id);
-        simData->outputStates = comp->getOutputStates();
+        if (simData->outputStates.size() != comp->getOutputStates().size()) {
+            simData->outputStates = comp->getOutputStates();
+        }
+        simData->expressions = &comp->getDefinition<DigCompDef>()->getOutputExpressions();
+
+        BESS_TRACE("Set expressions ", simData->expressions->size());
+        BESS_ASSERT(simData->expressions, "Failed to set expressions ptr");
 
         auto newData = std::dynamic_pointer_cast<DigCompSimData>(
             comp->simulate(simData));
@@ -348,6 +355,77 @@ namespace Bess::SimEngine::Drivers::Digital {
         JsonConvert::toJsonValue(m_outputExpressions, json["expressions"]);
 
         return json;
+    }
+
+    bool DigCompDef::onSlotsResizeReq(SlotsGroupType groupType, size_t newSize) {
+        if (groupType == SlotsGroupType::input)
+            return m_inputSlotsInfo.isResizeable;
+        return m_outputSlotsInfo.isResizeable;
+    }
+
+    void DigCompDef::onStateChange(const ComponentState &oldState,
+                                   const ComponentState &newState) {}
+
+    void DigCompDef::onExpressionsChange() {}
+
+    std::shared_ptr<CompDef> DigCompDef::clone() const {
+        return std::make_shared<DigCompDef>(*this);
+    }
+
+    bool DigCompDef::computeExpressionsIfNeeded() {
+        // operator '0' means no operation
+        // if no operation is defined, no expressions to compute
+        if (m_opInfo.op == '0') {
+            return false;
+        }
+
+        if (m_inputSlotsInfo.count <= 0) {
+            BESS_WARN("[SimulationEngine][ComponentDefinition] Input count not provided for expression(s) generation");
+            return false;
+        }
+
+        m_outputExpressions.clear();
+
+        // handeling unary and binary operators
+        // For binary operators, only single output is supported
+        // and for uniary operator, each input generates one output
+        if (!ExprEval::isUninaryOperator(m_opInfo.op) &&
+            m_outputSlotsInfo.count == 1) {
+            std::string expr = m_opInfo.shouldNegateOutput ? "!(0" : "0";
+            for (size_t i = 1; i < m_inputSlotsInfo.count; i++) {
+                expr += m_opInfo.op + std::to_string(i);
+            }
+            if (m_opInfo.shouldNegateOutput)
+                expr += ")";
+            m_outputExpressions = {expr};
+        } else if (ExprEval::isUninaryOperator(m_opInfo.op)) {
+            m_outputExpressions.reserve(m_inputSlotsInfo.count);
+            for (size_t i = 0; i < m_inputSlotsInfo.count; i++) {
+                m_outputExpressions.emplace_back(std::format("{}{}", m_opInfo.op, i));
+            }
+        } else {
+            BESS_ERROR("Invalid IO config for expression generation");
+            assert(false);
+        }
+
+        onExpressionsChange();
+
+        return true;
+    }
+
+    void DigCompDef::setSimFn(const TDigSimFn &simFn) {
+        m_simFn = [simFn](const SimFnDataPtr &data) -> SimFnDataPtr {
+            auto digData = std::dynamic_pointer_cast<DigCompSimData>(data);
+            if (!digData) {
+                BESS_WARN("(DigCompDef.setSimFn) Invalid data type passed to sim function");
+                return nullptr;
+            }
+            return simFn(digData);
+        };
+    }
+
+    std::string DigCompDef::getTypeName() const {
+        return "DigCompDef";
     }
 } // namespace Bess::SimEngine::Drivers::Digital
 

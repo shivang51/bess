@@ -13,24 +13,8 @@ namespace Bess::SimEngine {
         static ComponentCatalog &instance();
 
         // Register a new component definition.
-        // If one with the same ComponentType exists, it won't be added.
-        template <typename TCompDefination>
-        void registerComponent(TCompDefination def) {
-            if (m_compNameMap.contains(def.getName())) {
-                return;
-            }
-
-            auto compPtr = std::make_shared<TCompDefination>(std::move(def));
-            m_components.emplace_back(compPtr);
-            m_compNameMap[compPtr->getName()] = compPtr;
-
-            m_componentTree = nullptr;
-        }
-
-        // Register a new component definition.
         // If one with the same NAME exists, it won't be added.
-        template <typename TCompDefination>
-        void registerComponent(const std::shared_ptr<TCompDefination> &def) {
+        void registerComponent(const std::shared_ptr<Drivers::CompDef> &def) {
             if (m_compNameMap.contains(def->getName())) {
                 return;
             }

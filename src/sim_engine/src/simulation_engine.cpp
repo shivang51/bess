@@ -1,9 +1,7 @@
 #include "simulation_engine.h"
-#include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "component_catalog.h"
-#include "digital_component.h"
 #include "drivers/digital_sim_driver.h"
 #include "drivers/sim_driver.h"
 #include "init_components.h"
@@ -16,7 +14,6 @@
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
-#include <exception>
 #include <memory>
 #include <mutex>
 #include <queue>

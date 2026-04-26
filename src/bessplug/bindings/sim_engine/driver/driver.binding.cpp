@@ -158,7 +158,19 @@ void bind_sim_engine_driver(py::module_ &m) {
         .def(py::init<>())
         .def_readwrite("sim_dependants", &SimFnDataBase::simDependants);
 
-    py::class_<SimComponent, std::shared_ptr<SimComponent>>(m, "DriverComponent")
+    py::class_<CompDef, std::shared_ptr<CompDef>>(m, "CompDef")
+        .def_property("name",
+                      py::overload_cast<>(&CompDef::getName),
+                      py::overload_cast<const std::string &>(&CompDef::setName))
+        .def("type",
+             &CompDef::getTypeName)
+        .def("clone",
+             &CompDef::clone)
+        .def_property("group_name",
+                      py::overload_cast<>(&CompDef::getGroupName),
+                      py::overload_cast<const std::string &>(&CompDef::setGroupName));
+
+    py::class_<SimComponent, std::shared_ptr<SimComponent>>(m, "SimComponent")
         .def(py::init<>())
         .def_property("uuid",
                       py::overload_cast<>(&SimComponent::getUuid),
@@ -172,20 +184,7 @@ void bind_sim_engine_driver(py::module_ &m) {
         .def("to_json", &SimComponent::toJson)
         .def("simulate", &SimComponent::simulate, py::arg("data"));
 
-    py::class_<CompDef, std::shared_ptr<CompDef>>(m, "CompDef")
-        .def(py::init<>())
-        .def_property("name",
-                      py::overload_cast<>(&CompDef::getName),
-                      py::overload_cast<const std::string &>(&CompDef::setName))
-        .def_property("type",
-                      py::overload_cast<>(&CompDef::getTypeName),
-                      py::overload_cast<const std::string &>(&CompDef::setTypeName))
-        .def_property("group_name",
-                      py::overload_cast<>(&CompDef::getGroupName),
-                      py::overload_cast<const std::string &>(&CompDef::setGroupName));
-
     py::class_<EvtBasedCompDef, CompDef, std::shared_ptr<EvtBasedCompDef>>(m, "EvtBasedCompDef")
-        .def(py::init<>())
         .def_property("auto_reschedule",
                       py::overload_cast<>(&EvtBasedCompDef::getAutoReschedule),
                       py::overload_cast<const bool &>(&EvtBasedCompDef::setAutoReschedule))
@@ -217,7 +216,8 @@ void bind_sim_engine_driver(py::module_ &m) {
         .def_readwrite("input_states", &Digital::DigCompSimData::inputStates)
         .def_readwrite("output_states", &Digital::DigCompSimData::outputStates)
         .def_readwrite("prev_state", &Digital::DigCompSimData::prevState)
-        .def_readwrite("sim_time", &Digital::DigCompSimData::simTime);
+        .def_readwrite("sim_time", &Digital::DigCompSimData::simTime)
+        .def_readwrite("expressions", &Digital::DigCompSimData::expressions);
 
     py::class_<Digital::DigCompDef, EvtBasedCompDef, std::shared_ptr<Digital::DigCompDef>>(m, "DigCompDef")
         .def(py::init<>())

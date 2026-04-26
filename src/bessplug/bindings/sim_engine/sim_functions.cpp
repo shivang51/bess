@@ -1,3 +1,5 @@
+// included for type completion of DigCompSimData
+#include "drivers/digital_sim_driver.h" // NOLINT
 #include "expression_evalutator/expr_evaluator.h"
 
 #include <pybind11/functional.h>
@@ -13,8 +15,6 @@ void bind_sim_functions(py::module_ &m) {
 
     m.def("expr_eval_sim_func",
           ExprEval::exprEvalSimFunc,
-          py::arg("inputs"),
-          py::arg("current_time"),
-          py::arg("prev_state"),
+          py::arg("sim_data"),
           "Expression evaluator simulation function.");
 }

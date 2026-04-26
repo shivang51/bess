@@ -54,7 +54,7 @@ void bind_api(py::module_ &m) {
 
     // Sim Engine
     bind_sim_engine_types(simEngine);
-    bind_sim_engine_component_definition(simEngine);
+    // bind_sim_engine_component_definition(simEngine);
     bind_sim_engine_driver(simEngineDriver);
     bind_sim_functions(simFn);
 

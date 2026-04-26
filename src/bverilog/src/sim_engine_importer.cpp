@@ -6,6 +6,7 @@
 #include "component_definition.h"
 #include "drivers/digital_sim_driver.h"
 #include "drivers/sim_driver.h"
+#include "expression_evalutator/expr_evaluator.h"
 #include "init_components.h"
 #include "types.h"
 #include <algorithm>
@@ -311,37 +312,13 @@ namespace Bess::Verilog {
 
             typedef std::shared_ptr<Drivers::Digital::DigCompSimData> TSimFnData;
 
-            // FIXME: exprEvalSimFunc
-            auto exprEvalSimFunc = [](const TSimFnData &state) {
-                bool changed = false;
-                // assert(prevState.auxData && "ExprEvalSimFunc requires auxData to be set with expressions");
-                // if (prevState.auxData->type() != typeid(std::vector<std::string>)) {
-                //     throw std::runtime_error(
-                //         std::format(
-                //             "ExprEvalSimFunc auxData must be std::vector<std::string>, got {}",
-                //             prevState.auxData->type().name()));
-                // }
-                // auto expressions = std::any_cast<std::vector<std::string>>(prevState.auxData);
-                // for (int i = 0; i < (int)expressions->size(); i++) {
-                //     std::vector<bool> states;
-                //     states.reserve(inputs.size());
-                //     for (auto &state : inputs)
-                //         states.emplace_back((bool)state);
-                //     bool newStateBool = ExprEval::evaluateExpression(expressions->at(i), states);
-                //     changed = changed || (bool)prevState.outputStates[i] != newStateBool;
-                //     newState.outputStates[i] = {newStateBool ? LogicState::high : LogicState::low, currentTime};
-                // }
-                // newState.isChanged = changed;
-                return state;
-            };
-
             auto created = std::make_shared<Drivers::Digital::DigCompDef>();
             created->setName(name);
             created->setGroupName("Verilog Imported");
             created->setInputSlotsInfo({SlotsGroupType::input, false, inputs, {}, {}});
             created->setOutputSlotsInfo({SlotsGroupType::output, false, outputs, {}, {}});
             created->setOutputExpressions(expressions);
-            created->setSimFn(exprEvalSimFunc);
+            created->setSimFn(ExprEval::exprEvalSimFunc);
             created->setPropDelay(SimDelayNanoSeconds(2));
 
             ComponentCatalog::instance().registerComponent(created);

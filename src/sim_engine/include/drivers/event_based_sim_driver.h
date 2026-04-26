@@ -31,8 +31,6 @@ namespace Bess::SimEngine::Drivers {
 
         virtual TimeNs getSelfSimDelay();
 
-        std::shared_ptr<CompDef> clone() const override;
-
       protected:
         bool m_autoReschedule = false;
         TimeNs m_propDelay{0}; // propogation delay

@@ -1,6 +1,7 @@
 #include "component_definition.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include <map>
+#include <memory>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -12,7 +13,8 @@ namespace py = pybind11;
 
 class Plugin {
   public:
-    using CompVec = std::vector<Bess::SimEngine::Drivers::CompDef>;
+    using CompDefPtr = std::shared_ptr<Bess::SimEngine::Drivers::CompDef>;
+    using CompVec = std::vector<CompDefPtr>;
     using SceneMap = std::map<int, py::object>;
 
     Plugin() = default;
@@ -29,7 +31,7 @@ class Plugin {
         return false;
     }
 
-    std::shared_ptr<Bess::Canvas::SimulationSceneComponent> get_sim_comp(const Bess::SimEngine::ComponentDefinition &compDef) const {
+    std::shared_ptr<Bess::Canvas::SimulationSceneComponent> get_sim_comp(const CompDefPtr &compDef) const {
         return nullptr;
     }
 
