@@ -1,6 +1,7 @@
 #include "drivers/event_based_sim_driver.h"
 #include "common/bess_uuid.h"
 #include "drivers/sim_driver.h"
+#include "types.h"
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -116,12 +117,14 @@ class PyEvtBasedSimDriver : public Bess::SimEngine::Drivers::EvtBasedSimDriver {
                                     index);
     }
 
-    bool simulate(const Bess::SimEngine::Drivers::SimEvt &evt) override {
+    bool simulate(const Bess::SimEngine::Drivers::SimEvt &evt,
+                  const std::vector<Bess::SimEngine::SlotState> &inputs) override {
         PYBIND11_OVERRIDE_PURE_NAME(bool,
                                     Bess::SimEngine::Drivers::EvtBasedSimDriver,
                                     "simulate",
                                     simulate,
-                                    evt);
+                                    evt,
+                                    inputs);
     }
 
     Bess::UUID addComponent(const std::shared_ptr<Bess::SimEngine::Drivers::SimComponent> &comp,
@@ -189,7 +192,8 @@ void bind_event_based_sim_driver(py::module_ &m) {
              &EvtBasedSimDriver::run)
         .def("simulate",
              &EvtBasedSimDriver::simulate,
-             py::arg("event"))
+             py::arg("event"),
+             py::arg("inputs"))
         .def("add_component",
              &EvtBasedSimDriver::addComponent,
              py::arg("component"),

@@ -179,10 +179,17 @@ namespace Bess::SimEngine::Drivers {
     void EvtBasedSimDriver::simulateEvts(const std::vector<SimEvt> &evts) {
         using EvtComp = EvtBasedSimComp;
 
-        for (const auto &evt : evts) {
-            const bool simDependants = simulate(evt);
+        std::unordered_map<UUID, std::vector<SlotState>> inputsMap = {};
 
+        for (auto &ev : evts) {
+            inputsMap[ev.compId] = collapseInputs(ev.compId);
+        }
+
+        for (const auto &evt : evts) {
             const auto &comp = getComponent<EvtComp>(evt.compId);
+
+            const bool simDependants = simulate(evt,
+                                                inputsMap[evt.compId]);
 
             if (!comp) {
                 BESS_WARN("(EvtBasedSimDriver.run) Component with UUID {} not found",

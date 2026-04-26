@@ -182,7 +182,8 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         std::string getName() const override;
 
-        bool simulate(const SimEvt &evt) override;
+        bool simulate(const SimEvt &evt,
+                      const std::vector<SlotState> &inputs) override;
 
         UUID addComponent(const std::shared_ptr<SimComponent> &comp,
                           bool scheduleSim = true) override;

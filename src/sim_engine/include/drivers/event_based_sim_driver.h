@@ -77,7 +77,8 @@ namespace Bess::SimEngine::Drivers {
         void run() override;
 
         // true if the dependants should be simulated, false otherwise
-        virtual bool simulate(const SimEvt &evt) = 0;
+        virtual bool simulate(const SimEvt &evt,
+                              const std::vector<SlotState> &inputs) = 0;
 
         UUID addComponent(const std::shared_ptr<SimComponent> &comp,
                           bool scheduleSim) override;

@@ -11,7 +11,8 @@ namespace Bess::SimEngine::Drivers::Digital {
         return "Digital Simulation Driver";
     }
 
-    bool DigitalSimDriver::simulate(const SimEvt &evt) {
+    bool DigitalSimDriver::simulate(const SimEvt &evt,
+                                    const std::vector<SlotState> &inputs) {
         const auto &id = evt.compId;
 
         const auto &comp = this->template getComponent<DigSimComp>(id);
@@ -26,7 +27,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         simData->simTime = m_currentSimTime;
         simData->prevState.inputStates = comp->getInputStates();
         simData->prevState.outputStates = comp->getOutputStates();
-        simData->inputStates = collapseInputs(id);
+        simData->inputStates = inputs;
         if (simData->outputStates.size() != comp->getOutputStates().size()) {
             simData->outputStates = comp->getOutputStates();
         }

@@ -149,7 +149,7 @@ namespace {
         DigitalSimDriver driver;
         const Drivers::SimEvt evt{Bess::UUID(1), Bess::UUID(99), Bess::UUID::null, Bess::TimeNs(10.0)};
 
-        EXPECT_FALSE(driver.simulate(evt));
+        EXPECT_FALSE(driver.simulate(evt, {}));
     }
 
     TEST(SimDriverTest, AddingCompViaSimEngine) {
