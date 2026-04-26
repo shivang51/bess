@@ -44,7 +44,7 @@ namespace Bess::SimEngine {
 
         auto &catalog = ComponentCatalog::instance();
         for (const auto &plugin : pluginMangaer.getLoadedPlugins()) {
-            const auto comps = plugin.second->onComponentsRegLoad();
+            const auto comps = plugin.second->onCompCatalogLoad();
             for (const auto &comp : comps) {
                 catalog.registerComponent(comp);
             }

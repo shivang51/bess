@@ -26,12 +26,12 @@ namespace Bess::Plugins {
         }
     }
 
-    std::vector<std::shared_ptr<SimEngine::Drivers::CompDef>> PluginHandle::onComponentsRegLoad() const {
+    std::vector<std::shared_ptr<SimEngine::Drivers::CompDef>> PluginHandle::onCompCatalogLoad() const {
         std::vector<std::shared_ptr<SimEngine::Drivers::CompDef>> components;
 
         py::gil_scoped_acquire gil;
-        if (py::hasattr(m_pluginObj, "on_components_reg_load")) {
-            py::object compList = m_pluginObj.attr("on_components_reg_load")();
+        if (py::hasattr(m_pluginObj, "on_comp_catalog_load")) {
+            py::object compList = m_pluginObj.attr("on_comp_catalog_load")();
 
             for (py::handle item : compList) {
                 py::object pyComp = py::reinterpret_borrow<py::object>(item);
@@ -61,23 +61,26 @@ namespace Bess::Plugins {
         }
     }
 
-    std::shared_ptr<Canvas::SimulationSceneComponent> PluginHandle::getSimComponent(
+    std::shared_ptr<Canvas::SimulationSceneComponent> PluginHandle::getSimSceneComponent(
         const std::shared_ptr<SimEngine::Drivers::CompDef> &def) const {
         py::gil_scoped_acquire gil;
-        if (py::hasattr(m_pluginObj, "get_sim_comp")) {
-            py::object result = m_pluginObj.attr("get_sim_comp")(def);
+        if (py::hasattr(m_pluginObj, "get_sim_scene_comp")) {
+            py::object result = m_pluginObj.attr("get_sim_scene_comp")(def);
             if (!result.is_none()) {
                 result.attr("setup")(def);
-                return result.cast<std::shared_ptr<Canvas::SimulationSceneComponent>>();
+                auto res = result.cast<std::optional<std::shared_ptr<Canvas::SimulationSceneComponent>>>();
+                if (res.has_value()) {
+                    return res.value();
+                }
             }
         }
         return nullptr;
     }
 
-    bool PluginHandle::hasSimComponent(const uint64_t &baseHash) const {
+    bool PluginHandle::hasSimSceneComponent(const std::string &defName) const {
         py::gil_scoped_acquire gil;
-        if (py::hasattr(m_pluginObj, "has_sim_comp")) {
-            return m_pluginObj.attr("has_sim_comp")(baseHash).cast<bool>();
+        if (py::hasattr(m_pluginObj, "has_sim_scene_comp")) {
+            return m_pluginObj.attr("has_sim_scene_comp")(defName).cast<bool>();
         }
         return false;
     }

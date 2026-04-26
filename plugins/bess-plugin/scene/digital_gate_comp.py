@@ -2,15 +2,15 @@ import copy
 from typing import override
 from bessplug.api.common import theme, vec3
 from bessplug.api.scene import PickingId, SimulationSceneComponent
-from bessplug.api.sim_engine import ComponentDefinition
+from bessplug.api.sim_engine.driver import CompDef
 from components.digital_gates import schematic_diagrams
 
 
 class DigitalGateComp(SimulationSceneComponent):
     @staticmethod
-    def from_component_def(comp_def: ComponentDefinition):
+    def from_component_def(comp_def: CompDef):
         comp = DigitalGateComp()
-        comp.schematic_diagram = schematic_diagrams.get(comp_def.get_hash(), None)
+        comp.schematic_diagram = schematic_diagrams.get(comp_def.name, None)
         return comp
 
     def __init__(self):
@@ -33,7 +33,7 @@ class DigitalGateComp(SimulationSceneComponent):
     def to_json(self):
         data = super().to_json()
         if self.schematic_diagram:
-            data["schm_hash"] = self.comp_def.get_hash()
+            data["schm_hash"] = self.comp_def.name
         return data
 
     @staticmethod

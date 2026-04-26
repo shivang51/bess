@@ -26,12 +26,12 @@ namespace Bess::Svc {
         return instance;
     }
 
-    std::shared_ptr<Canvas::SimulationSceneComponent> PluginService::getSimComp(
+    std::shared_ptr<Canvas::SimulationSceneComponent> PluginService::getSimSceneComp(
         const std::shared_ptr<SimEngine::Drivers::CompDef> &def) const {
         const auto &pluginMangaer = Plugins::PluginManager::getInstance();
 
         for (const auto &plugin : pluginMangaer.getLoadedPlugins()) {
-            auto comp = plugin.second->getSimComponent(def);
+            auto comp = plugin.second->getSimSceneComponent(def);
             if (comp) {
                 return comp;
             }
@@ -40,11 +40,11 @@ namespace Bess::Svc {
         return nullptr;
     }
 
-    bool PluginService::hasSimComponent(const uint64_t &compHash) const {
+    bool PluginService::hasSimSceneComp(const std::string &defName) const {
         const auto &pluginMangaer = Plugins::PluginManager::getInstance();
 
         for (const auto &plugin : pluginMangaer.getLoadedPlugins()) {
-            if (plugin.second->hasSimComponent(compHash)) {
+            if (plugin.second->hasSimSceneComponent(defName)) {
                 return true;
             }
         }

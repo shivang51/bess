@@ -21,7 +21,7 @@ namespace Bess::Svc {
         void init();
         void destroy();
 
-        bool hasSimComponent(const uint64_t &compHash) const;
+        bool hasSimSceneComp(const std::string &defName) const;
         bool hasSceneComp(const std::string &typeName) const;
 
         bool canDerserialize(const std::string &typeName) const;
@@ -30,7 +30,7 @@ namespace Bess::Svc {
             const std::string &typeName,
             const Json::Value &json) const;
 
-        std::shared_ptr<Canvas::SimulationSceneComponent> getSimComp(
+        std::shared_ptr<Canvas::SimulationSceneComponent> getSimSceneComp(
             const std::shared_ptr<SimEngine::Drivers::CompDef> &def) const;
 
         MAKE_GETTER(bool, IsInitialized, m_initialized)

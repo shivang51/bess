@@ -6,13 +6,17 @@ from bessplug.api.sim_engine.driver import CompDef
 # from components import seven_segment_display, seven_segment_display_driver
 # from components.alu_74LS181 import dm74ls181
 # from components.combinational_circuits import combinational_circuits
-from components.digital_gates import digital_gates
+from components.digital_gates import (
+    digital_gates,
+    schematic_diagrams as digital_gates_schematics,
+)
 
 # from components.flip_flops import flip_flops
 # from components.latches import latches
 # from components.tristate_buffer import tristate_buffer_def
-# from scene.digital_gate_comp import DigitalGateComp
-# from scene.output_comp import OutputComp
+from scene.digital_gate_comp import DigitalGateComp
+from scene.output_comp import OutputComp
+
 # from scene.seven_seg_disp_comp import SevenSegDispComp
 from ui.scripting_panel import ScriptingPanel
 
@@ -25,7 +29,7 @@ class BessPlugin(Plugin):
         self.scripting_panel = ScriptingPanel()
 
     @override
-    def on_components_reg_load(self) -> list[CompDef]:
+    def on_comp_catalog_load(self) -> list[CompDef]:
         return [*digital_gates]
         # return [
         #     *latches,
@@ -40,26 +44,25 @@ class BessPlugin(Plugin):
         # ]
 
     @override
-    def has_sim_comp(self, base_hash) -> bool:
-        return False
-        # return (
-        #     base_hash == 15124334025293992558
-        #     or digital_gates_schematics.get(int(base_hash), None) is not None
-        #     or seven_segment_display.seven_seg_disp_def.get_hash() == base_hash
-        # )
+    def has_sim_scene_comp(self, def_name) -> bool:
+        return (
+            def_name == "Output"
+            or digital_gates_schematics.get(def_name, None) is not None
+            # or seven_segment_display.seven_seg_disp_def.get_hash() == base_hash
+        )
 
     @override
-    def get_sim_comp(self, component_def):
-        base_hash = component_def.get_hash()
-        if not self.has_sim_comp(base_hash):
+    def get_sim_scene_comp(self, comp_def):
+        name = comp_def.name
+        if not self.has_sim_scene_comp(name):
             return None
 
-        # if base_hash == 15124334025293992558:
-        #     return OutputComp()
+        if name == "Output":
+            return OutputComp()
         # elif seven_segment_display.seven_seg_disp_def.get_hash() == base_hash:
         #     return SevenSegDispComp()
-        # else:
-        #     return DigitalGateComp.from_component_def(component_def)
+        else:
+            return DigitalGateComp.from_component_def(comp_def)
 
     @override
     def draw_ui(self):
