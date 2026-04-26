@@ -10,9 +10,9 @@ from components.digital_gates import (
     digital_gates,
     schematic_diagrams as digital_gates_schematics,
 )
+from components.latches import latches
 
 # from components.flip_flops import flip_flops
-# from components.latches import latches
 # from components.tristate_buffer import tristate_buffer_def
 from scene.digital_gate_comp import DigitalGateComp
 from scene.output_comp import OutputComp
@@ -30,7 +30,7 @@ class BessPlugin(Plugin):
 
     @override
     def on_comp_catalog_load(self) -> list[CompDef]:
-        return [*digital_gates]
+        return [*latches, *digital_gates]
         # return [
         #     *latches,
         #     *digital_gates,
