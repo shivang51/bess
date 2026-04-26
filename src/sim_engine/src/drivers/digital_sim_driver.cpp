@@ -1,8 +1,10 @@
 #include "drivers/digital_sim_driver.h"
 #include "common/bess_assert.h"
+#include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "drivers/event_based_sim_driver.h"
 #include "expression_evalutator/expr_evaluator.h"
+#include "types.h"
 #include "json/value.h"
 
 #include <algorithm>
@@ -258,7 +260,17 @@ namespace Bess::SimEngine::Drivers::Digital {
             }
         }
 
-        propagateFromComponent(src);
+        if (srcType == SlotType::digitalInput) {
+            scheduleEvt(src,
+                        m_currentSimTime,
+                        dst,
+                        true);
+        } else {
+            scheduleEvt(dst,
+                        m_currentSimTime,
+                        src,
+                        true);
+        }
 
         BESS_INFO("Connected components in DigitalSimDriver");
         return true;
@@ -305,6 +317,12 @@ namespace Bess::SimEngine::Drivers::Digital {
         }
         if (pinBType == SlotType::digitalInput && static_cast<size_t>(idxB) < compBRef->getIsInputConnected().size()) {
             compBRef->getIsInputConnected()[idxB] = !pinsB[idxB].empty();
+        }
+
+        if (pinAType == SlotType::digitalInput) {
+            scheduleEvt(compA, m_currentSimTime, UUID::null, true);
+        } else {
+            scheduleEvt(compB, m_currentSimTime, UUID::null, true);
         }
 
         m_isNetUpdated = true;
@@ -458,6 +476,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         for (size_t pinIdx = 0; pinIdx < inputConns.size(); ++pinIdx) {
             const auto &pinConns = inputConns[pinIdx];
             if (pinConns.empty()) {
+                collapsed[pinIdx].state = LogicState::low;
                 continue;
             }
 

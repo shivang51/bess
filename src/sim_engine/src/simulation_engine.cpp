@@ -9,16 +9,12 @@
 
 #include "plugin_manager.h"
 
-#include <algorithm>
-#include <cassert>
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
 #include <memory>
 #include <mutex>
-#include <queue>
 #include <thread>
-#include <unordered_set>
 
 // #define BESS_ENABLE_LOG_EVENTS
 

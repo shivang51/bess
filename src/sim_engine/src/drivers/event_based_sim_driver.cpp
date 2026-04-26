@@ -173,6 +173,11 @@ namespace Bess::SimEngine::Drivers {
                                               TimeNs simTime,
                                               const UUID &schedulerId) {
         static uint64_t evtId = 0;
+        BESS_LOG_EVENT("(EvtBasedSimDriver.scheduleEvtLocked) Scheduling event {} for component {} at time {}ns (scheduled by {})",
+                       evtId,
+                       (uint64_t)compId,
+                       simTime.count(),
+                       (uint64_t)schedulerId);
         SimEvt ev{UUID(evtId++),
                   compId,
                   schedulerId,

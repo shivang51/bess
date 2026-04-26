@@ -41,17 +41,6 @@ class BessPlugin(Plugin):
             seven_segment_display.seven_seg_disp_def,
             seven_segment_display_driver.seven_seg_disp_driver_def,
         ]
-        # return [
-        #     *latches,
-        #     *digital_gates,
-        #     *flip_flops,
-        #     *combinational_circuits,
-        #     tristate_buffer_def,
-        #     seven_segment_display.seven_seg_disp_def,
-        #     seven_segment_display_driver.seven_seg_disp_driver_def,
-        #     dm74ls181,
-        #     # clock.clock_def, WILL ADD BACK LATER (POST UI HOOK ARCHITECUTRE)
-        # ]
 
     @override
     def has_sim_scene_comp(self, def_name) -> bool:
