@@ -87,6 +87,8 @@ namespace Bess::SimEngine::Drivers {
 
         virtual std::vector<SlotState> collapseInputs(const UUID &id);
 
+        void propagateFromComponent(const UUID &sourceId) override;
+
         virtual void onBeforeRun();
 
         void onPause() override;
@@ -94,6 +96,8 @@ namespace Bess::SimEngine::Drivers {
         void onResume() override;
 
         void onStop() override;
+
+        void onStep() override;
 
         void scheduleEvt(const UUID &compId,
                          TimeNs simTime,
@@ -105,7 +109,11 @@ namespace Bess::SimEngine::Drivers {
       private:
         void simulateEvts(const std::vector<SimEvt> &evts);
 
-        void scheduleDependantsOf(const UUID &compId);
+        void scheduleEvtLocked(const UUID &compId,
+                               TimeNs simTime,
+                               const UUID &schedulerId);
+
+        void scheduleDependantsOfLocked(const UUID &compId);
 
         // returns the next evt baesd on sim time
         SimEvt getNextEvt() const;
@@ -113,6 +121,8 @@ namespace Bess::SimEngine::Drivers {
         std::vector<SimEvt> collectEvts();
 
       protected:
+        void scheduleDependantsOf(const UUID &compId);
+
         TimeNs m_currentSimTime{0};
         std::condition_variable m_runIterCv;
         std::mutex m_runIterMutex;

@@ -56,6 +56,59 @@ namespace Bess::SimEngine::Drivers {
         return m_components.contains(id);
     }
 
+    void SimDriver::deleteComponent(const UUID &uuid) {
+        std::lock_guard lk(m_compMapMutex);
+        m_components.erase(uuid);
+    }
+
+    void SimDriver::clearComponents() {
+        std::lock_guard lk(m_compMapMutex);
+        m_components.clear();
+    }
+
+    ConnectionBundle SimDriver::getConnections(const UUID &uuid) const {
+        return {};
+    }
+
+    std::vector<SlotState> SimDriver::getInputSlotsState(const UUID &compId) const {
+        return {};
+    }
+
+    SlotState SimDriver::getSlotState(const UUID &uuid, SlotType type, int idx) const {
+        return {LogicState::unknown, SimTime(0)};
+    }
+
+    bool SimDriver::setInputSlotState(
+        const UUID &uuid,
+        int pinIdx,
+        LogicState state) {
+        return false;
+    }
+
+    bool SimDriver::setOutputSlotState(
+        const UUID &uuid,
+        int pinIdx,
+        LogicState state) {
+        return false;
+    }
+
+    ComponentState SimDriver::getComponentState(const UUID &uuid) const {
+        return {};
+    }
+
+    void SimDriver::propagateFromComponent(const UUID &sourceId) {}
+
+    const std::unordered_map<UUID, Net> &SimDriver::getNetsMap() const {
+        static const std::unordered_map<UUID, Net> empty;
+        return empty;
+    }
+
+    bool SimDriver::isNetUpdated() const {
+        return false;
+    }
+
+    void SimDriver::clearNetUpdated() {}
+
     void SimDriver::init() {
         onInit();
         std::lock_guard lk(m_stateMutex);

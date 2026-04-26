@@ -168,6 +168,12 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         std::shared_ptr<SimComponent> createComp(const std::shared_ptr<CompDef> &def) override;
 
+        void onComponentAdded(const std::shared_ptr<SimComponent> &comp) override;
+
+        void deleteComponent(const UUID &uuid) override;
+
+        void clearComponents() override;
+
         bool suuportsDef(const std::shared_ptr<CompDef> &def) const override {
             return std::dynamic_pointer_cast<DigCompDef>(def) != nullptr;
         }
@@ -182,19 +188,36 @@ namespace Bess::SimEngine::Drivers::Digital {
         void onBeforeRun() override;
 
         std::pair<bool, std::string> canConnectComponents(
-            Bess::SimEngine::SimulationEngine &engine, const UUID &src, int srcSlotIdx, SlotType srcType,
+            const UUID &src, int srcSlotIdx, SlotType srcType,
             const UUID &dst, int dstSlotIdx, SlotType dstType) const override;
 
         bool connectComponent(
-            Bess::SimEngine::SimulationEngine &engine, const UUID &src, int srcSlotIdx, SlotType srcType,
+            const UUID &src, int srcSlotIdx, SlotType srcType,
             const UUID &dst, int dstSlotIdx, SlotType dstType, bool overrideConn) override;
 
         void deleteConnection(
-            Bess::SimEngine::SimulationEngine &engine, const UUID &compA, SlotType pinAType, int idxA,
+            const UUID &compA, SlotType pinAType, int idxA,
             const UUID &compB, SlotType pinBType, int idxB) override;
 
-        bool addSlot(Bess::SimEngine::SimulationEngine &engine, const UUID &compId, SlotType type, int index) override;
-        bool removeSlot(Bess::SimEngine::SimulationEngine &engine, const UUID &compId, SlotType type, int index) override;
+        bool addSlot(const UUID &compId, SlotType type, int index) override;
+        bool removeSlot(const UUID &compId, SlotType type, int index) override;
+
+        ConnectionBundle getConnections(const UUID &uuid) const override;
+        std::vector<UUID> getDependants(const UUID &id) override;
+        std::vector<SlotState> collapseInputs(const UUID &id) override;
+        std::vector<SlotState> getInputSlotsState(const UUID &compId) const override;
+        SlotState getSlotState(const UUID &uuid, SlotType type, int idx) const override;
+        bool setInputSlotState(const UUID &uuid, int pinIdx, LogicState state) override;
+        bool setOutputSlotState(const UUID &uuid, int pinIdx, LogicState state) override;
+        ComponentState getComponentState(const UUID &uuid) const override;
+
+        const std::unordered_map<UUID, Net> &getNetsMap() const override;
+        bool isNetUpdated() const override;
+        void clearNetUpdated() override;
+
+      private:
+        std::unordered_map<UUID, Net> m_nets;
+        bool m_isNetUpdated{false};
     };
 
 } // namespace Bess::SimEngine::Drivers::Digital

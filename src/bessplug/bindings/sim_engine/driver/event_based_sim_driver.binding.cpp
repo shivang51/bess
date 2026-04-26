@@ -35,8 +35,7 @@ class PyEvtBasedSimDriver : public Bess::SimEngine::Drivers::EvtBasedSimDriver {
                                     def);
     }
 
-    CanConnectResult canConnectComponents(Bess::SimEngine::SimulationEngine &engine,
-                                          const Bess::UUID &src,
+    CanConnectResult canConnectComponents(const Bess::UUID &src,
                                           int srcSlotIdx,
                                           Bess::SimEngine::SlotType srcType,
                                           const Bess::UUID &dst,
@@ -54,8 +53,7 @@ class PyEvtBasedSimDriver : public Bess::SimEngine::Drivers::EvtBasedSimDriver {
                                     dstType);
     }
 
-    bool connectComponent(Bess::SimEngine::SimulationEngine &engine,
-                          const Bess::UUID &src,
+    bool connectComponent(const Bess::UUID &src,
                           int srcSlotIdx,
                           Bess::SimEngine::SlotType srcType,
                           const Bess::UUID &dst,
@@ -75,8 +73,7 @@ class PyEvtBasedSimDriver : public Bess::SimEngine::Drivers::EvtBasedSimDriver {
                                     overrideConn);
     }
 
-    void deleteConnection(Bess::SimEngine::SimulationEngine &engine,
-                          const Bess::UUID &compA,
+    void deleteConnection(const Bess::UUID &compA,
                           Bess::SimEngine::SlotType pinAType,
                           int idxA,
                           const Bess::UUID &compB,
@@ -94,8 +91,7 @@ class PyEvtBasedSimDriver : public Bess::SimEngine::Drivers::EvtBasedSimDriver {
                                     idxB);
     }
 
-    bool addSlot(Bess::SimEngine::SimulationEngine &engine,
-                 const Bess::UUID &compId,
+    bool addSlot(const Bess::UUID &compId,
                  Bess::SimEngine::SlotType type,
                  int index) override {
         PYBIND11_OVERRIDE_PURE_NAME(bool,
@@ -107,8 +103,7 @@ class PyEvtBasedSimDriver : public Bess::SimEngine::Drivers::EvtBasedSimDriver {
                                     index);
     }
 
-    bool removeSlot(Bess::SimEngine::SimulationEngine &engine,
-                    const Bess::UUID &compId,
+    bool removeSlot(const Bess::UUID &compId,
                     Bess::SimEngine::SlotType type,
                     int index) override {
         PYBIND11_OVERRIDE_PURE_NAME(bool,

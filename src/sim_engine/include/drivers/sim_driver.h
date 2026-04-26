@@ -2,16 +2,13 @@
 #include "bess_api.h"
 #include "common/class_helpers.h"
 #include "common/logger.h"
+#include "net/net.h"
 #include "types.h"
 #include <common/bess_uuid.h>
 #include <functional>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
-
-namespace Bess::SimEngine {
-    class SimulationEngine;
-}
 
 namespace Bess::SimEngine::Drivers {
 
@@ -102,24 +99,50 @@ namespace Bess::SimEngine::Drivers {
         virtual std::shared_ptr<SimComponent> createComp(
             const std::shared_ptr<CompDef> &def) = 0;
 
+        virtual void onComponentAdded(const std::shared_ptr<SimComponent> &comp) {}
+
+        virtual void deleteComponent(const UUID &uuid);
+
+        virtual void clearComponents();
+
         virtual void clearPendingEvents() {}
 
         // Connection management
         virtual std::pair<bool, std::string> canConnectComponents(
-            Bess::SimEngine::SimulationEngine &engine, const UUID &src, int srcSlotIdx, SlotType srcType,
+            const UUID &src, int srcSlotIdx, SlotType srcType,
             const UUID &dst, int dstSlotIdx, SlotType dstType) const = 0;
 
         virtual bool connectComponent(
-            Bess::SimEngine::SimulationEngine &engine, const UUID &src, int srcSlotIdx, SlotType srcType,
+            const UUID &src, int srcSlotIdx, SlotType srcType,
             const UUID &dst, int dstSlotIdx, SlotType dstType, bool overrideConn) = 0;
 
         virtual void deleteConnection(
-            Bess::SimEngine::SimulationEngine &engine, const UUID &compA, SlotType pinAType, int idxA,
+            const UUID &compA, SlotType pinAType, int idxA,
             const UUID &compB, SlotType pinBType, int idxB) = 0;
 
-        virtual bool addSlot(Bess::SimEngine::SimulationEngine &engine, const UUID &compId, SlotType type, int index) = 0;
+        virtual bool addSlot(const UUID &compId, SlotType type, int index) = 0;
 
-        virtual bool removeSlot(Bess::SimEngine::SimulationEngine &engine, const UUID &compId, SlotType type, int index) = 0;
+        virtual bool removeSlot(const UUID &compId, SlotType type, int index) = 0;
+
+        virtual ConnectionBundle getConnections(const UUID &uuid) const;
+
+        virtual std::vector<SlotState> getInputSlotsState(const UUID &compId) const;
+
+        virtual SlotState getSlotState(const UUID &uuid, SlotType type, int idx) const;
+
+        virtual bool setInputSlotState(const UUID &uuid, int pinIdx, LogicState state);
+
+        virtual bool setOutputSlotState(const UUID &uuid, int pinIdx, LogicState state);
+
+        virtual ComponentState getComponentState(const UUID &uuid) const;
+
+        virtual void propagateFromComponent(const UUID &sourceId);
+
+        virtual const std::unordered_map<UUID, Net> &getNetsMap() const;
+
+        virtual bool isNetUpdated() const;
+
+        virtual void clearNetUpdated();
 
       protected:
         virtual void onInit() {};

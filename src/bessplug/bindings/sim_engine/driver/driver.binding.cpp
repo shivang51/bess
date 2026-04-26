@@ -47,7 +47,6 @@ class PySimDriver : public Bess::SimEngine::Drivers::SimDriver {
     }
 
     CanConnectResult canConnectComponents(
-        Bess::SimEngine::SimulationEngine &engine,
         const Bess::UUID &src,
         int srcSlotIdx,
         Bess::SimEngine::SlotType srcType,
@@ -66,8 +65,7 @@ class PySimDriver : public Bess::SimEngine::Drivers::SimDriver {
                                     dstType);
     }
 
-    bool connectComponent(Bess::SimEngine::SimulationEngine &engine,
-                          const Bess::UUID &src,
+    bool connectComponent(const Bess::UUID &src,
                           int srcSlotIdx,
                           Bess::SimEngine::SlotType srcType,
                           const Bess::UUID &dst,
@@ -87,8 +85,7 @@ class PySimDriver : public Bess::SimEngine::Drivers::SimDriver {
                                     overrideConn);
     }
 
-    void deleteConnection(Bess::SimEngine::SimulationEngine &engine,
-                          const Bess::UUID &compA,
+    void deleteConnection(const Bess::UUID &compA,
                           Bess::SimEngine::SlotType pinAType,
                           int idxA,
                           const Bess::UUID &compB,
@@ -106,8 +103,7 @@ class PySimDriver : public Bess::SimEngine::Drivers::SimDriver {
                                     idxB);
     }
 
-    bool addSlot(Bess::SimEngine::SimulationEngine &engine,
-                 const Bess::UUID &compId,
+    bool addSlot(const Bess::UUID &compId,
                  Bess::SimEngine::SlotType type,
                  int index) override {
         PYBIND11_OVERRIDE_PURE_NAME(bool,
@@ -119,8 +115,7 @@ class PySimDriver : public Bess::SimEngine::Drivers::SimDriver {
                                     index);
     }
 
-    bool removeSlot(Bess::SimEngine::SimulationEngine &engine,
-                    const Bess::UUID &compId,
+    bool removeSlot(const Bess::UUID &compId,
                     Bess::SimEngine::SlotType type,
                     int index) override {
         PYBIND11_OVERRIDE_PURE_NAME(bool,
@@ -294,30 +289,27 @@ void bind_sim_engine_driver(py::module_ &m) {
         .def("is_stopped", &SimDriver::isStopped)
         .def("is_destroyed", &SimDriver::isDestroyed)
         .def("has_component", &SimDriver::hasComponent)
-        .def("can_connect_components", [](const SimDriver &self, const Bess::UUID &src, int srcSlotIdx, SlotType srcType, const Bess::UUID &dst, int dstSlotIdx, SlotType dstType) { return self.canConnectComponents(SimulationEngine::instance(),
-                                                                                                                                                                                                                      src,
+        .def("can_connect_components", [](const SimDriver &self, const Bess::UUID &src, int srcSlotIdx, SlotType srcType, const Bess::UUID &dst, int dstSlotIdx, SlotType dstType) { return self.canConnectComponents(src,
                                                                                                                                                                                                                       srcSlotIdx,
                                                                                                                                                                                                                       srcType,
                                                                                                                                                                                                                       dst,
                                                                                                                                                                                                                       dstSlotIdx,
                                                                                                                                                                                                                       dstType); }, py::arg("src"), py::arg("src_slot_idx"), py::arg("src_type"), py::arg("dst"), py::arg("dst_slot_idx"), py::arg("dst_type"))
-        .def("connect_component", [](SimDriver &self, const Bess::UUID &src, int srcSlotIdx, SlotType srcType, const Bess::UUID &dst, int dstSlotIdx, SlotType dstType, bool overrideConn) { return self.connectComponent(SimulationEngine::instance(),
-                                                                                                                                                                                                                          src,
+        .def("connect_component", [](SimDriver &self, const Bess::UUID &src, int srcSlotIdx, SlotType srcType, const Bess::UUID &dst, int dstSlotIdx, SlotType dstType, bool overrideConn) { return self.connectComponent(src,
                                                                                                                                                                                                                           srcSlotIdx,
                                                                                                                                                                                                                           srcType,
                                                                                                                                                                                                                           dst,
                                                                                                                                                                                                                           dstSlotIdx,
                                                                                                                                                                                                                           dstType,
                                                                                                                                                                                                                           overrideConn); }, py::arg("src"), py::arg("src_slot_idx"), py::arg("src_type"), py::arg("dst"), py::arg("dst_slot_idx"), py::arg("dst_type"), py::arg("override_conn") = false)
-        .def("delete_connection", [](SimDriver &self, const Bess::UUID &compA, SlotType pinAType, int idxA, const Bess::UUID &compB, SlotType pinBType, int idxB) { self.deleteConnection(SimulationEngine::instance(),
-                                                                                                                                                                                          compA,
+        .def("delete_connection", [](SimDriver &self, const Bess::UUID &compA, SlotType pinAType, int idxA, const Bess::UUID &compB, SlotType pinBType, int idxB) { self.deleteConnection(compA,
                                                                                                                                                                                           pinAType,
                                                                                                                                                                                           idxA,
                                                                                                                                                                                           compB,
                                                                                                                                                                                           pinBType,
                                                                                                                                                                                           idxB); }, py::arg("comp_a"), py::arg("pin_a_type"), py::arg("idx_a"), py::arg("comp_b"), py::arg("pin_b_type"), py::arg("idx_b"))
-        .def("add_slot", [](SimDriver &self, const Bess::UUID &compId, SlotType type, int index) { return self.addSlot(SimulationEngine::instance(), compId, type, index); }, py::arg("component_id"), py::arg("slot_type"), py::arg("index"))
-        .def("remove_slot", [](SimDriver &self, const Bess::UUID &compId, SlotType type, int index) { return self.removeSlot(SimulationEngine::instance(), compId, type, index); }, py::arg("component_id"), py::arg("slot_type"), py::arg("index"))
+        .def("add_slot", [](SimDriver &self, const Bess::UUID &compId, SlotType type, int index) { return self.addSlot(compId, type, index); }, py::arg("component_id"), py::arg("slot_type"), py::arg("index"))
+        .def("remove_slot", [](SimDriver &self, const Bess::UUID &compId, SlotType type, int index) { return self.removeSlot(compId, type, index); }, py::arg("component_id"), py::arg("slot_type"), py::arg("index"))
         .def("clear_pending_events", &SimDriver::clearPendingEvents)
         .def("component_count", [](const SimDriver &self) { return self.getComponentsMap().size(); });
 
@@ -330,28 +322,25 @@ void bind_sim_engine_driver(py::module_ &m) {
         .def("simulate", &Digital::DigitalSimDriver::simulate)
         .def("add_component", &Digital::DigitalSimDriver::addComponent,
              py::arg("component"), py::arg("schedule_sim") = true)
-        .def("can_connect_components", [](Digital::DigitalSimDriver &self, const Bess::UUID &src, int srcSlotIdx, SlotType srcType, const Bess::UUID &dst, int dstSlotIdx, SlotType dstType) { return self.canConnectComponents(SimulationEngine::instance(),
-                                                                                                                                                                                                                                src,
+        .def("can_connect_components", [](Digital::DigitalSimDriver &self, const Bess::UUID &src, int srcSlotIdx, SlotType srcType, const Bess::UUID &dst, int dstSlotIdx, SlotType dstType) { return self.canConnectComponents(src,
                                                                                                                                                                                                                                 srcSlotIdx,
                                                                                                                                                                                                                                 srcType,
                                                                                                                                                                                                                                 dst,
                                                                                                                                                                                                                                 dstSlotIdx,
                                                                                                                                                                                                                                 dstType); }, py::arg("src"), py::arg("src_slot_idx"), py::arg("src_type"), py::arg("dst"), py::arg("dst_slot_idx"), py::arg("dst_type"))
-        .def("connect_component", [](Digital::DigitalSimDriver &self, const Bess::UUID &src, int srcSlotIdx, SlotType srcType, const Bess::UUID &dst, int dstSlotIdx, SlotType dstType, bool overrideConn) { return self.connectComponent(SimulationEngine::instance(),
-                                                                                                                                                                                                                                          src,
+        .def("connect_component", [](Digital::DigitalSimDriver &self, const Bess::UUID &src, int srcSlotIdx, SlotType srcType, const Bess::UUID &dst, int dstSlotIdx, SlotType dstType, bool overrideConn) { return self.connectComponent(src,
                                                                                                                                                                                                                                           srcSlotIdx,
                                                                                                                                                                                                                                           srcType,
                                                                                                                                                                                                                                           dst,
                                                                                                                                                                                                                                           dstSlotIdx,
                                                                                                                                                                                                                                           dstType,
                                                                                                                                                                                                                                           overrideConn); }, py::arg("src"), py::arg("src_slot_idx"), py::arg("src_type"), py::arg("dst"), py::arg("dst_slot_idx"), py::arg("dst_type"), py::arg("override_conn") = false)
-        .def("delete_connection", [](Digital::DigitalSimDriver &self, const Bess::UUID &compA, SlotType pinAType, int idxA, const Bess::UUID &compB, SlotType pinBType, int idxB) { self.deleteConnection(SimulationEngine::instance(),
-                                                                                                                                                                                                          compA,
+        .def("delete_connection", [](Digital::DigitalSimDriver &self, const Bess::UUID &compA, SlotType pinAType, int idxA, const Bess::UUID &compB, SlotType pinBType, int idxB) { self.deleteConnection(compA,
                                                                                                                                                                                                           pinAType,
                                                                                                                                                                                                           idxA,
                                                                                                                                                                                                           compB,
                                                                                                                                                                                                           pinBType,
                                                                                                                                                                                                           idxB); }, py::arg("comp_a"), py::arg("pin_a_type"), py::arg("idx_a"), py::arg("comp_b"), py::arg("pin_b_type"), py::arg("idx_b"))
-        .def("add_slot", [](Digital::DigitalSimDriver &self, const Bess::UUID &compId, SlotType type, int index) { return self.addSlot(SimulationEngine::instance(), compId, type, index); }, py::arg("component_id"), py::arg("slot_type"), py::arg("index"))
-        .def("remove_slot", [](Digital::DigitalSimDriver &self, const Bess::UUID &compId, SlotType type, int index) { return self.removeSlot(SimulationEngine::instance(), compId, type, index); }, py::arg("component_id"), py::arg("slot_type"), py::arg("index"));
+        .def("add_slot", [](Digital::DigitalSimDriver &self, const Bess::UUID &compId, SlotType type, int index) { return self.addSlot(compId, type, index); }, py::arg("component_id"), py::arg("slot_type"), py::arg("index"))
+        .def("remove_slot", [](Digital::DigitalSimDriver &self, const Bess::UUID &compId, SlotType type, int index) { return self.removeSlot(compId, type, index); }, py::arg("component_id"), py::arg("slot_type"), py::arg("index"));
 }
