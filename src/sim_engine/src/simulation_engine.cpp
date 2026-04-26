@@ -123,15 +123,16 @@ namespace Bess::SimEngine {
         const std::shared_ptr<Drivers::CompDef> &definition,
         bool cloneDef) {
         for (const auto &driver : m_simDrivers) {
-            if (driver->suuportsDef(definition)) {
+            if (driver->supportsDef(definition)) {
                 auto comp = driver->createComp(definition);
                 if (!comp) {
                     return UUID::null;
                 }
 
+                driver->addComponent(comp, true);
+
                 std::lock_guard lk(m_registryMutex);
                 m_simEngineState.addComponent(comp);
-                driver->onComponentAdded(comp);
 
                 return comp->getUuid();
             }

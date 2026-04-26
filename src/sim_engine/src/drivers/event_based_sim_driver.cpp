@@ -1,4 +1,5 @@
 #include "drivers/event_based_sim_driver.h"
+#include "drivers/sim_driver.h"
 
 namespace Bess::SimEngine::Drivers {
 
@@ -79,23 +80,25 @@ namespace Bess::SimEngine::Drivers {
         }
     }
 
-    void EvtBasedSimDriver::addComponent(
-        const std::shared_ptr<EvtBasedSimComp> &comp,
-        bool scheduleSim) {
-        {
-            std::lock_guard lk(m_compMapMutex);
-            m_components[comp->getUuid()] = comp;
-        }
+    UUID EvtBasedSimDriver::addComponent(const std::shared_ptr<SimComponent> &comp,
+                                         bool scheduleSim) {
+        auto compCasted = std::dynamic_pointer_cast<EvtBasedSimComp>(comp);
+
+        BESS_ASSERT(compCasted, "EvtBasedSimDriver only supports components of type EvtBasedSimComp");
+
+        SimDriver::addComponent(comp, scheduleSim);
 
         if (scheduleSim) {
             BESS_DEBUG("Scheduling initial event for component {} at time {}ns",
                        (uint64_t)comp->getUuid(),
-                       (m_currentSimTime + comp->getSelfSimDelay()).count());
+                       (m_currentSimTime + compCasted->getSelfSimDelay()).count());
             scheduleEvt(comp->getUuid(),
-                        m_currentSimTime + comp->getSelfSimDelay(),
+                        m_currentSimTime + compCasted->getSelfSimDelay(),
                         UUID::null,
                         true);
         }
+
+        return comp->getUuid();
     }
 
     std::vector<UUID> EvtBasedSimDriver::getDependants(const UUID &id) {

@@ -166,6 +166,8 @@ namespace Bess::SimEngine::Drivers::Digital {
         DigitalSimDriver() = default;
         ~DigitalSimDriver() override = default;
 
+        // This function does not add component to the driver,
+        // it only creates the component and returns it
         std::shared_ptr<SimComponent> createComp(const std::shared_ptr<CompDef> &def) override;
 
         void onComponentAdded(const std::shared_ptr<SimComponent> &comp) override;
@@ -174,7 +176,7 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         void clearComponents() override;
 
-        bool suuportsDef(const std::shared_ptr<CompDef> &def) const override {
+        bool supportsDef(const std::shared_ptr<CompDef> &def) const override {
             return std::dynamic_pointer_cast<DigCompDef>(def) != nullptr;
         }
 
@@ -182,8 +184,8 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         bool simulate(const SimEvt &evt) override;
 
-        void addComponent(const std::shared_ptr<DigSimComp> &comp,
-                          bool scheduleSim = true);
+        UUID addComponent(const std::shared_ptr<SimComponent> &comp,
+                          bool scheduleSim = true) override;
 
         void onBeforeRun() override;
 

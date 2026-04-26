@@ -1,4 +1,5 @@
 #include "drivers/event_based_sim_driver.h"
+#include "common/bess_uuid.h"
 #include "drivers/sim_driver.h"
 
 #include <pybind11/pybind11.h>
@@ -18,7 +19,7 @@ class PyEvtBasedSimDriver : public Bess::SimEngine::Drivers::EvtBasedSimDriver {
                                     getName);
     }
 
-    bool suuportsDef(const std::shared_ptr<Bess::SimEngine::Drivers::CompDef> &def) const override {
+    bool supportsDef(const std::shared_ptr<Bess::SimEngine::Drivers::CompDef> &def) const override {
         PYBIND11_OVERRIDE_PURE_NAME(bool,
                                     Bess::SimEngine::Drivers::EvtBasedSimDriver,
                                     "supports_def",
@@ -123,9 +124,9 @@ class PyEvtBasedSimDriver : public Bess::SimEngine::Drivers::EvtBasedSimDriver {
                                     evt);
     }
 
-    void addComponent(const std::shared_ptr<Bess::SimEngine::Drivers::EvtBasedSimComp> &comp,
-                      bool scheduleSim) override {
-        PYBIND11_OVERRIDE_NAME(void,
+    Bess::UUID addComponent(const std::shared_ptr<Bess::SimEngine::Drivers::SimComponent> &comp,
+                            bool scheduleSim) override {
+        PYBIND11_OVERRIDE_NAME(Bess::UUID,
                                Bess::SimEngine::Drivers::EvtBasedSimDriver,
                                "add_component",
                                addComponent,
@@ -160,22 +161,53 @@ class PyEvtBasedSimDriver : public Bess::SimEngine::Drivers::EvtBasedSimDriver {
 void bind_event_based_sim_driver(py::module_ &m) {
     using namespace Bess::SimEngine::Drivers;
 
-    py::class_<EvtBasedSimDriver, SimDriver, PyEvtBasedSimDriver, std::shared_ptr<EvtBasedSimDriver>>(m, "EvtBasedSimDriver")
+    py::class_<EvtBasedCompDef,
+               CompDef,
+               std::shared_ptr<EvtBasedCompDef>>(m, "EvtBasedCompDef")
+        .def_property("auto_reschedule",
+                      py::overload_cast<>(&EvtBasedCompDef::getAutoReschedule),
+                      py::overload_cast<const bool &>(
+                          &EvtBasedCompDef::setAutoReschedule))
+        .def_property("prop_delay",
+                      py::overload_cast<>(&EvtBasedCompDef::getPropDelay),
+                      py::overload_cast<const Bess::TimeNs &>(&EvtBasedCompDef::setPropDelay))
+        .def("get_self_sim_delay", &EvtBasedCompDef::getSelfSimDelay);
+
+    py::class_<EvtBasedSimComp, SimComponent, std::shared_ptr<EvtBasedSimComp>>(m, "EvtBasedSimComp")
         .def(py::init<>())
-        .def("run", &EvtBasedSimDriver::run)
-        .def("simulate", &EvtBasedSimDriver::simulate, py::arg("event"))
+        .def("get_prop_delay", &EvtBasedSimComp::getPropDelay)
+        .def("get_sim_self", &EvtBasedSimComp::getSimSelf)
+        .def("get_self_sim_delay", &EvtBasedSimComp::getSelfSimDelay);
+
+    py::class_<EvtBasedSimDriver,
+               SimDriver,
+               PyEvtBasedSimDriver,
+               std::shared_ptr<EvtBasedSimDriver>>(m,
+                                                   "EvtBasedSimDriver")
+        .def(py::init<>())
+        .def("run",
+             &EvtBasedSimDriver::run)
+        .def("simulate",
+             &EvtBasedSimDriver::simulate,
+             py::arg("event"))
         .def("add_component",
              &EvtBasedSimDriver::addComponent,
              py::arg("component"),
              py::arg("schedule_sim") = true)
-        .def("get_dependants", &EvtBasedSimDriver::getDependants, py::arg("component_id"))
-        .def("collapse_inputs", &EvtBasedSimDriver::collapseInputs, py::arg("component_id"))
-        .def("on_before_run", &EvtBasedSimDriver::onBeforeRun)
+        .def("get_dependants",
+             &EvtBasedSimDriver::getDependants,
+             py::arg("component_id"))
+        .def("collapse_inputs",
+             &EvtBasedSimDriver::collapseInputs,
+             py::arg("component_id"))
+        .def("on_before_run",
+             &EvtBasedSimDriver::onBeforeRun)
         .def("schedule_event",
              &EvtBasedSimDriver::scheduleEvt,
              py::arg("component_id"),
              py::arg("sim_time"),
              py::arg("scheduler_id"),
              py::arg("notify") = true)
-        .def("clear_pending_events", &EvtBasedSimDriver::clearPendingEvents);
+        .def("clear_pending_events",
+             &EvtBasedSimDriver::clearPendingEvents);
 }

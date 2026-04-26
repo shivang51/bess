@@ -1,4 +1,5 @@
 #include "drivers/sim_driver.h"
+#include "common/bess_uuid.h"
 #include "common/logger.h"
 
 namespace Bess::SimEngine::Drivers {
@@ -55,6 +56,21 @@ namespace Bess::SimEngine::Drivers {
     bool SimDriver::hasComponent(const UUID &id) const {
         std::lock_guard lk(m_compMapMutex);
         return m_components.contains(id);
+    }
+
+    UUID SimDriver::addComponent(const std::shared_ptr<SimComponent> &comp,
+                                 bool scheduleSim) {
+        if (!comp) {
+            return UUID::null;
+        }
+
+        {
+            std::lock_guard lk(m_compMapMutex);
+            m_components[comp->getUuid()] = comp;
+        }
+
+        onComponentAdded(comp);
+        return comp->getUuid();
     }
 
     void SimDriver::deleteComponent(const UUID &uuid) {
@@ -192,5 +208,4 @@ namespace Bess::SimEngine::Drivers {
             onStep();
         }
     }
-
 } // namespace Bess::SimEngine::Drivers

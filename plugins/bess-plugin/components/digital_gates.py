@@ -1,9 +1,11 @@
 from bessplug.api.common import vec2
 from bessplug.api.common import time
-from bessplug.api.sim_engine import ComponentDefinition, SlotsGroupInfo, OperatorInfo
+from bessplug.api.sim_engine import SlotsGroupInfo, OperatorInfo
 from bessplug.api.scene.renderer import Path
 from bessplug.api.scene import SchematicDiagram
 import math
+
+from bessplug.api.sim_engine.driver import CompDef, DigCompDef
 
 _gates = {
     "BUF": {
@@ -224,8 +226,8 @@ def _init_paths():
 _paths = _init_paths()
 
 
-digital_gates: list[ComponentDefinition] = []
-schematic_diagrams: dict[int, SchematicDiagram] = {}
+digital_gates: list[CompDef] = []
+schematic_diagrams: dict[str, SchematicDiagram] = {}
 
 for gate_key, gate_data in _gates.items():
     input_slots_info: SlotsGroupInfo = SlotsGroupInfo()
@@ -239,12 +241,12 @@ for gate_key, gate_data in _gates.items():
     opInfo.op = gate_data["op"]
     opInfo.should_negate_output = gate_data.get("negate_output", False)
 
-    def_gate = ComponentDefinition.from_operator(
+    def_gate = DigCompDef.from_operator(
         name=gate_data["name"],
         group_name="Digital Gates",
         inputs=input_slots_info,
         outputs=output_slots_info,
-        sim_delay=time.TimeNS(2),
+        prop_delay=time.TimeNS(2),
         op_info=opInfo,
     )
     digital_gates.append(def_gate)
@@ -252,12 +254,10 @@ for gate_key, gate_data in _gates.items():
     if _paths.get(gate_key) is None:
         continue
 
-    def_gate.compute_hash()
-
     dig = _paths[gate_key]
     dig.normalize_paths()
     dig.stroke_size = 1.0
-    schematic_diagrams[def_gate.get_hash()] = dig
+    schematic_diagrams[def_gate.name] = dig
 
 
 __all__ = ["digital_gates", "schematic_diagrams"]

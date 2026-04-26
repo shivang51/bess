@@ -93,12 +93,13 @@ namespace Bess::SimEngine::Drivers {
         virtual std::string getName() const = 0;
 
         // returns whether driver will accept the component.
-        virtual bool suuportsDef(const std::shared_ptr<CompDef> &def) const = 0;
+        virtual bool supportsDef(const std::shared_ptr<CompDef> &def) const = 0;
 
         virtual std::shared_ptr<SimComponent> createComp(
             const std::shared_ptr<CompDef> &def) = 0;
 
-        virtual void onComponentAdded(const std::shared_ptr<SimComponent> &comp) {}
+        virtual UUID addComponent(const std::shared_ptr<SimComponent> &comp,
+                                  bool scheduleSim);
 
         virtual void deleteComponent(const UUID &uuid);
 
@@ -144,6 +145,8 @@ namespace Bess::SimEngine::Drivers {
         virtual void clearNetUpdated();
 
       protected:
+        virtual void onComponentAdded(const std::shared_ptr<SimComponent> &comp) {}
+
         virtual void onInit() {};
 
         virtual void onStop() {};

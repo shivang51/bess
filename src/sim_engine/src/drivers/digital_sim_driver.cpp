@@ -49,12 +49,10 @@ namespace Bess::SimEngine::Drivers::Digital {
         return newData->simDependants;
     }
 
-    void DigitalSimDriver::addComponent(const std::shared_ptr<DigSimComp> &comp,
+    UUID DigitalSimDriver::addComponent(const std::shared_ptr<SimComponent> &comp,
                                         bool scheduleSim) {
         EvtBasedSimDriver::addComponent(comp, scheduleSim);
-        std::dynamic_pointer_cast<DigCompDef>(
-            comp->getDefinition())
-            ->computeExpressionsIfNeeded();
+        return comp->getUuid();
     }
 
     void DigitalSimDriver::onBeforeRun() {
@@ -63,7 +61,7 @@ namespace Bess::SimEngine::Drivers::Digital {
     }
 
     std::shared_ptr<SimComponent> DigitalSimDriver::createComp(const std::shared_ptr<CompDef> &def) {
-        if (!suuportsDef(def)) {
+        if (!supportsDef(def)) {
             BESS_WARN("(DigitalSimDriver.addComponent) Unsupported component definition type: {}",
                       def->getName());
             return nullptr;
@@ -79,8 +77,6 @@ namespace Bess::SimEngine::Drivers::Digital {
             return nullptr;
         }
 
-        addComponent(comp, false);
-
         return comp;
     }
 
@@ -89,6 +85,9 @@ namespace Bess::SimEngine::Drivers::Digital {
         if (!digiComp) {
             return;
         }
+
+        std::dynamic_pointer_cast<DigCompDef>(comp->getDefinition())
+            ->computeExpressionsIfNeeded();
 
         Net net;
         net.addComponent(digiComp->getUuid());
@@ -348,6 +347,8 @@ namespace Bess::SimEngine::Drivers::Digital {
             digDef->setOutputSlotsInfo(info);
         }
 
+        digDef->computeExpressionsIfNeeded();
+
         return true;
     }
 
@@ -399,6 +400,8 @@ namespace Bess::SimEngine::Drivers::Digital {
                 info.names.erase(info.names.begin() + index);
             digDef->setOutputSlotsInfo(info);
         }
+
+        digDef->computeExpressionsIfNeeded();
 
         return true;
     }
