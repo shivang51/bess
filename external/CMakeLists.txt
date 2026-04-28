@@ -30,14 +30,28 @@ set(External
 add_library(${PROJECT_NAME} OBJECT)
 
 target_sources(${PROJECT_NAME} PRIVATE ${External})
+include(FetchContent)
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(GLFW REQUIRED glfw3)
-pkg_check_modules(VULKAN REQUIRED vulkan)
+FetchContent_Declare(
+    glfw
+    GIT_REPOSITORY https://github.com/glfw/glfw.git
+    GIT_TAG 3.4
+)
+
+FetchContent_Declare(
+    libpng
+    GIT_REPOSITORY "https://github.com/pnggroup/libpng.git"
+    GIT_TAG "v1.6.55"
+)
+
+FetchContent_MakeAvailable(glfw libpng)
+
+find_package(Vulkan REQUIRED)
+find_package(PNG REQUIRED)
+
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
 	find_package(X11 REQUIRED)
 endif()
-find_package(PNG REQUIRED)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
 		"${CMAKE_SOURCE_DIR}/external/imgui"

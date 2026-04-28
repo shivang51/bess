@@ -63,8 +63,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(VULKAN REQUIRED vulkan)
+find_package(Vulkan REQUIRED)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC 
     ${VULKAN_LIBRARIES}
