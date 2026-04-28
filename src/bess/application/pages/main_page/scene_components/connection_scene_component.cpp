@@ -141,7 +141,7 @@ namespace Bess::Canvas {
                 BESS_ASSERT(false, "End slot component not convertable to SlotSceneComponent or ConnJointSceneComp");
             }
 
-            const bool isHigh = startSlotState == SimEngine::LogicState::high ||
+            const bool isHigh = startSlotState == SimEngine::LogicState::high &&
                                 endSlotState == SimEngine::LogicState::high;
 
             if (isHigh) {
