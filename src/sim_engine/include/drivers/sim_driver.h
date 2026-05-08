@@ -62,6 +62,8 @@ namespace Bess::SimEngine::Drivers {
 
         virtual Json::Value toJson() const;
 
+        virtual void onPostSimulate() {}
+
         static void fromJson(const std::shared_ptr<SimComponent> &comp,
                              const Json::Value &json);
 
@@ -81,6 +83,9 @@ namespace Bess::SimEngine::Drivers {
         running,
         paused
     };
+
+    // comp id, slot type, new count
+    typedef std::function<void(const UUID &, SlotType, int)> SlotCountChangeCB;
 
     class BESS_API SimDriver {
       public:
@@ -120,9 +125,11 @@ namespace Bess::SimEngine::Drivers {
             const UUID &compA, SlotType pinAType, int idxA,
             const UUID &compB, SlotType pinBType, int idxB) = 0;
 
-        virtual bool addSlot(const UUID &compId, SlotType type, int index) = 0;
+        virtual bool addSlot(const UUID &compId, SlotType type, int index,
+                             bool force = false) = 0;
 
-        virtual bool removeSlot(const UUID &compId, SlotType type, int index) = 0;
+        virtual bool removeSlot(const UUID &compId, SlotType type, int index,
+                                bool force = false) = 0;
 
         virtual ConnectionBundle getConnections(const UUID &uuid) const;
 
@@ -144,6 +151,10 @@ namespace Bess::SimEngine::Drivers {
 
         virtual void clearNetUpdated();
 
+        void addOnSlotCountChangeCB(const UUID &id, const SlotCountChangeCB &cb);
+
+        void removeOnSlotCountChangeCB(const UUID &id);
+
       protected:
         virtual void onComponentAdded(const std::shared_ptr<SimComponent> &comp) {}
 
@@ -160,6 +171,8 @@ namespace Bess::SimEngine::Drivers {
         virtual void onStep() {};
 
         virtual void onDestroy() {};
+
+        void triggerSlotCountChangeCbs(const UUID &compId, SlotType type, int newCount);
 
       public:
         typedef std::shared_ptr<SimComponent> SimComponentPtr;
@@ -217,5 +230,7 @@ namespace Bess::SimEngine::Drivers {
         SimDriverState m_state = SimDriverState::uninitialized;
         mutable std::mutex m_compMapMutex;
         mutable std::mutex m_stateMutex;
+
+        std::unordered_map<UUID, SlotCountChangeCB> m_onSlotCountChnageCBs;
     };
 } // namespace Bess::SimEngine::Drivers

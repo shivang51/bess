@@ -1,21 +1,22 @@
 #pragma once
 #include "bess_api.h"
 #include "common/bess_uuid.h"
-#include "component_definition.h"
 #include "drivers/digital_sim_driver.h"
 #include <memory>
 
 namespace Bess::SimEngine {
     class BESS_API ModuleDefinition : public Drivers::Digital::DigCompDef {
       public:
+        static constexpr const char *TypeName = "dig_mod_compdef";
+
         static std::shared_ptr<ModuleDefinition> createNew();
 
-        // FIXME: MoudelDef clone
-        // std::shared_ptr<ComponentDefinition> clone() const override;
+        std::string getTypeName() const override;
 
-        ComponentState simulationFunction(const std::vector<SlotState> &inputs,
-                                          SimTime simTime,
-                                          const ComponentState &prevState);
+        std::shared_ptr<Drivers::CompDef> clone() const override;
+
+        typedef std::shared_ptr<Drivers::Digital::DigCompSimData> TDigSimFnDataPtr;
+        TDigSimFnDataPtr simFunction(const TDigSimFnDataPtr &data);
 
         MAKE_GETTER_SETTER(UUID, InputId, m_input)
         MAKE_GETTER_SETTER(UUID, OutputId, m_output)

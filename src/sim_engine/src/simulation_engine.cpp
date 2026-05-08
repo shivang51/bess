@@ -703,19 +703,19 @@ namespace Bess::SimEngine {
         m_pendingSignalSources.insert(sourceId);
     }
 
-    bool SimulationEngine::addSlot(const UUID &compId, SlotType type, int index) {
+    bool SimulationEngine::addSlot(const UUID &compId, SlotType type, int index, bool force) {
         for (const auto &driver : m_simDrivers) {
             if (driver->hasComponent(compId)) {
-                return driver->addSlot(compId, type, index);
+                return driver->addSlot(compId, type, index, force);
             }
         }
         return false;
     }
 
-    bool SimulationEngine::removeSlot(const UUID &compId, SlotType type, int index) {
+    bool SimulationEngine::removeSlot(const UUID &compId, SlotType type, int index, bool force) {
         for (const auto &driver : m_simDrivers) {
             if (driver->hasComponent(compId)) {
-                return driver->removeSlot(compId, type, index);
+                return driver->removeSlot(compId, type, index, force);
             }
         }
         return false;
@@ -942,4 +942,44 @@ namespace Bess::SimEngine {
             }
         }
     }
+
+    void SimulationEngine::addOnSlotCountChangeCB(const UUID &id,
+                                                  const Drivers::SlotCountChangeCB &cb) {
+        for (const auto &driver : m_simDrivers) {
+            if (driver->hasComponent(id)) {
+                driver->addOnSlotCountChangeCB(id, cb);
+                BESS_DEBUG("Added slot count change callback for component with UUID {} to driver {}",
+                           (uint64_t)id, driver->getName());
+                return;
+            }
+        }
+
+        BESS_WARN("Component with UUID {} not found in any driver. Cannot add slot count change callback.",
+                  (uint64_t)id);
+    }
+
+    void SimulationEngine::removeOnSlotCountChangeCB(const UUID &id) {
+        for (const auto &driver : m_simDrivers) {
+            if (driver->hasComponent(id)) {
+                driver->removeOnSlotCountChangeCB(id);
+                BESS_DEBUG("Removed slot count change callback for component with UUID {} from driver {}",
+                           (uint64_t)id, driver->getName());
+                return;
+            }
+        }
+
+        BESS_WARN("Component with UUID {} not found in any driver. Cannot remove slot count change callback.",
+                  (uint64_t)id);
+    }
+
+    std::shared_ptr<Drivers::SimDriver> SimulationEngine::getDriverWithName(
+        const std::string &name) const {
+        for (const auto &driver : m_simDrivers) {
+            if (driver->getName() == name) {
+                return driver;
+            }
+        }
+        return nullptr;
+    }
+
 } // namespace Bess::SimEngine

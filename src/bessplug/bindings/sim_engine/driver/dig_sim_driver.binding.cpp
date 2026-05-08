@@ -148,7 +148,7 @@ void bind_dig_sim_driver(py::module_ &m) {
 
     py::class_<Digital::DigSimComp, EvtBasedSimComp, std::shared_ptr<Digital::DigSimComp>>(m, "DigSimComp")
         .def(py::init<>())
-        .def_static("from_def", &Digital::DigSimComp::fromDef)
+        .def_static("from_def", &Digital::DigSimComp::template fromDef<Digital::DigSimComp>, py::arg("comp_def"))
         .def_property("input_states",
                       py::overload_cast<>(&Digital::DigSimComp::getInputStates),
                       py::overload_cast<const std::vector<SlotState> &>(&Digital::DigSimComp::setInputStates))
@@ -203,10 +203,12 @@ void bind_dig_sim_driver(py::module_ &m) {
              &Digital::DigitalSimDriver::addSlot,
              py::arg("component_id"),
              py::arg("slot_type"),
-             py::arg("index"))
+             py::arg("index"),
+             py::arg("force") = false)
         .def("remove_slot",
              &Digital::DigitalSimDriver::removeSlot,
              py::arg("component_id"),
              py::arg("slot_type"),
-             py::arg("index"));
+             py::arg("index"),
+             py::arg("force") = false);
 }

@@ -1,6 +1,8 @@
 #pragma once
 
+#include "bess_api.h"
 #include "common/bess_uuid.h"
+#include "common/logger.h"
 #include "component_definition.h"
 #include "drivers/sim_driver.h"
 #include "event_based_sim_driver.h"
@@ -99,6 +101,37 @@ namespace Bess::SimEngine::Drivers::Digital {
         DigSimComp() = default;
         ~DigSimComp() override = default;
 
+        template <typename TComp>
+        static std::shared_ptr<TComp> fromDef(const std::shared_ptr<CompDef> &compDef)
+            requires(std::is_base_of_v<DigSimComp, TComp>)
+        {
+            if (!compDef) {
+                BESS_WARN("(DigitalSimDriver.fromDef) compDef is nullptr");
+                return nullptr;
+            }
+
+            const auto clone = compDef->clone();
+
+            const auto comp = std::make_shared<TComp>();
+            comp->setName(clone->getName());
+            comp->setDefinition(clone);
+
+            auto digDef = std::dynamic_pointer_cast<DigCompDef>(clone);
+            const auto inpCount = digDef->getInputSlotsInfo().count;
+            const auto outCount = digDef->getOutputSlotsInfo().count;
+
+            comp->m_inputStates.resize(inpCount);
+            comp->m_outputStates.resize(outCount);
+
+            comp->m_isInputConnected.resize(inpCount, false);
+            comp->m_isOutputConnected.resize(outCount, false);
+
+            comp->m_inputConnections.resize(inpCount);
+            comp->m_outputConnections.resize(outCount);
+
+            return comp;
+        }
+
         static std::shared_ptr<DigSimComp> fromDef(const std::shared_ptr<CompDef> &compDef);
 
         MAKE_GETTER_SETTER(std::vector<SlotState>, InputStates, m_inputStates)
@@ -134,10 +167,20 @@ namespace Bess::SimEngine::Drivers::Digital {
         UUID m_netUuid = UUID::null;
     };
 
+    class BESS_API DigModuleSimComp : public DigSimComp {
+      public:
+        DigModuleSimComp() = default;
+        ~DigModuleSimComp() override = default;
+
+        void onPostSimulate() override;
+    };
+
     class BESS_API DigitalSimDriver final : public EvtBasedSimDriver {
       public:
         DigitalSimDriver() = default;
         ~DigitalSimDriver() override = default;
+
+        static constexpr const char *NAME = "digitalsimdriver";
 
         // This function does not add component to the driver,
         // it only creates the component and returns it
@@ -175,8 +218,10 @@ namespace Bess::SimEngine::Drivers::Digital {
             const UUID &compA, SlotType pinAType, int idxA,
             const UUID &compB, SlotType pinBType, int idxB) override;
 
-        bool addSlot(const UUID &compId, SlotType type, int index) override;
-        bool removeSlot(const UUID &compId, SlotType type, int index) override;
+        bool addSlot(const UUID &compId, SlotType type, int index,
+                     bool force = false) override;
+        bool removeSlot(const UUID &compId, SlotType type, int index,
+                        bool force = false) override;
 
         ConnectionBundle getConnections(const UUID &uuid) const override;
         std::vector<UUID> getDependants(const UUID &id) override;

@@ -82,8 +82,8 @@ namespace Bess::SimEngine {
 
         bool updateInputCount(const UUID &uuid, int n);
 
-        bool addSlot(const UUID &compId, SlotType type, int index);
-        bool removeSlot(const UUID &compId, SlotType type, int index);
+        bool addSlot(const UUID &compId, SlotType type, int index, bool force = false);
+        bool removeSlot(const UUID &compId, SlotType type, int index, bool force = false);
 
         bool updateNets(const std::vector<UUID> &startCompIds);
 
@@ -105,6 +105,13 @@ namespace Bess::SimEngine {
 
         const SimEngineState &getSimEngineState() const;
         SimEngineState &getSimEngineState();
+
+        void addOnSlotCountChangeCB(const UUID &id, const Drivers::SlotCountChangeCB &cb);
+
+        void removeOnSlotCountChangeCB(const UUID &id);
+
+        std::shared_ptr<Drivers::SimDriver> getDriverWithName(
+            const std::string &name) const;
 
       private:
         void loadDrivers();

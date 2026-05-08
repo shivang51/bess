@@ -3,7 +3,7 @@
 #include "command.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
-#include "module_def.h"
+#include "drivers/dig_module_def.h"
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/cmds/delete_comp_cmd.h"
 #include "pages/main_page/main_page.h"
@@ -99,7 +99,7 @@ namespace Bess::Cmd {
 
         inline std::unordered_set<UUID>
         collectConnectedConnectionIds(const std::shared_ptr<Canvas::Scene> &scene,
-                                     const UUID &componentId) {
+                                      const UUID &componentId) {
             BESS_ASSERT(scene, "[ModuleCmd] Scene must be valid while collecting boundary connections");
 
             std::unordered_set<UUID> connectionIds;

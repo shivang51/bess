@@ -2,8 +2,8 @@
 
 #include "common/bess_assert.h"
 #include "common/logger.h"
+#include "drivers/dig_module_def.h"
 #include "event_dispatcher.h"
-#include "module_def.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/module_scene_component.h"

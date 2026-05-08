@@ -198,6 +198,8 @@ namespace Bess::SimEngine::Drivers {
             return;
         }
 
+        m_onSlotCountChnageCBs.clear();
+
         onDestroy();
         std::lock_guard lk(m_stateMutex);
         m_state = SimDriverState::destroyed;
@@ -206,6 +208,20 @@ namespace Bess::SimEngine::Drivers {
     void SimDriver::step() {
         if (isPaused()) {
             onStep();
+        }
+    }
+
+    void SimDriver::addOnSlotCountChangeCB(const UUID &id, const SlotCountChangeCB &cb) {
+        m_onSlotCountChnageCBs[id] = cb;
+    }
+
+    void SimDriver::removeOnSlotCountChangeCB(const UUID &id) {
+        m_onSlotCountChnageCBs.erase(id);
+    }
+
+    void SimDriver::triggerSlotCountChangeCbs(const UUID &compId, SlotType type, int newCount) {
+        for (const auto &[id, cb] : m_onSlotCountChnageCBs) {
+            cb(compId, type, newCount);
         }
     }
 } // namespace Bess::SimEngine::Drivers

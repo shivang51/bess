@@ -102,26 +102,30 @@ class PySimDriver : public Bess::SimEngine::Drivers::SimDriver {
 
     bool addSlot(const Bess::UUID &compId,
                  Bess::SimEngine::SlotType type,
-                 int index) override {
+                 int index,
+                 bool force = false) override {
         PYBIND11_OVERRIDE_PURE_NAME(bool,
                                     Bess::SimEngine::Drivers::SimDriver,
                                     "add_slot",
                                     addSlot,
                                     compId,
                                     type,
-                                    index);
+                                    index,
+                                    force);
     }
 
     bool removeSlot(const Bess::UUID &compId,
                     Bess::SimEngine::SlotType type,
-                    int index) override {
+                    int index,
+                    bool force = false) override {
         PYBIND11_OVERRIDE_PURE_NAME(bool,
                                     Bess::SimEngine::Drivers::SimDriver,
                                     "remove_slot",
                                     removeSlot,
                                     compId,
                                     type,
-                                    index);
+                                    index,
+                                    force);
     }
 
     void clearPendingEvents() override {
@@ -219,12 +223,14 @@ void bind_sim_engine_driver(py::module_ &m) {
              &SimDriver::addSlot,
              py::arg("component_id"),
              py::arg("slot_type"),
-             py::arg("index"))
+             py::arg("index"),
+             py::arg("force") = false)
         .def("remove_slot",
              &SimDriver::removeSlot,
              py::arg("component_id"),
              py::arg("slot_type"),
-             py::arg("index"))
+             py::arg("index"),
+             py::arg("force") = false)
         .def("clear_pending_events",
              &SimDriver::clearPendingEvents)
         .def("component_count",

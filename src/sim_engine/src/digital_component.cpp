@@ -2,7 +2,7 @@
 #include "common/helpers.h"
 #include "event_dispatcher.h"
 #include "events/sim_engine_events.h"
-#include "module_def.h"
+// #include "module_def.h"
 #include "types.h"
 #include <memory>
 
@@ -263,13 +263,13 @@ namespace Bess::JsonConvert {
     void toJsonValue(Json::Value &j, const Bess::SimEngine::DigitalComponent &comp) {
         toJsonValue(comp.id, j["id"]);
         toJsonValue(comp.netUuid, j["net_uuid"]);
-        auto moduleDef = std::dynamic_pointer_cast<SimEngine::ModuleDefinition>(comp.definition);
-        if (moduleDef) {
-            // toJsonValue(*moduleDef, j["definition"]);
-            j["definition"]["is_module"] = true;
-        } else {
-            toJsonValue(*comp.definition, j["definition"]);
-        }
+        // auto moduleDef = std::dynamic_pointer_cast<SimEngine::ModuleDefinition>(comp.definition);
+        // if (moduleDef) {
+        //     // toJsonValue(*moduleDef, j["definition"]);
+        //     j["definition"]["is_module"] = true;
+        // } else {
+        //     toJsonValue(*comp.definition, j["definition"]);
+        // }
         toJsonValue(comp.state, j["state"]);
         toJsonValue(comp.inputConnections, j["input_connections"]);
         toJsonValue(comp.outputConnections, j["output_connections"]);
@@ -285,7 +285,7 @@ namespace Bess::JsonConvert {
         }
 
         if (j["definition"].isMember("is_module")) {
-            auto modDef = std::make_shared<SimEngine::ModuleDefinition>();
+            // auto modDef = std::make_shared<SimEngine::ModuleDefinition>();
             // fromJsonValue(j["definition"], modDef);
             // comp.definition = std::move(modDef);
         } else {

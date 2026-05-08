@@ -6,7 +6,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(Header_Files
     "include/digital_component.h"
     "include/types.h"
-    "include/module_def.h"
+    "include/drivers/dig_module_def.h"
     "include/simulation_engine.h"
     "include/sim_engine_state.h"
     "include/simulation_engine_serializer.h"
@@ -26,7 +26,7 @@ set(Source_Files
     "src/drivers/event_based_sim_driver.cpp"
     "src/simulation_engine.cpp"
 		"src/sim_engine_state.cpp"
-		"src/module_def.cpp"
+		"src/drivers/dig_module_def.cpp"
     "src/simulation_engine_serializer.cpp"
     "src/digital_component.cpp"
     "src/net/net.cpp" 

@@ -321,4 +321,7 @@ namespace Bess::SimEngine::Drivers {
         return evtsToSim;
     }
 
+    TimeNs EvtBasedSimDriver::getCurrentSimTime() const {
+        return m_currentSimTime;
+    }
 } // namespace Bess::SimEngine::Drivers

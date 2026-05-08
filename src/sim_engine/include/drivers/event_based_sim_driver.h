@@ -102,6 +102,8 @@ namespace Bess::SimEngine::Drivers {
 
         void clearPendingEvents() override;
 
+        TimeNs getCurrentSimTime() const;
+
       private:
         void simulateEvts(const std::vector<SimEvt> &evts);
 
