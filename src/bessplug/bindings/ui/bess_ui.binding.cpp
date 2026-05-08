@@ -1,3 +1,4 @@
+#include "gtc/type_ptr.hpp"
 #include "imgui.h"
 #include "ui/widgets/m_widgets.h"
 #include <pybind11/functional.h>
@@ -11,8 +12,11 @@ void bind_bess_ui(py::module &m) {
     m.def("begin_panel", [](const std::string &name,
                             const glm::vec2 &initSize = glm::vec2(200.f, 200.f),
                             bool open = true) {
-        ImGui::SetNextWindowSize(ImVec2(initSize.x, initSize.y), ImGuiCond_FirstUseEver);
-        ImGui::Begin(name.c_str(), &open, ImGuiWindowFlags_NoFocusOnAppearing);
+        ImGui::SetNextWindowSize(ImVec2(initSize.x, initSize.y),
+                                 ImGuiCond_FirstUseEver);
+        ImGui::Begin(name.c_str(),
+                     &open,
+                     ImGuiWindowFlags_NoFocusOnAppearing);
         return open;
     });
 
@@ -24,7 +28,9 @@ void bind_bess_ui(py::module &m) {
         ImGui::Text("%s", text.c_str());
     });
 
-    auto textMultilineFn = [](const std::string &id, const std::string &text, const glm::vec2 &size) {
+    auto textMultilineFn = [](const std::string &id,
+                              const std::string &text,
+                              const glm::vec2 &size) {
         Bess::UI::Widgets::SelectableText(id, text, size);
     };
 
@@ -47,8 +53,14 @@ void bind_bess_ui(py::module &m) {
 
     /// inputs
 
-    m.def("slider_float", [](const std::string &label, float value, float min, float max) {
-        bool changed = ImGui::SliderFloat(label.c_str(), &value, min, max);
+    m.def("slider_float", [](const std::string &label,
+                             float value,
+                             float min,
+                             float max) {
+        bool changed = ImGui::SliderFloat(label.c_str(),
+                                          &value,
+                                          min,
+                                          max);
         return std::make_tuple(changed, value);
     });
 
@@ -76,7 +88,9 @@ void bind_bess_ui(py::module &m) {
     auto inputTextMultilineFn = [](const std::string &label,
                                    std::string &value,
                                    const glm::vec2 &size = glm::vec2(0.f, 400.f)) {
-        bool changed = Bess::UI::Widgets::TextBoxMultiline(label, value, size);
+        bool changed = Bess::UI::Widgets::TextBoxMultiline(label,
+                                                           value,
+                                                           size);
         return std::make_tuple(changed, value);
     };
 
@@ -85,4 +99,27 @@ void bind_bess_ui(py::module &m) {
           py::arg("label"),
           py::arg("value"),
           py::arg("size") = glm::vec2(0.f, 400.f));
+
+    m.def("combo_box", [](const std::string &label,
+                          std::string &currentItem,
+                          const std::vector<std::string> &items) {
+        bool changed = Bess::UI::Widgets::ComboBox(label,
+                                                   currentItem,
+                                                   items);
+        return std::make_tuple(changed, currentItem);
+    });
+
+    m.def("color_edit4", [](const std::string &label, glm::vec4 &color) {
+        bool changed = ImGui::ColorEdit4(label.c_str(),
+                                         glm::value_ptr(color));
+        return std::make_tuple(changed, color);
+    });
+
+    m.def("collapsing_node", [](int key, const std::string &label) {
+        return Bess::UI::Widgets::TreeNode(key, label);
+    });
+
+    m.def("tree_pop", []() {
+        ImGui::TreePop();
+    });
 }

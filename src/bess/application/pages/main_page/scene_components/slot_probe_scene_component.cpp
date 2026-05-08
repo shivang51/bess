@@ -192,28 +192,27 @@ namespace Bess::Canvas {
                                 ->getSimEngineId();
         const auto &digComp = SimEngine::SimulationEngine::instance().getDigitalComponent(simId);
 
-        // FIXME
-        // digComp->addOnStateChangeCB(m_uuid, [this, slotComp = comp](const SimEngine::ComponentState &oldState,
-        //                                                             const SimEngine::ComponentState &newState) {
-        //     SimEngine::SlotState slotState;
-        //
-        //     if (slotComp->isInputSlot()) {
-        //         slotState = newState.inputStates[slotComp->getIndex()];
-        //     } else {
-        //         slotState = newState.outputStates[slotComp->getIndex()];
-        //     }
-        //
-        //     if (m_probeData.empty()) {
-        //         m_probeData.emplace_back(slotState.lastChangeTime,
-        //                                  slotState.state);
-        //     } else {
-        //         auto &lastEntry = m_probeData.back();
-        //         if (slotState.state != lastEntry.second) {
-        //             m_probeData.emplace_back(slotState.lastChangeTime,
-        //                                      slotState.state);
-        //         }
-        //     }
-        // });
+        digComp->addOnStateChangeCB(m_uuid, [this, slotComp = comp](const std::vector<SimEngine::SlotState> &inputStates,
+                                                                    const std::vector<SimEngine::SlotState> &outputStates) {
+            SimEngine::SlotState slotState;
+
+            if (slotComp->isInputSlot()) {
+                slotState = inputStates[slotComp->getIndex()];
+            } else {
+                slotState = outputStates[slotComp->getIndex()];
+            }
+
+            if (m_probeData.empty()) {
+                m_probeData.emplace_back(slotState.lastChangeTime,
+                                         slotState.state);
+            } else {
+                auto &lastEntry = m_probeData.back();
+                if (slotState.state != lastEntry.second) {
+                    m_probeData.emplace_back(slotState.lastChangeTime,
+                                             slotState.state);
+                }
+            }
+        });
     }
 
     void SlotProbeSceneComponent::unsubscribeFromSlot(const SceneState &sceneState) {
@@ -228,8 +227,7 @@ namespace Bess::Canvas {
                                           comp->getParentComponent())
                                 ->getSimEngineId();
         const auto &digComp = SimEngine::SimulationEngine::instance().getDigitalComponent(simId);
-        // FIXME
-        // digComp->removeOnStateChangeCB(m_uuid);
+        digComp->removeOnStateChangeCB(m_uuid);
     }
 
     void SlotProbeSceneComponent::onBeforeProbedSlotChanged() {

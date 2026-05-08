@@ -96,6 +96,15 @@ class PySimSceneComponent : public Bess::Canvas::SimulationSceneComponent,
             "to_json",
             toJson);
     }
+
+    void drawPropertiesUI(Bess::Canvas::SceneState &sceneState) override {
+        PYBIND11_OVERRIDE_NAME(
+            void,
+            Bess::Canvas::SimulationSceneComponent,
+            "draw_properties_ui",
+            drawPropertiesUI,
+            std::ref(sceneState));
+    }
 };
 
 void bind_sim_scene_component(py::module_ &m) {
@@ -122,7 +131,7 @@ void bind_sim_scene_component(py::module_ &m) {
         Bess::SimEngine::SlotsGroupInfo inpDetails, outDetails;
         std::vector<std::shared_ptr<Bess::Canvas::SlotSceneComponent>> createdSlots;
 
-        if (compDef->getTypeName() == TDigCompDef::TypeName) {
+        {
 
             auto digDef = std::dynamic_pointer_cast<TDigCompDef>(compDef);
 
@@ -256,7 +265,8 @@ void bind_sim_scene_component(py::module_ &m) {
                               .def("copy", [&](const Bess::Canvas::SimulationSceneComponent &self) {
         auto c = std::make_shared<Bess::Canvas::SimulationSceneComponent>(self);
         return c; })
-                              .def("to_json", &Bess::Canvas::SimulationSceneComponent::toJson);
+                              .def("to_json", &Bess::Canvas::SimulationSceneComponent::toJson)
+                              .def("draw_properties_ui", &Bess::Canvas::SimulationSceneComponent::drawPropertiesUI, py::arg("scene_state"));
 
     // decorators
     auto deserDecorator = [&](const py::function &fromJsonFunc) {

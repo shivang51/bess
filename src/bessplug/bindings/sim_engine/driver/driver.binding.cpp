@@ -138,6 +138,33 @@ class PySimDriver : public Bess::SimEngine::Drivers::SimDriver {
     }
 };
 
+class PyCompDef : public Bess::SimEngine::Drivers::CompDef,
+                  public py::trampoline_self_life_support {
+  public:
+    using Bess::SimEngine::Drivers::CompDef::CompDef;
+
+    std::shared_ptr<Bess::SimEngine::Drivers::CompDef> clone() const override {
+        PYBIND11_OVERRIDE_NAME(std::shared_ptr<Bess::SimEngine::Drivers::CompDef>,
+                               CompDef,
+                               "clone",
+                               clone);
+    }
+
+    std::string getTypeName() const override {
+        PYBIND11_OVERRIDE_NAME(std::string,
+                               CompDef,
+                               "get_type_name",
+                               getTypeName);
+    }
+
+    Json::Value toJson() const override {
+        PYBIND11_OVERRIDE_NAME(Json::Value,
+                               CompDef,
+                               "to_json",
+                               toJson);
+    }
+};
+
 void bind_event_based_sim_driver(py::module_ &m);
 void bind_dig_sim_driver(py::module_ &m);
 
@@ -157,14 +184,16 @@ void bind_sim_engine_driver(py::module_ &m) {
         .def(py::init<>())
         .def_readwrite("sim_dependants", &SimFnDataBase::simDependants);
 
-    py::class_<CompDef, std::shared_ptr<CompDef>>(m, "CompDef")
+    py::class_<CompDef,
+               PyCompDef,
+               py::smart_holder>(m, "CompDef")
         .def_property("name",
                       py::overload_cast<>(&CompDef::getName),
                       py::overload_cast<const std::string &>(&CompDef::setName))
-        .def("type",
-             &CompDef::getTypeName)
-        .def("clone",
-             &CompDef::clone)
+        .def("type", &CompDef::getTypeName)
+        .def("clone", &CompDef::clone)
+        .def("to_json", &CompDef::toJson)
+        .def("get_type_name", &CompDef::getTypeName)
         .def_property("group_name",
                       py::overload_cast<>(&CompDef::getGroupName),
                       py::overload_cast<const std::string &>(&CompDef::setGroupName));

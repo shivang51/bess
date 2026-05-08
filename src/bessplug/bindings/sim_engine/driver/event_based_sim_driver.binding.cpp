@@ -3,6 +3,7 @@
 #include "drivers/sim_driver.h"
 #include "types.h"
 
+#include <memory>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -166,12 +167,33 @@ class PyEvtBasedSimDriver : public Bess::SimEngine::Drivers::EvtBasedSimDriver {
     }
 };
 
+class PyEvtBasedCompDef : public Bess::SimEngine::Drivers::EvtBasedCompDef,
+                          public py::trampoline_self_life_support {
+  public:
+    using Bess::SimEngine::Drivers::EvtBasedCompDef::EvtBasedCompDef;
+
+    Bess::TimeNs getSelfSimDelay() override {
+        PYBIND11_OVERRIDE_NAME(Bess::TimeNs,
+                               Bess::SimEngine::Drivers::EvtBasedCompDef,
+                               "get_self_sim_delay",
+                               getSelfSimDelay);
+    }
+
+    Json::Value toJson() const override {
+        PYBIND11_OVERRIDE_NAME(Json::Value,
+                               Bess::SimEngine::Drivers::EvtBasedCompDef,
+                               "to_json",
+                               toJson);
+    }
+};
+
 void bind_event_based_sim_driver(py::module_ &m) {
     using namespace Bess::SimEngine::Drivers;
 
     py::class_<EvtBasedCompDef,
+               PyEvtBasedCompDef,
                CompDef,
-               std::shared_ptr<EvtBasedCompDef>>(m, "EvtBasedCompDef")
+               py::smart_holder>(m, "EvtBasedCompDef")
         .def_property("auto_reschedule",
                       py::overload_cast<>(&EvtBasedCompDef::getAutoReschedule),
                       py::overload_cast<const bool &>(
@@ -181,7 +203,9 @@ void bind_event_based_sim_driver(py::module_ &m) {
                       py::overload_cast<const Bess::TimeNs &>(&EvtBasedCompDef::setPropDelay))
         .def("get_self_sim_delay", &EvtBasedCompDef::getSelfSimDelay);
 
-    py::class_<EvtBasedSimComp, SimComponent, std::shared_ptr<EvtBasedSimComp>>(m, "EvtBasedSimComp")
+    py::class_<EvtBasedSimComp,
+               SimComponent,
+               std::shared_ptr<EvtBasedSimComp>>(m, "EvtBasedSimComp")
         .def(py::init<>())
         .def("get_prop_delay", &EvtBasedSimComp::getPropDelay)
         .def("get_sim_self", &EvtBasedSimComp::getSimSelf)

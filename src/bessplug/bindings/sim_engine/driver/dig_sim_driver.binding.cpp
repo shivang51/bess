@@ -10,6 +10,41 @@
 
 namespace py = pybind11;
 
+class PyDigCompDef : public Bess::SimEngine::Drivers::Digital::DigCompDef,
+                     public py::trampoline_self_life_support {
+  public:
+    using Bess::SimEngine::Drivers::Digital::DigCompDef::DigCompDef;
+    std::shared_ptr<CompDef> clone() const override {
+        PYBIND11_OVERRIDE_NAME(
+            std::shared_ptr<DigCompDef>,
+            DigCompDef,
+            "clone",
+            clone);
+    }
+
+    std::string getTypeName() const override {
+        PYBIND11_OVERRIDE_NAME(
+            std::string,
+            DigCompDef,
+            "get_type_name",
+            getTypeName);
+    }
+
+    Bess::TimeNs getSelfSimDelay() override {
+        PYBIND11_OVERRIDE_NAME(Bess::TimeNs,
+                               DigCompDef,
+                               "get_self_sim_delay",
+                               getSelfSimDelay);
+    }
+
+    Json::Value toJson() const override {
+        PYBIND11_OVERRIDE_NAME(Json::Value,
+                               DigCompDef,
+                               "to_json",
+                               toJson);
+    }
+};
+
 void bind_dig_sim_driver(py::module_ &m) {
     using namespace Bess::SimEngine::Drivers;
     using namespace Bess::SimEngine;
@@ -84,8 +119,9 @@ void bind_dig_sim_driver(py::module_ &m) {
     };
 
     py::class_<Digital::DigCompDef,
+               PyDigCompDef,
                EvtBasedCompDef,
-               std::shared_ptr<Digital::DigCompDef>>(m, "DigCompDef")
+               py::smart_holder>(m, "DigCompDef")
         .def(py::init<>())
         .def_static("from_operator", from_operator_info,
                     py::arg("name"),
@@ -139,14 +175,13 @@ void bind_dig_sim_driver(py::module_ &m) {
                       py::overload_cast<>(&Digital::DigCompDef::getSimFn),
                       py::overload_cast<const Digital::DigCompDef::TDigSimFn &>(
                           &Digital::DigCompDef::setSimFn))
-        // .def_property("prop_delay",                                                                        //
-        //               [](const Digital::DigCompDef &self) -> Bess::TimeNs { return self.getPropDelay(); }, //
-        //               [](Digital::DigCompDef &self, const Bess::TimeNs &value) { self.setPropDelay(value); })
-
         .def("compute_expressions_if_needed", &Digital::DigCompDef::computeExpressionsIfNeeded)
-        .def("clone", &Digital::DigCompDef::clone);
+        .def("clone", &Digital::DigCompDef::clone)
+        .def("get_type_name", &Digital::DigCompDef::getTypeName);
 
-    py::class_<Digital::DigSimComp, EvtBasedSimComp, std::shared_ptr<Digital::DigSimComp>>(m, "DigSimComp")
+    py::class_<Digital::DigSimComp,
+               EvtBasedSimComp,
+               std::shared_ptr<Digital::DigSimComp>>(m, "DigSimComp")
         .def(py::init<>())
         .def_static("from_def",
                     &Digital::DigSimComp::template fromDef<Digital::DigSimComp>,
@@ -172,8 +207,7 @@ void bind_dig_sim_driver(py::module_ &m) {
                       py::overload_cast<const std::vector<bool> &>(&Digital::DigSimComp::setIsOutputConnected))
         .def_property("net_uuid",
                       py::overload_cast<>(&Digital::DigSimComp::getNetUuid),
-                      py::overload_cast<const Bess::UUID &>(&Digital::DigSimComp::setNetUuid))
-        .def("to_json", &Digital::DigSimComp::toJson);
+                      py::overload_cast<const Bess::UUID &>(&Digital::DigSimComp::setNetUuid));
 
     py::class_<Digital::DigitalSimDriver,
                EvtBasedSimDriver,

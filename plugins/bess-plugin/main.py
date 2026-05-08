@@ -22,6 +22,9 @@ from scene.output_comp import OutputComp
 from scene.seven_seg_disp_comp import SevenSegDispComp
 from ui.scripting_panel import ScriptingPanel
 
+from components.clock import clock_def
+from scene.clock_comp import ClockComp
+
 
 class BessPlugin(Plugin):
     def __init__(self):
@@ -37,6 +40,7 @@ class BessPlugin(Plugin):
             *digital_gates,
             *flip_flops,
             *latches,
+            clock_def,
             tristate_buffer_def,
             seven_segment_display.seven_seg_disp_def,
             seven_segment_display_driver.seven_seg_disp_driver_def,
@@ -46,6 +50,7 @@ class BessPlugin(Plugin):
     def has_sim_scene_comp(self, def_name) -> bool:
         return (
             def_name == "Output"
+            or def_name == "Clock"
             or digital_gates_schematics.get(def_name, None) is not None
             or seven_segment_display.seven_seg_disp_def.name == def_name
         )
@@ -60,6 +65,8 @@ class BessPlugin(Plugin):
             return OutputComp()
         elif seven_segment_display.seven_seg_disp_def.name == comp_def.name:
             return SevenSegDispComp()
+        elif name == "Clock":
+            return ClockComp()
         else:
             return DigitalGateComp.from_component_def(comp_def)
 

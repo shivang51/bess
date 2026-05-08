@@ -71,10 +71,10 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC 
-	${PNG_LIBRARIES}
-	${GLFW_LIBRARIES}
+	PNG::PNG
+	glfw
 	${X11_LIBRARIES}
-	${VULKAN_LIBRARIES}
+	Vulkan::Vulkan
 )
 
 if("${BUILD_ARCH}" STREQUAL "x64" AND "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
