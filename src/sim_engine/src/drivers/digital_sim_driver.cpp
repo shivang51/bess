@@ -56,6 +56,12 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         comp->onPostSimulate();
 
+        if (newData->simDependants) {
+            for (const auto &[_, fn] : comp->getOnStateChangeCbs()) {
+                fn(newData->inputStates, newData->outputStates);
+            }
+        }
+
         return newData->simDependants;
     }
 
@@ -70,7 +76,8 @@ namespace Bess::SimEngine::Drivers::Digital {
         BESS_DEBUG("Starting DigitalSimDriver run loop");
     }
 
-    std::shared_ptr<SimComponent> DigitalSimDriver::createComp(const std::shared_ptr<CompDef> &def) {
+    std::shared_ptr<SimComponent> DigitalSimDriver::createComp(const std::shared_ptr<CompDef> &def,
+                                                               bool cloneDef) {
         if (!supportsDef(def)) {
             BESS_WARN("(DigitalSimDriver.addComponent) Unsupported component definition type: {}",
                       def->getName());
@@ -80,16 +87,17 @@ namespace Bess::SimEngine::Drivers::Digital {
         bool isModule = std::dynamic_pointer_cast<ModuleDefinition>(def) != nullptr;
 
         const auto comp = isModule
-                              ? DigSimComp::fromDef<DigModuleSimComp>(def->clone())
-                              : DigSimComp::fromDef(def->clone());
-        BESS_DEBUG("(DigitalSimDriver.addComponent) Created component '{}' with UUID {} from definition '{}'",
-                   comp->getName(), (uint64_t)comp->getUuid(), def->getName());
+                              ? DigSimComp::fromDef<DigModuleSimComp>(def, cloneDef)
+                              : DigSimComp::fromDef(def, cloneDef);
 
         if (!comp) {
             BESS_WARN("(DigitalSimDriver.addComponent) Failed to create component from definition: {}",
                       def->getName());
             return nullptr;
         }
+
+        BESS_DEBUG("(DigitalSimDriver.addComponent) Created component '{}' with UUID {} from definition '{}'",
+                   comp->getName(), (uint64_t)comp->getUuid(), def->getName());
 
         return comp;
     }
@@ -736,8 +744,8 @@ namespace Bess::SimEngine::Drivers::Digital {
         return TypeName;
     }
 
-    std::shared_ptr<DigSimComp> DigSimComp::fromDef(const std::shared_ptr<CompDef> &compDef) {
-        return fromDef<DigSimComp>(compDef);
+    std::shared_ptr<DigSimComp> DigSimComp::fromDef(const std::shared_ptr<CompDef> &compDef, bool cloneDef) {
+        return fromDef<DigSimComp>(compDef, cloneDef);
     }
 
     void DigModuleSimComp::onPostSimulate() {
@@ -782,9 +790,19 @@ namespace Bess::SimEngine::Drivers::Digital {
                                        getUuid(),
                                        true);
         }
-
-        BESS_TRACE("Associated inp = {} | isChanged = {}", (uint64_t)inpId, inpChanged);
     }
+    Json::Value DigSimComp::toJson() const {
+        Json::Value json = EvtBasedSimComp::toJson();
+        JsonConvert::toJsonValue(m_inputStates, json["inputStates"]);
+        JsonConvert::toJsonValue(m_outputStates, json["outputStates"]);
+        JsonConvert::toJsonValue(m_inputConnections, json["inputConnections"]);
+        JsonConvert::toJsonValue(m_outputConnections, json["outputConnections"]);
+        JsonConvert::toJsonValue(m_isInputConnected, json["isInputConnected"]);
+        JsonConvert::toJsonValue(m_isOutputConnected, json["isOutputConnected"]);
+        JsonConvert::toJsonValue(m_netUuid, json["netUuid"]);
+        return json;
+    }
+
 } // namespace Bess::SimEngine::Drivers::Digital
 
 namespace Bess::JsonConvert {

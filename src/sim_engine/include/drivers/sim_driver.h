@@ -100,8 +100,8 @@ namespace Bess::SimEngine::Drivers {
         // returns whether driver will accept the component.
         virtual bool supportsDef(const std::shared_ptr<CompDef> &def) const = 0;
 
-        virtual std::shared_ptr<SimComponent> createComp(
-            const std::shared_ptr<CompDef> &def) = 0;
+        virtual std::shared_ptr<SimComponent> createComp(const std::shared_ptr<CompDef> &def,
+                                                         bool cloneDef = true) = 0;
 
         virtual UUID addComponent(const std::shared_ptr<SimComponent> &comp,
                                   bool scheduleSim);

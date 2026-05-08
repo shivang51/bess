@@ -102,7 +102,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         ~DigSimComp() override = default;
 
         template <typename TComp>
-        static std::shared_ptr<TComp> fromDef(const std::shared_ptr<CompDef> &compDef)
+        static std::shared_ptr<TComp> fromDef(const std::shared_ptr<CompDef> &compDef, bool cloneDef = true)
             requires(std::is_base_of_v<DigSimComp, TComp>)
         {
             if (!compDef) {
@@ -110,7 +110,9 @@ namespace Bess::SimEngine::Drivers::Digital {
                 return nullptr;
             }
 
-            const auto clone = compDef->clone();
+            const auto clone = cloneDef
+                                   ? compDef->clone()
+                                   : compDef;
 
             const auto comp = std::make_shared<TComp>();
             comp->setName(clone->getName());
@@ -132,7 +134,8 @@ namespace Bess::SimEngine::Drivers::Digital {
             return comp;
         }
 
-        static std::shared_ptr<DigSimComp> fromDef(const std::shared_ptr<CompDef> &compDef);
+        static std::shared_ptr<DigSimComp> fromDef(const std::shared_ptr<CompDef> &compDef,
+                                                   bool cloneDef = true);
 
         MAKE_GETTER_SETTER(std::vector<SlotState>, InputStates, m_inputStates)
         MAKE_GETTER_SETTER(std::vector<SlotState>, OutputStates, m_outputStates)
@@ -142,17 +145,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         MAKE_GETTER_SETTER(std::vector<bool>, IsOutputConnected, m_isOutputConnected)
         MAKE_GETTER_SETTER(UUID, NetUuid, m_netUuid)
 
-        Json::Value toJson() const override {
-            Json::Value json = EvtBasedSimComp::toJson();
-            JsonConvert::toJsonValue(m_inputStates, json["inputStates"]);
-            JsonConvert::toJsonValue(m_outputStates, json["outputStates"]);
-            JsonConvert::toJsonValue(m_inputConnections, json["inputConnections"]);
-            JsonConvert::toJsonValue(m_outputConnections, json["outputConnections"]);
-            JsonConvert::toJsonValue(m_isInputConnected, json["isInputConnected"]);
-            JsonConvert::toJsonValue(m_isOutputConnected, json["isOutputConnected"]);
-            JsonConvert::toJsonValue(m_netUuid, json["netUuid"]);
-            return json;
-        }
+        Json::Value toJson() const override;
 
         static void fromJson(const std::shared_ptr<DigSimComp> &comp,
                              const Json::Value &json);
@@ -184,7 +177,8 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         // This function does not add component to the driver,
         // it only creates the component and returns it
-        std::shared_ptr<SimComponent> createComp(const std::shared_ptr<CompDef> &def) override;
+        std::shared_ptr<SimComponent> createComp(const std::shared_ptr<CompDef> &def,
+                                                 bool cloneDef = true) override;
 
         void onComponentAdded(const std::shared_ptr<SimComponent> &comp) override;
 

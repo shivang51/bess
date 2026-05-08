@@ -120,7 +120,7 @@ namespace Bess::SimEngine {
         bool cloneDef) {
         for (const auto &driver : m_simDrivers) {
             if (driver->supportsDef(definition)) {
-                auto comp = driver->createComp(definition);
+                auto comp = driver->createComp(definition, cloneDef);
                 if (!comp) {
                     return UUID::null;
                 }

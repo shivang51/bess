@@ -60,13 +60,14 @@ namespace Bess::SimEngine::Drivers {
         setState(SimDriverState::running);
 
         while (!isStopped()) {
-            std::unique_lock lk(m_runIterMutex);
+            {
+                std::unique_lock lk(m_runIterMutex);
+                BESS_DEBUG("Sim waiting for events");
 
-            BESS_DEBUG("Sim waiting for events");
-
-            m_runIterCv.wait(lk, [&] {
-                return isStopped() || (!isPaused() && !m_events.empty());
-            });
+                m_runIterCv.wait(lk, [&] {
+                    return isStopped() || (!isPaused() && !m_events.empty());
+                });
+            }
 
             if (isStopped()) {
                 break;
@@ -323,5 +324,14 @@ namespace Bess::SimEngine::Drivers {
 
     TimeNs EvtBasedSimDriver::getCurrentSimTime() const {
         return m_currentSimTime;
+    }
+
+    void EvtBasedSimComp::addOnStateChangeCB(const UUID &id,
+                                             const TOnStateChangeFn &cb) {
+        m_onStateChangeCbs[id] = cb;
+    }
+
+    void EvtBasedSimComp::removeOnStateChangeCB(const UUID &id) {
+        m_onStateChangeCbs.erase(id);
     }
 } // namespace Bess::SimEngine::Drivers

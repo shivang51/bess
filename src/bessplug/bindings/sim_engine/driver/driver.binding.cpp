@@ -35,12 +35,14 @@ class PySimDriver : public Bess::SimEngine::Drivers::SimDriver {
     }
 
     std::shared_ptr<Bess::SimEngine::Drivers::SimComponent> createComp(
-        const std::shared_ptr<Bess::SimEngine::Drivers::CompDef> &def) override {
+        const std::shared_ptr<Bess::SimEngine::Drivers::CompDef> &def,
+        bool cloneDef = true) override {
         PYBIND11_OVERRIDE_PURE_NAME(std::shared_ptr<Bess::SimEngine::Drivers::SimComponent>,
                                     Bess::SimEngine::Drivers::SimDriver,
                                     "create_component",
                                     createComp,
-                                    def);
+                                    def,
+                                    cloneDef);
     }
 
     CanConnectResult canConnectComponents(
@@ -192,7 +194,10 @@ void bind_sim_engine_driver(py::module_ &m) {
         .def(py::init<>())
         .def("get_name", &SimDriver::getName)
         .def("supports_def", &SimDriver::supportsDef, py::arg("definition"))
-        .def("create_component", &SimDriver::createComp, py::arg("definition"))
+        .def("create_component",
+             &SimDriver::createComp,
+             py::arg("definition"),
+             py::arg("clone_def") = true)
         .def("init", &SimDriver::init)
         .def("pause", &SimDriver::pause)
         .def("resume", &SimDriver::resume)

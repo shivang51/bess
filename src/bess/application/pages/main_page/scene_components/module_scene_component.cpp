@@ -102,23 +102,29 @@ namespace Bess::Canvas {
             return;
         }
 
-        // outputDigitalComp->removeOnStateChangeCB(m_uuid);
-        // outputDigitalComp->addOnStateChangeCB(m_uuid, [this](const SimEngine::ComponentState &oldState,
-        //                                                      const SimEngine::ComponentState &newState) {
-        //     auto &simEngine = SimEngine::SimulationEngine::instance();
-        //     auto moduleDigComp = simEngine.getDigitalComponent(this->m_simEngineId);
-        //     if (!moduleDigComp) {
-        //         return;
-        //     }
-        //
-        //     const auto maxOutputs = moduleDigComp->state.outputStates.size();
-        //     const auto copyCount = std::min(maxOutputs, newState.inputStates.size());
-        //     for (size_t i = 0; i < copyCount; ++i) {
-        //         simEngine.setOutputSlotState(this->m_simEngineId,
-        //                                      static_cast<int>(i),
-        //                                      newState.inputStates[i].state);
-        //     }
-        // });
+        outputDigitalComp->removeOnStateChangeCB(m_uuid);
+        outputDigitalComp->addOnStateChangeCB(m_uuid, [this](const std::vector<SimEngine::SlotState> &inputStates,
+                                                             const std::vector<SimEngine::SlotState> &outputStates) {
+            auto &simEngine = SimEngine::SimulationEngine::instance();
+            auto moduleDigComp = simEngine.getDigitalComponent(this->m_simEngineId);
+            if (!moduleDigComp) {
+                return;
+            }
+
+            const auto maxOutputs = moduleDigComp->getOutputStates().size();
+            const auto copyCount = std::min(maxOutputs, inputStates.size());
+
+            auto &outputs = moduleDigComp->getOutputStates();
+            for (size_t i = 0; i < copyCount; ++i) {
+                outputs[i] = inputStates[i];
+            }
+
+            if (!outputs.empty()) { // to schedule sim event
+                simEngine.setOutputSlotState(this->m_simEngineId,
+                                             0,
+                                             outputs[0].state);
+            }
+        });
 
         auto onOutputSlotChange = [this, ownerSceneId](const UUID &id, SimEngine::SlotType type, int newCount) {
             auto &simEngine = SimEngine::SimulationEngine::instance();

@@ -34,6 +34,11 @@ namespace Bess::SimEngine::Drivers {
 
     class BESS_API EvtBasedSimComp : public SimComponent {
       public:
+        // void(input states, output states)
+        typedef std::function<void(const std::vector<SlotState> &,
+                                   const std::vector<SlotState> &)>
+            TOnStateChangeFn;
+
         EvtBasedSimComp() = default;
         ~EvtBasedSimComp() override = default;
 
@@ -47,6 +52,16 @@ namespace Bess::SimEngine::Drivers {
 
         static void fromJson(const std::shared_ptr<EvtBasedSimComp> &comp,
                              const Json::Value &json);
+
+        void addOnStateChangeCB(const UUID &id, const TOnStateChangeFn &cb);
+
+        void removeOnStateChangeCB(const UUID &id);
+
+        typedef std::unordered_map<UUID, TOnStateChangeFn> TOnStateChangeCbsMap;
+        MAKE_GETTER(TOnStateChangeCbsMap, OnStateChangeCbs, m_onStateChangeCbs);
+
+      private:
+        TOnStateChangeCbsMap m_onStateChangeCbs;
     };
 
     struct BESS_API SimEvt {

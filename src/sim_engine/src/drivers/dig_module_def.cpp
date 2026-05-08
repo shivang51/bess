@@ -7,7 +7,6 @@
 
 namespace Bess::SimEngine {
     std::shared_ptr<Drivers::CompDef> ModuleDefinition::clone() const {
-        BESS_TRACE("(ModuleDefinition.clone) Cloning module definition name UUID {}", m_name);
         auto clone = std::make_shared<ModuleDefinition>(*this);
 
         clone->setSimFn([clone](const TDigSimFnDataPtr &data) {

@@ -29,12 +29,14 @@ class PyEvtBasedSimDriver : public Bess::SimEngine::Drivers::EvtBasedSimDriver {
     }
 
     std::shared_ptr<Bess::SimEngine::Drivers::SimComponent> createComp(
-        const std::shared_ptr<Bess::SimEngine::Drivers::CompDef> &def) override {
+        const std::shared_ptr<Bess::SimEngine::Drivers::CompDef> &def,
+        bool cloneDef = true) override {
         PYBIND11_OVERRIDE_PURE_NAME(std::shared_ptr<Bess::SimEngine::Drivers::SimComponent>,
                                     Bess::SimEngine::Drivers::EvtBasedSimDriver,
                                     "create_component",
                                     createComp,
-                                    def);
+                                    def,
+                                    cloneDef);
     }
 
     CanConnectResult canConnectComponents(const Bess::UUID &src,

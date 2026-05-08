@@ -305,7 +305,7 @@ namespace Bess::Canvas {
             return;
 
         auto &simEngine = SimEngine::SimulationEngine::instance();
-        m_simEngineId = simEngine.addComponent(m_compDef);
+        m_simEngineId = simEngine.addComponent(m_compDef, false);
     }
 
     std::vector<UUID> SimulationSceneComponent::cleanup(SceneState &state, UUID caller) {

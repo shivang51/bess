@@ -486,7 +486,7 @@ namespace Bess::Pages {
 
     void MainPageState::onCompDefOutputsResized(const SimEngine::Events::CompDefOutputsResizedEvent &e) {
         if (!m_simIdToSceneCompId.contains(e.componentId)) {
-            BESS_TRACE("Ignoring CompDefOutputsResizedEvent for unknown componentId: {}", (uint64_t)e.componentId);
+            BESS_WARN("Ignoring CompDefOutputsResizedEvent for unknown componentId: {}", (uint64_t)e.componentId);
             return;
         }
 
@@ -512,7 +512,7 @@ namespace Bess::Pages {
 
     void MainPageState::onCompDefInputsResized(const SimEngine::Events::CompDefInputsResizedEvent &e) {
         if (!m_simIdToSceneCompId.contains(e.componentId)) {
-            BESS_TRACE("Ignoring CompDefInputsResizedEvent for unknown componentId: {}", (uint64_t)e.componentId);
+            BESS_WARN("Ignoring CompDefInputsResizedEvent for unknown componentId: {}", (uint64_t)e.componentId);
             return;
         }
 
