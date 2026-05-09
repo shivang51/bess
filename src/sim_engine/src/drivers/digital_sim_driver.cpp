@@ -4,6 +4,7 @@
 #include "common/logger.h"
 #include "drivers/dig_module_def.h"
 #include "drivers/event_based_sim_driver.h"
+#include "drivers/sim_driver.h"
 #include "expression_evalutator/expr_evaluator.h"
 #include "simulation_engine.h"
 #include "types.h"
@@ -346,18 +347,18 @@ namespace Bess::SimEngine::Drivers::Digital {
         BESS_INFO("Deleted connection in DigitalSimDriver");
     }
 
-    bool DigitalSimDriver::addSlot(const UUID &compId, SlotType type, int index, bool force) {
+    SlotsCountChangeRes DigitalSimDriver::addSlot(const UUID &compId, SlotType type, int index, bool force) {
         const auto digComp = getComponent<DigSimComp>(compId);
         if (!digComp) {
             BESS_WARN("(DigitalSimDriver.addSlot) Component with UUID {} not found", (uint64_t)compId);
-            return false;
+            return SlotsCountChangeRes::noChange();
         }
 
         const auto digDef = digComp->getDefinition<DigCompDef>();
         if (!digDef) {
             BESS_WARN("(DigitalSimDriver.addSlot) Component definition for component with UUID {} is not a DigCompDef",
                       (uint64_t)compId);
-            return false;
+            return SlotsCountChangeRes::noChange();
         }
 
         const bool isInput = (type == SlotType::digitalInput);
@@ -368,7 +369,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         if (!force && !info.isResizeable) {
             BESS_WARN("(DigitalSimDriver.addSlot) Slots of type {} for component with UUID {} are not resizeable",
                       isInput ? "input" : "output", (uint64_t)compId);
-            return false;
+            return SlotsCountChangeRes::noChange();
         }
 
         if (!force && !digDef->onSlotsResizeReq(isInput
@@ -377,7 +378,7 @@ namespace Bess::SimEngine::Drivers::Digital {
                                                 info.count + 1)) {
             BESS_WARN("(DigitalSimDriver.addSlot) Component definition for component with UUID {} rejected slot resize request",
                       (uint64_t)compId);
-            return false;
+            return SlotsCountChangeRes::noChange();
         }
 
         if (isInput) {
@@ -389,6 +390,19 @@ namespace Bess::SimEngine::Drivers::Digital {
             connected.insert(connected.begin() + static_cast<long>(index), false);
             info.count += 1;
             digDef->setInputSlotsInfo(info);
+
+            if (digDef->getKeepIOCountEq()) {
+                auto &outStates = digComp->getOutputStates();
+                auto &outConnections = digComp->getOutputConnections();
+                auto &outConnected = digComp->getIsOutputConnected();
+                outStates.insert(outStates.begin() + static_cast<long>(index), SlotState{});
+                outConnections.insert(outConnections.begin() + static_cast<long>(index), std::vector<ComponentPin>{});
+                outConnected.insert(outConnected.begin() + static_cast<long>(index), false);
+                auto outInfo = digDef->getOutputSlotsInfo();
+                outInfo.count += 1;
+                digDef->setOutputSlotsInfo(outInfo);
+            }
+
         } else {
             auto &states = digComp->getOutputStates();
             auto &connections = digComp->getOutputConnections();
@@ -398,35 +412,61 @@ namespace Bess::SimEngine::Drivers::Digital {
             connected.insert(connected.begin() + static_cast<long>(index), false);
             info.count += 1;
             digDef->setOutputSlotsInfo(info);
+
+            if (digDef->getKeepIOCountEq()) {
+                auto &inStates = digComp->getInputStates();
+                auto &inConnections = digComp->getInputConnections();
+                auto &inConnected = digComp->getIsInputConnected();
+                inStates.insert(inStates.begin() + static_cast<long>(index), SlotState{});
+                inConnections.insert(inConnections.begin() + static_cast<long>(index), std::vector<ComponentPin>{});
+                inConnected.insert(inConnected.begin() + static_cast<long>(index), false);
+                auto inInfo = digDef->getInputSlotsInfo();
+                inInfo.count += 1;
+                digDef->setInputSlotsInfo(inInfo);
+            }
         }
 
         digDef->computeExpressionsIfNeeded();
 
         triggerSlotCountChangeCbs(compId, type, (int)info.count);
 
-        return true;
+        if (digDef->getKeepIOCountEq()) {
+            triggerSlotCountChangeCbs(compId,
+                                      type == SlotType::digitalInput
+                                          ? SlotType::digitalOutput
+                                          : SlotType::digitalInput,
+                                      (int)info.count);
+
+            return SlotsCountChangeRes::bothChanged();
+        }
+
+        if (type == SlotType::digitalInput) {
+            return SlotsCountChangeRes::inpChanged();
+        } else {
+            return SlotsCountChangeRes::outChanged();
+        }
     }
 
-    bool DigitalSimDriver::removeSlot(const UUID &compId, SlotType type, int index, bool force) {
+    SlotsCountChangeRes DigitalSimDriver::removeSlot(const UUID &compId, SlotType type, int index, bool force) {
         const auto digComp = getComponent<DigSimComp>(compId);
         if (!digComp)
-            return false;
+            return SlotsCountChangeRes::noChange();
 
         const auto digDef = digComp->getDefinition<DigCompDef>();
         if (!digDef)
-            return false;
+            return SlotsCountChangeRes::noChange();
 
         const bool isInput = (type == SlotType::digitalInput);
         auto info = isInput ? digDef->getInputSlotsInfo() : digDef->getOutputSlotsInfo();
 
         if ((!force && !info.isResizeable) || info.count <= 0)
-            return false;
+            return SlotsCountChangeRes::noChange();
 
         if (!force && !digDef->onSlotsResizeReq(isInput
                                                     ? SlotsGroupType::input
                                                     : SlotsGroupType::output,
                                                 info.count - 1)) {
-            return false;
+            return SlotsCountChangeRes::noChange();
         }
 
         if (isInput) {
@@ -443,6 +483,24 @@ namespace Bess::SimEngine::Drivers::Digital {
             if (static_cast<size_t>(index) < info.names.size())
                 info.names.erase(info.names.begin() + index);
             digDef->setInputSlotsInfo(info);
+
+            if (digDef->getKeepIOCountEq()) {
+                auto &outStates = digComp->getOutputStates();
+                auto &outConnections = digComp->getOutputConnections();
+                auto &outConnected = digComp->getIsOutputConnected();
+                if (static_cast<size_t>(index) < outStates.size())
+                    outStates.erase(outStates.begin() + index);
+                if (static_cast<size_t>(index) < outConnections.size())
+                    outConnections.erase(outConnections.begin() + index);
+                if (static_cast<size_t>(index) < outConnected.size())
+                    outConnected.erase(outConnected.begin() + index);
+                auto outInfo = digDef->getOutputSlotsInfo();
+                outInfo.count -= 1;
+                if (static_cast<size_t>(index) < outInfo.names.size())
+                    outInfo.names.erase(outInfo.names.begin() + index);
+                digDef->setOutputSlotsInfo(outInfo);
+            }
+
         } else {
             auto &states = digComp->getOutputStates();
             auto &connections = digComp->getOutputConnections();
@@ -457,13 +515,42 @@ namespace Bess::SimEngine::Drivers::Digital {
             if (static_cast<size_t>(index) < info.names.size())
                 info.names.erase(info.names.begin() + index);
             digDef->setOutputSlotsInfo(info);
+
+            if (digDef->getKeepIOCountEq()) {
+                auto &inStates = digComp->getInputStates();
+                auto &inConnections = digComp->getInputConnections();
+                auto &inConnected = digComp->getIsInputConnected();
+                if (static_cast<size_t>(index) < inStates.size())
+                    inStates.erase(inStates.begin() + index);
+                if (static_cast<size_t>(index) < inConnections.size())
+                    inConnections.erase(inConnections.begin() + index);
+                if (static_cast<size_t>(index) < inConnected.size())
+                    inConnected.erase(inConnected.begin() + index);
+                auto inInfo = digDef->getInputSlotsInfo();
+                inInfo.count -= 1;
+                if (static_cast<size_t>(index) < inInfo.names.size())
+                    inInfo.names.erase(inInfo.names.begin() + index);
+                digDef->setInputSlotsInfo(inInfo);
+            }
         }
 
         digDef->computeExpressionsIfNeeded();
 
         triggerSlotCountChangeCbs(compId, type, (int)info.count);
 
-        return true;
+        if (digDef->getKeepIOCountEq()) {
+            triggerSlotCountChangeCbs(compId,
+                                      type == SlotType::digitalInput
+                                          ? SlotType::digitalOutput
+                                          : SlotType::digitalInput,
+                                      (int)info.count);
+
+            return SlotsCountChangeRes::bothChanged();
+        }
+
+        return type == SlotType::digitalInput
+                   ? SlotsCountChangeRes::inpChanged()
+                   : SlotsCountChangeRes::outChanged();
     }
 
     ConnectionBundle DigitalSimDriver::getConnections(const UUID &uuid) const {

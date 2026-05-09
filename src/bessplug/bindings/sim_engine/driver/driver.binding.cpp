@@ -102,11 +102,11 @@ class PySimDriver : public Bess::SimEngine::Drivers::SimDriver {
                                     idxB);
     }
 
-    bool addSlot(const Bess::UUID &compId,
-                 Bess::SimEngine::SlotType type,
-                 int index,
-                 bool force = false) override {
-        PYBIND11_OVERRIDE_PURE_NAME(bool,
+    Bess::SimEngine::Drivers::SlotsCountChangeRes addSlot(const Bess::UUID &compId,
+                                                          Bess::SimEngine::SlotType type,
+                                                          int index,
+                                                          bool force = false) override {
+        PYBIND11_OVERRIDE_PURE_NAME(Bess::SimEngine::Drivers::SlotsCountChangeRes,
                                     Bess::SimEngine::Drivers::SimDriver,
                                     "add_slot",
                                     addSlot,
@@ -116,11 +116,11 @@ class PySimDriver : public Bess::SimEngine::Drivers::SimDriver {
                                     force);
     }
 
-    bool removeSlot(const Bess::UUID &compId,
-                    Bess::SimEngine::SlotType type,
-                    int index,
-                    bool force = false) override {
-        PYBIND11_OVERRIDE_PURE_NAME(bool,
+    Bess::SimEngine::Drivers::SlotsCountChangeRes removeSlot(const Bess::UUID &compId,
+                                                             Bess::SimEngine::SlotType type,
+                                                             int index,
+                                                             bool force = false) override {
+        PYBIND11_OVERRIDE_PURE_NAME(Bess::SimEngine::Drivers::SlotsCountChangeRes,
                                     Bess::SimEngine::Drivers::SimDriver,
                                     "remove_slot",
                                     removeSlot,
@@ -179,6 +179,16 @@ void bind_sim_engine_driver(py::module_ &m) {
         .value("RUNNING", SimDriverState::running)
         .value("PAUSED", SimDriverState::paused)
         .export_values();
+
+    py::class_<SlotsCountChangeRes>(m, "SlotsCountChangeRes")
+        .def(py::init<>())
+        .def_static("no_change", &SlotsCountChangeRes::noChange)
+        .def_static("inp_changed", &SlotsCountChangeRes::inpChanged)
+        .def_static("out_changed", &SlotsCountChangeRes::outChanged)
+        .def_static("both_changed", &SlotsCountChangeRes::bothChanged)
+        .def_readwrite("changed_inp", &SlotsCountChangeRes::changedInp)
+        .def_readwrite("changed_out", &SlotsCountChangeRes::changedOut)
+        .def("has_change", &SlotsCountChangeRes::hasChange);
 
     py::class_<SimFnDataBase, std::shared_ptr<SimFnDataBase>>(m, "SimFnData")
         .def(py::init<>())

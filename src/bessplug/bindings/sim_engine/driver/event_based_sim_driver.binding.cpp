@@ -96,10 +96,10 @@ class PyEvtBasedSimDriver : public Bess::SimEngine::Drivers::EvtBasedSimDriver {
                                     idxB);
     }
 
-    bool addSlot(const Bess::UUID &compId,
-                 Bess::SimEngine::SlotType type,
-                 int index, bool force = false) override {
-        PYBIND11_OVERRIDE_PURE_NAME(bool,
+    Bess::SimEngine::Drivers::SlotsCountChangeRes addSlot(const Bess::UUID &compId,
+                                                          Bess::SimEngine::SlotType type,
+                                                          int index, bool force = false) override {
+        PYBIND11_OVERRIDE_PURE_NAME(Bess::SimEngine::Drivers::SlotsCountChangeRes,
                                     Bess::SimEngine::Drivers::EvtBasedSimDriver,
                                     "add_slot",
                                     addSlot,
@@ -109,11 +109,11 @@ class PyEvtBasedSimDriver : public Bess::SimEngine::Drivers::EvtBasedSimDriver {
                                     force);
     }
 
-    bool removeSlot(const Bess::UUID &compId,
-                    Bess::SimEngine::SlotType type,
-                    int index,
-                    bool force = false) override {
-        PYBIND11_OVERRIDE_PURE_NAME(bool,
+    Bess::SimEngine::Drivers::SlotsCountChangeRes removeSlot(const Bess::UUID &compId,
+                                                             Bess::SimEngine::SlotType type,
+                                                             int index,
+                                                             bool force = false) override {
+        PYBIND11_OVERRIDE_PURE_NAME(Bess::SimEngine::Drivers::SlotsCountChangeRes,
                                     Bess::SimEngine::Drivers::EvtBasedSimDriver,
                                     "remove_slot",
                                     removeSlot,

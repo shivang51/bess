@@ -122,6 +122,9 @@ namespace Bess::SimEngine::ExprEval {
 
         auto &newOuts = simData->outputStates;
 
+        BESS_ASSERT(newOuts.size() == expressions->size(),
+                    "[ExprEval] Output states size must match expressions size");
+
         for (int i = 0; i < (int)expressions->size(); i++) {
             std::vector<bool> states;
             states.reserve(inputs.size());

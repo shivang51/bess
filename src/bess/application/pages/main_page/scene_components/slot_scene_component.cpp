@@ -315,6 +315,13 @@ namespace Bess::Canvas {
                                                                     m_uuid,
                                                                     sceneDriver.getSceneWithId(e.sceneState->getSceneId()).get());
 
+        if (!conn) {
+            BESS_ERROR("Failed to create connection between component {} and component {}",
+                       (uint64_t)connStartSlot, (uint64_t)m_uuid);
+            e.sceneState->setConnectionStartSlot(UUID::null);
+            return;
+        }
+
         auto &cmdManager = Pages::MainPage::getInstance()->getState().getCommandSystem();
         cmdManager.push(std::make_unique<Cmd::AddCompCmd<ConnectionSceneComponent>>(conn));
 

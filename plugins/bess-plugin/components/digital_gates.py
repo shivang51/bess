@@ -13,6 +13,7 @@ _gates = {
         "input_pins": ["A"],
         "output_pins": ["Y"],
         "op": "$",
+        "keep_io_count_eq": True,
     },
     "AND": {
         "name": "AND Gate",
@@ -31,6 +32,7 @@ _gates = {
         "input_pins": ["A"],
         "output_pins": ["Y"],
         "op": "!",
+        "keep_io_count_eq": True,
     },
     "NAND": {
         "name": "NAND Gate",
@@ -249,6 +251,7 @@ for gate_key, gate_data in _gates.items():
         prop_delay=time.TimeNS(2),
         op_info=opInfo,
     )
+    def_gate.keep_io_count_eq = gate_data.get("keep_io_count_eq", False)
     digital_gates.append(def_gate)
 
     if _paths.get(gate_key) is None:

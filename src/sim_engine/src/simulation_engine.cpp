@@ -4,6 +4,8 @@
 #include "component_catalog.h"
 #include "drivers/digital_sim_driver.h"
 #include "drivers/sim_driver.h"
+#include "event_dispatcher.h"
+#include "events/sim_engine_events.h"
 #include "init_components.h"
 #include "types.h"
 
@@ -706,7 +708,22 @@ namespace Bess::SimEngine {
     bool SimulationEngine::addSlot(const UUID &compId, SlotType type, int index, bool force) {
         for (const auto &driver : m_simDrivers) {
             if (driver->hasComponent(compId)) {
-                return driver->addSlot(compId, type, index, force);
+                const auto res = driver->addSlot(compId, type, index, force);
+
+                if (!res.hasChange())
+                    return false;
+
+                if (res.changedInp) {
+                    Events::CompDefInputsResizedEvent event{compId};
+                    EventSystem::EventDispatcher::instance().queue(event);
+                }
+
+                if (res.changedOut) {
+                    Events::CompDefOutputsResizedEvent event{compId};
+                    EventSystem::EventDispatcher::instance().queue(event);
+                }
+
+                return true;
             }
         }
         return false;
@@ -715,7 +732,25 @@ namespace Bess::SimEngine {
     bool SimulationEngine::removeSlot(const UUID &compId, SlotType type, int index, bool force) {
         for (const auto &driver : m_simDrivers) {
             if (driver->hasComponent(compId)) {
-                return driver->removeSlot(compId, type, index, force);
+                const auto res = driver->removeSlot(compId,
+                                                    type,
+                                                    index,
+                                                    force);
+
+                if (res.hasChange())
+                    return false;
+
+                if (res.changedInp) {
+                    Events::CompDefInputsResizedEvent event{compId};
+                    EventSystem::EventDispatcher::instance().queue(event);
+                }
+
+                if (res.changedOut) {
+                    Events::CompDefOutputsResizedEvent event{compId};
+                    EventSystem::EventDispatcher::instance().queue(event);
+                }
+
+                return true;
             }
         }
         return false;

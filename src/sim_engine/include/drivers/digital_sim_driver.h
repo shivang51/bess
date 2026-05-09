@@ -47,6 +47,7 @@ namespace Bess::SimEngine::Drivers::Digital {
                               OutputExpressions,
                               m_outputExpressions,
                               onExpressionsChange)
+        MAKE_GETTER_SETTER(bool, KeepIOCountEq, m_keepIOCountEq)
 
         void setSimFn(const TDigSimFn &simFn);
 
@@ -94,6 +95,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         OperatorInfo m_opInfo{};
         ComponentBehaviorType m_behaviorType = ComponentBehaviorType::none;
         std::vector<std::string> m_outputExpressions; // A+B or A.B etc.
+        bool m_keepIOCountEq = false;
     };
 
     class BESS_API DigSimComp : public EvtBasedSimComp {
@@ -212,10 +214,10 @@ namespace Bess::SimEngine::Drivers::Digital {
             const UUID &compA, SlotType pinAType, int idxA,
             const UUID &compB, SlotType pinBType, int idxB) override;
 
-        bool addSlot(const UUID &compId, SlotType type, int index,
-                     bool force = false) override;
-        bool removeSlot(const UUID &compId, SlotType type, int index,
-                        bool force = false) override;
+        SlotsCountChangeRes addSlot(const UUID &compId, SlotType type, int index,
+                                    bool force = false) override;
+        SlotsCountChangeRes removeSlot(const UUID &compId, SlotType type, int index,
+                                       bool force = false) override;
 
         ConnectionBundle getConnections(const UUID &uuid) const override;
         std::vector<UUID> getDependants(const UUID &id) override;

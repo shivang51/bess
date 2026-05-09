@@ -3,6 +3,7 @@
 #include "bverilog/sim_engine_importer.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
+#include "drivers/digital_sim_driver.h"
 #include "pages/main_page/cmds/update_value_cmd.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
@@ -505,9 +506,10 @@ namespace Bess::Pages {
 
         const auto &digitalComp = SimEngine::SimulationEngine::instance().getDigitalComponent(e.componentId);
 
-        // FIXME
-        // const auto &outSlotsInfo = digitalComp->definition->getOutputSlotsInfo();
-        // syncSceneComponentSlots(sceneState, comp, outSlotsInfo, false);
+        const auto &outSlotsInfo = digitalComp->getDefinition<
+                                                  SimEngine::Drivers::Digital::DigCompDef>()
+                                       ->getOutputSlotsInfo();
+        syncSceneComponentSlots(sceneState, comp, outSlotsInfo, false);
     }
 
     void MainPageState::onCompDefInputsResized(const SimEngine::Events::CompDefInputsResizedEvent &e) {
@@ -525,15 +527,21 @@ namespace Bess::Pages {
         }
 
         auto &sceneState = scene->getState();
-        const auto &comp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(compData.sceneCompId);
+        const auto &comp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(
+            compData.sceneCompId);
         if (!comp)
             return; // most likely the component was deleted, so we can ignore this event
 
-        const auto &digitalComp = SimEngine::SimulationEngine::instance().getDigitalComponent(e.componentId);
+        const auto &digitalComp = SimEngine::SimulationEngine::instance()
+                                      .getDigitalComponent(e.componentId);
+        const auto &outSlotsInfo = digitalComp->getDefinition<
+                                                  SimEngine::Drivers::Digital::DigCompDef>()
+                                       ->getOutputSlotsInfo();
 
-        // FIXME
-        // const auto &inSlotsInfo = digitalComp->definition->getInputSlotsInfo();
-        // syncSceneComponentSlots(sceneState, comp, inSlotsInfo, true);
+        const auto &inSlotsInfo = digitalComp->getDefinition<
+                                                 SimEngine::Drivers::Digital::DigCompDef>()
+                                      ->getInputSlotsInfo();
+        syncSceneComponentSlots(sceneState, comp, inSlotsInfo, true);
     }
 
     void MainPageState::onEntityAdded(const Canvas::Events::ComponentAddedEvent &e) {

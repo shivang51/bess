@@ -87,6 +87,31 @@ namespace Bess::SimEngine::Drivers {
     // comp id, slot type, new count
     typedef std::function<void(const UUID &, SlotType, int)> SlotCountChangeCB;
 
+    struct SlotsCountChangeRes {
+        bool changedInp = false;
+        bool changedOut = false;
+
+        static SlotsCountChangeRes noChange() {
+            return SlotsCountChangeRes{false, false};
+        }
+
+        static SlotsCountChangeRes inpChanged() {
+            return SlotsCountChangeRes{true, false};
+        }
+
+        static SlotsCountChangeRes outChanged() {
+            return SlotsCountChangeRes{false, true};
+        }
+
+        static SlotsCountChangeRes bothChanged() {
+            return SlotsCountChangeRes{true, true};
+        }
+
+        bool hasChange() const {
+            return changedInp || changedOut;
+        }
+    };
+
     class BESS_API SimDriver {
       public:
         SimDriver() = default;
@@ -125,11 +150,11 @@ namespace Bess::SimEngine::Drivers {
             const UUID &compA, SlotType pinAType, int idxA,
             const UUID &compB, SlotType pinBType, int idxB) = 0;
 
-        virtual bool addSlot(const UUID &compId, SlotType type, int index,
-                             bool force = false) = 0;
+        virtual SlotsCountChangeRes addSlot(const UUID &compId, SlotType type, int index,
+                                            bool force = false) = 0;
 
-        virtual bool removeSlot(const UUID &compId, SlotType type, int index,
-                                bool force = false) = 0;
+        virtual SlotsCountChangeRes removeSlot(const UUID &compId, SlotType type, int index,
+                                               bool force = false) = 0;
 
         virtual ConnectionBundle getConnections(const UUID &uuid) const;
 

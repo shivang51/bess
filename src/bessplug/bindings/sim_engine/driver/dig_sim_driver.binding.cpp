@@ -175,6 +175,10 @@ void bind_dig_sim_driver(py::module_ &m) {
                       py::overload_cast<>(&Digital::DigCompDef::getSimFn),
                       py::overload_cast<const Digital::DigCompDef::TDigSimFn &>(
                           &Digital::DigCompDef::setSimFn))
+        .def_property("keep_io_count_eq",
+                      py::overload_cast<>(&Digital::DigCompDef::getKeepIOCountEq),
+                      py::overload_cast<const bool &>(
+                          &Digital::DigCompDef::setKeepIOCountEq))
         .def("compute_expressions_if_needed", &Digital::DigCompDef::computeExpressionsIfNeeded)
         .def("clone", &Digital::DigCompDef::clone)
         .def("get_type_name", &Digital::DigCompDef::getTypeName);
