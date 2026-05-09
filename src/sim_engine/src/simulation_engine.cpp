@@ -737,7 +737,7 @@ namespace Bess::SimEngine {
                                                     index,
                                                     force);
 
-                if (res.hasChange())
+                if (!res.hasChange())
                     return false;
 
                 if (res.changedInp) {
