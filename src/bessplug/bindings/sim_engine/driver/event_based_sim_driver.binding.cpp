@@ -165,6 +165,21 @@ class PyEvtBasedSimDriver : public Bess::SimEngine::Drivers::EvtBasedSimDriver {
                                "on_before_run",
                                onBeforeRun);
     }
+
+    Json::Value toJson() const override {
+        PYBIND11_OVERRIDE_PURE_NAME(Json::Value,
+                                    Bess::SimEngine::Drivers::EvtBasedSimDriver,
+                                    "to_json",
+                                    toJson);
+    }
+
+    void loadJson(const Json::Value &json) override {
+        PYBIND11_OVERRIDE_PURE_NAME(void,
+                                    Bess::SimEngine::Drivers::EvtBasedSimDriver,
+                                    "load_json",
+                                    loadJson,
+                                    json);
+    }
 };
 
 class PyEvtBasedCompDef : public Bess::SimEngine::Drivers::EvtBasedCompDef,

@@ -176,6 +176,10 @@ namespace Bess::SimEngine::Drivers {
 
         virtual void clearNetUpdated();
 
+        virtual Json::Value toJson() const = 0;
+
+        virtual void loadJson(const Json::Value &json) = 0;
+
         void addOnSlotCountChangeCB(const UUID &id, const SlotCountChangeCB &cb);
 
         void removeOnSlotCountChangeCB(const UUID &id);

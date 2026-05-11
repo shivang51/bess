@@ -890,6 +890,15 @@ namespace Bess::SimEngine::Drivers::Digital {
         return json;
     }
 
+    Json::Value DigitalSimDriver::toJson() const {
+        Json::Value json = Json::Value(Json::objectValue);
+        for (const auto &[id, comp] : m_components) {
+            json["components"].append(comp->toJson());
+        }
+        return json;
+    }
+
+    void DigitalSimDriver::loadJson(const Json::Value &json) {}
 } // namespace Bess::SimEngine::Drivers::Digital
 
 namespace Bess::JsonConvert {

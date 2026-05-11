@@ -27,8 +27,11 @@ namespace Bess::SimEngine {
 
     void SimEngineSerializer::serialize(Json::Value &j) {
         const auto &simEngine = SimEngine::SimulationEngine::instance();
-        j = Json::Value(Json::objectValue);
-        JsonConvert::toJsonValue(simEngine.getSimEngineState(), j["sim_engine_state"]);
+        for (const auto &driver : simEngine.m_simDrivers) {
+            j["drivers"][driver->getName()] = driver->toJson();
+        }
+        JsonConvert::toJsonValue(simEngine.getSimEngineState(),
+                                 j["sim_engine_state"]);
     }
 
     void SimEngineSerializer::serializeEntity(const UUID uid, Json::Value &j) {

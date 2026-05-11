@@ -72,7 +72,6 @@ namespace Bess {
         data["version"] = "<dev>";
 
         data["scene_data"] = Json::objectValue;
-        data["sim_engine_data"] = Json::objectValue;
 
         const auto &sceneDriver = Pages::MainPage::getInstance()->getState().getSceneDriver();
         JsonConvert::toJsonValue(sceneDriver.getRootSceneId(), data["scene_data"]["root_scene_id"]);
@@ -83,7 +82,7 @@ namespace Bess {
                                         scene);
         }
 
-        m_simEngineSerializer.serialize(data["sim_engine_data"]);
+        data["sim_engine_data"] = SimEngine::SimulationEngine::instance().toJson();
 
         if (std::ofstream outFile(m_path, std::ios::out); outFile.is_open()) {
             Json::StreamWriterBuilder builder;

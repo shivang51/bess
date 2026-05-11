@@ -1017,4 +1017,13 @@ namespace Bess::SimEngine {
         return nullptr;
     }
 
+    Json::Value SimulationEngine::toJson() const {
+        Json::Value json;
+        for (const auto &driver : m_simDrivers) {
+            json[driver->getName()] = driver->toJson();
+        }
+        return json;
+    }
+
+    void SimulationEngine::loadJson(const Json::Value &json) {}
 } // namespace Bess::SimEngine

@@ -2,7 +2,6 @@
 
 #include "bess_api.h"
 #include "common/bess_uuid.h"
-#include "digital_component.h"
 #include "drivers/digital_sim_driver.h"
 #include "drivers/sim_driver.h"
 #include "net/net.h"
@@ -112,6 +111,9 @@ namespace Bess::SimEngine {
 
         std::shared_ptr<Drivers::SimDriver> getDriverWithName(
             const std::string &name) const;
+
+        Json::Value toJson() const;
+        void loadJson(const Json::Value &json);
 
       private:
         void loadDrivers();

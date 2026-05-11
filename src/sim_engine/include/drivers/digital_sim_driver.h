@@ -232,6 +232,9 @@ namespace Bess::SimEngine::Drivers::Digital {
         bool isNetUpdated() const override;
         void clearNetUpdated() override;
 
+        Json::Value toJson() const override;
+        void loadJson(const Json::Value &json) override;
+
       private:
         std::unordered_map<UUID, Net> m_nets;
         bool m_isNetUpdated{false};

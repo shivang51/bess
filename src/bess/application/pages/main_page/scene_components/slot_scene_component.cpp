@@ -1,6 +1,8 @@
 #include "slot_scene_component.h"
 #include "conn_joint_scene_component.h"
 #include "connection_scene_component.h"
+#include "drivers/digital_sim_driver.h"
+#include "expression_evalutator/expr_evaluator.h"
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
@@ -353,10 +355,10 @@ namespace Bess::Canvas {
         const auto &simComp = state.getComponentByUuid<SimulationSceneComponent>(
             m_parentComponent);
 
-        // FIXME: OperatorInfo
-        const bool isUnirary = false;
-        // SimEngine::ExprEval::isUninaryOperator(
-        //         simComp->getCompDef()->getOpInfo().op);
+        auto def = std::dynamic_pointer_cast<SimEngine::Drivers::Digital::DigCompDef>(
+            simComp->getCompDef());
+        const bool isUnirary = SimEngine::ExprEval::isUninaryOperator(
+            def->getOpInfo().op);
 
         if (!isUnirary) {
             return dependants;

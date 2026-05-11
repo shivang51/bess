@@ -136,6 +136,21 @@ class PySimDriver : public Bess::SimEngine::Drivers::SimDriver {
                                "clear_pending_events",
                                clearPendingEvents);
     }
+
+    Json::Value toJson() const override {
+        PYBIND11_OVERRIDE_PURE_NAME(Json::Value,
+                                    Bess::SimEngine::Drivers::SimDriver,
+                                    "to_json",
+                                    toJson);
+    }
+
+    void loadJson(const Json::Value &json) override {
+        PYBIND11_OVERRIDE_PURE_NAME(void,
+                                    Bess::SimEngine::Drivers::SimDriver,
+                                    "load_json",
+                                    loadJson,
+                                    json);
+    }
 };
 
 class PyCompDef : public Bess::SimEngine::Drivers::CompDef,
@@ -277,6 +292,8 @@ void bind_sim_engine_driver(py::module_ &m) {
              py::arg("force") = false)
         .def("clear_pending_events",
              &SimDriver::clearPendingEvents)
+        .def("to_json", &SimDriver::toJson)
+        .def("load_json", &SimDriver::loadJson, py::arg("json"))
         .def("component_count",
              [](const SimDriver &self) { return self.getComponentsMap().size(); });
 
