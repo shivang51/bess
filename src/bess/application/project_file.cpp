@@ -1,9 +1,6 @@
 #include "application/project_file.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
-#include "pages/main_page/scene_components/scene_comp_types.h"
-#include "pages/main_page/scene_components/sim_scene_component.h"
-#include "plugin_manager.h"
 
 #include "pages/main_page/main_page.h"
 #include "scene.h"
@@ -66,25 +63,11 @@ namespace Bess {
     }
 
     void ProjectFile::encodeAndSave() {
-        Json::Value data;
+        std::ofstream outFile(m_path, std::ios::out);
 
-        data["name"] = m_name;
-        data["version"] = "<dev>";
+        if (outFile.is_open()) {
+            const auto data = toJson();
 
-        data["scene_data"] = Json::objectValue;
-
-        const auto &sceneDriver = Pages::MainPage::getInstance()->getState().getSceneDriver();
-        JsonConvert::toJsonValue(sceneDriver.getRootSceneId(), data["scene_data"]["root_scene_id"]);
-
-        data["scene_data"]["scenes"] = Json::arrayValue;
-        for (const auto &scene : sceneDriver.getScenes()) {
-            m_sceneSerializer.serialize(data["scene_data"]["scenes"].append(Json::objectValue),
-                                        scene);
-        }
-
-        data["sim_engine_data"] = SimEngine::SimulationEngine::instance().toJson();
-
-        if (std::ofstream outFile(m_path, std::ios::out); outFile.is_open()) {
             Json::StreamWriterBuilder builder;
             builder["commentStyle"] = "None";
             builder["indentation"] = "    ";
@@ -93,8 +76,6 @@ namespace Bess {
         } else {
             BESS_ERROR("Failed to open file for writing: {}", m_path);
         }
-
-        data.clear();
     }
 
     void ProjectFile::decode() {
@@ -183,4 +164,30 @@ namespace Bess {
 
     void ProjectFile::patchFile() const {
     }
+
+    Json::Value ProjectFile::toJson() const {
+        Json::Value data;
+
+        data["name"] = m_name;
+        data["version"] = "<dev>";
+
+        data["scene_data"] = Json::objectValue;
+
+        const auto &sceneDriver = Pages::MainPage::getInstance()->getState().getSceneDriver();
+        JsonConvert::toJsonValue(sceneDriver.getRootSceneId(),
+                                 data["scene_data"]["root_scene_id"]);
+
+        data["scene_data"]["scenes"] = Json::arrayValue;
+        for (const auto &scene : sceneDriver.getScenes()) {
+            Json::Value json;
+            JsonConvert::toJsonValue(scene->getState(), json["scene_state"]);
+            data["scene_data"]["scenes"].append(json);
+        }
+
+        data["sim_engine_data"] = SimEngine::SimulationEngine::instance().toJson();
+
+        return data;
+    }
+
+    void ProjectFile::loadJson(const Json::Value &json) {}
 } // namespace Bess

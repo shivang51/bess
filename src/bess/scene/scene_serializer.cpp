@@ -1,23 +1,22 @@
 #include "scene/scene_serializer.h"
 
 #include "common/bess_uuid.h"
-#include "plugin_manager.h"
 #include "scene/scene.h"
-#include "simulation_engine.h"
 
 namespace Bess {
 
-    void SceneSerializer::serializeToPath(const std::string &path, int indent) {
+    void SceneSerializer::serializeToPath(const std::string &path, int indent) const {
     }
 
     void SceneSerializer::deserializeFromPath(const std::string &path) {
     }
 
-    void SceneSerializer::serialize(Json::Value &json, const std::shared_ptr<Canvas::Scene> &scene) {
+    void SceneSerializer::serialize(Json::Value &json,
+                                    const std::shared_ptr<Canvas::Scene> &scene) const {
         JsonConvert::toJsonValue(scene->getState(), json["scene_state"]);
     }
 
-    void SceneSerializer::serializeEntity(UUID uid, Json::Value &j) {
+    void SceneSerializer::serializeEntity(UUID uid, Json::Value &j) const {
     }
 
     void SceneSerializer::deserialize(Json::Value &json, const std::shared_ptr<Canvas::Scene> &scene) {

@@ -22,6 +22,9 @@ namespace Bess {
 
         bool isSaved() const;
 
+        Json::Value toJson() const;
+        void loadJson(const Json::Value &json);
+
       private:
         void encodeAndSave();
         void decode();

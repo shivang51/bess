@@ -87,7 +87,7 @@ namespace Bess::UI {
                 }
                 ImGui::EndTabItem();
             }
-            if (ImGui::BeginTabItem("Serialization Info")) {
+            if (ImGui::BeginTabItem("Comp Ser Info")) {
                 const auto &selComps = sceneState.getSelectedComponents();
                 const auto &pluginService = Svc::PluginService::getInstance();
 
@@ -135,6 +135,14 @@ namespace Bess::UI {
 
                 ImGui::EndTabItem();
             }
+
+            if (ImGui::BeginTabItem("Project File Ser")) {
+                const auto &projectFile = mainPageState.getCurrentProjectFile();
+                Widgets::SelectableText("Sim-Engine",
+                                        projectFile->toJson().toStyledString());
+                ImGui::EndTabItem();
+            }
+
             ImGui::EndTabBar();
         }
     }
