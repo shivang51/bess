@@ -2,6 +2,7 @@
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
+#include "component_catalog.h"
 #include "drivers/dig_module_def.h"
 #include "drivers/event_based_sim_driver.h"
 #include "drivers/sim_driver.h"
@@ -15,6 +16,81 @@
 #include <memory>
 
 namespace Bess::SimEngine::Drivers::Digital {
+
+    namespace {
+        std::shared_ptr<DigCompDef> loadDigCompDef(const Json::Value &defJson) {
+            const auto defName = defJson.get("name", "").asString();
+            const auto defTypeName = defJson.get("typeName", "").asString();
+
+            std::shared_ptr<DigCompDef> def;
+
+            if (defTypeName == ModuleDefinition::TypeName) {
+                def = std::make_shared<ModuleDefinition>();
+            } else if (!defName.empty()) {
+                const auto baseDef = SimEngine::ComponentCatalog::instance().getComponentDefinition(defName);
+                if (baseDef) {
+                    def = std::dynamic_pointer_cast<DigCompDef>(baseDef->clone());
+                }
+            }
+
+            if (!def) {
+                def = std::make_shared<DigCompDef>();
+            }
+
+            if (defJson.isMember("name")) {
+                def->setName(defJson["name"].asString());
+            }
+
+            if (defJson.isMember("groupName")) {
+                def->setGroupName(defJson["groupName"].asString());
+            }
+
+            if (defJson.isMember("shouldAutoReschedule")) {
+                def->setAutoReschedule(defJson["shouldAutoReschedule"].asBool());
+            }
+
+            if (defJson.isMember("propDelay")) {
+                TimeNs propDelay{0};
+                JsonConvert::fromJsonValue(defJson["propDelay"], propDelay);
+                def->setPropDelay(propDelay);
+            }
+
+            if (defJson.isMember("inpSlotsInfo")) {
+                JsonConvert::fromJsonValue(defJson["inpSlotsInfo"], def->getInputSlotsInfo());
+            }
+
+            if (defJson.isMember("outSlotsInfo")) {
+                JsonConvert::fromJsonValue(defJson["outSlotsInfo"], def->getOutputSlotsInfo());
+            }
+
+            if (defJson.isMember("opInfo")) {
+                JsonConvert::fromJsonValue(defJson["opInfo"], def->getOpInfo());
+            }
+
+            if (defJson.isMember("behaviorType")) {
+                JsonConvert::fromJsonValue(defJson["behaviorType"], def->getBehaviorType());
+            }
+
+            if (defJson.isMember("expressions")) {
+                JsonConvert::fromJsonValue(defJson["expressions"], def->getOutputExpressions());
+            }
+
+            if (!def->getSimFn() &&
+                (defJson.isMember("opInfo") || defJson.isMember("expressions"))) {
+                def->setSimFn(ExprEval::exprEvalSimFunc);
+            }
+
+            if (auto moduleDef = std::dynamic_pointer_cast<ModuleDefinition>(def);
+                moduleDef && !moduleDef->getSimFn()) {
+                moduleDef->setSimFn([moduleDef](const ModuleDefinition::TDigSimFnDataPtr &data) {
+                    return moduleDef->simFunction(data);
+                });
+            }
+
+            return def;
+        }
+    } // namespace
+
     std::string DigitalSimDriver::getName() const {
         return DigitalSimDriver::NAME;
     }
@@ -890,6 +966,43 @@ namespace Bess::SimEngine::Drivers::Digital {
         return json;
     }
 
+    void DigSimComp::fromJson(const std::shared_ptr<DigSimComp> &comp,
+                             const Json::Value &json) {
+        if (!comp || !json.isObject()) {
+            return;
+        }
+
+        EvtBasedSimComp::fromJson(comp, json);
+
+        if (json.isMember("inputStates")) {
+            JsonConvert::fromJsonValue(json["inputStates"], comp->m_inputStates);
+        }
+
+        if (json.isMember("outputStates")) {
+            JsonConvert::fromJsonValue(json["outputStates"], comp->m_outputStates);
+        }
+
+        if (json.isMember("inputConnections")) {
+            JsonConvert::fromJsonValue(json["inputConnections"], comp->m_inputConnections);
+        }
+
+        if (json.isMember("outputConnections")) {
+            JsonConvert::fromJsonValue(json["outputConnections"], comp->m_outputConnections);
+        }
+
+        if (json.isMember("isInputConnected")) {
+            JsonConvert::fromJsonValue(json["isInputConnected"], comp->m_isInputConnected);
+        }
+
+        if (json.isMember("isOutputConnected")) {
+            JsonConvert::fromJsonValue(json["isOutputConnected"], comp->m_isOutputConnected);
+        }
+
+        if (json.isMember("netUuid")) {
+            JsonConvert::fromJsonValue(json["netUuid"], comp->m_netUuid);
+        }
+    }
+
     Json::Value DigitalSimDriver::toJson() const {
         Json::Value json = Json::Value(Json::objectValue);
         for (const auto &[id, comp] : m_components) {
@@ -898,7 +1011,56 @@ namespace Bess::SimEngine::Drivers::Digital {
         return json;
     }
 
-    void DigitalSimDriver::loadJson(const Json::Value &json) {}
+    void DigitalSimDriver::loadJson(const Json::Value &json) {
+        clearPendingEvents();
+        clearComponents();
+
+        if (!json.isObject() || !json.isMember("components") || !json["components"].isArray()) {
+            m_isNetUpdated = false;
+            return;
+        }
+
+        {
+            std::lock_guard lk(m_compMapMutex);
+            for (const auto &compJson : json["components"]) {
+                if (!compJson.isObject() || !compJson.isMember("def")) {
+                    continue;
+                }
+
+                const auto def = loadDigCompDef(compJson["def"]);
+                if (!def) {
+                    continue;
+                }
+
+                const auto comp = std::dynamic_pointer_cast<DigSimComp>(createComp(def, false));
+                if (!comp) {
+                    continue;
+                }
+
+                DigSimComp::fromJson(comp, compJson);
+                m_components[comp->getUuid()] = comp;
+            }
+        }
+
+        m_nets.clear();
+        for (const auto &[compId, compBase] : m_components) {
+            const auto comp = std::dynamic_pointer_cast<DigSimComp>(compBase);
+            if (!comp) {
+                continue;
+            }
+
+            const auto &netId = comp->getNetUuid();
+            if (netId == UUID::null) {
+                continue;
+            }
+
+            auto &net = m_nets[netId];
+            net.setUUID(netId);
+            net.addComponent(compId);
+        }
+
+        m_isNetUpdated = false;
+    }
 } // namespace Bess::SimEngine::Drivers::Digital
 
 namespace Bess::JsonConvert {

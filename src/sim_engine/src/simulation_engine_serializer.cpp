@@ -41,8 +41,7 @@ namespace Bess::SimEngine {
 
     void SimEngineSerializer::deserialize(const Json::Value &json) {
         auto &simEngine = SimEngine::SimulationEngine::instance();
-        JsonConvert::fromJsonValue(json["sim_engine_state"], simEngine.getSimEngineState());
-        simAutoReschedulableComponents();
+        simEngine.loadJson(json);
     }
 
     void SimEngineSerializer::deserializeEntity(const Json::Value &json) {

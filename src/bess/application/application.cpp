@@ -171,7 +171,8 @@ namespace Bess {
 
         UI::init(m_mainWindow->getGLFWHandle());
 
-        const auto page = Pages::MainPage::getInstance(ApplicationState::getParentWindow());
+        const auto page = Pages::MainPage::getInstance(
+            ApplicationState::getParentWindow());
 
         ApplicationState::setCurrentPage(page);
 

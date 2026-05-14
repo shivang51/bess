@@ -1,4 +1,5 @@
 #include "common/bess_uuid.h"
+#include "component_catalog.h"
 #include "drivers/digital_sim_driver.h"
 #include "drivers/sim_driver.h"
 #include "simulation_engine.h"
@@ -172,5 +173,36 @@ namespace {
         EXPECT_EQ(comp->getOutputStates().size(), 1u);
 
         engine.clear();
+    }
+
+    TEST(SimDriverTest, DigitalDriverLoadJsonRestoresComponentsAndNets) {
+        DigitalSimDriver driver;
+
+        auto def = std::dynamic_pointer_cast<DigCompDef>(
+            ComponentCatalog::instance().getComponentDefinitionCopy("Input"));
+        ASSERT_NE(def, nullptr);
+
+        auto component = driver.createComp(def, false);
+        ASSERT_NE(component, nullptr);
+
+        const auto compId = Bess::UUID(0xCC11);
+        component->setUuid(compId);
+        component->setName("IN#1");
+
+        driver.addComponent(component, false);
+
+        const auto json = driver.toJson();
+
+        DigitalSimDriver restored;
+        restored.loadJson(json);
+
+        const auto loaded = restored.getComponent<DigSimComp>(compId);
+        ASSERT_NE(loaded, nullptr);
+        EXPECT_EQ(loaded->getName(), "IN#1");
+        ASSERT_NE(loaded->getDefinition(), nullptr);
+        EXPECT_EQ(loaded->getDefinition()->getName(), "Input");
+        EXPECT_TRUE(static_cast<bool>(loaded->getDefinition()->getSimFn()));
+        EXPECT_EQ(restored.getNetsMap().size(), 1u);
+        EXPECT_TRUE(restored.getNetsMap().contains(loaded->getNetUuid()));
     }
 } // namespace

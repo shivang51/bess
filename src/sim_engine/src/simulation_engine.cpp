@@ -1025,5 +1025,43 @@ namespace Bess::SimEngine {
         return json;
     }
 
-    void SimulationEngine::loadJson(const Json::Value &json) {}
+    void SimulationEngine::loadJson(const Json::Value &json) {
+        clear();
+
+        if (!json.isObject()) {
+            return;
+        }
+
+        if (json.isMember("drivers") && json["drivers"].isObject()) {
+            for (const auto &driver : m_simDrivers) {
+                const auto driverName = driver->getName();
+                if (json["drivers"].isMember(driverName)) {
+                    driver->loadJson(json["drivers"][driverName]);
+                } else if (json.isMember(driverName)) {
+                    driver->loadJson(json[driverName]);
+                }
+            }
+        } else {
+            for (const auto &driver : m_simDrivers) {
+                if (json.isMember(driver->getName())) {
+                    driver->loadJson(json[driver->getName()]);
+                }
+            }
+        }
+
+        {
+            std::lock_guard lk(m_registryMutex);
+            m_simEngineState.reset();
+
+            for (const auto &driver : m_simDrivers) {
+                for (const auto &[uuid, comp] : driver->getComponentsMap()) {
+                    m_simEngineState.addComponent(comp);
+                }
+
+                for (const auto &[uuid, net] : driver->getNetsMap()) {
+                    m_simEngineState.addNet(net);
+                }
+            }
+        }
+    }
 } // namespace Bess::SimEngine
