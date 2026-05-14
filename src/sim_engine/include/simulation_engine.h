@@ -5,7 +5,6 @@
 #include "drivers/digital_sim_driver.h"
 #include "drivers/sim_driver.h"
 #include "net/net.h"
-#include "sim_engine_state.h"
 #include "types.h"
 #include <chrono>
 #include <condition_variable>
@@ -102,15 +101,14 @@ namespace Bess::SimEngine {
 
         bool isSimStable();
 
-        const SimEngineState &getSimEngineState() const;
-        SimEngineState &getSimEngineState();
-
         void addOnSlotCountChangeCB(const UUID &id, const Drivers::SlotCountChangeCB &cb);
 
         void removeOnSlotCountChangeCB(const UUID &id);
 
         std::shared_ptr<Drivers::SimDriver> getDriverWithName(
             const std::string &name) const;
+
+        const std::vector<std::shared_ptr<Drivers::SimDriver>> &getDrivers() const;
 
         Json::Value toJson() const;
         void loadJson(const Json::Value &json);
@@ -158,8 +156,6 @@ namespace Bess::SimEngine {
         std::set<UUID> m_pendingSignalSources;
         uint64_t m_nextEventId{0};
         SimTime m_currentSimTime;
-
-        SimEngineState m_simEngineState;
 
         std::unordered_map<UUID, Net> m_nets;
 

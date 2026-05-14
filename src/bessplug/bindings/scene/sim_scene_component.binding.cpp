@@ -135,8 +135,8 @@ void bind_sim_scene_component(py::module_ &m) {
 
             auto digDef = std::dynamic_pointer_cast<TDigCompDef>(compDef);
 
-            BESS_ASSERT(digDef, std::format("Component definition with type {} cannot be cast to DigCompDef",
-                                            compDef->getTypeName()));
+            BESS_ASSERT(digDef, "Component definition with type {} cannot be cast to DigCompDef",
+                        compDef->getTypeName());
 
             // SLOTS
             const auto &inpDetails = digDef->getInputSlotsInfo();

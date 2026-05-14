@@ -88,4 +88,29 @@ namespace Bess::SimEngine {
     std::string ModuleDefinition::getTypeName() const {
         return TypeName;
     }
+
+    Json::Value ModuleDefinition::toJson() const {
+        Json::Value json = Drivers::Digital::DigCompDef::toJson();
+
+        JsonConvert::toJsonValue(m_input, json["input"]);
+        JsonConvert::toJsonValue(m_output, json["output"]);
+
+        return json;
+    }
+
+    void ModuleDefinition::loadJson(const Json::Value &json) {
+        if (!json.isObject()) {
+            return;
+        }
+
+        Drivers::Digital::DigCompDef::loadJson(json);
+
+        if (json.isMember("input")) {
+            JsonConvert::fromJsonValue(json["input"], m_input);
+        }
+
+        if (json.isMember("output")) {
+            JsonConvert::fromJsonValue(json["output"], m_output);
+        }
+    }
 } // namespace Bess::SimEngine

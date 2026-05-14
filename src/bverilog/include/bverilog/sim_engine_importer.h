@@ -21,7 +21,7 @@ namespace Bess::Verilog {
 
         Json::Value toJson() const {
             BESS_ASSERT(toJsonCb,
-                        std::format("toJson callback is not set for VerCompDefAuxData with id: {}", id));
+                        "toJson callback is not set for VerCompDefAuxData with id: {}", id);
             Json::Value j;
             j["id"] = id;
             j["type"] = type;

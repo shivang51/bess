@@ -33,7 +33,7 @@ namespace Bess::Verilog {
             return std::string(path.substr(0, separator));
         }
 
-        std::string trim(std::string value) {
+        std::string trim(const std::string &value) {
             const auto first = value.find_first_not_of(" \t\r\n");
             if (first == std::string::npos) {
                 return {};
@@ -1361,7 +1361,7 @@ namespace Bess::Verilog {
                               " W" + std::to_string(width);
 
             auto inputNames = makeIndexedSlotNames("D", width);
-            inputNames.push_back("EN");
+            inputNames.emplace_back("EN");
 
             SlotsGroupInfo inputs{
                 SlotsGroupType::input,
@@ -1370,7 +1370,7 @@ namespace Bess::Verilog {
                 inputNames,
                 {},
             };
-            inputs.categories.push_back({static_cast<int>(width), SlotCatergory::enable});
+            inputs.categories.emplace_back(static_cast<int>(width), SlotCatergory::enable);
 
             const SlotsGroupInfo outputs{
                 SlotsGroupType::output,
@@ -2620,8 +2620,8 @@ namespace Bess::Verilog {
 
     std::shared_ptr<SimEngine::Drivers::CompDef> getFromAuxDataJson(Json::Value auxDataJson) {
         BESS_ASSERT(auxDataJson["type"].asString() == VerCompDefAuxData::type,
-                    std::format("Expected aux data of type VerCompDefAuxData, got {}",
-                                auxDataJson["type"].asString()));
+                    "Expected aux data of type VerCompDefAuxData, got {}",
+                    auxDataJson["type"].asString());
 
         const auto &id = auxDataJson["id"].asString();
         const auto &data = auxDataJson["data"];

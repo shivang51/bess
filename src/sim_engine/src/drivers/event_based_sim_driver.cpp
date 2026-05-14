@@ -44,9 +44,8 @@ namespace Bess::SimEngine::Drivers {
         return json;
     }
 
-    void EvtBasedSimComp::fromJson(const std::shared_ptr<EvtBasedSimComp> &comp,
-                                   const Json::Value &json) {
-        SimComponent::fromJson(comp, json);
+    void EvtBasedSimComp::loadJson(const Json::Value &json) {
+        SimComponent::loadJson(json);
     }
 
     void EvtBasedSimDriver::run() {
@@ -333,5 +332,16 @@ namespace Bess::SimEngine::Drivers {
 
     void EvtBasedSimComp::removeOnStateChangeCB(const UUID &id) {
         m_onStateChangeCbs.erase(id);
+    }
+
+    void EvtBasedCompDef::loadJson(const Json::Value &json) {
+        CompDef::loadJson(json);
+        if (json.isMember("shouldAutoReschedule")) {
+            m_autoReschedule = json["shouldAutoReschedule"].asBool();
+        }
+
+        if (json.isMember("propDelay")) {
+            JsonConvert::fromJsonValue(json["propDelay"], m_propDelay);
+        }
     }
 } // namespace Bess::SimEngine::Drivers

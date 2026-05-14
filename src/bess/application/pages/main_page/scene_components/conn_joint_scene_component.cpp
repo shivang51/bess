@@ -308,8 +308,8 @@ namespace Bess::Canvas {
         for (const auto &connId : m_connections) {
             const auto &connComp = state.getComponentByUuid<ConnectionSceneComponent>(connId);
             BESS_ASSERT(connComp,
-                        std::format("[ConnJointDeps] connComp not found {} in joint {}",
-                                    (uint64_t)connId, (uint64_t)m_uuid));
+                        "[ConnJointDeps] connComp not found {} in joint {}",
+                        (uint64_t)connId, (uint64_t)m_uuid);
             if (!connComp)
                 continue;
             const auto &ids = connComp->getDependants(state);

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "scene/scene_serializer.h"
-#include "simulation_engine_serializer.h"
 #include <string>
 
 namespace Bess {
@@ -39,7 +38,6 @@ namespace Bess {
         // TODO (Shivang): Use undo redo to figure this out
         bool m_saved = false;
 
-        SimEngine::SimEngineSerializer m_simEngineSerializer;
         SceneSerializer m_sceneSerializer;
     };
 } // namespace Bess

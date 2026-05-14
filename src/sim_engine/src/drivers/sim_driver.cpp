@@ -20,18 +20,17 @@ namespace Bess::SimEngine::Drivers {
         return json;
     }
 
-    void SimComponent::fromJson(const std::shared_ptr<SimComponent> &comp,
-                                const Json::Value &json) {
-        if (!comp || !json.isObject()) {
+    void SimComponent::loadJson(const Json::Value &json) {
+        if (!json.isObject()) {
             return;
         }
 
         if (json.isMember("uuid")) {
-            JsonConvert::fromJsonValue(json["uuid"], comp->m_uuid);
+            JsonConvert::fromJsonValue(json["uuid"], m_uuid);
         }
 
         if (json.isMember("name") && json["name"].isString()) {
-            comp->m_name = json["name"].asString();
+            m_name = json["name"].asString();
         }
     }
 
@@ -222,6 +221,20 @@ namespace Bess::SimEngine::Drivers {
     void SimDriver::triggerSlotCountChangeCbs(const UUID &compId, SlotType type, int newCount) {
         for (const auto &[id, cb] : m_onSlotCountChnageCBs) {
             cb(compId, type, newCount);
+        }
+    }
+
+    void CompDef::loadJson(const Json::Value &json) {
+        if (!json.isObject()) {
+            return;
+        }
+
+        if (json.isMember("name") && json["name"].isString()) {
+            m_name = json["name"].asString();
+        }
+
+        if (json.isMember("groupName") && json["groupName"].isString()) {
+            m_groupName = json["groupName"].asString();
         }
     }
 } // namespace Bess::SimEngine::Drivers

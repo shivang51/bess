@@ -26,66 +26,36 @@ namespace Bess::SimEngine::Drivers::Digital {
 
             if (defTypeName == ModuleDefinition::TypeName) {
                 def = std::make_shared<ModuleDefinition>();
+                auto moduleDef = std::dynamic_pointer_cast<ModuleDefinition>(def);
+                moduleDef->setSimFn([moduleDef](const ModuleDefinition::TDigSimFnDataPtr &data) {
+                    return moduleDef->simFunction(data);
+                });
             } else if (!defName.empty()) {
                 const auto baseDef = SimEngine::ComponentCatalog::instance().getComponentDefinition(defName);
+                BESS_ASSERT(baseDef, "Component definition with name '{}' not found in catalog", defName);
                 if (baseDef) {
                     def = std::dynamic_pointer_cast<DigCompDef>(baseDef->clone());
                 }
             }
 
-            if (!def) {
+            BESS_ASSERT(def,
+                        "Failed to load component definition from JSON. No definition found for name '{}' and type '{}'",
+                        defName, defTypeName);
+
+            if (!def) { // Fallback
                 def = std::make_shared<DigCompDef>();
             }
 
-            if (defJson.isMember("name")) {
-                def->setName(defJson["name"].asString());
-            }
-
-            if (defJson.isMember("groupName")) {
-                def->setGroupName(defJson["groupName"].asString());
-            }
-
-            if (defJson.isMember("shouldAutoReschedule")) {
-                def->setAutoReschedule(defJson["shouldAutoReschedule"].asBool());
-            }
-
-            if (defJson.isMember("propDelay")) {
-                TimeNs propDelay{0};
-                JsonConvert::fromJsonValue(defJson["propDelay"], propDelay);
-                def->setPropDelay(propDelay);
-            }
-
-            if (defJson.isMember("inpSlotsInfo")) {
-                JsonConvert::fromJsonValue(defJson["inpSlotsInfo"], def->getInputSlotsInfo());
-            }
-
-            if (defJson.isMember("outSlotsInfo")) {
-                JsonConvert::fromJsonValue(defJson["outSlotsInfo"], def->getOutputSlotsInfo());
-            }
-
-            if (defJson.isMember("opInfo")) {
-                JsonConvert::fromJsonValue(defJson["opInfo"], def->getOpInfo());
-            }
-
-            if (defJson.isMember("behaviorType")) {
-                JsonConvert::fromJsonValue(defJson["behaviorType"], def->getBehaviorType());
-            }
-
-            if (defJson.isMember("expressions")) {
-                JsonConvert::fromJsonValue(defJson["expressions"], def->getOutputExpressions());
-            }
+            def->loadJson(defJson);
 
             if (!def->getSimFn() &&
-                (defJson.isMember("opInfo") || defJson.isMember("expressions"))) {
+                (defJson.isMember("opInfo") ||
+                 defJson.isMember("expressions"))) {
                 def->setSimFn(ExprEval::exprEvalSimFunc);
             }
 
-            if (auto moduleDef = std::dynamic_pointer_cast<ModuleDefinition>(def);
-                moduleDef && !moduleDef->getSimFn()) {
-                moduleDef->setSimFn([moduleDef](const ModuleDefinition::TDigSimFnDataPtr &data) {
-                    return moduleDef->simFunction(data);
-                });
-            }
+            BESS_ASSERT(def->getSimFn(), "Failed to set sim function for component definition '{}'",
+                        def->getName());
 
             return def;
         }
@@ -829,9 +799,15 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         JsonConvert::toJsonValue(m_inputSlotsInfo, json["inpSlotsInfo"]);
         JsonConvert::toJsonValue(m_outputSlotsInfo, json["outSlotsInfo"]);
-        JsonConvert::toJsonValue(m_opInfo, json["opInfo"]);
         JsonConvert::toJsonValue(m_behaviorType, json["behaviorType"]);
-        JsonConvert::toJsonValue(m_outputExpressions, json["expressions"]);
+
+        if (m_opInfo.op != '0') {
+            JsonConvert::toJsonValue(m_opInfo, json["opInfo"]);
+        }
+
+        if (!m_outputExpressions.empty()) {
+            JsonConvert::toJsonValue(m_outputExpressions, json["expressions"]);
+        }
 
         return json;
     }
@@ -954,6 +930,7 @@ namespace Bess::SimEngine::Drivers::Digital {
                                        true);
         }
     }
+
     Json::Value DigSimComp::toJson() const {
         Json::Value json = EvtBasedSimComp::toJson();
         JsonConvert::toJsonValue(m_inputStates, json["inputStates"]);
@@ -966,40 +943,35 @@ namespace Bess::SimEngine::Drivers::Digital {
         return json;
     }
 
-    void DigSimComp::fromJson(const std::shared_ptr<DigSimComp> &comp,
-                             const Json::Value &json) {
-        if (!comp || !json.isObject()) {
-            return;
-        }
-
-        EvtBasedSimComp::fromJson(comp, json);
+    void DigSimComp::loadJson(const Json::Value &json) {
+        EvtBasedSimComp::loadJson(json);
 
         if (json.isMember("inputStates")) {
-            JsonConvert::fromJsonValue(json["inputStates"], comp->m_inputStates);
+            JsonConvert::fromJsonValue(json["inputStates"], m_inputStates);
         }
 
         if (json.isMember("outputStates")) {
-            JsonConvert::fromJsonValue(json["outputStates"], comp->m_outputStates);
+            JsonConvert::fromJsonValue(json["outputStates"], m_outputStates);
         }
 
         if (json.isMember("inputConnections")) {
-            JsonConvert::fromJsonValue(json["inputConnections"], comp->m_inputConnections);
+            JsonConvert::fromJsonValue(json["inputConnections"], m_inputConnections);
         }
 
         if (json.isMember("outputConnections")) {
-            JsonConvert::fromJsonValue(json["outputConnections"], comp->m_outputConnections);
+            JsonConvert::fromJsonValue(json["outputConnections"], m_outputConnections);
         }
 
         if (json.isMember("isInputConnected")) {
-            JsonConvert::fromJsonValue(json["isInputConnected"], comp->m_isInputConnected);
+            JsonConvert::fromJsonValue(json["isInputConnected"], m_isInputConnected);
         }
 
         if (json.isMember("isOutputConnected")) {
-            JsonConvert::fromJsonValue(json["isOutputConnected"], comp->m_isOutputConnected);
+            JsonConvert::fromJsonValue(json["isOutputConnected"], m_isOutputConnected);
         }
 
         if (json.isMember("netUuid")) {
-            JsonConvert::fromJsonValue(json["netUuid"], comp->m_netUuid);
+            JsonConvert::fromJsonValue(json["netUuid"], m_netUuid);
         }
     }
 
@@ -1037,7 +1009,7 @@ namespace Bess::SimEngine::Drivers::Digital {
                     continue;
                 }
 
-                DigSimComp::fromJson(comp, compJson);
+                comp->loadJson(compJson);
                 m_components[comp->getUuid()] = comp;
             }
         }
@@ -1060,6 +1032,30 @@ namespace Bess::SimEngine::Drivers::Digital {
         }
 
         m_isNetUpdated = false;
+    }
+
+    void DigCompDef::loadJson(const Json::Value &json) {
+        EvtBasedCompDef::loadJson(json);
+
+        if (json.isMember("inpSlotsInfo")) {
+            JsonConvert::fromJsonValue(json["inpSlotsInfo"], m_inputSlotsInfo);
+        }
+
+        if (json.isMember("outSlotsInfo")) {
+            JsonConvert::fromJsonValue(json["outSlotsInfo"], m_outputSlotsInfo);
+        }
+
+        if (json.isMember("opInfo")) {
+            JsonConvert::fromJsonValue(json["opInfo"], m_opInfo);
+        }
+
+        if (json.isMember("behaviorType")) {
+            JsonConvert::fromJsonValue(json["behaviorType"], m_behaviorType);
+        }
+
+        if (json.isMember("expressions")) {
+            JsonConvert::fromJsonValue(json["expressions"], m_outputExpressions);
+        }
     }
 } // namespace Bess::SimEngine::Drivers::Digital
 

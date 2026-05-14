@@ -7,6 +7,8 @@
 #include "drivers/sim_driver.h"
 #include "event_based_sim_driver.h"
 #include "types.h"
+#include "json/value.h"
+#include "json/writer.h"
 #include <memory>
 
 namespace Bess::SimEngine::Drivers::Digital {
@@ -52,6 +54,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         void setSimFn(const TDigSimFn &simFn);
 
         Json::Value toJson() const override;
+        void loadJson(const Json::Value &json) override;
 
         virtual bool computeExpressionsIfNeeded();
 
@@ -148,6 +151,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         MAKE_GETTER_SETTER(UUID, NetUuid, m_netUuid)
 
         Json::Value toJson() const override;
+        void loadJson(const Json::Value &json) override;
 
         static void fromJson(const std::shared_ptr<DigSimComp> &comp,
                              const Json::Value &json);

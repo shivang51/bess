@@ -31,8 +31,7 @@ namespace Bess::SimEngine::Drivers {
 
         virtual Json::Value toJson() const;
 
-        static void fromJson(const std::shared_ptr<CompDef> &compDef,
-                             const Json::Value &json) {}
+        virtual void loadJson(const Json::Value &json);
 
         virtual std::shared_ptr<CompDef> clone() const = 0;
 
@@ -61,11 +60,9 @@ namespace Bess::SimEngine::Drivers {
                            m_def)
 
         virtual Json::Value toJson() const;
+        virtual void loadJson(const Json::Value &json);
 
         virtual void onPostSimulate() {}
-
-        static void fromJson(const std::shared_ptr<SimComponent> &comp,
-                             const Json::Value &json);
 
         virtual std::shared_ptr<SimFnDataBase> simulate(
             const std::shared_ptr<SimFnDataBase> &data);

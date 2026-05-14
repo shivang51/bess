@@ -70,7 +70,6 @@ namespace Bess::SimEngine {
 
         {
             std::lock_guard lkRegistry(m_registryMutex);
-            m_simEngineState.reset();
             m_nextEventId = 0;
             m_currentSimTime = {};
             m_nets.clear();
@@ -107,7 +106,6 @@ namespace Bess::SimEngine {
         ComponentCatalog::instance().destroy();
 
         m_destroyed = true;
-        m_simEngineState.reset();
     }
 
     void SimulationEngine::clearEventsForEntity(const UUID &id) {
@@ -128,9 +126,6 @@ namespace Bess::SimEngine {
                 }
 
                 driver->addComponent(comp, true);
-
-                std::lock_guard lk(m_registryMutex);
-                m_simEngineState.addComponent(comp);
 
                 return comp->getUuid();
             }
@@ -184,7 +179,7 @@ namespace Bess::SimEngine {
     }
 
     void SimulationEngine::deleteComponent(const UUID &uuid) {
-        if (uuid == UUID::null || !m_simEngineState.isComponentValid(uuid)) {
+        if (uuid == UUID::null || !getComponentDefinition(uuid)) {
             return;
         }
 
@@ -200,7 +195,6 @@ namespace Bess::SimEngine {
         }
 
         m_pendingSignalSources.erase(uuid);
-        m_simEngineState.removeComponent(uuid);
 
         BESS_INFO("Deleted component {}", (uint64_t)uuid);
     }
@@ -249,7 +243,7 @@ namespace Bess::SimEngine {
     }
 
     SlotState SimulationEngine::getDigitalSlotState(const UUID &uuid, SlotType type, int idx) {
-        if (!m_simEngineState.isComponentValid(uuid)) {
+        if (!getComponentDefinition(uuid)) {
             BESS_WARN("[getDigitalPinState] Component with UUID {} is invalid", (uint64_t)uuid);
             return {LogicState::unknown, SimTime(0)};
         }
@@ -266,7 +260,7 @@ namespace Bess::SimEngine {
     ConnectionBundle SimulationEngine::getConnections(const UUID &uuid) {
         ConnectionBundle bundle;
 
-        if (!m_simEngineState.isComponentValid(uuid)) {
+            if (!getComponentDefinition(uuid)) {
             BESS_WARN("[getConnections] Component with UUID {} is invalid",
                       (uint64_t)uuid);
             return bundle;
@@ -881,12 +875,8 @@ namespace Bess::SimEngine {
         return getComponent<Drivers::Digital::DigSimComp>(uuid);
     }
 
-    const SimEngineState &SimulationEngine::getSimEngineState() const {
-        return m_simEngineState;
-    }
-
-    SimEngineState &SimulationEngine::getSimEngineState() {
-        return m_simEngineState;
+    const std::vector<std::shared_ptr<Drivers::SimDriver>> &SimulationEngine::getDrivers() const {
+        return m_simDrivers;
     }
 
     SimTime SimulationEngine::getSimulationTime() const {
@@ -998,7 +988,8 @@ namespace Bess::SimEngine {
             if (driver->hasComponent(id)) {
                 driver->removeOnSlotCountChangeCB(id);
                 BESS_DEBUG("Removed slot count change callback for component with UUID {} from driver {}",
-                           (uint64_t)id, driver->getName());
+                           (uint64_t)id,
+                           driver->getName());
                 return;
             }
         }
@@ -1051,15 +1042,10 @@ namespace Bess::SimEngine {
 
         {
             std::lock_guard lk(m_registryMutex);
-            m_simEngineState.reset();
-
+            m_nets.clear();
             for (const auto &driver : m_simDrivers) {
-                for (const auto &[uuid, comp] : driver->getComponentsMap()) {
-                    m_simEngineState.addComponent(comp);
-                }
-
                 for (const auto &[uuid, net] : driver->getNetsMap()) {
-                    m_simEngineState.addNet(net);
+                    m_nets[uuid] = net;
                 }
             }
         }

@@ -1,7 +1,7 @@
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "component_catalog.h"
-#include "digital_component.h"
+#include "drivers/digital_sim_driver.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/connection_scene_component.h" // IWYU pragma: keep
 #include "pages/main_page/scene_components/sim_scene_component.h"
@@ -57,9 +57,9 @@ class ScriptLogger {
 const auto scriptLogger = std::make_shared<ScriptLogger>();
 const auto status = std::make_shared<AsyncScriptStatus>();
 
-std::shared_ptr<Bess::SimEngine::DigitalComponent> findUniqueDigCompByName(
+std::shared_ptr<Bess::SimEngine::Drivers::Digital::DigSimComp> findUniqueDigCompByName(
     const std::string &compName);
-std::shared_ptr<Bess::SimEngine::DigitalComponent> findDigCompBySceneId(uint64_t compId);
+std::shared_ptr<Bess::SimEngine::Drivers::Digital::DigSimComp> findDigCompBySceneId(uint64_t compId);
 void bind_cmd_results(py::module &m);
 void bind_async_script_status(py::module &m);
 void bind_script_logger(py::module &m);
@@ -98,8 +98,8 @@ void bind_cmds(py::module &m) {
         }
 
         std::vector<Bess::SimEngine::LogicState> states;
-        states.reserve(comp->state.inputStates.size());
-        for (const auto &state : comp->state.inputStates) {
+        states.reserve(comp->getInputStates().size());
+        for (const auto &state : comp->getInputStates()) {
             states.push_back(state.state);
         }
         return {py::cast(states), ""};
@@ -118,8 +118,8 @@ void bind_cmds(py::module &m) {
         }
 
         std::vector<Bess::SimEngine::LogicState> states;
-        states.reserve(comp->state.inputStates.size());
-        for (const auto &state : comp->state.inputStates) {
+        states.reserve(comp->getInputStates().size());
+        for (const auto &state : comp->getInputStates()) {
             states.push_back(state.state);
         }
         return {py::cast(states), ""};
@@ -137,8 +137,8 @@ void bind_cmds(py::module &m) {
         }
 
         std::vector<Bess::SimEngine::LogicState> states;
-        states.reserve(comp->state.outputStates.size());
-        for (const auto &state : comp->state.outputStates) {
+        states.reserve(comp->getOutputStates().size());
+        for (const auto &state : comp->getOutputStates()) {
             states.push_back(state.state);
         }
         return {py::cast(states), ""};
@@ -158,8 +158,8 @@ void bind_cmds(py::module &m) {
         }
 
         std::vector<Bess::SimEngine::LogicState> states;
-        states.reserve(comp->state.outputStates.size());
-        for (const auto &state : comp->state.outputStates) {
+        states.reserve(comp->getOutputStates().size());
+        for (const auto &state : comp->getOutputStates()) {
             states.push_back(state.state);
         }
         return {py::cast(states), ""};
@@ -179,7 +179,7 @@ void bind_cmds(py::module &m) {
             return {py::none(), "Component not found"};
         }
 
-        if (comp->definition->getBehaviorType() !=
+        if (comp->getDefinition<Bess::SimEngine::Drivers::Digital::DigCompDef>()->getBehaviorType() !=
             Bess::SimEngine::ComponentBehaviorType::input) {
 
             BESS_ERROR("Component '{}' is not an input component.\
@@ -189,7 +189,7 @@ void bind_cmds(py::module &m) {
         }
 
         auto &simEngine = Bess::SimEngine::SimulationEngine::instance();
-        simEngine.setOutputSlotState(comp->id, slotIdx, state);
+        simEngine.setOutputSlotState(comp->getUuid(), slotIdx, state);
         return {py::cast(true), ""};
     };
 
@@ -210,7 +210,7 @@ void bind_cmds(py::module &m) {
             return {py::none(), "Component not found"};
         }
 
-        if (comp->definition->getBehaviorType() !=
+        if (comp->getDefinition<Bess::SimEngine::Drivers::Digital::DigCompDef>()->getBehaviorType() !=
             Bess::SimEngine::ComponentBehaviorType::input) {
 
             BESS_ERROR("Component with id {} is not an input component.\
@@ -220,7 +220,7 @@ void bind_cmds(py::module &m) {
         }
 
         auto &simEngine = Bess::SimEngine::SimulationEngine::instance();
-        simEngine.setOutputSlotState(comp->id, slotIdx, state);
+        simEngine.setOutputSlotState(comp->getUuid(), slotIdx, state);
         return {py::cast(true), ""};
     };
 
@@ -415,24 +415,35 @@ void bind_script_logger(py::module &m) {
              "Retrieves the current logs captured from script execution without clearing them.");
 }
 
-std::shared_ptr<Bess::SimEngine::DigitalComponent> findUniqueDigCompByName(const std::string &compName) {
+std::shared_ptr<Bess::SimEngine::Drivers::Digital::DigSimComp>
+findUniqueDigCompByName(const std::string &compName) {
     auto &simEngine = Bess::SimEngine::SimulationEngine::instance();
-    const auto &simEngineState = simEngine.getSimEngineState();
-    auto comps = simEngineState.findCompsByName(compName);
-    if (comps.empty()) {
-        BESS_ERROR("No component found with name '{}'", compName);
-        return nullptr;
-    } else if (comps.size() > 1) {
-        BESS_ERROR("Multiple components found with name '{}'.\
-												Make sure component names are unique.",
-                   compName);
-        return nullptr;
+
+    std::shared_ptr<Bess::SimEngine::Drivers::Digital::DigSimComp> found;
+    for (const auto &driver : simEngine.getDrivers()) {
+        for (const auto &[uuid, comp] : driver->getComponentsMap()) {
+            if (comp && comp->getName() == compName) {
+                if (found) {
+                    BESS_ERROR("Multiple components found with name '{}'. Make sure component names are unique.",
+                               compName);
+                    return nullptr;
+                }
+
+                auto digComp = std::dynamic_pointer_cast<Bess::SimEngine::Drivers::Digital::DigSimComp>(comp);
+                BESS_ASSERT(digComp, "Component with name '{}' is not a digital component", compName);
+                auto snapshot = std::make_shared<Bess::SimEngine::Drivers::Digital::DigSimComp>(*digComp.get());
+            }
+        }
     }
-    return nullptr;
-    // return comps.front();
+
+    if (!found) {
+        BESS_ERROR("No component found with name '{}'", compName);
+    }
+
+    return found;
 }
 
-std::shared_ptr<Bess::SimEngine::DigitalComponent> findDigCompBySceneId(uint64_t compId) {
+std::shared_ptr<Bess::SimEngine::Drivers::Digital::DigSimComp> findDigCompBySceneId(uint64_t compId) {
     const auto &sceneDriver = Bess::Pages::MainPage::getInstance()->getState().getSceneDriver();
     const auto &simComp = sceneDriver->getState()
                               .getComponentByUuid<Bess::Canvas::SimulationSceneComponent>(compId);
@@ -446,6 +457,10 @@ std::shared_ptr<Bess::SimEngine::DigitalComponent> findDigCompBySceneId(uint64_t
     auto &simEngine = Bess::SimEngine::SimulationEngine::instance();
     const auto &comp = simEngine.getDigitalComponent(simEngineId);
 
-    return nullptr;
-    // return comp;
+    if (!comp) {
+        return nullptr;
+    }
+
+    auto snapshot = std::make_shared<Bess::SimEngine::Drivers::Digital::DigSimComp>(*comp.get());
+    return snapshot;
 }

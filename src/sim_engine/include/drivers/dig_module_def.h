@@ -21,14 +21,11 @@ namespace Bess::SimEngine {
         MAKE_GETTER_SETTER(UUID, InputId, m_input)
         MAKE_GETTER_SETTER(UUID, OutputId, m_output)
 
+        Json::Value toJson() const override;
+
+        void loadJson(const Json::Value &json) override;
+
       private:
         UUID m_input = UUID::null, m_output = UUID::null;
     };
 } // namespace Bess::SimEngine
-
-// REFLECT_DERIVED_PROPS(Bess::SimEngine::ModuleDefinition,
-//                       Bess::SimEngine::ComponentDefinition,
-//                       ("input", getInputId, setInputId),
-//                       ("output", getOutputId, setOutputId))
-
-// REFLECT_PROPS_SP(Bess::SimEngine::ModuleDefinition);

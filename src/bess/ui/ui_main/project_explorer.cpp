@@ -47,7 +47,7 @@ namespace Bess::UI {
             }
 
             auto &simEngine = SimEngine::SimulationEngine::instance();
-            if (!simEngine.getSimEngineState().isComponentValid(simId)) {
+            if (!simEngine.getComponent<SimEngine::Drivers::SimComponent>(simId)) {
                 return false;
             }
 

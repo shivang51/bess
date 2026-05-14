@@ -13,6 +13,7 @@
 #include "scene/scene_state/scene_state.h"
 #include "simulation_engine.h"
 #include "types.h"
+#include <cstdint>
 #include <memory>
 #include <unordered_map>
 
@@ -92,6 +93,18 @@ namespace Bess::Canvas {
         auto outputDigitalComp = simEngine.getDigitalComponent(moduleDef->getOutputId());
         auto inputDigitalComp = simEngine.getDigitalComponent(moduleDef->getInputId());
         auto moduleDigComp = simEngine.getDigitalComponent(m_simEngineId);
+
+        BESS_ASSERT(outputDigitalComp, "[ModuleSceneComponent] Missing output sim component {} for module {}",
+                    (uint64_t)moduleDef->getOutputId(),
+                    (uint64_t)m_uuid);
+
+        BESS_ASSERT(inputDigitalComp, "[ModuleSceneComponent] Missing input sim component {} for module {}",
+                    (uint64_t)moduleDef->getInputId(),
+                    (uint64_t)m_uuid);
+
+        BESS_ASSERT(moduleDigComp, "[ModuleSceneComponent] Missing module sim component {} for module {}",
+                    (uint64_t)m_simEngineId,
+                    (uint64_t)m_uuid);
 
         if (!outputDigitalComp || !inputDigitalComp || !moduleDigComp) {
             BESS_ERROR("[ModuleSceneComponent] Failed to bind callbacks for module {}. Missing sim components. module={}, input={}, output={}",

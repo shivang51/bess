@@ -22,8 +22,7 @@ namespace Bess::SimEngine::Drivers {
 
         Json::Value toJson() const override;
 
-        static void fromJson(const std::shared_ptr<EvtBasedCompDef> &compDef,
-                             const Json::Value &json) {}
+        void loadJson(const Json::Value &json) override;
 
         virtual TimeNs getSelfSimDelay();
 
@@ -50,8 +49,7 @@ namespace Bess::SimEngine::Drivers {
 
         Json::Value toJson() const override;
 
-        static void fromJson(const std::shared_ptr<EvtBasedSimComp> &comp,
-                             const Json::Value &json);
+        void loadJson(const Json::Value &json) override;
 
         void addOnStateChangeCB(const UUID &id, const TOnStateChangeFn &cb);
 
