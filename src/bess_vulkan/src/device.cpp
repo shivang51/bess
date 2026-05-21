@@ -121,11 +121,6 @@ namespace Bess::Vulkan {
         createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
         createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-        const std::vector<const char *> validationLayers = {
-            "VK_LAYER_KHRONOS_validation"};
-        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-        createInfo.ppEnabledLayerNames = validationLayers.data();
-
         if (vkCreateDevice(m_vkPhysicalDevice, &createInfo, nullptr, &m_vkDevice) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create logical device!");
         }
