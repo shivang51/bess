@@ -6,12 +6,10 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(Header_Files
     "include/digital_component.h"
     "include/types.h"
-    "include/drivers/dig_module_def.h"
     "include/simulation_engine.h"
     "include/component_catalog.h"
     "include/component_definition.h"
     "include/init_components.h" 
-    "include/net/net.h" 
 		"include/expression_evalutator/expr_evaluator.h"
 		"include/utils/string_utils.h"
 )
@@ -19,13 +17,8 @@ source_group("include" FILES ${Header_Files})
 
 set(Source_Files
 	  "src/expr_evaluator.cpp"
-		"src/drivers/digital_sim_driver.cpp"
-    "src/drivers/sim_driver.cpp"
-    "src/drivers/event_based_sim_driver.cpp"
     "src/simulation_engine.cpp"
-		"src/drivers/dig_module_def.cpp"
     "src/digital_component.cpp"
-    "src/net/net.cpp" 
     "src/component_catalog.cpp"
     "src/component_definition.cpp"
 		"src/utils/string_utils.cpp"
@@ -48,8 +41,8 @@ else()
 endif()
 endif()
 
-target_link_libraries(${PROJECT_NAME} PRIVATE BessPluginManager EventSystem BessJson common)
-add_dependencies(${PROJECT_NAME} BessPluginManager EventSystem BessJson common)
+target_link_libraries(${PROJECT_NAME} PRIVATE BessPluginManager EventSystem BessJson common BessSimDriver)
+add_dependencies(${PROJECT_NAME} BessPluginManager EventSystem BessJson common BessSimDriver)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE BESS_EXPORTS)
 

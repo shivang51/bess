@@ -1,6 +1,6 @@
 #pragma once
 
-#include "drivers/sim_driver.h"
+#include "sim_driver/sim_driver.h"
 #include "ui_panel.h"
 
 #include <string>

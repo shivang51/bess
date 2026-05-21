@@ -1,14 +1,14 @@
 #pragma once
 
 #include "common/bess_uuid.h"
-#include "drivers/digital_sim_driver.h"
-#include "drivers/sim_driver.h"
+#include "dig_sim_driver.h"
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene_comp_types.h"
 #include "scene_draw_context.h"
 #include "settings/viewport_theme.h"
+#include "sim_driver/sim_driver.h"
 #include "slot_scene_component.h"
 
 #define SIM_SC_SER_PROPS ("simEngineId", getSimEngineId, setSimEngineId), \

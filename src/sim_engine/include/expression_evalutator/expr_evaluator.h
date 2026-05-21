@@ -22,8 +22,6 @@ namespace Bess::SimEngine::ExprEval {
 
     bool evaluateExpression(const std::string &expr, const std::vector<bool> &values);
 
-    typedef std::shared_ptr<Drivers::Digital::DigCompSimData> TSimFnDataPtr;
-
-    TSimFnDataPtr exprEvalSimFunc(const TSimFnDataPtr &simData);
+    // TSimFnDataPtr exprEvalSimFunc(const TSimFnDataPtr &simData);
 
 } // namespace Bess::SimEngine::ExprEval

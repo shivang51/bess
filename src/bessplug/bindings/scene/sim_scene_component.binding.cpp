@@ -2,7 +2,7 @@
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "common/bess_uuid.h"
 #include "component_definition.h"
-#include "drivers/digital_sim_driver.h"
+#include "dig_sim_driver.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"

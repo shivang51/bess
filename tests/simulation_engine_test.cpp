@@ -1,5 +1,5 @@
 #include "component_catalog.h"
-#include "drivers/digital_sim_driver.h"
+#include "dig_sim_driver.h"
 #include "plugin_manager.h"
 #include "simulation_engine.h"
 #include "types.h"

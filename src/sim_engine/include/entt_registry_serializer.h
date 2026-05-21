@@ -1,5 +1,5 @@
 #pragma once
-#include "bess_api.h"
+#include "common/bess_api.h"
 #include "common/logger.h"
 #include "json/json.h"
 

@@ -1,8 +1,8 @@
 #include "module_scene_component.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
-#include "drivers/dig_module_def.h"
-#include "drivers/digital_sim_driver.h"
+#include "dig_module_def.h"
+#include "dig_sim_driver.h"
 #include "icons/FontAwesomeIcons.h"
 #include "pages/main_page/cmds/module_comp_cmd.h"
 #include "pages/main_page/main_page.h"
@@ -12,7 +12,6 @@
 #include "pages/main_page/services/copy_paste_service.h"
 #include "scene/scene_state/scene_state.h"
 #include "simulation_engine.h"
-#include "types.h"
 #include <cstdint>
 #include <memory>
 #include <unordered_map>
@@ -90,9 +89,12 @@ namespace Bess::Canvas {
         BESS_ASSERT(moduleDef, "[ModuleSceneComponent] Module definition not found while setting callbacks");
         const auto ownerSceneId = state.getSceneId();
 
-        auto outputDigitalComp = simEngine.getDigitalComponent(moduleDef->getOutputId());
-        auto inputDigitalComp = simEngine.getDigitalComponent(moduleDef->getInputId());
-        auto moduleDigComp = simEngine.getDigitalComponent(m_simEngineId);
+        const auto &outputDigitalComp = simEngine.getComponent<
+            SimEngine::Drivers::Digital::DigSimComp>(moduleDef->getOutputId());
+        const auto &inputDigitalComp = simEngine.getComponent<
+            SimEngine::Drivers::Digital::DigSimComp>(moduleDef->getInputId());
+        auto moduleDigComp = simEngine.getComponent<
+            SimEngine::Drivers::Digital::DigSimComp>(m_simEngineId);
 
         BESS_ASSERT(outputDigitalComp, "[ModuleSceneComponent] Missing output sim component {} for module {}",
                     (uint64_t)moduleDef->getOutputId(),
@@ -119,7 +121,8 @@ namespace Bess::Canvas {
         outputDigitalComp->addOnStateChangeCB(m_uuid, [this](const std::vector<SimEngine::SlotState> &inputStates,
                                                              const std::vector<SimEngine::SlotState> &outputStates) {
             auto &simEngine = SimEngine::SimulationEngine::instance();
-            auto moduleDigComp = simEngine.getDigitalComponent(this->m_simEngineId);
+            auto moduleDigComp = simEngine.getComponent<
+                SimEngine::Drivers::Digital::DigSimComp>(this->m_simEngineId);
             if (!moduleDigComp) {
                 return;
             }

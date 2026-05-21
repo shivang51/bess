@@ -1,7 +1,7 @@
 #pragma once
-#include "bess_api.h"
+#include "common/bess_api.h"
 #include "common/bess_uuid.h"
-#include "drivers/digital_sim_driver.h"
+#include "dig_sim_driver.h"
 #include <memory>
 
 namespace Bess::SimEngine {

@@ -1,6 +1,5 @@
 #include "component_catalog.h"
 #include "common/logger.h"
-#include "drivers/sim_driver.h"
 #include <string>
 
 namespace Bess::SimEngine {

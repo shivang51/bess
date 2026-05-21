@@ -11,6 +11,7 @@ set(Header_Files
 "include/common/logger.h"
 "include/common/ui_log_sink.h"
 "include/common/types.h"
+"include/common/bess_api.h"
 )
 
 source_group("include/common" FILES ${Header_Files})

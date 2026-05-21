@@ -1,7 +1,7 @@
 #include "pages/main_page/services/hierarchical_scene_layout.h"
 
-#include "drivers/digital_sim_driver.h"
-#include "drivers/sim_driver.h"
+#include "dig_sim_driver.h"
+#include "sim_driver/sim_driver.h"
 #include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"

@@ -39,6 +39,11 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 	common
 )
 
+add_dependencies(${PROJECT_NAME} 
+	common
+	BessExtDeps
+)
+
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
@@ -50,6 +55,8 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 			"${CMAKE_SOURCE_DIR}/src/common/include"
 			"${CMAKE_SOURCE_DIR}/src/bess_json/include"
 			"${CMAKE_SOURCE_DIR}/src/bess_vulkan/include"
+			"${CMAKE_SOURCE_DIR}/src/digital_sim_driver/include"
+			"${CMAKE_SOURCE_DIR}/src/sim_driver/include"
 )
 
 target_include_directories(BessPluginManager

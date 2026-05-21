@@ -1,14 +1,13 @@
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "component_catalog.h"
-#include "drivers/digital_sim_driver.h"
+#include "dig_sim_driver.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/connection_scene_component.h" // IWYU pragma: keep
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
 #include "simulation_engine.h"
-#include "types.h"
 #include "ui_main/component_explorer.h"
 #include <pybind11/eval.h>
 #include <pybind11/functional.h>
@@ -455,7 +454,7 @@ std::shared_ptr<Bess::SimEngine::Drivers::Digital::DigSimComp> findDigCompByScen
     const auto &simEngineId = simComp->getSimEngineId();
 
     auto &simEngine = Bess::SimEngine::SimulationEngine::instance();
-    const auto &comp = simEngine.getDigitalComponent(simEngineId);
+    const auto &comp = simEngine.getComponent<Bess::SimEngine::Drivers::Digital::DigSimComp>(simEngineId);
 
     if (!comp) {
         return nullptr;

@@ -1,10 +1,9 @@
 #pragma once
 
-#include "bess_api.h"
+#include "common/bess_api.h"
 #include "common/bess_uuid.h"
 #include "common/types.h"
 #include "sim_driver.h"
-#include "types.h"
 #include <condition_variable>
 #include <mutex>
 #include <set>

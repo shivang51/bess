@@ -1,12 +1,11 @@
 #pragma once
 
-#include "bess_api.h"
+#include "common/bess_api.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
-#include "component_definition.h"
-#include "drivers/sim_driver.h"
-#include "event_based_sim_driver.h"
-#include "types.h"
+#include "common/types.h"
+#include "sim_driver/event_based_sim_driver.h"
+#include "sim_driver/sim_driver.h"
 #include "json/value.h"
 #include "json/writer.h"
 #include <memory>
@@ -84,14 +83,14 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         virtual void onExpressionsChange();
 
-        friend bool operator==(ComponentDefinition &a, ComponentDefinition &b) noexcept {
-            return a.getHash() == b.getHash();
-        }
-
-        friend bool operator==(const std::shared_ptr<ComponentDefinition> &a,
-                               const std::shared_ptr<ComponentDefinition> &b) noexcept {
-            return a->getHash() == b->getHash();
-        }
+        // friend bool operator==(DigCompDef &a, ComponentDefinition &b) noexcept {
+        //     return a.getHash() == b.getHash();
+        // }
+        //
+        // friend bool operator==(const std::shared_ptr<ComponentDefinition> &a,
+        //                        const std::shared_ptr<ComponentDefinition> &b) noexcept {
+        //     return a->getHash() == b->getHash();
+        // }
 
       protected:
         SlotsGroupInfo m_inputSlotsInfo{}, m_outputSlotsInfo{};

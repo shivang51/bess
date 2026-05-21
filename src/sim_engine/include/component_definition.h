@@ -1,10 +1,10 @@
 #pragma once
 
-#include "bess_api.h"
 #include "bess_json/bess_json.h"
+#include "common/bess_api.h"
 #include "common/class_helpers.h"
+#include "common/types.h"
 #include "type_map.h"
-#include "types.h"
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -20,19 +20,6 @@ namespace Bess::SimEngine {
     enum class CompDefinitionOwnership : uint8_t {
         NativeCpp,
         Python
-    };
-
-    struct BESS_API SlotsGroupInfo {
-        SlotsGroupType type = SlotsGroupType::none;
-        bool isResizeable = false;
-        size_t count = 0;
-        std::vector<std::string> names;
-        std::vector<std::pair<int, SlotCatergory>> categories; // slot_index, category
-    };
-
-    struct BESS_API OperatorInfo {
-        char op = '0';
-        bool shouldNegateOutput = false;
     };
 
     class BESS_API Trait {
@@ -193,22 +180,6 @@ namespace Bess::SimEngine {
 
 REFLECT_ENUM(Bess::SimEngine::CompDefIOGrowthPolicy)
 REFLECT_ENUM(Bess::SimEngine::CompDefinitionOwnership)
-
-REFLECT(SimEngine::OperatorInfo,
-        op,
-        shouldNegateOutput)
-
-typedef std::pair<int, Bess::SimEngine::SlotCatergory> SlotCategoryPair;
-REFLECT(SlotCategoryPair,
-        first,
-        second)
-REFLECT_VECTOR(SlotCategoryPair)
-REFLECT(Bess::SimEngine::SlotsGroupInfo,
-        type,
-        isResizeable,
-        count,
-        names,
-        categories)
 
 REFLECT_PROPS(Bess::SimEngine::ComponentDefinition,
               ("name", getName, setName),

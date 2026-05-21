@@ -14,12 +14,12 @@ find_package(pybind11 REQUIRED)
 set(BESS_PYBIND_SOURCES
 		internal_types.h
 
-    bindings.cpp
+		bindings.cpp
 		plugin.cpp
-    common_bindings.cpp
-    scene/renderer/path.binding.cpp
-    scene/renderer/path_renderer.binding.cpp
-    scene/renderer/material_renderer.binding.cpp
+		common_bindings.cpp
+		scene/renderer/path.binding.cpp
+		scene/renderer/path_renderer.binding.cpp
+		scene/renderer/material_renderer.binding.cpp
 
 		scene/schematic_diagram.binding.cpp
 		scene/scene_state.binding.cpp
@@ -27,16 +27,16 @@ set(BESS_PYBIND_SOURCES
 		scene/scene_component.binding.cpp
 		scene/sim_scene_component.binding.cpp
 
-    sim_engine/types.cpp
-    sim_engine/sim_functions.cpp
-    sim_engine/component_definition.binding.cpp
+		sim_engine/types.cpp
+		sim_engine/sim_functions.cpp
+		sim_engine/component_definition.binding.cpp
 		sim_engine/driver/driver.binding.cpp
 		sim_engine/driver/event_based_sim_driver.binding.cpp
 		sim_engine/driver/dig_sim_driver.binding.cpp
 
 		assets/asset_manager.binding.cpp
 
-    cmds/bess_cmds.binding.cpp
+		cmds/bess_cmds.binding.cpp
 
 		ui/ui_hook.binding.cpp
 		ui/bess_ui.binding.cpp

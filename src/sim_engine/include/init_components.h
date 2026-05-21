@@ -3,7 +3,7 @@
 #include "common/types.h"
 #include "component_catalog.h"
 #include "component_definition.h"
-#include "drivers/digital_sim_driver.h"
+// #include "dig_sim_driver.h"
 #include "types.h"
 #include <memory>
 
@@ -93,36 +93,36 @@ namespace Bess::SimEngine {
     };
 
     inline void initIO() {
-        auto &catalog = ComponentCatalog::instance();
-
-        typedef std::shared_ptr<Drivers::Digital::DigCompSimData> TSimFnData;
-
-        const auto inpDef = std::make_shared<Drivers::Digital::DigCompDef>();
-        inpDef->setName("Input");
-        inpDef->setGroupName("IO");
-        inpDef->setBehaviorType(ComponentBehaviorType::input);
-        inpDef->setOutputSlotsInfo({SlotsGroupType::output, true, 1, {}, {}});
-        inpDef->setSimFn([](const TSimFnData &state) -> TSimFnData {
-            state->simDependants = true;
-            return state;
-        });
-        inpDef->setPropDelay(TimeNs(0));
-        catalog.registerComponent(inpDef);
-
-        // const auto clockDef = std::make_shared<ClockDefinition>("IO");
-        // catalog.registerComponent(clockDef);
-
-        const auto outDef = std::make_shared<Drivers::Digital::DigCompDef>();
-        outDef->setName("Output");
-        outDef->setGroupName("IO");
-        outDef->setBehaviorType(ComponentBehaviorType::output);
-        outDef->setInputSlotsInfo({SlotsGroupType::input, true, 1, {"LSB"}, {}});
-        outDef->setSimFn([](const TSimFnData &state) -> TSimFnData {
-            state->simDependants = true;
-            return state;
-        });
-        outDef->setPropDelay(TimeNs(0));
-        catalog.registerComponent(outDef);
+        // auto &catalog = ComponentCatalog::instance();
+        //
+        // typedef std::shared_ptr<Drivers::Digital::DigCompSimData> TSimFnData;
+        //
+        // const auto inpDef = std::make_shared<Drivers::Digital::DigCompDef>();
+        // inpDef->setName("Input");
+        // inpDef->setGroupName("IO");
+        // inpDef->setBehaviorType(ComponentBehaviorType::input);
+        // inpDef->setOutputSlotsInfo({SlotsGroupType::output, true, 1, {}, {}});
+        // inpDef->setSimFn([](const TSimFnData &state) -> TSimFnData {
+        //     state->simDependants = true;
+        //     return state;
+        // });
+        // inpDef->setPropDelay(TimeNs(0));
+        // catalog.registerComponent(inpDef);
+        //
+        // // const auto clockDef = std::make_shared<ClockDefinition>("IO");
+        // // catalog.registerComponent(clockDef);
+        //
+        // const auto outDef = std::make_shared<Drivers::Digital::DigCompDef>();
+        // outDef->setName("Output");
+        // outDef->setGroupName("IO");
+        // outDef->setBehaviorType(ComponentBehaviorType::output);
+        // outDef->setInputSlotsInfo({SlotsGroupType::input, true, 1, {"LSB"}, {}});
+        // outDef->setSimFn([](const TSimFnData &state) -> TSimFnData {
+        //     state->simDependants = true;
+        //     return state;
+        // });
+        // outDef->setPropDelay(TimeNs(0));
+        // catalog.registerComponent(outDef);
     }
 
     inline void initComponentCatalog() {

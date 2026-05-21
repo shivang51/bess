@@ -1,7 +1,7 @@
-#include "drivers/event_based_sim_driver.h"
+#include "sim_driver/event_based_sim_driver.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
-#include "drivers/sim_driver.h"
+#include "sim_driver/sim_driver.h"
 
 // #define BESS_ENABLE_LOG_EVENTS
 

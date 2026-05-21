@@ -1,4 +1,4 @@
-#include "drivers/sim_driver.h"
+#include "sim_driver/sim_driver.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 

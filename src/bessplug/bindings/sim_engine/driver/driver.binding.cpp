@@ -1,5 +1,5 @@
-#include "drivers/event_based_sim_driver.h"
-#include "drivers/sim_driver.h"
+#include "sim_driver/event_based_sim_driver.h"
+#include "sim_driver/sim_driver.h"
 
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "bess_api.h"
+#include "common/bess_api.h"
 #include "common/bess_uuid.h"
-#include "drivers/digital_sim_driver.h"
-#include "drivers/sim_driver.h"
+#include "common/types.h"
+// #include "dig_sim_driver.h"
 #include "net/net.h"
-#include "types.h"
+#include "sim_driver/sim_driver.h"
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
@@ -16,6 +16,9 @@
 
 namespace Bess::SimEngine {
     class ComponentDefinition;
+    namespace Drivers::Digital {
+        class DigSimComp;
+    } // namespace Drivers::Digital
 
     class BESS_API SimulationEngine {
       public:
@@ -74,7 +77,8 @@ namespace Bess::SimEngine {
         const ComponentState &getComponentState(const UUID &uuid);
         const std::shared_ptr<Drivers::CompDef> &getComponentDefinition(
             const UUID &uuid) const;
-        std::shared_ptr<Drivers::Digital::DigSimComp> getDigitalComponent(const UUID &uuid) const;
+
+        std::shared_ptr<Drivers::SimComponent> getDigitalComponent(const UUID &uuid) const;
 
         void clear();
 

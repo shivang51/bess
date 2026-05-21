@@ -1,6 +1,5 @@
 #include "expression_evalutator/expr_evaluator.h"
 #include "common/bess_assert.h"
-#include "drivers/digital_sim_driver.h"
 
 #include "common/logger.h"
 #include "types.h"
@@ -109,38 +108,5 @@ namespace Bess::SimEngine::ExprEval {
         }
 
         return operands.top();
-    }
-
-    TSimFnDataPtr exprEvalSimFunc(const TSimFnDataPtr &simData) {
-        bool changed = false;
-        const auto *expressions = simData->expressions;
-
-        BESS_ASSERT(expressions, "Expressions cannot be null in exprEvalSimFunc");
-
-        const auto &inputs = simData->inputStates;
-        const auto &prevState = simData->prevState;
-
-        auto &newOuts = simData->outputStates;
-
-        BESS_ASSERT(newOuts.size() == expressions->size(),
-                    "[ExprEval] Output states size must match expressions size");
-
-        for (int i = 0; i < (int)expressions->size(); i++) {
-            std::vector<bool> states;
-            states.reserve(inputs.size());
-            for (auto &state : inputs)
-                states.emplace_back((bool)state);
-            bool newStateBool = ExprEval::evaluateExpression(expressions->at(i),
-                                                             states);
-            changed = changed || (bool)prevState.outputStates[i] != newStateBool;
-            newOuts[i] = {newStateBool
-                              ? LogicState::high
-                              : LogicState::low,
-                          simData->simTime};
-        }
-
-        simData->simDependants = changed;
-
-        return simData;
     }
 } // namespace Bess::SimEngine::ExprEval

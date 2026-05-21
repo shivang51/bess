@@ -1,7 +1,7 @@
-#include "drivers/event_based_sim_driver.h"
+#include "sim_driver/event_based_sim_driver.h"
 #include "common/bess_uuid.h"
-#include "drivers/sim_driver.h"
-#include "types.h"
+#include "common/types.h"
+#include "sim_driver/sim_driver.h"
 
 #include <memory>
 #include <pybind11/pybind11.h>

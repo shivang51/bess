@@ -1,8 +1,9 @@
+#include "dig_sim_driver.h"
+#include "common/bess_assert.h"
 #include "common/types.h"
-#include "drivers/digital_sim_driver.h"
-#include "drivers/event_based_sim_driver.h"
-#include "drivers/sim_driver.h"
 #include "expression_evalutator/expr_evaluator.h"
+#include "sim_driver/event_based_sim_driver.h"
+#include "sim_driver/sim_driver.h"
 
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
@@ -45,6 +46,40 @@ class PyDigCompDef : public Bess::SimEngine::Drivers::Digital::DigCompDef,
     }
 };
 
+typedef std::shared_ptr<Bess::SimEngine::Drivers::Digital::DigCompSimData> TSimFnDataPtr;
+
+TSimFnDataPtr exprEvalSimFunc(const TSimFnDataPtr &simData) {
+    bool changed = false;
+    const auto *expressions = simData->expressions;
+
+    BESS_ASSERT(expressions, "Expressions cannot be null in exprEvalSimFunc");
+
+    const auto &inputs = simData->inputStates;
+    const auto &prevState = simData->prevState;
+
+    auto &newOuts = simData->outputStates;
+
+    BESS_ASSERT(newOuts.size() == expressions->size(),
+                "[ExprEval] Output states size must match expressions size");
+
+    for (int i = 0; i < (int)expressions->size(); i++) {
+        std::vector<bool> states;
+        states.reserve(inputs.size());
+        for (auto &state : inputs)
+            states.emplace_back((bool)state);
+        bool newStateBool = Bess::SimEngine::ExprEval::evaluateExpression(expressions->at(i),
+                                                                          states);
+        changed = changed || (bool)prevState.outputStates[i] != newStateBool;
+        newOuts[i] = {newStateBool
+                          ? Bess::SimEngine::LogicState::high
+                          : Bess::SimEngine::LogicState::low,
+                      simData->simTime};
+    }
+
+    simData->simDependants = changed;
+
+    return simData;
+}
 void bind_dig_sim_driver(py::module_ &m) {
     using namespace Bess::SimEngine::Drivers;
     using namespace Bess::SimEngine;
@@ -78,7 +113,7 @@ void bind_dig_sim_driver(py::module_ &m) {
         comp_def->setOutputSlotsInfo(outputs);
         comp_def->setPropDelay(prop_delay);
         comp_def->setOpInfo(info);
-        comp_def->setSimFn(ExprEval::exprEvalSimFunc);
+        comp_def->setSimFn(exprEvalSimFunc);
         return comp_def;
     };
 
@@ -97,7 +132,7 @@ void bind_dig_sim_driver(py::module_ &m) {
         comp_def->setOutputSlotsInfo(outputs);
         comp_def->setPropDelay(prop_delay);
         comp_def->setOutputExpressions(output_expressions);
-        comp_def->setSimFn(ExprEval::exprEvalSimFunc);
+        comp_def->setSimFn(exprEvalSimFunc);
         return comp_def;
     };
 

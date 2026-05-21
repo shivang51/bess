@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bess_api.h"
+#include "common/bess_api.h"
 #include "bverilog/types.h"
 #include "bverilog/yosys_runner.h"
 #include "common/bess_assert.h"

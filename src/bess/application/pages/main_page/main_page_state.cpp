@@ -3,7 +3,7 @@
 #include "bverilog/sim_engine_importer.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
-#include "drivers/digital_sim_driver.h"
+#include "dig_sim_driver.h"
 #include "pages/main_page/cmds/update_value_cmd.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
@@ -220,9 +220,9 @@ namespace Bess::Pages {
 
             resetProjectState();
             auto &simEngine = SimEngine::SimulationEngine::instance();
-            const auto result = Verilog::importVerilogFilesIntoSimulationEngine(toFilesystemPaths(paths), simEngine);
-            populateSceneFromVerilogImportResult(result, simEngine, *scene);
-            m_sceneDriver.updateNets(scene);
+            // const auto result = Verilog::importVerilogFilesIntoSimulationEngine(toFilesystemPaths(paths), simEngine);
+            // populateSceneFromVerilogImportResult(result, simEngine, *scene);
+            // m_sceneDriver.updateNets(scene);
             return true;
         } catch (const std::exception &ex) {
             if (errorMessage) {
@@ -290,9 +290,9 @@ namespace Bess::Pages {
                 session.phase = VerilogImportSession::Phase::importSimulation;
                 break;
             case VerilogImportSession::Phase::importSimulation:
-                session.stagedResult = Verilog::importVerilogFilesIntoSimulationEngine(
-                    toFilesystemPaths(session.paths),
-                    simEngine);
+                // session.stagedResult = Verilog::importVerilogFilesIntoSimulationEngine(
+                //     toFilesystemPaths(session.paths),
+                //     simEngine);
                 session.progress = 0.7f;
                 session.stageMessage = "Creating scene components";
                 session.phase = VerilogImportSession::Phase::createScene;

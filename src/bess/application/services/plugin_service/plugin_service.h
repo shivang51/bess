@@ -3,7 +3,7 @@
 /// Responsible for managing plugins, including loading, unloading, and providing access to plugin functionalities.
 /// Simulation DOES NOT use this, it being an independent module handles plugins on its own.
 
-#include "drivers/sim_driver.h"
+#include "sim_driver/sim_driver.h"
 
 #include "json/value.h"
 

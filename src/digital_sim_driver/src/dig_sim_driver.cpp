@@ -1,14 +1,13 @@
-#include "drivers/digital_sim_driver.h"
+#include "dig_sim_driver.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
-#include "component_catalog.h"
-#include "drivers/dig_module_def.h"
-#include "drivers/event_based_sim_driver.h"
-#include "drivers/sim_driver.h"
+#include "common/types.h"
+#include "dig_module_def.h"
 #include "expression_evalutator/expr_evaluator.h"
+#include "sim_driver/event_based_sim_driver.h"
+#include "sim_driver/sim_driver.h"
 #include "simulation_engine.h"
-#include "types.h"
 #include "json/value.h"
 
 #include <algorithm>
@@ -16,6 +15,41 @@
 #include <memory>
 
 namespace Bess::SimEngine::Drivers::Digital {
+
+    typedef std::shared_ptr<Drivers::Digital::DigCompSimData> TSimFnDataPtr;
+
+    TSimFnDataPtr exprEvalSimFunc(const TSimFnDataPtr &simData) {
+        bool changed = false;
+        const auto *expressions = simData->expressions;
+
+        BESS_ASSERT(expressions, "Expressions cannot be null in exprEvalSimFunc");
+
+        const auto &inputs = simData->inputStates;
+        const auto &prevState = simData->prevState;
+
+        auto &newOuts = simData->outputStates;
+
+        BESS_ASSERT(newOuts.size() == expressions->size(),
+                    "[ExprEval] Output states size must match expressions size");
+
+        for (int i = 0; i < (int)expressions->size(); i++) {
+            std::vector<bool> states;
+            states.reserve(inputs.size());
+            for (auto &state : inputs)
+                states.emplace_back((bool)state);
+            bool newStateBool = ExprEval::evaluateExpression(expressions->at(i),
+                                                             states);
+            changed = changed || (bool)prevState.outputStates[i] != newStateBool;
+            newOuts[i] = {newStateBool
+                              ? LogicState::high
+                              : LogicState::low,
+                          simData->simTime};
+        }
+
+        simData->simDependants = changed;
+
+        return simData;
+    }
 
     namespace {
         std::shared_ptr<DigCompDef> loadDigCompDef(const Json::Value &defJson) {
@@ -25,17 +59,17 @@ namespace Bess::SimEngine::Drivers::Digital {
             std::shared_ptr<DigCompDef> def;
 
             if (defTypeName == ModuleDefinition::TypeName) {
-                def = std::make_shared<ModuleDefinition>();
-                auto moduleDef = std::dynamic_pointer_cast<ModuleDefinition>(def);
-                moduleDef->setSimFn([moduleDef](const ModuleDefinition::TDigSimFnDataPtr &data) {
-                    return moduleDef->simFunction(data);
-                });
-            } else if (!defName.empty()) {
-                const auto baseDef = SimEngine::ComponentCatalog::instance().getComponentDefinition(defName);
-                BESS_ASSERT(baseDef, "Component definition with name '{}' not found in catalog", defName);
-                if (baseDef) {
-                    def = std::dynamic_pointer_cast<DigCompDef>(baseDef->clone());
-                }
+                //     def = std::make_shared<ModuleDefinition>();
+                //     auto moduleDef = std::dynamic_pointer_cast<ModuleDefinition>(def);
+                //     moduleDef->setSimFn([moduleDef](const ModuleDefinition::TDigSimFnDataPtr &data) {
+                //         return moduleDef->simFunction(data);
+                //     });
+                // } else if (!defName.empty()) {
+                //     const auto baseDef = SimEngine::ComponentCatalog::instance().getComponentDefinition(defName);
+                //     BESS_ASSERT(baseDef, "Component definition with name '{}' not found in catalog", defName);
+                //     if (baseDef) {
+                //         def = std::dynamic_pointer_cast<DigCompDef>(baseDef->clone());
+                //     }
             }
 
             BESS_ASSERT(def,
@@ -51,7 +85,7 @@ namespace Bess::SimEngine::Drivers::Digital {
             if (!def->getSimFn() &&
                 (defJson.isMember("opInfo") ||
                  defJson.isMember("expressions"))) {
-                def->setSimFn(ExprEval::exprEvalSimFunc);
+                def->setSimFn(exprEvalSimFunc);
             }
 
             BESS_ASSERT(def->getSimFn(), "Failed to set sim function for component definition '{}'",

@@ -3,7 +3,7 @@
 #include "command.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
-#include "drivers/dig_module_def.h"
+#include "dig_module_def.h"
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/cmds/delete_comp_cmd.h"
 #include "pages/main_page/main_page.h"

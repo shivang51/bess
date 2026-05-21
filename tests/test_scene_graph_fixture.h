@@ -2,7 +2,7 @@
 
 #include "command_system.h"
 #include "component_catalog.h"
-#include "drivers/digital_sim_driver.h"
+#include "dig_sim_driver.h"
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/scene_components/conn_joint_scene_component.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"

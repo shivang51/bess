@@ -5,7 +5,7 @@
 #include "common/bess_uuid.h"
 #include "common/helpers.h"
 #include "component_catalog.h"
-#include "drivers/sim_driver.h"
+#include "sim_driver/sim_driver.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"

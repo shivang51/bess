@@ -2,12 +2,12 @@
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "component_catalog.h"
-#include "drivers/digital_sim_driver.h"
-#include "drivers/sim_driver.h"
+// #include "dig_sim_driver.h"
+#include "common/types.h"
 #include "event_dispatcher.h"
 #include "events/sim_engine_events.h"
 #include "init_components.h"
-#include "types.h"
+#include "sim_driver/sim_driver.h"
 
 #include "plugin_manager.h"
 
@@ -260,7 +260,7 @@ namespace Bess::SimEngine {
     ConnectionBundle SimulationEngine::getConnections(const UUID &uuid) {
         ConnectionBundle bundle;
 
-            if (!getComponentDefinition(uuid)) {
+        if (!getComponentDefinition(uuid)) {
             BESS_WARN("[getConnections] Component with UUID {} is invalid",
                       (uint64_t)uuid);
             return bundle;
@@ -870,9 +870,9 @@ namespace Bess::SimEngine {
         return m_eventSet.empty();
     }
 
-    std::shared_ptr<Drivers::Digital::DigSimComp> SimulationEngine::getDigitalComponent(
+    std::shared_ptr<Drivers::SimComponent> SimulationEngine::getDigitalComponent(
         const UUID &uuid) const {
-        return getComponent<Drivers::Digital::DigSimComp>(uuid);
+        return getComponent<Drivers::SimComponent>(uuid);
     }
 
     const std::vector<std::shared_ptr<Drivers::SimDriver>> &SimulationEngine::getDrivers() const {
@@ -921,9 +921,9 @@ namespace Bess::SimEngine {
     }
 
     void SimulationEngine::loadDrivers() {
-        auto digDriver = std::make_shared<Drivers::Digital::DigitalSimDriver>();
-        BESS_INFO("Loaded driver {}", digDriver->getName());
-        m_simDrivers.emplace_back(std::move(digDriver));
+        // auto digDriver = std::make_shared<Drivers::Digital::DigitalSimDriver>();
+        // BESS_INFO("Loaded driver {}", digDriver->getName());
+        // m_simDrivers.emplace_back(std::move(digDriver));
     }
 
     void SimulationEngine::unloadDrivers() {

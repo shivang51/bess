@@ -1,7 +1,7 @@
-#include "drivers/dig_module_def.h"
+#include "dig_module_def.h"
 #include "common/bess_assert.h"
 #include "component_catalog.h"
-#include "drivers/sim_driver.h"
+#include "sim_driver/sim_driver.h"
 #include "simulation_engine.h"
 #include <memory>
 

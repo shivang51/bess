@@ -9,7 +9,6 @@
 #include "scene_state/scene_state.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
-#include "types.h"
 
 namespace Bess::Canvas {
     std::vector<std::shared_ptr<SceneComponent>> SlotProbeSceneComponent::clone(const SceneState &sceneState) const {
@@ -190,7 +189,9 @@ namespace Bess::Canvas {
         const auto &simId = sceneState.getComponentByUuid<SimulationSceneComponent>(
                                           comp->getParentComponent())
                                 ->getSimEngineId();
-        const auto &digComp = SimEngine::SimulationEngine::instance().getDigitalComponent(simId);
+
+        const auto &simEngine = SimEngine::SimulationEngine::instance();
+        const auto &digComp = simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(simId);
 
         digComp->addOnStateChangeCB(m_uuid, [this, slotComp = comp](const std::vector<SimEngine::SlotState> &inputStates,
                                                                     const std::vector<SimEngine::SlotState> &outputStates) {
@@ -226,7 +227,9 @@ namespace Bess::Canvas {
         const auto &simId = sceneState.getComponentByUuid<SimulationSceneComponent>(
                                           comp->getParentComponent())
                                 ->getSimEngineId();
-        const auto &digComp = SimEngine::SimulationEngine::instance().getDigitalComponent(simId);
+
+        const auto &simEngine = SimEngine::SimulationEngine::instance();
+        const auto &digComp = simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(simId);
         digComp->removeOnStateChangeCB(m_uuid);
     }
 

@@ -120,10 +120,9 @@ namespace Bess::UI {
                                 comp->getType() == Canvas::SceneComponentType::simulation) {
                                 const auto &simComp = comp->cast<Canvas::SimulationSceneComponent>();
                                 BESS_ASSERT(simComp->getCompDef(), "[DEBUGPANEL] def not set");
-                                Json::Value digCompJson;
                                 const auto &digComp = SimEngine::SimulationEngine::instance().getDigitalComponent(
                                     simComp->getSimEngineId());
-                                JsonConvert::toJsonValue(digCompJson, *digComp);
+                                Json::Value digCompJson = digComp->toJson();
                                 ImGui::Separator();
                                 Widgets::SelectableText(std::to_string(simComp->getSimEngineId()),
                                                         digCompJson.toStyledString());

@@ -1,7 +1,7 @@
 #include "slot_scene_component.h"
 #include "conn_joint_scene_component.h"
 #include "connection_scene_component.h"
-#include "drivers/digital_sim_driver.h"
+#include "dig_sim_driver.h"
 #include "expression_evalutator/expr_evaluator.h"
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/main_page.h"
@@ -180,7 +180,8 @@ namespace Bess::Canvas {
         }
 
         auto &simEngine = SimEngine::SimulationEngine::instance();
-        const auto digitalComp = simEngine.getDigitalComponent(parentComp->getSimEngineId());
+        const auto digitalComp = simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
+            parentComp->getSimEngineId());
         if (!digitalComp) {
             return {SimEngine::LogicState::unknown, SimEngine::SimTime(0)};
         }
@@ -213,7 +214,8 @@ namespace Bess::Canvas {
         }
 
         auto &simEngine = SimEngine::SimulationEngine::instance();
-        const auto digitalComp = simEngine.getDigitalComponent(parentComp->getSimEngineId());
+        const auto digitalComp = simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
+            parentComp->getSimEngineId());
         if (!digitalComp) {
             return false;
         }

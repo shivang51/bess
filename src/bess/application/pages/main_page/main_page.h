@@ -5,7 +5,7 @@
 #include "application/pages/page.h"
 #include "application/window.h"
 #include "common/types.h"
-#include "drivers/sim_driver.h"
+#include "sim_driver/sim_driver.h"
 
 #include <chrono>
 #include <memory>

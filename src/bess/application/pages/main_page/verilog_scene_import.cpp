@@ -2,7 +2,7 @@
 
 #include "common/bess_assert.h"
 #include "common/logger.h"
-#include "drivers/dig_module_def.h"
+#include "dig_module_def.h"
 #include "event_dispatcher.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
@@ -473,12 +473,16 @@ namespace Bess::Pages {
             const auto inpDef = inputComponent->getDefinition<Drivers::Digital::DigCompDef>();
             const auto outDef = outputComponent->getDefinition<Drivers::Digital::DigCompDef>();
 
-            resizeOutputs(inputComponent, inputCount);
+            auto inpComp = std::dynamic_pointer_cast<Drivers::Digital::DigSimComp>(inputComponent);
+            auto outComp = std::dynamic_pointer_cast<Drivers::Digital::DigSimComp>(outputComponent);
+            BESS_ASSERT(inpDef, "Imported module input bridge component definition was not found");
+            BESS_ASSERT(outDef, "Imported module output bridge component definition was not found");
+            resizeOutputs(inpComp, inputCount);
             auto bridgeInputSlots = inpDef->getOutputSlotsInfo();
             bridgeInputSlots.names = instance.inputSlotNames;
             inpDef->setOutputSlotsInfo(bridgeInputSlots);
 
-            resizeInputs(outputComponent, outputCount);
+            resizeInputs(outComp, outputCount);
             auto bridgeOutputSlots = outDef->getInputSlotsInfo();
             bridgeOutputSlots.names = instance.outputSlotNames;
             outDef->setInputSlotsInfo(bridgeOutputSlots);
@@ -493,8 +497,10 @@ namespace Bess::Pages {
             moduleOutputSlots.names = instance.outputSlotNames;
             moduleDef->setOutputSlotsInfo(moduleOutputSlots);
 
-            resizeInputs(moduleSimComponent, inputCount);
-            resizeOutputs(moduleSimComponent, outputCount);
+            auto modSimComp = std::dynamic_pointer_cast<Drivers::Digital::DigSimComp>(moduleSimComponent);
+
+            resizeInputs(modSimComp, inputCount);
+            resizeOutputs(modSimComp, outputCount);
 
             const auto moduleSimDef = moduleSimComponent->getDefinition<Drivers::Digital::DigCompDef>();
             if (moduleSimDef) {

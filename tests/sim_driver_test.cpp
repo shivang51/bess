@@ -1,7 +1,7 @@
 #include "common/bess_uuid.h"
 #include "component_catalog.h"
-#include "drivers/digital_sim_driver.h"
-#include "drivers/sim_driver.h"
+#include "dig_sim_driver.h"
+#include "sim_driver/sim_driver.h"
 #include "simulation_engine.h"
 #include "gtest/gtest.h"
 #include <atomic>

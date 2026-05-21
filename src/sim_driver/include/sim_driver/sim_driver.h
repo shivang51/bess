@@ -1,8 +1,8 @@
 #pragma once
-#include "bess_api.h"
+#include "common/bess_api.h"
 #include "common/class_helpers.h"
+#include "common/types.h"
 #include "net/net.h"
-#include "types.h"
 #include <common/bess_uuid.h>
 #include <functional>
 #include <memory>
