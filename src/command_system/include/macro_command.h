@@ -6,9 +6,7 @@
 namespace Bess::Cmd {
     class MacroCommand : public Command {
       public:
-        MacroCommand() {
-            m_name = "MacroCommand";
-        }
+        MacroCommand() { m_name = "MacroCommand"; }
 
         MacroCommand(std::vector<std::unique_ptr<Command>> commands)
             : m_commands(std::move(commands)) {

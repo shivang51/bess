@@ -11,7 +11,8 @@ namespace Bess::Vulkan {
 
     class BESS_VULKAN_API VulkanRenderPass {
       public:
-        VulkanRenderPass(const std::shared_ptr<VulkanDevice> &device, VkFormat colorFormat, VkFormat depthFormat);
+        VulkanRenderPass(const std::shared_ptr<VulkanDevice> &device,
+                         VkFormat colorFormat, VkFormat depthFormat);
         ~VulkanRenderPass();
 
         VulkanRenderPass(const VulkanRenderPass &) = delete;
@@ -21,8 +22,7 @@ namespace Bess::Vulkan {
 
         VkRenderPass getVkHandle() const { return m_renderPass; }
 
-        void begin(VkCommandBuffer cmdBuffer,
-                   VkFramebuffer framebuffer,
+        void begin(VkCommandBuffer cmdBuffer, VkFramebuffer framebuffer,
                    VkExtent2D extent);
 
         void end();

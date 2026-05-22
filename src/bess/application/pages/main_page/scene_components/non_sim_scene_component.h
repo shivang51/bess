@@ -7,9 +7,10 @@
 #include "scene_draw_context.h"
 #include <typeindex>
 
-#define TEXT_SER_PROPS ("data", getData, setData),                                  \
-                       ("foregroundColor", getForegroundColor, setForegroundColor), \
-                       ("size", getSize, setSize)
+#define TEXT_SER_PROPS                                                         \
+    ("data", getData, setData),                                                \
+        ("foregroundColor", getForegroundColor, setForegroundColor),           \
+        ("size", getSize, setSize)
 
 namespace Bess::Canvas {
     class NonSimSceneComponent : public SceneComponent,
@@ -25,26 +26,30 @@ namespace Bess::Canvas {
             auto &m_contrRegistry = getContrRegistry();
             auto tIdx = std::type_index(typeid(T));
             registry[tIdx] = name;
-            m_contrRegistry[tIdx] = []() {
-                return std::make_shared<T>();
-            };
+            m_contrRegistry[tIdx] = []() { return std::make_shared<T>(); };
         }
 
-        static std::shared_ptr<NonSimSceneComponent> getInstance(std::type_index tIdx);
+        static std::shared_ptr<NonSimSceneComponent>
+        getInstance(std::type_index tIdx);
 
-        REG_SCENE_COMP_TYPE("NonSimComponent", SceneComponentType::nonSimulation)
-        SCENE_COMP_SER_NP(Bess::Canvas::NonSimSceneComponent, Bess::Canvas::SceneComponent)
+        REG_SCENE_COMP_TYPE("NonSimComponent",
+                            SceneComponentType::nonSimulation)
+        SCENE_COMP_SER_NP(Bess::Canvas::NonSimSceneComponent,
+                          Bess::Canvas::SceneComponent)
 
-        std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const override;
+        std::vector<std::shared_ptr<SceneComponent>>
+        clone(const SceneState &sceneState) const override;
 
         virtual std::type_index getTypeIndex();
 
         static void clearRegistry();
-        typedef std::function<std::shared_ptr<NonSimSceneComponent>()> ContrFunc;
+        typedef std::function<std::shared_ptr<NonSimSceneComponent>()>
+            ContrFunc;
 
       private:
         // this stores functions to invoke constructors of components
-        static std::unordered_map<std::type_index, ContrFunc> &getContrRegistry();
+        static std::unordered_map<std::type_index, ContrFunc> &
+        getContrRegistry();
     };
 
     class TextComponent : public NonSimSceneComponent {
@@ -55,7 +60,8 @@ namespace Bess::Canvas {
         SCENE_COMP_SER(Bess::Canvas::TextComponent,
                        Bess::Canvas::NonSimSceneComponent, TEXT_SER_PROPS)
 
-        std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const override;
+        std::vector<std::shared_ptr<SceneComponent>>
+        clone(const SceneState &sceneState) const override;
 
         void draw(SceneDrawContext &context) override;
 
@@ -81,8 +87,8 @@ namespace Bess::Canvas {
 
 } // namespace Bess::Canvas
 
-REG_SCENE_COMP_NP(Bess::Canvas::NonSimSceneComponent, Bess::Canvas::SceneComponent)
+REG_SCENE_COMP_NP(Bess::Canvas::NonSimSceneComponent,
+                  Bess::Canvas::SceneComponent)
 
 REFLECT_DERIVED_PROPS(Bess::Canvas::TextComponent,
-                      Bess::Canvas::NonSimSceneComponent,
-                      TEXT_SER_PROPS);
+                      Bess::Canvas::NonSimSceneComponent, TEXT_SER_PROPS);

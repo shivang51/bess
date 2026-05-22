@@ -10,8 +10,13 @@ namespace Bess::Vulkan {
 
     class BESS_VULKAN_API VulkanSwapchain {
       public:
-        VulkanSwapchain(VkInstance instance, std::shared_ptr<VulkanDevice> device, VkSurfaceKHR surface, VkExtent2D windowExtent);
-        VulkanSwapchain(VkInstance instance, std::shared_ptr<VulkanDevice> device, VkSurfaceKHR surface, VkExtent2D windowExtent, VkSwapchainKHR oldSwapchain);
+        VulkanSwapchain(VkInstance instance,
+                        std::shared_ptr<VulkanDevice> device,
+                        VkSurfaceKHR surface, VkExtent2D windowExtent);
+        VulkanSwapchain(VkInstance instance,
+                        std::shared_ptr<VulkanDevice> device,
+                        VkSurfaceKHR surface, VkExtent2D windowExtent,
+                        VkSwapchainKHR oldSwapchain);
         ~VulkanSwapchain();
 
         // Delete copy constructor and assignment operator
@@ -29,9 +34,15 @@ namespace Bess::Vulkan {
         const std::vector<VkImage> &images() const { return m_images; }
         VkFormat imageFormat() const { return m_imageFormat; }
         VkExtent2D extent() const { return m_extent; }
-        const std::vector<VkImageView> &imageViews() const { return m_imageViews; }
-        const std::vector<VkFramebuffer> &framebuffers() const { return m_framebuffers; }
-        uint32_t imageCount() const { return static_cast<uint32_t>(m_images.size()); }
+        const std::vector<VkImageView> &imageViews() const {
+            return m_imageViews;
+        }
+        const std::vector<VkFramebuffer> &framebuffers() const {
+            return m_framebuffers;
+        }
+        uint32_t imageCount() const {
+            return static_cast<uint32_t>(m_images.size());
+        }
 
       private:
         void createSwapchain();
@@ -44,10 +55,15 @@ namespace Bess::Vulkan {
             std::vector<VkPresentModeKHR> presentModes;
         };
 
-        SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) const;
-        VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) const;
-        VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) const;
-        VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities, VkExtent2D windowExtent) const;
+        SwapChainSupportDetails
+        querySwapChainSupport(VkPhysicalDevice device) const;
+        VkSurfaceFormatKHR chooseSwapSurfaceFormat(
+            const std::vector<VkSurfaceFormatKHR> &availableFormats) const;
+        VkPresentModeKHR chooseSwapPresentMode(
+            const std::vector<VkPresentModeKHR> &availablePresentModes) const;
+        VkExtent2D
+        chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities,
+                         VkExtent2D windowExtent) const;
 
         VkInstance m_instance;
         std::shared_ptr<VulkanDevice> m_device;

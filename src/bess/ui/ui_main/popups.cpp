@@ -6,12 +6,15 @@ namespace Bess::UI {
 
     Popups::PopupRes Popups::handleUnsavedProjectWarning() {
         const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
+                                ImVec2(0.5f, 0.5f));
 
         PopupRes val = PopupRes::none;
 
-        if (ImGui::BeginPopupModal(PopupIds::unsavedProjectWarning, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::TextWrapped("All the changes will be lost if you don't save current project. Save Changes?");
+        if (ImGui::BeginPopupModal(PopupIds::unsavedProjectWarning, nullptr,
+                                   ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::TextWrapped("All the changes will be lost if you don't save "
+                               "current project. Save Changes?");
             ImGui::Separator();
 
             if (ImGui::Button("Cancel", ImVec2(120, 0))) {

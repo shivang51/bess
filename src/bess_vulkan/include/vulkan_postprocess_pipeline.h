@@ -8,21 +8,28 @@ namespace Bess::Vulkan {
 
     class BESS_VULKAN_API VulkanPostprocessPipeline {
       public:
-        VulkanPostprocessPipeline(const std::shared_ptr<VulkanDevice> &device, VkFormat colorFormat);
+        VulkanPostprocessPipeline(const std::shared_ptr<VulkanDevice> &device,
+                                  VkFormat colorFormat);
         ~VulkanPostprocessPipeline();
 
         VulkanPostprocessPipeline(const VulkanPostprocessPipeline &) = delete;
-        VulkanPostprocessPipeline &operator=(const VulkanPostprocessPipeline &) = delete;
+        VulkanPostprocessPipeline &
+        operator=(const VulkanPostprocessPipeline &) = delete;
         VulkanPostprocessPipeline(VulkanPostprocessPipeline &&other) noexcept;
-        VulkanPostprocessPipeline &operator=(VulkanPostprocessPipeline &&other) noexcept;
+        VulkanPostprocessPipeline &
+        operator=(VulkanPostprocessPipeline &&other) noexcept;
 
         VkPipeline getPipeline() const { return m_pipeline; }
         VkPipelineLayout getPipelineLayout() const { return m_pipelineLayout; }
         VkRenderPass getRenderPass() const { return m_renderPass; }
-        VkDescriptorSetLayout getDescriptorSetLayout() const { return m_descriptorSetLayout; }
+        VkDescriptorSetLayout getDescriptorSetLayout() const {
+            return m_descriptorSetLayout;
+        }
 
-        void createDescriptorSet(VkImageView inputImageView, VkSampler inputSampler);
-        void updateDescriptorSet(VkImageView inputImageView, VkSampler inputSampler);
+        void createDescriptorSet(VkImageView inputImageView,
+                                 VkSampler inputSampler);
+        void updateDescriptorSet(VkImageView inputImageView,
+                                 VkSampler inputSampler);
         VkDescriptorSet getDescriptorSet() const { return m_descriptorSet; }
 
       private:

@@ -63,21 +63,22 @@ namespace Bess::SimEngine {
         return moduleDef;
     }
 
-    ModuleDefinition::TDigSimFnDataPtr ModuleDefinition::simFunction(const TDigSimFnDataPtr &data) {
+    ModuleDefinition::TDigSimFnDataPtr
+    ModuleDefinition::simFunction(const TDigSimFnDataPtr &data) {
         bool isInputChanged = false;
         const auto &inputs = data->inputStates;
         const auto &prevState = data->prevState;
 
         auto &simEngine = SimulationEngine::instance();
 
-        const auto &outputState = simEngine.getComponentState(
-            m_output);
+        const auto &outputState = simEngine.getComponentState(m_output);
 
         bool isChanged = false;
 
         for (size_t i = 0; i < outputState.inputStates.size(); ++i) {
             data->outputStates[i] = outputState.inputStates[i];
-            if (data->outputStates[i].state != prevState.outputStates[i].state) {
+            if (data->outputStates[i].state !=
+                prevState.outputStates[i].state) {
                 isChanged = true;
             }
         }
@@ -85,9 +86,7 @@ namespace Bess::SimEngine {
         return data;
     }
 
-    std::string ModuleDefinition::getTypeName() const {
-        return TypeName;
-    }
+    std::string ModuleDefinition::getTypeName() const { return TypeName; }
 
     Json::Value ModuleDefinition::toJson() const {
         Json::Value json = Drivers::Digital::DigCompDef::toJson();

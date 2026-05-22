@@ -107,10 +107,8 @@ namespace Bess::SimEngine::Drivers {
 
         void onStep() override;
 
-        void scheduleEvt(const UUID &compId,
-                         TimeNs simTime,
-                         const UUID &schedulerId,
-                         bool notify = true);
+        void scheduleEvt(const UUID &compId, TimeNs simTime,
+                         const UUID &schedulerId, bool notify = true);
 
         void clearPendingEvents() override;
 
@@ -119,8 +117,7 @@ namespace Bess::SimEngine::Drivers {
       private:
         void simulateEvts(const std::vector<SimEvt> &evts);
 
-        void scheduleEvtLocked(const UUID &compId,
-                               TimeNs simTime,
+        void scheduleEvtLocked(const UUID &compId, TimeNs simTime,
                                const UUID &schedulerId);
 
         void scheduleDependantsOfLocked(const UUID &compId);

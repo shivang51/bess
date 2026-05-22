@@ -29,17 +29,21 @@ namespace Bess::Vulkan {
 
         VkDevice device() const { return m_vkDevice; }
         VkPhysicalDevice physicalDevice() const { return m_vkPhysicalDevice; }
-        QueueFamilyIndices queueFamilyIndices() const { return m_queueFamilyIndices; }
+        QueueFamilyIndices queueFamilyIndices() const {
+            return m_queueFamilyIndices;
+        }
         VkQueue graphicsQueue() const { return m_graphicsQueue; }
         VkQueue presentQueue() const { return m_presentQueue; }
 
         VkCommandBuffer beginSingleTimeCommands() const;
         void endSingleTimeCommands(VkCommandBuffer commandBuffer) const;
-        uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
+        uint32_t findMemoryType(uint32_t typeFilter,
+                                VkMemoryPropertyFlags properties) const;
 
         void waitForIdle();
 
-        void submitCmdBuffers(const std::vector<VkCommandBuffer> &cmdBuffer, VkFence fence);
+        void submitCmdBuffers(const std::vector<VkCommandBuffer> &cmdBuffer,
+                              VkFence fence);
 
       private:
         void pickPhysicalDevice();

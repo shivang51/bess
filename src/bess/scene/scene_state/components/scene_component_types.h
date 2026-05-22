@@ -39,7 +39,8 @@ namespace Bess::Canvas {
             static constexpr uint32_t unSelectable = 1 << 31;
         };
 
-        static constexpr uint32_t invalidRuntimeId = std::numeric_limits<uint32_t>::max();
+        static constexpr uint32_t invalidRuntimeId =
+            std::numeric_limits<uint32_t>::max();
 
         static constexpr PickingId invalid() noexcept {
             return {invalidRuntimeId, 0};
@@ -54,15 +55,15 @@ namespace Bess::Canvas {
         }
 
         constexpr uint64_t toUint64() const noexcept {
-            return (static_cast<uint64_t>(runtimeId) << 32) | static_cast<uint64_t>(info);
+            return (static_cast<uint64_t>(runtimeId) << 32) |
+                   static_cast<uint64_t>(info);
         }
 
         constexpr operator uint64_t() const noexcept { return toUint64(); }
 
         static constexpr PickingId fromUint64(uint64_t value) noexcept {
-            return {
-                static_cast<uint32_t>(value >> 32),
-                static_cast<uint32_t>(value & 0xFFFFFFFF)};
+            return {static_cast<uint32_t>(value >> 32),
+                    static_cast<uint32_t>(value & 0xFFFFFFFF)};
         }
 
         void set(uint64_t value) {
@@ -71,10 +72,7 @@ namespace Bess::Canvas {
         }
     };
 
-    enum class ConnSegOrientaion : uint8_t {
-        horizontal,
-        vertical
-    };
+    enum class ConnSegOrientaion : uint8_t { horizontal, vertical };
 
     struct ConnSegment {
         glm::vec2 offset;
@@ -83,22 +81,13 @@ namespace Bess::Canvas {
 
 } // namespace Bess::Canvas
 
-REFLECT(Bess::Canvas::Transform,
-        position,
-        scale,
-        angle);
+REFLECT(Bess::Canvas::Transform, position, scale, angle);
 
-REFLECT(Bess::Canvas::Style,
-        color,
-        borderColor,
-        borderSize,
-        borderRadius,
+REFLECT(Bess::Canvas::Style, color, borderColor, borderSize, borderRadius,
         headerColor);
 
 REFLECT_ENUM(Bess::Canvas::ConnSegOrientaion);
 
-REFLECT(Bess::Canvas::ConnSegment,
-        offset,
-        orientation);
+REFLECT(Bess::Canvas::ConnSegment, offset, orientation);
 
 REFLECT_VECTOR(Bess::Canvas::ConnSegment)

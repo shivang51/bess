@@ -12,18 +12,19 @@ namespace Bess::Canvas {
 
         ~InputSceneComponent() override = default;
 
-        REG_SCENE_COMP_TYPE("InputSceneComponent", SceneComponentType::simulation)
+        REG_SCENE_COMP_TYPE("InputSceneComponent",
+                            SceneComponentType::simulation)
         SCENE_COMP_SER_NP(Bess::Canvas::InputSceneComponent,
                           Bess::Canvas::SimulationSceneComponent)
 
-        std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const override;
+        std::vector<std::shared_ptr<SceneComponent>>
+        clone(const SceneState &sceneState) const override;
 
         void draw(SceneDrawContext &context) override;
 
         void calculateSchematicScale(const SceneState &state) override;
 
-        void drawToggleButton(SceneDrawContext &context,
-                              UUID slotUuid,
+        void drawToggleButton(SceneDrawContext &context, UUID slotUuid,
                               int buttonIndex);
 
         void onMouseHovered(const Events::MouseHoveredEvent &e) override;

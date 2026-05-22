@@ -18,9 +18,10 @@ namespace Bess::UI {
         return id;
     }
 
-    void SceneViewportPanel::updateScene(TimeMs ts,
-                                         const std::vector<ApplicationEvent> &events) {
-        Canvas::ViewportTransform vpTrans{.pos = m_viewportPos, .size = m_viewportSize};
+    void SceneViewportPanel::updateScene(
+        TimeMs ts, const std::vector<ApplicationEvent> &events) {
+        Canvas::ViewportTransform vpTrans{.pos = m_viewportPos,
+                                          .size = m_viewportSize};
         m_attachedScene->updateViewportTransform(vpTrans);
 
         bool mouseMoved = false;
@@ -31,12 +32,14 @@ namespace Bess::UI {
             } else if (event.getType() == ApplicationEventType::MouseButton) {
                 // manually updating mouse state
                 // because we don't update scene if its not active
-                const auto data = event.getData<ApplicationEvent::MouseButtonData>();
+                const auto data =
+                    event.getData<ApplicationEvent::MouseButtonData>();
                 const auto isInsideVp = isInsideViewport(data.pos);
-                const auto isDesiredBtn = (data.button == MouseButton::left &&
-                                           m_attachedScene->getIsLeftMousePressed()) ||
-                                          (data.button == MouseButton::middle &&
-                                           m_attachedScene->getIsMiddleMousePressed());
+                const auto isDesiredBtn =
+                    (data.button == MouseButton::left &&
+                     m_attachedScene->getIsLeftMousePressed()) ||
+                    (data.button == MouseButton::middle &&
+                     m_attachedScene->getIsMiddleMousePressed());
                 if (isDesiredBtn && data.action == MouseButtonAction::release) {
                     m_attachedScene->processEvents({event});
                 }
@@ -95,8 +98,9 @@ namespace Bess::UI {
             window->setEnableCursor(false);
             window->setMousePos(newPos);
 
-            const auto newEvt = ApplicationEvent(ApplicationEventType::MouseMove,
-                                                 ApplicationEvent::MouseMoveData{newPos.x, newPos.y});
+            const auto newEvt = ApplicationEvent(
+                ApplicationEventType::MouseMove,
+                ApplicationEvent::MouseMoveData{newPos.x, newPos.y});
             m_attachedScene->processEvents({newEvt});
         } else {
             window->setEnableCursor(true);
@@ -123,7 +127,8 @@ namespace Bess::UI {
         drawGrid(context);
 
         if (sceneState.getConnectionStartSlot() != UUID::null) {
-            const auto comp = sceneState.getComponentByUuid(sceneState.getConnectionStartSlot());
+            const auto comp = sceneState.getComponentByUuid(
+                sceneState.getConnectionStartSlot());
             if (!comp) {
                 sceneState.setConnectionStartSlot(UUID::null);
                 return;
@@ -131,13 +136,15 @@ namespace Bess::UI {
 
             glm::vec3 pos;
             if (comp->getType() == Canvas::SceneComponentType::slot) {
-                pos = comp->cast<Canvas::SlotSceneComponent>()->getConnectionPos(sceneState);
+                pos =
+                    comp->cast<Canvas::SlotSceneComponent>()->getConnectionPos(
+                        sceneState);
             } else {
                 pos = comp->getAbsolutePosition(sceneState);
             }
 
-            const auto endPos = m_attachedScene->toScenePos(
-                m_attachedScene->getMousePos());
+            const auto endPos =
+                m_attachedScene->toScenePos(m_attachedScene->getMousePos());
 
             drawGhostConnection(renderers.pathRenderer, glm::vec2(pos), endPos);
         }
@@ -158,8 +165,7 @@ namespace Bess::UI {
 
     void SceneViewportPanel::drawGrid(SceneDrawContext &context) {
         context.materialRenderer->drawGrid(
-            glm::vec3(0.f, 0.f, 0.1f),
-            context.camera->getSpan(),
+            glm::vec3(0.f, 0.f, 0.1f), context.camera->getSpan(),
             Canvas::PickingId::invalid(),
             {
                 .minorColor = ViewportTheme::colors.gridMinorColor,
@@ -170,32 +176,24 @@ namespace Bess::UI {
             context.camera);
     }
 
-    void SceneViewportPanel::drawGhostConnection(const std::shared_ptr<PathRenderer> &pathRenderer,
-                                                 const glm::vec2 &startPos,
-                                                 const glm::vec2 &endPos) {
+    void SceneViewportPanel::drawGhostConnection(
+        const std::shared_ptr<PathRenderer> &pathRenderer,
+        const glm::vec2 &startPos, const glm::vec2 &endPos) {
         auto midX = (startPos.x + endPos.x) / 2.f;
 
         const auto &id = Canvas::PickingId::invalid();
 
         pathRenderer->beginPathMode(glm::vec3(startPos.x, startPos.y, 0.8f),
-                                    2.f,
-                                    ViewportTheme::colors.ghostWire,
-                                    id);
+                                    2.f, ViewportTheme::colors.ghostWire, id);
 
-        pathRenderer->pathLineTo(glm::vec3(midX, startPos.y, 0.8f),
-                                 2.f,
-                                 ViewportTheme::colors.ghostWire,
-                                 id);
+        pathRenderer->pathLineTo(glm::vec3(midX, startPos.y, 0.8f), 2.f,
+                                 ViewportTheme::colors.ghostWire, id);
 
-        pathRenderer->pathLineTo(glm::vec3(midX, endPos.y, 0.8f),
-                                 2.f,
-                                 ViewportTheme::colors.ghostWire,
-                                 id);
+        pathRenderer->pathLineTo(glm::vec3(midX, endPos.y, 0.8f), 2.f,
+                                 ViewportTheme::colors.ghostWire, id);
 
-        pathRenderer->pathLineTo(glm::vec3(endPos, 0.8f),
-                                 2.f,
-                                 ViewportTheme::colors.ghostWire,
-                                 id);
+        pathRenderer->pathLineTo(glm::vec3(endPos, 0.8f), 2.f,
+                                 ViewportTheme::colors.ghostWire, id);
 
         pathRenderer->endPathMode(false, false, glm::vec4(1.f), true, true);
     }
@@ -232,8 +230,8 @@ namespace Bess::UI {
         const auto &selCtx = m_attachedScene->getSelBoxContext();
 
         const auto start = m_attachedScene->toScenePos(selCtx.start);
-        const auto end = m_attachedScene->toScenePos(
-            m_attachedScene->getMousePos());
+        const auto end =
+            m_attachedScene->toScenePos(m_attachedScene->getMousePos());
 
         auto size = end - start;
         const auto pos = start + (size / 2.f);
@@ -243,10 +241,9 @@ namespace Bess::UI {
         props.borderColor = ViewportTheme::colors.selectionBoxBorder;
         props.borderSize = glm::vec4(1.f);
 
-        context.materialRenderer->drawQuad(glm::vec3(pos, 7.f),
-                                           size,
-                                           ViewportTheme::colors.selectionBoxFill,
-                                           -1, props);
+        context.materialRenderer->drawQuad(
+            glm::vec3(pos, 7.f), size, ViewportTheme::colors.selectionBoxFill,
+            -1, props);
     }
 
     void SceneViewportPanel::updatePickingIds(bool mouseMoved) {
@@ -260,7 +257,8 @@ namespace Bess::UI {
         } else if (selCtx.queueForSel) {
             const auto &start = selCtx.start;
             const auto &end = selCtx.end;
-            const glm::vec2 pos = {std::min(start.x, end.x), std::max(start.y, end.y)};
+            const glm::vec2 pos = {std::min(start.x, end.x),
+                                   std::max(start.y, end.y)};
             const auto size = glm::abs(end - start);
             const auto w = (uint32_t)size.x;
             const auto h = (uint32_t)size.y;
@@ -290,7 +288,8 @@ namespace Bess::UI {
             if (rawIds.size() > 0) {
                 std::set<Canvas::PickingId> ids;
                 for (const auto &rawId : rawIds) {
-                    auto id = Canvas::PickingId::fromUint64(decodeGpuHoverValue(rawId));
+                    auto id = Canvas::PickingId::fromUint64(
+                        decodeGpuHoverValue(rawId));
                     ids.insert(id);
                 }
 
@@ -309,13 +308,14 @@ namespace Bess::UI {
                                             ? Canvas::PickingId::invalid()
                                             : decodeGpuHoverValue(ids[0]);
 
-            // FIXME: this is a temp fix, picking id intially is 0 when no comps are there,
-            // which is not right
+            // FIXME: this is a temp fix, picking id intially is 0 when no comps
+            // are there, which is not right
             if (hoverValue == 0 && sceneState.getAllComponents().empty()) {
                 m_attachedScene->setPickingId(Canvas::PickingId::invalid());
                 return;
             }
-            m_attachedScene->setPickingId(Canvas::PickingId::fromUint64(hoverValue));
+            m_attachedScene->setPickingId(
+                Canvas::PickingId::fromUint64(hoverValue));
         }
     }
 } // namespace Bess::UI

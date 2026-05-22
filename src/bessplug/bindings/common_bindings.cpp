@@ -33,37 +33,40 @@ void bind_common_bindings(py::module_ &m) {
     bind_bess_uuid(m);
 
     using StringViewArray1 = std::array<std::string_view, 1>;
-    auto pyStringViewArray = py::class_<StringViewArray1>(m, "StringViewArray1");
+    auto pyStringViewArray =
+        py::class_<StringViewArray1>(m, "StringViewArray1");
 
-    pyStringViewArray
-        .def(py::init<>())
+    pyStringViewArray.def(py::init<>())
         .def("__len__", [](const StringViewArray1 &v) { return v.size(); })
-        .def("__getitem__", [](const StringViewArray1 &v, size_t i) -> std::string {
-            return std::string(v.at(i));
-        })
-        .def("__iter__", [](StringViewArray1 &v) { return py::make_iterator(v.begin(), v.end()); }, py::keep_alive<0, 1>())
+        .def("__getitem__",
+             [](const StringViewArray1 &v, size_t i) -> std::string {
+                 return std::string(v.at(i));
+             })
+        .def(
+            "__iter__",
+            [](StringViewArray1 &v) {
+                return py::make_iterator(v.begin(), v.end());
+            },
+            py::keep_alive<0, 1>())
         .def("__repr__", [](const StringViewArray1 &v) {
-						std::string repr = "StringViewArray([";
-						repr += "\"" + std::string(v[0]) + "\"";
-						repr += "])";
-						return repr; });
+            std::string repr = "StringViewArray([";
+            repr += "\"" + std::string(v[0]) + "\"";
+            repr += "])";
+            return repr;
+        });
 }
 
 void bind_vec4(py::module_ &m) {
     py::class_<glm::vec4>(m, "vec4")
         .def(py::init<>()) // default (0,0)
-        .def(py::init<float, float, float, float>(),
-             py::arg("x"),
-             py::arg("y"),
-             py::arg("z"),
-             py::arg("w"))
+        .def(py::init<float, float, float, float>(), py::arg("x"), py::arg("y"),
+             py::arg("z"), py::arg("w"))
         .def(py::init([](py::sequence seq) {
                  if (py::len(seq) != 4)
-                     throw std::runtime_error("vec4 requires a sequence of length 4");
-                 return glm::vec4(seq[0].cast<float>(),
-                                  seq[1].cast<float>(),
-                                  seq[2].cast<float>(),
-                                  seq[3].cast<float>());
+                     throw std::runtime_error(
+                         "vec4 requires a sequence of length 4");
+                 return glm::vec4(seq[0].cast<float>(), seq[1].cast<float>(),
+                                  seq[2].cast<float>(), seq[3].cast<float>());
              }),
              py::arg("seq"))
         .def_readwrite("x", &glm::vec4::x)
@@ -72,7 +75,8 @@ void bind_vec4(py::module_ &m) {
         .def_readwrite("w", &glm::vec4::w)
         .def("__repr__", [](const glm::vec4 &v) {
             return "vec4(" + std::to_string(v.r) + ", " + std::to_string(v.g) +
-                   ", " + std::to_string(v.b) + ", " + std::to_string(v.a) + ")";
+                   ", " + std::to_string(v.b) + ", " + std::to_string(v.a) +
+                   ")";
         });
 }
 
@@ -80,12 +84,13 @@ void bind_vec3(py::module_ &m) {
     py::class_<glm::vec3>(m, "vec3")
         // Constructors
         .def(py::init<>()) // default (0,0)
-        .def(py::init<float, float, float>(), py::arg("x"), py::arg("y"), py::arg("z"))
+        .def(py::init<float, float, float>(), py::arg("x"), py::arg("y"),
+             py::arg("z"))
         .def(py::init([](py::sequence seq) {
                  if (py::len(seq) != 2)
-                     throw std::runtime_error("vec3 requires a sequence of length 2");
-                 return glm::vec3(seq[0].cast<float>(),
-                                  seq[1].cast<float>(),
+                     throw std::runtime_error(
+                         "vec3 requires a sequence of length 2");
+                 return glm::vec3(seq[0].cast<float>(), seq[1].cast<float>(),
                                   seq[2].cast<float>());
              }),
              py::arg("seq"))
@@ -96,9 +101,8 @@ void bind_vec3(py::module_ &m) {
         .def_readwrite("z", &glm::vec3::z)
 
         // copy function
-        .def("copy", [](const glm::vec3 &v) {
-            return glm::vec3(v.x, v.y, v.z);
-        })
+        .def("copy",
+             [](const glm::vec3 &v) { return glm::vec3(v.x, v.y, v.z); })
 
         // Basic arithmetic
         .def(py::self + py::self)
@@ -109,59 +113,62 @@ void bind_vec3(py::module_ &m) {
         .def(-py::self)
 
         // Equality and comparison
-        .def("__eq__", [](const glm::vec3 &a, const glm::vec3 &b) {
-            return a.x == b.x && a.y == b.y && a.z == b.z;
-        })
-        .def("__ne__", [](const glm::vec3 &a, const glm::vec3 &b) {
-            return a.x != b.x || a.y != b.y || a.z != b.z;
-        })
+        .def("__eq__",
+             [](const glm::vec3 &a, const glm::vec3 &b) {
+                 return a.x == b.x && a.y == b.y && a.z == b.z;
+             })
+        .def("__ne__",
+             [](const glm::vec3 &a, const glm::vec3 &b) {
+                 return a.x != b.x || a.y != b.y || a.z != b.z;
+             })
 
         // Sequence-like access (v[0], v[1])
-        .def("__getitem__", [](const glm::vec3 &v, size_t i) {
-            if (i >= 3)
-                throw py::index_error();
+        .def("__getitem__",
+             [](const glm::vec3 &v, size_t i) {
+                 if (i >= 3)
+                     throw py::index_error();
 
-            switch (i) {
-            case 0:
-                return v.x;
-            case 1:
-                return v.y;
-            case 2:
-                return v.z;
-            default:
-                throw py::index_error();
-            }
-        })
-        .def("__setitem__", [](glm::vec3 &v, size_t i, float val) {
-            if (i >= 3)
-                throw py::index_error();
+                 switch (i) {
+                 case 0:
+                     return v.x;
+                 case 1:
+                     return v.y;
+                 case 2:
+                     return v.z;
+                 default:
+                     throw py::index_error();
+                 }
+             })
+        .def("__setitem__",
+             [](glm::vec3 &v, size_t i, float val) {
+                 if (i >= 3)
+                     throw py::index_error();
 
-            switch (i) {
-            case 0:
-                v.x = val;
-                break;
-            case 1:
-                v.y = val;
-                break;
-            case 2:
-                v.z = val;
-                break;
-            default:
-                throw py::index_error();
-            }
-        })
+                 switch (i) {
+                 case 0:
+                     v.x = val;
+                     break;
+                 case 1:
+                     v.y = val;
+                     break;
+                 case 2:
+                     v.z = val;
+                     break;
+                 default:
+                     throw py::index_error();
+                 }
+             })
         .def("__len__", [](const glm::vec3 &) { return 3; })
 
         // String representations
-        .def("__repr__", [](const glm::vec3 &v) {
-            return "(" + std::to_string(v.x) + ", " +
-                   std::to_string(v.y) + ", " +
-                   std::to_string(v.z) + ")";
-        })
+        .def("__repr__",
+             [](const glm::vec3 &v) {
+                 return "(" + std::to_string(v.x) + ", " + std::to_string(v.y) +
+                        ", " + std::to_string(v.z) + ")";
+             })
         .def("__str__", [](const glm::vec3 &v) {
-            return "(" + std::to_string(v.x) + ", " +
-                   std::to_string(v.y) + ", " +
-                   std::to_string(v.z) + ")";
+            return "(" + std::to_string(v.x) + ", " + std::to_string(v.y) +
+                   ", " + std::to_string(v.z) + ")";
         });
 }
 void bind_vec2(py::module_ &m) {
@@ -171,7 +178,8 @@ void bind_vec2(py::module_ &m) {
         .def(py::init<float, float>(), py::arg("x"), py::arg("y"))
         .def(py::init([](py::sequence seq) {
                  if (py::len(seq) != 2)
-                     throw std::runtime_error("vec2 requires a sequence of length 2");
+                     throw std::runtime_error(
+                         "vec2 requires a sequence of length 2");
                  return glm::vec2(seq[0].cast<float>(), seq[1].cast<float>());
              }),
              py::arg("seq"))
@@ -189,38 +197,45 @@ void bind_vec2(py::module_ &m) {
         .def(-py::self)
 
         // Equality and comparison
-        .def("__eq__", [](const glm::vec2 &a, const glm::vec2 &b) {
-            return a.x == b.x && a.y == b.y;
-        })
-        .def("__ne__", [](const glm::vec2 &a, const glm::vec2 &b) {
-            return !(a.x == b.x && a.y == b.y);
-        })
+        .def("__eq__",
+             [](const glm::vec2 &a, const glm::vec2 &b) {
+                 return a.x == b.x && a.y == b.y;
+             })
+        .def("__ne__",
+             [](const glm::vec2 &a, const glm::vec2 &b) {
+                 return !(a.x == b.x && a.y == b.y);
+             })
 
         // Sequence-like access (v[0], v[1])
-        .def("__getitem__", [](const glm::vec2 &v, size_t i) {
-            if (i >= 2)
-                throw py::index_error();
-            return i == 0 ? v.x : v.y;
-        })
-        .def("__setitem__", [](glm::vec2 &v, size_t i, float val) {
-            if (i >= 2)
-                throw py::index_error();
-            (i == 0 ? v.x : v.y) = val;
-        })
+        .def("__getitem__",
+             [](const glm::vec2 &v, size_t i) {
+                 if (i >= 2)
+                     throw py::index_error();
+                 return i == 0 ? v.x : v.y;
+             })
+        .def("__setitem__",
+             [](glm::vec2 &v, size_t i, float val) {
+                 if (i >= 2)
+                     throw py::index_error();
+                 (i == 0 ? v.x : v.y) = val;
+             })
         .def("__len__", [](const glm::vec2 &) { return 2; })
 
         // String representations
-        .def("__repr__", [](const glm::vec2 &v) {
-            return "(" + std::to_string(v.x) + ", " + std::to_string(v.y) + ")";
-        })
-        .def("__str__", [](const glm::vec2 &v) {
-            return "(" + std::to_string(v.x) + ", " + std::to_string(v.y) + ")";
-        })
+        .def("__repr__",
+             [](const glm::vec2 &v) {
+                 return "(" + std::to_string(v.x) + ", " + std::to_string(v.y) +
+                        ")";
+             })
+        .def("__str__",
+             [](const glm::vec2 &v) {
+                 return "(" + std::to_string(v.x) + ", " + std::to_string(v.y) +
+                        ")";
+             })
 
         // Conversions
-        .def("to_tuple", [](const glm::vec2 &v) {
-            return py::make_tuple(v.x, v.y);
-        })
+        .def("to_tuple",
+             [](const glm::vec2 &v) { return py::make_tuple(v.x, v.y); })
 
         // Hash support (optional, useful for dicts/sets)
         .def("__hash__", [](const glm::vec2 &v) {
@@ -236,20 +251,20 @@ void bind_bess_uuid(py::module_ &m) {
         .def(py::init<uint64_t>(), py::arg("id"))
         .def(py::init<const UUID &>())
 
-        .def("__int__", [](const UUID &self) {
-            return static_cast<uint64_t>(self);
-        })
+        .def("__int__",
+             [](const UUID &self) { return static_cast<uint64_t>(self); })
 
-        .def("__repr__", [](const UUID &self) {
-            return std::format("<UUID {}>", static_cast<uint64_t>(self));
-        })
+        .def("__repr__",
+             [](const UUID &self) {
+                 return std::format("<UUID {}>", static_cast<uint64_t>(self));
+             })
 
         .def("__eq__", [](const UUID &a, const UUID &b) { return a == b; })
         .def("__ne__", [](const UUID &a, const UUID &b) { return !(a == b); })
 
-        .def_property_readonly("value", [](const UUID &self) {
-            return static_cast<uint64_t>(self);
-        })
+        .def_property_readonly(
+            "value",
+            [](const UUID &self) { return static_cast<uint64_t>(self); })
 
         .def_readonly_static("null", &UUID::null);
 }
@@ -262,9 +277,12 @@ void bind_theme(py::module_ &m) {
         .def_readwrite("pin", &Bess::SchematicViewColors::pin)
         .def_readwrite("text", &Bess::SchematicViewColors::text)
         .def_readwrite("connection", &Bess::SchematicViewColors::connection)
-        .def_readwrite("componentFill", &Bess::SchematicViewColors::componentFill)
-        .def_readwrite("componentStroke", &Bess::SchematicViewColors::componentStroke)
-        .def_readwrite("activeSignal", &Bess::SchematicViewColors::activeSignal);
+        .def_readwrite("componentFill",
+                       &Bess::SchematicViewColors::componentFill)
+        .def_readwrite("componentStroke",
+                       &Bess::SchematicViewColors::componentStroke)
+        .def_readwrite("activeSignal",
+                       &Bess::SchematicViewColors::activeSignal);
 
     themeModule.attr("schematic") = Bess::ViewportTheme::schematicViewColors;
 }
@@ -275,45 +293,91 @@ void bind_time(py::module_ &m) {
     py::class_<Bess::TimeNs>(timeModule, "TimeNS")
         .def(py::init<>())
         .def(py::init<uint64_t>(), py::arg("ns"))
-        .def("__int__", [](const Bess::TimeNs &self) {
-            return static_cast<uint64_t>(self.count());
-        })
-        .def("__repr__", [](const Bess::TimeNs &self) {
-            return std::format("<TimeNS {} ns>", static_cast<uint64_t>(self.count()));
-        })
-        .def("__eq__", [](const Bess::TimeNs &a, const Bess::TimeNs &b) { return a == b; })
-        .def("__ne__", [](const Bess::TimeNs &a, const Bess::TimeNs &b) { return !(a == b); })
-        .def("__lt__", [](const Bess::TimeNs &a, const Bess::TimeNs &b) { return a < b; })
-        .def("__le__", [](const Bess::TimeNs &a, const Bess::TimeNs &b) { return a <= b; })
-        .def("__gt__", [](const Bess::TimeNs &a, const Bess::TimeNs &b) { return a > b; })
-        .def("__ge__", [](const Bess::TimeNs &a, const Bess::TimeNs &b) { return a >= b; })
-        .def("__add__", [](const Bess::TimeNs &a, const Bess::TimeNs &b) {
-            return Bess::TimeNs(static_cast<uint64_t>(a.count()) + static_cast<uint64_t>(b.count()));
-        })
+        .def("__int__",
+             [](const Bess::TimeNs &self) {
+                 return static_cast<uint64_t>(self.count());
+             })
+        .def("__repr__",
+             [](const Bess::TimeNs &self) {
+                 return std::format("<TimeNS {} ns>",
+                                    static_cast<uint64_t>(self.count()));
+             })
+        .def("__eq__", [](const Bess::TimeNs &a,
+                          const Bess::TimeNs &b) { return a == b; })
+        .def("__ne__", [](const Bess::TimeNs &a,
+                          const Bess::TimeNs &b) { return !(a == b); })
+        .def("__lt__",
+             [](const Bess::TimeNs &a, const Bess::TimeNs &b) { return a < b; })
+        .def("__le__", [](const Bess::TimeNs &a,
+                          const Bess::TimeNs &b) { return a <= b; })
+        .def("__gt__",
+             [](const Bess::TimeNs &a, const Bess::TimeNs &b) { return a > b; })
+        .def("__ge__", [](const Bess::TimeNs &a,
+                          const Bess::TimeNs &b) { return a >= b; })
+        .def("__add__",
+             [](const Bess::TimeNs &a, const Bess::TimeNs &b) {
+                 return Bess::TimeNs(static_cast<uint64_t>(a.count()) +
+                                     static_cast<uint64_t>(b.count()));
+             })
         .def("__sub__", [](const Bess::TimeNs &a, const Bess::TimeNs &b) {
-            return Bess::TimeNs(static_cast<uint64_t>(a.count()) - static_cast<uint64_t>(b.count()));
+            return Bess::TimeNs(static_cast<uint64_t>(a.count()) -
+                                static_cast<uint64_t>(b.count()));
         });
 
     py::class_<std::chrono::duration<double, std::milli>>(timeModule, "TimeMS")
         .def(py::init<>())
         .def(py::init<uint64_t>(), py::arg("ms"))
-        .def("__int__", [](const std::chrono::duration<double, std::milli> &self) {
-            return static_cast<uint64_t>(self.count());
-        })
-        .def("__repr__", [](const std::chrono::duration<double, std::milli> &self) {
-            return std::format("<TimeMS {} ms>", static_cast<uint64_t>(self.count()));
-        })
-        .def("__eq__", [](const std::chrono::duration<double, std::milli> &a, const std::chrono::duration<double, std::milli> &b) { return a == b; })
-        .def("__ne__", [](const std::chrono::duration<double, std::milli> &a, const std::chrono::duration<double, std::milli> &b) { return !(a == b); })
-        .def("__lt__", [](const std::chrono::duration<double, std::milli> &a, const std::chrono::duration<double, std::milli> &b) { return a < b; })
-        .def("__le__", [](const std::chrono::duration<double, std::milli> &a, const std::chrono::duration<double, std::milli> &b) { return a <= b; })
-        .def("__gt__", [](const std::chrono::duration<double, std::milli> &a, const std::chrono::duration<double, std::milli> &b) { return a > b; })
-        .def("__ge__", [](const std::chrono::duration<double, std::milli> &a, const std::chrono::duration<double, std::milli> &b) { return a >= b; })
-        .def("__add__", [](const std::chrono::duration<double, std::milli> &a, const std::chrono::duration<double, std::milli> &b) {
-            return std::chrono::duration<double, std::milli>(static_cast<uint64_t>(a.count()) + static_cast<uint64_t>(b.count()));
-        })
-        .def("__sub__", [](const std::chrono::duration<double, std::milli> &a, const std::chrono::duration<double, std::milli> &b) {
-            return std::chrono::duration<double, std::milli>(static_cast<uint64_t>(a.count()) - static_cast<uint64_t>(b.count()));
+        .def("__int__",
+             [](const std::chrono::duration<double, std::milli> &self) {
+                 return static_cast<uint64_t>(self.count());
+             })
+        .def("__repr__",
+             [](const std::chrono::duration<double, std::milli> &self) {
+                 return std::format("<TimeMS {} ms>",
+                                    static_cast<uint64_t>(self.count()));
+             })
+        .def("__eq__",
+             [](const std::chrono::duration<double, std::milli> &a,
+                const std::chrono::duration<double, std::milli> &b) {
+                 return a == b;
+             })
+        .def("__ne__",
+             [](const std::chrono::duration<double, std::milli> &a,
+                const std::chrono::duration<double, std::milli> &b) {
+                 return !(a == b);
+             })
+        .def("__lt__",
+             [](const std::chrono::duration<double, std::milli> &a,
+                const std::chrono::duration<double, std::milli> &b) {
+                 return a < b;
+             })
+        .def("__le__",
+             [](const std::chrono::duration<double, std::milli> &a,
+                const std::chrono::duration<double, std::milli> &b) {
+                 return a <= b;
+             })
+        .def("__gt__",
+             [](const std::chrono::duration<double, std::milli> &a,
+                const std::chrono::duration<double, std::milli> &b) {
+                 return a > b;
+             })
+        .def("__ge__",
+             [](const std::chrono::duration<double, std::milli> &a,
+                const std::chrono::duration<double, std::milli> &b) {
+                 return a >= b;
+             })
+        .def("__add__",
+             [](const std::chrono::duration<double, std::milli> &a,
+                const std::chrono::duration<double, std::milli> &b) {
+                 return std::chrono::duration<double, std::milli>(
+                     static_cast<uint64_t>(a.count()) +
+                     static_cast<uint64_t>(b.count()));
+             })
+        .def("__sub__", [](const std::chrono::duration<double, std::milli> &a,
+                           const std::chrono::duration<double, std::milli> &b) {
+            return std::chrono::duration<double, std::milli>(
+                static_cast<uint64_t>(a.count()) -
+                static_cast<uint64_t>(b.count()));
         });
 
     // std::chrono::duration<double, std::ratio<1l, 1000l>> alias to TimeMs
@@ -336,53 +400,52 @@ void bind_json_cpp(py::module_ &m) {
         .def(py::init<double>())
         .def(py::init<bool>())
 
-        .def("__getitem__", [](Json::Value &v, const std::string &key) {
-            if (!v.isObject())
-                throw py::type_error("Not a JSON Object");
-            return v[key];
-        })
-        .def("__getitem__", [](Json::Value &v, int index) {
-            if (!v.isArray())
-                throw py::type_error("Not a JSON Array");
-            return v[index];
-        })
-        .def("__setitem__", [](Json::Value &v, const std::string &key, const Json::Value &val) {
-            v[key] = val;
-        })
-        .def("__setitem__", [](Json::Value &v, int index, const Json::Value &val) {
-            v[index] = val;
-        })
+        .def("__getitem__",
+             [](Json::Value &v, const std::string &key) {
+                 if (!v.isObject())
+                     throw py::type_error("Not a JSON Object");
+                 return v[key];
+             })
+        .def("__getitem__",
+             [](Json::Value &v, int index) {
+                 if (!v.isArray())
+                     throw py::type_error("Not a JSON Array");
+                 return v[index];
+             })
+        .def("__setitem__", [](Json::Value &v, const std::string &key,
+                               const Json::Value &val) { v[key] = val; })
+        .def("__setitem__", [](Json::Value &v, int index,
+                               const Json::Value &val) { v[index] = val; })
 
-        .def("__setitem__", [](Json::Value &v, const std::string &key, const int &val) {
-            v[key] = val;
-        })
-        .def("__setitem__", [](Json::Value &v, const std::string &key, const std::string &val) {
-            v[key] = val;
-        })
-        .def("__setitem__", [](Json::Value &v, const std::string &key, const double &val) {
-            v[key] = val;
-        })
-        .def("__setitem__", [](Json::Value &v, const std::string &key, const bool val) {
-            v[key] = val;
-        })
+        .def("__setitem__", [](Json::Value &v, const std::string &key,
+                               const int &val) { v[key] = val; })
+        .def("__setitem__", [](Json::Value &v, const std::string &key,
+                               const std::string &val) { v[key] = val; })
+        .def("__setitem__", [](Json::Value &v, const std::string &key,
+                               const double &val) { v[key] = val; })
+        .def("__setitem__", [](Json::Value &v, const std::string &key,
+                               const bool val) { v[key] = val; })
 
         .def("__len__", &Json::Value::size)
         .def("is_object", &Json::Value::isObject)
         .def("is_array", &Json::Value::isArray)
-        .def("has_key", [](const Json::Value &v, const std::string &key) {
-            if (!v.isObject())
-                throw py::type_error("Not a JSON Object");
-            return v.isMember(key);
-        })
+        .def("has_key",
+             [](const Json::Value &v, const std::string &key) {
+                 if (!v.isObject())
+                     throw py::type_error("Not a JSON Object");
+                 return v.isMember(key);
+             })
 
         // String conversion (for print() in Python)
-        .def("__str__", [](const Json::Value &v) {
-            Json::StreamWriterBuilder builder;
-            return Json::writeString(builder, v);
-        })
-        .def("__repr__", [](const Json::Value &v) {
-            return "<JsonValue: " + v.asString() + ">";
-        })
+        .def("__str__",
+             [](const Json::Value &v) {
+                 Json::StreamWriterBuilder builder;
+                 return Json::writeString(builder, v);
+             })
+        .def("__repr__",
+             [](const Json::Value &v) {
+                 return "<JsonValue: " + v.asString() + ">";
+             })
 
         .def("as_str", &Json::Value::asString)
         .def("as_int", &Json::Value::asInt)

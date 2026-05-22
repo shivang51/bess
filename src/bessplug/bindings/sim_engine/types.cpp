@@ -51,23 +51,28 @@ void bind_sim_engine_types(py::module_ &m) {
         .def_readwrite("state", &SlotState::state)
         .def_property(
             "last_change_time_ns",
-            [](const SlotState &self) { return static_cast<long long>(self.lastChangeTime.count()); },
-            [](SlotState &self, long long ns) { self.lastChangeTime = SimTime(ns); })
+            [](const SlotState &self) {
+                return static_cast<long long>(self.lastChangeTime.count());
+            },
+            [](SlotState &self, long long ns) {
+                self.lastChangeTime = SimTime(ns);
+            })
         .def("copy", [](const SlotState &self) { return SlotState(self); })
-        .def("invert", [](SlotState &self) {
-            switch (self.state) {
-            case LogicState::low:
-                self.state = LogicState::high;
-                break;
-            case LogicState::high:
-                self.state = LogicState::low;
-                break;
-            case LogicState::unknown:
-            case LogicState::high_z:
-                // leave unchanged
-                break;
-            }
-        })
+        .def("invert",
+             [](SlotState &self) {
+                 switch (self.state) {
+                 case LogicState::low:
+                     self.state = LogicState::high;
+                     break;
+                 case LogicState::high:
+                     self.state = LogicState::low;
+                     break;
+                 case LogicState::unknown:
+                 case LogicState::high_z:
+                     // leave unchanged
+                     break;
+                 }
+             })
         .def("__repr__", [](const SlotState &self) {
             const char *s = "UNKNOWN";
             switch (self.state) {
@@ -84,7 +89,9 @@ void bind_sim_engine_types(py::module_ &m) {
                 s = "HIGH_Z";
                 break;
             }
-            return std::string("<PinState state=") + s + ", t_ns=" + std::to_string(self.lastChangeTime.count()) + ">";
+            return std::string("<PinState state=") + s +
+                   ", t_ns=" + std::to_string(self.lastChangeTime.count()) +
+                   ">";
         });
 
     py::class_<ComponentState>(m, "ComponentState")
@@ -92,8 +99,12 @@ void bind_sim_engine_types(py::module_ &m) {
         .def(py::init<const ComponentState &>())
         .def_property(
             "input_states",
-            [](ComponentState &self) -> std::vector<SlotState> & { return self.inputStates; },
-            [](ComponentState &self, const std::vector<SlotState> &v) { self.inputStates = v; },
+            [](ComponentState &self) -> std::vector<SlotState> & {
+                return self.inputStates;
+            },
+            [](ComponentState &self, const std::vector<SlotState> &v) {
+                self.inputStates = v;
+            },
             py::return_value_policy::reference_internal)
         .def_property(
             "output_states",
@@ -104,33 +115,65 @@ void bind_sim_engine_types(py::module_ &m) {
                 self.outputStates = v;
             },
             py::return_value_policy::reference_internal)
-        .def("set_output_state", [](ComponentState &self, std::size_t idx, const SlotState &value) {
+        .def(
+            "set_output_state",
+            [](ComponentState &self, std::size_t idx, const SlotState &value) {
                 if (idx >= self.outputStates.size()) {
                     throw py::index_error("output index out of range");
                 }
-                self.outputStates[idx] = value; }, py::arg("idx"), py::arg("value"))
+                self.outputStates[idx] = value;
+            },
+            py::arg("idx"), py::arg("value"))
         .def_readwrite("is_changed", &ComponentState::isChanged)
-        .def("copy", [](const ComponentState &self) {
-                ComponentState cpy = self;
-                return cpy; })
-        .def_property("input_connected", [](const ComponentState &self) { return self.inputConnected; }, [](ComponentState &self, const std::vector<bool> &v) { self.inputConnected = v; })
-        .def_property("output_connected", [](const ComponentState &self) { return self.outputConnected; }, [](ComponentState &self, const std::vector<bool> &v) { self.outputConnected = v; })
-        .def_property("aux_data", [](const ComponentState &self) -> py::object {
-								if (self.auxData && self.auxData->type() == typeid(Bess::Py::OwnedPyObject)) {
-										const auto &owned = std::any_cast<const Bess::Py::OwnedPyObject &>(*self.auxData);
-										return owned.object;
-								}
-								return py::none(); }, [](ComponentState &self, py::object obj) {
-								if (self.auxData && self.auxData->type() == typeid(Bess::Py::OwnedPyObject)) {
-										delete self.auxData;
-										self.auxData = nullptr;
-								}
-								self.auxData = new std::any(Bess::Py::OwnedPyObject{obj}); }, "Get or set the aux_data as a Python object if it was set via set_aux_pyobject.")
-        .def("clear_aux_data", [](ComponentState &self) {
-                if (self.auxData && self.auxData->type() == typeid(Bess::Py::OwnedPyObject)) {
+        .def("copy",
+             [](const ComponentState &self) {
+                 ComponentState cpy = self;
+                 return cpy;
+             })
+        .def_property(
+            "input_connected",
+            [](const ComponentState &self) { return self.inputConnected; },
+            [](ComponentState &self, const std::vector<bool> &v) {
+                self.inputConnected = v;
+            })
+        .def_property(
+            "output_connected",
+            [](const ComponentState &self) { return self.outputConnected; },
+            [](ComponentState &self, const std::vector<bool> &v) {
+                self.outputConnected = v;
+            })
+        .def_property(
+            "aux_data",
+            [](const ComponentState &self) -> py::object {
+                if (self.auxData &&
+                    self.auxData->type() == typeid(Bess::Py::OwnedPyObject)) {
+                    const auto &owned =
+                        std::any_cast<const Bess::Py::OwnedPyObject &>(
+                            *self.auxData);
+                    return owned.object;
+                }
+                return py::none();
+            },
+            [](ComponentState &self, py::object obj) {
+                if (self.auxData &&
+                    self.auxData->type() == typeid(Bess::Py::OwnedPyObject)) {
                     delete self.auxData;
                     self.auxData = nullptr;
-                } }, "Clear aux_data if it was set via set_aux_pyobject.");
+                }
+                self.auxData = new std::any(Bess::Py::OwnedPyObject{obj});
+            },
+            "Get or set the aux_data as a Python object if it was set via "
+            "set_aux_pyobject.")
+        .def(
+            "clear_aux_data",
+            [](ComponentState &self) {
+                if (self.auxData &&
+                    self.auxData->type() == typeid(Bess::Py::OwnedPyObject)) {
+                    delete self.auxData;
+                    self.auxData = nullptr;
+                }
+            },
+            "Clear aux_data if it was set via set_aux_pyobject.");
 
     py::enum_<SlotType>(m, "PinType")
         .value("INPUT", SlotType::digitalInput)
@@ -161,7 +204,8 @@ void bind_sim_engine_types(py::module_ &m) {
     py::class_<OperatorInfo>(m, "OperatorInfo")
         .def(py::init<>())
         .def_readwrite("op", &OperatorInfo::op)
-        .def_readwrite("should_negate_output", &OperatorInfo::shouldNegateOutput);
+        .def_readwrite("should_negate_output",
+                       &OperatorInfo::shouldNegateOutput);
 
     py::enum_<ComponentBehaviorType>(m, "ComponentBehaviorType")
         .value("NONE", ComponentBehaviorType::none)

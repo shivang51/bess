@@ -27,14 +27,16 @@ namespace Bess::UI {
         const auto &sceneState = sceneDriver->getState();
 
         const auto &hoverId = sceneDriver->getHoveredEntity();
-        ImGui::Text("Hovered  Runtime Id: %u | Info: %u", hoverId.runtimeId, hoverId.info);
+        ImGui::Text("Hovered  Runtime Id: %u | Info: %u", hoverId.runtimeId,
+                    hoverId.info);
 
         if (ImGui::BeginTabBar("MyTabBar")) {
             if (ImGui::BeginTabItem("Scene Controls")) {
                 if (sceneDriver.getSceneCount() > 1) {
 
                     ImGui::AlignTextToFramePadding();
-                    ImGui::Text("Active Scene: %lu", sceneDriver.getActiveSceneIdx());
+                    ImGui::Text("Active Scene: %lu",
+                                sceneDriver.getActiveSceneIdx());
 
                     ImGui::SameLine();
                     ImGui::AlignTextToFramePadding();
@@ -42,7 +44,8 @@ namespace Bess::UI {
                     ImGui::SameLine();
 
                     ImGui::AlignTextToFramePadding();
-                    ImGui::Text("Scene Count: %lu", sceneDriver.getSceneCount());
+                    ImGui::Text("Scene Count: %lu",
+                                sceneDriver.getSceneCount());
 
                     ImGui::SameLine();
                     if (ImGui::Button("Prev-Scene")) {
@@ -68,11 +71,14 @@ namespace Bess::UI {
             }
             if (ImGui::BeginTabItem("Selected Comps Info")) {
                 if (sceneState.getSelectedComponents().size() >= 1) {
-                    const auto &selectedCompId = sceneState.getSelectedComponents().begin()->first;
-                    const auto &selectedComp = sceneState.getComponentByUuid(selectedCompId);
-                    ImGui::Text("Selected Id: %lu | Runtime Id of component: %u",
-                                (uint64_t)selectedCompId,
-                                selectedComp ? selectedComp->getRuntimeId() : 0);
+                    const auto &selectedCompId =
+                        sceneState.getSelectedComponents().begin()->first;
+                    const auto &selectedComp =
+                        sceneState.getComponentByUuid(selectedCompId);
+                    ImGui::Text(
+                        "Selected Id: %lu | Runtime Id of component: %u",
+                        (uint64_t)selectedCompId,
+                        selectedComp ? selectedComp->getRuntimeId() : 0);
 
                     drawDependencyGraph(selectedCompId);
                 }
@@ -96,37 +102,57 @@ namespace Bess::UI {
                     const auto &compId = selComps.begin()->first;
                     const auto &comp = sceneState.getComponentByUuid(compId);
 
-                    if (Canvas::SceneSerReg::hasComponent(comp->getTypeName())) {
-                        ImGui::Text("Component type %s supports deserialization", comp->getTypeName().c_str());
-                    } else if (pluginService.hasSceneComp(comp->getTypeName())) {
+                    if (Canvas::SceneSerReg::hasComponent(
+                            comp->getTypeName())) {
+                        ImGui::Text(
+                            "Component type %s supports deserialization",
+                            comp->getTypeName().c_str());
+                    } else if (pluginService.hasSceneComp(
+                                   comp->getTypeName())) {
                         ImGui::Text("Component type %s is provided by a plugin",
                                     comp->getTypeName().c_str());
-                        if (pluginService.canDerserialize(comp->getTypeName())) {
-                            ImGui::Text("Plugin can deserialize component type %s", comp->getTypeName().c_str());
+                        if (pluginService.canDerserialize(
+                                comp->getTypeName())) {
+                            ImGui::Text(
+                                "Plugin can deserialize component type %s",
+                                comp->getTypeName().c_str());
                         } else {
-                            ImGui::Text("Plugin CANNOT deserialize component type %s", comp->getTypeName().c_str());
+                            ImGui::Text(
+                                "Plugin CANNOT deserialize component type %s",
+                                comp->getTypeName().c_str());
                         }
                     } else {
-                        ImGui::Text("Component type %s NOT found anywhere, cannot be deserialized",
+                        ImGui::Text("Component type %s NOT found anywhere, "
+                                    "cannot be deserialized",
                                     comp->getTypeName().c_str());
                     }
 
-                    if (Widgets::TreeNode(2, "First Sel Component Serilaized")) {
+                    if (Widgets::TreeNode(2,
+                                          "First Sel Component Serilaized")) {
                         if (!selComps.empty()) {
 
                             const auto &j = comp->toJson();
-                            Widgets::SelectableText(compId.toString(), j.toStyledString());
+                            Widgets::SelectableText(compId.toString(),
+                                                    j.toStyledString());
 
-                            if (comp->getType() == Canvas::SceneComponentType::module ||
-                                comp->getType() == Canvas::SceneComponentType::simulation) {
-                                const auto &simComp = comp->cast<Canvas::SimulationSceneComponent>();
-                                BESS_ASSERT(simComp->getCompDef(), "[DEBUGPANEL] def not set");
-                                const auto &digComp = SimEngine::SimulationEngine::instance().getComponent<SimEngine::Drivers::Digital::DigSimComp>(
-                                    simComp->getSimEngineId());
+                            if (comp->getType() ==
+                                    Canvas::SceneComponentType::module ||
+                                comp->getType() ==
+                                    Canvas::SceneComponentType::simulation) {
+                                const auto &simComp = comp->cast<
+                                    Canvas::SimulationSceneComponent>();
+                                BESS_ASSERT(simComp->getCompDef(),
+                                            "[DEBUGPANEL] def not set");
+                                const auto &digComp =
+                                    SimEngine::SimulationEngine::instance()
+                                        .getComponent<SimEngine::Drivers::
+                                                          Digital::DigSimComp>(
+                                            simComp->getSimEngineId());
                                 Json::Value digCompJson = digComp->toJson();
                                 ImGui::Separator();
-                                Widgets::SelectableText(std::to_string(simComp->getSimEngineId()),
-                                                        digCompJson.toStyledString());
+                                Widgets::SelectableText(
+                                    std::to_string(simComp->getSimEngineId()),
+                                    digCompJson.toStyledString());
                             }
                         }
                         ImGui::TreePop();
@@ -161,13 +187,11 @@ namespace Bess::UI {
 
         if (Widgets::TreeNode(1,
                               std::format("Dependants of component {} ({}):",
-                                          comp->getName(),
-                                          (uint64_t)compId))) {
+                                          comp->getName(), (uint64_t)compId))) {
             ImGui::Indent();
             for (const auto &depId : dependants) {
                 const auto &depComp = sceneState.getComponentByUuid(depId);
-                ImGui::BulletText("%s (%lu) - %s",
-                                  depComp->getName().c_str(),
+                ImGui::BulletText("%s (%lu) - %s", depComp->getName().c_str(),
                                   (uint64_t)depId,
                                   typeid(depComp->getType()).name());
             }

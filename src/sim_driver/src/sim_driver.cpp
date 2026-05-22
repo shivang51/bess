@@ -34,10 +34,11 @@ namespace Bess::SimEngine::Drivers {
         }
     }
 
-    std::shared_ptr<SimFnDataBase> SimComponent::simulate(
-        const std::shared_ptr<SimFnDataBase> &data) {
+    std::shared_ptr<SimFnDataBase>
+    SimComponent::simulate(const std::shared_ptr<SimFnDataBase> &data) {
         if (!m_def) {
-            BESS_WARN("(SimComponent.simulate) No definition for component with UUID {}",
+            BESS_WARN("(SimComponent.simulate) No definition for component "
+                      "with UUID {}",
                       (uint64_t)m_uuid);
             return data;
         }
@@ -47,7 +48,8 @@ namespace Bess::SimEngine::Drivers {
             return simFn(data);
         }
 
-        BESS_WARN("(SimComponent.simulate) No sim function for component definition of component with UUID {}",
+        BESS_WARN("(SimComponent.simulate) No sim function for component "
+                  "definition of component with UUID {}",
                   (uint64_t)m_uuid);
         return data;
     }
@@ -90,21 +92,18 @@ namespace Bess::SimEngine::Drivers {
         return {};
     }
 
-    SlotState SimDriver::getSlotState(const UUID &uuid, SlotType type, int idx) const {
+    SlotState SimDriver::getSlotState(const UUID &uuid, SlotType type,
+                                      int idx) const {
         return {LogicState::unknown, SimTime(0)};
     }
 
-    bool SimDriver::setInputSlotState(
-        const UUID &uuid,
-        int pinIdx,
-        LogicState state) {
+    bool SimDriver::setInputSlotState(const UUID &uuid, int pinIdx,
+                                      LogicState state) {
         return false;
     }
 
-    bool SimDriver::setOutputSlotState(
-        const UUID &uuid,
-        int pinIdx,
-        LogicState state) {
+    bool SimDriver::setOutputSlotState(const UUID &uuid, int pinIdx,
+                                       LogicState state) {
         return false;
     }
 
@@ -119,9 +118,7 @@ namespace Bess::SimEngine::Drivers {
         return empty;
     }
 
-    bool SimDriver::isNetUpdated() const {
-        return false;
-    }
+    bool SimDriver::isNetUpdated() const { return false; }
 
     void SimDriver::clearNetUpdated() {}
 
@@ -210,7 +207,8 @@ namespace Bess::SimEngine::Drivers {
         }
     }
 
-    void SimDriver::addOnSlotCountChangeCB(const UUID &id, const SlotCountChangeCB &cb) {
+    void SimDriver::addOnSlotCountChangeCB(const UUID &id,
+                                           const SlotCountChangeCB &cb) {
         m_onSlotCountChnageCBs[id] = cb;
     }
 
@@ -218,7 +216,8 @@ namespace Bess::SimEngine::Drivers {
         m_onSlotCountChnageCBs.erase(id);
     }
 
-    void SimDriver::triggerSlotCountChangeCbs(const UUID &compId, SlotType type, int newCount) {
+    void SimDriver::triggerSlotCountChangeCbs(const UUID &compId, SlotType type,
+                                              int newCount) {
         for (const auto &[id, cb] : m_onSlotCountChnageCBs) {
             cb(compId, type, newCount);
         }

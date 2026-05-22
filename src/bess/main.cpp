@@ -10,7 +10,9 @@ Bess::AppStartupFlags prepareFlags(const AppArgs &args);
 
 int main(int argc, char **argv) {
     if (!validateStartDir(argv)) {
-        std::cerr << "[-] Wrong working directory. Expected 'assets/' folder. Exiting." << std::endl;
+        std::cerr << "[-] Wrong working directory. Expected 'assets/' folder. "
+                     "Exiting."
+                  << std::endl;
         return -1;
     }
 
@@ -46,9 +48,7 @@ Bess::AppStartupFlags prepareFlags(const AppArgs &args) {
     return flags;
 }
 
-bool isValidStartDir() {
-    return std::filesystem::exists("assets");
-}
+bool isValidStartDir() { return std::filesystem::exists("assets"); }
 
 bool validateStartDir(char **argv) {
     if (isValidStartDir()) {

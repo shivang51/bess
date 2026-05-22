@@ -42,12 +42,14 @@ namespace Bess::Pages {
 
         void setKeyPressed(int key);
 
-        // returns true if the key was pressed in the current frame, false otherwise
+        // returns true if the key was pressed in the current frame, false
+        // otherwise
         bool isKeyPressed(int key) const;
 
         void setKeyReleased(int key);
 
-        // returns true if the key was released in the current frame, false otherwise
+        // returns true if the key was released in the current frame, false
+        // otherwise
         bool isKeyReleased(int key) const;
 
         void setKeyDown(int key, bool isDown);
@@ -67,12 +69,15 @@ namespace Bess::Pages {
         void saveCurrentProject() const;
         void loadProject(const std::string &path);
         void updateCurrentProject(const std::shared_ptr<ProjectFile> &project);
-        bool importVerilogFile(const std::string &path, std::string *errorMessage = nullptr);
-        bool importVerilogFiles(const std::vector<std::string> &paths, std::string *errorMessage = nullptr);
+        bool importVerilogFile(const std::string &path,
+                               std::string *errorMessage = nullptr);
+        bool importVerilogFiles(const std::vector<std::string> &paths,
+                                std::string *errorMessage = nullptr);
         HierarchicalSceneLayoutResult applyHierarchicalLayoutToActiveScene();
         void startVerilogImport(const std::string &path);
         void startVerilogImport(const std::vector<std::string> &paths);
-        VerilogImportStatus advanceVerilogImport(std::string *errorMessage = nullptr);
+        VerilogImportStatus
+        advanceVerilogImport(std::string *errorMessage = nullptr);
         void cancelVerilogImport();
 
         void initCmdSystem();
@@ -97,8 +102,10 @@ namespace Bess::Pages {
         void onEntityAdded(const Canvas::Events::ComponentAddedEvent &e);
         void onEntityRemoved(const Canvas::Events::ComponentRemovedEvent &e);
 
-        void onCompDefOutputsResized(const SimEngine::Events::CompDefOutputsResizedEvent &e);
-        void onCompDefInputsResized(const SimEngine::Events::CompDefInputsResizedEvent &e);
+        void onCompDefOutputsResized(
+            const SimEngine::Events::CompDefOutputsResizedEvent &e);
+        void onCompDefInputsResized(
+            const SimEngine::Events::CompDefInputsResizedEvent &e);
 
       private:
         Cmd::CommandSystem m_commandSystem;

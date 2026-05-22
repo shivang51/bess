@@ -4,8 +4,12 @@
 #include <stdexcept>
 
 namespace Bess::Vulkan {
-    VulkanRenderPass::VulkanRenderPass(const std::shared_ptr<VulkanDevice> &device, const VkFormat colorFormat, const VkFormat depthFormat)
-        : m_device(device), m_colorFormat(colorFormat), m_depthFormat(depthFormat) {
+    VulkanRenderPass::VulkanRenderPass(
+        const std::shared_ptr<VulkanDevice> &device, const VkFormat colorFormat,
+        const VkFormat depthFormat)
+        : m_device(device),
+          m_colorFormat(colorFormat),
+          m_depthFormat(depthFormat) {
         createRenderPass();
     }
 
@@ -23,7 +27,8 @@ namespace Bess::Vulkan {
         other.m_renderPass = VK_NULL_HANDLE;
     }
 
-    VulkanRenderPass &VulkanRenderPass::operator=(VulkanRenderPass &&other) noexcept {
+    VulkanRenderPass &
+    VulkanRenderPass::operator=(VulkanRenderPass &&other) noexcept {
         if (this != &other) {
             if (m_renderPass != VK_NULL_HANDLE) {
                 vkDestroyRenderPass(m_device->device(), m_renderPass, nullptr);
@@ -38,7 +43,9 @@ namespace Bess::Vulkan {
         return *this;
     }
 
-    void VulkanRenderPass::begin(VkCommandBuffer cmdBuffer, const VkFramebuffer framebuffer, const VkExtent2D extent) {
+    void VulkanRenderPass::begin(VkCommandBuffer cmdBuffer,
+                                 const VkFramebuffer framebuffer,
+                                 const VkExtent2D extent) {
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = m_renderPass;
@@ -50,7 +57,8 @@ namespace Bess::Vulkan {
         renderPassInfo.clearValueCount = 1;
         renderPassInfo.pClearValues = &clearColor;
 
-        vkCmdBeginRenderPass(cmdBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(cmdBuffer, &renderPassInfo,
+                             VK_SUBPASS_CONTENTS_INLINE);
         m_recordingCmdBuffer = cmdBuffer;
     }
 
@@ -97,7 +105,8 @@ namespace Bess::Vulkan {
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &dependency;
 
-        if (vkCreateRenderPass(m_device->device(), &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS) {
+        if (vkCreateRenderPass(m_device->device(), &renderPassInfo, nullptr,
+                               &m_renderPass) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create render pass!");
         }
     }

@@ -21,14 +21,16 @@ namespace Bess::Canvas {
         m_selectedComponents.clear();
     }
 
-    std::shared_ptr<SceneComponent> SceneState::getComponentByUuid(const UUID &uuid) const {
+    std::shared_ptr<SceneComponent>
+    SceneState::getComponentByUuid(const UUID &uuid) const {
         if (m_componentsMap.contains(uuid)) {
             return m_componentsMap.at(uuid);
         }
         return nullptr;
     }
 
-    const std::unordered_map<UUID, std::shared_ptr<SceneComponent>> &SceneState::getAllComponents() const {
+    const std::unordered_map<UUID, std::shared_ptr<SceneComponent>> &
+    SceneState::getAllComponents() const {
         return m_componentsMap;
     }
 
@@ -82,7 +84,8 @@ namespace Bess::Canvas {
         return isComponentSelected(m_runtimeIdMap.at(pickingId.runtimeId));
     }
 
-    const std::unordered_map<UUID, bool> &SceneState::getSelectedComponents() const {
+    const std::unordered_map<UUID, bool> &
+    SceneState::getSelectedComponents() const {
         return m_selectedComponents;
     }
 
@@ -90,7 +93,8 @@ namespace Bess::Canvas {
         return m_rootComponents;
     }
 
-    void SceneState::attachChild(const UUID &parentId, const UUID &childId, bool emitEvent) {
+    void SceneState::attachChild(const UUID &parentId, const UUID &childId,
+                                 bool emitEvent) {
         auto parent = getComponentByUuid(parentId);
         auto child = getComponentByUuid(childId);
 
@@ -114,12 +118,11 @@ namespace Bess::Canvas {
 
         if (emitEvent) {
             EventSystem::EventDispatcher::instance().queue(
-                Events::EntityReparentedEvent{
-                    .entityUuid = childId,
-                    .newParentUuid = parentId,
-                    .prevParent = prevParentId,
-                    .sceneId = m_sceneId,
-                    .state = this});
+                Events::EntityReparentedEvent{.entityUuid = childId,
+                                              .newParentUuid = parentId,
+                                              .prevParent = prevParentId,
+                                              .sceneId = m_sceneId,
+                                              .state = this});
         }
 
         m_rootComponents.erase(childId);
@@ -143,12 +146,11 @@ namespace Bess::Canvas {
                   (uint64_t)childId, (uint64_t)parentId);
 
         EventSystem::EventDispatcher::instance().queue(
-            Events::EntityReparentedEvent{
-                .entityUuid = childId,
-                .newParentUuid = UUID::null,
-                .prevParent = parentId,
-                .sceneId = m_sceneId,
-                .state = this});
+            Events::EntityReparentedEvent{.entityUuid = childId,
+                                          .newParentUuid = UUID::null,
+                                          .prevParent = parentId,
+                                          .sceneId = m_sceneId,
+                                          .state = this});
 
         m_rootComponents.insert(childId);
     }
@@ -175,8 +177,8 @@ namespace Bess::Canvas {
         m_runtimeIdMap[runtimeId] = uuid;
     }
 
-    std::shared_ptr<SceneComponent> SceneState::getComponentByPickingId(
-        const PickingId &id) const {
+    std::shared_ptr<SceneComponent>
+    SceneState::getComponentByPickingId(const PickingId &id) const {
         if (!m_runtimeIdMap.contains(id.runtimeId)) {
             return nullptr;
         }
@@ -185,7 +187,8 @@ namespace Bess::Canvas {
         return getComponentByUuid(uuid);
     }
 
-    std::vector<UUID> SceneState::removeComponent(const UUID &uuid, const UUID &callerId) {
+    std::vector<UUID> SceneState::removeComponent(const UUID &uuid,
+                                                  const UUID &callerId) {
         BESS_INFO("[SceneState] Removing component {}", (uint64_t)uuid);
         auto component = getComponentByUuid(uuid);
         BESS_ASSERT(component, "Component was not found");
@@ -196,7 +199,8 @@ namespace Bess::Canvas {
         if (component->getParentComponent() != UUID::null &&
             callerId != UUID::master &&
             component->getParentComponent() != callerId) {
-            BESS_WARN("[SceneState] Attempt to remove child component {} directly prevented",
+            BESS_WARN("[SceneState] Attempt to remove child component {} "
+                      "directly prevented",
                       (uint64_t)uuid);
             return {};
         }
@@ -206,7 +210,9 @@ namespace Bess::Canvas {
 
         const uint32_t runtimeId = component->getRuntimeId();
         if (runtimeId != PickingId::invalidRuntimeId) {
-            component->setRuntimeId(PickingId::invalidRuntimeId); // Don't remove this its not redundant
+            component->setRuntimeId(
+                PickingId::invalidRuntimeId); // Don't remove this its not
+                                              // redundant
             m_runtimeIdMap[runtimeId] = UUID::null;
             m_freeRuntimeIds.insert(runtimeId);
         }
@@ -221,18 +227,18 @@ namespace Bess::Canvas {
 
         if (callerId == UUID::master &&
             component->getParentComponent() != UUID::null) {
-            auto parentComp = getComponentByUuid(component->getParentComponent());
+            auto parentComp =
+                getComponentByUuid(component->getParentComponent());
             if (parentComp) {
                 parentComp->removeChildComponent(uuid);
             }
         }
 
         EventSystem::EventDispatcher::instance().queue(
-            Events::ComponentRemovedEvent{
-                .uuid = uuid,
-                .type = component->getType(),
-                .sceneId = m_sceneId,
-                .state = this});
+            Events::ComponentRemovedEvent{.uuid = uuid,
+                                          .type = component->getType(),
+                                          .sceneId = m_sceneId,
+                                          .state = this});
 
         return removedUuids;
     }
@@ -250,12 +256,11 @@ namespace Bess::Canvas {
         BESS_INFO("[SceneState] Orphaned component {}", (uint64_t)uuid);
 
         EventSystem::EventDispatcher::instance().queue(
-            Events::EntityReparentedEvent{
-                .entityUuid = uuid,
-                .newParentUuid = UUID::null,
-                .prevParent = parentId,
-                .sceneId = m_sceneId,
-                .state = this});
+            Events::EntityReparentedEvent{.entityUuid = uuid,
+                                          .newParentUuid = UUID::null,
+                                          .prevParent = parentId,
+                                          .sceneId = m_sceneId,
+                                          .state = this});
     }
 
     bool SceneState::isRootComponent(const UUID &uuid) const {
@@ -273,7 +278,9 @@ namespace Bess::Canvas {
 
         const uint32_t runtimeId = component->getRuntimeId();
         if (runtimeId != PickingId::invalidRuntimeId) {
-            component->setRuntimeId(PickingId::invalidRuntimeId); // Don't remove this its not redundant
+            component->setRuntimeId(
+                PickingId::invalidRuntimeId); // Don't remove this its not
+                                              // redundant
             m_runtimeIdMap[runtimeId] = UUID::null;
             m_freeRuntimeIds.insert(runtimeId);
         }
@@ -289,8 +296,10 @@ namespace Bess::JsonConvert {
         j["components"] = Json::Value(Json::arrayValue);
 
         for (const auto &[uuid, component] : state.getAllComponents()) {
-            if (component->getType() == Canvas::SceneComponentType::simulation) {
-                component->cast<Canvas::SimulationSceneComponent>()->updateScales(state);
+            if (component->getType() ==
+                Canvas::SceneComponentType::simulation) {
+                component->cast<Canvas::SimulationSceneComponent>()
+                    ->updateScales(state);
             }
             j["components"].append(component->toJson());
         }
@@ -310,18 +319,21 @@ namespace Bess::JsonConvert {
 
         JsonConvert::fromJsonValue(j["sceneId"], state.getSceneId());
         JsonConvert::fromJsonValue(j["moduleId"], state.getModuleId());
-        JsonConvert::fromJsonValue(j["parentSceneId"], state.getParentSceneId());
+        JsonConvert::fromJsonValue(j["parentSceneId"],
+                                   state.getParentSceneId());
         state.setIsRootScene(j["isRootScene"].asBool());
 
         const auto &simEngine = SimEngine::SimulationEngine::instance();
-        std::vector<std::shared_ptr<Canvas::SceneComponent>> deserializedComponents;
+        std::vector<std::shared_ptr<Canvas::SceneComponent>>
+            deserializedComponents;
         deserializedComponents.reserve(j["components"].size());
 
         const auto &pluginService = Svc::PluginService::getInstance();
 
         for (const auto &compJson : j["components"]) {
             if (!compJson.isMember("typeName")) {
-                BESS_WARN("Component JSON is missing typeName field. Skipping component.");
+                BESS_WARN("Component JSON is missing typeName field. Skipping "
+                          "component.");
                 continue;
             }
 
@@ -334,20 +346,25 @@ namespace Bess::JsonConvert {
             } else if (pluginService.canDerserialize(typeName)) {
                 comp = pluginService.derserialize(typeName, compJson);
             } else {
-                BESS_WARN("No derserializer found for {}. Skipping component.", typeName);
+                BESS_WARN("No derserializer found for {}. Skipping component.",
+                          typeName);
                 continue;
             }
 
             if (!comp) {
-                BESS_WARN("Failed to create component from JSON for {}. Skipping component.", typeName);
+                BESS_WARN("Failed to create component from JSON for {}. "
+                          "Skipping component.",
+                          typeName);
                 continue;
             }
 
             if (comp->getType() == Canvas::SceneComponentType::module ||
                 comp->getType() == Canvas::SceneComponentType::simulation) {
-                const auto &simComp = comp->cast<Canvas::SimulationSceneComponent>();
+                const auto &simComp =
+                    comp->cast<Canvas::SimulationSceneComponent>();
                 BESS_ASSERT(simComp, "Simulation component cast failed");
-                const auto &def = simEngine.getComponentDefinition(simComp->getSimEngineId());
+                const auto &def =
+                    simEngine.getComponentDefinition(simComp->getSimEngineId());
                 BESS_ASSERT(def, "Definition not found in sim engine");
                 simComp->setCompDef(def);
                 simComp->setScaleDirty(false);

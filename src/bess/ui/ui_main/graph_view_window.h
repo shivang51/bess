@@ -26,9 +26,10 @@ namespace Bess::UI {
         void destroy() override;
 
       private:
-        void plotDigitalSignals(const std::string &plotName,
-                                const std::unordered_map<UUID, LabeledDigitalSignal> &signals,
-                                float plotHeight = 150.0f);
+        void plotDigitalSignals(
+            const std::string &plotName,
+            const std::unordered_map<UUID, LabeledDigitalSignal> &signals,
+            float plotHeight = 150.0f);
 
       private:
         static GraphViewWindowData s_data;

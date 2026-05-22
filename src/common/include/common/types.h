@@ -23,23 +23,11 @@ namespace Bess {
             Connections outputs;
         };
 
-        enum class SimulationState : uint8_t {
-            running,
-            paused
-        };
+        enum class SimulationState : uint8_t { running, paused };
 
-        enum class LogicState : uint8_t {
-            low,
-            high,
-            unknown,
-            high_z
-        };
+        enum class LogicState : uint8_t { low, high, unknown, high_z };
 
-        enum class SlotsGroupType : uint8_t {
-            none,
-            input,
-            output
-        };
+        enum class SlotsGroupType : uint8_t { none, input, output };
 
         enum class SlotCatergory : uint8_t {
             none,
@@ -48,16 +36,9 @@ namespace Bess {
             enable,
         };
 
-        enum class ComponentBehaviorType : uint8_t {
-            none,
-            input,
-            output
-        };
+        enum class ComponentBehaviorType : uint8_t { none, input, output };
 
-        enum class SlotType : uint8_t {
-            digitalInput,
-            digitalOutput
-        };
+        enum class SlotType : uint8_t { digitalInput, digitalOutput };
 
         struct SlotState {
             LogicState state = LogicState::low;
@@ -74,9 +55,7 @@ namespace Bess {
                 state = value ? LogicState::high : LogicState::low;
             }
 
-            explicit operator bool() const {
-                return state == LogicState::high;
-            }
+            explicit operator bool() const { return state == LogicState::high; }
 
             SlotState &operator=(const bool &val) {
                 this->state = val ? LogicState::high : LogicState::low;
@@ -101,7 +80,8 @@ namespace Bess {
             bool isResizeable = false;
             size_t count = 0;
             std::vector<std::string> names;
-            std::vector<std::pair<int, SlotCatergory>> categories; // slot_index, category
+            std::vector<std::pair<int, SlotCatergory>>
+                categories; // slot_index, category
         };
 
         struct OperatorInfo {
@@ -120,7 +100,9 @@ namespace Bess {
             std::string errorMessage;
         };
 
-        typedef std::function<ComponentState(const std::vector<SlotState> &, SimTime, const ComponentState &)> SimulationFunction;
+        typedef std::function<ComponentState(const std::vector<SlotState> &,
+                                             SimTime, const ComponentState &)>
+            SimulationFunction;
 
         struct TruthTable {
             std::vector<std::vector<LogicState>> table;
@@ -142,14 +124,8 @@ REFLECT(Bess::SimEngine::SlotState, state, lastChangeTime)
 REFLECT_VECTOR(Bess::SimEngine::SlotState)
 REFLECT_VECTOR(bool)
 
-REFLECT(Bess::SimEngine::ComponentState,
-        inputStates,
-        inputConnected,
-        outputStates,
-        outputConnected,
-        isChanged,
-        simError,
-        errorMessage)
+REFLECT(Bess::SimEngine::ComponentState, inputStates, inputConnected,
+        outputStates, outputConnected, isChanged, simError, errorMessage)
 
 REFLECT_VECTOR(Bess::SimEngine::ComponentState)
 
@@ -157,18 +133,10 @@ REFLECT(Bess::SimEngine::ComponentPin, first, second)
 REFLECT_VECTOR(Bess::SimEngine::ComponentPin)
 REFLECT_VECTOR(std::vector<Bess::SimEngine::ComponentPin>)
 
-REFLECT(SimEngine::OperatorInfo,
-        op,
-        shouldNegateOutput)
+REFLECT(SimEngine::OperatorInfo, op, shouldNegateOutput)
 
 typedef std::pair<int, Bess::SimEngine::SlotCatergory> SlotCategoryPair;
-REFLECT(SlotCategoryPair,
-        first,
-        second)
+REFLECT(SlotCategoryPair, first, second)
 REFLECT_VECTOR(SlotCategoryPair)
-REFLECT(Bess::SimEngine::SlotsGroupInfo,
-        type,
-        isResizeable,
-        count,
-        names,
+REFLECT(Bess::SimEngine::SlotsGroupInfo, type, isResizeable, count, names,
         categories)

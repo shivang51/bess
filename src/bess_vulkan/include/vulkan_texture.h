@@ -12,8 +12,11 @@ namespace Bess::Vulkan {
 
     class BESS_VULKAN_API VulkanTexture {
       public:
-        VulkanTexture(std::shared_ptr<VulkanDevice> device, const std::string &path);
-        VulkanTexture(std::shared_ptr<VulkanDevice> device, uint32_t width, uint32_t height, VkFormat format, const void *data = nullptr);
+        VulkanTexture(std::shared_ptr<VulkanDevice> device,
+                      const std::string &path);
+        VulkanTexture(std::shared_ptr<VulkanDevice> device, uint32_t width,
+                      uint32_t height, VkFormat format,
+                      const void *data = nullptr);
         ~VulkanTexture();
 
         // Delete copy constructor and assignment operator
@@ -33,12 +36,15 @@ namespace Bess::Vulkan {
 
         // New capabilities (parity with GL texture utilities)
         void setData(const void *data, size_t byteSize = 0);
-        void resize(uint32_t width, uint32_t height, const void *data = nullptr);
+        void resize(uint32_t width, uint32_t height,
+                    const void *data = nullptr);
         void saveToPath(const std::string &path) const;
         std::vector<unsigned char> getData() const; // RGBA8 readback
 
         // Helper to bind in descriptor sets
-        VkDescriptorImageInfo getDescriptorInfo(VkImageLayout layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) const {
+        VkDescriptorImageInfo
+        getDescriptorInfo(VkImageLayout layout =
+                              VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) const {
             VkDescriptorImageInfo info{};
             info.sampler = m_sampler;
             info.imageView = m_imageView;
@@ -56,18 +62,25 @@ namespace Bess::Vulkan {
         uint32_t m_width = 0;
         uint32_t m_height = 0;
 
-        void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling,
-                         VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
-                         VkImage &image, VkDeviceMemory &imageMemory) const;
-        void createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+        void createImage(uint32_t width, uint32_t height, VkFormat format,
+                         VkImageTiling tiling, VkImageUsageFlags usage,
+                         VkMemoryPropertyFlags properties, VkImage &image,
+                         VkDeviceMemory &imageMemory) const;
+        void createImageView(VkImage image, VkFormat format,
+                             VkImageAspectFlags aspectFlags);
         void createTextureSampler();
-        void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const;
-        void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) const;
-        uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
+        void transitionImageLayout(VkImage image, VkFormat format,
+                                   VkImageLayout oldLayout,
+                                   VkImageLayout newLayout) const;
+        void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width,
+                               uint32_t height) const;
+        uint32_t findMemoryType(uint32_t typeFilter,
+                                VkMemoryPropertyFlags properties) const;
 
         // buffer helpers
-        void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
-                          VkBuffer &buffer, VkDeviceMemory &bufferMemory) const;
+        void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
+                          VkMemoryPropertyFlags properties, VkBuffer &buffer,
+                          VkDeviceMemory &bufferMemory) const;
     };
 
 } // namespace Bess::Vulkan

@@ -47,9 +47,10 @@ namespace Bess::Renderer {
 
     class MaterialRenderer {
       public:
-        MaterialRenderer(const std::shared_ptr<VulkanDevice> &device,
-                         const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
-                         VkExtent2D extent);
+        MaterialRenderer(
+            const std::shared_ptr<VulkanDevice> &device,
+            const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
+            VkExtent2D extent);
         ~MaterialRenderer();
 
         void beginFrame(VkCommandBuffer commandBuffer);
@@ -59,49 +60,48 @@ namespace Bess::Renderer {
         void drawMaterial(const Material2D &material);
 
         void drawGrid(const glm::vec3 &pos, const glm::vec2 &size, uint64_t id,
-                      const GridColors &gridColors, const std::shared_ptr<Camera> &camera);
+                      const GridColors &gridColors,
+                      const std::shared_ptr<Camera> &camera);
 
-        void drawQuad(const glm::vec3 &pos,
-                      const glm::vec2 &size,
-                      const glm::vec4 &color,
-                      uint64_t id,
+        void drawQuad(const glm::vec3 &pos, const glm::vec2 &size,
+                      const glm::vec4 &color, uint64_t id,
                       QuadRenderProperties props = {});
 
-        void drawTexturedQuad(const glm::vec3 &pos,
-                              const glm::vec2 &size,
-                              const glm::vec4 &tint,
-                              uint64_t id,
+        void drawTexturedQuad(const glm::vec3 &pos, const glm::vec2 &size,
+                              const glm::vec4 &tint, uint64_t id,
                               const std::shared_ptr<VulkanTexture> &texture,
                               QuadRenderProperties props = {});
 
-        void drawTexturedQuad(const glm::vec3 &pos,
-                              const glm::vec2 &size,
-                              const glm::vec4 &tint,
-                              uint64_t id,
+        void drawTexturedQuad(const glm::vec3 &pos, const glm::vec2 &size,
+                              const glm::vec4 &tint, uint64_t id,
                               const std::shared_ptr<SubTexture> &subTexture,
                               QuadRenderProperties props = {});
 
-        void drawCircle(const glm::vec3 &center, float radius, const glm::vec4 &color, uint64_t id, float innerRadius = 0.0F);
+        void drawCircle(const glm::vec3 &center, float radius,
+                        const glm::vec4 &color, uint64_t id,
+                        float innerRadius = 0.0F);
 
-        void drawLine(const glm::vec3 &start,
-                      const glm::vec3 &end,
-                      float thickness,
-                      const glm::vec4 &color,
-                      uint64_t id);
+        void drawLine(const glm::vec3 &start, const glm::vec3 &end,
+                      float thickness, const glm::vec4 &color, uint64_t id);
 
-        void drawText(const std::string &text, const glm::vec3 &pos, size_t size,
-                      const glm::vec4 &color, const uint64_t &id, float angle = 0);
+        void drawText(const std::string &text, const glm::vec3 &pos,
+                      size_t size, const glm::vec4 &color, const uint64_t &id,
+                      float angle = 0);
 
-        void drawIcon(const std::string &text, const glm::vec3 &pos, size_t size,
-                      const glm::vec4 &color, const uint64_t &id, float angle = 0);
+        void drawIcon(const std::string &text, const glm::vec3 &pos,
+                      size_t size, const glm::vec4 &color, const uint64_t &id,
+                      float angle = 0);
 
-        glm::vec2 drawTextWrapped(const std::string &text, const glm::vec3 &pos, size_t size,
-                                  const glm::vec4 &color, const uint64_t &id, float wrapWidthPx, float angle = 0);
+        glm::vec2 drawTextWrapped(const std::string &text, const glm::vec3 &pos,
+                                  size_t size, const glm::vec4 &color,
+                                  const uint64_t &id, float wrapWidthPx,
+                                  float angle = 0);
 
         void resize(VkExtent2D extent);
         void updateUBO(const std::shared_ptr<Camera> &camera);
 
-        static glm::vec2 getTextRenderSize(const std::string &str, float renderSize);
+        static glm::vec2 getTextRenderSize(const std::string &str,
+                                           float renderSize);
 
       private:
         void flushVertices(bool isTranslucent);
@@ -115,13 +115,18 @@ namespace Bess::Renderer {
         VkCommandBuffer m_currentCommandBuffer = VK_NULL_HANDLE;
 
         struct MaterialComp {
-            bool operator()(const Material2D &l, const Material2D &r) const { return l.z > r.z; }
+            bool operator()(const Material2D &l, const Material2D &r) const {
+                return l.z > r.z;
+            }
         };
 
-        std::priority_queue<Material2D, std::vector<Material2D>, MaterialComp> m_translucentMaterials;
+        std::priority_queue<Material2D, std::vector<Material2D>, MaterialComp>
+            m_translucentMaterials;
 
         std::vector<PrimitiveInstance> m_primitiveInstances;
-        std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<PrimitiveInstance>> m_texturedPrimitiveInstances;
+        std::unordered_map<std::shared_ptr<VulkanTexture>,
+                           std::vector<PrimitiveInstance>>
+            m_texturedPrimitiveInstances;
 
         Material2D m_gridMaterial;
         std::shared_ptr<VulkanTexture> m_shadowTexture = nullptr;

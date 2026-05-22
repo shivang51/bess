@@ -17,10 +17,7 @@ namespace Bess::SimEngine {
         eq,
     };
 
-    enum class CompDefinitionOwnership : uint8_t {
-        NativeCpp,
-        Python
-    };
+    enum class CompDefinitionOwnership : uint8_t { NativeCpp, Python };
 
     class BESS_API Trait {
       public:
@@ -47,27 +44,25 @@ namespace Bess::SimEngine {
         MAKE_GETTER_SETTER(std::string, Name, m_name)
         MAKE_GETTER_SETTER(std::string, GroupName, m_groupName)
         MAKE_GETTER_SETTER(ComponentBehaviorType, BehaviorType, m_behaviorType)
-        MAKE_VGETTER_VSETTER(SimulationFunction, SimulationFunction, m_simulationFunction)
+        MAKE_VGETTER_VSETTER(SimulationFunction, SimulationFunction,
+                             m_simulationFunction)
         MAKE_GETTER(std::any, AuxData, m_auxData)
-        MAKE_GETTER_SETTER_WC(std::vector<std::string>,
-                              OutputExpressions,
-                              m_outputExpressions,
-                              onExpressionsChange)
+        MAKE_GETTER_SETTER_WC(std::vector<std::string>, OutputExpressions,
+                              m_outputExpressions, onExpressionsChange)
         MAKE_GETTER_SETTER(CompDefinitionOwnership, Ownership, m_ownership)
-        MAKE_GETTER_SETTER(CompDefIOGrowthPolicy, IOGrowthPolicy, m_ioGrowthPolicy)
+        MAKE_GETTER_SETTER(CompDefIOGrowthPolicy, IOGrowthPolicy,
+                           m_ioGrowthPolicy)
         MAKE_GETTER_SETTER(uint64_t, BaseHash, m_baseHash)
 
         virtual SimulationFunction getSimFunctionCopy() const {
             return m_simulationFunction;
         }
 
-        template <typename T>
-        T &getAuxDataAs() {
+        template <typename T> T &getAuxDataAs() {
             return std::any_cast<T &>(m_auxData);
         }
 
-        template <typename T>
-        std::shared_ptr<T> getTrait() const {
+        template <typename T> std::shared_ptr<T> getTrait() const {
             auto itr = m_traits.find<T>();
             if (itr != m_traits.end()) {
                 return std::static_pointer_cast<T>(itr->second);
@@ -75,23 +70,19 @@ namespace Bess::SimEngine {
             return nullptr;
         }
 
-        template <typename T>
-        void addTrait(const std::shared_ptr<T> &trait) {
+        template <typename T> void addTrait(const std::shared_ptr<T> &trait) {
             m_traits.put<T>(trait);
         }
 
-        template <typename T>
-        void addTrait(T &&trait) {
+        template <typename T> void addTrait(T &&trait) {
             m_traits.put<T>(std::make_shared<T>(std::forward<T>(trait)));
         }
 
-        template <typename T>
-        void addTrait() {
+        template <typename T> void addTrait() {
             m_traits.put<T>(std::make_shared<T>(std::forward<T>(T())));
         }
 
-        template <typename T>
-        bool hasTrait() const {
+        template <typename T> bool hasTrait() const {
             auto itr = m_traits.find<T>();
             return itr != m_traits.end();
         }
@@ -108,31 +99,31 @@ namespace Bess::SimEngine {
         // callbacks
       public:
         /**
-         * This function will be called when resize of the slots group is requested;
-         * groupType: SlotsGroupType, type of slots group, e.g. input or output;
-         * newSize: size_t, new size of the group;
-         * Should return true if newSize is acceptable otherwise false;
-         * returning false will reject the resize request and it will not change;
-         * Note: if not overrriden and implemented,
-         * by default it will return value of group.isResizeable
+         * This function will be called when resize of the slots group is
+         * requested; groupType: SlotsGroupType, type of slots group, e.g. input
+         * or output; newSize: size_t, new size of the group; Should return true
+         * if newSize is acceptable otherwise false; returning false will reject
+         * the resize request and it will not change; Note: if not overrriden
+         * and implemented, by default it will return value of
+         * group.isResizeable
          **/
         virtual bool onSlotsResizeReq(SlotsGroupType groupType, size_t newSize);
 
         /**
-         * This function returns the next simulation time, at which the comp should
-         * be scheduled to be simulated.
-         * returns: the offset or time after which it should be scheduled;
-         * e.g.: if 10ns is returned the component will be scheduled to be simulated after
-         * 10ns in the simulation engine
+         * This function returns the next simulation time, at which the comp
+         * should be scheduled to be simulated. returns: the offset or time
+         * after which it should be scheduled; e.g.: if 10ns is returned the
+         * component will be scheduled to be simulated after 10ns in the
+         * simulation engine
          **/
         virtual SimDelayNanoSeconds getSimDelay() const;
 
         /**
-         * This function returns the delay after which the component should be auto-rescheduled.
-         * Will only be called if shouldAutoReschedule is true.
-         * returns: the offset or time after which it should be rescheduled;
-         * e.g.: if 10ns is returned the component will be rescheduled to be simulated after
-         * 10ns in the simulation engine
+         * This function returns the delay after which the component should be
+         * auto-rescheduled. Will only be called if shouldAutoReschedule is
+         * true. returns: the offset or time after which it should be
+         * rescheduled; e.g.: if 10ns is returned the component will be
+         * rescheduled to be simulated after 10ns in the simulation engine
          **/
         virtual SimTime getRescheduleTime(SimTime currentTime) const;
 
@@ -150,12 +141,14 @@ namespace Bess::SimEngine {
 
         virtual void setAuxData(const std::any &data);
 
-        friend bool operator==(ComponentDefinition &a, ComponentDefinition &b) noexcept {
+        friend bool operator==(ComponentDefinition &a,
+                               ComponentDefinition &b) noexcept {
             return a.getHash() == b.getHash();
         }
 
-        friend bool operator==(const std::shared_ptr<ComponentDefinition> &a,
-                               const std::shared_ptr<ComponentDefinition> &b) noexcept {
+        friend bool
+        operator==(const std::shared_ptr<ComponentDefinition> &a,
+                   const std::shared_ptr<ComponentDefinition> &b) noexcept {
             return a->getHash() == b->getHash();
         }
 
@@ -174,23 +167,25 @@ namespace Bess::SimEngine {
         SimulationFunction m_simulationFunction = nullptr;
         std::vector<std::string> m_outputExpressions; // A+B or A.B etc.
         TypeMap<std::shared_ptr<Trait>> m_traits;
-        CompDefinitionOwnership m_ownership = CompDefinitionOwnership::NativeCpp;
+        CompDefinitionOwnership m_ownership =
+            CompDefinitionOwnership::NativeCpp;
     };
 } // namespace Bess::SimEngine
 
 REFLECT_ENUM(Bess::SimEngine::CompDefIOGrowthPolicy)
 REFLECT_ENUM(Bess::SimEngine::CompDefinitionOwnership)
 
-REFLECT_PROPS(Bess::SimEngine::ComponentDefinition,
-              ("name", getName, setName),
+REFLECT_PROPS(Bess::SimEngine::ComponentDefinition, ("name", getName, setName),
               ("group_name", getGroupName, setGroupName),
-              ("should_auto_reschedule", getShouldAutoReschedule, setShouldAutoReschedule),
+              ("should_auto_reschedule", getShouldAutoReschedule,
+               setShouldAutoReschedule),
               ("input_slots_info", getInputSlotsInfo, setInputSlotsInfo),
               ("output_slots_info", getOutputSlotsInfo, setOutputSlotsInfo),
               ("op_info", getOpInfo, setOpInfo),
               ("sim_delay_ns", getSimDelay, setSimDelay),
               ("behavior_type", getBehaviorType, setBehaviorType),
-              ("output_expressions", getOutputExpressions, setOutputExpressions),
+              ("output_expressions", getOutputExpressions,
+               setOutputExpressions),
               ("ownership", getOwnership, setOwnership),
               ("io_growth_policy", getIOGrowthPolicy, setIOGrowthPolicy),
               ("base_hash", getBaseHash, setBaseHash));

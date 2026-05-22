@@ -14,9 +14,10 @@ namespace Bess::Vulkan::Pipelines {
 
     class TextPipeline : public Pipeline {
       public:
-        TextPipeline(const std::shared_ptr<VulkanDevice> &device,
-                     const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
-                     VkExtent2D extent);
+        TextPipeline(
+            const std::shared_ptr<VulkanDevice> &device,
+            const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
+            VkExtent2D extent);
         ~TextPipeline() override;
 
         TextPipeline(const TextPipeline &) = delete;
@@ -24,7 +25,8 @@ namespace Bess::Vulkan::Pipelines {
         TextPipeline(TextPipeline &&other) noexcept;
         TextPipeline &operator=(TextPipeline &&other) noexcept;
 
-        void beginPipeline(VkCommandBuffer commandBuffer, bool isTranslucent) override;
+        void beginPipeline(VkCommandBuffer commandBuffer,
+                           bool isTranslucent) override;
         void endPipeline() override;
 
         void setTextData(const std::vector<InstanceVertex> &instances);

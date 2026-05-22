@@ -55,17 +55,15 @@ namespace Bess::SimEngine::Drivers {
 
         MAKE_GETTER_SETTER(UUID, Uuid, m_uuid)
         MAKE_GETTER_SETTER(std::string, Name, m_name)
-        MAKE_GETTER_SETTER(std::shared_ptr<CompDef>,
-                           Definition,
-                           m_def)
+        MAKE_GETTER_SETTER(std::shared_ptr<CompDef>, Definition, m_def)
 
         virtual Json::Value toJson() const;
         virtual void loadJson(const Json::Value &json);
 
         virtual void onPostSimulate() {}
 
-        virtual std::shared_ptr<SimFnDataBase> simulate(
-            const std::shared_ptr<SimFnDataBase> &data);
+        virtual std::shared_ptr<SimFnDataBase>
+        simulate(const std::shared_ptr<SimFnDataBase> &data);
 
       protected:
         UUID m_uuid; // will auto gen id for each instance
@@ -104,9 +102,7 @@ namespace Bess::SimEngine::Drivers {
             return SlotsCountChangeRes{true, true};
         }
 
-        bool hasChange() const {
-            return changedInp || changedOut;
-        }
+        bool hasChange() const { return changedInp || changedOut; }
     };
 
     class BESS_API SimDriver {
@@ -122,8 +118,9 @@ namespace Bess::SimEngine::Drivers {
         // returns whether driver will accept the component.
         virtual bool supportsDef(const std::shared_ptr<CompDef> &def) const = 0;
 
-        virtual std::shared_ptr<SimComponent> createComp(const std::shared_ptr<CompDef> &def,
-                                                         bool cloneDef = true) = 0;
+        virtual std::shared_ptr<SimComponent>
+        createComp(const std::shared_ptr<CompDef> &def,
+                   bool cloneDef = true) = 0;
 
         virtual UUID addComponent(const std::shared_ptr<SimComponent> &comp,
                                   bool scheduleSim);
@@ -135,33 +132,39 @@ namespace Bess::SimEngine::Drivers {
         virtual void clearPendingEvents() {}
 
         // Connection management
-        virtual std::pair<bool, std::string> canConnectComponents(
-            const UUID &src, int srcSlotIdx, SlotType srcType,
-            const UUID &dst, int dstSlotIdx, SlotType dstType) const = 0;
+        virtual std::pair<bool, std::string>
+        canConnectComponents(const UUID &src, int srcSlotIdx, SlotType srcType,
+                             const UUID &dst, int dstSlotIdx,
+                             SlotType dstType) const = 0;
 
-        virtual bool connectComponent(
-            const UUID &src, int srcSlotIdx, SlotType srcType,
-            const UUID &dst, int dstSlotIdx, SlotType dstType, bool overrideConn) = 0;
+        virtual bool connectComponent(const UUID &src, int srcSlotIdx,
+                                      SlotType srcType, const UUID &dst,
+                                      int dstSlotIdx, SlotType dstType,
+                                      bool overrideConn) = 0;
 
-        virtual void deleteConnection(
-            const UUID &compA, SlotType pinAType, int idxA,
-            const UUID &compB, SlotType pinBType, int idxB) = 0;
+        virtual void deleteConnection(const UUID &compA, SlotType pinAType,
+                                      int idxA, const UUID &compB,
+                                      SlotType pinBType, int idxB) = 0;
 
-        virtual SlotsCountChangeRes addSlot(const UUID &compId, SlotType type, int index,
-                                            bool force = false) = 0;
+        virtual SlotsCountChangeRes addSlot(const UUID &compId, SlotType type,
+                                            int index, bool force = false) = 0;
 
-        virtual SlotsCountChangeRes removeSlot(const UUID &compId, SlotType type, int index,
+        virtual SlotsCountChangeRes removeSlot(const UUID &compId,
+                                               SlotType type, int index,
                                                bool force = false) = 0;
 
         virtual ConnectionBundle getConnections(const UUID &uuid) const;
 
         virtual std::vector<SlotState> getInputSlotsState(const UUID &compId);
 
-        virtual SlotState getSlotState(const UUID &uuid, SlotType type, int idx) const;
+        virtual SlotState getSlotState(const UUID &uuid, SlotType type,
+                                       int idx) const;
 
-        virtual bool setInputSlotState(const UUID &uuid, int pinIdx, LogicState state);
+        virtual bool setInputSlotState(const UUID &uuid, int pinIdx,
+                                       LogicState state);
 
-        virtual bool setOutputSlotState(const UUID &uuid, int pinIdx, LogicState state);
+        virtual bool setOutputSlotState(const UUID &uuid, int pinIdx,
+                                        LogicState state);
 
         virtual ComponentState getComponentState(const UUID &uuid) const;
 
@@ -177,12 +180,14 @@ namespace Bess::SimEngine::Drivers {
 
         virtual void loadJson(const Json::Value &json) = 0;
 
-        void addOnSlotCountChangeCB(const UUID &id, const SlotCountChangeCB &cb);
+        void addOnSlotCountChangeCB(const UUID &id,
+                                    const SlotCountChangeCB &cb);
 
         void removeOnSlotCountChangeCB(const UUID &id);
 
       protected:
-        virtual void onComponentAdded(const std::shared_ptr<SimComponent> &comp) {}
+        virtual void
+        onComponentAdded(const std::shared_ptr<SimComponent> &comp) {}
 
         virtual void onInit() {};
 
@@ -198,21 +203,17 @@ namespace Bess::SimEngine::Drivers {
 
         virtual void onDestroy() {};
 
-        void triggerSlotCountChangeCbs(const UUID &compId, SlotType type, int newCount);
+        void triggerSlotCountChangeCbs(const UUID &compId, SlotType type,
+                                       int newCount);
 
       public:
         typedef std::shared_ptr<SimComponent> SimComponentPtr;
         typedef std::unordered_map<UUID, SimComponentPtr> ComponentsMap;
 
-        MAKE_GETTER_SETTER_MT(ComponentsMap,
-                              ComponentsMap,
-                              m_components,
+        MAKE_GETTER_SETTER_MT(ComponentsMap, ComponentsMap, m_components,
                               m_compMapMutex)
 
-        MAKE_GETTER_SETTER_MT(SimDriverState,
-                              State,
-                              m_state,
-                              m_stateMutex)
+        MAKE_GETTER_SETTER_MT(SimDriverState, State, m_state, m_stateMutex)
 
         bool hasComponent(const UUID &id) const;
 
@@ -223,8 +224,7 @@ namespace Bess::SimEngine::Drivers {
             if (!m_components.contains(id)) {
                 return nullptr;
             }
-            return std::dynamic_pointer_cast<TComp>(
-                m_components.at(id));
+            return std::dynamic_pointer_cast<TComp>(m_components.at(id));
         }
 
         void init();

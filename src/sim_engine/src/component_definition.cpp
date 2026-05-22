@@ -6,7 +6,8 @@
 #include <type_traits>
 
 template <>
-std::atomic_int Bess::TypeMap<std::shared_ptr<Bess::SimEngine::Trait>>::LastTypeId(0);
+std::atomic_int
+    Bess::TypeMap<std::shared_ptr<Bess::SimEngine::Trait>>::LastTypeId(0);
 
 namespace Bess::SimEngine {
     // --- hashing helpers (FNV-1a 64-bit) ---
@@ -14,7 +15,8 @@ namespace Bess::SimEngine {
         constexpr uint64_t FNV_OFFSET_BASIS_64 = 1469598103934665603ull;
         constexpr uint64_t FNV_PRIME_64 = 1099511628211ull;
 
-        inline uint64_t fnv1aBytes(uint64_t hash, const uint8_t *data, size_t len) noexcept {
+        inline uint64_t fnv1aBytes(uint64_t hash, const uint8_t *data,
+                                   size_t len) noexcept {
             for (size_t i = 0; i < len; ++i) {
                 hash ^= static_cast<uint64_t>(data[i]);
                 hash *= FNV_PRIME_64;
@@ -24,12 +26,16 @@ namespace Bess::SimEngine {
 
         template <typename T>
         inline uint64_t fnv1aPod(uint64_t hash, const T &value) noexcept {
-            static_assert(std::is_trivially_copyable_v<T>, "fnv1aPod requires trivially copyable type");
-            return fnv1aBytes(hash, reinterpret_cast<const uint8_t *>(&value), sizeof(T));
+            static_assert(std::is_trivially_copyable_v<T>,
+                          "fnv1aPod requires trivially copyable type");
+            return fnv1aBytes(hash, reinterpret_cast<const uint8_t *>(&value),
+                              sizeof(T));
         }
 
-        inline uint64_t fnv1aString(uint64_t hash, const std::string &s) noexcept {
-            return fnv1aBytes(hash, reinterpret_cast<const uint8_t *>(s.data()), s.size());
+        inline uint64_t fnv1aString(uint64_t hash,
+                                    const std::string &s) noexcept {
+            return fnv1aBytes(hash, reinterpret_cast<const uint8_t *>(s.data()),
+                              s.size());
         }
 
         template <typename E>
@@ -40,7 +46,8 @@ namespace Bess::SimEngine {
         }
 
         template <typename T>
-        inline uint64_t hashVector(uint64_t hash, const std::vector<T> &vec, auto elemHasher) noexcept {
+        inline uint64_t hashVector(uint64_t hash, const std::vector<T> &vec,
+                                   auto elemHasher) noexcept {
             hash = fnv1aPod(hash, vec.size());
             for (const auto &elem : vec) {
                 hash = elemHasher(hash, elem);
@@ -56,16 +63,15 @@ namespace Bess::SimEngine {
         return std::make_shared<Trait>(*this);
     }
 
-    bool ComponentDefinition::onSlotsResizeReq(SlotsGroupType groupType, size_t newSize) {
+    bool ComponentDefinition::onSlotsResizeReq(SlotsGroupType groupType,
+                                               size_t newSize) {
         if (groupType == SlotsGroupType::input)
             return m_inputSlotsInfo.isResizeable;
         else
             return m_outputSlotsInfo.isResizeable;
     }
 
-    uint64_t ComponentDefinition::getHash() const {
-        return m_hash;
-    }
+    uint64_t ComponentDefinition::getHash() const { return m_hash; }
 
     void ComponentDefinition::computeHash() {
         uint64_t hash = FNV_OFFSET_BASIS_64;
@@ -105,7 +111,8 @@ namespace Bess::SimEngine {
         }
 
         if (m_inputSlotsInfo.count <= 0) {
-            BESS_WARN("[SimulationEngine][ComponentDefinition] Input count not provided for expression(s) generation");
+            BESS_WARN("[SimulationEngine][ComponentDefinition] Input count not "
+                      "provided for expression(s) generation");
             return false;
         }
 
@@ -126,7 +133,8 @@ namespace Bess::SimEngine {
         } else if (ExprEval::isUninaryOperator(m_opInfo.op)) {
             m_outputExpressions.reserve(m_inputSlotsInfo.count);
             for (size_t i = 0; i < m_inputSlotsInfo.count; i++) {
-                m_outputExpressions.emplace_back(std::format("{}{}", m_opInfo.op, i));
+                m_outputExpressions.emplace_back(
+                    std::format("{}{}", m_opInfo.op, i));
             }
         } else {
             BESS_ERROR("Invalid IO config for expression generation");
@@ -143,8 +151,9 @@ namespace Bess::SimEngine {
     }
 
     std::shared_ptr<ComponentDefinition> ComponentDefinition::clone() const {
-        assert(m_ownership == CompDefinitionOwnership::NativeCpp &&
-               "Cloning of Python-owned ComponentDefinitions is not supported.");
+        assert(
+            m_ownership == CompDefinitionOwnership::NativeCpp &&
+            "Cloning of Python-owned ComponentDefinitions is not supported.");
         return std::make_shared<ComponentDefinition>(*this);
     }
 
@@ -154,10 +163,14 @@ namespace Bess::SimEngine {
 
     SimTime ComponentDefinition::getRescheduleTime(SimTime currentTime) const {
         if (!m_shouldAutoReschedule) {
-            BESS_ERROR("[ComponentDefinition] For comp {}, getRescheduleTime called on component that should not auto-reschedule", m_name);
+            BESS_ERROR("[ComponentDefinition] For comp {}, getRescheduleTime "
+                       "called on component that should not auto-reschedule",
+                       m_name);
         }
 
-        BESS_WARN("[ComponentDefinition] Using base `getRescheduleTime` for component {}", m_name);
+        BESS_WARN("[ComponentDefinition] Using base `getRescheduleTime` for "
+                  "component {}",
+                  m_name);
         return getSimDelay() + currentTime;
     }
 } // namespace Bess::SimEngine

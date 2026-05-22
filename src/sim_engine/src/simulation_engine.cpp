@@ -44,8 +44,7 @@ namespace Bess::SimEngine {
             for (const auto &comp : comps) {
                 catalog.registerComponent(comp);
             }
-            BESS_INFO("Registered {} components from plugin {}",
-                      comps.size(),
+            BESS_INFO("Registered {} components from plugin {}", comps.size(),
                       plugin.first);
         }
         Plugins::savePyThreadState();
@@ -80,9 +79,7 @@ namespace Bess::SimEngine {
         }
     }
 
-    SimulationEngine::~SimulationEngine() {
-        destroy();
-    }
+    SimulationEngine::~SimulationEngine() { destroy(); }
 
     void SimulationEngine::destroy() {
         if (m_destroyed)
@@ -108,14 +105,11 @@ namespace Bess::SimEngine {
 
     void SimulationEngine::clearEventsForEntity(const UUID &id) {
         std::lock_guard lk(m_queueMutex);
-        std::erase_if(m_eventSet, [id](auto it) {
-            return it.compId == id;
-        });
+        std::erase_if(m_eventSet, [id](auto it) { return it.compId == id; });
     }
 
     const UUID &SimulationEngine::addComponent(
-        const std::shared_ptr<Drivers::CompDef> &definition,
-        bool cloneDef) {
+        const std::shared_ptr<Drivers::CompDef> &definition, bool cloneDef) {
         for (const auto &driver : m_simDrivers) {
             if (driver->supportsDef(definition)) {
                 auto comp = driver->createComp(definition, cloneDef);
@@ -133,8 +127,9 @@ namespace Bess::SimEngine {
         return UUID::null;
     }
 
-    std::pair<bool, std::string> SimulationEngine::canConnectComponents(const UUID &src, int srcSlot, SlotType srcType,
-                                                                        const UUID &dst, int dstSlot, SlotType dstType) const {
+    std::pair<bool, std::string> SimulationEngine::canConnectComponents(
+        const UUID &src, int srcSlot, SlotType srcType, const UUID &dst,
+        int dstSlot, SlotType dstType) const {
         if (src == UUID::null || dst == UUID::null) {
             return {false, "Cannot connect to/from null component"};
         }
@@ -148,18 +143,24 @@ namespace Bess::SimEngine {
         }
 
         if (!srcDriver || !dstDriver) {
-            return {false, "Source or destination component does not exist in any driver"};
+            return {
+                false,
+                "Source or destination component does not exist in any driver"};
         }
 
         if (srcDriver != dstDriver) {
-            return {false, "Cross-driver connection is not currently supported generically"};
+            return {false, "Cross-driver connection is not currently supported "
+                           "generically"};
         }
 
-        return srcDriver->canConnectComponents(src, srcSlot, srcType, dst, dstSlot, dstType);
+        return srcDriver->canConnectComponents(src, srcSlot, srcType, dst,
+                                               dstSlot, dstType);
     }
 
-    bool SimulationEngine::connectComponent(const UUID &src, int srcSlot, SlotType srcType,
-                                            const UUID &dst, int dstSlot, SlotType dstType, bool overrideConn) {
+    bool SimulationEngine::connectComponent(const UUID &src, int srcSlot,
+                                            SlotType srcType, const UUID &dst,
+                                            int dstSlot, SlotType dstType,
+                                            bool overrideConn) {
         std::shared_ptr<Drivers::SimDriver> srcDriver, dstDriver;
         for (const auto &driver : m_simDrivers) {
             if (driver->hasComponent(src))
@@ -173,7 +174,8 @@ namespace Bess::SimEngine {
         }
 
         std::lock_guard lk(m_registryMutex);
-        return srcDriver->connectComponent(src, srcSlot, srcType, dst, dstSlot, dstType, overrideConn);
+        return srcDriver->connectComponent(src, srcSlot, srcType, dst, dstSlot,
+                                           dstType, overrideConn);
     }
 
     void SimulationEngine::deleteComponent(const UUID &uuid) {
@@ -219,7 +221,8 @@ namespace Bess::SimEngine {
         // for (const auto &graphPair : connGraphs) {
         //     Net newNet{};
         //     for (const auto &entInGraph : graphPair.second) {
-        //         const auto &compInGraph = m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(entInGraph);
+        //         const auto &compInGraph =
+        //         m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(entInGraph);
         //
         //         if (m_nets.contains(compInGraph->netUuid)) {
         //             auto &prevNet = m_nets[compInGraph->netUuid];
@@ -240,9 +243,11 @@ namespace Bess::SimEngine {
         // return true;
     }
 
-    SlotState SimulationEngine::getDigitalSlotState(const UUID &uuid, SlotType type, int idx) {
+    SlotState SimulationEngine::getDigitalSlotState(const UUID &uuid,
+                                                    SlotType type, int idx) {
         if (!getComponentDefinition(uuid)) {
-            BESS_WARN("[getDigitalPinState] Component with UUID {} is invalid", (uint64_t)uuid);
+            BESS_WARN("[getDigitalPinState] Component with UUID {} is invalid",
+                      (uint64_t)uuid);
             return {LogicState::unknown, SimTime(0)};
         }
 
@@ -273,7 +278,8 @@ namespace Bess::SimEngine {
         return bundle;
     }
 
-    void SimulationEngine::setInputSlotState(const UUID &uuid, int pinIdx, LogicState state) {
+    void SimulationEngine::setInputSlotState(const UUID &uuid, int pinIdx,
+                                             LogicState state) {
         for (const auto &driver : m_simDrivers) {
             if (driver->hasComponent(uuid)) {
                 driver->setInputSlotState(uuid, pinIdx, state);
@@ -281,10 +287,12 @@ namespace Bess::SimEngine {
             }
         }
 
-        BESS_WARN("[setInputSlotState] Component with UUID {} is invalid", (uint64_t)uuid);
+        BESS_WARN("[setInputSlotState] Component with UUID {} is invalid",
+                  (uint64_t)uuid);
     }
 
-    void SimulationEngine::setOutputSlotState(const UUID &uuid, int pinIdx, LogicState state) {
+    void SimulationEngine::setOutputSlotState(const UUID &uuid, int pinIdx,
+                                              LogicState state) {
         for (const auto &driver : m_simDrivers) {
             if (driver->hasComponent(uuid)) {
                 driver->setOutputSlotState(uuid, pinIdx, state);
@@ -292,33 +300,40 @@ namespace Bess::SimEngine {
             }
         }
 
-        BESS_WARN("[setOutputSlotState] Component with UUID {} is invalid", (uint64_t)uuid);
+        BESS_WARN("[setOutputSlotState] Component with UUID {} is invalid",
+                  (uint64_t)uuid);
     }
 
     void SimulationEngine::invertInputSlotState(const UUID &uuid, int pinIdx) {
-        // const auto comp = m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(uuid);
+        // const auto comp =
+        // m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(uuid);
         // if (!comp) {
-        //     BESS_WARN("[invertInputSlotState] Component with UUID {} is invalid", (uint64_t)uuid);
-        //     return;
+        //     BESS_WARN("[invertInputSlotState] Component with UUID {} is
+        //     invalid", (uint64_t)uuid); return;
         // }
         //
-        // if (pinIdx < 0 || static_cast<size_t>(pinIdx) >= comp->state.inputStates.size()) {
-        //     BESS_WARN("[invertInputSlotState] Input slot index {} out of range for component {}",
+        // if (pinIdx < 0 || static_cast<size_t>(pinIdx) >=
+        // comp->state.inputStates.size()) {
+        //     BESS_WARN("[invertInputSlotState] Input slot index {} out of
+        //     range for component {}",
         //               pinIdx,
         //               (uint64_t)uuid);
         //     return;
         // }
         //
-        // const auto state = comp->state.inputStates[pinIdx].state == LogicState::high
+        // const auto state = comp->state.inputStates[pinIdx].state ==
+        // LogicState::high
         //                        ? LogicState::low
         //                        : LogicState::high;
         //
         // comp->state.inputStates[pinIdx].state = state;
         // comp->state.inputStates[pinIdx].lastChangeTime = m_currentSimTime;
-        // scheduleEvent(uuid, UUID::null, m_currentSimTime + comp->definition->getSimDelay());
+        // scheduleEvent(uuid, UUID::null, m_currentSimTime +
+        // comp->definition->getSimDelay());
     }
 
-    const ComponentState &SimulationEngine::getComponentState(const UUID &uuid) {
+    const ComponentState &
+    SimulationEngine::getComponentState(const UUID &uuid) {
         static thread_local ComponentState snapshot;
         snapshot = {};
 
@@ -332,14 +347,16 @@ namespace Bess::SimEngine {
         return snapshot;
     }
 
-    const std::shared_ptr<Drivers::CompDef> &SimulationEngine::getComponentDefinition(
-        const UUID &uuid) const {
+    const std::shared_ptr<Drivers::CompDef> &
+    SimulationEngine::getComponentDefinition(const UUID &uuid) const {
         const auto &comp = getComponent<Drivers::SimComponent>(uuid);
         return comp->getDefinition();
     }
 
-    void SimulationEngine::deleteConnection(const UUID &compA, SlotType pinAType, int idxA,
-                                            const UUID &compB, SlotType pinBType, int idxB) {
+    void SimulationEngine::deleteConnection(const UUID &compA,
+                                            SlotType pinAType, int idxA,
+                                            const UUID &compB,
+                                            SlotType pinBType, int idxB) {
         std::shared_ptr<Drivers::SimDriver> aDriver, bDriver;
         for (const auto &driver : m_simDrivers) {
             if (driver->hasComponent(compA))
@@ -356,7 +373,8 @@ namespace Bess::SimEngine {
         aDriver->deleteConnection(compA, pinAType, idxA, compB, pinBType, idxB);
     }
 
-    std::vector<SlotState> SimulationEngine::getInputSlotsState(UUID compId) const {
+    std::vector<SlotState>
+    SimulationEngine::getInputSlotsState(UUID compId) const {
         for (const auto &driver : m_simDrivers) {
             if (driver->hasComponent(compId)) {
                 return driver->getInputSlotsState(compId);
@@ -366,16 +384,22 @@ namespace Bess::SimEngine {
         return {};
     }
 
-    bool SimulationEngine::simulateComponent(const UUID &compId, const std::vector<SlotState> &inputs) {
+    bool
+    SimulationEngine::simulateComponent(const UUID &compId,
+                                        const std::vector<SlotState> &inputs) {
         return false;
-        //         const auto &comp = m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(compId);
+        //         const auto &comp =
+        //         m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(compId);
         //         BESS_ASSERT(comp,
-        //                     std::format("Component {} is invalid", (uint64_t)compId));
+        //                     std::format("Component {} is invalid",
+        //                     (uint64_t)compId));
         //         const auto &def = comp->definition;
         //         BESS_ASSERT(def,
-        //                     std::format("Component definition of {} is invalid", (uint64_t)comp->id));
+        //                     std::format("Component definition of {} is
+        //                     invalid", (uint64_t)comp->id));
         // #ifdef BESS_ENABLE_LOG_EVENTS
-        //         BESS_LOG_EVENT("Simulating {}, with delay {}ns", def->getName(), def->getSimDelay().count());
+        //         BESS_LOG_EVENT("Simulating {}, with delay {}ns",
+        //         def->getName(), def->getSimDelay().count());
         //         BESS_LOG_EVENT("\tInputs:");
         //         for (auto &inp : inputs) {
         //             BESS_LOG_EVENT("\t\t{}", (int)inp.state);
@@ -386,18 +410,21 @@ namespace Bess::SimEngine {
         //         auto &simFunction = def->getSimulationFunction();
         //
         //         if (!simFunction) {
-        //             BESS_ERROR("Component {} does not have a simulation function defined. Skipping simulation.", def->getName());
-        //             assert(false && "Simulation function not defined for component");
-        //             return false;
+        //             BESS_ERROR("Component {} does not have a simulation
+        //             function defined. Skipping simulation.", def->getName());
+        //             assert(false && "Simulation function not defined for
+        //             component"); return false;
         //         }
         //
         //         comp->state.simError = false;
         //         auto oldState = comp->state;
         //         ComponentState newState;
         //         try {
-        //             newState = def->getSimulationFunction()(inputs, m_currentSimTime, comp->state);
+        //             newState = def->getSimulationFunction()(inputs,
+        //             m_currentSimTime, comp->state);
         //         } catch (std::exception &ex) {
-        //             BESS_ERROR("Exception during simulation of component {}. Output won't be updated: {}",
+        //             BESS_ERROR("Exception during simulation of component {}.
+        //             Output won't be updated: {}",
         //                        def->getName(), ex.what());
         //             comp->state.simError = true;
         //             comp->state.errorMessage = ex.what();
@@ -406,7 +433,8 @@ namespace Bess::SimEngine {
         //
         //         comp->state.inputStates = inputs;
         //
-        //         BESS_LOG_EVENT("\tState changed: {}", newState.isChanged ? "YES" : "NO");
+        //         BESS_LOG_EVENT("\tState changed: {}", newState.isChanged ?
+        //         "YES" : "NO");
         //
         //         if (newState.isChanged && !comp->state.simError) {
         //             comp->state = newState;
@@ -419,9 +447,11 @@ namespace Bess::SimEngine {
         //         }
         //
         //         // FIXME: State monitor logic
-        //         // if (auto *stateMonitor = m_registry.try_get<StateMonitorComponent>(e)) {
-        //         //     stateMonitor->appendState(newState.inputStates[0].lastChangeTime,
-        //         //                               newState.inputStates[0].state);
+        //         // if (auto *stateMonitor =
+        //         m_registry.try_get<StateMonitorComponent>(e)) {
+        //         //
+        //         stateMonitor->appendState(newState.inputStates[0].lastChangeTime,
+        //         // newState.inputStates[0].state);
         //         // }
         //         //
         //
@@ -510,8 +540,8 @@ namespace Bess::SimEngine {
         // while (!m_stopFlag.load()) {
         //     std::unique_lock queueLock(m_queueMutex);
         //
-        //     m_queueCV.wait(queueLock, [&] { return m_stopFlag.load() || !m_eventSet.empty(); });
-        //     if (m_stopFlag.load())
+        //     m_queueCV.wait(queueLock, [&] { return m_stopFlag.load() ||
+        //     !m_eventSet.empty(); }); if (m_stopFlag.load())
         //         break;
         //
         //     std::unique_lock stateLock(m_stateMutex);
@@ -519,8 +549,10 @@ namespace Bess::SimEngine {
         //         queueLock.unlock();
         //         m_stepFlag.store(false);
         //         m_stateCV.wait(stateLock, [&] { return m_stopFlag.load() ||
-        //                                                m_simState.load() == SimulationState::running ||
-        //                                                m_stepFlag.load(); });
+        //                                                m_simState.load() ==
+        //                                                SimulationState::running
+        //                                                || m_stepFlag.load();
+        //                                                });
         //         queueLock.lock();
         //     }
         //
@@ -534,24 +566,29 @@ namespace Bess::SimEngine {
         //     m_currentSimTime = m_eventSet.begin()->simTime;
         //
         //     std::set<SimulationEvent> eventsToSim = {};
-        //     while (!m_eventSet.empty() && m_eventSet.begin()->simTime == m_currentSimTime) {
+        //     while (!m_eventSet.empty() && m_eventSet.begin()->simTime ==
+        //     m_currentSimTime) {
         //         auto ev = *m_eventSet.begin();
-        //         if (!eventsToSim.empty() && eventsToSim.rbegin()->schedulerId != ev.schedulerId)
+        //         if (!eventsToSim.empty() && eventsToSim.rbegin()->schedulerId
+        //         != ev.schedulerId)
         //             break;
         //         eventsToSim.insert(ev);
         //         m_eventSet.erase(m_eventSet.begin());
         //     }
         //
         //     BESS_LOG_EVENT("");
-        //     BESS_LOG_EVENT("[SimulationEngine][t = {}ns][dt = {}ns] Picked {} events to simulate",
-        //                    m_currentSimTime.count(), deltaTime.count(), eventsToSim.size());
+        //     BESS_LOG_EVENT("[SimulationEngine][t = {}ns][dt = {}ns] Picked {}
+        //     events to simulate",
+        //                    m_currentSimTime.count(), deltaTime.count(),
+        //                    eventsToSim.size());
         //
         //     std::unordered_map<UUID, std::vector<SlotState>> inputsMap = {};
         //
         //     for (auto &ev : eventsToSim) {
         //         inputsMap[ev.compId] = getInputSlotsState(ev.compId);
         //     }
-        //     BESS_LOG_EVENT("[SimulationEngine] Selected {} unique entites to simulate", inputsMap.size());
+        //     BESS_LOG_EVENT("[SimulationEngine] Selected {} unique entites to
+        //     simulate", inputsMap.size());
         //
         //     m_isSimulating = true;
         //     for (auto &[compId, inputs] : inputsMap) {
@@ -562,7 +599,8 @@ namespace Bess::SimEngine {
         //             std::lock_guard regLock(m_registryMutex);
         //
         //             const bool changed = simulateComponent(compId, inputs);
-        //             const auto &dc = m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(compId);
+        //             const auto &dc =
+        //             m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(compId);
         //
         //             if (changed) {
         //                 scheduleDependantsOf(compId);
@@ -585,11 +623,13 @@ namespace Bess::SimEngine {
         //     BESS_LOG_EVENT("");
         //
         //     if (!m_eventSet.empty()) {
-        //         m_queueCV.wait_until(queueLock, std::chrono::steady_clock::now() +
-        //                                             (m_eventSet.begin()->simTime - m_currentSimTime));
+        //         m_queueCV.wait_until(queueLock,
+        //         std::chrono::steady_clock::now() +
+        //                                             (m_eventSet.begin()->simTime
+        //                                             - m_currentSimTime));
         //     } else {
-        //         BESS_DEBUG("[BessSimEngine] Event queue empty, waiting for new events");
-        //         m_queueCV.notify_all();
+        //         BESS_DEBUG("[BessSimEngine] Event queue empty, waiting for
+        //         new events"); m_queueCV.notify_all();
         //     }
         // }
     }
@@ -601,7 +641,8 @@ namespace Bess::SimEngine {
         // if (!m_simEngineState.isComponentValid(uuid))
         //     return false;
         //
-        // const auto digiComp = m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(uuid);
+        // const auto digiComp =
+        // m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(uuid);
         // // digiComp->updateInputCount(n);
         // return true;
     }
@@ -623,11 +664,13 @@ namespace Bess::SimEngine {
         //     visited.insert(current);
         //     graph.push_back(current);
         //
-        //     const auto &comp = m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(current);
+        //     const auto &comp =
+        //     m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(current);
         //
         //     for (const auto &pinConnections : comp->inputConnections) {
         //         for (const auto &conn : pinConnections) {
-        //             if (conn.first != UUID::null && !visited.contains(conn.first)) {
+        //             if (conn.first != UUID::null &&
+        //             !visited.contains(conn.first)) {
         //                 toVisit.push_back(conn.first);
         //             }
         //         }
@@ -635,7 +678,8 @@ namespace Bess::SimEngine {
         //
         //     for (const auto &pinConnections : comp->outputConnections) {
         //         for (const auto &conn : pinConnections) {
-        //             if (conn.first != UUID::null && !visited.contains(conn.first)) {
+        //             if (conn.first != UUID::null &&
+        //             !visited.contains(conn.first)) {
         //                 toVisit.push_back(conn.first);
         //             }
         //         }
@@ -663,7 +707,8 @@ namespace Bess::SimEngine {
         m_isNetUpdated = updated;
     }
 
-    const std::unordered_map<UUID, Net> &SimulationEngine::getNetsMap(bool update) {
+    const std::unordered_map<UUID, Net> &
+    SimulationEngine::getNetsMap(bool update) {
         m_nets.clear();
         for (const auto &driver : m_simDrivers) {
             const auto &driverNets = driver->getNetsMap();
@@ -697,7 +742,8 @@ namespace Bess::SimEngine {
         m_pendingSignalSources.insert(sourceId);
     }
 
-    bool SimulationEngine::addSlot(const UUID &compId, SlotType type, int index, bool force) {
+    bool SimulationEngine::addSlot(const UUID &compId, SlotType type, int index,
+                                   bool force) {
         for (const auto &driver : m_simDrivers) {
             if (driver->hasComponent(compId)) {
                 const auto res = driver->addSlot(compId, type, index, force);
@@ -721,13 +767,11 @@ namespace Bess::SimEngine {
         return false;
     }
 
-    bool SimulationEngine::removeSlot(const UUID &compId, SlotType type, int index, bool force) {
+    bool SimulationEngine::removeSlot(const UUID &compId, SlotType type,
+                                      int index, bool force) {
         for (const auto &driver : m_simDrivers) {
             if (driver->hasComponent(compId)) {
-                const auto res = driver->removeSlot(compId,
-                                                    type,
-                                                    index,
-                                                    force);
+                const auto res = driver->removeSlot(compId, type, index, force);
 
                 if (!res.hasChange())
                     return false;
@@ -769,17 +813,22 @@ namespace Bess::SimEngine {
         //     if (compUuid == UUID::null)
         //         continue;
         //
-        //     const auto &comp = m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(compUuid);
-        //     bool isInput = comp->definition->getBehaviorType() == ComponentBehaviorType::input;
-        //     bool isOutput = comp->definition->getBehaviorType() == ComponentBehaviorType::output;
+        //     const auto &comp =
+        //     m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(compUuid);
+        //     bool isInput = comp->definition->getBehaviorType() ==
+        //     ComponentBehaviorType::input; bool isOutput =
+        //     comp->definition->getBehaviorType() ==
+        //     ComponentBehaviorType::output;
         //
         //     if (isInput) {
-        //         for (int i = 0; i < comp->definition->getOutputSlotsInfo().count; i++) {
+        //         for (int i = 0; i <
+        //         comp->definition->getOutputSlotsInfo().count; i++) {
         //             inputs.emplace_back(compUuid, i);
         //             truthTable.inputUuids.push_back(compUuid);
         //         }
         //     } else if (isOutput) {
-        //         for (int i = 0; i < comp->definition->getInputSlotsInfo().count; i++) {
+        //         for (int i = 0; i <
+        //         comp->definition->getInputSlotsInfo().count; i++) {
         //             outputs.emplace_back(compUuid, i);
         //             truthTable.outputUuids.push_back(compUuid);
         //         }
@@ -789,19 +838,22 @@ namespace Bess::SimEngine {
         // }
         //
         // if (inputs.size() == 0 || outputs.size() == 0) {
-        //     BESS_WARN("Cannot generate truth table for net {} without input or output components",
+        //     BESS_WARN("Cannot generate truth table for net {} without input
+        //     or output components",
         //               (uint64_t)netUuid);
         //     return {};
         // }
         //
-        // BESS_INFO("Truth table will have {} inputs and {} outputs", inputs.size(), outputs.size());
+        // BESS_INFO("Truth table will have {} inputs and {} outputs",
+        // inputs.size(), outputs.size());
         //
         // const size_t numInputs = inputs.size();
         // const size_t numCombinations = 1 << numInputs;
         //
         // std::vector<std::vector<LogicState>> tableData(numCombinations,
         //                                                std::vector<LogicState>(
-        //                                                    numInputs + outputs.size(),
+        //                                                    numInputs +
+        //                                                    outputs.size(),
         //                                                    LogicState::low));
         //
         // BESS_INFO("Truth table dimensions: {} rows x {} columns",
@@ -811,14 +863,13 @@ namespace Bess::SimEngine {
         // BESS_INFO("Total combinations to simulate: {}", numCombinations);
         //
         // for (size_t comb = 0; comb < numCombinations; comb++) {
-        //     BESS_INFO("Simulating combination {}/{}: ", comb + 1, numCombinations);
-        //     size_t runningIdx = numInputs - 1, i = 0;
-        //     for (const auto &[inpUuid, slotIdx] : inputs) {
+        //     BESS_INFO("Simulating combination {}/{}: ", comb + 1,
+        //     numCombinations); size_t runningIdx = numInputs - 1, i = 0; for
+        //     (const auto &[inpUuid, slotIdx] : inputs) {
         //         std::lock_guard lk(m_registryMutex);
-        //         const LogicState state = (comb & (1 << i)) ? LogicState::high : LogicState::low;
-        //         setOutputSlotState(inpUuid, slotIdx, state);
-        //         tableData[comb][runningIdx] = state;
-        //         runningIdx--;
+        //         const LogicState state = (comb & (1 << i)) ? LogicState::high
+        //         : LogicState::low; setOutputSlotState(inpUuid, slotIdx,
+        //         state); tableData[comb][runningIdx] = state; runningIdx--;
         //         i++;
         //     }
         //
@@ -840,16 +891,17 @@ namespace Bess::SimEngine {
         //     std::lock_guard lk(m_queueMutex);
         //     for (size_t i = 0; i < outputs.size(); i++) {
         //         const auto states = getInputSlotsState(outputs[i].first);
-        //         tableData[comb][numInputs + i] = states[outputs[i].second].state;
-        //         BESS_DEBUG("Output component {} slot {} state: {}",
+        //         tableData[comb][numInputs + i] =
+        //         states[outputs[i].second].state; BESS_DEBUG("Output component
+        //         {} slot {} state: {}",
         //                    (uint64_t)outputs[i].first,
         //                    outputs[i].second,
         //                    (int)tableData[comb][numInputs + i]);
         //     }
         // }
         //
-        // BESS_INFO("Truth table generation completed for net {}\n", (uint64_t)netUuid);
-        // std::ranges::reverse(truthTable.inputUuids);
+        // BESS_INFO("Truth table generation completed for net {}\n",
+        // (uint64_t)netUuid); std::ranges::reverse(truthTable.inputUuids);
         // truthTable.table = tableData;
         //
         // return truthTable;
@@ -868,7 +920,8 @@ namespace Bess::SimEngine {
         return m_eventSet.empty();
     }
 
-    const std::vector<std::shared_ptr<Drivers::SimDriver>> &SimulationEngine::getDrivers() const {
+    const std::vector<std::shared_ptr<Drivers::SimDriver>> &
+    SimulationEngine::getDrivers() const {
         return m_simDrivers;
     }
 
@@ -893,15 +946,18 @@ namespace Bess::SimEngine {
     }
 
     void SimulationEngine::scheduleDependantsOf(const UUID &compId) {
-        // const auto &dc = m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(compId);
+        // const auto &dc =
+        // m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(compId);
         // if (!dc) {
         //     return;
         // }
         // for (auto &pin : dc->outputConnections) {
         //     const auto &keyView = pin | std::views::keys;
-        //     const std::set<UUID> uniqueEntities = std::set<UUID>(keyView.begin(), keyView.end());
-        //     for (auto &ent : uniqueEntities) {
-        //         const auto dependant = m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(ent);
+        //     const std::set<UUID> uniqueEntities =
+        //     std::set<UUID>(keyView.begin(), keyView.end()); for (auto &ent :
+        //     uniqueEntities) {
+        //         const auto dependant =
+        //         m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(ent);
         //         if (!dependant || !dependant->definition) {
         //             continue;
         //         }
@@ -914,8 +970,7 @@ namespace Bess::SimEngine {
     }
 
     void SimulationEngine::loadDrivers() {
-        for (const auto &[name, loader] :
-             DriverRegistry::getRegistry()) {
+        for (const auto &[name, loader] : DriverRegistry::getRegistry()) {
             auto driver = loader();
             if (driver) {
                 m_simDrivers.push_back(driver);
@@ -968,18 +1023,20 @@ namespace Bess::SimEngine {
         }
     }
 
-    void SimulationEngine::addOnSlotCountChangeCB(const UUID &id,
-                                                  const Drivers::SlotCountChangeCB &cb) {
+    void SimulationEngine::addOnSlotCountChangeCB(
+        const UUID &id, const Drivers::SlotCountChangeCB &cb) {
         for (const auto &driver : m_simDrivers) {
             if (driver->hasComponent(id)) {
                 driver->addOnSlotCountChangeCB(id, cb);
-                BESS_DEBUG("Added slot count change callback for component with UUID {} to driver {}",
+                BESS_DEBUG("Added slot count change callback for component "
+                           "with UUID {} to driver {}",
                            (uint64_t)id, driver->getName());
                 return;
             }
         }
 
-        BESS_WARN("Component with UUID {} not found in any driver. Cannot add slot count change callback.",
+        BESS_WARN("Component with UUID {} not found in any driver. Cannot add "
+                  "slot count change callback.",
                   (uint64_t)id);
     }
 
@@ -987,19 +1044,20 @@ namespace Bess::SimEngine {
         for (const auto &driver : m_simDrivers) {
             if (driver->hasComponent(id)) {
                 driver->removeOnSlotCountChangeCB(id);
-                BESS_DEBUG("Removed slot count change callback for component with UUID {} from driver {}",
-                           (uint64_t)id,
-                           driver->getName());
+                BESS_DEBUG("Removed slot count change callback for component "
+                           "with UUID {} from driver {}",
+                           (uint64_t)id, driver->getName());
                 return;
             }
         }
 
-        BESS_WARN("Component with UUID {} not found in any driver. Cannot remove slot count change callback.",
+        BESS_WARN("Component with UUID {} not found in any driver. Cannot "
+                  "remove slot count change callback.",
                   (uint64_t)id);
     }
 
-    std::shared_ptr<Drivers::SimDriver> SimulationEngine::getDriverWithName(
-        const std::string &name) const {
+    std::shared_ptr<Drivers::SimDriver>
+    SimulationEngine::getDriverWithName(const std::string &name) const {
         for (const auto &driver : m_simDrivers) {
             if (driver->getName() == name) {
                 return driver;

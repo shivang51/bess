@@ -10,12 +10,10 @@
 
 namespace Bess::Canvas {
     SceneComponent::SceneComponent()
-        : m_uuid{UUID()}, m_icon(UI::Icons::FontAwesomeIcons::FA_CUBE) {
-    }
+        : m_uuid{UUID()},
+          m_icon(UI::Icons::FontAwesomeIcons::FA_CUBE) {}
 
-    bool SceneComponent::isDraggable() const {
-        return m_isDraggable;
-    }
+    bool SceneComponent::isDraggable() const { return m_isDraggable; }
 
     void SceneComponent::setPosition(const glm::vec3 &pos) {
         m_transform.position = pos;
@@ -39,7 +37,8 @@ namespace Bess::Canvas {
     }
 
     glm::vec2 SceneComponent::calculateScale(const SceneState &_) {
-        const auto labelSize = Renderer::MaterialRenderer::getTextRenderSize(m_name, Styles::componentStyles.headerFontSize);
+        const auto labelSize = Renderer::MaterialRenderer::getTextRenderSize(
+            m_name, Styles::componentStyles.headerFontSize);
         float width = labelSize.x + (Styles::componentStyles.paddingX * 2.f);
         return {width, Styles::componentStyles.headerHeight};
     }
@@ -78,7 +77,8 @@ namespace Bess::Canvas {
         onChildrenChanged();
     }
 
-    glm::vec3 SceneComponent::getAbsolutePosition(const SceneState &state) const {
+    glm::vec3
+    SceneComponent::getAbsolutePosition(const SceneState &state) const {
         if (m_parentComponent == UUID::null) {
             return m_transform.position;
         }
@@ -116,31 +116,33 @@ namespace Bess::Canvas {
     void SceneComponent::onAttach(SceneState &state) {}
 
     Json::Value SceneComponent::toJson() const {
-        auto json = SERIALIZE_PROPS(("uuid", getUuid, setUuid),
-                                    ("transform", getTransform, setTransform),
-                                    ("style", getStyle, setStyle),
-                                    ("name", getName, setName),
-                                    ("parentComponent", getParentComponent, setParentComponent),
-                                    ("childComponents", getChildComponents, setChildComponents),
-                                    ("typeName", getTypeName));
+        auto json = SERIALIZE_PROPS(
+            ("uuid", getUuid, setUuid),
+            ("transform", getTransform, setTransform),
+            ("style", getStyle, setStyle), ("name", getName, setName),
+            ("parentComponent", getParentComponent, setParentComponent),
+            ("childComponents", getChildComponents, setChildComponents),
+            ("typeName", getTypeName));
 
         return json;
     }
 
     void SceneComponent::fromJson(const Json::Value &j,
                                   const std::shared_ptr<SceneComponent> &ptr) {
-        DESERIALIZE_PROPS(ptr, ("uuid", getUuid, setUuid),
-                          ("transform", getTransform, setTransform),
-                          ("style", getStyle, setStyle),
-                          ("name", getName, setName),
-                          ("parentComponent", getParentComponent, setParentComponent),
-                          ("childComponents", getChildComponents, setChildComponents));
+        DESERIALIZE_PROPS(
+            ptr, ("uuid", getUuid, setUuid),
+            ("transform", getTransform, setTransform),
+            ("style", getStyle, setStyle), ("name", getName, setName),
+            ("parentComponent", getParentComponent, setParentComponent),
+            ("childComponents", getChildComponents, setChildComponents));
     }
 
-    std::vector<UUID> SceneComponent::getDependants(const SceneState &state) const {
+    std::vector<UUID>
+    SceneComponent::getDependants(const SceneState &state) const {
         return m_childComponents.empty()
                    ? std::vector<UUID>{}
-                   : std::vector<UUID>(m_childComponents.begin(), m_childComponents.end());
+                   : std::vector<UUID>(m_childComponents.begin(),
+                                       m_childComponents.end());
     }
 
     void SceneComponent::onChildrenChanged() {}
@@ -149,7 +151,8 @@ namespace Bess::Canvas {
 
     void SceneComponent::drawPropertiesUI(SceneState &sceneState) {}
 
-    std::vector<std::shared_ptr<SceneComponent>> SceneComponent::clone(const SceneState &sceneState) const {
+    std::vector<std::shared_ptr<SceneComponent>>
+    SceneComponent::clone(const SceneState &sceneState) const {
         (void)sceneState;
         auto clonedComponent = std::make_shared<SceneComponent>(*this);
         prepareClone(*clonedComponent);

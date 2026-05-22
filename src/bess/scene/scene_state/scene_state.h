@@ -27,9 +27,11 @@ namespace Bess::Canvas {
                           bool dispatchEvent = true) {
             static_assert(std::is_base_of<Bess::Canvas::SceneComponent, T>(),
                           "T must be derived from SceneComponent");
-            BESS_ASSERT(component != nullptr, "Cannot add null component to scene");
+            BESS_ASSERT(component != nullptr,
+                        "Cannot add null component to scene");
             if (m_componentsMap.contains(component->getUuid())) {
-                BESS_WARN("[SceneState] Component with uuid {} already exists in the scene. Skipping addComponent.",
+                BESS_WARN("[SceneState] Component with uuid {} already exists "
+                          "in the scene. Skipping addComponent.",
                           (uint64_t)component->getUuid());
                 return;
             }
@@ -65,11 +67,14 @@ namespace Bess::Canvas {
             return nullptr;
         }
 
-        std::shared_ptr<SceneComponent> getComponentByUuid(const UUID &uuid) const;
+        std::shared_ptr<SceneComponent>
+        getComponentByUuid(const UUID &uuid) const;
 
-        std::shared_ptr<SceneComponent> getComponentByPickingId(const PickingId &id) const;
+        std::shared_ptr<SceneComponent>
+        getComponentByPickingId(const PickingId &id) const;
 
-        const std::unordered_map<UUID, std::shared_ptr<SceneComponent>> &getAllComponents() const;
+        const std::unordered_map<UUID, std::shared_ptr<SceneComponent>> &
+        getAllComponents() const;
 
         const std::unordered_set<UUID> &getRootComponents() const;
 
@@ -104,7 +109,8 @@ namespace Bess::Canvas {
 
         const std::unordered_map<UUID, bool> &getSelectedComponents() const;
 
-        void attachChild(const UUID &parentId, const UUID &childId, bool emitEvent = true);
+        void attachChild(const UUID &parentId, const UUID &childId,
+                         bool emitEvent = true);
         void detachChild(const UUID &childId);
 
         void assignRuntimeId(const UUID &uuid);
@@ -112,7 +118,8 @@ namespace Bess::Canvas {
         // Removes a component by UUID from the scene state
         // and all its child components recursively.
         // returns the UUIDs of removed components
-        std::vector<UUID> removeComponent(const UUID &uuid, const UUID &callerId = UUID::null);
+        std::vector<UUID> removeComponent(const UUID &uuid,
+                                          const UUID &callerId = UUID::null);
 
         std::shared_ptr<Renderer::MaterialRenderer> getMaterialRenderer() const;
 
@@ -132,7 +139,8 @@ namespace Bess::Canvas {
         UUID m_connectionStartSlot = UUID::null;
         bool m_isSchematicView = false;
         bool m_isRootScene = true;
-        UUID m_moduleId = UUID::null; // only used for sub scenes, to know which module it belongs to
+        UUID m_moduleId = UUID::null; // only used for sub scenes, to know which
+                                      // module it belongs to
         UUID m_sceneId, m_parentSceneId = UUID::null;
         glm::vec2 m_mousePos;
     };

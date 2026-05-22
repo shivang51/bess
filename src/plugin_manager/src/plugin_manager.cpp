@@ -47,9 +47,7 @@ namespace Bess::Plugins {
         isIntialized = false;
     }
 
-    PluginManager::~PluginManager() {
-        destroy();
-    }
+    PluginManager::~PluginManager() { destroy(); }
 
     bool PluginManager::loadPlugin(const std::string &pluginPath) {
         pybind11::gil_scoped_acquire gil;
@@ -81,11 +79,14 @@ namespace Bess::Plugins {
 
                 m_plugins[name] = std::make_shared<PluginHandle>(pluginHwd);
 
-                BESS_INFO("Successfully loaded plugin: {} from {}", name, path.parent_path().string());
+                BESS_INFO("Successfully loaded plugin: {} from {}", name,
+                          path.parent_path().string());
 
                 return true;
             } else {
-                BESS_ERROR("Plugin {} does not have required 'plug_hwd' variable", pluginName);
+                BESS_ERROR(
+                    "Plugin {} does not have required 'plug_hwd' variable",
+                    pluginName);
                 return false;
             }
 
@@ -95,7 +96,8 @@ namespace Bess::Plugins {
         }
     }
 
-    bool PluginManager::loadPluginsFromDirectory(const std::string &pluginsDir) {
+    bool
+    PluginManager::loadPluginsFromDirectory(const std::string &pluginsDir) {
         try {
             namespace fs = std::filesystem;
 
@@ -109,16 +111,19 @@ namespace Bess::Plugins {
                 if (!entry.is_directory())
                     continue;
                 const auto file = entry.path() / "main.py";
-                if (std::filesystem::exists(file) && loadPlugin(file.string())) {
+                if (std::filesystem::exists(file) &&
+                    loadPlugin(file.string())) {
                     loadedCount++;
                 }
             }
 
-            BESS_INFO("Loaded {} plugins from directory: {}", loadedCount, pluginsDir);
+            BESS_INFO("Loaded {} plugins from directory: {}", loadedCount,
+                      pluginsDir);
             return loadedCount > 0;
 
         } catch (const std::exception &e) {
-            BESS_ERROR("Failed to load plugins from directory {}: {}", pluginsDir, e.what());
+            BESS_ERROR("Failed to load plugins from directory {}: {}",
+                       pluginsDir, e.what());
             return false;
         }
     }
@@ -142,7 +147,8 @@ namespace Bess::Plugins {
         return pluginNames;
     }
 
-    const std::unordered_map<std::string, std::shared_ptr<PluginHandle>> &PluginManager::getLoadedPlugins() const {
+    const std::unordered_map<std::string, std::shared_ptr<PluginHandle>> &
+    PluginManager::getLoadedPlugins() const {
         return m_plugins;
     }
 
@@ -150,7 +156,8 @@ namespace Bess::Plugins {
         return m_plugins.contains(pluginName);
     }
 
-    std::shared_ptr<PluginHandle> PluginManager::getPlugin(const std::string &pluginName) const {
+    std::shared_ptr<PluginHandle>
+    PluginManager::getPlugin(const std::string &pluginName) const {
         auto it = m_plugins.find(pluginName);
         if (it != m_plugins.end()) {
             return it->second;
@@ -158,9 +165,7 @@ namespace Bess::Plugins {
         return nullptr;
     }
 
-    PyGILState_STATE capturePyThreadState() {
-        return PyGILState_Ensure();
-    }
+    PyGILState_STATE capturePyThreadState() { return PyGILState_Ensure(); }
 
     void releasePyThreadState(PyGILState_STATE state) {
         PyGILState_Release(state);
@@ -172,7 +177,9 @@ namespace Bess::Plugins {
         auto idHash = std::hash<std::thread::id>{}(std::this_thread::get_id());
         if (savedThreadStates.contains(std::this_thread::get_id()) &&
             savedThreadStates.at(std::this_thread::get_id()) == nullptr) {
-            BESS_WARN("[PyThreadState] Thread state for thread {} is already saved and never restored", idHash);
+            BESS_WARN("[PyThreadState] Thread state for thread {} is already "
+                      "saved and never restored",
+                      idHash);
             return;
         }
         savedThreadStates[std::this_thread::get_id()] = PyEval_SaveThread();
@@ -181,10 +188,15 @@ namespace Bess::Plugins {
     void restorePyThreadState() {
         auto idHash = std::hash<std::thread::id>{}(std::this_thread::get_id());
         if (!savedThreadStates.contains(std::this_thread::get_id())) {
-            BESS_WARN("[PyThreadState] Thread state for thread {}  was not saved before restore.", idHash);
+            BESS_WARN("[PyThreadState] Thread state for thread {}  was not "
+                      "saved before restore.",
+                      idHash);
             return;
-        } else if (savedThreadStates.at(std::this_thread::get_id()) == nullptr) {
-            BESS_WARN("[PyThreadState] Thread state for thread {} was alreay restored.", idHash);
+        } else if (savedThreadStates.at(std::this_thread::get_id()) ==
+                   nullptr) {
+            BESS_WARN("[PyThreadState] Thread state for thread {} was alreay "
+                      "restored.",
+                      idHash);
             return;
         }
         PyEval_RestoreThread(savedThreadStates[std::this_thread::get_id()]);

@@ -25,13 +25,15 @@ namespace Bess::Renderer {
 
         // Constructor that loads the font from texture atlas
         // path is the path of the json file with character data
-        MsdfFont(const std::string &path, const std::string &jsonFileName, std::shared_ptr<Bess::Vulkan::VulkanDevice> device);
+        MsdfFont(const std::string &path, const std::string &jsonFileName,
+                 std::shared_ptr<Bess::Vulkan::VulkanDevice> device);
 
         ~MsdfFont();
 
         // Loads the font from texture atlas
         // path is the path of the json file with character data
-        void loadFont(const std::string &path, const std::string &jsonFileName, std::shared_ptr<Bess::Vulkan::VulkanDevice> device);
+        void loadFont(const std::string &path, const std::string &jsonFileName,
+                      std::shared_ptr<Bess::Vulkan::VulkanDevice> device);
 
         float getScale(float size) const;
 

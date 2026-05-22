@@ -16,23 +16,23 @@
 namespace Bess::Cmd {
     // bool indicated if its undo/redo, true if its undo
     // vector is list of processed comps
-    typedef std::function<void(bool,
-                               const std::vector<std::shared_ptr<Canvas::SceneComponent>> &)>
+    typedef std::function<void(
+        bool, const std::vector<std::shared_ptr<Canvas::SceneComponent>> &)>
         DeleteCompCmdCB;
 
     class DeleteCompCmd : public Bess::Cmd::Command {
       public:
-        DeleteCompCmd() {
-            m_name = "DeleteComponentCmd";
-        }
+        DeleteCompCmd() { m_name = "DeleteComponentCmd"; }
 
         DeleteCompCmd(const std::vector<UUID> &compUuids,
-                      const DeleteCompCmdCB &callback = nullptr) : m_callback(callback) {
+                      const DeleteCompCmdCB &callback = nullptr)
+            : m_callback(callback) {
             m_compUuids = std::set<UUID>(compUuids.begin(), compUuids.end());
             m_name = "DeleteComponentCmd";
         }
 
-        bool execute(Canvas::Scene *scene, SimEngine::SimulationEngine *simEngine) override {
+        bool execute(Canvas::Scene *scene,
+                     SimEngine::SimulationEngine *simEngine) override {
             m_deletedComponents.clear();
             auto &sceneState = scene->getState();
 
@@ -63,25 +63,31 @@ namespace Bess::Cmd {
             BESS_DEBUG("Deletion order:");
             for (const auto &uuid : deletionOrder) {
                 auto comp = sceneState.getComponentByUuid(uuid);
-                BESS_DEBUG(" -> {} ({})", comp ? comp->getName() : "Unknown", (uint64_t)uuid);
+                BESS_DEBUG(" -> {} ({})", comp ? comp->getName() : "Unknown",
+                           (uint64_t)uuid);
             }
 #endif
 
-            std::vector<std::shared_ptr<Canvas::ConnectionSceneComponent>> connections;
-            std::unordered_map<UUID, std::vector<std::shared_ptr<Canvas::ConnJointSceneComp>>> jointsByConnection;
+            std::vector<std::shared_ptr<Canvas::ConnectionSceneComponent>>
+                connections;
+            std::unordered_map<
+                UUID, std::vector<std::shared_ptr<Canvas::ConnJointSceneComp>>>
+                jointsByConnection;
             std::unordered_set<UUID> connectionDeletionIds;
 
             for (const auto &uuid : deletionOrder) {
                 auto comp = sceneState.getComponentByUuid(uuid);
-                if (comp && comp->getType() == Canvas::SceneComponentType::connection) {
+                if (comp &&
+                    comp->getType() == Canvas::SceneComponentType::connection) {
                     connectionDeletionIds.insert(uuid);
                 }
             }
 
             // Extract connections and connection joints from the deletion list.
-            // Joints are only grouped with their owning connection when that connection is also
-            // part of the same delete command. Standalone joint deletion must remain in the
-            // regular deletion order so the joint itself is removed after its dependant branches.
+            // Joints are only grouped with their owning connection when that
+            // connection is also part of the same delete command. Standalone
+            // joint deletion must remain in the regular deletion order so the
+            // joint itself is removed after its dependant branches.
             for (auto it = deletionOrder.begin(); it != deletionOrder.end();) {
                 auto comp = sceneState.getComponentByUuid(*it);
                 if (!comp) {
@@ -90,13 +96,18 @@ namespace Bess::Cmd {
                 }
 
                 if (comp->getType() == Canvas::SceneComponentType::connection) {
-                    connections.push_back(comp->cast<Canvas::ConnectionSceneComponent>());
+                    connections.push_back(
+                        comp->cast<Canvas::ConnectionSceneComponent>());
                     it = deletionOrder.erase(it); // Remove from the main list
-                } else if (comp->getType() == Canvas::SceneComponentType::connJoint) {
+                } else if (comp->getType() ==
+                           Canvas::SceneComponentType::connJoint) {
                     const auto joint = comp->cast<Canvas::ConnJointSceneComp>();
-                    if (connectionDeletionIds.contains(joint->getConnectionId())) {
-                        jointsByConnection[joint->getConnectionId()].push_back(joint);
-                        it = deletionOrder.erase(it); // Remove from the main list
+                    if (connectionDeletionIds.contains(
+                            joint->getConnectionId())) {
+                        jointsByConnection[joint->getConnectionId()].push_back(
+                            joint);
+                        it = deletionOrder.erase(
+                            it); // Remove from the main list
                     } else {
                         it++;
                     }
@@ -107,7 +118,8 @@ namespace Bess::Cmd {
 
             // Sort connections:
             // sort by slot Index DESCENDING (3 -> 2 -> 1)
-            std::ranges::sort(connections, [&sceneState](const auto &a, const auto &b) {
+            std::ranges::sort(connections, [&sceneState](const auto &a,
+                                                         const auto &b) {
                 if (a->getParentComponent() != b->getParentComponent()) {
                     return true;
                 }
@@ -115,10 +127,14 @@ namespace Bess::Cmd {
                 const auto getMaxSlotIdx = [&](const auto &conn) {
                     const auto &slotA = conn->getStartSlot();
                     const auto &slotB = conn->getEndSlot();
-                    const auto &slotAComp = sceneState.getComponentByUuid<
-                        Canvas::SlotSceneComponent>(slotA);
-                    const auto &slotBComp = sceneState.getComponentByUuid<
-                        Canvas::SlotSceneComponent>(slotB);
+                    const auto &slotAComp =
+                        sceneState
+                            .getComponentByUuid<Canvas::SlotSceneComponent>(
+                                slotA);
+                    const auto &slotBComp =
+                        sceneState
+                            .getComponentByUuid<Canvas::SlotSceneComponent>(
+                                slotB);
 
                     const auto &idxA = slotAComp ? slotAComp->getIndex() : 0;
                     const auto &idxB = slotBComp ? slotBComp->getIndex() : 0;
@@ -148,7 +164,8 @@ namespace Bess::Cmd {
                 if (!comp)
                     continue;
 
-                BESS_DEBUG("Removing Component {} ({})", (uint64_t)uuid, comp->getName());
+                BESS_DEBUG("Removing Component {} ({})", (uint64_t)uuid,
+                           comp->getName());
 
                 sceneState.removeComponent(uuid, UUID::master);
                 m_deletedComponents.push_back(std::move(comp));
@@ -163,17 +180,26 @@ namespace Bess::Cmd {
 
             auto &connectionsSvc = Svc::SvcConnection::instance();
             std::vector<std::shared_ptr<Canvas::SceneComponent>> groupComps;
-            for (const auto &deletedComponent : std::ranges::reverse_view(m_deletedComponents)) {
-                BESS_DEBUG("Restoring component: {} with uuid {}", deletedComponent->getName(),
+            for (const auto &deletedComponent :
+                 std::ranges::reverse_view(m_deletedComponents)) {
+                BESS_DEBUG("Restoring component: {} with uuid {}",
+                           deletedComponent->getName(),
                            (uint64_t)deletedComponent->getUuid());
-                if (deletedComponent->getType() == Canvas::SceneComponentType::connection) {
-                    connectionsSvc.addConnection(deletedComponent->cast<Canvas::ConnectionSceneComponent>(), scene);
+                if (deletedComponent->getType() ==
+                    Canvas::SceneComponentType::connection) {
+                    connectionsSvc.addConnection(
+                        deletedComponent
+                            ->cast<Canvas::ConnectionSceneComponent>(),
+                        scene);
                 } else {
-                    sceneState.addComponent(deletedComponent,
-                                            deletedComponent->getType() != Canvas::SceneComponentType::group);
+                    sceneState.addComponent(
+                        deletedComponent,
+                        deletedComponent->getType() !=
+                            Canvas::SceneComponentType::group);
                 }
 
-                if (deletedComponent->getType() == Canvas::SceneComponentType::group) {
+                if (deletedComponent->getType() ==
+                    Canvas::SceneComponentType::group) {
                     groupComps.push_back(deletedComponent);
                 }
 
@@ -182,20 +208,25 @@ namespace Bess::Cmd {
                 if (parentUuid == UUID::null)
                     continue;
 
-                const auto &parentComp = sceneState.getComponentByUuid(parentUuid);
+                const auto &parentComp =
+                    sceneState.getComponentByUuid(parentUuid);
 
                 if (!parentComp) {
-                    BESS_ERROR("Parent  {} not found for {} during undo of del cmd.",
-                               (uint64_t)parentUuid, deletedComponent->getName());
-                    BESS_ASSERT(false, "Parent component not found during undo of delete command");
+                    BESS_ERROR(
+                        "Parent  {} not found for {} during undo of del cmd.",
+                        (uint64_t)parentUuid, deletedComponent->getName());
+                    BESS_ASSERT(false, "Parent component not found during undo "
+                                       "of delete command");
                     continue;
                 }
 
                 sceneState.attachChild(deletedComponent->getParentComponent(),
                                        deletedComponent->getUuid());
 
-                BESS_DEBUG("[DelCmd] Attached component {} to parent {} during undo of delete command.",
-                           (uint64_t)deletedComponent->getUuid(), (uint64_t)parentUuid);
+                BESS_DEBUG("[DelCmd] Attached component {} to parent {} during "
+                           "undo of delete command.",
+                           (uint64_t)deletedComponent->getUuid(),
+                           (uint64_t)parentUuid);
             }
 
             for (const auto &groupComp : groupComps) {
@@ -213,9 +244,11 @@ namespace Bess::Cmd {
 
             for (const auto &comp : m_deletedComponents) {
                 if (comp->getType() == Canvas::SceneComponentType::connection) {
-                    connectionsSvc.removeConnection(comp->cast<Canvas::ConnectionSceneComponent>(), scene);
+                    connectionsSvc.removeConnection(
+                        comp->cast<Canvas::ConnectionSceneComponent>(), scene);
                 } else {
-                    scene->getState().removeComponent(comp->getUuid(), UUID::master);
+                    scene->getState().removeComponent(comp->getUuid(),
+                                                      UUID::master);
                 }
             }
 
@@ -226,7 +259,8 @@ namespace Bess::Cmd {
 
       private:
         std::set<UUID> m_compUuids;
-        std::vector<std::shared_ptr<Canvas::SceneComponent>> m_deletedComponents;
+        std::vector<std::shared_ptr<Canvas::SceneComponent>>
+            m_deletedComponents;
         DeleteCompCmdCB m_callback = nullptr;
     };
 } // namespace Bess::Cmd

@@ -2,7 +2,9 @@
 #include "application/settings/viewport_theme.h"
 
 namespace Bess::Canvas {
-    const std::vector<Renderer::Path> &SchematicDiagram::getPaths() const { return m_paths; }
+    const std::vector<Renderer::Path> &SchematicDiagram::getPaths() const {
+        return m_paths;
+    }
 
     void SchematicDiagram::setPaths(const std::vector<Renderer::Path> &paths) {
         m_paths = paths;
@@ -12,7 +14,9 @@ namespace Bess::Canvas {
 
     void SchematicDiagram::setSize(const glm::vec2 &size) { m_size = size; }
 
-    std::vector<Renderer::Path> &SchematicDiagram::getPathsMut() { return m_paths; }
+    std::vector<Renderer::Path> &SchematicDiagram::getPathsMut() {
+        return m_paths;
+    }
 
     bool SchematicDiagram::getShowName() const { return m_showName; }
 
@@ -37,9 +41,10 @@ namespace Bess::Canvas {
         }
     }
 
-    glm::vec2 SchematicDiagram::draw(const Bess::Canvas::Transform &transform,
-                                     const Bess::Canvas::PickingId &pickingId,
-                                     const std::shared_ptr<Bess::Renderer::PathRenderer> &pathRenderer) {
+    glm::vec2 SchematicDiagram::draw(
+        const Bess::Canvas::Transform &transform,
+        const Bess::Canvas::PickingId &pickingId,
+        const std::shared_ptr<Bess::Renderer::PathRenderer> &pathRenderer) {
         const auto &pos = transform.position;
         float dAr = getSize().x / getSize().y;
         float tAr = transform.scale.x / transform.scale.y;
@@ -53,14 +58,15 @@ namespace Bess::Canvas {
         auto drawInfo = Renderer::ContoursDrawInfo();
         for (auto &path : getPathsMut()) {
             const auto pathPos = path.getLowestPos();
-            drawInfo.translate = glm::vec3(
-                pos.x + pathPos.x - mid.x,
-                pos.y + pathPos.y - mid.y,
-                transform.position.z);
+            drawInfo.translate =
+                glm::vec3(pos.x + pathPos.x - mid.x, pos.y + pathPos.y - mid.y,
+                          transform.position.z);
             drawInfo.scale = digScale;
             drawInfo.glyphId = pickingId;
-            drawInfo.strokeColor = Bess::ViewportTheme::schematicViewColors.componentStroke;
-            drawInfo.fillColor = Bess::ViewportTheme::schematicViewColors.componentFill;
+            drawInfo.strokeColor =
+                Bess::ViewportTheme::schematicViewColors.componentStroke;
+            drawInfo.fillColor =
+                Bess::ViewportTheme::schematicViewColors.componentFill;
 
             drawInfo.genFill = path.getProps().renderFill;
             drawInfo.genStroke = path.getProps().renderStroke;

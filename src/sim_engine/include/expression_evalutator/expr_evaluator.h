@@ -1,9 +1,9 @@
 /**
  * @file expr_evaluator.h
  * @brief Expression evaluator for logic simulation engine
- * @details This file contains functions to evaluate logical expressions based on input slot states.
- * The expressions can include binary operators (+ for OR, * for AND, ^ for XOR)
- * and unary operators (! for NOT, $ for buffer).
+ * @details This file contains functions to evaluate logical expressions based
+ * on input slot states. The expressions can include binary operators (+ for OR,
+ * * for AND, ^ for XOR) and unary operators (! for NOT, $ for buffer).
  **/
 
 #pragma once
@@ -20,7 +20,8 @@ namespace Bess::SimEngine::ExprEval {
 
     bool isUninaryOperator(char op);
 
-    bool evaluateExpression(const std::string &expr, const std::vector<bool> &values);
+    bool evaluateExpression(const std::string &expr,
+                            const std::vector<bool> &values);
 
     // TSimFnDataPtr exprEvalSimFunc(const TSimFnDataPtr &simData);
 

@@ -9,23 +9,27 @@ namespace Bess::SimEngine {
         return instance;
     }
 
-    const std::vector<std::shared_ptr<Drivers::CompDef>> &ComponentCatalog::getComponents() const {
+    const std::vector<std::shared_ptr<Drivers::CompDef>> &
+    ComponentCatalog::getComponents() const {
         return m_components;
     }
 
-    std::shared_ptr<ComponentCatalog::ComponentTree> ComponentCatalog::getComponentsTree() {
+    std::shared_ptr<ComponentCatalog::ComponentTree>
+    ComponentCatalog::getComponentsTree() {
         if (m_componentTree != nullptr)
             return m_componentTree;
 
         m_componentTree = std::make_shared<ComponentTree>();
 
         for (const auto &comp : m_components) {
-            m_componentTree->operator[](comp->getGroupName()).emplace_back(comp);
+            m_componentTree->operator[](comp->getGroupName())
+                .emplace_back(comp);
         }
         return m_componentTree;
     }
 
-    std::shared_ptr<Drivers::CompDef> ComponentCatalog::getComponentDefinition(const std::string &name) const {
+    std::shared_ptr<Drivers::CompDef>
+    ComponentCatalog::getComponentDefinition(const std::string &name) const {
         if (m_compNameMap.contains(name)) {
             return m_compNameMap.at(name);
         }
@@ -33,7 +37,8 @@ namespace Bess::SimEngine {
         return nullptr;
     }
 
-    std::shared_ptr<Drivers::CompDef> ComponentCatalog::getComponentDefinitionCopy(const std::string &name) {
+    std::shared_ptr<Drivers::CompDef>
+    ComponentCatalog::getComponentDefinitionCopy(const std::string &name) {
         if (m_compNameMap.contains(name)) {
             return m_compNameMap.at(name)->clone();
         }
@@ -52,7 +57,8 @@ namespace Bess::SimEngine {
         m_components.clear();
     }
 
-    std::shared_ptr<Drivers::CompDef> ComponentCatalog::findDefByName(const std::string &name) const {
+    std::shared_ptr<Drivers::CompDef>
+    ComponentCatalog::findDefByName(const std::string &name) const {
         for (const auto &comp : m_components) {
             if (comp->getName() == name) {
                 return comp;

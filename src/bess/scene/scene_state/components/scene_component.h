@@ -13,76 +13,72 @@
 #include <unordered_set>
 
 namespace Bess::Canvas {
-#define REG_SCENE_COMP_TYPE(TypeName, type)                      \
-    SceneComponentType getType() const override { return type; } \
-    std::string getTypeName() const override {                   \
-        return TypeName;                                         \
-    }                                                            \
-    static std::string getStaticTypeName() {                     \
-        static std::string typeName = TypeName;                  \
-        return typeName;                                         \
+#define REG_SCENE_COMP_TYPE(TypeName, type)                                    \
+    SceneComponentType getType() const override { return type; }               \
+    std::string getTypeName() const override { return TypeName; }              \
+    static std::string getStaticTypeName() {                                   \
+        static std::string typeName = TypeName;                                \
+        return typeName;                                                       \
     } // namespace Bess::Canvas
 
-#define SCENE_COMP_SER(TClass, TBase, ...)                          \
-    Json::Value toJson() const override {                           \
-        onBeforeToJson();                                           \
-        auto json = TBase::toJson();                                \
-        const auto newJson = SERIALIZE_PROPS(__VA_ARGS__);          \
-        for (const auto &member : newJson.getMemberNames()) {       \
-            json[member] = newJson[member];                         \
-        }                                                           \
-        json["typeName"] = getTypeName();                           \
-        return json;                                                \
-    }                                                               \
-    static void fromJson(const Json::Value &j,                      \
-                         const std::shared_ptr<TClass> &ptr) {      \
-        auto castedComp = std::dynamic_pointer_cast<TBase>(ptr);    \
-        TBase::fromJson(j, castedComp);                             \
-        DESERIALIZE_PROPS(ptr, __VA_ARGS__);                        \
-    }                                                               \
-    static std::shared_ptr<TClass> fromJson(const Json::Value &j) { \
-        const auto &typeName = j["typeName"].asString();            \
-        BESS_ASSERT(typeName == TClass::getStaticTypeName(),        \
-                    "[fromJson] Static type name mismatch");        \
-        auto comp = std::make_shared<TClass>();                     \
-        TBase::fromJson(j, comp);                                   \
-        TClass::fromJson(j, comp);                                  \
-        return comp;                                                \
+#define SCENE_COMP_SER(TClass, TBase, ...)                                     \
+    Json::Value toJson() const override {                                      \
+        onBeforeToJson();                                                      \
+        auto json = TBase::toJson();                                           \
+        const auto newJson = SERIALIZE_PROPS(__VA_ARGS__);                     \
+        for (const auto &member : newJson.getMemberNames()) {                  \
+            json[member] = newJson[member];                                    \
+        }                                                                      \
+        json["typeName"] = getTypeName();                                      \
+        return json;                                                           \
+    }                                                                          \
+    static void fromJson(const Json::Value &j,                                 \
+                         const std::shared_ptr<TClass> &ptr) {                 \
+        auto castedComp = std::dynamic_pointer_cast<TBase>(ptr);               \
+        TBase::fromJson(j, castedComp);                                        \
+        DESERIALIZE_PROPS(ptr, __VA_ARGS__);                                   \
+    }                                                                          \
+    static std::shared_ptr<TClass> fromJson(const Json::Value &j) {            \
+        const auto &typeName = j["typeName"].asString();                       \
+        BESS_ASSERT(typeName == TClass::getStaticTypeName(),                   \
+                    "[fromJson] Static type name mismatch");                   \
+        auto comp = std::make_shared<TClass>();                                \
+        TBase::fromJson(j, comp);                                              \
+        TClass::fromJson(j, comp);                                             \
+        return comp;                                                           \
     }
 
-#define SCENE_COMP_SER_NP(TClass, TBase)                            \
-    Json::Value toJson() const override {                           \
-        onBeforeToJson();                                           \
-        auto json = TBase::toJson();                                \
-        json["typeName"] = TClass::getStaticTypeName();             \
-        return json;                                                \
-    }                                                               \
-    static void fromJson(const Json::Value &j,                      \
-                         const std::shared_ptr<TClass> &ptr) {      \
-        auto castedComp = std::dynamic_pointer_cast<TBase>(ptr);    \
-        TBase::fromJson(j, castedComp);                             \
-    }                                                               \
-    static std::shared_ptr<TClass> fromJson(const Json::Value &j) { \
-        auto comp = std::make_shared<TClass>();                     \
-        auto castedComp = std::dynamic_pointer_cast<TBase>(comp);   \
-        TBase::fromJson(j, castedComp);                             \
-        return comp;                                                \
+#define SCENE_COMP_SER_NP(TClass, TBase)                                       \
+    Json::Value toJson() const override {                                      \
+        onBeforeToJson();                                                      \
+        auto json = TBase::toJson();                                           \
+        json["typeName"] = TClass::getStaticTypeName();                        \
+        return json;                                                           \
+    }                                                                          \
+    static void fromJson(const Json::Value &j,                                 \
+                         const std::shared_ptr<TClass> &ptr) {                 \
+        auto castedComp = std::dynamic_pointer_cast<TBase>(ptr);               \
+        TBase::fromJson(j, castedComp);                                        \
+    }                                                                          \
+    static std::shared_ptr<TClass> fromJson(const Json::Value &j) {            \
+        auto comp = std::make_shared<TClass>();                                \
+        auto castedComp = std::dynamic_pointer_cast<TBase>(comp);              \
+        TBase::fromJson(j, castedComp);                                        \
+        return comp;                                                           \
     }
 
-#define REG_TO_SER_REGISTRY(TClass)                                                                                           \
-    Bess::Canvas::SceneSerReg::registerComponent(TClass::getStaticTypeName(),                                                 \
-                                                 [&](const Json::Value &j) -> std::shared_ptr<Bess::Canvas::SceneComponent> { \
-                                                     return TClass::fromJson(j);                                              \
-                                                 });
+#define REG_TO_SER_REGISTRY(TClass)                                            \
+    Bess::Canvas::SceneSerReg::registerComponent(                              \
+        TClass::getStaticTypeName(),                                           \
+        [&](const Json::Value &j)                                              \
+            -> std::shared_ptr<Bess::Canvas::SceneComponent> {                 \
+            return TClass::fromJson(j);                                        \
+        });
 
-#define REG_SCENE_COMP(TComp, TBase, ...) \
-    REFLECT_DERIVED_PROPS(TComp,          \
-                          TBase,          \
-                          __VA_ARGS__)
+#define REG_SCENE_COMP(TComp, TBase, ...)                                      \
+    REFLECT_DERIVED_PROPS(TComp, TBase, __VA_ARGS__)
 
-#define REG_SCENE_COMP_NP(TComp, TBase) \
-    REFLECT_DERIVED_EMPTY(TComp,        \
-                          TBase)
+#define REG_SCENE_COMP_NP(TComp, TBase) REFLECT_DERIVED_EMPTY(TComp, TBase)
 
     using PathRenderer = Renderer::PathRenderer;
 
@@ -95,13 +91,9 @@ namespace Bess::Canvas {
         SceneComponent(const SceneComponent &other) = default;
         virtual ~SceneComponent() = default;
 
-        static std::string getStaticTypeName() {
-            return "SceneComponent";
-        }
+        static std::string getStaticTypeName() { return "SceneComponent"; }
 
-        virtual std::string getTypeName() const {
-            return "SceneComponent";
-        }
+        virtual std::string getTypeName() const { return "SceneComponent"; }
 
         virtual void update(TimeMs frameTime, SceneState & /*state*/) {}
 
@@ -110,15 +102,19 @@ namespace Bess::Canvas {
 
         virtual void drawPropertiesUI(SceneState &sceneState);
 
-        virtual std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const;
+        virtual std::vector<std::shared_ptr<SceneComponent>>
+        clone(const SceneState &sceneState) const;
 
         MAKE_GETTER_SETTER(UUID, Uuid, m_uuid)
-        MAKE_GETTER_SETTER_WC(Transform, Transform, m_transform, onTransformChanged)
+        MAKE_GETTER_SETTER_WC(Transform, Transform, m_transform,
+                              onTransformChanged)
         MAKE_GETTER_SETTER_WC(Style, Style, m_style, onStyleChanged)
         MAKE_GETTER_SETTER_WC(std::string, Name, m_name, onNameChanged)
         MAKE_GETTER_SETTER(UUID, ParentComponent, m_parentComponent)
-        MAKE_GETTER_SETTER(std::unordered_set<UUID>, ChildComponents, m_childComponents)
-        MAKE_GETTER_SETTER_WC(uint32_t, RuntimeId, m_runtimeId, onRuntimeIdChanged)
+        MAKE_GETTER_SETTER(std::unordered_set<UUID>, ChildComponents,
+                           m_childComponents)
+        MAKE_GETTER_SETTER_WC(uint32_t, RuntimeId, m_runtimeId,
+                              onRuntimeIdChanged)
         MAKE_GETTER_SETTER_WC(bool, IsSelected, m_isSelected, onSelect)
         MAKE_GETTER_SETTER(std::string, Icon, m_icon);
 
@@ -133,13 +129,11 @@ namespace Bess::Canvas {
             return (SceneComponentType)-1;
         }
 
-        template <typename T>
-        std::shared_ptr<T> cast() {
+        template <typename T> std::shared_ptr<T> cast() {
             return std::static_pointer_cast<T>(shared_from_this());
         }
 
-        template <typename T>
-        const T &cast() const {
+        template <typename T> const T &cast() const {
             return static_cast<const T &>(*this);
         }
 
@@ -152,7 +146,8 @@ namespace Bess::Canvas {
         // Cleanup function
         // Default implementation removes all child components recursively
         // This must be called in the overrides as well
-        virtual std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null);
+        virtual std::vector<UUID> cleanup(SceneState &state,
+                                          UUID caller = UUID::null);
 
         // Called when component is added/attached to the scene
         virtual void onAttach(SceneState &state);
@@ -188,7 +183,9 @@ namespace Bess::Canvas {
         virtual void onChildrenChanged();
 
         UUID m_uuid = UUID::null;
-        uint32_t m_runtimeId = PickingId::invalidRuntimeId; // assigned during rendering for picking
+        uint32_t m_runtimeId =
+            PickingId::invalidRuntimeId; // assigned during rendering for
+                                         // picking
         Transform m_transform;
         Style m_style;
         std::string m_name;
@@ -204,11 +201,9 @@ namespace Bess::Canvas {
     };
 } // namespace Bess::Canvas
 
-REFLECT_PROPS(Bess::Canvas::SceneComponent,
-              ("uuid", getUuid, setUuid),
+REFLECT_PROPS(Bess::Canvas::SceneComponent, ("uuid", getUuid, setUuid),
               ("transform", getTransform, setTransform),
-              ("style", getStyle, setStyle),
-              ("name", getName, setName),
+              ("style", getStyle, setStyle), ("name", getName, setName),
               ("icon", getIcon, setIcon),
               ("parentComponent", getParentComponent, setParentComponent),
               ("childComponents", getChildComponents, setChildComponents))

@@ -1,7 +1,7 @@
 #pragma once
 
-// This helper sets up detailed crash reporting for Linux systems using stacktrace.
-// Only for Debug builds.
+// This helper sets up detailed crash reporting for Linux systems using
+// stacktrace. Only for Debug builds.
 
 #ifndef SETUP_CRASH_DETAIL_HELPER
     #define SETUP_CRASH_DETAIL_HELPER
@@ -20,11 +20,11 @@ void signalHandler(int sig) {
 }
 
         #undef SETUP_CRASH_DETAIL_HELPER
-        #define SETUP_CRASH_DETAIL_HELPER  \
-            struct sigaction sa;           \
-            sa.sa_handler = signalHandler; \
-            sigemptyset(&sa.sa_mask);      \
-            sa.sa_flags = SA_RESTART;      \
+        #define SETUP_CRASH_DETAIL_HELPER                                      \
+            struct sigaction sa;                                               \
+            sa.sa_handler = signalHandler;                                     \
+            sigemptyset(&sa.sa_mask);                                          \
+            sa.sa_flags = SA_RESTART;                                          \
             sigaction(SIGSEGV, &sa, nullptr);
     #endif // _LINUX
 

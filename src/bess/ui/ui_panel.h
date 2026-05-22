@@ -14,7 +14,8 @@ namespace Bess::UI {
         Panel(const std::string &name);
         virtual ~Panel() = default;
         virtual void init();
-        virtual void update(TimeMs ts, const std::vector<ApplicationEvent> &events);
+        virtual void update(TimeMs ts,
+                            const std::vector<ApplicationEvent> &events);
         virtual void destroy();
 
         void render();

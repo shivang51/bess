@@ -31,26 +31,26 @@ namespace Bess::UI {
 
         void destroyViewport();
 
-        void update(TimeMs ts, const std::vector<ApplicationEvent> &events) override;
+        void update(TimeMs ts,
+                    const std::vector<ApplicationEvent> &events) override;
 
         const glm::vec2 &getViewportSize() const;
         const glm::vec2 &getViewportPos() const;
         bool isHovered() const;
 
-        MAKE_GETTER_SETTER(std::shared_ptr<Canvas::Viewport>, Viewport, m_viewport);
-        MAKE_GETTER_SETTER_WC(std::shared_ptr<Canvas::Scene>,
-                              AttachedScene,
-                              m_attachedScene,
-                              onSceneAttached);
+        MAKE_GETTER_SETTER(std::shared_ptr<Canvas::Viewport>, Viewport,
+                           m_viewport);
+        MAKE_GETTER_SETTER_WC(std::shared_ptr<Canvas::Scene>, AttachedScene,
+                              m_attachedScene, onSceneAttached);
 
       private: // scene rendering funcs
         void drawGrid(SceneDrawContext &context);
         void drawComponents(SceneDrawContext &context);
         void drawConnections(SceneDrawContext &context);
         void drawSelectionBox(SceneDrawContext &context);
-        void drawGhostConnection(const std::shared_ptr<PathRenderer> &pathRenderer,
-                                 const glm::vec2 &startPos,
-                                 const glm::vec2 &endPos);
+        void
+        drawGhostConnection(const std::shared_ptr<PathRenderer> &pathRenderer,
+                            const glm::vec2 &startPos, const glm::vec2 &endPos);
 
         void updateScene(TimeMs ts,
                          const std::vector<ApplicationEvent> &events);

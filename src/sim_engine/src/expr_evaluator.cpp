@@ -8,9 +8,7 @@
 #include <stdexcept>
 
 namespace Bess::SimEngine::ExprEval {
-    inline bool isUninaryOperator(char op) {
-        return op == '!' || op == '$';
-    }
+    inline bool isUninaryOperator(char op) { return op == '!' || op == '$'; }
 
     inline bool applyBinaryOperator(bool a, bool b, char op) {
         switch (op) {
@@ -33,8 +31,8 @@ namespace Bess::SimEngine::ExprEval {
         throw std::runtime_error("Unsupported unary operator");
     }
 
-    bool evaluateExpression(
-        const std::string &expr, const std::vector<bool> &values) {
+    bool evaluateExpression(const std::string &expr,
+                            const std::vector<bool> &values) {
         std::stack<bool> operands;
         std::stack<char> operators;
 
@@ -79,7 +77,8 @@ namespace Bess::SimEngine::ExprEval {
                 int index = expr[i] - '0';
                 if (index >= values.size()) {
                     BESS_ERROR("Invalid index {} in epxr {}", index, expr);
-                    throw std::out_of_range("Index out of range in the values array");
+                    throw std::out_of_range(
+                        "Index out of range in the values array");
                 }
                 operands.push(values[index]);
             } else if (expr[i] == '(') {
@@ -90,7 +89,8 @@ namespace Bess::SimEngine::ExprEval {
                 }
                 operators.pop(); // Remove '('
             } else if (expr[i] == '+' || expr[i] == '*' || expr[i] == '^') {
-                while (!operators.empty() && precedence(operators.top()) >= precedence(expr[i])) {
+                while (!operators.empty() &&
+                       precedence(operators.top()) >= precedence(expr[i])) {
                     applyTopOperator();
                 }
                 operators.push(expr[i]);

@@ -10,8 +10,10 @@ namespace Bess::Config {
         Themes();
 
         void applyTheme(const std::string &theme);
-        void addTheme(const std::string &name, const std::function<void()> &callback);
-        const std::unordered_map<std::string, std::function<void()>> &getThemes() const;
+        void addTheme(const std::string &name,
+                      const std::function<void()> &callback);
+        const std::unordered_map<std::string, std::function<void()>> &
+        getThemes() const;
 
       private:
         static void setDarkThemeColors();

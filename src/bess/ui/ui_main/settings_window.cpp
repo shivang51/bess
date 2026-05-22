@@ -19,15 +19,15 @@ namespace Bess::UI {
         auto &settings = Config::Settings::instance();
         auto currentTheme = settings.getCurrentTheme();
 
-        if (drawSetting("Theme", "(Default: Bess Minimal Dark)",
-                        currentTheme,
+        if (drawSetting("Theme", "(Default: Bess Minimal Dark)", currentTheme,
                         m_availableThemes)) {
             settings.applyTheme(currentTheme);
         }
 
         ImGui::NewLine();
         auto fontSize = settings.getFontSize();
-        if (drawSetting("Font Size", "(Default: 18px)", fontSize, m_availableFontSizes)) {
+        if (drawSetting("Font Size", "(Default: 18px)", fontSize,
+                        m_availableFontSizes)) {
             settings.setFontSize(fontSize);
         }
 
@@ -40,7 +40,8 @@ namespace Bess::UI {
         ImGui::NewLine();
         auto fps = settings.getFps();
         if (drawSetting("FPS",
-                        "(Default and Recommended: 60) Higher number gives smoothness but with high GPU consumption.",
+                        "(Default and Recommended: 60) Higher number gives "
+                        "smoothness but with high GPU consumption.",
                         fps, m_availableFps)) {
             settings.setFps(fps);
         }
@@ -54,8 +55,7 @@ namespace Bess::UI {
 
     void SettingsWindow::onShow() {
         // Populate available font sizes
-        m_availableFontSizes = {10.f, 12.f, 14.f, 16.f,
-                                18.f, 20.f, 22.f, 24.f};
+        m_availableFontSizes = {10.f, 12.f, 14.f, 16.f, 18.f, 20.f, 22.f, 24.f};
 
         // Populate available scales
         m_availableScales.clear();

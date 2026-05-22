@@ -1,6 +1,6 @@
 #pragma once
-#include "common/types.h"
 #include "application/events/application_event.h"
+#include "common/types.h"
 #include <memory>
 #include <vector>
 
@@ -11,6 +11,7 @@ namespace Bess::Pages {
         virtual ~Page() = default;
 
         virtual void draw() = 0;
-        virtual void update(TimeMs ts, std::vector<ApplicationEvent> &events) = 0;
+        virtual void update(TimeMs ts,
+                            std::vector<ApplicationEvent> &events) = 0;
     };
 } // namespace Bess::Pages

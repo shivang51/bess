@@ -11,30 +11,23 @@ class PyUIHook : public Bess::UI::Hook::UIHook,
   public:
     using Bess::UI::Hook::UIHook::UIHook;
 
-    void setPropertyDescriptors(const std::vector<Bess::UI::Hook::PropertyDesc> &descs) override {
-        PYBIND11_OVERLOAD_NAME(
-            void,
-            Bess::UI::Hook::UIHook,
-            "set_properties",
-            setPropertyDescriptors,
-            descs);
+    void setPropertyDescriptors(
+        const std::vector<Bess::UI::Hook::PropertyDesc> &descs) override {
+        PYBIND11_OVERLOAD_NAME(void, Bess::UI::Hook::UIHook, "set_properties",
+                               setPropertyDescriptors, descs);
     }
 
-    const std::vector<Bess::UI::Hook::PropertyDesc> &getPropertyDescriptors() const override {
+    const std::vector<Bess::UI::Hook::PropertyDesc> &
+    getPropertyDescriptors() const override {
         PYBIND11_OVERLOAD_NAME(
             const std::vector<Bess::UI::Hook::PropertyDesc> &,
-            Bess::UI::Hook::UIHook,
-            "get_properties",
-            getPropertyDescriptors, );
+            Bess::UI::Hook::UIHook, "get_properties", getPropertyDescriptors, );
     }
 
-    void addPropertyDescriptor(const Bess::UI::Hook::PropertyDesc &desc) override {
-        PYBIND11_OVERLOAD_NAME(
-            void,
-            Bess::UI::Hook::UIHook,
-            "add_property",
-            addPropertyDescriptor,
-            desc);
+    void
+    addPropertyDescriptor(const Bess::UI::Hook::PropertyDesc &desc) override {
+        PYBIND11_OVERLOAD_NAME(void, Bess::UI::Hook::UIHook, "add_property",
+                               addPropertyDescriptor, desc);
     }
 };
 
@@ -62,8 +55,10 @@ void bind_ui_hook(py::module &m) {
         .def(py::init<>())
         .def_readwrite("name", &Bess::UI::Hook::PropertyDesc::name)
         .def_readwrite("type", &Bess::UI::Hook::PropertyDesc::type)
-        .def_readwrite("default_value", &Bess::UI::Hook::PropertyDesc::defaultValue)
-        .def_readwrite("constraints", &Bess::UI::Hook::PropertyDesc::constraints);
+        .def_readwrite("default_value",
+                       &Bess::UI::Hook::PropertyDesc::defaultValue)
+        .def_readwrite("constraints",
+                       &Bess::UI::Hook::PropertyDesc::constraints);
 
     py::class_<Bess::UI::Hook::PropertyBinding>(m, "PropertyBinding")
         .def(py::init<>())

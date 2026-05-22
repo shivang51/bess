@@ -45,14 +45,16 @@ namespace Bess::Vulkan {
         void renderToSwapchain(const SwapchainRenderFn &fn);
         void endFrame();
 
-        void cleanup(const std::function<void()> &preCmdBufferCleanup = []() {});
+        void cleanup(const std::function<void()> &preCmdBufferCleanup = []() {
+        });
 
         std::shared_ptr<VulkanRenderPass> getRenderPass() const;
 
         VkInstance getVkInstance() const;
         std::shared_ptr<VulkanDevice> getDevice() const;
         std::shared_ptr<VulkanSwapchain> getSwapchain() const;
-        const std::vector<std::shared_ptr<VulkanCommandBuffer>> &getCommandBuffer() const;
+        const std::vector<std::shared_ptr<VulkanCommandBuffer>> &
+        getCommandBuffer() const;
 
         uint32_t getCurrentFrameIdx() const;
 
@@ -60,7 +62,8 @@ namespace Bess::Vulkan {
 
       private:
         VkResult initVkInstance(const std::vector<const char *> &winExtensions);
-        VkResult validateExtensions(const std::vector<const char *> &extensions) const;
+        VkResult
+        validateExtensions(const std::vector<const char *> &extensions) const;
         VkResult validateLayers(const std::vector<const char *> &layers) const;
         VkDebugUtilsMessengerCreateInfoEXT getDebugMessengerCreateInfo() const;
         VkResult createDebugMessenger();

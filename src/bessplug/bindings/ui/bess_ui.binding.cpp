@@ -14,53 +14,35 @@ void bind_bess_ui(py::module &m) {
                             bool open = true) {
         ImGui::SetNextWindowSize(ImVec2(initSize.x, initSize.y),
                                  ImGuiCond_FirstUseEver);
-        ImGui::Begin(name.c_str(),
-                     &open,
-                     ImGuiWindowFlags_NoFocusOnAppearing);
+        ImGui::Begin(name.c_str(), &open, ImGuiWindowFlags_NoFocusOnAppearing);
         return open;
     });
 
-    m.def("end_panel", []() {
-        ImGui::End();
-    });
+    m.def("end_panel", []() { ImGui::End(); });
 
-    m.def("text", [](const std::string &text) {
-        ImGui::Text("%s", text.c_str());
-    });
+    m.def("text",
+          [](const std::string &text) { ImGui::Text("%s", text.c_str()); });
 
-    auto textMultilineFn = [](const std::string &id,
-                              const std::string &text,
+    auto textMultilineFn = [](const std::string &id, const std::string &text,
                               const glm::vec2 &size) {
         Bess::UI::Widgets::SelectableText(id, text, size);
     };
 
-    m.def("text_multiline", textMultilineFn,
-          py::arg("id"),
-          py::arg("text"),
+    m.def("text_multiline", textMultilineFn, py::arg("id"), py::arg("text"),
           py::arg("size") = glm::vec2(0.f, 300.f));
 
-    m.def("same_line", []() {
-        ImGui::SameLine();
-    });
+    m.def("same_line", []() { ImGui::SameLine(); });
 
-    m.def("separator", []() {
-        ImGui::Separator();
-    });
+    m.def("separator", []() { ImGui::Separator(); });
 
-    m.def("align_text_to_frame_padding", []() {
-        ImGui::AlignTextToFramePadding();
-    });
+    m.def("align_text_to_frame_padding",
+          []() { ImGui::AlignTextToFramePadding(); });
 
     /// inputs
 
-    m.def("slider_float", [](const std::string &label,
-                             float value,
-                             float min,
+    m.def("slider_float", [](const std::string &label, float value, float min,
                              float max) {
-        bool changed = ImGui::SliderFloat(label.c_str(),
-                                          &value,
-                                          min,
-                                          max);
+        bool changed = ImGui::SliderFloat(label.c_str(), &value, min, max);
         return std::make_tuple(changed, value);
     });
 
@@ -72,46 +54,33 @@ void bind_bess_ui(py::module &m) {
         return ImGui::Button(label.c_str());
     });
 
-    auto inputTextFn = [](const std::string &label,
-                          std::string &value,
+    auto inputTextFn = [](const std::string &label, std::string &value,
                           const std::string &hint) {
         bool changed = Bess::UI::Widgets::TextBox(label, value, hint);
         return std::make_tuple(changed, value);
     };
 
-    m.def("input_text",
-          inputTextFn,
-          py::arg("label"),
-          py::arg("value"),
+    m.def("input_text", inputTextFn, py::arg("label"), py::arg("value"),
           py::arg("hint") = "");
 
-    auto inputTextMultilineFn = [](const std::string &label,
-                                   std::string &value,
-                                   const glm::vec2 &size = glm::vec2(0.f, 400.f)) {
-        bool changed = Bess::UI::Widgets::TextBoxMultiline(label,
-                                                           value,
-                                                           size);
+    auto inputTextMultilineFn = [](const std::string &label, std::string &value,
+                                   const glm::vec2 &size =
+                                       glm::vec2(0.f, 400.f)) {
+        bool changed = Bess::UI::Widgets::TextBoxMultiline(label, value, size);
         return std::make_tuple(changed, value);
     };
 
-    m.def("input_text_multiline",
-          inputTextMultilineFn,
-          py::arg("label"),
-          py::arg("value"),
-          py::arg("size") = glm::vec2(0.f, 400.f));
+    m.def("input_text_multiline", inputTextMultilineFn, py::arg("label"),
+          py::arg("value"), py::arg("size") = glm::vec2(0.f, 400.f));
 
-    m.def("combo_box", [](const std::string &label,
-                          std::string &currentItem,
+    m.def("combo_box", [](const std::string &label, std::string &currentItem,
                           const std::vector<std::string> &items) {
-        bool changed = Bess::UI::Widgets::ComboBox(label,
-                                                   currentItem,
-                                                   items);
+        bool changed = Bess::UI::Widgets::ComboBox(label, currentItem, items);
         return std::make_tuple(changed, currentItem);
     });
 
     m.def("color_edit4", [](const std::string &label, glm::vec4 &color) {
-        bool changed = ImGui::ColorEdit4(label.c_str(),
-                                         glm::value_ptr(color));
+        bool changed = ImGui::ColorEdit4(label.c_str(), glm::value_ptr(color));
         return std::make_tuple(changed, color);
     });
 
@@ -119,7 +88,5 @@ void bind_bess_ui(py::module &m) {
         return Bess::UI::Widgets::TreeNode(key, label);
     });
 
-    m.def("tree_pop", []() {
-        ImGui::TreePop();
-    });
+    m.def("tree_pop", []() { ImGui::TreePop(); });
 }

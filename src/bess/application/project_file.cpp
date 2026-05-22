@@ -12,10 +12,11 @@
 #include <fstream>
 
 namespace Bess {
-    ProjectFile::ProjectFile() : m_name("Unnamed") {
-    }
+    ProjectFile::ProjectFile() : m_name("Unnamed") {}
 
-    ProjectFile::ProjectFile(const std::string &path) : m_path(path), m_saved(true) {
+    ProjectFile::ProjectFile(const std::string &path)
+        : m_path(path),
+          m_saved(true) {
         BESS_INFO("Opening project from {}", path);
 
         decode();
@@ -38,29 +39,17 @@ namespace Bess {
         m_saved = true;
     }
 
-    const std::string &ProjectFile::getName() const {
-        return m_name;
-    }
+    const std::string &ProjectFile::getName() const { return m_name; }
 
-    std::string &ProjectFile::getNameRef() {
-        return m_name;
-    }
+    std::string &ProjectFile::getNameRef() { return m_name; }
 
-    void ProjectFile::setName(const std::string &name) {
-        m_name = name;
-    }
+    void ProjectFile::setName(const std::string &name) { m_name = name; }
 
-    const std::string &ProjectFile::getPath() const {
-        return m_path;
-    }
+    const std::string &ProjectFile::getPath() const { return m_path; }
 
-    void ProjectFile::setPath(const std::string &path) {
-        m_path = path;
-    }
+    void ProjectFile::setPath(const std::string &path) { m_path = path; }
 
-    bool ProjectFile::isSaved() const {
-        return m_saved;
-    }
+    bool ProjectFile::isSaved() const { return m_saved; }
 
     void ProjectFile::encodeAndSave() {
         std::ofstream outFile(m_path, std::ios::out);
@@ -71,7 +60,8 @@ namespace Bess {
             Json::StreamWriterBuilder builder;
             builder["commentStyle"] = "None";
             builder["indentation"] = "    ";
-            std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+            std::unique_ptr<Json::StreamWriter> writer(
+                builder.newStreamWriter());
             writer->write(data, &outFile);
         } else {
             BESS_ERROR("Failed to open file for writing: {}", m_path);
@@ -88,7 +78,8 @@ namespace Bess {
         std::string errs;
 
         Json::CharReaderBuilder builder;
-        bool parsingSuccessful = Json::parseFromStream(builder, inFile, &data, &errs);
+        bool parsingSuccessful =
+            Json::parseFromStream(builder, inFile, &data, &errs);
 
         if (!parsingSuccessful) {
             BESS_ERROR("Failed to parse JSON from {}\n{}", m_path, errs);
@@ -106,11 +97,13 @@ namespace Bess {
         // make sure to decode scene after sim engine,
         // as scene components may depend on sim engine components
         if (data.isMember("scene_data")) {
-            auto &sceneDriver = Pages::MainPage::getInstance()->getState().getSceneDriver();
+            auto &sceneDriver =
+                Pages::MainPage::getInstance()->getState().getSceneDriver();
 
             sceneDriver.removeScenes();
 
-            BESS_DEBUG("[Decode] Cleared Scenes. count = {}", sceneDriver.getSceneCount());
+            BESS_DEBUG("[Decode] Cleared Scenes. count = {}",
+                       sceneDriver.getSceneCount());
 
             auto &simEngine = SimEngine::SimulationEngine::instance();
 
@@ -127,7 +120,8 @@ namespace Bess {
                     maxZ = std::max(comp->getTransform().position.z, maxZ);
                 }
                 scene->setZCoord(maxZ);
-                BESS_DEBUG("[Decode] Added new scene {}", (uint64_t)scene->getSceneId());
+                BESS_DEBUG("[Decode] Added new scene {}",
+                           (uint64_t)scene->getSceneId());
             }
 
             // setting root scene id
@@ -140,8 +134,8 @@ namespace Bess {
     }
 
     void ProjectFile::browsePath() {
-        const auto pathStr = UI::Dialogs::showSaveFileDialog("Save To",
-                                                             {"Bess Project", "*.bproj"});
+        const auto pathStr = UI::Dialogs::showSaveFileDialog(
+            "Save To", {"Bess Project", "*.bproj"});
 
         if (pathStr.empty()) {
             BESS_WARN("No path selected");
@@ -162,8 +156,7 @@ namespace Bess {
         BESS_INFO("Project path {} selected with name {}", m_path, m_name);
     }
 
-    void ProjectFile::patchFile() const {
-    }
+    void ProjectFile::patchFile() const {}
 
     Json::Value ProjectFile::toJson() const {
         Json::Value data;
@@ -173,7 +166,8 @@ namespace Bess {
 
         data["scene_data"] = Json::objectValue;
 
-        const auto &sceneDriver = Pages::MainPage::getInstance()->getState().getSceneDriver();
+        const auto &sceneDriver =
+            Pages::MainPage::getInstance()->getState().getSceneDriver();
         JsonConvert::toJsonValue(sceneDriver.getRootSceneId(),
                                  data["scene_data"]["root_scene_id"]);
 
@@ -184,7 +178,8 @@ namespace Bess {
             data["scene_data"]["scenes"].append(json);
         }
 
-        data["sim_engine_data"] = SimEngine::SimulationEngine::instance().toJson();
+        data["sim_engine_data"] =
+            SimEngine::SimulationEngine::instance().toJson();
 
         return data;
     }

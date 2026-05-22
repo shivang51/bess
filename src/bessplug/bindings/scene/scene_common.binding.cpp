@@ -18,13 +18,16 @@ void bind_scene_common_binding(py::module &m) {
         .def_readwrite("runtime_id", &Bess::Canvas::PickingId::runtimeId)
         .def_readwrite("info", &Bess::Canvas::PickingId::info)
         .def_static("invalid", &Bess::Canvas::PickingId::invalid)
-        .def("asUint64", [](const Bess::Canvas::PickingId &self) {
-            return static_cast<uint64_t>(self);
-        })
+        .def("asUint64",
+             [](const Bess::Canvas::PickingId &self) {
+                 return static_cast<uint64_t>(self);
+             })
         .def("__eq__", &Bess::Canvas::PickingId::operator==);
 
     py::enum_<Bess::Canvas::SlotType>(m, "SlotType")
-        .value("dInp", Bess::Canvas::SlotType::digitalInput, "Digital Input Slot")
-        .value("dOut", Bess::Canvas::SlotType::digitalOutput, "Digital Output Slot")
+        .value("dInp", Bess::Canvas::SlotType::digitalInput,
+               "Digital Input Slot")
+        .value("dOut", Bess::Canvas::SlotType::digitalOutput,
+               "Digital Output Slot")
         .export_values();
 }

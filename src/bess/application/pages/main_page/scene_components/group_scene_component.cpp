@@ -6,7 +6,8 @@
 namespace Bess::Canvas {
     GroupSceneComponent::GroupSceneComponent() = default;
 
-    std::vector<std::shared_ptr<SceneComponent>> GroupSceneComponent::clone(const SceneState &sceneState) const {
+    std::vector<std::shared_ptr<SceneComponent>>
+    GroupSceneComponent::clone(const SceneState &sceneState) const {
         auto clonedComponent = std::make_shared<GroupSceneComponent>(*this);
         prepareClone(*clonedComponent);
 
@@ -15,14 +16,17 @@ namespace Bess::Canvas {
 
         for (const auto &childId : m_childComponents) {
             const auto childComponent = sceneState.getComponentByUuid(childId);
-            BESS_ASSERT(childComponent, "Group child component was not found during clone");
+            BESS_ASSERT(childComponent,
+                        "Group child component was not found during clone");
 
             const auto childClones = childComponent->clone(sceneState);
-            BESS_ASSERT(!childClones.empty(), "Group child clone returned no components");
+            BESS_ASSERT(!childClones.empty(),
+                        "Group child clone returned no components");
 
             clonedComponent->addChildComponent(childClones.front()->getUuid());
             childClones.front()->setParentComponent(clonedComponent->getUuid());
-            clonedComponents.insert(clonedComponents.end(), childClones.begin(), childClones.end());
+            clonedComponents.insert(clonedComponents.end(), childClones.begin(),
+                                    childClones.end());
         }
 
         return clonedComponents;
@@ -35,7 +39,8 @@ namespace Bess::Canvas {
         }
     }
 
-    std::vector<UUID> GroupSceneComponent::cleanup(SceneState &state, UUID caller) {
+    std::vector<UUID> GroupSceneComponent::cleanup(SceneState &state,
+                                                   UUID caller) {
         for (const auto &childId : m_childComponents) {
             auto childComp = state.getComponentByUuid(childId);
             if (childComp) {

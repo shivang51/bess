@@ -28,7 +28,8 @@ namespace Bess::Plugins {
 
         const pybind11::object &getPluginObject() const;
 
-        std::vector<std::shared_ptr<SimEngine::Drivers::CompDef>> onCompCatalogLoad() const;
+        std::vector<std::shared_ptr<SimEngine::Drivers::CompDef>>
+        onCompCatalogLoad() const;
 
         void cleanup();
 
@@ -46,9 +47,8 @@ namespace Bess::Plugins {
 
         bool canDerserialize(const std::string &typeName);
 
-        std::shared_ptr<Canvas::SceneComponent> derserialize(
-            const std::string &typeName,
-            const Json::Value &json);
+        std::shared_ptr<Canvas::SceneComponent>
+        derserialize(const std::string &typeName, const Json::Value &json);
 
         MAKE_GETTER(std::string, Name, m_pluginName)
         MAKE_GETTER(std::string, Version, m_pluginVersion)

@@ -23,7 +23,8 @@ namespace Bess::Pages {
             return std::string(1, static_cast<char>(base + (index % 26)));
         }
 
-        std::shared_ptr<Canvas::Scene> getTrackedScene(SceneDriver &sceneDriver, const UUID &sceneId) {
+        std::shared_ptr<Canvas::Scene> getTrackedScene(SceneDriver &sceneDriver,
+                                                       const UUID &sceneId) {
             if (sceneId == UUID::null) {
                 return nullptr;
             }
@@ -31,29 +32,36 @@ namespace Bess::Pages {
             return sceneDriver.getSceneWithId(sceneId);
         }
 
-        void syncSceneComponentSlots(Canvas::SceneState &sceneState,
-                                     const std::shared_ptr<Canvas::SimulationSceneComponent> &comp,
-                                     const SimEngine::SlotsGroupInfo &slotsInfo,
-                                     bool isInput) {
+        void syncSceneComponentSlots(
+            Canvas::SceneState &sceneState,
+            const std::shared_ptr<Canvas::SimulationSceneComponent> &comp,
+            const SimEngine::SlotsGroupInfo &slotsInfo, bool isInput) {
             if (!comp) {
                 return;
             }
 
-            auto &slotIds = isInput ? comp->getInputSlots() : comp->getOutputSlots();
-            const auto slotType = isInput ? Canvas::SlotType::digitalInput : Canvas::SlotType::digitalOutput;
-            const auto resizeSlotType = isInput ? Canvas::SlotType::inputsResize : Canvas::SlotType::outputsResize;
+            auto &slotIds =
+                isInput ? comp->getInputSlots() : comp->getOutputSlots();
+            const auto slotType = isInput ? Canvas::SlotType::digitalInput
+                                          : Canvas::SlotType::digitalOutput;
+            const auto resizeSlotType = isInput
+                                            ? Canvas::SlotType::inputsResize
+                                            : Canvas::SlotType::outputsResize;
 
             std::vector<UUID> realSlots;
             realSlots.reserve(slotIds.size());
             UUID resizeSlotId = UUID::null;
 
             for (const auto &slotId : slotIds) {
-                const auto slot = sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(slotId);
+                const auto slot =
+                    sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(
+                        slotId);
                 if (!slot) {
                     continue;
                 }
 
-                if (slot->getSlotType() == resizeSlotType || slot->isResizeSlot()) {
+                if (slot->getSlotType() == resizeSlotType ||
+                    slot->isResizeSlot()) {
                     resizeSlotId = slotId;
                     continue;
                 }
@@ -72,17 +80,21 @@ namespace Bess::Pages {
                 auto newSlot = std::make_shared<Canvas::SlotSceneComponent>();
                 newSlot->setSlotType(slotType);
                 sceneState.addComponent<Canvas::SlotSceneComponent>(newSlot);
-                sceneState.attachChild(comp->getUuid(), newSlot->getUuid(), false);
+                sceneState.attachChild(comp->getUuid(), newSlot->getUuid(),
+                                       false);
                 realSlots.push_back(newSlot->getUuid());
             }
 
             if (slotsInfo.isResizeable) {
                 if (resizeSlotId == UUID::null) {
-                    auto resizeSlot = std::make_shared<Canvas::SlotSceneComponent>();
+                    auto resizeSlot =
+                        std::make_shared<Canvas::SlotSceneComponent>();
                     resizeSlot->setSlotType(resizeSlotType);
                     resizeSlot->setIndex(-1);
-                    sceneState.addComponent<Canvas::SlotSceneComponent>(resizeSlot);
-                    sceneState.attachChild(comp->getUuid(), resizeSlot->getUuid(), false);
+                    sceneState.addComponent<Canvas::SlotSceneComponent>(
+                        resizeSlot);
+                    sceneState.attachChild(comp->getUuid(),
+                                           resizeSlot->getUuid(), false);
                     resizeSlotId = resizeSlot->getUuid();
                 }
             } else if (resizeSlotId != UUID::null) {
@@ -98,7 +110,9 @@ namespace Bess::Pages {
             }
 
             for (size_t i = 0; i < realSlots.size(); ++i) {
-                const auto slot = sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(realSlots[i]);
+                const auto slot =
+                    sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(
+                        realSlots[i]);
                 if (!slot) {
                     continue;
                 }
@@ -113,7 +127,9 @@ namespace Bess::Pages {
             }
 
             if (resizeSlotId != UUID::null) {
-                const auto resizeSlot = sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(resizeSlotId);
+                const auto resizeSlot =
+                    sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(
+                        resizeSlotId);
                 if (resizeSlot) {
                     resizeSlot->setSlotType(resizeSlotType);
                     resizeSlot->setIndex(-1);
@@ -125,7 +141,8 @@ namespace Bess::Pages {
             comp->setSchematicScaleDirty();
         }
 
-        std::vector<std::filesystem::path> toFilesystemPaths(const std::vector<std::string> &paths) {
+        std::vector<std::filesystem::path>
+        toFilesystemPaths(const std::vector<std::string> &paths) {
             std::vector<std::filesystem::path> result;
             result.reserve(paths.size());
             for (const auto &path : paths) {
@@ -189,7 +206,8 @@ namespace Bess::Pages {
         m_currentProjectFile->save();
     }
 
-    void MainPageState::updateCurrentProject(const std::shared_ptr<ProjectFile> &project) {
+    void MainPageState::updateCurrentProject(
+        const std::shared_ptr<ProjectFile> &project) {
         if (project == nullptr)
             return;
         m_currentProjectFile = project;
@@ -197,11 +215,14 @@ namespace Bess::Pages {
         win->setName(m_currentProjectFile->getName() + " - BESS");
     }
 
-    bool MainPageState::importVerilogFile(const std::string &path, std::string *errorMessage) {
+    bool MainPageState::importVerilogFile(const std::string &path,
+                                          std::string *errorMessage) {
         return importVerilogFiles(std::vector<std::string>{path}, errorMessage);
     }
 
-    bool MainPageState::importVerilogFiles(const std::vector<std::string> &paths, std::string *errorMessage) {
+    bool
+    MainPageState::importVerilogFiles(const std::vector<std::string> &paths,
+                                      std::string *errorMessage) {
         try {
             if (paths.empty()) {
                 if (errorMessage) {
@@ -220,45 +241,51 @@ namespace Bess::Pages {
 
             resetProjectState();
             auto &simEngine = SimEngine::SimulationEngine::instance();
-            // const auto result = Verilog::importVerilogFilesIntoSimulationEngine(toFilesystemPaths(paths), simEngine);
-            // populateSceneFromVerilogImportResult(result, simEngine, *scene);
-            // m_sceneDriver.updateNets(scene);
+            // const auto result =
+            // Verilog::importVerilogFilesIntoSimulationEngine(toFilesystemPaths(paths),
+            // simEngine); populateSceneFromVerilogImportResult(result,
+            // simEngine, *scene); m_sceneDriver.updateNets(scene);
             return true;
         } catch (const std::exception &ex) {
             if (errorMessage) {
                 *errorMessage = ex.what();
             }
-            BESS_ERROR("[MainPageState] Failed to import Verilog files (primary {}): {}",
-                       primaryImportPath(paths),
-                       ex.what());
+            BESS_ERROR("[MainPageState] Failed to import Verilog files "
+                       "(primary {}): {}",
+                       primaryImportPath(paths), ex.what());
             return false;
         }
     }
 
-    HierarchicalSceneLayoutResult MainPageState::applyHierarchicalLayoutToActiveScene() {
+    HierarchicalSceneLayoutResult
+    MainPageState::applyHierarchicalLayoutToActiveScene() {
         HierarchicalSceneLayoutResult result;
         const auto activeScene = m_sceneDriver.getActiveScene();
         if (!activeScene) {
             return result;
         }
 
-        return applyHierarchicalSceneLayout(*activeScene, SimEngine::SimulationEngine::instance());
+        return applyHierarchicalSceneLayout(
+            *activeScene, SimEngine::SimulationEngine::instance());
     }
 
     void MainPageState::startVerilogImport(const std::string &path) {
         startVerilogImport(std::vector<std::string>{path});
     }
 
-    void MainPageState::startVerilogImport(const std::vector<std::string> &paths) {
+    void
+    MainPageState::startVerilogImport(const std::vector<std::string> &paths) {
         m_verilogImportSession = std::make_unique<VerilogImportSession>();
         m_verilogImportSession->paths = paths;
         m_verilogImportSession->progress = 0.05f;
         m_verilogImportSession->stageMessage = "Clearing current project";
         m_verilogImportSession->importing = true;
-        m_verilogImportSession->phase = VerilogImportSession::Phase::resetProject;
+        m_verilogImportSession->phase =
+            VerilogImportSession::Phase::resetProject;
     }
 
-    VerilogImportStatus MainPageState::advanceVerilogImport(std::string *errorMessage) {
+    VerilogImportStatus
+    MainPageState::advanceVerilogImport(std::string *errorMessage) {
         VerilogImportStatus status;
         if (!m_verilogImportSession) {
             status.stageMessage = "No active import";
@@ -290,7 +317,8 @@ namespace Bess::Pages {
                 session.phase = VerilogImportSession::Phase::importSimulation;
                 break;
             case VerilogImportSession::Phase::importSimulation:
-                // session.stagedResult = Verilog::importVerilogFilesIntoSimulationEngine(
+                // session.stagedResult =
+                // Verilog::importVerilogFilesIntoSimulationEngine(
                 //     toFilesystemPaths(session.paths),
                 //     simEngine);
                 session.progress = 0.7f;
@@ -301,7 +329,8 @@ namespace Bess::Pages {
                 if (!scene) {
                     throw std::runtime_error("No active scene available");
                 }
-                populateSceneFromVerilogImportResult(*session.stagedResult, simEngine, *scene);
+                populateSceneFromVerilogImportResult(*session.stagedResult,
+                                                     simEngine, *scene);
                 session.progress = 0.92f;
                 session.stageMessage = "Updating nets";
                 session.phase = VerilogImportSession::Phase::updateNets;
@@ -379,26 +408,36 @@ namespace Bess::Pages {
     void MainPageState::initCmdSystem() {
         m_commandSystem.init();
         auto &dispatcher = EventSystem::EventDispatcher::instance();
-        dispatcher.sink<Canvas::Events::EntityMovedEvent>().connect<&MainPageState::onEntityMoved>(this);
-        dispatcher.sink<Canvas::Events::EntityReparentedEvent>().connect<&MainPageState::onEntityReparented>(this);
-        dispatcher.sink<Canvas::Events::ComponentAddedEvent>().connect<&MainPageState::onEntityAdded>(this);
-        dispatcher.sink<Canvas::Events::ComponentRemovedEvent>().connect<&MainPageState::onEntityRemoved>(this);
-        dispatcher.sink<SimEngine::Events::CompDefOutputsResizedEvent>().connect<&MainPageState::onCompDefOutputsResized>(this);
-        dispatcher.sink<SimEngine::Events::CompDefInputsResizedEvent>().connect<&MainPageState::onCompDefInputsResized>(this);
+        dispatcher.sink<Canvas::Events::EntityMovedEvent>()
+            .connect<&MainPageState::onEntityMoved>(this);
+        dispatcher.sink<Canvas::Events::EntityReparentedEvent>()
+            .connect<&MainPageState::onEntityReparented>(this);
+        dispatcher.sink<Canvas::Events::ComponentAddedEvent>()
+            .connect<&MainPageState::onEntityAdded>(this);
+        dispatcher.sink<Canvas::Events::ComponentRemovedEvent>()
+            .connect<&MainPageState::onEntityRemoved>(this);
+        dispatcher.sink<SimEngine::Events::CompDefOutputsResizedEvent>()
+            .connect<&MainPageState::onCompDefOutputsResized>(this);
+        dispatcher.sink<SimEngine::Events::CompDefInputsResizedEvent>()
+            .connect<&MainPageState::onCompDefInputsResized>(this);
     }
 
-    void MainPageState::onEntityMoved(const Canvas::Events::EntityMovedEvent &e) {
-        auto entity = m_sceneDriver->getState().getComponentByUuid(e.entityUuid);
+    void
+    MainPageState::onEntityMoved(const Canvas::Events::EntityMovedEvent &e) {
+        auto entity =
+            m_sceneDriver->getState().getComponentByUuid(e.entityUuid);
         if (!entity) {
             return;
         }
 
         glm::vec3 *posPtr = &entity->getTransform().position;
-        auto cmd = std::make_unique<Cmd::UpdateValCommand<glm::vec3>>(posPtr, e.newPos, e.oldPos);
+        auto cmd = std::make_unique<Cmd::UpdateValCommand<glm::vec3>>(
+            posPtr, e.newPos, e.oldPos);
         m_commandSystem.push(std::move(cmd));
     }
 
-    void MainPageState::onEntityReparented(const Canvas::Events::EntityReparentedEvent &e) {
+    void MainPageState::onEntityReparented(
+        const Canvas::Events::EntityReparentedEvent &e) {
         const auto scene = getTrackedScene(m_sceneDriver, e.sceneId);
         if (!scene) {
             return;
@@ -419,18 +458,22 @@ namespace Bess::Pages {
         bool parentIsWasGroup = false;
 
         if (e.newParentUuid != UUID::null) {
-            const auto &parentComp = sceneState.getComponentByUuid(e.newParentUuid);
+            const auto &parentComp =
+                sceneState.getComponentByUuid(e.newParentUuid);
             if (!parentComp) {
                 return;
             }
-            parentIsWasGroup = parentComp->getType() == Canvas::SceneComponentType::group;
+            parentIsWasGroup =
+                parentComp->getType() == Canvas::SceneComponentType::group;
         }
 
         if (!parentIsWasGroup && e.prevParent != UUID::null) {
-            const auto &prevParentComp = sceneState.getComponentByUuid(e.prevParent);
+            const auto &prevParentComp =
+                sceneState.getComponentByUuid(e.prevParent);
             if (!prevParentComp)
                 return;
-            if (prevParentComp->getType() == Canvas::SceneComponentType::group) {
+            if (prevParentComp->getType() ==
+                Canvas::SceneComponentType::group) {
                 parentIsWasGroup = true;
             }
         }
@@ -442,7 +485,9 @@ namespace Bess::Pages {
         }
 
         /// undo redo callback
-        const auto callback = [this, entityUuid = e.entityUuid, sceneId = e.sceneId](bool isUndo, const UUID &newParent) {
+        const auto callback = [this, entityUuid = e.entityUuid,
+                               sceneId = e.sceneId](bool isUndo,
+                                                    const UUID &newParent) {
             (void)isUndo;
             if (newParent == UUID::null)
                 return;
@@ -452,7 +497,8 @@ namespace Bess::Pages {
                 return;
             }
 
-            const auto &parent = scene->getState().getComponentByUuid(newParent);
+            const auto &parent =
+                scene->getState().getComponentByUuid(newParent);
             if (!parent) {
                 return;
             }
@@ -460,10 +506,8 @@ namespace Bess::Pages {
         };
 
         if (entity) {
-            auto cmd = std::make_unique<Cmd::UpdateValCommand<UUID>>(parentPtr,
-                                                                     e.newParentUuid,
-                                                                     e.prevParent,
-                                                                     callback);
+            auto cmd = std::make_unique<Cmd::UpdateValCommand<UUID>>(
+                parentPtr, e.newParentUuid, e.prevParent, callback);
             m_commandSystem.push(std::move(cmd));
         }
     }
@@ -472,9 +516,7 @@ namespace Bess::Pages {
         return m_sceneDriver;
     }
 
-    SceneDriver &MainPageState::getSceneDriver() {
-        return m_sceneDriver;
-    }
+    SceneDriver &MainPageState::getSceneDriver() { return m_sceneDriver; }
 
     Cmd::CommandSystem &MainPageState::getCommandSystem() {
         return m_commandSystem;
@@ -485,9 +527,12 @@ namespace Bess::Pages {
         m_pressedKeysFrame.clear();
     }
 
-    void MainPageState::onCompDefOutputsResized(const SimEngine::Events::CompDefOutputsResizedEvent &e) {
+    void MainPageState::onCompDefOutputsResized(
+        const SimEngine::Events::CompDefOutputsResizedEvent &e) {
         if (!m_simIdToSceneCompId.contains(e.componentId)) {
-            BESS_WARN("Ignoring CompDefOutputsResizedEvent for unknown componentId: {}", (uint64_t)e.componentId);
+            BESS_WARN("Ignoring CompDefOutputsResizedEvent for unknown "
+                      "componentId: {}",
+                      (uint64_t)e.componentId);
             return;
         }
 
@@ -500,21 +545,31 @@ namespace Bess::Pages {
         }
 
         auto &sceneState = scene->getState();
-        const auto &comp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(compData.sceneCompId);
+        const auto &comp =
+            sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(
+                compData.sceneCompId);
         if (!comp)
-            return; // most likely the component was deleted, so we can ignore this event
+            return; // most likely the component was deleted, so we can ignore
+                    // this event
 
-        const auto &digitalComp = SimEngine::SimulationEngine::instance().getComponent<SimEngine::Drivers::Digital::DigSimComp>(e.componentId);
+        const auto &digitalComp =
+            SimEngine::SimulationEngine::instance()
+                .getComponent<SimEngine::Drivers::Digital::DigSimComp>(
+                    e.componentId);
 
-        const auto &outSlotsInfo = digitalComp->getDefinition<
-                                                  SimEngine::Drivers::Digital::DigCompDef>()
-                                       ->getOutputSlotsInfo();
+        const auto &outSlotsInfo =
+            digitalComp
+                ->getDefinition<SimEngine::Drivers::Digital::DigCompDef>()
+                ->getOutputSlotsInfo();
         syncSceneComponentSlots(sceneState, comp, outSlotsInfo, false);
     }
 
-    void MainPageState::onCompDefInputsResized(const SimEngine::Events::CompDefInputsResizedEvent &e) {
+    void MainPageState::onCompDefInputsResized(
+        const SimEngine::Events::CompDefInputsResizedEvent &e) {
         if (!m_simIdToSceneCompId.contains(e.componentId)) {
-            BESS_WARN("Ignoring CompDefInputsResizedEvent for unknown componentId: {}", (uint64_t)e.componentId);
+            BESS_WARN("Ignoring CompDefInputsResizedEvent for unknown "
+                      "componentId: {}",
+                      (uint64_t)e.componentId);
             return;
         }
 
@@ -527,24 +582,31 @@ namespace Bess::Pages {
         }
 
         auto &sceneState = scene->getState();
-        const auto &comp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(
-            compData.sceneCompId);
+        const auto &comp =
+            sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(
+                compData.sceneCompId);
         if (!comp)
-            return; // most likely the component was deleted, so we can ignore this event
+            return; // most likely the component was deleted, so we can ignore
+                    // this event
 
-        const auto &digitalComp = SimEngine::SimulationEngine::instance()
-                                      .getComponent<SimEngine::Drivers::Digital::DigSimComp>(e.componentId);
-        const auto &outSlotsInfo = digitalComp->getDefinition<
-                                                  SimEngine::Drivers::Digital::DigCompDef>()
-                                       ->getOutputSlotsInfo();
+        const auto &digitalComp =
+            SimEngine::SimulationEngine::instance()
+                .getComponent<SimEngine::Drivers::Digital::DigSimComp>(
+                    e.componentId);
+        const auto &outSlotsInfo =
+            digitalComp
+                ->getDefinition<SimEngine::Drivers::Digital::DigCompDef>()
+                ->getOutputSlotsInfo();
 
-        const auto &inSlotsInfo = digitalComp->getDefinition<
-                                                 SimEngine::Drivers::Digital::DigCompDef>()
-                                      ->getInputSlotsInfo();
+        const auto &inSlotsInfo =
+            digitalComp
+                ->getDefinition<SimEngine::Drivers::Digital::DigCompDef>()
+                ->getInputSlotsInfo();
         syncSceneComponentSlots(sceneState, comp, inSlotsInfo, true);
     }
 
-    void MainPageState::onEntityAdded(const Canvas::Events::ComponentAddedEvent &e) {
+    void
+    MainPageState::onEntityAdded(const Canvas::Events::ComponentAddedEvent &e) {
         const auto scene = getTrackedScene(m_sceneDriver, e.sceneId);
         if (!scene) {
             return;
@@ -558,7 +620,9 @@ namespace Bess::Pages {
 
         if (e.type == Canvas::SceneComponentType::simulation ||
             e.type == Canvas::SceneComponentType::module) {
-            const auto simComp = std::dynamic_pointer_cast<Canvas::SimulationSceneComponent>(comp);
+            const auto simComp =
+                std::dynamic_pointer_cast<Canvas::SimulationSceneComponent>(
+                    comp);
             if (!simComp) {
                 return;
             }
@@ -567,23 +631,25 @@ namespace Bess::Pages {
         }
     }
 
-    void MainPageState::onEntityRemoved(const Canvas::Events::ComponentRemovedEvent &e) {
+    void MainPageState::onEntityRemoved(
+        const Canvas::Events::ComponentRemovedEvent &e) {
         if (e.type != Canvas::SceneComponentType::simulation &&
             e.type != Canvas::SceneComponentType::module)
             return;
 
-        auto it = std::ranges::find_if(m_simIdToSceneCompId,
-                                       [&e](const auto &pair) {
-                                           return pair.second.sceneCompId == e.uuid &&
-                                                  pair.second.sceneId == e.sceneId;
-                                       });
+        auto it =
+            std::ranges::find_if(m_simIdToSceneCompId, [&e](const auto &pair) {
+                return pair.second.sceneCompId == e.uuid &&
+                       pair.second.sceneId == e.sceneId;
+            });
 
         if (it != m_simIdToSceneCompId.end()) {
             m_simIdToSceneCompId.erase(it);
         }
     }
 
-    MainPageState::TNetIdToCompMap &MainPageState::getNetIdToCompMap(UUID sceneId) {
+    MainPageState::TNetIdToCompMap &
+    MainPageState::getNetIdToCompMap(UUID sceneId) {
         if (!m_netIdToCompMap.contains(sceneId)) {
             m_netIdToCompMap[sceneId] = TNetIdToCompMap{};
         }

@@ -17,7 +17,8 @@ namespace Bess::Canvas {
         m_icon = UI::Icons::FontAwesomeIcons::FA_TOGGLE_OFF;
     }
 
-    std::vector<std::shared_ptr<SceneComponent>> InputSceneComponent::clone(const SceneState &sceneState) const {
+    std::vector<std::shared_ptr<SceneComponent>>
+    InputSceneComponent::clone(const SceneState &sceneState) const {
         auto clonedComponent = std::make_shared<InputSceneComponent>(*this);
         return cloneSimulationComponent(sceneState, clonedComponent);
     }
@@ -37,14 +38,15 @@ namespace Bess::Canvas {
     }
 
     void InputSceneComponent::drawToggleButton(SceneDrawContext &context,
-                                               UUID slotUuid,
-                                               int buttonIndex) {
+                                               UUID slotUuid, int buttonIndex) {
         constexpr float buttonWidth = 30.f;
-        constexpr float buttonHeight = Styles::SIM_COMP_SLOT_ROW_SIZE - (Styles::simCompStyles.rowMargin * 2.f);
+        constexpr float buttonHeight = Styles::SIM_COMP_SLOT_ROW_SIZE -
+                                       (Styles::simCompStyles.rowMargin * 2.f);
         constexpr glm::vec2 buttonSize = glm::vec2(buttonWidth, buttonHeight);
 
         const auto &state = *context.sceneState;
-        const auto slotComp = state.getComponentByUuid<SlotSceneComponent>(slotUuid);
+        const auto slotComp =
+            state.getComponentByUuid<SlotSceneComponent>(slotUuid);
         const auto slotType = slotComp->getSlotType();
 
         if (slotType == SlotType::inputsResize ||
@@ -53,35 +55,40 @@ namespace Bess::Canvas {
         }
 
         const auto slotPosY = slotComp->getAbsolutePosition(state).y;
-        const bool isHigh = slotComp->getSlotState(state).state == SimEngine::LogicState::high;
+        const bool isHigh =
+            slotComp->getSlotState(state).state == SimEngine::LogicState::high;
 
-        const float buttonPosX = m_transform.position.x - (m_transform.scale.x / 2.f) +
-                                 Styles::simCompStyles.paddingX + (buttonSize.x / 2.f);
-        const glm::vec3 buttonPos = glm::vec3(buttonPosX,
-                                              slotPosY,
-                                              m_transform.position.z + 0.001f);
+        const float buttonPosX =
+            m_transform.position.x - (m_transform.scale.x / 2.f) +
+            Styles::simCompStyles.paddingX + (buttonSize.x / 2.f);
+        const glm::vec3 buttonPos =
+            glm::vec3(buttonPosX, slotPosY, m_transform.position.z + 0.001f);
 
-        const auto pickingId = PickingId{m_runtimeId, static_cast<uint32_t>(buttonIndex + 1)};
+        const auto pickingId =
+            PickingId{m_runtimeId, static_cast<uint32_t>(buttonIndex + 1)};
 
-        SceneUI::drawToggleButton(pickingId, isHigh, buttonPos, buttonSize, context);
+        SceneUI::drawToggleButton(pickingId, isHigh, buttonPos, buttonSize,
+                                  context);
 
         // Button label
         const std::string label = isHigh ? "1" : "0";
-        const auto textSize = Renderer::MaterialRenderer::getTextRenderSize(label, Styles::simCompStyles.slotLabelSize);
+        const auto textSize = Renderer::MaterialRenderer::getTextRenderSize(
+            label, Styles::simCompStyles.slotLabelSize);
 
         const float textPosX = buttonPos.x + (buttonSize.x / 2.f) + 8.f;
-        const glm::vec3 textPos = glm::vec3(textPosX,
-                                            slotPosY + (textSize.y / 2.f) - 1.f, // FIXME: why -2.f, maybe the baseline?
-                                            m_transform.position.z + 0.001f);
+        const glm::vec3 textPos =
+            glm::vec3(textPosX,
+                      slotPosY + (textSize.y / 2.f) -
+                          1.f, // FIXME: why -2.f, maybe the baseline?
+                      m_transform.position.z + 0.001f);
 
-        context.materialRenderer->drawText(label,
-                                           textPos,
-                                           Styles::simCompStyles.slotLabelSize,
-                                           ViewportTheme::colors.text,
-                                           PickingId{m_runtimeId, 0});
+        context.materialRenderer->drawText(
+            label, textPos, Styles::simCompStyles.slotLabelSize,
+            ViewportTheme::colors.text, PickingId{m_runtimeId, 0});
     }
 
-    void InputSceneComponent::onMouseHovered(const Events::MouseHoveredEvent &e) {
+    void
+    InputSceneComponent::onMouseHovered(const Events::MouseHoveredEvent &e) {
         int buttonIndex = (int)e.details - 1; // since 0 is component body
 
         if (buttonIndex < 0) {
@@ -106,7 +113,8 @@ namespace Bess::Canvas {
     }
 
     void InputSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
-        if (e.button != Events::MouseButton::left || e.action != Events::MouseClickAction::press) {
+        if (e.button != Events::MouseButton::left ||
+            e.action != Events::MouseClickAction::press) {
             return;
         }
 
@@ -117,17 +125,20 @@ namespace Bess::Canvas {
         }
 
         const auto slotUuid = m_outputSlots[buttonIndex];
-        const auto slotComp = e.sceneState->getComponentByUuid<SlotSceneComponent>(slotUuid);
-        const auto slotParentComp = e.sceneState->getComponentByUuid<SimulationSceneComponent>(
-            slotComp->getParentComponent());
+        const auto slotComp =
+            e.sceneState->getComponentByUuid<SlotSceneComponent>(slotUuid);
+        const auto slotParentComp =
+            e.sceneState->getComponentByUuid<SimulationSceneComponent>(
+                slotComp->getParentComponent());
 
         auto &simEngine = SimEngine::SimulationEngine::instance();
 
-        simEngine.setOutputSlotState(slotParentComp->getSimEngineId(),
-                                     slotComp->getIndex(),
-                                     slotComp->getSlotState(*e.sceneState).state == SimEngine::LogicState::high
-                                         ? SimEngine::LogicState::low
-                                         : SimEngine::LogicState::high);
+        simEngine.setOutputSlotState(
+            slotParentComp->getSimEngineId(), slotComp->getIndex(),
+            slotComp->getSlotState(*e.sceneState).state ==
+                    SimEngine::LogicState::high
+                ? SimEngine::LogicState::low
+                : SimEngine::LogicState::high);
     }
 
     void InputSceneComponent::calculateSchematicScale(const SceneState &state) {

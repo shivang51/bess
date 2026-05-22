@@ -25,15 +25,19 @@ namespace Bess::Plugins {
         bool loadPlugin(const std::string &pluginPath);
         bool unloadPlugin(const std::string &pluginName);
         void unloadAllPlugins();
-        bool loadPluginsFromDirectory(const std::string &pluginsDir = "plugins");
+        bool
+        loadPluginsFromDirectory(const std::string &pluginsDir = "plugins");
 
         std::vector<std::string> getLoadedPluginsNames() const;
-        const std::unordered_map<std::string, std::shared_ptr<PluginHandle>> &getLoadedPlugins() const;
+        const std::unordered_map<std::string, std::shared_ptr<PluginHandle>> &
+        getLoadedPlugins() const;
         bool isPluginLoaded(const std::string &pluginName) const;
-        std::shared_ptr<PluginHandle> getPlugin(const std::string &pluginName) const;
+        std::shared_ptr<PluginHandle>
+        getPlugin(const std::string &pluginName) const;
 
       private:
-        std::unordered_map<std::string, std::shared_ptr<PluginHandle>> m_plugins;
+        std::unordered_map<std::string, std::shared_ptr<PluginHandle>>
+            m_plugins;
     };
 
 } // namespace Bess::Plugins

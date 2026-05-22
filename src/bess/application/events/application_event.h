@@ -36,8 +36,7 @@ namespace Bess {
       public:
         ApplicationEvent(ApplicationEventType type, std::any data);
         ApplicationEventType getType() const;
-        template <typename T>
-        T getData() const {
+        template <typename T> T getData() const {
             auto data = std::any_cast<T>(m_data);
             return data;
         }

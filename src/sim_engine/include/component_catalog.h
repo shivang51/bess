@@ -25,28 +25,35 @@ namespace Bess::SimEngine {
         }
 
         // Get the full list of registered components.
-        const std::vector<std::shared_ptr<Drivers::CompDef>> &getComponents() const;
+        const std::vector<std::shared_ptr<Drivers::CompDef>> &
+        getComponents() const;
 
-        // Get the full list of registered components as tree format, grouped based on the category.
-        typedef std::unordered_map<std::string,
-                                   std::vector<std::shared_ptr<Drivers::CompDef>>>
+        // Get the full list of registered components as tree format, grouped
+        // based on the category.
+        typedef std::unordered_map<
+            std::string, std::vector<std::shared_ptr<Drivers::CompDef>>>
             ComponentTree;
         std::shared_ptr<ComponentTree> getComponentsTree();
 
         template <typename TCompDef>
-        std::shared_ptr<TCompDef> getComponentDefinition(const std::string &name) const {
+        std::shared_ptr<TCompDef>
+        getComponentDefinition(const std::string &name) const {
             if (m_compNameMap.contains(name)) {
-                return std::dynamic_pointer_cast<TCompDef>(m_compNameMap.at(name));
+                return std::dynamic_pointer_cast<TCompDef>(
+                    m_compNameMap.at(name));
             }
             return nullptr;
         }
 
         // Look up a component definition by its hash.
-        std::shared_ptr<Drivers::CompDef> getComponentDefinition(const std::string &name) const;
+        std::shared_ptr<Drivers::CompDef>
+        getComponentDefinition(const std::string &name) const;
 
-        std::shared_ptr<Drivers::CompDef> getComponentDefinitionCopy(const std::string &name);
+        std::shared_ptr<Drivers::CompDef>
+        getComponentDefinitionCopy(const std::string &name);
 
-        std::shared_ptr<Drivers::CompDef> findDefByName(const std::string &name) const;
+        std::shared_ptr<Drivers::CompDef>
+        findDefByName(const std::string &name) const;
 
         bool isRegistered(const std::string &name) const;
 
@@ -54,6 +61,7 @@ namespace Bess::SimEngine {
         ComponentCatalog() = default;
         std::vector<std::shared_ptr<Drivers::CompDef>> m_components;
         std::shared_ptr<ComponentTree> m_componentTree = nullptr;
-        std::unordered_map<std::string, std::shared_ptr<Drivers::CompDef>> m_compNameMap;
+        std::unordered_map<std::string, std::shared_ptr<Drivers::CompDef>>
+            m_compNameMap;
     };
 } // namespace Bess::SimEngine

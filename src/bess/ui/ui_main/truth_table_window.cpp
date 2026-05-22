@@ -10,19 +10,20 @@
 
 namespace Bess::UI {
 
-    static constexpr auto windowName = Common::Helpers::concat(Icons::CodIcons::TABLE,
-                                                               "  Truth Table Viewer");
+    static constexpr auto windowName =
+        Common::Helpers::concat(Icons::CodIcons::TABLE, "  Truth Table Viewer");
 
-    TruthTableWindow::TruthTableWindow() : Panel(std::string(windowName.data())) {
-    }
+    TruthTableWindow::TruthTableWindow()
+        : Panel(std::string(windowName.data())) {}
 
     void TruthTableWindow::onDraw() {
         const auto &mainPageState = Pages::MainPage::getInstance()->getState();
 
-        if (Widgets::ComboBox("Select Net",
-                              selectedNetName,
-                              mainPageState.getNetIdToNameMap() | std::views::values)) {
-            for (const auto &[netId, netName] : mainPageState.getNetIdToNameMap()) {
+        if (Widgets::ComboBox("Select Net", selectedNetName,
+                              mainPageState.getNetIdToNameMap() |
+                                  std::views::values)) {
+            for (const auto &[netId, netName] :
+                 mainPageState.getNetIdToNameMap()) {
                 if (netName == selectedNetName) {
                     selectedNetId = netId;
                     isDirty = true;
@@ -41,30 +42,39 @@ namespace Bess::UI {
             if (!currentTruthTable.table.empty()) {
                 char inp = 'A';
                 char out = 'A';
-                static constexpr auto tableFlags = ImGuiTableFlags_Borders |
-                                                   ImGuiTableFlags_RowBg |
-                                                   ImGuiTableFlags_SizingStretchProp |
-                                                   ImGuiTableFlags_Resizable |
-                                                   ImGuiTableFlags_Reorderable;
-                if (ImGui::BeginTable("TruthTable", (int)currentTruthTable.table[0].size(), tableFlags)) {
+                static constexpr auto tableFlags =
+                    ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
+                    ImGuiTableFlags_SizingStretchProp |
+                    ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable;
+                if (ImGui::BeginTable("TruthTable",
+                                      (int)currentTruthTable.table[0].size(),
+                                      tableFlags)) {
                     for (auto &compId : currentTruthTable.inputUuids) {
-                        ImGui::TableSetupColumn(std::format("INPUT {}", inp++).c_str());
+                        ImGui::TableSetupColumn(
+                            std::format("INPUT {}", inp++).c_str());
                     }
 
                     for (auto &compId : currentTruthTable.outputUuids) {
-                        ImGui::TableSetupColumn(std::format("RESULT {}", out++).c_str());
+                        ImGui::TableSetupColumn(
+                            std::format("RESULT {}", out++).c_str());
                     }
 
                     ImGui::TableHeadersRow();
                     for (auto &row : currentTruthTable.table) {
-                        for (int column = 0; column < currentTruthTable.table[0].size(); column++) {
+                        for (int column = 0;
+                             column < currentTruthTable.table[0].size();
+                             column++) {
                             ImGui::TableNextColumn();
                             const auto &state = row[column];
-                            const char *value = state == SimEngine::LogicState::low
-                                                    ? "LOW"
-                                                    : (state == SimEngine::LogicState::high
-                                                           ? "HIGH"
-                                                           : (state == SimEngine::LogicState::unknown ? "X" : "Z"));
+                            const char *value =
+                                state == SimEngine::LogicState::low
+                                    ? "LOW"
+                                    : (state == SimEngine::LogicState::high
+                                           ? "HIGH"
+                                           : (state == SimEngine::LogicState::
+                                                           unknown
+                                                  ? "X"
+                                                  : "Z"));
                             ImGui::Text("%s", value);
                         }
                     }

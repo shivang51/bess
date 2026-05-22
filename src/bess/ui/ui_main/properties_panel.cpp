@@ -19,8 +19,10 @@ namespace Bess::UI {
         m_visible = true;
     }
 
-    void drawConnectionComponent(const std::shared_ptr<Canvas::ConnectionSceneComponent> &comp) {
-        Widgets::CheckboxWithLabel("Use Custom Color", &comp->getUseCustomColor());
+    void drawConnectionComponent(
+        const std::shared_ptr<Canvas::ConnectionSceneComponent> &comp) {
+        Widgets::CheckboxWithLabel("Use Custom Color",
+                                   &comp->getUseCustomColor());
         if (comp->getUseCustomColor()) {
             auto &style = comp->getStyle();
             ImGui::ColorEdit4("Color", glm::value_ptr(style.color));
@@ -28,7 +30,10 @@ namespace Bess::UI {
     }
 
     void PropertiesPanel::onDraw() {
-        auto &sceneState = Pages::MainPage::getInstance()->getState().getSceneDriver()->getState();
+        auto &sceneState = Pages::MainPage::getInstance()
+                               ->getState()
+                               .getSceneDriver()
+                               ->getState();
         if (sceneState.getSelectedComponents().empty()) {
             ImGui::TextUnformatted("No component selected.");
             return;
@@ -48,13 +53,17 @@ namespace Bess::UI {
         if (compType == Canvas::SceneComponentType::simulation) {
             auto simComp = comp->cast<Canvas::SimulationSceneComponent>();
             auto &simEngine = SimEngine::SimulationEngine::instance();
-            auto &def = simEngine.getComponentDefinition(simComp->getSimEngineId());
+            auto &def =
+                simEngine.getComponentDefinition(simComp->getSimEngineId());
 
             // if (def->hasTrait<SimEngine::ClockTrait>()) {
-            //     bool changed = drawClockTrait(def->getTrait<SimEngine::ClockTrait>(), compId);
-            //     if (changed) {
-            //         auto &def = simEngine.getComponentDefinition(simComp->getSimEngineId());
-            //         const auto &trait = def->getTrait<SimEngine::ClockTrait>();
+            //     bool changed =
+            //     drawClockTrait(def->getTrait<SimEngine::ClockTrait>(),
+            //     compId); if (changed) {
+            //         auto &def =
+            //         simEngine.getComponentDefinition(simComp->getSimEngineId());
+            //         const auto &trait =
+            //         def->getTrait<SimEngine::ClockTrait>();
             //
             //         std::string frequencyUnitStr;
             //         switch (trait->frequencyUnit) {
@@ -68,8 +77,10 @@ namespace Bess::UI {
             //             frequencyUnitStr = "MHz";
             //             break;
             //         }
-            //         def->getOutputSlotsInfo().names[0] = std::format("{:.2f}", trait->frequency) + frequencyUnitStr;
-            //         const auto &slotComp = sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(simComp->getOutputSlots()[0]);
+            //         def->getOutputSlotsInfo().names[0] =
+            //         std::format("{:.2f}", trait->frequency) +
+            //         frequencyUnitStr; const auto &slotComp =
+            //         sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(simComp->getOutputSlots()[0]);
             //         slotComp->setName(def->getOutputSlotsInfo().names[0]);
             //     }
             // }

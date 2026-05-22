@@ -26,7 +26,8 @@ namespace Bess::Svc {
         return instance;
     }
 
-    std::shared_ptr<Canvas::SimulationSceneComponent> PluginService::getSimSceneComp(
+    std::shared_ptr<Canvas::SimulationSceneComponent>
+    PluginService::getSimSceneComp(
         const std::shared_ptr<SimEngine::Drivers::CompDef> &def) const {
         const auto &pluginMangaer = Plugins::PluginManager::getInstance();
 
@@ -76,9 +77,9 @@ namespace Bess::Svc {
         return false;
     }
 
-    std::shared_ptr<Canvas::SceneComponent> PluginService::derserialize(
-        const std::string &typeName,
-        const Json::Value &json) const {
+    std::shared_ptr<Canvas::SceneComponent>
+    PluginService::derserialize(const std::string &typeName,
+                                const Json::Value &json) const {
         const auto &pluginMangaer = Plugins::PluginManager::getInstance();
 
         for (const auto &plugin : pluginMangaer.getLoadedPlugins()) {

@@ -1,6 +1,6 @@
 #pragma once
-#include "common/bess_uuid.h"
 #include "command.h"
+#include "common/bess_uuid.h"
 #include "fwd.hpp"
 #include <type_traits>
 #include <typeindex>
@@ -17,26 +17,28 @@ namespace Bess::Cmd {
         typedef std::function<void(bool, const ValType &)> OnUndoRedoCB;
 
         UpdateValCommand(ValType *originalLoc, const ValType &newValue)
-            : m_orignalLoc(originalLoc), m_newValue(newValue) {}
+            : m_orignalLoc(originalLoc),
+              m_newValue(newValue) {}
 
-        UpdateValCommand(ValType *originalLoc,
-                         const ValType &newValue,
+        UpdateValCommand(ValType *originalLoc, const ValType &newValue,
                          const OnUndoRedoCB &onUndoRedo)
-            : m_orignalLoc(originalLoc), m_newValue(newValue),
+            : m_orignalLoc(originalLoc),
+              m_newValue(newValue),
               m_onUndoRedo(onUndoRedo) {}
 
-        UpdateValCommand(ValType *originalLoc,
-                         const ValType &newValue,
+        UpdateValCommand(ValType *originalLoc, const ValType &newValue,
                          const ValType &oldValue)
-            : m_orignalLoc(originalLoc), m_newValue(newValue),
+            : m_orignalLoc(originalLoc),
+              m_newValue(newValue),
               m_oldValue(oldValue) {}
 
-        UpdateValCommand(ValType *originalLoc,
-                         const ValType &newValue,
+        UpdateValCommand(ValType *originalLoc, const ValType &newValue,
                          const ValType &oldValue,
                          const OnUndoRedoCB &onUndoRedo)
-            : m_orignalLoc(originalLoc), m_newValue(newValue),
-              m_oldValue(oldValue), m_onUndoRedo(onUndoRedo) {
+            : m_orignalLoc(originalLoc),
+              m_newValue(newValue),
+              m_oldValue(oldValue),
+              m_onUndoRedo(onUndoRedo) {
             m_name = "Update " + std::string(typeid(ValType).name());
         }
 
@@ -68,7 +70,8 @@ namespace Bess::Cmd {
                 return false;
             }
 
-            if (auto otherCmd = dynamic_cast<const UpdateValCommand<ValType> *>(other)) {
+            if (auto otherCmd =
+                    dynamic_cast<const UpdateValCommand<ValType> *>(other)) {
                 m_newValue = otherCmd->m_newValue;
                 return true;
             }
@@ -77,16 +80,15 @@ namespace Bess::Cmd {
         }
 
         bool canMergeWith(const Command *other) const override {
-            if (auto otherCmd = dynamic_cast<const UpdateValCommand<ValType> *>(other)) {
+            if (auto otherCmd =
+                    dynamic_cast<const UpdateValCommand<ValType> *>(other)) {
                 return otherCmd->m_typeIndex == m_typeIndex &&
                        m_orignalLoc == otherCmd->m_orignalLoc;
             }
             return false;
         }
 
-        std::type_index getTypeIndex() const {
-            return m_typeIndex;
-        }
+        std::type_index getTypeIndex() const { return m_typeIndex; }
 
       private:
         ValType *m_orignalLoc;

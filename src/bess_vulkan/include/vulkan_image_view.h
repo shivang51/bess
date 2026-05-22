@@ -8,15 +8,15 @@ namespace Bess::Vulkan {
 
     class BESS_VULKAN_API VulkanImageView {
       public:
-        VulkanImageView(const std::shared_ptr<VulkanDevice> &device,
-                        VkFormat format,
-                        VkExtent2D extent,
-                        VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+        VulkanImageView(
+            const std::shared_ptr<VulkanDevice> &device, VkFormat format,
+            VkExtent2D extent,
+            VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                                      VK_IMAGE_USAGE_SAMPLED_BIT);
 
         // Constructor for dual attachments (color + picking)
         VulkanImageView(const std::shared_ptr<VulkanDevice> &device,
-                        VkFormat colorFormat,
-                        VkFormat pickingFormat,
+                        VkFormat colorFormat, VkFormat pickingFormat,
                         VkExtent2D extent);
         ~VulkanImageView();
 
@@ -39,7 +39,9 @@ namespace Bess::Vulkan {
         VkImage getPickingImage() const { return m_pickingImage; }
         VkImage getMsaaPickingImage() const { return m_msaaPickingImage; }
         VkImageView getPickingImageView() const { return m_pickingImageView; }
-        VkImageView getMsaaPickingImageView() const { return m_msaaPickingImageView; }
+        VkImageView getMsaaPickingImageView() const {
+            return m_msaaPickingImageView;
+        }
         VkFormat getPickingFormat() const { return m_pickingFormat; }
 
         void createFramebuffer(VkRenderPass renderPass);

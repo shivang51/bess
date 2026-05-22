@@ -12,9 +12,10 @@ namespace Bess::Renderer {
 
     class TextRenderer {
       public:
-        TextRenderer(const std::shared_ptr<VulkanDevice> &device,
-                     const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
-                     VkExtent2D extent);
+        TextRenderer(
+            const std::shared_ptr<VulkanDevice> &device,
+            const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
+            VkExtent2D extent);
 
         void resize(VkExtent2D size);
 
@@ -24,14 +25,18 @@ namespace Bess::Renderer {
 
         void updateUBO(const UniformBufferObject &ubo);
 
-        void drawText(const std::string &text, const glm::vec3 &pos, size_t size,
-                      const glm::vec4 &color, const uint64_t &id, float angle = 0);
+        void drawText(const std::string &text, const glm::vec3 &pos,
+                      size_t size, const glm::vec4 &color, const uint64_t &id,
+                      float angle = 0);
 
-        void drawIcon(const std::string &text, const glm::vec3 &pos, size_t size,
-                      const glm::vec4 &color, const uint64_t &id, float angle = 0);
+        void drawIcon(const std::string &text, const glm::vec3 &pos,
+                      size_t size, const glm::vec4 &color, const uint64_t &id,
+                      float angle = 0);
 
-        glm::vec2 drawTextWrapped(const std::string &text, const glm::vec3 &pos, size_t size,
-                                  const glm::vec4 &color, const uint64_t &id, float wrapWidthPx, float angle = 0);
+        glm::vec2 drawTextWrapped(const std::string &text, const glm::vec3 &pos,
+                                  size_t size, const glm::vec4 &color,
+                                  const uint64_t &id, float wrapWidthPx,
+                                  float angle = 0);
 
         glm::vec2 getRenderSize(const std::string &text, size_t size);
 

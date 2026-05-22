@@ -32,7 +32,8 @@ namespace Bess::Pages {
         static bool s_headless;
         static void setHeadless(bool headless);
 
-        static std::shared_ptr<MainPage> &getInstance(const std::shared_ptr<Window> &parentWindow = nullptr);
+        static std::shared_ptr<MainPage> &
+        getInstance(const std::shared_ptr<Window> &parentWindow = nullptr);
 
         void draw() override;
 
@@ -47,9 +48,9 @@ namespace Bess::Pages {
       private:
         std::shared_ptr<Window> m_parentWindow;
 
-        void drawGhostConnection(const std::shared_ptr<PathRenderer> &pathRenderer,
-                                 const glm::vec2 &startPos,
-                                 const glm::vec2 &endPos);
+        void
+        drawGhostConnection(const std::shared_ptr<PathRenderer> &pathRenderer,
+                            const glm::vec2 &startPos, const glm::vec2 &endPos);
 
       private:
         void handleKeyboardShortcuts();

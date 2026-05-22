@@ -14,17 +14,17 @@ namespace Bess::Cmd {
     template <typename TComponent>
     class AddCompCmd : public Bess::Cmd::Command {
       public:
-        AddCompCmd() {
-            m_name = "AddComponentCmd";
-        }
+        AddCompCmd() { m_name = "AddComponentCmd"; }
 
         AddCompCmd(std::shared_ptr<TComponent> comp) : m_comp(std::move(comp)) {
             m_name = "AddComponentCmd";
         }
 
         AddCompCmd(std::shared_ptr<TComponent> comp,
-                   const std::vector<std::shared_ptr<Canvas::SceneComponent>> &childComponents)
-            : m_comp(std::move(comp)), m_childComponents(childComponents) {
+                   const std::vector<std::shared_ptr<Canvas::SceneComponent>>
+                       &childComponents)
+            : m_comp(std::move(comp)),
+              m_childComponents(childComponents) {
             m_name = "AddComponentCmd";
         }
 
@@ -56,11 +56,13 @@ namespace Bess::Cmd {
 
         void undo(Canvas::Scene *scene,
                   SimEngine::SimulationEngine *simEngine) override {
-            BESS_ASSERT(m_comp, "Cannot undo AddCompCmd without a valid component");
+            BESS_ASSERT(m_comp,
+                        "Cannot undo AddCompCmd without a valid component");
 
             if (m_comp->getType() == Canvas::SceneComponentType::connection) {
                 Svc::SvcConnection::instance().removeConnection(
-                    m_comp->template cast<Canvas::ConnectionSceneComponent>(), scene);
+                    m_comp->template cast<Canvas::ConnectionSceneComponent>(),
+                    scene);
             } else {
                 scene->deleteSceneEntity(m_comp->getUuid());
             }
@@ -68,7 +70,8 @@ namespace Bess::Cmd {
 
         void redo(Canvas::Scene *scene,
                   SimEngine::SimulationEngine *simEngine) override {
-            BESS_ASSERT(m_comp, "Cannot redo AddCompCmd without a valid component");
+            BESS_ASSERT(m_comp,
+                        "Cannot redo AddCompCmd without a valid component");
 
             if (m_comp->getType() == Canvas::SceneComponentType::connection) {
                 Svc::SvcConnection::instance().addConnection(

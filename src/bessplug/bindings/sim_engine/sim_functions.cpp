@@ -11,15 +11,14 @@ namespace py = pybind11;
 
 struct PySimulationFunctionWrapper;
 
-typedef std::shared_ptr<Bess::SimEngine::Drivers::Digital::DigCompSimData> TSimFnDataPtr;
+typedef std::shared_ptr<Bess::SimEngine::Drivers::Digital::DigCompSimData>
+    TSimFnDataPtr;
 
 TSimFnDataPtr exprEvalSimFunc(const TSimFnDataPtr &simData);
 
 void bind_sim_functions(py::module_ &m) {
     using namespace Bess::SimEngine;
 
-    m.def("expr_eval_sim_func",
-          exprEvalSimFunc,
-          py::arg("sim_data"),
+    m.def("expr_eval_sim_func", exprEvalSimFunc, py::arg("sim_data"),
           "Expression evaluator simulation function.");
 }

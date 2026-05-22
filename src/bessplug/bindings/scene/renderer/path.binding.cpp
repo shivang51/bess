@@ -108,11 +108,15 @@ void bind_renderer_path(py::module_ &m) {
     py::class_<Bess::Renderer::PathProperties>(m, "PathProperties")
         .def(py::init<>())
         .def_readwrite("is_closed", &Bess::Renderer::PathProperties::isClosed)
-        .def_readwrite("rounded_joints", &Bess::Renderer::PathProperties::roundedJoints)
-        .def_readwrite("render_stroke", &Bess::Renderer::PathProperties::renderStroke)
-        .def_readwrite("render_fill", &Bess::Renderer::PathProperties::renderFill)
+        .def_readwrite("rounded_joints",
+                       &Bess::Renderer::PathProperties::roundedJoints)
+        .def_readwrite("render_stroke",
+                       &Bess::Renderer::PathProperties::renderStroke)
+        .def_readwrite("render_fill",
+                       &Bess::Renderer::PathProperties::renderFill)
         .def("__repr__", [](const Bess::Renderer::PathProperties &props) {
-            return "<PathProperties is_closed=" + std::to_string(props.isClosed) +
+            return "<PathProperties is_closed=" +
+                   std::to_string(props.isClosed) +
                    " rounded_joints=" + std::to_string(props.roundedJoints) +
                    " render_stroke=" + std::to_string(props.renderStroke) +
                    " render_fill=" + std::to_string(props.renderFill) + ">";
@@ -135,44 +139,41 @@ void bind_renderer_path(py::module_ &m) {
         return &self;
     };
 
-    auto cubic_to_flat = [](Path &self, float c1x, float c1y, float c2x, float c2y, float px, float py) {
-        self.cubicTo(glm::vec2(c1x, c1y), glm::vec2(c2x, c2y), glm::vec2(px, py));
+    auto cubic_to_flat = [](Path &self, float c1x, float c1y, float c2x,
+                            float c2y, float px, float py) {
+        self.cubicTo(glm::vec2(c1x, c1y), glm::vec2(c2x, c2y),
+                     glm::vec2(px, py));
         return &self;
     };
 
     py::class_<Path>(m, "Path")
         .def(py::init<>())
         .def("move_to_vec", &Path::moveTo, py::arg("pos"))
-        .def("move_to",
-             move_to_flat,
-             py::arg("x"),
-             py::arg("y"), py::return_value_policy::reference_internal)
-        .def("line_to_vec", &Path::lineTo, py::return_value_policy::reference_internal)
-        .def("line_to",
-             line_to_flat,
-             py::arg("x"),
-             py::arg("y"), py::return_value_policy::reference_internal)
-        .def("quad_to_vec", &Path::quadTo, py::return_value_policy::reference_internal)
-        .def("quad_to",
-             quad_to_flat,
-             py::arg("cx"),
-             py::arg("cy"),
-             py::arg("px"),
-             py::arg("py"), py::return_value_policy::reference_internal)
-        .def("cubic_to_vec", &Path::cubicTo, py::return_value_policy::reference_internal)
-        .def("cubic_to",
-             cubic_to_flat,
-             py::arg("c1x"),
-             py::arg("c1y"),
-             py::arg("c2x"),
-             py::arg("c2y"),
-             py::arg("px"),
-             py::arg("py"), py::return_value_policy::reference_internal)
-        .def("add_command", &Path::addCommand, py::return_value_policy::reference_internal)
-        .def("get_commands", &Path::getCmds, py::return_value_policy::reference_internal)
+        .def("move_to", move_to_flat, py::arg("x"), py::arg("y"),
+             py::return_value_policy::reference_internal)
+        .def("line_to_vec", &Path::lineTo,
+             py::return_value_policy::reference_internal)
+        .def("line_to", line_to_flat, py::arg("x"), py::arg("y"),
+             py::return_value_policy::reference_internal)
+        .def("quad_to_vec", &Path::quadTo,
+             py::return_value_policy::reference_internal)
+        .def("quad_to", quad_to_flat, py::arg("cx"), py::arg("cy"),
+             py::arg("px"), py::arg("py"),
+             py::return_value_policy::reference_internal)
+        .def("cubic_to_vec", &Path::cubicTo,
+             py::return_value_policy::reference_internal)
+        .def("cubic_to", cubic_to_flat, py::arg("c1x"), py::arg("c1y"),
+             py::arg("c2x"), py::arg("c2y"), py::arg("px"), py::arg("py"),
+             py::return_value_policy::reference_internal)
+        .def("add_command", &Path::addCommand,
+             py::return_value_policy::reference_internal)
+        .def("get_commands", &Path::getCmds,
+             py::return_value_policy::reference_internal)
         .def("set_commands", &Path::setCommands)
-        .def("get_contours", &Path::getContours, py::return_value_policy::reference_internal)
-        .def("get_props_ref", &Path::getPropsRef, py::return_value_policy::reference_internal)
+        .def("get_contours", &Path::getContours,
+             py::return_value_policy::reference_internal)
+        .def("get_props_ref", &Path::getPropsRef,
+             py::return_value_policy::reference_internal)
         .def("get_props", &Path::getProps)
         .def("set_props", &Path::setProps)
         .def("get_stroke_width", &Path::getStrokeWidth)
@@ -182,12 +183,12 @@ void bind_renderer_path(py::module_ &m) {
         .def("get_lowest_pos", &Path::getLowestPos)
         .def("set_lowest_pos", &Path::setLowestPos)
         .def("copy", &Path::copy)
-        .def_static("from_svg_str", &Path::fromSvgString, py::arg("svg_data"), "Create a Path from an SVG path data string.")
-        .def_property("properties",
-                      &Path::getPropsRef,
-                      &Path::setProps,
+        .def_static("from_svg_str", &Path::fromSvgString, py::arg("svg_data"),
+                    "Create a Path from an SVG path data string.")
+        .def_property("properties", &Path::getPropsRef, &Path::setProps,
                       py::return_value_policy::reference_internal)
-        .def("scale", &Path::scale, py::arg("factor"), py::arg("override_original") = false)
+        .def("scale", &Path::scale, py::arg("factor"),
+             py::arg("override_original") = false)
         .def("normalize", &Path::normalize, py::arg("size"))
         .def_readwrite("uuid", &Path::uuid)
         .def("__repr__", [](const Path &) { return "<Path>"; });

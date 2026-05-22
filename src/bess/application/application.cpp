@@ -22,9 +22,7 @@
 namespace Bess {
     Application::Application() = default;
 
-    Application::~Application() {
-        shutdown();
-    }
+    Application::~Application() { shutdown(); }
 
     void Application::draw() {
         auto &vkCore = Bess::Vulkan::VulkanCore::instance();
@@ -45,11 +43,10 @@ namespace Bess {
 
         UI::end();
 
-        vkCore.renderToSwapchain(
-            [](VkCommandBuffer cmdBuffer) {
-                ImDrawData *drawData = ImGui::GetDrawData();
-                ImGui_ImplVulkan_RenderDrawData(drawData, cmdBuffer);
-            });
+        vkCore.renderToSwapchain([](VkCommandBuffer cmdBuffer) {
+            ImDrawData *drawData = ImGui::GetDrawData();
+            ImGui_ImplVulkan_RenderDrawData(drawData, cmdBuffer);
+        });
         vkCore.endFrame();
     }
 
@@ -68,7 +65,8 @@ namespace Bess {
 
             accumulatedTime += deltaTime;
 
-            const auto &frameTS = Config::Settings::instance().getFrameTimeStep();
+            const auto &frameTS =
+                Config::Settings::instance().getFrameTimeStep();
             if (accumulatedTime < frameTS) {
                 std::this_thread::sleep_for(frameTS - accumulatedTime);
                 accumulatedTime += frameTS - accumulatedTime;
@@ -76,7 +74,8 @@ namespace Bess {
 
             update(accumulatedTime);
             draw();
-            m_currentFps = static_cast<int>(std::round(1000.0 / accumulatedTime.count()));
+            m_currentFps =
+                static_cast<int>(std::round(1000.0 / accumulatedTime.count()));
             accumulatedTime = std::chrono::duration<double>(0.0);
             Window::pollEvents();
         }
@@ -93,7 +92,8 @@ namespace Bess {
     void Application::onWindowResize(int w, int h) {
         // Only handle resize if window is not minimized and size is reasonable
         if (w > 0 && h > 0) {
-            const VkExtent2D newExtent = {static_cast<uint32_t>(w), static_cast<uint32_t>(h)};
+            const VkExtent2D newExtent = {static_cast<uint32_t>(w),
+                                          static_cast<uint32_t>(h)};
             Bess::Vulkan::VulkanCore::instance().recreateSwapchain(newExtent);
         }
 
@@ -138,7 +138,9 @@ namespace Bess {
 #ifdef DISABLE_PLUGINS
         flags |= AppStartupFlag::disablePlugins;
 #endif
-        BESS_INFO("[Application] Initializing application, with project path: {}", path.empty() ? "None" : path);
+        BESS_INFO(
+            "[Application] Initializing application, with project path: {}",
+            path.empty() ? "None" : path);
 
         auto &settings = Config::Settings::instance();
         settings.init();
@@ -162,7 +164,8 @@ namespace Bess {
         const auto extensions = m_mainWindow->getVulkanExtensions();
         const VkExtent2D extent = m_mainWindow->getExtent();
 
-        auto createSurface = [this](VkInstance &instance, VkSurfaceKHR &surface) {
+        auto createSurface = [this](VkInstance &instance,
+                                    VkSurfaceKHR &surface) {
             m_mainWindow->createWindowSurface(instance, surface);
         };
 
@@ -171,8 +174,8 @@ namespace Bess {
 
         UI::init(m_mainWindow->getGLFWHandle());
 
-        const auto page = Pages::MainPage::getInstance(
-            ApplicationState::getParentWindow());
+        const auto page =
+            Pages::MainPage::getInstance(ApplicationState::getParentWindow());
 
         ApplicationState::setCurrentPage(page);
 
@@ -210,5 +213,7 @@ namespace Bess {
         Pages::MainPage::getInstance()->getState().loadProject(path);
     }
 
-    void Application::saveProject() const { Pages::MainPage::getInstance()->getState().saveCurrentProject(); }
+    void Application::saveProject() const {
+        Pages::MainPage::getInstance()->getState().saveCurrentProject();
+    }
 } // namespace Bess

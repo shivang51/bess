@@ -2,5 +2,4 @@
 
 #include "application/application_state.h"
 
-namespace Bess::Pages {
-} // namespace Bess::Pages
+namespace Bess::Pages {} // namespace Bess::Pages

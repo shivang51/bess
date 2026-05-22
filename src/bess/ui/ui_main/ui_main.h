@@ -30,12 +30,15 @@ namespace Bess::UI {
         static void init();
 
         static void draw();
-        static void update(TimeMs ts, const std::vector<ApplicationEvent> &events);
+        static void update(TimeMs ts,
+                           const std::vector<ApplicationEvent> &events);
 
         template <typename TPanel, typename... Args>
         static void registerPanel(Args &&...args) {
-            BESS_ASSERT((std::is_base_of_v<Panel, TPanel>), "TPanel must be derived from Panel");
-            getPanels().push_back(std::make_shared<TPanel>(std::forward<Args>(args)...));
+            BESS_ASSERT((std::is_base_of_v<Panel, TPanel>),
+                        "TPanel must be derived from Panel");
+            getPanels().push_back(
+                std::make_shared<TPanel>(std::forward<Args>(args)...));
             const auto &panel = getPanels().back();
             getPanelMap()[typeid(TPanel)] = panel;
             if (std::is_same_v<TPanel, SceneViewportPanel>) {
@@ -44,8 +47,7 @@ namespace Bess::UI {
             }
         }
 
-        template <typename TPanel>
-        static std::shared_ptr<TPanel> getPanel() {
+        template <typename TPanel> static std::shared_ptr<TPanel> getPanel() {
             auto it = getPanelMap().find(typeid(TPanel));
             if (it != getPanelMap().end()) {
                 return std::dynamic_pointer_cast<TPanel>(it->second);
@@ -57,7 +59,8 @@ namespace Bess::UI {
 
         static void destroy();
 
-        static std::vector<std::shared_ptr<SceneViewportPanel>> &getScenePanels();
+        static std::vector<std::shared_ptr<SceneViewportPanel>> &
+        getScenePanels();
 
       private:
         static void drawProjectExplorer();
@@ -72,7 +75,8 @@ namespace Bess::UI {
         // menu bar events
         static void onNewProject();
         static std::vector<std::shared_ptr<Panel>> &getPanels();
-        static std::unordered_map<std::type_index, std::shared_ptr<Panel>> &getPanelMap();
+        static std::unordered_map<std::type_index, std::shared_ptr<Panel>> &
+        getPanelMap();
         static std::vector<PreInitCallback> &getPreInitCallbacks();
     };
 } // namespace Bess::UI

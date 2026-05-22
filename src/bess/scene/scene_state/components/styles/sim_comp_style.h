@@ -29,13 +29,13 @@ namespace Bess::Canvas::Styles {
     constexpr float SIM_COMP_SLOT_ROW_SIZE = (simCompStyles.rowMargin * 2.f) +
                                              (simCompStyles.slotRadius * 2.f) +
                                              simCompStyles.rowGap;
-    constexpr float SIM_COMP_SLOT_COLUMN_SIZE = (simCompStyles.slotRadius +
-                                                 simCompStyles.slotMargin +
-                                                 simCompStyles.slotLabelSize) *
-                                                2;
+    constexpr float SIM_COMP_SLOT_COLUMN_SIZE =
+        (simCompStyles.slotRadius + simCompStyles.slotMargin +
+         simCompStyles.slotLabelSize) *
+        2;
 
-    constexpr float SCHEMATIC_VIEW_PIN_ROW_SIZE = compSchematicStyles.nameFontSize +
-                                                  compSchematicStyles.strokeSize +
-                                                  compSchematicStyles.pinRowGap;
+    constexpr float SCHEMATIC_VIEW_PIN_ROW_SIZE =
+        compSchematicStyles.nameFontSize + compSchematicStyles.strokeSize +
+        compSchematicStyles.pinRowGap;
 
 } // namespace Bess::Canvas::Styles

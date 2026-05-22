@@ -9,17 +9,22 @@ namespace Bess::Canvas {
 
     class SceneSerReg {
       public:
-        typedef std::function<std::shared_ptr<SceneComponent>(const Json::Value &)> DeSerFunc;
+        typedef std::function<std::shared_ptr<SceneComponent>(
+            const Json::Value &)>
+            DeSerFunc;
 
         static bool hasComponent(const std::string &typeName);
 
-        static void registerComponent(const std::string &typeName, DeSerFunc func);
+        static void registerComponent(const std::string &typeName,
+                                      DeSerFunc func);
 
-        static std::shared_ptr<SceneComponent> createComponentFromJson(const Json::Value &j);
+        static std::shared_ptr<SceneComponent>
+        createComponentFromJson(const Json::Value &j);
 
         static void clearRegistry();
 
       private:
-        static std::unordered_map<std::string, SceneSerReg::DeSerFunc> &getRegistry();
+        static std::unordered_map<std::string, SceneSerReg::DeSerFunc> &
+        getRegistry();
     };
 } // namespace Bess::Canvas

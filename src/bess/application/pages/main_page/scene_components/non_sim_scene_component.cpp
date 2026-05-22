@@ -8,14 +8,16 @@
 #include <unordered_map>
 
 namespace Bess::Canvas {
-    std::vector<std::shared_ptr<SceneComponent>> NonSimSceneComponent::clone(const SceneState &sceneState) const {
+    std::vector<std::shared_ptr<SceneComponent>>
+    NonSimSceneComponent::clone(const SceneState &sceneState) const {
         (void)sceneState;
         auto clonedComponent = std::make_shared<NonSimSceneComponent>(*this);
         prepareClone(*clonedComponent);
         return {clonedComponent};
     }
 
-    std::shared_ptr<NonSimSceneComponent> NonSimSceneComponent::getInstance(std::type_index tIdx) {
+    std::shared_ptr<NonSimSceneComponent>
+    NonSimSceneComponent::getInstance(std::type_index tIdx) {
         auto &m_contrRegistry = getContrRegistry();
         if (m_contrRegistry.contains(tIdx)) {
             return m_contrRegistry[tIdx]();
@@ -36,11 +38,8 @@ namespace Bess::Canvas {
         }
 
         const auto pickingId = PickingId{m_runtimeId, 0};
-        context.materialRenderer->drawText(m_data,
-                                           m_transform.position,
-                                           m_size,
-                                           m_foregroundColor,
-                                           pickingId);
+        context.materialRenderer->drawText(m_data, m_transform.position, m_size,
+                                           m_foregroundColor, pickingId);
 
         // draw background if selected
         if (m_isSelected) {
@@ -52,22 +51,23 @@ namespace Bess::Canvas {
             props.isMica = true;
             props.shadow.enabled = true;
 
-            const auto textSize = Renderer::MaterialRenderer::getTextRenderSize(m_data, (float)m_size);
+            const auto textSize = Renderer::MaterialRenderer::getTextRenderSize(
+                m_data, (float)m_size);
 
-            auto offset = glm::vec3((m_transform.scale.x / 2.f) - Styles::componentStyles.paddingX,
-                                    (-textSize.y / 4.f) - Styles::componentStyles.paddingY,
-                                    -0.0001f);
+            auto offset = glm::vec3(
+                (m_transform.scale.x / 2.f) - Styles::componentStyles.paddingX,
+                (-textSize.y / 4.f) - Styles::componentStyles.paddingY,
+                -0.0001f);
 
             context.materialRenderer->drawQuad(m_transform.position + offset,
-                                               m_transform.scale,
-                                               m_style.color,
-                                               pickingId,
-                                               props);
+                                               m_transform.scale, m_style.color,
+                                               pickingId, props);
         }
     }
 
     glm::vec2 TextComponent::calculateScale(const SceneState &state) {
-        auto textSize = Renderer::MaterialRenderer::getTextRenderSize(m_data, (float)m_size);
+        auto textSize = Renderer::MaterialRenderer::getTextRenderSize(
+            m_data, (float)m_size);
         textSize.y += Styles::componentStyles.paddingY * 2.f;
         textSize.x += Styles::componentStyles.paddingX * 2.f;
         return textSize;
@@ -80,7 +80,8 @@ namespace Bess::Canvas {
         getContrRegistry().clear();
     }
 
-    std::unordered_map<std::type_index, std::string> &NonSimSceneComponent::getRegistry() {
+    std::unordered_map<std::type_index, std::string> &
+    NonSimSceneComponent::getRegistry() {
         static std::unordered_map<std::type_index, std::string> registry;
         return registry;
     }
@@ -100,7 +101,8 @@ namespace Bess::Canvas {
         m_style.color = ViewportTheme::colors.componentBG;
     }
 
-    std::vector<std::shared_ptr<SceneComponent>> TextComponent::clone(const SceneState &sceneState) const {
+    std::vector<std::shared_ptr<SceneComponent>>
+    TextComponent::clone(const SceneState &sceneState) const {
         (void)sceneState;
         auto clonedComponent = std::make_shared<TextComponent>(*this);
         prepareClone(*clonedComponent);

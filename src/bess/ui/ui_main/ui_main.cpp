@@ -63,7 +63,8 @@ namespace Bess::UI {
             state.stageMessage = "Select Verilog files";
         }
 
-        std::vector<std::string> selectedVerilogPaths(const VerilogImportWizardState &state) {
+        std::vector<std::string>
+        selectedVerilogPaths(const VerilogImportWizardState &state) {
             if (!state.filePaths.empty()) {
                 return state.filePaths;
             }
@@ -73,12 +74,14 @@ namespace Bess::UI {
             return {};
         }
 
-        std::string importSelectionLabel(const std::vector<std::string> &paths) {
+        std::string
+        importSelectionLabel(const std::vector<std::string> &paths) {
             if (paths.empty()) {
                 return {};
             }
 
-            const auto primary = std::filesystem::path(paths.front()).filename().string();
+            const auto primary =
+                std::filesystem::path(paths.front()).filename().string();
             if (paths.size() == 1) {
                 return primary;
             }
@@ -88,7 +91,8 @@ namespace Bess::UI {
 
         bool hasSupportedVerilogExtension(const std::filesystem::path &path) {
             const auto extension = path.extension().string();
-            return extension == ".v" || extension == ".sv" || extension == ".vh" || extension == ".svh";
+            return extension == ".v" || extension == ".sv" ||
+                   extension == ".vh" || extension == ".svh";
         }
     } // namespace
 
@@ -135,8 +139,11 @@ namespace Bess::UI {
                     getState()._internalData.newFileClicked = false;
                 } else if (getState()._internalData.openFileClicked) {
                     pageState.loadProject(getState()._internalData.path);
-                    getState()._internalData.statusMessage = std::format("Opened project: {}",
-                                                                         std::filesystem::path(getState()._internalData.path).filename().string());
+                    getState()._internalData.statusMessage = std::format(
+                        "Opened project: {}",
+                        std::filesystem::path(getState()._internalData.path)
+                            .filename()
+                            .string());
                     getState()._internalData.path = "";
                     getState()._internalData.openFileClicked = false;
                 }
@@ -147,14 +154,15 @@ namespace Bess::UI {
         // static std::string sceneJson;
         // if (ImGui::Button("Refresh")) {
         //     Json::Value j;
-        //     JsonConvert::toJsonValue(Canvas::Scene::instance()->getState(), j);
-        //     sceneJson = j.toStyledString();
+        //     JsonConvert::toJsonValue(Canvas::Scene::instance()->getState(),
+        //     j); sceneJson = j.toStyledString();
         // }
         // ImGui::TextWrapped("%s", sceneJson.data());
         // ImGui::End();
     }
 
-    ImVec2 getTextSize(const std::string &text, const bool includePadding = true) {
+    ImVec2 getTextSize(const std::string &text,
+                       const bool includePadding = true) {
         auto size = ImGui::CalcTextSize(text.c_str());
         if (!includePadding)
             return size;
@@ -169,25 +177,32 @@ namespace Bess::UI {
         const ImGuiContext &g = *ImGui::GetCurrentContext();
         auto style = g.Style;
         ImGuiViewportP *viewport = (ImGuiViewportP *)ImGui::GetMainViewport();
-        const ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
+        const ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar |
+                                              ImGuiWindowFlags_NoSavedSettings |
+                                              ImGuiWindowFlags_MenuBar;
         auto &simEngine = SimEngine::SimulationEngine::instance();
         const float height = ImGui::GetFrameHeight();
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-        if (ImGui::BeginViewportSideBar("##MainStatusBar", viewport, ImGuiDir_Down, height, window_flags)) {
+        if (ImGui::BeginViewportSideBar("##MainStatusBar", viewport,
+                                        ImGuiDir_Down, height, window_flags)) {
             if (ImGui::BeginMenuBar()) {
-                if (simEngine.getSimulationState() == SimEngine::SimulationState::running) {
+                if (simEngine.getSimulationState() ==
+                    SimEngine::SimulationState::running) {
                     ImGui::Text("Simulation Running");
-                } else if (simEngine.getSimulationState() == SimEngine::SimulationState::paused) {
+                } else if (simEngine.getSimulationState() ==
+                           SimEngine::SimulationState::paused) {
                     ImGui::Text("Simulation Paused");
                 } else {
                     ImGui::Text("Unknown State");
                 }
 
                 if (!getState()._internalData.statusMessage.empty()) {
-                    const auto msg = std::format("{}\t", getState()._internalData.statusMessage);
+                    const auto msg = std::format(
+                        "{}\t", getState()._internalData.statusMessage);
                     const auto size = ImGui::CalcTextSize(msg.c_str());
-                    ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - size.x);
+                    ImGui::SameLine(ImGui::GetWindowContentRegionMax().x -
+                                    size.x);
                     ImGui::TextDisabled("%s", msg.c_str());
                 }
 
@@ -207,14 +222,18 @@ namespace Bess::UI {
 
         auto &pageState = Pages::MainPage::getInstance()->getState();
         const auto applyHierarchicalLayout = [&]() {
-            const auto result = pageState.applyHierarchicalLayoutToActiveScene();
+            const auto result =
+                pageState.applyHierarchicalLayoutToActiveScene();
             if (!result.applied) {
                 if (result.laidOutNodes == 0) {
-                    getState()._internalData.statusMessage = "Hierarchical layout skipped: no scene components";
+                    getState()._internalData.statusMessage =
+                        "Hierarchical layout skipped: no scene components";
                 } else if (result.uniqueEdges == 0) {
-                    getState()._internalData.statusMessage = "Hierarchical layout skipped: no signal graph to rank";
+                    getState()._internalData.statusMessage =
+                        "Hierarchical layout skipped: no signal graph to rank";
                 } else {
-                    getState()._internalData.statusMessage = "Hierarchical layout skipped";
+                    getState()._internalData.statusMessage =
+                        "Hierarchical layout skipped";
                 }
                 return;
             }
@@ -264,8 +283,9 @@ namespace Bess::UI {
             temp_name = Icons::FontAwesomeIcons::FA_FILE_IMPORT;
             temp_name += "   Import";
             if (ImGui::BeginMenu(temp_name.c_str())) {
-                const std::string verilogLabel = std::string(Icons::FontAwesomeIcons::FA_V) +
-                                                 Icons::FontAwesomeIcons::FA_S + "  Verilog Script";
+                const std::string verilogLabel =
+                    std::string(Icons::FontAwesomeIcons::FA_V) +
+                    Icons::FontAwesomeIcons::FA_S + "  Verilog Script";
                 if (ImGui::MenuItem(verilogLabel.c_str())) {
                     auto &wizard = getVerilogImportWizardState();
                     wizard.requestOpenPopup = true;
@@ -290,12 +310,14 @@ namespace Bess::UI {
             auto &cmdSystem = mainPageState.getCommandSystem();
 
             std::string icon = Icons::CodIcons::DISCARD;
-            if (ImGui::MenuItem((icon + "  Undo").c_str(), "Ctrl+Z", false, cmdSystem.canUndo())) {
+            if (ImGui::MenuItem((icon + "  Undo").c_str(), "Ctrl+Z", false,
+                                cmdSystem.canUndo())) {
                 cmdSystem.undo();
             }
 
             icon = Icons::CodIcons::REDO;
-            if (ImGui::MenuItem((icon + "  Redo").c_str(), "Ctrl+Shift+Z", false, cmdSystem.canRedo())) {
+            if (ImGui::MenuItem((icon + "  Redo").c_str(), "Ctrl+Shift+Z",
+                                false, cmdSystem.canRedo())) {
                 cmdSystem.redo();
             }
 
@@ -315,7 +337,8 @@ namespace Bess::UI {
             ImGui::Spacing();
 
             icon = Icons::FontAwesomeIcons::FA_PENCIL;
-            if (ImGui::MenuItem((icon + "  Project Settings").c_str(), "Ctrl+P")) {
+            if (ImGui::MenuItem((icon + "  Project Settings").c_str(),
+                                "Ctrl+P")) {
                 getPanel<ProjectSettingsWindow>()->show();
             }
 
@@ -332,7 +355,8 @@ namespace Bess::UI {
 
             for (auto &panel : getPanels()) {
                 if (panel->getShowInMenuBar()) {
-                    Widgets::CheckboxWithLabel(panel->getName().c_str(), &panel->getVisible());
+                    Widgets::CheckboxWithLabel(panel->getName().c_str(),
+                                               &panel->getVisible());
                 }
             }
 
@@ -344,7 +368,10 @@ namespace Bess::UI {
         // project name textbox - begin
 
         const auto &style = ImGui::GetStyle();
-        auto &name = Pages::MainPage::getInstance()->getState().getCurrentProjectFile()->getNameRef();
+        auto &name = Pages::MainPage::getInstance()
+                         ->getState()
+                         .getCurrentProjectFile()
+                         ->getNameRef();
         const auto fontSize = ImGui::CalcTextSize(name.c_str());
         auto width = fontSize.x + (style.FramePadding.x * 2);
         if (width < 150)
@@ -353,10 +380,13 @@ namespace Bess::UI {
             width = 200;
 
         ImGui::PushItemWidth(width);
-        ImGui::SameLine((menubar_size.x / 2.f) - (width / 2.f)); // Align to the right side
-        ImGui::SetCursorPosY(((menubar_size.y - ImGui::GetFontSize()) / 2.f) - 2.f);
+        ImGui::SameLine((menubar_size.x / 2.f) -
+                        (width / 2.f)); // Align to the right side
+        ImGui::SetCursorPosY(((menubar_size.y - ImGui::GetFontSize()) / 2.f) -
+                             2.f);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.f, 2.f));
-        ImGui::PushStyleColor(ImGuiCol_FrameBg, style.Colors[ImGuiCol_WindowBg]);
+        ImGui::PushStyleColor(ImGuiCol_FrameBg,
+                              style.Colors[ImGuiCol_WindowBg]);
         Widgets::TextBox("", name, "Project Name");
         ImGui::PopStyleVar();
         ImGui::PopStyleColor();
@@ -372,19 +402,23 @@ namespace Bess::UI {
         ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.5f, 0.5f));
 
         const float targetHeight = menubar_size.y - 4.0f;
-        const ImVec2 buttonSize = ImVec2(targetHeight - 2.f, targetHeight - 2.f);
-        const float winSizeX = (buttonCount * (buttonSize.x + style.ItemSpacing.x));
+        const ImVec2 buttonSize =
+            ImVec2(targetHeight - 2.f, targetHeight - 2.f);
+        const float winSizeX =
+            (buttonCount * (buttonSize.x + style.ItemSpacing.x));
         const float winX = menubar_size.x - winSizeX - 4.f;
         auto window = ImGui::GetCurrentWindow();
-        window->DrawList->AddRectFilled(ImVec2(winX, 2.f),
-                                        ImVec2(winX + winSizeX - 4.f, menubar_size.y - 2.f),
-                                        ImGui::GetColorU32(ImGuiCol_WindowBg), 4.f);
+        window->DrawList->AddRectFilled(
+            ImVec2(winX, 2.f),
+            ImVec2(winX + winSizeX - 4.f, menubar_size.y - 2.f),
+            ImGui::GetColorU32(ImGuiCol_WindowBg), 4.f);
         ImGui::SameLine(winX - 8.f);
         ImGui::SetCursorPosY(((targetHeight - buttonSize.y) * 0.5f) + 2.f);
 
         {
             auto &simEngine = SimEngine::SimulationEngine::instance();
-            const auto isSimPaused = simEngine.getSimulationState() == SimEngine::SimulationState::paused;
+            const auto isSimPaused = simEngine.getSimulationState() ==
+                                     SimEngine::SimulationState::paused;
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0, 0, 0, 0});
 
             if (ImGui::Button(Icons::CodIcons::LAYOUT, buttonSize)) {
@@ -401,12 +435,12 @@ namespace Bess::UI {
             // Play / Pause
             {
 
-                const auto icon = isSimPaused
-                                      ? Icons::CodIcons::DEBUG_START
-                                      : Icons::CodIcons::DEBUG_PAUSE;
+                const auto icon = isSimPaused ? Icons::CodIcons::DEBUG_START
+                                              : Icons::CodIcons::DEBUG_PAUSE;
 
                 if (isSimPaused) {
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.f, 0.667f, 0.f, 1.f});
+                    ImGui::PushStyleColor(ImGuiCol_Text,
+                                          ImVec4{1.f, 0.667f, 0.f, 1.f});
                 }
 
                 if (ImGui::Button(icon, buttonSize)) {
@@ -418,7 +452,8 @@ namespace Bess::UI {
                 }
 
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                    const auto msg = isSimPaused ? "Resume Simulation" : "Pause Simulation";
+                    const auto msg =
+                        isSimPaused ? "Resume Simulation" : "Pause Simulation";
                     ImGui::SetTooltip("%s", msg);
                 }
             }
@@ -430,7 +465,8 @@ namespace Bess::UI {
             {
                 ImGui::BeginDisabled(!isSimPaused);
 
-                if (ImGui::Button(Icons::CodIcons::DEBUG_STEP_OVER, buttonSize)) {
+                if (ImGui::Button(Icons::CodIcons::DEBUG_STEP_OVER,
+                                  buttonSize)) {
                     simEngine.stepSimulation();
                 }
 
@@ -468,7 +504,8 @@ namespace Bess::UI {
         }
 
         ImGui::SetNextWindowSize(ImVec2(520.f, 0.f), ImGuiCond_FirstUseEver);
-        if (!ImGui::BeginPopupModal("Import Verilog", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        if (!ImGui::BeginPopupModal("Import Verilog", nullptr,
+                                    ImGuiWindowFlags_AlwaysAutoResize)) {
             return;
         }
 
@@ -483,11 +520,12 @@ namespace Bess::UI {
 
             if (status.finished) {
                 if (status.failed) {
-                    getState()._internalData.statusMessage = status.stageMessage;
+                    getState()._internalData.statusMessage =
+                        status.stageMessage;
                 } else {
                     const auto paths = selectedVerilogPaths(wizard);
-                    getState()._internalData.statusMessage =
-                        std::format("Imported Verilog: {}", importSelectionLabel(paths));
+                    getState()._internalData.statusMessage = std::format(
+                        "Imported Verilog: {}", importSelectionLabel(paths));
                     wizard.open = false;
                     resetVerilogImportWizard(wizard);
                     pageState.cancelVerilogImport();
@@ -497,14 +535,16 @@ namespace Bess::UI {
         }
 
         ImGui::TextUnformatted("Files");
-        if (Widgets::TextBox("##VerilogImportPath", wizard.filePath, "Select Verilog files")) {
+        if (Widgets::TextBox("##VerilogImportPath", wizard.filePath,
+                             "Select Verilog files")) {
             wizard.filePaths.clear();
         }
         ImGui::SameLine();
         if (ImGui::Button("Browse") && !wizard.importing) {
-            const auto paths = Dialogs::showOpenFilesDialog("Import Verilog Files",
-                                                            {"Verilog Source Files", "*.sv *.v *.svh *.vh",
-                                                             "All Files", "*.*"});
+            const auto paths = Dialogs::showOpenFilesDialog(
+                "Import Verilog Files",
+                {"Verilog Source Files", "*.sv *.v *.svh *.vh", "All Files",
+                 "*.*"});
             if (!paths.empty()) {
                 wizard.filePaths = paths;
                 wizard.filePath = importSelectionLabel(paths);
@@ -541,7 +581,8 @@ namespace Bess::UI {
                 wizard.finished = true;
                 wizard.failed = true;
                 wizard.progress = 1.f;
-                wizard.stageMessage = "Import failed: choose only .v, .sv, .vh, or .svh files";
+                wizard.stageMessage =
+                    "Import failed: choose only .v, .sv, .vh, or .svh files";
                 getState()._internalData.statusMessage = wizard.stageMessage;
             } else {
                 pageState.startVerilogImport(selectedPaths);
@@ -570,11 +611,8 @@ namespace Bess::UI {
 
     void UIMain::resetDockspace() {
         static std::unordered_map<Dock, ImGuiID> DockIds{
-            {Dock::left, 0},
-            {Dock::right, 0},
-            {Dock::top, 0},
-            {Dock::bottom, 0},
-            {Dock::main, 0},
+            {Dock::left, 0},   {Dock::right, 0}, {Dock::top, 0},
+            {Dock::bottom, 0}, {Dock::main, 0},
         };
 
         auto mainDockspaceId = ImGui::GetID("MainDockspace");
@@ -582,23 +620,14 @@ namespace Bess::UI {
         ImGui::DockBuilderRemoveNode(mainDockspaceId);
         ImGui::DockBuilderAddNode(mainDockspaceId, ImGuiDockNodeFlags_NoTabBar);
 
-        const auto dockIdLeft = ImGui::DockBuilderSplitNode(mainDockspaceId,
-                                                            ImGuiDir_Left,
-                                                            0.15f,
-                                                            nullptr,
-                                                            &mainDockspaceId);
+        const auto dockIdLeft = ImGui::DockBuilderSplitNode(
+            mainDockspaceId, ImGuiDir_Left, 0.15f, nullptr, &mainDockspaceId);
 
-        const auto dockIdRight = ImGui::DockBuilderSplitNode(mainDockspaceId,
-                                                             ImGuiDir_Right,
-                                                             0.15f,
-                                                             nullptr,
-                                                             &mainDockspaceId);
+        const auto dockIdRight = ImGui::DockBuilderSplitNode(
+            mainDockspaceId, ImGuiDir_Right, 0.15f, nullptr, &mainDockspaceId);
 
-        const auto dockIdBot = ImGui::DockBuilderSplitNode(mainDockspaceId,
-                                                           ImGuiDir_Down,
-                                                           0.25f,
-                                                           nullptr,
-                                                           &mainDockspaceId);
+        const auto dockIdBot = ImGui::DockBuilderSplitNode(
+            mainDockspaceId, ImGuiDir_Down, 0.25f, nullptr, &mainDockspaceId);
 
         DockIds[Dock::main] = mainDockspaceId;
         DockIds[Dock::left] = dockIdLeft;
@@ -629,14 +658,14 @@ namespace Bess::UI {
     }
 
     void UIMain::onOpenProject() {
-        const auto filepath =
-            Dialogs::showOpenFileDialog("Open BESS Project File",
-                                        {"Bess Project", "*.bproj",
-                                         "All Files", "*.*"});
+        const auto filepath = Dialogs::showOpenFileDialog(
+            "Open BESS Project File",
+            {"Bess Project", "*.bproj", "All Files", "*.*"});
 
         if (filepath == "" || !std::filesystem::exists(filepath)) {
             BESS_WARN("No or invalid file path selcted");
-            getState()._internalData.statusMessage = "No or invalid file path selected";
+            getState()._internalData.statusMessage =
+                "No or invalid file path selected";
             return;
         }
 
@@ -647,7 +676,8 @@ namespace Bess::UI {
             ImGui::OpenPopup(Popups::PopupIds::unsavedProjectWarning);
         } else {
             pageState.loadProject(filepath);
-            getState()._internalData.statusMessage = std::format("Project loaded from {}", filepath);
+            getState()._internalData.statusMessage =
+                std::format("Project loaded from {}", filepath);
         }
     }
 
@@ -659,7 +689,8 @@ namespace Bess::UI {
             getState()._internalData.statusMessage = "No save path selected.";
             return;
         } else {
-            getState()._internalData.statusMessage = std::format("Project saved to {}", path);
+            getState()._internalData.statusMessage =
+                std::format("Project saved to {}", path);
         }
     }
 
@@ -714,8 +745,10 @@ namespace Bess::UI {
         return s_preInitCallbacks;
     }
 
-    std::unordered_map<std::type_index, std::shared_ptr<Panel>> &UIMain::getPanelMap() {
-        static std::unordered_map<std::type_index, std::shared_ptr<Panel>> m_panelMap;
+    std::unordered_map<std::type_index, std::shared_ptr<Panel>> &
+    UIMain::getPanelMap() {
+        static std::unordered_map<std::type_index, std::shared_ptr<Panel>>
+            m_panelMap;
         return m_panelMap;
     }
 
@@ -724,7 +757,8 @@ namespace Bess::UI {
         return m_scenePanels;
     }
 
-    void UIMain::update(TimeMs ts, const std::vector<ApplicationEvent> &events) {
+    void UIMain::update(TimeMs ts,
+                        const std::vector<ApplicationEvent> &events) {
         for (auto &panel : getPanels()) {
             if (panel->getVisible()) {
                 panel->update(ts, events);

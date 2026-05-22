@@ -12,7 +12,8 @@ namespace Bess {
         return m_activeScene;
     }
 
-    std::shared_ptr<Canvas::Scene> SceneDriver::setActiveScene(UUID id, bool updateCmdSys) {
+    std::shared_ptr<Canvas::Scene>
+    SceneDriver::setActiveScene(UUID id, bool updateCmdSys) {
         if (UUID::null == id || !m_sceneIdToSceneMap.contains(id)) {
             return nullptr;
         }
@@ -22,32 +23,37 @@ namespace Bess {
         }
 
         m_activeScene = m_sceneIdToSceneMap.at(id);
-        m_activeSceneIdx = std::distance(m_scenes.begin(), std::ranges::find_if(m_scenes,
-                                                                                [&](const std::shared_ptr<Canvas::Scene> &scene) {
-                                                                                    return scene->getSceneId() == id;
-                                                                                }));
+        m_activeSceneIdx = std::distance(
+            m_scenes.begin(),
+            std::ranges::find_if(
+                m_scenes, [&](const std::shared_ptr<Canvas::Scene> &scene) {
+                    return scene->getSceneId() == id;
+                }));
 
         if (updateCmdSys) {
-            auto &cmdSystem = Pages::MainPage::getInstance()->getState().getCommandSystem();
+            auto &cmdSystem =
+                Pages::MainPage::getInstance()->getState().getCommandSystem();
             cmdSystem.setScene(m_activeScene.get());
         }
 
         if (!m_activeScene->getState().getIsRootScene()) {
             const auto &modId = m_activeScene->getState().getModuleId();
-            if (modId != UUID::null &&
-                !m_modIdToSceneMap.contains(modId)) {
+            if (modId != UUID::null && !m_modIdToSceneMap.contains(modId)) {
                 m_modIdToSceneMap[modId] = m_activeScene;
             }
         }
 
-        if (!UI::UIMain::getScenePanels().empty() && UI::UIMain::getScenePanels().front()) {
-            UI::UIMain::getScenePanels().front()->setAttachedScene(m_activeScene);
+        if (!UI::UIMain::getScenePanels().empty() &&
+            UI::UIMain::getScenePanels().front()) {
+            UI::UIMain::getScenePanels().front()->setAttachedScene(
+                m_activeScene);
         }
         BESS_INFO("[SceneDriver] Active scene set to id {}.", (uint64_t)id);
         return m_activeScene;
     }
 
-    std::shared_ptr<Canvas::Scene> SceneDriver::setActiveScene(size_t index, bool updateCmdSys) {
+    std::shared_ptr<Canvas::Scene>
+    SceneDriver::setActiveScene(size_t index, bool updateCmdSys) {
         if (index < m_scenes.size()) {
             if (m_activeScene) {
                 m_activeScene->getState().clearSelectedComponents();
@@ -55,20 +61,23 @@ namespace Bess {
             m_activeScene = m_scenes.at(index);
             m_activeSceneIdx = index;
             if (updateCmdSys) {
-                auto &cmdSystem = Pages::MainPage::getInstance()->getState().getCommandSystem();
+                auto &cmdSystem = Pages::MainPage::getInstance()
+                                      ->getState()
+                                      .getCommandSystem();
                 cmdSystem.setScene(m_activeScene.get());
             }
 
             if (!m_activeScene->getState().getIsRootScene()) {
                 const auto &modId = m_activeScene->getState().getModuleId();
-                if (modId != UUID::null &&
-                    !m_modIdToSceneMap.contains(modId)) {
+                if (modId != UUID::null && !m_modIdToSceneMap.contains(modId)) {
                     m_modIdToSceneMap[modId] = m_activeScene;
                 }
             }
 
-            if (!UI::UIMain::getScenePanels().empty() && UI::UIMain::getScenePanels().front()) {
-                UI::UIMain::getScenePanels().front()->setAttachedScene(m_activeScene);
+            if (!UI::UIMain::getScenePanels().empty() &&
+                UI::UIMain::getScenePanels().front()) {
+                UI::UIMain::getScenePanels().front()->setAttachedScene(
+                    m_activeScene);
             }
             BESS_INFO("[SceneDriver] Active scene set to index {}.", index);
             return m_activeScene;
@@ -83,7 +92,8 @@ namespace Bess {
         return newScene;
     }
 
-    std::shared_ptr<Canvas::Scene> SceneDriver::getSceneAtIdx(size_t index) const {
+    std::shared_ptr<Canvas::Scene>
+    SceneDriver::getSceneAtIdx(size_t index) const {
         if (index < m_scenes.size()) {
             return m_scenes.at(index);
         }
@@ -113,13 +123,15 @@ namespace Bess {
             return;
         }
 
-        const bool removingActiveScene = m_activeScene && m_activeScene->getSceneId() == id;
+        const bool removingActiveScene =
+            m_activeScene && m_activeScene->getSceneId() == id;
 
         const auto &scene = m_sceneIdToSceneMap.at(id);
-        m_scenes.erase(std::ranges::remove_if(m_scenes,
-                                              [&id](const std::shared_ptr<Canvas::Scene> &scene) {
-                                                  return scene && scene->getSceneId() == id;
-                                              })
+        m_scenes.erase(std::ranges::remove_if(
+                           m_scenes,
+                           [&id](const std::shared_ptr<Canvas::Scene> &scene) {
+                               return scene && scene->getSceneId() == id;
+                           })
                            .begin(),
                        m_scenes.end());
         m_sceneIdToSceneMap.erase(id);
@@ -138,7 +150,8 @@ namespace Bess {
         }
 
         if (removingActiveScene) {
-            if (m_rootSceneId != UUID::null && m_sceneIdToSceneMap.contains(m_rootSceneId)) {
+            if (m_rootSceneId != UUID::null &&
+                m_sceneIdToSceneMap.contains(m_rootSceneId)) {
                 setActiveScene(m_rootSceneId);
             } else {
                 setActiveScene((size_t)0);
@@ -147,24 +160,20 @@ namespace Bess {
         }
 
         if (m_activeScene) {
-            auto activeIt = std::ranges::find_if(m_scenes,
-                                                 [this](const std::shared_ptr<Canvas::Scene> &scene) {
-                                                     return scene && m_activeScene &&
-                                                            scene->getSceneId() == m_activeScene->getSceneId();
-                                                 });
+            auto activeIt = std::ranges::find_if(
+                m_scenes, [this](const std::shared_ptr<Canvas::Scene> &scene) {
+                    return scene && m_activeScene &&
+                           scene->getSceneId() == m_activeScene->getSceneId();
+                });
             if (activeIt != m_scenes.end()) {
                 m_activeSceneIdx = std::distance(m_scenes.begin(), activeIt);
             }
         }
     }
 
-    size_t SceneDriver::getSceneCount() const {
-        return m_scenes.size();
-    }
+    size_t SceneDriver::getSceneCount() const { return m_scenes.size(); }
 
-    size_t SceneDriver::getActiveSceneIdx() const {
-        return m_activeSceneIdx;
-    }
+    size_t SceneDriver::getActiveSceneIdx() const { return m_activeSceneIdx; }
 
     void SceneDriver::updateNets(const std::shared_ptr<Canvas::Scene> &scene) {
         auto &simEngine = SimEngine::SimulationEngine::instance();
@@ -173,7 +182,8 @@ namespace Bess {
 
         auto &mainPageState = Pages::MainPage::getInstance()->getState();
         auto &netIdToNameMap = mainPageState.getNetIdToNameMap();
-        auto &netIdCompMap = mainPageState.getNetIdToCompMap(scene->getSceneId());
+        auto &netIdCompMap =
+            mainPageState.getNetIdToCompMap(scene->getSceneId());
         auto &sceneState = scene->getState();
 
         std::unordered_map<UUID,
@@ -183,7 +193,8 @@ namespace Bess {
         for (const auto &[compId, comp] : sceneState.getAllComponents()) {
             if (comp->getType() == Canvas::SceneComponentType::group ||
                 comp->getType() == Canvas::SceneComponentType::simulation) {
-                const auto simComp = comp->cast<Canvas::SimulationSceneComponent>();
+                const auto simComp =
+                    comp->cast<Canvas::SimulationSceneComponent>();
                 simIdToComp[simComp->getSimEngineId()] = simComp;
             }
         }
@@ -200,9 +211,7 @@ namespace Bess {
         }
     }
 
-    void SceneDriver::updateNets() {
-        updateNets(m_activeScene);
-    }
+    void SceneDriver::updateNets() { updateNets(m_activeScene); }
 
     void SceneDriver::makeRootSceneActive() {
         if (m_rootSceneId != UUID::null) {
@@ -210,7 +219,8 @@ namespace Bess {
         }
     }
 
-    std::shared_ptr<Canvas::Scene> SceneDriver::getSceneWithId(const UUID &id) const {
+    std::shared_ptr<Canvas::Scene>
+    SceneDriver::getSceneWithId(const UUID &id) const {
         if (!m_sceneIdToSceneMap.contains(id)) {
             return nullptr;
         }
@@ -227,7 +237,8 @@ namespace Bess {
         m_modIdToSceneMap.clear();
     }
 
-    std::shared_ptr<Canvas::Scene> SceneDriver::getSceneForModule(const UUID &modId) const {
+    std::shared_ptr<Canvas::Scene>
+    SceneDriver::getSceneForModule(const UUID &modId) const {
         if (!m_modIdToSceneMap.contains(modId)) {
             return nullptr;
         }

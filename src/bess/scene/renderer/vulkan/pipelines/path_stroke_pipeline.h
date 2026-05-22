@@ -9,9 +9,10 @@ namespace Bess::Vulkan::Pipelines {
 
     class PathStrokePipeline : public Pipeline {
       public:
-        PathStrokePipeline(const std::shared_ptr<VulkanDevice> &device,
-                           const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
-                           VkExtent2D extent);
+        PathStrokePipeline(
+            const std::shared_ptr<VulkanDevice> &device,
+            const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
+            VkExtent2D extent);
         ~PathStrokePipeline();
 
         PathStrokePipeline(const PathStrokePipeline &) = delete;
@@ -19,10 +20,12 @@ namespace Bess::Vulkan::Pipelines {
         PathStrokePipeline(PathStrokePipeline &&other) noexcept;
         PathStrokePipeline &operator=(PathStrokePipeline &&other) noexcept;
 
-        void beginPipeline(VkCommandBuffer commandBuffer, bool isTranslucent) override;
+        void beginPipeline(VkCommandBuffer commandBuffer,
+                           bool isTranslucent) override;
         void endPipeline() override;
 
-        void setPathData(const std::vector<CommonVertex> &strokeVertices, const std::vector<uint32_t> &strokeIndices);
+        void setPathData(const std::vector<CommonVertex> &strokeVertices,
+                         const std::vector<uint32_t> &strokeIndices);
 
         void updateUniformBuffer(const UniformBufferObject &ubo);
 

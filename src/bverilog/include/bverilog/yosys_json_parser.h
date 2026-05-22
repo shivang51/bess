@@ -6,6 +6,7 @@
 #include <string>
 
 namespace Bess::Verilog {
-    BESS_API Design parseDesignFromYosysJson(const Json::Value &root,
-                                             const std::optional<std::string> &explicitTopModule = std::nullopt);
+    BESS_API Design parseDesignFromYosysJson(
+        const Json::Value &root,
+        const std::optional<std::string> &explicitTopModule = std::nullopt);
 } // namespace Bess::Verilog

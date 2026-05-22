@@ -19,10 +19,11 @@ namespace Bess::Canvas {
 }
 
 REFLECT_ENUM(Bess::Canvas::SlotType);
-#define SLOT_SC_SER_PROPS ("slotType", getSlotType, setSlotType),             \
-                          ("index", getIndex, setIndex),                      \
-                          ("schematicPos", getSchematicPos, setSchematicPos), \
-                          ("connectedConnections", getConnectedConnections, setConnectedConnections)
+#define SLOT_SC_SER_PROPS                                                      \
+    ("slotType", getSlotType, setSlotType), ("index", getIndex, setIndex),     \
+        ("schematicPos", getSchematicPos, setSchematicPos),                    \
+        ("connectedConnections", getConnectedConnections,                      \
+         setConnectedConnections)
 
 namespace Bess::Canvas {
     class SlotSceneComponent : public SceneComponent {
@@ -40,15 +41,18 @@ namespace Bess::Canvas {
 
         void onMouseButton(const Events::MouseButtonEvent &e) override;
 
-        std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const override;
+        std::vector<std::shared_ptr<SceneComponent>>
+        clone(const SceneState &sceneState) const override;
 
         REG_SCENE_COMP_TYPE("SlotSceneComponent", SceneComponentType::slot)
-        SCENE_COMP_SER(Bess::Canvas::SlotSceneComponent, Bess::Canvas::SceneComponent, SLOT_SC_SER_PROPS)
+        SCENE_COMP_SER(Bess::Canvas::SlotSceneComponent,
+                       Bess::Canvas::SceneComponent, SLOT_SC_SER_PROPS)
 
         MAKE_GETTER_SETTER(SlotType, SlotType, m_slotType)
         MAKE_GETTER_SETTER(int, Index, m_index)
         MAKE_GETTER_SETTER(glm::vec3, SchematicPos, m_schematicPos)
-        MAKE_GETTER_SETTER(std::vector<UUID>, ConnectedConnections, m_connectedConnections)
+        MAKE_GETTER_SETTER(std::vector<UUID>, ConnectedConnections,
+                           m_connectedConnections)
 
         void addConnection(const UUID &connectionId);
         void removeConnection(const UUID &connectionId);
@@ -84,4 +88,5 @@ namespace Bess::Canvas {
 
 } // namespace Bess::Canvas
 
-REG_SCENE_COMP(Bess::Canvas::SlotSceneComponent, Bess::Canvas::SceneComponent, SLOT_SC_SER_PROPS)
+REG_SCENE_COMP(Bess::Canvas::SlotSceneComponent, Bess::Canvas::SceneComponent,
+               SLOT_SC_SER_PROPS)

@@ -29,9 +29,10 @@ namespace Bess::Canvas {
         float getStrokeSize() const;
         void setStrokeSize(float size);
 
-        glm::vec2 draw(const Bess::Canvas::Transform &transform,
-                       const Bess::Canvas::PickingId &pickingId,
-                       const std::shared_ptr<Bess::Renderer::PathRenderer> &pathRenderer);
+        glm::vec2
+        draw(const Bess::Canvas::Transform &transform,
+             const Bess::Canvas::PickingId &pickingId,
+             const std::shared_ptr<Bess::Renderer::PathRenderer> &pathRenderer);
 
       private:
         std::vector<Renderer::Path> m_paths;

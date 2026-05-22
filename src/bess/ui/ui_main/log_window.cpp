@@ -7,8 +7,8 @@
 #include "ui/widgets/m_widgets.h"
 
 namespace Bess::UI {
-    static constexpr auto windowName = Common::Helpers::concat(
-        Icons::CodIcons::HISTORY, "  Log Window");
+    static constexpr auto windowName =
+        Common::Helpers::concat(Icons::CodIcons::HISTORY, "  Log Window");
 
     LogWindow::LogWindow() : Panel(std::string(windowName.data())) {
 #ifdef DEBUG
@@ -19,7 +19,8 @@ namespace Bess::UI {
     void LogWindow::drawControls() {
         const auto &uiLogSink = Logger::getUISink();
 
-        Widgets::CheckboxWithLabel("Auto Scroll ", &m_controls.autoScroll, false, true);
+        Widgets::CheckboxWithLabel("Auto Scroll ", &m_controls.autoScroll,
+                                   false, true);
 
         ImGui::SameLine();
         ImGui::AlignTextToFramePadding();
@@ -37,7 +38,8 @@ namespace Bess::UI {
         const auto &uiLogSink = Logger::getUISink();
 
         static constexpr ImGuiTableFlags tableFlags = ImGuiTableFlags_ScrollY |
-                                                      ImGuiTableFlags_ScrollX | ImGuiTableFlags_RowBg;
+                                                      ImGuiTableFlags_ScrollX |
+                                                      ImGuiTableFlags_RowBg;
 
         if (uiLogSink) {
             drawControls();

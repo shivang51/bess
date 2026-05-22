@@ -45,8 +45,7 @@ namespace Bess::JsonConvert {
 
 // define hash function before reflecting for unordered_set
 namespace std {
-    template <>
-    struct hash<Bess::UUID> {
+    template <> struct hash<Bess::UUID> {
         std::size_t operator()(const Bess::UUID &uuid) const noexcept {
             return std::hash<uint64_t>()(static_cast<uint64_t>(uuid));
         }

@@ -20,7 +20,8 @@ namespace Bess {
         Application();
         ~Application();
 
-        void init(const std::string &path, AppStartupFlags flags = AppStartupFlag::none);
+        void init(const std::string &path,
+                  AppStartupFlags flags = AppStartupFlag::none);
         void run();
         void quit() const;
         void shutdown();
@@ -42,8 +43,7 @@ namespace Bess {
         void onMouseWheel(double x, double y);
         void onKeyPress(int key);
         void onKeyRelease(int key);
-        void onMouseButton(MouseButton button,
-                           MouseButtonAction action,
+        void onMouseButton(MouseButton button, MouseButtonAction action,
                            const glm::vec2 &pos);
         void onMouseMove(double x, double y);
 

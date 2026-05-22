@@ -13,143 +13,95 @@ class PySimDriver : public Bess::SimEngine::Drivers::SimDriver {
     using CanConnectResult = std::pair<bool, std::string>;
 
     void run() override {
-        PYBIND11_OVERRIDE_PURE_NAME(void,
-                                    Bess::SimEngine::Drivers::SimDriver,
-                                    "run",
-                                    run);
+        PYBIND11_OVERRIDE_PURE_NAME(void, Bess::SimEngine::Drivers::SimDriver,
+                                    "run", run);
     }
 
     std::string getName() const override {
         PYBIND11_OVERRIDE_PURE_NAME(std::string,
                                     Bess::SimEngine::Drivers::SimDriver,
-                                    "get_name",
-                                    getName);
+                                    "get_name", getName);
     }
 
-    bool supportsDef(const std::shared_ptr<Bess::SimEngine::Drivers::CompDef> &def) const override {
-        PYBIND11_OVERRIDE_PURE_NAME(bool,
-                                    Bess::SimEngine::Drivers::SimDriver,
-                                    "supports_def",
-                                    suuportsDef,
-                                    def);
+    bool supportsDef(const std::shared_ptr<Bess::SimEngine::Drivers::CompDef>
+                         &def) const override {
+        PYBIND11_OVERRIDE_PURE_NAME(bool, Bess::SimEngine::Drivers::SimDriver,
+                                    "supports_def", suuportsDef, def);
     }
 
-    std::shared_ptr<Bess::SimEngine::Drivers::SimComponent> createComp(
-        const std::shared_ptr<Bess::SimEngine::Drivers::CompDef> &def,
-        bool cloneDef = true) override {
-        PYBIND11_OVERRIDE_PURE_NAME(std::shared_ptr<Bess::SimEngine::Drivers::SimComponent>,
-                                    Bess::SimEngine::Drivers::SimDriver,
-                                    "create_component",
-                                    createComp,
-                                    def,
-                                    cloneDef);
+    std::shared_ptr<Bess::SimEngine::Drivers::SimComponent>
+    createComp(const std::shared_ptr<Bess::SimEngine::Drivers::CompDef> &def,
+               bool cloneDef = true) override {
+        PYBIND11_OVERRIDE_PURE_NAME(
+            std::shared_ptr<Bess::SimEngine::Drivers::SimComponent>,
+            Bess::SimEngine::Drivers::SimDriver, "create_component", createComp,
+            def, cloneDef);
     }
 
-    CanConnectResult canConnectComponents(
-        const Bess::UUID &src,
-        int srcSlotIdx,
-        Bess::SimEngine::SlotType srcType,
-        const Bess::UUID &dst,
-        int dstSlotIdx,
-        Bess::SimEngine::SlotType dstType) const override {
-        PYBIND11_OVERRIDE_PURE_NAME(CanConnectResult,
-                                    Bess::SimEngine::Drivers::SimDriver,
-                                    "can_connect_components",
-                                    canConnectComponents,
-                                    src,
-                                    srcSlotIdx,
-                                    srcType,
-                                    dst,
-                                    dstSlotIdx,
-                                    dstType);
+    CanConnectResult
+    canConnectComponents(const Bess::UUID &src, int srcSlotIdx,
+                         Bess::SimEngine::SlotType srcType,
+                         const Bess::UUID &dst, int dstSlotIdx,
+                         Bess::SimEngine::SlotType dstType) const override {
+        PYBIND11_OVERRIDE_PURE_NAME(
+            CanConnectResult, Bess::SimEngine::Drivers::SimDriver,
+            "can_connect_components", canConnectComponents, src, srcSlotIdx,
+            srcType, dst, dstSlotIdx, dstType);
     }
 
-    bool connectComponent(const Bess::UUID &src,
-                          int srcSlotIdx,
+    bool connectComponent(const Bess::UUID &src, int srcSlotIdx,
                           Bess::SimEngine::SlotType srcType,
-                          const Bess::UUID &dst,
-                          int dstSlotIdx,
+                          const Bess::UUID &dst, int dstSlotIdx,
                           Bess::SimEngine::SlotType dstType,
                           bool overrideConn) override {
-        PYBIND11_OVERRIDE_PURE_NAME(bool,
-                                    Bess::SimEngine::Drivers::SimDriver,
-                                    "connect_component",
-                                    connectComponent,
-                                    src,
-                                    srcSlotIdx,
-                                    srcType,
-                                    dst,
-                                    dstSlotIdx,
-                                    dstType,
-                                    overrideConn);
+        PYBIND11_OVERRIDE_PURE_NAME(bool, Bess::SimEngine::Drivers::SimDriver,
+                                    "connect_component", connectComponent, src,
+                                    srcSlotIdx, srcType, dst, dstSlotIdx,
+                                    dstType, overrideConn);
     }
 
     void deleteConnection(const Bess::UUID &compA,
-                          Bess::SimEngine::SlotType pinAType,
-                          int idxA,
+                          Bess::SimEngine::SlotType pinAType, int idxA,
                           const Bess::UUID &compB,
                           Bess::SimEngine::SlotType pinBType,
                           int idxB) override {
-        PYBIND11_OVERRIDE_PURE_NAME(void,
-                                    Bess::SimEngine::Drivers::SimDriver,
-                                    "delete_connection",
-                                    deleteConnection,
-                                    compA,
-                                    pinAType,
-                                    idxA,
-                                    compB,
-                                    pinBType,
-                                    idxB);
+        PYBIND11_OVERRIDE_PURE_NAME(
+            void, Bess::SimEngine::Drivers::SimDriver, "delete_connection",
+            deleteConnection, compA, pinAType, idxA, compB, pinBType, idxB);
     }
 
-    Bess::SimEngine::Drivers::SlotsCountChangeRes addSlot(const Bess::UUID &compId,
-                                                          Bess::SimEngine::SlotType type,
-                                                          int index,
-                                                          bool force = false) override {
-        PYBIND11_OVERRIDE_PURE_NAME(Bess::SimEngine::Drivers::SlotsCountChangeRes,
-                                    Bess::SimEngine::Drivers::SimDriver,
-                                    "add_slot",
-                                    addSlot,
-                                    compId,
-                                    type,
-                                    index,
-                                    force);
+    Bess::SimEngine::Drivers::SlotsCountChangeRes
+    addSlot(const Bess::UUID &compId, Bess::SimEngine::SlotType type, int index,
+            bool force = false) override {
+        PYBIND11_OVERRIDE_PURE_NAME(
+            Bess::SimEngine::Drivers::SlotsCountChangeRes,
+            Bess::SimEngine::Drivers::SimDriver, "add_slot", addSlot, compId,
+            type, index, force);
     }
 
-    Bess::SimEngine::Drivers::SlotsCountChangeRes removeSlot(const Bess::UUID &compId,
-                                                             Bess::SimEngine::SlotType type,
-                                                             int index,
-                                                             bool force = false) override {
-        PYBIND11_OVERRIDE_PURE_NAME(Bess::SimEngine::Drivers::SlotsCountChangeRes,
-                                    Bess::SimEngine::Drivers::SimDriver,
-                                    "remove_slot",
-                                    removeSlot,
-                                    compId,
-                                    type,
-                                    index,
-                                    force);
+    Bess::SimEngine::Drivers::SlotsCountChangeRes
+    removeSlot(const Bess::UUID &compId, Bess::SimEngine::SlotType type,
+               int index, bool force = false) override {
+        PYBIND11_OVERRIDE_PURE_NAME(
+            Bess::SimEngine::Drivers::SlotsCountChangeRes,
+            Bess::SimEngine::Drivers::SimDriver, "remove_slot", removeSlot,
+            compId, type, index, force);
     }
 
     void clearPendingEvents() override {
-        PYBIND11_OVERRIDE_NAME(void,
-                               Bess::SimEngine::Drivers::SimDriver,
-                               "clear_pending_events",
-                               clearPendingEvents);
+        PYBIND11_OVERRIDE_NAME(void, Bess::SimEngine::Drivers::SimDriver,
+                               "clear_pending_events", clearPendingEvents);
     }
 
     Json::Value toJson() const override {
         PYBIND11_OVERRIDE_PURE_NAME(Json::Value,
                                     Bess::SimEngine::Drivers::SimDriver,
-                                    "to_json",
-                                    toJson);
+                                    "to_json", toJson);
     }
 
     void loadJson(const Json::Value &json) override {
-        PYBIND11_OVERRIDE_PURE_NAME(void,
-                                    Bess::SimEngine::Drivers::SimDriver,
-                                    "load_json",
-                                    loadJson,
-                                    json);
+        PYBIND11_OVERRIDE_PURE_NAME(void, Bess::SimEngine::Drivers::SimDriver,
+                                    "load_json", loadJson, json);
     }
 };
 
@@ -159,24 +111,18 @@ class PyCompDef : public Bess::SimEngine::Drivers::CompDef,
     using Bess::SimEngine::Drivers::CompDef::CompDef;
 
     std::shared_ptr<Bess::SimEngine::Drivers::CompDef> clone() const override {
-        PYBIND11_OVERRIDE_NAME(std::shared_ptr<Bess::SimEngine::Drivers::CompDef>,
-                               CompDef,
-                               "clone",
-                               clone);
+        PYBIND11_OVERRIDE_NAME(
+            std::shared_ptr<Bess::SimEngine::Drivers::CompDef>, CompDef,
+            "clone", clone);
     }
 
     std::string getTypeName() const override {
-        PYBIND11_OVERRIDE_NAME(std::string,
-                               CompDef,
-                               "get_type_name",
+        PYBIND11_OVERRIDE_NAME(std::string, CompDef, "get_type_name",
                                getTypeName);
     }
 
     Json::Value toJson() const override {
-        PYBIND11_OVERRIDE_NAME(Json::Value,
-                               CompDef,
-                               "to_json",
-                               toJson);
+        PYBIND11_OVERRIDE_NAME(Json::Value, CompDef, "to_json", toJson);
     }
 };
 
@@ -209,31 +155,29 @@ void bind_sim_engine_driver(py::module_ &m) {
         .def(py::init<>())
         .def_readwrite("sim_dependants", &SimFnDataBase::simDependants);
 
-    py::class_<CompDef,
-               PyCompDef,
-               py::smart_holder>(m, "CompDef")
-        .def_property("name",
-                      py::overload_cast<>(&CompDef::getName),
+    py::class_<CompDef, PyCompDef, py::smart_holder>(m, "CompDef")
+        .def_property("name", py::overload_cast<>(&CompDef::getName),
                       py::overload_cast<const std::string &>(&CompDef::setName))
         .def("type", &CompDef::getTypeName)
         .def("clone", &CompDef::clone)
         .def("to_json", &CompDef::toJson)
         .def("get_type_name", &CompDef::getTypeName)
-        .def_property("group_name",
-                      py::overload_cast<>(&CompDef::getGroupName),
-                      py::overload_cast<const std::string &>(&CompDef::setGroupName));
+        .def_property(
+            "group_name", py::overload_cast<>(&CompDef::getGroupName),
+            py::overload_cast<const std::string &>(&CompDef::setGroupName));
 
     py::class_<SimComponent, std::shared_ptr<SimComponent>>(m, "SimComponent")
         .def(py::init<>())
-        .def_property("uuid",
-                      py::overload_cast<>(&SimComponent::getUuid),
-                      py::overload_cast<const Bess::UUID &>(&SimComponent::setUuid))
-        .def_property("name",
-                      py::overload_cast<>(&SimComponent::getName),
-                      py::overload_cast<const std::string &>(&SimComponent::setName))
-        .def_property_readonly("definition", [](const SimComponent &self) {
-            return self.getDefinition<CompDef>();
-        })
+        .def_property(
+            "uuid", py::overload_cast<>(&SimComponent::getUuid),
+            py::overload_cast<const Bess::UUID &>(&SimComponent::setUuid))
+        .def_property(
+            "name", py::overload_cast<>(&SimComponent::getName),
+            py::overload_cast<const std::string &>(&SimComponent::setName))
+        .def_property_readonly("definition",
+                               [](const SimComponent &self) {
+                                   return self.getDefinition<CompDef>();
+                               })
         .def("to_json", &SimComponent::toJson)
         .def("simulate", &SimComponent::simulate, py::arg("data"));
 
@@ -244,13 +188,12 @@ void bind_sim_engine_driver(py::module_ &m) {
         .def_readwrite("scheduler_id", &SimEvt::schedulerId)
         .def_readwrite("sim_time", &SimEvt::simTime);
 
-    py::class_<SimDriver, PySimDriver, std::shared_ptr<SimDriver>>(m, "SimDriver")
+    py::class_<SimDriver, PySimDriver, std::shared_ptr<SimDriver>>(m,
+                                                                   "SimDriver")
         .def(py::init<>())
         .def("get_name", &SimDriver::getName)
         .def("supports_def", &SimDriver::supportsDef, py::arg("definition"))
-        .def("create_component",
-             &SimDriver::createComp,
-             py::arg("definition"),
+        .def("create_component", &SimDriver::createComp, py::arg("definition"),
              py::arg("clone_def") = true)
         .def("init", &SimDriver::init)
         .def("pause", &SimDriver::pause)
@@ -265,37 +208,26 @@ void bind_sim_engine_driver(py::module_ &m) {
         .def("is_stopped", &SimDriver::isStopped)
         .def("is_destroyed", &SimDriver::isDestroyed)
         .def("has_component", &SimDriver::hasComponent)
-        .def("can_connect_components",
-             &SimDriver::canConnectComponents,
+        .def("can_connect_components", &SimDriver::canConnectComponents,
              py::arg("src"), py::arg("src_slot_idx"), py::arg("src_type"),
              py::arg("dst"), py::arg("dst_slot_idx"), py::arg("dst_type"))
-        .def("connect_component",
-             &SimDriver::connectComponent,
-             py::arg("src"), py::arg("src_slot_idx"), py::arg("src_type"),
-             py::arg("dst"), py::arg("dst_slot_idx"), py::arg("dst_type"),
+        .def("connect_component", &SimDriver::connectComponent, py::arg("src"),
+             py::arg("src_slot_idx"), py::arg("src_type"), py::arg("dst"),
+             py::arg("dst_slot_idx"), py::arg("dst_type"),
              py::arg("override_conn") = false)
-        .def("delete_connection",
-             &SimDriver::deleteConnection,
+        .def("delete_connection", &SimDriver::deleteConnection,
              py::arg("comp_a"), py::arg("pin_a_type"), py::arg("idx_a"),
              py::arg("comp_b"), py::arg("pin_b_type"), py::arg("idx_b"))
-        .def("add_slot",
-             &SimDriver::addSlot,
-             py::arg("component_id"),
-             py::arg("slot_type"),
-             py::arg("index"),
-             py::arg("force") = false)
-        .def("remove_slot",
-             &SimDriver::removeSlot,
-             py::arg("component_id"),
-             py::arg("slot_type"),
-             py::arg("index"),
-             py::arg("force") = false)
-        .def("clear_pending_events",
-             &SimDriver::clearPendingEvents)
+        .def("add_slot", &SimDriver::addSlot, py::arg("component_id"),
+             py::arg("slot_type"), py::arg("index"), py::arg("force") = false)
+        .def("remove_slot", &SimDriver::removeSlot, py::arg("component_id"),
+             py::arg("slot_type"), py::arg("index"), py::arg("force") = false)
+        .def("clear_pending_events", &SimDriver::clearPendingEvents)
         .def("to_json", &SimDriver::toJson)
         .def("load_json", &SimDriver::loadJson, py::arg("json"))
-        .def("component_count",
-             [](const SimDriver &self) { return self.getComponentsMap().size(); });
+        .def("component_count", [](const SimDriver &self) {
+            return self.getComponentsMap().size();
+        });
 
     bind_event_based_sim_driver(m);
     bind_dig_sim_driver(m);

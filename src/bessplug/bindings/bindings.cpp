@@ -35,12 +35,16 @@ void bind_api(py::module_ &m) {
     auto mCmds = m.def_submodule("cmds", "Bess Commands bindings");
 
     auto common = mApi.def_submodule("common", "Common bindings");
-    auto simEngine = mApi.def_submodule("sim_engine", "Simulation engine bindings");
-    auto simEngineDriver = simEngine.def_submodule("driver", "Simulation driver bindings");
-    auto simFn = simEngine.def_submodule("sim_functions", "Simulation engine prebuilt simulation functions");
+    auto simEngine =
+        mApi.def_submodule("sim_engine", "Simulation engine bindings");
+    auto simEngineDriver =
+        simEngine.def_submodule("driver", "Simulation driver bindings");
+    auto simFn = simEngine.def_submodule(
+        "sim_functions", "Simulation engine prebuilt simulation functions");
     auto scene = mApi.def_submodule("scene", "Scene bindings");
     auto renderer = scene.def_submodule("renderer", "Scene Renderer bindings");
-    auto assetMgr = mApi.def_submodule("asset_manager", "Asset Manager bindings");
+    auto assetMgr =
+        mApi.def_submodule("asset_manager", "Asset Manager bindings");
     auto uiHook = mApi.def_submodule("ui_hook", "UI Hook bindings");
     auto bessUI = mApi.def_submodule("bess_ui", "Bess UI bindings");
 

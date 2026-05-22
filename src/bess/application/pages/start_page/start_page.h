@@ -13,7 +13,8 @@ namespace Bess::Pages {
         static std::shared_ptr<Page> getInstance();
 
         void draw() override;
-        void update(TFrameTime ts, const std::vector<ApplicationEvent> &events) override;
+        void update(TFrameTime ts,
+                    const std::vector<ApplicationEvent> &events) override;
 
         struct PreviousProject {
             std::string name;

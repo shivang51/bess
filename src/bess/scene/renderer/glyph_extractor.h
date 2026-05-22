@@ -28,7 +28,8 @@ namespace Bess::Renderer::Font {
         GlyphExtractor(const GlyphExtractor &) = delete;
         GlyphExtractor &operator=(const GlyphExtractor &) = delete;
 
-        static uint32_t decodeSingleUTF8(const char *ptr, int &out_bytes_consumed);
+        static uint32_t decodeSingleUTF8(const char *ptr,
+                                         int &out_bytes_consumed);
 
         size_t getGlyphsCount();
 

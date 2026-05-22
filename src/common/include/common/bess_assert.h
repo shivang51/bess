@@ -10,11 +10,11 @@
     #define BESS_ASSERT(expr, ...)                                             \
         do {                                                                   \
             if (!(expr)) {                                                     \
-                std::cerr                                                      \
-                    << "Assertion failed: (" << #expr << ")"                   \
-                    << "  File: " << __FILE__ << ":"                           \
-                    << "  Line: " << __LINE__ << "\n"                          \
-                    << "  Message: " << std::format(__VA_ARGS__) << std::endl; \
+                std::cerr << "Assertion failed: (" << #expr << ")"             \
+                          << "  File: " << __FILE__ << ":"                     \
+                          << "  Line: " << __LINE__ << "\n"                    \
+                          << "  Message: " << std::format(__VA_ARGS__)         \
+                          << std::endl;                                        \
                 std::cerr.flush();                                             \
                 const std::stacktrace st = std::stacktrace::current();         \
                 std::cout << st << std::endl;                                  \

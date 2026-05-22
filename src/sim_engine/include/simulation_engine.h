@@ -26,8 +26,9 @@ namespace Bess::SimEngine {
 
         void destroy();
 
-        const UUID &addComponent(const std::shared_ptr<Drivers::CompDef> &definition,
-                                 bool cloneDef = true);
+        const UUID &
+        addComponent(const std::shared_ptr<Drivers::CompDef> &definition,
+                     bool cloneDef = true);
 
         template <typename T>
         std::shared_ptr<T> getComponent(const UUID &uuid) const {
@@ -42,11 +43,14 @@ namespace Bess::SimEngine {
         }
 
         bool connectComponent(const UUID &src, int srcSlotIdx, SlotType srcType,
-                              const UUID &dst, int dstSlotIdx, SlotType dstType, bool overrideConn = false);
+                              const UUID &dst, int dstSlotIdx, SlotType dstType,
+                              bool overrideConn = false);
 
         // returns {canConnect, errorMessage}
-        std::pair<bool, std::string> canConnectComponents(const UUID &src, int srcSlotIdx, SlotType srcType,
-                                                          const UUID &dst, int dstSlotIdx, SlotType dstType) const;
+        std::pair<bool, std::string>
+        canConnectComponents(const UUID &src, int srcSlotIdx, SlotType srcType,
+                             const UUID &dst, int dstSlotIdx,
+                             SlotType dstType) const;
 
         void deleteComponent(const UUID &uuid);
 
@@ -75,15 +79,17 @@ namespace Bess::SimEngine {
         void stepSimulation();
 
         const ComponentState &getComponentState(const UUID &uuid);
-        const std::shared_ptr<Drivers::CompDef> &getComponentDefinition(
-            const UUID &uuid) const;
+        const std::shared_ptr<Drivers::CompDef> &
+        getComponentDefinition(const UUID &uuid) const;
 
         void clear();
 
         bool updateInputCount(const UUID &uuid, int n);
 
-        bool addSlot(const UUID &compId, SlotType type, int index, bool force = false);
-        bool removeSlot(const UUID &compId, SlotType type, int index, bool force = false);
+        bool addSlot(const UUID &compId, SlotType type, int index,
+                     bool force = false);
+        bool removeSlot(const UUID &compId, SlotType type, int index,
+                        bool force = false);
 
         bool updateNets(const std::vector<UUID> &startCompIds);
 
@@ -103,14 +109,16 @@ namespace Bess::SimEngine {
 
         bool isSimStable();
 
-        void addOnSlotCountChangeCB(const UUID &id, const Drivers::SlotCountChangeCB &cb);
+        void addOnSlotCountChangeCB(const UUID &id,
+                                    const Drivers::SlotCountChangeCB &cb);
 
         void removeOnSlotCountChangeCB(const UUID &id);
 
-        std::shared_ptr<Drivers::SimDriver> getDriverWithName(
-            const std::string &name) const;
+        std::shared_ptr<Drivers::SimDriver>
+        getDriverWithName(const std::string &name) const;
 
-        const std::vector<std::shared_ptr<Drivers::SimDriver>> &getDrivers() const;
+        const std::vector<std::shared_ptr<Drivers::SimDriver>> &
+        getDrivers() const;
 
         Json::Value toJson() const;
         void loadJson(const Json::Value &json);
@@ -138,7 +146,8 @@ namespace Bess::SimEngine {
         std::vector<UUID> getConnGraph(UUID start);
 
         void clearEventsForEntity(const UUID &id);
-        bool simulateComponent(const UUID &compId, const std::vector<SlotState> &inputs);
+        bool simulateComponent(const UUID &compId,
+                               const std::vector<SlotState> &inputs);
         void scheduleDependantsOf(const UUID &compId);
         void run();
 
@@ -164,7 +173,8 @@ namespace Bess::SimEngine {
         std::vector<std::shared_ptr<Drivers::SimDriver>> m_simDrivers;
         std::vector<std::thread> m_driverThreads;
 
-        typedef std::unordered_map<UUID, std::shared_ptr<Drivers::SimDriver>> CompDriverMap;
+        typedef std::unordered_map<UUID, std::shared_ptr<Drivers::SimDriver>>
+            CompDriverMap;
 
         bool m_destroyed{false};
 

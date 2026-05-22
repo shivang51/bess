@@ -46,7 +46,8 @@ namespace Bess::UI {
     }
 
     void ProjectSettingsWindow::onShow() {
-        m_projectFile = Pages::MainPage::getInstance()->getState().getCurrentProjectFile();
+        m_projectFile =
+            Pages::MainPage::getInstance()->getState().getCurrentProjectFile();
         m_projectName = m_projectFile->getName();
     }
 } // namespace Bess::UI

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "common/bess_api.h"
 #include "bverilog/types.h"
 #include "bverilog/yosys_runner.h"
+#include "common/bess_api.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "simulation_engine.h"
@@ -20,8 +20,10 @@ namespace Bess::Verilog {
         SerFunc toJsonCb = nullptr;
 
         Json::Value toJson() const {
-            BESS_ASSERT(toJsonCb,
-                        "toJson callback is not set for VerCompDefAuxData with id: {}", id);
+            BESS_ASSERT(
+                toJsonCb,
+                "toJson callback is not set for VerCompDefAuxData with id: {}",
+                id);
             Json::Value j;
             j["id"] = id;
             j["type"] = type;
@@ -63,8 +65,7 @@ namespace Bess::Verilog {
     };
 
     BESS_API SimEngineImportResult importDesignIntoSimulationEngine(
-        const Design &design,
-        Bess::SimEngine::SimulationEngine &engine,
+        const Design &design, Bess::SimEngine::SimulationEngine &engine,
         const std::optional<std::string> &topModuleName = std::nullopt);
 
     BESS_API SimEngineImportResult importVerilogFileIntoSimulationEngine(
@@ -77,5 +78,6 @@ namespace Bess::Verilog {
         Bess::SimEngine::SimulationEngine &engine,
         const YosysRunnerConfig &config = {});
 
-    BESS_API std::shared_ptr<SimEngine::Drivers::CompDef> getFromAuxDataJson(Json::Value auxDataJson);
+    BESS_API std::shared_ptr<SimEngine::Drivers::CompDef>
+    getFromAuxDataJson(Json::Value auxDataJson);
 } // namespace Bess::Verilog

@@ -1,11 +1,11 @@
 #include "pages/main_page/services/hierarchical_scene_layout.h"
 
 #include "dig_sim_driver.h"
-#include "sim_driver/sim_driver.h"
 #include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "scene/scene.h"
+#include "sim_driver/sim_driver.h"
 #include "simulation_engine.h"
 #include <algorithm>
 #include <cmath>
@@ -21,8 +21,7 @@ namespace Bess::Pages {
         using namespace Bess::Canvas;
         using namespace Bess::SimEngine;
 
-        template <typename T>
-        struct PairHash {
+        template <typename T> struct PairHash {
             size_t operator()(const std::pair<T, T> &value) const noexcept {
                 const auto lhs = std::hash<T>{}(value.first);
                 const auto rhs = std::hash<T>{}(value.second);
@@ -64,8 +63,9 @@ namespace Bess::Pages {
             return value > 0.f ? value : fallback;
         }
 
-        glm::vec2 estimateComponentSize(const std::shared_ptr<SimulationSceneComponent> &component,
-                                        const SceneState &sceneState) {
+        glm::vec2 estimateComponentSize(
+            const std::shared_ptr<SimulationSceneComponent> &component,
+            const SceneState &sceneState) {
             const auto &transform = component->getTransform();
             if (transform.scale.x > 0.f && transform.scale.y > 0.f) {
                 return transform.scale;
@@ -73,7 +73,8 @@ namespace Bess::Pages {
 
             size_t inputCount = 0;
             for (const auto &slotId : component->getInputSlots()) {
-                const auto slot = sceneState.getComponentByUuid<SlotSceneComponent>(slotId);
+                const auto slot =
+                    sceneState.getComponentByUuid<SlotSceneComponent>(slotId);
                 if (slot && !slot->isResizeSlot()) {
                     ++inputCount;
                 }
@@ -81,17 +82,20 @@ namespace Bess::Pages {
 
             size_t outputCount = 0;
             for (const auto &slotId : component->getOutputSlots()) {
-                const auto slot = sceneState.getComponentByUuid<SlotSceneComponent>(slotId);
+                const auto slot =
+                    sceneState.getComponentByUuid<SlotSceneComponent>(slotId);
                 if (slot && !slot->isResizeSlot()) {
                     ++outputCount;
                 }
             }
 
             const auto longestSide = std::max(inputCount, outputCount);
-            const auto estimatedWidth =
-                std::max(120.f, 28.f + static_cast<float>(component->getName().size()) * 9.f);
+            const auto estimatedWidth = std::max(
+                120.f,
+                28.f + static_cast<float>(component->getName().size()) * 9.f);
             const auto estimatedHeight =
-                52.f + static_cast<float>(std::max<size_t>(1, longestSide)) * 32.f;
+                52.f +
+                static_cast<float>(std::max<size_t>(1, longestSide)) * 32.f;
             return {estimatedWidth, estimatedHeight};
         }
 
@@ -122,8 +126,10 @@ namespace Bess::Pages {
                 }
 
                 const auto simComponent =
-                    std::dynamic_pointer_cast<SimulationSceneComponent>(component);
-                if (!simComponent || simComponent->getSimEngineId() == UUID::null) {
+                    std::dynamic_pointer_cast<SimulationSceneComponent>(
+                        component);
+                if (!simComponent ||
+                    simComponent->getSimEngineId() == UUID::null) {
                     continue;
                 }
 
@@ -132,13 +138,15 @@ namespace Bess::Pages {
                 node.simId = simComponent->getSimEngineId();
                 node.name = simComponent->getName();
                 node.currentY = simComponent->getTransform().position.y;
-                const auto estimatedSize = estimateComponentSize(simComponent, sceneState);
+                const auto estimatedSize =
+                    estimateComponentSize(simComponent, sceneState);
                 node.width = normalizeExtent(estimatedSize.x, 120.f);
                 node.height = normalizeExtent(estimatedSize.y, 96.f);
 
                 const auto componentDef = simComponent->getCompDef();
                 if (componentDef) {
-                    auto def = std::dynamic_pointer_cast<SimEngine::Drivers::Digital::DigCompDef>(componentDef);
+                    auto def = std::dynamic_pointer_cast<
+                        SimEngine::Drivers::Digital::DigCompDef>(componentDef);
                     node.boundaryInput =
                         def->getBehaviorType() == ComponentBehaviorType::input;
                     node.boundaryOutput =
@@ -148,23 +156,24 @@ namespace Bess::Pages {
                 nodes.push_back(std::move(node));
             }
 
-            std::ranges::sort(nodes, [](const LayoutNode &lhs, const LayoutNode &rhs) {
-                if (lhs.currentY != rhs.currentY) {
-                    return lhs.currentY < rhs.currentY;
-                }
+            std::ranges::sort(
+                nodes, [](const LayoutNode &lhs, const LayoutNode &rhs) {
+                    if (lhs.currentY != rhs.currentY) {
+                        return lhs.currentY < rhs.currentY;
+                    }
 
-                const auto lhsPriority = nodePriority(lhs);
-                const auto rhsPriority = nodePriority(rhs);
-                if (lhsPriority != rhsPriority) {
-                    return lhsPriority < rhsPriority;
-                }
+                    const auto lhsPriority = nodePriority(lhs);
+                    const auto rhsPriority = nodePriority(rhs);
+                    if (lhsPriority != rhsPriority) {
+                        return lhsPriority < rhsPriority;
+                    }
 
-                if (lhs.name != rhs.name) {
-                    return lhs.name < rhs.name;
-                }
+                    if (lhs.name != rhs.name) {
+                        return lhs.name < rhs.name;
+                    }
 
-                return uuidKey(lhs.simId) < uuidKey(rhs.simId);
-            });
+                    return uuidKey(lhs.simId) < uuidKey(rhs.simId);
+                });
 
             return nodes;
         }
@@ -178,9 +187,11 @@ namespace Bess::Pages {
                 indexBySimId[nodes[i].simId] = i;
             }
 
-            std::unordered_map<std::pair<size_t, size_t>, int, PairHash<size_t>> edgeWeights;
+            std::unordered_map<std::pair<size_t, size_t>, int, PairHash<size_t>>
+                edgeWeights;
             for (size_t i = 0; i < nodes.size(); ++i) {
-                const auto connections = simEngine.getConnections(nodes[i].simId);
+                const auto connections =
+                    simEngine.getConnections(nodes[i].simId);
                 for (const auto &slotConnections : connections.outputs) {
                     for (const auto &[dstId, dstSlot] : slotConnections) {
                         (void)dstSlot;
@@ -203,8 +214,9 @@ namespace Bess::Pages {
             return edgeWeights.size();
         }
 
-        std::vector<int> computeSccIndices(const std::vector<LayoutNode> &nodes,
-                                           std::vector<std::vector<size_t>> &sccs) {
+        std::vector<int>
+        computeSccIndices(const std::vector<LayoutNode> &nodes,
+                          std::vector<std::vector<size_t>> &sccs) {
             std::vector<int> discovery(nodes.size(), -1);
             std::vector<int> lowLink(nodes.size(), -1);
             std::vector<bool> onStack(nodes.size(), false);
@@ -220,16 +232,17 @@ namespace Bess::Pages {
                 stack.push_back(nodeIndex);
                 onStack[nodeIndex] = true;
 
-                for (const auto &[neighborIndex, weight] : nodes[nodeIndex].outgoing) {
+                for (const auto &[neighborIndex, weight] :
+                     nodes[nodeIndex].outgoing) {
                     (void)weight;
 
                     if (discovery[neighborIndex] == -1) {
                         strongConnect(neighborIndex);
-                        lowLink[nodeIndex] =
-                            std::min(lowLink[nodeIndex], lowLink[neighborIndex]);
+                        lowLink[nodeIndex] = std::min(lowLink[nodeIndex],
+                                                      lowLink[neighborIndex]);
                     } else if (onStack[neighborIndex]) {
-                        lowLink[nodeIndex] =
-                            std::min(lowLink[nodeIndex], discovery[neighborIndex]);
+                        lowLink[nodeIndex] = std::min(lowLink[nodeIndex],
+                                                      discovery[neighborIndex]);
                     }
                 }
 
@@ -260,9 +273,10 @@ namespace Bess::Pages {
             return sccIndex;
         }
 
-        std::vector<MetaNode> buildMetaGraph(const std::vector<LayoutNode> &nodes,
-                                             const std::vector<int> &sccIndex,
-                                             const std::vector<std::vector<size_t>> &sccs) {
+        std::vector<MetaNode>
+        buildMetaGraph(const std::vector<LayoutNode> &nodes,
+                       const std::vector<int> &sccIndex,
+                       const std::vector<std::vector<size_t>> &sccs) {
             std::vector<MetaNode> metaNodes(sccs.size());
 
             for (size_t i = 0; i < sccs.size(); ++i) {
@@ -273,10 +287,13 @@ namespace Bess::Pages {
                 bool hasStableId = false;
                 for (const auto memberIndex : sccs[i]) {
                     const auto &node = nodes[memberIndex];
-                    metaNode.hasBoundaryInput = metaNode.hasBoundaryInput || node.boundaryInput;
-                    metaNode.hasBoundaryOutput = metaNode.hasBoundaryOutput || node.boundaryOutput;
+                    metaNode.hasBoundaryInput =
+                        metaNode.hasBoundaryInput || node.boundaryInput;
+                    metaNode.hasBoundaryOutput =
+                        metaNode.hasBoundaryOutput || node.boundaryOutput;
 
-                    if (metaNode.stableName.empty() || node.name < metaNode.stableName) {
+                    if (metaNode.stableName.empty() ||
+                        node.name < metaNode.stableName) {
                         metaNode.stableName = node.name;
                     }
 
@@ -292,7 +309,8 @@ namespace Bess::Pages {
 
             for (size_t nodeIndex = 0; nodeIndex < nodes.size(); ++nodeIndex) {
                 const auto srcMeta = sccIndex[nodeIndex];
-                for (const auto &[neighborIndex, weight] : nodes[nodeIndex].outgoing) {
+                for (const auto &[neighborIndex, weight] :
+                     nodes[nodeIndex].outgoing) {
                     const auto dstMeta = sccIndex[neighborIndex];
                     if (srcMeta == dstMeta) {
                         continue;
@@ -306,7 +324,8 @@ namespace Bess::Pages {
             return metaNodes;
         }
 
-        std::vector<int> buildTopologicalOrder(const std::vector<MetaNode> &metaNodes) {
+        std::vector<int>
+        buildTopologicalOrder(const std::vector<MetaNode> &metaNodes) {
             std::vector<int> indegree(metaNodes.size(), 0);
             for (size_t i = 0; i < metaNodes.size(); ++i) {
                 indegree[i] = static_cast<int>(metaNodes[i].incoming.size());
@@ -314,8 +333,10 @@ namespace Bess::Pages {
 
             const auto sortMeta = [&](std::vector<int> &metaIds) {
                 std::ranges::sort(metaIds, [&](int lhs, int rhs) {
-                    if (metaNodes[lhs].stableName != metaNodes[rhs].stableName) {
-                        return metaNodes[lhs].stableName < metaNodes[rhs].stableName;
+                    if (metaNodes[lhs].stableName !=
+                        metaNodes[rhs].stableName) {
+                        return metaNodes[lhs].stableName <
+                               metaNodes[rhs].stableName;
                     }
                     return metaNodes[lhs].stableId < metaNodes[rhs].stableId;
                 });
@@ -355,7 +376,8 @@ namespace Bess::Pages {
             }
 
             for (size_t i = 0; i < metaNodes.size(); ++i) {
-                if (std::ranges::find(order, static_cast<int>(i)) == order.end()) {
+                if (std::ranges::find(order, static_cast<int>(i)) ==
+                    order.end()) {
                     order.push_back(static_cast<int>(i));
                 }
             }
@@ -373,10 +395,11 @@ namespace Bess::Pages {
             std::vector<int> longestPath(metaNodes.size(), 0);
 
             for (const auto metaIndex : topologicalOrder) {
-                for (const auto &[nextMeta, weight] : metaNodes[metaIndex].outgoing) {
+                for (const auto &[nextMeta, weight] :
+                     metaNodes[metaIndex].outgoing) {
                     (void)weight;
-                    longestPath[nextMeta] =
-                        std::max(longestPath[nextMeta], longestPath[metaIndex] + 1);
+                    longestPath[nextMeta] = std::max(
+                        longestPath[nextMeta], longestPath[metaIndex] + 1);
                 }
             }
 
@@ -387,7 +410,8 @@ namespace Bess::Pages {
 
             for (size_t i = 0; i < metaNodes.size(); ++i) {
                 auto &metaNode = metaNodes[i];
-                const bool isIsolated = metaNode.incoming.empty() && metaNode.outgoing.empty();
+                const bool isIsolated =
+                    metaNode.incoming.empty() && metaNode.outgoing.empty();
 
                 int rank = longestPath[i];
                 if (metaNode.hasBoundaryInput || metaNode.incoming.empty()) {
@@ -408,25 +432,29 @@ namespace Bess::Pages {
                 uniqueRanks.push_back(metaNode.rank);
             }
             std::ranges::sort(uniqueRanks);
-            uniqueRanks.erase(std::unique(uniqueRanks.begin(), uniqueRanks.end()),
-                              uniqueRanks.end());
+            uniqueRanks.erase(
+                std::unique(uniqueRanks.begin(), uniqueRanks.end()),
+                uniqueRanks.end());
 
             for (auto &metaNode : metaNodes) {
                 metaNode.rank = static_cast<int>(
-                    std::ranges::find(uniqueRanks, metaNode.rank) - uniqueRanks.begin());
+                    std::ranges::find(uniqueRanks, metaNode.rank) -
+                    uniqueRanks.begin());
                 for (const auto member : metaNode.members) {
                     nodes[member].rank = metaNode.rank;
                 }
             }
         }
 
-        std::vector<std::vector<size_t>> buildLayers(const std::vector<LayoutNode> &nodes) {
+        std::vector<std::vector<size_t>>
+        buildLayers(const std::vector<LayoutNode> &nodes) {
             int maxRank = 0;
             for (const auto &node : nodes) {
                 maxRank = std::max(maxRank, node.rank);
             }
 
-            std::vector<std::vector<size_t>> layers(static_cast<size_t>(maxRank + 1));
+            std::vector<std::vector<size_t>> layers(
+                static_cast<size_t>(maxRank + 1));
             for (size_t i = 0; i < nodes.size(); ++i) {
                 layers[nodes[i].rank].push_back(i);
             }
@@ -492,8 +520,8 @@ namespace Bess::Pages {
 
                 const auto rankDistance =
                     std::max(1, std::abs(neighbor.rank - node.rank));
-                const auto weight =
-                    static_cast<float>(edgeWeight) / static_cast<float>(rankDistance);
+                const auto weight = static_cast<float>(edgeWeight) /
+                                    static_cast<float>(rankDistance);
                 weightedSum += neighbor.provisionalY * weight;
                 totalWeight += weight;
             }
@@ -521,44 +549,48 @@ namespace Bess::Pages {
 
             for (size_t i = 0; i < layer.size(); ++i) {
                 previousOrder[layer[i]] = i;
-                idealYByNode[layer[i]] = computeIdealY(nodes[layer[i]], nodes, useIncoming);
+                idealYByNode[layer[i]] =
+                    computeIdealY(nodes[layer[i]], nodes, useIncoming);
             }
 
-            std::stable_sort(layer.begin(), layer.end(), [&](size_t lhs, size_t rhs) {
-                const auto &lhsIdeal = idealYByNode.at(lhs);
-                const auto &rhsIdeal = idealYByNode.at(rhs);
+            std::stable_sort(
+                layer.begin(), layer.end(), [&](size_t lhs, size_t rhs) {
+                    const auto &lhsIdeal = idealYByNode.at(lhs);
+                    const auto &rhsIdeal = idealYByNode.at(rhs);
 
-                if (lhsIdeal.has_value() && rhsIdeal.has_value()) {
-                    if (std::abs(*lhsIdeal - *rhsIdeal) > 0.5f) {
-                        return *lhsIdeal < *rhsIdeal;
+                    if (lhsIdeal.has_value() && rhsIdeal.has_value()) {
+                        if (std::abs(*lhsIdeal - *rhsIdeal) > 0.5f) {
+                            return *lhsIdeal < *rhsIdeal;
+                        }
+                    } else if (lhsIdeal.has_value() != rhsIdeal.has_value()) {
+                        return lhsIdeal.has_value();
                     }
-                } else if (lhsIdeal.has_value() != rhsIdeal.has_value()) {
-                    return lhsIdeal.has_value();
-                }
 
-                if (previousOrder.at(lhs) != previousOrder.at(rhs)) {
-                    return previousOrder.at(lhs) < previousOrder.at(rhs);
-                }
+                    if (previousOrder.at(lhs) != previousOrder.at(rhs)) {
+                        return previousOrder.at(lhs) < previousOrder.at(rhs);
+                    }
 
-                const auto lhsPriority = nodePriority(nodes[lhs]);
-                const auto rhsPriority = nodePriority(nodes[rhs]);
-                if (lhsPriority != rhsPriority) {
-                    return lhsPriority < rhsPriority;
-                }
+                    const auto lhsPriority = nodePriority(nodes[lhs]);
+                    const auto rhsPriority = nodePriority(nodes[rhs]);
+                    if (lhsPriority != rhsPriority) {
+                        return lhsPriority < rhsPriority;
+                    }
 
-                if (nodes[lhs].name != nodes[rhs].name) {
-                    return nodes[lhs].name < nodes[rhs].name;
-                }
+                    if (nodes[lhs].name != nodes[rhs].name) {
+                        return nodes[lhs].name < nodes[rhs].name;
+                    }
 
-                return uuidKey(nodes[lhs].simId) < uuidKey(nodes[rhs].simId);
-            });
+                    return uuidKey(nodes[lhs].simId) <
+                           uuidKey(nodes[rhs].simId);
+                });
 
             assignLayerYPositions(layer, nodes, options.rowSpacing);
         }
 
-        std::vector<float> computeLayerCenters(const std::vector<std::vector<size_t>> &layers,
-                                               const std::vector<LayoutNode> &nodes,
-                                               float layerSpacing) {
+        std::vector<float>
+        computeLayerCenters(const std::vector<std::vector<size_t>> &layers,
+                            const std::vector<LayoutNode> &nodes,
+                            float layerSpacing) {
             std::vector<float> layerWidths(layers.size(), 120.f);
             for (size_t i = 0; i < layers.size(); ++i) {
                 float width = 120.f;
@@ -575,10 +607,8 @@ namespace Bess::Pages {
 
             centers[0] = layerWidths[0] / 2.f;
             for (size_t i = 1; i < layers.size(); ++i) {
-                centers[i] = centers[i - 1] +
-                             (layerWidths[i - 1] / 2.f) +
-                             layerSpacing +
-                             (layerWidths[i] / 2.f);
+                centers[i] = centers[i - 1] + (layerWidths[i - 1] / 2.f) +
+                             layerSpacing + (layerWidths[i] / 2.f);
             }
 
             const auto minX = centers.front() - (layerWidths.front() / 2.f);
@@ -594,8 +624,7 @@ namespace Bess::Pages {
     } // namespace
 
     HierarchicalSceneLayoutResult applyHierarchicalSceneLayout(
-        Canvas::Scene &scene,
-        SimEngine::SimulationEngine &simEngine,
+        Canvas::Scene &scene, SimEngine::SimulationEngine &simEngine,
         const HierarchicalSceneLayoutOptions &options) {
         HierarchicalSceneLayoutResult result;
 

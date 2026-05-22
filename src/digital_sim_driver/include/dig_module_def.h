@@ -15,7 +15,8 @@ namespace Bess::SimEngine {
 
         std::shared_ptr<Drivers::CompDef> clone() const override;
 
-        typedef std::shared_ptr<Drivers::Digital::DigCompSimData> TDigSimFnDataPtr;
+        typedef std::shared_ptr<Drivers::Digital::DigCompSimData>
+            TDigSimFnDataPtr;
         TDigSimFnDataPtr simFunction(const TDigSimFnDataPtr &data);
 
         MAKE_GETTER_SETTER(UUID, InputId, m_input)

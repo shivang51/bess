@@ -36,7 +36,8 @@ namespace Bess::Vulkan::Pipelines {
         Pipeline &operator=(Pipeline &&other) noexcept;
 
         // Pure virtual functions that each pipeline must implement
-        virtual void beginPipeline(VkCommandBuffer commandBuffer, bool isTranslucent) = 0;
+        virtual void beginPipeline(VkCommandBuffer commandBuffer,
+                                   bool isTranslucent) = 0;
         virtual void endPipeline() = 0;
         virtual void cleanup();
         virtual void createGraphicsPipeline(bool isTranslucent) = 0;
@@ -47,9 +48,13 @@ namespace Bess::Vulkan::Pipelines {
 
         // Common functions
         void updateUniformBuffer(const UniformBufferObject &ubo);
-        void setCurrentFrameIndex(uint32_t frameIndex) { m_currentFrameIndex = frameIndex; }
+        void setCurrentFrameIndex(uint32_t frameIndex) {
+            m_currentFrameIndex = frameIndex;
+        }
         VkPipeline getPipeline() const { return m_opaquePipeline; }
-        VkPipelineLayout getPipelineLayout() const { return m_opaquePipelineLayout; }
+        VkPipelineLayout getPipelineLayout() const {
+            return m_opaquePipelineLayout;
+        }
 
       protected:
         std::shared_ptr<VulkanDevice> m_device;
@@ -90,11 +95,16 @@ namespace Bess::Vulkan::Pipelines {
         VkPipelineViewportStateCreateInfo createViewportState();
         VkPipelineRasterizationStateCreateInfo createRasterizationState() const;
         VkPipelineMultisampleStateCreateInfo createMultisampleState() const;
-        VkPipelineDepthStencilStateCreateInfo createDepthStencilState(bool isTranslucent) const;
-        VkPipelineColorBlendStateCreateInfo createColorBlendState(const std::vector<VkPipelineColorBlendAttachmentState> &colorBlendAttachments) const;
+        VkPipelineDepthStencilStateCreateInfo
+        createDepthStencilState(bool isTranslucent) const;
+        VkPipelineColorBlendStateCreateInfo createColorBlendState(
+            const std::vector<VkPipelineColorBlendAttachmentState>
+                &colorBlendAttachments) const;
         VkPipelineDynamicStateCreateInfo createDynamicState() const;
 
-        void ensureInstanceCapacity(BufferSet &buffers, size_t requiredInstances, VkDeviceSize instanceSize);
+        void ensureInstanceCapacity(BufferSet &buffers,
+                                    size_t requiredInstances,
+                                    VkDeviceSize instanceSize);
     };
 
 } // namespace Bess::Vulkan::Pipelines

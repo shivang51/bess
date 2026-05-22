@@ -13,12 +13,9 @@ namespace Bess::Canvas {
         virtual void onMouseDragEnd() = 0;
     };
 
-    template <typename Derived>
-    class DragBehaviour : public IDragBehaviour {
+    template <typename Derived> class DragBehaviour : public IDragBehaviour {
       public:
-        DragBehaviour() {
-            initDragBehaviour();
-        }
+        DragBehaviour() { initDragBehaviour(); }
 
         void onMouseDragged(const Events::MouseDraggedEvent &e) override {
             if (!m_isDragging) {
@@ -33,11 +30,12 @@ namespace Bess::Canvas {
         void onMouseDragEnd() override {
             m_isDragging = false;
             auto &self = static_cast<Derived &>(*this);
-            EventSystem::EventDispatcher::instance().queue(Events::EntityMovedEvent{
-                .entityUuid = static_cast<const Derived &>(*this).getUuid(),
-                .oldPos = m_dragStartPos,
-                .newPos = self.getTransform().position,
-            });
+            EventSystem::EventDispatcher::instance().queue(
+                Events::EntityMovedEvent{
+                    .entityUuid = static_cast<const Derived &>(*this).getUuid(),
+                    .oldPos = m_dragStartPos,
+                    .newPos = self.getTransform().position,
+                });
         }
 
       protected:
@@ -48,7 +46,8 @@ namespace Bess::Canvas {
 
         virtual void onMouseDragBegin(const Events::MouseDraggedEvent &e) {
             const auto &self = static_cast<const Derived &>(*this);
-            m_dragOffset = glm::vec2(self.getAbsolutePosition(*e.sceneState)) - e.mousePos;
+            m_dragOffset =
+                glm::vec2(self.getAbsolutePosition(*e.sceneState)) - e.mousePos;
             m_dragStartPos = self.getTransform().position;
             m_isDragging = true;
         }
