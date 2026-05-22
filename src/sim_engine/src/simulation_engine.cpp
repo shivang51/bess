@@ -4,6 +4,7 @@
 #include "component_catalog.h"
 // #include "dig_sim_driver.h"
 #include "common/types.h"
+#include "driver_registry.h"
 #include "event_dispatcher.h"
 #include "events/sim_engine_events.h"
 #include "init_components.h"
@@ -921,9 +922,16 @@ namespace Bess::SimEngine {
     }
 
     void SimulationEngine::loadDrivers() {
-        // auto digDriver = std::make_shared<Drivers::Digital::DigitalSimDriver>();
-        // BESS_INFO("Loaded driver {}", digDriver->getName());
-        // m_simDrivers.emplace_back(std::move(digDriver));
+        for (const auto &[name, loader] :
+             DriverRegistry::getRegistry()) {
+            auto driver = loader();
+            if (driver) {
+                m_simDrivers.push_back(driver);
+                BESS_INFO("Loaded driver {}", driver->getName());
+            } else {
+                BESS_ERROR("Failed to load driver {}", name);
+            }
+        }
     }
 
     void SimulationEngine::unloadDrivers() {

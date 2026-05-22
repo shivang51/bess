@@ -4,6 +4,7 @@
 #include "common/logger.h"
 #include "common/types.h"
 #include "dig_module_def.h"
+#include "driver_registry.h"
 #include "expression_evalutator/expr_evaluator.h"
 #include "sim_driver/event_based_sim_driver.h"
 #include "sim_driver/sim_driver.h"
@@ -15,6 +16,18 @@
 #include <memory>
 
 namespace Bess::SimEngine::Drivers::Digital {
+
+    static const struct DigSimDriverLoader {
+        DigSimDriverLoader() {
+            DriverRegistry::registerDriver(DigitalSimDriver::NAME, []() {
+                return std::make_shared<DigitalSimDriver>();
+            });
+        }
+
+        ~DigSimDriverLoader() {
+            DriverRegistry::unregisterDriver(DigitalSimDriver::NAME);
+        }
+    } g_driverLoader;
 
     typedef std::shared_ptr<Drivers::Digital::DigCompSimData> TSimFnDataPtr;
 

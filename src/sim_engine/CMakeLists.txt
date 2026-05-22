@@ -7,6 +7,7 @@ set(Header_Files
     "include/digital_component.h"
     "include/types.h"
     "include/simulation_engine.h"
+		"include/driver_registry.h"
     "include/component_catalog.h"
     "include/component_definition.h"
     "include/init_components.h" 
@@ -16,6 +17,7 @@ set(Header_Files
 source_group("include" FILES ${Header_Files})
 
 set(Source_Files
+		"src/driver_registry.cpp"
 	  "src/expr_evaluator.cpp"
     "src/simulation_engine.cpp"
     "src/digital_component.cpp"
