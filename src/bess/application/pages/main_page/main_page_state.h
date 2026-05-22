@@ -64,7 +64,9 @@ namespace Bess::Pages {
         typedef std::unordered_map<UUID, std::vector<UUID>> TNetIdToCompMap;
         TNetIdToCompMap &getNetIdToCompMap(UUID sceneId);
 
-        void resetProjectState() const;
+        void resetProjectState(bool updateWindowName = true);
+        // creates default scenes in scene driver as well
+        // and clears simulation engine and sets up new project file
         void createNewProject(bool updateWindowName = true);
         void saveCurrentProject() const;
         void loadProject(const std::string &path);

@@ -237,6 +237,13 @@ namespace Bess {
         m_modIdToSceneMap.clear();
     }
 
+    void SceneDriver::reset(bool updateCmdSys) {
+        removeScenes();
+        auto scene = createNewScene();
+        setRootSceneId(scene->getSceneId());
+        setActiveScene(scene->getSceneId(), updateCmdSys);
+    }
+
     std::shared_ptr<Canvas::Scene>
     SceneDriver::getSceneForModule(const UUID &modId) const {
         if (!m_modIdToSceneMap.contains(modId)) {

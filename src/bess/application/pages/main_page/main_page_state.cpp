@@ -182,13 +182,13 @@ namespace Bess::Pages {
     MainPageState::MainPageState() = default;
     MainPageState::~MainPageState() = default;
 
-    void MainPageState::resetProjectState() const {
-        m_sceneDriver.getActiveScene()->clear();
+    void MainPageState::resetProjectState(bool updateWindowName) {
+        m_sceneDriver.reset(updateWindowName);
         SimEngine::SimulationEngine::instance().clear();
     }
 
     void MainPageState::createNewProject(bool updateWindowName) {
-        resetProjectState();
+        resetProjectState(updateWindowName);
         m_currentProjectFile = std::make_shared<ProjectFile>();
         if (!updateWindowName)
             return;

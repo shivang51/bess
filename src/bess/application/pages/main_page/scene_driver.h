@@ -30,6 +30,8 @@ namespace Bess {
 
         void removeScenes();
 
+        void reset(bool updateCmdSys = true);
+
         size_t getActiveSceneIdx() const;
 
         size_t getSceneCount() const;

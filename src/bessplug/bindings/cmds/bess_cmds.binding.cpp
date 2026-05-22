@@ -292,6 +292,16 @@ void bind_cmds(py::module &m) {
         }
     };
 
+    m.def(
+        "clear",
+        []() {
+            Bess::Pages::MainPage::getInstance()
+                ->getState()
+                .resetProjectState();
+            return CmdResult{py::cast(true), ""};
+        },
+        "Clears the current circuit, removing all components and connections.");
+
     m.def("exec", execCmdFn, "Executes a single bessplug command.",
           py::arg("cmd"));
 

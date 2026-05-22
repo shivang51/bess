@@ -79,18 +79,15 @@ namespace Bess::Pages {
             UI::UIMain::init();
         }
 
-        auto scene = m_state.getSceneDriver().createNewScene();
-        m_state.getSceneDriver().setRootSceneId(scene->getSceneId());
+        // creates default scenes in scene driver as well
+        m_state.createNewProject(false);
 
-        m_state.getSceneDriver().setActiveScene(
-            0, false); // false to avoid infinite loop of main page init
+        const auto &driver = m_state.getSceneDriver();
 
         m_state.initCmdSystem();
-        m_state.getCommandSystem().setScene(scene.get());
+        m_state.getCommandSystem().setScene(driver.getActiveScene().get());
         m_state.getCommandSystem().setSimEngine(
             &SimEngine::SimulationEngine::instance());
-
-        m_state.createNewProject(false);
 
         Svc::SvcConnection::instance().init();
         Svc::CopyPaste::Context::instance().init();
