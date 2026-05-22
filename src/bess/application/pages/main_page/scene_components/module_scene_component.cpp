@@ -144,7 +144,7 @@ namespace Bess::Canvas {
 
         auto onOutputSlotChange = [this, ownerSceneId](const UUID &id, SimEngine::SlotType type, int newCount) {
             auto &simEngine = SimEngine::SimulationEngine::instance();
-            auto moduleDigComp = simEngine.getDigitalComponent(this->m_simEngineId);
+            auto moduleDigComp = simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(this->m_simEngineId);
             if (!moduleDigComp) {
                 return;
             }
@@ -195,7 +195,7 @@ namespace Bess::Canvas {
 
         auto onInputSlotChange = [this, ownerSceneId](const UUID &id, SimEngine::SlotType type, int newCount) {
             auto &simEngine = SimEngine::SimulationEngine::instance();
-            auto moduleDigComp = simEngine.getDigitalComponent(this->m_simEngineId);
+            auto moduleDigComp = simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(this->m_simEngineId);
             if (!moduleDigComp) {
                 return;
             }

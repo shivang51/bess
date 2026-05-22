@@ -254,7 +254,7 @@ TEST_F(ResizeSlotConnectionTest, AddSlotIncreasesSimEngineInputCountAndDefMetada
     const auto simId = gate.comp->getSimEngineId();
     ASSERT_NE(simId, Bess::UUID::null);
 
-    const auto digComp = simEngine.getDigitalComponent(simId);
+    const auto digComp = simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(simId);
     ASSERT_NE(digComp, nullptr);
 
     const auto digDef = digComp->getDefinition<Drivers::Digital::DigCompDef>();
@@ -277,7 +277,7 @@ TEST_F(ResizeSlotConnectionTest, RemoveSlotDecreasesSimEngineInputCountAndDefMet
     const auto gate = addSimComponent(andDef);
     auto &simEngine = SimulationEngine::instance();
 
-    const auto digComp = simEngine.getDigitalComponent(gate.comp->getSimEngineId());
+    const auto digComp = simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(gate.comp->getSimEngineId());
     ASSERT_NE(digComp, nullptr);
     const auto digDef = digComp->getDefinition<Drivers::Digital::DigCompDef>();
     ASSERT_NE(digDef, nullptr);
@@ -316,7 +316,7 @@ TEST_F(ResizeSlotConnectionTest, ConnectToNewlyAddedSlotSucceeds) {
     const auto source = addSimComponent(inputDef);
     auto &simEngine = SimulationEngine::instance();
 
-    const auto digComp = simEngine.getDigitalComponent(gate.comp->getSimEngineId());
+    const auto digComp = simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(gate.comp->getSimEngineId());
     ASSERT_NE(digComp, nullptr);
 
     // Add a third input slot
@@ -342,7 +342,7 @@ TEST_F(ResizeSlotConnectionTest, MultipleAddSlotsThenConnectEachSlot) {
         EXPECT_TRUE(simEngine.addSlot(gate.comp->getSimEngineId(), Bess::SimEngine::SlotType::digitalInput, i));
     }
 
-    const auto digComp = simEngine.getDigitalComponent(gate.comp->getSimEngineId());
+    const auto digComp = simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(gate.comp->getSimEngineId());
     ASSERT_EQ(digComp->getInputConnections().size(), 5u);
     ASSERT_EQ(digComp->getInputStates().size(), 5u);
 
@@ -373,7 +373,7 @@ TEST_F(ResizeSlotConnectionTest, RemoveSlotWithExistingConnectionClearsIt) {
         source.comp->getSimEngineId(), 0, Bess::SimEngine::SlotType::digitalOutput,
         gate.comp->getSimEngineId(), 2, Bess::SimEngine::SlotType::digitalInput));
 
-    const auto digComp = simEngine.getDigitalComponent(gate.comp->getSimEngineId());
+    const auto digComp = simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(gate.comp->getSimEngineId());
     ASSERT_EQ(digComp->getInputConnections().size(), 3u);
 
     // Remove last slot (index 2)
@@ -429,7 +429,7 @@ TEST_F(ResizeSlotConnectionTest, DeleteConnectionViaDriverUpdatesIsConnectedFlag
         source.comp->getSimEngineId(), 0, Bess::SimEngine::SlotType::digitalOutput,
         gate.comp->getSimEngineId(), 0, Bess::SimEngine::SlotType::digitalInput);
 
-    const auto digComp = simEngine.getDigitalComponent(gate.comp->getSimEngineId());
+    const auto digComp = simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(gate.comp->getSimEngineId());
     EXPECT_TRUE(digComp->getIsInputConnected()[0]);
 
     simEngine.deleteConnection(
@@ -443,7 +443,7 @@ TEST_F(ResizeSlotConnectionTest, DefinitionSlotCountStaysInSyncAfterMultipleResi
     const auto gate = addSimComponent(andDef);
     auto &simEngine = SimulationEngine::instance();
 
-    const auto digComp = simEngine.getDigitalComponent(gate.comp->getSimEngineId());
+    const auto digComp = simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(gate.comp->getSimEngineId());
     const auto digDef = digComp->getDefinition<Drivers::Digital::DigCompDef>();
 
     // Add 3 more slots (2 → 5)

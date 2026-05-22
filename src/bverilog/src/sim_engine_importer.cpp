@@ -1824,7 +1824,7 @@ namespace Bess::Verilog {
 
                 auto inputDefinition = ensureBuiltinIoDefinition("Input");
                 const auto id = m_engine.addComponent(inputDefinition);
-                auto component = m_engine.getDigitalComponent(id);
+                auto component = m_engine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(id);
                 resizeOutputs(component, 1);
                 m_engine.setOutputSlotState(id, 0, constantToLogicState(constant));
                 m_createdComponentIds.push_back(id);
@@ -1842,7 +1842,7 @@ namespace Bess::Verilog {
                 const auto id = m_engine.addComponent(definition);
                 m_createdComponentIds.push_back(id);
                 m_result.componentInstancePathById[id] = m_result.topModuleName;
-                auto component = m_engine.getDigitalComponent(id);
+                auto component = m_engine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(id);
 
                 auto def = component->getDefinition<Drivers::Digital::DigCompDef>();
                 if (isInputComponent) {
@@ -2383,7 +2383,7 @@ namespace Bess::Verilog {
                     const auto componentId = m_engine.addComponent(primitiveDefinition);
                     m_createdComponentIds.push_back(componentId);
                     m_result.componentInstancePathById[componentId] = path;
-                    auto component = m_engine.getDigitalComponent(componentId);
+                    auto component = m_engine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(componentId);
 
                     resizeInputs(component, aBits.size());
                     for (size_t i = 0; i < aBits.size(); ++i) {

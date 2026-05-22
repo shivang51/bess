@@ -463,9 +463,9 @@ namespace Bess::Pages {
             const auto inputCount = std::max<size_t>(1, instance.inputSlotNames.size());
             const auto outputCount = std::max<size_t>(1, instance.outputSlotNames.size());
 
-            const auto inputComponent = simEngine.getDigitalComponent(moduleDef->getInputId());
-            const auto outputComponent = simEngine.getDigitalComponent(moduleDef->getOutputId());
-            const auto moduleSimComponent = simEngine.getDigitalComponent(moduleComp->getSimEngineId());
+            const auto inputComponent = simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(moduleDef->getInputId());
+            const auto outputComponent = simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(moduleDef->getOutputId());
+            const auto moduleSimComponent = simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(moduleComp->getSimEngineId());
             BESS_ASSERT(inputComponent, "Imported module input bridge component was not found");
             BESS_ASSERT(outputComponent, "Imported module output bridge component was not found");
             BESS_ASSERT(moduleSimComponent, "Imported module wrapper sim component was not found");

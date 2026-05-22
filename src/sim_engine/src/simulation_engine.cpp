@@ -219,7 +219,7 @@ namespace Bess::SimEngine {
         // for (const auto &graphPair : connGraphs) {
         //     Net newNet{};
         //     for (const auto &entInGraph : graphPair.second) {
-        //         const auto &compInGraph = m_simEngineState.getDigitalComponent(entInGraph);
+        //         const auto &compInGraph = m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(entInGraph);
         //
         //         if (m_nets.contains(compInGraph->netUuid)) {
         //             auto &prevNet = m_nets[compInGraph->netUuid];
@@ -296,7 +296,7 @@ namespace Bess::SimEngine {
     }
 
     void SimulationEngine::invertInputSlotState(const UUID &uuid, int pinIdx) {
-        // const auto comp = m_simEngineState.getDigitalComponent(uuid);
+        // const auto comp = m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(uuid);
         // if (!comp) {
         //     BESS_WARN("[invertInputSlotState] Component with UUID {} is invalid", (uint64_t)uuid);
         //     return;
@@ -368,7 +368,7 @@ namespace Bess::SimEngine {
 
     bool SimulationEngine::simulateComponent(const UUID &compId, const std::vector<SlotState> &inputs) {
         return false;
-        //         const auto &comp = m_simEngineState.getDigitalComponent(compId);
+        //         const auto &comp = m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(compId);
         //         BESS_ASSERT(comp,
         //                     std::format("Component {} is invalid", (uint64_t)compId));
         //         const auto &def = comp->definition;
@@ -562,7 +562,7 @@ namespace Bess::SimEngine {
         //             std::lock_guard regLock(m_registryMutex);
         //
         //             const bool changed = simulateComponent(compId, inputs);
-        //             const auto &dc = m_simEngineState.getDigitalComponent(compId);
+        //             const auto &dc = m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(compId);
         //
         //             if (changed) {
         //                 scheduleDependantsOf(compId);
@@ -601,7 +601,7 @@ namespace Bess::SimEngine {
         // if (!m_simEngineState.isComponentValid(uuid))
         //     return false;
         //
-        // const auto digiComp = m_simEngineState.getDigitalComponent(uuid);
+        // const auto digiComp = m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(uuid);
         // // digiComp->updateInputCount(n);
         // return true;
     }
@@ -623,7 +623,7 @@ namespace Bess::SimEngine {
         //     visited.insert(current);
         //     graph.push_back(current);
         //
-        //     const auto &comp = m_simEngineState.getDigitalComponent(current);
+        //     const auto &comp = m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(current);
         //
         //     for (const auto &pinConnections : comp->inputConnections) {
         //         for (const auto &conn : pinConnections) {
@@ -769,7 +769,7 @@ namespace Bess::SimEngine {
         //     if (compUuid == UUID::null)
         //         continue;
         //
-        //     const auto &comp = m_simEngineState.getDigitalComponent(compUuid);
+        //     const auto &comp = m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(compUuid);
         //     bool isInput = comp->definition->getBehaviorType() == ComponentBehaviorType::input;
         //     bool isOutput = comp->definition->getBehaviorType() == ComponentBehaviorType::output;
         //
@@ -868,11 +868,6 @@ namespace Bess::SimEngine {
         return m_eventSet.empty();
     }
 
-    std::shared_ptr<Drivers::SimComponent> SimulationEngine::getDigitalComponent(
-        const UUID &uuid) const {
-        return getComponent<Drivers::SimComponent>(uuid);
-    }
-
     const std::vector<std::shared_ptr<Drivers::SimDriver>> &SimulationEngine::getDrivers() const {
         return m_simDrivers;
     }
@@ -898,7 +893,7 @@ namespace Bess::SimEngine {
     }
 
     void SimulationEngine::scheduleDependantsOf(const UUID &compId) {
-        // const auto &dc = m_simEngineState.getDigitalComponent(compId);
+        // const auto &dc = m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(compId);
         // if (!dc) {
         //     return;
         // }
@@ -906,7 +901,7 @@ namespace Bess::SimEngine {
         //     const auto &keyView = pin | std::views::keys;
         //     const std::set<UUID> uniqueEntities = std::set<UUID>(keyView.begin(), keyView.end());
         //     for (auto &ent : uniqueEntities) {
-        //         const auto dependant = m_simEngineState.getDigitalComponent(ent);
+        //         const auto dependant = m_simEngineState.getComponent<SimEngine::Drivers::Digital::DigSimComp>(ent);
         //         if (!dependant || !dependant->definition) {
         //             continue;
         //         }

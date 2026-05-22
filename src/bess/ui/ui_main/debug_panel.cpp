@@ -1,5 +1,6 @@
 #include "debug_panel.h"
 #include "common/bess_uuid.h"
+#include "dig_sim_driver.h"
 #include "icons/CodIcons.h"
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -120,7 +121,7 @@ namespace Bess::UI {
                                 comp->getType() == Canvas::SceneComponentType::simulation) {
                                 const auto &simComp = comp->cast<Canvas::SimulationSceneComponent>();
                                 BESS_ASSERT(simComp->getCompDef(), "[DEBUGPANEL] def not set");
-                                const auto &digComp = SimEngine::SimulationEngine::instance().getDigitalComponent(
+                                const auto &digComp = SimEngine::SimulationEngine::instance().getComponent<SimEngine::Drivers::Digital::DigSimComp>(
                                     simComp->getSimEngineId());
                                 Json::Value digCompJson = digComp->toJson();
                                 ImGui::Separator();

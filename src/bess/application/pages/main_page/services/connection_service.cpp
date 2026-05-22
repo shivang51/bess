@@ -336,7 +336,7 @@ namespace Bess::Svc {
             return false;
         }
 
-        const auto digComp = getSimEngine().getDigitalComponent(parent->getSimEngineId());
+        const auto digComp = getSimEngine().getComponent<SimEngine::Drivers::Digital::DigSimComp>(parent->getSimEngineId());
         if (!digComp) {
             return false;
         }

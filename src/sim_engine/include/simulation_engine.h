@@ -78,8 +78,6 @@ namespace Bess::SimEngine {
         const std::shared_ptr<Drivers::CompDef> &getComponentDefinition(
             const UUID &uuid) const;
 
-        std::shared_ptr<Drivers::SimComponent> getDigitalComponent(const UUID &uuid) const;
-
         void clear();
 
         bool updateInputCount(const UUID &uuid, int n);

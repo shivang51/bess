@@ -504,7 +504,7 @@ namespace Bess::Pages {
         if (!comp)
             return; // most likely the component was deleted, so we can ignore this event
 
-        const auto &digitalComp = SimEngine::SimulationEngine::instance().getDigitalComponent(e.componentId);
+        const auto &digitalComp = SimEngine::SimulationEngine::instance().getComponent<SimEngine::Drivers::Digital::DigSimComp>(e.componentId);
 
         const auto &outSlotsInfo = digitalComp->getDefinition<
                                                   SimEngine::Drivers::Digital::DigCompDef>()
@@ -533,7 +533,7 @@ namespace Bess::Pages {
             return; // most likely the component was deleted, so we can ignore this event
 
         const auto &digitalComp = SimEngine::SimulationEngine::instance()
-                                      .getDigitalComponent(e.componentId);
+                                      .getComponent<SimEngine::Drivers::Digital::DigSimComp>(e.componentId);
         const auto &outSlotsInfo = digitalComp->getDefinition<
                                                   SimEngine::Drivers::Digital::DigCompDef>()
                                        ->getOutputSlotsInfo();
