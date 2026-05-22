@@ -10,7 +10,6 @@ set(Header_Files
 		"include/driver_registry.h"
     "include/component_catalog.h"
     "include/component_definition.h"
-    "include/init_components.h" 
 		"include/expression_evalutator/expr_evaluator.h"
 		"include/utils/string_utils.h"
 )

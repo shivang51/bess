@@ -2,7 +2,6 @@
 #include "application/pages/main_page/main_page.h"
 #include "common/helpers.h"
 #include "gtc/type_ptr.hpp"
-#include "init_components.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
@@ -11,8 +10,6 @@
 #include "ui/widgets/m_widgets.h"
 #include <imgui.h>
 
-#include <algorithm>
-
 namespace Bess::UI {
     static constexpr auto windowName = Common::Helpers::concat(
         Icons::CodIcons::SYMBOL_PROPERTY, "  Properties");
@@ -20,27 +17,6 @@ namespace Bess::UI {
     PropertiesPanel::PropertiesPanel() : Panel(std::string(windowName.data())) {
         m_defaultDock = Dock::right;
         m_visible = true;
-    }
-
-    bool drawClockTrait(const std::shared_ptr<SimEngine::ClockTrait> &trait, const UUID &uuid) {
-        bool changed = false;
-        if (Widgets::TreeNode(0, "Input Behaviour")) {
-            if (ImGui::SliderFloat("Frequency", &trait->frequency, 0.1f, 3.0f, "%.1f Hz", ImGuiSliderFlags_AlwaysClamp)) {
-                const float stepSize = 0.1f;
-                trait->frequency = roundf(trait->frequency / stepSize) * stepSize; // Force step increments
-                changed = true;
-            }
-
-            static std::vector<std::string> frequencies = {"Hz", "kHz", "MHz"};
-            std::string currFreq = frequencies[(int)trait->frequencyUnit];
-            if (UI::Widgets::ComboBox("Unit", currFreq, frequencies)) {
-                auto idx = std::distance(frequencies.begin(), std::ranges::find(frequencies, currFreq));
-                trait->frequencyUnit = static_cast<SimEngine::FrequencyUnit>(idx);
-                changed = true;
-            }
-            ImGui::TreePop();
-        }
-        return changed;
     }
 
     void drawConnectionComponent(const std::shared_ptr<Canvas::ConnectionSceneComponent> &comp) {
