@@ -69,6 +69,14 @@ namespace Bess::UI {
     } // namespace
 
     bool ProjectExplorer::shouldDisplayEntity(const UUID &entityId) const {
+
+        const auto &driver =
+            Pages::MainPage::getInstance()->getState().getSceneDriver();
+
+        if (driver.getIsPaused()) {
+            return false;
+        }
+
         auto &sceneState = Pages::MainPage::getInstance()
                                ->getState()
                                .getSceneDriver()
@@ -128,10 +136,9 @@ namespace Bess::UI {
             ImGui::GetStyle().Colors[ImGuiCol_TableRowBgAlt];
         const auto &style = ImGui::GetStyle();
 
-        auto &sceneState = Pages::MainPage::getInstance()
-                               ->getState()
-                               .getSceneDriver()
-                               ->getState();
+        const auto &driver =
+            Pages::MainPage::getInstance()->getState().getSceneDriver();
+        auto &sceneState = driver.getActiveScene()->getState();
 
         const auto size = sceneState.getRootComponents().size();
         const auto selSize = sceneState.getSelectedComponents().size();
@@ -480,13 +487,13 @@ namespace Bess::UI {
             }
 
             const auto &comp = sceneState.getComponentByUuid(compId);
+            if (!comp)
+                continue;
+
             const auto type = comp->getType();
             if (!((int8_t)type &
                   (int8_t)
                       Canvas::SceneComponentTypeFlag::showInProjectExplorer))
-                continue;
-
-            if (!comp)
                 continue;
 
             bool clicked = false;

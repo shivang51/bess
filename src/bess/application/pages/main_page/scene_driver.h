@@ -43,7 +43,10 @@ namespace Bess {
         void updateNets();
 
         // using pointer operator to directly access active scene
-        std::shared_ptr<Canvas::Scene> operator->() { return m_activeScene; }
+        std::shared_ptr<Canvas::Scene> operator->() {
+            std::lock_guard lock(m_scenesMutex);
+            return m_activeScene;
+        }
 
         const std::shared_ptr<Canvas::Scene> &operator->() const {
             return m_activeScene;
@@ -68,5 +71,6 @@ namespace Bess {
         size_t m_activeSceneIdx{0};
 
         bool m_isPaused = false;
+        mutable std::mutex m_scenesMutex;
     };
 } // namespace Bess

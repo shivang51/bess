@@ -42,13 +42,17 @@ namespace Bess::UI {
             m_isResized = false;
         }
 
-        if (m_isHovered) {
-            m_attachedScene->update(ts, events);
-        } else {
-            m_attachedScene->update(ts, {});
-        }
+        const auto &sceneDriver =
+            Pages::MainPage::getInstance()->getState().getSceneDriver();
 
-        updateScene(ts, events);
+        if (!sceneDriver.getIsPaused()) {
+            if (m_isHovered) {
+                m_attachedScene->update(ts, events);
+            } else {
+                m_attachedScene->update(ts, {});
+            }
+            updateScene(ts, events);
+        }
 
         if (m_nextSceneId != UUID::null) {
             Pages::MainPage::getInstance()
@@ -122,6 +126,13 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::onAfterDraw() {
+        const auto &sceneDriver =
+            Pages::MainPage::getInstance()->getState().getSceneDriver();
+
+        if (sceneDriver.getIsPaused()) {
+            return;
+        }
+
         drawTopLeftControls();
         drawBottomControls();
     }

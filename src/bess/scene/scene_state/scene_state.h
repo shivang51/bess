@@ -5,6 +5,7 @@
 #include "renderer/material_renderer.h"
 #include "scene/scene_state/components/scene_component.h"
 #include <cstdint>
+#include <mutex>
 #include <set>
 #include <unordered_set>
 
@@ -143,6 +144,8 @@ namespace Bess::Canvas {
                                       // module it belongs to
         UUID m_sceneId, m_parentSceneId = UUID::null;
         glm::vec2 m_mousePos;
+
+        mutable std::mutex m_componentsMutex;
     };
 } // namespace Bess::Canvas
 

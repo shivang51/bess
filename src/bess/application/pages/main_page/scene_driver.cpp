@@ -6,6 +6,7 @@
 #include "simulation_engine.h"
 #include "ui_main/ui_main.h"
 #include <algorithm>
+#include <mutex>
 
 namespace Bess {
     std::shared_ptr<Canvas::Scene> SceneDriver::getActiveScene() const {
@@ -14,6 +15,8 @@ namespace Bess {
 
     std::shared_ptr<Canvas::Scene>
     SceneDriver::setActiveScene(UUID id, bool updateCmdSys) {
+        std::unique_lock lock(m_scenesMutex);
+
         if (UUID::null == id || !m_sceneIdToSceneMap.contains(id)) {
             return nullptr;
         }
@@ -48,12 +51,14 @@ namespace Bess {
             UI::UIMain::getScenePanels().front()->setAttachedScene(
                 m_activeScene);
         }
+        lock.unlock();
         BESS_INFO("[SceneDriver] Active scene set to id {}.", (uint64_t)id);
         return m_activeScene;
     }
 
     std::shared_ptr<Canvas::Scene>
     SceneDriver::setActiveScene(size_t index, bool updateCmdSys) {
+        std::unique_lock lock(m_scenesMutex);
         if (index < m_scenes.size()) {
             if (m_activeScene) {
                 m_activeScene->getState().clearSelectedComponents();
@@ -74,6 +79,7 @@ namespace Bess {
                 }
             }
 
+            lock.unlock();
             if (!UI::UIMain::getScenePanels().empty() &&
                 UI::UIMain::getScenePanels().front()) {
                 UI::UIMain::getScenePanels().front()->setAttachedScene(
@@ -86,6 +92,7 @@ namespace Bess {
     }
 
     std::shared_ptr<Canvas::Scene> SceneDriver::createNewScene() {
+        std::lock_guard lock(m_scenesMutex);
         auto newScene = std::make_shared<Canvas::Scene>();
         m_scenes.emplace_back(newScene);
         m_sceneIdToSceneMap[newScene->getSceneId()] = newScene;
@@ -94,6 +101,7 @@ namespace Bess {
 
     std::shared_ptr<Canvas::Scene>
     SceneDriver::getSceneAtIdx(size_t index) const {
+        std::lock_guard lock(m_scenesMutex);
         if (index < m_scenes.size()) {
             return m_scenes.at(index);
         }
@@ -105,6 +113,7 @@ namespace Bess {
             return;
         }
 
+        std::lock_guard lock(m_scenesMutex);
         if (m_sceneIdToSceneMap.contains(scene->getSceneId())) {
             return;
         }
@@ -119,6 +128,7 @@ namespace Bess {
     }
 
     void SceneDriver::removeScene(const UUID &id) {
+        std::unique_lock lock(m_scenesMutex);
         if (!m_sceneIdToSceneMap.contains(id)) {
             return;
         }
@@ -150,6 +160,7 @@ namespace Bess {
         }
 
         if (removingActiveScene) {
+            lock.unlock();
             if (m_rootSceneId != UUID::null &&
                 m_sceneIdToSceneMap.contains(m_rootSceneId)) {
                 setActiveScene(m_rootSceneId);
@@ -221,6 +232,7 @@ namespace Bess {
 
     std::shared_ptr<Canvas::Scene>
     SceneDriver::getSceneWithId(const UUID &id) const {
+        std::lock_guard lock(m_scenesMutex);
         if (!m_sceneIdToSceneMap.contains(id)) {
             return nullptr;
         }
@@ -229,6 +241,7 @@ namespace Bess {
     }
 
     void SceneDriver::removeScenes() {
+        std::lock_guard lock(m_scenesMutex);
         m_scenes.clear();
         m_sceneIdToSceneMap.clear();
         m_rootSceneId = UUID::null;
@@ -246,6 +259,7 @@ namespace Bess {
 
     std::shared_ptr<Canvas::Scene>
     SceneDriver::getSceneForModule(const UUID &modId) const {
+        std::lock_guard lock(m_scenesMutex);
         if (!m_modIdToSceneMap.contains(modId)) {
             return nullptr;
         }

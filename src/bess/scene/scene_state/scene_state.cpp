@@ -10,10 +10,12 @@
 #include "simulation_engine.h"
 #include <cstdint>
 #include <memory>
+#include <mutex>
 #include <vector>
 
 namespace Bess::Canvas {
     void SceneState::clear() {
+        std::lock_guard lock(m_componentsMutex);
         m_runtimeIdMap.clear();
         m_componentsMap.clear();
         m_rootComponents.clear();
@@ -23,8 +25,10 @@ namespace Bess::Canvas {
 
     std::shared_ptr<SceneComponent>
     SceneState::getComponentByUuid(const UUID &uuid) const {
-        if (m_componentsMap.contains(uuid)) {
-            return m_componentsMap.at(uuid);
+        std::lock_guard lock(m_componentsMutex);
+        auto itr = m_componentsMap.find(uuid);
+        if (itr != m_componentsMap.end()) {
+            return itr->second;
         }
         return nullptr;
     }
@@ -39,6 +43,7 @@ namespace Bess::Canvas {
     }
 
     void SceneState::clearSelectedComponents() {
+        std::lock_guard lock(m_componentsMutex);
         for (const auto &[uuid, selected] : m_selectedComponents) {
             m_componentsMap[uuid]->setIsSelected(false);
         }
@@ -49,6 +54,7 @@ namespace Bess::Canvas {
         if (!isComponentValid(uuid))
             return;
 
+        std::lock_guard lock(m_componentsMutex);
         m_selectedComponents[uuid] = true;
         m_componentsMap.at(uuid)->setIsSelected(true);
     }
@@ -65,6 +71,7 @@ namespace Bess::Canvas {
         if (!isComponentValid(uuid))
             return;
 
+        std::lock_guard lock(m_componentsMutex);
         m_selectedComponents.erase(uuid);
         m_componentsMap.at(uuid)->setIsSelected(false);
     }
@@ -189,6 +196,9 @@ namespace Bess::Canvas {
 
     std::vector<UUID> SceneState::removeComponent(const UUID &uuid,
                                                   const UUID &callerId) {
+
+        std::unique_lock lock(m_componentsMutex);
+
         BESS_INFO("[SceneState] Removing component {}", (uint64_t)uuid);
         auto component = getComponentByUuid(uuid);
         BESS_ASSERT(component, "Component was not found");

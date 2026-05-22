@@ -26,9 +26,11 @@ namespace Bess::UI {
         auto &sceneDriver = mainPageState.getSceneDriver();
         const auto &sceneState = sceneDriver->getState();
 
-        const auto &hoverId = sceneDriver->getHoveredEntity();
-        ImGui::Text("Hovered  Runtime Id: %u | Info: %u", hoverId.runtimeId,
-                    hoverId.info);
+        if (!sceneDriver.getIsPaused()) {
+            const auto &hoverId = sceneDriver->getHoveredEntity();
+            ImGui::Text("Hovered  Runtime Id: %u | Info: %u", hoverId.runtimeId,
+                        hoverId.info);
+        }
 
         if (ImGui::BeginTabBar("MyTabBar")) {
             if (ImGui::BeginTabItem("Scene Controls")) {
