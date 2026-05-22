@@ -1011,7 +1011,7 @@ namespace Bess::SimEngine {
     Json::Value SimulationEngine::toJson() const {
         Json::Value json;
         for (const auto &driver : m_simDrivers) {
-            json[driver->getName()] = driver->toJson();
+            json["drivers"][driver->getName()] = driver->toJson();
         }
         return json;
     }
@@ -1028,14 +1028,6 @@ namespace Bess::SimEngine {
                 const auto driverName = driver->getName();
                 if (json["drivers"].isMember(driverName)) {
                     driver->loadJson(json["drivers"][driverName]);
-                } else if (json.isMember(driverName)) {
-                    driver->loadJson(json[driverName]);
-                }
-            }
-        } else {
-            for (const auto &driver : m_simDrivers) {
-                if (json.isMember(driver->getName())) {
-                    driver->loadJson(json[driver->getName()]);
                 }
             }
         }

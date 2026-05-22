@@ -36,27 +36,28 @@ namespace Bess::SimEngine::Drivers::Digital {
         bool changed = false;
         const auto *expressions = simData->expressions;
 
-        BESS_ASSERT(expressions, "Expressions cannot be null in exprEvalSimFunc");
+        BESS_ASSERT(expressions,
+                    "Expressions cannot be null in exprEvalSimFunc");
 
         const auto &inputs = simData->inputStates;
         const auto &prevState = simData->prevState;
 
         auto &newOuts = simData->outputStates;
 
-        BESS_ASSERT(newOuts.size() == expressions->size(),
-                    "[ExprEval] Output states size must match expressions size");
+        BESS_ASSERT(
+            newOuts.size() == expressions->size(),
+            "[ExprEval] Output states size must match expressions size");
 
         for (int i = 0; i < (int)expressions->size(); i++) {
             std::vector<bool> states;
             states.reserve(inputs.size());
             for (auto &state : inputs)
                 states.emplace_back((bool)state);
-            bool newStateBool = ExprEval::evaluateExpression(expressions->at(i),
-                                                             states);
-            changed = changed || (bool)prevState.outputStates[i] != newStateBool;
-            newOuts[i] = {newStateBool
-                              ? LogicState::high
-                              : LogicState::low,
+            bool newStateBool =
+                ExprEval::evaluateExpression(expressions->at(i), states);
+            changed =
+                changed || (bool)prevState.outputStates[i] != newStateBool;
+            newOuts[i] = {newStateBool ? LogicState::high : LogicState::low,
                           simData->simTime};
         }
 
@@ -74,20 +75,29 @@ namespace Bess::SimEngine::Drivers::Digital {
 
             if (defTypeName == ModuleDefinition::TypeName) {
                 def = std::make_shared<ModuleDefinition>();
-                auto moduleDef = std::dynamic_pointer_cast<ModuleDefinition>(def);
-                moduleDef->setSimFn([moduleDef](const ModuleDefinition::TDigSimFnDataPtr &data) {
-                    return moduleDef->simFunction(data);
-                });
+                auto moduleDef =
+                    std::dynamic_pointer_cast<ModuleDefinition>(def);
+                moduleDef->setSimFn(
+                    [moduleDef](
+                        const ModuleDefinition::TDigSimFnDataPtr &data) {
+                        return moduleDef->simFunction(data);
+                    });
             } else if (!defName.empty()) {
-                const auto baseDef = SimEngine::ComponentCatalog::instance().getComponentDefinition(defName);
-                BESS_ASSERT(baseDef, "Component definition with name '{}' not found in catalog", defName);
+                const auto baseDef = SimEngine::ComponentCatalog::instance()
+                                         .getComponentDefinition(defName);
+                BESS_ASSERT(
+                    baseDef,
+                    "Component definition with name '{}' not found in catalog",
+                    defName);
                 if (baseDef) {
-                    def = std::dynamic_pointer_cast<DigCompDef>(baseDef->clone());
+                    def =
+                        std::dynamic_pointer_cast<DigCompDef>(baseDef->clone());
                 }
             }
 
             BESS_ASSERT(def,
-                        "Failed to load component definition from JSON. No definition found for name '{}' and type '{}'",
+                        "Failed to load component definition from JSON. No "
+                        "definition found for name '{}' and type '{}'",
                         defName, defTypeName);
 
             if (!def) { // Fallback
@@ -96,14 +106,15 @@ namespace Bess::SimEngine::Drivers::Digital {
 
             def->loadJson(defJson);
 
-            if (!def->getSimFn() &&
-                (defJson.isMember("opInfo") ||
-                 defJson.isMember("expressions"))) {
+            if (!def->getSimFn() && (defJson.isMember("opInfo") ||
+                                     defJson.isMember("expressions"))) {
                 def->setSimFn(exprEvalSimFunc);
             }
 
-            BESS_ASSERT(def->getSimFn(), "Failed to set sim function for component definition '{}'",
-                        def->getName());
+            BESS_ASSERT(
+                def->getSimFn(),
+                "Failed to set sim function for component definition '{}'",
+                def->getName());
 
             return def;
         }
@@ -120,8 +131,9 @@ namespace Bess::SimEngine::Drivers::Digital {
         const auto &comp = this->template getComponent<DigSimComp>(id);
 
         if (!comp) {
-            BESS_WARN("(DigitalSimDriver.simulate) Component with UUID {} not found",
-                      (uint64_t)id);
+            BESS_WARN(
+                "(DigitalSimDriver.simulate) Component with UUID {} not found",
+                (uint64_t)id);
             return false;
         }
 
@@ -133,15 +145,17 @@ namespace Bess::SimEngine::Drivers::Digital {
         if (simData->outputStates.size() != comp->getOutputStates().size()) {
             simData->outputStates = comp->getOutputStates();
         }
-        simData->expressions = &comp->getDefinition<DigCompDef>()->getOutputExpressions();
+        simData->expressions =
+            &comp->getDefinition<DigCompDef>()->getOutputExpressions();
 
         BESS_ASSERT(simData->expressions, "Failed to set expressions ptr");
 
-        auto newData = std::dynamic_pointer_cast<DigCompSimData>(
-            comp->simulate(simData));
+        auto newData =
+            std::dynamic_pointer_cast<DigCompSimData>(comp->simulate(simData));
 
         if (!newData) {
-            BESS_WARN("(DigitalSimDriver.simulate) Simulation function for component with UUID {} did not return DigCompSimData",
+            BESS_WARN("(DigitalSimDriver.simulate) Simulation function for "
+                      "component with UUID {} did not return DigCompSimData",
                       (uint64_t)id);
             return false;
         }
@@ -160,8 +174,9 @@ namespace Bess::SimEngine::Drivers::Digital {
         return newData->simDependants;
     }
 
-    UUID DigitalSimDriver::addComponent(const std::shared_ptr<SimComponent> &comp,
-                                        bool scheduleSim) {
+    UUID
+    DigitalSimDriver::addComponent(const std::shared_ptr<SimComponent> &comp,
+                                   bool scheduleSim) {
         EvtBasedSimDriver::addComponent(comp, scheduleSim);
         return comp->getUuid();
     }
@@ -171,33 +186,39 @@ namespace Bess::SimEngine::Drivers::Digital {
         BESS_DEBUG("Starting DigitalSimDriver run loop");
     }
 
-    std::shared_ptr<SimComponent> DigitalSimDriver::createComp(const std::shared_ptr<CompDef> &def,
-                                                               bool cloneDef) {
+    std::shared_ptr<SimComponent>
+    DigitalSimDriver::createComp(const std::shared_ptr<CompDef> &def,
+                                 bool cloneDef) {
         if (!supportsDef(def)) {
-            BESS_WARN("(DigitalSimDriver.addComponent) Unsupported component definition type: {}",
+            BESS_WARN("(DigitalSimDriver.addComponent) Unsupported component "
+                      "definition type: {}",
                       def->getName());
             return nullptr;
         }
 
-        bool isModule = std::dynamic_pointer_cast<ModuleDefinition>(def) != nullptr;
+        bool isModule =
+            std::dynamic_pointer_cast<ModuleDefinition>(def) != nullptr;
 
-        const auto comp = isModule
-                              ? DigSimComp::fromDef<DigModuleSimComp>(def, cloneDef)
-                              : DigSimComp::fromDef(def, cloneDef);
+        const auto comp =
+            isModule ? DigSimComp::fromDef<DigModuleSimComp>(def, cloneDef)
+                     : DigSimComp::fromDef(def, cloneDef);
 
         if (!comp) {
-            BESS_WARN("(DigitalSimDriver.addComponent) Failed to create component from definition: {}",
+            BESS_WARN("(DigitalSimDriver.addComponent) Failed to create "
+                      "component from definition: {}",
                       def->getName());
             return nullptr;
         }
 
-        BESS_DEBUG("(DigitalSimDriver.addComponent) Created component '{}' with UUID {} from definition '{}'",
+        BESS_DEBUG("(DigitalSimDriver.addComponent) Created component '{}' "
+                   "with UUID {} from definition '{}'",
                    comp->getName(), (uint64_t)comp->getUuid(), def->getName());
 
         return comp;
     }
 
-    void DigitalSimDriver::onComponentAdded(const std::shared_ptr<SimComponent> &comp) {
+    void DigitalSimDriver::onComponentAdded(
+        const std::shared_ptr<SimComponent> &comp) {
         const auto digiComp = std::dynamic_pointer_cast<DigSimComp>(comp);
         if (!digiComp) {
             return;
@@ -220,7 +241,8 @@ namespace Bess::SimEngine::Drivers::Digital {
             return;
         }
 
-        auto removeBackReferences = [&](Connections &pins, bool removeFromInputs) {
+        auto removeBackReferences = [&](Connections &pins,
+                                        bool removeFromInputs) {
             for (const auto &pin : pins) {
                 for (const auto &[otherId, otherIdx] : pin) {
                     const auto other = getComponent<DigSimComp>(otherId);
@@ -228,8 +250,11 @@ namespace Bess::SimEngine::Drivers::Digital {
                         continue;
                     }
 
-                    auto &otherPins = removeFromInputs ? other->getInputConnections() : other->getOutputConnections();
-                    if (otherIdx < 0 || static_cast<size_t>(otherIdx) >= otherPins.size()) {
+                    auto &otherPins = removeFromInputs
+                                          ? other->getInputConnections()
+                                          : other->getOutputConnections();
+                    if (otherIdx < 0 ||
+                        static_cast<size_t>(otherIdx) >= otherPins.size()) {
                         continue;
                     }
 
@@ -263,17 +288,19 @@ namespace Bess::SimEngine::Drivers::Digital {
     }
 
     std::pair<bool, std::string> DigitalSimDriver::canConnectComponents(
-        const UUID &src, int srcSlotIdx, SlotType srcType,
-        const UUID &dst, int dstSlotIdx, SlotType dstType) const {
+        const UUID &src, int srcSlotIdx, SlotType srcType, const UUID &dst,
+        int dstSlotIdx, SlotType dstType) const {
         if (srcType == dstType) {
-            return {false, "Cannot connect pins of the same type i.e. input -> input or output -> output"};
+            return {false, "Cannot connect pins of the same type i.e. input -> "
+                           "input or output -> output"};
         }
 
         const auto &srcComp = getComponent<DigSimComp>(src);
         const auto &dstComp = getComponent<DigSimComp>(dst);
 
         if (!srcComp || !dstComp) {
-            return {false, "Source or destination component does not exist in DigitalSimDriver"};
+            return {false, "Source or destination component does not exist in "
+                           "DigitalSimDriver"};
         }
 
         auto &outPins = srcType == SlotType::digitalOutput
@@ -284,10 +311,12 @@ namespace Bess::SimEngine::Drivers::Digital {
                            : dstComp->getOutputConnections();
 
         if (srcSlotIdx < 0 || srcSlotIdx >= static_cast<int>(outPins.size())) {
-            return {false, "Invalid source pin index. Valid range: 0 to " + std::to_string(outPins.size() - 1)};
+            return {false, "Invalid source pin index. Valid range: 0 to " +
+                               std::to_string(outPins.size() - 1)};
         }
         if (dstSlotIdx < 0 || dstSlotIdx >= static_cast<int>(inPins.size())) {
-            return {false, "Invalid destination pin index. Valid range: 0 to " + std::to_string(inPins.size() - 1)};
+            return {false, "Invalid destination pin index. Valid range: 0 to " +
+                               std::to_string(inPins.size() - 1)};
         }
 
         // Check for duplicate connection.
@@ -299,17 +328,21 @@ namespace Bess::SimEngine::Drivers::Digital {
         return {!exists, exists ? "Connection already exists" : ""};
     }
 
-    bool DigitalSimDriver::connectComponent(
-        const UUID &src, int srcSlotIdx, SlotType srcType,
-        const UUID &dst, int dstSlotIdx, SlotType dstType, bool overrideConn) {
-        auto [canConnect, errorMsg] = canConnectComponents(src, srcSlotIdx, srcType, dst, dstSlotIdx, dstType);
-        if (!canConnect && !(overrideConn && errorMsg == "Connection already exists")) {
+    bool DigitalSimDriver::connectComponent(const UUID &src, int srcSlotIdx,
+                                            SlotType srcType, const UUID &dst,
+                                            int dstSlotIdx, SlotType dstType,
+                                            bool overrideConn) {
+        auto [canConnect, errorMsg] = canConnectComponents(
+            src, srcSlotIdx, srcType, dst, dstSlotIdx, dstType);
+        if (!canConnect &&
+            !(overrideConn && errorMsg == "Connection already exists")) {
             BESS_WARN("Cannot connect components: {}", errorMsg);
             return false;
         }
 
         if (!canConnect && overrideConn) {
-            deleteConnection(src, srcType, srcSlotIdx, dst, dstType, dstSlotIdx);
+            deleteConnection(src, srcType, srcSlotIdx, dst, dstType,
+                             dstSlotIdx);
         }
 
         const auto srcComp = getComponent<DigSimComp>(src);
@@ -334,16 +367,24 @@ namespace Bess::SimEngine::Drivers::Digital {
         outPins[srcSlotIdx].emplace_back(dst, dstSlotIdx);
         inPins[dstSlotIdx].emplace_back(src, srcSlotIdx);
 
-        if (srcType == SlotType::digitalOutput && static_cast<size_t>(srcSlotIdx) < srcComp->getIsOutputConnected().size()) {
+        if (srcType == SlotType::digitalOutput &&
+            static_cast<size_t>(srcSlotIdx) <
+                srcComp->getIsOutputConnected().size()) {
             srcComp->getIsOutputConnected()[srcSlotIdx] = true;
         }
-        if (srcType == SlotType::digitalInput && static_cast<size_t>(srcSlotIdx) < srcComp->getIsInputConnected().size()) {
+        if (srcType == SlotType::digitalInput &&
+            static_cast<size_t>(srcSlotIdx) <
+                srcComp->getIsInputConnected().size()) {
             srcComp->getIsInputConnected()[srcSlotIdx] = true;
         }
-        if (dstType == SlotType::digitalInput && static_cast<size_t>(dstSlotIdx) < dstComp->getIsInputConnected().size()) {
+        if (dstType == SlotType::digitalInput &&
+            static_cast<size_t>(dstSlotIdx) <
+                dstComp->getIsInputConnected().size()) {
             dstComp->getIsInputConnected()[dstSlotIdx] = true;
         }
-        if (dstType == SlotType::digitalOutput && static_cast<size_t>(dstSlotIdx) < dstComp->getIsOutputConnected().size()) {
+        if (dstType == SlotType::digitalOutput &&
+            static_cast<size_t>(dstSlotIdx) <
+                dstComp->getIsOutputConnected().size()) {
             dstComp->getIsOutputConnected()[dstSlotIdx] = true;
         }
 
@@ -361,7 +402,8 @@ namespace Bess::SimEngine::Drivers::Digital {
                 auto &movedNet = m_nets[movedNetId];
                 for (const auto &compUuid : movedNet.getComponents()) {
                     if (compUuid != UUID::null) {
-                        if (const auto comp = getComponent<DigSimComp>(compUuid)) {
+                        if (const auto comp =
+                                getComponent<DigSimComp>(compUuid)) {
                             comp->setNetUuid(finalNetId);
                         }
                     }
@@ -373,24 +415,19 @@ namespace Bess::SimEngine::Drivers::Digital {
         }
 
         if (srcType == SlotType::digitalInput) {
-            scheduleEvt(src,
-                        m_currentSimTime,
-                        dst,
-                        true);
+            scheduleEvt(src, m_currentSimTime, dst, true);
         } else {
-            scheduleEvt(dst,
-                        m_currentSimTime,
-                        src,
-                        true);
+            scheduleEvt(dst, m_currentSimTime, src, true);
         }
 
         BESS_INFO("Connected components in DigitalSimDriver");
         return true;
     }
 
-    void DigitalSimDriver::deleteConnection(
-        const UUID &compA, SlotType pinAType, int idxA,
-        const UUID &compB, SlotType pinBType, int idxB) {
+    void DigitalSimDriver::deleteConnection(const UUID &compA,
+                                            SlotType pinAType, int idxA,
+                                            const UUID &compB,
+                                            SlotType pinBType, int idxB) {
         const auto compARef = getComponent<DigSimComp>(compA);
         const auto compBRef = getComponent<DigSimComp>(compB);
         if (!compARef || !compBRef) {
@@ -404,8 +441,7 @@ namespace Bess::SimEngine::Drivers::Digital {
                           ? compBRef->getInputConnections()
                           : compBRef->getOutputConnections();
 
-        if (idxA < 0 || idxB < 0 ||
-            static_cast<size_t>(idxA) >= pinsA.size() ||
+        if (idxA < 0 || idxB < 0 || static_cast<size_t>(idxA) >= pinsA.size() ||
             static_cast<size_t>(idxB) >= pinsB.size()) {
             return;
         }
@@ -418,16 +454,24 @@ namespace Bess::SimEngine::Drivers::Digital {
             return c.first == compA && c.second == idxA;
         });
 
-        if (pinAType == SlotType::digitalOutput && static_cast<size_t>(idxA) < compARef->getIsOutputConnected().size()) {
+        if (pinAType == SlotType::digitalOutput &&
+            static_cast<size_t>(idxA) <
+                compARef->getIsOutputConnected().size()) {
             compARef->getIsOutputConnected()[idxA] = !pinsA[idxA].empty();
         }
-        if (pinAType == SlotType::digitalInput && static_cast<size_t>(idxA) < compARef->getIsInputConnected().size()) {
+        if (pinAType == SlotType::digitalInput &&
+            static_cast<size_t>(idxA) <
+                compARef->getIsInputConnected().size()) {
             compARef->getIsInputConnected()[idxA] = !pinsA[idxA].empty();
         }
-        if (pinBType == SlotType::digitalOutput && static_cast<size_t>(idxB) < compBRef->getIsOutputConnected().size()) {
+        if (pinBType == SlotType::digitalOutput &&
+            static_cast<size_t>(idxB) <
+                compBRef->getIsOutputConnected().size()) {
             compBRef->getIsOutputConnected()[idxB] = !pinsB[idxB].empty();
         }
-        if (pinBType == SlotType::digitalInput && static_cast<size_t>(idxB) < compBRef->getIsInputConnected().size()) {
+        if (pinBType == SlotType::digitalInput &&
+            static_cast<size_t>(idxB) <
+                compBRef->getIsInputConnected().size()) {
             compBRef->getIsInputConnected()[idxB] = !pinsB[idxB].empty();
         }
 
@@ -441,36 +485,42 @@ namespace Bess::SimEngine::Drivers::Digital {
         BESS_INFO("Deleted connection in DigitalSimDriver");
     }
 
-    SlotsCountChangeRes DigitalSimDriver::addSlot(const UUID &compId, SlotType type, int index, bool force) {
+    SlotsCountChangeRes DigitalSimDriver::addSlot(const UUID &compId,
+                                                  SlotType type, int index,
+                                                  bool force) {
         const auto digComp = getComponent<DigSimComp>(compId);
         if (!digComp) {
-            BESS_WARN("(DigitalSimDriver.addSlot) Component with UUID {} not found", (uint64_t)compId);
+            BESS_WARN(
+                "(DigitalSimDriver.addSlot) Component with UUID {} not found",
+                (uint64_t)compId);
             return SlotsCountChangeRes::noChange();
         }
 
         const auto digDef = digComp->getDefinition<DigCompDef>();
         if (!digDef) {
-            BESS_WARN("(DigitalSimDriver.addSlot) Component definition for component with UUID {} is not a DigCompDef",
+            BESS_WARN("(DigitalSimDriver.addSlot) Component definition for "
+                      "component with UUID {} is not a DigCompDef",
                       (uint64_t)compId);
             return SlotsCountChangeRes::noChange();
         }
 
         const bool isInput = (type == SlotType::digitalInput);
-        auto info = isInput
-                        ? digDef->getInputSlotsInfo()
-                        : digDef->getOutputSlotsInfo();
+        auto info = isInput ? digDef->getInputSlotsInfo()
+                            : digDef->getOutputSlotsInfo();
 
         if (!force && !info.isResizeable) {
-            BESS_WARN("(DigitalSimDriver.addSlot) Slots of type {} for component with UUID {} are not resizeable",
+            BESS_WARN("(DigitalSimDriver.addSlot) Slots of type {} for "
+                      "component with UUID {} are not resizeable",
                       isInput ? "input" : "output", (uint64_t)compId);
             return SlotsCountChangeRes::noChange();
         }
 
-        if (!force && !digDef->onSlotsResizeReq(isInput
-                                                    ? SlotsGroupType::input
-                                                    : SlotsGroupType::output,
-                                                info.count + 1)) {
-            BESS_WARN("(DigitalSimDriver.addSlot) Component definition for component with UUID {} rejected slot resize request",
+        if (!force &&
+            !digDef->onSlotsResizeReq(isInput ? SlotsGroupType::input
+                                              : SlotsGroupType::output,
+                                      info.count + 1)) {
+            BESS_WARN("(DigitalSimDriver.addSlot) Component definition for "
+                      "component with UUID {} rejected slot resize request",
                       (uint64_t)compId);
             return SlotsCountChangeRes::noChange();
         }
@@ -479,9 +529,12 @@ namespace Bess::SimEngine::Drivers::Digital {
             auto &states = digComp->getInputStates();
             auto &connections = digComp->getInputConnections();
             auto &connected = digComp->getIsInputConnected();
-            states.insert(states.begin() + static_cast<long>(index), SlotState{});
-            connections.insert(connections.begin() + static_cast<long>(index), std::vector<ComponentPin>{});
-            connected.insert(connected.begin() + static_cast<long>(index), false);
+            states.insert(states.begin() + static_cast<long>(index),
+                          SlotState{});
+            connections.insert(connections.begin() + static_cast<long>(index),
+                               std::vector<ComponentPin>{});
+            connected.insert(connected.begin() + static_cast<long>(index),
+                             false);
             info.count += 1;
             digDef->setInputSlotsInfo(info);
 
@@ -489,9 +542,13 @@ namespace Bess::SimEngine::Drivers::Digital {
                 auto &outStates = digComp->getOutputStates();
                 auto &outConnections = digComp->getOutputConnections();
                 auto &outConnected = digComp->getIsOutputConnected();
-                outStates.insert(outStates.begin() + static_cast<long>(index), SlotState{});
-                outConnections.insert(outConnections.begin() + static_cast<long>(index), std::vector<ComponentPin>{});
-                outConnected.insert(outConnected.begin() + static_cast<long>(index), false);
+                outStates.insert(outStates.begin() + static_cast<long>(index),
+                                 SlotState{});
+                outConnections.insert(outConnections.begin() +
+                                          static_cast<long>(index),
+                                      std::vector<ComponentPin>{});
+                outConnected.insert(
+                    outConnected.begin() + static_cast<long>(index), false);
                 auto outInfo = digDef->getOutputSlotsInfo();
                 outInfo.count += 1;
                 digDef->setOutputSlotsInfo(outInfo);
@@ -501,9 +558,12 @@ namespace Bess::SimEngine::Drivers::Digital {
             auto &states = digComp->getOutputStates();
             auto &connections = digComp->getOutputConnections();
             auto &connected = digComp->getIsOutputConnected();
-            states.insert(states.begin() + static_cast<long>(index), SlotState{});
-            connections.insert(connections.begin() + static_cast<long>(index), std::vector<ComponentPin>{});
-            connected.insert(connected.begin() + static_cast<long>(index), false);
+            states.insert(states.begin() + static_cast<long>(index),
+                          SlotState{});
+            connections.insert(connections.begin() + static_cast<long>(index),
+                               std::vector<ComponentPin>{});
+            connected.insert(connected.begin() + static_cast<long>(index),
+                             false);
             info.count += 1;
             digDef->setOutputSlotsInfo(info);
 
@@ -511,9 +571,13 @@ namespace Bess::SimEngine::Drivers::Digital {
                 auto &inStates = digComp->getInputStates();
                 auto &inConnections = digComp->getInputConnections();
                 auto &inConnected = digComp->getIsInputConnected();
-                inStates.insert(inStates.begin() + static_cast<long>(index), SlotState{});
-                inConnections.insert(inConnections.begin() + static_cast<long>(index), std::vector<ComponentPin>{});
-                inConnected.insert(inConnected.begin() + static_cast<long>(index), false);
+                inStates.insert(inStates.begin() + static_cast<long>(index),
+                                SlotState{});
+                inConnections.insert(inConnections.begin() +
+                                         static_cast<long>(index),
+                                     std::vector<ComponentPin>{});
+                inConnected.insert(
+                    inConnected.begin() + static_cast<long>(index), false);
                 auto inInfo = digDef->getInputSlotsInfo();
                 inInfo.count += 1;
                 digDef->setInputSlotsInfo(inInfo);
@@ -541,7 +605,9 @@ namespace Bess::SimEngine::Drivers::Digital {
         }
     }
 
-    SlotsCountChangeRes DigitalSimDriver::removeSlot(const UUID &compId, SlotType type, int index, bool force) {
+    SlotsCountChangeRes DigitalSimDriver::removeSlot(const UUID &compId,
+                                                     SlotType type, int index,
+                                                     bool force) {
         const auto digComp = getComponent<DigSimComp>(compId);
         if (!digComp)
             return SlotsCountChangeRes::noChange();
@@ -551,15 +617,16 @@ namespace Bess::SimEngine::Drivers::Digital {
             return SlotsCountChangeRes::noChange();
 
         const bool isInput = (type == SlotType::digitalInput);
-        auto info = isInput ? digDef->getInputSlotsInfo() : digDef->getOutputSlotsInfo();
+        auto info = isInput ? digDef->getInputSlotsInfo()
+                            : digDef->getOutputSlotsInfo();
 
         if ((!force && !info.isResizeable) || info.count <= 0)
             return SlotsCountChangeRes::noChange();
 
-        if (!force && !digDef->onSlotsResizeReq(isInput
-                                                    ? SlotsGroupType::input
-                                                    : SlotsGroupType::output,
-                                                info.count - 1)) {
+        if (!force &&
+            !digDef->onSlotsResizeReq(isInput ? SlotsGroupType::input
+                                              : SlotsGroupType::output,
+                                      info.count - 1)) {
             return SlotsCountChangeRes::noChange();
         }
 
@@ -672,7 +739,8 @@ namespace Bess::SimEngine::Drivers::Digital {
                     continue;
                 }
 
-                if (std::ranges::find(dependants, targetId) == dependants.end()) {
+                if (std::ranges::find(dependants, targetId) ==
+                    dependants.end()) {
                     dependants.emplace_back(targetId);
                 }
             }
@@ -710,7 +778,8 @@ namespace Bess::SimEngine::Drivers::Digital {
                     continue;
                 }
 
-                if (static_cast<size_t>(srcSlotIdx) >= srcComp->getOutputStates().size()) {
+                if (static_cast<size_t>(srcSlotIdx) >=
+                    srcComp->getOutputStates().size()) {
                     continue;
                 }
 
@@ -734,53 +803,61 @@ namespace Bess::SimEngine::Drivers::Digital {
         return collapsed;
     }
 
-    std::vector<SlotState> DigitalSimDriver::getInputSlotsState(const UUID &compId) {
+    std::vector<SlotState>
+    DigitalSimDriver::getInputSlotsState(const UUID &compId) {
         return collapseInputs(compId);
     }
 
-    SlotState DigitalSimDriver::getSlotState(const UUID &uuid, SlotType type, int idx) const {
+    SlotState DigitalSimDriver::getSlotState(const UUID &uuid, SlotType type,
+                                             int idx) const {
         const auto comp = getComponent<DigSimComp>(uuid);
         if (!comp) {
-            BESS_WARN("[getDigitalPinState] Component with UUID {} is invalid", (uint64_t)uuid);
+            BESS_WARN("[getDigitalPinState] Component with UUID {} is invalid",
+                      (uint64_t)uuid);
             return {LogicState::unknown, SimTime(0)};
         }
 
         if (idx < 0) {
-            BESS_WARN("[getDigitalPinState] Negative slot index {} for component {}", idx, (uint64_t)uuid);
+            BESS_WARN(
+                "[getDigitalPinState] Negative slot index {} for component {}",
+                idx, (uint64_t)uuid);
             return {LogicState::unknown, SimTime(0)};
         }
 
         if (type == SlotType::digitalOutput) {
             if (static_cast<size_t>(idx) >= comp->getOutputStates().size()) {
-                BESS_WARN("[getDigitalPinState] Output slot index {} out of range for component {}", idx, (uint64_t)uuid);
+                BESS_WARN("[getDigitalPinState] Output slot index {} out of "
+                          "range for component {}",
+                          idx, (uint64_t)uuid);
                 return {LogicState::unknown, SimTime(0)};
             }
             return comp->getOutputStates()[idx];
         }
 
         if (static_cast<size_t>(idx) >= comp->getInputStates().size()) {
-            BESS_WARN("[getDigitalPinState] Input slot index {} out of range for component {}", idx, (uint64_t)uuid);
+            BESS_WARN("[getDigitalPinState] Input slot index {} out of range "
+                      "for component {}",
+                      idx, (uint64_t)uuid);
             return {LogicState::unknown, SimTime(0)};
         }
         return comp->getInputStates()[idx];
     }
 
-    bool DigitalSimDriver::setInputSlotState(
-        const UUID &uuid,
-        int pinIdx,
-        LogicState state) {
+    bool DigitalSimDriver::setInputSlotState(const UUID &uuid, int pinIdx,
+                                             LogicState state) {
         const auto comp = getComponent<DigSimComp>(uuid);
         if (!comp) {
-            BESS_WARN("[setInputSlotState] Component with UUID {} is invalid", (uint64_t)uuid);
+            BESS_WARN("[setInputSlotState] Component with UUID {} is invalid",
+                      (uint64_t)uuid);
             return false;
         }
 
         auto &inputs = comp->getInputStates();
 
         if (pinIdx < 0 || static_cast<size_t>(pinIdx) >= inputs.size()) {
-            BESS_WARN("[setInputSlotState] Input slot index {} out of range for component {}",
-                      pinIdx,
-                      (uint64_t)uuid);
+            BESS_WARN("[setInputSlotState] Input slot index {} out of range "
+                      "for component {}",
+                      pinIdx, (uint64_t)uuid);
             return false;
         }
 
@@ -789,22 +866,21 @@ namespace Bess::SimEngine::Drivers::Digital {
         return true;
     }
 
-    bool DigitalSimDriver::setOutputSlotState(
-        const UUID &uuid,
-        int pinIdx,
-        LogicState state) {
+    bool DigitalSimDriver::setOutputSlotState(const UUID &uuid, int pinIdx,
+                                              LogicState state) {
         const auto comp = getComponent<DigSimComp>(uuid);
         if (!comp) {
-            BESS_WARN("[setOutputSlotState] Component with UUID {} is invalid", (uint64_t)uuid);
+            BESS_WARN("[setOutputSlotState] Component with UUID {} is invalid",
+                      (uint64_t)uuid);
             return false;
         }
 
         auto &outputs = comp->getOutputStates();
 
         if (pinIdx < 0 || static_cast<size_t>(pinIdx) >= outputs.size()) {
-            BESS_WARN("[setOutputSlotState] Output slot index {} out of range for component {}",
-                      pinIdx,
-                      (uint64_t)uuid);
+            BESS_WARN("[setOutputSlotState] Output slot index {} out of range "
+                      "for component {}",
+                      pinIdx, (uint64_t)uuid);
             return false;
         }
 
@@ -834,13 +910,9 @@ namespace Bess::SimEngine::Drivers::Digital {
         return m_nets;
     }
 
-    bool DigitalSimDriver::isNetUpdated() const {
-        return m_isNetUpdated;
-    }
+    bool DigitalSimDriver::isNetUpdated() const { return m_isNetUpdated; }
 
-    void DigitalSimDriver::clearNetUpdated() {
-        m_isNetUpdated = false;
-    }
+    void DigitalSimDriver::clearNetUpdated() { m_isNetUpdated = false; }
 
     Json::Value DigCompDef::toJson() const {
         Json::Value json = EvtBasedCompDef::toJson();
@@ -860,7 +932,8 @@ namespace Bess::SimEngine::Drivers::Digital {
         return json;
     }
 
-    bool DigCompDef::onSlotsResizeReq(SlotsGroupType groupType, size_t newSize) {
+    bool DigCompDef::onSlotsResizeReq(SlotsGroupType groupType,
+                                      size_t newSize) {
         if (groupType == SlotsGroupType::input)
             return m_inputSlotsInfo.isResizeable;
         return m_outputSlotsInfo.isResizeable;
@@ -883,7 +956,8 @@ namespace Bess::SimEngine::Drivers::Digital {
         }
 
         if (m_inputSlotsInfo.count <= 0) {
-            BESS_WARN("[SimulationEngine][ComponentDefinition] Input count not provided for expression(s) generation");
+            BESS_WARN("[SimulationEngine][ComponentDefinition] Input count not "
+                      "provided for expression(s) generation");
             return false;
         }
 
@@ -904,7 +978,8 @@ namespace Bess::SimEngine::Drivers::Digital {
         } else if (ExprEval::isUninaryOperator(m_opInfo.op)) {
             m_outputExpressions.reserve(m_inputSlotsInfo.count);
             for (size_t i = 0; i < m_inputSlotsInfo.count; i++) {
-                m_outputExpressions.emplace_back(std::format("{}{}", m_opInfo.op, i));
+                m_outputExpressions.emplace_back(
+                    std::format("{}{}", m_opInfo.op, i));
             }
         } else {
             BESS_ERROR("Invalid IO config for expression generation");
@@ -920,18 +995,19 @@ namespace Bess::SimEngine::Drivers::Digital {
         m_simFn = [simFn](const SimFnDataPtr &data) -> SimFnDataPtr {
             auto digData = std::dynamic_pointer_cast<DigCompSimData>(data);
             if (!digData) {
-                BESS_WARN("(DigCompDef.setSimFn) Invalid data type passed to sim function");
+                BESS_WARN("(DigCompDef.setSimFn) Invalid data type passed to "
+                          "sim function");
                 return nullptr;
             }
             return simFn(digData);
         };
     }
 
-    std::string DigCompDef::getTypeName() const {
-        return TypeName;
-    }
+    std::string DigCompDef::getTypeName() const { return TypeName; }
 
-    std::shared_ptr<DigSimComp> DigSimComp::fromDef(const std::shared_ptr<CompDef> &compDef, bool cloneDef) {
+    std::shared_ptr<DigSimComp>
+    DigSimComp::fromDef(const std::shared_ptr<CompDef> &compDef,
+                        bool cloneDef) {
         return fromDef<DigSimComp>(compDef, cloneDef);
     }
 
@@ -945,12 +1021,14 @@ namespace Bess::SimEngine::Drivers::Digital {
         auto &simEngine = SimEngine::SimulationEngine::instance();
         auto driver = simEngine.getDriverWithName(DigitalSimDriver::NAME);
         BESS_ASSERT(driver, "DigitalSimDriver not found in simulation engine");
-        auto digitalDriver = std::dynamic_pointer_cast<DigitalSimDriver>(driver);
+        auto digitalDriver =
+            std::dynamic_pointer_cast<DigitalSimDriver>(driver);
         BESS_ASSERT(digitalDriver, "Failed to cast to DigitalSimDriver");
 
         const auto &inpSimComp = driver->getComponent<DigSimComp>(inpId);
         if (!inpSimComp) {
-            BESS_WARN("(DigModuleSimComp.onPostSimulate) Input component with UUID {} not found for module with UUID {}",
+            BESS_WARN("(DigModuleSimComp.onPostSimulate) Input component with "
+                      "UUID {} not found for module with UUID {}",
                       (uint64_t)inpId, (uint64_t)getUuid());
             BESS_ASSERT(false, "Input component not found for module");
             return;
@@ -962,7 +1040,8 @@ namespace Bess::SimEngine::Drivers::Digital {
         bool inpChanged = false;
 
         BESS_ASSERT(outStates.size() == currStates.size(),
-                    "For assc Inp, output states size does not match current input states of module");
+                    "For assc Inp, output states size does not match current "
+                    "input states of module");
 
         for (size_t i = 0; i < outStates.size(); ++i) {
             if (i < currStates.size()) {
@@ -972,10 +1051,8 @@ namespace Bess::SimEngine::Drivers::Digital {
         }
 
         if (inpChanged) {
-            digitalDriver->scheduleEvt(inpId,
-                                       digitalDriver->getCurrentSimTime(),
-                                       getUuid(),
-                                       true);
+            digitalDriver->scheduleEvt(
+                inpId, digitalDriver->getCurrentSimTime(), getUuid(), true);
         }
     }
 
@@ -984,9 +1061,11 @@ namespace Bess::SimEngine::Drivers::Digital {
         JsonConvert::toJsonValue(m_inputStates, json["inputStates"]);
         JsonConvert::toJsonValue(m_outputStates, json["outputStates"]);
         JsonConvert::toJsonValue(m_inputConnections, json["inputConnections"]);
-        JsonConvert::toJsonValue(m_outputConnections, json["outputConnections"]);
+        JsonConvert::toJsonValue(m_outputConnections,
+                                 json["outputConnections"]);
         JsonConvert::toJsonValue(m_isInputConnected, json["isInputConnected"]);
-        JsonConvert::toJsonValue(m_isOutputConnected, json["isOutputConnected"]);
+        JsonConvert::toJsonValue(m_isOutputConnected,
+                                 json["isOutputConnected"]);
         JsonConvert::toJsonValue(m_netUuid, json["netUuid"]);
         return json;
     }
@@ -1003,19 +1082,23 @@ namespace Bess::SimEngine::Drivers::Digital {
         }
 
         if (json.isMember("inputConnections")) {
-            JsonConvert::fromJsonValue(json["inputConnections"], m_inputConnections);
+            JsonConvert::fromJsonValue(json["inputConnections"],
+                                       m_inputConnections);
         }
 
         if (json.isMember("outputConnections")) {
-            JsonConvert::fromJsonValue(json["outputConnections"], m_outputConnections);
+            JsonConvert::fromJsonValue(json["outputConnections"],
+                                       m_outputConnections);
         }
 
         if (json.isMember("isInputConnected")) {
-            JsonConvert::fromJsonValue(json["isInputConnected"], m_isInputConnected);
+            JsonConvert::fromJsonValue(json["isInputConnected"],
+                                       m_isInputConnected);
         }
 
         if (json.isMember("isOutputConnected")) {
-            JsonConvert::fromJsonValue(json["isOutputConnected"], m_isOutputConnected);
+            JsonConvert::fromJsonValue(json["isOutputConnected"],
+                                       m_isOutputConnected);
         }
 
         if (json.isMember("netUuid")) {
@@ -1035,7 +1118,8 @@ namespace Bess::SimEngine::Drivers::Digital {
         clearPendingEvents();
         clearComponents();
 
-        if (!json.isObject() || !json.isMember("components") || !json["components"].isArray()) {
+        if (!json.isObject() || !json.isMember("components") ||
+            !json["components"].isArray()) {
             m_isNetUpdated = false;
             return;
         }
@@ -1052,7 +1136,8 @@ namespace Bess::SimEngine::Drivers::Digital {
                     continue;
                 }
 
-                const auto comp = std::dynamic_pointer_cast<DigSimComp>(createComp(def, false));
+                const auto comp = std::dynamic_pointer_cast<DigSimComp>(
+                    createComp(def, false));
                 if (!comp) {
                     continue;
                 }
@@ -1062,11 +1147,17 @@ namespace Bess::SimEngine::Drivers::Digital {
             }
         }
 
+        std::vector<UUID> reSchedComps;
+
         m_nets.clear();
         for (const auto &[compId, compBase] : m_components) {
             const auto comp = std::dynamic_pointer_cast<DigSimComp>(compBase);
             if (!comp) {
                 continue;
+            }
+
+            if (comp->getDefinition<DigCompDef>()->getAutoReschedule()) {
+                reSchedComps.emplace_back(compId);
             }
 
             const auto &netId = comp->getNetUuid();
@@ -1077,6 +1168,14 @@ namespace Bess::SimEngine::Drivers::Digital {
             auto &net = m_nets[netId];
             net.setUUID(netId);
             net.addComponent(compId);
+        }
+
+        for (int i = 0; i < reSchedComps.size(); i++) {
+            const auto &compId = reSchedComps.at(i);
+
+            // notify after scheduling last comp
+            scheduleEvt(compId, m_currentSimTime, UUID::null,
+                        i == reSchedComps.size() - 1);
         }
 
         m_isNetUpdated = false;
@@ -1103,7 +1202,8 @@ namespace Bess::SimEngine::Drivers::Digital {
         outDef->setName("Output");
         outDef->setGroupName("IO");
         outDef->setBehaviorType(ComponentBehaviorType::output);
-        outDef->setInputSlotsInfo({SlotsGroupType::input, true, 1, {"LSB"}, {}});
+        outDef->setInputSlotsInfo(
+            {SlotsGroupType::input, true, 1, {"LSB"}, {}});
         outDef->setSimFn([](const TSimFnData &state) -> TSimFnData {
             state->simDependants = true;
             return state;
@@ -1132,14 +1232,16 @@ namespace Bess::SimEngine::Drivers::Digital {
         }
 
         if (json.isMember("expressions")) {
-            JsonConvert::fromJsonValue(json["expressions"], m_outputExpressions);
+            JsonConvert::fromJsonValue(json["expressions"],
+                                       m_outputExpressions);
         }
     }
 } // namespace Bess::SimEngine::Drivers::Digital
 
 namespace Bess::JsonConvert {
-    void toJsonValue(Json::Value &json,
-                     const Bess::SimEngine::Drivers::Digital::DigSimComp &data) {
+    void
+    toJsonValue(Json::Value &json,
+                const Bess::SimEngine::Drivers::Digital::DigSimComp &data) {
         json = data.toJson();
     }
 } // namespace Bess::JsonConvert
