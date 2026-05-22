@@ -53,6 +53,8 @@ namespace Bess {
         MAKE_GETTER_SETTER(std::vector<std::shared_ptr<Canvas::Scene>>, Scenes,
                            m_scenes);
 
+        MAKE_GETTER_SETTER(bool, IsPaused, m_isPaused);
+
         void makeRootSceneActive();
 
       private:
@@ -64,5 +66,7 @@ namespace Bess {
             m_modIdToSceneMap;
         UUID m_rootSceneId{UUID::null};
         size_t m_activeSceneIdx{0};
+
+        bool m_isPaused = false;
     };
 } // namespace Bess

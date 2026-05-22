@@ -68,15 +68,21 @@ namespace Bess::UI {
 
     void SceneViewportPanel::onBeforeDraw() {
 
-        renderAttachedScene();
+        auto &sceneDriver =
+            Pages::MainPage::getInstance()->getState().getSceneDriver();
+        if (!sceneDriver.getIsPaused()) {
+            renderAttachedScene();
+        }
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
         ImGui::SetNextWindowSizeConstraints({400.f, 400.f}, {-1.f, -1.f});
     }
 
     void SceneViewportPanel::onDraw() {
-        auto &scene =
+        auto &sceneDriver =
             Pages::MainPage::getInstance()->getState().getSceneDriver();
+
+        const auto &scene = sceneDriver.getActiveScene();
 
         const auto viewportPanelSize = ImGui::GetContentRegionAvail();
         if (viewportPanelSize.x != m_viewportSize.x ||

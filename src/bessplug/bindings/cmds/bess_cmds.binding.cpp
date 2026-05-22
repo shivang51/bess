@@ -349,10 +349,15 @@ void bind_cmds(py::module &m) {
         status->error = "";
 
         std::thread([execScriptFn, script]() {
+            auto &driver = Bess::Pages::MainPage::getInstance()
+                               ->getState()
+                               .getSceneDriver();
+            driver.setIsPaused(true);
             py::gil_scoped_acquire lock{};
             status->error = execScriptFn(script).error;
             status->log = scriptLogger->popLogs();
             status->isRunning.store(false);
+            driver.setIsPaused(false);
         }).detach();
 
         return {py::cast(true), ""};
