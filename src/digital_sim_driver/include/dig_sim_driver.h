@@ -238,6 +238,8 @@ namespace Bess::SimEngine::Drivers::Digital {
         Json::Value toJson() const override;
         void loadJson(const Json::Value &json) override;
 
+        void onInit() override;
+
       private:
         std::unordered_map<UUID, Net> m_nets;
         bool m_isNetUpdated{false};

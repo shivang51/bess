@@ -3,6 +3,7 @@
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "common/types.h"
+#include "component_catalog.h"
 #include "dig_module_def.h"
 #include "driver_registry.h"
 #include "expression_evalutator/expr_evaluator.h"
@@ -72,17 +73,17 @@ namespace Bess::SimEngine::Drivers::Digital {
             std::shared_ptr<DigCompDef> def;
 
             if (defTypeName == ModuleDefinition::TypeName) {
-                //     def = std::make_shared<ModuleDefinition>();
-                //     auto moduleDef = std::dynamic_pointer_cast<ModuleDefinition>(def);
-                //     moduleDef->setSimFn([moduleDef](const ModuleDefinition::TDigSimFnDataPtr &data) {
-                //         return moduleDef->simFunction(data);
-                //     });
-                // } else if (!defName.empty()) {
-                //     const auto baseDef = SimEngine::ComponentCatalog::instance().getComponentDefinition(defName);
-                //     BESS_ASSERT(baseDef, "Component definition with name '{}' not found in catalog", defName);
-                //     if (baseDef) {
-                //         def = std::dynamic_pointer_cast<DigCompDef>(baseDef->clone());
-                //     }
+                def = std::make_shared<ModuleDefinition>();
+                auto moduleDef = std::dynamic_pointer_cast<ModuleDefinition>(def);
+                moduleDef->setSimFn([moduleDef](const ModuleDefinition::TDigSimFnDataPtr &data) {
+                    return moduleDef->simFunction(data);
+                });
+            } else if (!defName.empty()) {
+                const auto baseDef = SimEngine::ComponentCatalog::instance().getComponentDefinition(defName);
+                BESS_ASSERT(baseDef, "Component definition with name '{}' not found in catalog", defName);
+                if (baseDef) {
+                    def = std::dynamic_pointer_cast<DigCompDef>(baseDef->clone());
+                }
             }
 
             BESS_ASSERT(def,
@@ -1079,6 +1080,36 @@ namespace Bess::SimEngine::Drivers::Digital {
         }
 
         m_isNetUpdated = false;
+    }
+
+    void DigitalSimDriver::onInit() {
+        auto &catalog = ComponentCatalog::instance();
+
+        typedef std::shared_ptr<Drivers::Digital::DigCompSimData> TSimFnData;
+
+        const auto inpDef = std::make_shared<Drivers::Digital::DigCompDef>();
+        inpDef->setName("Input");
+        inpDef->setGroupName("IO");
+        inpDef->setBehaviorType(ComponentBehaviorType::input);
+        inpDef->setOutputSlotsInfo({SlotsGroupType::output, true, 1, {}, {}});
+        inpDef->setSimFn([](const TSimFnData &state) -> TSimFnData {
+            state->simDependants = true;
+            return state;
+        });
+        inpDef->setPropDelay(TimeNs(0));
+        catalog.registerComponent(inpDef);
+
+        const auto outDef = std::make_shared<Drivers::Digital::DigCompDef>();
+        outDef->setName("Output");
+        outDef->setGroupName("IO");
+        outDef->setBehaviorType(ComponentBehaviorType::output);
+        outDef->setInputSlotsInfo({SlotsGroupType::input, true, 1, {"LSB"}, {}});
+        outDef->setSimFn([](const TSimFnData &state) -> TSimFnData {
+            state->simDependants = true;
+            return state;
+        });
+        outDef->setPropDelay(TimeNs(0));
+        catalog.registerComponent(outDef);
     }
 
     void DigCompDef::loadJson(const Json::Value &json) {

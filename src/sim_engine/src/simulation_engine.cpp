@@ -7,7 +7,6 @@
 #include "driver_registry.h"
 #include "event_dispatcher.h"
 #include "events/sim_engine_events.h"
-#include "init_components.h"
 #include "sim_driver/sim_driver.h"
 
 #include "plugin_manager.h"
@@ -36,8 +35,6 @@ namespace Bess::SimEngine {
     SimulationEngine::SimulationEngine() {
         loadDrivers();
         initDrivers();
-
-        initComponentCatalog();
 
         const auto &pluginMangaer = Plugins::PluginManager::getInstance();
 
