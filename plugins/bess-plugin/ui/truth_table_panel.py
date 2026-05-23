@@ -2,10 +2,34 @@ import typing
 import time
 import bessplug
 import bessplug.api.bess_ui as bess_ui
+import threading
 from bessplug.api.common import UUID, vec2
 from bessplug.api.scene import SlotType
 from bessplug.api.sim_engine import ComponentBehaviorType, LogicState, core
 from bessplug.api.sim_engine.driver import DigCompDef, DigSimComp, Net
+
+
+class ProgressInfo:
+    def __init__(self):
+        self.total_steps = 0
+        self.current_step = 0
+        self.latest_msg = ""
+        self.completed = False
+
+    def update(self, msg: str):
+        self.current_step += 1
+        self.latest_msg = msg
+
+    def reset(self):
+        self.total_steps = 0
+        self.current_step = 0
+        self.latest_msg = ""
+        self.completed = False
+
+    def get_progress(self) -> float:
+        if self.total_steps == 0:
+            return 0.0
+        return self.current_step / self.total_steps
 
 
 class TruthTablePanel:
@@ -22,6 +46,10 @@ class TruthTablePanel:
         self._outputs: list[UUID] = []
 
         self._fetched_comps = False
+        self._progress_info: ProgressInfo = ProgressInfo()
+        self._gen_thread = None
+
+        self._table: list[tuple[list[int], list[int]]] = []
 
     def draw(self):
         if not self._is_open:
@@ -60,9 +88,21 @@ class TruthTablePanel:
             bess_ui.end_panel()
             return
 
-        if bess_ui.button("Calculate Table"):
+        if self._gen_thread and self._gen_thread.is_alive():
+            if not self._progress_info.completed:
+                bess_ui.text(
+                    f"Progress: {self._progress_info.get_progress() * 100:.2f}%"
+                )
+                bess_ui.same_line()
+                bess_ui.separator(True)
+                bess_ui.same_line()
+                bess_ui.text(self._progress_info.latest_msg)
+        elif bess_ui.button("Calculate Table"):
             self._fetch_comps()
-            self._gen_truth_table()
+            self._gen_thread = threading.Thread(
+                target=self._gen_truth_table, name="TruthTableGenThread", daemon=True
+            )
+            self._gen_thread.start()
 
         if not self._fetched_comps:
             bess_ui.same_line()
@@ -80,6 +120,13 @@ class TruthTablePanel:
 
         if not self._outputs:
             bess_ui.text("No outputs found in net")
+
+        if self._progress_info.completed:
+            bess_ui.text("Truth Table:")
+            for inp_states, out_states in self._table:
+                inp_str = " ".join(str(s) for s in inp_states)
+                out_str = " ".join(str(s) for s in out_states)
+                bess_ui.text(f"{inp_str} | {out_str}")
 
         bess_ui.end_panel()
 
@@ -109,6 +156,7 @@ class TruthTablePanel:
         if not self._inputs or not self._outputs:
             return []
 
+        self._table = []
         table = []
 
         num_inputs = 0
@@ -122,6 +170,9 @@ class TruthTablePanel:
             num_inputs += dig_def.output_slots_info.count
 
         num_rows = 2**num_inputs
+
+        self._progress_info.reset()
+        self._progress_info.total_steps = num_rows
 
         for i in range(num_rows):
             core.pause()
@@ -138,12 +189,14 @@ class TruthTablePanel:
                     self._set_inp_comp_state(comp_id, slot_idx, input_states[idx])
                     idx += 1
 
-            print(f"Set inputs for row {i}: {input_states}")
+            self._progress_info.update(f"Running for row {i+1} of {num_rows}")
 
             core.resume()
 
             while not core.is_sim_stable():
-                print("Waiting for sim to stabilize...")
+                self._progress_info.latest_msg = (
+                    f"Waiting for sim to stabilize for row {i+1} of {num_rows}..."
+                )
                 time.sleep(0.01)
 
             output_states = []
@@ -152,9 +205,10 @@ class TruthTablePanel:
                 output_states = output_states + states
 
             table.append((input_states, output_states))
-            print(f"Row {i} output: {output_states}")
+            self._progress_info.latest_msg = f"Completed row {i+1} of {num_rows}"
 
-        return table
+        self._progress_info.completed = True
+        self._table = table
 
     def _set_inp_comp_state(self, comp_id: UUID, idx: int, state: int):
         comp = self._comps.get(comp_id)
