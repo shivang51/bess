@@ -229,6 +229,23 @@ void bind_sim_engine_driver(py::module_ &m) {
             return self.getComponentsMap().size();
         });
 
+    py::class_<Net, std::shared_ptr<Net>>(m, "Net")
+        .def(py::init<>())
+        .def_property("uuid", &Net::getUUID,
+                      py::overload_cast<const Bess::UUID &>(&Net::setUUID))
+        .def("add_component", &Net::addComponent, py::arg("component_uuid"))
+        .def("get_components", &Net::getComponents,
+             py::return_value_policy::reference_internal)
+        .def("join", &Net::join, py::arg("other"))
+        .def("remove_component", &Net::removeComponent,
+             py::arg("component_uuid"))
+        .def("remove_components", &Net::removeComponents,
+             py::arg("component_uuids"))
+        .def("add_components", &Net::addComponents, py::arg("component_uuids"))
+        .def("set_components", &Net::setComponents, py::arg("component_uuids"))
+        .def("clear", &Net::clear)
+        .def("size", &Net::size);
+
     bind_event_based_sim_driver(m);
     bind_dig_sim_driver(m);
 }

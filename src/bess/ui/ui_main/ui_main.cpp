@@ -96,11 +96,11 @@ namespace Bess::UI {
         }
     } // namespace
 
+    bool UIMain::m_isDockSpaceDirty = true;
+
     void UIMain::draw() {
-        static bool firstFrame = true;
-        if (firstFrame) {
+        if (m_isDockSpaceDirty) {
             resetDockspace();
-            firstFrame = false;
         }
 
         for (auto &panel : getPanels()) {
@@ -644,7 +644,15 @@ namespace Bess::UI {
                                          DockIds[panel->getDefaultDock()]);
         }
 
+        for (const auto &[panelName, dock] : getExtPanelsDockMap()) {
+            if (dock == Dock::none)
+                continue;
+
+            ImGui::DockBuilderDockWindow(panelName.c_str(), DockIds[dock]);
+        }
+
         ImGui::DockBuilderFinish(mainDockspaceId);
+        m_isDockSpaceDirty = false;
     }
 
     void UIMain::onNewProject() {
@@ -745,6 +753,11 @@ namespace Bess::UI {
         return s_preInitCallbacks;
     }
 
+    std::unordered_map<std::string, Dock> &UIMain::getExtPanelsDockMap() {
+        static std::unordered_map<std::string, Dock> m_extPanelsDockMap;
+        return m_extPanelsDockMap;
+    }
+
     std::unordered_map<std::type_index, std::shared_ptr<Panel>> &
     UIMain::getPanelMap() {
         static std::unordered_map<std::type_index, std::shared_ptr<Panel>>
@@ -755,6 +768,18 @@ namespace Bess::UI {
     std::vector<std::shared_ptr<SceneViewportPanel>> &UIMain::getScenePanels() {
         static std::vector<std::shared_ptr<SceneViewportPanel>> m_scenePanels;
         return m_scenePanels;
+    }
+
+    void UIMain::regExtPanelDock(const std::string &panelName,
+                                 const Dock &dock) {
+        auto &map = getExtPanelsDockMap();
+
+        if (map.contains(panelName) && map[panelName] == dock) {
+            return;
+        }
+
+        getExtPanelsDockMap()[panelName] = dock;
+        m_isDockSpaceDirty = true;
     }
 
     void UIMain::update(TimeMs ts,

@@ -1,6 +1,8 @@
+#include "dock_ids.h"
 #include "gtc/type_ptr.hpp"
 #include "imgui.h"
 #include "ui/widgets/m_widgets.h"
+#include "ui_main/ui_main.h"
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -89,4 +91,15 @@ void bind_bess_ui(py::module &m) {
     });
 
     m.def("tree_pop", []() { ImGui::TreePop(); });
+
+    py::enum_<Bess::UI::Dock>(m, "Dock")
+        .value("left", Bess::UI::Dock::left)
+        .value("right", Bess::UI::Dock::right)
+        .value("top", Bess::UI::Dock::top)
+        .value("bottom", Bess::UI::Dock::bottom);
+
+    m.def("try_reg_dock",
+          [](const std::string &panelName, Bess::UI::Dock dock) {
+              Bess::UI::UIMain::regExtPanelDock(panelName, dock);
+          });
 }

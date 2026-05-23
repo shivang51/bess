@@ -11,9 +11,15 @@ class ScriptingPanel:
         self._cmd_res: bessplug.cmds.CmdResult | None = None
 
         self._script_str = ""
+        self._is_first = True
 
     def draw(self):
         if not self._is_open:
+            return
+
+        if self._is_first:
+            self._is_first = False
+            bess_ui.try_reg_dock(self.name, bess_ui.Dock.bottom)
             return
 
         self._is_open = bess_ui.begin_panel(self.name, vec2(250, 250), self._is_open)
@@ -34,12 +40,12 @@ class ScriptingPanel:
             clicked = bess_ui.button("Run Script")
 
         [changed, val] = bess_ui.input_text_multiline(
-            "##ScriptEditor", self._script_str
+            "##ScriptEditor", self._script_str, vec2(-1, 500)
         )
 
         if not status.is_running:
             bess_ui.text("Script output:")
-            bess_ui.text_multiline("##script_output", str(status.log), vec2(0, 150))
+            bess_ui.text_multiline("##script_output", str(status.log), vec2(-1, 150))
 
         if changed:
             self._script_str = val

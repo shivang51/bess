@@ -213,8 +213,8 @@ namespace Bess::UI {
                     [&](uint64_t id) { sceneState.detachChild(id); });
             }
             drawContextMenu();
-            ImGui::EndChild();
         }
+        ImGui::EndChild();
 
         ImGui::Spacing();
         ImGui::Separator();

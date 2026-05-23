@@ -21,6 +21,7 @@ void bind_ui_hook(py::module_ &m);
 void bind_bess_ui(py::module_ &m);
 void bind_plugin(py::module_ &m);
 void bind_cmds(py::module_ &m);
+void bind_sim_engine_core(py::module_ &m);
 
 void bind_api(py::module_ &m);
 
@@ -58,9 +59,9 @@ void bind_api(py::module_ &m) {
 
     // Sim Engine
     bind_sim_engine_types(simEngine);
-    // bind_sim_engine_component_definition(simEngine);
     bind_sim_engine_driver(simEngineDriver);
     bind_sim_functions(simFn);
+    bind_sim_engine_core(simEngine);
 
     // Scene
     bind_scene_common_binding(scene);

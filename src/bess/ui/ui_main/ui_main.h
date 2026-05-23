@@ -62,6 +62,9 @@ namespace Bess::UI {
         static std::vector<std::shared_ptr<SceneViewportPanel>> &
         getScenePanels();
 
+        static void regExtPanelDock(const std::string &panelName,
+                                    const Dock &dock);
+
       private:
         static void drawProjectExplorer();
         static void drawMenubar();
@@ -72,11 +75,13 @@ namespace Bess::UI {
         static void onSaveProject();
 
       private:
-        // menu bar events
         static void onNewProject();
         static std::vector<std::shared_ptr<Panel>> &getPanels();
         static std::unordered_map<std::type_index, std::shared_ptr<Panel>> &
         getPanelMap();
         static std::vector<PreInitCallback> &getPreInitCallbacks();
+        static std::unordered_map<std::string, Dock> &getExtPanelsDockMap();
+
+        static bool m_isDockSpaceDirty;
     };
 } // namespace Bess::UI
