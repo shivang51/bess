@@ -15,12 +15,12 @@ namespace Bess {
 
     std::shared_ptr<Canvas::Scene>
     SceneDriver::setActiveScene(UUID id, bool updateCmdSys) {
-        std::unique_lock lock(m_scenesMutex);
 
         if (UUID::null == id || !m_sceneIdToSceneMap.contains(id)) {
             return nullptr;
         }
 
+        std::unique_lock lock(m_scenesMutex);
         if (m_activeScene) {
             m_activeScene->getState().clearSelectedComponents();
         }
@@ -32,6 +32,7 @@ namespace Bess {
                 m_scenes, [&](const std::shared_ptr<Canvas::Scene> &scene) {
                     return scene->getSceneId() == id;
                 }));
+        lock.unlock();
 
         if (updateCmdSys) {
             auto &cmdSystem =
@@ -42,7 +43,9 @@ namespace Bess {
         if (!m_activeScene->getState().getIsRootScene()) {
             const auto &modId = m_activeScene->getState().getModuleId();
             if (modId != UUID::null && !m_modIdToSceneMap.contains(modId)) {
+                lock.lock();
                 m_modIdToSceneMap[modId] = m_activeScene;
+                lock.unlock();
             }
         }
 
@@ -51,7 +54,6 @@ namespace Bess {
             UI::UIMain::getScenePanels().front()->setAttachedScene(
                 m_activeScene);
         }
-        lock.unlock();
         BESS_INFO("[SceneDriver] Active scene set to id {}.", (uint64_t)id);
         return m_activeScene;
     }
