@@ -83,6 +83,9 @@ void bind_material_renderer(py::module_ &m) {
              "Draw a colored circle on the screen", py::arg("center"),
              py::arg("radius"), py::arg("color"), py::arg("id"),
              py::arg("inner_radius") = 0.0f)
+        .def("draw_line", &Bess::Renderer::MaterialRenderer::drawLine,
+             py::arg("start"), py::arg("end"), py::arg("thickness"),
+             py::arg("color"), py::arg("id"))
         .def("draw_text", &Bess::Renderer::MaterialRenderer::drawText,
              "Draw text on the screen", py::arg("text"), py::arg("position"),
              py::arg("size"), py::arg("color"), py::arg("id"),
