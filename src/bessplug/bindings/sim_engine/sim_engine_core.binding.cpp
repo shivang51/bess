@@ -9,7 +9,7 @@
 
 namespace py = pybind11;
 
-const std::unordered_map<Bess::UUID, Bess::SimEngine::Net> &
+std::unordered_map<Bess::UUID, Bess::SimEngine::Net>
 getNetsMap(bool update = true) {
     return Bess::SimEngine::SimulationEngine::instance().getNetsMap(update);
 }

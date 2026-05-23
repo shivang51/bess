@@ -562,12 +562,6 @@ namespace Bess::Verilog {
                 return j;
             };
 
-            // FIXME: AUXDATA
-            // created->setAuxData(VerCompDefAuxData{
-            //     .id = "DffParams",
-            //     .toJsonCb = paramsToJson,
-            // });
-
             const auto rstIdx = p.rstSlotIndex();
             const auto enIdx = p.enSlotIndex();
 
