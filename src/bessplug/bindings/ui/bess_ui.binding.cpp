@@ -114,4 +114,26 @@ void bind_bess_ui(py::module &m) {
           [](const std::string &panelName, Bess::UI::Dock dock) {
               Bess::UI::UIMain::regExtPanelDock(panelName, dock);
           });
+
+    // TABLE
+
+    m.def("begin_table", [](const std::string &id, int columnCount) {
+        return ImGui::BeginTable(
+            id.c_str(), columnCount,
+            ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
+                ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_Resizable |
+                ImGuiTableFlags_Reorderable);
+    });
+
+    m.def("end_table", []() { ImGui::EndTable(); });
+
+    m.def("table_setup_column", [](const std::string &label) {
+        ImGui::TableSetupColumn(label.c_str());
+    });
+
+    m.def("table_headers_row", []() { ImGui::TableHeadersRow(); });
+
+    m.def("table_next_column", []() { ImGui::TableNextColumn(); });
+
+    // TABLE END
 }

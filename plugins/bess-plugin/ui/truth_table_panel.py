@@ -50,6 +50,67 @@ class TruthTablePanel:
         self._gen_thread = None
 
         self._table: list[tuple[list[int], list[int]]] = []
+        self._table_regen = False  # true if table was regnerated and not yet displayed
+
+        self._column_names = []
+
+    def _gen_column_names(self):
+        self._column_names = []
+
+        # reverse indexing the names so idx-0 (lsb) is rightmost in the table
+        for comp_id in self._inputs:
+            comp = self._comps.get(comp_id)
+            if not comp:
+                continue
+
+            dig_def = typing.cast(DigCompDef, comp.definition)
+            for slot_idx in range(dig_def.output_slots_info.count):
+                idx = dig_def.output_slots_info.count - 1 - slot_idx
+                self._column_names.append(f"INP-{comp.name}-{idx}")
+
+        for comp_id in self._outputs:
+            comp = self._comps.get(comp_id)
+            if not comp:
+                continue
+
+            dig_def = typing.cast(DigCompDef, comp.definition)
+            for slot_idx in range(dig_def.input_slots_info.count):
+                idx = dig_def.input_slots_info.count - 1 - slot_idx
+                self._column_names.append(f"OUT-{comp.name}-{idx}")
+
+    def _rev_states(self):
+        # reversing the states so idx-0 (lsb) is rightmost in the table
+        for inp_states, out_states in self._table:
+            inp_states.reverse()
+            out_states.reverse()
+
+    def draw_table(self):
+        if not self._table:
+            return
+
+        if self._table_regen:
+            self._gen_column_names()
+            self._rev_states()
+            self._table_regen = False
+
+        if not bess_ui.begin_table("TruthTable", len(self._column_names)):
+            return
+
+        for col_name in self._column_names:
+            bess_ui.table_setup_column(col_name)
+
+        bess_ui.table_headers_row()
+
+        for inp_states, out_states in self._table:
+            for state in inp_states:
+                bess_ui.table_next_column()
+                bess_ui.text(str(state))
+
+            for state in out_states:
+                bess_ui.table_next_column()
+                bess_ui.text(str(state))
+
+        bess_ui.end_table()
 
     def draw(self):
         if not self._is_open:
@@ -122,11 +183,7 @@ class TruthTablePanel:
             bess_ui.text("No outputs found in net")
 
         if self._progress_info.completed:
-            bess_ui.text("Truth Table:")
-            for inp_states, out_states in self._table:
-                inp_str = " ".join(str(s) for s in inp_states)
-                out_str = " ".join(str(s) for s in out_states)
-                bess_ui.text(f"{inp_str} | {out_str}")
+            self.draw_table()
 
         bess_ui.end_panel()
 
@@ -209,6 +266,7 @@ class TruthTablePanel:
 
         self._progress_info.completed = True
         self._table = table
+        self._table_regen = True
 
     def _set_inp_comp_state(self, comp_id: UUID, idx: int, state: int):
         comp = self._comps.get(comp_id)
