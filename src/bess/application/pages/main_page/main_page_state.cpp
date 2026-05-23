@@ -317,24 +317,29 @@ namespace Bess::Pages {
                 session.phase = VerilogImportSession::Phase::importSimulation;
                 break;
             case VerilogImportSession::Phase::importSimulation:
-                // session.stagedResult =
-                // Verilog::importVerilogFilesIntoSimulationEngine(
-                //     toFilesystemPaths(session.paths),
-                //     simEngine);
+                session.stagedResult =
+                    Verilog::importVerilogFilesIntoSimulationEngine(
+                        toFilesystemPaths(session.paths), simEngine);
                 session.progress = 0.7f;
                 session.stageMessage = "Creating scene components";
                 session.phase = VerilogImportSession::Phase::createScene;
                 break;
-            case VerilogImportSession::Phase::createScene:
+            case VerilogImportSession::Phase::createScene: {
                 if (!scene) {
                     throw std::runtime_error("No active scene available");
                 }
-                populateSceneFromVerilogImportResult(*session.stagedResult,
-                                                     simEngine, *scene);
+                auto res = session.stagedResult;
+                if (!res.has_value()) {
+                    throw std::runtime_error(
+                        "No staged result available for scene population");
+                }
+                populateSceneFromVerilogImportResult(res.value(), simEngine,
+                                                     *scene);
                 session.progress = 0.92f;
                 session.stageMessage = "Updating nets";
                 session.phase = VerilogImportSession::Phase::updateNets;
-                break;
+
+            } break;
             case VerilogImportSession::Phase::updateNets:
                 if (!scene) {
                     throw std::runtime_error("No active scene available");

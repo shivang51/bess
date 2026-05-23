@@ -6,8 +6,8 @@
 #include "component_definition.h"
 #include "dig_sim_driver.h"
 #include "expression_evalutator/expr_evaluator.h"
-#include "init_components.h"
 #include "sim_driver/sim_driver.h"
+#include "simulation_engine.h"
 #include "types.h"
 #include <algorithm>
 #include <fstream>
@@ -20,6 +20,11 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+
+namespace Bess::SimEngine::Drivers::Digital {
+    std::shared_ptr<DigCompSimData>
+    exprEvalSimFunc(const std::shared_ptr<DigCompSimData> &simData);
+}
 
 namespace Bess::Verilog {
     using namespace Bess::SimEngine;
@@ -302,6 +307,15 @@ namespace Bess::Verilog {
         std::vector<std::string> makeIndexedSlotNames(const std::string &prefix,
                                                       size_t count);
 
+        void initIO() {
+            auto driver = SimulationEngine::instance().getDriverWithName(
+                Drivers::Digital::DigitalSimDriver::NAME);
+            auto digitalDriver = std::dynamic_pointer_cast<Drivers::Digital::DigitalSimDriver>(driver);
+            if (digitalDriver) {
+                digitalDriver->onInit();
+            }
+        }
+
         std::shared_ptr<Drivers::CompDef>
         ensureBuiltinIoDefinition(const std::string &name) {
             auto definition = findDefinitionByName(name);
@@ -342,7 +356,8 @@ namespace Bess::Verilog {
             created->setOutputSlotsInfo(
                 {SlotsGroupType::output, false, outputs, {}, {}});
             created->setOutputExpressions(expressions);
-            created->setSimFn(ExprEval::exprEvalSimFunc);
+            created->setSimFn(
+                ::Bess::SimEngine::Drivers::Digital::exprEvalSimFunc);
             created->setPropDelay(SimDelayNanoSeconds(2));
 
             ComponentCatalog::instance().registerComponent(created);

@@ -9,6 +9,7 @@ void bind_sim_engine_types(py::module_ &m);
 void bind_sim_functions(py::module_ &m);
 void bind_sim_engine_component_definition(py::module_ &m);
 void bind_sim_engine_driver(py::module_ &m);
+void bind_verilog(py::module_ &m);
 void bind_scene_schematic_diagram(py::module_ &m);
 void bind_scene_component(py::module_ &m);
 void bind_sim_scene_component(py::module_ &m);
@@ -40,6 +41,7 @@ void bind_api(py::module_ &m) {
         mApi.def_submodule("sim_engine", "Simulation engine bindings");
     auto simEngineDriver =
         simEngine.def_submodule("driver", "Simulation driver bindings");
+    auto verilog = mApi.def_submodule("verilog", "Verilog bindings");
     auto simFn = simEngine.def_submodule(
         "sim_functions", "Simulation engine prebuilt simulation functions");
     auto scene = mApi.def_submodule("scene", "Scene bindings");
@@ -60,6 +62,7 @@ void bind_api(py::module_ &m) {
     // Sim Engine
     bind_sim_engine_types(simEngine);
     bind_sim_engine_driver(simEngineDriver);
+    bind_verilog(verilog);
     bind_sim_functions(simFn);
     bind_sim_engine_core(simEngine);
 

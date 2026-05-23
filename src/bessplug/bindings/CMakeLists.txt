@@ -34,6 +34,7 @@ set(BESS_PYBIND_SOURCES
 		sim_engine/driver/driver.binding.cpp
 		sim_engine/driver/event_based_sim_driver.binding.cpp
 		sim_engine/driver/dig_sim_driver.binding.cpp
+		verilog.binding.cpp
 
 		assets/asset_manager.binding.cpp
 
@@ -55,6 +56,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 	BessJson
 	BessCmdSystem
 	BessApp
+	bverilog
 )
 
 add_dependencies(${PROJECT_NAME}
@@ -66,6 +68,7 @@ add_dependencies(${PROJECT_NAME}
 	BessScene
 	BessUI
 	BessJson
+	bverilog
 )
 
 find_package(glfw3 REQUIRED)
