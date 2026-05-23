@@ -7,7 +7,7 @@
 #include "scene_draw_context.h"
 #include "settings/viewport_theme.h"
 #include "sim_scene_component.h"
-#include "types.h"
+
 #include "ui/ui.h"
 
 #include "simulation_engine.h"

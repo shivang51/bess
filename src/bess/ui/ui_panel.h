@@ -2,7 +2,6 @@
 
 #include "common/class_helpers.h"
 #include "common/types.h"
-#include "component_definition.h"
 #include "dock_ids.h"
 #include "events/application_event.h"
 #include "imgui.h"

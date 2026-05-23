@@ -3,12 +3,12 @@
 #include "common/logger.h"
 #include "common/types.h"
 #include "component_catalog.h"
-#include "component_definition.h"
+
 #include "dig_sim_driver.h"
 #include "expression_evalutator/expr_evaluator.h"
 #include "sim_driver/sim_driver.h"
 #include "simulation_engine.h"
-#include "types.h"
+
 #include <algorithm>
 #include <fstream>
 #include <memory>
@@ -310,7 +310,9 @@ namespace Bess::Verilog {
         void initIO() {
             auto driver = SimulationEngine::instance().getDriverWithName(
                 Drivers::Digital::DigitalSimDriver::NAME);
-            auto digitalDriver = std::dynamic_pointer_cast<Drivers::Digital::DigitalSimDriver>(driver);
+            auto digitalDriver =
+                std::dynamic_pointer_cast<Drivers::Digital::DigitalSimDriver>(
+                    driver);
             if (digitalDriver) {
                 digitalDriver->onInit();
             }

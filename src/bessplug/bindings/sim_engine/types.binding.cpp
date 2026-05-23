@@ -1,14 +1,9 @@
-#include "types.h"
-#include "component_definition.h"
-#include "internal_types.h"
+#include "common/types.h"
 
-#include <cstdint>
-#include <iostream>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
-#include <typeinfo>
 
 namespace py = pybind11;
 
@@ -94,87 +89,6 @@ void bind_sim_engine_types(py::module_ &m) {
                    ">";
         });
 
-    py::class_<ComponentState>(m, "ComponentState")
-        .def(py::init<>())
-        .def(py::init<const ComponentState &>())
-        .def_property(
-            "input_states",
-            [](ComponentState &self) -> std::vector<SlotState> & {
-                return self.inputStates;
-            },
-            [](ComponentState &self, const std::vector<SlotState> &v) {
-                self.inputStates = v;
-            },
-            py::return_value_policy::reference_internal)
-        .def_property(
-            "output_states",
-            [](ComponentState &self) -> std::vector<SlotState> & {
-                return self.outputStates;
-            },
-            [](ComponentState &self, const std::vector<SlotState> &v) {
-                self.outputStates = v;
-            },
-            py::return_value_policy::reference_internal)
-        .def(
-            "set_output_state",
-            [](ComponentState &self, std::size_t idx, const SlotState &value) {
-                if (idx >= self.outputStates.size()) {
-                    throw py::index_error("output index out of range");
-                }
-                self.outputStates[idx] = value;
-            },
-            py::arg("idx"), py::arg("value"))
-        .def_readwrite("is_changed", &ComponentState::isChanged)
-        .def("copy",
-             [](const ComponentState &self) {
-                 ComponentState cpy = self;
-                 return cpy;
-             })
-        .def_property(
-            "input_connected",
-            [](const ComponentState &self) { return self.inputConnected; },
-            [](ComponentState &self, const std::vector<bool> &v) {
-                self.inputConnected = v;
-            })
-        .def_property(
-            "output_connected",
-            [](const ComponentState &self) { return self.outputConnected; },
-            [](ComponentState &self, const std::vector<bool> &v) {
-                self.outputConnected = v;
-            })
-        .def_property(
-            "aux_data",
-            [](const ComponentState &self) -> py::object {
-                if (self.auxData &&
-                    self.auxData->type() == typeid(Bess::Py::OwnedPyObject)) {
-                    const auto &owned =
-                        std::any_cast<const Bess::Py::OwnedPyObject &>(
-                            *self.auxData);
-                    return owned.object;
-                }
-                return py::none();
-            },
-            [](ComponentState &self, py::object obj) {
-                if (self.auxData &&
-                    self.auxData->type() == typeid(Bess::Py::OwnedPyObject)) {
-                    delete self.auxData;
-                    self.auxData = nullptr;
-                }
-                self.auxData = new std::any(Bess::Py::OwnedPyObject{obj});
-            },
-            "Get or set the aux_data as a Python object if it was set via "
-            "set_aux_pyobject.")
-        .def(
-            "clear_aux_data",
-            [](ComponentState &self) {
-                if (self.auxData &&
-                    self.auxData->type() == typeid(Bess::Py::OwnedPyObject)) {
-                    delete self.auxData;
-                    self.auxData = nullptr;
-                }
-            },
-            "Clear aux_data if it was set via set_aux_pyobject.");
-
     py::enum_<SlotType>(m, "PinType")
         .value("INPUT", SlotType::digitalInput)
         .value("OUTPUT", SlotType::digitalOutput)
@@ -211,10 +125,5 @@ void bind_sim_engine_types(py::module_ &m) {
         .value("NONE", ComponentBehaviorType::none)
         .value("INPUT", ComponentBehaviorType::input)
         .value("OUTPUT", ComponentBehaviorType::output)
-        .export_values();
-
-    py::enum_<CompDefIOGrowthPolicy>(m, "CompDefIOGrowthPolicy")
-        .value("NONE", CompDefIOGrowthPolicy::none)
-        .value("EQ", CompDefIOGrowthPolicy::eq)
         .export_values();
 }

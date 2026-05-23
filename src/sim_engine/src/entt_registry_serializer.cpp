@@ -1,5 +1,5 @@
 #include "entt_registry_serializer.h"
-#include "digital_component.h"
+
 #include <fstream>
 #include <iostream>
 

@@ -6,7 +6,7 @@
 #include "scene/scene_state/components/scene_component.h"
 #include "scene_comp_types.h"
 #include "scene_draw_context.h"
-#include "types.h"
+
 
 #define CONNJOINT_SC_SER_PROPS                                                 \
     ("connSegIdx", getConnSegIdx, setConnSegIdx),                              \

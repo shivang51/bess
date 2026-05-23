@@ -27,10 +27,9 @@ set(BESS_PYBIND_SOURCES
 		scene/scene_component.binding.cpp
 		scene/sim_scene_component.binding.cpp
 
-		sim_engine/types.cpp
+		sim_engine/types.binding.cpp
 		sim_engine/sim_engine_core.binding.cpp
-		sim_engine/sim_functions.cpp
-		sim_engine/component_definition.binding.cpp
+		sim_engine/sim_functions.binding.cpp
 		sim_engine/driver/driver.binding.cpp
 		sim_engine/driver/event_based_sim_driver.binding.cpp
 		sim_engine/driver/dig_sim_driver.binding.cpp

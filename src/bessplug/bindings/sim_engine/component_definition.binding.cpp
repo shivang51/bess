@@ -8,9 +8,8 @@
     #define PYBIND11_DEBUG
 #endif
 
-#include "component_definition.h"
 #include "internal_types.h"
-#include "types.h"
+
 
 #include <iostream>
 #include <pystate.h>

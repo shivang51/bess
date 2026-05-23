@@ -4,12 +4,9 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 
 set(Header_Files
-    "include/digital_component.h"
-    "include/types.h"
     "include/simulation_engine.h"
 		"include/driver_registry.h"
     "include/component_catalog.h"
-    "include/component_definition.h"
 		"include/expression_evalutator/expr_evaluator.h"
 		"include/utils/string_utils.h"
 )
@@ -19,9 +16,7 @@ set(Source_Files
 		"src/driver_registry.cpp"
 	  "src/expr_evaluator.cpp"
     "src/simulation_engine.cpp"
-    "src/digital_component.cpp"
     "src/component_catalog.cpp"
-    "src/component_definition.cpp"
 		"src/utils/string_utils.cpp"
 )
 source_group("src" FILES ${Source_Files})

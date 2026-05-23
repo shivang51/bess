@@ -10,7 +10,7 @@
 #include "settings/viewport_theme.h"
 #include "sim_scene_component.h"
 #include "slot_scene_component.h"
-#include "types.h"
+
 #include "ui/ui.h"
 #include <cstdint>
 #include <memory>

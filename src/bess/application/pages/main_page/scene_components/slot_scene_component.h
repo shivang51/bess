@@ -6,7 +6,6 @@
 #include "scene/scene_state/components/scene_component.h"
 #include "scene_comp_types.h"
 #include "scene_draw_context.h"
-#include "types.h"
 
 namespace Bess::Canvas {
     enum class SlotType : uint8_t {

@@ -2,7 +2,7 @@
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
-#include "component_definition.h"
+
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/proxy_slot_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
