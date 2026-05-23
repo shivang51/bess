@@ -1,4 +1,6 @@
+#include "common/bess_uuid.h"
 #include "net/net.h"
+#include "sim_driver/sim_driver.h"
 #include "simulation_engine.h"
 
 #include <pybind11/pybind11.h>
@@ -21,6 +23,16 @@ void resumeSimEngine() {
         Bess::SimEngine::SimulationState::running);
 }
 
+std::shared_ptr<Bess::SimEngine::Drivers::SimComponent>
+getComp(const Bess::UUID &id) {
+    return Bess::SimEngine::SimulationEngine::instance()
+        .getComponent<Bess::SimEngine::Drivers::SimComponent>(id);
+}
+
+bool isSimStable() {
+    return Bess::SimEngine::SimulationEngine::instance().isSimStable();
+}
+
 void bind_sim_engine_core(py::module_ &m) {
     auto coreMod = m.def_submodule("core", "Core simulation engine bindings");
 
@@ -30,4 +42,9 @@ void bind_sim_engine_core(py::module_ &m) {
     coreMod.def("pause", &pauseSimEngine, "Pause the simulation engine");
 
     coreMod.def("resume", &resumeSimEngine, "Resume the simulation engine");
+
+    coreMod.def("get_comp", &getComp, py::arg("uuid"), "Get sim comp with id");
+
+    coreMod.def("is_sim_stable", &isSimStable,
+                "Check if the simulation engine is in a stable state");
 }

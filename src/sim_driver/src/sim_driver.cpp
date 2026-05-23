@@ -84,6 +84,8 @@ namespace Bess::SimEngine::Drivers {
         m_components.clear();
     }
 
+    bool SimDriver::isSimStable() const { return true; }
+
     ConnectionBundle SimDriver::getConnections(const UUID &uuid) const {
         return {};
     }

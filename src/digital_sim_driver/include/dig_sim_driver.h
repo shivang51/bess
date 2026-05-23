@@ -208,6 +208,8 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         void onBeforeRun() override;
 
+        bool isSimStable() const override;
+
         std::pair<bool, std::string>
         canConnectComponents(const UUID &src, int srcSlotIdx, SlotType srcType,
                              const UUID &dst, int dstSlotIdx,

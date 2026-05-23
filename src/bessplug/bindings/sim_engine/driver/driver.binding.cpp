@@ -103,6 +103,11 @@ class PySimDriver : public Bess::SimEngine::Drivers::SimDriver {
         PYBIND11_OVERRIDE_PURE_NAME(void, Bess::SimEngine::Drivers::SimDriver,
                                     "load_json", loadJson, json);
     }
+
+    bool isSimStable() const override {
+        PYBIND11_OVERRIDE_PURE_NAME(bool, Bess::SimEngine::Drivers::SimDriver,
+                                    "is_sim_stable", isSimStable);
+    }
 };
 
 class PyCompDef : public Bess::SimEngine::Drivers::CompDef,
@@ -223,6 +228,7 @@ void bind_sim_engine_driver(py::module_ &m) {
         .def("remove_slot", &SimDriver::removeSlot, py::arg("component_id"),
              py::arg("slot_type"), py::arg("index"), py::arg("force") = false)
         .def("clear_pending_events", &SimDriver::clearPendingEvents)
+        .def("is_sim_stable", &SimDriver::isSimStable)
         .def("to_json", &SimDriver::toJson)
         .def("load_json", &SimDriver::loadJson, py::arg("json"))
         .def("component_count", [](const SimDriver &self) {

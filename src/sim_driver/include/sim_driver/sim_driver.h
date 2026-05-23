@@ -129,6 +129,8 @@ namespace Bess::SimEngine::Drivers {
 
         virtual void clearComponents();
 
+        virtual bool isSimStable() const;
+
         virtual void clearPendingEvents() {}
 
         // Connection management

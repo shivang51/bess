@@ -85,7 +85,7 @@ void bind_cmds(py::module &m) {
         return {py::cast(compId), ""};
     };
 
-    m.def("add_comp", addCompFn,
+    m.def("add", addCompFn,
           "Adds a component to the current circuit by definition name.",
           py::arg("comp_name"));
 

@@ -908,8 +908,13 @@ namespace Bess::SimEngine {
     }
 
     bool SimulationEngine::isSimStable() {
-        std::lock_guard lk(m_queueMutex);
-        return isSimStableLocked();
+        for (const auto &driver : m_simDrivers) {
+            if (!driver->isSimStable()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     bool SimulationEngine::isSimStableLocked() const {

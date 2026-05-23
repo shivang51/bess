@@ -186,6 +186,21 @@ namespace Bess::SimEngine::Drivers::Digital {
         BESS_DEBUG("Starting DigitalSimDriver run loop");
     }
 
+    bool DigitalSimDriver::isSimStable() const {
+        if (m_events.empty()) {
+            return true;
+        }
+
+        if (m_events.size() == 1) {
+            const auto &evt = *m_events.begin();
+            auto comp = getComponent<DigSimComp>(evt.compId);
+            return comp &&
+                   comp->getDefinition<DigCompDef>()->getAutoReschedule();
+        }
+
+        return false;
+    }
+
     std::shared_ptr<SimComponent>
     DigitalSimDriver::createComp(const std::shared_ptr<CompDef> &def,
                                  bool cloneDef) {

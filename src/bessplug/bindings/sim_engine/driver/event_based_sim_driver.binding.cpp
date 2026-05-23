@@ -14,6 +14,12 @@ class PyEvtBasedSimDriver : public Bess::SimEngine::Drivers::EvtBasedSimDriver {
     using Bess::SimEngine::Drivers::EvtBasedSimDriver::EvtBasedSimDriver;
     using CanConnectResult = std::pair<bool, std::string>;
 
+    bool isSimStable() const override {
+        PYBIND11_OVERRIDE_PURE_NAME(bool,
+                                    Bess::SimEngine::Drivers::EvtBasedSimDriver,
+                                    "is_sim_stable", isSimStable);
+    }
+
     std::string getName() const override {
         PYBIND11_OVERRIDE_PURE_NAME(std::string,
                                     Bess::SimEngine::Drivers::EvtBasedSimDriver,
