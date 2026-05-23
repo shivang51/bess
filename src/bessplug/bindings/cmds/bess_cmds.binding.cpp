@@ -189,7 +189,7 @@ void bind_cmds(py::module &m) {
     };
 
     // id is of scene component
-    m.def("set_inp_state_n", setInpStateNFn,
+    m.def("set_inp_comp_state_n", setInpStateNFn,
           "Sets the state of input coponent slot. \
 					For it work make sure input names are unique in your circuit",
           py::arg("comp_name"), py::arg("slot_idx"), py::arg("state"));
@@ -269,7 +269,7 @@ void bind_cmds(py::module &m) {
           "Organizes components in the scene using a specified method.\
 					Currently only 'hierarchical' method is supported.");
 
-    m.def("set_inp_state", setInpStateFn,
+    m.def("set_inp_comp_state", setInpStateFn,
           "Sets the state of input component slot.", py::arg("comp_id"),
           py::arg("slot_idx"), py::arg("state"));
 

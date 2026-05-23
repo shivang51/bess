@@ -197,8 +197,6 @@ namespace Bess::Canvas {
     std::vector<UUID> SceneState::removeComponent(const UUID &uuid,
                                                   const UUID &callerId) {
 
-        std::unique_lock lock(m_componentsMutex);
-
         BESS_INFO("[SceneState] Removing component {}", (uint64_t)uuid);
         auto component = getComponentByUuid(uuid);
         BESS_ASSERT(component, "Component was not found");
@@ -233,7 +231,9 @@ namespace Bess::Canvas {
             m_rootComponents.erase(uuid);
         }
 
+        std::unique_lock lock(m_componentsMutex);
         m_componentsMap.erase(uuid);
+        lock.unlock();
 
         if (callerId == UUID::master &&
             component->getParentComponent() != UUID::null) {

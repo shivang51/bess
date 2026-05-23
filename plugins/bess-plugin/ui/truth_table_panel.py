@@ -1,9 +1,9 @@
 import typing
-from bessplug.api import sim_engine
+import time
+import bessplug
 import bessplug.api.bess_ui as bess_ui
 from bessplug.api.common import UUID, vec2
-from bessplug.api.sim_engine import ComponentBehaviorType, core
-import bessplug
+from bessplug.api.sim_engine import ComponentBehaviorType, LogicState, core
 from bessplug.api.sim_engine.driver import DigCompDef, DigSimComp, Net
 
 
@@ -101,3 +101,50 @@ class TruthTablePanel:
                     self._outputs.append(comp.uuid)
 
         self._fetched_comps = True
+
+    def _gen_truth_table(self):
+        if not self._inputs or not self._outputs:
+            return []
+
+        table = []
+
+        num_inputs = len(self._inputs)
+        num_rows = 2**num_inputs
+
+        for i in range(num_rows):
+            input_states = [(i >> bit) & 1 for bit in range(num_inputs)]
+            for comp_id, state in zip(self._inputs, input_states):
+                self._set_inp_comp_state(comp_id, 0, state)
+
+            while not core.is_sim_stable():
+                print("Waiting for sim to stabilize...")
+                time.sleep(0.01)
+
+            output_states = []
+            for out_id in self._outputs:
+                states = self._get_output_comp_states(out_id)
+                output_states.append(states[0] if states else 0)
+
+            table.append((input_states, output_states))
+
+        return table
+
+    def _set_inp_comp_state(self, comp_id: UUID, idx: int, state: int):
+        comp = self._comps.get(comp_id)
+        if not comp:
+            return
+
+        logic_state = LogicState.HIGH if state == 1 else LogicState.LOW
+
+        bessplug.cmds.set_inp_state(comp_id, idx, logic_state)
+
+    def _get_output_comp_states(self, comp_id: UUID) -> list[int]:
+        comp = self._comps.get(comp_id)
+        if not comp:
+            return []
+
+        comp = typing.cast(DigSimComp, comp)
+
+        states = bessplug.cmds.get_inp_states(comp_id).result
+
+        return [1 if s == LogicState.HIGH else 0 for s in states]
