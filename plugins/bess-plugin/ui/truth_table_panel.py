@@ -35,7 +35,7 @@ class ProgressInfo:
 class TruthTablePanel:
     def __init__(self):
         self.name = "Truth Table Panel"
-        self._is_open = True
+        self.is_open = False
         self._is_first = True
 
         self._nets: dict[UUID, Net] = {}
@@ -113,7 +113,7 @@ class TruthTablePanel:
         bess_ui.end_table()
 
     def draw(self):
-        if not self._is_open:
+        if not self.is_open:
             return
 
         if self._is_first:
@@ -122,7 +122,7 @@ class TruthTablePanel:
             self._create_basic_io_circuit()
             return
 
-        self._is_open = bess_ui.begin_panel(self.name, vec2(250, 250), self._is_open)
+        self.is_open = bess_ui.begin_panel(self.name, vec2(250, 250), self.is_open)
 
         if bess_ui.button("Refresh Nets"):
             self._nets = core.get_nets()

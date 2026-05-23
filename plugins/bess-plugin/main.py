@@ -1,6 +1,8 @@
 from typing import override
 
 from bessplug import Plugin
+from bessplug.api import bess_ui
+from bessplug.api.common import vec2
 from bessplug.api.sim_engine.driver import CompDef
 
 from components import seven_segment_display, seven_segment_display_driver
@@ -74,6 +76,28 @@ class BessPlugin(Plugin):
 
     @override
     def draw_ui(self):
+
+        bess_ui.begin_menu_bar()
+        if bess_ui.begin_menu("View"):
+            bess_ui.set_next_window_size(vec2(300, 0))
+            if bess_ui.begin_menu(self.name):
+                [changed, val] = bess_ui.checkbox(
+                    self.scripting_panel.name, self.scripting_panel.is_open
+                )
+
+                if changed:
+                    self.scripting_panel.is_open = val
+
+                [changed, val] = bess_ui.checkbox(
+                    self.truth_table_panel.name, self.truth_table_panel.is_open
+                )
+
+                if changed:
+                    self.truth_table_panel.is_open = val
+                bess_ui.end_menu()
+            bess_ui.end_menu()
+        bess_ui.end_menu_bar()
+
         self.scripting_panel.draw()
         self.truth_table_panel.draw()
 

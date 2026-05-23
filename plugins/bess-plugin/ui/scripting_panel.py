@@ -6,7 +6,7 @@ import bessplug
 class ScriptingPanel:
     def __init__(self):
         self.name = "Scripting Panel"
-        self._is_open = True
+        self.is_open = False
         self._cmd_str = 'bessplug.cmds.set_inp_state("INP_0", 0, LogicState.HIGH)'
         self._cmd_res: bessplug.cmds.CmdResult | None = None
 
@@ -14,7 +14,7 @@ class ScriptingPanel:
         self._is_first = True
 
     def draw(self):
-        if not self._is_open:
+        if not self.is_open:
             return
 
         if self._is_first:
@@ -22,7 +22,7 @@ class ScriptingPanel:
             bess_ui.try_reg_dock(self.name, bess_ui.Dock.bottom)
             return
 
-        self._is_open = bess_ui.begin_panel(self.name, vec2(250, 250), self._is_open)
+        self.is_open = bess_ui.begin_panel(self.name, vec2(250, 250), self.is_open)
 
         self._draw_single_line_cmd()
         bess_ui.separator()

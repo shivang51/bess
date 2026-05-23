@@ -12,6 +12,11 @@
 namespace py = pybind11;
 
 void bind_bess_ui(py::module &m) {
+
+    m.def("set_next_window_size", [](const glm::vec2 &size) {
+        ImGui::SetNextWindowSize(ImVec2(size.x, size.y));
+    });
+
     m.def("begin_panel", [](const std::string &name,
                             const glm::vec2 &initSize = glm::vec2(200.f, 200.f),
                             bool open = true) {
@@ -56,9 +61,17 @@ void bind_bess_ui(py::module &m) {
         return std::make_tuple(changed, value);
     });
 
-    m.def("checkbox", [](const std::string &label, bool &value) {
-        return ImGui::Checkbox(label.c_str(), &value);
-    });
+    m.def(
+        "checkbox",
+        [](const std::string &label, bool &value, bool expand = true,
+           bool alignToFramePadding = false) {
+            const auto changed = Bess::UI::Widgets::CheckboxWithLabel(
+                label.c_str(), &value, expand, alignToFramePadding);
+
+            return std::make_tuple(changed, value);
+        },
+        py::arg("label"), py::arg("value"), py::arg("expand") = true,
+        py::arg("align_to_frame_padding") = false);
 
     m.def("button", [](const std::string &label) {
         return ImGui::Button(label.c_str());
@@ -136,4 +149,35 @@ void bind_bess_ui(py::module &m) {
     m.def("table_next_column", []() { ImGui::TableNextColumn(); });
 
     // TABLE END
+
+    // MENUBAR
+
+    m.def("begin_menu_bar", []() {
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.f, 6.f));
+        return ImGui::BeginMainMenuBar();
+    });
+
+    m.def("end_menu_bar", []() {
+        ImGui::EndMainMenuBar();
+        ImGui::PopStyleVar(2);
+    });
+
+    m.def("begin_menu", [](const std::string &label) {
+        return ImGui::BeginMenu(label.c_str());
+    });
+
+    m.def(
+        "menu_item",
+        [](const std::string &label, const std::string &shortcut,
+           bool selected = false, bool enabled = true) {
+            return ImGui::MenuItem(label.c_str(), shortcut.c_str(), selected,
+                                   enabled);
+        },
+        py::arg("label"), py::arg("shortcut") = "", py::arg("selected") = false,
+        py::arg("enabled") = true);
+
+    m.def("end_menu", []() { ImGui::EndMenu(); });
+
+    // MENUBAR END
 }
