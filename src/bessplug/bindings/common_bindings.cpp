@@ -254,9 +254,17 @@ void bind_bess_uuid(py::module_ &m) {
         .def("__int__",
              [](const UUID &self) { return static_cast<uint64_t>(self); })
 
+        .def("__str__", [](const UUID &self) { return self.toString(); })
+
         .def("__repr__",
              [](const UUID &self) {
                  return std::format("<UUID {}>", static_cast<uint64_t>(self));
+             })
+
+        .def("__hash__",
+             [](const UUID &self) {
+                 std::hash<uint64_t> hasher;
+                 return hasher(static_cast<uint64_t>(self));
              })
 
         .def("__eq__", [](const UUID &a, const UUID &b) { return a == b; })
@@ -265,6 +273,10 @@ void bind_bess_uuid(py::module_ &m) {
         .def_property_readonly(
             "value",
             [](const UUID &self) { return static_cast<uint64_t>(self); })
+
+        .def_static(
+            "from_str",
+            [](const std::string &str) { return UUID::fromString(str); })
 
         .def_readonly_static("null", &UUID::null);
 }

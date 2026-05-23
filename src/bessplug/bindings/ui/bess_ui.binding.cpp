@@ -1,6 +1,7 @@
 #include "dock_ids.h"
 #include "gtc/type_ptr.hpp"
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "ui/widgets/m_widgets.h"
 #include "ui_main/ui_main.h"
 #include <pybind11/functional.h>
@@ -35,7 +36,14 @@ void bind_bess_ui(py::module &m) {
 
     m.def("same_line", []() { ImGui::SameLine(); });
 
-    m.def("separator", []() { ImGui::Separator(); });
+    m.def(
+        "separator",
+        [](bool vertical = false) {
+            ImGui::SeparatorEx(vertical ? ImGuiSeparatorFlags_Vertical
+                                        : ImGuiSeparatorFlags_Horizontal);
+        },
+        py::arg("vertical") = false,
+        "Create a separator line (horizontal or vertical)");
 
     m.def("align_text_to_frame_padding",
           []() { ImGui::AlignTextToFramePadding(); });
@@ -75,11 +83,15 @@ void bind_bess_ui(py::module &m) {
     m.def("input_text_multiline", inputTextMultilineFn, py::arg("label"),
           py::arg("value"), py::arg("size") = glm::vec2(0.f, 400.f));
 
-    m.def("combo_box", [](const std::string &label, std::string &currentItem,
-                          const std::vector<std::string> &items) {
-        bool changed = Bess::UI::Widgets::ComboBox(label, currentItem, items);
-        return std::make_tuple(changed, currentItem);
-    });
+    m.def(
+        "combo_box",
+        [](const std::string &label, std::string &currentItem,
+           const std::vector<std::string> &items) {
+            bool changed =
+                Bess::UI::Widgets::ComboBox(label, currentItem, items);
+            return std::make_tuple(changed, currentItem);
+        },
+        py::arg("label"), py::arg("currentItem"), py::arg("items"));
 
     m.def("color_edit4", [](const std::string &label, glm::vec4 &color) {
         bool changed = ImGui::ColorEdit4(label.c_str(), glm::value_ptr(color));

@@ -24,6 +24,7 @@ from ui.scripting_panel import ScriptingPanel
 
 from components.clock import clock_def
 from scene.clock_comp import ClockComp
+from ui.truth_table_panel import TruthTablePanel
 
 
 class BessPlugin(Plugin):
@@ -32,6 +33,7 @@ class BessPlugin(Plugin):
         self.name = "BESS Plugin"
         self.version = "1.0.0.dev"
         self.scripting_panel = ScriptingPanel()
+        self.truth_table_panel = TruthTablePanel()
 
     @override
     def on_comp_catalog_load(self) -> list[CompDef]:
@@ -73,6 +75,7 @@ class BessPlugin(Plugin):
     @override
     def draw_ui(self):
         self.scripting_panel.draw()
+        self.truth_table_panel.draw()
 
 
 plugin_hwd = BessPlugin()

@@ -739,7 +739,6 @@ namespace Bess::UI {
         registerPanel<ProjectSettingsWindow>();
         registerPanel<SceneExportWindow>();
         registerPanel<SettingsWindow>();
-        registerPanel<TruthTableWindow>();
         registerPanel<SceneViewportPanel>("MainViewport");
     }
 
