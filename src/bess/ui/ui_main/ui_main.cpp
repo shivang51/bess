@@ -24,7 +24,6 @@
 #include "ui/ui_main/project_settings_window.h"
 #include "ui/ui_main/properties_panel.h"
 #include "ui/ui_main/settings_window.h"
-#include "ui/ui_main/truth_table_window.h"
 #include "ui_main/scene_viewport_panel.h"
 #include <filesystem>
 #include <vector>

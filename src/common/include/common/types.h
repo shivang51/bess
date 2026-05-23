@@ -104,12 +104,6 @@ namespace Bess {
                                              SimTime, const ComponentState &)>
             SimulationFunction;
 
-        struct TruthTable {
-            std::vector<std::vector<LogicState>> table;
-            std::vector<UUID> inputUuids;
-            std::vector<UUID> outputUuids;
-        };
-
     } // namespace SimEngine
 }; // namespace Bess
 

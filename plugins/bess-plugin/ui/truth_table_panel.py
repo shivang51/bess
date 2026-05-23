@@ -119,8 +119,6 @@ class TruthTablePanel:
         if self._is_first:
             self._is_first = False
             bess_ui.try_reg_dock(self.name, bess_ui.Dock.bottom)
-            self._create_basic_io_circuit()
-            return
 
         self.is_open = bess_ui.begin_panel(self.name, vec2(250, 250), self.is_open)
 

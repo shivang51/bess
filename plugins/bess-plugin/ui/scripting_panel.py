@@ -7,7 +7,7 @@ class ScriptingPanel:
     def __init__(self):
         self.name = "Scripting Panel"
         self.is_open = False
-        self._cmd_str = 'bessplug.cmds.set_inp_state("INP_0", 0, LogicState.HIGH)'
+        self._cmd_str = ""
         self._cmd_res: bessplug.cmds.CmdResult | None = None
 
         self._script_str = ""
@@ -20,7 +20,6 @@ class ScriptingPanel:
         if self._is_first:
             self._is_first = False
             bess_ui.try_reg_dock(self.name, bess_ui.Dock.bottom)
-            return
 
         self.is_open = bess_ui.begin_panel(self.name, vec2(250, 250), self.is_open)
 

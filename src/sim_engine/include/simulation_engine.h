@@ -105,8 +105,6 @@ namespace Bess::SimEngine {
         void triggerPropagation(const UUID &sourceId);
         void markPendingSignalSource(const UUID &sourceId);
 
-        TruthTable getTruthTableOfNet(const UUID &netUuid);
-
         bool isSimStable();
 
         void addOnSlotCountChangeCB(const UUID &id,
