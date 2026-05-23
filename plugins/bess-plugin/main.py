@@ -79,6 +79,7 @@ class BessPlugin(Plugin):
 
         bess_ui.begin_menu_bar()
         if bess_ui.begin_menu("View"):
+            bess_ui.separator()
             bess_ui.set_next_window_size(vec2(300, 0))
             if bess_ui.begin_menu(self.name):
                 [changed, val] = bess_ui.checkbox(
