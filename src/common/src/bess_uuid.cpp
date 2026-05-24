@@ -10,8 +10,7 @@ namespace Bess {
     constexpr UUID UUID::null = UUID(0);
     constexpr UUID UUID::master = UUID(9);
 
-    UUID::UUID() : m_UUID(s_UniformDistribution(s_Engine)) {
-    }
+    UUID::UUID() : m_UUID(s_UniformDistribution(s_Engine)) {}
 
     std::string UUID::toString() const noexcept {
         return std::to_string(m_UUID);

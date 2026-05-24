@@ -15,7 +15,7 @@
 #include "scene_draw_context.h"
 #include "settings/viewport_theme.h"
 #include "slot_scene_component.h"
-#include "types.h"
+
 #include "ui/ui.h"
 #include <cstdint>
 
@@ -26,24 +26,24 @@ namespace Bess::Canvas {
 #endif
     }
 
-    void ConnectionSceneComponent::update(TimeMs frameTime, SceneState &sceneState) {
+    void ConnectionSceneComponent::update(TimeMs frameTime,
+                                          SceneState &sceneState) {
         if (m_segmentPosCacheDirty) {
             resetSegmentPositionCache(sceneState);
         }
     }
 
-    std::vector<std::shared_ptr<SceneComponent>> ConnectionSceneComponent::clone(
-        const SceneState &sceneState) const {
+    std::vector<std::shared_ptr<SceneComponent>>
+    ConnectionSceneComponent::clone(const SceneState &sceneState) const {
         (void)sceneState;
-        BESS_ASSERT(false,
-                    "Cloning ConnectionSceneComponent is supported via cloneConn function");
+        BESS_ASSERT(false, "Cloning ConnectionSceneComponent is supported via "
+                           "cloneConn function");
     }
 
-    void ConnectionSceneComponent::drawSegments(const SceneState &state,
-                                                const glm::vec3 &startPos,
-                                                const glm::vec3 &endPos,
-                                                const glm::vec4 &color,
-                                                const std::shared_ptr<Renderer::PathRenderer> &pathRenderer) {
+    void ConnectionSceneComponent::drawSegments(
+        const SceneState &state, const glm::vec3 &startPos,
+        const glm::vec3 &endPos, const glm::vec4 &color,
+        const std::shared_ptr<Renderer::PathRenderer> &pathRenderer) {
 
         const auto &segCache = state.getIsSchematicView()
                                    ? m_segCachedSchemeticPos
@@ -51,8 +51,7 @@ namespace Bess::Canvas {
 
         BESS_ASSERT(!segCache.empty(), "Segment position cache is empty");
 
-        if (m_segmentPosCacheDirty ||
-            startPos != segCache.front() ||
+        if (m_segmentPosCacheDirty || startPos != segCache.front() ||
             endPos != segCache.back()) {
             resetSegmentPositionCache(state);
         }
@@ -65,8 +64,7 @@ namespace Bess::Canvas {
 
         auto pos = segCache.front();
         pos.z = 0.5f;
-        pathRenderer->beginPathMode(pos,
-                                    m_hoveredSegIdx == 0 ? 3 : weight,
+        pathRenderer->beginPathMode(pos, m_hoveredSegIdx == 0 ? 3 : weight,
                                     color, pickingId);
 
         size_t segmentIndex = 0;
@@ -76,10 +74,9 @@ namespace Bess::Canvas {
             const bool isHovered = m_hoveredSegIdx == segmentIndex;
             pickingId.info = segmentIndex++;
 
-            pathRenderer->pathLineTo(glm::vec3(segPos.x, segPos.y, isHovered ? 0.82f : pos.z),
-                                     isHovered ? 3 : weight,
-                                     color,
-                                     pickingId);
+            pathRenderer->pathLineTo(
+                glm::vec3(segPos.x, segPos.y, isHovered ? 0.82f : pos.z),
+                isHovered ? 3 : weight, color, pickingId);
         }
 
         pathRenderer->endPathMode(false, false, glm::vec4(0.f), true,
@@ -128,7 +125,8 @@ namespace Bess::Canvas {
                 const auto &slot = startComp->cast<ConnJointSceneComp>();
                 startSlotState = slot->getSlotState(state).state;
             } else {
-                BESS_ASSERT(false, "Start slot component not convertable to SlotSceneComponent or ConnJointSceneComp");
+                BESS_ASSERT(false, "Start slot component not convertable to "
+                                   "SlotSceneComponent or ConnJointSceneComp");
             }
 
             if (endComp->getType() == SceneComponentType::slot) {
@@ -138,10 +136,11 @@ namespace Bess::Canvas {
                 const auto &slot = endComp->cast<ConnJointSceneComp>();
                 endSlotState = slot->getSlotState(state).state;
             } else {
-                BESS_ASSERT(false, "End slot component not convertable to SlotSceneComponent or ConnJointSceneComp");
+                BESS_ASSERT(false, "End slot component not convertable to "
+                                   "SlotSceneComponent or ConnJointSceneComp");
             }
 
-            const bool isHigh = startSlotState == SimEngine::LogicState::high ||
+            const bool isHigh = startSlotState == SimEngine::LogicState::high &&
                                 endSlotState == SimEngine::LogicState::high;
 
             if (isHigh) {
@@ -155,20 +154,22 @@ namespace Bess::Canvas {
 
         auto startPos = startComp->getAbsolutePosition(state);
         if (startComp->getType() == SceneComponentType::slot) {
-            startPos = startComp->cast<SlotSceneComponent>()->getConnectionPos(state);
+            startPos =
+                startComp->cast<SlotSceneComponent>()->getConnectionPos(state);
         }
 
         auto endPos = endComp->getAbsolutePosition(state);
         if (endComp->getType() == SceneComponentType::slot) {
-            endPos = endComp->cast<SlotSceneComponent>()->getConnectionPos(state);
+            endPos =
+                endComp->cast<SlotSceneComponent>()->getConnectionPos(state);
         }
 
         drawSegments(state, startPos, endPos, color, context.pathRenderer);
 
-        if (m_hoveredSegIdx >= 0 && state.getConnectionStartSlot() != UUID::null) {
+        if (m_hoveredSegIdx >= 0 &&
+            state.getConnectionStartSlot() != UUID::null) {
             context.materialRenderer->drawCircle(
-                {state.getMousePos(), 0.51f},
-                6.f,
+                {state.getMousePos(), 0.51f}, 6.f,
                 ViewportTheme::colors.selectedComp,
                 PickingId{m_runtimeId, (uint32_t)m_hoveredSegIdx});
         }
@@ -193,8 +194,10 @@ namespace Bess::Canvas {
             resetSegmentPositionCache(state);
         }
 
-        const auto startComp = state.getComponentByUuid<SlotSceneComponent>(m_startSlot);
-        const auto endComp = state.getComponentByUuid<SlotSceneComponent>(m_endSlot);
+        const auto startComp =
+            state.getComponentByUuid<SlotSceneComponent>(m_startSlot);
+        const auto endComp =
+            state.getComponentByUuid<SlotSceneComponent>(m_endSlot);
 
         if (!startComp || !endComp)
             return;
@@ -211,12 +214,14 @@ namespace Bess::Canvas {
 
         auto startPos = startComp->getAbsolutePosition(state);
         if (startComp->getType() == SceneComponentType::slot) {
-            startPos = startComp->cast<SlotSceneComponent>()->getConnectionPos(state);
+            startPos =
+                startComp->cast<SlotSceneComponent>()->getConnectionPos(state);
         }
 
         auto endPos = endComp->getAbsolutePosition(state);
         if (endComp->getType() == SceneComponentType::slot) {
-            endPos = endComp->cast<SlotSceneComponent>()->getConnectionPos(state);
+            endPos =
+                endComp->cast<SlotSceneComponent>()->getConnectionPos(state);
         }
 
         if (startComp->getType() == SceneComponentType::slot &&
@@ -230,7 +235,8 @@ namespace Bess::Canvas {
         drawSegments(state, startPos, endPos, color, context.pathRenderer);
     }
 
-    void ConnectionSceneComponent::onMouseDragged(const Events::MouseDraggedEvent &e) {
+    void ConnectionSceneComponent::onMouseDragged(
+        const Events::MouseDraggedEvent &e) {
         if (e.isMultiDrag)
             return;
 
@@ -238,16 +244,16 @@ namespace Bess::Canvas {
             onMouseDragBegin(e);
         }
 
-        auto &segs = e.sceneState->getIsSchematicView()
-                         ? m_schematicSegments
-                         : m_segments;
+        auto &segs = e.sceneState->getIsSchematicView() ? m_schematicSegments
+                                                        : m_segments;
 
         if (m_draggedSegIdx == 0) {
             ConnSegment newSeg{};
             auto &firstSeg = segs[0];
-            newSeg.orientation = firstSeg.orientation == ConnSegOrientaion::horizontal
-                                     ? ConnSegOrientaion::vertical
-                                     : ConnSegOrientaion::horizontal;
+            newSeg.orientation =
+                firstSeg.orientation == ConnSegOrientaion::horizontal
+                    ? ConnSegOrientaion::vertical
+                    : ConnSegOrientaion::horizontal;
             if (newSeg.orientation == ConnSegOrientaion::horizontal) {
                 newSeg.offset.x = e.delta.x;
             } else {
@@ -261,9 +267,10 @@ namespace Bess::Canvas {
         } else if (m_draggedSegIdx == segs.size()) {
             ConnSegment newSeg{};
             auto &lastSeg = segs[segs.size() - 1];
-            newSeg.orientation = lastSeg.orientation == ConnSegOrientaion::horizontal
-                                     ? ConnSegOrientaion::vertical
-                                     : ConnSegOrientaion::horizontal;
+            newSeg.orientation =
+                lastSeg.orientation == ConnSegOrientaion::horizontal
+                    ? ConnSegOrientaion::vertical
+                    : ConnSegOrientaion::horizontal;
 
             // offset of last segment is set from end point
 
@@ -281,24 +288,26 @@ namespace Bess::Canvas {
         m_segmentPosCacheDirty = true;
     }
 
-    void ConnectionSceneComponent::onMouseDragBegin(const Events::MouseDraggedEvent &e) {
+    void ConnectionSceneComponent::onMouseDragBegin(
+        const Events::MouseDraggedEvent &e) {
         m_draggedSegIdx = (int)e.details;
         m_isDragging = true;
     }
 
-    void ConnectionSceneComponent::setStartEndSlots(const UUID &startSlot, const UUID &endSlot) {
+    void ConnectionSceneComponent::setStartEndSlots(const UUID &startSlot,
+                                                    const UUID &endSlot) {
         m_startSlot = startSlot;
         m_endSlot = endSlot;
     }
 
-    void ConnectionSceneComponent::reconstructSegments(const SceneState &state) {
+    void
+    ConnectionSceneComponent::reconstructSegments(const SceneState &state) {
         if (m_startSlot == UUID::null || m_endSlot == UUID::null) {
             return;
         }
 
-        auto &segments = state.getIsSchematicView()
-                             ? m_schematicSegments
-                             : m_segments;
+        auto &segments =
+            state.getIsSchematicView() ? m_schematicSegments : m_segments;
         segments.clear();
 
         auto startSlotComp = state.getComponentByUuid(m_startSlot);
@@ -333,34 +342,39 @@ namespace Bess::Canvas {
         m_isFirstDraw = false;
     }
 
-    void ConnectionSceneComponent::onMouseEnter(const Events::MouseEnterEvent &e) {
+    void
+    ConnectionSceneComponent::onMouseEnter(const Events::MouseEnterEvent &e) {
         m_hoveredSegIdx = (int)e.details;
         UI::setCursorPointer();
     }
 
-    void ConnectionSceneComponent::onMouseLeave(const Events::MouseLeaveEvent &e) {
+    void
+    ConnectionSceneComponent::onMouseLeave(const Events::MouseLeaveEvent &e) {
         m_hoveredSegIdx = -1;
         UI::setCursorNormal();
     }
 
-    std::vector<UUID> ConnectionSceneComponent::cleanup(SceneState &state, UUID caller) {
+    std::vector<UUID> ConnectionSceneComponent::cleanup(SceneState &state,
+                                                        UUID caller) {
 
         for (auto &jointId : m_associatedJoints) {
-            auto jointComp = state.getComponentByUuid<ConnJointSceneComp>(jointId);
+            auto jointComp =
+                state.getComponentByUuid<ConnJointSceneComp>(jointId);
             if (jointComp) {
                 state.removeComponent(jointId, m_uuid);
-                BESS_INFO("[Scene] Removed associated joint component {}", (uint64_t)jointId);
+                BESS_INFO("[Scene] Removed associated joint component {}",
+                          (uint64_t)jointId);
             }
         }
 
-        Canvas::Events::ConnectionRemovedEvent event{m_startSlot,
-                                                     m_startSlot};
+        Canvas::Events::ConnectionRemovedEvent event{m_startSlot, m_startSlot};
         EventSystem::EventDispatcher::instance().queue(event);
 
         return {};
     }
 
-    void ConnectionSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
+    void
+    ConnectionSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
         if (e.action != Events::MouseClickAction::press ||
             e.button != Events::MouseButton::left)
             return;
@@ -378,9 +392,11 @@ namespace Bess::Canvas {
             // since there are only two orientations both alternating
             auto ori = (segIdx % 2 == 0) ? oriEven : oriOdd;
 
-            auto jointComp = std::make_shared<ConnJointSceneComp>(m_uuid, segIdx, ori);
+            auto jointComp =
+                std::make_shared<ConnJointSceneComp>(m_uuid, segIdx, ori);
 
-            const auto &startComp = e.sceneState->getComponentByUuid(m_startSlot);
+            const auto &startComp =
+                e.sceneState->getComponentByUuid(m_startSlot);
             const auto &endComp = e.sceneState->getComponentByUuid(m_endSlot);
 
             if (startComp->getType() == SceneComponentType::connJoint) {
@@ -400,7 +416,8 @@ namespace Bess::Canvas {
             }
 
             m_associatedJoints.emplace_back(jointComp->getUuid());
-            BESS_INFO("[Scene] Created joint component {}", (uint64_t)jointComp->getUuid());
+            BESS_INFO("[Scene] Created joint component {}",
+                      (uint64_t)jointComp->getUuid());
 
             // calculating t value for joint position between segment vertices
             const auto jointPos = e.sceneState->getMousePos();
@@ -414,37 +431,44 @@ namespace Bess::Canvas {
             jointComp->setSegOffset(t);
 
             // add to scene
-            auto &cmdManager = Pages::MainPage::getInstance()->getState().getCommandSystem();
-            cmdManager.execute(std::make_unique<Cmd::AddCompCmd<ConnJointSceneComp>>(jointComp));
+            auto &cmdManager =
+                Pages::MainPage::getInstance()->getState().getCommandSystem();
+            cmdManager.execute(
+                std::make_unique<Cmd::AddCompCmd<ConnJointSceneComp>>(
+                    jointComp));
 
             // connect with start slot
-            jointComp->connectWith(*e.sceneState, e.sceneState->getConnectionStartSlot());
+            jointComp->connectWith(*e.sceneState,
+                                   e.sceneState->getConnectionStartSlot());
 
             e.sceneState->setConnectionStartSlot(UUID::null);
             return;
         }
     }
 
-    void ConnectionSceneComponent::resetSegmentPositionCache(const SceneState &state) {
+    void ConnectionSceneComponent::resetSegmentPositionCache(
+        const SceneState &state) {
         m_segmentPosCacheDirty = false;
 
         const auto &startComp = state.getComponentByUuid(m_startSlot);
         const auto &endComp = state.getComponentByUuid(m_endSlot);
 
         if (!startComp || !endComp) {
-            BESS_ASSERT(false,
-                        std::format("Tried to reset segment pos of invalid conn {}", (uint64_t)m_uuid));
+            BESS_ASSERT(false, "Tried to reset segment pos of invalid conn {}",
+                        (uint64_t)m_uuid);
             return;
         }
 
         auto startPos = startComp->getAbsolutePosition(state);
         if (startComp->getType() == SceneComponentType::slot) {
-            startPos = startComp->cast<SlotSceneComponent>()->getConnectionPos(state);
+            startPos =
+                startComp->cast<SlotSceneComponent>()->getConnectionPos(state);
         }
 
         auto endPos = endComp->getAbsolutePosition(state);
         if (endComp->getType() == SceneComponentType::slot) {
-            endPos = endComp->cast<SlotSceneComponent>()->getConnectionPos(state);
+            endPos =
+                endComp->cast<SlotSceneComponent>()->getConnectionPos(state);
         }
 
         const float offsetXDecr = state.getIsSchematicView()
@@ -453,13 +477,11 @@ namespace Bess::Canvas {
         auto pos = startPos;
         auto prevPos = pos;
 
-        auto &segments = state.getIsSchematicView()
-                             ? m_schematicSegments
-                             : m_segments;
+        auto &segments =
+            state.getIsSchematicView() ? m_schematicSegments : m_segments;
 
-        auto &cache = state.getIsSchematicView()
-                          ? m_segCachedSchemeticPos
-                          : m_segmentCachedPositions;
+        auto &cache = state.getIsSchematicView() ? m_segCachedSchemeticPos
+                                                 : m_segmentCachedPositions;
 
         cache.clear();
         cache.push_back(startPos);
@@ -471,7 +493,8 @@ namespace Bess::Canvas {
                 pos.x -= offsetXDecr;
             }
 
-            // Ensure the last segment ends exactly in straight line to the endPos
+            // Ensure the last segment ends exactly in straight line to the
+            // endPos
             if (segmentIndex == segments.size() - 1) {
                 if (segment.orientation == ConnSegOrientaion::horizontal) {
                     pos.x = endPos.x;
@@ -492,19 +515,19 @@ namespace Bess::Canvas {
         m_transform.position = (startPos + endPos) / 2.f;
     }
 
-    glm::vec3 ConnectionSceneComponent::getSegVertexPos(const SceneState &state, size_t vertexIdx) {
+    glm::vec3 ConnectionSceneComponent::getSegVertexPos(const SceneState &state,
+                                                        size_t vertexIdx) {
         if (m_segmentPosCacheDirty) {
             resetSegmentPositionCache(state);
         }
 
-        auto &segments = state.getIsSchematicView()
-                             ? m_segCachedSchemeticPos
-                             : m_segmentCachedPositions;
+        auto &segments = state.getIsSchematicView() ? m_segCachedSchemeticPos
+                                                    : m_segmentCachedPositions;
 
         if (vertexIdx >= segments.size()) {
-            BESS_WARN("[ConnectionSceneComponent] Requested segment vertex index {} out of bounds (max {})",
-                      vertexIdx,
-                      segments.size() - 1);
+            BESS_WARN("[ConnectionSceneComponent] Requested segment vertex "
+                      "index {} out of bounds (max {})",
+                      vertexIdx, segments.size() - 1);
             return glm::vec3(0.f);
         }
 
@@ -516,34 +539,39 @@ namespace Bess::Canvas {
     }
 
     void ConnectionSceneComponent::removeAssociatedJoint(const UUID &jointId) {
-        m_associatedJoints.erase(std::ranges::remove(m_associatedJoints,
-                                                     jointId)
-                                     .begin(),
-                                 m_associatedJoints.end());
+        m_associatedJoints.erase(
+            std::ranges::remove(m_associatedJoints, jointId).begin(),
+            m_associatedJoints.end());
     }
 
-    std::vector<UUID> ConnectionSceneComponent::getDependants(const SceneState &state) const {
+    std::vector<UUID>
+    ConnectionSceneComponent::getDependants(const SceneState &state) const {
         std::vector<UUID> dependants;
 
         // get joints associated with this connection
         for (const auto &jointId : m_associatedJoints) {
-            const auto &jointComp = state.getComponentByUuid<ConnJointSceneComp>(jointId);
+            const auto &jointComp =
+                state.getComponentByUuid<ConnJointSceneComp>(jointId);
             const auto &jointDeps = jointComp->getDependants(state);
-            dependants.insert(dependants.end(), jointDeps.begin(), jointDeps.end());
+            dependants.insert(dependants.end(), jointDeps.begin(),
+                              jointDeps.end());
             dependants.push_back(jointId);
         }
 
         // get its depents from ConnectionService
-        const auto &sceneDriver = Pages::MainPage::getInstance()->getState().getSceneDriver();
+        const auto &sceneDriver =
+            Pages::MainPage::getInstance()->getState().getSceneDriver();
         auto &connectionsSvc = Svc::SvcConnection::instance();
-        const auto &connDependants = connectionsSvc.getDependants(getUuid(),
-                                                                  sceneDriver.getSceneWithId(state.getSceneId()).get());
-        dependants.insert(dependants.end(), connDependants.begin(), connDependants.end());
+        const auto &connDependants = connectionsSvc.getDependants(
+            getUuid(), sceneDriver.getSceneWithId(state.getSceneId()).get());
+        dependants.insert(dependants.end(), connDependants.begin(),
+                          connDependants.end());
 
         return dependants;
     }
 
-    std::vector<std::shared_ptr<SceneComponent>> ConnectionSceneComponent::cloneConn(
+    std::vector<std::shared_ptr<SceneComponent>>
+    ConnectionSceneComponent::cloneConn(
         const SceneState &state,
         std::unordered_map<UUID, UUID> &ogToClonedIdMap) {
         BESS_ASSERT(ogToClonedIdMap.contains(m_startSlot),
@@ -567,13 +595,15 @@ namespace Bess::Canvas {
         cloned->m_associatedJoints.clear();
 
         for (const auto &id : m_associatedJoints) {
-            const auto &joint = state.getComponentByUuid<ConnJointSceneComp>(id);
+            const auto &joint =
+                state.getComponentByUuid<ConnJointSceneComp>(id);
             BESS_ASSERT(joint, "[ConnClone] Joint not found in scene");
-            auto jointCloneComps = joint->cloneConnJoint(state, ogToClonedIdMap);
-            auto clonedJoint = jointCloneComps.front()->cast<ConnJointSceneComp>();
+            auto jointCloneComps =
+                joint->cloneConnJoint(state, ogToClonedIdMap);
+            auto clonedJoint =
+                jointCloneComps.front()->cast<ConnJointSceneComp>();
             BESS_ASSERT(clonedJoint, "[ConnClone] Joint was cloned with error");
-            clonedComps.insert(clonedComps.end(),
-                               jointCloneComps.begin(),
+            clonedComps.insert(clonedComps.end(), jointCloneComps.begin(),
                                jointCloneComps.end());
 
             cloned->m_associatedJoints.push_back(clonedJoint->getUuid());

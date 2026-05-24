@@ -4,8 +4,8 @@
 
 namespace Bess::Renderer::Font {
     FontFile::FontFile(const std::string &path)
-        : m_glyphExtractor(path), m_glyphCount(m_glyphExtractor.getGlyphsCount()) {
-    }
+        : m_glyphExtractor(path),
+          m_glyphCount(m_glyphExtractor.getGlyphsCount()) {}
 
     FontFile &FontFile::operator=(FontFile &&other) noexcept {
         if (this != &other) {
@@ -37,9 +37,7 @@ namespace Bess::Renderer::Font {
         other.m_glyphCount = 0;
     }
 
-    Glyph &FontFile::getGlyph(char32_t ch) {
-        return indexChar(ch);
-    }
+    Glyph &FontFile::getGlyph(char32_t ch) { return indexChar(ch); }
 
     Glyph &FontFile::getGlyph(const char *data) {
         int bytesRead = 0;
@@ -68,10 +66,9 @@ namespace Bess::Renderer::Font {
         m_glyphsTable.resize(glyphMax - glyphMin + 1);
         m_glyphExtractor.setPixelSize((int)fontSize);
 
-        BESS_DEBUG("[FontFile] Reserved lookup table for {} glyphs", m_glyphsTable.size());
+        BESS_DEBUG("[FontFile] Reserved lookup table for {} glyphs",
+                   m_glyphsTable.size());
     }
 
-    float FontFile::getSize() const {
-        return m_size;
-    }
+    float FontFile::getSize() const { return m_size; }
 } // namespace Bess::Renderer::Font

@@ -15,7 +15,8 @@ namespace Bess::Verilog {
             if (value == "inout") {
                 return PortDirection::inout;
             }
-            throw std::runtime_error("Unsupported port direction in Yosys JSON: " + value);
+            throw std::runtime_error(
+                "Unsupported port direction in Yosys JSON: " + value);
         }
 
         SignalBit parseBit(const Json::Value &value) {
@@ -23,7 +24,8 @@ namespace Bess::Verilog {
                 return SignalBit::fromNet(value.asInt64());
             }
             if (value.isUInt64()) {
-                return SignalBit::fromNet(static_cast<int64_t>(value.asUInt64()));
+                return SignalBit::fromNet(
+                    static_cast<int64_t>(value.asUInt64()));
             }
             if (value.isString()) {
                 return SignalBit::fromConstant(value.asString());
@@ -44,8 +46,9 @@ namespace Bess::Verilog {
             return bits;
         }
 
-        std::string pickTopModule(const std::vector<Module> &modules,
-                                  const std::optional<std::string> &explicitTopModule) {
+        std::string
+        pickTopModule(const std::vector<Module> &modules,
+                      const std::optional<std::string> &explicitTopModule) {
             if (explicitTopModule.has_value()) {
                 return *explicitTopModule;
             }
@@ -53,7 +56,8 @@ namespace Bess::Verilog {
             for (const auto &module : modules) {
                 const auto attrIt = module.attributes.find("top");
                 if (attrIt != module.attributes.end() &&
-                    (attrIt->second == "1" || attrIt->second == "00000000000000000000000000000001")) {
+                    (attrIt->second == "1" ||
+                     attrIt->second == "00000000000000000000000000000001")) {
                     return module.name;
                 }
             }
@@ -80,7 +84,8 @@ namespace Bess::Verilog {
                 return candidates.front();
             }
 
-            throw std::runtime_error("Unable to determine top module from Yosys JSON");
+            throw std::runtime_error(
+                "Unable to determine top module from Yosys JSON");
         }
     } // namespace
 
@@ -96,13 +101,9 @@ namespace Bess::Verilog {
         return bit;
     }
 
-    bool SignalBit::isNet() const {
-        return netId.has_value();
-    }
+    bool SignalBit::isNet() const { return netId.has_value(); }
 
-    bool SignalBit::isConstant() const {
-        return constant.has_value();
-    }
+    bool SignalBit::isConstant() const { return constant.has_value(); }
 
     std::string SignalBit::toString() const {
         if (isNet()) {
@@ -132,10 +133,13 @@ namespace Bess::Verilog {
         return nullptr;
     }
 
-    Design parseDesignFromYosysJson(const Json::Value &root,
-                                    const std::optional<std::string> &explicitTopModule) {
-        if (!root.isObject() || !root.isMember("modules") || !root["modules"].isObject()) {
-            throw std::runtime_error("Invalid Yosys JSON: missing modules object");
+    Design parseDesignFromYosysJson(
+        const Json::Value &root,
+        const std::optional<std::string> &explicitTopModule) {
+        if (!root.isObject() || !root.isMember("modules") ||
+            !root["modules"].isObject()) {
+            throw std::runtime_error(
+                "Invalid Yosys JSON: missing modules object");
         }
 
         Design design;
@@ -146,51 +150,68 @@ namespace Bess::Verilog {
             Module module;
             module.name = moduleName;
 
-            if (moduleJson.isMember("attributes") && moduleJson["attributes"].isObject()) {
-                for (const auto &attrName : moduleJson["attributes"].getMemberNames()) {
-                    module.attributes[attrName] = moduleJson["attributes"][attrName].asString();
+            if (moduleJson.isMember("attributes") &&
+                moduleJson["attributes"].isObject()) {
+                for (const auto &attrName :
+                     moduleJson["attributes"].getMemberNames()) {
+                    module.attributes[attrName] =
+                        moduleJson["attributes"][attrName].asString();
                 }
             }
 
             if (moduleJson.isMember("ports")) {
-                for (const auto &portName : moduleJson["ports"].getMemberNames()) {
+                for (const auto &portName :
+                     moduleJson["ports"].getMemberNames()) {
                     const auto &portJson = moduleJson["ports"][portName];
                     Port port;
                     port.name = portName;
-                    port.direction = parseDirection(portJson["direction"].asString());
+                    port.direction =
+                        parseDirection(portJson["direction"].asString());
                     port.bits = parseBits(portJson["bits"]);
                     module.ports.push_back(std::move(port));
                 }
             }
 
             if (moduleJson.isMember("cells")) {
-                for (const auto &cellName : moduleJson["cells"].getMemberNames()) {
+                for (const auto &cellName :
+                     moduleJson["cells"].getMemberNames()) {
                     const auto &cellJson = moduleJson["cells"][cellName];
                     Cell cell;
                     cell.name = cellName;
                     cell.type = cellJson["type"].asString();
 
                     if (cellJson.isMember("connections")) {
-                        for (const auto &connName : cellJson["connections"].getMemberNames()) {
-                            cell.connections[connName] = parseBits(cellJson["connections"][connName]);
+                        for (const auto &connName :
+                             cellJson["connections"].getMemberNames()) {
+                            cell.connections[connName] =
+                                parseBits(cellJson["connections"][connName]);
                         }
                     }
 
                     if (cellJson.isMember("port_directions")) {
-                        for (const auto &dirName : cellJson["port_directions"].getMemberNames()) {
-                            cell.portDirections[dirName] = parseDirection(cellJson["port_directions"][dirName].asString());
+                        for (const auto &dirName :
+                             cellJson["port_directions"].getMemberNames()) {
+                            cell.portDirections[dirName] = parseDirection(
+                                cellJson["port_directions"][dirName]
+                                    .asString());
                         }
                     }
 
-                    if (cellJson.isMember("parameters") && cellJson["parameters"].isObject()) {
-                        for (const auto &paramName : cellJson["parameters"].getMemberNames()) {
-                            cell.parameters[paramName] = cellJson["parameters"][paramName].asString();
+                    if (cellJson.isMember("parameters") &&
+                        cellJson["parameters"].isObject()) {
+                        for (const auto &paramName :
+                             cellJson["parameters"].getMemberNames()) {
+                            cell.parameters[paramName] =
+                                cellJson["parameters"][paramName].asString();
                         }
                     }
 
-                    if (cellJson.isMember("attributes") && cellJson["attributes"].isObject()) {
-                        for (const auto &attrName : cellJson["attributes"].getMemberNames()) {
-                            cell.attributes[attrName] = cellJson["attributes"][attrName].asString();
+                    if (cellJson.isMember("attributes") &&
+                        cellJson["attributes"].isObject()) {
+                        for (const auto &attrName :
+                             cellJson["attributes"].getMemberNames()) {
+                            cell.attributes[attrName] =
+                                cellJson["attributes"][attrName].asString();
                         }
                     }
 

@@ -5,9 +5,10 @@
 #include "scene_comp_types.h"
 #include "scene_state/scene_state.h"
 
-#define MODULE_SER_PROPS ("sceneId", getSceneId, setSceneId),                   \
-                         ("associatedInp", getAssociatedInp, setAssociatedInp), \
-                         ("associatedOut", getAssociatedOut, setAssociatedOut)
+#define MODULE_SER_PROPS                                                       \
+    ("sceneId", getSceneId, setSceneId),                                       \
+        ("associatedInp", getAssociatedInp, setAssociatedInp),                 \
+        ("associatedOut", getAssociatedOut, setAssociatedOut)
 
 namespace Bess::Canvas {
     class ModuleSceneComponent : public SimulationSceneComponent {
@@ -15,23 +16,24 @@ namespace Bess::Canvas {
         ModuleSceneComponent();
         ModuleSceneComponent(const ModuleSceneComponent &other) = default;
 
-        static std::shared_ptr<ModuleSceneComponent> fromNet(const UUID &netId,
-                                                             const std::string &name = "New Module");
+        static std::shared_ptr<ModuleSceneComponent>
+        fromNet(const UUID &netId, const std::string &name = "New Module");
 
-        static std::vector<std::shared_ptr<SceneComponent>> createNew(UUID &moduleInpId,
-                                                                      UUID &moduleOutId);
+        static std::vector<std::shared_ptr<SceneComponent>>
+        createNew(UUID &moduleInpId, UUID &moduleOutId);
 
         REG_SCENE_COMP_TYPE("ModuleSceneComponent", SceneComponentType::module)
         SCENE_COMP_SER(Bess::Canvas::ModuleSceneComponent,
-                       Bess::Canvas::SimulationSceneComponent,
-                       MODULE_SER_PROPS)
+                       Bess::Canvas::SimulationSceneComponent, MODULE_SER_PROPS)
 
-        std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const override;
+        std::vector<std::shared_ptr<SceneComponent>>
+        clone(const SceneState &sceneState) const override;
 
         void onMouseButton(const Events::MouseButtonEvent &e) override;
 
         void onAttach(SceneState &state) override;
-        std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null) override;
+        std::vector<UUID> cleanup(SceneState &state,
+                                  UUID caller = UUID::null) override;
 
         MAKE_GETTER_SETTER(UUID, SceneId, m_sceneId)
         MAKE_GETTER_SETTER(UUID, AssociatedInp, m_associatedInp)
@@ -49,5 +51,4 @@ namespace Bess::Canvas {
 } // namespace Bess::Canvas
 
 REG_SCENE_COMP(Bess::Canvas::ModuleSceneComponent,
-               Bess::Canvas::SimulationSceneComponent,
-               MODULE_SER_PROPS)
+               Bess::Canvas::SimulationSceneComponent, MODULE_SER_PROPS)

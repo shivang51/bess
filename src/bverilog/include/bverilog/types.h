@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bess_api.h"
+#include "common/bess_api.h"
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -9,11 +9,7 @@
 #include <vector>
 
 namespace Bess::Verilog {
-    enum class PortDirection : uint8_t {
-        input,
-        output,
-        inout
-    };
+    enum class PortDirection : uint8_t { input, output, inout };
 
     struct BESS_API SignalBit {
         std::optional<int64_t> netId;

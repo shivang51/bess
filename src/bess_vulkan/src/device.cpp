@@ -5,8 +5,10 @@
 
 namespace Bess::Vulkan {
 
-    VulkanDevice::VulkanDevice(const VkInstance instance, const VkSurfaceKHR surface)
-        : m_instance(instance), m_surface(surface) {
+    VulkanDevice::VulkanDevice(const VkInstance instance,
+                               const VkSurfaceKHR surface)
+        : m_instance(instance),
+          m_surface(surface) {
         pickPhysicalDevice();
         createLogicalDevice();
     }
@@ -65,7 +67,8 @@ namespace Bess::Vulkan {
         vkEnumeratePhysicalDevices(m_instance, &deviceCount, nullptr);
 
         if (deviceCount == 0) {
-            throw std::runtime_error("Failed to find GPUs with Vulkan support!");
+            throw std::runtime_error(
+                "Failed to find GPUs with Vulkan support!");
         }
 
         std::vector<VkPhysicalDevice> devices(deviceCount);
@@ -92,7 +95,9 @@ namespace Bess::Vulkan {
         m_queueFamilyIndices = findQueueFamilies(m_vkPhysicalDevice);
 
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-        std::set<uint32_t> uniqueQueueFamilies = {m_queueFamilyIndices.graphicsFamily.value(), m_queueFamilyIndices.presentFamily.value()};
+        std::set<uint32_t> uniqueQueueFamilies = {
+            m_queueFamilyIndices.graphicsFamily.value(),
+            m_queueFamilyIndices.presentFamily.value()};
 
         float queuePriority = 1.0f;
         for (uint32_t queueFamily : uniqueQueueFamilies) {
@@ -108,37 +113,41 @@ namespace Bess::Vulkan {
         vkGetPhysicalDeviceFeatures(m_vkPhysicalDevice, &supportedFeatures);
 
         VkPhysicalDeviceFeatures deviceFeatures{};
-        deviceFeatures.independentBlend = supportedFeatures.independentBlend; // needed to blend color but not picking
+        deviceFeatures.independentBlend =
+            supportedFeatures
+                .independentBlend; // needed to blend color but not picking
 
         VkDeviceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+        createInfo.queueCreateInfoCount =
+            static_cast<uint32_t>(queueCreateInfos.size());
         createInfo.pQueueCreateInfos = queueCreateInfos.data();
         createInfo.pEnabledFeatures = &deviceFeatures;
 
         const std::vector<const char *> deviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-        createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
+        createInfo.enabledExtensionCount =
+            static_cast<uint32_t>(deviceExtensions.size());
         createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-        const std::vector<const char *> validationLayers = {
-            "VK_LAYER_KHRONOS_validation"};
-        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-        createInfo.ppEnabledLayerNames = validationLayers.data();
-
-        if (vkCreateDevice(m_vkPhysicalDevice, &createInfo, nullptr, &m_vkDevice) != VK_SUCCESS) {
+        if (vkCreateDevice(m_vkPhysicalDevice, &createInfo, nullptr,
+                           &m_vkDevice) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create logical device!");
         }
 
-        vkGetDeviceQueue(m_vkDevice, m_queueFamilyIndices.graphicsFamily.value(), 0, &m_graphicsQueue);
-        vkGetDeviceQueue(m_vkDevice, m_queueFamilyIndices.presentFamily.value(), 0, &m_presentQueue);
+        vkGetDeviceQueue(m_vkDevice,
+                         m_queueFamilyIndices.graphicsFamily.value(), 0,
+                         &m_graphicsQueue);
+        vkGetDeviceQueue(m_vkDevice, m_queueFamilyIndices.presentFamily.value(),
+                         0, &m_presentQueue);
 
         VkCommandPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         poolInfo.queueFamilyIndex = m_queueFamilyIndices.graphicsFamily.value();
 
-        if (vkCreateCommandPool(m_vkDevice, &poolInfo, nullptr, &m_commandPool) != VK_SUCCESS) {
+        if (vkCreateCommandPool(m_vkDevice, &poolInfo, nullptr,
+                                &m_commandPool) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create command pool!");
         }
     }
@@ -148,11 +157,14 @@ namespace Bess::Vulkan {
 
         bool extensionsSupported = false;
         uint32_t extensionCount;
-        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount,
+                                             nullptr);
         std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount,
+                                             availableExtensions.data());
 
-        std::set<std::string> requiredExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+        std::set<std::string> requiredExtensions = {
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
         for (const auto &extension : availableExtensions) {
             requiredExtensions.erase(extension.extensionName);
@@ -163,13 +175,16 @@ namespace Bess::Vulkan {
         return indices.isComplete() && extensionsSupported;
     }
 
-    QueueFamilyIndices VulkanDevice::findQueueFamilies(const VkPhysicalDevice device) const {
+    QueueFamilyIndices
+    VulkanDevice::findQueueFamilies(const VkPhysicalDevice device) const {
         QueueFamilyIndices indices;
 
         uint32_t queueFamilyCount = 0;
-        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount,
+                                                 nullptr);
         std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount,
+                                                 queueFamilies.data());
 
         int i = 0;
         for (const auto &queueFamily : queueFamilies) {
@@ -178,7 +193,8 @@ namespace Bess::Vulkan {
             }
 
             VkBool32 presentSupport = false;
-            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_surface, &presentSupport);
+            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_surface,
+                                                 &presentSupport);
 
             if (presentSupport) {
                 indices.presentFamily = i;
@@ -194,12 +210,14 @@ namespace Bess::Vulkan {
         return indices;
     }
 
-    void VulkanDevice::submitCmdBuffers(const std::vector<VkCommandBuffer> &cmdBuffer, VkFence fence) {
+    void VulkanDevice::submitCmdBuffers(
+        const std::vector<VkCommandBuffer> &cmdBuffer, VkFence fence) {
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submitInfo.commandBufferCount = cmdBuffer.size();
         submitInfo.pCommandBuffers = cmdBuffer.data();
-        if (vkQueueSubmit(m_graphicsQueue, cmdBuffer.size(), &submitInfo, fence) != VK_SUCCESS) {
+        if (vkQueueSubmit(m_graphicsQueue, cmdBuffer.size(), &submitInfo,
+                          fence) != VK_SUCCESS) {
             throw std::runtime_error("Failed to submit draw command buffer!");
         }
     }
@@ -223,7 +241,8 @@ namespace Bess::Vulkan {
         return commandBuffer;
     }
 
-    void VulkanDevice::endSingleTimeCommands(const VkCommandBuffer commandBuffer) const {
+    void VulkanDevice::endSingleTimeCommands(
+        const VkCommandBuffer commandBuffer) const {
         vkEndCommandBuffer(commandBuffer);
 
         VkSubmitInfo submitInfo{};
@@ -237,12 +256,16 @@ namespace Bess::Vulkan {
         vkFreeCommandBuffers(m_vkDevice, m_commandPool, 1, &commandBuffer);
     }
 
-    uint32_t VulkanDevice::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const {
+    uint32_t
+    VulkanDevice::findMemoryType(uint32_t typeFilter,
+                                 VkMemoryPropertyFlags properties) const {
         VkPhysicalDeviceMemoryProperties memProperties;
         vkGetPhysicalDeviceMemoryProperties(m_vkPhysicalDevice, &memProperties);
 
         for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-            if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+            if ((typeFilter & (1 << i)) &&
+                (memProperties.memoryTypes[i].propertyFlags & properties) ==
+                    properties) {
                 return i;
             }
         }
@@ -250,7 +273,5 @@ namespace Bess::Vulkan {
         throw std::runtime_error("Failed to find suitable memory type!");
     }
 
-    void VulkanDevice::waitForIdle() {
-        vkDeviceWaitIdle(m_vkDevice);
-    }
+    void VulkanDevice::waitForIdle() { vkDeviceWaitIdle(m_vkDevice); }
 } // namespace Bess::Vulkan

@@ -1,67 +1,77 @@
 #pragma once
 
 #include "common/bess_uuid.h"
-#include "component_definition.h"
+#include "dig_sim_driver.h"
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene_comp_types.h"
 #include "scene_draw_context.h"
 #include "settings/viewport_theme.h"
+#include "sim_driver/sim_driver.h"
 #include "slot_scene_component.h"
 
-#define SIM_SC_SER_PROPS ("simEngineId", getSimEngineId, setSimEngineId), \
-                         ("netId", getNetId, setNetId),                   \
-                         ("inputSlots", getInputSlots, setInputSlots),    \
-                         ("outputSlots", getOutputSlots, setOutputSlots), \
-                         ("schematicTransform", getSchematicTransform, setSchematicTransform)
+#define SIM_SC_SER_PROPS                                                       \
+    ("simEngineId", getSimEngineId, setSimEngineId),                           \
+        ("netId", getNetId, setNetId),                                         \
+        ("inputSlots", getInputSlots, setInputSlots),                          \
+        ("outputSlots", getOutputSlots, setOutputSlots),                       \
+        ("schematicTransform", getSchematicTransform, setSchematicTransform)
 
 namespace Bess::Canvas {
-    class SimulationSceneComponent : public SceneComponent,
-                                     public DragBehaviour<SimulationSceneComponent> {
+    class SimulationSceneComponent
+        : public SceneComponent,
+          public DragBehaviour<SimulationSceneComponent> {
       public:
         SimulationSceneComponent();
-        SimulationSceneComponent(const SimulationSceneComponent &other) = default;
+        SimulationSceneComponent(const SimulationSceneComponent &other) =
+            default;
         ~SimulationSceneComponent() override = default;
 
         // Create a new SimSceneComp
         // [0] -> Component itself
         // [1...] -> Created slots
-        static std::vector<std::shared_ptr<SceneComponent>> createNew(
-            const std::shared_ptr<SimEngine::ComponentDefinition> &compDef);
+        static std::vector<std::shared_ptr<SceneComponent>>
+        createNew(const std::shared_ptr<SimEngine::Drivers::CompDef> &compDef);
 
         template <typename T = SimulationSceneComponent>
-        static std::vector<std::shared_ptr<SceneComponent>> createNew(
-            const std::shared_ptr<SimEngine::ComponentDefinition> &compDef) {
+        static std::vector<std::shared_ptr<SceneComponent>>
+        createNew(const std::shared_ptr<SimEngine::Drivers::CompDef> &compDef) {
             std::vector<std::shared_ptr<SceneComponent>> createdComps;
+
+            const auto def = std::dynamic_pointer_cast<
+                SimEngine::Drivers::Digital::DigCompDef>(compDef);
 
             const UUID uuid;
             std::shared_ptr<T> sceneComp = std::make_shared<T>();
-            sceneComp->setCompDef(compDef);
+            sceneComp->setCompDef(def);
 
             createdComps.push_back(sceneComp);
 
-            // setting the name before adding to scene state, so that event listeners can access it
-            sceneComp->setName(compDef->getName());
+            // setting the name before adding to scene state, so that event
+            // listeners can access it
+            sceneComp->setName(def->getName());
 
             // style
             auto &style = sceneComp->getStyle();
 
             style.color = ViewportTheme::colors.componentBG;
             style.borderRadius = glm::vec4(6.f);
-            style.headerColor = ViewportTheme::getCompHeaderColor(compDef->getGroupName());
+            style.headerColor =
+                ViewportTheme::getCompHeaderColor(compDef->getGroupName());
             style.borderColor = ViewportTheme::colors.componentBorder;
             style.borderSize = glm::vec4(1.f);
             style.color = ViewportTheme::colors.componentBG;
 
-            const auto &inpDetails = compDef->getInputSlotsInfo();
-            const auto &outDetails = compDef->getOutputSlotsInfo();
+            const auto &inpDetails = def->getInputSlotsInfo();
+            const auto &outDetails = def->getOutputSlotsInfo();
 
             int inSlotIdx = 0, outSlotIdx = 0;
             char inpCh = 'A', outCh = 'a';
 
-            const auto slots = sceneComp->createIOSlots(compDef->getInputSlotsInfo().count,
-                                                        compDef->getOutputSlotsInfo().count);
+            const auto slots =
+                sceneComp->createIOSlots(def->getInputSlotsInfo().count,
+                                         def->getOutputSlotsInfo().count);
 
             for (const auto &slot : slots) {
                 if (slot->getSlotType() == SlotType::digitalInput) {
@@ -99,8 +109,8 @@ namespace Bess::Canvas {
 
         // Creates the slots and also add there ids inside the components
         // input slots array and output slots array
-        std::vector<std::shared_ptr<SlotSceneComponent>> createIOSlots(size_t inputCount,
-                                                                       size_t outputCount);
+        std::vector<std::shared_ptr<SlotSceneComponent>>
+        createIOSlots(size_t inputCount, size_t outputCount);
 
         void update(Bess::TimeMs timeStep, SceneState &state) override;
 
@@ -110,14 +120,16 @@ namespace Bess::Canvas {
 
         void updateScales(const SceneState &state);
 
-        std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const override;
+        std::vector<std::shared_ptr<SceneComponent>>
+        clone(const SceneState &sceneState) const override;
 
         MAKE_GETTER_SETTER(UUID, SimEngineId, m_simEngineId)
         MAKE_GETTER_SETTER(UUID, NetId, m_netId)
         MAKE_GETTER_SETTER(std::vector<UUID>, InputSlots, m_inputSlots)
         MAKE_GETTER_SETTER(std::vector<UUID>, OutputSlots, m_outputSlots)
         MAKE_GETTER_SETTER(Transform, SchematicTransform, m_schematicTransform)
-        MAKE_GETTER_SETTER(std::shared_ptr<SimEngine::ComponentDefinition>, CompDef, m_compDef)
+        MAKE_GETTER_SETTER(std::shared_ptr<SimEngine::Drivers::CompDef>,
+                           CompDef, m_compDef)
 
         void setSchSlotsPosDirty(bool val = true);
         size_t getInputSlotsCount() const;
@@ -130,8 +142,8 @@ namespace Bess::Canvas {
 
         void setSchematicScaleDirty(bool val = true);
 
-        std::vector<UUID>
-        cleanup(SceneState &state, UUID caller = UUID::null) override;
+        std::vector<UUID> cleanup(SceneState &state,
+                                  UUID caller = UUID::null) override;
 
         void drawPropertiesUI(SceneState &state) override;
         void onAttach(SceneState &state) override;
@@ -142,10 +154,10 @@ namespace Bess::Canvas {
 
         glm::vec3 getAbsolutePosition(const SceneState &state) const override;
 
-        REG_SCENE_COMP_TYPE("SimulationSceneComponent", SceneComponentType::simulation)
+        REG_SCENE_COMP_TYPE("SimulationSceneComponent",
+                            SceneComponentType::simulation)
         SCENE_COMP_SER(Bess::Canvas::SimulationSceneComponent,
-                       Bess::Canvas::SceneComponent,
-                       SIM_SC_SER_PROPS)
+                       Bess::Canvas::SceneComponent, SIM_SC_SER_PROPS)
 
         std::vector<UUID> getDependants(const SceneState &state) const override;
 
@@ -153,25 +165,29 @@ namespace Bess::Canvas {
 
         void drawSlots(SceneDrawContext &context);
 
-        std::vector<SimEngine::LogicState> getInputStates(const SceneState &state) const;
-        std::vector<SimEngine::LogicState> getOutputStates(const SceneState &state) const;
+        std::vector<SimEngine::LogicState>
+        getInputStates(const SceneState &state) const;
+        std::vector<SimEngine::LogicState>
+        getOutputStates(const SceneState &state) const;
 
         void onTransformChanged() override;
 
-        std::vector<std::shared_ptr<SceneComponent>> cloneSimulationComponent(
-            const SceneState &sceneState,
-            const std::shared_ptr<SimulationSceneComponent> &clonedComponent) const;
+        std::vector<std::shared_ptr<SceneComponent>>
+        cloneSimulationComponent(const SceneState &sceneState,
+                                 const std::shared_ptr<SimulationSceneComponent>
+                                     &clonedComponent) const;
 
       protected:
         /**
-         * Resets the slot positions based on the current scale and number of slots
-         * in the component.
+         * Resets the slot positions based on the current scale and number of
+         * slots in the component.
          */
         void resetSlotPositions(const SceneState &state);
 
         /**
-         * Resets the schematic pin positions based on the current schematic scale and number of slots
-         * in the component. Will ignore slots that are resize slots for the schematic view.
+         * Resets the schematic pin positions based on the current schematic
+         * scale and number of slots in the component. Will ignore slots that
+         * are resize slots for the schematic view.
          */
         void resetSchematicPinsPositions(const SceneState &state);
 
@@ -194,7 +210,7 @@ namespace Bess::Canvas {
         bool m_isScaleDirty = true, m_isSchematicScaleDirty = true;
         bool m_isSchSlotsPosDirty = true;
         Transform m_schematicTransform;
-        std::shared_ptr<SimEngine::ComponentDefinition> m_compDef = nullptr;
+        std::shared_ptr<SimEngine::Drivers::CompDef> m_compDef = nullptr;
     };
 } // namespace Bess::Canvas
 

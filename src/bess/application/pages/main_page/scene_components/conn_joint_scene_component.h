@@ -6,16 +6,17 @@
 #include "scene/scene_state/components/scene_component.h"
 #include "scene_comp_types.h"
 #include "scene_draw_context.h"
-#include "types.h"
 
-#define CONNJOINT_SC_SER_PROPS ("connSegIdx", getConnSegIdx, setConnSegIdx),                \
-                               ("schConnSegIdx", getSchConnSegIdx, setSchConnSegIdx),       \
-                               ("connectionId", getConnectionId, setConnectionId),          \
-                               ("outputSlotId", getOutputSlotId, setOutputSlotId),          \
-                               ("offset", getSegOffset, setSegOffset),                      \
-                               ("schematicOffset", getSchematicOffset, setSchematicOffset), \
-                               ("segOrientation", getSegOrientation, setSegOrientation),    \
-                               ("connections", getConnections, setConnections)
+
+#define CONNJOINT_SC_SER_PROPS                                                 \
+    ("connSegIdx", getConnSegIdx, setConnSegIdx),                              \
+        ("schConnSegIdx", getSchConnSegIdx, setSchConnSegIdx),                 \
+        ("connectionId", getConnectionId, setConnectionId),                    \
+        ("outputSlotId", getOutputSlotId, setOutputSlotId),                    \
+        ("offset", getSegOffset, setSegOffset),                                \
+        ("schematicOffset", getSchematicOffset, setSchematicOffset),           \
+        ("segOrientation", getSegOrientation, setSegOrientation),              \
+        ("connections", getConnections, setConnections)
 
 namespace Bess::Canvas {
 
@@ -24,15 +25,18 @@ namespace Bess::Canvas {
                                public ProxySlotComponent {
       public:
         ConnJointSceneComp() = default;
-        ConnJointSceneComp(UUID connectionId, int connSegIdx, ConnSegOrientaion segOrientation);
+        ConnJointSceneComp(UUID connectionId, int connSegIdx,
+                           ConnSegOrientaion segOrientation);
 
         REG_SCENE_COMP_TYPE("ConnJointSceneComp", SceneComponentType::connJoint)
-        SCENE_COMP_SER(Bess::Canvas::ConnJointSceneComp, Bess::Canvas::SceneComponent, CONNJOINT_SC_SER_PROPS)
+        SCENE_COMP_SER(Bess::Canvas::ConnJointSceneComp,
+                       Bess::Canvas::SceneComponent, CONNJOINT_SC_SER_PROPS)
 
-        std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const override;
-        std::vector<std::shared_ptr<SceneComponent>> cloneConnJoint(
-            const SceneState &sceneState,
-            std::unordered_map<UUID, UUID> &ogToClonedIdMap);
+        std::vector<std::shared_ptr<SceneComponent>>
+        clone(const SceneState &sceneState) const override;
+        std::vector<std::shared_ptr<SceneComponent>>
+        cloneConnJoint(const SceneState &sceneState,
+                       std::unordered_map<UUID, UUID> &ogToClonedIdMap);
 
         MAKE_GETTER_SETTER(int, ConnSegIdx, m_connSegIdx);
         MAKE_GETTER_SETTER(int, SchConnSegIdx, m_schConnSegIdx);
@@ -60,7 +64,8 @@ namespace Bess::Canvas {
         void onMouseLeftClick(const Events::MouseButtonEvent &e);
 
         void removeConnection(const UUID &connectionId);
-        std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null) override;
+        std::vector<UUID> cleanup(SceneState &state,
+                                  UUID caller = UUID::null) override;
 
         std::vector<UUID> getDependants(const SceneState &state) const override;
 
@@ -72,9 +77,12 @@ namespace Bess::Canvas {
 
         bool m_isHovered = false;
 
-        float m_offset = -1.f, m_schematicOffset = -1.f; // normalized 0-1 offset, signifying pos on segment
+        float m_offset = -1.f,
+              m_schematicOffset =
+                  -1.f; // normalized 0-1 offset, signifying pos on segment
         ConnSegOrientaion m_segOrientation = ConnSegOrientaion::horizontal;
     };
 } // namespace Bess::Canvas
 
-REG_SCENE_COMP(Bess::Canvas::ConnJointSceneComp, Bess::Canvas::SceneComponent, CONNJOINT_SC_SER_PROPS)
+REG_SCENE_COMP(Bess::Canvas::ConnJointSceneComp, Bess::Canvas::SceneComponent,
+               CONNJOINT_SC_SER_PROPS)

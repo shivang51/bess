@@ -10,9 +10,10 @@ namespace Bess::Vulkan::Pipelines {
 
     class PathFillPipeline : public Pipeline {
       public:
-        PathFillPipeline(const std::shared_ptr<VulkanDevice> &device,
-                         const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
-                         VkExtent2D extent);
+        PathFillPipeline(
+            const std::shared_ptr<VulkanDevice> &device,
+            const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
+            VkExtent2D extent);
         ~PathFillPipeline();
 
         PathFillPipeline(const PathFillPipeline &) = delete;
@@ -20,7 +21,8 @@ namespace Bess::Vulkan::Pipelines {
         PathFillPipeline(PathFillPipeline &&other) noexcept;
         PathFillPipeline &operator=(PathFillPipeline &&other) noexcept;
 
-        void beginPipeline(VkCommandBuffer commandBuffer, bool isTranslucent) override;
+        void beginPipeline(VkCommandBuffer commandBuffer,
+                           bool isTranslucent) override;
         void endPipeline() override;
 
         void setPathData(const std::vector<CommonVertex> &fillVertices,
@@ -30,9 +32,10 @@ namespace Bess::Vulkan::Pipelines {
                                   const std::vector<uint32_t> &fillIndices,
                                   const std::vector<PathInstance> &instances);
 
-        void setPathDataWithTranslation(const std::vector<CommonVertex> &fillVertices,
-                                        const std::vector<uint32_t> &fillIndices,
-                                        const glm::vec3 &translation);
+        void setPathDataWithTranslation(
+            const std::vector<CommonVertex> &fillVertices,
+            const std::vector<uint32_t> &fillIndices,
+            const glm::vec3 &translation);
 
         // Batched draw calls using push constants per draw
         struct FillDrawCall {
@@ -57,7 +60,8 @@ namespace Bess::Vulkan::Pipelines {
             uint32_t firstIndex;
             uint32_t indexCount;
         };
-        MeshInfo ensureGlyphMesh(UUID id, const std::vector<CommonVertex> &vertices);
+        MeshInfo ensureGlyphMesh(UUID id,
+                                 const std::vector<CommonVertex> &vertices);
 
         void updateUniformBuffer(const UniformBufferObject &ubo);
 

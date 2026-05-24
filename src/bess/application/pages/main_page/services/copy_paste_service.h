@@ -47,8 +47,9 @@ namespace Bess::Svc::CopyPaste {
         void copy(const std::shared_ptr<Canvas::Scene> &scene);
 
         // Retruns og id to clone id map
-        std::unordered_map<UUID, UUID> paste(const std::shared_ptr<Canvas::Scene> &scene,
-                                             bool recordHistory = true);
+        std::unordered_map<UUID, UUID>
+        paste(const std::shared_ptr<Canvas::Scene> &scene,
+              bool recordHistory = true);
 
       private:
         void addEntity(const CopiedEntity &entity);

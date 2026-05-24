@@ -8,9 +8,10 @@ namespace Bess::Vulkan::Pipelines {
 
     class GridPipeline : public Pipeline {
       public:
-        GridPipeline(const std::shared_ptr<VulkanDevice> &device,
-                     const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
-                     VkExtent2D extent);
+        GridPipeline(
+            const std::shared_ptr<VulkanDevice> &device,
+            const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
+            VkExtent2D extent);
         ~GridPipeline() override;
 
         GridPipeline(const GridPipeline &) = delete;
@@ -18,7 +19,8 @@ namespace Bess::Vulkan::Pipelines {
         GridPipeline(GridPipeline &&other) noexcept;
         GridPipeline &operator=(GridPipeline &&other) noexcept;
 
-        void beginPipeline(VkCommandBuffer commandBuffer, bool isTranslucent) override;
+        void beginPipeline(VkCommandBuffer commandBuffer,
+                           bool isTranslucent) override;
         void endPipeline() override;
         void cleanup() override;
 

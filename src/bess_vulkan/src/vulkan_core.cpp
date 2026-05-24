@@ -7,9 +7,7 @@
 #include <vulkan/vulkan_core.h>
 
 namespace Bess::Vulkan {
-    VulkanCore::~VulkanCore() {
-        cleanup();
-    }
+    VulkanCore::~VulkanCore() { cleanup(); }
 
     bool VulkanCore::isInitialized = false;
 
@@ -28,10 +26,13 @@ namespace Bess::Vulkan {
         createSurface(m_vkInstance, m_renderSurface);
         BESS_INFO("Created VkInstance and draw surface");
 
-        m_device = std::make_shared<VulkanDevice>(m_vkInstance, m_renderSurface);
-        m_swapchain = std::make_shared<VulkanSwapchain>(m_vkInstance, m_device, m_renderSurface, windowExtent);
+        m_device =
+            std::make_shared<VulkanDevice>(m_vkInstance, m_renderSurface);
+        m_swapchain = std::make_shared<VulkanSwapchain>(
+            m_vkInstance, m_device, m_renderSurface, windowExtent);
 
-        m_renderPass = std::make_shared<VulkanRenderPass>(m_device, m_swapchain->imageFormat(), VK_FORMAT_D32_SFLOAT);
+        m_renderPass = std::make_shared<VulkanRenderPass>(
+            m_device, m_swapchain->imageFormat(), VK_FORMAT_D32_SFLOAT);
 
         m_swapchain->createFramebuffers(m_renderPass->getVkHandle());
 
@@ -47,21 +48,26 @@ namespace Bess::Vulkan {
             BESS_WARN("[VulkanCore] Frame is already started, skipping");
             return;
         }
-        vkWaitForFences(m_device->device(), 1, &m_inFlightFences[m_currentFrameIdx], VK_TRUE, UINT64_MAX);
+        vkWaitForFences(m_device->device(), 1,
+                        &m_inFlightFences[m_currentFrameIdx], VK_TRUE,
+                        UINT64_MAX);
         const auto cmdBuffer = m_commandBuffers->at(m_currentFrameIdx);
         m_currentFrameContext = {cmdBuffer, m_currentFrameIdx, true};
         cmdBuffer->beginRecording();
-        vkResetFences(m_device->device(), 1, &m_inFlightFences[m_currentFrameIdx]);
+        vkResetFences(m_device->device(), 1,
+                      &m_inFlightFences[m_currentFrameIdx]);
     }
 
     void VulkanCore::renderToSwapchain(const SwapchainRenderFn &fn) {
-        if (m_swapchain->extent().width == 0 || m_swapchain->extent().height == 0) {
+        if (m_swapchain->extent().width == 0 ||
+            m_swapchain->extent().height == 0) {
             return;
         }
 
-        const VkResult result = vkAcquireNextImageKHR(m_device->device(), m_swapchain->swapchain(), UINT64_MAX,
-                                                      m_imageAvailableSemaphores[m_currentFrameIdx],
-                                                      VK_NULL_HANDLE, &m_currentFrameContext.swapchainImgIdx);
+        const VkResult result = vkAcquireNextImageKHR(
+            m_device->device(), m_swapchain->swapchain(), UINT64_MAX,
+            m_imageAvailableSemaphores[m_currentFrameIdx], VK_NULL_HANDLE,
+            &m_currentFrameContext.swapchainImgIdx);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
             BESS_WARN("Swapchain out of date, skipping frame");
@@ -78,7 +84,10 @@ namespace Bess::Vulkan {
 
         const auto cmdBuffer = m_currentFrameContext.cmdBuffer;
 
-        m_renderPass->begin(cmdBuffer->getVkHandle(), m_swapchain->framebuffers()[m_currentFrameContext.swapchainImgIdx], m_swapchain->extent());
+        m_renderPass->begin(
+            cmdBuffer->getVkHandle(),
+            m_swapchain->framebuffers()[m_currentFrameContext.swapchainImgIdx],
+            m_swapchain->extent());
         fn(cmdBuffer->getVkHandle());
         m_renderPass->end();
     }
@@ -97,19 +106,24 @@ namespace Bess::Vulkan {
 
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-        const std::array<VkSemaphore, 1> waitSemaphores{m_imageAvailableSemaphores[m_currentFrameIdx]};
-        constexpr std::array<VkPipelineStageFlags, 1> waitStages{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+        const std::array<VkSemaphore, 1> waitSemaphores{
+            m_imageAvailableSemaphores[m_currentFrameIdx]};
+        constexpr std::array<VkPipelineStageFlags, 1> waitStages{
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
         submitInfo.waitSemaphoreCount = 1;
         submitInfo.pWaitSemaphores = waitSemaphores.data();
         submitInfo.pWaitDstStageMask = waitStages.data();
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = m_currentFrameContext.cmdBuffer->getVkHandlePtr();
+        submitInfo.pCommandBuffers =
+            m_currentFrameContext.cmdBuffer->getVkHandlePtr();
 
-        const auto renderFinishedSemaphore = &m_renderFinishedSemaphores[m_currentFrameContext.swapchainImgIdx];
+        const auto renderFinishedSemaphore =
+            &m_renderFinishedSemaphores[m_currentFrameContext.swapchainImgIdx];
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = renderFinishedSemaphore;
 
-        if (vkQueueSubmit(m_device->graphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrameIdx]) != VK_SUCCESS) {
+        if (vkQueueSubmit(m_device->graphicsQueue(), 1, &submitInfo,
+                          m_inFlightFences[m_currentFrameIdx]) != VK_SUCCESS) {
             throw std::runtime_error("Failed to submit draw command buffer!");
         }
 
@@ -118,15 +132,18 @@ namespace Bess::Vulkan {
         presentInfo.waitSemaphoreCount = 1;
         presentInfo.pWaitSemaphores = renderFinishedSemaphore;
 
-        const std::array<VkSwapchainKHR, 1> swapChains{m_swapchain->swapchain()};
+        const std::array<VkSwapchainKHR, 1> swapChains{
+            m_swapchain->swapchain()};
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = swapChains.data();
         presentInfo.pImageIndices = &m_currentFrameContext.swapchainImgIdx;
 
-        const auto result = vkQueuePresentKHR(m_device->presentQueue(), &presentInfo);
+        const auto result =
+            vkQueuePresentKHR(m_device->presentQueue(), &presentInfo);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
-            BESS_WARN("Swapchain out of date during present, will handle next frame");
+            BESS_WARN(
+                "Swapchain out of date during present, will handle next frame");
         } else if (result != VK_SUCCESS) {
             throw std::runtime_error("Failed to present swap chain image!");
         }
@@ -142,7 +159,8 @@ namespace Bess::Vulkan {
         }
 
         VkExtent2D currentExtent = m_swapchain->extent();
-        if (newExtent.width == currentExtent.width && newExtent.height == currentExtent.height) {
+        if (newExtent.width == currentExtent.width &&
+            newExtent.height == currentExtent.height) {
             return;
         }
 
@@ -150,7 +168,8 @@ namespace Bess::Vulkan {
 
         VkSwapchainKHR oldSwapchain = m_swapchain->swapchain();
 
-        m_swapchain = std::make_shared<Vulkan::VulkanSwapchain>(m_vkInstance, m_device, m_renderSurface, newExtent, oldSwapchain);
+        m_swapchain = std::make_shared<Vulkan::VulkanSwapchain>(
+            m_vkInstance, m_device, m_renderSurface, newExtent, oldSwapchain);
 
         m_swapchain->createFramebuffers(m_renderPass->getVkHandle());
     }
@@ -168,7 +187,8 @@ namespace Bess::Vulkan {
 
             for (size_t i = 0; i < m_swapchain->imageCount(); i++) {
                 if (m_inFlightFences[i] != VK_NULL_HANDLE) {
-                    vkWaitForFences(m_device->device(), 1, &m_inFlightFences[i], VK_TRUE, UINT64_MAX);
+                    vkWaitForFences(m_device->device(), 1, &m_inFlightFences[i],
+                                    VK_TRUE, UINT64_MAX);
                     vkResetFences(m_device->device(), 1, &m_inFlightFences[i]);
                 }
             }
@@ -177,13 +197,16 @@ namespace Bess::Vulkan {
 
             for (size_t i = 0; i < m_swapchain->imageCount(); i++) {
                 if (m_renderFinishedSemaphores[i] != VK_NULL_HANDLE) {
-                    vkDestroySemaphore(m_device->device(), m_renderFinishedSemaphores[i], nullptr);
+                    vkDestroySemaphore(m_device->device(),
+                                       m_renderFinishedSemaphores[i], nullptr);
                 }
                 if (m_imageAvailableSemaphores[i] != VK_NULL_HANDLE) {
-                    vkDestroySemaphore(m_device->device(), m_imageAvailableSemaphores[i], nullptr);
+                    vkDestroySemaphore(m_device->device(),
+                                       m_imageAvailableSemaphores[i], nullptr);
                 }
                 if (m_inFlightFences[i] != VK_NULL_HANDLE) {
-                    vkDestroyFence(m_device->device(), m_inFlightFences[i], nullptr);
+                    vkDestroyFence(m_device->device(), m_inFlightFences[i],
+                                   nullptr);
                 }
             }
         }
@@ -207,7 +230,8 @@ namespace Bess::Vulkan {
         m_isDestroyed = true;
     }
 
-    VkResult VulkanCore::initVkInstance(const std::vector<const char *> &winExtensions) {
+    VkResult
+    VulkanCore::initVkInstance(const std::vector<const char *> &winExtensions) {
         std::vector<const char *> extensions = winExtensions;
         extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
         std::string extStr;
@@ -250,29 +274,37 @@ namespace Bess::Vulkan {
             .ppEnabledExtensionNames = extensions.data(),
         };
 
-        if (vkCreateInstance(&instanceInfo, nullptr, &m_vkInstance) != VK_SUCCESS) {
-            throw std::runtime_error("Renderer: Failed to create vulkan instance");
+        if (vkCreateInstance(&instanceInfo, nullptr, &m_vkInstance) !=
+            VK_SUCCESS) {
+            throw std::runtime_error(
+                "Renderer: Failed to create vulkan instance");
         }
 
         return VK_SUCCESS;
     }
 
-    VkResult VulkanCore::validateExtensions(const std::vector<const char *> &extensions) const {
+    VkResult VulkanCore::validateExtensions(
+        const std::vector<const char *> &extensions) const {
         uint32_t extensionCount = 0;
-        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount,
+                                               nullptr);
         std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, availableExtensions.data());
+        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount,
+                                               availableExtensions.data());
 
-        std::set<std::string> requiredExtensions(extensions.begin(), extensions.end());
+        std::set<std::string> requiredExtensions(extensions.begin(),
+                                                 extensions.end());
 
         for (const auto &extension : availableExtensions) {
             requiredExtensions.erase(extension.extensionName);
         }
 
-        return requiredExtensions.empty() ? VK_SUCCESS : VK_ERROR_EXTENSION_NOT_PRESENT;
+        return requiredExtensions.empty() ? VK_SUCCESS
+                                          : VK_ERROR_EXTENSION_NOT_PRESENT;
     }
 
-    VkResult VulkanCore::validateLayers(const std::vector<const char *> &layers) const {
+    VkResult
+    VulkanCore::validateLayers(const std::vector<const char *> &layers) const {
         uint32_t layerCount = 0;
         vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
         std::vector<VkLayerProperties> availableLayers(layerCount);
@@ -296,24 +328,30 @@ namespace Bess::Vulkan {
         return VK_SUCCESS;
     }
 
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-        VkDebugUtilsMessageTypeFlagsEXT messageType,
-        const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-        void *pUserData) {
+    static VKAPI_ATTR VkBool32 VKAPI_CALL
+    debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                  VkDebugUtilsMessageTypeFlagsEXT messageType,
+                  const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+                  void *pUserData) {
         if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-            BESS_WARN("[VulkanCore][ValidationLayer] {}", pCallbackData->pMessage);
+            BESS_WARN("[VulkanCore][ValidationLayer] {}",
+                      pCallbackData->pMessage);
         } else {
-            BESS_ERROR("[VulkanCore][ValidationLayer] {}", pCallbackData->pMessage);
+            BESS_ERROR("[VulkanCore][ValidationLayer] {}",
+                       pCallbackData->pMessage);
         }
         return VK_FALSE;
     }
 
-    VkDebugUtilsMessengerCreateInfoEXT VulkanCore::getDebugMessengerCreateInfo() const {
+    VkDebugUtilsMessengerCreateInfoEXT
+    VulkanCore::getDebugMessengerCreateInfo() const {
         const VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo{
             .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-            .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
-            .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
+            .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                               VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+            .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                           VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                           VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
             .pfnUserCallback = debugCallback,
         };
 
@@ -324,9 +362,12 @@ namespace Bess::Vulkan {
 #ifndef NDEBUG
         const auto createInfo = getDebugMessengerCreateInfo();
 
-        const auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_vkInstance, "vkCreateDebugUtilsMessengerEXT");
+        const auto func =
+            (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+                m_vkInstance, "vkCreateDebugUtilsMessengerEXT");
         if (func != nullptr) {
-            return func(m_vkInstance, &createInfo, nullptr, &m_vkDebugMessenger);
+            return func(m_vkInstance, &createInfo, nullptr,
+                        &m_vkDebugMessenger);
         } else {
             return VK_ERROR_EXTENSION_NOT_PRESENT;
         }
@@ -338,7 +379,9 @@ namespace Bess::Vulkan {
     VkResult VulkanCore::destroyDebugMessenger() const {
 #ifndef NDEBUG
         if (m_vkDebugMessenger != VK_NULL_HANDLE) {
-            const auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_vkInstance, "vkDestroyDebugUtilsMessengerEXT");
+            const auto func =
+                (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+                    m_vkInstance, "vkDestroyDebugUtilsMessengerEXT");
             if (func != nullptr) {
                 func(m_vkInstance, m_vkDebugMessenger, nullptr);
             }
@@ -361,17 +404,24 @@ namespace Bess::Vulkan {
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
         for (size_t i = 0; i < n; i++) {
-            if (vkCreateSemaphore(m_device->device(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]) != VK_SUCCESS) {
-                throw std::runtime_error("Failed to create image available semaphore!");
+            if (vkCreateSemaphore(m_device->device(), &semaphoreInfo, nullptr,
+                                  &m_imageAvailableSemaphores[i]) !=
+                VK_SUCCESS) {
+                throw std::runtime_error(
+                    "Failed to create image available semaphore!");
             }
         }
 
         for (size_t i = 0; i < n; i++) {
-            if (vkCreateSemaphore(m_device->device(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]) != VK_SUCCESS) {
-                throw std::runtime_error("Failed to create render finished semaphore!");
+            if (vkCreateSemaphore(m_device->device(), &semaphoreInfo, nullptr,
+                                  &m_renderFinishedSemaphores[i]) !=
+                VK_SUCCESS) {
+                throw std::runtime_error(
+                    "Failed to create render finished semaphore!");
             }
 
-            if (vkCreateFence(m_device->device(), &fenceInfo, nullptr, &m_inFlightFences[i]) != VK_SUCCESS) {
+            if (vkCreateFence(m_device->device(), &fenceInfo, nullptr,
+                              &m_inFlightFences[i]) != VK_SUCCESS) {
                 throw std::runtime_error("Failed to create in flight fence!");
             }
         }
@@ -389,11 +439,18 @@ namespace Bess::Vulkan {
     std::shared_ptr<VulkanRenderPass> VulkanCore::getRenderPass() const {
         return m_renderPass;
     }
-    const std::vector<std::shared_ptr<VulkanCommandBuffer>> &VulkanCore::getCommandBuffer() const { return m_commandBuffers->getCmdBuffers(); }
+    const std::vector<std::shared_ptr<VulkanCommandBuffer>> &
+    VulkanCore::getCommandBuffer() const {
+        return m_commandBuffers->getCmdBuffers();
+    }
 
     VkInstance VulkanCore::getVkInstance() const { return m_vkInstance; }
 
-    std::shared_ptr<VulkanDevice> VulkanCore::getDevice() const { return m_device; }
+    std::shared_ptr<VulkanDevice> VulkanCore::getDevice() const {
+        return m_device;
+    }
 
-    std::shared_ptr<VulkanSwapchain> VulkanCore::getSwapchain() const { return m_swapchain; }
+    std::shared_ptr<VulkanSwapchain> VulkanCore::getSwapchain() const {
+        return m_swapchain;
+    }
 } // namespace Bess::Vulkan

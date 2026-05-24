@@ -11,7 +11,8 @@ namespace Bess::Canvas {
         _base = -1,
         simulation = 0 | (int8_t)SceneComponentTypeFlag::showInProjectExplorer,
         slot = 1,
-        nonSimulation = 2 | (int8_t)SceneComponentTypeFlag::showInProjectExplorer,
+        nonSimulation =
+            2 | (int8_t)SceneComponentTypeFlag::showInProjectExplorer,
         connection = 3,
         connJoint = 4,
         group = 5 | (int8_t)SceneComponentTypeFlag::showInProjectExplorer,

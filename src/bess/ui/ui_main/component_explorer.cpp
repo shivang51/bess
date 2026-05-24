@@ -2,23 +2,27 @@
 #include "application/pages/main_page/cmds/add_comp_cmd.h"
 #include "application/pages/main_page/main_page.h"
 #include "application/pages/main_page/scene_components/non_sim_scene_component.h"
+#include "common/bess_uuid.h"
 #include "common/helpers.h"
 #include "component_catalog.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "services/plugin_service/plugin_service.h"
+#include "sim_driver/sim_driver.h"
 #include "ui/icons/CodIcons.h"
 #include "ui/widgets/m_widgets.h"
 #include <utility>
 
 namespace Bess::UI {
-    constexpr auto flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
-                           ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize |
+    constexpr auto flags = ImGuiWindowFlags_NoCollapse |
+                           ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                           ImGuiWindowFlags_AlwaysAutoResize |
                            ImGuiWindowFlags_Modal;
 
     ComponentExplorer::ComponentExplorer()
-        : Panel(Icons::CodIcons::LIST_TREE + std::string("  Component Explorer")) {
+        : Panel(Icons::CodIcons::LIST_TREE +
+                std::string("  Component Explorer")) {
         m_showInMenuBar = false;
         m_flags = flags;
         m_defaultDock = Dock::none;
@@ -31,9 +35,9 @@ namespace Bess::UI {
         const auto *viewport = ImGui::GetMainViewport();
         const auto *ctx = ImGui::GetCurrentContext();
         const auto style = ctx->Style;
-        ImGui::SetNextWindowPos(
-            ImVec2(viewport->Pos.x + (viewport->Size.x / 2) - (windowSize.x / 2),
-                   viewport->Pos.y + (viewport->Size.y / 2) - (windowSize.y / 2)));
+        ImGui::SetNextWindowPos(ImVec2(
+            viewport->Pos.x + (viewport->Size.x / 2) - (windowSize.x / 2),
+            viewport->Pos.y + (viewport->Size.y / 2) - (windowSize.y / 2)));
     }
 
     void ComponentExplorer::onDraw() {
@@ -61,9 +65,12 @@ namespace Bess::UI {
 
         ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.f, 0.5f));
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-        ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0, 0, 0, 0)); // for tree node to have no bg normally
+        ImGui::PushStyleColor(
+            ImGuiCol_Header,
+            ImVec4(0, 0, 0, 0)); // for tree node to have no bg normally
 
-        const auto componentTree = SimEngine::ComponentCatalog::instance().getComponentsTree();
+        const auto componentTree =
+            SimEngine::ComponentCatalog::instance().getComponentsTree();
         int key = 0;
         // simulation components
         {
@@ -72,7 +79,8 @@ namespace Bess::UI {
 
                 if (!shouldCollectionShow) {
                     for (const auto &comp : ent.second) {
-                        if (Common::Helpers::toLowerCase(comp->getName()).find(m_searchQuery) != std::string::npos) {
+                        if (Common::Helpers::toLowerCase(comp->getName())
+                                .find(m_searchQuery) != std::string::npos) {
                             shouldCollectionShow = true;
                             break;
                         }
@@ -82,7 +90,8 @@ namespace Bess::UI {
                 if (!shouldCollectionShow)
                     continue;
 
-                if (Widgets::TreeNode(key, ent.first, ImGuiTreeNodeFlags_DefaultOpen)) {
+                if (Widgets::TreeNode(key, ent.first,
+                                      ImGuiTreeNodeFlags_DefaultOpen)) {
                     for (const auto &comp : ent.second) {
                         if (m_searchQuery != "" &&
                             Common::Helpers::toLowerCase(comp->getName())
@@ -91,9 +100,13 @@ namespace Bess::UI {
 
                         const std::string &name = comp->getName();
 
-                        if (Widgets::ButtonWithPopup(name, name + "OptionsMenu", false)) {
-                            const auto &mainPageState = Pages::MainPage::getInstance()->getState();
-                            const auto &pos = mainPageState.getSceneDriver()->getCameraPos();
+                        if (Widgets::ButtonWithPopup(name, name + "OptionsMenu",
+                                                     false)) {
+                            const auto &mainPageState =
+                                Pages::MainPage::getInstance()->getState();
+                            const auto &pos =
+                                mainPageState.getSceneDriver()->getCameraPos();
+
                             createComponent(comp, pos);
                             hide();
                         }
@@ -108,15 +121,21 @@ namespace Bess::UI {
         }
 
         // non simulation components
-        if (Widgets::TreeNode(++key, "Miscellaneous", ImGuiTreeNodeFlags_DefaultOpen)) {
-            static auto nonSimComponents = Canvas::NonSimSceneComponent::getRegistry();
+        if (Widgets::TreeNode(++key, "Miscellaneous",
+                              ImGuiTreeNodeFlags_DefaultOpen)) {
+            static auto nonSimComponents =
+                Canvas::NonSimSceneComponent::getRegistry();
             for (auto &comp : nonSimComponents) {
-                if (m_searchQuery != "" && Common::Helpers::toLowerCase(comp.second).find(m_searchQuery) == std::string::npos)
+                if (m_searchQuery != "" &&
+                    Common::Helpers::toLowerCase(comp.second)
+                            .find(m_searchQuery) == std::string::npos)
                     continue;
 
                 if (Widgets::ButtonWithPopup(comp.second, "", false)) {
-                    const auto &mainPageState = Pages::MainPage::getInstance()->getState();
-                    const auto &pos = mainPageState.getSceneDriver()->getCameraPos();
+                    const auto &mainPageState =
+                        Pages::MainPage::getInstance()->getState();
+                    const auto &pos =
+                        mainPageState.getSceneDriver()->getCameraPos();
                     createComponent(comp.first, pos);
                     hide();
                 }
@@ -129,18 +148,21 @@ namespace Bess::UI {
         ImGui::PopStyleVar(2);
     }
 
-    UUID ComponentExplorer::createComponent(const std::shared_ptr<SimEngine::ComponentDefinition> &def,
-                                            const glm::vec2 &pos) {
+    UUID ComponentExplorer::createComponent(
+        const std::shared_ptr<SimEngine::Drivers::CompDef> &def,
+        const glm::vec2 &pos) {
 
-        auto &cmdSystem = Pages::MainPage::getInstance()->getState().getCommandSystem();
-        auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
+        auto &cmdSystem =
+            Pages::MainPage::getInstance()->getState().getCommandSystem();
+        auto &scene =
+            Pages::MainPage::getInstance()->getState().getSceneDriver();
         auto &sceneState = scene->getState();
 
         auto &pluginSvc = Svc::PluginService::getInstance();
 
         // Try finding in plugins first, if not found the use default.
-        if (pluginSvc.hasSimComponent(def->getHash())) {
-            auto simComp = pluginSvc.getSimComp(def);
+        if (pluginSvc.hasSimSceneComp(def->getName())) {
+            auto simComp = pluginSvc.getSimSceneComp(def);
 
             BESS_ASSERT(simComp, "PluginService returned invalid sim comp");
 
@@ -164,30 +186,40 @@ namespace Bess::UI {
                 sceneState.attachChild(simComp->getUuid(), childId);
             }
 
-            cmdSystem.push(
-                std::make_unique<Cmd::AddCompCmd<Canvas::SimulationSceneComponent>>(simComp, children));
+            cmdSystem.push(std::make_unique<
+                           Cmd::AddCompCmd<Canvas::SimulationSceneComponent>>(
+                simComp, children));
 
             return simComp->getUuid();
         } else {
             auto components = Canvas::SimulationSceneComponent::createNew(def);
-            auto sceneComp = components.front()->template cast<Canvas::SimulationSceneComponent>();
+            auto sceneComp =
+                components.front()
+                    ->template cast<Canvas::SimulationSceneComponent>();
             components.erase(components.begin());
             sceneComp->setCompDef(def->clone());
             sceneComp->getTransform().position.x = pos.x;
             sceneComp->getTransform().position.y = pos.y;
 
-            cmdSystem.execute(std::make_unique<Cmd::AddCompCmd<Canvas::SimulationSceneComponent>>(sceneComp, components));
+            cmdSystem.execute(
+                std::make_unique<
+                    Cmd::AddCompCmd<Canvas::SimulationSceneComponent>>(
+                    sceneComp, components));
 
             return sceneComp->getUuid();
         }
     }
 
-    UUID ComponentExplorer::createComponent(std::type_index tIdx, const glm::vec2 &pos) {
-        auto &cmdSystem = Pages::MainPage::getInstance()->getState().getCommandSystem();
+    UUID ComponentExplorer::createComponent(std::type_index tIdx,
+                                            const glm::vec2 &pos) {
+        auto &cmdSystem =
+            Pages::MainPage::getInstance()->getState().getCommandSystem();
         auto inst = Canvas::NonSimSceneComponent::getInstance(tIdx);
         inst->getTransform().position.x = pos.x;
         inst->getTransform().position.y = pos.y;
-        cmdSystem.execute(std::make_unique<Cmd::AddCompCmd<Canvas::NonSimSceneComponent>>(inst));
+        cmdSystem.execute(
+            std::make_unique<Cmd::AddCompCmd<Canvas::NonSimSceneComponent>>(
+                inst));
         return inst->getUuid();
     }
 

@@ -7,8 +7,10 @@
 
 namespace Bess::Vulkan {
 
-    VulkanPostprocessPipeline::VulkanPostprocessPipeline(const std::shared_ptr<VulkanDevice> &device, VkFormat colorFormat)
-        : m_device(device), m_colorFormat(colorFormat) {
+    VulkanPostprocessPipeline::VulkanPostprocessPipeline(
+        const std::shared_ptr<VulkanDevice> &device, VkFormat colorFormat)
+        : m_device(device),
+          m_colorFormat(colorFormat) {
         createRenderPass();
         createDescriptorSetLayout();
         createPipeline();
@@ -17,16 +19,19 @@ namespace Bess::Vulkan {
     VulkanPostprocessPipeline::~VulkanPostprocessPipeline() {
         if (m_device && m_device->device() != VK_NULL_HANDLE) {
             if (m_descriptorPool != VK_NULL_HANDLE) {
-                vkDestroyDescriptorPool(m_device->device(), m_descriptorPool, nullptr);
+                vkDestroyDescriptorPool(m_device->device(), m_descriptorPool,
+                                        nullptr);
             }
             if (m_descriptorSetLayout != VK_NULL_HANDLE) {
-                vkDestroyDescriptorSetLayout(m_device->device(), m_descriptorSetLayout, nullptr);
+                vkDestroyDescriptorSetLayout(m_device->device(),
+                                             m_descriptorSetLayout, nullptr);
             }
             if (m_pipeline != VK_NULL_HANDLE) {
                 vkDestroyPipeline(m_device->device(), m_pipeline, nullptr);
             }
             if (m_pipelineLayout != VK_NULL_HANDLE) {
-                vkDestroyPipelineLayout(m_device->device(), m_pipelineLayout, nullptr);
+                vkDestroyPipelineLayout(m_device->device(), m_pipelineLayout,
+                                        nullptr);
             }
             if (m_renderPass != VK_NULL_HANDLE) {
                 vkDestroyRenderPass(m_device->device(), m_renderPass, nullptr);
@@ -34,7 +39,8 @@ namespace Bess::Vulkan {
         }
     }
 
-    VulkanPostprocessPipeline::VulkanPostprocessPipeline(VulkanPostprocessPipeline &&other) noexcept
+    VulkanPostprocessPipeline::VulkanPostprocessPipeline(
+        VulkanPostprocessPipeline &&other) noexcept
         : m_device(std::move(other.m_device)),
           m_colorFormat(other.m_colorFormat),
           m_renderPass(other.m_renderPass),
@@ -51,23 +57,28 @@ namespace Bess::Vulkan {
         other.m_descriptorSet = VK_NULL_HANDLE;
     }
 
-    VulkanPostprocessPipeline &VulkanPostprocessPipeline::operator=(VulkanPostprocessPipeline &&other) noexcept {
+    VulkanPostprocessPipeline &VulkanPostprocessPipeline::operator=(
+        VulkanPostprocessPipeline &&other) noexcept {
         if (this != &other) {
             if (m_device && m_device->device() != VK_NULL_HANDLE) {
                 if (m_descriptorPool != VK_NULL_HANDLE) {
-                    vkDestroyDescriptorPool(m_device->device(), m_descriptorPool, nullptr);
+                    vkDestroyDescriptorPool(m_device->device(),
+                                            m_descriptorPool, nullptr);
                 }
                 if (m_descriptorSetLayout != VK_NULL_HANDLE) {
-                    vkDestroyDescriptorSetLayout(m_device->device(), m_descriptorSetLayout, nullptr);
+                    vkDestroyDescriptorSetLayout(
+                        m_device->device(), m_descriptorSetLayout, nullptr);
                 }
                 if (m_pipeline != VK_NULL_HANDLE) {
                     vkDestroyPipeline(m_device->device(), m_pipeline, nullptr);
                 }
                 if (m_pipelineLayout != VK_NULL_HANDLE) {
-                    vkDestroyPipelineLayout(m_device->device(), m_pipelineLayout, nullptr);
+                    vkDestroyPipelineLayout(m_device->device(),
+                                            m_pipelineLayout, nullptr);
                 }
                 if (m_renderPass != VK_NULL_HANDLE) {
-                    vkDestroyRenderPass(m_device->device(), m_renderPass, nullptr);
+                    vkDestroyRenderPass(m_device->device(), m_renderPass,
+                                        nullptr);
                 }
             }
 
@@ -127,8 +138,10 @@ namespace Bess::Vulkan {
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &dependency;
 
-        if (vkCreateRenderPass(m_device->device(), &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create postprocess render pass!");
+        if (vkCreateRenderPass(m_device->device(), &renderPassInfo, nullptr,
+                               &m_renderPass) != VK_SUCCESS) {
+            throw std::runtime_error(
+                "Failed to create postprocess render pass!");
         }
     }
 
@@ -136,7 +149,8 @@ namespace Bess::Vulkan {
         VkDescriptorSetLayoutBinding samplerLayoutBinding{};
         samplerLayoutBinding.binding = 0;
         samplerLayoutBinding.descriptorCount = 1;
-        samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        samplerLayoutBinding.descriptorType =
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         samplerLayoutBinding.pImmutableSamplers = nullptr;
         samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
@@ -145,8 +159,11 @@ namespace Bess::Vulkan {
         layoutInfo.bindingCount = 1;
         layoutInfo.pBindings = &samplerLayoutBinding;
 
-        if (vkCreateDescriptorSetLayout(m_device->device(), &layoutInfo, nullptr, &m_descriptorSetLayout) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create postprocess descriptor set layout!");
+        if (vkCreateDescriptorSetLayout(m_device->device(), &layoutInfo,
+                                        nullptr,
+                                        &m_descriptorSetLayout) != VK_SUCCESS) {
+            throw std::runtime_error(
+                "Failed to create postprocess descriptor set layout!");
         }
     }
 
@@ -159,29 +176,34 @@ namespace Bess::Vulkan {
         VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
 
         VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
-        vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vertShaderStageInfo.sType =
+            VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
         vertShaderStageInfo.module = vertShaderModule;
         vertShaderStageInfo.pName = "main";
 
         VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-        fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        fragShaderStageInfo.sType =
+            VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
         fragShaderStageInfo.module = fragShaderModule;
         fragShaderStageInfo.pName = "main";
 
-        std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {vertShaderStageInfo, fragShaderStageInfo};
+        std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {
+            vertShaderStageInfo, fragShaderStageInfo};
 
         // No vertex input for fullscreen triangle
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-        vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+        vertexInputInfo.sType =
+            VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
         vertexInputInfo.vertexBindingDescriptionCount = 0;
         vertexInputInfo.pVertexBindingDescriptions = nullptr;
         vertexInputInfo.vertexAttributeDescriptionCount = 0;
         vertexInputInfo.pVertexAttributeDescriptions = nullptr;
 
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-        inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+        inputAssembly.sType =
+            VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
         inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
         inputAssembly.primitiveRestartEnable = VK_FALSE;
 
@@ -198,14 +220,16 @@ namespace Bess::Vulkan {
         scissor.extent = {1, 1}; // Will be set dynamically
 
         VkPipelineViewportStateCreateInfo viewportState{};
-        viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+        viewportState.sType =
+            VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
         viewportState.viewportCount = 1;
         viewportState.pViewports = &viewport;
         viewportState.scissorCount = 1;
         viewportState.pScissors = &scissor;
 
         VkPipelineRasterizationStateCreateInfo rasterizer{};
-        rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+        rasterizer.sType =
+            VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
         rasterizer.depthClampEnable = VK_FALSE;
         rasterizer.rasterizerDiscardEnable = VK_FALSE;
         rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
@@ -215,37 +239,46 @@ namespace Bess::Vulkan {
         rasterizer.depthBiasEnable = VK_FALSE;
 
         VkPipelineMultisampleStateCreateInfo multisampling{};
-        multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+        multisampling.sType =
+            VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
         multisampling.sampleShadingEnable = VK_FALSE;
         multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
         VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-        colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-        colorBlendAttachment.blendEnable = VK_FALSE; // No blending for straight alpha
+        colorBlendAttachment.colorWriteMask =
+            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+            VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        colorBlendAttachment.blendEnable =
+            VK_FALSE; // No blending for straight alpha
 
         VkPipelineColorBlendStateCreateInfo colorBlending{};
-        colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        colorBlending.sType =
+            VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
         colorBlending.logicOpEnable = VK_FALSE;
         colorBlending.logicOp = VK_LOGIC_OP_COPY;
         colorBlending.attachmentCount = 1;
         colorBlending.pAttachments = &colorBlendAttachment;
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipelineLayoutInfo.sType =
+            VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutInfo.setLayoutCount = 1;
         pipelineLayoutInfo.pSetLayouts = &m_descriptorSetLayout;
 
-        if (vkCreatePipelineLayout(m_device->device(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create postprocess pipeline layout!");
+        if (vkCreatePipelineLayout(m_device->device(), &pipelineLayoutInfo,
+                                   nullptr, &m_pipelineLayout) != VK_SUCCESS) {
+            throw std::runtime_error(
+                "Failed to create postprocess pipeline layout!");
         }
 
         static std::vector<VkDynamicState> dynamicStates = {
-            VK_DYNAMIC_STATE_VIEWPORT,
-            VK_DYNAMIC_STATE_SCISSOR};
+            VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
         VkPipelineDynamicStateCreateInfo dynamicState{};
-        dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
+        dynamicState.sType =
+            VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        dynamicState.dynamicStateCount =
+            static_cast<uint32_t>(dynamicStates.size());
         dynamicState.pDynamicStates = dynamicStates.data();
 
         VkGraphicsPipelineCreateInfo pipelineInfo{};
@@ -264,8 +297,11 @@ namespace Bess::Vulkan {
         pipelineInfo.subpass = 0;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-        if (vkCreateGraphicsPipelines(m_device->device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create postprocess graphics pipeline!");
+        if (vkCreateGraphicsPipelines(m_device->device(), VK_NULL_HANDLE, 1,
+                                      &pipelineInfo, nullptr,
+                                      &m_pipeline) != VK_SUCCESS) {
+            throw std::runtime_error(
+                "Failed to create postprocess graphics pipeline!");
         }
 
         // Clean up shader modules
@@ -273,7 +309,9 @@ namespace Bess::Vulkan {
         vkDestroyShaderModule(m_device->device(), fragShaderModule, nullptr);
     }
 
-    void VulkanPostprocessPipeline::createDescriptorSet(VkImageView inputImageView, VkSampler inputSampler) {
+    void
+    VulkanPostprocessPipeline::createDescriptorSet(VkImageView inputImageView,
+                                                   VkSampler inputSampler) {
         // Create descriptor pool
         VkDescriptorPoolSize poolSize{};
         poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -285,8 +323,10 @@ namespace Bess::Vulkan {
         poolInfo.pPoolSizes = &poolSize;
         poolInfo.maxSets = 1;
 
-        if (vkCreateDescriptorPool(m_device->device(), &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create postprocess descriptor pool!");
+        if (vkCreateDescriptorPool(m_device->device(), &poolInfo, nullptr,
+                                   &m_descriptorPool) != VK_SUCCESS) {
+            throw std::runtime_error(
+                "Failed to create postprocess descriptor pool!");
         }
 
         // Allocate descriptor set
@@ -296,8 +336,10 @@ namespace Bess::Vulkan {
         allocInfo.descriptorSetCount = 1;
         allocInfo.pSetLayouts = &m_descriptorSetLayout;
 
-        if (vkAllocateDescriptorSets(m_device->device(), &allocInfo, &m_descriptorSet) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate postprocess descriptor sets!");
+        if (vkAllocateDescriptorSets(m_device->device(), &allocInfo,
+                                     &m_descriptorSet) != VK_SUCCESS) {
+            throw std::runtime_error(
+                "Failed to allocate postprocess descriptor sets!");
         }
 
         // Update descriptor set
@@ -311,14 +353,18 @@ namespace Bess::Vulkan {
         descriptorWrite.dstSet = m_descriptorSet;
         descriptorWrite.dstBinding = 0;
         descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrite.descriptorType =
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         descriptorWrite.descriptorCount = 1;
         descriptorWrite.pImageInfo = &imageInfo;
 
-        vkUpdateDescriptorSets(m_device->device(), 1, &descriptorWrite, 0, nullptr);
+        vkUpdateDescriptorSets(m_device->device(), 1, &descriptorWrite, 0,
+                               nullptr);
     }
 
-    void VulkanPostprocessPipeline::updateDescriptorSet(VkImageView inputImageView, VkSampler inputSampler) {
+    void
+    VulkanPostprocessPipeline::updateDescriptorSet(VkImageView inputImageView,
+                                                   VkSampler inputSampler) {
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         imageInfo.imageView = inputImageView;
@@ -329,14 +375,17 @@ namespace Bess::Vulkan {
         descriptorWrite.dstSet = m_descriptorSet;
         descriptorWrite.dstBinding = 0;
         descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrite.descriptorType =
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         descriptorWrite.descriptorCount = 1;
         descriptorWrite.pImageInfo = &imageInfo;
 
-        vkUpdateDescriptorSets(m_device->device(), 1, &descriptorWrite, 0, nullptr);
+        vkUpdateDescriptorSets(m_device->device(), 1, &descriptorWrite, 0,
+                               nullptr);
     }
 
-    std::vector<char> VulkanPostprocessPipeline::readFile(const std::string &filename) const {
+    std::vector<char>
+    VulkanPostprocessPipeline::readFile(const std::string &filename) const {
         std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
         if (!file.is_open()) {
@@ -362,14 +411,16 @@ namespace Bess::Vulkan {
         return buffer;
     }
 
-    VkShaderModule VulkanPostprocessPipeline::createShaderModule(const std::vector<char> &code) const {
+    VkShaderModule VulkanPostprocessPipeline::createShaderModule(
+        const std::vector<char> &code) const {
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         createInfo.codeSize = code.size();
         createInfo.pCode = reinterpret_cast<const uint32_t *>(code.data());
 
         VkShaderModule shaderModule = VK_NULL_HANDLE;
-        if (vkCreateShaderModule(m_device->device(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+        if (vkCreateShaderModule(m_device->device(), &createInfo, nullptr,
+                                 &shaderModule) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create shader module!");
         }
 

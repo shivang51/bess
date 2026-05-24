@@ -25,12 +25,13 @@ namespace Bess {
         glfwWindowHintString(GLFW_X11_INSTANCE_NAME, instanceClass);
 #endif
 
-        GLFWwindow *window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
+        GLFWwindow *window =
+            glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
 
         GLFWimage images[1];
-        images[0].pixels = stbi_load("assets/images/logo/BessLogo.png",
-                                     &images[0].width,
-                                     &images[0].height, nullptr, 4); // rgba channels
+        images[0].pixels =
+            stbi_load("assets/images/logo/BessLogo.png", &images[0].width,
+                      &images[0].height, nullptr, 4); // rgba channels
         glfwSetWindowIcon(window, 1, images);
         stbi_image_free(images[0].pixels);
 
@@ -62,7 +63,8 @@ namespace Bess {
 
         mp_window = std::unique_ptr<GLFWwindow, GLFWwindowDeleter>(window);
 
-        glfwSetWindowSizeLimits(window, 600, 500, GLFW_DONT_CARE, GLFW_DONT_CARE);
+        glfwSetWindowSizeLimits(window, 600, 500, GLFW_DONT_CARE,
+                                GLFW_DONT_CARE);
 
         glfwSetFramebufferSizeCallback(
             window, [](GLFWwindow *window, int w, int h) {
@@ -75,14 +77,15 @@ namespace Bess {
                 cb(w, h);
             });
 
-        glfwSetScrollCallback(window, [](GLFWwindow *window, double x, double y) {
-            const auto this_ = (Window *)glfwGetWindowUserPointer(window);
-            if (!this_->m_callbacks.contains(Callback::MouseWheel))
-                return;
-            const auto cb = std::any_cast<MouseWheelCallback>(
-                this_->m_callbacks[Callback::MouseWheel]);
-            cb(x, y);
-        });
+        glfwSetScrollCallback(
+            window, [](GLFWwindow *window, double x, double y) {
+                const auto this_ = (Window *)glfwGetWindowUserPointer(window);
+                if (!this_->m_callbacks.contains(Callback::MouseWheel))
+                    return;
+                const auto cb = std::any_cast<MouseWheelCallback>(
+                    this_->m_callbacks[Callback::MouseWheel]);
+                cb(x, y);
+            });
 
         glfwSetKeyCallback(window, [](GLFWwindow *window, int key, int scancode,
                                       int action, int mods) {
@@ -108,42 +111,43 @@ namespace Bess {
             }
         });
 
-        glfwSetMouseButtonCallback(
-            window, [](GLFWwindow *window, int button, int action, int mods) {
-                const auto this_ = (Window *)glfwGetWindowUserPointer(window);
-                const auto cb = std::any_cast<MouseButtonCallback>(
-                    this_->m_callbacks[Callback::MouseButton]);
+        glfwSetMouseButtonCallback(window, [](GLFWwindow *window, int button,
+                                              int action, int mods) {
+            const auto this_ = (Window *)glfwGetWindowUserPointer(window);
+            const auto cb = std::any_cast<MouseButtonCallback>(
+                this_->m_callbacks[Callback::MouseButton]);
 
-                MouseButton btn = MouseButton::unknown;
+            MouseButton btn = MouseButton::unknown;
 
-                switch (button) {
-                case GLFW_MOUSE_BUTTON_LEFT: {
-                    btn = MouseButton::left;
-                } break;
-                case GLFW_MOUSE_BUTTON_RIGHT: {
-                    btn = MouseButton::right;
-                } break;
-                case GLFW_MOUSE_BUTTON_MIDDLE: {
-                    btn = MouseButton::middle;
-                } break;
-                default:
-                    BESS_WARN("[Window] Unhandled mouse button type {}", button);
-                    break;
-                }
+            switch (button) {
+            case GLFW_MOUSE_BUTTON_LEFT: {
+                btn = MouseButton::left;
+            } break;
+            case GLFW_MOUSE_BUTTON_RIGHT: {
+                btn = MouseButton::right;
+            } break;
+            case GLFW_MOUSE_BUTTON_MIDDLE: {
+                btn = MouseButton::middle;
+            } break;
+            default:
+                BESS_WARN("[Window] Unhandled mouse button type {}", button);
+                break;
+            }
 
-                const auto btnAction = action == GLFW_PRESS
-                                           ? MouseButtonAction::press
-                                           : MouseButtonAction::release;
+            const auto btnAction = action == GLFW_PRESS
+                                       ? MouseButtonAction::press
+                                       : MouseButtonAction::release;
 
-                cb(btn, btnAction, this_->getMousePos());
-            });
+            cb(btn, btnAction, this_->getMousePos());
+        });
 
         glfwSetCursorPosCallback(
             window, [](GLFWwindow *window, double x, double y) {
                 const auto this_ = (Window *)glfwGetWindowUserPointer(window);
                 if (!this_->m_callbacks.contains(Callback::MouseMove))
                     return;
-                const auto cb = std::any_cast<MouseMoveCallback>(this_->m_callbacks[Callback::MouseMove]);
+                const auto cb = std::any_cast<MouseMoveCallback>(
+                    this_->m_callbacks[Callback::MouseMove]);
 
                 cb(x, y);
             });
@@ -159,7 +163,8 @@ namespace Bess {
             BESS_ERROR("[-] GLFW ERROR {} -> {}", code, msg);
         });
 
-        BESS_INFO("[Window] GLFW {}.{}", GLFW_VERSION_MAJOR, GLFW_VERSION_MINOR);
+        BESS_INFO("[Window] GLFW {}.{}", GLFW_VERSION_MAJOR,
+                  GLFW_VERSION_MINOR);
 
         // because renderdoc doesn't support wayland
 #ifdef __linux__
@@ -191,7 +196,9 @@ namespace Bess {
         isGLFWInitialized = false;
     }
 
-    bool Window::isClosed() const { return glfwWindowShouldClose(mp_window.get()); }
+    bool Window::isClosed() const {
+        return glfwWindowShouldClose(mp_window.get());
+    }
 
     void Window::onWindowResize(WindowResizeCallback callback) {
         m_callbacks[Callback::WindowResize] = callback;
@@ -231,8 +238,10 @@ namespace Bess {
         return {x, y};
     }
 
-    void Window::createWindowSurface(VkInstance instance, VkSurfaceKHR &surface) const {
-        if (glfwCreateWindowSurface(instance, mp_window.get(), nullptr, &surface) != VK_SUCCESS) {
+    void Window::createWindowSurface(VkInstance instance,
+                                     VkSurfaceKHR &surface) const {
+        if (glfwCreateWindowSurface(instance, mp_window.get(), nullptr,
+                                    &surface) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create window surface!");
         }
     }
@@ -242,7 +251,8 @@ namespace Bess {
         const char **glfwExtensions = nullptr;
         glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-        std::vector<const char *> extensions(glfwExtensions, glfwExtensionCount + glfwExtensions);
+        std::vector<const char *> extensions(
+            glfwExtensions, glfwExtensionCount + glfwExtensions);
 
         return extensions;
     }
@@ -253,8 +263,10 @@ namespace Bess {
         return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
     }
 
-    void Window::framebufferResizeCallback(GLFWwindow *window, int width, int height) {
-        const auto this_ = static_cast<Window *>(glfwGetWindowUserPointer(window));
+    void Window::framebufferResizeCallback(GLFWwindow *window, int width,
+                                           int height) {
+        const auto this_ =
+            static_cast<Window *>(glfwGetWindowUserPointer(window));
         this_->m_framebufferResized = true;
     }
 
@@ -271,7 +283,8 @@ namespace Bess {
         if (enable) {
             glfwSetInputMode(mp_window.get(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         } else {
-            glfwSetInputMode(mp_window.get(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            glfwSetInputMode(mp_window.get(), GLFW_CURSOR,
+                             GLFW_CURSOR_DISABLED);
         }
     }
 } // namespace Bess

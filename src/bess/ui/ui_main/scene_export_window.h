@@ -40,12 +40,14 @@ namespace Bess::UI {
       private:
         void refreshSelectedScene();
         std::shared_ptr<Canvas::Scene> getSelectedScene() const;
-        std::string getSceneLabel(const std::shared_ptr<Canvas::Scene> &scene) const;
+        std::string
+        getSceneLabel(const std::shared_ptr<Canvas::Scene> &scene) const;
 
-        static SceneBounds computeSceneBounds(const std::shared_ptr<Canvas::Scene> &scene);
-        static SceneExportInfo getSceneExportInfo(const std::shared_ptr<Canvas::Scene> &scene,
-                                                  const SceneBounds &bounds,
-                                                  float zoom);
+        static SceneBounds
+        computeSceneBounds(const std::shared_ptr<Canvas::Scene> &scene);
+        static SceneExportInfo
+        getSceneExportInfo(const std::shared_ptr<Canvas::Scene> &scene,
+                           const SceneBounds &bounds, float zoom);
         static void exportScene(const std::shared_ptr<Canvas::Scene> &scene,
                                 const SceneExportInfo &info);
 

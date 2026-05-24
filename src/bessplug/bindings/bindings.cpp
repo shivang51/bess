@@ -7,7 +7,8 @@ void bind_common_bindings(py::module_ &m);
 void bind_renderer_path(py::module_ &m);
 void bind_sim_engine_types(py::module_ &m);
 void bind_sim_functions(py::module_ &m);
-void bind_sim_engine_component_definition(py::module_ &m);
+void bind_sim_engine_driver(py::module_ &m);
+void bind_verilog(py::module_ &m);
 void bind_scene_schematic_diagram(py::module_ &m);
 void bind_scene_component(py::module_ &m);
 void bind_sim_scene_component(py::module_ &m);
@@ -20,6 +21,7 @@ void bind_ui_hook(py::module_ &m);
 void bind_bess_ui(py::module_ &m);
 void bind_plugin(py::module_ &m);
 void bind_cmds(py::module_ &m);
+void bind_sim_engine_core(py::module_ &m);
 
 void bind_api(py::module_ &m);
 
@@ -34,11 +36,17 @@ void bind_api(py::module_ &m) {
     auto mCmds = m.def_submodule("cmds", "Bess Commands bindings");
 
     auto common = mApi.def_submodule("common", "Common bindings");
-    auto simEngine = mApi.def_submodule("sim_engine", "Simulation engine bindings");
-    auto simFn = simEngine.def_submodule("sim_functions", "Simulation engine prebuilt simulation functions");
+    auto simEngine =
+        mApi.def_submodule("sim_engine", "Simulation engine bindings");
+    auto simEngineDriver =
+        simEngine.def_submodule("driver", "Simulation driver bindings");
+    auto verilog = mApi.def_submodule("verilog", "Verilog bindings");
+    auto simFn = simEngine.def_submodule(
+        "sim_functions", "Simulation engine prebuilt simulation functions");
     auto scene = mApi.def_submodule("scene", "Scene bindings");
     auto renderer = scene.def_submodule("renderer", "Scene Renderer bindings");
-    auto assetMgr = mApi.def_submodule("asset_manager", "Asset Manager bindings");
+    auto assetMgr =
+        mApi.def_submodule("asset_manager", "Asset Manager bindings");
     auto uiHook = mApi.def_submodule("ui_hook", "UI Hook bindings");
     auto bessUI = mApi.def_submodule("bess_ui", "Bess UI bindings");
 
@@ -52,8 +60,10 @@ void bind_api(py::module_ &m) {
 
     // Sim Engine
     bind_sim_engine_types(simEngine);
-    bind_sim_engine_component_definition(simEngine);
+    bind_sim_engine_driver(simEngineDriver);
+    bind_verilog(verilog);
     bind_sim_functions(simFn);
+    bind_sim_engine_core(simEngine);
 
     // Scene
     bind_scene_common_binding(scene);

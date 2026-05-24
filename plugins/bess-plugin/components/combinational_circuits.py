@@ -1,8 +1,9 @@
 from bessplug.api.common.time import TimeNS
 from bessplug.api.sim_engine import (
-    ComponentDefinition,
     SlotsGroupInfo,
+    sim_functions,
 )
+from bessplug.api.sim_engine.driver import CompDef, DigCompDef
 
 _comb_circuits = [
     {
@@ -132,14 +133,15 @@ for circuit in _comb_circuits:
     out_grp_info.count = len(circuit["outputs"])
     out_grp_info.names = circuit["outputs"]
 
-    defi = ComponentDefinition.from_expressions(
-        name=circuit["name"],
-        group_name="Comb Circuits",
-        inputs=inp_grp_info,
-        outputs=out_grp_info,
-        sim_delay=TimeNS(2),
-        expressions=circuit["expressions"],
-    )
+    defi = DigCompDef()
+    defi.name = circuit["name"]
+    defi.group_name = "Comb Circuits"
+    defi.input_slots_info = inp_grp_info
+    defi.output_slots_info = out_grp_info
+    defi.prop_delay = TimeNS(2)
+    defi.output_expressions = circuit["expressions"]
+    defi.sim_fn = sim_functions.expr_eval_sim_func
+
     combinational_circuits.append(defi)
 
 

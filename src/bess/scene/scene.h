@@ -32,10 +32,12 @@ namespace Bess::Canvas {
     struct SelBoxContext {
         glm::vec2 start;
         glm::vec2 end;
-        bool draw = false;                // to draw sel box
-        bool readIds = false;             // to read the picking ids
-        bool queueSelInNextFrame = false; // to queue sel in next frame, needed to avoid sel box
-        bool queueForSel = false;         // to queue reading of ids from picking attachment
+        bool draw = false;    // to draw sel box
+        bool readIds = false; // to read the picking ids
+        bool queueSelInNextFrame =
+            false; // to queue sel in next frame, needed to avoid sel box
+        bool queueForSel =
+            false; // to queue reading of ids from picking attachment
     };
 
     class Scene {
@@ -53,7 +55,8 @@ namespace Bess::Canvas {
         const SceneState &getState() const;
         SceneState &getState();
 
-        typedef std::function<void(const std::shared_ptr<Viewport> &viewport)> ViewportDrawFn;
+        typedef std::function<void(const std::shared_ptr<Viewport> &viewport)>
+            ViewportDrawFn;
         MAKE_GETTER_SETTER(ViewportDrawFn, ViewportDrawFn, m_viewportDrawFunc);
         MAKE_GETTER_SETTER(std::shared_ptr<Camera>, Camera, m_camera)
         MAKE_GETTER_SETTER(SelBoxContext, SelBoxContext, m_selBoxContext)
@@ -62,15 +65,14 @@ namespace Bess::Canvas {
       public:
         const UUID &getSceneId() const;
 
-        void addComponent(const std::shared_ptr<SceneComponent> &comp, bool setZ = true);
+        void addComponent(const std::shared_ptr<SceneComponent> &comp,
+                          bool setZ = true);
 
         void updateViewportTransform(const ViewportTransform &transform);
 
         const ViewportTransform &getViewportTransform() const;
 
-        PickingId getHoveredEntity() const {
-            return m_pickingId;
-        }
+        PickingId getHoveredEntity() const { return m_pickingId; }
 
         const glm::vec2 &getMousePos() const;
         glm::vec2 getSceneMousePos();
@@ -108,7 +110,8 @@ namespace Bess::Canvas {
 
       private:
         /// to draw testing stuff
-        void drawScratchContent(TimeMs ts, const std::shared_ptr<Viewport> &viewport);
+        void drawScratchContent(TimeMs ts,
+                                const std::shared_ptr<Viewport> &viewport);
         bool isCursorInViewport(const glm::vec2 &pos) const;
         glm::vec2 getViewportMousePos(const glm::vec2 &mousePos) const;
 

@@ -78,8 +78,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 		"${CMAKE_SOURCE_DIR}/src/bess/application"
 )
 
-target_link_libraries(${PROJECT_NAME} PUBLIC BessSimEngine BessVulkan BessPluginManager EventSystem BessJson common)
-add_dependencies(${PROJECT_NAME} BessSimEngine BessVulkan BessPluginManager EventSystem BessJson common)
+target_link_libraries(${PROJECT_NAME} PUBLIC BessSimEngine BessVulkan BessPluginManager EventSystem BessJson common BessSimDriver DigitalSimDriver)
+add_dependencies(${PROJECT_NAME} BessSimEngine BessVulkan BessPluginManager EventSystem BessJson common BessSimDriver DigitalSimDriver)
 target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}")
 
 if(MSVC)

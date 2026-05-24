@@ -27,7 +27,9 @@ static bool parseArgs(int argc, char **argv, AppArgs &outArgs) {
 }
 
 static void printUsage(const char *exeName) {
-    std::cout << "Usage: " << exeName << " [options] [project_file]" << std::endl;
+    std::cout << "Usage: " << exeName << " [options] [project_file]"
+              << std::endl;
     std::cout << "Options:" << std::endl;
-    std::cout << "  --disable-plugins    Disable loading of plugins" << std::endl;
+    std::cout << "  --disable-plugins    Disable loading of plugins"
+              << std::endl;
 }

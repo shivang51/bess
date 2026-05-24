@@ -11,8 +11,9 @@
 #include <unordered_map>
 
 /// Note (Shivang)
-/// Doing this to remove copies of singleton across different shared library boundaries.
-/// This is needed for the asset manager to cleanup properly across plugins and main application. :)
+/// Doing this to remove copies of singleton across different shared library
+/// boundaries. This is needed for the asset manager to cleanup properly across
+/// plugins and main application. :)
 #if defined(_WIN32) // still need to check on windows (this should not work)
     #define API_EXPORT __declspec(dllexport)
 #else
@@ -38,7 +39,8 @@ namespace Bess::Assets {
         std::shared_ptr<T> get(const AssetID<T, N> &id) {
             const auto typeIdx = std::type_index(typeid(T));
 
-            using AssetCacheT = std::unordered_map<uint64_t, std::shared_ptr<void>>;
+            using AssetCacheT =
+                std::unordered_map<uint64_t, std::shared_ptr<void>>;
 
             auto it = m_assetCaches.find(typeIdx);
             if (it == m_assetCaches.end()) {
@@ -52,7 +54,8 @@ namespace Bess::Assets {
                 return std::static_pointer_cast<T>(assetIt->second);
             }
 
-            BESS_INFO("[AssetManager] Loading {} from 1st path {} with ID {}", typeid(T).name(), id.paths[0], id.id);
+            BESS_INFO("[AssetManager] Loading {} from 1st path {} with ID {}",
+                      typeid(T).name(), id.paths[0], id.id);
 
             std::shared_ptr<T> asset = std::apply(
                 [](auto &&...paths) {

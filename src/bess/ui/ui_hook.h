@@ -19,13 +19,8 @@ namespace Bess::UI::Hook {
         color_t
     };
 
-    using PropertyValue = std::variant<
-        bool,
-        int64_t,
-        uint64_t,
-        double,
-        std::string,
-        glm::vec4>;
+    using PropertyValue =
+        std::variant<bool, int64_t, uint64_t, double, std::string, glm::vec4>;
 
     struct NumericConstraints {
         double min;
@@ -43,10 +38,8 @@ namespace Bess::UI::Hook {
         std::function<void(const PropertyValue &)> setter;
     };
 
-    using PropertyConstraints = std::variant<
-        std::monostate,
-        NumericConstraints,
-        EnumConstraints>;
+    using PropertyConstraints =
+        std::variant<std::monostate, NumericConstraints, EnumConstraints>;
 
     struct PropertyDesc {
         std::string name;
@@ -60,7 +53,8 @@ namespace Bess::UI::Hook {
       public:
         virtual ~UIHook() = default;
 
-        virtual void setPropertyDescriptors(const std::vector<PropertyDesc> &descs);
+        virtual void
+        setPropertyDescriptors(const std::vector<PropertyDesc> &descs);
 
         virtual const std::vector<PropertyDesc> &getPropertyDescriptors() const;
 

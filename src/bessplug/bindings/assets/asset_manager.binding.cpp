@@ -23,15 +23,19 @@ class PyAssetManager {
     }
 
   public:
-    static AssetID<Bess::Vulkan::VulkanTexture, 1> register_texture_asset(const std::string &path) {
+    static AssetID<Bess::Vulkan::VulkanTexture, 1>
+    register_texture_asset(const std::string &path) {
         py::gil_scoped_acquire acquire;
         std::string_view safe_path = intern_string(path);
         return AssetID<Bess::Vulkan::VulkanTexture, 1>(intern_string(path));
     }
 
-    static std::shared_ptr<Bess::Vulkan::VulkanTexture> get_texture_asset(const AssetID<Bess::Vulkan::VulkanTexture, 1> &id) {
+    static std::shared_ptr<Bess::Vulkan::VulkanTexture>
+    get_texture_asset(const AssetID<Bess::Vulkan::VulkanTexture, 1> &id) {
         py::gil_scoped_acquire acquire;
-        assert(Bess::Vulkan::VulkanCore::instance().getDevice() && "Vulkan device must be initialized before getting texture assets.");
+        assert(
+            Bess::Vulkan::VulkanCore::instance().getDevice() &&
+            "Vulkan device must be initialized before getting texture assets.");
         return AssetManager::instance().get(id);
     }
 
@@ -44,18 +48,22 @@ class PyAssetManager {
 void bind_asset_manager(py::module_ &m) {
     py::class_<AssetID<Bess::Vulkan::VulkanTexture, 1>>(m, "TextureAssetID")
         .def(py::init<const std::string &>())
-        .def_readonly("paths", &AssetID<Bess::Vulkan::VulkanTexture, 1>::paths, "Get the paths of the texture asset")
-        .def("__repr__", [](const AssetID<Bess::Vulkan::VulkanTexture, 1> &self) {
-            std::string repr = "TextureAssetID(";
-            repr += py::repr(py::cast(self.paths[0])).cast<std::string>();
-            repr += ")";
-            return repr;
-        });
+        .def_readonly("paths", &AssetID<Bess::Vulkan::VulkanTexture, 1>::paths,
+                      "Get the paths of the texture asset")
+        .def("__repr__",
+             [](const AssetID<Bess::Vulkan::VulkanTexture, 1> &self) {
+                 std::string repr = "TextureAssetID(";
+                 repr += py::repr(py::cast(self.paths[0])).cast<std::string>();
+                 repr += ")";
+                 return repr;
+             });
 
     py::class_<PyAssetManager>(m, "AssetManager")
-        .def_static("register_texture_asset", &PyAssetManager::register_texture_asset, py::arg("path"),
+        .def_static("register_texture_asset",
+                    &PyAssetManager::register_texture_asset, py::arg("path"),
                     "Register a texture asset and return its AssetID")
-        .def_static("get_texture_asset", &PyAssetManager::get_texture_asset, py::arg("asset_id"),
-                    "Get a texture asset by its AssetID")
-        .def_static("cleanup", &PyAssetManager::cleanup, "Cleanup all assets in the AssetManager");
+        .def_static("get_texture_asset", &PyAssetManager::get_texture_asset,
+                    py::arg("asset_id"), "Get a texture asset by its AssetID")
+        .def_static("cleanup", &PyAssetManager::cleanup,
+                    "Cleanup all assets in the AssetManager");
 }

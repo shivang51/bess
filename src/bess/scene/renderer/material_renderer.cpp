@@ -15,20 +15,24 @@ namespace Bess::Renderer {
             int32_t renderSizeMilli = 0;
             std::string text;
 
-            bool operator==(const TextMeasureCacheKey &other) const noexcept = default;
+            bool operator==(const TextMeasureCacheKey &other) const noexcept =
+                default;
         };
 
         struct TextMeasureCacheKeyHash {
             size_t operator()(const TextMeasureCacheKey &key) const noexcept {
                 size_t seed = std::hash<const void *>{}(key.font);
-                seed ^= std::hash<int32_t>{}(key.renderSizeMilli) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-                seed ^= std::hash<std::string>{}(key.text) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+                seed ^= std::hash<int32_t>{}(key.renderSizeMilli) + 0x9e3779b9 +
+                        (seed << 6) + (seed >> 2);
+                seed ^= std::hash<std::string>{}(key.text) + 0x9e3779b9 +
+                        (seed << 6) + (seed >> 2);
                 return seed;
             }
         };
     } // namespace
 
-    static Material2D makeGrid(const glm::vec3 &pos, const glm::vec2 &size, uint64_t id) {
+    static Material2D makeGrid(const glm::vec3 &pos, const glm::vec2 &size,
+                               uint64_t id) {
         Material2D m;
         m.type = Material2D::MaterialType::grid;
         new (&m.grid) GridMaterial();
@@ -50,13 +54,17 @@ namespace Bess::Renderer {
         return m;
     }
 
-    MaterialRenderer::MaterialRenderer(const std::shared_ptr<VulkanDevice> &device,
-                                       const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
-                                       VkExtent2D extent) {
+    MaterialRenderer::MaterialRenderer(
+        const std::shared_ptr<VulkanDevice> &device,
+        const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
+        VkExtent2D extent) {
 
-        m_gridPipeline = std::make_unique<Pipelines::GridPipeline>(device, renderPass, extent);
-        m_primitivePipeline = std::make_unique<Pipelines::PrimitivePipeline>(device, renderPass, extent);
-        m_textRenderer = std::make_unique<Renderer::TextRenderer>(device, renderPass, extent);
+        m_gridPipeline = std::make_unique<Pipelines::GridPipeline>(
+            device, renderPass, extent);
+        m_primitivePipeline = std::make_unique<Pipelines::PrimitivePipeline>(
+            device, renderPass, extent);
+        m_textRenderer = std::make_unique<Renderer::TextRenderer>(
+            device, renderPass, extent);
 
         auto fontFilePtr = getFontFile();
         *fontFilePtr = m_textRenderer->getFontFile();
@@ -65,7 +73,8 @@ namespace Bess::Renderer {
 
         m_gridMaterial = makeGrid({0.f, 0.f, 0.f}, {1.f, 1.f}, -2);
 
-        m_shadowTexture = Assets::AssetManager::instance().get(Assets::Textures::shadowTexture);
+        m_shadowTexture = Assets::AssetManager::instance().get(
+            Assets::Textures::shadowTexture);
     }
 
     MaterialRenderer::~MaterialRenderer() = default;
@@ -77,8 +86,9 @@ namespace Bess::Renderer {
         }
     }
 
-    void MaterialRenderer::drawGrid(const glm::vec3 &pos, const glm::vec2 &size, uint64_t id,
-                                    const GridColors &gridColors, const std::shared_ptr<Camera> &camera) {
+    void MaterialRenderer::drawGrid(const glm::vec3 &pos, const glm::vec2 &size,
+                                    uint64_t id, const GridColors &gridColors,
+                                    const std::shared_ptr<Camera> &camera) {
         if (!m_gridPipeline) {
             return;
         }
@@ -107,10 +117,8 @@ namespace Bess::Renderer {
         return encodedId;
     }
 
-    void MaterialRenderer::drawQuad(const glm::vec3 &pos,
-                                    const glm::vec2 &size,
-                                    const glm::vec4 &color,
-                                    uint64_t id,
+    void MaterialRenderer::drawQuad(const glm::vec3 &pos, const glm::vec2 &size,
+                                    const glm::vec4 &color, uint64_t id,
                                     QuadRenderProperties props) {
         if (!m_primitivePipeline) {
             return;
@@ -143,24 +151,20 @@ namespace Bess::Renderer {
             const auto &scaleShadow = props.shadow.scale;
             shadowProps.borderRadius = props.borderRadius;
 
-            drawTexturedQuad({pos.x + offset.x, pos.y + offset.y, pos.z - 0.0001},
-                             {(size.x * scaleShadow.x) - props.borderRadius.x,
-                              (size.y * scaleShadow.y) - props.borderRadius.y},
-                             props.shadow.color,
-                             props.shadow.useInvalidId
-                                 ? Canvas::PickingId::invalid()
-                                 : id,
-                             m_shadowTexture,
-                             shadowProps);
+            drawTexturedQuad(
+                {pos.x + offset.x, pos.y + offset.y, pos.z - 0.0001},
+                {(size.x * scaleShadow.x) - props.borderRadius.x,
+                 (size.y * scaleShadow.y) - props.borderRadius.y},
+                props.shadow.color,
+                props.shadow.useInvalidId ? Canvas::PickingId::invalid() : id,
+                m_shadowTexture, shadowProps);
         }
     }
 
-    void MaterialRenderer::drawTexturedQuad(const glm::vec3 &pos,
-                                            const glm::vec2 &size,
-                                            const glm::vec4 &tint,
-                                            uint64_t id,
-                                            const std::shared_ptr<VulkanTexture> &texture,
-                                            QuadRenderProperties props) {
+    void MaterialRenderer::drawTexturedQuad(
+        const glm::vec3 &pos, const glm::vec2 &size, const glm::vec4 &tint,
+        uint64_t id, const std::shared_ptr<VulkanTexture> &texture,
+        QuadRenderProperties props) {
         if (!m_primitivePipeline) {
             return;
         }
@@ -184,12 +188,10 @@ namespace Bess::Renderer {
         m_translucentMaterials.push(m);
     }
 
-    void MaterialRenderer::drawTexturedQuad(const glm::vec3 &pos,
-                                            const glm::vec2 &size,
-                                            const glm::vec4 &tint,
-                                            uint64_t id,
-                                            const std::shared_ptr<SubTexture> &subTexture,
-                                            QuadRenderProperties props) {
+    void MaterialRenderer::drawTexturedQuad(
+        const glm::vec3 &pos, const glm::vec2 &size, const glm::vec4 &tint,
+        uint64_t id, const std::shared_ptr<SubTexture> &subTexture,
+        QuadRenderProperties props) {
         if (!m_primitivePipeline) {
             return;
         }
@@ -213,7 +215,9 @@ namespace Bess::Renderer {
         m_translucentMaterials.push(m);
     }
 
-    void MaterialRenderer::drawCircle(const glm::vec3 &center, float radius, const glm::vec4 &color, uint64_t id, float innerRadius) {
+    void MaterialRenderer::drawCircle(const glm::vec3 &center, float radius,
+                                      const glm::vec4 &color, uint64_t id,
+                                      float innerRadius) {
         if (!m_primitivePipeline) {
             return;
         }
@@ -235,10 +239,8 @@ namespace Bess::Renderer {
     }
 
     void MaterialRenderer::drawLine(const glm::vec3 &start,
-                                    const glm::vec3 &end,
-                                    const float thickness,
-                                    const glm::vec4 &color,
-                                    const uint64_t id) {
+                                    const glm::vec3 &end, const float thickness,
+                                    const glm::vec4 &color, const uint64_t id) {
         if (!m_primitivePipeline) {
             return;
         }
@@ -252,8 +254,9 @@ namespace Bess::Renderer {
 
         PrimitiveInstance instance{};
         instance.primitiveType = static_cast<int32_t>(PrimitiveType::Line);
-        instance.position = glm::vec3((glm::vec2(start) + glm::vec2(end)) * 0.5f,
-                                      (start.z + end.z) * 0.5f);
+        instance.position =
+            glm::vec3((glm::vec2(start) + glm::vec2(end)) * 0.5f,
+                      (start.z + end.z) * 0.5f);
         instance.color = color;
         instance.size = glm::vec2(length + thickness, thickness);
         instance.primitiveData = glm::vec4(thickness, 0.0f, 0.0f, 0.0f);
@@ -268,26 +271,33 @@ namespace Bess::Renderer {
         }
     }
 
-    void MaterialRenderer::drawText(const std::string &text, const glm::vec3 &pos, const size_t size,
-                                    const glm::vec4 &color, const uint64_t &id, float angle) {
+    void MaterialRenderer::drawText(const std::string &text,
+                                    const glm::vec3 &pos, const size_t size,
+                                    const glm::vec4 &color, const uint64_t &id,
+                                    float angle) {
 
         if (m_textRenderer) {
             m_textRenderer->drawText(text, pos, size, color, id);
         }
     }
 
-    void MaterialRenderer::drawIcon(const std::string &text, const glm::vec3 &pos, const size_t size,
-                                    const glm::vec4 &color, const uint64_t &id, float angle) {
+    void MaterialRenderer::drawIcon(const std::string &text,
+                                    const glm::vec3 &pos, const size_t size,
+                                    const glm::vec4 &color, const uint64_t &id,
+                                    float angle) {
 
         if (m_textRenderer) {
             m_textRenderer->drawIcon(text, pos, size, color, id);
         }
     }
 
-    glm::vec2 MaterialRenderer::drawTextWrapped(const std::string &text, const glm::vec3 &pos, const size_t size,
-                                                const glm::vec4 &color, const uint64_t &id, float wrapWidthPx, float angle) {
+    glm::vec2 MaterialRenderer::drawTextWrapped(
+        const std::string &text, const glm::vec3 &pos, const size_t size,
+        const glm::vec4 &color, const uint64_t &id, float wrapWidthPx,
+        float angle) {
         if (m_textRenderer) {
-            return m_textRenderer->drawTextWrapped(text, pos, size, color, id, wrapWidthPx, angle);
+            return m_textRenderer->drawTextWrapped(text, pos, size, color, id,
+                                                   wrapWidthPx, angle);
         }
 
         return {0.f, 0.f};
@@ -342,7 +352,8 @@ namespace Bess::Renderer {
 
         /// translucent entities
 
-        float prevZ = m_translucentMaterials.empty() ? 0 : m_translucentMaterials.top().z;
+        float prevZ =
+            m_translucentMaterials.empty() ? 0 : m_translucentMaterials.top().z;
 
         while (!m_translucentMaterials.empty()) {
             auto m = m_translucentMaterials.top();
@@ -355,7 +366,8 @@ namespace Bess::Renderer {
             switch (m.type) {
             case Material2D::MaterialType::primitive: {
                 if (m.primitive.texture) {
-                    m_texturedPrimitiveInstances[m.primitive.texture].emplace_back(m.primitive.instance);
+                    m_texturedPrimitiveInstances[m.primitive.texture]
+                        .emplace_back(m.primitive.instance);
                 } else {
                     m_primitiveInstances.emplace_back(m.primitive.instance);
                 }
@@ -371,8 +383,11 @@ namespace Bess::Renderer {
     }
 
     void MaterialRenderer::flushVertices(bool isTranslucent) {
-        if (m_primitivePipeline && (!m_primitiveInstances.empty() || !m_texturedPrimitiveInstances.empty())) {
-            m_primitivePipeline->drawPrimitiveInstances(m_cmdBuffer, isTranslucent, m_primitiveInstances, m_texturedPrimitiveInstances);
+        if (m_primitivePipeline && (!m_primitiveInstances.empty() ||
+                                    !m_texturedPrimitiveInstances.empty())) {
+            m_primitivePipeline->drawPrimitiveInstances(
+                m_cmdBuffer, isTranslucent, m_primitiveInstances,
+                m_texturedPrimitiveInstances);
             m_primitiveInstances.clear();
             m_texturedPrimitiveInstances.clear();
         }
@@ -422,10 +437,13 @@ namespace Bess::Renderer {
             return {maxLineWidth, totalHeight};
         }
 
-        const auto renderSizeMilli = static_cast<int32_t>(std::lround(renderSize * 1000.0f));
+        const auto renderSizeMilli =
+            static_cast<int32_t>(std::lround(renderSize * 1000.0f));
 
         static constexpr size_t kMaxTextMeasureCacheEntries = 4096;
-        static std::unordered_map<TextMeasureCacheKey, glm::vec2, TextMeasureCacheKeyHash> s_textMeasureCache;
+        static std::unordered_map<TextMeasureCacheKey, glm::vec2,
+                                  TextMeasureCacheKeyHash>
+            s_textMeasureCache;
         static std::deque<TextMeasureCacheKey> s_textMeasureCacheOrder;
 
         TextMeasureCacheKey cacheKey{
@@ -434,7 +452,8 @@ namespace Bess::Renderer {
             .text = str,
         };
 
-        if (const auto it = s_textMeasureCache.find(cacheKey); it != s_textMeasureCache.end()) {
+        if (const auto it = s_textMeasureCache.find(cacheKey);
+            it != s_textMeasureCache.end()) {
             return it->second;
         }
 

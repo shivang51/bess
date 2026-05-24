@@ -16,14 +16,17 @@ namespace Bess {
         std::vector<spdlog::sink_ptr> logSinks;
 
 #ifdef DEBUG
-        auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+        auto consoleSink =
+            std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
         consoleSink->set_pattern("%^[%T] [%L] %n: %v%$");
         logSinks.push_back(std::move(consoleSink));
 #endif
 
         if (!m_fileSink) {
-            m_fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("bess.log", true);
-            m_fileSink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [thread %t] [%l] [%n] %v");
+            m_fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
+                "bess.log", true);
+            m_fileSink->set_pattern(
+                "[%Y-%m-%d %H:%M:%S.%e] [thread %t] [%l] [%n] %v");
         }
 
         logSinks.push_back(m_fileSink);
@@ -33,7 +36,8 @@ namespace Bess {
             logSinks.push_back(m_uiSink);
         }
 
-        auto logger = std::make_shared<spdlog::logger>(name, logSinks.begin(), logSinks.end());
+        auto logger = std::make_shared<spdlog::logger>(name, logSinks.begin(),
+                                                       logSinks.end());
         spdlog::register_logger(logger);
 
 #ifdef DEBUG
@@ -47,7 +51,8 @@ namespace Bess {
         m_loggers[name] = std::move(logger);
     }
 
-    const std::shared_ptr<spdlog::logger> &Logger::getLogger(const std::string &name) {
+    const std::shared_ptr<spdlog::logger> &
+    Logger::getLogger(const std::string &name) {
         std::lock_guard<std::mutex> lock(m_getMutex);
         auto it = m_loggers.find(name);
         if (it == m_loggers.end()) {

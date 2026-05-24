@@ -29,10 +29,12 @@ namespace Bess::Vulkan {
 
     class BESS_VULKAN_API VulkanCommandBuffers {
       public:
-        VulkanCommandBuffers(const std::shared_ptr<VulkanDevice> &device, size_t count);
+        VulkanCommandBuffers(const std::shared_ptr<VulkanDevice> &device,
+                             size_t count);
         ~VulkanCommandBuffers();
 
-        const std::vector<std::shared_ptr<VulkanCommandBuffer>> &getCmdBuffers() const;
+        const std::vector<std::shared_ptr<VulkanCommandBuffer>> &
+        getCmdBuffers() const;
 
         std::shared_ptr<VulkanCommandBuffer> at(u_int32_t idx);
 

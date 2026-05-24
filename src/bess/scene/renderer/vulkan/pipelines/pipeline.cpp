@@ -4,39 +4,47 @@
 
 namespace Bess::Vulkan::Pipelines {
 
-    Pipeline::Pipeline(const std::shared_ptr<VulkanDevice> &device,
-                       const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
-                       VkExtent2D extent)
-        : m_device(device), m_renderPass(renderPass), m_extent(extent) {
-    }
+    Pipeline::Pipeline(
+        const std::shared_ptr<VulkanDevice> &device,
+        const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
+        VkExtent2D extent)
+        : m_device(device),
+          m_renderPass(renderPass),
+          m_extent(extent) {}
 
     void Pipeline::cleanup() {
         for (size_t i = 0; i < m_uniformBuffers.size(); i++) {
             if (m_uniformBuffers[i] != VK_NULL_HANDLE) {
-                vkDestroyBuffer(m_device->device(), m_uniformBuffers[i], nullptr);
+                vkDestroyBuffer(m_device->device(), m_uniformBuffers[i],
+                                nullptr);
             }
             if (m_uniformBufferMemory[i] != VK_NULL_HANDLE) {
-                vkFreeMemory(m_device->device(), m_uniformBufferMemory[i], nullptr);
+                vkFreeMemory(m_device->device(), m_uniformBufferMemory[i],
+                             nullptr);
             }
         }
 
         if (m_descriptorSetLayout != VK_NULL_HANDLE) {
-            vkDestroyDescriptorSetLayout(m_device->device(), m_descriptorSetLayout, nullptr);
+            vkDestroyDescriptorSetLayout(m_device->device(),
+                                         m_descriptorSetLayout, nullptr);
             m_descriptorSetLayout = VK_NULL_HANDLE;
         }
 
         if (m_descriptorPool != VK_NULL_HANDLE) {
-            vkDestroyDescriptorPool(m_device->device(), m_descriptorPool, nullptr);
+            vkDestroyDescriptorPool(m_device->device(), m_descriptorPool,
+                                    nullptr);
             m_descriptorPool = VK_NULL_HANDLE;
         }
 
         if (m_translucentPipeline != VK_NULL_HANDLE) {
-            vkDestroyPipeline(m_device->device(), m_translucentPipeline, nullptr);
+            vkDestroyPipeline(m_device->device(), m_translucentPipeline,
+                              nullptr);
             m_translucentPipeline = VK_NULL_HANDLE;
         }
 
         if (m_transPipelineLayout != VK_NULL_HANDLE) {
-            vkDestroyPipelineLayout(m_device->device(), m_transPipelineLayout, nullptr);
+            vkDestroyPipelineLayout(m_device->device(), m_transPipelineLayout,
+                                    nullptr);
             m_transPipelineLayout = VK_NULL_HANDLE;
         }
 
@@ -46,7 +54,8 @@ namespace Bess::Vulkan::Pipelines {
         }
 
         if (m_opaquePipelineLayout != VK_NULL_HANDLE) {
-            vkDestroyPipelineLayout(m_device->device(), m_opaquePipelineLayout, nullptr);
+            vkDestroyPipelineLayout(m_device->device(), m_opaquePipelineLayout,
+                                    nullptr);
             m_opaquePipelineLayout = VK_NULL_HANDLE;
         }
     }
@@ -106,19 +115,22 @@ namespace Bess::Vulkan::Pipelines {
 
     void Pipeline::updateUniformBuffer(const UniformBufferObject &ubo) {
         void *data = nullptr;
-        vkMapMemory(m_device->device(), m_uniformBufferMemory[0], 0, sizeof(ubo), 0, &data);
+        vkMapMemory(m_device->device(), m_uniformBufferMemory[0], 0,
+                    sizeof(ubo), 0, &data);
         memcpy(data, &ubo, sizeof(ubo));
         vkUnmapMemory(m_device->device(), m_uniformBufferMemory[0]);
     }
 
-    VkShaderModule Pipeline::createShaderModule(const std::vector<char> &code) const {
+    VkShaderModule
+    Pipeline::createShaderModule(const std::vector<char> &code) const {
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         createInfo.codeSize = code.size();
         createInfo.pCode = reinterpret_cast<const uint32_t *>(code.data());
 
         VkShaderModule shaderModule = VK_NULL_HANDLE;
-        if (vkCreateShaderModule(m_device->device(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+        if (vkCreateShaderModule(m_device->device(), &createInfo, nullptr,
+                                 &shaderModule) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create shader module!");
         }
 
@@ -166,13 +178,16 @@ namespace Bess::Vulkan::Pipelines {
         gridLayoutBinding.pImmutableSamplers = nullptr;
         gridLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-        std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, gridLayoutBinding};
+        std::array<VkDescriptorSetLayoutBinding, 2> bindings = {
+            uboLayoutBinding, gridLayoutBinding};
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
         layoutInfo.pBindings = bindings.data();
 
-        if (vkCreateDescriptorSetLayout(m_device->device(), &layoutInfo, nullptr, &m_descriptorSetLayout) != VK_SUCCESS) {
+        if (vkCreateDescriptorSetLayout(m_device->device(), &layoutInfo,
+                                        nullptr,
+                                        &m_descriptorSetLayout) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create descriptor set layout!");
         }
     }
@@ -188,7 +203,8 @@ namespace Bess::Vulkan::Pipelines {
         poolInfo.pPoolSizes = poolSizes.data();
         poolInfo.maxSets = 2;
 
-        if (vkCreateDescriptorPool(m_device->device(), &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS) {
+        if (vkCreateDescriptorPool(m_device->device(), &poolInfo, nullptr,
+                                   &m_descriptorPool) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create descriptor pool!");
         }
     }
@@ -201,7 +217,8 @@ namespace Bess::Vulkan::Pipelines {
         constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
         m_descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
 
-        std::vector<VkDescriptorSetLayout> layouts(m_descriptorSets.size(), m_descriptorSetLayout);
+        std::vector<VkDescriptorSetLayout> layouts(m_descriptorSets.size(),
+                                                   m_descriptorSetLayout);
 
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -209,7 +226,8 @@ namespace Bess::Vulkan::Pipelines {
         allocInfo.descriptorSetCount = m_descriptorSets.size();
         allocInfo.pSetLayouts = layouts.data();
 
-        if (vkAllocateDescriptorSets(m_device->device(), &allocInfo, m_descriptorSets.data()) != VK_SUCCESS) {
+        if (vkAllocateDescriptorSets(m_device->device(), &allocInfo,
+                                     m_descriptorSets.data()) != VK_SUCCESS) {
             throw std::runtime_error("Failed to allocate descriptor sets!");
         }
 
@@ -229,7 +247,8 @@ namespace Bess::Vulkan::Pipelines {
             descriptorWrite.descriptorCount = 1;
             descriptorWrite.pBufferInfo = &bufferInfo;
 
-            vkUpdateDescriptorSets(m_device->device(), 1, &descriptorWrite, 0, nullptr);
+            vkUpdateDescriptorSets(m_device->device(), 1, &descriptorWrite, 0,
+                                   nullptr);
         }
     }
 
@@ -245,28 +264,38 @@ namespace Bess::Vulkan::Pipelines {
         bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
         bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-        if (vkCreateBuffer(m_device->device(), &bufferInfo, nullptr, &m_uniformBuffers[0]) != VK_SUCCESS) {
+        if (vkCreateBuffer(m_device->device(), &bufferInfo, nullptr,
+                           &m_uniformBuffers[0]) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create uniform buffer!");
         }
 
         VkMemoryRequirements memRequirements;
-        vkGetBufferMemoryRequirements(m_device->device(), m_uniformBuffers[0], &memRequirements);
+        vkGetBufferMemoryRequirements(m_device->device(), m_uniformBuffers[0],
+                                      &memRequirements);
 
         VkMemoryAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = m_device->findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        allocInfo.memoryTypeIndex =
+            m_device->findMemoryType(memRequirements.memoryTypeBits,
+                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-        if (vkAllocateMemory(m_device->device(), &allocInfo, nullptr, &m_uniformBufferMemory[0]) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate uniform buffer memory!");
+        if (vkAllocateMemory(m_device->device(), &allocInfo, nullptr,
+                             &m_uniformBufferMemory[0]) != VK_SUCCESS) {
+            throw std::runtime_error(
+                "Failed to allocate uniform buffer memory!");
         }
 
-        vkBindBufferMemory(m_device->device(), m_uniformBuffers[0], m_uniformBufferMemory[0], 0);
+        vkBindBufferMemory(m_device->device(), m_uniformBuffers[0],
+                           m_uniformBufferMemory[0], 0);
     }
 
-    VkPipelineInputAssemblyStateCreateInfo Pipeline::createInputAssemblyState() const {
+    VkPipelineInputAssemblyStateCreateInfo
+    Pipeline::createInputAssemblyState() const {
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-        inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+        inputAssembly.sType =
+            VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
         inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         inputAssembly.primitiveRestartEnable = VK_FALSE;
         return inputAssembly;
@@ -284,7 +313,8 @@ namespace Bess::Vulkan::Pipelines {
         m_scissor.extent = m_extent;
 
         VkPipelineViewportStateCreateInfo viewportState{};
-        viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+        viewportState.sType =
+            VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
         viewportState.viewportCount = 1; // we will be using dynamlic viewport
         viewportState.scissorCount = 1;
         viewportState.pViewports = nullptr;
@@ -292,9 +322,11 @@ namespace Bess::Vulkan::Pipelines {
         return viewportState;
     }
 
-    VkPipelineRasterizationStateCreateInfo Pipeline::createRasterizationState() const {
+    VkPipelineRasterizationStateCreateInfo
+    Pipeline::createRasterizationState() const {
         VkPipelineRasterizationStateCreateInfo rasterizer{};
-        rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+        rasterizer.sType =
+            VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
         rasterizer.depthClampEnable = VK_FALSE;
         rasterizer.rasterizerDiscardEnable = VK_FALSE;
         rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
@@ -305,18 +337,22 @@ namespace Bess::Vulkan::Pipelines {
         return rasterizer;
     }
 
-    VkPipelineMultisampleStateCreateInfo Pipeline::createMultisampleState() const {
+    VkPipelineMultisampleStateCreateInfo
+    Pipeline::createMultisampleState() const {
         VkPipelineMultisampleStateCreateInfo multisampling{};
-        multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+        multisampling.sType =
+            VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
         multisampling.sampleShadingEnable = VK_FALSE;
         multisampling.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
         multisampling.alphaToCoverageEnable = VK_FALSE;
         return multisampling;
     }
 
-    VkPipelineDepthStencilStateCreateInfo Pipeline::createDepthStencilState(bool isTranslucent) const {
+    VkPipelineDepthStencilStateCreateInfo
+    Pipeline::createDepthStencilState(bool isTranslucent) const {
         VkPipelineDepthStencilStateCreateInfo depthStencil{};
-        depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+        depthStencil.sType =
+            VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 
         depthStencil.depthTestEnable = VK_TRUE;
         depthStencil.depthWriteEnable = isTranslucent ? VK_FALSE : VK_TRUE;
@@ -326,12 +362,16 @@ namespace Bess::Vulkan::Pipelines {
         return depthStencil;
     }
 
-    VkPipelineColorBlendStateCreateInfo Pipeline::createColorBlendState(const std::vector<VkPipelineColorBlendAttachmentState> &colorBlendAttachments) const {
+    VkPipelineColorBlendStateCreateInfo Pipeline::createColorBlendState(
+        const std::vector<VkPipelineColorBlendAttachmentState>
+            &colorBlendAttachments) const {
         VkPipelineColorBlendStateCreateInfo colorBlending{};
-        colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        colorBlending.sType =
+            VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
         colorBlending.logicOpEnable = VK_FALSE;
         colorBlending.logicOp = VK_LOGIC_OP_COPY;
-        colorBlending.attachmentCount = static_cast<uint32_t>(colorBlendAttachments.size());
+        colorBlending.attachmentCount =
+            static_cast<uint32_t>(colorBlendAttachments.size());
         colorBlending.pAttachments = colorBlendAttachments.data();
         colorBlending.blendConstants[0] = 0.0F;
         colorBlending.blendConstants[1] = 0.0F;
@@ -342,12 +382,13 @@ namespace Bess::Vulkan::Pipelines {
 
     VkPipelineDynamicStateCreateInfo Pipeline::createDynamicState() const {
         static std::vector<VkDynamicState> dynamicStates = {
-            VK_DYNAMIC_STATE_VIEWPORT,
-            VK_DYNAMIC_STATE_SCISSOR};
+            VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
         VkPipelineDynamicStateCreateInfo dynamicState{};
-        dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
+        dynamicState.sType =
+            VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        dynamicState.dynamicStateCount =
+            static_cast<uint32_t>(dynamicStates.size());
         dynamicState.pDynamicStates = dynamicStates.data();
         return dynamicState;
     }
@@ -368,15 +409,18 @@ namespace Bess::Vulkan::Pipelines {
         m_resized = true;
     }
 
-    void Pipeline::cleanPrevStateCounter() {
-        m_instanceCounter = 0;
-    }
+    void Pipeline::cleanPrevStateCounter() { m_instanceCounter = 0; }
 
-    void Pipeline::ensureInstanceCapacity(BufferSet &buffers, size_t requiredInstances, VkDeviceSize instanceSize) {
-        if (requiredInstances <= buffers.instanceCapacity && buffers.instanceBuffer != VK_NULL_HANDLE && buffers.instanceBufferMapped != nullptr)
+    void Pipeline::ensureInstanceCapacity(BufferSet &buffers,
+                                          size_t requiredInstances,
+                                          VkDeviceSize instanceSize) {
+        if (requiredInstances <= buffers.instanceCapacity &&
+            buffers.instanceBuffer != VK_NULL_HANDLE &&
+            buffers.instanceBufferMapped != nullptr)
             return;
 
-        // Retire old buffer (if any) to avoid freeing memory still in use by GPU this frame
+        // Retire old buffer (if any) to avoid freeing memory still in use by
+        // GPU this frame
         if (buffers.instanceBuffer != VK_NULL_HANDLE) {
             buffers.retiredInstanceBuffers.push_back(buffers.instanceBuffer);
             buffers.instanceBuffer = VK_NULL_HANDLE;
@@ -386,36 +430,48 @@ namespace Bess::Vulkan::Pipelines {
                 vkUnmapMemory(m_device->device(), buffers.instanceBufferMemory);
                 buffers.instanceBufferMapped = nullptr;
             }
-            buffers.retiredInstanceMemories.push_back(buffers.instanceBufferMemory);
+            buffers.retiredInstanceMemories.push_back(
+                buffers.instanceBufferMemory);
             buffers.instanceBufferMemory = VK_NULL_HANDLE;
         }
         buffers.instanceBufferMapped = nullptr;
 
-        size_t newCapacity = std::max(requiredInstances * 2, std::max<size_t>(buffers.instanceCapacity * 2, 1024));
+        size_t newCapacity =
+            std::max(requiredInstances * 2,
+                     std::max<size_t>(buffers.instanceCapacity * 2, 1024));
         VkDeviceSize size = instanceSize * newCapacity;
 
         VkBufferCreateInfo bi{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
         bi.size = size;
         bi.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
         bi.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        if (vkCreateBuffer(m_device->device(), &bi, nullptr, &buffers.instanceBuffer) != VK_SUCCESS) {
+        if (vkCreateBuffer(m_device->device(), &bi, nullptr,
+                           &buffers.instanceBuffer) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create instance buffer!");
         }
 
         VkMemoryRequirements req{};
-        vkGetBufferMemoryRequirements(m_device->device(), buffers.instanceBuffer, &req);
+        vkGetBufferMemoryRequirements(m_device->device(),
+                                      buffers.instanceBuffer, &req);
         VkMemoryAllocateInfo ai{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
         ai.allocationSize = req.size;
-        // Host visible + coherent to allow persistent mapping; device-local staging path can be added later
-        ai.memoryTypeIndex = m_device->findMemoryType(req.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        if (vkAllocateMemory(m_device->device(), &ai, nullptr, &buffers.instanceBufferMemory) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate instance buffer memory!");
+        // Host visible + coherent to allow persistent mapping; device-local
+        // staging path can be added later
+        ai.memoryTypeIndex = m_device->findMemoryType(
+            req.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        if (vkAllocateMemory(m_device->device(), &ai, nullptr,
+                             &buffers.instanceBufferMemory) != VK_SUCCESS) {
+            throw std::runtime_error(
+                "Failed to allocate instance buffer memory!");
         }
-        vkBindBufferMemory(m_device->device(), buffers.instanceBuffer, buffers.instanceBufferMemory, 0);
+        vkBindBufferMemory(m_device->device(), buffers.instanceBuffer,
+                           buffers.instanceBufferMemory, 0);
 
         // Persistently map
         void *ptr = nullptr;
-        vkMapMemory(m_device->device(), buffers.instanceBufferMemory, 0, size, 0, &ptr);
+        vkMapMemory(m_device->device(), buffers.instanceBufferMemory, 0, size,
+                    0, &ptr);
         buffers.instanceBufferMapped = ptr;
         buffers.instanceCapacity = newCapacity;
         buffers.instanceStride = static_cast<size_t>(instanceSize);

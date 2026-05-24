@@ -11,19 +11,23 @@ namespace Bess::Vulkan {
 
     class BESS_VULKAN_API VulkanOffscreenRenderPass {
       public:
-        VulkanOffscreenRenderPass(const std::shared_ptr<VulkanDevice> &device,
-                                  VkFormat colorFormat,
-                                  VkFormat pickingFormat = VK_FORMAT_R32G32_UINT,
-                                  VkFormat depthFormat = VK_FORMAT_D32_SFLOAT);
+        VulkanOffscreenRenderPass(
+            const std::shared_ptr<VulkanDevice> &device, VkFormat colorFormat,
+            VkFormat pickingFormat = VK_FORMAT_R32G32_UINT,
+            VkFormat depthFormat = VK_FORMAT_D32_SFLOAT);
         ~VulkanOffscreenRenderPass();
 
         VulkanOffscreenRenderPass(const VulkanOffscreenRenderPass &) = delete;
-        VulkanOffscreenRenderPass &operator=(const VulkanOffscreenRenderPass &) = delete;
+        VulkanOffscreenRenderPass &
+        operator=(const VulkanOffscreenRenderPass &) = delete;
         VulkanOffscreenRenderPass(VulkanOffscreenRenderPass &&other) noexcept;
-        VulkanOffscreenRenderPass &operator=(VulkanOffscreenRenderPass &&other) noexcept;
+        VulkanOffscreenRenderPass &
+        operator=(VulkanOffscreenRenderPass &&other) noexcept;
 
-        void begin(VkCommandBuffer cmdBuffer, VkFramebuffer framebuffer, VkExtent2D extent,
-                   const glm::vec4 &clearColor = glm::vec4(1.0F, 0.0F, 1.0F, 1.0F),
+        void begin(VkCommandBuffer cmdBuffer, VkFramebuffer framebuffer,
+                   VkExtent2D extent,
+                   const glm::vec4 &clearColor = glm::vec4(1.0F, 0.0F, 1.0F,
+                                                           1.0F),
                    const glm::uvec2 &clearPickingId = {0, 0});
         void end();
 

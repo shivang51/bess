@@ -1,8 +1,7 @@
 #include "ui_panel.h"
 
 namespace Bess::UI {
-    Panel::Panel(const std::string &name)
-        : m_name(name) {}
+    Panel::Panel(const std::string &name) : m_name(name) {}
 
     void Panel::hide() {
         if (m_visible) {
@@ -30,10 +29,10 @@ namespace Bess::UI {
         onBeforeDraw();
         ImGui::Begin(m_name.c_str(), &m_visible, m_flags);
         onDraw();
-        m_isFocused = ImGui::IsWindowFocused(
-            ImGuiFocusedFlags_RootAndChildWindows);
-        m_isHovered = ImGui::IsWindowHovered(
-            ImGuiHoveredFlags_RootAndChildWindows);
+        m_isFocused =
+            ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+        m_isHovered =
+            ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows);
         ImGui::End();
         onAfterDraw();
     }
@@ -42,7 +41,8 @@ namespace Bess::UI {
 
     void Panel::onHide() {}
 
-    void Panel::update(TimeMs ts, const std::vector<ApplicationEvent> &events) {}
+    void Panel::update(TimeMs ts, const std::vector<ApplicationEvent> &events) {
+    }
 
     void Panel::init() {}
 

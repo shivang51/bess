@@ -1,9 +1,10 @@
 #pragma once
 
-/// Responsible for managing plugins, including loading, unloading, and providing access to plugin functionalities.
-/// Simulation DOES NOT use this, it being an independent module handles plugins on its own.
+/// Responsible for managing plugins, including loading, unloading, and
+/// providing access to plugin functionalities. Simulation DOES NOT use this, it
+/// being an independent module handles plugins on its own.
 
-#include "component_definition.h"
+#include "sim_driver/sim_driver.h"
 
 #include "json/value.h"
 
@@ -21,17 +22,17 @@ namespace Bess::Svc {
         void init();
         void destroy();
 
-        bool hasSimComponent(const uint64_t &compHash) const;
+        bool hasSimSceneComp(const std::string &defName) const;
         bool hasSceneComp(const std::string &typeName) const;
 
         bool canDerserialize(const std::string &typeName) const;
 
-        std::shared_ptr<Canvas::SceneComponent> derserialize(
-            const std::string &typeName,
-            const Json::Value &json) const;
+        std::shared_ptr<Canvas::SceneComponent>
+        derserialize(const std::string &typeName,
+                     const Json::Value &json) const;
 
-        std::shared_ptr<Canvas::SimulationSceneComponent> getSimComp(
-            const std::shared_ptr<SimEngine::ComponentDefinition> &def) const;
+        std::shared_ptr<Canvas::SimulationSceneComponent> getSimSceneComp(
+            const std::shared_ptr<SimEngine::Drivers::CompDef> &def) const;
 
         MAKE_GETTER(bool, IsInitialized, m_initialized)
 

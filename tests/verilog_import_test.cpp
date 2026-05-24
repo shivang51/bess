@@ -1,17 +1,17 @@
 #include "application/pages/main_page/verilog_scene_import.h"
-#include "pages/main_page/main_page.h"
-#include "pages/main_page/scene_components/connection_scene_component.h"
-#include "pages/main_page/scene_components/module_scene_component.h"
 #include "bverilog/sim_engine_importer.h"
 #include "bverilog/yosys_json_parser.h"
 #include "bverilog/yosys_runner.h"
+#include "common/types.h"
+#include "pages/main_page/main_page.h"
+#include "pages/main_page/scene_components/connection_scene_component.h"
+#include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
-#include "types.h"
 #include "gtest/gtest.h"
-#include <atomic>
 #include <array>
+#include <atomic>
 #include <filesystem>
 #include <fstream>
 #include <json/value.h>
@@ -25,9 +25,10 @@ namespace {
     using namespace Bess::SimEngine;
     using namespace Bess::Verilog;
 
-    bool waitUntil(const std::function<bool()> &predicate,
-                   std::chrono::milliseconds timeout = std::chrono::milliseconds(250),
-                   std::chrono::milliseconds poll = std::chrono::milliseconds(2)) {
+    bool waitUntil(
+        const std::function<bool()> &predicate,
+        std::chrono::milliseconds timeout = std::chrono::milliseconds(250),
+        std::chrono::milliseconds poll = std::chrono::milliseconds(2)) {
         const auto deadline = std::chrono::steady_clock::now() + timeout;
         while (std::chrono::steady_clock::now() < deadline) {
             if (predicate()) {
@@ -43,7 +44,8 @@ namespace {
         const auto path = std::filesystem::temp_directory_path() / fileName;
         std::ofstream stream(path);
         if (!stream.is_open()) {
-            throw std::runtime_error("Failed to create temporary Verilog test file");
+            throw std::runtime_error(
+                "Failed to create temporary Verilog test file");
         }
         stream << source;
         return path;
@@ -51,10 +53,10 @@ namespace {
 
     std::string buildUniqueTempVerilogFileName(const std::string &stem) {
         static std::atomic<uint64_t> counter{0};
-        return std::format("{}_{}_{}.v",
-                           stem,
-                           std::chrono::steady_clock::now().time_since_epoch().count(),
-                           counter.fetch_add(1));
+        return std::format(
+            "{}_{}_{}.v", stem,
+            std::chrono::steady_clock::now().time_since_epoch().count(),
+            counter.fetch_add(1));
     }
 } // namespace
 
@@ -146,26 +148,34 @@ TEST_F(VerilogImportTest, ImportsTopOutputWithConstantEncodedBit) {
 
     const auto constOut = result.topOutputComponents.at("const_out");
     ASSERT_TRUE(waitUntil([&] {
-        return engine->getDigitalSlotState(constOut, SlotType::digitalInput, 0).state == LogicState::low;
+        return engine->getDigitalSlotState(constOut, SlotType::digitalInput, 0)
+                   .state == LogicState::low;
     })) << "Constant-encoded top output did not resolve to low";
 }
 
-TEST_F(VerilogImportTest, ImportsNestedModulesIntoSimulationEngineAndPropagatesSignals) {
+TEST_F(VerilogImportTest,
+       ImportsNestedModulesIntoSimulationEngineAndPropagatesSignals) {
     const auto design = parseDesignFromYosysJson(buildNestedModuleJson());
     const auto result = importDesignIntoSimulationEngine(design, *engine);
 
     ASSERT_EQ(result.topModuleName, "top");
     ASSERT_TRUE(result.instancesByPath.contains("top"));
     ASSERT_TRUE(result.instancesByPath.contains("top/u_child"));
-    EXPECT_EQ(result.instancesByPath.at("top/u_child").parentInstancePath, "top");
+    EXPECT_EQ(result.instancesByPath.at("top/u_child").parentInstancePath,
+              "top");
     ASSERT_TRUE(result.topInputComponents.contains("in0"));
     ASSERT_TRUE(result.topInputComponents.contains("in1"));
     ASSERT_TRUE(result.topOutputComponents.contains("out0"));
-    EXPECT_EQ(result.componentInstancePathById.at(result.topInputComponents.at("in0")), "top");
-    EXPECT_EQ(result.componentInstancePathById.at(result.topOutputComponents.at("out0")), "top");
+    EXPECT_EQ(result.componentInstancePathById.at(
+                  result.topInputComponents.at("in0")),
+              "top");
+    EXPECT_EQ(result.componentInstancePathById.at(
+                  result.topOutputComponents.at("out0")),
+              "top");
 
     bool foundChildOwnedPrimitive = false;
-    for (const auto &[componentId, ownerPath] : result.componentInstancePathById) {
+    for (const auto &[componentId, ownerPath] :
+         result.componentInstancePathById) {
         (void)componentId;
         if (ownerPath == "top/u_child") {
             foundChildOwnedPrimitive = true;
@@ -181,19 +191,22 @@ TEST_F(VerilogImportTest, ImportsNestedModulesIntoSimulationEngineAndPropagatesS
     engine->setOutputSlotState(in0, 0, LogicState::high);
     engine->setOutputSlotState(in1, 0, LogicState::low);
     ASSERT_TRUE(waitUntil([&] {
-        return engine->getDigitalSlotState(out0, SlotType::digitalInput, 0).state == LogicState::high;
+        return engine->getDigitalSlotState(out0, SlotType::digitalInput, 0)
+                   .state == LogicState::high;
     })) << "Expected output to resolve high for 1 & !0";
 
     engine->setOutputSlotState(in1, 0, LogicState::high);
     ASSERT_TRUE(waitUntil([&] {
-        return engine->getDigitalSlotState(out0, SlotType::digitalInput, 0).state == LogicState::low;
+        return engine->getDigitalSlotState(out0, SlotType::digitalInput, 0)
+                   .state == LogicState::low;
     })) << "Expected output to resolve low for 1 & !1";
 }
 
-TEST_F(VerilogImportTest, PreservesHierarchicalHalfAdderInstanceInterfacesForSceneImport) {
-    const auto verilogPath = writeTempVerilogFile(
-        "bess_hierarchical_full_adder_test.v",
-        R"verilog(
+TEST_F(VerilogImportTest,
+       PreservesHierarchicalHalfAdderInstanceInterfacesForSceneImport) {
+    const auto verilogPath =
+        writeTempVerilogFile("bess_hierarchical_full_adder_test.v",
+                             R"verilog(
 module full_add(a,b,cin,sum,cout);
   input a,b,cin;
   output sum,cout;
@@ -214,8 +227,7 @@ endmodule :half_add
 )verilog");
 
     const auto result = importVerilogFileIntoSimulationEngine(
-        verilogPath,
-        *engine,
+        verilogPath, *engine,
         YosysRunnerConfig{
             .executablePath = "yosys",
             .topModuleName = std::string("full_add"),
@@ -252,9 +264,8 @@ endmodule :half_add
 }
 
 TEST_F(VerilogImportTest, ImportsVerilogFullAdderViaYosysAndMatchesTruthTable) {
-    const auto verilogPath = writeTempVerilogFile(
-        "bess_full_adder_test.v",
-        R"verilog(
+    const auto verilogPath = writeTempVerilogFile("bess_full_adder_test.v",
+                                                  R"verilog(
 module full_adder(
     input a,
     input b,
@@ -275,8 +286,7 @@ endmodule
 )verilog");
 
     const auto result = importVerilogFileIntoSimulationEngine(
-        verilogPath,
-        *engine,
+        verilogPath, *engine,
         YosysRunnerConfig{
             .executablePath = "yosys",
             .topModuleName = std::string("full_adder"),
@@ -316,8 +326,10 @@ endmodule
         engine->setOutputSlotState(cin, 0, asLogic(row[2]));
 
         ASSERT_TRUE(waitUntil([&] {
-            return engine->getDigitalSlotState(sum, SlotType::digitalInput, 0).state == asLogic(row[3]) &&
-                   engine->getDigitalSlotState(cout, SlotType::digitalInput, 0).state == asLogic(row[4]);
+            return engine->getDigitalSlotState(sum, SlotType::digitalInput, 0)
+                           .state == asLogic(row[3]) &&
+                   engine->getDigitalSlotState(cout, SlotType::digitalInput, 0)
+                           .state == asLogic(row[4]);
         })) << "Full adder outputs did not settle for inputs "
             << row[0] << row[1] << row[2];
     }
@@ -325,10 +337,11 @@ endmodule
     std::filesystem::remove(verilogPath);
 }
 
-TEST_F(VerilogImportTest, ImportedBoundaryInputCanDriveRecordedInternalPrimitiveSinks) {
-    const auto verilogPath = writeTempVerilogFile(
-        "bess_hierarchical_bridge_test.v",
-        R"verilog(
+TEST_F(VerilogImportTest,
+       ImportedBoundaryInputCanDriveRecordedInternalPrimitiveSinks) {
+    const auto verilogPath =
+        writeTempVerilogFile("bess_hierarchical_bridge_test.v",
+                             R"verilog(
 module full_add(a,b,cin,sum,cout);
   input a,b,cin;
   output sum,cout;
@@ -349,8 +362,7 @@ endmodule :half_add
 )verilog");
 
     const auto result = importVerilogFileIntoSimulationEngine(
-        verilogPath,
-        *engine,
+        verilogPath, *engine,
         YosysRunnerConfig{
             .executablePath = "yosys",
             .topModuleName = std::string("full_add"),
@@ -360,70 +372,83 @@ endmodule :half_add
     ASSERT_EQ(h1.inputSlotNames, (std::vector<std::string>{"a", "b"}));
     ASSERT_EQ(h1.internalInputSinks.size(), 2u);
 
-    auto resizeOutputs = [](const std::shared_ptr<DigitalComponent> &component, size_t count) {
-        while (component->definition->getOutputSlotsInfo().count < count) {
-            component->incrementOutputCount(true);
-        }
-    };
+    auto resizeOutputs =
+        [](const std::shared_ptr<Drivers::Digital::DigSimComp> &component,
+           size_t count) {
+            auto def = component->getDefinition<Drivers::Digital::DigCompDef>();
+            ASSERT_NE(def, nullptr);
+
+            auto outInfo = def->getOutputSlotsInfo();
+            if (outInfo.count < count) {
+                outInfo.count = count;
+                def->setOutputSlotsInfo(outInfo);
+            }
+
+            component->getOutputStates().resize(count);
+            component->getOutputConnections().resize(count);
+            component->getIsOutputConnected().resize(count, false);
+        };
 
     const auto topA = result.topInputComponents.at("a");
     const auto inputDefinition = engine->getComponentDefinition(topA);
     const auto bridgeInputId = engine->addComponent(inputDefinition);
-    const auto bridgeInput = engine->getDigitalComponent(bridgeInputId);
+    const auto bridgeInput =
+        engine->getComponent<Drivers::Digital::DigSimComp>(bridgeInputId);
     resizeOutputs(bridgeInput, h1.inputSlotNames.size());
 
     for (const auto &sink : h1.internalInputSinks[0]) {
         const auto connections = engine->getConnections(sink.componentId);
         ASSERT_LT(sink.slotIndex, static_cast<int>(connections.inputs.size()));
-        for (const auto &[srcId, srcSlot] : connections.inputs[sink.slotIndex]) {
+        for (const auto &[srcId, srcSlot] :
+             connections.inputs[sink.slotIndex]) {
             if (srcId == topA) {
-                engine->deleteConnection(topA,
-                                         SlotType::digitalOutput,
-                                         srcSlot,
-                                         sink.componentId,
-                                         sink.slotType,
+                engine->deleteConnection(topA, SlotType::digitalOutput, srcSlot,
+                                         sink.componentId, sink.slotType,
                                          sink.slotIndex);
             }
         }
 
-        ASSERT_TRUE(engine->connectComponent(bridgeInputId,
-                                             0,
-                                             SlotType::digitalOutput,
-                                             sink.componentId,
-                                             sink.slotIndex,
-                                             sink.slotType));
+        ASSERT_TRUE(engine->connectComponent(
+            bridgeInputId, 0, SlotType::digitalOutput, sink.componentId,
+            sink.slotIndex, sink.slotType));
     }
 
     engine->setOutputSlotState(bridgeInputId, 0, LogicState::high);
 
     ASSERT_TRUE(waitUntil([&] {
         for (const auto &sink : h1.internalInputSinks[0]) {
-            const auto aggregatedInputs = engine->getInputSlotsState(sink.componentId);
-            if (static_cast<size_t>(sink.slotIndex) >= aggregatedInputs.size() ||
+            const auto aggregatedInputs =
+                engine->getInputSlotsState(sink.componentId);
+            if (static_cast<size_t>(sink.slotIndex) >=
+                    aggregatedInputs.size() ||
                 aggregatedInputs[sink.slotIndex].state != LogicState::high) {
                 return false;
             }
         }
         return true;
-    })) << "Recorded internal primitive sinks did not resolve high from the bridged module input";
+    })) << "Recorded internal primitive sinks did not resolve high from the "
+           "bridged module input";
 
     ASSERT_TRUE(waitUntil([&] {
         for (const auto &sink : h1.internalInputSinks[0]) {
-            if (engine->getDigitalSlotState(sink.componentId, SlotType::digitalInput, sink.slotIndex).state !=
-                LogicState::high) {
+            if (engine
+                    ->getDigitalSlotState(sink.componentId,
+                                          SlotType::digitalInput,
+                                          sink.slotIndex)
+                    .state != LogicState::high) {
                 return false;
             }
         }
         return true;
-    })) << "Internal primitive sinks did not receive bridged module input state";
+    })) << "Internal primitive sinks did not receive bridged module input "
+           "state";
 
     std::filesystem::remove(verilogPath);
 }
 
 TEST_F(VerilogImportTest, ImportsVectorPortsAndCarryOutputFromAluVerilog) {
-    const auto verilogPath = writeTempVerilogFile(
-        "bess_alu_test.v",
-        R"verilog(
+    const auto verilogPath = writeTempVerilogFile("bess_alu_test.v",
+                                                  R"verilog(
 module alu(
     input [7:0] A,
     input [7:0] B,
@@ -449,8 +474,7 @@ endmodule
 )verilog");
 
     const auto result = importVerilogFileIntoSimulationEngine(
-        verilogPath,
-        *engine,
+        verilogPath, *engine,
         YosysRunnerConfig{
             .executablePath = "yosys",
             .topModuleName = std::string("alu"),
@@ -469,15 +493,36 @@ endmodule
     const auto aluOut = result.topOutputComponents.at("ALU_Out");
     const auto carryOut = result.topOutputComponents.at("CarryOut");
 
-    EXPECT_EQ(engine->getDigitalComponent(a)->definition->getOutputSlotsInfo().count, 8);
-    EXPECT_EQ(engine->getDigitalComponent(b)->definition->getOutputSlotsInfo().count, 8);
-    EXPECT_EQ(engine->getDigitalComponent(aluSel)->definition->getOutputSlotsInfo().count, 4);
-    EXPECT_EQ(engine->getDigitalComponent(aluOut)->definition->getInputSlotsInfo().count, 8);
-    EXPECT_EQ(engine->getDigitalComponent(carryOut)->definition->getInputSlotsInfo().count, 1);
+    EXPECT_EQ(engine->getComponent<Drivers::Digital::DigSimComp>(a)
+                  ->getDefinition<Drivers::Digital::DigCompDef>()
+                  ->getOutputSlotsInfo()
+                  .count,
+              8);
+    EXPECT_EQ(engine->getComponent<Drivers::Digital::DigSimComp>(b)
+                  ->getDefinition<Drivers::Digital::DigCompDef>()
+                  ->getOutputSlotsInfo()
+                  .count,
+              8);
+    EXPECT_EQ(engine->getComponent<Drivers::Digital::DigSimComp>(aluSel)
+                  ->getDefinition<Drivers::Digital::DigCompDef>()
+                  ->getOutputSlotsInfo()
+                  .count,
+              4);
+    EXPECT_EQ(engine->getComponent<Drivers::Digital::DigSimComp>(aluOut)
+                  ->getDefinition<Drivers::Digital::DigCompDef>()
+                  ->getInputSlotsInfo()
+                  .count,
+              8);
+    EXPECT_EQ(engine->getComponent<Drivers::Digital::DigSimComp>(carryOut)
+                  ->getDefinition<Drivers::Digital::DigCompDef>()
+                  ->getInputSlotsInfo()
+                  .count,
+              1);
 
     auto writeBus = [&](const UUID &componentId, uint32_t value, size_t width) {
         for (size_t i = 0; i < width; ++i) {
-            const auto bit = ((value >> i) & 1U) != 0U ? LogicState::high : LogicState::low;
+            const auto bit =
+                ((value >> i) & 1U) != 0U ? LogicState::high : LogicState::low;
             engine->setOutputSlotState(componentId, static_cast<int>(i), bit);
         }
     };
@@ -485,8 +530,10 @@ endmodule
     auto readBus = [&](const UUID &componentId, size_t width) {
         uint32_t value = 0;
         for (size_t i = 0; i < width; ++i) {
-            if (engine->getDigitalSlotState(componentId, SlotType::digitalInput, static_cast<int>(i)).state ==
-                LogicState::high) {
+            if (engine
+                    ->getDigitalSlotState(componentId, SlotType::digitalInput,
+                                          static_cast<int>(i))
+                    .state == LogicState::high) {
                 value |= (1U << i);
             }
         }
@@ -498,7 +545,8 @@ endmodule
     writeBus(aluSel, 0x0, 4);
     ASSERT_TRUE(waitUntil([&] {
         return readBus(aluOut, 8) == 0x00 &&
-               engine->getDigitalSlotState(carryOut, SlotType::digitalInput, 0).state == LogicState::high;
+               engine->getDigitalSlotState(carryOut, SlotType::digitalInput, 0)
+                       .state == LogicState::high;
     })) << "ALU add mode did not produce expected overflow output";
 
     writeBus(a, 0xAA, 8);
@@ -506,16 +554,16 @@ endmodule
     writeBus(aluSel, 0x8, 4);
     ASSERT_TRUE(waitUntil([&] {
         return readBus(aluOut, 8) == 0x88 &&
-               engine->getDigitalSlotState(carryOut, SlotType::digitalInput, 0).state == LogicState::high;
+               engine->getDigitalSlotState(carryOut, SlotType::digitalInput, 0)
+                       .state == LogicState::high;
     })) << "ALU and mode did not preserve carry output wiring";
 
     std::filesystem::remove(verilogPath);
 }
 
 TEST_F(VerilogImportTest, PopulatesSceneWithBothAluOutputsIncludingCarryOut) {
-    const auto verilogPath = writeTempVerilogFile(
-        "bess_alu_scene_test.v",
-        R"verilog(
+    const auto verilogPath = writeTempVerilogFile("bess_alu_scene_test.v",
+                                                  R"verilog(
 module alu(
     input [7:0] A,
     input [7:0] B,
@@ -540,14 +588,16 @@ endmodule
 )verilog");
 
     const auto result = importVerilogFileIntoSimulationEngine(
-        verilogPath,
-        *engine,
+        verilogPath, *engine,
         YosysRunnerConfig{
             .executablePath = "yosys",
             .topModuleName = std::string("alu"),
         });
 
-    auto scene = Bess::Pages::MainPage::getInstance()->getState().getSceneDriver().getActiveScene();
+    auto scene = Bess::Pages::MainPage::getInstance()
+                     ->getState()
+                     .getSceneDriver()
+                     .getActiveScene();
     ASSERT_NE(scene, nullptr);
     scene->clear();
     Bess::Pages::populateSceneFromVerilogImportResult(result, *engine, *scene);
@@ -556,23 +606,30 @@ endmodule
     bool foundCarryOut = false;
     const auto &sceneState = scene->getState();
 
-    auto countRealInputSlots = [&](const std::shared_ptr<Bess::Canvas::SimulationSceneComponent> &simComp) {
-        size_t count = 0;
-        for (const auto &slotId : simComp->getInputSlots()) {
-            const auto slot = sceneState.getComponentByUuid<Bess::Canvas::SlotSceneComponent>(slotId);
-            if (slot && !slot->isResizeSlot()) {
-                ++count;
+    auto countRealInputSlots =
+        [&](const std::shared_ptr<Bess::Canvas::SimulationSceneComponent>
+                &simComp) {
+            size_t count = 0;
+            for (const auto &slotId : simComp->getInputSlots()) {
+                const auto slot =
+                    sceneState
+                        .getComponentByUuid<Bess::Canvas::SlotSceneComponent>(
+                            slotId);
+                if (slot && !slot->isResizeSlot()) {
+                    ++count;
+                }
             }
-        }
-        return count;
-    };
+            return count;
+        };
 
     for (const auto &[uuid, component] : sceneState.getAllComponents()) {
         (void)uuid;
-        if (component->getType() != Bess::Canvas::SceneComponentType::simulation) {
+        if (component->getType() !=
+            Bess::Canvas::SceneComponentType::simulation) {
             continue;
         }
-        const auto simComp = component->cast<Bess::Canvas::SimulationSceneComponent>();
+        const auto simComp =
+            component->cast<Bess::Canvas::SimulationSceneComponent>();
         if (!simComp) {
             continue;
         }
@@ -594,10 +651,11 @@ endmodule
     std::filesystem::remove(verilogPath);
 }
 
-TEST_F(VerilogImportTest, AppliesHierarchicalLayoutToImportedRootAndModuleScenes) {
-    const auto verilogPath = writeTempVerilogFile(
-        "bess_hierarchical_layout_scene_test.v",
-        R"verilog(
+TEST_F(VerilogImportTest,
+       AppliesHierarchicalLayoutToImportedRootAndModuleScenes) {
+    const auto verilogPath =
+        writeTempVerilogFile("bess_hierarchical_layout_scene_test.v",
+                             R"verilog(
 module full_add(a,b,cin,sum,cout);
   input a,b,cin;
   output sum,cout;
@@ -618,20 +676,24 @@ endmodule :half_add
 )verilog");
 
     const auto result = importVerilogFileIntoSimulationEngine(
-        verilogPath,
-        *engine,
+        verilogPath, *engine,
         YosysRunnerConfig{
             .executablePath = "yosys",
             .topModuleName = std::string("full_add"),
         });
 
-    auto scene = Bess::Pages::MainPage::getInstance()->getState().getSceneDriver().getActiveScene();
+    auto scene = Bess::Pages::MainPage::getInstance()
+                     ->getState()
+                     .getSceneDriver()
+                     .getActiveScene();
     ASSERT_NE(scene, nullptr);
     scene->clear();
     Bess::Pages::populateSceneFromVerilogImportResult(result, *engine, *scene);
 
-    std::vector<std::shared_ptr<Bess::Canvas::SimulationSceneComponent>> rootInputs;
-    std::vector<std::shared_ptr<Bess::Canvas::SimulationSceneComponent>> rootOutputs;
+    std::vector<std::shared_ptr<Bess::Canvas::SimulationSceneComponent>>
+        rootInputs;
+    std::vector<std::shared_ptr<Bess::Canvas::SimulationSceneComponent>>
+        rootOutputs;
     std::shared_ptr<Bess::Canvas::ModuleSceneComponent> topModule;
 
     for (const auto &[uuid, component] : scene->getState().getAllComponents()) {
@@ -642,25 +704,27 @@ endmodule :half_add
 
         if (component->getType() == Bess::Canvas::SceneComponentType::module) {
             const auto moduleComponent =
-                std::dynamic_pointer_cast<Bess::Canvas::ModuleSceneComponent>(component);
+                std::dynamic_pointer_cast<Bess::Canvas::ModuleSceneComponent>(
+                    component);
             if (moduleComponent && moduleComponent->getName() == "full_add") {
                 topModule = moduleComponent;
             }
             continue;
         }
 
-        if (component->getType() != Bess::Canvas::SceneComponentType::simulation) {
+        if (component->getType() !=
+            Bess::Canvas::SceneComponentType::simulation) {
             continue;
         }
 
         const auto simComponent =
-            std::dynamic_pointer_cast<Bess::Canvas::SimulationSceneComponent>(component);
+            std::dynamic_pointer_cast<Bess::Canvas::SimulationSceneComponent>(
+                component);
         if (!simComponent) {
             continue;
         }
 
-        if (simComponent->getName() == "a" ||
-            simComponent->getName() == "b" ||
+        if (simComponent->getName() == "a" || simComponent->getName() == "b" ||
             simComponent->getName() == "cin") {
             rootInputs.push_back(simComponent);
         } else if (simComponent->getName() == "sum" ||
@@ -688,18 +752,22 @@ endmodule :half_add
     EXPECT_LE(maxInputX, topModuleX);
     EXPECT_LT(topModuleX, minOutputX);
 
-    auto &sceneDriver = Bess::Pages::MainPage::getInstance()->getState().getSceneDriver();
-    const auto topModuleScene = sceneDriver.getSceneWithId(topModule->getSceneId());
+    auto &sceneDriver =
+        Bess::Pages::MainPage::getInstance()->getState().getSceneDriver();
+    const auto topModuleScene =
+        sceneDriver.getSceneWithId(topModule->getSceneId());
     ASSERT_NE(topModuleScene, nullptr);
 
     std::shared_ptr<Bess::Canvas::SimulationSceneComponent> moduleInput;
     std::shared_ptr<Bess::Canvas::SimulationSceneComponent> moduleOutput;
-    std::vector<std::shared_ptr<Bess::Canvas::ModuleSceneComponent>> childModules;
+    std::vector<std::shared_ptr<Bess::Canvas::ModuleSceneComponent>>
+        childModules;
     float minInternalX = std::numeric_limits<float>::max();
     float maxInternalX = std::numeric_limits<float>::lowest();
     size_t internalCount = 0;
 
-    for (const auto &[uuid, component] : topModuleScene->getState().getAllComponents()) {
+    for (const auto &[uuid, component] :
+         topModuleScene->getState().getAllComponents()) {
         (void)uuid;
 
         if (component->getParentComponent() != UUID::null) {
@@ -708,20 +776,23 @@ endmodule :half_add
 
         if (component->getType() == Bess::Canvas::SceneComponentType::module) {
             const auto moduleComponent =
-                std::dynamic_pointer_cast<Bess::Canvas::ModuleSceneComponent>(component);
-            if (moduleComponent &&
-                (moduleComponent->getName() == "h1" || moduleComponent->getName() == "h2")) {
+                std::dynamic_pointer_cast<Bess::Canvas::ModuleSceneComponent>(
+                    component);
+            if (moduleComponent && (moduleComponent->getName() == "h1" ||
+                                    moduleComponent->getName() == "h2")) {
                 childModules.push_back(moduleComponent);
             }
             continue;
         }
 
-        if (component->getType() != Bess::Canvas::SceneComponentType::simulation) {
+        if (component->getType() !=
+            Bess::Canvas::SceneComponentType::simulation) {
             continue;
         }
 
         const auto simComponent =
-            std::dynamic_pointer_cast<Bess::Canvas::SimulationSceneComponent>(component);
+            std::dynamic_pointer_cast<Bess::Canvas::SimulationSceneComponent>(
+                component);
         if (!simComponent) {
             continue;
         }
@@ -736,8 +807,10 @@ endmodule :half_add
             continue;
         }
 
-        minInternalX = std::min(minInternalX, simComponent->getTransform().position.x);
-        maxInternalX = std::max(maxInternalX, simComponent->getTransform().position.x);
+        minInternalX =
+            std::min(minInternalX, simComponent->getTransform().position.x);
+        maxInternalX =
+            std::max(maxInternalX, simComponent->getTransform().position.x);
         ++internalCount;
     }
 
@@ -751,10 +824,11 @@ endmodule :half_add
     std::filesystem::remove(verilogPath);
 }
 
-TEST_F(VerilogImportTest, SetsParentSceneAndModuleOwnershipForImportedSubmodules) {
-    const auto verilogPath = writeTempVerilogFile(
-        "bess_hierarchical_parent_scene_test.v",
-        R"verilog(
+TEST_F(VerilogImportTest,
+       SetsParentSceneAndModuleOwnershipForImportedSubmodules) {
+    const auto verilogPath =
+        writeTempVerilogFile("bess_hierarchical_parent_scene_test.v",
+                             R"verilog(
 module full_add(a,b,cin,sum,cout);
   input a,b,cin;
   output sum,cout;
@@ -775,60 +849,72 @@ endmodule :half_add
 )verilog");
 
     const auto result = importVerilogFileIntoSimulationEngine(
-        verilogPath,
-        *engine,
+        verilogPath, *engine,
         YosysRunnerConfig{
             .executablePath = "yosys",
             .topModuleName = std::string("full_add"),
         });
 
-    auto &sceneDriver = Bess::Pages::MainPage::getInstance()->getState().getSceneDriver();
+    auto &sceneDriver =
+        Bess::Pages::MainPage::getInstance()->getState().getSceneDriver();
     auto rootScene = sceneDriver.getActiveScene();
     ASSERT_NE(rootScene, nullptr);
     rootScene->clear();
-    Bess::Pages::populateSceneFromVerilogImportResult(result, *engine, *rootScene);
+    Bess::Pages::populateSceneFromVerilogImportResult(result, *engine,
+                                                      *rootScene);
 
     std::shared_ptr<Bess::Canvas::ModuleSceneComponent> topModule;
     bool foundTopAsRootComponent = false;
 
-    for (const auto &[uuid, component] : rootScene->getState().getAllComponents()) {
+    for (const auto &[uuid, component] :
+         rootScene->getState().getAllComponents()) {
         (void)uuid;
         if (component->getType() != Bess::Canvas::SceneComponentType::module) {
             continue;
         }
 
-        const auto moduleComponent = std::dynamic_pointer_cast<Bess::Canvas::ModuleSceneComponent>(component);
+        const auto moduleComponent =
+            std::dynamic_pointer_cast<Bess::Canvas::ModuleSceneComponent>(
+                component);
         if (!moduleComponent || moduleComponent->getName() != "full_add") {
             continue;
         }
 
         topModule = moduleComponent;
-        foundTopAsRootComponent = (moduleComponent->getParentComponent() == UUID::null);
+        foundTopAsRootComponent =
+            (moduleComponent->getParentComponent() == UUID::null);
         break;
     }
 
     ASSERT_NE(topModule, nullptr);
     EXPECT_TRUE(foundTopAsRootComponent);
 
-    const auto topModuleScene = sceneDriver.getSceneWithId(topModule->getSceneId());
+    const auto topModuleScene =
+        sceneDriver.getSceneWithId(topModule->getSceneId());
     ASSERT_NE(topModuleScene, nullptr);
     EXPECT_FALSE(topModuleScene->getState().getIsRootScene());
-    EXPECT_EQ(topModuleScene->getState().getParentSceneId(), rootScene->getState().getSceneId());
+    EXPECT_EQ(topModuleScene->getState().getParentSceneId(),
+              rootScene->getState().getSceneId());
     EXPECT_EQ(topModuleScene->getState().getModuleId(), topModule->getUuid());
 
-    std::vector<std::shared_ptr<Bess::Canvas::ModuleSceneComponent>> childModules;
-    for (const auto &[uuid, component] : topModuleScene->getState().getAllComponents()) {
+    std::vector<std::shared_ptr<Bess::Canvas::ModuleSceneComponent>>
+        childModules;
+    for (const auto &[uuid, component] :
+         topModuleScene->getState().getAllComponents()) {
         (void)uuid;
         if (component->getType() != Bess::Canvas::SceneComponentType::module) {
             continue;
         }
 
-        const auto moduleComponent = std::dynamic_pointer_cast<Bess::Canvas::ModuleSceneComponent>(component);
+        const auto moduleComponent =
+            std::dynamic_pointer_cast<Bess::Canvas::ModuleSceneComponent>(
+                component);
         if (!moduleComponent) {
             continue;
         }
 
-        if (moduleComponent->getName() == "h1" || moduleComponent->getName() == "h2") {
+        if (moduleComponent->getName() == "h1" ||
+            moduleComponent->getName() == "h2") {
             childModules.push_back(moduleComponent);
         }
     }
@@ -839,20 +925,24 @@ endmodule :half_add
         ASSERT_NE(childModule, nullptr);
         EXPECT_EQ(childModule->getParentComponent(), UUID::null);
 
-        const auto childModuleScene = sceneDriver.getSceneWithId(childModule->getSceneId());
+        const auto childModuleScene =
+            sceneDriver.getSceneWithId(childModule->getSceneId());
         ASSERT_NE(childModuleScene, nullptr);
         EXPECT_FALSE(childModuleScene->getState().getIsRootScene());
-        EXPECT_EQ(childModuleScene->getState().getParentSceneId(), topModuleScene->getState().getSceneId());
-        EXPECT_EQ(childModuleScene->getState().getModuleId(), childModule->getUuid());
+        EXPECT_EQ(childModuleScene->getState().getParentSceneId(),
+                  topModuleScene->getState().getSceneId());
+        EXPECT_EQ(childModuleScene->getState().getModuleId(),
+                  childModule->getUuid());
     }
 
     std::filesystem::remove(verilogPath);
 }
 
-TEST_F(VerilogImportTest, RoutesTopBoundaryViaModuleBridgeAndBuildsBoundarySceneConnections) {
-    const auto verilogPath = writeTempVerilogFile(
-        "bess_hierarchical_boundary_routing_test.v",
-        R"verilog(
+TEST_F(VerilogImportTest,
+       RoutesTopBoundaryViaModuleBridgeAndBuildsBoundarySceneConnections) {
+    const auto verilogPath =
+        writeTempVerilogFile("bess_hierarchical_boundary_routing_test.v",
+                             R"verilog(
 module full_add(a,b,cin,sum,cout);
   input a,b,cin;
   output sum,cout;
@@ -873,38 +963,46 @@ endmodule :half_add
 )verilog");
 
     const auto result = importVerilogFileIntoSimulationEngine(
-        verilogPath,
-        *engine,
+        verilogPath, *engine,
         YosysRunnerConfig{
             .executablePath = "yosys",
             .topModuleName = std::string("full_add"),
         });
 
-    auto &sceneDriver = Bess::Pages::MainPage::getInstance()->getState().getSceneDriver();
+    auto &sceneDriver =
+        Bess::Pages::MainPage::getInstance()->getState().getSceneDriver();
     auto rootScene = sceneDriver.getActiveScene();
     ASSERT_NE(rootScene, nullptr);
     rootScene->clear();
-    Bess::Pages::populateSceneFromVerilogImportResult(result, *engine, *rootScene);
+    Bess::Pages::populateSceneFromVerilogImportResult(result, *engine,
+                                                      *rootScene);
 
     auto &rootState = rootScene->getState();
 
     std::shared_ptr<Bess::Canvas::ModuleSceneComponent> topModule;
-    std::unordered_map<UUID, std::shared_ptr<Bess::Canvas::SimulationSceneComponent>> rootSimById;
+    std::unordered_map<UUID,
+                       std::shared_ptr<Bess::Canvas::SimulationSceneComponent>>
+        rootSimById;
     for (const auto &[uuid, component] : rootState.getAllComponents()) {
         (void)uuid;
         if (component->getType() == Bess::Canvas::SceneComponentType::module) {
-            const auto moduleComp = std::dynamic_pointer_cast<Bess::Canvas::ModuleSceneComponent>(component);
+            const auto moduleComp =
+                std::dynamic_pointer_cast<Bess::Canvas::ModuleSceneComponent>(
+                    component);
             if (moduleComp && moduleComp->getName() == "full_add") {
                 topModule = moduleComp;
             }
             continue;
         }
 
-        if (component->getType() != Bess::Canvas::SceneComponentType::simulation) {
+        if (component->getType() !=
+            Bess::Canvas::SceneComponentType::simulation) {
             continue;
         }
 
-        const auto simComp = std::dynamic_pointer_cast<Bess::Canvas::SimulationSceneComponent>(component);
+        const auto simComp =
+            std::dynamic_pointer_cast<Bess::Canvas::SimulationSceneComponent>(
+                component);
         if (!simComp) {
             continue;
         }
@@ -925,28 +1023,39 @@ endmodule :half_add
     const auto topCout = result.topOutputComponents.at("cout");
     const auto topWrapperId = topModule->getSimEngineId();
 
-    const auto topModuleScene = sceneDriver.getSceneWithId(topModule->getSceneId());
+    const auto topModuleScene =
+        sceneDriver.getSceneWithId(topModule->getSceneId());
     ASSERT_NE(topModuleScene, nullptr);
     auto &topModuleState = topModuleScene->getState();
 
-    std::shared_ptr<Bess::Canvas::SimulationSceneComponent> moduleInputSceneComp;
-    std::shared_ptr<Bess::Canvas::SimulationSceneComponent> moduleOutputSceneComp;
-    std::unordered_map<std::string, std::shared_ptr<Bess::Canvas::ModuleSceneComponent>> childModules;
+    std::shared_ptr<Bess::Canvas::SimulationSceneComponent>
+        moduleInputSceneComp;
+    std::shared_ptr<Bess::Canvas::SimulationSceneComponent>
+        moduleOutputSceneComp;
+    std::unordered_map<std::string,
+                       std::shared_ptr<Bess::Canvas::ModuleSceneComponent>>
+        childModules;
     for (const auto &[uuid, component] : topModuleState.getAllComponents()) {
         (void)uuid;
         if (component->getType() == Bess::Canvas::SceneComponentType::module) {
-            const auto moduleComp = std::dynamic_pointer_cast<Bess::Canvas::ModuleSceneComponent>(component);
-            if (moduleComp && (moduleComp->getName() == "h1" || moduleComp->getName() == "h2")) {
+            const auto moduleComp =
+                std::dynamic_pointer_cast<Bess::Canvas::ModuleSceneComponent>(
+                    component);
+            if (moduleComp && (moduleComp->getName() == "h1" ||
+                               moduleComp->getName() == "h2")) {
                 childModules[moduleComp->getName()] = moduleComp;
             }
             continue;
         }
 
-        if (component->getType() != Bess::Canvas::SceneComponentType::simulation) {
+        if (component->getType() !=
+            Bess::Canvas::SceneComponentType::simulation) {
             continue;
         }
 
-        const auto simComp = std::dynamic_pointer_cast<Bess::Canvas::SimulationSceneComponent>(component);
+        const auto simComp =
+            std::dynamic_pointer_cast<Bess::Canvas::SimulationSceneComponent>(
+                component);
         if (!simComp) {
             continue;
         }
@@ -968,26 +1077,27 @@ endmodule :half_add
     const auto h1Id = childModules.at("h1")->getSimEngineId();
     const auto h2Id = childModules.at("h2")->getSimEngineId();
 
-    auto hasEdge = [&](const std::vector<std::vector<std::pair<UUID, int>>> &buckets,
-                       int bucketIndex,
-                       UUID nodeId,
-                       int nodeSlot) {
-        if (bucketIndex < 0 || bucketIndex >= static_cast<int>(buckets.size())) {
-            return false;
-        }
-        for (const auto &[id, slot] : buckets[bucketIndex]) {
-            if (id == nodeId && slot == nodeSlot) {
-                return true;
+    auto hasEdge =
+        [&](const std::vector<std::vector<std::pair<UUID, int>>> &buckets,
+            int bucketIndex, UUID nodeId, int nodeSlot) {
+            if (bucketIndex < 0 ||
+                bucketIndex >= static_cast<int>(buckets.size())) {
+                return false;
             }
-        }
-        return false;
-    };
+            for (const auto &[id, slot] : buckets[bucketIndex]) {
+                if (id == nodeId && slot == nodeSlot) {
+                    return true;
+                }
+            }
+            return false;
+        };
 
     auto isInternalToTopModule = [&](UUID simId) {
         if (simId == h1Id || simId == h2Id) {
             return true;
         }
-        if (simId == topA || simId == topB || simId == topCin || simId == topSum || simId == topCout) {
+        if (simId == topA || simId == topB || simId == topCin ||
+            simId == topSum || simId == topCout) {
             return false;
         }
 
@@ -1063,7 +1173,9 @@ endmodule :half_add
                             const std::vector<UUID> &slotIds,
                             const std::string &slotName) {
         for (const auto &slotId : slotIds) {
-            const auto slot = state.getComponentByUuid<Bess::Canvas::SlotSceneComponent>(slotId);
+            const auto slot =
+                state.getComponentByUuid<Bess::Canvas::SlotSceneComponent>(
+                    slotId);
             if (!slot || slot->isResizeSlot()) {
                 continue;
             }
@@ -1077,7 +1189,9 @@ endmodule :half_add
     auto firstRealSlot = [](const Bess::Canvas::SceneState &state,
                             const std::vector<UUID> &slotIds) {
         for (const auto &slotId : slotIds) {
-            const auto slot = state.getComponentByUuid<Bess::Canvas::SlotSceneComponent>(slotId);
+            const auto slot =
+                state.getComponentByUuid<Bess::Canvas::SlotSceneComponent>(
+                    slotId);
             if (slot && !slot->isResizeSlot()) {
                 return slotId;
             }
@@ -1086,16 +1200,18 @@ endmodule :half_add
     };
 
     auto hasSceneConnection = [](const Bess::Canvas::SceneState &state,
-                                 const UUID &startSlot,
-                                 const UUID &endSlot) {
+                                 const UUID &startSlot, const UUID &endSlot) {
         for (const auto &[uuid, component] : state.getAllComponents()) {
             (void)uuid;
-            if (component->getType() != Bess::Canvas::SceneComponentType::connection) {
+            if (component->getType() !=
+                Bess::Canvas::SceneComponentType::connection) {
                 continue;
             }
 
-            const auto conn = std::dynamic_pointer_cast<Bess::Canvas::ConnectionSceneComponent>(component);
-            if (conn && conn->getStartSlot() == startSlot && conn->getEndSlot() == endSlot) {
+            const auto conn = std::dynamic_pointer_cast<
+                Bess::Canvas::ConnectionSceneComponent>(component);
+            if (conn && conn->getStartSlot() == startSlot &&
+                conn->getEndSlot() == endSlot) {
                 return true;
             }
         }
@@ -1114,11 +1230,16 @@ endmodule :half_add
     const auto rootSumIn = firstRealSlot(rootState, sumComp->getInputSlots());
     const auto rootCoutIn = firstRealSlot(rootState, coutComp->getInputSlots());
 
-    const auto topAIn = findNamedSlot(rootState, topModule->getInputSlots(), "a");
-    const auto topBIn = findNamedSlot(rootState, topModule->getInputSlots(), "b");
-    const auto topCinIn = findNamedSlot(rootState, topModule->getInputSlots(), "cin");
-    const auto topSumOut = findNamedSlot(rootState, topModule->getOutputSlots(), "sum");
-    const auto topCoutOut = findNamedSlot(rootState, topModule->getOutputSlots(), "cout");
+    const auto topAIn =
+        findNamedSlot(rootState, topModule->getInputSlots(), "a");
+    const auto topBIn =
+        findNamedSlot(rootState, topModule->getInputSlots(), "b");
+    const auto topCinIn =
+        findNamedSlot(rootState, topModule->getInputSlots(), "cin");
+    const auto topSumOut =
+        findNamedSlot(rootState, topModule->getOutputSlots(), "sum");
+    const auto topCoutOut =
+        findNamedSlot(rootState, topModule->getOutputSlots(), "cout");
 
     ASSERT_NE(rootAOut, UUID::null);
     ASSERT_NE(rootBOut, UUID::null);
@@ -1137,15 +1258,24 @@ endmodule :half_add
     EXPECT_TRUE(hasSceneConnection(rootState, topSumOut, rootSumIn));
     EXPECT_TRUE(hasSceneConnection(rootState, topCoutOut, rootCoutIn));
 
-    const auto h1AIn = findNamedSlot(topModuleState, childModules.at("h1")->getInputSlots(), "a");
-    const auto h1BIn = findNamedSlot(topModuleState, childModules.at("h1")->getInputSlots(), "b");
-    const auto h2BIn = findNamedSlot(topModuleState, childModules.at("h2")->getInputSlots(), "b");
-    const auto h2SOut = findNamedSlot(topModuleState, childModules.at("h2")->getOutputSlots(), "s");
-    const auto moduleAOut = findNamedSlot(topModuleState, moduleInputSceneComp->getOutputSlots(), "a");
-    const auto moduleBOut = findNamedSlot(topModuleState, moduleInputSceneComp->getOutputSlots(), "b");
-    const auto moduleCinOut = findNamedSlot(topModuleState, moduleInputSceneComp->getOutputSlots(), "cin");
-    const auto moduleSumIn = findNamedSlot(topModuleState, moduleOutputSceneComp->getInputSlots(), "sum");
-    const auto moduleCoutIn = findNamedSlot(topModuleState, moduleOutputSceneComp->getInputSlots(), "cout");
+    const auto h1AIn = findNamedSlot(
+        topModuleState, childModules.at("h1")->getInputSlots(), "a");
+    const auto h1BIn = findNamedSlot(
+        topModuleState, childModules.at("h1")->getInputSlots(), "b");
+    const auto h2BIn = findNamedSlot(
+        topModuleState, childModules.at("h2")->getInputSlots(), "b");
+    const auto h2SOut = findNamedSlot(
+        topModuleState, childModules.at("h2")->getOutputSlots(), "s");
+    const auto moduleAOut = findNamedSlot(
+        topModuleState, moduleInputSceneComp->getOutputSlots(), "a");
+    const auto moduleBOut = findNamedSlot(
+        topModuleState, moduleInputSceneComp->getOutputSlots(), "b");
+    const auto moduleCinOut = findNamedSlot(
+        topModuleState, moduleInputSceneComp->getOutputSlots(), "cin");
+    const auto moduleSumIn = findNamedSlot(
+        topModuleState, moduleOutputSceneComp->getInputSlots(), "sum");
+    const auto moduleCoutIn = findNamedSlot(
+        topModuleState, moduleOutputSceneComp->getInputSlots(), "cout");
 
     ASSERT_NE(h1AIn, UUID::null);
     ASSERT_NE(h1BIn, UUID::null);
@@ -1165,11 +1295,14 @@ endmodule :half_add
     bool hasDriverForModuleCout = false;
     for (const auto &[uuid, component] : topModuleState.getAllComponents()) {
         (void)uuid;
-        if (component->getType() != Bess::Canvas::SceneComponentType::connection) {
+        if (component->getType() !=
+            Bess::Canvas::SceneComponentType::connection) {
             continue;
         }
 
-        const auto conn = std::dynamic_pointer_cast<Bess::Canvas::ConnectionSceneComponent>(component);
+        const auto conn =
+            std::dynamic_pointer_cast<Bess::Canvas::ConnectionSceneComponent>(
+                component);
         if (conn && conn->getEndSlot() == moduleCoutIn) {
             hasDriverForModuleCout = true;
             break;
@@ -1181,13 +1314,16 @@ endmodule :half_add
 }
 
 TEST_F(VerilogImportTest, ComputesScalesBeforeApplyingHierarchicalLayout) {
-    const std::string topModuleName = "very_long_named_top_module_for_layout_check";
-    const std::string longInputName = "very_long_input_name_for_layout_spacing_validation_signal";
-    const std::string longOutputName = "very_long_output_name_for_layout_spacing_validation_signal";
+    const std::string topModuleName =
+        "very_long_named_top_module_for_layout_check";
+    const std::string longInputName =
+        "very_long_input_name_for_layout_spacing_validation_signal";
+    const std::string longOutputName =
+        "very_long_output_name_for_layout_spacing_validation_signal";
 
-    const auto verilogPath = writeTempVerilogFile(
-        "bess_layout_scale_precompute_test.v",
-        R"verilog(
+    const auto verilogPath =
+        writeTempVerilogFile("bess_layout_scale_precompute_test.v",
+                             R"verilog(
 module child_mod(in_sig,out_sig);
   input in_sig;
   output out_sig;
@@ -1206,14 +1342,16 @@ endmodule
 )verilog");
 
     const auto result = importVerilogFileIntoSimulationEngine(
-        verilogPath,
-        *engine,
+        verilogPath, *engine,
         YosysRunnerConfig{
             .executablePath = "yosys",
             .topModuleName = topModuleName,
         });
 
-    auto scene = Bess::Pages::MainPage::getInstance()->getState().getSceneDriver().getActiveScene();
+    auto scene = Bess::Pages::MainPage::getInstance()
+                     ->getState()
+                     .getSceneDriver()
+                     .getActiveScene();
     ASSERT_NE(scene, nullptr);
     scene->clear();
     Bess::Pages::populateSceneFromVerilogImportResult(result, *engine, *scene);
@@ -1230,19 +1368,23 @@ endmodule
 
         if (component->getType() == Bess::Canvas::SceneComponentType::module) {
             const auto moduleComponent =
-                std::dynamic_pointer_cast<Bess::Canvas::ModuleSceneComponent>(component);
-            if (moduleComponent && moduleComponent->getName() == topModuleName) {
+                std::dynamic_pointer_cast<Bess::Canvas::ModuleSceneComponent>(
+                    component);
+            if (moduleComponent &&
+                moduleComponent->getName() == topModuleName) {
                 topModule = moduleComponent;
             }
             continue;
         }
 
-        if (component->getType() != Bess::Canvas::SceneComponentType::simulation) {
+        if (component->getType() !=
+            Bess::Canvas::SceneComponentType::simulation) {
             continue;
         }
 
         const auto simComponent =
-            std::dynamic_pointer_cast<Bess::Canvas::SimulationSceneComponent>(component);
+            std::dynamic_pointer_cast<Bess::Canvas::SimulationSceneComponent>(
+                component);
         if (!simComponent) {
             continue;
         }
@@ -1258,14 +1400,16 @@ endmodule
     ASSERT_NE(rootOutput, nullptr);
     ASSERT_NE(topModule, nullptr);
 
-    // Long IO names should force wider components if scales were computed before layout.
+    // Long IO names should force wider components if scales were computed
+    // before layout.
     EXPECT_GT(rootInput->getTransform().scale.x, 100.f);
     EXPECT_GT(rootOutput->getTransform().scale.x, 100.f);
 
     std::filesystem::remove(verilogPath);
 }
 
-TEST_F(VerilogImportTest, KeepsVectorTopOutputSlotMappingWhenDriverIsSharedConstant) {
+TEST_F(VerilogImportTest,
+       KeepsVectorTopOutputSlotMappingWhenDriverIsSharedConstant) {
     const auto verilogPath = writeTempVerilogFile(
         buildUniqueTempVerilogFileName("bess_shared_const_output_mapping_test"),
         R"verilog(
@@ -1277,8 +1421,7 @@ endmodule
 )verilog");
 
     const auto result = importVerilogFileIntoSimulationEngine(
-        verilogPath,
-        *engine,
+        verilogPath, *engine,
         YosysRunnerConfig{
             .executablePath = "yosys",
             .topModuleName = std::string("cpu"),
@@ -1287,14 +1430,17 @@ endmodule
     ASSERT_TRUE(result.topOutputComponents.contains("address"));
     const auto addressOut = result.topOutputComponents.at("address");
 
-    auto &sceneDriver = Bess::Pages::MainPage::getInstance()->getState().getSceneDriver();
+    auto &sceneDriver =
+        Bess::Pages::MainPage::getInstance()->getState().getSceneDriver();
     auto rootScene = sceneDriver.getActiveScene();
     ASSERT_NE(rootScene, nullptr);
     rootScene->clear();
-    Bess::Pages::populateSceneFromVerilogImportResult(result, *engine, *rootScene);
+    Bess::Pages::populateSceneFromVerilogImportResult(result, *engine,
+                                                      *rootScene);
 
     std::shared_ptr<Bess::Canvas::ModuleSceneComponent> topModule;
-    for (const auto &[uuid, component] : rootScene->getState().getAllComponents()) {
+    for (const auto &[uuid, component] :
+         rootScene->getState().getAllComponents()) {
         (void)uuid;
         if (component->getParentComponent() != UUID::null) {
             continue;
@@ -1303,7 +1449,9 @@ endmodule
             continue;
         }
 
-        const auto moduleComp = std::dynamic_pointer_cast<Bess::Canvas::ModuleSceneComponent>(component);
+        const auto moduleComp =
+            std::dynamic_pointer_cast<Bess::Canvas::ModuleSceneComponent>(
+                component);
         if (moduleComp && moduleComp->getName() == "cpu") {
             topModule = moduleComp;
             break;
@@ -1318,7 +1466,8 @@ endmodule
 
     for (int dstSlot = 0; dstSlot < 16; ++dstSlot) {
         bool foundExpectedSource = false;
-        for (const auto &[srcId, srcSlot] : addressConnections.inputs[dstSlot]) {
+        for (const auto &[srcId, srcSlot] :
+             addressConnections.inputs[dstSlot]) {
             if (srcId == wrapperId && srcSlot == dstSlot) {
                 foundExpectedSource = true;
                 break;
@@ -1334,31 +1483,30 @@ endmodule
 }
 
 TEST_F(VerilogImportTest, ImportsSingleTopFileWithIncludeFromSameDirectory) {
-    const auto helperFileName = buildUniqueTempVerilogFileName("bess_include_helper_test");
-    const auto topFileName = buildUniqueTempVerilogFileName("bess_include_top_test");
+    const auto helperFileName =
+        buildUniqueTempVerilogFileName("bess_include_helper_test");
+    const auto topFileName =
+        buildUniqueTempVerilogFileName("bess_include_top_test");
 
-    const auto helperPath = writeTempVerilogFile(
-        helperFileName,
-        R"verilog(
+    const auto helperPath = writeTempVerilogFile(helperFileName,
+                                                 R"verilog(
 module include_helper(input a, input b, output y);
     assign y = a & b;
 endmodule
 )verilog");
 
-    const auto topPath = writeTempVerilogFile(
-        topFileName,
-        std::format(R"verilog(
+    const auto topPath =
+        writeTempVerilogFile(topFileName, std::format(R"verilog(
 `include "{}"
 
 module include_top(input a, input b, output y);
     include_helper u0(.a(a), .b(b), .y(y));
 endmodule
 )verilog",
-                    helperFileName));
+                                                      helperFileName));
 
     const auto result = importVerilogFileIntoSimulationEngine(
-        topPath,
-        *engine,
+        topPath, *engine,
         YosysRunnerConfig{
             .executablePath = "yosys",
             .topModuleName = std::string("include_top"),
@@ -1376,13 +1524,16 @@ endmodule
     engine->setOutputSlotState(a, 0, LogicState::high);
     engine->setOutputSlotState(b, 0, LogicState::high);
     ASSERT_TRUE(waitUntil([&] {
-        return engine->getDigitalSlotState(y, SlotType::digitalInput, 0).state == LogicState::high;
+        return engine->getDigitalSlotState(y, SlotType::digitalInput, 0)
+                   .state == LogicState::high;
     })) << "Include-based helper module did not propagate expected output";
 
     engine->setOutputSlotState(b, 0, LogicState::low);
     ASSERT_TRUE(waitUntil([&] {
-        return engine->getDigitalSlotState(y, SlotType::digitalInput, 0).state == LogicState::low;
-    })) << "Include-based helper module did not update output after input change";
+        return engine->getDigitalSlotState(y, SlotType::digitalInput, 0)
+                   .state == LogicState::low;
+    })) << "Include-based helper module did not update output after input "
+           "change";
 
     std::filesystem::remove(topPath);
     std::filesystem::remove(helperPath);
@@ -1406,8 +1557,7 @@ endmodule
 )verilog");
 
     const auto result = importVerilogFilesIntoSimulationEngine(
-        std::vector<std::filesystem::path>{topPath, childPath},
-        *engine,
+        std::vector<std::filesystem::path>{topPath, childPath}, *engine,
         YosysRunnerConfig{
             .executablePath = "yosys",
             .topModuleName = std::string("multi_top"),
@@ -1425,13 +1575,15 @@ endmodule
     engine->setOutputSlotState(a, 0, LogicState::high);
     engine->setOutputSlotState(b, 0, LogicState::high);
     ASSERT_TRUE(waitUntil([&] {
-        return engine->getDigitalSlotState(y, SlotType::digitalInput, 0).state == LogicState::high;
+        return engine->getDigitalSlotState(y, SlotType::digitalInput, 0)
+                   .state == LogicState::high;
     })) << "Multi-file design output did not resolve high for 1 & 1";
 
     engine->setOutputSlotState(a, 0, LogicState::high);
     engine->setOutputSlotState(b, 0, LogicState::low);
     ASSERT_TRUE(waitUntil([&] {
-        return engine->getDigitalSlotState(y, SlotType::digitalInput, 0).state == LogicState::low;
+        return engine->getDigitalSlotState(y, SlotType::digitalInput, 0)
+                   .state == LogicState::low;
     })) << "Multi-file design output did not resolve low for 1 & 0";
 
     std::filesystem::remove(topPath);
@@ -1454,11 +1606,10 @@ endmodule
 )verilog");
 
     const auto yosysJson = runYosysForJson(
-        verilogPath,
-        YosysRunnerConfig{
-            .executablePath = "yosys",
-            .topModuleName = std::string("tri_top"),
-        });
+        verilogPath, YosysRunnerConfig{
+                         .executablePath = "yosys",
+                         .topModuleName = std::string("tri_top"),
+                     });
 
     ASSERT_TRUE(yosysJson.isMember("modules"));
     ASSERT_TRUE(yosysJson["modules"].isMember("tri_top"));
@@ -1469,8 +1620,7 @@ endmodule
     ASSERT_EQ(ports["bus"]["direction"].asString(), "inout");
 
     const auto result = importVerilogFileIntoSimulationEngine(
-        verilogPath,
-        *engine,
+        verilogPath, *engine,
         YosysRunnerConfig{
             .executablePath = "yosys",
             .topModuleName = std::string("tri_top"),
@@ -1537,17 +1687,19 @@ TEST_F(VerilogImportTest, ImportsCoarseAddCellFromYosysJson) {
 
     auto writeBus = [&](const UUID &componentId, uint32_t value, size_t width) {
         for (size_t i = 0; i < width; ++i) {
-            engine->setOutputSlotState(componentId,
-                                       static_cast<int>(i),
-                                       ((value >> i) & 1U) ? LogicState::high : LogicState::low);
+            engine->setOutputSlotState(componentId, static_cast<int>(i),
+                                       ((value >> i) & 1U) ? LogicState::high
+                                                           : LogicState::low);
         }
     };
 
     auto readBus = [&](const UUID &componentId, size_t width) {
         uint32_t value = 0;
         for (size_t i = 0; i < width; ++i) {
-            if (engine->getDigitalSlotState(componentId, SlotType::digitalInput, static_cast<int>(i)).state ==
-                LogicState::high) {
+            if (engine
+                    ->getDigitalSlotState(componentId, SlotType::digitalInput,
+                                          static_cast<int>(i))
+                    .state == LogicState::high) {
                 value |= (1U << i);
             }
         }
@@ -1634,17 +1786,19 @@ TEST_F(VerilogImportTest, ImportsComparatorAndShiftCellsFromYosysJson) {
 
     auto writeBus = [&](const UUID &componentId, uint32_t value, size_t width) {
         for (size_t i = 0; i < width; ++i) {
-            engine->setOutputSlotState(componentId,
-                                       static_cast<int>(i),
-                                       ((value >> i) & 1U) ? LogicState::high : LogicState::low);
+            engine->setOutputSlotState(componentId, static_cast<int>(i),
+                                       ((value >> i) & 1U) ? LogicState::high
+                                                           : LogicState::low);
         }
     };
 
     auto readBus = [&](const UUID &componentId, size_t width) {
         uint32_t value = 0;
         for (size_t i = 0; i < width; ++i) {
-            if (engine->getDigitalSlotState(componentId, SlotType::digitalInput, static_cast<int>(i)).state ==
-                LogicState::high) {
+            if (engine
+                    ->getDigitalSlotState(componentId, SlotType::digitalInput,
+                                          static_cast<int>(i))
+                    .state == LogicState::high) {
                 value |= (1U << i);
             }
         }
@@ -1655,7 +1809,8 @@ TEST_F(VerilogImportTest, ImportsComparatorAndShiftCellsFromYosysJson) {
     writeBus(b, 5, 4);
     writeBus(s, 1, 2);
     ASSERT_TRUE(waitUntil([&] {
-        return engine->getDigitalSlotState(ltOut, SlotType::digitalInput, 0).state == LogicState::high &&
+        return engine->getDigitalSlotState(ltOut, SlotType::digitalInput, 0)
+                       .state == LogicState::high &&
                readBus(shOut, 4) == 6;
     }));
 
@@ -1693,18 +1848,21 @@ TEST_F(VerilogImportTest, ImportsDlatchCellFromYosysJson) {
     engine->setOutputSlotState(en, 0, LogicState::high);
     engine->setOutputSlotState(d, 0, LogicState::high);
     ASSERT_TRUE(waitUntil([&] {
-        return engine->getDigitalSlotState(q, SlotType::digitalInput, 0).state == LogicState::high;
+        return engine->getDigitalSlotState(q, SlotType::digitalInput, 0)
+                   .state == LogicState::high;
     }));
 
     engine->setOutputSlotState(en, 0, LogicState::low);
     engine->setOutputSlotState(d, 0, LogicState::low);
     ASSERT_TRUE(waitUntil([&] {
-        return engine->getDigitalSlotState(q, SlotType::digitalInput, 0).state == LogicState::high;
+        return engine->getDigitalSlotState(q, SlotType::digitalInput, 0)
+                   .state == LogicState::high;
     })) << "Latch did not hold value while disabled";
 
     engine->setOutputSlotState(en, 0, LogicState::high);
     ASSERT_TRUE(waitUntil([&] {
-        return engine->getDigitalSlotState(q, SlotType::digitalInput, 0).state == LogicState::low;
+        return engine->getDigitalSlotState(q, SlotType::digitalInput, 0)
+                   .state == LogicState::low;
     }));
 }
 
@@ -1755,17 +1913,19 @@ TEST_F(VerilogImportTest, ImportsPmuxCellFromYosysJson) {
 
     auto writeBus = [&](const UUID &componentId, uint32_t value, size_t width) {
         for (size_t i = 0; i < width; ++i) {
-            engine->setOutputSlotState(componentId,
-                                       static_cast<int>(i),
-                                       ((value >> i) & 1U) ? LogicState::high : LogicState::low);
+            engine->setOutputSlotState(componentId, static_cast<int>(i),
+                                       ((value >> i) & 1U) ? LogicState::high
+                                                           : LogicState::low);
         }
     };
 
     auto readBus = [&](const UUID &componentId, size_t width) {
         uint32_t value = 0;
         for (size_t i = 0; i < width; ++i) {
-            if (engine->getDigitalSlotState(componentId, SlotType::digitalInput, static_cast<int>(i)).state ==
-                LogicState::high) {
+            if (engine
+                    ->getDigitalSlotState(componentId, SlotType::digitalInput,
+                                          static_cast<int>(i))
+                    .state == LogicState::high) {
                 value |= (1U << i);
             }
         }
@@ -1857,17 +2017,19 @@ TEST_F(VerilogImportTest, ImportsMemoryReadWriteCellsFromYosysJson) {
 
     auto writeBus = [&](const UUID &componentId, uint32_t value, size_t width) {
         for (size_t i = 0; i < width; ++i) {
-            engine->setOutputSlotState(componentId,
-                                       static_cast<int>(i),
-                                       ((value >> i) & 1U) ? LogicState::high : LogicState::low);
+            engine->setOutputSlotState(componentId, static_cast<int>(i),
+                                       ((value >> i) & 1U) ? LogicState::high
+                                                           : LogicState::low);
         }
     };
 
     auto readBus = [&](const UUID &componentId, size_t width) {
         uint32_t value = 0;
         for (size_t i = 0; i < width; ++i) {
-            if (engine->getDigitalSlotState(componentId, SlotType::digitalInput, static_cast<int>(i)).state ==
-                LogicState::high) {
+            if (engine
+                    ->getDigitalSlotState(componentId, SlotType::digitalInput,
+                                          static_cast<int>(i))
+                    .state == LogicState::high) {
                 value |= (1U << i);
             }
         }
@@ -1902,31 +2064,29 @@ TEST_F(VerilogImportTest, ImportsMemoryReadWriteCellsFromYosysJson) {
     ASSERT_TRUE(waitUntil([&] { return readBus(dout, 4) == 0xA; }));
 }
 
-TEST_F(VerilogImportTest, DISABLED_TemporaryHarvardCpuSmokeExecutesBasicInstructions) {
+TEST_F(VerilogImportTest, TemporaryHarvardCpuSmokeExecutesBasicInstructions) {
     const std::filesystem::path cpuDir =
         "Verilog-Harvard-CPU/01. Single-cycle CPU";
 
     if (!std::filesystem::exists(cpuDir)) {
-        GTEST_SKIP() << "Temporary Harvard CPU folder not found: " << cpuDir.string();
+        GTEST_SKIP() << "Temporary Harvard CPU folder not found: "
+                     << cpuDir.string();
     }
 
     const std::vector<std::filesystem::path> verilogFiles = {
-        cpuDir / "cpu.v",
-        cpuDir / "ALU.v",
-        cpuDir / "Control.v",
-        cpuDir / "RF.v",
-        cpuDir / "opcodes.v",
+        cpuDir / "cpu.v", cpuDir / "ALU.v",     cpuDir / "Control.v",
+        cpuDir / "RF.v",  cpuDir / "opcodes.v",
     };
 
     for (const auto &path : verilogFiles) {
         if (!std::filesystem::exists(path)) {
-            GTEST_SKIP() << "Missing Harvard CPU source file: " << path.string();
+            GTEST_SKIP() << "Missing Harvard CPU source file: "
+                         << path.string();
         }
     }
 
     const auto result = importVerilogFilesIntoSimulationEngine(
-        verilogFiles,
-        *engine,
+        verilogFiles, *engine,
         YosysRunnerConfig{
             .executablePath = "yosys",
             .topModuleName = std::string("cpu"),
@@ -1953,7 +2113,8 @@ TEST_F(VerilogImportTest, DISABLED_TemporaryHarvardCpuSmokeExecutesBasicInstruct
 
     auto writeBus = [&](const UUID &componentId, uint16_t value, size_t width) {
         for (size_t i = 0; i < width; ++i) {
-            const auto bit = ((value >> i) & 1U) ? LogicState::high : LogicState::low;
+            const auto bit =
+                ((value >> i) & 1U) ? LogicState::high : LogicState::low;
             engine->setOutputSlotState(componentId, static_cast<int>(i), bit);
         }
     };
@@ -1961,8 +2122,10 @@ TEST_F(VerilogImportTest, DISABLED_TemporaryHarvardCpuSmokeExecutesBasicInstruct
     auto readBus = [&](const UUID &componentId, size_t width) {
         uint16_t value = 0;
         for (size_t i = 0; i < width; ++i) {
-            if (engine->getDigitalSlotState(componentId, SlotType::digitalInput, static_cast<int>(i)).state ==
-                LogicState::high) {
+            if (engine
+                    ->getDigitalSlotState(componentId, SlotType::digitalInput,
+                                          static_cast<int>(i))
+                    .state == LogicState::high) {
                 value |= static_cast<uint16_t>(1U << i);
             }
         }
@@ -1970,13 +2133,16 @@ TEST_F(VerilogImportTest, DISABLED_TemporaryHarvardCpuSmokeExecutesBasicInstruct
     };
 
     auto readBit = [&](const UUID &componentId) {
-        return engine->getDigitalSlotState(componentId, SlotType::digitalInput, 0).state;
+        return engine
+            ->getDigitalSlotState(componentId, SlotType::digitalInput, 0)
+            .state;
     };
 
     auto pulseInputReady = [&]() {
         engine->setOutputSlotState(inputReady, 0, LogicState::high);
-        ASSERT_TRUE(waitUntil([&] { return readBit(readM) == LogicState::low; }))
-            << "CPU did not acknowledge memory response (readM stayed high)";
+        ASSERT_TRUE(waitUntil([&] {
+            return readBit(readM) == LogicState::low;
+        })) << "CPU did not acknowledge memory response (readM stayed high)";
         engine->setOutputSlotState(inputReady, 0, LogicState::low);
     };
 
@@ -1988,9 +2154,11 @@ TEST_F(VerilogImportTest, DISABLED_TemporaryHarvardCpuSmokeExecutesBasicInstruct
         engine->setOutputSlotState(clk, 0, LogicState::low);
     };
 
-    auto fetchInstruction = [&](uint16_t expectedAddress, uint16_t instructionWord) {
-        ASSERT_TRUE(waitUntil([&] { return readBit(readM) == LogicState::high; }))
-            << "CPU did not request instruction fetch";
+    auto fetchInstruction = [&](uint16_t expectedAddress,
+                                uint16_t instructionWord) {
+        ASSERT_TRUE(waitUntil([&] {
+            return readBit(readM) == LogicState::high;
+        })) << "CPU did not request instruction fetch";
 
         ASSERT_EQ(readBus(address, 16), expectedAddress)
             << "Unexpected instruction fetch address";

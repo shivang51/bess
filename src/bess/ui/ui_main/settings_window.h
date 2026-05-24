@@ -17,17 +17,21 @@ namespace Bess::UI {
         void onDraw() override;
         void onShow() override;
 
-        template <std::ranges::input_range Range, class TValue = std::ranges::range_value_t<Range>>
-        static bool drawSetting(const std::string &label,
-                                const std::string &hintText,
-                                TValue &currentValue, Range &&predefinedValues) {
+        template <std::ranges::input_range Range,
+                  class TValue = std::ranges::range_value_t<Range>>
+        static bool
+        drawSetting(const std::string &label, const std::string &hintText,
+                    TValue &currentValue, Range &&predefinedValues) {
             ImGui::Text("%s", label.c_str());
             ImGui::SameLine();
-            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+            ImGui::PushStyleColor(
+                ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
             ImGui::TextWrapped("%s", hintText.c_str());
             ImGui::PopStyleColor();
             ImGui::Indent();
-            auto changed = Widgets::ComboBox("##" + label, currentValue, std::forward<Range>(predefinedValues));
+            auto changed =
+                Widgets::ComboBox("##" + label, currentValue,
+                                  std::forward<Range>(predefinedValues));
             ImGui::Unindent();
             return changed;
         }

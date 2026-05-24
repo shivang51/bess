@@ -25,8 +25,8 @@ set(ALL_FILES
 
 add_library(${PROJECT_NAME} STATIC ${ALL_FILES})
 
-target_link_libraries(${PROJECT_NAME} PUBLIC BessJson common BessSimEngine)
-add_dependencies(${PROJECT_NAME} BessJson common BessSimEngine)
+target_link_libraries(${PROJECT_NAME} PUBLIC BessJson common BessSimEngine BessSimDriver DigitalSimDriver)
+add_dependencies(${PROJECT_NAME} BessJson common BessSimEngine BessSimDriver DigitalSimDriver)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"

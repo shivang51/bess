@@ -25,9 +25,7 @@ namespace Bess::Renderer {
         std::vector<std::vector<PathPoint>> contours;
         uint64_t id = 0;
 
-        void setCurrentPos(const glm::vec3 &pos) {
-            currentPos = pos;
-        }
+        void setCurrentPos(const glm::vec3 &pos) { currentPos = pos; }
     };
 
     struct QuadBezierCurvePoints {
@@ -40,7 +38,8 @@ namespace Bess::Renderer {
         bool genStroke = true;
         bool genFill = false;
         bool closePath = false;
-        bool rounedJoint = false; // generate rounded joints at path corners when true
+        bool rounedJoint =
+            false; // generate rounded joints at path corners when true
         glm::vec3 translate{0.f};
         glm::vec2 scale = glm::vec2(1.0f);
         glm::vec4 fillColor = glm::vec4(1.f, 0.f, 0.f, 1.f);
@@ -61,8 +60,7 @@ namespace Bess::Renderer {
         bool rounded = false;
 
         static PathGeometryKey fromPath(const UUID &pathId,
-                                        const glm::vec2 &scale,
-                                        bool rounded) {
+                                        const glm::vec2 &scale, bool rounded) {
             return {
                 pathId,
                 PathScaleKey::fromScale(scale),
@@ -76,28 +74,31 @@ namespace Bess::Renderer {
     struct PathGeometryKeyHash {
         size_t operator()(const PathGeometryKey &key) const noexcept {
             size_t seed = std::hash<UUID>{}(key.pathId);
-            seed ^= PathScaleKeyHash{}(key.scaleKey) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-            seed ^= std::hash<bool>{}(key.rounded) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+            seed ^= PathScaleKeyHash{}(key.scaleKey) + 0x9e3779b9 +
+                    (seed << 6) + (seed >> 2);
+            seed ^= std::hash<bool>{}(key.rounded) + 0x9e3779b9 + (seed << 6) +
+                    (seed >> 2);
             return seed;
         }
     };
 
     class PathGeometryCache {
       public:
-        static PathGeometryKey generateCacheKey(UUID uuid,
-                                                const glm::vec2 &scale,
-                                                bool rounded) {
+        static PathGeometryKey
+        generateCacheKey(UUID uuid, const glm::vec2 &scale, bool rounded) {
             return PathGeometryKey::fromPath(uuid, scale, rounded);
         }
 
-        bool getEntry(const PathGeometryKey &key, PathGeometryCacheEntry &entry) {
+        bool getEntry(const PathGeometryKey &key,
+                      PathGeometryCacheEntry &entry) {
             if (!m_cache.contains(key))
                 return false;
             entry = m_cache.at(key);
             return true;
         }
 
-        bool getEntryPtr(const PathGeometryKey &key, const PathGeometryCacheEntry *&entryPtr) const {
+        bool getEntryPtr(const PathGeometryKey &key,
+                         const PathGeometryCacheEntry *&entryPtr) const {
             auto it = m_cache.find(key);
             if (it == m_cache.end())
                 return false;
@@ -105,28 +106,31 @@ namespace Bess::Renderer {
             return true;
         }
 
-        PathGeometryCacheEntry *cacheEntry(const PathGeometryKey &key, const PathGeometryCacheEntry &entry) {
+        PathGeometryCacheEntry *
+        cacheEntry(const PathGeometryKey &key,
+                   const PathGeometryCacheEntry &entry) {
             m_cache[key] = entry;
             return &m_cache.at(key);
         }
 
-        void clearCache() {
-            m_cache.clear();
-        }
+        void clearCache() { m_cache.clear(); }
 
         void invalidateCacheEntry(const PathGeometryKey &key) {
             m_cache.erase(key);
         }
 
       private:
-        std::unordered_map<PathGeometryKey, PathGeometryCacheEntry, PathGeometryKeyHash> m_cache;
+        std::unordered_map<PathGeometryKey, PathGeometryCacheEntry,
+                           PathGeometryKeyHash>
+            m_cache;
     };
 
     class PathRenderer {
       public:
-        PathRenderer(const std::shared_ptr<VulkanDevice> &device,
-                     const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
-                     VkExtent2D extent);
+        PathRenderer(
+            const std::shared_ptr<VulkanDevice> &device,
+            const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
+            VkExtent2D extent);
         ~PathRenderer();
 
         PathRenderer(const PathRenderer &) = delete;
@@ -137,36 +141,65 @@ namespace Bess::Renderer {
         void setCurrentFrameIndex(uint32_t frameIndex);
 
         void drawContours(const std::vector<std::vector<PathPoint>> &contours,
-                          ContoursDrawInfo info = {}, bool invalidateCache = false);
-        void drawPath(Renderer::Path &path, ContoursDrawInfo info = {}, bool invalidateCache = false);
+                          ContoursDrawInfo info = {},
+                          bool invalidateCache = false);
+        void drawPath(Renderer::Path &path, ContoursDrawInfo info = {},
+                      bool invalidateCache = false);
 
         // Path API functions
-        void beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color, uint64_t id);
+        void beginPathMode(const glm::vec3 &startPos, float weight,
+                           const glm::vec4 &color, uint64_t id);
         void endPathMode(bool closePath = false, bool genFill = false,
-                         const glm::vec4 &fillColor = glm::vec4(1.f), bool genStroke = true,
-                         bool genRoundedJoints = false, bool invalidateCache = false);
+                         const glm::vec4 &fillColor = glm::vec4(1.f),
+                         bool genStroke = true, bool genRoundedJoints = false,
+                         bool invalidateCache = false);
         void pathMoveTo(const glm::vec3 &pos);
-        void pathLineTo(const glm::vec3 &pos, float size, const glm::vec4 &color, uint64_t id);
-        void pathCubicBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2,
-                               float weight, const glm::vec4 &color, uint64_t id);
-        void pathQuadBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec4 &color, uint64_t id);
+        void pathLineTo(const glm::vec3 &pos, float size,
+                        const glm::vec4 &color, uint64_t id);
+        void pathCubicBeizerTo(const glm::vec3 &end,
+                               const glm::vec2 &controlPoint1,
+                               const glm::vec2 &controlPoint2, float weight,
+                               const glm::vec4 &color, uint64_t id);
+        void pathQuadBeizerTo(const glm::vec3 &end,
+                              const glm::vec2 &controlPoint, float weight,
+                              const glm::vec4 &color, uint64_t id);
 
         void updateUniformBuffer(const UniformBufferObject &ubo);
 
         void resize(VkExtent2D extent);
 
       public:
-        static int calculateQuadBezierSegments(const glm::vec2 &p0, const glm::vec2 &p1, const glm::vec2 &p2);
-        static int calculateCubicBezierSegments(const glm::vec2 &p0, const glm::vec2 &p1, const glm::vec2 &p2, const glm::vec2 &p3);
-        static glm::vec2 nextBernstinePointCubicBezier(const glm::vec2 &p0, const glm::vec2 &p1,
-                                                       const glm::vec2 &p2, const glm::vec2 &p3, float t);
-        static glm::vec2 nextBernstinePointQuadBezier(const glm::vec2 &p0, const glm::vec2 &p1, const glm::vec2 &p2, float t);
-        static std::vector<glm::vec3> generateCubicBezierPoints(const glm::vec3 &start, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2, const glm::vec3 &end);
-        static std::vector<glm::vec3> generateQuadBezierPoints(const glm::vec3 &start, const glm::vec2 &controlPoint, const glm::vec3 &end);
-        static std::vector<glm::vec3> generateQuadBezierPointsSegments(const glm::vec3 &start, const glm::vec2 &controlPoint, const glm::vec3 &end, int segments);
+        static int calculateQuadBezierSegments(const glm::vec2 &p0,
+                                               const glm::vec2 &p1,
+                                               const glm::vec2 &p2);
+        static int calculateCubicBezierSegments(const glm::vec2 &p0,
+                                                const glm::vec2 &p1,
+                                                const glm::vec2 &p2,
+                                                const glm::vec2 &p3);
+        static glm::vec2 nextBernstinePointCubicBezier(const glm::vec2 &p0,
+                                                       const glm::vec2 &p1,
+                                                       const glm::vec2 &p2,
+                                                       const glm::vec2 &p3,
+                                                       float t);
+        static glm::vec2 nextBernstinePointQuadBezier(const glm::vec2 &p0,
+                                                      const glm::vec2 &p1,
+                                                      const glm::vec2 &p2,
+                                                      float t);
+        static std::vector<glm::vec3> generateCubicBezierPoints(
+            const glm::vec3 &start, const glm::vec2 &controlPoint1,
+            const glm::vec2 &controlPoint2, const glm::vec3 &end);
+        static std::vector<glm::vec3>
+        generateQuadBezierPoints(const glm::vec3 &start,
+                                 const glm::vec2 &controlPoint,
+                                 const glm::vec3 &end);
+        static std::vector<glm::vec3>
+        generateQuadBezierPointsSegments(const glm::vec3 &start,
+                                         const glm::vec2 &controlPoint,
+                                         const glm::vec3 &end, int segments);
 
       private:
-        void addPathGeometries(const std::vector<std::vector<CommonVertex>> &strokeGeometry);
+        void addPathGeometries(
+            const std::vector<std::vector<CommonVertex>> &strokeGeometry);
 
       private:
         PathGeometryCache m_cache;
@@ -183,8 +216,11 @@ namespace Bess::Renderer {
             uint32_t firstIndex;
             uint32_t indexCount;
         };
-        std::unordered_map<PathGeometryKey, MeshRange, PathGeometryKeyHash> m_glyphIdToMesh;
-        std::unordered_map<PathGeometryKey, std::vector<FillInstance>, PathGeometryKeyHash> m_glyphIdToInstances;
+        std::unordered_map<PathGeometryKey, MeshRange, PathGeometryKeyHash>
+            m_glyphIdToMesh;
+        std::unordered_map<PathGeometryKey, std::vector<FillInstance>,
+                           PathGeometryKeyHash>
+            m_glyphIdToInstances;
 
         std::shared_ptr<VulkanDevice> m_device;
         std::shared_ptr<VulkanOffscreenRenderPass> m_renderPass;
@@ -199,25 +235,34 @@ namespace Bess::Renderer {
         // Path context
         PathContext m_pathData;
 
-        // Dynamic cache for native path API (beginPathMode/endPathMode) stroke geometries
-        std::unordered_map<uint64_t, PathGeometryCacheEntry> m_dynamicStrokeCache;
+        // Dynamic cache for native path API (beginPathMode/endPathMode) stroke
+        // geometries
+        std::unordered_map<uint64_t, PathGeometryCacheEntry>
+            m_dynamicStrokeCache;
         std::deque<uint64_t> m_dynamicStrokeCacheOrder;
 
-        std::vector<CommonVertex> generateStrokeGeometry(const std::vector<PathPoint> &points,
-                                                         const glm::vec4 &color, bool isClosed,
-                                                         bool rounedJoint);
-        std::vector<CommonVertex> generateFillGeometry(const std::vector<PathPoint> &points, const glm::vec4 &color, bool rounedJoint = false);
-        std::vector<CommonVertex> generateFillGeometry(const std::vector<std::vector<PathPoint>> &contours, const glm::vec4 &color, bool rounedJoint = false);
+        std::vector<CommonVertex>
+        generateStrokeGeometry(const std::vector<PathPoint> &points,
+                               const glm::vec4 &color, bool isClosed,
+                               bool rounedJoint);
+        std::vector<CommonVertex>
+        generateFillGeometry(const std::vector<PathPoint> &points,
+                             const glm::vec4 &color, bool rounedJoint = false);
+        std::vector<CommonVertex> generateFillGeometry(
+            const std::vector<std::vector<PathPoint>> &contours,
+            const glm::vec4 &color, bool rounedJoint = false);
         std::vector<uint32_t> generateFillIndices(size_t vertexCount);
 
-        QuadBezierCurvePoints generateSmoothBendPoints(const glm::vec2 &prevPoint, const glm::vec2 &joinPoint, const glm::vec2 &nextPoint, float curveRadius);
+        QuadBezierCurvePoints
+        generateSmoothBendPoints(const glm::vec2 &prevPoint,
+                                 const glm::vec2 &joinPoint,
+                                 const glm::vec2 &nextPoint, float curveRadius);
 
         // Hash helpers for dynamic cache
-        static uint64_t hashContours(const uint64_t &id,
-                                     const std::vector<std::vector<PathPoint>> &contours,
-                                     const glm::vec4 &color,
-                                     bool isClosed,
-                                     bool rounded);
+        static uint64_t
+        hashContours(const uint64_t &id,
+                     const std::vector<std::vector<PathPoint>> &contours,
+                     const glm::vec4 &color, bool isClosed, bool rounded);
     };
 
 } // namespace Bess::Renderer

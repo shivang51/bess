@@ -25,7 +25,8 @@ namespace Bess::Renderer {
     struct PathScaleKeyHash {
         size_t operator()(const PathScaleKey &key) const noexcept {
             size_t seed = std::hash<int32_t>{}(key.scaleXMilli);
-            seed ^= std::hash<int32_t>{}(key.scaleYMilli) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+            seed ^= std::hash<int32_t>{}(key.scaleYMilli) + 0x9e3779b9 +
+                    (seed << 6) + (seed >> 2);
             return seed;
         }
     };
@@ -66,10 +67,7 @@ namespace Bess::Renderer {
         };
 
         struct PathCommand {
-            enum class Kind : uint8_t { Move,
-                                        Line,
-                                        Quad,
-                                        Cubic } kind;
+            enum class Kind : uint8_t { Move, Line, Quad, Cubic } kind;
             union {
                 MoveTo move;
                 LineTo line;
@@ -88,7 +86,8 @@ namespace Bess::Renderer {
 
         Path *quadTo(const glm::vec2 &c, const glm::vec2 &pos);
 
-        Path *cubicTo(const glm::vec2 &c1, const glm::vec2 &c2, const glm::vec2 &pos);
+        Path *cubicTo(const glm::vec2 &c1, const glm::vec2 &c2,
+                      const glm::vec2 &pos);
 
         Path *addCommand(PathCommand cmd);
 
@@ -134,12 +133,8 @@ namespace Bess::Renderer {
         static void skipSeparators(const char *&ptr, const char *end);
 
         // Converts an arc to cubic bezier segments and appends them to the path
-        static void arcToCubics(Path &path,
-                                glm::vec2 cur,
-                                glm::vec2 rxry,
-                                float phi_deg,
-                                bool large_arc,
-                                bool sweep,
+        static void arcToCubics(Path &path, glm::vec2 cur, glm::vec2 rxry,
+                                float phi_deg, bool large_arc, bool sweep,
                                 glm::vec2 end);
 
         // Helper to calculate reflection for S and T commands
@@ -156,7 +151,11 @@ namespace Bess::Renderer {
         std::vector<PathCommand> m_ogCmds;
         std::vector<std::vector<PathPoint>> m_contours;
 
-        std::unordered_map<PathScaleKey, std::vector<PathCommand>, PathScaleKeyHash> m_scaledCmdsCache;
-        std::unordered_map<PathScaleKey, std::vector<std::vector<PathPoint>>, PathScaleKeyHash> m_scaledContoursCache;
+        std::unordered_map<PathScaleKey, std::vector<PathCommand>,
+                           PathScaleKeyHash>
+            m_scaledCmdsCache;
+        std::unordered_map<PathScaleKey, std::vector<std::vector<PathPoint>>,
+                           PathScaleKeyHash>
+            m_scaledContoursCache;
     };
 } // namespace Bess::Renderer

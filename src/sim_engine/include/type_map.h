@@ -6,8 +6,7 @@ namespace Bess {
     // USING FROM:
     // https://gpfault.net/posts/mapping-types-to-values.txt.html
 
-    template <class ValueType>
-    class TypeMap {
+    template <class ValueType> class TypeMap {
         // Internally, we'll use a hash table to store mapping from type
         // IDs to the values.
         typedef std::unordered_map<int, ValueType> InternalMap;
@@ -23,26 +22,24 @@ namespace Bess {
         iterator end() { return m_map.end(); }
 
         // Finds the value associated with the type "Key" in the type map.
-        template <class Key>
-        iterator find() { return m_map.find(getTypeId<Key>()); }
+        template <class Key> iterator find() {
+            return m_map.find(getTypeId<Key>());
+        }
 
         // Same as above, const version
-        template <class Key>
-        const_iterator find() const { return m_map.find(getTypeId<Key>()); }
+        template <class Key> const_iterator find() const {
+            return m_map.find(getTypeId<Key>());
+        }
 
         // Associates a value with the type "Key"
-        template <class Key>
-        void put(ValueType &&value) {
+        template <class Key> void put(ValueType &&value) {
             m_map[getTypeId<Key>()] = std::forward<ValueType>(value);
         }
 
-        void clear() {
-            m_map.clear();
-        }
+        void clear() { m_map.clear(); }
 
       private:
-        template <class Key>
-        inline static int getTypeId() {
+        template <class Key> inline static int getTypeId() {
             static const int id = LastTypeId++;
             return id;
         }

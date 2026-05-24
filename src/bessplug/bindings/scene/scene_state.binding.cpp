@@ -10,6 +10,10 @@ void bind_scene_state(py::module_ &m) {
         .def(py::init<Bess::Canvas::SceneState &>())
         .def("clear", &Bess::Canvas::SceneState::clear)
         .def("is_root_component", &Bess::Canvas::SceneState::isRootComponent)
-        // .def("get_all_components", &Bess::Canvas::SceneState::getAllComponents, py::return_value_policy::reference)
-        .def("get_selected_components", &Bess::Canvas::SceneState::getSelectedComponents, py::return_value_policy::reference);
+        // .def("get_all_components",
+        // &Bess::Canvas::SceneState::getAllComponents,
+        // py::return_value_policy::reference)
+        .def("get_selected_components",
+             &Bess::Canvas::SceneState::getSelectedComponents,
+             py::return_value_policy::reference);
 }

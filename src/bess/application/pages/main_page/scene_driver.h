@@ -20,12 +20,17 @@ namespace Bess {
 
         std::shared_ptr<Canvas::Scene> createNewScene();
 
-        std::shared_ptr<Canvas::Scene> setActiveScene(size_t index, bool updateCmdSys = true);
-        std::shared_ptr<Canvas::Scene> setActiveScene(UUID id, bool updateCmdSys = true);
+        std::shared_ptr<Canvas::Scene> setActiveScene(size_t index,
+                                                      bool updateCmdSys = true);
+        std::shared_ptr<Canvas::Scene> setActiveScene(UUID id,
+                                                      bool updateCmdSys = true);
 
-        std::shared_ptr<Canvas::Scene> getSceneForModule(const UUID &modId) const;
+        std::shared_ptr<Canvas::Scene>
+        getSceneForModule(const UUID &modId) const;
 
         void removeScenes();
+
+        void reset(bool updateCmdSys = true);
 
         size_t getActiveSceneIdx() const;
 
@@ -39,6 +44,7 @@ namespace Bess {
 
         // using pointer operator to directly access active scene
         std::shared_ptr<Canvas::Scene> operator->() {
+            std::lock_guard lock(m_scenesMutex);
             return m_activeScene;
         }
 
@@ -47,16 +53,24 @@ namespace Bess {
         }
 
         MAKE_GETTER_SETTER(UUID, RootSceneId, m_rootSceneId);
-        MAKE_GETTER_SETTER(std::vector<std::shared_ptr<Canvas::Scene>>, Scenes, m_scenes);
+        MAKE_GETTER_SETTER(std::vector<std::shared_ptr<Canvas::Scene>>, Scenes,
+                           m_scenes);
+
+        MAKE_GETTER_SETTER(bool, IsPaused, m_isPaused);
 
         void makeRootSceneActive();
 
       private:
         std::shared_ptr<Canvas::Scene> m_activeScene;
         std::vector<std::shared_ptr<Canvas::Scene>> m_scenes;
-        std::unordered_map<UUID, std::shared_ptr<Canvas::Scene>> m_sceneIdToSceneMap;
-        std::unordered_map<UUID, std::shared_ptr<Canvas::Scene>> m_modIdToSceneMap;
+        std::unordered_map<UUID, std::shared_ptr<Canvas::Scene>>
+            m_sceneIdToSceneMap;
+        std::unordered_map<UUID, std::shared_ptr<Canvas::Scene>>
+            m_modIdToSceneMap;
         UUID m_rootSceneId{UUID::null};
         size_t m_activeSceneIdx{0};
+
+        bool m_isPaused = false;
+        mutable std::mutex m_scenesMutex;
     };
 } // namespace Bess

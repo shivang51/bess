@@ -1,6 +1,5 @@
 #include "plugin_handle.h"
 #include "application/pages/main_page/scene_components/sim_scene_component.h"
-#include "component_definition.h"
 #include <memory>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -15,28 +14,32 @@ namespace Bess::Plugins {
         if (py::hasattr(pluginObj, "name")) {
             m_pluginName = pluginObj.attr("name").cast<std::string>();
         } else {
-            BESS_WARN("Plugin object does not have 'name' attribute, using default name");
+            BESS_WARN("Plugin object does not have 'name' attribute, using "
+                      "default name");
             m_pluginName = "Unknown";
         }
 
         if (py::hasattr(pluginObj, "version")) {
             m_pluginVersion = pluginObj.attr("version").cast<std::string>();
         } else {
-            BESS_WARN("Plugin object does not have 'version' attribute, using default version");
+            BESS_WARN("Plugin object does not have 'version' attribute, using "
+                      "default version");
             m_pluginVersion = "Unknown";
         }
     }
 
-    std::vector<std::shared_ptr<SimEngine::ComponentDefinition>> PluginHandle::onComponentsRegLoad() const {
-        std::vector<std::shared_ptr<SimEngine::ComponentDefinition>> components;
+    std::vector<std::shared_ptr<SimEngine::Drivers::CompDef>>
+    PluginHandle::onCompCatalogLoad() const {
+        std::vector<std::shared_ptr<SimEngine::Drivers::CompDef>> components;
 
         py::gil_scoped_acquire gil;
-        if (py::hasattr(m_pluginObj, "on_components_reg_load")) {
-            py::object compList = m_pluginObj.attr("on_components_reg_load")();
+        if (py::hasattr(m_pluginObj, "on_comp_catalog_load")) {
+            py::object compList = m_pluginObj.attr("on_comp_catalog_load")();
 
             for (py::handle item : compList) {
                 py::object pyComp = py::reinterpret_borrow<py::object>(item);
-                auto d = item.cast<std::shared_ptr<SimEngine::ComponentDefinition>>();
+                auto d =
+                    item.cast<std::shared_ptr<SimEngine::Drivers::CompDef>>();
                 components.emplace_back(std::move(d));
             }
         }
@@ -62,22 +65,28 @@ namespace Bess::Plugins {
         }
     }
 
-    std::shared_ptr<Canvas::SimulationSceneComponent> PluginHandle::getSimComponent(const std::shared_ptr<SimEngine::ComponentDefinition> &def) const {
+    std::shared_ptr<Canvas::SimulationSceneComponent>
+    PluginHandle::getSimSceneComponent(
+        const std::shared_ptr<SimEngine::Drivers::CompDef> &def) const {
         py::gil_scoped_acquire gil;
-        if (py::hasattr(m_pluginObj, "get_sim_comp")) {
-            py::object result = m_pluginObj.attr("get_sim_comp")(def);
+        if (py::hasattr(m_pluginObj, "get_sim_scene_comp")) {
+            py::object result = m_pluginObj.attr("get_sim_scene_comp")(def);
             if (!result.is_none()) {
                 result.attr("setup")(def);
-                return result.cast<std::shared_ptr<Canvas::SimulationSceneComponent>>();
+                auto res = result.cast<std::optional<
+                    std::shared_ptr<Canvas::SimulationSceneComponent>>>();
+                if (res.has_value()) {
+                    return res.value();
+                }
             }
         }
         return nullptr;
     }
 
-    bool PluginHandle::hasSimComponent(const uint64_t &baseHash) const {
+    bool PluginHandle::hasSimSceneComponent(const std::string &defName) const {
         py::gil_scoped_acquire gil;
-        if (py::hasattr(m_pluginObj, "has_sim_comp")) {
-            return m_pluginObj.attr("has_sim_comp")(baseHash).cast<bool>();
+        if (py::hasattr(m_pluginObj, "has_sim_scene_comp")) {
+            return m_pluginObj.attr("has_sim_scene_comp")(defName).cast<bool>();
         }
         return false;
     }
@@ -91,9 +100,8 @@ namespace Bess::Plugins {
 
         py::module_ sys = py::module_::import("sys");
 
-        auto modules = sys.attr("modules").attr(
-                                              "keys")()
-                           .cast<std::vector<std::string>>();
+        auto modules =
+            sys.attr("modules").attr("keys")().cast<std::vector<std::string>>();
 
         bool hasSceneComp = false;
 
@@ -124,8 +132,9 @@ namespace Bess::Plugins {
         return py::hasattr(compClass, "from_json");
     }
 
-    std::shared_ptr<Canvas::SceneComponent> PluginHandle::derserialize(const std::string &typeName,
-                                                                       const Json::Value &json) {
+    std::shared_ptr<Canvas::SceneComponent>
+    PluginHandle::derserialize(const std::string &typeName,
+                               const Json::Value &json) {
         if (!canDerserialize(typeName)) {
             return nullptr;
         }

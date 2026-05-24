@@ -24,11 +24,7 @@ namespace Bess::Renderer {
     };
 
     struct Material2D {
-        enum class MaterialType : uint8_t {
-            primitive,
-            path,
-            grid
-        } type;
+        enum class MaterialType : uint8_t { primitive, path, grid } type;
 
         union {
             PrimitiveMaterial primitive;
@@ -40,20 +36,24 @@ namespace Bess::Renderer {
         float alpha = 1.f;
 
         Material2D() : type(MaterialType::primitive), primitive{} {}
-        explicit Material2D(MaterialType type, float z, float alpha) : type(type), z(z), alpha(alpha) {
-        }
+        explicit Material2D(MaterialType type, float z, float alpha)
+            : type(type),
+              z(z),
+              alpha(alpha) {}
 
-        ~Material2D() {
-            destroyActive();
-        }
+        ~Material2D() { destroyActive(); }
 
         Material2D(const Material2D &other)
-            : type(other.type), z(other.z), alpha(other.alpha) {
+            : type(other.type),
+              z(other.z),
+              alpha(other.alpha) {
             constructFrom(other);
         }
 
         Material2D(Material2D &&other) noexcept
-            : type(other.type), z(other.z), alpha(other.alpha) {
+            : type(other.type),
+              z(other.z),
+              alpha(other.alpha) {
             moveFrom(std::move(other));
         }
 

@@ -4,8 +4,7 @@
 #include <glm.hpp>
 
 namespace Bess::Canvas {
-    template <typename Derived>
-    class MouseBehaviour {
+    template <typename Derived> class MouseBehaviour {
       public:
         virtual void onMouseHovered(const Events::MouseHoveredEvent &e) {}
         virtual void onMouseEnter(const Events::MouseEnterEvent &e) {}

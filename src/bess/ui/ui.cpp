@@ -48,7 +48,8 @@ namespace Bess::UI {
 
     void initVulkanImGui() {
         if (!Bess::Vulkan::VulkanCore::isInitialized) {
-            BESS_ERROR("VulkanRenderer not initialized! Call VulkanRenderer::init() first.");
+            BESS_ERROR("VulkanRenderer not initialized! Call "
+                       "VulkanRenderer::init() first.");
             return;
         }
 
@@ -60,7 +61,9 @@ namespace Bess::UI {
             return;
         }
 
-        constexpr std::array<VkDescriptorPoolSize, 1> poolSizes = {{{.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = 1000}}};
+        constexpr std::array<VkDescriptorPoolSize, 1> poolSizes = {
+            {{.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+              .descriptorCount = 1000}}};
 
         VkDescriptorPoolCreateInfo poolInfo = {};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -69,7 +72,8 @@ namespace Bess::UI {
         poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();
 
-        if (vkCreateDescriptorPool(device->device(), &poolInfo, nullptr, &s_uiDescriptorPool) != VK_SUCCESS) {
+        if (vkCreateDescriptorPool(device->device(), &poolInfo, nullptr,
+                                   &s_uiDescriptorPool) != VK_SUCCESS) {
             BESS_ERROR("Failed to create descriptor pool for ImGui!");
             return;
         }
@@ -79,23 +83,27 @@ namespace Bess::UI {
         initInfo.Instance = vulkanCore.getVkInstance();
         initInfo.PhysicalDevice = device->physicalDevice();
         initInfo.Device = device->device();
-        initInfo.QueueFamily = device->queueFamilyIndices().graphicsFamily.value();
+        initInfo.QueueFamily =
+            device->queueFamilyIndices().graphicsFamily.value();
         initInfo.Queue = device->graphicsQueue();
         initInfo.DescriptorPool = s_uiDescriptorPool;
         initInfo.MinImageCount = 2;
         initInfo.ImageCount = 2;
         initInfo.UseDynamicRendering = false;
 
-        initInfo.PipelineInfoMain.RenderPass = vulkanCore.getRenderPass()->getVkHandle();
+        initInfo.PipelineInfoMain.RenderPass =
+            vulkanCore.getRenderPass()->getVkHandle();
         initInfo.PipelineInfoMain.Subpass = 0;
         initInfo.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-        initInfo.PipelineInfoForViewports.RenderPass = vulkanCore.getRenderPass()->getVkHandle();
+        initInfo.PipelineInfoForViewports.RenderPass =
+            vulkanCore.getRenderPass()->getVkHandle();
         initInfo.PipelineInfoForViewports.Subpass = 0;
         initInfo.PipelineInfoForViewports.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
         if (!ImGui_ImplVulkan_Init(&initInfo)) {
             BESS_ERROR("Failed to initialize ImGui Vulkan backend!");
-            vkDestroyDescriptorPool(device->device(), s_uiDescriptorPool, nullptr);
+            vkDestroyDescriptorPool(device->device(), s_uiDescriptorPool,
+                                    nullptr);
             return;
         }
 
@@ -118,8 +126,7 @@ namespace Bess::UI {
     void begin() {
         auto &settings = Config::Settings::instance();
         if (settings.shouldFontRebuild()) {
-            loadFontAndSetScale(settings.getFontSize(),
-                                settings.getScale());
+            loadFontAndSetScale(settings.getFontSize(), settings.getScale());
             settings.setFontRebuild(true);
         }
 
@@ -147,10 +154,11 @@ namespace Bess::UI {
         ImGui::SetNextWindowViewport(viewport->ID);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0F);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0F);
-        windowFlags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
-                       ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-        windowFlags |=
-            ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+        windowFlags |= ImGuiWindowFlags_NoTitleBar |
+                       ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
+                       ImGuiWindowFlags_NoMove;
+        windowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus |
+                       ImGuiWindowFlags_NoNavFocus;
 
         static bool pOpen = true;
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0F, 0.0F));
@@ -174,12 +182,14 @@ namespace Bess::UI {
     void loadFontAndSetScale(const float fontSize, const float scale) {
         ImGuiIO &io = ImGui::GetIO();
 
-        constexpr auto robotoPath = Assets::Fonts::Paths::roboto.paths[0].data();
+        constexpr auto robotoPath =
+            Assets::Fonts::Paths::roboto.paths[0].data();
 
         io.Fonts->Clear();
         io.Fonts->AddFontFromFileTTF(robotoPath, fontSize);
-        // Fonts::largeFont = io.Fonts->AddFontFromFileTTF(robotoPath, fontSize * 2.0F);
-        // Fonts::mediumFont = io.Fonts->AddFontFromFileTTF(robotoPath, fontSize * 1.5F);
+        // Fonts::largeFont = io.Fonts->AddFontFromFileTTF(robotoPath, fontSize
+        // * 2.0F); Fonts::mediumFont = io.Fonts->AddFontFromFileTTF(robotoPath,
+        // fontSize * 1.5F);
         io.FontDefault = io.Fonts->AddFontFromFileTTF(robotoPath, fontSize);
 
         ImFontConfig config;
@@ -187,47 +197,60 @@ namespace Bess::UI {
         config.MergeMode = true;
         config.PixelSnapH = true;
 
-        constexpr auto compIconsPath = Assets::Fonts::Paths::componentIcons.paths[0].data();
-        constexpr auto codeIconsPath = Assets::Fonts::Paths::codeIcons.paths[0].data();
-        constexpr auto materialIconsPath = Assets::Fonts::Paths::materialIcons.paths[0].data();
-        constexpr auto fontAwesomeIconsPath = Assets::Fonts::Paths::fontAwesomeIcons.paths[0].data();
+        constexpr auto compIconsPath =
+            Assets::Fonts::Paths::componentIcons.paths[0].data();
+        constexpr auto codeIconsPath =
+            Assets::Fonts::Paths::codeIcons.paths[0].data();
+        constexpr auto materialIconsPath =
+            Assets::Fonts::Paths::materialIcons.paths[0].data();
+        constexpr auto fontAwesomeIconsPath =
+            Assets::Fonts::Paths::fontAwesomeIcons.paths[0].data();
 
-        static const std::array<ImWchar, 3> compIconRanges = {Icons::ComponentIcons::SIZE_MIN_CI, Icons::ComponentIcons::SIZE_MAX_CI, 0};
-        io.Fonts->AddFontFromFileTTF(compIconsPath, fontSize * r, &config, compIconRanges.data());
+        static const std::array<ImWchar, 3> compIconRanges = {
+            Icons::ComponentIcons::SIZE_MIN_CI,
+            Icons::ComponentIcons::SIZE_MAX_CI, 0};
+        io.Fonts->AddFontFromFileTTF(compIconsPath, fontSize * r, &config,
+                                     compIconRanges.data());
 
-        static const std::array<ImWchar, 3> codiconIconRanges = {Icons::CodIcons::ICON_MIN_CI, Icons::CodIcons::ICON_MAX_CI, 0};
+        static const std::array<ImWchar, 3> codiconIconRanges = {
+            Icons::CodIcons::ICON_MIN_CI, Icons::CodIcons::ICON_MAX_CI, 0};
         config.GlyphOffset.y = fontSize / 5.0F;
-        io.Fonts->AddFontFromFileTTF(codeIconsPath, fontSize, &config, codiconIconRanges.data());
+        io.Fonts->AddFontFromFileTTF(codeIconsPath, fontSize, &config,
+                                     codiconIconRanges.data());
 
-        static const std::array<ImWchar, 3> faIconRangesR = {Icons::FontAwesomeIcons::SIZE_MIN_FA, Icons::FontAwesomeIcons::SIZE_MAX_FA, 0};
+        static const std::array<ImWchar, 3> faIconRangesR = {
+            Icons::FontAwesomeIcons::SIZE_MIN_FA,
+            Icons::FontAwesomeIcons::SIZE_MAX_FA, 0};
         config.GlyphOffset.y = -r;
-        io.Fonts->AddFontFromFileTTF(fontAwesomeIconsPath, fontSize * r, &config, faIconRangesR.data());
+        io.Fonts->AddFontFromFileTTF(fontAwesomeIconsPath, fontSize * r,
+                                     &config, faIconRangesR.data());
 
         config.GlyphOffset.y = r;
-        static const std::array<ImWchar, 3> matIconRanges = {Icons::MaterialIcons::ICON_MIN_MD, Icons::MaterialIcons::ICON_MAX_MD, 0};
-        io.Fonts->AddFontFromFileTTF(materialIconsPath, fontSize * r, &config, matIconRanges.data());
+        static const std::array<ImWchar, 3> matIconRanges = {
+            Icons::MaterialIcons::ICON_MIN_MD,
+            Icons::MaterialIcons::ICON_MAX_MD, 0};
+        io.Fonts->AddFontFromFileTTF(materialIconsPath, fontSize * r, &config,
+                                     matIconRanges.data());
 
         io.FontGlobalScale = scale;
     }
 
-    void setCursorPointer() {
-        currentCursorType = CursorType::pointer;
-    }
+    void setCursorPointer() { currentCursorType = CursorType::pointer; }
 
-    void setCursorMove() {
-        currentCursorType = CursorType::move;
-    }
+    void setCursorMove() { currentCursorType = CursorType::move; }
 
-    void setCursorNormal() {
-        currentCursorType = CursorType::normal;
-    }
+    void setCursorNormal() { currentCursorType = CursorType::normal; }
 
     void drawStats(const int fps) {
-        ImGui::Begin(std::format("{}  Stats", Icons::FontAwesomeIcons::FA_CHART_PIE).c_str());
+        ImGui::Begin(
+            std::format("{}  Stats", Icons::FontAwesomeIcons::FA_CHART_PIE)
+                .c_str());
         ImGui::Text("FPS: %d", fps);
         ImGuiIO &io = ImGui::GetIO();
-        ImGui::Text("DisplaySize: %.1f x %.1f", io.DisplaySize.x, io.DisplaySize.y);
-        ImGui::Text("FramebufferScale: %.2f x %.2f", io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
+        ImGui::Text("DisplaySize: %.1f x %.1f", io.DisplaySize.x,
+                    io.DisplaySize.y);
+        ImGui::Text("FramebufferScale: %.2f x %.2f",
+                    io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
         ImGui::End();
     }
 

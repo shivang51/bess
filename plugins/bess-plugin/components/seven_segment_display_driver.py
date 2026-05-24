@@ -1,11 +1,9 @@
 from bessplug.api.common.time import TimeNS
 from bessplug.api.sim_engine import (
-    ComponentDefinition,
-    ComponentState,
     LogicState,
-    PinState,
     SlotsGroupInfo,
 )
+from bessplug.api.sim_engine.driver import DigCompDef, DigCompSimData
 
 _digit_to_seg_map = {
     0: 0b0111111,
@@ -27,41 +25,36 @@ _digit_to_seg_map = {
 }
 
 
-def _simulate_seven_seg_disp_driver(
-    inputs: list[PinState], simTime: float, oldState: ComponentState
-) -> ComponentState:
-    new_state = oldState.copy()
-    new_state.input_states = inputs.copy()
-    connected: bool = any(oldState.input_connected)
-    decoded = -1
+def _simulate_seven_seg_disp_driver(data: DigCompSimData) -> DigCompSimData:
+    decoded = 0
 
-    if connected:
-        decoded = 0
-        for i in range(len(inputs)):
-            if inputs[i].state == LogicState.HIGH:
-                decoded |= 1 << i
+    for i in range(len(data.input_states)):
+        if data.input_states[i].state == LogicState.HIGH:
+            decoded |= 1 << i
 
     seg_bits = _digit_to_seg_map.get(decoded, 0b0000000)
 
     changed = False
-    for i in range(len(new_state.output_states)):
+    for i in range(len(data.output_states)):
         if (seg_bits & (1 << i)) != 0:
-            new_state.output_states[i].state = LogicState.HIGH
+            data.output_states[i].state = LogicState.HIGH
         else:
-            new_state.output_states[i].state = LogicState.LOW
+            data.output_states[i].state = LogicState.LOW
 
         this_changed = (
-            new_state.output_states[i].state != oldState.output_states[i].state
+            data.output_states[i].state != data.prev_state.output_states[i].state
         )
 
         if this_changed:
-            new_state.output_states[i].last_change_time_ns = simTime
+            data.output_states[i].last_change_time_ns = data.sim_time
 
         changed = changed or this_changed
 
-    new_state.is_changed = changed
+    data.sim_dependants = changed
 
-    return new_state
+    print(data.sim_dependants)
+
+    return data
 
 
 input_slots = SlotsGroupInfo()
@@ -71,12 +64,12 @@ output_slots = SlotsGroupInfo()
 output_slots.count = 7
 output_slots.names = ["a", "b", "c", "d", "e", "f", "g"]
 
-seven_seg_disp_driver_def = ComponentDefinition.from_sim_fn(
+seven_seg_disp_driver_def = DigCompDef.from_sim_fn(
     name="Seven Segment Display Driver",
     group_name="IO",
     inputs=input_slots,
     outputs=output_slots,
-    sim_delay=TimeNS(2),
+    prop_delay=TimeNS(2),
     sim_function=_simulate_seven_seg_disp_driver,
 )
 __all__ = ["seven_seg_disp_driver_def"]

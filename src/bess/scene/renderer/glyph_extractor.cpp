@@ -30,7 +30,8 @@ namespace Bess::Renderer::Font {
             return 0;
         }
 
-        static int ConicCb(const FT_Vector *control, const FT_Vector *to, void *user) {
+        static int ConicCb(const FT_Vector *control, const FT_Vector *to,
+                           void *user) {
             auto *self = static_cast<OutlineCollector *>(user);
             Path::PathCommand cmd;
             cmd.kind = Path::PathCommand::Kind::Quad;
@@ -40,7 +41,8 @@ namespace Bess::Renderer::Font {
             return 0;
         }
 
-        static int CubicCb(const FT_Vector *c1, const FT_Vector *c2, const FT_Vector *to, void *user) {
+        static int CubicCb(const FT_Vector *c1, const FT_Vector *c2,
+                           const FT_Vector *to, void *user) {
             auto *self = static_cast<OutlineCollector *>(user);
             Path::PathCommand cmd;
             cmd.kind = Path::PathCommand::Kind::Cubic;
@@ -57,7 +59,8 @@ namespace Bess::Renderer::Font {
         &GlyphExtractor::OutlineCollector::LineCb,
         &GlyphExtractor::OutlineCollector::ConicCb,
         &GlyphExtractor::OutlineCollector::CubicCb,
-        0, 0};
+        0,
+        0};
 
     int GlyphExtractor::s_instCount = 0;
     FT_Library GlyphExtractor::s_ftLibrary = nullptr;
@@ -94,7 +97,8 @@ namespace Bess::Renderer::Font {
         } else {
             for (int i = 0; i < m_face->num_charmaps; ++i) {
                 FT_CharMap cmap = m_face->charmaps[i];
-                if (cmap->platform_id == 3 && cmap->encoding_id == 0) { // Symbol
+                if (cmap->platform_id == 3 &&
+                    cmap->encoding_id == 0) { // Symbol
                     FT_Set_Charmap(m_face, cmap);
                     setCharmapOk = true;
                     break;
@@ -103,7 +107,8 @@ namespace Bess::Renderer::Font {
         }
 
         if (setCharmapOk) {
-            BESS_INFO("[GlyphExtractor] Found unicodes in font file {}", fontPath);
+            BESS_INFO("[GlyphExtractor] Found unicodes in font file {}",
+                      fontPath);
         }
 
         BESS_INFO("[GlyphExtractor] Found {} glyphs", getGlyphsCount());
@@ -128,18 +133,22 @@ namespace Bess::Renderer::Font {
         return FT_Set_Pixel_Sizes(m_face, 0, pixelHeight) == 0;
     }
 
-    bool GlyphExtractor::extractGlyph(const char *codepoint, Glyph &out, bool yDown) {
+    bool GlyphExtractor::extractGlyph(const char *codepoint, Glyph &out,
+                                      bool yDown) {
         int bytesConsumed = 0;
-        return extractGlyph(decodeSingleUTF8(codepoint, bytesConsumed), out, yDown);
+        return extractGlyph(decodeSingleUTF8(codepoint, bytesConsumed), out,
+                            yDown);
     }
 
-    bool GlyphExtractor::extractGlyph(char32_t codepoint, Glyph &out, bool yDown) {
+    bool GlyphExtractor::extractGlyph(char32_t codepoint, Glyph &out,
+                                      bool yDown) {
         if (!m_face)
             return false;
 
         unsigned glyphIndex = FT_Get_Char_Index(m_face, codepoint);
         if (!glyphIndex) {
-            BESS_WARN("[GlyphExtractor] Glyph index was not found for {}", (size_t)codepoint);
+            BESS_WARN("[GlyphExtractor] Glyph index was not found for {}",
+                      (size_t)codepoint);
             return false;
         }
 
@@ -192,7 +201,8 @@ namespace Bess::Renderer::Font {
         return count;
     }
 
-    uint32_t GlyphExtractor::decodeSingleUTF8(const char *ptr, int &out_bytes_consumed) {
+    uint32_t GlyphExtractor::decodeSingleUTF8(const char *ptr,
+                                              int &out_bytes_consumed) {
         unsigned char c = static_cast<unsigned char>(*ptr);
 
         // 1-byte (0xxxxxxx) - Standard ASCII

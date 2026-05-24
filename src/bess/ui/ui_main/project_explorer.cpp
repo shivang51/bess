@@ -29,14 +29,15 @@ namespace Bess::UI {
     }
 
     namespace {
-        bool matchesProjectExplorerIoFilter(const std::shared_ptr<Canvas::SceneComponent> &comp,
-                                            bool filterInputs,
-                                            bool filterOutputs) {
+        bool matchesProjectExplorerIoFilter(
+            const std::shared_ptr<Canvas::SceneComponent> &comp,
+            bool filterInputs, bool filterOutputs) {
             if (!filterInputs && !filterOutputs) {
                 return true;
             }
 
-            const auto simComp = comp ? comp->cast<Canvas::SimulationSceneComponent>() : nullptr;
+            const auto simComp =
+                comp ? comp->cast<Canvas::SimulationSceneComponent>() : nullptr;
             if (!simComp) {
                 return false;
             }
@@ -47,27 +48,46 @@ namespace Bess::UI {
             }
 
             auto &simEngine = SimEngine::SimulationEngine::instance();
-            if (!simEngine.getSimEngineState().isComponentValid(simId)) {
+            if (!simEngine.getComponent<SimEngine::Drivers::SimComponent>(
+                    simId)) {
                 return false;
             }
 
-            const auto &definition = simEngine.getComponentDefinition(simId);
+            const auto &def = simEngine.getComponentDefinition(simId);
+
+            const auto &definition = std::dynamic_pointer_cast<
+                SimEngine::Drivers::Digital::DigCompDef>(def);
+
             const auto behaviorType = definition->getBehaviorType();
-            const bool isInput = behaviorType == SimEngine::ComponentBehaviorType::input;
-            const bool isOutput = behaviorType == SimEngine::ComponentBehaviorType::output;
+            const bool isInput =
+                behaviorType == SimEngine::ComponentBehaviorType::input;
+            const bool isOutput =
+                behaviorType == SimEngine::ComponentBehaviorType::output;
 
             return (filterInputs && isInput) || (filterOutputs && isOutput);
         }
     } // namespace
 
     bool ProjectExplorer::shouldDisplayEntity(const UUID &entityId) const {
-        auto &sceneState = Pages::MainPage::getInstance()->getState().getSceneDriver()->getState();
+
+        const auto &driver =
+            Pages::MainPage::getInstance()->getState().getSceneDriver();
+
+        if (driver.getIsPaused()) {
+            return false;
+        }
+
+        auto &sceneState = Pages::MainPage::getInstance()
+                               ->getState()
+                               .getSceneDriver()
+                               ->getState();
         const auto comp = sceneState.getComponentByUuid(entityId);
         if (!comp) {
             return false;
         }
 
-        const bool passesIoFilter = matchesProjectExplorerIoFilter(comp, m_filterInputs, m_filterOutputs);
+        const bool passesIoFilter = matchesProjectExplorerIoFilter(
+            comp, m_filterInputs, m_filterOutputs);
 
         bool passesSearch = m_searchQuery.empty();
         if (!passesSearch) {
@@ -89,13 +109,14 @@ namespace Bess::UI {
         return false;
     }
 
-    template <typename Func>
-    void HandleNodeDropTarget(Func op) {
+    template <typename Func> void HandleNodeDropTarget(Func op) {
         if (ImGui::BeginDragDropTarget()) {
-            if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("TREE_NODE_PAYLOAD")) {
+            if (const ImGuiPayload *payload =
+                    ImGui::AcceptDragDropPayload("TREE_NODE_PAYLOAD")) {
                 const auto dataPtr = (uint64_t *)payload->Data;
                 const auto size = (payload->DataSize / sizeof(uint64_t));
-                const auto draggedNodeIDs = std::vector<uint64_t>(dataPtr, dataPtr + size);
+                const auto draggedNodeIDs =
+                    std::vector<uint64_t>(dataPtr, dataPtr + size);
                 for (const auto &id : draggedNodeIDs) {
                     op(id);
                 }
@@ -108,15 +129,16 @@ namespace Bess::UI {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 2.f));
     }
 
-    void ProjectExplorer::onAfterDraw() {
-        ImGui::PopStyleVar();
-    }
+    void ProjectExplorer::onAfterDraw() { ImGui::PopStyleVar(); }
 
     void ProjectExplorer::onDraw() {
-        const ImColor &itemAltBg = ImGui::GetStyle().Colors[ImGuiCol_TableRowBgAlt];
+        const ImColor &itemAltBg =
+            ImGui::GetStyle().Colors[ImGuiCol_TableRowBgAlt];
         const auto &style = ImGui::GetStyle();
 
-        auto &sceneState = Pages::MainPage::getInstance()->getState().getSceneDriver()->getState();
+        const auto &driver =
+            Pages::MainPage::getInstance()->getState().getSceneDriver();
+        auto &sceneState = driver.getActiveScene()->getState();
 
         const auto size = sceneState.getRootComponents().size();
         const auto selSize = sceneState.getSelectedComponents().size();
@@ -137,8 +159,10 @@ namespace Bess::UI {
             constexpr auto filterTitle = Common::Helpers::concat(
                 Icons::FontAwesomeIcons::FA_FILTER, " Filters");
             if (ImGui::BeginMenu(filterTitle.data())) {
-                ImGui::Selectable("Inputs", &m_filterInputs, ImGuiSelectableFlags_DontClosePopups);
-                ImGui::Selectable("Outputs", &m_filterOutputs, ImGuiSelectableFlags_DontClosePopups);
+                ImGui::Selectable("Inputs", &m_filterInputs,
+                                  ImGuiSelectableFlags_DontClosePopups);
+                ImGui::Selectable("Outputs", &m_filterOutputs,
+                                  ImGuiSelectableFlags_DontClosePopups);
                 ImGui::EndMenu();
             }
             ImGui::EndPopup();
@@ -146,8 +170,10 @@ namespace Bess::UI {
         ImGui::PopStyleVar();
 
         const float footerHeight = ImGui::GetTextLineHeightWithSpacing() +
-                                   (style.ItemSpacing.y * 2) + style.WindowPadding.y;
-        if (ImGui::BeginChild("project_explorer_list", ImVec2(0.f, -footerHeight), false)) {
+                                   (style.ItemSpacing.y * 2) +
+                                   style.WindowPadding.y;
+        if (ImGui::BeginChild("project_explorer_list",
+                              ImVec2(0.f, -footerHeight), false)) {
             ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
 
@@ -162,7 +188,8 @@ namespace Bess::UI {
             float y = window->DC.CursorPos.y;
             ImVec2 bgStart, bgEnd;
 
-            if (m_nodesKeyCounter & 1) { // skipping if its not alternating color row
+            if (m_nodesKeyCounter &
+                1) { // skipping if its not alternating color row
                 y += height;
             }
 
@@ -177,17 +204,17 @@ namespace Bess::UI {
 
             const ImVec2 remainingSpace = ImGui::GetContentRegionAvail();
             if (remainingSpace.x > 0.f && remainingSpace.y > 0.f) {
-                if (ImGui::InvisibleButton("project_explorer_root_drop_target", remainingSpace)) {
+                if (ImGui::InvisibleButton("project_explorer_root_drop_target",
+                                           remainingSpace)) {
                     sceneState.clearSelectedComponents();
                 }
 
-                HandleNodeDropTarget([&](uint64_t id) {
-                    sceneState.detachChild(id);
-                });
+                HandleNodeDropTarget(
+                    [&](uint64_t id) { sceneState.detachChild(id); });
             }
             drawContextMenu();
-            ImGui::EndChild();
         }
+        ImGui::EndChild();
 
         ImGui::Spacing();
         ImGui::Separator();
@@ -215,9 +242,14 @@ namespace Bess::UI {
                 }
             } else {
                 if (ImGui::MenuItem("Create Empty Group", "Ctrl-G")) {
-                    const auto group = Canvas::GroupSceneComponent::create("New Group");
-                    auto cmd = std::make_unique<Cmd::AddCompCmd<Canvas::GroupSceneComponent>>(group);
-                    Pages::MainPage::getInstance()->getState().getCommandSystem().execute(std::move(cmd));
+                    const auto group =
+                        Canvas::GroupSceneComponent::create("New Group");
+                    auto cmd = std::make_unique<
+                        Cmd::AddCompCmd<Canvas::GroupSceneComponent>>(group);
+                    Pages::MainPage::getInstance()
+                        ->getState()
+                        .getCommandSystem()
+                        .execute(std::move(cmd));
                 }
             }
 
@@ -249,15 +281,19 @@ namespace Bess::UI {
             float y = pos.y;
             ImVec2 avail = ImGui::GetContentRegionAvail();
             ImVec2 bgStart(x, y);
-            ImVec2 bgEnd(x + window->Size.x, y + g.FontSize + (g.Style.FramePadding.y * 2));
-            drawList->AddRectFilled(bgStart, bgEnd, (ImColor)colors[ImGuiCol_TableRowBgAlt], 0);
+            ImVec2 bgEnd(x + window->Size.x,
+                         y + g.FontSize + (g.Style.FramePadding.y * 2));
+            drawList->AddRectFilled(bgStart, bgEnd,
+                                    (ImColor)colors[ImGuiCol_TableRowBgAlt], 0);
         }
 
-        const ImRect bb(pos, ImVec2(window->Pos.x + window->Size.x - g.Style.FramePadding.x,
-                                    pos.y + g.FontSize + (g.Style.FramePadding.y * 2)));
+        const ImRect bb(
+            pos, ImVec2(window->Pos.x + window->Size.x - g.Style.FramePadding.x,
+                        pos.y + g.FontSize + (g.Style.FramePadding.y * 2)));
 
         bool hovered = false, held = false;
-        const auto pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held, ImGuiButtonFlags_PressedOnClick);
+        const auto pressed = ImGui::ButtonBehavior(
+            bb, id, &hovered, &held, ImGuiButtonFlags_PressedOnClick);
 
         ImVec4 bgColor = ImVec4(0, 0, 0, 0);
         if (selected) {
@@ -271,7 +307,8 @@ namespace Bess::UI {
             float y = pos.y;
             ImVec2 avail = ImGui::GetContentRegionAvail();
             ImVec2 bgStart(x, y);
-            ImVec2 bgEnd(x + window->Size.x, y + g.FontSize + (g.Style.FramePadding.y * 2));
+            ImVec2 bgEnd(x + window->Size.x,
+                         y + g.FontSize + (g.Style.FramePadding.y * 2));
 
             bgColor.w = 200.f / 255.f;
             const auto color = ImGui::GetColorU32(bgColor);
@@ -284,7 +321,8 @@ namespace Bess::UI {
         textStart.y += g.Style.FramePadding.y;
         textStart.x += g.Style.FramePadding.x;
         drawList->AddText(textStart,
-                          IM_COL32(fgColor.x * 255, fgColor.y * 255, fgColor.z * 255, fgColor.w * 255),
+                          IM_COL32(fgColor.x * 255, fgColor.y * 255,
+                                   fgColor.z * 255, fgColor.w * 255),
                           label);
 
         ImGui::ItemSize(bb, g.Style.FramePadding.y * 2);
@@ -317,9 +355,13 @@ namespace Bess::UI {
         }
 
         auto &cmdSystem = mainPageState.getCommandSystem();
-        cmdSystem.execute(std::make_unique<Cmd::AddCompCmd<Canvas::GroupSceneComponent>>(groupComp));
+        cmdSystem.execute(
+            std::make_unique<Cmd::AddCompCmd<Canvas::GroupSceneComponent>>(
+                groupComp));
 
-        BESS_INFO("[ProjectExplorer] Grouped {} selected components into new group.", selComponents.size());
+        BESS_INFO(
+            "[ProjectExplorer] Grouped {} selected components into new group.",
+            selComponents.size());
     }
 
     void ProjectExplorer::groupOnNets() {
@@ -332,15 +374,19 @@ namespace Bess::UI {
         const auto &scene = mainPageState.getSceneDriver().getActiveScene();
 
         auto &netIdToNameMap = mainPageState.getNetIdToNameMap();
-        auto &netIdCompMap = mainPageState.getNetIdToCompMap(scene->getState().getSceneId());
+        auto &netIdCompMap =
+            mainPageState.getNetIdToCompMap(scene->getState().getSceneId());
 
         auto &sceneState = scene->getState();
-        std::unordered_map<UUID, std::shared_ptr<Canvas::SimulationSceneComponent>> simIdToComp;
+        std::unordered_map<UUID,
+                           std::shared_ptr<Canvas::SimulationSceneComponent>>
+            simIdToComp;
 
         for (const auto &[compId, comp] : sceneState.getAllComponents()) {
             if (comp->getType() == Canvas::SceneComponentType::simulation ||
                 comp->getType() == Canvas::SceneComponentType::module) {
-                const auto simComp = comp->cast<Canvas::SimulationSceneComponent>();
+                const auto simComp =
+                    comp->cast<Canvas::SimulationSceneComponent>();
                 simIdToComp[simComp->getSimEngineId()] = simComp;
             }
         }
@@ -354,7 +400,8 @@ namespace Bess::UI {
                     netIdCompMap[netId].emplace_back(comp->getUuid());
                     comp->setNetId(netId);
                 } else {
-                    BESS_WARN("[ProjectExplorer] Simulation component with simId {} not found in scene for net grouping.",
+                    BESS_WARN("[ProjectExplorer] Simulation component with "
+                              "simId {} not found in scene for net grouping.",
                               (uint64_t)simId);
                 }
             }
@@ -363,7 +410,8 @@ namespace Bess::UI {
         // Use groups which get empty instead of creating new ones
         std::vector<UUID> emptyGroups;
 
-        auto &cmdSystem = Pages::MainPage::getInstance()->getState().getCommandSystem();
+        auto &cmdSystem =
+            Pages::MainPage::getInstance()->getState().getCommandSystem();
 
         int i = 1;
         // move nodes to new groups and ones which get empty
@@ -372,18 +420,24 @@ namespace Bess::UI {
             const bool newGroup = emptyGroups.empty();
 
             if (emptyGroups.empty()) {
-                group = Canvas::GroupSceneComponent::create("Net " + std::to_string(i++));
+                group = Canvas::GroupSceneComponent::create(
+                    "Net " + std::to_string(i++));
             } else {
-                group = sceneState.getComponentByUuid<Canvas::GroupSceneComponent>(emptyGroups.back());
+                group =
+                    sceneState.getComponentByUuid<Canvas::GroupSceneComponent>(
+                        emptyGroups.back());
                 emptyGroups.pop_back();
                 group->setName("Net " + std::to_string(i++));
             }
 
             for (const auto &compId : components) {
                 group->addChildComponent(compId);
-                auto prevParent = sceneState.getComponentByUuid(compId)->getParentComponent();
-                if (prevParent != UUID::null && sceneState.isComponentValid(prevParent)) {
-                    auto prevParentComp = sceneState.getComponentByUuid(prevParent);
+                auto prevParent =
+                    sceneState.getComponentByUuid(compId)->getParentComponent();
+                if (prevParent != UUID::null &&
+                    sceneState.isComponentValid(prevParent)) {
+                    auto prevParentComp =
+                        sceneState.getComponentByUuid(prevParent);
                     prevParentComp->removeChildComponent(compId);
                     if (prevParentComp->getChildComponents().empty()) {
                         emptyGroups.emplace_back(prevParent);
@@ -394,24 +448,33 @@ namespace Bess::UI {
             netIdToNameMap[netId] = &group->getName();
 
             if (newGroup) {
-                cmdSystem.execute(std::make_unique<Cmd::AddCompCmd<Canvas::GroupSceneComponent>>(group));
+                cmdSystem.execute(
+                    std::make_unique<
+                        Cmd::AddCompCmd<Canvas::GroupSceneComponent>>(group));
             }
         }
 
         if (!emptyGroups.empty()) {
-            cmdSystem.execute(std::make_unique<Cmd::DeleteCompCmd>(emptyGroups));
+            cmdSystem.execute(
+                std::make_unique<Cmd::DeleteCompCmd>(emptyGroups));
         }
-        BESS_INFO("[ProjectExplorer] Grouped components on nets: created {} groups.", netIdCompMap.size());
+        BESS_INFO(
+            "[ProjectExplorer] Grouped components on nets: created {} groups.",
+            netIdCompMap.size());
     }
 
-    size_t ProjectExplorer::drawEntites(const std::unordered_set<UUID> &entities) {
+    size_t
+    ProjectExplorer::drawEntites(const std::unordered_set<UUID> &entities) {
         constexpr auto groupIcon = Icons::FontAwesomeIcons::FA_FOLDER;
         constexpr auto groupOpenIcon = Icons::FontAwesomeIcons::FA_FOLDER_OPEN;
         constexpr auto nodePopupName = "node_popup";
-        constexpr auto treeFlags = ImGuiTreeNodeFlags_DefaultOpen |
-                                   ImGuiTreeNodeFlags_DrawLinesFull;
+        constexpr auto treeFlags =
+            ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_DrawLinesFull;
 
-        auto &sceneState = Pages::MainPage::getInstance()->getState().getSceneDriver()->getState();
+        auto &sceneState = Pages::MainPage::getInstance()
+                               ->getState()
+                               .getSceneDriver()
+                               ->getState();
         const auto selSize = sceneState.getSelectedComponents().size();
 
         size_t count = 0;
@@ -424,12 +487,13 @@ namespace Bess::UI {
             }
 
             const auto &comp = sceneState.getComponentByUuid(compId);
-            const auto type = comp->getType();
-            if (!((int8_t)type &
-                  (int8_t)Canvas::SceneComponentTypeFlag::showInProjectExplorer))
+            if (!comp)
                 continue;
 
-            if (!comp)
+            const auto type = comp->getType();
+            if (!((int8_t)type &
+                  (int8_t)
+                      Canvas::SceneComponentTypeFlag::showInProjectExplorer))
                 continue;
 
             bool clicked = false;
@@ -440,31 +504,29 @@ namespace Bess::UI {
                 ImGui::PushID((int)key);
 
                 const auto &win = ImGui::GetCurrentWindow();
-                const auto &storage = ImGui::GetCurrentWindow()->DC.StateStorage;
+                const auto &storage =
+                    ImGui::GetCurrentWindow()->DC.StateStorage;
                 const ImGuiID openId = win->GetID("open");
                 bool opened = storage->GetInt(openId, 1) != 0;
                 ImGui::PopID();
 
                 const auto icon = opened ? groupOpenIcon : groupIcon;
 
-                const auto ret = Widgets::EditableTreeNode(key,
-                                                           comp->getName(),
-                                                           comp->getIsSelected(),
-                                                           treeFlags,
-                                                           icon,
-                                                           ViewportTheme::colors.groupColor,
-                                                           nodePopupName,
-                                                           comp->getUuid());
+                const auto ret = Widgets::EditableTreeNode(
+                    key, comp->getName(), comp->getIsSelected(), treeFlags,
+                    icon, ViewportTheme::colors.groupColor, nodePopupName,
+                    comp->getUuid());
 
                 count++;
                 opened = ret.first;
                 clicked = ret.second;
 
-                HandleNodeDropTarget([&](uint64_t id) { //\n (just for formatting)
-                    pendingMoves.emplace_back(id,
-                                              compId //\n
-                    );
-                });
+                HandleNodeDropTarget(
+                    [&](uint64_t id) { //\n (just for formatting)
+                        pendingMoves.emplace_back(id,
+                                                  compId //\n
+                        );
+                    });
 
                 if (opened) {
                     count += drawEntites(comp->getChildComponents());
@@ -472,26 +534,28 @@ namespace Bess::UI {
                 }
 
             } else {
-                const bool isModule = comp->getType() == Canvas::SceneComponentType::module;
+                const bool isModule =
+                    comp->getType() == Canvas::SceneComponentType::module;
                 const bool isAtRoot = comp->getParentComponent() == UUID::null;
                 std::string name;
                 if (isAtRoot) {
-                    name = std::format(" {}   {}", comp->getIcon(), comp->getName());
+                    name = std::format(" {}   {}", comp->getIcon(),
+                                       comp->getName());
                 } else {
-                    name = std::format("  {} {}", comp->getIcon(), comp->getName());
+                    name = std::format("  {} {}", comp->getIcon(),
+                                       comp->getName());
                 }
 
                 if (isModule) {
                     const auto &moduleColor = ViewportTheme::colors.moduleColor;
                     ImGui::PushStyleColor(ImGuiCol_Text,
-                                          ImVec4(moduleColor.x, moduleColor.y, moduleColor.z, moduleColor.w));
+                                          ImVec4(moduleColor.x, moduleColor.y,
+                                                 moduleColor.z, moduleColor.w));
                 }
 
-                const auto &pressed = drawLeafNode(m_nodesKeyCounter++,
-                                                   compId,
-                                                   name.c_str(),
-                                                   comp->getIsSelected(),
-                                                   selSize > 1);
+                const auto &pressed =
+                    drawLeafNode(m_nodesKeyCounter++, compId, name.c_str(),
+                                 comp->getIsSelected(), selSize > 1);
                 if (isModule) {
                     ImGui::PopStyleColor();
                 }
@@ -500,14 +564,17 @@ namespace Bess::UI {
                 clicked = pressed;
                 if (ImGui::BeginDragDropSource()) {
                     std::vector<uint64_t> payloadData;
-                    for (auto &selId : sceneState.getSelectedComponents() | std::views::keys) {
-                        const auto selectedComp = sceneState.getComponentByUuid(selId);
+                    for (auto &selId : sceneState.getSelectedComponents() |
+                                           std::views::keys) {
+                        const auto selectedComp =
+                            sceneState.getComponentByUuid(selId);
                         if (selectedComp) {
                             payloadData.emplace_back(selId);
                         }
                     }
-                    ImGui::SetDragDropPayload("TREE_NODE_PAYLOAD", payloadData.data(),
-                                              payloadData.size() * sizeof(uint64_t));
+                    ImGui::SetDragDropPayload(
+                        "TREE_NODE_PAYLOAD", payloadData.data(),
+                        payloadData.size() * sizeof(uint64_t));
                     ImGui::Text("Dragging %lu nodes", payloadData.size());
                     ImGui::EndDragDropSource();
                 }
@@ -538,7 +605,8 @@ namespace Bess::UI {
                     }
                     m_lastSelectedIndex = currentIndex;
                 } else {
-                    // selects the clicked component and deselects all other components
+                    // selects the clicked component and deselects all other
+                    // components
                     sceneState.clearSelectedComponents();
                     sceneState.addSelectedComponent(compId);
                     m_lastSelectedIndex = currentIndex;

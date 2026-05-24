@@ -7,27 +7,32 @@ namespace Bess::Canvas {
     constexpr size_t maxFrames = Bess::Vulkan::VulkanCore::MAX_FRAMES_IN_FLIGHT;
 
     Viewport::Viewport(const std::shared_ptr<Vulkan::VulkanDevice> &device,
-                       VkFormat imgFormat,
-                       VkExtent2D size)
-        : m_device(device), m_imgFormat(imgFormat), m_size(size) {
+                       VkFormat imgFormat, VkExtent2D size)
+        : m_device(device),
+          m_imgFormat(imgFormat),
+          m_size(size) {
 
-        m_cmdBuffers = std::make_unique<Vulkan::VulkanCommandBuffers>(m_device, maxFrames);
+        m_cmdBuffers =
+            std::make_unique<Vulkan::VulkanCommandBuffers>(m_device, maxFrames);
 
-        m_renderPass = std::make_shared<Vulkan::VulkanOffscreenRenderPass>(m_device, m_imgFormat, m_pickingIdFormat);
+        m_renderPass = std::make_shared<Vulkan::VulkanOffscreenRenderPass>(
+            m_device, m_imgFormat, m_pickingIdFormat);
 
-        m_imgView = std::make_unique<Vulkan::VulkanImageView>(m_device, m_imgFormat, m_pickingIdFormat, size);
+        m_imgView = std::make_unique<Vulkan::VulkanImageView>(
+            m_device, m_imgFormat, m_pickingIdFormat, size);
         m_imgView->createFramebuffer(m_renderPass->getVkHandle());
 
         // Create straight color image for post-processing
-        m_straightColorImageView = std::make_unique<Vulkan::VulkanImageView>(m_device,
-                                                                             m_imgFormat,
-                                                                             size,
-                                                                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                                                                                 VK_IMAGE_USAGE_SAMPLED_BIT);
+        m_straightColorImageView = std::make_unique<Vulkan::VulkanImageView>(
+            m_device, m_imgFormat, size,
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 
         // Create post-processing pipeline
-        m_postprocessPipeline = std::make_unique<Vulkan::VulkanPostprocessPipeline>(m_device, m_imgFormat);
-        m_postprocessPipeline->createDescriptorSet(m_imgView->getImageView(), m_imgView->getSampler());
+        m_postprocessPipeline =
+            std::make_unique<Vulkan::VulkanPostprocessPipeline>(m_device,
+                                                                m_imgFormat);
+        m_postprocessPipeline->createDescriptorSet(m_imgView->getImageView(),
+                                                   m_imgView->getSampler());
         initPostprocessResources();
 
         createPickingResources();
@@ -36,15 +41,15 @@ namespace Bess::Canvas {
         m_mousePickingData = {};
         m_mousePickingData.ids = {glm::uvec2(0, 0)};
 
-        m_renderers.pathRenderer = std::make_shared<Renderer::PathRenderer>(device,
-                                                                            m_renderPass,
-                                                                            size);
-        m_renderers.materialRenderer = std::make_shared<Renderer::MaterialRenderer>(device,
-                                                                                    m_renderPass,
-                                                                                    size);
+        m_renderers.pathRenderer = std::make_shared<Renderer::PathRenderer>(
+            device, m_renderPass, size);
+        m_renderers.materialRenderer =
+            std::make_shared<Renderer::MaterialRenderer>(device, m_renderPass,
+                                                         size);
 
         auto cmd = m_device->beginSingleTimeCommands();
-        transitionImageLayout(cmd, m_imgView->getImage(), m_imgView->getFormat(), VK_IMAGE_LAYOUT_UNDEFINED,
+        transitionImageLayout(cmd, m_imgView->getImage(),
+                              m_imgView->getFormat(), VK_IMAGE_LAYOUT_UNDEFINED,
                               VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
         m_device->endSingleTimeCommands(cmd);
     }
@@ -64,16 +69,19 @@ namespace Bess::Canvas {
         m_cmdBuffers.reset();
     }
 
-    void Viewport::begin(int frameIdx, const glm::vec4 &clearColor, const glm::uvec2 &clearPickingId) {
+    void Viewport::begin(int frameIdx, const glm::vec4 &clearColor,
+                         const glm::uvec2 &clearPickingId) {
         m_currentFrameIdx = frameIdx;
 
-        vkWaitForFences(m_device->device(), 1, &m_fences[frameIdx], VK_TRUE, UINT64_MAX);
+        vkWaitForFences(m_device->device(), 1, &m_fences[frameIdx], VK_TRUE,
+                        UINT64_MAX);
         m_cmdBuffers->at(frameIdx)->beginRecording();
         vkResetFences(m_device->device(), 1, &m_fences[frameIdx]);
 
         const auto cmdBuffer = m_cmdBuffers->at(frameIdx)->getVkHandle();
 
-        m_renderPass->begin(cmdBuffer, m_imgView->getFramebuffer(), m_size, clearColor, clearPickingId);
+        m_renderPass->begin(cmdBuffer, m_imgView->getFramebuffer(), m_size,
+                            clearColor, clearPickingId);
         m_renderers.begin(cmdBuffer, m_camera, frameIdx);
     }
 
@@ -84,7 +92,8 @@ namespace Bess::Canvas {
         if (m_mousePickingData.queued && !m_pickingCopyInFlight)
             copyIdForPicking();
 
-        performPostProcessing(m_cmdBuffers->at(m_currentFrameIdx)->getVkHandle());
+        performPostProcessing(
+            m_cmdBuffers->at(m_currentFrameIdx)->getVkHandle());
 
         m_cmdBuffers->at(m_currentFrameIdx)->endRecording();
 
@@ -92,7 +101,9 @@ namespace Bess::Canvas {
     }
 
     void Viewport::submit() {
-        m_device->submitCmdBuffers({m_cmdBuffers->at(m_currentFrameIdx)->getVkHandle()}, m_fences[m_currentFrameIdx]);
+        m_device->submitCmdBuffers(
+            {m_cmdBuffers->at(m_currentFrameIdx)->getVkHandle()},
+            m_fences[m_currentFrameIdx]);
     }
 
     void Viewport::resize(VkExtent2D size) {
@@ -101,8 +112,10 @@ namespace Bess::Canvas {
         m_imgView->recreate(m_size, m_renderPass->getVkHandle());
         m_straightColorImageView->recreate(m_size, VK_NULL_HANDLE);
         // Update descriptor for new image view (safe, not in-flight here)
-        m_postprocessPipeline->updateDescriptorSet(m_imgView->getImageView(), m_imgView->getSampler());
-        // Recreate postprocess framebuffer since it references straightColor image view
+        m_postprocessPipeline->updateDescriptorSet(m_imgView->getImageView(),
+                                                   m_imgView->getSampler());
+        // Recreate postprocess framebuffer since it references straightColor
+        // image view
         if (m_postprocessFramebuffer != VK_NULL_HANDLE) {
             cleanupPostprocessResources();
         }
@@ -125,7 +138,8 @@ namespace Bess::Canvas {
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
         for (size_t i = 0; i < count; i++) {
-            if (vkCreateFence(m_device->device(), &fenceInfo, nullptr, &m_fences[i]) != VK_SUCCESS) {
+            if (vkCreateFence(m_device->device(), &fenceInfo, nullptr,
+                              &m_fences[i]) != VK_SUCCESS) {
                 throw std::runtime_error("Failed to create in flight fence!");
             }
         }
@@ -143,7 +157,8 @@ namespace Bess::Canvas {
         return (uint64_t)m_straightColorImageView->getDescriptorSet();
     }
 
-    void Viewport::setPickingCoord(uint32_t x, uint32_t y, uint32_t w, uint32_t h) {
+    void Viewport::setPickingCoord(uint32_t x, uint32_t y, uint32_t w,
+                                   uint32_t h) {
         m_mousePickingData.queuedStartPos = {x, y};
         m_mousePickingData.queuedExtent = {std::max(w, 1u), std::max(h, 1u)};
         m_mousePickingData.queued = true;
@@ -162,15 +177,12 @@ namespace Bess::Canvas {
         if (vkGetFenceStatus(m_device->device(), fence) != VK_SUCCESS)
             return false;
 
-        auto count = m_mousePickingData.inFlightExtent.width * m_mousePickingData.inFlightExtent.height;
+        auto count = m_mousePickingData.inFlightExtent.width *
+                     m_mousePickingData.inFlightExtent.height;
         count = std::max(count, (uint32_t)1);
         void *data = nullptr;
-        vkMapMemory(m_device->device(),
-                    m_pickingStagingBufferMemory,
-                    0,
-                    sizeof(glm::uvec2) * count,
-                    0,
-                    &data);
+        vkMapMemory(m_device->device(), m_pickingStagingBufferMemory, 0,
+                    sizeof(glm::uvec2) * count, 0, &data);
 
         auto &ids = m_mousePickingData.ids;
         ids.clear();
@@ -187,11 +199,13 @@ namespace Bess::Canvas {
             return true;
 
         VkFence fence = m_fences[m_pickingCopyRecordedFrameIdx];
-        const VkResult res = vkWaitForFences(m_device->device(), 1, &fence, VK_TRUE, timeoutNs);
+        const VkResult res =
+            vkWaitForFences(m_device->device(), 1, &fence, VK_TRUE, timeoutNs);
         if (res != VK_SUCCESS)
             return false;
 
-        auto count = m_mousePickingData.inFlightExtent.width * m_mousePickingData.inFlightExtent.height;
+        auto count = m_mousePickingData.inFlightExtent.width *
+                     m_mousePickingData.inFlightExtent.height;
         count = std::max(count, (uint32_t)1);
         void *data = nullptr;
         vkMapMemory(m_device->device(), m_pickingStagingBufferMemory, 0,
@@ -214,36 +228,46 @@ namespace Bess::Canvas {
         bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
         bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-        if (vkCreateBuffer(m_device->device(), &bufferInfo, nullptr, &m_pickingStagingBuffer) != VK_SUCCESS) {
+        if (vkCreateBuffer(m_device->device(), &bufferInfo, nullptr,
+                           &m_pickingStagingBuffer) != VK_SUCCESS) {
             BESS_ERROR("Failed to create picking staging buffer");
             return;
         }
 
         VkMemoryRequirements memRequirements;
-        vkGetBufferMemoryRequirements(m_device->device(), m_pickingStagingBuffer, &memRequirements);
+        vkGetBufferMemoryRequirements(m_device->device(),
+                                      m_pickingStagingBuffer, &memRequirements);
 
         VkMemoryAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = m_device->findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        allocInfo.memoryTypeIndex =
+            m_device->findMemoryType(memRequirements.memoryTypeBits,
+                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-        if (vkAllocateMemory(m_device->device(), &allocInfo, nullptr, &m_pickingStagingBufferMemory) != VK_SUCCESS) {
+        if (vkAllocateMemory(m_device->device(), &allocInfo, nullptr,
+                             &m_pickingStagingBufferMemory) != VK_SUCCESS) {
             BESS_ERROR("Failed to allocate picking staging buffer memory");
-            vkDestroyBuffer(m_device->device(), m_pickingStagingBuffer, nullptr);
+            vkDestroyBuffer(m_device->device(), m_pickingStagingBuffer,
+                            nullptr);
             return;
         }
 
-        vkBindBufferMemory(m_device->device(), m_pickingStagingBuffer, m_pickingStagingBufferMemory, 0);
+        vkBindBufferMemory(m_device->device(), m_pickingStagingBuffer,
+                           m_pickingStagingBufferMemory, 0);
     }
 
     void Viewport::cleanupPickingResources() {
         if (m_pickingStagingBuffer != VK_NULL_HANDLE) {
-            vkDestroyBuffer(m_device->device(), m_pickingStagingBuffer, nullptr);
+            vkDestroyBuffer(m_device->device(), m_pickingStagingBuffer,
+                            nullptr);
             m_pickingStagingBuffer = VK_NULL_HANDLE;
         }
 
         if (m_pickingStagingBufferMemory != VK_NULL_HANDLE) {
-            vkFreeMemory(m_device->device(), m_pickingStagingBufferMemory, nullptr);
+            vkFreeMemory(m_device->device(), m_pickingStagingBufferMemory,
+                         nullptr);
             m_pickingStagingBufferMemory = VK_NULL_HANDLE;
         }
 
@@ -263,8 +287,10 @@ namespace Bess::Canvas {
     }
 
     void Viewport::copyIdForPicking() {
-        const VkCommandBuffer cmd = m_cmdBuffers->at(m_currentFrameIdx)->getVkHandle();
-        const VkImage idImage = m_imgView->getPickingImage(); // resolve single-sample image
+        const VkCommandBuffer cmd =
+            m_cmdBuffers->at(m_currentFrameIdx)->getVkHandle();
+        const VkImage idImage =
+            m_imgView->getPickingImage(); // resolve single-sample image
         if (idImage != VK_NULL_HANDLE) {
             if (m_pickingStagingBuffer == VK_NULL_HANDLE) {
                 createPickingResources();
@@ -287,17 +313,25 @@ namespace Bess::Canvas {
 
             vkCmdPipelineBarrier(cmd,
                                  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                                 VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                 0, 0, nullptr, 0, nullptr, 1, &barrier);
+                                 VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr,
+                                 0, nullptr, 1, &barrier);
 
             VkExtent2D extent = m_imgView->getExtent();
-            const int32_t px = std::max(0, std::min<int32_t>((int32_t)m_mousePickingData.queuedStartPos.width, (int32_t)extent.width - 1));
-            const int32_t py = std::max(0, std::min<int32_t>((int32_t)m_mousePickingData.queuedStartPos.height, (int32_t)extent.height - 1));
+            const int32_t px = std::max(
+                0, std::min<int32_t>(
+                       (int32_t)m_mousePickingData.queuedStartPos.width,
+                       (int32_t)extent.width - 1));
+            const int32_t py = std::max(
+                0, std::min<int32_t>(
+                       (int32_t)m_mousePickingData.queuedStartPos.height,
+                       (int32_t)extent.height - 1));
 
             const uint32_t maxWidth = extent.width - (uint32_t)px;
             const uint32_t maxHeight = extent.height - (uint32_t)py;
-            const uint32_t ex = std::max<uint32_t>(1, std::min(m_mousePickingData.queuedExtent.width, maxWidth));
-            const uint32_t ey = std::max<uint32_t>(1, std::min(m_mousePickingData.queuedExtent.height, maxHeight));
+            const uint32_t ex = std::max<uint32_t>(
+                1, std::min(m_mousePickingData.queuedExtent.width, maxWidth));
+            const uint32_t ey = std::max<uint32_t>(
+                1, std::min(m_mousePickingData.queuedExtent.height, maxHeight));
 
             m_mousePickingData.inFlightStartPos.width = (uint32_t)px;
             m_mousePickingData.inFlightStartPos.height = (uint32_t)py;
@@ -316,7 +350,8 @@ namespace Bess::Canvas {
             copy.imageOffset = {px, py, 0};
             copy.imageExtent = {ex, ey, 1};
 
-            vkCmdCopyImageToBuffer(cmd, idImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            vkCmdCopyImageToBuffer(cmd, idImage,
+                                   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                                    m_pickingStagingBuffer, 1, &copy);
 
             // Transition image back for next frame
@@ -325,8 +360,7 @@ namespace Bess::Canvas {
             barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
             barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-            vkCmdPipelineBarrier(cmd,
-                                 VK_PIPELINE_STAGE_TRANSFER_BIT,
+            vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT,
                                  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                                  0, 0, nullptr, 0, nullptr, 1, &barrier);
 
@@ -341,13 +375,15 @@ namespace Bess::Canvas {
             return;
         }
 
-        if (m_pickingStagingBuffer != VK_NULL_HANDLE && newSize <= m_pickingStagingBufferSize) {
+        if (m_pickingStagingBuffer != VK_NULL_HANDLE &&
+            newSize <= m_pickingStagingBufferSize) {
             return;
         }
 
         if (m_pickingStagingBuffer != VK_NULL_HANDLE) {
             m_retiredPickingBuffers.push_back(m_pickingStagingBuffer);
-            m_retiredPickingBufferMemories.push_back(m_pickingStagingBufferMemory);
+            m_retiredPickingBufferMemories.push_back(
+                m_pickingStagingBufferMemory);
             m_pickingStagingBuffer = VK_NULL_HANDLE;
             m_pickingStagingBufferMemory = VK_NULL_HANDLE;
         }
@@ -358,29 +394,36 @@ namespace Bess::Canvas {
         bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
         bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-        if (vkCreateBuffer(m_device->device(), &bufferInfo, nullptr, &m_pickingStagingBuffer) != VK_SUCCESS) {
+        if (vkCreateBuffer(m_device->device(), &bufferInfo, nullptr,
+                           &m_pickingStagingBuffer) != VK_SUCCESS) {
             BESS_ERROR("[Viewport] Failed to create picking staging buffer");
             return;
         }
 
         VkMemoryRequirements memRequirements;
-        vkGetBufferMemoryRequirements(m_device->device(), m_pickingStagingBuffer, &memRequirements);
+        vkGetBufferMemoryRequirements(m_device->device(),
+                                      m_pickingStagingBuffer, &memRequirements);
 
         VkMemoryAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = m_device->findMemoryType(
-            memRequirements.memoryTypeBits,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        allocInfo.memoryTypeIndex =
+            m_device->findMemoryType(memRequirements.memoryTypeBits,
+                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-        if (vkAllocateMemory(m_device->device(), &allocInfo, nullptr, &m_pickingStagingBufferMemory) != VK_SUCCESS) {
-            BESS_ERROR("[Viewport] Failed to allocate picking staging buffer memory");
-            vkDestroyBuffer(m_device->device(), m_pickingStagingBuffer, nullptr);
+        if (vkAllocateMemory(m_device->device(), &allocInfo, nullptr,
+                             &m_pickingStagingBufferMemory) != VK_SUCCESS) {
+            BESS_ERROR(
+                "[Viewport] Failed to allocate picking staging buffer memory");
+            vkDestroyBuffer(m_device->device(), m_pickingStagingBuffer,
+                            nullptr);
             m_pickingStagingBuffer = VK_NULL_HANDLE;
             return;
         }
 
-        vkBindBufferMemory(m_device->device(), m_pickingStagingBuffer, m_pickingStagingBufferMemory, 0);
+        vkBindBufferMemory(m_device->device(), m_pickingStagingBuffer,
+                           m_pickingStagingBufferMemory, 0);
 
         m_pickingStagingBufferSize = newSize;
     }
@@ -389,11 +432,16 @@ namespace Bess::Canvas {
         VkDeviceSize byteSize = m_size.width * m_size.height * 4;
         VkBuffer stagingBuffer = VK_NULL_HANDLE;
         VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
-        createBuffer(byteSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        createBuffer(byteSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                      stagingBuffer, stagingMemory);
 
         VkCommandBuffer cmd = m_device->beginSingleTimeCommands();
-        transitionImageLayout(cmd, m_imgView->getImage(), m_imgView->getFormat(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+        transitionImageLayout(cmd, m_imgView->getImage(),
+                              m_imgView->getFormat(),
+                              VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                              VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
         VkBufferImageCopy region{};
         region.bufferOffset = 0;
@@ -405,9 +453,13 @@ namespace Bess::Canvas {
         region.imageSubresource.layerCount = 1;
         region.imageOffset = {0, 0, 0};
         region.imageExtent = {m_size.width, m_size.height, 1};
-        vkCmdCopyImageToBuffer(cmd, m_imgView->getImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, stagingBuffer, 1, &region);
+        vkCmdCopyImageToBuffer(cmd, m_imgView->getImage(),
+                               VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                               stagingBuffer, 1, &region);
 
-        transitionImageLayout(cmd, m_imgView->getImage(), m_imgFormat, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        transitionImageLayout(cmd, m_imgView->getImage(), m_imgFormat,
+                              VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                              VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         m_device->endSingleTimeCommands(cmd);
 
         std::vector<unsigned char> out(byteSize);
@@ -421,7 +473,10 @@ namespace Bess::Canvas {
         return out;
     }
 
-    void Viewport::transitionImageLayout(VkCommandBuffer cmd, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const {
+    void Viewport::transitionImageLayout(VkCommandBuffer cmd, VkImage image,
+                                         VkFormat format,
+                                         VkImageLayout oldLayout,
+                                         VkImageLayout newLayout) const {
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         barrier.oldLayout = oldLayout;
@@ -438,27 +493,32 @@ namespace Bess::Canvas {
         VkPipelineStageFlags srcStage{};
         VkPipelineStageFlags dstStage{};
 
-        if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+        if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
+            newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
             barrier.srcAccessMask = 0;
             barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
             srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-        } else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
+        } else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
+                   newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
             barrier.srcAccessMask = 0;
             barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
             srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             dstStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+        } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+                   newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
             barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
             barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
             srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
             dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        } else if (oldLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL) {
+        } else if (oldLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL &&
+                   newLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL) {
             barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
             barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
             srcStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
             dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-        } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+        } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL &&
+                   newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
             barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
             barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
             srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
@@ -470,25 +530,33 @@ namespace Bess::Canvas {
             dstStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
         }
 
-        vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+        vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 0, nullptr,
+                             1, &barrier);
     }
 
-    void Viewport::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer &buffer, VkDeviceMemory &bufferMemory) const {
+    void Viewport::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
+                                VkMemoryPropertyFlags properties,
+                                VkBuffer &buffer,
+                                VkDeviceMemory &bufferMemory) const {
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         bufferInfo.size = size;
         bufferInfo.usage = usage;
         bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        if (vkCreateBuffer(m_device->device(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
+        if (vkCreateBuffer(m_device->device(), &bufferInfo, nullptr, &buffer) !=
+            VK_SUCCESS) {
             throw std::runtime_error("Failed to create buffer");
         }
         VkMemoryRequirements memRequirements;
-        vkGetBufferMemoryRequirements(m_device->device(), buffer, &memRequirements);
+        vkGetBufferMemoryRequirements(m_device->device(), buffer,
+                                      &memRequirements);
         VkMemoryAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = m_device->findMemoryType(memRequirements.memoryTypeBits, properties);
-        if (vkAllocateMemory(m_device->device(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
+        allocInfo.memoryTypeIndex = m_device->findMemoryType(
+            memRequirements.memoryTypeBits, properties);
+        if (vkAllocateMemory(m_device->device(), &allocInfo, nullptr,
+                             &bufferMemory) != VK_SUCCESS) {
             throw std::runtime_error("Failed to allocate buffer memory");
         }
         vkBindBufferMemory(m_device->device(), buffer, bufferMemory, 0);
@@ -513,10 +581,13 @@ namespace Bess::Canvas {
         vkCmdBeginRenderPass(cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         // Bind pipeline and descriptor set
-        VkDescriptorSet descriptorSet = m_postprocessPipeline->getDescriptorSet();
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_postprocessPipeline->getPipeline());
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_postprocessPipeline->getPipelineLayout(),
-                                0, 1, &descriptorSet, 0, nullptr);
+        VkDescriptorSet descriptorSet =
+            m_postprocessPipeline->getDescriptorSet();
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          m_postprocessPipeline->getPipeline());
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                m_postprocessPipeline->getPipelineLayout(), 0,
+                                1, &descriptorSet, 0, nullptr);
 
         // Set viewport and scissor
         VkViewport viewport{};
@@ -539,7 +610,8 @@ namespace Bess::Canvas {
     }
 
     void Viewport::initPostprocessResources() {
-        VkImageView straightColorImageView = m_straightColorImageView->getImageView();
+        VkImageView straightColorImageView =
+            m_straightColorImageView->getImageView();
         VkFramebufferCreateInfo framebufferInfo{};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebufferInfo.renderPass = m_postprocessPipeline->getRenderPass();
@@ -549,14 +621,17 @@ namespace Bess::Canvas {
         framebufferInfo.height = m_size.height;
         framebufferInfo.layers = 1;
 
-        if (vkCreateFramebuffer(m_device->device(), &framebufferInfo, nullptr, &m_postprocessFramebuffer) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create postprocess framebuffer!");
+        if (vkCreateFramebuffer(m_device->device(), &framebufferInfo, nullptr,
+                                &m_postprocessFramebuffer) != VK_SUCCESS) {
+            throw std::runtime_error(
+                "Failed to create postprocess framebuffer!");
         }
     }
 
     void Viewport::cleanupPostprocessResources() {
         if (m_postprocessFramebuffer != VK_NULL_HANDLE) {
-            vkDestroyFramebuffer(m_device->device(), m_postprocessFramebuffer, nullptr);
+            vkDestroyFramebuffer(m_device->device(), m_postprocessFramebuffer,
+                                 nullptr);
             m_postprocessFramebuffer = VK_NULL_HANDLE;
         }
     }
@@ -565,7 +640,5 @@ namespace Bess::Canvas {
         return m_mousePickingData.queued || m_pickingCopyInFlight;
     }
 
-    const Renderers &Viewport::getRenderers() const {
-        return m_renderers;
-    }
+    const Renderers &Viewport::getRenderers() const { return m_renderers; }
 }; // namespace Bess::Canvas

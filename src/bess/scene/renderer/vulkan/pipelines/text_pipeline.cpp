@@ -6,9 +6,10 @@
 namespace Bess::Vulkan::Pipelines {
 
     constexpr uint32_t instanceLimit = 10000;
-    TextPipeline::TextPipeline(const std::shared_ptr<VulkanDevice> &device,
-                               const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
-                               VkExtent2D extent)
+    TextPipeline::TextPipeline(
+        const std::shared_ptr<VulkanDevice> &device,
+        const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
+        VkExtent2D extent)
         : Pipeline(device, renderPass, extent) {
 
         createTextBuffers();
@@ -21,7 +22,8 @@ namespace Bess::Vulkan::Pipelines {
 
         if (!m_fallbackTexture) {
             uint32_t white = 0xFFFFFFFF;
-            m_fallbackTexture = std::make_unique<VulkanTexture>(m_device, 1, 1, VK_FORMAT_R8G8B8A8_UNORM, &white);
+            m_fallbackTexture = std::make_unique<VulkanTexture>(
+                m_device, 1, 1, VK_FORMAT_R8G8B8A8_UNORM, &white);
         }
 
         createGraphicsPipeline(false);
@@ -30,9 +32,7 @@ namespace Bess::Vulkan::Pipelines {
         ensureTextInstanceCapacity(instanceLimit);
     }
 
-    TextPipeline::~TextPipeline() {
-        cleanup();
-    }
+    TextPipeline::~TextPipeline() { cleanup(); }
 
     TextPipeline::TextPipeline(TextPipeline &&other) noexcept
         : Pipeline(std::move(other)),
@@ -65,36 +65,50 @@ namespace Bess::Vulkan::Pipelines {
         return *this;
     }
 
-    void TextPipeline::beginPipeline(VkCommandBuffer commandBuffer, bool isTranslucent) {
+    void TextPipeline::beginPipeline(VkCommandBuffer commandBuffer,
+                                     bool isTranslucent) {
         m_currentCommandBuffer = commandBuffer;
         m_textInstances.clear();
 
-        vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_opaquePipeline);
-        VkDescriptorSet sets[] = {m_descriptorSets[m_currentFrameIndex], m_textureArraySets[m_currentFrameIndex]};
-        vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_opaquePipelineLayout, 0, 2, sets, 0, nullptr);
+        vkCmdBindPipeline(m_currentCommandBuffer,
+                          VK_PIPELINE_BIND_POINT_GRAPHICS, m_opaquePipeline);
+        VkDescriptorSet sets[] = {m_descriptorSets[m_currentFrameIndex],
+                                  m_textureArraySets[m_currentFrameIndex]};
+        vkCmdBindDescriptorSets(m_currentCommandBuffer,
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                m_opaquePipelineLayout, 0, 2, sets, 0, nullptr);
 
         vkCmdSetViewport(m_currentCommandBuffer, 0, 1, &m_viewport);
         vkCmdSetScissor(m_currentCommandBuffer, 0, 1, &m_scissor);
     }
 
     void TextPipeline::endPipeline() {
-        auto draw = [&](const std::span<InstanceVertex> &instances, VkDeviceSize offset) {
+        auto draw = [&](const std::span<InstanceVertex> &instances,
+                        VkDeviceSize offset) {
             if (instances.empty())
                 return;
             void *data = nullptr;
-            vkMapMemory(m_device->device(), m_buffers.instanceBufferMemory, offset, sizeof(InstanceVertex) * instances.size(), 0, &data);
-            memcpy(data, instances.data(), sizeof(InstanceVertex) * instances.size());
+            vkMapMemory(m_device->device(), m_buffers.instanceBufferMemory,
+                        offset, sizeof(InstanceVertex) * instances.size(), 0,
+                        &data);
+            memcpy(data, instances.data(),
+                   sizeof(InstanceVertex) * instances.size());
             vkUnmapMemory(m_device->device(), m_buffers.instanceBufferMemory);
 
-            std::array<VkBuffer, 2> vbs = {m_buffers.vertexBuffer, m_buffers.instanceBuffer};
+            std::array<VkBuffer, 2> vbs = {m_buffers.vertexBuffer,
+                                           m_buffers.instanceBuffer};
             std::array<VkDeviceSize, 2> offs = {0, offset};
-            vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 2, vbs.data(), offs.data());
-            vkCmdBindIndexBuffer(m_currentCommandBuffer, m_buffers.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+            vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 2, vbs.data(),
+                                   offs.data());
+            vkCmdBindIndexBuffer(m_currentCommandBuffer, m_buffers.indexBuffer,
+                                 0, VK_INDEX_TYPE_UINT32);
 
-            vkCmdDrawIndexed(m_currentCommandBuffer, 6, static_cast<uint32_t>(instances.size()), 0, 0, 0);
+            vkCmdDrawIndexed(m_currentCommandBuffer, 6,
+                             static_cast<uint32_t>(instances.size()), 0, 0, 0);
         };
 
-        auto flush = [&](std::vector<InstanceVertex> &instances, VkDeviceSize bufferOffset = 0) {
+        auto flush = [&](std::vector<InstanceVertex> &instances,
+                         VkDeviceSize bufferOffset = 0) {
             if (instances.empty())
                 return;
 
@@ -103,7 +117,8 @@ namespace Bess::Vulkan::Pipelines {
 
             while (remaining > 0) {
                 size_t batchSize = std::min(remaining, (size_t)instanceLimit);
-                auto span = std::span(instances.begin() + offset, instances.begin() + offset + batchSize);
+                auto span = std::span(instances.begin() + offset,
+                                      instances.begin() + offset + batchSize);
                 draw(span, bufferOffset + (offset * sizeof(InstanceVertex)));
                 offset += batchSize;
                 remaining -= batchSize;
@@ -116,7 +131,8 @@ namespace Bess::Vulkan::Pipelines {
         m_currentCommandBuffer = VK_NULL_HANDLE;
     }
 
-    void TextPipeline::setTextData(const std::vector<InstanceVertex> &instances) {
+    void
+    TextPipeline::setTextData(const std::vector<InstanceVertex> &instances) {
         if (instances.empty())
             return;
         ensureTextInstanceCapacity(instances.size());
@@ -124,9 +140,11 @@ namespace Bess::Vulkan::Pipelines {
 
         m_textureInfos.fill(m_fallbackTexture->getDescriptorInfo());
 
-        auto msdfFont = Assets::AssetManager::instance().get(Assets::Fonts::robotoMsdf);
+        auto msdfFont =
+            Assets::AssetManager::instance().get(Assets::Fonts::robotoMsdf);
         if (msdfFont && msdfFont->getTextureAtlas()) {
-            m_textureInfos[1] = msdfFont->getTextureAtlas()->getDescriptorInfo();
+            m_textureInfos[1] =
+                msdfFont->getTextureAtlas()->getDescriptorInfo();
         }
 
         std::vector<VkWriteDescriptorSet> writes;
@@ -141,60 +159,75 @@ namespace Bess::Vulkan::Pipelines {
             writes.push_back(write);
         }
 
-        vkUpdateDescriptorSets(m_device->device(), (uint32_t)writes.size(), writes.data(), 0, nullptr);
+        vkUpdateDescriptorSets(m_device->device(), (uint32_t)writes.size(),
+                               writes.data(), 0, nullptr);
     }
 
     void TextPipeline::updateTextUniforms(const TextUniforms &textUniforms) {
         if (m_textUniformBufferMemory.empty()) {
-            BESS_WARN("[TextPipeline] Text uniform buffer memory not initialized");
+            BESS_WARN(
+                "[TextPipeline] Text uniform buffer memory not initialized");
             return;
         }
 
         if (m_currentFrameIndex >= m_textUniformBufferMemory.size()) {
-            BESS_WARN("[TextPipeline] Current frame index {} out of bounds for uniform buffer memory (size: {})",
+            BESS_WARN("[TextPipeline] Current frame index {} out of bounds for "
+                      "uniform buffer memory (size: {})",
                       m_currentFrameIndex, m_textUniformBufferMemory.size());
             return;
         }
 
         void *data = nullptr;
-        vkMapMemory(m_device->device(), m_textUniformBufferMemory[m_currentFrameIndex], 0, sizeof(TextUniforms), 0, &data);
+        vkMapMemory(m_device->device(),
+                    m_textUniformBufferMemory[m_currentFrameIndex], 0,
+                    sizeof(TextUniforms), 0, &data);
         memcpy(data, &textUniforms, sizeof(TextUniforms));
-        vkUnmapMemory(m_device->device(), m_textUniformBufferMemory[m_currentFrameIndex]);
+        vkUnmapMemory(m_device->device(),
+                      m_textUniformBufferMemory[m_currentFrameIndex]);
     }
 
     void TextPipeline::cleanup() {
         if (m_buffers.vertexBuffer != VK_NULL_HANDLE) {
-            vkDestroyBuffer(m_device->device(), m_buffers.vertexBuffer, nullptr);
-            vkFreeMemory(m_device->device(), m_buffers.vertexBufferMemory, nullptr);
+            vkDestroyBuffer(m_device->device(), m_buffers.vertexBuffer,
+                            nullptr);
+            vkFreeMemory(m_device->device(), m_buffers.vertexBufferMemory,
+                         nullptr);
             m_buffers.vertexBuffer = VK_NULL_HANDLE;
             m_buffers.vertexBufferMemory = VK_NULL_HANDLE;
         }
 
         if (m_buffers.indexBuffer != VK_NULL_HANDLE) {
             vkDestroyBuffer(m_device->device(), m_buffers.indexBuffer, nullptr);
-            vkFreeMemory(m_device->device(), m_buffers.indexBufferMemory, nullptr);
+            vkFreeMemory(m_device->device(), m_buffers.indexBufferMemory,
+                         nullptr);
             m_buffers.indexBuffer = VK_NULL_HANDLE;
             m_buffers.indexBufferMemory = VK_NULL_HANDLE;
         }
 
         if (m_buffers.instanceBuffer != VK_NULL_HANDLE) {
-            vkDestroyBuffer(m_device->device(), m_buffers.instanceBuffer, nullptr);
-            vkFreeMemory(m_device->device(), m_buffers.instanceBufferMemory, nullptr);
+            vkDestroyBuffer(m_device->device(), m_buffers.instanceBuffer,
+                            nullptr);
+            vkFreeMemory(m_device->device(), m_buffers.instanceBufferMemory,
+                         nullptr);
             m_buffers.instanceBuffer = VK_NULL_HANDLE;
             m_buffers.instanceBufferMemory = VK_NULL_HANDLE;
         }
 
         if (m_textureArrayDescriptorPool != VK_NULL_HANDLE) {
-            vkDestroyDescriptorPool(m_device->device(), m_textureArrayDescriptorPool, nullptr);
+            vkDestroyDescriptorPool(m_device->device(),
+                                    m_textureArrayDescriptorPool, nullptr);
         }
 
         if (m_textureArrayLayout != VK_NULL_HANDLE) {
-            vkDestroyDescriptorSetLayout(m_device->device(), m_textureArrayLayout, nullptr);
+            vkDestroyDescriptorSetLayout(m_device->device(),
+                                         m_textureArrayLayout, nullptr);
         }
 
         for (size_t i = 0; i < m_textUniformBuffers.size(); i++) {
-            vkDestroyBuffer(m_device->device(), m_textUniformBuffers[i], nullptr);
-            vkFreeMemory(m_device->device(), m_textUniformBufferMemory[i], nullptr);
+            vkDestroyBuffer(m_device->device(), m_textUniformBuffers[i],
+                            nullptr);
+            vkFreeMemory(m_device->device(), m_textUniformBufferMemory[i],
+                         nullptr);
         }
 
         Pipeline::cleanup();
@@ -217,14 +250,18 @@ namespace Bess::Vulkan::Pipelines {
         textLayoutBinding.pImmutableSamplers = nullptr;
         textLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-        std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, textLayoutBinding};
+        std::array<VkDescriptorSetLayoutBinding, 2> bindings = {
+            uboLayoutBinding, textLayoutBinding};
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
         layoutInfo.pBindings = bindings.data();
 
-        if (vkCreateDescriptorSetLayout(m_device->device(), &layoutInfo, nullptr, &m_descriptorSetLayout) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create text descriptor set layout!");
+        if (vkCreateDescriptorSetLayout(m_device->device(), &layoutInfo,
+                                        nullptr,
+                                        &m_descriptorSetLayout) != VK_SUCCESS) {
+            throw std::runtime_error(
+                "Failed to create text descriptor set layout!");
         }
     }
 
@@ -241,23 +278,32 @@ namespace Bess::Vulkan::Pipelines {
             bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
             bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-            if (vkCreateBuffer(m_device->device(), &bufferInfo, nullptr, &m_textUniformBuffers[i]) != VK_SUCCESS) {
-                throw std::runtime_error("Failed to create text uniform buffer!");
+            if (vkCreateBuffer(m_device->device(), &bufferInfo, nullptr,
+                               &m_textUniformBuffers[i]) != VK_SUCCESS) {
+                throw std::runtime_error(
+                    "Failed to create text uniform buffer!");
             }
 
             VkMemoryRequirements memRequirements;
-            vkGetBufferMemoryRequirements(m_device->device(), m_textUniformBuffers[i], &memRequirements);
+            vkGetBufferMemoryRequirements(
+                m_device->device(), m_textUniformBuffers[i], &memRequirements);
 
             VkMemoryAllocateInfo allocInfo{};
             allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
             allocInfo.allocationSize = memRequirements.size;
-            allocInfo.memoryTypeIndex = m_device->findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+            allocInfo.memoryTypeIndex = m_device->findMemoryType(
+                memRequirements.memoryTypeBits,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-            if (vkAllocateMemory(m_device->device(), &allocInfo, nullptr, &m_textUniformBufferMemory[i]) != VK_SUCCESS) {
-                throw std::runtime_error("Failed to allocate text uniform buffer memory!");
+            if (vkAllocateMemory(m_device->device(), &allocInfo, nullptr,
+                                 &m_textUniformBufferMemory[i]) != VK_SUCCESS) {
+                throw std::runtime_error(
+                    "Failed to allocate text uniform buffer memory!");
             }
 
-            vkBindBufferMemory(m_device->device(), m_textUniformBuffers[i], m_textUniformBufferMemory[i], 0);
+            vkBindBufferMemory(m_device->device(), m_textUniformBuffers[i],
+                               m_textUniformBufferMemory[i], 0);
         }
     }
 
@@ -290,7 +336,8 @@ namespace Bess::Vulkan::Pipelines {
         binding1.stride = sizeof(InstanceVertex);
         binding1.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
 
-        std::array<VkVertexInputBindingDescription, 2> bindings = {binding0, binding1};
+        std::array<VkVertexInputBindingDescription, 2> bindings = {binding0,
+                                                                   binding1};
 
         std::array<VkVertexInputAttributeDescription, 2> localAttribs{};
         localAttribs[0].binding = 0;
@@ -342,13 +389,17 @@ namespace Bess::Vulkan::Pipelines {
 
         std::array<VkVertexInputAttributeDescription, 9> allAttribs{};
         std::copy(localAttribs.begin(), localAttribs.end(), allAttribs.begin());
-        std::copy(instanceAttribs.begin(), instanceAttribs.end(), allAttribs.begin() + 2);
+        std::copy(instanceAttribs.begin(), instanceAttribs.end(),
+                  allAttribs.begin() + 2);
 
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-        vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindings.size());
+        vertexInputInfo.sType =
+            VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+        vertexInputInfo.vertexBindingDescriptionCount =
+            static_cast<uint32_t>(bindings.size());
         vertexInputInfo.pVertexBindingDescriptions = bindings.data();
-        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(allAttribs.size());
+        vertexInputInfo.vertexAttributeDescriptionCount =
+            static_cast<uint32_t>(allAttribs.size());
         vertexInputInfo.pVertexAttributeDescriptions = allAttribs.data();
 
         auto inputAssembly = createInputAssemblyState();
@@ -358,32 +409,44 @@ namespace Bess::Vulkan::Pipelines {
         auto depthStencil = createDepthStencilState(isTranslucent);
 
         VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-        colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        colorBlendAttachment.colorWriteMask =
+            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+            VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
         colorBlendAttachment.blendEnable = VK_TRUE;
         colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-        colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        colorBlendAttachment.dstColorBlendFactor =
+            VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
         colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
         colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-        colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        colorBlendAttachment.dstAlphaBlendFactor =
+            VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
         colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
-        VkPipelineColorBlendAttachmentState pickingBlendAttachment = colorBlendAttachment;
+        VkPipelineColorBlendAttachmentState pickingBlendAttachment =
+            colorBlendAttachment;
         pickingBlendAttachment.blendEnable = VK_FALSE;
 
-        static const std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments = {colorBlendAttachment, pickingBlendAttachment};
+        static const std::vector<VkPipelineColorBlendAttachmentState>
+            colorBlendAttachments = {colorBlendAttachment,
+                                     pickingBlendAttachment};
 
         auto colorBlending = createColorBlendState(colorBlendAttachments);
 
-        std::array<VkDescriptorSetLayout, 2> setLayouts = {m_descriptorSetLayout, m_textureArrayLayout};
+        std::array<VkDescriptorSetLayout, 2> setLayouts = {
+            m_descriptorSetLayout, m_textureArrayLayout};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
+        pipelineLayoutInfo.sType =
+            VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipelineLayoutInfo.setLayoutCount =
+            static_cast<uint32_t>(setLayouts.size());
         pipelineLayoutInfo.pSetLayouts = setLayouts.data();
         pipelineLayoutInfo.pushConstantRangeCount = 0;
         pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
-        if (vkCreatePipelineLayout(m_device->device(), &pipelineLayoutInfo, nullptr, &m_opaquePipelineLayout) != VK_SUCCESS) {
+        if (vkCreatePipelineLayout(m_device->device(), &pipelineLayoutInfo,
+                                   nullptr,
+                                   &m_opaquePipelineLayout) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create text pipeline layout!");
         }
 
@@ -401,14 +464,18 @@ namespace Bess::Vulkan::Pipelines {
         pipelineInfo.pDepthStencilState = &depthStencil;
         pipelineInfo.pColorBlendState = &colorBlending;
         pipelineInfo.pDynamicState = &dynamicState;
-        pipelineInfo.layout = isTranslucent ? m_transPipelineLayout : m_opaquePipelineLayout;
+        pipelineInfo.layout =
+            isTranslucent ? m_transPipelineLayout : m_opaquePipelineLayout;
         pipelineInfo.renderPass = m_renderPass->getVkHandle();
         pipelineInfo.subpass = 0;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
         pipelineInfo.basePipelineIndex = -1;
 
-        if (vkCreateGraphicsPipelines(m_device->device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_opaquePipeline) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create text graphics pipeline!");
+        if (vkCreateGraphicsPipelines(m_device->device(), VK_NULL_HANDLE, 1,
+                                      &pipelineInfo, nullptr,
+                                      &m_opaquePipeline) != VK_SUCCESS) {
+            throw std::runtime_error(
+                "Failed to create text graphics pipeline!");
         }
 
         vkDestroyShaderModule(m_device->device(), fragShaderModule, nullptr);
@@ -416,14 +483,11 @@ namespace Bess::Vulkan::Pipelines {
     }
 
     void TextPipeline::createTextBuffers() {
-        std::vector<float> local = {
-            -0.5f, -0.5f, 0.0f, 0.0f,
-            0.5f, -0.5f, 1.0f, 0.0f,
-            0.5f, 0.5f, 1.0f, 1.0f,
-            -0.5f, 0.5f, 0.0f, 1.0f};
+        std::vector<float> local = {-0.5f, -0.5f, 0.0f, 0.0f, 0.5f, -0.5f,
+                                    1.0f,  0.0f,  0.5f, 0.5f, 1.0f, 1.0f,
+                                    -0.5f, 0.5f,  0.0f, 1.0f};
 
-        std::vector<uint32_t> idx = {
-            0, 1, 2, 2, 3, 0};
+        std::vector<uint32_t> idx = {0, 1, 2, 2, 3, 0};
 
         VkBufferCreateInfo bi{};
         bi.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -437,36 +501,52 @@ namespace Bess::Vulkan::Pipelines {
         VkDeviceSize vSize = sizeof(float) * local.size();
         bi.size = vSize;
         bi.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-        if (vkCreateBuffer(m_device->device(), &bi, nullptr, &m_buffers.vertexBuffer) != VK_SUCCESS) {
+        if (vkCreateBuffer(m_device->device(), &bi, nullptr,
+                           &m_buffers.vertexBuffer) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create text vertex buffer!");
         }
-        vkGetBufferMemoryRequirements(m_device->device(), m_buffers.vertexBuffer, &req);
+        vkGetBufferMemoryRequirements(m_device->device(),
+                                      m_buffers.vertexBuffer, &req);
         ai.allocationSize = req.size;
-        ai.memoryTypeIndex = m_device->findMemoryType(req.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        if (vkAllocateMemory(m_device->device(), &ai, nullptr, &m_buffers.vertexBufferMemory) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate text vertex buffer memory!");
+        ai.memoryTypeIndex = m_device->findMemoryType(
+            req.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        if (vkAllocateMemory(m_device->device(), &ai, nullptr,
+                             &m_buffers.vertexBufferMemory) != VK_SUCCESS) {
+            throw std::runtime_error(
+                "Failed to allocate text vertex buffer memory!");
         }
-        vkBindBufferMemory(m_device->device(), m_buffers.vertexBuffer, m_buffers.vertexBufferMemory, 0);
+        vkBindBufferMemory(m_device->device(), m_buffers.vertexBuffer,
+                           m_buffers.vertexBufferMemory, 0);
         void *vdata = nullptr;
-        vkMapMemory(m_device->device(), m_buffers.vertexBufferMemory, 0, vSize, 0, &vdata);
+        vkMapMemory(m_device->device(), m_buffers.vertexBufferMemory, 0, vSize,
+                    0, &vdata);
         memcpy(vdata, local.data(), vSize);
         vkUnmapMemory(m_device->device(), m_buffers.vertexBufferMemory);
 
         VkDeviceSize iSize = sizeof(uint32_t) * idx.size();
         bi.size = iSize;
         bi.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-        if (vkCreateBuffer(m_device->device(), &bi, nullptr, &m_buffers.indexBuffer) != VK_SUCCESS) {
+        if (vkCreateBuffer(m_device->device(), &bi, nullptr,
+                           &m_buffers.indexBuffer) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create text index buffer!");
         }
-        vkGetBufferMemoryRequirements(m_device->device(), m_buffers.indexBuffer, &req);
+        vkGetBufferMemoryRequirements(m_device->device(), m_buffers.indexBuffer,
+                                      &req);
         ai.allocationSize = req.size;
-        ai.memoryTypeIndex = m_device->findMemoryType(req.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        if (vkAllocateMemory(m_device->device(), &ai, nullptr, &m_buffers.indexBufferMemory) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate text index buffer memory!");
+        ai.memoryTypeIndex = m_device->findMemoryType(
+            req.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        if (vkAllocateMemory(m_device->device(), &ai, nullptr,
+                             &m_buffers.indexBufferMemory) != VK_SUCCESS) {
+            throw std::runtime_error(
+                "Failed to allocate text index buffer memory!");
         }
-        vkBindBufferMemory(m_device->device(), m_buffers.indexBuffer, m_buffers.indexBufferMemory, 0);
+        vkBindBufferMemory(m_device->device(), m_buffers.indexBuffer,
+                           m_buffers.indexBufferMemory, 0);
         void *idata = nullptr;
-        vkMapMemory(m_device->device(), m_buffers.indexBufferMemory, 0, iSize, 0, &idata);
+        vkMapMemory(m_device->device(), m_buffers.indexBufferMemory, 0, iSize,
+                    0, &idata);
         memcpy(idata, idx.data(), iSize);
         vkUnmapMemory(m_device->device(), m_buffers.indexBufferMemory);
 
@@ -479,8 +559,10 @@ namespace Bess::Vulkan::Pipelines {
         }
 
         if (m_buffers.instanceBuffer != VK_NULL_HANDLE) {
-            vkDestroyBuffer(m_device->device(), m_buffers.instanceBuffer, nullptr);
-            vkFreeMemory(m_device->device(), m_buffers.instanceBufferMemory, nullptr);
+            vkDestroyBuffer(m_device->device(), m_buffers.instanceBuffer,
+                            nullptr);
+            vkFreeMemory(m_device->device(), m_buffers.instanceBufferMemory,
+                         nullptr);
         }
 
         VkDeviceSize size = sizeof(InstanceVertex) * instanceCount;
@@ -489,19 +571,26 @@ namespace Bess::Vulkan::Pipelines {
         bi.size = size;
         bi.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
         bi.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        if (vkCreateBuffer(m_device->device(), &bi, nullptr, &m_buffers.instanceBuffer) != VK_SUCCESS) {
+        if (vkCreateBuffer(m_device->device(), &bi, nullptr,
+                           &m_buffers.instanceBuffer) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create text instance buffer!");
         }
         VkMemoryRequirements req{};
-        vkGetBufferMemoryRequirements(m_device->device(), m_buffers.instanceBuffer, &req);
+        vkGetBufferMemoryRequirements(m_device->device(),
+                                      m_buffers.instanceBuffer, &req);
         VkMemoryAllocateInfo ai{};
         ai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         ai.allocationSize = req.size;
-        ai.memoryTypeIndex = m_device->findMemoryType(req.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        if (vkAllocateMemory(m_device->device(), &ai, nullptr, &m_buffers.instanceBufferMemory) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate text instance buffer memory!");
+        ai.memoryTypeIndex = m_device->findMemoryType(
+            req.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        if (vkAllocateMemory(m_device->device(), &ai, nullptr,
+                             &m_buffers.instanceBufferMemory) != VK_SUCCESS) {
+            throw std::runtime_error(
+                "Failed to allocate text instance buffer memory!");
         }
-        vkBindBufferMemory(m_device->device(), m_buffers.instanceBuffer, m_buffers.instanceBufferMemory, 0);
+        vkBindBufferMemory(m_device->device(), m_buffers.instanceBuffer,
+                           m_buffers.instanceBufferMemory, 0);
 
         m_buffers.instanceCapacity = instanceCount;
     }
@@ -517,7 +606,8 @@ namespace Bess::Vulkan::Pipelines {
         poolInfo.pPoolSizes = poolSizes.data();
         poolInfo.maxSets = maxFrames;
 
-        if (vkCreateDescriptorPool(m_device->device(), &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS) {
+        if (vkCreateDescriptorPool(m_device->device(), &poolInfo, nullptr,
+                                   &m_descriptorPool) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create text descriptor pool!");
         }
 
@@ -533,8 +623,11 @@ namespace Bess::Vulkan::Pipelines {
         texPoolInfo.poolSizeCount = 1;
         texPoolInfo.pPoolSizes = &texPoolSize;
         texPoolInfo.maxSets = maxFrames;
-        if (vkCreateDescriptorPool(m_device->device(), &texPoolInfo, nullptr, &m_textureArrayDescriptorPool) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create texture descriptor pool");
+        if (vkCreateDescriptorPool(m_device->device(), &texPoolInfo, nullptr,
+                                   &m_textureArrayDescriptorPool) !=
+            VK_SUCCESS) {
+            throw std::runtime_error(
+                "Failed to create texture descriptor pool");
         }
     }
 
@@ -545,7 +638,8 @@ namespace Bess::Vulkan::Pipelines {
 
         m_descriptorSets.resize(maxFrames);
 
-        std::vector<VkDescriptorSetLayout> layouts(maxFrames, m_descriptorSetLayout);
+        std::vector<VkDescriptorSetLayout> layouts(maxFrames,
+                                                   m_descriptorSetLayout);
 
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -553,7 +647,8 @@ namespace Bess::Vulkan::Pipelines {
         allocInfo.descriptorSetCount = maxFrames;
         allocInfo.pSetLayouts = layouts.data();
 
-        if (vkAllocateDescriptorSets(m_device->device(), &allocInfo, m_descriptorSets.data()) != VK_SUCCESS) {
+        if (vkAllocateDescriptorSets(m_device->device(), &allocInfo,
+                                     m_descriptorSets.data()) != VK_SUCCESS) {
             throw std::runtime_error("Failed to allocate descriptor sets!");
         }
 
@@ -568,7 +663,8 @@ namespace Bess::Vulkan::Pipelines {
             uboDescriptorWrite.dstSet = m_descriptorSets[i];
             uboDescriptorWrite.dstBinding = 0;
             uboDescriptorWrite.dstArrayElement = 0;
-            uboDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            uboDescriptorWrite.descriptorType =
+                VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             uboDescriptorWrite.descriptorCount = 1;
             uboDescriptorWrite.pBufferInfo = &uboBufferInfo;
 
@@ -582,12 +678,15 @@ namespace Bess::Vulkan::Pipelines {
             textDescriptorWrite.dstSet = m_descriptorSets[i];
             textDescriptorWrite.dstBinding = 1;
             textDescriptorWrite.dstArrayElement = 0;
-            textDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            textDescriptorWrite.descriptorType =
+                VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             textDescriptorWrite.descriptorCount = 1;
             textDescriptorWrite.pBufferInfo = &textBufferInfo;
 
-            std::array<VkWriteDescriptorSet, 2> descriptorWrites = {uboDescriptorWrite, textDescriptorWrite};
-            vkUpdateDescriptorSets(m_device->device(), 2, descriptorWrites.data(), 0, nullptr);
+            std::array<VkWriteDescriptorSet, 2> descriptorWrites = {
+                uboDescriptorWrite, textDescriptorWrite};
+            vkUpdateDescriptorSets(m_device->device(), 2,
+                                   descriptorWrites.data(), 0, nullptr);
         }
 
         m_textureArraySets.resize(maxFrames);
@@ -595,25 +694,31 @@ namespace Bess::Vulkan::Pipelines {
         std::array<VkDescriptorSetLayoutBinding, 1> texBindings{};
 
         texBindings[0].binding = 2;
-        texBindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        texBindings[0].descriptorType =
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         texBindings[0].descriptorCount = 32;
         texBindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-        VkDescriptorSetLayoutCreateInfo layoutInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
+        VkDescriptorSetLayoutCreateInfo layoutInfo{
+            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
         layoutInfo.bindingCount = static_cast<uint32_t>(texBindings.size());
         layoutInfo.pBindings = texBindings.data();
 
-        vkCreateDescriptorSetLayout(m_device->device(), &layoutInfo, nullptr, &m_textureArrayLayout);
+        vkCreateDescriptorSetLayout(m_device->device(), &layoutInfo, nullptr,
+                                    &m_textureArrayLayout);
 
         auto texLayouts = std::vector(maxFrames, m_textureArrayLayout);
 
-        VkDescriptorSetAllocateInfo texAllocInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+        VkDescriptorSetAllocateInfo texAllocInfo{
+            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
         texAllocInfo.descriptorPool = m_textureArrayDescriptorPool;
         texAllocInfo.descriptorSetCount = maxFrames;
         texAllocInfo.pSetLayouts = texLayouts.data();
 
-        if (vkAllocateDescriptorSets(m_device->device(), &texAllocInfo, m_textureArraySets.data()) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate texture descriptor sets");
+        if (vkAllocateDescriptorSets(m_device->device(), &texAllocInfo,
+                                     m_textureArraySets.data()) != VK_SUCCESS) {
+            throw std::runtime_error(
+                "Failed to allocate texture descriptor sets");
         }
     }
 

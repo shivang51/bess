@@ -10,29 +10,29 @@
 
 using namespace Bess::Vulkan;
 namespace Bess::Assets {
-    template <>
-    struct AssetLoader<VulkanTexture> {
+    template <> struct AssetLoader<VulkanTexture> {
         static std::shared_ptr<VulkanTexture> load(const std::string &path) {
-            return std::make_shared<VulkanTexture>(Bess::Vulkan::VulkanCore::instance().getDevice(), path);
+            return std::make_shared<VulkanTexture>(
+                Bess::Vulkan::VulkanCore::instance().getDevice(), path);
         }
     };
 
-    template <>
-    struct AssetLoader<Bess::Renderer::Font::FontFile> {
-        static std::shared_ptr<Bess::Renderer::Font::FontFile> load(const std::string &path) {
+    template <> struct AssetLoader<Bess::Renderer::Font::FontFile> {
+        static std::shared_ptr<Bess::Renderer::Font::FontFile>
+        load(const std::string &path) {
             return std::make_shared<Bess::Renderer::Font::FontFile>(path);
         }
     };
 
-    template <>
-    struct AssetLoader<Bess::Renderer::MsdfFont> {
-        static std::shared_ptr<Bess::Renderer::MsdfFont> load(const std::string &path, const std::string &json) {
-            return std::make_shared<Bess::Renderer::MsdfFont>(path, json, Bess::Vulkan::VulkanCore::instance().getDevice());
+    template <> struct AssetLoader<Bess::Renderer::MsdfFont> {
+        static std::shared_ptr<Bess::Renderer::MsdfFont>
+        load(const std::string &path, const std::string &json) {
+            return std::make_shared<Bess::Renderer::MsdfFont>(
+                path, json, Bess::Vulkan::VulkanCore::instance().getDevice());
         }
     };
 
-    template <>
-    struct AssetLoader<std::string> {
+    template <> struct AssetLoader<std::string> {
         static std::shared_ptr<std::string> load(const std::string &path) {
             return std::make_shared<std::string>(path);
         }

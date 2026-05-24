@@ -13,21 +13,15 @@ namespace Bess::Config {
         m_frameTimeStep = TimeMs(1000.0 / m_fps);
     }
 
-    void Settings::cleanup() {
-        ViewportTheme::cleanup();
-    }
+    void Settings::cleanup() { ViewportTheme::cleanup(); }
 
     const std::string &Settings::getCurrentTheme() const {
         return m_currentTheme;
     }
 
-    const Themes &Settings::getThemes() const {
-        return m_themes;
-    }
+    const Themes &Settings::getThemes() const { return m_themes; }
 
-    void Settings::loadCurrentTheme() {
-        m_themes.applyTheme(m_currentTheme);
-    }
+    void Settings::loadCurrentTheme() { m_themes.applyTheme(m_currentTheme); }
 
     void Settings::applyTheme(const std::string &theme) {
         if (m_currentTheme == theme)
@@ -36,24 +30,16 @@ namespace Bess::Config {
         m_themes.applyTheme(theme);
     }
 
-    void Settings::setFontRebuild(bool rebuild) {
-        m_fontRebuild = !rebuild;
-    }
+    void Settings::setFontRebuild(bool rebuild) { m_fontRebuild = !rebuild; }
 
-    TimeMs Settings::getFrameTimeStep() const {
-        return m_frameTimeStep;
-    }
+    TimeMs Settings::getFrameTimeStep() const { return m_frameTimeStep; }
 
     Settings &Settings::instance() {
         static Settings instance;
         return instance;
     }
 
-    bool Settings::shouldFontRebuild() const {
-        return m_fontRebuild;
-    }
+    bool Settings::shouldFontRebuild() const { return m_fontRebuild; }
 
-    void Settings::onFpsChange() {
-        m_frameTimeStep = TimeMs(1000.0 / m_fps);
-    }
+    void Settings::onFpsChange() { m_frameTimeStep = TimeMs(1000.0 / m_fps); }
 } // namespace Bess::Config

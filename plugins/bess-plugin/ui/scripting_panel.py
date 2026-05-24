@@ -6,17 +6,22 @@ import bessplug
 class ScriptingPanel:
     def __init__(self):
         self.name = "Scripting Panel"
-        self._is_open = True
-        self._cmd_str = 'bessplug.cmds.set_inp_state("INP_0", 0, LogicState.HIGH)'
+        self.is_open = False
+        self._cmd_str = ""
         self._cmd_res: bessplug.cmds.CmdResult | None = None
 
         self._script_str = ""
+        self._is_first = True
 
     def draw(self):
-        if not self._is_open:
+        if not self.is_open:
             return
 
-        self._is_open = bess_ui.begin_panel(self.name, vec2(250, 250), self._is_open)
+        if self._is_first:
+            self._is_first = False
+            bess_ui.try_reg_dock(self.name, bess_ui.Dock.bottom)
+
+        self.is_open = bess_ui.begin_panel(self.name, vec2(250, 250), self.is_open)
 
         self._draw_single_line_cmd()
         bess_ui.separator()
@@ -34,12 +39,12 @@ class ScriptingPanel:
             clicked = bess_ui.button("Run Script")
 
         [changed, val] = bess_ui.input_text_multiline(
-            "##ScriptEditor", self._script_str
+            "##ScriptEditor", self._script_str, vec2(-1, 500)
         )
 
         if not status.is_running:
             bess_ui.text("Script output:")
-            bess_ui.text_multiline("##script_output", str(status.log), vec2(0, 150))
+            bess_ui.text_multiline("##script_output", str(status.log), vec2(-1, 150))
 
         if changed:
             self._script_str = val

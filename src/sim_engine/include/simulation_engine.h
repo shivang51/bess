@@ -1,14 +1,11 @@
 #pragma once
 
-#include "bess_api.h"
+#include "common/bess_api.h"
 #include "common/bess_uuid.h"
-#include "digital_component.h"
+#include "common/types.h"
 #include "net/net.h"
-#include "sim_engine_state.h"
-#include "types.h"
-#include <chrono>
+#include "sim_driver/sim_driver.h"
 #include <condition_variable>
-#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <set>
@@ -16,25 +13,41 @@
 
 namespace Bess::SimEngine {
     class ComponentDefinition;
+    namespace Drivers::Digital {
+        class DigSimComp;
+    } // namespace Drivers::Digital
 
     class BESS_API SimulationEngine {
       public:
         static SimulationEngine &instance();
 
-        SimulationEngine();
-        ~SimulationEngine();
-
         void destroy();
 
-        const UUID &addComponent(const std::shared_ptr<ComponentDefinition> &definition,
-                                 bool cloneDef = true);
+        const UUID &
+        addComponent(const std::shared_ptr<Drivers::CompDef> &definition,
+                     bool cloneDef = true);
+
+        template <typename T>
+        std::shared_ptr<T> getComponent(const UUID &uuid) const {
+            for (const auto &driver : m_simDrivers) {
+                auto comp = driver->template getComponent<T>(uuid);
+                if (comp) {
+                    return comp;
+                }
+            }
+
+            return nullptr;
+        }
 
         bool connectComponent(const UUID &src, int srcSlotIdx, SlotType srcType,
-                              const UUID &dst, int dstSlotIdx, SlotType dstType, bool overrideConn = false);
+                              const UUID &dst, int dstSlotIdx, SlotType dstType,
+                              bool overrideConn = false);
 
         // returns {canConnect, errorMessage}
-        std::pair<bool, std::string> canConnectComponents(const UUID &src, int srcSlotIdx, SlotType srcType,
-                                                          const UUID &dst, int dstSlotIdx, SlotType dstType) const;
+        std::pair<bool, std::string>
+        canConnectComponents(const UUID &src, int srcSlotIdx, SlotType srcType,
+                             const UUID &dst, int dstSlotIdx,
+                             SlotType dstType) const;
 
         void deleteComponent(const UUID &uuid);
 
@@ -48,79 +61,90 @@ namespace Bess::SimEngine {
 
         void setInputSlotState(const UUID &uuid, int pinIdx, LogicState state);
         void setOutputSlotState(const UUID &uuid, int pinIdx, LogicState state);
-        void invertInputSlotState(const UUID &uuid, int pinIdx);
-
-        SimTime getSimulationTime() const;
-        std::chrono::milliseconds getSimulationTimeMS();
-        std::chrono::seconds getSimulationTimeS();
 
         SimulationState toggleSimState();
         SimulationState getSimulationState() const;
         void setSimulationState(SimulationState state);
+        void clearPendingDriverEvents();
 
         // only steps if sim state is paused
         void stepSimulation();
 
         const ComponentState &getComponentState(const UUID &uuid);
-        const std::shared_ptr<ComponentDefinition> &getComponentDefinition(const UUID &uuid) const;
-        std::shared_ptr<DigitalComponent> getDigitalComponent(const UUID &uuid) const;
+        const std::shared_ptr<Drivers::CompDef> &
+        getComponentDefinition(const UUID &uuid) const;
 
         void clear();
 
-        bool updateInputCount(const UUID &uuid, int n);
-
-        std::vector<std::pair<float, bool>> getStateMonitorData(UUID uuid);
-
-        bool updateNets(const std::vector<UUID> &startCompIds);
+        bool addSlot(const UUID &compId, SlotType type, int index,
+                     bool force = false);
+        bool removeSlot(const UUID &compId, SlotType type, int index,
+                        bool force = false);
 
         friend class SimEngineSerializer;
 
         bool isNetUpdated() const;
 
         // if update is false, the sync flag will not be reset
-        const std::unordered_map<UUID, Net> &getNetsMap(bool update = true);
+        std::unordered_map<UUID, Net> getNetsMap(bool update = true);
 
-        TruthTable getTruthTableOfNet(const UUID &netUuid);
+        void triggerPropagation(const UUID &sourceId);
+        void markPendingSignalSource(const UUID &sourceId);
 
         bool isSimStable();
 
-        const SimEngineState &getSimEngineState() const;
-        SimEngineState &getSimEngineState();
+        void addOnSlotCountChangeCB(const UUID &id,
+                                    const Drivers::SlotCountChangeCB &cb);
+
+        void removeOnSlotCountChangeCB(const UUID &id);
+
+        std::shared_ptr<Drivers::SimDriver>
+        getDriverWithName(const std::string &name) const;
+
+        const std::vector<std::shared_ptr<Drivers::SimDriver>> &
+        getDrivers() const;
+
+        Json::Value toJson() const;
+        void loadJson(const Json::Value &json);
 
       private:
-        bool isSimStableLocked() const;
+        void loadDrivers();
+        void unloadDrivers();
 
-        std::vector<UUID> getConnGraph(UUID start);
+        void initDrivers();
+        void destroyDrivers();
 
-        void scheduleEvent(UUID id, UUID schedulerId, SimDelayNanoSeconds simTime);
-        void clearEventsForEntity(const UUID &id);
-        bool simulateComponent(const UUID &compId, const std::vector<SlotState> &inputs);
-        void scheduleDependantsOf(const UUID &compId);
+        void runDrivers();
+        void stopDrivers();
+
+      private:
+        SimulationEngine();
+        ~SimulationEngine();
+
+      private:
+        void propagateFromComponent(const UUID &sourceId);
+        void processPendingPropagation();
+
         void run();
 
         std::thread m_simThread;
 
-        mutable std::mutex m_queueMutex;
         mutable std::mutex m_stateMutex;
-        mutable std::mutex m_registryMutex;
+        mutable std::mutex m_driversMutex;
+        mutable std::mutex m_pendingSignalSourcesMutex;
 
         std::atomic<bool> m_stopFlag{false};
         std::atomic<bool> m_stepFlag{false};
-        std::atomic<SimulationState> m_simState;
-        std::condition_variable m_queueCV;
+        std::atomic<SimulationState> m_simState{SimulationState::running};
         std::condition_variable m_stateCV;
 
-        std::set<SimulationEvent> m_eventSet;
-        uint64_t m_nextEventId{0};
-        SimTime m_currentSimTime;
+        std::set<UUID> m_pendingSignalSources;
 
-        SimEngineState m_simEngineState;
-
-        std::unordered_map<UUID, Net> m_nets;
+        std::vector<std::shared_ptr<Drivers::SimDriver>> m_simDrivers;
+        std::vector<std::thread> m_driverThreads;
 
         bool m_destroyed{false};
 
-        bool m_isNetUpdated{false};
         bool m_isSimulating{false};
     };
 } // namespace Bess::SimEngine

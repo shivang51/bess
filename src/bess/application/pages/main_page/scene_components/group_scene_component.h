@@ -9,22 +9,27 @@ namespace Bess::Canvas {
         GroupSceneComponent(const GroupSceneComponent &other) = default;
         ~GroupSceneComponent() override = default;
 
-        static std::shared_ptr<GroupSceneComponent> create(const std::string &name) {
+        static std::shared_ptr<GroupSceneComponent>
+        create(const std::string &name) {
             auto comp = std::make_shared<GroupSceneComponent>();
             comp->setName(name);
             return comp;
         }
 
         REG_SCENE_COMP_TYPE("GroupSceneComponent", SceneComponentType::group)
-        SCENE_COMP_SER_NP(Bess::Canvas::GroupSceneComponent, Bess::Canvas::SceneComponent)
+        SCENE_COMP_SER_NP(Bess::Canvas::GroupSceneComponent,
+                          Bess::Canvas::SceneComponent)
 
-        std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const override;
+        std::vector<std::shared_ptr<SceneComponent>>
+        clone(const SceneState &sceneState) const override;
 
         void onAttach(SceneState &state) override;
         void onSelect() override;
 
-        std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null) override;
+        std::vector<UUID> cleanup(SceneState &state,
+                                  UUID caller = UUID::null) override;
     };
 } // namespace Bess::Canvas
 
-REG_SCENE_COMP_NP(Bess::Canvas::GroupSceneComponent, Bess::Canvas::SceneComponent)
+REG_SCENE_COMP_NP(Bess::Canvas::GroupSceneComponent,
+                  Bess::Canvas::SceneComponent)

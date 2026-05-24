@@ -12,13 +12,11 @@ void bind_scene_schematic_diagram(py::module_ &m) {
         .def(py::init<>())
         .def_property("paths", &Bess::Canvas::SchematicDiagram::getPathsMut,
                       &Bess::Canvas::SchematicDiagram::setPaths)
-        .def_property("size",
-                      &Bess::Canvas::SchematicDiagram::getSize,
+        .def_property("size", &Bess::Canvas::SchematicDiagram::getSize,
                       &Bess::Canvas::SchematicDiagram::setSize)
         .def("add_path", &Bess::Canvas::SchematicDiagram::addPath)
         .def("normalize_paths", &Bess::Canvas::SchematicDiagram::normalizePaths)
-        .def_property("show_name",
-                      &Bess::Canvas::SchematicDiagram::getShowName,
+        .def_property("show_name", &Bess::Canvas::SchematicDiagram::getShowName,
                       &Bess::Canvas::SchematicDiagram::setShowName)
         .def_property("stroke_size",
                       &Bess::Canvas::SchematicDiagram::getStrokeSize,

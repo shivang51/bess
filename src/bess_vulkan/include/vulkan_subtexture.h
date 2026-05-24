@@ -11,9 +11,11 @@ namespace Bess::Vulkan {
     class BESS_VULKAN_API SubTexture {
       public:
         SubTexture() = default;
-        SubTexture(std::shared_ptr<VulkanTexture> texture, const glm::vec2 &coord, const glm::vec2 &spriteSize);
+        SubTexture(std::shared_ptr<VulkanTexture> texture,
+                   const glm::vec2 &coord, const glm::vec2 &spriteSize);
 
-        SubTexture(std::shared_ptr<VulkanTexture> texture, const glm::vec2 &coord, const glm::vec2 &spriteSize,
+        SubTexture(std::shared_ptr<VulkanTexture> texture,
+                   const glm::vec2 &coord, const glm::vec2 &spriteSize,
                    float margin, const glm::vec2 &cellSize);
 
         const glm::vec4 &getStartWH() const;
@@ -24,7 +26,8 @@ namespace Bess::Vulkan {
 
         std::shared_ptr<VulkanTexture> getTexture();
 
-        void calcCoordsFrom(std::shared_ptr<VulkanTexture> tex, const glm::vec2 &pos, const glm::vec2 &size);
+        void calcCoordsFrom(std::shared_ptr<VulkanTexture> tex,
+                            const glm::vec2 &pos, const glm::vec2 &size);
 
       private:
         void calculateCoords();

@@ -9,10 +9,10 @@ namespace Bess {
     namespace SimEngine {
         class SimulationEngine;
     }
-}
+} // namespace Bess
 
 namespace Bess::Pages {
-    void populateSceneFromVerilogImportResult(const Verilog::SimEngineImportResult &result,
-                                              SimEngine::SimulationEngine &simEngine,
-                                              Canvas::Scene &scene);
+    void populateSceneFromVerilogImportResult(
+        const Verilog::SimEngineImportResult &result,
+        SimEngine::SimulationEngine &simEngine, Canvas::Scene &scene);
 }

@@ -2,4 +2,6 @@ BasedOnStyle: LLVM
 IndentWidth: 4
 NamespaceIndentation: All
 IndentPPDirectives: BeforeHash
-ColumnLimit: 0
+ColumnLimit: 80
+ConstructorInitializerIndentWidth: 4
+PackConstructorInitializers: CurrentLine

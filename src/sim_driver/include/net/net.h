@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bess_api.h"
+#include "common/bess_api.h"
 #include "common/bess_uuid.h"
 
 namespace Bess::SimEngine {

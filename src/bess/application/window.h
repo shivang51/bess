@@ -27,15 +27,14 @@ namespace Bess {
     typedef std::function<void(double, double)> MouseWheelCallback;
     typedef std::function<void(int)> KeyReleaseCallback;
     typedef std::function<void(int)> KeyPressCallback;
-    typedef std::function<void(MouseButton, MouseButtonAction, glm::vec2)> MouseButtonCallback;
+    typedef std::function<void(MouseButton, MouseButtonAction, glm::vec2)>
+        MouseButtonCallback;
     typedef std::function<void(double, double)> MouseMoveCallback;
 
     class Window {
       public:
         struct GLFWwindowDeleter {
-            void operator()(GLFWwindow *window) {
-                glfwDestroyWindow(window);
-            }
+            void operator()(GLFWwindow *window) { glfwDestroyWindow(window); }
         };
 
         Window(int width, int height, const std::string &title);
@@ -71,7 +70,8 @@ namespace Bess {
         GLFWwindow *getGLFWHandle() const { return mp_window.get(); }
 
         // Vulkan-specific methods
-        void createWindowSurface(VkInstance instance, VkSurfaceKHR &surface) const;
+        void createWindowSurface(VkInstance instance,
+                                 VkSurfaceKHR &surface) const;
         std::vector<const char *> getVulkanExtensions() const;
         VkExtent2D getExtent() const;
         bool wasWindowResized() const { return m_framebufferResized; }
@@ -83,6 +83,7 @@ namespace Bess {
         bool m_framebufferResized = false;
 
         void initGLFW() const;
-        static void framebufferResizeCallback(GLFWwindow *window, int width, int height);
+        static void framebufferResizeCallback(GLFWwindow *window, int width,
+                                              int height);
     };
 } // namespace Bess

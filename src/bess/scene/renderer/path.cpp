@@ -28,7 +28,8 @@ namespace Bess::Renderer {
         return addCommand(cmd);
     }
 
-    Path *Path::cubicTo(const glm::vec2 &c1, const glm::vec2 &c2, const glm::vec2 &pos) {
+    Path *Path::cubicTo(const glm::vec2 &c1, const glm::vec2 &c2,
+                        const glm::vec2 &pos) {
         Path::PathCommand cmd;
         cmd.kind = Path::PathCommand::Kind::Quad;
         cmd.cubic.p = pos;
@@ -99,7 +100,9 @@ namespace Bess::Renderer {
                 currentPos = {c.line.p, c.z};
             } break;
             case Kind::Quad: {
-                auto positions = Renderer::PathRenderer::generateQuadBezierPoints(currentPos, c.quad.c, {c.quad.p, c.z});
+                auto positions =
+                    Renderer::PathRenderer::generateQuadBezierPoints(
+                        currentPos, c.quad.c, {c.quad.p, c.z});
                 points.reserve(points.size() + positions.size());
                 for (const auto &pos : positions) {
                     points.emplace_back(PathPoint{pos, weight, c.id});
@@ -107,9 +110,9 @@ namespace Bess::Renderer {
                 currentPos = {c.quad.p, c.z};
             } break;
             case Kind::Cubic: {
-                auto positions = Renderer::PathRenderer::generateCubicBezierPoints(currentPos,
-                                                                                             c.cubic.c1, c.cubic.c2,
-                                                                                             {c.cubic.p, c.z});
+                auto positions =
+                    Renderer::PathRenderer::generateCubicBezierPoints(
+                        currentPos, c.cubic.c1, c.cubic.c2, {c.cubic.p, c.z});
                 points.reserve(points.size() + positions.size());
                 for (const auto &pos : positions) {
                     points.emplace_back(PathPoint{pos, weight, c.id});
@@ -191,21 +194,13 @@ namespace Bess::Renderer {
         return true;
     }
 
-    PathProperties &Path::getPropsRef() {
-        return m_props;
-    }
+    PathProperties &Path::getPropsRef() { return m_props; }
 
-    const PathProperties &Path::getProps() const {
-        return m_props;
-    }
+    const PathProperties &Path::getProps() const { return m_props; }
 
-    void Path::setProps(const PathProperties &props) {
-        m_props = props;
-    }
+    void Path::setProps(const PathProperties &props) { m_props = props; }
 
-    float Path::getStrokeWidth() const {
-        return m_strokeWidth;
-    }
+    float Path::getStrokeWidth() const { return m_strokeWidth; }
 
     void Path::setStrokeWidth(float width) {
         if (m_strokeWidth == width)
@@ -215,21 +210,13 @@ namespace Bess::Renderer {
         m_scaledContoursCache.clear();
     }
 
-    void Path::setBounds(const glm::vec2 &bounds) {
-        m_bounds = bounds;
-    }
+    void Path::setBounds(const glm::vec2 &bounds) { m_bounds = bounds; }
 
-    const glm::vec2 &Path::getBounds() const {
-        return m_bounds;
-    }
+    const glm::vec2 &Path::getBounds() const { return m_bounds; }
 
-    void Path::setLowestPos(const glm::vec2 &pos) {
-        m_lowestPos = pos;
-    }
+    void Path::setLowestPos(const glm::vec2 &pos) { m_lowestPos = pos; }
 
-    const glm::vec2 &Path::getLowestPos() const {
-        return m_lowestPos;
-    }
+    const glm::vec2 &Path::getLowestPos() const { return m_lowestPos; }
 
     Path Path::copy() const {
         Path newPath;
@@ -261,7 +248,8 @@ namespace Bess::Renderer {
 
     // --- Helper: Skip delimiters ---
     void Path::skipSeparators(const char *&ptr, const char *end) {
-        while (ptr < end && (*ptr == ' ' || *ptr == ',' || *ptr == '\t' || *ptr == '\n' || *ptr == '\r')) {
+        while (ptr < end && (*ptr == ' ' || *ptr == ',' || *ptr == '\t' ||
+                             *ptr == '\n' || *ptr == '\r')) {
             ptr++;
         }
     }
@@ -272,7 +260,9 @@ namespace Bess::Renderer {
     }
 
     // --- Helper: Arc to Cubics ---
-    void Path::arcToCubics(Path &path, glm::vec2 cur, glm::vec2 rxry, float phi_deg, bool large_arc, bool sweep, glm::vec2 end) {
+    void Path::arcToCubics(Path &path, glm::vec2 cur, glm::vec2 rxry,
+                           float phi_deg, bool large_arc, bool sweep,
+                           glm::vec2 end) {
         // Ported from Python implementation
         if (rxry.x == 0 || rxry.y == 0) {
             path.lineTo(end);
@@ -341,7 +331,8 @@ namespace Bess::Renderer {
             delta += 2.0f * glm::pi<float>();
 
         // Split segments
-        int segs = std::max(1, (int)std::ceil(std::abs(delta) / (glm::pi<float>() / 2.0f)));
+        int segs = std::max(
+            1, (int)std::ceil(std::abs(delta) / (glm::pi<float>() / 2.0f)));
         float delta_per = delta / (float)segs;
 
         for (int i = 0; i < segs; ++i) {
@@ -361,9 +352,8 @@ namespace Bess::Renderer {
             auto getDeriv = [&](float t) {
                 float ct = std::cos(t);
                 float st = std::sin(t);
-                return glm::vec2(
-                    (-rx * cos_phi * st) - (ry * sin_phi * ct),
-                    (-rx * sin_phi * st) + (ry * cos_phi * ct));
+                return glm::vec2((-rx * cos_phi * st) - (ry * sin_phi * ct),
+                                 (-rx * sin_phi * st) + (ry * cos_phi * ct));
             };
 
             glm::vec2 p1 = getPoint(t1);
@@ -428,7 +418,9 @@ namespace Bess::Renderer {
             }
 
             bool absolute = (cmd >= 'A' && cmd <= 'Z');
-            char type = (char)(absolute ? cmd : (cmd - 'a' + 'A')); // Normalize to Uppercase
+            char type =
+                (char)(absolute ? cmd
+                                : (cmd - 'a' + 'A')); // Normalize to Uppercase
 
             // Parse logic based on Normalized Type
             switch (type) {
@@ -510,7 +502,8 @@ namespace Bess::Renderer {
 
                 glm::vec2 c1 = cur;
                 // If previous was C or S, reflect control point
-                if (lastCmd == 'C' || lastCmd == 'c' || lastCmd == 'S' || lastCmd == 's') {
+                if (lastCmd == 'C' || lastCmd == 'c' || lastCmd == 'S' ||
+                    lastCmd == 's') {
                     c1 = reflectPoint(prevCubicCtrl, cur);
                 }
 
@@ -546,7 +539,8 @@ namespace Bess::Renderer {
                     e += cur;
 
                 glm::vec2 c = cur;
-                if (lastCmd == 'Q' || lastCmd == 'q' || lastCmd == 'T' || lastCmd == 't') {
+                if (lastCmd == 'Q' || lastCmd == 'q' || lastCmd == 'T' ||
+                    lastCmd == 't') {
                     c = reflectPoint(prevQuadCtrl, cur);
                 }
 
@@ -568,13 +562,15 @@ namespace Bess::Renderer {
                 if (!absolute)
                     e += cur;
 
-                arcToCubics(path, cur, glm::vec2(rx, ry), rot, laf != 0.0f, sf != 0.0f, e);
+                arcToCubics(path, cur, glm::vec2(rx, ry), rot, laf != 0.0f,
+                            sf != 0.0f, e);
 
-                // After an arc, the spec isn't strictly clear on "previous control point"
-                // for subsequent smooth curves, usually assumed to be the endpoint itself
-                // unless we calculate the derivative of the last cubic segment.
-                // For simplicity/performance, we treat it as no control point (linear join).
-                // If high precision S/T after A is needed, calculate derivative of last cubic.
+                // After an arc, the spec isn't strictly clear on "previous
+                // control point" for subsequent smooth curves, usually assumed
+                // to be the endpoint itself unless we calculate the derivative
+                // of the last cubic segment. For simplicity/performance, we
+                // treat it as no control point (linear join). If high precision
+                // S/T after A is needed, calculate derivative of last cubic.
                 cur = e;
                 break;
             }
@@ -600,7 +596,8 @@ namespace Bess::Renderer {
 
             lastCmd = cmd;
 
-            // Reset control points if command wasn't a curve of that specific type
+            // Reset control points if command wasn't a curve of that specific
+            // type
             if (type != 'C' && type != 'S')
                 prevCubicCtrl = cur;
             if (type != 'Q' && type != 'T')

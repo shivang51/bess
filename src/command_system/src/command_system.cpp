@@ -5,7 +5,8 @@
 
 namespace Bess::Cmd {
     namespace {
-        Canvas::Scene *resolveCommandScene(Command *cmd, Canvas::Scene *fallbackScene) {
+        Canvas::Scene *resolveCommandScene(Command *cmd,
+                                           Canvas::Scene *fallbackScene) {
             if (!cmd) {
                 return fallbackScene;
             }
@@ -19,8 +20,7 @@ namespace Bess::Cmd {
 
         bool canMergeCommands(const Command *existingCmd,
                               const Command *newCmd) {
-            return existingCmd &&
-                   newCmd &&
+            return existingCmd && newCmd &&
                    existingCmd->sharesSceneContextWith(newCmd) &&
                    existingCmd->canMergeWith(newCmd);
         }
@@ -34,9 +34,10 @@ namespace Bess::Cmd {
 
     void CommandSystem::execute(std::unique_ptr<Command> cmd) {
         auto *commandScene = resolveCommandScene(cmd.get(), mp_scene);
-        if (cmd &&
-            cmd->execute(commandScene, mp_simEngine)) {
-            if (canMergeCommands(m_undoStack.empty() ? nullptr : m_undoStack.top().get(), cmd.get())) {
+        if (cmd && cmd->execute(commandScene, mp_simEngine)) {
+            if (canMergeCommands(m_undoStack.empty() ? nullptr
+                                                     : m_undoStack.top().get(),
+                                 cmd.get())) {
                 m_undoStack.top()->mergeWith(cmd.get());
             } else {
                 m_undoStack.push(std::move(cmd));
@@ -68,7 +69,9 @@ namespace Bess::Cmd {
     void CommandSystem::push(std::unique_ptr<Command> cmd, bool tryMerge) {
         resolveCommandScene(cmd.get(), mp_scene);
         if (tryMerge &&
-            canMergeCommands(m_undoStack.empty() ? nullptr : m_undoStack.top().get(), cmd.get())) {
+            canMergeCommands(m_undoStack.empty() ? nullptr
+                                                 : m_undoStack.top().get(),
+                             cmd.get())) {
             m_undoStack.top()->mergeWith(cmd.get());
         } else {
             m_undoStack.push(std::move(cmd));
@@ -89,15 +92,9 @@ namespace Bess::Cmd {
         this->mp_simEngine = simEngine;
     }
 
-    bool CommandSystem::canUndo() const {
-        return !m_undoStack.empty();
-    }
+    bool CommandSystem::canUndo() const { return !m_undoStack.empty(); }
 
-    bool CommandSystem::canRedo() const {
-        return !m_redoStack.empty();
-    }
+    bool CommandSystem::canRedo() const { return !m_redoStack.empty(); }
 
-    Canvas::Scene *CommandSystem::getScene() {
-        return mp_scene;
-    }
+    Canvas::Scene *CommandSystem::getScene() { return mp_scene; }
 } // namespace Bess::Cmd

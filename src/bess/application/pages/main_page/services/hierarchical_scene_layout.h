@@ -25,7 +25,6 @@ namespace Bess::Pages {
     };
 
     HierarchicalSceneLayoutResult applyHierarchicalSceneLayout(
-        Canvas::Scene &scene,
-        SimEngine::SimulationEngine &simEngine,
+        Canvas::Scene &scene, SimEngine::SimulationEngine &simEngine,
         const HierarchicalSceneLayoutOptions &options = {});
 } // namespace Bess::Pages

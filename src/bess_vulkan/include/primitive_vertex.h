@@ -24,8 +24,10 @@ namespace Bess::Vulkan {
             return bindingDescription;
         }
 
-        static std::array<VkVertexInputAttributeDescription, 5> getAttributeDescriptions() {
-            std::array<VkVertexInputAttributeDescription, 5> attributeDescriptions{};
+        static std::array<VkVertexInputAttributeDescription, 5>
+        getAttributeDescriptions() {
+            std::array<VkVertexInputAttributeDescription, 5>
+                attributeDescriptions{};
 
             // Position
             attributeDescriptions[0].binding = 0;
@@ -135,8 +137,10 @@ namespace Bess::Vulkan {
             return bindingDescription;
         }
 
-        static std::array<VkVertexInputAttributeDescription, 5> getAttributeDescriptions() {
-            std::array<VkVertexInputAttributeDescription, 5> attributeDescriptions{};
+        static std::array<VkVertexInputAttributeDescription, 5>
+        getAttributeDescriptions() {
+            std::array<VkVertexInputAttributeDescription, 5>
+                attributeDescriptions{};
 
             // Position
             attributeDescriptions[0].binding = 0;
@@ -166,7 +170,8 @@ namespace Bess::Vulkan {
             attributeDescriptions[4].binding = 0;
             attributeDescriptions[4].location = 4;
             attributeDescriptions[4].format = VK_FORMAT_R32_SINT;
-            attributeDescriptions[4].offset = offsetof(CommonVertex, texSlotIdx);
+            attributeDescriptions[4].offset =
+                offsetof(CommonVertex, texSlotIdx);
 
             return attributeDescriptions;
         }
@@ -187,8 +192,10 @@ namespace Bess::Vulkan {
             return bindingDescription;
         }
 
-        static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions() {
-            std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions{};
+        static std::array<VkVertexInputAttributeDescription, 4>
+        getAttributeDescriptions() {
+            std::array<VkVertexInputAttributeDescription, 4>
+                attributeDescriptions{};
 
             // Position
             attributeDescriptions[0].binding = 1;
@@ -232,7 +239,8 @@ namespace Bess::Vulkan {
             return bd;
         }
 
-        static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions() {
+        static std::array<VkVertexInputAttributeDescription, 4>
+        getAttributeDescriptions() {
             std::array<VkVertexInputAttributeDescription, 4> a{};
             // translation
             a[0].binding = 1;

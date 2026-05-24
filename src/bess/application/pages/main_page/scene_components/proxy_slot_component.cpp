@@ -12,9 +12,7 @@ namespace Bess::Canvas {
         m_outputSlotId = UUID::null;
     }
 
-    void ProxySlotComponent::clearConnections() {
-        m_connections.clear();
-    }
+    void ProxySlotComponent::clearConnections() { m_connections.clear(); }
 
     void ProxySlotComponent::clear() {
         clearSlots();
@@ -22,10 +20,9 @@ namespace Bess::Canvas {
     }
 
     void ProxySlotComponent::removeConnection(const UUID &connectionId) {
-        m_connections.erase(std::ranges::remove(m_connections,
-                                                connectionId)
-                                .begin(),
-                            m_connections.end());
+        m_connections.erase(
+            std::ranges::remove(m_connections, connectionId).begin(),
+            m_connections.end());
     }
 
     void ProxySlotComponent::addConnection(const UUID &connectionId) {

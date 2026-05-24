@@ -34,8 +34,10 @@ namespace Bess::Canvas {
             pathRenderer.reset();
         }
 
-        void begin(VkCommandBuffer cmd, const std::shared_ptr<Camera> &camera, uint32_t frameIdx) {
-            BESS_ASSERT(materialRenderer && pathRenderer, "[Viewport] Renderers not initialized");
+        void begin(VkCommandBuffer cmd, const std::shared_ptr<Camera> &camera,
+                   uint32_t frameIdx) {
+            BESS_ASSERT(materialRenderer && pathRenderer,
+                        "[Viewport] Renderers not initialized");
 
             materialRenderer->setCurrentFrameIndex(frameIdx);
             pathRenderer->setCurrentFrameIndex(frameIdx);
@@ -65,14 +67,14 @@ namespace Bess::Canvas {
     class Viewport {
       public:
         Viewport(const std::shared_ptr<Vulkan::VulkanDevice> &device,
-                 VkFormat imgFormat,
-                 VkExtent2D size);
+                 VkFormat imgFormat, VkExtent2D size);
 
         ~Viewport();
 
         const Renderers &getRenderers() const;
 
-        void begin(int frameIdx, const glm::vec4 &clearColor, const glm::uvec2 &clearPickingId);
+        void begin(int frameIdx, const glm::vec4 &clearColor,
+                   const glm::uvec2 &clearPickingId);
 
         VkCommandBuffer end();
 
@@ -84,7 +86,8 @@ namespace Bess::Canvas {
         void resizePickingBuffer(VkDeviceSize newSize);
 
         uint64_t getViewportTexture();
-        void setPickingCoord(uint32_t x, uint32_t y, uint32_t w = 1, uint32_t h = 1);
+        void setPickingCoord(uint32_t x, uint32_t y, uint32_t w = 1,
+                             uint32_t h = 1);
         const std::vector<glm::uvec2> &getPickingIdsResult();
         bool tryUpdatePickingResults();
         bool waitForPickingResults(uint64_t timeoutNs);
@@ -103,10 +106,13 @@ namespace Bess::Canvas {
 
         void copyIdForPicking();
 
-        void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
-                          VkBuffer &buffer, VkDeviceMemory &bufferMemory) const;
+        void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
+                          VkMemoryPropertyFlags properties, VkBuffer &buffer,
+                          VkDeviceMemory &bufferMemory) const;
 
-        void transitionImageLayout(VkCommandBuffer cmd, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const;
+        void transitionImageLayout(VkCommandBuffer cmd, VkImage image,
+                                   VkFormat format, VkImageLayout oldLayout,
+                                   VkImageLayout newLayout) const;
 
         void performPostProcessing(VkCommandBuffer cmd);
 
@@ -123,7 +129,8 @@ namespace Bess::Canvas {
         std::unique_ptr<Vulkan::VulkanImageView> m_imgView;
         std::unique_ptr<Vulkan::VulkanImageView> m_straightColorImageView;
         std::shared_ptr<Vulkan::VulkanOffscreenRenderPass> m_renderPass;
-        std::unique_ptr<Vulkan::VulkanPostprocessPipeline> m_postprocessPipeline;
+        std::unique_ptr<Vulkan::VulkanPostprocessPipeline>
+            m_postprocessPipeline;
 
         std::unique_ptr<Vulkan::VulkanCommandBuffers> m_cmdBuffers;
         std::shared_ptr<Vulkan::VulkanDevice> m_device;

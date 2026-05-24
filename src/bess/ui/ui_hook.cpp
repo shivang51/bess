@@ -4,7 +4,8 @@
 #include "widgets/m_widgets.h"
 
 namespace Bess::UI::Hook {
-    void UIHook::setPropertyDescriptors(const std::vector<PropertyDesc> &descs) {
+    void
+    UIHook::setPropertyDescriptors(const std::vector<PropertyDesc> &descs) {
         m_propDescriptors = descs;
     }
 
@@ -34,13 +35,15 @@ namespace Bess::UI::Hook {
         } break;
         case PropertyDescType::int_t: {
             int64_t value = std::get<int64_t>(desc.binding.getter());
-            if (ImGui::InputScalar(desc.name.c_str(), ImGuiDataType_S64, &value)) {
+            if (ImGui::InputScalar(desc.name.c_str(), ImGuiDataType_S64,
+                                   &value)) {
                 desc.binding.setter(value);
             }
         } break;
         case PropertyDescType::uint_t: {
             uint64_t value = std::get<uint64_t>(desc.binding.getter());
-            if (ImGui::InputScalar(desc.name.c_str(), ImGuiDataType_U64, &value)) {
+            if (ImGui::InputScalar(desc.name.c_str(), ImGuiDataType_U64,
+                                   &value)) {
                 desc.binding.setter(value);
             }
         } break;
@@ -52,7 +55,8 @@ namespace Bess::UI::Hook {
         } break;
         case PropertyDescType::string_t: {
             if (!m_stringPool.contains(key)) {
-                m_stringPool[key] = std::get<std::string>(desc.binding.getter());
+                m_stringPool[key] =
+                    std::get<std::string>(desc.binding.getter());
             }
             if (Widgets::TextBox(desc.name, m_stringPool[key])) {
                 desc.binding.setter(m_stringPool[key]);
@@ -60,10 +64,12 @@ namespace Bess::UI::Hook {
         } break;
         case PropertyDescType::enum_t: {
             if (!m_enumPool.contains(key)) {
-                const auto &constraints = std::get<EnumConstraints>(desc.constraints);
+                const auto &constraints =
+                    std::get<EnumConstraints>(desc.constraints);
                 m_enumPool[key] = constraints.labels;
             }
-            std::string currentValue = std::get<std::string>(desc.binding.getter());
+            std::string currentValue =
+                std::get<std::string>(desc.binding.getter());
             if (Widgets::ComboBox(desc.name, currentValue, m_enumPool[key])) {
                 desc.binding.setter(currentValue);
             }
@@ -75,8 +81,9 @@ namespace Bess::UI::Hook {
             }
         } break;
         default:
-            throw std::runtime_error(std::format("Unsupported property type {} for draw",
-                                                 static_cast<int>(desc.type)));
+            throw std::runtime_error(
+                std::format("Unsupported property type {} for draw",
+                            static_cast<int>(desc.type)));
         }
     }
 } // namespace Bess::UI::Hook

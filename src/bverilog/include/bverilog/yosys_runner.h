@@ -18,15 +18,19 @@ namespace Bess::Verilog {
 
     BESS_API std::string getDefaultYosysReleaseUrl();
 
-    BESS_API Json::Value runYosysForJson(const std::vector<std::filesystem::path> &verilogFiles,
-                                         const YosysRunnerConfig &config = {});
+    BESS_API Json::Value
+    runYosysForJson(const std::vector<std::filesystem::path> &verilogFiles,
+                    const YosysRunnerConfig &config = {});
 
-    BESS_API Json::Value runYosysForJson(const std::filesystem::path &verilogFile,
-                                         const YosysRunnerConfig &config = {});
+    BESS_API Json::Value
+    runYosysForJson(const std::filesystem::path &verilogFile,
+                    const YosysRunnerConfig &config = {});
 
-    BESS_API Design importVerilogToDesign(const std::vector<std::filesystem::path> &verilogFiles,
-                                          const YosysRunnerConfig &config = {});
+    BESS_API Design importVerilogToDesign(
+        const std::vector<std::filesystem::path> &verilogFiles,
+        const YosysRunnerConfig &config = {});
 
-    BESS_API Design importVerilogToDesign(const std::filesystem::path &verilogFile,
-                                          const YosysRunnerConfig &config = {});
+    BESS_API Design
+    importVerilogToDesign(const std::filesystem::path &verilogFile,
+                          const YosysRunnerConfig &config = {});
 } // namespace Bess::Verilog

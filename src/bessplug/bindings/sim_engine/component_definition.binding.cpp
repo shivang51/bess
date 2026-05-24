@@ -1,3 +1,4 @@
+#include "common/types.h"
 #include "expression_evalutator/expr_evaluator.h"
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
@@ -7,9 +8,8 @@
     #define PYBIND11_DEBUG
 #endif
 
-#include "component_definition.h"
 #include "internal_types.h"
-#include "types.h"
+
 
 #include <iostream>
 #include <pystate.h>
@@ -26,9 +26,7 @@ class PyComponentDefinition : public ComponentDefinition,
   public:
     using ComponentDefinition::ComponentDefinition;
 
-    PyComponentDefinition() {
-        m_ownership = CompDefinitionOwnership::Python;
-    }
+    PyComponentDefinition() { m_ownership = CompDefinitionOwnership::Python; }
 
     ~PyComponentDefinition() override {
         py::gil_scoped_acquire gil;
@@ -83,8 +81,7 @@ class PyComponentDefinition : public ComponentDefinition,
 
     SimTime getRescheduleTime(SimTime currentTime) const override {
         PYBIND11_OVERRIDE_NAME(
-            SimTime,
-            ComponentDefinition,
+            Bess::TimeNs, ComponentDefinition,
             "get_reschedule_time", // very important to match the Python name
             getRescheduleTime,
             currentTime // in nano seconds
@@ -93,37 +90,27 @@ class PyComponentDefinition : public ComponentDefinition,
 
     void onStateChange(const ComponentState &oldState,
                        const ComponentState &newState) override {
-        PYBIND11_OVERRIDE_NAME(
-            void,
-            ComponentDefinition,
-            "on_state_change",
-            onStateChange,
-            oldState,
-            newState);
+        PYBIND11_OVERRIDE_NAME(void, ComponentDefinition, "on_state_change",
+                               onStateChange, oldState, newState);
     }
 };
 
-template <typename T>
-static py::list toPyList(const std::vector<T> &inputs);
+template <typename T> static py::list toPyList(const std::vector<T> &inputs);
 
-#define DEF_PROP_GSET_T(type, prop_name, cpp_name)     \
-    def_property(                                      \
-        prop_name,                                     \
-        [](const ComponentDefinition &self) {          \
-            return self.get##cpp_name();               \
-        },                                             \
-        [](ComponentDefinition &self, const type &v) { \
-            self.set##cpp_name(v);                     \
+#define DEF_PROP_GSET_T(type, prop_name, cpp_name)                             \
+    def_property(                                                              \
+        prop_name,                                                             \
+        [](const ComponentDefinition &self) { return self.get##cpp_name(); },  \
+        [](ComponentDefinition &self, const type &v) {                         \
+            self.set##cpp_name(v);                                             \
         })
 
-#define DEF_PROP_STR_GSET(prop_name, cpp_name)                \
-    def_property(                                             \
-        prop_name,                                            \
-        [](const ComponentDefinition &self) {                 \
-            return self.get##cpp_name();                      \
-        },                                                    \
-        [](ComponentDefinition &self, const std::string &v) { \
-            self.set##cpp_name(v);                            \
+#define DEF_PROP_STR_GSET(prop_name, cpp_name)                                 \
+    def_property(                                                              \
+        prop_name,                                                             \
+        [](const ComponentDefinition &self) { return self.get##cpp_name(); },  \
+        [](ComponentDefinition &self, const std::string &v) {                  \
+            self.set##cpp_name(v);                                             \
         })
 
 void bind_sim_engine_component_definition(py::module_ &m) {
@@ -141,12 +128,11 @@ void bind_sim_engine_component_definition(py::module_ &m) {
         return py::none();
     };
 
-    auto from_sim_fn = [](const std::string &name,
-                          const std::string &group_name,
-                          const SlotsGroupInfo &inputs,
-                          const SlotsGroupInfo &outputs,
-                          SimDelayNanoSeconds sim_delay,
-                          const py::function &sim_function) -> std::shared_ptr<ComponentDefinition> {
+    auto from_sim_fn =
+        [](const std::string &name, const std::string &group_name,
+           const SlotsGroupInfo &inputs, const SlotsGroupInfo &outputs,
+           SimDelayNanoSeconds sim_delay, const py::function &sim_function)
+        -> std::shared_ptr<ComponentDefinition> {
         py::gil_scoped_acquire gil;
         auto comp_def = std::make_shared<PyComponentDefinition>();
         comp_def->setName(name);
@@ -154,16 +140,16 @@ void bind_sim_engine_component_definition(py::module_ &m) {
         comp_def->setInputSlotsInfo(inputs);
         comp_def->setOutputSlotsInfo(outputs);
         comp_def->setSimDelay(sim_delay);
-        comp_def->setSimulationFunction(sim_function.cast<SimulationFunction>());
+        comp_def->setSimulationFunction(
+            sim_function.cast<SimulationFunction>());
         return comp_def;
     };
 
-    auto from_operator_info = [](const std::string &name,
-                                 const std::string &group_name,
-                                 const SlotsGroupInfo &inputs,
-                                 const SlotsGroupInfo &outputs,
-                                 SimDelayNanoSeconds sim_delay,
-                                 OperatorInfo info) -> std::shared_ptr<ComponentDefinition> {
+    auto from_operator_info =
+        [](const std::string &name, const std::string &group_name,
+           const SlotsGroupInfo &inputs, const SlotsGroupInfo &outputs,
+           SimDelayNanoSeconds sim_delay,
+           OperatorInfo info) -> std::shared_ptr<ComponentDefinition> {
         py::gil_scoped_acquire gil;
         auto comp_def = std::make_shared<PyComponentDefinition>();
         comp_def->setName(name);
@@ -172,16 +158,16 @@ void bind_sim_engine_component_definition(py::module_ &m) {
         comp_def->setOutputSlotsInfo(outputs);
         comp_def->setSimDelay(sim_delay);
         comp_def->setOpInfo(info);
-        comp_def->setSimulationFunction(ExprEval::exprEvalSimFunc);
+        // comp_def->setSimulationFunction(ExprEval::exprEvalSimFunc);
         return comp_def;
     };
 
-    auto from_output_expressions = [](const std::string &name,
-                                      const std::string &group_name,
-                                      const SlotsGroupInfo &inputs,
-                                      const SlotsGroupInfo &outputs,
-                                      SimDelayNanoSeconds sim_delay,
-                                      const std::vector<std::string> &output_expressions) -> std::shared_ptr<ComponentDefinition> {
+    auto from_output_expressions =
+        [](const std::string &name, const std::string &group_name,
+           const SlotsGroupInfo &inputs, const SlotsGroupInfo &outputs,
+           SimDelayNanoSeconds sim_delay,
+           const std::vector<std::string> &output_expressions)
+        -> std::shared_ptr<ComponentDefinition> {
         py::gil_scoped_acquire gil;
         auto comp_def = std::make_shared<PyComponentDefinition>();
         comp_def->setName(name);
@@ -190,20 +176,20 @@ void bind_sim_engine_component_definition(py::module_ &m) {
         comp_def->setOutputSlotsInfo(outputs);
         comp_def->setSimDelay(sim_delay);
         comp_def->setOutputExpressions(output_expressions);
-        comp_def->setSimulationFunction(ExprEval::exprEvalSimFunc);
+        // comp_def->setSimulationFunction(ExprEval::exprEvalSimFunc);
         return comp_def;
     };
 
-    py::class_<ComponentDefinition,
-               PyComponentDefinition,
-               py::smart_holder>(m, "ComponentDefinition")
+    py::class_<ComponentDefinition, PyComponentDefinition, py::smart_holder>(
+        m, "ComponentDefinition")
         .def(py::init<>(), "Create an empty, inert component definition.")
         .def("get_hash", &ComponentDefinition::getHash)
         .def("clone", &ComponentDefinition::clone)
         .def("compute_hash", &ComponentDefinition::computeHash)
         .def("get_reschedule_time", &ComponentDefinition::getRescheduleTime,
              py::arg("current_time_ns"),
-             "Get the next reschedule time given the current time in nanoseconds.")
+             "Get the next reschedule time given the current time in "
+             "nanoseconds.")
         .def("on_state_change", &ComponentDefinition::onStateChange,
              py::arg("old_state"), py::arg("new_state"),
              "Callback invoked when the component's state changes.")
@@ -215,38 +201,32 @@ void bind_sim_engine_component_definition(py::module_ &m) {
         .DEF_PROP_GSET_T(SlotsGroupInfo, "output_slots_info", OutputSlotsInfo)
         .DEF_PROP_GSET_T(SimDelayNanoSeconds, "sim_delay", SimDelay)
         .DEF_PROP_GSET_T(OperatorInfo, "op_info", OpInfo)
-        .DEF_PROP_GSET_T(CompDefIOGrowthPolicy, "io_growth_policy", IOGrowthPolicy)
-        .DEF_PROP_GSET_T(std::vector<std::string>, "output_expressions", OutputExpressions)
-        .def_property("aux_data", getAuxData, setAuxData, "Get Set Aux Data as a Python object.")
-        .DEF_PROP_GSET_T(SimulationFunction, "simulation_function", SimulationFunction)
+        .DEF_PROP_GSET_T(CompDefIOGrowthPolicy, "io_growth_policy",
+                         IOGrowthPolicy)
+        .DEF_PROP_GSET_T(std::vector<std::string>, "output_expressions",
+                         OutputExpressions)
+        .def_property("aux_data", getAuxData, setAuxData,
+                      "Get Set Aux Data as a Python object.")
+        .DEF_PROP_GSET_T(SimulationFunction, "simulation_function",
+                         SimulationFunction)
         .def_static("from_expressions", from_output_expressions,
-                    py::arg("name"),
-                    py::arg("group_name"),
-                    py::arg("inputs"),
-                    py::arg("outputs"),
-                    py::arg("sim_delay"),
+                    py::arg("name"), py::arg("group_name"), py::arg("inputs"),
+                    py::arg("outputs"), py::arg("sim_delay"),
                     py::arg("expressions"),
                     "Create a ComponentDefinition from output expressions.")
-        .def_static("from_operator", from_operator_info,
-                    py::arg("name"),
-                    py::arg("group_name"),
-                    py::arg("inputs"),
-                    py::arg("outputs"),
-                    py::arg("sim_delay"),
+        .def_static("from_operator", from_operator_info, py::arg("name"),
+                    py::arg("group_name"), py::arg("inputs"),
+                    py::arg("outputs"), py::arg("sim_delay"),
                     py::arg("op_info"),
                     "Create a ComponentDefinition from operator info.")
-        .def_static("from_sim_fn", from_sim_fn,
-                    py::arg("name"),
-                    py::arg("group_name"),
-                    py::arg("inputs"),
-                    py::arg("outputs"),
-                    py::arg("sim_delay"),
+        .def_static("from_sim_fn", from_sim_fn, py::arg("name"),
+                    py::arg("group_name"), py::arg("inputs"),
+                    py::arg("outputs"), py::arg("sim_delay"),
                     py::arg("sim_function"),
                     "Create a ComponentDefinition from a simulation function.");
 }
 
-template <typename T>
-static py::list toPyList(const std::vector<T> &inputs) {
+template <typename T> static py::list toPyList(const std::vector<T> &inputs) {
     py::list lst;
     for (const auto &p : inputs) {
         lst.append(py::cast(p));
@@ -254,8 +234,9 @@ static py::list toPyList(const std::vector<T> &inputs) {
     return lst;
 }
 
-static ComponentState convertResultToComponentState(const py::object &result,
-                                                    const ComponentState &prev) {
+static ComponentState
+convertResultToComponentState(const py::object &result,
+                              const ComponentState &prev) {
     if (result.is_none()) {
         std::cerr << "[Bindings] simulate: got None, returning prev\n";
         std::flush(std::cerr);
@@ -267,12 +248,14 @@ static ComponentState convertResultToComponentState(const py::object &result,
     if (py::hasattr(result, "_native")) {
         py::object n = result.attr("_native");
         if (py::isinstance<ComponentState>(n)) {
-            std::cerr << "[Bindings] simulate: got wrapper with _native ComponentState\n";
+            std::cerr << "[Bindings] simulate: got wrapper with _native "
+                         "ComponentState\n";
             std::flush(std::cerr);
             return n.cast<ComponentState>();
         }
     }
     std::cerr << "[Bindings] simulate: invalid return type\n";
     std::flush(std::cerr);
-    throw py::type_error("Simulation function must return ComponentState (native), a wrapper with _native, or None");
+    throw py::type_error("Simulation function must return ComponentState "
+                         "(native), a wrapper with _native, or None");
 }

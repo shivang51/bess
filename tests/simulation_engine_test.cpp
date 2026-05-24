@@ -1,12 +1,11 @@
+#include "common/types.h"
 #include "component_catalog.h"
-#include "component_definition.h"
-#include "gtest/gtest.h"
+#include "dig_sim_driver.h"
 #include "plugin_manager.h"
 #include "simulation_engine.h"
-#include "types.h"
+#include "gtest/gtest.h"
 #include <chrono>
 #include <memory>
-#include <ranges>
 #include <string_view>
 #include <thread>
 
@@ -16,64 +15,87 @@ namespace {
     using Bess::UUID;
     using namespace Bess::SimEngine;
 
-    std::shared_ptr<ComponentDefinition> findDefinitionByName(std::string_view name) {
+    std::shared_ptr<Drivers::CompDef>
+    findDefinitionByName(std::string_view name) {
         const auto &components = ComponentCatalog::instance().getComponents();
-        const auto it = std::ranges::find_if(components, [name](const auto &definition) {
-            return definition && definition->getName() == name;
-        });
+        const auto it =
+            std::ranges::find_if(components, [name](const auto &definition) {
+                return definition && definition->getName() == name;
+            });
 
         return it == components.end() ? nullptr : *it;
     }
 
     void ensurePrimitiveGateDefinitions() {
-        auto ensureGate = [](const std::string &name,
-                             size_t inputCount,
-                             const std::function<LogicState(const std::vector<SlotState> &)> &eval) {
+        auto ensureGate = [](const std::string &name, size_t inputCount,
+                             const std::function<LogicState(
+                                 const std::vector<SlotState> &)> &eval) {
             if (findDefinitionByName(name)) {
                 return;
             }
 
-            auto definition = std::make_shared<ComponentDefinition>();
+            auto definition = std::make_shared<Drivers::Digital::DigCompDef>();
             definition->setName(name);
             definition->setGroupName("Logic");
-            definition->setInputSlotsInfo({SlotsGroupType::input, false, inputCount, {}, {}});
-            definition->setOutputSlotsInfo({SlotsGroupType::output, false, 1, {}, {}});
-            definition->setSimulationFunction([eval](const std::vector<SlotState> &inputs,
-                                                     SimTime ts,
-                                                     const ComponentState &oldState) {
-                auto newState = oldState;
-                newState.inputStates = inputs;
-                if (newState.outputStates.empty()) {
-                    newState.outputStates.resize(1);
-                }
+            definition->setInputSlotsInfo(
+                {SlotsGroupType::input, false, inputCount, {}, {}});
+            definition->setOutputSlotsInfo(
+                {SlotsGroupType::output, false, 1, {}, {}});
+            definition->setSimFn(
+                [eval](const std::shared_ptr<Drivers::Digital::DigCompSimData>
+                           &rawData)
+                    -> std::shared_ptr<Drivers::Digital::DigCompSimData> {
+                    const auto simData = std::dynamic_pointer_cast<
+                        Drivers::Digital::DigCompSimData>(rawData);
+                    if (!simData) {
+                        return rawData;
+                    }
 
-                const auto next = eval(inputs);
-                const auto prev = oldState.outputStates.empty() ? LogicState::unknown : oldState.outputStates[0].state;
-                newState.outputStates[0].state = next;
-                newState.outputStates[0].lastChangeTime = ts;
-                newState.isChanged = prev != next;
-                return newState;
-            });
-            definition->setSimDelay(SimDelayNanoSeconds(1));
+                    if (simData->outputStates.empty()) {
+                        simData->outputStates.resize(1);
+                    }
+
+                    const auto next = eval(simData->inputStates);
+                    const auto prev =
+                        simData->prevState.outputStates.empty()
+                            ? LogicState::unknown
+                            : simData->prevState.outputStates[0].state;
+
+                    simData->outputStates[0].state = next;
+                    simData->outputStates[0].lastChangeTime =
+                        std::chrono::duration_cast<SimTime>(simData->simTime);
+                    simData->simDependants = prev != next;
+                    return simData;
+                });
+            definition->setPropDelay(Bess::TimeNs(1));
             ComponentCatalog::instance().registerComponent(definition);
         };
 
         ensureGate("NOT Gate", 1, [](const std::vector<SlotState> &inputs) {
-            return inputs[0].state == LogicState::high ? LogicState::low : LogicState::high;
+            const auto inState =
+                inputs.empty() ? LogicState::low : inputs[0].state;
+            return inState == LogicState::high ? LogicState::low
+                                               : LogicState::high;
         });
         ensureGate("AND Gate", 2, [](const std::vector<SlotState> &inputs) {
-            return (inputs[0].state == LogicState::high && inputs[1].state == LogicState::high)
-                       ? LogicState::high
-                       : LogicState::low;
+            const bool a =
+                inputs.size() > 0 && inputs[0].state == LogicState::high;
+            const bool b =
+                inputs.size() > 1 && inputs[1].state == LogicState::high;
+            return (a && b) ? LogicState::high : LogicState::low;
         });
         ensureGate("OR Gate", 2, [](const std::vector<SlotState> &inputs) {
-            return (inputs[0].state == LogicState::high || inputs[1].state == LogicState::high)
-                       ? LogicState::high
-                       : LogicState::low;
+            const bool a =
+                inputs.size() > 0 && inputs[0].state == LogicState::high;
+            const bool b =
+                inputs.size() > 1 && inputs[1].state == LogicState::high;
+            return (a || b) ? LogicState::high : LogicState::low;
         });
         ensureGate("XOR Gate", 2, [](const std::vector<SlotState> &inputs) {
-            const bool a = inputs[0].state == LogicState::high;
-            const bool b = inputs[1].state == LogicState::high;
+            const bool a =
+                inputs.size() > 0 && inputs[0].state == LogicState::high;
+            const bool b =
+                inputs.size() > 1 && inputs[1].state == LogicState::high;
             return (a != b) ? LogicState::high : LogicState::low;
         });
     }
@@ -91,7 +113,8 @@ namespace {
         return predicate();
     }
 
-    bool slotStateEquals(SimulationEngine &engine, const UUID &uuid, SlotType type, int idx, LogicState expected) {
+    bool slotStateEquals(SimulationEngine &engine, const UUID &uuid,
+                         SlotType type, int idx, LogicState expected) {
         return engine.getDigitalSlotState(uuid, type, idx).state == expected;
     }
 
@@ -104,11 +127,14 @@ class SimulationEngineTest : public testing::Test {
   protected:
     static void SetUpTestSuite() {
         auto &pluginManager = Bess::Plugins::PluginManager::getInstance();
-        ASSERT_TRUE(pluginManager.loadPluginsFromDirectory("plugins"));
+        // Plugins are loaded globally in main_test.cpp, so we don't need to
+        // assert on it here
+        pluginManager.loadPluginsFromDirectory("plugins");
     }
 
     SimulationEngine *engine = nullptr;
-    std::shared_ptr<ComponentDefinition> inputDef, outputDef, notDef, andDef, orDef, xorDef;
+    std::shared_ptr<Drivers::CompDef> inputDef, outputDef, notDef, andDef,
+        orDef, xorDef;
 
     void SetUp() override {
         engine = &SimulationEngine::instance();
@@ -141,7 +167,7 @@ class SimulationEngineTest : public testing::Test {
         }
     }
 
-    UUID addComponent(const std::shared_ptr<ComponentDefinition> &definition) {
+    UUID addComponent(const std::shared_ptr<Drivers::CompDef> &definition) {
         const auto uuid = engine->addComponent(definition);
         EXPECT_NE(uuid, UUID::null);
         return uuid;
@@ -151,18 +177,17 @@ class SimulationEngineTest : public testing::Test {
         engine->setOutputSlotState(inputId, 0, boolToState(value));
     }
 
-    void expectOutputEventually(const UUID &uuid,
-                                SlotType type,
-                                int idx,
+    void expectOutputEventually(const UUID &uuid, SlotType type, int idx,
                                 LogicState expected,
                                 std::chrono::milliseconds timeout = 250ms) {
-        ASSERT_TRUE(waitUntil([&] {
-            return slotStateEquals(*engine, uuid, type, idx, expected);
-        }, timeout))
-            << "Timed out waiting for slot state " << static_cast<int>(expected);
+        ASSERT_TRUE(waitUntil(
+            [&] { return slotStateEquals(*engine, uuid, type, idx, expected); },
+            timeout))
+            << "Timed out waiting for slot state "
+            << static_cast<int>(expected);
     }
 
-    void exerciseBinaryGate(const std::shared_ptr<ComponentDefinition> &gateDef,
+    void exerciseBinaryGate(const std::shared_ptr<Drivers::CompDef> &gateDef,
                             const std::array<bool, 4> &expectedOutputs) {
         const auto inputA = addComponent(inputDef);
         const auto inputB = addComponent(inputDef);
@@ -183,16 +208,15 @@ class SimulationEngineTest : public testing::Test {
         for (size_t i = 0; i < rows.size(); ++i) {
             driveInput(inputA, rows[i].first);
             driveInput(inputB, rows[i].second);
-            expectOutputEventually(gate, SlotType::digitalOutput, 0, boolToState(expectedOutputs[i]));
+            expectOutputEventually(gate, SlotType::digitalOutput, 0,
+                                   boolToState(expectedOutputs[i]));
         }
     }
-
 };
 
 TEST_F(SimulationEngineTest, CatalogIncludesBuiltInAndPluginDefinitions) {
     EXPECT_NE(findDefinitionByName("Input"), nullptr);
     EXPECT_NE(findDefinitionByName("Output"), nullptr);
-    EXPECT_NE(findDefinitionByName("Clock"), nullptr);
     EXPECT_NE(findDefinitionByName("AND Gate"), nullptr);
     EXPECT_NE(findDefinitionByName("OR Gate"), nullptr);
     EXPECT_NE(findDefinitionByName("XOR Gate"), nullptr);
@@ -203,14 +227,16 @@ TEST_F(SimulationEngineTest, CanConnectComponentsRejectsInvalidConfigurations) {
     const auto gate = addComponent(andDef);
 
     const auto [nullOk, nullError] = engine->canConnectComponents(
-        Bess::UUID::null, 0, SlotType::digitalOutput, gate, 0, SlotType::digitalInput);
+        Bess::UUID::null, 0, SlotType::digitalOutput, gate, 0,
+        SlotType::digitalInput);
     EXPECT_FALSE(nullOk);
     EXPECT_EQ(nullError, "Cannot connect to/from null component");
 
     const auto [sameTypeOk, sameTypeError] = engine->canConnectComponents(
         input, 0, SlotType::digitalOutput, gate, 0, SlotType::digitalOutput);
     EXPECT_FALSE(sameTypeOk);
-    EXPECT_EQ(sameTypeError, "Cannot connect pins of the same type i.e. input -> input or output -> output");
+    EXPECT_EQ(sameTypeError, "Cannot connect pins of the same type i.e. input "
+                             "-> input or output -> output");
 
     const auto [badIndexOk, badIndexError] = engine->canConnectComponents(
         input, 9, SlotType::digitalOutput, gate, 0, SlotType::digitalInput);
@@ -218,7 +244,8 @@ TEST_F(SimulationEngineTest, CanConnectComponentsRejectsInvalidConfigurations) {
     EXPECT_TRUE(badIndexError.starts_with("Invalid source pin index."));
 }
 
-TEST_F(SimulationEngineTest, ConnectionLifecycleTracksDuplicatesAndComponentDeletion) {
+TEST_F(SimulationEngineTest,
+       ConnectionLifecycleTracksDuplicatesAndComponentDeletion) {
     const auto inputA = addComponent(inputDef);
     const auto inputB = addComponent(inputDef);
     const auto gate = addComponent(andDef);
@@ -247,8 +274,8 @@ TEST_F(SimulationEngineTest, ConnectionLifecycleTracksDuplicatesAndComponentDele
     EXPECT_EQ(connections.inputs[0][0].first, inputA);
     EXPECT_EQ(connections.inputs[1][0].first, inputB);
 
-    engine->deleteConnection(inputA, SlotType::digitalOutput, 0,
-                             gate, SlotType::digitalInput, 0);
+    engine->deleteConnection(inputA, SlotType::digitalOutput, 0, gate,
+                             SlotType::digitalInput, 0);
 
     connections = engine->getConnections(gate);
     EXPECT_TRUE(connections.inputs[0].empty());
@@ -306,14 +333,18 @@ TEST_F(SimulationEngineTest, PauseAndStepControlsWhenQueuedSimulationRuns) {
 
     driveInput(input, true);
     std::this_thread::sleep_for(20ms);
-    EXPECT_EQ(engine->getDigitalSlotState(gate, SlotType::digitalOutput, 0).state, LogicState::high);
+    EXPECT_EQ(
+        engine->getDigitalSlotState(gate, SlotType::digitalOutput, 0).state,
+        LogicState::high);
 
     engine->stepSimulation();
     expectOutputEventually(gate, SlotType::digitalOutput, 0, LogicState::low);
 
     driveInput(input, false);
     std::this_thread::sleep_for(20ms);
-    EXPECT_EQ(engine->getDigitalSlotState(gate, SlotType::digitalOutput, 0).state, LogicState::low);
+    EXPECT_EQ(
+        engine->getDigitalSlotState(gate, SlotType::digitalOutput, 0).state,
+        LogicState::low);
 
     engine->stepSimulation();
     expectOutputEventually(gate, SlotType::digitalOutput, 0, LogicState::high);
@@ -328,13 +359,15 @@ TEST_F(SimulationEngineTest, DeleteComponentRemovesItFromStateAndConnections) {
 
     engine->deleteComponent(input);
 
-    EXPECT_EQ(engine->getDigitalComponent(input), nullptr);
+    EXPECT_EQ(engine->getComponent<Drivers::Digital::DigSimComp>(input),
+              nullptr);
     const auto connections = engine->getConnections(gate);
     ASSERT_EQ(connections.inputs.size(), 1u);
     EXPECT_TRUE(connections.inputs[0].empty());
 }
 
-TEST_F(SimulationEngineTest, MultiStageCircuitPropagatesAcrossChainedComponents) {
+TEST_F(SimulationEngineTest,
+       MultiStageCircuitPropagatesAcrossChainedComponents) {
     const auto inputA = addComponent(inputDef);
     const auto inputB = addComponent(inputDef);
     const auto andGate = addComponent(andDef);
@@ -352,20 +385,24 @@ TEST_F(SimulationEngineTest, MultiStageCircuitPropagatesAcrossChainedComponents)
 
     driveInput(inputA, false);
     driveInput(inputB, false);
-    expectOutputEventually(notGate, SlotType::digitalOutput, 0, LogicState::high);
+    expectOutputEventually(notGate, SlotType::digitalOutput, 0,
+                           LogicState::high);
     expectOutputEventually(sink, SlotType::digitalInput, 0, LogicState::high);
 
     driveInput(inputA, true);
     driveInput(inputB, true);
-    expectOutputEventually(notGate, SlotType::digitalOutput, 0, LogicState::low);
+    expectOutputEventually(notGate, SlotType::digitalOutput, 0,
+                           LogicState::low);
     expectOutputEventually(sink, SlotType::digitalInput, 0, LogicState::low);
 
     driveInput(inputB, false);
-    expectOutputEventually(andGate, SlotType::digitalOutput, 0, LogicState::low);
+    expectOutputEventually(andGate, SlotType::digitalOutput, 0,
+                           LogicState::low);
     expectOutputEventually(sink, SlotType::digitalInput, 0, LogicState::high);
 }
 
-TEST_F(SimulationEngineTest, RepeatedSignalChangesRemainConsistentAcrossSingleChain) {
+TEST_F(SimulationEngineTest,
+       RepeatedSignalChangesRemainConsistentAcrossSingleChain) {
     const auto input = addComponent(inputDef);
     const auto notGate = addComponent(notDef);
     const auto sink = addComponent(outputDef);
@@ -376,7 +413,9 @@ TEST_F(SimulationEngineTest, RepeatedSignalChangesRemainConsistentAcrossSingleCh
 
     for (const bool value : {false, true, false, true, true, false}) {
         driveInput(input, value);
-        expectOutputEventually(notGate, SlotType::digitalOutput, 0, boolToState(!value));
-        expectOutputEventually(sink, SlotType::digitalInput, 0, boolToState(!value));
+        expectOutputEventually(notGate, SlotType::digitalOutput, 0,
+                               boolToState(!value));
+        expectOutputEventually(sink, SlotType::digitalInput, 0,
+                               boolToState(!value));
     }
 }

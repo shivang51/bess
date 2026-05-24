@@ -8,19 +8,28 @@
 
 namespace Bess::JsonConvert {
     // Primitives
-    inline void toJsonValue(const char &v, Json::Value &j) { j = static_cast<int>(v); }
+    inline void toJsonValue(const char &v, Json::Value &j) {
+        j = static_cast<int>(v);
+    }
     inline void toJsonValue(const int &v, Json::Value &j) { j = v; }
     inline void toJsonValue(const float &v, Json::Value &j) { j = v; }
     inline void toJsonValue(const double &v, Json::Value &j) { j = v; }
     inline void toJsonValue(const std::string &v, Json::Value &j) { j = v; }
     inline void toJsonValue(const bool &v, Json::Value &j) { j = v; }
-    inline void toJsonValue(const uint32_t &v, Json::Value &j) { j = Json::UInt(v); }
-    inline void toJsonValue(const uint64_t &v, Json::Value &j) { j = Json::UInt64(v); }
+    inline void toJsonValue(const uint32_t &v, Json::Value &j) {
+        j = Json::UInt(v);
+    }
+    inline void toJsonValue(const uint64_t &v, Json::Value &j) {
+        j = Json::UInt64(v);
+    }
 
     // std::chrono::duration
     template <typename Rep, typename Period>
-    void toJsonValue(const std::chrono::duration<Rep, Period> &duration, Json::Value &j) {
-        j = static_cast<double>(std::chrono::duration_cast<std::chrono::duration<double>>(duration).count());
+    void toJsonValue(const std::chrono::duration<Rep, Period> &duration,
+                     Json::Value &j) {
+        j = static_cast<double>(
+            std::chrono::duration_cast<std::chrono::duration<double>>(duration)
+                .count());
     }
 
     // Vectors
@@ -87,10 +96,12 @@ namespace Bess::JsonConvert {
     }
 
     template <typename Rep, typename Period>
-    void fromJsonValue(const Json::Value &j, std::chrono::duration<Rep, Period> &duration) {
+    void fromJsonValue(const Json::Value &j,
+                       std::chrono::duration<Rep, Period> &duration) {
         if (j.isNumeric()) {
             double count = j.asDouble();
-            duration = std::chrono::duration<Rep, Period>(static_cast<Rep>(count));
+            duration =
+                std::chrono::duration<Rep, Period>(static_cast<Rep>(count));
         }
     }
 
@@ -132,7 +143,8 @@ namespace Bess::JsonConvert {
      */
     inline void fromJsonValue(const Json::Value &j, glm::vec2 &vec) {
         if (!j.isArray() || j.size() != 2) {
-            throw std::runtime_error("Bess::JsonHelpers: Invalid JSON for glm::vec2. Must be an array of size 2.");
+            throw std::runtime_error("Bess::JsonHelpers: Invalid JSON for "
+                                     "glm::vec2. Must be an array of size 2.");
         }
         vec.x = j[0].asFloat();
         vec.y = j[1].asFloat();
@@ -149,7 +161,8 @@ namespace Bess::JsonConvert {
 
     inline void fromJsonValue(const Json::Value &j, glm::vec3 &vec) {
         if (!j.isArray() || j.size() != 3) {
-            throw std::runtime_error("Bess::JsonHelpers: Invalid JSON for glm::vec3. Must be an array of size 3.");
+            throw std::runtime_error("Bess::JsonHelpers: Invalid JSON for "
+                                     "glm::vec3. Must be an array of size 3.");
         }
         vec.x = j[0].asFloat();
         vec.y = j[1].asFloat();
@@ -168,7 +181,8 @@ namespace Bess::JsonConvert {
 
     inline void fromJsonValue(const Json::Value &j, glm::vec4 &vec) {
         if (!j.isArray() || j.size() != 4) {
-            throw std::runtime_error("Bess::JsonHelpers: Invalid JSON for glm::vec4. Must be an array of size 4.");
+            throw std::runtime_error("Bess::JsonHelpers: Invalid JSON for "
+                                     "glm::vec4. Must be an array of size 4.");
         }
         vec.x = j[0].asFloat();
         vec.y = j[1].asFloat();
@@ -185,7 +199,8 @@ namespace Bess::JsonConvert {
      */
     inline void toJsonValue(const glm::mat4 &mat, Json::Value &j) {
         j = Json::Value(Json::arrayValue);
-        // GLM matrices are column-major. We store row-major for simplicity and readability.
+        // GLM matrices are column-major. We store row-major for simplicity and
+        // readability.
         for (int row = 0; row < 4; ++row) {
             for (int col = 0; col < 4; ++col) {
                 j.append(mat[col][row]);
@@ -200,7 +215,8 @@ namespace Bess::JsonConvert {
      */
     inline void fromJsonValue(const Json::Value &j, glm::mat4 &mat) {
         if (!j.isArray() || j.size() != 16) {
-            throw std::runtime_error("Bess::JsonHelpers: Invalid JSON for glm::mat4. Must be an array of size 16.");
+            throw std::runtime_error("Bess::JsonHelpers: Invalid JSON for "
+                                     "glm::mat4. Must be an array of size 16.");
         }
         for (int row = 0; row < 4; ++row) {
             for (int col = 0; col < 4; ++col) {

@@ -1,7 +1,6 @@
 #pragma once
 
-#include "component_definition.h"
-
+#include "sim_driver/sim_driver.h"
 #include "ui_panel.h"
 
 #include <string>
@@ -16,9 +15,11 @@ namespace Bess::UI {
 
         void onBeforeDraw() override;
 
-        static UUID createComponent(const std::shared_ptr<SimEngine::ComponentDefinition> &def,
+        static UUID
+        createComponent(const std::shared_ptr<SimEngine::Drivers::CompDef> &def,
+                        const glm::vec2 &pos = {0.f, 0.f});
+        static UUID createComponent(std::type_index tIdx,
                                     const glm::vec2 &pos = {0.f, 0.f});
-        static UUID createComponent(std::type_index tIdx, const glm::vec2 &pos = {0.f, 0.f});
 
       private:
         std::string m_searchQuery;

@@ -3,18 +3,21 @@
 
 namespace Bess::Canvas {
 
-    void SceneSerReg::registerComponent(const std::string &typeName, DeSerFunc func) {
+    void SceneSerReg::registerComponent(const std::string &typeName,
+                                        DeSerFunc func) {
         auto &m_registry = getRegistry();
         m_registry[typeName] = std::move(func);
     }
 
-    std::shared_ptr<SceneComponent> SceneSerReg::createComponentFromJson(const Json::Value &j) {
+    std::shared_ptr<SceneComponent>
+    SceneSerReg::createComponentFromJson(const Json::Value &j) {
         const auto &m_registry = getRegistry();
         const auto &typeName = j["typeName"].asString();
         if (m_registry.contains(typeName)) {
             return m_registry.at(typeName)(j);
         }
-        BESS_WARN("[SceneSerReg] No registered deserialization function for component type {}",
+        BESS_WARN("[SceneSerReg] No registered deserialization function for "
+                  "component type {}",
                   typeName);
         return nullptr;
     }
@@ -24,7 +27,8 @@ namespace Bess::Canvas {
         m_registry.clear();
     }
 
-    std::unordered_map<std::string, SceneSerReg::DeSerFunc> &SceneSerReg::getRegistry() {
+    std::unordered_map<std::string, SceneSerReg::DeSerFunc> &
+    SceneSerReg::getRegistry() {
         static std::unordered_map<std::string, DeSerFunc> registry;
         return registry;
     }

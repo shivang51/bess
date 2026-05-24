@@ -9,27 +9,34 @@
 using namespace Bess::Vulkan;
 namespace Bess::Renderer {
 
-    TextRenderer::TextRenderer(const std::shared_ptr<VulkanDevice> &device,
-                               const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
-                               VkExtent2D extent)
-        : m_device(device), m_renderPass(renderPass), m_extent(extent) {
-        m_pathRenderer = std::make_unique<Renderer::PathRenderer>(device, renderPass, extent);
+    TextRenderer::TextRenderer(
+        const std::shared_ptr<VulkanDevice> &device,
+        const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
+        VkExtent2D extent)
+        : m_device(device),
+          m_renderPass(renderPass),
+          m_extent(extent) {
+        m_pathRenderer = std::make_unique<Renderer::PathRenderer>(
+            device, renderPass, extent);
 
-        constexpr auto robotoPath = Assets::Fonts::Paths::roboto.paths[0].data();
-        constexpr auto alexBrushPath = Assets::Fonts::Paths::alexBrush.paths[0].data();
-        constexpr auto codIcons = Assets::Fonts::Paths::codeIcons.paths[0].data();
+        constexpr auto robotoPath =
+            Assets::Fonts::Paths::roboto.paths[0].data();
+        constexpr auto alexBrushPath =
+            Assets::Fonts::Paths::alexBrush.paths[0].data();
+        constexpr auto codIcons =
+            Assets::Fonts::Paths::codeIcons.paths[0].data();
         m_font = std::move(Font::FontFile(robotoPath));
         m_font.init(48);
 
         auto iconFont = Font::FontFile(codIcons);
-        iconFont.init(48,
-                      UI::Icons::CodIcons::ICON_MIN_CI,
+        iconFont.init(48, UI::Icons::CodIcons::ICON_MIN_CI,
                       UI::Icons::CodIcons::ICON_MAX_CI);
         m_iconFonts.push_back(std::move(iconFont));
     }
 
-    void TextRenderer::drawText(const std::string &text, const glm::vec3 &pos, const size_t size,
-                                const glm::vec4 &color, const uint64_t &id, float angle) {
+    void TextRenderer::drawText(const std::string &text, const glm::vec3 &pos,
+                                const size_t size, const glm::vec4 &color,
+                                const uint64_t &id, float angle) {
         const float scale = static_cast<float>(size) / m_font.getSize();
         float posX = pos.x, posY = pos.y;
         for (const char ch : text) {
@@ -40,18 +47,20 @@ namespace Bess::Renderer {
             }
 
             auto &glyph = m_font.getGlyph(ch);
-            m_pathRenderer->drawPath(glyph.path, {.genStroke = false,
-                                                  .genFill = true,
-                                                  .translate = {posX, posY, pos.z},
-                                                  .scale = glm::vec2(scale),
-                                                  .fillColor = color,
-                                                  .glyphId = id});
+            m_pathRenderer->drawPath(glyph.path,
+                                     {.genStroke = false,
+                                      .genFill = true,
+                                      .translate = {posX, posY, pos.z},
+                                      .scale = glm::vec2(scale),
+                                      .fillColor = color,
+                                      .glyphId = id});
             posX += glyph.advanceX * scale;
         }
     }
 
-    void TextRenderer::drawIcon(const std::string &text, const glm::vec3 &pos, const size_t size,
-                                const glm::vec4 &color, const uint64_t &id, float angle) {
+    void TextRenderer::drawIcon(const std::string &text, const glm::vec3 &pos,
+                                const size_t size, const glm::vec4 &color,
+                                const uint64_t &id, float angle) {
         const float scale = static_cast<float>(size) / m_font.getSize();
         float posX = pos.x, posY = pos.y;
 
@@ -61,8 +70,8 @@ namespace Bess::Renderer {
 
         while (ptr < end) {
             int bytesConsumed = 0;
-            uint32_t codepoint = Font::GlyphExtractor::decodeSingleUTF8(ptr,
-                                                                        bytesConsumed);
+            uint32_t codepoint =
+                Font::GlyphExtractor::decodeSingleUTF8(ptr, bytesConsumed);
 
             if (codepoint == '\n') {
                 posY += m_iconFonts.front().getSize();
@@ -73,20 +82,24 @@ namespace Bess::Renderer {
 
             auto &glyph = m_iconFonts.front().getGlyph(codepoint);
 
-            m_pathRenderer->drawPath(glyph.path, {.genStroke = false,
-                                                  .genFill = true,
-                                                  .translate = {posX, posY, pos.z},
-                                                  .scale = glm::vec2(scale),
-                                                  .fillColor = color,
-                                                  .glyphId = id});
+            m_pathRenderer->drawPath(glyph.path,
+                                     {.genStroke = false,
+                                      .genFill = true,
+                                      .translate = {posX, posY, pos.z},
+                                      .scale = glm::vec2(scale),
+                                      .fillColor = color,
+                                      .glyphId = id});
 
             posX += glyph.advanceX * scale;
             ptr += bytesConsumed;
         }
     }
 
-    glm::vec2 TextRenderer::drawTextWrapped(const std::string &text, const glm::vec3 &pos, size_t size,
-                                            const glm::vec4 &color, const uint64_t &id, float wrapWidthPx, float angle) {
+    glm::vec2 TextRenderer::drawTextWrapped(const std::string &text,
+                                            const glm::vec3 &pos, size_t size,
+                                            const glm::vec4 &color,
+                                            const uint64_t &id,
+                                            float wrapWidthPx, float angle) {
         const float scale = static_cast<float>(size) / m_font.getSize();
         float posX = pos.x, posY = pos.y;
         float widthUsed = 0.f, heightUsed = 0;
@@ -101,12 +114,13 @@ namespace Bess::Renderer {
             }
 
             auto &glyph = m_font.getGlyph(ch);
-            m_pathRenderer->drawPath(glyph.path, {.genStroke = false,
-                                                  .genFill = true,
-                                                  .translate = {posX, posY, pos.z},
-                                                  .scale = glm::vec2(scale),
-                                                  .fillColor = color,
-                                                  .glyphId = id});
+            m_pathRenderer->drawPath(glyph.path,
+                                     {.genStroke = false,
+                                      .genFill = true,
+                                      .translate = {posX, posY, pos.z},
+                                      .scale = glm::vec2(scale),
+                                      .fillColor = color,
+                                      .glyphId = id});
             posX += glyph.advanceX * scale;
             widthUsed += glyph.advanceX * scale;
         }
@@ -115,7 +129,8 @@ namespace Bess::Renderer {
         return {widthUsed, heightUsed};
     }
 
-    glm::vec2 TextRenderer::getRenderSize(const std::string &text, size_t size) {
+    glm::vec2 TextRenderer::getRenderSize(const std::string &text,
+                                          size_t size) {
         const float scale = static_cast<float>(size) / m_font.getSize();
 
         float currentLineWidth = 0.f;
@@ -145,9 +160,7 @@ namespace Bess::Renderer {
         m_pathRenderer->beginFrame(commandBuffer);
     }
 
-    void TextRenderer::endFrame() {
-        m_pathRenderer->endFrame();
-    }
+    void TextRenderer::endFrame() { m_pathRenderer->endFrame(); }
 
     void TextRenderer::setCurrentFrameIndex(uint32_t frameIndex) {
         m_pathRenderer->setCurrentFrameIndex(frameIndex);
@@ -157,7 +170,5 @@ namespace Bess::Renderer {
         m_pathRenderer->updateUniformBuffer(ubo);
     }
 
-    Font::FontFile *TextRenderer::getFontFile() {
-        return &m_font;
-    }
+    Font::FontFile *TextRenderer::getFontFile() { return &m_font; }
 } // namespace Bess::Renderer
