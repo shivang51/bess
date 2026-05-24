@@ -72,6 +72,17 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 		common
 )
 
+if("${BUILD_ARCH}" STREQUAL "x64" AND WIN32)
+		target_link_libraries(${PROJECT_NAME} PUBLIC 
+        "freetype;"
+    )
+
+		target_link_directories(${PROJECT_NAME} PUBLIC
+        "${CMAKE_SOURCE_DIR}/external/freetype/libs/windows"
+    )
+endif()
+
+
 add_dependencies(${PROJECT_NAME} common)
 
 if(MSVC)

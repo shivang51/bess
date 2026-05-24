@@ -81,7 +81,7 @@ if(LINUX)
 		)
 endif()
 
-if("${BUILD_ARCH}" STREQUAL "x64" AND "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+if("${BUILD_ARCH}" STREQUAL "x64" AND WIN32)
 		target_link_libraries(${PROJECT_NAME} PUBLIC 
         "gdi32;"
         "freetype;"
