@@ -79,8 +79,7 @@ add_dependencies(${PROJECT_NAME}
 	bverilog
 )
 
-find_package(glfw3 REQUIRED)
-if(UNIX AND NOT APPLE)
+if(LINUX)
     find_package(X11 REQUIRED)
     find_package(Threads REQUIRED)
     
