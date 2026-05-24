@@ -50,7 +50,6 @@ set(PNG_TOOLS OFF CACHE BOOL "Build libpng tools" FORCE)
 FetchContent_MakeAvailable(glfw libpng)
 
 find_package(Vulkan REQUIRED)
-find_package(PNG REQUIRED)
 
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
 	find_package(X11 REQUIRED)
@@ -74,7 +73,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC 
-	PNG::PNG
+	png_static
 	glfw
 	${X11_LIBRARIES}
 	Vulkan::Vulkan
