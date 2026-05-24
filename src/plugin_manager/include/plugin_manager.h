@@ -13,7 +13,6 @@ namespace Bess::Plugins {
     void savePyThreadState();
     void restorePyThreadState();
 
-    // using this macro to fix pybind11 warning
     class BESS_API PluginManager {
       public:
         static PluginManager &getInstance();

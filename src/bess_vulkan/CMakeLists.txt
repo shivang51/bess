@@ -48,9 +48,10 @@ set(ALL_FILES
 		${EXT_OTHERS_SRC}
 )
 
+
 add_library(${PROJECT_NAME} SHARED ${ALL_FILES})
 
-target_compile_definitions(BessVulkan PRIVATE BESS_VULKAN_EXPORT)
+target_compile_definitions(${PROJECT_NAME} PRIVATE BESS_EXPORTS)
 target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}")
 
 target_include_directories(${PROJECT_NAME} PUBLIC

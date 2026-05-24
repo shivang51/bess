@@ -40,6 +40,7 @@ set(ALL_FILES
 
 add_library(${PROJECT_NAME} SHARED ${ALL_FILES})
 
+target_compile_definitions(${PROJECT_NAME} PRIVATE BESS_EXPORTS)
 target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}")
 
 target_link_libraries(${PROJECT_NAME} PUBLIC 
