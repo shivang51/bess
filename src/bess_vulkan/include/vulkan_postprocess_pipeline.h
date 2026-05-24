@@ -2,6 +2,7 @@
 #include "common/bess_api.h"
 #include "device.h"
 #include <memory>
+#include <string>
 #include <vulkan/vulkan_core.h>
 
 namespace Bess::Vulkan {

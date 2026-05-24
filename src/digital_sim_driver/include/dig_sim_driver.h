@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/bess_api.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "common/types.h"
@@ -12,12 +11,12 @@
 
 namespace Bess::SimEngine::Drivers::Digital {
 
-    struct BESS_API DigCompState {
+    struct DigCompState {
         std::vector<SlotState> inputStates;
         std::vector<SlotState> outputStates;
     };
 
-    struct BESS_API DigCompSimData : SimFnDataBase {
+    struct DigCompSimData : SimFnDataBase {
         std::vector<SlotState> inputStates;
         std::vector<SlotState> outputStates;
         std::vector<std::string> *expressions = nullptr;
@@ -25,7 +24,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         DigCompState prevState;
     };
 
-    class BESS_API DigCompDef : public EvtBasedCompDef {
+    class DigCompDef : public EvtBasedCompDef {
       public:
         static constexpr const char *TypeName = "digital_compdef";
 
@@ -100,7 +99,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         bool m_keepIOCountEq = false;
     };
 
-    class BESS_API DigSimComp : public EvtBasedSimComp {
+    class DigSimComp : public EvtBasedSimComp {
       public:
         DigSimComp() = default;
         ~DigSimComp() override = default;
@@ -166,7 +165,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         UUID m_netUuid = UUID::null;
     };
 
-    class BESS_API DigModuleSimComp : public DigSimComp {
+    class DigModuleSimComp : public DigSimComp {
       public:
         DigModuleSimComp() = default;
         ~DigModuleSimComp() override = default;
@@ -174,7 +173,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         void onPostSimulate() override;
     };
 
-    class BESS_API DigitalSimDriver final : public EvtBasedSimDriver {
+    class DigitalSimDriver final : public EvtBasedSimDriver {
       public:
         DigitalSimDriver() = default;
         ~DigitalSimDriver() override = default;

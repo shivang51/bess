@@ -1,11 +1,10 @@
 #pragma once
-#include "common/bess_api.h"
 #include "common/bess_uuid.h"
 #include "dig_sim_driver.h"
 #include <memory>
 
 namespace Bess::SimEngine {
-    class BESS_API ModuleDefinition : public Drivers::Digital::DigCompDef {
+    class ModuleDefinition : public Drivers::Digital::DigCompDef {
       public:
         static constexpr const char *TypeName = "dig_mod_compdef";
 

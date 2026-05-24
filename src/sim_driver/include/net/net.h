@@ -1,10 +1,9 @@
 #pragma once
 
-#include "common/bess_api.h"
 #include "common/bess_uuid.h"
 
 namespace Bess::SimEngine {
-    class BESS_API Net {
+    class Net {
       public:
         Net() = default;
         ~Net() = default;

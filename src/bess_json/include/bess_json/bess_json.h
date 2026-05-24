@@ -45,11 +45,11 @@
     namespace Bess::JsonConvert {                                              \
         inline void toJsonValue(const ClassName &obj, Json::Value &j) {        \
             j = Json::objectValue;                                             \
-            FOR_EACH(SERIALIZE_MEMBER, __VA_ARGS__)                            \
+            EXPAND(FOR_EACH(SERIALIZE_MEMBER, __VA_ARGS__))                    \
         }                                                                      \
         inline void fromJsonValue(const Json::Value &j, ClassName &obj) {      \
             if (j.isObject()) {                                                \
-                FOR_EACH(DESERIALIZE_MEMBER, __VA_ARGS__)                      \
+                EXPAND(FOR_EACH(DESERIALIZE_MEMBER, __VA_ARGS__))              \
             }                                                                  \
         }                                                                      \
     }
@@ -85,11 +85,11 @@
     namespace Bess::JsonConvert {                                              \
         inline void toJsonValue(const className &obj, Json::Value &j) {        \
             j = Json::objectValue;                                             \
-            FOR_EACH(SERIALIZE_PROP, __VA_ARGS__)                              \
+            EXPAND(FOR_EACH(SERIALIZE_PROP, __VA_ARGS__))                      \
         }                                                                      \
         inline void fromJsonValue(const Json::Value &j, className &obj) {      \
             if (j.isObject()) {                                                \
-                FOR_EACH(DESERIALIZE_DISPATCH, __VA_ARGS__)                    \
+                EXPAND(FOR_EACH(DESERIALIZE_DISPATCH, __VA_ARGS__))            \
             }                                                                  \
         }                                                                      \
     }
@@ -99,7 +99,7 @@
         const auto &obj =                                                      \
             static_cast<const std::decay_t<decltype(*this)> &>(*this);         \
         Json::Value j = Json::objectValue;                                     \
-        FOR_EACH(SERIALIZE_PROP, __VA_ARGS__)                                  \
+        EXPAND(FOR_EACH(SERIALIZE_PROP, __VA_ARGS__))                          \
         return j;                                                              \
     }()
 
@@ -107,7 +107,7 @@
     do {                                                                       \
         auto &obj = *sharedPtr;                                                \
         if (j.isObject()) {                                                    \
-            FOR_EACH(DESERIALIZE_DISPATCH, __VA_ARGS__)                        \
+            EXPAND(FOR_EACH(DESERIALIZE_DISPATCH, __VA_ARGS__))                \
         }                                                                      \
     } while (0)
 
@@ -132,13 +132,13 @@
         inline void toJsonValue(const ClassName &obj, Json::Value &j) {        \
             Bess::JsonConvert::toJsonValue(                                    \
                 static_cast<const BaseClass &>(obj), j);                       \
-            FOR_EACH(SERIALIZE_PROP, __VA_ARGS__)                              \
+            EXPAND(FOR_EACH(SERIALIZE_PROP, __VA_ARGS__))                      \
         }                                                                      \
         inline void fromJsonValue(const Json::Value &j, ClassName &obj) {      \
             if (j.isObject()) {                                                \
                 Bess::JsonConvert::fromJsonValue(                              \
                     j, static_cast<BaseClass &>(obj));                         \
-                FOR_EACH(DESERIALIZE_DISPATCH, __VA_ARGS__)                    \
+                EXPAND(FOR_EACH(DESERIALIZE_DISPATCH, __VA_ARGS__))            \
             }                                                                  \
         }                                                                      \
     }

@@ -36,7 +36,7 @@ namespace Bess::Vulkan {
         const std::vector<std::shared_ptr<VulkanCommandBuffer>> &
         getCmdBuffers() const;
 
-        std::shared_ptr<VulkanCommandBuffer> at(u_int32_t idx);
+        std::shared_ptr<VulkanCommandBuffer> at(uint32_t idx);
 
       private:
         std::shared_ptr<VulkanDevice> m_device;

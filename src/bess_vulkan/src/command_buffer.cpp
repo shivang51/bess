@@ -83,7 +83,7 @@ namespace Bess::Vulkan {
     }
 
     std::shared_ptr<VulkanCommandBuffer>
-    VulkanCommandBuffers::at(u_int32_t idx) {
+    VulkanCommandBuffers::at(uint32_t idx) {
         return m_commandBuffers[idx];
     }
 } // namespace Bess::Vulkan

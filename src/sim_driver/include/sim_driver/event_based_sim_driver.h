@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/bess_api.h"
 #include "common/bess_uuid.h"
 #include "common/types.h"
 #include "sim_driver.h"
@@ -11,7 +10,7 @@
 
 namespace Bess::SimEngine::Drivers {
 
-    class BESS_API EvtBasedCompDef : public CompDef {
+    class EvtBasedCompDef : public CompDef {
       public:
         EvtBasedCompDef() = default;
         ~EvtBasedCompDef() override = default;
@@ -30,7 +29,7 @@ namespace Bess::SimEngine::Drivers {
         TimeNs m_propDelay{0}; // propogation delay
     };
 
-    class BESS_API EvtBasedSimComp : public SimComponent {
+    class EvtBasedSimComp : public SimComponent {
       public:
         // void(input states, output states)
         typedef std::function<void(const std::vector<SlotState> &,
@@ -61,7 +60,7 @@ namespace Bess::SimEngine::Drivers {
         TOnStateChangeCbsMap m_onStateChangeCbs;
     };
 
-    struct BESS_API SimEvt {
+    struct SimEvt {
         UUID evtId;
         UUID compId;
         UUID schedulerId;
@@ -77,7 +76,7 @@ namespace Bess::SimEngine::Drivers {
         }
     };
 
-    class BESS_API EvtBasedSimDriver : public SimDriver {
+    class EvtBasedSimDriver : public SimDriver {
       public:
         EvtBasedSimDriver() = default;
         ~EvtBasedSimDriver() override = default;
