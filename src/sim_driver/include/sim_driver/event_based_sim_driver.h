@@ -132,7 +132,8 @@ namespace Bess::SimEngine::Drivers {
 
         TimeNs m_currentSimTime{0};
         std::condition_variable m_runIterCv;
-        std::mutex m_runIterMutex;
+        mutable std::mutex m_runIterMutex;
+        mutable std::mutex m_eventsMutex;
         std::set<SimEvt> m_events;
     };
 

@@ -154,6 +154,7 @@ namespace Bess::SimEngine::Drivers {
                                         const UUID &schedulerId, bool notify) {
         {
             std::lock_guard lk(m_runIterMutex);
+            std::lock_guard evtsLock(m_eventsMutex);
             scheduleEvtLocked(compId, simTime, schedulerId);
         }
 
@@ -176,6 +177,7 @@ namespace Bess::SimEngine::Drivers {
 
     void EvtBasedSimDriver::clearPendingEvents() {
         std::lock_guard lk(m_runIterMutex);
+        std::lock_guard evtsLock(m_eventsMutex);
         m_events.clear();
         m_runIterCv.notify_all();
     }
@@ -230,6 +232,7 @@ namespace Bess::SimEngine::Drivers {
             }
         }
 
+        std::lock_guard evtsLock(m_eventsMutex);
         for (const auto &evt : evts) {
             m_events.erase(evt);
         }
@@ -266,6 +269,7 @@ namespace Bess::SimEngine::Drivers {
 
     SimEvt EvtBasedSimDriver::getNextEvt() const {
         SimEvt ev;
+        std::lock_guard lk(m_eventsMutex);
         if (m_events.empty()) {
             ev.simTime = m_currentSimTime;
             return ev;
@@ -286,6 +290,7 @@ namespace Bess::SimEngine::Drivers {
         std::set<UUID> collectedCompIds = {};
         std::vector<SimEvt> evtsToSim = {};
 
+        std::unique_lock lk(m_eventsMutex);
         for (const auto &evt : m_events) {
             if (evt.simTime > m_currentSimTime) {
                 continue;
@@ -298,6 +303,7 @@ namespace Bess::SimEngine::Drivers {
             collectedCompIds.insert(evt.compId);
             evtsToSim.push_back(evt);
         }
+        lk.unlock();
 
         std::ranges::sort(evtsToSim, [](const SimEvt &a, const SimEvt &b) {
             if (a.simTime != b.simTime) {
