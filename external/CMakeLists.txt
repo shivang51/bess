@@ -44,6 +44,9 @@ FetchContent_Declare(
     GIT_TAG "v1.6.55"
 )
 
+set(PNG_TESTS OFF CACHE BOOL "Build libpng tests" FORCE)
+set(PNG_TOOLS OFF CACHE BOOL "Build libpng tools" FORCE)
+
 FetchContent_MakeAvailable(glfw libpng)
 
 find_package(Vulkan REQUIRED)
