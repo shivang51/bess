@@ -239,8 +239,20 @@ namespace Bess::SimEngine::Drivers::Digital {
             return;
         }
 
-        std::dynamic_pointer_cast<DigCompDef>(comp->getDefinition())
-            ->computeExpressionsIfNeeded();
+        BESS_ASSERT(digiComp->getDefinition(),
+                    "Component definition cannot be null for digital sim "
+                    "component with UUID {}",
+                    (uint64_t)comp->getUuid());
+
+        const auto digDef =
+            std::dynamic_pointer_cast<DigCompDef>(comp->getDefinition());
+
+        BESS_ASSERT(digDef,
+                    "Component definition for component with UUID {} is "
+                    "not of type DigCompDef",
+                    (uint64_t)comp->getUuid());
+
+        digDef->computeExpressionsIfNeeded();
 
         Net net;
         net.addComponent(digiComp->getUuid());

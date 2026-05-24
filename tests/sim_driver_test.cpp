@@ -30,24 +30,31 @@ namespace {
         DigCompDef andGate;
         andGate.setName("AND Gate");
         andGate.setGroupName("Logic");
-        andGate.setInputSlotsInfo({SlotsGroupType::input, false, 2, {"A", "B"}, {}});
-        andGate.setOutputSlotsInfo({SlotsGroupType::output, false, 1, {"Y"}, {}});
+        andGate.setInputSlotsInfo(
+            {SlotsGroupType::input, false, 2, {"A", "B"}, {}});
+        andGate.setOutputSlotsInfo(
+            {SlotsGroupType::output, false, 1, {"Y"}, {}});
         andGate.setOpInfo({'*', false});
         andGate.setPropDelay(Bess::TimeNs(1));
-        andGate.setSimFn([](const std::shared_ptr<Drivers::Digital::DigCompSimData> &dataBase) {
-            const auto data = std::dynamic_pointer_cast<DigCompSimData>(dataBase);
-            if (!data)
-                return dataBase;
+        andGate.setSimFn(
+            [](const std::shared_ptr<Drivers::Digital::DigCompSimData>
+                   &dataBase) {
+                const auto data =
+                    std::dynamic_pointer_cast<DigCompSimData>(dataBase);
+                if (!data)
+                    return dataBase;
 
-            data->outputStates.resize(1);
-            const bool out = data->inputStates.size() >= 2 &&
-                             data->inputStates[0].state == LogicState::high &&
-                             data->inputStates[1].state == LogicState::high;
-            data->outputStates[0] = SlotState(out ? LogicState::high : LogicState::low,
-                                              std::chrono::duration_cast<SimTime>(data->simTime));
-            data->simDependants = true;
-            return dataBase;
-        });
+                data->outputStates.resize(1);
+                const bool out =
+                    data->inputStates.size() >= 2 &&
+                    data->inputStates[0].state == LogicState::high &&
+                    data->inputStates[1].state == LogicState::high;
+                data->outputStates[0] = SlotState(
+                    out ? LogicState::high : LogicState::low,
+                    std::chrono::duration_cast<SimTime>(data->simTime));
+                data->simDependants = true;
+                return dataBase;
+            });
 
         EXPECT_EQ(andGate.getName(), "AND Gate");
         EXPECT_EQ(andGate.getGroupName(), "Logic");
@@ -59,7 +66,8 @@ namespace {
 
         const auto simFn = andGate.getSimFn();
         auto data = std::make_shared<DigCompSimData>();
-        data->inputStates = {SlotState(LogicState::high, Bess::TimeNs(0)), SlotState(LogicState::high, Bess::TimeNs(0))};
+        data->inputStates = {SlotState(LogicState::high, Bess::TimeNs(0)),
+                             SlotState(LogicState::high, Bess::TimeNs(0))};
         data->simTime = Bess::TimeNs(10);
         const auto nextBase = simFn(data);
         const auto next = std::dynamic_pointer_cast<DigCompSimData>(nextBase);
@@ -71,15 +79,18 @@ namespace {
 
     TEST(SimDriverTest, AddComponentRegistersItInDigitalDriverMap) {
         DigitalSimDriver driver;
+        driver.init();
+
         const Bess::UUID compId(0xAA11);
 
         auto component = std::make_shared<DigSimComp>();
         component->setUuid(compId);
         component->setName("AND#1");
+        component->setDefinition(std::make_shared<DigCompDef>());
 
         EXPECT_EQ(driver.getComponent<DigSimComp>(compId), nullptr);
 
-        driver.addComponent(component);
+        driver.addComponent(component, false);
 
         const auto stored = driver.getComponent<DigSimComp>(compId);
         ASSERT_NE(stored, nullptr);
@@ -97,42 +108,51 @@ namespace {
 
         auto def = std::make_shared<DigCompDef>();
         def->setName("NAND Gate");
-        def->setSimFn([component, &simulatedByRunLoop](const std::shared_ptr<Drivers::SimFnDataBase> &dataBase) {
-            const auto &data = std::dynamic_pointer_cast<DigCompSimData>(dataBase);
+        def->setSimFn(
+            [component, &simulatedByRunLoop](
+                const std::shared_ptr<Drivers::SimFnDataBase> &dataBase) {
+                const auto &data =
+                    std::dynamic_pointer_cast<DigCompSimData>(dataBase);
 
-            const bool aHigh = data->inputStates.size() > 0 &&
-                               data->inputStates[0].state == LogicState::high;
-            const bool bHigh = data->inputStates.size() > 1 &&
-                               data->inputStates[1].state == LogicState::high;
-            const auto outState = (aHigh && bHigh) ? LogicState::low : LogicState::high;
-            const SimTime slotTs =
-                std::chrono::duration_cast<SimTime>(data->simTime);
+                const bool aHigh =
+                    data->inputStates.size() > 0 &&
+                    data->inputStates[0].state == LogicState::high;
+                const bool bHigh =
+                    data->inputStates.size() > 1 &&
+                    data->inputStates[1].state == LogicState::high;
+                const auto outState =
+                    (aHigh && bHigh) ? LogicState::low : LogicState::high;
+                const SimTime slotTs =
+                    std::chrono::duration_cast<SimTime>(data->simTime);
 
-            data->outputStates = std::vector<SlotState>{SlotState(outState, slotTs)};
+                data->outputStates =
+                    std::vector<SlotState>{SlotState(outState, slotTs)};
 
-            component->setOutputStates(data->outputStates);
+                component->setOutputStates(data->outputStates);
 
-            simulatedByRunLoop.store(true);
+                simulatedByRunLoop.store(true);
 
-            return data;
-        });
+                return data;
+            });
 
         component->setDefinition(def->clone());
         component->setUuid(compId);
         component->setName("NAND#1");
-        component->setInputStates(std::vector<SlotState>{SlotState(LogicState::low, SimTime(0)),
-                                                         SlotState(LogicState::low, SimTime(0))});
-        component->setOutputStates(std::vector<SlotState>{SlotState(LogicState::low, SimTime(0))});
+        component->setInputStates(
+            std::vector<SlotState>{SlotState(LogicState::low, SimTime(0)),
+                                   SlotState(LogicState::low, SimTime(0))});
+        component->setOutputStates(
+            std::vector<SlotState>{SlotState(LogicState::low, SimTime(0))});
 
         driver.setState(Drivers::SimDriverState::running);
-        std::thread runLoop([&driver]() {
-            driver.run();
-        });
+        std::thread runLoop([&driver]() { driver.run(); });
 
         driver.addComponent(component);
 
-        const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(200);
-        while (!simulatedByRunLoop.load() && std::chrono::steady_clock::now() < deadline) {
+        const auto deadline =
+            std::chrono::steady_clock::now() + std::chrono::milliseconds(200);
+        while (!simulatedByRunLoop.load() &&
+               std::chrono::steady_clock::now() < deadline) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
 
@@ -148,7 +168,8 @@ namespace {
 
     TEST(SimDriverTest, SimulateReturnsFalseForUnknownComponent) {
         DigitalSimDriver driver;
-        const Drivers::SimEvt evt{Bess::UUID(1), Bess::UUID(99), Bess::UUID::null, Bess::TimeNs(10.0)};
+        const Drivers::SimEvt evt{Bess::UUID(1), Bess::UUID(99),
+                                  Bess::UUID::null, Bess::TimeNs(10.0)};
 
         EXPECT_FALSE(driver.simulate(evt, {}));
     }
@@ -157,11 +178,11 @@ namespace {
         auto &engine = SimulationEngine::instance();
         auto def = std::make_shared<DigCompDef>();
         def->setName("NAND Gate");
-        def->setInputSlotsInfo({SlotsGroupType::input, false, 2, {"A", "B"}, {}});
+        def->setInputSlotsInfo(
+            {SlotsGroupType::input, false, 2, {"A", "B"}, {}});
         def->setOutputSlotsInfo({SlotsGroupType::output, false, 1, {"Y"}, {}});
-        def->setSimFn([](const std::shared_ptr<Drivers::Digital::DigCompSimData> &dataBase) {
-            return dataBase;
-        });
+        def->setSimFn([](const std::shared_ptr<Drivers::Digital::DigCompSimData>
+                             &dataBase) { return dataBase; });
 
         auto id = engine.addComponent(def);
         EXPECT_NE(id, Bess::UUID::null);
