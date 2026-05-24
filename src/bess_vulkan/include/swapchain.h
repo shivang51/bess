@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bess_vulkan_api.h"
+#include "common/bess_api.h"
 #include "device.h"
 #include <memory>
 #include <vector>
@@ -8,7 +8,7 @@
 
 namespace Bess::Vulkan {
 
-    class BESS_VULKAN_API VulkanSwapchain {
+    class BESS_API VulkanSwapchain {
       public:
         VulkanSwapchain(VkInstance instance,
                         std::shared_ptr<VulkanDevice> device,
@@ -49,7 +49,7 @@ namespace Bess::Vulkan {
         void createSwapchain(VkSwapchainKHR oldSwapchain);
         void createImageViews();
 
-        struct BESS_VULKAN_API SwapChainSupportDetails {
+        struct BESS_API SwapChainSupportDetails {
             VkSurfaceCapabilitiesKHR capabilities;
             std::vector<VkSurfaceFormatKHR> formats;
             std::vector<VkPresentModeKHR> presentModes;

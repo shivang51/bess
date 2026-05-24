@@ -1,12 +1,12 @@
 #pragma once
-#include "bess_vulkan_api.h"
+#include "common/bess_api.h"
 #include "device.h"
 #include <memory>
 #include <vulkan/vulkan.h>
 
 namespace Bess::Vulkan {
 
-    class BESS_VULKAN_API VulkanImageView {
+    class BESS_API VulkanImageView {
       public:
         VulkanImageView(
             const std::shared_ptr<VulkanDevice> &device, VkFormat format,

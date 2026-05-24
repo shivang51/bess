@@ -1,5 +1,5 @@
 #pragma once
-#include "bess_vulkan_api.h"
+#include "common/bess_api.h"
 #include "fwd.hpp"
 #include <array>
 #include <cstdint>
@@ -9,7 +9,7 @@
 
 namespace Bess::Vulkan {
 
-    struct BESS_VULKAN_API GridVertex {
+    struct BESS_API GridVertex {
         glm::vec3 position;  // location 0
         glm::vec2 texCoord;  // location 1
         glm::uvec2 fragId;   // location 2
@@ -63,13 +63,13 @@ namespace Bess::Vulkan {
         }
     };
 
-    struct BESS_VULKAN_API UniformBufferObject {
+    struct BESS_API UniformBufferObject {
         glm::mat4 mvp;
         glm::mat4 ortho;
     };
 
     // std140-compatible layout for the fragment UBO
-    struct BESS_VULKAN_API GridUniforms {
+    struct BESS_API GridUniforms {
         float zoom;               // offset 0
         float _pad0;              // pad to 8 for next vec2
         glm::vec2 cameraOffset;   // offset 8
@@ -87,7 +87,7 @@ namespace Bess::Vulkan {
         Line = 2,
     };
 
-    struct BESS_VULKAN_API PrimitiveInstance {
+    struct BESS_API PrimitiveInstance {
         glm::vec3 position;      // location 2
         glm::vec4 color;         // location 3
         glm::vec4 borderRadius;  // location 4
@@ -103,7 +103,7 @@ namespace Bess::Vulkan {
         float angle;             // location 14
     };
 
-    struct BESS_VULKAN_API InstanceVertex {
+    struct BESS_API InstanceVertex {
         glm::vec3 position; // location 2
         glm::vec2 size;     // location 3
         float angle;        // location 4
@@ -114,7 +114,7 @@ namespace Bess::Vulkan {
     };
 
     // Text uniforms for MSDF rendering
-    struct BESS_VULKAN_API TextUniforms {
+    struct BESS_API TextUniforms {
         float pxRange; // offset 0
         float _pad0;   // pad to 8 for next vec2
         float _pad1;   // pad to 12
@@ -122,7 +122,7 @@ namespace Bess::Vulkan {
     };
 
     // Common vertex structure for path rendering
-    struct BESS_VULKAN_API CommonVertex {
+    struct BESS_API CommonVertex {
         glm::vec3 position; // location 0
         glm::vec4 color;    // location 1
         glm::vec2 texCoord; // location 2
@@ -178,7 +178,7 @@ namespace Bess::Vulkan {
     };
 
     // Instance data for path rendering
-    struct BESS_VULKAN_API PathInstance {
+    struct BESS_API PathInstance {
         glm::vec3 position; // location 5 - instance position
         glm::vec3 scale;    // location 6 - instance scale
         glm::vec4 color;    // location 7 - instance color
@@ -225,7 +225,7 @@ namespace Bess::Vulkan {
         }
     };
 
-    struct BESS_VULKAN_API FillInstance {
+    struct BESS_API FillInstance {
         glm::vec3 translation; // location 5
         glm::vec2 scale;       // location 6
         glm::vec4 color;       // location 7

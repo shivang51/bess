@@ -1,6 +1,7 @@
 #pragma once
 #include "asset_id.h"
 #include "asset_loader.h"
+#include "common/bess_api.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
 #include "scene/renderer/asset_loaders.h"
@@ -10,18 +11,8 @@
 #include <typeindex>
 #include <unordered_map>
 
-/// Note (Shivang)
-/// Doing this to remove copies of singleton across different shared library
-/// boundaries. This is needed for the asset manager to cleanup properly across
-/// plugins and main application. :)
-#if defined(_WIN32) // still need to check on windows (this should not work)
-    #define API_EXPORT __declspec(dllexport)
-#else
-    #define API_EXPORT __attribute__((visibility("default")))
-#endif
-
 namespace Bess::Assets {
-    class API_EXPORT AssetManager {
+    class BESS_API AssetManager {
       public:
         static AssetManager &instance();
 

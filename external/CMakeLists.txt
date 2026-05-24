@@ -66,18 +66,20 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 		"${CMAKE_SOURCE_DIR}/external/stb_image/include"
 		"${CMAKE_SOURCE_DIR}/external/spdlog/include"
 		"${CMAKE_SOURCE_DIR}/external/libtess2/Include"
-		${GLFW_INCLUDE_DIRS}
-		${VULKAN_INCLUDE_DIRS}
-		${X11_INCLUDE_DIR}
-		${PNG_INCLUDE_DIRS}
 )
+
 
 target_link_libraries(${PROJECT_NAME} PUBLIC 
 	png_static
 	glfw
-	${X11_LIBRARIES}
 	Vulkan::Vulkan
 )
+
+if(LINUX)
+		target_link_libraries(${PROJECT_NAME} PUBLIC 
+				X11::X11 
+		)
+endif()
 
 if("${BUILD_ARCH}" STREQUAL "x64" AND "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 		target_link_libraries(${PROJECT_NAME} PUBLIC 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/bess_api.h"
 #include "plugin_handle.h"
 #include <memory>
 #include <string>
@@ -13,7 +14,7 @@ namespace Bess::Plugins {
     void restorePyThreadState();
 
     // using this macro to fix pybind11 warning
-    class __attribute__((visibility("default"))) PluginManager {
+    class BESS_API PluginManager {
       public:
         static PluginManager &getInstance();
         static bool isIntialized;

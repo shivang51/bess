@@ -1,5 +1,5 @@
 #pragma once
-#include "bess_vulkan_api.h"
+#include "common/bess_api.h"
 #include "glm.hpp"
 #include <memory>
 #include <string>
@@ -10,7 +10,7 @@ namespace Bess::Vulkan {
 
     class VulkanDevice;
 
-    class BESS_VULKAN_API VulkanTexture {
+    class BESS_API VulkanTexture {
       public:
         VulkanTexture(std::shared_ptr<VulkanDevice> device,
                       const std::string &path);

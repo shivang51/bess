@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/bess_api.h"
 #include "common/class_helpers.h"
 #include "json/value.h"
 #include <pybind11/pybind11.h>
@@ -20,7 +21,7 @@ namespace Bess::Canvas {
 } // namespace Bess::Canvas
 
 namespace Bess::Plugins {
-    class __attribute__((visibility("default"))) PluginHandle {
+    class BESS_API PluginHandle {
       public:
         PluginHandle() = default;
         PluginHandle(const pybind11::object &pluginObj);

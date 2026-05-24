@@ -48,8 +48,6 @@ set(ALL_FILES
 		${EXT_OTHERS_SRC}
 )
 
-# Using shared lib to prevent double brain problem with BessVulkan singleton
-# FIXME: add __declspec for Windows
 add_library(${PROJECT_NAME} SHARED ${ALL_FILES})
 
 target_compile_definitions(BessVulkan PRIVATE BESS_VULKAN_EXPORT)
@@ -66,19 +64,14 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 find_package(Vulkan REQUIRED)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC 
-    ${VULKAN_LIBRARIES}
+    Vulkan::Vulkan
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE 
-    ${VULKAN_LIBRARIES}
 		common
 )
 
 add_dependencies(${PROJECT_NAME} common)
-
-target_include_directories(${PROJECT_NAME} PUBLIC 
-    ${VULKAN_INCLUDE_DIRS}
-)
 
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8" "/Zc:__cplusplus")

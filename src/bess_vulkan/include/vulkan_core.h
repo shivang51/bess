@@ -1,5 +1,5 @@
 #pragma once
-#include "bess_vulkan_api.h"
+#include "common/bess_api.h"
 #include "command_buffer.h"
 #include "device.h"
 #include "swapchain.h"
@@ -16,13 +16,13 @@ namespace Bess::Vulkan {
 
     using SwapchainRenderFn = std::function<void(VkCommandBuffer)>;
 
-    struct BESS_VULKAN_API FrameContext {
+    struct BESS_API FrameContext {
         std::shared_ptr<VulkanCommandBuffer> cmdBuffer = nullptr;
         uint32_t swapchainImgIdx;
         bool isStarted = false;
     };
 
-    class BESS_VULKAN_API VulkanCore {
+    class BESS_API VulkanCore {
       public:
         static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
         static VulkanCore &instance();

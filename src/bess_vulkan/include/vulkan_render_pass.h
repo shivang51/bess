@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bess_vulkan_api.h"
+#include "common/bess_api.h"
 #include "device.h"
 #include <memory>
 #include <vulkan/vulkan.h>
@@ -9,7 +9,7 @@ namespace Bess::Vulkan {
     class VulkanSwapchain;
     class VulkanCommandBuffer;
 
-    class BESS_VULKAN_API VulkanRenderPass {
+    class BESS_API VulkanRenderPass {
       public:
         VulkanRenderPass(const std::shared_ptr<VulkanDevice> &device,
                          VkFormat colorFormat, VkFormat depthFormat);
