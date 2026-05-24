@@ -5,9 +5,19 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # Set policy to suppress pybind11 warning
 cmake_policy(SET CMP0148 NEW)
 
-find_package(Python3 COMPONENTS Interpreter Development Development.Module Development.Embed REQUIRED)
 set(PYBIND11_FINDPYTHON ON)
-find_package(pybind11 REQUIRED)
+
+find_package(Python3 COMPONENTS Interpreter Development Development.Module Development.Embed REQUIRED)
+
+include(FetchContent)
+
+FetchContent_Declare(
+  pybind11
+  GIT_REPOSITORY https://github.com/pybind/pybind11.git
+  GIT_TAG        v3.0.0
+)
+
+FetchContent_MakeAvailable(pybind11)
 
 set(Header_Files
     "include/plugin_manager.h"

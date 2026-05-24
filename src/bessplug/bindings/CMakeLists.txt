@@ -9,7 +9,16 @@ cmake_policy(SET CMP0148 NEW)
 set(PYBIND11_FINDPYTHON ON)
 
 find_package(Python3 COMPONENTS Interpreter Development Development.Module Development.Embed REQUIRED)
-find_package(pybind11 REQUIRED)
+
+include(FetchContent)
+
+FetchContent_Declare(
+  pybind11
+  GIT_REPOSITORY https://github.com/pybind/pybind11.git
+  GIT_TAG        v3.0.0
+)
+
+FetchContent_MakeAvailable(pybind11)
 
 set(BESS_PYBIND_SOURCES
 		internal_types.h
