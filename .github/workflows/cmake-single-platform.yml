@@ -29,11 +29,17 @@ jobs:
         cache: true
         stripdown: true
 
-    - name: Configure CMake
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DTESTS=ON -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+    - name: Install dependencies
+      run: vcpkg install zlib:x64-windows
 
+    - name: Configure CMake
+      run: >
+        cmake -B ${{github.workspace}}/build 
+        -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} 
+        -DTESTS=ON 
+        -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+        -DVCPKG_TARGET_TRIPLET=x64-windows
+        
     - name: Build
       # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
@@ -49,8 +55,6 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: windows-binaries
-        # This will grab everything inside your bin folder. 
-        # If your bin folder is nested differently (e.g., build/bin/Release), update this path accordingly.
         path: ${{github.workspace}}/bin/
         if-no-files-found: warn
 
