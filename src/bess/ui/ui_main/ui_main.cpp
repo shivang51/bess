@@ -780,11 +780,10 @@ namespace Bess::UI {
         m_isDockSpaceDirty = true;
     }
 
-    void UIMain::update(TimeMs ts,
-                        const std::vector<ApplicationEvent> &events) {
+    void UIMain::update(TimeMs ts) {
         for (auto &panel : getPanels()) {
             if (panel->getVisible()) {
-                panel->update(ts, events);
+                panel->update(ts);
             }
         }
     }

@@ -30,8 +30,7 @@ namespace Bess::UI {
         static void init();
 
         static void draw();
-        static void update(TimeMs ts,
-                           const std::vector<ApplicationEvent> &events);
+        static void update(TimeMs ts);
 
         template <typename TPanel, typename... Args>
         static void registerPanel(Args &&...args) {

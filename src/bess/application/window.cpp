@@ -1,8 +1,9 @@
 #include "application/window.h"
 #include "common/bess_assert.h"
+#include "common/events.h"
 #include "common/g_app_context.h"
 #include "common/logger.h"
-#include "events/application_event.h"
+#include "event_dispatcher.h"
 #include "ext/vector_float2.hpp"
 #include "stb_image.h"
 #include "sub_systems/input_sub_system.h"
@@ -121,11 +122,13 @@ namespace Bess {
             window, [](GLFWwindow *window, int w, int h) {
                 const auto this_ = (Window *)glfwGetWindowUserPointer(window);
                 this_->m_framebufferResized = true;
-                if (!this_->m_callbacks.contains(Callback::WindowResize))
-                    return;
-                const auto cb = std::any_cast<WindowResizeCallback>(
-                    this_->m_callbacks[Callback::WindowResize]);
-                cb(w, h);
+
+                Events::WindowResizeEvent evt{w, h};
+
+                auto &ctx = GAppContext::getInstance();
+                auto eventDispatcher =
+                    ctx.getSubSystem<EventSystem::EventDispatcher>();
+                eventDispatcher->queue(evt);
             });
 
         glfwSetScrollCallback(
@@ -133,12 +136,6 @@ namespace Bess {
                 const auto this_ = (Window *)glfwGetWindowUserPointer(window);
                 auto inputSubSystem =
                     GAppContext::getInstance().getSubSystem<InputSubSystem>();
-
-                if (!this_->m_callbacks.contains(Callback::MouseWheel))
-                    return;
-                const auto cb = std::any_cast<MouseWheelCallback>(
-                    this_->m_callbacks[Callback::MouseWheel]);
-                cb(x, y);
 
                 inputSubSystem->onMouseWheelEvent({x, y});
             });
@@ -155,34 +152,11 @@ namespace Bess {
             auto inputSubSystem =
                 GAppContext::getInstance().getSubSystem<InputSubSystem>();
             inputSubSystem->onKeyEvent(this_->glfwKeyToKeyCode(key), keyAction);
-
-            switch (action) {
-            case GLFW_PRESS: {
-                if (!this_->m_callbacks.contains(Callback::KeyPress))
-                    return;
-                const auto cb = std::any_cast<KeyPressCallback>(
-                    this_->m_callbacks[Callback::KeyPress]);
-                cb(key);
-            } break;
-            case GLFW_RELEASE: {
-                if (!this_->m_callbacks.contains(Callback::KeyRelease))
-                    return;
-                const auto cb = std::any_cast<KeyReleaseCallback>(
-                    this_->m_callbacks[Callback::KeyRelease]);
-                cb(key);
-            } break;
-            default:
-                BESS_WARN("[Window] Unhandled key action type {}", action);
-                break;
-            }
         });
 
         glfwSetMouseButtonCallback(window, [](GLFWwindow *window, int button,
                                               int action, int mods) {
             const auto this_ = (Window *)glfwGetWindowUserPointer(window);
-            const auto cb = std::any_cast<MouseButtonCallback>(
-                this_->m_callbacks[Callback::MouseButton]);
-
             MouseButton btn = MouseButton::unknown;
 
             switch (button) {
@@ -207,21 +181,13 @@ namespace Bess {
             auto inputSubSystem =
                 GAppContext::getInstance().getSubSystem<InputSubSystem>();
 
-            inputSubSystem->onMouseButtonEvent(btn, btnAction);
-
-            cb(btn, btnAction, this_->getMousePos());
+            double x = 0.0, y = 0.0;
+            glfwGetCursorPos(window, &x, &y);
+            inputSubSystem->onMouseButtonEvent(btn, btnAction, {x, y});
         });
 
         glfwSetCursorPosCallback(
             window, [](GLFWwindow *window, double x, double y) {
-                const auto this_ = (Window *)glfwGetWindowUserPointer(window);
-                if (!this_->m_callbacks.contains(Callback::MouseMove))
-                    return;
-                const auto cb = std::any_cast<MouseMoveCallback>(
-                    this_->m_callbacks[Callback::MouseMove]);
-
-                cb(x, y);
-
                 auto inputSubSystem =
                     GAppContext::getInstance().getSubSystem<InputSubSystem>();
                 inputSubSystem->onMouseMoveEvent({x, y});
@@ -244,30 +210,6 @@ namespace Bess {
 
     bool Window::isClosed() const {
         return glfwWindowShouldClose(mp_window.get());
-    }
-
-    void Window::onWindowResize(WindowResizeCallback callback) {
-        m_callbacks[Callback::WindowResize] = callback;
-    }
-
-    void Window::onMouseWheel(MouseWheelCallback callback) {
-        m_callbacks[Callback::MouseWheel] = callback;
-    }
-
-    void Window::onKeyPress(KeyPressCallback callback) {
-        m_callbacks[Callback::KeyPress] = callback;
-    }
-
-    void Window::onKeyRelease(KeyReleaseCallback callback) {
-        m_callbacks[Callback::KeyRelease] = callback;
-    }
-
-    void Window::onMouseButton(MouseButtonCallback callback) {
-        m_callbacks[Callback::MouseButton] = callback;
-    }
-
-    void Window::onMouseMove(MouseMoveCallback callback) {
-        m_callbacks[Callback::MouseMove] = callback;
     }
 
     void Window::close() const {

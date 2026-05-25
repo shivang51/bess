@@ -1,12 +1,10 @@
 #include "application.h"
 #include "application/application_state.h"
 #include "common/bess_assert.h"
-#include "common/events.h"
 #include "common/g_app_context.h"
 #include "common/logger.h"
 #include "common/types.h"
 #include "event_dispatcher.h"
-#include "events/application_event.h"
 #include "imgui_impl_vulkan.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
@@ -20,7 +18,6 @@
 #include <vulkan/vulkan_core.h>
 
 #include "application/window.h"
-#include "common/bind_helpers.h"
 #include "settings/settings.h"
 
 namespace Bess {
@@ -63,6 +60,8 @@ namespace Bess {
 
         TimeMs accumulatedTime(0.0);
 
+        auto &appCtx = GAppContext::getInstance();
+
         while (!m_mainWindow->isClosed()) {
             auto currentTime = std::chrono::steady_clock::now();
             TimeMs deltaTime = currentTime - previousTime;
@@ -77,12 +76,14 @@ namespace Bess {
                 accumulatedTime += frameTS - accumulatedTime;
             }
 
+            appCtx.beginFrame();
+            Window::pollEvents();
             update(accumulatedTime);
             draw();
+
             m_currentFps =
                 static_cast<int>(std::round(1000.0 / accumulatedTime.count()));
             accumulatedTime = std::chrono::duration<double>(0.0);
-            Window::pollEvents();
         }
     }
 
@@ -90,61 +91,10 @@ namespace Bess {
 
         GAppContext::getInstance().update(ts);
 
-        ApplicationState::getCurrentPage()->update(ts, m_events);
-
-        m_events.clear();
+        ApplicationState::getCurrentPage()->update(ts);
     }
 
     void Application::quit() const { m_mainWindow->close(); }
-
-    // callbacks
-    void Application::onWindowResize(int w, int h) {
-        if (w <= 0 && h <= 0) {
-            return;
-        }
-
-        ApplicationEvent::WindowResizeData data(w, h);
-        ApplicationEvent event(ApplicationEventType::WindowResize, data);
-        m_events.emplace_back(event);
-
-        Events::WindowResizeEvent evt{w, h};
-
-        auto &ctx = GAppContext::getInstance();
-        auto eventDispatcher = ctx.getSubSystem<EventSystem::EventDispatcher>();
-        eventDispatcher->queue(evt);
-    }
-
-    void Application::onMouseWheel(double x, double y) {
-        ApplicationEvent::MouseWheelData data(x, y);
-        ApplicationEvent event(ApplicationEventType::MouseWheel, data);
-        m_events.emplace_back(event);
-    }
-
-    void Application::onKeyPress(int key) {
-        ApplicationEvent::KeyPressData data(key);
-        ApplicationEvent event(ApplicationEventType::KeyPress, data);
-        m_events.emplace_back(event);
-    }
-
-    void Application::onKeyRelease(int key) {
-        ApplicationEvent::KeyReleaseData data(key);
-        ApplicationEvent event(ApplicationEventType::KeyRelease, data);
-        m_events.emplace_back(event);
-    }
-
-    void Application::onMouseButton(MouseButton button,
-                                    MouseButtonAction action,
-                                    const glm::vec2 &pos) {
-        ApplicationEvent::MouseButtonData data(button, action, pos);
-        ApplicationEvent event(ApplicationEventType::MouseButton, data);
-        m_events.emplace_back(event);
-    }
-
-    void Application::onMouseMove(double x, double y) {
-        ApplicationEvent::MouseMoveData data(x, y);
-        ApplicationEvent event(ApplicationEventType::MouseMove, data);
-        m_events.emplace_back(event);
-    }
 
     void Application::init(const std::string &path, AppStartupFlags flags) {
 #ifdef DISABLE_PLUGINS
@@ -174,13 +124,6 @@ namespace Bess {
         appCtx.init();
 
         ApplicationState::setParentWindow(m_mainWindow);
-
-        m_mainWindow->onWindowResize(BIND_FN_L(Application::onWindowResize));
-        m_mainWindow->onMouseWheel(BIND_FN_L(Application::onMouseWheel));
-        m_mainWindow->onKeyPress(BIND_FN_L(Application::onKeyPress));
-        m_mainWindow->onKeyRelease(BIND_FN_L(Application::onKeyRelease));
-        m_mainWindow->onMouseButton(BIND_FN_L(Application::onMouseButton));
-        m_mainWindow->onMouseMove(BIND_FN_L(Application::onMouseMove));
 
         const auto extensions = m_mainWindow->getVulkanExtensions();
         const VkExtent2D extent = m_mainWindow->getExtent();

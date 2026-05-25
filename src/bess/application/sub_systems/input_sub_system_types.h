@@ -16,9 +16,10 @@ namespace Bess {
     };
 
     enum class MouseButtonAction : uint8_t {
-        press = 0,
-        release = 1,
-        doubleClick = 2
+        unknown = 0,
+        press = 1,
+        release = 2,
+        doubleClick = 3
     };
 
     enum class KeyAction : uint8_t {

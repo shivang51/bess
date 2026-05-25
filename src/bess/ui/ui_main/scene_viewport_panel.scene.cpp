@@ -1,6 +1,7 @@
 #include "scene_viewport_panel.h"
 #include "common/g_app_context.h"
 #include "common/types.h"
+#include "events/application_event.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
@@ -8,6 +9,7 @@
 #include "scene/scene_draw_context.h"
 #include "scene_state/components/scene_component_types.h"
 #include "settings/viewport_theme.h"
+#include "sub_systems/input_sub_system.h"
 #include "vulkan_core.h"
 #include <algorithm>
 #include <cstdint>
@@ -19,31 +21,47 @@ namespace Bess::UI {
         return id;
     }
 
-    void SceneViewportPanel::updateScene(
-        TimeMs ts, const std::vector<ApplicationEvent> &events) {
+    void SceneViewportPanel::updateScene(TimeMs ts) {
         Canvas::ViewportTransform vpTrans{.pos = m_viewportPos,
                                           .size = m_viewportSize};
         m_attachedScene->updateViewportTransform(vpTrans);
 
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto inputSystem = appCtx.getSubSystem<InputSubSystem>();
+
+        const auto &frameInputState = inputSystem->getFrameInpState();
+
         bool mouseMoved = false;
-        for (const auto &event : events) {
-            if (event.getType() == ApplicationEventType::MouseMove) {
-                mouseMoved = true;
-                handleMouseMoveEvt(event);
-            } else if (event.getType() == ApplicationEventType::MouseButton) {
-                // manually updating mouse state
-                // because we don't update scene if its not active
-                const auto data =
-                    event.getData<ApplicationEvent::MouseButtonData>();
-                const auto isInsideVp = isInsideViewport(data.pos);
-                const auto isDesiredBtn =
-                    (data.button == MouseButton::left &&
-                     m_attachedScene->getIsLeftMousePressed()) ||
-                    (data.button == MouseButton::middle &&
-                     m_attachedScene->getIsMiddleMousePressed());
-                if (isDesiredBtn && data.action == MouseButtonAction::release) {
-                    m_attachedScene->processEvents({event});
-                }
+        if (frameInputState.hasMouseMoved) {
+            mouseMoved = true;
+            const auto &mouseMoveState = inputSystem->getMouseMoveState();
+            ApplicationEvent::MouseMoveData data{
+                mouseMoveState.pos.x,
+                mouseMoveState.pos.y,
+            };
+            handleMouseMoveEvt(
+                ApplicationEvent(ApplicationEventType::MouseMove, data));
+        }
+
+        auto mouseBtnState = frameInputState.mouseBtnState;
+        const auto isInsideVp = isInsideViewport(mouseBtnState.pos);
+
+        if (frameInputState.hasMouseBtnEvent && !isInsideVp &&
+            mouseBtnState.action == MouseButtonAction::release) {
+            // manually updating mouse state
+            // because we don't update scene if its not active
+
+            const auto isLeft = (mouseBtnState.button == MouseButton::left &&
+                                 m_attachedScene->getIsLeftMousePressed());
+
+            const auto isMiddle =
+                (mouseBtnState.button == MouseButton::middle &&
+                 m_attachedScene->getIsMiddleMousePressed());
+
+            if (isLeft) {
+                m_attachedScene->onLeftMouse(false);
+            } else if (isMiddle) {
+                m_attachedScene->onMiddleMouse(false);
             }
         }
 
@@ -99,10 +117,7 @@ namespace Bess::UI {
             window->setEnableCursor(false);
             window->setMousePos(newPos);
 
-            const auto newEvt = ApplicationEvent(
-                ApplicationEventType::MouseMove,
-                ApplicationEvent::MouseMoveData{newPos.x, newPos.y});
-            m_attachedScene->processEvents({newEvt});
+            m_attachedScene->onMouseMove({newPos.x, newPos.y});
         } else {
             window->setEnableCursor(true);
         }
@@ -310,8 +325,8 @@ namespace Bess::UI {
                                             ? Canvas::PickingId::invalid()
                                             : decodeGpuHoverValue(ids[0]);
 
-            // FIXME: this is a temp fix, picking id intially is 0 when no comps
-            // are there, which is not right
+            // FIXME: this is a temp fix, picking id intially is 0 when no
+            // comps are there, which is not right
             if (hoverValue == 0 && sceneState.getAllComponents().empty()) {
                 m_attachedScene->setPickingId(Canvas::PickingId::invalid());
                 return;

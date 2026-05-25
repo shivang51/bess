@@ -50,7 +50,7 @@ namespace Bess::Canvas {
 
         void reset();
         void clear();
-        void update(TimeMs ts, const std::vector<ApplicationEvent> &events);
+        void update(TimeMs ts, bool isFocused);
 
         const SceneState &getState() const;
         SceneState &getState();
@@ -106,7 +106,12 @@ namespace Bess::Canvas {
 
         MAKE_GETTER(bool, IsLeftMousePressed, m_isLeftMousePressed);
         MAKE_GETTER(bool, IsMiddleMousePressed, m_isMiddleMousePressed);
-        void processEvents(const std::vector<ApplicationEvent> &events);
+        void processEvents();
+
+        void onLeftMouse(bool isPressed);
+        void onRightMouse(bool isPressed);
+        void onMiddleMouse(bool isPressed);
+        void onMouseMove(const glm::vec2 &pos);
 
       private:
         /// to draw testing stuff
@@ -115,11 +120,7 @@ namespace Bess::Canvas {
         bool isCursorInViewport(const glm::vec2 &pos) const;
         glm::vec2 getViewportMousePos(const glm::vec2 &mousePos) const;
 
-        void onMouseMove(const glm::vec2 &pos);
-        void onLeftMouse(bool isPressed);
         void onLeftDoubleClick();
-        void onMiddleMouse(bool isPressed);
-        void onRightMouse(bool isPressed);
         void onMouseWheel(double x, double y);
 
         glm::vec2 viewportToWinPos(const glm::vec2 &viewportPos) const;

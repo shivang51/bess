@@ -40,23 +40,6 @@ namespace Bess::Pages {
 
         void update();
 
-        void setKeyPressed(int key);
-
-        // returns true if the key was pressed in the current frame, false
-        // otherwise
-        bool isKeyPressed(int key) const;
-
-        void setKeyReleased(int key);
-
-        // returns true if the key was released in the current frame, false
-        // otherwise
-        bool isKeyReleased(int key) const;
-
-        void setKeyDown(int key, bool isDown);
-
-        // returns true if the key is currently being held down, false otherwise
-        bool isKeyDown(int key) const;
-
         typedef std::unordered_map<UUID, std::string *> TNetIdToNameMap;
         MAKE_GETTER_SETTER(TNetIdToNameMap, NetIdToNameMap, m_netIdToNameMap)
         MAKE_GETTER_SETTER(std::unordered_set<UUID>, Probes, m_probes)

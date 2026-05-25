@@ -2,36 +2,14 @@
 #include "common/sub_system.h"
 #include "fwd.hpp"
 #include "sub_systems/input_sub_system_types.h"
-#include <cstdint>
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 
-#include <any>
-#include <functional>
 #include <memory>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 namespace Bess {
-
-    enum class Callback : uint8_t {
-        WindowResize,
-        MouseWheel,
-        KeyPress,
-        KeyRelease,
-        MouseButton,
-        MouseMove
-    };
-
-    typedef std::function<void(int, int)> WindowResizeCallback;
-    typedef std::function<void(double, double)> MouseWheelCallback;
-    typedef std::function<void(int)> KeyReleaseCallback;
-    typedef std::function<void(int)> KeyPressCallback;
-    typedef std::function<void(MouseButton, MouseButtonAction, glm::vec2)>
-        MouseButtonCallback;
-    typedef std::function<void(double, double)> MouseMoveCallback;
-
     class Window : public ISubSystem {
       public:
         struct GLFWwindowDeleter {
@@ -59,13 +37,6 @@ namespace Bess {
 
         static bool isGLFWInitialized;
 
-        void onWindowResize(WindowResizeCallback callback);
-        void onMouseWheel(MouseWheelCallback callback);
-        void onKeyPress(KeyPressCallback callback);
-        void onKeyRelease(KeyReleaseCallback callback);
-        void onMouseButton(MouseButtonCallback callback);
-        void onMouseMove(MouseMoveCallback callback);
-
         glm::vec2 getMousePos() const;
 
         void setMousePos(const glm::vec2 &pos) const;
@@ -87,7 +58,6 @@ namespace Bess {
 
       private:
         std::unique_ptr<GLFWwindow, GLFWwindowDeleter> mp_window;
-        std::unordered_map<Callback, std::any> m_callbacks;
         bool m_framebufferResized = false;
         size_t m_width, m_height;
         std::string m_title;

@@ -31,8 +31,7 @@ namespace Bess::UI {
 
         void destroyViewport();
 
-        void update(TimeMs ts,
-                    const std::vector<ApplicationEvent> &events) override;
+        void update(TimeMs ts) override;
 
         const glm::vec2 &getViewportSize() const;
         const glm::vec2 &getViewportPos() const;
@@ -52,8 +51,7 @@ namespace Bess::UI {
         drawGhostConnection(const std::shared_ptr<PathRenderer> &pathRenderer,
                             const glm::vec2 &startPos, const glm::vec2 &endPos);
 
-        void updateScene(TimeMs ts,
-                         const std::vector<ApplicationEvent> &events);
+        void updateScene(TimeMs ts);
 
         void updatePickingIds(bool mouseMoved);
         SceneDrawFlags m_sceneDrawFlags{};

@@ -17,6 +17,8 @@ namespace Bess {
 
         void init();
 
+        void beginFrame();
+
         void update(TimeMs dt);
 
         void destroy();

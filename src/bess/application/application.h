@@ -26,6 +26,7 @@ namespace Bess {
         void quit() const;
         void shutdown();
 
+        void beginFrame();
         void update(TimeMs ts);
 
         void loadProject(const std::string &path) const;
@@ -33,19 +34,9 @@ namespace Bess {
 
       private:
         std::shared_ptr<Window> m_mainWindow;
-        std::vector<ApplicationEvent> m_events;
 
       private:
         void draw();
-
-      private: // callbacks
-        void onWindowResize(int w, int h);
-        void onMouseWheel(double x, double y);
-        void onKeyPress(int key);
-        void onKeyRelease(int key);
-        void onMouseButton(MouseButton button, MouseButtonAction action,
-                           const glm::vec2 &pos);
-        void onMouseMove(double x, double y);
 
         int m_currentFps = 0;
     };

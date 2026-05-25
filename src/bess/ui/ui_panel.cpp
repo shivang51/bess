@@ -41,8 +41,7 @@ namespace Bess::UI {
 
     void Panel::onHide() {}
 
-    void Panel::update(TimeMs ts, const std::vector<ApplicationEvent> &events) {
-    }
+    void Panel::update(TimeMs ts) {}
 
     void Panel::init() {}
 

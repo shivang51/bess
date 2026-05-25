@@ -37,7 +37,7 @@ namespace Bess::Pages {
 
         void draw() override;
 
-        void update(TimeMs ts, std::vector<ApplicationEvent> &events) override;
+        void update(TimeMs ts) override;
 
         std::shared_ptr<Window> getParentWindow();
 

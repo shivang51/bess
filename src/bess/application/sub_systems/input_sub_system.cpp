@@ -1,4 +1,5 @@
 #include "input_sub_system.h"
+#include "sub_systems/input_sub_system_types.h"
 
 namespace Bess {
     void InputSubSystem::onInit() {}
@@ -8,13 +9,35 @@ namespace Bess {
         m_mouseBtnStates.clear();
     }
 
+    void InputSubSystem::onBeginFrame() {
+        m_frameInputState = {};
+        m_keyStates.clear();
+    }
+
     void InputSubSystem::onKeyEvent(KeyCode key, KeyAction action) {
         m_keyStates[key] = action;
     }
 
     void InputSubSystem::onMouseButtonEvent(MouseButton button,
-                                            MouseButtonAction action) {
-        m_mouseBtnStates[button] = action;
+                                            MouseButtonAction action,
+                                            const glm::vec2 &pos) {
+
+        if (action == MouseButtonAction::press && isMouseBtnPressed(button)) {
+            const auto &state = m_mouseBtnStates[button];
+            const float dis = glm::distance(pos, state.pos);
+            const auto timeDif =
+                std::chrono::steady_clock::now() - state.timestamp;
+
+            if (dis <= 5.f && timeDif < TimeMs(500)) {
+                action = MouseButtonAction::doubleClick;
+            }
+        }
+
+        m_mouseBtnStates[button] = {button, action, pos,
+                                    std::chrono::steady_clock::now()};
+
+        m_frameInputState.hasMouseBtnEvent = true;
+        m_frameInputState.mouseBtnState = m_mouseBtnStates[button];
     }
 
     void InputSubSystem::onMouseMoveEvent(const glm::vec2 &pos) {
@@ -27,9 +50,14 @@ namespace Bess {
 
         m_mouseMoveState.delta = pos - m_mouseMoveState.pos;
         m_mouseMoveState.pos = pos;
+
+        m_frameInputState.hasMouseMoved = true;
     }
 
-    void InputSubSystem::onMouseWheelEvent(const glm::vec2 &offset) {}
+    void InputSubSystem::onMouseWheelEvent(const glm::vec2 &offset) {
+        m_mouseWheelState.offset = offset;
+        m_frameInputState.hasMouseWheelScrolled = true;
+    }
 
     bool InputSubSystem::isKeyPressed(KeyCode key) const {
         auto it = m_keyStates.find(key);
@@ -39,7 +67,13 @@ namespace Bess {
     bool InputSubSystem::isMouseBtnPressed(MouseButton button) const {
         auto it = m_mouseBtnStates.find(button);
         return it != m_mouseBtnStates.end() &&
-               it->second == MouseButtonAction::press;
+               it->second.action == MouseButtonAction::press;
+    }
+
+    bool InputSubSystem::isMouseBtnDoubleClicked(MouseButton button) const {
+        auto it = m_mouseBtnStates.find(button);
+        return it != m_mouseBtnStates.end() &&
+               it->second.action == MouseButtonAction::doubleClick;
     }
 
     bool InputSubSystem::isCtrlPressed() const {

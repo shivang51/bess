@@ -21,6 +21,12 @@ namespace Bess {
         m_initialized = true;
     }
 
+    void GAppContext::beginFrame() {
+        for (auto &[_, subsystem] : m_subSystems) {
+            subsystem->onBeginFrame();
+        }
+    }
+
     void GAppContext::update(TimeMs dt) {
         for (auto &[_, subsystem] : m_subSystems) {
             subsystem->onUpdate(dt);

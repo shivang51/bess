@@ -34,9 +34,7 @@ namespace Bess::UI {
         m_visible = true;
     }
 
-    void
-    SceneViewportPanel::update(TimeMs ts,
-                               const std::vector<ApplicationEvent> &events) {
+    void SceneViewportPanel::update(TimeMs ts) {
         if (m_isResized) {
             m_viewport->resize(vec2Extent2D(m_viewportSize));
             m_attachedScene->getCamera()->resize(m_viewportSize.x,
@@ -48,12 +46,8 @@ namespace Bess::UI {
             Pages::MainPage::getInstance()->getState().getSceneDriver();
 
         if (!sceneDriver.getIsPaused()) {
-            if (m_isHovered) {
-                m_attachedScene->update(ts, events);
-            } else {
-                m_attachedScene->update(ts, {});
-            }
-            updateScene(ts, events);
+            m_attachedScene->update(ts, m_isHovered);
+            updateScene(ts);
         }
 
         if (m_nextSceneId != UUID::null) {

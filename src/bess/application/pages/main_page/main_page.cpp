@@ -5,8 +5,6 @@
 #include "common/g_app_context.h"
 #include "common/logger.h"
 #include "common/types.h"
-#include "events/application_event.h"
-#include "geometric.hpp"
 #include "macro_command.h"
 #include "pages/main_page/cmds/delete_comp_cmd.h"
 #include "pages/main_page/cmds/module_comp_cmd.h"
@@ -26,13 +24,14 @@
 #include "scene_ser_reg.h"
 #include "services/copy_paste_service.h"
 #include "simulation_engine.h"
+#include "sub_systems/input_sub_system.h"
+#include "sub_systems/input_sub_system_types.h"
 #include "ui/ui.h"
 #include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/project_explorer.h"
 #include "ui/ui_main/ui_main.h"
 #include "vulkan_core.h"
 #include <GLFW/glfw3.h>
-#include <chrono>
 #include <functional>
 #include <memory>
 #include <ranges>
@@ -147,69 +146,8 @@ namespace Bess::Pages {
         }
     }
 
-    void MainPage::update(TimeMs ts, std::vector<ApplicationEvent> &events) {
+    void MainPage::update(TimeMs ts) {
         m_state.update();
-
-        int clickEvtIdx = -1;
-
-        int idx = -1;
-        for (const auto &event : events) {
-            idx++;
-
-            switch (event.getType()) {
-            case Bess::ApplicationEventType::MouseButton: {
-                const auto data =
-                    event.getData<ApplicationEvent::MouseButtonData>();
-                if (data.action != MouseButtonAction::press) {
-                    continue;
-                }
-
-                const bool isSameBtn =
-                    data.button == m_lastMouseButtonEvent.data.button;
-                const float dis =
-                    glm::distance(data.pos, m_lastMouseButtonEvent.data.pos);
-                const auto timeDif = std::chrono::steady_clock::now() -
-                                     m_lastMouseButtonEvent.timestamp;
-
-                if (isSameBtn && dis <= 5.f && timeDif < TimeMs(500)) {
-                    m_clickCount++;
-                } else {
-                    m_clickCount = 1;
-                }
-                clickEvtIdx = idx;
-
-                m_lastMouseButtonEvent.timestamp =
-                    std::chrono::steady_clock::now();
-                m_lastMouseButtonEvent.data = data;
-            } break;
-            case ApplicationEventType::KeyPress: {
-                const auto data =
-                    event.getData<ApplicationEvent::KeyPressData>();
-                m_state.setKeyPressed(data.key);
-                m_state.setKeyDown(data.key, true);
-            } break;
-            case ApplicationEventType::KeyRelease: {
-                const auto data =
-                    event.getData<ApplicationEvent::KeyReleaseData>();
-                m_state.setKeyReleased(data.key);
-                m_state.setKeyDown(data.key, false);
-            } break;
-            default:
-                break;
-            }
-        }
-
-        if (m_clickCount == 2) {
-            BESS_ASSERT(
-                clickEvtIdx != -1,
-                "Click event idx can't be -1, when double click is valid");
-            events.erase(events.begin() + clickEvtIdx);
-            auto data = m_lastMouseButtonEvent.data;
-            data.action = MouseButtonAction::doubleClick;
-            ApplicationEvent event(ApplicationEventType::MouseButton, data);
-            events.emplace_back(event);
-            m_clickCount = 0;
-        }
 
         const bool imguiWantsKeyboard = ImGui::GetIO().WantTextInput;
 
@@ -223,7 +161,7 @@ namespace Bess::Pages {
             appCtx.getSubSystem<Bess::EventSystem::EventDispatcher>();
         eventDispatcher->dispatchAll();
 
-        UI::UIMain::update(ts, events);
+        UI::UIMain::update(ts);
     }
 
     std::shared_ptr<Window> MainPage::getParentWindow() {
@@ -231,40 +169,41 @@ namespace Bess::Pages {
     }
 
     void MainPage::handleKeyboardShortcuts() {
-        const bool ctrlPressed = m_state.isKeyDown(GLFW_KEY_LEFT_CONTROL) ||
-                                 m_state.isKeyDown(GLFW_KEY_RIGHT_CONTROL);
 
-        const bool shiftPressed = m_state.isKeyDown(GLFW_KEY_LEFT_SHIFT) ||
-                                  m_state.isKeyDown(GLFW_KEY_RIGHT_SHIFT);
+        auto &appCtx = GAppContext::getInstance();
+        auto inpSystem = appCtx.getSubSystem<Bess::InputSubSystem>();
 
-        if (ctrlPressed) {
-            if (m_state.isKeyPressed(GLFW_KEY_S)) {
+        const bool isCtrlPressed = inpSystem->isCtrlPressed();
+        const bool isShiftPressed = inpSystem->isShiftPressed();
+
+        if (isCtrlPressed) {
+            if (inpSystem->isKeyPressed(KeyCode::s)) {
                 m_state.actionFlags.saveProject = true;
-            } else if (m_state.isKeyPressed(GLFW_KEY_O)) {
+            } else if (inpSystem->isKeyPressed(KeyCode::o)) {
                 m_state.actionFlags.openProject = true;
-            } else if (m_state.isKeyPressed(GLFW_KEY_Z)) {
-                if (shiftPressed) {
+            } else if (inpSystem->isKeyPressed(KeyCode::z)) {
+                if (isShiftPressed) {
                     m_state.getCommandSystem().redo();
                 } else {
                     m_state.getCommandSystem().undo();
                 }
-            } else if (m_state.isKeyPressed(GLFW_KEY_G)) {
+            } else if (inpSystem->isKeyPressed(KeyCode::g)) {
                 UI::UIMain::getPanel<UI::ProjectExplorer>()
                     ->groupSelectedNodes();
-            } else if (m_state.isKeyPressed(GLFW_KEY_A)) {
+            } else if (inpSystem->isKeyPressed(KeyCode::a)) {
                 m_state.getSceneDriver()->selectAllEntities();
-            } else if (m_state.isKeyPressed(GLFW_KEY_C)) {
+            } else if (inpSystem->isKeyPressed(KeyCode::c)) {
                 copySelectedEntities();
-            } else if (m_state.isKeyPressed(GLFW_KEY_V)) {
+            } else if (inpSystem->isKeyPressed(KeyCode::v)) {
                 pasteCopiedEntities();
             }
-        } else if (shiftPressed) {
-            if (m_state.isKeyPressed(GLFW_KEY_A)) {
+        } else if (isShiftPressed) {
+            if (inpSystem->isKeyPressed(KeyCode::a)) {
                 UI::UIMain::getPanel<UI::ComponentExplorer>()
                     ->toggleVisibility();
             }
         } else {
-            if (m_state.isKeyPressed(GLFW_KEY_DELETE)) {
+            if (inpSystem->isKeyPressed(KeyCode::del)) {
                 const auto &sceneState = m_state.getSceneDriver()->getState();
                 const auto selectedIds = sceneState.getSelectedComponents() |
                                          std::ranges::views::keys |
@@ -330,13 +269,13 @@ namespace Bess::Pages {
                 }
 
                 m_state.getCommandSystem().execute(std::move(deleteCommand));
-            } else if (m_state.isKeyPressed(GLFW_KEY_F)) {
+            } else if (inpSystem->isKeyPressed(KeyCode::f)) {
                 m_state.getSceneDriver()->focusCameraOnSelected();
-            } else if (m_state.isKeyPressed(GLFW_KEY_TAB)) {
+            } else if (inpSystem->isKeyPressed(KeyCode::tab)) {
                 m_state.getSceneDriver()->toggleSchematicView();
-            } else if (m_state.isKeyPressed(GLFW_KEY_ESCAPE)) {
+            } else if (inpSystem->isKeyPressed(KeyCode::escape)) {
                 UI::UIMain::getPanel<UI::ComponentExplorer>()->hide();
-            } else if (m_state.isKeyPressed(GLFW_KEY_C)) {
+            } else if (inpSystem->isKeyPressed(KeyCode::c)) {
                 auto &mainPageState =
                     Pages::MainPage::getInstance()->getState();
                 auto &sceneDriver = mainPageState.getSceneDriver();

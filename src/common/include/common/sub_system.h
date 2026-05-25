@@ -7,6 +7,8 @@ namespace Bess {
       public:
         virtual ~ISubSystem() = default;
 
+        virtual void onBeginFrame() {}
+
         // Called before any subsystem is intitalized
         virtual void onPreInit() {}
 

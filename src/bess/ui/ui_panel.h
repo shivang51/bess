@@ -3,7 +3,6 @@
 #include "common/class_helpers.h"
 #include "common/types.h"
 #include "dock_ids.h"
-#include "events/application_event.h"
 #include "imgui.h"
 #include <string>
 
@@ -13,8 +12,7 @@ namespace Bess::UI {
         Panel(const std::string &name);
         virtual ~Panel() = default;
         virtual void init();
-        virtual void update(TimeMs ts,
-                            const std::vector<ApplicationEvent> &events);
+        virtual void update(TimeMs ts);
         virtual void destroy();
 
         void render();
