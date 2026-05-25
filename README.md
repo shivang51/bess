@@ -53,9 +53,7 @@ All build scripts live in the **scripts/** folder inside the CMake source direct
        ./Bess
        ```
 ## TODO
-- [x] Basic Plugin Suppport
-- [x] Usability enhancements - [Details](https://github.com/shivang51/bess/pull/18)
-- [x] Command System - [Details](https://github.com/shivang51/bess/pull/19)
-- [x] Module Support - [Details](https://github.com/shivang51/bess/pull/20)
-- [x] Basic Verilog Support - [Details](https://github.com/shivang51/bess/pull/22) (Yosys 0.59 bin required)
-- [x] Add Sim Driver Architectural Support - [Details](https://github.com/shivang51/bess/pull/23)
+- [ ] Architecture Overhaul and Usability Improvements
+- [ ] Web Support
+- [ ] LLM Integration
+- [ ] Analog Component Support
