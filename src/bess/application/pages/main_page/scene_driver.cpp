@@ -9,6 +9,10 @@
 #include <mutex>
 
 namespace Bess {
+    void SceneDriver::onInit() {}
+
+    void SceneDriver::onDestroy() { removeScenes(); }
+
     std::shared_ptr<Canvas::Scene> SceneDriver::getActiveScene() const {
         return m_activeScene;
     }

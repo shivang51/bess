@@ -1,14 +1,18 @@
 #pragma once
 
 #include "common/bess_uuid.h"
+#include "common/sub_system.h"
 #include "scene/scene.h"
 #include <memory>
 
 namespace Bess {
-    class SceneDriver {
+    class SceneDriver : public ISubSystem {
       public:
         SceneDriver() = default;
-        ~SceneDriver() = default;
+        ~SceneDriver() override = default;
+
+        void onInit() override;
+        void onDestroy() override;
 
         std::shared_ptr<Canvas::Scene> getActiveScene() const;
 

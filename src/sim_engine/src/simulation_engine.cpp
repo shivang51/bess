@@ -32,7 +32,7 @@ namespace Bess::SimEngine {
         return inst;
     }
 
-    SimulationEngine::SimulationEngine() {
+    void SimulationEngine::onInit() {
         loadDrivers();
         initDrivers();
 
@@ -47,8 +47,27 @@ namespace Bess::SimEngine {
             BESS_INFO("Registered {} components from plugin {}", comps.size(),
                       plugin.first);
         }
-        Plugins::savePyThreadState();
         m_simThread = std::thread(&SimulationEngine::run, this);
+    }
+
+    SimulationEngine::SimulationEngine() {
+        // loadDrivers();
+        // initDrivers();
+        //
+        // const auto &pluginMangaer = Plugins::PluginManager::getInstance();
+        //
+        // auto &catalog = ComponentCatalog::instance();
+        // for (const auto &plugin : pluginMangaer.getLoadedPlugins()) {
+        //     const auto comps = plugin.second->onCompCatalogLoad();
+        //     for (const auto &comp : comps) {
+        //         catalog.registerComponent(comp);
+        //     }
+        //     BESS_INFO("Registered {} components from plugin {}",
+        //     comps.size(),
+        //               plugin.first);
+        // }
+        // Plugins::savePyThreadState();
+        // m_simThread = std::thread(&SimulationEngine::run, this);
     }
 
     void SimulationEngine::clear() {
@@ -72,6 +91,8 @@ namespace Bess::SimEngine {
 
     SimulationEngine::~SimulationEngine() { destroy(); }
 
+    void SimulationEngine::onDestroy() { destroy(); }
+
     void SimulationEngine::destroy() {
         if (m_destroyed)
             return;
@@ -87,7 +108,6 @@ namespace Bess::SimEngine {
         if (m_simThread.joinable())
             m_simThread.join();
 
-        Plugins::restorePyThreadState();
         ComponentCatalog::instance().destroy();
 
         m_destroyed = true;

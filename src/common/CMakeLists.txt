@@ -13,6 +13,7 @@ set(Header_Files
 "include/common/types.h"
 "include/common/bess_api.h"
 "include/common/g_app_context.h"
+"include/common/sub_sys_container.h"
 "include/common/sub_system.h"
 )
 
@@ -23,6 +24,7 @@ set(Source_Files
 	"src/bess_uuid.cpp"
 	"src/logger.cpp"
 	"src/g_app_context.cpp"
+	"src/common/sub_sys_container.cpp"
 )
 
 source_group("src/common" FILES ${Source_Files})

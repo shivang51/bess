@@ -11,6 +11,7 @@
 #include "services/plugin_service/plugin_service.h"
 #include "simulation_engine.h"
 #include "sub_systems/input_sub_system.h"
+#include "sub_systems/project_context.h"
 #include "ui/ui.h"
 #include "vulkan_core.h"
 #include <chrono>
@@ -121,6 +122,8 @@ namespace Bess {
         appCtx.addSubSystem<VulkanCore>();
         appCtx.addSubSystem<EventSystem::EventDispatcher>();
 
+        auto projCtx = appCtx.addSubSystem<ProjectContext>();
+
         appCtx.init();
 
         ApplicationState::setParentWindow(m_mainWindow);
@@ -148,10 +151,8 @@ namespace Bess {
 
         ApplicationState::clear();
 
-        // TODO: move simulation_engine etc inside it
         GAppContext::getInstance().destroy();
 
-        SimEngine::SimulationEngine::instance().destroy();
         Config::Settings::instance().cleanup();
 
         if (Svc::PluginService::getInstance().getIsInitialized()) {

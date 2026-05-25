@@ -40,8 +40,9 @@ set(Header_Files
 "asset_manager/asset_loader.h"
 "asset_manager/asset_manager.h"
 "asset_manager/asset_id.h"
-
 "sub_systems/input_sub_system.h"
+"sub_systems/input_sub_system_types.h"
+"sub_systems/project_context.h"
 )
 
 source_group("include" FILES ${Header_Files})
@@ -78,6 +79,7 @@ set(Source_Files
 "asset_manager/asset_manager.cpp"
 
 "sub_systems/input_sub_system.cpp"
+"sub_systems/project_context.cpp"
 )
 
 source_group("src" FILES ${Source_Files})

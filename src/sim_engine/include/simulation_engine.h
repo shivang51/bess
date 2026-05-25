@@ -2,6 +2,7 @@
 
 #include "common/bess_api.h"
 #include "common/bess_uuid.h"
+#include "common/sub_system.h"
 #include "common/types.h"
 #include "net/net.h"
 #include "sim_driver/sim_driver.h"
@@ -17,9 +18,15 @@ namespace Bess::SimEngine {
         class DigSimComp;
     } // namespace Drivers::Digital
 
-    class BESS_API SimulationEngine {
+    class BESS_API SimulationEngine : public ISubSystem {
       public:
         static SimulationEngine &instance();
+
+        SimulationEngine();
+        ~SimulationEngine() override;
+
+        void onInit() override;
+        void onDestroy() override;
 
         void destroy();
 
@@ -116,10 +123,6 @@ namespace Bess::SimEngine {
 
         void runDrivers();
         void stopDrivers();
-
-      private:
-        SimulationEngine();
-        ~SimulationEngine();
 
       private:
         void propagateFromComponent(const UUID &sourceId);
