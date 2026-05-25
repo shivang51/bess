@@ -7,6 +7,8 @@
 #include "scene/scene_state/components/scene_component.h"
 #include "scene_ser_reg.h"
 #include "services/plugin_service/plugin_service.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "simulation_engine.h"
 #include <cstdint>
 #include <memory>
@@ -345,7 +347,9 @@ namespace Bess::JsonConvert {
                                    state.getParentSceneId());
         state.setIsRootScene(j["isRootScene"].asBool());
 
-        const auto &simEngine = SimEngine::SimulationEngine::instance();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        const auto &simEngine = projectCtx->getSimEngine();
         std::vector<std::shared_ptr<Canvas::SceneComponent>>
             deserializedComponents;
         deserializedComponents.reserve(j["components"].size());

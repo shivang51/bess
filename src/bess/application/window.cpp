@@ -1,7 +1,7 @@
 #include "application/window.h"
 #include "common/bess_assert.h"
 #include "common/events.h"
-#include "common/g_app_context.h"
+#include "bess_core/g_app_context.h"
 #include "common/logger.h"
 #include "event_dispatcher.h"
 #include "ext/vector_float2.hpp"

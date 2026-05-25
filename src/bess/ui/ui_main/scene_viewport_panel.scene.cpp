@@ -1,5 +1,5 @@
 #include "scene_viewport_panel.h"
-#include "common/g_app_context.h"
+#include "bess_core/g_app_context.h"
 #include "common/types.h"
 #include "events/application_event.h"
 #include "pages/main_page/main_page.h"

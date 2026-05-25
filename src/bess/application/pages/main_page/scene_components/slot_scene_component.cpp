@@ -12,6 +12,8 @@
 #include "scene/scene_state/scene_state.h"
 #include "settings/viewport_theme.h"
 #include "sim_scene_component.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "simulation_engine.h"
 #include "ui/ui.h"
 #include <format>
@@ -194,7 +196,9 @@ namespace Bess::Canvas {
             return {SimEngine::LogicState::unknown, SimEngine::SimTime(0)};
         }
 
-        auto &simEngine = SimEngine::SimulationEngine::instance();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        auto &simEngine = projectCtx->getSimEngine();
         const auto digitalComp =
             simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
                 parentComp->getSimEngineId());
@@ -231,7 +235,9 @@ namespace Bess::Canvas {
             return false;
         }
 
-        auto &simEngine = SimEngine::SimulationEngine::instance();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        auto &simEngine = projectCtx->getSimEngine();
         const auto digitalComp =
             simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
                 parentComp->getSimEngineId());

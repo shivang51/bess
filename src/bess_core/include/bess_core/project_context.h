@@ -9,8 +9,11 @@
 
 namespace Bess {
     class ProjectFile;
+  namespace SimEngine {
+    class SimulationEngine;
+  }
 
-    class ProjectContext : public ISubSysContainer, public ISubSystem {
+    class BESS_API ProjectContext : public ISubSysContainer, public ISubSystem {
       public:
         ProjectContext() = default;
 
@@ -19,6 +22,7 @@ namespace Bess {
         void onDestroy() override;
 
         void loadProject(const std::string &path);
+        SimEngine::SimulationEngine &getSimEngine();
 
         MAKE_GETTER(std::shared_ptr<ProjectFile>, ProjectFile, m_projectFile)
 

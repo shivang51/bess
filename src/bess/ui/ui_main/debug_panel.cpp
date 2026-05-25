@@ -7,6 +7,8 @@
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "scene_ser_reg.h"
 #include "services/plugin_service/plugin_service.h"
 #include "simulation_engine.h"
@@ -146,7 +148,9 @@ namespace Bess::UI {
                                 BESS_ASSERT(simComp->getCompDef(),
                                             "[DEBUGPANEL] def not set");
                                 const auto &digComp =
-                                    SimEngine::SimulationEngine::instance()
+                                    Bess::GAppContext::getInstance()
+                                        .getSubSystem<Bess::ProjectContext>()
+                                        ->getSimEngine()
                                         .getComponent<SimEngine::Drivers::
                                                           Digital::DigSimComp>(
                                             simComp->getSimEngineId());

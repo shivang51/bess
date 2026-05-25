@@ -1,6 +1,6 @@
 #include "ui/ui.h"
 #include "common/bess_assert.h"
-#include "common/g_app_context.h"
+#include "bess_core/g_app_context.h"
 #include "common/logger.h"
 #include "device.h"
 #include "ui/icons/CodIcons.h"

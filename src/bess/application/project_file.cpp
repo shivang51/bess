@@ -1,6 +1,8 @@
 #include "application/project_file.h"
 #include "common/bess_uuid.h"
+#include "bess_core/g_app_context.h"
 #include "common/logger.h"
+#include "bess_core/project_context.h"
 
 #include "pages/main_page/main_page.h"
 #include "scene.h"
@@ -86,7 +88,9 @@ namespace Bess {
             return;
         }
 
-        auto &simEngine = SimEngine::SimulationEngine::instance();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        auto &simEngine = projectCtx->getSimEngine();
         simEngine.setSimulationState(SimEngine::SimulationState::paused);
         m_name = data.get("name", "Unnamed Project").asString();
         if (data.isMember("sim_engine_data")) {
@@ -105,7 +109,9 @@ namespace Bess {
             BESS_DEBUG("[Decode] Cleared Scenes. count = {}",
                        sceneDriver.getSceneCount());
 
-            auto &simEngine = SimEngine::SimulationEngine::instance();
+            auto &appCtx = Bess::GAppContext::getInstance();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+            auto &simEngine = projectCtx->getSimEngine();
 
             // decoding scenes
             for (auto &sceneJson : data["scene_data"]["scenes"]) {
@@ -178,8 +184,9 @@ namespace Bess {
             data["scene_data"]["scenes"].append(json);
         }
 
-        data["sim_engine_data"] =
-            SimEngine::SimulationEngine::instance().toJson();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        data["sim_engine_data"] = projectCtx->getSimEngine().toJson();
 
         return data;
     }

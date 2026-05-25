@@ -1,7 +1,7 @@
 #include "application.h"
 #include "application/application_state.h"
 #include "common/bess_assert.h"
-#include "common/g_app_context.h"
+#include "bess_core/g_app_context.h"
 #include "common/logger.h"
 #include "common/types.h"
 #include "event_dispatcher.h"
@@ -11,7 +11,7 @@
 #include "services/plugin_service/plugin_service.h"
 #include "simulation_engine.h"
 #include "sub_systems/input_sub_system.h"
-#include "sub_systems/project_context.h"
+#include "bess_core/project_context.h"
 #include "ui/ui.h"
 #include "vulkan_core.h"
 #include <chrono>

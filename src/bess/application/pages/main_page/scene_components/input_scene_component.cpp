@@ -8,6 +8,9 @@
 #include "settings/viewport_theme.h"
 #include "sim_scene_component.h"
 
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
+
 #include "ui/ui.h"
 
 #include "simulation_engine.h"
@@ -131,7 +134,9 @@ namespace Bess::Canvas {
             e.sceneState->getComponentByUuid<SimulationSceneComponent>(
                 slotComp->getParentComponent());
 
-        auto &simEngine = SimEngine::SimulationEngine::instance();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        auto &simEngine = projectCtx->getSimEngine();
 
         simEngine.setOutputSlotState(
             slotParentComp->getSimEngineId(), slotComp->getIndex(),

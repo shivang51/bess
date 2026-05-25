@@ -5,6 +5,8 @@
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "simulation_engine.h"
 #include "ui/icons/CodIcons.h"
 #include "ui/widgets/m_widgets.h"
@@ -52,7 +54,9 @@ namespace Bess::UI {
 
         if (compType == Canvas::SceneComponentType::simulation) {
             auto simComp = comp->cast<Canvas::SimulationSceneComponent>();
-            auto &simEngine = SimEngine::SimulationEngine::instance();
+            auto &appCtx = Bess::GAppContext::getInstance();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+            auto &simEngine = projectCtx->getSimEngine();
             auto &def =
                 simEngine.getComponentDefinition(simComp->getSimEngineId());
         } else if (compType == Canvas::SceneComponentType::connection) {

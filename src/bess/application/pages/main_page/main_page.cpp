@@ -2,9 +2,10 @@
 #include "asset_manager/asset_manager.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
-#include "common/g_app_context.h"
+#include "bess_core/g_app_context.h"
 #include "common/logger.h"
 #include "common/types.h"
+#include "bess_core/project_context.h"
 #include "macro_command.h"
 #include "pages/main_page/cmds/delete_comp_cmd.h"
 #include "pages/main_page/cmds/module_comp_cmd.h"
@@ -56,7 +57,9 @@ namespace Bess::Pages {
         }
         m_parentWindow = parentWindow;
 
-        SimEngine::SimulationEngine::instance();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        projectCtx->getSimEngine();
 
         // TODO(shivang): Think about a better way and scalabilty for plugins
         Canvas::NonSimSceneComponent::registerComponent<Canvas::TextComponent>(
@@ -86,8 +89,7 @@ namespace Bess::Pages {
 
         m_state.initCmdSystem();
         m_state.getCommandSystem().setScene(driver.getActiveScene().get());
-        m_state.getCommandSystem().setSimEngine(
-            &SimEngine::SimulationEngine::instance());
+        m_state.getCommandSystem().setSimEngine(&projectCtx->getSimEngine());
 
         Svc::SvcConnection::instance().init();
         Svc::CopyPaste::Context::instance().init();

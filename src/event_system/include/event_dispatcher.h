@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/g_app_context.h"
+#include "bess_core/g_app_context.h"
 #include "common/logger.h"
 #include "common/sub_system.h"
 #include <any>

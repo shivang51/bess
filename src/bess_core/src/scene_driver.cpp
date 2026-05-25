@@ -1,6 +1,8 @@
 #include "bess_core/scene_driver.h"
 
 #include "common/bess_uuid.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "simulation_engine.h"
@@ -194,7 +196,9 @@ namespace Bess {
     size_t SceneDriver::getActiveSceneIdx() const { return m_activeSceneIdx; }
 
     void SceneDriver::updateNets(const std::shared_ptr<Canvas::Scene> &scene) {
-        auto &simEngine = SimEngine::SimulationEngine::instance();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        auto &simEngine = projectCtx->getSimEngine();
         if (!simEngine.isNetUpdated())
             return;
 

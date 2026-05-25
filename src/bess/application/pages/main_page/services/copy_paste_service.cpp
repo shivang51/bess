@@ -1,6 +1,8 @@
 #include "copy_paste_service.h"
 #include "common/bess_uuid.h"
+#include "bess_core/g_app_context.h"
 #include "component_catalog.h"
+#include "bess_core/project_context.h"
 #include "macro_command.h"
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/main_page.h"
@@ -15,7 +17,9 @@ namespace Bess::Svc::CopyPaste {
 
         clear();
 
-        auto &simEngine = SimEngine::SimulationEngine::instance();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        auto &simEngine = projectCtx->getSimEngine();
         const auto &catalogInstance = SimEngine::ComponentCatalog::instance();
 
         const auto &sceneState = scene->getState();
@@ -221,8 +225,9 @@ namespace Bess::Svc::CopyPaste {
             cmdSystem.execute(std::move(macroCmd));
             cmdSystem.setScene(currentCmdSystemScene);
         } else {
-            macroCmd->execute(targetScene.get(),
-                              &SimEngine::SimulationEngine::instance());
+            auto &appCtx = Bess::GAppContext::getInstance();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+            macroCmd->execute(targetScene.get(), &projectCtx->getSimEngine());
         }
 
         return ogToClonedIdMap;

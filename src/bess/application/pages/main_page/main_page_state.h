@@ -1,6 +1,6 @@
 #pragma once
 
-#include "application/pages/main_page/scene_driver.h"
+#include "bess_core/scene_driver.h"
 #include "application/pages/main_page/services/hierarchical_scene_layout.h"
 #include "application/project_file.h"
 #include "command_system.h"

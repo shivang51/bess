@@ -1,5 +1,7 @@
 #include "bverilog/sim_engine_importer.h"
 #include "bverilog/yosys_runner.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "simulation_engine.h"
 
 #include <pybind11/functional.h>
@@ -184,7 +186,10 @@ void bind_verilog(py::module_ &m) {
         [](const Design &design,
            const std::optional<std::string> &top_module_name) {
             return importDesignIntoSimulationEngine(
-                design, Bess::SimEngine::SimulationEngine::instance(),
+                design,
+                Bess::GAppContext::getInstance()
+                    .getSubSystem<Bess::ProjectContext>()
+                    ->getSimEngine(),
                 top_module_name);
         },
         py::arg("design"), py::arg("top_module_name") = std::nullopt);
@@ -193,7 +198,10 @@ void bind_verilog(py::module_ &m) {
         "import_verilog_file_into_simulation_engine",
         [](const std::filesystem::path &verilog_file) {
             return importVerilogFileIntoSimulationEngine(
-                verilog_file, Bess::SimEngine::SimulationEngine::instance(),
+                verilog_file,
+                Bess::GAppContext::getInstance()
+                    .getSubSystem<Bess::ProjectContext>()
+                    ->getSimEngine(),
                 YosysRunnerConfig{});
         },
         py::arg("verilog_file"));
@@ -202,7 +210,10 @@ void bind_verilog(py::module_ &m) {
         [](const std::filesystem::path &verilog_file,
            const YosysRunnerConfig &config) {
             return importVerilogFileIntoSimulationEngine(
-                verilog_file, Bess::SimEngine::SimulationEngine::instance(),
+                verilog_file,
+                Bess::GAppContext::getInstance()
+                    .getSubSystem<Bess::ProjectContext>()
+                    ->getSimEngine(),
                 config);
         },
         py::arg("verilog_file"), py::arg("config"));
@@ -211,7 +222,10 @@ void bind_verilog(py::module_ &m) {
         "import_verilog_files_into_simulation_engine",
         [](const std::vector<std::filesystem::path> &verilog_files) {
             return importVerilogFilesIntoSimulationEngine(
-                verilog_files, Bess::SimEngine::SimulationEngine::instance(),
+                verilog_files,
+                Bess::GAppContext::getInstance()
+                    .getSubSystem<Bess::ProjectContext>()
+                    ->getSimEngine(),
                 YosysRunnerConfig{});
         },
         py::arg("verilog_files"));
@@ -220,7 +234,10 @@ void bind_verilog(py::module_ &m) {
         [](const std::vector<std::filesystem::path> &verilog_files,
            const YosysRunnerConfig &config) {
             return importVerilogFilesIntoSimulationEngine(
-                verilog_files, Bess::SimEngine::SimulationEngine::instance(),
+                verilog_files,
+                Bess::GAppContext::getInstance()
+                    .getSubSystem<Bess::ProjectContext>()
+                    ->getSimEngine(),
                 config);
         },
         py::arg("verilog_files"), py::arg("config"));

@@ -7,6 +7,8 @@
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
 #include "gtest/gtest.h"
@@ -63,7 +65,9 @@ namespace {
 class VerilogImportTest : public testing::Test {
   protected:
     void SetUp() override {
-        engine = &SimulationEngine::instance();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        engine = &projectCtx->getSimEngine();
         engine->setSimulationState(SimulationState::running);
         engine->clear();
     }

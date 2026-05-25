@@ -12,7 +12,6 @@ set(Header_Files
 "include/common/ui_log_sink.h"
 "include/common/types.h"
 "include/common/bess_api.h"
-"include/common/g_app_context.h"
 "include/common/sub_sys_container.h"
 "include/common/sub_system.h"
 )

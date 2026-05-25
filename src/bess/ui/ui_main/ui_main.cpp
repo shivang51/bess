@@ -1,6 +1,8 @@
 #include "ui/ui_main/ui_main.h"
 #include "application/application_state.h"
 #include "common/logger.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "debug_panel.h"
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -179,7 +181,9 @@ namespace Bess::UI {
         const ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar |
                                               ImGuiWindowFlags_NoSavedSettings |
                                               ImGuiWindowFlags_MenuBar;
-        auto &simEngine = SimEngine::SimulationEngine::instance();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        auto &simEngine = projectCtx->getSimEngine();
         const float height = ImGui::GetFrameHeight();
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
@@ -415,7 +419,9 @@ namespace Bess::UI {
         ImGui::SetCursorPosY(((targetHeight - buttonSize.y) * 0.5f) + 2.f);
 
         {
-            auto &simEngine = SimEngine::SimulationEngine::instance();
+            auto &appCtx = Bess::GAppContext::getInstance();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+            auto &simEngine = projectCtx->getSimEngine();
             const auto isSimPaused = simEngine.getSimulationState() ==
                                      SimEngine::SimulationState::paused;
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0, 0, 0, 0});

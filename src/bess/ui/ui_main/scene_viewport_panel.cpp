@@ -1,6 +1,6 @@
 #include "scene_viewport_panel.h"
 #include "common/bess_uuid.h"
-#include "common/g_app_context.h"
+#include "bess_core/g_app_context.h"
 #include "common/helpers.h"
 #include "common/logger.h"
 #include "icons/CodIcons.h"

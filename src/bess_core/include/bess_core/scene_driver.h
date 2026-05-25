@@ -7,7 +7,7 @@
 #include <memory>
 
 namespace Bess {
-    class SceneDriver : public ISubSystem {
+    class BESS_API SceneDriver : public ISubSystem {
       public:
         SceneDriver() = default;
         ~SceneDriver() override = default;

@@ -8,7 +8,9 @@
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
-#include "pages/main_page/scene_driver.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/scene_driver.h"
+#include "bess_core/project_context.h"
 #include "pages/main_page/services/copy_paste_service.h"
 #include "scene/scene_state/scene_state.h"
 #include "simulation_engine.h"
@@ -67,7 +69,9 @@ namespace Bess::Canvas {
         moduleClone->setAssociatedInp(clonedInpId);
         moduleClone->setAssociatedOut(clonedOutId);
 
-        auto &simEngine = SimEngine::SimulationEngine::instance();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        auto &simEngine = projectCtx->getSimEngine();
 
         // becuase onAttach simulation scene component creates its own dig comp
         // in simulation engine
@@ -90,7 +94,9 @@ namespace Bess::Canvas {
     }
 
     void ModuleSceneComponent::setCallbacks(const SceneState &state) {
-        auto &simEngine = SimEngine::SimulationEngine::instance();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        auto &simEngine = projectCtx->getSimEngine();
         auto moduleDef =
             std::dynamic_pointer_cast<SimEngine::ModuleDefinition>(m_compDef);
         BESS_ASSERT(moduleDef, "[ModuleSceneComponent] Module definition not "
@@ -137,7 +143,9 @@ namespace Bess::Canvas {
             m_uuid,
             [this](const std::vector<SimEngine::SlotState> &inputStates,
                    const std::vector<SimEngine::SlotState> &outputStates) {
-                auto &simEngine = SimEngine::SimulationEngine::instance();
+                auto &appCtx = Bess::GAppContext::getInstance();
+                auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+                auto &simEngine = projectCtx->getSimEngine();
                 auto moduleDigComp =
                     simEngine
                         .getComponent<SimEngine::Drivers::Digital::DigSimComp>(
@@ -163,7 +171,9 @@ namespace Bess::Canvas {
         auto onOutputSlotChange = [this, ownerSceneId](const UUID &id,
                                                        SimEngine::SlotType type,
                                                        int newCount) {
-            auto &simEngine = SimEngine::SimulationEngine::instance();
+            auto &appCtx = Bess::GAppContext::getInstance();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+            auto &simEngine = projectCtx->getSimEngine();
             auto moduleDigComp =
                 simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
                     this->m_simEngineId);
@@ -219,7 +229,9 @@ namespace Bess::Canvas {
         auto onInputSlotChange = [this, ownerSceneId](const UUID &id,
                                                       SimEngine::SlotType type,
                                                       int newCount) {
-            auto &simEngine = SimEngine::SimulationEngine::instance();
+            auto &appCtx = Bess::GAppContext::getInstance();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+            auto &simEngine = projectCtx->getSimEngine();
             auto moduleDigComp =
                 simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
                     this->m_simEngineId);
@@ -319,7 +331,9 @@ namespace Bess::Canvas {
         moduleComp->getStyle().headerColor = ViewportTheme::colors.moduleColor;
         newSceneState.setModuleId(moduleComp->getUuid());
 
-        const auto &simEngine = SimEngine::SimulationEngine::instance();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        const auto &simEngine = projectCtx->getSimEngine();
 
         // adding module input
         const auto inpDef =

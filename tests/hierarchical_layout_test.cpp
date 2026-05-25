@@ -1,5 +1,7 @@
 #include "application/pages/main_page/services/hierarchical_scene_layout.h"
 #include "dig_sim_driver.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "event_dispatcher.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
@@ -81,7 +83,9 @@ namespace {
     class HierarchicalLayoutTest : public testing::Test {
       protected:
         void SetUp() override {
-            engine = &SimulationEngine::instance();
+            auto &appCtx = Bess::GAppContext::getInstance();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+            engine = &projectCtx->getSimEngine();
             engine->clear();
         }
 

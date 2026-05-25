@@ -2,7 +2,9 @@
 
 #include "bverilog/sim_engine_importer.h"
 #include "common/bess_uuid.h"
+#include "bess_core/g_app_context.h"
 #include "common/logger.h"
+#include "bess_core/project_context.h"
 #include "dig_sim_driver.h"
 #include "event_dispatcher.h"
 #include "pages/main_page/cmds/update_value_cmd.h"
@@ -185,7 +187,9 @@ namespace Bess::Pages {
 
     void MainPageState::resetProjectState(bool updateWindowName) {
         m_sceneDriver.reset(updateWindowName);
-        SimEngine::SimulationEngine::instance().clear();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        projectCtx->getSimEngine().clear();
     }
 
     void MainPageState::createNewProject(bool updateWindowName) {
@@ -241,7 +245,9 @@ namespace Bess::Pages {
             }
 
             resetProjectState();
-            auto &simEngine = SimEngine::SimulationEngine::instance();
+            auto &appCtx = Bess::GAppContext::getInstance();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+            auto &simEngine = projectCtx->getSimEngine();
             // const auto result =
             // Verilog::importVerilogFilesIntoSimulationEngine(toFilesystemPaths(paths),
             // simEngine); populateSceneFromVerilogImportResult(result,
@@ -266,8 +272,10 @@ namespace Bess::Pages {
             return result;
         }
 
-        return applyHierarchicalSceneLayout(
-            *activeScene, SimEngine::SimulationEngine::instance());
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        return applyHierarchicalSceneLayout(*activeScene,
+                            projectCtx->getSimEngine());
     }
 
     void MainPageState::startVerilogImport(const std::string &path) {
@@ -307,7 +315,9 @@ namespace Bess::Pages {
         }
 
         try {
-            auto &simEngine = SimEngine::SimulationEngine::instance();
+            auto &appCtx = Bess::GAppContext::getInstance();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+            auto &simEngine = projectCtx->getSimEngine();
             auto scene = m_sceneDriver.getActiveScene();
 
             switch (session.phase) {
@@ -535,8 +545,10 @@ namespace Bess::Pages {
             return; // most likely the component was deleted, so we can ignore
                     // this event
 
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
         const auto &digitalComp =
-            SimEngine::SimulationEngine::instance()
+            projectCtx->getSimEngine()
                 .getComponent<SimEngine::Drivers::Digital::DigSimComp>(
                     e.componentId);
 
@@ -572,8 +584,10 @@ namespace Bess::Pages {
             return; // most likely the component was deleted, so we can ignore
                     // this event
 
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
         const auto &digitalComp =
-            SimEngine::SimulationEngine::instance()
+            projectCtx->getSimEngine()
                 .getComponent<SimEngine::Drivers::Digital::DigSimComp>(
                     e.componentId);
         const auto &outSlotsInfo =

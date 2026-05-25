@@ -27,11 +27,6 @@
 #endif // !BESS_LOG_EVENT
 
 namespace Bess::SimEngine {
-    SimulationEngine &SimulationEngine::instance() {
-        static SimulationEngine inst;
-        return inst;
-    }
-
     void SimulationEngine::onInit() {
         loadDrivers();
         initDrivers();

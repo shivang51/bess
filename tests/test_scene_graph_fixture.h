@@ -3,6 +3,7 @@
 #include "command_system.h"
 #include "component_catalog.h"
 #include "dig_sim_driver.h"
+#include "bess_core/g_app_context.h"
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/scene_components/conn_joint_scene_component.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
@@ -16,6 +17,7 @@
 #include "plugin_manager.h"
 #include "scene/scene.h"
 #include "scene/scene_ser_reg.h"
+#include "bess_core/project_context.h"
 #include "simulation_engine.h"
 #include <chrono>
 #include <functional>
@@ -162,7 +164,16 @@ namespace Bess::Tests {
         }
 
         void SetUp() override {
-            auto &simEngine = SimulationEngine::instance();
+            auto &appCtx = Bess::GAppContext::getInstance();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+            if (!projectCtx) {
+                projectCtx = appCtx.addSubSystem<Bess::ProjectContext>();
+            }
+            if (!projectCtx->getSubSystem<Bess::SimEngine::SimulationEngine>()) {
+                projectCtx->addSubSystem<Bess::SimEngine::SimulationEngine>();
+            }
+
+            auto &simEngine = projectCtx->getSimEngine();
             simEngine.clear();
 
             ensurePrimitiveGateDefinitions();
@@ -191,7 +202,7 @@ namespace Bess::Tests {
 
             cmdSystem.init();
             cmdSystem.setScene(scene.get());
-            cmdSystem.setSimEngine(&SimulationEngine::instance());
+            cmdSystem.setSimEngine(&projectCtx->getSimEngine());
         }
 
         void TearDown() override {
@@ -201,7 +212,11 @@ namespace Bess::Tests {
                 scene->clear();
                 scene.reset();
             }
-            SimulationEngine::instance().clear();
+            auto &appCtx = Bess::GAppContext::getInstance();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+            if (projectCtx) {
+                projectCtx->getSimEngine().clear();
+            }
         }
 
         SimCompFixture addSimComponentDirect(const std::shared_ptr<Scene> &targetScene,

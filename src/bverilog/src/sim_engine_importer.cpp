@@ -1,4 +1,6 @@
 #include "bverilog/sim_engine_importer.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
 #include "common/types.h"
@@ -308,7 +310,9 @@ namespace Bess::Verilog {
                                                       size_t count);
 
         void initIO() {
-            auto driver = SimulationEngine::instance().getDriverWithName(
+            auto &appCtx = Bess::GAppContext::getInstance();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+            auto driver = projectCtx->getSimEngine().getDriverWithName(
                 Drivers::Digital::DigitalSimDriver::NAME);
             auto digitalDriver =
                 std::dynamic_pointer_cast<Drivers::Digital::DigitalSimDriver>(

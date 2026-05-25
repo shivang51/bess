@@ -4,6 +4,8 @@
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "plugin_manager.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
@@ -17,6 +19,12 @@ using namespace Bess;
 namespace {
     using namespace Bess::Canvas;
     using namespace Bess::SimEngine;
+
+    inline SimulationEngine &testSimEngine() {
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        return projectCtx->getSimEngine();
+    }
 
     std::shared_ptr<Drivers::CompDef>
     findDefinitionByName(std::string_view name) {
@@ -48,7 +56,7 @@ class ConnectionServiceTest : public testing::Test {
         service->destroy();
         service->init();
 
-        auto &simEngine = SimulationEngine::instance();
+        auto &simEngine = testSimEngine();
         simEngine.clear();
 
         inputDef = findDefinitionByName("Input");
@@ -67,7 +75,7 @@ class ConnectionServiceTest : public testing::Test {
         }
 
         service->destroy();
-        SimulationEngine::instance().clear();
+        testSimEngine().clear();
     }
 
     SimCompFixture
@@ -276,7 +284,7 @@ TEST_F(ResizeSlotConnectionTest,
        AddSlotIncreasesSimEngineInputCountAndDefMetadata) {
     const auto gate = addSimComponent(andDef);
     ASSERT_NE(gate.comp, nullptr);
-    auto &simEngine = SimulationEngine::instance();
+    auto &simEngine = testSimEngine();
 
     const auto simId = gate.comp->getSimEngineId();
     ASSERT_NE(simId, Bess::UUID::null);
@@ -305,7 +313,7 @@ TEST_F(ResizeSlotConnectionTest,
 TEST_F(ResizeSlotConnectionTest,
        RemoveSlotDecreasesSimEngineInputCountAndDefMetadata) {
     const auto gate = addSimComponent(andDef);
-    auto &simEngine = SimulationEngine::instance();
+    auto &simEngine = testSimEngine();
 
     const auto digComp =
         simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
@@ -331,7 +339,7 @@ TEST_F(ResizeSlotConnectionTest,
 
 TEST_F(ResizeSlotConnectionTest, RemoveSlotOnNonResizeableOutputReturnsFalse) {
     const auto gate = addSimComponent(andDef);
-    auto &simEngine = SimulationEngine::instance();
+    auto &simEngine = testSimEngine();
 
     // AND gate output is NOT resizeable
     bool removed =
@@ -342,7 +350,7 @@ TEST_F(ResizeSlotConnectionTest, RemoveSlotOnNonResizeableOutputReturnsFalse) {
 
 TEST_F(ResizeSlotConnectionTest, AddSlotOnNonResizeableOutputReturnsFalse) {
     const auto gate = addSimComponent(andDef);
-    auto &simEngine = SimulationEngine::instance();
+    auto &simEngine = testSimEngine();
 
     bool added = simEngine.addSlot(gate.comp->getSimEngineId(),
                                    Bess::SimEngine::SlotType::digitalOutput, 0);
@@ -352,7 +360,7 @@ TEST_F(ResizeSlotConnectionTest, AddSlotOnNonResizeableOutputReturnsFalse) {
 TEST_F(ResizeSlotConnectionTest, ConnectToNewlyAddedSlotSucceeds) {
     const auto gate = addSimComponent(andDef);
     const auto source = addSimComponent(inputDef);
-    auto &simEngine = SimulationEngine::instance();
+    auto &simEngine = testSimEngine();
 
     const auto digComp =
         simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
@@ -377,7 +385,7 @@ TEST_F(ResizeSlotConnectionTest, ConnectToNewlyAddedSlotSucceeds) {
 
 TEST_F(ResizeSlotConnectionTest, MultipleAddSlotsThenConnectEachSlot) {
     const auto gate = addSimComponent(andDef);
-    auto &simEngine = SimulationEngine::instance();
+    auto &simEngine = testSimEngine();
 
     // Grow from 2 to 5 inputs
     for (int i = 2; i < 5; ++i) {
@@ -413,7 +421,7 @@ TEST_F(ResizeSlotConnectionTest, MultipleAddSlotsThenConnectEachSlot) {
 TEST_F(ResizeSlotConnectionTest, RemoveSlotWithExistingConnectionClearsIt) {
     const auto gate = addSimComponent(andDef);
     const auto source = addSimComponent(inputDef);
-    auto &simEngine = SimulationEngine::instance();
+    auto &simEngine = testSimEngine();
 
     // Add slot at index 2, connect to it, then remove it
     ASSERT_TRUE(simEngine.addSlot(gate.comp->getSimEngineId(),
@@ -437,14 +445,14 @@ TEST_F(ResizeSlotConnectionTest, RemoveSlotWithExistingConnectionClearsIt) {
 }
 
 TEST_F(ResizeSlotConnectionTest, AddSlotForUnknownComponentReturnsFalse) {
-    auto &simEngine = SimulationEngine::instance();
+    auto &simEngine = testSimEngine();
     bool added = simEngine.addSlot(Bess::UUID(99999),
                                    Bess::SimEngine::SlotType::digitalInput, 0);
     EXPECT_FALSE(added);
 }
 
 TEST_F(ResizeSlotConnectionTest, RemoveSlotForUnknownComponentReturnsFalse) {
-    auto &simEngine = SimulationEngine::instance();
+    auto &simEngine = testSimEngine();
     bool removed = simEngine.removeSlot(
         Bess::UUID(99999), Bess::SimEngine::SlotType::digitalInput, 0);
     EXPECT_FALSE(removed);
@@ -453,7 +461,7 @@ TEST_F(ResizeSlotConnectionTest, RemoveSlotForUnknownComponentReturnsFalse) {
 TEST_F(ResizeSlotConnectionTest, CanConnectRejectsOutOfBoundsSlotIndex) {
     const auto gate = addSimComponent(andDef);
     const auto source = addSimComponent(inputDef);
-    auto &simEngine = SimulationEngine::instance();
+    auto &simEngine = testSimEngine();
 
     // AND gate has 2 inputs (indices 0, 1). Trying index 2 should fail.
     auto [ok, msg] = simEngine.canConnectComponents(
@@ -468,7 +476,7 @@ TEST_F(ResizeSlotConnectionTest, CanConnectRejectsOutOfBoundsSlotIndex) {
 TEST_F(ResizeSlotConnectionTest, CanConnectRejectsNegativeSlotIndex) {
     const auto gate = addSimComponent(andDef);
     const auto source = addSimComponent(inputDef);
-    auto &simEngine = SimulationEngine::instance();
+    auto &simEngine = testSimEngine();
 
     auto [ok, msg] = simEngine.canConnectComponents(
         source.comp->getSimEngineId(), 0,
@@ -482,7 +490,7 @@ TEST_F(ResizeSlotConnectionTest,
        DeleteConnectionViaDriverUpdatesIsConnectedFlags) {
     const auto gate = addSimComponent(andDef);
     const auto source = addSimComponent(inputDef);
-    auto &simEngine = SimulationEngine::instance();
+    auto &simEngine = testSimEngine();
 
     simEngine.connectComponent(source.comp->getSimEngineId(), 0,
                                Bess::SimEngine::SlotType::digitalOutput,
@@ -505,7 +513,7 @@ TEST_F(ResizeSlotConnectionTest,
 TEST_F(ResizeSlotConnectionTest,
        DefinitionSlotCountStaysInSyncAfterMultipleResizes) {
     const auto gate = addSimComponent(andDef);
-    auto &simEngine = SimulationEngine::instance();
+    auto &simEngine = testSimEngine();
 
     const auto digComp =
         simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(

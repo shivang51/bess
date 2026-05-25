@@ -1,6 +1,6 @@
 #pragma once
 #include "application/asset_manager/asset_loader.h"
-#include "common/g_app_context.h"
+#include "bess_core/g_app_context.h"
 #include "font.h"
 #include "msdf_font.h"
 #include "vulkan_core.h"

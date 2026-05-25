@@ -1,5 +1,7 @@
 #include "dig_module_def.h"
 #include "common/bess_assert.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "component_catalog.h"
 #include "sim_driver/sim_driver.h"
 #include "simulation_engine.h"
@@ -15,7 +17,9 @@ namespace Bess::SimEngine {
 
         const auto &catalog = ComponentCatalog::instance();
 
-        auto &simEngine = SimulationEngine::instance();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        auto &simEngine = projectCtx->getSimEngine();
 
         const auto &inpDef = simEngine.getComponentDefinition(m_input);
         clone->m_input = simEngine.addComponent(inpDef);
@@ -27,7 +31,9 @@ namespace Bess::SimEngine {
     }
 
     std::shared_ptr<ModuleDefinition> ModuleDefinition::createNew() {
-        auto &simEngine = SimulationEngine::instance();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        auto &simEngine = projectCtx->getSimEngine();
 
         auto moduleDef = std::make_shared<ModuleDefinition>();
 
@@ -69,7 +75,9 @@ namespace Bess::SimEngine {
         const auto &inputs = data->inputStates;
         const auto &prevState = data->prevState;
 
-        auto &simEngine = SimulationEngine::instance();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        auto &simEngine = projectCtx->getSimEngine();
 
         const auto &outputState = simEngine.getComponentState(m_output);
 

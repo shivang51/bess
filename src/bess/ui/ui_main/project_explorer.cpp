@@ -3,6 +3,8 @@
 #include "common/bess_uuid.h"
 #include "common/helpers.h"
 #include "common/logger.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "icons/FontAwesomeIcons.h"
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -47,7 +49,9 @@ namespace Bess::UI {
                 return false;
             }
 
-            auto &simEngine = SimEngine::SimulationEngine::instance();
+            auto &appCtx = Bess::GAppContext::getInstance();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+            auto &simEngine = projectCtx->getSimEngine();
             if (!simEngine.getComponent<SimEngine::Drivers::SimComponent>(
                     simId)) {
                 return false;
@@ -366,7 +370,9 @@ namespace Bess::UI {
 
     void ProjectExplorer::groupOnNets() {
 
-        auto &simEngine = SimEngine::SimulationEngine::instance();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        auto &simEngine = projectCtx->getSimEngine();
         if (!simEngine.isNetUpdated())
             return;
 

@@ -1,7 +1,8 @@
 #include "bess_core/project_context.h"
 
+#include "bess_core/scene_driver.h"
+#include "common/logger.h"
 #include "project_file.h"
-#include "pages/main_page/scene_driver.h"
 #include "simulation_engine.h"
 
 namespace Bess {
@@ -13,6 +14,13 @@ namespace Bess {
     }
 
     void ProjectContext::onDestroy() { ISubSysContainer::destroy(); }
+
+    SimEngine::SimulationEngine &ProjectContext::getSimEngine() {
+        auto simEngine = getSubSystem<SimEngine::SimulationEngine>();
+        BESS_ASSERT(simEngine, "SimulationEngine subsystem must be initialized "
+                               "before accessing ProjectContext");
+        return *simEngine;
+    }
 
     void ProjectContext::loadProject(const std::string &path) {
         if (path.empty()) {

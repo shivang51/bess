@@ -20,8 +20,6 @@ namespace Bess::SimEngine {
 
     class BESS_API SimulationEngine : public ISubSystem {
       public:
-        static SimulationEngine &instance();
-
         SimulationEngine();
         ~SimulationEngine() override;
 

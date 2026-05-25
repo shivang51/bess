@@ -1,4 +1,6 @@
 #include "dig_sim_driver.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
@@ -1045,7 +1047,9 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         const auto &inpId = def->getInputId();
 
-        auto &simEngine = SimEngine::SimulationEngine::instance();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        auto &simEngine = projectCtx->getSimEngine();
         auto driver = simEngine.getDriverWithName(DigitalSimDriver::NAME);
         BESS_ASSERT(driver, "DigitalSimDriver not found in simulation engine");
         auto digitalDriver =

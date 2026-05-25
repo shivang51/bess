@@ -1,6 +1,8 @@
 #include "common/types.h"
 #include "component_catalog.h"
 #include "dig_sim_driver.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "plugin_manager.h"
 #include "simulation_engine.h"
 #include "gtest/gtest.h"
@@ -137,7 +139,9 @@ class SimulationEngineTest : public testing::Test {
         orDef, xorDef;
 
     void SetUp() override {
-        engine = &SimulationEngine::instance();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        engine = &projectCtx->getSimEngine();
         ensurePrimitiveGateDefinitions();
 
         inputDef = findDefinitionByName("Input");

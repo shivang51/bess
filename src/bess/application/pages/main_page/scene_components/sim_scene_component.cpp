@@ -10,6 +10,8 @@
 #include "scene/scene_state/scene_state.h"
 #include "scene_draw_context.h"
 #include "settings/viewport_theme.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "simulation_engine.h"
 #include "slot_scene_component.h"
 #include "ui/widgets/m_widgets.h"
@@ -330,7 +332,9 @@ namespace Bess::Canvas {
         if (m_simEngineId != UUID::null)
             return;
 
-        auto &simEngine = SimEngine::SimulationEngine::instance();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        auto &simEngine = projectCtx->getSimEngine();
         m_simEngineId = simEngine.addComponent(m_compDef, false);
     }
 
@@ -341,7 +345,9 @@ namespace Bess::Canvas {
         const auto ids = SceneComponent::cleanup(state, caller);
         removedIds.insert(removedIds.end(), ids.begin(), ids.end());
 
-        auto &simEngine = SimEngine::SimulationEngine::instance();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        auto &simEngine = projectCtx->getSimEngine();
         simEngine.deleteComponent(m_simEngineId);
         m_simEngineId = UUID::null;
 

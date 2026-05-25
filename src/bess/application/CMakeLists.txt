@@ -11,7 +11,6 @@ set(Header_Files
 "pages/main_page/services/connection_service.h"
 "pages/main_page/services/copy_paste_service.h"
 "pages/main_page/services/hierarchical_scene_layout.h"
-"pages/main_page/scene_driver.h"
 "pages/main_page/main_page_state.h"
 "pages/main_page/verilog_scene_import.h"
 "pages/main_page/cmds/add_comp_cmd.h"
@@ -42,7 +41,6 @@ set(Header_Files
 "asset_manager/asset_id.h"
 "sub_systems/input_sub_system.h"
 "sub_systems/input_sub_system_types.h"
-"sub_systems/project_context.h"
 )
 
 source_group("include" FILES ${Header_Files})
@@ -56,7 +54,6 @@ set(Source_Files
 "pages/main_page/main_page_state.cpp"
 "pages/main_page/verilog_scene_import.cpp"
 "pages/main_page/main_page.cpp"
-"pages/main_page/scene_driver.cpp"
 # "pages/start_page/start_page.cpp"
 "pages/main_page/services/connection_service.cpp"
 "pages/main_page/services/copy_paste_service.cpp"
