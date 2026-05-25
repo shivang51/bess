@@ -25,9 +25,6 @@ namespace Bess {
     Application::~Application() { shutdown(); }
 
     void Application::run() {
-        BESS_ASSERT(ApplicationState::getCurrentPage(),
-                    "Current page of application is not set");
-
         BESS_ASSERT(m_mainWindow, "Main window is not initialized or set");
 
         auto previousTime = std::chrono::steady_clock::now();
@@ -36,7 +33,6 @@ namespace Bess {
 
         auto &appCtx = GAppContext::getInstance();
         const auto &settings = appCtx.getSubSystem<Config::Settings>();
-        auto vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
 
         while (!m_mainWindow->isClosed()) {
             auto currentTime = std::chrono::steady_clock::now();
@@ -79,6 +75,7 @@ namespace Bess {
         auto &appCtx = GAppContext::getInstance();
 
         m_mainWindow = appCtx.addSubSystem<Window>(800, 660, "Bess");
+
         appCtx.addSubSystem<InputSubSystem>();
         appCtx.addSubSystem<VulkanCore>();
         appCtx.addSubSystem<EventSystem::EventDispatcher>();
@@ -103,9 +100,6 @@ namespace Bess {
 
     void Application::shutdown() {
         BESS_INFO("[Application] Shutting down application");
-
-        ApplicationState::setCurrentPage(nullptr);
-        ApplicationState::clear();
 
         GAppContext::getInstance().destroy();
 

@@ -28,9 +28,7 @@ namespace Bess {
         const auto &window = appCtx.getSubSystem<Window>();
         UI::init(window->getGLFWHandle());
 
-        const auto page = Pages::MainPage::getInstance(window);
-        ApplicationState::setCurrentPage(page);
-        ApplicationState::setParentWindow(window);
+        m_mainPage = Pages::MainPage::getInstance(window);
     }
 
     void UISubSystem::onDestroy() {
@@ -46,7 +44,7 @@ namespace Bess {
     void UISubSystem::onDraw() {
         UI::begin();
 
-        ApplicationState::getCurrentPage()->draw();
+        m_mainPage->draw();
 
         const auto &appCtx = GAppContext::getInstance();
         const auto &settings = appCtx.getSubSystem<Config::Settings>();
@@ -64,7 +62,7 @@ namespace Bess {
     }
 
     void UISubSystem::onUpdate(TimeMs dt) {
-        ApplicationState::getCurrentPage()->update(dt);
+        m_mainPage->update(dt);
         m_currentFps = static_cast<int>(std::round(1000.0 / dt.count()));
     }
 

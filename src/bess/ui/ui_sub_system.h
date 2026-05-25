@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/sub_system.h"
+#include "pages/main_page/main_page.h"
 #include "vulkan_core.h"
 
 namespace Bess {
@@ -17,6 +18,7 @@ namespace Bess {
       private:
         int m_currentFps = 0;
         std::shared_ptr<Vulkan::VulkanCore> m_vkCore = nullptr;
+        std::shared_ptr<Pages::MainPage> m_mainPage = nullptr;
     };
 
 } // namespace Bess
