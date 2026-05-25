@@ -1,6 +1,8 @@
 #pragma once
-#include "common/bess_api.h"
 #include "command_buffer.h"
+#include "common/bess_api.h"
+#include "common/class_helpers.h"
+#include "common/sub_system.h"
 #include "device.h"
 #include "swapchain.h"
 #include "vulkan_render_pass.h"
@@ -22,24 +24,21 @@ namespace Bess::Vulkan {
         bool isStarted = false;
     };
 
-    class BESS_API VulkanCore {
+    class BESS_API VulkanCore : public ISubSystem {
       public:
         static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
-        static VulkanCore &instance();
 
-        static bool isInitialized;
+        void onInit() override;
+        void onPostInit() override;
+        void onDestroy() override;
 
         VulkanCore() = default;
-        ~VulkanCore();
+        ~VulkanCore() override;
 
         VulkanCore(const VulkanCore &) = delete;
         VulkanCore &operator=(const VulkanCore &) = delete;
         VulkanCore(VulkanCore &&) = delete;
         VulkanCore &operator=(VulkanCore &&) = delete;
-
-        void init(const std::vector<const char *> &winExt,
-                  const SurfaceCreationCB &createSurface,
-                  VkExtent2D windowExtent);
 
         void beginFrame();
         void renderToSwapchain(const SwapchainRenderFn &fn);
@@ -47,6 +46,11 @@ namespace Bess::Vulkan {
 
         void cleanup(const std::function<void()> &preCmdBufferCleanup = []() {
         });
+
+        MAKE_GETTER_SETTER(VkSurfaceKHR, RenderSurface, m_renderSurface)
+        MAKE_GETTER_SETTER(std::vector<const char *>, WinExt, m_windowExt)
+        MAKE_GETTER_SETTER(SurfaceCreationCB, CreateSurfaceFn,
+                           m_createSurfaceFn)
 
         std::shared_ptr<VulkanRenderPass> getRenderPass() const;
 
@@ -88,6 +92,9 @@ namespace Bess::Vulkan {
         bool m_isDestroyed = false;
 
         bool m_hasSwapchainImg = false;
+
+        std::vector<const char *> m_windowExt;
+        SurfaceCreationCB m_createSurfaceFn;
     };
 
 } // namespace Bess::Vulkan

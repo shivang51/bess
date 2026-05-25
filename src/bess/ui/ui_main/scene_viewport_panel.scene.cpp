@@ -1,4 +1,5 @@
 #include "scene_viewport_panel.h"
+#include "common/g_app_context.h"
 #include "common/types.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
@@ -118,9 +119,10 @@ namespace Bess::UI {
         context.camera = m_viewport->getCamera();
         context.sceneState = &m_attachedScene->getState();
 
-        auto &inst = Bess::Vulkan::VulkanCore::instance();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
 
-        m_viewport->begin((int)inst.getCurrentFrameIdx(),
+        m_viewport->begin((int)vkCore->getCurrentFrameIdx(),
                           ViewportTheme::colors.background,
                           {0, Canvas::PickingId::invalid().runtimeId});
 

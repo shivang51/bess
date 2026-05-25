@@ -10,6 +10,7 @@
 #include "pages/main_page/main_page_state.h"
 #include "services/plugin_service/plugin_service.h"
 #include "simulation_engine.h"
+#include "sub_systems/input_sub_system.h"
 #include "ui/ui.h"
 #include "vulkan_core.h"
 #include <chrono>
@@ -26,14 +27,15 @@ namespace Bess {
     Application::~Application() { shutdown(); }
 
     void Application::draw() {
-        auto &vkCore = Bess::Vulkan::VulkanCore::instance();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
         if (m_mainWindow->wasWindowResized()) {
             m_mainWindow->resetWindowResizedFlag();
             const VkExtent2D newExtent = m_mainWindow->getExtent();
-            vkCore.recreateSwapchain(newExtent);
+            vkCore->recreateSwapchain(newExtent);
         }
 
-        vkCore.beginFrame();
+        vkCore->beginFrame();
         UI::begin();
 
         ApplicationState::getCurrentPage()->draw();
@@ -44,11 +46,11 @@ namespace Bess {
 
         UI::end();
 
-        vkCore.renderToSwapchain([](VkCommandBuffer cmdBuffer) {
+        vkCore->renderToSwapchain([](VkCommandBuffer cmdBuffer) {
             ImDrawData *drawData = ImGui::GetDrawData();
             ImGui_ImplVulkan_RenderDrawData(drawData, cmdBuffer);
         });
-        vkCore.endFrame();
+        vkCore->endFrame();
     }
 
     void Application::run() {
@@ -83,7 +85,11 @@ namespace Bess {
     }
 
     void Application::update(TimeMs ts) {
+
+        GAppContext::getInstance().update(ts);
+
         ApplicationState::getCurrentPage()->update(ts, m_events);
+
         m_events.clear();
     }
 
@@ -95,7 +101,9 @@ namespace Bess {
         if (w > 0 && h > 0) {
             const VkExtent2D newExtent = {static_cast<uint32_t>(w),
                                           static_cast<uint32_t>(h)};
-            Bess::Vulkan::VulkanCore::instance().recreateSwapchain(newExtent);
+            auto &appCtx = Bess::GAppContext::getInstance();
+            auto vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
+            vkCore->recreateSwapchain(newExtent);
         }
 
         ApplicationEvent::WindowResizeData data(w, h);
@@ -156,6 +164,9 @@ namespace Bess {
 
         m_mainWindow = appCtx.addSubSystem<Window>(800, 660, "Bess");
 
+        appCtx.addSubSystem<InputSubSystem>();
+        appCtx.addSubSystem<VulkanCore>();
+
         appCtx.init();
 
         ApplicationState::setParentWindow(m_mainWindow);
@@ -174,9 +185,6 @@ namespace Bess {
                                     VkSurfaceKHR &surface) {
             m_mainWindow->createWindowSurface(instance, surface);
         };
-
-        auto &instance = Bess::Vulkan::VulkanCore::instance();
-        instance.init(extensions, createSurface, extent);
 
         UI::init(m_mainWindow->getGLFWHandle());
 

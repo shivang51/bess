@@ -6,6 +6,7 @@
 #include "ext/vector_float2.hpp"
 #include "stb_image.h"
 #include "sub_systems/input_sub_system.h"
+#include "vulkan_core.h"
 #include <GLFW/glfw3.h>
 #include <cassert>
 #include <cstdint>
@@ -22,7 +23,20 @@ namespace Bess {
           m_height(height),
           m_title(title) {}
 
-    void Window::onPreInit() { initGLFW(); }
+    void Window::onPreInit() {
+        initGLFW();
+
+        auto vulkanCore =
+            GAppContext::getInstance().getSubSystem<Vulkan::VulkanCore>();
+        vulkanCore->setWinExt(getVulkanExtensions());
+
+        auto createSurface = [this](VkInstance &instance,
+                                    VkSurfaceKHR &surface) {
+            createWindowSurface(instance, surface);
+        };
+
+        vulkanCore->setCreateSurfaceFn(createSurface);
+    }
 
     void Window::initGLFW() const {
         if (isGLFWInitialized)

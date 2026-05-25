@@ -1,5 +1,6 @@
 #pragma once
 
+#include "types.h"
 namespace Bess {
     class ISubSystem {
       public:
@@ -17,5 +18,7 @@ namespace Bess {
         virtual void onShutdown() {}
 
         virtual void onDestroy() = 0;
+
+        virtual void onUpdate(TimeMs dt) {}
     };
 } // namespace Bess

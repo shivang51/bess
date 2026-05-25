@@ -1,4 +1,5 @@
 #include "vulkan_core.h"
+#include "common/bess_assert.h"
 #include "common/logger.h"
 #include <cstring>
 #include <memory>
@@ -9,27 +10,25 @@
 namespace Bess::Vulkan {
     VulkanCore::~VulkanCore() { cleanup(); }
 
-    bool VulkanCore::isInitialized = false;
-
-    void VulkanCore::init(const std::vector<const char *> &winExt,
-                          const SurfaceCreationCB &createSurface,
-                          VkExtent2D windowExtent) {
-        if (isInitialized) {
-            BESS_WARN("Reinitialization of VulkaCore was called...skipping");
-            return;
-        }
-
+    void VulkanCore::onInit() {
         BESS_INFO("Initializing VulkanCore");
-
-        initVkInstance(winExt);
+        initVkInstance(m_windowExt);
         createDebugMessenger();
-        createSurface(m_vkInstance, m_renderSurface);
+    }
+
+    void VulkanCore::onPostInit() {
+        BESS_ASSERT(m_createSurfaceFn,
+                    "Surface creation function is not set. Set it as per your "
+                    "windowing system before initializing VulkanCore");
+
+        m_createSurfaceFn(m_vkInstance, m_renderSurface);
+
         BESS_INFO("Created VkInstance and draw surface");
 
         m_device =
             std::make_shared<VulkanDevice>(m_vkInstance, m_renderSurface);
         m_swapchain = std::make_shared<VulkanSwapchain>(
-            m_vkInstance, m_device, m_renderSurface, windowExtent);
+            m_vkInstance, m_device, m_renderSurface, VkExtent2D{800, 600});
 
         m_renderPass = std::make_shared<VulkanRenderPass>(
             m_device, m_swapchain->imageFormat(), VK_FORMAT_D32_SFLOAT);
@@ -39,9 +38,10 @@ namespace Bess::Vulkan {
         m_commandBuffers = std::make_unique<VulkanCommandBuffers>(m_device, 2);
         createSyncObjects();
 
-        isInitialized = true;
-        BESS_INFO("Renderer Initialized");
+        BESS_INFO("VulkanCore Initialized");
     }
+
+    void VulkanCore::onDestroy() { cleanup(); }
 
     void VulkanCore::beginFrame() {
         if (m_currentFrameContext.isStarted) {
@@ -425,11 +425,6 @@ namespace Bess::Vulkan {
                 throw std::runtime_error("Failed to create in flight fence!");
             }
         }
-    }
-
-    VulkanCore &VulkanCore::instance() {
-        static VulkanCore inst;
-        return inst;
     }
 
     uint32_t VulkanCore::getCurrentFrameIdx() const {

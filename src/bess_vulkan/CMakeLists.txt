@@ -70,6 +70,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 
 target_link_libraries(${PROJECT_NAME} PRIVATE 
 		common
+		BessJson
 )
 
 if("${BUILD_ARCH}" STREQUAL "x64" AND WIN32)

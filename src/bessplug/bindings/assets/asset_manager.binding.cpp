@@ -1,5 +1,7 @@
 #include "asset_manager/asset_manager.h"
 #include "asset_manager/asset_id.h"
+#include "common/bess_assert.h"
+#include "common/g_app_context.h"
 #include "vulkan_core.h"
 #include "vulkan_texture.h"
 
@@ -33,8 +35,10 @@ class PyAssetManager {
     static std::shared_ptr<Bess::Vulkan::VulkanTexture>
     get_texture_asset(const AssetID<Bess::Vulkan::VulkanTexture, 1> &id) {
         py::gil_scoped_acquire acquire;
-        assert(
-            Bess::Vulkan::VulkanCore::instance().getDevice() &&
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto vulkanCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
+        BESS_ASSERT(
+            (vulkanCore && vulkanCore->getDevice()),
             "Vulkan device must be initialized before getting texture assets.");
         return AssetManager::instance().get(id);
     }

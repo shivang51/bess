@@ -2,6 +2,7 @@
 #include "asset_manager/asset_manager.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
+#include "common/g_app_context.h"
 #include "common/logger.h"
 #include "common/types.h"
 #include "events/application_event.h"
@@ -115,14 +116,15 @@ namespace Bess::Pages {
         m_copiedComponents.clear();
 
         if (!s_headless) {
-            auto &instance = Bess::Vulkan::VulkanCore::instance();
-            instance.cleanup([&]() {
+            auto &appCtx = Bess::GAppContext::getInstance();
+            auto vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
+            vkCore->cleanup([&]() {
                 for (const auto &panel : UI::UIMain::getScenePanels()) {
                     panel->destroyViewport();
                 }
                 m_state.getSceneDriver()->destroy();
                 Assets::AssetManager::instance().clear();
-                UI::vulkanCleanup(instance.getDevice());
+                UI::vulkanCleanup(vkCore->getDevice());
             });
 
             UI::UIMain::destroy();

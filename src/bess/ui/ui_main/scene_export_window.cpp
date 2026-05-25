@@ -1,4 +1,5 @@
 #include "ui/ui_main/scene_export_window.h"
+#include "common/g_app_context.h"
 #include "common/logger.h"
 #include "imgui.h"
 #include "pages/main_page/main_page.h"
@@ -422,9 +423,10 @@ namespace Bess::UI {
         const size_t snapRowSize = size.x * 4;
         VkExtent2D extent = {(uint32_t)size.x, (uint32_t)size.y};
 
-        auto &vkCore = Bess::Vulkan::VulkanCore::instance();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
         auto viewport = std::make_shared<Canvas::Viewport>(
-            vkCore.getDevice(), vkCore.getSwapchain()->imageFormat(), extent);
+            vkCore->getDevice(), vkCore->getSwapchain()->imageFormat(), extent);
         auto camera = std::make_shared<Camera>(size.x, size.y);
         viewport->setCamera(camera);
         auto pos = min + snapSpan / 2.f;

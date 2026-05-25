@@ -1,5 +1,6 @@
 #include "scene_viewport_panel.h"
 #include "common/bess_uuid.h"
+#include "common/g_app_context.h"
 #include "common/helpers.h"
 #include "common/logger.h"
 #include "icons/CodIcons.h"
@@ -21,9 +22,10 @@ namespace Bess::UI {
           m_viewportName(viewportName) {}
 
     void SceneViewportPanel::init() {
-        auto &vkCore = Vulkan::VulkanCore::instance();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
         m_viewport = std::make_shared<Canvas::Viewport>(
-            vkCore.getDevice(), vkCore.getSwapchain()->imageFormat(),
+            vkCore->getDevice(), vkCore->getSwapchain()->imageFormat(),
             vec2Extent2D(m_viewportSize));
 
         m_flags = NO_MOVE_FLAGS | ImGuiWindowFlags_NoFocusOnAppearing;

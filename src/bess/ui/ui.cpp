@@ -1,5 +1,6 @@
 #include "ui/ui.h"
 #include "common/bess_assert.h"
+#include "common/g_app_context.h"
 #include "common/logger.h"
 #include "device.h"
 #include "ui/icons/CodIcons.h"
@@ -47,15 +48,10 @@ namespace Bess::UI {
     }
 
     void initVulkanImGui() {
-        if (!Bess::Vulkan::VulkanCore::isInitialized) {
-            BESS_ERROR("VulkanRenderer not initialized! Call "
-                       "VulkanRenderer::init() first.");
-            return;
-        }
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
 
-        const auto &vulkanCore = Bess::Vulkan::VulkanCore::instance();
-
-        const auto device = vulkanCore.getDevice();
+        const auto device = vkCore->getDevice();
         if (!device) {
             BESS_ERROR("[UI] Vulkan device not available!");
             return;
@@ -80,7 +76,7 @@ namespace Bess::UI {
 
         ImGui_ImplVulkan_InitInfo initInfo = {};
         initInfo.ApiVersion = VK_API_VERSION_1_0;
-        initInfo.Instance = vulkanCore.getVkInstance();
+        initInfo.Instance = vkCore->getVkInstance();
         initInfo.PhysicalDevice = device->physicalDevice();
         initInfo.Device = device->device();
         initInfo.QueueFamily =
@@ -92,11 +88,11 @@ namespace Bess::UI {
         initInfo.UseDynamicRendering = false;
 
         initInfo.PipelineInfoMain.RenderPass =
-            vulkanCore.getRenderPass()->getVkHandle();
+            vkCore->getRenderPass()->getVkHandle();
         initInfo.PipelineInfoMain.Subpass = 0;
         initInfo.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
         initInfo.PipelineInfoForViewports.RenderPass =
-            vulkanCore.getRenderPass()->getVkHandle();
+            vkCore->getRenderPass()->getVkHandle();
         initInfo.PipelineInfoForViewports.Subpass = 0;
         initInfo.PipelineInfoForViewports.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 

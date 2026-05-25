@@ -21,6 +21,12 @@ namespace Bess {
         m_initialized = true;
     }
 
+    void GAppContext::update(TimeMs dt) {
+        for (auto &[_, subsystem] : m_subSystems) {
+            subsystem->onUpdate(dt);
+        }
+    }
+
     void GAppContext::destroy() {
         if (!m_initialized || m_destroyed) {
             return;

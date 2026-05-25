@@ -15,6 +15,8 @@ namespace Bess {
 
         void init();
 
+        void update(TimeMs dt);
+
         void destroy();
 
         template <typename T, typename... Args>
