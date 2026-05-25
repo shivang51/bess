@@ -42,9 +42,10 @@ namespace Bess::Vulkan {
 
         BESS_INFO("VulkanCore Initialized");
 
-        auto &evtDispatcher = EventSystem::EventDispatcher::instance();
+        auto &ctx = GAppContext::getInstance();
+        auto evtDispatcher = ctx.getSubSystem<EventSystem::EventDispatcher>();
 
-        evtDispatcher.sink<Events::WindowResizeEvent>().connect(
+        evtDispatcher->sink<Events::WindowResizeEvent>().connect(
             [this](const Events::WindowResizeEvent &event) {
                 const VkExtent2D newExtent = {
                     static_cast<uint32_t>(event.width),

@@ -1091,7 +1091,10 @@ namespace Bess::Pages {
 
                 configureImportedModuleInterface(wrapper, instance, simEngine,
                                                  ownerScene->getState());
-                EventSystem::EventDispatcher::instance().dispatchAll();
+                auto &appCtx = GAppContext::getInstance();
+                auto eventDispatcher =
+                    appCtx.getSubSystem<Bess::EventSystem::EventDispatcher>();
+                eventDispatcher->dispatchAll();
                 bridgeImportedModuleBoundary(result, instance, wrapper,
                                              simEngine, moduleByPath);
                 populateImportedModuleScene(result, instance, simEngine,
@@ -1369,7 +1372,10 @@ namespace Bess::Pages {
 
             addRootModuleConnections(scene, simEngine, sceneBySimId,
                                      moduleByPath);
-            EventSystem::EventDispatcher::instance().dispatchAll();
+            auto &appCtx = GAppContext::getInstance();
+            auto eventDispatcher =
+                appCtx.getSubSystem<Bess::EventSystem::EventDispatcher>();
+            eventDispatcher->dispatchAll();
         } catch (...) {
             restoreSimulationState();
             throw;

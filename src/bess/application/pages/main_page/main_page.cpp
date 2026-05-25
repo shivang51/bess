@@ -218,7 +218,10 @@ namespace Bess::Pages {
 
         // dispatching events after handling keyboard shortcuts,
         // so all modification are synced before updaing UI
-        EventSystem::EventDispatcher::instance().dispatchAll();
+        auto &appCtx = GAppContext::getInstance();
+        auto eventDispatcher =
+            appCtx.getSubSystem<Bess::EventSystem::EventDispatcher>();
+        eventDispatcher->dispatchAll();
 
         UI::UIMain::update(ts, events);
     }

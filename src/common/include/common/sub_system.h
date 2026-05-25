@@ -1,8 +1,9 @@
 #pragma once
 
+#include "common/bess_api.h"
 #include "types.h"
 namespace Bess {
-    class ISubSystem {
+    class BESS_API ISubSystem {
       public:
         virtual ~ISubSystem() = default;
 

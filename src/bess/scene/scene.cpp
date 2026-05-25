@@ -251,7 +251,10 @@ namespace Bess::Canvas {
     }
 
     void Scene::onRightMouse(bool isPressed) {
-        EventSystem::EventDispatcher::instance().queue(Events::MouseButtonEvent{
+        auto &appCtx = GAppContext::getInstance();
+        auto eventDispatcher =
+            appCtx.getSubSystem<Bess::EventSystem::EventDispatcher>();
+        eventDispatcher->queue(Events::MouseButtonEvent{
             toScenePos(m_mousePos), Events::MouseButton::right,
             isPressed ? Events::MouseClickAction::press
                       : Events::MouseClickAction::release,
@@ -260,7 +263,10 @@ namespace Bess::Canvas {
 
     void Scene::onMiddleMouse(bool isPressed) {
         m_isMiddleMousePressed = isPressed;
-        EventSystem::EventDispatcher::instance().queue(Events::MouseButtonEvent{
+        auto &appCtx = GAppContext::getInstance();
+        auto eventDispatcher =
+            appCtx.getSubSystem<Bess::EventSystem::EventDispatcher>();
+        eventDispatcher->queue(Events::MouseButtonEvent{
             toScenePos(m_mousePos), Events::MouseButton::middle,
             isPressed ? Events::MouseClickAction::press
                       : Events::MouseClickAction::release,
@@ -268,7 +274,10 @@ namespace Bess::Canvas {
     }
 
     void Scene::onLeftDoubleClick() {
-        EventSystem::EventDispatcher::instance().queue(Events::MouseButtonEvent{
+        auto &appCtx = GAppContext::getInstance();
+        auto eventDispatcher =
+            appCtx.getSubSystem<Bess::EventSystem::EventDispatcher>();
+        eventDispatcher->queue(Events::MouseButtonEvent{
             toScenePos(m_mousePos), Events::MouseButton::left,
             Events::MouseClickAction::doubleClick, m_pickingId.info});
 
@@ -284,7 +293,10 @@ namespace Bess::Canvas {
     void Scene::onLeftMouse(bool isPressed) {
         m_isLeftMousePressed = isPressed;
 
-        EventSystem::EventDispatcher::instance().queue(Events::MouseButtonEvent{
+        auto &appCtx = GAppContext::getInstance();
+        auto eventDispatcher =
+            appCtx.getSubSystem<Bess::EventSystem::EventDispatcher>();
+        eventDispatcher->queue(Events::MouseButtonEvent{
             toScenePos(m_mousePos), Events::MouseButton::left,
             isPressed ? Events::MouseClickAction::press
                       : Events::MouseClickAction::release,

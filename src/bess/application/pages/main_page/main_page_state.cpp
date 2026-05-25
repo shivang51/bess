@@ -4,6 +4,7 @@
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "dig_sim_driver.h"
+#include "event_dispatcher.h"
 #include "pages/main_page/cmds/update_value_cmd.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
@@ -20,7 +21,7 @@ namespace Bess::Pages {
     namespace {
         std::string fallbackSlotName(size_t index, bool isInput) {
             const char base = isInput ? 'A' : 'a';
-            return std::string(1, static_cast<char>(base + (index % 26)));
+            return {static_cast<char>(base + (index % 26))};
         }
 
         std::shared_ptr<Canvas::Scene> getTrackedScene(SceneDriver &sceneDriver,
@@ -412,18 +413,19 @@ namespace Bess::Pages {
 
     void MainPageState::initCmdSystem() {
         m_commandSystem.init();
-        auto &dispatcher = EventSystem::EventDispatcher::instance();
-        dispatcher.sink<Canvas::Events::EntityMovedEvent>()
+        auto &appCtx = GAppContext::getInstance();
+        auto dispatcher = appCtx.getSubSystem<EventSystem::EventDispatcher>();
+        dispatcher->sink<Canvas::Events::EntityMovedEvent>()
             .connect<&MainPageState::onEntityMoved>(this);
-        dispatcher.sink<Canvas::Events::EntityReparentedEvent>()
+        dispatcher->sink<Canvas::Events::EntityReparentedEvent>()
             .connect<&MainPageState::onEntityReparented>(this);
-        dispatcher.sink<Canvas::Events::ComponentAddedEvent>()
+        dispatcher->sink<Canvas::Events::ComponentAddedEvent>()
             .connect<&MainPageState::onEntityAdded>(this);
-        dispatcher.sink<Canvas::Events::ComponentRemovedEvent>()
+        dispatcher->sink<Canvas::Events::ComponentRemovedEvent>()
             .connect<&MainPageState::onEntityRemoved>(this);
-        dispatcher.sink<SimEngine::Events::CompDefOutputsResizedEvent>()
+        dispatcher->sink<SimEngine::Events::CompDefOutputsResizedEvent>()
             .connect<&MainPageState::onCompDefOutputsResized>(this);
-        dispatcher.sink<SimEngine::Events::CompDefInputsResizedEvent>()
+        dispatcher->sink<SimEngine::Events::CompDefInputsResizedEvent>()
             .connect<&MainPageState::onCompDefInputsResized>(this);
     }
 

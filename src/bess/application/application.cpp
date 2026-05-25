@@ -109,7 +109,9 @@ namespace Bess {
 
         Events::WindowResizeEvent evt{w, h};
 
-        EventSystem::EventDispatcher::instance().queue(evt);
+        auto &ctx = GAppContext::getInstance();
+        auto eventDispatcher = ctx.getSubSystem<EventSystem::EventDispatcher>();
+        eventDispatcher->queue(evt);
     }
 
     void Application::onMouseWheel(double x, double y) {
@@ -167,6 +169,7 @@ namespace Bess {
 
         appCtx.addSubSystem<InputSubSystem>();
         appCtx.addSubSystem<VulkanCore>();
+        appCtx.addSubSystem<EventSystem::EventDispatcher>();
 
         appCtx.init();
 

@@ -4,7 +4,6 @@
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "scene_state/components/scene_component.h"
 
-
 #define SLOT_PROBE_SER_PROPS                                                   \
     ("probedSlot", getProbedSlotUuid, setProbedSlotUuid)
 

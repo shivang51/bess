@@ -1,6 +1,8 @@
 #pragma once
 
+#include "common/g_app_context.h"
 #include "common/logger.h"
+#include "common/sub_system.h"
 #include <any>
 #include <functional>
 #include <queue>
@@ -13,11 +15,16 @@ namespace Bess::EventSystem {
     template <typename Event>
     using EventHandler = std::function<void(const Event &)>;
 
-    class EventDispatcher {
+    class EventDispatcher : public ISubSystem {
       public:
-        static EventDispatcher &instance() {
-            static EventDispatcher dispatcher;
-            return dispatcher;
+        void onInit() override {
+            BESS_INFO("[EventDispatcher] Initializing Event Dispatcher");
+        }
+
+        void onDestroy() override {
+            m_eventQueue = {};
+            m_handlers.clear();
+            BESS_INFO("[EventDispatcher] Destroyed Event Dispatcher");
         }
 
         void dispatchAll() {
@@ -40,19 +47,25 @@ namespace Bess::EventSystem {
             Sink() = default;
 
             void connect(EventHandler<Event> handler) {
-                EventDispatcher::instance().addListener<Event>(handler);
+                auto &ctx = GAppContext::getInstance();
+                auto eventDispatcher = ctx.getSubSystem<EventDispatcher>();
+                eventDispatcher->addListener<Event>(handler);
             }
 
             // Helper for member functions
             template <auto Candidate, typename Type>
             void connect(Type *instance) {
-                EventDispatcher::instance().addListener<Event>(
+                auto &ctx = GAppContext::getInstance();
+                auto eventDispatcher = ctx.getSubSystem<EventDispatcher>();
+                eventDispatcher->addListener<Event>(
                     [instance](const Event &e) { (instance->*Candidate)(e); });
             }
 
             // Helper for static member functions
             template <auto Candidate> void connect() {
-                EventDispatcher::instance().addListener<Event>(
+                auto &ctx = GAppContext::getInstance();
+                auto eventDispatcher = ctx.getSubSystem<EventDispatcher>();
+                eventDispatcher->addListener<Event>(
                     [](const Event &e) { Candidate(e); });
             }
         };

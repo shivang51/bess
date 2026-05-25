@@ -3,7 +3,6 @@
 #include "glm.hpp"
 #include "settings/viewport_theme.h"
 
-
 #include <format>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>

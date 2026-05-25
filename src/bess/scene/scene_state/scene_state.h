@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/bess_uuid.h"
+#include "common/g_app_context.h"
 #include "event_dispatcher.h"
 #include "renderer/material_renderer.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -52,12 +53,16 @@ namespace Bess::Canvas {
             if (triggerAttach)
                 component->onAttach(*this);
 
-            if (dispatchEvent)
-                EventSystem::EventDispatcher::instance().queue(
+            if (dispatchEvent) {
+                auto &appCtx = GAppContext::getInstance();
+                auto eventDispatcher =
+                    appCtx.getSubSystem<EventSystem::EventDispatcher>();
+                eventDispatcher->queue(
                     Events::ComponentAddedEvent{.uuid = id,
                                                 .type = component->getType(),
                                                 .sceneId = m_sceneId,
                                                 .state = this});
+            }
         }
 
         template <typename T>

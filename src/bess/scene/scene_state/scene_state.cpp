@@ -124,7 +124,10 @@ namespace Bess::Canvas {
                   (uint64_t)childId, (uint64_t)parentId);
 
         if (emitEvent) {
-            EventSystem::EventDispatcher::instance().queue(
+            auto &appCtx = GAppContext::getInstance();
+            auto eventDispatcher =
+                appCtx.getSubSystem<Bess::EventSystem::EventDispatcher>();
+            eventDispatcher->queue(
                 Events::EntityReparentedEvent{.entityUuid = childId,
                                               .newParentUuid = parentId,
                                               .prevParent = prevParentId,
@@ -152,7 +155,10 @@ namespace Bess::Canvas {
         BESS_INFO("[SceneState] Detached component {} from parent component {}",
                   (uint64_t)childId, (uint64_t)parentId);
 
-        EventSystem::EventDispatcher::instance().queue(
+        auto &appCtx = GAppContext::getInstance();
+        auto eventDispatcher =
+            appCtx.getSubSystem<Bess::EventSystem::EventDispatcher>();
+        eventDispatcher->queue(
             Events::EntityReparentedEvent{.entityUuid = childId,
                                           .newParentUuid = UUID::null,
                                           .prevParent = parentId,
@@ -244,7 +250,10 @@ namespace Bess::Canvas {
             }
         }
 
-        EventSystem::EventDispatcher::instance().queue(
+        auto &appCtx = GAppContext::getInstance();
+        auto eventDispatcher =
+            appCtx.getSubSystem<Bess::EventSystem::EventDispatcher>();
+        eventDispatcher->queue(
             Events::ComponentRemovedEvent{.uuid = uuid,
                                           .type = component->getType(),
                                           .sceneId = m_sceneId,
@@ -265,7 +274,10 @@ namespace Bess::Canvas {
 
         BESS_INFO("[SceneState] Orphaned component {}", (uint64_t)uuid);
 
-        EventSystem::EventDispatcher::instance().queue(
+        auto &appCtx = GAppContext::getInstance();
+        auto eventDispatcher =
+            appCtx.getSubSystem<Bess::EventSystem::EventDispatcher>();
+        eventDispatcher->queue(
             Events::EntityReparentedEvent{.entityUuid = uuid,
                                           .newParentUuid = UUID::null,
                                           .prevParent = parentId,

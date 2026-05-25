@@ -1,12 +1,14 @@
 #pragma once
 
+#include "common/bess_api.h"
+#include "common/bess_assert.h"
 #include "sub_system.h"
 #include <memory>
 #include <typeindex>
 #include <unordered_map>
 
 namespace Bess {
-    class GAppContext {
+    class BESS_API GAppContext {
       public:
         static GAppContext &getInstance() {
             static GAppContext instance;
@@ -32,6 +34,8 @@ namespace Bess {
             if (it != m_subSystems.end()) {
                 return std::static_pointer_cast<T>(it->second);
             }
+            BESS_ASSERT(false, "SubSystem of type {} not found in GAppContext",
+                        typeid(T).name());
             return nullptr;
         }
 

@@ -41,10 +41,12 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}"
 
 target_link_libraries(${PROJECT_NAME} PRIVATE 
 	common
+	BessJson
 )
 
 add_dependencies(${PROJECT_NAME} 
 	common
+	BessJson
 )
 
 if(MSVC)

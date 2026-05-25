@@ -368,7 +368,10 @@ namespace Bess::Canvas {
         }
 
         Canvas::Events::ConnectionRemovedEvent event{m_startSlot, m_startSlot};
-        EventSystem::EventDispatcher::instance().queue(event);
+        auto &appCtx = GAppContext::getInstance();
+        auto eventDispatcher =
+            appCtx.getSubSystem<Bess::EventSystem::EventDispatcher>();
+        eventDispatcher->queue(event);
 
         return {};
     }

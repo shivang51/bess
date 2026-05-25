@@ -3,7 +3,6 @@
 
 #include "common/logger.h"
 
-
 #include <stack>
 #include <stdexcept>
 

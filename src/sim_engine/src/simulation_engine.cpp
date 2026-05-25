@@ -407,12 +407,20 @@ namespace Bess::SimEngine {
 
                 if (res.changedInp) {
                     Events::CompDefInputsResizedEvent event{compId};
-                    EventSystem::EventDispatcher::instance().queue(event);
+                    auto &appCtx = GAppContext::getInstance();
+                    auto eventDispatcher =
+                        appCtx
+                            .getSubSystem<Bess::EventSystem::EventDispatcher>();
+                    eventDispatcher->queue(event);
                 }
 
                 if (res.changedOut) {
                     Events::CompDefOutputsResizedEvent event{compId};
-                    EventSystem::EventDispatcher::instance().queue(event);
+                    auto &appCtx = GAppContext::getInstance();
+                    auto eventDispatcher =
+                        appCtx
+                            .getSubSystem<Bess::EventSystem::EventDispatcher>();
+                    eventDispatcher->queue(event);
                 }
 
                 return true;
@@ -432,12 +440,20 @@ namespace Bess::SimEngine {
 
                 if (res.changedInp) {
                     Events::CompDefInputsResizedEvent event{compId};
-                    EventSystem::EventDispatcher::instance().queue(event);
+                    auto &appCtx = GAppContext::getInstance();
+                    auto eventDispatcher =
+                        appCtx
+                            .getSubSystem<Bess::EventSystem::EventDispatcher>();
+                    eventDispatcher->queue(event);
                 }
 
                 if (res.changedOut) {
                     Events::CompDefOutputsResizedEvent event{compId};
-                    EventSystem::EventDispatcher::instance().queue(event);
+                    auto &appCtx = GAppContext::getInstance();
+                    auto eventDispatcher =
+                        appCtx
+                            .getSubSystem<Bess::EventSystem::EventDispatcher>();
+                    eventDispatcher->queue(event);
                 }
 
                 return true;

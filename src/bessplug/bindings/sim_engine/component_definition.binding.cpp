@@ -10,7 +10,6 @@
 
 #include "internal_types.h"
 
-
 #include <iostream>
 #include <pystate.h>
 
