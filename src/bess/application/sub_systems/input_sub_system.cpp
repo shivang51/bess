@@ -11,11 +11,16 @@ namespace Bess {
 
     void InputSubSystem::onBeginFrame() {
         m_frameInputState = {};
-        m_keyStates.clear();
+
+        for (auto &[_, state] : m_keyStates) {
+            if (state.action == KeyAction::press) {
+                state.action = KeyAction::hold;
+            }
+        }
     }
 
     void InputSubSystem::onKeyEvent(KeyCode key, KeyAction action) {
-        m_keyStates[key] = action;
+        m_keyStates[key] = {key, action};
     }
 
     void InputSubSystem::onMouseButtonEvent(MouseButton button,
@@ -61,7 +66,12 @@ namespace Bess {
 
     bool InputSubSystem::isKeyPressed(KeyCode key) const {
         auto it = m_keyStates.find(key);
-        return it != m_keyStates.end() && it->second == KeyAction::press;
+        return it != m_keyStates.end() && it->second.action == KeyAction::press;
+    }
+
+    bool InputSubSystem::isKeyHeld(KeyCode key) const {
+        auto it = m_keyStates.find(key);
+        return it != m_keyStates.end() && it->second.action == KeyAction::hold;
     }
 
     bool InputSubSystem::isMouseBtnPressed(MouseButton button) const {
@@ -78,16 +88,20 @@ namespace Bess {
 
     bool InputSubSystem::isCtrlPressed() const {
         return isKeyPressed(KeyCode::leftControl) ||
-               isKeyPressed(KeyCode::rightControl);
+               isKeyPressed(KeyCode::rightControl) ||
+               isKeyHeld(KeyCode::leftControl) ||
+               isKeyHeld(KeyCode::rightControl);
     }
 
     bool InputSubSystem::isShiftPressed() const {
         return isKeyPressed(KeyCode::leftShift) ||
-               isKeyPressed(KeyCode::rightShift);
+               isKeyPressed(KeyCode::rightShift) ||
+               isKeyHeld(KeyCode::leftShift) || isKeyHeld(KeyCode::rightShift);
     }
 
     bool InputSubSystem::isAltPressed() const {
         return isKeyPressed(KeyCode::leftAlt) ||
-               isKeyPressed(KeyCode::rightAlt);
+               isKeyPressed(KeyCode::rightAlt) || isKeyHeld(KeyCode::leftAlt) ||
+               isKeyHeld(KeyCode::rightAlt);
     }
 } // namespace Bess

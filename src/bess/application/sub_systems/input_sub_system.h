@@ -8,6 +8,11 @@
 
 namespace Bess {
 
+    struct KeyState {
+        KeyCode key = KeyCode::unknown;
+        KeyAction action = KeyAction::release;
+    };
+
     struct MouseWheelState {
         glm::vec2 offset;
     };
@@ -48,6 +53,8 @@ namespace Bess {
 
         bool isKeyPressed(KeyCode key) const;
 
+        bool isKeyHeld(KeyCode key) const;
+
         bool isMouseBtnPressed(MouseButton button) const;
 
         bool isMouseBtnDoubleClicked(MouseButton button) const;
@@ -63,7 +70,7 @@ namespace Bess {
         MAKE_GETTER(MouseMoveState, MouseMoveState, m_mouseMoveState);
 
       private:
-        std::unordered_map<KeyCode, KeyAction> m_keyStates;
+        std::unordered_map<KeyCode, KeyState> m_keyStates;
         std::unordered_map<MouseButton, MouseButtonState> m_mouseBtnStates;
         MouseWheelState m_mouseWheelState;
         MouseMoveState m_mouseMoveState;

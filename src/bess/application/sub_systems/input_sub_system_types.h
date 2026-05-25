@@ -26,7 +26,7 @@ namespace Bess {
         unknown = 0,
         press = 1,
         release = 2,
-        repeat = 3
+        hold = 3
     };
 
     enum class KeyCode : uint16_t {
