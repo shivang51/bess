@@ -26,9 +26,6 @@ namespace Bess {
         void quit() const;
         void shutdown();
 
-        void loadProject(const std::string &path) const;
-        void saveProject() const;
-
       private:
         std::shared_ptr<Window> m_mainWindow;
     };

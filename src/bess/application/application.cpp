@@ -91,8 +91,9 @@ namespace Bess {
 
         appCtx.init();
 
-        if (!path.empty())
-            loadProject(path);
+        if (!path.empty()) {
+            projCtx->loadProject(path);
+        }
 
         BESS_INFO("[Application] Application initialized successfully\n");
     }
@@ -103,13 +104,5 @@ namespace Bess {
         GAppContext::getInstance().destroy();
 
         BESS_INFO("[Application] Application shutdown complete");
-    }
-
-    void Application::loadProject(const std::string &path) const {
-        Pages::MainPage::getInstance()->getState().loadProject(path);
-    }
-
-    void Application::saveProject() const {
-        Pages::MainPage::getInstance()->getState().saveCurrentProject();
     }
 } // namespace Bess
