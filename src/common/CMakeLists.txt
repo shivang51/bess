@@ -23,7 +23,6 @@ set(Source_Files
 	"src/helpers.cpp"
 	"src/bess_uuid.cpp"
 	"src/logger.cpp"
-	"src/g_app_context.cpp"
 	"src/common/sub_sys_container.cpp"
 )
 
@@ -42,6 +41,7 @@ add_dependencies(${PROJECT_NAME} BessJson)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
 	${CMAKE_CURRENT_SOURCE_DIR}/include
+	${CMAKE_SOURCE_DIR}/src/bess_core/include
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE

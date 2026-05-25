@@ -27,8 +27,8 @@ set(ALL_FILES
 
 add_executable(${PROJECT_NAME} ${ALL_FILES})
 set_target_properties(${PROJECT_NAME} PROPERTIES ENABLE_EXPORTS ON)
-target_link_libraries(${PROJECT_NAME} PUBLIC BessExtDeps BessScene BessUI BessApp)
-add_dependencies(${PROJECT_NAME} BessScene BessUI BessApp 
+target_link_libraries(${PROJECT_NAME} PUBLIC BessExtDeps BessScene BessUI BessCore BessApp)
+add_dependencies(${PROJECT_NAME} BessScene BessUI BessCore BessApp 
 	besspybindings
 )
 

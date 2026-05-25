@@ -79,7 +79,6 @@ set(Source_Files
 "asset_manager/asset_manager.cpp"
 
 "sub_systems/input_sub_system.cpp"
-"sub_systems/project_context.cpp"
 )
 
 source_group("src" FILES ${Source_Files})
@@ -91,9 +90,9 @@ set(ALL_FILES
 
 add_library(${PROJECT_NAME} OBJECT ${ALL_FILES})
 
-target_link_libraries(${PROJECT_NAME} PUBLIC common BessExtDeps BessJson BessSimEngine BessVulkan BessPluginManager EventSystem BessScene BessCmdSystem BessUI BessSimDriver DigitalSimDriver bverilog)
+target_link_libraries(${PROJECT_NAME} PUBLIC common BessCore BessExtDeps BessJson BessSimEngine BessVulkan BessPluginManager EventSystem BessScene BessCmdSystem BessUI BessSimDriver DigitalSimDriver bverilog)
 
-add_dependencies(${PROJECT_NAME} common BessExtDeps BessJson BessSimEngine BessVulkan BessPluginManager BessScene BessCmdSystem BessUI BessSimDriver DigitalSimDriver bverilog)
+add_dependencies(${PROJECT_NAME} common BessCore BessExtDeps BessJson BessSimEngine BessVulkan BessPluginManager BessScene BessCmdSystem BessUI BessSimDriver DigitalSimDriver bverilog)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}")
 
