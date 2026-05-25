@@ -1,6 +1,8 @@
 #include "vulkan_core.h"
 #include "common/bess_assert.h"
+#include "common/events.h"
 #include "common/logger.h"
+#include "event_dispatcher.h"
 #include <cstring>
 #include <memory>
 #include <set>
@@ -39,6 +41,16 @@ namespace Bess::Vulkan {
         createSyncObjects();
 
         BESS_INFO("VulkanCore Initialized");
+
+        auto &evtDispatcher = EventSystem::EventDispatcher::instance();
+
+        evtDispatcher.sink<Events::WindowResizeEvent>().connect(
+            [this](const Events::WindowResizeEvent &event) {
+                const VkExtent2D newExtent = {
+                    static_cast<uint32_t>(event.width),
+                    static_cast<uint32_t>(event.height)};
+                recreateSwapchain(newExtent);
+            });
     }
 
     void VulkanCore::onDestroy() { cleanup(); }

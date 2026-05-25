@@ -1,9 +1,11 @@
 #include "application.h"
 #include "application/application_state.h"
 #include "common/bess_assert.h"
+#include "common/events.h"
 #include "common/g_app_context.h"
 #include "common/logger.h"
 #include "common/types.h"
+#include "event_dispatcher.h"
 #include "events/application_event.h"
 #include "imgui_impl_vulkan.h"
 #include "pages/main_page/main_page.h"
@@ -97,18 +99,17 @@ namespace Bess {
 
     // callbacks
     void Application::onWindowResize(int w, int h) {
-        // Only handle resize if window is not minimized and size is reasonable
-        if (w > 0 && h > 0) {
-            const VkExtent2D newExtent = {static_cast<uint32_t>(w),
-                                          static_cast<uint32_t>(h)};
-            auto &appCtx = Bess::GAppContext::getInstance();
-            auto vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
-            vkCore->recreateSwapchain(newExtent);
+        if (w <= 0 && h <= 0) {
+            return;
         }
 
         ApplicationEvent::WindowResizeData data(w, h);
         ApplicationEvent event(ApplicationEventType::WindowResize, data);
         m_events.emplace_back(event);
+
+        Events::WindowResizeEvent evt{w, h};
+
+        EventSystem::EventDispatcher::instance().queue(evt);
     }
 
     void Application::onMouseWheel(double x, double y) {
