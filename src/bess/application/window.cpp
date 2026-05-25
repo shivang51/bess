@@ -1,9 +1,11 @@
 #include "application/window.h"
 #include "common/bess_assert.h"
+#include "common/g_app_context.h"
 #include "common/logger.h"
 #include "events/application_event.h"
 #include "ext/vector_float2.hpp"
 #include "stb_image.h"
+#include "sub_systems/input_sub_system.h"
 #include <GLFW/glfw3.h>
 #include <cassert>
 #include <cstdint>
@@ -15,18 +17,53 @@ namespace Bess {
 
     constexpr char const *instanceClass = "com.shivang.bess";
 
-    Window::Window(int width, int height, const std::string &title) {
+    Window::Window(int width, int height, const std::string &title)
+        : m_width(width),
+          m_height(height),
+          m_title(title) {}
 
-        this->initGLFW();
+    void Window::onPreInit() { initGLFW(); }
 
+    void Window::initGLFW() const {
+        if (isGLFWInitialized)
+            return;
+
+        glfwSetErrorCallback([](int code, const char *msg) {
+            if (code == 65548)
+                return;
+            BESS_ERROR("[-] GLFW ERROR {} -> {}", code, msg);
+        });
+
+        BESS_INFO("[Window] GLFW {}.{}", GLFW_VERSION_MAJOR,
+                  GLFW_VERSION_MINOR);
+
+        // because renderdoc doesn't support wayland
+#ifdef __linux__
+        if (std::getenv("RENDERDOC_CAPFILE")) {
+            BESS_WARN("[Window] RenderDoc detected, forcing X11 backend");
+            glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+        }
+#endif
+
+        const auto res = glfwInit();
+        BESS_ASSERT(res == GLFW_TRUE, "Failed to initialize GLFW");
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
+        glfwWindowHint(GLFW_SCALE_FRAMEBUFFER, GLFW_TRUE);
+        glfwWindowHint(GLFW_MAXIMIZED, 1);
+
+        isGLFWInitialized = true;
+    }
+
+    void Window::onInit() {
 #ifdef __linux__
         glfwWindowHintString(GLFW_WAYLAND_APP_ID, instanceClass);
         glfwWindowHintString(GLFW_X11_CLASS_NAME, "Bess");
         glfwWindowHintString(GLFW_X11_INSTANCE_NAME, instanceClass);
 #endif
 
-        GLFWwindow *window =
-            glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
+        GLFWwindow *window = glfwCreateWindow(
+            (int)m_width, (int)m_height, m_title.c_str(), nullptr, nullptr);
 
         GLFWimage images[1];
         images[0].pixels =
@@ -80,16 +117,31 @@ namespace Bess {
         glfwSetScrollCallback(
             window, [](GLFWwindow *window, double x, double y) {
                 const auto this_ = (Window *)glfwGetWindowUserPointer(window);
+                auto inputSubSystem =
+                    GAppContext::getInstance().getSubSystem<InputSubSystem>();
+
                 if (!this_->m_callbacks.contains(Callback::MouseWheel))
                     return;
                 const auto cb = std::any_cast<MouseWheelCallback>(
                     this_->m_callbacks[Callback::MouseWheel]);
                 cb(x, y);
+
+                inputSubSystem->onMouseWheelEvent({x, y});
             });
 
         glfwSetKeyCallback(window, [](GLFWwindow *window, int key, int scancode,
                                       int action, int mods) {
             const auto this_ = (Window *)glfwGetWindowUserPointer(window);
+            KeyAction keyAction =
+                action == GLFW_PRESS
+                    ? KeyAction::press
+                    : (action == GLFW_RELEASE ? KeyAction::release
+                                              : KeyAction::unknown);
+
+            auto inputSubSystem =
+                GAppContext::getInstance().getSubSystem<InputSubSystem>();
+            inputSubSystem->onKeyEvent(this_->glfwKeyToKeyCode(key), keyAction);
+
             switch (action) {
             case GLFW_PRESS: {
                 if (!this_->m_callbacks.contains(Callback::KeyPress))
@@ -138,6 +190,11 @@ namespace Bess {
                                        ? MouseButtonAction::press
                                        : MouseButtonAction::release;
 
+            auto inputSubSystem =
+                GAppContext::getInstance().getSubSystem<InputSubSystem>();
+
+            inputSubSystem->onMouseButtonEvent(btn, btnAction);
+
             cb(btn, btnAction, this_->getMousePos());
         });
 
@@ -150,48 +207,23 @@ namespace Bess {
                     this_->m_callbacks[Callback::MouseMove]);
 
                 cb(x, y);
+
+                auto inputSubSystem =
+                    GAppContext::getInstance().getSubSystem<InputSubSystem>();
+                inputSubSystem->onMouseMoveEvent({x, y});
             });
     }
 
-    void Window::initGLFW() const {
-        if (isGLFWInitialized)
-            return;
-
-        glfwSetErrorCallback([](int code, const char *msg) {
-            if (code == 65548)
-                return;
-            BESS_ERROR("[-] GLFW ERROR {} -> {}", code, msg);
-        });
-
-        BESS_INFO("[Window] GLFW {}.{}", GLFW_VERSION_MAJOR,
-                  GLFW_VERSION_MINOR);
-
-        // because renderdoc doesn't support wayland
-#ifdef __linux__
-        if (std::getenv("RENDERDOC_CAPFILE")) {
-            BESS_WARN("[Window] RenderDoc detected, forcing X11 backend");
-            glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
-        }
-#endif
-
-        const auto res = glfwInit();
-        BESS_ASSERT(res == GLFW_TRUE, "Failed to initialize GLFW");
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
-        glfwWindowHint(GLFW_SCALE_FRAMEBUFFER, GLFW_TRUE);
-        glfwWindowHint(GLFW_MAXIMIZED, 1);
-
-        isGLFWInitialized = true;
-    }
-
-    Window::~Window() {
+    void Window::onDestroy() {
         if (!isGLFWInitialized)
             return;
 
-        if (mp_window) // clear if not nullptr
-            this->mp_window.reset();
+        if (mp_window) {
+            BESS_INFO("[Window] Destroying GLFW window {}", m_title);
+            mp_window.reset();
+        }
 
-        BESS_INFO("[Window] Window destroyed, terminating GLFW");
+        BESS_INFO("[Window] Terminating GLFW");
         glfwTerminate();
         isGLFWInitialized = false;
     }
@@ -270,11 +302,6 @@ namespace Bess {
         this_->m_framebufferResized = true;
     }
 
-    void Window::destroy() {
-        if (mp_window)
-            mp_window.reset();
-    }
-
     void Window::setMousePos(const glm::vec2 &pos) const {
         glfwSetCursorPos(mp_window.get(), pos.x, pos.y);
     }
@@ -285,6 +312,207 @@ namespace Bess {
         } else {
             glfwSetInputMode(mp_window.get(), GLFW_CURSOR,
                              GLFW_CURSOR_DISABLED);
+        }
+    }
+
+    KeyCode Window::glfwKeyToKeyCode(int glfwKey) const {
+        switch (glfwKey) {
+        // Printable Punctuation
+        case GLFW_KEY_SPACE:
+            return KeyCode::space;
+        case GLFW_KEY_APOSTROPHE:
+            return KeyCode::apostrophe;
+        case GLFW_KEY_COMMA:
+            return KeyCode::comma;
+        case GLFW_KEY_MINUS:
+            return KeyCode::minus;
+        case GLFW_KEY_PERIOD:
+            return KeyCode::period;
+        case GLFW_KEY_SLASH:
+            return KeyCode::slash;
+        case GLFW_KEY_SEMICOLON:
+            return KeyCode::semicolon;
+        case GLFW_KEY_EQUAL:
+            return KeyCode::equal;
+        case GLFW_KEY_LEFT_BRACKET:
+            return KeyCode::leftBracket;
+        case GLFW_KEY_BACKSLASH:
+            return KeyCode::backslash;
+        case GLFW_KEY_RIGHT_BRACKET:
+            return KeyCode::rightBracket;
+        case GLFW_KEY_GRAVE_ACCENT:
+            return KeyCode::graveAccent;
+
+        // Numbers
+        case GLFW_KEY_0:
+            return KeyCode::d0;
+        case GLFW_KEY_1:
+            return KeyCode::d1;
+        case GLFW_KEY_2:
+            return KeyCode::d2;
+        case GLFW_KEY_3:
+            return KeyCode::d3;
+        case GLFW_KEY_4:
+            return KeyCode::d4;
+        case GLFW_KEY_5:
+            return KeyCode::d5;
+        case GLFW_KEY_6:
+            return KeyCode::d6;
+        case GLFW_KEY_7:
+            return KeyCode::d7;
+        case GLFW_KEY_8:
+            return KeyCode::d8;
+        case GLFW_KEY_9:
+            return KeyCode::d9;
+
+        // Letters (A - M)
+        case GLFW_KEY_A:
+            return KeyCode::a;
+        case GLFW_KEY_B:
+            return KeyCode::b;
+        case GLFW_KEY_C:
+            return KeyCode::c;
+        case GLFW_KEY_D:
+            return KeyCode::d;
+        case GLFW_KEY_E:
+            return KeyCode::e;
+        case GLFW_KEY_F:
+            return KeyCode::f;
+        case GLFW_KEY_G:
+            return KeyCode::g;
+        case GLFW_KEY_H:
+            return KeyCode::h;
+        case GLFW_KEY_I:
+            return KeyCode::i;
+        case GLFW_KEY_J:
+            return KeyCode::j;
+        case GLFW_KEY_K:
+            return KeyCode::k;
+        case GLFW_KEY_L:
+            return KeyCode::l;
+        case GLFW_KEY_M:
+            return KeyCode::m;
+            // Letters (N - Z)
+        case GLFW_KEY_N:
+            return KeyCode::n;
+        case GLFW_KEY_O:
+            return KeyCode::o;
+        case GLFW_KEY_P:
+            return KeyCode::p;
+        case GLFW_KEY_Q:
+            return KeyCode::q;
+        case GLFW_KEY_R:
+            return KeyCode::r;
+        case GLFW_KEY_S:
+            return KeyCode::s;
+        case GLFW_KEY_T:
+            return KeyCode::t;
+        case GLFW_KEY_U:
+            return KeyCode::u;
+        case GLFW_KEY_V:
+            return KeyCode::v;
+        case GLFW_KEY_W:
+            return KeyCode::w;
+        case GLFW_KEY_X:
+            return KeyCode::x;
+        case GLFW_KEY_Y:
+            return KeyCode::y;
+        case GLFW_KEY_Z:
+            return KeyCode::z;
+
+        // Function & Controls
+        case GLFW_KEY_ESCAPE:
+            return KeyCode::escape;
+        case GLFW_KEY_ENTER:
+            return KeyCode::enter;
+        case GLFW_KEY_TAB:
+            return KeyCode::tab;
+        case GLFW_KEY_BACKSPACE:
+            return KeyCode::backspace;
+        case GLFW_KEY_INSERT:
+            return KeyCode::insert;
+        case GLFW_KEY_DELETE:
+            return KeyCode::del;
+
+        // Navigation & Arrow Keys
+        case GLFW_KEY_RIGHT:
+            return KeyCode::arrowRight;
+        case GLFW_KEY_LEFT:
+            return KeyCode::arrowLeft;
+        case GLFW_KEY_DOWN:
+            return KeyCode::arrowDown;
+        case GLFW_KEY_UP:
+            return KeyCode::arrowUp;
+        case GLFW_KEY_PAGE_UP:
+            return KeyCode::pageUp;
+        case GLFW_KEY_PAGE_DOWN:
+            return KeyCode::pageDown;
+        case GLFW_KEY_HOME:
+            return KeyCode::home;
+        case GLFW_KEY_END:
+            return KeyCode::end;
+            // System Locks & Printing
+        case GLFW_KEY_CAPS_LOCK:
+            return KeyCode::capsLock;
+        case GLFW_KEY_SCROLL_LOCK:
+            return KeyCode::scrollLock;
+        case GLFW_KEY_NUM_LOCK:
+            return KeyCode::numLock;
+        case GLFW_KEY_PRINT_SCREEN:
+            return KeyCode::printScreen;
+        case GLFW_KEY_PAUSE:
+            return KeyCode::pause;
+
+        // Function Keys (F1 - F12)
+        case GLFW_KEY_F1:
+            return KeyCode::f1;
+        case GLFW_KEY_F2:
+            return KeyCode::f2;
+        case GLFW_KEY_F3:
+            return KeyCode::f3;
+        case GLFW_KEY_F4:
+            return KeyCode::f4;
+        case GLFW_KEY_F5:
+            return KeyCode::f5;
+        case GLFW_KEY_F6:
+            return KeyCode::f6;
+        case GLFW_KEY_F7:
+            return KeyCode::f7;
+        case GLFW_KEY_F8:
+            return KeyCode::f8;
+        case GLFW_KEY_F9:
+            return KeyCode::f9;
+        case GLFW_KEY_F10:
+            return KeyCode::f10;
+        case GLFW_KEY_F11:
+            return KeyCode::f11;
+        case GLFW_KEY_F12:
+            return KeyCode::f12;
+
+        // Modifier Keys
+        case GLFW_KEY_LEFT_SHIFT:
+            return KeyCode::leftShift;
+        case GLFW_KEY_LEFT_CONTROL:
+            return KeyCode::leftControl;
+        case GLFW_KEY_LEFT_ALT:
+            return KeyCode::leftAlt;
+        case GLFW_KEY_LEFT_SUPER:
+            return KeyCode::leftSuper;
+        case GLFW_KEY_RIGHT_SHIFT:
+            return KeyCode::rightShift;
+        case GLFW_KEY_RIGHT_CONTROL:
+            return KeyCode::rightControl;
+        case GLFW_KEY_RIGHT_ALT:
+            return KeyCode::rightAlt;
+        case GLFW_KEY_RIGHT_SUPER:
+            return KeyCode::rightSuper;
+        case GLFW_KEY_MENU:
+            return KeyCode::menu;
+
+        // Fallback Unhandled Keys
+        default:
+            BESS_WARN("[Window] Unhandled key code {}", glfwKey);
+            return KeyCode::unknown;
         }
     }
 } // namespace Bess

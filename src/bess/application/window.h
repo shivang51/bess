@@ -1,6 +1,7 @@
 #pragma once
-#include "events/application_event.h"
+#include "common/sub_system.h"
 #include "fwd.hpp"
+#include "sub_systems/input_sub_system_types.h"
 #include <cstdint>
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
@@ -31,19 +32,23 @@ namespace Bess {
         MouseButtonCallback;
     typedef std::function<void(double, double)> MouseMoveCallback;
 
-    class Window {
+    class Window : public ISubSystem {
       public:
         struct GLFWwindowDeleter {
             void operator()(GLFWwindow *window) { glfwDestroyWindow(window); }
         };
 
+        Window() = default;
+
         Window(int width, int height, const std::string &title);
-        ~Window();
+
+        void onPreInit() override;
+        void onInit() override;
+        void onDestroy() override;
 
         bool isClosed() const;
         void close() const;
 
-        void destroy();
         void setName(const std::string &name) const;
 
         static void pollEvents() { glfwPollEvents(); }
@@ -78,9 +83,14 @@ namespace Bess {
         void resetWindowResizedFlag() { m_framebufferResized = false; }
 
       private:
+        KeyCode glfwKeyToKeyCode(int glfwKey) const;
+
+      private:
         std::unique_ptr<GLFWwindow, GLFWwindowDeleter> mp_window;
         std::unordered_map<Callback, std::any> m_callbacks;
         bool m_framebufferResized = false;
+        size_t m_width, m_height;
+        std::string m_title;
 
         void initGLFW() const;
         static void framebufferResizeCallback(GLFWwindow *window, int width,

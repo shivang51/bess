@@ -2,6 +2,7 @@
 
 #include "ext/vector_float2.hpp"
 #include "fwd.hpp"
+#include "sub_systems/input_sub_system_types.h"
 #include <any>
 namespace Bess {
     enum class ApplicationEventType : uint8_t {
@@ -11,25 +12,6 @@ namespace Bess {
         MouseButton,
         KeyPress,
         KeyRelease
-    };
-
-    enum class MouseButtonAction : uint8_t {
-        release = 0,
-        press = 1,
-        repeat = 2,
-        doubleClick = 3
-    };
-
-    enum class MouseButton : int8_t {
-        unknown = -1,
-        left = 0,
-        right = 1,
-        middle = 2,
-        button4 = 3,
-        button5 = 4,
-        button6 = 5,
-        button7 = 6,
-        button8 = 7
     };
 
     class ApplicationEvent {

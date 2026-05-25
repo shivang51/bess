@@ -12,6 +12,8 @@ set(Header_Files
 "include/common/ui_log_sink.h"
 "include/common/types.h"
 "include/common/bess_api.h"
+"include/common/g_app_context.h"
+"include/common/sub_system.h"
 )
 
 source_group("include/common" FILES ${Header_Files})
@@ -20,6 +22,7 @@ set(Source_Files
 	"src/helpers.cpp"
 	"src/bess_uuid.cpp"
 	"src/logger.cpp"
+	"src/g_app_context.cpp"
 )
 
 source_group("src/common" FILES ${Source_Files})

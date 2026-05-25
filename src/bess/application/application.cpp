@@ -1,6 +1,7 @@
 #include "application.h"
 #include "application/application_state.h"
 #include "common/bess_assert.h"
+#include "common/g_app_context.h"
 #include "common/logger.h"
 #include "common/types.h"
 #include "events/application_event.h"
@@ -151,7 +152,12 @@ namespace Bess {
             Svc::PluginService::getInstance().init();
         }
 
-        m_mainWindow = std::make_shared<Window>(800, 600, "Bess");
+        auto &appCtx = GAppContext::getInstance();
+
+        m_mainWindow = appCtx.addSubSystem<Window>(800, 660, "Bess");
+
+        appCtx.init();
+
         ApplicationState::setParentWindow(m_mainWindow);
 
         m_mainWindow->onWindowResize(BIND_FN_L(Application::onWindowResize));
@@ -196,8 +202,8 @@ namespace Bess {
 
         ApplicationState::clear();
 
-        m_mainWindow->close();
-        m_mainWindow.reset();
+        // TODO: move simulation_engine etc inside it
+        GAppContext::getInstance().destroy();
 
         SimEngine::SimulationEngine::instance().destroy();
         Config::Settings::instance().cleanup();
