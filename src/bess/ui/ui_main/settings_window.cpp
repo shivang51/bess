@@ -1,4 +1,5 @@
 #include "ui/ui_main/settings_window.h"
+#include "bess_core/g_app_context.h"
 #include "imgui.h"
 
 #include "settings/settings.h"
@@ -16,40 +17,41 @@ namespace Bess::UI {
     }
 
     void SettingsWindow::onDraw() {
-        auto &settings = Config::Settings::instance();
-        auto currentTheme = settings.getCurrentTheme();
+        const auto &settings =
+            GAppContext::getInstance().getSubSystem<Config::Settings>();
+        auto currentTheme = settings->getCurrentTheme();
 
         if (drawSetting("Theme", "(Default: Bess Minimal Dark)", currentTheme,
                         m_availableThemes)) {
-            settings.applyTheme(currentTheme);
+            settings->applyTheme(currentTheme);
         }
 
         ImGui::NewLine();
-        auto fontSize = settings.getFontSize();
+        auto fontSize = settings->getFontSize();
         if (drawSetting("Font Size", "(Default: 18px)", fontSize,
                         m_availableFontSizes)) {
-            settings.setFontSize(fontSize);
+            settings->setFontSize(fontSize);
         }
 
         ImGui::NewLine();
-        auto scale = settings.getScale();
+        auto scale = settings->getScale();
         if (drawSetting("Scale", "(Default: 1)", scale, m_availableScales)) {
-            settings.setScale(scale);
+            settings->setScale(scale);
         }
 
         ImGui::NewLine();
-        auto fps = settings.getFps();
+        auto fps = settings->getFps();
         if (drawSetting("FPS",
                         "(Default and Recommended: 60) Higher number gives "
                         "smoothness but with high GPU consumption.",
                         fps, m_availableFps)) {
-            settings.setFps(fps);
+            settings->setFps(fps);
         }
 
         ImGui::NewLine();
-        auto showStatsWindow = settings.getShowStatsWindow();
+        auto showStatsWindow = settings->getShowStatsWindow();
         if (Widgets::CheckboxWithLabel("Show Stats Window", &showStatsWindow)) {
-            settings.setShowStatsWindow(showStatsWindow);
+            settings->setShowStatsWindow(showStatsWindow);
         }
     }
 
@@ -64,7 +66,9 @@ namespace Bess::UI {
 
         // Populate available themes
         m_availableThemes.clear();
-        auto &themes = Config::Settings::instance().getThemes();
+        const auto &themes = GAppContext::getInstance()
+                                 .getSubSystem<Config::Settings>()
+                                 ->getThemes();
         for (auto &ent : themes.getThemes())
             m_availableThemes.emplace_back(ent.first);
 

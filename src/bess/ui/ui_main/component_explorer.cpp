@@ -152,17 +152,19 @@ namespace Bess::UI {
         const std::shared_ptr<SimEngine::Drivers::CompDef> &def,
         const glm::vec2 &pos) {
 
+        auto &appCtx = Bess::GAppContext::getInstance();
+
         auto &cmdSystem =
             Pages::MainPage::getInstance()->getState().getCommandSystem();
         auto &scene =
             Pages::MainPage::getInstance()->getState().getSceneDriver();
         auto &sceneState = scene->getState();
 
-        auto &pluginSvc = Svc::PluginService::getInstance();
+        auto pluginSvc = appCtx.getSubSystem<Bess::Svc::PluginService>();
 
         // Try finding in plugins first, if not found the use default.
-        if (pluginSvc.hasSimSceneComp(def->getName())) {
-            auto simComp = pluginSvc.getSimSceneComp(def);
+        if (pluginSvc->hasSimSceneComp(def->getName())) {
+            auto simComp = pluginSvc->getSimSceneComp(def);
 
             BESS_ASSERT(simComp, "PluginService returned invalid sim comp");
 

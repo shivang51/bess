@@ -1,4 +1,6 @@
 #include "scene/scene_state/scene_state.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "event_dispatcher.h"
@@ -7,8 +9,6 @@
 #include "scene/scene_state/components/scene_component.h"
 #include "scene_ser_reg.h"
 #include "services/plugin_service/plugin_service.h"
-#include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
 #include "simulation_engine.h"
 #include <cstdint>
 #include <memory>
@@ -354,7 +354,7 @@ namespace Bess::JsonConvert {
             deserializedComponents;
         deserializedComponents.reserve(j["components"].size());
 
-        const auto &pluginService = Svc::PluginService::getInstance();
+        const auto &pluginService = appCtx.getSubSystem<Svc::PluginService>();
 
         for (const auto &compJson : j["components"]) {
             if (!compJson.isMember("typeName")) {
@@ -369,8 +369,8 @@ namespace Bess::JsonConvert {
 
             if (Canvas::SceneSerReg::hasComponent(typeName)) {
                 comp = Canvas::SceneSerReg::createComponentFromJson(compJson);
-            } else if (pluginService.canDerserialize(typeName)) {
-                comp = pluginService.derserialize(typeName, compJson);
+            } else if (pluginService->canDerserialize(typeName)) {
+                comp = pluginService->derserialize(typeName, compJson);
             } else {
                 BESS_WARN("No derserializer found for {}. Skipping component.",
                           typeName);

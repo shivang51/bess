@@ -3,7 +3,7 @@
 
 namespace Bess::Config {
 
-    void Settings::init() {
+    void Settings::onInit() {
         m_themes = Themes();
         m_currentTheme = "Bess Minimal Dark";
         m_scale = 1.0f;
@@ -13,7 +13,7 @@ namespace Bess::Config {
         m_frameTimeStep = TimeMs(1000.0 / m_fps);
     }
 
-    void Settings::cleanup() { ViewportTheme::cleanup(); }
+    void Settings::onDestroy() { ViewportTheme::cleanup(); }
 
     const std::string &Settings::getCurrentTheme() const {
         return m_currentTheme;
@@ -33,11 +33,6 @@ namespace Bess::Config {
     void Settings::setFontRebuild(bool rebuild) { m_fontRebuild = !rebuild; }
 
     TimeMs Settings::getFrameTimeStep() const { return m_frameTimeStep; }
-
-    Settings &Settings::instance() {
-        static Settings instance;
-        return instance;
-    }
 
     bool Settings::shouldFontRebuild() const { return m_fontRebuild; }
 

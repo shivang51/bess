@@ -3,15 +3,17 @@
 #include "plugin_manager.h"
 
 namespace Bess::Svc {
-    void PluginService::init() {
-        auto &pluginMangaer = Plugins::PluginManager::getInstance();
-        pluginMangaer.loadPluginsFromDirectory("plugins");
-
+    void PluginService::onInit() {
         m_initialized = true;
         BESS_DEBUG("Plugin Service Intialized");
     }
 
-    void PluginService::destroy() {
+    void PluginService::onPreInit() {
+        auto &pluginMangaer = Plugins::PluginManager::getInstance();
+        pluginMangaer.loadPluginsFromDirectory("plugins");
+    }
+
+    void PluginService::onDestroy() {
         if (!m_initialized) {
             return;
         }
@@ -19,11 +21,6 @@ namespace Bess::Svc {
         pluginMangaer.destroy();
         m_initialized = false;
         BESS_DEBUG("Plugin Service Destroyed");
-    }
-
-    PluginService &PluginService::getInstance() {
-        static PluginService instance;
-        return instance;
     }
 
     std::shared_ptr<Canvas::SimulationSceneComponent>

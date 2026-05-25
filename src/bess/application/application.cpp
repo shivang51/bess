@@ -1,7 +1,8 @@
 #include "application.h"
 #include "application/application_state.h"
-#include "common/bess_assert.h"
 #include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
+#include "common/bess_assert.h"
 #include "common/logger.h"
 #include "common/types.h"
 #include "event_dispatcher.h"
@@ -11,7 +12,6 @@
 #include "services/plugin_service/plugin_service.h"
 #include "simulation_engine.h"
 #include "sub_systems/input_sub_system.h"
-#include "bess_core/project_context.h"
 #include "ui/ui.h"
 #include "vulkan_core.h"
 #include <chrono>
@@ -40,7 +40,9 @@ namespace Bess {
 
         ApplicationState::getCurrentPage()->draw();
 
-        if (Config::Settings::instance().getShowStatsWindow()) {
+        const auto &settings = appCtx.getSubSystem<Config::Settings>();
+
+        if (settings->getShowStatsWindow()) {
             UI::drawStats(m_currentFps);
         }
 
@@ -62,6 +64,7 @@ namespace Bess {
         TimeMs accumulatedTime(0.0);
 
         auto &appCtx = GAppContext::getInstance();
+        const auto &settings = appCtx.getSubSystem<Config::Settings>();
 
         while (!m_mainWindow->isClosed()) {
             auto currentTime = std::chrono::steady_clock::now();
@@ -70,8 +73,7 @@ namespace Bess {
 
             accumulatedTime += deltaTime;
 
-            const auto &frameTS =
-                Config::Settings::instance().getFrameTimeStep();
+            const auto &frameTS = settings->getFrameTimeStep();
             if (accumulatedTime < frameTS) {
                 std::this_thread::sleep_for(frameTS - accumulatedTime);
                 accumulatedTime += frameTS - accumulatedTime;
@@ -105,15 +107,6 @@ namespace Bess {
             "[Application] Initializing application, with project path: {}",
             path.empty() ? "None" : path);
 
-        auto &settings = Config::Settings::instance();
-        settings.init();
-
-        if (flags & AppStartupFlag::disablePlugins) {
-            BESS_WARN("[Application] Plugin support is disabled");
-        } else {
-            Svc::PluginService::getInstance().init();
-        }
-
         auto &appCtx = GAppContext::getInstance();
 
         m_mainWindow = appCtx.addSubSystem<Window>(800, 660, "Bess");
@@ -121,6 +114,13 @@ namespace Bess {
         appCtx.addSubSystem<InputSubSystem>();
         appCtx.addSubSystem<VulkanCore>();
         appCtx.addSubSystem<EventSystem::EventDispatcher>();
+        appCtx.addSubSystem<Config::Settings>();
+
+        if (flags & AppStartupFlag::disablePlugins) {
+            BESS_WARN("[Application] Plugin support is disabled");
+        } else {
+            appCtx.addSubSystem<Svc::PluginService>();
+        }
 
         auto projCtx = appCtx.addSubSystem<ProjectContext>();
 
@@ -152,12 +152,6 @@ namespace Bess {
         ApplicationState::clear();
 
         GAppContext::getInstance().destroy();
-
-        Config::Settings::instance().cleanup();
-
-        if (Svc::PluginService::getInstance().getIsInitialized()) {
-            Svc::PluginService::getInstance().destroy();
-        }
 
         BESS_INFO("[Application] Application shutdown complete");
     }

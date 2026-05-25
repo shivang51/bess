@@ -18,6 +18,10 @@ namespace Bess {
         virtual void update(Bess::TimeMs dt);
         virtual void destroy();
 
+        template <typename T> bool hasSubSystem() const {
+            return m_subSystems.contains(typeid(T));
+        }
+
         template <typename T, typename... Args>
             requires std::derived_from<T, ISubSystem>
         std::shared_ptr<T> addSubSystem(Args &&...args) {
@@ -26,7 +30,7 @@ namespace Bess {
             return subsystem;
         }
 
-        template <typename T> std::shared_ptr<T> getSubSystem() {
+        template <typename T> std::shared_ptr<T> getSubSystem() const {
             auto it = m_subSystems.find(typeid(T));
             if (it != m_subSystems.end()) {
                 return std::static_pointer_cast<T>(it->second);

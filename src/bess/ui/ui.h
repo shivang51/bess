@@ -15,7 +15,7 @@ namespace Bess::UI {
 
     void drawStats(int fps);
 
-    void vulkanCleanup(std::shared_ptr<Vulkan::VulkanDevice> device);
+    void vulkanCleanup(const std::shared_ptr<Vulkan::VulkanDevice> &device);
     void shutdown();
     void loadFontAndSetScale(float fontSize, float scale);
     void setCursorPointer();

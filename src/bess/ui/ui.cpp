@@ -1,5 +1,4 @@
 #include "ui/ui.h"
-#include "common/bess_assert.h"
 #include "bess_core/g_app_context.h"
 #include "common/logger.h"
 #include "device.h"
@@ -10,7 +9,6 @@
 #include "application/assets.h"
 #include "application/settings/settings.h"
 #include "ui/icons/MaterialIcons.h"
-#include "ui/ui_main/project_explorer.h"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -35,14 +33,15 @@ namespace Bess::UI {
 
         ImGui::StyleColorsDark();
 
-        auto &settings = Config::Settings::instance();
-        settings.loadCurrentTheme();
+        const auto &settings =
+            GAppContext::getInstance().getSubSystem<Config::Settings>();
+        settings->loadCurrentTheme();
 
         ImGui_ImplGlfw_InitForVulkan(window, true);
 
         initVulkanImGui();
 
-        loadFontAndSetScale(settings.getFontSize(), settings.getScale());
+        loadFontAndSetScale(settings->getFontSize(), settings->getScale());
 
         BESS_INFO("[UI] ImGui initialized successfully");
     }
@@ -113,17 +112,19 @@ namespace Bess::UI {
         ImGui::DestroyContext();
     }
 
-    void vulkanCleanup(std::shared_ptr<Vulkan::VulkanDevice> device) {
+    void vulkanCleanup(const std::shared_ptr<Vulkan::VulkanDevice> &device) {
         BESS_INFO("[UI] Destroying VK Context");
         ImGui_ImplVulkan_Shutdown();
         vkDestroyDescriptorPool(device->device(), s_uiDescriptorPool, nullptr);
     }
 
     void begin() {
-        auto &settings = Config::Settings::instance();
-        if (settings.shouldFontRebuild()) {
-            loadFontAndSetScale(settings.getFontSize(), settings.getScale());
-            settings.setFontRebuild(true);
+        const auto &settings =
+            GAppContext::getInstance().getSubSystem<Config::Settings>();
+
+        if (settings->shouldFontRebuild()) {
+            loadFontAndSetScale(settings->getFontSize(), settings->getScale());
+            settings->setFontRebuild(true);
         }
 
         ImGui_ImplVulkan_NewFrame();

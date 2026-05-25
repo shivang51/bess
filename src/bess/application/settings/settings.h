@@ -2,17 +2,16 @@
 
 #include "application/settings/themes.h"
 #include "common/class_helpers.h"
+#include "common/sub_system.h"
 #include "common/types.h"
 #include <string>
 
 namespace Bess::Config {
 
-    class Settings {
+    class Settings : public ISubSystem {
       public:
-        static Settings &instance();
-
-        void init();
-        void cleanup();
+        void onInit() override;
+        void onDestroy() override;
 
         // theme
         const std::string &getCurrentTheme() const;

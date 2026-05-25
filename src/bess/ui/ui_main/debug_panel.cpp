@@ -1,4 +1,6 @@
 #include "debug_panel.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "common/bess_uuid.h"
 #include "dig_sim_driver.h"
 #include "icons/CodIcons.h"
@@ -7,8 +9,6 @@
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
-#include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
 #include "scene_ser_reg.h"
 #include "services/plugin_service/plugin_service.h"
 #include "simulation_engine.h"
@@ -100,22 +100,27 @@ namespace Bess::UI {
             }
             if (ImGui::BeginTabItem("Comp Ser Info")) {
                 const auto &selComps = sceneState.getSelectedComponents();
-                const auto &pluginService = Svc::PluginService::getInstance();
+                const auto &appCtx = GAppContext::getInstance();
 
                 if (!selComps.empty()) {
                     const auto &compId = selComps.begin()->first;
                     const auto &comp = sceneState.getComponentByUuid(compId);
+
+                    auto pluginService =
+                        appCtx.hasSubSystem<Svc::PluginService>()
+                            ? appCtx.getSubSystem<Svc::PluginService>()
+                            : nullptr;
 
                     if (Canvas::SceneSerReg::hasComponent(
                             comp->getTypeName())) {
                         ImGui::Text(
                             "Component type %s supports deserialization",
                             comp->getTypeName().c_str());
-                    } else if (pluginService.hasSceneComp(
-                                   comp->getTypeName())) {
+                    } else if (pluginService && pluginService->hasSceneComp(
+                                                    comp->getTypeName())) {
                         ImGui::Text("Component type %s is provided by a plugin",
                                     comp->getTypeName().c_str());
-                        if (pluginService.canDerserialize(
+                        if (pluginService->canDerserialize(
                                 comp->getTypeName())) {
                             ImGui::Text(
                                 "Plugin can deserialize component type %s",
