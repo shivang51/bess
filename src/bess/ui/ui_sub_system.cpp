@@ -1,5 +1,4 @@
 #include "ui_sub_system.h"
-#include "application_state.h"
 #include "bess_core/g_app_context.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
@@ -36,7 +35,9 @@ namespace Bess {
     }
 
     void UISubSystem::onShutdown() {
-        Pages::MainPage::getInstance()->destory();
+        m_mainPage->destory();
+        m_mainPage.reset();
+        // TEMP: Will remove getInstance fn
         Pages::MainPage::getInstance().reset();
         UI::shutdown();
     }

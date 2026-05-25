@@ -1,8 +1,7 @@
 #include "ui/ui_main/ui_main.h"
-#include "application/application_state.h"
-#include "common/logger.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "common/logger.h"
 #include "debug_panel.h"
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -302,7 +301,8 @@ namespace Bess::UI {
 
             // Exit
             if (ImGui::MenuItem("Quit", "")) {
-                ApplicationState::quit();
+                const auto &appCtx = Bess::GAppContext::getInstance();
+                appCtx.getSubSystem<Window>()->close();
             }
 
             ImGui::EndMenu();

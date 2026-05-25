@@ -1,5 +1,4 @@
 #include "application.h"
-#include "application/application_state.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "common/bess_assert.h"
