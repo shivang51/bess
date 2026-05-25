@@ -27,7 +27,7 @@ namespace Bess {
                                             MouseButtonAction action,
                                             const glm::vec2 &pos) {
 
-        if (action == MouseButtonAction::press && isMouseBtnPressed(button)) {
+        if (action == MouseButtonAction::press && !isMouseBtnPressed(button)) {
             const auto &state = m_mouseBtnStates[button];
             const float dis = glm::distance(pos, state.pos);
             const auto timeDif =
