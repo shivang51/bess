@@ -125,18 +125,9 @@ namespace Bess {
 
         ApplicationState::setParentWindow(m_mainWindow);
 
-        const auto extensions = m_mainWindow->getVulkanExtensions();
-        const VkExtent2D extent = m_mainWindow->getExtent();
-
-        auto createSurface = [this](VkInstance &instance,
-                                    VkSurfaceKHR &surface) {
-            m_mainWindow->createWindowSurface(instance, surface);
-        };
-
         UI::init(m_mainWindow->getGLFWHandle());
 
-        const auto page =
-            Pages::MainPage::getInstance(ApplicationState::getParentWindow());
+        const auto page = Pages::MainPage::getInstance(m_mainWindow);
 
         ApplicationState::setCurrentPage(page);
 
