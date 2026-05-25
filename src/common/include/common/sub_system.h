@@ -8,6 +8,7 @@ namespace Bess {
         virtual ~ISubSystem() = default;
 
         virtual void onBeginFrame() {}
+        virtual void onEndFrame() {}
 
         // Called before any subsystem is intitalized
         virtual void onPreInit() {}
@@ -22,6 +23,11 @@ namespace Bess {
 
         virtual void onDestroy() = 0;
 
+        virtual void onPreUpdate() {}
         virtual void onUpdate(TimeMs dt) {}
+
+        virtual void onPreDraw() {}
+        virtual void onDraw() {}
+        virtual void onPostDraw() {}
     };
 } // namespace Bess

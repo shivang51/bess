@@ -15,6 +15,11 @@ namespace Bess {
 
         virtual void init();
         virtual void beginFrame();
+        virtual void endFrame();
+        virtual void draw();
+        virtual void preDraw();
+        virtual void postDraw();
+        virtual void preUpdate();
         virtual void update(Bess::TimeMs dt);
         virtual void destroy();
 

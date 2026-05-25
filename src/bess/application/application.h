@@ -26,18 +26,10 @@ namespace Bess {
         void quit() const;
         void shutdown();
 
-        void beginFrame();
-        void update(TimeMs ts);
-
         void loadProject(const std::string &path) const;
         void saveProject() const;
 
       private:
         std::shared_ptr<Window> m_mainWindow;
-
-      private:
-        void draw();
-
-        int m_currentFps = 0;
     };
 } // namespace Bess

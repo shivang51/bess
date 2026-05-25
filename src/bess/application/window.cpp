@@ -1,7 +1,7 @@
 #include "application/window.h"
+#include "bess_core/g_app_context.h"
 #include "common/bess_assert.h"
 #include "common/events.h"
-#include "bess_core/g_app_context.h"
 #include "common/logger.h"
 #include "event_dispatcher.h"
 #include "ext/vector_float2.hpp"
@@ -23,6 +23,8 @@ namespace Bess {
         : m_width(width),
           m_height(height),
           m_title(title) {}
+
+    void Window::onPreUpdate() { pollEvents(); }
 
     void Window::onPreInit() {
         initGLFW();
@@ -207,6 +209,8 @@ namespace Bess {
         glfwTerminate();
         isGLFWInitialized = false;
     }
+
+    void Window::onBeginFrame() { pollEvents(); }
 
     bool Window::isClosed() const {
         return glfwWindowShouldClose(mp_window.get());

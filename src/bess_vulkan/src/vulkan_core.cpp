@@ -12,6 +12,10 @@
 namespace Bess::Vulkan {
     VulkanCore::~VulkanCore() { cleanup(); }
 
+    void VulkanCore::onPostDraw() { endFrame(); }
+
+    void VulkanCore::onPreDraw() { beginFrame(); }
+
     void VulkanCore::onInit() {
         BESS_INFO("Initializing VulkanCore");
         initVkInstance(m_windowExt);

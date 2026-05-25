@@ -20,9 +20,12 @@ namespace Bess {
 
         Window(int width, int height, const std::string &title);
 
+        void onPreUpdate() override;
         void onPreInit() override;
         void onInit() override;
         void onDestroy() override;
+
+        void onBeginFrame() override;
 
         bool isClosed() const;
         void close() const;

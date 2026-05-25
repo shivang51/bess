@@ -6,13 +6,11 @@
 #include "common/logger.h"
 #include "common/types.h"
 #include "event_dispatcher.h"
-#include "imgui_impl_vulkan.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
 #include "services/plugin_service/plugin_service.h"
-#include "simulation_engine.h"
 #include "sub_systems/input_sub_system.h"
-#include "ui/ui.h"
+#include "ui/ui_sub_system.h"
 #include "vulkan_core.h"
 #include <chrono>
 #include <vulkan/vulkan.h>
@@ -26,38 +24,11 @@ namespace Bess {
 
     Application::~Application() { shutdown(); }
 
-    void Application::draw() {
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
-        if (m_mainWindow->wasWindowResized()) {
-            m_mainWindow->resetWindowResizedFlag();
-            const VkExtent2D newExtent = m_mainWindow->getExtent();
-            vkCore->recreateSwapchain(newExtent);
-        }
-
-        vkCore->beginFrame();
-        UI::begin();
-
-        ApplicationState::getCurrentPage()->draw();
-
-        const auto &settings = appCtx.getSubSystem<Config::Settings>();
-
-        if (settings->getShowStatsWindow()) {
-            UI::drawStats(m_currentFps);
-        }
-
-        UI::end();
-
-        vkCore->renderToSwapchain([](VkCommandBuffer cmdBuffer) {
-            ImDrawData *drawData = ImGui::GetDrawData();
-            ImGui_ImplVulkan_RenderDrawData(drawData, cmdBuffer);
-        });
-        vkCore->endFrame();
-    }
-
     void Application::run() {
         BESS_ASSERT(ApplicationState::getCurrentPage(),
                     "Current page of application is not set");
+
+        BESS_ASSERT(m_mainWindow, "Main window is not initialized or set");
 
         auto previousTime = std::chrono::steady_clock::now();
 
@@ -65,6 +36,7 @@ namespace Bess {
 
         auto &appCtx = GAppContext::getInstance();
         const auto &settings = appCtx.getSubSystem<Config::Settings>();
+        auto vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
 
         while (!m_mainWindow->isClosed()) {
             auto currentTime = std::chrono::steady_clock::now();
@@ -80,21 +52,18 @@ namespace Bess {
             }
 
             appCtx.beginFrame();
-            Window::pollEvents();
-            update(accumulatedTime);
-            draw();
 
-            m_currentFps =
-                static_cast<int>(std::round(1000.0 / accumulatedTime.count()));
+            appCtx.preUpdate();
+            appCtx.update(accumulatedTime);
+
+            appCtx.preDraw();
+            appCtx.draw();
+            appCtx.postDraw();
+
+            appCtx.endFrame();
+
             accumulatedTime = std::chrono::duration<double>(0.0);
         }
-    }
-
-    void Application::update(TimeMs ts) {
-
-        GAppContext::getInstance().update(ts);
-
-        ApplicationState::getCurrentPage()->update(ts);
     }
 
     void Application::quit() const { m_mainWindow->close(); }
@@ -110,11 +79,11 @@ namespace Bess {
         auto &appCtx = GAppContext::getInstance();
 
         m_mainWindow = appCtx.addSubSystem<Window>(800, 660, "Bess");
-
         appCtx.addSubSystem<InputSubSystem>();
         appCtx.addSubSystem<VulkanCore>();
         appCtx.addSubSystem<EventSystem::EventDispatcher>();
         appCtx.addSubSystem<Config::Settings>();
+        appCtx.addSubSystem<UISubSystem>();
 
         if (flags & AppStartupFlag::disablePlugins) {
             BESS_WARN("[Application] Plugin support is disabled");
@@ -126,14 +95,6 @@ namespace Bess {
 
         appCtx.init();
 
-        ApplicationState::setParentWindow(m_mainWindow);
-
-        UI::init(m_mainWindow->getGLFWHandle());
-
-        const auto page = Pages::MainPage::getInstance(m_mainWindow);
-
-        ApplicationState::setCurrentPage(page);
-
         if (!path.empty())
             loadProject(path);
 
@@ -144,11 +105,6 @@ namespace Bess {
         BESS_INFO("[Application] Shutting down application");
 
         ApplicationState::setCurrentPage(nullptr);
-        Pages::MainPage::getInstance()->destory();
-        Pages::MainPage::getInstance().reset();
-
-        UI::shutdown();
-
         ApplicationState::clear();
 
         GAppContext::getInstance().destroy();

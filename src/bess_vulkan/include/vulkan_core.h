@@ -28,6 +28,9 @@ namespace Bess::Vulkan {
       public:
         static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
+        void onPreDraw() override;
+        void onPostDraw() override;
+
         void onInit() override;
         void onPostInit() override;
         void onDestroy() override;

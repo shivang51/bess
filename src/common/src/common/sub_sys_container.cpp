@@ -28,6 +28,36 @@ namespace Bess {
         }
     }
 
+    void ISubSysContainer::endFrame() {
+        for (auto &[_, subsystem] : m_subSystems) {
+            subsystem->onEndFrame();
+        }
+    }
+
+    void ISubSysContainer::draw() {
+        for (auto &[_, subsystem] : m_subSystems) {
+            subsystem->onDraw();
+        }
+    }
+
+    void ISubSysContainer::preDraw() {
+        for (auto &[_, subsystem] : m_subSystems) {
+            subsystem->onPreDraw();
+        }
+    }
+
+    void ISubSysContainer::postDraw() {
+        for (auto &[_, subsystem] : m_subSystems) {
+            subsystem->onPostDraw();
+        }
+    }
+
+    void ISubSysContainer::preUpdate() {
+        for (auto &[_, subsystem] : m_subSystems) {
+            subsystem->onPreUpdate();
+        }
+    }
+
     void ISubSysContainer::update(Bess::TimeMs dt) {
         for (auto &[_, subsystem] : m_subSystems) {
             subsystem->onUpdate(dt);
