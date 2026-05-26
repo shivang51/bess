@@ -1,7 +1,7 @@
-#include "bverilog/sim_engine_importer.h"
-#include "bverilog/yosys_runner.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "bverilog/sim_engine_importer.h"
+#include "bverilog/yosys_runner.h"
 #include "simulation_engine.h"
 
 #include <pybind11/functional.h>

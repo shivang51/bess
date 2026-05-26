@@ -1,4 +1,6 @@
 #include "slot_probe_scene_component.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "common/bess_uuid.h"
 #include "imgui.h"
 #include "pages/main_page/main_page.h"
@@ -8,8 +10,6 @@
 #include "scene_draw_context.h"
 #include "scene_state/scene_state.h"
 #include "settings/viewport_theme.h"
-#include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
 #include "simulation_engine.h"
 
 namespace Bess::Canvas {

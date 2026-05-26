@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/bess_uuid.h"
 #include "bess_core/g_app_context.h"
+#include "common/bess_uuid.h"
 #include "event_dispatcher.h"
 #include "renderer/material_renderer.h"
 #include "scene/scene_state/components/scene_component.h"

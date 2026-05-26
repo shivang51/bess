@@ -1,7 +1,7 @@
 #include "dig_module_def.h"
-#include "common/bess_assert.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "common/bess_assert.h"
 #include "component_catalog.h"
 #include "sim_driver/sim_driver.h"
 #include "simulation_engine.h"

@@ -24,9 +24,9 @@ namespace Bess::UI {
     LabeledDigitalSignal fetchSignal(const std::string &name,
                                      const UUID &probeId) {
         const auto scene = GAppContext::getInstance()
-                                .getSubSystem<Bess::ProjectContext>()
-                                ->getSubSystem<SceneDriver>()
-                                ->getActiveScene();
+                               .getSubSystem<Bess::ProjectContext>()
+                               ->getSubSystem<SceneDriver>()
+                               ->getActiveScene();
         const auto &sceneState = scene->getState();
         const auto &probeComp =
             sceneState.getComponentByUuid<Canvas::SlotProbeSceneComponent>(
@@ -47,7 +47,9 @@ namespace Bess::UI {
     void GraphViewWindow::onDraw() {
         const auto &mainPage = Pages::MainPage::getInstance();
         const auto &mainPageState = mainPage->getState();
-        auto sceneDriver = GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        auto sceneDriver = GAppContext::getInstance()
+                               .getSubSystem<Bess::ProjectContext>()
+                               ->getSubSystem<SceneDriver>();
         const auto &sceneState = sceneDriver->getActiveScene()->getState();
 
         if (ImGui::Button("Add Graph")) {

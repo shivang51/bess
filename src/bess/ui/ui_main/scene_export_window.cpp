@@ -121,8 +121,9 @@ namespace Bess::UI {
         if (ImGui::BeginCombo(
                 "Scene", selectedScene ? getSceneLabel(selectedScene).c_str()
                                        : "No Scene")) {
-            auto sceneDriver =
-                GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+            auto sceneDriver = GAppContext::getInstance()
+                                   .getSubSystem<Bess::ProjectContext>()
+                                   ->getSubSystem<SceneDriver>();
             for (size_t i = 0; i < sceneDriver->getSceneCount(); ++i) {
                 const auto scene = sceneDriver->getSceneAtIdx(i);
                 if (!scene) {
@@ -227,8 +228,9 @@ namespace Bess::UI {
     }
 
     void SceneExportWindow::refreshSelectedScene() {
-        auto sceneDriver =
-            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        auto sceneDriver = GAppContext::getInstance()
+                               .getSubSystem<Bess::ProjectContext>()
+                               ->getSubSystem<SceneDriver>();
         if (m_selectedSceneId != UUID::null &&
             sceneDriver->getSceneWithId(m_selectedSceneId)) {
             return;
@@ -240,8 +242,9 @@ namespace Bess::UI {
     }
 
     std::shared_ptr<Canvas::Scene> SceneExportWindow::getSelectedScene() const {
-        auto sceneDriver =
-            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        auto sceneDriver = GAppContext::getInstance()
+                               .getSubSystem<Bess::ProjectContext>()
+                               ->getSubSystem<SceneDriver>();
         return m_selectedSceneId == UUID::null
                    ? nullptr
                    : sceneDriver->getSceneWithId(m_selectedSceneId);
@@ -257,8 +260,9 @@ namespace Bess::UI {
             return "Root";
         }
 
-        auto sceneDriver =
-            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        auto sceneDriver = GAppContext::getInstance()
+                               .getSubSystem<Bess::ProjectContext>()
+                               ->getSubSystem<SceneDriver>();
         const auto parentScene =
             sceneDriver->getSceneWithId(scene->getState().getParentSceneId());
         if (!parentScene) {

@@ -26,11 +26,14 @@ namespace Bess::UI {
     void DebugPanel::onDraw() {
         auto &mainPageState = Pages::MainPage::getInstance()->getState();
 
-        auto sceneDriver = GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        auto sceneDriver = GAppContext::getInstance()
+                               .getSubSystem<Bess::ProjectContext>()
+                               ->getSubSystem<SceneDriver>();
         const auto &sceneState = sceneDriver->getActiveScene()->getState();
 
         if (!sceneDriver->getIsPaused()) {
-            const auto &hoverId = sceneDriver->getActiveScene()->getHoveredEntity();
+            const auto &hoverId =
+                sceneDriver->getActiveScene()->getHoveredEntity();
             ImGui::Text("Hovered  Runtime Id: %u | Info: %u", hoverId.runtimeId,
                         hoverId.info);
         }
@@ -187,7 +190,9 @@ namespace Bess::UI {
 
     void DebugPanel::drawDependencyGraph(const UUID &compId) {
         const auto &mainPageState = Pages::MainPage::getInstance()->getState();
-        auto sceneDriver = GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        auto sceneDriver = GAppContext::getInstance()
+                               .getSubSystem<Bess::ProjectContext>()
+                               ->getSubSystem<SceneDriver>();
         const auto &sceneState = sceneDriver->getActiveScene()->getState();
 
         const auto &comp = sceneState.getComponentByUuid(compId);

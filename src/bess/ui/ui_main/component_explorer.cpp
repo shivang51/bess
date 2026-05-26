@@ -105,7 +105,10 @@ namespace Bess::UI {
 
                         if (Widgets::ButtonWithPopup(name, name + "OptionsMenu",
                                                      false)) {
-                            auto sceneDriver = GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+                            auto sceneDriver =
+                                GAppContext::getInstance()
+                                    .getSubSystem<Bess::ProjectContext>()
+                                    ->getSubSystem<SceneDriver>();
                             const auto &pos =
                                 sceneDriver->getActiveScene()->getCameraPos();
 
@@ -134,7 +137,9 @@ namespace Bess::UI {
                     continue;
 
                 if (Widgets::ButtonWithPopup(comp.second, "", false)) {
-                    auto sceneDriver = GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+                    auto sceneDriver = GAppContext::getInstance()
+                                           .getSubSystem<Bess::ProjectContext>()
+                                           ->getSubSystem<SceneDriver>();
                     const auto &pos =
                         sceneDriver->getActiveScene()->getCameraPos();
                     createComponent(comp.first, pos);
@@ -157,8 +162,9 @@ namespace Bess::UI {
 
         auto &cmdSystem =
             Pages::MainPage::getInstance()->getState().getCommandSystem();
-        auto scene =
-            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        auto scene = GAppContext::getInstance()
+                         .getSubSystem<Bess::ProjectContext>()
+                         ->getSubSystem<SceneDriver>();
         auto &sceneState = scene->getActiveScene()->getState();
 
         auto pluginSvc = appCtx.getSubSystem<Bess::Svc::PluginService>();

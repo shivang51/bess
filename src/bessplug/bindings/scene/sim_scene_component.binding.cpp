@@ -1,9 +1,9 @@
 
 #include "pages/main_page/scene_components/sim_scene_component.h"
-#include "common/bess_uuid.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "bess_core/scene_driver.h"
+#include "common/bess_uuid.h"
 
 #include "dig_sim_driver.h"
 #include "pages/main_page/main_page.h"
@@ -167,8 +167,9 @@ void bind_sim_scene_component(py::module_ &m) {
             }
         }
 
-        auto scene =
-            Bess::GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<Bess::SceneDriver>();
+        auto scene = Bess::GAppContext::getInstance()
+                         .getSubSystem<Bess::ProjectContext>()
+                         ->getSubSystem<Bess::SceneDriver>();
         auto &sceneState = scene->getActiveScene()->getState();
         for (const auto &slot : createdSlots) {
             sceneState.addComponent(slot);

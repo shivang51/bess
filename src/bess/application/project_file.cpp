@@ -1,8 +1,8 @@
 #include "application/project_file.h"
-#include "common/bess_uuid.h"
 #include "bess_core/g_app_context.h"
-#include "common/logger.h"
 #include "bess_core/project_context.h"
+#include "common/bess_uuid.h"
+#include "common/logger.h"
 
 #include "pages/main_page/main_page.h"
 #include "scene.h"
@@ -101,8 +101,9 @@ namespace Bess {
         // make sure to decode scene after sim engine,
         // as scene components may depend on sim engine components
         if (data.isMember("scene_data")) {
-            auto sceneDriver =
-                GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+            auto sceneDriver = GAppContext::getInstance()
+                                   .getSubSystem<Bess::ProjectContext>()
+                                   ->getSubSystem<SceneDriver>();
 
             sceneDriver->removeScenes();
 
@@ -172,8 +173,9 @@ namespace Bess {
 
         data["scene_data"] = Json::objectValue;
 
-        auto sceneDriver =
-            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        auto sceneDriver = GAppContext::getInstance()
+                               .getSubSystem<Bess::ProjectContext>()
+                               ->getSubSystem<SceneDriver>();
         JsonConvert::toJsonValue(sceneDriver->getRootSceneId(),
                                  data["scene_data"]["root_scene_id"]);
 

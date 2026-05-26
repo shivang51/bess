@@ -1,12 +1,12 @@
 #include "ui/ui_main/properties_panel.h"
 #include "application/pages/main_page/main_page.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "common/helpers.h"
 #include "gtc/type_ptr.hpp"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
-#include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
 #include "simulation_engine.h"
 #include "ui/icons/CodIcons.h"
 #include "ui/widgets/m_widgets.h"
@@ -32,7 +32,9 @@ namespace Bess::UI {
     }
 
     void PropertiesPanel::onDraw() {
-        auto sceneDriver = GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        auto sceneDriver = GAppContext::getInstance()
+                               .getSubSystem<Bess::ProjectContext>()
+                               ->getSubSystem<SceneDriver>();
         auto &sceneState = sceneDriver->getActiveScene()->getState();
         if (sceneState.getSelectedComponents().empty()) {
             ImGui::TextUnformatted("No component selected.");

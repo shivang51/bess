@@ -1,5 +1,8 @@
 #include "pages/main_page/verilog_scene_import.h"
 
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
+#include "bess_core/scene_driver.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
 #include "dig_module_def.h"
@@ -10,9 +13,6 @@
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "pages/main_page/services/hierarchical_scene_layout.h"
-#include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
-#include "bess_core/scene_driver.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
 #include <algorithm>
@@ -609,8 +609,9 @@ namespace Bess::Pages {
                 moduleSimDef->setOutputSlotsInfo(moduleOutputSlots);
             }
 
-            auto sceneDriver =
-                GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+            auto sceneDriver = GAppContext::getInstance()
+                                   .getSubSystem<Bess::ProjectContext>()
+                                   ->getSubSystem<SceneDriver>();
             const auto moduleScene =
                 sceneDriver->getSceneWithId(moduleComp->getSceneId());
             if (!moduleScene) {
@@ -907,8 +908,9 @@ namespace Bess::Pages {
             const std::unordered_map<std::string,
                                      std::shared_ptr<ModuleSceneComponent>>
                 &moduleByPath) {
-            auto sceneDriver =
-                GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+            auto sceneDriver = GAppContext::getInstance()
+                                   .getSubSystem<Bess::ProjectContext>()
+                                   ->getSubSystem<SceneDriver>();
             const auto moduleScene =
                 sceneDriver->getSceneWithId(moduleComp->getSceneId());
             if (!moduleScene) {
@@ -1046,8 +1048,9 @@ namespace Bess::Pages {
                                std::shared_ptr<ModuleSceneComponent>>
                 moduleByPath;
             std::unordered_map<std::string, UUID> ownerSceneIdByPath;
-            auto sceneDriver =
-                GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+            auto sceneDriver = GAppContext::getInstance()
+                                   .getSubSystem<Bess::ProjectContext>()
+                                   ->getSubSystem<SceneDriver>();
 
             for (const auto &[path, instance] : modulePaths) {
                 ImportedModuleSceneComponent created =
