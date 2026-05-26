@@ -7,16 +7,23 @@ set(Header_Files
 	"include/bess_core/scene_driver.h"
 	"include/bess_core/copy_paste_service.h"
 	"include/bess_core/connection_service.h"
+
+	"include/bess_core/renderer/texture.h"
+	"include/bess_core/renderer/renderer.h"
+	"include/bess_core/renderer/renderer_types.h"
 )
 
 source_group("include/bess_core" FILES ${Header_Files})
 
 set(Source_Files
-	"src/g_app_context.cpp"
-	"src/project_context.cpp"
-	"src/scene_driver.cpp"
-	"src/copy_paste_service.cpp"
-	"src/connection_service.cpp"
+	"src/bess_core/g_app_context.cpp"
+	"src/bess_core/project_context.cpp"
+	"src/bess_core/scene_driver.cpp"
+	"src/bess_core/copy_paste_service.cpp"
+	"src/bess_core/connection_service.cpp"
+	
+	"src/bess_core/renderer/texture.cpp"
+	"src/bess_core/renderer/renderer.cpp"
 )
 
 source_group("src" FILES ${Source_Files})
