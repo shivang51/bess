@@ -1,18 +1,61 @@
 #pragma once
+#include "bess_core/renderer/texture.h"
 #include "bess_core/renderer/renderer_types.h"
+#include <cstdint>
+#include <memory>
 
 namespace Bess::Core::Renderer {
+    enum class Renderer2DTargetFormat : uint8_t {
+        RGBA8Unorm,
+        BGRA8Unorm,
+        RGBA16Float
+    };
+
+    struct Renderer2DExtent {
+        uint32_t width = 1;
+        uint32_t height = 1;
+    };
+
+    enum class Renderer2DNativeSurfaceType : uint8_t {
+        None,
+        BackendOwned,
+        PlatformHandle
+    };
+
+    struct Renderer2DNativeSurface {
+        Renderer2DNativeSurfaceType type = Renderer2DNativeSurfaceType::None;
+        void *handle = nullptr;
+    };
+
+    struct Renderer2DCreateInfo {
+        Renderer2DExtent extent;
+        Renderer2DTargetFormat targetFormat = Renderer2DTargetFormat::BGRA8Unorm;
+        Renderer2DNativeSurface surface;
+        bool enableValidation = true;
+    };
+
+    struct Renderer2DFrameInfo {
+        Renderer2DExtent extent{0, 0};
+        Color clearColor{0.f, 0.f, 0.f, 1.f};
+        bool shouldClear = true;
+    };
+
     class IRenderer2D {
       public:
         virtual ~IRenderer2D();
 
-        virtual void init() = 0;
+        virtual void init(const Renderer2DCreateInfo &createInfo) = 0;
         virtual void destroy() = 0;
 
-        virtual void beginFrame() = 0;
+        virtual void resize(const Renderer2DExtent &extent) = 0;
+
+        virtual void beginFrame(const Renderer2DFrameInfo &frameInfo) = 0;
         virtual void endFrame() = 0;
 
         virtual void clear(const Color &color) = 0;
+
+        virtual TextureHandle createTexture(const ITexture &texture) = 0;
+        virtual void destroyTexture(TextureHandle texture) = 0;
 
         virtual void drawQuad(const QuadProps &props) = 0;
 

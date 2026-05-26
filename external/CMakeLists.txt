@@ -44,10 +44,27 @@ FetchContent_Declare(
     GIT_TAG "v1.6.55"
 )
 
+FetchContent_Declare(
+    dawn
+    GIT_REPOSITORY "https://dawn.googlesource.com/dawn"
+    GIT_TAG "chromium/7161"
+    GIT_SUBMODULES ""
+)
+
 set(PNG_TESTS OFF CACHE BOOL "Build libpng tests" FORCE)
 set(PNG_TOOLS OFF CACHE BOOL "Build libpng tools" FORCE)
 
-FetchContent_MakeAvailable(glfw libpng)
+set(DAWN_FETCH_DEPENDENCIES ON CACHE BOOL "Fetch Dawn dependencies" FORCE)
+set(DAWN_ENABLE_INSTALL OFF CACHE BOOL "Disable Dawn install rules" FORCE)
+set(DAWN_BUILD_SAMPLES OFF CACHE BOOL "Disable Dawn sample targets" FORCE)
+set(DAWN_BUILD_TESTS OFF CACHE BOOL "Disable Dawn test targets" FORCE)
+set(TINT_BUILD_TESTS OFF CACHE BOOL "Disable Tint test targets" FORCE)
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-Wno-error=invalid-constexpr>")
+endif()
+
+FetchContent_MakeAvailable(glfw libpng dawn)
 
 find_package(Vulkan REQUIRED)
 
@@ -102,5 +119,3 @@ else()
         "freetype;"
     )
 endif()
-
-
