@@ -1,6 +1,7 @@
 #pragma once
 
 #include "command.h"
+#include "common/sub_system.h"
 #include <memory>
 #include <stack>
 
@@ -13,12 +14,12 @@ namespace Bess::SimEngine {
 }
 
 namespace Bess::Cmd {
-    class CommandSystem {
+    class CommandSystem : public ISubSystem {
       public:
         CommandSystem() = default;
-        ~CommandSystem() = default;
 
-        void init();
+        void onInit() override;
+        void onDestroy() override;
 
         void execute(std::unique_ptr<Command> cmd);
 

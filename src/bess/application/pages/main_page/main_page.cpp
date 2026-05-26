@@ -77,7 +77,7 @@ namespace Bess::Pages {
             UI::UIMain::init();
         }
 
-        m_state.initCmdSystem();
+        m_state.init();
 
         BESS_DEBUG("MainPage created successfully");
     }

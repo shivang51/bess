@@ -29,7 +29,13 @@ namespace Bess::Cmd {
                    existingCmd->canMergeWith(newCmd);
         }
     } // namespace
-    void CommandSystem::init() {
+
+    void CommandSystem::onDestroy() {
+        m_redoStack = {};
+        m_undoStack = {};
+    }
+
+    void CommandSystem::onInit() {
         m_redoStack = {};
         m_undoStack = {};
     }

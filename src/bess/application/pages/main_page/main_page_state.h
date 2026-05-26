@@ -64,7 +64,7 @@ namespace Bess::Pages {
         advanceVerilogImport(std::string *errorMessage = nullptr);
         void cancelVerilogImport();
 
-        void initCmdSystem();
+        void init();
 
         std::shared_ptr<SceneDriver> getSceneDriver() const;
         std::shared_ptr<SceneDriver> getSceneDriver();

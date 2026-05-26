@@ -3,6 +3,7 @@
 #include "bess_core/connection_service.h"
 #include "bess_core/copy_paste_service.h"
 #include "bess_core/scene_driver.h"
+#include "command_system.h"
 #include "common/logger.h"
 #include "project_file.h"
 #include "simulation_engine.h"
@@ -14,6 +15,7 @@ namespace Bess {
         addSubSystem<SimEngine::SimulationEngine>();
         addSubSystem<Svc::SvcConnection>();
         addSubSystem<Svc::CopyPaste::Context>();
+        addSubSystem<Cmd::CommandSystem>();
 
         ISubSysContainer::init();
     }

@@ -405,8 +405,7 @@ namespace Bess::Pages {
         return projectCtx->getProjectFile();
     }
 
-    void MainPageState::initCmdSystem() {
-        m_commandSystem.init();
+    void MainPageState::init() {
         auto &appCtx = GAppContext::getInstance();
         auto dispatcher = appCtx.getSubSystem<EventSystem::EventDispatcher>();
         dispatcher->sink<Canvas::Events::EntityMovedEvent>()
@@ -527,11 +526,10 @@ namespace Bess::Pages {
     }
 
     Cmd::CommandSystem &MainPageState::getCommandSystem() {
-        return m_commandSystem;
-        // const auto &appCtx = GAppContext::getInstance();
-        // auto cmdSystem = appCtx.getSubSystem<ProjectContext>()
-        //                      ->getSubSystem<Cmd::CommandSystem>();
-        // return *(cmdSystem.get());
+        const auto &appCtx = GAppContext::getInstance();
+        auto cmdSystem = appCtx.getSubSystem<ProjectContext>()
+                             ->getSubSystem<Cmd::CommandSystem>();
+        return *(cmdSystem.get());
     }
 
     void MainPageState::update() {
