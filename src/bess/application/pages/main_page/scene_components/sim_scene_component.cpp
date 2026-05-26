@@ -4,7 +4,7 @@
 #include "common/bess_uuid.h"
 #include "icons/FontAwesomeIcons.h"
 #include "input_scene_component.h"
-#include "pages/main_page/services/connection_service.h"
+#include "bess_core/connection_service.h"
 #include "renderer/material_renderer.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/styles/comp_style.h"

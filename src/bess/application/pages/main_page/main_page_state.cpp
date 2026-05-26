@@ -4,6 +4,7 @@
 #include "bess_core/project_context.h"
 #include "bess_core/scene_driver.h"
 #include "bverilog/sim_engine_importer.h"
+#include "command_system.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "dig_sim_driver.h"
@@ -527,6 +528,10 @@ namespace Bess::Pages {
 
     Cmd::CommandSystem &MainPageState::getCommandSystem() {
         return m_commandSystem;
+        // const auto &appCtx = GAppContext::getInstance();
+        // auto cmdSystem = appCtx.getSubSystem<ProjectContext>()
+        //                      ->getSubSystem<Cmd::CommandSystem>();
+        // return *(cmdSystem.get());
     }
 
     void MainPageState::update() {

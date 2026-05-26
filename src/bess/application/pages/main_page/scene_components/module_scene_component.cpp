@@ -1,4 +1,5 @@
 #include "module_scene_component.h"
+#include "bess_core/copy_paste_service.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "bess_core/scene_driver.h"
@@ -11,7 +12,6 @@
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
-#include "pages/main_page/services/copy_paste_service.h"
 #include "scene/scene_state/scene_state.h"
 #include "simulation_engine.h"
 #include <cstdint>
@@ -51,10 +51,10 @@ namespace Bess::Canvas {
             auto ogScene = sceneDriver->getSceneWithId(m_sceneId);
             ogScene->selectAllEntities();
             Svc::CopyPaste::Context cpCtx;
-            cpCtx.init();
+            cpCtx.onInit();
             cpCtx.copy(ogScene);
             ogToCloneId = cpCtx.paste(newScene, false);
-            cpCtx.destroy();
+            cpCtx.onDestroy();
             ogScene->getState().clearSelectedComponents();
         }
 

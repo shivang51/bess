@@ -4,6 +4,7 @@
 /// scene. To update connections any where use this service only.
 
 #include "common/bess_uuid.h"
+#include "common/sub_system.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "scene.h"
 #include <memory>
@@ -26,12 +27,14 @@ namespace Bess::SimEngine {
 }
 
 namespace Bess::Svc {
-    class SvcConnection {
+    class BESS_API SvcConnection : public ISubSystem {
       public:
-        static SvcConnection &instance();
+        void onInit() override;
+        void onDestroy() override;
 
-        void init();
-        void destroy();
+        SvcConnection() = default;
+        SvcConnection(const SvcConnection &) = delete;
+        SvcConnection &operator=(const SvcConnection &) = delete;
 
         // Connects two slots/proxy slots together by creating a connection
         // between them, and also handles the sim engine connection and slot
@@ -201,10 +204,6 @@ namespace Bess::Svc {
             m_slotsBin;
 
       private:
-        SvcConnection() = default;
-        ~SvcConnection() = default;
-        SvcConnection(const SvcConnection &) = delete;
-        SvcConnection &operator=(const SvcConnection &) = delete;
         std::shared_ptr<Canvas::Scene> mp_scene = nullptr;
     };
 } // namespace Bess::Svc

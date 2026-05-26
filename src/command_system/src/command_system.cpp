@@ -95,7 +95,15 @@ namespace Bess::Cmd {
 
     bool CommandSystem::canRedo() const { return !m_redoStack.empty(); }
 
+    std::shared_ptr<Canvas::Scene> CommandSystem::getInternalScene() const {
+        return m_scene;
+    }
+
     std::shared_ptr<Canvas::Scene> CommandSystem::getScene() const {
+        if (m_scene) {
+            return m_scene;
+        }
+
         const auto &appCtx = GAppContext::getInstance();
         const auto &project = appCtx.getSubSystem<ProjectContext>();
         return project->getSubSystem<SceneDriver>()->getActiveScene();
@@ -103,9 +111,22 @@ namespace Bess::Cmd {
 
     std::shared_ptr<SimEngine::SimulationEngine>
     CommandSystem::getSimEngine() const {
+        if (m_simEngine) {
+            return m_simEngine;
+        }
+
         const auto &appCtx = GAppContext::getInstance();
         const auto &project = appCtx.getSubSystem<ProjectContext>();
         return project->getSubSystem<SimEngine::SimulationEngine>();
+    }
+
+    void CommandSystem::setScene(const std::shared_ptr<Canvas::Scene> &scene) {
+        m_scene = scene;
+    }
+
+    void CommandSystem::setSimEngine(
+        const std::shared_ptr<SimEngine::SimulationEngine> &simEngine) {
+        m_simEngine = simEngine;
     }
 
 } // namespace Bess::Cmd

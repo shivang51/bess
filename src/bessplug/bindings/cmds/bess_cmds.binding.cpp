@@ -1,3 +1,4 @@
+#include "bess_core/connection_service.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "bess_core/scene_driver.h"
@@ -9,7 +10,6 @@
 #include "pages/main_page/scene_components/connection_scene_component.h" // IWYU pragma: keep
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
-#include "pages/main_page/services/connection_service.h"
 #include "simulation_engine.h"
 #include "ui_main/component_explorer.h"
 #include <pybind11/eval.h>
@@ -230,12 +230,13 @@ void bind_cmds(py::module &m) {
         [](const Bess::UUID &fromCompId, Bess::Canvas::SlotType fromSlotType,
            int fromSlotIdx, const Bess::UUID &toCompId,
            Bess::Canvas::SlotType toSlotType, int toSlotIdx) -> CmdResult {
-        auto sceneDriver = Bess::GAppContext::getInstance()
-                               .getSubSystem<Bess::ProjectContext>()
-                               ->getSubSystem<Bess::SceneDriver>();
+        auto projectCtx = Bess::GAppContext::getInstance()
+                              .getSubSystem<Bess::ProjectContext>();
 
-        auto &connSvc = Bess::Svc::SvcConnection::instance();
-        auto conn = connSvc.createConnection(
+        auto sceneDriver = projectCtx->getSubSystem<Bess::SceneDriver>();
+        auto connSvc = projectCtx->getSubSystem<Bess::Svc::SvcConnection>();
+
+        auto conn = connSvc->createConnection(
             fromCompId, fromSlotType, fromSlotIdx, toCompId, toSlotType,
             toSlotIdx, sceneDriver->getActiveScene());
 

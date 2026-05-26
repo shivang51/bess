@@ -1,4 +1,4 @@
-#include "connection_service.h"
+#include "bess_core/connection_service.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "common/bess_assert.h"
@@ -16,17 +16,12 @@
 #include <cstdint>
 
 namespace Bess::Svc {
-    SvcConnection &SvcConnection::instance() {
-        static SvcConnection instance;
-        return instance;
-    }
-
-    void SvcConnection::init() {
+    void SvcConnection::onInit() {
         m_slotsBin = {};
         BESS_DEBUG("Initialized Connection Service");
     }
 
-    void SvcConnection::destroy() {
+    void SvcConnection::onDestroy() {
         m_slotsBin.clear();
         BESS_DEBUG("Destroyed Connection Service");
     }

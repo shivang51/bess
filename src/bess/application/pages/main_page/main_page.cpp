@@ -1,5 +1,7 @@
 #include "pages/main_page/main_page.h"
 #include "asset_manager/asset_manager.h"
+#include "bess_core/connection_service.h"
+#include "bess_core/copy_paste_service.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "common/bess_assert.h"
@@ -20,10 +22,8 @@
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_probe_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
-#include "pages/main_page/services/connection_service.h"
 #include "plugin_manager.h"
 #include "scene_ser_reg.h"
-#include "services/copy_paste_service.h"
 #include "sub_systems/input_sub_system.h"
 #include "sub_systems/input_sub_system_types.h"
 #include "ui/ui.h"
@@ -79,9 +79,6 @@ namespace Bess::Pages {
 
         m_state.initCmdSystem();
 
-        Svc::SvcConnection::instance().init();
-        Svc::CopyPaste::Context::instance().init();
-
         BESS_DEBUG("MainPage created successfully");
     }
 
@@ -94,9 +91,6 @@ namespace Bess::Pages {
         if (m_isDestroyed)
             return;
         BESS_INFO("[MainPage] Destroying");
-
-        Svc::CopyPaste::Context::instance().destroy();
-        Svc::SvcConnection::instance().destroy();
 
         Canvas::NonSimSceneComponent::clearRegistry();
         Canvas::SceneSerReg::clearRegistry();
@@ -316,13 +310,17 @@ namespace Bess::Pages {
     MainPageState &MainPage::getState() { return m_state; };
 
     void MainPage::copySelectedEntities() {
-        auto &ctx = Svc::CopyPaste::Context::instance();
-        ctx.copy(m_state.getSceneDriver()->getActiveScene());
+        auto projCtx =
+            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>();
+        auto ctx = projCtx->getSubSystem<Svc::CopyPaste::Context>();
+        ctx->copy(m_state.getSceneDriver()->getActiveScene());
     }
 
     void MainPage::pasteCopiedEntities() {
-        auto &ctx = Svc::CopyPaste::Context::instance();
-        ctx.paste(m_state.getSceneDriver()->getActiveScene());
+        auto projCtx =
+            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>();
+        auto ctx = projCtx->getSubSystem<Svc::CopyPaste::Context>();
+        ctx->paste(m_state.getSceneDriver()->getActiveScene());
     }
 
 } // namespace Bess::Pages

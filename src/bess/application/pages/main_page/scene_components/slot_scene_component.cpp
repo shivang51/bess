@@ -1,4 +1,5 @@
 #include "slot_scene_component.h"
+#include "bess_core/connection_service.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "conn_joint_scene_component.h"
@@ -8,7 +9,6 @@
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
-#include "pages/main_page/services/connection_service.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
@@ -335,13 +335,13 @@ namespace Bess::Canvas {
         auto endSlot =
             e.sceneState->getComponentByUuid<SlotSceneComponent>(m_uuid);
 
-        auto sceneDriver = GAppContext::getInstance()
-                               .getSubSystem<Bess::ProjectContext>()
-                               ->getSubSystem<SceneDriver>();
-        const auto [canConnect, reason] =
-            Svc::SvcConnection::instance().canConnect(
-                connStartSlot, m_uuid,
-                sceneDriver->getSceneWithId(e.sceneState->getSceneId()));
+        auto projCtx =
+            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>();
+        auto sceneDriver = projCtx->getSubSystem<SceneDriver>();
+        auto connectionsSvc = projCtx->getSubSystem<Svc::SvcConnection>();
+        const auto [canConnect, reason] = connectionsSvc->canConnect(
+            connStartSlot, m_uuid,
+            sceneDriver->getSceneWithId(e.sceneState->getSceneId()));
 
         if (!canConnect) {
             BESS_WARN("Cannot create connection between component {} and "
@@ -353,7 +353,7 @@ namespace Bess::Canvas {
 
         UUID starSlotUuid =
             jointComp ? jointComp->getUuid() : startSlot->getUuid();
-        auto conn = Svc::SvcConnection::instance().createConnection(
+        auto conn = connectionsSvc->createConnection(
             starSlotUuid, m_uuid,
             sceneDriver->getSceneWithId(e.sceneState->getSceneId()));
 

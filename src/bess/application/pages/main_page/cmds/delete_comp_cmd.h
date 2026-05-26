@@ -1,5 +1,7 @@
 #pragma once
 
+#include "bess_core/connection_service.h"
+#include "bess_core/project_context.h"
 #include "command.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
@@ -7,7 +9,6 @@
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
-#include "pages/main_page/services/connection_service.h"
 #include "scene/scene.h"
 #include "scene/scene_state/components/scene_component.h"
 #include <algorithm>
@@ -148,13 +149,17 @@ namespace Bess::Cmd {
                 return maxSlotIdxA > maxSlotIdxB; // Descending order
             });
 
+            auto projCtx =
+                GAppContext::getInstance().getSubSystem<Bess::ProjectContext>();
+            auto connectionsSvc = projCtx->getSubSystem<Svc::SvcConnection>();
+
             // Now execute the deletion in the safe order
             for (auto conn : connections) {
                 for (const auto &joint : jointsByConnection[conn->getUuid()]) {
                     sceneState.removeComponent(joint->getUuid(), UUID::master);
                     m_deletedComponents.push_back(joint);
                 }
-                Svc::SvcConnection::instance().removeConnection(conn, scene);
+                connectionsSvc->removeConnection(conn, scene);
 
                 m_deletedComponents.push_back(std::move(conn));
             }
@@ -180,7 +185,9 @@ namespace Bess::Cmd {
             override {
             auto &sceneState = scene->getState();
 
-            auto &connectionsSvc = Svc::SvcConnection::instance();
+            auto projCtx =
+                GAppContext::getInstance().getSubSystem<Bess::ProjectContext>();
+            auto connectionsSvc = projCtx->getSubSystem<Svc::SvcConnection>();
             std::vector<std::shared_ptr<Canvas::SceneComponent>> groupComps;
             for (const auto &deletedComponent :
                  std::ranges::reverse_view(m_deletedComponents)) {
@@ -189,7 +196,7 @@ namespace Bess::Cmd {
                            (uint64_t)deletedComponent->getUuid());
                 if (deletedComponent->getType() ==
                     Canvas::SceneComponentType::connection) {
-                    connectionsSvc.addConnection(
+                    connectionsSvc->addConnection(
                         deletedComponent
                             ->cast<Canvas::ConnectionSceneComponent>(),
                         scene);
@@ -243,11 +250,13 @@ namespace Bess::Cmd {
         void redo(const std::shared_ptr<Canvas::Scene> &scene,
                   const std::shared_ptr<SimEngine::SimulationEngine> &simEngine)
             override {
-            auto &connectionsSvc = Svc::SvcConnection::instance();
+            auto projCtx =
+                GAppContext::getInstance().getSubSystem<Bess::ProjectContext>();
+            auto connectionsSvc = projCtx->getSubSystem<Svc::SvcConnection>();
 
             for (const auto &comp : m_deletedComponents) {
                 if (comp->getType() == Canvas::SceneComponentType::connection) {
-                    connectionsSvc.removeConnection(
+                    connectionsSvc->removeConnection(
                         comp->cast<Canvas::ConnectionSceneComponent>(), scene);
                 } else {
                     scene->getState().removeComponent(comp->getUuid(),

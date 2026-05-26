@@ -35,6 +35,12 @@ namespace Bess::Cmd {
         bool canUndo() const;
         bool canRedo() const;
 
+        std::shared_ptr<Canvas::Scene> getInternalScene() const;
+
+        void setScene(const std::shared_ptr<Canvas::Scene> &scene);
+        void setSimEngine(
+            const std::shared_ptr<SimEngine::SimulationEngine> &simEngine);
+
       private:
         std::shared_ptr<Canvas::Scene> getScene() const;
         std::shared_ptr<SimEngine::SimulationEngine> getSimEngine() const;
@@ -42,6 +48,9 @@ namespace Bess::Cmd {
       private:
         std::stack<std::unique_ptr<Command>> m_undoStack;
         std::stack<std::unique_ptr<Command>> m_redoStack;
+
+        std::shared_ptr<Canvas::Scene> m_scene = nullptr;
+        std::shared_ptr<SimEngine::SimulationEngine> m_simEngine = nullptr;
     };
 
 } // namespace Bess::Cmd

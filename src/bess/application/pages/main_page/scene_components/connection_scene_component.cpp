@@ -1,4 +1,5 @@
 #include "connection_scene_component.h"
+#include "bess_core/connection_service.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "bess_core/scene_driver.h"
@@ -564,12 +565,13 @@ namespace Bess::Canvas {
             dependants.push_back(jointId);
         }
 
+        auto projCtx =
+            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>();
+
         // get its depents from ConnectionService
-        auto sceneDriver = GAppContext::getInstance()
-                               .getSubSystem<Bess::ProjectContext>()
-                               ->getSubSystem<SceneDriver>();
-        auto &connectionsSvc = Svc::SvcConnection::instance();
-        const auto &connDependants = connectionsSvc.getDependants(
+        auto sceneDriver = projCtx->getSubSystem<SceneDriver>();
+        auto connectionsSvc = projCtx->getSubSystem<Svc::SvcConnection>();
+        const auto &connDependants = connectionsSvc->getDependants(
             getUuid(), sceneDriver->getSceneWithId(state.getSceneId()));
         dependants.insert(dependants.end(), connDependants.begin(),
                           connDependants.end());

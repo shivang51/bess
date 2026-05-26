@@ -1,4 +1,4 @@
-#include "copy_paste_service.h"
+#include "bess_core/copy_paste_service.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "common/bess_uuid.h"
@@ -8,6 +8,8 @@
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
+#include "scene_state/components/scene_component.h"
+#include "scene_state/scene_state.h"
 #include "simulation_engine.h"
 #include <unordered_map>
 
@@ -61,6 +63,9 @@ namespace Bess::Svc::CopyPaste {
 
             addEntity(entity);
         }
+
+        BESS_DEBUG("Copied {} entities from scene {}", m_entities.size(),
+                   (uint64_t)sceneState.getSceneId());
     }
 
     std::unordered_map<UUID, UUID>
@@ -220,10 +225,10 @@ namespace Bess::Svc::CopyPaste {
         if (recordHistory) {
             auto &cmdSystem =
                 Pages::MainPage::getInstance()->getState().getCommandSystem();
-            // const auto currentCmdSystemScene = cmdSystem.getScene();
-            // cmdSystem.setScene(targetScene.get());
-            // cmdSystem.execute(std::move(macroCmd));
-            // cmdSystem.setScene(currentCmdSystemScene);
+            const auto currentCmdSystemScene = cmdSystem.getInternalScene();
+            cmdSystem.setScene(targetScene);
+            cmdSystem.execute(std::move(macroCmd));
+            cmdSystem.setScene(currentCmdSystemScene);
         } else {
             auto &appCtx = Bess::GAppContext::getInstance();
             auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
@@ -232,12 +237,10 @@ namespace Bess::Svc::CopyPaste {
                 projectCtx->getSubSystem<SimEngine::SimulationEngine>());
         }
 
-        return ogToClonedIdMap;
-    }
+        BESS_DEBUG("Pasted {} entities into scene {}", m_entities.size(),
+                   (uint64_t)targetScene->getState().getSceneId());
 
-    Context &Context::instance() {
-        static Context context;
-        return context;
+        return ogToClonedIdMap;
     }
 
     void Context::addEntity(const CopiedEntity &entity) {
@@ -264,8 +267,8 @@ namespace Bess::Svc::CopyPaste {
         m_center = sumPos / (float)m_entities.size();
     }
 
-    void Context::init() { clear(); }
+    void Context::onInit() { clear(); }
 
-    void Context::destroy() { clear(); }
+    void Context::onDestroy() { clear(); }
 
 } // namespace Bess::Svc::CopyPaste

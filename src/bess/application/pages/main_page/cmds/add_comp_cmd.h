@@ -1,10 +1,11 @@
 #pragma once
+#include "bess_core/connection_service.h"
+#include "bess_core/project_context.h"
 #include "command.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
-#include "pages/main_page/services/connection_service.h"
 #include "scene/scene.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "simulation_engine.h"
@@ -37,7 +38,11 @@ namespace Bess::Cmd {
             }
 
             if (m_comp->getType() == Canvas::SceneComponentType::connection) {
-                Svc::SvcConnection::instance().addConnection(
+                auto projCtx = GAppContext::getInstance()
+                                   .getSubSystem<Bess::ProjectContext>();
+                auto connectionsSvc =
+                    projCtx->getSubSystem<Svc::SvcConnection>();
+                connectionsSvc->addConnection(
                     m_comp->template cast<Canvas::ConnectionSceneComponent>(),
                     scene);
             } else {
@@ -62,7 +67,11 @@ namespace Bess::Cmd {
                         "Cannot undo AddCompCmd without a valid component");
 
             if (m_comp->getType() == Canvas::SceneComponentType::connection) {
-                Svc::SvcConnection::instance().removeConnection(
+                auto projCtx = GAppContext::getInstance()
+                                   .getSubSystem<Bess::ProjectContext>();
+                auto connectionsSvc =
+                    projCtx->getSubSystem<Svc::SvcConnection>();
+                connectionsSvc->removeConnection(
                     m_comp->template cast<Canvas::ConnectionSceneComponent>(),
                     scene);
             } else {
@@ -77,7 +86,11 @@ namespace Bess::Cmd {
                         "Cannot redo AddCompCmd without a valid component");
 
             if (m_comp->getType() == Canvas::SceneComponentType::connection) {
-                Svc::SvcConnection::instance().addConnection(
+                auto projCtx = GAppContext::getInstance()
+                                   .getSubSystem<Bess::ProjectContext>();
+                auto connectionsSvc =
+                    projCtx->getSubSystem<Svc::SvcConnection>();
+                connectionsSvc->addConnection(
                     m_comp->template cast<Canvas::ConnectionSceneComponent>(),
                     scene);
             } else {

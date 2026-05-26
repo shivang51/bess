@@ -35,7 +35,9 @@ namespace Bess {
             return subsystem;
         }
 
-        template <typename T> std::shared_ptr<T> getSubSystem() const {
+        template <typename T>
+            requires std::derived_from<T, ISubSystem>
+        std::shared_ptr<T> getSubSystem() const {
             auto it = m_subSystems.find(typeid(T));
             if (it != m_subSystems.end()) {
                 return std::static_pointer_cast<T>(it->second);
@@ -45,7 +47,9 @@ namespace Bess {
             return nullptr;
         }
 
-        template <typename T> void removeSubSystem() {
+        template <typename T>
+            requires std::derived_from<T, ISubSystem>
+        void removeSubSystem() {
             m_subSystems.erase(typeid(T));
         }
 
