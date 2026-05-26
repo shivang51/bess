@@ -2,7 +2,7 @@
 #include "bess_core/renderer/texture.h"
 #include "bess_core/renderer/renderer_types.h"
 #include <cstdint>
-#include <memory>
+#include <string>
 
 namespace Bess::Core::Renderer {
     enum class Renderer2DTargetFormat : uint8_t {
@@ -53,6 +53,7 @@ namespace Bess::Core::Renderer {
         virtual void endFrame() = 0;
 
         virtual void clear(const Color &color) = 0;
+        virtual void saveTargetToFile(const std::string &path) = 0;
 
         virtual TextureHandle createTexture(const ITexture &texture) = 0;
         virtual void destroyTexture(TextureHandle texture) = 0;

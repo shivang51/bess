@@ -2,6 +2,8 @@
 #include "asset_manager/asset_manager.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "bess_core/renderer/renderer_2d.h"
+#include "bess_wgpu/wgpu_renderer_2d.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
 #include "common/types.h"
@@ -25,6 +27,29 @@ namespace Bess {
     Application::~Application() { shutdown(); }
 
     void Application::run() {
+        Bess::Wgpu::WgpuRenderer2D renderer2D;
+        Core::Renderer::Renderer2DNativeSurfaceType surfaceType =
+            Core::Renderer::Renderer2DNativeSurfaceType::BackendOwned;
+        renderer2D.init(
+            {.extent = {800, 600},
+             .targetFormat = Core::Renderer::Renderer2DTargetFormat::BGRA8Unorm,
+             .surface = {.type = surfaceType, .handle = nullptr}});
+
+        renderer2D.beginFrame({.extent = {800, 600},
+                               .clearColor = {0.1f, 0.2f, 0.3f, 1.0f},
+                               .shouldClear = true});
+        renderer2D.clear({0.2f, 0.8f, 0.4f, 1.f});
+
+        renderer2D.drawQuad({.position = {100.f, 100.f},
+                             .size = {200.f, 150.f},
+                             .color = {1.f, 0.f, 0.f, 1.f}});
+
+        renderer2D.endFrame();
+        renderer2D.saveTargetToFile("output.png");
+
+        renderer2D.destroy();
+
+        return;
         BESS_ASSERT(m_mainWindow, "Main window is not initialized or set");
 
         auto previousTime = std::chrono::steady_clock::now();

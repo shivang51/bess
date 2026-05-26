@@ -81,9 +81,9 @@ set(ALL_FILES
 
 add_library(${PROJECT_NAME} OBJECT ${ALL_FILES})
 
-target_link_libraries(${PROJECT_NAME} PUBLIC common BessCore BessExtDeps BessJson BessSimEngine BessVulkan BessPluginManager EventSystem BessScene BessCmdSystem BessUI BessSimDriver DigitalSimDriver bverilog)
+target_link_libraries(${PROJECT_NAME} PUBLIC common BessCore BessExtDeps BessJson BessSimEngine BessVulkan BessPluginManager EventSystem BessScene BessCmdSystem BessUI BessSimDriver DigitalSimDriver bverilog BessWgpu)
 
-add_dependencies(${PROJECT_NAME} common BessCore BessExtDeps BessJson BessSimEngine BessVulkan BessPluginManager BessScene BessCmdSystem BessUI BessSimDriver DigitalSimDriver bverilog)
+add_dependencies(${PROJECT_NAME} common BessCore BessExtDeps BessJson BessSimEngine BessVulkan BessPluginManager BessScene BessCmdSystem BessUI BessSimDriver DigitalSimDriver bverilog BessWgpu)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}")
 

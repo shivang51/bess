@@ -3,6 +3,7 @@
 #include "bess_core/renderer/renderer_2d.h"
 #include <cstddef>
 #include <memory>
+#include <string>
 #include <webgpu/webgpu_cpp.h>
 
 namespace Bess::Wgpu {
@@ -26,6 +27,7 @@ namespace Bess::Wgpu {
         void endFrame() override;
 
         void clear(const Core::Renderer::Color &color) override;
+        void saveTargetToFile(const std::string &path) override;
 
         Core::Renderer::TextureHandle
         createTexture(const Core::Renderer::ITexture &texture) override;

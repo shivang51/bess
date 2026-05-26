@@ -1,7 +1,10 @@
 #include "bess_wgpu/wgpu_renderer_2d.h"
 #include <algorithm>
 #include <array>
+#include <cstdio>
 #include <cstdint>
+#include <memory>
+#include <png.h>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -121,6 +124,69 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
 
         wgpu::Color toWgpuColor(const Color &color) {
             return {color.r, color.g, color.b, color.a};
+        }
+
+        uint32_t alignTo(uint32_t value, uint32_t alignment) {
+            return ((value + alignment - 1) / alignment) * alignment;
+        }
+
+        bool isPngWritableFormat(wgpu::TextureFormat format) {
+            return format == wgpu::TextureFormat::RGBA8Unorm ||
+                   format == wgpu::TextureFormat::BGRA8Unorm;
+        }
+
+        struct FileDeleter {
+            void operator()(FILE *file) const {
+                if (file != nullptr) {
+                    std::fclose(file);
+                }
+            }
+        };
+
+        void writePng(const std::string &path, const uint8_t *rgba,
+                      uint32_t width, uint32_t height) {
+            using FilePtr = std::unique_ptr<FILE, FileDeleter>;
+            FilePtr file(std::fopen(path.c_str(), "wb"));
+            if (!file) {
+                throw std::runtime_error("Failed to open PNG for writing: " +
+                                         path);
+            }
+
+            png_structp png =
+                png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr,
+                                        nullptr);
+            if (png == nullptr) {
+                throw std::runtime_error("Failed to create PNG write struct");
+            }
+
+            png_infop info = png_create_info_struct(png);
+            if (info == nullptr) {
+                png_destroy_write_struct(&png, nullptr);
+                throw std::runtime_error("Failed to create PNG info struct");
+            }
+
+            if (setjmp(png_jmpbuf(png))) {
+                png_destroy_write_struct(&png, &info);
+                throw std::runtime_error("Failed to write PNG: " + path);
+            }
+
+            png_init_io(png, file.get());
+            png_set_IHDR(png, info, width, height, 8, PNG_COLOR_TYPE_RGBA,
+                         PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
+                         PNG_FILTER_TYPE_DEFAULT);
+            png_write_info(png, info);
+
+            std::vector<png_bytep> rows(height);
+            const auto rowBytes = static_cast<size_t>(width) * 4;
+            for (uint32_t row = 0; row < height; ++row) {
+                rows[row] =
+                    const_cast<png_bytep>(rgba + static_cast<size_t>(row) *
+                                                     rowBytes);
+            }
+
+            png_write_image(png, rows.data());
+            png_write_end(png, nullptr);
+            png_destroy_write_struct(&png, &info);
         }
 
         QuadInstance makeQuadInstance(
@@ -477,6 +543,111 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
     void WgpuRenderer2D::clear(const Color &color) {
         m_impl->clearColor = color;
         m_impl->shouldClear = true;
+    }
+
+    void WgpuRenderer2D::saveTargetToFile(const std::string &path) {
+        if (m_impl->device == nullptr) {
+            throw std::runtime_error("WgpuRenderer2D is not initialized");
+        }
+
+        if (m_impl->frameStarted) {
+            endFrame();
+        }
+
+        if (!isPngWritableFormat(m_impl->targetFormat)) {
+            throw std::runtime_error(
+                "saveTargetToFile currently supports only 8-bit RGBA/BGRA "
+                "render targets");
+        }
+
+        const uint32_t width = std::max(1u, m_impl->extent.width);
+        const uint32_t height = std::max(1u, m_impl->extent.height);
+        const uint32_t bytesPerPixel = 4;
+        const uint32_t unpaddedBytesPerRow = width * bytesPerPixel;
+        const uint32_t paddedBytesPerRow = alignTo(unpaddedBytesPerRow, 256);
+        const auto readbackSize =
+            static_cast<uint64_t>(paddedBytesPerRow) * height;
+
+        wgpu::BufferDescriptor bufferDescriptor{};
+        bufferDescriptor.size = readbackSize;
+        bufferDescriptor.usage =
+            wgpu::BufferUsage::MapRead | wgpu::BufferUsage::CopyDst;
+        wgpu::Buffer readbackBuffer =
+            m_impl->device.CreateBuffer(&bufferDescriptor);
+
+        wgpu::CommandEncoder encoder = m_impl->device.CreateCommandEncoder();
+
+        wgpu::TexelCopyTextureInfo source{};
+        source.texture = m_impl->offscreenTarget;
+        source.mipLevel = 0;
+        source.origin = {0, 0, 0};
+        source.aspect = wgpu::TextureAspect::All;
+
+        wgpu::TexelCopyBufferInfo destination{};
+        destination.buffer = readbackBuffer;
+        destination.layout.offset = 0;
+        destination.layout.bytesPerRow = paddedBytesPerRow;
+        destination.layout.rowsPerImage = height;
+
+        wgpu::Extent3D copySize{width, height, 1};
+        encoder.CopyTextureToBuffer(&source, &destination, &copySize);
+
+        wgpu::CommandBuffer commandBuffer = encoder.Finish();
+        m_impl->queue.Submit(1, &commandBuffer);
+
+        wgpu::MapAsyncStatus mapStatus = wgpu::MapAsyncStatus::Error;
+        std::string mapError;
+        auto mapCallback = [&mapStatus, &mapError](wgpu::MapAsyncStatus status,
+                                                   wgpu::StringView message) {
+            mapStatus = status;
+            if (status != wgpu::MapAsyncStatus::Success &&
+                message.data != nullptr) {
+                mapError.assign(message.data, message.length);
+            }
+        };
+
+        wgpu::Future mapFuture = readbackBuffer.MapAsync(
+            wgpu::MapMode::Read, 0, readbackSize,
+            wgpu::CallbackMode::WaitAnyOnly, mapCallback);
+        if (m_impl->instance.WaitAny(mapFuture, UINT64_MAX) !=
+            wgpu::WaitStatus::Success) {
+            throw std::runtime_error("Timed out waiting for WGPU readback");
+        }
+        if (mapStatus != wgpu::MapAsyncStatus::Success) {
+            throw std::runtime_error("Failed to map WGPU readback buffer: " +
+                                     mapError);
+        }
+
+        const auto *mappedData = static_cast<const uint8_t *>(
+            readbackBuffer.GetConstMappedRange(0, readbackSize));
+        if (mappedData == nullptr) {
+            readbackBuffer.Unmap();
+            throw std::runtime_error("Failed to access WGPU readback data");
+        }
+
+        std::vector<uint8_t> rgba(static_cast<size_t>(width) * height *
+                                  bytesPerPixel);
+        for (uint32_t row = 0; row < height; ++row) {
+            const uint8_t *src =
+                mappedData + static_cast<size_t>(row) * paddedBytesPerRow;
+            uint8_t *dst =
+                rgba.data() + static_cast<size_t>(row) * unpaddedBytesPerRow;
+
+            if (m_impl->targetFormat == wgpu::TextureFormat::BGRA8Unorm) {
+                for (uint32_t col = 0; col < width; ++col) {
+                    const uint32_t offset = col * bytesPerPixel;
+                    dst[offset + 0] = src[offset + 2];
+                    dst[offset + 1] = src[offset + 1];
+                    dst[offset + 2] = src[offset + 0];
+                    dst[offset + 3] = src[offset + 3];
+                }
+            } else {
+                std::copy(src, src + unpaddedBytesPerRow, dst);
+            }
+        }
+
+        readbackBuffer.Unmap();
+        writePng(path, rgba.data(), width, height);
     }
 
     Core::Renderer::TextureHandle WgpuRenderer2D::createTexture(
