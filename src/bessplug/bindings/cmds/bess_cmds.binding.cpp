@@ -2,6 +2,7 @@
 #include "common/logger.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "bess_core/scene_driver.h"
 #include "component_catalog.h"
 #include "dig_sim_driver.h"
 #include "pages/main_page/main_page.h"
@@ -229,13 +230,13 @@ void bind_cmds(py::module &m) {
         [](const Bess::UUID &fromCompId, Bess::Canvas::SlotType fromSlotType,
            int fromSlotIdx, const Bess::UUID &toCompId,
            Bess::Canvas::SlotType toSlotType, int toSlotIdx) -> CmdResult {
-        const auto &sceneDriver =
-            Bess::Pages::MainPage::getInstance()->getState().getSceneDriver();
+        auto sceneDriver =
+            Bess::GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<Bess::SceneDriver>();
 
         auto &connSvc = Bess::Svc::SvcConnection::instance();
         auto conn = connSvc.createConnection(
             fromCompId, fromSlotType, fromSlotIdx, toCompId, toSlotType,
-            toSlotIdx, sceneDriver.getActiveScene().get());
+            toSlotIdx, sceneDriver->getActiveScene().get());
 
         if (conn) {
             return {py::cast(conn->getUuid()), ""};
@@ -355,15 +356,13 @@ void bind_cmds(py::module &m) {
         status->error = "";
 
         std::thread([execScriptFn, script]() {
-            auto &driver = Bess::Pages::MainPage::getInstance()
-                               ->getState()
-                               .getSceneDriver();
-            driver.setIsPaused(true);
+            auto driver = Bess::GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<Bess::SceneDriver>();
+            driver->setIsPaused(true);
             py::gil_scoped_acquire lock{};
             status->error = execScriptFn(script).error;
             status->log = scriptLogger->popLogs();
             status->isRunning.store(false);
-            driver.setIsPaused(false);
+            driver->setIsPaused(false);
         }).detach();
 
         return {py::cast(true), ""};
@@ -480,10 +479,10 @@ findUniqueDigCompByName(const std::string &compName) {
 
 std::shared_ptr<Bess::SimEngine::Drivers::Digital::DigSimComp>
 findDigCompBySceneId(uint64_t compId) {
-    const auto &sceneDriver =
-        Bess::Pages::MainPage::getInstance()->getState().getSceneDriver();
+    auto sceneDriver =
+        Bess::GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<Bess::SceneDriver>();
     const auto &simComp =
-        sceneDriver->getState()
+        sceneDriver->getActiveScene()->getState()
             .getComponentByUuid<Bess::Canvas::SimulationSceneComponent>(compId);
 
     if (!simComp) {

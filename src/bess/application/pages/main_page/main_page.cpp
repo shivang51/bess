@@ -85,10 +85,10 @@ namespace Bess::Pages {
         // creates default scenes in scene driver as well
         m_state.createNewProject(false);
 
-        const auto &driver = m_state.getSceneDriver();
+        const auto driver = m_state.getSceneDriver();
 
         m_state.initCmdSystem();
-        m_state.getCommandSystem().setScene(driver.getActiveScene().get());
+        m_state.getCommandSystem().setScene(driver->getActiveScene().get());
         m_state.getCommandSystem().setSimEngine(&projectCtx->getSimEngine());
 
         Svc::SvcConnection::instance().init();
@@ -123,14 +123,14 @@ namespace Bess::Pages {
                 for (const auto &panel : UI::UIMain::getScenePanels()) {
                     panel->destroyViewport();
                 }
-                m_state.getSceneDriver()->destroy();
+                m_state.getSceneDriver()->getActiveScene()->destroy();
                 Assets::AssetManager::instance().clear();
                 UI::vulkanCleanup(vkCore->getDevice());
             });
 
             UI::UIMain::destroy();
         } else {
-            m_state.getSceneDriver()->destroy();
+            m_state.getSceneDriver()->getActiveScene()->destroy();
             Assets::AssetManager::instance().clear();
         }
 
@@ -193,7 +193,7 @@ namespace Bess::Pages {
                 UI::UIMain::getPanel<UI::ProjectExplorer>()
                     ->groupSelectedNodes();
             } else if (inpSystem->isKeyPressed(KeyCode::a)) {
-                m_state.getSceneDriver()->selectAllEntities();
+                m_state.getSceneDriver()->getActiveScene()->selectAllEntities();
             } else if (inpSystem->isKeyPressed(KeyCode::c)) {
                 copySelectedEntities();
             } else if (inpSystem->isKeyPressed(KeyCode::v)) {
@@ -206,7 +206,7 @@ namespace Bess::Pages {
             }
         } else {
             if (inpSystem->isKeyPressed(KeyCode::del)) {
-                const auto &sceneState = m_state.getSceneDriver()->getState();
+                const auto &sceneState = m_state.getSceneDriver()->getActiveScene()->getState();
                 const auto selectedIds = sceneState.getSelectedComponents() |
                                          std::ranges::views::keys |
                                          std::ranges::to<std::vector<UUID>>();
@@ -261,7 +261,7 @@ namespace Bess::Pages {
                 for (const auto &moduleId : moduleIds) {
                     deleteCommand->addCommand(
                         std::make_unique<Cmd::DeleteModuleCmd>(
-                            m_state.getSceneDriver().getActiveScene(),
+                            m_state.getSceneDriver()->getActiveScene(),
                             moduleId));
                 }
 
@@ -272,21 +272,21 @@ namespace Bess::Pages {
 
                 m_state.getCommandSystem().execute(std::move(deleteCommand));
             } else if (inpSystem->isKeyPressed(KeyCode::f)) {
-                m_state.getSceneDriver()->focusCameraOnSelected();
+                m_state.getSceneDriver()->getActiveScene()->focusCameraOnSelected();
             } else if (inpSystem->isKeyPressed(KeyCode::tab)) {
-                m_state.getSceneDriver()->toggleSchematicView();
+                m_state.getSceneDriver()->getActiveScene()->toggleSchematicView();
             } else if (inpSystem->isKeyPressed(KeyCode::escape)) {
                 UI::UIMain::getPanel<UI::ComponentExplorer>()->hide();
             } else if (inpSystem->isKeyPressed(KeyCode::c)) {
                 auto &mainPageState =
                     Pages::MainPage::getInstance()->getState();
-                auto &sceneDriver = mainPageState.getSceneDriver();
-                auto &sceneState = sceneDriver->getState();
+                auto sceneDriver = mainPageState.getSceneDriver();
+                auto &sceneState = sceneDriver->getActiveScene()->getState();
                 const auto selectedIds = sceneState.getSelectedComponents() |
                                          std::views::keys |
                                          std::ranges::to<std::vector<UUID>>();
                 if (!selectedIds.empty()) {
-                    sceneDriver.updateNets();
+                    sceneDriver->updateNets();
                     std::unordered_set<UUID> processedNetIds;
                     std::vector<UUID> netIdsToModule;
                     netIdsToModule.reserve(selectedIds.size());
@@ -324,12 +324,12 @@ namespace Bess::Pages {
 
     void MainPage::copySelectedEntities() {
         auto &ctx = Svc::CopyPaste::Context::instance();
-        ctx.copy(m_state.getSceneDriver().getActiveScene());
+        ctx.copy(m_state.getSceneDriver()->getActiveScene());
     }
 
     void MainPage::pasteCopiedEntities() {
         auto &ctx = Svc::CopyPaste::Context::instance();
-        ctx.paste(m_state.getSceneDriver().getActiveScene());
+        ctx.paste(m_state.getSceneDriver()->getActiveScene());
     }
 
 } // namespace Bess::Pages

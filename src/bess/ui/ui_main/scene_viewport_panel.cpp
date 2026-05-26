@@ -1,6 +1,8 @@
 #include "scene_viewport_panel.h"
 #include "common/bess_uuid.h"
 #include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
+#include "bess_core/scene_driver.h"
 #include "common/helpers.h"
 #include "common/logger.h"
 #include "icons/CodIcons.h"
@@ -42,19 +44,19 @@ namespace Bess::UI {
             m_isResized = false;
         }
 
-        const auto &sceneDriver =
-            Pages::MainPage::getInstance()->getState().getSceneDriver();
+        auto sceneDriver =
+            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
 
-        if (!sceneDriver.getIsPaused()) {
+        if (!sceneDriver->getIsPaused()) {
             m_attachedScene->update(ts, m_isHovered);
             updateScene(ts);
         }
 
         if (m_nextSceneId != UUID::null) {
-            Pages::MainPage::getInstance()
-                ->getState()
-                .getSceneDriver()
-                .setActiveScene(m_nextSceneId);
+            GAppContext::getInstance()
+                .getSubSystem<Bess::ProjectContext>()
+                ->getSubSystem<SceneDriver>()
+                ->setActiveScene(m_nextSceneId);
             m_nextSceneId = UUID::null;
         }
     }
@@ -68,9 +70,9 @@ namespace Bess::UI {
 
     void SceneViewportPanel::onBeforeDraw() {
 
-        auto &sceneDriver =
-            Pages::MainPage::getInstance()->getState().getSceneDriver();
-        if (!sceneDriver.getIsPaused()) {
+        auto sceneDriver =
+            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        if (!sceneDriver->getIsPaused()) {
             renderAttachedScene();
         }
 
@@ -79,10 +81,10 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::onDraw() {
-        auto &sceneDriver =
-            Pages::MainPage::getInstance()->getState().getSceneDriver();
+        auto sceneDriver =
+            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
 
-        const auto &scene = sceneDriver.getActiveScene();
+        const auto scene = sceneDriver->getActiveScene();
 
         const auto viewportPanelSize = ImGui::GetContentRegionAvail();
         if (viewportPanelSize.x != m_viewportSize.x ||
@@ -122,10 +124,10 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::onAfterDraw() {
-        const auto &sceneDriver =
-            Pages::MainPage::getInstance()->getState().getSceneDriver();
+        auto sceneDriver =
+            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
 
-        if (sceneDriver.getIsPaused()) {
+        if (sceneDriver->getIsPaused()) {
             return;
         }
 
@@ -164,11 +166,11 @@ namespace Bess::UI {
         ImGui::SameLine();
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
 
-        const auto &sceneDriver =
-            Pages::MainPage::getInstance()->getState().getSceneDriver();
+        auto sceneDriver =
+            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
 
-        const auto &rootScene =
-            sceneDriver.getSceneWithId(sceneDriver.getRootSceneId());
+        const auto rootScene =
+            sceneDriver->getSceneWithId(sceneDriver->getRootSceneId());
 
         ImGui::Checkbox("##CheckBoxSchematicMode",
                         m_attachedScene->getIsSchematicViewPtr());
@@ -196,7 +198,7 @@ namespace Bess::UI {
             for (int i = 0; i < m_rootToSceneStatePtrs.size(); i++) {
                 if (i == 0) {
                     if (ImGui::Button(rootIcon.data())) {
-                        m_nextSceneId = sceneDriver.getRootSceneId();
+                        m_nextSceneId = sceneDriver->getRootSceneId();
                     }
                     continue;
                 }
@@ -236,9 +238,9 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::drawBottomControls() const {
-        auto &scene =
-            Pages::MainPage::getInstance()->getState().getSceneDriver();
-        const auto &mousePos = scene->getSceneMousePos();
+        auto sceneDriver =
+            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        const auto &mousePos = sceneDriver->getActiveScene()->getSceneMousePos();
         const auto posLabel =
             std::format("Pos: ({:.2f}, {:.2f})", mousePos.x, mousePos.y);
 
@@ -264,7 +266,7 @@ namespace Bess::UI {
         const float sliderHeight = ImGui::GetFrameHeight();
 
         ImGui::SetCursorPosY((windowHeight - sliderHeight) * 0.5f);
-        const auto &camera = scene->getCamera();
+        const auto &camera = sceneDriver->getActiveScene()->getCamera();
 
         // Camera Icon
         {
@@ -347,12 +349,12 @@ namespace Bess::UI {
         }
 
         const auto &mainPageState = Pages::MainPage::getInstance()->getState();
-        const auto &sceneDriver = mainPageState.getSceneDriver();
+        auto sceneDriver = GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
 
         UUID sceneId = m_attachedScene->getSceneId();
 
         while (sceneId != UUID::null) {
-            const auto &scene = sceneDriver.getSceneWithId(sceneId);
+            const auto scene = sceneDriver->getSceneWithId(sceneId);
             if (!scene) {
                 BESS_ERROR(
                     "[SceneVewportPanel] Scene with id {} not found while "
@@ -362,7 +364,7 @@ namespace Bess::UI {
             }
             m_rootToSceneStatePtrs.push_back(&scene->getState());
             sceneId = scene->getState().getParentSceneId();
-            if (sceneDriver.getRootSceneId() != scene->getSceneId()) {
+            if (sceneDriver->getRootSceneId() != scene->getSceneId()) {
                 BESS_ASSERT(sceneId != UUID::null,
                             "Non-root scene has null parent scene id.");
             }

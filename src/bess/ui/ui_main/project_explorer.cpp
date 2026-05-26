@@ -74,17 +74,14 @@ namespace Bess::UI {
 
     bool ProjectExplorer::shouldDisplayEntity(const UUID &entityId) const {
 
-        const auto &driver =
-            Pages::MainPage::getInstance()->getState().getSceneDriver();
+        auto driver =
+            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
 
-        if (driver.getIsPaused()) {
+        if (driver->getIsPaused()) {
             return false;
         }
 
-        auto &sceneState = Pages::MainPage::getInstance()
-                               ->getState()
-                               .getSceneDriver()
-                               ->getState();
+        auto &sceneState = driver->getActiveScene()->getState();
         const auto comp = sceneState.getComponentByUuid(entityId);
         if (!comp) {
             return false;
@@ -140,9 +137,9 @@ namespace Bess::UI {
             ImGui::GetStyle().Colors[ImGuiCol_TableRowBgAlt];
         const auto &style = ImGui::GetStyle();
 
-        const auto &driver =
-            Pages::MainPage::getInstance()->getState().getSceneDriver();
-        auto &sceneState = driver.getActiveScene()->getState();
+        auto driver =
+            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        auto &sceneState = driver->getActiveScene()->getState();
 
         const auto size = sceneState.getRootComponents().size();
         const auto selSize = sceneState.getSelectedComponents().size();
@@ -337,8 +334,8 @@ namespace Bess::UI {
 
     void ProjectExplorer::groupSelectedNodes() {
         auto &mainPageState = Pages::MainPage::getInstance()->getState();
-        auto &scene = mainPageState.getSceneDriver();
-        auto &sceneState = scene->getState();
+        auto scene = GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        auto &sceneState = scene->getActiveScene()->getState();
 
         const auto &selComponents = sceneState.getSelectedComponents() |
                                     std::views::keys |
@@ -350,7 +347,7 @@ namespace Bess::UI {
         auto groupComp = Canvas::GroupSceneComponent::create("New Group");
 
         for (const auto &compId : selComponents) {
-            auto comp = scene->getState().getComponentByUuid(compId);
+            auto comp = scene->getActiveScene()->getState().getComponentByUuid(compId);
 
             if (!comp)
                 continue;
@@ -377,7 +374,7 @@ namespace Bess::UI {
             return;
 
         auto &mainPageState = Pages::MainPage::getInstance()->getState();
-        const auto &scene = mainPageState.getSceneDriver().getActiveScene();
+        const auto scene = GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>()->getActiveScene();
 
         auto &netIdToNameMap = mainPageState.getNetIdToNameMap();
         auto &netIdCompMap =
@@ -477,10 +474,9 @@ namespace Bess::UI {
         constexpr auto treeFlags =
             ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_DrawLinesFull;
 
-        auto &sceneState = Pages::MainPage::getInstance()
-                               ->getState()
-                               .getSceneDriver()
-                               ->getState();
+        auto sceneDriver =
+            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        auto &sceneState = sceneDriver->getActiveScene()->getState();
         const auto selSize = sceneState.getSelectedComponents().size();
 
         size_t count = 0;

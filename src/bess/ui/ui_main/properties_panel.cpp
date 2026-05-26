@@ -32,10 +32,8 @@ namespace Bess::UI {
     }
 
     void PropertiesPanel::onDraw() {
-        auto &sceneState = Pages::MainPage::getInstance()
-                               ->getState()
-                               .getSceneDriver()
-                               ->getState();
+        auto sceneDriver = GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        auto &sceneState = sceneDriver->getActiveScene()->getState();
         if (sceneState.getSelectedComponents().empty()) {
             ImGui::TextUnformatted("No component selected.");
             return;

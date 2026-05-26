@@ -66,8 +66,8 @@ namespace Bess::Pages {
 
         void initCmdSystem();
 
-        const SceneDriver &getSceneDriver() const;
-        SceneDriver &getSceneDriver();
+        std::shared_ptr<SceneDriver> getSceneDriver() const;
+        std::shared_ptr<SceneDriver> getSceneDriver();
         std::shared_ptr<ProjectFile> getCurrentProjectFile() const;
 
         PageActionFlags actionFlags = {};

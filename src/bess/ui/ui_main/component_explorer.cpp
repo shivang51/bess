@@ -2,6 +2,9 @@
 #include "application/pages/main_page/cmds/add_comp_cmd.h"
 #include "application/pages/main_page/main_page.h"
 #include "application/pages/main_page/scene_components/non_sim_scene_component.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
+#include "bess_core/scene_driver.h"
 #include "common/bess_uuid.h"
 #include "common/helpers.h"
 #include "component_catalog.h"
@@ -102,10 +105,9 @@ namespace Bess::UI {
 
                         if (Widgets::ButtonWithPopup(name, name + "OptionsMenu",
                                                      false)) {
-                            const auto &mainPageState =
-                                Pages::MainPage::getInstance()->getState();
+                            auto sceneDriver = GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
                             const auto &pos =
-                                mainPageState.getSceneDriver()->getCameraPos();
+                                sceneDriver->getActiveScene()->getCameraPos();
 
                             createComponent(comp, pos);
                             hide();
@@ -132,10 +134,9 @@ namespace Bess::UI {
                     continue;
 
                 if (Widgets::ButtonWithPopup(comp.second, "", false)) {
-                    const auto &mainPageState =
-                        Pages::MainPage::getInstance()->getState();
+                    auto sceneDriver = GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
                     const auto &pos =
-                        mainPageState.getSceneDriver()->getCameraPos();
+                        sceneDriver->getActiveScene()->getCameraPos();
                     createComponent(comp.first, pos);
                     hide();
                 }
@@ -156,9 +157,9 @@ namespace Bess::UI {
 
         auto &cmdSystem =
             Pages::MainPage::getInstance()->getState().getCommandSystem();
-        auto &scene =
-            Pages::MainPage::getInstance()->getState().getSceneDriver();
-        auto &sceneState = scene->getState();
+        auto scene =
+            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        auto &sceneState = scene->getActiveScene()->getState();
 
         auto pluginSvc = appCtx.getSubSystem<Bess::Svc::PluginService>();
 
@@ -171,7 +172,7 @@ namespace Bess::UI {
             simComp->getTransform().position.x = pos.x;
             simComp->getTransform().position.y = pos.y;
             simComp->setCompDef(def->clone());
-            scene->addComponent(simComp);
+            scene->getActiveScene()->addComponent(simComp);
 
             std::vector<std::shared_ptr<Canvas::SceneComponent>> children;
             for (const auto &childId : simComp->getInputSlots()) {

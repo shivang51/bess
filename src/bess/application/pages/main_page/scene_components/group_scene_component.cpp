@@ -2,6 +2,9 @@
 #include "common/bess_uuid.h"
 #include "pages/main_page/main_page.h"
 #include "scene/scene_state/scene_state.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
+#include "bess_core/scene_driver.h"
 
 namespace Bess::Canvas {
     GroupSceneComponent::GroupSceneComponent() = default;
@@ -54,8 +57,9 @@ namespace Bess::Canvas {
         if (!m_isSelected)
             return;
 
-        auto &mainPageState = Pages::MainPage::getInstance()->getState();
-        auto &sceneState = mainPageState.getSceneDriver()->getState();
+        auto sceneDriver =
+            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        auto &sceneState = sceneDriver->getActiveScene()->getState();
         for (const auto &childId : m_childComponents) {
             auto childComp = sceneState.getComponentByUuid(childId);
             if (childComp) {

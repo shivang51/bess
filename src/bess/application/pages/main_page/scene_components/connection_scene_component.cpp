@@ -8,6 +8,9 @@
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
+#include "bess_core/scene_driver.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
@@ -562,11 +565,11 @@ namespace Bess::Canvas {
         }
 
         // get its depents from ConnectionService
-        const auto &sceneDriver =
-            Pages::MainPage::getInstance()->getState().getSceneDriver();
+        auto sceneDriver =
+            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
         auto &connectionsSvc = Svc::SvcConnection::instance();
         const auto &connDependants = connectionsSvc.getDependants(
-            getUuid(), sceneDriver.getSceneWithId(state.getSceneId()).get());
+            getUuid(), sceneDriver->getSceneWithId(state.getSceneId()).get());
         dependants.insert(dependants.end(), connDependants.begin(),
                           connDependants.end());
 

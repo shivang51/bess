@@ -10,6 +10,9 @@
 #include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "scene/scene.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
+#include "bess_core/scene_driver.h"
 #include "simulation_engine.h"
 #include <functional>
 #include <memory>
@@ -95,10 +98,10 @@ namespace Bess::Cmd {
                 return nullptr;
             }
 
-            auto &sceneDriver =
-                Pages::MainPage::getInstance()->getState().getSceneDriver();
+            auto sceneDriver =
+                GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
             const auto parentScene =
-                sceneDriver.getSceneWithId(sceneState.getParentSceneId());
+                sceneDriver->getSceneWithId(sceneState.getParentSceneId());
             if (!parentScene) {
                 return nullptr;
             }
@@ -240,22 +243,22 @@ namespace Bess::Cmd {
             BESS_ASSERT(scene,
                         "[ModuleCmd] Scene must be valid before registration");
 
-            auto &sceneDriver =
-                Pages::MainPage::getInstance()->getState().getSceneDriver();
-            if (!sceneDriver.getSceneWithId(scene->getSceneId())) {
-                sceneDriver.addScene(scene);
+            auto sceneDriver =
+                GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+            if (!sceneDriver->getSceneWithId(scene->getSceneId())) {
+                sceneDriver->addScene(scene);
             }
 
             if (scene->getState().getParentSceneId() == UUID::null) {
                 scene->getState().setParentSceneId(
-                    sceneDriver.getActiveScene()->getSceneId());
+                    sceneDriver->getActiveScene()->getSceneId());
             }
         }
 
         inline void unregisterScene(const UUID &sceneId) {
-            auto &sceneDriver =
-                Pages::MainPage::getInstance()->getState().getSceneDriver();
-            sceneDriver.removeScene(sceneId);
+            auto sceneDriver =
+                GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+            sceneDriver->removeScene(sceneId);
         }
     } // namespace Detail
 
@@ -381,9 +384,9 @@ namespace Bess::Cmd {
             createdComponents.erase(createdComponents.begin());
             m_moduleChildComponents = std::move(createdComponents);
 
-            auto &sceneDriver = mainPageState.getSceneDriver();
+            auto sceneDriver = GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
             m_moduleScene =
-                sceneDriver.getSceneWithId(m_moduleComponent->getSceneId());
+                sceneDriver->getSceneWithId(m_moduleComponent->getSceneId());
             BESS_ASSERT(
                 m_moduleScene,
                 "[ModuleCmd] Failed to resolve newly created module scene");
@@ -495,10 +498,10 @@ namespace Bess::Cmd {
                 return false;
             }
 
-            auto &sceneDriver =
-                Pages::MainPage::getInstance()->getState().getSceneDriver();
+            auto sceneDriver =
+                GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
             m_moduleScene =
-                sceneDriver.getSceneWithId(m_moduleComponent->getSceneId());
+                sceneDriver->getSceneWithId(m_moduleComponent->getSceneId());
             BESS_ASSERT(m_moduleScene,
                         "[ModuleCmd] Module scene not found for deletion");
 

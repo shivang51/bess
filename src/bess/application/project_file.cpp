@@ -101,13 +101,13 @@ namespace Bess {
         // make sure to decode scene after sim engine,
         // as scene components may depend on sim engine components
         if (data.isMember("scene_data")) {
-            auto &sceneDriver =
-                Pages::MainPage::getInstance()->getState().getSceneDriver();
+            auto sceneDriver =
+                GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
 
-            sceneDriver.removeScenes();
+            sceneDriver->removeScenes();
 
             BESS_DEBUG("[Decode] Cleared Scenes. count = {}",
-                       sceneDriver.getSceneCount());
+                       sceneDriver->getSceneCount());
 
             auto &appCtx = Bess::GAppContext::getInstance();
             auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
@@ -117,7 +117,7 @@ namespace Bess {
             for (auto &sceneJson : data["scene_data"]["scenes"]) {
                 auto scene = std::make_shared<Canvas::Scene>();
                 m_sceneSerializer.deserialize(sceneJson, scene);
-                sceneDriver.addScene(scene);
+                sceneDriver->addScene(scene);
 
                 auto &sceneState = scene->getState();
 
@@ -132,9 +132,9 @@ namespace Bess {
 
             // setting root scene id
             JsonConvert::fromJsonValue(data["scene_data"]["root_scene_id"],
-                                       sceneDriver.getRootSceneId());
+                                       sceneDriver->getRootSceneId());
 
-            sceneDriver.makeRootSceneActive();
+            sceneDriver->makeRootSceneActive();
             simEngine.setSimulationState(SimEngine::SimulationState::running);
         }
     }
@@ -172,13 +172,13 @@ namespace Bess {
 
         data["scene_data"] = Json::objectValue;
 
-        const auto &sceneDriver =
-            Pages::MainPage::getInstance()->getState().getSceneDriver();
-        JsonConvert::toJsonValue(sceneDriver.getRootSceneId(),
+        auto sceneDriver =
+            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        JsonConvert::toJsonValue(sceneDriver->getRootSceneId(),
                                  data["scene_data"]["root_scene_id"]);
 
         data["scene_data"]["scenes"] = Json::arrayValue;
-        for (const auto &scene : sceneDriver.getScenes()) {
+        for (const auto &scene : sceneDriver->getScenes()) {
             Json::Value json;
             JsonConvert::toJsonValue(scene->getState(), json["scene_state"]);
             data["scene_data"]["scenes"].append(json);

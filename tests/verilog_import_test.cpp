@@ -598,10 +598,10 @@ endmodule
             .topModuleName = std::string("alu"),
         });
 
-    auto scene = Bess::Pages::MainPage::getInstance()
-                     ->getState()
-                     .getSceneDriver()
-                     .getActiveScene();
+    auto scene = Bess::GAppContext::getInstance()
+                     .getSubSystem<Bess::ProjectContext>()
+                     ->getSubSystem<Bess::SceneDriver>()
+                     ->getActiveScene();
     ASSERT_NE(scene, nullptr);
     scene->clear();
     Bess::Pages::populateSceneFromVerilogImportResult(result, *engine, *scene);
@@ -686,10 +686,10 @@ endmodule :half_add
             .topModuleName = std::string("full_add"),
         });
 
-    auto scene = Bess::Pages::MainPage::getInstance()
-                     ->getState()
-                     .getSceneDriver()
-                     .getActiveScene();
+    auto scene = Bess::GAppContext::getInstance()
+                     .getSubSystem<Bess::ProjectContext>()
+                     ->getSubSystem<Bess::SceneDriver>()
+                     ->getActiveScene();
     ASSERT_NE(scene, nullptr);
     scene->clear();
     Bess::Pages::populateSceneFromVerilogImportResult(result, *engine, *scene);
@@ -756,10 +756,10 @@ endmodule :half_add
     EXPECT_LE(maxInputX, topModuleX);
     EXPECT_LT(topModuleX, minOutputX);
 
-    auto &sceneDriver =
-        Bess::Pages::MainPage::getInstance()->getState().getSceneDriver();
+    auto sceneDriver =
+        Bess::GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<Bess::SceneDriver>();
     const auto topModuleScene =
-        sceneDriver.getSceneWithId(topModule->getSceneId());
+        sceneDriver->getSceneWithId(topModule->getSceneId());
     ASSERT_NE(topModuleScene, nullptr);
 
     std::shared_ptr<Bess::Canvas::SimulationSceneComponent> moduleInput;
@@ -859,9 +859,9 @@ endmodule :half_add
             .topModuleName = std::string("full_add"),
         });
 
-    auto &sceneDriver =
-        Bess::Pages::MainPage::getInstance()->getState().getSceneDriver();
-    auto rootScene = sceneDriver.getActiveScene();
+    auto sceneDriver =
+        Bess::GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<Bess::SceneDriver>();
+    auto rootScene = sceneDriver->getActiveScene();
     ASSERT_NE(rootScene, nullptr);
     rootScene->clear();
     Bess::Pages::populateSceneFromVerilogImportResult(result, *engine,
@@ -894,7 +894,7 @@ endmodule :half_add
     EXPECT_TRUE(foundTopAsRootComponent);
 
     const auto topModuleScene =
-        sceneDriver.getSceneWithId(topModule->getSceneId());
+        sceneDriver->getSceneWithId(topModule->getSceneId());
     ASSERT_NE(topModuleScene, nullptr);
     EXPECT_FALSE(topModuleScene->getState().getIsRootScene());
     EXPECT_EQ(topModuleScene->getState().getParentSceneId(),
@@ -930,7 +930,7 @@ endmodule :half_add
         EXPECT_EQ(childModule->getParentComponent(), UUID::null);
 
         const auto childModuleScene =
-            sceneDriver.getSceneWithId(childModule->getSceneId());
+            sceneDriver->getSceneWithId(childModule->getSceneId());
         ASSERT_NE(childModuleScene, nullptr);
         EXPECT_FALSE(childModuleScene->getState().getIsRootScene());
         EXPECT_EQ(childModuleScene->getState().getParentSceneId(),
@@ -973,9 +973,9 @@ endmodule :half_add
             .topModuleName = std::string("full_add"),
         });
 
-    auto &sceneDriver =
-        Bess::Pages::MainPage::getInstance()->getState().getSceneDriver();
-    auto rootScene = sceneDriver.getActiveScene();
+    auto sceneDriver =
+        Bess::GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<Bess::SceneDriver>();
+    auto rootScene = sceneDriver->getActiveScene();
     ASSERT_NE(rootScene, nullptr);
     rootScene->clear();
     Bess::Pages::populateSceneFromVerilogImportResult(result, *engine,
@@ -1028,7 +1028,7 @@ endmodule :half_add
     const auto topWrapperId = topModule->getSimEngineId();
 
     const auto topModuleScene =
-        sceneDriver.getSceneWithId(topModule->getSceneId());
+        sceneDriver->getSceneWithId(topModule->getSceneId());
     ASSERT_NE(topModuleScene, nullptr);
     auto &topModuleState = topModuleScene->getState();
 
@@ -1352,10 +1352,10 @@ endmodule
             .topModuleName = topModuleName,
         });
 
-    auto scene = Bess::Pages::MainPage::getInstance()
-                     ->getState()
-                     .getSceneDriver()
-                     .getActiveScene();
+    auto scene = Bess::GAppContext::getInstance()
+                     .getSubSystem<Bess::ProjectContext>()
+                     ->getSubSystem<Bess::SceneDriver>()
+                     ->getActiveScene();
     ASSERT_NE(scene, nullptr);
     scene->clear();
     Bess::Pages::populateSceneFromVerilogImportResult(result, *engine, *scene);
@@ -1434,9 +1434,9 @@ endmodule
     ASSERT_TRUE(result.topOutputComponents.contains("address"));
     const auto addressOut = result.topOutputComponents.at("address");
 
-    auto &sceneDriver =
-        Bess::Pages::MainPage::getInstance()->getState().getSceneDriver();
-    auto rootScene = sceneDriver.getActiveScene();
+    auto sceneDriver =
+        Bess::GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<Bess::SceneDriver>();
+    auto rootScene = sceneDriver->getActiveScene();
     ASSERT_NE(rootScene, nullptr);
     rootScene->clear();
     Bess::Pages::populateSceneFromVerilogImportResult(result, *engine,

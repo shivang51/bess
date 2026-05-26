@@ -335,12 +335,12 @@ namespace Bess::Canvas {
         auto endSlot =
             e.sceneState->getComponentByUuid<SlotSceneComponent>(m_uuid);
 
-        const auto &sceneDriver =
-            Pages::MainPage::getInstance()->getState().getSceneDriver();
+        auto sceneDriver =
+            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
         const auto [canConnect, reason] =
             Svc::SvcConnection::instance().canConnect(
                 connStartSlot, m_uuid,
-                sceneDriver.getSceneWithId(e.sceneState->getSceneId()).get());
+                sceneDriver->getSceneWithId(e.sceneState->getSceneId()).get());
 
         if (!canConnect) {
             BESS_WARN("Cannot create connection between component {} and "
@@ -354,7 +354,7 @@ namespace Bess::Canvas {
             jointComp ? jointComp->getUuid() : startSlot->getUuid();
         auto conn = Svc::SvcConnection::instance().createConnection(
             starSlotUuid, m_uuid,
-            sceneDriver.getSceneWithId(e.sceneState->getSceneId()).get());
+            sceneDriver->getSceneWithId(e.sceneState->getSceneId()).get());
 
         if (!conn) {
             BESS_ERROR("Failed to create connection between component {} and "

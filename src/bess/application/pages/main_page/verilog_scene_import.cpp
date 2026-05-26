@@ -10,6 +10,9 @@
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "pages/main_page/services/hierarchical_scene_layout.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
+#include "bess_core/scene_driver.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
 #include <algorithm>
@@ -606,10 +609,10 @@ namespace Bess::Pages {
                 moduleSimDef->setOutputSlotsInfo(moduleOutputSlots);
             }
 
-            auto &sceneDriver =
-                MainPage::getInstance()->getState().getSceneDriver();
+            auto sceneDriver =
+                GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
             const auto moduleScene =
-                sceneDriver.getSceneWithId(moduleComp->getSceneId());
+                sceneDriver->getSceneWithId(moduleComp->getSceneId());
             if (!moduleScene) {
                 return;
             }
@@ -904,10 +907,10 @@ namespace Bess::Pages {
             const std::unordered_map<std::string,
                                      std::shared_ptr<ModuleSceneComponent>>
                 &moduleByPath) {
-            auto &sceneDriver =
-                MainPage::getInstance()->getState().getSceneDriver();
+            auto sceneDriver =
+                GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
             const auto moduleScene =
-                sceneDriver.getSceneWithId(moduleComp->getSceneId());
+                sceneDriver->getSceneWithId(moduleComp->getSceneId());
             if (!moduleScene) {
                 return;
             }
@@ -1043,8 +1046,8 @@ namespace Bess::Pages {
                                std::shared_ptr<ModuleSceneComponent>>
                 moduleByPath;
             std::unordered_map<std::string, UUID> ownerSceneIdByPath;
-            auto &sceneDriver =
-                MainPage::getInstance()->getState().getSceneDriver();
+            auto sceneDriver =
+                GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
 
             for (const auto &[path, instance] : modulePaths) {
                 ImportedModuleSceneComponent created =
@@ -1057,7 +1060,7 @@ namespace Bess::Pages {
                     const auto parentModule =
                         moduleByPath.at(instance.parentInstancePath);
                     const auto parentScene =
-                        sceneDriver.getSceneWithId(parentModule->getSceneId());
+                        sceneDriver->getSceneWithId(parentModule->getSceneId());
                     if (parentScene) {
                         ownerSceneState = &parentScene->getState();
                     }
@@ -1065,7 +1068,7 @@ namespace Bess::Pages {
 
                 addImportedModuleSceneComponent(*ownerSceneState, created);
                 const auto moduleScene =
-                    sceneDriver.getSceneWithId(wrapper->getSceneId());
+                    sceneDriver->getSceneWithId(wrapper->getSceneId());
                 if (moduleScene) {
                     moduleScene->getState().setParentSceneId(
                         ownerSceneState->getSceneId());
@@ -1084,7 +1087,7 @@ namespace Bess::Pages {
                     ownerSceneIdByPath.contains(path),
                     "Imported module wrapper owner scene was not recorded");
                 auto ownerScene =
-                    sceneDriver.getSceneWithId(ownerSceneIdByPath.at(path));
+                    sceneDriver->getSceneWithId(ownerSceneIdByPath.at(path));
                 BESS_ASSERT(
                     ownerScene,
                     "Imported module wrapper owner scene was not found");

@@ -1,5 +1,8 @@
 #include "ui/ui_main/graph_view_window.h"
 
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
+#include "bess_core/scene_driver.h"
 #include "common/bess_uuid.h"
 #include "common/helpers.h"
 #include "implot.h"
@@ -20,10 +23,10 @@ namespace Bess::UI {
 
     LabeledDigitalSignal fetchSignal(const std::string &name,
                                      const UUID &probeId) {
-        const auto &scene = Pages::MainPage::getInstance()
-                                ->getState()
-                                .getSceneDriver()
-                                .getActiveScene();
+        const auto scene = GAppContext::getInstance()
+                                .getSubSystem<Bess::ProjectContext>()
+                                ->getSubSystem<SceneDriver>()
+                                ->getActiveScene();
         const auto &sceneState = scene->getState();
         const auto &probeComp =
             sceneState.getComponentByUuid<Canvas::SlotProbeSceneComponent>(
@@ -44,7 +47,8 @@ namespace Bess::UI {
     void GraphViewWindow::onDraw() {
         const auto &mainPage = Pages::MainPage::getInstance();
         const auto &mainPageState = mainPage->getState();
-        const auto &sceneState = mainPageState.getSceneDriver()->getState();
+        auto sceneDriver = GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        const auto &sceneState = sceneDriver->getActiveScene()->getState();
 
         if (ImGui::Button("Add Graph")) {
             s_data.graphs[s_data.offset].first = "";

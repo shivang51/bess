@@ -1,6 +1,7 @@
 #include "debug_panel.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "bess_core/scene_driver.h"
 #include "common/bess_uuid.h"
 #include "dig_sim_driver.h"
 #include "icons/CodIcons.h"
@@ -25,22 +26,22 @@ namespace Bess::UI {
     void DebugPanel::onDraw() {
         auto &mainPageState = Pages::MainPage::getInstance()->getState();
 
-        auto &sceneDriver = mainPageState.getSceneDriver();
-        const auto &sceneState = sceneDriver->getState();
+        auto sceneDriver = GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        const auto &sceneState = sceneDriver->getActiveScene()->getState();
 
-        if (!sceneDriver.getIsPaused()) {
-            const auto &hoverId = sceneDriver->getHoveredEntity();
+        if (!sceneDriver->getIsPaused()) {
+            const auto &hoverId = sceneDriver->getActiveScene()->getHoveredEntity();
             ImGui::Text("Hovered  Runtime Id: %u | Info: %u", hoverId.runtimeId,
                         hoverId.info);
         }
 
         if (ImGui::BeginTabBar("MyTabBar")) {
             if (ImGui::BeginTabItem("Scene Controls")) {
-                if (sceneDriver.getSceneCount() > 1) {
+                if (sceneDriver->getSceneCount() > 1) {
 
                     ImGui::AlignTextToFramePadding();
                     ImGui::Text("Active Scene: %lu",
-                                sceneDriver.getActiveSceneIdx());
+                                sceneDriver->getActiveSceneIdx());
 
                     ImGui::SameLine();
                     ImGui::AlignTextToFramePadding();
@@ -49,13 +50,13 @@ namespace Bess::UI {
 
                     ImGui::AlignTextToFramePadding();
                     ImGui::Text("Scene Count: %lu",
-                                sceneDriver.getSceneCount());
+                                sceneDriver->getSceneCount());
 
                     ImGui::SameLine();
                     if (ImGui::Button("Prev-Scene")) {
-                        size_t activeScene = sceneDriver.getActiveSceneIdx();
+                        size_t activeScene = sceneDriver->getActiveSceneIdx();
                         if (activeScene > 0) {
-                            sceneDriver.setActiveScene(activeScene - 1);
+                            sceneDriver->setActiveScene(activeScene - 1);
                         }
                     }
 
@@ -63,9 +64,9 @@ namespace Bess::UI {
 
                     ImGui::AlignTextToFramePadding();
                     if (ImGui::Button("Next-Scene")) {
-                        size_t activeScene = sceneDriver.getActiveSceneIdx();
-                        if (activeScene < sceneDriver.getSceneCount() - 1) {
-                            sceneDriver.setActiveScene(activeScene + 1);
+                        size_t activeScene = sceneDriver->getActiveSceneIdx();
+                        if (activeScene < sceneDriver->getSceneCount() - 1) {
+                            sceneDriver->setActiveScene(activeScene + 1);
                         }
                     }
                 } else {
@@ -186,8 +187,8 @@ namespace Bess::UI {
 
     void DebugPanel::drawDependencyGraph(const UUID &compId) {
         const auto &mainPageState = Pages::MainPage::getInstance()->getState();
-        const auto &sceneDriver = mainPageState.getSceneDriver();
-        const auto &sceneState = sceneDriver->getState();
+        auto sceneDriver = GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        const auto &sceneState = sceneDriver->getActiveScene()->getState();
 
         const auto &comp = sceneState.getComponentByUuid(compId);
         if (!comp) {
