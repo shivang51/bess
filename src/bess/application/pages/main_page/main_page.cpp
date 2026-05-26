@@ -56,10 +56,6 @@ namespace Bess::Pages {
         }
         m_parentWindow = parentWindow;
 
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        projectCtx->getSimEngine();
-
         // TODO(shivang): Think about a better way and scalabilty for plugins
         Canvas::NonSimSceneComponent::registerComponent<Canvas::TextComponent>(
             "Text Component");
@@ -80,9 +76,6 @@ namespace Bess::Pages {
         if (!s_headless) {
             UI::UIMain::init();
         }
-
-        // // creates default scenes in scene driver as well
-        // m_state.createNewProject(false);
 
         m_state.initCmdSystem();
 

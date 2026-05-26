@@ -483,7 +483,7 @@ namespace Bess::Svc {
 
         auto &slots =
             isInput ? parent->getInputSlots() : parent->getOutputSlots();
-        const auto itr = std::find(slots.begin(), slots.end(), slot->getUuid());
+        const auto itr = std::ranges::find(slots, slot->getUuid());
         const size_t insertedIndex =
             itr == slots.end()
                 ? slots.size() - 1

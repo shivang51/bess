@@ -31,9 +31,9 @@ namespace Bess::Cmd {
             m_name = "DeleteComponentCmd";
         }
 
-        bool execute(
-            std::shared_ptr<Canvas::Scene> &scene,
-            std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
+        bool execute(const std::shared_ptr<Canvas::Scene> &scene,
+                     const std::shared_ptr<SimEngine::SimulationEngine>
+                         &simEngine) override {
             m_deletedComponents.clear();
             auto &sceneState = scene->getState();
 
@@ -175,9 +175,9 @@ namespace Bess::Cmd {
             return !m_deletedComponents.empty();
         }
 
-        void
-        undo(std::shared_ptr<Canvas::Scene> &scene,
-             std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
+        void undo(const std::shared_ptr<Canvas::Scene> &scene,
+                  const std::shared_ptr<SimEngine::SimulationEngine> &simEngine)
+            override {
             auto &sceneState = scene->getState();
 
             auto &connectionsSvc = Svc::SvcConnection::instance();
@@ -240,9 +240,9 @@ namespace Bess::Cmd {
             }
         }
 
-        void
-        redo(std::shared_ptr<Canvas::Scene> &scene,
-             std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
+        void redo(const std::shared_ptr<Canvas::Scene> &scene,
+                  const std::shared_ptr<SimEngine::SimulationEngine> &simEngine)
+            override {
             auto &connectionsSvc = Svc::SvcConnection::instance();
 
             for (const auto &comp : m_deletedComponents) {

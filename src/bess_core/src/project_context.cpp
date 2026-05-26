@@ -4,6 +4,7 @@
 #include "common/logger.h"
 #include "project_file.h"
 #include "simulation_engine.h"
+#include "window.h"
 
 namespace Bess {
     void ProjectContext::onInit() {
@@ -12,6 +13,8 @@ namespace Bess {
 
         ISubSysContainer::init();
     }
+
+    void ProjectContext::onPostInit() {}
 
     void ProjectContext::onDestroy() { ISubSysContainer::destroy(); }
 
@@ -41,6 +44,10 @@ namespace Bess {
         simEngine->clear();
 
         m_projectFile = std::make_shared<ProjectFile>(path);
+
+        auto &appCtx = GAppContext::getInstance();
+        const auto &win = appCtx.getSubSystem<Bess::Window>();
+        win->setName(m_projectFile->getName() + " - BESS");
     }
 
     void ProjectContext::saveProject() const {
@@ -63,6 +70,12 @@ namespace Bess {
         simEngine->clear();
 
         m_projectFile = std::make_shared<ProjectFile>();
+        auto &appCtx = GAppContext::getInstance();
+        const auto &win = appCtx.getSubSystem<Bess::Window>();
+        win->setName(m_projectFile->getName() + " - BESS");
+        win->setName("Untitled Project - BESS");
+
+        BESS_DEBUG("Created new project");
     }
 
 } // namespace Bess

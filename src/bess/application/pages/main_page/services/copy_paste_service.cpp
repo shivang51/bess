@@ -220,14 +220,16 @@ namespace Bess::Svc::CopyPaste {
         if (recordHistory) {
             auto &cmdSystem =
                 Pages::MainPage::getInstance()->getState().getCommandSystem();
-            const auto currentCmdSystemScene = cmdSystem.getScene();
-            cmdSystem.setScene(targetScene.get());
-            cmdSystem.execute(std::move(macroCmd));
-            cmdSystem.setScene(currentCmdSystemScene);
+            // const auto currentCmdSystemScene = cmdSystem.getScene();
+            // cmdSystem.setScene(targetScene.get());
+            // cmdSystem.execute(std::move(macroCmd));
+            // cmdSystem.setScene(currentCmdSystemScene);
         } else {
             auto &appCtx = Bess::GAppContext::getInstance();
             auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-            macroCmd->execute(targetScene, &projectCtx->getSimEngine());
+            macroCmd->execute(
+                targetScene,
+                projectCtx->getSubSystem<SimEngine::SimulationEngine>());
         }
 
         return ogToClonedIdMap;

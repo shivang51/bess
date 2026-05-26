@@ -54,6 +54,13 @@ namespace Bess {
             UI::UIMain::getScenePanels().front()->setAttachedScene(
                 m_activeScene);
         }
+#ifdef DEBUG
+        else {
+            BESS_WARN(
+                "[SceneDriver] No scene panel available to attach the active "
+                "scene to.");
+        }
+#endif
         BESS_INFO("[SceneDriver] Active scene set to id {}.", (uint64_t)id);
         return m_activeScene;
     }
@@ -251,6 +258,7 @@ namespace Bess {
         removeScenes();
         auto scene = createNewScene();
         setRootSceneId(scene->getSceneId());
+        setActiveScene(scene->getSceneId());
     }
 
     std::shared_ptr<Canvas::Scene>

@@ -43,16 +43,16 @@ namespace Bess::Cmd {
         }
 
         bool execute(
-            std::shared_ptr<Canvas::Scene> &scene,
-            std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
+            const std::shared_ptr<Canvas::Scene> &scene,
+            const std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
             m_oldValue = *m_orignalLoc;
             *m_orignalLoc = m_newValue;
             return true;
         }
 
         void
-        undo(std::shared_ptr<Canvas::Scene> &scene,
-             std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
+        undo(const std::shared_ptr<Canvas::Scene> &scene,
+             const std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
             *m_orignalLoc = m_oldValue;
             if (m_onUndoRedo) {
                 m_onUndoRedo(true, m_oldValue);
@@ -60,8 +60,8 @@ namespace Bess::Cmd {
         }
 
         void
-        redo(std::shared_ptr<Canvas::Scene> &scene,
-             std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
+        redo(const std::shared_ptr<Canvas::Scene> &scene,
+             const std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
             *m_orignalLoc = m_newValue;
             if (m_onUndoRedo) {
                 m_onUndoRedo(false, m_newValue);

@@ -27,17 +27,17 @@ namespace Bess::Cmd {
          * @return A boolean indicating whether the command executed
          * successfully.
          */
-        virtual bool
-        execute(std::shared_ptr<Canvas::Scene> &scene,
-                std::shared_ptr<SimEngine::SimulationEngine> &simEngine) = 0;
+        virtual bool execute(
+            const std::shared_ptr<Canvas::Scene> &scene,
+            const std::shared_ptr<SimEngine::SimulationEngine> &simEngine) = 0;
 
         virtual void
-        undo(std::shared_ptr<Canvas::Scene> &scene,
-             std::shared_ptr<SimEngine::SimulationEngine> &simEngine) = 0;
+        undo(const std::shared_ptr<Canvas::Scene> &scene,
+             const std::shared_ptr<SimEngine::SimulationEngine> &simEngine) = 0;
 
         virtual void
-        redo(std::shared_ptr<Canvas::Scene> &scene,
-             std::shared_ptr<SimEngine::SimulationEngine> &simEngine) = 0;
+        redo(const std::shared_ptr<Canvas::Scene> &scene,
+             const std::shared_ptr<SimEngine::SimulationEngine> &simEngine) = 0;
 
         virtual bool canMergeWith(const Command *other) const;
 

@@ -277,8 +277,8 @@ namespace Bess::Cmd {
         }
 
         bool execute(
-            std::shared_ptr<Canvas::Scene> &scene,
-            std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
+            const std::shared_ptr<Canvas::Scene> &scene,
+            const std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
             (void)scene;
             if (!initialize(simEngine)) {
                 return false;
@@ -303,8 +303,8 @@ namespace Bess::Cmd {
         }
 
         void
-        undo(std::shared_ptr<Canvas::Scene> &scene,
-             std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
+        undo(const std::shared_ptr<Canvas::Scene> &scene,
+             const std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
             (void)scene;
             BESS_ASSERT(
                 m_executed,
@@ -327,8 +327,8 @@ namespace Bess::Cmd {
         }
 
         void
-        redo(std::shared_ptr<Canvas::Scene> &scene,
-             std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
+        redo(const std::shared_ptr<Canvas::Scene> &scene,
+             const std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
             (void)scene;
             BESS_ASSERT(
                 m_executed,
@@ -452,8 +452,8 @@ namespace Bess::Cmd {
         }
 
         bool execute(
-            std::shared_ptr<Canvas::Scene> &scene,
-            std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
+            const std::shared_ptr<Canvas::Scene> &scene,
+            const std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
             (void)scene;
             if (!initialize()) {
                 return false;
@@ -469,8 +469,8 @@ namespace Bess::Cmd {
         }
 
         void
-        undo(std::shared_ptr<Canvas::Scene> &scene,
-             std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
+        undo(const std::shared_ptr<Canvas::Scene> &scene,
+             const std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
             (void)scene;
             BESS_ASSERT(m_executed, "[ModuleCmd] Cannot undo a module delete "
                                     "command that never executed");
@@ -482,8 +482,8 @@ namespace Bess::Cmd {
         }
 
         void
-        redo(std::shared_ptr<Canvas::Scene> &scene,
-             std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
+        redo(const std::shared_ptr<Canvas::Scene> &scene,
+             const std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
             (void)scene;
             BESS_ASSERT(m_executed, "[ModuleCmd] Cannot redo a module delete "
                                     "command that never executed");

@@ -1,4 +1,6 @@
 #include "slot_scene_component.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "conn_joint_scene_component.h"
 #include "connection_scene_component.h"
 #include "dig_sim_driver.h"
@@ -12,8 +14,6 @@
 #include "scene/scene_state/scene_state.h"
 #include "settings/viewport_theme.h"
 #include "sim_scene_component.h"
-#include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
 #include "simulation_engine.h"
 #include "ui/ui.h"
 #include <format>
@@ -335,12 +335,13 @@ namespace Bess::Canvas {
         auto endSlot =
             e.sceneState->getComponentByUuid<SlotSceneComponent>(m_uuid);
 
-        auto sceneDriver =
-            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        auto sceneDriver = GAppContext::getInstance()
+                               .getSubSystem<Bess::ProjectContext>()
+                               ->getSubSystem<SceneDriver>();
         const auto [canConnect, reason] =
             Svc::SvcConnection::instance().canConnect(
                 connStartSlot, m_uuid,
-                sceneDriver->getSceneWithId(e.sceneState->getSceneId()).get());
+                sceneDriver->getSceneWithId(e.sceneState->getSceneId()));
 
         if (!canConnect) {
             BESS_WARN("Cannot create connection between component {} and "
@@ -354,7 +355,7 @@ namespace Bess::Canvas {
             jointComp ? jointComp->getUuid() : startSlot->getUuid();
         auto conn = Svc::SvcConnection::instance().createConnection(
             starSlotUuid, m_uuid,
-            sceneDriver->getSceneWithId(e.sceneState->getSceneId()).get());
+            sceneDriver->getSceneWithId(e.sceneState->getSceneId()));
 
         if (!conn) {
             BESS_ERROR("Failed to create connection between component {} and "

@@ -19,6 +19,8 @@ namespace Bess {
 
         void onInit() override;
 
+        void onPostInit() override;
+
         void onDestroy() override;
 
         void loadProject(const std::string &path);

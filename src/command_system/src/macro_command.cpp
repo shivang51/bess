@@ -4,8 +4,8 @@
 
 namespace Bess::Cmd {
     bool MacroCommand::execute(
-        std::shared_ptr<Canvas::Scene> &scene,
-        std::shared_ptr<SimEngine::SimulationEngine> &simEngine) {
+        const std::shared_ptr<Canvas::Scene> &scene,
+        const std::shared_ptr<SimEngine::SimulationEngine> &simEngine) {
         for (const auto &cmd : m_commands) {
             if (!cmd->execute(scene, simEngine)) {
                 return false;
@@ -15,16 +15,16 @@ namespace Bess::Cmd {
     }
 
     void MacroCommand::undo(
-        std::shared_ptr<Canvas::Scene> &scene,
-        std::shared_ptr<SimEngine::SimulationEngine> &simEngine) {
+        const std::shared_ptr<Canvas::Scene> &scene,
+        const std::shared_ptr<SimEngine::SimulationEngine> &simEngine) {
         for (auto &m_command : std::ranges::reverse_view(m_commands)) {
             m_command->undo(scene, simEngine);
         }
     }
 
     void MacroCommand::redo(
-        std::shared_ptr<Canvas::Scene> &scene,
-        std::shared_ptr<SimEngine::SimulationEngine> &simEngine) {
+        const std::shared_ptr<Canvas::Scene> &scene,
+        const std::shared_ptr<SimEngine::SimulationEngine> &simEngine) {
         for (const auto &cmd : m_commands) {
             cmd->redo(scene, simEngine);
         }

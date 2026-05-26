@@ -1,8 +1,8 @@
 #include "scene_viewport_panel.h"
-#include "common/bess_uuid.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "bess_core/scene_driver.h"
+#include "common/bess_uuid.h"
 #include "common/helpers.h"
 #include "common/logger.h"
 #include "icons/CodIcons.h"
@@ -37,6 +37,8 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::update(TimeMs ts) {
+        BESS_ASSERT(m_attachedScene,
+                    "SceneViewportPanel must have an attached scene to update");
         if (m_isResized) {
             m_viewport->resize(vec2Extent2D(m_viewportSize));
             m_attachedScene->getCamera()->resize(m_viewportSize.x,
@@ -44,8 +46,9 @@ namespace Bess::UI {
             m_isResized = false;
         }
 
-        auto sceneDriver =
-            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        auto sceneDriver = GAppContext::getInstance()
+                               .getSubSystem<Bess::ProjectContext>()
+                               ->getSubSystem<SceneDriver>();
 
         if (!sceneDriver->getIsPaused()) {
             m_attachedScene->update(ts, m_isHovered);
@@ -70,8 +73,9 @@ namespace Bess::UI {
 
     void SceneViewportPanel::onBeforeDraw() {
 
-        auto sceneDriver =
-            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        auto sceneDriver = GAppContext::getInstance()
+                               .getSubSystem<Bess::ProjectContext>()
+                               ->getSubSystem<SceneDriver>();
         if (!sceneDriver->getIsPaused()) {
             renderAttachedScene();
         }
@@ -81,8 +85,9 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::onDraw() {
-        auto sceneDriver =
-            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        auto sceneDriver = GAppContext::getInstance()
+                               .getSubSystem<Bess::ProjectContext>()
+                               ->getSubSystem<SceneDriver>();
 
         const auto scene = sceneDriver->getActiveScene();
 
@@ -124,8 +129,9 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::onAfterDraw() {
-        auto sceneDriver =
-            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        auto sceneDriver = GAppContext::getInstance()
+                               .getSubSystem<Bess::ProjectContext>()
+                               ->getSubSystem<SceneDriver>();
 
         if (sceneDriver->getIsPaused()) {
             return;
@@ -166,8 +172,9 @@ namespace Bess::UI {
         ImGui::SameLine();
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
 
-        auto sceneDriver =
-            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        auto sceneDriver = GAppContext::getInstance()
+                               .getSubSystem<Bess::ProjectContext>()
+                               ->getSubSystem<SceneDriver>();
 
         const auto rootScene =
             sceneDriver->getSceneWithId(sceneDriver->getRootSceneId());
@@ -238,9 +245,11 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::drawBottomControls() const {
-        auto sceneDriver =
-            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
-        const auto &mousePos = sceneDriver->getActiveScene()->getSceneMousePos();
+        auto sceneDriver = GAppContext::getInstance()
+                               .getSubSystem<Bess::ProjectContext>()
+                               ->getSubSystem<SceneDriver>();
+        const auto &mousePos =
+            sceneDriver->getActiveScene()->getSceneMousePos();
         const auto posLabel =
             std::format("Pos: ({:.2f}, {:.2f})", mousePos.x, mousePos.y);
 
@@ -345,11 +354,17 @@ namespace Bess::UI {
         // we do this, do not remove this
         if (m_attachedScene->getState().getIsRootScene()) {
             m_rootToSceneStatePtrs.push_back(&m_attachedScene->getState());
+            BESS_DEBUG(
+                "[SceneVewportPanel] Scene {} attached to viewport panel '{}'",
+                (uint64_t)m_attachedScene->getState().getSceneId(),
+                m_viewportName);
             return;
         }
 
         const auto &mainPageState = Pages::MainPage::getInstance()->getState();
-        auto sceneDriver = GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+        auto sceneDriver = GAppContext::getInstance()
+                               .getSubSystem<Bess::ProjectContext>()
+                               ->getSubSystem<SceneDriver>();
 
         UUID sceneId = m_attachedScene->getSceneId();
 

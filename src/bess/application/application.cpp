@@ -93,6 +93,8 @@ namespace Bess {
 
         if (!path.empty()) {
             projCtx->loadProject(path);
+        } else {
+            projCtx->createNewProject();
         }
 
         BESS_INFO("[Application] Application initialized successfully\n");
