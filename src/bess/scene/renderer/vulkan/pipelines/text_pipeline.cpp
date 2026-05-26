@@ -140,8 +140,9 @@ namespace Bess::Vulkan::Pipelines {
 
         m_textureInfos.fill(m_fallbackTexture->getDescriptorInfo());
 
-        auto msdfFont =
-            Assets::AssetManager::instance().get(Assets::Fonts::robotoMsdf);
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto msdfFont = appCtx.getSubSystem<Assets::AssetManager>()->get(
+            Assets::Fonts::robotoMsdf);
         if (msdfFont && msdfFont->getTextureAtlas()) {
             m_textureInfos[1] =
                 msdfFont->getTextureAtlas()->getDescriptorInfo();

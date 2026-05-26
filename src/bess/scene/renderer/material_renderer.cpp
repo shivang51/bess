@@ -73,7 +73,8 @@ namespace Bess::Renderer {
 
         m_gridMaterial = makeGrid({0.f, 0.f, 0.f}, {1.f, 1.f}, -2);
 
-        m_shadowTexture = Assets::AssetManager::instance().get(
+        auto &appCtx = Bess::GAppContext::getInstance();
+        m_shadowTexture = appCtx.getSubSystem<Assets::AssetManager>()->get(
             Assets::Textures::shadowTexture);
     }
 

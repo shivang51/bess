@@ -19,6 +19,7 @@ namespace Bess::Cmd {
         CommandSystem() = default;
 
         void onInit() override;
+        void onShutdown() override;
         void onDestroy() override;
 
         void execute(std::unique_ptr<Command> cmd);

@@ -25,7 +25,7 @@ namespace Bess::Canvas {
         if (m_isDestroyed)
             return;
 
-        BESS_INFO("[Scene] Destroying");
+        BESS_INFO("[Scene] Destroying {}", (uint64_t)m_state.getSceneId());
         m_isDestroyed = true;
         m_state.clear();
     }

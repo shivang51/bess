@@ -31,15 +31,17 @@ namespace Bess {
     }
 
     void UISubSystem::onDestroy() {
+        m_mainPage.reset();
+        // TEMP: Will remove getInstance fn
+        Pages::MainPage::getInstance().reset();
+        UI::shutdown();
         BESS_INFO("[UISubSystem] Destroyed UI SubSystem");
     }
 
     void UISubSystem::onShutdown() {
         m_mainPage->destory();
-        m_mainPage.reset();
-        // TEMP: Will remove getInstance fn
-        Pages::MainPage::getInstance().reset();
-        UI::shutdown();
+        m_vkCore->setPreCmdBufferCleanup(
+            [&]() { UI::vulkanCleanup(m_vkCore->getDevice()); });
     }
 
     void UISubSystem::onDraw() {

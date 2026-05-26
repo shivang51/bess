@@ -30,12 +30,15 @@ namespace Bess::Cmd {
         }
     } // namespace
 
-    void CommandSystem::onDestroy() {
+    void CommandSystem::onDestroy() {}
+
+    void CommandSystem::onInit() {
         m_redoStack = {};
         m_undoStack = {};
     }
 
-    void CommandSystem::onInit() {
+    void CommandSystem::onShutdown() {
+        BESS_DEBUG("[CommandSystem] Shutting down Command System");
         m_redoStack = {};
         m_undoStack = {};
     }

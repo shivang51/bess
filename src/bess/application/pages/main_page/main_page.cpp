@@ -95,24 +95,18 @@ namespace Bess::Pages {
         Canvas::NonSimSceneComponent::clearRegistry();
         Canvas::SceneSerReg::clearRegistry();
 
-        m_copiedComponents.clear();
-
+        auto &appCtx = Bess::GAppContext::getInstance();
         if (!s_headless) {
-            auto &appCtx = Bess::GAppContext::getInstance();
             auto vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
-            vkCore->cleanup([&]() {
-                for (const auto &panel : UI::UIMain::getScenePanels()) {
-                    panel->destroyViewport();
-                }
-                m_state.getSceneDriver()->getActiveScene()->destroy();
-                Assets::AssetManager::instance().clear();
-                UI::vulkanCleanup(vkCore->getDevice());
-            });
+
+            for (const auto &panel : UI::UIMain::getScenePanels()) {
+                panel->destroyViewport();
+            }
 
             UI::UIMain::destroy();
         } else {
-            m_state.getSceneDriver()->getActiveScene()->destroy();
-            Assets::AssetManager::instance().clear();
+            m_state.getSceneDriver()->reset();
+            appCtx.getSubSystem<Assets::AssetManager>()->clear();
         }
 
         BESS_INFO("[MainPage] Destroyed");

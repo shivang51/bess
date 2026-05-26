@@ -1,4 +1,5 @@
 #include "application.h"
+#include "asset_manager/asset_manager.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "common/bess_assert.h"
@@ -80,6 +81,7 @@ namespace Bess {
         appCtx.addSubSystem<EventSystem::EventDispatcher>();
         appCtx.addSubSystem<Config::Settings>();
         appCtx.addSubSystem<UISubSystem>();
+        appCtx.addSubSystem<Assets::AssetManager>();
 
         if (flags & AppStartupFlag::disablePlugins) {
             BESS_WARN("[Application] Plugin support is disabled");

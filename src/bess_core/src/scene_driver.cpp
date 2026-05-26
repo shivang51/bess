@@ -14,7 +14,9 @@
 namespace Bess {
     void SceneDriver::onInit() {}
 
-    void SceneDriver::onDestroy() { removeScenes(); }
+    void SceneDriver::onShutdown() { removeScenes(); }
+
+    void SceneDriver::onDestroy() {}
 
     std::shared_ptr<Canvas::Scene> SceneDriver::getActiveScene() const {
         return m_activeScene;
@@ -246,7 +248,9 @@ namespace Bess {
 
     void SceneDriver::removeScenes() {
         std::lock_guard lock(m_scenesMutex);
-        m_scenes.clear();
+        for (const auto &scene : m_scenes) {
+            scene->destroy();
+        }
         m_sceneIdToSceneMap.clear();
         m_rootSceneId = UUID::null;
         m_activeScene = nullptr;

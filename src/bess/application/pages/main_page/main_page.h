@@ -72,7 +72,5 @@ namespace Bess::Pages {
         bool m_isDestroyed = false;
 
         int m_clickCount = 0;
-
-        std::vector<CopiedComponent> m_copiedComponents;
     };
 } // namespace Bess::Pages

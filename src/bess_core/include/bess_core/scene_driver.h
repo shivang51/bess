@@ -13,6 +13,7 @@ namespace Bess {
         ~SceneDriver() override = default;
 
         void onInit() override;
+        void onShutdown() override;
         void onDestroy() override;
 
         std::shared_ptr<Canvas::Scene> getActiveScene() const;

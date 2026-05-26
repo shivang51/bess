@@ -34,9 +34,9 @@ namespace Bess::Vulkan {
         void onInit() override;
         void onPostInit() override;
         void onDestroy() override;
+        void onShutdown() override;
 
         VulkanCore() = default;
-        ~VulkanCore() override;
 
         VulkanCore(const VulkanCore &) = delete;
         VulkanCore &operator=(const VulkanCore &) = delete;
@@ -47,13 +47,14 @@ namespace Bess::Vulkan {
         void renderToSwapchain(const SwapchainRenderFn &fn);
         void endFrame();
 
-        void cleanup(const std::function<void()> &preCmdBufferCleanup = []() {
-        });
+        void cleanup();
 
         MAKE_GETTER_SETTER(VkSurfaceKHR, RenderSurface, m_renderSurface)
         MAKE_GETTER_SETTER(std::vector<const char *>, WinExt, m_windowExt)
         MAKE_GETTER_SETTER(SurfaceCreationCB, CreateSurfaceFn,
                            m_createSurfaceFn)
+        MAKE_GETTER_SETTER(std::function<void()>, PreCmdBufferCleanup,
+                           m_preCmdBufferCleanup)
 
         std::shared_ptr<VulkanRenderPass> getRenderPass() const;
 
@@ -98,6 +99,7 @@ namespace Bess::Vulkan {
 
         std::vector<const char *> m_windowExt;
         SurfaceCreationCB m_createSurfaceFn;
+        std::function<void()> m_preCmdBufferCleanup = nullptr;
     };
 
 } // namespace Bess::Vulkan

@@ -10,8 +10,6 @@
 #include <vulkan/vulkan_core.h>
 
 namespace Bess::Vulkan {
-    VulkanCore::~VulkanCore() { cleanup(); }
-
     void VulkanCore::onPostDraw() { endFrame(); }
 
     void VulkanCore::onPreDraw() { beginFrame(); }
@@ -59,6 +57,44 @@ namespace Bess::Vulkan {
     }
 
     void VulkanCore::onDestroy() { cleanup(); }
+
+    void VulkanCore::onShutdown() {
+        BESS_INFO("[VulkanCore] Shutting down");
+        if (!m_device || m_device->device() == VK_NULL_HANDLE)
+            return;
+        vkDeviceWaitIdle(m_device->device());
+
+        if (m_device && m_device->device() != VK_NULL_HANDLE) {
+
+            for (size_t i = 0; i < m_swapchain->imageCount(); i++) {
+                if (m_inFlightFences[i] != VK_NULL_HANDLE) {
+                    vkWaitForFences(m_device->device(), 1, &m_inFlightFences[i],
+                                    VK_TRUE, UINT64_MAX);
+                    vkResetFences(m_device->device(), 1, &m_inFlightFences[i]);
+                }
+            }
+
+            vkDeviceWaitIdle(m_device->device());
+
+            for (size_t i = 0; i < m_swapchain->imageCount(); i++) {
+                if (m_renderFinishedSemaphores[i] != VK_NULL_HANDLE) {
+                    vkDestroySemaphore(m_device->device(),
+                                       m_renderFinishedSemaphores[i], nullptr);
+                }
+                if (m_imageAvailableSemaphores[i] != VK_NULL_HANDLE) {
+                    vkDestroySemaphore(m_device->device(),
+                                       m_imageAvailableSemaphores[i], nullptr);
+                }
+                if (m_inFlightFences[i] != VK_NULL_HANDLE) {
+                    vkDestroyFence(m_device->device(), m_inFlightFences[i],
+                                   nullptr);
+                }
+            }
+        }
+
+        m_swapchain.reset();
+        m_renderPass.reset();
+    }
 
     void VulkanCore::beginFrame() {
         if (m_currentFrameContext.isStarted) {
@@ -191,46 +227,15 @@ namespace Bess::Vulkan {
         m_swapchain->createFramebuffers(m_renderPass->getVkHandle());
     }
 
-    void VulkanCore::cleanup(const std::function<void()> &preCmdBufferCleanup) {
+    void VulkanCore::cleanup() {
         if (m_isDestroyed)
             return;
 
-        BESS_INFO("[VulkanCore] Shutting down");
-        if (!m_device || m_device->device() == VK_NULL_HANDLE)
-            return;
-        vkDeviceWaitIdle(m_device->device());
+        BESS_INFO("[VulkanCore] Destroying VulkanCore");
 
-        if (m_device && m_device->device() != VK_NULL_HANDLE) {
-
-            for (size_t i = 0; i < m_swapchain->imageCount(); i++) {
-                if (m_inFlightFences[i] != VK_NULL_HANDLE) {
-                    vkWaitForFences(m_device->device(), 1, &m_inFlightFences[i],
-                                    VK_TRUE, UINT64_MAX);
-                    vkResetFences(m_device->device(), 1, &m_inFlightFences[i]);
-                }
-            }
-
-            vkDeviceWaitIdle(m_device->device());
-
-            for (size_t i = 0; i < m_swapchain->imageCount(); i++) {
-                if (m_renderFinishedSemaphores[i] != VK_NULL_HANDLE) {
-                    vkDestroySemaphore(m_device->device(),
-                                       m_renderFinishedSemaphores[i], nullptr);
-                }
-                if (m_imageAvailableSemaphores[i] != VK_NULL_HANDLE) {
-                    vkDestroySemaphore(m_device->device(),
-                                       m_imageAvailableSemaphores[i], nullptr);
-                }
-                if (m_inFlightFences[i] != VK_NULL_HANDLE) {
-                    vkDestroyFence(m_device->device(), m_inFlightFences[i],
-                                   nullptr);
-                }
-            }
+        if (m_preCmdBufferCleanup) {
+            m_preCmdBufferCleanup();
         }
-
-        m_swapchain.reset();
-        m_renderPass.reset();
-        preCmdBufferCleanup();
         m_commandBuffers.reset();
         m_device.reset();
 

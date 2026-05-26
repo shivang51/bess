@@ -4,6 +4,7 @@
 #include "common/bess_api.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
+#include "common/sub_system.h"
 #include "scene/renderer/asset_loaders.h"
 #include <any>
 #include <memory>
@@ -12,18 +13,17 @@
 #include <unordered_map>
 
 namespace Bess::Assets {
-    class BESS_API AssetManager {
+    class BESS_API AssetManager : public ISubSystem {
       public:
-        static AssetManager &instance();
+        void onInit() override;
+        void onShutdown() override;
+        void onDestroy() override;
 
+        AssetManager() = default;
         AssetManager(const AssetManager &) = delete;
         AssetManager &operator=(const AssetManager &) = delete;
         AssetManager(AssetManager &&) = delete;
         AssetManager &operator=(AssetManager &&) = delete;
-        ~AssetManager() = default;
-
-      private:
-        AssetManager() = default;
 
       public:
         template <typename T, size_t N>

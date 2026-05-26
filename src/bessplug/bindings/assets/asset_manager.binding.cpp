@@ -40,12 +40,7 @@ class PyAssetManager {
         BESS_ASSERT(
             (vulkanCore && vulkanCore->getDevice()),
             "Vulkan device must be initialized before getting texture assets.");
-        return AssetManager::instance().get(id);
-    }
-
-    static void cleanup() {
-        py::gil_scoped_acquire acquire;
-        AssetManager::instance().clear();
+        return appCtx.getSubSystem<AssetManager>()->get(id);
     }
 };
 
@@ -67,7 +62,5 @@ void bind_asset_manager(py::module_ &m) {
                     &PyAssetManager::register_texture_asset, py::arg("path"),
                     "Register a texture asset and return its AssetID")
         .def_static("get_texture_asset", &PyAssetManager::get_texture_asset,
-                    py::arg("asset_id"), "Get a texture asset by its AssetID")
-        .def_static("cleanup", &PyAssetManager::cleanup,
-                    "Cleanup all assets in the AssetManager");
+                    py::arg("asset_id"), "Get a texture asset by its AssetID");
 }
