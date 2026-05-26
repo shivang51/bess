@@ -1,8 +1,8 @@
 #pragma once
 
-#include "bess_core/scene_driver.h"
 #include "application/pages/main_page/services/hierarchical_scene_layout.h"
 #include "application/project_file.h"
+#include "bess_core/scene_driver.h"
 #include "command_system.h"
 #include "events/sim_engine_events.h"
 #include "scene_events.h"
@@ -53,7 +53,6 @@ namespace Bess::Pages {
         void createNewProject(bool updateWindowName = true);
         void saveCurrentProject() const;
         void loadProject(const std::string &path);
-        void updateCurrentProject(const std::shared_ptr<ProjectFile> &project);
         bool importVerilogFile(const std::string &path,
                                std::string *errorMessage = nullptr);
         bool importVerilogFiles(const std::vector<std::string> &paths,
@@ -73,9 +72,6 @@ namespace Bess::Pages {
 
         PageActionFlags actionFlags = {};
 
-        // handle to currently open project file
-        std::shared_ptr<ProjectFile> m_currentProjectFile;
-
         bool m_simulationPaused = false;
 
         // contains the state of keyboard keys pressed
@@ -94,7 +90,6 @@ namespace Bess::Pages {
 
       private:
         Cmd::CommandSystem m_commandSystem;
-        SceneDriver m_sceneDriver;
         std::unordered_map<int, bool> m_releasedKeysFrame;
         std::unordered_map<int, bool> m_pressedKeysFrame;
         std::unordered_map<int, bool> m_downKeys;

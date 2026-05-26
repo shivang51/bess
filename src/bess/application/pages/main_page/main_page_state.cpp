@@ -1,10 +1,11 @@
 #include "pages/main_page/main_page_state.h"
 
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
+#include "bess_core/scene_driver.h"
 #include "bverilog/sim_engine_importer.h"
 #include "common/bess_uuid.h"
-#include "bess_core/g_app_context.h"
 #include "common/logger.h"
-#include "bess_core/project_context.h"
 #include "dig_sim_driver.h"
 #include "event_dispatcher.h"
 #include "pages/main_page/cmds/update_value_cmd.h"
@@ -186,7 +187,7 @@ namespace Bess::Pages {
     MainPageState::~MainPageState() = default;
 
     void MainPageState::resetProjectState(bool updateWindowName) {
-        m_sceneDriver.reset(updateWindowName);
+        getSceneDriver().reset(updateWindowName);
         auto &appCtx = Bess::GAppContext::getInstance();
         auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
         projectCtx->getSimEngine().clear();
@@ -194,30 +195,33 @@ namespace Bess::Pages {
 
     void MainPageState::createNewProject(bool updateWindowName) {
         resetProjectState(updateWindowName);
-        m_currentProjectFile = std::make_shared<ProjectFile>();
+
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        projectCtx->createNewProject();
+
         if (!updateWindowName)
             return;
         const auto win = MainPage::getInstance()->getParentWindow();
-        win->setName(m_currentProjectFile->getName());
+        win->setName("FIXME");
     }
 
     void MainPageState::loadProject(const std::string &path) {
         resetProjectState();
-        const auto project = std::make_shared<ProjectFile>(path);
-        updateCurrentProject(project);
+
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        projectCtx->loadProject(path);
+        const auto &project = projectCtx->getProjectFile();
+
+        const auto win = MainPage::getInstance()->getParentWindow();
+        win->setName(project->getName() + " - BESS");
     }
 
     void MainPageState::saveCurrentProject() const {
-        m_currentProjectFile->save();
-    }
-
-    void MainPageState::updateCurrentProject(
-        const std::shared_ptr<ProjectFile> &project) {
-        if (project == nullptr)
-            return;
-        m_currentProjectFile = project;
-        const auto win = MainPage::getInstance()->getParentWindow();
-        win->setName(m_currentProjectFile->getName() + " - BESS");
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        projectCtx->saveProject();
     }
 
     bool MainPageState::importVerilogFile(const std::string &path,
@@ -236,7 +240,7 @@ namespace Bess::Pages {
                 return false;
             }
 
-            auto scene = m_sceneDriver.getActiveScene();
+            auto scene = getSceneDriver().getActiveScene();
             if (!scene) {
                 if (errorMessage) {
                     *errorMessage = "No active scene available";
@@ -251,7 +255,7 @@ namespace Bess::Pages {
             // const auto result =
             // Verilog::importVerilogFilesIntoSimulationEngine(toFilesystemPaths(paths),
             // simEngine); populateSceneFromVerilogImportResult(result,
-            // simEngine, *scene); m_sceneDriver.updateNets(scene);
+            // simEngine, *scene); getSceneDriver().updateNets(scene);
             return true;
         } catch (const std::exception &ex) {
             if (errorMessage) {
@@ -267,7 +271,7 @@ namespace Bess::Pages {
     HierarchicalSceneLayoutResult
     MainPageState::applyHierarchicalLayoutToActiveScene() {
         HierarchicalSceneLayoutResult result;
-        const auto activeScene = m_sceneDriver.getActiveScene();
+        const auto activeScene = getSceneDriver().getActiveScene();
         if (!activeScene) {
             return result;
         }
@@ -275,7 +279,7 @@ namespace Bess::Pages {
         auto &appCtx = Bess::GAppContext::getInstance();
         auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
         return applyHierarchicalSceneLayout(*activeScene,
-                            projectCtx->getSimEngine());
+                                            projectCtx->getSimEngine());
     }
 
     void MainPageState::startVerilogImport(const std::string &path) {
@@ -318,7 +322,7 @@ namespace Bess::Pages {
             auto &appCtx = Bess::GAppContext::getInstance();
             auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
             auto &simEngine = projectCtx->getSimEngine();
-            auto scene = m_sceneDriver.getActiveScene();
+            auto scene = getSceneDriver().getActiveScene();
 
             switch (session.phase) {
             case VerilogImportSession::Phase::resetProject:
@@ -355,7 +359,7 @@ namespace Bess::Pages {
                 if (!scene) {
                     throw std::runtime_error("No active scene available");
                 }
-                m_sceneDriver.updateNets(scene);
+                getSceneDriver().updateNets(scene);
                 session.progress = 1.f;
                 session.stageMessage = "Import complete";
                 session.phase = VerilogImportSession::Phase::completed;
@@ -394,7 +398,9 @@ namespace Bess::Pages {
     }
 
     std::shared_ptr<ProjectFile> MainPageState::getCurrentProjectFile() const {
-        return m_currentProjectFile;
+        const auto &appCtx = GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        return projectCtx->getProjectFile();
     }
 
     void MainPageState::initCmdSystem() {
@@ -418,7 +424,7 @@ namespace Bess::Pages {
     void
     MainPageState::onEntityMoved(const Canvas::Events::EntityMovedEvent &e) {
         auto entity =
-            m_sceneDriver->getState().getComponentByUuid(e.entityUuid);
+            getSceneDriver()->getState().getComponentByUuid(e.entityUuid);
         if (!entity) {
             return;
         }
@@ -431,7 +437,7 @@ namespace Bess::Pages {
 
     void MainPageState::onEntityReparented(
         const Canvas::Events::EntityReparentedEvent &e) {
-        const auto scene = getTrackedScene(m_sceneDriver, e.sceneId);
+        const auto scene = getTrackedScene(getSceneDriver(), e.sceneId);
         if (!scene) {
             return;
         }
@@ -485,7 +491,7 @@ namespace Bess::Pages {
             if (newParent == UUID::null)
                 return;
 
-            const auto scene = getTrackedScene(m_sceneDriver, sceneId);
+            const auto scene = getTrackedScene(getSceneDriver(), sceneId);
             if (!scene) {
                 return;
             }
@@ -506,10 +512,18 @@ namespace Bess::Pages {
     }
 
     const SceneDriver &MainPageState::getSceneDriver() const {
-        return m_sceneDriver;
+        const auto &appCtx = GAppContext::getInstance();
+        return *appCtx.getSubSystem<Bess::ProjectContext>()
+                    ->getSubSystem<SceneDriver>()
+                    .get();
     }
 
-    SceneDriver &MainPageState::getSceneDriver() { return m_sceneDriver; }
+    SceneDriver &MainPageState::getSceneDriver() {
+        const auto &appCtx = GAppContext::getInstance();
+        return *appCtx.getSubSystem<Bess::ProjectContext>()
+                    ->getSubSystem<SceneDriver>()
+                    .get();
+    }
 
     Cmd::CommandSystem &MainPageState::getCommandSystem() {
         return m_commandSystem;
@@ -531,7 +545,7 @@ namespace Bess::Pages {
 
         const auto &compData = m_simIdToSceneCompId[e.componentId];
 
-        const auto scene = m_sceneDriver.getSceneWithId(compData.sceneId);
+        const auto scene = getSceneDriver().getSceneWithId(compData.sceneId);
         if (!scene) {
             m_simIdToSceneCompId.erase(e.componentId);
             return;
@@ -570,7 +584,7 @@ namespace Bess::Pages {
 
         const auto &compData = m_simIdToSceneCompId[e.componentId];
 
-        const auto scene = m_sceneDriver.getSceneWithId(compData.sceneId);
+        const auto scene = getSceneDriver().getSceneWithId(compData.sceneId);
         if (!scene) {
             m_simIdToSceneCompId.erase(e.componentId);
             return;
@@ -604,7 +618,7 @@ namespace Bess::Pages {
 
     void
     MainPageState::onEntityAdded(const Canvas::Events::ComponentAddedEvent &e) {
-        const auto scene = getTrackedScene(m_sceneDriver, e.sceneId);
+        const auto scene = getTrackedScene(getSceneDriver(), e.sceneId);
         if (!scene) {
             return;
         }

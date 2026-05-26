@@ -43,4 +43,26 @@ namespace Bess {
         m_projectFile = std::make_shared<ProjectFile>(path);
     }
 
+    void ProjectContext::saveProject() const {
+        if (m_projectFile) {
+            m_projectFile->save();
+        } else {
+            BESS_WARN("No project file loaded. Cannot save project.");
+        }
+    }
+
+    void ProjectContext::createNewProject() {
+        auto sceneDriver = getSubSystem<SceneDriver>();
+        BESS_ASSERT(sceneDriver, "SceneDriver subsystem must be initialized "
+                                 "before creating a new project");
+        sceneDriver->reset(false);
+
+        auto simEngine = getSubSystem<SimEngine::SimulationEngine>();
+        BESS_ASSERT(simEngine, "SimulationEngine subsystem must be initialized "
+                               "before creating a new project");
+        simEngine->clear();
+
+        m_projectFile = std::make_shared<ProjectFile>();
+    }
+
 } // namespace Bess
