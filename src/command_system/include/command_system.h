@@ -32,20 +32,16 @@ namespace Bess::Cmd {
         void reset();
 
       public:
-        void setScene(Canvas::Scene *scene);
-
-        Canvas::Scene *getScene();
-        void setSimEngine(SimEngine::SimulationEngine *simEngine);
-
         bool canUndo() const;
         bool canRedo() const;
 
       private:
+        std::shared_ptr<Canvas::Scene> getScene() const;
+        std::shared_ptr<SimEngine::SimulationEngine> getSimEngine() const;
+
+      private:
         std::stack<std::unique_ptr<Command>> m_undoStack;
         std::stack<std::unique_ptr<Command>> m_redoStack;
-
-        Canvas::Scene *mp_scene;
-        SimEngine::SimulationEngine *mp_simEngine;
     };
 
 } // namespace Bess::Cmd

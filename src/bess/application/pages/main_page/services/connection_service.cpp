@@ -1,9 +1,9 @@
 #include "connection_service.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
-#include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
 
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/proxy_slot_component.h"
@@ -32,8 +32,9 @@ namespace Bess::Svc {
     }
 
     std::shared_ptr<Canvas::ConnectionSceneComponent>
-    SvcConnection::createConnection(const UUID &slotAId, const UUID &slotBId,
-                                    Canvas::Scene *scene) {
+    SvcConnection::createConnection(
+        const UUID &slotAId, const UUID &slotBId,
+        const std::shared_ptr<Canvas::Scene> &scene) {
         auto conn = std::make_shared<Canvas::ConnectionSceneComponent>();
         conn->setStartEndSlots(slotAId, slotBId);
         if (!addConnection(conn, scene)) {
@@ -43,11 +44,11 @@ namespace Bess::Svc {
     }
 
     std::shared_ptr<Canvas::ConnectionSceneComponent>
-    SvcConnection::createConnection(const Bess::UUID &fromCompId,
-                                    Bess::Canvas::SlotType fromSlotType,
-                                    int fromSlotIdx, const Bess::UUID &toCompId,
-                                    Bess::Canvas::SlotType toSlotType,
-                                    int toSlotIdx, Canvas::Scene *scene) {
+    SvcConnection::createConnection(
+        const Bess::UUID &fromCompId, Bess::Canvas::SlotType fromSlotType,
+        int fromSlotIdx, const Bess::UUID &toCompId,
+        Bess::Canvas::SlotType toSlotType, int toSlotIdx,
+        const std::shared_ptr<Canvas::Scene> &scene) {
         mp_scene = scene;
         auto &sceneState = getScene()->getState();
 
@@ -88,8 +89,9 @@ namespace Bess::Svc {
         return createConnection(fromSlotId, toSlotId, scene);
     }
 
-    std::vector<UUID> SvcConnection::getDependants(const UUID &connection,
-                                                   Canvas::Scene *scene) {
+    std::vector<UUID>
+    SvcConnection::getDependants(const UUID &connection,
+                                 const std::shared_ptr<Canvas::Scene> &scene) {
         BESS_ASSERT(scene, "[SvcConnection] Scene can't be a nullptr");
 
         mp_scene = scene;
@@ -127,7 +129,7 @@ namespace Bess::Svc {
     /// it, and vice versa. correctly add connection to the proxy component
     bool SvcConnection::addConnection(
         const std::shared_ptr<Canvas::ConnectionSceneComponent> &conn,
-        Canvas::Scene *scene) {
+        const std::shared_ptr<Canvas::Scene> &scene) {
         BESS_DEBUG("Adding connection with uuid {} between slot {} and slot {}",
                    (uint64_t)conn->getUuid(), (uint64_t)conn->getStartSlot(),
                    (uint64_t)conn->getEndSlot());
@@ -250,7 +252,7 @@ namespace Bess::Svc {
 
     std::vector<UUID> SvcConnection::removeConnection(
         const std::shared_ptr<Canvas::ConnectionSceneComponent> &conn,
-        Canvas::Scene *scene) {
+        const std::shared_ptr<Canvas::Scene> &scene) {
 
         mp_scene = scene;
         if (!conn) {
@@ -523,7 +525,7 @@ namespace Bess::Svc {
                type == Canvas::SlotType::outputsResize;
     }
 
-    Canvas::Scene *SvcConnection::getScene() {
+    const std::shared_ptr<Canvas::Scene> &SvcConnection::getScene() {
         BESS_ASSERT(mp_scene, "[ConectionService] Scene not set");
         return mp_scene;
     }
@@ -1088,7 +1090,7 @@ namespace Bess::Svc {
 
     std::pair<bool, std::string>
     SvcConnection::canConnect(const UUID &idA, const UUID &idB,
-                              Canvas::Scene *scene) {
+                              const std::shared_ptr<Canvas::Scene> &scene) {
         mp_scene = scene;
         auto &simEngine = getSimEngine();
         const auto &sceneState = getScene()->getState();

@@ -7,11 +7,13 @@ namespace Bess::Cmd {
 
     bool Command::canMergeWith(const Command *other) const { return false; }
 
-    void Command::setSceneContext(Canvas::Scene *scene) {
+    void Command::setSceneContext(const std::shared_ptr<Canvas::Scene> &scene) {
         m_sceneContext = scene;
     }
 
-    Canvas::Scene *Command::getSceneContext() const { return m_sceneContext; }
+    std::shared_ptr<Canvas::Scene> Command::getSceneContext() const {
+        return m_sceneContext;
+    }
 
     bool Command::hasSceneContext() const { return m_sceneContext != nullptr; }
 

@@ -25,17 +25,15 @@ namespace Bess {
 
         std::shared_ptr<Canvas::Scene> createNewScene();
 
-        std::shared_ptr<Canvas::Scene> setActiveScene(size_t index,
-                                                      bool updateCmdSys = true);
-        std::shared_ptr<Canvas::Scene> setActiveScene(UUID id,
-                                                      bool updateCmdSys = true);
+        std::shared_ptr<Canvas::Scene> setActiveScene(size_t index);
+        std::shared_ptr<Canvas::Scene> setActiveScene(UUID id);
 
         std::shared_ptr<Canvas::Scene>
         getSceneForModule(const UUID &modId) const;
 
         void removeScenes();
 
-        void reset(bool updateCmdSys = true);
+        void reset();
 
         size_t getActiveSceneIdx() const;
 
@@ -50,10 +48,6 @@ namespace Bess {
         // using pointer operator to directly access active scene
         std::shared_ptr<Canvas::Scene> operator->() {
             std::lock_guard lock(m_scenesMutex);
-            return m_activeScene;
-        }
-
-        const std::shared_ptr<Canvas::Scene> &operator->() const {
             return m_activeScene;
         }
 

@@ -40,33 +40,34 @@ namespace Bess::Svc {
         // nullptr on failure
         std::shared_ptr<Canvas::ConnectionSceneComponent>
         createConnection(const UUID &slotAId, const UUID &slotBId,
-                         Canvas::Scene *scene);
+                         const std::shared_ptr<Canvas::Scene> &scene);
 
         std::shared_ptr<Canvas::ConnectionSceneComponent>
         createConnection(const Bess::UUID &fromCompId,
                          Bess::Canvas::SlotType fromSlotType, int fromSlotIdx,
                          const Bess::UUID &toCompId,
                          Bess::Canvas::SlotType toSlotType, int toSlotIdx,
-                         Canvas::Scene *scene);
+                         const std::shared_ptr<Canvas::Scene> &scene);
 
         // Takes a connection component and tries to add it to the correct place
         // @returns: true on sucess and false otherwise
         bool addConnection(
             const std::shared_ptr<Canvas::ConnectionSceneComponent> &conn,
-            Canvas::Scene *scene);
+            const std::shared_ptr<Canvas::Scene> &scene);
 
         // Takes a connection component and tries to remove it safely
         // @returns: ids of all the components which were removed (includes
         // slots if any were removed), empty on fail
         std::vector<UUID> removeConnection(
             const std::shared_ptr<Canvas::ConnectionSceneComponent> &conn,
-            Canvas::Scene *scene);
+            const std::shared_ptr<Canvas::Scene> &scene);
 
         // Takes a connection id and returns the ids of all the components which
         // are life dependants on it, empty if no dependants or connection not
         // found.
-        std::vector<UUID> getDependants(const UUID &connection,
-                                        Canvas::Scene *scene);
+        std::vector<UUID>
+        getDependants(const UUID &connection,
+                      const std::shared_ptr<Canvas::Scene> &scene);
 
         // Checks if a connection can be made between two components.
         // Handles resize slots, proxy slots, and standard slots.
@@ -74,7 +75,8 @@ namespace Bess::Svc {
         // first (bool): true if they can connect.
         // second (string): error message if they cannot connect.
         std::pair<bool, std::string>
-        canConnect(const UUID &idA, const UUID &idB, Canvas::Scene *scene);
+        canConnect(const UUID &idA, const UUID &idB,
+                   const std::shared_ptr<Canvas::Scene> &scene);
 
       private:
         // Takes a slot/proxy id and a connection id, and add it to its
@@ -187,7 +189,7 @@ namespace Bess::Svc {
         std::shared_ptr<Canvas::SlotSceneComponent> getSlot(const UUID &compId);
 
       private:
-        Canvas::Scene *getScene();
+        const std::shared_ptr<Canvas::Scene> &getScene();
         SimEngine::SimulationEngine &getSimEngine();
 
       private:
@@ -203,6 +205,6 @@ namespace Bess::Svc {
         ~SvcConnection() = default;
         SvcConnection(const SvcConnection &) = delete;
         SvcConnection &operator=(const SvcConnection &) = delete;
-        Canvas::Scene *mp_scene = nullptr;
+        std::shared_ptr<Canvas::Scene> mp_scene = nullptr;
     };
 } // namespace Bess::Svc

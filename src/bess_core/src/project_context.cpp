@@ -33,7 +33,7 @@ namespace Bess {
         BESS_ASSERT(sceneDriver, "SceneDriver subsystem must be initialized "
                                  "before loading a project");
 
-        sceneDriver->reset(true);
+        sceneDriver->reset();
 
         auto simEngine = getSubSystem<SimEngine::SimulationEngine>();
         BESS_ASSERT(simEngine, "SimulationEngine subsystem must be initialized "
@@ -55,7 +55,7 @@ namespace Bess {
         auto sceneDriver = getSubSystem<SceneDriver>();
         BESS_ASSERT(sceneDriver, "SceneDriver subsystem must be initialized "
                                  "before creating a new project");
-        sceneDriver->reset(false);
+        sceneDriver->reset();
 
         auto simEngine = getSubSystem<SimEngine::SimulationEngine>();
         BESS_ASSERT(simEngine, "SimulationEngine subsystem must be initialized "

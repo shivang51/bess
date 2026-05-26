@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <memory>
 #include <string>
 namespace Bess::Canvas {
     class Scene;
@@ -26,14 +27,17 @@ namespace Bess::Cmd {
          * @return A boolean indicating whether the command executed
          * successfully.
          */
-        virtual bool execute(Canvas::Scene *scene,
-                             SimEngine::SimulationEngine *simEngine) = 0;
+        virtual bool
+        execute(std::shared_ptr<Canvas::Scene> &scene,
+                std::shared_ptr<SimEngine::SimulationEngine> &simEngine) = 0;
 
-        virtual void undo(Canvas::Scene *scene,
-                          SimEngine::SimulationEngine *simEngine) = 0;
+        virtual void
+        undo(std::shared_ptr<Canvas::Scene> &scene,
+             std::shared_ptr<SimEngine::SimulationEngine> &simEngine) = 0;
 
-        virtual void redo(Canvas::Scene *scene,
-                          SimEngine::SimulationEngine *simEngine) = 0;
+        virtual void
+        redo(std::shared_ptr<Canvas::Scene> &scene,
+             std::shared_ptr<SimEngine::SimulationEngine> &simEngine) = 0;
 
         virtual bool canMergeWith(const Command *other) const;
 
@@ -41,13 +45,13 @@ namespace Bess::Cmd {
 
         virtual std::string getName() const;
 
-        void setSceneContext(Canvas::Scene *scene);
-        Canvas::Scene *getSceneContext() const;
+        void setSceneContext(const std::shared_ptr<Canvas::Scene> &scene);
+        std::shared_ptr<Canvas::Scene> getSceneContext() const;
         bool hasSceneContext() const;
         bool sharesSceneContextWith(const Command *other) const;
 
       protected:
-        Canvas::Scene *m_sceneContext = nullptr;
+        std::shared_ptr<Canvas::Scene> m_sceneContext = nullptr;
         std::string m_name;
     };
 } // namespace Bess::Cmd

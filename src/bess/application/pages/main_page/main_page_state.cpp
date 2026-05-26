@@ -27,8 +27,9 @@ namespace Bess::Pages {
             return {static_cast<char>(base + (index % 26))};
         }
 
-        std::shared_ptr<Canvas::Scene> getTrackedScene(std::shared_ptr<SceneDriver> sceneDriver,
-                                                       const UUID &sceneId) {
+        std::shared_ptr<Canvas::Scene>
+        getTrackedScene(const std::shared_ptr<SceneDriver> &sceneDriver,
+                        const UUID &sceneId) {
             if (sceneId == UUID::null) {
                 return nullptr;
             }
@@ -187,7 +188,7 @@ namespace Bess::Pages {
     MainPageState::~MainPageState() = default;
 
     void MainPageState::resetProjectState(bool updateWindowName) {
-        getSceneDriver()->reset(updateWindowName);
+        getSceneDriver()->reset();
         auto &appCtx = Bess::GAppContext::getInstance();
         auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
         projectCtx->getSimEngine().clear();
@@ -424,7 +425,8 @@ namespace Bess::Pages {
     void
     MainPageState::onEntityMoved(const Canvas::Events::EntityMovedEvent &e) {
         auto entity =
-            getSceneDriver()->getActiveScene()->getState().getComponentByUuid(e.entityUuid);
+            getSceneDriver()->getActiveScene()->getState().getComponentByUuid(
+                e.entityUuid);
         if (!entity) {
             return;
         }
@@ -514,13 +516,13 @@ namespace Bess::Pages {
     std::shared_ptr<SceneDriver> MainPageState::getSceneDriver() const {
         const auto &appCtx = GAppContext::getInstance();
         return appCtx.getSubSystem<Bess::ProjectContext>()
-                    ->getSubSystem<SceneDriver>();
+            ->getSubSystem<SceneDriver>();
     }
 
     std::shared_ptr<SceneDriver> MainPageState::getSceneDriver() {
         const auto &appCtx = GAppContext::getInstance();
         return appCtx.getSubSystem<Bess::ProjectContext>()
-                    ->getSubSystem<SceneDriver>();
+            ->getSubSystem<SceneDriver>();
     }
 
     Cmd::CommandSystem &MainPageState::getCommandSystem() {

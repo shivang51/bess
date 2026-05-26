@@ -13,14 +13,17 @@ namespace Bess::Cmd {
             m_name = "MacroCommand";
         }
 
-        bool execute(Canvas::Scene *scene,
-                     SimEngine::SimulationEngine *simEngine) override;
+        bool execute(
+            std::shared_ptr<Canvas::Scene> &scene,
+            std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override;
 
-        void undo(Canvas::Scene *scene,
-                  SimEngine::SimulationEngine *simEngine) override;
+        void
+        undo(std::shared_ptr<Canvas::Scene> &scene,
+             std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override;
 
-        void redo(Canvas::Scene *scene,
-                  SimEngine::SimulationEngine *simEngine) override;
+        void
+        redo(std::shared_ptr<Canvas::Scene> &scene,
+             std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override;
 
         void addCommand(std::unique_ptr<Command> cmd);
 

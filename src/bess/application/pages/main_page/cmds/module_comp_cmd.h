@@ -1,5 +1,8 @@
 #pragma once
 
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
+#include "bess_core/scene_driver.h"
 #include "command.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
@@ -10,9 +13,6 @@
 #include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "scene/scene.h"
-#include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
-#include "bess_core/scene_driver.h"
 #include "simulation_engine.h"
 #include <functional>
 #include <memory>
@@ -98,8 +98,9 @@ namespace Bess::Cmd {
                 return nullptr;
             }
 
-            auto sceneDriver =
-                GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+            auto sceneDriver = GAppContext::getInstance()
+                                   .getSubSystem<Bess::ProjectContext>()
+                                   ->getSubSystem<SceneDriver>();
             const auto parentScene =
                 sceneDriver->getSceneWithId(sceneState.getParentSceneId());
             if (!parentScene) {
@@ -243,8 +244,9 @@ namespace Bess::Cmd {
             BESS_ASSERT(scene,
                         "[ModuleCmd] Scene must be valid before registration");
 
-            auto sceneDriver =
-                GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+            auto sceneDriver = GAppContext::getInstance()
+                                   .getSubSystem<Bess::ProjectContext>()
+                                   ->getSubSystem<SceneDriver>();
             if (!sceneDriver->getSceneWithId(scene->getSceneId())) {
                 sceneDriver->addScene(scene);
             }
@@ -256,8 +258,9 @@ namespace Bess::Cmd {
         }
 
         inline void unregisterScene(const UUID &sceneId) {
-            auto sceneDriver =
-                GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+            auto sceneDriver = GAppContext::getInstance()
+                                   .getSubSystem<Bess::ProjectContext>()
+                                   ->getSubSystem<SceneDriver>();
             sceneDriver->removeScene(sceneId);
         }
     } // namespace Detail
@@ -273,8 +276,9 @@ namespace Bess::Cmd {
             m_name = "CreateModuleCmd";
         }
 
-        bool execute(Canvas::Scene *scene,
-                     SimEngine::SimulationEngine *simEngine) override {
+        bool execute(
+            std::shared_ptr<Canvas::Scene> &scene,
+            std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
             (void)scene;
             if (!initialize(simEngine)) {
                 return false;
@@ -284,13 +288,12 @@ namespace Bess::Cmd {
 
             BESS_ASSERT(m_addModuleCmd,
                         "[ModuleCmd] Add module command was not initialized");
-            if (!m_addModuleCmd->execute(m_sourceScene.get(), simEngine)) {
+            if (!m_addModuleCmd->execute(m_sourceScene, simEngine)) {
                 return false;
             }
 
             if (m_boundaryDisconnectCmd) {
-                m_boundaryDisconnectCmd->execute(m_sourceScene.get(),
-                                                 simEngine);
+                m_boundaryDisconnectCmd->execute(m_sourceScene, simEngine);
             }
 
             Detail::transferComponents(m_sourceScene.get(), m_moduleScene.get(),
@@ -299,8 +302,9 @@ namespace Bess::Cmd {
             return true;
         }
 
-        void undo(Canvas::Scene *scene,
-                  SimEngine::SimulationEngine *simEngine) override {
+        void
+        undo(std::shared_ptr<Canvas::Scene> &scene,
+             std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
             (void)scene;
             BESS_ASSERT(
                 m_executed,
@@ -308,9 +312,9 @@ namespace Bess::Cmd {
 
             Detail::transferComponents(m_moduleScene.get(), m_sourceScene.get(),
                                        m_movedComponents);
-            m_addModuleCmd->undo(m_sourceScene.get(), simEngine);
+            m_addModuleCmd->undo(m_sourceScene, simEngine);
             if (m_boundaryDisconnectCmd) {
-                m_boundaryDisconnectCmd->undo(m_sourceScene.get(), simEngine);
+                m_boundaryDisconnectCmd->undo(m_sourceScene, simEngine);
             }
 
             if (!m_moduleSceneCleanupCmd) {
@@ -318,12 +322,13 @@ namespace Bess::Cmd {
                     Detail::collectRootComponentIds(m_moduleScene));
             }
 
-            m_moduleSceneCleanupCmd->execute(m_moduleScene.get(), simEngine);
+            m_moduleSceneCleanupCmd->execute(m_moduleScene, simEngine);
             Detail::unregisterScene(m_moduleScene->getSceneId());
         }
 
-        void redo(Canvas::Scene *scene,
-                  SimEngine::SimulationEngine *simEngine) override {
+        void
+        redo(std::shared_ptr<Canvas::Scene> &scene,
+             std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
             (void)scene;
             BESS_ASSERT(
                 m_executed,
@@ -332,15 +337,15 @@ namespace Bess::Cmd {
             Detail::ensureSceneRegistered(m_moduleScene);
 
             if (m_moduleSceneCleanupCmd) {
-                m_moduleSceneCleanupCmd->undo(m_moduleScene.get(), simEngine);
+                m_moduleSceneCleanupCmd->undo(m_moduleScene, simEngine);
                 Detail::rewireModuleIoIds(m_moduleComponent, m_moduleScene);
             }
 
             if (m_boundaryDisconnectCmd) {
-                m_boundaryDisconnectCmd->redo(m_sourceScene.get(), simEngine);
+                m_boundaryDisconnectCmd->redo(m_sourceScene, simEngine);
             }
 
-            m_addModuleCmd->redo(m_sourceScene.get(), simEngine);
+            m_addModuleCmd->redo(m_sourceScene, simEngine);
             Detail::transferComponents(m_sourceScene.get(), m_moduleScene.get(),
                                        m_movedComponents);
         }
@@ -351,7 +356,8 @@ namespace Bess::Cmd {
         }
 
       private:
-        bool initialize(SimEngine::SimulationEngine *simEngine) {
+        bool initialize(
+            const std::shared_ptr<SimEngine::SimulationEngine> &simEngine) {
             (void)simEngine;
             if (m_initialized) {
                 return true;
@@ -384,7 +390,9 @@ namespace Bess::Cmd {
             createdComponents.erase(createdComponents.begin());
             m_moduleChildComponents = std::move(createdComponents);
 
-            auto sceneDriver = GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+            auto sceneDriver = GAppContext::getInstance()
+                                   .getSubSystem<Bess::ProjectContext>()
+                                   ->getSubSystem<SceneDriver>();
             m_moduleScene =
                 sceneDriver->getSceneWithId(m_moduleComponent->getSceneId());
             BESS_ASSERT(
@@ -443,42 +451,45 @@ namespace Bess::Cmd {
             m_name = "DeleteModuleCmd";
         }
 
-        bool execute(Canvas::Scene *scene,
-                     SimEngine::SimulationEngine *simEngine) override {
+        bool execute(
+            std::shared_ptr<Canvas::Scene> &scene,
+            std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
             (void)scene;
             if (!initialize()) {
                 return false;
             }
 
             const bool deletedRoot =
-                m_rootDeleteCmd->execute(m_rootScene.get(), simEngine);
+                m_rootDeleteCmd->execute(m_rootScene, simEngine);
             const bool deletedModuleScene =
-                m_moduleSceneDeleteCmd->execute(m_moduleScene.get(), simEngine);
+                m_moduleSceneDeleteCmd->execute(m_moduleScene, simEngine);
             Detail::unregisterScene(m_moduleScene->getSceneId());
             m_executed = deletedRoot || deletedModuleScene;
             return m_executed;
         }
 
-        void undo(Canvas::Scene *scene,
-                  SimEngine::SimulationEngine *simEngine) override {
+        void
+        undo(std::shared_ptr<Canvas::Scene> &scene,
+             std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
             (void)scene;
             BESS_ASSERT(m_executed, "[ModuleCmd] Cannot undo a module delete "
                                     "command that never executed");
 
             Detail::ensureSceneRegistered(m_moduleScene);
-            m_moduleSceneDeleteCmd->undo(m_moduleScene.get(), simEngine);
+            m_moduleSceneDeleteCmd->undo(m_moduleScene, simEngine);
             Detail::rewireModuleIoIds(m_moduleComponent, m_moduleScene);
-            m_rootDeleteCmd->undo(m_rootScene.get(), simEngine);
+            m_rootDeleteCmd->undo(m_rootScene, simEngine);
         }
 
-        void redo(Canvas::Scene *scene,
-                  SimEngine::SimulationEngine *simEngine) override {
+        void
+        redo(std::shared_ptr<Canvas::Scene> &scene,
+             std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
             (void)scene;
             BESS_ASSERT(m_executed, "[ModuleCmd] Cannot redo a module delete "
                                     "command that never executed");
 
-            m_rootDeleteCmd->redo(m_rootScene.get(), simEngine);
-            m_moduleSceneDeleteCmd->redo(m_moduleScene.get(), simEngine);
+            m_rootDeleteCmd->redo(m_rootScene, simEngine);
+            m_moduleSceneDeleteCmd->redo(m_moduleScene, simEngine);
             Detail::unregisterScene(m_moduleScene->getSceneId());
         }
 
@@ -498,8 +509,9 @@ namespace Bess::Cmd {
                 return false;
             }
 
-            auto sceneDriver =
-                GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<SceneDriver>();
+            auto sceneDriver = GAppContext::getInstance()
+                                   .getSubSystem<Bess::ProjectContext>()
+                                   ->getSubSystem<SceneDriver>();
             m_moduleScene =
                 sceneDriver->getSceneWithId(m_moduleComponent->getSceneId());
             BESS_ASSERT(m_moduleScene,

@@ -42,23 +42,26 @@ namespace Bess::Cmd {
             m_name = "Update " + std::string(typeid(ValType).name());
         }
 
-        bool execute(Canvas::Scene *scene,
-                     SimEngine::SimulationEngine *simEngine) override {
+        bool execute(
+            std::shared_ptr<Canvas::Scene> &scene,
+            std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
             m_oldValue = *m_orignalLoc;
             *m_orignalLoc = m_newValue;
             return true;
         }
 
-        void undo(Canvas::Scene *scene,
-                  SimEngine::SimulationEngine *simEngine) override {
+        void
+        undo(std::shared_ptr<Canvas::Scene> &scene,
+             std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
             *m_orignalLoc = m_oldValue;
             if (m_onUndoRedo) {
                 m_onUndoRedo(true, m_oldValue);
             }
         }
 
-        void redo(Canvas::Scene *scene,
-                  SimEngine::SimulationEngine *simEngine) override {
+        void
+        redo(std::shared_ptr<Canvas::Scene> &scene,
+             std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
             *m_orignalLoc = m_newValue;
             if (m_onUndoRedo) {
                 m_onUndoRedo(false, m_newValue);

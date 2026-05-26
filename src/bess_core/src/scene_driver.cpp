@@ -1,8 +1,8 @@
 #include "bess_core/scene_driver.h"
 
-#include "common/bess_uuid.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "common/bess_uuid.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "simulation_engine.h"
@@ -20,8 +20,7 @@ namespace Bess {
         return m_activeScene;
     }
 
-    std::shared_ptr<Canvas::Scene>
-    SceneDriver::setActiveScene(UUID id, bool updateCmdSys) {
+    std::shared_ptr<Canvas::Scene> SceneDriver::setActiveScene(UUID id) {
 
         if (UUID::null == id || !m_sceneIdToSceneMap.contains(id)) {
             return nullptr;
@@ -41,12 +40,6 @@ namespace Bess {
                 }));
         lock.unlock();
 
-        if (updateCmdSys) {
-            auto &cmdSystem =
-                Pages::MainPage::getInstance()->getState().getCommandSystem();
-            cmdSystem.setScene(m_activeScene.get());
-        }
-
         if (!m_activeScene->getState().getIsRootScene()) {
             const auto &modId = m_activeScene->getState().getModuleId();
             if (modId != UUID::null && !m_modIdToSceneMap.contains(modId)) {
@@ -65,8 +58,7 @@ namespace Bess {
         return m_activeScene;
     }
 
-    std::shared_ptr<Canvas::Scene>
-    SceneDriver::setActiveScene(size_t index, bool updateCmdSys) {
+    std::shared_ptr<Canvas::Scene> SceneDriver::setActiveScene(size_t index) {
         std::unique_lock lock(m_scenesMutex);
         if (index < m_scenes.size()) {
             if (m_activeScene) {
@@ -74,12 +66,6 @@ namespace Bess {
             }
             m_activeScene = m_scenes.at(index);
             m_activeSceneIdx = index;
-            if (updateCmdSys) {
-                auto &cmdSystem = Pages::MainPage::getInstance()
-                                      ->getState()
-                                      .getCommandSystem();
-                cmdSystem.setScene(m_activeScene.get());
-            }
 
             if (!m_activeScene->getState().getIsRootScene()) {
                 const auto &modId = m_activeScene->getState().getModuleId();
@@ -261,11 +247,10 @@ namespace Bess {
         m_modIdToSceneMap.clear();
     }
 
-    void SceneDriver::reset(bool updateCmdSys) {
+    void SceneDriver::reset() {
         removeScenes();
         auto scene = createNewScene();
         setRootSceneId(scene->getSceneId());
-        setActiveScene(scene->getSceneId(), updateCmdSys);
     }
 
     std::shared_ptr<Canvas::Scene>

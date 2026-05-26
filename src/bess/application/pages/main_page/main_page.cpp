@@ -1,11 +1,11 @@
 #include "pages/main_page/main_page.h"
 #include "asset_manager/asset_manager.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
-#include "bess_core/g_app_context.h"
 #include "common/logger.h"
 #include "common/types.h"
-#include "bess_core/project_context.h"
 #include "macro_command.h"
 #include "pages/main_page/cmds/delete_comp_cmd.h"
 #include "pages/main_page/cmds/module_comp_cmd.h"
@@ -24,7 +24,6 @@
 #include "plugin_manager.h"
 #include "scene_ser_reg.h"
 #include "services/copy_paste_service.h"
-#include "simulation_engine.h"
 #include "sub_systems/input_sub_system.h"
 #include "sub_systems/input_sub_system_types.h"
 #include "ui/ui.h"
@@ -82,14 +81,10 @@ namespace Bess::Pages {
             UI::UIMain::init();
         }
 
-        // creates default scenes in scene driver as well
-        m_state.createNewProject(false);
-
-        const auto driver = m_state.getSceneDriver();
+        // // creates default scenes in scene driver as well
+        // m_state.createNewProject(false);
 
         m_state.initCmdSystem();
-        m_state.getCommandSystem().setScene(driver->getActiveScene().get());
-        m_state.getCommandSystem().setSimEngine(&projectCtx->getSimEngine());
 
         Svc::SvcConnection::instance().init();
         Svc::CopyPaste::Context::instance().init();
@@ -206,7 +201,8 @@ namespace Bess::Pages {
             }
         } else {
             if (inpSystem->isKeyPressed(KeyCode::del)) {
-                const auto &sceneState = m_state.getSceneDriver()->getActiveScene()->getState();
+                const auto &sceneState =
+                    m_state.getSceneDriver()->getActiveScene()->getState();
                 const auto selectedIds = sceneState.getSelectedComponents() |
                                          std::ranges::views::keys |
                                          std::ranges::to<std::vector<UUID>>();
@@ -272,9 +268,13 @@ namespace Bess::Pages {
 
                 m_state.getCommandSystem().execute(std::move(deleteCommand));
             } else if (inpSystem->isKeyPressed(KeyCode::f)) {
-                m_state.getSceneDriver()->getActiveScene()->focusCameraOnSelected();
+                m_state.getSceneDriver()
+                    ->getActiveScene()
+                    ->focusCameraOnSelected();
             } else if (inpSystem->isKeyPressed(KeyCode::tab)) {
-                m_state.getSceneDriver()->getActiveScene()->toggleSchematicView();
+                m_state.getSceneDriver()
+                    ->getActiveScene()
+                    ->toggleSchematicView();
             } else if (inpSystem->isKeyPressed(KeyCode::escape)) {
                 UI::UIMain::getPanel<UI::ComponentExplorer>()->hide();
             } else if (inpSystem->isKeyPressed(KeyCode::c)) {

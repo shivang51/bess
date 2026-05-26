@@ -28,8 +28,9 @@ namespace Bess::Cmd {
             m_name = "AddComponentCmd";
         }
 
-        bool execute(Canvas::Scene *scene,
-                     SimEngine::SimulationEngine *simEngine) override {
+        bool execute(
+            std::shared_ptr<Canvas::Scene> &scene,
+            std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
 
             if (!m_comp) {
                 return false;
@@ -54,8 +55,9 @@ namespace Bess::Cmd {
             return true;
         }
 
-        void undo(Canvas::Scene *scene,
-                  SimEngine::SimulationEngine *simEngine) override {
+        void
+        undo(std::shared_ptr<Canvas::Scene> &scene,
+             std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
             BESS_ASSERT(m_comp,
                         "Cannot undo AddCompCmd without a valid component");
 
@@ -68,8 +70,9 @@ namespace Bess::Cmd {
             }
         }
 
-        void redo(Canvas::Scene *scene,
-                  SimEngine::SimulationEngine *simEngine) override {
+        void
+        redo(std::shared_ptr<Canvas::Scene> &scene,
+             std::shared_ptr<SimEngine::SimulationEngine> &simEngine) override {
             BESS_ASSERT(m_comp,
                         "Cannot redo AddCompCmd without a valid component");
 
