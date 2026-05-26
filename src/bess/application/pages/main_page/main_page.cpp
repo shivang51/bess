@@ -95,7 +95,6 @@ namespace Bess::Pages {
         Canvas::NonSimSceneComponent::clearRegistry();
         Canvas::SceneSerReg::clearRegistry();
 
-        m_state.getCommandSystem().reset();
         m_copiedComponents.clear();
 
         if (!s_headless) {
