@@ -1,31 +1,26 @@
 #include "bess_core/renderer/renderer_types.h"
 
 namespace Bess::Core::Renderer {
-    glm::vec4 Color::toVec4() const { return {r, g, b, a}; }
-
-    void Color::fromHex(uint32_t hex) {
-        r = (float)((hex >> 24) & 0xFF) / 255.f;
-        g = (float)((hex >> 16) & 0xFF) / 255.f;
-        b = (float)((hex >> 8) & 0xFF) / 255.f;
-        a = (float)(hex & 0xFF) / 255.f;
+    Color fromHex(uint32_t hex) noexcept {
+        Color col;
+        col.r = (float)((hex >> 24) & 0xFF) / 255.f;
+        col.g = (float)((hex >> 16) & 0xFF) / 255.f;
+        col.b = (float)((hex >> 8) & 0xFF) / 255.f;
+        col.a = (float)(hex & 0xFF) / 255.f;
+        return col;
     }
 
-    void Color::fromRGBA(uint8_t red, uint8_t green, uint8_t blue,
-                         uint8_t alpha) {
-        r = (float)red / 255.f;
-        g = (float)green / 255.f;
-        b = (float)blue / 255.f;
-        a = (float)alpha / 255.f;
+    Color fromRGBA8(uint8_t red, uint8_t green, uint8_t blue,
+                    uint8_t alpha) noexcept {
+        Color col;
+        col.r = (float)red / 255.f;
+        col.g = (float)green / 255.f;
+        col.b = (float)blue / 255.f;
+        col.a = (float)alpha / 255.f;
+        return col;
     }
 
-    void Color::fromRGBA(float red, float green, float blue, float alpha) {
-        r = red;
-        g = green;
-        b = blue;
-        a = alpha;
-    }
-
-    uint32_t Color::toHex() const {
+    constexpr uint32_t Color::toHex() const noexcept {
         uint8_t red = static_cast<uint8_t>(r * 255.f);
         uint8_t green = static_cast<uint8_t>(g * 255.f);
         uint8_t blue = static_cast<uint8_t>(b * 255.f);

@@ -13,16 +13,16 @@ void bind_scene_common_binding(py::module &m) {
         .def_readwrite("scale", &Bess::Canvas::Transform::scale);
 
     // PickingId class binding
-    py::class_<Bess::Canvas::PickingId>(m, "PickingId")
+    py::class_<Bess::PickingId>(m, "PickingId")
         .def(py::init<>())
-        .def_readwrite("runtime_id", &Bess::Canvas::PickingId::runtimeId)
-        .def_readwrite("info", &Bess::Canvas::PickingId::info)
-        .def_static("invalid", &Bess::Canvas::PickingId::invalid)
+        .def_readwrite("runtime_id", &Bess::PickingId::runtimeId)
+        .def_readwrite("info", &Bess::PickingId::info)
+        .def_static("invalid", &Bess::PickingId::invalid)
         .def("asUint64",
-             [](const Bess::Canvas::PickingId &self) {
+             [](const Bess::PickingId &self) {
                  return static_cast<uint64_t>(self);
              })
-        .def("__eq__", &Bess::Canvas::PickingId::operator==);
+        .def("__eq__", &Bess::PickingId::operator==);
 
     py::enum_<Bess::Canvas::SlotType>(m, "SlotType")
         .value("dInp", Bess::Canvas::SlotType::digitalInput,

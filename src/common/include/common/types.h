@@ -9,6 +9,50 @@ namespace Bess {
     using TimeMs = std::chrono::duration<double, std::milli>;
     using TimeNs = std::chrono::duration<double, std::nano>;
 
+    struct PickingId {
+        uint32_t runtimeId;
+        uint32_t info;
+
+        struct InfoFlags {
+            static constexpr uint32_t unSelectable = 1 << 31;
+        };
+
+        static constexpr uint32_t invalidRuntimeId =
+            std::numeric_limits<uint32_t>::max();
+
+        static constexpr PickingId invalid() noexcept {
+            return {invalidRuntimeId, 0};
+        }
+
+        constexpr bool
+        operator==(const PickingId &other) const noexcept = default;
+
+        constexpr bool isValid() const noexcept {
+            return runtimeId != invalidRuntimeId;
+        }
+
+        constexpr bool isSelectable() const noexcept {
+            return !(info & InfoFlags::unSelectable);
+        }
+
+        constexpr uint64_t toUint64() const noexcept {
+            return (static_cast<uint64_t>(runtimeId) << 32) |
+                   static_cast<uint64_t>(info);
+        }
+
+        constexpr operator uint64_t() const noexcept { return toUint64(); }
+
+        static constexpr PickingId fromUint64(uint64_t value) noexcept {
+            return {static_cast<uint32_t>(value >> 32),
+                    static_cast<uint32_t>(value & 0xFFFFFFFF)};
+        }
+
+        void set(uint64_t value) {
+            runtimeId = static_cast<uint32_t>(value >> 32);
+            info = static_cast<uint32_t>(value & 0xFFFFFFFF);
+        }
+    };
+
     namespace SimEngine {
         typedef TimeNs SimTime;
         typedef std::chrono::duration<double> SimDelaySeconds;

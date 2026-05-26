@@ -1,5 +1,8 @@
 #pragma once
 
+#include "common/types.h"
+#include "ext/scalar_uint_sized.hpp"
+#include "ext/vector_float2.hpp"
 #include "ext/vector_float4.hpp"
 #include "json/value.h"
 
@@ -8,7 +11,14 @@ namespace Bess::Core::Renderer {
     struct Color {
         float r = 0.f, g = 0.f, b = 0.f, a = 1.f;
 
-        Color() = default;
+        constexpr Color() noexcept = default;
+
+        constexpr Color(float red, float green, float blue,
+                        float alpha = 1.f) noexcept
+            : r(red),
+              g(green),
+              b(blue),
+              a(alpha) {}
 
         Color &operator=(const glm::vec4 &vec) {
             r = vec.r;
@@ -18,24 +28,44 @@ namespace Bess::Core::Renderer {
             return *this;
         }
 
-        operator glm::vec4() const { return {r, g, b, a}; }
+        constexpr Color(const glm::vec4 &vec) noexcept
+            : r(vec.r),
+              g(vec.g),
+              b(vec.b),
+              a(vec.a) {}
 
-        glm::vec4 toVec4() const;
+        constexpr operator glm::vec4() const noexcept { return {r, g, b, a}; }
 
-        void fromHex(uint32_t hex);
+        static Color fromHex(uint32_t hex) noexcept;
 
         // RGBA order each val between 0-255, alpha defaults to 255 (opaque)
-        void fromRGBA(uint8_t red, uint8_t green, uint8_t blue,
-                      uint8_t alpha = 255);
-
-        // RGBA order each val between 0-1, alpha defaults to 255 (opaque)
-        void fromRGBA(float red, float green, float blue, float alpha = 1.f);
+        static Color fromRGBA8(uint8_t red, uint8_t green, uint8_t blue,
+                               uint8_t alpha = 255) noexcept;
 
         // Converts the color to a 32-bit hex value in RGBA order
-        uint32_t toHex() const;
+        constexpr uint32_t toHex() const noexcept;
 
         Json::Value toJson() const;
-
         static Color fromJson(const Json::Value &json);
+    };
+
+    typedef uint32_t TextureHandle;
+
+    struct QuadProps {
+        glm::vec2 position{0.f, 0.f};
+        glm::vec2 size{1.f, 1.f};
+        float rotation = 0.f;
+        float zIndex = 0.f;
+
+        Color color{1.f, 1.f, 1.f, 1.f};
+        TextureHandle texture = 0; // 0 = No texture (flat color)
+        PickingId id = PickingId::invalid();
+    };
+
+    struct RoundedBorderProps {
+        glm::vec4 radius{0.f}; // Top-left, top-right, bottom-right, bottom-left
+        glm::vec4 thickness{
+            0.f}; // Thickness for each edge in the same order as radius
+        Color color{0.f, 0.f, 0.f, 1.f};
     };
 } // namespace Bess::Core::Renderer

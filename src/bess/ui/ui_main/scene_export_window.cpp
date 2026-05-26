@@ -29,7 +29,7 @@ namespace Bess::UI {
         void drawExportGrid(SceneDrawContext &context) {
             context.materialRenderer->drawGrid(
                 glm::vec3(0.f, 0.f, 0.1f), context.camera->getSpan(),
-                Canvas::PickingId::invalid(),
+                PickingId::invalid(),
                 {
                     .minorColor = ViewportTheme::colors.gridMinorColor,
                     .majorColor = ViewportTheme::colors.gridMajorColor,
@@ -88,7 +88,7 @@ namespace Bess::UI {
             context.sceneState = &scene->getState();
 
             viewport->begin(frameIdx, ViewportTheme::colors.background,
-                            {0, Canvas::PickingId::invalid().runtimeId});
+                            {0, PickingId::invalid().runtimeId});
             drawExportGrid(context);
             drawExportComponents(context);
             viewport->end();

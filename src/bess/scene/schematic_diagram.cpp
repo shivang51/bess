@@ -43,7 +43,7 @@ namespace Bess::Canvas {
 
     glm::vec2 SchematicDiagram::draw(
         const Bess::Canvas::Transform &transform,
-        const Bess::Canvas::PickingId &pickingId,
+        const Bess::PickingId &pickingId,
         const std::shared_ptr<Bess::Renderer::PathRenderer> &pathRenderer) {
         const auto &pos = transform.position;
         float dAr = getSize().x / getSize().y;

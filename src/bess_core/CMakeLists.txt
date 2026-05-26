@@ -9,7 +9,7 @@ set(Header_Files
 	"include/bess_core/connection_service.h"
 
 	"include/bess_core/renderer/texture.h"
-	"include/bess_core/renderer/renderer.h"
+	"include/bess_core/renderer/renderer_2d.h"
 	"include/bess_core/renderer/renderer_types.h"
 )
 

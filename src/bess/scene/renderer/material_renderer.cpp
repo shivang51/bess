@@ -2,7 +2,6 @@
 #include "application/asset_manager/asset_manager.h"
 #include "application/assets.h"
 #include "renderer/font.h"
-#include "scene/scene_state/components/scene_component_types.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -157,7 +156,7 @@ namespace Bess::Renderer {
                 {(size.x * scaleShadow.x) - props.borderRadius.x,
                  (size.y * scaleShadow.y) - props.borderRadius.y},
                 props.shadow.color,
-                props.shadow.useInvalidId ? Canvas::PickingId::invalid() : id,
+                props.shadow.useInvalidId ? PickingId::invalid() : id,
                 m_shadowTexture, shadowProps);
         }
     }

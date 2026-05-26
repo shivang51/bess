@@ -139,7 +139,7 @@ namespace Bess::UI {
 
         m_viewport->begin((int)vkCore->getCurrentFrameIdx(),
                           ViewportTheme::colors.background,
-                          {0, Canvas::PickingId::invalid().runtimeId});
+                          {0, PickingId::invalid().runtimeId});
 
         drawGrid(context);
 
@@ -183,7 +183,7 @@ namespace Bess::UI {
     void SceneViewportPanel::drawGrid(SceneDrawContext &context) {
         context.materialRenderer->drawGrid(
             glm::vec3(0.f, 0.f, 0.1f), context.camera->getSpan(),
-            Canvas::PickingId::invalid(),
+            PickingId::invalid(),
             {
                 .minorColor = ViewportTheme::colors.gridMinorColor,
                 .majorColor = ViewportTheme::colors.gridMajorColor,
@@ -198,7 +198,7 @@ namespace Bess::UI {
         const glm::vec2 &startPos, const glm::vec2 &endPos) {
         auto midX = (startPos.x + endPos.x) / 2.f;
 
-        const auto &id = Canvas::PickingId::invalid();
+        const auto &id = PickingId::invalid();
 
         pathRenderer->beginPathMode(glm::vec3(startPos.x, startPos.y, 0.8f),
                                     2.f, ViewportTheme::colors.ghostWire, id);
@@ -303,9 +303,9 @@ namespace Bess::UI {
             selCtx.readIds = false;
 
             if (rawIds.size() > 0) {
-                std::set<Canvas::PickingId> ids;
+                std::set<PickingId> ids;
                 for (const auto &rawId : rawIds) {
-                    auto id = Canvas::PickingId::fromUint64(
+                    auto id = PickingId::fromUint64(
                         decodeGpuHoverValue(rawId));
                     ids.insert(id);
                 }
@@ -322,17 +322,17 @@ namespace Bess::UI {
         } else {
             const auto &ids = m_viewport->getPickingIdsResult();
             const uint64_t hoverValue = (ids.empty())
-                                            ? Canvas::PickingId::invalid()
+                                            ? PickingId::invalid()
                                             : decodeGpuHoverValue(ids[0]);
 
             // FIXME: this is a temp fix, picking id intially is 0 when no
             // comps are there, which is not right
             if (hoverValue == 0 && sceneState.getAllComponents().empty()) {
-                m_attachedScene->setPickingId(Canvas::PickingId::invalid());
+                m_attachedScene->setPickingId(PickingId::invalid());
                 return;
             }
             m_attachedScene->setPickingId(
-                Canvas::PickingId::fromUint64(hoverValue));
+                PickingId::fromUint64(hoverValue));
         }
     }
 } // namespace Bess::UI

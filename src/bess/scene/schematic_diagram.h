@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/types.h"
 #include "scene/renderer/path.h"
 #include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/scene_state/components/scene_component_types.h"
@@ -31,7 +32,7 @@ namespace Bess::Canvas {
 
         glm::vec2
         draw(const Bess::Canvas::Transform &transform,
-             const Bess::Canvas::PickingId &pickingId,
+             const Bess::PickingId &pickingId,
              const std::shared_ptr<Bess::Renderer::PathRenderer> &pathRenderer);
 
       private:
