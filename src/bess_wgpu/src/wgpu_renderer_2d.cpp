@@ -1,4 +1,6 @@
 #include "bess_wgpu/wgpu_renderer_2d.h"
+#include "bess_wgpu/shaders/quad_shader.h"
+#include "bess_wgpu/wgpu_shader.h"
 #include <algorithm>
 #include <array>
 #include <cstdio>
@@ -31,84 +33,6 @@ namespace Bess::Wgpu {
             float zIndex = 0.f;
             float padding[2] = {0.f, 0.f};
         };
-
-        constexpr const char *kQuadShader = R"(
-struct Frame {
-    viewport: vec2f,
-    padding: vec2f,
-};
-
-struct Quad {
-    position: vec2f,
-    size: vec2f,
-    color: vec4f,
-    radius: vec4f,
-    border_size: vec4f,
-    border_color: vec4f,
-    rotation: f32,
-    z_index: f32,
-    padding: vec2f,
-};
-
-struct VertexOut {
-    @builtin(position) position: vec4f,
-    @location(0) local_pos: vec2f,
-    @location(1) size: vec2f,
-    @location(2) color: vec4f,
-    @location(3) radius: vec4f,
-    @location(4) border_size: vec4f,
-    @location(5) border_color: vec4f,
-};
-
-@group(0) @binding(0) var<storage, read> quads: array<Quad>;
-@group(0) @binding(1) var<uniform> frame: Frame;
-
-@vertex
-fn vs_main(@builtin(vertex_index) vertex_index: u32,
-           @builtin(instance_index) instance_index: u32) -> VertexOut {
-    let corners = array<vec2f, 6>(
-        vec2f(0.0, 0.0), vec2f(1.0, 0.0), vec2f(0.0, 1.0),
-        vec2f(0.0, 1.0), vec2f(1.0, 0.0), vec2f(1.0, 1.0));
-    let local = corners[vertex_index];
-    let q = quads[instance_index];
-    let centered = (local - vec2f(0.5, 0.5)) * q.size;
-    let s = sin(q.rotation);
-    let c = cos(q.rotation);
-    let rotated = vec2f(
-        centered.x * c - centered.y * s,
-        centered.x * s + centered.y * c);
-    let world = q.position + rotated + q.size * 0.5;
-    let ndc = vec2f(
-        (world.x / frame.viewport.x) * 2.0 - 1.0,
-        1.0 - (world.y / frame.viewport.y) * 2.0);
-
-    var out: VertexOut;
-    out.position = vec4f(ndc, q.z_index, 1.0);
-    out.local_pos = local * q.size;
-    out.size = q.size;
-    out.color = q.color;
-    out.radius = q.radius;
-    out.border_size = q.border_size;
-    out.border_color = q.border_color;
-    return out;
-}
-
-@fragment
-fn fs_main(in: VertexOut) -> @location(0) vec4f {
-    let border = max(max(in.border_size.x, in.border_size.y),
-                     max(in.border_size.z, in.border_size.w));
-    if (border > 0.0) {
-        let near_edge = in.local_pos.x < border ||
-                        in.local_pos.y < border ||
-                        in.local_pos.x > in.size.x - border ||
-                        in.local_pos.y > in.size.y - border;
-        if (near_edge) {
-            return in.border_color;
-        }
-    }
-    return in.color;
-}
-)";
 
         wgpu::TextureFormat toWgpuFormat(Renderer2DTargetFormat format) {
             switch (format) {
@@ -221,6 +145,46 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
 
             return instance;
         }
+
+        class QuadBatch {
+          public:
+            void configure(uint32_t initialCapacity, uint32_t maxCapacity) {
+                m_maxCapacity = std::max(1u, maxCapacity);
+                m_instances.reserve(
+                    std::min(std::max(1u, initialCapacity), m_maxCapacity));
+            }
+
+            void clear() { m_instances.clear(); }
+
+            void push(const QuadInstance &instance) {
+                if (m_instances.size() >= m_maxCapacity) {
+                    throw std::runtime_error(
+                        "WGPU quad batch capacity exceeded");
+                }
+                m_instances.emplace_back(instance);
+            }
+
+            [[nodiscard]] bool empty() const noexcept {
+                return m_instances.empty();
+            }
+
+            [[nodiscard]] uint32_t count() const noexcept {
+                return static_cast<uint32_t>(m_instances.size());
+            }
+
+            [[nodiscard]] uint64_t byteSize() const noexcept {
+                return static_cast<uint64_t>(m_instances.size()) *
+                       sizeof(QuadInstance);
+            }
+
+            [[nodiscard]] const QuadInstance *data() const noexcept {
+                return m_instances.data();
+            }
+
+          private:
+            std::vector<QuadInstance> m_instances;
+            uint32_t m_maxCapacity = 1;
+        };
     } // namespace
 
     struct WgpuRenderer2D::Impl {
@@ -236,19 +200,22 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
         wgpu::Texture offscreenTarget;
         wgpu::TextureView offscreenTargetView;
         wgpu::RenderPipeline quadPipeline;
+        std::unique_ptr<WgpuShader> quadShader;
         wgpu::BindGroupLayout bindGroupLayout;
         wgpu::BindGroup bindGroup;
         wgpu::Buffer quadBuffer;
         wgpu::Buffer frameBuffer;
         wgpu::CommandEncoder commandEncoder;
 
-        std::vector<QuadInstance> quads;
+        QuadBatch quadBatch;
         std::size_t quadBufferSize = 0;
+        Core::Renderer::Renderer2DStats stats;
         Color clearColor{0.f, 0.f, 0.f, 1.f};
         bool shouldClear = true;
         bool frameStarted = false;
 
         void createDevice();
+        void createShaders();
         void createOffscreenTarget();
         void createPipeline();
         void ensureQuadBufferSize(std::size_t quadCount);
@@ -323,6 +290,12 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
         queue = device.GetQueue();
     }
 
+    void WgpuRenderer2D::Impl::createShaders() {
+        quadShader = std::make_unique<WgpuShader>("renderer_2d_quad",
+                                                  Shaders::getQuadShaderModules(),
+                                                  device);
+    }
+
     void WgpuRenderer2D::Impl::createOffscreenTarget() {
         wgpu::TextureDescriptor descriptor{};
         descriptor.dimension = wgpu::TextureDimension::e2D;
@@ -340,13 +313,9 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
     }
 
     void WgpuRenderer2D::Impl::createPipeline() {
-        wgpu::ShaderSourceWGSL wgslSource{};
-        wgslSource.code = kQuadShader;
-
-        wgpu::ShaderModuleDescriptor shaderDescriptor{};
-        shaderDescriptor.nextInChain = &wgslSource;
-        wgpu::ShaderModule shaderModule =
-            device.CreateShaderModule(&shaderDescriptor);
+        if (!quadShader) {
+            createShaders();
+        }
 
         std::array<wgpu::BindGroupLayoutEntry, 2> bindings{};
         bindings[0].binding = 0;
@@ -372,15 +341,21 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
         colorTarget.format = targetFormat;
 
         wgpu::FragmentState fragment{};
-        fragment.module = shaderModule;
-        fragment.entryPoint = "fs_main";
+        fragment.module =
+            quadShader->getModule(Core::Renderer::ShaderStage::Fragment);
+        fragment.entryPoint =
+            quadShader->getEntryPoint(Core::Renderer::ShaderStage::Fragment)
+                .c_str();
         fragment.targetCount = 1;
         fragment.targets = &colorTarget;
 
         wgpu::RenderPipelineDescriptor pipelineDescriptor{};
         pipelineDescriptor.layout = pipelineLayout;
-        pipelineDescriptor.vertex.module = shaderModule;
-        pipelineDescriptor.vertex.entryPoint = "vs_main";
+        pipelineDescriptor.vertex.module =
+            quadShader->getModule(Core::Renderer::ShaderStage::Vertex);
+        pipelineDescriptor.vertex.entryPoint =
+            quadShader->getEntryPoint(Core::Renderer::ShaderStage::Vertex)
+                .c_str();
         pipelineDescriptor.primitive.topology = wgpu::PrimitiveTopology::TriangleList;
         pipelineDescriptor.primitive.cullMode = wgpu::CullMode::None;
         pipelineDescriptor.fragment = &fragment;
@@ -444,10 +419,14 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
         m_impl->createInfo = createInfo;
         m_impl->extent = createInfo.extent;
         m_impl->targetFormat = toWgpuFormat(createInfo.targetFormat);
+        m_impl->quadBatch.configure(createInfo.batching.initialQuadCapacity,
+                                    createInfo.batching.maxQuadCapacity);
         m_impl->createDevice();
         m_impl->createOffscreenTarget();
+        m_impl->createShaders();
         m_impl->createPipeline();
-        m_impl->ensureQuadBufferSize(1);
+        m_impl->ensureQuadBufferSize(
+            std::max(1u, createInfo.batching.initialQuadCapacity));
     }
 
     void WgpuRenderer2D::destroy() {
@@ -458,6 +437,7 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
         m_impl->bindGroup = nullptr;
         m_impl->bindGroupLayout = nullptr;
         m_impl->quadPipeline = nullptr;
+        m_impl->quadShader = nullptr;
         m_impl->quadBuffer = nullptr;
         m_impl->frameBuffer = nullptr;
         m_impl->offscreenTargetView = nullptr;
@@ -466,7 +446,8 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
         m_impl->device = nullptr;
         m_impl->adapter = nullptr;
         m_impl->instance = nullptr;
-        m_impl->quads.clear();
+        m_impl->quadBatch.clear();
+        m_impl->stats = {};
         m_impl->frameStarted = false;
     }
 
@@ -491,7 +472,8 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
 
         m_impl->clearColor = frameInfo.clearColor;
         m_impl->shouldClear = frameInfo.shouldClear;
-        m_impl->quads.clear();
+        m_impl->quadBatch.clear();
+        m_impl->stats = {};
         m_impl->frameStarted = true;
     }
 
@@ -516,10 +498,12 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
         wgpu::RenderPassEncoder renderPass =
             m_impl->commandEncoder.BeginRenderPass(&renderPassDescriptor);
 
-        if (!m_impl->quads.empty()) {
-            m_impl->ensureQuadBufferSize(m_impl->quads.size());
-            m_impl->queue.WriteBuffer(m_impl->quadBuffer, 0, m_impl->quads.data(),
-                                      m_impl->quads.size() * sizeof(QuadInstance));
+        if (!m_impl->quadBatch.empty()) {
+            m_impl->ensureQuadBufferSize(m_impl->quadBatch.count());
+            m_impl->queue.WriteBuffer(m_impl->quadBuffer, 0,
+                                      m_impl->quadBatch.data(),
+                                      m_impl->quadBatch.byteSize());
+            m_impl->stats.uploadedBytes += m_impl->quadBatch.byteSize();
 
             FrameUniform frameUniform{};
             frameUniform.viewport[0] = static_cast<float>(m_impl->extent.width);
@@ -529,7 +513,8 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
 
             renderPass.SetPipeline(m_impl->quadPipeline);
             renderPass.SetBindGroup(0, m_impl->bindGroup);
-            renderPass.Draw(6, static_cast<uint32_t>(m_impl->quads.size()));
+            renderPass.Draw(6, m_impl->quadBatch.count());
+            m_impl->stats.drawCallCount++;
         }
 
         renderPass.End();
@@ -650,6 +635,11 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
         writePng(path, rgba.data(), width, height);
     }
 
+    Core::Renderer::Renderer2DStats
+    WgpuRenderer2D::getStats() const noexcept {
+        return m_impl->stats;
+    }
+
     Core::Renderer::TextureHandle WgpuRenderer2D::createTexture(
         const Core::Renderer::ITexture &) {
         return 0;
@@ -661,7 +651,8 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
         if (!m_impl->frameStarted) {
             return;
         }
-        m_impl->quads.emplace_back(makeQuadInstance(props, nullptr));
+        m_impl->quadBatch.push(makeQuadInstance(props, nullptr));
+        m_impl->stats.quadCount = m_impl->quadBatch.count();
     }
 
     void WgpuRenderer2D::drawRoundedQuad(
@@ -670,7 +661,8 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
         if (!m_impl->frameStarted) {
             return;
         }
-        m_impl->quads.emplace_back(makeQuadInstance(props, &roundedProps));
+        m_impl->quadBatch.push(makeQuadInstance(props, &roundedProps));
+        m_impl->stats.quadCount = m_impl->quadBatch.count();
     }
 
     wgpu::Device WgpuRenderer2D::getDevice() const { return m_impl->device; }

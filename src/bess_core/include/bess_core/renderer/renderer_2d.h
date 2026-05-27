@@ -27,11 +27,23 @@ namespace Bess::Core::Renderer {
         void *handle = nullptr;
     };
 
+    struct Renderer2DBatchConfig {
+        uint32_t initialQuadCapacity = 1024;
+        uint32_t maxQuadCapacity = 65536;
+    };
+
     struct Renderer2DCreateInfo {
         Renderer2DExtent extent;
         Renderer2DTargetFormat targetFormat = Renderer2DTargetFormat::BGRA8Unorm;
         Renderer2DNativeSurface surface;
+        Renderer2DBatchConfig batching;
         bool enableValidation = true;
+    };
+
+    struct Renderer2DStats {
+        uint32_t quadCount = 0;
+        uint32_t drawCallCount = 0;
+        uint64_t uploadedBytes = 0;
     };
 
     struct Renderer2DFrameInfo {
@@ -54,6 +66,7 @@ namespace Bess::Core::Renderer {
 
         virtual void clear(const Color &color) = 0;
         virtual void saveTargetToFile(const std::string &path) = 0;
+        [[nodiscard]] virtual Renderer2DStats getStats() const noexcept = 0;
 
         virtual TextureHandle createTexture(const ITexture &texture) = 0;
         virtual void destroyTexture(TextureHandle texture) = 0;

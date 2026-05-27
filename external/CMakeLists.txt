@@ -55,6 +55,8 @@ set(PNG_TESTS OFF CACHE BOOL "Build libpng tests" FORCE)
 set(PNG_TOOLS OFF CACHE BOOL "Build libpng tools" FORCE)
 
 set(DAWN_FETCH_DEPENDENCIES ON CACHE BOOL "Fetch Dawn dependencies" FORCE)
+set(FETCHCONTENT_UPDATES_DISCONNECTED_DAWN ON CACHE BOOL
+    "Do not update the pinned Dawn checkout during normal builds" FORCE)
 set(DAWN_ENABLE_INSTALL OFF CACHE BOOL "Disable Dawn install rules" FORCE)
 set(DAWN_BUILD_SAMPLES OFF CACHE BOOL "Disable Dawn sample targets" FORCE)
 set(DAWN_BUILD_TESTS OFF CACHE BOOL "Disable Dawn test targets" FORCE)

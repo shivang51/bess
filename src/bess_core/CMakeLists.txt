@@ -9,6 +9,7 @@ set(Header_Files
 	"include/bess_core/connection_service.h"
 
 	"include/bess_core/renderer/texture.h"
+	"include/bess_core/renderer/shader.h"
 	"include/bess_core/renderer/renderer_2d.h"
 	"include/bess_core/renderer/renderer_types.h"
 )
@@ -23,6 +24,7 @@ set(Source_Files
 	"src/bess_core/connection_service.cpp"
 	
 	"src/bess_core/renderer/texture.cpp"
+	"src/bess_core/renderer/shader.cpp"
 	"src/bess_core/renderer/renderer.cpp"
 )
 

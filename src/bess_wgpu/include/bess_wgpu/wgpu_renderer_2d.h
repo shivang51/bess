@@ -28,6 +28,8 @@ namespace Bess::Wgpu {
 
         void clear(const Core::Renderer::Color &color) override;
         void saveTargetToFile(const std::string &path) override;
+        [[nodiscard]] Core::Renderer::Renderer2DStats
+        getStats() const noexcept override;
 
         Core::Renderer::TextureHandle
         createTexture(const Core::Renderer::ITexture &texture) override;

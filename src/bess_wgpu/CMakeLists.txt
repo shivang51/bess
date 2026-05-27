@@ -3,12 +3,16 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(Header_Files
     "include/bess_wgpu/wgpu_renderer_2d.h"
+    "include/bess_wgpu/wgpu_shader.h"
+    "include/bess_wgpu/shaders/quad_shader.h"
 )
 
 source_group("include" FILES ${Header_Files})
 
 set(Source_Files
     "src/wgpu_renderer_2d.cpp"
+    "src/wgpu_shader.cpp"
+    "src/shaders/quad_shader.cpp"
 )
 
 source_group("src" FILES ${Source_Files})
