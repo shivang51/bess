@@ -55,10 +55,12 @@ namespace Bess::Core::Renderer {
         glm::vec2 position{0.f, 0.f};
         glm::vec2 size{1.f, 1.f};
         float rotation = 0.f;
+        // Lower values are rendered first; higher values appear on top.
         float zIndex = 0.f;
 
         Color color{1.f, 1.f, 1.f, 1.f};
         TextureHandle texture = 0; // 0 = No texture (flat color)
+        glm::vec4 uvRect{0.f, 0.f, 1.f, 1.f}; // min u/v, max u/v
         PickingId id = PickingId::invalid();
     };
 

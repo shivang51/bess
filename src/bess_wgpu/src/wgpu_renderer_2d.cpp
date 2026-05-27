@@ -9,6 +9,9 @@
 #include <png.h>
 #include <stdexcept>
 #include <string>
+#include <stb_image.h>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace Bess::Wgpu {
@@ -29,9 +32,23 @@ namespace Bess::Wgpu {
             float radius[4] = {0.f, 0.f, 0.f, 0.f};
             float borderSize[4] = {0.f, 0.f, 0.f, 0.f};
             float borderColor[4] = {0.f, 0.f, 0.f, 1.f};
+            float uvRect[4] = {0.f, 0.f, 1.f, 1.f};
             float rotation = 0.f;
             float zIndex = 0.f;
-            float padding[2] = {0.f, 0.f};
+            float useTexture = 0.f;
+            float padding = 0.f;
+        };
+
+        struct QueuedQuad {
+            QuadInstance instance;
+            Core::Renderer::TextureHandle texture = 0;
+            uint64_t sequence = 0;
+        };
+
+        struct DrawRun {
+            Core::Renderer::TextureHandle texture = 0;
+            uint32_t firstInstance = 0;
+            uint32_t instanceCount = 0;
         };
 
         wgpu::TextureFormat toWgpuFormat(Renderer2DTargetFormat format) {
@@ -64,6 +81,12 @@ namespace Bess::Wgpu {
                 if (file != nullptr) {
                     std::fclose(file);
                 }
+            }
+        };
+
+        struct StbiImageDeleter {
+            void operator()(stbi_uc *pixels) const {
+                stbi_image_free(pixels);
             }
         };
 
@@ -125,8 +148,13 @@ namespace Bess::Wgpu {
             instance.color[1] = props.color.g;
             instance.color[2] = props.color.b;
             instance.color[3] = props.color.a;
+            instance.uvRect[0] = props.uvRect.x;
+            instance.uvRect[1] = props.uvRect.y;
+            instance.uvRect[2] = props.uvRect.z;
+            instance.uvRect[3] = props.uvRect.w;
             instance.rotation = props.rotation;
             instance.zIndex = props.zIndex;
+            instance.useTexture = props.texture == 0 ? 0.f : 1.f;
 
             if (roundedProps != nullptr) {
                 instance.radius[0] = roundedProps->radius.x;
@@ -154,19 +182,56 @@ namespace Bess::Wgpu {
                     std::min(std::max(1u, initialCapacity), m_maxCapacity));
             }
 
-            void clear() { m_instances.clear(); }
+            void clear() {
+                m_instances.clear();
+                m_gpuInstances.clear();
+                m_drawRuns.clear();
+                m_nextSequence = 0;
+            }
 
-            void push(const QuadInstance &instance) {
+            void push(const QuadInstance &instance,
+                      Core::Renderer::TextureHandle texture) {
                 if (m_instances.size() >= m_maxCapacity) {
                     throw std::runtime_error(
                         "WGPU quad batch capacity exceeded");
                 }
-                m_instances.emplace_back(instance);
+                m_instances.push_back({instance, texture, m_nextSequence++});
             }
 
-            [[nodiscard]] bool empty() const noexcept {
-                return m_instances.empty();
+            void sortForRendering() {
+                std::stable_sort(m_instances.begin(), m_instances.end(),
+                                 [](const QueuedQuad &left,
+                                    const QueuedQuad &right) {
+                                     if (left.instance.zIndex !=
+                                         right.instance.zIndex) {
+                                         return left.instance.zIndex <
+                                                right.instance.zIndex;
+                                     }
+                                     return left.sequence < right.sequence;
+                                 });
+
+                m_gpuInstances.clear();
+                m_gpuInstances.reserve(m_instances.size());
+                m_drawRuns.clear();
+
+                for (const auto &quad : m_instances) {
+                    const uint32_t instanceIndex =
+                        static_cast<uint32_t>(m_gpuInstances.size());
+                    m_gpuInstances.emplace_back(quad.instance);
+
+                    if (m_drawRuns.empty() ||
+                        m_drawRuns.back().texture != quad.texture) {
+                        m_drawRuns.push_back(
+                            {.texture = quad.texture,
+                             .firstInstance = instanceIndex,
+                             .instanceCount = 1});
+                    } else {
+                        m_drawRuns.back().instanceCount++;
+                    }
+                }
             }
+
+            [[nodiscard]] bool empty() const noexcept { return m_instances.empty(); }
 
             [[nodiscard]] uint32_t count() const noexcept {
                 return static_cast<uint32_t>(m_instances.size());
@@ -178,12 +243,37 @@ namespace Bess::Wgpu {
             }
 
             [[nodiscard]] const QuadInstance *data() const noexcept {
-                return m_instances.data();
+                return m_gpuInstances.data();
+            }
+
+            [[nodiscard]] const std::vector<DrawRun> &getDrawRuns() const noexcept {
+                return m_drawRuns;
             }
 
           private:
-            std::vector<QuadInstance> m_instances;
+            std::vector<QueuedQuad> m_instances;
+            std::vector<QuadInstance> m_gpuInstances;
+            std::vector<DrawRun> m_drawRuns;
             uint32_t m_maxCapacity = 1;
+            uint64_t m_nextSequence = 0;
+        };
+
+        struct TextureResource {
+            wgpu::Texture texture;
+            wgpu::TextureView view;
+            wgpu::BindGroup bindGroup;
+            uint32_t width = 1;
+            uint32_t height = 1;
+        };
+
+        class TextureSource final : public Core::Renderer::ITexture {
+          public:
+            explicit TextureSource(
+                const Core::Renderer::TextureCreateInfo &createInfo)
+                : ITexture(createInfo) {}
+
+            void init() override {}
+            void destroy() override {}
         };
     } // namespace
 
@@ -202,10 +292,13 @@ namespace Bess::Wgpu {
         wgpu::RenderPipeline quadPipeline;
         std::unique_ptr<WgpuShader> quadShader;
         wgpu::BindGroupLayout bindGroupLayout;
-        wgpu::BindGroup bindGroup;
+        wgpu::Sampler textureSampler;
         wgpu::Buffer quadBuffer;
         wgpu::Buffer frameBuffer;
         wgpu::CommandEncoder commandEncoder;
+        std::unordered_map<Core::Renderer::TextureHandle, TextureResource>
+            textures;
+        Core::Renderer::TextureHandle nextTextureHandle = 1;
 
         QuadBatch quadBatch;
         std::size_t quadBufferSize = 0;
@@ -218,8 +311,15 @@ namespace Bess::Wgpu {
         void createShaders();
         void createOffscreenTarget();
         void createPipeline();
+        void createTextureSampler();
+        Core::Renderer::TextureHandle createTextureFromPixels(
+            const uint8_t *pixels, uint32_t width, uint32_t height,
+            bool isDefaultTexture);
+        void createDefaultTexture();
         void ensureQuadBufferSize(std::size_t quadCount);
-        void recreateBindGroup();
+        void recreateTextureBindGroups();
+        [[nodiscard]] const TextureResource &
+        getTexture(Core::Renderer::TextureHandle texture) const;
     };
 
     void WgpuRenderer2D::Impl::createDevice() {
@@ -263,6 +363,9 @@ namespace Bess::Wgpu {
         }
 
         wgpu::DeviceDescriptor deviceDescriptor{};
+        deviceDescriptor.SetUncapturedErrorCallback([](const wgpu::Device&, wgpu::ErrorType type, wgpu::StringView message) {
+            printf("Dawn Error: %.*s\n", (int)message.length, message.data);
+        });
         RequestResult deviceResult;
         auto deviceCallback = [&deviceResult](wgpu::RequestDeviceStatus status,
                                               wgpu::Device device,
@@ -317,7 +420,7 @@ namespace Bess::Wgpu {
             createShaders();
         }
 
-        std::array<wgpu::BindGroupLayoutEntry, 2> bindings{};
+        std::array<wgpu::BindGroupLayoutEntry, 4> bindings{};
         bindings[0].binding = 0;
         bindings[0].visibility = wgpu::ShaderStage::Vertex;
         bindings[0].buffer.type = wgpu::BufferBindingType::ReadOnlyStorage;
@@ -325,6 +428,15 @@ namespace Bess::Wgpu {
         bindings[1].binding = 1;
         bindings[1].visibility = wgpu::ShaderStage::Vertex;
         bindings[1].buffer.type = wgpu::BufferBindingType::Uniform;
+
+        bindings[2].binding = 2;
+        bindings[2].visibility = wgpu::ShaderStage::Fragment;
+        bindings[2].sampler.type = wgpu::SamplerBindingType::Filtering;
+
+        bindings[3].binding = 3;
+        bindings[3].visibility = wgpu::ShaderStage::Fragment;
+        bindings[3].texture.sampleType = wgpu::TextureSampleType::Float;
+        bindings[3].texture.viewDimension = wgpu::TextureViewDimension::e2D;
 
         wgpu::BindGroupLayoutDescriptor bindGroupLayoutDescriptor{};
         bindGroupLayoutDescriptor.entryCount = bindings.size();
@@ -339,6 +451,14 @@ namespace Bess::Wgpu {
 
         wgpu::ColorTargetState colorTarget{};
         colorTarget.format = targetFormat;
+        wgpu::BlendState blendState{};
+        blendState.color.operation = wgpu::BlendOperation::Add;
+        blendState.color.srcFactor = wgpu::BlendFactor::SrcAlpha;
+        blendState.color.dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha;
+        blendState.alpha.operation = wgpu::BlendOperation::Add;
+        blendState.alpha.srcFactor = wgpu::BlendFactor::One;
+        blendState.alpha.dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha;
+        colorTarget.blend = &blendState;
 
         wgpu::FragmentState fragment{};
         fragment.module =
@@ -369,6 +489,67 @@ namespace Bess::Wgpu {
         frameBuffer = device.CreateBuffer(&frameBufferDescriptor);
     }
 
+    void WgpuRenderer2D::Impl::createTextureSampler() {
+        wgpu::SamplerDescriptor descriptor{};
+        descriptor.addressModeU = wgpu::AddressMode::ClampToEdge;
+        descriptor.addressModeV = wgpu::AddressMode::ClampToEdge;
+        descriptor.addressModeW = wgpu::AddressMode::ClampToEdge;
+        descriptor.magFilter = wgpu::FilterMode::Linear;
+        descriptor.minFilter = wgpu::FilterMode::Linear;
+        descriptor.mipmapFilter = wgpu::MipmapFilterMode::Nearest;
+        textureSampler = device.CreateSampler(&descriptor);
+    }
+
+    Core::Renderer::TextureHandle WgpuRenderer2D::Impl::createTextureFromPixels(
+        const uint8_t *pixels, uint32_t width, uint32_t height,
+        bool isDefaultTexture) {
+        if (pixels == nullptr || width == 0 || height == 0) {
+            throw std::runtime_error("Invalid texture pixel data");
+        }
+
+        wgpu::TextureDescriptor descriptor{};
+        descriptor.dimension = wgpu::TextureDimension::e2D;
+        descriptor.size = {width, height, 1};
+        descriptor.format = wgpu::TextureFormat::RGBA8Unorm;
+        descriptor.mipLevelCount = 1;
+        descriptor.sampleCount = 1;
+        descriptor.usage =
+            wgpu::TextureUsage::TextureBinding | wgpu::TextureUsage::CopyDst;
+
+        TextureResource resource;
+        resource.texture = device.CreateTexture(&descriptor);
+        resource.view = resource.texture.CreateView();
+        resource.width = width;
+        resource.height = height;
+
+        wgpu::TexelCopyTextureInfo destination{};
+        destination.texture = resource.texture;
+        destination.mipLevel = 0;
+        destination.origin = {0, 0, 0};
+        destination.aspect = wgpu::TextureAspect::All;
+
+        wgpu::TexelCopyBufferLayout layout{};
+        layout.offset = 0;
+        layout.bytesPerRow = width * 4;
+        layout.rowsPerImage = height;
+
+        wgpu::Extent3D writeSize{width, height, 1};
+        queue.WriteTexture(&destination, pixels,
+                           static_cast<size_t>(width) * height * 4, &layout,
+                           &writeSize);
+
+        const Core::Renderer::TextureHandle handle =
+            isDefaultTexture ? 0 : nextTextureHandle++;
+        textures[handle] = std::move(resource);
+        recreateTextureBindGroups();
+        return handle;
+    }
+
+    void WgpuRenderer2D::Impl::createDefaultTexture() {
+        const std::array<uint8_t, 4> whitePixel{255, 255, 255, 255};
+        createTextureFromPixels(whitePixel.data(), 1, 1, true);
+    }
+
     void WgpuRenderer2D::Impl::ensureQuadBufferSize(std::size_t quadCount) {
         const auto requiredSize =
             std::max<std::size_t>(sizeof(QuadInstance), quadCount * sizeof(QuadInstance));
@@ -382,30 +563,48 @@ namespace Bess::Wgpu {
             wgpu::BufferUsage::Storage | wgpu::BufferUsage::CopyDst;
         quadBuffer = device.CreateBuffer(&descriptor);
         quadBufferSize = requiredSize;
-        recreateBindGroup();
+        recreateTextureBindGroups();
     }
 
-    void WgpuRenderer2D::Impl::recreateBindGroup() {
-        if (quadBuffer == nullptr || frameBuffer == nullptr) {
+    void WgpuRenderer2D::Impl::recreateTextureBindGroups() {
+        if (quadBuffer == nullptr || frameBuffer == nullptr ||
+            bindGroupLayout == nullptr || textureSampler == nullptr) {
             return;
         }
 
-        std::array<wgpu::BindGroupEntry, 2> entries{};
-        entries[0].binding = 0;
-        entries[0].buffer = quadBuffer;
-        entries[0].offset = 0;
-        entries[0].size = quadBufferSize;
+        for (auto &[handle, texture] : textures) {
+            std::array<wgpu::BindGroupEntry, 4> entries{};
+            entries[0].binding = 0;
+            entries[0].buffer = quadBuffer;
+            entries[0].offset = 0;
+            entries[0].size = quadBufferSize;
 
-        entries[1].binding = 1;
-        entries[1].buffer = frameBuffer;
-        entries[1].offset = 0;
-        entries[1].size = sizeof(FrameUniform);
+            entries[1].binding = 1;
+            entries[1].buffer = frameBuffer;
+            entries[1].offset = 0;
+            entries[1].size = sizeof(FrameUniform);
 
-        wgpu::BindGroupDescriptor descriptor{};
-        descriptor.layout = bindGroupLayout;
-        descriptor.entryCount = entries.size();
-        descriptor.entries = entries.data();
-        bindGroup = device.CreateBindGroup(&descriptor);
+            entries[2].binding = 2;
+            entries[2].sampler = textureSampler;
+
+            entries[3].binding = 3;
+            entries[3].textureView = texture.view;
+
+            wgpu::BindGroupDescriptor descriptor{};
+            descriptor.layout = bindGroupLayout;
+            descriptor.entryCount = entries.size();
+            descriptor.entries = entries.data();
+            texture.bindGroup = device.CreateBindGroup(&descriptor);
+        }
+    }
+
+    const TextureResource &WgpuRenderer2D::Impl::getTexture(
+        Core::Renderer::TextureHandle texture) const {
+        const auto it = textures.find(texture);
+        if (it != textures.end()) {
+            return it->second;
+        }
+        return textures.at(0);
     }
 
     WgpuRenderer2D::WgpuRenderer2D() : m_impl(std::make_unique<Impl>()) {}
@@ -425,8 +624,10 @@ namespace Bess::Wgpu {
         m_impl->createOffscreenTarget();
         m_impl->createShaders();
         m_impl->createPipeline();
+        m_impl->createTextureSampler();
         m_impl->ensureQuadBufferSize(
             std::max(1u, createInfo.batching.initialQuadCapacity));
+        m_impl->createDefaultTexture();
     }
 
     void WgpuRenderer2D::destroy() {
@@ -434,12 +635,14 @@ namespace Bess::Wgpu {
             return;
         }
         m_impl->commandEncoder = nullptr;
-        m_impl->bindGroup = nullptr;
         m_impl->bindGroupLayout = nullptr;
         m_impl->quadPipeline = nullptr;
         m_impl->quadShader = nullptr;
+        m_impl->textureSampler = nullptr;
         m_impl->quadBuffer = nullptr;
         m_impl->frameBuffer = nullptr;
+        m_impl->textures.clear();
+        m_impl->nextTextureHandle = 1;
         m_impl->offscreenTargetView = nullptr;
         m_impl->offscreenTarget = nullptr;
         m_impl->queue = nullptr;
@@ -499,6 +702,7 @@ namespace Bess::Wgpu {
             m_impl->commandEncoder.BeginRenderPass(&renderPassDescriptor);
 
         if (!m_impl->quadBatch.empty()) {
+            m_impl->quadBatch.sortForRendering();
             m_impl->ensureQuadBufferSize(m_impl->quadBatch.count());
             m_impl->queue.WriteBuffer(m_impl->quadBuffer, 0,
                                       m_impl->quadBatch.data(),
@@ -512,9 +716,12 @@ namespace Bess::Wgpu {
                                       sizeof(frameUniform));
 
             renderPass.SetPipeline(m_impl->quadPipeline);
-            renderPass.SetBindGroup(0, m_impl->bindGroup);
-            renderPass.Draw(6, m_impl->quadBatch.count());
-            m_impl->stats.drawCallCount++;
+            for (const auto &run : m_impl->quadBatch.getDrawRuns()) {
+                const auto &texture = m_impl->getTexture(run.texture);
+                renderPass.SetBindGroup(0, texture.bindGroup);
+                renderPass.Draw(6, run.instanceCount, 0, run.firstInstance);
+                m_impl->stats.drawCallCount++;
+            }
         }
 
         renderPass.End();
@@ -640,18 +847,50 @@ namespace Bess::Wgpu {
         return m_impl->stats;
     }
 
-    Core::Renderer::TextureHandle WgpuRenderer2D::createTexture(
-        const Core::Renderer::ITexture &) {
-        return 0;
+    Core::Renderer::TextureHandle
+    WgpuRenderer2D::createTexture(Core::Renderer::ITexture &texture) {
+        if (m_impl->device == nullptr) {
+            throw std::runtime_error("WgpuRenderer2D is not initialized");
+        }
+
+        int width = 0;
+        int height = 0;
+        int channels = 0;
+        std::unique_ptr<stbi_uc, StbiImageDeleter> pixels(
+            stbi_load(texture.getPath().c_str(), &width, &height, &channels, 4));
+        if (pixels == nullptr) {
+            throw std::runtime_error("Failed to load texture: " +
+                                     texture.getPath());
+        }
+
+        const auto handle = m_impl->createTextureFromPixels(
+            pixels.get(), static_cast<uint32_t>(width),
+            static_cast<uint32_t>(height), false);
+        texture.setSize(
+            {static_cast<float>(width), static_cast<float>(height)});
+        texture.setHandle(handle);
+        return handle;
     }
 
-    void WgpuRenderer2D::destroyTexture(Core::Renderer::TextureHandle) {}
+    Core::Renderer::TextureHandle WgpuRenderer2D::createTexture(
+        const Core::Renderer::TextureCreateInfo &createInfo) {
+        TextureSource texture(createInfo);
+        return createTexture(texture);
+    }
+
+    void WgpuRenderer2D::destroyTexture(
+        Core::Renderer::TextureHandle texture) {
+        if (texture == 0) {
+            return;
+        }
+        m_impl->textures.erase(texture);
+    }
 
     void WgpuRenderer2D::drawQuad(const Core::Renderer::QuadProps &props) {
         if (!m_impl->frameStarted) {
             return;
         }
-        m_impl->quadBatch.push(makeQuadInstance(props, nullptr));
+        m_impl->quadBatch.push(makeQuadInstance(props, nullptr), props.texture);
         m_impl->stats.quadCount = m_impl->quadBatch.count();
     }
 
@@ -661,7 +900,8 @@ namespace Bess::Wgpu {
         if (!m_impl->frameStarted) {
             return;
         }
-        m_impl->quadBatch.push(makeQuadInstance(props, &roundedProps));
+        m_impl->quadBatch.push(makeQuadInstance(props, &roundedProps),
+                               props.texture);
         m_impl->stats.quadCount = m_impl->quadBatch.count();
     }
 

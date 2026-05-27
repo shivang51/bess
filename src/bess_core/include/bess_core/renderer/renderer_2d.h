@@ -68,7 +68,7 @@ namespace Bess::Core::Renderer {
         virtual void saveTargetToFile(const std::string &path) = 0;
         [[nodiscard]] virtual Renderer2DStats getStats() const noexcept = 0;
 
-        virtual TextureHandle createTexture(const ITexture &texture) = 0;
+        virtual TextureHandle createTexture(ITexture &texture) = 0;
         virtual void destroyTexture(TextureHandle texture) = 0;
 
         virtual void drawQuad(const QuadProps &props) = 0;

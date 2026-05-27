@@ -15,9 +15,11 @@ struct Quad {
     radius: vec4f,
     border_size: vec4f,
     border_color: vec4f,
+    uv_rect: vec4f,
     rotation: f32,
     z_index: f32,
-    padding: vec2f,
+    use_texture: f32,
+    padding: f32,
 };
 
 struct VertexOut {
@@ -28,10 +30,14 @@ struct VertexOut {
     @location(3) radius: vec4f,
     @location(4) border_size: vec4f,
     @location(5) border_color: vec4f,
+    @location(6) tex_coord: vec2f,
+    @location(7) use_texture: f32,
 };
 
 @group(0) @binding(0) var<storage, read> quads: array<Quad>;
 @group(0) @binding(1) var<uniform> frame: Frame;
+@group(0) @binding(2) var quad_sampler: sampler;
+@group(0) @binding(3) var quad_texture: texture_2d<f32>;
 
 @vertex
 fn vs_main(@builtin(vertex_index) vertex_index: u32,
@@ -53,13 +59,15 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32,
         1.0 - (world.y / frame.viewport.y) * 2.0);
 
     var out: VertexOut;
-    out.position = vec4f(ndc, q.z_index, 1.0);
+    out.position = vec4f(ndc, 0.0, 1.0);
     out.local_pos = local * q.size;
     out.size = q.size;
     out.color = q.color;
     out.radius = q.radius;
     out.border_size = q.border_size;
     out.border_color = q.border_color;
+    out.tex_coord = q.uv_rect.xy + local * (q.uv_rect.zw - q.uv_rect.xy);
+    out.use_texture = q.use_texture;
     return out;
 }
 
@@ -75,6 +83,9 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
         if (near_edge) {
             return in.border_color;
         }
+    }
+    if (in.use_texture > 0.5) {
+        return textureSampleLevel(quad_texture, quad_sampler, in.tex_coord, 0.0) * in.color;
     }
     return in.color;
 }

@@ -4,6 +4,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(Header_Files
     "include/bess_wgpu/wgpu_renderer_2d.h"
     "include/bess_wgpu/wgpu_shader.h"
+    "include/bess_wgpu/wgpu_texture.h"
     "include/bess_wgpu/shaders/quad_shader.h"
 )
 
@@ -12,6 +13,7 @@ source_group("include" FILES ${Header_Files})
 set(Source_Files
     "src/wgpu_renderer_2d.cpp"
     "src/wgpu_shader.cpp"
+    "src/wgpu_texture.cpp"
     "src/shaders/quad_shader.cpp"
 )
 
@@ -28,6 +30,10 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}"
 
 target_include_directories(${PROJECT_NAME} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
+)
+
+target_include_directories(${PROJECT_NAME} PRIVATE
+    "${CMAKE_SOURCE_DIR}/external/stb_image/include"
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC

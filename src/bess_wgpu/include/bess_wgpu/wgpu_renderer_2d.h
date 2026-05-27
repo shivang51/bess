@@ -32,7 +32,9 @@ namespace Bess::Wgpu {
         getStats() const noexcept override;
 
         Core::Renderer::TextureHandle
-        createTexture(const Core::Renderer::ITexture &texture) override;
+        createTexture(Core::Renderer::ITexture &texture) override;
+        Core::Renderer::TextureHandle
+        createTexture(const Core::Renderer::TextureCreateInfo &createInfo);
         void destroyTexture(Core::Renderer::TextureHandle texture) override;
 
         void drawQuad(const Core::Renderer::QuadProps &props) override;
