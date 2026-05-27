@@ -1,6 +1,7 @@
 #include "bess_wgpu/wgpu_renderer_2d.h"
 #include "bess_wgpu/shaders/quad_shader.h"
 #include "bess_wgpu/wgpu_shader.h"
+#include "common/logger.h"
 #include <algorithm>
 #include <array>
 #include <cstdio>
@@ -364,7 +365,16 @@ namespace Bess::Wgpu {
 
         wgpu::DeviceDescriptor deviceDescriptor{};
         deviceDescriptor.SetUncapturedErrorCallback([](const wgpu::Device&, wgpu::ErrorType type, wgpu::StringView message) {
-            printf("Dawn Error: %.*s\n", (int)message.length, message.data);
+            #undef LOGGER_NAME
+            #define LOGGER_NAME "BessWgpu"
+            BESS_ERROR("Dawn Validation Error [{}]: {}", static_cast<int>(type), std::string_view(message.data, message.length));
+            #undef LOGGER_NAME
+        });
+        deviceDescriptor.SetDeviceLostCallback(wgpu::CallbackMode::AllowSpontaneous, [](const wgpu::Device&, wgpu::DeviceLostReason reason, wgpu::StringView message) {
+            #undef LOGGER_NAME
+            #define LOGGER_NAME "BessWgpu"
+            BESS_ERROR("Dawn Device Lost [{}]: {}", static_cast<int>(reason), std::string_view(message.data, message.length));
+            #undef LOGGER_NAME
         });
         RequestResult deviceResult;
         auto deviceCallback = [&deviceResult](wgpu::RequestDeviceStatus status,
