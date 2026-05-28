@@ -102,7 +102,7 @@ void bind_cmds(py::module &m) {
         std::vector<Bess::SimEngine::LogicState> states;
         states.reserve(comp->getInputStates().size());
         for (const auto &state : comp->getInputStates()) {
-            states.push_back(state.state);
+            states.push_back(state.getLogicState());
         }
         return {py::cast(states), ""};
     };
@@ -121,7 +121,7 @@ void bind_cmds(py::module &m) {
         std::vector<Bess::SimEngine::LogicState> states;
         states.reserve(comp->getInputStates().size());
         for (const auto &state : comp->getInputStates()) {
-            states.push_back(state.state);
+            states.push_back(state.getLogicState());
         }
         return {py::cast(states), ""};
     };
@@ -138,7 +138,7 @@ void bind_cmds(py::module &m) {
         std::vector<Bess::SimEngine::LogicState> states;
         states.reserve(comp->getOutputStates().size());
         for (const auto &state : comp->getOutputStates()) {
-            states.push_back(state.state);
+            states.push_back(state.getLogicState());
         }
         return {py::cast(states), ""};
     };
@@ -158,7 +158,7 @@ void bind_cmds(py::module &m) {
         std::vector<Bess::SimEngine::LogicState> states;
         states.reserve(comp->getOutputStates().size());
         for (const auto &state : comp->getOutputStates()) {
-            states.push_back(state.state);
+            states.push_back(state.getLogicState());
         }
         return {py::cast(states), ""};
     };

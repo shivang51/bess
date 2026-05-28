@@ -1,6 +1,7 @@
 #include "sim_driver/sim_driver.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
+#include "common/types.h"
 
 namespace Bess::SimEngine::Drivers {
 

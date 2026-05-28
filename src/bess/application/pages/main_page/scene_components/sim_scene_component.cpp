@@ -1,10 +1,10 @@
 #include "sim_scene_component.h"
+#include "bess_core/connection_service.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "common/bess_uuid.h"
 #include "icons/FontAwesomeIcons.h"
 #include "input_scene_component.h"
-#include "bess_core/connection_service.h"
 #include "renderer/material_renderer.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/styles/comp_style.h"
@@ -552,7 +552,7 @@ namespace Bess::Canvas {
             if (slotComp->isResizeSlot()) {
                 continue;
             }
-            states.push_back(slotComp->getSlotState(state).state);
+            states.push_back(slotComp->getSlotState(state).getLogicState());
         }
         return states;
     }
@@ -566,7 +566,7 @@ namespace Bess::Canvas {
             if (slotComp->isResizeSlot()) {
                 continue;
             }
-            states.push_back(slotComp->getSlotState(state).state);
+            states.push_back(slotComp->getSlotState(state).getLogicState());
         }
         return states;
     }

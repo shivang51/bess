@@ -56,10 +56,10 @@ TSimFnDataPtr exprEvalSimFunc(const TSimFnDataPtr &simData) {
         std::vector<bool> states;
         states.reserve(inputs.size());
         for (auto &state : inputs)
-            states.emplace_back((bool)state);
+            states.emplace_back(state.isHigh());
         bool newStateBool = Bess::SimEngine::ExprEval::evaluateExpression(
             expressions->at(i), states);
-        changed = changed || (bool)prevState.outputStates[i] != newStateBool;
+        changed = changed || prevState.outputStates[i].isHigh() != newStateBool;
         newOuts[i] = {newStateBool ? Bess::SimEngine::LogicState::high
                                    : Bess::SimEngine::LogicState::low,
                       simData->simTime};

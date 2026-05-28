@@ -165,7 +165,7 @@ namespace Bess::Canvas {
 
                 if (!outputs.empty()) { // to schedule sim event
                     simEngine.setOutputSlotState(this->m_simEngineId, 0,
-                                                 outputs[0].state);
+                                                 outputs[0].getLogicState());
                 }
             });
 

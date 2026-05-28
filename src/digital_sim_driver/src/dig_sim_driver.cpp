@@ -54,13 +54,12 @@ namespace Bess::SimEngine::Drivers::Digital {
             std::vector<bool> states;
             states.reserve(inputs.size());
             for (auto &state : inputs)
-                states.emplace_back((bool)state);
+                states.emplace_back(state.isHigh());
             bool newStateBool =
                 ExprEval::evaluateExpression(expressions->at(i), states);
             changed =
-                changed || (bool)prevState.outputStates[i] != newStateBool;
-            newOuts[i] = {newStateBool ? LogicState::high : LogicState::low,
-                          simData->simTime};
+                changed || prevState.outputStates[i].isHigh() != newStateBool;
+            newOuts[i] = {newStateBool ? 5.0f : 0.f, simData->simTime};
         }
 
         simData->simDependants = changed;
@@ -793,7 +792,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         for (size_t pinIdx = 0; pinIdx < inputConns.size(); ++pinIdx) {
             const auto &pinConns = inputConns[pinIdx];
             if (pinConns.empty()) {
-                collapsed[pinIdx].state = LogicState::low;
+                collapsed[pinIdx] = LogicState::low;
                 continue;
             }
 
@@ -814,10 +813,10 @@ namespace Bess::SimEngine::Drivers::Digital {
 
                 const auto &srcState = srcComp->getOutputStates()[srcSlotIdx];
                 latestTs = std::max(latestTs, srcState.lastChangeTime);
-                if (srcState.state != LogicState::unknown) {
+                if (srcState.getLogicState() != LogicState::unknown) {
                     anyKnown = true;
                 }
-                if (srcState.state == LogicState::high) {
+                if (srcState.getLogicState() == LogicState::high) {
                     mergedState = LogicState::high;
                 }
             }
@@ -890,7 +889,7 @@ namespace Bess::SimEngine::Drivers::Digital {
             return false;
         }
 
-        inputs[pinIdx].state = state;
+        inputs[pinIdx] = state;
         inputs[pinIdx].lastChangeTime = m_currentSimTime;
         return true;
     }
@@ -913,7 +912,7 @@ namespace Bess::SimEngine::Drivers::Digital {
             return false;
         }
 
-        outputs[pinIdx].state = state;
+        outputs[pinIdx] = state;
         outputs[pinIdx].lastChangeTime = m_currentSimTime;
 
         propagateFromComponent(uuid);
@@ -1076,7 +1075,8 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         for (size_t i = 0; i < outStates.size(); ++i) {
             if (i < currStates.size()) {
-                inpChanged |= (outStates[i].state != currStates[i].state);
+                inpChanged |= (outStates[i].getLogicState() !=
+                               currStates[i].getLogicState());
                 outStates[i] = currStates[i];
             }
         }

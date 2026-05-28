@@ -65,7 +65,7 @@ namespace Bess::Canvas {
             const auto &slotState = getSlotState(state);
 
             // state color
-            switch (slotState.state) {
+            switch (slotState.getLogicState()) {
             case SimEngine::LogicState::low:
                 bg = ViewportTheme::colors.stateLow;
                 break;

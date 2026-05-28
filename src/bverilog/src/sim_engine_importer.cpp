@@ -595,10 +595,12 @@ namespace Bess::Verilog {
                 const auto &prevState = state->prevState;
 
                 const auto &inputs = state->inputStates;
-                const auto currentClock = inputs[1].state == LogicState::high;
+                const auto currentClock =
+                    inputs[1].getLogicState() == LogicState::high;
                 const auto previousClock =
                     prevState.inputStates.size() > 1 &&
-                    prevState.inputStates[1].state == LogicState::high;
+                    prevState.inputStates[1].getLogicState() ==
+                        LogicState::high;
                 const bool clockEdge = p.risingEdge
                                            ? (!previousClock && currentClock)
                                            : (previousClock && !currentClock);
@@ -607,7 +609,7 @@ namespace Bess::Verilog {
                 if (p.hasEnable && enIdx >= 0 &&
                     enIdx < static_cast<int>(inputs.size())) {
                     const bool enActive =
-                        inputs[enIdx].state == LogicState::high;
+                        inputs[enIdx].getLogicState() == LogicState::high;
                     const bool enabled =
                         p.enableActiveHigh ? enActive : !enActive;
                     if (!enabled && !p.hasReset) {
@@ -625,7 +627,7 @@ namespace Bess::Verilog {
                 if (p.hasReset && rstIdx >= 0 &&
                     rstIdx < static_cast<int>(inputs.size())) {
                     const bool rstHigh =
-                        inputs[rstIdx].state == LogicState::high;
+                        inputs[rstIdx].getLogicState() == LogicState::high;
                     resetActive = p.resetActiveHigh ? rstHigh : !rstHigh;
                 }
 
@@ -637,7 +639,7 @@ namespace Bess::Verilog {
 
                 if (p.asyncReset && resetActive) {
                     // Async reset: applied regardless of clock
-                    q.state = resetValue;
+                    q = resetValue;
                     q.lastChangeTime = state->simTime;
                 } else if (clockEdge) {
                     // Check enable gate for data capture
@@ -645,13 +647,13 @@ namespace Bess::Verilog {
                     if (p.hasEnable && enIdx >= 0 &&
                         enIdx < static_cast<int>(inputs.size())) {
                         const bool enActive =
-                            inputs[enIdx].state == LogicState::high;
+                            inputs[enIdx].getLogicState() == LogicState::high;
                         enabled = p.enableActiveHigh ? enActive : !enActive;
                     }
 
                     if (!p.asyncReset && resetActive) {
                         // Sync reset: applied on clock edge
-                        q.state = resetValue;
+                        q = resetValue;
                         q.lastChangeTime = state->simTime;
                     } else if (enabled) {
                         q = inputs[0];
@@ -665,15 +667,16 @@ namespace Bess::Verilog {
 
                 state->outputStates[0] = q;
                 auto qInv = q;
-                if (qInv.state == LogicState::high) {
-                    qInv.state = LogicState::low;
-                } else if (qInv.state == LogicState::low) {
-                    qInv.state = LogicState::high;
+                if (qInv.getLogicState() == LogicState::high) {
+                    qInv = LogicState::low;
+                } else if (qInv.getLogicState() == LogicState::low) {
+                    qInv = LogicState::high;
                 }
                 state->outputStates[1] = qInv;
-                state->simDependants = prevState.outputStates.empty() ||
-                                       prevState.outputStates[0].state !=
-                                           state->outputStates[0].state;
+                state->simDependants =
+                    prevState.outputStates.empty() ||
+                    prevState.outputStates[0].getLogicState() !=
+                        state->outputStates[0].getLogicState();
                 return state;
             });
 
@@ -726,8 +729,9 @@ namespace Bess::Verilog {
                 return ensurePrimitiveDefinition(
                     "Verilog Buffer Gate", 1,
                     [](const std::vector<SlotState> &inputs) {
-                        const bool high = !inputs.empty() &&
-                                          inputs[0].state == LogicState::high;
+                        const bool high =
+                            !inputs.empty() &&
+                            inputs[0].getLogicState() == LogicState::high;
                         return BitVector{static_cast<uint8_t>(high ? 1 : 0)};
                     });
             }
@@ -736,8 +740,9 @@ namespace Bess::Verilog {
                 return ensurePrimitiveDefinition(
                     "Verilog NOT Gate", 1,
                     [](const std::vector<SlotState> &inputs) {
-                        const bool high = !inputs.empty() &&
-                                          inputs[0].state == LogicState::high;
+                        const bool high =
+                            !inputs.empty() &&
+                            inputs[0].getLogicState() == LogicState::high;
                         return BitVector{static_cast<uint8_t>(high ? 0 : 1)};
                     });
             }
@@ -745,10 +750,12 @@ namespace Bess::Verilog {
                 return ensurePrimitiveDefinition(
                     "Verilog AND Gate", 2,
                     [](const std::vector<SlotState> &inputs) {
-                        const bool a = inputs.size() > 0 &&
-                                       inputs[0].state == LogicState::high;
-                        const bool b = inputs.size() > 1 &&
-                                       inputs[1].state == LogicState::high;
+                        const bool a =
+                            inputs.size() > 0 &&
+                            inputs[0].getLogicState() == LogicState::high;
+                        const bool b =
+                            inputs.size() > 1 &&
+                            inputs[1].getLogicState() == LogicState::high;
                         return BitVector{
                             static_cast<uint8_t>((a && b) ? 1 : 0)};
                     });
@@ -757,10 +764,12 @@ namespace Bess::Verilog {
                 return ensurePrimitiveDefinition(
                     "Verilog NAND Gate", 2,
                     [](const std::vector<SlotState> &inputs) {
-                        const bool a = inputs.size() > 0 &&
-                                       inputs[0].state == LogicState::high;
-                        const bool b = inputs.size() > 1 &&
-                                       inputs[1].state == LogicState::high;
+                        const bool a =
+                            inputs.size() > 0 &&
+                            inputs[0].getLogicState() == LogicState::high;
+                        const bool b =
+                            inputs.size() > 1 &&
+                            inputs[1].getLogicState() == LogicState::high;
                         return BitVector{
                             static_cast<uint8_t>((a && b) ? 0 : 1)};
                     });
@@ -769,10 +778,12 @@ namespace Bess::Verilog {
                 return ensurePrimitiveDefinition(
                     "Verilog OR Gate", 2,
                     [](const std::vector<SlotState> &inputs) {
-                        const bool a = inputs.size() > 0 &&
-                                       inputs[0].state == LogicState::high;
-                        const bool b = inputs.size() > 1 &&
-                                       inputs[1].state == LogicState::high;
+                        const bool a =
+                            inputs.size() > 0 &&
+                            inputs[0].getLogicState() == LogicState::high;
+                        const bool b =
+                            inputs.size() > 1 &&
+                            inputs[1].getLogicState() == LogicState::high;
                         return BitVector{
                             static_cast<uint8_t>((a || b) ? 1 : 0)};
                     });
@@ -781,10 +792,12 @@ namespace Bess::Verilog {
                 return ensurePrimitiveDefinition(
                     "Verilog NOR Gate", 2,
                     [](const std::vector<SlotState> &inputs) {
-                        const bool a = inputs.size() > 0 &&
-                                       inputs[0].state == LogicState::high;
-                        const bool b = inputs.size() > 1 &&
-                                       inputs[1].state == LogicState::high;
+                        const bool a =
+                            inputs.size() > 0 &&
+                            inputs[0].getLogicState() == LogicState::high;
+                        const bool b =
+                            inputs.size() > 1 &&
+                            inputs[1].getLogicState() == LogicState::high;
                         return BitVector{
                             static_cast<uint8_t>((a || b) ? 0 : 1)};
                     });
@@ -793,10 +806,12 @@ namespace Bess::Verilog {
                 return ensurePrimitiveDefinition(
                     "Verilog XOR Gate", 2,
                     [](const std::vector<SlotState> &inputs) {
-                        const bool a = inputs.size() > 0 &&
-                                       inputs[0].state == LogicState::high;
-                        const bool b = inputs.size() > 1 &&
-                                       inputs[1].state == LogicState::high;
+                        const bool a =
+                            inputs.size() > 0 &&
+                            inputs[0].getLogicState() == LogicState::high;
+                        const bool b =
+                            inputs.size() > 1 &&
+                            inputs[1].getLogicState() == LogicState::high;
                         return BitVector{
                             static_cast<uint8_t>((a != b) ? 1 : 0)};
                     });
@@ -805,10 +820,12 @@ namespace Bess::Verilog {
                 return ensurePrimitiveDefinition(
                     "Verilog XNOR Gate", 2,
                     [](const std::vector<SlotState> &inputs) {
-                        const bool a = inputs.size() > 0 &&
-                                       inputs[0].state == LogicState::high;
-                        const bool b = inputs.size() > 1 &&
-                                       inputs[1].state == LogicState::high;
+                        const bool a =
+                            inputs.size() > 0 &&
+                            inputs[0].getLogicState() == LogicState::high;
+                        const bool b =
+                            inputs.size() > 1 &&
+                            inputs[1].getLogicState() == LogicState::high;
                         return BitVector{
                             static_cast<uint8_t>((a != b) ? 0 : 1)};
                     });
@@ -829,12 +846,14 @@ namespace Bess::Verilog {
                 return ensurePrimitiveDefinition(
                     "Verilog 2-to-1 Multiplexer", 3,
                     [](const std::vector<SlotState> &inputs) {
-                        const bool select = inputs.size() > 2 &&
-                                            inputs[2].state == LogicState::high;
+                        const bool select =
+                            inputs.size() > 2 &&
+                            inputs[2].getLogicState() == LogicState::high;
                         const bool value =
                             inputs.size() >
                                 static_cast<size_t>(select ? 1 : 0) &&
-                            inputs[select ? 1 : 0].state == LogicState::high;
+                            inputs[select ? 1 : 0].getLogicState() ==
+                                LogicState::high;
                         return BitVector{static_cast<uint8_t>(value ? 1 : 0)};
                     });
             }
@@ -958,7 +977,7 @@ namespace Bess::Verilog {
             for (size_t i = 0; i < width; ++i) {
                 const size_t index = offset + i;
                 if (index < inputs.size() &&
-                    inputs[index].state == LogicState::high) {
+                    inputs[index].getLogicState() == LogicState::high) {
                     bits[i] = 1;
                 }
             }
@@ -970,7 +989,7 @@ namespace Bess::Verilog {
             for (size_t i = 0; i < width; ++i) {
                 const size_t index = offset + i;
                 if (index < inputs.size() &&
-                    inputs[index].state == LogicState::high) {
+                    inputs[index].getLogicState() == LogicState::high) {
                     return true;
                 }
             }
@@ -989,7 +1008,7 @@ namespace Bess::Verilog {
                     return false;
                 }
 
-                const auto state = inputs[index].state;
+                const auto state = inputs[index].getLogicState();
                 if (state != LogicState::unknown &&
                     state != LogicState::high_z) {
                     return false;
@@ -1161,7 +1180,7 @@ namespace Bess::Verilog {
                     outputBits[i] ? LogicState::high : LogicState::low;
                 const auto prevState =
                     i < state->prevState.outputStates.size()
-                        ? state->prevState.outputStates[i].state
+                        ? state->prevState.outputStates[i].getLogicState()
                         : LogicState::unknown;
                 changed = changed || prevState != newState;
                 state->outputStates[i] = {newState, simTime};
@@ -1492,7 +1511,8 @@ namespace Bess::Verilog {
 
                 const auto enState =
                     width < state->inputStates.size() &&
-                    state->inputStates[width].state == LogicState::high;
+                    state->inputStates[width].getLogicState() ==
+                        LogicState::high;
                 const bool enabled = enableActiveHigh ? enState : !enState;
                 if (!enabled) {
                     state->simDependants = false;
@@ -1501,11 +1521,11 @@ namespace Bess::Verilog {
 
                 BitVector out(width, 0);
                 for (size_t i = 0; i < width; ++i) {
-                    out[i] =
-                        i < state->inputStates.size() &&
-                                state->inputStates[i].state == LogicState::high
-                            ? 1
-                            : 0;
+                    out[i] = i < state->inputStates.size() &&
+                                     state->inputStates[i].getLogicState() ==
+                                         LogicState::high
+                                 ? 1
+                                 : 0;
                 }
 
                 applyOutputBits(state, out, state->simTime);
@@ -1556,7 +1576,7 @@ namespace Bess::Verilog {
                 for (size_t i = 0; i < selectWidth; ++i) {
                     const bool selected =
                         (sOffset + i) < state->inputStates.size() &&
-                        state->inputStates[sOffset + i].state ==
+                        state->inputStates[sOffset + i].getLogicState() ==
                             LogicState::high;
                     if (!selected) {
                         continue;
@@ -1646,11 +1666,13 @@ namespace Bess::Verilog {
         bool detectClockEdge(const std::vector<SlotState> &inputs,
                              const Drivers::Digital::DigCompState &prevState,
                              size_t clkSlot, bool risingEdge) {
-            const bool currentClock = clkSlot < inputs.size() &&
-                                      inputs[clkSlot].state == LogicState::high;
+            const bool currentClock =
+                clkSlot < inputs.size() &&
+                inputs[clkSlot].getLogicState() == LogicState::high;
             const bool previousClock =
                 clkSlot < prevState.inputStates.size() &&
-                prevState.inputStates[clkSlot].state == LogicState::high;
+                prevState.inputStates[clkSlot].getLogicState() ==
+                    LogicState::high;
             if (risingEdge) {
                 return !previousClock && currentClock;
             }
@@ -1799,14 +1821,16 @@ namespace Bess::Verilog {
                 for (size_t i = 0; i < dataWidth; ++i) {
                     bool writeBit = true;
                     if (enWidth == 1) {
-                        writeBit = (enOffset < state->inputStates.size() &&
-                                    state->inputStates[enOffset].state ==
-                                        LogicState::high);
+                        writeBit =
+                            (enOffset < state->inputStates.size() &&
+                             state->inputStates[enOffset].getLogicState() ==
+                                 LogicState::high);
                     } else if (enWidth > 1) {
                         const size_t enBitIndex = enOffset + (i % enWidth);
-                        writeBit = (enBitIndex < state->inputStates.size() &&
-                                    state->inputStates[enBitIndex].state ==
-                                        LogicState::high);
+                        writeBit =
+                            (enBitIndex < state->inputStates.size() &&
+                             state->inputStates[enBitIndex].getLogicState() ==
+                                 LogicState::high);
                     }
 
                     if (writeBit) {
@@ -1820,7 +1844,8 @@ namespace Bess::Verilog {
 
                 const bool previousTick =
                     !state->prevState.outputStates.empty() &&
-                    state->prevState.outputStates[0].state == LogicState::high;
+                    state->prevState.outputStates[0].getLogicState() ==
+                        LogicState::high;
                 const auto newTick =
                     previousTick ? LogicState::low : LogicState::high;
                 state->outputStates[0] = {newTick, state->simTime};

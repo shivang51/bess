@@ -58,8 +58,8 @@ namespace Bess::Canvas {
         }
 
         const auto slotPosY = slotComp->getAbsolutePosition(state).y;
-        const bool isHigh =
-            slotComp->getSlotState(state).state == SimEngine::LogicState::high;
+        const bool isHigh = slotComp->getSlotState(state).getLogicState() ==
+                            SimEngine::LogicState::high;
 
         const float buttonPosX =
             m_transform.position.x - (m_transform.scale.x / 2.f) +
@@ -140,7 +140,7 @@ namespace Bess::Canvas {
 
         simEngine.setOutputSlotState(
             slotParentComp->getSimEngineId(), slotComp->getIndex(),
-            slotComp->getSlotState(*e.sceneState).state ==
+            slotComp->getSlotState(*e.sceneState).getLogicState() ==
                     SimEngine::LogicState::high
                 ? SimEngine::LogicState::low
                 : SimEngine::LogicState::high);
