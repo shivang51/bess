@@ -94,7 +94,7 @@ namespace Bess {
         struct SlotState {
             float voltage = 0.0f;
             SimTime lastChangeTime{0};
-            ConnectionState connState = ConnectionState::high_z;
+            ConnectionState connState = ConnectionState::driven;
 
             constexpr SlotState() noexcept = default;
 
@@ -105,9 +105,7 @@ namespace Bess {
             constexpr SlotState(LogicState logicState, SimTime time,
                                 const LogicThresholds &thresholds = {}) noexcept
                 : lastChangeTime(time) {
-                auto [volt, conn] = fromLogicState(logicState, thresholds);
-                voltage = volt;
-                connState = conn;
+                fromLogicState(logicState, thresholds);
             }
 
             bool operator==(const SlotState &other) const noexcept {
@@ -133,9 +131,7 @@ namespace Bess {
             }
 
             SlotState &operator=(const LogicState &state) noexcept {
-                auto [volt, conn] = fromLogicState(state, {});
-                voltage = volt;
-                connState = conn;
+                fromLogicState(state, {});
                 return *this;
             }
 
@@ -158,31 +154,27 @@ namespace Bess {
             }
 
           private:
-            static constexpr std::pair<float, ConnectionState>
+            constexpr void
             fromLogicState(LogicState state,
                            const LogicThresholds &thresholds) noexcept {
-                std::pair<float, ConnectionState> result;
                 switch (state) {
                 case LogicState::low:
-                    result.first = 0.0f;
-                    result.second = ConnectionState::driven;
+                    voltage = 0.0f;
                     break;
                 case LogicState::high:
-                    result.first = 5.0f;
-                    result.second = ConnectionState::driven;
+                    voltage = 5.0f;
                     break;
                 case LogicState::high_z:
-                    result.first = 0.0f;
-                    result.second = ConnectionState::high_z;
+                    voltage = 0.0f;
+                    connState = ConnectionState::high_z;
                     break;
                 case LogicState::unknown:
-                    result.first =
+                    voltage =
                         (thresholds.highThreshold + thresholds.lowThreshold) /
                         2.0f;
-                    result.second = ConnectionState::unknown;
+                    connState = ConnectionState::unknown;
                     break;
                 }
-                return result;
             }
         };
 
