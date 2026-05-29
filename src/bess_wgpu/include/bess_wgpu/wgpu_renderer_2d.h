@@ -18,12 +18,14 @@ namespace Bess::Wgpu {
         WgpuRenderer2D(WgpuRenderer2D &&) = delete;
         WgpuRenderer2D &operator=(WgpuRenderer2D &&) = delete;
 
-        void init(const Core::Renderer::Renderer2DCreateInfo &createInfo) override;
+        void
+        init(const Core::Renderer::Renderer2DCreateInfo &createInfo) override;
         void destroy() override;
 
         void resize(const Core::Renderer::Renderer2DExtent &extent) override;
 
-        void beginFrame(const Core::Renderer::Renderer2DFrameInfo &frameInfo) override;
+        void beginFrame(
+            const Core::Renderer::Renderer2DFrameInfo &frameInfo) override;
         void endFrame() override;
 
         void clear(const Core::Renderer::Color &color) override;
@@ -42,9 +44,13 @@ namespace Bess::Wgpu {
             const Core::Renderer::QuadProps &props,
             const Core::Renderer::RoundedBorderProps &roundedProps) override;
 
+        void
+        drawImGui(const std::function<void(void *)> &imguiRenderFn) override;
+
         [[nodiscard]] wgpu::Device getDevice() const;
         [[nodiscard]] wgpu::Queue getQueue() const;
         [[nodiscard]] wgpu::TextureView getCurrentTargetView() const;
+        [[nodiscard]] wgpu::TextureFormat getTargetFormat() const;
 
       private:
         struct Impl;

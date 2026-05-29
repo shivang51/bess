@@ -38,6 +38,17 @@ namespace Bess {
         BESS_INFO("[UISubSystem] Destroyed UI SubSystem");
     }
 
+    void UISubSystem::onPreDraw() { UI::begin(); }
+
+    void UISubSystem::onPostDraw() {
+        UI::end();
+
+        m_vkCore->renderToSwapchain([](VkCommandBuffer cmdBuffer) {
+            ImDrawData *drawData = ImGui::GetDrawData();
+            ImGui_ImplVulkan_RenderDrawData(drawData, cmdBuffer);
+        });
+    }
+
     void UISubSystem::onShutdown() {
         m_mainPage->destory();
         m_vkCore->setPreCmdBufferCleanup(
@@ -45,8 +56,6 @@ namespace Bess {
     }
 
     void UISubSystem::onDraw() {
-        UI::begin();
-
         m_mainPage->draw();
 
         const auto &appCtx = GAppContext::getInstance();
@@ -55,13 +64,6 @@ namespace Bess {
         if (settings->getShowStatsWindow()) {
             UI::drawStats(m_currentFps);
         }
-
-        UI::end();
-
-        m_vkCore->renderToSwapchain([](VkCommandBuffer cmdBuffer) {
-            ImDrawData *drawData = ImGui::GetDrawData();
-            ImGui_ImplVulkan_RenderDrawData(drawData, cmdBuffer);
-        });
     }
 
     void UISubSystem::onUpdate(TimeMs dt) {

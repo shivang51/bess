@@ -46,6 +46,13 @@ endif()
 
 add_compile_definitions($<$<CONFIG:Debug>:DEBUG>)
 
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+    set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
+    set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
+    message(STATUS "Using ccache")
+endif()
+
 # add_compile_definitions(DISABLE_PLUGINS)
 
 add_subdirectory(external)

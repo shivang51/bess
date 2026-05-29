@@ -4,13 +4,13 @@
 #include "common/logger.h"
 #include <algorithm>
 #include <array>
-#include <cstdio>
 #include <cstdint>
+#include <cstdio>
 #include <memory>
 #include <png.h>
+#include <stb_image.h>
 #include <stdexcept>
 #include <string>
-#include <stb_image.h>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -86,9 +86,7 @@ namespace Bess::Wgpu {
         };
 
         struct StbiImageDeleter {
-            void operator()(stbi_uc *pixels) const {
-                stbi_image_free(pixels);
-            }
+            void operator()(stbi_uc *pixels) const { stbi_image_free(pixels); }
         };
 
         void writePng(const std::string &path, const uint8_t *rgba,
@@ -100,9 +98,8 @@ namespace Bess::Wgpu {
                                          path);
             }
 
-            png_structp png =
-                png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr,
-                                        nullptr);
+            png_structp png = png_create_write_struct(
+                PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
             if (png == nullptr) {
                 throw std::runtime_error("Failed to create PNG write struct");
             }
@@ -127,9 +124,8 @@ namespace Bess::Wgpu {
             std::vector<png_bytep> rows(height);
             const auto rowBytes = static_cast<size_t>(width) * 4;
             for (uint32_t row = 0; row < height; ++row) {
-                rows[row] =
-                    const_cast<png_bytep>(rgba + static_cast<size_t>(row) *
-                                                     rowBytes);
+                rows[row] = const_cast<png_bytep>(
+                    rgba + static_cast<size_t>(row) * rowBytes);
             }
 
             png_write_image(png, rows.data());
@@ -200,16 +196,14 @@ namespace Bess::Wgpu {
             }
 
             void sortForRendering() {
-                std::stable_sort(m_instances.begin(), m_instances.end(),
-                                 [](const QueuedQuad &left,
-                                    const QueuedQuad &right) {
-                                     if (left.instance.zIndex !=
-                                         right.instance.zIndex) {
-                                         return left.instance.zIndex <
-                                                right.instance.zIndex;
-                                     }
-                                     return left.sequence < right.sequence;
-                                 });
+                std::stable_sort(
+                    m_instances.begin(), m_instances.end(),
+                    [](const QueuedQuad &left, const QueuedQuad &right) {
+                        if (left.instance.zIndex != right.instance.zIndex) {
+                            return left.instance.zIndex < right.instance.zIndex;
+                        }
+                        return left.sequence < right.sequence;
+                    });
 
                 m_gpuInstances.clear();
                 m_gpuInstances.reserve(m_instances.size());
@@ -222,17 +216,18 @@ namespace Bess::Wgpu {
 
                     if (m_drawRuns.empty() ||
                         m_drawRuns.back().texture != quad.texture) {
-                        m_drawRuns.push_back(
-                            {.texture = quad.texture,
-                             .firstInstance = instanceIndex,
-                             .instanceCount = 1});
+                        m_drawRuns.push_back({.texture = quad.texture,
+                                              .firstInstance = instanceIndex,
+                                              .instanceCount = 1});
                     } else {
                         m_drawRuns.back().instanceCount++;
                     }
                 }
             }
 
-            [[nodiscard]] bool empty() const noexcept { return m_instances.empty(); }
+            [[nodiscard]] bool empty() const noexcept {
+                return m_instances.empty();
+            }
 
             [[nodiscard]] uint32_t count() const noexcept {
                 return static_cast<uint32_t>(m_instances.size());
@@ -247,7 +242,8 @@ namespace Bess::Wgpu {
                 return m_gpuInstances.data();
             }
 
-            [[nodiscard]] const std::vector<DrawRun> &getDrawRuns() const noexcept {
+            [[nodiscard]] const std::vector<DrawRun> &
+            getDrawRuns() const noexcept {
                 return m_drawRuns;
             }
 
@@ -313,9 +309,9 @@ namespace Bess::Wgpu {
         void createOffscreenTarget();
         void createPipeline();
         void createTextureSampler();
-        Core::Renderer::TextureHandle createTextureFromPixels(
-            const uint8_t *pixels, uint32_t width, uint32_t height,
-            bool isDefaultTexture);
+        Core::Renderer::TextureHandle
+        createTextureFromPixels(const uint8_t *pixels, uint32_t width,
+                                uint32_t height, bool isDefaultTexture);
         void createDefaultTexture();
         void ensureQuadBufferSize(std::size_t quadCount);
         void recreateTextureBindGroups();
@@ -339,10 +335,9 @@ namespace Bess::Wgpu {
 
         wgpu::RequestAdapterOptions adapterOptions{};
         RequestResult adapterResult;
-        auto adapterCallback = [&adapterResult](
-                                   wgpu::RequestAdapterStatus status,
-                                   wgpu::Adapter adapter,
-                                   wgpu::StringView message) {
+        auto adapterCallback =
+            [&adapterResult](wgpu::RequestAdapterStatus status,
+                             wgpu::Adapter adapter, wgpu::StringView message) {
                 if (status != wgpu::RequestAdapterStatus::Success) {
                     adapterResult.error =
                         message.data != nullptr
@@ -364,35 +359,44 @@ namespace Bess::Wgpu {
         }
 
         wgpu::DeviceDescriptor deviceDescriptor{};
-        deviceDescriptor.SetUncapturedErrorCallback([](const wgpu::Device&, wgpu::ErrorType type, wgpu::StringView message) {
-            #undef LOGGER_NAME
-            #define LOGGER_NAME "BessWgpu"
-            BESS_ERROR("Dawn Validation Error [{}]: {}", static_cast<int>(type), std::string_view(message.data, message.length));
-            #undef LOGGER_NAME
-        });
-        deviceDescriptor.SetDeviceLostCallback(wgpu::CallbackMode::AllowSpontaneous, [](const wgpu::Device&, wgpu::DeviceLostReason reason, wgpu::StringView message) {
-            #undef LOGGER_NAME
-            #define LOGGER_NAME "BessWgpu"
-            BESS_ERROR("Dawn Device Lost [{}]: {}", static_cast<int>(reason), std::string_view(message.data, message.length));
-            #undef LOGGER_NAME
-        });
+        deviceDescriptor.SetUncapturedErrorCallback(
+            [](const wgpu::Device &, wgpu::ErrorType type,
+               wgpu::StringView message) {
+#undef LOGGER_NAME
+#define LOGGER_NAME "BessWgpu"
+                BESS_ERROR("Dawn Validation Error [{}]: {}",
+                           static_cast<int>(type),
+                           std::string_view(message.data, message.length));
+#undef LOGGER_NAME
+            });
+        deviceDescriptor.SetDeviceLostCallback(
+            wgpu::CallbackMode::AllowSpontaneous,
+            [](const wgpu::Device &, wgpu::DeviceLostReason reason,
+               wgpu::StringView message) {
+#undef LOGGER_NAME
+#define LOGGER_NAME "BessWgpu"
+                BESS_ERROR("Dawn Device Lost [{}]: {}",
+                           static_cast<int>(reason),
+                           std::string_view(message.data, message.length));
+#undef LOGGER_NAME
+            });
         RequestResult deviceResult;
         auto deviceCallback = [&deviceResult](wgpu::RequestDeviceStatus status,
                                               wgpu::Device device,
                                               wgpu::StringView message) {
-                if (status != wgpu::RequestDeviceStatus::Success) {
-                    deviceResult.error =
-                        message.data != nullptr
-                            ? std::string(message.data, message.length)
-                            : "unknown device error";
-                    return;
-                }
-                deviceResult.device = device;
-            };
+            if (status != wgpu::RequestDeviceStatus::Success) {
+                deviceResult.error =
+                    message.data != nullptr
+                        ? std::string(message.data, message.length)
+                        : "unknown device error";
+                return;
+            }
+            deviceResult.device = device;
+        };
 
-        instance.WaitAny(adapter.RequestDevice(
-                             &deviceDescriptor, wgpu::CallbackMode::WaitAnyOnly,
-                             deviceCallback),
+        instance.WaitAny(adapter.RequestDevice(&deviceDescriptor,
+                                               wgpu::CallbackMode::WaitAnyOnly,
+                                               deviceCallback),
                          UINT64_MAX);
         device = deviceResult.device;
         if (device == nullptr) {
@@ -404,9 +408,8 @@ namespace Bess::Wgpu {
     }
 
     void WgpuRenderer2D::Impl::createShaders() {
-        quadShader = std::make_unique<WgpuShader>("renderer_2d_quad",
-                                                  Shaders::getQuadShaderModules(),
-                                                  device);
+        quadShader = std::make_unique<WgpuShader>(
+            "renderer_2d_quad", Shaders::getQuadShaderModules(), device);
     }
 
     void WgpuRenderer2D::Impl::createOffscreenTarget() {
@@ -451,7 +454,8 @@ namespace Bess::Wgpu {
         wgpu::BindGroupLayoutDescriptor bindGroupLayoutDescriptor{};
         bindGroupLayoutDescriptor.entryCount = bindings.size();
         bindGroupLayoutDescriptor.entries = bindings.data();
-        bindGroupLayout = device.CreateBindGroupLayout(&bindGroupLayoutDescriptor);
+        bindGroupLayout =
+            device.CreateBindGroupLayout(&bindGroupLayoutDescriptor);
 
         wgpu::PipelineLayoutDescriptor pipelineLayoutDescriptor{};
         pipelineLayoutDescriptor.bindGroupLayoutCount = 1;
@@ -486,7 +490,8 @@ namespace Bess::Wgpu {
         pipelineDescriptor.vertex.entryPoint =
             quadShader->getEntryPoint(Core::Renderer::ShaderStage::Vertex)
                 .c_str();
-        pipelineDescriptor.primitive.topology = wgpu::PrimitiveTopology::TriangleList;
+        pipelineDescriptor.primitive.topology =
+            wgpu::PrimitiveTopology::TriangleList;
         pipelineDescriptor.primitive.cullMode = wgpu::CullMode::None;
         pipelineDescriptor.fragment = &fragment;
 
@@ -561,8 +566,8 @@ namespace Bess::Wgpu {
     }
 
     void WgpuRenderer2D::Impl::ensureQuadBufferSize(std::size_t quadCount) {
-        const auto requiredSize =
-            std::max<std::size_t>(sizeof(QuadInstance), quadCount * sizeof(QuadInstance));
+        const auto requiredSize = std::max<std::size_t>(
+            sizeof(QuadInstance), quadCount * sizeof(QuadInstance));
         if (quadBuffer != nullptr && quadBufferSize >= requiredSize) {
             return;
         }
@@ -721,7 +726,8 @@ namespace Bess::Wgpu {
 
             FrameUniform frameUniform{};
             frameUniform.viewport[0] = static_cast<float>(m_impl->extent.width);
-            frameUniform.viewport[1] = static_cast<float>(m_impl->extent.height);
+            frameUniform.viewport[1] =
+                static_cast<float>(m_impl->extent.height);
             m_impl->queue.WriteBuffer(m_impl->frameBuffer, 0, &frameUniform,
                                       sizeof(frameUniform));
 
@@ -852,8 +858,7 @@ namespace Bess::Wgpu {
         writePng(path, rgba.data(), width, height);
     }
 
-    Core::Renderer::Renderer2DStats
-    WgpuRenderer2D::getStats() const noexcept {
+    Core::Renderer::Renderer2DStats WgpuRenderer2D::getStats() const noexcept {
         return m_impl->stats;
     }
 
@@ -866,8 +871,8 @@ namespace Bess::Wgpu {
         int width = 0;
         int height = 0;
         int channels = 0;
-        std::unique_ptr<stbi_uc, StbiImageDeleter> pixels(
-            stbi_load(texture.getPath().c_str(), &width, &height, &channels, 4));
+        std::unique_ptr<stbi_uc, StbiImageDeleter> pixels(stbi_load(
+            texture.getPath().c_str(), &width, &height, &channels, 4));
         if (pixels == nullptr) {
             throw std::runtime_error("Failed to load texture: " +
                                      texture.getPath());
@@ -888,8 +893,7 @@ namespace Bess::Wgpu {
         return createTexture(texture);
     }
 
-    void WgpuRenderer2D::destroyTexture(
-        Core::Renderer::TextureHandle texture) {
+    void WgpuRenderer2D::destroyTexture(Core::Renderer::TextureHandle texture) {
         if (texture == 0) {
             return;
         }
@@ -915,11 +919,46 @@ namespace Bess::Wgpu {
         m_impl->stats.quadCount = m_impl->quadBatch.count();
     }
 
+    void WgpuRenderer2D::drawImGui(
+        const std::function<void(void *)> &imguiRenderFn) {
+
+        // if someframe is already started skip ui
+        if (m_impl->frameStarted) {
+            return;
+        }
+
+        m_impl->commandEncoder = m_impl->device.CreateCommandEncoder();
+
+        wgpu::RenderPassColorAttachment colorAttachment{};
+        colorAttachment.view = m_impl->offscreenTargetView;
+        colorAttachment.loadOp = wgpu::LoadOp::Load;
+        colorAttachment.storeOp = wgpu::StoreOp::Store;
+
+        wgpu::RenderPassDescriptor renderPassDescriptor{};
+        renderPassDescriptor.colorAttachmentCount = 1;
+        renderPassDescriptor.colorAttachments = &colorAttachment;
+
+        wgpu::RenderPassEncoder renderPass =
+            m_impl->commandEncoder.BeginRenderPass(&renderPassDescriptor);
+
+        imguiRenderFn(renderPass.Get());
+
+        renderPass.End();
+        wgpu::CommandBuffer commandBuffer = m_impl->commandEncoder.Finish();
+        m_impl->queue.Submit(1, &commandBuffer);
+
+        m_impl->commandEncoder = nullptr;
+    }
+
     wgpu::Device WgpuRenderer2D::getDevice() const { return m_impl->device; }
     wgpu::Queue WgpuRenderer2D::getQueue() const { return m_impl->queue; }
 
     wgpu::TextureView WgpuRenderer2D::getCurrentTargetView() const {
         return m_impl->offscreenTargetView;
+    }
+
+    [[nodiscard]] wgpu::TextureFormat WgpuRenderer2D::getTargetFormat() const {
+        return m_impl->targetFormat;
     }
 
 } // namespace Bess::Wgpu

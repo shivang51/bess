@@ -29,16 +29,16 @@ namespace Bess {
     void Window::onPreInit() {
         initGLFW();
 
-        auto vulkanCore =
-            GAppContext::getInstance().getSubSystem<Vulkan::VulkanCore>();
-        vulkanCore->setWinExt(getVulkanExtensions());
-
-        auto createSurface = [this](VkInstance &instance,
-                                    VkSurfaceKHR &surface) {
-            createWindowSurface(instance, surface);
-        };
-
-        vulkanCore->setCreateSurfaceFn(createSurface);
+        // auto vulkanCore =
+        //     GAppContext::getInstance().getSubSystem<Vulkan::VulkanCore>();
+        // vulkanCore->setWinExt(getVulkanExtensions());
+        //
+        // auto createSurface = [this](VkInstance &instance,
+        //                             VkSurfaceKHR &surface) {
+        //     createWindowSurface(instance, surface);
+        // };
+        //
+        // vulkanCore->setCreateSurfaceFn(createSurface);
     }
 
     void Window::initGLFW() const {

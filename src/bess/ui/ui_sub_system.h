@@ -12,6 +12,8 @@ namespace Bess {
         void onShutdown() override;
         void onDestroy() override;
 
+        void onPreDraw() override;
+        void onPostDraw() override;
         void onDraw() override;
         void onUpdate(TimeMs dt) override;
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bess_assert.h"
+#include "common/logger.h"
 #include "sub_system.h"
 #include "types.h"
 #include <memory>
@@ -30,8 +31,14 @@ namespace Bess {
         template <typename T, typename... Args>
             requires std::derived_from<T, ISubSystem>
         std::shared_ptr<T> addSubSystem(Args &&...args) {
+            if (hasSubSystem<T>()) {
+                BESS_WARN("SubSystem of type {} already exists, skipping add",
+                          typeid(T).name());
+                return getSubSystem<T>();
+            }
             auto subsystem = std::make_shared<T>(std::forward<Args>(args)...);
             m_subSystems[typeid(T)] = subsystem;
+            m_subSystemsInOrder.push_back(subsystem);
             return subsystem;
         }
 
@@ -42,7 +49,7 @@ namespace Bess {
             if (it != m_subSystems.end()) {
                 return std::static_pointer_cast<T>(it->second);
             }
-            BESS_ASSERT(false, "SubSystem of type {} not found in GAppContext",
+            BESS_ASSERT(false, "SubSystem of type {} not found",
                         typeid(T).name());
             return nullptr;
         }
@@ -50,12 +57,21 @@ namespace Bess {
         template <typename T>
             requires std::derived_from<T, ISubSystem>
         void removeSubSystem() {
+            m_subSystemsInOrder.erase(
+                std::remove_if(
+                    m_subSystemsInOrder.begin(), m_subSystemsInOrder.end(),
+                    [](const std::shared_ptr<ISubSystem> &subsystem) {
+                        return std::dynamic_pointer_cast<T>(subsystem) !=
+                               nullptr;
+                    }),
+                m_subSystemsInOrder.end());
             m_subSystems.erase(typeid(T));
         }
 
       protected:
         std::unordered_map<std::type_index, std::shared_ptr<Bess::ISubSystem>>
             m_subSystems;
+        std::vector<std::shared_ptr<Bess::ISubSystem>> m_subSystemsInOrder;
 
         bool m_initialized = false;
         bool m_destroyed = false;

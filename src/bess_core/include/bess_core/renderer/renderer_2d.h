@@ -1,7 +1,8 @@
 #pragma once
-#include "bess_core/renderer/texture.h"
 #include "bess_core/renderer/renderer_types.h"
+#include "bess_core/renderer/texture.h"
 #include <cstdint>
+#include <functional>
 #include <string>
 
 namespace Bess::Core::Renderer {
@@ -34,7 +35,8 @@ namespace Bess::Core::Renderer {
 
     struct Renderer2DCreateInfo {
         Renderer2DExtent extent;
-        Renderer2DTargetFormat targetFormat = Renderer2DTargetFormat::BGRA8Unorm;
+        Renderer2DTargetFormat targetFormat =
+            Renderer2DTargetFormat::BGRA8Unorm;
         Renderer2DNativeSurface surface;
         Renderer2DBatchConfig batching;
         bool enableValidation = true;
@@ -76,6 +78,9 @@ namespace Bess::Core::Renderer {
         virtual void
         drawRoundedQuad(const QuadProps &props,
                         const RoundedBorderProps &roundedProps) = 0;
+
+        virtual void
+        drawImGui(const std::function<void(void *)> &imguiRenderFn) {}
     };
 
 } // namespace Bess::Core::Renderer
