@@ -47,6 +47,8 @@ namespace Bess::Wgpu {
         void
         drawImGui(const std::function<void(void *)> &imguiRenderFn) override;
 
+        void drawToWindow(const std::function<void(void *)> &renderFn) override;
+
         [[nodiscard]] wgpu::Device getDevice() const;
         [[nodiscard]] wgpu::Queue getQueue() const;
         [[nodiscard]] wgpu::TextureView getCurrentTargetView() const;

@@ -1,4 +1,5 @@
 #include "bess_wgpu/wgpu_renderer_2d.h"
+#include "bess_core/g_app_context.h"
 #include "bess_wgpu/shaders/quad_shader.h"
 #include "bess_wgpu/wgpu_shader.h"
 #include "common/logger.h"
@@ -949,6 +950,9 @@ namespace Bess::Wgpu {
 
         m_impl->commandEncoder = nullptr;
     }
+
+    void
+    WgpuRenderer2D::drawToWindow(const std::function<void(void *)> &renderFn) {}
 
     wgpu::Device WgpuRenderer2D::getDevice() const { return m_impl->device; }
     wgpu::Queue WgpuRenderer2D::getQueue() const { return m_impl->queue; }

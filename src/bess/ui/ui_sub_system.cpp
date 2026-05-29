@@ -2,11 +2,10 @@
 #include "bess_core/g_app_context.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
-#include "imgui_impl_vulkan.h"
 #include "pages/main_page/main_page.h"
 #include "settings/settings.h"
+#include "sub_systems/renderer_context.h"
 #include "ui.h"
-#include "vulkan_core.h"
 
 namespace Bess {
     void UISubSystem::onInit() {
@@ -14,12 +13,10 @@ namespace Bess {
 
         const auto &appCtx = GAppContext::getInstance();
 
-        BESS_ASSERT(appCtx.hasSubSystem<Bess::Vulkan::VulkanCore>(),
+        BESS_ASSERT(appCtx.hasSubSystem<RendererContext>(),
                     "VulkanCore is required for UISubSystem initialization");
         BESS_ASSERT(appCtx.hasSubSystem<Window>(),
                     "Window is required for UISubSystem initialization");
-
-        m_vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
     }
 
     void UISubSystem::onPostInit() {
@@ -40,19 +37,11 @@ namespace Bess {
 
     void UISubSystem::onPreDraw() { UI::begin(); }
 
-    void UISubSystem::onPostDraw() {
-        UI::end();
-
-        m_vkCore->renderToSwapchain([](VkCommandBuffer cmdBuffer) {
-            ImDrawData *drawData = ImGui::GetDrawData();
-            ImGui_ImplVulkan_RenderDrawData(drawData, cmdBuffer);
-        });
-    }
+    void UISubSystem::onPostDraw() { UI::end(); }
 
     void UISubSystem::onShutdown() {
         m_mainPage->destory();
-        m_vkCore->setPreCmdBufferCleanup(
-            [&]() { UI::vulkanCleanup(m_vkCore->getDevice()); });
+        UI::shutdown();
     }
 
     void UISubSystem::onDraw() {

@@ -81,6 +81,9 @@ namespace Bess::Core::Renderer {
 
         virtual void
         drawImGui(const std::function<void(void *)> &imguiRenderFn) {}
+
+        virtual void drawToWindow(const std::function<void(void *)> &renderFn) {
+        }
     };
 
 } // namespace Bess::Core::Renderer

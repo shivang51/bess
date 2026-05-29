@@ -1,8 +1,8 @@
 #pragma once
-
+#include <cstdint>
 namespace Bess::Events {
     struct WindowResizeEvent {
-        int width;
-        int height;
+        uint32_t width;
+        uint32_t height;
     };
 } // namespace Bess::Events

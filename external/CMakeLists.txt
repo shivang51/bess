@@ -74,6 +74,7 @@ if(NOT EXISTS "${dawn_SOURCE_DIR}/third_party/abseil-cpp/CMakeLists.txt")
 endif()
 
 add_subdirectory(${dawn_SOURCE_DIR} ${dawn_BINARY_DIR})
+add_subdirectory(glfw3webgpu)
 
 find_package(Vulkan REQUIRED)
 
@@ -96,6 +97,10 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC
 		IMGUI_IMPL_WEBGPU_BACKEND_DAWN
+)
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+	LOGGER_NAME="${PROJECT_NAME}"
 )
 
 file(GLOB EXT_IMGUI_SRC
