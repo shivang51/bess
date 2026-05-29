@@ -44,15 +44,18 @@ FetchContent_Declare(
     GIT_TAG "v1.6.55"
 )
 
+set(PNG_TESTS OFF CACHE BOOL "Build libpng tests" FORCE)
+set(PNG_TOOLS OFF CACHE BOOL "Build libpng tools" FORCE)
+
+
 FetchContent_Declare(
     dawn
     GIT_REPOSITORY "https://dawn.googlesource.com/dawn"
     GIT_TAG "chromium/7161"
     GIT_SUBMODULES ""
+    # Prevents MakeAvailable from automatically calling add_subdirectory()
+    SOURCE_SUBDIR "bypassed_automatic_add_subdirectory"
 )
-
-set(PNG_TESTS OFF CACHE BOOL "Build libpng tests" FORCE)
-set(PNG_TOOLS OFF CACHE BOOL "Build libpng tools" FORCE)
 
 set(DAWN_FETCH_DEPENDENCIES ON CACHE BOOL "Fetch Dawn dependencies" FORCE)
 set(FETCHCONTENT_UPDATES_DISCONNECTED_DAWN ON CACHE BOOL
@@ -67,6 +70,18 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 endif()
 
 FetchContent_MakeAvailable(glfw libpng dawn)
+
+if(NOT EXISTS "${dawn_SOURCE_DIR}/third_party/abseil-cpp/CMakeLists.txt")
+		find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    message(STATUS "Project: Pre-fetching Dawn git dependencies...")
+    execute_process(
+        COMMAND ${Python3_EXECUTABLE} "${dawn_SOURCE_DIR}/tools/fetch_dawn_dependencies.py"
+        WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
+        COMMAND_ERROR_IS_FATAL ANY
+    )
+endif()
+
+add_subdirectory(${dawn_SOURCE_DIR} ${dawn_BINARY_DIR})
 
 find_package(Vulkan REQUIRED)
 
