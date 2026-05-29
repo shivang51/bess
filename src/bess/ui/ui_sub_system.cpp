@@ -5,6 +5,7 @@
 #include "pages/main_page/main_page.h"
 #include "settings/settings.h"
 #include "sub_systems/renderer_context.h"
+#include "vulkan_core.h"
 #include "ui.h"
 
 namespace Bess {
@@ -40,8 +41,10 @@ namespace Bess {
     void UISubSystem::onPostDraw() { UI::end(); }
 
     void UISubSystem::onShutdown() {
-        m_mainPage->destory();
-        UI::shutdown();
+        const auto &appCtx = GAppContext::getInstance();
+        if (appCtx.hasSubSystem<VulkanCore>() && m_mainPage) {
+            m_mainPage->destory();
+        }
     }
 
     void UISubSystem::onDraw() {

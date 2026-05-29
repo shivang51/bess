@@ -3,6 +3,7 @@
 #include "bess_wgpu/shaders/quad_shader.h"
 #include "bess_wgpu/wgpu_shader.h"
 #include "common/logger.h"
+#include "glfw3webgpu.h"
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -284,6 +285,14 @@ namespace Bess::Wgpu {
         wgpu::Adapter adapter;
         wgpu::Device device;
         wgpu::Queue queue;
+        wgpu::Surface surface;
+        wgpu::SurfaceConfiguration surfaceConfiguration;
+        wgpu::TextureFormat surfaceFormat = wgpu::TextureFormat::BGRA8Unorm;
+        wgpu::PresentMode surfacePresentMode = wgpu::PresentMode::Fifo;
+        wgpu::CompositeAlphaMode surfaceAlphaMode =
+            wgpu::CompositeAlphaMode::Opaque;
+        GLFWwindow *windowHandle = nullptr;
+        bool surfaceConfigured = false;
 
         wgpu::Texture offscreenTarget;
         wgpu::TextureView offscreenTargetView;
@@ -310,6 +319,8 @@ namespace Bess::Wgpu {
         void createOffscreenTarget();
         void createPipeline();
         void createTextureSampler();
+        void createWindowSurface();
+        void configureWindowSurface(uint32_t width, uint32_t height);
         Core::Renderer::TextureHandle
         createTextureFromPixels(const uint8_t *pixels, uint32_t width,
                                 uint32_t height, bool isDefaultTexture);
@@ -634,9 +645,15 @@ namespace Bess::Wgpu {
         m_impl->createInfo = createInfo;
         m_impl->extent = createInfo.extent;
         m_impl->targetFormat = toWgpuFormat(createInfo.targetFormat);
+        if (createInfo.surface.type ==
+            Core::Renderer::Renderer2DNativeSurfaceType::PlatformHandle) {
+            m_impl->windowHandle =
+                static_cast<GLFWwindow *>(createInfo.surface.handle);
+        }
         m_impl->quadBatch.configure(createInfo.batching.initialQuadCapacity,
                                     createInfo.batching.maxQuadCapacity);
         m_impl->createDevice();
+        m_impl->createWindowSurface();
         m_impl->createOffscreenTarget();
         m_impl->createShaders();
         m_impl->createPipeline();
@@ -659,6 +676,8 @@ namespace Bess::Wgpu {
         m_impl->frameBuffer = nullptr;
         m_impl->textures.clear();
         m_impl->nextTextureHandle = 1;
+        m_impl->surface = nullptr;
+        m_impl->surfaceConfigured = false;
         m_impl->offscreenTargetView = nullptr;
         m_impl->offscreenTarget = nullptr;
         m_impl->queue = nullptr;
@@ -668,6 +687,51 @@ namespace Bess::Wgpu {
         m_impl->quadBatch.clear();
         m_impl->stats = {};
         m_impl->frameStarted = false;
+    }
+
+    void WgpuRenderer2D::Impl::createWindowSurface() {
+        if (windowHandle == nullptr) {
+            return;
+        }
+
+        surface = wgpu::Surface(
+            glfwCreateWindowWGPUSurface(instance.Get(), windowHandle));
+        if (surface == nullptr) {
+            throw std::runtime_error("Failed to create WebGPU surface");
+        }
+
+        wgpu::SurfaceCapabilities capabilities;
+        surface.GetCapabilities(adapter, &capabilities);
+        if (capabilities.formatCount == 0 ||
+            capabilities.presentModeCount == 0 ||
+            capabilities.alphaModeCount == 0) {
+            throw std::runtime_error(
+                "WebGPU surface reports no supported configuration");
+        }
+
+        surfaceFormat = capabilities.formats[0];
+        surfacePresentMode = capabilities.presentModes[0];
+        surfaceAlphaMode = capabilities.alphaModes[0];
+    }
+
+    void WgpuRenderer2D::Impl::configureWindowSurface(uint32_t width,
+                                                      uint32_t height) {
+        if (surface == nullptr || device == nullptr) {
+            return;
+        }
+
+        surfaceConfiguration.device = device;
+        surfaceConfiguration.usage = wgpu::TextureUsage::RenderAttachment;
+        surfaceConfiguration.format = surfaceFormat;
+        surfaceConfiguration.presentMode = surfacePresentMode;
+        surfaceConfiguration.alphaMode = surfaceAlphaMode;
+        surfaceConfiguration.width = std::max(1u, width);
+        surfaceConfiguration.height = std::max(1u, height);
+        surfaceConfiguration.viewFormatCount = 0;
+        surfaceConfiguration.viewFormats = nullptr;
+
+        surface.Configure(&surfaceConfiguration);
+        surfaceConfigured = true;
     }
 
     void WgpuRenderer2D::resize(const Renderer2DExtent &extent) {
@@ -952,7 +1016,60 @@ namespace Bess::Wgpu {
     }
 
     void
-    WgpuRenderer2D::drawToWindow(const std::function<void(void *)> &renderFn) {}
+    WgpuRenderer2D::drawToWindow(const std::function<void(void *)> &renderFn) {
+        if (m_impl->surface == nullptr || m_impl->windowHandle == nullptr ||
+            m_impl->device == nullptr) {
+            return;
+        }
+
+        int width = 0;
+        int height = 0;
+        glfwGetFramebufferSize(m_impl->windowHandle, &width, &height);
+        if (width <= 0 || height <= 0) {
+            return;
+        }
+
+        if (!m_impl->surfaceConfigured ||
+            m_impl->surfaceConfiguration.width !=
+                static_cast<uint32_t>(width) ||
+            m_impl->surfaceConfiguration.height !=
+                static_cast<uint32_t>(height)) {
+            m_impl->configureWindowSurface(static_cast<uint32_t>(width),
+                                           static_cast<uint32_t>(height));
+        }
+
+        wgpu::SurfaceTexture surfaceTexture;
+        m_impl->surface.GetCurrentTexture(&surfaceTexture);
+        if (surfaceTexture.status !=
+            wgpu::SurfaceGetCurrentTextureStatus::SuccessOptimal) {
+            return;
+        }
+
+        wgpu::TextureView targetView = surfaceTexture.texture.CreateView();
+
+        m_impl->commandEncoder = m_impl->device.CreateCommandEncoder();
+
+        wgpu::RenderPassColorAttachment colorAttachment{};
+        colorAttachment.view = targetView;
+        colorAttachment.loadOp = wgpu::LoadOp::Load;
+        colorAttachment.storeOp = wgpu::StoreOp::Store;
+
+        wgpu::RenderPassDescriptor renderPassDescriptor{};
+        renderPassDescriptor.colorAttachmentCount = 1;
+        renderPassDescriptor.colorAttachments = &colorAttachment;
+
+        wgpu::RenderPassEncoder renderPass =
+            m_impl->commandEncoder.BeginRenderPass(&renderPassDescriptor);
+
+        renderFn(renderPass.Get());
+
+        renderPass.End();
+        wgpu::CommandBuffer commandBuffer = m_impl->commandEncoder.Finish();
+        m_impl->queue.Submit(1, &commandBuffer);
+        m_impl->surface.Present();
+
+        m_impl->commandEncoder = nullptr;
+    }
 
     wgpu::Device WgpuRenderer2D::getDevice() const { return m_impl->device; }
     wgpu::Queue WgpuRenderer2D::getQueue() const { return m_impl->queue; }
@@ -963,6 +1080,10 @@ namespace Bess::Wgpu {
 
     [[nodiscard]] wgpu::TextureFormat WgpuRenderer2D::getTargetFormat() const {
         return m_impl->targetFormat;
+    }
+
+    [[nodiscard]] wgpu::TextureFormat WgpuRenderer2D::getSurfaceFormat() const {
+        return m_impl->surfaceFormat;
     }
 
 } // namespace Bess::Wgpu

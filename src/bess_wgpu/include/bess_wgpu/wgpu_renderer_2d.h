@@ -53,6 +53,7 @@ namespace Bess::Wgpu {
         [[nodiscard]] wgpu::Queue getQueue() const;
         [[nodiscard]] wgpu::TextureView getCurrentTargetView() const;
         [[nodiscard]] wgpu::TextureFormat getTargetFormat() const;
+        [[nodiscard]] wgpu::TextureFormat getSurfaceFormat() const;
 
       private:
         struct Impl;

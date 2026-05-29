@@ -44,7 +44,8 @@ namespace Bess::UI {
         ImGui_ImplWGPU_InitInfo initInfo{};
         initInfo.Device = renderer2D->getDevice().Get();
         initInfo.NumFramesInFlight = 1;
-        initInfo.RenderTargetFormat = WGPUTextureFormat_BGRA8Unorm;
+        initInfo.RenderTargetFormat =
+            static_cast<WGPUTextureFormat>(renderer2D->getSurfaceFormat());
         ImGui_ImplWGPU_Init(&initInfo);
 
         loadFontAndSetScale(settings->getFontSize(), settings->getScale());
@@ -109,6 +110,14 @@ namespace Bess::UI {
     void end() {
         ImGui::End();
         ImGui::Render();
+
+        const auto &renderer = GAppContext::getInstance()
+                                   .getSubSystem<RendererContext>()
+                                   ->getRenderer<Wgpu::WgpuRenderer2D>();
+        renderer->drawToWindow([&](void *renderPass) {
+            ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(),
+                                          (WGPURenderPassEncoder)renderPass);
+        });
 
         ImGui::UpdatePlatformWindows();
         ImGui::RenderPlatformWindowsDefault();

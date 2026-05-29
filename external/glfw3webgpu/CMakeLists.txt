@@ -8,6 +8,14 @@ target_include_directories(glfw3webgpu PUBLIC .)
 target_link_libraries(glfw3webgpu PUBLIC glfw)
 target_link_libraries(glfw3webgpu PRIVATE webgpu_dawn)
 
+if(GLFW_BUILD_X11)
+    target_compile_definitions(glfw3webgpu PRIVATE _GLFW_X11)
+endif()
+
+if(GLFW_BUILD_WAYLAND)
+    target_compile_definitions(glfw3webgpu PRIVATE _GLFW_WAYLAND)
+endif()
+
 # Copy compile definitions that are PRIVATE in glfw
 if (GLFW_BUILD_COCOA)
     target_compile_definitions(glfw3webgpu PRIVATE _GLFW_COCOA)

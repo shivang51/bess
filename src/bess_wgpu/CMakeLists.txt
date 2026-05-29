@@ -38,6 +38,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
     BessCore
+    glfw3webgpu
 )
 
 if(TARGET dawn::webgpu_dawn)

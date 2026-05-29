@@ -40,8 +40,11 @@ namespace Bess {
         BESS_INFO("[Window] GLFW {}.{}", GLFW_VERSION_MAJOR,
                   GLFW_VERSION_MINOR);
 
-        // because renderdoc doesn't support wayland
 #ifdef __linux__
+        // Dawn in this build supports X11 surfaces, not Wayland surfaces.
+        glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+
+        // because renderdoc doesn't support wayland
         if (std::getenv("RENDERDOC_CAPFILE")) {
             BESS_WARN("[Window] RenderDoc detected, forcing X11 backend");
             glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
