@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/types.h"
-#include "ext/scalar_uint_sized.hpp"
 #include "ext/vector_float2.hpp"
 #include "ext/vector_float4.hpp"
 #include "json/value.h"
@@ -59,7 +58,7 @@ namespace Bess::Core::Renderer {
         float zIndex = 0.f;
 
         Color color{1.f, 1.f, 1.f, 1.f};
-        TextureHandle texture = 0; // 0 = No texture (flat color)
+        TextureHandle texture = 0;            // 0 = No texture (flat color)
         glm::vec4 uvRect{0.f, 0.f, 1.f, 1.f}; // min u/v, max u/v
         PickingId id = PickingId::invalid();
     };

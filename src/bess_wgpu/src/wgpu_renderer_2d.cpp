@@ -328,7 +328,7 @@ namespace Bess::Wgpu {
         void configureWindowSurface(uint32_t width, uint32_t height);
         Core::Renderer::TextureHandle
         createRenderTargetTexture(uint32_t width, uint32_t height,
-                      wgpu::TextureFormat format);
+                                  wgpu::TextureFormat format);
         Core::Renderer::TextureHandle
         createTextureFromPixels(const uint8_t *pixels, uint32_t width,
                                 uint32_t height, bool isDefaultTexture);
@@ -746,7 +746,8 @@ namespace Bess::Wgpu {
         surfaceConfigured = true;
     }
 
-    Core::Renderer::TextureHandle WgpuRenderer2D::Impl::createRenderTargetTexture(
+    Core::Renderer::TextureHandle
+    WgpuRenderer2D::Impl::createRenderTargetTexture(
         uint32_t width, uint32_t height, wgpu::TextureFormat format) {
         wgpu::TextureDescriptor descriptor{};
         descriptor.dimension = wgpu::TextureDimension::e2D;
@@ -775,15 +776,15 @@ namespace Bess::Wgpu {
         }
     }
 
-    Core::Renderer::TextureHandle
-    WgpuRenderer2D::createRenderTarget(const Core::Renderer::Renderer2DExtent &extent,
-                                       const Core::Renderer::Renderer2DTargetFormat format) {
+    Core::Renderer::TextureHandle WgpuRenderer2D::createRenderTarget(
+        const Core::Renderer::Renderer2DExtent &extent,
+        const Core::Renderer::Renderer2DTargetFormat format) {
         if (m_impl->device == nullptr) {
             throw std::runtime_error("WgpuRenderer2D is not initialized");
         }
 
-        return m_impl->createRenderTargetTexture(
-            extent.width, extent.height, toWgpuFormat(format));
+        return m_impl->createRenderTargetTexture(extent.width, extent.height,
+                                                 toWgpuFormat(format));
     }
 
     void WgpuRenderer2D::beginFrame(
@@ -1113,14 +1114,6 @@ namespace Bess::Wgpu {
                 static_cast<uint32_t>(height)) {
             m_impl->configureWindowSurface(static_cast<uint32_t>(width),
                                            static_cast<uint32_t>(height));
-            {
-#undef LOGGER_NAME
-#define LOGGER_NAME "BessWgpu"
-            BESS_INFO("[WgpuRenderer2D] Configured surface to {} x {}",
-                      m_impl->surfaceConfiguration.width,
-                      m_impl->surfaceConfiguration.height);
-#undef LOGGER_NAME
-            }
         }
 
         wgpu::SurfaceTexture surfaceTexture;
@@ -1131,14 +1124,6 @@ namespace Bess::Wgpu {
         }
 
         wgpu::TextureView targetView = surfaceTexture.texture.CreateView();
-        {
-    #undef LOGGER_NAME
-    #define LOGGER_NAME "BessWgpu"
-        BESS_INFO("[WgpuRenderer2D] Acquired surface texture: {} x {}",
-              m_impl->surfaceConfiguration.width,
-              m_impl->surfaceConfiguration.height);
-    #undef LOGGER_NAME
-        }
 
         m_impl->commandEncoder = m_impl->device.CreateCommandEncoder();
 
