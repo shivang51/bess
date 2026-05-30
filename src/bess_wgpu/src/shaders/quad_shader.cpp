@@ -53,7 +53,7 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32,
     let rotated = vec2f(
         centered.x * c - centered.y * s,
         centered.x * s + centered.y * c);
-    let world = q.position + rotated + q.size * 0.5;
+    let world = q.position + rotated;
     let ndc = vec2f(
         (world.x / frame.viewport.x) * 2.0 - 1.0,
         1.0 - (world.y / frame.viewport.y) * 2.0);
