@@ -24,11 +24,21 @@ namespace Bess::Wgpu {
         if (m_renderer == nullptr) {
             throw std::runtime_error("WgpuTexture has no renderer");
         }
-        if (m_path.empty()) {
-            throw std::runtime_error("WgpuTexture path is empty");
-        }
 
         destroy();
+        if (m_path.empty()) {
+            if (m_size.x <= 0.f || m_size.y <= 0.f) {
+                throw std::runtime_error(
+                    "WgpuTexture size must be set for render-target textures");
+            }
+
+            m_handle = m_renderer->createRenderTarget(
+                {.width = static_cast<uint32_t>(m_size.x),
+                 .height = static_cast<uint32_t>(m_size.y)},
+                m_renderer->getTargetFormatType());
+            return;
+        }
+
         m_handle = m_renderer->createTexture(*this);
     }
 

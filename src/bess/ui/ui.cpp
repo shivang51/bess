@@ -18,6 +18,10 @@
 #include <vulkan/vulkan_core.h>
 
 namespace Bess::UI {
+    namespace {
+        GLFWwindow *g_window = nullptr;
+    }
+
     void init(GLFWwindow *window) {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
@@ -40,6 +44,7 @@ namespace Bess::UI {
                                      .getSubSystem<RendererContext>()
                                      ->getRenderer<Wgpu::WgpuRenderer2D>();
 
+        g_window = window;
         ImGui_ImplGlfw_InitForOther(window, true);
         ImGui_ImplWGPU_InitInfo initInfo{};
         initInfo.Device = renderer2D->getDevice().Get();
@@ -55,6 +60,7 @@ namespace Bess::UI {
 
     void shutdown() {
         BESS_INFO("[UI] Destroying");
+        ImGui_ImplWGPU_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImPlot::DestroyContext();
         ImGui::DestroyContext();
@@ -71,6 +77,25 @@ namespace Bess::UI {
 
         ImGui_ImplWGPU_NewFrame();
         ImGui_ImplGlfw_NewFrame();
+        if (g_window != nullptr) {
+            int windowWidth = 0;
+            int windowHeight = 0;
+            int framebufferWidth = 0;
+            int framebufferHeight = 0;
+            glfwGetWindowSize(g_window, &windowWidth, &windowHeight);
+            glfwGetFramebufferSize(g_window, &framebufferWidth,
+                                   &framebufferHeight);
+            ImGuiIO &io = ImGui::GetIO();
+            io.DisplaySize = ImVec2(static_cast<float>(framebufferWidth),
+                                    static_cast<float>(framebufferHeight));
+            io.DisplayFramebufferScale = ImVec2(
+                windowWidth > 0 ? static_cast<float>(framebufferWidth) /
+                                      static_cast<float>(windowWidth)
+                                : 1.0f,
+                windowHeight > 0 ? static_cast<float>(framebufferHeight) /
+                                       static_cast<float>(windowHeight)
+                                 : 1.0f);
+        }
         ImGui::NewFrame();
 
         switch (currentCursorType) {
@@ -114,6 +139,8 @@ namespace Bess::UI {
         const auto &renderer = GAppContext::getInstance()
                                    .getSubSystem<RendererContext>()
                                    ->getRenderer<Wgpu::WgpuRenderer2D>();
+        ImGuiIO &io = ImGui::GetIO();
+
         renderer->drawToWindow([&](void *renderPass) {
             ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(),
                                           (WGPURenderPassEncoder)renderPass);

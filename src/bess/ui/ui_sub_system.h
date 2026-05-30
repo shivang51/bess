@@ -2,6 +2,7 @@
 
 #include "common/sub_system.h"
 #include "pages/main_page/main_page.h"
+#include "bess_wgpu/wgpu_texture.h"
 
 namespace Bess {
     class UISubSystem : public Bess::ISubSystem {
@@ -19,6 +20,7 @@ namespace Bess {
       private:
         int m_currentFps = 0;
         std::shared_ptr<Pages::MainPage> m_mainPage = nullptr;
+        std::shared_ptr<Wgpu::WgpuTexture> m_previewTex = nullptr;
     };
 
 } // namespace Bess

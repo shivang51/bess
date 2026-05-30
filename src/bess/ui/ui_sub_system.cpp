@@ -1,12 +1,15 @@
 #include "ui_sub_system.h"
 #include "bess_core/g_app_context.h"
+#include "bess_core/renderer/renderer_types.h"
+#include "bess_wgpu/wgpu_renderer_2d.h"
+#include "bess_wgpu/wgpu_texture.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
 #include "pages/main_page/main_page.h"
 #include "settings/settings.h"
 #include "sub_systems/renderer_context.h"
-#include "vulkan_core.h"
 #include "ui.h"
+#include "vulkan_core.h"
 
 namespace Bess {
     void UISubSystem::onInit() {
@@ -29,6 +32,9 @@ namespace Bess {
     }
 
     void UISubSystem::onDestroy() {
+        if (m_previewTex) {
+            m_previewTex.reset();
+        }
         m_mainPage.reset();
         // TEMP: Will remove getInstance fn
         Pages::MainPage::getInstance().reset();
@@ -48,7 +54,7 @@ namespace Bess {
     }
 
     void UISubSystem::onDraw() {
-        m_mainPage->draw();
+        // m_mainPage->draw();
 
         const auto &appCtx = GAppContext::getInstance();
         const auto &settings = appCtx.getSubSystem<Config::Settings>();
@@ -56,6 +62,32 @@ namespace Bess {
         if (settings->getShowStatsWindow()) {
             UI::drawStats(m_currentFps);
         }
+
+        auto renderer = appCtx.getSubSystem<RendererContext>()
+                            ->getRenderer<Wgpu::WgpuRenderer2D>();
+        if (m_previewTex == nullptr) {
+            m_previewTex = std::make_shared<Wgpu::WgpuTexture>(*renderer.get());
+            m_previewTex->setSize({512, 512});
+            m_previewTex->init();
+        }
+
+        Bess::Core::Renderer::Renderer2DFrameInfo frameInfo;
+        frameInfo.clearColor = Core::Renderer::Color{0.0f, 0.0f, 0.0f, 1.0f};
+        frameInfo.shouldClear = true;
+        frameInfo.targetTexture = m_previewTex->getHandle();
+        renderer->beginFrame(frameInfo);
+        renderer->drawQuad({.position = {100, 100},
+                            .size = {200, 200},
+                            .color = {1.0f, 0.0f, 0.0f, 1.0f}});
+        renderer->endFrame();
+
+        ImGui::Begin("Debug Window");
+        ImGui::Text("FPS: %d", m_currentFps);
+        ImGui::Image(
+            reinterpret_cast<ImTextureID>(
+                renderer->getTextureView(m_previewTex->getHandle()).Get()),
+            ImVec2(200, 200));
+        ImGui::End();
     }
 
     void UISubSystem::onUpdate(TimeMs dt) {

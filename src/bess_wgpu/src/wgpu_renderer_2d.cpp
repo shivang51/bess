@@ -279,6 +279,8 @@ namespace Bess::Wgpu {
     struct WgpuRenderer2D::Impl {
         Core::Renderer::Renderer2DCreateInfo createInfo;
         Renderer2DExtent extent;
+        Core::Renderer::Renderer2DTargetFormat targetFormatType =
+            Core::Renderer::Renderer2DTargetFormat::BGRA8Unorm;
         wgpu::TextureFormat targetFormat = wgpu::TextureFormat::BGRA8Unorm;
 
         wgpu::Instance instance;
@@ -293,6 +295,9 @@ namespace Bess::Wgpu {
             wgpu::CompositeAlphaMode::Opaque;
         GLFWwindow *windowHandle = nullptr;
         bool surfaceConfigured = false;
+        bool frameUsesSurface = false;
+        Core::Renderer::TextureHandle frameTargetTexture = 0;
+        Core::Renderer::TextureHandle lastCompletedTargetTexture = 0;
 
         wgpu::Texture offscreenTarget;
         wgpu::TextureView offscreenTargetView;
@@ -321,6 +326,9 @@ namespace Bess::Wgpu {
         void createTextureSampler();
         void createWindowSurface();
         void configureWindowSurface(uint32_t width, uint32_t height);
+        Core::Renderer::TextureHandle
+        createRenderTargetTexture(uint32_t width, uint32_t height,
+                      wgpu::TextureFormat format);
         Core::Renderer::TextureHandle
         createTextureFromPixels(const uint8_t *pixels, uint32_t width,
                                 uint32_t height, bool isDefaultTexture);
@@ -644,6 +652,7 @@ namespace Bess::Wgpu {
         m_impl = std::make_unique<Impl>();
         m_impl->createInfo = createInfo;
         m_impl->extent = createInfo.extent;
+        m_impl->targetFormatType = createInfo.targetFormat;
         m_impl->targetFormat = toWgpuFormat(createInfo.targetFormat);
         if (createInfo.surface.type ==
             Core::Renderer::Renderer2DNativeSurfaceType::PlatformHandle) {
@@ -678,6 +687,9 @@ namespace Bess::Wgpu {
         m_impl->nextTextureHandle = 1;
         m_impl->surface = nullptr;
         m_impl->surfaceConfigured = false;
+        m_impl->frameUsesSurface = false;
+        m_impl->frameTargetTexture = 0;
+        m_impl->lastCompletedTargetTexture = 0;
         m_impl->offscreenTargetView = nullptr;
         m_impl->offscreenTarget = nullptr;
         m_impl->queue = nullptr;
@@ -734,11 +746,44 @@ namespace Bess::Wgpu {
         surfaceConfigured = true;
     }
 
+    Core::Renderer::TextureHandle WgpuRenderer2D::Impl::createRenderTargetTexture(
+        uint32_t width, uint32_t height, wgpu::TextureFormat format) {
+        wgpu::TextureDescriptor descriptor{};
+        descriptor.dimension = wgpu::TextureDimension::e2D;
+        descriptor.size = {std::max(1u, width), std::max(1u, height), 1};
+        descriptor.format = format;
+        descriptor.mipLevelCount = 1;
+        descriptor.sampleCount = 1;
+        descriptor.usage = wgpu::TextureUsage::RenderAttachment |
+                           wgpu::TextureUsage::TextureBinding |
+                           wgpu::TextureUsage::CopySrc;
+
+        TextureResource resource;
+        resource.texture = device.CreateTexture(&descriptor);
+        resource.view = resource.texture.CreateView();
+
+        const Core::Renderer::TextureHandle handle = nextTextureHandle++;
+        textures[handle] = std::move(resource);
+        recreateTextureBindGroups();
+        return handle;
+    }
+
     void WgpuRenderer2D::resize(const Renderer2DExtent &extent) {
         m_impl->extent = extent;
         if (m_impl->device != nullptr) {
             m_impl->createOffscreenTarget();
         }
+    }
+
+    Core::Renderer::TextureHandle
+    WgpuRenderer2D::createRenderTarget(const Core::Renderer::Renderer2DExtent &extent,
+                                       const Core::Renderer::Renderer2DTargetFormat format) {
+        if (m_impl->device == nullptr) {
+            throw std::runtime_error("WgpuRenderer2D is not initialized");
+        }
+
+        return m_impl->createRenderTargetTexture(
+            extent.width, extent.height, toWgpuFormat(format));
     }
 
     void WgpuRenderer2D::beginFrame(
@@ -757,6 +802,8 @@ namespace Bess::Wgpu {
         m_impl->shouldClear = frameInfo.shouldClear;
         m_impl->quadBatch.clear();
         m_impl->stats = {};
+        m_impl->frameTargetTexture = frameInfo.targetTexture;
+        m_impl->frameUsesSurface = frameInfo.targetTexture == 0;
         m_impl->frameStarted = true;
     }
 
@@ -768,7 +815,25 @@ namespace Bess::Wgpu {
         m_impl->commandEncoder = m_impl->device.CreateCommandEncoder();
 
         wgpu::RenderPassColorAttachment colorAttachment{};
-        colorAttachment.view = m_impl->offscreenTargetView;
+        wgpu::SurfaceTexture surfaceTexture{};
+        wgpu::TextureView targetView;
+
+        if (m_impl->frameUsesSurface) {
+            m_impl->surface.GetCurrentTexture(&surfaceTexture);
+            if (surfaceTexture.status !=
+                wgpu::SurfaceGetCurrentTextureStatus::SuccessOptimal) {
+                m_impl->commandEncoder = nullptr;
+                m_impl->frameStarted = false;
+                return;
+            }
+            targetView = surfaceTexture.texture.CreateView();
+        } else if (m_impl->frameTargetTexture != 0) {
+            targetView = m_impl->getTexture(m_impl->frameTargetTexture).view;
+        } else {
+            targetView = m_impl->offscreenTargetView;
+        }
+
+        colorAttachment.view = targetView;
         colorAttachment.loadOp =
             m_impl->shouldClear ? wgpu::LoadOp::Clear : wgpu::LoadOp::Load;
         colorAttachment.storeOp = wgpu::StoreOp::Store;
@@ -809,8 +874,15 @@ namespace Bess::Wgpu {
         wgpu::CommandBuffer commandBuffer = m_impl->commandEncoder.Finish();
         m_impl->queue.Submit(1, &commandBuffer);
 
+        if (m_impl->frameUsesSurface) {
+            m_impl->surface.Present();
+        }
+
         m_impl->commandEncoder = nullptr;
         m_impl->frameStarted = false;
+        m_impl->lastCompletedTargetTexture = m_impl->frameTargetTexture;
+        m_impl->frameTargetTexture = 0;
+        m_impl->frameUsesSurface = false;
     }
 
     void WgpuRenderer2D::clear(const Color &color) {
@@ -833,6 +905,11 @@ namespace Bess::Wgpu {
                 "render targets");
         }
 
+        const auto targetTexture =
+            m_impl->lastCompletedTargetTexture != 0
+                ? m_impl->getTexture(m_impl->lastCompletedTargetTexture).texture
+                : m_impl->offscreenTarget;
+
         const uint32_t width = std::max(1u, m_impl->extent.width);
         const uint32_t height = std::max(1u, m_impl->extent.height);
         const uint32_t bytesPerPixel = 4;
@@ -851,7 +928,7 @@ namespace Bess::Wgpu {
         wgpu::CommandEncoder encoder = m_impl->device.CreateCommandEncoder();
 
         wgpu::TexelCopyTextureInfo source{};
-        source.texture = m_impl->offscreenTarget;
+        source.texture = targetTexture;
         source.mipLevel = 0;
         source.origin = {0, 0, 0};
         source.aspect = wgpu::TextureAspect::All;
@@ -1036,6 +1113,14 @@ namespace Bess::Wgpu {
                 static_cast<uint32_t>(height)) {
             m_impl->configureWindowSurface(static_cast<uint32_t>(width),
                                            static_cast<uint32_t>(height));
+            {
+#undef LOGGER_NAME
+#define LOGGER_NAME "BessWgpu"
+            BESS_INFO("[WgpuRenderer2D] Configured surface to {} x {}",
+                      m_impl->surfaceConfiguration.width,
+                      m_impl->surfaceConfiguration.height);
+#undef LOGGER_NAME
+            }
         }
 
         wgpu::SurfaceTexture surfaceTexture;
@@ -1046,6 +1131,14 @@ namespace Bess::Wgpu {
         }
 
         wgpu::TextureView targetView = surfaceTexture.texture.CreateView();
+        {
+    #undef LOGGER_NAME
+    #define LOGGER_NAME "BessWgpu"
+        BESS_INFO("[WgpuRenderer2D] Acquired surface texture: {} x {}",
+              m_impl->surfaceConfiguration.width,
+              m_impl->surfaceConfiguration.height);
+    #undef LOGGER_NAME
+        }
 
         m_impl->commandEncoder = m_impl->device.CreateCommandEncoder();
 
@@ -1078,8 +1171,18 @@ namespace Bess::Wgpu {
         return m_impl->offscreenTargetView;
     }
 
+    wgpu::TextureView WgpuRenderer2D::getTextureView(
+        Core::Renderer::TextureHandle texture) const {
+        return m_impl->getTexture(texture).view;
+    }
+
     [[nodiscard]] wgpu::TextureFormat WgpuRenderer2D::getTargetFormat() const {
         return m_impl->targetFormat;
+    }
+
+    [[nodiscard]] Core::Renderer::Renderer2DTargetFormat
+    WgpuRenderer2D::getTargetFormatType() const {
+        return m_impl->targetFormatType;
     }
 
     [[nodiscard]] wgpu::TextureFormat WgpuRenderer2D::getSurfaceFormat() const {

@@ -97,13 +97,15 @@ namespace Bess::Pages {
 
         auto &appCtx = Bess::GAppContext::getInstance();
         if (!s_headless) {
-            auto vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
+            if (appCtx.hasSubSystem<Bess::Vulkan::VulkanCore>()) {
+                auto vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
 
-            for (const auto &panel : UI::UIMain::getScenePanels()) {
-                panel->destroyViewport();
+                for (const auto &panel : UI::UIMain::getScenePanels()) {
+                    panel->destroyViewport();
+                }
+
+                UI::UIMain::destroy();
             }
-
-            UI::UIMain::destroy();
         } else {
             m_state.getSceneDriver()->reset();
             appCtx.getSubSystem<Assets::AssetManager>()->clear();

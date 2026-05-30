@@ -34,6 +34,9 @@ namespace Bess::Wgpu {
         getStats() const noexcept override;
 
         Core::Renderer::TextureHandle
+        createRenderTarget(const Core::Renderer::Renderer2DExtent &extent,
+               Core::Renderer::Renderer2DTargetFormat format) override;
+        Core::Renderer::TextureHandle
         createTexture(Core::Renderer::ITexture &texture) override;
         Core::Renderer::TextureHandle
         createTexture(const Core::Renderer::TextureCreateInfo &createInfo);
@@ -52,6 +55,9 @@ namespace Bess::Wgpu {
         [[nodiscard]] wgpu::Device getDevice() const;
         [[nodiscard]] wgpu::Queue getQueue() const;
         [[nodiscard]] wgpu::TextureView getCurrentTargetView() const;
+        [[nodiscard]] wgpu::TextureView getTextureView(Core::Renderer::TextureHandle texture) const;
+        [[nodiscard]] Core::Renderer::Renderer2DTargetFormat
+        getTargetFormatType() const;
         [[nodiscard]] wgpu::TextureFormat getTargetFormat() const;
         [[nodiscard]] wgpu::TextureFormat getSurfaceFormat() const;
 

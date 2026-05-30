@@ -52,6 +52,7 @@ namespace Bess::Core::Renderer {
         Renderer2DExtent extent{0, 0};
         Color clearColor{0.f, 0.f, 0.f, 1.f};
         bool shouldClear = true;
+        TextureHandle targetTexture = 0;
     };
 
     class IRenderer2D {
@@ -70,6 +71,8 @@ namespace Bess::Core::Renderer {
         virtual void saveTargetToFile(const std::string &path) = 0;
         [[nodiscard]] virtual Renderer2DStats getStats() const noexcept = 0;
 
+        virtual TextureHandle createRenderTarget(const Renderer2DExtent &extent,
+                             Renderer2DTargetFormat format) = 0;
         virtual TextureHandle createTexture(ITexture &texture) = 0;
         virtual void destroyTexture(TextureHandle texture) = 0;
 
