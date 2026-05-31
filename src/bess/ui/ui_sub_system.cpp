@@ -67,7 +67,7 @@ namespace Bess {
                             ->getRenderer<Wgpu::WgpuRenderer2D>();
         if (m_previewTex == nullptr) {
             m_previewTex = std::make_shared<Wgpu::WgpuTexture>(*renderer.get());
-            m_previewTex->setSize({512, 512});
+            m_previewTex->setSize({800, 800});
             m_previewTex->init();
         }
 
@@ -75,18 +75,30 @@ namespace Bess {
         frameInfo.clearColor = Core::Renderer::Color{0.0f, 0.0f, 0.0f, 1.0f};
         frameInfo.shouldClear = true;
         frameInfo.targetTexture = m_previewTex->getHandle();
+        frameInfo.extent = {800, 800};
         renderer->beginFrame(frameInfo);
-        renderer->drawQuad({.position = {100, 100},
-                            .size = {200, 200},
-                            .color = {1.0f, 0.0f, 0.0f, 1.0f}});
+        constexpr size_t quadsPerRow = 200;
+        constexpr size_t quadCount = quadsPerRow * quadsPerRow;
+        constexpr size_t quadsColumns = quadCount / quadsPerRow;
+        constexpr size_t quadW = 800 / quadsPerRow;
+        constexpr size_t quadH = 800 / quadsColumns;
+        for (int i = 0; i < quadCount; i++) {
+            renderer->drawQuad(
+                {.position = {(quadW * (i % quadsPerRow)) + (quadW / 2),
+                              (quadH * (i / quadsPerRow)) + (quadH / 2)},
+                 .size = {quadW, quadH},
+                 .color = {(float)i / quadCount, 1 - ((float)i / quadCount),
+                           0.f, 1.0f}});
+        }
         renderer->endFrame();
 
         ImGui::Begin("Debug Window");
         ImGui::Text("FPS: %d", m_currentFps);
+        ImGui::Text("Quad Count: %d", renderer->getStats().quadCount);
         ImGui::Image(
             reinterpret_cast<ImTextureID>(
                 renderer->getTextureView(m_previewTex->getHandle()).Get()),
-            ImVec2(200, 200));
+            ImVec2(800, 800));
         ImGui::End();
     }
 
