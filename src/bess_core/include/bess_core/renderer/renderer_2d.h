@@ -1,9 +1,12 @@
 #pragma once
 #include "bess_core/renderer/renderer_types.h"
-#include "bess_core/renderer/texture.h"
 #include <cstdint>
 #include <functional>
 #include <string>
+
+namespace Bess {
+    class Window;
+}
 
 namespace Bess::Core::Renderer {
     enum class Renderer2DTargetFormat : uint8_t {
@@ -80,7 +83,8 @@ namespace Bess::Core::Renderer {
         virtual void
         drawImGui(const std::function<void(void *)> &imguiRenderFn) {}
 
-        virtual void drawToWindow(const std::function<void(void *)> &renderFn) {
+        virtual void drawToWindow(const std::shared_ptr<Window> &window,
+                                  const std::function<void(void *)> &renderFn) {
         }
     };
 

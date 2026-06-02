@@ -152,12 +152,16 @@ namespace Bess::Canvas {
     }
 
     void ConnJointSceneComp::onMouseEnter(const Events::MouseEnterEvent &e) {
-        UI::setCursorPointer();
+        auto &appCtx = GAppContext::getInstance();
+        auto window = appCtx.getSubSystem<Window>();
+        window->getui().setCursorPointer();
         m_isHovered = true;
     }
 
     void ConnJointSceneComp::onMouseLeave(const Events::MouseLeaveEvent &e) {
-        UI::setCursorNormal();
+        auto &appCtx = GAppContext::getInstance();
+        auto window = appCtx.getSubSystem<Window>();
+        window->getui().setCursorNormal();
         m_isHovered = false;
     }
 

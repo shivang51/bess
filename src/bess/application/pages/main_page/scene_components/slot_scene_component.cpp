@@ -29,11 +29,15 @@ namespace Bess::Canvas {
     }
 
     void SlotSceneComponent::onMouseEnter(const Events::MouseEnterEvent &e) {
-        UI::setCursorPointer();
+        auto &appCtx = GAppContext::getInstance();
+        auto window = appCtx.getSubSystem<Window>();
+        window->getui().setCursorPointer();
     }
 
     void SlotSceneComponent::onMouseLeave(const Events::MouseLeaveEvent &e) {
-        UI::setCursorNormal();
+        auto &appCtx = GAppContext::getInstance();
+        auto window = appCtx.getSubSystem<Window>();
+        window->getui().setCursorNormal();
     }
 
     void SlotSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {

@@ -20,7 +20,6 @@
 #include "settings/viewport_theme.h"
 #include "slot_scene_component.h"
 
-#include "ui/ui.h"
 #include <cstdint>
 
 namespace Bess::Canvas {
@@ -349,13 +348,17 @@ namespace Bess::Canvas {
     void
     ConnectionSceneComponent::onMouseEnter(const Events::MouseEnterEvent &e) {
         m_hoveredSegIdx = (int)e.details;
-        UI::setCursorPointer();
+        auto &appCtx = GAppContext::getInstance();
+        auto window = appCtx.getSubSystem<Window>();
+        window->getui().setCursorPointer();
     }
 
     void
     ConnectionSceneComponent::onMouseLeave(const Events::MouseLeaveEvent &e) {
         m_hoveredSegIdx = -1;
-        UI::setCursorNormal();
+        auto &appCtx = GAppContext::getInstance();
+        auto window = appCtx.getSubSystem<Window>();
+        window->getui().setCursorNormal();
     }
 
     std::vector<UUID> ConnectionSceneComponent::cleanup(SceneState &state,

@@ -9,7 +9,6 @@ set(Header_Files
 	"icons/MaterialIcons.h"
 	"widgets/m_widgets.h"
 	"ui.h"
-	"ui_sub_system.h"
 	"ui_hook.h"
 	"dock_ids.h"
 	"ui_main/properties_panel.h"
@@ -33,7 +32,6 @@ source_group("include/ui" FILES ${Header_Files})
 set(Source_Files
 	"ui_panel.cpp"
   "ui.cpp"
-  "ui_sub_system.cpp"
 	"ui_hook.cpp"
 	"widgets/m_widgets.cpp"
 	"ui_main/debug_panel.cpp"

@@ -3,8 +3,6 @@
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "common/bess_uuid.h"
-#include "pages/main_page/main_page.h"
-#include "pages/main_page/scene_components/sim_scene_component.h"
 #include "simulation_engine.h"
 #include "ui_main/ui_main.h"
 
@@ -197,35 +195,36 @@ namespace Bess {
         if (!simEngine.isNetUpdated())
             return;
 
-        auto &mainPageState = Pages::MainPage::getInstance()->getState();
-        auto &netIdToNameMap = mainPageState.getNetIdToNameMap();
-        auto &netIdCompMap =
-            mainPageState.getNetIdToCompMap(scene->getSceneId());
-        auto &sceneState = scene->getState();
-
-        std::unordered_map<UUID,
-                           std::shared_ptr<Canvas::SimulationSceneComponent>>
-            simIdToComp;
-
-        for (const auto &[compId, comp] : sceneState.getAllComponents()) {
-            if (comp->getType() == Canvas::SceneComponentType::group ||
-                comp->getType() == Canvas::SceneComponentType::simulation) {
-                const auto simComp =
-                    comp->cast<Canvas::SimulationSceneComponent>();
-                simIdToComp[simComp->getSimEngineId()] = simComp;
-            }
-        }
-
-        const auto &nets = simEngine.getNetsMap();
-        for (const auto &[netId, net] : nets) {
-            for (const auto &simId : net.getComponents()) {
-                if (simIdToComp.contains(simId)) {
-                    const auto &comp = simIdToComp[simId];
-                    netIdCompMap[netId].emplace_back(comp->getUuid());
-                    comp->setNetId(netId);
-                }
-            }
-        }
+        // FIXME: Update nets
+        // auto &mainPageState = Pages::MainPage::getInstance()->getState();
+        // auto &netIdToNameMap = mainPageState.getNetIdToNameMap();
+        // auto &netIdCompMap =
+        //     mainPageState.getNetIdToCompMap(scene->getSceneId());
+        // auto &sceneState = scene->getState();
+        //
+        // std::unordered_map<UUID,
+        //                    std::shared_ptr<Canvas::SimulationSceneComponent>>
+        //     simIdToComp;
+        //
+        // for (const auto &[compId, comp] : sceneState.getAllComponents()) {
+        //     if (comp->getType() == Canvas::SceneComponentType::group ||
+        //         comp->getType() == Canvas::SceneComponentType::simulation) {
+        //         const auto simComp =
+        //             comp->cast<Canvas::SimulationSceneComponent>();
+        //         simIdToComp[simComp->getSimEngineId()] = simComp;
+        //     }
+        // }
+        //
+        // const auto &nets = simEngine.getNetsMap();
+        // for (const auto &[netId, net] : nets) {
+        //     for (const auto &simId : net.getComponents()) {
+        //         if (simIdToComp.contains(simId)) {
+        //             const auto &comp = simIdToComp[simId];
+        //             netIdCompMap[netId].emplace_back(comp->getUuid());
+        //             comp->setNetId(netId);
+        //         }
+        //     }
+        // }
     }
 
     void SceneDriver::updateNets() { updateNets(m_activeScene); }

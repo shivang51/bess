@@ -3,6 +3,7 @@
 #include "bess_wgpu/wgpu_renderer_2d.h"
 #include "common/logger.h"
 #include "imgui_impl_wgpu.h"
+#include "pages/main_page/main_page.h"
 #include "sub_systems/renderer_context.h"
 #include "ui/icons/CodIcons.h"
 #include "ui/icons/ComponentIcons.h"
@@ -17,12 +18,9 @@
 #include "implot.h"
 #include <vulkan/vulkan_core.h>
 
-namespace Bess::UI {
-    namespace {
-        GLFWwindow *g_window = nullptr;
-    }
+namespace Bess {
 
-    void init(GLFWwindow *window) {
+    void UIHandle::init(const std::shared_ptr<Window> &window) {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImPlot::CreateContext();
@@ -44,8 +42,7 @@ namespace Bess::UI {
                                      .getSubSystem<RendererContext>()
                                      ->getRenderer<Wgpu::WgpuRenderer2D>();
 
-        g_window = window;
-        ImGui_ImplGlfw_InitForOther(window, true);
+        ImGui_ImplGlfw_InitForOther(window->getGLFWHandle(), true);
         ImGui_ImplWGPU_InitInfo initInfo{};
         initInfo.Device = renderer2D->getDevice().Get();
         initInfo.NumFramesInFlight = 1;
@@ -56,9 +53,14 @@ namespace Bess::UI {
         loadFontAndSetScale(settings->getFontSize(), settings->getScale());
 
         BESS_INFO("[UI] ImGui initialized successfully");
+
+        m_currentPage = Pages::MainPage::getInstance(window);
     }
 
-    void shutdown() {
+    void UIHandle::shutdown() {
+        m_currentPage.reset();
+        Pages::MainPage::getInstance().reset();
+
         BESS_INFO("[UI] Destroying");
         ImGui_ImplWGPU_Shutdown();
         ImGui_ImplGlfw_Shutdown();
@@ -66,7 +68,7 @@ namespace Bess::UI {
         ImGui::DestroyContext();
     }
 
-    void begin() {
+    void UIHandle::begin() {
         const auto &settings =
             GAppContext::getInstance().getSubSystem<Config::Settings>();
 
@@ -77,28 +79,28 @@ namespace Bess::UI {
 
         ImGui_ImplWGPU_NewFrame();
         ImGui_ImplGlfw_NewFrame();
-        if (g_window != nullptr) {
-            int windowWidth = 0;
-            int windowHeight = 0;
-            int framebufferWidth = 0;
-            int framebufferHeight = 0;
-            glfwGetWindowSize(g_window, &windowWidth, &windowHeight);
-            glfwGetFramebufferSize(g_window, &framebufferWidth,
-                                   &framebufferHeight);
-            ImGuiIO &io = ImGui::GetIO();
-            io.DisplaySize = ImVec2(static_cast<float>(framebufferWidth),
-                                    static_cast<float>(framebufferHeight));
-            io.DisplayFramebufferScale = ImVec2(
-                windowWidth > 0 ? static_cast<float>(framebufferWidth) /
-                                      static_cast<float>(windowWidth)
-                                : 1.0f,
-                windowHeight > 0 ? static_cast<float>(framebufferHeight) /
-                                       static_cast<float>(windowHeight)
-                                 : 1.0f);
-        }
+        // if (g_window != nullptr) {
+        //     int windowWidth = 0;
+        //     int windowHeight = 0;
+        //     int framebufferWidth = 0;
+        //     int framebufferHeight = 0;
+        //     glfwGetWindowSize(g_window, &windowWidth, &windowHeight);
+        //     glfwGetFramebufferSize(g_window, &framebufferWidth,
+        //                            &framebufferHeight);
+        //     ImGuiIO &io = ImGui::GetIO();
+        //     io.DisplaySize = ImVec2(static_cast<float>(framebufferWidth),
+        //                             static_cast<float>(framebufferHeight));
+        //     io.DisplayFramebufferScale = ImVec2(
+        //         windowWidth > 0 ? static_cast<float>(framebufferWidth) /
+        //                               static_cast<float>(windowWidth)
+        //                         : 1.0f,
+        //         windowHeight > 0 ? static_cast<float>(framebufferHeight) /
+        //                                static_cast<float>(windowHeight)
+        //                          : 1.0f);
+        // }
         ImGui::NewFrame();
 
-        switch (currentCursorType) {
+        switch (m_currentCursorType) {
         case CursorType::pointer:
             ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
             break;
@@ -132,27 +134,67 @@ namespace Bess::UI {
         ImGui::DockSpace(mainDockspaceId);
     }
 
-    void end() {
+    void UIHandle::end() {
         ImGui::End();
         ImGui::Render();
-
-        const auto &renderer = GAppContext::getInstance()
-                                   .getSubSystem<RendererContext>()
-                                   ->getRenderer<Wgpu::WgpuRenderer2D>();
-        ImGuiIO &io = ImGui::GetIO();
-
-        renderer->drawToWindow([&](void *renderPass) {
-            ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(),
-                                          (WGPURenderPassEncoder)renderPass);
-        });
 
         ImGui::UpdatePlatformWindows();
         ImGui::RenderPlatformWindowsDefault();
     }
 
-    ImFont *Fonts::largeFont = nullptr;
-    ImFont *Fonts::mediumFont = nullptr;
-    void loadFontAndSetScale(const float fontSize, const float scale) {
+    void UIHandle::draw() {
+        const auto &appCtx = GAppContext::getInstance();
+        const auto &settings = appCtx.getSubSystem<Config::Settings>();
+
+        if (settings->getShowStatsWindow()) {
+            drawStats(0);
+        }
+
+        m_currentPage->draw();
+
+        auto renderer = appCtx.getSubSystem<RendererContext>()
+                            ->getRenderer<Wgpu::WgpuRenderer2D>();
+        if (m_previewTex == nullptr) {
+            m_previewTex = std::make_shared<Wgpu::WgpuTexture>();
+            m_previewTex->setSize({800, 800});
+            m_previewTex->init();
+        }
+
+        Bess::Core::Renderer::Renderer2DFrameInfo frameInfo;
+        frameInfo.clearColor = Core::Renderer::Color{0.0f, 0.0f, 0.0f, 1.0f};
+        frameInfo.shouldClear = true;
+        frameInfo.targetTexture = m_previewTex->getHandle();
+        frameInfo.extent = {800, 800};
+
+        renderer->beginFrame(frameInfo);
+        constexpr size_t quadsPerRow = 200;
+        constexpr size_t quadCount = quadsPerRow * quadsPerRow;
+        constexpr size_t quadsColumns = quadCount / quadsPerRow;
+        constexpr size_t quadW = 800 / quadsPerRow;
+        constexpr size_t quadH = 800 / quadsColumns;
+        for (int i = 0; i < quadCount; i++) {
+            renderer->drawQuad(
+                {.position = {(quadW * (i % quadsPerRow)) + (quadW / 2),
+                              (quadH * (i / quadsPerRow)) + (quadH / 2)},
+                 .size = {quadW, quadH},
+                 .color = {(float)i / quadCount, 1 - ((float)i / quadCount),
+                           0.f, 1.0f}});
+        }
+        renderer->endFrame();
+
+        ImGui::Begin("Debug Window");
+        ImGui::Text("FPS: %d", m_currentFps);
+        ImGui::Text("Quad Count: %d", renderer->getStats().quadCount);
+        ImGui::Image(
+            reinterpret_cast<ImTextureID>(m_previewTex->getTextureView().Get()),
+            ImVec2(800, 800));
+        ImGui::End();
+    }
+
+    ImFont *UIHandle::Fonts::largeFont = nullptr;
+    ImFont *UIHandle::Fonts::mediumFont = nullptr;
+    void UIHandle::loadFontAndSetScale(const float fontSize,
+                                       const float scale) {
         ImGuiIO &io = ImGui::GetIO();
 
         constexpr auto robotoPath =
@@ -180,43 +222,48 @@ namespace Bess::UI {
             Assets::Fonts::Paths::fontAwesomeIcons.paths[0].data();
 
         static const std::array<ImWchar, 3> compIconRanges = {
-            Icons::ComponentIcons::SIZE_MIN_CI,
-            Icons::ComponentIcons::SIZE_MAX_CI, 0};
+            UI::Icons::ComponentIcons::SIZE_MIN_CI,
+            UI::Icons::ComponentIcons::SIZE_MAX_CI, 0};
         io.Fonts->AddFontFromFileTTF(compIconsPath, fontSize * r, &config,
                                      compIconRanges.data());
 
         static const std::array<ImWchar, 3> codiconIconRanges = {
-            Icons::CodIcons::ICON_MIN_CI, Icons::CodIcons::ICON_MAX_CI, 0};
+            UI::Icons::CodIcons::ICON_MIN_CI, UI::Icons::CodIcons::ICON_MAX_CI,
+            0};
         config.GlyphOffset.y = fontSize / 5.0F;
         io.Fonts->AddFontFromFileTTF(codeIconsPath, fontSize, &config,
                                      codiconIconRanges.data());
 
         static const std::array<ImWchar, 3> faIconRangesR = {
-            Icons::FontAwesomeIcons::SIZE_MIN_FA,
-            Icons::FontAwesomeIcons::SIZE_MAX_FA, 0};
+            UI::Icons::FontAwesomeIcons::SIZE_MIN_FA,
+            UI::Icons::FontAwesomeIcons::SIZE_MAX_FA, 0};
         config.GlyphOffset.y = -r;
         io.Fonts->AddFontFromFileTTF(fontAwesomeIconsPath, fontSize * r,
                                      &config, faIconRangesR.data());
 
         config.GlyphOffset.y = r;
         static const std::array<ImWchar, 3> matIconRanges = {
-            Icons::MaterialIcons::ICON_MIN_MD,
-            Icons::MaterialIcons::ICON_MAX_MD, 0};
+            UI::Icons::MaterialIcons::ICON_MIN_MD,
+            UI::Icons::MaterialIcons::ICON_MAX_MD, 0};
         io.Fonts->AddFontFromFileTTF(materialIconsPath, fontSize * r, &config,
                                      matIconRanges.data());
 
         io.FontGlobalScale = scale;
     }
 
-    void setCursorPointer() { currentCursorType = CursorType::pointer; }
+    void UIHandle::setCursorPointer() {
+        m_currentCursorType = CursorType::pointer;
+    }
 
-    void setCursorMove() { currentCursorType = CursorType::move; }
+    void UIHandle::setCursorMove() { m_currentCursorType = CursorType::move; }
 
-    void setCursorNormal() { currentCursorType = CursorType::normal; }
+    void UIHandle::setCursorNormal() {
+        m_currentCursorType = CursorType::normal;
+    }
 
-    void drawStats(const int fps) {
+    void UIHandle::drawStats(const int fps) {
         ImGui::Begin(
-            std::format("{}  Stats", Icons::FontAwesomeIcons::FA_CHART_PIE)
+            std::format("{}  Stats", UI::Icons::FontAwesomeIcons::FA_CHART_PIE)
                 .c_str());
         ImGui::Text("FPS: %d", fps);
         ImGuiIO &io = ImGui::GetIO();
@@ -227,4 +274,9 @@ namespace Bess::UI {
         ImGui::End();
     }
 
-} // namespace Bess::UI
+    void UIHandle::update(TimeMs dt) {
+        m_currentPage->update(dt);
+        m_currentFps = static_cast<int>(std::round(1000.0 / dt.count()));
+    }
+
+} // namespace Bess

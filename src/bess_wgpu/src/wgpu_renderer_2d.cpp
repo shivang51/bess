@@ -127,8 +127,8 @@ namespace Bess::Wgpu {
             std::vector<png_bytep> rows(height);
             const auto rowBytes = static_cast<size_t>(width) * 4;
             for (uint32_t row = 0; row < height; ++row) {
-                rows[row] = const_cast<png_bytep>(
-                    rgba + static_cast<size_t>(row) * rowBytes);
+                rows[row] = (unsigned char *)(rgba + (static_cast<size_t>(row) *
+                                                      rowBytes));
             }
 
             png_write_image(png, rows.data());
@@ -352,7 +352,7 @@ namespace Bess::Wgpu {
                             : "unknown adapter error";
                     return;
                 }
-                adapterResult.adapter = adapter;
+                adapterResult.adapter = std::move(adapter);
             };
 
         instance.WaitAny(instance.RequestAdapter(
@@ -392,7 +392,7 @@ namespace Bess::Wgpu {
                         : "unknown device error";
                 return;
             }
-            deviceResult.device = device;
+            deviceResult.device = std::move(device);
         };
 
         instance.WaitAny(adapter.RequestDevice(&deviceDescriptor,
@@ -742,8 +742,6 @@ namespace Bess::Wgpu {
             }
             targetView = surfaceTexture.texture.CreateView();
         } else if (m_impl->frameTargetTexture != 0) {
-            BESS_TRACE("Rendering to texture handle {}",
-                       m_impl->frameTargetTexture);
             targetView = m_impl->getTexture(m_impl->frameTargetTexture).view;
         } else {
             targetView = m_impl->offscreenTargetView;
@@ -895,9 +893,9 @@ namespace Bess::Wgpu {
                                   bytesPerPixel);
         for (uint32_t row = 0; row < height; ++row) {
             const uint8_t *src =
-                mappedData + static_cast<size_t>(row) * paddedBytesPerRow;
+                mappedData + (static_cast<size_t>(row) * paddedBytesPerRow);
             uint8_t *dst =
-                rgba.data() + static_cast<size_t>(row) * unpaddedBytesPerRow;
+                rgba.data() + (static_cast<size_t>(row) * unpaddedBytesPerRow);
 
             if (m_impl->targetFormat == wgpu::TextureFormat::BGRA8Unorm) {
                 for (uint32_t col = 0; col < width; ++col) {
@@ -927,8 +925,6 @@ namespace Bess::Wgpu {
     }
 
     void WgpuRenderer2D::registerTexture(const TextureResource &texture) {
-        BESS_TRACE("Registering texture with handle {} ({}x{})", texture.handle,
-                   texture.width, texture.height);
         m_impl->textures[texture.handle] = texture;
         m_impl->recreateTextureBindGroups();
     }
@@ -984,7 +980,8 @@ namespace Bess::Wgpu {
     }
 
     void
-    WgpuRenderer2D::drawToWindow(const std::function<void(void *)> &renderFn) {
+    WgpuRenderer2D::drawToWindow(const std::shared_ptr<Window> &window,
+                                 const std::function<void(void *)> &renderFn) {
         if (m_impl->surface == nullptr || m_impl->windowHandle == nullptr ||
             m_impl->device == nullptr) {
             return;

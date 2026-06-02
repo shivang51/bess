@@ -9,7 +9,6 @@
 #include "services/plugin_service/plugin_service.h"
 #include "sub_systems/input_sub_system.h"
 #include "sub_systems/renderer_context.h"
-#include "ui/ui_sub_system.h"
 #include <chrono>
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_core.h>
@@ -158,7 +157,6 @@ namespace Bess {
         m_mainWindow = appCtx.addSubSystem<Window>(800, 660, "Bess");
         appCtx.addSubSystem<RendererContext>();
         appCtx.addSubSystem<Assets::AssetManager>();
-        appCtx.addSubSystem<UISubSystem>();
 
         if (flags & AppStartupFlag::disablePlugins) {
             BESS_WARN("[Application] Plugin support is disabled");

@@ -11,9 +11,8 @@
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 
-#include "ui/ui.h"
-
 #include "simulation_engine.h"
+#include "window.h"
 
 namespace Bess::Canvas {
     InputSceneComponent::InputSceneComponent() {
@@ -95,9 +94,13 @@ namespace Bess::Canvas {
         int buttonIndex = (int)e.details - 1; // since 0 is component body
 
         if (buttonIndex < 0) {
-            UI::setCursorNormal();
+            auto &appCtx = GAppContext::getInstance();
+            auto window = appCtx.getSubSystem<Window>();
+            window->getui().setCursorNormal();
         } else {
-            UI::setCursorPointer();
+            auto &appCtx = GAppContext::getInstance();
+            auto window = appCtx.getSubSystem<Window>();
+            window->getui().setCursorPointer();
         }
     }
 
@@ -105,14 +108,20 @@ namespace Bess::Canvas {
         int buttonIndex = (int)e.details - 1; // since 0 is component body
 
         if (buttonIndex < 0) {
-            UI::setCursorNormal();
+            auto &appCtx = GAppContext::getInstance();
+            auto window = appCtx.getSubSystem<Window>();
+            window->getui().setCursorNormal();
         } else {
-            UI::setCursorPointer();
+            auto &appCtx = GAppContext::getInstance();
+            auto window = appCtx.getSubSystem<Window>();
+            window->getui().setCursorPointer();
         }
     }
 
     void InputSceneComponent::onMouseLeave(const Events::MouseLeaveEvent &e) {
-        UI::setCursorNormal();
+        auto &appCtx = GAppContext::getInstance();
+        auto window = appCtx.getSubSystem<Window>();
+        window->getui().setCursorNormal();
     }
 
     void InputSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
