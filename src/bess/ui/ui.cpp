@@ -16,6 +16,8 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "implot.h"
+#include <cstdint>
+#include <numbers>
 #include <vulkan/vulkan_core.h>
 
 namespace Bess {
@@ -154,9 +156,10 @@ namespace Bess {
 
         auto renderer = appCtx.getSubSystem<RendererContext>()
                             ->getRenderer<Wgpu::WgpuRenderer2D>();
+        constexpr uint32_t size = 800;
         if (m_previewTex == nullptr) {
             m_previewTex = std::make_shared<Wgpu::WgpuTexture>();
-            m_previewTex->setSize({800, 800});
+            m_previewTex->setSize({size, size});
             m_previewTex->init();
         }
 
@@ -164,30 +167,46 @@ namespace Bess {
         frameInfo.clearColor = Core::Renderer::Color{0.0f, 0.0f, 0.0f, 1.0f};
         frameInfo.shouldClear = true;
         frameInfo.targetTexture = m_previewTex->getHandle();
-        frameInfo.extent = {800, 800};
+        frameInfo.extent = {size, size};
 
         renderer->beginFrame(frameInfo);
-        constexpr size_t quadsPerRow = 200;
+        static float rotation = 0.687f;
+        constexpr size_t quadsPerRow = 10;
         constexpr size_t quadCount = quadsPerRow * quadsPerRow;
         constexpr size_t quadsColumns = quadCount / quadsPerRow;
-        constexpr size_t quadW = 800 / quadsPerRow;
-        constexpr size_t quadH = 800 / quadsColumns;
+        constexpr size_t quadW = size / quadsPerRow;
+        constexpr size_t quadH = size / quadsColumns;
         for (int i = 0; i < quadCount; i++) {
-            renderer->drawQuad(
-                {.position = {(quadW * (i % quadsPerRow)) + (quadW / 2),
-                              (quadH * (i / quadsPerRow)) + (quadH / 2)},
-                 .size = {quadW, quadH},
-                 .color = {(float)i / quadCount, 1 - ((float)i / quadCount),
-                           0.f, 1.0f}});
+            renderer->drawRoundedQuad(
+                {
+                    .position = {(quadW * (i % quadsPerRow)) + (quadW / 2),
+                                 (quadH * (i / quadsPerRow)) + (quadH / 2)},
+                    .size = {quadW, quadH},
+                    .rotation = rotation,
+                    .zIndex = (float)(quadCount - i),
+                    .color = {(float)i / quadCount, 1 - ((float)i / quadCount),
+                              0.f, 1.0f},
+                },
+                {
+                    .radius = {10.f, 10.f, 10.f, 10.f}, // FIXME: does not work
+                    .thickness = {5.f, 5.f, 5.f, 5.f},
+                    .color = {1.f, 1.f, 1.f, 1.f},
+                });
         }
+
         renderer->endFrame();
 
+        const auto stats = renderer->getStats();
         ImGui::Begin("Debug Window");
         ImGui::Text("FPS: %d", m_currentFps);
-        ImGui::Text("Quad Count: %d", renderer->getStats().quadCount);
+        ImGui::Text("Draw Calls: %d", stats.drawCallCount);
+        ImGui::SameLine();
+        ImGui::Text("Quad Count: %d", stats.quadCount);
+        ImGui::SliderFloat("Rotation", &rotation, 0.0f,
+                           std::numbers::pi_v<float> / 2.f);
         ImGui::Image(
             reinterpret_cast<ImTextureID>(m_previewTex->getTextureView().Get()),
-            ImVec2(800, 800));
+            ImVec2(size, size));
         ImGui::End();
     }
 
