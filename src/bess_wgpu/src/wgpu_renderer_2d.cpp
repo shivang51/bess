@@ -19,9 +19,28 @@
 namespace Bess::Wgpu {
     namespace {
         using Bess::Core::Renderer::Color;
+        using Bess::Core::Renderer::QuadRenderPass;
         using Bess::Core::Renderer::Renderer2DExtent;
         using Bess::Core::Renderer::Renderer2DTargetFormat;
         using Bess::Wgpu::Piplines::QuadInstance;
+
+        bool isTransparent(const Core::Renderer::QuadProps &props,
+                           const Core::Renderer::RoundedBorderProps *rounded) {
+            if (props.renderPass == QuadRenderPass::Opaque) {
+                return false;
+            }
+            if (props.renderPass == QuadRenderPass::Transparent) {
+                return true;
+            }
+
+            if (props.color.a < 0.999f) {
+                return true;
+            }
+            if (rounded != nullptr && rounded->color.a < 0.999f) {
+                return true;
+            }
+            return false;
+        }
 
         struct QueuedQuad {
             QuadInstance instance;
@@ -174,15 +193,18 @@ namespace Bess::Wgpu {
                 m_instances.push_back({instance, texture, m_nextSequence++});
             }
 
-            void sortForRendering() {
-                std::stable_sort(
-                    m_instances.begin(), m_instances.end(),
-                    [](const QueuedQuad &left, const QueuedQuad &right) {
-                        if (left.instance.zIndex != right.instance.zIndex) {
-                            return left.instance.zIndex < right.instance.zIndex;
-                        }
-                        return left.sequence < right.sequence;
-                    });
+            void prepareForRendering(bool sortBackToFront) {
+                if (sortBackToFront && m_instances.size() > 1) {
+                    std::stable_sort(
+                        m_instances.begin(), m_instances.end(),
+                        [](const QueuedQuad &left, const QueuedQuad &right) {
+                            if (left.instance.zIndex != right.instance.zIndex) {
+                                return left.instance.zIndex <
+                                       right.instance.zIndex;
+                            }
+                            return left.sequence < right.sequence;
+                        });
+                }
 
                 m_gpuInstances.clear();
                 m_gpuInstances.reserve(m_instances.size());
@@ -270,6 +292,8 @@ namespace Bess::Wgpu {
 
         wgpu::Texture offscreenTarget;
         wgpu::TextureView offscreenTargetView;
+        wgpu::Texture depthTarget;
+        wgpu::TextureView depthTargetView;
         Piplines::SharedFrameBuffer sharedFrameBuffer;
         std::unique_ptr<Piplines::QuadPipeline> quadPipeline;
         wgpu::CommandEncoder commandEncoder;
@@ -277,7 +301,8 @@ namespace Bess::Wgpu {
             textures;
         std::shared_ptr<WgpuTexture> defaultTexture;
 
-        QuadBatch quadBatch;
+        QuadBatch opaqueQuadBatch;
+        QuadBatch transparentQuadBatch;
         Core::Renderer::Renderer2DStats stats;
         Color clearColor{0.f, 0.f, 0.f, 1.f};
         bool shouldClear = true;
@@ -285,6 +310,7 @@ namespace Bess::Wgpu {
 
         void createDevice();
         void createOffscreenTarget();
+        void createDepthTarget();
         void createWindowSurface();
         void configureWindowSurface(uint32_t width, uint32_t height);
         void createDefaultTexture();
@@ -392,6 +418,21 @@ namespace Bess::Wgpu {
         offscreenTargetView = offscreenTarget.CreateView();
     }
 
+    void WgpuRenderer2D::Impl::createDepthTarget() {
+        wgpu::TextureDescriptor descriptor{};
+        descriptor.dimension = wgpu::TextureDimension::e2D;
+        descriptor.size = {std::max(1u, extent.width),
+                           std::max(1u, extent.height), 1};
+        descriptor.format = wgpu::TextureFormat::Depth24Plus;
+        descriptor.mipLevelCount = 1;
+        descriptor.sampleCount = 1;
+        descriptor.usage = wgpu::TextureUsage::RenderAttachment;
+        descriptor.label = "DepthRenderTarget";
+
+        depthTarget = device.CreateTexture(&descriptor);
+        depthTargetView = depthTarget.CreateView();
+    }
+
     void WgpuRenderer2D::Impl::createDefaultTexture() {
         const std::array<uint8_t, 4> whitePixel{255, 255, 255, 255};
         defaultTexture = WgpuTexture::fromPixels(whitePixel.data(), 1, 1);
@@ -442,11 +483,15 @@ namespace Bess::Wgpu {
             m_impl->windowHandle =
                 static_cast<GLFWwindow *>(createInfo.surface.handle);
         }
-        m_impl->quadBatch.configure(createInfo.batching.initialQuadCapacity,
-                                    createInfo.batching.maxQuadCapacity);
+        m_impl->opaqueQuadBatch.configure(createInfo.batching.initialQuadCapacity,
+                                          createInfo.batching.maxQuadCapacity);
+        m_impl->transparentQuadBatch.configure(
+            createInfo.batching.initialQuadCapacity,
+            createInfo.batching.maxQuadCapacity);
         m_impl->createDevice();
         m_impl->createWindowSurface();
         m_impl->createOffscreenTarget();
+        m_impl->createDepthTarget();
         m_impl->sharedFrameBuffer.init(m_impl->device);
         m_impl->quadPipeline = std::make_unique<Piplines::QuadPipeline>();
         m_impl->quadPipeline->init(m_impl->device, m_impl->targetFormat,
@@ -475,13 +520,16 @@ namespace Bess::Wgpu {
         m_impl->frameUsesSurface = false;
         m_impl->frameTargetTexture = 0;
         m_impl->lastCompletedTargetTexture = 0;
+        m_impl->depthTargetView = nullptr;
+        m_impl->depthTarget = nullptr;
         m_impl->offscreenTargetView = nullptr;
         m_impl->offscreenTarget = nullptr;
         m_impl->queue = nullptr;
         m_impl->device = nullptr;
         m_impl->adapter = nullptr;
         m_impl->instance = nullptr;
-        m_impl->quadBatch.clear();
+        m_impl->opaqueQuadBatch.clear();
+        m_impl->transparentQuadBatch.clear();
         m_impl->stats = {};
         m_impl->frameStarted = false;
     }
@@ -535,6 +583,7 @@ namespace Bess::Wgpu {
         m_impl->extent = extent;
         if (m_impl->device != nullptr) {
             m_impl->createOffscreenTarget();
+            m_impl->createDepthTarget();
         }
     }
 
@@ -552,7 +601,8 @@ namespace Bess::Wgpu {
 
         m_impl->clearColor = frameInfo.clearColor;
         m_impl->shouldClear = frameInfo.shouldClear;
-        m_impl->quadBatch.clear();
+        m_impl->opaqueQuadBatch.clear();
+        m_impl->transparentQuadBatch.clear();
         m_impl->stats = {};
 
         m_impl->frameTargetTexture = frameInfo.targetTexture;
@@ -592,35 +642,51 @@ namespace Bess::Wgpu {
         colorAttachment.storeOp = wgpu::StoreOp::Store;
         colorAttachment.clearValue = toWgpuColor(m_impl->clearColor);
 
+        wgpu::RenderPassDepthStencilAttachment depthAttachment{};
+        depthAttachment.view = m_impl->depthTargetView;
+        depthAttachment.depthLoadOp =
+            m_impl->shouldClear ? wgpu::LoadOp::Clear : wgpu::LoadOp::Load;
+        depthAttachment.depthStoreOp = wgpu::StoreOp::Store;
+        depthAttachment.depthClearValue = 1.0f;
+
         wgpu::RenderPassDescriptor renderPassDescriptor{};
         renderPassDescriptor.colorAttachmentCount = 1;
         renderPassDescriptor.colorAttachments = &colorAttachment;
+        renderPassDescriptor.depthStencilAttachment = &depthAttachment;
 
         wgpu::RenderPassEncoder renderPass =
             m_impl->commandEncoder.BeginRenderPass(&renderPassDescriptor);
 
-        if (!m_impl->quadBatch.empty()) {
-            m_impl->quadBatch.sortForRendering();
-            if (m_impl->quadPipeline->ensureInstanceBufferSize(
-                    m_impl->quadBatch.count())) {
+        auto renderBatch = [&](QuadBatch &batch, bool sortBackToFront,
+                               const wgpu::RenderPipeline &pipeline) {
+            if (batch.empty()) {
+                return;
+            }
+
+            batch.prepareForRendering(sortBackToFront);
+            if (m_impl->quadPipeline->ensureInstanceBufferSize(batch.count())) {
                 m_impl->recreateTextureBindGroups();
             }
-            m_impl->quadPipeline->uploadInstances(
-                m_impl->queue, m_impl->quadBatch.data(),
-                m_impl->quadBatch.byteSize());
-            m_impl->stats.uploadedBytes += m_impl->quadBatch.byteSize();
 
-            m_impl->sharedFrameBuffer.update(
-                m_impl->queue, m_impl->extent.width, m_impl->extent.height);
+            m_impl->quadPipeline->uploadInstances(m_impl->queue, batch.data(),
+                                                  batch.byteSize());
+            m_impl->stats.uploadedBytes += batch.byteSize();
 
-            renderPass.SetPipeline(m_impl->quadPipeline->getPipeline());
-            for (const auto &run : m_impl->quadBatch.getDrawRuns()) {
+            renderPass.SetPipeline(pipeline);
+            for (const auto &run : batch.getDrawRuns()) {
                 const auto &texture = m_impl->getTexture(run.texture);
                 renderPass.SetBindGroup(0, texture.bindGroup);
                 renderPass.Draw(6, run.instanceCount, 0, run.firstInstance);
                 m_impl->stats.drawCallCount++;
             }
-        }
+        };
+
+        m_impl->sharedFrameBuffer.update(m_impl->queue, m_impl->extent.width,
+                                         m_impl->extent.height);
+        renderBatch(m_impl->opaqueQuadBatch, false,
+                    m_impl->quadPipeline->getOpaquePipeline());
+        renderBatch(m_impl->transparentQuadBatch, true,
+                    m_impl->quadPipeline->getTransparentPipeline());
 
         renderPass.End();
         wgpu::CommandBuffer commandBuffer = m_impl->commandEncoder.Finish();
@@ -771,8 +837,16 @@ namespace Bess::Wgpu {
         if (!m_impl->frameStarted) {
             return;
         }
-        m_impl->quadBatch.push(makeQuadInstance(props, nullptr), props.texture);
-        m_impl->stats.quadCount = m_impl->quadBatch.count();
+
+        if (isTransparent(props, nullptr)) {
+            m_impl->transparentQuadBatch.push(makeQuadInstance(props, nullptr),
+                                              props.texture);
+        } else {
+            m_impl->opaqueQuadBatch.push(makeQuadInstance(props, nullptr),
+                                         props.texture);
+        }
+        m_impl->stats.quadCount = m_impl->opaqueQuadBatch.count() +
+                                  m_impl->transparentQuadBatch.count();
     }
 
     void WgpuRenderer2D::drawRoundedQuad(
@@ -781,9 +855,16 @@ namespace Bess::Wgpu {
         if (!m_impl->frameStarted) {
             return;
         }
-        m_impl->quadBatch.push(makeQuadInstance(props, &roundedProps),
-                               props.texture);
-        m_impl->stats.quadCount = m_impl->quadBatch.count();
+
+        if (isTransparent(props, &roundedProps)) {
+            m_impl->transparentQuadBatch.push(
+                makeQuadInstance(props, &roundedProps), props.texture);
+        } else {
+            m_impl->opaqueQuadBatch.push(makeQuadInstance(props, &roundedProps),
+                                         props.texture);
+        }
+        m_impl->stats.quadCount = m_impl->opaqueQuadBatch.count() +
+                                  m_impl->transparentQuadBatch.count();
     }
 
     void WgpuRenderer2D::drawImGui(

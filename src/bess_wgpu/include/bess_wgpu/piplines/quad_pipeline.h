@@ -41,7 +41,9 @@ namespace Bess::Wgpu::Piplines {
         createTextureBindGroup(const wgpu::TextureView &textureView,
                                const std::string &label = "") const;
 
-        [[nodiscard]] const wgpu::RenderPipeline &getPipeline() const;
+        [[nodiscard]] const wgpu::RenderPipeline &getOpaquePipeline() const;
+        [[nodiscard]] const wgpu::RenderPipeline &
+        getTransparentPipeline() const;
 
       private:
         void createShader();
@@ -52,7 +54,8 @@ namespace Bess::Wgpu::Piplines {
         wgpu::Device m_device;
         wgpu::TextureFormat m_targetFormat = wgpu::TextureFormat::BGRA8Unorm;
         std::unique_ptr<Bess::Wgpu::WgpuShader> m_shader;
-        wgpu::RenderPipeline m_pipeline;
+        wgpu::RenderPipeline m_opaquePipeline;
+        wgpu::RenderPipeline m_transparentPipeline;
         wgpu::BindGroupLayout m_bindGroupLayout;
         wgpu::Sampler m_textureSampler;
         wgpu::Buffer m_instanceBuffer;

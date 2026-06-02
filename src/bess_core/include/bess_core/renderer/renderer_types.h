@@ -58,6 +58,12 @@ namespace Bess::Core::Renderer {
 
     typedef uint32_t TextureHandle;
 
+    enum class QuadRenderPass : uint8_t {
+        Auto,
+        Opaque,
+        Transparent
+    };
+
     struct QuadProps {
         glm::vec2 position{0.f, 0.f};
         glm::vec2 size{1.f, 1.f};
@@ -69,6 +75,7 @@ namespace Bess::Core::Renderer {
         TextureHandle texture = 0;            // 0 = No texture (flat color)
         glm::vec4 uvRect{0.f, 0.f, 1.f, 1.f}; // min u/v, max u/v
         PickingId id = PickingId::invalid();
+        QuadRenderPass renderPass = QuadRenderPass::Auto;
     };
 
     struct RoundedBorderProps {

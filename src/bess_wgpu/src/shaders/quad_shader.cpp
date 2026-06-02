@@ -6,6 +6,7 @@ namespace Bess::Wgpu::Shaders {
 struct Frame {
     viewport: vec2f,
     padding: vec2f,
+    camera_transform: mat4x4f,
 };
 
 struct Quad {
@@ -59,7 +60,8 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32,
         1.0 - (world.y / frame.viewport.y) * 2.0);
 
     var out: VertexOut;
-    out.position = vec4f(ndc, 0.0, 1.0);
+    let depth = 0.5 - 0.5 * tanh(q.z_index * 0.01);
+    out.position = vec4f(ndc, depth, 1.0);
     out.local_pos = local * q.size;
     out.size = q.size;
     out.color = q.color;

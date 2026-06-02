@@ -26,7 +26,8 @@ namespace Bess::Wgpu::Piplines {
         m_instanceBuffer = nullptr;
         m_frameBuffer = nullptr;
         m_frameBufferSize = 0;
-        m_pipeline = nullptr;
+        m_opaquePipeline = nullptr;
+        m_transparentPipeline = nullptr;
         m_textureSampler = nullptr;
         m_bindGroupLayout = nullptr;
         m_shader = nullptr;
@@ -92,8 +93,12 @@ namespace Bess::Wgpu::Piplines {
         return m_device.CreateBindGroup(&descriptor);
     }
 
-    const wgpu::RenderPipeline &QuadPipeline::getPipeline() const {
-        return m_pipeline;
+    const wgpu::RenderPipeline &QuadPipeline::getOpaquePipeline() const {
+        return m_opaquePipeline;
+    }
+
+    const wgpu::RenderPipeline &QuadPipeline::getTransparentPipeline() const {
+        return m_transparentPipeline;
     }
 
     void QuadPipeline::createShader() {
@@ -152,18 +157,30 @@ namespace Bess::Wgpu::Piplines {
         fragment.targetCount = 1;
         fragment.targets = &colorTarget;
 
-        wgpu::RenderPipelineDescriptor pipelineDescriptor{};
-        pipelineDescriptor.layout = pipelineLayout;
-        pipelineDescriptor.vertex.module =
-            m_shader->getModule(Core::Renderer::ShaderStage::Vertex);
-        pipelineDescriptor.vertex.entryPoint =
-            m_shader->getEntryPoint(Core::Renderer::ShaderStage::Vertex).c_str();
-        pipelineDescriptor.primitive.topology =
-            wgpu::PrimitiveTopology::TriangleList;
-        pipelineDescriptor.primitive.cullMode = wgpu::CullMode::None;
-        pipelineDescriptor.fragment = &fragment;
+        wgpu::DepthStencilState depthStencil{};
+        depthStencil.format = wgpu::TextureFormat::Depth24Plus;
+        depthStencil.depthCompare = wgpu::CompareFunction::LessEqual;
+        depthStencil.depthWriteEnabled = true;
 
-        m_pipeline = m_device.CreateRenderPipeline(&pipelineDescriptor);
+        wgpu::RenderPipelineDescriptor opaqueDescriptor{};
+        opaqueDescriptor.layout = pipelineLayout;
+        opaqueDescriptor.vertex.module =
+            m_shader->getModule(Core::Renderer::ShaderStage::Vertex);
+        opaqueDescriptor.vertex.entryPoint =
+            m_shader->getEntryPoint(Core::Renderer::ShaderStage::Vertex).c_str();
+        opaqueDescriptor.primitive.topology =
+            wgpu::PrimitiveTopology::TriangleList;
+        opaqueDescriptor.primitive.cullMode = wgpu::CullMode::None;
+        opaqueDescriptor.fragment = &fragment;
+        opaqueDescriptor.depthStencil = &depthStencil;
+
+        m_opaquePipeline = m_device.CreateRenderPipeline(&opaqueDescriptor);
+
+        depthStencil.depthWriteEnabled = false;
+        wgpu::RenderPipelineDescriptor transparentDescriptor = opaqueDescriptor;
+        transparentDescriptor.depthStencil = &depthStencil;
+        m_transparentPipeline =
+            m_device.CreateRenderPipeline(&transparentDescriptor);
     }
 
     void QuadPipeline::createTextureSampler() {
