@@ -22,5 +22,5 @@
             }                                                                  \
         } while (false)
 #else
-    #define BESS_ASSERT(expr, msg) ((void)0)
+    #define BESS_ASSERT(expr, ...)
 #endif
