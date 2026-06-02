@@ -33,7 +33,9 @@ namespace Bess::Core::Renderer {
 
     struct Renderer2DBatchConfig {
         uint32_t initialQuadCapacity = 1024;
-        uint32_t maxQuadCapacity = 65536;
+        uint32_t maxQuadCapacity =
+            524288; // Assuming atleast 128MB of GPU memory will be there and
+                    // 256 bytes per quad instance
     };
 
     struct Renderer2DCreateInfo {
