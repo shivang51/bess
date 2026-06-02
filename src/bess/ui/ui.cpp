@@ -156,7 +156,7 @@ namespace Bess {
 
         auto renderer = appCtx.getSubSystem<RendererContext>()
                             ->getRenderer<Wgpu::WgpuRenderer2D>();
-        constexpr uint32_t size = 800;
+        constexpr uint32_t size = 1024;
         if (m_previewTex == nullptr) {
             m_previewTex = std::make_shared<Wgpu::WgpuTexture>();
             m_previewTex->setSize({size, size});
@@ -171,27 +171,21 @@ namespace Bess {
 
         renderer->beginFrame(frameInfo);
         static float rotation = 0.687f;
-        constexpr size_t quadsPerRow = 10;
+        constexpr size_t quadsPerRow = 400;
         constexpr size_t quadCount = quadsPerRow * quadsPerRow;
         constexpr size_t quadsColumns = quadCount / quadsPerRow;
         constexpr size_t quadW = size / quadsPerRow;
         constexpr size_t quadH = size / quadsColumns;
         for (int i = 0; i < quadCount; i++) {
-            renderer->drawRoundedQuad(
-                {
-                    .position = {(quadW * (i % quadsPerRow)) + (quadW / 2),
-                                 (quadH * (i / quadsPerRow)) + (quadH / 2)},
-                    .size = {quadW, quadH},
-                    .rotation = rotation,
-                    .zIndex = (float)(quadCount - i),
-                    .color = {(float)i / quadCount, 1 - ((float)i / quadCount),
-                              0.f, 1.0f},
-                },
-                {
-                    .radius = {10.f, 10.f, 10.f, 10.f}, // FIXME: does not work
-                    .thickness = {5.f, 5.f, 5.f, 5.f},
-                    .color = {1.f, 1.f, 1.f, 1.f},
-                });
+            renderer->drawQuad({
+                .position = {(quadW * (i % quadsPerRow)) + (quadW / 2),
+                             (quadH * (i / quadsPerRow)) + (quadH / 2)},
+                .size = {quadW, quadH},
+                .rotation = rotation,
+                .zIndex = (float)(quadCount - i),
+                .color = {(float)i / quadCount, 1 - ((float)i / quadCount), 0.f,
+                          1.0f},
+            });
         }
 
         renderer->endFrame();

@@ -131,10 +131,10 @@ namespace Bess::Wgpu {
             png_destroy_write_struct(&png, &info);
         }
 
-        QuadInstance makeQuadInstance(
+        void makeQuadInstanceInPlace(
+            QuadInstance& instance,
             const Core::Renderer::QuadProps &props,
             const Core::Renderer::RoundedBorderProps *roundedProps) {
-            QuadInstance instance;
             instance.position[0] = props.position.x;
             instance.position[1] = props.position.y;
             instance.size[0] = props.size.x;
@@ -150,6 +150,7 @@ namespace Bess::Wgpu {
             instance.rotation = props.rotation;
             instance.zIndex = props.zIndex;
             instance.useTexture = props.texture == 0 ? 0.f : 1.f;
+            instance.padding = 0.f;
 
             if (roundedProps != nullptr) {
                 instance.radius[0] = roundedProps->radius.x;
@@ -164,96 +165,138 @@ namespace Bess::Wgpu {
                 instance.borderColor[1] = roundedProps->color.g;
                 instance.borderColor[2] = roundedProps->color.b;
                 instance.borderColor[3] = roundedProps->color.a;
+            } else {
+                instance.radius[0] = 0.f;
+                instance.radius[1] = 0.f;
+                instance.radius[2] = 0.f;
+                instance.radius[3] = 0.f;
+                instance.borderSize[0] = 0.f;
+                instance.borderSize[1] = 0.f;
+                instance.borderSize[2] = 0.f;
+                instance.borderSize[3] = 0.f;
+                instance.borderColor[0] = 0.f;
+                instance.borderColor[1] = 0.f;
+                instance.borderColor[2] = 0.f;
+                instance.borderColor[3] = 0.f;
             }
-
-            return instance;
         }
 
         class QuadBatch {
           public:
             void configure(uint32_t initialCapacity, uint32_t maxCapacity) {
                 m_maxCapacity = std::max(1u, maxCapacity);
-                m_instances.reserve(
-                    std::min(std::max(1u, initialCapacity), m_maxCapacity));
+                // Pre-allocate to max capacity to avoid reallocations and debug bounds checking overhead
+                m_gpuInstances.resize(m_maxCapacity);
+                m_drawRuns.resize(m_maxCapacity);
+                m_gpuInstancesPtr = m_gpuInstances.data();
+                m_drawRunsPtr = m_drawRuns.data();
+                m_instanceCount = 0;
+                m_drawRunsCount = 0;
             }
 
             void clear() {
-                m_instances.clear();
-                m_gpuInstances.clear();
-                m_drawRuns.clear();
-                m_nextSequence = 0;
+                m_instanceCount = 0;
+                m_drawRunsCount = 0;
             }
 
-            void push(const QuadInstance &instance,
-                      Core::Renderer::TextureHandle texture) {
-                if (m_instances.size() >= m_maxCapacity) {
-                    throw std::runtime_error(
-                        "WGPU quad batch capacity exceeded");
+            QuadInstance& push(Core::Renderer::TextureHandle texture) {
+                if (m_instanceCount >= m_maxCapacity) {
+                    throw std::runtime_error("WGPU quad batch capacity exceeded");
                 }
-                m_instances.push_back({instance, texture, m_nextSequence++});
+                const uint32_t instanceIndex = m_instanceCount;
+                if (m_drawRunsCount == 0 || m_drawRunsPtr[m_drawRunsCount - 1].texture != texture) {
+                    m_drawRunsPtr[m_drawRunsCount++] = {.texture = texture,
+                                                        .firstInstance = instanceIndex,
+                                                        .instanceCount = 1};
+                } else {
+                    m_drawRunsPtr[m_drawRunsCount - 1].instanceCount++;
+                }
+                return m_gpuInstancesPtr[m_instanceCount++];
             }
 
             void prepareForRendering(bool sortBackToFront) {
-                if (sortBackToFront && m_instances.size() > 1) {
+                if (sortBackToFront && m_instanceCount > 1) {
+                    std::vector<uint32_t> indices(m_instanceCount);
+                    uint32_t* indicesPtr = indices.data();
+                    for (uint32_t i = 0; i < m_instanceCount; ++i) {
+                        indicesPtr[i] = i;
+                    }
+
                     std::stable_sort(
-                        m_instances.begin(), m_instances.end(),
-                        [](const QueuedQuad &left, const QueuedQuad &right) {
-                            if (left.instance.zIndex != right.instance.zIndex) {
-                                return left.instance.zIndex <
-                                       right.instance.zIndex;
+                        indices.begin(), indices.end(),
+                        [this](uint32_t a, uint32_t b) {
+                            if (m_gpuInstancesPtr[a].zIndex != m_gpuInstancesPtr[b].zIndex) {
+                                return m_gpuInstancesPtr[a].zIndex < m_gpuInstancesPtr[b].zIndex;
                             }
-                            return left.sequence < right.sequence;
+                            return a < b;
                         });
-                }
 
-                m_gpuInstances.clear();
-                m_gpuInstances.reserve(m_instances.size());
-                m_drawRuns.clear();
+                    std::vector<Core::Renderer::TextureHandle> textures(m_instanceCount);
+                    Core::Renderer::TextureHandle* texPtr = textures.data();
+                    for (uint32_t r = 0; r < m_drawRunsCount; ++r) {
+                        const auto &run = m_drawRunsPtr[r];
+                        for (uint32_t i = 0; i < run.instanceCount; ++i) {
+                            texPtr[run.firstInstance + i] = run.texture;
+                        }
+                    }
 
-                for (const auto &quad : m_instances) {
-                    const uint32_t instanceIndex =
-                        static_cast<uint32_t>(m_gpuInstances.size());
-                    m_gpuInstances.emplace_back(quad.instance);
+                    std::vector<QuadInstance> sortedInstances(m_instanceCount);
+                    QuadInstance* sortedPtr = sortedInstances.data();
+                    m_drawRunsCount = 0;
 
-                    if (m_drawRuns.empty() ||
-                        m_drawRuns.back().texture != quad.texture) {
-                        m_drawRuns.push_back({.texture = quad.texture,
-                                              .firstInstance = instanceIndex,
-                                              .instanceCount = 1});
-                    } else {
-                        m_drawRuns.back().instanceCount++;
+                    for (uint32_t i = 0; i < m_instanceCount; ++i) {
+                        uint32_t oldIdx = indicesPtr[i];
+                        sortedPtr[i] = m_gpuInstancesPtr[oldIdx];
+                        Core::Renderer::TextureHandle tex = texPtr[oldIdx];
+
+                        if (m_drawRunsCount == 0 ||
+                            m_drawRunsPtr[m_drawRunsCount - 1].texture != tex) {
+                            m_drawRunsPtr[m_drawRunsCount++] = {.texture = tex,
+                                                                .firstInstance = i,
+                                                                .instanceCount = 1};
+                        } else {
+                            m_drawRunsPtr[m_drawRunsCount - 1].instanceCount++;
+                        }
+                    }
+                    // Copy back to main buffer
+                    for (uint32_t i = 0; i < m_instanceCount; ++i) {
+                        m_gpuInstancesPtr[i] = sortedPtr[i];
                     }
                 }
             }
 
             [[nodiscard]] bool empty() const noexcept {
-                return m_instances.empty();
+                return m_instanceCount == 0;
             }
 
             [[nodiscard]] uint32_t count() const noexcept {
-                return static_cast<uint32_t>(m_instances.size());
+                return m_instanceCount;
             }
 
             [[nodiscard]] uint64_t byteSize() const noexcept {
-                return static_cast<uint64_t>(m_instances.size()) *
-                       sizeof(QuadInstance);
+                return static_cast<uint64_t>(m_instanceCount) * sizeof(QuadInstance);
             }
 
             [[nodiscard]] const QuadInstance *data() const noexcept {
-                return m_gpuInstances.data();
+                return m_gpuInstancesPtr;
             }
 
-            [[nodiscard]] const std::vector<DrawRun> &
-            getDrawRuns() const noexcept {
-                return m_drawRuns;
+            [[nodiscard]] const DrawRun *drawRunsData() const noexcept {
+                return m_drawRunsPtr;
+            }
+
+            [[nodiscard]] uint32_t drawRunsCount() const noexcept {
+                return m_drawRunsCount;
             }
 
           private:
-            std::vector<QueuedQuad> m_instances;
             std::vector<QuadInstance> m_gpuInstances;
             std::vector<DrawRun> m_drawRuns;
+            QuadInstance* m_gpuInstancesPtr = nullptr;
+            DrawRun* m_drawRunsPtr = nullptr;
+            uint32_t m_instanceCount = 0;
+            uint32_t m_drawRunsCount = 0;
             uint32_t m_maxCapacity = 1;
-            uint64_t m_nextSequence = 0;
         };
 
         class TextureSource final : public Core::Renderer::ITexture {
@@ -673,7 +716,11 @@ namespace Bess::Wgpu {
             m_impl->stats.uploadedBytes += batch.byteSize();
 
             renderPass.SetPipeline(pipeline);
-            for (const auto &run : batch.getDrawRuns()) {
+            
+            const uint32_t runCount = batch.drawRunsCount();
+            const DrawRun* runs = batch.drawRunsData();
+            for (uint32_t i = 0; i < runCount; ++i) {
+                const auto &run = runs[i];
                 const auto &texture = m_impl->getTexture(run.texture);
                 renderPass.SetBindGroup(0, texture.bindGroup);
                 renderPass.Draw(6, run.instanceCount, 0, run.firstInstance);
@@ -839,11 +886,9 @@ namespace Bess::Wgpu {
         }
 
         if (isTransparent(props, nullptr)) {
-            m_impl->transparentQuadBatch.push(makeQuadInstance(props, nullptr),
-                                              props.texture);
+            makeQuadInstanceInPlace(m_impl->transparentQuadBatch.push(props.texture), props, nullptr);
         } else {
-            m_impl->opaqueQuadBatch.push(makeQuadInstance(props, nullptr),
-                                         props.texture);
+            makeQuadInstanceInPlace(m_impl->opaqueQuadBatch.push(props.texture), props, nullptr);
         }
         m_impl->stats.quadCount = m_impl->opaqueQuadBatch.count() +
                                   m_impl->transparentQuadBatch.count();
@@ -857,11 +902,9 @@ namespace Bess::Wgpu {
         }
 
         if (isTransparent(props, &roundedProps)) {
-            m_impl->transparentQuadBatch.push(
-                makeQuadInstance(props, &roundedProps), props.texture);
+            makeQuadInstanceInPlace(m_impl->transparentQuadBatch.push(props.texture), props, &roundedProps);
         } else {
-            m_impl->opaqueQuadBatch.push(makeQuadInstance(props, &roundedProps),
-                                         props.texture);
+            makeQuadInstanceInPlace(m_impl->opaqueQuadBatch.push(props.texture), props, &roundedProps);
         }
         m_impl->stats.quadCount = m_impl->opaqueQuadBatch.count() +
                                   m_impl->transparentQuadBatch.count();
