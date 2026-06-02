@@ -2,6 +2,8 @@ set(PROJECT_NAME BessWgpu)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(Header_Files
+    "include/bess_wgpu/piplines/pipeline.h"
+    "include/bess_wgpu/piplines/quad_pipeline.h"
     "include/bess_wgpu/wgpu_renderer_2d.h"
     "include/bess_wgpu/wgpu_shader.h"
     "include/bess_wgpu/wgpu_texture.h"
@@ -11,6 +13,7 @@ set(Header_Files
 source_group("include" FILES ${Header_Files})
 
 set(Source_Files
+    "src/piplines/quad_pipeline.cpp"
     "src/wgpu_renderer_2d.cpp"
     "src/wgpu_shader.cpp"
     "src/wgpu_texture.cpp"

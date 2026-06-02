@@ -1,6 +1,5 @@
 #include "bess_wgpu/wgpu_renderer_2d.h"
-#include "bess_wgpu/shaders/quad_shader.h"
-#include "bess_wgpu/wgpu_shader.h"
+#include "bess_wgpu/piplines/quad_pipeline.h"
 #include "bess_wgpu/wgpu_texture.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
@@ -11,7 +10,6 @@
 #include <cstdio>
 #include <memory>
 #include <png.h>
-#include <stb_image.h>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -23,25 +21,7 @@ namespace Bess::Wgpu {
         using Bess::Core::Renderer::Color;
         using Bess::Core::Renderer::Renderer2DExtent;
         using Bess::Core::Renderer::Renderer2DTargetFormat;
-
-        struct FrameUniform {
-            float viewport[2] = {1.f, 1.f};
-            float padding[2] = {0.f, 0.f};
-        };
-
-        struct QuadInstance {
-            float position[2] = {0.f, 0.f};
-            float size[2] = {1.f, 1.f};
-            float color[4] = {1.f, 1.f, 1.f, 1.f};
-            float radius[4] = {0.f, 0.f, 0.f, 0.f};
-            float borderSize[4] = {0.f, 0.f, 0.f, 0.f};
-            float borderColor[4] = {0.f, 0.f, 0.f, 1.f};
-            float uvRect[4] = {0.f, 0.f, 1.f, 1.f};
-            float rotation = 0.f;
-            float zIndex = 0.f;
-            float useTexture = 0.f;
-            float padding = 0.f;
-        };
+        using Bess::Wgpu::Piplines::QuadInstance;
 
         struct QueuedQuad {
             QuadInstance instance;
@@ -86,10 +66,6 @@ namespace Bess::Wgpu {
                     std::fclose(file);
                 }
             }
-        };
-
-        struct StbiImageDeleter {
-            void operator()(stbi_uc *pixels) const { stbi_image_free(pixels); }
         };
 
         void writePng(const std::string &path, const uint8_t *rgba,
@@ -294,33 +270,24 @@ namespace Bess::Wgpu {
 
         wgpu::Texture offscreenTarget;
         wgpu::TextureView offscreenTargetView;
-        wgpu::RenderPipeline quadPipeline;
-        std::unique_ptr<WgpuShader> quadShader;
-        wgpu::BindGroupLayout bindGroupLayout;
-        wgpu::Sampler textureSampler;
-        wgpu::Buffer quadBuffer;
-        wgpu::Buffer frameBuffer;
+        Piplines::SharedFrameBuffer sharedFrameBuffer;
+        std::unique_ptr<Piplines::QuadPipeline> quadPipeline;
         wgpu::CommandEncoder commandEncoder;
         std::unordered_map<Core::Renderer::TextureHandle, TextureResource>
             textures;
         std::shared_ptr<WgpuTexture> defaultTexture;
 
         QuadBatch quadBatch;
-        std::size_t quadBufferSize = 0;
         Core::Renderer::Renderer2DStats stats;
         Color clearColor{0.f, 0.f, 0.f, 1.f};
         bool shouldClear = true;
         bool frameStarted = false;
 
         void createDevice();
-        void createShaders();
         void createOffscreenTarget();
-        void createPipeline();
-        void createTextureSampler();
         void createWindowSurface();
         void configureWindowSurface(uint32_t width, uint32_t height);
         void createDefaultTexture();
-        void ensureQuadBufferSize(std::size_t quadCount);
         void recreateTextureBindGroups();
         [[nodiscard]] const TextureResource &
         getTexture(Core::Renderer::TextureHandle texture) const;
@@ -408,11 +375,6 @@ namespace Bess::Wgpu {
         queue = device.GetQueue();
     }
 
-    void WgpuRenderer2D::Impl::createShaders() {
-        quadShader = std::make_unique<WgpuShader>(
-            "renderer_2d_quad", Shaders::getQuadShaderModules(), device);
-    }
-
     void WgpuRenderer2D::Impl::createOffscreenTarget() {
         wgpu::TextureDescriptor descriptor{};
         descriptor.dimension = wgpu::TextureDimension::e2D;
@@ -430,145 +392,19 @@ namespace Bess::Wgpu {
         offscreenTargetView = offscreenTarget.CreateView();
     }
 
-    void WgpuRenderer2D::Impl::createPipeline() {
-        if (!quadShader) {
-            createShaders();
-        }
-
-        std::array<wgpu::BindGroupLayoutEntry, 4> bindings{};
-        bindings[0].binding = 0;
-        bindings[0].visibility = wgpu::ShaderStage::Vertex;
-        bindings[0].buffer.type = wgpu::BufferBindingType::ReadOnlyStorage;
-
-        bindings[1].binding = 1;
-        bindings[1].visibility = wgpu::ShaderStage::Vertex;
-        bindings[1].buffer.type = wgpu::BufferBindingType::Uniform;
-
-        bindings[2].binding = 2;
-        bindings[2].visibility = wgpu::ShaderStage::Fragment;
-        bindings[2].sampler.type = wgpu::SamplerBindingType::Filtering;
-
-        bindings[3].binding = 3;
-        bindings[3].visibility = wgpu::ShaderStage::Fragment;
-        bindings[3].texture.sampleType = wgpu::TextureSampleType::Float;
-        bindings[3].texture.viewDimension = wgpu::TextureViewDimension::e2D;
-
-        wgpu::BindGroupLayoutDescriptor bindGroupLayoutDescriptor{};
-        bindGroupLayoutDescriptor.entryCount = bindings.size();
-        bindGroupLayoutDescriptor.entries = bindings.data();
-        bindGroupLayout =
-            device.CreateBindGroupLayout(&bindGroupLayoutDescriptor);
-
-        wgpu::PipelineLayoutDescriptor pipelineLayoutDescriptor{};
-        pipelineLayoutDescriptor.bindGroupLayoutCount = 1;
-        pipelineLayoutDescriptor.bindGroupLayouts = &bindGroupLayout;
-        wgpu::PipelineLayout pipelineLayout =
-            device.CreatePipelineLayout(&pipelineLayoutDescriptor);
-
-        wgpu::ColorTargetState colorTarget{};
-        colorTarget.format = targetFormat;
-        wgpu::BlendState blendState{};
-        blendState.color.operation = wgpu::BlendOperation::Add;
-        blendState.color.srcFactor = wgpu::BlendFactor::SrcAlpha;
-        blendState.color.dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha;
-        blendState.alpha.operation = wgpu::BlendOperation::Add;
-        blendState.alpha.srcFactor = wgpu::BlendFactor::One;
-        blendState.alpha.dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha;
-        colorTarget.blend = &blendState;
-
-        wgpu::FragmentState fragment{};
-        fragment.module =
-            quadShader->getModule(Core::Renderer::ShaderStage::Fragment);
-        fragment.entryPoint =
-            quadShader->getEntryPoint(Core::Renderer::ShaderStage::Fragment)
-                .c_str();
-        fragment.targetCount = 1;
-        fragment.targets = &colorTarget;
-
-        wgpu::RenderPipelineDescriptor pipelineDescriptor{};
-        pipelineDescriptor.layout = pipelineLayout;
-        pipelineDescriptor.vertex.module =
-            quadShader->getModule(Core::Renderer::ShaderStage::Vertex);
-        pipelineDescriptor.vertex.entryPoint =
-            quadShader->getEntryPoint(Core::Renderer::ShaderStage::Vertex)
-                .c_str();
-        pipelineDescriptor.primitive.topology =
-            wgpu::PrimitiveTopology::TriangleList;
-        pipelineDescriptor.primitive.cullMode = wgpu::CullMode::None;
-        pipelineDescriptor.fragment = &fragment;
-
-        quadPipeline = device.CreateRenderPipeline(&pipelineDescriptor);
-
-        wgpu::BufferDescriptor frameBufferDescriptor{};
-        frameBufferDescriptor.size = sizeof(FrameUniform);
-        frameBufferDescriptor.usage =
-            wgpu::BufferUsage::Uniform | wgpu::BufferUsage::CopyDst;
-        frameBuffer = device.CreateBuffer(&frameBufferDescriptor);
-    }
-
-    void WgpuRenderer2D::Impl::createTextureSampler() {
-        wgpu::SamplerDescriptor descriptor{};
-        descriptor.addressModeU = wgpu::AddressMode::ClampToEdge;
-        descriptor.addressModeV = wgpu::AddressMode::ClampToEdge;
-        descriptor.addressModeW = wgpu::AddressMode::ClampToEdge;
-        descriptor.magFilter = wgpu::FilterMode::Linear;
-        descriptor.minFilter = wgpu::FilterMode::Linear;
-        descriptor.mipmapFilter = wgpu::MipmapFilterMode::Nearest;
-        textureSampler = device.CreateSampler(&descriptor);
-    }
-
     void WgpuRenderer2D::Impl::createDefaultTexture() {
         const std::array<uint8_t, 4> whitePixel{255, 255, 255, 255};
         defaultTexture = WgpuTexture::fromPixels(whitePixel.data(), 1, 1);
     }
 
-    void WgpuRenderer2D::Impl::ensureQuadBufferSize(std::size_t quadCount) {
-        const auto requiredSize = std::max<std::size_t>(
-            sizeof(QuadInstance), quadCount * sizeof(QuadInstance));
-        if (quadBuffer != nullptr && quadBufferSize >= requiredSize) {
-            return;
-        }
-
-        wgpu::BufferDescriptor descriptor{};
-        descriptor.size = requiredSize;
-        descriptor.usage =
-            wgpu::BufferUsage::Storage | wgpu::BufferUsage::CopyDst;
-        quadBuffer = device.CreateBuffer(&descriptor);
-        quadBufferSize = requiredSize;
-        recreateTextureBindGroups();
-    }
-
     void WgpuRenderer2D::Impl::recreateTextureBindGroups() {
-        if (quadBuffer == nullptr || frameBuffer == nullptr ||
-            bindGroupLayout == nullptr || textureSampler == nullptr) {
+        if (!quadPipeline) {
             return;
         }
 
         for (auto &[handle, texture] : textures) {
-            std::array<wgpu::BindGroupEntry, 4> entries{};
-            entries[0].binding = 0;
-            entries[0].buffer = quadBuffer;
-            entries[0].offset = 0;
-            entries[0].size = quadBufferSize;
-
-            entries[1].binding = 1;
-            entries[1].buffer = frameBuffer;
-            entries[1].offset = 0;
-            entries[1].size = sizeof(FrameUniform);
-
-            entries[2].binding = 2;
-            entries[2].sampler = textureSampler;
-
-            entries[3].binding = 3;
-            entries[3].textureView = texture.view;
-
-            wgpu::BindGroupDescriptor descriptor{};
-            descriptor.layout = bindGroupLayout;
-            descriptor.entryCount = entries.size();
-            descriptor.entries = entries.data();
-            descriptor.label =
-                ("TextureBindGroup_" + std::to_string(handle)).c_str();
-            texture.bindGroup = device.CreateBindGroup(&descriptor);
+            texture.bindGroup = quadPipeline->createTextureBindGroup(
+                texture.view, "TextureBindGroup_" + std::to_string(handle));
         }
     }
 
@@ -611,11 +447,15 @@ namespace Bess::Wgpu {
         m_impl->createDevice();
         m_impl->createWindowSurface();
         m_impl->createOffscreenTarget();
-        m_impl->createShaders();
-        m_impl->createPipeline();
-        m_impl->createTextureSampler();
-        m_impl->ensureQuadBufferSize(
-            std::max(1u, createInfo.batching.initialQuadCapacity));
+        m_impl->sharedFrameBuffer.init(m_impl->device);
+        m_impl->quadPipeline = std::make_unique<Piplines::QuadPipeline>();
+        m_impl->quadPipeline->init(m_impl->device, m_impl->targetFormat,
+                                   m_impl->sharedFrameBuffer.getBuffer(),
+                                   m_impl->sharedFrameBuffer.getSize());
+        if (m_impl->quadPipeline->ensureInstanceBufferSize(
+                std::max(1u, createInfo.batching.initialQuadCapacity))) {
+            m_impl->recreateTextureBindGroups();
+        }
         m_impl->createDefaultTexture();
     }
 
@@ -624,12 +464,11 @@ namespace Bess::Wgpu {
             return;
         }
         m_impl->commandEncoder = nullptr;
-        m_impl->bindGroupLayout = nullptr;
-        m_impl->quadPipeline = nullptr;
-        m_impl->quadShader = nullptr;
-        m_impl->textureSampler = nullptr;
-        m_impl->quadBuffer = nullptr;
-        m_impl->frameBuffer = nullptr;
+        if (m_impl->quadPipeline) {
+            m_impl->quadPipeline->destroy();
+            m_impl->quadPipeline = nullptr;
+        }
+        m_impl->sharedFrameBuffer.destroy();
         m_impl->textures.clear();
         m_impl->surface = nullptr;
         m_impl->surfaceConfigured = false;
@@ -762,20 +601,19 @@ namespace Bess::Wgpu {
 
         if (!m_impl->quadBatch.empty()) {
             m_impl->quadBatch.sortForRendering();
-            m_impl->ensureQuadBufferSize(m_impl->quadBatch.count());
-            m_impl->queue.WriteBuffer(m_impl->quadBuffer, 0,
-                                      m_impl->quadBatch.data(),
-                                      m_impl->quadBatch.byteSize());
+            if (m_impl->quadPipeline->ensureInstanceBufferSize(
+                    m_impl->quadBatch.count())) {
+                m_impl->recreateTextureBindGroups();
+            }
+            m_impl->quadPipeline->uploadInstances(
+                m_impl->queue, m_impl->quadBatch.data(),
+                m_impl->quadBatch.byteSize());
             m_impl->stats.uploadedBytes += m_impl->quadBatch.byteSize();
 
-            FrameUniform frameUniform{};
-            frameUniform.viewport[0] = static_cast<float>(m_impl->extent.width);
-            frameUniform.viewport[1] =
-                static_cast<float>(m_impl->extent.height);
-            m_impl->queue.WriteBuffer(m_impl->frameBuffer, 0, &frameUniform,
-                                      sizeof(frameUniform));
+            m_impl->sharedFrameBuffer.update(
+                m_impl->queue, m_impl->extent.width, m_impl->extent.height);
 
-            renderPass.SetPipeline(m_impl->quadPipeline);
+            renderPass.SetPipeline(m_impl->quadPipeline->getPipeline());
             for (const auto &run : m_impl->quadBatch.getDrawRuns()) {
                 const auto &texture = m_impl->getTexture(run.texture);
                 renderPass.SetBindGroup(0, texture.bindGroup);
