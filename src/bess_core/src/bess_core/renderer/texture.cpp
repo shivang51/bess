@@ -5,5 +5,9 @@ namespace Bess::Core::Renderer {
 
     ITexture::ITexture(const TextureCreateInfo &createInfo)
         : m_path(createInfo.path) {}
+    TextureHandle ITexture::getNextTextureHandle() {
+        static TextureHandle nextHandle = 1;
+        return nextHandle++;
+    }
 
 } // namespace Bess::Core::Renderer

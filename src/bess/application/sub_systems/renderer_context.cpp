@@ -1,7 +1,8 @@
 #include "sub_systems/renderer_context.h"
+#include "application/window.h"
 #include "bess_core/g_app_context.h"
 #include "bess_wgpu/wgpu_renderer_2d.h"
-#include "application/window.h"
+#include "bess_wgpu/wgpu_texture.h"
 #include "common/events.h"
 #include "event_dispatcher.h"
 
@@ -9,6 +10,8 @@ namespace Bess {
 
     void RendererContext::onPreInit() {
         m_renderer = std::make_shared<Wgpu::WgpuRenderer2D>();
+        Wgpu::WgpuTexture::setRenderer(
+            std::dynamic_pointer_cast<Wgpu::WgpuRenderer2D>(m_renderer));
     }
 
     void RendererContext::onInit() {
@@ -18,8 +21,8 @@ namespace Bess {
         m_renderer->init(
             {.extent = {800, 600},
              .targetFormat = Core::Renderer::Renderer2DTargetFormat::BGRA8Unorm,
-             .surface = {.type =
-                             Core::Renderer::Renderer2DNativeSurfaceType::PlatformHandle,
+             .surface = {.type = Core::Renderer::Renderer2DNativeSurfaceType::
+                             PlatformHandle,
                          .handle = window->getGLFWHandle()}});
     }
 
@@ -35,6 +38,7 @@ namespace Bess {
     }
 
     void RendererContext::onDestroy() {
+        Wgpu::WgpuTexture::setRenderer(nullptr);
         m_renderer->destroy();
         m_renderer.reset();
     }

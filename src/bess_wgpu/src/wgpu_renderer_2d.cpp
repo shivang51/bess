@@ -1,7 +1,8 @@
 #include "bess_wgpu/wgpu_renderer_2d.h"
-#include "bess_core/g_app_context.h"
 #include "bess_wgpu/shaders/quad_shader.h"
 #include "bess_wgpu/wgpu_shader.h"
+#include "bess_wgpu/wgpu_texture.h"
+#include "common/bess_assert.h"
 #include "common/logger.h"
 #include "glfw3webgpu.h"
 #include <algorithm>
@@ -257,14 +258,6 @@ namespace Bess::Wgpu {
             uint64_t m_nextSequence = 0;
         };
 
-        struct TextureResource {
-            wgpu::Texture texture;
-            wgpu::TextureView view;
-            wgpu::BindGroup bindGroup;
-            uint32_t width = 1;
-            uint32_t height = 1;
-        };
-
         class TextureSource final : public Core::Renderer::ITexture {
           public:
             explicit TextureSource(
@@ -310,7 +303,7 @@ namespace Bess::Wgpu {
         wgpu::CommandEncoder commandEncoder;
         std::unordered_map<Core::Renderer::TextureHandle, TextureResource>
             textures;
-        Core::Renderer::TextureHandle nextTextureHandle = 1;
+        std::shared_ptr<WgpuTexture> defaultTexture;
 
         QuadBatch quadBatch;
         std::size_t quadBufferSize = 0;
@@ -326,12 +319,6 @@ namespace Bess::Wgpu {
         void createTextureSampler();
         void createWindowSurface();
         void configureWindowSurface(uint32_t width, uint32_t height);
-        Core::Renderer::TextureHandle
-        createRenderTargetTexture(uint32_t width, uint32_t height,
-                                  wgpu::TextureFormat format);
-        Core::Renderer::TextureHandle
-        createTextureFromPixels(const uint8_t *pixels, uint32_t width,
-                                uint32_t height, bool isDefaultTexture);
         void createDefaultTexture();
         void ensureQuadBufferSize(std::size_t quadCount);
         void recreateTextureBindGroups();
@@ -382,23 +369,17 @@ namespace Bess::Wgpu {
         deviceDescriptor.SetUncapturedErrorCallback(
             [](const wgpu::Device &, wgpu::ErrorType type,
                wgpu::StringView message) {
-#undef LOGGER_NAME
-#define LOGGER_NAME "BessWgpu"
                 BESS_ERROR("Dawn Validation Error [{}]: {}",
                            static_cast<int>(type),
                            std::string_view(message.data, message.length));
-#undef LOGGER_NAME
             });
         deviceDescriptor.SetDeviceLostCallback(
             wgpu::CallbackMode::AllowSpontaneous,
             [](const wgpu::Device &, wgpu::DeviceLostReason reason,
                wgpu::StringView message) {
-#undef LOGGER_NAME
-#define LOGGER_NAME "BessWgpu"
                 BESS_ERROR("Dawn Device Lost [{}]: {}",
                            static_cast<int>(reason),
                            std::string_view(message.data, message.length));
-#undef LOGGER_NAME
             });
         RequestResult deviceResult;
         auto deviceCallback = [&deviceResult](wgpu::RequestDeviceStatus status,
@@ -443,6 +424,7 @@ namespace Bess::Wgpu {
         descriptor.usage = wgpu::TextureUsage::RenderAttachment |
                            wgpu::TextureUsage::TextureBinding |
                            wgpu::TextureUsage::CopySrc;
+        descriptor.label = "OffscreenRenderTarget";
 
         offscreenTarget = device.CreateTexture(&descriptor);
         offscreenTargetView = offscreenTarget.CreateView();
@@ -535,54 +517,9 @@ namespace Bess::Wgpu {
         textureSampler = device.CreateSampler(&descriptor);
     }
 
-    Core::Renderer::TextureHandle WgpuRenderer2D::Impl::createTextureFromPixels(
-        const uint8_t *pixels, uint32_t width, uint32_t height,
-        bool isDefaultTexture) {
-        if (pixels == nullptr || width == 0 || height == 0) {
-            throw std::runtime_error("Invalid texture pixel data");
-        }
-
-        wgpu::TextureDescriptor descriptor{};
-        descriptor.dimension = wgpu::TextureDimension::e2D;
-        descriptor.size = {width, height, 1};
-        descriptor.format = wgpu::TextureFormat::RGBA8Unorm;
-        descriptor.mipLevelCount = 1;
-        descriptor.sampleCount = 1;
-        descriptor.usage =
-            wgpu::TextureUsage::TextureBinding | wgpu::TextureUsage::CopyDst;
-
-        TextureResource resource;
-        resource.texture = device.CreateTexture(&descriptor);
-        resource.view = resource.texture.CreateView();
-        resource.width = width;
-        resource.height = height;
-
-        wgpu::TexelCopyTextureInfo destination{};
-        destination.texture = resource.texture;
-        destination.mipLevel = 0;
-        destination.origin = {0, 0, 0};
-        destination.aspect = wgpu::TextureAspect::All;
-
-        wgpu::TexelCopyBufferLayout layout{};
-        layout.offset = 0;
-        layout.bytesPerRow = width * 4;
-        layout.rowsPerImage = height;
-
-        wgpu::Extent3D writeSize{width, height, 1};
-        queue.WriteTexture(&destination, pixels,
-                           static_cast<size_t>(width) * height * 4, &layout,
-                           &writeSize);
-
-        const Core::Renderer::TextureHandle handle =
-            isDefaultTexture ? 0 : nextTextureHandle++;
-        textures[handle] = std::move(resource);
-        recreateTextureBindGroups();
-        return handle;
-    }
-
     void WgpuRenderer2D::Impl::createDefaultTexture() {
         const std::array<uint8_t, 4> whitePixel{255, 255, 255, 255};
-        createTextureFromPixels(whitePixel.data(), 1, 1, true);
+        defaultTexture = WgpuTexture::fromPixels(whitePixel.data(), 1, 1);
     }
 
     void WgpuRenderer2D::Impl::ensureQuadBufferSize(std::size_t quadCount) {
@@ -629,17 +566,27 @@ namespace Bess::Wgpu {
             descriptor.layout = bindGroupLayout;
             descriptor.entryCount = entries.size();
             descriptor.entries = entries.data();
+            descriptor.label =
+                ("TextureBindGroup_" + std::to_string(handle)).c_str();
             texture.bindGroup = device.CreateBindGroup(&descriptor);
         }
     }
 
     const TextureResource &WgpuRenderer2D::Impl::getTexture(
         Core::Renderer::TextureHandle texture) const {
+        if (texture == 0) {
+            return textures.at(defaultTexture->getHandle());
+        }
+
+        BESS_ASSERT(!textures.empty(), "No textures available in renderer");
         const auto it = textures.find(texture);
         if (it != textures.end()) {
             return it->second;
         }
-        return textures.at(0);
+
+        BESS_ASSERT(false, "Requested texture handle {} not found in renderer",
+                    texture);
+        return textures.at(defaultTexture->getHandle());
     }
 
     WgpuRenderer2D::WgpuRenderer2D() : m_impl(std::make_unique<Impl>()) {}
@@ -684,7 +631,6 @@ namespace Bess::Wgpu {
         m_impl->quadBuffer = nullptr;
         m_impl->frameBuffer = nullptr;
         m_impl->textures.clear();
-        m_impl->nextTextureHandle = 1;
         m_impl->surface = nullptr;
         m_impl->surfaceConfigured = false;
         m_impl->frameUsesSurface = false;
@@ -746,45 +692,11 @@ namespace Bess::Wgpu {
         surfaceConfigured = true;
     }
 
-    Core::Renderer::TextureHandle
-    WgpuRenderer2D::Impl::createRenderTargetTexture(
-        uint32_t width, uint32_t height, wgpu::TextureFormat format) {
-        wgpu::TextureDescriptor descriptor{};
-        descriptor.dimension = wgpu::TextureDimension::e2D;
-        descriptor.size = {std::max(1u, width), std::max(1u, height), 1};
-        descriptor.format = format;
-        descriptor.mipLevelCount = 1;
-        descriptor.sampleCount = 1;
-        descriptor.usage = wgpu::TextureUsage::RenderAttachment |
-                           wgpu::TextureUsage::TextureBinding |
-                           wgpu::TextureUsage::CopySrc;
-
-        TextureResource resource;
-        resource.texture = device.CreateTexture(&descriptor);
-        resource.view = resource.texture.CreateView();
-
-        const Core::Renderer::TextureHandle handle = nextTextureHandle++;
-        textures[handle] = std::move(resource);
-        recreateTextureBindGroups();
-        return handle;
-    }
-
     void WgpuRenderer2D::resize(const Renderer2DExtent &extent) {
         m_impl->extent = extent;
         if (m_impl->device != nullptr) {
             m_impl->createOffscreenTarget();
         }
-    }
-
-    Core::Renderer::TextureHandle WgpuRenderer2D::createRenderTarget(
-        const Core::Renderer::Renderer2DExtent &extent,
-        const Core::Renderer::Renderer2DTargetFormat format) {
-        if (m_impl->device == nullptr) {
-            throw std::runtime_error("WgpuRenderer2D is not initialized");
-        }
-
-        return m_impl->createRenderTargetTexture(extent.width, extent.height,
-                                                 toWgpuFormat(format));
     }
 
     void WgpuRenderer2D::beginFrame(
@@ -803,6 +715,7 @@ namespace Bess::Wgpu {
         m_impl->shouldClear = frameInfo.shouldClear;
         m_impl->quadBatch.clear();
         m_impl->stats = {};
+
         m_impl->frameTargetTexture = frameInfo.targetTexture;
         m_impl->frameUsesSurface = frameInfo.targetTexture == 0;
         m_impl->frameStarted = true;
@@ -829,6 +742,8 @@ namespace Bess::Wgpu {
             }
             targetView = surfaceTexture.texture.CreateView();
         } else if (m_impl->frameTargetTexture != 0) {
+            BESS_TRACE("Rendering to texture handle {}",
+                       m_impl->frameTargetTexture);
             targetView = m_impl->getTexture(m_impl->frameTargetTexture).view;
         } else {
             targetView = m_impl->offscreenTargetView;
@@ -1005,42 +920,17 @@ namespace Bess::Wgpu {
         return m_impl->stats;
     }
 
-    Core::Renderer::TextureHandle
-    WgpuRenderer2D::createTexture(Core::Renderer::ITexture &texture) {
-        if (m_impl->device == nullptr) {
-            throw std::runtime_error("WgpuRenderer2D is not initialized");
-        }
-
-        int width = 0;
-        int height = 0;
-        int channels = 0;
-        std::unique_ptr<stbi_uc, StbiImageDeleter> pixels(stbi_load(
-            texture.getPath().c_str(), &width, &height, &channels, 4));
-        if (pixels == nullptr) {
-            throw std::runtime_error("Failed to load texture: " +
-                                     texture.getPath());
-        }
-
-        const auto handle = m_impl->createTextureFromPixels(
-            pixels.get(), static_cast<uint32_t>(width),
-            static_cast<uint32_t>(height), false);
-        texture.setSize(
-            {static_cast<float>(width), static_cast<float>(height)});
-        texture.setHandle(handle);
-        return handle;
-    }
-
-    Core::Renderer::TextureHandle WgpuRenderer2D::createTexture(
-        const Core::Renderer::TextureCreateInfo &createInfo) {
-        TextureSource texture(createInfo);
-        return createTexture(texture);
-    }
-
-    void WgpuRenderer2D::destroyTexture(Core::Renderer::TextureHandle texture) {
-        if (texture == 0) {
-            return;
-        }
+    void
+    WgpuRenderer2D::unregisterTexture(Core::Renderer::TextureHandle texture) {
         m_impl->textures.erase(texture);
+        m_impl->recreateTextureBindGroups();
+    }
+
+    void WgpuRenderer2D::registerTexture(const TextureResource &texture) {
+        BESS_TRACE("Registering texture with handle {} ({}x{})", texture.handle,
+                   texture.width, texture.height);
+        m_impl->textures[texture.handle] = texture;
+        m_impl->recreateTextureBindGroups();
     }
 
     void WgpuRenderer2D::drawQuad(const Core::Renderer::QuadProps &props) {
@@ -1154,11 +1044,6 @@ namespace Bess::Wgpu {
 
     wgpu::TextureView WgpuRenderer2D::getCurrentTargetView() const {
         return m_impl->offscreenTargetView;
-    }
-
-    wgpu::TextureView WgpuRenderer2D::getTextureView(
-        Core::Renderer::TextureHandle texture) const {
-        return m_impl->getTexture(texture).view;
     }
 
     [[nodiscard]] wgpu::TextureFormat WgpuRenderer2D::getTargetFormat() const {

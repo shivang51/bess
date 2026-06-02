@@ -1,12 +1,20 @@
-#pragma once
-
 #include "bess_core/renderer/renderer_2d.h"
-#include <cstddef>
+#include "bess_core/renderer/renderer_types.h"
+#include "bess_wgpu/wgpu_texture.h"
 #include <memory>
 #include <string>
 #include <webgpu/webgpu_cpp.h>
 
 namespace Bess::Wgpu {
+
+    struct TextureResource {
+        wgpu::Texture texture;
+        wgpu::TextureView view;
+        wgpu::BindGroup bindGroup;
+        Core::Renderer::TextureHandle handle = 0;
+        uint32_t width = 1;
+        uint32_t height = 1;
+    };
 
     class WgpuRenderer2D final : public Core::Renderer::IRenderer2D {
       public:
@@ -33,14 +41,9 @@ namespace Bess::Wgpu {
         [[nodiscard]] Core::Renderer::Renderer2DStats
         getStats() const noexcept override;
 
-        Core::Renderer::TextureHandle
-        createRenderTarget(const Core::Renderer::Renderer2DExtent &extent,
-               Core::Renderer::Renderer2DTargetFormat format) override;
-        Core::Renderer::TextureHandle
-        createTexture(Core::Renderer::ITexture &texture) override;
-        Core::Renderer::TextureHandle
-        createTexture(const Core::Renderer::TextureCreateInfo &createInfo);
-        void destroyTexture(Core::Renderer::TextureHandle texture) override;
+        void unregisterTexture(Core::Renderer::TextureHandle texture);
+
+        void registerTexture(const TextureResource &texture);
 
         void drawQuad(const Core::Renderer::QuadProps &props) override;
         void drawRoundedQuad(
@@ -55,7 +58,6 @@ namespace Bess::Wgpu {
         [[nodiscard]] wgpu::Device getDevice() const;
         [[nodiscard]] wgpu::Queue getQueue() const;
         [[nodiscard]] wgpu::TextureView getCurrentTargetView() const;
-        [[nodiscard]] wgpu::TextureView getTextureView(Core::Renderer::TextureHandle texture) const;
         [[nodiscard]] Core::Renderer::Renderer2DTargetFormat
         getTargetFormatType() const;
         [[nodiscard]] wgpu::TextureFormat getTargetFormat() const;

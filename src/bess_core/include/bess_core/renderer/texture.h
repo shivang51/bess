@@ -1,7 +1,7 @@
 #pragma once
+#include "bess_core/renderer/renderer_types.h"
 #include "common/class_helpers.h"
 #include "ext/vector_float2.hpp"
-#include "bess_core/renderer/renderer_types.h"
 #include <string>
 namespace Bess::Core::Renderer {
 
@@ -22,6 +22,9 @@ namespace Bess::Core::Renderer {
         MAKE_GETTER_SETTER(std::string, Path, m_path);
         MAKE_GETTER_SETTER(glm::vec2, Size, m_size);
         MAKE_GETTER_SETTER(TextureHandle, Handle, m_handle);
+
+      protected:
+        static TextureHandle getNextTextureHandle();
 
       protected:
         std::string m_path;

@@ -66,7 +66,7 @@ namespace Bess {
         auto renderer = appCtx.getSubSystem<RendererContext>()
                             ->getRenderer<Wgpu::WgpuRenderer2D>();
         if (m_previewTex == nullptr) {
-            m_previewTex = std::make_shared<Wgpu::WgpuTexture>(*renderer.get());
+            m_previewTex = std::make_shared<Wgpu::WgpuTexture>();
             m_previewTex->setSize({800, 800});
             m_previewTex->init();
         }
@@ -76,6 +76,10 @@ namespace Bess {
         frameInfo.shouldClear = true;
         frameInfo.targetTexture = m_previewTex->getHandle();
         frameInfo.extent = {800, 800};
+        BESS_DEBUG("Starting UI frame with target texture {}, clear color {}, "
+                   "should clear {}",
+                   frameInfo.targetTexture, frameInfo.clearColor,
+                   frameInfo.shouldClear);
         renderer->beginFrame(frameInfo);
         constexpr size_t quadsPerRow = 200;
         constexpr size_t quadCount = quadsPerRow * quadsPerRow;
@@ -96,8 +100,7 @@ namespace Bess {
         ImGui::Text("FPS: %d", m_currentFps);
         ImGui::Text("Quad Count: %d", renderer->getStats().quadCount);
         ImGui::Image(
-            reinterpret_cast<ImTextureID>(
-                renderer->getTextureView(m_previewTex->getHandle()).Get()),
+            reinterpret_cast<ImTextureID>(m_previewTex->getTextureView().Get()),
             ImVec2(800, 800));
         ImGui::End();
     }

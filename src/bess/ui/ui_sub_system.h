@@ -1,8 +1,8 @@
 #pragma once
 
+#include "bess_wgpu/wgpu_texture.h"
 #include "common/sub_system.h"
 #include "pages/main_page/main_page.h"
-#include "bess_wgpu/wgpu_texture.h"
 
 namespace Bess {
     class UISubSystem : public Bess::ISubSystem {

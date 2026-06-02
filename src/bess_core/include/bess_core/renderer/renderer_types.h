@@ -3,6 +3,7 @@
 #include "common/types.h"
 #include "ext/vector_float2.hpp"
 #include "ext/vector_float4.hpp"
+#include "spdlog/fmt/bundled/format.h"
 #include "json/value.h"
 
 namespace Bess::Core::Renderer {
@@ -46,6 +47,13 @@ namespace Bess::Core::Renderer {
 
         Json::Value toJson() const;
         static Color fromJson(const Json::Value &json);
+
+        // std::cout operator
+        friend std::ostream &operator<<(std::ostream &os, const Color &color) {
+            os << "Color(r=" << color.r << ", g=" << color.g
+               << ", b=" << color.b << ", a=" << color.a << ")";
+            return os;
+        }
     };
 
     typedef uint32_t TextureHandle;
@@ -70,3 +78,13 @@ namespace Bess::Core::Renderer {
         Color color{0.f, 0.f, 0.f, 1.f};
     };
 } // namespace Bess::Core::Renderer
+
+template <>
+struct fmt::formatter<Bess::Core::Renderer::Color>
+    : fmt::formatter<std::string> {
+    auto format(Bess::Core::Renderer::Color color, format_context &ctx) const
+        -> decltype(ctx.out()) {
+        return fmt::format_to(ctx.out(), "Color({}, {}, {}, {})", color.r,
+                              color.g, color.b, color.a);
+    }
+};
