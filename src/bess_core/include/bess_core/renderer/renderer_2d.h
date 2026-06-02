@@ -10,9 +10,11 @@ namespace Bess {
 
 namespace Bess::Core::Renderer {
     enum class Renderer2DTargetFormat : uint8_t {
+        None,
         RGBA8Unorm,
         BGRA8Unorm,
-        RGBA16Float
+        RGBA16Float,
+        RG32Uint
     };
 
     struct Renderer2DExtent {
@@ -42,6 +44,8 @@ namespace Bess::Core::Renderer {
         Renderer2DExtent extent;
         Renderer2DTargetFormat targetFormat =
             Renderer2DTargetFormat::BGRA8Unorm;
+        Renderer2DTargetFormat pickingFormat =
+            Renderer2DTargetFormat::None;
         Renderer2DNativeSurface surface;
         Renderer2DBatchConfig batching;
         bool enableValidation = true;
@@ -58,6 +62,7 @@ namespace Bess::Core::Renderer {
         Color clearColor{0.f, 0.f, 0.f, 1.f};
         bool shouldClear = true;
         TextureHandle targetTexture = 0;
+        TextureHandle pickingTexture = 0;
     };
 
     class IRenderer2D {
@@ -81,6 +86,10 @@ namespace Bess::Core::Renderer {
         virtual void
         drawRoundedQuad(const QuadProps &props,
                         const RoundedBorderProps &roundedProps) = 0;
+
+        virtual void drawCircle(const CircleProps &props) = 0;
+
+        virtual void drawLine(const LineProps &props) = 0;
 
         virtual void
         drawImGui(const std::function<void(void *)> &imguiRenderFn) {}

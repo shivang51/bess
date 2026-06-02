@@ -66,7 +66,8 @@ namespace Bess::Wgpu::Piplines {
         virtual void init(const wgpu::Device &device,
               wgpu::TextureFormat targetFormat,
               const wgpu::Buffer &frameBuffer,
-              uint64_t frameBufferSize) = 0;
+              uint64_t frameBufferSize,
+              wgpu::TextureFormat pickingFormat = wgpu::TextureFormat::Undefined) = 0;
         virtual void destroy() = 0;
     };
 

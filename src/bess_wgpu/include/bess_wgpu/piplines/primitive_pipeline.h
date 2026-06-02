@@ -10,31 +10,35 @@
 
 namespace Bess::Wgpu::Piplines {
 
-    struct QuadInstance {
-        float position[2] = {0.f, 0.f};
-        float size[2] = {1.f, 1.f};
+    struct PrimitiveInstance {
+        float position[3] = {0.f, 0.f, 0.f};
+        float padding0 = 0.f;
         float color[4] = {1.f, 1.f, 1.f, 1.f};
-        float radius[4] = {0.f, 0.f, 0.f, 0.f};
-        float borderSize[4] = {0.f, 0.f, 0.f, 0.f};
+        float borderRadius[4] = {0.f, 0.f, 0.f, 0.f};
         float borderColor[4] = {0.f, 0.f, 0.f, 1.f};
-        float uvRect[4] = {0.f, 0.f, 1.f, 1.f};
-        float rotation = 0.f;
-        float zIndex = 0.f;
-        float useTexture = 0.f;
-        float padding = 0.f;
+        float borderSize[4] = {0.f, 0.f, 0.f, 0.f};
+        float texData[4] = {0.f, 0.f, 1.f, 1.f};
+        float primitiveData[4] = {0.f, 0.f, 0.f, 0.f};
+        float size[2] = {1.f, 1.f};
+        uint32_t id[2] = {0, 0};
+        int32_t primitiveType = 0;
+        int32_t isMica = 0;
+        int32_t texSlotIdx = 0;
+        float angle = 0.f;
     };
 
-    class QuadPipeline final : public Pipeline {
+    class PrimitivePipeline final : public Pipeline {
       public:
         void init(const wgpu::Device &device,
                   wgpu::TextureFormat targetFormat,
                   const wgpu::Buffer &frameBuffer,
-                  uint64_t frameBufferSize) override;
+                  uint64_t frameBufferSize,
+                  wgpu::TextureFormat pickingFormat = wgpu::TextureFormat::Undefined) override;
         void destroy() override;
 
         [[nodiscard]] bool ensureInstanceBufferSize(std::size_t quadCount);
         void uploadInstances(const wgpu::Queue &queue,
-                             const QuadInstance *instances,
+                             const PrimitiveInstance *instances,
                              uint64_t byteSize) const;
 
         [[nodiscard]] wgpu::BindGroup
@@ -53,6 +57,7 @@ namespace Bess::Wgpu::Piplines {
 
         wgpu::Device m_device;
         wgpu::TextureFormat m_targetFormat = wgpu::TextureFormat::BGRA8Unorm;
+        wgpu::TextureFormat m_pickingFormat = wgpu::TextureFormat::Undefined;
         std::unique_ptr<Bess::Wgpu::WgpuShader> m_shader;
         wgpu::RenderPipeline m_opaquePipeline;
         wgpu::RenderPipeline m_transparentPipeline;

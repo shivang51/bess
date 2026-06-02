@@ -6,6 +6,6 @@
 namespace Bess::Wgpu::Shaders {
 
     [[nodiscard]] std::vector<Core::Renderer::ShaderModuleDesc>
-    getQuadShaderModules();
+    getPrimitiveShaderModules();
 
 } // namespace Bess::Wgpu::Shaders

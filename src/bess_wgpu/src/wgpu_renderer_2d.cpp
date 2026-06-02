@@ -1,5 +1,5 @@
 #include "bess_wgpu/wgpu_renderer_2d.h"
-#include "bess_wgpu/piplines/quad_pipeline.h"
+#include "bess_wgpu/piplines/primitive_pipeline.h"
 #include "bess_wgpu/wgpu_texture.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
@@ -22,7 +22,7 @@ namespace Bess::Wgpu {
         using Bess::Core::Renderer::QuadRenderPass;
         using Bess::Core::Renderer::Renderer2DExtent;
         using Bess::Core::Renderer::Renderer2DTargetFormat;
-        using Bess::Wgpu::Piplines::QuadInstance;
+        using Bess::Wgpu::Piplines::PrimitiveInstance;
 
         bool isTransparent(const Core::Renderer::QuadProps &props,
                            const Core::Renderer::RoundedBorderProps *rounded) {
@@ -42,12 +42,6 @@ namespace Bess::Wgpu {
             return false;
         }
 
-        struct QueuedQuad {
-            QuadInstance instance;
-            Core::Renderer::TextureHandle texture = 0;
-            uint64_t sequence = 0;
-        };
-
         struct DrawRun {
             Core::Renderer::TextureHandle texture = 0;
             uint32_t firstInstance = 0;
@@ -60,6 +54,10 @@ namespace Bess::Wgpu {
                 return wgpu::TextureFormat::RGBA8Unorm;
             case Renderer2DTargetFormat::RGBA16Float:
                 return wgpu::TextureFormat::RGBA16Float;
+            case Renderer2DTargetFormat::RG32Uint:
+                return wgpu::TextureFormat::RG32Uint;
+            case Renderer2DTargetFormat::None:
+                return wgpu::TextureFormat::Undefined;
             case Renderer2DTargetFormat::BGRA8Unorm:
             default:
                 return wgpu::TextureFormat::BGRA8Unorm;
@@ -131,32 +129,40 @@ namespace Bess::Wgpu {
             png_destroy_write_struct(&png, &info);
         }
 
-        void makeQuadInstanceInPlace(
-            QuadInstance& instance,
+        void makePrimitiveInstanceInPlace(
+            PrimitiveInstance& instance,
             const Core::Renderer::QuadProps &props,
             const Core::Renderer::RoundedBorderProps *roundedProps) {
             instance.position[0] = props.position.x;
             instance.position[1] = props.position.y;
-            instance.size[0] = props.size.x;
-            instance.size[1] = props.size.y;
+            instance.position[2] = props.zIndex;
+            instance.padding0 = 0.f;
             instance.color[0] = props.color.r;
             instance.color[1] = props.color.g;
             instance.color[2] = props.color.b;
             instance.color[3] = props.color.a;
-            instance.uvRect[0] = props.uvRect.x;
-            instance.uvRect[1] = props.uvRect.y;
-            instance.uvRect[2] = props.uvRect.z;
-            instance.uvRect[3] = props.uvRect.w;
-            instance.rotation = props.rotation;
-            instance.zIndex = props.zIndex;
-            instance.useTexture = props.texture == 0 ? 0.f : 1.f;
-            instance.padding = 0.f;
+            instance.texData[0] = props.uvRect.x;
+            instance.texData[1] = props.uvRect.y;
+            instance.texData[2] = props.uvRect.z;
+            instance.texData[3] = props.uvRect.w;
+            instance.size[0] = props.size.x;
+            instance.size[1] = props.size.y;
+            instance.id[0] = props.id.runtimeId;
+            instance.id[1] = props.id.info;
+            instance.primitiveType = 0; // Quad
+            instance.isMica = 0;
+            instance.texSlotIdx = props.texture == 0 ? 0 : 1;
+            instance.angle = props.rotation;
+            instance.primitiveData[0] = 0.f;
+            instance.primitiveData[1] = 0.f;
+            instance.primitiveData[2] = 0.f;
+            instance.primitiveData[3] = 0.f;
 
             if (roundedProps != nullptr) {
-                instance.radius[0] = roundedProps->radius.x;
-                instance.radius[1] = roundedProps->radius.y;
-                instance.radius[2] = roundedProps->radius.z;
-                instance.radius[3] = roundedProps->radius.w;
+                instance.borderRadius[0] = roundedProps->radius.x;
+                instance.borderRadius[1] = roundedProps->radius.y;
+                instance.borderRadius[2] = roundedProps->radius.z;
+                instance.borderRadius[3] = roundedProps->radius.w;
                 instance.borderSize[0] = roundedProps->thickness.x;
                 instance.borderSize[1] = roundedProps->thickness.y;
                 instance.borderSize[2] = roundedProps->thickness.z;
@@ -166,10 +172,10 @@ namespace Bess::Wgpu {
                 instance.borderColor[2] = roundedProps->color.b;
                 instance.borderColor[3] = roundedProps->color.a;
             } else {
-                instance.radius[0] = 0.f;
-                instance.radius[1] = 0.f;
-                instance.radius[2] = 0.f;
-                instance.radius[3] = 0.f;
+                instance.borderRadius[0] = 0.f;
+                instance.borderRadius[1] = 0.f;
+                instance.borderRadius[2] = 0.f;
+                instance.borderRadius[3] = 0.f;
                 instance.borderSize[0] = 0.f;
                 instance.borderSize[1] = 0.f;
                 instance.borderSize[2] = 0.f;
@@ -181,7 +187,96 @@ namespace Bess::Wgpu {
             }
         }
 
-        class QuadBatch {
+        void makeCircleInstanceInPlace(
+            PrimitiveInstance& instance,
+            const Core::Renderer::CircleProps &props) {
+            instance.position[0] = props.position.x;
+            instance.position[1] = props.position.y;
+            instance.position[2] = props.zIndex;
+            instance.padding0 = 0.f;
+            instance.color[0] = props.color.r;
+            instance.color[1] = props.color.g;
+            instance.color[2] = props.color.b;
+            instance.color[3] = props.color.a;
+            instance.texData[0] = 0.f;
+            instance.texData[1] = 0.f;
+            instance.texData[2] = 1.f;
+            instance.texData[3] = 1.f;
+            instance.size[0] = props.radius * 2.f;
+            instance.size[1] = props.radius * 2.f;
+            instance.id[0] = props.id.runtimeId;
+            instance.id[1] = props.id.info;
+            instance.primitiveType = 1; // Circle
+            instance.isMica = 0;
+            instance.texSlotIdx = 0;
+            instance.angle = 0.f;
+            instance.primitiveData[0] = props.radius;
+            instance.primitiveData[1] = props.thickness > 0.f ? props.radius - props.thickness : 0.f;
+            instance.primitiveData[2] = 0.f;
+            instance.primitiveData[3] = 0.f;
+
+            instance.borderRadius[0] = 0.f;
+            instance.borderRadius[1] = 0.f;
+            instance.borderRadius[2] = 0.f;
+            instance.borderRadius[3] = 0.f;
+            instance.borderSize[0] = 0.f;
+            instance.borderSize[1] = 0.f;
+            instance.borderSize[2] = 0.f;
+            instance.borderSize[3] = 0.f;
+            instance.borderColor[0] = 0.f;
+            instance.borderColor[1] = 0.f;
+            instance.borderColor[2] = 0.f;
+            instance.borderColor[3] = 0.f;
+        }
+
+        void makeLineInstanceInPlace(
+            PrimitiveInstance& instance,
+            const Core::Renderer::LineProps &props) {
+            glm::vec2 diff = props.p1 - props.p0;
+            float length = glm::length(diff);
+            float angle = std::atan2(diff.y, diff.x);
+            glm::vec2 pos = (props.p0 + props.p1) * 0.5f;
+
+            instance.position[0] = pos.x;
+            instance.position[1] = pos.y;
+            instance.position[2] = props.zIndex;
+            instance.padding0 = 0.f;
+            instance.color[0] = props.color.r;
+            instance.color[1] = props.color.g;
+            instance.color[2] = props.color.b;
+            instance.color[3] = props.color.a;
+            instance.texData[0] = 0.f;
+            instance.texData[1] = 0.f;
+            instance.texData[2] = 1.f;
+            instance.texData[3] = 1.f;
+            instance.size[0] = length;
+            instance.size[1] = props.thickness;
+            instance.id[0] = props.id.runtimeId;
+            instance.id[1] = props.id.info;
+            instance.primitiveType = 2; // Line
+            instance.isMica = 0;
+            instance.texSlotIdx = 0;
+            instance.angle = angle;
+            instance.primitiveData[0] = 0.f;
+            instance.primitiveData[1] = 0.f;
+            instance.primitiveData[2] = 0.f;
+            instance.primitiveData[3] = 0.f;
+
+            instance.borderRadius[0] = 0.f;
+            instance.borderRadius[1] = 0.f;
+            instance.borderRadius[2] = 0.f;
+            instance.borderRadius[3] = 0.f;
+            instance.borderSize[0] = 0.f;
+            instance.borderSize[1] = 0.f;
+            instance.borderSize[2] = 0.f;
+            instance.borderSize[3] = 0.f;
+            instance.borderColor[0] = 0.f;
+            instance.borderColor[1] = 0.f;
+            instance.borderColor[2] = 0.f;
+            instance.borderColor[3] = 0.f;
+        }
+
+        class PrimitiveBatch {
           public:
             void configure(uint32_t initialCapacity, uint32_t maxCapacity) {
                 m_maxCapacity = std::max(1u, maxCapacity);
@@ -199,7 +294,7 @@ namespace Bess::Wgpu {
                 m_drawRunsCount = 0;
             }
 
-            QuadInstance& push(Core::Renderer::TextureHandle texture) {
+            PrimitiveInstance& push(Core::Renderer::TextureHandle texture) {
                 if (m_instanceCount >= m_maxCapacity) {
                     throw std::runtime_error("WGPU quad batch capacity exceeded");
                 }
@@ -225,8 +320,8 @@ namespace Bess::Wgpu {
                     std::stable_sort(
                         indices.begin(), indices.end(),
                         [this](uint32_t a, uint32_t b) {
-                            if (m_gpuInstancesPtr[a].zIndex != m_gpuInstancesPtr[b].zIndex) {
-                                return m_gpuInstancesPtr[a].zIndex < m_gpuInstancesPtr[b].zIndex;
+                            if (m_gpuInstancesPtr[a].position[2] != m_gpuInstancesPtr[b].position[2]) {
+                                return m_gpuInstancesPtr[a].position[2] < m_gpuInstancesPtr[b].position[2];
                             }
                             return a < b;
                         });
@@ -240,8 +335,8 @@ namespace Bess::Wgpu {
                         }
                     }
 
-                    std::vector<QuadInstance> sortedInstances(m_instanceCount);
-                    QuadInstance* sortedPtr = sortedInstances.data();
+                    std::vector<PrimitiveInstance> sortedInstances(m_instanceCount);
+                    PrimitiveInstance* sortedPtr = sortedInstances.data();
                     m_drawRunsCount = 0;
 
                     for (uint32_t i = 0; i < m_instanceCount; ++i) {
@@ -274,10 +369,10 @@ namespace Bess::Wgpu {
             }
 
             [[nodiscard]] uint64_t byteSize() const noexcept {
-                return static_cast<uint64_t>(m_instanceCount) * sizeof(QuadInstance);
+                return static_cast<uint64_t>(m_instanceCount) * sizeof(PrimitiveInstance);
             }
 
-            [[nodiscard]] const QuadInstance *data() const noexcept {
+            [[nodiscard]] const PrimitiveInstance *data() const noexcept {
                 return m_gpuInstancesPtr;
             }
 
@@ -290,9 +385,9 @@ namespace Bess::Wgpu {
             }
 
           private:
-            std::vector<QuadInstance> m_gpuInstances;
+            std::vector<PrimitiveInstance> m_gpuInstances;
             std::vector<DrawRun> m_drawRuns;
-            QuadInstance* m_gpuInstancesPtr = nullptr;
+            PrimitiveInstance* m_gpuInstancesPtr = nullptr;
             DrawRun* m_drawRunsPtr = nullptr;
             uint32_t m_instanceCount = 0;
             uint32_t m_drawRunsCount = 0;
@@ -338,18 +433,20 @@ namespace Bess::Wgpu {
         wgpu::Texture depthTarget;
         wgpu::TextureView depthTargetView;
         Piplines::SharedFrameBuffer sharedFrameBuffer;
-        std::unique_ptr<Piplines::QuadPipeline> quadPipeline;
+        std::unique_ptr<Piplines::PrimitivePipeline> quadPipeline;
         wgpu::CommandEncoder commandEncoder;
         std::unordered_map<Core::Renderer::TextureHandle, TextureResource>
             textures;
         std::shared_ptr<WgpuTexture> defaultTexture;
 
-        QuadBatch opaqueQuadBatch;
-        QuadBatch transparentQuadBatch;
+        PrimitiveBatch opaquePrimitiveBatch;
+        PrimitiveBatch transparentPrimitiveBatch;
         Core::Renderer::Renderer2DStats stats;
         Color clearColor{0.f, 0.f, 0.f, 1.f};
         bool shouldClear = true;
         bool frameStarted = false;
+        wgpu::TextureFormat pickingFormat = wgpu::TextureFormat::Undefined;
+        Core::Renderer::TextureHandle pickingTextureHandle = 0;
 
         void createDevice();
         void createOffscreenTarget();
@@ -526,9 +623,9 @@ namespace Bess::Wgpu {
             m_impl->windowHandle =
                 static_cast<GLFWwindow *>(createInfo.surface.handle);
         }
-        m_impl->opaqueQuadBatch.configure(createInfo.batching.initialQuadCapacity,
+        m_impl->opaquePrimitiveBatch.configure(createInfo.batching.initialQuadCapacity,
                                           createInfo.batching.maxQuadCapacity);
-        m_impl->transparentQuadBatch.configure(
+        m_impl->transparentPrimitiveBatch.configure(
             createInfo.batching.initialQuadCapacity,
             createInfo.batching.maxQuadCapacity);
         m_impl->createDevice();
@@ -536,10 +633,12 @@ namespace Bess::Wgpu {
         m_impl->createOffscreenTarget();
         m_impl->createDepthTarget();
         m_impl->sharedFrameBuffer.init(m_impl->device);
-        m_impl->quadPipeline = std::make_unique<Piplines::QuadPipeline>();
+        m_impl->pickingFormat = toWgpuFormat(createInfo.pickingFormat);
+        m_impl->quadPipeline = std::make_unique<Piplines::PrimitivePipeline>();
         m_impl->quadPipeline->init(m_impl->device, m_impl->targetFormat,
                                    m_impl->sharedFrameBuffer.getBuffer(),
-                                   m_impl->sharedFrameBuffer.getSize());
+                                   m_impl->sharedFrameBuffer.getSize(),
+                                   m_impl->pickingFormat);
         if (m_impl->quadPipeline->ensureInstanceBufferSize(
                 std::max(1u, createInfo.batching.initialQuadCapacity))) {
             m_impl->recreateTextureBindGroups();
@@ -571,8 +670,8 @@ namespace Bess::Wgpu {
         m_impl->device = nullptr;
         m_impl->adapter = nullptr;
         m_impl->instance = nullptr;
-        m_impl->opaqueQuadBatch.clear();
-        m_impl->transparentQuadBatch.clear();
+        m_impl->opaquePrimitiveBatch.clear();
+        m_impl->transparentPrimitiveBatch.clear();
         m_impl->stats = {};
         m_impl->frameStarted = false;
     }
@@ -644,11 +743,12 @@ namespace Bess::Wgpu {
 
         m_impl->clearColor = frameInfo.clearColor;
         m_impl->shouldClear = frameInfo.shouldClear;
-        m_impl->opaqueQuadBatch.clear();
-        m_impl->transparentQuadBatch.clear();
+        m_impl->opaquePrimitiveBatch.clear();
+        m_impl->transparentPrimitiveBatch.clear();
         m_impl->stats = {};
 
         m_impl->frameTargetTexture = frameInfo.targetTexture;
+        m_impl->pickingTextureHandle = frameInfo.pickingTexture;
         m_impl->frameUsesSurface = frameInfo.targetTexture == 0;
         m_impl->frameStarted = true;
     }
@@ -660,7 +760,6 @@ namespace Bess::Wgpu {
 
         m_impl->commandEncoder = m_impl->device.CreateCommandEncoder();
 
-        wgpu::RenderPassColorAttachment colorAttachment{};
         wgpu::SurfaceTexture surfaceTexture{};
         wgpu::TextureView targetView;
 
@@ -679,11 +778,25 @@ namespace Bess::Wgpu {
             targetView = m_impl->offscreenTargetView;
         }
 
-        colorAttachment.view = targetView;
-        colorAttachment.loadOp =
+        wgpu::RenderPassColorAttachment colorAttachments[2]{};
+        uint32_t colorAttachmentCount = 1;
+
+        colorAttachments[0].view = targetView;
+        colorAttachments[0].loadOp =
             m_impl->shouldClear ? wgpu::LoadOp::Clear : wgpu::LoadOp::Load;
-        colorAttachment.storeOp = wgpu::StoreOp::Store;
-        colorAttachment.clearValue = toWgpuColor(m_impl->clearColor);
+        colorAttachments[0].storeOp = wgpu::StoreOp::Store;
+        colorAttachments[0].clearValue = toWgpuColor(m_impl->clearColor);
+
+        // Attach picking target if available
+        if (m_impl->pickingFormat != wgpu::TextureFormat::Undefined &&
+            m_impl->pickingTextureHandle != 0) {
+            const auto& pickingRes = m_impl->getTexture(m_impl->pickingTextureHandle);
+            colorAttachments[1].view = pickingRes.view;
+            colorAttachments[1].loadOp = wgpu::LoadOp::Clear;
+            colorAttachments[1].storeOp = wgpu::StoreOp::Store;
+            colorAttachments[1].clearValue = {0.0, 0.0, 0.0, 0.0};
+            colorAttachmentCount = 2;
+        }
 
         wgpu::RenderPassDepthStencilAttachment depthAttachment{};
         depthAttachment.view = m_impl->depthTargetView;
@@ -693,14 +806,14 @@ namespace Bess::Wgpu {
         depthAttachment.depthClearValue = 1.0f;
 
         wgpu::RenderPassDescriptor renderPassDescriptor{};
-        renderPassDescriptor.colorAttachmentCount = 1;
-        renderPassDescriptor.colorAttachments = &colorAttachment;
+        renderPassDescriptor.colorAttachmentCount = colorAttachmentCount;
+        renderPassDescriptor.colorAttachments = colorAttachments;
         renderPassDescriptor.depthStencilAttachment = &depthAttachment;
 
         wgpu::RenderPassEncoder renderPass =
             m_impl->commandEncoder.BeginRenderPass(&renderPassDescriptor);
 
-        auto renderBatch = [&](QuadBatch &batch, bool sortBackToFront,
+        auto renderBatch = [&](PrimitiveBatch &batch, bool sortBackToFront,
                                const wgpu::RenderPipeline &pipeline) {
             if (batch.empty()) {
                 return;
@@ -730,9 +843,9 @@ namespace Bess::Wgpu {
 
         m_impl->sharedFrameBuffer.update(m_impl->queue, m_impl->extent.width,
                                          m_impl->extent.height);
-        renderBatch(m_impl->opaqueQuadBatch, false,
+        renderBatch(m_impl->opaquePrimitiveBatch, false,
                     m_impl->quadPipeline->getOpaquePipeline());
-        renderBatch(m_impl->transparentQuadBatch, true,
+        renderBatch(m_impl->transparentPrimitiveBatch, true,
                     m_impl->quadPipeline->getTransparentPipeline());
 
         renderPass.End();
@@ -886,12 +999,12 @@ namespace Bess::Wgpu {
         }
 
         if (isTransparent(props, nullptr)) {
-            makeQuadInstanceInPlace(m_impl->transparentQuadBatch.push(props.texture), props, nullptr);
+            makePrimitiveInstanceInPlace(m_impl->transparentPrimitiveBatch.push(props.texture), props, nullptr);
         } else {
-            makeQuadInstanceInPlace(m_impl->opaqueQuadBatch.push(props.texture), props, nullptr);
+            makePrimitiveInstanceInPlace(m_impl->opaquePrimitiveBatch.push(props.texture), props, nullptr);
         }
-        m_impl->stats.quadCount = m_impl->opaqueQuadBatch.count() +
-                                  m_impl->transparentQuadBatch.count();
+        m_impl->stats.quadCount = m_impl->opaquePrimitiveBatch.count() +
+                                  m_impl->transparentPrimitiveBatch.count();
     }
 
     void WgpuRenderer2D::drawRoundedQuad(
@@ -902,12 +1015,40 @@ namespace Bess::Wgpu {
         }
 
         if (isTransparent(props, &roundedProps)) {
-            makeQuadInstanceInPlace(m_impl->transparentQuadBatch.push(props.texture), props, &roundedProps);
+            makePrimitiveInstanceInPlace(m_impl->transparentPrimitiveBatch.push(props.texture), props, &roundedProps);
         } else {
-            makeQuadInstanceInPlace(m_impl->opaqueQuadBatch.push(props.texture), props, &roundedProps);
+            makePrimitiveInstanceInPlace(m_impl->opaquePrimitiveBatch.push(props.texture), props, &roundedProps);
         }
-        m_impl->stats.quadCount = m_impl->opaqueQuadBatch.count() +
-                                  m_impl->transparentQuadBatch.count();
+        m_impl->stats.quadCount = m_impl->opaquePrimitiveBatch.count() +
+                                  m_impl->transparentPrimitiveBatch.count();
+    }
+
+    void WgpuRenderer2D::drawCircle(const Core::Renderer::CircleProps &props) {
+        if (!m_impl->frameStarted) {
+            return;
+        }
+
+        if (props.color.a < 1.0f) {
+            makeCircleInstanceInPlace(m_impl->transparentPrimitiveBatch.push(0), props);
+        } else {
+            makeCircleInstanceInPlace(m_impl->opaquePrimitiveBatch.push(0), props);
+        }
+        m_impl->stats.quadCount = m_impl->opaquePrimitiveBatch.count() +
+                                  m_impl->transparentPrimitiveBatch.count();
+    }
+
+    void WgpuRenderer2D::drawLine(const Core::Renderer::LineProps &props) {
+        if (!m_impl->frameStarted) {
+            return;
+        }
+
+        if (props.color.a < 1.0f) {
+            makeLineInstanceInPlace(m_impl->transparentPrimitiveBatch.push(0), props);
+        } else {
+            makeLineInstanceInPlace(m_impl->opaquePrimitiveBatch.push(0), props);
+        }
+        m_impl->stats.quadCount = m_impl->opaquePrimitiveBatch.count() +
+                                  m_impl->transparentPrimitiveBatch.count();
     }
 
     void WgpuRenderer2D::drawImGui(

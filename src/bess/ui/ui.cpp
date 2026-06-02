@@ -156,7 +156,7 @@ namespace Bess {
 
         auto renderer = appCtx.getSubSystem<RendererContext>()
                             ->getRenderer<Wgpu::WgpuRenderer2D>();
-        constexpr uint32_t size = 1024;
+        constexpr uint32_t size = 800;
         if (m_previewTex == nullptr) {
             m_previewTex = std::make_shared<Wgpu::WgpuTexture>();
             m_previewTex->setSize({size, size});
@@ -171,11 +171,11 @@ namespace Bess {
 
         renderer->beginFrame(frameInfo);
         static float rotation = 0.687f;
-        constexpr size_t quadsPerRow = 400;
+        constexpr size_t quadsPerRow = 200;
         constexpr size_t quadCount = quadsPerRow * quadsPerRow;
         constexpr size_t quadsColumns = quadCount / quadsPerRow;
-        constexpr size_t quadW = size / quadsPerRow;
-        constexpr size_t quadH = size / quadsColumns;
+        constexpr float quadW = (float)size / quadsPerRow;
+        constexpr float quadH = (float)size / quadsColumns;
         for (int i = 0; i < quadCount; i++) {
             renderer->drawQuad({
                 .position = {(quadW * (i % quadsPerRow)) + (quadW / 2),
@@ -187,6 +187,42 @@ namespace Bess {
                           1.0f},
             });
         }
+
+        renderer->drawCircle({
+            .position = {size / 2.0f, size / 2.0f},
+            .radius = size / 4.0f,
+            .thickness = 10.0f,
+            .zIndex = (float)quadCount + 1,
+            .color = {1.0f, 0.0f, 1.0f, 1.0f},
+        });
+
+        renderer->drawLine({
+            .p0 = {size, 0},
+            .p1 = {0, size},
+            .thickness = 5.0f,
+            .zIndex = (float)quadCount + 2,
+            .color = {0.0f, 1.0f, 1.0f, 1.0f},
+        });
+        renderer->drawLine({
+            .p0 = {0.0f, 0.0f},
+            .p1 = {size, size},
+            .thickness = 5.0f,
+            .zIndex = (float)quadCount + 2,
+            .color = {0.0f, 1.0f, 1.0f, 1.0f},
+        });
+
+        renderer->drawRoundedQuad(
+            {
+                .position = {size / 2.0f, size / 2.0f},
+                .size = {size, size},
+                .rotation = 0,
+                .zIndex = (float)quadCount + 2,
+                .color = {1.0f, 1.0f, 0.0f, 0.0f},
+            },
+            {
+                .thickness = glm::vec4(5.0f),
+                .color = glm::vec4(0.0f, 1.0f, 1.0f, 1.0f),
+            });
 
         renderer->endFrame();
 

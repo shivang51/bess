@@ -1,5 +1,5 @@
-#include "bess_wgpu/piplines/quad_pipeline.h"
-#include "bess_wgpu/shaders/quad_shader.h"
+#include "bess_wgpu/piplines/primitive_pipeline.h"
+#include "bess_wgpu/shaders/primitive_shader.h"
 #include "bess_wgpu/wgpu_shader.h"
 #include <algorithm>
 #include <array>
@@ -7,12 +7,14 @@
 
 namespace Bess::Wgpu::Piplines {
 
-    void QuadPipeline::init(const wgpu::Device &device,
+    void PrimitivePipeline::init(const wgpu::Device &device,
                             wgpu::TextureFormat targetFormat,
                             const wgpu::Buffer &frameBuffer,
-                            uint64_t frameBufferSize) {
+                            uint64_t frameBufferSize,
+                            wgpu::TextureFormat pickingFormat) {
         m_device = device;
         m_targetFormat = targetFormat;
+        m_pickingFormat = pickingFormat;
         m_frameBuffer = frameBuffer;
         m_frameBufferSize = frameBufferSize;
 
@@ -22,7 +24,7 @@ namespace Bess::Wgpu::Piplines {
         createPipelineState();
     }
 
-    void QuadPipeline::destroy() {
+    void PrimitivePipeline::destroy() {
         m_instanceBuffer = nullptr;
         m_frameBuffer = nullptr;
         m_frameBufferSize = 0;
@@ -35,9 +37,9 @@ namespace Bess::Wgpu::Piplines {
         m_instanceBufferSize = 0;
     }
 
-    bool QuadPipeline::ensureInstanceBufferSize(std::size_t quadCount) {
+    bool PrimitivePipeline::ensureInstanceBufferSize(std::size_t quadCount) {
         const auto requiredSize = std::max<std::size_t>(
-            sizeof(QuadInstance), quadCount * sizeof(QuadInstance));
+            sizeof(PrimitiveInstance), quadCount * sizeof(PrimitiveInstance));
         if (m_instanceBuffer != nullptr && m_instanceBufferSize >= requiredSize) {
             return false;
         }
@@ -51,8 +53,8 @@ namespace Bess::Wgpu::Piplines {
         return true;
     }
 
-    void QuadPipeline::uploadInstances(const wgpu::Queue &queue,
-                                       const QuadInstance *instances,
+    void PrimitivePipeline::uploadInstances(const wgpu::Queue &queue,
+                                       const PrimitiveInstance *instances,
                                        uint64_t byteSize) const {
         if (m_instanceBuffer == nullptr || instances == nullptr || byteSize == 0) {
             return;
@@ -61,7 +63,7 @@ namespace Bess::Wgpu::Piplines {
     }
 
     wgpu::BindGroup
-    QuadPipeline::createTextureBindGroup(const wgpu::TextureView &textureView,
+    PrimitivePipeline::createTextureBindGroup(const wgpu::TextureView &textureView,
                                          const std::string &label) const {
         if (m_instanceBuffer == nullptr || m_frameBuffer == nullptr ||
             m_bindGroupLayout == nullptr || m_textureSampler == nullptr) {
@@ -93,20 +95,20 @@ namespace Bess::Wgpu::Piplines {
         return m_device.CreateBindGroup(&descriptor);
     }
 
-    const wgpu::RenderPipeline &QuadPipeline::getOpaquePipeline() const {
+    const wgpu::RenderPipeline &PrimitivePipeline::getOpaquePipeline() const {
         return m_opaquePipeline;
     }
 
-    const wgpu::RenderPipeline &QuadPipeline::getTransparentPipeline() const {
+    const wgpu::RenderPipeline &PrimitivePipeline::getTransparentPipeline() const {
         return m_transparentPipeline;
     }
 
-    void QuadPipeline::createShader() {
+    void PrimitivePipeline::createShader() {
         m_shader = std::make_unique<Bess::Wgpu::WgpuShader>(
-            "renderer_2d_quad", Shaders::getQuadShaderModules(), m_device);
+            "renderer_2d_primitive", Shaders::getPrimitiveShaderModules(), m_device);
     }
 
-    void QuadPipeline::createBindGroupLayout() {
+    void PrimitivePipeline::createBindGroupLayout() {
         std::array<wgpu::BindGroupLayoutEntry, 4> bindings{};
         bindings[0].binding = 0;
         bindings[0].visibility = wgpu::ShaderStage::Vertex;
@@ -131,15 +133,17 @@ namespace Bess::Wgpu::Piplines {
         m_bindGroupLayout = m_device.CreateBindGroupLayout(&bindGroupLayoutDescriptor);
     }
 
-    void QuadPipeline::createPipelineState() {
+    void PrimitivePipeline::createPipelineState() {
         wgpu::PipelineLayoutDescriptor pipelineLayoutDescriptor{};
         pipelineLayoutDescriptor.bindGroupLayoutCount = 1;
         pipelineLayoutDescriptor.bindGroupLayouts = &m_bindGroupLayout;
         wgpu::PipelineLayout pipelineLayout =
             m_device.CreatePipelineLayout(&pipelineLayoutDescriptor);
 
-        wgpu::ColorTargetState colorTarget{};
-        colorTarget.format = m_targetFormat;
+        wgpu::ColorTargetState colorTargets[2]{};
+        uint32_t targetCount = 1;
+
+        colorTargets[0].format = m_targetFormat;
 
         wgpu::BlendState blendState{};
         blendState.color.operation = wgpu::BlendOperation::Add;
@@ -148,14 +152,23 @@ namespace Bess::Wgpu::Piplines {
         blendState.alpha.operation = wgpu::BlendOperation::Add;
         blendState.alpha.srcFactor = wgpu::BlendFactor::One;
         blendState.alpha.dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha;
-        colorTarget.blend = &blendState;
+        colorTargets[0].blend = &blendState;
+
+        if (m_pickingFormat != wgpu::TextureFormat::Undefined) {
+            colorTargets[1].format = m_pickingFormat;
+            // Picking attachment doesn't need blending
+            targetCount = 2;
+        }
 
         wgpu::FragmentState fragment{};
         fragment.module = m_shader->getModule(Core::Renderer::ShaderStage::Fragment);
-        fragment.entryPoint =
-            m_shader->getEntryPoint(Core::Renderer::ShaderStage::Fragment).c_str();
-        fragment.targetCount = 1;
-        fragment.targets = &colorTarget;
+        // Use picking entry point if we have a picking attachment
+        const char* fragEntryPoint = (m_pickingFormat != wgpu::TextureFormat::Undefined)
+            ? "fs_main_picking"
+            : "fs_main";
+        fragment.entryPoint = fragEntryPoint;
+        fragment.targetCount = targetCount;
+        fragment.targets = colorTargets;
 
         wgpu::DepthStencilState depthStencil{};
         depthStencil.format = wgpu::TextureFormat::Depth24Plus;
@@ -183,7 +196,7 @@ namespace Bess::Wgpu::Piplines {
             m_device.CreateRenderPipeline(&transparentDescriptor);
     }
 
-    void QuadPipeline::createTextureSampler() {
+    void PrimitivePipeline::createTextureSampler() {
         wgpu::SamplerDescriptor descriptor{};
         descriptor.addressModeU = wgpu::AddressMode::ClampToEdge;
         descriptor.addressModeV = wgpu::AddressMode::ClampToEdge;

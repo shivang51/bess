@@ -50,6 +50,10 @@ namespace Bess::Wgpu {
             const Core::Renderer::QuadProps &props,
             const Core::Renderer::RoundedBorderProps &roundedProps) override;
 
+        void drawCircle(const Core::Renderer::CircleProps &props) override;
+        
+        void drawLine(const Core::Renderer::LineProps &props) override;
+
         void
         drawImGui(const std::function<void(void *)> &imguiRenderFn) override;
 

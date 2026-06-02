@@ -77,7 +77,25 @@ namespace Bess::Core::Renderer {
         PickingId id = PickingId::invalid();
         QuadRenderPass renderPass = QuadRenderPass::Auto;
     };
+    struct CircleProps {
+        glm::vec2 position{0.f, 0.f};
+        float radius = 0.5f;
+        float thickness = 0.f; // 0 for filled circle
+        float zIndex = 0.f;
+        Color color{1.f, 1.f, 1.f, 1.f};
+        PickingId id = PickingId::invalid();
+        QuadRenderPass renderPass = QuadRenderPass::Auto;
+    };
 
+    struct LineProps {
+        glm::vec2 p0{0.f, 0.f};
+        glm::vec2 p1{1.f, 1.f};
+        float thickness = 1.f;
+        float zIndex = 0.f;
+        Color color{1.f, 1.f, 1.f, 1.f};
+        PickingId id = PickingId::invalid();
+        QuadRenderPass renderPass = QuadRenderPass::Auto;
+    };
     struct RoundedBorderProps {
         glm::vec4 radius{0.f}; // Top-left, top-right, bottom-right, bottom-left
         glm::vec4 thickness{
