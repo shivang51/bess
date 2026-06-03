@@ -99,22 +99,98 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32,
     return out;
 }
 
-fn shadeQuad(in: VertexOut) -> vec4f {
-    let border = max(max(in.border_size.x, in.border_size.y),
-                     max(in.border_size.z, in.border_size.w));
-    if (border > 0.0) {
-        let near_edge = in.local_pos.x < border ||
-                        in.local_pos.y < border ||
-                        in.local_pos.x > in.size.x - border ||
-                        in.local_pos.y > in.size.y - border;
-        if (near_edge) {
-            return in.border_color;
+fn cornerRadiusForPoint(p: vec2f, radii: vec4f) -> f32 {
+    var radius = radii.w;
+    if (p.x < 0.0 && p.y < 0.0) {
+        radius = radii.x;
+    } else if (p.x >= 0.0 && p.y < 0.0) {
+        radius = radii.y;
+    } else if (p.x >= 0.0 && p.y >= 0.0) {
+        radius = radii.z;
+    }
+    return radius;
+}
+
+fn sdRoundedRect(p: vec2f, halfSize: vec2f, radii: vec4f) -> f32 {
+    let maxRadius = max(min(halfSize.x, halfSize.y), 0.0);
+    let clampedRadii = clamp(radii, vec4f(0.0), vec4f(maxRadius));
+    let radius = cornerRadiusForPoint(p, clampedRadii);
+    let innerHalfSize = max(halfSize - vec2f(radius), vec2f(0.0));
+    let d = abs(p) - innerHalfSize;
+    return length(max(d, vec2f(0.0))) + min(max(d.x, d.y), 0.0) - radius;
+}
+
+fn borderWidthForPoint(p: vec2f, halfSize: vec2f, radii: vec4f, borderSize: vec4f) -> f32 {
+    let maxRadius = max(min(halfSize.x, halfSize.y), 0.0);
+    let clampedRadii = clamp(radii, vec4f(0.0), vec4f(maxRadius));
+    let radius = cornerRadiusForPoint(p, clampedRadii);
+    let inCorner = radius > 0.0 &&
+                   abs(p.x) > halfSize.x - radius &&
+                   abs(p.y) > halfSize.y - radius;
+
+    if (inCorner) {
+        if (p.x < 0.0 && p.y < 0.0) {
+            return min(borderSize.x, borderSize.w);
+        } else if (p.x >= 0.0 && p.y < 0.0) {
+            return min(borderSize.x, borderSize.y);
+        } else if (p.x >= 0.0 && p.y >= 0.0) {
+            return min(borderSize.z, borderSize.y);
         }
+        return min(borderSize.z, borderSize.w);
     }
+
+    let distToTop = p.y + halfSize.y;
+    let distToRight = halfSize.x - p.x;
+    let distToBottom = halfSize.y - p.y;
+    let distToLeft = p.x + halfSize.x;
+    let nearestHorizontal = min(distToLeft, distToRight);
+    let nearestVertical = min(distToTop, distToBottom);
+
+    if (nearestVertical <= nearestHorizontal) {
+        if (distToTop <= distToBottom) {
+            return borderSize.x;
+        }
+        return borderSize.z;
+    }
+    if (distToRight <= distToLeft) {
+        return borderSize.y;
+    }
+    return borderSize.w;
+}
+
+fn shadeQuad(in: VertexOut, fw: vec2f) -> vec4f {
+    let halfSize = max(in.size * 0.5, vec2f(0.0001));
+    let p = in.local_coord * in.size;
+    let outerDistance = sdRoundedRect(p, halfSize, in.radius);
+    let aa = max(length(fw) * 0.5, 0.75);
+    let outerMask = 1.0 - smoothstep(0.0, aa, outerDistance);
+
+    if (outerMask < 0.001) {
+        discard;
+    }
+
+    let borderSize = clamp(in.border_size, vec4f(0.0),
+                           vec4f(halfSize.y, halfSize.x, halfSize.y, halfSize.x));
+    let border = max(max(borderSize.x, borderSize.y),
+                     max(borderSize.z, borderSize.w));
+    let borderWidth = borderWidthForPoint(p, halfSize, in.radius, borderSize);
+    let borderMask = smoothstep(-borderWidth - aa, -borderWidth, outerDistance);
+
     if (in.use_texture > 0.5) {
-        return textureSampleLevel(prim_texture, prim_sampler, in.tex_coord, 0.0) * in.color;
+        var texturedColor = textureSampleLevel(prim_texture, prim_sampler, in.tex_coord, 0.0) * in.color;
+        if (border > 0.0) {
+            texturedColor = mix(texturedColor, in.border_color, borderMask);
+        }
+        texturedColor.a *= outerMask;
+        return texturedColor;
     }
-    return in.color;
+
+    var color = in.color;
+    if (border > 0.0) {
+        color = mix(color, in.border_color, borderMask);
+    }
+    color.a *= outerMask;
+    return color;
 }
 
 fn shadeCircle(in: VertexOut, fw: vec2f) -> vec4f {
@@ -171,14 +247,14 @@ fn shadeLine(in: VertexOut, fw: vec2f) -> vec4f {
 
 fn compute_color(in: VertexOut) -> vec4f {
 
-		let fw_line = fwidth(in.local_coord * in.size);
+		let fw_local_px = fwidth(in.local_coord * in.size);
 		let fw_circle = fwidth(in.local_coord);
     if (in.primitive_type == PRIMITIVE_TYPE_QUAD) {
-        return shadeQuad(in);
+        return shadeQuad(in, fw_local_px);
     } else if (in.primitive_type == PRIMITIVE_TYPE_CIRCLE) {
         return shadeCircle(in, fw_circle);
     } else if (in.primitive_type == PRIMITIVE_TYPE_LINE) {
-        return shadeLine(in, fw_line);
+        return shadeLine(in, fw_local_px);
     }
     discard;
     return vec4f(0.0, 0.0, 0.0, 0.0);

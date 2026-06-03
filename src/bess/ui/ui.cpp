@@ -222,6 +222,7 @@ namespace Bess {
                 .color = {1.0f, 1.0f, 0.0f, 0.0f},
             },
             {
+                .radius = glm::vec4(50.0f),
                 .thickness = glm::vec4(5.0f),
                 .color = glm::vec4(0.0f, 1.0f, 1.0f, 1.0f),
             });
