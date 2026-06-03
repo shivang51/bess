@@ -150,14 +150,15 @@ fn sdCapsule(p: vec2f, halfSegmentLength: f32, radius: f32) -> f32 {
 }
 
 fn shadeLine(in: VertexOut, fw: vec2f) -> vec4f {
-    let thickness = max(in.size.y, 1.0);
+    let thickness = max(in.primitive_data.y, 1.0);
+    let segmentLength = max(in.primitive_data.x, 0.0);
     let radius = thickness * 0.5;
-    let halfSegmentLength = max((in.size.x - thickness) * 0.5, 0.0);
+    let halfSegmentLength = max((segmentLength - thickness) * 0.5, 0.0);
     let p = in.local_coord * in.size;
 
     let dist = sdCapsule(p, halfSegmentLength, radius);
-    let aa = max(length(fw), 0.75);
-    let mask = 1.0 - smoothstep(-aa, aa, dist);
+    let aa = max(length(fw) * 0.5, 0.75);
+    let mask = 1.0 - smoothstep(0.0, aa, dist);
 
     if (mask < 0.001) {
         discard;

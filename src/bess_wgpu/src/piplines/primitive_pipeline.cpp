@@ -55,11 +55,12 @@ namespace Bess::Wgpu::Piplines {
 
     void PrimitivePipeline::uploadInstances(const wgpu::Queue &queue,
                                        const PrimitiveInstance *instances,
-                                       uint64_t byteSize) const {
+                                       uint64_t byteSize,
+                                       uint64_t bufferOffset) const {
         if (m_instanceBuffer == nullptr || instances == nullptr || byteSize == 0) {
             return;
         }
-        queue.WriteBuffer(m_instanceBuffer, 0, instances, byteSize);
+        queue.WriteBuffer(m_instanceBuffer, bufferOffset, instances, byteSize);
     }
 
     wgpu::BindGroup

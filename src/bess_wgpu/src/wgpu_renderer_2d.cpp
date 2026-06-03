@@ -236,6 +236,8 @@ namespace Bess::Wgpu {
             float length = glm::length(diff);
             float angle = std::atan2(diff.y, diff.x);
             glm::vec2 pos = (props.p0 + props.p1) * 0.5f;
+            constexpr float aaPadding = 2.f;
+            const float thickness = std::max(props.thickness, 1.f);
 
             instance.position[0] = pos.x;
             instance.position[1] = pos.y;
@@ -249,17 +251,17 @@ namespace Bess::Wgpu {
             instance.texData[1] = 0.f;
             instance.texData[2] = 1.f;
             instance.texData[3] = 1.f;
-            instance.size[0] = length;
-            instance.size[1] = props.thickness;
+            instance.size[0] = length + (aaPadding * 2.f);
+            instance.size[1] = thickness + (aaPadding * 2.f);
             instance.id[0] = props.id.runtimeId;
             instance.id[1] = props.id.info;
             instance.primitiveType = 2; // Line
             instance.isMica = 0;
             instance.texSlotIdx = 0;
             instance.angle = angle;
-            instance.primitiveData[0] = 0.f;
-            instance.primitiveData[1] = 0.f;
-            instance.primitiveData[2] = 0.f;
+            instance.primitiveData[0] = length;
+            instance.primitiveData[1] = thickness;
+            instance.primitiveData[2] = aaPadding;
             instance.primitiveData[3] = 0.f;
 
             instance.borderRadius[0] = 0.f;
@@ -810,23 +812,50 @@ namespace Bess::Wgpu {
         renderPassDescriptor.colorAttachments = colorAttachments;
         renderPassDescriptor.depthStencilAttachment = &depthAttachment;
 
+        m_impl->opaquePrimitiveBatch.prepareForRendering(false);
+        m_impl->transparentPrimitiveBatch.prepareForRendering(true);
+
+        const uint32_t opaqueInstanceOffset = 0;
+        const uint32_t transparentInstanceOffset =
+            m_impl->opaquePrimitiveBatch.count();
+        const uint32_t totalInstanceCount =
+            transparentInstanceOffset + m_impl->transparentPrimitiveBatch.count();
+
+        if (totalInstanceCount > 0 &&
+            m_impl->quadPipeline->ensureInstanceBufferSize(totalInstanceCount)) {
+            m_impl->recreateTextureBindGroups();
+        }
+
+        if (!m_impl->opaquePrimitiveBatch.empty()) {
+            m_impl->quadPipeline->uploadInstances(
+                m_impl->queue, m_impl->opaquePrimitiveBatch.data(),
+                m_impl->opaquePrimitiveBatch.byteSize(),
+                opaqueInstanceOffset * sizeof(Piplines::PrimitiveInstance));
+            m_impl->stats.uploadedBytes +=
+                m_impl->opaquePrimitiveBatch.byteSize();
+        }
+
+        if (!m_impl->transparentPrimitiveBatch.empty()) {
+            m_impl->quadPipeline->uploadInstances(
+                m_impl->queue, m_impl->transparentPrimitiveBatch.data(),
+                m_impl->transparentPrimitiveBatch.byteSize(),
+                transparentInstanceOffset *
+                    sizeof(Piplines::PrimitiveInstance));
+            m_impl->stats.uploadedBytes +=
+                m_impl->transparentPrimitiveBatch.byteSize();
+        }
+
+        m_impl->sharedFrameBuffer.update(m_impl->queue, m_impl->extent.width,
+                                         m_impl->extent.height);
+
         wgpu::RenderPassEncoder renderPass =
             m_impl->commandEncoder.BeginRenderPass(&renderPassDescriptor);
 
-        auto renderBatch = [&](PrimitiveBatch &batch, bool sortBackToFront,
+        auto renderBatch = [&](PrimitiveBatch &batch, uint32_t instanceOffset,
                                const wgpu::RenderPipeline &pipeline) {
             if (batch.empty()) {
                 return;
             }
-
-            batch.prepareForRendering(sortBackToFront);
-            if (m_impl->quadPipeline->ensureInstanceBufferSize(batch.count())) {
-                m_impl->recreateTextureBindGroups();
-            }
-
-            m_impl->quadPipeline->uploadInstances(m_impl->queue, batch.data(),
-                                                  batch.byteSize());
-            m_impl->stats.uploadedBytes += batch.byteSize();
 
             renderPass.SetPipeline(pipeline);
             
@@ -836,16 +865,15 @@ namespace Bess::Wgpu {
                 const auto &run = runs[i];
                 const auto &texture = m_impl->getTexture(run.texture);
                 renderPass.SetBindGroup(0, texture.bindGroup);
-                renderPass.Draw(6, run.instanceCount, 0, run.firstInstance);
+                renderPass.Draw(6, run.instanceCount, 0,
+                                instanceOffset + run.firstInstance);
                 m_impl->stats.drawCallCount++;
             }
         };
 
-        m_impl->sharedFrameBuffer.update(m_impl->queue, m_impl->extent.width,
-                                         m_impl->extent.height);
-        renderBatch(m_impl->opaquePrimitiveBatch, false,
+        renderBatch(m_impl->opaquePrimitiveBatch, opaqueInstanceOffset,
                     m_impl->quadPipeline->getOpaquePipeline());
-        renderBatch(m_impl->transparentPrimitiveBatch, true,
+        renderBatch(m_impl->transparentPrimitiveBatch, transparentInstanceOffset,
                     m_impl->quadPipeline->getTransparentPipeline());
 
         renderPass.End();

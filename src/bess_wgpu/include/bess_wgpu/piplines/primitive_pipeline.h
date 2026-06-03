@@ -39,7 +39,8 @@ namespace Bess::Wgpu::Piplines {
         [[nodiscard]] bool ensureInstanceBufferSize(std::size_t quadCount);
         void uploadInstances(const wgpu::Queue &queue,
                              const PrimitiveInstance *instances,
-                             uint64_t byteSize) const;
+                             uint64_t byteSize,
+                             uint64_t bufferOffset = 0) const;
 
         [[nodiscard]] wgpu::BindGroup
         createTextureBindGroup(const wgpu::TextureView &textureView,

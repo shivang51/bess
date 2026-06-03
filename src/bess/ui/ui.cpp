@@ -177,12 +177,14 @@ namespace Bess {
         constexpr float quadW = (float)size / quadsPerRow;
         constexpr float quadH = (float)size / quadsColumns;
         for (int i = 0; i < quadCount; i++) {
+            const float backgroundZ = 0.5f * static_cast<float>(quadCount - i) /
+                                      static_cast<float>(quadCount);
             renderer->drawQuad({
                 .position = {(quadW * (i % quadsPerRow)) + (quadW / 2),
                              (quadH * (i / quadsPerRow)) + (quadH / 2)},
                 .size = {quadW, quadH},
                 .rotation = rotation,
-                .zIndex = (float)(quadCount - i),
+                .zIndex = backgroundZ,
                 .color = {(float)i / quadCount, 1 - ((float)i / quadCount), 0.f,
                           1.0f},
             });
@@ -192,7 +194,7 @@ namespace Bess {
             .position = {size / 2.0f, size / 2.0f},
             .radius = size / 4.0f,
             .thickness = 10.0f,
-            .zIndex = (float)quadCount + 1,
+            .zIndex = 1.0f,
             .color = {1.0f, 0.0f, 1.0f, 1.0f},
         });
 
@@ -200,14 +202,14 @@ namespace Bess {
             .p0 = {size, 0},
             .p1 = {0, size},
             .thickness = 5.0f,
-            .zIndex = (float)quadCount + 2,
+            .zIndex = 2.0f,
             .color = {0.0f, 1.0f, 1.0f, 1.0f},
         });
         renderer->drawLine({
             .p0 = {0.0f, 0.0f},
             .p1 = {size, size},
             .thickness = 5.0f,
-            .zIndex = (float)quadCount + 2,
+            .zIndex = 2.0f,
             .color = {0.0f, 1.0f, 1.0f, 1.0f},
         });
 
@@ -216,7 +218,7 @@ namespace Bess {
                 .position = {size / 2.0f, size / 2.0f},
                 .size = {size, size},
                 .rotation = 0,
-                .zIndex = (float)quadCount + 2,
+                .zIndex = 2.0f,
                 .color = {1.0f, 1.0f, 0.0f, 0.0f},
             },
             {
