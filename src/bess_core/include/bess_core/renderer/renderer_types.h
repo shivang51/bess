@@ -58,10 +58,20 @@ namespace Bess::Core::Renderer {
 
     typedef uint32_t TextureHandle;
 
-    enum class QuadRenderPass : uint8_t {
-        Auto,
-        Opaque,
-        Transparent
+    enum class QuadRenderPass : uint8_t { Auto, Opaque, Transparent };
+
+    enum class PathLineJoin : uint8_t {
+        Miter,
+        Sharp = Miter,
+        Bevel,
+        Round,
+    };
+
+    enum class PathLineCap : uint8_t {
+        Butt,
+        Flat = Butt,
+        Round,
+        Square,
     };
 
     struct QuadProps {
@@ -96,6 +106,22 @@ namespace Bess::Core::Renderer {
         PickingId id = PickingId::invalid();
         QuadRenderPass renderPass = QuadRenderPass::Auto;
     };
+
+    struct PathProps {
+        Color fillColor{1.f, 1.f, 1.f, 1.f};
+        Color strokeColor{1.f, 1.f, 1.f, 1.f};
+        float strokeSize = 4.f;
+        float miterLimit = 4.f;
+        float curveTolerance = 0.25f;
+        bool renderFill = false;
+        float zIndex = 0.f;
+        PickingId id = PickingId::invalid();
+        QuadRenderPass renderPass = QuadRenderPass::Auto;
+        PathLineJoin lineJoin = PathLineJoin::Miter;
+        PathLineCap lineCap = PathLineCap::Round;
+        bool closePath = true;
+    };
+
     struct RoundedBorderProps {
         glm::vec4 radius{0.f}; // Top-left, top-right, bottom-right, bottom-left
         glm::vec4 thickness{

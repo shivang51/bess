@@ -20,6 +20,10 @@
 #include <vector>
 
 namespace Bess::Wgpu {
+    using Core::Renderer::PathLineCap;
+    using Core::Renderer::PathLineJoin;
+    using Core::Renderer::PathProps;
+
     namespace {
         using Bess::Core::Renderer::Color;
         using Bess::Core::Renderer::QuadRenderPass;
@@ -52,15 +56,15 @@ namespace Bess::Wgpu {
             return false;
         }
 
-        bool hasPathFill(const WgpuPathProps &props) {
+        bool hasPathFill(const PathProps &props) {
             return props.renderFill && props.fillColor.a > 0.f;
         }
 
-        bool hasPathStroke(const WgpuPathProps &props) {
+        bool hasPathStroke(const PathProps &props) {
             return props.strokeSize > 0.f && props.strokeColor.a > 0.f;
         }
 
-        bool isFillTransparent(const WgpuPathProps &props) {
+        bool isFillTransparent(const PathProps &props) {
             if (props.renderPass == QuadRenderPass::Opaque) {
                 return false;
             }
@@ -70,7 +74,7 @@ namespace Bess::Wgpu {
             return props.fillColor.a < 0.999f;
         }
 
-        bool isStrokeTransparent(const WgpuPathProps &props) {
+        bool isStrokeTransparent(const PathProps &props) {
             if (props.renderPass == QuadRenderPass::Opaque) {
                 return false;
             }
@@ -709,7 +713,7 @@ namespace Bess::Wgpu {
 
         std::array<PathCoverVertex, 6>
         makeCoverVertices(const glm::vec2 &minPt, const glm::vec2 &maxPt,
-                          const WgpuPathProps &props) {
+                          const PathProps &props) {
             std::array<PathCoverVertex, 6> vertices{};
             const glm::vec2 p0(minPt.x, minPt.y);
             const glm::vec2 p1(maxPt.x, minPt.y);
@@ -748,13 +752,12 @@ namespace Bess::Wgpu {
                    (3.f * invT * t2 * control2) + (t2 * t * p1);
         }
 
-        float curveTolerance(const WgpuPathProps &props) {
+        float curveTolerance(const PathProps &props) {
             return std::max(props.curveTolerance, 0.01f);
         }
 
         int quadraticSegmentCount(const glm::vec2 &p0, const glm::vec2 &control,
-                                  const glm::vec2 &p1,
-                                  const WgpuPathProps &props) {
+                                  const glm::vec2 &p1, const PathProps &props) {
             const float controlNet =
                 glm::distance(p0, control) + glm::distance(control, p1);
             const float curvature = glm::length(p0 - (2.f * control) + p1);
@@ -769,7 +772,7 @@ namespace Bess::Wgpu {
 
         int cubicSegmentCount(const glm::vec2 &p0, const glm::vec2 &control1,
                               const glm::vec2 &control2, const glm::vec2 &p1,
-                              const WgpuPathProps &props) {
+                              const PathProps &props) {
             const float controlNet = glm::distance(p0, control1) +
                                      glm::distance(control1, control2) +
                                      glm::distance(control2, p1);
@@ -786,7 +789,7 @@ namespace Bess::Wgpu {
         }
 
         BakedPath bakePath(const std::vector<PathCommand> &commands,
-                           const WgpuPathProps &props) {
+                           const PathProps &props) {
             BakedPath baked{};
             if (commands.empty() || !hasPathFill(props)) {
                 return baked;
@@ -913,8 +916,7 @@ namespace Bess::Wgpu {
         }
 
         void appendStrokeVertex(std::vector<PathCoverVertex> &vertices,
-                                const glm::vec2 &pos,
-                                const WgpuPathProps &props) {
+                                const glm::vec2 &pos, const PathProps &props) {
             auto &vertex = vertices.emplace_back();
             setCoverVertex(vertex, pos, props.zIndex, props.strokeColor,
                            props.id);
@@ -922,8 +924,7 @@ namespace Bess::Wgpu {
 
         void appendStrokeTriangle(std::vector<PathCoverVertex> &vertices,
                                   const glm::vec2 &a, const glm::vec2 &b,
-                                  const glm::vec2 &c,
-                                  const WgpuPathProps &props) {
+                                  const glm::vec2 &c, const PathProps &props) {
             if (nearlyDegenerateTriangle(a, b, c)) {
                 return;
             }
@@ -935,7 +936,7 @@ namespace Bess::Wgpu {
         void appendRoundCap(std::vector<PathCoverVertex> &vertices,
                             const glm::vec2 &center,
                             const glm::vec2 &capDirection,
-                            const WgpuPathProps &props) {
+                            const PathProps &props) {
             constexpr float pi = 3.14159265358979323846f;
             const float halfWidth = props.strokeSize * 0.5f;
             const glm::vec2 dir = safeNormalize(capDirection);
@@ -963,7 +964,7 @@ namespace Bess::Wgpu {
                              const glm::vec2 &center,
                              const glm::vec2 &prevOuterNormal,
                              const glm::vec2 &nextOuterNormal,
-                             const WgpuPathProps &props) {
+                             const PathProps &props) {
             const float halfWidth = props.strokeSize * 0.5f;
             const float a0 = std::atan2(prevOuterNormal.y, prevOuterNormal.x);
             float delta =
@@ -993,7 +994,7 @@ namespace Bess::Wgpu {
         void appendStrokeJoin(std::vector<PathCoverVertex> &vertices,
                               const glm::vec2 &center, const glm::vec2 &prevDir,
                               const glm::vec2 &nextDir,
-                              const WgpuPathProps &props) {
+                              const PathProps &props) {
             const float turn =
                 (prevDir.x * nextDir.y) - (prevDir.y * nextDir.x);
             if (std::abs(turn) < 0.0001f) {
@@ -1017,13 +1018,13 @@ namespace Bess::Wgpu {
             const glm::vec2 prevOuter = center + prevOuterNormal * halfWidth;
             const glm::vec2 nextOuter = center + nextOuterNormal * halfWidth;
 
-            if (props.lineJoin == WgpuPathLineJoin::Round) {
+            if (props.lineJoin == PathLineJoin::Round) {
                 appendRoundJoin(vertices, center, prevOuterNormal,
                                 nextOuterNormal, props);
                 return;
             }
 
-            if (props.lineJoin == WgpuPathLineJoin::Miter) {
+            if (props.lineJoin == PathLineJoin::Miter) {
                 glm::vec2 miter = prevOuterNormal + nextOuterNormal;
                 if (glm::length(miter) > 0.0001f) {
                     miter = safeNormalize(miter);
@@ -1048,7 +1049,7 @@ namespace Bess::Wgpu {
 
         void appendStrokeSegment(std::vector<PathCoverVertex> &vertices,
                                  const glm::vec2 &from, const glm::vec2 &to,
-                                 const WgpuPathProps &props) {
+                                 const PathProps &props) {
             const glm::vec2 delta = to - from;
             if (glm::length(delta) < 0.0001f) {
                 return;
@@ -1068,7 +1069,7 @@ namespace Bess::Wgpu {
 
         void appendStrokeContour(std::vector<PathCoverVertex> &vertices,
                                  std::vector<glm::vec2> points, bool closed,
-                                 const WgpuPathProps &props) {
+                                 const PathProps &props) {
             constexpr float epsilon = 0.0001f;
             if (points.size() < 2) {
                 return;
@@ -1104,7 +1105,7 @@ namespace Bess::Wgpu {
             glm::vec2 endDir =
                 safeNormalize(points[count - 1] - points[count - 2]);
 
-            if (!closed && props.lineCap == WgpuPathLineCap::Square) {
+            if (!closed && props.lineCap == PathLineCap::Square) {
                 points.front() -= startDir * halfWidth;
                 points.back() += endDir * halfWidth;
             }
@@ -1132,7 +1133,7 @@ namespace Bess::Wgpu {
                                  safeNormalize(next - curr), props);
             }
 
-            if (!closed && props.lineCap == WgpuPathLineCap::Round) {
+            if (!closed && props.lineCap == PathLineCap::Round) {
                 appendRoundCap(vertices, startCapCenter, -startDir, props);
                 appendRoundCap(vertices, endCapCenter, endDir, props);
             }
@@ -1140,7 +1141,7 @@ namespace Bess::Wgpu {
 
         std::vector<PathCoverVertex>
         bakePathStroke(const std::vector<PathCommand> &commands,
-                       const WgpuPathProps &props) {
+                       const PathProps &props) {
             std::vector<PathCoverVertex> vertices;
             if (commands.empty() || !hasPathStroke(props)) {
                 return vertices;
@@ -1264,7 +1265,7 @@ namespace Bess::Wgpu {
         PathBatch opaquePathBatch;
         PathBatch transparentPathBatch;
         std::vector<PathCommand> activePathCommands;
-        WgpuPathProps activePathProps;
+        PathProps activePathProps;
         bool pathStarted = false;
         Core::Renderer::Renderer2DStats stats;
         Color clearColor{0.f, 0.f, 0.f, 1.f};
@@ -2089,7 +2090,7 @@ namespace Bess::Wgpu {
         m_impl->stats.quadCount = m_impl->primitiveStatsCount();
     }
 
-    void WgpuRenderer2D::beginPath(const WgpuPathProps &props) {
+    void WgpuRenderer2D::beginPath(const PathProps &props) {
         if (!m_impl->frameStarted) {
             return;
         }

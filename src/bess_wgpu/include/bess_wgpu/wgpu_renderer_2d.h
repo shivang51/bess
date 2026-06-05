@@ -8,36 +8,6 @@
 
 namespace Bess::Wgpu {
 
-    enum class WgpuPathLineJoin : uint8_t {
-        Miter,
-        Sharp = Miter,
-        Bevel,
-        Round,
-    };
-
-    enum class WgpuPathLineCap : uint8_t {
-        Butt,
-        Flat = Butt,
-        Round,
-        Square,
-    };
-
-    struct WgpuPathProps {
-        Core::Renderer::Color fillColor{1.f, 1.f, 1.f, 1.f};
-        Core::Renderer::Color strokeColor{1.f, 1.f, 1.f, 1.f};
-        float strokeSize = 4.f;
-        float miterLimit = 4.f;
-        float curveTolerance = 0.25f;
-        bool renderFill = false;
-        float zIndex = 0.f;
-        PickingId id = PickingId::invalid();
-        Core::Renderer::QuadRenderPass renderPass =
-            Core::Renderer::QuadRenderPass::Auto;
-        WgpuPathLineJoin lineJoin = WgpuPathLineJoin::Miter;
-        WgpuPathLineCap lineCap = WgpuPathLineCap::Round;
-        bool closePath = true;
-    };
-
     struct TextureResource {
         wgpu::Texture texture;
         wgpu::TextureView view;
@@ -85,18 +55,22 @@ namespace Bess::Wgpu {
 
         void drawLine(const Core::Renderer::LineProps &props) override;
 
-        void beginPath(const WgpuPathProps &props = {});
-        void pathMoveTo(const glm::vec2 &pos);
-        void pathLineTo(const glm::vec2 &pos);
-        void pathQuadTo(const glm::vec2 &control, const glm::vec2 &pos);
-        void pathQuadraticTo(const glm::vec2 &control, const glm::vec2 &pos);
+        void beginPath(const Core::Renderer::PathProps &props = {}) override;
+        void pathMoveTo(const glm::vec2 &pos) override;
+        void pathLineTo(const glm::vec2 &pos) override;
+        void pathQuadTo(const glm::vec2 &control,
+                        const glm::vec2 &pos) override;
+        void pathQuadraticTo(const glm::vec2 &control,
+                             const glm::vec2 &pos) override;
         void pathCubicTo(const glm::vec2 &control1, const glm::vec2 &control2,
-                         const glm::vec2 &pos);
+                         const glm::vec2 &pos) override;
         void pathCubicBezierTo(const glm::vec2 &control1,
-                               const glm::vec2 &control2, const glm::vec2 &pos);
+                               const glm::vec2 &control2,
+                               const glm::vec2 &pos) override;
         void pathBezierCurveTo(const glm::vec2 &control1,
-                               const glm::vec2 &control2, const glm::vec2 &pos);
-        void endPath();
+                               const glm::vec2 &control2,
+                               const glm::vec2 &pos) override;
+        void endPath() override;
 
         void
         drawImGui(const std::function<void(void *)> &imguiRenderFn) override;

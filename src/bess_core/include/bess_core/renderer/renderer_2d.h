@@ -2,6 +2,7 @@
 #include "bess_core/renderer/renderer_types.h"
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <string>
 
 namespace Bess {
@@ -90,6 +91,24 @@ namespace Bess::Core::Renderer {
         virtual void drawCircle(const CircleProps &props) = 0;
 
         virtual void drawLine(const LineProps &props) = 0;
+
+        virtual void beginPath(const PathProps &props = {}) = 0;
+        virtual void pathMoveTo(const glm::vec2 &pos) = 0;
+        virtual void pathLineTo(const glm::vec2 &pos) = 0;
+        virtual void pathQuadTo(const glm::vec2 &control,
+                                const glm::vec2 &pos) = 0;
+        virtual void pathQuadraticTo(const glm::vec2 &control,
+                                     const glm::vec2 &pos) = 0;
+        virtual void pathCubicTo(const glm::vec2 &control1,
+                                 const glm::vec2 &control2,
+                                 const glm::vec2 &pos) = 0;
+        virtual void pathCubicBezierTo(const glm::vec2 &control1,
+                                       const glm::vec2 &control2,
+                                       const glm::vec2 &pos) = 0;
+        virtual void pathBezierCurveTo(const glm::vec2 &control1,
+                                       const glm::vec2 &control2,
+                                       const glm::vec2 &pos) = 0;
+        virtual void endPath() = 0;
 
         virtual void
         drawImGui(const std::function<void(void *)> &imguiRenderFn) {}
