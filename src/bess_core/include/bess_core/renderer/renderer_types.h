@@ -74,6 +74,11 @@ namespace Bess::Core::Renderer {
         Square,
     };
 
+    enum class PathFillRule : uint8_t {
+        NonZero,
+        EvenOdd,
+    };
+
     struct QuadProps {
         glm::vec2 position{0.f, 0.f};
         glm::vec2 size{1.f, 1.f};
@@ -117,6 +122,7 @@ namespace Bess::Core::Renderer {
         float zIndex = 0.f;
         PickingId id = PickingId::invalid();
         QuadRenderPass renderPass = QuadRenderPass::Auto;
+        PathFillRule fillRule = PathFillRule::EvenOdd;
         PathLineJoin lineJoin = PathLineJoin::Miter;
         PathLineCap lineCap = PathLineCap::Round;
         bool closePath = true;

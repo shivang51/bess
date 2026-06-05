@@ -235,29 +235,74 @@ namespace Bess {
         //     });
         //
 
+        // --- TEST CASE: The Cosmic Lotus ---
+        // A heavy stress test for Cubic Béziers, smooth tangent transitions,
+        // and intricate multi-layered alpha blending.
+
         renderer->beginPath({
-            .fillColor = {1.0f, 0.25f, 0.1f, 1.0f},
-            .strokeColor = {1.0f, 1.0f, 1.0f, 1.0f},
+            .fillColor = {0.8f, 0.2f, 0.6f,
+                          0.4f}, // Translucent Orchid Pink/Magenta
+            .strokeColor = {1.0f, 0.85f, 0.4f, 1.0f}, // Bright Gold Outline
             .renderFill = true,
-            .zIndex = 3.0f,
+            .zIndex = 5.0f,
             .lineJoin = Core::Renderer::PathLineJoin::Round,
             .lineCap = Core::Renderer::PathLineCap::Round,
             .closePath = true,
         });
-        renderer->pathMoveTo({100.f, 600.f});
-        renderer->pathLineTo({250.f, 600.f});
-        renderer->pathLineTo({250.f, 450.f});
-        renderer->pathQuadTo({400.f, 100.f}, {650.f, 600.f});
 
-        renderer->pathMoveTo({100.f, 500.f});
-        renderer->pathLineTo({250.f, 350.f});
-        renderer->pathQuadTo({400.f, 0.f}, {650.f, 500.f});
+        // Canvas center assumption: (400, 350)
 
-        renderer->pathMoveTo({100.f, 400.f});
-        renderer->pathLineTo({250.f, 250.f});
+        // 1. Central Main Petal (Tests pure vertical symmetry and deep
+        // S-curves)
+        renderer->pathMoveTo({400.0f, 550.0f}); // Bottom Base
+        // Left side of center petal (Control points handle the dramatic outward
+        // swell)
+        renderer->pathCubicTo({300.0f, 450.0f}, {320.0f, 250.0f},
+                              {400.0f, 150.0f}); // To Top Tip
+        // Right side of center petal (Mirroring back down to base)
+        renderer->pathCubicTo({480.0f, 250.0f}, {500.0f, 450.0f},
+                              {400.0f, 550.0f});
+
+        // 2. Left Wing Petal (Tests asymmetrical tilting curves)
+        renderer->pathMoveTo({400.0f, 530.0f});
+        renderer->pathCubicTo({220.0f, 480.0f}, {150.0f, 350.0f},
+                              {230.0f, 250.0f}); // Outward to tip
+        renderer->pathCubicTo({280.0f, 320.0f}, {350.0f, 430.0f},
+                              {400.0f, 530.0f}); // Back to base
+
+        // 3. Right Wing Petal (Mirrored test for the right side)
+        renderer->pathMoveTo({400.0f, 530.0f});
+        renderer->pathCubicTo({580.0f, 480.0f}, {650.0f, 350.0f},
+                              {570.0f, 250.0f}); // Outward to tip
+        renderer->pathCubicTo({520.0f, 320.0f}, {450.0f, 430.0f},
+                              {400.0f, 530.0f}); // Back to base
+
+        // 4. Low Wide Base Leaves (Tests horizontal sweeping curves)
+        renderer->pathMoveTo({400.0f, 550.0f});
+        renderer->pathCubicTo({250.0f, 580.0f}, {100.0f, 500.0f},
+                              {120.0f, 420.0f}); // Left outer sweep
+        renderer->pathCubicTo({180.0f, 460.0f}, {300.0f, 500.0f},
+                              {400.0f, 550.0f});
+
+        renderer->pathMoveTo({400.0f, 550.0f});
+        renderer->pathCubicTo({550.0f, 580.0f}, {700.0f, 500.0f},
+                              {680.0f, 420.0f}); // Right outer sweep
+        renderer->pathCubicTo({620.0f, 460.0f}, {500.0f, 500.0f},
+                              {400.0f, 550.0f});
+
+        // 5. Floating Crown / Top Crest (Isolated floating loops above the
+        // flower)
+        renderer->pathMoveTo({400.0f, 110.0f});
+        renderer->pathCubicTo({370.0f, 80.0f}, {350.0f, 100.0f},
+                              {350.0f, 110.0f});
+        renderer->pathCubicTo({350.0f, 130.0f}, {390.0f, 130.0f},
+                              {400.0f, 80.0f}); // Droplet accent
+        renderer->pathCubicTo({410.0f, 130.0f}, {450.0f, 130.0f},
+                              {450.0f, 110.0f});
+        renderer->pathCubicTo({450.0f, 100.0f}, {430.0f, 80.0f},
+                              {400.0f, 110.0f});
 
         renderer->endPath();
-
         renderer->endFrame();
 
         const auto stats = renderer->getStats();

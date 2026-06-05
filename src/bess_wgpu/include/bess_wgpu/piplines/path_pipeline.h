@@ -51,7 +51,7 @@ namespace Bess::Wgpu::Piplines {
         void drawPath(wgpu::RenderPassEncoder &renderPass,
                       uint32_t firstStencilVertex, uint32_t stencilVertexCount,
                       uint32_t firstCoverVertex, uint32_t coverVertexCount,
-                      bool transparent) const;
+                      bool transparent, bool evenOddFill) const;
         void drawStroke(wgpu::RenderPassEncoder &renderPass,
                         uint32_t firstVertex, uint32_t vertexCount,
                         bool transparent) const;
@@ -67,6 +67,7 @@ namespace Bess::Wgpu::Piplines {
         wgpu::TextureFormat m_pickingFormat = wgpu::TextureFormat::Undefined;
         std::unique_ptr<Bess::Wgpu::WgpuShader> m_shader;
         wgpu::RenderPipeline m_stencilPipeline;
+        wgpu::RenderPipeline m_evenOddStencilPipeline;
         wgpu::RenderPipeline m_opaqueCoverPipeline;
         wgpu::RenderPipeline m_transparentCoverPipeline;
         wgpu::RenderPipeline m_opaqueStrokePipeline;

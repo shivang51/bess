@@ -20,6 +20,7 @@
 #include <vector>
 
 namespace Bess::Wgpu {
+    using Core::Renderer::PathFillRule;
     using Core::Renderer::PathLineCap;
     using Core::Renderer::PathLineJoin;
     using Core::Renderer::PathProps;
@@ -466,12 +467,14 @@ namespace Bess::Wgpu {
             uint32_t stencilVertexCount = 0;
             uint32_t firstCoverVertex = 0;
             uint32_t coverVertexCount = 0;
+            bool evenOddFill = true;
             float zIndex = 0.f;
         };
 
         struct BakedPath {
             std::vector<PathStencilVertex> stencilVertices;
             std::array<PathCoverVertex, 6> coverVertices{};
+            bool evenOddFill = true;
             bool valid = false;
         };
 
@@ -540,6 +543,7 @@ namespace Bess::Wgpu {
                     static_cast<uint32_t>(m_coverVertices.size());
                 range.coverVertexCount =
                     static_cast<uint32_t>(path.coverVertices.size());
+                range.evenOddFill = path.evenOddFill;
                 range.zIndex = zIndex;
 
                 m_stencilVertices.insert(m_stencilVertices.end(),
@@ -948,6 +952,7 @@ namespace Bess::Wgpu {
             }
 
             baked.coverVertices = makeCoverVertices(minPt, maxPt, props);
+            baked.evenOddFill = props.fillRule == PathFillRule::EvenOdd;
             baked.valid = true;
             return baked;
         }
@@ -1192,9 +1197,6 @@ namespace Bess::Wgpu {
                 glm::distance(points.front(), points.back()) < epsilon;
             if (closed && explicitlyClosed) {
                 points.pop_back();
-            } else if (closed && !props.renderFill &&
-                       props.lineCap == PathLineCap::Round) {
-                closed = false;
             }
             if (closed && points.size() < 3) {
                 closed = false;
@@ -1950,7 +1952,7 @@ namespace Bess::Wgpu {
                     renderPass, stencilVertexOffset + range.firstStencilVertex,
                     range.stencilVertexCount,
                     coverVertexOffset + range.firstCoverVertex,
-                    range.coverVertexCount, transparent);
+                    range.coverVertexCount, transparent, range.evenOddFill);
                 m_impl->stats.drawCallCount += 2;
             }
         };
@@ -2306,10 +2308,15 @@ namespace Bess::Wgpu {
         }
 
         if (hasPathStroke(m_impl->activePathProps)) {
+            const bool forceTransparentStroke =
+                hasPathFill(m_impl->activePathProps) &&
+                isFillTransparent(m_impl->activePathProps);
+            const bool strokeIsTransparent =
+                forceTransparentStroke ||
+                isStrokeTransparent(m_impl->activePathProps);
             PathStrokeBatch &strokeBatch =
-                isStrokeTransparent(m_impl->activePathProps)
-                    ? m_impl->transparentPathStrokeBatch
-                    : m_impl->opaquePathStrokeBatch;
+                strokeIsTransparent ? m_impl->transparentPathStrokeBatch
+                                    : m_impl->opaquePathStrokeBatch;
             strokeBatch.push(bakePathStroke(m_impl->activePathCommands,
                                             m_impl->activePathProps, metrics),
                              m_impl->activePathProps.zIndex);

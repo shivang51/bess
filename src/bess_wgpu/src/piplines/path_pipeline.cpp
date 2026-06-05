@@ -42,6 +42,7 @@ namespace Bess::Wgpu::Piplines {
         m_opaqueStrokePipeline = nullptr;
         m_transparentCoverPipeline = nullptr;
         m_opaqueCoverPipeline = nullptr;
+        m_evenOddStencilPipeline = nullptr;
         m_stencilPipeline = nullptr;
         m_shader = nullptr;
         m_device = nullptr;
@@ -138,15 +139,16 @@ namespace Bess::Wgpu::Piplines {
                                 uint32_t firstStencilVertex,
                                 uint32_t stencilVertexCount,
                                 uint32_t firstCoverVertex,
-                                uint32_t coverVertexCount,
-                                bool transparent) const {
+                                uint32_t coverVertexCount, bool transparent,
+                                bool evenOddFill) const {
         if (stencilVertexCount == 0 || coverVertexCount == 0) {
             return;
         }
 
         renderPass.SetBindGroup(0, m_bindGroup);
 
-        renderPass.SetPipeline(m_stencilPipeline);
+        renderPass.SetPipeline(evenOddFill ? m_evenOddStencilPipeline
+                                           : m_stencilPipeline);
         renderPass.SetVertexBuffer(0, m_stencilVertexBuffer,
                                    static_cast<uint64_t>(firstStencilVertex) *
                                        sizeof(PathStencilVertex),
@@ -287,6 +289,12 @@ namespace Bess::Wgpu::Piplines {
         stencilDescriptor.fragment = &stencilFragment;
         stencilDescriptor.depthStencil = &stencilDepthStencil;
         m_stencilPipeline = m_device.CreateRenderPipeline(&stencilDescriptor);
+
+        stencilDepthStencil.stencilFront.passOp =
+            wgpu::StencilOperation::Invert;
+        stencilDepthStencil.stencilBack.passOp = wgpu::StencilOperation::Invert;
+        m_evenOddStencilPipeline =
+            m_device.CreateRenderPipeline(&stencilDescriptor);
 
         std::array<wgpu::VertexAttribute, 3> coverAttributes{};
         coverAttributes[0].shaderLocation = 0;
