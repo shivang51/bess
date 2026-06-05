@@ -67,20 +67,69 @@ namespace Bess::Wgpu {
 
         void beginPath(const Core::Renderer::PathProps &props = {}) override;
         void pathMoveTo(const glm::vec2 &pos) override;
-        void pathLineTo(const glm::vec2 &pos) override;
-        void pathQuadTo(const glm::vec2 &control,
-                        const glm::vec2 &pos) override;
-        void pathQuadraticTo(const glm::vec2 &control,
-                             const glm::vec2 &pos) override;
+        void pathLineTo(
+            const glm::vec2 &pos,
+            const Core::Renderer::PathCommandStroke &stroke = {}) override;
+        void pathLineTo(const glm::vec2 &pos, float strokeWidth) {
+            pathLineTo(
+                pos, Core::Renderer::PathCommandStroke::withWidth(strokeWidth));
+        }
+        void pathQuadTo(
+            const glm::vec2 &control, const glm::vec2 &pos,
+            const Core::Renderer::PathCommandStroke &stroke = {}) override;
+        void pathQuadTo(const glm::vec2 &control, const glm::vec2 &pos,
+                        float strokeWidth) {
+            pathQuadTo(
+                control, pos,
+                Core::Renderer::PathCommandStroke::withWidth(strokeWidth));
+        }
+        void pathQuadraticTo(
+            const glm::vec2 &control, const glm::vec2 &pos,
+            const Core::Renderer::PathCommandStroke &stroke = {}) override;
+        void pathQuadraticTo(const glm::vec2 &control, const glm::vec2 &pos,
+                             float strokeWidth) {
+            pathQuadraticTo(
+                control, pos,
+                Core::Renderer::PathCommandStroke::withWidth(strokeWidth));
+        }
+        void pathCubicTo(
+            const glm::vec2 &control1, const glm::vec2 &control2,
+            const glm::vec2 &pos,
+            const Core::Renderer::PathCommandStroke &stroke = {}) override;
         void pathCubicTo(const glm::vec2 &control1, const glm::vec2 &control2,
-                         const glm::vec2 &pos) override;
+                         const glm::vec2 &pos, float strokeWidth) {
+            pathCubicTo(
+                control1, control2, pos,
+                Core::Renderer::PathCommandStroke::withWidth(strokeWidth));
+        }
+        void pathCubicBezierTo(
+            const glm::vec2 &control1, const glm::vec2 &control2,
+            const glm::vec2 &pos,
+            const Core::Renderer::PathCommandStroke &stroke = {}) override;
         void pathCubicBezierTo(const glm::vec2 &control1,
-                               const glm::vec2 &control2,
-                               const glm::vec2 &pos) override;
+                               const glm::vec2 &control2, const glm::vec2 &pos,
+                               float strokeWidth) {
+            pathCubicBezierTo(
+                control1, control2, pos,
+                Core::Renderer::PathCommandStroke::withWidth(strokeWidth));
+        }
+        void pathBezierCurveTo(
+            const glm::vec2 &control1, const glm::vec2 &control2,
+            const glm::vec2 &pos,
+            const Core::Renderer::PathCommandStroke &stroke = {}) override;
         void pathBezierCurveTo(const glm::vec2 &control1,
-                               const glm::vec2 &control2,
-                               const glm::vec2 &pos) override;
-        void pathClose() override;
+                               const glm::vec2 &control2, const glm::vec2 &pos,
+                               float strokeWidth) {
+            pathBezierCurveTo(
+                control1, control2, pos,
+                Core::Renderer::PathCommandStroke::withWidth(strokeWidth));
+        }
+        void pathClose(
+            const Core::Renderer::PathCommandStroke &stroke = {}) override;
+        void pathClose(float strokeWidth) {
+            pathClose(
+                Core::Renderer::PathCommandStroke::withWidth(strokeWidth));
+        }
         void endPath() override;
 
         void

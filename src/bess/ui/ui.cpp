@@ -244,7 +244,7 @@ namespace Bess {
             .fillColor = {0.8f, 0.2f, 0.6f,
                           0.4f}, // Translucent Orchid Pink/Magenta
             .strokeColor = {1.0f, 0.85f, 0.4f, 1.0f}, // Bright Gold Outline
-            .renderFill = false,
+            .renderFill = true,
             .zIndex = 5.0f,
             .lineJoin = Core::Renderer::PathLineJoin::Round,
             .lineCap = Core::Renderer::PathLineCap::Round,
@@ -308,6 +308,15 @@ namespace Bess {
         Bess::Core::Renderer::Path2D testPath;
         testPath.moveTo({400.0f, 550.0f});
         testPath.cubicTo({300.0f, 450.0f}, {320.0f, 250.0f}, {400.0f, 150.0f});
+        testPath.lineTo({100.f, 100.f}, 4.f);
+        testPath.lineTo({180.f, 140.f}, 6.f);
+
+        testPath.lineTo(
+            {260.f, 140.f},
+            Core::Renderer::PathCommandStroke::dashed(12.f, 6.f, 4.f));
+
+        testPath.lineTo({320.f, 180.f},
+                        Core::Renderer::PathCommandStroke::broken(6.f));
         testPath.cubicTo({480.0f, 250.0f}, {500.0f, 450.0f}, {400.0f, 550.0f});
         renderer->drawPath(testPath,
                            {
@@ -316,7 +325,7 @@ namespace Bess {
                                .renderFill = false,
                                .zIndex = 5.1f,
                                .lineJoin = Core::Renderer::PathLineJoin::Round,
-                               .lineCap = Core::Renderer::PathLineCap::Round,
+                               .lineCap = Core::Renderer::PathLineCap::Flat,
                                .closePath = true,
                            });
 
@@ -324,7 +333,9 @@ namespace Bess {
                                              .position = {20.f, 40.f},
                                              .fontSize = 8.f,
                                              .color = {1.f, 1.f, 1.f, 1.f},
+
                                          });
+
         renderer->endFrame();
 
         const auto stats = renderer->getStats();
