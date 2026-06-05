@@ -1,8 +1,10 @@
 #pragma once
+#include "bess_core/renderer/renderer_path.h"
 #include "bess_core/renderer/renderer_types.h"
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <span>
 #include <string>
 
 namespace Bess {
@@ -92,6 +94,12 @@ namespace Bess::Core::Renderer {
 
         virtual void drawLine(const LineProps &props) = 0;
 
+        virtual void drawPath(std::span<const PathCommand> commands,
+                              const PathProps &props = {}) = 0;
+        virtual void drawPath(const Path2D &path, const PathProps &props = {}) {
+            drawPath(path.commands(), props);
+        }
+
         virtual void beginPath(const PathProps &props = {}) = 0;
         virtual void pathMoveTo(const glm::vec2 &pos) = 0;
         virtual void pathLineTo(const glm::vec2 &pos) = 0;
@@ -108,6 +116,7 @@ namespace Bess::Core::Renderer {
         virtual void pathBezierCurveTo(const glm::vec2 &control1,
                                        const glm::vec2 &control2,
                                        const glm::vec2 &pos) = 0;
+        virtual void pathClose() = 0;
         virtual void endPath() = 0;
 
         virtual void

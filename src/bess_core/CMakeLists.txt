@@ -11,6 +11,7 @@ set(Header_Files
 	"include/bess_core/renderer/texture.h"
 	"include/bess_core/renderer/shader.h"
 	"include/bess_core/renderer/renderer_2d.h"
+	"include/bess_core/renderer/renderer_path.h"
 	"include/bess_core/renderer/renderer_types.h"
 )
 

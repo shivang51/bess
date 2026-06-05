@@ -3,6 +3,7 @@
 #include "bess_wgpu/wgpu_texture.h"
 #include <cstdint>
 #include <memory>
+#include <span>
 #include <string>
 #include <webgpu/webgpu_cpp.h>
 
@@ -55,6 +56,11 @@ namespace Bess::Wgpu {
 
         void drawLine(const Core::Renderer::LineProps &props) override;
 
+        void drawPath(std::span<const Core::Renderer::PathCommand> commands,
+                      const Core::Renderer::PathProps &props = {}) override;
+        void drawPath(const Core::Renderer::Path2D &path,
+                      const Core::Renderer::PathProps &props = {}) override;
+
         void beginPath(const Core::Renderer::PathProps &props = {}) override;
         void pathMoveTo(const glm::vec2 &pos) override;
         void pathLineTo(const glm::vec2 &pos) override;
@@ -70,6 +76,7 @@ namespace Bess::Wgpu {
         void pathBezierCurveTo(const glm::vec2 &control1,
                                const glm::vec2 &control2,
                                const glm::vec2 &pos) override;
+        void pathClose() override;
         void endPath() override;
 
         void

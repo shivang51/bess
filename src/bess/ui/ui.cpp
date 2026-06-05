@@ -1,5 +1,6 @@
 #include "ui/ui.h"
 #include "bess_core/g_app_context.h"
+#include "bess_core/renderer/renderer_path.h"
 #include "bess_wgpu/wgpu_renderer_2d.h"
 #include "camera.h"
 #include "common/logger.h"
@@ -303,6 +304,22 @@ namespace Bess {
                               {400.0f, 110.0f});
 
         renderer->endPath();
+
+        Bess::Core::Renderer::Path2D testPath;
+        testPath.moveTo({400.0f, 550.0f});
+        testPath.cubicTo({300.0f, 450.0f}, {320.0f, 250.0f}, {400.0f, 150.0f});
+        testPath.cubicTo({480.0f, 250.0f}, {500.0f, 450.0f}, {400.0f, 550.0f});
+        renderer->drawPath(testPath,
+                           {
+                               .fillColor = {1.f, 0.f, 0.f, 1.f},
+                               .strokeColor = {1.0f, 1.f, 1.f, 1.0f},
+                               .renderFill = true,
+                               .zIndex = 5.1f,
+                               .lineJoin = Core::Renderer::PathLineJoin::Round,
+                               .lineCap = Core::Renderer::PathLineCap::Round,
+                               .closePath = true,
+                           });
+
         renderer->endFrame();
 
         const auto stats = renderer->getStats();

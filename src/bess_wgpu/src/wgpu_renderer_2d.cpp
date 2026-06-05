@@ -13,6 +13,7 @@
 #include <limits>
 #include <memory>
 #include <png.h>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -20,6 +21,9 @@
 #include <vector>
 
 namespace Bess::Wgpu {
+    using Core::Renderer::Path2D;
+    using Core::Renderer::PathCommand;
+    using Core::Renderer::PathCommandKind;
     using Core::Renderer::PathFillRule;
     using Core::Renderer::PathLineCap;
     using Core::Renderer::PathLineJoin;
@@ -448,20 +452,6 @@ namespace Bess::Wgpu {
             uint32_t m_maxCapacity = 1;
         };
 
-        enum class PathCommandKind : uint8_t {
-            Move,
-            Line,
-            Quad,
-            Cubic,
-        };
-
-        struct PathCommand {
-            PathCommandKind kind = PathCommandKind::Move;
-            glm::vec2 p{0.f};
-            glm::vec2 control{0.f};
-            glm::vec2 control2{0.f};
-        };
-
         struct PathDrawRange {
             uint32_t firstStencilVertex = 0;
             uint32_t stencilVertexCount = 0;
@@ -839,7 +829,7 @@ namespace Bess::Wgpu {
                 192);
         }
 
-        BakedPath bakePath(const std::vector<PathCommand> &commands,
+        BakedPath bakePath(std::span<const PathCommand> commands,
                            const PathProps &props,
                            const PathBakeMetrics &metrics) {
             BakedPath baked{};
@@ -859,8 +849,8 @@ namespace Bess::Wgpu {
             glm::vec2 anchor(0.f);
             glm::vec2 current(0.f);
 
-            auto closeContour = [&]() {
-                if (!contourOpen || !props.closePath) {
+            auto closeContour = [&](bool explicitClose) {
+                if (!contourOpen || (!explicitClose && !props.closePath)) {
                     return;
                 }
                 appendLineAnchorTriangle(baked.stencilVertices, anchor, current,
@@ -871,7 +861,7 @@ namespace Bess::Wgpu {
             for (const auto &cmd : commands) {
                 switch (cmd.kind) {
                 case PathCommandKind::Move:
-                    closeContour();
+                    closeContour(false);
                     anchor = cmd.p;
                     current = cmd.p;
                     contourOpen = true;
@@ -935,10 +925,14 @@ namespace Bess::Wgpu {
                     recordPoint(cmd.control2);
                     recordPoint(cmd.p);
                     break;
+                case PathCommandKind::Close:
+                    closeContour(true);
+                    contourOpen = false;
+                    break;
                 }
             }
 
-            closeContour();
+            closeContour(false);
 
             if (!hasBounds || baked.stencilVertices.empty()) {
                 return baked;
@@ -1249,7 +1243,7 @@ namespace Bess::Wgpu {
         }
 
         std::vector<PathCoverVertex>
-        bakePathStroke(const std::vector<PathCommand> &commands,
+        bakePathStroke(std::span<const PathCommand> commands,
                        const PathProps &props, const PathBakeMetrics &metrics) {
             std::vector<PathCoverVertex> vertices;
             if (commands.empty() || !hasPathStroke(props)) {
@@ -1260,16 +1254,20 @@ namespace Bess::Wgpu {
             std::vector<glm::vec2> contour;
             glm::vec2 current(0.f);
 
-            auto flushContour = [&]() {
-                appendStrokeContour(vertices, std::move(contour),
-                                    props.closePath, props, mesh);
+            auto flushContour = [&](bool closed) {
+                if (contour.empty()) {
+                    return;
+                }
+
+                appendStrokeContour(vertices, std::move(contour), closed, props,
+                                    mesh);
                 contour.clear();
             };
 
             for (const auto &cmd : commands) {
                 switch (cmd.kind) {
                 case PathCommandKind::Move:
-                    flushContour();
+                    flushContour(props.closePath);
                     contour.push_back(cmd.p);
                     current = cmd.p;
                     break;
@@ -1315,11 +1313,53 @@ namespace Bess::Wgpu {
                     }
                     current = cmd.p;
                     break;
+                case PathCommandKind::Close:
+                    if (!contour.empty()) {
+                        current = contour.front();
+                    }
+                    flushContour(true);
+                    break;
                 }
             }
 
-            flushContour();
+            flushContour(props.closePath);
             return vertices;
+        }
+
+        void submitPathCommands(std::span<const PathCommand> commands,
+                                const PathProps &props,
+                                const PathBakeMetrics &metrics,
+                                PathBatch &opaquePathBatch,
+                                PathBatch &transparentPathBatch,
+                                PathStrokeBatch &opaquePathStrokeBatch,
+                                PathStrokeBatch &transparentPathStrokeBatch) {
+            if (commands.empty()) {
+                return;
+            }
+
+            if (hasPathFill(props)) {
+                BakedPath baked = bakePath(commands, props, metrics);
+                if (baked.valid) {
+                    if (isFillTransparent(props)) {
+                        transparentPathBatch.push(std::move(baked),
+                                                  props.zIndex);
+                    } else {
+                        opaquePathBatch.push(std::move(baked), props.zIndex);
+                    }
+                }
+            }
+
+            if (hasPathStroke(props)) {
+                const bool forceTransparentStroke =
+                    hasPathFill(props) && isFillTransparent(props);
+                const bool strokeIsTransparent =
+                    forceTransparentStroke || isStrokeTransparent(props);
+                PathStrokeBatch &strokeBatch = strokeIsTransparent
+                                                   ? transparentPathStrokeBatch
+                                                   : opaquePathStrokeBatch;
+                strokeBatch.push(bakePathStroke(commands, props, metrics),
+                                 props.zIndex);
+            }
         }
 
         class TextureSource final : public Core::Renderer::ITexture {
@@ -2201,6 +2241,28 @@ namespace Bess::Wgpu {
         m_impl->stats.quadCount = m_impl->primitiveStatsCount();
     }
 
+    void WgpuRenderer2D::drawPath(std::span<const PathCommand> commands,
+                                  const PathProps &props) {
+        if (!m_impl->frameStarted || commands.empty()) {
+            return;
+        }
+
+        if (m_impl->pathStarted) {
+            endPath();
+        }
+
+        const PathBakeMetrics metrics =
+            makePathBakeMetrics(m_impl->cameraTransform, m_impl->extent);
+        submitPathCommands(commands, props, metrics, m_impl->opaquePathBatch,
+                           m_impl->transparentPathBatch,
+                           m_impl->opaquePathStrokeBatch,
+                           m_impl->transparentPathStrokeBatch);
+    }
+
+    void WgpuRenderer2D::drawPath(const Path2D &path, const PathProps &props) {
+        drawPath(path.commands(), props);
+    }
+
     void WgpuRenderer2D::beginPath(const PathProps &props) {
         if (!m_impl->frameStarted) {
             return;
@@ -2285,6 +2347,17 @@ namespace Bess::Wgpu {
         pathCubicTo(control1, control2, pos);
     }
 
+    void WgpuRenderer2D::pathClose() {
+        if (!m_impl->frameStarted) {
+            return;
+        }
+        if (!m_impl->pathStarted) {
+            beginPath();
+        }
+
+        m_impl->activePathCommands.push_back({.kind = PathCommandKind::Close});
+    }
+
     void WgpuRenderer2D::endPath() {
         if (!m_impl->pathStarted) {
             return;
@@ -2293,34 +2366,13 @@ namespace Bess::Wgpu {
         const PathBakeMetrics metrics =
             makePathBakeMetrics(m_impl->cameraTransform, m_impl->extent);
 
-        if (hasPathFill(m_impl->activePathProps)) {
-            BakedPath baked = bakePath(m_impl->activePathCommands,
-                                       m_impl->activePathProps, metrics);
-            if (baked.valid) {
-                if (isFillTransparent(m_impl->activePathProps)) {
-                    m_impl->transparentPathBatch.push(
-                        std::move(baked), m_impl->activePathProps.zIndex);
-                } else {
-                    m_impl->opaquePathBatch.push(
-                        std::move(baked), m_impl->activePathProps.zIndex);
-                }
-            }
-        }
-
-        if (hasPathStroke(m_impl->activePathProps)) {
-            const bool forceTransparentStroke =
-                hasPathFill(m_impl->activePathProps) &&
-                isFillTransparent(m_impl->activePathProps);
-            const bool strokeIsTransparent =
-                forceTransparentStroke ||
-                isStrokeTransparent(m_impl->activePathProps);
-            PathStrokeBatch &strokeBatch =
-                strokeIsTransparent ? m_impl->transparentPathStrokeBatch
-                                    : m_impl->opaquePathStrokeBatch;
-            strokeBatch.push(bakePathStroke(m_impl->activePathCommands,
-                                            m_impl->activePathProps, metrics),
-                             m_impl->activePathProps.zIndex);
-        }
+        const std::span<const PathCommand> commands{
+            m_impl->activePathCommands.data(),
+            m_impl->activePathCommands.size()};
+        submitPathCommands(
+            commands, m_impl->activePathProps, metrics, m_impl->opaquePathBatch,
+            m_impl->transparentPathBatch, m_impl->opaquePathStrokeBatch,
+            m_impl->transparentPathStrokeBatch);
 
         m_impl->activePathCommands.clear();
         m_impl->pathStarted = false;
