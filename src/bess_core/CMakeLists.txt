@@ -10,6 +10,8 @@ set(Header_Files
 
 	"include/bess_core/renderer/texture.h"
 	"include/bess_core/renderer/shader.h"
+	"include/bess_core/renderer/font.h"
+	"include/bess_core/renderer/glyph_extractor.h"
 	"include/bess_core/renderer/renderer_2d.h"
 	"include/bess_core/renderer/renderer_path.h"
 	"include/bess_core/renderer/renderer_types.h"
@@ -26,6 +28,8 @@ set(Source_Files
 	
 	"src/bess_core/renderer/texture.cpp"
 	"src/bess_core/renderer/shader.cpp"
+	"src/bess_core/renderer/font.cpp"
+	"src/bess_core/renderer/glyph_extractor.cpp"
 	"src/bess_core/renderer/renderer.cpp"
 )
 
