@@ -70,6 +70,9 @@ namespace Bess::Wgpu {
         s_renderer->unregisterTexture(m_handle);
         m_handle = 0;
     }
+    void *WgpuTexture::getView() const {
+        return (void *)getTextureView().Get();
+    }
 
     wgpu::TextureView WgpuTexture::getTextureView() const {
         BESS_ASSERT(m_wgpuHandle != nullptr, "Texture not initialized");

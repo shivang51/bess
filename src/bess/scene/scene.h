@@ -1,13 +1,11 @@
 #pragma once
 
-#include "application/events/application_event.h"
 #include "common/bess_uuid.h"
 #include "common/types.h"
 #include "scene/camera.h"
 #include "scene/scene_events.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/scene_state.h"
-#include "scene/viewport.h"
 #include <memory>
 #include <vulkan/vulkan_core.h>
 
@@ -55,9 +53,6 @@ namespace Bess::Canvas {
         const SceneState &getState() const;
         SceneState &getState();
 
-        typedef std::function<void(const std::shared_ptr<Viewport> &viewport)>
-            ViewportDrawFn;
-        MAKE_GETTER_SETTER(ViewportDrawFn, ViewportDrawFn, m_viewportDrawFunc);
         MAKE_GETTER_SETTER(std::shared_ptr<Camera>, Camera, m_camera)
         MAKE_GETTER_SETTER(SelBoxContext, SelBoxContext, m_selBoxContext)
         MAKE_GETTER_SETTER(bool, IsFirstFrame, m_isFirstFrame)
@@ -115,8 +110,7 @@ namespace Bess::Canvas {
 
       private:
         /// to draw testing stuff
-        void drawScratchContent(TimeMs ts,
-                                const std::shared_ptr<Viewport> &viewport);
+        void drawScratchContent(TimeMs ts);
         bool isCursorInViewport(const glm::vec2 &pos) const;
         glm::vec2 getViewportMousePos(const glm::vec2 &mousePos) const;
 
@@ -133,8 +127,6 @@ namespace Bess::Canvas {
 
         bool m_isLeftMousePressed = false, m_isMiddleMousePressed = false;
         SceneState m_state;
-
-        ViewportDrawFn m_viewportDrawFunc = nullptr;
 
         bool m_isCtrlPressed = false, m_isShiftPressed = false;
         ViewportTransform m_viewportTransform;

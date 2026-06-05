@@ -1,13 +1,14 @@
 #pragma once
+#include "bess_core/renderer/texture.h"
 #include "common/bess_uuid.h"
 #include "common/class_helpers.h"
 #include "events/application_event.h"
 #include "imgui.h"
+#include "renderer/vulkan/path_renderer.h"
 #include "scene.h"
 #include "scene/scene_draw_context.h"
 #include "string"
 #include "ui_panel.h"
-#include "viewport.h"
 namespace Bess::UI {
 
     struct SceneDrawFlags {
@@ -29,16 +30,12 @@ namespace Bess::UI {
         void init() override;
         void destroy() override;
 
-        void destroyViewport();
-
         void update(TimeMs ts) override;
 
         const glm::vec2 &getViewportSize() const;
         const glm::vec2 &getViewportPos() const;
         bool isHovered() const;
 
-        MAKE_GETTER_SETTER(std::shared_ptr<Canvas::Viewport>, Viewport,
-                           m_viewport);
         MAKE_GETTER_SETTER_WC(std::shared_ptr<Canvas::Scene>, AttachedScene,
                               m_attachedScene, onSceneAttached);
 
@@ -47,9 +44,9 @@ namespace Bess::UI {
         void drawComponents(SceneDrawContext &context);
         void drawConnections(SceneDrawContext &context);
         void drawSelectionBox(SceneDrawContext &context);
-        void
-        drawGhostConnection(const std::shared_ptr<PathRenderer> &pathRenderer,
-                            const glm::vec2 &startPos, const glm::vec2 &endPos);
+        void drawGhostConnection(
+            const std::shared_ptr<Renderer::PathRenderer> &pathRenderer,
+            const glm::vec2 &startPos, const glm::vec2 &endPos);
 
         void updateScene(TimeMs ts);
 
@@ -80,10 +77,10 @@ namespace Bess::UI {
         glm::vec2 m_viewportPos;
         ImVec2 m_localPos;
         std::string m_viewportName;
-        std::shared_ptr<Canvas::Viewport> m_viewport;
         bool m_isResized = false;
         UUID m_nextSceneId = UUID::null;
         std::shared_ptr<Canvas::Scene> m_attachedScene;
+        std::shared_ptr<Core::Renderer::ITexture> m_sceneTexture = nullptr;
         std::vector<const Canvas::SceneState *> m_rootToSceneStatePtrs;
     };
 } // namespace Bess::UI

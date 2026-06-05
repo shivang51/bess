@@ -18,6 +18,7 @@ namespace Bess::Core::Renderer {
 
         virtual void init() = 0;
         virtual void destroy() = 0;
+        virtual void *getView() const = 0;
 
         MAKE_GETTER_SETTER(std::string, Path, m_path);
         MAKE_GETTER_SETTER(glm::vec2, Size, m_size);

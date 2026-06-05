@@ -26,9 +26,6 @@ namespace Bess::UI {
     void SceneViewportPanel::init() {
         auto &appCtx = Bess::GAppContext::getInstance();
         auto vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
-        m_viewport = std::make_shared<Canvas::Viewport>(
-            vkCore->getDevice(), vkCore->getSwapchain()->imageFormat(),
-            vec2Extent2D(m_viewportSize));
 
         m_flags = NO_MOVE_FLAGS | ImGuiWindowFlags_NoFocusOnAppearing;
         m_defaultDock = Dock::main;
@@ -40,7 +37,6 @@ namespace Bess::UI {
         BESS_ASSERT(m_attachedScene,
                     "SceneViewportPanel must have an attached scene to update");
         if (m_isResized) {
-            m_viewport->resize(vec2Extent2D(m_viewportSize));
             m_attachedScene->getCamera()->resize(m_viewportSize.x,
                                                  m_viewportSize.y);
             m_isResized = false;
@@ -64,12 +60,7 @@ namespace Bess::UI {
         }
     }
 
-    void SceneViewportPanel::destroy() {
-        if (m_viewport) {
-            destroyViewport();
-        }
-        m_rootToSceneStatePtrs.clear();
-    }
+    void SceneViewportPanel::destroy() { m_rootToSceneStatePtrs.clear(); }
 
     void SceneViewportPanel::onBeforeDraw() {
 
@@ -99,8 +90,8 @@ namespace Bess::UI {
         }
 
         const auto offset = ImGui::GetCursorPos();
-        if (m_viewport->getViewportTexture() != 0) {
-            ImGui::Image((ImTextureRef)m_viewport->getViewportTexture(),
+        if (m_sceneTexture) {
+            ImGui::Image((ImTextureRef)m_sceneTexture->getView(),
                          ImVec2(viewportPanelSize.x, viewportPanelSize.y),
                          ImVec2(0, 1), ImVec2(1, 0));
         } else {
@@ -341,13 +332,9 @@ namespace Bess::UI {
         return {(uint32_t)vec.x, (uint32_t)vec.y};
     }
 
-    void SceneViewportPanel::destroyViewport() { m_viewport.reset(); }
-
     void SceneViewportPanel::onSceneAttached() {
         m_attachedScene->getCamera()->resize(m_viewportSize.x,
                                              m_viewportSize.y);
-        m_viewport->setCamera(m_attachedScene->getCamera());
-
         m_rootToSceneStatePtrs.clear();
 
         // Very Important: to avoid circular intialization of mainpage,

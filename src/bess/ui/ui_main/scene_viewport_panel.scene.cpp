@@ -5,11 +5,12 @@
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
+#include "renderer/vulkan/path_renderer.h"
 #include "scene.h"
 #include "scene/scene_draw_context.h"
-#include "scene_state/components/scene_component_types.h"
 #include "settings/viewport_theme.h"
 #include "sub_systems/input_sub_system.h"
+#include "sub_systems/renderer_context.h"
 #include "vulkan_core.h"
 #include <algorithm>
 #include <cstdint>
@@ -124,60 +125,23 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::renderAttachedScene() {
-        auto renderers = m_viewport->getRenderers();
+        const auto &appCtx = GAppContext::getInstance();
+        const auto &renderCtx = appCtx.getSubSystem<RendererContext>();
+        const auto &sceneState = m_attachedScene->getState();
 
-        auto &sceneState = m_attachedScene->getState();
+        const auto &renderer = renderCtx->getRenderer();
 
-        SceneDrawContext context;
-        context.materialRenderer = renderers.materialRenderer;
-        context.pathRenderer = renderers.pathRenderer;
-        context.camera = m_viewport->getCamera();
-        context.sceneState = &m_attachedScene->getState();
+        renderer->beginFrame({
+            .clearColor = ViewportTheme::colors.background,
+            .shouldClear = true,
+            .cameraTransform =
+                glm::value_ptr(m_attachedScene->getCamera()->getTransform()),
+        });
 
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
+        renderer->drawFont("Hello World",
+                           {{100.f, 100.f}, 24.f, {1.f, 1.f, 0.f, 1.f}});
 
-        m_viewport->begin((int)vkCore->getCurrentFrameIdx(),
-                          ViewportTheme::colors.background,
-                          {0, PickingId::invalid().runtimeId});
-
-        drawGrid(context);
-
-        if (sceneState.getConnectionStartSlot() != UUID::null) {
-            const auto comp = sceneState.getComponentByUuid(
-                sceneState.getConnectionStartSlot());
-            if (!comp) {
-                sceneState.setConnectionStartSlot(UUID::null);
-                return;
-            }
-
-            glm::vec3 pos;
-            if (comp->getType() == Canvas::SceneComponentType::slot) {
-                pos =
-                    comp->cast<Canvas::SlotSceneComponent>()->getConnectionPos(
-                        sceneState);
-            } else {
-                pos = comp->getAbsolutePosition(sceneState);
-            }
-
-            const auto endPos =
-                m_attachedScene->toScenePos(m_attachedScene->getMousePos());
-
-            drawGhostConnection(renderers.pathRenderer, glm::vec2(pos), endPos);
-        }
-
-        drawComponents(context);
-
-        const auto &selCtx = m_attachedScene->getSelBoxContext();
-        if (selCtx.draw) {
-            drawSelectionBox(context);
-        }
-        m_viewport->end();
-        m_viewport->submit();
-
-        if (m_attachedScene->getIsFirstFrame()) {
-            m_attachedScene->setIsFirstFrame(false);
-        }
+        renderer->endFrame();
     }
 
     void SceneViewportPanel::drawGrid(SceneDrawContext &context) {
@@ -194,7 +158,7 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::drawGhostConnection(
-        const std::shared_ptr<PathRenderer> &pathRenderer,
+        const std::shared_ptr<Renderer::PathRenderer> &pathRenderer,
         const glm::vec2 &startPos, const glm::vec2 &endPos) {
         auto midX = (startPos.x + endPos.x) / 2.f;
 
@@ -263,76 +227,5 @@ namespace Bess::UI {
             -1, props);
     }
 
-    void SceneViewportPanel::updatePickingIds(bool mouseMoved) {
-        auto &sceneState = m_attachedScene->getState();
-        auto &selCtx = m_attachedScene->getSelBoxContext();
-        m_viewport->tryUpdatePickingResults();
-
-        if (selCtx.queueSelInNextFrame) {
-            selCtx.queueForSel = true;
-            selCtx.queueSelInNextFrame = false;
-        } else if (selCtx.queueForSel) {
-            const auto &start = selCtx.start;
-            const auto &end = selCtx.end;
-            const glm::vec2 pos = {std::min(start.x, end.x),
-                                   std::max(start.y, end.y)};
-            const auto size = glm::abs(end - start);
-            const auto w = (uint32_t)size.x;
-            const auto h = (uint32_t)size.y;
-            const auto x = (uint32_t)pos.x;
-            const auto y = (uint32_t)(m_viewportSize.y - pos.y);
-            m_viewport->setPickingCoord(x, y, w, h);
-            m_viewport->tryUpdatePickingResults();
-
-            selCtx.queueForSel = false;
-            selCtx.readIds = true;
-        } else if (!selCtx.draw && !selCtx.readIds &&
-                   !m_viewport->isPickingPending()) {
-            auto mousePos_ = m_attachedScene->getMousePos();
-            mousePos_.y = m_viewportSize.y - mousePos_.y;
-            const uint32_t x = static_cast<uint32_t>(mousePos_.x);
-            const uint32_t y = static_cast<uint32_t>(mousePos_.y);
-            m_viewport->setPickingCoord(x, y);
-            m_viewport->tryUpdatePickingResults();
-        }
-
-        if (selCtx.readIds && !m_viewport->isPickingPending()) {
-
-            const auto &rawIds = m_viewport->getPickingIdsResult();
-
-            selCtx.readIds = false;
-
-            if (rawIds.size() > 0) {
-                std::set<PickingId> ids;
-                for (const auto &rawId : rawIds) {
-                    auto id = PickingId::fromUint64(
-                        decodeGpuHoverValue(rawId));
-                    ids.insert(id);
-                }
-
-                sceneState.clearSelectedComponents();
-                for (const auto &id : ids) {
-                    auto comp = sceneState.getComponentByPickingId(id);
-                    if (comp == nullptr)
-                        continue;
-                    sceneState.addSelectedComponent(id);
-                }
-            }
-
-        } else {
-            const auto &ids = m_viewport->getPickingIdsResult();
-            const uint64_t hoverValue = (ids.empty())
-                                            ? PickingId::invalid()
-                                            : decodeGpuHoverValue(ids[0]);
-
-            // FIXME: this is a temp fix, picking id intially is 0 when no
-            // comps are there, which is not right
-            if (hoverValue == 0 && sceneState.getAllComponents().empty()) {
-                m_attachedScene->setPickingId(PickingId::invalid());
-                return;
-            }
-            m_attachedScene->setPickingId(
-                PickingId::fromUint64(hoverValue));
-        }
-    }
+    void SceneViewportPanel::updatePickingIds(bool mouseMoved) {}
 } // namespace Bess::UI

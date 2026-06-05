@@ -384,8 +384,7 @@ namespace Bess::Canvas {
         return glm::vec2(glm::round(pos / snapSize)) * snapSize;
     }
 
-    void Scene::drawScratchContent(TimeMs ts,
-                                   const std::shared_ptr<Viewport> &viewport) {}
+    void Scene::drawScratchContent(TimeMs ts) {}
 
     bool Scene::isHoveredEntityValid() { return m_pickingId.isValid(); }
 

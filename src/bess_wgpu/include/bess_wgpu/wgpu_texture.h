@@ -28,6 +28,7 @@ namespace Bess::Wgpu {
 
         void init() override;
         void destroy() override;
+        void *getView() const override;
 
         wgpu::TextureView getTextureView() const;
 
