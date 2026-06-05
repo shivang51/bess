@@ -7,6 +7,15 @@
 
 namespace Bess::Wgpu {
 
+    struct WgpuPathProps {
+        Core::Renderer::Color fillColor{1.f, 1.f, 1.f, 1.f};
+        float zIndex = 0.f;
+        PickingId id = PickingId::invalid();
+        Core::Renderer::QuadRenderPass renderPass =
+            Core::Renderer::QuadRenderPass::Auto;
+        bool closePath = true;
+    };
+
     struct TextureResource {
         wgpu::Texture texture;
         wgpu::TextureView view;
@@ -51,8 +60,15 @@ namespace Bess::Wgpu {
             const Core::Renderer::RoundedBorderProps &roundedProps) override;
 
         void drawCircle(const Core::Renderer::CircleProps &props) override;
-        
+
         void drawLine(const Core::Renderer::LineProps &props) override;
+
+        void beginPath(const WgpuPathProps &props = {});
+        void pathMoveTo(const glm::vec2 &pos);
+        void pathLineTo(const glm::vec2 &pos);
+        void pathQuadTo(const glm::vec2 &control, const glm::vec2 &pos);
+        void pathQuadraticTo(const glm::vec2 &control, const glm::vec2 &pos);
+        void endPath();
 
         void
         drawImGui(const std::function<void(void *)> &imguiRenderFn) override;

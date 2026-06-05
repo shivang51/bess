@@ -5,6 +5,10 @@
 #include <array>
 
 namespace Bess::Wgpu::Piplines {
+    namespace {
+        constexpr wgpu::TextureFormat kDepthStencilFormat =
+            wgpu::TextureFormat::Depth24PlusStencil8;
+    }
 
     void PrimitivePipeline::init(const wgpu::Device &device,
                                  wgpu::TextureFormat targetFormat,
@@ -177,7 +181,7 @@ namespace Bess::Wgpu::Piplines {
         fragment.targets = colorTargets;
 
         wgpu::DepthStencilState depthStencil{};
-        depthStencil.format = wgpu::TextureFormat::Depth24Plus;
+        depthStencil.format = kDepthStencilFormat;
         depthStencil.depthCompare = wgpu::CompareFunction::LessEqual;
         depthStencil.depthWriteEnabled = true;
 

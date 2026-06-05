@@ -3,20 +3,24 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(Header_Files
     "include/bess_wgpu/piplines/pipeline.h"
+    "include/bess_wgpu/piplines/path_pipeline.h"
     "include/bess_wgpu/piplines/primitive_pipeline.h"
     "include/bess_wgpu/wgpu_renderer_2d.h"
     "include/bess_wgpu/wgpu_shader.h"
     "include/bess_wgpu/wgpu_texture.h"
+    "include/bess_wgpu/shaders/path_shader.h"
     "include/bess_wgpu/shaders/primitive_shader.h"
 )
 
 source_group("include" FILES ${Header_Files})
 
 set(Source_Files
+    "src/piplines/path_pipeline.cpp"
     "src/piplines/primitive_pipeline.cpp"
     "src/wgpu_renderer_2d.cpp"
     "src/wgpu_shader.cpp"
     "src/wgpu_texture.cpp"
+    "src/shaders/path_shader.cpp"
     "src/shaders/primitive_shader.cpp"
 )
 

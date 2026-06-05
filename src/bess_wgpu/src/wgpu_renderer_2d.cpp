@@ -1,4 +1,5 @@
 #include "bess_wgpu/wgpu_renderer_2d.h"
+#include "bess_wgpu/piplines/path_pipeline.h"
 #include "bess_wgpu/piplines/primitive_pipeline.h"
 #include "bess_wgpu/wgpu_texture.h"
 #include "common/bess_assert.h"
@@ -6,8 +7,10 @@
 #include "glfw3webgpu.h"
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <limits>
 #include <memory>
 #include <png.h>
 #include <stdexcept>
@@ -22,7 +25,14 @@ namespace Bess::Wgpu {
         using Bess::Core::Renderer::QuadRenderPass;
         using Bess::Core::Renderer::Renderer2DExtent;
         using Bess::Core::Renderer::Renderer2DTargetFormat;
+        using Bess::Wgpu::Piplines::PathCoverVertex;
+        using Bess::Wgpu::Piplines::PathStencilVertex;
         using Bess::Wgpu::Piplines::PrimitiveInstance;
+
+        constexpr wgpu::TextureFormat kDepthStencilFormat =
+            wgpu::TextureFormat::Depth24PlusStencil8;
+        constexpr uint32_t kPathCurveTypeLine = 0;
+        constexpr uint32_t kPathCurveTypeQuadratic = 1;
 
         bool isTransparent(const Core::Renderer::QuadProps &props,
                            const Core::Renderer::RoundedBorderProps *rounded) {
@@ -40,6 +50,16 @@ namespace Bess::Wgpu {
                 return true;
             }
             return false;
+        }
+
+        bool isTransparent(const WgpuPathProps &props) {
+            if (props.renderPass == QuadRenderPass::Opaque) {
+                return false;
+            }
+            if (props.renderPass == QuadRenderPass::Transparent) {
+                return true;
+            }
+            return props.fillColor.a < 0.999f;
         }
 
         struct DrawRun {
@@ -405,6 +425,310 @@ namespace Bess::Wgpu {
             uint32_t m_maxCapacity = 1;
         };
 
+        enum class PathCommandKind : uint8_t {
+            Move,
+            Line,
+            Quad,
+        };
+
+        struct PathCommand {
+            PathCommandKind kind = PathCommandKind::Move;
+            glm::vec2 p{0.f};
+            glm::vec2 control{0.f};
+        };
+
+        struct PathDrawRange {
+            uint32_t firstStencilVertex = 0;
+            uint32_t stencilVertexCount = 0;
+            uint32_t firstCoverVertex = 0;
+            uint32_t coverVertexCount = 0;
+            float zIndex = 0.f;
+        };
+
+        struct BakedPath {
+            std::vector<PathStencilVertex> stencilVertices;
+            std::array<PathCoverVertex, 6> coverVertices{};
+            bool valid = false;
+        };
+
+        class PathBatch {
+          public:
+            void clear() {
+                m_stencilVertices.clear();
+                m_coverVertices.clear();
+                m_drawRanges.clear();
+            }
+
+            void push(BakedPath &&path, float zIndex) {
+                if (!path.valid || path.stencilVertices.empty()) {
+                    return;
+                }
+
+                PathDrawRange range{};
+                range.firstStencilVertex =
+                    static_cast<uint32_t>(m_stencilVertices.size());
+                range.stencilVertexCount =
+                    static_cast<uint32_t>(path.stencilVertices.size());
+                range.firstCoverVertex =
+                    static_cast<uint32_t>(m_coverVertices.size());
+                range.coverVertexCount =
+                    static_cast<uint32_t>(path.coverVertices.size());
+                range.zIndex = zIndex;
+
+                m_stencilVertices.insert(m_stencilVertices.end(),
+                                         path.stencilVertices.begin(),
+                                         path.stencilVertices.end());
+                m_coverVertices.insert(m_coverVertices.end(),
+                                       path.coverVertices.begin(),
+                                       path.coverVertices.end());
+                m_drawRanges.push_back(range);
+            }
+
+            void prepareForRendering(bool sortBackToFront) {
+                if (!sortBackToFront || m_drawRanges.size() <= 1) {
+                    return;
+                }
+
+                std::stable_sort(
+                    m_drawRanges.begin(), m_drawRanges.end(),
+                    [](const PathDrawRange &a, const PathDrawRange &b) {
+                        return a.zIndex < b.zIndex;
+                    });
+            }
+
+            [[nodiscard]] bool empty() const noexcept {
+                return m_drawRanges.empty();
+            }
+
+            [[nodiscard]] uint32_t drawCount() const noexcept {
+                return static_cast<uint32_t>(m_drawRanges.size());
+            }
+
+            [[nodiscard]] uint32_t stencilVertexCount() const noexcept {
+                return static_cast<uint32_t>(m_stencilVertices.size());
+            }
+
+            [[nodiscard]] uint32_t coverVertexCount() const noexcept {
+                return static_cast<uint32_t>(m_coverVertices.size());
+            }
+
+            [[nodiscard]] uint64_t stencilByteSize() const noexcept {
+                return static_cast<uint64_t>(m_stencilVertices.size()) *
+                       sizeof(PathStencilVertex);
+            }
+
+            [[nodiscard]] uint64_t coverByteSize() const noexcept {
+                return static_cast<uint64_t>(m_coverVertices.size()) *
+                       sizeof(PathCoverVertex);
+            }
+
+            [[nodiscard]] const PathStencilVertex *
+            stencilData() const noexcept {
+                return m_stencilVertices.data();
+            }
+
+            [[nodiscard]] const PathCoverVertex *coverData() const noexcept {
+                return m_coverVertices.data();
+            }
+
+            [[nodiscard]] const PathDrawRange *drawRanges() const noexcept {
+                return m_drawRanges.data();
+            }
+
+          private:
+            std::vector<PathStencilVertex> m_stencilVertices;
+            std::vector<PathCoverVertex> m_coverVertices;
+            std::vector<PathDrawRange> m_drawRanges;
+        };
+
+        float signedArea2(const glm::vec2 &a, const glm::vec2 &b,
+                          const glm::vec2 &c) {
+            const glm::vec2 ab = b - a;
+            const glm::vec2 ac = c - a;
+            return (ab.x * ac.y) - (ab.y * ac.x);
+        }
+
+        bool nearlyDegenerateTriangle(const glm::vec2 &a, const glm::vec2 &b,
+                                      const glm::vec2 &c) {
+            return std::abs(signedArea2(a, b, c)) < 0.0001f;
+        }
+
+        void setStencilVertex(PathStencilVertex &vertex, const glm::vec2 &pos,
+                              float z, const glm::vec2 &curveCoord,
+                              uint32_t curveType) {
+            vertex.position[0] = pos.x;
+            vertex.position[1] = pos.y;
+            vertex.position[2] = z;
+            vertex.curveCoord[0] = curveCoord.x;
+            vertex.curveCoord[1] = curveCoord.y;
+            vertex.curveType = curveType;
+        }
+
+        void appendStencilTriangle(std::vector<PathStencilVertex> &vertices,
+                                   const glm::vec2 &p0, const glm::vec2 &p1,
+                                   const glm::vec2 &p2, float z,
+                                   const glm::vec2 &c0, const glm::vec2 &c1,
+                                   const glm::vec2 &c2, uint32_t curveType) {
+            if (nearlyDegenerateTriangle(p0, p1, p2)) {
+                return;
+            }
+
+            const size_t base = vertices.size();
+            vertices.resize(base + 3);
+            setStencilVertex(vertices[base + 0], p0, z, c0, curveType);
+            setStencilVertex(vertices[base + 1], p1, z, c1, curveType);
+            setStencilVertex(vertices[base + 2], p2, z, c2, curveType);
+        }
+
+        void appendLineAnchorTriangle(std::vector<PathStencilVertex> &vertices,
+                                      const glm::vec2 &anchor,
+                                      const glm::vec2 &from,
+                                      const glm::vec2 &to, float z) {
+            appendStencilTriangle(vertices, anchor, from, to, z, glm::vec2(0.f),
+                                  glm::vec2(0.f), glm::vec2(0.f),
+                                  kPathCurveTypeLine);
+        }
+
+        void appendQuadraticHull(std::vector<PathStencilVertex> &vertices,
+                                 const glm::vec2 &from,
+                                 const glm::vec2 &control, const glm::vec2 &to,
+                                 float z) {
+            appendStencilTriangle(vertices, from, control, to, z,
+                                  glm::vec2(0.f, 0.f), glm::vec2(0.5f, 0.f),
+                                  glm::vec2(1.f, 1.f), kPathCurveTypeQuadratic);
+        }
+
+        void growBounds(glm::vec2 &minPt, glm::vec2 &maxPt,
+                        const glm::vec2 &p) {
+            minPt = glm::min(minPt, p);
+            maxPt = glm::max(maxPt, p);
+        }
+
+        void setCoverVertex(PathCoverVertex &vertex, const glm::vec2 &pos,
+                            float z, const Color &color, const PickingId &id) {
+            vertex.position[0] = pos.x;
+            vertex.position[1] = pos.y;
+            vertex.position[2] = z;
+            vertex.color[0] = color.r;
+            vertex.color[1] = color.g;
+            vertex.color[2] = color.b;
+            vertex.color[3] = color.a;
+            vertex.id[0] = id.runtimeId;
+            vertex.id[1] = id.info;
+        }
+
+        std::array<PathCoverVertex, 6>
+        makeCoverVertices(const glm::vec2 &minPt, const glm::vec2 &maxPt,
+                          const WgpuPathProps &props) {
+            std::array<PathCoverVertex, 6> vertices{};
+            const glm::vec2 p0(minPt.x, minPt.y);
+            const glm::vec2 p1(maxPt.x, minPt.y);
+            const glm::vec2 p2(minPt.x, maxPt.y);
+            const glm::vec2 p3(maxPt.x, maxPt.y);
+
+            setCoverVertex(vertices[0], p0, props.zIndex, props.fillColor,
+                           props.id);
+            setCoverVertex(vertices[1], p1, props.zIndex, props.fillColor,
+                           props.id);
+            setCoverVertex(vertices[2], p2, props.zIndex, props.fillColor,
+                           props.id);
+            setCoverVertex(vertices[3], p2, props.zIndex, props.fillColor,
+                           props.id);
+            setCoverVertex(vertices[4], p1, props.zIndex, props.fillColor,
+                           props.id);
+            setCoverVertex(vertices[5], p3, props.zIndex, props.fillColor,
+                           props.id);
+            return vertices;
+        }
+
+        BakedPath bakePath(const std::vector<PathCommand> &commands,
+                           const WgpuPathProps &props) {
+            BakedPath baked{};
+            if (commands.empty() || props.fillColor.a <= 0.f) {
+                return baked;
+            }
+
+            glm::vec2 minPt(std::numeric_limits<float>::max());
+            glm::vec2 maxPt(-std::numeric_limits<float>::max());
+            bool hasBounds = false;
+            auto recordPoint = [&](const glm::vec2 &p) {
+                growBounds(minPt, maxPt, p);
+                hasBounds = true;
+            };
+
+            bool contourOpen = false;
+            glm::vec2 anchor(0.f);
+            glm::vec2 current(0.f);
+
+            auto closeContour = [&]() {
+                if (!contourOpen || !props.closePath) {
+                    return;
+                }
+                appendLineAnchorTriangle(baked.stencilVertices, anchor, current,
+                                         anchor, props.zIndex);
+                current = anchor;
+            };
+
+            for (const auto &cmd : commands) {
+                switch (cmd.kind) {
+                case PathCommandKind::Move:
+                    closeContour();
+                    anchor = cmd.p;
+                    current = cmd.p;
+                    contourOpen = true;
+                    recordPoint(cmd.p);
+                    break;
+                case PathCommandKind::Line:
+                    if (!contourOpen) {
+                        anchor = current;
+                        contourOpen = true;
+                        recordPoint(anchor);
+                    }
+                    appendLineAnchorTriangle(baked.stencilVertices, anchor,
+                                             current, cmd.p, props.zIndex);
+                    current = cmd.p;
+                    recordPoint(cmd.p);
+                    break;
+                case PathCommandKind::Quad:
+                    if (!contourOpen) {
+                        anchor = current;
+                        contourOpen = true;
+                        recordPoint(anchor);
+                    }
+                    if (nearlyDegenerateTriangle(current, cmd.control, cmd.p)) {
+                        appendLineAnchorTriangle(baked.stencilVertices, anchor,
+                                                 current, cmd.p, props.zIndex);
+                    } else {
+                        appendLineAnchorTriangle(baked.stencilVertices, anchor,
+                                                 current, cmd.p, props.zIndex);
+                        appendQuadraticHull(baked.stencilVertices, current,
+                                            cmd.control, cmd.p, props.zIndex);
+                    }
+                    current = cmd.p;
+                    recordPoint(cmd.control);
+                    recordPoint(cmd.p);
+                    break;
+                }
+            }
+
+            closeContour();
+
+            if (!hasBounds || baked.stencilVertices.empty()) {
+                return baked;
+            }
+
+            constexpr float coverPadding = 1.f;
+            minPt -= glm::vec2(coverPadding);
+            maxPt += glm::vec2(coverPadding);
+            if (maxPt.x <= minPt.x || maxPt.y <= minPt.y) {
+                return baked;
+            }
+
+            baked.coverVertices = makeCoverVertices(minPt, maxPt, props);
+            baked.valid = true;
+            return baked;
+        }
+
         class TextureSource final : public Core::Renderer::ITexture {
           public:
             explicit TextureSource(
@@ -446,6 +770,7 @@ namespace Bess::Wgpu {
         float *cameraTransform = nullptr;
         Piplines::SharedFrameBuffer sharedFrameBuffer;
         std::unique_ptr<Piplines::PrimitivePipeline> primitivePipeline;
+        std::unique_ptr<Piplines::PathPipeline> pathPipeline;
         wgpu::CommandEncoder commandEncoder;
         std::unordered_map<Core::Renderer::TextureHandle, TextureResource>
             textures;
@@ -453,6 +778,11 @@ namespace Bess::Wgpu {
 
         PrimitiveBatch opaquePrimitiveBatch;
         PrimitiveBatch transparentPrimitiveBatch;
+        PathBatch opaquePathBatch;
+        PathBatch transparentPathBatch;
+        std::vector<PathCommand> activePathCommands;
+        WgpuPathProps activePathProps;
+        bool pathStarted = false;
         Core::Renderer::Renderer2DStats stats;
         Color clearColor{0.f, 0.f, 0.f, 1.f};
         bool shouldClear = true;
@@ -575,7 +905,7 @@ namespace Bess::Wgpu {
         descriptor.dimension = wgpu::TextureDimension::e2D;
         descriptor.size = {std::max(1u, extent.width),
                            std::max(1u, extent.height), 1};
-        descriptor.format = wgpu::TextureFormat::Depth24Plus;
+        descriptor.format = kDepthStencilFormat;
         descriptor.mipLevelCount = 1;
         descriptor.sampleCount = 1;
         descriptor.usage = wgpu::TextureUsage::RenderAttachment;
@@ -653,6 +983,11 @@ namespace Bess::Wgpu {
                                         m_impl->sharedFrameBuffer.getBuffer(),
                                         m_impl->sharedFrameBuffer.getSize(),
                                         m_impl->pickingFormat);
+        m_impl->pathPipeline = std::make_unique<Piplines::PathPipeline>();
+        m_impl->pathPipeline->init(m_impl->device, m_impl->targetFormat,
+                                   m_impl->sharedFrameBuffer.getBuffer(),
+                                   m_impl->sharedFrameBuffer.getSize(),
+                                   m_impl->pickingFormat);
         if (m_impl->primitivePipeline->ensureInstanceBufferSize(
                 std::max(1u, createInfo.batching.initialQuadCapacity))) {
             m_impl->recreateTextureBindGroups();
@@ -668,6 +1003,10 @@ namespace Bess::Wgpu {
         if (m_impl->primitivePipeline) {
             m_impl->primitivePipeline->destroy();
             m_impl->primitivePipeline = nullptr;
+        }
+        if (m_impl->pathPipeline) {
+            m_impl->pathPipeline->destroy();
+            m_impl->pathPipeline = nullptr;
         }
         m_impl->sharedFrameBuffer.destroy();
         m_impl->textures.clear();
@@ -686,6 +1025,10 @@ namespace Bess::Wgpu {
         m_impl->instance = nullptr;
         m_impl->opaquePrimitiveBatch.clear();
         m_impl->transparentPrimitiveBatch.clear();
+        m_impl->opaquePathBatch.clear();
+        m_impl->transparentPathBatch.clear();
+        m_impl->activePathCommands.clear();
+        m_impl->pathStarted = false;
         m_impl->stats = {};
         m_impl->frameStarted = false;
     }
@@ -759,6 +1102,10 @@ namespace Bess::Wgpu {
         m_impl->shouldClear = frameInfo.shouldClear;
         m_impl->opaquePrimitiveBatch.clear();
         m_impl->transparentPrimitiveBatch.clear();
+        m_impl->opaquePathBatch.clear();
+        m_impl->transparentPathBatch.clear();
+        m_impl->activePathCommands.clear();
+        m_impl->pathStarted = false;
         m_impl->stats = {};
         m_impl->cameraTransform = nullptr;
 
@@ -772,6 +1119,10 @@ namespace Bess::Wgpu {
     void WgpuRenderer2D::endFrame() {
         if (!m_impl->frameStarted) {
             return;
+        }
+
+        if (m_impl->pathStarted) {
+            endPath();
         }
 
         m_impl->commandEncoder = m_impl->device.CreateCommandEncoder();
@@ -821,6 +1172,9 @@ namespace Bess::Wgpu {
             m_impl->shouldClear ? wgpu::LoadOp::Clear : wgpu::LoadOp::Load;
         depthAttachment.depthStoreOp = wgpu::StoreOp::Store;
         depthAttachment.depthClearValue = 1.0f;
+        depthAttachment.stencilLoadOp = wgpu::LoadOp::Clear;
+        depthAttachment.stencilStoreOp = wgpu::StoreOp::Store;
+        depthAttachment.stencilClearValue = 0;
 
         wgpu::RenderPassDescriptor renderPassDescriptor{};
         renderPassDescriptor.colorAttachmentCount = colorAttachmentCount;
@@ -829,6 +1183,8 @@ namespace Bess::Wgpu {
 
         m_impl->opaquePrimitiveBatch.prepareForRendering(false);
         m_impl->transparentPrimitiveBatch.prepareForRendering(true);
+        m_impl->opaquePathBatch.prepareForRendering(false);
+        m_impl->transparentPathBatch.prepareForRendering(true);
 
         const uint32_t opaqueInstanceOffset = 0;
         const uint32_t transparentInstanceOffset =
@@ -836,6 +1192,20 @@ namespace Bess::Wgpu {
         const uint32_t totalInstanceCount =
             transparentInstanceOffset +
             m_impl->transparentPrimitiveBatch.count();
+
+        const uint32_t opaqueStencilVertexOffset = 0;
+        const uint32_t transparentStencilVertexOffset =
+            m_impl->opaquePathBatch.stencilVertexCount();
+        const uint32_t totalStencilVertexCount =
+            transparentStencilVertexOffset +
+            m_impl->transparentPathBatch.stencilVertexCount();
+
+        const uint32_t opaqueCoverVertexOffset = 0;
+        const uint32_t transparentCoverVertexOffset =
+            m_impl->opaquePathBatch.coverVertexCount();
+        const uint32_t totalCoverVertexCount =
+            transparentCoverVertexOffset +
+            m_impl->transparentPathBatch.coverVertexCount();
 
         if (totalInstanceCount > 0 &&
             m_impl->primitivePipeline->ensureInstanceBufferSize(
@@ -860,6 +1230,45 @@ namespace Bess::Wgpu {
                     sizeof(Piplines::PrimitiveInstance));
             m_impl->stats.uploadedBytes +=
                 m_impl->transparentPrimitiveBatch.byteSize();
+        }
+
+        if (totalStencilVertexCount > 0) {
+            static_cast<void>(
+                m_impl->pathPipeline->ensureStencilVertexBufferSize(
+                    totalStencilVertexCount));
+        }
+
+        if (totalCoverVertexCount > 0) {
+            static_cast<void>(m_impl->pathPipeline->ensureCoverVertexBufferSize(
+                totalCoverVertexCount));
+        }
+
+        if (!m_impl->opaquePathBatch.empty()) {
+            m_impl->pathPipeline->uploadStencilVertices(
+                m_impl->queue, m_impl->opaquePathBatch.stencilData(),
+                m_impl->opaquePathBatch.stencilByteSize(),
+                opaqueStencilVertexOffset * sizeof(PathStencilVertex));
+            m_impl->pathPipeline->uploadCoverVertices(
+                m_impl->queue, m_impl->opaquePathBatch.coverData(),
+                m_impl->opaquePathBatch.coverByteSize(),
+                opaqueCoverVertexOffset * sizeof(PathCoverVertex));
+            m_impl->stats.uploadedBytes +=
+                m_impl->opaquePathBatch.stencilByteSize() +
+                m_impl->opaquePathBatch.coverByteSize();
+        }
+
+        if (!m_impl->transparentPathBatch.empty()) {
+            m_impl->pathPipeline->uploadStencilVertices(
+                m_impl->queue, m_impl->transparentPathBatch.stencilData(),
+                m_impl->transparentPathBatch.stencilByteSize(),
+                transparentStencilVertexOffset * sizeof(PathStencilVertex));
+            m_impl->pathPipeline->uploadCoverVertices(
+                m_impl->queue, m_impl->transparentPathBatch.coverData(),
+                m_impl->transparentPathBatch.coverByteSize(),
+                transparentCoverVertexOffset * sizeof(PathCoverVertex));
+            m_impl->stats.uploadedBytes +=
+                m_impl->transparentPathBatch.stencilByteSize() +
+                m_impl->transparentPathBatch.coverByteSize();
         }
 
         m_impl->sharedFrameBuffer.update(m_impl->queue, m_impl->extent.width,
@@ -889,11 +1298,37 @@ namespace Bess::Wgpu {
             }
         };
 
+        auto renderPathBatch = [&](const PathBatch &batch,
+                                   uint32_t stencilVertexOffset,
+                                   uint32_t coverVertexOffset,
+                                   bool transparent) {
+            if (batch.empty()) {
+                return;
+            }
+
+            const PathDrawRange *ranges = batch.drawRanges();
+            const uint32_t rangeCount = batch.drawCount();
+            for (uint32_t i = 0; i < rangeCount; ++i) {
+                const auto &range = ranges[i];
+                m_impl->pathPipeline->drawPath(
+                    renderPass, stencilVertexOffset + range.firstStencilVertex,
+                    range.stencilVertexCount,
+                    coverVertexOffset + range.firstCoverVertex,
+                    range.coverVertexCount, transparent);
+                m_impl->stats.drawCallCount += 2;
+            }
+        };
+
         renderBatch(m_impl->opaquePrimitiveBatch, opaqueInstanceOffset,
                     m_impl->primitivePipeline->getOpaquePipeline());
+        renderPathBatch(m_impl->opaquePathBatch, opaqueStencilVertexOffset,
+                        opaqueCoverVertexOffset, false);
         renderBatch(m_impl->transparentPrimitiveBatch,
                     transparentInstanceOffset,
                     m_impl->primitivePipeline->getTransparentPipeline());
+        renderPathBatch(m_impl->transparentPathBatch,
+                        transparentStencilVertexOffset,
+                        transparentCoverVertexOffset, true);
 
         renderPass.End();
         wgpu::CommandBuffer commandBuffer = m_impl->commandEncoder.Finish();
@@ -1108,6 +1543,83 @@ namespace Bess::Wgpu {
         }
         m_impl->stats.quadCount = m_impl->opaquePrimitiveBatch.count() +
                                   m_impl->transparentPrimitiveBatch.count();
+    }
+
+    void WgpuRenderer2D::beginPath(const WgpuPathProps &props) {
+        if (!m_impl->frameStarted) {
+            return;
+        }
+
+        if (m_impl->pathStarted) {
+            endPath();
+        }
+
+        m_impl->activePathCommands.clear();
+        m_impl->activePathProps = props;
+        m_impl->pathStarted = true;
+    }
+
+    void WgpuRenderer2D::pathMoveTo(const glm::vec2 &pos) {
+        if (!m_impl->frameStarted) {
+            return;
+        }
+        if (!m_impl->pathStarted) {
+            beginPath();
+        }
+
+        m_impl->activePathCommands.push_back(
+            {.kind = PathCommandKind::Move, .p = pos});
+    }
+
+    void WgpuRenderer2D::pathLineTo(const glm::vec2 &pos) {
+        if (!m_impl->frameStarted) {
+            return;
+        }
+        if (!m_impl->pathStarted) {
+            beginPath();
+        }
+
+        m_impl->activePathCommands.push_back(
+            {.kind = PathCommandKind::Line, .p = pos});
+    }
+
+    void WgpuRenderer2D::pathQuadTo(const glm::vec2 &control,
+                                    const glm::vec2 &pos) {
+        if (!m_impl->frameStarted) {
+            return;
+        }
+        if (!m_impl->pathStarted) {
+            beginPath();
+        }
+
+        m_impl->activePathCommands.push_back(
+            {.kind = PathCommandKind::Quad, .p = pos, .control = control});
+    }
+
+    void WgpuRenderer2D::pathQuadraticTo(const glm::vec2 &control,
+                                         const glm::vec2 &pos) {
+        pathQuadTo(control, pos);
+    }
+
+    void WgpuRenderer2D::endPath() {
+        if (!m_impl->pathStarted) {
+            return;
+        }
+
+        BakedPath baked =
+            bakePath(m_impl->activePathCommands, m_impl->activePathProps);
+        if (baked.valid) {
+            if (isTransparent(m_impl->activePathProps)) {
+                m_impl->transparentPathBatch.push(
+                    std::move(baked), m_impl->activePathProps.zIndex);
+            } else {
+                m_impl->opaquePathBatch.push(std::move(baked),
+                                             m_impl->activePathProps.zIndex);
+            }
+        }
+
+        m_impl->activePathCommands.clear();
+        m_impl->pathStarted = false;
     }
 
     void WgpuRenderer2D::drawImGui(
