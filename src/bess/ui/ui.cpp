@@ -1,7 +1,9 @@
 #include "ui/ui.h"
 #include "bess_core/g_app_context.h"
 #include "bess_wgpu/wgpu_renderer_2d.h"
+#include "camera.h"
 #include "common/logger.h"
+#include "gtc/type_ptr.hpp"
 #include "imgui_impl_wgpu.h"
 #include "pages/main_page/main_page.h"
 #include "sub_systems/renderer_context.h"
@@ -163,13 +165,16 @@ namespace Bess {
             m_previewTex->init();
         }
 
+        static Camera camera(800, 800);
         Bess::Core::Renderer::Renderer2DFrameInfo frameInfo;
         frameInfo.clearColor = Core::Renderer::Color{0.0f, 0.0f, 0.0f, 1.0f};
         frameInfo.shouldClear = true;
         frameInfo.targetTexture = m_previewTex->getHandle();
         frameInfo.extent = {size, size};
+        frameInfo.cameraTransform = glm::value_ptr(camera.getTransform());
 
         renderer->beginFrame(frameInfo);
+
         static float rotation = 0.687f;
         constexpr size_t quadsPerRow = 200;
         constexpr size_t quadCount = quadsPerRow * quadsPerRow;
@@ -237,6 +242,15 @@ namespace Bess {
         ImGui::Text("Quad Count: %d", stats.quadCount);
         ImGui::SliderFloat("Rotation", &rotation, 0.0f,
                            std::numbers::pi_v<float> / 2.f);
+        if (ImGui::SliderFloat3("Camera Pos",
+                                glm::value_ptr(camera.getPosRef()),
+                                -(float)size / 2.f, (float)size / 2.f)) {
+            camera.setPos(camera.getPos());
+        }
+        if (ImGui::SliderFloat("Camera Zoom", &camera.getZoomRef(), 0.1f,
+                               10.f)) {
+            camera.setZoom(camera.getZoom());
+        }
         ImGui::Image(
             reinterpret_cast<ImTextureID>(m_previewTex->getTextureView().Get()),
             ImVec2(size, size));
@@ -254,9 +268,10 @@ namespace Bess {
 
         io.Fonts->Clear();
         io.Fonts->AddFontFromFileTTF(robotoPath, fontSize);
-        // Fonts::largeFont = io.Fonts->AddFontFromFileTTF(robotoPath, fontSize
-        // * 2.0F); Fonts::mediumFont = io.Fonts->AddFontFromFileTTF(robotoPath,
-        // fontSize * 1.5F);
+        // Fonts::largeFont = io.Fonts->AddFontFromFileTTF(robotoPath,
+        // fontSize
+        // * 2.0F); Fonts::mediumFont =
+        // io.Fonts->AddFontFromFileTTF(robotoPath, fontSize * 1.5F);
         io.FontDefault = io.Fonts->AddFontFromFileTTF(robotoPath, fontSize);
 
         ImFontConfig config;

@@ -77,13 +77,9 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32,
         centered.x * c - centered.y * s,
         centered.x * s + centered.y * c);
     let world = q.position.xy + rotated;
-    let ndc = vec2f(
-        (world.x / frame.viewport.x) * 2.0 - 1.0,
-        1.0 - (world.y / frame.viewport.y) * 2.0);
-
     var out: VertexOut;
     let depth = 0.5 - 0.5 * tanh(q.position.z * 0.01);
-    out.position = vec4f(ndc, depth, 1.0);
+    out.position = frame.camera_transform * vec4f(world, q.position.z, 1.0);
     out.local_pos = local * q.size;
     out.local_coord = local_coord;
     out.size = q.size;

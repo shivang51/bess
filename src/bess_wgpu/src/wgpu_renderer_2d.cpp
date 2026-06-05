@@ -443,6 +443,7 @@ namespace Bess::Wgpu {
         wgpu::TextureView offscreenTargetView;
         wgpu::Texture depthTarget;
         wgpu::TextureView depthTargetView;
+        float *cameraTransform = nullptr;
         Piplines::SharedFrameBuffer sharedFrameBuffer;
         std::unique_ptr<Piplines::PrimitivePipeline> primitivePipeline;
         wgpu::CommandEncoder commandEncoder;
@@ -759,11 +760,13 @@ namespace Bess::Wgpu {
         m_impl->opaquePrimitiveBatch.clear();
         m_impl->transparentPrimitiveBatch.clear();
         m_impl->stats = {};
+        m_impl->cameraTransform = nullptr;
 
         m_impl->frameTargetTexture = frameInfo.targetTexture;
         m_impl->pickingTextureHandle = frameInfo.pickingTexture;
         m_impl->frameUsesSurface = frameInfo.targetTexture == 0;
         m_impl->frameStarted = true;
+        m_impl->cameraTransform = frameInfo.cameraTransform;
     }
 
     void WgpuRenderer2D::endFrame() {
@@ -861,6 +864,7 @@ namespace Bess::Wgpu {
 
         m_impl->sharedFrameBuffer.update(m_impl->queue, m_impl->extent.width,
                                          m_impl->extent.height);
+        m_impl->sharedFrameBuffer.setCameraTransform(m_impl->cameraTransform);
 
         wgpu::RenderPassEncoder renderPass =
             m_impl->commandEncoder.BeginRenderPass(&renderPassDescriptor);

@@ -4,6 +4,7 @@
 
 #include "common/types.h"
 #include "glm.hpp"
+#include "settings/settings.h"
 
 namespace Bess {
     struct CameraPositionAnimation {
@@ -75,7 +76,7 @@ namespace Bess {
 
         void resize(float width, float height);
 
-        const glm::mat4 &getTransform() const;
+        MAKE_GETTER_SETTER(glm::mat4, Transform, transform)
 
         const glm::mat4 &getOrtho() const;
 

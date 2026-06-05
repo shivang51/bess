@@ -44,8 +44,7 @@ namespace Bess::Core::Renderer {
         Renderer2DExtent extent;
         Renderer2DTargetFormat targetFormat =
             Renderer2DTargetFormat::BGRA8Unorm;
-        Renderer2DTargetFormat pickingFormat =
-            Renderer2DTargetFormat::None;
+        Renderer2DTargetFormat pickingFormat = Renderer2DTargetFormat::None;
         Renderer2DNativeSurface surface;
         Renderer2DBatchConfig batching;
         bool enableValidation = true;
@@ -63,6 +62,7 @@ namespace Bess::Core::Renderer {
         bool shouldClear = true;
         TextureHandle targetTexture = 0;
         TextureHandle pickingTexture = 0;
+        float *cameraTransform = nullptr;
     };
 
     class IRenderer2D {
