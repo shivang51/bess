@@ -32,6 +32,8 @@ namespace Bess::Wgpu::Piplines {
         [[nodiscard]] bool
         ensureStencilVertexBufferSize(std::size_t vertexCount);
         [[nodiscard]] bool ensureCoverVertexBufferSize(std::size_t vertexCount);
+        [[nodiscard]] bool
+        ensureStrokeVertexBufferSize(std::size_t vertexCount);
 
         void uploadStencilVertices(const wgpu::Queue &queue,
                                    const PathStencilVertex *vertices,
@@ -41,11 +43,18 @@ namespace Bess::Wgpu::Piplines {
                                  const PathCoverVertex *vertices,
                                  uint64_t byteSize,
                                  uint64_t bufferOffset = 0) const;
+        void uploadStrokeVertices(const wgpu::Queue &queue,
+                                  const PathCoverVertex *vertices,
+                                  uint64_t byteSize,
+                                  uint64_t bufferOffset = 0) const;
 
         void drawPath(wgpu::RenderPassEncoder &renderPass,
                       uint32_t firstStencilVertex, uint32_t stencilVertexCount,
                       uint32_t firstCoverVertex, uint32_t coverVertexCount,
                       bool transparent) const;
+        void drawStroke(wgpu::RenderPassEncoder &renderPass,
+                        uint32_t firstVertex, uint32_t vertexCount,
+                        bool transparent) const;
 
       private:
         void createShader();
@@ -60,6 +69,8 @@ namespace Bess::Wgpu::Piplines {
         wgpu::RenderPipeline m_stencilPipeline;
         wgpu::RenderPipeline m_opaqueCoverPipeline;
         wgpu::RenderPipeline m_transparentCoverPipeline;
+        wgpu::RenderPipeline m_opaqueStrokePipeline;
+        wgpu::RenderPipeline m_transparentStrokePipeline;
         wgpu::BindGroupLayout m_bindGroupLayout;
         wgpu::BindGroup m_bindGroup;
         wgpu::Buffer m_frameBuffer;
@@ -68,6 +79,8 @@ namespace Bess::Wgpu::Piplines {
         uint64_t m_stencilVertexBufferSize = 0;
         wgpu::Buffer m_coverVertexBuffer;
         uint64_t m_coverVertexBufferSize = 0;
+        wgpu::Buffer m_strokeVertexBuffer;
+        uint64_t m_strokeVertexBufferSize = 0;
     };
 
 } // namespace Bess::Wgpu::Piplines

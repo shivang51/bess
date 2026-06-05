@@ -181,42 +181,59 @@ namespace Bess {
         constexpr size_t quadsColumns = quadCount / quadsPerRow;
         constexpr float quadW = (float)size / quadsPerRow;
         constexpr float quadH = (float)size / quadsColumns;
-        for (int i = 0; i < quadCount; i++) {
-            const float backgroundZ = 0.5f * static_cast<float>(quadCount - i) /
-                                      static_cast<float>(quadCount);
-            renderer->drawQuad({
-                .position = {(quadW * (i % quadsPerRow)) + (quadW / 2),
-                             (quadH * (i / quadsPerRow)) + (quadH / 2)},
-                .size = {quadW, quadH},
-                .rotation = rotation,
-                .zIndex = backgroundZ,
-                .color = {(float)i / quadCount, 1 - ((float)i / quadCount), 0.f,
-                          1.0f},
-            });
-        }
-
-        renderer->drawCircle({
-            .position = {size / 2.0f, size / 2.0f},
-            .radius = size / 4.0f,
-            .thickness = 10.0f,
-            .zIndex = 1.0f,
-            .color = {1.0f, 0.0f, 1.0f, 1.0f},
-        });
-
-        renderer->drawLine({
-            .p0 = {size, 0},
-            .p1 = {0, size},
-            .thickness = 5.0f,
-            .zIndex = 2.0f,
-            .color = {0.0f, 1.0f, 1.0f, 1.0f},
-        });
-        renderer->drawLine({
-            .p0 = {0.0f, 0.0f},
-            .p1 = {size, size},
-            .thickness = 5.0f,
-            .zIndex = 2.0f,
-            .color = {0.0f, 1.0f, 1.0f, 1.0f},
-        });
+        // for (int i = 0; i < quadCount; i++) {
+        //     const float backgroundZ = 0.5f * static_cast<float>(quadCount -
+        //     i) /
+        //                               static_cast<float>(quadCount);
+        //     renderer->drawQuad({
+        //         .position = {(quadW * (i % quadsPerRow)) + (quadW / 2),
+        //                      (quadH * (i / quadsPerRow)) + (quadH / 2)},
+        //         .size = {quadW, quadH},
+        //         .rotation = rotation,
+        //         .zIndex = backgroundZ,
+        //         .color = {(float)i / quadCount, 1 - ((float)i / quadCount),
+        //         0.f,
+        //                   1.0f},
+        //     });
+        // }
+        //
+        // renderer->drawCircle({
+        //     .position = {size / 2.0f, size / 2.0f},
+        //     .radius = size / 4.0f,
+        //     .thickness = 10.0f,
+        //     .zIndex = 1.0f,
+        //     .color = {1.0f, 0.0f, 1.0f, 1.0f},
+        // });
+        //
+        // renderer->drawLine({
+        //     .p0 = {size, 0},
+        //     .p1 = {0, size},
+        //     .thickness = 5.0f,
+        //     .zIndex = 2.0f,
+        //     .color = {0.0f, 1.0f, 1.0f, 1.0f},
+        // });
+        // renderer->drawLine({
+        //     .p0 = {0.0f, 0.0f},
+        //     .p1 = {size, size},
+        //     .thickness = 5.0f,
+        //     .zIndex = 2.0f,
+        //     .color = {0.0f, 1.0f, 1.0f, 1.0f},
+        // });
+        //
+        // renderer->drawRoundedQuad(
+        //     {
+        //         .position = {size / 2.0f, size / 2.0f},
+        //         .size = {size, size},
+        //         .rotation = 0,
+        //         .zIndex = 2.0f,
+        //         .color = {1.0f, 1.0f, 0.0f, 0.0f},
+        //     },
+        //     {
+        //         .radius = glm::vec4(50.0f),
+        //         .thickness = glm::vec4(5.0f),
+        //         .color = glm::vec4(0.0f, 1.0f, 1.0f, 1.0f),
+        //     });
+        //
 
         renderer->beginPath({
             .fillColor = {1.0f, 0.25f, 0.1f, 1.0f},
@@ -228,20 +245,6 @@ namespace Bess {
         renderer->pathLineTo({250.f, 450.f});
         renderer->pathQuadTo({400.f, 100.f}, {650.f, 600.f});
         renderer->endPath();
-
-        renderer->drawRoundedQuad(
-            {
-                .position = {size / 2.0f, size / 2.0f},
-                .size = {size, size},
-                .rotation = 0,
-                .zIndex = 2.0f,
-                .color = {1.0f, 1.0f, 0.0f, 0.0f},
-            },
-            {
-                .radius = glm::vec4(50.0f),
-                .thickness = glm::vec4(5.0f),
-                .color = glm::vec4(0.0f, 1.0f, 1.0f, 1.0f),
-            });
 
         renderer->endFrame();
 

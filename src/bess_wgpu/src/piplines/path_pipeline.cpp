@@ -28,6 +28,8 @@ namespace Bess::Wgpu::Piplines {
     }
 
     void PathPipeline::destroy() {
+        m_strokeVertexBuffer = nullptr;
+        m_strokeVertexBufferSize = 0;
         m_coverVertexBuffer = nullptr;
         m_coverVertexBufferSize = 0;
         m_stencilVertexBuffer = nullptr;
@@ -36,6 +38,8 @@ namespace Bess::Wgpu::Piplines {
         m_frameBufferSize = 0;
         m_bindGroup = nullptr;
         m_bindGroupLayout = nullptr;
+        m_transparentStrokePipeline = nullptr;
+        m_opaqueStrokePipeline = nullptr;
         m_transparentCoverPipeline = nullptr;
         m_opaqueCoverPipeline = nullptr;
         m_stencilPipeline = nullptr;
@@ -57,6 +61,23 @@ namespace Bess::Wgpu::Piplines {
             wgpu::BufferUsage::Vertex | wgpu::BufferUsage::CopyDst;
         m_stencilVertexBuffer = m_device.CreateBuffer(&descriptor);
         m_stencilVertexBufferSize = requiredSize;
+        return true;
+    }
+
+    bool PathPipeline::ensureStrokeVertexBufferSize(std::size_t vertexCount) {
+        const auto requiredSize = std::max<std::size_t>(
+            sizeof(PathCoverVertex), vertexCount * sizeof(PathCoverVertex));
+        if (m_strokeVertexBuffer != nullptr &&
+            m_strokeVertexBufferSize >= requiredSize) {
+            return false;
+        }
+
+        wgpu::BufferDescriptor descriptor{};
+        descriptor.size = requiredSize;
+        descriptor.usage =
+            wgpu::BufferUsage::Vertex | wgpu::BufferUsage::CopyDst;
+        m_strokeVertexBuffer = m_device.CreateBuffer(&descriptor);
+        m_strokeVertexBufferSize = requiredSize;
         return true;
     }
 
@@ -101,6 +122,18 @@ namespace Bess::Wgpu::Piplines {
                           byteSize);
     }
 
+    void PathPipeline::uploadStrokeVertices(const wgpu::Queue &queue,
+                                            const PathCoverVertex *vertices,
+                                            uint64_t byteSize,
+                                            uint64_t bufferOffset) const {
+        if (m_strokeVertexBuffer == nullptr || vertices == nullptr ||
+            byteSize == 0) {
+            return;
+        }
+        queue.WriteBuffer(m_strokeVertexBuffer, bufferOffset, vertices,
+                          byteSize);
+    }
+
     void PathPipeline::drawPath(wgpu::RenderPassEncoder &renderPass,
                                 uint32_t firstStencilVertex,
                                 uint32_t stencilVertexCount,
@@ -128,6 +161,23 @@ namespace Bess::Wgpu::Piplines {
             static_cast<uint64_t>(firstCoverVertex) * sizeof(PathCoverVertex),
             static_cast<uint64_t>(coverVertexCount) * sizeof(PathCoverVertex));
         renderPass.Draw(coverVertexCount, 1, 0, 0);
+    }
+
+    void PathPipeline::drawStroke(wgpu::RenderPassEncoder &renderPass,
+                                  uint32_t firstVertex, uint32_t vertexCount,
+                                  bool transparent) const {
+        if (vertexCount == 0) {
+            return;
+        }
+
+        renderPass.SetBindGroup(0, m_bindGroup);
+        renderPass.SetPipeline(transparent ? m_transparentStrokePipeline
+                                           : m_opaqueStrokePipeline);
+        renderPass.SetVertexBuffer(
+            0, m_strokeVertexBuffer,
+            static_cast<uint64_t>(firstVertex) * sizeof(PathCoverVertex),
+            static_cast<uint64_t>(vertexCount) * sizeof(PathCoverVertex));
+        renderPass.Draw(vertexCount, 1, 0, 0);
     }
 
     void PathPipeline::createShader() {
@@ -316,6 +366,31 @@ namespace Bess::Wgpu::Piplines {
         transparentCoverDescriptor.depthStencil = &coverDepthStencil;
         m_transparentCoverPipeline =
             m_device.CreateRenderPipeline(&transparentCoverDescriptor);
+
+        wgpu::DepthStencilState strokeDepthStencil{};
+        strokeDepthStencil.format = kDepthStencilFormat;
+        strokeDepthStencil.depthCompare = wgpu::CompareFunction::LessEqual;
+        strokeDepthStencil.depthWriteEnabled = true;
+        strokeDepthStencil.stencilReadMask = 0x00;
+        strokeDepthStencil.stencilWriteMask = 0x00;
+        strokeDepthStencil.stencilFront.compare = wgpu::CompareFunction::Always;
+        strokeDepthStencil.stencilFront.failOp = wgpu::StencilOperation::Keep;
+        strokeDepthStencil.stencilFront.depthFailOp =
+            wgpu::StencilOperation::Keep;
+        strokeDepthStencil.stencilFront.passOp = wgpu::StencilOperation::Keep;
+        strokeDepthStencil.stencilBack = strokeDepthStencil.stencilFront;
+
+        wgpu::RenderPipelineDescriptor strokeDescriptor = coverDescriptor;
+        strokeDescriptor.depthStencil = &strokeDepthStencil;
+        m_opaqueStrokePipeline =
+            m_device.CreateRenderPipeline(&strokeDescriptor);
+
+        strokeDepthStencil.depthWriteEnabled = false;
+        wgpu::RenderPipelineDescriptor transparentStrokeDescriptor =
+            strokeDescriptor;
+        transparentStrokeDescriptor.depthStencil = &strokeDepthStencil;
+        m_transparentStrokePipeline =
+            m_device.CreateRenderPipeline(&transparentStrokeDescriptor);
     }
 
 } // namespace Bess::Wgpu::Piplines

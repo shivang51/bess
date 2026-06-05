@@ -559,6 +559,76 @@ namespace Bess::Wgpu {
             std::vector<PathDrawRange> m_drawRanges;
         };
 
+        struct PathStrokeDrawRange {
+            uint32_t firstVertex = 0;
+            uint32_t vertexCount = 0;
+            float zIndex = 0.f;
+        };
+
+        class PathStrokeBatch {
+          public:
+            void clear() {
+                m_vertices.clear();
+                m_drawRanges.clear();
+            }
+
+            void push(std::vector<PathCoverVertex> &&vertices, float zIndex) {
+                if (vertices.empty()) {
+                    return;
+                }
+
+                PathStrokeDrawRange range{};
+                range.firstVertex = static_cast<uint32_t>(m_vertices.size());
+                range.vertexCount = static_cast<uint32_t>(vertices.size());
+                range.zIndex = zIndex;
+                m_vertices.insert(m_vertices.end(), vertices.begin(),
+                                  vertices.end());
+                m_drawRanges.push_back(range);
+            }
+
+            void prepareForRendering(bool sortBackToFront) {
+                if (!sortBackToFront || m_drawRanges.size() <= 1) {
+                    return;
+                }
+
+                std::stable_sort(m_drawRanges.begin(), m_drawRanges.end(),
+                                 [](const PathStrokeDrawRange &a,
+                                    const PathStrokeDrawRange &b) {
+                                     return a.zIndex < b.zIndex;
+                                 });
+            }
+
+            [[nodiscard]] bool empty() const noexcept {
+                return m_drawRanges.empty();
+            }
+
+            [[nodiscard]] uint32_t drawCount() const noexcept {
+                return static_cast<uint32_t>(m_drawRanges.size());
+            }
+
+            [[nodiscard]] uint32_t vertexCount() const noexcept {
+                return static_cast<uint32_t>(m_vertices.size());
+            }
+
+            [[nodiscard]] uint64_t byteSize() const noexcept {
+                return static_cast<uint64_t>(m_vertices.size()) *
+                       sizeof(PathCoverVertex);
+            }
+
+            [[nodiscard]] const PathCoverVertex *data() const noexcept {
+                return m_vertices.data();
+            }
+
+            [[nodiscard]] const PathStrokeDrawRange *
+            drawRanges() const noexcept {
+                return m_drawRanges.data();
+            }
+
+          private:
+            std::vector<PathCoverVertex> m_vertices;
+            std::vector<PathStrokeDrawRange> m_drawRanges;
+        };
+
         float signedArea2(const glm::vec2 &a, const glm::vec2 &b,
                           const glm::vec2 &c) {
             const glm::vec2 ab = b - a;
@@ -769,75 +839,210 @@ namespace Bess::Wgpu {
                 64);
         }
 
-        void appendStrokeLine(PrimitiveBatch &batch, const glm::vec2 &from,
-                              const glm::vec2 &to, const WgpuPathProps &props) {
-            if (glm::length(to - from) < 0.0001f) {
-                return;
+        glm::vec2 safeNormalize(const glm::vec2 &v) {
+            const float len = glm::length(v);
+            if (len < 0.0001f) {
+                return glm::vec2(1.f, 0.f);
             }
-
-            Core::Renderer::LineProps lineProps{};
-            lineProps.p0 = from;
-            lineProps.p1 = to;
-            lineProps.thickness = props.strokeSize;
-            lineProps.zIndex = props.zIndex;
-            lineProps.color = props.strokeColor;
-            lineProps.id = props.id;
-            lineProps.renderPass = props.renderPass;
-            makeLineInstanceInPlace(batch.push(0), lineProps);
+            return v / len;
         }
 
-        void bakePathStroke(const std::vector<PathCommand> &commands,
-                            const WgpuPathProps &props, PrimitiveBatch &batch) {
-            if (commands.empty() || !hasPathStroke(props)) {
+        glm::vec2 perpendicular(const glm::vec2 &v) {
+            return glm::vec2(-v.y, v.x);
+        }
+
+        void appendStrokeVertex(std::vector<PathCoverVertex> &vertices,
+                                const glm::vec2 &pos,
+                                const WgpuPathProps &props) {
+            auto &vertex = vertices.emplace_back();
+            setCoverVertex(vertex, pos, props.zIndex, props.strokeColor,
+                           props.id);
+        }
+
+        void appendStrokeTriangle(std::vector<PathCoverVertex> &vertices,
+                                  const glm::vec2 &a, const glm::vec2 &b,
+                                  const glm::vec2 &c,
+                                  const WgpuPathProps &props) {
+            if (nearlyDegenerateTriangle(a, b, c)) {
+                return;
+            }
+            appendStrokeVertex(vertices, a, props);
+            appendStrokeVertex(vertices, b, props);
+            appendStrokeVertex(vertices, c, props);
+        }
+
+        void appendRoundCap(std::vector<PathCoverVertex> &vertices,
+                            const glm::vec2 &center,
+                            const glm::vec2 &capDirection,
+                            const WgpuPathProps &props) {
+            constexpr float pi = 3.14159265358979323846f;
+            const float halfWidth = props.strokeSize * 0.5f;
+            const glm::vec2 dir = safeNormalize(capDirection);
+            const float centerAngle = std::atan2(dir.y, dir.x);
+            const int segments = std::clamp(
+                static_cast<int>(std::ceil(pi * halfWidth / 4.f)), 8, 32);
+
+            glm::vec2 prev =
+                center + glm::vec2(std::cos(centerAngle - (pi * 0.5f)),
+                                   std::sin(centerAngle - (pi * 0.5f))) *
+                             halfWidth;
+            for (int i = 1; i <= segments; ++i) {
+                const float t =
+                    static_cast<float>(i) / static_cast<float>(segments);
+                const float angle = centerAngle - (pi * 0.5f) + (pi * t);
+                glm::vec2 next =
+                    center +
+                    glm::vec2(std::cos(angle), std::sin(angle)) * halfWidth;
+                appendStrokeTriangle(vertices, center, prev, next, props);
+                prev = next;
+            }
+        }
+
+        void appendStrokeContour(std::vector<PathCoverVertex> &vertices,
+                                 std::vector<glm::vec2> points, bool closed,
+                                 const WgpuPathProps &props) {
+            constexpr float epsilon = 0.0001f;
+            if (points.size() < 2) {
                 return;
             }
 
-            bool contourOpen = false;
-            glm::vec2 anchor(0.f);
+            std::vector<glm::vec2> compacted;
+            compacted.reserve(points.size());
+            for (const auto &point : points) {
+                if (compacted.empty() ||
+                    glm::distance(compacted.back(), point) > epsilon) {
+                    compacted.push_back(point);
+                }
+            }
+            points = std::move(compacted);
+            if (points.size() < 2) {
+                return;
+            }
+
+            if (closed &&
+                glm::distance(points.front(), points.back()) < epsilon) {
+                points.pop_back();
+            }
+            if (closed && points.size() < 3) {
+                closed = false;
+            }
+
+            const float halfWidth = props.strokeSize * 0.5f;
+            const size_t count = points.size();
+            std::vector<glm::vec2> left(count);
+            std::vector<glm::vec2> right(count);
+
+            auto pointAt = [&](ptrdiff_t index) -> const glm::vec2 & {
+                const auto wrapped = static_cast<size_t>(
+                    (index + static_cast<ptrdiff_t>(count)) %
+                    static_cast<ptrdiff_t>(count));
+                return points[wrapped];
+            };
+
+            for (size_t i = 0; i < count; ++i) {
+                glm::vec2 offset;
+                if (!closed && i == 0) {
+                    const glm::vec2 dir = safeNormalize(points[1] - points[0]);
+                    offset = perpendicular(dir) * halfWidth;
+                } else if (!closed && i + 1 == count) {
+                    const glm::vec2 dir =
+                        safeNormalize(points[i] - points[i - 1]);
+                    offset = perpendicular(dir) * halfWidth;
+                } else {
+                    const glm::vec2 prev =
+                        pointAt(static_cast<ptrdiff_t>(i) - 1);
+                    const glm::vec2 curr = points[i];
+                    const glm::vec2 next =
+                        pointAt(static_cast<ptrdiff_t>(i) + 1);
+                    const glm::vec2 inDir = safeNormalize(curr - prev);
+                    const glm::vec2 outDir = safeNormalize(next - curr);
+                    const glm::vec2 inNormal = perpendicular(inDir);
+                    const glm::vec2 outNormal = perpendicular(outDir);
+                    glm::vec2 miter = inNormal + outNormal;
+                    if (glm::length(miter) < epsilon) {
+                        offset = outNormal * halfWidth;
+                    } else {
+                        miter = safeNormalize(miter);
+                        const float denom = glm::dot(miter, outNormal);
+                        float scale = halfWidth;
+                        if (std::abs(denom) > 0.2f) {
+                            scale = halfWidth / denom;
+                        }
+                        const float miterLimit = halfWidth * 4.f;
+                        if (std::abs(scale) > miterLimit) {
+                            offset = outNormal * halfWidth;
+                        } else {
+                            offset = miter * scale;
+                        }
+                    }
+                }
+
+                left[i] = points[i] + offset;
+                right[i] = points[i] - offset;
+            }
+
+            const size_t segmentCount = closed ? count : count - 1;
+            for (size_t i = 0; i < segmentCount; ++i) {
+                const size_t next = (i + 1) % count;
+                appendStrokeTriangle(vertices, left[i], right[i], left[next],
+                                     props);
+                appendStrokeTriangle(vertices, left[next], right[i],
+                                     right[next], props);
+            }
+
+            if (!closed && count >= 2) {
+                appendRoundCap(vertices, points.front(),
+                               points.front() - points[1], props);
+                appendRoundCap(vertices, points.back(),
+                               points.back() - points[count - 2], props);
+            }
+        }
+
+        std::vector<PathCoverVertex>
+        bakePathStroke(const std::vector<PathCommand> &commands,
+                       const WgpuPathProps &props) {
+            std::vector<PathCoverVertex> vertices;
+            if (commands.empty() || !hasPathStroke(props)) {
+                return vertices;
+            }
+
+            std::vector<glm::vec2> contour;
             glm::vec2 current(0.f);
 
-            auto closeContour = [&]() {
-                if (!contourOpen || !props.closePath) {
-                    return;
-                }
-                appendStrokeLine(batch, current, anchor, props);
-                current = anchor;
+            auto flushContour = [&]() {
+                appendStrokeContour(vertices, std::move(contour),
+                                    props.closePath, props);
+                contour.clear();
             };
 
             for (const auto &cmd : commands) {
                 switch (cmd.kind) {
                 case PathCommandKind::Move:
-                    closeContour();
-                    anchor = cmd.p;
+                    flushContour();
+                    contour.push_back(cmd.p);
                     current = cmd.p;
-                    contourOpen = true;
                     break;
                 case PathCommandKind::Line:
-                    if (!contourOpen) {
-                        anchor = current;
-                        contourOpen = true;
+                    if (contour.empty()) {
+                        contour.push_back(current);
                     }
-                    appendStrokeLine(batch, current, cmd.p, props);
+                    contour.push_back(cmd.p);
                     current = cmd.p;
                     break;
                 case PathCommandKind::Quad:
-                    if (!contourOpen) {
-                        anchor = current;
-                        contourOpen = true;
+                    if (contour.empty()) {
+                        contour.push_back(current);
                     }
                     if (nearlyDegenerateTriangle(current, cmd.control, cmd.p)) {
-                        appendStrokeLine(batch, current, cmd.p, props);
+                        contour.push_back(cmd.p);
                     } else {
                         const int segments = quadraticStrokeSegmentCount(
                             current, cmd.control, cmd.p, props.strokeSize);
-                        glm::vec2 prev = current;
                         for (int i = 1; i <= segments; ++i) {
                             const float t = static_cast<float>(i) /
                                             static_cast<float>(segments);
-                            glm::vec2 next =
-                                evalQuadratic(current, cmd.control, cmd.p, t);
-                            appendStrokeLine(batch, prev, next, props);
-                            prev = next;
+                            contour.push_back(
+                                evalQuadratic(current, cmd.control, cmd.p, t));
                         }
                     }
                     current = cmd.p;
@@ -845,7 +1050,8 @@ namespace Bess::Wgpu {
                 }
             }
 
-            closeContour();
+            flushContour();
+            return vertices;
         }
 
         class TextureSource final : public Core::Renderer::ITexture {
@@ -897,8 +1103,8 @@ namespace Bess::Wgpu {
 
         PrimitiveBatch opaquePrimitiveBatch;
         PrimitiveBatch transparentPrimitiveBatch;
-        PrimitiveBatch opaquePathStrokeBatch;
-        PrimitiveBatch transparentPathStrokeBatch;
+        PathStrokeBatch opaquePathStrokeBatch;
+        PathStrokeBatch transparentPathStrokeBatch;
         PathBatch opaquePathBatch;
         PathBatch transparentPathBatch;
         std::vector<PathCommand> activePathCommands;
@@ -922,9 +1128,7 @@ namespace Bess::Wgpu {
         getTexture(Core::Renderer::TextureHandle texture) const;
         [[nodiscard]] uint32_t primitiveStatsCount() const noexcept {
             return opaquePrimitiveBatch.count() +
-                   transparentPrimitiveBatch.count() +
-                   opaquePathStrokeBatch.count() +
-                   transparentPathStrokeBatch.count();
+                   transparentPrimitiveBatch.count();
         }
     };
 
@@ -1096,12 +1300,6 @@ namespace Bess::Wgpu {
             createInfo.batching.initialQuadCapacity,
             createInfo.batching.maxQuadCapacity);
         m_impl->transparentPrimitiveBatch.configure(
-            createInfo.batching.initialQuadCapacity,
-            createInfo.batching.maxQuadCapacity);
-        m_impl->opaquePathStrokeBatch.configure(
-            createInfo.batching.initialQuadCapacity,
-            createInfo.batching.maxQuadCapacity);
-        m_impl->transparentPathStrokeBatch.configure(
             createInfo.batching.initialQuadCapacity,
             createInfo.batching.maxQuadCapacity);
         m_impl->createDevice();
@@ -1326,17 +1524,11 @@ namespace Bess::Wgpu {
         m_impl->transparentPathBatch.prepareForRendering(true);
 
         const uint32_t opaqueInstanceOffset = 0;
-        const uint32_t opaquePathStrokeInstanceOffset =
-            m_impl->opaquePrimitiveBatch.count();
         const uint32_t transparentInstanceOffset =
-            opaquePathStrokeInstanceOffset +
-            m_impl->opaquePathStrokeBatch.count();
-        const uint32_t transparentPathStrokeInstanceOffset =
+            m_impl->opaquePrimitiveBatch.count();
+        const uint32_t totalInstanceCount =
             transparentInstanceOffset +
             m_impl->transparentPrimitiveBatch.count();
-        const uint32_t totalInstanceCount =
-            transparentPathStrokeInstanceOffset +
-            m_impl->transparentPathStrokeBatch.count();
 
         const uint32_t opaqueStencilVertexOffset = 0;
         const uint32_t transparentStencilVertexOffset =
@@ -1351,6 +1543,13 @@ namespace Bess::Wgpu {
         const uint32_t totalCoverVertexCount =
             transparentCoverVertexOffset +
             m_impl->transparentPathBatch.coverVertexCount();
+
+        const uint32_t opaqueStrokeVertexOffset = 0;
+        const uint32_t transparentStrokeVertexOffset =
+            m_impl->opaquePathStrokeBatch.vertexCount();
+        const uint32_t totalStrokeVertexCount =
+            transparentStrokeVertexOffset +
+            m_impl->transparentPathStrokeBatch.vertexCount();
 
         if (totalInstanceCount > 0 &&
             m_impl->primitivePipeline->ensureInstanceBufferSize(
@@ -1367,16 +1566,6 @@ namespace Bess::Wgpu {
                 m_impl->opaquePrimitiveBatch.byteSize();
         }
 
-        if (!m_impl->opaquePathStrokeBatch.empty()) {
-            m_impl->primitivePipeline->uploadInstances(
-                m_impl->queue, m_impl->opaquePathStrokeBatch.data(),
-                m_impl->opaquePathStrokeBatch.byteSize(),
-                opaquePathStrokeInstanceOffset *
-                    sizeof(Piplines::PrimitiveInstance));
-            m_impl->stats.uploadedBytes +=
-                m_impl->opaquePathStrokeBatch.byteSize();
-        }
-
         if (!m_impl->transparentPrimitiveBatch.empty()) {
             m_impl->primitivePipeline->uploadInstances(
                 m_impl->queue, m_impl->transparentPrimitiveBatch.data(),
@@ -1385,16 +1574,6 @@ namespace Bess::Wgpu {
                     sizeof(Piplines::PrimitiveInstance));
             m_impl->stats.uploadedBytes +=
                 m_impl->transparentPrimitiveBatch.byteSize();
-        }
-
-        if (!m_impl->transparentPathStrokeBatch.empty()) {
-            m_impl->primitivePipeline->uploadInstances(
-                m_impl->queue, m_impl->transparentPathStrokeBatch.data(),
-                m_impl->transparentPathStrokeBatch.byteSize(),
-                transparentPathStrokeInstanceOffset *
-                    sizeof(Piplines::PrimitiveInstance));
-            m_impl->stats.uploadedBytes +=
-                m_impl->transparentPathStrokeBatch.byteSize();
         }
 
         m_impl->stats.quadCount = totalInstanceCount;
@@ -1408,6 +1587,12 @@ namespace Bess::Wgpu {
         if (totalCoverVertexCount > 0) {
             static_cast<void>(m_impl->pathPipeline->ensureCoverVertexBufferSize(
                 totalCoverVertexCount));
+        }
+
+        if (totalStrokeVertexCount > 0) {
+            static_cast<void>(
+                m_impl->pathPipeline->ensureStrokeVertexBufferSize(
+                    totalStrokeVertexCount));
         }
 
         if (!m_impl->opaquePathBatch.empty()) {
@@ -1436,6 +1621,24 @@ namespace Bess::Wgpu {
             m_impl->stats.uploadedBytes +=
                 m_impl->transparentPathBatch.stencilByteSize() +
                 m_impl->transparentPathBatch.coverByteSize();
+        }
+
+        if (!m_impl->opaquePathStrokeBatch.empty()) {
+            m_impl->pathPipeline->uploadStrokeVertices(
+                m_impl->queue, m_impl->opaquePathStrokeBatch.data(),
+                m_impl->opaquePathStrokeBatch.byteSize(),
+                opaqueStrokeVertexOffset * sizeof(PathCoverVertex));
+            m_impl->stats.uploadedBytes +=
+                m_impl->opaquePathStrokeBatch.byteSize();
+        }
+
+        if (!m_impl->transparentPathStrokeBatch.empty()) {
+            m_impl->pathPipeline->uploadStrokeVertices(
+                m_impl->queue, m_impl->transparentPathStrokeBatch.data(),
+                m_impl->transparentPathStrokeBatch.byteSize(),
+                transparentStrokeVertexOffset * sizeof(PathCoverVertex));
+            m_impl->stats.uploadedBytes +=
+                m_impl->transparentPathStrokeBatch.byteSize();
         }
 
         m_impl->sharedFrameBuffer.update(m_impl->queue, m_impl->extent.width,
@@ -1486,22 +1689,38 @@ namespace Bess::Wgpu {
             }
         };
 
+        auto renderPathStrokeBatch = [&](const PathStrokeBatch &batch,
+                                         uint32_t vertexOffset,
+                                         bool transparent) {
+            if (batch.empty()) {
+                return;
+            }
+
+            const PathStrokeDrawRange *ranges = batch.drawRanges();
+            const uint32_t rangeCount = batch.drawCount();
+            for (uint32_t i = 0; i < rangeCount; ++i) {
+                const auto &range = ranges[i];
+                m_impl->pathPipeline->drawStroke(
+                    renderPass, vertexOffset + range.firstVertex,
+                    range.vertexCount, transparent);
+                m_impl->stats.drawCallCount++;
+            }
+        };
+
         renderBatch(m_impl->opaquePrimitiveBatch, opaqueInstanceOffset,
                     m_impl->primitivePipeline->getOpaquePipeline());
         renderPathBatch(m_impl->opaquePathBatch, opaqueStencilVertexOffset,
                         opaqueCoverVertexOffset, false);
-        renderBatch(m_impl->opaquePathStrokeBatch,
-                    opaquePathStrokeInstanceOffset,
-                    m_impl->primitivePipeline->getOpaquePipeline());
+        renderPathStrokeBatch(m_impl->opaquePathStrokeBatch,
+                              opaqueStrokeVertexOffset, false);
         renderBatch(m_impl->transparentPrimitiveBatch,
                     transparentInstanceOffset,
                     m_impl->primitivePipeline->getTransparentPipeline());
         renderPathBatch(m_impl->transparentPathBatch,
                         transparentStencilVertexOffset,
                         transparentCoverVertexOffset, true);
-        renderBatch(m_impl->transparentPathStrokeBatch,
-                    transparentPathStrokeInstanceOffset,
-                    m_impl->primitivePipeline->getTransparentPipeline());
+        renderPathStrokeBatch(m_impl->transparentPathStrokeBatch,
+                              transparentStrokeVertexOffset, true);
 
         renderPass.End();
         wgpu::CommandBuffer commandBuffer = m_impl->commandEncoder.Finish();
@@ -1790,13 +2009,13 @@ namespace Bess::Wgpu {
         }
 
         if (hasPathStroke(m_impl->activePathProps)) {
-            PrimitiveBatch &strokeBatch =
+            PathStrokeBatch &strokeBatch =
                 isStrokeTransparent(m_impl->activePathProps)
                     ? m_impl->transparentPathStrokeBatch
                     : m_impl->opaquePathStrokeBatch;
-            bakePathStroke(m_impl->activePathCommands, m_impl->activePathProps,
-                           strokeBatch);
-            m_impl->stats.quadCount = m_impl->primitiveStatsCount();
+            strokeBatch.push(bakePathStroke(m_impl->activePathCommands,
+                                            m_impl->activePathProps),
+                             m_impl->activePathProps.zIndex);
         }
 
         m_impl->activePathCommands.clear();
