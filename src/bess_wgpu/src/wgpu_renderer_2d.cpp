@@ -2,6 +2,7 @@
 #include "bess_core/renderer/font.h"
 #include "bess_wgpu/piplines/path_pipeline.h"
 #include "bess_wgpu/piplines/primitive_pipeline.h"
+#include "bess_wgpu/wgpu_shader.h"
 #include "bess_wgpu/wgpu_texture.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
@@ -226,6 +227,12 @@ namespace Bess::Wgpu {
             uint32_t instanceCount = 0;
         };
 
+        struct CustomQuadDrawRun {
+            CustomQuadShaderHandle shader = 0;
+            uint32_t firstInstance = 0;
+            uint32_t instanceCount = 0;
+        };
+
         wgpu::TextureFormat toWgpuFormat(Renderer2DTargetFormat format) {
             switch (format) {
             case Renderer2DTargetFormat::RGBA8Unorm:
@@ -362,6 +369,57 @@ namespace Bess::Wgpu {
                 instance.borderColor[2] = 0.f;
                 instance.borderColor[3] = 0.f;
             }
+        }
+
+        struct CustomQuadInstance {
+            float position[3] = {0.f, 0.f, 0.f};
+            float rotation = 0.f;
+            float size[2] = {1.f, 1.f};
+            float padding0[2] = {0.f, 0.f};
+            float color[4] = {1.f, 1.f, 1.f, 1.f};
+            float uvRect[4] = {0.f, 0.f, 1.f, 1.f};
+            float data0[4] = {0.f, 0.f, 0.f, 0.f};
+            float data1[4] = {0.f, 0.f, 0.f, 0.f};
+            float data2[4] = {0.f, 0.f, 0.f, 0.f};
+            float data3[4] = {0.f, 0.f, 0.f, 0.f};
+            uint32_t id[2] = {0, 0};
+            uint32_t padding1[2] = {0, 0};
+        };
+
+        void copyVec4(float *dst, const glm::vec4 &src) {
+            dst[0] = src.x;
+            dst[1] = src.y;
+            dst[2] = src.z;
+            dst[3] = src.w;
+        }
+
+        void makeCustomQuadInstanceInPlace(CustomQuadInstance &instance,
+                                           const CustomQuadProps &props) {
+            const auto &quad = props.quad;
+            instance.position[0] = quad.position.x;
+            instance.position[1] = quad.position.y;
+            instance.position[2] = quad.zIndex;
+            instance.rotation = quad.rotation;
+            instance.size[0] = quad.size.x;
+            instance.size[1] = quad.size.y;
+            instance.padding0[0] = 0.f;
+            instance.padding0[1] = 0.f;
+            instance.color[0] = quad.color.r;
+            instance.color[1] = quad.color.g;
+            instance.color[2] = quad.color.b;
+            instance.color[3] = quad.color.a;
+            instance.uvRect[0] = quad.uvRect.x;
+            instance.uvRect[1] = quad.uvRect.y;
+            instance.uvRect[2] = quad.uvRect.z;
+            instance.uvRect[3] = quad.uvRect.w;
+            copyVec4(instance.data0, props.data[0]);
+            copyVec4(instance.data1, props.data[1]);
+            copyVec4(instance.data2, props.data[2]);
+            copyVec4(instance.data3, props.data[3]);
+            instance.id[0] = quad.id.runtimeId;
+            instance.id[1] = quad.id.info;
+            instance.padding1[0] = 0;
+            instance.padding1[1] = 0;
         }
 
         void
@@ -581,6 +639,589 @@ namespace Bess::Wgpu {
             uint32_t m_instanceCount = 0;
             uint32_t m_drawRunsCount = 0;
             uint32_t m_maxCapacity = 1;
+        };
+
+        class CustomQuadBatch {
+          public:
+            void configure(uint32_t initialCapacity, uint32_t maxCapacity) {
+                m_maxCapacity = std::max(1u, maxCapacity);
+                m_gpuInstances.resize(m_maxCapacity);
+                m_drawRuns.resize(m_maxCapacity);
+                m_gpuInstancesPtr = m_gpuInstances.data();
+                m_drawRunsPtr = m_drawRuns.data();
+                m_instanceCount = 0;
+                m_drawRunsCount = 0;
+            }
+
+            void clear() {
+                m_instanceCount = 0;
+                m_drawRunsCount = 0;
+            }
+
+            CustomQuadInstance &push(CustomQuadShaderHandle shader) {
+                if (shader == 0) {
+                    throw std::runtime_error(
+                        "Custom quad shader handle must be non-zero");
+                }
+                if (m_instanceCount >= m_maxCapacity) {
+                    throw std::runtime_error(
+                        "WGPU custom quad batch capacity exceeded");
+                }
+
+                const uint32_t instanceIndex = m_instanceCount;
+                if (m_drawRunsCount == 0 ||
+                    m_drawRunsPtr[m_drawRunsCount - 1].shader != shader) {
+                    m_drawRunsPtr[m_drawRunsCount++] = {.shader = shader,
+                                                        .firstInstance =
+                                                            instanceIndex,
+                                                        .instanceCount = 1};
+                } else {
+                    m_drawRunsPtr[m_drawRunsCount - 1].instanceCount++;
+                }
+                return m_gpuInstancesPtr[m_instanceCount++];
+            }
+
+            void prepareForRendering(bool sortBackToFront) {
+                if (sortBackToFront && m_instanceCount > 1) {
+                    std::vector<uint32_t> indices(m_instanceCount);
+                    uint32_t *indicesPtr = indices.data();
+                    for (uint32_t i = 0; i < m_instanceCount; ++i) {
+                        indicesPtr[i] = i;
+                    }
+
+                    std::stable_sort(
+                        indices.begin(), indices.end(),
+                        [this](uint32_t a, uint32_t b) {
+                            if (m_gpuInstancesPtr[a].position[2] !=
+                                m_gpuInstancesPtr[b].position[2]) {
+                                return m_gpuInstancesPtr[a].position[2] <
+                                       m_gpuInstancesPtr[b].position[2];
+                            }
+                            return a < b;
+                        });
+
+                    std::vector<CustomQuadShaderHandle> shaders(
+                        m_instanceCount);
+                    CustomQuadShaderHandle *shaderPtr = shaders.data();
+                    for (uint32_t r = 0; r < m_drawRunsCount; ++r) {
+                        const auto &run = m_drawRunsPtr[r];
+                        for (uint32_t i = 0; i < run.instanceCount; ++i) {
+                            shaderPtr[run.firstInstance + i] = run.shader;
+                        }
+                    }
+
+                    std::vector<CustomQuadInstance> sortedInstances(
+                        m_instanceCount);
+                    CustomQuadInstance *sortedPtr = sortedInstances.data();
+                    m_drawRunsCount = 0;
+
+                    for (uint32_t i = 0; i < m_instanceCount; ++i) {
+                        uint32_t oldIdx = indicesPtr[i];
+                        sortedPtr[i] = m_gpuInstancesPtr[oldIdx];
+                        CustomQuadShaderHandle shader = shaderPtr[oldIdx];
+
+                        if (m_drawRunsCount == 0 ||
+                            m_drawRunsPtr[m_drawRunsCount - 1].shader !=
+                                shader) {
+                            m_drawRunsPtr[m_drawRunsCount++] = {
+                                .shader = shader,
+                                .firstInstance = i,
+                                .instanceCount = 1};
+                        } else {
+                            m_drawRunsPtr[m_drawRunsCount - 1].instanceCount++;
+                        }
+                    }
+                    for (uint32_t i = 0; i < m_instanceCount; ++i) {
+                        m_gpuInstancesPtr[i] = sortedPtr[i];
+                    }
+                }
+            }
+
+            [[nodiscard]] bool empty() const noexcept {
+                return m_instanceCount == 0;
+            }
+
+            [[nodiscard]] uint32_t count() const noexcept {
+                return m_instanceCount;
+            }
+
+            [[nodiscard]] uint64_t byteSize() const noexcept {
+                return static_cast<uint64_t>(m_instanceCount) *
+                       sizeof(CustomQuadInstance);
+            }
+
+            [[nodiscard]] const CustomQuadInstance *data() const noexcept {
+                return m_gpuInstancesPtr;
+            }
+
+            [[nodiscard]] const CustomQuadDrawRun *
+            drawRunsData() const noexcept {
+                return m_drawRunsPtr;
+            }
+
+            [[nodiscard]] uint32_t drawRunsCount() const noexcept {
+                return m_drawRunsCount;
+            }
+
+          private:
+            std::vector<CustomQuadInstance> m_gpuInstances;
+            std::vector<CustomQuadDrawRun> m_drawRuns;
+            CustomQuadInstance *m_gpuInstancesPtr = nullptr;
+            CustomQuadDrawRun *m_drawRunsPtr = nullptr;
+            uint32_t m_instanceCount = 0;
+            uint32_t m_drawRunsCount = 0;
+            uint32_t m_maxCapacity = 1;
+        };
+
+        bool isWGSLIdentifier(std::string_view value) {
+            if (value.empty()) {
+                return false;
+            }
+
+            const auto isAlphaOrUnderscore = [](char c) {
+                return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                       c == '_';
+            };
+            const auto isAlphaNumericOrUnderscore =
+                [&](char c) { return isAlphaOrUnderscore(c) ||
+                                     (c >= '0' && c <= '9'); };
+
+            if (!isAlphaOrUnderscore(value.front())) {
+                return false;
+            }
+            return std::all_of(value.begin() + 1, value.end(),
+                               isAlphaNumericOrUnderscore);
+        }
+
+        std::string buildCustomQuadShaderSource(
+            const CustomQuadShaderDesc &desc) {
+            if (desc.fragmentSource.empty()) {
+                throw std::runtime_error(
+                    "Custom quad shader fragment source is empty");
+            }
+            if (!isWGSLIdentifier(desc.fragmentEntryPoint)) {
+                throw std::runtime_error(
+                    "Custom quad shader fragment entry point is not a valid "
+                    "WGSL identifier");
+            }
+
+            constexpr const char *kCustomQuadShaderPrelude = R"(
+struct Frame {
+    viewport: vec2f,
+    padding: vec2f,
+    camera_transform: mat4x4f,
+};
+
+struct CustomQuad {
+    position: vec3f,
+    rotation: f32,
+    size: vec2f,
+    padding0: vec2f,
+    color: vec4f,
+    uv_rect: vec4f,
+    data0: vec4f,
+    data1: vec4f,
+    data2: vec4f,
+    data3: vec4f,
+    id: vec2u,
+    padding1: vec2u,
+};
+
+struct VertexOut {
+    @builtin(position) position: vec4f,
+    @location(0) uv: vec2f,
+    @location(1) local_uv: vec2f,
+    @location(2) local_pos: vec2f,
+    @location(3) size: vec2f,
+    @location(4) color: vec4f,
+    @location(5) data0: vec4f,
+    @location(6) data1: vec4f,
+    @location(7) data2: vec4f,
+    @location(8) data3: vec4f,
+    @location(9) @interpolate(flat) id: vec2u,
+};
+
+struct CustomQuadFragmentInput {
+    frag_coord: vec4f,
+    uv: vec2f,
+    local_uv: vec2f,
+    local_pos: vec2f,
+    size: vec2f,
+    color: vec4f,
+    data0: vec4f,
+    data1: vec4f,
+    data2: vec4f,
+    data3: vec4f,
+};
+
+struct FragmentOut {
+    @location(0) color: vec4f,
+};
+
+struct FragmentOutPicking {
+    @location(0) color: vec4f,
+    @location(1) id: vec2u,
+};
+
+@group(0) @binding(0) var<storage, read> custom_quads: array<CustomQuad>;
+@group(0) @binding(1) var<uniform> frame: Frame;
+
+fn custom_quad_resolution() -> vec3f {
+    return vec3f(frame.viewport, 1.0);
+}
+
+@vertex
+fn vs_main(@builtin(vertex_index) vertex_index: u32,
+           @builtin(instance_index) instance_index: u32) -> VertexOut {
+    let corners = array<vec2f, 6>(
+        vec2f(0.0, 0.0), vec2f(1.0, 0.0), vec2f(0.0, 1.0),
+        vec2f(0.0, 1.0), vec2f(1.0, 0.0), vec2f(1.0, 1.0));
+    let local = corners[vertex_index];
+    let q = custom_quads[instance_index];
+    let local_coord = local - vec2f(0.5, 0.5);
+    let centered = local_coord * q.size;
+
+    let s = sin(q.rotation);
+    let c = cos(q.rotation);
+    let rotated = vec2f(
+        centered.x * c - centered.y * s,
+        centered.x * s + centered.y * c);
+    let world = q.position.xy + rotated;
+
+    var out: VertexOut;
+    out.position = frame.camera_transform * vec4f(world, q.position.z, 1.0);
+    out.uv = q.uv_rect.xy + local * (q.uv_rect.zw - q.uv_rect.xy);
+    out.local_uv = local;
+    out.local_pos = centered;
+    out.size = q.size;
+    out.color = q.color;
+    out.data0 = q.data0;
+    out.data1 = q.data1;
+    out.data2 = q.data2;
+    out.data3 = q.data3;
+    out.id = q.id;
+    return out;
+}
+
+fn make_custom_quad_fragment_input(in: VertexOut) -> CustomQuadFragmentInput {
+    var out: CustomQuadFragmentInput;
+    out.frag_coord = in.position;
+    out.uv = in.uv;
+    out.local_uv = in.local_uv;
+    out.local_pos = in.local_pos;
+    out.size = in.size;
+    out.color = in.color;
+    out.data0 = in.data0;
+    out.data1 = in.data1;
+    out.data2 = in.data2;
+    out.data3 = in.data3;
+    return out;
+}
+)";
+
+            std::string source = kCustomQuadShaderPrelude;
+            source += "\n";
+            source += desc.fragmentSource;
+            source += R"(
+
+@fragment
+fn fs_main(in: VertexOut) -> FragmentOut {
+    var out: FragmentOut;
+    out.color = )";
+            source += desc.fragmentEntryPoint;
+            source += R"((make_custom_quad_fragment_input(in));
+    return out;
+}
+
+@fragment
+fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
+    var out: FragmentOutPicking;
+    out.color = )";
+            source += desc.fragmentEntryPoint;
+            source += R"((make_custom_quad_fragment_input(in));
+    out.id = in.id;
+    return out;
+}
+)";
+            return source;
+        }
+
+        class CustomQuadPipeline {
+          public:
+            void init(const wgpu::Device &device,
+                      wgpu::TextureFormat targetFormat,
+                      const wgpu::Buffer &frameBuffer,
+                      uint64_t frameBufferSize,
+                      wgpu::TextureFormat pickingFormat) {
+                m_device = device;
+                m_targetFormat = targetFormat;
+                m_pickingFormat = pickingFormat;
+                m_frameBuffer = frameBuffer;
+                m_frameBufferSize = frameBufferSize;
+                createBindGroupLayout();
+                createPipelineLayout();
+            }
+
+            void destroy() {
+                m_shaders.clear();
+                m_bindGroup = nullptr;
+                m_instanceBuffer = nullptr;
+                m_instanceBufferSize = 0;
+                m_pipelineLayout = nullptr;
+                m_bindGroupLayout = nullptr;
+                m_frameBuffer = nullptr;
+                m_frameBufferSize = 0;
+                m_device = nullptr;
+                m_nextShaderHandle = 1;
+            }
+
+            [[nodiscard]] bool
+            ensureInstanceBufferSize(std::size_t quadCount) {
+                const auto requiredSize = std::max<std::size_t>(
+                    sizeof(CustomQuadInstance),
+                    quadCount * sizeof(CustomQuadInstance));
+                if (m_instanceBuffer != nullptr &&
+                    m_instanceBufferSize >= requiredSize) {
+                    return false;
+                }
+
+                wgpu::BufferDescriptor descriptor{};
+                descriptor.size = requiredSize;
+                descriptor.usage =
+                    wgpu::BufferUsage::Storage | wgpu::BufferUsage::CopyDst;
+                m_instanceBuffer = m_device.CreateBuffer(&descriptor);
+                m_instanceBufferSize = requiredSize;
+                createBindGroup();
+                return true;
+            }
+
+            void uploadInstances(const wgpu::Queue &queue,
+                                 const CustomQuadInstance *instances,
+                                 uint64_t byteSize,
+                                 uint64_t bufferOffset = 0) const {
+                if (m_instanceBuffer == nullptr || instances == nullptr ||
+                    byteSize == 0) {
+                    return;
+                }
+                queue.WriteBuffer(m_instanceBuffer, bufferOffset, instances,
+                                  byteSize);
+            }
+
+            [[nodiscard]] CustomQuadShaderHandle
+            createShader(const CustomQuadShaderDesc &desc) {
+                if (m_device == nullptr) {
+                    throw std::runtime_error(
+                        "Custom quad shaders require an initialized WGPU "
+                        "device");
+                }
+
+                const CustomQuadShaderHandle handle = m_nextShaderHandle++;
+                if (m_nextShaderHandle == 0) {
+                    m_nextShaderHandle = 1;
+                }
+
+                ShaderResource resource;
+                resource.label =
+                    desc.label.empty()
+                        ? "custom_quad_shader_" + std::to_string(handle)
+                        : desc.label;
+
+                const std::string source = buildCustomQuadShaderSource(desc);
+                using Core::Renderer::ShaderLanguage;
+                using Core::Renderer::ShaderModuleDesc;
+                using Core::Renderer::ShaderStage;
+                resource.shader = std::make_unique<WgpuShader>(
+                    resource.label,
+                    std::vector<ShaderModuleDesc>{
+                        {.language = ShaderLanguage::WGSL,
+                         .stage = ShaderStage::Vertex,
+                         .entryPoint = "vs_main",
+                         .source = source},
+                        {.language = ShaderLanguage::WGSL,
+                         .stage = ShaderStage::Fragment,
+                         .entryPoint = "fs_main",
+                         .source = source},
+                    },
+                    m_device);
+                createPipelineState(resource);
+                m_shaders.emplace(handle, std::move(resource));
+                return handle;
+            }
+
+            void destroyShader(CustomQuadShaderHandle shader) {
+                m_shaders.erase(shader);
+            }
+
+            [[nodiscard]] bool hasShader(CustomQuadShaderHandle shader) const {
+                return shader != 0 && m_shaders.find(shader) != m_shaders.end();
+            }
+
+            void draw(wgpu::RenderPassEncoder &renderPass,
+                      CustomQuadShaderHandle shader, uint32_t firstInstance,
+                      uint32_t instanceCount, bool transparent) const {
+                if (instanceCount == 0) {
+                    return;
+                }
+
+                const auto it = m_shaders.find(shader);
+                if (it == m_shaders.end()) {
+                    throw std::runtime_error(
+                        "Custom quad shader handle is not registered");
+                }
+                if (m_bindGroup == nullptr) {
+                    throw std::runtime_error(
+                        "Custom quad pipeline has no bind group");
+                }
+
+                renderPass.SetPipeline(transparent
+                                           ? it->second.transparentPipeline
+                                           : it->second.opaquePipeline);
+                renderPass.SetBindGroup(0, m_bindGroup);
+                renderPass.Draw(6, instanceCount, 0, firstInstance);
+            }
+
+          private:
+            struct ShaderResource {
+                std::string label;
+                std::unique_ptr<WgpuShader> shader;
+                wgpu::RenderPipeline opaquePipeline;
+                wgpu::RenderPipeline transparentPipeline;
+            };
+
+            void createBindGroupLayout() {
+                std::array<wgpu::BindGroupLayoutEntry, 2> bindings{};
+                bindings[0].binding = 0;
+                bindings[0].visibility = wgpu::ShaderStage::Vertex;
+                bindings[0].buffer.type =
+                    wgpu::BufferBindingType::ReadOnlyStorage;
+
+                bindings[1].binding = 1;
+                bindings[1].visibility = wgpu::ShaderStage::Vertex |
+                                         wgpu::ShaderStage::Fragment;
+                bindings[1].buffer.type = wgpu::BufferBindingType::Uniform;
+
+                wgpu::BindGroupLayoutDescriptor descriptor{};
+                descriptor.entryCount = bindings.size();
+                descriptor.entries = bindings.data();
+                m_bindGroupLayout = m_device.CreateBindGroupLayout(&descriptor);
+            }
+
+            void createPipelineLayout() {
+                wgpu::PipelineLayoutDescriptor descriptor{};
+                descriptor.bindGroupLayoutCount = 1;
+                descriptor.bindGroupLayouts = &m_bindGroupLayout;
+                m_pipelineLayout = m_device.CreatePipelineLayout(&descriptor);
+            }
+
+            void createBindGroup() {
+                if (m_instanceBuffer == nullptr || m_frameBuffer == nullptr ||
+                    m_bindGroupLayout == nullptr) {
+                    m_bindGroup = nullptr;
+                    return;
+                }
+
+                std::array<wgpu::BindGroupEntry, 2> entries{};
+                entries[0].binding = 0;
+                entries[0].buffer = m_instanceBuffer;
+                entries[0].offset = 0;
+                entries[0].size = m_instanceBufferSize;
+
+                entries[1].binding = 1;
+                entries[1].buffer = m_frameBuffer;
+                entries[1].offset = 0;
+                entries[1].size = m_frameBufferSize;
+
+                wgpu::BindGroupDescriptor descriptor{};
+                descriptor.layout = m_bindGroupLayout;
+                descriptor.entryCount = entries.size();
+                descriptor.entries = entries.data();
+                m_bindGroup = m_device.CreateBindGroup(&descriptor);
+            }
+
+            void createPipelineState(ShaderResource &resource) {
+                wgpu::ColorTargetState colorTargets[2]{};
+                uint32_t targetCount = 1;
+
+                colorTargets[0].format = m_targetFormat;
+
+                wgpu::BlendState blendState{};
+                blendState.color.operation = wgpu::BlendOperation::Add;
+                blendState.color.srcFactor = wgpu::BlendFactor::SrcAlpha;
+                blendState.color.dstFactor =
+                    wgpu::BlendFactor::OneMinusSrcAlpha;
+                blendState.alpha.operation = wgpu::BlendOperation::Add;
+                blendState.alpha.srcFactor = wgpu::BlendFactor::One;
+                blendState.alpha.dstFactor =
+                    wgpu::BlendFactor::OneMinusSrcAlpha;
+                colorTargets[0].blend = &blendState;
+
+                if (m_pickingFormat != wgpu::TextureFormat::Undefined) {
+                    colorTargets[1].format = m_pickingFormat;
+                    targetCount = 2;
+                }
+
+                wgpu::FragmentState fragment{};
+                fragment.module =
+                    resource.shader->getModule(
+                        Core::Renderer::ShaderStage::Fragment);
+                fragment.entryPoint =
+                    m_pickingFormat != wgpu::TextureFormat::Undefined
+                        ? "fs_main_picking"
+                        : "fs_main";
+                fragment.targetCount = targetCount;
+                fragment.targets = colorTargets;
+
+                wgpu::DepthStencilState depthStencil{};
+                depthStencil.format = kDepthStencilFormat;
+                depthStencil.depthCompare = wgpu::CompareFunction::LessEqual;
+                depthStencil.depthWriteEnabled = true;
+
+                wgpu::RenderPipelineDescriptor opaqueDescriptor{};
+                opaqueDescriptor.layout = m_pipelineLayout;
+                opaqueDescriptor.vertex.module =
+                    resource.shader->getModule(
+                        Core::Renderer::ShaderStage::Vertex);
+                opaqueDescriptor.vertex.entryPoint = "vs_main";
+                opaqueDescriptor.primitive.topology =
+                    wgpu::PrimitiveTopology::TriangleList;
+                opaqueDescriptor.primitive.cullMode = wgpu::CullMode::None;
+                opaqueDescriptor.fragment = &fragment;
+                opaqueDescriptor.depthStencil = &depthStencil;
+
+                resource.opaquePipeline =
+                    m_device.CreateRenderPipeline(&opaqueDescriptor);
+                if (resource.opaquePipeline == nullptr) {
+                    throw std::runtime_error(
+                        "Failed to create custom quad opaque pipeline");
+                }
+
+                depthStencil.depthWriteEnabled = false;
+                wgpu::RenderPipelineDescriptor transparentDescriptor =
+                    opaqueDescriptor;
+                transparentDescriptor.depthStencil = &depthStencil;
+                resource.transparentPipeline =
+                    m_device.CreateRenderPipeline(&transparentDescriptor);
+                if (resource.transparentPipeline == nullptr) {
+                    throw std::runtime_error(
+                        "Failed to create custom quad transparent pipeline");
+                }
+            }
+
+            wgpu::Device m_device;
+            wgpu::TextureFormat m_targetFormat =
+                wgpu::TextureFormat::BGRA8Unorm;
+            wgpu::TextureFormat m_pickingFormat =
+                wgpu::TextureFormat::Undefined;
+            wgpu::Buffer m_frameBuffer;
+            uint64_t m_frameBufferSize = 0;
+            wgpu::Buffer m_instanceBuffer;
+            uint64_t m_instanceBufferSize = 0;
+            wgpu::BindGroupLayout m_bindGroupLayout;
+            wgpu::PipelineLayout m_pipelineLayout;
+            wgpu::BindGroup m_bindGroup;
+            std::unordered_map<CustomQuadShaderHandle, ShaderResource>
+                m_shaders;
+            CustomQuadShaderHandle m_nextShaderHandle = 1;
         };
 
         struct PathDrawRange {
@@ -2134,6 +2775,7 @@ namespace Bess::Wgpu {
         Piplines::SharedFrameBuffer sharedFrameBuffer;
         std::unique_ptr<Piplines::PrimitivePipeline> primitivePipeline;
         std::unique_ptr<Piplines::PathPipeline> pathPipeline;
+        std::unique_ptr<CustomQuadPipeline> customQuadPipeline;
         wgpu::CommandEncoder commandEncoder;
         std::unordered_map<Core::Renderer::TextureHandle, TextureResource>
             textures;
@@ -2141,6 +2783,8 @@ namespace Bess::Wgpu {
 
         PrimitiveBatch opaquePrimitiveBatch;
         PrimitiveBatch transparentPrimitiveBatch;
+        CustomQuadBatch opaqueCustomQuadBatch;
+        CustomQuadBatch transparentCustomQuadBatch;
         PathStrokeBatch opaquePathStrokeBatch;
         PathStrokeBatch transparentPathStrokeBatch;
         PathBatch opaquePathBatch;
@@ -2169,6 +2813,13 @@ namespace Bess::Wgpu {
         [[nodiscard]] uint32_t primitiveStatsCount() const noexcept {
             return opaquePrimitiveBatch.count() +
                    transparentPrimitiveBatch.count();
+        }
+        [[nodiscard]] uint32_t customQuadStatsCount() const noexcept {
+            return opaqueCustomQuadBatch.count() +
+                   transparentCustomQuadBatch.count();
+        }
+        [[nodiscard]] uint32_t quadStatsCount() const noexcept {
+            return primitiveStatsCount() + customQuadStatsCount();
         }
     };
 
@@ -2342,6 +2993,12 @@ namespace Bess::Wgpu {
         m_impl->transparentPrimitiveBatch.configure(
             createInfo.batching.initialQuadCapacity,
             createInfo.batching.maxQuadCapacity);
+        m_impl->opaqueCustomQuadBatch.configure(
+            createInfo.batching.initialQuadCapacity,
+            createInfo.batching.maxQuadCapacity);
+        m_impl->transparentCustomQuadBatch.configure(
+            createInfo.batching.initialQuadCapacity,
+            createInfo.batching.maxQuadCapacity);
         m_impl->createDevice();
         m_impl->createWindowSurface();
         m_impl->createOffscreenTarget();
@@ -2359,10 +3016,18 @@ namespace Bess::Wgpu {
                                    m_impl->sharedFrameBuffer.getBuffer(),
                                    m_impl->sharedFrameBuffer.getSize(),
                                    m_impl->pickingFormat);
+        m_impl->customQuadPipeline = std::make_unique<CustomQuadPipeline>();
+        m_impl->customQuadPipeline->init(m_impl->device, m_impl->targetFormat,
+                                         m_impl->sharedFrameBuffer.getBuffer(),
+                                         m_impl->sharedFrameBuffer.getSize(),
+                                         m_impl->pickingFormat);
         if (m_impl->primitivePipeline->ensureInstanceBufferSize(
                 std::max(1u, createInfo.batching.initialQuadCapacity))) {
             m_impl->recreateTextureBindGroups();
         }
+        static_cast<void>(
+            m_impl->customQuadPipeline->ensureInstanceBufferSize(
+                std::max(1u, createInfo.batching.initialQuadCapacity)));
         m_impl->createDefaultTexture();
 
         const std::string fontPath = createInfo.fontFile.empty()
@@ -2390,6 +3055,10 @@ namespace Bess::Wgpu {
             m_impl->pathPipeline->destroy();
             m_impl->pathPipeline = nullptr;
         }
+        if (m_impl->customQuadPipeline) {
+            m_impl->customQuadPipeline->destroy();
+            m_impl->customQuadPipeline = nullptr;
+        }
         m_impl->sharedFrameBuffer.destroy();
         m_impl->textures.clear();
         m_impl->surface = nullptr;
@@ -2407,6 +3076,8 @@ namespace Bess::Wgpu {
         m_impl->instance = nullptr;
         m_impl->opaquePrimitiveBatch.clear();
         m_impl->transparentPrimitiveBatch.clear();
+        m_impl->opaqueCustomQuadBatch.clear();
+        m_impl->transparentCustomQuadBatch.clear();
         m_impl->opaquePathStrokeBatch.clear();
         m_impl->transparentPathStrokeBatch.clear();
         m_impl->opaquePathBatch.clear();
@@ -2488,6 +3159,8 @@ namespace Bess::Wgpu {
         m_impl->shouldClear = frameInfo.shouldClear;
         m_impl->opaquePrimitiveBatch.clear();
         m_impl->transparentPrimitiveBatch.clear();
+        m_impl->opaqueCustomQuadBatch.clear();
+        m_impl->transparentCustomQuadBatch.clear();
         m_impl->opaquePathStrokeBatch.clear();
         m_impl->transparentPathStrokeBatch.clear();
         m_impl->opaquePathBatch.clear();
@@ -2571,6 +3244,8 @@ namespace Bess::Wgpu {
 
         m_impl->opaquePrimitiveBatch.prepareForRendering(false);
         m_impl->transparentPrimitiveBatch.prepareForRendering(true);
+        m_impl->opaqueCustomQuadBatch.prepareForRendering(false);
+        m_impl->transparentCustomQuadBatch.prepareForRendering(true);
         m_impl->opaquePathStrokeBatch.prepareForRendering(false);
         m_impl->transparentPathStrokeBatch.prepareForRendering(true);
         m_impl->opaquePathBatch.prepareForRendering(false);
@@ -2582,6 +3257,13 @@ namespace Bess::Wgpu {
         const uint32_t totalInstanceCount =
             transparentInstanceOffset +
             m_impl->transparentPrimitiveBatch.count();
+
+        const uint32_t opaqueCustomInstanceOffset = 0;
+        const uint32_t transparentCustomInstanceOffset =
+            m_impl->opaqueCustomQuadBatch.count();
+        const uint32_t totalCustomInstanceCount =
+            transparentCustomInstanceOffset +
+            m_impl->transparentCustomQuadBatch.count();
 
         const uint32_t opaqueStencilVertexOffset = 0;
         const uint32_t transparentStencilVertexOffset =
@@ -2610,6 +3292,12 @@ namespace Bess::Wgpu {
             m_impl->recreateTextureBindGroups();
         }
 
+        if (totalCustomInstanceCount > 0) {
+            static_cast<void>(
+                m_impl->customQuadPipeline->ensureInstanceBufferSize(
+                    totalCustomInstanceCount));
+        }
+
         if (!m_impl->opaquePrimitiveBatch.empty()) {
             m_impl->primitivePipeline->uploadInstances(
                 m_impl->queue, m_impl->opaquePrimitiveBatch.data(),
@@ -2629,7 +3317,26 @@ namespace Bess::Wgpu {
                 m_impl->transparentPrimitiveBatch.byteSize();
         }
 
-        m_impl->stats.quadCount = totalInstanceCount;
+        if (!m_impl->opaqueCustomQuadBatch.empty()) {
+            m_impl->customQuadPipeline->uploadInstances(
+                m_impl->queue, m_impl->opaqueCustomQuadBatch.data(),
+                m_impl->opaqueCustomQuadBatch.byteSize(),
+                opaqueCustomInstanceOffset * sizeof(CustomQuadInstance));
+            m_impl->stats.uploadedBytes +=
+                m_impl->opaqueCustomQuadBatch.byteSize();
+        }
+
+        if (!m_impl->transparentCustomQuadBatch.empty()) {
+            m_impl->customQuadPipeline->uploadInstances(
+                m_impl->queue, m_impl->transparentCustomQuadBatch.data(),
+                m_impl->transparentCustomQuadBatch.byteSize(),
+                transparentCustomInstanceOffset * sizeof(CustomQuadInstance));
+            m_impl->stats.uploadedBytes +=
+                m_impl->transparentCustomQuadBatch.byteSize();
+        }
+
+        m_impl->stats.quadCount =
+            totalInstanceCount + totalCustomInstanceCount;
 
         if (totalStencilVertexCount > 0) {
             static_cast<void>(
@@ -2721,6 +3428,24 @@ namespace Bess::Wgpu {
             }
         };
 
+        auto renderCustomQuadBatch = [&](const CustomQuadBatch &batch,
+                                         uint32_t instanceOffset,
+                                         bool transparent) {
+            if (batch.empty()) {
+                return;
+            }
+
+            const uint32_t runCount = batch.drawRunsCount();
+            const CustomQuadDrawRun *runs = batch.drawRunsData();
+            for (uint32_t i = 0; i < runCount; ++i) {
+                const auto &run = runs[i];
+                m_impl->customQuadPipeline->draw(
+                    renderPass, run.shader, instanceOffset + run.firstInstance,
+                    run.instanceCount, transparent);
+                m_impl->stats.drawCallCount++;
+            }
+        };
+
         auto renderPathBatch = [&](const PathBatch &batch,
                                    uint32_t stencilVertexOffset,
                                    uint32_t coverVertexOffset,
@@ -2762,6 +3487,8 @@ namespace Bess::Wgpu {
 
         renderBatch(m_impl->opaquePrimitiveBatch, opaqueInstanceOffset,
                     m_impl->primitivePipeline->getOpaquePipeline());
+        renderCustomQuadBatch(m_impl->opaqueCustomQuadBatch,
+                              opaqueCustomInstanceOffset, false);
         renderPathBatch(m_impl->opaquePathBatch, opaqueStencilVertexOffset,
                         opaqueCoverVertexOffset, false);
         renderPathStrokeBatch(m_impl->opaquePathStrokeBatch,
@@ -2769,6 +3496,8 @@ namespace Bess::Wgpu {
         renderBatch(m_impl->transparentPrimitiveBatch,
                     transparentInstanceOffset,
                     m_impl->primitivePipeline->getTransparentPipeline());
+        renderCustomQuadBatch(m_impl->transparentCustomQuadBatch,
+                              transparentCustomInstanceOffset, true);
         renderPathBatch(m_impl->transparentPathBatch,
                         transparentStencilVertexOffset,
                         transparentCoverVertexOffset, true);
@@ -2934,7 +3663,51 @@ namespace Bess::Wgpu {
                 m_impl->opaquePrimitiveBatch.push(props.texture), props,
                 nullptr);
         }
-        m_impl->stats.quadCount = m_impl->primitiveStatsCount();
+        m_impl->stats.quadCount = m_impl->quadStatsCount();
+    }
+
+    CustomQuadShaderHandle WgpuRenderer2D::createCustomQuadShader(
+        const CustomQuadShaderDesc &desc) {
+        if (m_impl->customQuadPipeline == nullptr) {
+            throw std::runtime_error(
+                "WgpuRenderer2D is not initialized for custom quad shaders");
+        }
+        return m_impl->customQuadPipeline->createShader(desc);
+    }
+
+    void WgpuRenderer2D::destroyCustomQuadShader(
+        CustomQuadShaderHandle shader) {
+        if (m_impl->customQuadPipeline == nullptr || shader == 0) {
+            return;
+        }
+        m_impl->customQuadPipeline->destroyShader(shader);
+    }
+
+    void WgpuRenderer2D::drawCustomQuad(const CustomQuadProps &props) {
+        if (!m_impl->frameStarted) {
+            return;
+        }
+        if (m_impl->customQuadPipeline == nullptr ||
+            !m_impl->customQuadPipeline->hasShader(props.shader)) {
+            throw std::runtime_error(
+                "Custom quad shader handle is not registered");
+        }
+
+        if (isTransparent(props.quad, nullptr)) {
+            makeCustomQuadInstanceInPlace(
+                m_impl->transparentCustomQuadBatch.push(props.shader), props);
+        } else {
+            makeCustomQuadInstanceInPlace(
+                m_impl->opaqueCustomQuadBatch.push(props.shader), props);
+        }
+        m_impl->stats.quadCount = m_impl->quadStatsCount();
+    }
+
+    void WgpuRenderer2D::drawCustomQuad(
+        const Core::Renderer::QuadProps &quad, CustomQuadShaderHandle shader,
+        std::array<glm::vec4, 4> data) {
+        drawCustomQuad(
+            CustomQuadProps{.quad = quad, .shader = shader, .data = data});
     }
 
     void WgpuRenderer2D::drawRoundedQuad(
@@ -2953,7 +3726,7 @@ namespace Bess::Wgpu {
                 m_impl->opaquePrimitiveBatch.push(props.texture), props,
                 &roundedProps);
         }
-        m_impl->stats.quadCount = m_impl->primitiveStatsCount();
+        m_impl->stats.quadCount = m_impl->quadStatsCount();
     }
 
     void WgpuRenderer2D::drawCircle(const Core::Renderer::CircleProps &props) {
@@ -2968,7 +3741,7 @@ namespace Bess::Wgpu {
             makeCircleInstanceInPlace(m_impl->opaquePrimitiveBatch.push(0),
                                       props);
         }
-        m_impl->stats.quadCount = m_impl->primitiveStatsCount();
+        m_impl->stats.quadCount = m_impl->quadStatsCount();
     }
 
     void WgpuRenderer2D::drawLine(const Core::Renderer::LineProps &props) {
@@ -2983,7 +3756,7 @@ namespace Bess::Wgpu {
             makeLineInstanceInPlace(m_impl->opaquePrimitiveBatch.push(0),
                                     props);
         }
-        m_impl->stats.quadCount = m_impl->primitiveStatsCount();
+        m_impl->stats.quadCount = m_impl->quadStatsCount();
     }
 
     void WgpuRenderer2D::drawFont(std::string_view text,

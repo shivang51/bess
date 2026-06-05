@@ -9,6 +9,7 @@
 #include "scene/scene_draw_context.h"
 #include "string"
 #include "ui_panel.h"
+#include <chrono>
 namespace Bess::UI {
 
     struct SceneDrawFlags {
@@ -82,5 +83,7 @@ namespace Bess::UI {
         std::shared_ptr<Canvas::Scene> m_attachedScene;
         std::shared_ptr<Core::Renderer::ITexture> m_sceneTexture = nullptr;
         std::vector<const Canvas::SceneState *> m_rootToSceneStatePtrs;
+        uint32_t m_uvDebugShader = 0;
+        std::chrono::steady_clock::time_point m_uvDebugStartTime{};
     };
 } // namespace Bess::UI

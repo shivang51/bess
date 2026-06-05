@@ -2,6 +2,7 @@
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "bess_core/scene_driver.h"
+#include "bess_wgpu/wgpu_renderer_2d.h"
 #include "common/bess_uuid.h"
 #include "common/helpers.h"
 #include "common/logger.h"
@@ -11,6 +12,7 @@
 #include "pages/main_page/main_page.h"
 #include "scene/camera.h"
 #include "scene/scene_draw_context.h"
+#include "sub_systems/renderer_context.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/ui_main/component_explorer.h"
 #include "ui_main/ui_main.h"
@@ -32,6 +34,7 @@ namespace Bess::UI {
             Core::Renderer::TextureCreateInfo{});
         m_sceneTexture->setSize({800.f, 600.f});
         m_sceneTexture->init();
+        m_uvDebugStartTime = std::chrono::steady_clock::now();
     }
 
     void SceneViewportPanel::update(TimeMs ts) {
@@ -66,7 +69,19 @@ namespace Bess::UI {
         }
     }
 
-    void SceneViewportPanel::destroy() { m_rootToSceneStatePtrs.clear(); }
+    void SceneViewportPanel::destroy() {
+        if (m_uvDebugShader != 0) {
+            const auto renderer =
+                GAppContext::getInstance()
+                    .getSubSystem<RendererContext>()
+                    ->getRenderer<Wgpu::WgpuRenderer2D>();
+            if (renderer != nullptr) {
+                renderer->destroyCustomQuadShader(m_uvDebugShader);
+            }
+            m_uvDebugShader = 0;
+        }
+        m_rootToSceneStatePtrs.clear();
+    }
 
     void SceneViewportPanel::onBeforeDraw() {
 

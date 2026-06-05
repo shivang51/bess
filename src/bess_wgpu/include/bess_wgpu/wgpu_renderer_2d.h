@@ -1,6 +1,7 @@
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/renderer/renderer_types.h"
 #include "bess_wgpu/wgpu_texture.h"
+#include <array>
 #include <cstdint>
 #include <memory>
 #include <span>
@@ -9,6 +10,26 @@
 #include <webgpu/webgpu_cpp.h>
 
 namespace Bess::Wgpu {
+
+    using CustomQuadShaderHandle = uint32_t;
+
+    struct CustomQuadShaderDesc {
+        std::string label;
+        // Appended after the renderer's WGSL prelude. Define:
+        // fn <fragmentEntryPoint>(in: CustomQuadFragmentInput) -> vec4f
+        //
+        // CustomQuadFragmentInput contains:
+        // frag_coord, uv, local_uv, local_pos, size, color, data0..data3.
+        // uv respects QuadProps::uvRect; local_uv is always 0..1.
+        std::string fragmentSource;
+        std::string fragmentEntryPoint = "custom_quad_fragment";
+    };
+
+    struct CustomQuadProps {
+        Core::Renderer::QuadProps quad;
+        CustomQuadShaderHandle shader = 0;
+        std::array<glm::vec4, 4> data{};
+    };
 
     struct TextureResource {
         wgpu::Texture texture;
@@ -49,6 +70,13 @@ namespace Bess::Wgpu {
         void registerTexture(const TextureResource &texture);
 
         void drawQuad(const Core::Renderer::QuadProps &props) override;
+        [[nodiscard]] CustomQuadShaderHandle
+        createCustomQuadShader(const CustomQuadShaderDesc &desc);
+        void destroyCustomQuadShader(CustomQuadShaderHandle shader);
+        void drawCustomQuad(const CustomQuadProps &props);
+        void drawCustomQuad(const Core::Renderer::QuadProps &quad,
+                            CustomQuadShaderHandle shader,
+                            std::array<glm::vec4, 4> data = {});
         void drawRoundedQuad(
             const Core::Renderer::QuadProps &props,
             const Core::Renderer::RoundedBorderProps &roundedProps) override;

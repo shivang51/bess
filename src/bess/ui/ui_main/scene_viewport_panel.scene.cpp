@@ -1,18 +1,16 @@
 #include "scene_viewport_panel.h"
 #include "bess_core/g_app_context.h"
+#include "bess_wgpu/wgpu_renderer_2d.h"
 #include "common/types.h"
 #include "events/application_event.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
-#include "pages/main_page/scene_components/slot_scene_component.h"
 #include "renderer/vulkan/path_renderer.h"
 #include "scene.h"
 #include "scene/scene_draw_context.h"
 #include "settings/viewport_theme.h"
 #include "sub_systems/input_sub_system.h"
 #include "sub_systems/renderer_context.h"
-#include "vulkan_core.h"
-#include <algorithm>
 #include <cstdint>
 
 namespace Bess::UI {
@@ -132,7 +130,8 @@ namespace Bess::UI {
         const auto &renderCtx = appCtx.getSubSystem<RendererContext>();
         const auto &sceneState = m_attachedScene->getState();
 
-        const auto &renderer = renderCtx->getRenderer();
+        const auto &renderer =
+            renderCtx->getRenderer<Bess::Wgpu::WgpuRenderer2D>();
 
         renderer->beginFrame({
             .extent = {(uint32_t)m_viewportSize.x, (uint32_t)m_viewportSize.y},
@@ -145,6 +144,27 @@ namespace Bess::UI {
 
         renderer->drawFont("Hello World",
                            {{100.f, 100.f}, 24.f, {1.f, 1.f, 0.f, 1.f}});
+
+        if (m_uvDebugShader == 0) {
+            m_uvDebugShader = renderer->createCustomQuadShader({
+                .label = "uv_debug",
+                .fragmentSource = R"(
+  fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
+      return vec4f(in.uv, 0.5 + 0.5 * sin(in.data0.x), 1.0) * in.color;
+  }
+  )",
+            });
+            m_uvDebugStartTime = std::chrono::steady_clock::now();
+        }
+
+        const float timeSeconds =
+            std::chrono::duration<float>(std::chrono::steady_clock::now() -
+                                         m_uvDebugStartTime)
+                .count();
+
+        renderer->drawCustomQuad(
+            {.size = {400, 400}}, m_uvDebugShader,
+            {glm::vec4(timeSeconds, 0.f, 0.f, 0.f)});
 
         renderer->endFrame();
     }
