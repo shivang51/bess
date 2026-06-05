@@ -1,4 +1,5 @@
 #include "bess_wgpu/wgpu_renderer_2d.h"
+#include "bess_core/renderer/font.h"
 #include "bess_wgpu/piplines/path_pipeline.h"
 #include "bess_wgpu/piplines/primitive_pipeline.h"
 #include "bess_wgpu/wgpu_texture.h"
@@ -16,11 +17,15 @@
 #include <span>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
 namespace Bess::Wgpu {
+    using Core::Renderer::FontFile;
+    using Core::Renderer::FontProps;
+    using Core::Renderer::Glyph;
     using Core::Renderer::Path2D;
     using Core::Renderer::PathCommand;
     using Core::Renderer::PathCommandKind;
@@ -42,6 +47,10 @@ namespace Bess::Wgpu {
             wgpu::TextureFormat::Depth24PlusStencil8;
         constexpr uint32_t kPathCurveTypeLine = 0;
         constexpr uint32_t kPathCurveTypeQuadratic = 1;
+        constexpr const char *kDefaultFontFile =
+            "assets/fonts/Roboto/Roboto-Regular.ttf";
+        constexpr float kFontOutlinePixelSize = 64.f;
+        constexpr uint32_t kReplacementCodepoint = 0xFFFD;
 
         bool isTransparent(const Core::Renderer::QuadProps &props,
                            const Core::Renderer::RoundedBorderProps *rounded) {
@@ -87,6 +96,95 @@ namespace Bess::Wgpu {
                 return true;
             }
             return props.strokeColor.a < 0.999f;
+        }
+
+        bool isUtf8ContinuationByte(char c) {
+            const auto byte = static_cast<unsigned char>(c);
+            return (byte & 0xC0) == 0x80;
+        }
+
+        uint32_t decodeUtf8(std::string_view text, size_t &offset) {
+            if (offset >= text.size()) {
+                return 0;
+            }
+
+            const size_t start = offset;
+            const auto first = static_cast<unsigned char>(text[start]);
+            if (first <= 0x7F) {
+                offset = start + 1;
+                return first;
+            }
+
+            uint32_t codepoint = 0;
+            size_t length = 0;
+            uint32_t minCodepoint = 0;
+            if ((first & 0xE0) == 0xC0) {
+                codepoint = first & 0x1F;
+                length = 2;
+                minCodepoint = 0x80;
+            } else if ((first & 0xF0) == 0xE0) {
+                codepoint = first & 0x0F;
+                length = 3;
+                minCodepoint = 0x800;
+            } else if ((first & 0xF8) == 0xF0) {
+                codepoint = first & 0x07;
+                length = 4;
+                minCodepoint = 0x10000;
+            } else {
+                offset = start + 1;
+                return kReplacementCodepoint;
+            }
+
+            if (start + length > text.size()) {
+                offset = start + 1;
+                return kReplacementCodepoint;
+            }
+
+            for (size_t i = 1; i < length; ++i) {
+                const char byte = text[start + i];
+                if (!isUtf8ContinuationByte(byte)) {
+                    offset = start + 1;
+                    return kReplacementCodepoint;
+                }
+                codepoint =
+                    (codepoint << 6) | (static_cast<uint32_t>(byte) & 0x3F);
+            }
+
+            if (codepoint < minCodepoint || codepoint > 0x10FFFF ||
+                (codepoint >= 0xD800 && codepoint <= 0xDFFF)) {
+                offset = start + 1;
+                return kReplacementCodepoint;
+            }
+
+            offset = start + length;
+            return codepoint;
+        }
+
+        PathCommand transformTextCommand(const PathCommand &command,
+                                         const glm::vec2 &origin, float scale) {
+            PathCommand transformed = command;
+            const auto transformPoint = [&](const glm::vec2 &point) {
+                return origin + (point * scale);
+            };
+
+            switch (command.kind) {
+            case PathCommandKind::Move:
+            case PathCommandKind::Line:
+                transformed.p = transformPoint(command.p);
+                break;
+            case PathCommandKind::Quad:
+                transformed.p = transformPoint(command.p);
+                transformed.control = transformPoint(command.control);
+                break;
+            case PathCommandKind::Cubic:
+                transformed.p = transformPoint(command.p);
+                transformed.control = transformPoint(command.control);
+                transformed.control2 = transformPoint(command.control2);
+                break;
+            case PathCommandKind::Close:
+                break;
+            }
+            return transformed;
         }
 
         struct DrawRun {
@@ -1326,6 +1424,101 @@ namespace Bess::Wgpu {
             return vertices;
         }
 
+        std::vector<PathCoverVertex> bakePathFillAntiAlias(
+            std::span<const PathCommand> commands, const PathProps &props,
+            const PathBakeMetrics &metrics, float fringeScale) {
+            std::vector<PathCoverVertex> vertices;
+            if (commands.empty() || !hasPathFill(props) || fringeScale <= 0.f) {
+                return vertices;
+            }
+
+            PathProps fringeProps = props;
+            fringeProps.strokeColor = props.fillColor;
+            fringeProps.lineJoin = PathLineJoin::Round;
+            fringeProps.lineCap = PathLineCap::Round;
+
+            const StrokeMeshParams mesh{
+                .metrics = metrics,
+                .halfWidth = 0.f,
+                .fringe =
+                    std::max(metrics.pixelWorldSize * fringeScale, 0.0001f),
+                .overlap = 0.f};
+
+            std::vector<glm::vec2> contour;
+            glm::vec2 current(0.f);
+
+            auto flushContour = [&](bool closed) {
+                if (contour.empty()) {
+                    return;
+                }
+
+                appendStrokeContour(vertices, std::move(contour), closed,
+                                    fringeProps, mesh);
+                contour.clear();
+            };
+
+            for (const auto &cmd : commands) {
+                switch (cmd.kind) {
+                case PathCommandKind::Move:
+                    flushContour(props.closePath);
+                    contour.push_back(cmd.p);
+                    current = cmd.p;
+                    break;
+                case PathCommandKind::Line:
+                    if (contour.empty()) {
+                        contour.push_back(current);
+                    }
+                    contour.push_back(cmd.p);
+                    current = cmd.p;
+                    break;
+                case PathCommandKind::Quad:
+                    if (contour.empty()) {
+                        contour.push_back(current);
+                    }
+                    if (nearlyDegenerateTriangle(current, cmd.control, cmd.p)) {
+                        contour.push_back(cmd.p);
+                    } else {
+                        const int segments = quadraticSegmentCount(
+                            current, cmd.control, cmd.p, props, metrics);
+                        for (int i = 1; i <= segments; ++i) {
+                            const float t = static_cast<float>(i) /
+                                            static_cast<float>(segments);
+                            contour.push_back(
+                                evalQuadratic(current, cmd.control, cmd.p, t));
+                        }
+                    }
+                    current = cmd.p;
+                    break;
+                case PathCommandKind::Cubic:
+                    if (contour.empty()) {
+                        contour.push_back(current);
+                    }
+                    {
+                        const int segments = cubicSegmentCount(
+                            current, cmd.control, cmd.control2, cmd.p, props,
+                            metrics);
+                        for (int i = 1; i <= segments; ++i) {
+                            const float t = static_cast<float>(i) /
+                                            static_cast<float>(segments);
+                            contour.push_back(evalCubic(
+                                current, cmd.control, cmd.control2, cmd.p, t));
+                        }
+                    }
+                    current = cmd.p;
+                    break;
+                case PathCommandKind::Close:
+                    if (!contour.empty()) {
+                        current = contour.front();
+                    }
+                    flushContour(true);
+                    break;
+                }
+            }
+
+            flushContour(props.closePath);
+            return vertices;
+        }
+
         void submitPathCommands(std::span<const PathCommand> commands,
                                 const PathProps &props,
                                 const PathBakeMetrics &metrics,
@@ -1418,6 +1611,8 @@ namespace Bess::Wgpu {
         std::vector<PathCommand> activePathCommands;
         PathProps activePathProps;
         bool pathStarted = false;
+        std::unique_ptr<FontFile> fontFile;
+        std::vector<PathCommand> textPathCommandsScratch;
         Core::Renderer::Renderer2DStats stats;
         Color clearColor{0.f, 0.f, 0.f, 1.f};
         bool shouldClear = true;
@@ -1632,6 +1827,17 @@ namespace Bess::Wgpu {
             m_impl->recreateTextureBindGroups();
         }
         m_impl->createDefaultTexture();
+
+        const std::string fontPath = createInfo.fontFile.empty()
+                                         ? kDefaultFontFile
+                                         : createInfo.fontFile;
+        m_impl->fontFile = std::make_unique<FontFile>(fontPath);
+        if (!m_impl->fontFile->isValid() ||
+            !m_impl->fontFile->init(kFontOutlinePixelSize, 0, 255)) {
+            BESS_WARN("[WgpuRenderer2D] Failed to initialize font file: {}",
+                      fontPath);
+            m_impl->fontFile = nullptr;
+        }
     }
 
     void WgpuRenderer2D::destroy() {
@@ -1669,6 +1875,8 @@ namespace Bess::Wgpu {
         m_impl->opaquePathBatch.clear();
         m_impl->transparentPathBatch.clear();
         m_impl->activePathCommands.clear();
+        m_impl->textPathCommandsScratch.clear();
+        m_impl->fontFile = nullptr;
         m_impl->pathStarted = false;
         m_impl->stats = {};
         m_impl->frameStarted = false;
@@ -2239,6 +2447,111 @@ namespace Bess::Wgpu {
                                     props);
         }
         m_impl->stats.quadCount = m_impl->primitiveStatsCount();
+    }
+
+    void WgpuRenderer2D::drawFont(std::string_view text,
+                                  const FontProps &props) {
+        if (!m_impl->frameStarted || text.empty() || props.color.a <= 0.f ||
+            props.fontSize <= 0.f || m_impl->fontFile == nullptr) {
+            return;
+        }
+
+        if (m_impl->pathStarted) {
+            endPath();
+        }
+
+        const float fontBaseSize = m_impl->fontFile->getSize();
+        if (fontBaseSize <= 0.f) {
+            return;
+        }
+
+        const float scale = props.fontSize / fontBaseSize;
+        const float ascent = m_impl->fontFile->ascent() * scale;
+        const float defaultLineHeight = m_impl->fontFile->lineHeight() * scale;
+        const float lineHeight =
+            props.lineHeight > 0.f
+                ? props.lineHeight
+                : (defaultLineHeight > 0.f ? defaultLineHeight
+                                           : props.fontSize);
+
+        const Glyph &spaceGlyph = m_impl->fontFile->getGlyph(U' ');
+        const float spaceAdvance =
+            std::max(spaceGlyph.advanceX * scale, props.fontSize * 0.25f);
+
+        const PathBakeMetrics metrics =
+            makePathBakeMetrics(m_impl->cameraTransform, m_impl->extent);
+
+        const float lineStartX = props.position.x;
+        glm::vec2 cursor{props.position.x, props.position.y + ascent};
+        size_t offset = 0;
+        while (offset < text.size()) {
+            const uint32_t codepoint = decodeUtf8(text, offset);
+            if (codepoint == 0) {
+                break;
+            }
+
+            if (codepoint == '\r') {
+                if (offset < text.size() && text[offset] == '\n') {
+                    ++offset;
+                }
+                cursor.x = lineStartX;
+                cursor.y += lineHeight;
+                continue;
+            }
+
+            if (codepoint == '\n') {
+                cursor.x = lineStartX;
+                cursor.y += lineHeight;
+                continue;
+            }
+
+            if (codepoint == '\t') {
+                cursor.x += spaceAdvance * std::max(props.tabSize, 1.f) +
+                            props.letterSpacing;
+                continue;
+            }
+
+            const Glyph &glyph =
+                m_impl->fontFile->getGlyph(static_cast<char32_t>(codepoint));
+            if (!glyph.path.empty()) {
+                m_impl->textPathCommandsScratch.clear();
+                m_impl->textPathCommandsScratch.reserve(
+                    glyph.path.commandCount());
+                for (const PathCommand &command : glyph.path.commands()) {
+                    m_impl->textPathCommandsScratch.push_back(
+                        transformTextCommand(command, cursor, scale));
+                }
+
+                PathProps pathProps = glyph.pathProps;
+                pathProps.fillColor = props.color;
+                pathProps.strokeColor.a = 0.f;
+                pathProps.strokeSize = 0.f;
+                pathProps.renderFill = true;
+                pathProps.zIndex = props.zIndex;
+                pathProps.id = props.id;
+                pathProps.renderPass = props.renderPass;
+                const std::span<const PathCommand> glyphCommands{
+                    m_impl->textPathCommandsScratch.data(),
+                    m_impl->textPathCommandsScratch.size()};
+                submitPathCommands(
+                    glyphCommands, pathProps, metrics, m_impl->opaquePathBatch,
+                    m_impl->transparentPathBatch, m_impl->opaquePathStrokeBatch,
+                    m_impl->transparentPathStrokeBatch);
+
+                if (props.antiAlias) {
+                    m_impl->transparentPathStrokeBatch.push(
+                        bakePathFillAntiAlias(glyphCommands, pathProps, metrics,
+                                              props.antiAliasFringeScale),
+                        props.zIndex);
+                }
+            }
+
+            const float advance =
+                glyph.advanceX > 0.f
+                    ? glyph.advanceX * scale
+                    : std::max(glyph.width * scale, props.fontSize * 0.5f);
+            cursor.x += advance + props.letterSpacing;
+        }
     }
 
     void WgpuRenderer2D::drawPath(std::span<const PathCommand> commands,

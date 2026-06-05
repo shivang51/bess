@@ -244,7 +244,7 @@ namespace Bess {
             .fillColor = {0.8f, 0.2f, 0.6f,
                           0.4f}, // Translucent Orchid Pink/Magenta
             .strokeColor = {1.0f, 0.85f, 0.4f, 1.0f}, // Bright Gold Outline
-            .renderFill = true,
+            .renderFill = false,
             .zIndex = 5.0f,
             .lineJoin = Core::Renderer::PathLineJoin::Round,
             .lineCap = Core::Renderer::PathLineCap::Round,
@@ -313,13 +313,18 @@ namespace Bess {
                            {
                                .fillColor = {1.f, 0.f, 0.f, 1.f},
                                .strokeColor = {1.0f, 1.f, 1.f, 1.0f},
-                               .renderFill = true,
+                               .renderFill = false,
                                .zIndex = 5.1f,
                                .lineJoin = Core::Renderer::PathLineJoin::Round,
                                .lineCap = Core::Renderer::PathLineCap::Round,
                                .closePath = true,
                            });
 
+        renderer->drawFont("Hello WGPU", {
+                                             .position = {20.f, 40.f},
+                                             .fontSize = 8.f,
+                                             .color = {1.f, 1.f, 1.f, 1.f},
+                                         });
         renderer->endFrame();
 
         const auto stats = renderer->getStats();

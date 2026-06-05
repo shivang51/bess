@@ -128,6 +128,21 @@ namespace Bess::Core::Renderer {
         bool closePath = true;
     };
 
+    struct FontProps {
+        glm::vec2 position{0.f, 0.f};
+        float fontSize = 16.f;
+        Color color{1.f, 1.f, 1.f, 1.f};
+        float zIndex = 0.f;
+        float letterSpacing = 0.f;
+        // 0 uses the loaded font's line height at fontSize.
+        float lineHeight = 0.f;
+        float tabSize = 4.f;
+        bool antiAlias = true;
+        float antiAliasFringeScale = 1.f;
+        PickingId id = PickingId::invalid();
+        QuadRenderPass renderPass = QuadRenderPass::Auto;
+    };
+
     struct RoundedBorderProps {
         glm::vec4 radius{0.f}; // Top-left, top-right, bottom-right, bottom-left
         glm::vec4 thickness{

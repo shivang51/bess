@@ -5,6 +5,7 @@
 #include <memory>
 #include <span>
 #include <string>
+#include <string_view>
 #include <webgpu/webgpu_cpp.h>
 
 namespace Bess::Wgpu {
@@ -55,6 +56,9 @@ namespace Bess::Wgpu {
         void drawCircle(const Core::Renderer::CircleProps &props) override;
 
         void drawLine(const Core::Renderer::LineProps &props) override;
+
+        void drawFont(std::string_view text,
+                      const Core::Renderer::FontProps &props = {}) override;
 
         void drawPath(std::span<const Core::Renderer::PathCommand> commands,
                       const Core::Renderer::PathProps &props = {}) override;

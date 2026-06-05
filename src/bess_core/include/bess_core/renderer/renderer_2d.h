@@ -6,6 +6,7 @@
 #include <memory>
 #include <span>
 #include <string>
+#include <string_view>
 
 namespace Bess {
     class Window;
@@ -50,6 +51,8 @@ namespace Bess::Core::Renderer {
         Renderer2DTargetFormat pickingFormat = Renderer2DTargetFormat::None;
         Renderer2DNativeSurface surface;
         Renderer2DBatchConfig batching;
+        // Empty uses assets/fonts/Roboto/Roboto-Regular.ttf.
+        std::string fontFile;
         bool enableValidation = true;
     };
 
@@ -93,6 +96,9 @@ namespace Bess::Core::Renderer {
         virtual void drawCircle(const CircleProps &props) = 0;
 
         virtual void drawLine(const LineProps &props) = 0;
+
+        virtual void drawFont(std::string_view text,
+                              const FontProps &props = {}) = 0;
 
         virtual void drawPath(std::span<const PathCommand> commands,
                               const PathProps &props = {}) = 0;
