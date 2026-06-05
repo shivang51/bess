@@ -15,7 +15,6 @@
 #include "ui/ui_main/component_explorer.h"
 #include "ui_main/ui_main.h"
 #include "ui_panel.h"
-#include "vulkan_core.h"
 #include <cstdint>
 
 namespace Bess::UI {
@@ -24,13 +23,15 @@ namespace Bess::UI {
           m_viewportName(viewportName) {}
 
     void SceneViewportPanel::init() {
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
-
         m_flags = NO_MOVE_FLAGS | ImGuiWindowFlags_NoFocusOnAppearing;
         m_defaultDock = Dock::main;
         m_showInMenuBar = false;
         m_visible = true;
+
+        m_sceneTexture = std::make_shared<Wgpu::WgpuTexture>(
+            Core::Renderer::TextureCreateInfo{});
+        m_sceneTexture->setSize({800.f, 600.f});
+        m_sceneTexture->init();
     }
 
     void SceneViewportPanel::update(TimeMs ts) {
@@ -39,6 +40,11 @@ namespace Bess::UI {
         if (m_isResized) {
             m_attachedScene->getCamera()->resize(m_viewportSize.x,
                                                  m_viewportSize.y);
+            if (m_sceneTexture) {
+                m_sceneTexture->setSize(m_viewportSize);
+                m_sceneTexture->destroy();
+                m_sceneTexture->init();
+            }
             m_isResized = false;
         }
 
@@ -92,8 +98,7 @@ namespace Bess::UI {
         const auto offset = ImGui::GetCursorPos();
         if (m_sceneTexture) {
             ImGui::Image((ImTextureRef)m_sceneTexture->getView(),
-                         ImVec2(viewportPanelSize.x, viewportPanelSize.y),
-                         ImVec2(0, 1), ImVec2(1, 0));
+                         ImVec2(viewportPanelSize.x, viewportPanelSize.y));
         } else {
             ImGui::SetCursorPos({100, 100});
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.f, 0.f, 1.f));

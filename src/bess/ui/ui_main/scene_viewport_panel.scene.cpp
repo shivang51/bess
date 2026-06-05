@@ -125,6 +125,9 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::renderAttachedScene() {
+        if (m_sceneTexture == nullptr) {
+            return;
+        }
         const auto &appCtx = GAppContext::getInstance();
         const auto &renderCtx = appCtx.getSubSystem<RendererContext>();
         const auto &sceneState = m_attachedScene->getState();
@@ -132,8 +135,10 @@ namespace Bess::UI {
         const auto &renderer = renderCtx->getRenderer();
 
         renderer->beginFrame({
+            .extent = {(uint32_t)m_viewportSize.x, (uint32_t)m_viewportSize.y},
             .clearColor = ViewportTheme::colors.background,
             .shouldClear = true,
+            .targetTexture = m_sceneTexture->getHandle(),
             .cameraTransform =
                 glm::value_ptr(m_attachedScene->getCamera()->getTransform()),
         });
