@@ -6,6 +6,7 @@
 #include "scene/scene_events.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/scene_state.h"
+#include "sim_driver/sim_driver.h"
 #include <memory>
 #include <vulkan/vulkan_core.h>
 
@@ -56,6 +57,8 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(std::shared_ptr<Camera>, Camera, m_camera)
         MAKE_GETTER_SETTER(SelBoxContext, SelBoxContext, m_selBoxContext)
         MAKE_GETTER_SETTER(bool, IsFirstFrame, m_isFirstFrame)
+        MAKE_GETTER_SETTER_BC_AC(PickingId, PickingId, m_pickingId,
+                                 onPrePickingIdChange, onPickingIdChange)
 
       public:
         const UUID &getSceneId() const;
@@ -95,8 +98,6 @@ namespace Bess::Canvas {
         void focusCameraOnSelected();
         glm::vec2 toScenePos(const glm::vec2 &mousePos) const;
 
-        void setPickingId(const PickingId &pickingId);
-
         float getNextZCoord();
 
         MAKE_GETTER(bool, IsLeftMousePressed, m_isLeftMousePressed);
@@ -109,6 +110,9 @@ namespace Bess::Canvas {
         void onMouseMove(const glm::vec2 &pos);
 
       private:
+        void onPrePickingIdChange(const PickingId &newId);
+        void onPickingIdChange();
+
         /// to draw testing stuff
         void drawScratchContent(TimeMs ts);
         bool isCursorInViewport(const glm::vec2 &pos) const;

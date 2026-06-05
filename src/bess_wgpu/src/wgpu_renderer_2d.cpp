@@ -12,6 +12,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <limits>
 #include <memory>
 #include <png.h>
@@ -249,6 +250,46 @@ namespace Bess::Wgpu {
             }
         }
 
+        Renderer2DTargetFormat toRendererFormat(wgpu::TextureFormat format) {
+            switch (format) {
+            case wgpu::TextureFormat::RGBA8Unorm:
+                return Renderer2DTargetFormat::RGBA8Unorm;
+            case wgpu::TextureFormat::BGRA8Unorm:
+                return Renderer2DTargetFormat::BGRA8Unorm;
+            case wgpu::TextureFormat::RGBA16Float:
+                return Renderer2DTargetFormat::RGBA16Float;
+            case wgpu::TextureFormat::RG32Uint:
+                return Renderer2DTargetFormat::RG32Uint;
+            default:
+                return Renderer2DTargetFormat::None;
+            }
+        }
+
+        uint32_t bytesPerPixelForFormat(wgpu::TextureFormat format) {
+            switch (format) {
+            case wgpu::TextureFormat::RGBA8Unorm:
+            case wgpu::TextureFormat::BGRA8Unorm:
+                return 4;
+            case wgpu::TextureFormat::RGBA16Float:
+            case wgpu::TextureFormat::RG32Uint:
+                return 8;
+            default:
+                throw std::runtime_error(
+                    "Unsupported texture format for readback");
+            }
+        }
+
+        bool canUseAsPrimitiveSampledTexture(wgpu::TextureFormat format) {
+            switch (format) {
+            case wgpu::TextureFormat::RGBA8Unorm:
+            case wgpu::TextureFormat::BGRA8Unorm:
+            case wgpu::TextureFormat::RGBA16Float:
+                return true;
+            default:
+                return false;
+            }
+        }
+
         wgpu::Color toWgpuColor(const Color &color) {
             return {color.r, color.g, color.b, color.a};
         }
@@ -257,9 +298,114 @@ namespace Bess::Wgpu {
             return ((value + alignment - 1) / alignment) * alignment;
         }
 
-        bool isPngWritableFormat(wgpu::TextureFormat format) {
-            return format == wgpu::TextureFormat::RGBA8Unorm ||
-                   format == wgpu::TextureFormat::BGRA8Unorm;
+        Core::Renderer::TextureReadbackResult readTextureRegion(
+            const wgpu::Instance &instance, const wgpu::Device &device,
+            const wgpu::Queue &queue, const wgpu::Texture &texture,
+            wgpu::TextureFormat format, uint32_t textureWidth,
+            uint32_t textureHeight,
+            const Core::Renderer::TextureReadbackRegion &region) {
+            if (texture == nullptr) {
+                throw std::runtime_error("Cannot read a null WGPU texture");
+            }
+            if (region.width == 0 || region.height == 0) {
+                throw std::runtime_error(
+                    "Texture readback region must be non-empty");
+            }
+            if (region.x >= textureWidth || region.y >= textureHeight ||
+                region.width > textureWidth - region.x ||
+                region.height > textureHeight - region.y) {
+                throw std::runtime_error(
+                    "Texture readback region is outside the texture bounds");
+            }
+
+            const uint32_t bytesPerPixel = bytesPerPixelForFormat(format);
+            const uint32_t unpaddedBytesPerRow =
+                region.width * bytesPerPixel;
+            const uint32_t paddedBytesPerRow =
+                alignTo(unpaddedBytesPerRow, 256);
+            const auto readbackSize =
+                static_cast<uint64_t>(paddedBytesPerRow) * region.height;
+
+            wgpu::BufferDescriptor bufferDescriptor{};
+            bufferDescriptor.size = readbackSize;
+            bufferDescriptor.usage =
+                wgpu::BufferUsage::MapRead | wgpu::BufferUsage::CopyDst;
+            wgpu::Buffer readbackBuffer =
+                device.CreateBuffer(&bufferDescriptor);
+
+            wgpu::CommandEncoder encoder = device.CreateCommandEncoder();
+
+            wgpu::TexelCopyTextureInfo source{};
+            source.texture = texture;
+            source.mipLevel = 0;
+            source.origin = {region.x, region.y, 0};
+            source.aspect = wgpu::TextureAspect::All;
+
+            wgpu::TexelCopyBufferInfo destination{};
+            destination.buffer = readbackBuffer;
+            destination.layout.offset = 0;
+            destination.layout.bytesPerRow = paddedBytesPerRow;
+            destination.layout.rowsPerImage = region.height;
+
+            wgpu::Extent3D copySize{region.width, region.height, 1};
+            encoder.CopyTextureToBuffer(&source, &destination, &copySize);
+
+            wgpu::CommandBuffer commandBuffer = encoder.Finish();
+            queue.Submit(1, &commandBuffer);
+
+            wgpu::MapAsyncStatus mapStatus = wgpu::MapAsyncStatus::Error;
+            std::string mapError;
+            auto mapCallback =
+                [&mapStatus, &mapError](wgpu::MapAsyncStatus status,
+                                         wgpu::StringView message) {
+                    mapStatus = status;
+                    if (status != wgpu::MapAsyncStatus::Success &&
+                        message.data != nullptr) {
+                        mapError.assign(message.data, message.length);
+                    }
+                };
+
+            wgpu::Future mapFuture = readbackBuffer.MapAsync(
+                wgpu::MapMode::Read, 0, readbackSize,
+                wgpu::CallbackMode::WaitAnyOnly, mapCallback);
+            if (instance.WaitAny(mapFuture, UINT64_MAX) !=
+                wgpu::WaitStatus::Success) {
+                throw std::runtime_error(
+                    "Timed out waiting for WGPU texture readback");
+            }
+            if (mapStatus != wgpu::MapAsyncStatus::Success) {
+                throw std::runtime_error(
+                    "Failed to map WGPU texture readback buffer: " + mapError);
+            }
+
+            const auto *mappedData = static_cast<const uint8_t *>(
+                readbackBuffer.GetConstMappedRange(0, readbackSize));
+            if (mappedData == nullptr) {
+                readbackBuffer.Unmap();
+                throw std::runtime_error(
+                    "Failed to access WGPU texture readback data");
+            }
+
+            Core::Renderer::TextureReadbackResult result;
+            result.format = toRendererFormat(format);
+            result.width = region.width;
+            result.height = region.height;
+            result.bytesPerPixel = bytesPerPixel;
+            result.pixels.resize(static_cast<size_t>(region.height) *
+                                 unpaddedBytesPerRow);
+
+            for (uint32_t row = 0; row < region.height; ++row) {
+                const uint8_t *src =
+                    mappedData +
+                    (static_cast<size_t>(row) * paddedBytesPerRow);
+                uint8_t *dst =
+                    result.pixels.data() +
+                    (static_cast<size_t>(row) * unpaddedBytesPerRow);
+                std::copy(src, src + unpaddedBytesPerRow, dst);
+            }
+
+            readbackBuffer.Unmap();
+            return result;
         }
 
         struct FileDeleter {
@@ -312,6 +458,38 @@ namespace Bess::Wgpu {
             png_write_image(png, rows.data());
             png_write_end(png, nullptr);
             png_destroy_write_struct(&png, &info);
+        }
+
+        void writeTextureReadbackPng(
+            const std::string &path,
+            const Core::Renderer::TextureReadbackResult &readback) {
+            if (readback.format != Renderer2DTargetFormat::RGBA8Unorm &&
+                readback.format != Renderer2DTargetFormat::BGRA8Unorm) {
+                throw std::runtime_error(
+                    "saveToFile currently supports only 8-bit RGBA/BGRA "
+                    "textures");
+            }
+            if (readback.bytesPerPixel != 4 || readback.empty()) {
+                throw std::runtime_error(
+                    "Texture readback cannot be written as PNG");
+            }
+
+            std::vector<uint8_t> rgba(readback.pixels.size());
+            if (readback.format == Renderer2DTargetFormat::BGRA8Unorm) {
+                const size_t pixelCount = static_cast<size_t>(readback.width) *
+                                          static_cast<size_t>(readback.height);
+                for (size_t i = 0; i < pixelCount; ++i) {
+                    const size_t offset = i * readback.bytesPerPixel;
+                    rgba[offset + 0] = readback.pixels[offset + 2];
+                    rgba[offset + 1] = readback.pixels[offset + 1];
+                    rgba[offset + 2] = readback.pixels[offset + 0];
+                    rgba[offset + 3] = readback.pixels[offset + 3];
+                }
+            } else {
+                rgba = readback.pixels;
+            }
+
+            writePng(path, rgba.data(), readback.width, readback.height);
         }
 
         void makePrimitiveInstanceInPlace(
@@ -2742,6 +2920,41 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             void init() override {}
             void destroy() override {}
         };
+
+        struct QueuedPickingReadback {
+            TextureResource resource;
+            Core::Renderer::TextureReadbackRegion region;
+            uint64_t sequence = 0;
+            bool queued = false;
+        };
+
+        struct AsyncPickingReadbackSlot {
+            enum class State : uint8_t {
+                Idle,
+                CopyRecorded,
+                Mapping,
+                Ready,
+                Failed,
+            };
+
+            State state = State::Idle;
+            wgpu::Buffer buffer;
+            uint64_t bufferSize = 0;
+            uint64_t mappedSize = 0;
+            uint32_t x = 0;
+            uint32_t y = 0;
+            uint32_t width = 0;
+            uint32_t height = 0;
+            uint32_t paddedBytesPerRow = 0;
+            uint32_t unpaddedBytesPerRow = 0;
+            uint64_t sequence = 0;
+            wgpu::MapAsyncStatus mapStatus = wgpu::MapAsyncStatus::Error;
+            std::string mapError;
+
+            [[nodiscard]] bool isReusable() const noexcept {
+                return state == State::Idle || state == State::Failed;
+            }
+        };
     } // namespace
 
     struct WgpuRenderer2D::Impl {
@@ -2800,6 +3013,12 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         bool frameStarted = false;
         wgpu::TextureFormat pickingFormat = wgpu::TextureFormat::Undefined;
         Core::Renderer::TextureHandle pickingTextureHandle = 0;
+        QueuedPickingReadback queuedPickingReadback;
+        std::array<std::shared_ptr<AsyncPickingReadbackSlot>, 3>
+            pickingReadbackSlots;
+        size_t nextPickingReadbackSlot = 0;
+        uint64_t nextPickingReadbackSequence = 1;
+        uint64_t lastDeliveredPickingReadbackSequence = 0;
 
         void createDevice();
         void createOffscreenTarget();
@@ -2808,6 +3027,15 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         void configureWindowSurface(uint32_t width, uint32_t height);
         void createDefaultTexture();
         void recreateTextureBindGroups();
+        void recordQueuedPickingReadback();
+        void beginRecordedPickingReadbackMaps();
+        void processAsyncEvents() const;
+        [[nodiscard]] std::shared_ptr<AsyncPickingReadbackSlot>
+        acquirePickingReadbackSlot(uint64_t requiredSize);
+        [[nodiscard]] bool tryConsumePickingReadback(
+            Core::Renderer::PickingReadbackResult &result);
+        [[nodiscard]] bool hasPickingReadbackWork() const noexcept;
+        void resetPickingReadbacks() noexcept;
         [[nodiscard]] const TextureResource &
         getTexture(Core::Renderer::TextureHandle texture) const;
         [[nodiscard]] uint32_t primitiveStatsCount() const noexcept {
@@ -2948,9 +3176,249 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         }
 
         for (auto &[handle, texture] : textures) {
+            if (!canUseAsPrimitiveSampledTexture(texture.format)) {
+                texture.bindGroup = nullptr;
+                continue;
+            }
             texture.bindGroup = primitivePipeline->createTextureBindGroup(
                 texture.view, "TextureBindGroup_" + std::to_string(handle));
         }
+    }
+
+    std::shared_ptr<AsyncPickingReadbackSlot>
+    WgpuRenderer2D::Impl::acquirePickingReadbackSlot(uint64_t requiredSize) {
+        for (size_t offset = 0; offset < pickingReadbackSlots.size();
+             ++offset) {
+            const size_t index =
+                (nextPickingReadbackSlot + offset) %
+                pickingReadbackSlots.size();
+            auto &slot = pickingReadbackSlots[index];
+            if (slot == nullptr) {
+                slot = std::make_shared<AsyncPickingReadbackSlot>();
+            }
+            if (!slot->isReusable()) {
+                continue;
+            }
+
+            if (slot->buffer == nullptr || slot->bufferSize < requiredSize) {
+                wgpu::BufferDescriptor descriptor{};
+                descriptor.size = requiredSize;
+                descriptor.usage =
+                    wgpu::BufferUsage::MapRead | wgpu::BufferUsage::CopyDst;
+                slot->buffer = device.CreateBuffer(&descriptor);
+                slot->bufferSize = requiredSize;
+            }
+
+            nextPickingReadbackSlot =
+                (index + 1) % pickingReadbackSlots.size();
+            return slot;
+        }
+        return nullptr;
+    }
+
+    void WgpuRenderer2D::Impl::recordQueuedPickingReadback() {
+        if (!queuedPickingReadback.queued) {
+            return;
+        }
+
+        QueuedPickingReadback request = queuedPickingReadback;
+        queuedPickingReadback.queued = false;
+
+        if (request.resource.texture == nullptr ||
+            request.resource.format != wgpu::TextureFormat::RG32Uint) {
+            return;
+        }
+
+        const uint32_t bytesPerPixel =
+            bytesPerPixelForFormat(request.resource.format);
+        const uint32_t unpaddedBytesPerRow =
+            request.region.width * bytesPerPixel;
+        const uint32_t paddedBytesPerRow =
+            alignTo(unpaddedBytesPerRow, 256);
+        const uint64_t requiredSize =
+            static_cast<uint64_t>(paddedBytesPerRow) * request.region.height;
+
+        auto slot = acquirePickingReadbackSlot(requiredSize);
+        if (slot == nullptr) {
+            queuedPickingReadback = request;
+            return;
+        }
+
+        slot->state = AsyncPickingReadbackSlot::State::CopyRecorded;
+        slot->mappedSize = requiredSize;
+        slot->x = request.region.x;
+        slot->y = request.region.y;
+        slot->width = request.region.width;
+        slot->height = request.region.height;
+        slot->paddedBytesPerRow = paddedBytesPerRow;
+        slot->unpaddedBytesPerRow = unpaddedBytesPerRow;
+        slot->sequence = request.sequence;
+        slot->mapStatus = wgpu::MapAsyncStatus::Error;
+        slot->mapError.clear();
+
+        wgpu::TexelCopyTextureInfo source{};
+        source.texture = request.resource.texture;
+        source.mipLevel = 0;
+        source.origin = {request.region.x, request.region.y, 0};
+        source.aspect = wgpu::TextureAspect::All;
+
+        wgpu::TexelCopyBufferInfo destination{};
+        destination.buffer = slot->buffer;
+        destination.layout.offset = 0;
+        destination.layout.bytesPerRow = paddedBytesPerRow;
+        destination.layout.rowsPerImage = request.region.height;
+
+        wgpu::Extent3D copySize{request.region.width, request.region.height,
+                                1};
+        commandEncoder.CopyTextureToBuffer(&source, &destination, &copySize);
+    }
+
+    void WgpuRenderer2D::Impl::beginRecordedPickingReadbackMaps() {
+        for (auto &slot : pickingReadbackSlots) {
+            if (slot == nullptr ||
+                slot->state != AsyncPickingReadbackSlot::State::CopyRecorded) {
+                continue;
+            }
+
+            slot->state = AsyncPickingReadbackSlot::State::Mapping;
+            auto callbackSlot = slot;
+            slot->buffer.MapAsync(
+                wgpu::MapMode::Read, 0, slot->mappedSize,
+                wgpu::CallbackMode::AllowProcessEvents,
+                [callbackSlot](wgpu::MapAsyncStatus status,
+                               wgpu::StringView message) {
+                    callbackSlot->mapStatus = status;
+                    callbackSlot->mapError.clear();
+                    if (status != wgpu::MapAsyncStatus::Success &&
+                        message.data != nullptr) {
+                        callbackSlot->mapError.assign(message.data,
+                                                      message.length);
+                    }
+                    callbackSlot->state =
+                        status == wgpu::MapAsyncStatus::Success
+                            ? AsyncPickingReadbackSlot::State::Ready
+                            : AsyncPickingReadbackSlot::State::Failed;
+                });
+        }
+    }
+
+    void WgpuRenderer2D::Impl::processAsyncEvents() const {
+        if (instance != nullptr) {
+            instance.ProcessEvents();
+        }
+    }
+
+    bool WgpuRenderer2D::Impl::tryConsumePickingReadback(
+        Core::Renderer::PickingReadbackResult &result) {
+        processAsyncEvents();
+
+        std::shared_ptr<AsyncPickingReadbackSlot> newestReady;
+        for (auto &slot : pickingReadbackSlots) {
+            if (slot == nullptr) {
+                continue;
+            }
+            if (slot->state == AsyncPickingReadbackSlot::State::Failed) {
+                slot->state = AsyncPickingReadbackSlot::State::Idle;
+                continue;
+            }
+            if (slot->state != AsyncPickingReadbackSlot::State::Ready) {
+                continue;
+            }
+            if (slot->sequence <= lastDeliveredPickingReadbackSequence) {
+                slot->buffer.Unmap();
+                slot->state = AsyncPickingReadbackSlot::State::Idle;
+                continue;
+            }
+            if (newestReady == nullptr ||
+                slot->sequence > newestReady->sequence) {
+                newestReady = slot;
+            }
+        }
+
+        if (newestReady == nullptr) {
+            return false;
+        }
+
+        for (auto &slot : pickingReadbackSlots) {
+            if (slot == nullptr || slot == newestReady ||
+                slot->state != AsyncPickingReadbackSlot::State::Ready) {
+                continue;
+            }
+            if (slot->sequence < newestReady->sequence) {
+                slot->buffer.Unmap();
+                slot->state = AsyncPickingReadbackSlot::State::Idle;
+            }
+        }
+
+        const auto *mappedData = static_cast<const uint8_t *>(
+            newestReady->buffer.GetConstMappedRange(0,
+                                                    newestReady->mappedSize));
+        if (mappedData == nullptr) {
+            newestReady->buffer.Unmap();
+            newestReady->state = AsyncPickingReadbackSlot::State::Idle;
+            return false;
+        }
+
+        result = {};
+        result.x = newestReady->x;
+        result.y = newestReady->y;
+        result.width = newestReady->width;
+        result.height = newestReady->height;
+        const size_t pixelCount = static_cast<size_t>(result.width) *
+                                  static_cast<size_t>(result.height);
+        result.ids.resize(pixelCount);
+
+        for (uint32_t row = 0; row < result.height; ++row) {
+            const auto *srcRow =
+                mappedData +
+                static_cast<size_t>(row) * newestReady->paddedBytesPerRow;
+            for (uint32_t col = 0; col < result.width; ++col) {
+                const size_t pixelIndex =
+                    static_cast<size_t>(row) * result.width + col;
+                const auto *src =
+                    srcRow + static_cast<size_t>(col) * sizeof(uint32_t) * 2;
+                PickingId id{};
+                std::memcpy(&id.runtimeId, src, sizeof(uint32_t));
+                std::memcpy(&id.info, src + sizeof(uint32_t),
+                            sizeof(uint32_t));
+                result.ids[pixelIndex] = id;
+            }
+        }
+
+        newestReady->buffer.Unmap();
+        newestReady->state = AsyncPickingReadbackSlot::State::Idle;
+        lastDeliveredPickingReadbackSequence = newestReady->sequence;
+        return true;
+    }
+
+    bool WgpuRenderer2D::Impl::hasPickingReadbackWork() const noexcept {
+        if (queuedPickingReadback.queued) {
+            return true;
+        }
+        for (const auto &slot : pickingReadbackSlots) {
+            if (slot == nullptr) {
+                continue;
+            }
+            if (slot->state != AsyncPickingReadbackSlot::State::Idle &&
+                slot->state != AsyncPickingReadbackSlot::State::Failed) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void WgpuRenderer2D::Impl::resetPickingReadbacks() noexcept {
+        queuedPickingReadback = {};
+        for (auto &slot : pickingReadbackSlots) {
+            if (slot != nullptr &&
+                (slot->state == AsyncPickingReadbackSlot::State::Mapping ||
+                 slot->state == AsyncPickingReadbackSlot::State::Ready)) {
+                slot->buffer.Unmap();
+            }
+            slot = nullptr;
+        }
+        nextPickingReadbackSlot = 0;
+        lastDeliveredPickingReadbackSequence = 0;
     }
 
     const TextureResource &WgpuRenderer2D::Impl::getTexture(
@@ -3047,6 +3515,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             return;
         }
         m_impl->commandEncoder = nullptr;
+        m_impl->resetPickingReadbacks();
         if (m_impl->primitivePipeline) {
             m_impl->primitivePipeline->destroy();
             m_impl->primitivePipeline = nullptr;
@@ -3148,6 +3617,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         if (m_impl->device == nullptr) {
             throw std::runtime_error("WgpuRenderer2D is not initialized");
         }
+        m_impl->processAsyncEvents();
 
         if (frameInfo.extent.width != 0 && frameInfo.extent.height != 0 &&
             (frameInfo.extent.width != m_impl->extent.width ||
@@ -3223,7 +3693,9 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             colorAttachments[1].view = pickingRes.view;
             colorAttachments[1].loadOp = wgpu::LoadOp::Clear;
             colorAttachments[1].storeOp = wgpu::StoreOp::Store;
-            colorAttachments[1].clearValue = {0.0, 0.0, 0.0, 0.0};
+            colorAttachments[1].clearValue = {
+                static_cast<double>(PickingId::invalidRuntimeId), 0.0, 0.0,
+                0.0};
             colorAttachmentCount = 2;
         }
 
@@ -3505,8 +3977,11 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                               transparentStrokeVertexOffset, true);
 
         renderPass.End();
+        m_impl->recordQueuedPickingReadback();
+
         wgpu::CommandBuffer commandBuffer = m_impl->commandEncoder.Finish();
         m_impl->queue.Submit(1, &commandBuffer);
+        m_impl->beginRecordedPickingReadbackMaps();
 
         if (m_impl->frameUsesSurface) {
             m_impl->surface.Present();
@@ -3524,6 +3999,97 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         m_impl->shouldClear = true;
     }
 
+    Core::Renderer::TextureReadbackResult WgpuRenderer2D::readTexture(
+        const Core::Renderer::TextureReadbackRegion &region) {
+        if (m_impl->device == nullptr) {
+            throw std::runtime_error("WgpuRenderer2D is not initialized");
+        }
+
+        if (m_impl->frameStarted) {
+            endFrame();
+        }
+
+        if (region.texture == 0) {
+            throw std::runtime_error(
+                "readTexture requires a non-zero texture handle");
+        }
+
+        const auto &resource = m_impl->getTexture(region.texture);
+        return readTextureRegion(m_impl->instance, m_impl->device,
+                                 m_impl->queue, resource.texture,
+                                 resource.format, resource.width,
+                                 resource.height, region);
+    }
+
+    void WgpuRenderer2D::requestPickingIds(
+        const Core::Renderer::TextureReadbackRegion &region) {
+        if (m_impl->device == nullptr) {
+            throw std::runtime_error("WgpuRenderer2D is not initialized");
+        }
+        if (region.texture == 0) {
+            throw std::runtime_error(
+                "requestPickingIds requires a non-zero texture handle");
+        }
+        if (region.width == 0 || region.height == 0) {
+            throw std::runtime_error(
+                "requestPickingIds region must be non-empty");
+        }
+
+        const auto &resource = m_impl->getTexture(region.texture);
+        if (resource.format != wgpu::TextureFormat::RG32Uint) {
+            throw std::runtime_error(
+                "requestPickingIds requires an RG32Uint texture");
+        }
+        if (region.x >= resource.width || region.y >= resource.height) {
+            throw std::runtime_error(
+                "requestPickingIds region starts outside the texture bounds");
+        }
+
+        Core::Renderer::TextureReadbackRegion clamped = region;
+        clamped.width =
+            std::min(region.width, resource.width - region.x);
+        clamped.height =
+            std::min(region.height, resource.height - region.y);
+
+        m_impl->queuedPickingReadback.resource = resource;
+        m_impl->queuedPickingReadback.region = clamped;
+        m_impl->queuedPickingReadback.sequence =
+            m_impl->nextPickingReadbackSequence++;
+        if (m_impl->nextPickingReadbackSequence == 0) {
+            m_impl->nextPickingReadbackSequence = 1;
+        }
+        m_impl->queuedPickingReadback.queued = true;
+    }
+
+    bool WgpuRenderer2D::tryGetPickingIds(
+        Core::Renderer::PickingReadbackResult &result) {
+        if (m_impl->device == nullptr) {
+            return false;
+        }
+        return m_impl->tryConsumePickingReadback(result);
+    }
+
+    bool WgpuRenderer2D::isPickingReadbackPending() const noexcept {
+        return m_impl != nullptr && m_impl->hasPickingReadbackWork();
+    }
+
+    void WgpuRenderer2D::saveTextureToFile(
+        Core::Renderer::TextureHandle texture, const std::string &path) {
+        if (texture == 0) {
+            throw std::runtime_error(
+                "saveTextureToFile requires a non-zero texture handle");
+        }
+
+        const auto &resource = m_impl->getTexture(texture);
+        const auto readback =
+            readTexture({.texture = texture,
+                         .x = 0,
+                         .y = 0,
+                         .width = resource.width,
+                         .height = resource.height});
+        writeTextureReadbackPng(path, readback);
+    }
+
     void WgpuRenderer2D::saveTargetToFile(const std::string &path) {
         if (m_impl->device == nullptr) {
             throw std::runtime_error("WgpuRenderer2D is not initialized");
@@ -3533,105 +4099,35 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             endFrame();
         }
 
-        if (!isPngWritableFormat(m_impl->targetFormat)) {
-            throw std::runtime_error(
-                "saveTargetToFile currently supports only 8-bit RGBA/BGRA "
-                "render targets");
+        Core::Renderer::TextureReadbackResult readback;
+        if (m_impl->lastCompletedTargetTexture != 0) {
+            const auto &resource =
+                m_impl->getTexture(m_impl->lastCompletedTargetTexture);
+            readback =
+                readTextureRegion(m_impl->instance, m_impl->device,
+                                  m_impl->queue, resource.texture,
+                                  resource.format, resource.width,
+                                  resource.height,
+                                  {.texture = resource.handle,
+                                   .x = 0,
+                                   .y = 0,
+                                   .width = resource.width,
+                                   .height = resource.height});
+        } else {
+            const uint32_t width = std::max(1u, m_impl->extent.width);
+            const uint32_t height = std::max(1u, m_impl->extent.height);
+            readback =
+                readTextureRegion(m_impl->instance, m_impl->device,
+                                  m_impl->queue, m_impl->offscreenTarget,
+                                  m_impl->targetFormat, width, height,
+                                  {.texture = 0,
+                                   .x = 0,
+                                   .y = 0,
+                                   .width = width,
+                                   .height = height});
         }
 
-        const auto targetTexture =
-            m_impl->lastCompletedTargetTexture != 0
-                ? m_impl->getTexture(m_impl->lastCompletedTargetTexture).texture
-                : m_impl->offscreenTarget;
-
-        const uint32_t width = std::max(1u, m_impl->extent.width);
-        const uint32_t height = std::max(1u, m_impl->extent.height);
-        const uint32_t bytesPerPixel = 4;
-        const uint32_t unpaddedBytesPerRow = width * bytesPerPixel;
-        const uint32_t paddedBytesPerRow = alignTo(unpaddedBytesPerRow, 256);
-        const auto readbackSize =
-            static_cast<uint64_t>(paddedBytesPerRow) * height;
-
-        wgpu::BufferDescriptor bufferDescriptor{};
-        bufferDescriptor.size = readbackSize;
-        bufferDescriptor.usage =
-            wgpu::BufferUsage::MapRead | wgpu::BufferUsage::CopyDst;
-        wgpu::Buffer readbackBuffer =
-            m_impl->device.CreateBuffer(&bufferDescriptor);
-
-        wgpu::CommandEncoder encoder = m_impl->device.CreateCommandEncoder();
-
-        wgpu::TexelCopyTextureInfo source{};
-        source.texture = targetTexture;
-        source.mipLevel = 0;
-        source.origin = {0, 0, 0};
-        source.aspect = wgpu::TextureAspect::All;
-
-        wgpu::TexelCopyBufferInfo destination{};
-        destination.buffer = readbackBuffer;
-        destination.layout.offset = 0;
-        destination.layout.bytesPerRow = paddedBytesPerRow;
-        destination.layout.rowsPerImage = height;
-
-        wgpu::Extent3D copySize{width, height, 1};
-        encoder.CopyTextureToBuffer(&source, &destination, &copySize);
-
-        wgpu::CommandBuffer commandBuffer = encoder.Finish();
-        m_impl->queue.Submit(1, &commandBuffer);
-
-        wgpu::MapAsyncStatus mapStatus = wgpu::MapAsyncStatus::Error;
-        std::string mapError;
-        auto mapCallback = [&mapStatus, &mapError](wgpu::MapAsyncStatus status,
-                                                   wgpu::StringView message) {
-            mapStatus = status;
-            if (status != wgpu::MapAsyncStatus::Success &&
-                message.data != nullptr) {
-                mapError.assign(message.data, message.length);
-            }
-        };
-
-        wgpu::Future mapFuture = readbackBuffer.MapAsync(
-            wgpu::MapMode::Read, 0, readbackSize,
-            wgpu::CallbackMode::WaitAnyOnly, mapCallback);
-        if (m_impl->instance.WaitAny(mapFuture, UINT64_MAX) !=
-            wgpu::WaitStatus::Success) {
-            throw std::runtime_error("Timed out waiting for WGPU readback");
-        }
-        if (mapStatus != wgpu::MapAsyncStatus::Success) {
-            throw std::runtime_error("Failed to map WGPU readback buffer: " +
-                                     mapError);
-        }
-
-        const auto *mappedData = static_cast<const uint8_t *>(
-            readbackBuffer.GetConstMappedRange(0, readbackSize));
-        if (mappedData == nullptr) {
-            readbackBuffer.Unmap();
-            throw std::runtime_error("Failed to access WGPU readback data");
-        }
-
-        std::vector<uint8_t> rgba(static_cast<size_t>(width) * height *
-                                  bytesPerPixel);
-        for (uint32_t row = 0; row < height; ++row) {
-            const uint8_t *src =
-                mappedData + (static_cast<size_t>(row) * paddedBytesPerRow);
-            uint8_t *dst =
-                rgba.data() + (static_cast<size_t>(row) * unpaddedBytesPerRow);
-
-            if (m_impl->targetFormat == wgpu::TextureFormat::BGRA8Unorm) {
-                for (uint32_t col = 0; col < width; ++col) {
-                    const uint32_t offset = col * bytesPerPixel;
-                    dst[offset + 0] = src[offset + 2];
-                    dst[offset + 1] = src[offset + 1];
-                    dst[offset + 2] = src[offset + 0];
-                    dst[offset + 3] = src[offset + 3];
-                }
-            } else {
-                std::copy(src, src + unpaddedBytesPerRow, dst);
-            }
-        }
-
-        readbackBuffer.Unmap();
-        writePng(path, rgba.data(), width, height);
+        writeTextureReadbackPng(path, readback);
     }
 
     Core::Renderer::Renderer2DStats WgpuRenderer2D::getStats() const noexcept {
@@ -3640,6 +4136,10 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
 
     void
     WgpuRenderer2D::unregisterTexture(Core::Renderer::TextureHandle texture) {
+        if (m_impl->queuedPickingReadback.queued &&
+            m_impl->queuedPickingReadback.resource.handle == texture) {
+            m_impl->queuedPickingReadback = {};
+        }
         m_impl->textures.erase(texture);
         m_impl->recreateTextureBindGroups();
     }

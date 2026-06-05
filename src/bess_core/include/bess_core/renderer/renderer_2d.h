@@ -1,12 +1,14 @@
 #pragma once
 #include "bess_core/renderer/renderer_path.h"
 #include "bess_core/renderer/renderer_types.h"
+#include <array>
 #include <cstdint>
 #include <functional>
 #include <memory>
 #include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace Bess {
     class Window;
@@ -71,6 +73,57 @@ namespace Bess::Core::Renderer {
         float *cameraTransform = nullptr;
     };
 
+    struct TextureReadbackRegion {
+        TextureHandle texture = 0;
+        uint32_t x = 0;
+        uint32_t y = 0;
+        uint32_t width = 1;
+        uint32_t height = 1;
+    };
+
+    struct TextureReadbackResult {
+        Renderer2DTargetFormat format = Renderer2DTargetFormat::None;
+        uint32_t width = 0;
+        uint32_t height = 0;
+        uint32_t bytesPerPixel = 0;
+        std::vector<uint8_t> pixels;
+
+        [[nodiscard]] bool empty() const noexcept { return pixels.empty(); }
+    };
+
+    struct PickingReadbackResult {
+        uint32_t x = 0;
+        uint32_t y = 0;
+        uint32_t width = 0;
+        uint32_t height = 0;
+        std::vector<PickingId> ids;
+
+        [[nodiscard]] bool empty() const noexcept { return ids.empty(); }
+        [[nodiscard]] PickingId firstOrInvalid() const noexcept {
+            return ids.empty() ? PickingId::invalid() : ids.front();
+        }
+    };
+
+    using CustomQuadShaderHandle = uint32_t;
+
+    struct CustomQuadShaderDesc {
+        std::string label;
+        // Appended after the renderer's WGSL prelude. Define:
+        // fn <fragmentEntryPoint>(in: CustomQuadFragmentInput) -> vec4f
+        //
+        // CustomQuadFragmentInput contains:
+        // frag_coord, uv, local_uv, local_pos, size, color, data0..data3.
+        // uv respects QuadProps::uvRect; local_uv is always 0..1.
+        std::string fragmentSource;
+        std::string fragmentEntryPoint = "custom_quad_fragment";
+    };
+
+    struct CustomQuadProps {
+        QuadProps quad;
+        CustomQuadShaderHandle shader = 0;
+        std::array<glm::vec4, 4> data{};
+    };
+
     class IRenderer2D {
       public:
         virtual ~IRenderer2D();
@@ -87,7 +140,36 @@ namespace Bess::Core::Renderer {
         virtual void saveTargetToFile(const std::string &path) = 0;
         [[nodiscard]] virtual Renderer2DStats getStats() const noexcept = 0;
 
+        [[nodiscard]] virtual TextureReadbackResult
+        readTexture(const TextureReadbackRegion &region) = 0;
+        [[nodiscard]] TextureReadbackResult readTexture(TextureHandle texture,
+                                                        uint32_t x, uint32_t y,
+                                                        uint32_t width = 1,
+                                                        uint32_t height = 1);
+        [[nodiscard]] PickingId readPickingId(TextureHandle texture,
+                                              uint32_t x, uint32_t y);
+        [[nodiscard]] std::vector<PickingId>
+        readPickingIds(TextureHandle texture, uint32_t x, uint32_t y,
+                       uint32_t width, uint32_t height);
+        virtual void requestPickingIds(const TextureReadbackRegion &region) = 0;
+        void requestPickingId(TextureHandle texture, uint32_t x, uint32_t y);
+        [[nodiscard]] virtual bool
+        tryGetPickingIds(PickingReadbackResult &result) = 0;
+        [[nodiscard]] virtual bool
+        isPickingReadbackPending() const noexcept = 0;
+
         virtual void drawQuad(const QuadProps &props) = 0;
+
+        [[nodiscard]] virtual CustomQuadShaderHandle
+        createCustomQuadShader(const CustomQuadShaderDesc &desc) = 0;
+        virtual void destroyCustomQuadShader(CustomQuadShaderHandle shader) = 0;
+        virtual void drawCustomQuad(const CustomQuadProps &props) = 0;
+        void drawCustomQuad(const QuadProps &quad,
+                            CustomQuadShaderHandle shader,
+                            std::array<glm::vec4, 4> data = {}) {
+            drawCustomQuad(
+                CustomQuadProps{.quad = quad, .shader = shader, .data = data});
+        }
 
         virtual void
         drawRoundedQuad(const QuadProps &props,

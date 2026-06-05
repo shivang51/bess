@@ -384,6 +384,43 @@ namespace Bess::Canvas {
         return glm::vec2(glm::round(pos / snapSize)) * snapSize;
     }
 
+    void Scene::onPrePickingIdChange(const PickingId &newId) {
+        if (m_isDragging)
+            return;
+
+        if (m_pickingId.isValid() && m_pickingId != newId) {
+            const auto prevComp = m_state.getComponentByPickingId(m_pickingId);
+            if (prevComp) {
+                prevComp->onMouseLeave(
+                    {toScenePos(m_mousePos), m_pickingId.info});
+            } else {
+                BESS_WARN("[Scene] PickingId is valid but no component found "
+                          "for id {}",
+                          (uint64_t)m_pickingId);
+            }
+        }
+
+        m_prevPickingId = m_pickingId;
+    }
+
+    void Scene::onPickingIdChange() {
+        if (m_isDragging)
+            return;
+
+        if (m_pickingId.isValid()) {
+            const auto currComp = m_state.getComponentByPickingId(m_pickingId);
+
+            if (currComp) {
+                currComp->onMouseEnter(
+                    {toScenePos(m_mousePos), m_pickingId.info});
+            } else {
+                BESS_WARN("[Scene] PickingId is valid but no component found "
+                          "for id {}",
+                          (uint64_t)m_pickingId);
+            }
+        }
+    }
+
     void Scene::drawScratchContent(TimeMs ts) {}
 
     bool Scene::isHoveredEntityValid() { return m_pickingId.isValid(); }
@@ -391,43 +428,6 @@ namespace Bess::Canvas {
     const SceneState &Scene::getState() const { return m_state; }
 
     SceneState &Scene::getState() { return m_state; }
-
-    void Scene::setPickingId(const PickingId &pickingId) {
-        if (m_isDragging)
-            return;
-
-        m_prevPickingId = m_pickingId;
-        m_pickingId = pickingId;
-
-        if (m_pickingId != m_prevPickingId) {
-            if (m_prevPickingId.isValid()) {
-                const auto prevComp =
-                    m_state.getComponentByPickingId(m_prevPickingId);
-                if (prevComp) {
-                    prevComp->onMouseLeave(
-                        {toScenePos(m_mousePos), m_prevPickingId.info});
-                } else {
-                    BESS_WARN("[Scene] Previous PickingId is valid but no "
-                              "component found for id {}",
-                              (uint64_t)m_prevPickingId);
-                }
-            }
-
-            if (m_pickingId.isValid()) {
-                const auto currComp =
-                    m_state.getComponentByPickingId(m_pickingId);
-
-                if (currComp) {
-                    currComp->onMouseEnter(
-                        {toScenePos(m_mousePos), m_pickingId.info});
-                } else {
-                    BESS_WARN("[Scene] PickingId is valid but no component "
-                              "found for id {}",
-                              (uint64_t)m_pickingId);
-                }
-            }
-        }
-    }
 
     void Scene::updateViewportTransform(const ViewportTransform &transform) {
         m_viewportTransform = transform;

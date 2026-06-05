@@ -38,7 +38,7 @@
                                  onAfterChange)                                \
     const type &get##name() const { return varName; }                          \
     void set##name(const type &value) {                                        \
-        onBeforeChange();                                                      \
+        onBeforeChange(value);                                                 \
         varName = value;                                                       \
         onAfterChange();                                                       \
     }                                                                          \

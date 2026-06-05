@@ -1,6 +1,5 @@
 #include "scene_viewport_panel.h"
 #include "bess_core/g_app_context.h"
-#include "bess_wgpu/wgpu_renderer_2d.h"
 #include "common/types.h"
 #include "events/application_event.h"
 #include "pages/main_page/main_page.h"
@@ -123,27 +122,37 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::renderAttachedScene() {
-        if (m_sceneTexture == nullptr) {
+        if (m_sceneTexture == nullptr || m_pickingTexture == nullptr) {
             return;
         }
         const auto &appCtx = GAppContext::getInstance();
         const auto &renderCtx = appCtx.getSubSystem<RendererContext>();
         const auto &sceneState = m_attachedScene->getState();
 
-        const auto &renderer =
-            renderCtx->getRenderer<Bess::Wgpu::WgpuRenderer2D>();
+        const auto &renderer = renderCtx->getRenderer();
 
         renderer->beginFrame({
             .extent = {(uint32_t)m_viewportSize.x, (uint32_t)m_viewportSize.y},
             .clearColor = ViewportTheme::colors.background,
             .shouldClear = true,
             .targetTexture = m_sceneTexture->getHandle(),
+            .pickingTexture = m_pickingTexture->getHandle(),
             .cameraTransform =
                 glm::value_ptr(m_attachedScene->getCamera()->getTransform()),
         });
 
-        renderer->drawFont("Hello World",
-                           {{100.f, 100.f}, 24.f, {1.f, 1.f, 0.f, 1.f}});
+        renderer->drawFont("Hello World", {
+                                              .position = {100.f, 100.f},
+                                              .fontSize = 12.f,
+                                              .color = {1.f, 1.f, 0.f, 1.f},
+                                              .id = PickingId{2, 0},
+                                          });
+        renderer->drawFont("Hello World", {
+                                              .position = {100.f, 120.f},
+                                              .fontSize = 12.f,
+                                              .color = {1.f, 1.f, 0.f, 1.f},
+                                              .id = PickingId{3, 0},
+                                          });
 
         if (m_uvDebugShader == 0) {
             m_uvDebugShader = renderer->createCustomQuadShader({
@@ -162,11 +171,14 @@ namespace Bess::UI {
                                          m_uvDebugStartTime)
                 .count();
 
-        renderer->drawCustomQuad(
-            {.size = {400, 400}}, m_uvDebugShader,
-            {glm::vec4(timeSeconds, 0.f, 0.f, 0.f)});
+        renderer->drawCustomQuad({.size = {400, 400}, .id = PickingId{1, 0}},
+                                 m_uvDebugShader,
+                                 {
+                                     glm::vec4(timeSeconds, 0.f, 0.f, 0.f),
+                                 });
 
         renderer->endFrame();
+        m_attachedScene->setIsFirstFrame(false);
     }
 
     void SceneViewportPanel::drawGrid(SceneDrawContext &context) {
@@ -252,5 +264,38 @@ namespace Bess::UI {
             -1, props);
     }
 
-    void SceneViewportPanel::updatePickingIds(bool mouseMoved) {}
+    void SceneViewportPanel::updatePickingIds(bool mouseMoved) {
+        const auto &renderer = GAppContext::getInstance()
+                                   .getSubSystem<RendererContext>()
+                                   ->getRenderer();
+
+        Core::Renderer::PickingReadbackResult pickingResult;
+        if (renderer->tryGetPickingIds(pickingResult) &&
+            !pickingResult.empty()) {
+            m_attachedScene->setPickingId(pickingResult.firstOrInvalid());
+        }
+
+        if (!mouseMoved || m_pickingTexture == nullptr ||
+            m_pickingTexture->getHandle() == 0) {
+            return;
+        }
+
+        const glm::vec2 mousePos = m_attachedScene->getMousePos();
+        const glm::vec2 textureSize = m_pickingTexture->getSize();
+        const uint32_t width =
+            textureSize.x > 1.f ? static_cast<uint32_t>(textureSize.x) : 1u;
+        const uint32_t height =
+            textureSize.y > 1.f ? static_cast<uint32_t>(textureSize.y) : 1u;
+
+        if (mousePos.x < 0.f || mousePos.y < 0.f ||
+            mousePos.x >= static_cast<float>(width) ||
+            mousePos.y >= static_cast<float>(height)) {
+            m_attachedScene->setPickingId(PickingId::invalid());
+            return;
+        }
+
+        renderer->requestPickingId(m_pickingTexture->getHandle(),
+                                   static_cast<uint32_t>(mousePos.x),
+                                   static_cast<uint32_t>(mousePos.y));
+    }
 } // namespace Bess::UI

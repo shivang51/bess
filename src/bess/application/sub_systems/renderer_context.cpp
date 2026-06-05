@@ -21,6 +21,7 @@ namespace Bess {
         m_renderer->init(
             {.extent = {800, 600},
              .targetFormat = Core::Renderer::Renderer2DTargetFormat::BGRA8Unorm,
+             .pickingFormat = Core::Renderer::Renderer2DTargetFormat::RG32Uint,
              .surface = {.type = Core::Renderer::Renderer2DNativeSurfaceType::
                              PlatformHandle,
                          .handle = window->getGLFWHandle()}});

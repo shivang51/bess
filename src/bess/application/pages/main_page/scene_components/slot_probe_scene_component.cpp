@@ -254,7 +254,8 @@ namespace Bess::Canvas {
         digComp->removeOnStateChangeCB(m_uuid);
     }
 
-    void SlotProbeSceneComponent::onBeforeProbedSlotChanged() {
+    void SlotProbeSceneComponent::onBeforeProbedSlotChanged(
+        const UUID &newSlotUuid) {
         m_unsubscribeFlag = true;
         m_unsubscribeSlotUuid = m_probedSlotUuid;
     }

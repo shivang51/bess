@@ -4,10 +4,30 @@
 #include "common/logger.h"
 #include "stb_image.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <stdexcept>
 
 namespace Bess::Wgpu {
+    namespace {
+        wgpu::TextureFormat toWgpuFormat(
+            Core::Renderer::Renderer2DTargetFormat format) {
+            using Core::Renderer::Renderer2DTargetFormat;
+            switch (format) {
+            case Renderer2DTargetFormat::RGBA8Unorm:
+                return wgpu::TextureFormat::RGBA8Unorm;
+            case Renderer2DTargetFormat::BGRA8Unorm:
+                return wgpu::TextureFormat::BGRA8Unorm;
+            case Renderer2DTargetFormat::RGBA16Float:
+                return wgpu::TextureFormat::RGBA16Float;
+            case Renderer2DTargetFormat::RG32Uint:
+                return wgpu::TextureFormat::RG32Uint;
+            case Renderer2DTargetFormat::None:
+            default:
+                return wgpu::TextureFormat::Undefined;
+            }
+        }
+    } // namespace
 
     std::shared_ptr<WgpuRenderer2D> WgpuTexture::s_renderer = nullptr;
 
@@ -67,11 +87,22 @@ namespace Bess::Wgpu {
         }
 
         m_wgpuHandle = nullptr;
+        m_textureView = nullptr;
         s_renderer->unregisterTexture(m_handle);
         m_handle = 0;
     }
     void *WgpuTexture::getView() const {
         return (void *)getTextureView().Get();
+    }
+
+    void WgpuTexture::saveToFile(const std::string &path) const {
+        if (s_renderer == nullptr) {
+            throw std::runtime_error("WgpuTexture has no renderer");
+        }
+        if (m_handle == 0) {
+            throw std::runtime_error("Cannot save an uninitialized texture");
+        }
+        s_renderer->saveTextureToFile(m_handle, path);
     }
 
     wgpu::TextureView WgpuTexture::getTextureView() const {
@@ -86,10 +117,9 @@ namespace Bess::Wgpu {
         resource.handle = m_handle;
         resource.view = getTextureView();
         resource.texture = m_wgpuHandle;
-        if (!m_isRenderTarget) {
-            resource.width = (uint32_t)m_size.x;
-            resource.height = (uint32_t)m_size.y;
-        }
+        resource.width = std::max(1u, static_cast<uint32_t>(m_size.x));
+        resource.height = std::max(1u, static_cast<uint32_t>(m_size.y));
+        resource.format = m_wgpuFormat;
         return resource;
     }
 
@@ -119,11 +149,17 @@ namespace Bess::Wgpu {
     }
 
     void WgpuTexture::initRenderTarget() {
+        m_wgpuFormat = toWgpuFormat(m_format);
+        if (m_wgpuFormat == wgpu::TextureFormat::Undefined) {
+            m_wgpuFormat = s_renderer->getTargetFormat();
+            m_format = s_renderer->getTargetFormatType();
+        }
+
         wgpu::TextureDescriptor descriptor{};
         descriptor.dimension = wgpu::TextureDimension::e2D;
         descriptor.size = {std::max(1u, (uint32_t)m_size.x),
                            std::max(1u, (uint32_t)m_size.y), 1};
-        descriptor.format = s_renderer->getTargetFormat();
+        descriptor.format = m_wgpuFormat;
         descriptor.mipLevelCount = 1;
         descriptor.sampleCount = 1;
         descriptor.usage = wgpu::TextureUsage::RenderAttachment |
@@ -147,14 +183,17 @@ namespace Bess::Wgpu {
         descriptor.format = wgpu::TextureFormat::RGBA8Unorm;
         descriptor.mipLevelCount = 1;
         descriptor.sampleCount = 1;
-        descriptor.usage =
-            wgpu::TextureUsage::TextureBinding | wgpu::TextureUsage::CopyDst;
+        descriptor.usage = wgpu::TextureUsage::TextureBinding |
+                           wgpu::TextureUsage::CopyDst |
+                           wgpu::TextureUsage::CopySrc;
 
         auto device = s_renderer->getDevice();
         m_wgpuHandle = device.CreateTexture(&descriptor);
+        m_wgpuFormat = wgpu::TextureFormat::RGBA8Unorm;
+        m_format = Core::Renderer::Renderer2DTargetFormat::RGBA8Unorm;
 
         wgpu::TexelCopyTextureInfo destination{};
-        destination.texture = device.CreateTexture(&descriptor);
+        destination.texture = m_wgpuHandle;
         destination.mipLevel = 0;
         destination.origin = {0, 0, 0};
         destination.aspect = wgpu::TextureAspect::All;

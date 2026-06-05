@@ -29,6 +29,7 @@ namespace Bess::Wgpu {
         void init() override;
         void destroy() override;
         void *getView() const override;
+        void saveToFile(const std::string &path) const override;
 
         wgpu::TextureView getTextureView() const;
 
@@ -46,6 +47,7 @@ namespace Bess::Wgpu {
         static std::shared_ptr<WgpuRenderer2D> s_renderer;
         wgpu::Texture m_wgpuHandle = nullptr;
         wgpu::TextureView m_textureView = nullptr;
+        wgpu::TextureFormat m_wgpuFormat = wgpu::TextureFormat::RGBA8Unorm;
         bool m_isRenderTarget = false;
     };
 

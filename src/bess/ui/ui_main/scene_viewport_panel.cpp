@@ -1,8 +1,9 @@
 #include "scene_viewport_panel.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/scene_driver.h"
-#include "bess_wgpu/wgpu_renderer_2d.h"
+#include "bess_wgpu/wgpu_texture.h"
 #include "common/bess_uuid.h"
 #include "common/helpers.h"
 #include "common/logger.h"
@@ -34,6 +35,12 @@ namespace Bess::UI {
             Core::Renderer::TextureCreateInfo{});
         m_sceneTexture->setSize({800.f, 600.f});
         m_sceneTexture->init();
+
+        m_pickingTexture = std::make_shared<Wgpu::WgpuTexture>(
+            Core::Renderer::TextureCreateInfo{
+                .format = Core::Renderer::Renderer2DTargetFormat::RG32Uint});
+        m_pickingTexture->setSize({800.f, 600.f});
+        m_pickingTexture->init();
         m_uvDebugStartTime = std::chrono::steady_clock::now();
     }
 
@@ -47,6 +54,11 @@ namespace Bess::UI {
                 m_sceneTexture->setSize(m_viewportSize);
                 m_sceneTexture->destroy();
                 m_sceneTexture->init();
+            }
+            if (m_pickingTexture) {
+                m_pickingTexture->setSize(m_viewportSize);
+                m_pickingTexture->destroy();
+                m_pickingTexture->init();
             }
             m_isResized = false;
         }
@@ -71,14 +83,21 @@ namespace Bess::UI {
 
     void SceneViewportPanel::destroy() {
         if (m_uvDebugShader != 0) {
-            const auto renderer =
-                GAppContext::getInstance()
-                    .getSubSystem<RendererContext>()
-                    ->getRenderer<Wgpu::WgpuRenderer2D>();
+            const auto renderer = GAppContext::getInstance()
+                                      .getSubSystem<RendererContext>()
+                                      ->getRenderer();
             if (renderer != nullptr) {
                 renderer->destroyCustomQuadShader(m_uvDebugShader);
             }
             m_uvDebugShader = 0;
+        }
+        if (m_sceneTexture != nullptr) {
+            m_sceneTexture->destroy();
+            m_sceneTexture = nullptr;
+        }
+        if (m_pickingTexture != nullptr) {
+            m_pickingTexture->destroy();
+            m_pickingTexture = nullptr;
         }
         m_rootToSceneStatePtrs.clear();
     }
@@ -293,6 +312,8 @@ namespace Bess::UI {
             ImGui::AlignTextToFramePadding();
             ImGui::Text(" %s", Icons::FontAwesomeIcons::FA_CAMERA_RETRO);
             ImGui::SameLine();
+            ImGui::Text("HoverId: %d",
+                        m_attachedScene->getPickingId().runtimeId);
         }
 
         ImGui::SameLine();

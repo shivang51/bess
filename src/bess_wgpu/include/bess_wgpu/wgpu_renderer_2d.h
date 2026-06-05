@@ -11,25 +11,10 @@
 
 namespace Bess::Wgpu {
 
-    using CustomQuadShaderHandle = uint32_t;
-
-    struct CustomQuadShaderDesc {
-        std::string label;
-        // Appended after the renderer's WGSL prelude. Define:
-        // fn <fragmentEntryPoint>(in: CustomQuadFragmentInput) -> vec4f
-        //
-        // CustomQuadFragmentInput contains:
-        // frag_coord, uv, local_uv, local_pos, size, color, data0..data3.
-        // uv respects QuadProps::uvRect; local_uv is always 0..1.
-        std::string fragmentSource;
-        std::string fragmentEntryPoint = "custom_quad_fragment";
-    };
-
-    struct CustomQuadProps {
-        Core::Renderer::QuadProps quad;
-        CustomQuadShaderHandle shader = 0;
-        std::array<glm::vec4, 4> data{};
-    };
+    using CustomQuadShaderHandle =
+        Core::Renderer::CustomQuadShaderHandle;
+    using CustomQuadShaderDesc = Core::Renderer::CustomQuadShaderDesc;
+    using CustomQuadProps = Core::Renderer::CustomQuadProps;
 
     struct TextureResource {
         wgpu::Texture texture;
@@ -38,6 +23,7 @@ namespace Bess::Wgpu {
         Core::Renderer::TextureHandle handle = 0;
         uint32_t width = 1;
         uint32_t height = 1;
+        wgpu::TextureFormat format = wgpu::TextureFormat::RGBA8Unorm;
     };
 
     class WgpuRenderer2D final : public Core::Renderer::IRenderer2D {
@@ -62,8 +48,21 @@ namespace Bess::Wgpu {
 
         void clear(const Core::Renderer::Color &color) override;
         void saveTargetToFile(const std::string &path) override;
+        void saveTextureToFile(Core::Renderer::TextureHandle texture,
+                               const std::string &path);
         [[nodiscard]] Core::Renderer::Renderer2DStats
         getStats() const noexcept override;
+        using Core::Renderer::IRenderer2D::readTexture;
+        [[nodiscard]] Core::Renderer::TextureReadbackResult
+        readTexture(
+            const Core::Renderer::TextureReadbackRegion &region) override;
+        using Core::Renderer::IRenderer2D::requestPickingId;
+        void requestPickingIds(
+            const Core::Renderer::TextureReadbackRegion &region) override;
+        [[nodiscard]] bool tryGetPickingIds(
+            Core::Renderer::PickingReadbackResult &result) override;
+        [[nodiscard]] bool
+        isPickingReadbackPending() const noexcept override;
 
         void unregisterTexture(Core::Renderer::TextureHandle texture);
 
@@ -71,9 +70,10 @@ namespace Bess::Wgpu {
 
         void drawQuad(const Core::Renderer::QuadProps &props) override;
         [[nodiscard]] CustomQuadShaderHandle
-        createCustomQuadShader(const CustomQuadShaderDesc &desc);
-        void destroyCustomQuadShader(CustomQuadShaderHandle shader);
-        void drawCustomQuad(const CustomQuadProps &props);
+        createCustomQuadShader(const CustomQuadShaderDesc &desc) override;
+        void
+        destroyCustomQuadShader(CustomQuadShaderHandle shader) override;
+        void drawCustomQuad(const CustomQuadProps &props) override;
         void drawCustomQuad(const Core::Renderer::QuadProps &quad,
                             CustomQuadShaderHandle shader,
                             std::array<glm::vec4, 4> data = {});

@@ -47,7 +47,7 @@ namespace Bess::Canvas {
 
       private:
         void onProbedSlotChanged();
-        void onBeforeProbedSlotChanged();
+        void onBeforeProbedSlotChanged(const UUID &newSlotUuid);
 
         void subscribeToSlot(const SceneState &sceneState,
                              const UUID &slotUuid);

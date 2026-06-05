@@ -82,6 +82,7 @@ namespace Bess::UI {
         UUID m_nextSceneId = UUID::null;
         std::shared_ptr<Canvas::Scene> m_attachedScene;
         std::shared_ptr<Core::Renderer::ITexture> m_sceneTexture = nullptr;
+        std::shared_ptr<Core::Renderer::ITexture> m_pickingTexture = nullptr;
         std::vector<const Canvas::SceneState *> m_rootToSceneStatePtrs;
         uint32_t m_uvDebugShader = 0;
         std::chrono::steady_clock::time_point m_uvDebugStartTime{};
