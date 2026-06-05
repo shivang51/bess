@@ -1,21 +1,40 @@
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/renderer/renderer_types.h"
 #include "bess_wgpu/wgpu_texture.h"
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <webgpu/webgpu_cpp.h>
 
 namespace Bess::Wgpu {
 
+    enum class WgpuPathLineJoin : uint8_t {
+        Miter,
+        Sharp = Miter,
+        Bevel,
+        Round,
+    };
+
+    enum class WgpuPathLineCap : uint8_t {
+        Butt,
+        Flat = Butt,
+        Round,
+        Square,
+    };
+
     struct WgpuPathProps {
         Core::Renderer::Color fillColor{1.f, 1.f, 1.f, 1.f};
         Core::Renderer::Color strokeColor{1.f, 1.f, 1.f, 1.f};
         float strokeSize = 4.f;
+        float miterLimit = 4.f;
+        float curveTolerance = 0.25f;
         bool renderFill = false;
         float zIndex = 0.f;
         PickingId id = PickingId::invalid();
         Core::Renderer::QuadRenderPass renderPass =
             Core::Renderer::QuadRenderPass::Auto;
+        WgpuPathLineJoin lineJoin = WgpuPathLineJoin::Miter;
+        WgpuPathLineCap lineCap = WgpuPathLineCap::Round;
         bool closePath = true;
     };
 
@@ -71,6 +90,12 @@ namespace Bess::Wgpu {
         void pathLineTo(const glm::vec2 &pos);
         void pathQuadTo(const glm::vec2 &control, const glm::vec2 &pos);
         void pathQuadraticTo(const glm::vec2 &control, const glm::vec2 &pos);
+        void pathCubicTo(const glm::vec2 &control1, const glm::vec2 &control2,
+                         const glm::vec2 &pos);
+        void pathCubicBezierTo(const glm::vec2 &control1,
+                               const glm::vec2 &control2, const glm::vec2 &pos);
+        void pathBezierCurveTo(const glm::vec2 &control1,
+                               const glm::vec2 &control2, const glm::vec2 &pos);
         void endPath();
 
         void

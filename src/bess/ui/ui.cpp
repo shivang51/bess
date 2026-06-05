@@ -240,7 +240,8 @@ namespace Bess {
             .strokeColor = {1.0f, 1.0f, 1.0f, 1.0f},
             .renderFill = true,
             .zIndex = 3.0f,
-            .closePath = false,
+            .lineJoin = Wgpu::WgpuPathLineJoin::Round,
+            .closePath = true,
         });
         renderer->pathMoveTo({100.f, 600.f});
         renderer->pathLineTo({250.f, 600.f});
