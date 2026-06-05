@@ -252,6 +252,10 @@ namespace Bess {
         renderer->pathMoveTo({100.f, 500.f});
         renderer->pathLineTo({250.f, 350.f});
         renderer->pathQuadTo({400.f, 0.f}, {650.f, 500.f});
+
+        renderer->pathMoveTo({100.f, 400.f});
+        renderer->pathLineTo({250.f, 250.f});
+
         renderer->endPath();
 
         renderer->endFrame();

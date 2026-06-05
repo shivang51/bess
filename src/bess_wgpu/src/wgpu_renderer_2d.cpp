@@ -475,6 +475,49 @@ namespace Bess::Wgpu {
             bool valid = false;
         };
 
+        struct PathBakeMetrics {
+            float screenScale = 1.f;
+            float pixelWorldSize = 1.f;
+        };
+
+        struct StrokeMeshParams {
+            PathBakeMetrics metrics;
+            float halfWidth = 0.5f;
+            float fringe = 1.f;
+            float overlap = 1.f;
+        };
+
+        PathBakeMetrics makePathBakeMetrics(const float *cameraTransform,
+                                            const Renderer2DExtent &extent) {
+            if (cameraTransform == nullptr || extent.width == 0 ||
+                extent.height == 0) {
+                return {};
+            }
+
+            const float viewportWidth = static_cast<float>(extent.width);
+            const float viewportHeight = static_cast<float>(extent.height);
+            const glm::vec2 xAxis(cameraTransform[0] * viewportWidth * 0.5f,
+                                  cameraTransform[1] * viewportHeight * 0.5f);
+            const glm::vec2 yAxis(cameraTransform[4] * viewportWidth * 0.5f,
+                                  cameraTransform[5] * viewportHeight * 0.5f);
+            const float screenScale =
+                std::max({glm::length(xAxis), glm::length(yAxis), 0.0001f});
+            return {.screenScale = screenScale,
+                    .pixelWorldSize = 1.f / screenScale};
+        }
+
+        StrokeMeshParams makeStrokeMeshParams(const PathProps &props,
+                                              const PathBakeMetrics &metrics) {
+            const float requestedHalfWidth =
+                std::max(props.strokeSize * 0.5f, 0.0001f);
+            const float pixelHalfWidth = metrics.pixelWorldSize * 0.5f;
+            return {.metrics = metrics,
+                    .halfWidth = std::max(requestedHalfWidth, pixelHalfWidth),
+                    .fringe = std::max(metrics.pixelWorldSize * 0.75f,
+                                       requestedHalfWidth * 0.02f),
+                    .overlap = metrics.pixelWorldSize * 0.75f};
+        }
+
         class PathBatch {
           public:
             void clear() {
@@ -752,16 +795,19 @@ namespace Bess::Wgpu {
                    (3.f * invT * t2 * control2) + (t2 * t * p1);
         }
 
-        float curveTolerance(const PathProps &props) {
-            return std::max(props.curveTolerance, 0.01f);
+        float curveTolerance(const PathProps &props,
+                             const PathBakeMetrics &metrics) {
+            return std::max(props.curveTolerance * metrics.pixelWorldSize,
+                            0.001f);
         }
 
         int quadraticSegmentCount(const glm::vec2 &p0, const glm::vec2 &control,
-                                  const glm::vec2 &p1, const PathProps &props) {
+                                  const glm::vec2 &p1, const PathProps &props,
+                                  const PathBakeMetrics &metrics) {
             const float controlNet =
                 glm::distance(p0, control) + glm::distance(control, p1);
             const float curvature = glm::length(p0 - (2.f * control) + p1);
-            const float tolerance = curveTolerance(props);
+            const float tolerance = curveTolerance(props, metrics);
             const float lengthSegments = std::ceil(controlNet / 24.f);
             const float curveSegments =
                 std::ceil(std::sqrt(curvature / tolerance));
@@ -772,14 +818,15 @@ namespace Bess::Wgpu {
 
         int cubicSegmentCount(const glm::vec2 &p0, const glm::vec2 &control1,
                               const glm::vec2 &control2, const glm::vec2 &p1,
-                              const PathProps &props) {
+                              const PathProps &props,
+                              const PathBakeMetrics &metrics) {
             const float controlNet = glm::distance(p0, control1) +
                                      glm::distance(control1, control2) +
                                      glm::distance(control2, p1);
             const float curvature =
                 std::max(glm::length(p0 - (2.f * control1) + control2),
                          glm::length(control1 - (2.f * control2) + p1));
-            const float tolerance = curveTolerance(props);
+            const float tolerance = curveTolerance(props, metrics);
             const float lengthSegments = std::ceil(controlNet / 18.f);
             const float curveSegments =
                 std::ceil(std::sqrt((3.f * curvature) / tolerance));
@@ -789,7 +836,8 @@ namespace Bess::Wgpu {
         }
 
         BakedPath bakePath(const std::vector<PathCommand> &commands,
-                           const PathProps &props) {
+                           const PathProps &props,
+                           const PathBakeMetrics &metrics) {
             BakedPath baked{};
             if (commands.empty() || !hasPathFill(props)) {
                 return baked;
@@ -863,7 +911,8 @@ namespace Bess::Wgpu {
                     }
                     {
                         const int segments = cubicSegmentCount(
-                            current, cmd.control, cmd.control2, cmd.p, props);
+                            current, cmd.control, cmd.control2, cmd.p, props,
+                            metrics);
                         glm::vec2 prev = current;
                         for (int i = 1; i <= segments; ++i) {
                             const float t = static_cast<float>(i) /
@@ -916,47 +965,66 @@ namespace Bess::Wgpu {
         }
 
         void appendStrokeVertex(std::vector<PathCoverVertex> &vertices,
-                                const glm::vec2 &pos, const PathProps &props) {
+                                const glm::vec2 &pos, const PathProps &props,
+                                float alphaScale = 1.f) {
             auto &vertex = vertices.emplace_back();
-            setCoverVertex(vertex, pos, props.zIndex, props.strokeColor,
-                           props.id);
+            Color color = props.strokeColor;
+            color.a *= std::clamp(alphaScale, 0.f, 1.f);
+            setCoverVertex(vertex, pos, props.zIndex, color, props.id);
         }
 
         void appendStrokeTriangle(std::vector<PathCoverVertex> &vertices,
                                   const glm::vec2 &a, const glm::vec2 &b,
-                                  const glm::vec2 &c, const PathProps &props) {
+                                  const glm::vec2 &c, const PathProps &props,
+                                  float alphaA = 1.f, float alphaB = 1.f,
+                                  float alphaC = 1.f) {
             if (nearlyDegenerateTriangle(a, b, c)) {
                 return;
             }
-            appendStrokeVertex(vertices, a, props);
-            appendStrokeVertex(vertices, b, props);
-            appendStrokeVertex(vertices, c, props);
+            appendStrokeVertex(vertices, a, props, alphaA);
+            appendStrokeVertex(vertices, b, props, alphaB);
+            appendStrokeVertex(vertices, c, props, alphaC);
         }
 
         void appendRoundCap(std::vector<PathCoverVertex> &vertices,
                             const glm::vec2 &center,
                             const glm::vec2 &capDirection,
-                            const PathProps &props) {
+                            const PathProps &props,
+                            const StrokeMeshParams &mesh) {
             constexpr float pi = 3.14159265358979323846f;
-            const float halfWidth = props.strokeSize * 0.5f;
             const glm::vec2 dir = safeNormalize(capDirection);
             const float centerAngle = std::atan2(dir.y, dir.x);
             const int segments = std::clamp(
-                static_cast<int>(std::ceil(pi * halfWidth / 4.f)), 8, 32);
+                static_cast<int>(std::ceil(pi * mesh.halfWidth *
+                                           mesh.metrics.screenScale / 4.f)),
+                8, 96);
 
-            glm::vec2 prev =
+            glm::vec2 prevInner =
                 center + glm::vec2(std::cos(centerAngle - (pi * 0.5f)),
                                    std::sin(centerAngle - (pi * 0.5f))) *
-                             halfWidth;
+                             mesh.halfWidth;
+            glm::vec2 prevOuter =
+                center + glm::vec2(std::cos(centerAngle - (pi * 0.5f)),
+                                   std::sin(centerAngle - (pi * 0.5f))) *
+                             (mesh.halfWidth + mesh.fringe);
             for (int i = 1; i <= segments; ++i) {
                 const float t =
                     static_cast<float>(i) / static_cast<float>(segments);
                 const float angle = centerAngle - (pi * 0.5f) + (pi * t);
-                glm::vec2 next =
-                    center +
-                    glm::vec2(std::cos(angle), std::sin(angle)) * halfWidth;
-                appendStrokeTriangle(vertices, center, prev, next, props);
-                prev = next;
+                glm::vec2 nextInner =
+                    center + glm::vec2(std::cos(angle), std::sin(angle)) *
+                                 mesh.halfWidth;
+                glm::vec2 nextOuter =
+                    center + glm::vec2(std::cos(angle), std::sin(angle)) *
+                                 (mesh.halfWidth + mesh.fringe);
+                appendStrokeTriangle(vertices, center, prevInner, nextInner,
+                                     props);
+                appendStrokeTriangle(vertices, prevInner, prevOuter, nextInner,
+                                     props, 1.f, 0.f, 1.f);
+                appendStrokeTriangle(vertices, nextInner, prevOuter, nextOuter,
+                                     props, 1.f, 0.f, 0.f);
+                prevInner = nextInner;
+                prevOuter = nextOuter;
             }
         }
 
@@ -964,8 +1032,8 @@ namespace Bess::Wgpu {
                              const glm::vec2 &center,
                              const glm::vec2 &prevOuterNormal,
                              const glm::vec2 &nextOuterNormal,
-                             const PathProps &props) {
-            const float halfWidth = props.strokeSize * 0.5f;
+                             const PathProps &props,
+                             const StrokeMeshParams &mesh) {
             const float a0 = std::atan2(prevOuterNormal.y, prevOuterNormal.x);
             float delta =
                 std::atan2((prevOuterNormal.x * nextOuterNormal.y) -
@@ -976,38 +1044,47 @@ namespace Bess::Wgpu {
             }
 
             const int segments = std::clamp(
-                static_cast<int>(std::ceil(std::abs(delta) * halfWidth / 4.f)),
-                4, 32);
-            glm::vec2 prev = center + prevOuterNormal * halfWidth;
+                static_cast<int>(std::ceil(std::abs(delta) * mesh.halfWidth *
+                                           mesh.metrics.screenScale / 4.f)),
+                4, 96);
+            glm::vec2 prevInner = center + prevOuterNormal * mesh.halfWidth;
+            glm::vec2 prevOuter =
+                center + prevOuterNormal * (mesh.halfWidth + mesh.fringe);
             for (int i = 1; i <= segments; ++i) {
                 const float t =
                     static_cast<float>(i) / static_cast<float>(segments);
                 const float angle = a0 + (delta * t);
-                glm::vec2 next =
-                    center +
-                    glm::vec2(std::cos(angle), std::sin(angle)) * halfWidth;
-                appendStrokeTriangle(vertices, center, prev, next, props);
-                prev = next;
+                const glm::vec2 normal(std::cos(angle), std::sin(angle));
+                glm::vec2 nextInner = center + normal * mesh.halfWidth;
+                glm::vec2 nextOuter =
+                    center + normal * (mesh.halfWidth + mesh.fringe);
+                appendStrokeTriangle(vertices, center, prevInner, nextInner,
+                                     props);
+                appendStrokeTriangle(vertices, prevInner, prevOuter, nextInner,
+                                     props, 1.f, 0.f, 1.f);
+                appendStrokeTriangle(vertices, nextInner, prevOuter, nextOuter,
+                                     props, 1.f, 0.f, 0.f);
+                prevInner = nextInner;
+                prevOuter = nextOuter;
             }
         }
 
         void appendStrokeJoin(std::vector<PathCoverVertex> &vertices,
                               const glm::vec2 &center, const glm::vec2 &prevDir,
-                              const glm::vec2 &nextDir,
-                              const PathProps &props) {
+                              const glm::vec2 &nextDir, const PathProps &props,
+                              const StrokeMeshParams &mesh) {
             const float turn =
                 (prevDir.x * nextDir.y) - (prevDir.y * nextDir.x);
             if (std::abs(turn) < 0.0001f) {
                 return;
             }
 
-            const float halfWidth = props.strokeSize * 0.5f;
             const glm::vec2 prevNormal = perpendicular(prevDir);
             const glm::vec2 nextNormal = perpendicular(nextDir);
-            const glm::vec2 prevLeft = center + prevNormal * halfWidth;
-            const glm::vec2 prevRight = center - prevNormal * halfWidth;
-            const glm::vec2 nextLeft = center + nextNormal * halfWidth;
-            const glm::vec2 nextRight = center - nextNormal * halfWidth;
+            const glm::vec2 prevLeft = center + prevNormal * mesh.halfWidth;
+            const glm::vec2 prevRight = center - prevNormal * mesh.halfWidth;
+            const glm::vec2 nextLeft = center + nextNormal * mesh.halfWidth;
+            const glm::vec2 nextRight = center - nextNormal * mesh.halfWidth;
 
             appendStrokeTriangle(vertices, center, prevLeft, nextLeft, props);
             appendStrokeTriangle(vertices, center, nextRight, prevRight, props);
@@ -1015,12 +1092,14 @@ namespace Bess::Wgpu {
             const float side = turn > 0.f ? -1.f : 1.f;
             const glm::vec2 prevOuterNormal = prevNormal * side;
             const glm::vec2 nextOuterNormal = nextNormal * side;
-            const glm::vec2 prevOuter = center + prevOuterNormal * halfWidth;
-            const glm::vec2 nextOuter = center + nextOuterNormal * halfWidth;
+            const glm::vec2 prevOuter =
+                center + prevOuterNormal * mesh.halfWidth;
+            const glm::vec2 nextOuter =
+                center + nextOuterNormal * mesh.halfWidth;
 
             if (props.lineJoin == PathLineJoin::Round) {
                 appendRoundJoin(vertices, center, prevOuterNormal,
-                                nextOuterNormal, props);
+                                nextOuterNormal, props, mesh);
                 return;
             }
 
@@ -1030,9 +1109,9 @@ namespace Bess::Wgpu {
                     miter = safeNormalize(miter);
                     const float denom = glm::dot(miter, nextOuterNormal);
                     if (std::abs(denom) > 0.0001f) {
-                        const float miterLength = halfWidth / denom;
+                        const float miterLength = mesh.halfWidth / denom;
                         const float limit =
-                            halfWidth * std::max(props.miterLimit, 1.f);
+                            mesh.halfWidth * std::max(props.miterLimit, 1.f);
                         if (std::abs(miterLength) <= limit) {
                             const glm::vec2 miterPoint =
                                 center + miter * miterLength;
@@ -1049,27 +1128,48 @@ namespace Bess::Wgpu {
 
         void appendStrokeSegment(std::vector<PathCoverVertex> &vertices,
                                  const glm::vec2 &from, const glm::vec2 &to,
-                                 const PathProps &props) {
+                                 const PathProps &props,
+                                 const StrokeMeshParams &mesh, bool extendStart,
+                                 bool extendEnd) {
             const glm::vec2 delta = to - from;
             if (glm::length(delta) < 0.0001f) {
                 return;
             }
 
-            const float halfWidth = props.strokeSize * 0.5f;
-            const glm::vec2 normal =
-                perpendicular(safeNormalize(delta)) * halfWidth;
-            const glm::vec2 leftFrom = from + normal;
-            const glm::vec2 rightFrom = from - normal;
-            const glm::vec2 leftTo = to + normal;
-            const glm::vec2 rightTo = to - normal;
+            const glm::vec2 dir = safeNormalize(delta);
+            const glm::vec2 segmentFrom =
+                from - dir * (extendStart ? mesh.overlap : 0.f);
+            const glm::vec2 segmentTo =
+                to + dir * (extendEnd ? mesh.overlap : 0.f);
+            const glm::vec2 normal = perpendicular(dir);
+            const glm::vec2 innerNormal = normal * mesh.halfWidth;
+            const glm::vec2 outerNormal =
+                normal * (mesh.halfWidth + mesh.fringe);
+            const glm::vec2 leftFrom = segmentFrom + innerNormal;
+            const glm::vec2 rightFrom = segmentFrom - innerNormal;
+            const glm::vec2 leftTo = segmentTo + innerNormal;
+            const glm::vec2 rightTo = segmentTo - innerNormal;
+            const glm::vec2 outerLeftFrom = segmentFrom + outerNormal;
+            const glm::vec2 outerLeftTo = segmentTo + outerNormal;
+            const glm::vec2 outerRightFrom = segmentFrom - outerNormal;
+            const glm::vec2 outerRightTo = segmentTo - outerNormal;
 
             appendStrokeTriangle(vertices, leftFrom, rightFrom, leftTo, props);
             appendStrokeTriangle(vertices, leftTo, rightFrom, rightTo, props);
+            appendStrokeTriangle(vertices, leftFrom, outerLeftFrom, leftTo,
+                                 props, 1.f, 0.f, 1.f);
+            appendStrokeTriangle(vertices, leftTo, outerLeftFrom, outerLeftTo,
+                                 props, 1.f, 0.f, 0.f);
+            appendStrokeTriangle(vertices, rightFrom, rightTo, outerRightFrom,
+                                 props, 1.f, 1.f, 0.f);
+            appendStrokeTriangle(vertices, rightTo, outerRightTo,
+                                 outerRightFrom, props, 1.f, 0.f, 0.f);
         }
 
         void appendStrokeContour(std::vector<PathCoverVertex> &vertices,
                                  std::vector<glm::vec2> points, bool closed,
-                                 const PathProps &props) {
+                                 const PathProps &props,
+                                 const StrokeMeshParams &mesh) {
             constexpr float epsilon = 0.0001f;
             if (points.size() < 2) {
                 return;
@@ -1088,16 +1188,19 @@ namespace Bess::Wgpu {
                 return;
             }
 
-            if (closed &&
-                glm::distance(points.front(), points.back()) < epsilon) {
+            const bool explicitlyClosed =
+                glm::distance(points.front(), points.back()) < epsilon;
+            if (closed && explicitlyClosed) {
                 points.pop_back();
+            } else if (closed && !props.renderFill &&
+                       props.lineCap == PathLineCap::Round) {
+                closed = false;
             }
             if (closed && points.size() < 3) {
                 closed = false;
             }
 
             const size_t count = points.size();
-            const float halfWidth = props.strokeSize * 0.5f;
 
             glm::vec2 startCapCenter = points.front();
             glm::vec2 endCapCenter = points.back();
@@ -1106,8 +1209,8 @@ namespace Bess::Wgpu {
                 safeNormalize(points[count - 1] - points[count - 2]);
 
             if (!closed && props.lineCap == PathLineCap::Square) {
-                points.front() -= startDir * halfWidth;
-                points.back() += endDir * halfWidth;
+                points.front() -= startDir * mesh.halfWidth;
+                points.back() += endDir * mesh.halfWidth;
             }
 
             auto pointAt = [&](ptrdiff_t index) -> const glm::vec2 & {
@@ -1120,7 +1223,10 @@ namespace Bess::Wgpu {
             const size_t segmentCount = closed ? count : count - 1;
             for (size_t i = 0; i < segmentCount; ++i) {
                 const size_t next = (i + 1) % count;
-                appendStrokeSegment(vertices, points[i], points[next], props);
+                const bool extendStart = closed || i > 0;
+                const bool extendEnd = closed || i + 1 < segmentCount;
+                appendStrokeSegment(vertices, points[i], points[next], props,
+                                    mesh, extendStart, extendEnd);
             }
 
             const size_t joinCount = closed ? count : count > 2 ? count - 2 : 0;
@@ -1130,29 +1236,31 @@ namespace Bess::Wgpu {
                 const glm::vec2 curr = points[i];
                 const glm::vec2 next = pointAt(static_cast<ptrdiff_t>(i) + 1);
                 appendStrokeJoin(vertices, curr, safeNormalize(curr - prev),
-                                 safeNormalize(next - curr), props);
+                                 safeNormalize(next - curr), props, mesh);
             }
 
             if (!closed && props.lineCap == PathLineCap::Round) {
-                appendRoundCap(vertices, startCapCenter, -startDir, props);
-                appendRoundCap(vertices, endCapCenter, endDir, props);
+                appendRoundCap(vertices, startCapCenter, -startDir, props,
+                               mesh);
+                appendRoundCap(vertices, endCapCenter, endDir, props, mesh);
             }
         }
 
         std::vector<PathCoverVertex>
         bakePathStroke(const std::vector<PathCommand> &commands,
-                       const PathProps &props) {
+                       const PathProps &props, const PathBakeMetrics &metrics) {
             std::vector<PathCoverVertex> vertices;
             if (commands.empty() || !hasPathStroke(props)) {
                 return vertices;
             }
 
+            const StrokeMeshParams mesh = makeStrokeMeshParams(props, metrics);
             std::vector<glm::vec2> contour;
             glm::vec2 current(0.f);
 
             auto flushContour = [&]() {
                 appendStrokeContour(vertices, std::move(contour),
-                                    props.closePath, props);
+                                    props.closePath, props, mesh);
                 contour.clear();
             };
 
@@ -1178,7 +1286,7 @@ namespace Bess::Wgpu {
                         contour.push_back(cmd.p);
                     } else {
                         const int segments = quadraticSegmentCount(
-                            current, cmd.control, cmd.p, props);
+                            current, cmd.control, cmd.p, props, metrics);
                         for (int i = 1; i <= segments; ++i) {
                             const float t = static_cast<float>(i) /
                                             static_cast<float>(segments);
@@ -1194,7 +1302,8 @@ namespace Bess::Wgpu {
                     }
                     {
                         const int segments = cubicSegmentCount(
-                            current, cmd.control, cmd.control2, cmd.p, props);
+                            current, cmd.control, cmd.control2, cmd.p, props,
+                            metrics);
                         for (int i = 1; i <= segments; ++i) {
                             const float t = static_cast<float>(i) /
                                             static_cast<float>(segments);
@@ -1798,9 +1907,9 @@ namespace Bess::Wgpu {
                 m_impl->transparentPathStrokeBatch.byteSize();
         }
 
+        m_impl->sharedFrameBuffer.setCameraTransform(m_impl->cameraTransform);
         m_impl->sharedFrameBuffer.update(m_impl->queue, m_impl->extent.width,
                                          m_impl->extent.height);
-        m_impl->sharedFrameBuffer.setCameraTransform(m_impl->cameraTransform);
 
         wgpu::RenderPassEncoder renderPass =
             m_impl->commandEncoder.BeginRenderPass(&renderPassDescriptor);
@@ -2179,9 +2288,12 @@ namespace Bess::Wgpu {
             return;
         }
 
+        const PathBakeMetrics metrics =
+            makePathBakeMetrics(m_impl->cameraTransform, m_impl->extent);
+
         if (hasPathFill(m_impl->activePathProps)) {
-            BakedPath baked =
-                bakePath(m_impl->activePathCommands, m_impl->activePathProps);
+            BakedPath baked = bakePath(m_impl->activePathCommands,
+                                       m_impl->activePathProps, metrics);
             if (baked.valid) {
                 if (isFillTransparent(m_impl->activePathProps)) {
                     m_impl->transparentPathBatch.push(
@@ -2199,7 +2311,7 @@ namespace Bess::Wgpu {
                     ? m_impl->transparentPathStrokeBatch
                     : m_impl->opaquePathStrokeBatch;
             strokeBatch.push(bakePathStroke(m_impl->activePathCommands,
-                                            m_impl->activePathProps),
+                                            m_impl->activePathProps, metrics),
                              m_impl->activePathProps.zIndex);
         }
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <webgpu/webgpu_cpp.h>
 
@@ -43,6 +44,15 @@ namespace Bess::Wgpu::Piplines {
         }
 
         void setCameraTransform(const float *data) {
+            if (data == nullptr) {
+                constexpr float identity[16] = {
+                    1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f,
+                    0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f,
+                };
+                std::copy(identity, identity + 16,
+                          m_frameUniform.cameraTransform);
+                return;
+            }
             std::copy(data, data + 16, m_frameUniform.cameraTransform);
         }
 
