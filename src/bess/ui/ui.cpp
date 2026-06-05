@@ -220,6 +220,8 @@ namespace Bess {
 
         renderer->beginPath({
             .fillColor = {1.0f, 0.25f, 0.1f, 1.0f},
+            .strokeColor = {1.0f, 1.0f, 1.0f, 1.0f},
+            .renderFill = false,
             .zIndex = 3.0f,
         });
         renderer->pathMoveTo({100.f, 600.f});

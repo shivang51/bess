@@ -52,7 +52,15 @@ namespace Bess::Wgpu {
             return false;
         }
 
-        bool isTransparent(const WgpuPathProps &props) {
+        bool hasPathFill(const WgpuPathProps &props) {
+            return props.renderFill && props.fillColor.a > 0.f;
+        }
+
+        bool hasPathStroke(const WgpuPathProps &props) {
+            return props.strokeSize > 0.f && props.strokeColor.a > 0.f;
+        }
+
+        bool isFillTransparent(const WgpuPathProps &props) {
             if (props.renderPass == QuadRenderPass::Opaque) {
                 return false;
             }
@@ -60,6 +68,16 @@ namespace Bess::Wgpu {
                 return true;
             }
             return props.fillColor.a < 0.999f;
+        }
+
+        bool isStrokeTransparent(const WgpuPathProps &props) {
+            if (props.renderPass == QuadRenderPass::Opaque) {
+                return false;
+            }
+            if (props.renderPass == QuadRenderPass::Transparent) {
+                return true;
+            }
+            return props.strokeColor.a < 0.999f;
         }
 
         struct DrawRun {
@@ -644,7 +662,7 @@ namespace Bess::Wgpu {
         BakedPath bakePath(const std::vector<PathCommand> &commands,
                            const WgpuPathProps &props) {
             BakedPath baked{};
-            if (commands.empty() || props.fillColor.a <= 0.f) {
+            if (commands.empty() || !hasPathFill(props)) {
                 return baked;
             }
 
@@ -729,6 +747,107 @@ namespace Bess::Wgpu {
             return baked;
         }
 
+        glm::vec2 evalQuadratic(const glm::vec2 &p0, const glm::vec2 &control,
+                                const glm::vec2 &p1, float t) {
+            const float invT = 1.f - t;
+            return (invT * invT * p0) + (2.f * invT * t * control) +
+                   (t * t * p1);
+        }
+
+        int quadraticStrokeSegmentCount(const glm::vec2 &p0,
+                                        const glm::vec2 &control,
+                                        const glm::vec2 &p1, float strokeSize) {
+            const float controlNet =
+                glm::distance(p0, control) + glm::distance(control, p1);
+            const float curvature = glm::length(p0 - (2.f * control) + p1);
+            const float flatnessScale = std::max(strokeSize * 0.5f, 0.5f);
+            const float lengthSegments = std::ceil(controlNet / 24.f);
+            const float curveSegments =
+                std::ceil(std::sqrt(curvature / flatnessScale));
+            return std::clamp(
+                static_cast<int>(std::max(lengthSegments, curveSegments)), 1,
+                64);
+        }
+
+        void appendStrokeLine(PrimitiveBatch &batch, const glm::vec2 &from,
+                              const glm::vec2 &to, const WgpuPathProps &props) {
+            if (glm::length(to - from) < 0.0001f) {
+                return;
+            }
+
+            Core::Renderer::LineProps lineProps{};
+            lineProps.p0 = from;
+            lineProps.p1 = to;
+            lineProps.thickness = props.strokeSize;
+            lineProps.zIndex = props.zIndex;
+            lineProps.color = props.strokeColor;
+            lineProps.id = props.id;
+            lineProps.renderPass = props.renderPass;
+            makeLineInstanceInPlace(batch.push(0), lineProps);
+        }
+
+        void bakePathStroke(const std::vector<PathCommand> &commands,
+                            const WgpuPathProps &props, PrimitiveBatch &batch) {
+            if (commands.empty() || !hasPathStroke(props)) {
+                return;
+            }
+
+            bool contourOpen = false;
+            glm::vec2 anchor(0.f);
+            glm::vec2 current(0.f);
+
+            auto closeContour = [&]() {
+                if (!contourOpen || !props.closePath) {
+                    return;
+                }
+                appendStrokeLine(batch, current, anchor, props);
+                current = anchor;
+            };
+
+            for (const auto &cmd : commands) {
+                switch (cmd.kind) {
+                case PathCommandKind::Move:
+                    closeContour();
+                    anchor = cmd.p;
+                    current = cmd.p;
+                    contourOpen = true;
+                    break;
+                case PathCommandKind::Line:
+                    if (!contourOpen) {
+                        anchor = current;
+                        contourOpen = true;
+                    }
+                    appendStrokeLine(batch, current, cmd.p, props);
+                    current = cmd.p;
+                    break;
+                case PathCommandKind::Quad:
+                    if (!contourOpen) {
+                        anchor = current;
+                        contourOpen = true;
+                    }
+                    if (nearlyDegenerateTriangle(current, cmd.control, cmd.p)) {
+                        appendStrokeLine(batch, current, cmd.p, props);
+                    } else {
+                        const int segments = quadraticStrokeSegmentCount(
+                            current, cmd.control, cmd.p, props.strokeSize);
+                        glm::vec2 prev = current;
+                        for (int i = 1; i <= segments; ++i) {
+                            const float t = static_cast<float>(i) /
+                                            static_cast<float>(segments);
+                            glm::vec2 next =
+                                evalQuadratic(current, cmd.control, cmd.p, t);
+                            appendStrokeLine(batch, prev, next, props);
+                            prev = next;
+                        }
+                    }
+                    current = cmd.p;
+                    break;
+                }
+            }
+
+            closeContour();
+        }
+
         class TextureSource final : public Core::Renderer::ITexture {
           public:
             explicit TextureSource(
@@ -778,6 +897,8 @@ namespace Bess::Wgpu {
 
         PrimitiveBatch opaquePrimitiveBatch;
         PrimitiveBatch transparentPrimitiveBatch;
+        PrimitiveBatch opaquePathStrokeBatch;
+        PrimitiveBatch transparentPathStrokeBatch;
         PathBatch opaquePathBatch;
         PathBatch transparentPathBatch;
         std::vector<PathCommand> activePathCommands;
@@ -799,6 +920,12 @@ namespace Bess::Wgpu {
         void recreateTextureBindGroups();
         [[nodiscard]] const TextureResource &
         getTexture(Core::Renderer::TextureHandle texture) const;
+        [[nodiscard]] uint32_t primitiveStatsCount() const noexcept {
+            return opaquePrimitiveBatch.count() +
+                   transparentPrimitiveBatch.count() +
+                   opaquePathStrokeBatch.count() +
+                   transparentPathStrokeBatch.count();
+        }
     };
 
     void WgpuRenderer2D::Impl::createDevice() {
@@ -971,6 +1098,12 @@ namespace Bess::Wgpu {
         m_impl->transparentPrimitiveBatch.configure(
             createInfo.batching.initialQuadCapacity,
             createInfo.batching.maxQuadCapacity);
+        m_impl->opaquePathStrokeBatch.configure(
+            createInfo.batching.initialQuadCapacity,
+            createInfo.batching.maxQuadCapacity);
+        m_impl->transparentPathStrokeBatch.configure(
+            createInfo.batching.initialQuadCapacity,
+            createInfo.batching.maxQuadCapacity);
         m_impl->createDevice();
         m_impl->createWindowSurface();
         m_impl->createOffscreenTarget();
@@ -1025,6 +1158,8 @@ namespace Bess::Wgpu {
         m_impl->instance = nullptr;
         m_impl->opaquePrimitiveBatch.clear();
         m_impl->transparentPrimitiveBatch.clear();
+        m_impl->opaquePathStrokeBatch.clear();
+        m_impl->transparentPathStrokeBatch.clear();
         m_impl->opaquePathBatch.clear();
         m_impl->transparentPathBatch.clear();
         m_impl->activePathCommands.clear();
@@ -1102,6 +1237,8 @@ namespace Bess::Wgpu {
         m_impl->shouldClear = frameInfo.shouldClear;
         m_impl->opaquePrimitiveBatch.clear();
         m_impl->transparentPrimitiveBatch.clear();
+        m_impl->opaquePathStrokeBatch.clear();
+        m_impl->transparentPathStrokeBatch.clear();
         m_impl->opaquePathBatch.clear();
         m_impl->transparentPathBatch.clear();
         m_impl->activePathCommands.clear();
@@ -1183,15 +1320,23 @@ namespace Bess::Wgpu {
 
         m_impl->opaquePrimitiveBatch.prepareForRendering(false);
         m_impl->transparentPrimitiveBatch.prepareForRendering(true);
+        m_impl->opaquePathStrokeBatch.prepareForRendering(false);
+        m_impl->transparentPathStrokeBatch.prepareForRendering(true);
         m_impl->opaquePathBatch.prepareForRendering(false);
         m_impl->transparentPathBatch.prepareForRendering(true);
 
         const uint32_t opaqueInstanceOffset = 0;
-        const uint32_t transparentInstanceOffset =
+        const uint32_t opaquePathStrokeInstanceOffset =
             m_impl->opaquePrimitiveBatch.count();
-        const uint32_t totalInstanceCount =
+        const uint32_t transparentInstanceOffset =
+            opaquePathStrokeInstanceOffset +
+            m_impl->opaquePathStrokeBatch.count();
+        const uint32_t transparentPathStrokeInstanceOffset =
             transparentInstanceOffset +
             m_impl->transparentPrimitiveBatch.count();
+        const uint32_t totalInstanceCount =
+            transparentPathStrokeInstanceOffset +
+            m_impl->transparentPathStrokeBatch.count();
 
         const uint32_t opaqueStencilVertexOffset = 0;
         const uint32_t transparentStencilVertexOffset =
@@ -1222,6 +1367,16 @@ namespace Bess::Wgpu {
                 m_impl->opaquePrimitiveBatch.byteSize();
         }
 
+        if (!m_impl->opaquePathStrokeBatch.empty()) {
+            m_impl->primitivePipeline->uploadInstances(
+                m_impl->queue, m_impl->opaquePathStrokeBatch.data(),
+                m_impl->opaquePathStrokeBatch.byteSize(),
+                opaquePathStrokeInstanceOffset *
+                    sizeof(Piplines::PrimitiveInstance));
+            m_impl->stats.uploadedBytes +=
+                m_impl->opaquePathStrokeBatch.byteSize();
+        }
+
         if (!m_impl->transparentPrimitiveBatch.empty()) {
             m_impl->primitivePipeline->uploadInstances(
                 m_impl->queue, m_impl->transparentPrimitiveBatch.data(),
@@ -1231,6 +1386,18 @@ namespace Bess::Wgpu {
             m_impl->stats.uploadedBytes +=
                 m_impl->transparentPrimitiveBatch.byteSize();
         }
+
+        if (!m_impl->transparentPathStrokeBatch.empty()) {
+            m_impl->primitivePipeline->uploadInstances(
+                m_impl->queue, m_impl->transparentPathStrokeBatch.data(),
+                m_impl->transparentPathStrokeBatch.byteSize(),
+                transparentPathStrokeInstanceOffset *
+                    sizeof(Piplines::PrimitiveInstance));
+            m_impl->stats.uploadedBytes +=
+                m_impl->transparentPathStrokeBatch.byteSize();
+        }
+
+        m_impl->stats.quadCount = totalInstanceCount;
 
         if (totalStencilVertexCount > 0) {
             static_cast<void>(
@@ -1323,12 +1490,18 @@ namespace Bess::Wgpu {
                     m_impl->primitivePipeline->getOpaquePipeline());
         renderPathBatch(m_impl->opaquePathBatch, opaqueStencilVertexOffset,
                         opaqueCoverVertexOffset, false);
+        renderBatch(m_impl->opaquePathStrokeBatch,
+                    opaquePathStrokeInstanceOffset,
+                    m_impl->primitivePipeline->getOpaquePipeline());
         renderBatch(m_impl->transparentPrimitiveBatch,
                     transparentInstanceOffset,
                     m_impl->primitivePipeline->getTransparentPipeline());
         renderPathBatch(m_impl->transparentPathBatch,
                         transparentStencilVertexOffset,
                         transparentCoverVertexOffset, true);
+        renderBatch(m_impl->transparentPathStrokeBatch,
+                    transparentPathStrokeInstanceOffset,
+                    m_impl->primitivePipeline->getTransparentPipeline());
 
         renderPass.End();
         wgpu::CommandBuffer commandBuffer = m_impl->commandEncoder.Finish();
@@ -1489,8 +1662,7 @@ namespace Bess::Wgpu {
                 m_impl->opaquePrimitiveBatch.push(props.texture), props,
                 nullptr);
         }
-        m_impl->stats.quadCount = m_impl->opaquePrimitiveBatch.count() +
-                                  m_impl->transparentPrimitiveBatch.count();
+        m_impl->stats.quadCount = m_impl->primitiveStatsCount();
     }
 
     void WgpuRenderer2D::drawRoundedQuad(
@@ -1509,8 +1681,7 @@ namespace Bess::Wgpu {
                 m_impl->opaquePrimitiveBatch.push(props.texture), props,
                 &roundedProps);
         }
-        m_impl->stats.quadCount = m_impl->opaquePrimitiveBatch.count() +
-                                  m_impl->transparentPrimitiveBatch.count();
+        m_impl->stats.quadCount = m_impl->primitiveStatsCount();
     }
 
     void WgpuRenderer2D::drawCircle(const Core::Renderer::CircleProps &props) {
@@ -1525,8 +1696,7 @@ namespace Bess::Wgpu {
             makeCircleInstanceInPlace(m_impl->opaquePrimitiveBatch.push(0),
                                       props);
         }
-        m_impl->stats.quadCount = m_impl->opaquePrimitiveBatch.count() +
-                                  m_impl->transparentPrimitiveBatch.count();
+        m_impl->stats.quadCount = m_impl->primitiveStatsCount();
     }
 
     void WgpuRenderer2D::drawLine(const Core::Renderer::LineProps &props) {
@@ -1541,8 +1711,7 @@ namespace Bess::Wgpu {
             makeLineInstanceInPlace(m_impl->opaquePrimitiveBatch.push(0),
                                     props);
         }
-        m_impl->stats.quadCount = m_impl->opaquePrimitiveBatch.count() +
-                                  m_impl->transparentPrimitiveBatch.count();
+        m_impl->stats.quadCount = m_impl->primitiveStatsCount();
     }
 
     void WgpuRenderer2D::beginPath(const WgpuPathProps &props) {
@@ -1606,16 +1775,28 @@ namespace Bess::Wgpu {
             return;
         }
 
-        BakedPath baked =
-            bakePath(m_impl->activePathCommands, m_impl->activePathProps);
-        if (baked.valid) {
-            if (isTransparent(m_impl->activePathProps)) {
-                m_impl->transparentPathBatch.push(
-                    std::move(baked), m_impl->activePathProps.zIndex);
-            } else {
-                m_impl->opaquePathBatch.push(std::move(baked),
-                                             m_impl->activePathProps.zIndex);
+        if (hasPathFill(m_impl->activePathProps)) {
+            BakedPath baked =
+                bakePath(m_impl->activePathCommands, m_impl->activePathProps);
+            if (baked.valid) {
+                if (isFillTransparent(m_impl->activePathProps)) {
+                    m_impl->transparentPathBatch.push(
+                        std::move(baked), m_impl->activePathProps.zIndex);
+                } else {
+                    m_impl->opaquePathBatch.push(
+                        std::move(baked), m_impl->activePathProps.zIndex);
+                }
             }
+        }
+
+        if (hasPathStroke(m_impl->activePathProps)) {
+            PrimitiveBatch &strokeBatch =
+                isStrokeTransparent(m_impl->activePathProps)
+                    ? m_impl->transparentPathStrokeBatch
+                    : m_impl->opaquePathStrokeBatch;
+            bakePathStroke(m_impl->activePathCommands, m_impl->activePathProps,
+                           strokeBatch);
+            m_impl->stats.quadCount = m_impl->primitiveStatsCount();
         }
 
         m_impl->activePathCommands.clear();

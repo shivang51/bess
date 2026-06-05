@@ -9,6 +9,9 @@ namespace Bess::Wgpu {
 
     struct WgpuPathProps {
         Core::Renderer::Color fillColor{1.f, 1.f, 1.f, 1.f};
+        Core::Renderer::Color strokeColor{1.f, 1.f, 1.f, 1.f};
+        float strokeSize = 4.f;
+        bool renderFill = false;
         float zIndex = 0.f;
         PickingId id = PickingId::invalid();
         Core::Renderer::QuadRenderPass renderPass =
