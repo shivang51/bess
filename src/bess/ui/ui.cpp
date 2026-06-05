@@ -238,12 +238,18 @@ namespace Bess {
         renderer->beginPath({
             .fillColor = {1.0f, 0.25f, 0.1f, 1.0f},
             .strokeColor = {1.0f, 1.0f, 1.0f, 1.0f},
-            .renderFill = false,
+            .renderFill = true,
             .zIndex = 3.0f,
+            .closePath = false,
         });
         renderer->pathMoveTo({100.f, 600.f});
+        renderer->pathLineTo({250.f, 600.f});
         renderer->pathLineTo({250.f, 450.f});
         renderer->pathQuadTo({400.f, 100.f}, {650.f, 600.f});
+
+        renderer->pathMoveTo({100.f, 500.f});
+        renderer->pathLineTo({250.f, 350.f});
+        renderer->pathQuadTo({400.f, 0.f}, {650.f, 500.f});
         renderer->endPath();
 
         renderer->endFrame();
