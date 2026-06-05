@@ -3,15 +3,14 @@
 #include "bess_wgpu/wgpu_shader.h"
 #include <algorithm>
 #include <array>
-#include <stdexcept>
 
 namespace Bess::Wgpu::Piplines {
 
     void PrimitivePipeline::init(const wgpu::Device &device,
-                            wgpu::TextureFormat targetFormat,
-                            const wgpu::Buffer &frameBuffer,
-                            uint64_t frameBufferSize,
-                            wgpu::TextureFormat pickingFormat) {
+                                 wgpu::TextureFormat targetFormat,
+                                 const wgpu::Buffer &frameBuffer,
+                                 uint64_t frameBufferSize,
+                                 wgpu::TextureFormat pickingFormat) {
         m_device = device;
         m_targetFormat = targetFormat;
         m_pickingFormat = pickingFormat;
@@ -40,7 +39,8 @@ namespace Bess::Wgpu::Piplines {
     bool PrimitivePipeline::ensureInstanceBufferSize(std::size_t quadCount) {
         const auto requiredSize = std::max<std::size_t>(
             sizeof(PrimitiveInstance), quadCount * sizeof(PrimitiveInstance));
-        if (m_instanceBuffer != nullptr && m_instanceBufferSize >= requiredSize) {
+        if (m_instanceBuffer != nullptr &&
+            m_instanceBufferSize >= requiredSize) {
             return false;
         }
 
@@ -54,18 +54,18 @@ namespace Bess::Wgpu::Piplines {
     }
 
     void PrimitivePipeline::uploadInstances(const wgpu::Queue &queue,
-                                       const PrimitiveInstance *instances,
-                                       uint64_t byteSize,
-                                       uint64_t bufferOffset) const {
-        if (m_instanceBuffer == nullptr || instances == nullptr || byteSize == 0) {
+                                            const PrimitiveInstance *instances,
+                                            uint64_t byteSize,
+                                            uint64_t bufferOffset) const {
+        if (m_instanceBuffer == nullptr || instances == nullptr ||
+            byteSize == 0) {
             return;
         }
         queue.WriteBuffer(m_instanceBuffer, bufferOffset, instances, byteSize);
     }
 
-    wgpu::BindGroup
-    PrimitivePipeline::createTextureBindGroup(const wgpu::TextureView &textureView,
-                                         const std::string &label) const {
+    wgpu::BindGroup PrimitivePipeline::createTextureBindGroup(
+        const wgpu::TextureView &textureView, const std::string &label) const {
         if (m_instanceBuffer == nullptr || m_frameBuffer == nullptr ||
             m_bindGroupLayout == nullptr || m_textureSampler == nullptr) {
             return nullptr;
@@ -100,13 +100,15 @@ namespace Bess::Wgpu::Piplines {
         return m_opaquePipeline;
     }
 
-    const wgpu::RenderPipeline &PrimitivePipeline::getTransparentPipeline() const {
+    const wgpu::RenderPipeline &
+    PrimitivePipeline::getTransparentPipeline() const {
         return m_transparentPipeline;
     }
 
     void PrimitivePipeline::createShader() {
         m_shader = std::make_unique<Bess::Wgpu::WgpuShader>(
-            "renderer_2d_primitive", Shaders::getPrimitiveShaderModules(), m_device);
+            "renderer_2d_primitive", Shaders::getPrimitiveShaderModules(),
+            m_device);
     }
 
     void PrimitivePipeline::createBindGroupLayout() {
@@ -131,7 +133,8 @@ namespace Bess::Wgpu::Piplines {
         wgpu::BindGroupLayoutDescriptor bindGroupLayoutDescriptor{};
         bindGroupLayoutDescriptor.entryCount = bindings.size();
         bindGroupLayoutDescriptor.entries = bindings.data();
-        m_bindGroupLayout = m_device.CreateBindGroupLayout(&bindGroupLayoutDescriptor);
+        m_bindGroupLayout =
+            m_device.CreateBindGroupLayout(&bindGroupLayoutDescriptor);
     }
 
     void PrimitivePipeline::createPipelineState() {
@@ -162,11 +165,13 @@ namespace Bess::Wgpu::Piplines {
         }
 
         wgpu::FragmentState fragment{};
-        fragment.module = m_shader->getModule(Core::Renderer::ShaderStage::Fragment);
+        fragment.module =
+            m_shader->getModule(Core::Renderer::ShaderStage::Fragment);
         // Use picking entry point if we have a picking attachment
-        const char* fragEntryPoint = (m_pickingFormat != wgpu::TextureFormat::Undefined)
-            ? "fs_main_picking"
-            : "fs_main";
+        const char *fragEntryPoint =
+            (m_pickingFormat != wgpu::TextureFormat::Undefined)
+                ? "fs_main_picking"
+                : "fs_main";
         fragment.entryPoint = fragEntryPoint;
         fragment.targetCount = targetCount;
         fragment.targets = colorTargets;
@@ -181,7 +186,8 @@ namespace Bess::Wgpu::Piplines {
         opaqueDescriptor.vertex.module =
             m_shader->getModule(Core::Renderer::ShaderStage::Vertex);
         opaqueDescriptor.vertex.entryPoint =
-            m_shader->getEntryPoint(Core::Renderer::ShaderStage::Vertex).c_str();
+            m_shader->getEntryPoint(Core::Renderer::ShaderStage::Vertex)
+                .c_str();
         opaqueDescriptor.primitive.topology =
             wgpu::PrimitiveTopology::TriangleList;
         opaqueDescriptor.primitive.cullMode = wgpu::CullMode::None;

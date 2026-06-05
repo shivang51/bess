@@ -130,8 +130,7 @@ namespace Bess::Wgpu {
         }
 
         void makePrimitiveInstanceInPlace(
-            PrimitiveInstance& instance,
-            const Core::Renderer::QuadProps &props,
+            PrimitiveInstance &instance, const Core::Renderer::QuadProps &props,
             const Core::Renderer::RoundedBorderProps *roundedProps) {
             instance.position[0] = props.position.x;
             instance.position[1] = props.position.y;
@@ -187,9 +186,9 @@ namespace Bess::Wgpu {
             }
         }
 
-        void makeCircleInstanceInPlace(
-            PrimitiveInstance& instance,
-            const Core::Renderer::CircleProps &props) {
+        void
+        makeCircleInstanceInPlace(PrimitiveInstance &instance,
+                                  const Core::Renderer::CircleProps &props) {
             instance.position[0] = props.position.x;
             instance.position[1] = props.position.y;
             instance.position[2] = props.zIndex;
@@ -211,7 +210,8 @@ namespace Bess::Wgpu {
             instance.texSlotIdx = 0;
             instance.angle = 0.f;
             instance.primitiveData[0] = props.radius;
-            instance.primitiveData[1] = props.thickness > 0.f ? props.radius - props.thickness : 0.f;
+            instance.primitiveData[1] =
+                props.thickness > 0.f ? props.radius - props.thickness : 0.f;
             instance.primitiveData[2] = 0.f;
             instance.primitiveData[3] = 0.f;
 
@@ -229,9 +229,8 @@ namespace Bess::Wgpu {
             instance.borderColor[3] = 0.f;
         }
 
-        void makeLineInstanceInPlace(
-            PrimitiveInstance& instance,
-            const Core::Renderer::LineProps &props) {
+        void makeLineInstanceInPlace(PrimitiveInstance &instance,
+                                     const Core::Renderer::LineProps &props) {
             glm::vec2 diff = props.p1 - props.p0;
             float length = glm::length(diff);
             float angle = std::atan2(diff.y, diff.x);
@@ -282,7 +281,8 @@ namespace Bess::Wgpu {
           public:
             void configure(uint32_t initialCapacity, uint32_t maxCapacity) {
                 m_maxCapacity = std::max(1u, maxCapacity);
-                // Pre-allocate to max capacity to avoid reallocations and debug bounds checking overhead
+                // Pre-allocate to max capacity to avoid reallocations and debug
+                // bounds checking overhead
                 m_gpuInstances.resize(m_maxCapacity);
                 m_drawRuns.resize(m_maxCapacity);
                 m_gpuInstancesPtr = m_gpuInstances.data();
@@ -296,14 +296,17 @@ namespace Bess::Wgpu {
                 m_drawRunsCount = 0;
             }
 
-            PrimitiveInstance& push(Core::Renderer::TextureHandle texture) {
+            PrimitiveInstance &push(Core::Renderer::TextureHandle texture) {
                 if (m_instanceCount >= m_maxCapacity) {
-                    throw std::runtime_error("WGPU quad batch capacity exceeded");
+                    throw std::runtime_error(
+                        "WGPU quad batch capacity exceeded");
                 }
                 const uint32_t instanceIndex = m_instanceCount;
-                if (m_drawRunsCount == 0 || m_drawRunsPtr[m_drawRunsCount - 1].texture != texture) {
+                if (m_drawRunsCount == 0 ||
+                    m_drawRunsPtr[m_drawRunsCount - 1].texture != texture) {
                     m_drawRunsPtr[m_drawRunsCount++] = {.texture = texture,
-                                                        .firstInstance = instanceIndex,
+                                                        .firstInstance =
+                                                            instanceIndex,
                                                         .instanceCount = 1};
                 } else {
                     m_drawRunsPtr[m_drawRunsCount - 1].instanceCount++;
@@ -314,7 +317,7 @@ namespace Bess::Wgpu {
             void prepareForRendering(bool sortBackToFront) {
                 if (sortBackToFront && m_instanceCount > 1) {
                     std::vector<uint32_t> indices(m_instanceCount);
-                    uint32_t* indicesPtr = indices.data();
+                    uint32_t *indicesPtr = indices.data();
                     for (uint32_t i = 0; i < m_instanceCount; ++i) {
                         indicesPtr[i] = i;
                     }
@@ -322,14 +325,17 @@ namespace Bess::Wgpu {
                     std::stable_sort(
                         indices.begin(), indices.end(),
                         [this](uint32_t a, uint32_t b) {
-                            if (m_gpuInstancesPtr[a].position[2] != m_gpuInstancesPtr[b].position[2]) {
-                                return m_gpuInstancesPtr[a].position[2] < m_gpuInstancesPtr[b].position[2];
+                            if (m_gpuInstancesPtr[a].position[2] !=
+                                m_gpuInstancesPtr[b].position[2]) {
+                                return m_gpuInstancesPtr[a].position[2] <
+                                       m_gpuInstancesPtr[b].position[2];
                             }
                             return a < b;
                         });
 
-                    std::vector<Core::Renderer::TextureHandle> textures(m_instanceCount);
-                    Core::Renderer::TextureHandle* texPtr = textures.data();
+                    std::vector<Core::Renderer::TextureHandle> textures(
+                        m_instanceCount);
+                    Core::Renderer::TextureHandle *texPtr = textures.data();
                     for (uint32_t r = 0; r < m_drawRunsCount; ++r) {
                         const auto &run = m_drawRunsPtr[r];
                         for (uint32_t i = 0; i < run.instanceCount; ++i) {
@@ -337,8 +343,9 @@ namespace Bess::Wgpu {
                         }
                     }
 
-                    std::vector<PrimitiveInstance> sortedInstances(m_instanceCount);
-                    PrimitiveInstance* sortedPtr = sortedInstances.data();
+                    std::vector<PrimitiveInstance> sortedInstances(
+                        m_instanceCount);
+                    PrimitiveInstance *sortedPtr = sortedInstances.data();
                     m_drawRunsCount = 0;
 
                     for (uint32_t i = 0; i < m_instanceCount; ++i) {
@@ -348,9 +355,10 @@ namespace Bess::Wgpu {
 
                         if (m_drawRunsCount == 0 ||
                             m_drawRunsPtr[m_drawRunsCount - 1].texture != tex) {
-                            m_drawRunsPtr[m_drawRunsCount++] = {.texture = tex,
-                                                                .firstInstance = i,
-                                                                .instanceCount = 1};
+                            m_drawRunsPtr[m_drawRunsCount++] = {
+                                .texture = tex,
+                                .firstInstance = i,
+                                .instanceCount = 1};
                         } else {
                             m_drawRunsPtr[m_drawRunsCount - 1].instanceCount++;
                         }
@@ -371,7 +379,8 @@ namespace Bess::Wgpu {
             }
 
             [[nodiscard]] uint64_t byteSize() const noexcept {
-                return static_cast<uint64_t>(m_instanceCount) * sizeof(PrimitiveInstance);
+                return static_cast<uint64_t>(m_instanceCount) *
+                       sizeof(PrimitiveInstance);
             }
 
             [[nodiscard]] const PrimitiveInstance *data() const noexcept {
@@ -389,8 +398,8 @@ namespace Bess::Wgpu {
           private:
             std::vector<PrimitiveInstance> m_gpuInstances;
             std::vector<DrawRun> m_drawRuns;
-            PrimitiveInstance* m_gpuInstancesPtr = nullptr;
-            DrawRun* m_drawRunsPtr = nullptr;
+            PrimitiveInstance *m_gpuInstancesPtr = nullptr;
+            DrawRun *m_drawRunsPtr = nullptr;
             uint32_t m_instanceCount = 0;
             uint32_t m_drawRunsCount = 0;
             uint32_t m_maxCapacity = 1;
@@ -435,7 +444,7 @@ namespace Bess::Wgpu {
         wgpu::Texture depthTarget;
         wgpu::TextureView depthTargetView;
         Piplines::SharedFrameBuffer sharedFrameBuffer;
-        std::unique_ptr<Piplines::PrimitivePipeline> quadPipeline;
+        std::unique_ptr<Piplines::PrimitivePipeline> primitivePipeline;
         wgpu::CommandEncoder commandEncoder;
         std::unordered_map<Core::Renderer::TextureHandle, TextureResource>
             textures;
@@ -581,12 +590,12 @@ namespace Bess::Wgpu {
     }
 
     void WgpuRenderer2D::Impl::recreateTextureBindGroups() {
-        if (!quadPipeline) {
+        if (!primitivePipeline) {
             return;
         }
 
         for (auto &[handle, texture] : textures) {
-            texture.bindGroup = quadPipeline->createTextureBindGroup(
+            texture.bindGroup = primitivePipeline->createTextureBindGroup(
                 texture.view, "TextureBindGroup_" + std::to_string(handle));
         }
     }
@@ -625,8 +634,9 @@ namespace Bess::Wgpu {
             m_impl->windowHandle =
                 static_cast<GLFWwindow *>(createInfo.surface.handle);
         }
-        m_impl->opaquePrimitiveBatch.configure(createInfo.batching.initialQuadCapacity,
-                                          createInfo.batching.maxQuadCapacity);
+        m_impl->opaquePrimitiveBatch.configure(
+            createInfo.batching.initialQuadCapacity,
+            createInfo.batching.maxQuadCapacity);
         m_impl->transparentPrimitiveBatch.configure(
             createInfo.batching.initialQuadCapacity,
             createInfo.batching.maxQuadCapacity);
@@ -636,12 +646,13 @@ namespace Bess::Wgpu {
         m_impl->createDepthTarget();
         m_impl->sharedFrameBuffer.init(m_impl->device);
         m_impl->pickingFormat = toWgpuFormat(createInfo.pickingFormat);
-        m_impl->quadPipeline = std::make_unique<Piplines::PrimitivePipeline>();
-        m_impl->quadPipeline->init(m_impl->device, m_impl->targetFormat,
-                                   m_impl->sharedFrameBuffer.getBuffer(),
-                                   m_impl->sharedFrameBuffer.getSize(),
-                                   m_impl->pickingFormat);
-        if (m_impl->quadPipeline->ensureInstanceBufferSize(
+        m_impl->primitivePipeline =
+            std::make_unique<Piplines::PrimitivePipeline>();
+        m_impl->primitivePipeline->init(m_impl->device, m_impl->targetFormat,
+                                        m_impl->sharedFrameBuffer.getBuffer(),
+                                        m_impl->sharedFrameBuffer.getSize(),
+                                        m_impl->pickingFormat);
+        if (m_impl->primitivePipeline->ensureInstanceBufferSize(
                 std::max(1u, createInfo.batching.initialQuadCapacity))) {
             m_impl->recreateTextureBindGroups();
         }
@@ -653,9 +664,9 @@ namespace Bess::Wgpu {
             return;
         }
         m_impl->commandEncoder = nullptr;
-        if (m_impl->quadPipeline) {
-            m_impl->quadPipeline->destroy();
-            m_impl->quadPipeline = nullptr;
+        if (m_impl->primitivePipeline) {
+            m_impl->primitivePipeline->destroy();
+            m_impl->primitivePipeline = nullptr;
         }
         m_impl->sharedFrameBuffer.destroy();
         m_impl->textures.clear();
@@ -792,7 +803,8 @@ namespace Bess::Wgpu {
         // Attach picking target if available
         if (m_impl->pickingFormat != wgpu::TextureFormat::Undefined &&
             m_impl->pickingTextureHandle != 0) {
-            const auto& pickingRes = m_impl->getTexture(m_impl->pickingTextureHandle);
+            const auto &pickingRes =
+                m_impl->getTexture(m_impl->pickingTextureHandle);
             colorAttachments[1].view = pickingRes.view;
             colorAttachments[1].loadOp = wgpu::LoadOp::Clear;
             colorAttachments[1].storeOp = wgpu::StoreOp::Store;
@@ -819,15 +831,17 @@ namespace Bess::Wgpu {
         const uint32_t transparentInstanceOffset =
             m_impl->opaquePrimitiveBatch.count();
         const uint32_t totalInstanceCount =
-            transparentInstanceOffset + m_impl->transparentPrimitiveBatch.count();
+            transparentInstanceOffset +
+            m_impl->transparentPrimitiveBatch.count();
 
         if (totalInstanceCount > 0 &&
-            m_impl->quadPipeline->ensureInstanceBufferSize(totalInstanceCount)) {
+            m_impl->primitivePipeline->ensureInstanceBufferSize(
+                totalInstanceCount)) {
             m_impl->recreateTextureBindGroups();
         }
 
         if (!m_impl->opaquePrimitiveBatch.empty()) {
-            m_impl->quadPipeline->uploadInstances(
+            m_impl->primitivePipeline->uploadInstances(
                 m_impl->queue, m_impl->opaquePrimitiveBatch.data(),
                 m_impl->opaquePrimitiveBatch.byteSize(),
                 opaqueInstanceOffset * sizeof(Piplines::PrimitiveInstance));
@@ -836,7 +850,7 @@ namespace Bess::Wgpu {
         }
 
         if (!m_impl->transparentPrimitiveBatch.empty()) {
-            m_impl->quadPipeline->uploadInstances(
+            m_impl->primitivePipeline->uploadInstances(
                 m_impl->queue, m_impl->transparentPrimitiveBatch.data(),
                 m_impl->transparentPrimitiveBatch.byteSize(),
                 transparentInstanceOffset *
@@ -858,9 +872,9 @@ namespace Bess::Wgpu {
             }
 
             renderPass.SetPipeline(pipeline);
-            
+
             const uint32_t runCount = batch.drawRunsCount();
-            const DrawRun* runs = batch.drawRunsData();
+            const DrawRun *runs = batch.drawRunsData();
             for (uint32_t i = 0; i < runCount; ++i) {
                 const auto &run = runs[i];
                 const auto &texture = m_impl->getTexture(run.texture);
@@ -872,9 +886,10 @@ namespace Bess::Wgpu {
         };
 
         renderBatch(m_impl->opaquePrimitiveBatch, opaqueInstanceOffset,
-                    m_impl->quadPipeline->getOpaquePipeline());
-        renderBatch(m_impl->transparentPrimitiveBatch, transparentInstanceOffset,
-                    m_impl->quadPipeline->getTransparentPipeline());
+                    m_impl->primitivePipeline->getOpaquePipeline());
+        renderBatch(m_impl->transparentPrimitiveBatch,
+                    transparentInstanceOffset,
+                    m_impl->primitivePipeline->getTransparentPipeline());
 
         renderPass.End();
         wgpu::CommandBuffer commandBuffer = m_impl->commandEncoder.Finish();
@@ -1027,9 +1042,13 @@ namespace Bess::Wgpu {
         }
 
         if (isTransparent(props, nullptr)) {
-            makePrimitiveInstanceInPlace(m_impl->transparentPrimitiveBatch.push(props.texture), props, nullptr);
+            makePrimitiveInstanceInPlace(
+                m_impl->transparentPrimitiveBatch.push(props.texture), props,
+                nullptr);
         } else {
-            makePrimitiveInstanceInPlace(m_impl->opaquePrimitiveBatch.push(props.texture), props, nullptr);
+            makePrimitiveInstanceInPlace(
+                m_impl->opaquePrimitiveBatch.push(props.texture), props,
+                nullptr);
         }
         m_impl->stats.quadCount = m_impl->opaquePrimitiveBatch.count() +
                                   m_impl->transparentPrimitiveBatch.count();
@@ -1043,9 +1062,13 @@ namespace Bess::Wgpu {
         }
 
         if (isTransparent(props, &roundedProps)) {
-            makePrimitiveInstanceInPlace(m_impl->transparentPrimitiveBatch.push(props.texture), props, &roundedProps);
+            makePrimitiveInstanceInPlace(
+                m_impl->transparentPrimitiveBatch.push(props.texture), props,
+                &roundedProps);
         } else {
-            makePrimitiveInstanceInPlace(m_impl->opaquePrimitiveBatch.push(props.texture), props, &roundedProps);
+            makePrimitiveInstanceInPlace(
+                m_impl->opaquePrimitiveBatch.push(props.texture), props,
+                &roundedProps);
         }
         m_impl->stats.quadCount = m_impl->opaquePrimitiveBatch.count() +
                                   m_impl->transparentPrimitiveBatch.count();
@@ -1057,9 +1080,11 @@ namespace Bess::Wgpu {
         }
 
         if (props.color.a < 1.0f) {
-            makeCircleInstanceInPlace(m_impl->transparentPrimitiveBatch.push(0), props);
+            makeCircleInstanceInPlace(m_impl->transparentPrimitiveBatch.push(0),
+                                      props);
         } else {
-            makeCircleInstanceInPlace(m_impl->opaquePrimitiveBatch.push(0), props);
+            makeCircleInstanceInPlace(m_impl->opaquePrimitiveBatch.push(0),
+                                      props);
         }
         m_impl->stats.quadCount = m_impl->opaquePrimitiveBatch.count() +
                                   m_impl->transparentPrimitiveBatch.count();
@@ -1071,9 +1096,11 @@ namespace Bess::Wgpu {
         }
 
         if (props.color.a < 1.0f) {
-            makeLineInstanceInPlace(m_impl->transparentPrimitiveBatch.push(0), props);
+            makeLineInstanceInPlace(m_impl->transparentPrimitiveBatch.push(0),
+                                    props);
         } else {
-            makeLineInstanceInPlace(m_impl->opaquePrimitiveBatch.push(0), props);
+            makeLineInstanceInPlace(m_impl->opaquePrimitiveBatch.push(0),
+                                    props);
         }
         m_impl->stats.quadCount = m_impl->opaquePrimitiveBatch.count() +
                                   m_impl->transparentPrimitiveBatch.count();
