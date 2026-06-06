@@ -4,6 +4,7 @@
 #include "geometric.hpp"
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/main_page.h"
+#include "scene/scene_draw_helpers.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
@@ -118,14 +119,14 @@ namespace Bess::Canvas {
         }
 
         const auto pickingId = PickingId{m_runtimeId, 0};
-        context.materialRenderer->drawQuad(getAbsolutePosition(state),
-                                           glm::vec2{sideLength, sideLength},
-                                           color, pickingId,
-                                           {
-                                               .angle = 45,
-                                               .borderColor = borderColor,
-                                               .borderSize = glm::vec4(1.f),
-                                           });
+        SceneDraw::drawQuad(context, getAbsolutePosition(state),
+                            glm::vec2{sideLength, sideLength}, color,
+                            pickingId,
+                            {
+                                .angle = 45,
+                                .borderColor = borderColor,
+                                .borderSize = glm::vec4(1.f),
+                            });
     }
 
     void ConnJointSceneComp::drawSchematic(SceneDrawContext &context) {
@@ -146,9 +147,9 @@ namespace Bess::Canvas {
         }
 
         const auto &state = *context.sceneState;
-        context.materialRenderer->drawCircle(
-            getAbsolutePosition(state),
-            Styles::compSchematicStyles.connJointRadius, color, pickingId);
+        SceneDraw::drawCircle(context, getAbsolutePosition(state),
+                              Styles::compSchematicStyles.connJointRadius,
+                              color, pickingId);
     }
 
     void ConnJointSceneComp::onMouseEnter(const Events::MouseEnterEvent &e) {

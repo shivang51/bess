@@ -2,6 +2,46 @@
 #include "application/settings/viewport_theme.h"
 
 namespace Bess::Canvas {
+    namespace {
+        [[nodiscard]] Core::Renderer::Path2D
+        toRendererPath(const Renderer::Path &path, const glm::vec2 &scale,
+                       const glm::vec2 &translation) {
+            auto renderPath = path.copy();
+            renderPath.scale(scale);
+
+            Core::Renderer::Path2D out;
+            out.reserve(renderPath.getCmds().size());
+
+            const auto transformPoint =
+                [translation](const glm::vec2 &point) {
+                    return point + translation;
+                };
+
+            for (const auto &command : renderPath.getCmds()) {
+                using Kind = Renderer::Path::PathCommand::Kind;
+                switch (command.kind) {
+                case Kind::Move:
+                    out.moveTo(transformPoint(command.move.p));
+                    break;
+                case Kind::Line:
+                    out.lineTo(transformPoint(command.line.p));
+                    break;
+                case Kind::Quad:
+                    out.quadTo(transformPoint(command.quad.c),
+                               transformPoint(command.quad.p));
+                    break;
+                case Kind::Cubic:
+                    out.cubicTo(transformPoint(command.cubic.c1),
+                                transformPoint(command.cubic.c2),
+                                transformPoint(command.cubic.p));
+                    break;
+                }
+            }
+
+            return out;
+        }
+    } // namespace
+
     const std::vector<Renderer::Path> &SchematicDiagram::getPaths() const {
         return m_paths;
     }
@@ -44,7 +84,11 @@ namespace Bess::Canvas {
     glm::vec2 SchematicDiagram::draw(
         const Bess::Canvas::Transform &transform,
         const Bess::PickingId &pickingId,
-        const std::shared_ptr<Bess::Renderer::PathRenderer> &pathRenderer) {
+        const std::shared_ptr<Bess::Core::Renderer::IRenderer2D> &renderer) {
+        if (!renderer) {
+            return transform.scale;
+        }
+
         const auto &pos = transform.position;
         float dAr = getSize().x / getSize().y;
         float tAr = transform.scale.x / transform.scale.y;
@@ -55,24 +99,38 @@ namespace Bess::Canvas {
 
         auto mid = digScale * 0.5f;
 
-        auto drawInfo = Renderer::ContoursDrawInfo();
         for (auto &path : getPathsMut()) {
             const auto pathPos = path.getLowestPos();
-            drawInfo.translate =
-                glm::vec3(pos.x + pathPos.x - mid.x, pos.y + pathPos.y - mid.y,
-                          transform.position.z);
-            drawInfo.scale = digScale;
-            drawInfo.glyphId = pickingId;
-            drawInfo.strokeColor =
-                Bess::ViewportTheme::schematicViewColors.componentStroke;
-            drawInfo.fillColor =
-                Bess::ViewportTheme::schematicViewColors.componentFill;
+            const glm::vec2 translation = {
+                pos.x + pathPos.x - mid.x,
+                pos.y + pathPos.y - mid.y,
+            };
 
-            drawInfo.genFill = path.getProps().renderFill;
-            drawInfo.genStroke = path.getProps().renderStroke;
-            drawInfo.closePath = path.getProps().isClosed;
-            drawInfo.rounedJoint = path.getProps().roundedJoints;
-            pathRenderer->drawPath(path, drawInfo);
+            auto rendererPath = toRendererPath(path, digScale, translation);
+            if (rendererPath.empty()) {
+                continue;
+            }
+
+            Core::Renderer::PathProps props;
+            props.strokeColor =
+                Bess::ViewportTheme::schematicViewColors.componentStroke;
+            props.fillColor =
+                Bess::ViewportTheme::schematicViewColors.componentFill;
+            props.strokeSize = path.getStrokeWidth();
+            props.renderFill = path.getProps().renderFill;
+            props.closePath = path.getProps().isClosed;
+            props.lineJoin = path.getProps().roundedJoints
+                                 ? Core::Renderer::PathLineJoin::Round
+                                 : Core::Renderer::PathLineJoin::Miter;
+            props.zIndex = transform.position.z;
+            props.id = pickingId;
+
+            if (!path.getProps().renderStroke) {
+                props.strokeColor.a = 0.f;
+                props.strokeSize = 0.f;
+            }
+
+            renderer->drawPath(rendererPath, props);
         }
 
         return digScale;

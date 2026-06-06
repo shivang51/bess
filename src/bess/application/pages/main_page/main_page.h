@@ -5,7 +5,6 @@
 #include "application/pages/page.h"
 #include "application/window.h"
 #include "common/types.h"
-#include "renderer/vulkan/path_renderer.h"
 #include "sim_driver/sim_driver.h"
 
 #include <chrono>
@@ -49,11 +48,6 @@ namespace Bess::Pages {
       private:
         std::shared_ptr<Window> m_parentWindow;
 
-        void drawGhostConnection(
-            const std::shared_ptr<Renderer::PathRenderer> &pathRenderer,
-            const glm::vec2 &startPos, const glm::vec2 &endPos);
-
-      private:
         void handleKeyboardShortcuts();
 
         void copySelectedEntities();

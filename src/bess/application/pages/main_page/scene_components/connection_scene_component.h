@@ -2,7 +2,6 @@
 
 #include "common/bess_uuid.h"
 #include "common/types.h"
-#include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/scene_events.h"
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -88,7 +87,7 @@ namespace Bess::Canvas {
         void drawSegments(
             const SceneState &state, const glm::vec3 &startPos,
             const glm::vec3 &endPos, const glm::vec4 &color,
-            const std::shared_ptr<Renderer::PathRenderer> &pathRenderer);
+            SceneDrawContext &context);
 
         void resetSegmentPositionCache(const SceneState &state);
         UUID m_startSlot = UUID::null;

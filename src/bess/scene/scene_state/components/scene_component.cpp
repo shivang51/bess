@@ -2,6 +2,7 @@
 #include "json/value.h"
 
 #include "ext/matrix_transform.hpp"
+#include "renderer/material_renderer.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/styles/comp_style.h"
 #include "scene/scene_state/scene_state.h"

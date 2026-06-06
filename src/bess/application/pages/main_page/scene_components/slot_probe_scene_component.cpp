@@ -7,6 +7,7 @@
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "renderer/material_renderer.h"
+#include "scene/scene_draw_helpers.h"
 #include "scene_draw_context.h"
 #include "scene_state/scene_state.h"
 #include "settings/viewport_theme.h"
@@ -37,7 +38,7 @@ namespace Bess::Canvas {
             m_scaleDirty = false;
         }
 
-        Renderer::QuadRenderProperties props;
+        SceneDraw::QuadStyle props;
         props.borderColor = m_isSelected
                                 ? ViewportTheme::colors.selectedComp
                                 : ViewportTheme::colors.componentBorder;
@@ -50,13 +51,15 @@ namespace Bess::Canvas {
         const auto &startPos = getAbsolutePosition(sceneState);
         const bool isProbed = m_probedSlotUuid != UUID::null;
 
-        context.materialRenderer->drawQuad(
+        SceneDraw::drawQuad(
+            context,
             startPos, scale,
             isProbed ? ViewportTheme::colors.clockConnectionLow
                      : ViewportTheme::colors.componentBG,
             PickingId{m_runtimeId, 0}, props);
 
-        context.materialRenderer->drawText(
+        SceneDraw::drawText(
+            context,
             m_name,
             startPos +
                 glm::vec3(-textSize.x / 2.f, (textSize.y / 2.f) - 2.f, 0.0001f),
@@ -88,15 +91,14 @@ namespace Bess::Canvas {
                     ? ViewportTheme::colors.stateHigh
                     : ViewportTheme::colors.stateLow;
 
-            context.pathRenderer->beginPathMode(
-                {startPos.x - (textSize.x / 2.f), startPos.y, 0.51}, 1.f, color,
-                PickingId{m_runtimeId, 1});
+            SceneDraw::beginPath(
+                context, {startPos.x - (textSize.x / 2.f), startPos.y, 0.51},
+                1.f, color, PickingId{m_runtimeId, 1});
 
             endPos.z = 0.51f;
-            context.pathRenderer->pathCubicBeizerTo(
-                endPos, ctrl1, ctrl2, 1.f, color, PickingId{m_runtimeId, 1});
+            SceneDraw::pathCubicBezierTo(context, endPos, ctrl1, ctrl2, 1.f);
 
-            context.pathRenderer->endPathMode();
+            SceneDraw::endPath(context);
         }
     }
 

@@ -41,7 +41,6 @@ namespace Bess::UI {
                 .format = Core::Renderer::Renderer2DTargetFormat::RG32Uint});
         m_pickingTexture->setSize({800.f, 600.f});
         m_pickingTexture->init();
-        m_uvDebugStartTime = std::chrono::steady_clock::now();
     }
 
     void SceneViewportPanel::update(TimeMs ts) {
@@ -82,7 +81,7 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::destroy() {
-        if (m_gridShader != 0 || m_uvDebugShader != 0) {
+        if (m_gridShader != 0) {
             const auto renderer = GAppContext::getInstance()
                                       .getSubSystem<RendererContext>()
                                       ->getRenderer();
@@ -90,12 +89,8 @@ namespace Bess::UI {
                 if (m_gridShader != 0) {
                     renderer->destroyCustomQuadShader(m_gridShader);
                 }
-                if (m_uvDebugShader != 0) {
-                    renderer->destroyCustomQuadShader(m_uvDebugShader);
-                }
             }
             m_gridShader = 0;
-            m_uvDebugShader = 0;
         }
         if (m_sceneTexture != nullptr) {
             m_sceneTexture->destroy();

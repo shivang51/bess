@@ -1,8 +1,8 @@
 #pragma once
 
+#include "bess_core/renderer/renderer_2d.h"
 #include "common/types.h"
 #include "scene/renderer/path.h"
-#include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include <vector>
 
@@ -33,7 +33,8 @@ namespace Bess::Canvas {
         glm::vec2
         draw(const Bess::Canvas::Transform &transform,
              const Bess::PickingId &pickingId,
-             const std::shared_ptr<Bess::Renderer::PathRenderer> &pathRenderer);
+             const std::shared_ptr<Bess::Core::Renderer::IRenderer2D>
+                 &renderer);
 
       private:
         std::vector<Renderer::Path> m_paths;

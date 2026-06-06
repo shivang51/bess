@@ -1,6 +1,7 @@
 #include "input_scene_component.h"
 #include "icons/FontAwesomeIcons.h"
 #include "renderer/material_renderer.h"
+#include "scene/scene_draw_helpers.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
 #include "scene/scene_ui/scene_ui.h"
@@ -84,7 +85,8 @@ namespace Bess::Canvas {
                           1.f, // FIXME: why -2.f, maybe the baseline?
                       m_transform.position.z + 0.001f);
 
-        context.materialRenderer->drawText(
+        SceneDraw::drawText(
+            context,
             label, textPos, Styles::simCompStyles.slotLabelSize,
             ViewportTheme::colors.text, PickingId{m_runtimeId, 0});
     }

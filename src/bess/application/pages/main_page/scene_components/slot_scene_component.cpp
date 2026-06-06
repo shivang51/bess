@@ -9,6 +9,8 @@
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
+#include "renderer/material_renderer.h"
+#include "scene/scene_draw_helpers.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
@@ -95,9 +97,8 @@ namespace Bess::Canvas {
         const float ir = Styles::simCompStyles.slotRadius -
                          Styles::simCompStyles.slotBorderSize;
         const float r = Styles::simCompStyles.slotRadius;
-        drawContext.materialRenderer->drawCircle(pos, r, border, pickingId, ir);
-        drawContext.materialRenderer->drawCircle(pos, ir - radiusGap, bg,
-                                                 pickingId);
+        SceneDraw::drawCircle(drawContext, pos, r, border, pickingId, ir);
+        SceneDraw::drawCircle(drawContext, pos, ir - radiusGap, bg, pickingId);
 
         if (!m_name.empty()) {
             const float labeldx = Styles::simCompStyles.slotMargin +
@@ -119,7 +120,8 @@ namespace Bess::Canvas {
             const auto parentComp =
                 state.getComponentByUuid<SimulationSceneComponent>(
                     m_parentComponent);
-            drawContext.materialRenderer->drawText(
+            SceneDraw::drawText(
+                drawContext,
                 m_name, {labelX, pos.y + dY, pos.z},
                 Styles::componentStyles.slotLabelSize,
                 ViewportTheme::colors.text,
@@ -152,13 +154,9 @@ namespace Bess::Canvas {
             startPos.x += 5.f;
         }
 
-        drawContext.pathRenderer->beginPathMode(startPos, nodeWeight, pinColor,
-                                                pinId);
-        drawContext.pathRenderer->pathLineTo(
-            {pos.x + offset.x, pos.y + offset.y, pos.z}, nodeWeight, pinColor,
-            pinId);
-        drawContext.pathRenderer->endPathMode(false, false, {}, true, false,
-                                              m_invalidateCache);
+        SceneDraw::drawLine(drawContext, startPos,
+                            {pos.x + offset.x, pos.y + offset.y, pos.z},
+                            nodeWeight, pinColor, pinId);
         m_invalidateCache = true;
 
         if (!m_name.empty()) {
@@ -176,7 +174,8 @@ namespace Bess::Canvas {
             // not using schematic slot pos for text as in schematic view,
             // slot is rendered behind the component but text should be in front
             // of component so using z of node view
-            drawContext.materialRenderer->drawText(
+            SceneDraw::drawText(
+                drawContext,
                 m_name,
                 {pos.x + textOffsetX, pos.y + (textSize.y / 2.f) - 2.f,
                  SceneComponent::getAbsolutePosition(state)

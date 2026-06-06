@@ -6,6 +6,7 @@
 #include "input_scene_component.h"
 #include "bess_core/connection_service.h"
 #include "renderer/material_renderer.h"
+#include "scene/scene_draw_helpers.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/styles/comp_style.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
@@ -66,7 +67,7 @@ namespace Bess::Canvas {
     void SimulationSceneComponent::drawBackground(SceneDrawContext &context) {
 
         const auto pickingId = PickingId{m_runtimeId, 0};
-        Renderer::QuadRenderProperties props;
+        SceneDraw::QuadStyle props;
         props.angle = m_transform.angle;
         props.borderRadius = m_style.borderRadius;
         props.borderSize = m_style.borderSize;
@@ -80,9 +81,8 @@ namespace Bess::Canvas {
             .color = glm::vec4(1.f),
         };
 
-        context.materialRenderer->drawQuad(m_transform.position,
-                                           m_transform.scale, m_style.color,
-                                           pickingId, props);
+        SceneDraw::drawQuad(context, m_transform.position, m_transform.scale,
+                            m_style.color, pickingId, props);
 
         // header
         props = {};
@@ -99,7 +99,8 @@ namespace Bess::Canvas {
                       m_transform.position.y - (m_transform.scale.y / 2.f) +
                           (headerHeight / 2.f),
                       m_transform.position.z + 0.0004f);
-        context.materialRenderer->drawQuad(
+        SceneDraw::drawQuad(
+            context,
             headerPos,
             glm::vec2(m_transform.scale.x - m_style.borderSize.w -
                           m_style.borderSize.y,
@@ -113,7 +114,8 @@ namespace Bess::Canvas {
                       headerPos.y + Styles::simCompStyles.paddingY,
                       m_transform.position.z + 0.0005f);
         // component name
-        context.materialRenderer->drawText(
+        SceneDraw::drawText(
+            context,
             m_name, textPos, Styles::simCompStyles.headerFontSize,
             ViewportTheme::colors.text, pickingId, m_transform.angle);
     }
@@ -149,22 +151,21 @@ namespace Bess::Canvas {
             ViewportTheme::schematicViewColors.componentFill;
         const auto &strokeColor =
             ViewportTheme::schematicViewColors.componentStroke;
-        context.pathRenderer->beginPathMode({x, y, pos.z}, nodeWeight,
-                                            strokeColor, id);
-        context.pathRenderer->pathLineTo({x1, y, pos.z}, nodeWeight,
-                                         strokeColor, id);
-        context.pathRenderer->pathLineTo({x1, y1, pos.z}, nodeWeight,
-                                         strokeColor, id);
-        context.pathRenderer->pathLineTo({x, y1, pos.z}, nodeWeight,
-                                         strokeColor, id);
-        context.pathRenderer->endPathMode(true, true, fillColor);
+        SceneDraw::beginPath(
+            context, {x, y, pos.z}, nodeWeight, strokeColor, id,
+            {.closePath = true, .renderFill = true, .fillColor = fillColor});
+        SceneDraw::pathLineTo(context, {x1, y, pos.z}, nodeWeight);
+        SceneDraw::pathLineTo(context, {x1, y1, pos.z}, nodeWeight);
+        SceneDraw::pathLineTo(context, {x, y1, pos.z}, nodeWeight);
+        SceneDraw::endPath(context);
 
         const auto textSize = Renderer::MaterialRenderer::getTextRenderSize(
             m_name, Styles::compSchematicStyles.nameFontSize);
         glm::vec3 textPos = {pos.x, y + ((y1 - y) / 2.f), pos.z + 0.0005f};
         textPos.x -= textSize.x / 2.f;
         textPos.y += Styles::simCompStyles.headerFontSize / 2.f;
-        context.materialRenderer->drawText(
+        SceneDraw::drawText(
+            context,
             m_name, textPos, Styles::compSchematicStyles.nameFontSize,
             textColor, id, 0.f);
 

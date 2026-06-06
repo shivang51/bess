@@ -4,7 +4,6 @@
 #include "common/class_helpers.h"
 #include "events/application_event.h"
 #include "imgui.h"
-#include "renderer/vulkan/path_renderer.h"
 #include "scene.h"
 #include "scene/scene_draw_context.h"
 #include "string"
@@ -45,9 +44,9 @@ namespace Bess::UI {
         void drawComponents(SceneDrawContext &context);
         void drawConnections(SceneDrawContext &context);
         void drawSelectionBox(SceneDrawContext &context);
-        void drawGhostConnection(
-            const std::shared_ptr<Renderer::PathRenderer> &pathRenderer,
-            const glm::vec2 &startPos, const glm::vec2 &endPos);
+        void drawGhostConnection(SceneDrawContext &context,
+                                 const glm::vec2 &startPos,
+                                 const glm::vec2 &endPos);
 
         void updateScene(TimeMs ts);
 
@@ -85,7 +84,5 @@ namespace Bess::UI {
         std::shared_ptr<Core::Renderer::ITexture> m_pickingTexture = nullptr;
         std::vector<const Canvas::SceneState *> m_rootToSceneStatePtrs;
         uint32_t m_gridShader = 0;
-        uint32_t m_uvDebugShader = 0;
-        std::chrono::steady_clock::time_point m_uvDebugStartTime{};
     };
 } // namespace Bess::UI

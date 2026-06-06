@@ -4,9 +4,9 @@
 #include "events/application_event.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
-#include "renderer/vulkan/path_renderer.h"
 #include "scene.h"
 #include "scene/scene_draw_context.h"
+#include "scene/scene_draw_helpers.h"
 #include "settings/viewport_theme.h"
 #include "sub_systems/input_sub_system.h"
 #include "sub_systems/renderer_context.h"
@@ -127,7 +127,7 @@ namespace Bess::UI {
         }
         const auto &appCtx = GAppContext::getInstance();
         const auto &renderCtx = appCtx.getSubSystem<RendererContext>();
-        const auto &sceneState = m_attachedScene->getState();
+        auto &sceneState = m_attachedScene->getState();
 
         const auto &renderer = renderCtx->getRenderer();
 
@@ -141,7 +141,7 @@ namespace Bess::UI {
                 glm::value_ptr(m_attachedScene->getCamera()->getTransform()),
         });
 
-        if (m_gridShader == 0) {
+        if (m_sceneDrawFlags.drawGrid && m_gridShader == 0) {
             m_gridShader = renderer->createCustomQuadShader({
                 .label = "viewport_grid",
                 .fragmentSource = R"(
@@ -208,95 +208,57 @@ namespace Bess::UI {
             });
         }
 
-        renderer->drawCustomQuad(
-            {.position = {0.f, 0.f},
-             .size = m_viewportSize,
-             .zIndex = -10000.f,
-             .color = {1.f, 1.f, 1.f, 1.f},
-             .id = PickingId::invalid(),
-             .renderPass = Core::Renderer::QuadRenderPass::Opaque},
-            m_gridShader,
-            {ViewportTheme::colors.gridMinorColor,
-             ViewportTheme::colors.gridMajorColor,
-             ViewportTheme::colors.gridAxisXColor,
-             ViewportTheme::colors.gridAxisYColor},
-            Core::Renderer::CustomQuadTransformMode::Screen);
-
-        renderer->drawFont("Hello World", {
-                                              .position = {100.f, 100.f},
-                                              .fontSize = 12.f,
-                                              .color = {1.f, 1.f, 0.f, 1.f},
-                                              .id = PickingId{2, 0},
-                                          });
-        renderer->drawFont("Hello World", {
-                                              .position = {100.f, 120.f},
-                                              .fontSize = 12.f,
-                                              .color = {1.f, 1.f, 0.f, 1.f},
-                                              .id = PickingId{3, 0},
-                                          });
-
-        if (m_uvDebugShader == 0) {
-            m_uvDebugShader = renderer->createCustomQuadShader({
-                .label = "uv_debug",
-                .fragmentSource = R"(
-  fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
-      return vec4f(in.uv, 0.5 + 0.5 * sin(in.data0.x), 1.0) * in.color;
-  }
-  )",
-            });
-            m_uvDebugStartTime = std::chrono::steady_clock::now();
+        if (m_sceneDrawFlags.drawGrid && m_gridShader != 0) {
+            renderer->drawCustomQuad(
+                {.position = {0.f, 0.f},
+                 .size = m_viewportSize,
+                 .zIndex = -10000.f,
+                 .color = {1.f, 1.f, 1.f, 1.f},
+                 .id = PickingId::invalid(),
+                 .renderPass = Core::Renderer::QuadRenderPass::Opaque},
+                m_gridShader,
+                {ViewportTheme::colors.gridMinorColor,
+                 ViewportTheme::colors.gridMajorColor,
+                 ViewportTheme::colors.gridAxisXColor,
+                 ViewportTheme::colors.gridAxisYColor},
+                Core::Renderer::CustomQuadTransformMode::Screen);
         }
 
-        const float timeSeconds =
-            std::chrono::duration<float>(std::chrono::steady_clock::now() -
-                                         m_uvDebugStartTime)
-                .count();
+        SceneDrawContext context;
+        context.sceneState = &sceneState;
+        context.renderer = renderer;
+        context.camera = m_attachedScene->getCamera();
 
-        renderer->drawCustomQuad({.size = {400, 400}, .id = PickingId{1, 0}},
-                                 m_uvDebugShader,
-                                 {
-                                     glm::vec4(timeSeconds, 0.f, 0.f, 0.f),
-                                 },
-                                 Core::Renderer::CustomQuadTransformMode::
-                                     Screen);
+        drawComponents(context);
+        if (m_sceneDrawFlags.drawSelectionBox &&
+            m_attachedScene->getSelBoxContext().draw) {
+            drawSelectionBox(context);
+        }
 
         renderer->endFrame();
         m_attachedScene->setIsFirstFrame(false);
     }
 
     void SceneViewportPanel::drawGrid(SceneDrawContext &context) {
-        context.materialRenderer->drawGrid(
-            glm::vec3(0.f, 0.f, 0.1f), context.camera->getSpan(),
-            PickingId::invalid(),
-            {
-                .minorColor = ViewportTheme::colors.gridMinorColor,
-                .majorColor = ViewportTheme::colors.gridMajorColor,
-                .axisXColor = ViewportTheme::colors.gridAxisXColor,
-                .axisYColor = ViewportTheme::colors.gridAxisYColor,
-            },
-            context.camera);
+        (void)context;
     }
 
-    void SceneViewportPanel::drawGhostConnection(
-        const std::shared_ptr<Renderer::PathRenderer> &pathRenderer,
-        const glm::vec2 &startPos, const glm::vec2 &endPos) {
+    void SceneViewportPanel::drawGhostConnection(SceneDrawContext &context,
+                                                 const glm::vec2 &startPos,
+                                                 const glm::vec2 &endPos) {
         auto midX = (startPos.x + endPos.x) / 2.f;
 
         const auto &id = PickingId::invalid();
 
-        pathRenderer->beginPathMode(glm::vec3(startPos.x, startPos.y, 0.8f),
-                                    2.f, ViewportTheme::colors.ghostWire, id);
-
-        pathRenderer->pathLineTo(glm::vec3(midX, startPos.y, 0.8f), 2.f,
-                                 ViewportTheme::colors.ghostWire, id);
-
-        pathRenderer->pathLineTo(glm::vec3(midX, endPos.y, 0.8f), 2.f,
-                                 ViewportTheme::colors.ghostWire, id);
-
-        pathRenderer->pathLineTo(glm::vec3(endPos, 0.8f), 2.f,
-                                 ViewportTheme::colors.ghostWire, id);
-
-        pathRenderer->endPathMode(false, false, glm::vec4(1.f), true, true);
+        Canvas::SceneDraw::beginPath(
+            context, glm::vec3(startPos.x, startPos.y, 0.8f), 2.f,
+            ViewportTheme::colors.ghostWire, id, {.roundedJoints = true});
+        Canvas::SceneDraw::pathLineTo(context,
+                                      glm::vec3(midX, startPos.y, 0.8f), 2.f);
+        Canvas::SceneDraw::pathLineTo(context,
+                                      glm::vec3(midX, endPos.y, 0.8f), 2.f);
+        Canvas::SceneDraw::pathLineTo(context, glm::vec3(endPos, 0.8f), 2.f);
+        Canvas::SceneDraw::endPath(context);
     }
 
     void SceneViewportPanel::drawComponents(SceneDrawContext &context) {
@@ -338,13 +300,13 @@ namespace Bess::UI {
         const auto pos = start + (size / 2.f);
         size = glm::abs(size);
 
-        Renderer::QuadRenderProperties props;
+        Canvas::SceneDraw::QuadStyle props;
         props.borderColor = ViewportTheme::colors.selectionBoxBorder;
         props.borderSize = glm::vec4(1.f);
 
-        context.materialRenderer->drawQuad(
-            glm::vec3(pos, 7.f), size, ViewportTheme::colors.selectionBoxFill,
-            -1, props);
+        Canvas::SceneDraw::drawQuad(context, glm::vec3(pos, 7.f), size,
+                                    ViewportTheme::colors.selectionBoxFill,
+                                    PickingId::invalid(), props);
     }
 
     void SceneViewportPanel::updatePickingIds(bool mouseMoved) {

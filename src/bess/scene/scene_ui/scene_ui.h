@@ -1,6 +1,6 @@
 #pragma once
 
-#include "scene/renderer/material_renderer.h"
+#include "scene/scene_draw_helpers.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene_draw_context.h"
 #include "settings/viewport_theme.h"
@@ -10,15 +10,16 @@ namespace Bess::Canvas::SceneUI {
                           const glm::vec2 &buttonSize,
                           SceneDrawContext &context) {
 
-        static const Renderer::QuadRenderProperties trackProps{
+        static const SceneDraw::QuadStyle trackProps{
             .borderColor = ViewportTheme::colors.componentBorder,
             .borderRadius = glm::vec4(5.5f),
             .borderSize = glm::vec4(0.5f),
         };
-        constexpr Renderer::QuadRenderProperties buttonProps{
+        constexpr SceneDraw::QuadStyle buttonProps{
             .borderRadius = glm::vec4(5.f)};
         // Button background / track
-        context.materialRenderer->drawQuad(
+        SceneDraw::drawQuad(
+            context,
             buttonPos, buttonSize,
             isHigh ? ViewportTheme::colors.stateHigh
                    : ViewportTheme::colors.background,
@@ -31,7 +32,8 @@ namespace Bess::Canvas::SceneUI {
 
         const glm::vec3 buttonHeadPos =
             glm::vec3(buttonHeadPosX, buttonPos.y, buttonPos.z);
-        context.materialRenderer->drawQuad(
+        SceneDraw::drawQuad(
+            context,
             buttonHeadPos, {buttonSize.y - 1.f, buttonSize.y - 1.f},
             ViewportTheme::colors.stateLow, id, buttonProps);
     }
