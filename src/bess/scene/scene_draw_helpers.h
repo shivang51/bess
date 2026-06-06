@@ -202,6 +202,17 @@ namespace Bess::Canvas::SceneDraw {
             xy(pos), Core::Renderer::PathCommandStroke::withWidth(strokeSize));
     }
 
+    inline void pathLineTo(SceneDrawContext &context, const glm::vec3 &pos,
+                           float strokeSize, const PickingId &id) {
+        if (!context.renderer) {
+            return;
+        }
+
+        context.renderer->pathLineTo(
+            xy(pos),
+            Core::Renderer::PathCommandStroke::withWidthAndId(strokeSize, id));
+    }
+
     inline void pathCubicBezierTo(SceneDrawContext &context,
                                   const glm::vec3 &end,
                                   const glm::vec2 &controlPoint1,
@@ -214,6 +225,20 @@ namespace Bess::Canvas::SceneDraw {
         context.renderer->pathCubicBezierTo(
             controlPoint1, controlPoint2, xy(end),
             Core::Renderer::PathCommandStroke::withWidth(strokeSize));
+    }
+
+    inline void pathCubicBezierTo(SceneDrawContext &context,
+                                  const glm::vec3 &end,
+                                  const glm::vec2 &controlPoint1,
+                                  const glm::vec2 &controlPoint2,
+                                  float strokeSize, const PickingId &id) {
+        if (!context.renderer) {
+            return;
+        }
+
+        context.renderer->pathCubicBezierTo(
+            controlPoint1, controlPoint2, xy(end),
+            Core::Renderer::PathCommandStroke::withWidthAndId(strokeSize, id));
     }
 
     inline void endPath(SceneDrawContext &context) {

@@ -214,11 +214,21 @@ namespace Bess::Core::Renderer {
         void pathLineTo(const glm::vec2 &pos, float strokeWidth) {
             pathLineTo(pos, PathCommandStroke::withWidth(strokeWidth));
         }
+        void pathLineTo(const glm::vec2 &pos, float strokeWidth,
+                        PickingId id) {
+            pathLineTo(pos,
+                       PathCommandStroke::withWidthAndId(strokeWidth, id));
+        }
         virtual void pathQuadTo(const glm::vec2 &control, const glm::vec2 &pos,
                                 const PathCommandStroke &stroke = {}) = 0;
         void pathQuadTo(const glm::vec2 &control, const glm::vec2 &pos,
                         float strokeWidth) {
             pathQuadTo(control, pos, PathCommandStroke::withWidth(strokeWidth));
+        }
+        void pathQuadTo(const glm::vec2 &control, const glm::vec2 &pos,
+                        float strokeWidth, PickingId id) {
+            pathQuadTo(control, pos,
+                       PathCommandStroke::withWidthAndId(strokeWidth, id));
         }
         virtual void pathQuadraticTo(const glm::vec2 &control,
                                      const glm::vec2 &pos,
@@ -228,6 +238,12 @@ namespace Bess::Core::Renderer {
             pathQuadraticTo(control, pos,
                             PathCommandStroke::withWidth(strokeWidth));
         }
+        void pathQuadraticTo(const glm::vec2 &control, const glm::vec2 &pos,
+                             float strokeWidth, PickingId id) {
+            pathQuadraticTo(
+                control, pos,
+                PathCommandStroke::withWidthAndId(strokeWidth, id));
+        }
         virtual void pathCubicTo(const glm::vec2 &control1,
                                  const glm::vec2 &control2,
                                  const glm::vec2 &pos,
@@ -236,6 +252,12 @@ namespace Bess::Core::Renderer {
                          const glm::vec2 &pos, float strokeWidth) {
             pathCubicTo(control1, control2, pos,
                         PathCommandStroke::withWidth(strokeWidth));
+        }
+        void pathCubicTo(const glm::vec2 &control1, const glm::vec2 &control2,
+                         const glm::vec2 &pos, float strokeWidth,
+                         PickingId id) {
+            pathCubicTo(control1, control2, pos,
+                        PathCommandStroke::withWidthAndId(strokeWidth, id));
         }
         virtual void
         pathCubicBezierTo(const glm::vec2 &control1, const glm::vec2 &control2,
@@ -247,6 +269,13 @@ namespace Bess::Core::Renderer {
             pathCubicBezierTo(control1, control2, pos,
                               PathCommandStroke::withWidth(strokeWidth));
         }
+        void pathCubicBezierTo(const glm::vec2 &control1,
+                               const glm::vec2 &control2, const glm::vec2 &pos,
+                               float strokeWidth, PickingId id) {
+            pathCubicBezierTo(
+                control1, control2, pos,
+                PathCommandStroke::withWidthAndId(strokeWidth, id));
+        }
         virtual void
         pathBezierCurveTo(const glm::vec2 &control1, const glm::vec2 &control2,
                           const glm::vec2 &pos,
@@ -257,9 +286,19 @@ namespace Bess::Core::Renderer {
             pathBezierCurveTo(control1, control2, pos,
                               PathCommandStroke::withWidth(strokeWidth));
         }
+        void pathBezierCurveTo(const glm::vec2 &control1,
+                               const glm::vec2 &control2, const glm::vec2 &pos,
+                               float strokeWidth, PickingId id) {
+            pathBezierCurveTo(
+                control1, control2, pos,
+                PathCommandStroke::withWidthAndId(strokeWidth, id));
+        }
         virtual void pathClose(const PathCommandStroke &stroke = {}) = 0;
         void pathClose(float strokeWidth) {
             pathClose(PathCommandStroke::withWidth(strokeWidth));
+        }
+        void pathClose(float strokeWidth, PickingId id) {
+            pathClose(PathCommandStroke::withWidthAndId(strokeWidth, id));
         }
         virtual void endPath() = 0;
 

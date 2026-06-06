@@ -27,10 +27,27 @@ namespace Bess::Core::Renderer {
         // Starts/ends this command as a separate open stroke contour.
         bool breakBefore = false;
         bool breakAfter = false;
+        PickingId id = PickingId::invalid();
+        bool hasId = false;
 
         [[nodiscard]] static constexpr PathCommandStroke
         withWidth(float strokeWidth) noexcept {
             return {.width = strokeWidth};
+        }
+
+        [[nodiscard]] static constexpr PathCommandStroke
+        withPickingId(PickingId pickingId, float strokeWidth = 0.f) noexcept {
+            return {.width = strokeWidth, .id = pickingId, .hasId = true};
+        }
+
+        [[nodiscard]] static constexpr PathCommandStroke
+        withId(PickingId pickingId, float strokeWidth = 0.f) noexcept {
+            return withPickingId(pickingId, strokeWidth);
+        }
+
+        [[nodiscard]] static constexpr PathCommandStroke
+        withWidthAndId(float strokeWidth, PickingId pickingId) noexcept {
+            return withPickingId(pickingId, strokeWidth);
         }
 
         [[nodiscard]] static constexpr PathCommandStroke
@@ -43,13 +60,37 @@ namespace Bess::Core::Renderer {
         }
 
         [[nodiscard]] static constexpr PathCommandStroke
+        dashedWithId(float dash, float gap, PickingId pickingId,
+                     float strokeWidth = 0.f, float offset = 0.f) noexcept {
+            return {.width = strokeWidth,
+                    .dashLength = dash,
+                    .gapLength = gap,
+                    .dashOffset = offset,
+                    .id = pickingId,
+                    .hasId = true};
+        }
+
+        [[nodiscard]] static constexpr PathCommandStroke
         broken(float strokeWidth = 0.f) noexcept {
             return {
                 .width = strokeWidth, .breakBefore = true, .breakAfter = true};
         }
 
+        [[nodiscard]] static constexpr PathCommandStroke
+        brokenWithId(PickingId pickingId, float strokeWidth = 0.f) noexcept {
+            return {.width = strokeWidth,
+                    .breakBefore = true,
+                    .breakAfter = true,
+                    .id = pickingId,
+                    .hasId = true};
+        }
+
         [[nodiscard]] constexpr bool hasWidthOverride() const noexcept {
             return width > 0.f;
+        }
+
+        [[nodiscard]] constexpr bool hasIdOverride() const noexcept {
+            return hasId;
         }
 
         [[nodiscard]] constexpr bool isDashed() const noexcept {
@@ -58,7 +99,7 @@ namespace Bess::Core::Renderer {
 
         [[nodiscard]] constexpr bool isStyled() const noexcept {
             return hasWidthOverride() || isDashed() || breakBefore ||
-                   breakAfter;
+                   breakAfter || hasIdOverride();
         }
     };
 
@@ -87,6 +128,13 @@ namespace Bess::Core::Renderer {
             return lineTo(pos, PathCommandStroke::withWidth(strokeWidth));
         }
 
+        [[nodiscard]] static PathCommand lineTo(const glm::vec2 &pos,
+                                                float strokeWidth,
+                                                PickingId id) noexcept {
+            return lineTo(pos,
+                          PathCommandStroke::withWidthAndId(strokeWidth, id));
+        }
+
         [[nodiscard]] static PathCommand quadTo(const glm::vec2 &control,
                                                 const glm::vec2 &pos) noexcept {
             return {
@@ -107,6 +155,14 @@ namespace Bess::Core::Renderer {
                                                 float strokeWidth) noexcept {
             return quadTo(control, pos,
                           PathCommandStroke::withWidth(strokeWidth));
+        }
+
+        [[nodiscard]] static PathCommand quadTo(const glm::vec2 &control,
+                                                const glm::vec2 &pos,
+                                                float strokeWidth,
+                                                PickingId id) noexcept {
+            return quadTo(control, pos,
+                          PathCommandStroke::withWidthAndId(strokeWidth, id));
         }
 
         [[nodiscard]] static PathCommand
@@ -137,6 +193,15 @@ namespace Bess::Core::Renderer {
                            PathCommandStroke::withWidth(strokeWidth));
         }
 
+        [[nodiscard]] static PathCommand cubicTo(const glm::vec2 &control1,
+                                                 const glm::vec2 &control2,
+                                                 const glm::vec2 &pos,
+                                                 float strokeWidth,
+                                                 PickingId id) noexcept {
+            return cubicTo(control1, control2, pos,
+                           PathCommandStroke::withWidthAndId(strokeWidth, id));
+        }
+
         [[nodiscard]] static PathCommand closePath() noexcept {
             return {.kind = PathCommandKind::Close};
         }
@@ -148,6 +213,12 @@ namespace Bess::Core::Renderer {
 
         [[nodiscard]] static PathCommand closePath(float strokeWidth) noexcept {
             return closePath(PathCommandStroke::withWidth(strokeWidth));
+        }
+
+        [[nodiscard]] static PathCommand closePath(float strokeWidth,
+                                                   PickingId id) noexcept {
+            return closePath(
+                PathCommandStroke::withWidthAndId(strokeWidth, id));
         }
     };
 
@@ -230,6 +301,11 @@ namespace Bess::Core::Renderer {
             return lineTo(pos, PathCommandStroke::withWidth(strokeWidth));
         }
 
+        Path2D &lineTo(const glm::vec2 &pos, float strokeWidth, PickingId id) {
+            return lineTo(pos,
+                          PathCommandStroke::withWidthAndId(strokeWidth, id));
+        }
+
         Path2D &quadTo(const glm::vec2 &control, const glm::vec2 &pos) {
             return addCommand(PathCommand::quadTo(control, pos));
         }
@@ -243,6 +319,12 @@ namespace Bess::Core::Renderer {
                        float strokeWidth) {
             return quadTo(control, pos,
                           PathCommandStroke::withWidth(strokeWidth));
+        }
+
+        Path2D &quadTo(const glm::vec2 &control, const glm::vec2 &pos,
+                       float strokeWidth, PickingId id) {
+            return quadTo(control, pos,
+                          PathCommandStroke::withWidthAndId(strokeWidth, id));
         }
 
         Path2D &quadraticTo(const glm::vec2 &control, const glm::vec2 &pos) {
@@ -259,6 +341,11 @@ namespace Bess::Core::Renderer {
             return quadTo(control, pos, strokeWidth);
         }
 
+        Path2D &quadraticTo(const glm::vec2 &control, const glm::vec2 &pos,
+                            float strokeWidth, PickingId id) {
+            return quadTo(control, pos, strokeWidth, id);
+        }
+
         Path2D &quadraticBezierTo(const glm::vec2 &control,
                                   const glm::vec2 &pos) {
             return quadTo(control, pos);
@@ -273,6 +360,12 @@ namespace Bess::Core::Renderer {
         Path2D &quadraticBezierTo(const glm::vec2 &control,
                                   const glm::vec2 &pos, float strokeWidth) {
             return quadTo(control, pos, strokeWidth);
+        }
+
+        Path2D &quadraticBezierTo(const glm::vec2 &control,
+                                  const glm::vec2 &pos, float strokeWidth,
+                                  PickingId id) {
+            return quadTo(control, pos, strokeWidth, id);
         }
 
         Path2D &cubicTo(const glm::vec2 &control1, const glm::vec2 &control2,
@@ -292,6 +385,13 @@ namespace Bess::Core::Renderer {
                            PathCommandStroke::withWidth(strokeWidth));
         }
 
+        Path2D &cubicTo(const glm::vec2 &control1, const glm::vec2 &control2,
+                        const glm::vec2 &pos, float strokeWidth,
+                        PickingId id) {
+            return cubicTo(control1, control2, pos,
+                           PathCommandStroke::withWidthAndId(strokeWidth, id));
+        }
+
         Path2D &cubicBezierTo(const glm::vec2 &control1,
                               const glm::vec2 &control2, const glm::vec2 &pos) {
             return cubicTo(control1, control2, pos);
@@ -309,6 +409,12 @@ namespace Bess::Core::Renderer {
             return cubicTo(control1, control2, pos, strokeWidth);
         }
 
+        Path2D &cubicBezierTo(const glm::vec2 &control1,
+                              const glm::vec2 &control2, const glm::vec2 &pos,
+                              float strokeWidth, PickingId id) {
+            return cubicTo(control1, control2, pos, strokeWidth, id);
+        }
+
         Path2D &bezierCurveTo(const glm::vec2 &control1,
                               const glm::vec2 &control2, const glm::vec2 &pos) {
             return cubicTo(control1, control2, pos);
@@ -324,6 +430,12 @@ namespace Bess::Core::Renderer {
                               const glm::vec2 &control2, const glm::vec2 &pos,
                               float strokeWidth) {
             return cubicTo(control1, control2, pos, strokeWidth);
+        }
+
+        Path2D &bezierCurveTo(const glm::vec2 &control1,
+                              const glm::vec2 &control2, const glm::vec2 &pos,
+                              float strokeWidth, PickingId id) {
+            return cubicTo(control1, control2, pos, strokeWidth, id);
         }
 
         Path2D &closePath() { return addCommand(PathCommand::closePath()); }
@@ -336,6 +448,11 @@ namespace Bess::Core::Renderer {
             return closePath(PathCommandStroke::withWidth(strokeWidth));
         }
 
+        Path2D &closePath(float strokeWidth, PickingId id) {
+            return closePath(
+                PathCommandStroke::withWidthAndId(strokeWidth, id));
+        }
+
         Path2D &close() { return closePath(); }
 
         Path2D &close(const PathCommandStroke &stroke) {
@@ -343,6 +460,10 @@ namespace Bess::Core::Renderer {
         }
 
         Path2D &close(float strokeWidth) { return closePath(strokeWidth); }
+
+        Path2D &close(float strokeWidth, PickingId id) {
+            return closePath(strokeWidth, id);
+        }
 
         [[nodiscard]] bool empty() const noexcept { return m_commands.empty(); }
 

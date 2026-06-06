@@ -105,6 +105,11 @@ namespace Bess::Wgpu {
             pathLineTo(
                 pos, Core::Renderer::PathCommandStroke::withWidth(strokeWidth));
         }
+        void pathLineTo(const glm::vec2 &pos, float strokeWidth,
+                        PickingId id) {
+            pathLineTo(pos, Core::Renderer::PathCommandStroke::withWidthAndId(
+                                strokeWidth, id));
+        }
         void pathQuadTo(
             const glm::vec2 &control, const glm::vec2 &pos,
             const Core::Renderer::PathCommandStroke &stroke = {}) override;
@@ -113,6 +118,12 @@ namespace Bess::Wgpu {
             pathQuadTo(
                 control, pos,
                 Core::Renderer::PathCommandStroke::withWidth(strokeWidth));
+        }
+        void pathQuadTo(const glm::vec2 &control, const glm::vec2 &pos,
+                        float strokeWidth, PickingId id) {
+            pathQuadTo(control, pos,
+                       Core::Renderer::PathCommandStroke::withWidthAndId(
+                           strokeWidth, id));
         }
         void pathQuadraticTo(
             const glm::vec2 &control, const glm::vec2 &pos,
@@ -123,6 +134,13 @@ namespace Bess::Wgpu {
                 control, pos,
                 Core::Renderer::PathCommandStroke::withWidth(strokeWidth));
         }
+        void pathQuadraticTo(const glm::vec2 &control, const glm::vec2 &pos,
+                             float strokeWidth, PickingId id) {
+            pathQuadraticTo(
+                control, pos,
+                Core::Renderer::PathCommandStroke::withWidthAndId(strokeWidth,
+                                                                  id));
+        }
         void pathCubicTo(
             const glm::vec2 &control1, const glm::vec2 &control2,
             const glm::vec2 &pos,
@@ -132,6 +150,13 @@ namespace Bess::Wgpu {
             pathCubicTo(
                 control1, control2, pos,
                 Core::Renderer::PathCommandStroke::withWidth(strokeWidth));
+        }
+        void pathCubicTo(const glm::vec2 &control1, const glm::vec2 &control2,
+                         const glm::vec2 &pos, float strokeWidth,
+                         PickingId id) {
+            pathCubicTo(control1, control2, pos,
+                        Core::Renderer::PathCommandStroke::withWidthAndId(
+                            strokeWidth, id));
         }
         void pathCubicBezierTo(
             const glm::vec2 &control1, const glm::vec2 &control2,
@@ -144,6 +169,14 @@ namespace Bess::Wgpu {
                 control1, control2, pos,
                 Core::Renderer::PathCommandStroke::withWidth(strokeWidth));
         }
+        void pathCubicBezierTo(const glm::vec2 &control1,
+                               const glm::vec2 &control2, const glm::vec2 &pos,
+                               float strokeWidth, PickingId id) {
+            pathCubicBezierTo(
+                control1, control2, pos,
+                Core::Renderer::PathCommandStroke::withWidthAndId(strokeWidth,
+                                                                  id));
+        }
         void pathBezierCurveTo(
             const glm::vec2 &control1, const glm::vec2 &control2,
             const glm::vec2 &pos,
@@ -155,11 +188,23 @@ namespace Bess::Wgpu {
                 control1, control2, pos,
                 Core::Renderer::PathCommandStroke::withWidth(strokeWidth));
         }
+        void pathBezierCurveTo(const glm::vec2 &control1,
+                               const glm::vec2 &control2, const glm::vec2 &pos,
+                               float strokeWidth, PickingId id) {
+            pathBezierCurveTo(
+                control1, control2, pos,
+                Core::Renderer::PathCommandStroke::withWidthAndId(strokeWidth,
+                                                                  id));
+        }
         void pathClose(
             const Core::Renderer::PathCommandStroke &stroke = {}) override;
         void pathClose(float strokeWidth) {
             pathClose(
                 Core::Renderer::PathCommandStroke::withWidth(strokeWidth));
+        }
+        void pathClose(float strokeWidth, PickingId id) {
+            pathClose(Core::Renderer::PathCommandStroke::withWidthAndId(
+                strokeWidth, id));
         }
         void endPath() override;
 

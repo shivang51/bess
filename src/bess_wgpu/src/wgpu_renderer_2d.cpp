@@ -95,6 +95,12 @@ namespace Bess::Wgpu {
                                               : props.strokeSize;
         }
 
+        PickingId pickingIdForCommand(const PathCommand &command,
+                                      const PathProps &props) {
+            return command.stroke.hasIdOverride() ? command.stroke.id
+                                                  : props.id;
+        }
+
         bool pathHasDrawableStroke(std::span<const PathCommand> commands,
                                    const PathProps &props) {
             if (props.strokeColor.a <= 0.f) {
@@ -2176,6 +2182,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             glm::vec2 to{0.f};
             float fromHalfWidth = 0.5f;
             float toHalfWidth = 0.5f;
+            PickingId id = PickingId::invalid();
         };
 
         PathBakeMetrics makePathBakeMetrics(const float *cameraTransform,
@@ -2882,8 +2889,12 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                                     const glm::vec2 &prevDir,
                                     const glm::vec2 &nextDir,
                                     float prevHalfWidth, float nextHalfWidth,
+                                    const PickingId &id,
                                     const PathProps &props,
                                     const StrokeMeshParams &mesh) {
+            PathProps joinProps = props;
+            joinProps.id = id;
+
             const float turn =
                 (prevDir.x * nextDir.y) - (prevDir.y * nextDir.x);
             if (std::abs(turn) < 0.0001f) {
@@ -2897,8 +2908,10 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             const glm::vec2 nextLeft = center + nextNormal * nextHalfWidth;
             const glm::vec2 nextRight = center - nextNormal * nextHalfWidth;
 
-            appendStrokeTriangle(vertices, center, prevLeft, nextLeft, props);
-            appendStrokeTriangle(vertices, center, nextRight, prevRight, props);
+            appendStrokeTriangle(vertices, center, prevLeft, nextLeft,
+                                 joinProps);
+            appendStrokeTriangle(vertices, center, nextRight, prevRight,
+                                 joinProps);
 
             const float side = turn > 0.f ? -1.f : 1.f;
             const glm::vec2 prevOuterNormal = prevNormal * side;
@@ -2911,7 +2924,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             if (props.lineJoin == PathLineJoin::Round) {
                 appendRoundJoin(vertices, center, prevOuterNormal,
                                 nextOuterNormal, prevHalfWidth, nextHalfWidth,
-                                props, mesh);
+                                joinProps, mesh);
                 return;
             }
 
@@ -2929,14 +2942,16 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                             const glm::vec2 miterPoint =
                                 center + miter * miterLength;
                             appendStrokeTriangle(vertices, prevOuter,
-                                                 miterPoint, nextOuter, props);
+                                                 miterPoint, nextOuter,
+                                                 joinProps);
                             return;
                         }
                     }
                 }
             }
 
-            appendStrokeTriangle(vertices, center, prevOuter, nextOuter, props);
+            appendStrokeTriangle(vertices, center, prevOuter, nextOuter,
+                                 joinProps);
         }
 
         void appendStrokeSegment(std::vector<PathCoverVertex> &vertices,
@@ -2984,6 +2999,9 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                                        const PathProps &props,
                                        const StrokeMeshParams &mesh,
                                        bool extendStart, bool extendEnd) {
+            PathProps segmentProps = props;
+            segmentProps.id = segment.id;
+
             const glm::vec2 delta = segment.to - segment.from;
             if (glm::length(delta) < 0.0001f || segment.fromHalfWidth <= 0.f ||
                 segment.toHalfWidth <= 0.f) {
@@ -3012,16 +3030,18 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             const glm::vec2 outerRightFrom = segmentFrom - fromOuterNormal;
             const glm::vec2 outerRightTo = segmentTo - toOuterNormal;
 
-            appendStrokeTriangle(vertices, leftFrom, rightFrom, leftTo, props);
-            appendStrokeTriangle(vertices, leftTo, rightFrom, rightTo, props);
+            appendStrokeTriangle(vertices, leftFrom, rightFrom, leftTo,
+                                 segmentProps);
+            appendStrokeTriangle(vertices, leftTo, rightFrom, rightTo,
+                                 segmentProps);
             appendStrokeTriangle(vertices, leftFrom, outerLeftFrom, leftTo,
-                                 props, 1.f, 0.f, 1.f);
+                                 segmentProps, 1.f, 0.f, 1.f);
             appendStrokeTriangle(vertices, leftTo, outerLeftFrom, outerLeftTo,
-                                 props, 1.f, 0.f, 0.f);
+                                 segmentProps, 1.f, 0.f, 0.f);
             appendStrokeTriangle(vertices, rightFrom, rightTo, outerRightFrom,
-                                 props, 1.f, 1.f, 0.f);
+                                 segmentProps, 1.f, 1.f, 0.f);
             appendStrokeTriangle(vertices, rightTo, outerRightTo,
-                                 outerRightFrom, props, 1.f, 0.f, 0.f);
+                                 outerRightFrom, segmentProps, 1.f, 0.f, 0.f);
         }
 
         void appendStrokeContour(std::vector<PathCoverVertex> &vertices,
@@ -3132,7 +3152,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                     {.from = segments.back().to,
                      .to = segments.front().from,
                      .fromHalfWidth = segments.back().toHalfWidth,
-                     .toHalfWidth = segments.front().fromHalfWidth});
+                     .toHalfWidth = segments.front().fromHalfWidth,
+                     .id = segments.back().id});
             }
 
             if (closed && segments.size() < 2) {
@@ -3176,14 +3197,18 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 appendStyledStrokeJoin(
                     vertices, prev.to, safeNormalize(prev.to - prev.from),
                     safeNormalize(next.to - next.from), prev.toHalfWidth,
-                    next.fromHalfWidth, props, mesh);
+                    next.fromHalfWidth, next.id, props, mesh);
             }
 
             if (!closed && props.lineCap == PathLineCap::Round) {
-                appendRoundCap(vertices, startCapCenter, -startDir, props, mesh,
-                               startHalfWidth);
-                appendRoundCap(vertices, endCapCenter, endDir, props, mesh,
-                               endHalfWidth);
+                PathProps startCapProps = props;
+                startCapProps.id = segments.front().id;
+                PathProps endCapProps = props;
+                endCapProps.id = segments.back().id;
+                appendRoundCap(vertices, startCapCenter, -startDir,
+                               startCapProps, mesh, startHalfWidth);
+                appendRoundCap(vertices, endCapCenter, endDir, endCapProps,
+                               mesh, endHalfWidth);
             }
         }
 
@@ -3203,7 +3228,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         void
         appendSolidStyledPolyline(std::vector<StyledStrokeSegment> &contour,
                                   const std::vector<glm::vec2> &points,
-                                  float halfWidth) {
+                                  float halfWidth, const PickingId &id) {
             if (points.size() < 2 || halfWidth <= 0.f) {
                 return;
             }
@@ -3212,13 +3237,15 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 contour.push_back({.from = points[i - 1],
                                    .to = points[i],
                                    .fromHalfWidth = halfWidth,
-                                   .toHalfWidth = halfWidth});
+                                   .toHalfWidth = halfWidth,
+                                   .id = id});
             }
         }
 
         void appendDashedStyledPolyline(std::vector<PathCoverVertex> &vertices,
                                         const std::vector<glm::vec2> &points,
                                         float halfWidth,
+                                        const PickingId &id,
                                         const PathCommandStroke &stroke,
                                         const PathProps &props,
                                         const StrokeMeshParams &mesh) {
@@ -3233,7 +3260,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             if (dashLength <= epsilon || gapLength <= epsilon ||
                 patternLength <= epsilon) {
                 std::vector<StyledStrokeSegment> solidContour;
-                appendSolidStyledPolyline(solidContour, points, halfWidth);
+                appendSolidStyledPolyline(solidContour, points, halfWidth, id);
                 appendStyledStrokeContour(vertices, std::move(solidContour),
                                           false, props, mesh);
                 return;
@@ -3281,7 +3308,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                         dashContour.push_back({.from = cursor,
                                                .to = next,
                                                .fromHalfWidth = halfWidth,
-                                               .toHalfWidth = halfWidth});
+                                               .toHalfWidth = halfWidth,
+                                               .id = id});
                     }
 
                     consumed += step;
@@ -3342,11 +3370,15 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 if (command.stroke.isDashed()) {
                     flushContour(false);
                     appendDashedStyledPolyline(vertices, points, halfWidth,
+                                               pickingIdForCommand(command,
+                                                                   props),
                                                command.stroke, props, mesh);
                     return;
                 }
 
-                appendSolidStyledPolyline(contour, points, halfWidth);
+                appendSolidStyledPolyline(
+                    contour, points, halfWidth,
+                    pickingIdForCommand(command, props));
                 if (command.stroke.breakAfter) {
                     flushContour(false);
                 }

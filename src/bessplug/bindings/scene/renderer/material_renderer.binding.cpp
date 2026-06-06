@@ -234,6 +234,15 @@ void bind_material_renderer(py::module_ &m) {
                                      PathCommandStroke::withWidth(weight));
              },
              py::arg("pos"), py::arg("weight"))
+        .def("path_line_to_with_id",
+             [](IRenderer2D &renderer, const glm::vec3 &pos, float weight,
+                uint64_t id) {
+                 renderer.pathLineTo(
+                     {pos.x, pos.y},
+                     PathCommandStroke::withWidthAndId(weight,
+                                                       toPickingId(id)));
+             },
+             py::arg("pos"), py::arg("weight"), py::arg("id"))
         .def("path_cubic_to",
              [](IRenderer2D &renderer, const glm::vec3 &end,
                 const glm::vec2 &controlPoint1,
@@ -244,5 +253,16 @@ void bind_material_renderer(py::module_ &m) {
              },
              py::arg("end"), py::arg("control_point_1"),
              py::arg("control_point_2"), py::arg("weight"))
+        .def("path_cubic_to_with_id",
+             [](IRenderer2D &renderer, const glm::vec3 &end,
+                const glm::vec2 &controlPoint1,
+                const glm::vec2 &controlPoint2, float weight, uint64_t id) {
+                 renderer.pathCubicBezierTo(
+                     controlPoint1, controlPoint2, {end.x, end.y},
+                     PathCommandStroke::withWidthAndId(weight,
+                                                       toPickingId(id)));
+             },
+             py::arg("end"), py::arg("control_point_1"),
+             py::arg("control_point_2"), py::arg("weight"), py::arg("id"))
         .def("end_path", &IRenderer2D::endPath);
 }
