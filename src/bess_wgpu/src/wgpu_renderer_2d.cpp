@@ -238,12 +238,35 @@ namespace Bess::Wgpu {
             Core::Renderer::TextureHandle texture = 0;
             uint32_t firstInstance = 0;
             uint32_t instanceCount = 0;
+            float zIndex = 0.f;
         };
 
         struct CustomQuadDrawRun {
             CustomQuadShaderHandle shader = 0;
             uint32_t firstInstance = 0;
             uint32_t instanceCount = 0;
+            float zIndex = 0.f;
+        };
+
+        struct TextDrawRun {
+            uint32_t firstGlyph = 0;
+            uint32_t glyphCount = 0;
+            float zIndex = 0.f;
+        };
+
+        enum class TransparentDrawKind : uint8_t {
+            Primitive,
+            CustomQuad,
+            PathFill,
+            PathStroke,
+            Text,
+        };
+
+        struct TransparentDrawItem {
+            TransparentDrawKind kind = TransparentDrawKind::Primitive;
+            float zIndex = 0.f;
+            uint32_t index = 0;
+            uint32_t order = 0;
         };
 
         wgpu::TextureFormat toWgpuFormat(Renderer2DTargetFormat format) {
@@ -747,7 +770,19 @@ namespace Bess::Wgpu {
             }
 
             void prepareForRendering(bool sortBackToFront) {
-                if (sortBackToFront && m_instanceCount > 1) {
+                if (!sortBackToFront || m_instanceCount == 0) {
+                    return;
+                }
+
+                if (m_instanceCount == 1) {
+                    if (m_drawRunsCount == 1) {
+                        m_drawRunsPtr[0].zIndex =
+                            m_gpuInstancesPtr[0].position[2];
+                    }
+                    return;
+                }
+
+                if (m_instanceCount > 1) {
                     m_sortIndices.resize(m_instanceCount);
                     uint32_t *indicesPtr = m_sortIndices.data();
                     for (uint32_t i = 0; i < m_instanceCount; ++i) {
@@ -783,13 +818,17 @@ namespace Bess::Wgpu {
                         uint32_t oldIdx = indicesPtr[i];
                         sortedPtr[i] = m_gpuInstancesPtr[oldIdx];
                         Core::Renderer::TextureHandle tex = texPtr[oldIdx];
+                        const float zIndex = sortedPtr[i].position[2];
 
                         if (m_drawRunsCount == 0 ||
-                            m_drawRunsPtr[m_drawRunsCount - 1].texture != tex) {
+                            m_drawRunsPtr[m_drawRunsCount - 1].texture != tex ||
+                            m_drawRunsPtr[m_drawRunsCount - 1].zIndex !=
+                                zIndex) {
                             m_drawRunsPtr[m_drawRunsCount++] = {
                                 .texture = tex,
                                 .firstInstance = i,
-                                .instanceCount = 1};
+                                .instanceCount = 1,
+                                .zIndex = zIndex};
                         } else {
                             m_drawRunsPtr[m_drawRunsCount - 1].instanceCount++;
                         }
@@ -880,7 +919,19 @@ namespace Bess::Wgpu {
             }
 
             void prepareForRendering(bool sortBackToFront) {
-                if (sortBackToFront && m_instanceCount > 1) {
+                if (!sortBackToFront || m_instanceCount == 0) {
+                    return;
+                }
+
+                if (m_instanceCount == 1) {
+                    if (m_drawRunsCount == 1) {
+                        m_drawRunsPtr[0].zIndex =
+                            m_gpuInstancesPtr[0].position[2];
+                    }
+                    return;
+                }
+
+                if (m_instanceCount > 1) {
                     m_sortIndices.resize(m_instanceCount);
                     uint32_t *indicesPtr = m_sortIndices.data();
                     for (uint32_t i = 0; i < m_instanceCount; ++i) {
@@ -915,14 +966,18 @@ namespace Bess::Wgpu {
                         uint32_t oldIdx = indicesPtr[i];
                         sortedPtr[i] = m_gpuInstancesPtr[oldIdx];
                         CustomQuadShaderHandle shader = shaderPtr[oldIdx];
+                        const float zIndex = sortedPtr[i].position[2];
 
                         if (m_drawRunsCount == 0 ||
                             m_drawRunsPtr[m_drawRunsCount - 1].shader !=
-                                shader) {
+                                shader ||
+                            m_drawRunsPtr[m_drawRunsCount - 1].zIndex !=
+                                zIndex) {
                             m_drawRunsPtr[m_drawRunsCount++] = {
                                 .shader = shader,
                                 .firstInstance = i,
-                                .instanceCount = 1};
+                                .instanceCount = 1,
+                                .zIndex = zIndex};
                         } else {
                             m_drawRunsPtr[m_drawRunsCount - 1].instanceCount++;
                         }
@@ -1625,24 +1680,47 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
 
         class MsdfTextBatch {
           public:
-            void clear() { m_instances.clear(); }
+            void clear() {
+                m_instances.clear();
+                m_drawRuns.clear();
+            }
 
             void push(const MsdfTextInstance &instance) {
                 m_instances.push_back(instance);
             }
 
             void prepareForRendering() {
-                if (m_instances.size() <= 1) {
+                if (m_instances.size() > 1) {
+                    std::stable_sort(m_instances.begin(), m_instances.end(),
+                                     [](const MsdfTextInstance &a,
+                                        const MsdfTextInstance &b) {
+                                         if (a.position[2] != b.position[2]) {
+                                             return a.position[2] <
+                                                    b.position[2];
+                                         }
+                                         return false;
+                                     });
+                }
+
+                m_drawRuns.clear();
+                if (m_instances.empty()) {
                     return;
                 }
-                std::stable_sort(m_instances.begin(), m_instances.end(),
-                                 [](const MsdfTextInstance &a,
-                                    const MsdfTextInstance &b) {
-                                     if (a.position[2] != b.position[2]) {
-                                         return a.position[2] < b.position[2];
-                                     }
-                                     return false;
-                                 });
+
+                m_drawRuns.reserve(m_instances.size());
+                for (uint32_t i = 0; i < m_instances.size(); ++i) {
+                    const float zIndex = m_instances[i].position[2];
+                    if (m_drawRuns.empty() ||
+                        m_drawRuns.back().zIndex != zIndex) {
+                        m_drawRuns.push_back({
+                            .firstGlyph = i,
+                            .glyphCount = 1,
+                            .zIndex = zIndex,
+                        });
+                    } else {
+                        m_drawRuns.back().glyphCount++;
+                    }
+                }
             }
 
             [[nodiscard]] bool empty() const noexcept {
@@ -1662,8 +1740,17 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 return m_instances.data();
             }
 
+            [[nodiscard]] const TextDrawRun *drawRunsData() const noexcept {
+                return m_drawRuns.data();
+            }
+
+            [[nodiscard]] uint32_t drawRunsCount() const noexcept {
+                return static_cast<uint32_t>(m_drawRuns.size());
+            }
+
           private:
             std::vector<MsdfTextInstance> m_instances;
+            std::vector<TextDrawRun> m_drawRuns;
         };
 
         constexpr const char *kMsdfTextShader = R"(
@@ -1851,7 +1938,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             }
 
             void draw(wgpu::RenderPassEncoder &renderPass,
-                      uint32_t glyphCount) const {
+                      uint32_t firstGlyph, uint32_t glyphCount) const {
                 if (glyphCount == 0) {
                     return;
                 }
@@ -1861,7 +1948,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 }
                 renderPass.SetPipeline(m_pipeline);
                 renderPass.SetBindGroup(0, m_bindGroup);
-                renderPass.Draw(6, glyphCount, 0, 0);
+                renderPass.Draw(6, glyphCount, 0, firstGlyph);
             }
 
           private:
@@ -3744,6 +3831,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         bool pathStarted = false;
         std::unique_ptr<FontFile> fontFile;
         std::unique_ptr<MsdfFontAtlas> msdfFontAtlas;
+        std::vector<TransparentDrawItem> transparentDrawItems;
         std::vector<PathCommand> textPathCommandsScratch;
         Core::Renderer::Renderer2DStats stats;
         Color clearColor{0.f, 0.f, 0.f, 1.f};
@@ -4680,6 +4768,21 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             }
         };
 
+        auto renderPrimitiveRun = [&](const DrawRun &run,
+                                      uint32_t instanceOffset,
+                                      const wgpu::RenderPipeline &pipeline) {
+            if (run.instanceCount == 0) {
+                return;
+            }
+
+            renderPass.SetPipeline(pipeline);
+            const auto &texture = m_impl->getTexture(run.texture);
+            renderPass.SetBindGroup(0, texture.bindGroup);
+            renderPass.Draw(6, run.instanceCount, 0,
+                            instanceOffset + run.firstInstance);
+            m_impl->stats.drawCallCount++;
+        };
+
         auto renderCustomQuadBatch = [&](const CustomQuadBatch &batch,
                                          uint32_t instanceOffset,
                                          bool transparent) {
@@ -4696,6 +4799,19 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                     run.instanceCount, transparent);
                 m_impl->stats.drawCallCount++;
             }
+        };
+
+        auto renderCustomQuadRun = [&](const CustomQuadDrawRun &run,
+                                       uint32_t instanceOffset,
+                                       bool transparent) {
+            if (run.instanceCount == 0) {
+                return;
+            }
+
+            m_impl->customQuadPipeline->draw(
+                renderPass, run.shader, instanceOffset + run.firstInstance,
+                run.instanceCount, transparent);
+            m_impl->stats.drawCallCount++;
         };
 
         auto renderPathBatch = [&](const PathBatch &batch,
@@ -4719,6 +4835,18 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             }
         };
 
+        auto renderPathRange = [&](const PathDrawRange &range,
+                                   uint32_t stencilVertexOffset,
+                                   uint32_t coverVertexOffset,
+                                   bool transparent) {
+            m_impl->pathPipeline->drawPath(
+                renderPass, stencilVertexOffset + range.firstStencilVertex,
+                range.stencilVertexCount,
+                coverVertexOffset + range.firstCoverVertex,
+                range.coverVertexCount, transparent, range.evenOddFill);
+            m_impl->stats.drawCallCount += 2;
+        };
+
         auto renderPathStrokeBatch = [&](const PathStrokeBatch &batch,
                                          uint32_t vertexOffset,
                                          bool transparent) {
@@ -4737,12 +4865,22 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             }
         };
 
-        auto renderTextBatch = [&]() {
-            if (m_impl->textBatch.empty() || m_impl->textPipeline == nullptr) {
+        auto renderPathStrokeRange = [&](const PathStrokeDrawRange &range,
+                                         uint32_t vertexOffset,
+                                         bool transparent) {
+            m_impl->pathPipeline->drawStroke(
+                renderPass, vertexOffset + range.firstVertex,
+                range.vertexCount, transparent);
+            m_impl->stats.drawCallCount++;
+        };
+
+        auto renderTextRun = [&](const TextDrawRun &run) {
+            if (run.glyphCount == 0 || m_impl->textPipeline == nullptr) {
                 return;
             }
 
-            m_impl->textPipeline->draw(renderPass, m_impl->textBatch.count());
+            m_impl->textPipeline->draw(renderPass, run.firstGlyph,
+                                       run.glyphCount);
             m_impl->stats.drawCallCount++;
         };
 
@@ -4754,17 +4892,111 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                         opaqueCoverVertexOffset, false);
         renderPathStrokeBatch(m_impl->opaquePathStrokeBatch,
                               opaqueStrokeVertexOffset, false);
-        renderBatch(m_impl->transparentPrimitiveBatch,
+
+        m_impl->transparentDrawItems.clear();
+        m_impl->transparentDrawItems.reserve(
+            m_impl->transparentPrimitiveBatch.drawRunsCount() +
+            m_impl->transparentCustomQuadBatch.drawRunsCount() +
+            m_impl->transparentPathBatch.drawCount() +
+            m_impl->transparentPathStrokeBatch.drawCount() +
+            m_impl->textBatch.drawRunsCount());
+
+        uint32_t transparentDrawOrder = 0;
+        const DrawRun *transparentPrimitiveRuns =
+            m_impl->transparentPrimitiveBatch.drawRunsData();
+        for (uint32_t i = 0;
+             i < m_impl->transparentPrimitiveBatch.drawRunsCount(); ++i) {
+            m_impl->transparentDrawItems.push_back({
+                .kind = TransparentDrawKind::Primitive,
+                .zIndex = transparentPrimitiveRuns[i].zIndex,
+                .index = i,
+                .order = transparentDrawOrder++,
+            });
+        }
+
+        const CustomQuadDrawRun *transparentCustomQuadRuns =
+            m_impl->transparentCustomQuadBatch.drawRunsData();
+        for (uint32_t i = 0;
+             i < m_impl->transparentCustomQuadBatch.drawRunsCount(); ++i) {
+            m_impl->transparentDrawItems.push_back({
+                .kind = TransparentDrawKind::CustomQuad,
+                .zIndex = transparentCustomQuadRuns[i].zIndex,
+                .index = i,
+                .order = transparentDrawOrder++,
+            });
+        }
+
+        const PathDrawRange *transparentPathRanges =
+            m_impl->transparentPathBatch.drawRanges();
+        for (uint32_t i = 0; i < m_impl->transparentPathBatch.drawCount();
+             ++i) {
+            m_impl->transparentDrawItems.push_back({
+                .kind = TransparentDrawKind::PathFill,
+                .zIndex = transparentPathRanges[i].zIndex,
+                .index = i,
+                .order = transparentDrawOrder++,
+            });
+        }
+
+        const PathStrokeDrawRange *transparentPathStrokeRanges =
+            m_impl->transparentPathStrokeBatch.drawRanges();
+        for (uint32_t i = 0;
+             i < m_impl->transparentPathStrokeBatch.drawCount(); ++i) {
+            m_impl->transparentDrawItems.push_back({
+                .kind = TransparentDrawKind::PathStroke,
+                .zIndex = transparentPathStrokeRanges[i].zIndex,
+                .index = i,
+                .order = transparentDrawOrder++,
+            });
+        }
+
+        const TextDrawRun *textRuns = m_impl->textBatch.drawRunsData();
+        for (uint32_t i = 0; i < m_impl->textBatch.drawRunsCount(); ++i) {
+            m_impl->transparentDrawItems.push_back({
+                .kind = TransparentDrawKind::Text,
+                .zIndex = textRuns[i].zIndex,
+                .index = i,
+                .order = transparentDrawOrder++,
+            });
+        }
+
+        std::stable_sort(m_impl->transparentDrawItems.begin(),
+                         m_impl->transparentDrawItems.end(),
+                         [](const TransparentDrawItem &a,
+                            const TransparentDrawItem &b) {
+                             if (a.zIndex != b.zIndex) {
+                                 return a.zIndex < b.zIndex;
+                             }
+                             return a.order < b.order;
+                         });
+
+        for (const TransparentDrawItem &item :
+             m_impl->transparentDrawItems) {
+            switch (item.kind) {
+            case TransparentDrawKind::Primitive:
+                renderPrimitiveRun(
+                    transparentPrimitiveRuns[item.index],
                     transparentInstanceOffset,
                     m_impl->primitivePipeline->getTransparentPipeline());
-        renderCustomQuadBatch(m_impl->transparentCustomQuadBatch,
-                              transparentCustomInstanceOffset, true);
-        renderPathBatch(m_impl->transparentPathBatch,
-                        transparentStencilVertexOffset,
-                        transparentCoverVertexOffset, true);
-        renderPathStrokeBatch(m_impl->transparentPathStrokeBatch,
-                              transparentStrokeVertexOffset, true);
-        renderTextBatch();
+                break;
+            case TransparentDrawKind::CustomQuad:
+                renderCustomQuadRun(transparentCustomQuadRuns[item.index],
+                                    transparentCustomInstanceOffset, true);
+                break;
+            case TransparentDrawKind::PathFill:
+                renderPathRange(transparentPathRanges[item.index],
+                                transparentStencilVertexOffset,
+                                transparentCoverVertexOffset, true);
+                break;
+            case TransparentDrawKind::PathStroke:
+                renderPathStrokeRange(transparentPathStrokeRanges[item.index],
+                                      transparentStrokeVertexOffset, true);
+                break;
+            case TransparentDrawKind::Text:
+                renderTextRun(textRuns[item.index]);
+                break;
+            }
+        }
 
         renderPass.End();
         m_impl->recordQueuedPickingReadback();
