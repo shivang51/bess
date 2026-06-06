@@ -61,20 +61,6 @@ namespace Bess::Canvas::SceneDraw {
         return props;
     }
 
-    inline void drawQuadPrimitive(SceneDrawContext &context,
-                                  const Core::Renderer::QuadProps &quad,
-                                  const QuadStyle &style) {
-        if (!context.renderer) {
-            return;
-        }
-
-        if (style.isMica) {
-            // context.renderer->drawCustomQuad(quad,
-        } else {
-            context.renderer->drawQuad(quad);
-        }
-    }
-
     inline void drawQuad(SceneDrawContext &context, const glm::vec3 &pos,
                          const glm::vec2 &size, const glm::vec4 &color,
                          const PickingId &id, const QuadStyle &style = {}) {
@@ -90,19 +76,18 @@ namespace Bess::Canvas::SceneDraw {
             auto shadow = makeQuadProps(
                 {pos.x + style.shadow.offset.x, pos.y + style.shadow.offset.y,
                  pos.z - 0.0001f},
-                {std::max(0.f,
-                          size.x * style.shadow.scale.x - style.borderRadius.x),
-                 std::max(0.f, size.y * style.shadow.scale.y -
+                {std::max(0.f, (size.x * style.shadow.scale.x) -
+                                   style.borderRadius.x),
+                 std::max(0.f, (size.y * style.shadow.scale.y) -
                                    style.borderRadius.y)},
                 style.shadow.color,
                 style.shadow.useInvalidId ? PickingId::invalid() : id,
                 shadowStyle);
             shadow.texture = style.shadow.texture;
-            drawQuadPrimitive(context, shadow, shadowStyle);
+            context.renderer->drawQuad(shadow);
         }
 
-        drawQuadPrimitive(context, makeQuadProps(pos, size, color, id, style),
-                          style);
+        context.renderer->drawQuad(makeQuadProps(pos, size, color, id, style));
     }
 
     inline void drawCircle(SceneDrawContext &context, const glm::vec3 &center,
