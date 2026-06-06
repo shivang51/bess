@@ -82,13 +82,19 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::destroy() {
-        if (m_uvDebugShader != 0) {
+        if (m_gridShader != 0 || m_uvDebugShader != 0) {
             const auto renderer = GAppContext::getInstance()
                                       .getSubSystem<RendererContext>()
                                       ->getRenderer();
             if (renderer != nullptr) {
-                renderer->destroyCustomQuadShader(m_uvDebugShader);
+                if (m_gridShader != 0) {
+                    renderer->destroyCustomQuadShader(m_gridShader);
+                }
+                if (m_uvDebugShader != 0) {
+                    renderer->destroyCustomQuadShader(m_uvDebugShader);
+                }
             }
+            m_gridShader = 0;
             m_uvDebugShader = 0;
         }
         if (m_sceneTexture != nullptr) {

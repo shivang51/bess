@@ -76,7 +76,10 @@ namespace Bess::Wgpu {
         void drawCustomQuad(const CustomQuadProps &props) override;
         void drawCustomQuad(const Core::Renderer::QuadProps &quad,
                             CustomQuadShaderHandle shader,
-                            std::array<glm::vec4, 4> data = {});
+                            std::array<glm::vec4, 4> data = {},
+                            Core::Renderer::CustomQuadTransformMode
+                                transformMode = Core::Renderer::
+                                    CustomQuadTransformMode::Camera);
         void drawRoundedQuad(
             const Core::Renderer::QuadProps &props,
             const Core::Renderer::RoundedBorderProps &roundedProps) override;

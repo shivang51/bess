@@ -561,8 +561,10 @@ namespace Bess::Wgpu {
             float data2[4] = {0.f, 0.f, 0.f, 0.f};
             float data3[4] = {0.f, 0.f, 0.f, 0.f};
             uint32_t id[2] = {0, 0};
-            uint32_t padding1[2] = {0, 0};
+            uint32_t flags[2] = {0, 0};
         };
+
+        constexpr uint32_t kCustomQuadFlagApplyCameraTransform = 1u << 0u;
 
         void copyVec4(float *dst, const glm::vec4 &src) {
             dst[0] = src.x;
@@ -596,8 +598,12 @@ namespace Bess::Wgpu {
             copyVec4(instance.data3, props.data[3]);
             instance.id[0] = quad.id.runtimeId;
             instance.id[1] = quad.id.info;
-            instance.padding1[0] = 0;
-            instance.padding1[1] = 0;
+            instance.flags[0] =
+                props.transformMode ==
+                        Core::Renderer::CustomQuadTransformMode::Camera
+                    ? kCustomQuadFlagApplyCameraTransform
+                    : 0u;
+            instance.flags[1] = 0;
         }
 
         void
@@ -1002,7 +1008,7 @@ struct CustomQuad {
     data2: vec4f,
     data3: vec4f,
     id: vec2u,
-    padding1: vec2u,
+    flags: vec2u,
 };
 
 struct VertexOut {
@@ -1030,6 +1036,10 @@ struct CustomQuadFragmentInput {
     data1: vec4f,
     data2: vec4f,
     data3: vec4f,
+    viewport: vec2f,
+    camera_transform: mat4x4f,
+    camera_zoom: f32,
+    camera_zoom_xy: vec2f,
 };
 
 struct FragmentOut {
@@ -1044,8 +1054,33 @@ struct FragmentOutPicking {
 @group(0) @binding(0) var<storage, read> custom_quads: array<CustomQuad>;
 @group(0) @binding(1) var<uniform> frame: Frame;
 
+const CUSTOM_QUAD_FLAG_APPLY_CAMERA_TRANSFORM: u32 = 1u;
+
 fn custom_quad_resolution() -> vec3f {
     return vec3f(frame.viewport, 1.0);
+}
+
+fn custom_quad_camera_zoom_xy() -> vec2f {
+    return vec2f(
+        abs(frame.camera_transform[0][0]) * frame.viewport.x * 0.5,
+        abs(frame.camera_transform[1][1]) * frame.viewport.y * 0.5);
+}
+
+fn custom_quad_camera_zoom() -> f32 {
+    let zoom_xy = custom_quad_camera_zoom_xy();
+    return (zoom_xy.x + zoom_xy.y) * 0.5;
+}
+
+fn custom_quad_depth(z_index: f32) -> f32 {
+    return clamp(0.5 - 0.5 * tanh(z_index * 0.01), 0.0, 1.0);
+}
+
+fn custom_quad_screen_clip_position(world: vec2f, z_index: f32) -> vec4f {
+    let safe_viewport = max(frame.viewport, vec2f(1.0, 1.0));
+    let clip_xy = vec2f(
+        (world.x / safe_viewport.x) * 2.0,
+        -(world.y / safe_viewport.y) * 2.0);
+    return vec4f(clip_xy, custom_quad_depth(z_index), 1.0);
 }
 
 @vertex
@@ -1067,7 +1102,11 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32,
     let world = q.position.xy + rotated;
 
     var out: VertexOut;
-    out.position = frame.camera_transform * vec4f(world, q.position.z, 1.0);
+    if ((q.flags.x & CUSTOM_QUAD_FLAG_APPLY_CAMERA_TRANSFORM) != 0u) {
+        out.position = frame.camera_transform * vec4f(world, q.position.z, 1.0);
+    } else {
+        out.position = custom_quad_screen_clip_position(world, q.position.z);
+    }
     out.uv = q.uv_rect.xy + local * (q.uv_rect.zw - q.uv_rect.xy);
     out.local_uv = local;
     out.local_pos = centered;
@@ -1093,6 +1132,10 @@ fn make_custom_quad_fragment_input(in: VertexOut) -> CustomQuadFragmentInput {
     out.data1 = in.data1;
     out.data2 = in.data2;
     out.data3 = in.data3;
+    out.viewport = frame.viewport;
+    out.camera_transform = frame.camera_transform;
+    out.camera_zoom = custom_quad_camera_zoom();
+    out.camera_zoom_xy = custom_quad_camera_zoom_xy();
     return out;
 }
 )";
@@ -4205,9 +4248,12 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
 
     void WgpuRenderer2D::drawCustomQuad(
         const Core::Renderer::QuadProps &quad, CustomQuadShaderHandle shader,
-        std::array<glm::vec4, 4> data) {
-        drawCustomQuad(
-            CustomQuadProps{.quad = quad, .shader = shader, .data = data});
+        std::array<glm::vec4, 4> data,
+        Core::Renderer::CustomQuadTransformMode transformMode) {
+        drawCustomQuad(CustomQuadProps{.quad = quad,
+                                       .shader = shader,
+                                       .data = data,
+                                       .transformMode = transformMode});
     }
 
     void WgpuRenderer2D::drawRoundedQuad(

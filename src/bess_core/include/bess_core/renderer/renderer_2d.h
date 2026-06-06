@@ -106,14 +106,27 @@ namespace Bess::Core::Renderer {
 
     using CustomQuadShaderHandle = uint32_t;
 
+    enum class CustomQuadTransformMode : uint8_t {
+        // QuadProps position/size are scene/world units and frame.camera_transform
+        // is applied in the vertex shader.
+        Camera,
+        // QuadProps position/size are render-target pixels with origin at the
+        // target center; frame.camera_transform is not applied.
+        Screen,
+    };
+
     struct CustomQuadShaderDesc {
         std::string label;
         // Appended after the renderer's WGSL prelude. Define:
         // fn <fragmentEntryPoint>(in: CustomQuadFragmentInput) -> vec4f
         //
         // CustomQuadFragmentInput contains:
-        // frag_coord, uv, local_uv, local_pos, size, color, data0..data3.
+        // frag_coord, uv, local_uv, local_pos, size, color, data0..data3,
+        // viewport, camera_transform, camera_zoom, camera_zoom_xy.
         // uv respects QuadProps::uvRect; local_uv is always 0..1.
+        //
+        // The WGSL frame uniform is also in scope as `frame`, with:
+        // frame.viewport and frame.camera_transform.
         std::string fragmentSource;
         std::string fragmentEntryPoint = "custom_quad_fragment";
     };
@@ -122,6 +135,7 @@ namespace Bess::Core::Renderer {
         QuadProps quad;
         CustomQuadShaderHandle shader = 0;
         std::array<glm::vec4, 4> data{};
+        CustomQuadTransformMode transformMode = CustomQuadTransformMode::Camera;
     };
 
     class IRenderer2D {
@@ -166,9 +180,14 @@ namespace Bess::Core::Renderer {
         virtual void drawCustomQuad(const CustomQuadProps &props) = 0;
         void drawCustomQuad(const QuadProps &quad,
                             CustomQuadShaderHandle shader,
-                            std::array<glm::vec4, 4> data = {}) {
+                            std::array<glm::vec4, 4> data = {},
+                            CustomQuadTransformMode transformMode =
+                                CustomQuadTransformMode::Camera) {
             drawCustomQuad(
-                CustomQuadProps{.quad = quad, .shader = shader, .data = data});
+                CustomQuadProps{.quad = quad,
+                                .shader = shader,
+                                .data = data,
+                                .transformMode = transformMode});
         }
 
         virtual void
