@@ -60,6 +60,10 @@ const PRIMITIVE_TYPE_QUAD = 0;
 const PRIMITIVE_TYPE_CIRCLE = 1;
 const PRIMITIVE_TYPE_LINE = 2;
 
+fn primitive_depth(z_index: f32) -> f32 {
+    return clamp(0.5 - 0.5 * tanh(z_index * 0.01), 0.0, 1.0);
+}
+
 @vertex
 fn vs_main(@builtin(vertex_index) vertex_index: u32,
            @builtin(instance_index) instance_index: u32) -> VertexOut {
@@ -78,8 +82,8 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32,
         centered.x * s + centered.y * c);
     let world = q.position.xy + rotated;
     var out: VertexOut;
-    let depth = 0.5 - 0.5 * tanh(q.position.z * 0.01);
-    out.position = frame.camera_transform * vec4f(world, q.position.z, 1.0);
+    out.position = frame.camera_transform * vec4f(world, 0.0, 1.0);
+    out.position.z = primitive_depth(q.position.z);
     out.local_pos = local * q.size;
     out.local_coord = local_coord;
     out.size = q.size;

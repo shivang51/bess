@@ -67,6 +67,9 @@ namespace Bess::Wgpu {
             if (props.color.a < 0.999f) {
                 return true;
             }
+            if (props.texture != 0) {
+                return true;
+            }
             if (rounded != nullptr && rounded->color.a < 0.999f) {
                 return true;
             }
@@ -736,14 +739,14 @@ namespace Bess::Wgpu {
 
             void prepareForRendering(bool sortBackToFront) {
                 if (sortBackToFront && m_instanceCount > 1) {
-                    std::vector<uint32_t> indices(m_instanceCount);
-                    uint32_t *indicesPtr = indices.data();
+                    m_sortIndices.resize(m_instanceCount);
+                    uint32_t *indicesPtr = m_sortIndices.data();
                     for (uint32_t i = 0; i < m_instanceCount; ++i) {
                         indicesPtr[i] = i;
                     }
 
                     std::stable_sort(
-                        indices.begin(), indices.end(),
+                        m_sortIndices.begin(), m_sortIndices.end(),
                         [this](uint32_t a, uint32_t b) {
                             if (m_gpuInstancesPtr[a].position[2] !=
                                 m_gpuInstancesPtr[b].position[2]) {
@@ -753,9 +756,9 @@ namespace Bess::Wgpu {
                             return a < b;
                         });
 
-                    std::vector<Core::Renderer::TextureHandle> textures(
-                        m_instanceCount);
-                    Core::Renderer::TextureHandle *texPtr = textures.data();
+                    m_sortTextures.resize(m_instanceCount);
+                    Core::Renderer::TextureHandle *texPtr =
+                        m_sortTextures.data();
                     for (uint32_t r = 0; r < m_drawRunsCount; ++r) {
                         const auto &run = m_drawRunsPtr[r];
                         for (uint32_t i = 0; i < run.instanceCount; ++i) {
@@ -763,9 +766,8 @@ namespace Bess::Wgpu {
                         }
                     }
 
-                    std::vector<PrimitiveInstance> sortedInstances(
-                        m_instanceCount);
-                    PrimitiveInstance *sortedPtr = sortedInstances.data();
+                    m_sortInstances.resize(m_instanceCount);
+                    PrimitiveInstance *sortedPtr = m_sortInstances.data();
                     m_drawRunsCount = 0;
 
                     for (uint32_t i = 0; i < m_instanceCount; ++i) {
@@ -818,6 +820,9 @@ namespace Bess::Wgpu {
           private:
             std::vector<PrimitiveInstance> m_gpuInstances;
             std::vector<DrawRun> m_drawRuns;
+            std::vector<uint32_t> m_sortIndices;
+            std::vector<Core::Renderer::TextureHandle> m_sortTextures;
+            std::vector<PrimitiveInstance> m_sortInstances;
             PrimitiveInstance *m_gpuInstancesPtr = nullptr;
             DrawRun *m_drawRunsPtr = nullptr;
             uint32_t m_instanceCount = 0;
@@ -867,14 +872,14 @@ namespace Bess::Wgpu {
 
             void prepareForRendering(bool sortBackToFront) {
                 if (sortBackToFront && m_instanceCount > 1) {
-                    std::vector<uint32_t> indices(m_instanceCount);
-                    uint32_t *indicesPtr = indices.data();
+                    m_sortIndices.resize(m_instanceCount);
+                    uint32_t *indicesPtr = m_sortIndices.data();
                     for (uint32_t i = 0; i < m_instanceCount; ++i) {
                         indicesPtr[i] = i;
                     }
 
                     std::stable_sort(
-                        indices.begin(), indices.end(),
+                        m_sortIndices.begin(), m_sortIndices.end(),
                         [this](uint32_t a, uint32_t b) {
                             if (m_gpuInstancesPtr[a].position[2] !=
                                 m_gpuInstancesPtr[b].position[2]) {
@@ -884,9 +889,8 @@ namespace Bess::Wgpu {
                             return a < b;
                         });
 
-                    std::vector<CustomQuadShaderHandle> shaders(
-                        m_instanceCount);
-                    CustomQuadShaderHandle *shaderPtr = shaders.data();
+                    m_sortShaders.resize(m_instanceCount);
+                    CustomQuadShaderHandle *shaderPtr = m_sortShaders.data();
                     for (uint32_t r = 0; r < m_drawRunsCount; ++r) {
                         const auto &run = m_drawRunsPtr[r];
                         for (uint32_t i = 0; i < run.instanceCount; ++i) {
@@ -894,9 +898,8 @@ namespace Bess::Wgpu {
                         }
                     }
 
-                    std::vector<CustomQuadInstance> sortedInstances(
-                        m_instanceCount);
-                    CustomQuadInstance *sortedPtr = sortedInstances.data();
+                    m_sortInstances.resize(m_instanceCount);
+                    CustomQuadInstance *sortedPtr = m_sortInstances.data();
                     m_drawRunsCount = 0;
 
                     for (uint32_t i = 0; i < m_instanceCount; ++i) {
@@ -950,6 +953,9 @@ namespace Bess::Wgpu {
           private:
             std::vector<CustomQuadInstance> m_gpuInstances;
             std::vector<CustomQuadDrawRun> m_drawRuns;
+            std::vector<uint32_t> m_sortIndices;
+            std::vector<CustomQuadShaderHandle> m_sortShaders;
+            std::vector<CustomQuadInstance> m_sortInstances;
             CustomQuadInstance *m_gpuInstancesPtr = nullptr;
             CustomQuadDrawRun *m_drawRunsPtr = nullptr;
             uint32_t m_instanceCount = 0;
@@ -1083,6 +1089,12 @@ fn custom_quad_screen_clip_position(world: vec2f, z_index: f32) -> vec4f {
     return vec4f(clip_xy, custom_quad_depth(z_index), 1.0);
 }
 
+fn custom_quad_camera_clip_position(world: vec2f, z_index: f32) -> vec4f {
+    var clip = frame.camera_transform * vec4f(world, 0.0, 1.0);
+    clip.z = custom_quad_depth(z_index);
+    return clip;
+}
+
 @vertex
 fn vs_main(@builtin(vertex_index) vertex_index: u32,
            @builtin(instance_index) instance_index: u32) -> VertexOut {
@@ -1103,7 +1115,7 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32,
 
     var out: VertexOut;
     if ((q.flags.x & CUSTOM_QUAD_FLAG_APPLY_CAMERA_TRANSFORM) != 0u) {
-        out.position = frame.camera_transform * vec4f(world, q.position.z, 1.0);
+        out.position = custom_quad_camera_clip_position(world, q.position.z);
     } else {
         out.position = custom_quad_screen_clip_position(world, q.position.z);
     }
@@ -4339,6 +4351,45 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
 
         const float lineStartX = props.position.x;
         glm::vec2 cursor{props.position.x, props.position.y + ascent};
+        bool hasTextPathProps = false;
+        PathProps textPathProps{};
+        m_impl->textPathCommandsScratch.clear();
+        m_impl->textPathCommandsScratch.reserve(text.size() * 16u);
+
+        auto flushTextPath = [&]() {
+            if (!hasTextPathProps ||
+                m_impl->textPathCommandsScratch.empty()) {
+                return;
+            }
+
+            PathProps pathProps = textPathProps;
+            pathProps.fillColor = props.color;
+            pathProps.strokeColor.a = 0.f;
+            pathProps.strokeSize = 0.f;
+            pathProps.renderFill = true;
+            pathProps.zIndex = props.zIndex;
+            pathProps.id = props.id;
+            pathProps.renderPass = props.renderPass;
+            const std::span<const PathCommand> textCommands{
+                m_impl->textPathCommandsScratch.data(),
+                m_impl->textPathCommandsScratch.size()};
+            submitPathCommands(textCommands, pathProps, metrics,
+                               m_impl->opaquePathBatch,
+                               m_impl->transparentPathBatch,
+                               m_impl->opaquePathStrokeBatch,
+                               m_impl->transparentPathStrokeBatch);
+
+            if (props.antiAlias) {
+                m_impl->transparentPathStrokeBatch.push(
+                    bakePathFillAntiAlias(textCommands, pathProps, metrics,
+                                          props.antiAliasFringeScale),
+                    props.zIndex);
+            }
+
+            m_impl->textPathCommandsScratch.clear();
+            hasTextPathProps = false;
+        };
+
         size_t offset = 0;
         while (offset < text.size()) {
             const uint32_t codepoint = decodeUtf8(text, offset);
@@ -4347,6 +4398,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             }
 
             if (codepoint == '\r') {
+                flushTextPath();
                 if (offset < text.size() && text[offset] == '\n') {
                     ++offset;
                 }
@@ -4356,6 +4408,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             }
 
             if (codepoint == '\n') {
+                flushTextPath();
                 cursor.x = lineStartX;
                 cursor.y += lineHeight;
                 continue;
@@ -4370,35 +4423,19 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             const Glyph &glyph =
                 m_impl->fontFile->getGlyph(static_cast<char32_t>(codepoint));
             if (!glyph.path.empty()) {
-                m_impl->textPathCommandsScratch.clear();
-                m_impl->textPathCommandsScratch.reserve(
-                    glyph.path.commandCount());
+                if (hasTextPathProps &&
+                    (textPathProps.fillRule != glyph.pathProps.fillRule ||
+                     textPathProps.curveTolerance !=
+                         glyph.pathProps.curveTolerance)) {
+                    flushTextPath();
+                }
+                if (!hasTextPathProps) {
+                    textPathProps = glyph.pathProps;
+                    hasTextPathProps = true;
+                }
                 for (const PathCommand &command : glyph.path.commands()) {
                     m_impl->textPathCommandsScratch.push_back(
                         transformTextCommand(command, cursor, scale));
-                }
-
-                PathProps pathProps = glyph.pathProps;
-                pathProps.fillColor = props.color;
-                pathProps.strokeColor.a = 0.f;
-                pathProps.strokeSize = 0.f;
-                pathProps.renderFill = true;
-                pathProps.zIndex = props.zIndex;
-                pathProps.id = props.id;
-                pathProps.renderPass = props.renderPass;
-                const std::span<const PathCommand> glyphCommands{
-                    m_impl->textPathCommandsScratch.data(),
-                    m_impl->textPathCommandsScratch.size()};
-                submitPathCommands(
-                    glyphCommands, pathProps, metrics, m_impl->opaquePathBatch,
-                    m_impl->transparentPathBatch, m_impl->opaquePathStrokeBatch,
-                    m_impl->transparentPathStrokeBatch);
-
-                if (props.antiAlias) {
-                    m_impl->transparentPathStrokeBatch.push(
-                        bakePathFillAntiAlias(glyphCommands, pathProps, metrics,
-                                              props.antiAliasFringeScale),
-                        props.zIndex);
                 }
             }
 
@@ -4408,6 +4445,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                     : std::max(glyph.width * scale, props.fontSize * 0.5f);
             cursor.x += advance + props.letterSpacing;
         }
+        flushTextPath();
     }
 
     void WgpuRenderer2D::drawPath(std::span<const PathCommand> commands,

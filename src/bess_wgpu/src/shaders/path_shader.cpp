@@ -56,10 +56,15 @@ struct StencilFragmentOutPicking {
 const CURVE_TYPE_LINE = 0u;
 const CURVE_TYPE_QUADRATIC = 1u;
 
+fn path_depth(z_index: f32) -> f32 {
+    return clamp(0.5 - 0.5 * tanh(z_index * 0.01), 0.0, 1.0);
+}
+
 @vertex
 fn vs_stencil(in: StencilVertexIn) -> StencilVertexOut {
     var out: StencilVertexOut;
-    out.position = frame.camera_transform * vec4f(in.position, 1.0);
+    out.position = frame.camera_transform * vec4f(in.position.xy, 0.0, 1.0);
+    out.position.z = path_depth(in.position.z);
     out.curve_coord = in.curve_coord;
     out.curve_type = in.curve_type;
     return out;
@@ -95,7 +100,8 @@ fn fs_stencil_picking(in: StencilVertexOut) -> StencilFragmentOutPicking {
 @vertex
 fn vs_cover(in: CoverVertexIn) -> CoverVertexOut {
     var out: CoverVertexOut;
-    out.position = frame.camera_transform * vec4f(in.position, 1.0);
+    out.position = frame.camera_transform * vec4f(in.position.xy, 0.0, 1.0);
+    out.position.z = path_depth(in.position.z);
     out.color = in.color;
     out.id = in.id;
     return out;
