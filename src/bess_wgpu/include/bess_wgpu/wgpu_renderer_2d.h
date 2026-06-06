@@ -11,8 +11,7 @@
 
 namespace Bess::Wgpu {
 
-    using CustomQuadShaderHandle =
-        Core::Renderer::CustomQuadShaderHandle;
+    using CustomQuadShaderHandle = Core::Renderer::CustomQuadShaderHandle;
     using CustomQuadShaderDesc = Core::Renderer::CustomQuadShaderDesc;
     using CustomQuadProps = Core::Renderer::CustomQuadProps;
 
@@ -53,16 +52,14 @@ namespace Bess::Wgpu {
         [[nodiscard]] Core::Renderer::Renderer2DStats
         getStats() const noexcept override;
         using Core::Renderer::IRenderer2D::readTexture;
-        [[nodiscard]] Core::Renderer::TextureReadbackResult
-        readTexture(
+        [[nodiscard]] Core::Renderer::TextureReadbackResult readTexture(
             const Core::Renderer::TextureReadbackRegion &region) override;
         using Core::Renderer::IRenderer2D::requestPickingId;
         void requestPickingIds(
             const Core::Renderer::TextureReadbackRegion &region) override;
         [[nodiscard]] bool tryGetPickingIds(
             Core::Renderer::PickingReadbackResult &result) override;
-        [[nodiscard]] bool
-        isPickingReadbackPending() const noexcept override;
+        [[nodiscard]] bool isPickingReadbackPending() const noexcept override;
 
         void unregisterTexture(Core::Renderer::TextureHandle texture);
 
@@ -71,18 +68,14 @@ namespace Bess::Wgpu {
         void drawQuad(const Core::Renderer::QuadProps &props) override;
         [[nodiscard]] CustomQuadShaderHandle
         createCustomQuadShader(const CustomQuadShaderDesc &desc) override;
-        void
-        destroyCustomQuadShader(CustomQuadShaderHandle shader) override;
+        void destroyCustomQuadShader(CustomQuadShaderHandle shader) override;
         void drawCustomQuad(const CustomQuadProps &props) override;
-        void drawCustomQuad(const Core::Renderer::QuadProps &quad,
-                            CustomQuadShaderHandle shader,
-                            std::array<glm::vec4, 4> data = {},
-                            Core::Renderer::CustomQuadTransformMode
-                                transformMode = Core::Renderer::
-                                    CustomQuadTransformMode::Camera);
-        void drawRoundedQuad(
-            const Core::Renderer::QuadProps &props,
-            const Core::Renderer::RoundedBorderProps &roundedProps) override;
+        void
+        drawCustomQuad(const Core::Renderer::QuadProps &quad,
+                       CustomQuadShaderHandle shader,
+                       std::array<glm::vec4, 4> data = {},
+                       Core::Renderer::CustomQuadTransformMode transformMode =
+                           Core::Renderer::CustomQuadTransformMode::Camera);
 
         void drawCircle(const Core::Renderer::CircleProps &props) override;
 
@@ -105,8 +98,7 @@ namespace Bess::Wgpu {
             pathLineTo(
                 pos, Core::Renderer::PathCommandStroke::withWidth(strokeWidth));
         }
-        void pathLineTo(const glm::vec2 &pos, float strokeWidth,
-                        PickingId id) {
+        void pathLineTo(const glm::vec2 &pos, float strokeWidth, PickingId id) {
             pathLineTo(pos, Core::Renderer::PathCommandStroke::withWidthAndId(
                                 strokeWidth, id));
         }
@@ -136,10 +128,9 @@ namespace Bess::Wgpu {
         }
         void pathQuadraticTo(const glm::vec2 &control, const glm::vec2 &pos,
                              float strokeWidth, PickingId id) {
-            pathQuadraticTo(
-                control, pos,
-                Core::Renderer::PathCommandStroke::withWidthAndId(strokeWidth,
-                                                                  id));
+            pathQuadraticTo(control, pos,
+                            Core::Renderer::PathCommandStroke::withWidthAndId(
+                                strokeWidth, id));
         }
         void pathCubicTo(
             const glm::vec2 &control1, const glm::vec2 &control2,
@@ -172,10 +163,9 @@ namespace Bess::Wgpu {
         void pathCubicBezierTo(const glm::vec2 &control1,
                                const glm::vec2 &control2, const glm::vec2 &pos,
                                float strokeWidth, PickingId id) {
-            pathCubicBezierTo(
-                control1, control2, pos,
-                Core::Renderer::PathCommandStroke::withWidthAndId(strokeWidth,
-                                                                  id));
+            pathCubicBezierTo(control1, control2, pos,
+                              Core::Renderer::PathCommandStroke::withWidthAndId(
+                                  strokeWidth, id));
         }
         void pathBezierCurveTo(
             const glm::vec2 &control1, const glm::vec2 &control2,
@@ -191,10 +181,9 @@ namespace Bess::Wgpu {
         void pathBezierCurveTo(const glm::vec2 &control1,
                                const glm::vec2 &control2, const glm::vec2 &pos,
                                float strokeWidth, PickingId id) {
-            pathBezierCurveTo(
-                control1, control2, pos,
-                Core::Renderer::PathCommandStroke::withWidthAndId(strokeWidth,
-                                                                  id));
+            pathBezierCurveTo(control1, control2, pos,
+                              Core::Renderer::PathCommandStroke::withWidthAndId(
+                                  strokeWidth, id));
         }
         void pathClose(
             const Core::Renderer::PathCommandStroke &stroke = {}) override;

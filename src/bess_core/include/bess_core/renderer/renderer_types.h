@@ -62,14 +62,12 @@ namespace Bess::Core::Renderer {
 
     enum class PathLineJoin : uint8_t {
         Miter,
-        Sharp = Miter,
         Bevel,
         Round,
     };
 
     enum class PathLineCap : uint8_t {
         Butt,
-        Flat = Butt,
         Round,
         Square,
     };
@@ -91,6 +89,10 @@ namespace Bess::Core::Renderer {
         glm::vec4 uvRect{0.f, 0.f, 1.f, 1.f}; // min u/v, max u/v
         PickingId id = PickingId::invalid();
         QuadRenderPass renderPass = QuadRenderPass::Auto;
+
+        glm::vec4 radius{0.f}; // Top-left, top-right, bottom-right, bottom-left
+        glm::vec4 thickness{0.f}; // same order as radius
+        Color borderColor{0.f, 0.f, 0.f, 0.f};
     };
     struct CircleProps {
         glm::vec2 position{0.f, 0.f};
@@ -141,13 +143,6 @@ namespace Bess::Core::Renderer {
         float antiAliasFringeScale = 1.f;
         PickingId id = PickingId::invalid();
         QuadRenderPass renderPass = QuadRenderPass::Auto;
-    };
-
-    struct RoundedBorderProps {
-        glm::vec4 radius{0.f}; // Top-left, top-right, bottom-right, bottom-left
-        glm::vec4 thickness{
-            0.f}; // Thickness for each edge in the same order as radius
-        Color color{0.f, 0.f, 0.f, 1.f};
     };
 } // namespace Bess::Core::Renderer
 

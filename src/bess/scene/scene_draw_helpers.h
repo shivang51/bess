@@ -55,6 +55,9 @@ namespace Bess::Canvas::SceneDraw {
         props.zIndex = pos.z;
         props.color = color;
         props.id = id;
+        props.borderColor = style.borderColor;
+        props.radius = style.borderRadius;
+        props.thickness = style.borderSize;
         return props;
     }
 
@@ -65,17 +68,11 @@ namespace Bess::Canvas::SceneDraw {
             return;
         }
 
-        if (hasAnyNonZero(style.borderRadius) ||
-            hasAnyNonZero(style.borderSize)) {
-            Core::Renderer::RoundedBorderProps border;
-            border.radius = style.borderRadius;
-            border.thickness = style.borderSize;
-            border.color = style.borderColor;
-            context.renderer->drawRoundedQuad(quad, border);
-            return;
+        if (style.isMica) {
+            // context.renderer->drawCustomQuad(quad,
+        } else {
+            context.renderer->drawQuad(quad);
         }
-
-        context.renderer->drawQuad(quad);
     }
 
     inline void drawQuad(SceneDrawContext &context, const glm::vec3 &pos,
@@ -86,19 +83,21 @@ namespace Bess::Canvas::SceneDraw {
         }
 
         if (style.shadow.enabled) {
-            auto shadow = makeQuadProps(
-                {pos.x + style.shadow.offset.x, pos.y + style.shadow.offset.y,
-                 pos.z - 0.0001f},
-                {std::max(0.f, size.x * style.shadow.scale.x -
-                                   style.borderRadius.x),
-                 std::max(0.f, size.y * style.shadow.scale.y -
-                                   style.borderRadius.y)},
-                style.shadow.color,
-                style.shadow.useInvalidId ? PickingId::invalid() : id, style);
-            shadow.texture = style.shadow.texture;
             QuadStyle shadowStyle;
             shadowStyle.angle = style.angle;
             shadowStyle.borderRadius = style.borderRadius;
+
+            auto shadow = makeQuadProps(
+                {pos.x + style.shadow.offset.x, pos.y + style.shadow.offset.y,
+                 pos.z - 0.0001f},
+                {std::max(0.f,
+                          size.x * style.shadow.scale.x - style.borderRadius.x),
+                 std::max(0.f, size.y * style.shadow.scale.y -
+                                   style.borderRadius.y)},
+                style.shadow.color,
+                style.shadow.useInvalidId ? PickingId::invalid() : id,
+                shadowStyle);
+            shadow.texture = style.shadow.texture;
             drawQuadPrimitive(context, shadow, shadowStyle);
         }
 
@@ -165,9 +164,9 @@ namespace Bess::Canvas::SceneDraw {
                   const PathStyle &style = {}) {
         Core::Renderer::PathProps props;
         props.fillColor = style.fillColor;
-        props.strokeColor =
-            style.renderStroke ? Core::Renderer::Color(strokeColor)
-                               : Core::Renderer::Color(0.f, 0.f, 0.f, 0.f);
+        props.strokeColor = style.renderStroke
+                                ? Core::Renderer::Color(strokeColor)
+                                : Core::Renderer::Color(0.f, 0.f, 0.f, 0.f);
         props.strokeSize = style.renderStroke ? strokeSize : 0.f;
         props.renderFill = style.renderFill;
         props.zIndex = startPos.z;

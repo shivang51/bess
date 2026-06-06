@@ -8,7 +8,6 @@
 #include "common/bess_assert.h"
 #include "common/logger.h"
 #include "glfw3webgpu.h"
-#include "json/json.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -64,8 +63,7 @@ namespace Bess::Wgpu {
         constexpr float kFontOutlinePixelSize = 64.f;
         constexpr uint32_t kReplacementCodepoint = 0xFFFD;
 
-        bool isTransparent(const Core::Renderer::QuadProps &props,
-                           const Core::Renderer::RoundedBorderProps *rounded) {
+        bool isTransparent(const Core::Renderer::QuadProps &props) {
             if (props.renderPass == QuadRenderPass::Opaque) {
                 return false;
             }
@@ -79,7 +77,7 @@ namespace Bess::Wgpu {
             if (props.texture != 0) {
                 return true;
             }
-            if (rounded != nullptr && rounded->color.a < 0.999f) {
+            if (props.borderColor.a < 0.999f) {
                 return true;
             }
             return false;
@@ -339,12 +337,13 @@ namespace Bess::Wgpu {
             return ((value + alignment - 1) / alignment) * alignment;
         }
 
-        Core::Renderer::TextureReadbackResult readTextureRegion(
-            const wgpu::Instance &instance, const wgpu::Device &device,
-            const wgpu::Queue &queue, const wgpu::Texture &texture,
-            wgpu::TextureFormat format, uint32_t textureWidth,
-            uint32_t textureHeight,
-            const Core::Renderer::TextureReadbackRegion &region) {
+        Core::Renderer::TextureReadbackResult
+        readTextureRegion(const wgpu::Instance &instance,
+                          const wgpu::Device &device, const wgpu::Queue &queue,
+                          const wgpu::Texture &texture,
+                          wgpu::TextureFormat format, uint32_t textureWidth,
+                          uint32_t textureHeight,
+                          const Core::Renderer::TextureReadbackRegion &region) {
             if (texture == nullptr) {
                 throw std::runtime_error("Cannot read a null WGPU texture");
             }
@@ -360,8 +359,7 @@ namespace Bess::Wgpu {
             }
 
             const uint32_t bytesPerPixel = bytesPerPixelForFormat(format);
-            const uint32_t unpaddedBytesPerRow =
-                region.width * bytesPerPixel;
+            const uint32_t unpaddedBytesPerRow = region.width * bytesPerPixel;
             const uint32_t paddedBytesPerRow =
                 alignTo(unpaddedBytesPerRow, 256);
             const auto readbackSize =
@@ -396,15 +394,15 @@ namespace Bess::Wgpu {
 
             wgpu::MapAsyncStatus mapStatus = wgpu::MapAsyncStatus::Error;
             std::string mapError;
-            auto mapCallback =
-                [&mapStatus, &mapError](wgpu::MapAsyncStatus status,
-                                         wgpu::StringView message) {
-                    mapStatus = status;
-                    if (status != wgpu::MapAsyncStatus::Success &&
-                        message.data != nullptr) {
-                        mapError.assign(message.data, message.length);
-                    }
-                };
+            auto mapCallback = [&mapStatus,
+                                &mapError](wgpu::MapAsyncStatus status,
+                                           wgpu::StringView message) {
+                mapStatus = status;
+                if (status != wgpu::MapAsyncStatus::Success &&
+                    message.data != nullptr) {
+                    mapError.assign(message.data, message.length);
+                }
+            };
 
             wgpu::Future mapFuture = readbackBuffer.MapAsync(
                 wgpu::MapMode::Read, 0, readbackSize,
@@ -437,11 +435,9 @@ namespace Bess::Wgpu {
 
             for (uint32_t row = 0; row < region.height; ++row) {
                 const uint8_t *src =
-                    mappedData +
-                    (static_cast<size_t>(row) * paddedBytesPerRow);
-                uint8_t *dst =
-                    result.pixels.data() +
-                    (static_cast<size_t>(row) * unpaddedBytesPerRow);
+                    mappedData + (static_cast<size_t>(row) * paddedBytesPerRow);
+                uint8_t *dst = result.pixels.data() +
+                               (static_cast<size_t>(row) * unpaddedBytesPerRow);
                 std::copy(src, src + unpaddedBytesPerRow, dst);
             }
 
@@ -533,9 +529,9 @@ namespace Bess::Wgpu {
             writePng(path, rgba.data(), readback.width, readback.height);
         }
 
-        void makePrimitiveInstanceInPlace(
-            PrimitiveInstance &instance, const Core::Renderer::QuadProps &props,
-            const Core::Renderer::RoundedBorderProps *roundedProps) {
+        void
+        makePrimitiveInstanceInPlace(PrimitiveInstance &instance,
+                                     const Core::Renderer::QuadProps &props) {
             instance.position[0] = props.position.x;
             instance.position[1] = props.position.y;
             instance.position[2] = props.zIndex;
@@ -561,33 +557,18 @@ namespace Bess::Wgpu {
             instance.primitiveData[2] = 0.f;
             instance.primitiveData[3] = 0.f;
 
-            if (roundedProps != nullptr) {
-                instance.borderRadius[0] = roundedProps->radius.x;
-                instance.borderRadius[1] = roundedProps->radius.y;
-                instance.borderRadius[2] = roundedProps->radius.z;
-                instance.borderRadius[3] = roundedProps->radius.w;
-                instance.borderSize[0] = roundedProps->thickness.x;
-                instance.borderSize[1] = roundedProps->thickness.y;
-                instance.borderSize[2] = roundedProps->thickness.z;
-                instance.borderSize[3] = roundedProps->thickness.w;
-                instance.borderColor[0] = roundedProps->color.r;
-                instance.borderColor[1] = roundedProps->color.g;
-                instance.borderColor[2] = roundedProps->color.b;
-                instance.borderColor[3] = roundedProps->color.a;
-            } else {
-                instance.borderRadius[0] = 0.f;
-                instance.borderRadius[1] = 0.f;
-                instance.borderRadius[2] = 0.f;
-                instance.borderRadius[3] = 0.f;
-                instance.borderSize[0] = 0.f;
-                instance.borderSize[1] = 0.f;
-                instance.borderSize[2] = 0.f;
-                instance.borderSize[3] = 0.f;
-                instance.borderColor[0] = 0.f;
-                instance.borderColor[1] = 0.f;
-                instance.borderColor[2] = 0.f;
-                instance.borderColor[3] = 0.f;
-            }
+            instance.borderRadius[0] = props.radius.x;
+            instance.borderRadius[1] = props.radius.y;
+            instance.borderRadius[2] = props.radius.z;
+            instance.borderRadius[3] = props.radius.w;
+            instance.borderSize[0] = props.thickness.x;
+            instance.borderSize[1] = props.thickness.y;
+            instance.borderSize[2] = props.thickness.z;
+            instance.borderSize[3] = props.thickness.w;
+            instance.borderColor[0] = props.borderColor.r;
+            instance.borderColor[1] = props.borderColor.g;
+            instance.borderColor[2] = props.borderColor.b;
+            instance.borderColor[3] = props.borderColor.a;
         }
 
         struct CustomQuadInstance {
@@ -1042,9 +1023,9 @@ namespace Bess::Wgpu {
                 return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
                        c == '_';
             };
-            const auto isAlphaNumericOrUnderscore =
-                [&](char c) { return isAlphaOrUnderscore(c) ||
-                                     (c >= '0' && c <= '9'); };
+            const auto isAlphaNumericOrUnderscore = [&](char c) {
+                return isAlphaOrUnderscore(c) || (c >= '0' && c <= '9');
+            };
 
             if (!isAlphaOrUnderscore(value.front())) {
                 return false;
@@ -1053,8 +1034,8 @@ namespace Bess::Wgpu {
                                isAlphaNumericOrUnderscore);
         }
 
-        std::string buildCustomQuadShaderSource(
-            const CustomQuadShaderDesc &desc) {
+        std::string
+        buildCustomQuadShaderSource(const CustomQuadShaderDesc &desc) {
             if (desc.fragmentSource.empty()) {
                 throw std::runtime_error(
                     "Custom quad shader fragment source is empty");
@@ -1253,8 +1234,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
           public:
             void init(const wgpu::Device &device,
                       wgpu::TextureFormat targetFormat,
-                      const wgpu::Buffer &frameBuffer,
-                      uint64_t frameBufferSize,
+                      const wgpu::Buffer &frameBuffer, uint64_t frameBufferSize,
                       wgpu::TextureFormat pickingFormat) {
                 m_device = device;
                 m_targetFormat = targetFormat;
@@ -1278,8 +1258,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 m_nextShaderHandle = 1;
             }
 
-            [[nodiscard]] bool
-            ensureInstanceBufferSize(std::size_t quadCount) {
+            [[nodiscard]] bool ensureInstanceBufferSize(std::size_t quadCount) {
                 const auto requiredSize = std::max<std::size_t>(
                     sizeof(CustomQuadInstance),
                     quadCount * sizeof(CustomQuadInstance));
@@ -1324,10 +1303,9 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 }
 
                 ShaderResource resource;
-                resource.label =
-                    desc.label.empty()
-                        ? "custom_quad_shader_" + std::to_string(handle)
-                        : desc.label;
+                resource.label = desc.label.empty() ? "custom_quad_shader_" +
+                                                          std::to_string(handle)
+                                                    : desc.label;
 
                 const std::string source = buildCustomQuadShaderSource(desc);
                 using Core::Renderer::ShaderLanguage;
@@ -1399,8 +1377,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                     wgpu::BufferBindingType::ReadOnlyStorage;
 
                 bindings[1].binding = 1;
-                bindings[1].visibility = wgpu::ShaderStage::Vertex |
-                                         wgpu::ShaderStage::Fragment;
+                bindings[1].visibility =
+                    wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment;
                 bindings[1].buffer.type = wgpu::BufferBindingType::Uniform;
 
                 wgpu::BindGroupLayoutDescriptor descriptor{};
@@ -1464,9 +1442,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 }
 
                 wgpu::FragmentState fragment{};
-                fragment.module =
-                    resource.shader->getModule(
-                        Core::Renderer::ShaderStage::Fragment);
+                fragment.module = resource.shader->getModule(
+                    Core::Renderer::ShaderStage::Fragment);
                 fragment.entryPoint =
                     m_pickingFormat != wgpu::TextureFormat::Undefined
                         ? "fs_main_picking"
@@ -1481,9 +1458,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
 
                 wgpu::RenderPipelineDescriptor opaqueDescriptor{};
                 opaqueDescriptor.layout = m_pipelineLayout;
-                opaqueDescriptor.vertex.module =
-                    resource.shader->getModule(
-                        Core::Renderer::ShaderStage::Vertex);
+                opaqueDescriptor.vertex.module = resource.shader->getModule(
+                    Core::Renderer::ShaderStage::Vertex);
                 opaqueDescriptor.vertex.entryPoint = "vs_main";
                 opaqueDescriptor.primitive.topology =
                     wgpu::PrimitiveTopology::TriangleList;
@@ -1591,31 +1567,28 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                     }
 
                     MsdfGlyph glyph;
-                    glyph.codepoint =
-                        static_cast<uint32_t>(
-                            glyphJson.get("unicode", 0).asUInt64());
+                    glyph.codepoint = static_cast<uint32_t>(
+                        glyphJson.get("unicode", 0).asUInt64());
                     glyph.advance = glyphJson.get("advance", 0.f).asFloat();
 
                     if (glyphJson.isMember("planeBounds") &&
                         glyphJson.isMember("atlasBounds")) {
                         const Json::Value &plane = glyphJson["planeBounds"];
                         const Json::Value &bounds = glyphJson["atlasBounds"];
-                        glyph.planeBounds = {
-                            plane.get("left", 0.f).asFloat(),
-                            plane.get("bottom", 0.f).asFloat(),
-                            plane.get("right", 0.f).asFloat(),
-                            plane.get("top", 0.f).asFloat()};
+                        glyph.planeBounds = {plane.get("left", 0.f).asFloat(),
+                                             plane.get("bottom", 0.f).asFloat(),
+                                             plane.get("right", 0.f).asFloat(),
+                                             plane.get("top", 0.f).asFloat()};
 
                         const float left = bounds.get("left", 0.f).asFloat();
                         const float bottom =
                             bounds.get("bottom", 0.f).asFloat();
                         const float right = bounds.get("right", 0.f).asFloat();
                         const float top = bounds.get("top", 0.f).asFloat();
-                        glyph.atlasRegion.reset(
-                            m_atlasSize, {left, bottom},
-                            {std::max(0.f, right - left),
-                             std::max(0.f, top - bottom)},
-                            TextureOrigin::BottomLeft);
+                        glyph.atlasRegion.reset(m_atlasSize, {left, bottom},
+                                                {std::max(0.f, right - left),
+                                                 std::max(0.f, top - bottom)},
+                                                TextureOrigin::BottomLeft);
                         glyph.drawable = true;
                     }
 
@@ -1902,8 +1875,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
           public:
             void init(const wgpu::Device &device,
                       wgpu::TextureFormat targetFormat,
-                      const wgpu::Buffer &frameBuffer,
-                      uint64_t frameBufferSize,
+                      const wgpu::Buffer &frameBuffer, uint64_t frameBufferSize,
                       wgpu::TextureFormat pickingFormat,
                       const TextureResource &atlasResource) {
                 m_device = device;
@@ -1964,8 +1936,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 queue.WriteBuffer(m_instanceBuffer, 0, instances, byteSize);
             }
 
-            void draw(wgpu::RenderPassEncoder &renderPass,
-                      uint32_t firstGlyph, uint32_t glyphCount) const {
+            void draw(wgpu::RenderPassEncoder &renderPass, uint32_t firstGlyph,
+                      uint32_t glyphCount) const {
                 if (glyphCount == 0) {
                     return;
                 }
@@ -2006,8 +1978,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                     wgpu::BufferBindingType::ReadOnlyStorage;
 
                 bindings[1].binding = 1;
-                bindings[1].visibility = wgpu::ShaderStage::Vertex |
-                                         wgpu::ShaderStage::Fragment;
+                bindings[1].visibility =
+                    wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment;
                 bindings[1].buffer.type = wgpu::BufferBindingType::Uniform;
 
                 bindings[2].binding = 2;
@@ -2016,8 +1988,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
 
                 bindings[3].binding = 3;
                 bindings[3].visibility = wgpu::ShaderStage::Fragment;
-                bindings[3].texture.sampleType =
-                    wgpu::TextureSampleType::Float;
+                bindings[3].texture.sampleType = wgpu::TextureSampleType::Float;
                 bindings[3].texture.viewDimension =
                     wgpu::TextureViewDimension::e2D;
 
@@ -2889,8 +2860,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                                     const glm::vec2 &prevDir,
                                     const glm::vec2 &nextDir,
                                     float prevHalfWidth, float nextHalfWidth,
-                                    const PickingId &id,
-                                    const PathProps &props,
+                                    const PickingId &id, const PathProps &props,
                                     const StrokeMeshParams &mesh) {
             PathProps joinProps = props;
             joinProps.id = id;
@@ -3244,8 +3214,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
 
         void appendDashedStyledPolyline(std::vector<PathCoverVertex> &vertices,
                                         const std::vector<glm::vec2> &points,
-                                        float halfWidth,
-                                        const PickingId &id,
+                                        float halfWidth, const PickingId &id,
                                         const PathCommandStroke &stroke,
                                         const PathProps &props,
                                         const StrokeMeshParams &mesh) {
@@ -3369,16 +3338,15 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
 
                 if (command.stroke.isDashed()) {
                     flushContour(false);
-                    appendDashedStyledPolyline(vertices, points, halfWidth,
-                                               pickingIdForCommand(command,
-                                                                   props),
-                                               command.stroke, props, mesh);
+                    appendDashedStyledPolyline(
+                        vertices, points, halfWidth,
+                        pickingIdForCommand(command, props), command.stroke,
+                        props, mesh);
                     return;
                 }
 
-                appendSolidStyledPolyline(
-                    contour, points, halfWidth,
-                    pickingIdForCommand(command, props));
+                appendSolidStyledPolyline(contour, points, halfWidth,
+                                          pickingIdForCommand(command, props));
                 if (command.stroke.breakAfter) {
                     flushContour(false);
                 }
@@ -3685,8 +3653,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         }
 
         bool appendMsdfText(std::string_view text, const FontProps &props,
-                            const MsdfFontAtlas &atlas,
-                            MsdfTextBatch &batch) {
+                            const MsdfFontAtlas &atlas, MsdfTextBatch &batch) {
             if (!atlas.valid()) {
                 return false;
             }
@@ -3732,9 +3699,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 }
 
                 if (codepoint == '\t') {
-                    baseline.x +=
-                        spaceAdvance * std::max(props.tabSize, 1.f) +
-                        props.letterSpacing;
+                    baseline.x += spaceAdvance * std::max(props.tabSize, 1.f) +
+                                  props.letterSpacing;
                     continue;
                 }
 
@@ -3777,8 +3743,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                     }
                 }
 
-                const float advance =
-                    glyph->advance > 0.f ? glyph->advance * fontSize
+                const float advance = glyph->advance > 0.f
+                                          ? glyph->advance * fontSize
                                           : fontSize * 0.5f;
                 baseline.x += advance + props.letterSpacing;
             }
@@ -4069,9 +4035,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
     WgpuRenderer2D::Impl::acquirePickingReadbackSlot(uint64_t requiredSize) {
         for (size_t offset = 0; offset < pickingReadbackSlots.size();
              ++offset) {
-            const size_t index =
-                (nextPickingReadbackSlot + offset) %
-                pickingReadbackSlots.size();
+            const size_t index = (nextPickingReadbackSlot + offset) %
+                                 pickingReadbackSlots.size();
             auto &slot = pickingReadbackSlots[index];
             if (slot == nullptr) {
                 slot = std::make_shared<AsyncPickingReadbackSlot>();
@@ -4089,8 +4054,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 slot->bufferSize = requiredSize;
             }
 
-            nextPickingReadbackSlot =
-                (index + 1) % pickingReadbackSlots.size();
+            nextPickingReadbackSlot = (index + 1) % pickingReadbackSlots.size();
             return slot;
         }
         return nullptr;
@@ -4113,8 +4077,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             bytesPerPixelForFormat(request.resource.format);
         const uint32_t unpaddedBytesPerRow =
             request.region.width * bytesPerPixel;
-        const uint32_t paddedBytesPerRow =
-            alignTo(unpaddedBytesPerRow, 256);
+        const uint32_t paddedBytesPerRow = alignTo(unpaddedBytesPerRow, 256);
         const uint64_t requiredSize =
             static_cast<uint64_t>(paddedBytesPerRow) * request.region.height;
 
@@ -4148,8 +4111,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         destination.layout.bytesPerRow = paddedBytesPerRow;
         destination.layout.rowsPerImage = request.region.height;
 
-        wgpu::Extent3D copySize{request.region.width, request.region.height,
-                                1};
+        wgpu::Extent3D copySize{request.region.width, request.region.height, 1};
         commandEncoder.CopyTextureToBuffer(&source, &destination, &copySize);
     }
 
@@ -4259,8 +4221,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                     srcRow + static_cast<size_t>(col) * sizeof(uint32_t) * 2;
                 PickingId id{};
                 std::memcpy(&id.runtimeId, src, sizeof(uint32_t));
-                std::memcpy(&id.info, src + sizeof(uint32_t),
-                            sizeof(uint32_t));
+                std::memcpy(&id.info, src + sizeof(uint32_t), sizeof(uint32_t));
                 result.ids[pixelIndex] = id;
             }
         }
@@ -4373,9 +4334,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 std::max(1u, createInfo.batching.initialQuadCapacity))) {
             m_impl->recreateTextureBindGroups();
         }
-        static_cast<void>(
-            m_impl->customQuadPipeline->ensureInstanceBufferSize(
-                std::max(1u, createInfo.batching.initialQuadCapacity)));
+        static_cast<void>(m_impl->customQuadPipeline->ensureInstanceBufferSize(
+            std::max(1u, createInfo.batching.initialQuadCapacity)));
         m_impl->createDefaultTexture();
 
         m_impl->msdfFontAtlas = std::make_unique<MsdfFontAtlas>();
@@ -4387,9 +4347,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 m_impl->sharedFrameBuffer.getBuffer(),
                 m_impl->sharedFrameBuffer.getSize(), m_impl->pickingFormat,
                 m_impl->msdfFontAtlas->textureResource());
-            static_cast<void>(
-                m_impl->textPipeline->ensureInstanceBufferSize(
-                    std::max(1u, createInfo.batching.initialQuadCapacity)));
+            static_cast<void>(m_impl->textPipeline->ensureInstanceBufferSize(
+                std::max(1u, createInfo.batching.initialQuadCapacity)));
         } else {
             m_impl->msdfFontAtlas = nullptr;
             BESS_WARN("[WgpuRenderer2D] MSDF font atlas unavailable; falling "
@@ -4679,9 +4638,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         }
 
         if (totalTextGlyphCount > 0 && m_impl->textPipeline != nullptr) {
-            static_cast<void>(
-                m_impl->textPipeline->ensureInstanceBufferSize(
-                    totalTextGlyphCount));
+            static_cast<void>(m_impl->textPipeline->ensureInstanceBufferSize(
+                totalTextGlyphCount));
         }
 
         if (!m_impl->opaquePrimitiveBatch.empty()) {
@@ -4722,9 +4680,9 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         }
 
         if (!m_impl->textBatch.empty() && m_impl->textPipeline != nullptr) {
-            m_impl->textPipeline->uploadInstances(
-                m_impl->queue, m_impl->textBatch.data(),
-                m_impl->textBatch.byteSize());
+            m_impl->textPipeline->uploadInstances(m_impl->queue,
+                                                  m_impl->textBatch.data(),
+                                                  m_impl->textBatch.byteSize());
             m_impl->stats.uploadedBytes += m_impl->textBatch.byteSize();
         }
 
@@ -4861,9 +4819,9 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 return;
             }
 
-            m_impl->customQuadPipeline->draw(
-                renderPass, run.shader, instanceOffset + run.firstInstance,
-                run.instanceCount, transparent);
+            m_impl->customQuadPipeline->draw(renderPass, run.shader,
+                                             instanceOffset + run.firstInstance,
+                                             run.instanceCount, transparent);
             m_impl->stats.drawCallCount++;
         };
 
@@ -4888,17 +4846,16 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             }
         };
 
-        auto renderPathRange = [&](const PathDrawRange &range,
-                                   uint32_t stencilVertexOffset,
-                                   uint32_t coverVertexOffset,
-                                   bool transparent) {
-            m_impl->pathPipeline->drawPath(
-                renderPass, stencilVertexOffset + range.firstStencilVertex,
-                range.stencilVertexCount,
-                coverVertexOffset + range.firstCoverVertex,
-                range.coverVertexCount, transparent, range.evenOddFill);
-            m_impl->stats.drawCallCount += 2;
-        };
+        auto renderPathRange =
+            [&](const PathDrawRange &range, uint32_t stencilVertexOffset,
+                uint32_t coverVertexOffset, bool transparent) {
+                m_impl->pathPipeline->drawPath(
+                    renderPass, stencilVertexOffset + range.firstStencilVertex,
+                    range.stencilVertexCount,
+                    coverVertexOffset + range.firstCoverVertex,
+                    range.coverVertexCount, transparent, range.evenOddFill);
+                m_impl->stats.drawCallCount += 2;
+            };
 
         auto renderPathStrokeBatch = [&](const PathStrokeBatch &batch,
                                          uint32_t vertexOffset,
@@ -4921,9 +4878,9 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         auto renderPathStrokeRange = [&](const PathStrokeDrawRange &range,
                                          uint32_t vertexOffset,
                                          bool transparent) {
-            m_impl->pathPipeline->drawStroke(
-                renderPass, vertexOffset + range.firstVertex,
-                range.vertexCount, transparent);
+            m_impl->pathPipeline->drawStroke(renderPass,
+                                             vertexOffset + range.firstVertex,
+                                             range.vertexCount, transparent);
             m_impl->stats.drawCallCount++;
         };
 
@@ -4993,8 +4950,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
 
         const PathStrokeDrawRange *transparentPathStrokeRanges =
             m_impl->transparentPathStrokeBatch.drawRanges();
-        for (uint32_t i = 0;
-             i < m_impl->transparentPathStrokeBatch.drawCount(); ++i) {
+        for (uint32_t i = 0; i < m_impl->transparentPathStrokeBatch.drawCount();
+             ++i) {
             m_impl->transparentDrawItems.push_back({
                 .kind = TransparentDrawKind::PathStroke,
                 .zIndex = transparentPathStrokeRanges[i].zIndex,
@@ -5013,18 +4970,17 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             });
         }
 
-        std::stable_sort(m_impl->transparentDrawItems.begin(),
-                         m_impl->transparentDrawItems.end(),
-                         [](const TransparentDrawItem &a,
-                            const TransparentDrawItem &b) {
-                             if (a.zIndex != b.zIndex) {
-                                 return a.zIndex < b.zIndex;
-                             }
-                             return a.order < b.order;
-                         });
+        std::stable_sort(
+            m_impl->transparentDrawItems.begin(),
+            m_impl->transparentDrawItems.end(),
+            [](const TransparentDrawItem &a, const TransparentDrawItem &b) {
+                if (a.zIndex != b.zIndex) {
+                    return a.zIndex < b.zIndex;
+                }
+                return a.order < b.order;
+            });
 
-        for (const TransparentDrawItem &item :
-             m_impl->transparentDrawItems) {
+        for (const TransparentDrawItem &item : m_impl->transparentDrawItems) {
             switch (item.kind) {
             case TransparentDrawKind::Primitive:
                 renderPrimitiveRun(
@@ -5090,10 +5046,9 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         }
 
         const auto &resource = m_impl->getTexture(region.texture);
-        return readTextureRegion(m_impl->instance, m_impl->device,
-                                 m_impl->queue, resource.texture,
-                                 resource.format, resource.width,
-                                 resource.height, region);
+        return readTextureRegion(
+            m_impl->instance, m_impl->device, m_impl->queue, resource.texture,
+            resource.format, resource.width, resource.height, region);
     }
 
     void WgpuRenderer2D::requestPickingIds(
@@ -5121,10 +5076,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         }
 
         Core::Renderer::TextureReadbackRegion clamped = region;
-        clamped.width =
-            std::min(region.width, resource.width - region.x);
-        clamped.height =
-            std::min(region.height, resource.height - region.y);
+        clamped.width = std::min(region.width, resource.width - region.x);
+        clamped.height = std::min(region.height, resource.height - region.y);
 
         m_impl->queuedPickingReadback.resource = resource;
         m_impl->queuedPickingReadback.region = clamped;
@@ -5148,20 +5101,20 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         return m_impl != nullptr && m_impl->hasPickingReadbackWork();
     }
 
-    void WgpuRenderer2D::saveTextureToFile(
-        Core::Renderer::TextureHandle texture, const std::string &path) {
+    void
+    WgpuRenderer2D::saveTextureToFile(Core::Renderer::TextureHandle texture,
+                                      const std::string &path) {
         if (texture == 0) {
             throw std::runtime_error(
                 "saveTextureToFile requires a non-zero texture handle");
         }
 
         const auto &resource = m_impl->getTexture(texture);
-        const auto readback =
-            readTexture({.texture = texture,
-                         .x = 0,
-                         .y = 0,
-                         .width = resource.width,
-                         .height = resource.height});
+        const auto readback = readTexture({.texture = texture,
+                                           .x = 0,
+                                           .y = 0,
+                                           .width = resource.width,
+                                           .height = resource.height});
         writeTextureReadbackPng(path, readback);
     }
 
@@ -5178,28 +5131,26 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         if (m_impl->lastCompletedTargetTexture != 0) {
             const auto &resource =
                 m_impl->getTexture(m_impl->lastCompletedTargetTexture);
-            readback =
-                readTextureRegion(m_impl->instance, m_impl->device,
-                                  m_impl->queue, resource.texture,
-                                  resource.format, resource.width,
-                                  resource.height,
-                                  {.texture = resource.handle,
-                                   .x = 0,
-                                   .y = 0,
-                                   .width = resource.width,
-                                   .height = resource.height});
+            readback = readTextureRegion(m_impl->instance, m_impl->device,
+                                         m_impl->queue, resource.texture,
+                                         resource.format, resource.width,
+                                         resource.height,
+                                         {.texture = resource.handle,
+                                          .x = 0,
+                                          .y = 0,
+                                          .width = resource.width,
+                                          .height = resource.height});
         } else {
             const uint32_t width = std::max(1u, m_impl->extent.width);
             const uint32_t height = std::max(1u, m_impl->extent.height);
-            readback =
-                readTextureRegion(m_impl->instance, m_impl->device,
-                                  m_impl->queue, m_impl->offscreenTarget,
-                                  m_impl->targetFormat, width, height,
-                                  {.texture = 0,
-                                   .x = 0,
-                                   .y = 0,
-                                   .width = width,
-                                   .height = height});
+            readback = readTextureRegion(m_impl->instance, m_impl->device,
+                                         m_impl->queue, m_impl->offscreenTarget,
+                                         m_impl->targetFormat, width, height,
+                                         {.texture = 0,
+                                          .x = 0,
+                                          .y = 0,
+                                          .width = width,
+                                          .height = height});
         }
 
         writeTextureReadbackPng(path, readback);
@@ -5229,20 +5180,18 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             return;
         }
 
-        if (isTransparent(props, nullptr)) {
+        if (isTransparent(props)) {
             makePrimitiveInstanceInPlace(
-                m_impl->transparentPrimitiveBatch.push(props.texture), props,
-                nullptr);
+                m_impl->transparentPrimitiveBatch.push(props.texture), props);
         } else {
             makePrimitiveInstanceInPlace(
-                m_impl->opaquePrimitiveBatch.push(props.texture), props,
-                nullptr);
+                m_impl->opaquePrimitiveBatch.push(props.texture), props);
         }
         m_impl->stats.quadCount = m_impl->quadStatsCount();
     }
 
-    CustomQuadShaderHandle WgpuRenderer2D::createCustomQuadShader(
-        const CustomQuadShaderDesc &desc) {
+    CustomQuadShaderHandle
+    WgpuRenderer2D::createCustomQuadShader(const CustomQuadShaderDesc &desc) {
         if (m_impl->customQuadPipeline == nullptr) {
             throw std::runtime_error(
                 "WgpuRenderer2D is not initialized for custom quad shaders");
@@ -5250,8 +5199,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         return m_impl->customQuadPipeline->createShader(desc);
     }
 
-    void WgpuRenderer2D::destroyCustomQuadShader(
-        CustomQuadShaderHandle shader) {
+    void
+    WgpuRenderer2D::destroyCustomQuadShader(CustomQuadShaderHandle shader) {
         if (m_impl->customQuadPipeline == nullptr || shader == 0) {
             return;
         }
@@ -5268,7 +5217,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 "Custom quad shader handle is not registered");
         }
 
-        if (isTransparent(props.quad, nullptr)) {
+        if (isTransparent(props.quad)) {
             makeCustomQuadInstanceInPlace(
                 m_impl->transparentCustomQuadBatch.push(props.shader), props);
         } else {
@@ -5286,25 +5235,6 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                                        .shader = shader,
                                        .data = data,
                                        .transformMode = transformMode});
-    }
-
-    void WgpuRenderer2D::drawRoundedQuad(
-        const Core::Renderer::QuadProps &props,
-        const Core::Renderer::RoundedBorderProps &roundedProps) {
-        if (!m_impl->frameStarted) {
-            return;
-        }
-
-        if (isTransparent(props, &roundedProps)) {
-            makePrimitiveInstanceInPlace(
-                m_impl->transparentPrimitiveBatch.push(props.texture), props,
-                &roundedProps);
-        } else {
-            makePrimitiveInstanceInPlace(
-                m_impl->opaquePrimitiveBatch.push(props.texture), props,
-                &roundedProps);
-        }
-        m_impl->stats.quadCount = m_impl->quadStatsCount();
     }
 
     void WgpuRenderer2D::drawCircle(const Core::Renderer::CircleProps &props) {
@@ -5388,8 +5318,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         m_impl->textPathCommandsScratch.reserve(text.size() * 16u);
 
         auto flushTextPath = [&]() {
-            if (!hasTextPathProps ||
-                m_impl->textPathCommandsScratch.empty()) {
+            if (!hasTextPathProps || m_impl->textPathCommandsScratch.empty()) {
                 return;
             }
 
@@ -5404,11 +5333,10 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             const std::span<const PathCommand> textCommands{
                 m_impl->textPathCommandsScratch.data(),
                 m_impl->textPathCommandsScratch.size()};
-            submitPathCommands(textCommands, pathProps, metrics,
-                               m_impl->opaquePathBatch,
-                               m_impl->transparentPathBatch,
-                               m_impl->opaquePathStrokeBatch,
-                               m_impl->transparentPathStrokeBatch);
+            submitPathCommands(
+                textCommands, pathProps, metrics, m_impl->opaquePathBatch,
+                m_impl->transparentPathBatch, m_impl->opaquePathStrokeBatch,
+                m_impl->transparentPathStrokeBatch);
 
             if (props.antiAlias) {
                 m_impl->transparentPathStrokeBatch.push(

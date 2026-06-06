@@ -107,7 +107,8 @@ namespace Bess::Core::Renderer {
     using CustomQuadShaderHandle = uint32_t;
 
     enum class CustomQuadTransformMode : uint8_t {
-        // QuadProps position/size are scene/world units and frame.camera_transform
+        // QuadProps position/size are scene/world units and
+        // frame.camera_transform
         // is applied in the vertex shader.
         Camera,
         // QuadProps position/size are render-target pixels with origin at the
@@ -160,8 +161,8 @@ namespace Bess::Core::Renderer {
                                                         uint32_t x, uint32_t y,
                                                         uint32_t width = 1,
                                                         uint32_t height = 1);
-        [[nodiscard]] PickingId readPickingId(TextureHandle texture,
-                                              uint32_t x, uint32_t y);
+        [[nodiscard]] PickingId readPickingId(TextureHandle texture, uint32_t x,
+                                              uint32_t y);
         [[nodiscard]] std::vector<PickingId>
         readPickingIds(TextureHandle texture, uint32_t x, uint32_t y,
                        uint32_t width, uint32_t height);
@@ -183,16 +184,11 @@ namespace Bess::Core::Renderer {
                             std::array<glm::vec4, 4> data = {},
                             CustomQuadTransformMode transformMode =
                                 CustomQuadTransformMode::Camera) {
-            drawCustomQuad(
-                CustomQuadProps{.quad = quad,
-                                .shader = shader,
-                                .data = data,
-                                .transformMode = transformMode});
+            drawCustomQuad(CustomQuadProps{.quad = quad,
+                                           .shader = shader,
+                                           .data = data,
+                                           .transformMode = transformMode});
         }
-
-        virtual void
-        drawRoundedQuad(const QuadProps &props,
-                        const RoundedBorderProps &roundedProps) = 0;
 
         virtual void drawCircle(const CircleProps &props) = 0;
 
@@ -214,10 +210,8 @@ namespace Bess::Core::Renderer {
         void pathLineTo(const glm::vec2 &pos, float strokeWidth) {
             pathLineTo(pos, PathCommandStroke::withWidth(strokeWidth));
         }
-        void pathLineTo(const glm::vec2 &pos, float strokeWidth,
-                        PickingId id) {
-            pathLineTo(pos,
-                       PathCommandStroke::withWidthAndId(strokeWidth, id));
+        void pathLineTo(const glm::vec2 &pos, float strokeWidth, PickingId id) {
+            pathLineTo(pos, PathCommandStroke::withWidthAndId(strokeWidth, id));
         }
         virtual void pathQuadTo(const glm::vec2 &control, const glm::vec2 &pos,
                                 const PathCommandStroke &stroke = {}) = 0;
@@ -240,9 +234,8 @@ namespace Bess::Core::Renderer {
         }
         void pathQuadraticTo(const glm::vec2 &control, const glm::vec2 &pos,
                              float strokeWidth, PickingId id) {
-            pathQuadraticTo(
-                control, pos,
-                PathCommandStroke::withWidthAndId(strokeWidth, id));
+            pathQuadraticTo(control, pos,
+                            PathCommandStroke::withWidthAndId(strokeWidth, id));
         }
         virtual void pathCubicTo(const glm::vec2 &control1,
                                  const glm::vec2 &control2,
