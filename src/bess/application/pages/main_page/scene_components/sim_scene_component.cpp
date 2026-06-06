@@ -1,10 +1,10 @@
 #include "sim_scene_component.h"
+#include "bess_core/connection_service.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "common/bess_uuid.h"
 #include "icons/FontAwesomeIcons.h"
 #include "input_scene_component.h"
-#include "bess_core/connection_service.h"
 #include "pages/main_page/scene_components/scene_component_draw_resources.h"
 #include "renderer/material_renderer.h"
 #include "scene/scene_draw_helpers.h"
@@ -80,8 +80,7 @@ namespace Bess::Canvas {
             .offset = glm::vec2(0.f, 0.f),
             .scale = glm::vec2(1.701f, 1.701f),
             .color = glm::vec4(1.f),
-            .texture =
-                SceneComponentDrawResources::getShadowTextureHandle(),
+            .texture = SceneComponentDrawResources::getShadowTextureHandle(),
         };
 
         SceneDraw::drawQuad(context, m_transform.position, m_transform.scale,
@@ -92,8 +91,8 @@ namespace Bess::Canvas {
         props.angle = m_transform.angle;
         props.borderSize = glm::vec4(0.f);
         props.borderRadius =
-            glm::vec4(0, 0, m_style.borderRadius.x - m_style.borderSize.x,
-                      m_style.borderRadius.y - m_style.borderSize.y);
+            glm::vec4(m_style.borderRadius.x - m_style.borderSize.x,
+                      m_style.borderRadius.y - m_style.borderSize.y, 0, 0);
         props.isMica = true;
 
         const float headerHeight = Styles::componentStyles.headerHeight;
@@ -102,14 +101,13 @@ namespace Bess::Canvas {
                       m_transform.position.y - (m_transform.scale.y / 2.f) +
                           (headerHeight / 2.f),
                       m_transform.position.z + 0.0004f);
-        SceneDraw::drawQuad(
-            context,
-            headerPos,
-            glm::vec2(m_transform.scale.x - m_style.borderSize.w -
-                          m_style.borderSize.y,
-                      headerHeight - m_style.borderSize.x -
-                          m_style.borderSize.z),
-            m_style.headerColor, pickingId, props);
+        SceneDraw::drawQuad(context, headerPos,
+                            glm::vec2(m_transform.scale.x -
+                                          m_style.borderSize.w -
+                                          m_style.borderSize.y,
+                                      headerHeight - m_style.borderSize.x -
+                                          m_style.borderSize.z),
+                            m_style.headerColor, pickingId, props);
 
         const auto textPos =
             glm::vec3(m_transform.position.x - (m_transform.scale.x / 2.f) +
@@ -118,8 +116,7 @@ namespace Bess::Canvas {
                       m_transform.position.z + 0.0005f);
         // component name
         SceneDraw::drawText(
-            context,
-            m_name, textPos, Styles::simCompStyles.headerFontSize,
+            context, m_name, textPos, Styles::simCompStyles.headerFontSize,
             ViewportTheme::colors.text, pickingId, m_transform.angle);
     }
 
@@ -167,10 +164,9 @@ namespace Bess::Canvas {
         glm::vec3 textPos = {pos.x, y + ((y1 - y) / 2.f), pos.z + 0.0005f};
         textPos.x -= textSize.x / 2.f;
         textPos.y += Styles::simCompStyles.headerFontSize / 2.f;
-        SceneDraw::drawText(
-            context,
-            m_name, textPos, Styles::compSchematicStyles.nameFontSize,
-            textColor, id, 0.f);
+        SceneDraw::drawText(context, m_name, textPos,
+                            Styles::compSchematicStyles.nameFontSize, textColor,
+                            id, 0.f);
 
         drawSlots(context);
 

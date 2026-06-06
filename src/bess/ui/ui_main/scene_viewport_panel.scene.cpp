@@ -4,6 +4,7 @@
 #include "events/application_event.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
+#include "pages/main_page/scene_components/slot_scene_component.h"
 #include "scene.h"
 #include "scene/scene_draw_context.h"
 #include "scene/scene_draw_helpers.h"
@@ -141,8 +142,54 @@ namespace Bess::UI {
                 glm::value_ptr(m_attachedScene->getCamera()->getTransform()),
         });
 
-        if (m_sceneDrawFlags.drawGrid && m_gridShader == 0) {
-            m_gridShader = renderer->createCustomQuadShader({
+        SceneDrawContext context;
+        context.sceneState = &sceneState;
+        context.renderer = renderer;
+        context.camera = m_attachedScene->getCamera();
+
+        if (m_sceneDrawFlags.drawGrid) {
+            drawGrid(context);
+        }
+
+        if (sceneState.getConnectionStartSlot() != UUID::null) {
+            const auto comp = sceneState.getComponentByUuid(
+                sceneState.getConnectionStartSlot());
+            if (!comp) {
+                sceneState.setConnectionStartSlot(UUID::null);
+                return;
+            }
+
+            glm::vec3 pos;
+            if (comp->getType() == Canvas::SceneComponentType::slot) {
+                pos =
+                    comp->cast<Canvas::SlotSceneComponent>()->getConnectionPos(
+                        sceneState);
+            } else {
+                pos = comp->getAbsolutePosition(sceneState);
+            }
+
+            const auto endPos =
+                m_attachedScene->toScenePos(m_attachedScene->getMousePos());
+
+            drawGhostConnection(context, glm::vec2(pos), endPos);
+        }
+
+        drawComponents(context);
+        if (m_sceneDrawFlags.drawSelectionBox &&
+            m_attachedScene->getSelBoxContext().draw) {
+            drawSelectionBox(context);
+        }
+
+        renderer->endFrame();
+
+        if (m_attachedScene->getIsFirstFrame()) {
+            m_attachedScene->setIsFirstFrame(false);
+        }
+    }
+
+    void SceneViewportPanel::drawGrid(SceneDrawContext &context) {
+        if (m_gridShader == 0) {
+            m_gridShader = context.renderer->createCustomQuadShader({
                 .label = "viewport_grid",
                 .fragmentSource = R"(
   fn viewport_grid_camera_offset(in: CustomQuadFragmentInput) -> vec2f {
@@ -208,39 +255,19 @@ namespace Bess::UI {
             });
         }
 
-        if (m_sceneDrawFlags.drawGrid && m_gridShader != 0) {
-            renderer->drawCustomQuad(
-                {.position = {0.f, 0.f},
-                 .size = m_viewportSize,
-                 .zIndex = -10000.f,
-                 .color = {1.f, 1.f, 1.f, 1.f},
-                 .id = PickingId::invalid(),
-                 .renderPass = Core::Renderer::QuadRenderPass::Opaque},
-                m_gridShader,
-                {ViewportTheme::colors.gridMinorColor,
-                 ViewportTheme::colors.gridMajorColor,
-                 ViewportTheme::colors.gridAxisXColor,
-                 ViewportTheme::colors.gridAxisYColor},
-                Core::Renderer::CustomQuadTransformMode::Screen);
-        }
-
-        SceneDrawContext context;
-        context.sceneState = &sceneState;
-        context.renderer = renderer;
-        context.camera = m_attachedScene->getCamera();
-
-        drawComponents(context);
-        if (m_sceneDrawFlags.drawSelectionBox &&
-            m_attachedScene->getSelBoxContext().draw) {
-            drawSelectionBox(context);
-        }
-
-        renderer->endFrame();
-        m_attachedScene->setIsFirstFrame(false);
-    }
-
-    void SceneViewportPanel::drawGrid(SceneDrawContext &context) {
-        (void)context;
+        context.renderer->drawCustomQuad(
+            {.position = {0.f, 0.f},
+             .size = m_viewportSize,
+             .zIndex = -10000.f,
+             .color = {1.f, 1.f, 1.f, 1.f},
+             .id = PickingId::invalid(),
+             .renderPass = Core::Renderer::QuadRenderPass::Opaque},
+            m_gridShader,
+            {ViewportTheme::colors.gridMinorColor,
+             ViewportTheme::colors.gridMajorColor,
+             ViewportTheme::colors.gridAxisXColor,
+             ViewportTheme::colors.gridAxisYColor},
+            Core::Renderer::CustomQuadTransformMode::Screen);
     }
 
     void SceneViewportPanel::drawGhostConnection(SceneDrawContext &context,
@@ -255,8 +282,8 @@ namespace Bess::UI {
             ViewportTheme::colors.ghostWire, id, {.roundedJoints = true});
         Canvas::SceneDraw::pathLineTo(context,
                                       glm::vec3(midX, startPos.y, 0.8f), 2.f);
-        Canvas::SceneDraw::pathLineTo(context,
-                                      glm::vec3(midX, endPos.y, 0.8f), 2.f);
+        Canvas::SceneDraw::pathLineTo(context, glm::vec3(midX, endPos.y, 0.8f),
+                                      2.f);
         Canvas::SceneDraw::pathLineTo(context, glm::vec3(endPos, 0.8f), 2.f);
         Canvas::SceneDraw::endPath(context);
     }
