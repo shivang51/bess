@@ -10,6 +10,7 @@ set(Header_Files
 
 	"include/bess_core/renderer/texture.h"
 	"include/bess_core/renderer/shader.h"
+	"include/bess_core/renderer/subtexture.h"
 	"include/bess_core/renderer/font.h"
 	"include/bess_core/renderer/glyph_extractor.h"
 	"include/bess_core/renderer/renderer_2d.h"

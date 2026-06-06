@@ -1,5 +1,6 @@
 #include "bess_wgpu/wgpu_renderer_2d.h"
 #include "bess_core/renderer/font.h"
+#include "bess_core/renderer/subtexture.h"
 #include "bess_wgpu/piplines/path_pipeline.h"
 #include "bess_wgpu/piplines/primitive_pipeline.h"
 #include "bess_wgpu/wgpu_shader.h"
@@ -7,12 +8,15 @@
 #include "common/bess_assert.h"
 #include "common/logger.h"
 #include "glfw3webgpu.h"
+#include "json/json.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
 #include <limits>
 #include <memory>
 #include <png.h>
@@ -42,6 +46,8 @@ namespace Bess::Wgpu {
         using Bess::Core::Renderer::QuadRenderPass;
         using Bess::Core::Renderer::Renderer2DExtent;
         using Bess::Core::Renderer::Renderer2DTargetFormat;
+        using Bess::Core::Renderer::SubTexture;
+        using Bess::Core::Renderer::TextureOrigin;
         using Bess::Wgpu::Piplines::PathCoverVertex;
         using Bess::Wgpu::Piplines::PathStencilVertex;
         using Bess::Wgpu::Piplines::PrimitiveInstance;
@@ -52,6 +58,9 @@ namespace Bess::Wgpu {
         constexpr uint32_t kPathCurveTypeQuadratic = 1;
         constexpr const char *kDefaultFontFile =
             "assets/fonts/Roboto/Roboto-Regular.ttf";
+        constexpr const char *kDefaultMsdfFontDirectory =
+            "assets/fonts/Roboto/msdf-Roboto-Regular-32";
+        constexpr const char *kDefaultMsdfFontName = "Roboto-Regular";
         constexpr float kFontOutlinePixelSize = 64.f;
         constexpr uint32_t kReplacementCodepoint = 0xFFFD;
 
@@ -1455,6 +1464,575 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             std::unordered_map<CustomQuadShaderHandle, ShaderResource>
                 m_shaders;
             CustomQuadShaderHandle m_nextShaderHandle = 1;
+        };
+
+        struct MsdfGlyph {
+            uint32_t codepoint = 0;
+            float advance = 0.f;
+            glm::vec4 planeBounds{0.f}; // left, bottom, right, top in em units
+            SubTexture atlasRegion;
+            bool drawable = false;
+        };
+
+        class MsdfFontAtlas {
+          public:
+            bool load(const std::filesystem::path &fontDirectory,
+                      const std::string &fontName) {
+                const std::filesystem::path jsonPath =
+                    fontDirectory / (fontName + ".json");
+                const std::filesystem::path pngPath =
+                    fontDirectory / (fontName + ".png");
+
+                std::ifstream input(jsonPath);
+                if (!input.is_open()) {
+                    BESS_WARN("[WgpuRenderer2D] Failed to open MSDF font json: "
+                              "{}",
+                              jsonPath.string());
+                    return false;
+                }
+
+                Json::Value root;
+                input >> root;
+                if (!root.isMember("atlas") || !root.isMember("metrics") ||
+                    !root.isMember("glyphs")) {
+                    BESS_WARN("[WgpuRenderer2D] Invalid MSDF font json: {}",
+                              jsonPath.string());
+                    return false;
+                }
+
+                const Json::Value &atlas = root["atlas"];
+                const Json::Value &metrics = root["metrics"];
+                m_atlasSize = {atlas.get("width", 1).asFloat(),
+                               atlas.get("height", 1).asFloat()};
+                m_fontSize = atlas.get("size", 32.f).asFloat();
+                m_pxRange = atlas.get("distanceRange", 4.f).asFloat();
+                m_lineHeight = metrics.get("lineHeight", 1.f).asFloat();
+                m_ascender = metrics.get("ascender", 1.f).asFloat();
+                m_descender = metrics.get("descender", 0.f).asFloat();
+
+                try {
+                    m_texture = std::make_shared<WgpuTexture>(pngPath.string());
+                    m_texture->init();
+                } catch (const std::exception &error) {
+                    BESS_WARN("[WgpuRenderer2D] Failed to load MSDF font "
+                              "atlas texture {}: {}",
+                              pngPath.string(), error.what());
+                    m_texture = nullptr;
+                    return false;
+                }
+
+                m_glyphs.clear();
+                const Json::Value &glyphs = root["glyphs"];
+                for (const auto &glyphJson : glyphs) {
+                    if (!glyphJson.isObject() ||
+                        !glyphJson.isMember("unicode")) {
+                        continue;
+                    }
+
+                    MsdfGlyph glyph;
+                    glyph.codepoint =
+                        static_cast<uint32_t>(
+                            glyphJson.get("unicode", 0).asUInt64());
+                    glyph.advance = glyphJson.get("advance", 0.f).asFloat();
+
+                    if (glyphJson.isMember("planeBounds") &&
+                        glyphJson.isMember("atlasBounds")) {
+                        const Json::Value &plane = glyphJson["planeBounds"];
+                        const Json::Value &bounds = glyphJson["atlasBounds"];
+                        glyph.planeBounds = {
+                            plane.get("left", 0.f).asFloat(),
+                            plane.get("bottom", 0.f).asFloat(),
+                            plane.get("right", 0.f).asFloat(),
+                            plane.get("top", 0.f).asFloat()};
+
+                        const float left = bounds.get("left", 0.f).asFloat();
+                        const float bottom =
+                            bounds.get("bottom", 0.f).asFloat();
+                        const float right = bounds.get("right", 0.f).asFloat();
+                        const float top = bounds.get("top", 0.f).asFloat();
+                        glyph.atlasRegion.reset(
+                            m_atlasSize, {left, bottom},
+                            {std::max(0.f, right - left),
+                             std::max(0.f, top - bottom)},
+                            TextureOrigin::BottomLeft);
+                        glyph.drawable = true;
+                    }
+
+                    m_glyphs[glyph.codepoint] = glyph;
+                }
+
+                return m_texture != nullptr && m_texture->getHandle() != 0 &&
+                       !m_glyphs.empty();
+            }
+
+            [[nodiscard]] bool valid() const noexcept {
+                return m_texture != nullptr && m_texture->getHandle() != 0 &&
+                       !m_glyphs.empty();
+            }
+
+            [[nodiscard]] const MsdfGlyph *
+            findGlyph(uint32_t codepoint) const noexcept {
+                auto it = m_glyphs.find(codepoint);
+                if (it != m_glyphs.end()) {
+                    return &it->second;
+                }
+
+                it = m_glyphs.find('?');
+                if (it != m_glyphs.end()) {
+                    return &it->second;
+                }
+
+                it = m_glyphs.find(' ');
+                return it != m_glyphs.end() ? &it->second : nullptr;
+            }
+
+            [[nodiscard]] TextureResource textureResource() const {
+                return m_texture->getResource();
+            }
+
+            [[nodiscard]] float pxRange() const noexcept { return m_pxRange; }
+            [[nodiscard]] float lineHeight() const noexcept {
+                return m_lineHeight;
+            }
+            [[nodiscard]] float ascender() const noexcept { return m_ascender; }
+            [[nodiscard]] float fontSize() const noexcept { return m_fontSize; }
+
+          private:
+            std::shared_ptr<WgpuTexture> m_texture;
+            std::unordered_map<uint32_t, MsdfGlyph> m_glyphs;
+            glm::vec2 m_atlasSize{1.f};
+            float m_fontSize = 32.f;
+            float m_pxRange = 4.f;
+            float m_lineHeight = 1.f;
+            float m_ascender = 1.f;
+            float m_descender = 0.f;
+        };
+
+        struct MsdfTextInstance {
+            float position[3] = {0.f, 0.f, 0.f};
+            float pxRange = 4.f;
+            float size[2] = {0.f, 0.f};
+            float rotation = 0.f;
+            float padding0 = 0.f;
+            float color[4] = {1.f, 1.f, 1.f, 1.f};
+            float uvRect[4] = {0.f, 0.f, 1.f, 1.f};
+            uint32_t id[2] = {PickingId::invalidRuntimeId, 0};
+            uint32_t flags[2] = {0, 0};
+        };
+
+        static_assert(sizeof(MsdfTextInstance) == 80,
+                      "MsdfTextInstance must match WGSL layout");
+
+        class MsdfTextBatch {
+          public:
+            void clear() { m_instances.clear(); }
+
+            void push(const MsdfTextInstance &instance) {
+                m_instances.push_back(instance);
+            }
+
+            void prepareForRendering() {
+                if (m_instances.size() <= 1) {
+                    return;
+                }
+                std::stable_sort(m_instances.begin(), m_instances.end(),
+                                 [](const MsdfTextInstance &a,
+                                    const MsdfTextInstance &b) {
+                                     if (a.position[2] != b.position[2]) {
+                                         return a.position[2] < b.position[2];
+                                     }
+                                     return false;
+                                 });
+            }
+
+            [[nodiscard]] bool empty() const noexcept {
+                return m_instances.empty();
+            }
+
+            [[nodiscard]] uint32_t count() const noexcept {
+                return static_cast<uint32_t>(m_instances.size());
+            }
+
+            [[nodiscard]] uint64_t byteSize() const noexcept {
+                return static_cast<uint64_t>(m_instances.size()) *
+                       sizeof(MsdfTextInstance);
+            }
+
+            [[nodiscard]] const MsdfTextInstance *data() const noexcept {
+                return m_instances.data();
+            }
+
+          private:
+            std::vector<MsdfTextInstance> m_instances;
+        };
+
+        constexpr const char *kMsdfTextShader = R"(
+struct Frame {
+    viewport: vec2f,
+    padding: vec2f,
+    camera_transform: mat4x4f,
+};
+
+struct TextGlyph {
+    position: vec3f,
+    px_range: f32,
+    size: vec2f,
+    rotation: f32,
+    padding0: f32,
+    color: vec4f,
+    uv_rect: vec4f,
+    id: vec2u,
+    flags: vec2u,
+};
+
+struct VertexOut {
+    @builtin(position) position: vec4f,
+    @location(0) uv: vec2f,
+    @location(1) color: vec4f,
+    @location(2) @interpolate(flat) id: vec2u,
+    @location(3) px_range: f32,
+};
+
+struct FragmentOut {
+    @location(0) color: vec4f,
+};
+
+struct FragmentOutPicking {
+    @location(0) color: vec4f,
+    @location(1) id: vec2u,
+};
+
+@group(0) @binding(0) var<storage, read> glyphs: array<TextGlyph>;
+@group(0) @binding(1) var<uniform> frame: Frame;
+@group(0) @binding(2) var font_sampler: sampler;
+@group(0) @binding(3) var font_atlas: texture_2d<f32>;
+
+fn text_depth(z_index: f32) -> f32 {
+    return clamp(0.5 - 0.5 * tanh(z_index * 0.01), 0.0, 1.0);
+}
+
+@vertex
+fn vs_main(@builtin(vertex_index) vertex_index: u32,
+           @builtin(instance_index) instance_index: u32) -> VertexOut {
+    let corners = array<vec2f, 6>(
+        vec2f(0.0, 0.0), vec2f(1.0, 0.0), vec2f(0.0, 1.0),
+        vec2f(0.0, 1.0), vec2f(1.0, 0.0), vec2f(1.0, 1.0));
+    let local = corners[vertex_index];
+    let glyph = glyphs[instance_index];
+    let centered = (local - vec2f(0.5, 0.5)) * glyph.size;
+
+    let s = sin(glyph.rotation);
+    let c = cos(glyph.rotation);
+    let rotated = vec2f(
+        centered.x * c - centered.y * s,
+        centered.x * s + centered.y * c);
+    let world = glyph.position.xy + rotated;
+
+    var out: VertexOut;
+    out.position = frame.camera_transform * vec4f(world, 0.0, 1.0);
+    out.position.z = text_depth(glyph.position.z);
+    out.uv = glyph.uv_rect.xy + local * glyph.uv_rect.zw;
+    out.color = glyph.color;
+    out.id = glyph.id;
+    out.px_range = glyph.px_range;
+    return out;
+}
+
+fn median3(v: vec3f) -> f32 {
+    return max(min(v.r, v.g), min(max(v.r, v.g), v.b));
+}
+
+fn screen_px_range(uv: vec2f, px_range: f32) -> f32 {
+    let dims = textureDimensions(font_atlas);
+    let texture_size = vec2f(f32(dims.x), f32(dims.y));
+    let unit_range = vec2f(px_range) / texture_size;
+    let screen_tex_size = vec2f(1.0) / max(fwidth(uv), vec2f(0.000001));
+    return max(0.5 * dot(unit_range, screen_tex_size), 1.0);
+}
+
+fn shade_text(in: VertexOut) -> vec4f {
+    let tex = textureSample(font_atlas, font_sampler, in.uv);
+    let msdf_distance = median3(tex.rgb) - 0.5;
+    let sdf_distance = tex.a - 0.5;
+    let signed_distance = mix(sdf_distance, msdf_distance, 0.9);
+    let alpha = clamp(
+        signed_distance * screen_px_range(in.uv, in.px_range) + 0.5,
+        0.0,
+        1.0);
+    return vec4f(in.color.rgb, in.color.a * alpha);
+}
+
+@fragment
+fn fs_main(in: VertexOut) -> FragmentOut {
+    var out: FragmentOut;
+    out.color = shade_text(in);
+    if (out.color.a < 0.001) {
+        discard;
+    }
+    return out;
+}
+
+@fragment
+fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
+    var out: FragmentOutPicking;
+    out.color = shade_text(in);
+    if (out.color.a < 0.001) {
+        discard;
+    }
+    out.id = in.id;
+    return out;
+}
+)";
+
+        class MsdfTextPipeline {
+          public:
+            void init(const wgpu::Device &device,
+                      wgpu::TextureFormat targetFormat,
+                      const wgpu::Buffer &frameBuffer,
+                      uint64_t frameBufferSize,
+                      wgpu::TextureFormat pickingFormat,
+                      const TextureResource &atlasResource) {
+                m_device = device;
+                m_targetFormat = targetFormat;
+                m_pickingFormat = pickingFormat;
+                m_frameBuffer = frameBuffer;
+                m_frameBufferSize = frameBufferSize;
+                m_atlasView = atlasResource.view;
+                createShader();
+                createBindGroupLayout();
+                createPipelineLayout();
+                createSampler();
+                createPipelineState();
+            }
+
+            void destroy() {
+                m_bindGroup = nullptr;
+                m_sampler = nullptr;
+                m_atlasView = nullptr;
+                m_instanceBuffer = nullptr;
+                m_instanceBufferSize = 0;
+                m_pipeline = nullptr;
+                m_pipelineLayout = nullptr;
+                m_bindGroupLayout = nullptr;
+                m_shader = nullptr;
+                m_frameBuffer = nullptr;
+                m_frameBufferSize = 0;
+                m_device = nullptr;
+            }
+
+            [[nodiscard]] bool
+            ensureInstanceBufferSize(std::size_t glyphCount) {
+                const auto requiredSize = std::max<std::size_t>(
+                    sizeof(MsdfTextInstance),
+                    glyphCount * sizeof(MsdfTextInstance));
+                if (m_instanceBuffer != nullptr &&
+                    m_instanceBufferSize >= requiredSize) {
+                    return false;
+                }
+
+                wgpu::BufferDescriptor descriptor{};
+                descriptor.size = requiredSize;
+                descriptor.usage =
+                    wgpu::BufferUsage::Storage | wgpu::BufferUsage::CopyDst;
+                m_instanceBuffer = m_device.CreateBuffer(&descriptor);
+                m_instanceBufferSize = requiredSize;
+                createBindGroup();
+                return true;
+            }
+
+            void uploadInstances(const wgpu::Queue &queue,
+                                 const MsdfTextInstance *instances,
+                                 uint64_t byteSize) const {
+                if (m_instanceBuffer == nullptr || instances == nullptr ||
+                    byteSize == 0) {
+                    return;
+                }
+                queue.WriteBuffer(m_instanceBuffer, 0, instances, byteSize);
+            }
+
+            void draw(wgpu::RenderPassEncoder &renderPass,
+                      uint32_t glyphCount) const {
+                if (glyphCount == 0) {
+                    return;
+                }
+                if (m_pipeline == nullptr || m_bindGroup == nullptr) {
+                    throw std::runtime_error(
+                        "MSDF text pipeline is not ready for drawing");
+                }
+                renderPass.SetPipeline(m_pipeline);
+                renderPass.SetBindGroup(0, m_bindGroup);
+                renderPass.Draw(6, glyphCount, 0, 0);
+            }
+
+          private:
+            void createShader() {
+                using Core::Renderer::ShaderLanguage;
+                using Core::Renderer::ShaderModuleDesc;
+                using Core::Renderer::ShaderStage;
+                m_shader = std::make_unique<WgpuShader>(
+                    "renderer_2d_msdf_text",
+                    std::vector<ShaderModuleDesc>{
+                        {.language = ShaderLanguage::WGSL,
+                         .stage = ShaderStage::Vertex,
+                         .entryPoint = "vs_main",
+                         .source = kMsdfTextShader},
+                        {.language = ShaderLanguage::WGSL,
+                         .stage = ShaderStage::Fragment,
+                         .entryPoint = "fs_main",
+                         .source = kMsdfTextShader},
+                    },
+                    m_device);
+            }
+
+            void createBindGroupLayout() {
+                std::array<wgpu::BindGroupLayoutEntry, 4> bindings{};
+                bindings[0].binding = 0;
+                bindings[0].visibility = wgpu::ShaderStage::Vertex;
+                bindings[0].buffer.type =
+                    wgpu::BufferBindingType::ReadOnlyStorage;
+
+                bindings[1].binding = 1;
+                bindings[1].visibility = wgpu::ShaderStage::Vertex |
+                                         wgpu::ShaderStage::Fragment;
+                bindings[1].buffer.type = wgpu::BufferBindingType::Uniform;
+
+                bindings[2].binding = 2;
+                bindings[2].visibility = wgpu::ShaderStage::Fragment;
+                bindings[2].sampler.type = wgpu::SamplerBindingType::Filtering;
+
+                bindings[3].binding = 3;
+                bindings[3].visibility = wgpu::ShaderStage::Fragment;
+                bindings[3].texture.sampleType =
+                    wgpu::TextureSampleType::Float;
+                bindings[3].texture.viewDimension =
+                    wgpu::TextureViewDimension::e2D;
+
+                wgpu::BindGroupLayoutDescriptor descriptor{};
+                descriptor.entryCount = bindings.size();
+                descriptor.entries = bindings.data();
+                m_bindGroupLayout = m_device.CreateBindGroupLayout(&descriptor);
+            }
+
+            void createPipelineLayout() {
+                wgpu::PipelineLayoutDescriptor descriptor{};
+                descriptor.bindGroupLayoutCount = 1;
+                descriptor.bindGroupLayouts = &m_bindGroupLayout;
+                m_pipelineLayout = m_device.CreatePipelineLayout(&descriptor);
+            }
+
+            void createSampler() {
+                wgpu::SamplerDescriptor descriptor{};
+                descriptor.addressModeU = wgpu::AddressMode::ClampToEdge;
+                descriptor.addressModeV = wgpu::AddressMode::ClampToEdge;
+                descriptor.addressModeW = wgpu::AddressMode::ClampToEdge;
+                descriptor.magFilter = wgpu::FilterMode::Linear;
+                descriptor.minFilter = wgpu::FilterMode::Linear;
+                descriptor.mipmapFilter = wgpu::MipmapFilterMode::Linear;
+                m_sampler = m_device.CreateSampler(&descriptor);
+            }
+
+            void createBindGroup() {
+                if (m_instanceBuffer == nullptr || m_frameBuffer == nullptr ||
+                    m_bindGroupLayout == nullptr || m_sampler == nullptr ||
+                    m_atlasView == nullptr) {
+                    m_bindGroup = nullptr;
+                    return;
+                }
+
+                std::array<wgpu::BindGroupEntry, 4> entries{};
+                entries[0].binding = 0;
+                entries[0].buffer = m_instanceBuffer;
+                entries[0].offset = 0;
+                entries[0].size = m_instanceBufferSize;
+
+                entries[1].binding = 1;
+                entries[1].buffer = m_frameBuffer;
+                entries[1].offset = 0;
+                entries[1].size = m_frameBufferSize;
+
+                entries[2].binding = 2;
+                entries[2].sampler = m_sampler;
+
+                entries[3].binding = 3;
+                entries[3].textureView = m_atlasView;
+
+                wgpu::BindGroupDescriptor descriptor{};
+                descriptor.layout = m_bindGroupLayout;
+                descriptor.entryCount = entries.size();
+                descriptor.entries = entries.data();
+                m_bindGroup = m_device.CreateBindGroup(&descriptor);
+            }
+
+            void createPipelineState() {
+                wgpu::ColorTargetState colorTargets[2]{};
+                uint32_t targetCount = 1;
+                colorTargets[0].format = m_targetFormat;
+
+                wgpu::BlendState blendState{};
+                blendState.color.operation = wgpu::BlendOperation::Add;
+                blendState.color.srcFactor = wgpu::BlendFactor::SrcAlpha;
+                blendState.color.dstFactor =
+                    wgpu::BlendFactor::OneMinusSrcAlpha;
+                blendState.alpha.operation = wgpu::BlendOperation::Add;
+                blendState.alpha.srcFactor = wgpu::BlendFactor::One;
+                blendState.alpha.dstFactor =
+                    wgpu::BlendFactor::OneMinusSrcAlpha;
+                colorTargets[0].blend = &blendState;
+
+                if (m_pickingFormat != wgpu::TextureFormat::Undefined) {
+                    colorTargets[1].format = m_pickingFormat;
+                    targetCount = 2;
+                }
+
+                wgpu::FragmentState fragment{};
+                fragment.module =
+                    m_shader->getModule(Core::Renderer::ShaderStage::Fragment);
+                fragment.entryPoint =
+                    m_pickingFormat != wgpu::TextureFormat::Undefined
+                        ? "fs_main_picking"
+                        : "fs_main";
+                fragment.targetCount = targetCount;
+                fragment.targets = colorTargets;
+
+                wgpu::DepthStencilState depthStencil{};
+                depthStencil.format = kDepthStencilFormat;
+                depthStencil.depthCompare = wgpu::CompareFunction::LessEqual;
+                depthStencil.depthWriteEnabled = false;
+
+                wgpu::RenderPipelineDescriptor descriptor{};
+                descriptor.layout = m_pipelineLayout;
+                descriptor.vertex.module =
+                    m_shader->getModule(Core::Renderer::ShaderStage::Vertex);
+                descriptor.vertex.entryPoint = "vs_main";
+                descriptor.primitive.topology =
+                    wgpu::PrimitiveTopology::TriangleList;
+                descriptor.primitive.cullMode = wgpu::CullMode::None;
+                descriptor.fragment = &fragment;
+                descriptor.depthStencil = &depthStencil;
+
+                m_pipeline = m_device.CreateRenderPipeline(&descriptor);
+                if (m_pipeline == nullptr) {
+                    throw std::runtime_error(
+                        "Failed to create MSDF text render pipeline");
+                }
+            }
+
+            wgpu::Device m_device;
+            wgpu::TextureFormat m_targetFormat =
+                wgpu::TextureFormat::BGRA8Unorm;
+            wgpu::TextureFormat m_pickingFormat =
+                wgpu::TextureFormat::Undefined;
+            wgpu::Buffer m_frameBuffer;
+            uint64_t m_frameBufferSize = 0;
+            wgpu::Buffer m_instanceBuffer;
+            uint64_t m_instanceBufferSize = 0;
+            wgpu::TextureView m_atlasView;
+            wgpu::Sampler m_sampler;
+            wgpu::BindGroupLayout m_bindGroupLayout;
+            wgpu::PipelineLayout m_pipelineLayout;
+            wgpu::BindGroup m_bindGroup;
+            wgpu::RenderPipeline m_pipeline;
+            std::unique_ptr<WgpuShader> m_shader;
         };
 
         struct PathDrawRange {
@@ -2966,6 +3544,108 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             }
         }
 
+        bool appendMsdfText(std::string_view text, const FontProps &props,
+                            const MsdfFontAtlas &atlas,
+                            MsdfTextBatch &batch) {
+            if (!atlas.valid()) {
+                return false;
+            }
+
+            const float fontSize = props.fontSize;
+            const float lineStartX = props.position.x;
+            const float lineHeight =
+                props.lineHeight > 0.f
+                    ? props.lineHeight
+                    : std::max(atlas.lineHeight() * fontSize, fontSize);
+
+            const MsdfGlyph *spaceGlyph = atlas.findGlyph(' ');
+            const float spaceAdvance =
+                spaceGlyph != nullptr && spaceGlyph->advance > 0.f
+                    ? spaceGlyph->advance * fontSize
+                    : fontSize * 0.25f;
+
+            size_t offset = 0;
+            glm::vec2 baseline{props.position.x, props.position.y};
+
+            auto advanceLine = [&]() {
+                baseline.x = lineStartX;
+                baseline.y += lineHeight;
+            };
+
+            while (offset < text.size()) {
+                const uint32_t codepoint = decodeUtf8(text, offset);
+                if (codepoint == 0) {
+                    break;
+                }
+
+                if (codepoint == '\r') {
+                    if (offset < text.size() && text[offset] == '\n') {
+                        ++offset;
+                    }
+                    advanceLine();
+                    continue;
+                }
+
+                if (codepoint == '\n') {
+                    advanceLine();
+                    continue;
+                }
+
+                if (codepoint == '\t') {
+                    baseline.x +=
+                        spaceAdvance * std::max(props.tabSize, 1.f) +
+                        props.letterSpacing;
+                    continue;
+                }
+
+                const MsdfGlyph *glyph = atlas.findGlyph(codepoint);
+                if (glyph == nullptr) {
+                    continue;
+                }
+
+                if (glyph->drawable) {
+                    const glm::vec4 &bounds = glyph->planeBounds;
+                    const float left = baseline.x + bounds.x * fontSize;
+                    const float right = baseline.x + bounds.z * fontSize;
+                    const float top = baseline.y - bounds.w * fontSize;
+                    const float bottom = baseline.y - bounds.y * fontSize;
+                    const glm::vec2 size{
+                        std::max(0.f, right - left),
+                        std::max(0.f, bottom - top),
+                    };
+
+                    if (size.x > 0.f && size.y > 0.f) {
+                        MsdfTextInstance instance;
+                        instance.position[0] = left + size.x * 0.5f;
+                        instance.position[1] = top + size.y * 0.5f;
+                        instance.position[2] = props.zIndex;
+                        instance.pxRange = atlas.pxRange();
+                        instance.size[0] = size.x;
+                        instance.size[1] = size.y;
+                        instance.color[0] = props.color.r;
+                        instance.color[1] = props.color.g;
+                        instance.color[2] = props.color.b;
+                        instance.color[3] = props.color.a;
+                        const glm::vec4 &uv = glyph->atlasRegion.getStartWH();
+                        instance.uvRect[0] = uv.x;
+                        instance.uvRect[1] = uv.y;
+                        instance.uvRect[2] = uv.z;
+                        instance.uvRect[3] = uv.w;
+                        instance.id[0] = props.id.runtimeId;
+                        instance.id[1] = props.id.info;
+                        batch.push(instance);
+                    }
+                }
+
+                const float advance =
+                    glyph->advance > 0.f ? glyph->advance * fontSize
+                                          : fontSize * 0.5f;
+                baseline.x += advance + props.letterSpacing;
+            }
+
+            return true;
+        }
+
         class TextureSource final : public Core::Renderer::ITexture {
           public:
             explicit TextureSource(
@@ -3044,6 +3724,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         std::unique_ptr<Piplines::PrimitivePipeline> primitivePipeline;
         std::unique_ptr<Piplines::PathPipeline> pathPipeline;
         std::unique_ptr<CustomQuadPipeline> customQuadPipeline;
+        std::unique_ptr<MsdfTextPipeline> textPipeline;
         wgpu::CommandEncoder commandEncoder;
         std::unordered_map<Core::Renderer::TextureHandle, TextureResource>
             textures;
@@ -3057,10 +3738,12 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         PathStrokeBatch transparentPathStrokeBatch;
         PathBatch opaquePathBatch;
         PathBatch transparentPathBatch;
+        MsdfTextBatch textBatch;
         std::vector<PathCommand> activePathCommands;
         PathProps activePathProps;
         bool pathStarted = false;
         std::unique_ptr<FontFile> fontFile;
+        std::unique_ptr<MsdfFontAtlas> msdfFontAtlas;
         std::vector<PathCommand> textPathCommandsScratch;
         Core::Renderer::Renderer2DStats stats;
         Color clearColor{0.f, 0.f, 0.f, 1.f};
@@ -3102,7 +3785,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                    transparentCustomQuadBatch.count();
         }
         [[nodiscard]] uint32_t quadStatsCount() const noexcept {
-            return primitiveStatsCount() + customQuadStatsCount();
+            return primitiveStatsCount() + customQuadStatsCount() +
+                   textBatch.count();
         }
     };
 
@@ -3553,6 +4237,24 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 std::max(1u, createInfo.batching.initialQuadCapacity)));
         m_impl->createDefaultTexture();
 
+        m_impl->msdfFontAtlas = std::make_unique<MsdfFontAtlas>();
+        if (m_impl->msdfFontAtlas->load(kDefaultMsdfFontDirectory,
+                                        kDefaultMsdfFontName)) {
+            m_impl->textPipeline = std::make_unique<MsdfTextPipeline>();
+            m_impl->textPipeline->init(
+                m_impl->device, m_impl->targetFormat,
+                m_impl->sharedFrameBuffer.getBuffer(),
+                m_impl->sharedFrameBuffer.getSize(), m_impl->pickingFormat,
+                m_impl->msdfFontAtlas->textureResource());
+            static_cast<void>(
+                m_impl->textPipeline->ensureInstanceBufferSize(
+                    std::max(1u, createInfo.batching.initialQuadCapacity)));
+        } else {
+            m_impl->msdfFontAtlas = nullptr;
+            BESS_WARN("[WgpuRenderer2D] MSDF font atlas unavailable; falling "
+                      "back to outline text rendering");
+        }
+
         const std::string fontPath = createInfo.fontFile.empty()
                                          ? kDefaultFontFile
                                          : createInfo.fontFile;
@@ -3583,6 +4285,11 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             m_impl->customQuadPipeline->destroy();
             m_impl->customQuadPipeline = nullptr;
         }
+        if (m_impl->textPipeline) {
+            m_impl->textPipeline->destroy();
+            m_impl->textPipeline = nullptr;
+        }
+        m_impl->msdfFontAtlas = nullptr;
         m_impl->sharedFrameBuffer.destroy();
         m_impl->textures.clear();
         m_impl->surface = nullptr;
@@ -3606,6 +4313,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         m_impl->transparentPathStrokeBatch.clear();
         m_impl->opaquePathBatch.clear();
         m_impl->transparentPathBatch.clear();
+        m_impl->textBatch.clear();
         m_impl->activePathCommands.clear();
         m_impl->textPathCommandsScratch.clear();
         m_impl->fontFile = nullptr;
@@ -3690,6 +4398,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         m_impl->transparentPathStrokeBatch.clear();
         m_impl->opaquePathBatch.clear();
         m_impl->transparentPathBatch.clear();
+        m_impl->textBatch.clear();
         m_impl->activePathCommands.clear();
         m_impl->pathStarted = false;
         m_impl->stats = {};
@@ -3777,6 +4486,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         m_impl->transparentPathStrokeBatch.prepareForRendering(true);
         m_impl->opaquePathBatch.prepareForRendering(false);
         m_impl->transparentPathBatch.prepareForRendering(true);
+        m_impl->textBatch.prepareForRendering();
 
         const uint32_t opaqueInstanceOffset = 0;
         const uint32_t transparentInstanceOffset =
@@ -3813,6 +4523,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             transparentStrokeVertexOffset +
             m_impl->transparentPathStrokeBatch.vertexCount();
 
+        const uint32_t totalTextGlyphCount = m_impl->textBatch.count();
+
         if (totalInstanceCount > 0 &&
             m_impl->primitivePipeline->ensureInstanceBufferSize(
                 totalInstanceCount)) {
@@ -3823,6 +4535,12 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             static_cast<void>(
                 m_impl->customQuadPipeline->ensureInstanceBufferSize(
                     totalCustomInstanceCount));
+        }
+
+        if (totalTextGlyphCount > 0 && m_impl->textPipeline != nullptr) {
+            static_cast<void>(
+                m_impl->textPipeline->ensureInstanceBufferSize(
+                    totalTextGlyphCount));
         }
 
         if (!m_impl->opaquePrimitiveBatch.empty()) {
@@ -3862,8 +4580,15 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 m_impl->transparentCustomQuadBatch.byteSize();
         }
 
+        if (!m_impl->textBatch.empty() && m_impl->textPipeline != nullptr) {
+            m_impl->textPipeline->uploadInstances(
+                m_impl->queue, m_impl->textBatch.data(),
+                m_impl->textBatch.byteSize());
+            m_impl->stats.uploadedBytes += m_impl->textBatch.byteSize();
+        }
+
         m_impl->stats.quadCount =
-            totalInstanceCount + totalCustomInstanceCount;
+            totalInstanceCount + totalCustomInstanceCount + totalTextGlyphCount;
 
         if (totalStencilVertexCount > 0) {
             static_cast<void>(
@@ -4012,6 +4737,15 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             }
         };
 
+        auto renderTextBatch = [&]() {
+            if (m_impl->textBatch.empty() || m_impl->textPipeline == nullptr) {
+                return;
+            }
+
+            m_impl->textPipeline->draw(renderPass, m_impl->textBatch.count());
+            m_impl->stats.drawCallCount++;
+        };
+
         renderBatch(m_impl->opaquePrimitiveBatch, opaqueInstanceOffset,
                     m_impl->primitivePipeline->getOpaquePipeline());
         renderCustomQuadBatch(m_impl->opaqueCustomQuadBatch,
@@ -4030,6 +4764,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                         transparentCoverVertexOffset, true);
         renderPathStrokeBatch(m_impl->transparentPathStrokeBatch,
                               transparentStrokeVertexOffset, true);
+        renderTextBatch();
 
         renderPass.End();
         m_impl->recordQueuedPickingReadback();
@@ -4320,12 +5055,24 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
     void WgpuRenderer2D::drawFont(std::string_view text,
                                   const FontProps &props) {
         if (!m_impl->frameStarted || text.empty() || props.color.a <= 0.f ||
-            props.fontSize <= 0.f || m_impl->fontFile == nullptr) {
+            props.fontSize <= 0.f) {
             return;
         }
 
         if (m_impl->pathStarted) {
             endPath();
+        }
+
+        if (m_impl->textPipeline != nullptr &&
+            m_impl->msdfFontAtlas != nullptr &&
+            appendMsdfText(text, props, *m_impl->msdfFontAtlas,
+                           m_impl->textBatch)) {
+            m_impl->stats.quadCount = m_impl->quadStatsCount();
+            return;
+        }
+
+        if (m_impl->fontFile == nullptr) {
+            return;
         }
 
         const float fontBaseSize = m_impl->fontFile->getSize();
@@ -4334,7 +5081,6 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         }
 
         const float scale = props.fontSize / fontBaseSize;
-        const float ascent = m_impl->fontFile->ascent() * scale;
         const float defaultLineHeight = m_impl->fontFile->lineHeight() * scale;
         const float lineHeight =
             props.lineHeight > 0.f
@@ -4350,7 +5096,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             makePathBakeMetrics(m_impl->cameraTransform, m_impl->extent);
 
         const float lineStartX = props.position.x;
-        glm::vec2 cursor{props.position.x, props.position.y + ascent};
+        glm::vec2 cursor{props.position.x, props.position.y};
         bool hasTextPathProps = false;
         PathProps textPathProps{};
         m_impl->textPathCommandsScratch.clear();

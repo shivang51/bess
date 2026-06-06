@@ -158,12 +158,16 @@ fn borderWidthForPoint(p: vec2f, halfSize: vec2f, radii: vec4f, borderSize: vec4
     return borderSize.w;
 }
 
+fn aaWidth(fw: vec2f) -> f32 {
+    return max(length(fw) * 0.5, 0.000001);
+}
+
 fn shadeQuad(in: VertexOut, fw: vec2f) -> vec4f {
     let halfSize = max(in.size * 0.5, vec2f(0.0001));
     let p = in.local_coord * in.size;
     let outerDistance = sdRoundedRect(p, halfSize, in.radius);
-    let aa = max(length(fw) * 0.5, 0.75);
-    let outerMask = 1.0 - smoothstep(0.0, aa, outerDistance);
+    let aa = aaWidth(fw);
+    let outerMask = 1.0 - smoothstep(-aa, aa, outerDistance);
 
     if (outerMask < 0.001) {
         discard;
@@ -174,7 +178,7 @@ fn shadeQuad(in: VertexOut, fw: vec2f) -> vec4f {
     let border = max(max(borderSize.x, borderSize.y),
                      max(borderSize.z, borderSize.w));
     let borderWidth = borderWidthForPoint(p, halfSize, in.radius, borderSize);
-    let borderMask = smoothstep(-borderWidth - aa, -borderWidth, outerDistance);
+    let borderMask = smoothstep(-borderWidth - aa, -borderWidth + aa, outerDistance);
 
     if (in.use_texture > 0.5) {
         var texturedColor = textureSampleLevel(prim_texture, prim_sampler, in.tex_coord, 0.0) * in.color;
@@ -202,7 +206,7 @@ fn shadeCircle(in: VertexOut, fw: vec2f) -> vec4f {
     }
 
     let dist = length(in.local_coord);
-    let aa = length(fw) * 0.5;
+    let aa = aaWidth(fw);
     let outerMask = 1.0 - smoothstep(0.5 - aa, 0.5 + aa, dist);
     let innerMask = smoothstep((innerRatio * 0.5) - aa, (innerRatio * 0.5) + aa, dist);
     let mask = outerMask * innerMask;
@@ -233,8 +237,8 @@ fn shadeLine(in: VertexOut, fw: vec2f) -> vec4f {
     let p = in.local_coord * in.size;
 
     let dist = sdCapsule(p, halfSegmentLength, radius);
-    let aa = max(length(fw) * 0.5, 0.75);
-    let mask = 1.0 - smoothstep(0.0, aa, dist);
+    let aa = aaWidth(fw);
+    let mask = 1.0 - smoothstep(-aa, aa, dist);
 
     if (mask < 0.001) {
         discard;
@@ -247,8 +251,8 @@ fn shadeLine(in: VertexOut, fw: vec2f) -> vec4f {
 
 fn compute_color(in: VertexOut) -> vec4f {
 
-		let fw_local_px = fwidth(in.local_coord * in.size);
-		let fw_circle = fwidth(in.local_coord);
+    let fw_local_px = fwidth(in.local_coord * in.size);
+    let fw_circle = fwidth(in.local_coord);
     if (in.primitive_type == PRIMITIVE_TYPE_QUAD) {
         return shadeQuad(in, fw_local_px);
     } else if (in.primitive_type == PRIMITIVE_TYPE_CIRCLE) {

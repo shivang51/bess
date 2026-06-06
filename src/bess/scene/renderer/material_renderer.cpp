@@ -2,10 +2,14 @@
 #include "application/asset_manager/asset_manager.h"
 #include "application/assets.h"
 #include "renderer/font.h"
+#include "json/json.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <deque>
+#include <fstream>
+#include <string_view>
+#include <unordered_map>
 
 namespace Bess::Renderer {
     namespace {
@@ -28,6 +32,292 @@ namespace Bess::Renderer {
                 return seed;
             }
         };
+
+        struct MsdfTextMeasureCacheKey {
+            int32_t renderSizeMilli = 0;
+            std::string text;
+
+            bool operator==(
+                const MsdfTextMeasureCacheKey &other) const noexcept = default;
+        };
+
+        struct MsdfTextMeasureCacheKeyHash {
+            size_t
+            operator()(const MsdfTextMeasureCacheKey &key) const noexcept {
+                size_t seed =
+                    std::hash<int32_t>{}(key.renderSizeMilli);
+                seed ^= std::hash<std::string>{}(key.text) + 0x9e3779b9 +
+                        (seed << 6) + (seed >> 2);
+                return seed;
+            }
+        };
+
+        struct MsdfMeasureGlyph {
+            float advance = 0.f;
+            float left = 0.f;
+            float right = 0.f;
+            bool drawable = false;
+        };
+
+        constexpr const char *kDefaultMsdfMetricsPath =
+            "assets/fonts/Roboto/msdf-Roboto-Regular-32/Roboto-Regular.json";
+        constexpr uint32_t kReplacementCodepoint = 0xFFFD;
+
+        uint32_t decodeUtf8(std::string_view text, size_t &offset) {
+            if (offset >= text.size()) {
+                return 0;
+            }
+
+            const size_t start = offset;
+            const auto first = static_cast<unsigned char>(text[start]);
+            if (first <= 0x7F) {
+                offset = start + 1;
+                return first;
+            }
+
+            uint32_t codepoint = 0;
+            size_t length = 0;
+            uint32_t minCodepoint = 0;
+            if ((first & 0xE0) == 0xC0) {
+                codepoint = first & 0x1F;
+                length = 2;
+                minCodepoint = 0x80;
+            } else if ((first & 0xF0) == 0xE0) {
+                codepoint = first & 0x0F;
+                length = 3;
+                minCodepoint = 0x800;
+            } else if ((first & 0xF8) == 0xF0) {
+                codepoint = first & 0x07;
+                length = 4;
+                minCodepoint = 0x10000;
+            } else {
+                offset = start + 1;
+                return kReplacementCodepoint;
+            }
+
+            if (start + length > text.size()) {
+                offset = start + 1;
+                return kReplacementCodepoint;
+            }
+
+            for (size_t i = 1; i < length; ++i) {
+                const auto byte = static_cast<unsigned char>(text[start + i]);
+                if ((byte & 0xC0) != 0x80) {
+                    offset = start + 1;
+                    return kReplacementCodepoint;
+                }
+                codepoint = (codepoint << 6) | (byte & 0x3F);
+            }
+
+            if (codepoint < minCodepoint || codepoint > 0x10FFFF ||
+                (codepoint >= 0xD800 && codepoint <= 0xDFFF)) {
+                offset = start + 1;
+                return kReplacementCodepoint;
+            }
+
+            offset = start + length;
+            return codepoint;
+        }
+
+        class MsdfMeasureFont {
+          public:
+            bool load(const std::string &jsonPath) {
+                std::ifstream input(jsonPath);
+                if (!input.is_open()) {
+                    return false;
+                }
+
+                Json::Value root;
+                Json::CharReaderBuilder builder;
+                std::string errors;
+                if (!Json::parseFromStream(builder, input, &root, &errors) ||
+                    !root.isMember("glyphs")) {
+                    return false;
+                }
+
+                m_glyphs.clear();
+                for (const auto &glyphJson : root["glyphs"]) {
+                    if (!glyphJson.isObject() ||
+                        !glyphJson.isMember("unicode")) {
+                        continue;
+                    }
+
+                    MsdfMeasureGlyph glyph;
+                    glyph.advance = glyphJson.get("advance", 0.f).asFloat();
+                    if (glyphJson.isMember("planeBounds")) {
+                        const Json::Value &bounds = glyphJson["planeBounds"];
+                        glyph.left = bounds.get("left", 0.f).asFloat();
+                        glyph.right = bounds.get("right", 0.f).asFloat();
+                        glyph.drawable = true;
+                    }
+
+                    m_glyphs[static_cast<uint32_t>(
+                        glyphJson.get("unicode", 0).asUInt64())] = glyph;
+                }
+
+                return !m_glyphs.empty();
+            }
+
+            [[nodiscard]] bool valid() const noexcept {
+                return !m_glyphs.empty();
+            }
+
+            [[nodiscard]] const MsdfMeasureGlyph *
+            findGlyph(uint32_t codepoint) const noexcept {
+                auto it = m_glyphs.find(codepoint);
+                if (it != m_glyphs.end()) {
+                    return &it->second;
+                }
+
+                it = m_glyphs.find('?');
+                if (it != m_glyphs.end()) {
+                    return &it->second;
+                }
+
+                it = m_glyphs.find(' ');
+                return it != m_glyphs.end() ? &it->second : nullptr;
+            }
+
+            [[nodiscard]] float spaceAdvance() const noexcept {
+                if (const auto *space = findGlyph(' ');
+                    space != nullptr && space->advance > 0.f) {
+                    return space->advance;
+                }
+                return 0.25f;
+            }
+
+          private:
+            std::unordered_map<uint32_t, MsdfMeasureGlyph> m_glyphs;
+        };
+
+        const MsdfMeasureFont *getDefaultMsdfMeasureFont() {
+            static const MsdfMeasureFont font = [] {
+                MsdfMeasureFont loadedFont;
+                loadedFont.load(kDefaultMsdfMetricsPath);
+                return loadedFont;
+            }();
+
+            return font.valid() ? &font : nullptr;
+        }
+
+        glm::vec2 measureMsdfTextRenderSize(std::string_view text,
+                                            float renderSize) {
+            const MsdfMeasureFont *font = getDefaultMsdfMeasureFont();
+            if (font == nullptr) {
+                return {-1.f, -1.f};
+            }
+
+            const float safeRenderSize = std::max(renderSize, 1.f);
+            const auto renderSizeMilli =
+                static_cast<int32_t>(std::lround(safeRenderSize * 1000.0f));
+
+            static constexpr size_t kMaxTextMeasureCacheEntries = 4096;
+            static std::unordered_map<MsdfTextMeasureCacheKey, glm::vec2,
+                                      MsdfTextMeasureCacheKeyHash>
+                s_msdfTextMeasureCache;
+            static std::deque<MsdfTextMeasureCacheKey>
+                s_msdfTextMeasureCacheOrder;
+
+            MsdfTextMeasureCacheKey cacheKey{
+                .renderSizeMilli = renderSizeMilli,
+                .text = std::string(text),
+            };
+
+            if (const auto it = s_msdfTextMeasureCache.find(cacheKey);
+                it != s_msdfTextMeasureCache.end()) {
+                return it->second;
+            }
+
+            const float spaceAdvance =
+                font->spaceAdvance() * safeRenderSize;
+            float lineAdvance = 0.f;
+            float lineInkMin = 0.f;
+            float lineInkMax = 0.f;
+            bool hasLineInk = false;
+            float maxLineWidth = 0.f;
+            float totalHeight = safeRenderSize;
+
+            auto finishLine = [&]() {
+                float lineWidth = lineAdvance;
+                if (hasLineInk) {
+                    const float inkMin = std::min(0.f, lineInkMin);
+                    const float inkMax = std::max(lineAdvance, lineInkMax);
+                    lineWidth = std::max(lineWidth, inkMax - inkMin);
+                }
+                maxLineWidth = std::max(maxLineWidth, lineWidth);
+
+                lineAdvance = 0.f;
+                lineInkMin = 0.f;
+                lineInkMax = 0.f;
+                hasLineInk = false;
+            };
+
+            size_t offset = 0;
+            while (offset < text.size()) {
+                const uint32_t codepoint = decodeUtf8(text, offset);
+                if (codepoint == 0) {
+                    break;
+                }
+
+                if (codepoint == '\r') {
+                    if (offset < text.size() && text[offset] == '\n') {
+                        ++offset;
+                    }
+                    finishLine();
+                    totalHeight += safeRenderSize;
+                    continue;
+                }
+
+                if (codepoint == '\n') {
+                    finishLine();
+                    totalHeight += safeRenderSize;
+                    continue;
+                }
+
+                if (codepoint == '\t') {
+                    lineAdvance += spaceAdvance * 4.f;
+                    continue;
+                }
+
+                const MsdfMeasureGlyph *glyph = font->findGlyph(codepoint);
+                if (glyph == nullptr) {
+                    continue;
+                }
+
+                if (glyph->drawable) {
+                    const float glyphLeft =
+                        lineAdvance + glyph->left * safeRenderSize;
+                    const float glyphRight =
+                        lineAdvance + glyph->right * safeRenderSize;
+                    if (hasLineInk) {
+                        lineInkMin = std::min(lineInkMin, glyphLeft);
+                        lineInkMax = std::max(lineInkMax, glyphRight);
+                    } else {
+                        lineInkMin = glyphLeft;
+                        lineInkMax = glyphRight;
+                        hasLineInk = true;
+                    }
+                }
+
+                lineAdvance +=
+                    (glyph->advance > 0.f ? glyph->advance : 0.5f) *
+                    safeRenderSize;
+            }
+
+            finishLine();
+            glm::vec2 calcSize = {maxLineWidth, totalHeight};
+
+            s_msdfTextMeasureCache.emplace(cacheKey, calcSize);
+            s_msdfTextMeasureCacheOrder.push_back(cacheKey);
+            if (s_msdfTextMeasureCacheOrder.size() >
+                kMaxTextMeasureCacheEntries) {
+                s_msdfTextMeasureCache.erase(
+                    s_msdfTextMeasureCacheOrder.front());
+                s_msdfTextMeasureCacheOrder.pop_front();
+            }
+
+            return calcSize;
+        }
     } // namespace
 
     static Material2D makeGrid(const glm::vec3 &pos, const glm::vec2 &size,
@@ -415,6 +705,11 @@ namespace Bess::Renderer {
 
     glm::vec2 MaterialRenderer::getTextRenderSize(const std::string &str,
                                                   float renderSize) {
+        const glm::vec2 msdfSize = measureMsdfTextRenderSize(str, renderSize);
+        if (msdfSize.x >= 0.f) {
+            return msdfSize;
+        }
+
         auto font = *getFontFile();
 
         // for tests when font is not loaded
