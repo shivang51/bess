@@ -6,6 +6,7 @@
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
+#include "common/types.h"
 #include "conn_joint_scene_component.h"
 #include "event_dispatcher.h"
 #include "fwd.hpp"
@@ -65,22 +66,26 @@ namespace Bess::Canvas {
                                  ? Styles::compSchematicStyles.strokeSize
                                  : 2.f;
 
-        auto prevPos = segCache.front();
+        const auto &first = segCache.front();
 
-        SceneDraw::beginPath(context, {prevPos.x, prevPos.y, 0.5f}, weight,
-                             color, PickingId{m_runtimeId, 0},
+        SceneDraw::beginPath(context, {first.x, first.y, 0.5f},
+                             weight, //
+                             color,  //
+                             PickingId{m_runtimeId, 0},
                              {.roundedJoints = true});
 
-        for (size_t i = 1; i < segCache.size(); i++) {
+        for (uint32_t i = 1; i < segCache.size(); i++) {
             const auto &segPos = segCache[i];
 
             const auto segmentIndex = i - 1;
             const bool isHovered = m_hoveredSegIdx == segmentIndex;
             const float zIndex = isHovered ? 0.82f : 0.5f;
-            SceneDraw::pathLineTo(context, {prevPos.x, prevPos.y, zIndex},
-                                  isHovered ? weight + 1.f : weight);
-            prevPos = segPos;
+            SceneDraw::pathLineTo(context, {segPos.x, segPos.y, zIndex},
+                                  isHovered ? weight + 1.f : weight,
+                                  PickingId{m_runtimeId, segmentIndex});
         }
+
+        SceneDraw::endPath(context);
     }
 
     void ConnectionSceneComponent::draw(SceneDrawContext &context) {
