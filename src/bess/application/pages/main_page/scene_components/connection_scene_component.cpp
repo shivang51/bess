@@ -44,10 +44,11 @@ namespace Bess::Canvas {
                            "cloneConn function");
     }
 
-    void ConnectionSceneComponent::drawSegments(
-        const SceneState &state, const glm::vec3 &startPos,
-        const glm::vec3 &endPos, const glm::vec4 &color,
-        SceneDrawContext &context) {
+    void ConnectionSceneComponent::drawSegments(const SceneState &state,
+                                                const glm::vec3 &startPos,
+                                                const glm::vec3 &endPos,
+                                                const glm::vec4 &color,
+                                                SceneDrawContext &context) {
 
         const auto &segCache = state.getIsSchematicView()
                                    ? m_segCachedSchemeticPos
@@ -65,16 +66,19 @@ namespace Bess::Canvas {
                                  : 2.f;
 
         auto prevPos = segCache.front();
+
+        SceneDraw::beginPath(context, {prevPos.x, prevPos.y, 0.5f}, weight,
+                             color, PickingId{m_runtimeId, 0},
+                             {.roundedJoints = true});
+
         for (size_t i = 1; i < segCache.size(); i++) {
             const auto &segPos = segCache[i];
 
             const auto segmentIndex = i - 1;
             const bool isHovered = m_hoveredSegIdx == segmentIndex;
             const float zIndex = isHovered ? 0.82f : 0.5f;
-            SceneDraw::drawLine(
-                context, {prevPos.x, prevPos.y, zIndex},
-                {segPos.x, segPos.y, zIndex}, isHovered ? 3.f : weight, color,
-                PickingId{m_runtimeId, static_cast<uint32_t>(segmentIndex)});
+            SceneDraw::pathLineTo(context, {prevPos.x, prevPos.y, zIndex},
+                                  isHovered ? weight + 1.f : weight);
             prevPos = segPos;
         }
     }

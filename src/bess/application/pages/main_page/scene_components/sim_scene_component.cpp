@@ -5,6 +5,7 @@
 #include "icons/FontAwesomeIcons.h"
 #include "input_scene_component.h"
 #include "bess_core/connection_service.h"
+#include "pages/main_page/scene_components/scene_component_draw_resources.h"
 #include "renderer/material_renderer.h"
 #include "scene/scene_draw_helpers.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -79,6 +80,8 @@ namespace Bess::Canvas {
             .offset = glm::vec2(0.f, 0.f),
             .scale = glm::vec2(1.701f, 1.701f),
             .color = glm::vec4(1.f),
+            .texture =
+                SceneComponentDrawResources::getShadowTextureHandle(),
         };
 
         SceneDraw::drawQuad(context, m_transform.position, m_transform.scale,

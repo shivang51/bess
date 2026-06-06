@@ -735,15 +735,15 @@ namespace Bess::UI {
             callback();
         }
 
-        // registerPanel<DebugPanel>();
-        // registerPanel<ComponentExplorer>();
-        // registerPanel<GraphViewWindow>();
-        // registerPanel<LogWindow>();
-        // registerPanel<ProjectExplorer>();
-        // registerPanel<PropertiesPanel>();
-        // registerPanel<ProjectSettingsWindow>();
-        // registerPanel<SceneExportWindow>();
-        // registerPanel<SettingsWindow>();
+        registerPanel<DebugPanel>();
+        registerPanel<ComponentExplorer>();
+        registerPanel<GraphViewWindow>();
+        registerPanel<LogWindow>();
+        registerPanel<ProjectExplorer>();
+        registerPanel<PropertiesPanel>();
+        registerPanel<ProjectSettingsWindow>();
+        registerPanel<SceneExportWindow>();
+        registerPanel<SettingsWindow>();
         registerPanel<SceneViewportPanel>("MainViewport");
     }
 

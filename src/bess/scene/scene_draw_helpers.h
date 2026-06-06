@@ -13,6 +13,7 @@ namespace Bess::Canvas::SceneDraw {
         glm::vec2 offset = {5.f, 5.f};
         glm::vec2 scale = {1.f, 1.f};
         glm::vec4 color = {0.f, 0.f, 0.f, 0.5f};
+        Core::Renderer::TextureHandle texture = 0;
     };
 
     struct QuadStyle {
@@ -94,6 +95,7 @@ namespace Bess::Canvas::SceneDraw {
                                    style.borderRadius.y)},
                 style.shadow.color,
                 style.shadow.useInvalidId ? PickingId::invalid() : id, style);
+            shadow.texture = style.shadow.texture;
             QuadStyle shadowStyle;
             shadowStyle.angle = style.angle;
             shadowStyle.borderRadius = style.borderRadius;

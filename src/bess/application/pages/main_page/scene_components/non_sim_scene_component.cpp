@@ -1,6 +1,7 @@
 #include "non_sim_scene_component.h"
 #include "gtc/type_ptr.hpp"
 #include "icons/FontAwesomeIcons.h"
+#include "pages/main_page/scene_components/scene_component_draw_resources.h"
 #include "renderer/material_renderer.h"
 #include "scene/scene_draw_helpers.h"
 #include "scene/scene_state/components/styles/comp_style.h"
@@ -52,6 +53,8 @@ namespace Bess::Canvas {
             props.borderColor = ViewportTheme::colors.selectedComp;
             props.isMica = true;
             props.shadow.enabled = true;
+            props.shadow.texture =
+                SceneComponentDrawResources::getShadowTextureHandle();
 
             const auto textSize = Renderer::MaterialRenderer::getTextRenderSize(
                 m_data, (float)m_size);

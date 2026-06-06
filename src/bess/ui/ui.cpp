@@ -152,7 +152,7 @@ namespace Bess {
         const auto &settings = appCtx.getSubSystem<Config::Settings>();
 
         if (settings->getShowStatsWindow()) {
-            drawStats(0);
+            drawStats(m_currentFps);
         }
 
         m_currentPage->draw();
