@@ -1834,18 +1834,39 @@ fn screen_px_range(uv: vec2f, px_range: f32) -> f32 {
     let texture_size = vec2f(f32(dims.x), f32(dims.y));
     let unit_range = vec2f(px_range) / texture_size;
     let screen_tex_size = vec2f(1.0) / max(fwidth(uv), vec2f(0.000001));
-    return max(0.5 * dot(unit_range, screen_tex_size), 1.0);
+    return max(0.5 * dot(unit_range, screen_tex_size), 0.75);
+}
+
+fn text_luminance(color: vec3f) -> f32 {
+    return dot(color, vec3f(0.2126, 0.7152, 0.0722));
+}
+
+fn distance_coverage(signed_distance: f32, px_range: f32) -> f32 {
+    let large_text = smoothstep(1.5, 4.0, px_range);
+    let smoothing = mix(1.2, 0.9, large_text);
+    return clamp(signed_distance * (px_range / smoothing) + 0.5, 0.0, 1.0);
+}
+
+fn perceptual_coverage_gamma(coverage: f32, px_range: f32, color: vec3f) -> f32 {
+    let small_text = 1.0 - smoothstep(2.0, 5.0, px_range);
+    let luma = text_luminance(color);
+    let light_text_coverage = pow(coverage, 0.88);
+    let dark_text_coverage = 1.0 - pow(1.0 - coverage, 0.88);
+    let color_weight = smoothstep(0.35, 0.65, luma);
+    let gamma_coverage =
+        mix(dark_text_coverage, light_text_coverage, color_weight);
+    return mix(coverage, gamma_coverage, small_text * 0.45);
 }
 
 fn shade_text(in: VertexOut) -> vec4f {
     let tex = textureSample(font_atlas, font_sampler, in.uv);
     let msdf_distance = median3(tex.rgb) - 0.5;
     let sdf_distance = tex.a - 0.5;
-    let signed_distance = mix(sdf_distance, msdf_distance, 0.9);
-    let alpha = clamp(
-        signed_distance * screen_px_range(in.uv, in.px_range) + 0.5,
-        0.0,
-        1.0);
+    let px_range = screen_px_range(in.uv, in.px_range);
+    let msdf_weight = smoothstep(1.75, 4.0, px_range);
+    let signed_distance = mix(sdf_distance, msdf_distance, msdf_weight);
+    let coverage = distance_coverage(signed_distance, px_range);
+    let alpha = perceptual_coverage_gamma(coverage, px_range, in.color.rgb);
     return vec4f(in.color.rgb, in.color.a * alpha);
 }
 
