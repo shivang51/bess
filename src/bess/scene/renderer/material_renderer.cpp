@@ -8,6 +8,8 @@
 #include <cstdint>
 #include <deque>
 #include <fstream>
+#include <limits>
+#include <optional>
 #include <string_view>
 #include <unordered_map>
 
@@ -56,6 +58,8 @@ namespace Bess::Renderer {
             float advance = 0.f;
             float left = 0.f;
             float right = 0.f;
+            float bottom = 0.f;
+            float top = 0.f;
             bool drawable = false;
         };
 
@@ -135,6 +139,13 @@ namespace Bess::Renderer {
                     return false;
                 }
 
+                if (root.isMember("metrics")) {
+                    m_lineHeight =
+                        root["metrics"].get("lineHeight", 1.f).asFloat();
+                } else {
+                    m_lineHeight = 1.f;
+                }
+
                 m_glyphs.clear();
                 for (const auto &glyphJson : root["glyphs"]) {
                     if (!glyphJson.isObject() ||
@@ -148,6 +159,8 @@ namespace Bess::Renderer {
                         const Json::Value &bounds = glyphJson["planeBounds"];
                         glyph.left = bounds.get("left", 0.f).asFloat();
                         glyph.right = bounds.get("right", 0.f).asFloat();
+                        glyph.bottom = bounds.get("bottom", 0.f).asFloat();
+                        glyph.top = bounds.get("top", 0.f).asFloat();
                         glyph.drawable = true;
                     }
 
@@ -186,8 +199,13 @@ namespace Bess::Renderer {
                 return 0.25f;
             }
 
+            [[nodiscard]] float lineHeight() const noexcept {
+                return m_lineHeight;
+            }
+
           private:
             std::unordered_map<uint32_t, MsdfMeasureGlyph> m_glyphs;
+            float m_lineHeight = 1.f;
         };
 
         const MsdfMeasureFont *getDefaultMsdfMeasureFont() {
@@ -198,6 +216,95 @@ namespace Bess::Renderer {
             }();
 
             return font.valid() ? &font : nullptr;
+        }
+
+        std::optional<float>
+        measureMsdfTextBaselineOffsetForVerticalCenter(std::string_view text,
+                                                       float renderSize) {
+            const MsdfMeasureFont *font = getDefaultMsdfMeasureFont();
+            if (font == nullptr) {
+                return std::nullopt;
+            }
+
+            const float safeRenderSize = std::max(renderSize, 1.f);
+            const auto renderSizeMilli =
+                static_cast<int32_t>(std::lround(safeRenderSize * 1000.0f));
+
+            static constexpr size_t kMaxTextMeasureCacheEntries = 4096;
+            static std::unordered_map<MsdfTextMeasureCacheKey, float,
+                                      MsdfTextMeasureCacheKeyHash>
+                s_msdfTextBaselineOffsetCache;
+            static std::deque<MsdfTextMeasureCacheKey>
+                s_msdfTextBaselineOffsetCacheOrder;
+
+            MsdfTextMeasureCacheKey cacheKey{
+                .renderSizeMilli = renderSizeMilli,
+                .text = std::string(text),
+            };
+
+            if (const auto it = s_msdfTextBaselineOffsetCache.find(cacheKey);
+                it != s_msdfTextBaselineOffsetCache.end()) {
+                return it->second;
+            }
+
+            const float lineHeight =
+                std::max(font->lineHeight() * safeRenderSize, safeRenderSize);
+            float baselineY = 0.f;
+            float inkTop = std::numeric_limits<float>::max();
+            float inkBottom = std::numeric_limits<float>::lowest();
+            bool hasInk = false;
+
+            size_t offset = 0;
+            while (offset < text.size()) {
+                const uint32_t codepoint = decodeUtf8(text, offset);
+                if (codepoint == 0) {
+                    break;
+                }
+
+                if (codepoint == '\r') {
+                    if (offset < text.size() && text[offset] == '\n') {
+                        ++offset;
+                    }
+                    baselineY += lineHeight;
+                    continue;
+                }
+
+                if (codepoint == '\n') {
+                    baselineY += lineHeight;
+                    continue;
+                }
+
+                if (codepoint == '\t') {
+                    continue;
+                }
+
+                const MsdfMeasureGlyph *glyph = font->findGlyph(codepoint);
+                if (glyph == nullptr || !glyph->drawable) {
+                    continue;
+                }
+
+                const float top = baselineY - (glyph->top * safeRenderSize);
+                const float bottom =
+                    baselineY - (glyph->bottom * safeRenderSize);
+                inkTop = std::min(inkTop, top);
+                inkBottom = std::max(inkBottom, bottom);
+                hasInk = true;
+            }
+
+            const float offsetY =
+                hasInk ? -((inkTop + inkBottom) * 0.5f)
+                       : safeRenderSize * 0.35f;
+
+            s_msdfTextBaselineOffsetCache.emplace(cacheKey, offsetY);
+            s_msdfTextBaselineOffsetCacheOrder.push_back(cacheKey);
+            if (s_msdfTextBaselineOffsetCacheOrder.size() >
+                kMaxTextMeasureCacheEntries) {
+                s_msdfTextBaselineOffsetCache.erase(
+                    s_msdfTextBaselineOffsetCacheOrder.front());
+                s_msdfTextBaselineOffsetCacheOrder.pop_front();
+            }
+
+            return offsetY;
         }
 
         glm::vec2 measureMsdfTextRenderSize(std::string_view text,
@@ -778,6 +885,69 @@ namespace Bess::Renderer {
         }
 
         return calcSize;
+    }
+
+    float MaterialRenderer::getTextBaselineOffsetForVerticalCenter(
+        const std::string &str, float renderSize) {
+        if (const auto msdfOffset =
+                measureMsdfTextBaselineOffsetForVerticalCenter(str,
+                                                               renderSize)) {
+            return *msdfOffset;
+        }
+
+        const float safeRenderSize = std::max(renderSize, 1.f);
+        auto font = *getFontFile();
+        if (!font) {
+            return safeRenderSize * 0.35f;
+        }
+
+        const float fontSize = font->getSize();
+        if (fontSize <= 0.f) {
+            return safeRenderSize * 0.35f;
+        }
+
+        const float scale = safeRenderSize / fontSize;
+        float baselineY = 0.f;
+        float inkTop = std::numeric_limits<float>::max();
+        float inkBottom = std::numeric_limits<float>::lowest();
+        bool hasInk = false;
+
+        auto includeY = [&](float y) {
+            inkTop = std::min(inkTop, y);
+            inkBottom = std::max(inkBottom, y);
+            hasInk = true;
+        };
+
+        for (const char ch : str) {
+            if (ch == '\n') {
+                baselineY += safeRenderSize;
+                continue;
+            }
+
+            const auto &glyph = font->getGlyph(ch);
+            for (const auto &cmd : glyph.path.getCmds()) {
+                switch (cmd.kind) {
+                case Path::PathCommand::Kind::Move:
+                    includeY(baselineY + (cmd.move.p.y * scale));
+                    break;
+                case Path::PathCommand::Kind::Line:
+                    includeY(baselineY + (cmd.line.p.y * scale));
+                    break;
+                case Path::PathCommand::Kind::Quad:
+                    includeY(baselineY + (cmd.quad.c.y * scale));
+                    includeY(baselineY + (cmd.quad.p.y * scale));
+                    break;
+                case Path::PathCommand::Kind::Cubic:
+                    includeY(baselineY + (cmd.cubic.c1.y * scale));
+                    includeY(baselineY + (cmd.cubic.c2.y * scale));
+                    includeY(baselineY + (cmd.cubic.p.y * scale));
+                    break;
+                }
+            }
+        }
+
+        return hasInk ? -((inkTop + inkBottom) * 0.5f)
+                      : safeRenderSize * 0.35f;
     }
 
     Font::FontFile **MaterialRenderer::getFontFile() {

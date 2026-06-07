@@ -14,6 +14,7 @@
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
+#include "scene_state/components/styles/comp_style.h"
 #include "settings/viewport_theme.h"
 #include "sim_scene_component.h"
 #include "simulation_engine.h"
@@ -103,30 +104,32 @@ namespace Bess::Canvas {
         if (!m_name.empty()) {
             const float labeldx = Styles::simCompStyles.slotMargin +
                                   (Styles::simCompStyles.slotRadius * 2.f);
+            constexpr float labelFontSize =
+                Styles::simCompStyles.slotLabelSize;
             float labelX = pos.x;
+            const auto labelSize =
+                Renderer::MaterialRenderer::getTextRenderSize(
+                    m_name, labelFontSize);
             if (m_slotType == SlotType::digitalInput) {
                 labelX += labeldx;
             } else {
-                const auto labelSize =
-                    Renderer::MaterialRenderer::getTextRenderSize(
-                        m_name, Styles::simCompStyles.slotLabelSize);
                 labelX -= labeldx + labelSize.x;
             }
-            float dY = Styles::componentStyles.slotRadius -
-                       (std::abs((Styles::componentStyles.slotRadius * 2.f) -
-                                 Styles::componentStyles.slotLabelSize) /
-                        2.f);
+
+            const float baselineOffset =
+                Renderer::MaterialRenderer::getTextBaselineOffsetForVerticalCenter(
+                    m_name, labelFontSize);
+            const float labelY = pos.y + baselineOffset;
 
             const auto parentComp =
                 state.getComponentByUuid<SimulationSceneComponent>(
                     m_parentComponent);
-            SceneDraw::drawText(
-                drawContext,
-                m_name, {labelX, pos.y + dY, pos.z},
-                Styles::componentStyles.slotLabelSize,
-                ViewportTheme::colors.text,
-                PickingId{parentComp->getRuntimeId(), 0},
-                parentComp->getTransform().angle);
+            SceneDraw::drawText(drawContext, m_name,
+                                {labelX, labelY, pos.z},
+                                labelFontSize,
+                                ViewportTheme::colors.text,
+                                PickingId{parentComp->getRuntimeId(), 0},
+                                parentComp->getTransform().angle);
         }
     }
 
@@ -175,8 +178,7 @@ namespace Bess::Canvas {
             // slot is rendered behind the component but text should be in front
             // of component so using z of node view
             SceneDraw::drawText(
-                drawContext,
-                m_name,
+                drawContext, m_name,
                 {pos.x + textOffsetX, pos.y + (textSize.y / 2.f) - 2.f,
                  SceneComponent::getAbsolutePosition(state)
                      .z}, // because we don't want schematic pos
