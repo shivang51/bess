@@ -221,6 +221,7 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
         quadProps.color = m_style.color;
         quadProps.id = pickingId;
         quadProps.rotation = m_transform.angle;
+        quadProps.zIndex = m_transform.position.z;
         quadProps.renderPass = Core::Renderer::QuadRenderPass::Transparent;
 
         const auto &borderColor = m_isSelected
@@ -256,6 +257,7 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
         quadProps.position = headerPos;
         quadProps.color = m_style.headerColor;
         quadProps.id = pickingId;
+        quadProps.zIndex = headerPos.z;
         quadProps.renderPass = Core::Renderer::QuadRenderPass::Transparent;
 
         context.renderer->drawCustomQuad(
