@@ -2,10 +2,11 @@
 #include "bess_core/connection_service.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "bess_core/renderer/renderer_2d.h"
+#include "bess_core/renderer/renderer_types.h"
 #include "common/bess_uuid.h"
 #include "icons/FontAwesomeIcons.h"
 #include "input_scene_component.h"
-#include "pages/main_page/scene_components/scene_component_draw_resources.h"
 #include "renderer/material_renderer.h"
 #include "scene/scene_draw_helpers.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -16,6 +17,7 @@
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include "slot_scene_component.h"
+#include "sub_systems/renderer_context.h"
 #include "ui/widgets/m_widgets.h"
 
 #include <algorithm>
@@ -23,10 +25,146 @@
 #include <unordered_set>
 
 namespace Bess::Canvas {
+    uint32_t SimulationSceneComponent::s_tintShader = 0;
+    size_t SimulationSceneComponent::s_instanceCount = 0;
+
     constexpr float SNAP_AMOUNT = 2.f;
 
     SimulationSceneComponent::SimulationSceneComponent() {
         m_icon = UI::Icons::FontAwesomeIcons::FA_MICROCHIP;
+
+        if (s_tintShader == 0) {
+            const auto &appCtx = Bess::GAppContext::getInstance();
+            const auto &rendererCtx =
+                appCtx.getSubSystem<Bess::RendererContext>();
+
+            Core::Renderer::CustomQuadShaderDesc desc;
+
+            desc.label = "MicaQuadShader";
+            desc.fragmentSource = R"(
+fn cornerRadiusForPoint(p: vec2f, radii: vec4f) -> f32 {
+    var radius = radii.w;
+    if (p.x < 0.0 && p.y < 0.0) {
+        radius = radii.x;
+    } else if (p.x >= 0.0 && p.y < 0.0) {
+        radius = radii.y;
+    } else if (p.x >= 0.0 && p.y >= 0.0) {
+        radius = radii.z;
+    }
+    return radius;
+}
+
+fn sdRoundedRect(p: vec2f, halfSize: vec2f, radii: vec4f) -> f32 {
+    let maxRadius = max(min(halfSize.x, halfSize.y), 0.0);
+    let clampedRadii = clamp(radii, vec4f(0.0), vec4f(maxRadius));
+    let radius = cornerRadiusForPoint(p, clampedRadii);
+    let innerHalfSize = max(halfSize - vec2f(radius), vec2f(0.0));
+    let d = abs(p) - innerHalfSize;
+    return length(max(d, vec2f(0.0))) + min(max(d.x, d.y), 0.0) - radius;
+}
+
+fn borderWidthForPoint(p: vec2f, halfSize: vec2f, radii: vec4f, borderSize: vec4f) -> f32 {
+    let maxRadius = max(min(halfSize.x, halfSize.y), 0.0);
+    let clampedRadii = clamp(radii, vec4f(0.0), vec4f(maxRadius));
+    let radius = cornerRadiusForPoint(p, clampedRadii);
+    let inCorner = radius > 0.0 &&
+                   abs(p.x) > halfSize.x - radius &&
+                   abs(p.y) > halfSize.y - radius;
+
+    if (inCorner) {
+        if (p.x < 0.0 && p.y < 0.0) {
+            return min(borderSize.x, borderSize.w);
+        } else if (p.x >= 0.0 && p.y < 0.0) {
+            return min(borderSize.x, borderSize.y);
+        } else if (p.x >= 0.0 && p.y >= 0.0) {
+            return min(borderSize.z, borderSize.y);
+        }
+        return min(borderSize.z, borderSize.w);
+    }
+
+    let distToTop = p.y + halfSize.y;
+    let distToRight = halfSize.x - p.x;
+    let distToBottom = halfSize.y - p.y;
+    let distToLeft = p.x + halfSize.x;
+    let nearestHorizontal = min(distToLeft, distToRight);
+    let nearestVertical = min(distToTop, distToBottom);
+
+    if (nearestVertical <= nearestHorizontal) {
+        if (distToTop <= distToBottom) {
+            return borderSize.x;
+        }
+        return borderSize.z;
+    }
+    if (distToRight <= distToLeft) {
+        return borderSize.y;
+    }
+    return borderSize.w;
+}
+
+fn aaWidth(fw: vec2f) -> f32 {
+    return max(length(fw) * 0.5, 0.000001);
+}
+
+fn shadeTintedGlass(base: vec4f, localUv: vec2f) -> vec4f {
+    let uv = clamp(localUv, vec2f(0.0), vec2f(1.0));
+    let centeredUv = abs((uv * 2.0) - vec2f(1.0));
+    let edge = smoothstep(0.55, 1.0, max(centeredUv.x, centeredUv.y));
+    let cornerGlow = smoothstep(0.70, 1.25, length(centeredUv));
+    let topLight = smoothstep(0.62, 0.0, uv.y) * 0.035;
+    let leftLight = smoothstep(0.85, 0.0, uv.x) *
+                    smoothstep(0.75, 0.0, uv.y) * 0.012;
+    let diagonalSheen = smoothstep(0.10, 0.0, abs((uv.x + uv.y) - 0.72)) * 0.012;
+    let bottomShade = smoothstep(0.35, 1.0, uv.y) * 0.10;
+    let darkTint = vec3f(0.06, 0.08, 0.11);
+    let coolTint = vec3f(0.30, 0.42, 0.58);
+
+    var rgb = mix(base.rgb * 0.56, darkTint, 0.32);
+    rgb = mix(rgb, coolTint, 0.08);
+    rgb += vec3f(topLight + leftLight + diagonalSheen);
+    rgb += coolTint * ((edge * 0.035) + (cornerGlow * 0.02));
+    rgb -= vec3f(bottomShade);
+
+    return vec4f(clamp(rgb, vec3f(0.0), vec3f(1.0)), base.a * 0.82);
+}
+
+fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
+    let halfSize = max(in.size * 0.5, vec2f(0.0001));
+    let p = in.local_pos;
+    let outerDistance = sdRoundedRect(p, halfSize, in.data0);
+    let aa = aaWidth(fw);
+    let outerMask = 1.0 - smoothstep(-aa, aa, outerDistance);
+
+    if (outerMask < 0.001) {
+        discard;
+    }
+
+    let borderSize = clamp(in.data1, vec4f(0.0),
+                           vec4f(halfSize.y, halfSize.x, halfSize.y, halfSize.x));
+    let border = max(max(borderSize.x, borderSize.y),
+                     max(borderSize.z, borderSize.w));
+    let borderWidth = borderWidthForPoint(p, halfSize, in.data0, borderSize);
+    let borderMask = smoothstep(-borderWidth - aa, -borderWidth + aa, outerDistance);
+
+    var color = shadeTintedGlass(in.color, in.local_uv);
+
+    if (border > 0.0) {
+        color = mix(color, in.data2, borderMask);
+    }
+    color.a *= outerMask;
+    return color;
+}
+
+  fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
+			let fw_local_px = fwidth(in.local_pos);
+			return shadeQuad(in, fw_local_px);
+  }
+	)";
+
+            s_tintShader =
+                rendererCtx->getRenderer()->createCustomQuadShader(desc);
+        }
+
+        s_instanceCount++;
     }
 
     std::vector<std::shared_ptr<SceneComponent>>
@@ -66,34 +204,42 @@ namespace Bess::Canvas {
     }
 
     void SimulationSceneComponent::drawBackground(SceneDrawContext &context) {
+        BESS_ASSERT(s_tintShader != 0, "Mica shader not initialized");
 
         const auto pickingId = PickingId{m_runtimeId, 0};
-        SceneDraw::QuadStyle props;
-        props.angle = m_transform.angle;
-        props.borderRadius = m_style.borderRadius;
-        props.borderSize = m_style.borderSize;
-        props.borderColor = m_isSelected ? ViewportTheme::colors.selectedComp
-                                         : m_style.headerColor;
-        props.isMica = true;
-        props.shadow = {
-            .enabled = true,
-            .offset = glm::vec2(0.f, 0.f),
-            .scale = glm::vec2(1.701f, 1.701f),
-            .color = glm::vec4(1.f),
-            .texture = SceneComponentDrawResources::getShadowTextureHandle(),
-        };
+        // props.shadow = {
+        //     .enabled = true,
+        //     .offset = glm::vec2(0.f, 0.f),
+        //     .scale = glm::vec2(1.701f, 1.701f),
+        //     .color = glm::vec4(1.f),
+        //     .texture = SceneComponentDrawResources::getShadowTextureHandle(),
+        // };
 
-        SceneDraw::drawQuad(context, m_transform.position, m_transform.scale,
-                            m_style.color, pickingId, props);
+        Core::Renderer::QuadProps quadProps;
+        quadProps.position = m_transform.position;
+        quadProps.size = m_transform.scale;
+        quadProps.color = m_style.color;
+        quadProps.id = pickingId;
+        quadProps.rotation = m_transform.angle;
+        quadProps.renderPass = Core::Renderer::QuadRenderPass::Transparent;
+
+        const auto &borderColor = m_isSelected
+                                      ? ViewportTheme::colors.selectedComp
+                                      : m_style.borderColor;
+
+        context.renderer->drawCustomQuad({
+            .quad = quadProps,
+            .shader = s_tintShader,
+            .data =
+                {
+                    m_style.borderRadius,
+                    m_style.borderSize,
+                    borderColor,
+                    glm::vec4(0.f),
+                },
+        });
 
         // header
-        props = {};
-        props.angle = m_transform.angle;
-        props.borderSize = glm::vec4(0.f);
-        props.borderRadius =
-            glm::vec4(m_style.borderRadius.x - m_style.borderSize.x,
-                      m_style.borderRadius.y - m_style.borderSize.y, 0, 0);
-        props.isMica = true;
 
         const float headerHeight = Styles::componentStyles.headerHeight;
         const auto headerPos =
@@ -101,13 +247,27 @@ namespace Bess::Canvas {
                       m_transform.position.y - (m_transform.scale.y / 2.f) +
                           (headerHeight / 2.f),
                       m_transform.position.z + 0.0004f);
-        SceneDraw::drawQuad(context, headerPos,
-                            glm::vec2(m_transform.scale.x -
-                                          m_style.borderSize.w -
-                                          m_style.borderSize.y,
-                                      headerHeight - m_style.borderSize.x -
-                                          m_style.borderSize.z),
-                            m_style.headerColor, pickingId, props);
+
+        quadProps = {};
+        quadProps.rotation = m_transform.angle;
+        quadProps.size = glm::vec2(
+            m_transform.scale.x - m_style.borderSize.x - m_style.borderSize.z,
+            headerHeight - m_style.borderSize.x - m_style.borderSize.z);
+        quadProps.position = headerPos;
+        quadProps.color = m_style.headerColor;
+        quadProps.id = pickingId;
+        quadProps.renderPass = Core::Renderer::QuadRenderPass::Transparent;
+
+        context.renderer->drawCustomQuad(
+            {.quad = quadProps,
+             .shader = s_tintShader,
+             .data = {
+                 glm::vec4(m_style.borderRadius.x - m_style.borderSize.x,
+                           m_style.borderRadius.y - m_style.borderSize.y, 0, 0),
+                 glm::vec4(0.f),
+                 glm::vec4(0.f),
+                 glm::vec4(0.f),
+             }});
 
         const auto textPos =
             glm::vec3(m_transform.position.x - (m_transform.scale.x / 2.f) +
