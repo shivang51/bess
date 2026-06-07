@@ -83,6 +83,12 @@ namespace Bess::Wgpu {
 
         void drawFont(std::string_view text,
                       const Core::Renderer::FontProps &props = {}) override;
+        [[nodiscard]] glm::vec2 measureText(
+            std::string_view text,
+            const Core::Renderer::FontProps &props = {}) override;
+        [[nodiscard]] float textCenterOffsetY(
+            std::string_view text,
+            const Core::Renderer::FontProps &props = {}) override;
 
         void drawPath(std::span<const Core::Renderer::PathCommand> commands,
                       const Core::Renderer::PathProps &props = {}) override;

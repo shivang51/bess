@@ -9,12 +9,10 @@
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
-#include "renderer/material_renderer.h"
 #include "scene/scene_draw_helpers.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
-#include "scene_state/components/styles/comp_style.h"
 #include "settings/viewport_theme.h"
 #include "sim_scene_component.h"
 #include "simulation_engine.h"
@@ -101,15 +99,17 @@ namespace Bess::Canvas {
         SceneDraw::drawCircle(drawContext, pos, r, border, pickingId, ir);
         SceneDraw::drawCircle(drawContext, pos, ir - radiusGap, bg, pickingId);
 
-        if (!m_name.empty()) {
+        if (!m_name.empty() && drawContext.renderer) {
             const float labeldx = Styles::simCompStyles.slotMargin +
                                   (Styles::simCompStyles.slotRadius * 2.f);
             constexpr float labelFontSize =
                 Styles::simCompStyles.slotLabelSize;
+            Core::Renderer::FontProps labelProps;
+            labelProps.fontSize = labelFontSize;
+
             float labelX = pos.x;
             const auto labelSize =
-                Renderer::MaterialRenderer::getTextRenderSize(
-                    m_name, labelFontSize);
+                drawContext.renderer->measureText(m_name, labelProps);
             if (m_slotType == SlotType::digitalInput) {
                 labelX += labeldx;
             } else {
@@ -117,8 +117,7 @@ namespace Bess::Canvas {
             }
 
             const float baselineOffset =
-                Renderer::MaterialRenderer::getTextBaselineOffsetForVerticalCenter(
-                    m_name, labelFontSize);
+                drawContext.renderer->textCenterOffsetY(m_name, labelProps);
             const float labelY = pos.y + baselineOffset;
 
             const auto parentComp =
@@ -126,7 +125,7 @@ namespace Bess::Canvas {
                     m_parentComponent);
             SceneDraw::drawText(drawContext, m_name,
                                 {labelX, labelY, pos.z},
-                                labelFontSize,
+                                static_cast<std::size_t>(labelFontSize),
                                 ViewportTheme::colors.text,
                                 PickingId{parentComp->getRuntimeId(), 0},
                                 parentComp->getTransform().angle);
@@ -163,8 +162,12 @@ namespace Bess::Canvas {
         m_invalidateCache = true;
 
         if (!m_name.empty()) {
-            const auto textSize = Renderer::MaterialRenderer::getTextRenderSize(
-                m_name, Styles::componentStyles.slotLabelSize);
+            Core::Renderer::FontProps labelProps;
+            labelProps.fontSize = Styles::simCompStyles.slotLabelSize;
+            const auto textSize = drawContext.renderer
+                                      ? drawContext.renderer->measureText(
+                                            m_name, labelProps)
+                                      : glm::vec2(0.f);
 
             float textOffsetX = 4.f;
 
@@ -182,7 +185,7 @@ namespace Bess::Canvas {
                 {pos.x + textOffsetX, pos.y + (textSize.y / 2.f) - 2.f,
                  SceneComponent::getAbsolutePosition(state)
                      .z}, // because we don't want schematic pos
-                Styles::componentStyles.slotLabelSize,
+                static_cast<std::size_t>(labelProps.fontSize),
                 ViewportTheme::schematicViewColors.componentStroke,
                 PickingId{parentComp->getRuntimeId(), 0}, 0.f);
         }

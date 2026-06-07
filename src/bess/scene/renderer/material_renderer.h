@@ -102,9 +102,6 @@ namespace Bess::Renderer {
 
         static glm::vec2 getTextRenderSize(const std::string &str,
                                            float renderSize);
-        static float
-        getTextBaselineOffsetForVerticalCenter(const std::string &str,
-                                               float renderSize);
 
       private:
         void flushVertices(bool isTranslucent);

@@ -196,6 +196,11 @@ namespace Bess::Core::Renderer {
 
         virtual void drawFont(std::string_view text,
                               const FontProps &props = {}) = 0;
+        [[nodiscard]] virtual glm::vec2
+        measureText(std::string_view text, const FontProps &props = {}) = 0;
+        [[nodiscard]] virtual float
+        textCenterOffsetY(std::string_view text,
+                          const FontProps &props = {}) = 0;
 
         virtual void drawPath(std::span<const PathCommand> commands,
                               const PathProps &props = {}) = 0;

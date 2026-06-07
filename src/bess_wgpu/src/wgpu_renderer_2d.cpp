@@ -3752,6 +3752,284 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             return true;
         }
 
+        glm::vec2 measureMsdfText(std::string_view text,
+                                  const FontProps &props,
+                                  const MsdfFontAtlas &atlas) {
+            if (!atlas.valid() || text.empty() || props.fontSize <= 0.f) {
+                return {0.f, 0.f};
+            }
+
+            const float fontSize = props.fontSize;
+
+            const MsdfGlyph *spaceGlyph = atlas.findGlyph(' ');
+            const float spaceAdvance =
+                spaceGlyph != nullptr && spaceGlyph->advance > 0.f
+                    ? spaceGlyph->advance * fontSize
+                    : fontSize * 0.25f;
+
+            float lineAdvance = 0.f;
+            float lineInkMin = 0.f;
+            float lineInkMax = 0.f;
+            bool hasLineInk = false;
+            float maxWidth = 0.f;
+            float totalHeight = fontSize;
+
+            auto finishLine = [&]() {
+                float lineWidth = lineAdvance;
+                if (hasLineInk) {
+                    const float inkMin = std::min(0.f, lineInkMin);
+                    const float inkMax = std::max(lineAdvance, lineInkMax);
+                    lineWidth = std::max(lineWidth, inkMax - inkMin);
+                }
+                maxWidth = std::max(maxWidth, lineWidth);
+
+                lineAdvance = 0.f;
+                lineInkMin = 0.f;
+                lineInkMax = 0.f;
+                hasLineInk = false;
+            };
+
+            size_t offset = 0;
+            while (offset < text.size()) {
+                const uint32_t codepoint = decodeUtf8(text, offset);
+                if (codepoint == 0) {
+                    break;
+                }
+
+                if (codepoint == '\r') {
+                    if (offset < text.size() && text[offset] == '\n') {
+                        ++offset;
+                    }
+                    finishLine();
+                    totalHeight += fontSize;
+                    continue;
+                }
+
+                if (codepoint == '\n') {
+                    finishLine();
+                    totalHeight += fontSize;
+                    continue;
+                }
+
+                if (codepoint == '\t') {
+                    lineAdvance +=
+                        spaceAdvance * std::max(props.tabSize, 1.f) +
+                        props.letterSpacing;
+                    continue;
+                }
+
+                const MsdfGlyph *glyph = atlas.findGlyph(codepoint);
+                if (glyph == nullptr) {
+                    continue;
+                }
+
+                if (glyph->drawable) {
+                    const glm::vec4 &bounds = glyph->planeBounds;
+                    const float glyphLeft = lineAdvance + bounds.x * fontSize;
+                    const float glyphRight = lineAdvance + bounds.z * fontSize;
+                    if (hasLineInk) {
+                        lineInkMin = std::min(lineInkMin, glyphLeft);
+                        lineInkMax = std::max(lineInkMax, glyphRight);
+                    } else {
+                        lineInkMin = glyphLeft;
+                        lineInkMax = glyphRight;
+                        hasLineInk = true;
+                    }
+                }
+
+                const float advance = glyph->advance > 0.f
+                                          ? glyph->advance * fontSize
+                                          : fontSize * 0.5f;
+                lineAdvance += advance + props.letterSpacing;
+            }
+
+            finishLine();
+            return {maxWidth, totalHeight};
+        }
+
+        float msdfCenterOffsetY(std::string_view text, const FontProps &props,
+                                const MsdfFontAtlas &atlas) {
+            if (!atlas.valid() || text.empty() || props.fontSize <= 0.f) {
+                return 0.f;
+            }
+
+            const float fontSize = props.fontSize;
+            const float lineHeight =
+                props.lineHeight > 0.f
+                    ? props.lineHeight
+                    : std::max(atlas.lineHeight() * fontSize, fontSize);
+
+            float baselineY = 0.f;
+            float inkTop = std::numeric_limits<float>::max();
+            float inkBottom = std::numeric_limits<float>::lowest();
+            bool hasInk = false;
+
+            size_t offset = 0;
+            while (offset < text.size()) {
+                const uint32_t codepoint = decodeUtf8(text, offset);
+                if (codepoint == 0) {
+                    break;
+                }
+
+                if (codepoint == '\r') {
+                    if (offset < text.size() && text[offset] == '\n') {
+                        ++offset;
+                    }
+                    baselineY += lineHeight;
+                    continue;
+                }
+
+                if (codepoint == '\n') {
+                    baselineY += lineHeight;
+                    continue;
+                }
+
+                if (codepoint == '\t') {
+                    continue;
+                }
+
+                const MsdfGlyph *glyph = atlas.findGlyph(codepoint);
+                if (glyph == nullptr || !glyph->drawable) {
+                    continue;
+                }
+
+                const glm::vec4 &bounds = glyph->planeBounds;
+                const float top = baselineY - bounds.w * fontSize;
+                const float bottom = baselineY - bounds.y * fontSize;
+                inkTop = std::min(inkTop, top);
+                inkBottom = std::max(inkBottom, bottom);
+                hasInk = true;
+            }
+
+            return hasInk ? -((inkTop + inkBottom) * 0.5f)
+                          : fontSize * 0.35f;
+        }
+
+        glm::vec2 measurePathText(std::string_view text,
+                                  const FontProps &props, FontFile &font) {
+            if (text.empty() || props.fontSize <= 0.f ||
+                font.getSize() <= 0.f) {
+                return {0.f, 0.f};
+            }
+
+            const float scale = props.fontSize / font.getSize();
+            const Glyph &spaceGlyph = font.getGlyph(U' ');
+            const float spaceAdvance =
+                std::max(spaceGlyph.advanceX * scale, props.fontSize * 0.25f);
+
+            float lineAdvance = 0.f;
+            float maxWidth = 0.f;
+            float totalHeight = props.fontSize;
+
+            auto finishLine = [&]() {
+                maxWidth = std::max(maxWidth, lineAdvance);
+                lineAdvance = 0.f;
+            };
+
+            size_t offset = 0;
+            while (offset < text.size()) {
+                const uint32_t codepoint = decodeUtf8(text, offset);
+                if (codepoint == 0) {
+                    break;
+                }
+
+                if (codepoint == '\r') {
+                    if (offset < text.size() && text[offset] == '\n') {
+                        ++offset;
+                    }
+                    finishLine();
+                    totalHeight += props.fontSize;
+                    continue;
+                }
+
+                if (codepoint == '\n') {
+                    finishLine();
+                    totalHeight += props.fontSize;
+                    continue;
+                }
+
+                if (codepoint == '\t') {
+                    lineAdvance +=
+                        spaceAdvance * std::max(props.tabSize, 1.f) +
+                        props.letterSpacing;
+                    continue;
+                }
+
+                const Glyph &glyph =
+                    font.getGlyph(static_cast<char32_t>(codepoint));
+                const float advance =
+                    glyph.advanceX > 0.f
+                        ? glyph.advanceX * scale
+                        : std::max(glyph.width * scale,
+                                   props.fontSize * 0.5f);
+                lineAdvance += advance + props.letterSpacing;
+            }
+
+            finishLine();
+            return {maxWidth, totalHeight};
+        }
+
+        float pathCenterOffsetY(std::string_view text, const FontProps &props,
+                                FontFile &font) {
+            if (text.empty() || props.fontSize <= 0.f ||
+                font.getSize() <= 0.f) {
+                return 0.f;
+            }
+
+            const float scale = props.fontSize / font.getSize();
+            const float defaultLineHeight = font.lineHeight() * scale;
+            const float lineHeight =
+                props.lineHeight > 0.f
+                    ? props.lineHeight
+                    : (defaultLineHeight > 0.f ? defaultLineHeight
+                                               : props.fontSize);
+
+            float baselineY = 0.f;
+            float inkTop = std::numeric_limits<float>::max();
+            float inkBottom = std::numeric_limits<float>::lowest();
+            bool hasInk = false;
+
+            size_t offset = 0;
+            while (offset < text.size()) {
+                const uint32_t codepoint = decodeUtf8(text, offset);
+                if (codepoint == 0) {
+                    break;
+                }
+
+                if (codepoint == '\r') {
+                    if (offset < text.size() && text[offset] == '\n') {
+                        ++offset;
+                    }
+                    baselineY += lineHeight;
+                    continue;
+                }
+
+                if (codepoint == '\n') {
+                    baselineY += lineHeight;
+                    continue;
+                }
+
+                if (codepoint == '\t') {
+                    continue;
+                }
+
+                const Glyph &glyph =
+                    font.getGlyph(static_cast<char32_t>(codepoint));
+                const auto bounds = glyph.path.bounds();
+                if (!bounds.valid) {
+                    continue;
+                }
+
+                inkTop = std::min(inkTop, baselineY + bounds.min.y * scale);
+                inkBottom =
+                    std::max(inkBottom, baselineY + bounds.max.y * scale);
+                hasInk = true;
+            }
+
+            return hasInk ? -((inkTop + inkBottom) * 0.5f)
+                          : props.fontSize * 0.35f;
+        }
+
         class TextureSource final : public Core::Renderer::ITexture {
           public:
             explicit TextureSource(
@@ -5405,6 +5683,57 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             cursor.x += advance + props.letterSpacing;
         }
         flushTextPath();
+    }
+
+    glm::vec2 WgpuRenderer2D::measureText(std::string_view text,
+                                          const FontProps &props) {
+        if (text.empty() || props.fontSize <= 0.f) {
+            return {0.f, 0.f};
+        }
+
+        if (m_impl->msdfFontAtlas != nullptr &&
+            m_impl->msdfFontAtlas->valid()) {
+            return measureMsdfText(text, props, *m_impl->msdfFontAtlas);
+        }
+
+        if (m_impl->fontFile != nullptr) {
+            return measurePathText(text, props, *m_impl->fontFile);
+        }
+
+        const float safeFontSize = std::max(props.fontSize, 1.f);
+        float currentLineWidth = 0.f;
+        float maxLineWidth = 0.f;
+        float totalHeight = safeFontSize;
+        for (const char ch : text) {
+            if (ch == '\n') {
+                maxLineWidth = std::max(maxLineWidth, currentLineWidth);
+                currentLineWidth = 0.f;
+                totalHeight += safeFontSize;
+                continue;
+            }
+            currentLineWidth += safeFontSize * 0.6f + props.letterSpacing;
+        }
+
+        maxLineWidth = std::max(maxLineWidth, currentLineWidth);
+        return {maxLineWidth, totalHeight};
+    }
+
+    float WgpuRenderer2D::textCenterOffsetY(std::string_view text,
+                                            const FontProps &props) {
+        if (text.empty() || props.fontSize <= 0.f) {
+            return 0.f;
+        }
+
+        if (m_impl->msdfFontAtlas != nullptr &&
+            m_impl->msdfFontAtlas->valid()) {
+            return msdfCenterOffsetY(text, props, *m_impl->msdfFontAtlas);
+        }
+
+        if (m_impl->fontFile != nullptr) {
+            return pathCenterOffsetY(text, props, *m_impl->fontFile);
+        }
+
+        return std::max(props.fontSize, 1.f) * 0.35f;
     }
 
     void WgpuRenderer2D::drawPath(std::span<const PathCommand> commands,
