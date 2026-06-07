@@ -56,16 +56,14 @@ class DigitalGateComp(SimulationSceneComponent):
         id.info = 0
 
         transform = self.schematic_transform
-        scale = self.schematic_diagram.draw(transform, id, context.path_renderer)
+        scale = self.schematic_diagram.draw(transform, id, context)
 
         if scale != self.schematic_transform.scale:
             self.schematic_scale = scale
 
-        size = context.material_renderer.get_text_render_size(
-            self.name, self.label_size
-        )
+        size = context.renderer.get_text_render_size(self.name, self.label_size)
 
-        context.material_renderer.draw_text(
+        context.renderer.draw_text(
             self.name,
             transform.position + vec3(-size.x / 2, scale.y / 2 + self.label_size, 0),
             self.label_size,

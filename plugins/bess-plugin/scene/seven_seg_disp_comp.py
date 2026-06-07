@@ -44,7 +44,7 @@ class SevenSegDispComp(SimulationSceneComponent):
         pickingId.runtime_id = self.runtime_id
         pickingId.info = 0
 
-        context.material_renderer.draw_sub_textured_quad(
+        context.renderer.draw_quad(
             pos,
             SevenSegDispComp._tex_draw_size,
             vec4(1, 1, 1, 1),

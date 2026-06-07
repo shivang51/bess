@@ -71,8 +71,8 @@ void bind_api(py::module_ &m) {
     bind_path_renderer(renderer); // Path renderer it self.
     bind_material_renderer(renderer);
     bind_scene_state(scene);
-    bind_scene_schematic_diagram(scene);
     bind_scene_component(scene);
+    bind_scene_schematic_diagram(scene);
     bind_sim_scene_component(scene);
 
     // Asset Manager

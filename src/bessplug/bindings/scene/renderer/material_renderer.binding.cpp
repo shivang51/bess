@@ -1,10 +1,14 @@
 #include "scene/renderer/material_renderer.h"
 #include "bess_core/renderer/renderer_2d.h"
+#include "bess_wgpu/wgpu_texture.h"
 #include "vulkan_subtexture.h"
 #include "vulkan_texture.h"
 #include <algorithm>
+#include <memory>
+#include <mutex>
 #include <pybind11/pybind11.h>
 #include <string>
+#include <unordered_map>
 
 namespace py = pybind11;
 
@@ -18,6 +22,9 @@ namespace {
     using Bess::Core::Renderer::PathLineJoin;
     using Bess::Core::Renderer::PathProps;
     using Bess::Core::Renderer::QuadProps;
+    using Bess::Vulkan::SubTexture;
+    using Bess::Vulkan::VulkanTexture;
+    using Bess::Wgpu::WgpuTexture;
 
     bool hasAnyNonZero(const glm::vec4 &value) {
         return value.x != 0.f || value.y != 0.f || value.z != 0.f ||
@@ -46,6 +53,74 @@ namespace {
                           uint64_t id,
                           const Bess::Renderer::QuadRenderProperties &props) {
         auto quad = makeQuadProps(pos, size, color, id, props);
+        renderer.drawQuad(quad);
+    }
+
+    std::shared_ptr<WgpuTexture>
+    getWgpuTexture(const std::shared_ptr<VulkanTexture> &texture) {
+        if (!texture) {
+            return nullptr;
+        }
+
+        static std::unordered_map<std::shared_ptr<VulkanTexture>,
+                                  std::weak_ptr<WgpuTexture>>
+            cache;
+
+        static std::mutex cacheMutex;
+        std::lock_guard lock(cacheMutex);
+
+        if (const auto iter = cache.find(texture); iter != cache.end()) {
+            if (const auto cached = iter->second.lock()) {
+                return cached;
+            }
+        }
+
+        const auto pixels = texture->getData();
+        if (pixels.empty() || texture->getWidth() == 0 ||
+            texture->getHeight() == 0) {
+            return nullptr;
+        }
+
+        auto mirrored = WgpuTexture::fromPixels(pixels.data(),
+                                                texture->getWidth(),
+                                                texture->getHeight());
+        cache[texture] = mirrored;
+        return mirrored;
+    }
+
+    void drawRendererTexturedQuad(
+        IRenderer2D &renderer, const glm::vec3 &pos, const glm::vec2 &size,
+        const glm::vec4 &tint, uint64_t id,
+        const std::shared_ptr<VulkanTexture> &texture,
+        const Bess::Renderer::QuadRenderProperties &props) {
+        const auto wgpuTexture = getWgpuTexture(texture);
+        if (!wgpuTexture) {
+            return;
+        }
+
+        auto quad = makeQuadProps(pos, size, tint, id, props);
+        quad.texture = wgpuTexture->getHandle();
+        renderer.drawQuad(quad);
+    }
+
+    void drawRendererSubTexturedQuad(
+        IRenderer2D &renderer, const glm::vec3 &pos, const glm::vec2 &size,
+        const glm::vec4 &tint, uint64_t id,
+        const std::shared_ptr<SubTexture> &subTexture,
+        const Bess::Renderer::QuadRenderProperties &props) {
+        if (!subTexture) {
+            return;
+        }
+
+        const auto texture = getWgpuTexture(subTexture->getTexture());
+        if (!texture) {
+            return;
+        }
+
+        auto quad = makeQuadProps(pos, size, tint, id, props);
+        const auto &uv = subTexture->getStartWH();
+        quad.texture = texture->getHandle();
+        quad.uvRect = {uv.x, uv.y, uv.x + uv.z, uv.y + uv.w};
         renderer.drawQuad(quad);
     }
 } // namespace
@@ -140,6 +215,15 @@ void bind_material_renderer(py::module_ &m) {
                std::shared_ptr<Bess::Core::Renderer::IRenderer2D>>(
         m, "IRenderer2D")
         .def(
+            "get_text_render_size",
+            [](IRenderer2D &renderer, const std::string &text,
+               float renderSize) {
+                FontProps props;
+                props.fontSize = renderSize;
+                return renderer.measureText(text, props);
+            },
+            py::arg("text"), py::arg("render_size"))
+        .def(
             "draw_quad",
             [](IRenderer2D &renderer, const glm::vec3 &pos,
                const glm::vec2 &size, const glm::vec4 &color, uint64_t id) {
@@ -148,6 +232,18 @@ void bind_material_renderer(py::module_ &m) {
             py::arg("pos"), py::arg("size"), py::arg("color"), py::arg("id"))
         .def("draw_quad", &drawRendererQuad, py::arg("pos"), py::arg("size"),
              py::arg("color"), py::arg("id"), py::arg("props"))
+        .def("draw_quad", &drawRendererSubTexturedQuad, py::arg("pos"),
+             py::arg("size"), py::arg("tint"), py::arg("id"),
+             py::arg("sub_texture"), py::arg("props"))
+        .def("draw_textured_quad", &drawRendererTexturedQuad, py::arg("pos"),
+             py::arg("size"), py::arg("tint"), py::arg("id"),
+             py::arg("texture"), py::arg("props"))
+        .def("draw_sub_textured_quad", &drawRendererSubTexturedQuad,
+             py::arg("pos"), py::arg("size"), py::arg("tint"), py::arg("id"),
+             py::arg("sub_texture"), py::arg("props"))
+        .def("draw_subtextured_quad", &drawRendererSubTexturedQuad,
+             py::arg("pos"), py::arg("size"), py::arg("tint"), py::arg("id"),
+             py::arg("sub_texture"), py::arg("props"))
         .def(
             "draw_circle",
             [](IRenderer2D &renderer, const glm::vec3 &center, float radius,

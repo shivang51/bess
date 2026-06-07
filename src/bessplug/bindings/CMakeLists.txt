@@ -57,6 +57,7 @@ pybind11_add_module(${PROJECT_NAME} ${BESS_PYBIND_SOURCES})
 target_link_libraries(${PROJECT_NAME} PRIVATE
 	BessExtDeps
 	BessVulkan
+	BessWgpu
 	BessSimEngine
 	EventSystem
 	BessScene
@@ -71,6 +72,7 @@ add_dependencies(${PROJECT_NAME}
 	BessApp
 	BessExtDeps
 	BessVulkan
+	BessWgpu
 	BessSimEngine
 	EventSystem
 	BessScene

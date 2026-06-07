@@ -1,4 +1,5 @@
 #include "scene/schematic_diagram.h"
+#include "scene_draw_context.h"
 
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
@@ -21,5 +22,14 @@ void bind_scene_schematic_diagram(py::module_ &m) {
         .def_property("stroke_size",
                       &Bess::Canvas::SchematicDiagram::getStrokeSize,
                       &Bess::Canvas::SchematicDiagram::setStrokeSize)
-        .def("draw", &Bess::Canvas::SchematicDiagram::draw);
+        .def("draw", &Bess::Canvas::SchematicDiagram::draw)
+        .def(
+            "draw",
+            [](Bess::Canvas::SchematicDiagram &diagram,
+               const Bess::Canvas::Transform &transform,
+               const Bess::PickingId &pickingId,
+               const Bess::SceneDrawContext &context) {
+                return diagram.draw(transform, pickingId, context.renderer);
+            },
+            py::arg("transform"), py::arg("picking_id"), py::arg("context"));
 }

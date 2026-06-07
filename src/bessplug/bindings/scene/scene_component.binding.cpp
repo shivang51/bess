@@ -46,6 +46,10 @@ void bind_scene_component(py::module_ &m) {
     py::class_<Bess::SceneDrawContext>(m, "SceneDrawContext")
         .def_readonly("scene_state", &Bess::SceneDrawContext::sceneState)
         .def_readonly("renderer", &Bess::SceneDrawContext::renderer)
+        .def_property_readonly("material_renderer",
+                               [](const Bess::SceneDrawContext &context) {
+                                   return context.renderer;
+                               })
         .def_readonly("camera", &Bess::SceneDrawContext::camera);
 
     py::class_<Bess::Canvas::SceneComponent, PySceneComponent,
