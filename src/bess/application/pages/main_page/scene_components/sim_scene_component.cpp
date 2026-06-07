@@ -105,26 +105,38 @@ fn aaWidth(fw: vec2f) -> f32 {
     return max(length(fw) * 0.5, 0.000001);
 }
 
-fn shadeTintedGlass(base: vec4f, localUv: vec2f) -> vec4f {
+fn shadeTintedGlass(base: vec4f, localUv: vec2f, style: vec4f) -> vec4f {
     let uv = clamp(localUv, vec2f(0.0), vec2f(1.0));
+    let isHeader = clamp(style.x, 0.0, 1.0);
     let centeredUv = abs((uv * 2.0) - vec2f(1.0));
     let edge = smoothstep(0.55, 1.0, max(centeredUv.x, centeredUv.y));
     let cornerGlow = smoothstep(0.70, 1.25, length(centeredUv));
-    let topLight = smoothstep(0.62, 0.0, uv.y) * 0.035;
-    let leftLight = smoothstep(0.85, 0.0, uv.x) *
-                    smoothstep(0.75, 0.0, uv.y) * 0.012;
-    let diagonalSheen = smoothstep(0.10, 0.0, abs((uv.x + uv.y) - 0.72)) * 0.012;
-    let bottomShade = smoothstep(0.35, 1.0, uv.y) * 0.10;
-    let darkTint = vec3f(0.06, 0.08, 0.11);
-    let coolTint = vec3f(0.30, 0.42, 0.58);
+    let bodyTop = smoothstep(0.28, 0.0, uv.y);
+    let bodyBottom = smoothstep(0.30, 1.0, uv.y);
+    let body = vec3f(0.020, 0.034, 0.032);
+    let bodyTint = vec3f(0.040, 0.095, 0.105);
+    let rimTint = vec3f(0.060, 0.280, 0.330);
 
-    var rgb = mix(base.rgb * 0.56, darkTint, 0.32);
-    rgb = mix(rgb, coolTint, 0.08);
-    rgb += vec3f(topLight + leftLight + diagonalSheen);
-    rgb += coolTint * ((edge * 0.035) + (cornerGlow * 0.02));
-    rgb -= vec3f(bottomShade);
+    var bodyRgb = mix(body, base.rgb * 0.34, 0.20);
+    bodyRgb += bodyTint * (bodyTop * 0.12);
+    bodyRgb += rimTint * ((edge * 0.055) + (cornerGlow * 0.020));
+    bodyRgb -= vec3f(bodyBottom * 0.040);
 
-    return vec4f(clamp(rgb, vec3f(0.0), vec3f(1.0)), base.a * 0.82);
+    let headerTop = smoothstep(0.16, 0.0, uv.y);
+    let headerFalloff = smoothstep(0.04, 1.0, uv.y);
+    let headerBottom = smoothstep(0.45, 1.0, uv.y);
+    let headerBase = mix(base.rgb * 0.70, vec3f(0.060, 0.230, 0.275), 0.55);
+    let headerDark = vec3f(0.028, 0.068, 0.078);
+    let headerLine = smoothstep(0.82, 0.96, uv.y);
+
+    var headerRgb = mix(headerBase, headerDark, headerFalloff * 0.72);
+    headerRgb += vec3f(0.055, 0.155, 0.170) * headerTop;
+    headerRgb += rimTint * (edge * 0.035);
+    headerRgb -= vec3f(headerBottom * 0.055 + headerLine * 0.025);
+
+    let rgb = mix(bodyRgb, headerRgb, isHeader);
+    let alpha = mix(base.a * 0.92, base.a * 0.98, isHeader);
+    return vec4f(clamp(rgb, vec3f(0.0), vec3f(1.0)), alpha);
 }
 
 fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
@@ -145,7 +157,7 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
     let borderWidth = borderWidthForPoint(p, halfSize, in.data0, borderSize);
     let borderMask = smoothstep(-borderWidth - aa, -borderWidth + aa, outerDistance);
 
-    var color = shadeTintedGlass(in.color, in.local_uv);
+    var color = shadeTintedGlass(in.color, in.local_uv, in.data3);
 
     if (border > 0.0) {
         color = mix(color, in.data2, borderMask);
@@ -268,7 +280,7 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
                            m_style.borderRadius.y - m_style.borderSize.y, 0, 0),
                  glm::vec4(0.f),
                  glm::vec4(0.f),
-                 glm::vec4(0.f),
+                 glm::vec4(1.f, 0.f, 0.f, 0.f),
              }});
 
         const auto textPos =
