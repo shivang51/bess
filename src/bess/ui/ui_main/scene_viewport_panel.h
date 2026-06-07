@@ -84,5 +84,10 @@ namespace Bess::UI {
         std::shared_ptr<Core::Renderer::ITexture> m_pickingTexture = nullptr;
         std::vector<const Canvas::SceneState *> m_rootToSceneStatePtrs;
         uint32_t m_gridShader = 0;
+        bool m_waitingForSelReadback = false;
+        uint32_t m_selReadbackX = 0;
+        uint32_t m_selReadbackY = 0;
+        uint32_t m_selReadbackWidth = 0;
+        uint32_t m_selReadbackHeight = 0;
     };
 } // namespace Bess::UI

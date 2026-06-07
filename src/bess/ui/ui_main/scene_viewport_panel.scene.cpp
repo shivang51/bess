@@ -11,7 +11,10 @@
 #include "settings/viewport_theme.h"
 #include "sub_systems/input_sub_system.h"
 #include "sub_systems/renderer_context.h"
+#include <algorithm>
+#include <cmath>
 #include <cstdint>
+#include <unordered_set>
 
 namespace Bess::UI {
     uint64_t decodeGpuHoverValue(const glm::uvec2 &encodedId) {
@@ -344,11 +347,52 @@ namespace Bess::UI {
         Core::Renderer::PickingReadbackResult pickingResult;
         if (renderer->tryGetPickingIds(pickingResult) &&
             !pickingResult.empty()) {
-            m_attachedScene->setPickingId(pickingResult.firstOrInvalid());
+            const bool isSelectionResult =
+                m_waitingForSelReadback && pickingResult.x == m_selReadbackX &&
+                pickingResult.y == m_selReadbackY &&
+                pickingResult.width == m_selReadbackWidth &&
+                pickingResult.height == m_selReadbackHeight;
+
+            if (isSelectionResult) {
+                auto &sceneState = m_attachedScene->getState();
+                sceneState.clearSelectedComponents();
+
+                std::unordered_set<uint32_t> selectedRuntimeIds;
+                for (const auto &id : pickingResult.ids) {
+                    if (!id.isValid() || !id.isSelectable()) {
+                        continue;
+                    }
+                    if (!selectedRuntimeIds.insert(id.runtimeId).second) {
+                        continue;
+                    }
+
+                    const auto comp = sceneState.getComponentByPickingId(id);
+                    if (comp) {
+                        sceneState.addSelectedComponent(comp->getUuid());
+                    }
+                }
+
+                m_waitingForSelReadback = false;
+                return;
+            }
+
+            if (!m_waitingForSelReadback) {
+                m_attachedScene->setPickingId(pickingResult.firstOrInvalid());
+            }
         }
 
-        if (!mouseMoved || m_pickingTexture == nullptr ||
-            m_pickingTexture->getHandle() == 0) {
+        if (m_waitingForSelReadback) {
+            return;
+        }
+
+        if (m_pickingTexture == nullptr || m_pickingTexture->getHandle() == 0) {
+            return;
+        }
+
+        auto &selCtx = m_attachedScene->getSelBoxContext();
+        if (selCtx.queueSelInNextFrame) {
+            selCtx.queueSelInNextFrame = false;
+            selCtx.queueForSel = true;
             return;
         }
 
@@ -358,6 +402,46 @@ namespace Bess::UI {
             textureSize.x > 1.f ? static_cast<uint32_t>(textureSize.x) : 1u;
         const uint32_t height =
             textureSize.y > 1.f ? static_cast<uint32_t>(textureSize.y) : 1u;
+
+        if (selCtx.queueForSel) {
+            selCtx.queueForSel = false;
+
+            const glm::vec2 start = selCtx.start;
+            const glm::vec2 end = selCtx.end;
+            const float minX = std::min(start.x, end.x);
+            const float minY = std::min(start.y, end.y);
+            const float maxX = std::max(start.x, end.x);
+            const float maxY = std::max(start.y, end.y);
+
+            const auto x0 = static_cast<uint32_t>(std::clamp(
+                std::floor(minX), 0.f, static_cast<float>(width - 1u)));
+            const auto y0 = static_cast<uint32_t>(std::clamp(
+                std::floor(minY), 0.f, static_cast<float>(height - 1u)));
+            const auto x1 = static_cast<uint32_t>(
+                std::clamp(std::ceil(maxX), static_cast<float>(x0 + 1u),
+                           static_cast<float>(width)));
+            const auto y1 = static_cast<uint32_t>(
+                std::clamp(std::ceil(maxY), static_cast<float>(y0 + 1u),
+                           static_cast<float>(height)));
+
+            m_selReadbackX = x0;
+            m_selReadbackY = y0;
+            m_selReadbackWidth = x1 - x0;
+            m_selReadbackHeight = y1 - y0;
+            m_waitingForSelReadback = true;
+
+            renderer->requestPickingIds(
+                {.texture = m_pickingTexture->getHandle(),
+                 .x = m_selReadbackX,
+                 .y = m_selReadbackY,
+                 .width = m_selReadbackWidth,
+                 .height = m_selReadbackHeight});
+            return;
+        }
+
+        if (!mouseMoved) {
+            return;
+        }
 
         if (mousePos.x < 0.f || mousePos.y < 0.f ||
             mousePos.x >= static_cast<float>(width) ||
