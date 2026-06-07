@@ -173,10 +173,9 @@ namespace Bess::Canvas {
 
         if (m_hoveredSegIdx >= 0 &&
             state.getConnectionStartSlot() != UUID::null) {
-            SceneDraw::drawCircle(
-                context, {state.getMousePos(), 0.51f}, 6.f,
-                ViewportTheme::colors.selectedComp,
-                PickingId{m_runtimeId, static_cast<uint32_t>(m_hoveredSegIdx)});
+            SceneDraw::drawCircle(context, {state.getMousePos(), 0.5f}, 5.f,
+                                  ViewportTheme::colors.selectedComp,
+                                  PickingId::invalid());
         }
     }
 

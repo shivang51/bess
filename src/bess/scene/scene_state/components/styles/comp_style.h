@@ -3,7 +3,7 @@
 namespace Bess::Canvas::Styles {
     constexpr class CompNodeStyles {
       public:
-        float headerHeight = 18.f;
+        float headerHeight = 16.f;
         float headerFontSize = 10.f;
         float paddingX = 8.f;
         float paddingY = 4.f;

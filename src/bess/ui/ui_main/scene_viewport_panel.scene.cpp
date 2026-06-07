@@ -279,15 +279,16 @@ namespace Bess::UI {
         auto midX = (startPos.x + endPos.x) / 2.f;
 
         const auto &id = PickingId::invalid();
+        constexpr float z = 0.48f; // Behind the connections so i can do joints
 
         Canvas::SceneDraw::beginPath(
-            context, glm::vec3(startPos.x, startPos.y, 0.8f), 2.f,
+            context, glm::vec3(startPos.x, startPos.y, z), 2.f,
             ViewportTheme::colors.ghostWire, id, {.roundedJoints = true});
-        Canvas::SceneDraw::pathLineTo(context,
-                                      glm::vec3(midX, startPos.y, 0.8f), 2.f);
-        Canvas::SceneDraw::pathLineTo(context, glm::vec3(midX, endPos.y, 0.8f),
+        Canvas::SceneDraw::pathLineTo(context, glm::vec3(midX, startPos.y, z),
                                       2.f);
-        Canvas::SceneDraw::pathLineTo(context, glm::vec3(endPos, 0.8f), 2.f);
+        Canvas::SceneDraw::pathLineTo(context, glm::vec3(midX, endPos.y, z),
+                                      2.f);
+        Canvas::SceneDraw::pathLineTo(context, glm::vec3(endPos, z), 2.f);
         Canvas::SceneDraw::endPath(context);
     }
 
