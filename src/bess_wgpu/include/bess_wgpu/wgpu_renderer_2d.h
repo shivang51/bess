@@ -11,10 +11,6 @@
 
 namespace Bess::Wgpu {
 
-    using CustomQuadShaderHandle = Core::Renderer::CustomQuadShaderHandle;
-    using CustomQuadShaderDesc = Core::Renderer::CustomQuadShaderDesc;
-    using CustomQuadProps = Core::Renderer::CustomQuadProps;
-
     struct TextureResource {
         wgpu::Texture texture;
         wgpu::TextureView view;
@@ -66,13 +62,17 @@ namespace Bess::Wgpu {
         void registerTexture(const TextureResource &texture);
 
         void drawQuad(const Core::Renderer::QuadProps &props) override;
-        [[nodiscard]] CustomQuadShaderHandle
-        createCustomQuadShader(const CustomQuadShaderDesc &desc) override;
-        void destroyCustomQuadShader(CustomQuadShaderHandle shader) override;
-        void drawCustomQuad(const CustomQuadProps &props) override;
+        [[nodiscard]] Core::Renderer::CustomQuadShaderHandle
+        createCustomQuadShader(
+            const Core::Renderer::CustomQuadShaderDesc &desc) override;
+        void destroyCustomQuadShader(
+            Core::Renderer::CustomQuadShaderHandle shader) override;
+        void
+        drawCustomQuad(const Core::Renderer::CustomQuadProps &props) override;
+
         void
         drawCustomQuad(const Core::Renderer::QuadProps &quad,
-                       CustomQuadShaderHandle shader,
+                       Core::Renderer::CustomQuadShaderHandle shader,
                        std::array<glm::vec4, 4> data = {},
                        Core::Renderer::CustomQuadTransformMode transformMode =
                            Core::Renderer::CustomQuadTransformMode::Camera);
@@ -83,12 +83,12 @@ namespace Bess::Wgpu {
 
         void drawFont(std::string_view text,
                       const Core::Renderer::FontProps &props = {}) override;
-        [[nodiscard]] glm::vec2 measureText(
-            std::string_view text,
-            const Core::Renderer::FontProps &props = {}) override;
-        [[nodiscard]] float textCenterOffsetY(
-            std::string_view text,
-            const Core::Renderer::FontProps &props = {}) override;
+        [[nodiscard]] glm::vec2
+        measureText(std::string_view text,
+                    const Core::Renderer::FontProps &props = {}) override;
+        [[nodiscard]] float
+        textCenterOffsetY(std::string_view text,
+                          const Core::Renderer::FontProps &props = {}) override;
 
         void drawPath(std::span<const Core::Renderer::PathCommand> commands,
                       const Core::Renderer::PathProps &props = {}) override;
@@ -123,88 +123,25 @@ namespace Bess::Wgpu {
                        Core::Renderer::PathCommandStroke::withWidthAndId(
                            strokeWidth, id));
         }
-        void pathQuadraticTo(
-            const glm::vec2 &control, const glm::vec2 &pos,
-            const Core::Renderer::PathCommandStroke &stroke = {}) override;
-        void pathQuadraticTo(const glm::vec2 &control, const glm::vec2 &pos,
-                             float strokeWidth) {
-            pathQuadraticTo(
-                control, pos,
-                Core::Renderer::PathCommandStroke::withWidth(strokeWidth));
-        }
-        void pathQuadraticTo(const glm::vec2 &control, const glm::vec2 &pos,
-                             float strokeWidth, PickingId id) {
-            pathQuadraticTo(control, pos,
-                            Core::Renderer::PathCommandStroke::withWidthAndId(
-                                strokeWidth, id));
-        }
+
         void pathCubicTo(
             const glm::vec2 &control1, const glm::vec2 &control2,
             const glm::vec2 &pos,
             const Core::Renderer::PathCommandStroke &stroke = {}) override;
+
         void pathCubicTo(const glm::vec2 &control1, const glm::vec2 &control2,
-                         const glm::vec2 &pos, float strokeWidth) {
-            pathCubicTo(
-                control1, control2, pos,
-                Core::Renderer::PathCommandStroke::withWidth(strokeWidth));
-        }
+                         const glm::vec2 &pos, float strokeWidth);
+
         void pathCubicTo(const glm::vec2 &control1, const glm::vec2 &control2,
-                         const glm::vec2 &pos, float strokeWidth,
-                         PickingId id) {
-            pathCubicTo(control1, control2, pos,
-                        Core::Renderer::PathCommandStroke::withWidthAndId(
-                            strokeWidth, id));
-        }
-        void pathCubicBezierTo(
-            const glm::vec2 &control1, const glm::vec2 &control2,
-            const glm::vec2 &pos,
-            const Core::Renderer::PathCommandStroke &stroke = {}) override;
-        void pathCubicBezierTo(const glm::vec2 &control1,
-                               const glm::vec2 &control2, const glm::vec2 &pos,
-                               float strokeWidth) {
-            pathCubicBezierTo(
-                control1, control2, pos,
-                Core::Renderer::PathCommandStroke::withWidth(strokeWidth));
-        }
-        void pathCubicBezierTo(const glm::vec2 &control1,
-                               const glm::vec2 &control2, const glm::vec2 &pos,
-                               float strokeWidth, PickingId id) {
-            pathCubicBezierTo(control1, control2, pos,
-                              Core::Renderer::PathCommandStroke::withWidthAndId(
-                                  strokeWidth, id));
-        }
-        void pathBezierCurveTo(
-            const glm::vec2 &control1, const glm::vec2 &control2,
-            const glm::vec2 &pos,
-            const Core::Renderer::PathCommandStroke &stroke = {}) override;
-        void pathBezierCurveTo(const glm::vec2 &control1,
-                               const glm::vec2 &control2, const glm::vec2 &pos,
-                               float strokeWidth) {
-            pathBezierCurveTo(
-                control1, control2, pos,
-                Core::Renderer::PathCommandStroke::withWidth(strokeWidth));
-        }
-        void pathBezierCurveTo(const glm::vec2 &control1,
-                               const glm::vec2 &control2, const glm::vec2 &pos,
-                               float strokeWidth, PickingId id) {
-            pathBezierCurveTo(control1, control2, pos,
-                              Core::Renderer::PathCommandStroke::withWidthAndId(
-                                  strokeWidth, id));
-        }
+                         const glm::vec2 &pos, float strokeWidth, PickingId id);
         void pathClose(
             const Core::Renderer::PathCommandStroke &stroke = {}) override;
-        void pathClose(float strokeWidth) {
-            pathClose(
-                Core::Renderer::PathCommandStroke::withWidth(strokeWidth));
-        }
-        void pathClose(float strokeWidth, PickingId id) {
-            pathClose(Core::Renderer::PathCommandStroke::withWidthAndId(
-                strokeWidth, id));
-        }
-        void endPath() override;
 
-        void
-        drawImGui(const std::function<void(void *)> &imguiRenderFn) override;
+        void pathClose(float strokeWidth);
+
+        void pathClose(float strokeWidth, PickingId id);
+
+        void endPath() override;
 
         void drawToWindow(const std::shared_ptr<Window> &window,
                           const std::function<void(void *)> &renderFn) override;

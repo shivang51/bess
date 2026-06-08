@@ -81,9 +81,8 @@ namespace {
             return nullptr;
         }
 
-        auto mirrored = WgpuTexture::fromPixels(pixels.data(),
-                                                texture->getWidth(),
-                                                texture->getHeight());
+        auto mirrored = WgpuTexture::fromPixels(
+            pixels.data(), texture->getWidth(), texture->getHeight());
         cache[texture] = mirrored;
         return mirrored;
     }
@@ -125,7 +124,7 @@ namespace {
     }
 } // namespace
 
-void bind_material_renderer(py::module_ &m) {
+void bind_renderer(py::module_ &m) {
 
     py::class_<Bess::Renderer::ShadowProps>(m, "ShadowProps")
         .def(py::init<>())
@@ -339,9 +338,9 @@ void bind_material_renderer(py::module_ &m) {
             [](IRenderer2D &renderer, const glm::vec3 &end,
                const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2,
                float weight) {
-                renderer.pathCubicBezierTo(
-                    controlPoint1, controlPoint2, {end.x, end.y},
-                    PathCommandStroke::withWidth(weight));
+                renderer.pathCubicTo(controlPoint1, controlPoint2,
+                                     {end.x, end.y},
+                                     PathCommandStroke::withWidth(weight));
             },
             py::arg("end"), py::arg("control_point_1"),
             py::arg("control_point_2"), py::arg("weight"))
@@ -350,7 +349,7 @@ void bind_material_renderer(py::module_ &m) {
             [](IRenderer2D &renderer, const glm::vec3 &end,
                const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2,
                float weight, uint64_t id) {
-                renderer.pathCubicBezierTo(
+                renderer.pathCubicTo(
                     controlPoint1, controlPoint2, {end.x, end.y},
                     PathCommandStroke::withWidthAndId(weight, toPickingId(id)));
             },

@@ -14,7 +14,7 @@ void bind_scene_component(py::module_ &m);
 void bind_sim_scene_component(py::module_ &m);
 void bind_scene_state(py::module_ &m);
 void bind_path_renderer(py::module_ &m);
-void bind_material_renderer(py::module_ &m);
+void bind_renderer(py::module_ &m);
 void bind_scene_common_binding(py::module_ &m);
 void bind_asset_manager(py::module_ &m);
 void bind_ui_hook(py::module_ &m);
@@ -69,7 +69,7 @@ void bind_api(py::module_ &m) {
     bind_scene_common_binding(scene);
     bind_renderer_path(renderer); // Path class and related things
     bind_path_renderer(renderer); // Path renderer it self.
-    bind_material_renderer(renderer);
+    bind_renderer(renderer);
     bind_scene_state(scene);
     bind_scene_component(scene);
     bind_scene_schematic_diagram(scene);

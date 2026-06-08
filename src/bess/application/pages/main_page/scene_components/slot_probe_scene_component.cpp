@@ -51,22 +51,19 @@ namespace Bess::Canvas {
         const auto &startPos = getAbsolutePosition(sceneState);
         const bool isProbed = m_probedSlotUuid != UUID::null;
 
-        SceneDraw::drawQuad(
-            context,
-            startPos, scale,
-            isProbed ? ViewportTheme::colors.clockConnectionLow
-                     : ViewportTheme::colors.componentBG,
-            PickingId{m_runtimeId, 0}, props);
+        SceneDraw::drawQuad(context, startPos, scale,
+                            isProbed ? ViewportTheme::colors.clockConnectionLow
+                                     : ViewportTheme::colors.componentBG,
+                            PickingId{m_runtimeId, 0}, props);
 
-        SceneDraw::drawText(
-            context,
-            m_name,
-            startPos +
-                glm::vec3(-textSize.x / 2.f, (textSize.y / 2.f) - 2.f, 0.0001f),
-            9,
-            isProbed ? ViewportTheme::colors.clockConnectionHigh
-                     : ViewportTheme::colors.text,
-            PickingId{m_runtimeId, 0});
+        SceneDraw::drawText(context, m_name,
+                            startPos + glm::vec3(-textSize.x / 2.f,
+                                                 (textSize.y / 2.f) - 2.f,
+                                                 0.0001f),
+                            9,
+                            isProbed ? ViewportTheme::colors.clockConnectionHigh
+                                     : ViewportTheme::colors.text,
+                            PickingId{m_runtimeId, 0});
 
         if (m_probedSlotUuid != UUID::null) {
             const auto &comp =
@@ -96,7 +93,7 @@ namespace Bess::Canvas {
                 1.f, color, PickingId{m_runtimeId, 1});
 
             endPos.z = 0.51f;
-            SceneDraw::pathCubicBezierTo(context, endPos, ctrl1, ctrl2, 1.f);
+            SceneDraw::pathCubicTo(context, endPos, ctrl1, ctrl2, 1.f);
 
             SceneDraw::endPath(context);
         }
