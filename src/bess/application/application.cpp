@@ -22,85 +22,6 @@ namespace Bess {
     Application::~Application() { shutdown(); }
 
     void Application::run() {
-        // Bess::Wgpu::WgpuRenderer2D renderer2D;
-        // Core::Renderer::Renderer2DNativeSurfaceType surfaceType =
-        //     Core::Renderer::Renderer2DNativeSurfaceType::BackendOwned;
-        //
-        // renderer2D.init(
-        //     {.extent = {800, 600},
-        //      .targetFormat =
-        //      Core::Renderer::Renderer2DTargetFormat::BGRA8Unorm, .surface =
-        //      {.type = surfaceType, .handle = nullptr}});
-        //
-        // IMGUI_CHECKVERSION();
-        // ImGui::CreateContext();
-        // ImGuiIO &io = ImGui::GetIO();
-        //
-        // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-        // io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-        // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-        // io.IniFilename = "bess.ini";
-        //
-        // ImGui::StyleColorsDark();
-        //
-        // // Setup Platform/Renderer backends
-        // ImGui_ImplGlfw_InitForOther(m_mainWindow->getGLFWHandle(), true);
-        // ImGui_ImplWGPU_InitInfo initInfo{};
-        // initInfo.Device = renderer2D.getDevice().Get();
-        // initInfo.NumFramesInFlight = 3;
-        // initInfo.RenderTargetFormat = WGPUTextureFormat_BGRA8Unorm;
-        // ImGui_ImplWGPU_Init(&initInfo);
-        //
-        // auto tex = Wgpu::WgpuTexture(renderer2D,
-        //                              "assets/images/7-seg-display-tilemap.png");
-        // tex.init();
-        // renderer2D.beginFrame({.extent = {800, 600},
-        //                        .clearColor = {0.1f, 0.2f, 0.3f, 1.0f},
-        //                        .shouldClear = true});
-        //
-        // Core::Renderer::QuadProps quadProps;
-        // quadProps.position = {100.f, 100.f};
-        // quadProps.size = {200.f, 150.f};
-        // quadProps.color = Bess::Core::Renderer::Color{1.f, 0.f, 0.f, 1.f};
-        // quadProps.rotation = 45.f;
-        // renderer2D.drawQuad({.position = {100.f, 100.f},
-        //                      .size = {200.f, 150.f},
-        //                      .color = {1.f, 0.f, 0.f, 1.f}});
-        //
-        // renderer2D.endFrame();
-        //
-        // renderer2D.beginFrame({.extent = {800, 600}, .shouldClear = false});
-        //
-        // renderer2D.drawQuad({.position = {300.f, 100.f},
-        //                      .size = {200.f, 150.f},
-        //                      .color = {1.f, 1.f, 1.f, 1.f},
-        //                      .texture = tex.getHandle()});
-        // renderer2D.endFrame();
-        //
-        // ImGui_ImplWGPU_NewFrame();
-        // ImGui_ImplGlfw_NewFrame();
-        // io.DisplaySize = ImVec2(800.0f, 600.0f);
-        // ImGui::NewFrame();
-        //
-        // static bool pOpen = true;
-        // ImGui::ShowDemoWindow(&pOpen);
-        //
-        // ImGui::Render();
-        //
-        // renderer2D.drawImGui([&](void *renderPass) {
-        //     ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(),
-        //                                   ((WGPURenderPassEncoder)renderPass));
-        // });
-        //
-        // ImGui_ImplGlfw_Shutdown();
-        // ImGui_ImplWGPU_Shutdown();
-        //
-        // // const auto target = renderer2D.getCurrentTargetView().Get();
-        // renderer2D.saveTargetToFile("output.png");
-        //
-        // renderer2D.destroy();
-        // return;
-
         BESS_ASSERT(m_mainWindow, "Main window is not initialized or set");
 
         auto previousTime = std::chrono::steady_clock::now();
@@ -118,6 +39,7 @@ namespace Bess {
             accumulatedTime += deltaTime;
 
             const auto &frameTS = settings->getFrameTimeStep();
+
             if (accumulatedTime < frameTS) {
                 std::this_thread::sleep_for(frameTS - accumulatedTime);
                 accumulatedTime += frameTS - accumulatedTime;

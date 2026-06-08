@@ -74,6 +74,10 @@ namespace Bess::UI {
 
         // Populate available fps
         m_availableFps = {60, 90, 120, 144, 240};
+
+#if DEBUG
+        m_availableFps.push_back(0); // Unlimited FPS for debugging
+#endif
     }
 
 } // namespace Bess::UI

@@ -3752,8 +3752,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             return true;
         }
 
-        glm::vec2 measureMsdfText(std::string_view text,
-                                  const FontProps &props,
+        glm::vec2 measureMsdfText(std::string_view text, const FontProps &props,
                                   const MsdfFontAtlas &atlas) {
             if (!atlas.valid() || text.empty() || props.fontSize <= 0.f) {
                 return {0.f, 0.f};
@@ -3812,9 +3811,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 }
 
                 if (codepoint == '\t') {
-                    lineAdvance +=
-                        spaceAdvance * std::max(props.tabSize, 1.f) +
-                        props.letterSpacing;
+                    lineAdvance += spaceAdvance * std::max(props.tabSize, 1.f) +
+                                   props.letterSpacing;
                     continue;
                 }
 
@@ -3901,12 +3899,11 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 hasInk = true;
             }
 
-            return hasInk ? -((inkTop + inkBottom) * 0.5f)
-                          : fontSize * 0.35f;
+            return hasInk ? -((inkTop + inkBottom) * 0.5f) : fontSize * 0.35f;
         }
 
-        glm::vec2 measurePathText(std::string_view text,
-                                  const FontProps &props, FontFile &font) {
+        glm::vec2 measurePathText(std::string_view text, const FontProps &props,
+                                  FontFile &font) {
             if (text.empty() || props.fontSize <= 0.f ||
                 font.getSize() <= 0.f) {
                 return {0.f, 0.f};
@@ -3949,9 +3946,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 }
 
                 if (codepoint == '\t') {
-                    lineAdvance +=
-                        spaceAdvance * std::max(props.tabSize, 1.f) +
-                        props.letterSpacing;
+                    lineAdvance += spaceAdvance * std::max(props.tabSize, 1.f) +
+                                   props.letterSpacing;
                     continue;
                 }
 
@@ -3960,8 +3956,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 const float advance =
                     glyph.advanceX > 0.f
                         ? glyph.advanceX * scale
-                        : std::max(glyph.width * scale,
-                                   props.fontSize * 0.5f);
+                        : std::max(glyph.width * scale, props.fontSize * 0.5f);
                 lineAdvance += advance + props.letterSpacing;
             }
 
@@ -4090,7 +4085,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         wgpu::Surface surface;
         wgpu::SurfaceConfiguration surfaceConfiguration;
         wgpu::TextureFormat surfaceFormat = wgpu::TextureFormat::BGRA8Unorm;
-        wgpu::PresentMode surfacePresentMode = wgpu::PresentMode::Fifo;
+        wgpu::PresentMode surfacePresentMode = wgpu::PresentMode::Immediate;
         wgpu::CompositeAlphaMode surfaceAlphaMode =
             wgpu::CompositeAlphaMode::Opaque;
         GLFWwindow *windowHandle = nullptr;

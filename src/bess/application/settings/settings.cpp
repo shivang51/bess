@@ -1,4 +1,5 @@
 #include "settings/settings.h"
+#include "common/bess_assert.h"
 #include "settings/viewport_theme.h"
 
 namespace Bess::Config {
@@ -36,5 +37,15 @@ namespace Bess::Config {
 
     bool Settings::shouldFontRebuild() const { return m_fontRebuild; }
 
-    void Settings::onFpsChange() { m_frameTimeStep = TimeMs(1000.0 / m_fps); }
+    void Settings::onFpsChange() {
+#ifdef DEBUG // Unlimited FPS
+        if (m_fps == 0) {
+            m_frameTimeStep = TimeMs(0);
+            return;
+        }
+#endif
+
+        BESS_ASSERT(m_fps > 0, "FPS must be greater than 0");
+        m_frameTimeStep = TimeMs(1000.0 / m_fps);
+    }
 } // namespace Bess::Config
