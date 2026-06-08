@@ -1,7 +1,9 @@
 #include "scene/renderer/vulkan/pipelines/text_pipeline.h"
-#include "application/asset_manager/asset_manager.h"
 #include "application/assets.h"
+#include "bess_core/asset_manager/asset_manager.h"
+#include "bess_core/g_app_context.h"
 #include "scene/renderer/vulkan/pipelines/pipeline.h"
+#include "vulkan_core.h"
 
 namespace Bess::Vulkan::Pipelines {
 

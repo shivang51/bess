@@ -1,6 +1,7 @@
 #include "scene/renderer/material_renderer.h"
-#include "application/asset_manager/asset_manager.h"
 #include "application/assets.h"
+#include "bess_core/asset_manager/asset_manager.h"
+#include "bess_core/g_app_context.h"
 #include "renderer/font.h"
 #include "json/json.h"
 #include <algorithm>
@@ -44,8 +45,7 @@ namespace Bess::Renderer {
         struct MsdfTextMeasureCacheKeyHash {
             size_t
             operator()(const MsdfTextMeasureCacheKey &key) const noexcept {
-                size_t seed =
-                    std::hash<int32_t>{}(key.renderSizeMilli);
+                size_t seed = std::hash<int32_t>{}(key.renderSizeMilli);
                 seed ^= std::hash<std::string>{}(key.text) + 0x9e3779b9 +
                         (seed << 6) + (seed >> 2);
                 return seed;
@@ -228,8 +228,7 @@ namespace Bess::Renderer {
                 return it->second;
             }
 
-            const float spaceAdvance =
-                font->spaceAdvance() * safeRenderSize;
+            const float spaceAdvance = font->spaceAdvance() * safeRenderSize;
             float lineAdvance = 0.f;
             float lineInkMin = 0.f;
             float lineInkMax = 0.f;
@@ -299,9 +298,8 @@ namespace Bess::Renderer {
                     }
                 }
 
-                lineAdvance +=
-                    (glyph->advance > 0.f ? glyph->advance : 0.5f) *
-                    safeRenderSize;
+                lineAdvance += (glyph->advance > 0.f ? glyph->advance : 0.5f) *
+                               safeRenderSize;
             }
 
             finishLine();

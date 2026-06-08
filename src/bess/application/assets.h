@@ -1,5 +1,5 @@
 #pragma once
-#include "asset_manager/asset_id.h"
+#include "bess_core/asset_manager/asset_id.h"
 #include "scene/renderer/font.h"
 #include "scene/renderer/msdf_font.h"
 #include "vulkan_texture.h"

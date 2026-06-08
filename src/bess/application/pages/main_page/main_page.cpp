@@ -1,5 +1,5 @@
 #include "pages/main_page/main_page.h"
-#include "asset_manager/asset_manager.h"
+#include "bess_core/asset_manager/asset_manager.h"
 #include "bess_core/connection_service.h"
 #include "bess_core/copy_paste_service.h"
 #include "bess_core/g_app_context.h"

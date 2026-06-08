@@ -2,10 +2,8 @@
 #include "asset_id.h"
 #include "asset_loader.h"
 #include "common/bess_api.h"
-#include "common/bess_assert.h"
 #include "common/logger.h"
 #include "common/sub_system.h"
-#include "scene/renderer/asset_loaders.h"
 #include <any>
 #include <memory>
 #include <string>

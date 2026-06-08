@@ -1,5 +1,5 @@
 #include "application.h"
-#include "asset_manager/asset_manager.h"
+#include "bess_core/asset_manager/asset_manager.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "common/bess_assert.h"

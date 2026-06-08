@@ -1,6 +1,9 @@
 #pragma once
+#include "bess_core/asset_manager/asset_loader.h"
+#include "bess_core/g_app_context.h"
 #include "common/bess_api.h"
 #include "glm.hpp"
+#include "vulkan_core.h"
 #include <memory>
 #include <string>
 #include <vector>
@@ -84,3 +87,15 @@ namespace Bess::Vulkan {
     };
 
 } // namespace Bess::Vulkan
+
+namespace Bess::Assets {
+    template <> struct AssetLoader<Vulkan::VulkanTexture> {
+        static std::shared_ptr<Vulkan::VulkanTexture>
+        load(const std::string &path) {
+            auto &appCtx = Bess::GAppContext::getInstance();
+            auto vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
+            return std::make_shared<Vulkan::VulkanTexture>(vkCore->getDevice(),
+                                                           path);
+        }
+    };
+} // namespace Bess::Assets

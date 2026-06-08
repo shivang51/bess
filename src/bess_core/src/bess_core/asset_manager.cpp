@@ -1,4 +1,4 @@
-#include "asset_manager/asset_manager.h"
+#include "bess_core/asset_manager/asset_manager.h"
 
 namespace Bess::Assets {
     void AssetManager::onDestroy() {

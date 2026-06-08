@@ -1,5 +1,5 @@
 #pragma once
-#include "application/asset_manager/asset_loader.h"
+#include "bess_core/asset_manager/asset_loader.h"
 #include "bess_core/g_app_context.h"
 #include "font.h"
 #include "msdf_font.h"
@@ -11,28 +11,10 @@
 
 using namespace Bess::Vulkan;
 namespace Bess::Assets {
-    template <> struct AssetLoader<VulkanTexture> {
-        static std::shared_ptr<VulkanTexture> load(const std::string &path) {
-            auto &appCtx = Bess::GAppContext::getInstance();
-            auto vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
-            return std::make_shared<VulkanTexture>(vkCore->getDevice(), path);
-        }
-    };
-
     template <> struct AssetLoader<Bess::Renderer::Font::FontFile> {
         static std::shared_ptr<Bess::Renderer::Font::FontFile>
         load(const std::string &path) {
             return std::make_shared<Bess::Renderer::Font::FontFile>(path);
-        }
-    };
-
-    template <> struct AssetLoader<Bess::Renderer::MsdfFont> {
-        static std::shared_ptr<Bess::Renderer::MsdfFont>
-        load(const std::string &path, const std::string &json) {
-            auto &appCtx = Bess::GAppContext::getInstance();
-            auto vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
-            return std::make_shared<Bess::Renderer::MsdfFont>(
-                path, json, vkCore->getDevice());
         }
     };
 

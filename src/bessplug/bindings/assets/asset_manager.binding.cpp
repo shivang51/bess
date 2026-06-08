@@ -1,5 +1,5 @@
-#include "asset_manager/asset_manager.h"
-#include "asset_manager/asset_id.h"
+#include "bess_core/asset_manager/asset_manager.h"
+#include "bess_core/asset_manager/asset_id.h"
 #include "bess_core/g_app_context.h"
 #include "common/bess_assert.h"
 #include "vulkan_core.h"

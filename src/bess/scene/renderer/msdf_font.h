@@ -1,6 +1,9 @@
 #pragma once
 
+#include "bess_core/asset_manager/asset_loader.h"
+#include "bess_core/g_app_context.h"
 #include "device.h"
+#include "vulkan_core.h"
 #include "vulkan_subtexture.h"
 #include "vulkan_texture.h"
 
@@ -64,3 +67,15 @@ namespace Bess::Renderer {
         std::shared_ptr<Bess::Vulkan::VulkanDevice> m_device = nullptr;
     };
 } // namespace Bess::Renderer
+
+namespace Bess::Assets {
+    template <> struct AssetLoader<Bess::Renderer::MsdfFont> {
+        static std::shared_ptr<Bess::Renderer::MsdfFont>
+        load(const std::string &path, const std::string &json) {
+            auto &appCtx = Bess::GAppContext::getInstance();
+            auto vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
+            return std::make_shared<Bess::Renderer::MsdfFont>(
+                path, json, vkCore->getDevice());
+        }
+    };
+} // namespace Bess::Assets

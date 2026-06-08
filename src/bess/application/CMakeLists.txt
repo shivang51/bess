@@ -33,9 +33,6 @@ set(Header_Files
 "project_file.h"
 "window.h"
 "events/application_event.h"
-"asset_manager/asset_loader.h"
-"asset_manager/asset_manager.h"
-"asset_manager/asset_id.h"
 "sub_systems/input_sub_system.h"
 "sub_systems/renderer_context.h"
 "sub_systems/input_sub_system_types.h"
@@ -68,7 +65,6 @@ set(Source_Files
 "window.cpp"
 "project_file.cpp"
 "events/application_event.cpp"
-"asset_manager/asset_manager.cpp"
 
 "sub_systems/input_sub_system.cpp"
 "sub_systems/renderer_context.cpp"
