@@ -1,5 +1,6 @@
 #include "bess_wgpu/wgpu_renderer_2d.h"
 #include "bess_core/renderer/font.h"
+#include "bess_core/renderer/msdf_font.h"
 #include "bess_core/renderer/subtexture.h"
 #include "bess_wgpu/piplines/custom_quad_pipeline.h"
 #include "bess_wgpu/piplines/path_pipeline.h"
@@ -16,9 +17,9 @@
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
-#include <fstream>
 #include <limits>
 #include <memory>
+#include <numbers>
 #include <png.h>
 #include <span>
 #include <stdexcept>
@@ -32,6 +33,8 @@ namespace Bess::Wgpu {
     using Core::Renderer::FontFile;
     using Core::Renderer::FontProps;
     using Core::Renderer::Glyph;
+    typedef Core::Renderer::MsdfFontAtlas<Bess::Wgpu::WgpuTexture>
+        MsdfFontAtlas;
     using Core::Renderer::Path2D;
     using Core::Renderer::PathCommand;
     using Core::Renderer::PathCommandKind;
@@ -1000,144 +1003,7 @@ namespace Bess::Wgpu {
             uint32_t m_maxCapacity = 1;
         };
 
-        struct MsdfGlyph {
-            uint32_t codepoint = 0;
-            float advance = 0.f;
-            glm::vec4 planeBounds{0.f}; // left, bottom, right, top in em units
-            SubTexture atlasRegion;
-            bool drawable = false;
-        };
-
-        class MsdfFontAtlas {
-          public:
-            bool load(const std::filesystem::path &fontDirectory,
-                      const std::string &fontName) {
-                const std::filesystem::path jsonPath =
-                    fontDirectory / (fontName + ".json");
-                const std::filesystem::path pngPath =
-                    fontDirectory / (fontName + ".png");
-
-                std::ifstream input(jsonPath);
-                if (!input.is_open()) {
-                    BESS_WARN("[WgpuRenderer2D] Failed to open MSDF font json: "
-                              "{}",
-                              jsonPath.string());
-                    return false;
-                }
-
-                Json::Value root;
-                input >> root;
-                if (!root.isMember("atlas") || !root.isMember("metrics") ||
-                    !root.isMember("glyphs")) {
-                    BESS_WARN("[WgpuRenderer2D] Invalid MSDF font json: {}",
-                              jsonPath.string());
-                    return false;
-                }
-
-                const Json::Value &atlas = root["atlas"];
-                const Json::Value &metrics = root["metrics"];
-                m_atlasSize = {atlas.get("width", 1).asFloat(),
-                               atlas.get("height", 1).asFloat()};
-                m_fontSize = atlas.get("size", 32.f).asFloat();
-                m_pxRange = atlas.get("distanceRange", 4.f).asFloat();
-                m_lineHeight = metrics.get("lineHeight", 1.f).asFloat();
-                m_ascender = metrics.get("ascender", 1.f).asFloat();
-                m_descender = metrics.get("descender", 0.f).asFloat();
-
-                try {
-                    m_texture = std::make_shared<WgpuTexture>(pngPath.string());
-                    m_texture->init();
-                } catch (const std::exception &error) {
-                    BESS_WARN("[WgpuRenderer2D] Failed to load MSDF font "
-                              "atlas texture {}: {}",
-                              pngPath.string(), error.what());
-                    m_texture = nullptr;
-                    return false;
-                }
-
-                m_glyphs.clear();
-                const Json::Value &glyphs = root["glyphs"];
-                for (const auto &glyphJson : glyphs) {
-                    if (!glyphJson.isObject() ||
-                        !glyphJson.isMember("unicode")) {
-                        continue;
-                    }
-
-                    MsdfGlyph glyph;
-                    glyph.codepoint = static_cast<uint32_t>(
-                        glyphJson.get("unicode", 0).asUInt64());
-                    glyph.advance = glyphJson.get("advance", 0.f).asFloat();
-
-                    if (glyphJson.isMember("planeBounds") &&
-                        glyphJson.isMember("atlasBounds")) {
-                        const Json::Value &plane = glyphJson["planeBounds"];
-                        const Json::Value &bounds = glyphJson["atlasBounds"];
-                        glyph.planeBounds = {plane.get("left", 0.f).asFloat(),
-                                             plane.get("bottom", 0.f).asFloat(),
-                                             plane.get("right", 0.f).asFloat(),
-                                             plane.get("top", 0.f).asFloat()};
-
-                        const float left = bounds.get("left", 0.f).asFloat();
-                        const float bottom =
-                            bounds.get("bottom", 0.f).asFloat();
-                        const float right = bounds.get("right", 0.f).asFloat();
-                        const float top = bounds.get("top", 0.f).asFloat();
-                        glyph.atlasRegion.reset(m_atlasSize, {left, bottom},
-                                                {std::max(0.f, right - left),
-                                                 std::max(0.f, top - bottom)},
-                                                TextureOrigin::BottomLeft);
-                        glyph.drawable = true;
-                    }
-
-                    m_glyphs[glyph.codepoint] = glyph;
-                }
-
-                return m_texture != nullptr && m_texture->getHandle() != 0 &&
-                       !m_glyphs.empty();
-            }
-
-            [[nodiscard]] bool valid() const noexcept {
-                return m_texture != nullptr && m_texture->getHandle() != 0 &&
-                       !m_glyphs.empty();
-            }
-
-            [[nodiscard]] const MsdfGlyph *
-            findGlyph(uint32_t codepoint) const noexcept {
-                auto it = m_glyphs.find(codepoint);
-                if (it != m_glyphs.end()) {
-                    return &it->second;
-                }
-
-                it = m_glyphs.find('?');
-                if (it != m_glyphs.end()) {
-                    return &it->second;
-                }
-
-                it = m_glyphs.find(' ');
-                return it != m_glyphs.end() ? &it->second : nullptr;
-            }
-
-            [[nodiscard]] TextureResource textureResource() const {
-                return m_texture->getResource();
-            }
-
-            [[nodiscard]] float pxRange() const noexcept { return m_pxRange; }
-            [[nodiscard]] float lineHeight() const noexcept {
-                return m_lineHeight;
-            }
-            [[nodiscard]] float ascender() const noexcept { return m_ascender; }
-            [[nodiscard]] float fontSize() const noexcept { return m_fontSize; }
-
-          private:
-            std::shared_ptr<WgpuTexture> m_texture;
-            std::unordered_map<uint32_t, MsdfGlyph> m_glyphs;
-            glm::vec2 m_atlasSize{1.f};
-            float m_fontSize = 32.f;
-            float m_pxRange = 4.f;
-            float m_lineHeight = 1.f;
-            float m_ascender = 1.f;
-            float m_descender = 0.f;
-        };
+        ;
 
         struct MsdfTextInstance {
             float position[3] = {0.f, 0.f, 0.f};
@@ -2127,14 +1993,12 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         glm::vec2 safeNormalize(const glm::vec2 &v) {
             const float len = glm::length(v);
             if (len < 0.0001f) {
-                return glm::vec2(1.f, 0.f);
+                return {1.f, 0.f};
             }
             return v / len;
         }
 
-        glm::vec2 perpendicular(const glm::vec2 &v) {
-            return glm::vec2(-v.y, v.x);
-        }
+        glm::vec2 perpendicular(const glm::vec2 &v) { return {-v.y, v.x}; }
 
         void appendStrokeVertex(std::vector<PathCoverVertex> &vertices,
                                 const glm::vec2 &pos, const PathProps &props,
@@ -2163,7 +2027,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                             const glm::vec2 &capDirection,
                             const PathProps &props,
                             const StrokeMeshParams &mesh, float halfWidth) {
-            constexpr float pi = 3.14159265358979323846f;
+            constexpr float pi = std::numbers::pi_v<float>;
             const glm::vec2 dir = safeNormalize(capDirection);
             const float centerAngle = std::atan2(dir.y, dir.x);
             const int segments = std::clamp(
@@ -3162,7 +3026,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                     ? props.lineHeight
                     : std::max(atlas.lineHeight() * fontSize, fontSize);
 
-            const MsdfGlyph *spaceGlyph = atlas.findGlyph(' ');
+            const Core::Renderer::MsdfGlyph *spaceGlyph = atlas.findGlyph(' ');
             const float spaceAdvance =
                 spaceGlyph != nullptr && spaceGlyph->advance > 0.f
                     ? spaceGlyph->advance * fontSize
@@ -3196,22 +3060,24 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 }
 
                 if (codepoint == '\t') {
-                    baseline.x += spaceAdvance * std::max(props.tabSize, 1.f) +
-                                  props.letterSpacing;
+                    baseline.x +=
+                        (spaceAdvance * std::max(props.tabSize, 1.f)) +
+                        props.letterSpacing;
                     continue;
                 }
 
-                const MsdfGlyph *glyph = atlas.findGlyph(codepoint);
+                const Core::Renderer::MsdfGlyph *glyph =
+                    atlas.findGlyph(codepoint);
                 if (glyph == nullptr) {
                     continue;
                 }
 
                 if (glyph->drawable) {
                     const glm::vec4 &bounds = glyph->planeBounds;
-                    const float left = baseline.x + bounds.x * fontSize;
-                    const float right = baseline.x + bounds.z * fontSize;
-                    const float top = baseline.y - bounds.w * fontSize;
-                    const float bottom = baseline.y - bounds.y * fontSize;
+                    const float left = baseline.x + (bounds.x * fontSize);
+                    const float right = baseline.x + (bounds.z * fontSize);
+                    const float top = baseline.y - (bounds.w * fontSize);
+                    const float bottom = baseline.y - (bounds.y * fontSize);
                     const glm::vec2 size{
                         std::max(0.f, right - left),
                         std::max(0.f, bottom - top),
@@ -3219,8 +3085,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
 
                     if (size.x > 0.f && size.y > 0.f) {
                         MsdfTextInstance instance;
-                        instance.position[0] = left + size.x * 0.5f;
-                        instance.position[1] = top + size.y * 0.5f;
+                        instance.position[0] = left + (size.x * 0.5f);
+                        instance.position[1] = top + (size.y * 0.5f);
                         instance.position[2] = props.zIndex;
                         instance.pxRange = atlas.pxRange();
                         instance.size[0] = size.x;
@@ -3257,7 +3123,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
 
             const float fontSize = props.fontSize;
 
-            const MsdfGlyph *spaceGlyph = atlas.findGlyph(' ');
+            const Core::Renderer::MsdfGlyph *spaceGlyph = atlas.findGlyph(' ');
             const float spaceAdvance =
                 spaceGlyph != nullptr && spaceGlyph->advance > 0.f
                     ? spaceGlyph->advance * fontSize
@@ -3308,20 +3174,23 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 }
 
                 if (codepoint == '\t') {
-                    lineAdvance += spaceAdvance * std::max(props.tabSize, 1.f) +
-                                   props.letterSpacing;
+                    lineAdvance +=
+                        (spaceAdvance * std::max(props.tabSize, 1.f)) +
+                        props.letterSpacing;
                     continue;
                 }
 
-                const MsdfGlyph *glyph = atlas.findGlyph(codepoint);
+                const Core::Renderer::MsdfGlyph *glyph =
+                    atlas.findGlyph(codepoint);
                 if (glyph == nullptr) {
                     continue;
                 }
 
                 if (glyph->drawable) {
                     const glm::vec4 &bounds = glyph->planeBounds;
-                    const float glyphLeft = lineAdvance + bounds.x * fontSize;
-                    const float glyphRight = lineAdvance + bounds.z * fontSize;
+                    const float glyphLeft = lineAdvance + (bounds.x * fontSize);
+                    const float glyphRight =
+                        lineAdvance + (bounds.z * fontSize);
                     if (hasLineInk) {
                         lineInkMin = std::min(lineInkMin, glyphLeft);
                         lineInkMax = std::max(lineInkMax, glyphRight);
@@ -3383,14 +3252,15 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                     continue;
                 }
 
-                const MsdfGlyph *glyph = atlas.findGlyph(codepoint);
+                const Core::Renderer::MsdfGlyph *glyph =
+                    atlas.findGlyph(codepoint);
                 if (glyph == nullptr || !glyph->drawable) {
                     continue;
                 }
 
                 const glm::vec4 &bounds = glyph->planeBounds;
-                const float top = baselineY - bounds.w * fontSize;
-                const float bottom = baselineY - bounds.y * fontSize;
+                const float top = baselineY - (bounds.w * fontSize);
+                const float bottom = baselineY - (bounds.y * fontSize);
                 inkTop = std::min(inkTop, top);
                 inkBottom = std::max(inkBottom, bottom);
                 hasInk = true;
@@ -3443,8 +3313,9 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 }
 
                 if (codepoint == '\t') {
-                    lineAdvance += spaceAdvance * std::max(props.tabSize, 1.f) +
-                                   props.letterSpacing;
+                    lineAdvance +=
+                        (spaceAdvance * std::max(props.tabSize, 1.f)) +
+                        props.letterSpacing;
                     continue;
                 }
 
@@ -3473,7 +3344,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             const float lineHeight =
                 props.lineHeight > 0.f
                     ? props.lineHeight
-                    : (defaultLineHeight > 0.f ? defaultLineHeight
+                    : (0.f < defaultLineHeight ? defaultLineHeight
                                                : props.fontSize);
 
             float baselineY = 0.f;
@@ -3512,25 +3383,15 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                     continue;
                 }
 
-                inkTop = std::min(inkTop, baselineY + bounds.min.y * scale);
+                inkTop = std::min(inkTop, baselineY + (bounds.min.y * scale));
                 inkBottom =
-                    std::max(inkBottom, baselineY + bounds.max.y * scale);
+                    std::max(inkBottom, baselineY + (bounds.max.y * scale));
                 hasInk = true;
             }
 
             return hasInk ? -((inkTop + inkBottom) * 0.5f)
                           : props.fontSize * 0.35f;
         }
-
-        class TextureSource final : public Core::Renderer::ITexture {
-          public:
-            explicit TextureSource(
-                const Core::Renderer::TextureCreateInfo &createInfo)
-                : ITexture(createInfo) {}
-
-            void init() override {}
-            void destroy() override {}
-        };
 
         struct QueuedPickingReadback {
             TextureResource resource;
@@ -3981,14 +3842,13 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         result.ids.resize(pixelCount);
 
         for (uint32_t row = 0; row < result.height; ++row) {
-            const auto *srcRow =
-                mappedData +
-                static_cast<size_t>(row) * newestReady->paddedBytesPerRow;
+            const auto *srcRow = mappedData + (static_cast<size_t>(row) *
+                                               newestReady->paddedBytesPerRow);
             for (uint32_t col = 0; col < result.width; ++col) {
                 const size_t pixelIndex =
-                    static_cast<size_t>(row) * result.width + col;
+                    (static_cast<size_t>(row) * result.width) + col;
                 const auto *src =
-                    srcRow + static_cast<size_t>(col) * sizeof(uint32_t) * 2;
+                    srcRow + (static_cast<size_t>(col) * sizeof(uint32_t) * 2);
                 PickingId id{};
                 std::memcpy(&id.runtimeId, src, sizeof(uint32_t));
                 std::memcpy(&id.info, src + sizeof(uint32_t), sizeof(uint32_t));
@@ -4116,7 +3976,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 m_impl->device, m_impl->targetFormat,
                 m_impl->sharedFrameBuffer.getBuffer(),
                 m_impl->sharedFrameBuffer.getSize(), m_impl->pickingFormat,
-                m_impl->msdfFontAtlas->textureResource());
+                m_impl->msdfFontAtlas->getTexture()->getResource());
             static_cast<void>(m_impl->textPipeline->ensureInstanceBufferSize(
                 std::max(1u, createInfo.batching.initialQuadCapacity)));
         } else {
@@ -5070,7 +4930,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         const float lineHeight =
             props.lineHeight > 0.f
                 ? props.lineHeight
-                : (defaultLineHeight > 0.f ? defaultLineHeight
+                : (0.f < defaultLineHeight ? defaultLineHeight
                                            : props.fontSize);
 
         const Glyph &spaceGlyph = m_impl->fontFile->getGlyph(U' ');
@@ -5144,7 +5004,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             }
 
             if (codepoint == '\t') {
-                cursor.x += spaceAdvance * std::max(props.tabSize, 1.f) +
+                cursor.x += (spaceAdvance * std::max(props.tabSize, 1.f)) +
                             props.letterSpacing;
                 continue;
             }
@@ -5203,7 +5063,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 totalHeight += safeFontSize;
                 continue;
             }
-            currentLineWidth += safeFontSize * 0.6f + props.letterSpacing;
+            currentLineWidth += (safeFontSize * 0.6f) + props.letterSpacing;
         }
 
         maxLineWidth = std::max(maxLineWidth, currentLineWidth);

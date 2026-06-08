@@ -1,10 +1,11 @@
 #pragma once
 
+#include "ext/scalar_common.hpp"
 #include "ext/vector_float2.hpp"
 #include "ext/vector_float4.hpp"
 
-#include <array>
 #include <algorithm>
+#include <array>
 
 namespace Bess::Core::Renderer {
     enum class TextureOrigin {
