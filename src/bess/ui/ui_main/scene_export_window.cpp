@@ -149,7 +149,7 @@ namespace Bess::UI {
             drawExportComponents(context);
             renderer->endFrame();
         }
-    } // namespace
+    }
 
     SceneExportWindow::SceneExportWindow()
         : Panel("Scene Export Window"),
@@ -411,7 +411,6 @@ namespace Bess::UI {
         return info;
     }
 
-    /// will move this to separate thread when vulkan is integrated
     void
     SceneExportWindow::exportScene(const std::shared_ptr<Canvas::Scene> &scene,
                                    const SceneExportInfo &info) {
@@ -496,9 +495,6 @@ namespace Bess::UI {
         renderTarget->setSize(size);
         renderTarget->init();
 
-        // Picking target is required because the shared renderer was
-        // initialized with picking support (RG32Uint second color target). The
-        // pipelines declare 2 color attachments; the render pass must match.
         auto pickingTarget = std::make_shared<Wgpu::WgpuTexture>(
             Core::Renderer::TextureCreateInfo{
                 .format = Core::Renderer::Renderer2DTargetFormat::RG32Uint});
@@ -559,4 +555,4 @@ namespace Bess::UI {
         BESS_INFO("[ExportSceneView] Successfully saved file to {}",
                   path.string());
     }
-} // namespace Bess::UI
+}

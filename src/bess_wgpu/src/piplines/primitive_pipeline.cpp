@@ -164,14 +164,12 @@ namespace Bess::Wgpu::Piplines {
 
         if (m_pickingFormat != wgpu::TextureFormat::Undefined) {
             colorTargets[1].format = m_pickingFormat;
-            // Picking attachment doesn't need blending
             targetCount = 2;
         }
 
         wgpu::FragmentState fragment{};
         fragment.module =
             m_shader->getModule(Core::Renderer::ShaderStage::Fragment);
-        // Use picking entry point if we have a picking attachment
         const char *fragEntryPoint =
             (m_pickingFormat != wgpu::TextureFormat::Undefined)
                 ? "fs_main_picking"

@@ -17,6 +17,7 @@ set(Header_Files
 source_group("include" FILES ${Header_Files})
 
 set(Source_Files
+    "src/path_baker.cpp"
     "src/piplines/path_pipeline.cpp"
     "src/piplines/primitive_pipeline.cpp"
     "src/piplines/custom_quad_pipeline.cpp"

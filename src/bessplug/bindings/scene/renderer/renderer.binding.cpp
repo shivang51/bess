@@ -23,10 +23,6 @@ namespace {
     using Bess::Core::Renderer::QuadProps;
     using Bess::Wgpu::WgpuTexture;
 
-    // New SubTexture holder for WGPU: pairs a WgpuTexture with core UV data
-    // for convenient creation (grid-based) and drawing. Internal name avoids
-    // clash with the legacy Bess::Vulkan::SubTexture pulled in via other
-    // headers.
     struct PySubTexture {
         std::shared_ptr<WgpuTexture> texture;
         Bess::Core::Renderer::SubTexture uv;
@@ -95,7 +91,7 @@ namespace {
         quad.uvRect = {uv.x, uv.y, uv.x + uv.z, uv.y + uv.w};
         renderer.drawQuad(quad);
     }
-} // namespace
+}
 
 void bind_renderer(py::module_ &m) {
 

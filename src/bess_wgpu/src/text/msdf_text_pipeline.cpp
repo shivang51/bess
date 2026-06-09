@@ -221,9 +221,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
 }
 )";
 
-    } // namespace
-
-    // --- MsdfTextPipeline ---
+    }
 
     void MsdfTextPipeline::init(const wgpu::Device &device,
                                 wgpu::TextureFormat targetFormat,
@@ -446,8 +444,6 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 "Failed to create MSDF text render pipeline");
         }
     }
-
-    // --- Templated layout helpers ---
 
     template <typename TAtlas>
     bool appendMsdfText(std::string_view text,
@@ -711,9 +707,6 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         return hasInk ? -((inkTop + inkBottom) * 0.5f) : fontSize * 0.35f;
     }
 
-    // Explicit instantiations for the concrete atlas type used by the renderer.
-    // The renderer typedefs MsdfFontAtlas as
-    // Core::Renderer::MsdfFontAtlas<Bess::Wgpu::WgpuTexture>.
     template bool
     appendMsdfText<Core::Renderer::MsdfFontAtlas<WgpuTexture>>(
         std::string_view, const Core::Renderer::FontProps &,
@@ -729,4 +722,4 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         std::string_view, const Core::Renderer::FontProps &,
         const Core::Renderer::MsdfFontAtlas<WgpuTexture> &);
 
-} // namespace Bess::Wgpu::Text
+}

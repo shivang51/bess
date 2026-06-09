@@ -156,10 +156,6 @@ namespace Bess::Wgpu {
             std::unique_ptr<WgpuShader> m_shader;
         };
 
-        // MSDF text layout / measurement functions.
-        // Templated to accept any MsdfFontAtlas<TTexture> where TTexture
-        // provides valid(), lineHeight(), pxRange(), findGlyph(), and whose
-        // texture resource is accessible via getTexture()->getResource().
         template <typename TAtlas>
         bool appendMsdfText(std::string_view text,
                             const Core::Renderer::FontProps &props,

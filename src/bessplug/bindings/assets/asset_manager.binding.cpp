@@ -19,7 +19,7 @@ class PyAssetManager {
 
         std::lock_guard<std::mutex> lock(pool_mutex);
         auto [it, inserted] = pool.insert(s);
-        return *it; // Return a view of the string stored inside the set
+        return *it;
     }
 
   public:
@@ -36,7 +36,6 @@ class PyAssetManager {
         if (id.paths.empty()) {
             return nullptr;
         }
-        // Load directly via WgpuTexture (renderer must be initialized).
         std::string path{id.paths[0]};
         auto tex = std::make_shared<Bess::Wgpu::WgpuTexture>(path);
         tex->init();
