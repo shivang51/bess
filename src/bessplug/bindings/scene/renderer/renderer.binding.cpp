@@ -25,7 +25,8 @@ namespace {
 
     // New SubTexture holder for WGPU: pairs a WgpuTexture with core UV data
     // for convenient creation (grid-based) and drawing. Internal name avoids
-    // clash with the legacy Bess::Vulkan::SubTexture pulled in via other headers.
+    // clash with the legacy Bess::Vulkan::SubTexture pulled in via other
+    // headers.
     struct PySubTexture {
         std::shared_ptr<WgpuTexture> texture;
         Bess::Core::Renderer::SubTexture uv;
@@ -117,10 +118,7 @@ void bind_renderer(py::module_ &m) {
         .def_readwrite("shadow", &Bess::Renderer::QuadRenderProperties::shadow)
         .def_readwrite("isMica", &Bess::Renderer::QuadRenderProperties::isMica);
 
-    // Bind WgpuTexture for use with the new renderer. Also alias under the
-    // old name during transition so existing Python code keeps working.
     py::class_<WgpuTexture, std::shared_ptr<WgpuTexture>>(m, "Texture");
-    m.attr("VulkanTexture") = m.attr("Texture");
 
     const auto createSubTexture = [](std::shared_ptr<WgpuTexture> texture,
                                      const glm::vec2 &coord,

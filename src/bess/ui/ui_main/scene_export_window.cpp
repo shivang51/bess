@@ -41,24 +41,23 @@ namespace Bess::UI {
             constexpr float gridZ = -10000.f;
             const PickingId id = PickingId::invalid();
 
-            const auto drawGridLines = [&](float spacing,
-                                           const glm::vec4 &color,
-                                           float thickness) {
-                const float startX = std::floor(min.x / spacing) * spacing;
-                const float startY = std::floor(min.y / spacing) * spacing;
+            const auto drawGridLines =
+                [&](float spacing, const glm::vec4 &color, float thickness) {
+                    const float startX = std::floor(min.x / spacing) * spacing;
+                    const float startY = std::floor(min.y / spacing) * spacing;
 
-                for (float x = startX; x <= max.x; x += spacing) {
-                    Canvas::SceneDraw::drawLine(
-                        context, {x, min.y, gridZ}, {x, max.y, gridZ},
-                        thickness, color, id);
-                }
+                    for (float x = startX; x <= max.x; x += spacing) {
+                        Canvas::SceneDraw::drawLine(context, {x, min.y, gridZ},
+                                                    {x, max.y, gridZ},
+                                                    thickness, color, id);
+                    }
 
-                for (float y = startY; y <= max.y; y += spacing) {
-                    Canvas::SceneDraw::drawLine(
-                        context, {min.x, y, gridZ}, {max.x, y, gridZ},
-                        thickness, color, id);
-                }
-            };
+                    for (float y = startY; y <= max.y; y += spacing) {
+                        Canvas::SceneDraw::drawLine(context, {min.x, y, gridZ},
+                                                    {max.x, y, gridZ},
+                                                    thickness, color, id);
+                    }
+                };
 
             drawGridLines(10.f, ViewportTheme::colors.gridMinorColor, 1.f);
             drawGridLines(100.f, ViewportTheme::colors.gridMajorColor, 2.f);
@@ -99,8 +98,8 @@ namespace Bess::UI {
             }
         }
 
-        void convertReadbackToRgba(
-            Core::Renderer::TextureReadbackResult &readback) {
+        void
+        convertReadbackToRgba(Core::Renderer::TextureReadbackResult &readback) {
             if (readback.format !=
                 Core::Renderer::Renderer2DTargetFormat::BGRA8Unorm) {
                 return;
@@ -115,13 +114,19 @@ namespace Bess::UI {
             const std::shared_ptr<Canvas::Scene> &scene,
             const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer,
             const std::shared_ptr<Core::Renderer::ITexture> &targetTexture,
+            const std::shared_ptr<Core::Renderer::ITexture> &pickingTexture,
             const std::shared_ptr<Camera> &camera) {
             BESS_ASSERT(scene,
                         "[SceneExportWindow] Scene must be valid for export");
-            BESS_ASSERT(renderer,
-                        "[SceneExportWindow] Renderer must be valid for export");
+            BESS_ASSERT(
+                renderer,
+                "[SceneExportWindow] Renderer must be valid for export");
             BESS_ASSERT(targetTexture,
                         "[SceneExportWindow] Export target must be valid");
+            BESS_ASSERT(
+                pickingTexture,
+                "[SceneExportWindow] Picking target must be valid for "
+                "export (renderer was initialized with picking support)");
             BESS_ASSERT(camera,
                         "[SceneExportWindow] Export camera must be valid");
 
@@ -137,6 +142,7 @@ namespace Bess::UI {
                 .clearColor = ViewportTheme::colors.background,
                 .shouldClear = true,
                 .targetTexture = targetTexture->getHandle(),
+                .pickingTexture = pickingTexture->getHandle(),
                 .cameraTransform = glm::value_ptr(camera->getTransform()),
             });
             drawExportGrid(context);
@@ -490,6 +496,15 @@ namespace Bess::UI {
         renderTarget->setSize(size);
         renderTarget->init();
 
+        // Picking target is required because the shared renderer was
+        // initialized with picking support (RG32Uint second color target). The
+        // pipelines declare 2 color attachments; the render pass must match.
+        auto pickingTarget = std::make_shared<Wgpu::WgpuTexture>(
+            Core::Renderer::TextureCreateInfo{
+                .format = Core::Renderer::Renderer2DTargetFormat::RG32Uint});
+        pickingTarget->setSize(size);
+        pickingTarget->init();
+
         auto camera = std::make_shared<Camera>(size.x, size.y);
         auto pos = min + snapSpan / 2.f;
         camera->setPos(pos);
@@ -501,16 +516,18 @@ namespace Bess::UI {
             snapsData.reserve(snaps.x);
             for (int j = 0; j < snaps.x; j++) {
                 camera->setPos(pos);
-                renderSceneToTexture(scene, renderer, renderTarget, camera);
+                renderSceneToTexture(scene, renderer, renderTarget,
+                                     pickingTarget, camera);
 
-                auto snapPixels = renderer->readTexture(
-                    renderTarget->getHandle(), 0, 0,
-                    static_cast<uint32_t>(size.x),
-                    static_cast<uint32_t>(size.y));
+                auto snapPixels =
+                    renderer->readTexture(renderTarget->getHandle(), 0, 0,
+                                          static_cast<uint32_t>(size.x),
+                                          static_cast<uint32_t>(size.y));
                 convertReadbackToRgba(snapPixels);
                 if (snapPixels.empty()) {
                     BESS_ERROR("[ExportSceneView] Failed to read export snap");
                     renderTarget->destroy();
+                    pickingTarget->destroy();
                     png_destroy_write_struct(&pngPtr, &pngInfoPtr);
                     return;
                 }
@@ -519,7 +536,7 @@ namespace Bess::UI {
                 pos.x += snapSpan.x;
             }
 
-            for (int imgRow = size.y - 1; imgRow >= 0; imgRow--) {
+            for (int imgRow = 0; imgRow < size.y; imgRow++) {
                 for (int j = 0; j < snaps.x; j++) {
                     const auto &snapData = snapsData[j];
                     const unsigned char *srcPtr =
@@ -534,6 +551,7 @@ namespace Bess::UI {
         }
 
         renderTarget->destroy();
+        pickingTarget->destroy();
 
         png_write_end(pngPtr, NULL);
         png_destroy_write_struct(&pngPtr, &pngInfoPtr);
