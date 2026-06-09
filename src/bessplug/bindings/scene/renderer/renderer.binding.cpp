@@ -1,14 +1,12 @@
-#include "scene/renderer/material_renderer.h"
 #include "bess_core/renderer/renderer_2d.h"
+#include "bess_core/renderer/subtexture.h"
+#include "bess_core/renderer/texture.h"
 #include "bess_wgpu/wgpu_texture.h"
-#include "vulkan_subtexture.h"
-#include "vulkan_texture.h"
+#include "renderer/material_renderer.h"
 #include <algorithm>
 #include <memory>
-#include <mutex>
 #include <pybind11/pybind11.h>
 #include <string>
-#include <unordered_map>
 
 namespace py = pybind11;
 
@@ -17,14 +15,25 @@ namespace {
     using Bess::Core::Renderer::Color;
     using Bess::Core::Renderer::FontProps;
     using Bess::Core::Renderer::IRenderer2D;
+    using Bess::Core::Renderer::ITexture;
     using Bess::Core::Renderer::LineProps;
     using Bess::Core::Renderer::PathCommandStroke;
     using Bess::Core::Renderer::PathLineJoin;
     using Bess::Core::Renderer::PathProps;
     using Bess::Core::Renderer::QuadProps;
-    using Bess::Vulkan::SubTexture;
-    using Bess::Vulkan::VulkanTexture;
     using Bess::Wgpu::WgpuTexture;
+
+    // New SubTexture holder for WGPU: pairs a WgpuTexture with core UV data
+    // for convenient creation (grid-based) and drawing. Internal name avoids
+    // clash with the legacy Bess::Vulkan::SubTexture pulled in via other headers.
+    struct PySubTexture {
+        std::shared_ptr<WgpuTexture> texture;
+        Bess::Core::Renderer::SubTexture uv;
+
+        [[nodiscard]] glm::vec2 getScale() const noexcept {
+            return uv.getPixelSize();
+        }
+    };
 
     bool hasAnyNonZero(const glm::vec4 &value) {
         return value.x != 0.f || value.y != 0.f || value.z != 0.f ||
@@ -56,69 +65,32 @@ namespace {
         renderer.drawQuad(quad);
     }
 
-    std::shared_ptr<WgpuTexture>
-    getWgpuTexture(const std::shared_ptr<VulkanTexture> &texture) {
-        if (!texture) {
-            return nullptr;
-        }
-
-        static std::unordered_map<std::shared_ptr<VulkanTexture>,
-                                  std::weak_ptr<WgpuTexture>>
-            cache;
-
-        static std::mutex cacheMutex;
-        std::lock_guard lock(cacheMutex);
-
-        if (const auto iter = cache.find(texture); iter != cache.end()) {
-            if (const auto cached = iter->second.lock()) {
-                return cached;
-            }
-        }
-
-        const auto pixels = texture->getData();
-        if (pixels.empty() || texture->getWidth() == 0 ||
-            texture->getHeight() == 0) {
-            return nullptr;
-        }
-
-        auto mirrored = WgpuTexture::fromPixels(
-            pixels.data(), texture->getWidth(), texture->getHeight());
-        cache[texture] = mirrored;
-        return mirrored;
-    }
-
     void drawRendererTexturedQuad(
         IRenderer2D &renderer, const glm::vec3 &pos, const glm::vec2 &size,
         const glm::vec4 &tint, uint64_t id,
-        const std::shared_ptr<VulkanTexture> &texture,
+        const std::shared_ptr<WgpuTexture> &texture,
         const Bess::Renderer::QuadRenderProperties &props) {
-        const auto wgpuTexture = getWgpuTexture(texture);
-        if (!wgpuTexture) {
+        if (!texture) {
             return;
         }
 
         auto quad = makeQuadProps(pos, size, tint, id, props);
-        quad.texture = wgpuTexture->getHandle();
+        quad.texture = texture->getHandle();
         renderer.drawQuad(quad);
     }
 
     void drawRendererSubTexturedQuad(
         IRenderer2D &renderer, const glm::vec3 &pos, const glm::vec2 &size,
         const glm::vec4 &tint, uint64_t id,
-        const std::shared_ptr<SubTexture> &subTexture,
+        const std::shared_ptr<PySubTexture> &subTexture,
         const Bess::Renderer::QuadRenderProperties &props) {
-        if (!subTexture) {
-            return;
-        }
-
-        const auto texture = getWgpuTexture(subTexture->getTexture());
-        if (!texture) {
+        if (!subTexture || !subTexture->texture) {
             return;
         }
 
         auto quad = makeQuadProps(pos, size, tint, id, props);
-        const auto &uv = subTexture->getStartWH();
-        quad.texture = texture->getHandle();
+        quad.texture = subTexture->texture->getHandle();
+        const auto &uv = subTexture->uv.getStartWH();
         quad.uvRect = {uv.x, uv.y, uv.x + uv.z, uv.y + uv.w};
         renderer.drawQuad(quad);
     }
@@ -145,70 +117,35 @@ void bind_renderer(py::module_ &m) {
         .def_readwrite("shadow", &Bess::Renderer::QuadRenderProperties::shadow)
         .def_readwrite("isMica", &Bess::Renderer::QuadRenderProperties::isMica);
 
-    py::class_<Bess::Vulkan::VulkanTexture, py::smart_holder>(m,
-                                                              "VulkanTexture");
+    // Bind WgpuTexture for use with the new renderer. Also alias under the
+    // old name during transition so existing Python code keeps working.
+    py::class_<WgpuTexture, std::shared_ptr<WgpuTexture>>(m, "Texture");
+    m.attr("VulkanTexture") = m.attr("Texture");
 
-    const auto createSubTexture = [](std::shared_ptr<VulkanTexture> texture,
+    const auto createSubTexture = [](std::shared_ptr<WgpuTexture> texture,
                                      const glm::vec2 &coord,
                                      const glm::vec2 &spriteSize, float margin,
                                      const glm::vec2 &cellSize) {
         py::gil_scoped_acquire gil;
-        return std::make_shared<Bess::Vulkan::SubTexture>(
-            std::move(texture), coord, spriteSize, margin, cellSize);
+        auto st = std::make_shared<PySubTexture>();
+        st->texture = std::move(texture);
+        if (st->texture) {
+            const glm::vec2 texSize = st->texture->getSize();
+            st->uv = Bess::Core::Renderer::SubTexture::fromGrid(
+                texSize, coord, spriteSize, margin, cellSize);
+        }
+        return st;
     };
 
-    py::class_<Bess::Vulkan::SubTexture, py::smart_holder>(m, "SubTexture")
+    py::class_<PySubTexture, py::smart_holder>(m, "SubTexture")
         .def_static("create", createSubTexture,
-                    "Create a SubTexture from a VulkanTexture with margin and "
-                    "cell size",
+                    "Create a SubTexture from a Texture (WGPU) with margin "
+                    "and cell size",
                     py::arg("texture"), py::arg("coord"),
                     py::arg("sprite_size"), py::arg("margin"),
                     py::arg("cell_size"))
-        .def_property_readonly("size", &Bess::Vulkan::SubTexture::getScale,
+        .def_property_readonly("size", &PySubTexture::getScale,
                                "Get the size of the SubTexture");
-
-    const auto draw_textured_quad_overload =
-        static_cast<void (Bess::Renderer::MaterialRenderer::*)(
-            const glm::vec3 &, const glm::vec2 &, const glm::vec4 &, uint64_t,
-            const std::shared_ptr<Bess::Vulkan::VulkanTexture> &,
-            Bess::Renderer::QuadRenderProperties)>(
-            &Bess::Renderer::MaterialRenderer::drawTexturedQuad);
-
-    const auto draw_textured_quad_subtexture_overload =
-        static_cast<void (Bess::Renderer::MaterialRenderer::*)(
-            const glm::vec3 &, const glm::vec2 &, const glm::vec4 &, uint64_t,
-            const std::shared_ptr<Bess::Vulkan::SubTexture> &,
-            Bess::Renderer::QuadRenderProperties)>(
-            &Bess::Renderer::MaterialRenderer::drawTexturedQuad);
-
-    py::class_<Bess::Renderer::MaterialRenderer, py::smart_holder>(
-        m, "MaterialRenderer")
-        .def_static("get_text_render_size",
-                    &Bess::Renderer::MaterialRenderer::getTextRenderSize,
-                    "Calculate the size of the rendered text", py::arg("text"),
-                    py::arg("render_size"))
-        .def("draw_quad", &Bess::Renderer::MaterialRenderer::drawQuad,
-             "Draw a colored quad on the screen", py::arg("pos"),
-             py::arg("size"), py::arg("color"), py::arg("id"), py::arg("props"))
-        .def("draw_textured_quad", draw_textured_quad_overload,
-             "Draw a textured quad on the screen using a VulkanTexture",
-             py::arg("pos"), py::arg("size"), py::arg("tint"), py::arg("id"),
-             py::arg("texture"), py::arg("props"))
-        .def("draw_sub_textured_quad", draw_textured_quad_subtexture_overload,
-             "Draw a textured quad on the screen using a SubTexture",
-             py::arg("pos"), py::arg("size"), py::arg("tint"), py::arg("id"),
-             py::arg("sub_texture"), py::arg("props"))
-        .def("draw_circle", &Bess::Renderer::MaterialRenderer::drawCircle,
-             "Draw a colored circle on the screen", py::arg("center"),
-             py::arg("radius"), py::arg("color"), py::arg("id"),
-             py::arg("inner_radius") = 0.0f)
-        .def("draw_line", &Bess::Renderer::MaterialRenderer::drawLine,
-             py::arg("start"), py::arg("end"), py::arg("thickness"),
-             py::arg("color"), py::arg("id"))
-        .def("draw_text", &Bess::Renderer::MaterialRenderer::drawText,
-             "Draw text on the screen", py::arg("text"), py::arg("position"),
-             py::arg("size"), py::arg("color"), py::arg("id"),
-             py::arg("angle") = 0.0f);
 
     py::class_<Bess::Core::Renderer::IRenderer2D,
                std::shared_ptr<Bess::Core::Renderer::IRenderer2D>>(
