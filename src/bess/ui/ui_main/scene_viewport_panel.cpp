@@ -312,9 +312,6 @@ namespace Bess::UI {
         {
             ImGui::AlignTextToFramePadding();
             ImGui::Text(" %s", Icons::FontAwesomeIcons::FA_CAMERA_RETRO);
-            ImGui::SameLine();
-            ImGui::Text("HoverId: %d",
-                        m_attachedScene->getPickingId().runtimeId);
         }
 
         ImGui::SameLine();
