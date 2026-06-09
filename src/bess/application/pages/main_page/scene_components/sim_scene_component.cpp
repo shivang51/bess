@@ -726,7 +726,7 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
             if (slotComp->isResizeSlot()) {
                 continue;
             }
-            states.push_back(slotComp->getSlotState(state).state);
+            states.push_back(slotComp->getSlotState(state).getLogicState());
         }
         return states;
     }
@@ -740,7 +740,7 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
             if (slotComp->isResizeSlot()) {
                 continue;
             }
-            states.push_back(slotComp->getSlotState(state).state);
+            states.push_back(slotComp->getSlotState(state).getLogicState());
         }
         return states;
     }

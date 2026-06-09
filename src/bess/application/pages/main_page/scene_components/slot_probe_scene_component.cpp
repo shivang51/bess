@@ -218,12 +218,12 @@ namespace Bess::Canvas {
 
                 if (m_probeData.empty()) {
                     m_probeData.emplace_back(slotState.lastChangeTime,
-                                             slotState.state);
+                                             slotState.getLogicState());
                 } else {
                     auto &lastEntry = m_probeData.back();
-                    if (slotState.state != lastEntry.second) {
+                    if (slotState.getLogicState() != lastEntry.second) {
                         m_probeData.emplace_back(slotState.lastChangeTime,
-                                                 slotState.state);
+                                                 slotState.getLogicState());
                     }
                 }
             });

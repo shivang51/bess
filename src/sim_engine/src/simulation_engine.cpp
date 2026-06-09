@@ -202,7 +202,7 @@ namespace Bess::SimEngine {
         if (!getComponentDefinition(uuid)) {
             BESS_WARN("[getDigitalPinState] Component with UUID {} is invalid",
                       (uint64_t)uuid);
-            return {LogicState::unknown, SimTime(0)};
+            return {LogicState::low, SimTime(0)};
         }
 
         for (const auto &driver : m_simDrivers) {

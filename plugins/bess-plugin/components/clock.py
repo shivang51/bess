@@ -2,6 +2,7 @@ from typing import override
 from enum import Enum
 from bessplug.api.common.time import TimeNS
 from bessplug.api.sim_engine import (
+    ConnectionState,
     LogicState,
     SlotsGroupInfo,
 )
@@ -85,7 +86,12 @@ class ClockDefinition(DigCompDef):
 
     @staticmethod
     def _simulate_clock(data: DigCompSimData) -> DigCompSimData:
-        data.output_states[0].invert()
+        data.output_states[0].state = (
+            LogicState.LOW
+            if data.prev_state.output_states[0].state == LogicState.HIGH
+            else LogicState.HIGH
+        )
+        data.output_states[0].conn_state = ConnectionState.DRIVEN
         data.output_states[0].last_change_time_ns = data.sim_time
         data.sim_dependants = True
         return data

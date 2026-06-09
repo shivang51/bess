@@ -26,24 +26,33 @@ void bind_sim_engine_types(py::module_ &m) {
         .value("HIGH_Z", LogicState::high_z)
         .export_values();
 
-    py::class_<SlotState>(m, "PinState")
+    py::enum_<ConnectionState>(m, "ConnectionState")
+        .value("DRIVEN", ConnectionState::driven)
+        .value("HIGH_Z", ConnectionState::high_z)
+        .value("UNKNOWN", ConnectionState::unknown)
+        .export_values();
+
+    py::class_<SlotState>(m, "SlotState")
         .def(py::init<>())
         .def(py::init<const SlotState &>())
-        .def(py::init<bool>(), py::arg("value"))
         .def(py::init([](LogicState state) {
                  SlotState p;
-                 p.state = state;
+                 p = state;
                  return p;
              }),
              py::arg("state"))
         .def(py::init([](LogicState state, long long last_change_time_ns) {
                  SlotState p;
-                 p.state = state;
+                 p = state;
                  p.lastChangeTime = SimTime(last_change_time_ns);
                  return p;
              }),
              py::arg("state"), py::arg("last_change_time_ns"))
-        .def_readwrite("state", &SlotState::state)
+        .def_property(
+            "state", [](SlotState &self) { return self.getLogicState(); },
+            [](SlotState &self, LogicState state) { self = state; })
+        .def_readwrite("voltage", &SlotState::voltage)
+        .def_readwrite("conn_state", &SlotState::connState)
         .def_property(
             "last_change_time_ns",
             [](const SlotState &self) {
@@ -55,12 +64,12 @@ void bind_sim_engine_types(py::module_ &m) {
         .def("copy", [](const SlotState &self) { return SlotState(self); })
         .def("invert",
              [](SlotState &self) {
-                 switch (self.state) {
+                 switch (self.getLogicState()) {
                  case LogicState::low:
-                     self.state = LogicState::high;
+                     self = LogicState::high;
                      break;
                  case LogicState::high:
-                     self.state = LogicState::low;
+                     self = LogicState::low;
                      break;
                  case LogicState::unknown:
                  case LogicState::high_z:
@@ -70,7 +79,7 @@ void bind_sim_engine_types(py::module_ &m) {
              })
         .def("__repr__", [](const SlotState &self) {
             const char *s = "UNKNOWN";
-            switch (self.state) {
+            switch (self.getLogicState()) {
             case LogicState::low:
                 s = "LOW";
                 break;

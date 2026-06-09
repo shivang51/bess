@@ -85,8 +85,8 @@ namespace Bess::SimEngine {
 
         for (size_t i = 0; i < outputState.inputStates.size(); ++i) {
             data->outputStates[i] = outputState.inputStates[i];
-            if (data->outputStates[i].state !=
-                prevState.outputStates[i].state) {
+            if (data->outputStates[i].getLogicState() !=
+                prevState.outputStates[i].getLogicState()) {
                 isChanged = true;
             }
         }

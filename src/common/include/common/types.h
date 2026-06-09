@@ -84,26 +84,97 @@ namespace Bess {
 
         enum class SlotType : uint8_t { digitalInput, digitalOutput };
 
+        enum class ConnectionState : uint8_t { unknown = 0, driven, high_z };
+
+        struct LogicThresholds {
+            float highThreshold = 0.8f;
+            float lowThreshold = 2.0f;
+        };
+
         struct SlotState {
-            LogicState state = LogicState::low;
+            float voltage = 0.0f;
             SimTime lastChangeTime{0};
+            ConnectionState connState = ConnectionState::driven;
 
-            SlotState() = default;
+            constexpr SlotState() noexcept = default;
 
-            SlotState(LogicState state, SimTime time) {
-                this->state = state;
-                lastChangeTime = time;
+            constexpr SlotState(float voltage, SimTime time) noexcept
+                : voltage(voltage),
+                  lastChangeTime(time) {}
+
+            constexpr SlotState(LogicState logicState, SimTime time,
+                                const LogicThresholds &thresholds = {}) noexcept
+                : lastChangeTime(time) {
+                fromLogicState(logicState, thresholds);
             }
 
-            SlotState(bool value) {
-                state = value ? LogicState::high : LogicState::low;
+            bool operator==(const SlotState &other) const noexcept {
+                return voltage == other.voltage;
             }
 
-            explicit operator bool() const { return state == LogicState::high; }
+            bool operator!=(const SlotState &other) const noexcept {
+                return !(*this == other);
+            }
 
-            SlotState &operator=(const bool &val) {
-                this->state = val ? LogicState::high : LogicState::low;
+            // Returns the digital logic state based on the voltage and given
+            // thresholds
+            LogicState getLogicState(
+                const LogicThresholds &thresholds = {}) const noexcept {
+                if (connState == ConnectionState::high_z)
+                    return LogicState::high_z;
+                else if (voltage > thresholds.highThreshold)
+                    return LogicState::high;
+                else if (voltage < thresholds.lowThreshold)
+                    return LogicState::low;
+                else
+                    return LogicState::unknown;
+            }
+
+            SlotState &operator=(const LogicState &state) noexcept {
+                fromLogicState(state, {});
                 return *this;
+            }
+
+            bool isHighZ() const noexcept { return std::isnan(voltage); }
+
+            bool isUnknown() const noexcept {
+                return !isHighZ() && std::isnan(voltage);
+            }
+
+            bool isHigh(const LogicThresholds &thresholds = {}) const noexcept {
+                return getLogicState(thresholds) == LogicState::high;
+            }
+
+            bool isLow(const LogicThresholds &thresholds = {}) const noexcept {
+                return getLogicState(thresholds) == LogicState::low;
+            }
+
+            bool operator==(const LogicState &other) const noexcept {
+                return getLogicState({}) == other;
+            }
+
+          private:
+            constexpr void
+            fromLogicState(LogicState state,
+                           const LogicThresholds &thresholds) noexcept {
+                switch (state) {
+                case LogicState::low:
+                    voltage = 0.0f;
+                    break;
+                case LogicState::high:
+                    voltage = 5.0f;
+                    break;
+                case LogicState::high_z:
+                    voltage = 0.0f;
+                    connState = ConnectionState::high_z;
+                    break;
+                case LogicState::unknown:
+                    voltage =
+                        (thresholds.highThreshold + thresholds.lowThreshold) /
+                        2.0f;
+                    connState = ConnectionState::unknown;
+                    break;
+                }
             }
         };
 
@@ -158,7 +229,7 @@ REFLECT_ENUM(Bess::SimEngine::SlotCatergory)
 REFLECT_ENUM(Bess::SimEngine::ComponentBehaviorType)
 REFLECT_ENUM(Bess::SimEngine::SlotType)
 
-REFLECT(Bess::SimEngine::SlotState, state, lastChangeTime)
+REFLECT(Bess::SimEngine::SlotState, voltage, lastChangeTime)
 REFLECT_VECTOR(Bess::SimEngine::SlotState)
 REFLECT_VECTOR(bool)
 

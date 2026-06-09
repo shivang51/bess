@@ -1,6 +1,6 @@
 from bessplug.api.common.time import TimeNS
 from bessplug.api.sim_engine import (
-    PinState,
+    SlotState,
     LogicState,
     SlotsGroupInfo,
 )
@@ -16,7 +16,7 @@ def _simulate_tristate_buffer(data: DigCompSimData) -> DigCompSimData:
     enable_input = inputs[1]
     changed = False
     for inp in inputs[:-1]:
-        new_output = PinState()
+        new_output = SlotState()
         if enable_input.state == LogicState.HIGH:
             new_output = inp.copy()
             new_output.last_change_time_ns = data.sim_time

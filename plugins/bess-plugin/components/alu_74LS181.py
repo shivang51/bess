@@ -2,14 +2,14 @@ from bessplug.api.common.time import TimeNS
 from bessplug.api.sim_engine import (
     ComponentDefinition,
     ComponentState,
-    PinState,
+    SlotState,
     LogicState,
     SlotsGroupInfo,
 )
 
 
 def _simulate_74ls181_schematic_verified(
-    inputs: list[PinState], simTime: float, oldState: ComponentState
+    inputs: list[SlotState], simTime: float, oldState: ComponentState
 ) -> ComponentState:
     """
     Simulation of DM74LS181 (active-LOW operands mode).
@@ -168,19 +168,19 @@ def _simulate_74ls181_schematic_verified(
             g_active = final_calc >= 16
 
     # --- OUTPUT MAPPING ---
-    out_states: list[PinState] = []
+    out_states: list[SlotState] = []
 
     # F0-F3 (active LOW): physical LOW when logical bit==1
     for i in range(4):
         bit_is_one = ((res_val >> i) & 1) == 1
-        out_states.append(PinState(LogicState.LOW if bit_is_one else LogicState.HIGH))
+        out_states.append(SlotState(LogicState.LOW if bit_is_one else LogicState.HIGH))
 
     # A = B (comparator): goes HIGH when all four F outputs are HIGH (i.e. logical F bits are 0).
     a_eq_b = (res_val & MASK4) == 0
-    out_states.append(PinState(LogicState.HIGH if a_eq_b else LogicState.LOW))
+    out_states.append(SlotState(LogicState.HIGH if a_eq_b else LogicState.LOW))
 
     # P (Carry Propagate) is Active LOW (pin low when propagate active)
-    out_states.append(PinState(state=LogicState.LOW if p_active else LogicState.HIGH))
+    out_states.append(SlotState(state=LogicState.LOW if p_active else LogicState.HIGH))
 
     # Cn+4 (Carry output) - datasheet treats this as a normal carry output (active HIGH when carry generated)
     # For subtraction, a carry out means NO BORROW (i.e., final_calc >= 0); for add mode carry is overflow >15.
@@ -194,10 +194,10 @@ def _simulate_74ls181_schematic_verified(
         # logic mode - carry output is undefined for pure logic; set low (no carry)
         carry_out = False
 
-    out_states.append(PinState(state=LogicState.HIGH if carry_out else LogicState.LOW))
+    out_states.append(SlotState(state=LogicState.HIGH if carry_out else LogicState.LOW))
 
     # G (Carry Generate) is Active LOW per datasheet
-    out_states.append(PinState(state=LogicState.LOW if g_active else LogicState.HIGH))
+    out_states.append(SlotState(state=LogicState.LOW if g_active else LogicState.HIGH))
 
     newState.output_states = out_states
     newState.is_changed = True

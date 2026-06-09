@@ -125,10 +125,10 @@ namespace Bess::Canvas {
             SimEngine::LogicState startSlotState{}, endSlotState{};
             if (startComp->getType() == SceneComponentType::slot) {
                 const auto &slot = startComp->cast<SlotSceneComponent>();
-                startSlotState = slot->getSlotState(state).state;
+                startSlotState = slot->getSlotState(state).getLogicState();
             } else if (startComp->getType() == SceneComponentType::connJoint) {
                 const auto &slot = startComp->cast<ConnJointSceneComp>();
-                startSlotState = slot->getSlotState(state).state;
+                startSlotState = slot->getSlotState(state).getLogicState();
             } else {
                 BESS_ASSERT(false, "Start slot component not convertable to "
                                    "SlotSceneComponent or ConnJointSceneComp");
@@ -136,10 +136,10 @@ namespace Bess::Canvas {
 
             if (endComp->getType() == SceneComponentType::slot) {
                 const auto &slot = endComp->cast<SlotSceneComponent>();
-                endSlotState = slot->getSlotState(state).state;
+                endSlotState = slot->getSlotState(state).getLogicState();
             } else if (endComp->getType() == SceneComponentType::connJoint) {
                 const auto &slot = endComp->cast<ConnJointSceneComp>();
-                endSlotState = slot->getSlotState(state).state;
+                endSlotState = slot->getSlotState(state).getLogicState();
             } else {
                 BESS_ASSERT(false, "End slot component not convertable to "
                                    "SlotSceneComponent or ConnJointSceneComp");

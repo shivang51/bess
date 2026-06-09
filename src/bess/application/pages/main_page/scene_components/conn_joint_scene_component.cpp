@@ -108,7 +108,8 @@ namespace Bess::Canvas {
             borderColor = ViewportTheme::colors.selectedComp;
         }
 
-        if (slot->getSlotState(state).state == SimEngine::LogicState::high) {
+        if (slot->getSlotState(state).getLogicState() ==
+            SimEngine::LogicState::high) {
             color = ViewportTheme::colors.stateHigh;
         }
 
