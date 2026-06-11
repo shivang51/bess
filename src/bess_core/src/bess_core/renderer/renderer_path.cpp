@@ -1,4 +1,5 @@
 #include "bess_core/renderer/renderer_path.h"
+#include "common/bess_assert.h"
 #include "common/logger.h"
 
 namespace Bess::Core::Renderer {
@@ -378,6 +379,66 @@ namespace Bess::Core::Renderer {
         return path;
     }
 
+    void Path2D::translate(const glm::vec2 &pos) {
+        auto offset = pos - m_bounds.min;
+        if (offset == glm::vec2(0.f)) {
+            return; // No translation needed
+        }
+        m_bounds.valid = false;
+        for (PathCommand &command : m_commands) {
+            command.p += offset;
+            command.control += offset;
+            command.control2 += offset;
+            includeCommandBounds(command);
+        }
+    }
+
+    void Path2D::scale(const glm::vec2 &val) {
+        if (val == m_currentScale)
+            return;
+
+        if (m_ogCommands.empty()) {
+            m_ogCommands = m_commands;
+        } else {
+            m_commands = m_ogCommands;
+        }
+
+        m_currentScale = val;
+        m_bounds.valid = false;
+        for (PathCommand &command : m_commands) {
+            command.p *= m_currentScale;
+            command.control *= m_currentScale;
+            command.control2 *= m_currentScale;
+            includeCommandBounds(command);
+        }
+    }
+
+    void Path2D::normalize(const glm::vec2 &size) {
+        glm::vec2 scaleSize = size;
+        if (size.x == 0 && size.y == 0) {
+            BESS_ASSERT(m_bounds.valid,
+                        "Tried normalizing the path with invalid internal "
+                        "bounds. Maybe me forgot to pass bounds?");
+
+            scaleSize = m_bounds.size();
+        }
+
+        BESS_ASSERT(size.x > 0 && size.y > 0.f,
+                    "Invalid size ({}, {}) for normalizing path.", scaleSize.x,
+                    scaleSize.y);
+
+        scale(1.f / scaleSize);
+
+        m_ogCommands = m_commands;
+        m_ogbounds = m_bounds;
+    }
+
+    void Path2D::setPos(const glm::vec2 &pos) {
+        translate(pos);
+        m_ogCommands = m_commands;
+        m_ogbounds = m_bounds;
+    }
+
     void Path2D::clear() noexcept {
         m_commands.clear();
         m_bounds = {};
@@ -629,6 +690,10 @@ namespace Bess::Core::Renderer {
 
     [[nodiscard]] PathBounds Path2D::bounds() const noexcept {
         return m_bounds;
+    }
+
+    [[nodiscard]] PathBounds Path2D::ogBounds() const noexcept {
+        return m_ogbounds;
     }
 
     [[nodiscard]] bool Path2D::hasBounds() const noexcept {

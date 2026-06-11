@@ -32,7 +32,11 @@ namespace Bess::Canvas {
         m_paths.emplace_back(path);
     }
 
-    void SchematicDiagram::normalizePaths() {}
+    void SchematicDiagram::normalizePaths() {
+        for (auto &path : m_paths) {
+            path.normalize(m_size);
+        }
+    }
 
     glm::vec2 SchematicDiagram::draw(
         const Bess::Canvas::Transform &transform,
@@ -52,23 +56,27 @@ namespace Bess::Canvas {
 
         auto mid = digScale * 0.5f;
 
+        Core::Renderer::PathProps props;
+        props.strokeColor =
+            Bess::ViewportTheme::schematicViewColors.componentStroke;
+        props.fillColor =
+            Bess::ViewportTheme::schematicViewColors.componentFill;
+        props.strokeSize = m_strokeSize;
+        props.renderFill = true;
+        props.lineJoin = Core::Renderer::PathLineJoin::Round;
+        props.id = pickingId;
+
         for (auto &path : getPathsMut()) {
-            const auto pathPos = path.bounds().min;
+            const auto pathPos = path.ogBounds().min * digScale;
             const glm::vec2 translation = {
-                pos.x + pathPos.x - mid.x,
-                pos.y + pathPos.y - mid.y,
+                pathPos.x + pos.x - mid.x,
+                pathPos.y + pos.y - mid.y,
             };
 
-            Core::Renderer::PathProps props;
-            props.strokeColor =
-                Bess::ViewportTheme::schematicViewColors.componentStroke;
-            props.fillColor =
-                Bess::ViewportTheme::schematicViewColors.componentFill;
-            props.strokeSize = 2.f;
-            props.renderFill = true;
-            props.lineJoin = Core::Renderer::PathLineJoin::Round;
             props.zIndex = transform.position.z;
-            props.id = pickingId;
+
+            path.scale(digScale);
+            path.translate(translation);
 
             renderer->drawPath(path, props);
         }

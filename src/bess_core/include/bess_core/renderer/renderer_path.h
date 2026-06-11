@@ -239,6 +239,15 @@ namespace Bess::Core::Renderer {
 
         static Path2D fromSvgString(const std::string &svgData);
 
+        void translate(const glm::vec2 &pos);
+        void scale(const glm::vec2 &val);
+
+        // This also overrides ogcommands
+        void normalize(const glm::vec2 &size = glm::vec2(0.f));
+
+        // This updates ogCommands
+        void setPos(const glm::vec2 &pos);
+
         void clear() noexcept;
 
         void reserve(std::size_t commandCount);
@@ -364,6 +373,7 @@ namespace Bess::Core::Renderer {
         [[nodiscard]] const PathCommand *data() const noexcept;
 
         [[nodiscard]] PathBounds bounds() const noexcept;
+        [[nodiscard]] PathBounds ogBounds() const noexcept;
 
         [[nodiscard]] bool hasBounds() const noexcept;
 
@@ -375,8 +385,10 @@ namespace Bess::Core::Renderer {
         void includeCommandBounds(const PathCommand &command) noexcept;
 
         std::vector<PathCommand> m_commands;
-        PathBounds m_bounds;
+        std::vector<PathCommand> m_ogCommands;
+        PathBounds m_bounds, m_ogbounds;
         uint64_t m_revision = 0;
+        glm::vec2 m_currentScale = {1.f, 1.f};
     };
 
 } // namespace Bess::Core::Renderer

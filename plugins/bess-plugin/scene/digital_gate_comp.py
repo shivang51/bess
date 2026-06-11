@@ -1,7 +1,7 @@
 import copy
 from typing import override
 from bessplug.api.common import theme, vec3
-from bessplug.api.scene import PickingId, SimulationSceneComponent
+from bessplug.api.scene import PickingId, SchematicDiagram, SimulationSceneComponent
 from bessplug.api.sim_engine.driver import CompDef
 from components.digital_gates import schematic_diagrams
 
@@ -16,7 +16,7 @@ class DigitalGateComp(SimulationSceneComponent):
     def __init__(self):
         super().__init__()
         self.label_size = 8
-        self.schematic_diagram = None
+        self.schematic_diagram: SchematicDiagram | None = None
 
     @override
     def copy(self):
@@ -61,14 +61,15 @@ class DigitalGateComp(SimulationSceneComponent):
         if scale != self.schematic_transform.scale:
             self.schematic_scale = scale
 
-        size = context.renderer.get_text_render_size(self.name, self.label_size)
-
-        context.renderer.draw_text(
-            self.name,
-            transform.position + vec3(-size.x / 2, scale.y / 2 + self.label_size, 0),
-            self.label_size,
-            theme.schematic.text,
-            id.asUint64(),
-        )
+        if self.schematic_diagram.show_name:
+            size = context.renderer.get_text_render_size(self.name, self.label_size)
+            context.renderer.draw_text(
+                self.name,
+                transform.position
+                + vec3(-size.x / 2, scale.y / 2 + self.label_size, 0),
+                self.label_size,
+                theme.schematic.text,
+                id.asUint64(),
+            )
 
         self.draw_slots(context)

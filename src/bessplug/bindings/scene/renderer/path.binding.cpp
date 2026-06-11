@@ -254,7 +254,11 @@ void bind_renderer_path(py::module_ &m) {
         .def("is_empty", &Bess::Core::Renderer::Path2D::empty)
         .def("has_bounds", &Bess::Core::Renderer::Path2D::hasBounds)
         .def("revision", &Bess::Core::Renderer::Path2D::revision)
-        .def("from_svg_str", &Bess::Core::Renderer::Path2D::fromSvgString)
+        .def("translate", &Bess::Core::Renderer::Path2D::translate,
+             py::arg("pos"))
+        .def("set_pos", &Bess::Core::Renderer::Path2D::setPos, py::arg("pos"))
+        .def_static("from_svg_str",
+                    &Bess::Core::Renderer::Path2D::fromSvgString)
         .def("copy", [](const Path &self) { return Path(self); })
         .def("__repr__", [](const Path &self) {
             return "<Path with " + std::to_string(self.commandCount()) +
