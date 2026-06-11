@@ -254,7 +254,7 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
 
         const auto &borderColor = m_isSelected
                                       ? ViewportTheme::colors.selectedComp
-                                      : m_style.headerColor;
+                                      : m_style.borderColor;
         const float headerHeight = Styles::componentStyles.headerHeight;
 
         context.renderer->drawCustomQuad({
