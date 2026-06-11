@@ -65,6 +65,7 @@ namespace Bess::Canvas {
         props.renderFill = true;
         props.lineJoin = Core::Renderer::PathLineJoin::Round;
         props.id = pickingId;
+        props.closePath = false;
 
         for (auto &path : getPathsMut()) {
             const auto pathPos = path.ogBounds().min * digScale;
@@ -74,6 +75,7 @@ namespace Bess::Canvas {
             };
 
             props.zIndex = transform.position.z;
+            props.renderFill = path.getFill();
 
             path.scale(digScale);
             path.translate(translation);

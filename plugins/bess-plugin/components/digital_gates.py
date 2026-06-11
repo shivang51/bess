@@ -91,6 +91,7 @@ def _init_paths():
     andPath.line_to(70, 0)
     andPath.quad_to(130, 50, 70, 100)
     andPath.line_to(0, 100)
+    andPath.close()
     andDiagram = SchematicDiagram()
     andDiagram.add_path(andPath)
     andDiagram.show_name = False
@@ -104,6 +105,7 @@ def _init_paths():
     nandPath.line_to(62, 0)
     nandPath.quad_to(122, 50, 62, 100)
     nandPath.line_to(0, 100)
+    nandPath.close()
     nandDiagram.add_path(nandPath)
     nandDiagram.add_path(circle.copy())
     nandDiagram.size = vec2(100, 100)
@@ -117,6 +119,7 @@ def _init_paths():
     orPath.quad_to(130, 50, 70, 100)
     orPath.line_to(0, 100)
     orPath.quad_to(30, 50, 0, 0)
+    orPath.close()
     orDiagram.add_path(orPath)
     orDiagram.size = vec2(100, 100)
 
@@ -129,6 +132,7 @@ def _init_paths():
     norPath.quad_to(122, 50, 62, 100)
     norPath.line_to(0, 100)
     norPath.quad_to(30, 50, 0, 0)
+    norPath.close()
     norDiagram.add_path(norPath)
     norDiagram.add_path(circle.copy())
     norDiagram.size = vec2(100, 100)
@@ -141,6 +145,7 @@ def _init_paths():
     xorArcPath = Path()
     xorArcPath.move_to(0, 0)
     xorArcPath.quad_to(30, 50, 0, 100)
+    xorArcPath.no_fill()
 
     # similar to or gate path. just shifted
     xorPath = Path()
@@ -149,6 +154,8 @@ def _init_paths():
     xorPath.quad_to(120, 50, 60, 100)
     xorPath.line_to(0, 100)
     xorPath.quad_to(30, 50, 0, 0)
+    xorPath.close()
+    xorPath.set_pos(vec2(10, 0))
     xorDiagram.add_path(xorArcPath.copy())
     xorDiagram.add_path(xorPath)
     xorDiagram.size = vec2(100, 100)
@@ -164,6 +171,9 @@ def _init_paths():
     xnorPath.quad_to(112, 50, 52, 100)
     xnorPath.line_to(0, 100)
     xnorPath.quad_to(30, 50, 0, 0)
+    xnorPath.close()
+
+    xnorPath.set_pos(vec2(10, 0))
 
     xnorDiagram.add_path(xorArcPath.copy())
     xnorDiagram.add_path(xnorPath)
@@ -177,6 +187,7 @@ def _init_paths():
     bufPath.move_to(0, 0)
     bufPath.line_to(100, 50)
     bufPath.line_to(0, 100)
+    bufPath.close()
     bufDiagram.add_path(bufPath)
     bufDiagram.size = vec2(100, 100)
 

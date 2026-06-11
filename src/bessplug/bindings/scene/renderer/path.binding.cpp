@@ -260,6 +260,9 @@ void bind_renderer_path(py::module_ &m) {
         .def_static("from_svg_str",
                     &Bess::Core::Renderer::Path2D::fromSvgString)
         .def("copy", [](const Path &self) { return Path(self); })
+        .def("no_fill", [](Path &self) { self.setFill(false); })
+        .def("with_fill", [](Path &self) { self.setFill(true); })
+
         .def("__repr__", [](const Path &self) {
             return "<Path with " + std::to_string(self.commandCount()) +
                    " commands, bounds=" +

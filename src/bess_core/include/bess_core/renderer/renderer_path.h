@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/class_helpers.h"
 #include "common/types.h"
 #include <cstddef>
 #include <cstdint>
@@ -379,6 +380,8 @@ namespace Bess::Core::Renderer {
 
         [[nodiscard]] uint64_t revision() const noexcept;
 
+        MAKE_GETTER_SETTER(bool, Fill, m_fill)
+
       private:
         void includePoint(const glm::vec2 &point) noexcept;
 
@@ -389,6 +392,7 @@ namespace Bess::Core::Renderer {
         PathBounds m_bounds, m_ogbounds;
         uint64_t m_revision = 0;
         glm::vec2 m_currentScale = {1.f, 1.f};
+        bool m_fill = true;
     };
 
 } // namespace Bess::Core::Renderer
