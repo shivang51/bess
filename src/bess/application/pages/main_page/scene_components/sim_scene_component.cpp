@@ -24,7 +24,7 @@
 #include <unordered_set>
 
 namespace Bess::Canvas {
-    uint32_t SimulationSceneComponent::s_tintShader = 0;
+    uint32_t SimulationSceneComponent::s_nodeShader = 0;
     size_t SimulationSceneComponent::s_instanceCount = 0;
 
     constexpr float SNAP_AMOUNT = 2.f;
@@ -32,7 +32,7 @@ namespace Bess::Canvas {
     SimulationSceneComponent::SimulationSceneComponent() {
         m_icon = UI::Icons::FontAwesomeIcons::FA_MICROCHIP;
 
-        if (s_tintShader == 0) {
+        if (s_nodeShader == 0) {
             const auto &appCtx = Bess::GAppContext::getInstance();
             const auto &rendererCtx =
                 appCtx.getSubSystem<Bess::RendererContext>();
@@ -104,44 +104,60 @@ fn aaWidth(fw: vec2f) -> f32 {
     return max(length(fw) * 0.5, 0.000001);
 }
 
-fn shadeTintedGlass(base: vec4f, localUv: vec2f, style: vec4f) -> vec4f {
+fn shadeTintedGlass(base: vec4f, localUv: vec2f, style: vec4f, headerColor: vec4f) -> vec4f {
     let uv = clamp(localUv, vec2f(0.0), vec2f(1.0));
-    let isHeader = clamp(style.x, 0.0, 1.0);
+    let headerHeight = clamp(style.x, 0.0, 1.0);
+    
     let centeredUv = abs((uv * 2.0) - vec2f(1.0));
-    let edge = smoothstep(0.55, 1.0, max(centeredUv.x, centeredUv.y));
-    let cornerGlow = smoothstep(0.70, 1.25, length(centeredUv));
-    let bodyTop = smoothstep(0.28, 0.0, uv.y);
-    let bodyBottom = smoothstep(0.30, 1.0, uv.y);
-    let body = vec3f(0.020, 0.034, 0.032);
-    let bodyTint = vec3f(0.040, 0.095, 0.105);
-    let rimTint = vec3f(0.060, 0.280, 0.330);
+    let edge = smoothstep(0.15, 1.0, max(centeredUv.x, centeredUv.y));
+    let cornerGlow = smoothstep(0.20, 0.6, length(centeredUv));
+    let rimTint = vec3f(0.03, 0.03, 0.03); // Darker border frame for node contrast
 
-    var bodyRgb = mix(body, base.rgb * 0.34, 0.20);
-    bodyRgb += bodyTint * (bodyTop * 0.12);
-    bodyRgb += rimTint * ((edge * 0.055) + (cornerGlow * 0.020));
-    bodyRgb -= vec3f(bodyBottom * 0.040);
+    let headerBlend = 1.0 - smoothstep(headerHeight - 0.02, headerHeight + 0.06, uv.y);
+    
+    // --- HEADER ---
+    let radialCenter = vec2f(0.5, 0.0);
+    let radialDist = length(uv - radialCenter);
+    let headerRadialGlow = smoothstep(0.85, 0.0, radialDist); 
+    
+    let topEdgeLight = smoothstep(0.025, 0.0, uv.y) * smoothstep(0.02, 0.08, uv.x) * smoothstep(0.98, 0.92, uv.x);
+    
+    let headerVerticalFalloff = smoothstep(0.0, headerHeight, uv.y);
+    
+    let headerDarkBase = vec3f(0.010, 0.012, 0.014); 
+    
+    var headerRgb = mix(headerDarkBase, headerColor.rgb * 0.48, headerRadialGlow);
+    
+    headerRgb = mix(headerRgb, headerRgb * 0.35, headerVerticalFalloff);
+    
+    let specularColor = mix(vec3f(1.0), headerColor.rgb, 0.25);
+    headerRgb += specularColor * 0.45 * topEdgeLight;
+    
+    headerRgb += headerColor.rgb * 0.12 * headerRadialGlow * (1.0 - headerVerticalFalloff);
 
-    let headerTop = smoothstep(0.16, 0.0, uv.y);
-    let headerFalloff = smoothstep(0.04, 1.0, uv.y);
-    let headerBottom = smoothstep(0.45, 1.0, uv.y);
-    let headerBase = mix(base.rgb * 0.70, vec3f(0.060, 0.230, 0.275), 0.55);
-    let headerDark = vec3f(0.028, 0.068, 0.078);
-    let headerLine = smoothstep(0.82, 0.96, uv.y);
+    // --- BODY ---
+    let bodyTopGlow = smoothstep(headerHeight + 0.30, headerHeight, uv.y);
+    let bodyBottomShadow = smoothstep(0.75, 1.0, uv.y);
+    let bodyBase = vec3f(0.008, 0.010, 0.012); // Deep dark blueprint background slate
+    
+    var bodyRgb = mix(bodyBase, base.rgb * 0.12, 0.08); 
+    
+    let bodyRadialBleed = smoothstep(0.85, 0.0, length(uv - vec2f(0.5, headerHeight * 0.5)));
+    bodyRgb += headerColor.rgb * 0.05 * bodyTopGlow * bodyRadialBleed; 
+    bodyRgb -= vec3f(bodyBottomShadow * 0.025);
 
-    var headerRgb = mix(headerBase, headerDark, headerFalloff * 0.72);
-    headerRgb += vec3f(0.055, 0.155, 0.170) * headerTop;
-    headerRgb += rimTint * (edge * 0.035);
-    headerRgb -= vec3f(headerBottom * 0.055 + headerLine * 0.025);
+    var finalRgb = mix(bodyRgb, headerRgb, headerBlend);
 
-    let rgb = mix(bodyRgb, headerRgb, isHeader);
-    let alpha = mix(base.a * 0.92, base.a * 0.98, isHeader);
-    return vec4f(clamp(rgb, vec3f(0.0), vec3f(1.0)), alpha);
+    finalRgb += rimTint * ((edge * 0.055) + (cornerGlow * 0.020));
+
+    let alpha = mix(base.a * 0.91, base.a * 0.97, headerBlend);
+    return vec4f(clamp(finalRgb, vec3f(0.0), vec3f(1.0)), alpha);
 }
 
 fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
     let halfSize = max(in.size * 0.5, vec2f(0.0001));
     let p = in.local_pos;
-    let outerDistance = sdRoundedRect(p, halfSize, in.data0);
+    let outerDistance = sdRoundedRect(p, halfSize, vec4f(in.data0.x));
     let aa = aaWidth(fw);
     let outerMask = 1.0 - smoothstep(-aa, aa, outerDistance);
 
@@ -149,14 +165,15 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
         discard;
     }
 
-    let borderSize = clamp(in.data1, vec4f(0.0),
+		let borderSizeIn = vec4f(in.data0.z);
+    let borderSize = clamp(borderSizeIn, vec4f(0.0),
                            vec4f(halfSize.y, halfSize.x, halfSize.y, halfSize.x));
     let border = max(max(borderSize.x, borderSize.y),
                      max(borderSize.z, borderSize.w));
     let borderWidth = borderWidthForPoint(p, halfSize, in.data0, borderSize);
     let borderMask = smoothstep(-borderWidth - aa, -borderWidth + aa, outerDistance);
 
-    var color = shadeTintedGlass(in.color, in.local_uv, in.data3);
+    var color = shadeTintedGlass(in.color, in.local_uv, in.data3, in.data1);
 
     if (border > 0.0) {
         color = mix(color, in.data2, borderMask);
@@ -171,7 +188,7 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
   }
 	)";
 
-            s_tintShader =
+            s_nodeShader =
                 rendererCtx->getRenderer()->createCustomQuadShader(desc);
         }
 
@@ -215,7 +232,7 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
     }
 
     void SimulationSceneComponent::drawBackground(SceneDrawContext &context) {
-        BESS_ASSERT(s_tintShader != 0, "Mica shader not initialized");
+        BESS_ASSERT(s_nodeShader != 0, "Mica shader not initialized");
 
         const auto pickingId = PickingId{m_runtimeId, 0};
         // props.shadow = {
@@ -237,50 +254,28 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
 
         const auto &borderColor = m_isSelected
                                       ? ViewportTheme::colors.selectedComp
-                                      : m_style.borderColor;
+                                      : m_style.headerColor;
+        const float headerHeight = Styles::componentStyles.headerHeight;
 
         context.renderer->drawCustomQuad({
             .quad = quadProps,
-            .shader = s_tintShader,
+            .shader = s_nodeShader,
             .data =
                 {
-                    m_style.borderRadius,
-                    m_style.borderSize,
+                    glm::vec4{m_style.borderRadius.x, m_style.borderRadius.y,
+                              m_style.borderSize.x, m_style.borderSize.y},
+                    m_style.headerColor,
                     borderColor,
-                    glm::vec4(0.f),
+                    glm::vec4(headerHeight / m_transform.scale.y, 0.f, 0.f,
+                              0.f),
                 },
         });
 
-        // header
-
-        const float headerHeight = Styles::componentStyles.headerHeight;
         const auto headerPos =
             glm::vec3(m_transform.position.x,
                       m_transform.position.y - (m_transform.scale.y / 2.f) +
                           (headerHeight / 2.f),
                       m_transform.position.z + 0.0004f);
-
-        quadProps = {};
-        quadProps.rotation = m_transform.angle;
-        quadProps.size = glm::vec2(
-            m_transform.scale.x - m_style.borderSize.x - m_style.borderSize.z,
-            headerHeight - m_style.borderSize.x - m_style.borderSize.z);
-        quadProps.position = headerPos;
-        quadProps.color = m_style.headerColor;
-        quadProps.id = pickingId;
-        quadProps.zIndex = headerPos.z;
-        quadProps.renderPass = Core::Renderer::QuadRenderPass::Transparent;
-
-        context.renderer->drawCustomQuad(
-            {.quad = quadProps,
-             .shader = s_tintShader,
-             .data = {
-                 glm::vec4(m_style.borderRadius.x - m_style.borderSize.x,
-                           m_style.borderRadius.y - m_style.borderSize.y, 0, 0),
-                 glm::vec4(0.f),
-                 glm::vec4(0.f),
-                 glm::vec4(1.f, 0.f, 0.f, 0.f),
-             }});
 
         const auto textPos =
             glm::vec3(m_transform.position.x - (m_transform.scale.x / 2.f) +

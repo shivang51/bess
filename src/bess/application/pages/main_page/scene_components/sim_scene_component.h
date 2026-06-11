@@ -211,7 +211,7 @@ namespace Bess::Canvas {
         bool m_isSchSlotsPosDirty = true;
         Transform m_schematicTransform;
         std::shared_ptr<SimEngine::Drivers::CompDef> m_compDef = nullptr;
-        static uint32_t s_tintShader;
+        static uint32_t s_nodeShader;
         static size_t s_instanceCount;
     };
 } // namespace Bess::Canvas
