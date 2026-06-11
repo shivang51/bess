@@ -30,7 +30,6 @@
 #include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/project_explorer.h"
 #include "ui/ui_main/ui_main.h"
-#include "vulkan_core.h"
 #include <GLFW/glfw3.h>
 #include <functional>
 #include <memory>
