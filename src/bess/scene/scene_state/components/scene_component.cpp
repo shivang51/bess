@@ -1,8 +1,8 @@
 #include "scene/scene_state/components/scene_component.h"
 #include "json/value.h"
 
+#include "bess_core/renderer/renderer_2d.h"
 #include "ext/matrix_transform.hpp"
-#include "renderer/material_renderer.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/styles/comp_style.h"
 #include "scene/scene_state/scene_state.h"
@@ -38,8 +38,8 @@ namespace Bess::Canvas {
     }
 
     glm::vec2 SceneComponent::calculateScale(const SceneState &_) {
-        const auto labelSize = Renderer::MaterialRenderer::getTextRenderSize(
-            m_name, Styles::componentStyles.headerFontSize);
+        const auto labelSize = Core::Renderer::IRenderer2D::getTextRenderSize(
+            m_name, {.fontSize = Styles::componentStyles.headerFontSize});
         float width = labelSize.x + (Styles::componentStyles.paddingX * 2.f);
         return {width, Styles::componentStyles.headerHeight};
     }

@@ -1,9 +1,8 @@
 #pragma once
 
-#include "bess_core/renderer/renderer_types.h"
+#include "common/types.h"
 #include <cstddef>
 #include <cstdint>
-#include <span>
 #include <vector>
 
 namespace Bess::Core::Renderer {
@@ -128,9 +127,8 @@ namespace Bess::Core::Renderer {
             return lineTo(pos, PathCommandStroke::withWidth(strokeWidth));
         }
 
-        [[nodiscard]] static PathCommand lineTo(const glm::vec2 &pos,
-                                                float strokeWidth,
-                                                PickingId id) noexcept {
+        [[nodiscard]] static PathCommand
+        lineTo(const glm::vec2 &pos, float strokeWidth, PickingId id) noexcept {
             return lineTo(pos,
                           PathCommandStroke::withWidthAndId(strokeWidth, id));
         }
@@ -237,286 +235,144 @@ namespace Bess::Core::Renderer {
         using Command = PathCommand;
 
         Path2D() = default;
-        explicit Path2D(std::span<const PathCommand> commands) {
-            setCommands(commands);
-        }
+        explicit Path2D(const std::vector<PathCommand> &commands);
 
-        void clear() noexcept {
-            m_commands.clear();
-            m_bounds = {};
-            ++m_revision;
-        }
+        static Path2D fromSvgString(const std::string &svgData);
 
-        void reserve(std::size_t commandCount) {
-            m_commands.reserve(commandCount);
-        }
+        void clear() noexcept;
 
-        void setCommands(std::span<const PathCommand> commands) {
-            m_commands.clear();
-            m_bounds = {};
-            reserve(commands.size());
-            if (commands.empty()) {
-                ++m_revision;
-                return;
-            }
-            append(commands);
-        }
+        void reserve(std::size_t commandCount);
 
-        Path2D &append(const Path2D &path) { return append(path.commands()); }
+        void setCommands(const std::vector<PathCommand> &commands);
 
-        Path2D &append(std::span<const PathCommand> commands) {
-            if (commands.empty()) {
-                return *this;
-            }
+        Path2D &append(const Path2D &path);
 
-            m_commands.insert(m_commands.end(), commands.begin(),
-                              commands.end());
-            for (const PathCommand &command : commands) {
-                includeCommandBounds(command);
-            }
-            ++m_revision;
-            return *this;
-        }
+        Path2D &append(const std::vector<PathCommand> &commands);
 
-        Path2D &addCommand(const PathCommand &command) {
-            m_commands.push_back(command);
-            includeCommandBounds(command);
-            ++m_revision;
-            return *this;
-        }
+        Path2D &addCommand(const PathCommand &command);
 
-        Path2D &moveTo(const glm::vec2 &pos) {
-            return addCommand(PathCommand::moveTo(pos));
-        }
+        Path2D &moveTo(const glm::vec2 &pos);
 
-        Path2D &lineTo(const glm::vec2 &pos) {
-            return addCommand(PathCommand::lineTo(pos));
-        }
+        Path2D &lineTo(const glm::vec2 &pos);
 
-        Path2D &lineTo(const glm::vec2 &pos, const PathCommandStroke &stroke) {
-            return addCommand(PathCommand::lineTo(pos, stroke));
-        }
+        Path2D &lineTo(const glm::vec2 &pos, const PathCommandStroke &stroke);
 
-        Path2D &lineTo(const glm::vec2 &pos, float strokeWidth) {
-            return lineTo(pos, PathCommandStroke::withWidth(strokeWidth));
-        }
+        Path2D &lineTo(const glm::vec2 &pos, float strokeWidth);
 
-        Path2D &lineTo(const glm::vec2 &pos, float strokeWidth, PickingId id) {
-            return lineTo(pos,
-                          PathCommandStroke::withWidthAndId(strokeWidth, id));
-        }
+        Path2D &lineTo(const glm::vec2 &pos, float strokeWidth, PickingId id);
 
-        Path2D &quadTo(const glm::vec2 &control, const glm::vec2 &pos) {
-            return addCommand(PathCommand::quadTo(control, pos));
-        }
+        Path2D &quadTo(const glm::vec2 &control, const glm::vec2 &pos);
 
         Path2D &quadTo(const glm::vec2 &control, const glm::vec2 &pos,
-                       const PathCommandStroke &stroke) {
-            return addCommand(PathCommand::quadTo(control, pos, stroke));
-        }
+                       const PathCommandStroke &stroke);
 
         Path2D &quadTo(const glm::vec2 &control, const glm::vec2 &pos,
-                       float strokeWidth) {
-            return quadTo(control, pos,
-                          PathCommandStroke::withWidth(strokeWidth));
-        }
+                       float strokeWidth);
 
         Path2D &quadTo(const glm::vec2 &control, const glm::vec2 &pos,
-                       float strokeWidth, PickingId id) {
-            return quadTo(control, pos,
-                          PathCommandStroke::withWidthAndId(strokeWidth, id));
-        }
+                       float strokeWidth, PickingId id);
 
-        Path2D &quadraticTo(const glm::vec2 &control, const glm::vec2 &pos) {
-            return quadTo(control, pos);
-        }
+        Path2D &quadraticTo(const glm::vec2 &control, const glm::vec2 &pos);
 
         Path2D &quadraticTo(const glm::vec2 &control, const glm::vec2 &pos,
-                            const PathCommandStroke &stroke) {
-            return quadTo(control, pos, stroke);
-        }
+                            const PathCommandStroke &stroke);
 
         Path2D &quadraticTo(const glm::vec2 &control, const glm::vec2 &pos,
-                            float strokeWidth) {
-            return quadTo(control, pos, strokeWidth);
-        }
+                            float strokeWidth);
 
         Path2D &quadraticTo(const glm::vec2 &control, const glm::vec2 &pos,
-                            float strokeWidth, PickingId id) {
-            return quadTo(control, pos, strokeWidth, id);
-        }
+                            float strokeWidth, PickingId id);
 
         Path2D &quadraticBezierTo(const glm::vec2 &control,
-                                  const glm::vec2 &pos) {
-            return quadTo(control, pos);
-        }
+                                  const glm::vec2 &pos);
 
         Path2D &quadraticBezierTo(const glm::vec2 &control,
                                   const glm::vec2 &pos,
-                                  const PathCommandStroke &stroke) {
-            return quadTo(control, pos, stroke);
-        }
+                                  const PathCommandStroke &stroke);
 
         Path2D &quadraticBezierTo(const glm::vec2 &control,
-                                  const glm::vec2 &pos, float strokeWidth) {
-            return quadTo(control, pos, strokeWidth);
-        }
+                                  const glm::vec2 &pos, float strokeWidth);
 
         Path2D &quadraticBezierTo(const glm::vec2 &control,
                                   const glm::vec2 &pos, float strokeWidth,
-                                  PickingId id) {
-            return quadTo(control, pos, strokeWidth, id);
-        }
+                                  PickingId id);
 
         Path2D &cubicTo(const glm::vec2 &control1, const glm::vec2 &control2,
-                        const glm::vec2 &pos) {
-            return addCommand(PathCommand::cubicTo(control1, control2, pos));
-        }
+                        const glm::vec2 &pos);
 
         Path2D &cubicTo(const glm::vec2 &control1, const glm::vec2 &control2,
-                        const glm::vec2 &pos, const PathCommandStroke &stroke) {
-            return addCommand(
-                PathCommand::cubicTo(control1, control2, pos, stroke));
-        }
+                        const glm::vec2 &pos, const PathCommandStroke &stroke);
 
         Path2D &cubicTo(const glm::vec2 &control1, const glm::vec2 &control2,
-                        const glm::vec2 &pos, float strokeWidth) {
-            return cubicTo(control1, control2, pos,
-                           PathCommandStroke::withWidth(strokeWidth));
-        }
+                        const glm::vec2 &pos, float strokeWidth);
 
         Path2D &cubicTo(const glm::vec2 &control1, const glm::vec2 &control2,
-                        const glm::vec2 &pos, float strokeWidth,
-                        PickingId id) {
-            return cubicTo(control1, control2, pos,
-                           PathCommandStroke::withWidthAndId(strokeWidth, id));
-        }
+                        const glm::vec2 &pos, float strokeWidth, PickingId id);
 
         Path2D &cubicBezierTo(const glm::vec2 &control1,
-                              const glm::vec2 &control2, const glm::vec2 &pos) {
-            return cubicTo(control1, control2, pos);
-        }
+                              const glm::vec2 &control2, const glm::vec2 &pos);
 
         Path2D &cubicBezierTo(const glm::vec2 &control1,
                               const glm::vec2 &control2, const glm::vec2 &pos,
-                              const PathCommandStroke &stroke) {
-            return cubicTo(control1, control2, pos, stroke);
-        }
+                              const PathCommandStroke &stroke);
 
         Path2D &cubicBezierTo(const glm::vec2 &control1,
                               const glm::vec2 &control2, const glm::vec2 &pos,
-                              float strokeWidth) {
-            return cubicTo(control1, control2, pos, strokeWidth);
-        }
+                              float strokeWidth);
 
         Path2D &cubicBezierTo(const glm::vec2 &control1,
                               const glm::vec2 &control2, const glm::vec2 &pos,
-                              float strokeWidth, PickingId id) {
-            return cubicTo(control1, control2, pos, strokeWidth, id);
-        }
+                              float strokeWidth, PickingId id);
 
         Path2D &bezierCurveTo(const glm::vec2 &control1,
-                              const glm::vec2 &control2, const glm::vec2 &pos) {
-            return cubicTo(control1, control2, pos);
-        }
+                              const glm::vec2 &control2, const glm::vec2 &pos);
 
         Path2D &bezierCurveTo(const glm::vec2 &control1,
                               const glm::vec2 &control2, const glm::vec2 &pos,
-                              const PathCommandStroke &stroke) {
-            return cubicTo(control1, control2, pos, stroke);
-        }
+                              const PathCommandStroke &stroke);
 
         Path2D &bezierCurveTo(const glm::vec2 &control1,
                               const glm::vec2 &control2, const glm::vec2 &pos,
-                              float strokeWidth) {
-            return cubicTo(control1, control2, pos, strokeWidth);
-        }
+                              float strokeWidth);
 
         Path2D &bezierCurveTo(const glm::vec2 &control1,
                               const glm::vec2 &control2, const glm::vec2 &pos,
-                              float strokeWidth, PickingId id) {
-            return cubicTo(control1, control2, pos, strokeWidth, id);
-        }
+                              float strokeWidth, PickingId id);
 
-        Path2D &closePath() { return addCommand(PathCommand::closePath()); }
+        Path2D &closePath();
 
-        Path2D &closePath(const PathCommandStroke &stroke) {
-            return addCommand(PathCommand::closePath(stroke));
-        }
+        Path2D &closePath(const PathCommandStroke &stroke);
 
-        Path2D &closePath(float strokeWidth) {
-            return closePath(PathCommandStroke::withWidth(strokeWidth));
-        }
+        Path2D &closePath(float strokeWidth);
 
-        Path2D &closePath(float strokeWidth, PickingId id) {
-            return closePath(
-                PathCommandStroke::withWidthAndId(strokeWidth, id));
-        }
+        Path2D &closePath(float strokeWidth, PickingId id);
 
-        Path2D &close() { return closePath(); }
+        Path2D &close();
 
-        Path2D &close(const PathCommandStroke &stroke) {
-            return closePath(stroke);
-        }
+        Path2D &close(const PathCommandStroke &stroke);
 
-        Path2D &close(float strokeWidth) { return closePath(strokeWidth); }
+        Path2D &close(float strokeWidth);
 
-        Path2D &close(float strokeWidth, PickingId id) {
-            return closePath(strokeWidth, id);
-        }
+        Path2D &close(float strokeWidth, PickingId id);
 
-        [[nodiscard]] bool empty() const noexcept { return m_commands.empty(); }
+        [[nodiscard]] bool empty() const noexcept;
 
-        [[nodiscard]] std::size_t commandCount() const noexcept {
-            return m_commands.size();
-        }
+        [[nodiscard]] std::size_t commandCount() const noexcept;
 
-        [[nodiscard]] std::span<const PathCommand> commands() const noexcept {
-            return {m_commands.data(), m_commands.size()};
-        }
+        [[nodiscard]] std::vector<PathCommand> commands() const noexcept;
 
-        [[nodiscard]] const PathCommand *data() const noexcept {
-            return m_commands.data();
-        }
+        [[nodiscard]] const PathCommand *data() const noexcept;
 
-        [[nodiscard]] PathBounds bounds() const noexcept { return m_bounds; }
+        [[nodiscard]] PathBounds bounds() const noexcept;
 
-        [[nodiscard]] bool hasBounds() const noexcept { return m_bounds.valid; }
+        [[nodiscard]] bool hasBounds() const noexcept;
 
-        [[nodiscard]] uint64_t revision() const noexcept { return m_revision; }
+        [[nodiscard]] uint64_t revision() const noexcept;
 
       private:
-        void includePoint(const glm::vec2 &point) noexcept {
-            if (!m_bounds.valid) {
-                m_bounds.min = point;
-                m_bounds.max = point;
-                m_bounds.valid = true;
-                return;
-            }
+        void includePoint(const glm::vec2 &point) noexcept;
 
-            m_bounds.min = glm::min(m_bounds.min, point);
-            m_bounds.max = glm::max(m_bounds.max, point);
-        }
-
-        void includeCommandBounds(const PathCommand &command) noexcept {
-            switch (command.kind) {
-            case PathCommandKind::Move:
-            case PathCommandKind::Line:
-                includePoint(command.p);
-                break;
-            case PathCommandKind::Quad:
-                includePoint(command.control);
-                includePoint(command.p);
-                break;
-            case PathCommandKind::Cubic:
-                includePoint(command.control);
-                includePoint(command.control2);
-                includePoint(command.p);
-                break;
-            case PathCommandKind::Close:
-                break;
-            }
-        }
+        void includeCommandBounds(const PathCommand &command) noexcept;
 
         std::vector<PathCommand> m_commands;
         PathBounds m_bounds;

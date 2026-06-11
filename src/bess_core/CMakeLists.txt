@@ -33,6 +33,7 @@ set(Source_Files
 	"src/bess_core/renderer/texture.cpp"
 	"src/bess_core/renderer/shader.cpp"
 	"src/bess_core/renderer/font.cpp"
+	"src/bess_core/renderer/renderer_path.cpp"
 	"src/bess_core/renderer/glyph_extractor.cpp"
 	"src/bess_core/renderer/renderer.cpp"
 	"src/bess_core/asset_manager.cpp"

@@ -141,6 +141,12 @@ namespace Bess::Core::Renderer {
 
     class IRenderer2D {
       public:
+        /// Returns a well educated guess of the render size
+        /// Assumes the aspect ratio of each glyph be 0.6:1 (width:height)
+        /// I google most common glyph ar, and just using that for now
+        static glm::vec2 getTextRenderSize(const std::string_view &text,
+                                           const FontProps &props = {});
+
         virtual ~IRenderer2D();
 
         virtual void init(const Renderer2DCreateInfo &createInfo) = 0;

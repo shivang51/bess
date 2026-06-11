@@ -1,52 +1,14 @@
 #include "scene/schematic_diagram.h"
 #include "application/settings/viewport_theme.h"
+#include "bess_core/renderer/renderer_types.h"
+#include "common/bess_assert.h"
 
 namespace Bess::Canvas {
-    namespace {
-        [[nodiscard]] Core::Renderer::Path2D
-        toRendererPath(const Renderer::Path &path, const glm::vec2 &scale,
-                       const glm::vec2 &translation) {
-            auto renderPath = path.copy();
-            renderPath.scale(scale);
-
-            Core::Renderer::Path2D out;
-            out.reserve(renderPath.getCmds().size());
-
-            const auto transformPoint =
-                [translation](const glm::vec2 &point) {
-                    return point + translation;
-                };
-
-            for (const auto &command : renderPath.getCmds()) {
-                using Kind = Renderer::Path::PathCommand::Kind;
-                switch (command.kind) {
-                case Kind::Move:
-                    out.moveTo(transformPoint(command.move.p));
-                    break;
-                case Kind::Line:
-                    out.lineTo(transformPoint(command.line.p));
-                    break;
-                case Kind::Quad:
-                    out.quadTo(transformPoint(command.quad.c),
-                               transformPoint(command.quad.p));
-                    break;
-                case Kind::Cubic:
-                    out.cubicTo(transformPoint(command.cubic.c1),
-                                transformPoint(command.cubic.c2),
-                                transformPoint(command.cubic.p));
-                    break;
-                }
-            }
-
-            return out;
-        }
-    } // namespace
-
-    const std::vector<Renderer::Path> &SchematicDiagram::getPaths() const {
+    const std::vector<Path> &SchematicDiagram::getPaths() const {
         return m_paths;
     }
 
-    void SchematicDiagram::setPaths(const std::vector<Renderer::Path> &paths) {
+    void SchematicDiagram::setPaths(const std::vector<Path> &paths) {
         m_paths = paths;
     }
 
@@ -54,9 +16,7 @@ namespace Bess::Canvas {
 
     void SchematicDiagram::setSize(const glm::vec2 &size) { m_size = size; }
 
-    std::vector<Renderer::Path> &SchematicDiagram::getPathsMut() {
-        return m_paths;
-    }
+    std::vector<Path> &SchematicDiagram::getPathsMut() { return m_paths; }
 
     bool SchematicDiagram::getShowName() const { return m_showName; }
 
@@ -66,20 +26,13 @@ namespace Bess::Canvas {
 
     void SchematicDiagram::setStrokeSize(const float size) {
         m_strokeSize = size;
-        for (auto &path : m_paths) {
-            path.setStrokeWidth(size);
-        }
     }
 
-    void SchematicDiagram::addPath(const Renderer::Path &path) {
+    void SchematicDiagram::addPath(const Path &path) {
         m_paths.emplace_back(path);
     }
 
-    void SchematicDiagram::normalizePaths() {
-        for (auto &path : m_paths) {
-            path.normalize(m_size);
-        }
-    }
+    void SchematicDiagram::normalizePaths() {}
 
     glm::vec2 SchematicDiagram::draw(
         const Bess::Canvas::Transform &transform,
@@ -100,37 +53,24 @@ namespace Bess::Canvas {
         auto mid = digScale * 0.5f;
 
         for (auto &path : getPathsMut()) {
-            const auto pathPos = path.getLowestPos();
+            const auto pathPos = path.bounds().min;
             const glm::vec2 translation = {
                 pos.x + pathPos.x - mid.x,
                 pos.y + pathPos.y - mid.y,
             };
-
-            auto rendererPath = toRendererPath(path, digScale, translation);
-            if (rendererPath.empty()) {
-                continue;
-            }
 
             Core::Renderer::PathProps props;
             props.strokeColor =
                 Bess::ViewportTheme::schematicViewColors.componentStroke;
             props.fillColor =
                 Bess::ViewportTheme::schematicViewColors.componentFill;
-            props.strokeSize = path.getStrokeWidth();
-            props.renderFill = path.getProps().renderFill;
-            props.closePath = path.getProps().isClosed;
-            props.lineJoin = path.getProps().roundedJoints
-                                 ? Core::Renderer::PathLineJoin::Round
-                                 : Core::Renderer::PathLineJoin::Miter;
+            props.strokeSize = 2.f;
+            props.renderFill = true;
+            props.lineJoin = Core::Renderer::PathLineJoin::Round;
             props.zIndex = transform.position.z;
             props.id = pickingId;
 
-            if (!path.getProps().renderStroke) {
-                props.strokeColor.a = 0.f;
-                props.strokeSize = 0.f;
-            }
-
-            renderer->drawPath(rendererPath, props);
+            renderer->drawPath(path, props);
         }
 
         return digScale;

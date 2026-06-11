@@ -1,8 +1,8 @@
 #include "non_sim_scene_component.h"
+#include "bess_core/renderer/renderer_2d.h"
 #include "gtc/type_ptr.hpp"
 #include "icons/FontAwesomeIcons.h"
 #include "pages/main_page/scene_components/scene_component_draw_resources.h"
-#include "renderer/material_renderer.h"
 #include "scene/scene_draw_helpers.h"
 #include "scene/scene_state/components/styles/comp_style.h"
 #include "scene_draw_context.h"
@@ -56,8 +56,8 @@ namespace Bess::Canvas {
             props.shadow.texture =
                 SceneComponentDrawResources::getShadowTextureHandle();
 
-            const auto textSize = Renderer::MaterialRenderer::getTextRenderSize(
-                m_data, (float)m_size);
+            const auto textSize = context.renderer->measureText(
+                m_data, {.fontSize = (float)m_size});
 
             auto offset = glm::vec3(
                 (m_transform.scale.x / 2.f) - Styles::componentStyles.paddingX,
@@ -71,8 +71,8 @@ namespace Bess::Canvas {
     }
 
     glm::vec2 TextComponent::calculateScale(const SceneState &state) {
-        auto textSize = Renderer::MaterialRenderer::getTextRenderSize(
-            m_data, (float)m_size);
+        auto textSize = Core::Renderer::IRenderer2D::getTextRenderSize(
+            m_data, {.fontSize = (float)m_size});
         textSize.y += Styles::componentStyles.paddingY * 2.f;
         textSize.x += Styles::componentStyles.paddingX * 2.f;
         return textSize;

@@ -27,7 +27,6 @@ set(BESS_PYBIND_SOURCES
 		plugin.cpp
 		common_bindings.cpp
 		scene/renderer/path.binding.cpp
-		scene/renderer/path_renderer.binding.cpp
 		scene/renderer/renderer.binding.cpp
 
 		scene/schematic_diagram.binding.cpp

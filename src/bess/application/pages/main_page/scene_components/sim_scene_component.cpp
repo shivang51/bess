@@ -7,7 +7,6 @@
 #include "common/bess_uuid.h"
 #include "icons/FontAwesomeIcons.h"
 #include "input_scene_component.h"
-#include "renderer/material_renderer.h"
 #include "scene/scene_draw_helpers.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/styles/comp_style.h"
@@ -333,8 +332,8 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
         SceneDraw::pathLineTo(context, {x, y1, pos.z}, nodeWeight);
         SceneDraw::endPath(context);
 
-        const auto textSize = Renderer::MaterialRenderer::getTextRenderSize(
-            m_name, Styles::compSchematicStyles.nameFontSize);
+        const auto textSize = context.renderer->measureText(
+            m_name, {.fontSize = Styles::compSchematicStyles.nameFontSize});
         glm::vec3 textPos = {pos.x, y + ((y1 - y) / 2.f), pos.z + 0.0005f};
         textPos.x -= textSize.x / 2.f;
         textPos.y += Styles::simCompStyles.headerFontSize / 2.f;
@@ -386,8 +385,8 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
 
     glm::vec2
     SimulationSceneComponent::calculateScale(const SceneState &state) {
-        const auto labelSize = Renderer::MaterialRenderer::getTextRenderSize(
-            m_name, Styles::simCompStyles.headerFontSize);
+        const auto labelSize = Core::Renderer::IRenderer2D::getTextRenderSize(
+            m_name, {.fontSize = Styles::simCompStyles.headerFontSize});
         float width = labelSize.x + (Styles::simCompStyles.paddingX * 2.f);
         size_t maxRows = std::max(m_inputSlots.size(), m_outputSlots.size());
         float height = ((float)maxRows * Styles::SIM_COMP_SLOT_ROW_SIZE);
@@ -549,8 +548,9 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
             const auto slotComp =
                 state.getComponentByUuid<SlotSceneComponent>(m_inputSlots[i]);
             const auto slotLabelSize =
-                Renderer::MaterialRenderer::getTextRenderSize(
-                    slotComp->getName(), Styles::componentStyles.slotLabelSize);
+                Core::Renderer::IRenderer2D::getTextRenderSize(
+                    slotComp->getName(),
+                    {.fontSize = Styles::componentStyles.slotLabelSize});
             maxInpSlotWidth = std::max(maxInpSlotWidth, slotLabelSize.x);
         }
 
@@ -558,8 +558,9 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
             const auto slotComp =
                 state.getComponentByUuid<SlotSceneComponent>(m_outputSlots[i]);
             const auto slotLabelSize =
-                Renderer::MaterialRenderer::getTextRenderSize(
-                    slotComp->getName(), Styles::componentStyles.slotLabelSize);
+                Core::Renderer::IRenderer2D::getTextRenderSize(
+                    slotComp->getName(),
+                    {.fontSize = Styles::componentStyles.slotLabelSize});
             maxOutSlotWidth = std::max(maxOutSlotWidth, slotLabelSize.x);
         }
 
@@ -568,8 +569,8 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
             ((float)maxRows * Styles::SCHEMATIC_VIEW_PIN_ROW_SIZE);
 
         const auto textWidth =
-            Renderer::MaterialRenderer::getTextRenderSize(
-                m_name, Styles::compSchematicStyles.nameFontSize)
+            Core::Renderer::IRenderer2D::getTextRenderSize(
+                m_name, {.fontSize = Styles::compSchematicStyles.nameFontSize})
                 .x;
 
         float width = textWidth + (Styles::compSchematicStyles.paddingX *

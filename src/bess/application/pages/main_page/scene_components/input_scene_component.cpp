@@ -1,6 +1,7 @@
 #include "input_scene_component.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "icons/FontAwesomeIcons.h"
-#include "renderer/material_renderer.h"
 #include "scene/scene_draw_helpers.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
@@ -8,11 +9,8 @@
 #include "scene_draw_context.h"
 #include "settings/viewport_theme.h"
 #include "sim_scene_component.h"
-
-#include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
-
 #include "simulation_engine.h"
+
 #include "window.h"
 
 namespace Bess::Canvas {
@@ -75,8 +73,8 @@ namespace Bess::Canvas {
 
         // Button label
         const std::string label = isHigh ? "1" : "0";
-        const auto textSize = Renderer::MaterialRenderer::getTextRenderSize(
-            label, Styles::simCompStyles.slotLabelSize);
+        const auto textSize = context.renderer->measureText(
+            label, {.fontSize = Styles::simCompStyles.slotLabelSize});
 
         const float textPosX = buttonPos.x + (buttonSize.x / 2.f) + 8.f;
         const glm::vec3 textPos =
@@ -86,8 +84,7 @@ namespace Bess::Canvas {
                       m_transform.position.z + 0.001f);
 
         SceneDraw::drawText(
-            context,
-            label, textPos, Styles::simCompStyles.slotLabelSize,
+            context, label, textPos, Styles::simCompStyles.slotLabelSize,
             ViewportTheme::colors.text, PickingId{m_runtimeId, 0});
     }
 

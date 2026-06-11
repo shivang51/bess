@@ -6,7 +6,6 @@
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
-#include "renderer/material_renderer.h"
 #include "scene/scene_draw_helpers.h"
 #include "scene_draw_context.h"
 #include "scene_state/scene_state.h"
@@ -25,9 +24,8 @@ namespace Bess::Canvas {
     }
 
     void SlotProbeSceneComponent::draw(SceneDrawContext &context) {
-
-        const auto &textSize =
-            Renderer::MaterialRenderer::getTextRenderSize(m_name, 9);
+        const auto textSize =
+            context.renderer->measureText(m_name, {.fontSize = 9.f});
         if (m_isFirstDraw) {
             m_scaleDirty = true;
             m_isFirstDraw = false;

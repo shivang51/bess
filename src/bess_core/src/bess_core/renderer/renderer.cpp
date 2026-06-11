@@ -5,6 +5,22 @@
 namespace Bess::Core::Renderer {
     IRenderer2D::~IRenderer2D() = default;
 
+    glm::vec2 IRenderer2D::getTextRenderSize(const std::string_view &text,
+                                             const FontProps &props) {
+        glm::vec2 size = {0.f, 0.f};
+
+        for (const char &ch : text) {
+            if (ch == '\n') {
+                size.y += props.fontSize;
+                continue;
+            }
+
+            size.x += props.fontSize * 0.6f;
+        }
+
+        return size;
+    }
+
     TextureReadbackResult IRenderer2D::readTexture(TextureHandle texture,
                                                    uint32_t x, uint32_t y,
                                                    uint32_t width,
@@ -51,8 +67,7 @@ namespace Bess::Core::Renderer {
             std::memcpy(&id.runtimeId, src + (i * readback.bytesPerPixel),
                         sizeof(uint32_t));
             std::memcpy(&id.info,
-                        src + (i * readback.bytesPerPixel) +
-                            sizeof(uint32_t),
+                        src + (i * readback.bytesPerPixel) + sizeof(uint32_t),
                         sizeof(uint32_t));
             ids[i] = id;
         }
@@ -61,10 +76,7 @@ namespace Bess::Core::Renderer {
 
     void IRenderer2D::requestPickingId(TextureHandle texture, uint32_t x,
                                        uint32_t y) {
-        requestPickingIds({.texture = texture,
-                           .x = x,
-                           .y = y,
-                           .width = 1,
-                           .height = 1});
+        requestPickingIds(
+            {.texture = texture, .x = x, .y = y, .width = 1, .height = 1});
     }
 } // namespace Bess::Core::Renderer

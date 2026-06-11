@@ -1,8 +1,8 @@
 #include "bess_core/renderer/renderer_2d.h"
+#include "bess_core/renderer/renderer_types.h"
 #include "bess_core/renderer/subtexture.h"
 #include "bess_core/renderer/texture.h"
 #include "bess_wgpu/wgpu_texture.h"
-#include "renderer/material_renderer.h"
 #include <algorithm>
 #include <memory>
 #include <pybind11/pybind11.h>
@@ -41,37 +41,36 @@ namespace {
         return Bess::PickingId::fromUint64(id);
     }
 
-    QuadProps makeQuadProps(const glm::vec3 &pos, const glm::vec2 &size,
-                            const glm::vec4 &color, uint64_t id,
-                            const Bess::Renderer::QuadRenderProperties &props) {
+    void drawRendererQuad(IRenderer2D &renderer, const glm::vec3 &pos,
+                          const glm::vec2 &size, const glm::vec4 &color,
+                          uint64_t id, float angle = 0.f) {
+
         QuadProps quad;
         quad.position = {pos.x, pos.y};
         quad.size = size;
-        quad.rotation = props.angle;
+        quad.rotation = angle;
         quad.zIndex = pos.z;
         quad.color = color;
         quad.id = toPickingId(id);
-        return quad;
-    }
-
-    void drawRendererQuad(IRenderer2D &renderer, const glm::vec3 &pos,
-                          const glm::vec2 &size, const glm::vec4 &color,
-                          uint64_t id,
-                          const Bess::Renderer::QuadRenderProperties &props) {
-        auto quad = makeQuadProps(pos, size, color, id, props);
         renderer.drawQuad(quad);
     }
 
-    void drawRendererTexturedQuad(
-        IRenderer2D &renderer, const glm::vec3 &pos, const glm::vec2 &size,
-        const glm::vec4 &tint, uint64_t id,
-        const std::shared_ptr<WgpuTexture> &texture,
-        const Bess::Renderer::QuadRenderProperties &props) {
+    void drawRendererTexturedQuad(IRenderer2D &renderer, const glm::vec3 &pos,
+                                  const glm::vec2 &size, const glm::vec4 &tint,
+                                  uint64_t id,
+                                  const std::shared_ptr<WgpuTexture> &texture,
+                                  float angle = 0.f) {
         if (!texture) {
             return;
         }
 
-        auto quad = makeQuadProps(pos, size, tint, id, props);
+        QuadProps quad;
+        quad.position = {pos.x, pos.y};
+        quad.size = size;
+        quad.rotation = angle;
+        quad.zIndex = pos.z;
+        quad.color = tint;
+        quad.id = toPickingId(id);
         quad.texture = texture->getHandle();
         renderer.drawQuad(quad);
     }
@@ -79,40 +78,26 @@ namespace {
     void drawRendererSubTexturedQuad(
         IRenderer2D &renderer, const glm::vec3 &pos, const glm::vec2 &size,
         const glm::vec4 &tint, uint64_t id,
-        const std::shared_ptr<PySubTexture> &subTexture,
-        const Bess::Renderer::QuadRenderProperties &props) {
+        const std::shared_ptr<PySubTexture> &subTexture, float angle = 0.f) {
         if (!subTexture || !subTexture->texture) {
             return;
         }
 
-        auto quad = makeQuadProps(pos, size, tint, id, props);
+        QuadProps quad;
+        quad.position = {pos.x, pos.y};
+        quad.size = size;
+        quad.rotation = angle;
+        quad.zIndex = pos.z;
+        quad.color = tint;
+        quad.id = toPickingId(id);
         quad.texture = subTexture->texture->getHandle();
         const auto &uv = subTexture->uv.getStartWH();
         quad.uvRect = {uv.x, uv.y, uv.x + uv.z, uv.y + uv.w};
         renderer.drawQuad(quad);
     }
-}
+} // namespace
 
 void bind_renderer(py::module_ &m) {
-
-    py::class_<Bess::Renderer::ShadowProps>(m, "ShadowProps")
-        .def(py::init<>())
-        .def_readwrite("enabled", &Bess::Renderer::ShadowProps::enabled)
-        .def_readwrite("offset", &Bess::Renderer::ShadowProps::offset)
-        .def_readwrite("scale", &Bess::Renderer::ShadowProps::scale)
-        .def_readwrite("color", &Bess::Renderer::ShadowProps::color);
-
-    py::class_<Bess::Renderer::QuadRenderProperties>(m, "QuadRenderProperties")
-        .def(py::init<>())
-        .def_readwrite("angle", &Bess::Renderer::QuadRenderProperties::angle)
-        .def_readwrite("borderColor",
-                       &Bess::Renderer::QuadRenderProperties::borderColor)
-        .def_readwrite("borderRadius",
-                       &Bess::Renderer::QuadRenderProperties::borderRadius)
-        .def_readwrite("borderSize",
-                       &Bess::Renderer::QuadRenderProperties::borderSize)
-        .def_readwrite("shadow", &Bess::Renderer::QuadRenderProperties::shadow)
-        .def_readwrite("isMica", &Bess::Renderer::QuadRenderProperties::isMica);
 
     py::class_<WgpuTexture, std::shared_ptr<WgpuTexture>>(m, "Texture");
 
