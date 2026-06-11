@@ -8,7 +8,6 @@
 #include "imgui.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
-#include "pages/main_page/scene_components/slot_scene_component.h"
 #include "scene/scene_draw_context.h"
 #include "scene/scene_draw_helpers.h"
 #include "settings/viewport_theme.h"
@@ -25,7 +24,6 @@
 #include <filesystem>
 #include <fstream>
 #include <memory>
-#include <vulkan/vulkan_core.h>
 
 namespace Bess::UI {
     namespace {
@@ -149,7 +147,7 @@ namespace Bess::UI {
             drawExportComponents(context);
             renderer->endFrame();
         }
-    }
+    } // namespace
 
     SceneExportWindow::SceneExportWindow()
         : Panel("Scene Export Window"),
@@ -555,4 +553,4 @@ namespace Bess::UI {
         BESS_INFO("[ExportSceneView] Successfully saved file to {}",
                   path.string());
     }
-}
+} // namespace Bess::UI

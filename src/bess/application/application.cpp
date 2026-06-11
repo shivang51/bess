@@ -10,8 +10,6 @@
 #include "sub_systems/input_sub_system.h"
 #include "sub_systems/renderer_context.h"
 #include <chrono>
-#include <vulkan/vulkan.h>
-#include <vulkan/vulkan_core.h>
 
 #include "application/window.h"
 #include "settings/settings.h"

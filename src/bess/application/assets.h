@@ -18,12 +18,6 @@ namespace Bess::Assets {
             "assets/fonts/icons/Font-Awesome-7-Free-Regular-400.otf");
     } // namespace Fonts::Paths
 
-    namespace TileMaps {
-        // constexpr auto sevenSegDisplay =
-        //     AssetID<Bess::Vulkan::VulkanTexture, 1>(
-        //         "assets/images/7-seg-display-tilemap.png");
-    }
-
     namespace Textures {
         // constexpr auto shadowTexture = AssetID<Bess::Vulkan::VulkanTexture,
         // 1>(

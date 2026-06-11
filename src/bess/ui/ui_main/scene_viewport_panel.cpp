@@ -367,10 +367,6 @@ namespace Bess::UI {
         return m_viewportSize;
     }
 
-    VkExtent2D SceneViewportPanel::vec2Extent2D(const glm::vec2 &vec) {
-        return {(uint32_t)vec.x, (uint32_t)vec.y};
-    }
-
     void SceneViewportPanel::onSceneAttached() {
         m_attachedScene->getCamera()->resize(m_viewportSize.x,
                                              m_viewportSize.y);

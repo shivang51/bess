@@ -8,7 +8,6 @@
 #include "scene/scene_state/scene_state.h"
 #include "sim_driver/sim_driver.h"
 #include <memory>
-#include <vulkan/vulkan_core.h>
 
 namespace Bess::Canvas {
 
@@ -150,8 +149,6 @@ namespace Bess::Canvas {
         float m_compZCoord = m_zIncrement;
 
         TimeMs m_frameTimeStep = {};
-
-        VkExtent2D vec2Extent2D(const glm::vec2 &vec);
 
         bool m_isDestroyed = false;
         bool m_isFirstFrame = true;

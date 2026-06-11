@@ -50,6 +50,7 @@ class SevenSegDispComp(SimulationSceneComponent):
             vec4(1, 1, 1, 1),
             pickingId.asUint64(),
             SevenSegDispComp._sub_textures[0],
+            0,
         )
 
         pos.z += 0.0001

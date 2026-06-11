@@ -376,10 +376,6 @@ namespace Bess::Canvas {
         m_state.setIsSchematicView(!m_state.getIsSchematicView());
     }
 
-    VkExtent2D Scene::vec2Extent2D(const glm::vec2 &vec) {
-        return {(uint32_t)vec.x, (uint32_t)vec.y};
-    }
-
     glm::vec2 Scene::getSnappedPos(const glm::vec2 &pos) const {
         return glm::vec2(glm::round(pos / snapSize)) * snapSize;
     }

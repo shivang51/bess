@@ -8,7 +8,7 @@
 #include "scene/scene_draw_context.h"
 #include "string"
 #include "ui_panel.h"
-#include <chrono>
+
 namespace Bess::UI {
 
     struct SceneDrawFlags {
@@ -63,8 +63,6 @@ namespace Bess::UI {
         void drawBottomControls() const;
 
         void onSceneAttached();
-
-        VkExtent2D vec2Extent2D(const glm::vec2 &vec);
 
         static constexpr ImGuiWindowFlags NO_MOVE_FLAGS =
             ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |

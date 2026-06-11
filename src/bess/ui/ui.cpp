@@ -1,10 +1,7 @@
 #include "ui/ui.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/renderer/renderer_path.h"
 #include "bess_wgpu/wgpu_renderer_2d.h"
-#include "camera.h"
 #include "common/logger.h"
-#include "gtc/type_ptr.hpp"
 #include "imgui_impl_wgpu.h"
 #include "pages/main_page/main_page.h"
 #include "sub_systems/renderer_context.h"
@@ -19,9 +16,6 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "implot.h"
-#include <cstdint>
-#include <numbers>
-#include <vulkan/vulkan_core.h>
 
 namespace Bess {
 

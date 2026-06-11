@@ -64,7 +64,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 	"${CMAKE_SOURCE_DIR}/src/bess/scene"
 	"${CMAKE_SOURCE_DIR}/src/event_system/include"
 	"${CMAKE_SOURCE_DIR}/src/command_system/include"
-	"${CMAKE_SOURCE_DIR}/src/bess_vulkan/include"
 	"${CMAKE_SOURCE_DIR}/external/freetype/include"
 	"${CMAKE_SOURCE_DIR}/external/imgui"
 	"${CMAKE_SOURCE_DIR}/src/sim_driver/include"
