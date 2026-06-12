@@ -1,6 +1,6 @@
-
-#include "scene/scene_state/components/scene_component.h"
+#include "bess_core/renderer/renderer_2d.h"
 #include "camera.h"
+#include "scene/scene_draw_context.h"
 #include "scene/scene_state/scene_state.h" // included for pybind11
 #include "scene_draw_context.h"
 #include <pybind11/functional.h>
@@ -44,9 +44,11 @@ void bind_scene_component(py::module_ &m) {
 
     py::class_<Bess::SceneDrawContext>(m, "SceneDrawContext")
         .def_readonly("scene_state", &Bess::SceneDrawContext::sceneState)
-        .def_readonly("material_renderer",
-                      &Bess::SceneDrawContext::materialRenderer)
-        .def_readonly("path_renderer", &Bess::SceneDrawContext::pathRenderer)
+        .def_readonly("renderer", &Bess::SceneDrawContext::renderer)
+        .def_property_readonly("material_renderer",
+                               [](const Bess::SceneDrawContext &context) {
+                                   return context.renderer;
+                               })
         .def_readonly("camera", &Bess::SceneDrawContext::camera);
 
     py::class_<Bess::Canvas::SceneComponent, PySceneComponent,

@@ -1,37 +1,44 @@
 #pragma once
-#include "device.h"
-#include <memory>
-#define GLFW_INCLUDE_VULKAN
-#include "GLFW/glfw3.h"
 
+#include "bess_wgpu/wgpu_texture.h"
 #include "imgui.h"
+#include "pages/page.h"
 
-namespace Bess::UI {
-    static VkDescriptorPool s_uiDescriptorPool = VK_NULL_HANDLE;
-    void init(GLFWwindow *window);
-    void initVulkanImGui();
-    void begin();
-    void end();
+namespace Bess {
+    class Window;
 
-    void drawStats(int fps);
-
-    void vulkanCleanup(const std::shared_ptr<Vulkan::VulkanDevice> &device);
-    void shutdown();
-    void loadFontAndSetScale(float fontSize, float scale);
-    void setCursorPointer();
-    void setCursorMove();
-    void setCursorNormal();
-
-    static enum class CursorType : uint8_t {
-        pointer,
-        move,
-        normal
-    } currentCursorType = CursorType::normal;
-
-    class Fonts {
+    class UIHandle {
       public:
-        static ImFont *largeFont;
-        static ImFont *mediumFont;
-    };
+        void init(const std::shared_ptr<Window> &window);
+        void begin();
+        void end();
 
-} // namespace Bess::UI
+        void draw();
+        void drawStats(int fps);
+
+        void update(TimeMs dt);
+
+        void shutdown();
+        void loadFontAndSetScale(float fontSize, float scale);
+        void setCursorPointer();
+        void setCursorMove();
+        void setCursorNormal();
+
+        enum class CursorType : uint8_t { pointer, move, normal };
+
+        class Fonts {
+          public:
+            static ImFont *largeFont;
+            static ImFont *mediumFont;
+        };
+
+        MAKE_GETTER_SETTER(std::shared_ptr<Pages::Page>, currentPage,
+                           m_currentPage)
+
+      private:
+        int m_currentFps = 0;
+        CursorType m_currentCursorType = CursorType::normal;
+        std::shared_ptr<Pages::Page> m_currentPage = nullptr;
+        std::shared_ptr<Wgpu::WgpuTexture> m_previewTex = nullptr;
+    };
+} // namespace Bess

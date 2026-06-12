@@ -7,15 +7,15 @@ namespace Bess {
             return;
         }
 
-        for (auto &[_, subsystem] : m_subSystems) {
+        for (auto &subsystem : m_subSystemsInOrder) {
             subsystem->onPreInit();
         }
 
-        for (auto &[_, subsystem] : m_subSystems) {
+        for (auto &subsystem : m_subSystemsInOrder) {
             subsystem->onInit();
         }
 
-        for (auto &[_, subsystem] : m_subSystems) {
+        for (auto &subsystem : m_subSystemsInOrder) {
             subsystem->onPostInit();
         }
 
@@ -23,43 +23,43 @@ namespace Bess {
     }
 
     void ISubSysContainer::beginFrame() {
-        for (auto &[_, subsystem] : m_subSystems) {
+        for (auto &subsystem : m_subSystemsInOrder) {
             subsystem->onBeginFrame();
         }
     }
 
     void ISubSysContainer::endFrame() {
-        for (auto &[_, subsystem] : m_subSystems) {
+        for (auto &subsystem : m_subSystemsInOrder) {
             subsystem->onEndFrame();
         }
     }
 
     void ISubSysContainer::draw() {
-        for (auto &[_, subsystem] : m_subSystems) {
+        for (auto &subsystem : m_subSystemsInOrder) {
             subsystem->onDraw();
         }
     }
 
     void ISubSysContainer::preDraw() {
-        for (auto &[_, subsystem] : m_subSystems) {
+        for (auto &subsystem : m_subSystemsInOrder) {
             subsystem->onPreDraw();
         }
     }
 
     void ISubSysContainer::postDraw() {
-        for (auto &[_, subsystem] : m_subSystems) {
+        for (auto &subsystem : std::ranges::reverse_view(m_subSystemsInOrder)) {
             subsystem->onPostDraw();
         }
     }
 
     void ISubSysContainer::preUpdate() {
-        for (auto &[_, subsystem] : m_subSystems) {
+        for (auto &subsystem : m_subSystemsInOrder) {
             subsystem->onPreUpdate();
         }
     }
 
     void ISubSysContainer::update(Bess::TimeMs dt) {
-        for (auto &[_, subsystem] : m_subSystems) {
+        for (auto &subsystem : m_subSystemsInOrder) {
             subsystem->onUpdate(dt);
         }
     }
@@ -70,11 +70,11 @@ namespace Bess {
             return;
         }
 
-        for (auto &[_, subsystem] : m_subSystems) {
+        for (auto &subsystem : std::ranges::reverse_view(m_subSystemsInOrder)) {
             subsystem->onShutdown();
         }
 
-        for (auto &[_, subsystem] : m_subSystems) {
+        for (auto &subsystem : std::ranges::reverse_view(m_subSystemsInOrder)) {
             subsystem->onDestroy();
         }
 

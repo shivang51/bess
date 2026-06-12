@@ -9,8 +9,17 @@ set(Header_Files
 	"include/bess_core/connection_service.h"
 
 	"include/bess_core/renderer/texture.h"
+	"include/bess_core/renderer/shader.h"
+	"include/bess_core/renderer/colors.h"
+	"include/bess_core/renderer/subtexture.h"
+	"include/bess_core/renderer/font.h"
+	"include/bess_core/renderer/glyph_extractor.h"
 	"include/bess_core/renderer/renderer_2d.h"
+	"include/bess_core/renderer/renderer_path.h"
 	"include/bess_core/renderer/renderer_types.h"
+	"include/bess_core/asset_manager/asset_loader.h"
+	"include/bess_core/asset_manager/asset_manager.h"
+	"include/bess_core/asset_manager/asset_id.h"
 )
 
 source_group("include/bess_core" FILES ${Header_Files})
@@ -23,7 +32,12 @@ set(Source_Files
 	"src/bess_core/connection_service.cpp"
 	
 	"src/bess_core/renderer/texture.cpp"
+	"src/bess_core/renderer/shader.cpp"
+	"src/bess_core/renderer/font.cpp"
+	"src/bess_core/renderer/renderer_path.cpp"
+	"src/bess_core/renderer/glyph_extractor.cpp"
 	"src/bess_core/renderer/renderer.cpp"
+	"src/bess_core/asset_manager.cpp"
 )
 
 source_group("src" FILES ${Source_Files})
@@ -51,7 +65,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 	"${CMAKE_SOURCE_DIR}/src/bess/scene"
 	"${CMAKE_SOURCE_DIR}/src/event_system/include"
 	"${CMAKE_SOURCE_DIR}/src/command_system/include"
-	"${CMAKE_SOURCE_DIR}/src/bess_vulkan/include"
 	"${CMAKE_SOURCE_DIR}/external/freetype/include"
 	"${CMAKE_SOURCE_DIR}/external/imgui"
 	"${CMAKE_SOURCE_DIR}/src/sim_driver/include"

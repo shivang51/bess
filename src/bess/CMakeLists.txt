@@ -64,7 +64,7 @@ endif()
 target_include_directories(${PROJECT_NAME} PRIVATE
 	"${CMAKE_CURRENT_SOURCE_DIR}"
 	"${CMAKE_SOURCE_DIR}/src/BessSimEngine/include"
-	"${CMAKE_SOURCE_DIR}/src/BessVulkan/include"
+	"${CMAKE_SOURCE_DIR}/src//include"
 	"${CMAKE_SOURCE_DIR}/src/BessPluginManager/include"
 	"${CMAKE_SOURCE_DIR}/src/EventSystem/include"
 	"${CMAKE_SOURCE_DIR}/src/CommandSystem/include"

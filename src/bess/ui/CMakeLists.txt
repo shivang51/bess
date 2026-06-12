@@ -9,7 +9,6 @@ set(Header_Files
 	"icons/MaterialIcons.h"
 	"widgets/m_widgets.h"
 	"ui.h"
-	"ui_sub_system.h"
 	"ui_hook.h"
 	"dock_ids.h"
 	"ui_main/properties_panel.h"
@@ -33,7 +32,6 @@ source_group("include/ui" FILES ${Header_Files})
 set(Source_Files
 	"ui_panel.cpp"
   "ui.cpp"
-  "ui_sub_system.cpp"
 	"ui_hook.cpp"
 	"widgets/m_widgets.cpp"
 	"ui_main/debug_panel.cpp"
@@ -68,7 +66,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 	"${CMAKE_SOURCE_DIR}/src/Bess/"
 	"${CMAKE_SOURCE_DIR}/src/Bess/application"
 	"${CMAKE_SOURCE_DIR}/src/BessSimEngine/include"
-	"${CMAKE_SOURCE_DIR}/src/BessVulkan/include"
+	"${CMAKE_SOURCE_DIR}/src//include"
 	"${CMAKE_SOURCE_DIR}/src/BessPluginManager/include"
 	"${CMAKE_SOURCE_DIR}/src/EventSystem/include"
 	"${CMAKE_SOURCE_DIR}/src/BessJson/include"
@@ -76,8 +74,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}")
-target_link_libraries(${PROJECT_NAME} PUBLIC BessSimEngine BessExtDeps BessVulkan BessPluginManager EventSystem BessScene BessCmdSystem)
-add_dependencies(${PROJECT_NAME} BessSimEngine BessVulkan BessExtDeps BessPluginManager EventSystem BessScene BessJson BessCmdSystem)
+target_link_libraries(${PROJECT_NAME} PUBLIC BessSimEngine BessExtDeps  BessPluginManager EventSystem BessScene BessCmdSystem BessWgpu)
+add_dependencies(${PROJECT_NAME} BessSimEngine  BessExtDeps BessPluginManager EventSystem BessScene BessJson BessCmdSystem BessWgpu)
 
 if(MSVC)
 		target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8" "/Zc:__cplusplus")

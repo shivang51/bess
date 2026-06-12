@@ -1,18 +1,19 @@
 #include "application/window.h"
 #include "bess_core/g_app_context.h"
+#include "bess_wgpu/wgpu_renderer_2d.h"
 #include "common/bess_assert.h"
 #include "common/events.h"
 #include "common/logger.h"
 #include "event_dispatcher.h"
 #include "ext/vector_float2.hpp"
+#include "imgui_impl_wgpu.h"
 #include "stb_image.h"
 #include "sub_systems/input_sub_system.h"
-#include "vulkan_core.h"
+#include "sub_systems/renderer_context.h"
 #include <GLFW/glfw3.h>
 #include <cassert>
 #include <cstdint>
 #include <memory>
-#include <stdexcept>
 
 namespace Bess {
     bool Window::isGLFWInitialized = false;
@@ -26,20 +27,9 @@ namespace Bess {
 
     void Window::onPreUpdate() { pollEvents(); }
 
-    void Window::onPreInit() {
-        initGLFW();
+    void Window::onUpdate(TimeMs dt) { m_ui.update(dt); }
 
-        auto vulkanCore =
-            GAppContext::getInstance().getSubSystem<Vulkan::VulkanCore>();
-        vulkanCore->setWinExt(getVulkanExtensions());
-
-        auto createSurface = [this](VkInstance &instance,
-                                    VkSurfaceKHR &surface) {
-            createWindowSurface(instance, surface);
-        };
-
-        vulkanCore->setCreateSurfaceFn(createSurface);
-    }
+    void Window::onPreInit() { initGLFW(); }
 
     void Window::initGLFW() const {
         if (isGLFWInitialized)
@@ -54,8 +44,11 @@ namespace Bess {
         BESS_INFO("[Window] GLFW {}.{}", GLFW_VERSION_MAJOR,
                   GLFW_VERSION_MINOR);
 
-        // because renderdoc doesn't support wayland
 #ifdef __linux__
+        // Dawn in this build supports X11 surfaces, not Wayland surfaces.
+        glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+
+        // because renderdoc doesn't support wayland
         if (std::getenv("RENDERDOC_CAPFILE")) {
             BESS_WARN("[Window] RenderDoc detected, forcing X11 backend");
             glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
@@ -125,7 +118,7 @@ namespace Bess {
                 const auto this_ = (Window *)glfwGetWindowUserPointer(window);
                 this_->m_framebufferResized = true;
 
-                Events::WindowResizeEvent evt{w, h};
+                Events::WindowResizeEvent evt{(uint32_t)w, (uint32_t)h};
 
                 auto &ctx = GAppContext::getInstance();
                 auto eventDispatcher =
@@ -194,7 +187,13 @@ namespace Bess {
                     GAppContext::getInstance().getSubSystem<InputSubSystem>();
                 inputSubSystem->onMouseMoveEvent({x, y});
             });
+
+        BESS_INFO("[Window] Created GLFW window {}", m_title);
     }
+
+    void Window::onPostInit() { m_ui.init(shared_from_this()); }
+
+    void Window::onShutdown() { m_ui.shutdown(); }
 
     void Window::onDestroy() {
         if (!isGLFWInitialized)
@@ -208,6 +207,25 @@ namespace Bess {
         BESS_INFO("[Window] Terminating GLFW");
         glfwTerminate();
         isGLFWInitialized = false;
+    }
+
+    void Window::onPreDraw() { m_ui.begin(); }
+
+    void Window::onDraw() { m_ui.draw(); }
+
+    void Window::onPostDraw() {
+        m_ui.end();
+
+        const auto &renderer = GAppContext::getInstance()
+                                   .getSubSystem<RendererContext>()
+                                   ->getRenderer<Wgpu::WgpuRenderer2D>();
+
+        renderer->drawToWindow(shared_from_this(), // FIXME: temp
+                               [&](void *renderPass) {
+                                   ImGui_ImplWGPU_RenderDrawData(
+                                       ImGui::GetDrawData(),
+                                       (WGPURenderPassEncoder)renderPass);
+                               });
     }
 
     void Window::onBeginFrame() { pollEvents(); }
@@ -228,31 +246,6 @@ namespace Bess {
         double x = 0.0, y = 0.0;
         glfwGetCursorPos(mp_window.get(), &x, &y);
         return {x, y};
-    }
-
-    void Window::createWindowSurface(VkInstance instance,
-                                     VkSurfaceKHR &surface) const {
-        if (glfwCreateWindowSurface(instance, mp_window.get(), nullptr,
-                                    &surface) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create window surface!");
-        }
-    }
-
-    std::vector<const char *> Window::getVulkanExtensions() const {
-        uint32_t glfwExtensionCount = 0;
-        const char **glfwExtensions = nullptr;
-        glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-        std::vector<const char *> extensions(
-            glfwExtensions, glfwExtensionCount + glfwExtensions);
-
-        return extensions;
-    }
-
-    VkExtent2D Window::getExtent() const {
-        int width = 0, height = 0;
-        glfwGetFramebufferSize(mp_window.get(), &width, &height);
-        return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
     }
 
     void Window::framebufferResizeCallback(GLFWwindow *window, int width,

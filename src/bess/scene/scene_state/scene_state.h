@@ -3,7 +3,6 @@
 #include "bess_core/g_app_context.h"
 #include "common/bess_uuid.h"
 #include "event_dispatcher.h"
-#include "renderer/material_renderer.h"
 #include "scene/scene_state/components/scene_component.h"
 #include <cstdint>
 #include <mutex>
@@ -126,10 +125,6 @@ namespace Bess::Canvas {
         // returns the UUIDs of removed components
         std::vector<UUID> removeComponent(const UUID &uuid,
                                           const UUID &callerId = UUID::null);
-
-        std::shared_ptr<Renderer::MaterialRenderer> getMaterialRenderer() const;
-
-        std::shared_ptr<Renderer::PathRenderer> getPathRenderer() const;
 
         void removeFromMap(const UUID &uuid);
 

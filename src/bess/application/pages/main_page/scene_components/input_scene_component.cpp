@@ -1,19 +1,17 @@
 #include "input_scene_component.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "icons/FontAwesomeIcons.h"
-#include "renderer/material_renderer.h"
+#include "scene/scene_draw_helpers.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
 #include "scene/scene_ui/scene_ui.h"
 #include "scene_draw_context.h"
 #include "settings/viewport_theme.h"
 #include "sim_scene_component.h"
-
-#include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
-
-#include "ui/ui.h"
-
 #include "simulation_engine.h"
+
+#include "window.h"
 
 namespace Bess::Canvas {
     InputSceneComponent::InputSceneComponent() {
@@ -75,8 +73,8 @@ namespace Bess::Canvas {
 
         // Button label
         const std::string label = isHigh ? "1" : "0";
-        const auto textSize = Renderer::MaterialRenderer::getTextRenderSize(
-            label, Styles::simCompStyles.slotLabelSize);
+        const auto textSize = context.renderer->measureText(
+            label, {.fontSize = Styles::simCompStyles.slotLabelSize});
 
         const float textPosX = buttonPos.x + (buttonSize.x / 2.f) + 8.f;
         const glm::vec3 textPos =
@@ -85,8 +83,8 @@ namespace Bess::Canvas {
                           1.f, // FIXME: why -2.f, maybe the baseline?
                       m_transform.position.z + 0.001f);
 
-        context.materialRenderer->drawText(
-            label, textPos, Styles::simCompStyles.slotLabelSize,
+        SceneDraw::drawText(
+            context, label, textPos, Styles::simCompStyles.slotLabelSize,
             ViewportTheme::colors.text, PickingId{m_runtimeId, 0});
     }
 
@@ -95,9 +93,13 @@ namespace Bess::Canvas {
         int buttonIndex = (int)e.details - 1; // since 0 is component body
 
         if (buttonIndex < 0) {
-            UI::setCursorNormal();
+            auto &appCtx = GAppContext::getInstance();
+            auto window = appCtx.getSubSystem<Window>();
+            window->getui().setCursorNormal();
         } else {
-            UI::setCursorPointer();
+            auto &appCtx = GAppContext::getInstance();
+            auto window = appCtx.getSubSystem<Window>();
+            window->getui().setCursorPointer();
         }
     }
 
@@ -105,14 +107,20 @@ namespace Bess::Canvas {
         int buttonIndex = (int)e.details - 1; // since 0 is component body
 
         if (buttonIndex < 0) {
-            UI::setCursorNormal();
+            auto &appCtx = GAppContext::getInstance();
+            auto window = appCtx.getSubSystem<Window>();
+            window->getui().setCursorNormal();
         } else {
-            UI::setCursorPointer();
+            auto &appCtx = GAppContext::getInstance();
+            auto window = appCtx.getSubSystem<Window>();
+            window->getui().setCursorPointer();
         }
     }
 
     void InputSceneComponent::onMouseLeave(const Events::MouseLeaveEvent &e) {
-        UI::setCursorNormal();
+        auto &appCtx = GAppContext::getInstance();
+        auto window = appCtx.getSubSystem<Window>();
+        window->getui().setCursorNormal();
     }
 
     void InputSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {

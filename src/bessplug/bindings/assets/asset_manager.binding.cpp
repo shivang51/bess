@@ -1,9 +1,7 @@
-#include "asset_manager/asset_manager.h"
-#include "asset_manager/asset_id.h"
+#include "bess_core/asset_manager/asset_manager.h"
+#include "bess_core/asset_manager/asset_id.h"
 #include "bess_core/g_app_context.h"
-#include "common/bess_assert.h"
-#include "vulkan_core.h"
-#include "vulkan_texture.h"
+#include "bess_wgpu/wgpu_texture.h"
 
 #include <memory>
 #include <pybind11/pybind11.h>
@@ -21,38 +19,41 @@ class PyAssetManager {
 
         std::lock_guard<std::mutex> lock(pool_mutex);
         auto [it, inserted] = pool.insert(s);
-        return *it; // Return a view of the string stored inside the set
+        return *it;
     }
 
   public:
-    static AssetID<Bess::Vulkan::VulkanTexture, 1>
+    static AssetID<Bess::Wgpu::WgpuTexture, 1>
     register_texture_asset(const std::string &path) {
         py::gil_scoped_acquire acquire;
         std::string_view safe_path = intern_string(path);
-        return AssetID<Bess::Vulkan::VulkanTexture, 1>(intern_string(path));
+        return AssetID<Bess::Wgpu::WgpuTexture, 1>(intern_string(path));
     }
 
-    static std::shared_ptr<Bess::Vulkan::VulkanTexture>
-    get_texture_asset(const AssetID<Bess::Vulkan::VulkanTexture, 1> &id) {
+    static std::shared_ptr<Bess::Wgpu::WgpuTexture>
+    get_texture_asset(const AssetID<Bess::Wgpu::WgpuTexture, 1> &id) {
         py::gil_scoped_acquire acquire;
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto vulkanCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
-        BESS_ASSERT(
-            (vulkanCore && vulkanCore->getDevice()),
-            "Vulkan device must be initialized before getting texture assets.");
-        return appCtx.getSubSystem<AssetManager>()->get(id);
+        if (id.paths.empty()) {
+            return nullptr;
+        }
+        std::string path{id.paths[0]};
+        auto tex = std::make_shared<Bess::Wgpu::WgpuTexture>(path);
+        tex->init();
+        return tex;
     }
 };
 
 void bind_asset_manager(py::module_ &m) {
-    py::class_<AssetID<Bess::Vulkan::VulkanTexture, 1>>(m, "TextureAssetID")
+    py::class_<AssetID<Bess::Wgpu::WgpuTexture, 1>>(m, "TextureAssetID")
         .def(py::init<const std::string &>())
-        .def_readonly("paths", &AssetID<Bess::Vulkan::VulkanTexture, 1>::paths,
+        .def_readonly("paths", &AssetID<Bess::Wgpu::WgpuTexture, 1>::paths,
                       "Get the paths of the texture asset")
         .def("__repr__",
-             [](const AssetID<Bess::Vulkan::VulkanTexture, 1> &self) {
+             [](const AssetID<Bess::Wgpu::WgpuTexture, 1> &self) {
                  std::string repr = "TextureAssetID(";
-                 repr += py::repr(py::cast(self.paths[0])).cast<std::string>();
+                 if (!self.paths.empty()) {
+                     repr += py::repr(py::cast(self.paths[0])).cast<std::string>();
+                 }
                  repr += ")";
                  return repr;
              });

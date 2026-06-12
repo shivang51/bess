@@ -1,12 +1,14 @@
 #include "scene/schematic_diagram.h"
 #include "application/settings/viewport_theme.h"
+#include "bess_core/renderer/renderer_types.h"
+#include "common/bess_assert.h"
 
 namespace Bess::Canvas {
-    const std::vector<Renderer::Path> &SchematicDiagram::getPaths() const {
+    const std::vector<Path> &SchematicDiagram::getPaths() const {
         return m_paths;
     }
 
-    void SchematicDiagram::setPaths(const std::vector<Renderer::Path> &paths) {
+    void SchematicDiagram::setPaths(const std::vector<Path> &paths) {
         m_paths = paths;
     }
 
@@ -14,9 +16,7 @@ namespace Bess::Canvas {
 
     void SchematicDiagram::setSize(const glm::vec2 &size) { m_size = size; }
 
-    std::vector<Renderer::Path> &SchematicDiagram::getPathsMut() {
-        return m_paths;
-    }
+    std::vector<Path> &SchematicDiagram::getPathsMut() { return m_paths; }
 
     bool SchematicDiagram::getShowName() const { return m_showName; }
 
@@ -26,12 +26,9 @@ namespace Bess::Canvas {
 
     void SchematicDiagram::setStrokeSize(const float size) {
         m_strokeSize = size;
-        for (auto &path : m_paths) {
-            path.setStrokeWidth(size);
-        }
     }
 
-    void SchematicDiagram::addPath(const Renderer::Path &path) {
+    void SchematicDiagram::addPath(const Path &path) {
         m_paths.emplace_back(path);
     }
 
@@ -44,7 +41,11 @@ namespace Bess::Canvas {
     glm::vec2 SchematicDiagram::draw(
         const Bess::Canvas::Transform &transform,
         const Bess::PickingId &pickingId,
-        const std::shared_ptr<Bess::Renderer::PathRenderer> &pathRenderer) {
+        const std::shared_ptr<Bess::Core::Renderer::IRenderer2D> &renderer) {
+        if (!renderer) {
+            return transform.scale;
+        }
+
         const auto &pos = transform.position;
         float dAr = getSize().x / getSize().y;
         float tAr = transform.scale.x / transform.scale.y;
@@ -55,24 +56,31 @@ namespace Bess::Canvas {
 
         auto mid = digScale * 0.5f;
 
-        auto drawInfo = Renderer::ContoursDrawInfo();
-        for (auto &path : getPathsMut()) {
-            const auto pathPos = path.getLowestPos();
-            drawInfo.translate =
-                glm::vec3(pos.x + pathPos.x - mid.x, pos.y + pathPos.y - mid.y,
-                          transform.position.z);
-            drawInfo.scale = digScale;
-            drawInfo.glyphId = pickingId;
-            drawInfo.strokeColor =
-                Bess::ViewportTheme::schematicViewColors.componentStroke;
-            drawInfo.fillColor =
-                Bess::ViewportTheme::schematicViewColors.componentFill;
+        Core::Renderer::PathProps props;
+        props.strokeColor =
+            Bess::ViewportTheme::schematicViewColors.componentStroke;
+        props.fillColor =
+            Bess::ViewportTheme::schematicViewColors.componentFill;
+        props.strokeSize = m_strokeSize;
+        props.renderFill = true;
+        props.lineJoin = Core::Renderer::PathLineJoin::Round;
+        props.id = pickingId;
+        props.closePath = false;
 
-            drawInfo.genFill = path.getProps().renderFill;
-            drawInfo.genStroke = path.getProps().renderStroke;
-            drawInfo.closePath = path.getProps().isClosed;
-            drawInfo.rounedJoint = path.getProps().roundedJoints;
-            pathRenderer->drawPath(path, drawInfo);
+        for (auto &path : getPathsMut()) {
+            const auto pathPos = path.ogBounds().min * digScale;
+            const glm::vec2 translation = {
+                pathPos.x + pos.x - mid.x,
+                pathPos.y + pos.y - mid.y,
+            };
+
+            props.zIndex = transform.position.z;
+            props.renderFill = path.getFill();
+
+            path.scale(digScale);
+            path.translate(translation);
+
+            renderer->drawPath(path, props);
         }
 
         return digScale;

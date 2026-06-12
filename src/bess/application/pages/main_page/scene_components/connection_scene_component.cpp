@@ -6,12 +6,14 @@
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
+#include "common/types.h"
 #include "conn_joint_scene_component.h"
 #include "event_dispatcher.h"
 #include "fwd.hpp"
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
+#include "scene/scene_draw_helpers.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
@@ -20,7 +22,6 @@
 #include "settings/viewport_theme.h"
 #include "slot_scene_component.h"
 
-#include "ui/ui.h"
 #include <cstdint>
 
 namespace Bess::Canvas {
@@ -44,10 +45,11 @@ namespace Bess::Canvas {
                            "cloneConn function");
     }
 
-    void ConnectionSceneComponent::drawSegments(
-        const SceneState &state, const glm::vec3 &startPos,
-        const glm::vec3 &endPos, const glm::vec4 &color,
-        const std::shared_ptr<Renderer::PathRenderer> &pathRenderer) {
+    void ConnectionSceneComponent::drawSegments(const SceneState &state,
+                                                const glm::vec3 &startPos,
+                                                const glm::vec3 &endPos,
+                                                const glm::vec4 &color,
+                                                SceneDrawContext &context) {
 
         const auto &segCache = state.getIsSchematicView()
                                    ? m_segCachedSchemeticPos
@@ -64,27 +66,26 @@ namespace Bess::Canvas {
                                  ? Styles::compSchematicStyles.strokeSize
                                  : 2.f;
 
-        PickingId pickingId{m_runtimeId, 0};
+        const auto &first = segCache.front();
 
-        auto pos = segCache.front();
-        pos.z = 0.5f;
-        pathRenderer->beginPathMode(pos, m_hoveredSegIdx == 0 ? 3 : weight,
-                                    color, pickingId);
+        SceneDraw::beginPath(context, {first.x, first.y, 0.5f},
+                             weight, //
+                             color,  //
+                             PickingId{m_runtimeId, 0},
+                             {.roundedJoints = true});
 
-        size_t segmentIndex = 0;
-        for (size_t i = 1; i < segCache.size(); i++) {
+        for (uint32_t i = 1; i < segCache.size(); i++) {
             const auto &segPos = segCache[i];
 
+            const auto segmentIndex = i - 1;
             const bool isHovered = m_hoveredSegIdx == segmentIndex;
-            pickingId.info = segmentIndex++;
-
-            pathRenderer->pathLineTo(
-                glm::vec3(segPos.x, segPos.y, isHovered ? 0.82f : pos.z),
-                isHovered ? 3 : weight, color, pickingId);
+            const float zIndex = isHovered ? 0.82f : 0.5f;
+            SceneDraw::pathLineTo(context, {segPos.x, segPos.y, zIndex},
+                                  isHovered ? weight + 1.f : weight,
+                                  PickingId{m_runtimeId, segmentIndex});
         }
 
-        pathRenderer->endPathMode(false, false, glm::vec4(0.f), true,
-                                  !state.getIsSchematicView());
+        SceneDraw::endPath(context);
     }
 
     void ConnectionSceneComponent::draw(SceneDrawContext &context) {
@@ -168,14 +169,13 @@ namespace Bess::Canvas {
                 endComp->cast<SlotSceneComponent>()->getConnectionPos(state);
         }
 
-        drawSegments(state, startPos, endPos, color, context.pathRenderer);
+        drawSegments(state, startPos, endPos, color, context);
 
         if (m_hoveredSegIdx >= 0 &&
             state.getConnectionStartSlot() != UUID::null) {
-            context.materialRenderer->drawCircle(
-                {state.getMousePos(), 0.51f}, 6.f,
-                ViewportTheme::colors.selectedComp,
-                PickingId{m_runtimeId, (uint32_t)m_hoveredSegIdx});
+            SceneDraw::drawCircle(context, {state.getMousePos(), 0.5f}, 5.f,
+                                  ViewportTheme::colors.selectedComp,
+                                  PickingId::invalid());
         }
     }
 
@@ -236,7 +236,7 @@ namespace Bess::Canvas {
             startPos.x += Styles::compSchematicStyles.pinSize;
             endPos.x -= Styles::compSchematicStyles.pinSize;
         }
-        drawSegments(state, startPos, endPos, color, context.pathRenderer);
+        drawSegments(state, startPos, endPos, color, context);
     }
 
     void ConnectionSceneComponent::onMouseDragged(
@@ -349,13 +349,17 @@ namespace Bess::Canvas {
     void
     ConnectionSceneComponent::onMouseEnter(const Events::MouseEnterEvent &e) {
         m_hoveredSegIdx = (int)e.details;
-        UI::setCursorPointer();
+        auto &appCtx = GAppContext::getInstance();
+        auto window = appCtx.getSubSystem<Window>();
+        window->getui().setCursorPointer();
     }
 
     void
     ConnectionSceneComponent::onMouseLeave(const Events::MouseLeaveEvent &e) {
         m_hoveredSegIdx = -1;
-        UI::setCursorNormal();
+        auto &appCtx = GAppContext::getInstance();
+        auto window = appCtx.getSubSystem<Window>();
+        window->getui().setCursorNormal();
     }
 
     std::vector<UUID> ConnectionSceneComponent::cleanup(SceneState &state,

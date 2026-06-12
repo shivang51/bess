@@ -1,7 +1,10 @@
 #include "ui/ui.h"
 #include "bess_core/g_app_context.h"
+#include "bess_wgpu/wgpu_renderer_2d.h"
 #include "common/logger.h"
-#include "device.h"
+#include "imgui_impl_wgpu.h"
+#include "pages/main_page/main_page.h"
+#include "sub_systems/renderer_context.h"
 #include "ui/icons/CodIcons.h"
 #include "ui/icons/ComponentIcons.h"
 #include "ui/icons/FontAwesomeIcons.h"
@@ -12,14 +15,11 @@
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
-#include "imgui_impl_vulkan.h"
 #include "implot.h"
-#include "vulkan_core.h"
-#include <memory>
-#include <vulkan/vulkan_core.h>
 
-namespace Bess::UI {
-    void init(GLFWwindow *window) {
+namespace Bess {
+
+    void UIHandle::init(const std::shared_ptr<Window> &window) {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImPlot::CreateContext();
@@ -37,88 +37,37 @@ namespace Bess::UI {
             GAppContext::getInstance().getSubSystem<Config::Settings>();
         settings->loadCurrentTheme();
 
-        ImGui_ImplGlfw_InitForVulkan(window, true);
+        const auto &renderer2D = GAppContext::getInstance()
+                                     .getSubSystem<RendererContext>()
+                                     ->getRenderer<Wgpu::WgpuRenderer2D>();
 
-        initVulkanImGui();
+        ImGui_ImplGlfw_InitForOther(window->getGLFWHandle(), true);
+        ImGui_ImplWGPU_InitInfo initInfo{};
+        initInfo.Device = renderer2D->getDevice().Get();
+        initInfo.NumFramesInFlight = 1;
+        initInfo.RenderTargetFormat =
+            static_cast<WGPUTextureFormat>(renderer2D->getSurfaceFormat());
+        ImGui_ImplWGPU_Init(&initInfo);
 
         loadFontAndSetScale(settings->getFontSize(), settings->getScale());
 
         BESS_INFO("[UI] ImGui initialized successfully");
+
+        m_currentPage = Pages::MainPage::getInstance(window);
     }
 
-    void initVulkanImGui() {
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
+    void UIHandle::shutdown() {
+        m_currentPage.reset();
+        Pages::MainPage::getInstance().reset();
 
-        const auto device = vkCore->getDevice();
-        if (!device) {
-            BESS_ERROR("[UI] Vulkan device not available!");
-            return;
-        }
-
-        constexpr std::array<VkDescriptorPoolSize, 1> poolSizes = {
-            {{.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-              .descriptorCount = 1000}}};
-
-        VkDescriptorPoolCreateInfo poolInfo = {};
-        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-        poolInfo.maxSets = 1000;
-        poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-        poolInfo.pPoolSizes = poolSizes.data();
-
-        if (vkCreateDescriptorPool(device->device(), &poolInfo, nullptr,
-                                   &s_uiDescriptorPool) != VK_SUCCESS) {
-            BESS_ERROR("Failed to create descriptor pool for ImGui!");
-            return;
-        }
-
-        ImGui_ImplVulkan_InitInfo initInfo = {};
-        initInfo.ApiVersion = VK_API_VERSION_1_0;
-        initInfo.Instance = vkCore->getVkInstance();
-        initInfo.PhysicalDevice = device->physicalDevice();
-        initInfo.Device = device->device();
-        initInfo.QueueFamily =
-            device->queueFamilyIndices().graphicsFamily.value();
-        initInfo.Queue = device->graphicsQueue();
-        initInfo.DescriptorPool = s_uiDescriptorPool;
-        initInfo.MinImageCount = 2;
-        initInfo.ImageCount = 2;
-        initInfo.UseDynamicRendering = false;
-
-        initInfo.PipelineInfoMain.RenderPass =
-            vkCore->getRenderPass()->getVkHandle();
-        initInfo.PipelineInfoMain.Subpass = 0;
-        initInfo.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-        initInfo.PipelineInfoForViewports.RenderPass =
-            vkCore->getRenderPass()->getVkHandle();
-        initInfo.PipelineInfoForViewports.Subpass = 0;
-        initInfo.PipelineInfoForViewports.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-
-        if (!ImGui_ImplVulkan_Init(&initInfo)) {
-            BESS_ERROR("Failed to initialize ImGui Vulkan backend!");
-            vkDestroyDescriptorPool(device->device(), s_uiDescriptorPool,
-                                    nullptr);
-            return;
-        }
-
-        BESS_INFO("ImGui Vulkan backend initialized successfully!");
-    }
-
-    void shutdown() {
         BESS_INFO("[UI] Destroying");
+        ImGui_ImplWGPU_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImPlot::DestroyContext();
         ImGui::DestroyContext();
     }
 
-    void vulkanCleanup(const std::shared_ptr<Vulkan::VulkanDevice> &device) {
-        BESS_INFO("[UI] Destroying VK Context");
-        ImGui_ImplVulkan_Shutdown();
-        vkDestroyDescriptorPool(device->device(), s_uiDescriptorPool, nullptr);
-    }
-
-    void begin() {
+    void UIHandle::begin() {
         const auto &settings =
             GAppContext::getInstance().getSubSystem<Config::Settings>();
 
@@ -127,11 +76,30 @@ namespace Bess::UI {
             settings->setFontRebuild(true);
         }
 
-        ImGui_ImplVulkan_NewFrame();
+        ImGui_ImplWGPU_NewFrame();
         ImGui_ImplGlfw_NewFrame();
+        // if (g_window != nullptr) {
+        //     int windowWidth = 0;
+        //     int windowHeight = 0;
+        //     int framebufferWidth = 0;
+        //     int framebufferHeight = 0;
+        //     glfwGetWindowSize(g_window, &windowWidth, &windowHeight);
+        //     glfwGetFramebufferSize(g_window, &framebufferWidth,
+        //                            &framebufferHeight);
+        //     ImGuiIO &io = ImGui::GetIO();
+        //     io.DisplaySize = ImVec2(static_cast<float>(framebufferWidth),
+        //                             static_cast<float>(framebufferHeight));
+        //     io.DisplayFramebufferScale = ImVec2(
+        //         windowWidth > 0 ? static_cast<float>(framebufferWidth) /
+        //                               static_cast<float>(windowWidth)
+        //                         : 1.0f,
+        //         windowHeight > 0 ? static_cast<float>(framebufferHeight) /
+        //                                static_cast<float>(windowHeight)
+        //                          : 1.0f);
+        // }
         ImGui::NewFrame();
 
-        switch (currentCursorType) {
+        switch (m_currentCursorType) {
         case CursorType::pointer:
             ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
             break;
@@ -157,7 +125,6 @@ namespace Bess::UI {
         windowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus |
                        ImGuiWindowFlags_NoNavFocus;
 
-        static bool pOpen = true;
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0F, 0.0F));
         ImGui::Begin("DockSpace", nullptr, windowFlags);
         ImGui::PopStyleVar(3);
@@ -166,7 +133,7 @@ namespace Bess::UI {
         ImGui::DockSpace(mainDockspaceId);
     }
 
-    void end() {
+    void UIHandle::end() {
         ImGui::End();
         ImGui::Render();
 
@@ -174,9 +141,21 @@ namespace Bess::UI {
         ImGui::RenderPlatformWindowsDefault();
     }
 
-    ImFont *Fonts::largeFont = nullptr;
-    ImFont *Fonts::mediumFont = nullptr;
-    void loadFontAndSetScale(const float fontSize, const float scale) {
+    void UIHandle::draw() {
+        const auto &appCtx = GAppContext::getInstance();
+        const auto &settings = appCtx.getSubSystem<Config::Settings>();
+
+        if (settings->getShowStatsWindow()) {
+            drawStats(m_currentFps);
+        }
+
+        m_currentPage->draw();
+    }
+
+    ImFont *UIHandle::Fonts::largeFont = nullptr;
+    ImFont *UIHandle::Fonts::mediumFont = nullptr;
+    void UIHandle::loadFontAndSetScale(const float fontSize,
+                                       const float scale) {
         ImGuiIO &io = ImGui::GetIO();
 
         constexpr auto robotoPath =
@@ -184,9 +163,10 @@ namespace Bess::UI {
 
         io.Fonts->Clear();
         io.Fonts->AddFontFromFileTTF(robotoPath, fontSize);
-        // Fonts::largeFont = io.Fonts->AddFontFromFileTTF(robotoPath, fontSize
-        // * 2.0F); Fonts::mediumFont = io.Fonts->AddFontFromFileTTF(robotoPath,
-        // fontSize * 1.5F);
+        // Fonts::largeFont = io.Fonts->AddFontFromFileTTF(robotoPath,
+        // fontSize
+        // * 2.0F); Fonts::mediumFont =
+        // io.Fonts->AddFontFromFileTTF(robotoPath, fontSize * 1.5F);
         io.FontDefault = io.Fonts->AddFontFromFileTTF(robotoPath, fontSize);
 
         ImFontConfig config;
@@ -204,43 +184,48 @@ namespace Bess::UI {
             Assets::Fonts::Paths::fontAwesomeIcons.paths[0].data();
 
         static const std::array<ImWchar, 3> compIconRanges = {
-            Icons::ComponentIcons::SIZE_MIN_CI,
-            Icons::ComponentIcons::SIZE_MAX_CI, 0};
+            UI::Icons::ComponentIcons::SIZE_MIN_CI,
+            UI::Icons::ComponentIcons::SIZE_MAX_CI, 0};
         io.Fonts->AddFontFromFileTTF(compIconsPath, fontSize * r, &config,
                                      compIconRanges.data());
 
         static const std::array<ImWchar, 3> codiconIconRanges = {
-            Icons::CodIcons::ICON_MIN_CI, Icons::CodIcons::ICON_MAX_CI, 0};
+            UI::Icons::CodIcons::ICON_MIN_CI, UI::Icons::CodIcons::ICON_MAX_CI,
+            0};
         config.GlyphOffset.y = fontSize / 5.0F;
         io.Fonts->AddFontFromFileTTF(codeIconsPath, fontSize, &config,
                                      codiconIconRanges.data());
 
         static const std::array<ImWchar, 3> faIconRangesR = {
-            Icons::FontAwesomeIcons::SIZE_MIN_FA,
-            Icons::FontAwesomeIcons::SIZE_MAX_FA, 0};
+            UI::Icons::FontAwesomeIcons::SIZE_MIN_FA,
+            UI::Icons::FontAwesomeIcons::SIZE_MAX_FA, 0};
         config.GlyphOffset.y = -r;
         io.Fonts->AddFontFromFileTTF(fontAwesomeIconsPath, fontSize * r,
                                      &config, faIconRangesR.data());
 
         config.GlyphOffset.y = r;
         static const std::array<ImWchar, 3> matIconRanges = {
-            Icons::MaterialIcons::ICON_MIN_MD,
-            Icons::MaterialIcons::ICON_MAX_MD, 0};
+            UI::Icons::MaterialIcons::ICON_MIN_MD,
+            UI::Icons::MaterialIcons::ICON_MAX_MD, 0};
         io.Fonts->AddFontFromFileTTF(materialIconsPath, fontSize * r, &config,
                                      matIconRanges.data());
 
         io.FontGlobalScale = scale;
     }
 
-    void setCursorPointer() { currentCursorType = CursorType::pointer; }
+    void UIHandle::setCursorPointer() {
+        m_currentCursorType = CursorType::pointer;
+    }
 
-    void setCursorMove() { currentCursorType = CursorType::move; }
+    void UIHandle::setCursorMove() { m_currentCursorType = CursorType::move; }
 
-    void setCursorNormal() { currentCursorType = CursorType::normal; }
+    void UIHandle::setCursorNormal() {
+        m_currentCursorType = CursorType::normal;
+    }
 
-    void drawStats(const int fps) {
+    void UIHandle::drawStats(const int fps) {
         ImGui::Begin(
-            std::format("{}  Stats", Icons::FontAwesomeIcons::FA_CHART_PIE)
+            std::format("{}  Stats", UI::Icons::FontAwesomeIcons::FA_CHART_PIE)
                 .c_str());
         ImGui::Text("FPS: %d", fps);
         ImGuiIO &io = ImGui::GetIO();
@@ -251,4 +236,9 @@ namespace Bess::UI {
         ImGui::End();
     }
 
-} // namespace Bess::UI
+    void UIHandle::update(TimeMs dt) {
+        m_currentPage->update(dt);
+        m_currentFps = static_cast<int>(std::round(1000.0 / dt.count()));
+    }
+
+} // namespace Bess

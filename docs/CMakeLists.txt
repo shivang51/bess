@@ -2,7 +2,6 @@ find_package(Doxygen REQUIRED)
 set(DOXYGEN_INPUT_DIRS
     ${CMAKE_SOURCE_DIR}/src/bess/
 		${CMAKE_SOURCE_DIR}/src/bess_json/
-		${CMAKE_SOURCE_DIR}/src/bess_vulkan/
 		${CMAKE_SOURCE_DIR}/src/bessplug/
 		${CMAKE_SOURCE_DIR}/src/bverilog/
 		${CMAKE_SOURCE_DIR}/src/command_system/

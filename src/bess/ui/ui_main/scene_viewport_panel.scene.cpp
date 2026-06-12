@@ -7,12 +7,14 @@
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "scene.h"
 #include "scene/scene_draw_context.h"
-#include "scene_state/components/scene_component_types.h"
+#include "scene/scene_draw_helpers.h"
 #include "settings/viewport_theme.h"
 #include "sub_systems/input_sub_system.h"
-#include "vulkan_core.h"
+#include "sub_systems/renderer_context.h"
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
+#include <unordered_set>
 
 namespace Bess::UI {
     uint64_t decodeGpuHoverValue(const glm::uvec2 &encodedId) {
@@ -65,7 +67,8 @@ namespace Bess::UI {
             }
         }
 
-        if (!m_attachedScene->getIsFirstFrame()) {
+        if (!m_attachedScene->getIsFirstFrame() &&
+            !m_attachedScene->isDragging()) {
             updatePickingIds(mouseMoved);
         }
     }
@@ -124,24 +127,33 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::renderAttachedScene() {
-        auto renderers = m_viewport->getRenderers();
-
+        if (m_sceneTexture == nullptr || m_pickingTexture == nullptr) {
+            return;
+        }
+        const auto &appCtx = GAppContext::getInstance();
+        const auto &renderCtx = appCtx.getSubSystem<RendererContext>();
         auto &sceneState = m_attachedScene->getState();
 
+        const auto &renderer = renderCtx->getRenderer();
+
+        renderer->beginFrame({
+            .extent = {(uint32_t)m_viewportSize.x, (uint32_t)m_viewportSize.y},
+            .clearColor = ViewportTheme::colors.background,
+            .shouldClear = true,
+            .targetTexture = m_sceneTexture->getHandle(),
+            .pickingTexture = m_pickingTexture->getHandle(),
+            .cameraTransform =
+                glm::value_ptr(m_attachedScene->getCamera()->getTransform()),
+        });
+
         SceneDrawContext context;
-        context.materialRenderer = renderers.materialRenderer;
-        context.pathRenderer = renderers.pathRenderer;
-        context.camera = m_viewport->getCamera();
-        context.sceneState = &m_attachedScene->getState();
+        context.sceneState = &sceneState;
+        context.renderer = renderer;
+        context.camera = m_attachedScene->getCamera();
 
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
-
-        m_viewport->begin((int)vkCore->getCurrentFrameIdx(),
-                          ViewportTheme::colors.background,
-                          {0, PickingId::invalid().runtimeId});
-
-        drawGrid(context);
+        if (m_sceneDrawFlags.drawGrid) {
+            drawGrid(context);
+        }
 
         if (sceneState.getConnectionStartSlot() != UUID::null) {
             const auto comp = sceneState.getComponentByUuid(
@@ -163,17 +175,16 @@ namespace Bess::UI {
             const auto endPos =
                 m_attachedScene->toScenePos(m_attachedScene->getMousePos());
 
-            drawGhostConnection(renderers.pathRenderer, glm::vec2(pos), endPos);
+            drawGhostConnection(context, glm::vec2(pos), endPos);
         }
 
         drawComponents(context);
-
-        const auto &selCtx = m_attachedScene->getSelBoxContext();
-        if (selCtx.draw) {
+        if (m_sceneDrawFlags.drawSelectionBox &&
+            m_attachedScene->getSelBoxContext().draw) {
             drawSelectionBox(context);
         }
-        m_viewport->end();
-        m_viewport->submit();
+
+        renderer->endFrame();
 
         if (m_attachedScene->getIsFirstFrame()) {
             m_attachedScene->setIsFirstFrame(false);
@@ -181,38 +192,105 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::drawGrid(SceneDrawContext &context) {
-        context.materialRenderer->drawGrid(
-            glm::vec3(0.f, 0.f, 0.1f), context.camera->getSpan(),
-            PickingId::invalid(),
-            {
-                .minorColor = ViewportTheme::colors.gridMinorColor,
-                .majorColor = ViewportTheme::colors.gridMajorColor,
-                .axisXColor = ViewportTheme::colors.gridAxisXColor,
-                .axisYColor = ViewportTheme::colors.gridAxisYColor,
-            },
-            context.camera);
+        if (m_gridShader == 0) {
+            m_gridShader = context.renderer->createCustomQuadShader({
+                .label = "viewport_grid",
+                .fragmentSource = R"(
+  fn viewport_grid_camera_offset(in: CustomQuadFragmentInput) -> vec2f {
+      let sx = in.camera_transform[0][0];
+      let sy = in.camera_transform[1][1];
+      var camera_x = 0.0;
+      var camera_y = 0.0;
+      if (abs(sx) > 0.000001) {
+          camera_x = -in.camera_transform[3][0] / sx;
+      }
+      if (abs(sy) > 0.000001) {
+          camera_y = -in.camera_transform[3][1] / sy;
+      }
+      return vec2f(-camera_x, -camera_y);
+  }
+
+  fn viewport_grid_line(world_pos: vec2f, spacing: f32, thickness_px: f32,
+                        zoom: f32) -> f32 {
+      let spacing_vec = vec2f(spacing, spacing);
+      var dist = abs(world_pos - floor(world_pos / spacing_vec) * spacing_vec);
+      dist = min(dist, spacing_vec - dist);
+
+      let thickness_world = thickness_px / zoom;
+      let d = min(dist.x, dist.y);
+      return smoothstep(thickness_world, 0.0, d);
+  }
+
+  fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
+      let small_spacing = 10.0;
+      let big_spacing = 100.0;
+      let zoom = max(in.camera_zoom, 0.0001);
+      let camera_offset = viewport_grid_camera_offset(in);
+      let world_pos = ((in.frag_coord.xy - in.viewport * 0.5) / zoom) -
+                      camera_offset;
+
+      var small_grid = viewport_grid_line(world_pos, small_spacing, 1.0, zoom);
+      let big_grid = viewport_grid_line(world_pos, big_spacing, 2.0, zoom);
+
+      let small_fade = clamp((zoom - 0.5) * 2.0, 0.0, 1.0);
+      small_grid *= small_fade;
+
+      let intensity = max(small_grid * 0.3, big_grid * 0.6);
+      if (intensity <= 0.0001) {
+          discard;
+      }
+
+      var grid_color = in.data1;
+      if (small_grid >= big_grid) {
+          grid_color = in.data0;
+      }
+
+      let axis_thickness_world = 2.0 / zoom;
+      if (abs(world_pos.x) < axis_thickness_world) {
+          grid_color = in.data3;
+      }
+      if (abs(world_pos.y) < axis_thickness_world) {
+          grid_color = in.data2;
+      }
+
+      return grid_color * in.color;
+  }
+  )",
+            });
+        }
+
+        context.renderer->drawCustomQuad(
+            {.position = {0.f, 0.f},
+             .size = m_viewportSize,
+             .zIndex = -10000.f,
+             .color = {1.f, 1.f, 1.f, 1.f},
+             .id = PickingId::invalid(),
+             .renderPass = Core::Renderer::QuadRenderPass::Opaque},
+            m_gridShader,
+            {ViewportTheme::colors.gridMinorColor,
+             ViewportTheme::colors.gridMajorColor,
+             ViewportTheme::colors.gridAxisXColor,
+             ViewportTheme::colors.gridAxisYColor},
+            Core::Renderer::CustomQuadTransformMode::Screen);
     }
 
-    void SceneViewportPanel::drawGhostConnection(
-        const std::shared_ptr<PathRenderer> &pathRenderer,
-        const glm::vec2 &startPos, const glm::vec2 &endPos) {
+    void SceneViewportPanel::drawGhostConnection(SceneDrawContext &context,
+                                                 const glm::vec2 &startPos,
+                                                 const glm::vec2 &endPos) {
         auto midX = (startPos.x + endPos.x) / 2.f;
 
         const auto &id = PickingId::invalid();
+        constexpr float z = 0.48f; // Behind the connections so i can do joints
 
-        pathRenderer->beginPathMode(glm::vec3(startPos.x, startPos.y, 0.8f),
-                                    2.f, ViewportTheme::colors.ghostWire, id);
-
-        pathRenderer->pathLineTo(glm::vec3(midX, startPos.y, 0.8f), 2.f,
-                                 ViewportTheme::colors.ghostWire, id);
-
-        pathRenderer->pathLineTo(glm::vec3(midX, endPos.y, 0.8f), 2.f,
-                                 ViewportTheme::colors.ghostWire, id);
-
-        pathRenderer->pathLineTo(glm::vec3(endPos, 0.8f), 2.f,
-                                 ViewportTheme::colors.ghostWire, id);
-
-        pathRenderer->endPathMode(false, false, glm::vec4(1.f), true, true);
+        Canvas::SceneDraw::beginPath(
+            context, glm::vec3(startPos.x, startPos.y, z), 2.f,
+            ViewportTheme::colors.ghostWire, id, {.roundedJoints = true});
+        Canvas::SceneDraw::pathLineTo(context, glm::vec3(midX, startPos.y, z),
+                                      2.f);
+        Canvas::SceneDraw::pathLineTo(context, glm::vec3(midX, endPos.y, z),
+                                      2.f);
+        Canvas::SceneDraw::pathLineTo(context, glm::vec3(endPos, z), 2.f);
+        Canvas::SceneDraw::endPath(context);
     }
 
     void SceneViewportPanel::drawComponents(SceneDrawContext &context) {
@@ -254,85 +332,128 @@ namespace Bess::UI {
         const auto pos = start + (size / 2.f);
         size = glm::abs(size);
 
-        Renderer::QuadRenderProperties props;
+        Canvas::SceneDraw::QuadStyle props;
         props.borderColor = ViewportTheme::colors.selectionBoxBorder;
         props.borderSize = glm::vec4(1.f);
 
-        context.materialRenderer->drawQuad(
-            glm::vec3(pos, 7.f), size, ViewportTheme::colors.selectionBoxFill,
-            -1, props);
+        Canvas::SceneDraw::drawQuad(context, glm::vec3(pos, 7.f), size,
+                                    ViewportTheme::colors.selectionBoxFill,
+                                    PickingId::invalid(), props);
     }
 
     void SceneViewportPanel::updatePickingIds(bool mouseMoved) {
-        auto &sceneState = m_attachedScene->getState();
-        auto &selCtx = m_attachedScene->getSelBoxContext();
-        m_viewport->tryUpdatePickingResults();
+        const auto &renderer = GAppContext::getInstance()
+                                   .getSubSystem<RendererContext>()
+                                   ->getRenderer();
 
-        if (selCtx.queueSelInNextFrame) {
-            selCtx.queueForSel = true;
-            selCtx.queueSelInNextFrame = false;
-        } else if (selCtx.queueForSel) {
-            const auto &start = selCtx.start;
-            const auto &end = selCtx.end;
-            const glm::vec2 pos = {std::min(start.x, end.x),
-                                   std::max(start.y, end.y)};
-            const auto size = glm::abs(end - start);
-            const auto w = (uint32_t)size.x;
-            const auto h = (uint32_t)size.y;
-            const auto x = (uint32_t)pos.x;
-            const auto y = (uint32_t)(m_viewportSize.y - pos.y);
-            m_viewport->setPickingCoord(x, y, w, h);
-            m_viewport->tryUpdatePickingResults();
+        Core::Renderer::PickingReadbackResult pickingResult;
+        if (renderer->tryGetPickingIds(pickingResult) &&
+            !pickingResult.empty()) {
+            const bool isSelectionResult =
+                m_waitingForSelReadback && pickingResult.x == m_selReadbackX &&
+                pickingResult.y == m_selReadbackY &&
+                pickingResult.width == m_selReadbackWidth &&
+                pickingResult.height == m_selReadbackHeight;
 
-            selCtx.queueForSel = false;
-            selCtx.readIds = true;
-        } else if (!selCtx.draw && !selCtx.readIds &&
-                   !m_viewport->isPickingPending()) {
-            auto mousePos_ = m_attachedScene->getMousePos();
-            mousePos_.y = m_viewportSize.y - mousePos_.y;
-            const uint32_t x = static_cast<uint32_t>(mousePos_.x);
-            const uint32_t y = static_cast<uint32_t>(mousePos_.y);
-            m_viewport->setPickingCoord(x, y);
-            m_viewport->tryUpdatePickingResults();
-        }
-
-        if (selCtx.readIds && !m_viewport->isPickingPending()) {
-
-            const auto &rawIds = m_viewport->getPickingIdsResult();
-
-            selCtx.readIds = false;
-
-            if (rawIds.size() > 0) {
-                std::set<PickingId> ids;
-                for (const auto &rawId : rawIds) {
-                    auto id = PickingId::fromUint64(
-                        decodeGpuHoverValue(rawId));
-                    ids.insert(id);
-                }
-
+            if (isSelectionResult) {
+                auto &sceneState = m_attachedScene->getState();
                 sceneState.clearSelectedComponents();
-                for (const auto &id : ids) {
-                    auto comp = sceneState.getComponentByPickingId(id);
-                    if (comp == nullptr)
+
+                std::unordered_set<uint32_t> selectedRuntimeIds;
+                for (const auto &id : pickingResult.ids) {
+                    if (!id.isValid() || !id.isSelectable()) {
                         continue;
-                    sceneState.addSelectedComponent(id);
+                    }
+                    if (!selectedRuntimeIds.insert(id.runtimeId).second) {
+                        continue;
+                    }
+
+                    const auto comp = sceneState.getComponentByPickingId(id);
+                    if (comp) {
+                        sceneState.addSelectedComponent(comp->getUuid());
+                    }
                 }
-            }
 
-        } else {
-            const auto &ids = m_viewport->getPickingIdsResult();
-            const uint64_t hoverValue = (ids.empty())
-                                            ? PickingId::invalid()
-                                            : decodeGpuHoverValue(ids[0]);
-
-            // FIXME: this is a temp fix, picking id intially is 0 when no
-            // comps are there, which is not right
-            if (hoverValue == 0 && sceneState.getAllComponents().empty()) {
-                m_attachedScene->setPickingId(PickingId::invalid());
+                m_waitingForSelReadback = false;
                 return;
             }
-            m_attachedScene->setPickingId(
-                PickingId::fromUint64(hoverValue));
+
+            if (!m_waitingForSelReadback) {
+                m_attachedScene->setPickingId(pickingResult.firstOrInvalid());
+            }
         }
+
+        if (m_waitingForSelReadback) {
+            return;
+        }
+
+        if (m_pickingTexture == nullptr || m_pickingTexture->getHandle() == 0) {
+            return;
+        }
+
+        auto &selCtx = m_attachedScene->getSelBoxContext();
+        if (selCtx.queueSelInNextFrame) {
+            selCtx.queueSelInNextFrame = false;
+            selCtx.queueForSel = true;
+            return;
+        }
+
+        const glm::vec2 mousePos = m_attachedScene->getMousePos();
+        const glm::vec2 textureSize = m_pickingTexture->getSize();
+        const uint32_t width =
+            textureSize.x > 1.f ? static_cast<uint32_t>(textureSize.x) : 1u;
+        const uint32_t height =
+            textureSize.y > 1.f ? static_cast<uint32_t>(textureSize.y) : 1u;
+
+        if (selCtx.queueForSel) {
+            selCtx.queueForSel = false;
+
+            const glm::vec2 start = selCtx.start;
+            const glm::vec2 end = selCtx.end;
+            const float minX = std::min(start.x, end.x);
+            const float minY = std::min(start.y, end.y);
+            const float maxX = std::max(start.x, end.x);
+            const float maxY = std::max(start.y, end.y);
+
+            const auto x0 = static_cast<uint32_t>(std::clamp(
+                std::floor(minX), 0.f, static_cast<float>(width - 1u)));
+            const auto y0 = static_cast<uint32_t>(std::clamp(
+                std::floor(minY), 0.f, static_cast<float>(height - 1u)));
+            const auto x1 = static_cast<uint32_t>(
+                std::clamp(std::ceil(maxX), static_cast<float>(x0 + 1u),
+                           static_cast<float>(width)));
+            const auto y1 = static_cast<uint32_t>(
+                std::clamp(std::ceil(maxY), static_cast<float>(y0 + 1u),
+                           static_cast<float>(height)));
+
+            m_selReadbackX = x0;
+            m_selReadbackY = y0;
+            m_selReadbackWidth = x1 - x0;
+            m_selReadbackHeight = y1 - y0;
+            m_waitingForSelReadback = true;
+
+            renderer->requestPickingIds(
+                {.texture = m_pickingTexture->getHandle(),
+                 .x = m_selReadbackX,
+                 .y = m_selReadbackY,
+                 .width = m_selReadbackWidth,
+                 .height = m_selReadbackHeight});
+            return;
+        }
+
+        if (!mouseMoved) {
+            return;
+        }
+
+        if (mousePos.x < 0.f || mousePos.y < 0.f ||
+            mousePos.x >= static_cast<float>(width) ||
+            mousePos.y >= static_cast<float>(height)) {
+            m_attachedScene->setPickingId(PickingId::invalid());
+            return;
+        }
+
+        renderer->requestPickingId(m_pickingTexture->getHandle(),
+                                   static_cast<uint32_t>(mousePos.x),
+                                   static_cast<uint32_t>(mousePos.y));
     }
 } // namespace Bess::UI

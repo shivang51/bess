@@ -1,16 +1,22 @@
 #pragma once
+#include "GLFW/glfw3.h"
+#include "bess_core/renderer/texture.h"
 #include "common/sub_system.h"
 #include "fwd.hpp"
 #include "sub_systems/input_sub_system_types.h"
-#define GLFW_INCLUDE_VULKAN
-#include "GLFW/glfw3.h"
+#include "ui.h"
 
 #include <memory>
 #include <string>
-#include <vector>
 
 namespace Bess {
-    class Window : public ISubSystem {
+
+    struct WindowSurface {
+        void *rendereHwd = nullptr;
+    };
+
+    class Window : public ISubSystem,
+                   public std::enable_shared_from_this<Window> {
       public:
         struct GLFWwindowDeleter {
             void operator()(GLFWwindow *window) { glfwDestroyWindow(window); }
@@ -21,9 +27,16 @@ namespace Bess {
         Window(int width, int height, const std::string &title);
 
         void onPreUpdate() override;
+        void onUpdate(TimeMs dt) override;
         void onPreInit() override;
         void onInit() override;
+        void onPostInit() override;
+        void onShutdown() override;
         void onDestroy() override;
+
+        void onPreDraw() override;
+        void onDraw() override;
+        void onPostDraw() override;
 
         void onBeginFrame() override;
 
@@ -48,13 +61,11 @@ namespace Bess {
 
         GLFWwindow *getGLFWHandle() const { return mp_window.get(); }
 
-        // Vulkan-specific methods
-        void createWindowSurface(VkInstance instance,
-                                 VkSurfaceKHR &surface) const;
-        std::vector<const char *> getVulkanExtensions() const;
-        VkExtent2D getExtent() const;
         bool wasWindowResized() const { return m_framebufferResized; }
         void resetWindowResizedFlag() { m_framebufferResized = false; }
+
+        MAKE_GETTER_SETTER(WindowSurface, surface, m_surface)
+        MAKE_GETTER(UIHandle, ui, m_ui)
 
       private:
         KeyCode glfwKeyToKeyCode(int glfwKey) const;
@@ -68,5 +79,8 @@ namespace Bess {
         void initGLFW() const;
         static void framebufferResizeCallback(GLFWwindow *window, int width,
                                               int height);
+
+        WindowSurface m_surface;
+        UIHandle m_ui;
     };
 } // namespace Bess

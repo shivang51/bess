@@ -27,8 +27,7 @@ set(BESS_PYBIND_SOURCES
 		plugin.cpp
 		common_bindings.cpp
 		scene/renderer/path.binding.cpp
-		scene/renderer/path_renderer.binding.cpp
-		scene/renderer/material_renderer.binding.cpp
+		scene/renderer/renderer.binding.cpp
 
 		scene/schematic_diagram.binding.cpp
 		scene/scene_state.binding.cpp
@@ -56,7 +55,8 @@ pybind11_add_module(${PROJECT_NAME} ${BESS_PYBIND_SOURCES})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
 	BessExtDeps
-	BessVulkan
+	
+	BessWgpu
 	BessSimEngine
 	EventSystem
 	BessScene
@@ -70,7 +70,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 add_dependencies(${PROJECT_NAME}
 	BessApp
 	BessExtDeps
-	BessVulkan
+	
+	BessWgpu
 	BessSimEngine
 	EventSystem
 	BessScene

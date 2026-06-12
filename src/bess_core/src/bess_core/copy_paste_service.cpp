@@ -1,11 +1,11 @@
 #include "bess_core/copy_paste_service.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "command_system.h"
 #include "common/bess_uuid.h"
 #include "component_catalog.h"
 #include "macro_command.h"
 #include "pages/main_page/cmds/add_comp_cmd.h"
-#include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "scene_state/components/scene_component.h"
@@ -223,12 +223,13 @@ namespace Bess::Svc::CopyPaste {
         } while (!connEntites.empty() && prevSize < connEntites.size());
 
         if (recordHistory) {
-            auto &cmdSystem =
-                Pages::MainPage::getInstance()->getState().getCommandSystem();
-            const auto currentCmdSystemScene = cmdSystem.getInternalScene();
-            cmdSystem.setScene(targetScene);
-            cmdSystem.execute(std::move(macroCmd));
-            cmdSystem.setScene(currentCmdSystemScene);
+            const auto &appCtx = Bess::GAppContext::getInstance();
+            auto cmdSystem = appCtx.getSubSystem<ProjectContext>()
+                                 ->getSubSystem<Cmd::CommandSystem>();
+            const auto currentCmdSystemScene = cmdSystem->getInternalScene();
+            cmdSystem->setScene(targetScene);
+            cmdSystem->execute(std::move(macroCmd));
+            cmdSystem->setScene(currentCmdSystemScene);
         } else {
             auto &appCtx = Bess::GAppContext::getInstance();
             auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();

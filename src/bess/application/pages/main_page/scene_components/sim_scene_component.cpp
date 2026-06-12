@@ -2,10 +2,12 @@
 #include "bess_core/connection_service.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "bess_core/renderer/renderer_2d.h"
+#include "bess_core/renderer/renderer_types.h"
 #include "common/bess_uuid.h"
 #include "icons/FontAwesomeIcons.h"
 #include "input_scene_component.h"
-#include "renderer/material_renderer.h"
+#include "scene/scene_draw_helpers.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/styles/comp_style.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
@@ -14,6 +16,7 @@
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include "slot_scene_component.h"
+#include "sub_systems/renderer_context.h"
 #include "ui/widgets/m_widgets.h"
 
 #include <algorithm>
@@ -21,10 +24,177 @@
 #include <unordered_set>
 
 namespace Bess::Canvas {
+    uint32_t SimulationSceneComponent::s_nodeShader = 0;
+    size_t SimulationSceneComponent::s_instanceCount = 0;
+
     constexpr float SNAP_AMOUNT = 2.f;
 
     SimulationSceneComponent::SimulationSceneComponent() {
         m_icon = UI::Icons::FontAwesomeIcons::FA_MICROCHIP;
+
+        if (s_nodeShader == 0) {
+            const auto &appCtx = Bess::GAppContext::getInstance();
+            const auto &rendererCtx =
+                appCtx.getSubSystem<Bess::RendererContext>();
+
+            Core::Renderer::CustomQuadShaderDesc desc;
+
+            desc.label = "MicaQuadShader";
+            desc.fragmentSource = R"(
+fn cornerRadiusForPoint(p: vec2f, radii: vec4f) -> f32 {
+    var radius = radii.w;
+    if (p.x < 0.0 && p.y < 0.0) {
+        radius = radii.x;
+    } else if (p.x >= 0.0 && p.y < 0.0) {
+        radius = radii.y;
+    } else if (p.x >= 0.0 && p.y >= 0.0) {
+        radius = radii.z;
+    }
+    return radius;
+}
+
+fn sdRoundedRect(p: vec2f, halfSize: vec2f, radii: vec4f) -> f32 {
+    let maxRadius = max(min(halfSize.x, halfSize.y), 0.0);
+    let clampedRadii = clamp(radii, vec4f(0.0), vec4f(maxRadius));
+    let radius = cornerRadiusForPoint(p, clampedRadii);
+    let innerHalfSize = max(halfSize - vec2f(radius), vec2f(0.0));
+    let d = abs(p) - innerHalfSize;
+    return length(max(d, vec2f(0.0))) + min(max(d.x, d.y), 0.0) - radius;
+}
+
+fn borderWidthForPoint(p: vec2f, halfSize: vec2f, radii: vec4f, borderSize: vec4f) -> f32 {
+    let maxRadius = max(min(halfSize.x, halfSize.y), 0.0);
+    let clampedRadii = clamp(radii, vec4f(0.0), vec4f(maxRadius));
+    let radius = cornerRadiusForPoint(p, clampedRadii);
+    let inCorner = radius > 0.0 &&
+                   abs(p.x) > halfSize.x - radius &&
+                   abs(p.y) > halfSize.y - radius;
+
+    if (inCorner) {
+        if (p.x < 0.0 && p.y < 0.0) {
+            return min(borderSize.x, borderSize.w);
+        } else if (p.x >= 0.0 && p.y < 0.0) {
+            return min(borderSize.x, borderSize.y);
+        } else if (p.x >= 0.0 && p.y >= 0.0) {
+            return min(borderSize.z, borderSize.y);
+        }
+        return min(borderSize.z, borderSize.w);
+    }
+
+    let distToTop = p.y + halfSize.y;
+    let distToRight = halfSize.x - p.x;
+    let distToBottom = halfSize.y - p.y;
+    let distToLeft = p.x + halfSize.x;
+    let nearestHorizontal = min(distToLeft, distToRight);
+    let nearestVertical = min(distToTop, distToBottom);
+
+    if (nearestVertical <= nearestHorizontal) {
+        if (distToTop <= distToBottom) {
+            return borderSize.x;
+        }
+        return borderSize.z;
+    }
+    if (distToRight <= distToLeft) {
+        return borderSize.y;
+    }
+    return borderSize.w;
+}
+
+fn aaWidth(fw: vec2f) -> f32 {
+    return max(length(fw) * 0.5, 0.000001);
+}
+
+fn shadeTintedGlass(base: vec4f, localUv: vec2f, style: vec4f, headerColor: vec4f) -> vec4f {
+    let uv = clamp(localUv, vec2f(0.0), vec2f(1.0));
+    let headerHeight = clamp(style.x, 0.0, 1.0);
+    
+    let centeredUv = abs((uv * 2.0) - vec2f(1.0));
+    let edge = smoothstep(0.15, 1.0, max(centeredUv.x, centeredUv.y));
+    let cornerGlow = smoothstep(0.20, 0.6, length(centeredUv));
+    let rimTint = vec3f(0.03, 0.03, 0.03); // Darker border frame for node contrast
+
+    let headerBlend = 1.0 - smoothstep(headerHeight - 0.02, headerHeight + 0.06, uv.y);
+    
+    // --- HEADER ---
+    let radialCenter = vec2f(0.5, 0.0);
+    let radialDist = length(uv - radialCenter);
+    let headerRadialGlow = smoothstep(0.85, 0.0, radialDist); 
+    
+    let topEdgeLight = smoothstep(0.025, 0.0, uv.y) * smoothstep(0.02, 0.08, uv.x) * smoothstep(0.98, 0.92, uv.x);
+    
+    let headerVerticalFalloff = smoothstep(0.0, headerHeight, uv.y);
+    
+    let headerDarkBase = vec3f(0.010, 0.012, 0.014); 
+    
+    var headerRgb = mix(headerDarkBase, headerColor.rgb * 0.48, headerRadialGlow);
+    
+    headerRgb = mix(headerRgb, headerRgb * 0.35, headerVerticalFalloff);
+    
+    let specularColor = mix(vec3f(1.0), headerColor.rgb, 0.25);
+    headerRgb += specularColor * 0.45 * topEdgeLight;
+    
+    headerRgb += headerColor.rgb * 0.12 * headerRadialGlow * (1.0 - headerVerticalFalloff);
+
+    // --- BODY ---
+    let bodyTopGlow = smoothstep(headerHeight + 0.30, headerHeight, uv.y);
+    let bodyBottomShadow = smoothstep(0.75, 1.0, uv.y);
+    let bodyBase = max(base.rgb * 0.35, vec3f(0.018, 0.020, 0.024));
+    
+    var bodyRgb = mix(bodyBase, base.rgb * 0.55, 0.22); 
+    
+    let bodyRadialBleed = smoothstep(0.85, 0.0, length(uv - vec2f(0.5, headerHeight * 0.5)));
+    bodyRgb += headerColor.rgb * 0.06 * bodyTopGlow * bodyRadialBleed; 
+    bodyRgb -= vec3f(bodyBottomShadow * 0.008);
+
+    var finalRgb = mix(bodyRgb, headerRgb, headerBlend);
+
+    finalRgb += rimTint * ((edge * 0.055) + (cornerGlow * 0.020));
+
+    // Keep the glass layer translucent enough for the grid and lower-z
+    // primitives to remain visible behind the component.
+    let alpha = base.a * mix(0.62, 0.74, headerBlend);
+    return vec4f(clamp(finalRgb, vec3f(0.0), vec3f(1.0)), alpha);
+}
+
+fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
+    let halfSize = max(in.size * 0.5, vec2f(0.0001));
+    let p = in.local_pos;
+    let outerDistance = sdRoundedRect(p, halfSize, vec4f(in.data0.x));
+    let aa = aaWidth(fw);
+    let outerMask = 1.0 - smoothstep(-aa, aa, outerDistance);
+
+    if (outerMask < 0.001) {
+        discard;
+    }
+
+		let borderSizeIn = vec4f(in.data0.z);
+    let borderSize = clamp(borderSizeIn, vec4f(0.0),
+                           vec4f(halfSize.y, halfSize.x, halfSize.y, halfSize.x));
+    let border = max(max(borderSize.x, borderSize.y),
+                     max(borderSize.z, borderSize.w));
+    let borderWidth = borderWidthForPoint(p, halfSize, in.data0, borderSize);
+    let borderMask = smoothstep(-borderWidth - aa, -borderWidth + aa, outerDistance);
+
+    var color = shadeTintedGlass(in.color, in.local_uv, in.data3, in.data1);
+
+    if (border > 0.0) {
+        color = mix(color, in.data2, borderMask);
+    }
+    color.a *= outerMask;
+    return color;
+}
+
+  fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
+			let fw_local_px = fwidth(in.local_pos);
+			return shadeQuad(in, fw_local_px);
+  }
+	)";
+
+            s_nodeShader =
+                rendererCtx->getRenderer()->createCustomQuadShader(desc);
+        }
+
+        s_instanceCount++;
     }
 
     std::vector<std::shared_ptr<SceneComponent>>
@@ -64,57 +234,58 @@ namespace Bess::Canvas {
     }
 
     void SimulationSceneComponent::drawBackground(SceneDrawContext &context) {
+        BESS_ASSERT(s_nodeShader != 0, "Mica shader not initialized");
 
         const auto pickingId = PickingId{m_runtimeId, 0};
-        Renderer::QuadRenderProperties props;
-        props.angle = m_transform.angle;
-        props.borderRadius = m_style.borderRadius;
-        props.borderSize = m_style.borderSize;
-        props.borderColor = m_isSelected ? ViewportTheme::colors.selectedComp
-                                         : m_style.headerColor;
-        props.isMica = true;
-        props.shadow = {
-            .enabled = true,
-            .offset = glm::vec2(0.f, 0.f),
-            .scale = glm::vec2(1.701f, 1.701f),
-            .color = glm::vec4(1.f),
-        };
 
-        context.materialRenderer->drawQuad(m_transform.position,
-                                           m_transform.scale, m_style.color,
-                                           pickingId, props);
+        Core::Renderer::QuadProps quadProps;
+        quadProps.position = m_transform.position;
+        quadProps.size = m_transform.scale;
+        quadProps.color = m_style.color;
+        quadProps.id = pickingId;
+        quadProps.rotation = m_transform.angle;
+        quadProps.zIndex = m_transform.position.z;
+        quadProps.renderPass = Core::Renderer::QuadRenderPass::Transparent;
+        quadProps.radius = m_style.borderRadius;
+        quadProps.shadow.enabled = true;
+        quadProps.shadow.offset = {0.f, 7.f};
+        quadProps.shadow.blur = 18.f;
+        quadProps.shadow.spread = 1.f;
+        quadProps.shadow.color =
+            Core::Renderer::Color{0.f, 0.f, 0.f, 0.28f};
 
-        // header
-        props = {};
-        props.angle = m_transform.angle;
-        props.borderSize = glm::vec4(0.f);
-        props.borderRadius =
-            glm::vec4(0, 0, m_style.borderRadius.x - m_style.borderSize.x,
-                      m_style.borderRadius.y - m_style.borderSize.y);
-        props.isMica = true;
-
+        const auto &borderColor = m_isSelected
+                                      ? ViewportTheme::colors.selectedComp
+                                      : m_style.borderColor;
         const float headerHeight = Styles::componentStyles.headerHeight;
-        const auto headerPos =
-            glm::vec3(m_transform.position.x,
-                      m_transform.position.y - (m_transform.scale.y / 2.f) +
-                          (headerHeight / 2.f),
-                      m_transform.position.z + 0.0004f);
-        context.materialRenderer->drawQuad(
-            headerPos,
-            glm::vec2(m_transform.scale.x - m_style.borderSize.w -
-                          m_style.borderSize.y,
-                      headerHeight - m_style.borderSize.x -
-                          m_style.borderSize.z),
-            m_style.headerColor, pickingId, props);
+
+        context.renderer->drawCustomQuad({
+            .quad = quadProps,
+            .shader = s_nodeShader,
+            .data =
+                {
+                    glm::vec4{m_style.borderRadius.x, m_style.borderRadius.y,
+                              m_style.borderSize.x, m_style.borderSize.y},
+                    m_style.headerColor,
+                    borderColor,
+                    glm::vec4(headerHeight / m_transform.scale.y, 0.f, 0.f,
+                              0.f),
+                },
+        });
+
+        const auto headerPosY = m_transform.position.y -
+                                (m_transform.scale.y / 2.f) +
+                                (headerHeight / 2.f);
 
         const auto textPos =
             glm::vec3(m_transform.position.x - (m_transform.scale.x / 2.f) +
                           Styles::componentStyles.paddingX,
-                      headerPos.y + Styles::simCompStyles.paddingY,
+                      headerPosY + Styles::simCompStyles.paddingY,
                       m_transform.position.z + 0.0005f);
+
         // component name
-        context.materialRenderer->drawText(
-            m_name, textPos, Styles::simCompStyles.headerFontSize,
+        SceneDraw::drawText(
+            context, m_name, textPos, Styles::simCompStyles.headerFontSize,
             ViewportTheme::colors.text, pickingId, m_transform.angle);
     }
 
@@ -149,24 +320,22 @@ namespace Bess::Canvas {
             ViewportTheme::schematicViewColors.componentFill;
         const auto &strokeColor =
             ViewportTheme::schematicViewColors.componentStroke;
-        context.pathRenderer->beginPathMode({x, y, pos.z}, nodeWeight,
-                                            strokeColor, id);
-        context.pathRenderer->pathLineTo({x1, y, pos.z}, nodeWeight,
-                                         strokeColor, id);
-        context.pathRenderer->pathLineTo({x1, y1, pos.z}, nodeWeight,
-                                         strokeColor, id);
-        context.pathRenderer->pathLineTo({x, y1, pos.z}, nodeWeight,
-                                         strokeColor, id);
-        context.pathRenderer->endPathMode(true, true, fillColor);
+        SceneDraw::beginPath(
+            context, {x, y, pos.z}, nodeWeight, strokeColor, id,
+            {.closePath = true, .renderFill = true, .fillColor = fillColor});
+        SceneDraw::pathLineTo(context, {x1, y, pos.z}, nodeWeight);
+        SceneDraw::pathLineTo(context, {x1, y1, pos.z}, nodeWeight);
+        SceneDraw::pathLineTo(context, {x, y1, pos.z}, nodeWeight);
+        SceneDraw::endPath(context);
 
-        const auto textSize = Renderer::MaterialRenderer::getTextRenderSize(
-            m_name, Styles::compSchematicStyles.nameFontSize);
+        const auto textSize = context.renderer->measureText(
+            m_name, {.fontSize = Styles::compSchematicStyles.nameFontSize});
         glm::vec3 textPos = {pos.x, y + ((y1 - y) / 2.f), pos.z + 0.0005f};
         textPos.x -= textSize.x / 2.f;
         textPos.y += Styles::simCompStyles.headerFontSize / 2.f;
-        context.materialRenderer->drawText(
-            m_name, textPos, Styles::compSchematicStyles.nameFontSize,
-            textColor, id, 0.f);
+        SceneDraw::drawText(context, m_name, textPos,
+                            Styles::compSchematicStyles.nameFontSize, textColor,
+                            id, 0.f);
 
         drawSlots(context);
 
@@ -212,8 +381,8 @@ namespace Bess::Canvas {
 
     glm::vec2
     SimulationSceneComponent::calculateScale(const SceneState &state) {
-        const auto labelSize = Renderer::MaterialRenderer::getTextRenderSize(
-            m_name, Styles::simCompStyles.headerFontSize);
+        const auto labelSize = Core::Renderer::IRenderer2D::getTextRenderSize(
+            m_name, {.fontSize = Styles::simCompStyles.headerFontSize});
         float width = labelSize.x + (Styles::simCompStyles.paddingX * 2.f);
         size_t maxRows = std::max(m_inputSlots.size(), m_outputSlots.size());
         float height = ((float)maxRows * Styles::SIM_COMP_SLOT_ROW_SIZE);
@@ -375,8 +544,9 @@ namespace Bess::Canvas {
             const auto slotComp =
                 state.getComponentByUuid<SlotSceneComponent>(m_inputSlots[i]);
             const auto slotLabelSize =
-                Renderer::MaterialRenderer::getTextRenderSize(
-                    slotComp->getName(), Styles::componentStyles.slotLabelSize);
+                Core::Renderer::IRenderer2D::getTextRenderSize(
+                    slotComp->getName(),
+                    {.fontSize = Styles::componentStyles.slotLabelSize});
             maxInpSlotWidth = std::max(maxInpSlotWidth, slotLabelSize.x);
         }
 
@@ -384,8 +554,9 @@ namespace Bess::Canvas {
             const auto slotComp =
                 state.getComponentByUuid<SlotSceneComponent>(m_outputSlots[i]);
             const auto slotLabelSize =
-                Renderer::MaterialRenderer::getTextRenderSize(
-                    slotComp->getName(), Styles::componentStyles.slotLabelSize);
+                Core::Renderer::IRenderer2D::getTextRenderSize(
+                    slotComp->getName(),
+                    {.fontSize = Styles::componentStyles.slotLabelSize});
             maxOutSlotWidth = std::max(maxOutSlotWidth, slotLabelSize.x);
         }
 
@@ -394,8 +565,8 @@ namespace Bess::Canvas {
             ((float)maxRows * Styles::SCHEMATIC_VIEW_PIN_ROW_SIZE);
 
         const auto textWidth =
-            Renderer::MaterialRenderer::getTextRenderSize(
-                m_name, Styles::compSchematicStyles.nameFontSize)
+            Core::Renderer::IRenderer2D::getTextRenderSize(
+                m_name, {.fontSize = Styles::compSchematicStyles.nameFontSize})
                 .x;
 
         float width = textWidth + (Styles::compSchematicStyles.paddingX *

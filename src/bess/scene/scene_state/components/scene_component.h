@@ -4,7 +4,6 @@
 #include "common/bess_uuid.h"
 #include "common/class_helpers.h"
 #include "common/types.h"
-#include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/scene_state/components/behaviours/mouse_behaviour.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene_draw_context.h"
@@ -79,8 +78,6 @@ namespace Bess::Canvas {
     REFLECT_DERIVED_PROPS(TComp, TBase, __VA_ARGS__)
 
 #define REG_SCENE_COMP_NP(TComp, TBase) REFLECT_DERIVED_EMPTY(TComp, TBase)
-
-    using PathRenderer = Renderer::PathRenderer;
 
     class SceneState;
 

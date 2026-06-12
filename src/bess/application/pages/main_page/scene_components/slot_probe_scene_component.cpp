@@ -6,7 +6,7 @@
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
-#include "renderer/material_renderer.h"
+#include "scene/scene_draw_helpers.h"
 #include "scene_draw_context.h"
 #include "scene_state/scene_state.h"
 #include "settings/viewport_theme.h"
@@ -24,9 +24,8 @@ namespace Bess::Canvas {
     }
 
     void SlotProbeSceneComponent::draw(SceneDrawContext &context) {
-
-        const auto &textSize =
-            Renderer::MaterialRenderer::getTextRenderSize(m_name, 9);
+        const auto textSize =
+            context.renderer->measureText(m_name, {.fontSize = 9.f});
         if (m_isFirstDraw) {
             m_scaleDirty = true;
             m_isFirstDraw = false;
@@ -37,11 +36,10 @@ namespace Bess::Canvas {
             m_scaleDirty = false;
         }
 
-        Renderer::QuadRenderProperties props;
+        SceneDraw::QuadStyle props;
         props.borderColor = m_isSelected
                                 ? ViewportTheme::colors.selectedComp
                                 : ViewportTheme::colors.componentBorder;
-        props.isMica = true;
         props.borderRadius = glm::vec4(4.f);
         props.borderSize = glm::vec4(1.f);
 
@@ -50,20 +48,19 @@ namespace Bess::Canvas {
         const auto &startPos = getAbsolutePosition(sceneState);
         const bool isProbed = m_probedSlotUuid != UUID::null;
 
-        context.materialRenderer->drawQuad(
-            startPos, scale,
-            isProbed ? ViewportTheme::colors.clockConnectionLow
-                     : ViewportTheme::colors.componentBG,
-            PickingId{m_runtimeId, 0}, props);
+        SceneDraw::drawQuad(context, startPos, scale,
+                            isProbed ? ViewportTheme::colors.clockConnectionLow
+                                     : ViewportTheme::colors.componentBG,
+                            PickingId{m_runtimeId, 0}, props);
 
-        context.materialRenderer->drawText(
-            m_name,
-            startPos +
-                glm::vec3(-textSize.x / 2.f, (textSize.y / 2.f) - 2.f, 0.0001f),
-            9,
-            isProbed ? ViewportTheme::colors.clockConnectionHigh
-                     : ViewportTheme::colors.text,
-            PickingId{m_runtimeId, 0});
+        SceneDraw::drawText(context, m_name,
+                            startPos + glm::vec3(-textSize.x / 2.f,
+                                                 (textSize.y / 2.f) - 2.f,
+                                                 0.0001f),
+                            9,
+                            isProbed ? ViewportTheme::colors.clockConnectionHigh
+                                     : ViewportTheme::colors.text,
+                            PickingId{m_runtimeId, 0});
 
         if (m_probedSlotUuid != UUID::null) {
             const auto &comp =
@@ -88,15 +85,14 @@ namespace Bess::Canvas {
                     ? ViewportTheme::colors.stateHigh
                     : ViewportTheme::colors.stateLow;
 
-            context.pathRenderer->beginPathMode(
-                {startPos.x - (textSize.x / 2.f), startPos.y, 0.51}, 1.f, color,
-                PickingId{m_runtimeId, 1});
+            SceneDraw::beginPath(
+                context, {startPos.x - (textSize.x / 2.f), startPos.y, 0.51},
+                1.f, color, PickingId{m_runtimeId, 1});
 
             endPos.z = 0.51f;
-            context.pathRenderer->pathCubicBeizerTo(
-                endPos, ctrl1, ctrl2, 1.f, color, PickingId{m_runtimeId, 1});
+            SceneDraw::pathCubicTo(context, endPos, ctrl1, ctrl2, 1.f);
 
-            context.pathRenderer->endPathMode();
+            SceneDraw::endPath(context);
         }
     }
 
@@ -254,7 +250,8 @@ namespace Bess::Canvas {
         digComp->removeOnStateChangeCB(m_uuid);
     }
 
-    void SlotProbeSceneComponent::onBeforeProbedSlotChanged() {
+    void SlotProbeSceneComponent::onBeforeProbedSlotChanged(
+        const UUID &newSlotUuid) {
         m_unsubscribeFlag = true;
         m_unsubscribeSlotUuid = m_probedSlotUuid;
     }

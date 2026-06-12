@@ -1,15 +1,13 @@
 #pragma once
 
-#include "application/events/application_event.h"
 #include "common/bess_uuid.h"
 #include "common/types.h"
 #include "scene/camera.h"
 #include "scene/scene_events.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/scene_state.h"
-#include "scene/viewport.h"
+#include "sim_driver/sim_driver.h"
 #include <memory>
-#include <vulkan/vulkan_core.h>
 
 namespace Bess::Canvas {
 
@@ -55,12 +53,11 @@ namespace Bess::Canvas {
         const SceneState &getState() const;
         SceneState &getState();
 
-        typedef std::function<void(const std::shared_ptr<Viewport> &viewport)>
-            ViewportDrawFn;
-        MAKE_GETTER_SETTER(ViewportDrawFn, ViewportDrawFn, m_viewportDrawFunc);
         MAKE_GETTER_SETTER(std::shared_ptr<Camera>, Camera, m_camera)
         MAKE_GETTER_SETTER(SelBoxContext, SelBoxContext, m_selBoxContext)
         MAKE_GETTER_SETTER(bool, IsFirstFrame, m_isFirstFrame)
+        MAKE_GETTER_SETTER_BC_AC(PickingId, PickingId, m_pickingId,
+                                 onPrePickingIdChange, onPickingIdChange)
 
       public:
         const UUID &getSceneId() const;
@@ -73,6 +70,8 @@ namespace Bess::Canvas {
         const ViewportTransform &getViewportTransform() const;
 
         PickingId getHoveredEntity() const { return m_pickingId; }
+
+        bool isDragging() const;
 
         const glm::vec2 &getMousePos() const;
         glm::vec2 getSceneMousePos();
@@ -100,8 +99,6 @@ namespace Bess::Canvas {
         void focusCameraOnSelected();
         glm::vec2 toScenePos(const glm::vec2 &mousePos) const;
 
-        void setPickingId(const PickingId &pickingId);
-
         float getNextZCoord();
 
         MAKE_GETTER(bool, IsLeftMousePressed, m_isLeftMousePressed);
@@ -114,9 +111,11 @@ namespace Bess::Canvas {
         void onMouseMove(const glm::vec2 &pos);
 
       private:
+        void onPrePickingIdChange(const PickingId &newId);
+        void onPickingIdChange();
+
         /// to draw testing stuff
-        void drawScratchContent(TimeMs ts,
-                                const std::shared_ptr<Viewport> &viewport);
+        void drawScratchContent(TimeMs ts);
         bool isCursorInViewport(const glm::vec2 &pos) const;
         glm::vec2 getViewportMousePos(const glm::vec2 &mousePos) const;
 
@@ -133,8 +132,6 @@ namespace Bess::Canvas {
 
         bool m_isLeftMousePressed = false, m_isMiddleMousePressed = false;
         SceneState m_state;
-
-        ViewportDrawFn m_viewportDrawFunc = nullptr;
 
         bool m_isCtrlPressed = false, m_isShiftPressed = false;
         ViewportTransform m_viewportTransform;
@@ -154,8 +151,6 @@ namespace Bess::Canvas {
         float m_compZCoord = m_zIncrement;
 
         TimeMs m_frameTimeStep = {};
-
-        VkExtent2D vec2Extent2D(const glm::vec2 &vec);
 
         bool m_isDestroyed = false;
         bool m_isFirstFrame = true;

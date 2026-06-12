@@ -1,7 +1,9 @@
 #include "scene_viewport_panel.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/scene_driver.h"
+#include "bess_wgpu/wgpu_texture.h"
 #include "common/bess_uuid.h"
 #include "common/helpers.h"
 #include "common/logger.h"
@@ -11,11 +13,11 @@
 #include "pages/main_page/main_page.h"
 #include "scene/camera.h"
 #include "scene/scene_draw_context.h"
+#include "sub_systems/renderer_context.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/ui_main/component_explorer.h"
 #include "ui_main/ui_main.h"
 #include "ui_panel.h"
-#include "vulkan_core.h"
 #include <cstdint>
 
 namespace Bess::UI {
@@ -24,25 +26,39 @@ namespace Bess::UI {
           m_viewportName(viewportName) {}
 
     void SceneViewportPanel::init() {
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
-        m_viewport = std::make_shared<Canvas::Viewport>(
-            vkCore->getDevice(), vkCore->getSwapchain()->imageFormat(),
-            vec2Extent2D(m_viewportSize));
-
         m_flags = NO_MOVE_FLAGS | ImGuiWindowFlags_NoFocusOnAppearing;
         m_defaultDock = Dock::main;
         m_showInMenuBar = false;
         m_visible = true;
+
+        m_sceneTexture = std::make_shared<Wgpu::WgpuTexture>(
+            Core::Renderer::TextureCreateInfo{});
+        m_sceneTexture->setSize({800.f, 600.f});
+        m_sceneTexture->init();
+
+        m_pickingTexture = std::make_shared<Wgpu::WgpuTexture>(
+            Core::Renderer::TextureCreateInfo{
+                .format = Core::Renderer::Renderer2DTargetFormat::RG32Uint});
+        m_pickingTexture->setSize({800.f, 600.f});
+        m_pickingTexture->init();
     }
 
     void SceneViewportPanel::update(TimeMs ts) {
         BESS_ASSERT(m_attachedScene,
                     "SceneViewportPanel must have an attached scene to update");
         if (m_isResized) {
-            m_viewport->resize(vec2Extent2D(m_viewportSize));
             m_attachedScene->getCamera()->resize(m_viewportSize.x,
                                                  m_viewportSize.y);
+            if (m_sceneTexture) {
+                m_sceneTexture->setSize(m_viewportSize);
+                m_sceneTexture->destroy();
+                m_sceneTexture->init();
+            }
+            if (m_pickingTexture) {
+                m_pickingTexture->setSize(m_viewportSize);
+                m_pickingTexture->destroy();
+                m_pickingTexture->init();
+            }
             m_isResized = false;
         }
 
@@ -65,8 +81,24 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::destroy() {
-        if (m_viewport) {
-            destroyViewport();
+        if (m_gridShader != 0) {
+            const auto renderer = GAppContext::getInstance()
+                                      .getSubSystem<RendererContext>()
+                                      ->getRenderer();
+            if (renderer != nullptr) {
+                if (m_gridShader != 0) {
+                    renderer->destroyCustomQuadShader(m_gridShader);
+                }
+            }
+            m_gridShader = 0;
+        }
+        if (m_sceneTexture != nullptr) {
+            m_sceneTexture->destroy();
+            m_sceneTexture = nullptr;
+        }
+        if (m_pickingTexture != nullptr) {
+            m_pickingTexture->destroy();
+            m_pickingTexture = nullptr;
         }
         m_rootToSceneStatePtrs.clear();
     }
@@ -99,10 +131,9 @@ namespace Bess::UI {
         }
 
         const auto offset = ImGui::GetCursorPos();
-        if (m_viewport->getViewportTexture() != 0) {
-            ImGui::Image((ImTextureRef)m_viewport->getViewportTexture(),
-                         ImVec2(viewportPanelSize.x, viewportPanelSize.y),
-                         ImVec2(0, 1), ImVec2(1, 0));
+        if (m_sceneTexture) {
+            ImGui::Image((ImTextureRef)m_sceneTexture->getView(),
+                         ImVec2(viewportPanelSize.x, viewportPanelSize.y));
         } else {
             ImGui::SetCursorPos({100, 100});
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.f, 0.f, 1.f));
@@ -281,7 +312,6 @@ namespace Bess::UI {
         {
             ImGui::AlignTextToFramePadding();
             ImGui::Text(" %s", Icons::FontAwesomeIcons::FA_CAMERA_RETRO);
-            ImGui::SameLine();
         }
 
         ImGui::SameLine();
@@ -337,17 +367,9 @@ namespace Bess::UI {
         return m_viewportSize;
     }
 
-    VkExtent2D SceneViewportPanel::vec2Extent2D(const glm::vec2 &vec) {
-        return {(uint32_t)vec.x, (uint32_t)vec.y};
-    }
-
-    void SceneViewportPanel::destroyViewport() { m_viewport.reset(); }
-
     void SceneViewportPanel::onSceneAttached() {
         m_attachedScene->getCamera()->resize(m_viewportSize.x,
                                              m_viewportSize.y);
-        m_viewport->setCamera(m_attachedScene->getCamera());
-
         m_rootToSceneStatePtrs.clear();
 
         // Very Important: to avoid circular intialization of mainpage,

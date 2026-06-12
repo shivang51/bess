@@ -1,5 +1,6 @@
-#include "scene/renderer/path.h"
+#include "bess_core/renderer/renderer_path.h"
 
+#include <pybind11/detail/common.h>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -7,122 +8,123 @@
 
 namespace py = pybind11;
 
-typedef Bess::Renderer::Path Path;
+typedef Bess::Core::Renderer::Path2D Path;
 
 void bind_renderer_path(py::module_ &m) {
-    py::class_<Path::MoveTo>(m, "MoveTo")
-        .def(py::init<>())
-        .def_readwrite("p", &Path::MoveTo::p);
 
-    py::class_<Path::LineTo>(m, "LineTo")
-        .def(py::init<>())
-        .def_readwrite("p", &Path::LineTo::p);
-
-    py::class_<Path::QuadTo>(m, "QuadTo")
-        .def(py::init<>())
-        .def_readwrite("c", &Path::QuadTo::c)
-        .def_readwrite("p", &Path::QuadTo::p);
-
-    py::class_<Path::CubicTo>(m, "CubicTo")
-        .def(py::init<>())
-        .def_readwrite("c1", &Path::CubicTo::c1)
-        .def_readwrite("c2", &Path::CubicTo::c2)
-        .def_readwrite("p", &Path::CubicTo::p);
-
-    py::enum_<Path::PathCommand::Kind>(m, "PathCommandKind")
-        .value("Move", Path::PathCommand::Kind::Move)
-        .value("Line", Path::PathCommand::Kind::Line)
-        .value("Quad", Path::PathCommand::Kind::Quad)
-        .value("Cubic", Path::PathCommand::Kind::Cubic)
+    py::enum_<Bess::Core::Renderer::PathCommandKind>(m, "PathCommandKind")
+        .value("Move", Bess::Core::Renderer::PathCommandKind::Move)
+        .value("Line", Bess::Core::Renderer::PathCommandKind::Line)
+        .value("Quad", Bess::Core::Renderer::PathCommandKind::Quad)
+        .value("Cubic", Bess::Core::Renderer::PathCommandKind::Cubic)
         .export_values();
 
-    py::class_<Path::PathCommand>(m, "PathCommand")
+    py::class_<Bess::Core::Renderer::PathCommandStroke>(m, "PathCmdStroke")
         .def(py::init<>())
-        .def_readwrite("kind", &Path::PathCommand::kind)
-        .def_readwrite("z", &Path::PathCommand::z)
-        .def_readwrite("weight", &Path::PathCommand::weight)
-        .def_readwrite("id", &Path::PathCommand::id)
-        .def_property(
-            "move",
-            [](Path::PathCommand &self) -> Path::MoveTo * {
-                if (self.kind != Path::PathCommand::Kind::Move)
-                    throw std::runtime_error("Command is not MoveTo");
-                return &self.move;
-            },
-            [](Path::PathCommand &self, const Path::MoveTo &val) {
-                self.kind = Path::PathCommand::Kind::Move;
-                self.move = val;
-            },
-            py::return_value_policy::reference_internal)
-        .def_property(
-            "line",
-            [](Path::PathCommand &self) -> Path::LineTo * {
-                if (self.kind != Path::PathCommand::Kind::Line)
-                    throw std::runtime_error("Command is not LineTo");
-                return &self.line;
-            },
-            [](Path::PathCommand &self, const Path::LineTo &val) {
-                self.kind = Path::PathCommand::Kind::Line;
-                self.line = val;
-            },
-            py::return_value_policy::reference_internal)
-        .def_property(
-            "quad",
-            [](Path::PathCommand &self) -> Path::QuadTo * {
-                if (self.kind != Path::PathCommand::Kind::Quad)
-                    throw std::runtime_error("Command is not QuadTo");
-                return &self.quad;
-            },
-            [](Path::PathCommand &self, const Path::QuadTo &val) {
-                self.kind = Path::PathCommand::Kind::Quad;
-                self.quad = val;
-            },
-            py::return_value_policy::reference_internal)
-        .def_property(
-            "cubic",
-            [](Path::PathCommand &self) -> Path::CubicTo * {
-                if (self.kind != Path::PathCommand::Kind::Cubic)
-                    throw std::runtime_error("Command is not CubicTo");
-                return &self.cubic;
-            },
-            [](Path::PathCommand &self, const Path::CubicTo &val) {
-                self.kind = Path::PathCommand::Kind::Cubic;
-                self.cubic = val;
-            },
-            py::return_value_policy::reference_internal)
-        .def("__repr__", [](const Path::PathCommand &self) {
+        .def_readwrite("width", &Bess::Core::Renderer::PathCommandStroke::width)
+        .def_readwrite("dash_length",
+                       &Bess::Core::Renderer::PathCommandStroke::dashLength)
+        .def_readwrite("gap_length",
+                       &Bess::Core::Renderer::PathCommandStroke::gapLength)
+        .def_readwrite("dash_offset",
+                       &Bess::Core::Renderer::PathCommandStroke::dashOffset)
+        .def_readwrite("break_before",
+                       &Bess::Core::Renderer::PathCommandStroke::breakBefore)
+        .def_readwrite("break_after",
+                       &Bess::Core::Renderer::PathCommandStroke::breakAfter)
+        .def_readwrite("id", &Bess::Core::Renderer::PathCommandStroke::id)
+        .def_readwrite("has_id",
+                       &Bess::Core::Renderer::PathCommandStroke::hasId)
+        .def_static("with_width",
+                    &Bess::Core::Renderer::PathCommandStroke::withWidth,
+                    py::arg("stroke_width"))
+        .def_static("with_picking_id",
+                    &Bess::Core::Renderer::PathCommandStroke::withPickingId,
+                    py::arg("picking_id"), py::arg("stroke_width") = 0.f)
+        .def_static("with_id", &Bess::Core::Renderer::PathCommandStroke::withId,
+                    py::arg("picking_id"), py::arg("stroke_width") = 0.f)
+        .def_static("with_width_and_id",
+                    &Bess::Core::Renderer::PathCommandStroke::withWidthAndId,
+                    py::arg("stroke_width"), py::arg("picking_id"))
+        .def_static("dashed", &Bess::Core::Renderer::PathCommandStroke::dashed,
+                    py::arg("dash"), py::arg("gap"),
+                    py::arg("stroke_width") = 0.f, py::arg("offset") = 0.f)
+        .def_static("broken", &Bess::Core::Renderer::PathCommandStroke::broken,
+                    py::arg("stroke_width") = 0.f)
+        .def_static("broken_with_id",
+                    &Bess::Core::Renderer::PathCommandStroke::brokenWithId,
+                    py::arg("stroke_width") = 0.f, py::arg("picking_id"))
+        .def("has_width_override",
+             &Bess::Core::Renderer::PathCommandStroke::hasWidthOverride)
+        .def("has_id_override",
+             &Bess::Core::Renderer::PathCommandStroke::hasIdOverride)
+        .def("is_dashed", &Bess::Core::Renderer::PathCommandStroke::isDashed)
+        .def("is_styled", &Bess::Core::Renderer::PathCommandStroke::isStyled);
+
+    py::class_<Bess::Core::Renderer::PathCommand>(m, "PathCommand")
+        .def(py::init<>())
+        .def_readwrite("kind", &Bess::Core::Renderer::PathCommand::kind)
+        .def_readwrite("p", &Bess::Core::Renderer::PathCommand::p)
+        .def_readwrite("control", &Bess::Core::Renderer::PathCommand::control)
+        .def_readwrite("control2", &Bess::Core::Renderer::PathCommand::control2)
+        .def_readwrite("stroke", &Bess::Core::Renderer::PathCommand::stroke)
+        .def_static("move_to", &Bess::Core::Renderer::PathCommand::moveTo,
+                    py::arg("pos"),
+                    "Create a MoveTo command with the given position and "
+                    "optional stroke.")
+        .def_static("line_to",
+                    py::overload_cast<const glm::vec2 &>(
+                        &Bess::Core::Renderer::PathCommand::lineTo),
+                    py::arg("pos"),
+                    "Create a LineTo command with the given position.")
+        .def_static(
+            "line_to",
+            py::overload_cast<const glm::vec2 &,
+                              const Bess::Core::Renderer::PathCommandStroke &>(
+                &Bess::Core::Renderer::PathCommand::lineTo),
+            py::arg("pos"), py::arg("stroke"),
+            "Create a LineTo command with the given position and stroke.")
+        .def_static(
+            "quad_to",
+            py::overload_cast<const glm::vec2 &, const glm::vec2 &>(
+                &Bess::Core::Renderer::PathCommand::quadTo),
+            py::arg("control"), py::arg("pos"),
+            "Create a QuadTo command with the given control and position.")
+        .def_static("cubic_to",
+                    py::overload_cast<const glm::vec2 &, const glm::vec2 &,
+                                      const glm::vec2 &>(
+                        &Bess::Core::Renderer::PathCommand::cubicTo),
+                    py::arg("control1"), py::arg("control2"), py::arg("pos"),
+                    "Create a CubicTo command with the given control points "
+                    "and position.")
+        .def("__repr__", [](const Bess::Core::Renderer::PathCommand &self) {
             switch (self.kind) {
-            case Path::PathCommand::Kind::Move:
+            case Bess::Core::Renderer::PathCommandKind::Move:
                 return "<PathCommand Move>";
-            case Path::PathCommand::Kind::Line:
+            case Bess::Core::Renderer::PathCommandKind::Line:
                 return "<PathCommand Line>";
-            case Path::PathCommand::Kind::Quad:
+            case Bess::Core::Renderer::PathCommandKind::Quad:
                 return "<PathCommand Quad>";
-            case Path::PathCommand::Kind::Cubic:
+            case Bess::Core::Renderer::PathCommandKind::Cubic:
                 return "<PathCommand Cubic>";
             default:
                 return "<PathCommand Unknown>";
             }
         });
 
-    py::class_<Bess::Renderer::PathProperties>(m, "PathProperties")
+    py::class_<Bess::Core::Renderer::PathBounds>(m, "PathBounds")
         .def(py::init<>())
-        .def_readwrite("is_closed", &Bess::Renderer::PathProperties::isClosed)
-        .def_readwrite("rounded_joints",
-                       &Bess::Renderer::PathProperties::roundedJoints)
-        .def_readwrite("render_stroke",
-                       &Bess::Renderer::PathProperties::renderStroke)
-        .def_readwrite("render_fill",
-                       &Bess::Renderer::PathProperties::renderFill)
-        .def("__repr__", [](const Bess::Renderer::PathProperties &props) {
-            return "<PathProperties is_closed=" +
-                   std::to_string(props.isClosed) +
-                   " rounded_joints=" + std::to_string(props.roundedJoints) +
-                   " render_stroke=" + std::to_string(props.renderStroke) +
-                   " render_fill=" + std::to_string(props.renderFill) + ">";
+        .def_readonly("min", &Bess::Core::Renderer::PathBounds::min)
+        .def_readonly("max", &Bess::Core::Renderer::PathBounds::max)
+        .def_readonly("valid", &Bess::Core::Renderer::PathBounds::valid)
+        .def("size", &Bess::Core::Renderer::PathBounds::size)
+        .def("__repr__", [](const Bess::Core::Renderer::PathBounds &self) {
+            return "<PathBounds min=" + std::to_string(self.min.x) + "," +
+                   std::to_string(self.min.y) +
+                   " max=" + std::to_string(self.max.x) + "," +
+                   std::to_string(self.max.y) +
+                   " valid=" + (self.valid ? "True" : "False") + ">";
         });
-
-    py::class_<Bess::Renderer::PathPoint>(m, "PathPoint");
 
     auto move_to_flat = [](Path &self, float x, float y) {
         self.moveTo(glm::vec2(x, y));
@@ -148,48 +150,123 @@ void bind_renderer_path(py::module_ &m) {
 
     py::class_<Path>(m, "Path")
         .def(py::init<>())
-        .def("move_to_vec", &Path::moveTo, py::arg("pos"))
+        .def("move_to_vec", &Bess::Core::Renderer::Path2D::moveTo,
+             py::arg("pos"))
         .def("move_to", move_to_flat, py::arg("x"), py::arg("y"),
              py::return_value_policy::reference_internal)
-        .def("line_to_vec", &Path::lineTo,
+        .def("line_to_vec",
+             py::overload_cast<const glm::vec2 &>(
+                 &Bess::Core::Renderer::Path2D::lineTo),
              py::return_value_policy::reference_internal)
         .def("line_to", line_to_flat, py::arg("x"), py::arg("y"),
              py::return_value_policy::reference_internal)
-        .def("quad_to_vec", &Path::quadTo,
+        .def("line_to_stroke_vec",
+             py::overload_cast<const glm::vec2 &,
+                               const Bess::Core::Renderer::PathCommandStroke &>(
+                 &Bess::Core::Renderer::Path2D::lineTo),
+             py::return_value_policy::reference_internal)
+        .def(
+            "line_to_stroke",
+            [](Path &self, float x, float y,
+               const Bess::Core::Renderer::PathCommandStroke &stroke) {
+                self.lineTo(glm::vec2(x, y), stroke);
+                return &self;
+            },
+            py::arg("x"), py::arg("y"), py::arg("stroke"),
+            py::return_value_policy::reference_internal)
+        .def("quad_to_vec",
+             py::overload_cast<const glm::vec2 &, const glm::vec2 &>(
+                 &Bess::Core::Renderer::Path2D::quadTo),
              py::return_value_policy::reference_internal)
         .def("quad_to", quad_to_flat, py::arg("cx"), py::arg("cy"),
              py::arg("px"), py::arg("py"),
              py::return_value_policy::reference_internal)
-        .def("cubic_to_vec", &Path::cubicTo,
+        .def("quad_to_stroke_vec",
+             py::overload_cast<const glm::vec2 &, const glm::vec2 &,
+                               const Bess::Core::Renderer::PathCommandStroke &>(
+                 &Bess::Core::Renderer::Path2D::quadTo),
+             py::return_value_policy::reference_internal)
+        .def(
+            "quad_to_stroke",
+            [](Path &self, float cx, float cy, float px, float py,
+               const Bess::Core::Renderer::PathCommandStroke &stroke) {
+                self.quadTo(glm::vec2(cx, cy), glm::vec2(px, py), stroke);
+                return &self;
+            },
+            py::arg("cx"), py::arg("cy"), py::arg("px"), py::arg("py"),
+            py::arg("stroke"), py::return_value_policy::reference_internal)
+        .def("cubic_to_vec",
+             py::overload_cast<const glm::vec2 &, const glm::vec2 &,
+                               const glm::vec2 &>(
+                 &Bess::Core::Renderer::Path2D::cubicTo),
              py::return_value_policy::reference_internal)
         .def("cubic_to", cubic_to_flat, py::arg("c1x"), py::arg("c1y"),
              py::arg("c2x"), py::arg("c2y"), py::arg("px"), py::arg("py"),
              py::return_value_policy::reference_internal)
-        .def("add_command", &Path::addCommand,
+        .def("cubic_to_stroke_vec",
+             py::overload_cast<const glm::vec2 &, const glm::vec2 &,
+                               const glm::vec2 &,
+                               const Bess::Core::Renderer::PathCommandStroke &>(
+                 &Bess::Core::Renderer::Path2D::cubicTo),
              py::return_value_policy::reference_internal)
-        .def("get_commands", &Path::getCmds,
+
+        .def(
+            "cubic_to_stroke",
+            [](Path &self, float c1x, float c1y, float c2x, float c2y, float px,
+               float py,
+               const Bess::Core::Renderer::PathCommandStroke &stroke) {
+                self.cubicTo(glm::vec2(c1x, c1y), glm::vec2(c2x, c2y),
+                             glm::vec2(px, py), stroke);
+                return &self;
+            },
+            py::arg("c1x"), py::arg("c1y"), py::arg("c2x"), py::arg("c2y"),
+            py::arg("px"), py::arg("py"), py::arg("stroke"),
+            py::return_value_policy::reference_internal)
+        .def("close_path",
+             py::overload_cast<>(&Bess::Core::Renderer::Path2D::closePath),
              py::return_value_policy::reference_internal)
-        .def("set_commands", &Path::setCommands)
-        .def("get_contours", &Path::getContours,
+        .def("close_path",
+             py::overload_cast<const Bess::Core::Renderer::PathCommandStroke &>(
+                 &Bess::Core::Renderer::Path2D::closePath),
+             py::arg("stroke"), py::return_value_policy::reference_internal)
+        .def("close_path",
+             py::overload_cast<float>(&Bess::Core::Renderer::Path2D::closePath),
+             py::arg("stroke_width"),
              py::return_value_policy::reference_internal)
-        .def("get_props_ref", &Path::getPropsRef,
+        .def("close", py::overload_cast<>(&Bess::Core::Renderer::Path2D::close),
              py::return_value_policy::reference_internal)
-        .def("get_props", &Path::getProps)
-        .def("set_props", &Path::setProps)
-        .def("get_stroke_width", &Path::getStrokeWidth)
-        .def("set_stroke_width", &Path::setStrokeWidth)
-        .def("set_bounds", &Path::setBounds)
-        .def("get_bounds", &Path::getBounds)
-        .def("get_lowest_pos", &Path::getLowestPos)
-        .def("set_lowest_pos", &Path::setLowestPos)
-        .def("copy", &Path::copy)
-        .def_static("from_svg_str", &Path::fromSvgString, py::arg("svg_data"),
-                    "Create a Path from an SVG path data string.")
-        .def_property("properties", &Path::getPropsRef, &Path::setProps,
-                      py::return_value_policy::reference_internal)
-        .def("scale", &Path::scale, py::arg("factor"),
-             py::arg("override_original") = false)
-        .def("normalize", &Path::normalize, py::arg("size"))
-        .def_readwrite("uuid", &Path::uuid)
-        .def("__repr__", [](const Path &) { return "<Path>"; });
+
+        .def("close",
+             py::overload_cast<float>(&Bess::Core::Renderer::Path2D::close),
+             py::arg("stroke_width"),
+             py::return_value_policy::reference_internal)
+        .def("close",
+             py::overload_cast<const Bess::Core::Renderer::PathCommandStroke &>(
+                 &Bess::Core::Renderer::Path2D::close),
+             py::arg("stroke"), py::return_value_policy::reference_internal)
+        .def("close", py::overload_cast<>(&Bess::Core::Renderer::Path2D::close),
+             py::return_value_policy::reference_internal)
+        .def("bounds", &Bess::Core::Renderer::Path2D::bounds,
+             py::return_value_policy::reference_internal)
+        .def("command_count", &Bess::Core::Renderer::Path2D::commandCount)
+        .def("commands", &Bess::Core::Renderer::Path2D::commands,
+             py::return_value_policy::reference_internal)
+        .def("is_empty", &Bess::Core::Renderer::Path2D::empty)
+        .def("has_bounds", &Bess::Core::Renderer::Path2D::hasBounds)
+        .def("revision", &Bess::Core::Renderer::Path2D::revision)
+        .def("translate", &Bess::Core::Renderer::Path2D::translate,
+             py::arg("pos"))
+        .def("set_pos", &Bess::Core::Renderer::Path2D::setPos, py::arg("pos"))
+        .def_static("from_svg_str",
+                    &Bess::Core::Renderer::Path2D::fromSvgString)
+        .def("copy", [](const Path &self) { return Path(self); })
+        .def("no_fill", [](Path &self) { self.setFill(false); })
+        .def("with_fill", [](Path &self) { self.setFill(true); })
+
+        .def("__repr__", [](const Path &self) {
+            return "<Path with " + std::to_string(self.commandCount()) +
+                   " commands, bounds=" +
+                   (self.hasBounds() ? "Valid" : "Invalid") +
+                   ", revision=" + std::to_string(self.revision()) + ">";
+        });
 }

@@ -2,41 +2,70 @@
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "bess_core/scene_driver.h"
+#include "bess_wgpu/wgpu_texture.h"
 #include "common/logger.h"
+#include "gtc/type_ptr.hpp"
 #include "imgui.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
-#include "pages/main_page/scene_components/slot_scene_component.h"
 #include "scene/scene_draw_context.h"
-#include "scene/viewport.h"
+#include "scene/scene_draw_helpers.h"
 #include "settings/viewport_theme.h"
+#include "sub_systems/renderer_context.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/ui_main/dialogs.h"
 #include "ui/widgets/m_widgets.h"
-#include "vulkan_core.h"
 
 #include "png.h"
 #include "stb_image_write.h"
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <memory>
-#include <vulkan/vulkan_core.h>
 
 namespace Bess::UI {
     namespace {
         void drawExportGrid(SceneDrawContext &context) {
-            context.materialRenderer->drawGrid(
-                glm::vec3(0.f, 0.f, 0.1f), context.camera->getSpan(),
-                PickingId::invalid(),
-                {
-                    .minorColor = ViewportTheme::colors.gridMinorColor,
-                    .majorColor = ViewportTheme::colors.gridMajorColor,
-                    .axisXColor = ViewportTheme::colors.gridAxisXColor,
-                    .axisYColor = ViewportTheme::colors.gridAxisYColor,
-                },
-                context.camera);
+            if (!context.renderer || !context.camera) {
+                return;
+            }
+
+            const glm::vec2 span = context.camera->getSpan();
+            const glm::vec2 center = context.camera->getPos();
+            const glm::vec2 min = center - (span * 0.5f);
+            const glm::vec2 max = center + (span * 0.5f);
+            constexpr float gridZ = -10000.f;
+            const PickingId id = PickingId::invalid();
+
+            const auto drawGridLines =
+                [&](float spacing, const glm::vec4 &color, float thickness) {
+                    const float startX = std::floor(min.x / spacing) * spacing;
+                    const float startY = std::floor(min.y / spacing) * spacing;
+
+                    for (float x = startX; x <= max.x; x += spacing) {
+                        Canvas::SceneDraw::drawLine(context, {x, min.y, gridZ},
+                                                    {x, max.y, gridZ},
+                                                    thickness, color, id);
+                    }
+
+                    for (float y = startY; y <= max.y; y += spacing) {
+                        Canvas::SceneDraw::drawLine(context, {min.x, y, gridZ},
+                                                    {max.x, y, gridZ},
+                                                    thickness, color, id);
+                    }
+                };
+
+            drawGridLines(10.f, ViewportTheme::colors.gridMinorColor, 1.f);
+            drawGridLines(100.f, ViewportTheme::colors.gridMajorColor, 2.f);
+
+            Canvas::SceneDraw::drawLine(
+                context, {0.f, min.y, gridZ}, {0.f, max.y, gridZ}, 2.f,
+                ViewportTheme::colors.gridAxisYColor, id);
+            Canvas::SceneDraw::drawLine(
+                context, {min.x, 0.f, gridZ}, {max.x, 0.f, gridZ}, 2.f,
+                ViewportTheme::colors.gridAxisXColor, id);
         }
 
         void drawExportComponents(SceneDrawContext &context) {
@@ -68,31 +97,55 @@ namespace Bess::UI {
         }
 
         void
-        renderSceneToViewport(const std::shared_ptr<Canvas::Scene> &scene,
-                              const std::shared_ptr<Canvas::Viewport> &viewport,
-                              int frameIdx) {
+        convertReadbackToRgba(Core::Renderer::TextureReadbackResult &readback) {
+            if (readback.format !=
+                Core::Renderer::Renderer2DTargetFormat::BGRA8Unorm) {
+                return;
+            }
+
+            for (size_t i = 0; i + 3 < readback.pixels.size(); i += 4) {
+                std::swap(readback.pixels[i], readback.pixels[i + 2]);
+            }
+        }
+
+        void renderSceneToTexture(
+            const std::shared_ptr<Canvas::Scene> &scene,
+            const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer,
+            const std::shared_ptr<Core::Renderer::ITexture> &targetTexture,
+            const std::shared_ptr<Core::Renderer::ITexture> &pickingTexture,
+            const std::shared_ptr<Camera> &camera) {
             BESS_ASSERT(scene,
                         "[SceneExportWindow] Scene must be valid for export");
             BESS_ASSERT(
-                viewport,
-                "[SceneExportWindow] Viewport must be valid for export");
+                renderer,
+                "[SceneExportWindow] Renderer must be valid for export");
+            BESS_ASSERT(targetTexture,
+                        "[SceneExportWindow] Export target must be valid");
             BESS_ASSERT(
-                viewport->getCamera(),
-                "[SceneExportWindow] Export viewport camera must be valid");
+                pickingTexture,
+                "[SceneExportWindow] Picking target must be valid for "
+                "export (renderer was initialized with picking support)");
+            BESS_ASSERT(camera,
+                        "[SceneExportWindow] Export camera must be valid");
 
             SceneDrawContext context;
-            context.materialRenderer =
-                viewport->getRenderers().materialRenderer;
-            context.pathRenderer = viewport->getRenderers().pathRenderer;
-            context.camera = viewport->getCamera();
+            context.renderer = renderer;
+            context.camera = camera;
             context.sceneState = &scene->getState();
 
-            viewport->begin(frameIdx, ViewportTheme::colors.background,
-                            {0, PickingId::invalid().runtimeId});
+            const auto textureSize = targetTexture->getSize();
+            renderer->beginFrame({
+                .extent = {static_cast<uint32_t>(textureSize.x),
+                           static_cast<uint32_t>(textureSize.y)},
+                .clearColor = ViewportTheme::colors.background,
+                .shouldClear = true,
+                .targetTexture = targetTexture->getHandle(),
+                .pickingTexture = pickingTexture->getHandle(),
+                .cameraTransform = glm::value_ptr(camera->getTransform()),
+            });
             drawExportGrid(context);
             drawExportComponents(context);
-            viewport->end();
-            viewport->submit();
+            renderer->endFrame();
         }
     } // namespace
 
@@ -356,7 +409,6 @@ namespace Bess::UI {
         return info;
     }
 
-    /// will move this to separate thread when vulkan is integrated
     void
     SceneExportWindow::exportScene(const std::shared_ptr<Canvas::Scene> &scene,
                                    const SceneExportInfo &info) {
@@ -427,34 +479,58 @@ namespace Bess::UI {
 
         std::vector<unsigned char> imgRowBuffer(finalWidth * 4);
         const size_t snapRowSize = size.x * 4;
-        VkExtent2D extent = {(uint32_t)size.x, (uint32_t)size.y};
-
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
-        auto viewport = std::make_shared<Canvas::Viewport>(
-            vkCore->getDevice(), vkCore->getSwapchain()->imageFormat(), extent);
+        const auto renderer =
+            appCtx.getSubSystem<RendererContext>()->getRenderer();
+        if (!renderer) {
+            BESS_ERROR("[ExportSceneView] Renderer is not initialized");
+            png_destroy_write_struct(&pngPtr, &pngInfoPtr);
+            return;
+        }
+
+        auto renderTarget = std::make_shared<Wgpu::WgpuTexture>(
+            Core::Renderer::TextureCreateInfo{});
+        renderTarget->setSize(size);
+        renderTarget->init();
+
+        auto pickingTarget = std::make_shared<Wgpu::WgpuTexture>(
+            Core::Renderer::TextureCreateInfo{
+                .format = Core::Renderer::Renderer2DTargetFormat::RG32Uint});
+        pickingTarget->setSize(size);
+        pickingTarget->init();
+
         auto camera = std::make_shared<Camera>(size.x, size.y);
-        viewport->setCamera(camera);
         auto pos = min + snapSpan / 2.f;
         camera->setPos(pos);
         camera->setZoom(info.scale);
 
-        int frameIdx = 0;
         for (int i = 0; i < snaps.y; i++) {
             pos.x = min.x + (snapSpan.x / 2.f);
             std::vector<std::vector<unsigned char>> snapsData;
             snapsData.reserve(snaps.x);
             for (int j = 0; j < snaps.x; j++) {
                 camera->setPos(pos);
-                renderSceneToViewport(scene, viewport, frameIdx);
-                frameIdx = (frameIdx + 1) % 2;
+                renderSceneToTexture(scene, renderer, renderTarget,
+                                     pickingTarget, camera);
 
-                snapsData.emplace_back(viewport->getPixelData());
+                auto snapPixels =
+                    renderer->readTexture(renderTarget->getHandle(), 0, 0,
+                                          static_cast<uint32_t>(size.x),
+                                          static_cast<uint32_t>(size.y));
+                convertReadbackToRgba(snapPixels);
+                if (snapPixels.empty()) {
+                    BESS_ERROR("[ExportSceneView] Failed to read export snap");
+                    renderTarget->destroy();
+                    pickingTarget->destroy();
+                    png_destroy_write_struct(&pngPtr, &pngInfoPtr);
+                    return;
+                }
+                snapsData.emplace_back(std::move(snapPixels.pixels));
 
                 pos.x += snapSpan.x;
             }
 
-            for (int imgRow = size.y - 1; imgRow >= 0; imgRow--) {
+            for (int imgRow = 0; imgRow < size.y; imgRow++) {
                 for (int j = 0; j < snaps.x; j++) {
                     const auto &snapData = snapsData[j];
                     const unsigned char *srcPtr =
@@ -467,6 +543,9 @@ namespace Bess::UI {
             }
             pos.y += snapSpan.y;
         }
+
+        renderTarget->destroy();
+        pickingTarget->destroy();
 
         png_write_end(pngPtr, NULL);
         png_destroy_write_struct(&pngPtr, &pngInfoPtr);

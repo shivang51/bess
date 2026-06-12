@@ -1,5 +1,5 @@
 #include "pages/main_page/main_page.h"
-#include "asset_manager/asset_manager.h"
+#include "bess_core/asset_manager/asset_manager.h"
 #include "bess_core/connection_service.h"
 #include "bess_core/copy_paste_service.h"
 #include "bess_core/g_app_context.h"
@@ -30,7 +30,6 @@
 #include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/project_explorer.h"
 #include "ui/ui_main/ui_main.h"
-#include "vulkan_core.h"
 #include <GLFW/glfw3.h>
 #include <functional>
 #include <memory>
@@ -97,17 +96,11 @@ namespace Bess::Pages {
 
         auto &appCtx = Bess::GAppContext::getInstance();
         if (!s_headless) {
-            auto vkCore = appCtx.getSubSystem<Bess::Vulkan::VulkanCore>();
-
-            for (const auto &panel : UI::UIMain::getScenePanels()) {
-                panel->destroyViewport();
-            }
-
             UI::UIMain::destroy();
-        } else {
-            m_state.getSceneDriver()->reset();
-            appCtx.getSubSystem<Assets::AssetManager>()->clear();
         }
+
+        m_state.getSceneDriver()->reset();
+        appCtx.getSubSystem<Assets::AssetManager>()->clear();
 
         BESS_INFO("[MainPage] Destroyed");
         m_isDestroyed = true;

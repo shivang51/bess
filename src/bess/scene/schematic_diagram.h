@@ -1,26 +1,29 @@
 #pragma once
 
+#include "bess_core/renderer/renderer_2d.h"
+#include "bess_core/renderer/renderer_path.h"
 #include "common/types.h"
-#include "scene/renderer/path.h"
-#include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include <vector>
 
 namespace Bess::Canvas {
+
+    using Path = Bess::Core::Renderer::Path2D;
+
     class SchematicDiagram {
       public:
         SchematicDiagram() = default;
         virtual ~SchematicDiagram() = default;
 
-        const std::vector<Renderer::Path> &getPaths() const;
-        void setPaths(const std::vector<Renderer::Path> &paths);
+        const std::vector<Path> &getPaths() const;
+        void setPaths(const std::vector<Path> &paths);
 
-        void addPath(const Renderer::Path &path);
+        void addPath(const Path &path);
 
         const glm::vec2 &getSize() const;
         void setSize(const glm::vec2 &size);
 
-        std::vector<Renderer::Path> &getPathsMut();
+        std::vector<Path> &getPathsMut();
 
         void normalizePaths();
 
@@ -30,13 +33,13 @@ namespace Bess::Canvas {
         float getStrokeSize() const;
         void setStrokeSize(float size);
 
-        glm::vec2
-        draw(const Bess::Canvas::Transform &transform,
-             const Bess::PickingId &pickingId,
-             const std::shared_ptr<Bess::Renderer::PathRenderer> &pathRenderer);
+        glm::vec2 draw(
+            const Bess::Canvas::Transform &transform,
+            const Bess::PickingId &pickingId,
+            const std::shared_ptr<Bess::Core::Renderer::IRenderer2D> &renderer);
 
       private:
-        std::vector<Renderer::Path> m_paths;
+        std::vector<Path> m_paths;
         glm::vec2 m_size; // bounding box size
         bool m_showName = true;
         float m_strokeSize = 0.f;

@@ -3,10 +3,8 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(Header_Files
-	"schematic_diagram.h"
 	"scene.h"
 	"scene_ser_reg.h"
-	"viewport.h"
 	"camera.h"
 	"scene_draw_context.h"
 	"scene_events.h"
@@ -16,48 +14,20 @@ set(Header_Files
 	"scene_state/components/scene_component.h"
 	"scene_state/components/behaviours/drag_behaviour.h"
 	"scene_state/components/behaviours/mouse_behaviour.h"
-	"renderer/vulkan/path_renderer.h"
-	"renderer/vulkan/text_renderer.h"
-	"renderer/vulkan/pipelines/primitive_pipeline.h"
-	"renderer/vulkan/pipelines/pipeline.h"
-	"renderer/vulkan/pipelines/grid_pipeline.h"
-	"renderer/vulkan/pipelines/path_stroke_pipeline.h"
-	"renderer/vulkan/pipelines/text_pipeline.h"
-	"renderer/vulkan/pipelines/path_fill_pipeline.h"
-	"renderer/material_renderer.h"
-	"renderer/material.h"
-	"renderer/msdf_font.h"
-	"renderer/glyph_extractor.h"
-	"renderer/font.h"
-	"renderer/asset_loaders.h"
-	"renderer/path.h"
+	"schematic_diagram.h"
 )
 
 source_group("include/scene" FILES ${Header_Files})
 
 set(Source_Files
-	"schematic_diagram.cpp"
 	"scene_serializer.cpp"
-	"viewport.cpp"
 	"scene_ser_reg.cpp"
 	"scene_state/scene_state.cpp"
 	"scene_state/components/scene_component_types.cpp"
 	"scene_state/components/scene_component.cpp"
 	"scene.cpp"
 	"camera.cpp"
-	"renderer/vulkan/path_renderer.cpp"
-	"renderer/vulkan/text_renderer.cpp"
-	"renderer/vulkan/pipelines/path_stroke_pipeline.cpp"
-	"renderer/vulkan/pipelines/text_pipeline.cpp"
-	"renderer/vulkan/pipelines/primitive_pipeline.cpp"
-	"renderer/vulkan/pipelines/path_fill_pipeline.cpp"
-	"renderer/vulkan/pipelines/grid_pipeline.cpp"
-	"renderer/vulkan/pipelines/pipeline.cpp"
-	"renderer/font.cpp"
-	"renderer/path.cpp"
-	"renderer/glyph_extractor.cpp"
-	"renderer/msdf_font.cpp"
-	"renderer/material_renderer.cpp"
+	"schematic_diagram.cpp"
 )
 
 source_group("src/scene" FILES ${Source_Files})
@@ -78,8 +48,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 		"${CMAKE_SOURCE_DIR}/src/bess/application"
 )
 
-target_link_libraries(${PROJECT_NAME} PUBLIC BessSimEngine BessVulkan BessPluginManager EventSystem BessJson common BessSimDriver DigitalSimDriver)
-add_dependencies(${PROJECT_NAME} BessSimEngine BessVulkan BessPluginManager EventSystem BessJson common BessSimDriver DigitalSimDriver)
+target_link_libraries(${PROJECT_NAME} PUBLIC BessSimEngine  BessPluginManager EventSystem BessJson common BessSimDriver DigitalSimDriver)
+add_dependencies(${PROJECT_NAME} BessSimEngine  BessPluginManager EventSystem BessJson common BessSimDriver DigitalSimDriver)
 target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}")
 
 if(MSVC)

@@ -9,6 +9,7 @@
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
+#include "scene/scene_draw_helpers.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
@@ -29,11 +30,15 @@ namespace Bess::Canvas {
     }
 
     void SlotSceneComponent::onMouseEnter(const Events::MouseEnterEvent &e) {
-        UI::setCursorPointer();
+        auto &appCtx = GAppContext::getInstance();
+        auto window = appCtx.getSubSystem<Window>();
+        window->getui().setCursorPointer();
     }
 
     void SlotSceneComponent::onMouseLeave(const Events::MouseLeaveEvent &e) {
-        UI::setCursorNormal();
+        auto &appCtx = GAppContext::getInstance();
+        auto window = appCtx.getSubSystem<Window>();
+        window->getui().setCursorNormal();
     }
 
     void SlotSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
@@ -91,36 +96,39 @@ namespace Bess::Canvas {
         const float ir = Styles::simCompStyles.slotRadius -
                          Styles::simCompStyles.slotBorderSize;
         const float r = Styles::simCompStyles.slotRadius;
-        drawContext.materialRenderer->drawCircle(pos, r, border, pickingId, ir);
-        drawContext.materialRenderer->drawCircle(pos, ir - radiusGap, bg,
-                                                 pickingId);
+        SceneDraw::drawCircle(drawContext, pos, r, border, pickingId, ir);
+        SceneDraw::drawCircle(drawContext, pos, ir - radiusGap, bg, pickingId);
 
-        if (!m_name.empty()) {
+        if (!m_name.empty() && drawContext.renderer) {
             const float labeldx = Styles::simCompStyles.slotMargin +
                                   (Styles::simCompStyles.slotRadius * 2.f);
+            constexpr float labelFontSize =
+                Styles::simCompStyles.slotLabelSize;
+            Core::Renderer::FontProps labelProps;
+            labelProps.fontSize = labelFontSize;
+
             float labelX = pos.x;
+            const auto labelSize =
+                drawContext.renderer->measureText(m_name, labelProps);
             if (m_slotType == SlotType::digitalInput) {
                 labelX += labeldx;
             } else {
-                const auto labelSize =
-                    Renderer::MaterialRenderer::getTextRenderSize(
-                        m_name, Styles::simCompStyles.slotLabelSize);
                 labelX -= labeldx + labelSize.x;
             }
-            float dY = Styles::componentStyles.slotRadius -
-                       (std::abs((Styles::componentStyles.slotRadius * 2.f) -
-                                 Styles::componentStyles.slotLabelSize) /
-                        2.f);
+
+            const float baselineOffset =
+                drawContext.renderer->textCenterOffsetY(m_name, labelProps);
+            const float labelY = pos.y + baselineOffset;
 
             const auto parentComp =
                 state.getComponentByUuid<SimulationSceneComponent>(
                     m_parentComponent);
-            drawContext.materialRenderer->drawText(
-                m_name, {labelX, pos.y + dY, pos.z},
-                Styles::componentStyles.slotLabelSize,
-                ViewportTheme::colors.text,
-                PickingId{parentComp->getRuntimeId(), 0},
-                parentComp->getTransform().angle);
+            SceneDraw::drawText(drawContext, m_name,
+                                {labelX, labelY, pos.z},
+                                static_cast<std::size_t>(labelFontSize),
+                                ViewportTheme::colors.text,
+                                PickingId{parentComp->getRuntimeId(), 0},
+                                parentComp->getTransform().angle);
         }
     }
 
@@ -148,18 +156,18 @@ namespace Bess::Canvas {
             startPos.x += 5.f;
         }
 
-        drawContext.pathRenderer->beginPathMode(startPos, nodeWeight, pinColor,
-                                                pinId);
-        drawContext.pathRenderer->pathLineTo(
-            {pos.x + offset.x, pos.y + offset.y, pos.z}, nodeWeight, pinColor,
-            pinId);
-        drawContext.pathRenderer->endPathMode(false, false, {}, true, false,
-                                              m_invalidateCache);
+        SceneDraw::drawLine(drawContext, startPos,
+                            {pos.x + offset.x, pos.y + offset.y, pos.z},
+                            nodeWeight, pinColor, pinId);
         m_invalidateCache = true;
 
         if (!m_name.empty()) {
-            const auto textSize = Renderer::MaterialRenderer::getTextRenderSize(
-                m_name, Styles::componentStyles.slotLabelSize);
+            Core::Renderer::FontProps labelProps;
+            labelProps.fontSize = Styles::simCompStyles.slotLabelSize;
+            const auto textSize = drawContext.renderer
+                                      ? drawContext.renderer->measureText(
+                                            m_name, labelProps)
+                                      : glm::vec2(0.f);
 
             float textOffsetX = 4.f;
 
@@ -172,12 +180,12 @@ namespace Bess::Canvas {
             // not using schematic slot pos for text as in schematic view,
             // slot is rendered behind the component but text should be in front
             // of component so using z of node view
-            drawContext.materialRenderer->drawText(
-                m_name,
+            SceneDraw::drawText(
+                drawContext, m_name,
                 {pos.x + textOffsetX, pos.y + (textSize.y / 2.f) - 2.f,
                  SceneComponent::getAbsolutePosition(state)
                      .z}, // because we don't want schematic pos
-                Styles::componentStyles.slotLabelSize,
+                static_cast<std::size_t>(labelProps.fontSize),
                 ViewportTheme::schematicViewColors.componentStroke,
                 PickingId{parentComp->getRuntimeId(), 0}, 0.f);
         }

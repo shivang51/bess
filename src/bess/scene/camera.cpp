@@ -109,8 +109,6 @@ namespace Bess {
         updateTransform();
     }
 
-    const glm::mat4 &Camera::getTransform() const { return transform; }
-
     const glm::mat4 &Camera::getOrtho() const { return m_ortho; }
 
     void Camera::updateTransform() {

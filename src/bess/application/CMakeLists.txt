@@ -33,10 +33,8 @@ set(Header_Files
 "project_file.h"
 "window.h"
 "events/application_event.h"
-"asset_manager/asset_loader.h"
-"asset_manager/asset_manager.h"
-"asset_manager/asset_id.h"
 "sub_systems/input_sub_system.h"
+"sub_systems/renderer_context.h"
 "sub_systems/input_sub_system_types.h"
 )
 
@@ -67,9 +65,9 @@ set(Source_Files
 "window.cpp"
 "project_file.cpp"
 "events/application_event.cpp"
-"asset_manager/asset_manager.cpp"
 
 "sub_systems/input_sub_system.cpp"
+"sub_systems/renderer_context.cpp"
 )
 
 source_group("src" FILES ${Source_Files})
@@ -81,9 +79,9 @@ set(ALL_FILES
 
 add_library(${PROJECT_NAME} OBJECT ${ALL_FILES})
 
-target_link_libraries(${PROJECT_NAME} PUBLIC common BessCore BessExtDeps BessJson BessSimEngine BessVulkan BessPluginManager EventSystem BessScene BessCmdSystem BessUI BessSimDriver DigitalSimDriver bverilog)
+target_link_libraries(${PROJECT_NAME} PUBLIC common BessCore BessExtDeps BessJson BessSimEngine  BessPluginManager EventSystem BessScene BessCmdSystem BessUI BessSimDriver DigitalSimDriver bverilog BessWgpu)
 
-add_dependencies(${PROJECT_NAME} common BessCore BessExtDeps BessJson BessSimEngine BessVulkan BessPluginManager BessScene BessCmdSystem BessUI BessSimDriver DigitalSimDriver bverilog)
+add_dependencies(${PROJECT_NAME} common BessCore BessExtDeps BessJson BessSimEngine  BessPluginManager BessScene BessCmdSystem BessUI BessSimDriver DigitalSimDriver bverilog BessWgpu)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}")
 

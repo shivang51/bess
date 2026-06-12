@@ -1,20 +1,15 @@
 #include "application.h"
-#include "asset_manager/asset_manager.h"
+#include "bess_core/asset_manager/asset_manager.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
 #include "common/types.h"
 #include "event_dispatcher.h"
-#include "pages/main_page/main_page.h"
-#include "pages/main_page/main_page_state.h"
 #include "services/plugin_service/plugin_service.h"
 #include "sub_systems/input_sub_system.h"
-#include "ui/ui_sub_system.h"
-#include "vulkan_core.h"
+#include "sub_systems/renderer_context.h"
 #include <chrono>
-#include <vulkan/vulkan.h>
-#include <vulkan/vulkan_core.h>
 
 #include "application/window.h"
 #include "settings/settings.h"
@@ -42,6 +37,7 @@ namespace Bess {
             accumulatedTime += deltaTime;
 
             const auto &frameTS = settings->getFrameTimeStep();
+
             if (accumulatedTime < frameTS) {
                 std::this_thread::sleep_for(frameTS - accumulatedTime);
                 accumulatedTime += frameTS - accumulatedTime;
@@ -54,6 +50,7 @@ namespace Bess {
 
             appCtx.preDraw();
             appCtx.draw();
+
             appCtx.postDraw();
 
             appCtx.endFrame();
@@ -74,13 +71,11 @@ namespace Bess {
 
         auto &appCtx = GAppContext::getInstance();
 
-        m_mainWindow = appCtx.addSubSystem<Window>(800, 660, "Bess");
-
-        appCtx.addSubSystem<InputSubSystem>();
-        appCtx.addSubSystem<VulkanCore>();
-        appCtx.addSubSystem<EventSystem::EventDispatcher>();
         appCtx.addSubSystem<Config::Settings>();
-        appCtx.addSubSystem<UISubSystem>();
+        appCtx.addSubSystem<InputSubSystem>();
+        appCtx.addSubSystem<EventSystem::EventDispatcher>();
+        m_mainWindow = appCtx.addSubSystem<Window>(800, 660, "Bess");
+        appCtx.addSubSystem<RendererContext>();
         appCtx.addSubSystem<Assets::AssetManager>();
 
         if (flags & AppStartupFlag::disablePlugins) {
