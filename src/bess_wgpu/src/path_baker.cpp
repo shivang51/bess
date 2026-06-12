@@ -294,10 +294,42 @@ namespace Bess::Wgpu {
 
         glm::vec2 perpendicular(const glm::vec2 &v) { return {-v.y, v.x}; }
 
-        void appendStrokeVertex(std::vector<PathCoverVertex> &vertices,
-                                const glm::vec2 &pos, const PathProps &props,
-                                float alphaScale = 1.f) {
-            auto &vertex = vertices.emplace_back();
+        int roundArcSegmentCount(float arcRadians, float radius,
+                                 const StrokeMeshParams &mesh,
+                                 int minSegments, int maxSegments) {
+            const float arc = std::abs(arcRadians);
+            if (arc < 0.0001f) {
+                return 0;
+            }
+
+            const float radiusPixels =
+                std::max(radius * mesh.metrics.screenScale, 0.f);
+            if (radiusPixels <= 0.001f) {
+                return minSegments;
+            }
+
+            constexpr float kTolerancePixels = 0.35f;
+            const float tolerance =
+                std::min(kTolerancePixels, radiusPixels * 0.5f);
+            const float cosValue =
+                std::clamp(1.f - (tolerance / radiusPixels), -1.f, 1.f);
+            const float maxStep = 2.f * std::acos(cosValue);
+            const float segmentCount =
+                maxStep > 0.0001f ? std::ceil(arc / maxStep)
+                                   : std::ceil((arc * radiusPixels) / 4.f);
+            return std::clamp(static_cast<int>(segmentCount), minSegments,
+                              maxSegments);
+        }
+
+        glm::vec2 rotateVector(const glm::vec2 &v, float sinAngle,
+                               float cosAngle) {
+            return {v.x * cosAngle - v.y * sinAngle,
+                    v.x * sinAngle + v.y * cosAngle};
+        }
+
+        void setStrokeVertex(PathCoverVertex &vertex, const glm::vec2 &pos,
+                             const PathProps &props,
+                             float alphaScale = 1.f) {
             Core::Renderer::Color color = props.strokeColor;
             color.a *= std::clamp(alphaScale, 0.f, 1.f);
             setCoverVertex(vertex, pos, props.zIndex, color, props.id);
@@ -311,9 +343,11 @@ namespace Bess::Wgpu {
             if (nearlyDegenerateTriangle(a, b, c)) {
                 return;
             }
-            appendStrokeVertex(vertices, a, props, alphaA);
-            appendStrokeVertex(vertices, b, props, alphaB);
-            appendStrokeVertex(vertices, c, props, alphaC);
+            const size_t base = vertices.size();
+            vertices.resize(base + 3);
+            setStrokeVertex(vertices[base + 0], a, props, alphaA);
+            setStrokeVertex(vertices[base + 1], b, props, alphaB);
+            setStrokeVertex(vertices[base + 2], c, props, alphaC);
         }
 
         void appendRoundCap(std::vector<PathCoverVertex> &vertices,
@@ -323,30 +357,28 @@ namespace Bess::Wgpu {
                             const StrokeMeshParams &mesh, float halfWidth) {
             constexpr float pi = std::numbers::pi_v<float>;
             const glm::vec2 dir = safeNormalize(capDirection);
-            const float centerAngle = std::atan2(dir.y, dir.x);
-            const int segments = std::clamp(
-                static_cast<int>(
-                    std::ceil(pi * halfWidth * mesh.metrics.screenScale / 4.f)),
-                8, 96);
+            const int segments =
+                roundArcSegmentCount(pi, halfWidth, mesh, 4, 96);
+            if (segments == 0) {
+                return;
+            }
 
-            glm::vec2 prevInner =
-                center + glm::vec2(std::cos(centerAngle - (pi * 0.5f)),
-                                   std::sin(centerAngle - (pi * 0.5f))) *
-                             halfWidth;
+            glm::vec2 normal = -perpendicular(dir);
+            const glm::vec2 finalNormal = perpendicular(dir);
+            const float step = pi / static_cast<float>(segments);
+            const float stepSin = std::sin(step);
+            const float stepCos = std::cos(step);
+
+            glm::vec2 prevInner = center + normal * halfWidth;
             glm::vec2 prevOuter =
-                center + glm::vec2(std::cos(centerAngle - (pi * 0.5f)),
-                                   std::sin(centerAngle - (pi * 0.5f))) *
-                             (halfWidth + mesh.fringe);
+                center + normal * (halfWidth + mesh.fringe);
             for (int i = 1; i <= segments; ++i) {
-                const float t =
-                    static_cast<float>(i) / static_cast<float>(segments);
-                const float angle = centerAngle - (pi * 0.5f) + (pi * t);
-                glm::vec2 nextInner =
-                    center +
-                    glm::vec2(std::cos(angle), std::sin(angle)) * halfWidth;
+                normal = i == segments
+                             ? finalNormal
+                             : rotateVector(normal, stepSin, stepCos);
+                glm::vec2 nextInner = center + normal * halfWidth;
                 glm::vec2 nextOuter =
-                    center + glm::vec2(std::cos(angle), std::sin(angle)) *
-                                 (halfWidth + mesh.fringe);
+                    center + normal * (halfWidth + mesh.fringe);
                 appendStrokeTriangle(vertices, center, prevInner, nextInner,
                                      props);
                 appendStrokeTriangle(vertices, prevInner, prevOuter, nextInner,
@@ -373,7 +405,6 @@ namespace Bess::Wgpu {
                              const glm::vec2 &nextOuterNormal,
                              const PathProps &props,
                              const StrokeMeshParams &mesh) {
-            const float a0 = std::atan2(prevOuterNormal.y, prevOuterNormal.x);
             float delta =
                 std::atan2((prevOuterNormal.x * nextOuterNormal.y) -
                                (prevOuterNormal.y * nextOuterNormal.x),
@@ -382,18 +413,22 @@ namespace Bess::Wgpu {
                 return;
             }
 
-            const int segments = std::clamp(
-                static_cast<int>(std::ceil(std::abs(delta) * mesh.halfWidth *
-                                           mesh.metrics.screenScale / 4.f)),
-                4, 96);
+            const int segments =
+                roundArcSegmentCount(delta, mesh.halfWidth, mesh, 1, 96);
+            if (segments == 0) {
+                return;
+            }
+            const float step = delta / static_cast<float>(segments);
+            const float stepSin = std::sin(step);
+            const float stepCos = std::cos(step);
+            glm::vec2 normal = prevOuterNormal;
             glm::vec2 prevInner = center + prevOuterNormal * mesh.halfWidth;
             glm::vec2 prevOuter =
                 center + prevOuterNormal * (mesh.halfWidth + mesh.fringe);
             for (int i = 1; i <= segments; ++i) {
-                const float t =
-                    static_cast<float>(i) / static_cast<float>(segments);
-                const float angle = a0 + (delta * t);
-                const glm::vec2 normal(std::cos(angle), std::sin(angle));
+                normal = i == segments
+                             ? nextOuterNormal
+                             : rotateVector(normal, stepSin, stepCos);
                 glm::vec2 nextInner = center + normal * mesh.halfWidth;
                 glm::vec2 nextOuter =
                     center + normal * (mesh.halfWidth + mesh.fringe);
@@ -415,7 +450,6 @@ namespace Bess::Wgpu {
                              float prevHalfWidth, float nextHalfWidth,
                              const PathProps &props,
                              const StrokeMeshParams &mesh) {
-            const float a0 = std::atan2(prevOuterNormal.y, prevOuterNormal.x);
             float delta =
                 std::atan2((prevOuterNormal.x * nextOuterNormal.y) -
                                (prevOuterNormal.y * nextOuterNormal.x),
@@ -425,20 +459,26 @@ namespace Bess::Wgpu {
             }
 
             const float maxHalfWidth = std::max(prevHalfWidth, nextHalfWidth);
-            const int segments = std::clamp(
-                static_cast<int>(std::ceil(std::abs(delta) * maxHalfWidth *
-                                           mesh.metrics.screenScale / 4.f)),
-                4, 96);
+            const int segments =
+                roundArcSegmentCount(delta, maxHalfWidth, mesh, 1, 96);
+            if (segments == 0) {
+                return;
+            }
+            const float step = delta / static_cast<float>(segments);
+            const float stepSin = std::sin(step);
+            const float stepCos = std::cos(step);
+            glm::vec2 normal = prevOuterNormal;
             glm::vec2 prevInner = center + prevOuterNormal * prevHalfWidth;
             glm::vec2 prevOuter =
                 center + prevOuterNormal * (prevHalfWidth + mesh.fringe);
             for (int i = 1; i <= segments; ++i) {
                 const float t =
                     static_cast<float>(i) / static_cast<float>(segments);
-                const float angle = a0 + (delta * t);
                 const float halfWidth =
                     prevHalfWidth + ((nextHalfWidth - prevHalfWidth) * t);
-                const glm::vec2 normal(std::cos(angle), std::sin(angle));
+                normal = i == segments
+                             ? nextOuterNormal
+                             : rotateVector(normal, stepSin, stepCos);
                 glm::vec2 nextInner = center + normal * halfWidth;
                 glm::vec2 nextOuter =
                     center + normal * (halfWidth + mesh.fringe);
@@ -651,9 +691,9 @@ namespace Bess::Wgpu {
             const glm::vec2 leftTo = segmentTo + toInnerNormal;
             const glm::vec2 rightTo = segmentTo - toInnerNormal;
             const glm::vec2 outerLeftFrom = segmentFrom + fromOuterNormal;
-            const glm::vec2 outerLeftTo = segmentTo + fromOuterNormal;
+            const glm::vec2 outerLeftTo = segmentTo + toOuterNormal;
             const glm::vec2 outerRightFrom = segmentFrom - fromOuterNormal;
-            const glm::vec2 outerRightTo = segmentTo - fromOuterNormal;
+            const glm::vec2 outerRightTo = segmentTo - toOuterNormal;
 
             appendStrokeTriangle(vertices, leftFrom, rightFrom, leftTo,
                                  segmentProps);
@@ -667,6 +707,43 @@ namespace Bess::Wgpu {
                                  segmentProps, 1.f, 1.f, 0.f);
             appendStrokeTriangle(vertices, rightTo, outerRightTo,
                                  outerRightFrom, segmentProps, 1.f, 0.f, 0.f);
+        }
+
+        void reserveStrokeVertices(std::vector<PathCoverVertex> &vertices,
+                                   size_t additionalVertices) {
+            if (additionalVertices == 0) {
+                return;
+            }
+            vertices.reserve(vertices.size() + additionalVertices);
+        }
+
+        size_t estimatedRoundCapVertices(const StrokeMeshParams &mesh,
+                                         float halfWidth) {
+            constexpr float pi = std::numbers::pi_v<float>;
+            const int segments =
+                roundArcSegmentCount(pi, halfWidth, mesh, 4, 96);
+            return static_cast<size_t>(segments) * 9u;
+        }
+
+        size_t estimatedStrokeContourVertices(
+            size_t segmentCount, size_t joinCount, bool closed,
+            Core::Renderer::PathLineJoin lineJoin,
+            Core::Renderer::PathLineCap lineCap,
+            const StrokeMeshParams &mesh, float startHalfWidth,
+            float endHalfWidth) {
+            size_t estimate = segmentCount * 18u;
+            if (lineJoin == Core::Renderer::PathLineJoin::Round) {
+                estimate += joinCount * 42u;
+            } else {
+                estimate += joinCount * 9u;
+            }
+
+            if (!closed && lineCap == Core::Renderer::PathLineCap::Round) {
+                estimate += estimatedRoundCapVertices(mesh, startHalfWidth);
+                estimate += estimatedRoundCapVertices(mesh, endHalfWidth);
+            }
+
+            return estimate;
         }
 
         void appendStrokeContour(std::vector<PathCoverVertex> &vertices,
@@ -701,6 +778,13 @@ namespace Bess::Wgpu {
             }
 
             const size_t count = points.size();
+            const size_t segmentCount = closed ? count : count - 1;
+            const size_t joinCount = closed ? count : count > 2 ? count - 2 : 0;
+            reserveStrokeVertices(
+                vertices,
+                estimatedStrokeContourVertices(
+                    segmentCount, joinCount, closed, props.lineJoin,
+                    props.lineCap, mesh, mesh.halfWidth, mesh.halfWidth));
 
             glm::vec2 startCapCenter = points.front();
             glm::vec2 endCapCenter = points.back();
@@ -721,7 +805,6 @@ namespace Bess::Wgpu {
                 return points[wrapped];
             };
 
-            const size_t segmentCount = closed ? count : count - 1;
             for (size_t i = 0; i < segmentCount; ++i) {
                 const size_t next = (i + 1) % count;
                 const bool extendStart = closed || i > 0;
@@ -730,7 +813,6 @@ namespace Bess::Wgpu {
                                     mesh, extendStart, extendEnd);
             }
 
-            const size_t joinCount = closed ? count : count > 2 ? count - 2 : 0;
             for (size_t join = 0; join < joinCount; ++join) {
                 const size_t i = closed ? join : join + 1;
                 const glm::vec2 prev = pointAt(static_cast<ptrdiff_t>(i) - 1);
@@ -795,6 +877,15 @@ namespace Bess::Wgpu {
                 safeNormalize(segments.back().to - segments.back().from);
             const float startHalfWidth = segments.front().fromHalfWidth;
             const float endHalfWidth = segments.back().toHalfWidth;
+            const size_t segmentCount = segments.size();
+            const size_t joinCount =
+                closed ? segmentCount
+                       : (segmentCount > 1 ? segmentCount - 1 : 0);
+            reserveStrokeVertices(
+                vertices,
+                estimatedStrokeContourVertices(
+                    segmentCount, joinCount, closed, props.lineJoin,
+                    props.lineCap, mesh, startHalfWidth, endHalfWidth));
 
             if (!closed &&
                 props.lineCap == Core::Renderer::PathLineCap::Square) {
@@ -802,7 +893,6 @@ namespace Bess::Wgpu {
                 segments.back().to += endDir * endHalfWidth;
             }
 
-            const size_t segmentCount = segments.size();
             for (size_t i = 0; i < segmentCount; ++i) {
                 const bool extendStart = closed || i > 0;
                 const bool extendEnd = closed || i + 1 < segmentCount;
@@ -810,9 +900,6 @@ namespace Bess::Wgpu {
                                           extendStart, extendEnd);
             }
 
-            const size_t joinCount =
-                closed ? segmentCount
-                       : (segmentCount > 1 ? segmentCount - 1 : 0);
             for (size_t join = 0; join < joinCount; ++join) {
                 const size_t prevIndex = join;
                 const size_t nextIndex = (join + 1) % segmentCount;

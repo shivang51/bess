@@ -10,7 +10,8 @@ class DigitalGateComp(SimulationSceneComponent):
     @staticmethod
     def from_component_def(comp_def: CompDef):
         comp = DigitalGateComp()
-        comp.schematic_diagram = schematic_diagrams.get(comp_def.name, None)
+        diagram = schematic_diagrams.get(comp_def.name, None)
+        comp.schematic_diagram = diagram.copy() if diagram else None
         return comp
 
     def __init__(self):
@@ -21,7 +22,9 @@ class DigitalGateComp(SimulationSceneComponent):
     @override
     def copy(self):
         cloned = copy.deepcopy(self)
-        cloned.schematic_diagram = self.schematic_diagram
+        cloned.schematic_diagram = (
+            self.schematic_diagram.copy() if self.schematic_diagram else None
+        )
         cloned.label_size = self.label_size
         return cloned
 
@@ -40,9 +43,13 @@ class DigitalGateComp(SimulationSceneComponent):
     @SimulationSceneComponent.deser
     def from_json(data):
         comp = DigitalGateComp()
-        if data.has_key("schm_hash"):
-            schm_hash = data["schm_name"]
-            comp.schematic_diagram = schematic_diagrams.get(schm_hash, None)
+        if data.has_key("schm_name") or data.has_key("schm_hash"):
+            if data.has_key("schm_name"):
+                schematic_name = data["schm_name"]
+            else:
+                schematic_name = data["schm_hash"]
+            diagram = schematic_diagrams.get(schematic_name, None)
+            comp.schematic_diagram = diagram.copy() if diagram else None
         return comp
 
     @override

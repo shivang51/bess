@@ -11,6 +11,18 @@ namespace py = pybind11;
 void bind_scene_schematic_diagram(py::module_ &m) {
     py::class_<Bess::Canvas::SchematicDiagram>(m, "SchematicDiagram")
         .def(py::init<>())
+        .def("copy",
+             [](const Bess::Canvas::SchematicDiagram &diagram) {
+                 return Bess::Canvas::SchematicDiagram(diagram);
+             })
+        .def("__copy__",
+             [](const Bess::Canvas::SchematicDiagram &diagram) {
+                 return Bess::Canvas::SchematicDiagram(diagram);
+             })
+        .def("__deepcopy__",
+             [](const Bess::Canvas::SchematicDiagram &diagram, py::dict) {
+                 return Bess::Canvas::SchematicDiagram(diagram);
+             })
         .def_property("paths", &Bess::Canvas::SchematicDiagram::getPathsMut,
                       &Bess::Canvas::SchematicDiagram::setPaths)
         .def_property("size", &Bess::Canvas::SchematicDiagram::getSize,
