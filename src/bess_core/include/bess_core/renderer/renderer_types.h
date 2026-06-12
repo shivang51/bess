@@ -98,6 +98,21 @@ namespace Bess::Core::Renderer {
         EvenOdd,
     };
 
+    struct ShadowProps {
+        bool enabled = false;
+        // Offset is in the same coordinate space as the geometry. For normal
+        // scene geometry this means world units; for screen-space custom quads
+        // this means render-target pixels.
+        glm::vec2 offset{0.f, 4.f};
+        // CSS-like blur radius in geometry units. Larger values produce softer
+        // shadows and expand the generated shadow bounds.
+        float blur = 8.f;
+        // Positive spread expands the caster silhouette before blur; negative
+        // spread contracts it.
+        float spread = 0.f;
+        Color color{0.f, 0.f, 0.f, 0.35f};
+    };
+
     struct QuadProps {
         glm::vec2 position{0.f, 0.f};
         glm::vec2 size{1.f, 1.f};
@@ -114,6 +129,7 @@ namespace Bess::Core::Renderer {
         glm::vec4 radius{0.f}; // Top-left, top-right, bottom-right, bottom-left
         glm::vec4 thickness{0.f}; // same order as radius
         Color borderColor{0.f, 0.f, 0.f, 0.f};
+        ShadowProps shadow{};
     };
     struct CircleProps {
         glm::vec2 position{0.f, 0.f};
@@ -123,6 +139,7 @@ namespace Bess::Core::Renderer {
         Color color{1.f, 1.f, 1.f, 1.f};
         PickingId id = PickingId::invalid();
         QuadRenderPass renderPass = QuadRenderPass::Auto;
+        ShadowProps shadow{};
     };
 
     struct LineProps {
@@ -133,6 +150,7 @@ namespace Bess::Core::Renderer {
         Color color{1.f, 1.f, 1.f, 1.f};
         PickingId id = PickingId::invalid();
         QuadRenderPass renderPass = QuadRenderPass::Auto;
+        ShadowProps shadow{};
     };
 
     struct PathProps {

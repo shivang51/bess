@@ -237,13 +237,6 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
         BESS_ASSERT(s_nodeShader != 0, "Mica shader not initialized");
 
         const auto pickingId = PickingId{m_runtimeId, 0};
-        // props.shadow = {
-        //     .enabled = true,
-        //     .offset = glm::vec2(0.f, 0.f),
-        //     .scale = glm::vec2(1.701f, 1.701f),
-        //     .color = glm::vec4(1.f),
-        //     .texture = SceneComponentDrawResources::getShadowTextureHandle(),
-        // };
 
         Core::Renderer::QuadProps quadProps;
         quadProps.position = m_transform.position;
@@ -253,6 +246,13 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
         quadProps.rotation = m_transform.angle;
         quadProps.zIndex = m_transform.position.z;
         quadProps.renderPass = Core::Renderer::QuadRenderPass::Transparent;
+        quadProps.radius = m_style.borderRadius;
+        quadProps.shadow.enabled = true;
+        quadProps.shadow.offset = {0.f, 7.f};
+        quadProps.shadow.blur = 18.f;
+        quadProps.shadow.spread = 1.f;
+        quadProps.shadow.color =
+            Core::Renderer::Color{0.f, 0.f, 0.f, 0.28f};
 
         const auto &borderColor = m_isSelected
                                       ? ViewportTheme::colors.selectedComp

@@ -3,7 +3,6 @@
 #include "bess_core/renderer/renderer_2d.h"
 #include "gtc/type_ptr.hpp"
 #include "icons/FontAwesomeIcons.h"
-#include "pages/main_page/scene_components/scene_component_draw_resources.h"
 #include "scene/scene_draw_helpers.h"
 #include "scene/scene_state/components/styles/comp_style.h"
 #include "scene_draw_context.h"
@@ -60,8 +59,11 @@ namespace Bess::Canvas {
             props.borderSize = m_style.borderSize;
             props.borderColor = ViewportTheme::colors.selectedComp;
             props.shadow.enabled = true;
-            props.shadow.texture =
-                SceneComponentDrawResources::getShadowTextureHandle();
+            props.shadow.offset = {0.f, 3.f};
+            props.shadow.blur = 10.f;
+            props.shadow.spread = 1.f;
+            props.shadow.color =
+                Core::Renderer::Color{0.f, 0.f, 0.f, 0.35f};
 
             const auto textOffset = context.renderer->textCenterOffsetY(
                 m_data, {.fontSize = (float)m_size});

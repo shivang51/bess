@@ -6,6 +6,7 @@
 #include "bess_wgpu/piplines/custom_quad_pipeline.h"
 #include "bess_wgpu/piplines/path_pipeline.h"
 #include "bess_wgpu/piplines/primitive_pipeline.h"
+#include "bess_wgpu/piplines/shadow_pipeline.h"
 #include "bess_wgpu/text/msdf_text_pipeline.h"
 #include "bess_wgpu/wgpu_shader.h"
 #include "bess_wgpu/wgpu_texture.h"
@@ -56,6 +57,7 @@ namespace Bess::Wgpu {
         using Bess::Wgpu::Piplines::PathCoverVertex;
         using Bess::Wgpu::Piplines::PathStencilVertex;
         using Bess::Wgpu::Piplines::PrimitiveInstance;
+        using Bess::Wgpu::Piplines::ShadowInstance;
 
         using Bess::Wgpu::bakePathFillAntiAlias;
         using Bess::Wgpu::makePathBakeMetrics;
@@ -265,7 +267,14 @@ namespace Bess::Wgpu {
             float zIndex = 0.f;
         };
 
+        struct ShadowDrawRun {
+            uint32_t firstInstance = 0;
+            uint32_t instanceCount = 0;
+            float zIndex = 0.f;
+        };
+
         enum class TransparentDrawKind : uint8_t {
+            Shadow,
             Primitive,
             CustomQuad,
             PathFill,
@@ -536,6 +545,123 @@ namespace Bess::Wgpu {
             writePng(path, rgba.data(), readback.width, readback.height);
         }
 
+        constexpr uint32_t kShadowShapeRoundedRect = 0;
+        constexpr uint32_t kShadowShapeCircle = 1;
+        constexpr uint32_t kShadowShapeLine = 2;
+        constexpr uint32_t kShadowFlagApplyCameraTransform = 1u << 0u;
+        constexpr float kShadowZOffset = 0.0001f;
+        constexpr float kShadowGeometryPadding = 2.f;
+
+        [[nodiscard]] bool
+        hasDrawableShadow(const Core::Renderer::ShadowProps &shadow) {
+            return shadow.enabled && shadow.color.a > 0.f;
+        }
+
+        [[nodiscard]] float
+        shadowGeometryMargin(const Core::Renderer::ShadowProps &shadow) {
+            return std::max(0.f, shadow.blur) +
+                   std::max(0.f, shadow.spread) + kShadowGeometryPadding;
+        }
+
+        void copyColor(float *dst, const Core::Renderer::Color &src) {
+            dst[0] = src.r;
+            dst[1] = src.g;
+            dst[2] = src.b;
+            dst[3] = src.a;
+        }
+
+        void copyVec4(float *dst, const glm::vec4 &src) {
+            dst[0] = src.x;
+            dst[1] = src.y;
+            dst[2] = src.z;
+            dst[3] = src.w;
+        }
+
+        void fillShadowCommon(
+            ShadowInstance &instance,
+            const Core::Renderer::ShadowProps &shadow,
+            const glm::vec2 &position, float zIndex, float rotation,
+            const glm::vec2 &drawSize, uint32_t shapeType,
+            bool applyCameraTransform) {
+            instance.position[0] = position.x + shadow.offset.x;
+            instance.position[1] = position.y + shadow.offset.y;
+            instance.position[2] = zIndex - kShadowZOffset;
+            instance.rotation = rotation;
+            instance.size[0] = std::max(drawSize.x, 0.f);
+            instance.size[1] = std::max(drawSize.y, 0.f);
+            instance.blur = std::max(shadow.blur, 0.f);
+            instance.spread = shadow.spread;
+            copyColor(instance.color, shadow.color);
+            instance.shapeType = shapeType;
+            instance.flags =
+                applyCameraTransform ? kShadowFlagApplyCameraTransform : 0u;
+            instance.padding[0] = 0;
+            instance.padding[1] = 0;
+        }
+
+        void makeQuadShadowInstanceInPlace(
+            ShadowInstance &instance, const Core::Renderer::QuadProps &props,
+            Core::Renderer::CustomQuadTransformMode transformMode =
+                Core::Renderer::CustomQuadTransformMode::Camera) {
+            const glm::vec2 sourceSize{std::max(props.size.x, 0.f),
+                                       std::max(props.size.y, 0.f)};
+            const float margin = shadowGeometryMargin(props.shadow);
+            fillShadowCommon(
+                instance, props.shadow, props.position, props.zIndex,
+                props.rotation, sourceSize + glm::vec2(margin * 2.f),
+                kShadowShapeRoundedRect,
+                transformMode ==
+                    Core::Renderer::CustomQuadTransformMode::Camera);
+            copyVec4(instance.radii, props.radius);
+            instance.shapeData[0] = sourceSize.x;
+            instance.shapeData[1] = sourceSize.y;
+            instance.shapeData[2] = 0.f;
+            instance.shapeData[3] = 0.f;
+        }
+
+        void makeCircleShadowInstanceInPlace(
+            ShadowInstance &instance,
+            const Core::Renderer::CircleProps &props) {
+            const float radius = std::max(props.radius, 0.f);
+            const float margin = shadowGeometryMargin(props.shadow);
+            const float drawDiameter = (radius + margin) * 2.f;
+            fillShadowCommon(instance, props.shadow, props.position,
+                             props.zIndex, 0.f,
+                             glm::vec2(drawDiameter, drawDiameter),
+                             kShadowShapeCircle, true);
+            instance.radii[0] = 0.f;
+            instance.radii[1] = 0.f;
+            instance.radii[2] = 0.f;
+            instance.radii[3] = 0.f;
+            instance.shapeData[0] = radius;
+            instance.shapeData[1] = 0.f;
+            instance.shapeData[2] = 0.f;
+            instance.shapeData[3] = 0.f;
+        }
+
+        void makeLineShadowInstanceInPlace(
+            ShadowInstance &instance, const Core::Renderer::LineProps &props) {
+            const glm::vec2 diff = props.p1 - props.p0;
+            const float length = glm::length(diff);
+            const float thickness = std::max(props.thickness, 1.f);
+            const float angle = std::atan2(diff.y, diff.x);
+            const glm::vec2 position = (props.p0 + props.p1) * 0.5f;
+            const float margin = shadowGeometryMargin(props.shadow);
+            fillShadowCommon(
+                instance, props.shadow, position, props.zIndex, angle,
+                glm::vec2(length + (margin * 2.f),
+                          thickness + (margin * 2.f)),
+                kShadowShapeLine, true);
+            instance.radii[0] = 0.f;
+            instance.radii[1] = 0.f;
+            instance.radii[2] = 0.f;
+            instance.radii[3] = 0.f;
+            instance.shapeData[0] = length;
+            instance.shapeData[1] = thickness;
+            instance.shapeData[2] = 0.f;
+            instance.shapeData[3] = 0.f;
+        }
+
         void
         makePrimitiveInstanceInPlace(PrimitiveInstance &instance,
                                      const Core::Renderer::QuadProps &props) {
@@ -579,13 +705,6 @@ namespace Bess::Wgpu {
         }
 
         constexpr uint32_t kCustomQuadFlagApplyCameraTransform = 1u << 0u;
-
-        void copyVec4(float *dst, const glm::vec4 &src) {
-            dst[0] = src.x;
-            dst[1] = src.y;
-            dst[2] = src.z;
-            dst[3] = src.w;
-        }
 
         void makeCustomQuadInstanceInPlace(CustomQuadInstance &instance,
                                            const CustomQuadProps &props) {
@@ -1003,6 +1122,100 @@ namespace Bess::Wgpu {
             uint32_t m_maxCapacity = 1;
         };
 
+        class ShadowBatch {
+          public:
+            void configure(uint32_t initialCapacity, uint32_t maxCapacity) {
+                (void)initialCapacity;
+                m_maxCapacity = std::max(1u, maxCapacity);
+                m_instances.resize(m_maxCapacity);
+                m_drawRuns.resize(m_maxCapacity);
+                m_instancesPtr = m_instances.data();
+                m_drawRunsPtr = m_drawRuns.data();
+                m_instanceCount = 0;
+                m_drawRunsCount = 0;
+            }
+
+            void clear() {
+                m_instanceCount = 0;
+                m_drawRunsCount = 0;
+            }
+
+            ShadowInstance &push() {
+                if (m_instanceCount >= m_maxCapacity) {
+                    throw std::runtime_error(
+                        "WGPU shadow batch capacity exceeded");
+                }
+                return m_instancesPtr[m_instanceCount++];
+            }
+
+            void prepareForRendering() {
+                if (m_instanceCount == 0) {
+                    return;
+                }
+
+                if (m_instanceCount > 1) {
+                    std::stable_sort(
+                        m_instancesPtr, m_instancesPtr + m_instanceCount,
+                        [](const ShadowInstance &a,
+                           const ShadowInstance &b) {
+                            if (a.position[2] != b.position[2]) {
+                                return a.position[2] < b.position[2];
+                            }
+                            return false;
+                        });
+                }
+
+                m_drawRunsCount = 0;
+                for (uint32_t i = 0; i < m_instanceCount; ++i) {
+                    const float zIndex = m_instancesPtr[i].position[2];
+                    if (m_drawRunsCount == 0 ||
+                        m_drawRunsPtr[m_drawRunsCount - 1].zIndex != zIndex) {
+                        m_drawRunsPtr[m_drawRunsCount++] = {
+                            .firstInstance = i,
+                            .instanceCount = 1,
+                            .zIndex = zIndex,
+                        };
+                    } else {
+                        m_drawRunsPtr[m_drawRunsCount - 1].instanceCount++;
+                    }
+                }
+            }
+
+            [[nodiscard]] bool empty() const noexcept {
+                return m_instanceCount == 0;
+            }
+
+            [[nodiscard]] uint32_t count() const noexcept {
+                return m_instanceCount;
+            }
+
+            [[nodiscard]] uint64_t byteSize() const noexcept {
+                return static_cast<uint64_t>(m_instanceCount) *
+                       sizeof(ShadowInstance);
+            }
+
+            [[nodiscard]] const ShadowInstance *data() const noexcept {
+                return m_instancesPtr;
+            }
+
+            [[nodiscard]] const ShadowDrawRun *drawRunsData() const noexcept {
+                return m_drawRunsPtr;
+            }
+
+            [[nodiscard]] uint32_t drawRunsCount() const noexcept {
+                return m_drawRunsCount;
+            }
+
+          private:
+            std::vector<ShadowInstance> m_instances;
+            std::vector<ShadowDrawRun> m_drawRuns;
+            ShadowInstance *m_instancesPtr = nullptr;
+            ShadowDrawRun *m_drawRunsPtr = nullptr;
+            uint32_t m_instanceCount = 0;
+            uint32_t m_drawRunsCount = 0;
+            uint32_t m_maxCapacity = 1;
+        };
+
         glm::vec2 measurePathText(std::string_view text, const FontProps &props,
                                   FontFile &font) {
             if (text.empty() || props.fontSize <= 0.f ||
@@ -1194,6 +1407,7 @@ namespace Bess::Wgpu {
         Piplines::SharedFrameBuffer sharedFrameBuffer;
         std::unique_ptr<Piplines::PrimitivePipeline> primitivePipeline;
         std::unique_ptr<Piplines::PathPipeline> pathPipeline;
+        std::unique_ptr<Piplines::ShadowPipeline> shadowPipeline;
         std::unique_ptr<CustomQuadPipeline> customQuadPipeline;
         std::unique_ptr<Text::MsdfTextPipeline> textPipeline;
         wgpu::CommandEncoder commandEncoder;
@@ -1205,6 +1419,7 @@ namespace Bess::Wgpu {
         PrimitiveBatch transparentPrimitiveBatch;
         CustomQuadBatch opaqueCustomQuadBatch;
         CustomQuadBatch transparentCustomQuadBatch;
+        ShadowBatch shadowBatch;
         PathStrokeBatch opaquePathStrokeBatch;
         PathStrokeBatch transparentPathStrokeBatch;
         PathBatch opaquePathBatch;
@@ -1258,7 +1473,7 @@ namespace Bess::Wgpu {
         }
         [[nodiscard]] uint32_t quadStatsCount() const noexcept {
             return primitiveStatsCount() + customQuadStatsCount() +
-                   textBatch.count();
+                   shadowBatch.count() + textBatch.count();
         }
     };
 
@@ -1672,6 +1887,8 @@ namespace Bess::Wgpu {
         m_impl->transparentCustomQuadBatch.configure(
             createInfo.batching.initialQuadCapacity,
             createInfo.batching.maxQuadCapacity);
+        m_impl->shadowBatch.configure(createInfo.batching.initialQuadCapacity,
+                                      createInfo.batching.maxQuadCapacity);
         m_impl->createDevice();
         m_impl->createWindowSurface();
         m_impl->createOffscreenTarget();
@@ -1689,6 +1906,11 @@ namespace Bess::Wgpu {
                                    m_impl->sharedFrameBuffer.getBuffer(),
                                    m_impl->sharedFrameBuffer.getSize(),
                                    m_impl->pickingFormat);
+        m_impl->shadowPipeline = std::make_unique<Piplines::ShadowPipeline>();
+        m_impl->shadowPipeline->init(m_impl->device, m_impl->targetFormat,
+                                     m_impl->sharedFrameBuffer.getBuffer(),
+                                     m_impl->sharedFrameBuffer.getSize(),
+                                     m_impl->pickingFormat);
         m_impl->customQuadPipeline = std::make_unique<CustomQuadPipeline>();
         m_impl->customQuadPipeline->init(m_impl->device, m_impl->targetFormat,
                                          m_impl->sharedFrameBuffer.getBuffer(),
@@ -1699,6 +1921,8 @@ namespace Bess::Wgpu {
             m_impl->recreateTextureBindGroups();
         }
         static_cast<void>(m_impl->customQuadPipeline->ensureInstanceBufferSize(
+            std::max(1u, createInfo.batching.initialQuadCapacity)));
+        static_cast<void>(m_impl->shadowPipeline->ensureInstanceBufferSize(
             std::max(1u, createInfo.batching.initialQuadCapacity)));
         m_impl->createDefaultTexture();
 
@@ -1745,6 +1969,10 @@ namespace Bess::Wgpu {
             m_impl->pathPipeline->destroy();
             m_impl->pathPipeline = nullptr;
         }
+        if (m_impl->shadowPipeline) {
+            m_impl->shadowPipeline->destroy();
+            m_impl->shadowPipeline = nullptr;
+        }
         if (m_impl->customQuadPipeline) {
             m_impl->customQuadPipeline->destroy();
             m_impl->customQuadPipeline = nullptr;
@@ -1773,6 +2001,7 @@ namespace Bess::Wgpu {
         m_impl->transparentPrimitiveBatch.clear();
         m_impl->opaqueCustomQuadBatch.clear();
         m_impl->transparentCustomQuadBatch.clear();
+        m_impl->shadowBatch.clear();
         m_impl->opaquePathStrokeBatch.clear();
         m_impl->transparentPathStrokeBatch.clear();
         m_impl->opaquePathBatch.clear();
@@ -1858,6 +2087,7 @@ namespace Bess::Wgpu {
         m_impl->transparentPrimitiveBatch.clear();
         m_impl->opaqueCustomQuadBatch.clear();
         m_impl->transparentCustomQuadBatch.clear();
+        m_impl->shadowBatch.clear();
         m_impl->opaquePathStrokeBatch.clear();
         m_impl->transparentPathStrokeBatch.clear();
         m_impl->opaquePathBatch.clear();
@@ -1945,6 +2175,7 @@ namespace Bess::Wgpu {
         m_impl->transparentPrimitiveBatch.prepareForRendering(true);
         m_impl->opaqueCustomQuadBatch.prepareForRendering(false);
         m_impl->transparentCustomQuadBatch.prepareForRendering(true);
+        m_impl->shadowBatch.prepareForRendering();
         m_impl->opaquePathStrokeBatch.prepareForRendering(false);
         m_impl->transparentPathStrokeBatch.prepareForRendering(true);
         m_impl->opaquePathBatch.prepareForRendering(false);
@@ -1964,6 +2195,8 @@ namespace Bess::Wgpu {
         const uint32_t totalCustomInstanceCount =
             transparentCustomInstanceOffset +
             m_impl->transparentCustomQuadBatch.count();
+
+        const uint32_t totalShadowInstanceCount = m_impl->shadowBatch.count();
 
         const uint32_t opaqueStencilVertexOffset = 0;
         const uint32_t transparentStencilVertexOffset =
@@ -1998,6 +2231,11 @@ namespace Bess::Wgpu {
             static_cast<void>(
                 m_impl->customQuadPipeline->ensureInstanceBufferSize(
                     totalCustomInstanceCount));
+        }
+
+        if (totalShadowInstanceCount > 0) {
+            static_cast<void>(m_impl->shadowPipeline->ensureInstanceBufferSize(
+                totalShadowInstanceCount));
         }
 
         if (totalTextGlyphCount > 0 && m_impl->textPipeline != nullptr) {
@@ -2042,6 +2280,13 @@ namespace Bess::Wgpu {
                 m_impl->transparentCustomQuadBatch.byteSize();
         }
 
+        if (!m_impl->shadowBatch.empty()) {
+            m_impl->shadowPipeline->uploadInstances(
+                m_impl->queue, m_impl->shadowBatch.data(),
+                m_impl->shadowBatch.byteSize());
+            m_impl->stats.uploadedBytes += m_impl->shadowBatch.byteSize();
+        }
+
         if (!m_impl->textBatch.empty() && m_impl->textPipeline != nullptr) {
             m_impl->textPipeline->uploadInstances(m_impl->queue,
                                                   m_impl->textBatch.data(),
@@ -2050,7 +2295,8 @@ namespace Bess::Wgpu {
         }
 
         m_impl->stats.quadCount =
-            totalInstanceCount + totalCustomInstanceCount + totalTextGlyphCount;
+            totalInstanceCount + totalCustomInstanceCount +
+            totalShadowInstanceCount + totalTextGlyphCount;
 
         if (totalStencilVertexCount > 0) {
             static_cast<void>(
@@ -2188,6 +2434,16 @@ namespace Bess::Wgpu {
             m_impl->stats.drawCallCount++;
         };
 
+        auto renderShadowRun = [&](const ShadowDrawRun &run) {
+            if (run.instanceCount == 0) {
+                return;
+            }
+
+            m_impl->shadowPipeline->draw(renderPass, run.firstInstance,
+                                         run.instanceCount);
+            m_impl->stats.drawCallCount++;
+        };
+
         auto renderPathBatch = [&](const PathBatch &batch,
                                    uint32_t stencilVertexOffset,
                                    uint32_t coverVertexOffset,
@@ -2268,6 +2524,7 @@ namespace Bess::Wgpu {
 
         m_impl->transparentDrawItems.clear();
         m_impl->transparentDrawItems.reserve(
+            m_impl->shadowBatch.drawRunsCount() +
             m_impl->transparentPrimitiveBatch.drawRunsCount() +
             m_impl->transparentCustomQuadBatch.drawRunsCount() +
             m_impl->transparentPathBatch.drawCount() +
@@ -2275,6 +2532,16 @@ namespace Bess::Wgpu {
             m_impl->textBatch.drawRunsCount());
 
         uint32_t transparentDrawOrder = 0;
+        const ShadowDrawRun *shadowRuns = m_impl->shadowBatch.drawRunsData();
+        for (uint32_t i = 0; i < m_impl->shadowBatch.drawRunsCount(); ++i) {
+            m_impl->transparentDrawItems.push_back({
+                .kind = TransparentDrawKind::Shadow,
+                .zIndex = shadowRuns[i].zIndex,
+                .index = i,
+                .order = transparentDrawOrder++,
+            });
+        }
+
         const DrawRun *transparentPrimitiveRuns =
             m_impl->transparentPrimitiveBatch.drawRunsData();
         for (uint32_t i = 0;
@@ -2345,6 +2612,9 @@ namespace Bess::Wgpu {
 
         for (const TransparentDrawItem &item : m_impl->transparentDrawItems) {
             switch (item.kind) {
+            case TransparentDrawKind::Shadow:
+                renderShadowRun(shadowRuns[item.index]);
+                break;
             case TransparentDrawKind::Primitive:
                 renderPrimitiveRun(
                     transparentPrimitiveRuns[item.index],
@@ -2553,6 +2823,10 @@ namespace Bess::Wgpu {
             return;
         }
 
+        if (hasDrawableShadow(props.shadow)) {
+            makeQuadShadowInstanceInPlace(m_impl->shadowBatch.push(), props);
+        }
+
         if (isTransparent(props)) {
             makePrimitiveInstanceInPlace(
                 m_impl->transparentPrimitiveBatch.push(props.texture), props);
@@ -2590,6 +2864,11 @@ namespace Bess::Wgpu {
                 "Custom quad shader handle is not registered");
         }
 
+        if (hasDrawableShadow(props.quad.shadow)) {
+            makeQuadShadowInstanceInPlace(m_impl->shadowBatch.push(),
+                                          props.quad, props.transformMode);
+        }
+
         if (isTransparent(props.quad)) {
             makeCustomQuadInstanceInPlace(
                 m_impl->transparentCustomQuadBatch.push(props.shader), props);
@@ -2615,6 +2894,10 @@ namespace Bess::Wgpu {
             return;
         }
 
+        if (hasDrawableShadow(props.shadow)) {
+            makeCircleShadowInstanceInPlace(m_impl->shadowBatch.push(), props);
+        }
+
         if (props.color.a < 1.0f) {
             makeCircleInstanceInPlace(m_impl->transparentPrimitiveBatch.push(0),
                                       props);
@@ -2628,6 +2911,10 @@ namespace Bess::Wgpu {
     void WgpuRenderer2D::drawLine(const Core::Renderer::LineProps &props) {
         if (!m_impl->frameStarted) {
             return;
+        }
+
+        if (hasDrawableShadow(props.shadow)) {
+            makeLineShadowInstanceInPlace(m_impl->shadowBatch.push(), props);
         }
 
         if (props.color.a < 1.0f) {

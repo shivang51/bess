@@ -13,6 +13,8 @@ namespace Bess::Canvas::SceneDraw {
         bool useInvalidId = true;
         glm::vec2 offset = {5.f, 5.f};
         glm::vec2 scale = {1.f, 1.f};
+        float blur = 8.f;
+        float spread = 0.f;
         glm::vec4 color = {0.f, 0.f, 0.f, 0.5f};
         Core::Renderer::TextureHandle texture = 0;
     };
@@ -58,6 +60,11 @@ namespace Bess::Canvas::SceneDraw {
         props.borderColor = style.borderColor;
         props.radius = style.borderRadius;
         props.thickness = style.borderSize;
+        props.shadow.enabled = style.shadow.enabled;
+        props.shadow.offset = style.shadow.offset;
+        props.shadow.blur = style.shadow.blur;
+        props.shadow.spread = style.shadow.spread;
+        props.shadow.color = style.shadow.color;
         return props;
     }
 
@@ -66,25 +73,6 @@ namespace Bess::Canvas::SceneDraw {
                          const PickingId &id, const QuadStyle &style = {}) {
         if (!context.renderer) {
             return;
-        }
-
-        if (style.shadow.enabled) {
-            QuadStyle shadowStyle;
-            shadowStyle.angle = style.angle;
-            shadowStyle.borderRadius = style.borderRadius;
-
-            auto shadow = makeQuadProps(
-                {pos.x + style.shadow.offset.x, pos.y + style.shadow.offset.y,
-                 pos.z - 0.0001f},
-                {std::max(0.f, (size.x * style.shadow.scale.x) -
-                                   style.borderRadius.x),
-                 std::max(0.f, (size.y * style.shadow.scale.y) -
-                                   style.borderRadius.y)},
-                style.shadow.color,
-                style.shadow.useInvalidId ? PickingId::invalid() : id,
-                shadowStyle);
-            shadow.texture = style.shadow.texture;
-            context.renderer->drawQuad(shadow);
         }
 
         context.renderer->drawQuad(makeQuadProps(pos, size, color, id, style));
