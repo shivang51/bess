@@ -138,13 +138,13 @@ fn shadeTintedGlass(base: vec4f, localUv: vec2f, style: vec4f, headerColor: vec4
     // --- BODY ---
     let bodyTopGlow = smoothstep(headerHeight + 0.30, headerHeight, uv.y);
     let bodyBottomShadow = smoothstep(0.75, 1.0, uv.y);
-    let bodyBase = vec3f(0.008, 0.010, 0.012); // Deep dark blueprint background slate
+    let bodyBase = vec3f(0.008, 0.010, 0.012);
     
     var bodyRgb = mix(bodyBase, base.rgb * 0.12, 0.08); 
     
     let bodyRadialBleed = smoothstep(0.85, 0.0, length(uv - vec2f(0.5, headerHeight * 0.5)));
     bodyRgb += headerColor.rgb * 0.05 * bodyTopGlow * bodyRadialBleed; 
-    bodyRgb -= vec3f(bodyBottomShadow * 0.025);
+    bodyRgb -= vec3f(bodyBottomShadow * 0.015);
 
     var finalRgb = mix(bodyRgb, headerRgb, headerBlend);
 
@@ -271,17 +271,16 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
                 },
         });
 
-        const auto headerPos =
-            glm::vec3(m_transform.position.x,
-                      m_transform.position.y - (m_transform.scale.y / 2.f) +
-                          (headerHeight / 2.f),
-                      m_transform.position.z + 0.0004f);
+        const auto headerPosY = m_transform.position.y -
+                                (m_transform.scale.y / 2.f) +
+                                (headerHeight / 2.f);
 
         const auto textPos =
             glm::vec3(m_transform.position.x - (m_transform.scale.x / 2.f) +
                           Styles::componentStyles.paddingX,
-                      headerPos.y + Styles::simCompStyles.paddingY,
+                      headerPosY + Styles::simCompStyles.paddingY,
                       m_transform.position.z + 0.0005f);
+
         // component name
         SceneDraw::drawText(
             context, m_name, textPos, Styles::simCompStyles.headerFontSize,
