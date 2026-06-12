@@ -138,19 +138,21 @@ fn shadeTintedGlass(base: vec4f, localUv: vec2f, style: vec4f, headerColor: vec4
     // --- BODY ---
     let bodyTopGlow = smoothstep(headerHeight + 0.30, headerHeight, uv.y);
     let bodyBottomShadow = smoothstep(0.75, 1.0, uv.y);
-    let bodyBase = vec3f(0.008, 0.010, 0.012);
+    let bodyBase = max(base.rgb * 0.35, vec3f(0.018, 0.020, 0.024));
     
-    var bodyRgb = mix(bodyBase, base.rgb * 0.12, 0.08); 
+    var bodyRgb = mix(bodyBase, base.rgb * 0.55, 0.22); 
     
     let bodyRadialBleed = smoothstep(0.85, 0.0, length(uv - vec2f(0.5, headerHeight * 0.5)));
-    bodyRgb += headerColor.rgb * 0.05 * bodyTopGlow * bodyRadialBleed; 
-    bodyRgb -= vec3f(bodyBottomShadow * 0.015);
+    bodyRgb += headerColor.rgb * 0.06 * bodyTopGlow * bodyRadialBleed; 
+    bodyRgb -= vec3f(bodyBottomShadow * 0.008);
 
     var finalRgb = mix(bodyRgb, headerRgb, headerBlend);
 
     finalRgb += rimTint * ((edge * 0.055) + (cornerGlow * 0.020));
 
-    let alpha = mix(base.a * 0.91, base.a * 0.97, headerBlend);
+    // Keep the glass layer translucent enough for the grid and lower-z
+    // primitives to remain visible behind the component.
+    let alpha = base.a * mix(0.62, 0.74, headerBlend);
     return vec4f(clamp(finalRgb, vec3f(0.0), vec3f(1.0)), alpha);
 }
 
