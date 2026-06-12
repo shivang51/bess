@@ -1,3 +1,5 @@
+#pragma once
+
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/renderer/renderer_types.h"
 #include "bess_wgpu/wgpu_texture.h"
