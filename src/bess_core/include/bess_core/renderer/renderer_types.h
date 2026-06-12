@@ -36,14 +36,35 @@ namespace Bess::Core::Renderer {
 
         constexpr operator glm::vec4() const noexcept { return {r, g, b, a}; }
 
-        static Color fromHex(uint32_t hex) noexcept;
+        static constexpr Color fromHex(uint32_t hex) noexcept {
+            Color col;
+            col.r = (float)((hex >> 24) & 0xFF) / 255.f;
+            col.g = (float)((hex >> 16) & 0xFF) / 255.f;
+            col.b = (float)((hex >> 8) & 0xFF) / 255.f;
+            col.a = (float)(hex & 0xFF) / 255.f;
+            return col;
+        }
 
         // RGBA order each val between 0-255, alpha defaults to 255 (opaque)
-        static Color fromRGBA8(uint8_t red, uint8_t green, uint8_t blue,
-                               uint8_t alpha = 255) noexcept;
+        static constexpr Color fromRGBA8(uint8_t red, uint8_t green,
+                                         uint8_t blue,
+                                         uint8_t alpha = 255) noexcept {
+            Color col;
+            col.r = (float)red / 255.f;
+            col.g = (float)green / 255.f;
+            col.b = (float)blue / 255.f;
+            col.a = (float)alpha / 255.f;
+            return col;
+        }
 
         // Converts the color to a 32-bit hex value in RGBA order
-        constexpr uint32_t toHex() const noexcept;
+        constexpr uint32_t toHex() const noexcept {
+            uint8_t red = static_cast<uint8_t>(r * 255.f);
+            uint8_t green = static_cast<uint8_t>(g * 255.f);
+            uint8_t blue = static_cast<uint8_t>(b * 255.f);
+            uint8_t alpha = static_cast<uint8_t>(a * 255.f);
+            return (red << 24) | (green << 16) | (blue << 8) | alpha;
+        }
 
         Json::Value toJson() const;
         static Color fromJson(const Json::Value &json);
