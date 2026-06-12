@@ -46,6 +46,15 @@ namespace Bess {
 
         [[nodiscard]] bool hasShader(CustomQuadShaderHandle shader) const;
 
+        [[nodiscard]] const wgpu::RenderPipeline &
+        getPipeline(CustomQuadShaderHandle shader, bool transparent) const;
+
+        [[nodiscard]] const wgpu::BindGroup &getBindGroup() const;
+
+        void drawInstances(wgpu::RenderPassEncoder &renderPass,
+                           uint32_t firstInstance,
+                           uint32_t instanceCount) const;
+
         void draw(wgpu::RenderPassEncoder &renderPass,
                   CustomQuadShaderHandle shader, uint32_t firstInstance,
                   uint32_t instanceCount, bool transparent) const;

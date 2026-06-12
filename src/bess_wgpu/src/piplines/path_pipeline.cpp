@@ -3,6 +3,7 @@
 #include "bess_wgpu/wgpu_shader.h"
 #include <algorithm>
 #include <array>
+#include <stdexcept>
 
 namespace Bess::Wgpu::Piplines {
     namespace {
@@ -133,6 +134,65 @@ namespace Bess::Wgpu::Piplines {
         }
         queue.WriteBuffer(m_strokeVertexBuffer, bufferOffset, vertices,
                           byteSize);
+    }
+
+    const wgpu::BindGroup &PathPipeline::getBindGroup() const {
+        if (m_bindGroup == nullptr) {
+            throw std::runtime_error("Path pipeline has no bind group");
+        }
+        return m_bindGroup;
+    }
+
+    const wgpu::RenderPipeline &
+    PathPipeline::getStencilPipeline(bool evenOddFill) const {
+        const auto &pipeline =
+            evenOddFill ? m_evenOddStencilPipeline : m_stencilPipeline;
+        if (pipeline == nullptr) {
+            throw std::runtime_error("Path stencil pipeline is not ready");
+        }
+        return pipeline;
+    }
+
+    const wgpu::RenderPipeline &
+    PathPipeline::getCoverPipeline(bool transparent) const {
+        const auto &pipeline =
+            transparent ? m_transparentCoverPipeline : m_opaqueCoverPipeline;
+        if (pipeline == nullptr) {
+            throw std::runtime_error("Path cover pipeline is not ready");
+        }
+        return pipeline;
+    }
+
+    const wgpu::RenderPipeline &
+    PathPipeline::getStrokePipeline(bool transparent) const {
+        const auto &pipeline =
+            transparent ? m_transparentStrokePipeline : m_opaqueStrokePipeline;
+        if (pipeline == nullptr) {
+            throw std::runtime_error("Path stroke pipeline is not ready");
+        }
+        return pipeline;
+    }
+
+    const wgpu::Buffer &PathPipeline::getStencilVertexBuffer() const {
+        if (m_stencilVertexBuffer == nullptr) {
+            throw std::runtime_error(
+                "Path stencil vertex buffer is not ready");
+        }
+        return m_stencilVertexBuffer;
+    }
+
+    const wgpu::Buffer &PathPipeline::getCoverVertexBuffer() const {
+        if (m_coverVertexBuffer == nullptr) {
+            throw std::runtime_error("Path cover vertex buffer is not ready");
+        }
+        return m_coverVertexBuffer;
+    }
+
+    const wgpu::Buffer &PathPipeline::getStrokeVertexBuffer() const {
+        if (m_strokeVertexBuffer == nullptr) {
+            throw std::runtime_error("Path stroke vertex buffer is not ready");
+        }
+        return m_strokeVertexBuffer;
     }
 
     void PathPipeline::drawPath(wgpu::RenderPassEncoder &renderPass,
@@ -350,7 +410,7 @@ namespace Bess::Wgpu::Piplines {
             wgpu::CompareFunction::NotEqual;
         coverDepthStencil.stencilFront.failOp = wgpu::StencilOperation::Keep;
         coverDepthStencil.stencilFront.depthFailOp =
-            wgpu::StencilOperation::Keep;
+            wgpu::StencilOperation::Zero;
         coverDepthStencil.stencilFront.passOp = wgpu::StencilOperation::Zero;
         coverDepthStencil.stencilBack = coverDepthStencil.stencilFront;
 

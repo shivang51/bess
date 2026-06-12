@@ -16,6 +16,7 @@ namespace Bess::Wgpu::Renderer2DDetail {
         uint32_t firstInstance = 0;
         uint32_t instanceCount = 0;
         float zIndex = 0.f;
+        uint64_t submitOrder = 0;
     };
 
     struct CustomQuadDrawRun {
@@ -23,12 +24,14 @@ namespace Bess::Wgpu::Renderer2DDetail {
         uint32_t firstInstance = 0;
         uint32_t instanceCount = 0;
         float zIndex = 0.f;
+        uint64_t submitOrder = 0;
     };
 
     struct ShadowDrawRun {
         uint32_t firstInstance = 0;
         uint32_t instanceCount = 0;
         float zIndex = 0.f;
+        uint64_t submitOrder = 0;
     };
 
     enum class TransparentDrawKind : uint8_t {
@@ -44,7 +47,7 @@ namespace Bess::Wgpu::Renderer2DDetail {
         TransparentDrawKind kind = TransparentDrawKind::Primitive;
         float zIndex = 0.f;
         uint32_t index = 0;
-        uint32_t order = 0;
+        uint64_t order = 0;
     };
 
     class PrimitiveBatch {
@@ -53,8 +56,10 @@ namespace Bess::Wgpu::Renderer2DDetail {
             (void)initialCapacity;
             m_maxCapacity = std::max(1u, maxCapacity);
             m_gpuInstances.resize(m_maxCapacity);
+            m_submitOrders.resize(m_maxCapacity);
             m_drawRuns.resize(m_maxCapacity);
             m_gpuInstancesPtr = m_gpuInstances.data();
+            m_submitOrdersPtr = m_submitOrders.data();
             m_drawRunsPtr = m_drawRuns.data();
             m_instanceCount = 0;
             m_drawRunsCount = 0;
@@ -66,7 +71,7 @@ namespace Bess::Wgpu::Renderer2DDetail {
         }
 
         Piplines::PrimitiveInstance &
-        push(Core::Renderer::TextureHandle texture) {
+        push(Core::Renderer::TextureHandle texture, uint64_t submitOrder) {
             if (m_instanceCount >= m_maxCapacity) {
                 throw std::runtime_error("WGPU quad batch capacity exceeded");
             }
@@ -77,10 +82,12 @@ namespace Bess::Wgpu::Renderer2DDetail {
                     .texture = texture,
                     .firstInstance = instanceIndex,
                     .instanceCount = 1,
+                    .submitOrder = submitOrder,
                 };
             } else {
                 m_drawRunsPtr[m_drawRunsCount - 1].instanceCount++;
             }
+            m_submitOrdersPtr[m_instanceCount] = submitOrder;
             return m_gpuInstancesPtr[m_instanceCount++];
         }
 
@@ -93,6 +100,7 @@ namespace Bess::Wgpu::Renderer2DDetail {
                 if (m_drawRunsCount == 1) {
                     m_drawRunsPtr[0].zIndex =
                         m_gpuInstancesPtr[0].position[2];
+                    m_drawRunsPtr[0].submitOrder = m_submitOrdersPtr[0];
                 }
                 return;
             }
@@ -111,6 +119,9 @@ namespace Bess::Wgpu::Renderer2DDetail {
                         return m_gpuInstancesPtr[a].position[2] <
                                m_gpuInstancesPtr[b].position[2];
                     }
+                    if (m_submitOrdersPtr[a] != m_submitOrdersPtr[b]) {
+                        return m_submitOrdersPtr[a] < m_submitOrdersPtr[b];
+                    }
                     return a < b;
                 });
 
@@ -125,13 +136,17 @@ namespace Bess::Wgpu::Renderer2DDetail {
 
             m_sortInstances.resize(m_instanceCount);
             Piplines::PrimitiveInstance *sortedPtr = m_sortInstances.data();
+            m_sortSubmitOrders.resize(m_instanceCount);
+            uint64_t *sortedOrdersPtr = m_sortSubmitOrders.data();
             m_drawRunsCount = 0;
 
             for (uint32_t i = 0; i < m_instanceCount; ++i) {
                 uint32_t oldIdx = indicesPtr[i];
                 sortedPtr[i] = m_gpuInstancesPtr[oldIdx];
+                sortedOrdersPtr[i] = m_submitOrdersPtr[oldIdx];
                 Core::Renderer::TextureHandle tex = texPtr[oldIdx];
                 const float zIndex = sortedPtr[i].position[2];
+                const uint64_t submitOrder = sortedOrdersPtr[i];
 
                 if (m_drawRunsCount == 0 ||
                     m_drawRunsPtr[m_drawRunsCount - 1].texture != tex ||
@@ -141,6 +156,7 @@ namespace Bess::Wgpu::Renderer2DDetail {
                         .firstInstance = i,
                         .instanceCount = 1,
                         .zIndex = zIndex,
+                        .submitOrder = submitOrder,
                     };
                 } else {
                     m_drawRunsPtr[m_drawRunsCount - 1].instanceCount++;
@@ -148,6 +164,7 @@ namespace Bess::Wgpu::Renderer2DDetail {
             }
             for (uint32_t i = 0; i < m_instanceCount; ++i) {
                 m_gpuInstancesPtr[i] = sortedPtr[i];
+                m_submitOrdersPtr[i] = sortedOrdersPtr[i];
             }
         }
 
@@ -179,11 +196,14 @@ namespace Bess::Wgpu::Renderer2DDetail {
 
       private:
         std::vector<Piplines::PrimitiveInstance> m_gpuInstances;
+        std::vector<uint64_t> m_submitOrders;
         std::vector<DrawRun> m_drawRuns;
         std::vector<uint32_t> m_sortIndices;
         std::vector<Core::Renderer::TextureHandle> m_sortTextures;
         std::vector<Piplines::PrimitiveInstance> m_sortInstances;
+        std::vector<uint64_t> m_sortSubmitOrders;
         Piplines::PrimitiveInstance *m_gpuInstancesPtr = nullptr;
+        uint64_t *m_submitOrdersPtr = nullptr;
         DrawRun *m_drawRunsPtr = nullptr;
         uint32_t m_instanceCount = 0;
         uint32_t m_drawRunsCount = 0;
@@ -196,8 +216,10 @@ namespace Bess::Wgpu::Renderer2DDetail {
             (void)initialCapacity;
             m_maxCapacity = std::max(1u, maxCapacity);
             m_gpuInstances.resize(m_maxCapacity);
+            m_submitOrders.resize(m_maxCapacity);
             m_drawRuns.resize(m_maxCapacity);
             m_gpuInstancesPtr = m_gpuInstances.data();
+            m_submitOrdersPtr = m_submitOrders.data();
             m_drawRunsPtr = m_drawRuns.data();
             m_instanceCount = 0;
             m_drawRunsCount = 0;
@@ -208,7 +230,8 @@ namespace Bess::Wgpu::Renderer2DDetail {
             m_drawRunsCount = 0;
         }
 
-        CustomQuadInstance &push(CustomQuadShaderHandle shader) {
+        CustomQuadInstance &push(CustomQuadShaderHandle shader,
+                                 uint64_t submitOrder) {
             if (shader == 0) {
                 throw std::runtime_error(
                     "Custom quad shader handle must be non-zero");
@@ -225,10 +248,12 @@ namespace Bess::Wgpu::Renderer2DDetail {
                     .shader = shader,
                     .firstInstance = instanceIndex,
                     .instanceCount = 1,
+                    .submitOrder = submitOrder,
                 };
             } else {
                 m_drawRunsPtr[m_drawRunsCount - 1].instanceCount++;
             }
+            m_submitOrdersPtr[m_instanceCount] = submitOrder;
             return m_gpuInstancesPtr[m_instanceCount++];
         }
 
@@ -241,6 +266,7 @@ namespace Bess::Wgpu::Renderer2DDetail {
                 if (m_drawRunsCount == 1) {
                     m_drawRunsPtr[0].zIndex =
                         m_gpuInstancesPtr[0].position[2];
+                    m_drawRunsPtr[0].submitOrder = m_submitOrdersPtr[0];
                 }
                 return;
             }
@@ -259,6 +285,9 @@ namespace Bess::Wgpu::Renderer2DDetail {
                         return m_gpuInstancesPtr[a].position[2] <
                                m_gpuInstancesPtr[b].position[2];
                     }
+                    if (m_submitOrdersPtr[a] != m_submitOrdersPtr[b]) {
+                        return m_submitOrdersPtr[a] < m_submitOrdersPtr[b];
+                    }
                     return a < b;
                 });
 
@@ -273,13 +302,17 @@ namespace Bess::Wgpu::Renderer2DDetail {
 
             m_sortInstances.resize(m_instanceCount);
             CustomQuadInstance *sortedPtr = m_sortInstances.data();
+            m_sortSubmitOrders.resize(m_instanceCount);
+            uint64_t *sortedOrdersPtr = m_sortSubmitOrders.data();
             m_drawRunsCount = 0;
 
             for (uint32_t i = 0; i < m_instanceCount; ++i) {
                 uint32_t oldIdx = indicesPtr[i];
                 sortedPtr[i] = m_gpuInstancesPtr[oldIdx];
+                sortedOrdersPtr[i] = m_submitOrdersPtr[oldIdx];
                 CustomQuadShaderHandle shader = shaderPtr[oldIdx];
                 const float zIndex = sortedPtr[i].position[2];
+                const uint64_t submitOrder = sortedOrdersPtr[i];
 
                 if (m_drawRunsCount == 0 ||
                     m_drawRunsPtr[m_drawRunsCount - 1].shader != shader ||
@@ -289,6 +322,7 @@ namespace Bess::Wgpu::Renderer2DDetail {
                         .firstInstance = i,
                         .instanceCount = 1,
                         .zIndex = zIndex,
+                        .submitOrder = submitOrder,
                     };
                 } else {
                     m_drawRunsPtr[m_drawRunsCount - 1].instanceCount++;
@@ -296,6 +330,7 @@ namespace Bess::Wgpu::Renderer2DDetail {
             }
             for (uint32_t i = 0; i < m_instanceCount; ++i) {
                 m_gpuInstancesPtr[i] = sortedPtr[i];
+                m_submitOrdersPtr[i] = sortedOrdersPtr[i];
             }
         }
 
@@ -326,11 +361,14 @@ namespace Bess::Wgpu::Renderer2DDetail {
 
       private:
         std::vector<CustomQuadInstance> m_gpuInstances;
+        std::vector<uint64_t> m_submitOrders;
         std::vector<CustomQuadDrawRun> m_drawRuns;
         std::vector<uint32_t> m_sortIndices;
         std::vector<CustomQuadShaderHandle> m_sortShaders;
         std::vector<CustomQuadInstance> m_sortInstances;
+        std::vector<uint64_t> m_sortSubmitOrders;
         CustomQuadInstance *m_gpuInstancesPtr = nullptr;
+        uint64_t *m_submitOrdersPtr = nullptr;
         CustomQuadDrawRun *m_drawRunsPtr = nullptr;
         uint32_t m_instanceCount = 0;
         uint32_t m_drawRunsCount = 0;
@@ -343,8 +381,10 @@ namespace Bess::Wgpu::Renderer2DDetail {
             (void)initialCapacity;
             m_maxCapacity = std::max(1u, maxCapacity);
             m_instances.resize(m_maxCapacity);
+            m_submitOrders.resize(m_maxCapacity);
             m_drawRuns.resize(m_maxCapacity);
             m_instancesPtr = m_instances.data();
+            m_submitOrdersPtr = m_submitOrders.data();
             m_drawRunsPtr = m_drawRuns.data();
             m_instanceCount = 0;
             m_drawRunsCount = 0;
@@ -355,10 +395,11 @@ namespace Bess::Wgpu::Renderer2DDetail {
             m_drawRunsCount = 0;
         }
 
-        Piplines::ShadowInstance &push() {
+        Piplines::ShadowInstance &push(uint64_t submitOrder) {
             if (m_instanceCount >= m_maxCapacity) {
                 throw std::runtime_error("WGPU shadow batch capacity exceeded");
             }
+            m_submitOrdersPtr[m_instanceCount] = submitOrder;
             return m_instancesPtr[m_instanceCount++];
         }
 
@@ -368,26 +409,50 @@ namespace Bess::Wgpu::Renderer2DDetail {
             }
 
             if (m_instanceCount > 1) {
+                m_sortIndices.resize(m_instanceCount);
+                uint32_t *indicesPtr = m_sortIndices.data();
+                for (uint32_t i = 0; i < m_instanceCount; ++i) {
+                    indicesPtr[i] = i;
+                }
                 std::stable_sort(
-                    m_instancesPtr, m_instancesPtr + m_instanceCount,
-                    [](const Piplines::ShadowInstance &a,
-                       const Piplines::ShadowInstance &b) {
-                        if (a.position[2] != b.position[2]) {
-                            return a.position[2] < b.position[2];
+                    m_sortIndices.begin(), m_sortIndices.end(),
+                    [this](uint32_t a, uint32_t b) {
+                        if (m_instancesPtr[a].position[2] !=
+                            m_instancesPtr[b].position[2]) {
+                            return m_instancesPtr[a].position[2] <
+                                   m_instancesPtr[b].position[2];
                         }
-                        return false;
+                        if (m_submitOrdersPtr[a] != m_submitOrdersPtr[b]) {
+                            return m_submitOrdersPtr[a] <
+                                   m_submitOrdersPtr[b];
+                        }
+                        return a < b;
                     });
+
+                m_sortInstances.resize(m_instanceCount);
+                m_sortSubmitOrders.resize(m_instanceCount);
+                for (uint32_t i = 0; i < m_instanceCount; ++i) {
+                    const uint32_t oldIdx = indicesPtr[i];
+                    m_sortInstances[i] = m_instancesPtr[oldIdx];
+                    m_sortSubmitOrders[i] = m_submitOrdersPtr[oldIdx];
+                }
+                for (uint32_t i = 0; i < m_instanceCount; ++i) {
+                    m_instancesPtr[i] = m_sortInstances[i];
+                    m_submitOrdersPtr[i] = m_sortSubmitOrders[i];
+                }
             }
 
             m_drawRunsCount = 0;
             for (uint32_t i = 0; i < m_instanceCount; ++i) {
                 const float zIndex = m_instancesPtr[i].position[2];
+                const uint64_t submitOrder = m_submitOrdersPtr[i];
                 if (m_drawRunsCount == 0 ||
                     m_drawRunsPtr[m_drawRunsCount - 1].zIndex != zIndex) {
                     m_drawRunsPtr[m_drawRunsCount++] = {
                         .firstInstance = i,
                         .instanceCount = 1,
                         .zIndex = zIndex,
+                        .submitOrder = submitOrder,
                     };
                 } else {
                     m_drawRunsPtr[m_drawRunsCount - 1].instanceCount++;
@@ -422,8 +487,13 @@ namespace Bess::Wgpu::Renderer2DDetail {
 
       private:
         std::vector<Piplines::ShadowInstance> m_instances;
+        std::vector<uint64_t> m_submitOrders;
+        std::vector<uint32_t> m_sortIndices;
+        std::vector<Piplines::ShadowInstance> m_sortInstances;
+        std::vector<uint64_t> m_sortSubmitOrders;
         std::vector<ShadowDrawRun> m_drawRuns;
         Piplines::ShadowInstance *m_instancesPtr = nullptr;
+        uint64_t *m_submitOrdersPtr = nullptr;
         ShadowDrawRun *m_drawRunsPtr = nullptr;
         uint32_t m_instanceCount = 0;
         uint32_t m_drawRunsCount = 0;

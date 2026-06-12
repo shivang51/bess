@@ -48,6 +48,17 @@ namespace Bess::Wgpu::Piplines {
                                   uint64_t byteSize,
                                   uint64_t bufferOffset = 0) const;
 
+        [[nodiscard]] const wgpu::BindGroup &getBindGroup() const;
+        [[nodiscard]] const wgpu::RenderPipeline &
+        getStencilPipeline(bool evenOddFill) const;
+        [[nodiscard]] const wgpu::RenderPipeline &
+        getCoverPipeline(bool transparent) const;
+        [[nodiscard]] const wgpu::RenderPipeline &
+        getStrokePipeline(bool transparent) const;
+        [[nodiscard]] const wgpu::Buffer &getStencilVertexBuffer() const;
+        [[nodiscard]] const wgpu::Buffer &getCoverVertexBuffer() const;
+        [[nodiscard]] const wgpu::Buffer &getStrokeVertexBuffer() const;
+
         void drawPath(wgpu::RenderPassEncoder &renderPass,
                       uint32_t firstStencilVertex, uint32_t stencilVertexCount,
                       uint32_t firstCoverVertex, uint32_t coverVertexCount,

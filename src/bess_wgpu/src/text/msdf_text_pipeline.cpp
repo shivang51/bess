@@ -285,19 +285,40 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         queue.WriteBuffer(m_instanceBuffer, 0, instances, byteSize);
     }
 
+    const wgpu::RenderPipeline &MsdfTextPipeline::getPipeline() const {
+        if (m_pipeline == nullptr || m_bindGroup == nullptr) {
+            throw std::runtime_error(
+                "MSDF text pipeline is not ready for drawing");
+        }
+        return m_pipeline;
+    }
+
+    const wgpu::BindGroup &MsdfTextPipeline::getBindGroup() const {
+        if (m_pipeline == nullptr || m_bindGroup == nullptr) {
+            throw std::runtime_error(
+                "MSDF text pipeline is not ready for drawing");
+        }
+        return m_bindGroup;
+    }
+
+    void MsdfTextPipeline::drawInstances(wgpu::RenderPassEncoder &renderPass,
+                                         uint32_t firstGlyph,
+                                         uint32_t glyphCount) const {
+        if (glyphCount == 0) {
+            return;
+        }
+        renderPass.Draw(6, glyphCount, 0, firstGlyph);
+    }
+
     void MsdfTextPipeline::draw(wgpu::RenderPassEncoder &renderPass,
                                 uint32_t firstGlyph,
                                 uint32_t glyphCount) const {
         if (glyphCount == 0) {
             return;
         }
-        if (m_pipeline == nullptr || m_bindGroup == nullptr) {
-            throw std::runtime_error(
-                "MSDF text pipeline is not ready for drawing");
-        }
-        renderPass.SetPipeline(m_pipeline);
-        renderPass.SetBindGroup(0, m_bindGroup);
-        renderPass.Draw(6, glyphCount, 0, firstGlyph);
+        renderPass.SetPipeline(getPipeline());
+        renderPass.SetBindGroup(0, getBindGroup());
+        drawInstances(renderPass, firstGlyph, glyphCount);
     }
 
     void MsdfTextPipeline::createShader() {
@@ -448,7 +469,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
     template <typename TAtlas>
     bool appendMsdfText(std::string_view text,
                         const Core::Renderer::FontProps &props,
-                        const TAtlas &atlas, MsdfTextBatch &batch) {
+                        const TAtlas &atlas, MsdfTextBatch &batch,
+                        uint64_t submitOrder) {
         if (!atlas.valid()) {
             return false;
         }
@@ -536,7 +558,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                     instance.uvRect[3] = uv.w;
                     instance.id[0] = props.id.runtimeId;
                     instance.id[1] = props.id.info;
-                    batch.push(instance);
+                    batch.push(instance, submitOrder);
                 }
             }
 
@@ -710,7 +732,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
     template bool
     appendMsdfText<Core::Renderer::MsdfFontAtlas<WgpuTexture>>(
         std::string_view, const Core::Renderer::FontProps &,
-        const Core::Renderer::MsdfFontAtlas<WgpuTexture> &, MsdfTextBatch &);
+        const Core::Renderer::MsdfFontAtlas<WgpuTexture> &, MsdfTextBatch &,
+        uint64_t);
 
     template glm::vec2
     measureMsdfText<Core::Renderer::MsdfFontAtlas<WgpuTexture>>(

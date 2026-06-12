@@ -391,6 +391,7 @@ namespace Bess::Core::Renderer {
             command.control2 += offset;
             includeCommandBounds(command);
         }
+        ++m_revision;
     }
 
     void Path2D::scale(const glm::vec2 &val) {
@@ -411,6 +412,7 @@ namespace Bess::Core::Renderer {
             command.control2 *= m_currentScale;
             includeCommandBounds(command);
         }
+        ++m_revision;
     }
 
     void Path2D::normalize(const glm::vec2 &size) {

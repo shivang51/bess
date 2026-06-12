@@ -33,30 +33,53 @@ namespace Bess::Wgpu {
             uint32_t firstGlyph = 0;
             uint32_t glyphCount = 0;
             float zIndex = 0.f;
+            uint64_t submitOrder = 0;
         };
 
         class MsdfTextBatch {
           public:
             void clear() {
                 m_instances.clear();
+                m_submitOrders.clear();
                 m_drawRuns.clear();
             }
 
-            void push(const MsdfTextInstance &instance) {
+            void push(const MsdfTextInstance &instance,
+                      uint64_t submitOrder = 0) {
                 m_instances.push_back(instance);
+                m_submitOrders.push_back(submitOrder);
             }
 
             void prepareForRendering() {
                 if (m_instances.size() > 1) {
-                    std::stable_sort(m_instances.begin(), m_instances.end(),
-                                     [](const MsdfTextInstance &a,
-                                        const MsdfTextInstance &b) {
-                                         if (a.position[2] != b.position[2]) {
-                                             return a.position[2] <
-                                                    b.position[2];
-                                         }
-                                         return false;
-                                     });
+                    m_sortIndices.resize(m_instances.size());
+                    for (uint32_t i = 0; i < m_instances.size(); ++i) {
+                        m_sortIndices[i] = i;
+                    }
+
+                    std::stable_sort(
+                        m_sortIndices.begin(), m_sortIndices.end(),
+                        [this](uint32_t a, uint32_t b) {
+                            if (m_instances[a].position[2] !=
+                                m_instances[b].position[2]) {
+                                return m_instances[a].position[2] <
+                                       m_instances[b].position[2];
+                            }
+                            if (m_submitOrders[a] != m_submitOrders[b]) {
+                                return m_submitOrders[a] < m_submitOrders[b];
+                            }
+                            return a < b;
+                        });
+
+                    m_sortInstances.resize(m_instances.size());
+                    m_sortSubmitOrders.resize(m_instances.size());
+                    for (uint32_t i = 0; i < m_sortIndices.size(); ++i) {
+                        const uint32_t oldIdx = m_sortIndices[i];
+                        m_sortInstances[i] = m_instances[oldIdx];
+                        m_sortSubmitOrders[i] = m_submitOrders[oldIdx];
+                    }
+                    m_instances = m_sortInstances;
+                    m_submitOrders = m_sortSubmitOrders;
                 }
 
                 m_drawRuns.clear();
@@ -67,12 +90,14 @@ namespace Bess::Wgpu {
                 m_drawRuns.reserve(m_instances.size());
                 for (uint32_t i = 0; i < m_instances.size(); ++i) {
                     const float zIndex = m_instances[i].position[2];
+                    const uint64_t submitOrder = m_submitOrders[i];
                     if (m_drawRuns.empty() ||
                         m_drawRuns.back().zIndex != zIndex) {
                         m_drawRuns.push_back({
                             .firstGlyph = i,
                             .glyphCount = 1,
                             .zIndex = zIndex,
+                            .submitOrder = submitOrder,
                         });
                     } else {
                         m_drawRuns.back().glyphCount++;
@@ -107,6 +132,10 @@ namespace Bess::Wgpu {
 
           private:
             std::vector<MsdfTextInstance> m_instances;
+            std::vector<uint64_t> m_submitOrders;
+            std::vector<uint32_t> m_sortIndices;
+            std::vector<MsdfTextInstance> m_sortInstances;
+            std::vector<uint64_t> m_sortSubmitOrders;
             std::vector<TextDrawRun> m_drawRuns;
         };
 
@@ -126,6 +155,14 @@ namespace Bess::Wgpu {
             void uploadInstances(const wgpu::Queue &queue,
                                  const MsdfTextInstance *instances,
                                  uint64_t byteSize) const;
+
+            [[nodiscard]] const wgpu::RenderPipeline &getPipeline() const;
+
+            [[nodiscard]] const wgpu::BindGroup &getBindGroup() const;
+
+            void drawInstances(wgpu::RenderPassEncoder &renderPass,
+                               uint32_t firstGlyph,
+                               uint32_t glyphCount) const;
 
             void draw(wgpu::RenderPassEncoder &renderPass, uint32_t firstGlyph,
                       uint32_t glyphCount) const;
@@ -159,7 +196,8 @@ namespace Bess::Wgpu {
         template <typename TAtlas>
         bool appendMsdfText(std::string_view text,
                             const Core::Renderer::FontProps &props,
-                            const TAtlas &atlas, MsdfTextBatch &batch);
+                            const TAtlas &atlas, MsdfTextBatch &batch,
+                            uint64_t submitOrder = 0);
 
         template <typename TAtlas>
         glm::vec2 measureMsdfText(std::string_view text,

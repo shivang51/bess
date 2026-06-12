@@ -41,6 +41,14 @@ namespace Bess::Wgpu::Piplines {
                              const ShadowInstance *instances,
                              uint64_t byteSize) const;
 
+        [[nodiscard]] const wgpu::RenderPipeline &getPipeline() const;
+
+        [[nodiscard]] const wgpu::BindGroup &getBindGroup() const;
+
+        void drawInstances(wgpu::RenderPassEncoder &renderPass,
+                           uint32_t firstInstance,
+                           uint32_t instanceCount) const;
+
         void draw(wgpu::RenderPassEncoder &renderPass, uint32_t firstInstance,
                   uint32_t instanceCount) const;
 

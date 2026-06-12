@@ -1403,7 +1403,8 @@ namespace Bess::Wgpu {
         m_drawRanges.clear();
     }
 
-    void PathBatch::push(BakedPath &&path, float zIndex) {
+    void PathBatch::push(const BakedPath &path, float zIndex,
+                         uint64_t submitOrder) {
         if (!path.valid || path.stencilVertices.empty()) {
             return;
         }
@@ -1418,6 +1419,7 @@ namespace Bess::Wgpu {
             static_cast<uint32_t>(path.coverVertices.size());
         range.evenOddFill = path.evenOddFill;
         range.zIndex = zIndex;
+        range.submitOrder = submitOrder;
 
         m_stencilVertices.insert(m_stencilVertices.end(),
                                  path.stencilVertices.begin(),
@@ -1428,6 +1430,11 @@ namespace Bess::Wgpu {
         m_drawRanges.push_back(range);
     }
 
+    void PathBatch::push(BakedPath &&path, float zIndex,
+                         uint64_t submitOrder) {
+        push(path, zIndex, submitOrder);
+    }
+
     void PathBatch::prepareForRendering(bool sortBackToFront) {
         if (!sortBackToFront || m_drawRanges.size() <= 1) {
             return;
@@ -1435,7 +1442,10 @@ namespace Bess::Wgpu {
 
         std::stable_sort(m_drawRanges.begin(), m_drawRanges.end(),
                          [](const PathDrawRange &a, const PathDrawRange &b) {
-                             return a.zIndex < b.zIndex;
+                             if (a.zIndex != b.zIndex) {
+                                 return a.zIndex < b.zIndex;
+                             }
+                             return a.submitOrder < b.submitOrder;
                          });
     }
 
@@ -1480,9 +1490,9 @@ namespace Bess::Wgpu {
         m_drawRanges.clear();
     }
 
-    void
-    PathStrokeBatch::push(std::vector<Piplines::PathCoverVertex> &&vertices,
-                          float zIndex) {
+    void PathStrokeBatch::push(
+        const std::vector<Piplines::PathCoverVertex> &vertices, float zIndex,
+        uint64_t submitOrder) {
         if (vertices.empty()) {
             return;
         }
@@ -1491,8 +1501,15 @@ namespace Bess::Wgpu {
         range.firstVertex = static_cast<uint32_t>(m_vertices.size());
         range.vertexCount = static_cast<uint32_t>(vertices.size());
         range.zIndex = zIndex;
+        range.submitOrder = submitOrder;
         m_vertices.insert(m_vertices.end(), vertices.begin(), vertices.end());
         m_drawRanges.push_back(range);
+    }
+
+    void
+    PathStrokeBatch::push(std::vector<Piplines::PathCoverVertex> &&vertices,
+                          float zIndex, uint64_t submitOrder) {
+        push(vertices, zIndex, submitOrder);
     }
 
     void PathStrokeBatch::prepareForRendering(bool sortBackToFront) {
@@ -1503,7 +1520,10 @@ namespace Bess::Wgpu {
         std::stable_sort(
             m_drawRanges.begin(), m_drawRanges.end(),
             [](const PathStrokeDrawRange &a, const PathStrokeDrawRange &b) {
-                return a.zIndex < b.zIndex;
+                if (a.zIndex != b.zIndex) {
+                    return a.zIndex < b.zIndex;
+                }
+                return a.submitOrder < b.submitOrder;
             });
     }
 
@@ -1563,6 +1583,70 @@ namespace Bess::Wgpu {
                 .pixelWorldSize = 1.f / screenScale};
     }
 
+    BakedPathSubmission bakePathSubmission(std::span<const PathCommand> commands,
+                                           const PathProps &props,
+                                           const PathBakeMetrics &metrics) {
+        BakedPathSubmission submission{};
+        if (commands.empty()) {
+            return submission;
+        }
+
+        if (hasPathFill(props)) {
+            BakedPath baked = bakePath(commands, props, metrics);
+            if (baked.valid) {
+                submission.fill = std::move(baked);
+                submission.fillTransparent = isFillTransparent(props);
+            }
+        }
+
+        if (pathHasDrawableStroke(commands, props)) {
+            const bool forceTransparentStroke =
+                hasPathFill(props) && isFillTransparent(props);
+            submission.strokeTransparent =
+                forceTransparentStroke || isStrokeTransparent(props);
+            submission.strokeVertices = bakePathStroke(commands, props, metrics);
+        }
+
+        return submission;
+    }
+
+    void submitBakedPathSubmission(
+        const BakedPathSubmission &submission, const PathProps &props,
+        uint64_t submitOrder, PathBatch &opaquePathBatch,
+        PathBatch &transparentPathBatch, PathStrokeBatch &opaquePathStrokeBatch,
+        PathStrokeBatch &transparentPathStrokeBatch) {
+        if (submission.fill.valid) {
+            PathBatch &fillBatch = submission.fillTransparent
+                                       ? transparentPathBatch
+                                       : opaquePathBatch;
+            fillBatch.push(submission.fill, props.zIndex, submitOrder);
+        }
+
+        if (!submission.strokeVertices.empty()) {
+            PathStrokeBatch &strokeBatch = submission.strokeTransparent
+                                               ? transparentPathStrokeBatch
+                                               : opaquePathStrokeBatch;
+            strokeBatch.push(submission.strokeVertices, props.zIndex,
+                             submitOrder);
+        }
+    }
+
+    void submitPathCommands(std::span<const PathCommand> commands,
+                            const PathProps &props,
+                            const PathBakeMetrics &metrics,
+                            uint64_t submitOrder,
+                            PathBatch &opaquePathBatch,
+                            PathBatch &transparentPathBatch,
+                            PathStrokeBatch &opaquePathStrokeBatch,
+                            PathStrokeBatch &transparentPathStrokeBatch) {
+        const BakedPathSubmission submission =
+            bakePathSubmission(commands, props, metrics);
+        submitBakedPathSubmission(submission, props, submitOrder,
+                                  opaquePathBatch, transparentPathBatch,
+                                  opaquePathStrokeBatch,
+                                  transparentPathStrokeBatch);
+    }
+
     void submitPathCommands(std::span<const PathCommand> commands,
                             const PathProps &props,
                             const PathBakeMetrics &metrics,
@@ -1570,32 +1654,9 @@ namespace Bess::Wgpu {
                             PathBatch &transparentPathBatch,
                             PathStrokeBatch &opaquePathStrokeBatch,
                             PathStrokeBatch &transparentPathStrokeBatch) {
-        if (commands.empty()) {
-            return;
-        }
-
-        if (hasPathFill(props)) {
-            BakedPath baked = bakePath(commands, props, metrics);
-            if (baked.valid) {
-                if (isFillTransparent(props)) {
-                    transparentPathBatch.push(std::move(baked), props.zIndex);
-                } else {
-                    opaquePathBatch.push(std::move(baked), props.zIndex);
-                }
-            }
-        }
-
-        if (pathHasDrawableStroke(commands, props)) {
-            const bool forceTransparentStroke =
-                hasPathFill(props) && isFillTransparent(props);
-            const bool strokeIsTransparent =
-                forceTransparentStroke || isStrokeTransparent(props);
-            PathStrokeBatch &strokeBatch = strokeIsTransparent
-                                               ? transparentPathStrokeBatch
-                                               : opaquePathStrokeBatch;
-            strokeBatch.push(bakePathStroke(commands, props, metrics),
-                             props.zIndex);
-        }
+        submitPathCommands(commands, props, metrics, 0, opaquePathBatch,
+                           transparentPathBatch, opaquePathStrokeBatch,
+                           transparentPathStrokeBatch);
     }
 
 } // namespace Bess::Wgpu

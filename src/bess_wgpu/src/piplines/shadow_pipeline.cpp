@@ -242,19 +242,38 @@ fn fs_main(in: VertexOut) -> FragmentOut {
         queue.WriteBuffer(m_instanceBuffer, 0, instances, byteSize);
     }
 
+    const wgpu::RenderPipeline &ShadowPipeline::getPipeline() const {
+        if (m_pipeline == nullptr || m_bindGroup == nullptr) {
+            throw std::runtime_error("Shadow pipeline is not ready");
+        }
+        return m_pipeline;
+    }
+
+    const wgpu::BindGroup &ShadowPipeline::getBindGroup() const {
+        if (m_pipeline == nullptr || m_bindGroup == nullptr) {
+            throw std::runtime_error("Shadow pipeline is not ready");
+        }
+        return m_bindGroup;
+    }
+
+    void ShadowPipeline::drawInstances(wgpu::RenderPassEncoder &renderPass,
+                                       uint32_t firstInstance,
+                                       uint32_t instanceCount) const {
+        if (instanceCount == 0) {
+            return;
+        }
+        renderPass.Draw(6, instanceCount, 0, firstInstance);
+    }
+
     void ShadowPipeline::draw(wgpu::RenderPassEncoder &renderPass,
                               uint32_t firstInstance,
                               uint32_t instanceCount) const {
         if (instanceCount == 0) {
             return;
         }
-        if (m_pipeline == nullptr || m_bindGroup == nullptr) {
-            throw std::runtime_error("Shadow pipeline is not ready");
-        }
-
-        renderPass.SetPipeline(m_pipeline);
-        renderPass.SetBindGroup(0, m_bindGroup);
-        renderPass.Draw(6, instanceCount, 0, firstInstance);
+        renderPass.SetPipeline(getPipeline());
+        renderPass.SetBindGroup(0, getBindGroup());
+        drawInstances(renderPass, firstInstance, instanceCount);
     }
 
     void ShadowPipeline::createShader() {

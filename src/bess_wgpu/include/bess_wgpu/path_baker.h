@@ -22,6 +22,7 @@ namespace Bess::Wgpu {
         uint32_t coverVertexCount = 0;
         bool evenOddFill = true;
         float zIndex = 0.f;
+        uint64_t submitOrder = 0;
     };
 
     struct BakedPath {
@@ -51,11 +52,19 @@ namespace Bess::Wgpu {
         PickingId id = PickingId::invalid();
     };
 
+    struct BakedPathSubmission {
+        BakedPath fill;
+        std::vector<Piplines::PathCoverVertex> strokeVertices;
+        bool fillTransparent = false;
+        bool strokeTransparent = false;
+    };
+
     class PathBatch {
       public:
         void clear();
 
-        void push(BakedPath &&path, float zIndex);
+        void push(const BakedPath &path, float zIndex, uint64_t submitOrder);
+        void push(BakedPath &&path, float zIndex, uint64_t submitOrder);
 
         void prepareForRendering(bool sortBackToFront);
 
@@ -82,14 +91,17 @@ namespace Bess::Wgpu {
         uint32_t firstVertex = 0;
         uint32_t vertexCount = 0;
         float zIndex = 0.f;
+        uint64_t submitOrder = 0;
     };
 
     class PathStrokeBatch {
       public:
         void clear();
 
+        void push(const std::vector<Piplines::PathCoverVertex> &vertices,
+                  float zIndex, uint64_t submitOrder);
         void push(std::vector<Piplines::PathCoverVertex> &&vertices,
-                  float zIndex);
+                  float zIndex, uint64_t submitOrder);
 
         void prepareForRendering(bool sortBackToFront);
 
@@ -109,6 +121,23 @@ namespace Bess::Wgpu {
     [[nodiscard]] PathBakeMetrics
     makePathBakeMetrics(const float *cameraTransform,
                         const Renderer2DExtent &extent);
+
+    [[nodiscard]] BakedPathSubmission BESS_API bakePathSubmission(
+        std::span<const PathCommand> commands, const PathProps &props,
+        const PathBakeMetrics &metrics);
+
+    void BESS_API submitBakedPathSubmission(
+        const BakedPathSubmission &submission, const PathProps &props,
+        uint64_t submitOrder, PathBatch &opaquePathBatch,
+        PathBatch &transparentPathBatch, PathStrokeBatch &opaquePathStrokeBatch,
+        PathStrokeBatch &transparentPathStrokeBatch);
+
+    void BESS_API submitPathCommands(
+        std::span<const PathCommand> commands, const PathProps &props,
+        const PathBakeMetrics &metrics, uint64_t submitOrder,
+        PathBatch &opaquePathBatch, PathBatch &transparentPathBatch,
+        PathStrokeBatch &opaquePathStrokeBatch,
+        PathStrokeBatch &transparentPathStrokeBatch);
 
     void BESS_API submitPathCommands(
         std::span<const PathCommand> commands, const PathProps &props,

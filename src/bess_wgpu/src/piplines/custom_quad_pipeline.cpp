@@ -107,6 +107,34 @@ namespace Bess {
         return shader != 0 && m_shaders.contains(shader);
     }
 
+    const wgpu::RenderPipeline &
+    CustomQuadPipeline::getPipeline(CustomQuadShaderHandle shader,
+                                    bool transparent) const {
+        const auto it = m_shaders.find(shader);
+        if (it == m_shaders.end()) {
+            throw std::runtime_error(
+                "Custom quad shader handle is not registered");
+        }
+        return transparent ? it->second.transparentPipeline
+                           : it->second.opaquePipeline;
+    }
+
+    const wgpu::BindGroup &CustomQuadPipeline::getBindGroup() const {
+        if (m_bindGroup == nullptr) {
+            throw std::runtime_error("Custom quad pipeline has no bind group");
+        }
+        return m_bindGroup;
+    }
+
+    void CustomQuadPipeline::drawInstances(
+        wgpu::RenderPassEncoder &renderPass, uint32_t firstInstance,
+        uint32_t instanceCount) const {
+        if (instanceCount == 0) {
+            return;
+        }
+        renderPass.Draw(6, instanceCount, 0, firstInstance);
+    }
+
     void CustomQuadPipeline::draw(wgpu::RenderPassEncoder &renderPass,
                                   CustomQuadShaderHandle shader,
                                   uint32_t firstInstance,
@@ -116,19 +144,9 @@ namespace Bess {
             return;
         }
 
-        const auto it = m_shaders.find(shader);
-        if (it == m_shaders.end()) {
-            throw std::runtime_error(
-                "Custom quad shader handle is not registered");
-        }
-        if (m_bindGroup == nullptr) {
-            throw std::runtime_error("Custom quad pipeline has no bind group");
-        }
-
-        renderPass.SetPipeline(transparent ? it->second.transparentPipeline
-                                           : it->second.opaquePipeline);
-        renderPass.SetBindGroup(0, m_bindGroup);
-        renderPass.Draw(6, instanceCount, 0, firstInstance);
+        renderPass.SetPipeline(getPipeline(shader, transparent));
+        renderPass.SetBindGroup(0, getBindGroup());
+        drawInstances(renderPass, firstInstance, instanceCount);
     }
 
     bool CustomQuadPipeline::isWGSLIdentifier(std::string_view value) {
