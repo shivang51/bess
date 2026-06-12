@@ -46,11 +46,6 @@ struct FragmentOut {
     @location(0) color: vec4f,
 };
 
-struct FragmentOutPicking {
-    @location(0) color: vec4f,
-    @location(1) id: vec2u,
-};
-
 @group(0) @binding(0) var<storage, read> shadows: array<Shadow>;
 @group(0) @binding(1) var<uniform> frame: Frame;
 
@@ -58,7 +53,6 @@ const SHADOW_SHAPE_ROUNDED_RECT: u32 = 0u;
 const SHADOW_SHAPE_CIRCLE: u32 = 1u;
 const SHADOW_SHAPE_LINE: u32 = 2u;
 const SHADOW_FLAG_APPLY_CAMERA_TRANSFORM: u32 = 1u;
-const INVALID_PICKING_ID: u32 = 4294967295u;
 
 fn shadow_depth(z_index: f32) -> f32 {
     return clamp(0.5 - 0.5 * tanh(z_index * 0.01), 0.0, 1.0);
@@ -184,14 +178,6 @@ fn compute_color(in: VertexOut) -> vec4f {
 fn fs_main(in: VertexOut) -> FragmentOut {
     var out: FragmentOut;
     out.color = compute_color(in);
-    return out;
-}
-
-@fragment
-fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
-    var out: FragmentOutPicking;
-    out.color = compute_color(in);
-    out.id = vec2u(INVALID_PICKING_ID, 0u);
     return out;
 }
 )";
@@ -357,15 +343,14 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
 
         if (m_pickingFormat != wgpu::TextureFormat::Undefined) {
             colorTargets[1].format = m_pickingFormat;
+            colorTargets[1].writeMask = wgpu::ColorWriteMask::None;
             targetCount = 2;
         }
 
         wgpu::FragmentState fragment{};
         fragment.module =
             m_shader->getModule(Core::Renderer::ShaderStage::Fragment);
-        fragment.entryPoint = m_pickingFormat != wgpu::TextureFormat::Undefined
-                                  ? "fs_main_picking"
-                                  : "fs_main";
+        fragment.entryPoint = "fs_main";
         fragment.targetCount = targetCount;
         fragment.targets = colorTargets;
 
