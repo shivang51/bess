@@ -110,6 +110,34 @@ namespace Bess::Wgpu {
                    a.pixelWorldSize == b.pixelWorldSize;
         }
 
+        bool supportsPresentMode(const wgpu::SurfaceCapabilities &capabilities,
+                                 wgpu::PresentMode mode) noexcept {
+            for (size_t i = 0; i < capabilities.presentModeCount; ++i) {
+                if (capabilities.presentModes[i] == mode) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        wgpu::PresentMode chooseSurfacePresentMode(
+            const wgpu::SurfaceCapabilities &capabilities) noexcept {
+            constexpr std::array preferredModes{
+                wgpu::PresentMode::Mailbox,
+                wgpu::PresentMode::Immediate,
+                wgpu::PresentMode::FifoRelaxed,
+                wgpu::PresentMode::Fifo,
+            };
+
+            for (wgpu::PresentMode mode : preferredModes) {
+                if (supportsPresentMode(capabilities, mode)) {
+                    return mode;
+                }
+            }
+
+            return capabilities.presentModes[0];
+        }
+
         struct CachedPathEntry {
             bool initialized = false;
             uint64_t revision = 0;
@@ -159,6 +187,7 @@ namespace Bess::Wgpu {
         std::unique_ptr<CustomQuadPipeline> customQuadPipeline;
         std::unique_ptr<Text::MsdfTextPipeline> textPipeline;
         wgpu::CommandEncoder commandEncoder;
+        std::vector<wgpu::CommandBuffer> pendingCommandBuffers;
         std::unordered_map<Core::Renderer::TextureHandle, TextureResource>
             textures;
         std::shared_ptr<WgpuTexture> defaultTexture;
@@ -209,6 +238,8 @@ namespace Bess::Wgpu {
         [[nodiscard]] const BakedPathSubmission &
         cachedPathSubmission(const Path2D &path, const PathProps &props,
                              const PathBakeMetrics &metrics);
+        void queueCommandBuffer(wgpu::CommandBuffer commandBuffer);
+        void flushPendingCommandBuffers();
         void recordQueuedPickingReadback();
         void beginRecordedPickingReadbackMaps();
         void processAsyncEvents() const;
@@ -434,6 +465,24 @@ namespace Bess::Wgpu {
 
         entry.lastUsedFrame = frameSequence;
         return entry.submission;
+    }
+
+    void WgpuRenderer2D::Impl::queueCommandBuffer(
+        wgpu::CommandBuffer commandBuffer) {
+        if (commandBuffer == nullptr) {
+            return;
+        }
+        pendingCommandBuffers.push_back(std::move(commandBuffer));
+    }
+
+    void WgpuRenderer2D::Impl::flushPendingCommandBuffers() {
+        if (pendingCommandBuffers.empty()) {
+            return;
+        }
+
+        queue.Submit(pendingCommandBuffers.size(), pendingCommandBuffers.data());
+        pendingCommandBuffers.clear();
+        beginRecordedPickingReadbackMaps();
     }
 
     std::shared_ptr<AsyncPickingReadbackSlot>
@@ -835,6 +884,7 @@ namespace Bess::Wgpu {
         m_impl->activePathCommands.clear();
         m_impl->textPathCommandsScratch.clear();
         m_impl->pathCache.clear();
+        m_impl->pendingCommandBuffers.clear();
         m_impl->fontFile = nullptr;
         m_impl->pathStarted = false;
         m_impl->activePathSubmitOrder = 0;
@@ -865,7 +915,7 @@ namespace Bess::Wgpu {
         }
 
         surfaceFormat = capabilities.formats[0];
-        surfacePresentMode = capabilities.presentModes[0];
+        surfacePresentMode = chooseSurfacePresentMode(capabilities);
         surfaceAlphaMode = capabilities.alphaModes[0];
     }
 
@@ -892,6 +942,7 @@ namespace Bess::Wgpu {
     void WgpuRenderer2D::resize(const Renderer2DExtent &extent) {
         m_impl->extent = extent;
         if (m_impl->device != nullptr) {
+            m_impl->flushPendingCommandBuffers();
             m_impl->createOffscreenTarget();
             m_impl->createDepthTarget();
         }
@@ -902,6 +953,7 @@ namespace Bess::Wgpu {
         if (m_impl->device == nullptr) {
             throw std::runtime_error("WgpuRenderer2D is not initialized");
         }
+        m_impl->flushPendingCommandBuffers();
         m_impl->processAsyncEvents();
         ++m_impl->frameSequence;
         if (m_impl->frameSequence == 0) {
@@ -1619,10 +1671,10 @@ namespace Bess::Wgpu {
         m_impl->recordQueuedPickingReadback();
 
         wgpu::CommandBuffer commandBuffer = m_impl->commandEncoder.Finish();
-        m_impl->queue.Submit(1, &commandBuffer);
-        m_impl->beginRecordedPickingReadbackMaps();
+        m_impl->queueCommandBuffer(std::move(commandBuffer));
 
         if (m_impl->frameUsesSurface) {
+            m_impl->flushPendingCommandBuffers();
             m_impl->surface.Present();
         }
 
@@ -1647,6 +1699,7 @@ namespace Bess::Wgpu {
         if (m_impl->frameStarted) {
             endFrame();
         }
+        m_impl->flushPendingCommandBuffers();
 
         if (region.texture == 0) {
             throw std::runtime_error(
@@ -1734,6 +1787,7 @@ namespace Bess::Wgpu {
         if (m_impl->frameStarted) {
             endFrame();
         }
+        m_impl->flushPendingCommandBuffers();
 
         Core::Renderer::TextureReadbackResult readback;
         if (m_impl->lastCompletedTargetTexture != 0) {
@@ -2279,6 +2333,7 @@ namespace Bess::Wgpu {
         int height = 0;
         glfwGetFramebufferSize(m_impl->windowHandle, &width, &height);
         if (width <= 0 || height <= 0) {
+            m_impl->flushPendingCommandBuffers();
             return;
         }
 
@@ -2295,6 +2350,7 @@ namespace Bess::Wgpu {
         m_impl->surface.GetCurrentTexture(&surfaceTexture);
         if (surfaceTexture.status !=
             wgpu::SurfaceGetCurrentTextureStatus::SuccessOptimal) {
+            m_impl->flushPendingCommandBuffers();
             return;
         }
 
@@ -2318,7 +2374,8 @@ namespace Bess::Wgpu {
 
         renderPass.End();
         wgpu::CommandBuffer commandBuffer = m_impl->commandEncoder.Finish();
-        m_impl->queue.Submit(1, &commandBuffer);
+        m_impl->queueCommandBuffer(std::move(commandBuffer));
+        m_impl->flushPendingCommandBuffers();
         m_impl->surface.Present();
 
         m_impl->commandEncoder = nullptr;
