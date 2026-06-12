@@ -76,7 +76,7 @@ namespace Bess {
 
         void resize(float width, float height);
 
-        MAKE_GETTER_SETTER(glm::mat4, Transform, transform)
+        MAKE_GETTER_SETTER(glm::mat4, Transform, m_transform)
 
         const glm::mat4 &getOrtho() const;
 
@@ -84,6 +84,9 @@ namespace Bess {
 
         void setZPos(float zPos);
         float getZPos() const;
+
+        // Converts given viewportPos to world pos
+        glm::vec2 toWorldPos(const glm::vec2 &viewportPos) const;
 
         static float zoomMin, zoomMax, defaultZoom;
 
@@ -93,7 +96,8 @@ namespace Bess {
         float m_zoom;
         float m_width, m_height;
         glm::mat4 m_ortho;
-        glm::mat4 transform;
+        glm::mat4 m_transform;
+        glm::mat4 m_worldTransform;
 
         void updateTransform();
         void recalculateOrtho();

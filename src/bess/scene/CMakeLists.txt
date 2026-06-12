@@ -15,6 +15,10 @@ set(Header_Files
 	"scene_state/components/behaviours/drag_behaviour.h"
 	"scene_state/components/behaviours/mouse_behaviour.h"
 	"schematic_diagram.h"
+	"scene_layer.h"
+	"scene_event.h"
+	"layers/grid_layer.h"
+	"layers/components_layer.h"
 )
 
 source_group("include/scene" FILES ${Header_Files})
@@ -28,6 +32,8 @@ set(Source_Files
 	"scene.cpp"
 	"camera.cpp"
 	"schematic_diagram.cpp"
+	"layers/grid_layer.cpp"
+	"layers/components_layer.cpp"
 )
 
 source_group("src/scene" FILES ${Source_Files})

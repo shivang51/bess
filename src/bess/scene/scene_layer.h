@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bess_core/renderer/renderer_2d.h"
+#include "camera.h"
 #include "common/types.h"
 #include "scene_draw_context.h"
 #include "scene_event.h"
@@ -22,7 +23,13 @@ namespace Bess::Canvas {
             return false;
         }
 
-        virtual void update(TimeMs ts, SceneState &sceneState) = 0;
+        virtual void update(TimeMs ts, SceneContext &ctx) = 0;
         virtual void draw(SceneContext &ctx) = 0;
+
+        virtual void init(SceneContext &ctx) {}
+        virtual void reset(SceneContext &ctx) {}
+        virtual void destroy(SceneContext &ctx) {}
+
+        virtual std::string getName() const { return "ISceneLayer"; }
     };
 } // namespace Bess::Canvas

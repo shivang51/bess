@@ -6,6 +6,7 @@
 #include "scene/scene_events.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/scene_state.h"
+#include "scene_layer.h"
 #include "sim_driver/sim_driver.h"
 #include <memory>
 
@@ -49,6 +50,7 @@ namespace Bess::Canvas {
         void reset();
         void clear();
         void update(TimeMs ts, bool isFocused);
+        void draw(const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer);
 
         const SceneState &getState() const;
         SceneState &getState();
@@ -114,8 +116,6 @@ namespace Bess::Canvas {
         void onPrePickingIdChange(const PickingId &newId);
         void onPickingIdChange();
 
-        /// to draw testing stuff
-        void drawScratchContent(TimeMs ts);
         bool isCursorInViewport(const glm::vec2 &pos) const;
         glm::vec2 getViewportMousePos(const glm::vec2 &mousePos) const;
 
@@ -154,5 +154,7 @@ namespace Bess::Canvas {
 
         bool m_isDestroyed = false;
         bool m_isFirstFrame = true;
+
+        std::vector<std::unique_ptr<ISceneLayer>> m_sceneLayers;
     };
 } // namespace Bess::Canvas

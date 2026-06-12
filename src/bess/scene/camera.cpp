@@ -112,8 +112,14 @@ namespace Bess {
     const glm::mat4 &Camera::getOrtho() const { return m_ortho; }
 
     void Camera::updateTransform() {
-        transform = glm::translate(glm::mat4(1.f), glm::vec3(-m_pos, -m_zPos));
-        transform = m_ortho * transform;
+        m_transform =
+            glm::translate(glm::mat4(1.f), glm::vec3(-m_pos, -m_zPos));
+        m_transform = m_ortho * m_transform;
+
+        m_worldTransform =
+            glm::translate(glm::mat4(1.f), glm::vec3(m_pos.x, m_pos.y, 0.f));
+        m_worldTransform = glm::scale(
+            m_worldTransform, glm::vec3(1.f / m_zoom, 1.f / m_zoom, 1.f));
     }
 
     void Camera::setZPos(float zPos) {
@@ -122,4 +128,12 @@ namespace Bess {
     }
 
     float Camera::getZPos() const { return m_zPos; }
+
+    glm::vec2 Camera::toWorldPos(const glm::vec2 &viewportPos) const {
+        glm::vec2 pos = m_worldTransform *
+                        glm::vec4(viewportPos.x, viewportPos.y, 0.f, 1.f);
+        pos -= getSpan() / 2.f;
+        return pos;
+    }
+
 } // namespace Bess

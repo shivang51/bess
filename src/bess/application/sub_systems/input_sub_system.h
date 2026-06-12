@@ -14,6 +14,7 @@ namespace Bess {
     };
 
     struct MouseWheelState {
+        glm::vec2 pos;
         glm::vec2 offset;
     };
 

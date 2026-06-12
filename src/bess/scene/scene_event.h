@@ -14,7 +14,7 @@ namespace Bess::Canvas {
         enum class Type : uint8_t {
             none,
             mouseMove,
-            mouseClick,
+            mouseButton,
             mouseWheel,
             key
         } type;

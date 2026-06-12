@@ -61,6 +61,7 @@ namespace Bess {
 
     void InputSubSystem::onMouseWheelEvent(const glm::vec2 &offset) {
         m_mouseWheelState.offset = offset;
+        m_mouseWheelState.pos = m_mouseMoveState.pos;
         m_frameInputState.hasMouseWheelScrolled = true;
     }
 

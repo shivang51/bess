@@ -40,8 +40,6 @@ namespace Bess::UI {
                               m_attachedScene, onSceneAttached);
 
       private: // scene rendering funcs
-        void drawGrid(SceneDrawContext &context);
-        void drawComponents(SceneDrawContext &context);
         void drawConnections(SceneDrawContext &context);
         void drawSelectionBox(SceneDrawContext &context);
         void drawGhostConnection(SceneDrawContext &context,

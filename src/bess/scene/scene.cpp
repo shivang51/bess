@@ -3,13 +3,17 @@
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "event_dispatcher.h"
-#include "events/application_event.h"
 #include "ext/matrix_transform.hpp"
 #include "fwd.hpp"
+#include "layers/components_layer.h"
+#include "layers/grid_layer.h"
 #include "scene/scene_events.h"
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
+#include "scene_event.h"
+#include "scene_layer.h"
 #include "sub_systems/input_sub_system.h"
+#include "sub_systems/renderer_context.h"
 #include <GLFW/glfw3.h>
 #include <cstdint>
 #include <memory>
@@ -17,7 +21,11 @@
 #include <utility>
 
 namespace Bess::Canvas {
-    Scene::Scene() { reset(); }
+    Scene::Scene() {
+        m_sceneLayers.push_back(std::make_unique<GridLayer>());
+        m_sceneLayers.push_back(std::make_unique<ComponentsLayer>());
+        reset();
+    }
 
     Scene::~Scene() { destroy(); }
 
@@ -25,7 +33,17 @@ namespace Bess::Canvas {
         if (m_isDestroyed)
             return;
 
+        SceneContext ctx{
+            &m_state,
+            m_camera,
+            nullptr,
+        };
         BESS_INFO("[Scene] Destroying {}", (uint64_t)m_state.getSceneId());
+        for (auto &layer : m_sceneLayers) {
+            layer->destroy(ctx);
+        }
+
+        m_sceneLayers.clear();
         m_isDestroyed = true;
         m_state.clear();
     }
@@ -37,6 +55,23 @@ namespace Bess::Canvas {
         m_camera = std::make_shared<Camera>(m_size.x, m_size.y);
 
         m_mousePos = {0.f, 0.f};
+
+        const auto &appCtx = Bess::GAppContext::getInstance();
+
+        const auto &renderCtx = appCtx.getSubSystem<RendererContext>();
+        SceneContext ctx{
+            &m_state,
+            m_camera,
+            renderCtx->getRenderer(),
+        };
+
+        for (auto &layer : m_sceneLayers) {
+            layer->reset(ctx);
+        }
+
+        for (auto &layer : m_sceneLayers) {
+            layer->init(ctx);
+        }
     }
 
     void Scene::clear() {
@@ -46,7 +81,6 @@ namespace Bess::Canvas {
     }
 
     void Scene::processEvents() {
-        const std::vector<ApplicationEvent> events = {};
         auto &appCtx = Bess::GAppContext::getInstance();
         auto inputSystem = appCtx.getSubSystem<InputSubSystem>();
 
@@ -84,14 +118,106 @@ namespace Bess::Canvas {
         m_isShiftPressed = inputSystem->isShiftPressed();
     }
 
+    std::vector<SceneEvent> formEvents(const std::shared_ptr<Camera> &camera,
+                                       const ViewportTransform &vpTransform) {
+        std::vector<SceneEvent> events;
+
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto inputSystem = appCtx.getSubSystem<InputSubSystem>();
+
+        bool isCtrlPressed = inputSystem->isCtrlPressed();
+        bool isShiftPressed = inputSystem->isShiftPressed();
+
+        const auto &frameInputState = inputSystem->getFrameInpState();
+
+        auto toVpPos = [&vpTransform](const glm::vec2 &pos) -> glm::vec2 {
+            auto x = pos.x - vpTransform.pos.x;
+            auto y = pos.y - vpTransform.pos.y;
+            return {x, y};
+        };
+
+        if (frameInputState.hasMouseMoved) {
+            const auto &mouseMoveState = inputSystem->getMouseMoveState();
+
+            SceneEvent::Data eventData;
+            eventData.mouseMove = {
+                .pos = camera->toWorldPos(toVpPos(mouseMoveState.pos)),
+                .delta = mouseMoveState.delta,
+            };
+
+            events.emplace_back(SceneEvent{
+                .type = SceneEvent::Type::mouseMove,
+                .data = eventData,
+                .isCtrlPressed = isCtrlPressed,
+                .isShiftPressed = isShiftPressed,
+            });
+        }
+
+        if (frameInputState.hasMouseWheelScrolled) {
+            const auto &mouseWheelState = inputSystem->getMouseWheelState();
+            SceneEvent::Data eventData;
+            eventData.mouseWheel = {
+                .pos = camera->toWorldPos(toVpPos(mouseWheelState.pos)),
+                .delta = mouseWheelState.offset,
+            };
+
+            events.emplace_back(SceneEvent{
+                .type = SceneEvent::Type::mouseWheel,
+                .data = eventData,
+                .isCtrlPressed = isCtrlPressed,
+                .isShiftPressed = isShiftPressed,
+            });
+        }
+
+        if (frameInputState.hasMouseBtnEvent) {
+            const auto &mouseBtnState = frameInputState.mouseBtnState;
+            SceneEvent::Data data;
+
+            data.mouseButton = {
+                .button = mouseBtnState.button,
+                .action = mouseBtnState.action,
+                .pos = mouseBtnState.pos,
+            };
+
+            events.emplace_back(SceneEvent{
+                .type = SceneEvent::Type::mouseButton,
+                .data = data,
+                .isCtrlPressed = isCtrlPressed,
+                .isShiftPressed = isShiftPressed,
+            });
+        };
+
+        return events;
+    }
+
     void Scene::update(TimeMs ts, bool isFocused) {
         m_frameTimeStep = ts;
 
+        std::vector<SceneEvent> events;
         if (isFocused) {
             processEvents();
+            events = formEvents(m_camera, m_viewportTransform);
         }
 
         m_camera->update(ts);
+
+        SceneContext ctx{
+            &m_state,
+            m_camera,
+            nullptr,
+        };
+
+        for (auto &evt : events) {
+            evt.pickingId = m_pickingId;
+            // Top layer gets event first
+            for (auto &layer : std::ranges::reverse_view(m_sceneLayers)) {
+                layer->handleEvent(evt, ctx);
+            }
+        }
+
+        for (auto &layer : m_sceneLayers) {
+            layer->update(ts, ctx);
+        }
 
         const auto &rootComps = m_state.getRootComponents();
 
@@ -100,6 +226,19 @@ namespace Bess::Canvas {
             if (comp) {
                 comp->update(ts, m_state);
             }
+        }
+    }
+
+    void
+    Scene::draw(const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer) {
+        SceneContext ctx{
+            &m_state,
+            m_camera,
+            renderer,
+        };
+
+        for (auto &layer : m_sceneLayers) {
+            layer->draw(ctx);
         }
     }
 
@@ -143,26 +282,15 @@ namespace Bess::Canvas {
     }
 
     glm::vec2 Scene::toScenePos(const glm::vec2 &mousePos) const {
-        glm::vec2 pos = mousePos;
-
-        const auto cameraPos = m_camera->getPos();
-        glm::mat4 tansform = glm::translate(
-            glm::mat4(1.f), glm::vec3(cameraPos.x, cameraPos.y, 0.f));
-        const auto zoom = m_camera->getZoom();
-        tansform = glm::scale(tansform, glm::vec3(1.f / zoom, 1.f / zoom, 1.f));
-
-        pos = glm::vec2(tansform * glm::vec4(pos.x, pos.y, 0.f, 1.f));
-        auto span = m_camera->getSpan() / 2.f;
-        pos -= glm::vec2({span.x, span.y});
-        return pos;
+        return m_camera->toWorldPos(mousePos);
     }
 
     void Scene::onMouseMove(const glm::vec2 &pos) {
         auto viewportMousePos = getViewportMousePos(pos);
-        auto scenePos = toScenePos(viewportMousePos);
+        auto scenePos = m_camera->toWorldPos(viewportMousePos);
         m_state.setMousePos(scenePos);
 
-        m_dMousePos = scenePos - toScenePos(m_mousePos);
+        m_dMousePos = scenePos - m_camera->toWorldPos(m_mousePos);
         m_mousePos = viewportMousePos;
 
         if (m_isLeftMousePressed && m_drawMode == SceneDrawMode::none) {
@@ -386,18 +514,19 @@ namespace Bess::Canvas {
         if (m_isDragging)
             return;
 
-        if (m_pickingId.isValid() && m_pickingId != newId) {
-            const auto prevComp = m_state.getComponentByPickingId(m_pickingId);
-            if (prevComp) {
-                prevComp->onMouseLeave(
-                    {toScenePos(m_mousePos), m_pickingId.info});
-            } else {
-                BESS_WARN("[Scene] PickingId is valid but no component found "
-                          "for id {}",
-                          (uint64_t)m_pickingId);
-            }
-        }
-
+        // if (m_pickingId.isValid() && m_pickingId != newId) {
+        //     const auto prevComp =
+        //     m_state.getComponentByPickingId(m_pickingId); if (prevComp) {
+        //         prevComp->onMouseLeave(
+        //             {toScenePos(m_mousePos), m_pickingId.info});
+        //     } else {
+        //         BESS_WARN("[Scene] PickingId is valid but no component found
+        //         "
+        //                   "for id {}",
+        //                   (uint64_t)m_pickingId);
+        //     }
+        // }
+        //
         m_prevPickingId = m_pickingId;
     }
 
@@ -405,21 +534,21 @@ namespace Bess::Canvas {
         if (m_isDragging)
             return;
 
-        if (m_pickingId.isValid()) {
-            const auto currComp = m_state.getComponentByPickingId(m_pickingId);
-
-            if (currComp) {
-                currComp->onMouseEnter(
-                    {toScenePos(m_mousePos), m_pickingId.info});
-            } else {
-                BESS_WARN("[Scene] PickingId is valid but no component found "
-                          "for id {}",
-                          (uint64_t)m_pickingId);
-            }
-        }
+        // if (m_pickingId.isValid()) {
+        //     const auto currComp =
+        //     m_state.getComponentByPickingId(m_pickingId);
+        //
+        //     if (currComp) {
+        //         currComp->onMouseEnter(
+        //             {toScenePos(m_mousePos), m_pickingId.info});
+        //     } else {
+        //         BESS_WARN("[Scene] PickingId is valid but no component found
+        //         "
+        //                   "for id {}",
+        //                   (uint64_t)m_pickingId);
+        //     }
+        // }
     }
-
-    void Scene::drawScratchContent(TimeMs ts) {}
 
     bool Scene::isHoveredEntityValid() { return m_pickingId.isValid(); }
 
