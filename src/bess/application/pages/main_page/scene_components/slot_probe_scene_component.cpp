@@ -40,7 +40,6 @@ namespace Bess::Canvas {
         props.borderColor = m_isSelected
                                 ? ViewportTheme::colors.selectedComp
                                 : ViewportTheme::colors.componentBorder;
-        props.isMica = true;
         props.borderRadius = glm::vec4(4.f);
         props.borderSize = glm::vec4(1.f);
 

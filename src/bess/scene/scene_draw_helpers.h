@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bess_core/renderer/renderer_2d.h"
+#include "bess_core/renderer/renderer_types.h"
 #include "scene/scene_draw_context.h"
 #include <algorithm>
 #include <cstddef>
@@ -22,7 +23,6 @@ namespace Bess::Canvas::SceneDraw {
         glm::vec4 borderRadius = {0.f, 0.f, 0.f, 0.f};
         glm::vec4 borderSize = {0.f, 0.f, 0.f, 0.f};
         ShadowStyle shadow{};
-        bool isMica = false;
     };
 
     struct PathStyle {
