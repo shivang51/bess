@@ -71,6 +71,8 @@ namespace Bess::Canvas {
 
         PickingId getHoveredEntity() const { return m_pickingId; }
 
+        bool isDragging() const;
+
         const glm::vec2 &getMousePos() const;
         glm::vec2 getSceneMousePos();
         const glm::vec2 &getCameraPos() const;

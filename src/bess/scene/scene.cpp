@@ -348,6 +348,8 @@ namespace Bess::Canvas {
 
     const glm::vec2 &Scene::getCameraPos() const { return m_camera->getPos(); }
 
+    bool Scene::isDragging() const { return m_isDragging; }
+
     const glm::vec2 &Scene::getMousePos() const { return m_mousePos; }
 
     glm::vec2 Scene::getSceneMousePos() { return toScenePos(m_mousePos); }

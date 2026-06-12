@@ -67,7 +67,8 @@ namespace Bess::UI {
             }
         }
 
-        if (!m_attachedScene->getIsFirstFrame()) {
+        if (!m_attachedScene->getIsFirstFrame() &&
+            !m_attachedScene->isDragging()) {
             updatePickingIds(mouseMoved);
         }
     }
