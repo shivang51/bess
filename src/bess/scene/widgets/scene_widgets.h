@@ -120,7 +120,7 @@ namespace Bess::Canvas::SceneWidgets {
                       SceneDrawContext &context);
 
     bool button(const PickingId &id,
-                const std::string &label,
+                std::string_view label,
                 const glm::vec3 &buttonPos,
                 const glm::vec2 &buttonSize,
                 const Core::Renderer::Color &labelColor,
@@ -153,7 +153,7 @@ namespace Bess::Canvas::SceneWidgets {
 
     DropdownResult dropdown(const PickingId &id,
                             int *selectedIndex,
-                            const std::vector<std::string> &items,
+                            std::span<const std::string_view> items,
                             const glm::vec3 &boxPos,
                             const glm::vec2 &boxSize,
                             SceneDrawContext &context,

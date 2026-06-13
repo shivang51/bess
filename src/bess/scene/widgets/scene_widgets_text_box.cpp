@@ -139,7 +139,8 @@ namespace Bess::Canvas::SceneWidgets {
 
         if (size.x == 0.f) {
             const auto measuredText = context.renderer->measureText(
-                value->empty() ? options.placeholder : std::string_view(*value),
+                value->empty() ? std::string_view(options.placeholder)
+                               : std::string_view(*value),
                 {.fontSize = options.fontSize});
             size.x = std::max(48.f, measuredText.x + (options.padding.x * 2.f));
         }
@@ -179,7 +180,7 @@ namespace Bess::Canvas::SceneWidgets {
             Detail::colorOr(options.textColor, palette.text);
 
         if (widget->text.empty() && !focused && !options.placeholder.empty()) {
-            visibleText = options.placeholder;
+            visibleText = std::string_view(options.placeholder);
             textColor =
                 Detail::colorOr(options.placeholderColor, palette.textMuted);
         } else {

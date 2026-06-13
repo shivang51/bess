@@ -4,12 +4,85 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <tuple>
+#include <vector>
 
 namespace py = pybind11;
 using namespace Bess::Canvas::SceneWidgets;
 
 namespace {
     void bind_options(py::module_ &m);
+
+    struct PyTextBoxOptions {
+        std::string placeholder;
+        size_t maxLength = 256;
+        float fontSize = 8.f;
+        glm::vec2 padding{4.f, 2.f};
+        std::optional<Bess::Core::Renderer::Color> backgroundColor;
+        std::optional<Bess::Core::Renderer::Color> hoverBackgroundColor;
+        std::optional<Bess::Core::Renderer::Color> focusedBackgroundColor;
+        std::optional<Bess::Core::Renderer::Color> borderColor;
+        std::optional<Bess::Core::Renderer::Color> focusedBorderColor;
+        std::optional<Bess::Core::Renderer::Color> textColor;
+        std::optional<Bess::Core::Renderer::Color> placeholderColor;
+        std::optional<Bess::Core::Renderer::Color> cursorColor;
+    };
+
+    struct PyDropdownOptions {
+        std::string placeholder = "Select";
+        float fontSize = 8.f;
+        float optionHeight = 18.f;
+        size_t maxVisibleOptions = 8;
+        glm::vec2 padding{5.f, 2.f};
+        std::optional<Bess::Core::Renderer::Color> backgroundColor;
+        std::optional<Bess::Core::Renderer::Color> hoverBackgroundColor;
+        std::optional<Bess::Core::Renderer::Color> expandedBackgroundColor;
+        std::optional<Bess::Core::Renderer::Color> borderColor;
+        std::optional<Bess::Core::Renderer::Color> focusedBorderColor;
+        std::optional<Bess::Core::Renderer::Color> optionHoverColor;
+        std::optional<Bess::Core::Renderer::Color> optionSelectedColor;
+        std::optional<Bess::Core::Renderer::Color> textColor;
+        std::optional<Bess::Core::Renderer::Color> mutedTextColor;
+    };
+
+    TextBoxOptions toOptions(const PyTextBoxOptions &options) {
+        TextBoxOptions out;
+        out.placeholder = options.placeholder;
+        out.maxLength = options.maxLength;
+        out.fontSize = options.fontSize;
+        out.padding = options.padding;
+        out.backgroundColor = options.backgroundColor;
+        out.hoverBackgroundColor = options.hoverBackgroundColor;
+        out.focusedBackgroundColor = options.focusedBackgroundColor;
+        out.borderColor = options.borderColor;
+        out.focusedBorderColor = options.focusedBorderColor;
+        out.textColor = options.textColor;
+        out.placeholderColor = options.placeholderColor;
+        out.cursorColor = options.cursorColor;
+        return out;
+    }
+
+    DropdownOptions toOptions(const PyDropdownOptions &options) {
+        DropdownOptions out;
+        out.placeholder = options.placeholder;
+        out.fontSize = options.fontSize;
+        out.optionHeight = options.optionHeight;
+        out.maxVisibleOptions = options.maxVisibleOptions;
+        out.padding = options.padding;
+        out.backgroundColor = options.backgroundColor;
+        out.hoverBackgroundColor = options.hoverBackgroundColor;
+        out.expandedBackgroundColor = options.expandedBackgroundColor;
+        out.borderColor = options.borderColor;
+        out.focusedBorderColor = options.focusedBorderColor;
+        out.optionHoverColor = options.optionHoverColor;
+        out.optionSelectedColor = options.optionSelectedColor;
+        out.textColor = options.textColor;
+        out.mutedTextColor = options.mutedTextColor;
+        return out;
+    }
 
     bool draw_toggle_button(const Bess::PickingId &id,
                             bool value,
@@ -19,14 +92,24 @@ namespace {
         return toggleButton(id, value, buttonPos, buttonSize, context);
     }
 
+    bool draw_button(const Bess::PickingId &id,
+                     const std::string &label,
+                     const glm::vec3 &buttonPos,
+                     const glm::vec2 &buttonSize,
+                     const Bess::Core::Renderer::Color &labelColor,
+                     Bess::SceneDrawContext &context) {
+        return button(id, label, buttonPos, buttonSize, labelColor, context);
+    }
+
     std::tuple<TextBoxResult, std::string>
     draw_tb(const Bess::PickingId &id,
             std::string &value,
             const glm::vec3 &boxPos,
             const glm::vec2 &boxSize,
             Bess::SceneDrawContext &context,
-            const TextBoxOptions &options = {}) {
-        auto res = textBox(id, &value, boxPos, boxSize, context, options);
+            const PyTextBoxOptions &options = {}) {
+        const auto coreOptions = toOptions(options);
+        auto res = textBox(id, &value, boxPos, boxSize, context, coreOptions);
         return {res, value};
     }
 
@@ -77,9 +160,21 @@ namespace {
                   const glm::vec3 &boxPos,
                   const glm::vec2 &boxSize,
                   Bess::SceneDrawContext &context,
-                  const DropdownOptions &options = {}) {
-        auto res = dropdown(
-            id, &selectedIndex, items, boxPos, boxSize, context, options);
+                  const PyDropdownOptions &options = {}) {
+        std::vector<std::string_view> itemViews;
+        itemViews.reserve(items.size());
+        for (const auto &item : items) {
+            itemViews.emplace_back(item);
+        }
+
+        const auto coreOptions = toOptions(options);
+        auto res = dropdown(id,
+                            &selectedIndex,
+                            itemViews,
+                            boxPos,
+                            boxSize,
+                            context,
+                            coreOptions);
         return {res, selectedIndex};
     }
 } // namespace
@@ -98,7 +193,7 @@ void bind_scene_widgets(py::module_ &m) {
                       py::arg("context"));
 
     mSceneWidgets.def("button",
-                      &button,
+                      &draw_button,
                       py::arg("id"),
                       py::arg("label"),
                       py::arg("button_pos"),
@@ -113,7 +208,7 @@ void bind_scene_widgets(py::module_ &m) {
                       py::arg("box_pos"),
                       py::arg("box_size"),
                       py::arg("context"),
-                      py::arg("options") = TextBoxOptions{});
+                      py::arg("options") = PyTextBoxOptions{});
 
     mSceneWidgets.def("slider_float",
                       &draw_slider_float,
@@ -145,56 +240,57 @@ void bind_scene_widgets(py::module_ &m) {
                       py::arg("box_pos"),
                       py::arg("box_size"),
                       py::arg("context"),
-                      py::arg("options") = DropdownOptions{});
+                      py::arg("options") = PyDropdownOptions{});
 }
 
 namespace {
     void bind_options(py::module_ &m) {
-        py::class_<TextBoxOptions>(m, "TextBoxOptions")
+        py::class_<PyTextBoxOptions>(m, "TextBoxOptions")
             .def(py::init<>())
-            .def_readwrite("placeholder", &TextBoxOptions::placeholder)
-            .def_readwrite("max_len", &TextBoxOptions::maxLength)
-            .def_readwrite("font_size", &TextBoxOptions::fontSize)
-            .def_readwrite("padding", &TextBoxOptions::padding)
-            .def_readwrite("bg_color", &TextBoxOptions::backgroundColor)
+            .def_readwrite("placeholder", &PyTextBoxOptions::placeholder)
+            .def_readwrite("max_len", &PyTextBoxOptions::maxLength)
+            .def_readwrite("font_size", &PyTextBoxOptions::fontSize)
+            .def_readwrite("padding", &PyTextBoxOptions::padding)
+            .def_readwrite("bg_color", &PyTextBoxOptions::backgroundColor)
             .def_readwrite("hover_bg_color",
-                           &TextBoxOptions::hoverBackgroundColor)
+                           &PyTextBoxOptions::hoverBackgroundColor)
             .def_readwrite("focused_bg_color",
-                           &TextBoxOptions::focusedBackgroundColor)
-            .def_readwrite("border_color", &TextBoxOptions::borderColor)
+                           &PyTextBoxOptions::focusedBackgroundColor)
+            .def_readwrite("border_color", &PyTextBoxOptions::borderColor)
             .def_readwrite("focused_border_color",
-                           &TextBoxOptions::focusedBorderColor)
-            .def_readwrite("text_color", &TextBoxOptions::textColor)
+                           &PyTextBoxOptions::focusedBorderColor)
+            .def_readwrite("text_color", &PyTextBoxOptions::textColor)
             .def_readwrite("placeholder_color",
-                           &TextBoxOptions::placeholderColor)
-            .def_readwrite("cursor_color", &TextBoxOptions::cursorColor)
-            .def("__repr__", [](const TextBoxOptions &options) {
+                           &PyTextBoxOptions::placeholderColor)
+            .def_readwrite("cursor_color", &PyTextBoxOptions::cursorColor)
+            .def("__repr__", [](const PyTextBoxOptions &options) {
                 return "bessplug.api.scene.widgets.TextBoxOptions()";
             });
 
-        py::class_<DropdownOptions>(m, "DropdownOptions")
+        py::class_<PyDropdownOptions>(m, "DropdownOptions")
             .def(py::init<>())
-            .def_readwrite("placeholder", &DropdownOptions::placeholder)
-            .def_readwrite("font_size", &DropdownOptions::fontSize)
-            .def_readwrite("option_height", &DropdownOptions::optionHeight)
+            .def_readwrite("placeholder", &PyDropdownOptions::placeholder)
+            .def_readwrite("font_size", &PyDropdownOptions::fontSize)
+            .def_readwrite("option_height", &PyDropdownOptions::optionHeight)
             .def_readwrite("max_visible_options",
-                           &DropdownOptions::maxVisibleOptions)
-            .def_readwrite("padding", &DropdownOptions::padding)
-            .def_readwrite("bg_color", &DropdownOptions::backgroundColor)
+                           &PyDropdownOptions::maxVisibleOptions)
+            .def_readwrite("padding", &PyDropdownOptions::padding)
+            .def_readwrite("bg_color", &PyDropdownOptions::backgroundColor)
             .def_readwrite("hover_bg_color",
-                           &DropdownOptions::hoverBackgroundColor)
+                           &PyDropdownOptions::hoverBackgroundColor)
             .def_readwrite("expanded_bg_color",
-                           &DropdownOptions::expandedBackgroundColor)
-            .def_readwrite("border_color", &DropdownOptions::borderColor)
+                           &PyDropdownOptions::expandedBackgroundColor)
+            .def_readwrite("border_color", &PyDropdownOptions::borderColor)
             .def_readwrite("focused_border_color",
-                           &DropdownOptions::focusedBorderColor)
+                           &PyDropdownOptions::focusedBorderColor)
             .def_readwrite("option_hover_color",
-                           &DropdownOptions::optionHoverColor)
+                           &PyDropdownOptions::optionHoverColor)
             .def_readwrite("option_selected_color",
-                           &DropdownOptions::optionSelectedColor)
-            .def_readwrite("text_color", &DropdownOptions::textColor)
-            .def_readwrite("muted_text_color", &DropdownOptions::mutedTextColor)
-            .def("__repr__", [](const DropdownOptions &options) {
+                           &PyDropdownOptions::optionSelectedColor)
+            .def_readwrite("text_color", &PyDropdownOptions::textColor)
+            .def_readwrite("muted_text_color",
+                           &PyDropdownOptions::mutedTextColor)
+            .def("__repr__", [](const PyDropdownOptions &options) {
                 return "bessplug.api.scene.widgets.DropdownOptions()";
             });
 

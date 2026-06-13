@@ -303,7 +303,29 @@ void bind_theme(py::module_ &m) {
         .def_readwrite("activeSignal",
                        &Bess::SchematicViewColors::activeSignal);
 
+    py::class_<Bess::SceneWidgetsColors>(themeModule, "SceneWidgetsColors")
+        .def(py::init<>())
+        .def_readwrite("surface", &Bess::SceneWidgetsColors::surface)
+        .def_readwrite("surface_hover",
+                       &Bess::SceneWidgetsColors::surfaceHover)
+        .def_readwrite("surface_active",
+                       &Bess::SceneWidgetsColors::surfaceActive)
+        .def_readwrite("popup_surface",
+                       &Bess::SceneWidgetsColors::popupSurface)
+        .def_readwrite("border", &Bess::SceneWidgetsColors::border)
+        .def_readwrite("border_focus",
+                       &Bess::SceneWidgetsColors::borderFocus)
+        .def_readwrite("text", &Bess::SceneWidgetsColors::text)
+        .def_readwrite("text_muted", &Bess::SceneWidgetsColors::textMuted)
+        .def_readwrite("accent", &Bess::SceneWidgetsColors::accent)
+        .def_readwrite("accent_strong",
+                       &Bess::SceneWidgetsColors::accentStrong)
+        .def_readwrite("item_hover", &Bess::SceneWidgetsColors::itemHover)
+        .def_readwrite("track", &Bess::SceneWidgetsColors::track)
+        .def_readwrite("knob", &Bess::SceneWidgetsColors::knob);
+
     themeModule.attr("schematic") = Bess::ViewportTheme::schematicViewColors;
+    themeModule.attr("scene_widgets") = Bess::ViewportTheme::sceneWidgetsColors;
 }
 
 void bind_time(py::module_ &m) {

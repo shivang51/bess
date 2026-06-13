@@ -49,21 +49,22 @@ namespace Bess {
     };
 
     struct SceneWidgetsColors {
-        glm::vec4 surface;
-        glm::vec4 surfaceHover;
-        glm::vec4 surfaceActive;
-        glm::vec4 popupSurface;
+        glm::vec4 surface = glm::vec4(0.12f, 0.12f, 0.13f, 0.96f);
+        glm::vec4 surfaceHover = glm::vec4(0.16f, 0.16f, 0.17f, 0.98f);
+        glm::vec4 surfaceActive = glm::vec4(0.20f, 0.20f, 0.21f, 1.00f);
+        glm::vec4 popupSurface = glm::vec4(0.14f, 0.14f, 0.15f, 0.99f);
 
-        glm::vec4 border;
-        glm::vec4 borderFocus;
+        glm::vec4 border = glm::vec4(0.20f, 0.20f, 0.20f, 0.82f);
+        glm::vec4 borderFocus = glm::vec4(0.38f, 0.38f, 0.38f, 1.00f);
 
-        glm::vec4 text;
-        glm::vec4 textMuted;
+        glm::vec4 text = glm::vec4(0.98f, 0.98f, 0.98f, 1.00f);
+        glm::vec4 textMuted = glm::vec4(0.48f, 0.48f, 0.48f, 1.00f);
 
-        glm::vec4 accent;
-        glm::vec4 accentStrong;
-        glm::vec4 track;
-        glm::vec4 knob;
+        glm::vec4 accent = glm::vec4(0.38f, 0.38f, 0.38f, 1.00f);
+        glm::vec4 accentStrong = glm::vec4(0.24f, 0.25f, 0.27f, 1.00f);
+        glm::vec4 itemHover = glm::vec4(0.20f, 0.21f, 0.23f, 1.00f);
+        glm::vec4 track = glm::vec4(0.12f, 0.12f, 0.13f, 0.96f);
+        glm::vec4 knob = glm::vec4(0.30f, 0.30f, 0.30f, 1.00f);
     };
 
     class ViewportTheme {

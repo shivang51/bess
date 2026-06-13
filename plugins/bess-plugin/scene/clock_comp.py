@@ -14,10 +14,24 @@ from components.clock import FrequencyUnit
 
 class ClockComp(SimulationSceneComponent):
     FREQ_UNITS = [str(v.name) for v in FrequencyUnit]
+    FREQ_UNIT_INDEX = {
+        str(v.name): index for index, v in enumerate(FrequencyUnit)
+    }
 
     def __init__(self):
         super().__init__()
-        self.temp_freq_tb = ""
+        self._ensure_runtime_state()
+
+    def _ensure_runtime_state(self):
+        if not hasattr(self, "temp_freq_tb"):
+            self.temp_freq_tb = ""
+        if not hasattr(self, "_duty_slider_options"):
+            opts = widgets.SliderOptions()
+            opts.step = 0.01
+            opts.show_value = True
+            opts.font_size = 8
+            opts.knob_radius = opts.font_size / 2
+            self._duty_slider_options = opts
 
     @override
     def get_type_name(self):
@@ -26,6 +40,7 @@ class ClockComp(SimulationSceneComponent):
     @override
     def copy(self):
         cloned = copy.deepcopy(self)
+        cloned._ensure_runtime_state()
         return cloned
 
     @override
@@ -37,27 +52,44 @@ class ClockComp(SimulationSceneComponent):
 
     @override
     def draw(self, context: SceneDrawContext):
+        self._ensure_runtime_state()
         self.draw_background(context)
         self.draw_slots(context)
 
-        self.draw_freq_tb(context)
-        self.draw_duty_cycle_slider(context)
-        self.draw_freq_unit_dropdown(context)
+        layout = self._make_layout()
+        comp_def = self.comp_def
 
-    def draw_freq_tb(self, context: SceneDrawContext):
-        id = PickingId()
-        id.runtime_id = self.runtime_id
-        id.info = 1
+        self.draw_freq_tb(context, layout, comp_def)
+        self.draw_duty_cycle_slider(context, layout, comp_def)
+        self.draw_freq_unit_dropdown(context, layout, comp_def)
+
+    def _make_picking_id(self, info: int):
+        picking_id = PickingId()
+        picking_id.runtime_id = self.runtime_id
+        picking_id.info = info
+        return picking_id
+
+    def _make_layout(self):
+        transform = self.transform
+        position = transform.position
+        scale = transform.scale
+        left = position.x - scale.x / 2
+        top = position.y - scale.y / 2
+        return left, top, top + self.get_slot_start_y(), position.z + 0.0001
+
+    def draw_freq_tb(self, context: SceneDrawContext, layout, comp_def):
+        picking_id = self._make_picking_id(1)
+        left, _, slot_y, z = layout
 
         size = vec2(36, 12)
-        x = self.left() + 8 + size.x / 2
-        y = self.top() + self.get_slot_start_y()
+        x = left + 8 + size.x / 2
+        y = slot_y
 
-        freq = getattr(self.comp_def, "frequency", 1.0)
+        freq = getattr(comp_def, "frequency", 1.0)
         [res, val] = widgets.text_box(
-            id,
+            picking_id,
             str(freq),
-            vec3(x, y, self.transform.position.z + 0.0001),
+            vec3(x, y, z),
             size,
             context,
         )
@@ -69,68 +101,62 @@ class ClockComp(SimulationSceneComponent):
             try:
                 val = float(self.temp_freq_tb)
                 if val > 0:
-                    setattr(self.comp_def, "frequency", val)
+                    setattr(comp_def, "frequency", val)
             except ValueError:
                 pass
             self.temp_freq_tb = ""
 
-    def draw_duty_cycle_slider(self, context: SceneDrawContext):
-        id = PickingId()
-        id.runtime_id = self.runtime_id
-        id.info = 2
+    def draw_duty_cycle_slider(self, context: SceneDrawContext, layout, comp_def):
+        picking_id = self._make_picking_id(2)
+        left, _, slot_y, z = layout
 
         size = vec2(72, 12)
-        x = self.left() + 8 + size.x / 2
-        y = self.top() + self.get_slot_start_y() + 16
+        x = left + 8 + size.x / 2
+        y = slot_y + 16
 
-        duty_cycle = getattr(self.comp_def, "duty_cycle", 0.5)
-        opts = widgets.SliderOptions()
-        opts.step = 0.01
-        opts.show_value = True
-        opts.font_size = 8
-        opts.knob_radius = opts.font_size / 2
+        duty_cycle = getattr(comp_def, "duty_cycle", 0.5)
 
         [res, val] = widgets.slider_float(
-            id,
+            picking_id,
             duty_cycle,
             0,
             1,
-            vec3(x, y, self.transform.position.z + 0.0001),
+            vec3(x, y, z),
             size,
             context,
-            opts,
+            self._duty_slider_options,
         )
 
         if res.changed:
             try:
                 val = float(val)
                 if 0 <= val <= 1:
-                    setattr(self.comp_def, "duty_cycle", val)
+                    setattr(comp_def, "duty_cycle", val)
             except ValueError:
                 pass
 
-    def draw_freq_unit_dropdown(self, context: SceneDrawContext):
-        id = PickingId()
-        id.runtime_id = self.runtime_id
-        id.info = 3
+    def draw_freq_unit_dropdown(self, context: SceneDrawContext, layout, comp_def):
+        picking_id = self._make_picking_id(3)
+        left, _, slot_y, z = layout
 
         size = vec2(32, 12)
-        x = self.left() + size.x / 2 + 48
-        y = self.top() + self.get_slot_start_y()
+        x = left + size.x / 2 + 48
+        y = slot_y
 
-        unit = getattr(self.comp_def, "unit", FrequencyUnit.HZ)
+        unit = getattr(comp_def, "unit", FrequencyUnit.HZ)
+        unit_name = str(unit.name)
         [res, val] = widgets.dropdown(
-            id,
-            self.FREQ_UNITS.index(str(unit.name)),
+            picking_id,
+            self.FREQ_UNIT_INDEX.get(unit_name, 0),
             self.FREQ_UNITS,
-            vec3(x, y, self.transform.position.z + 0.0001),
+            vec3(x, y, z),
             size,
             context,
         )
 
         if res.changed:
             try:
-                setattr(self.comp_def, "unit", FrequencyUnit[self.FREQ_UNITS[val]])
+                setattr(comp_def, "unit", FrequencyUnit[self.FREQ_UNITS[val]])
             except KeyError:
                 pass
 
@@ -169,13 +195,20 @@ class ClockComp(SimulationSceneComponent):
         bess_ui.tree_pop()
 
     def left(self):
-        return self.transform.position.x - self.transform.scale.x / 2
+        transform = self.transform
+        return transform.position.x - transform.scale.x / 2
 
     def top(self):
-        return self.transform.position.y - self.transform.scale.y / 2
+        transform = self.transform
+        return transform.position.y - transform.scale.y / 2
 
     def bottom(self):
-        return self.transform.position.y + self.transform.scale.y / 2
+        transform = self.transform
+        return transform.position.y + transform.scale.y / 2
 
     def top_left(self):
-        return vec2(self.left(), self.top())
+        transform = self.transform
+        return vec2(
+            transform.position.x - transform.scale.x / 2,
+            transform.position.y - transform.scale.y / 2,
+        )

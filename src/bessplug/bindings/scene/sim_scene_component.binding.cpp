@@ -292,16 +292,20 @@ void bind_sim_scene_component(py::module_ &m) {
                 })
             .def_property(
                 "transform", //\n
-                [](const Bess::Canvas::SimulationSceneComponent &self) {
+                [](const Bess::Canvas::SimulationSceneComponent &self)
+                    -> const Bess::Canvas::Transform & {
                     return self.getTransform();
                 }, // \n
-                &Bess::Canvas::SimulationSceneComponent::setTransform)
+                &Bess::Canvas::SimulationSceneComponent::setTransform,
+                py::return_value_policy::reference_internal)
             .def_property(
                 "schematic_transform", //\n
-                [](const Bess::Canvas::SimulationSceneComponent &self) {
+                [](const Bess::Canvas::SimulationSceneComponent &self)
+                    -> const Bess::Canvas::Transform & {
                     return self.getSchematicTransform();
                 }, // \n
-                &Bess::Canvas::SimulationSceneComponent::setSchematicTransform)
+                &Bess::Canvas::SimulationSceneComponent::setSchematicTransform,
+                py::return_value_policy::reference_internal)
             .def_property(
                 "name", //\n
                 [](const Bess::Canvas::SimulationSceneComponent &self) {

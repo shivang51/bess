@@ -8,6 +8,7 @@
 #include "scene_draw_context.h"
 #include "settings/viewport_theme.h"
 #include "widgets/m_widgets.h"
+#include <array>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -288,7 +289,7 @@ namespace Bess::Canvas {
                                 context,
                                 intSliderOptions);
 
-        static const std::vector<std::string> modeItems{
+        static constexpr std::array<std::string_view, 5> modeItems{
             "Inspect", "Edit", "Route", "Measure", "Debug"};
         SceneDraw::drawText(context,
                             "Mode",

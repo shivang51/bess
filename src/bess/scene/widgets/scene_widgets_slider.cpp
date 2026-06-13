@@ -2,10 +2,10 @@
 #include "scene_widgets_internal.h"
 #include "settings/viewport_theme.h"
 #include <algorithm>
+#include <array>
+#include <charconv>
 #include <cmath>
-#include <iomanip>
 #include <limits>
-#include <sstream>
 
 namespace Bess::Canvas::SceneWidgets {
     namespace {
@@ -52,13 +52,25 @@ namespace Bess::Canvas::SceneWidgets {
         }
 
         std::string formatValue(float value, int precision) {
-            std::ostringstream out;
+            std::array<char, 64> buffer{};
+            std::to_chars_result result{};
             if (precision <= 0) {
-                out << static_cast<long long>(std::llround(value));
+                result = std::to_chars(buffer.data(),
+                                       buffer.data() + buffer.size(),
+                                       static_cast<long long>(
+                                           std::llround(value)));
             } else {
-                out << std::fixed << std::setprecision(precision) << value;
+                result = std::to_chars(buffer.data(),
+                                       buffer.data() + buffer.size(),
+                                       value,
+                                       std::chars_format::fixed,
+                                       precision);
             }
-            return out.str();
+
+            if (result.ec != std::errc{}) {
+                return {};
+            }
+            return {buffer.data(), result.ptr};
         }
 
         glm::vec2 resolveSliderSize(
@@ -221,7 +233,10 @@ namespace Bess::Canvas::SceneWidgets {
                 context,
                 {knobX, sliderPos.y, sliderPos.z + 0.0003f},
                 options.knobRadius,
-                Detail::colorOr(options.knobColor, palette.knob),
+                options.knobColor.has_value()
+                    ? *options.knobColor
+                    : Core::Renderer::Color(widget.isPressed ? palette.accent
+                                                             : palette.knob),
                 id);
 
             if (options.showValue) {

@@ -4,6 +4,7 @@
 #include "settings/viewport_theme.h"
 #include <algorithm>
 #include <filesystem>
+#include <span>
 #include <string_view>
 
 namespace Bess::Canvas::SceneWidgets {
@@ -19,7 +20,7 @@ namespace Bess::Canvas::SceneWidgets {
 
         glm::vec2 resolveDropdownSize(
             const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer,
-            const std::vector<std::string> &items,
+            std::span<const std::string_view> items,
             const glm::vec2 &requestedSize,
             const DropdownOptions &options) {
             auto size = requestedSize;
@@ -230,7 +231,7 @@ namespace Bess::Canvas::SceneWidgets {
         void drawOptions(Detail::WidgetState &widget,
                          const PickingId &id,
                          int selectedIndex,
-                         const std::vector<std::string> &items,
+                         std::span<const std::string_view> items,
                          const glm::vec3 &boxPos,
                          const glm::vec2 &boxSize,
                          SceneDrawContext &context,
@@ -272,7 +273,7 @@ namespace Bess::Canvas::SceneWidgets {
                 } else if (optionState->isHovered ||
                            optionIndex == widget.dropdownHighlightedIndex) {
                     rowColor = Detail::colorOr(options.optionHoverColor,
-                                               palette.surfaceHover);
+                                               palette.itemHover);
                 }
 
                 const SceneDraw::QuadStyle rowStyle{
@@ -301,7 +302,7 @@ namespace Bess::Canvas::SceneWidgets {
 
     DropdownResult dropdown(const PickingId &id,
                             int *selectedIndex,
-                            const std::vector<std::string> &items,
+                            std::span<const std::string_view> items,
                             const glm::vec3 &boxPos,
                             const glm::vec2 &boxSize,
                             SceneDrawContext &context,
@@ -374,7 +375,7 @@ namespace Bess::Canvas::SceneWidgets {
         const bool hasSelection = selected >= 0;
         const std::string_view label =
             hasSelection ? items[static_cast<size_t>(selected)]
-                         : options.placeholder;
+                         : std::string_view(options.placeholder);
 
         drawBase(
             *widget, id, label, hasSelection, boxPos, size, context, options);

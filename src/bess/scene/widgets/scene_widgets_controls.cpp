@@ -77,7 +77,7 @@ namespace Bess::Canvas::SceneWidgets {
     }
 
     bool button(const PickingId &id,
-                const std::string &label,
+                std::string_view label,
                 const glm::vec3 &buttonPos,
                 const glm::vec2 &buttonSize,
                 const Core::Renderer::Color &labelColor,
