@@ -21,6 +21,13 @@ namespace Bess::Canvas {
         connection,
     };
 
+    enum class SceneCursor : uint8_t {
+        inherit,
+        normal,
+        pointer,
+        move,
+    };
+
     struct SelBoxContext {
         glm::vec2 start{0.f};
         glm::vec2 end{0.f};
@@ -47,6 +54,7 @@ namespace Bess::Canvas {
         bool isShiftPressed = false;
         bool isAltPressed = false;
         SceneDrawMode drawMode = SceneDrawMode::none;
+        SceneCursor cursor = SceneCursor::inherit;
         SelBoxContext selectionBox;
         PickingReadbackRequest pickingReadbackRequest;
 
@@ -60,6 +68,7 @@ namespace Bess::Canvas {
             isShiftPressed = false;
             isAltPressed = false;
             drawMode = SceneDrawMode::none;
+            cursor = SceneCursor::inherit;
             selectionBox = {};
             pickingReadbackRequest = {};
         }

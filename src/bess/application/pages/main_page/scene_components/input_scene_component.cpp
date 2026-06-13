@@ -5,13 +5,11 @@
 #include "scene/scene_draw_helpers.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
-#include "scene/scene_ui/scene_ui.h"
+#include "scene/scene_widgets.h"
 #include "scene_draw_context.h"
 #include "settings/viewport_theme.h"
 #include "sim_scene_component.h"
 #include "simulation_engine.h"
-
-#include "window.h"
 
 namespace Bess::Canvas {
     InputSceneComponent::InputSceneComponent() {
@@ -48,6 +46,10 @@ namespace Bess::Canvas {
         const auto &state = *context.sceneState;
         const auto slotComp =
             state.getComponentByUuid<SlotSceneComponent>(slotUuid);
+        if (!slotComp) {
+            return;
+        }
+
         const auto slotType = slotComp->getSlotType();
 
         if (slotType == SlotType::inputsResize ||
@@ -68,11 +70,32 @@ namespace Bess::Canvas {
         const auto pickingId =
             PickingId{m_runtimeId, static_cast<uint32_t>(buttonIndex + 1)};
 
-        SceneUI::drawToggleButton(pickingId, isHigh, buttonPos, buttonSize,
-                                  context);
+        bool nextValue = isHigh;
+        if (SceneWidgets::toggleButton(pickingId, &nextValue, buttonPos,
+                                       buttonSize, context)) {
+            const auto slotParentComp =
+                state.getComponentByUuid<SimulationSceneComponent>(
+                    slotComp->getParentComponent());
+            if (!slotParentComp) {
+                return;
+            }
+
+            auto &appCtx = Bess::GAppContext::getInstance();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+            if (!projectCtx) {
+                return;
+            }
+
+            auto &simEngine = projectCtx->getSimEngine();
+
+            simEngine.setOutputSlotState(
+                slotParentComp->getSimEngineId(), slotComp->getIndex(),
+                nextValue ? SimEngine::LogicState::high
+                          : SimEngine::LogicState::low);
+        }
 
         // Button label
-        const std::string label = isHigh ? "1" : "0";
+        const std::string label = nextValue ? "1" : "0";
         const auto textSize = context.renderer->measureText(
             label, {.fontSize = Styles::simCompStyles.slotLabelSize});
 
@@ -86,72 +109,6 @@ namespace Bess::Canvas {
         SceneDraw::drawText(
             context, label, textPos, Styles::simCompStyles.slotLabelSize,
             ViewportTheme::colors.text, PickingId{m_runtimeId, 0});
-    }
-
-    void
-    InputSceneComponent::onMouseHovered(const Events::MouseHoveredEvent &e) {
-        int buttonIndex = (int)e.details - 1; // since 0 is component body
-
-        if (buttonIndex < 0) {
-            auto &appCtx = GAppContext::getInstance();
-            auto window = appCtx.getSubSystem<Window>();
-            window->getui().setCursorNormal();
-        } else {
-            auto &appCtx = GAppContext::getInstance();
-            auto window = appCtx.getSubSystem<Window>();
-            window->getui().setCursorPointer();
-        }
-    }
-
-    void InputSceneComponent::onMouseEnter(const Events::MouseEnterEvent &e) {
-        int buttonIndex = (int)e.details - 1; // since 0 is component body
-
-        if (buttonIndex < 0) {
-            auto &appCtx = GAppContext::getInstance();
-            auto window = appCtx.getSubSystem<Window>();
-            window->getui().setCursorNormal();
-        } else {
-            auto &appCtx = GAppContext::getInstance();
-            auto window = appCtx.getSubSystem<Window>();
-            window->getui().setCursorPointer();
-        }
-    }
-
-    void InputSceneComponent::onMouseLeave(const Events::MouseLeaveEvent &e) {
-        auto &appCtx = GAppContext::getInstance();
-        auto window = appCtx.getSubSystem<Window>();
-        window->getui().setCursorNormal();
-    }
-
-    void InputSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
-        if (e.button != Events::MouseButton::left ||
-            e.action != Events::MouseClickAction::press) {
-            return;
-        }
-
-        const int buttonIndex = (int)e.details - 1; // since 0 is component body
-
-        if (buttonIndex < 0) {
-            return;
-        }
-
-        const auto slotUuid = m_outputSlots[buttonIndex];
-        const auto slotComp =
-            e.sceneState->getComponentByUuid<SlotSceneComponent>(slotUuid);
-        const auto slotParentComp =
-            e.sceneState->getComponentByUuid<SimulationSceneComponent>(
-                slotComp->getParentComponent());
-
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        auto &simEngine = projectCtx->getSimEngine();
-
-        simEngine.setOutputSlotState(
-            slotParentComp->getSimEngineId(), slotComp->getIndex(),
-            slotComp->getSlotState(*e.sceneState).getLogicState() ==
-                    SimEngine::LogicState::high
-                ? SimEngine::LogicState::low
-                : SimEngine::LogicState::high);
     }
 
     void InputSceneComponent::calculateSchematicScale(const SceneState &state) {

@@ -42,6 +42,7 @@ namespace Bess::UI {
         void handleMouseMove(const glm::vec2 &mousePos);
         void releaseMouseButtonOutsideViewport(
             const MouseButtonState &mouseBtnState);
+        void applySceneCursor() const;
 
         bool isInsideViewport(const glm::vec2 &pos) const;
         bool hasRenderableViewport() const;

@@ -59,6 +59,8 @@ namespace Bess::UI {
             !m_attachedScene->isDragging()) {
             updatePickingIds(mouseMoved);
         }
+
+        applySceneCursor();
     }
 
     bool SceneViewportPanel::isInsideViewport(const glm::vec2 &pos) const {
@@ -138,6 +140,37 @@ namespace Bess::UI {
         } else if (mouseBtnState.button == MouseButton::middle &&
                    m_attachedScene->isMiddleMousePressed()) {
             m_attachedScene->onMiddleMouse(false);
+        }
+    }
+
+    void SceneViewportPanel::applySceneCursor() const {
+        if (!m_attachedScene) {
+            return;
+        }
+
+        const auto &mousePos = m_attachedScene->getMousePos();
+        if (mousePos.x < 0.f || mousePos.y < 0.f ||
+            mousePos.x >= m_viewportSize.x || mousePos.y >= m_viewportSize.y) {
+            return;
+        }
+
+        auto window = Pages::MainPage::getInstance()->getParentWindow();
+        if (!window) {
+            return;
+        }
+
+        switch (m_attachedScene->consumeCursorRequest()) {
+        case Canvas::SceneCursor::inherit:
+            break;
+        case Canvas::SceneCursor::pointer:
+            window->getui().setCursorPointer();
+            break;
+        case Canvas::SceneCursor::move:
+            window->getui().setCursorMove();
+            break;
+        case Canvas::SceneCursor::normal:
+            window->getui().setCursorNormal();
+            break;
         }
     }
 

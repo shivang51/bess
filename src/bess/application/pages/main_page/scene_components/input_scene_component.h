@@ -26,14 +26,6 @@ namespace Bess::Canvas {
 
         void drawToggleButton(SceneDrawContext &context, UUID slotUuid,
                               int buttonIndex);
-
-        void onMouseHovered(const Events::MouseHoveredEvent &e) override;
-
-        void onMouseEnter(const Events::MouseEnterEvent &e) override;
-
-        void onMouseLeave(const Events::MouseLeaveEvent &e) override;
-
-        void onMouseButton(const Events::MouseButtonEvent &e) override;
     };
 } // namespace Bess::Canvas
 

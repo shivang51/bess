@@ -6,9 +6,11 @@
 #include "layers/hover_layer.h"
 #include "layers/interaction_layer.h"
 #include "layers/overlay_layer.h"
+#include "layers/scene_widgets_layer.h"
 #include "scene/scene_event_builder.h"
 #include "scene/scene_events.h"
 #include "scene/scene_state/components/scene_component.h"
+#include "scene/scene_widgets.h"
 #include "scene_event.h"
 #include "scene_layer.h"
 #include "sub_systems/input_sub_system.h"
@@ -85,6 +87,7 @@ namespace Bess::Canvas {
         m_sceneLayers.push_back(std::make_unique<HoverLayer>());
         m_sceneLayers.push_back(std::make_unique<OverlayLayer>());
         m_sceneLayers.push_back(std::make_unique<InteractionLayer>());
+        m_sceneLayers.push_back(std::make_unique<SceneWidgetsLayer>());
         reset();
     }
 
@@ -180,9 +183,11 @@ namespace Bess::Canvas {
         auto ctx = makeRenderContext(m_state, m_camera, m_viewportTransform,
                                      m_inputState, m_pickingId, renderer);
 
+        SceneWidgets::beginFrame();
         for (auto &layer : m_sceneLayers) {
             layer->draw(ctx);
         }
+        SceneWidgets::endFrame();
     }
 
     void Scene::selectAllEntities() {
@@ -282,6 +287,12 @@ namespace Bess::Canvas {
 
     bool Scene::isMiddleMousePressed() const {
         return m_inputState.isMiddleMousePressed;
+    }
+
+    SceneCursor Scene::consumeCursorRequest() {
+        const auto cursor = m_inputState.cursor;
+        m_inputState.cursor = SceneCursor::inherit;
+        return cursor;
     }
 
     const glm::vec2 &Scene::getMousePos() const {

@@ -18,12 +18,14 @@ set(Header_Files
 	"scene_layer.h"
 	"scene_event.h"
 	"scene_event_builder.h"
+	"scene_widgets.h"
 	"scene_types.h"
 	"layers/grid_layer.h"
 	"layers/components_layer.h"
 	"layers/hover_layer.h"
 	"layers/interaction_layer.h"
 	"layers/overlay_layer.h"
+	"layers/scene_widgets_layer.h"
 )
 
 source_group("include/scene" FILES ${Header_Files})
@@ -35,6 +37,7 @@ set(Source_Files
 	"scene_state/components/scene_component_types.cpp"
 	"scene_state/components/scene_component.cpp"
 	"scene_event_builder.cpp"
+	"scene_widgets.cpp"
 	"scene.cpp"
 	"camera.cpp"
 	"schematic_diagram.cpp"
@@ -43,6 +46,7 @@ set(Source_Files
 	"layers/hover_layer.cpp"
 	"layers/interaction_layer.cpp"
 	"layers/overlay_layer.cpp"
+	"layers/scene_widgets_layer.cpp"
 )
 
 source_group("src/scene" FILES ${Source_Files})
@@ -79,6 +83,6 @@ endif()
 # set_source_files_properties(${Source_Files} PROPERTIES
 # 		COMPILE_OPTIONS $<$<COMPILE_LANGUAGE:CXX>:-include${CMAKE_CURRENT_SOURCE_DIR}/scene_pch.h>
 # )
-# if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
+# if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
 #     target_precompile_headers(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:"${CMAKE_CURRENT_SOURCE_DIR}/scene_pch.h">)
 # endif()

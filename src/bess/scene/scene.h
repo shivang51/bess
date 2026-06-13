@@ -49,6 +49,7 @@ namespace Bess::Canvas {
         bool isDragging() const;
         bool isLeftMousePressed() const;
         bool isMiddleMousePressed() const;
+        SceneCursor consumeCursorRequest();
 
         const glm::vec2 &getMousePos() const;
         glm::vec2 getSceneMousePos();
