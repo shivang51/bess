@@ -47,8 +47,7 @@ namespace Bess::UI {
         BESS_ASSERT(m_attachedScene,
                     "SceneViewportPanel must have an attached scene to update");
         if (m_isResized) {
-            m_attachedScene->getCamera()->resize(m_viewportSize.x,
-                                                 m_viewportSize.y);
+            m_attachedScene->resizeCamera(m_viewportSize);
             if (m_sceneTexture) {
                 m_sceneTexture->setSize(m_viewportSize);
                 m_sceneTexture->destroy();
@@ -210,8 +209,10 @@ namespace Bess::UI {
         const auto rootScene =
             sceneDriver->getSceneWithId(sceneDriver->getRootSceneId());
 
-        ImGui::Checkbox("##CheckBoxSchematicMode",
-                        m_attachedScene->getIsSchematicViewPtr());
+        auto isSchematicView = m_attachedScene->getIsSchematicView();
+        if (ImGui::Checkbox("##CheckBoxSchematicMode", &isSchematicView)) {
+            m_attachedScene->setIsSchematicView(isSchematicView);
+        }
         ImGui::PopStyleVar();
         ImGui::End();
         ImGui::PopStyleColor(1);
@@ -306,7 +307,7 @@ namespace Bess::UI {
         const float sliderHeight = ImGui::GetFrameHeight();
 
         ImGui::SetCursorPosY((windowHeight - sliderHeight) * 0.5f);
-        const auto &camera = sceneDriver->getActiveScene()->getCamera();
+        const auto scene = sceneDriver->getActiveScene();
 
         // Camera Icon
         {
@@ -326,7 +327,7 @@ namespace Bess::UI {
 
             // Recenter on click
             if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-                camera->focusAtPoint({0.f, 0.f}, false);
+                scene->focusCameraAt({0.f, 0.f}, false);
             }
         }
 
@@ -340,13 +341,13 @@ namespace Bess::UI {
             ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 8);
 
             ImGui::SetNextItemWidth(150.0f);
-            if (ImGui::SliderFloat("##Zoom", &camera->getZoomRef(),
-                                   Camera::zoomMin, Camera::zoomMax, "%.1fx",
+            auto zoom = scene->getCameraZoom();
+            if (ImGui::SliderFloat("##Zoom", &zoom, Camera::zoomMin,
+                                   Camera::zoomMax, "%.1fx",
                                    ImGuiSliderFlags_AlwaysClamp)) {
                 const float stepSize = 0.1f;
-                const float val =
-                    roundf(camera->getZoom() / stepSize) * stepSize;
-                camera->setZoom(val);
+                const float val = roundf(zoom / stepSize) * stepSize;
+                scene->setZoom(val);
             }
             ImGui::PopStyleVar(2);
         }
@@ -368,8 +369,7 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::onSceneAttached() {
-        m_attachedScene->getCamera()->resize(m_viewportSize.x,
-                                             m_viewportSize.y);
+        m_attachedScene->resizeCamera(m_viewportSize);
         m_rootToSceneStatePtrs.clear();
 
         // Very Important: to avoid circular intialization of mainpage,

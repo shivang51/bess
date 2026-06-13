@@ -41,11 +41,11 @@ namespace Bess::UI {
             // because we don't update scene if its not active
 
             const auto isLeft = (mouseBtnState.button == MouseButton::left &&
-                                 m_attachedScene->getIsLeftMousePressed());
+                                 m_attachedScene->isLeftMousePressed());
 
             const auto isMiddle =
                 (mouseBtnState.button == MouseButton::middle &&
-                 m_attachedScene->getIsMiddleMousePressed());
+                 m_attachedScene->isMiddleMousePressed());
 
             if (isLeft) {
                 m_attachedScene->onLeftMouse(false);
@@ -81,7 +81,7 @@ namespace Bess::UI {
             return;
         }
 
-        const bool isLeftPressed = m_attachedScene->getIsLeftMousePressed();
+        const bool isLeftPressed = m_attachedScene->isLeftMousePressed();
 
         if (isLeftPressed) {
 
@@ -102,7 +102,7 @@ namespace Bess::UI {
                 newPos.y = m_viewportPos.y + m_viewportSize.y - 1.f;
             }
 
-            m_attachedScene->getCamera()->incrementPos(vel);
+            m_attachedScene->panCamera(vel);
 
             window->setEnableCursor(false);
             window->setMousePos(newPos);
@@ -127,8 +127,7 @@ namespace Bess::UI {
             .shouldClear = true,
             .targetTexture = m_sceneTexture->getHandle(),
             .pickingTexture = m_pickingTexture->getHandle(),
-            .cameraTransform =
-                glm::value_ptr(m_attachedScene->getCamera()->getTransform()),
+            .cameraTransform = m_attachedScene->getCameraTransformData(),
         });
 
         m_attachedScene->draw(renderer);

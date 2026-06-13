@@ -29,13 +29,7 @@ namespace Bess::Canvas {
         const SceneState &getState() const;
         SceneState &getState();
 
-        MAKE_GETTER_SETTER(std::shared_ptr<Camera>, Camera, m_camera)
-        MAKE_GETTER_SETTER(SelBoxContext, SelBoxContext, m_selBoxContext)
-        MAKE_GETTER(PickingReadbackRequest, PickingReadbackRequest,
-                    m_pickingReadbackRequest)
         MAKE_GETTER_SETTER(bool, IsFirstFrame, m_isFirstFrame)
-        MAKE_GETTER_SETTER_BC_AC(PickingId, PickingId, m_pickingId,
-                                 onPrePickingIdChange, onPickingIdChange)
 
       public:
         const UUID &getSceneId() const;
@@ -48,14 +42,24 @@ namespace Bess::Canvas {
         const ViewportTransform &getViewportTransform() const;
 
         PickingId getHoveredEntity() const { return m_pickingId; }
+        void setPickingId(const PickingId &value);
+
+        const PickingReadbackRequest &getPickingReadbackRequest() const;
 
         bool isDragging() const;
+        bool isLeftMousePressed() const;
+        bool isMiddleMousePressed() const;
 
         const glm::vec2 &getMousePos() const;
         glm::vec2 getSceneMousePos();
         const glm::vec2 &getCameraPos() const;
         float getCameraZoom() const;
         void setZoom(float value) const;
+        const glm::mat4 &getCameraTransform() const;
+        float *getCameraTransformData() const;
+        void resizeCamera(const glm::vec2 &size) const;
+        void panCamera(const glm::vec2 &delta) const;
+        void focusCameraAt(const glm::vec2 &pos, bool smooth = true) const;
 
         void setSceneMode(SceneMode mode);
         SceneMode getSceneMode() const;
@@ -68,7 +72,8 @@ namespace Bess::Canvas {
 
         void setZCoord(float val);
 
-        bool *getIsSchematicViewPtr();
+        bool getIsSchematicView() const;
+        void setIsSchematicView(bool value);
         void toggleSchematicView();
 
         bool isHoveredEntityValid();
@@ -79,13 +84,9 @@ namespace Bess::Canvas {
 
         float getNextZCoord();
 
-        MAKE_GETTER(bool, IsLeftMousePressed, m_isLeftMousePressed);
-        MAKE_GETTER(bool, IsMiddleMousePressed, m_isMiddleMousePressed);
-        void processEvents();
         bool dispatchEvent(SceneEvent &evt);
 
         void onLeftMouse(bool isPressed);
-        void onRightMouse(bool isPressed);
         void onMiddleMouse(bool isPressed);
         void onMouseMove(const glm::vec2 &pos);
         void applySelectionReadback(const std::vector<PickingId> &ids);

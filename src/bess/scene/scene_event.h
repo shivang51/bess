@@ -41,7 +41,6 @@ namespace Bess::Canvas {
             ~Data() {}
         } data;
 
-        bool handled = false;
         bool isCtrlPressed = false;
         bool isShiftPressed = false;
         bool isAltPressed = false;

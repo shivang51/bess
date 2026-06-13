@@ -10,7 +10,7 @@ namespace Bess::Canvas {
         ComponentsLayer() = default;
         ~ComponentsLayer() override = default;
 
-        bool handleEvent(SceneEvent &evt, SceneContext &ctx) override;
+        EventResult handleEvent(SceneEvent &evt, SceneContext &ctx) override;
 
         void init(SceneContext &ctx) override;
         void destroy(SceneContext &ctx) override;

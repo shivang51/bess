@@ -26,30 +26,25 @@ namespace Bess::Canvas {
         }
     } // namespace
 
-    bool InteractionLayer::handleEvent(SceneEvent &evt, SceneContext &ctx) {
-        if (evt.handled) {
-            return true;
-        }
-
+    EventResult InteractionLayer::handleEvent(SceneEvent &evt,
+                                              SceneContext &ctx) {
         switch (evt.type) {
         case SceneEvent::Type::mouseMove:
-            handleMouseMove(evt, ctx);
-            break;
+            return handleMouseMove(evt, ctx);
         case SceneEvent::Type::mouseButton:
-            handleMouseButton(evt, ctx);
-            break;
+            return handleMouseButton(evt, ctx);
         case SceneEvent::Type::mouseWheel:
-            handleMouseWheel(evt, ctx);
-            break;
+            return handleMouseWheel(evt, ctx);
         case SceneEvent::Type::key:
         case SceneEvent::Type::none:
             break;
         }
 
-        return evt.handled;
+        return EventResult::Ignored;
     }
 
-    void InteractionLayer::handleMouseMove(SceneEvent &evt, SceneContext &ctx) {
+    EventResult InteractionLayer::handleMouseMove(SceneEvent &evt,
+                                                  SceneContext &ctx) {
         BESS_ASSERT(ctx.sceneState && ctx.camera && ctx.mousePos &&
                         ctx.dMousePos && ctx.isLeftMousePressed &&
                         ctx.isMiddleMousePressed && ctx.isDragging &&
@@ -101,28 +96,30 @@ namespace Bess::Canvas {
             ctx.camera->incrementPos(-*ctx.dMousePos);
         }
 
-        evt.handled = false;
+        return EventResult::Handled;
     }
 
-    void InteractionLayer::handleMouseButton(SceneEvent &evt,
-                                             SceneContext &ctx) {
+    EventResult InteractionLayer::handleMouseButton(SceneEvent &evt,
+                                                    SceneContext &ctx) {
         const auto &data = evt.data.mouseButton;
         const bool isPressed = data.action == MouseButtonAction::press;
 
         if (data.button == MouseButton::left) {
-            handleLeftMouseButton(evt, ctx, isPressed);
+            return handleLeftMouseButton(evt, ctx, isPressed);
         } else if (data.button == MouseButton::middle) {
-            handleMiddleMouseButton(evt, ctx, isPressed);
+            return handleMiddleMouseButton(evt, ctx, isPressed);
         } else if (data.button == MouseButton::right) {
             queueMouseButtonEvent(evt, ctx, Events::MouseButton::right,
                                   toSceneMouseAction(data.action));
-            evt.handled = true;
+            return EventResult::Consumed;
         }
+
+        return EventResult::Ignored;
     }
 
-    void InteractionLayer::handleLeftMouseButton(SceneEvent &evt,
-                                                 SceneContext &ctx,
-                                                 bool isPressed) {
+    EventResult InteractionLayer::handleLeftMouseButton(SceneEvent &evt,
+                                                        SceneContext &ctx,
+                                                        bool isPressed) {
         BESS_ASSERT(ctx.sceneState && ctx.mousePos && ctx.isLeftMousePressed &&
                         ctx.isDragging && ctx.selBoxContext && ctx.drawMode &&
                         ctx.pickingId,
@@ -141,8 +138,7 @@ namespace Bess::Canvas {
                                          ctx.pickingId->info, ctx.sceneState});
                 }
             }
-            evt.handled = true;
-            return;
+            return EventResult::Consumed;
         }
 
         if (!isPressed) {
@@ -169,15 +165,13 @@ namespace Bess::Canvas {
                 }
             }
 
-            evt.handled = true;
-            return;
+            return EventResult::Consumed;
         }
 
         if (ctx.pickingId->isValid()) {
             auto comp = ctx.sceneState->getComponentByPickingId(*ctx.pickingId);
             if (!comp) {
-                evt.handled = true;
-                return;
+                return EventResult::Consumed;
             }
 
             comp->onMouseButton({evt.data.mouseButton.pos,
@@ -204,28 +198,27 @@ namespace Bess::Canvas {
             *ctx.drawMode = SceneDrawMode::none;
         }
 
-        evt.handled = true;
+        return EventResult::Consumed;
     }
 
-    void InteractionLayer::handleMiddleMouseButton(SceneEvent &evt,
-                                                   SceneContext &ctx,
-                                                   bool isPressed) {
+    EventResult InteractionLayer::handleMiddleMouseButton(SceneEvent &evt,
+                                                          SceneContext &ctx,
+                                                          bool isPressed) {
         BESS_ASSERT(ctx.isMiddleMousePressed,
                     "InteractionLayer missing middle mouse state");
         *ctx.isMiddleMousePressed = isPressed;
         queueMouseButtonEvent(evt, ctx, Events::MouseButton::middle,
                               toSceneMouseAction(evt.data.mouseButton.action));
-        evt.handled = true;
+        return EventResult::Consumed;
     }
 
-    void InteractionLayer::handleMouseWheel(SceneEvent &evt,
-                                            SceneContext &ctx) {
+    EventResult InteractionLayer::handleMouseWheel(SceneEvent &evt,
+                                                   SceneContext &ctx) {
         BESS_ASSERT(ctx.camera && ctx.mousePos,
                     "InteractionLayer missing wheel context");
 
         if (!isCursorInViewport(ctx)) {
-            evt.handled = true;
-            return;
+            return EventResult::Consumed;
         }
 
         const auto &delta = evt.data.mouseWheel.delta;
@@ -238,7 +231,7 @@ namespace Bess::Canvas {
             ctx.camera->incrementPos(dPos);
         }
 
-        evt.handled = true;
+        return EventResult::Consumed;
     }
 
     void InteractionLayer::queueMouseButtonEvent(

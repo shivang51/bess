@@ -10,6 +10,12 @@
 
 namespace Bess::Canvas {
 
+    enum class EventResult : uint8_t {
+        Ignored,
+        Handled,
+        Consumed,
+    };
+
     struct SceneContext {
         SceneState *sceneState = nullptr;
         std::shared_ptr<Camera> camera = nullptr;
@@ -30,8 +36,8 @@ namespace Bess::Canvas {
       public:
         virtual ~ISceneLayer() = default;
 
-        virtual bool handleEvent(SceneEvent &evt, SceneContext &ctx) {
-            return false;
+        virtual EventResult handleEvent(SceneEvent &evt, SceneContext &ctx) {
+            return EventResult::Ignored;
         }
 
         virtual void update(TimeMs ts, SceneContext &ctx) = 0;

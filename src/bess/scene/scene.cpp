@@ -12,6 +12,7 @@
 #include "sub_systems/input_sub_system.h"
 #include "sub_systems/renderer_context.h"
 #include <cstdint>
+#include <gtc/type_ptr.hpp>
 #include <memory>
 #include <ranges>
 #include <unordered_set>
@@ -107,13 +108,6 @@ namespace Bess::Canvas {
         m_isDragging = false;
         m_isLeftMousePressed = false;
         m_isMiddleMousePressed = false;
-    }
-
-    void Scene::processEvents() {
-        const auto events = formEvents(m_camera, m_viewportTransform);
-        for (auto evt : events) {
-            dispatchEvent(evt);
-        }
     }
 
     std::vector<SceneEvent> formEvents(const std::shared_ptr<Camera> &camera,
@@ -346,16 +340,6 @@ namespace Bess::Canvas {
         dispatchEvent(evt);
     }
 
-    void Scene::onRightMouse(bool isPressed) {
-        SceneEvent::Data data;
-        data.mouseButton = {.button = MouseButton::right,
-                            .action = isPressed ? MouseButtonAction::press
-                                                : MouseButtonAction::release,
-                            .pos = toScenePos(m_mousePos)};
-        SceneEvent evt{.type = SceneEvent::Type::mouseButton, .data = data};
-        dispatchEvent(evt);
-    }
-
     void Scene::onMiddleMouse(bool isPressed) {
         SceneEvent::Data data;
         data.mouseButton = {.button = MouseButton::middle,
@@ -383,6 +367,10 @@ namespace Bess::Canvas {
 
     bool Scene::isDragging() const { return m_isDragging; }
 
+    bool Scene::isLeftMousePressed() const { return m_isLeftMousePressed; }
+
+    bool Scene::isMiddleMousePressed() const { return m_isMiddleMousePressed; }
+
     const glm::vec2 &Scene::getMousePos() const { return m_mousePos; }
 
     glm::vec2 Scene::getSceneMousePos() { return toScenePos(m_mousePos); }
@@ -390,6 +378,26 @@ namespace Bess::Canvas {
     float Scene::getCameraZoom() const { return m_camera->getZoom(); }
 
     void Scene::setZoom(float value) const { m_camera->setZoom(value); }
+
+    const glm::mat4 &Scene::getCameraTransform() const {
+        return m_camera->getTransform();
+    }
+
+    float *Scene::getCameraTransformData() const {
+        return const_cast<float *>(glm::value_ptr(m_camera->getTransform()));
+    }
+
+    void Scene::resizeCamera(const glm::vec2 &size) const {
+        m_camera->resize(size.x, size.y);
+    }
+
+    void Scene::panCamera(const glm::vec2 &delta) const {
+        m_camera->incrementPos(delta);
+    }
+
+    void Scene::focusCameraAt(const glm::vec2 &pos, bool smooth) const {
+        m_camera->focusAtPoint(pos, smooth);
+    }
 
     float Scene::getNextZCoord() {
         const float z = m_compZCoord;
@@ -403,8 +411,12 @@ namespace Bess::Canvas {
 
     SceneMode Scene::getSceneMode() const { return m_sceneMode; }
 
-    bool *Scene::getIsSchematicViewPtr() {
-        return &m_state.getIsSchematicView();
+    bool Scene::getIsSchematicView() const {
+        return m_state.getIsSchematicView();
+    }
+
+    void Scene::setIsSchematicView(bool value) {
+        m_state.setIsSchematicView(value);
     }
 
     void Scene::toggleSchematicView() {
@@ -453,6 +465,16 @@ namespace Bess::Canvas {
 
     bool Scene::isHoveredEntityValid() { return m_pickingId.isValid(); }
 
+    void Scene::setPickingId(const PickingId &value) {
+        onPrePickingIdChange(value);
+        m_pickingId = value;
+        onPickingIdChange();
+    }
+
+    const PickingReadbackRequest &Scene::getPickingReadbackRequest() const {
+        return m_pickingReadbackRequest;
+    }
+
     bool Scene::dispatchEvent(SceneEvent &evt) {
         evt.pickingId = m_pickingId;
 
@@ -472,13 +494,20 @@ namespace Bess::Canvas {
             .drawMode = &m_drawMode,
         };
 
+        bool wasHandled = false;
         for (auto &layer : std::ranges::reverse_view(m_sceneLayers)) {
-            if (layer->handleEvent(evt, ctx)) {
+            const auto result = layer->handleEvent(evt, ctx);
+            if (result == EventResult::Ignored) {
+                continue;
+            }
+
+            wasHandled = true;
+            if (result == EventResult::Consumed) {
                 return true;
             }
         }
 
-        return evt.handled;
+        return wasHandled;
     }
 
     void Scene::applySelectionReadback(const std::vector<PickingId> &ids) {

@@ -6,13 +6,15 @@
 #include <cstdint>
 
 namespace Bess::Canvas {
-    bool ComponentsLayer::handleEvent(SceneEvent &evt, SceneContext &ctx) {
+    EventResult ComponentsLayer::handleEvent(SceneEvent &evt,
+                                             SceneContext &ctx) {
 
         if (evt.type == SceneEvent::Type::mouseMove) {
             handleMouseMove(evt, ctx);
+            return EventResult::Handled;
         }
 
-        return evt.handled;
+        return EventResult::Ignored;
     }
 
     void ComponentsLayer::handleMouseMove(SceneEvent &evt, SceneContext &ctx) {
