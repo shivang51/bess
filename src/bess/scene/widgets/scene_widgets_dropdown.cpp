@@ -20,7 +20,8 @@ namespace Bess::Canvas::SceneWidgets {
         glm::vec2 resolveDropdownSize(
             const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer,
             const std::vector<std::string> &items,
-            const glm::vec2 &requestedSize, const DropdownOptions &options) {
+            const glm::vec2 &requestedSize,
+            const DropdownOptions &options) {
             auto size = requestedSize;
             const auto referenceSize =
                 renderer->measureText("M", {.fontSize = options.fontSize});
@@ -68,7 +69,8 @@ namespace Bess::Canvas::SceneWidgets {
         }
 
         glm::vec3 optionCenter(const glm::vec3 &boxPos,
-                               const glm::vec2 &boxSize, float optionHeight,
+                               const glm::vec2 &boxSize,
+                               float optionHeight,
                                size_t visibleIndex) {
             return {boxPos.x,
                     boxPos.y + (boxSize.y * 0.5f) + (optionHeight * 0.5f) +
@@ -77,7 +79,8 @@ namespace Bess::Canvas::SceneWidgets {
         }
 
         void openDropdown(Detail::SceneWidgetsState &widgetsState,
-                          Detail::WidgetState &widget, uint64_t widgetId,
+                          Detail::WidgetState &widget,
+                          uint64_t widgetId,
                           int selectedIndex) {
             Detail::closeDropdowns(widgetsState, widgetId);
             if (!widget.dropdownOpen) {
@@ -101,8 +104,10 @@ namespace Bess::Canvas::SceneWidgets {
             widget.dropdownClosed = true;
         }
 
-        bool applySelection(Detail::WidgetState &widget, int *selectedIndex,
-                            int nextSelection, size_t itemCount) {
+        bool applySelection(Detail::WidgetState &widget,
+                            int *selectedIndex,
+                            int nextSelection,
+                            size_t itemCount) {
             if (selectedIndex == nullptr || nextSelection < 0 ||
                 itemCount == 0 ||
                 nextSelection >= static_cast<int>(itemCount)) {
@@ -124,7 +129,8 @@ namespace Bess::Canvas::SceneWidgets {
         void processVisibleOptionClicks(SceneState *sceneState,
                                         const PickingId &id,
                                         Detail::WidgetState &widget,
-                                        int *selectedIndex, size_t itemCount,
+                                        int *selectedIndex,
+                                        size_t itemCount,
                                         bool &changed) {
             if (!widget.dropdownOpen || itemCount == 0) {
                 return;
@@ -141,7 +147,8 @@ namespace Bess::Canvas::SceneWidgets {
                     Detail::makeChildId(id, static_cast<uint32_t>(optionIndex));
                 if (Detail::getWidgetState(sceneState, optionId) != nullptr &&
                     Detail::consumeClick(sceneState, optionId)) {
-                    changed |= applySelection(widget, selectedIndex,
+                    changed |= applySelection(widget,
+                                              selectedIndex,
                                               static_cast<int>(optionIndex),
                                               itemCount);
                     return;
@@ -149,9 +156,12 @@ namespace Bess::Canvas::SceneWidgets {
             }
         }
 
-        void drawBase(Detail::WidgetState &widget, const PickingId &id,
-                      std::string_view label, bool hasSelection,
-                      const glm::vec3 &boxPos, const glm::vec2 &boxSize,
+        void drawBase(Detail::WidgetState &widget,
+                      const PickingId &id,
+                      std::string_view label,
+                      bool hasSelection,
+                      const glm::vec3 &boxPos,
+                      const glm::vec2 &boxSize,
                       SceneDrawContext &context,
                       const DropdownOptions &options) {
             const auto &palette = ViewportTheme::sceneWidgetsColors;
@@ -183,7 +193,9 @@ namespace Bess::Canvas::SceneWidgets {
                 label.empty() ? std::string_view("M") : label,
                 {.fontSize = options.fontSize});
             SceneDraw::drawText(
-                context, label, {left, boxPos.y + textOffY, boxPos.z + 0.0001f},
+                context,
+                label,
+                {left, boxPos.y + textOffY, boxPos.z + 0.0001f},
                 static_cast<size_t>(options.fontSize),
                 hasSelection ? Detail::colorOr(options.textColor, palette.text)
                              : Detail::colorOr(options.mutedTextColor,
@@ -215,10 +227,12 @@ namespace Bess::Canvas::SceneWidgets {
             context.renderer->drawPath(arrow, pathProps);
         }
 
-        void drawOptions(Detail::WidgetState &widget, const PickingId &id,
+        void drawOptions(Detail::WidgetState &widget,
+                         const PickingId &id,
                          int selectedIndex,
                          const std::vector<std::string> &items,
-                         const glm::vec3 &boxPos, const glm::vec2 &boxSize,
+                         const glm::vec3 &boxPos,
+                         const glm::vec2 &boxSize,
                          SceneDrawContext &context,
                          const DropdownOptions &options) {
             if (!widget.dropdownOpen || items.empty()) {
@@ -235,7 +249,8 @@ namespace Bess::Canvas::SceneWidgets {
                 const auto optionId =
                     Detail::makeChildId(id, static_cast<uint32_t>(optionIndex));
                 auto optionState = Detail::registerWidget(
-                    context.sceneState, optionId,
+                    context.sceneState,
+                    optionId,
                     Detail::WidgetState::Type::dropdownOption);
                 if (optionState == nullptr) {
                     continue;
@@ -266,25 +281,29 @@ namespace Bess::Canvas::SceneWidgets {
                     .borderRadius = glm::vec4(0.f),
                     .borderSize = glm::vec4(0.f, 0.f, 0.5f, 0.f),
                 };
-                SceneDraw::drawQuad(context, rowCenter, rowSize, rowColor,
-                                    optionId, rowStyle);
+                SceneDraw::drawQuad(
+                    context, rowCenter, rowSize, rowColor, optionId, rowStyle);
 
                 const float left =
                     rowCenter.x - (rowSize.x * 0.5f) + options.padding.x;
                 const float textOffY = context.renderer->textCenterOffsetY(
                     items[optionIndex], {.fontSize = options.fontSize});
                 SceneDraw::drawText(
-                    context, items[optionIndex],
+                    context,
+                    items[optionIndex],
                     {left, rowCenter.y + textOffY, rowCenter.z + 0.0001f},
                     static_cast<size_t>(options.fontSize),
-                    Detail::colorOr(options.textColor, palette.text), optionId);
+                    Detail::colorOr(options.textColor, palette.text),
+                    optionId);
             }
         }
     } // namespace
 
-    DropdownResult dropdown(const PickingId &id, int *selectedIndex,
+    DropdownResult dropdown(const PickingId &id,
+                            int *selectedIndex,
                             const std::vector<std::string> &items,
-                            const glm::vec3 &boxPos, const glm::vec2 &boxSize,
+                            const glm::vec3 &boxPos,
+                            const glm::vec2 &boxSize,
                             SceneDrawContext &context,
                             const DropdownOptions &options) {
         DropdownResult result;
@@ -329,22 +348,27 @@ namespace Bess::Canvas::SceneWidgets {
                 closeDropdown(*widget);
                 result.closed = true;
             } else {
-                openDropdown(*widgetsState, *widget, id.toUint64(),
-                             safeSelection);
+                openDropdown(
+                    *widgetsState, *widget, id.toUint64(), safeSelection);
                 result.opened = true;
             }
         }
 
         if (widget->pendingDropdownSelection >= 0) {
-            result.changed |=
-                applySelection(*widget, selectedIndex,
-                               widget->pendingDropdownSelection, itemCount);
+            result.changed |= applySelection(*widget,
+                                             selectedIndex,
+                                             widget->pendingDropdownSelection,
+                                             itemCount);
             widget->pendingDropdownSelection = -1;
             result.closed = true;
         }
 
-        processVisibleOptionClicks(context.sceneState, id, *widget,
-                                   selectedIndex, itemCount, result.changed);
+        processVisibleOptionClicks(context.sceneState,
+                                   id,
+                                   *widget,
+                                   selectedIndex,
+                                   itemCount,
+                                   result.changed);
 
         const int selected = clampedSelection(*selectedIndex, itemCount);
         const bool hasSelection = selected >= 0;
@@ -352,10 +376,10 @@ namespace Bess::Canvas::SceneWidgets {
             hasSelection ? items[static_cast<size_t>(selected)]
                          : options.placeholder;
 
-        drawBase(*widget, id, label, hasSelection, boxPos, size, context,
-                 options);
-        drawOptions(*widget, id, selected, items, boxPos, size, context,
-                    options);
+        drawBase(
+            *widget, id, label, hasSelection, boxPos, size, context, options);
+        drawOptions(
+            *widget, id, selected, items, boxPos, size, context, options);
 
         result.expanded = widget->dropdownOpen;
         result.opened |= widget->dropdownOpened;

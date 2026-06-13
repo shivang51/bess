@@ -24,12 +24,14 @@ namespace Bess::Canvas {
                                public ProxySlotComponent {
       public:
         ConnJointSceneComp() = default;
-        ConnJointSceneComp(UUID connectionId, int connSegIdx,
+        ConnJointSceneComp(UUID connectionId,
+                           int connSegIdx,
                            ConnSegOrientaion segOrientation);
 
         REG_SCENE_COMP_TYPE("ConnJointSceneComp", SceneComponentType::connJoint)
         SCENE_COMP_SER(Bess::Canvas::ConnJointSceneComp,
-                       Bess::Canvas::SceneComponent, CONNJOINT_SC_SER_PROPS)
+                       Bess::Canvas::SceneComponent,
+                       CONNJOINT_SC_SER_PROPS)
 
         std::vector<std::shared_ptr<SceneComponent>>
         clone(const SceneState &sceneState) const override;
@@ -83,5 +85,6 @@ namespace Bess::Canvas {
     };
 } // namespace Bess::Canvas
 
-REG_SCENE_COMP(Bess::Canvas::ConnJointSceneComp, Bess::Canvas::SceneComponent,
+REG_SCENE_COMP(Bess::Canvas::ConnJointSceneComp,
+               Bess::Canvas::SceneComponent,
                CONNJOINT_SC_SER_PROPS)

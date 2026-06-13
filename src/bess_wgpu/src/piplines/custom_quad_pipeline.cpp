@@ -48,9 +48,11 @@ namespace Bess {
         return true;
     }
 
-    void CustomQuadPipeline::uploadInstances(
-        const wgpu::Queue &queue, const CustomQuadInstance *instances,
-        uint64_t byteSize, uint64_t bufferOffset) const {
+    void
+    CustomQuadPipeline::uploadInstances(const wgpu::Queue &queue,
+                                        const CustomQuadInstance *instances,
+                                        uint64_t byteSize,
+                                        uint64_t bufferOffset) const {
         if (m_instanceBuffer == nullptr || instances == nullptr ||
             byteSize == 0) {
             return;
@@ -126,9 +128,9 @@ namespace Bess {
         return m_bindGroup;
     }
 
-    void CustomQuadPipeline::drawInstances(
-        wgpu::RenderPassEncoder &renderPass, uint32_t firstInstance,
-        uint32_t instanceCount) const {
+    void CustomQuadPipeline::drawInstances(wgpu::RenderPassEncoder &renderPass,
+                                           uint32_t firstInstance,
+                                           uint32_t instanceCount) const {
         if (instanceCount == 0) {
             return;
         }
@@ -164,8 +166,8 @@ namespace Bess {
         if (!isAlphaOrUnderscore(value.front())) {
             return false;
         }
-        return std::all_of(value.begin() + 1, value.end(),
-                           isAlphaNumericOrUnderscore);
+        return std::all_of(
+            value.begin() + 1, value.end(), isAlphaNumericOrUnderscore);
     }
 
     std::string CustomQuadPipeline::buildCustomQuadShaderSource(

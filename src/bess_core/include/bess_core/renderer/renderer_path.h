@@ -51,7 +51,9 @@ namespace Bess::Core::Renderer {
         }
 
         [[nodiscard]] static constexpr PathCommandStroke
-        dashed(float dash, float gap, float strokeWidth = 0.f,
+        dashed(float dash,
+               float gap,
+               float strokeWidth = 0.f,
                float offset = 0.f) noexcept {
             return {.width = strokeWidth,
                     .dashLength = dash,
@@ -60,8 +62,11 @@ namespace Bess::Core::Renderer {
         }
 
         [[nodiscard]] static constexpr PathCommandStroke
-        dashedWithId(float dash, float gap, PickingId pickingId,
-                     float strokeWidth = 0.f, float offset = 0.f) noexcept {
+        dashedWithId(float dash,
+                     float gap,
+                     PickingId pickingId,
+                     float strokeWidth = 0.f,
+                     float offset = 0.f) noexcept {
             return {.width = strokeWidth,
                     .dashLength = dash,
                     .gapLength = gap,
@@ -141,7 +146,8 @@ namespace Bess::Core::Renderer {
         }
 
         [[nodiscard]] static PathCommand
-        quadTo(const glm::vec2 &control, const glm::vec2 &pos,
+        quadTo(const glm::vec2 &control,
+               const glm::vec2 &pos,
                const PathCommandStroke &stroke) noexcept {
             return {.kind = PathCommandKind::Quad,
                     .p = pos,
@@ -152,20 +158,22 @@ namespace Bess::Core::Renderer {
         [[nodiscard]] static PathCommand quadTo(const glm::vec2 &control,
                                                 const glm::vec2 &pos,
                                                 float strokeWidth) noexcept {
-            return quadTo(control, pos,
-                          PathCommandStroke::withWidth(strokeWidth));
+            return quadTo(
+                control, pos, PathCommandStroke::withWidth(strokeWidth));
         }
 
         [[nodiscard]] static PathCommand quadTo(const glm::vec2 &control,
                                                 const glm::vec2 &pos,
                                                 float strokeWidth,
                                                 PickingId id) noexcept {
-            return quadTo(control, pos,
+            return quadTo(control,
+                          pos,
                           PathCommandStroke::withWidthAndId(strokeWidth, id));
         }
 
         [[nodiscard]] static PathCommand
-        cubicTo(const glm::vec2 &control1, const glm::vec2 &control2,
+        cubicTo(const glm::vec2 &control1,
+                const glm::vec2 &control2,
                 const glm::vec2 &pos) noexcept {
             return {.kind = PathCommandKind::Cubic,
                     .p = pos,
@@ -174,7 +182,8 @@ namespace Bess::Core::Renderer {
         }
 
         [[nodiscard]] static PathCommand
-        cubicTo(const glm::vec2 &control1, const glm::vec2 &control2,
+        cubicTo(const glm::vec2 &control1,
+                const glm::vec2 &control2,
                 const glm::vec2 &pos,
                 const PathCommandStroke &stroke) noexcept {
             return {.kind = PathCommandKind::Cubic,
@@ -188,7 +197,9 @@ namespace Bess::Core::Renderer {
                                                  const glm::vec2 &control2,
                                                  const glm::vec2 &pos,
                                                  float strokeWidth) noexcept {
-            return cubicTo(control1, control2, pos,
+            return cubicTo(control1,
+                           control2,
+                           pos,
                            PathCommandStroke::withWidth(strokeWidth));
         }
 
@@ -197,7 +208,9 @@ namespace Bess::Core::Renderer {
                                                  const glm::vec2 &pos,
                                                  float strokeWidth,
                                                  PickingId id) noexcept {
-            return cubicTo(control1, control2, pos,
+            return cubicTo(control1,
+                           control2,
+                           pos,
                            PathCommandStroke::withWidthAndId(strokeWidth, id));
         }
 
@@ -273,25 +286,33 @@ namespace Bess::Core::Renderer {
 
         Path2D &quadTo(const glm::vec2 &control, const glm::vec2 &pos);
 
-        Path2D &quadTo(const glm::vec2 &control, const glm::vec2 &pos,
+        Path2D &quadTo(const glm::vec2 &control,
+                       const glm::vec2 &pos,
                        const PathCommandStroke &stroke);
 
-        Path2D &quadTo(const glm::vec2 &control, const glm::vec2 &pos,
+        Path2D &quadTo(const glm::vec2 &control,
+                       const glm::vec2 &pos,
                        float strokeWidth);
 
-        Path2D &quadTo(const glm::vec2 &control, const glm::vec2 &pos,
-                       float strokeWidth, PickingId id);
+        Path2D &quadTo(const glm::vec2 &control,
+                       const glm::vec2 &pos,
+                       float strokeWidth,
+                       PickingId id);
 
         Path2D &quadraticTo(const glm::vec2 &control, const glm::vec2 &pos);
 
-        Path2D &quadraticTo(const glm::vec2 &control, const glm::vec2 &pos,
+        Path2D &quadraticTo(const glm::vec2 &control,
+                            const glm::vec2 &pos,
                             const PathCommandStroke &stroke);
 
-        Path2D &quadraticTo(const glm::vec2 &control, const glm::vec2 &pos,
+        Path2D &quadraticTo(const glm::vec2 &control,
+                            const glm::vec2 &pos,
                             float strokeWidth);
 
-        Path2D &quadraticTo(const glm::vec2 &control, const glm::vec2 &pos,
-                            float strokeWidth, PickingId id);
+        Path2D &quadraticTo(const glm::vec2 &control,
+                            const glm::vec2 &pos,
+                            float strokeWidth,
+                            PickingId id);
 
         Path2D &quadraticBezierTo(const glm::vec2 &control,
                                   const glm::vec2 &pos);
@@ -301,53 +322,73 @@ namespace Bess::Core::Renderer {
                                   const PathCommandStroke &stroke);
 
         Path2D &quadraticBezierTo(const glm::vec2 &control,
-                                  const glm::vec2 &pos, float strokeWidth);
+                                  const glm::vec2 &pos,
+                                  float strokeWidth);
 
         Path2D &quadraticBezierTo(const glm::vec2 &control,
-                                  const glm::vec2 &pos, float strokeWidth,
+                                  const glm::vec2 &pos,
+                                  float strokeWidth,
                                   PickingId id);
 
-        Path2D &cubicTo(const glm::vec2 &control1, const glm::vec2 &control2,
+        Path2D &cubicTo(const glm::vec2 &control1,
+                        const glm::vec2 &control2,
                         const glm::vec2 &pos);
 
-        Path2D &cubicTo(const glm::vec2 &control1, const glm::vec2 &control2,
-                        const glm::vec2 &pos, const PathCommandStroke &stroke);
+        Path2D &cubicTo(const glm::vec2 &control1,
+                        const glm::vec2 &control2,
+                        const glm::vec2 &pos,
+                        const PathCommandStroke &stroke);
 
-        Path2D &cubicTo(const glm::vec2 &control1, const glm::vec2 &control2,
-                        const glm::vec2 &pos, float strokeWidth);
+        Path2D &cubicTo(const glm::vec2 &control1,
+                        const glm::vec2 &control2,
+                        const glm::vec2 &pos,
+                        float strokeWidth);
 
-        Path2D &cubicTo(const glm::vec2 &control1, const glm::vec2 &control2,
-                        const glm::vec2 &pos, float strokeWidth, PickingId id);
+        Path2D &cubicTo(const glm::vec2 &control1,
+                        const glm::vec2 &control2,
+                        const glm::vec2 &pos,
+                        float strokeWidth,
+                        PickingId id);
 
         Path2D &cubicBezierTo(const glm::vec2 &control1,
-                              const glm::vec2 &control2, const glm::vec2 &pos);
+                              const glm::vec2 &control2,
+                              const glm::vec2 &pos);
 
         Path2D &cubicBezierTo(const glm::vec2 &control1,
-                              const glm::vec2 &control2, const glm::vec2 &pos,
+                              const glm::vec2 &control2,
+                              const glm::vec2 &pos,
                               const PathCommandStroke &stroke);
 
         Path2D &cubicBezierTo(const glm::vec2 &control1,
-                              const glm::vec2 &control2, const glm::vec2 &pos,
+                              const glm::vec2 &control2,
+                              const glm::vec2 &pos,
                               float strokeWidth);
 
         Path2D &cubicBezierTo(const glm::vec2 &control1,
-                              const glm::vec2 &control2, const glm::vec2 &pos,
-                              float strokeWidth, PickingId id);
+                              const glm::vec2 &control2,
+                              const glm::vec2 &pos,
+                              float strokeWidth,
+                              PickingId id);
 
         Path2D &bezierCurveTo(const glm::vec2 &control1,
-                              const glm::vec2 &control2, const glm::vec2 &pos);
+                              const glm::vec2 &control2,
+                              const glm::vec2 &pos);
 
         Path2D &bezierCurveTo(const glm::vec2 &control1,
-                              const glm::vec2 &control2, const glm::vec2 &pos,
+                              const glm::vec2 &control2,
+                              const glm::vec2 &pos,
                               const PathCommandStroke &stroke);
 
         Path2D &bezierCurveTo(const glm::vec2 &control1,
-                              const glm::vec2 &control2, const glm::vec2 &pos,
+                              const glm::vec2 &control2,
+                              const glm::vec2 &pos,
                               float strokeWidth);
 
         Path2D &bezierCurveTo(const glm::vec2 &control1,
-                              const glm::vec2 &control2, const glm::vec2 &pos,
-                              float strokeWidth, PickingId id);
+                              const glm::vec2 &control2,
+                              const glm::vec2 &pos,
+                              float strokeWidth,
+                              PickingId id);
 
         Path2D &closePath();
 

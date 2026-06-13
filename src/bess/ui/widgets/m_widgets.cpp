@@ -13,24 +13,29 @@ namespace Bess::UI::Widgets {
         return 0;
     }
 
-    bool TextBox(const std::string &label, std::string &value,
+    bool TextBox(const std::string &label,
+                 std::string &value,
                  const std::string &hintText) {
         ImGui::AlignTextToFramePadding();
         if (!label.empty() && label[0] != '#' && label[1] != '#') {
             ImGui::Text("%s", label.c_str());
             ImGui::SameLine();
         }
-        if (ImGui::InputTextWithHint(("##Tb" + label).c_str(), hintText.c_str(),
-                                     value.data(), value.capacity() + 1,
+        if (ImGui::InputTextWithHint(("##Tb" + label).c_str(),
+                                     hintText.c_str(),
+                                     value.data(),
+                                     value.capacity() + 1,
                                      ImGuiInputTextFlags_CallbackResize,
-                                     InputTextCallback, (void *)&value)) {
+                                     InputTextCallback,
+                                     (void *)&value)) {
             return true;
         }
 
         return false;
     }
 
-    bool TextBoxMultiline(const std::string &label, std::string &value,
+    bool TextBoxMultiline(const std::string &label,
+                          std::string &value,
                           const glm::vec2 &size) {
         ImGui::AlignTextToFramePadding();
         if (!label.empty() && label[0] != '#' && label[1] != '#') {
@@ -38,18 +43,23 @@ namespace Bess::UI::Widgets {
             ImGui::SameLine();
         }
 
-        const bool changed = ImGui::InputTextMultiline(
-            ("##Tbm" + label).c_str(), value.data(), value.capacity() + 1,
-            ImVec2(size.x, size.y),
-            ImGuiInputTextFlags_CallbackResize |
-                ImGuiInputTextFlags_AllowTabInput,
-            InputTextCallback, (void *)&value);
+        const bool changed =
+            ImGui::InputTextMultiline(("##Tbm" + label).c_str(),
+                                      value.data(),
+                                      value.capacity() + 1,
+                                      ImVec2(size.x, size.y),
+                                      ImGuiInputTextFlags_CallbackResize |
+                                          ImGuiInputTextFlags_AllowTabInput,
+                                      InputTextCallback,
+                                      (void *)&value);
 
         return changed;
     }
 
-    bool CheckboxWithLabel(const char *label, bool *value,
-                           bool expandToFullWidth, bool alignToFramePadding) {
+    bool CheckboxWithLabel(const char *label,
+                           bool *value,
+                           bool expandToFullWidth,
+                           bool alignToFramePadding) {
         if (alignToFramePadding)
             ImGui::AlignTextToFramePadding();
 
@@ -80,8 +90,11 @@ namespace Bess::UI::Widgets {
         return changed;
     }
 
-    bool TreeNode(int key, const std::string &name, ImGuiTreeNodeFlags flags,
-                  const std::string &icon, glm::vec4 iconColor) {
+    bool TreeNode(int key,
+                  const std::string &name,
+                  ImGuiTreeNodeFlags flags,
+                  const std::string &icon,
+                  glm::vec4 iconColor) {
         const ImGuiContext &g = *ImGui::GetCurrentContext();
         ImGuiWindow *window = g.CurrentWindow;
 
@@ -90,8 +103,9 @@ namespace Bess::UI::Widgets {
         ImGui::PushID(id);
         ImVec2 pos = window->DC.CursorPos;
         const ImRect bb(
-            pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x,
-                        pos.y + g.FontSize + (g.Style.FramePadding.y * 2)));
+            pos,
+            ImVec2(pos.x + ImGui::GetContentRegionAvail().x,
+                   pos.y + g.FontSize + (g.Style.FramePadding.y * 2)));
         const bool opened =
             window->DC.StateStorage->GetInt(
                 id, (flags & ImGuiTreeNodeFlags_DefaultOpen) ? 1 : 0) != 0;
@@ -100,12 +114,13 @@ namespace Bess::UI::Widgets {
         const auto style = ImGui::GetStyle();
         const auto rounding = style.FrameRounding;
 
-        if (ImGui::ButtonBehavior(bb, id, &hovered, &held,
-                                  ImGuiButtonFlags_PressedOnClick))
+        if (ImGui::ButtonBehavior(
+                bb, id, &hovered, &held, ImGuiButtonFlags_PressedOnClick))
             window->DC.StateStorage->SetInt(id, opened ? 0 : 1);
         if (hovered || held)
             window->DrawList->AddRectFilled(
-                bb.Min, bb.Max,
+                bb.Min,
+                bb.Max,
                 ImGui::GetColorU32(held ? ImGuiCol_ButtonActive
                                         : ImGuiCol_ButtonHovered),
                 rounding);
@@ -161,7 +176,8 @@ namespace Bess::UI::Widgets {
         return opened;
     }
 
-    bool ButtonWithPopup(const std::string &label, const std::string &popupName,
+    bool ButtonWithPopup(const std::string &label,
+                         const std::string &popupName,
                          const bool showMenuButton) {
         const ImGuiContext &g = *ImGui::GetCurrentContext();
         ImGuiWindow *window = g.CurrentWindow;
@@ -171,8 +187,9 @@ namespace Bess::UI::Widgets {
         const float btnContainerWidth = ImGui::GetContentRegionAvail().x;
 
         const ImRect bb(
-            pos, ImVec2(pos.x + btnContainerWidth,
-                        pos.y + g.FontSize + (g.Style.FramePadding.y * 2)));
+            pos,
+            ImVec2(pos.x + btnContainerWidth,
+                   pos.y + g.FontSize + (g.Style.FramePadding.y * 2)));
 
         const float menuBtnSizeY =
             showMenuButton ? g.FontSize + (g.Style.FramePadding.y * 1.5f) : 0;
@@ -183,8 +200,9 @@ namespace Bess::UI::Widgets {
                 : btnContainerWidth; // extend to the end if no menu button
 
         const ImRect bbButton(
-            pos, ImVec2(pos.x + menuBtnX,
-                        pos.y + g.FontSize + (g.Style.FramePadding.y * 2)));
+            pos,
+            ImVec2(pos.x + menuBtnX,
+                   pos.y + g.FontSize + (g.Style.FramePadding.y * 2)));
 
         const ImRect bbMenuButton(
             ImVec2(pos.x + menuBtnX, pos.y + (g.Style.FramePadding.y * 0.5f)),
@@ -201,9 +219,12 @@ namespace Bess::UI::Widgets {
 
         if (showMenuButton) {
             const ImGuiID menuID = window->GetID((label + "##menu").c_str());
-            menuClicked = ImGui::ButtonBehavior(
-                bbMenuButton, menuID, &menuHovered, &menuHeld,
-                ImGuiButtonFlags_PressedOnClick);
+            menuClicked =
+                ImGui::ButtonBehavior(bbMenuButton,
+                                      menuID,
+                                      &menuHovered,
+                                      &menuHeld,
+                                      ImGuiButtonFlags_PressedOnClick);
         }
 
         auto bgColor = ImGui::GetColorU32(ImGuiCol_Button);
@@ -225,8 +246,8 @@ namespace Bess::UI::Widgets {
         if (showMenuButton && (hovered || menuHovered)) {
             if (menuHovered)
                 bgColor = ImGui::GetColorU32(ImGuiCol_TabActive);
-            window->DrawList->AddRectFilled(bbMenuButton.Min, bbMenuButton.Max,
-                                            bgColor, rounding);
+            window->DrawList->AddRectFilled(
+                bbMenuButton.Min, bbMenuButton.Max, bgColor, rounding);
             const float x = bbMenuButton.Min.x +
                             ((bbMenuButton.Max.x - bbMenuButton.Min.x) / 2.f) -
                             3.f;
@@ -239,11 +260,14 @@ namespace Bess::UI::Widgets {
         return clicked;
     }
 
-    std::pair<bool, bool>
-    EditableTreeNode(uint64_t key, std::string &name, const bool selected,
-                     ImGuiTreeNodeFlags treeFlags, const std::string &icon,
-                     glm::vec4 iconColor, const std::string &popupName,
-                     uint64_t payloadId) {
+    std::pair<bool, bool> EditableTreeNode(uint64_t key,
+                                           std::string &name,
+                                           const bool selected,
+                                           ImGuiTreeNodeFlags treeFlags,
+                                           const std::string &icon,
+                                           glm::vec4 iconColor,
+                                           const std::string &popupName,
+                                           uint64_t payloadId) {
 
         ImGuiContext &g = *ImGui::GetCurrentContext();
         ImGuiWindow *window = g.CurrentWindow;
@@ -261,7 +285,9 @@ namespace Bess::UI::Widgets {
             ImVec2 bgStart(window->Pos.x, pos.y);
             ImVec2 bgEnd(window->Pos.x + window->Size.x, pos.y + rowHeight);
             drawList->AddRectFilled(
-                bgStart, bgEnd, (ImColor)g.Style.Colors[ImGuiCol_TableRowBgAlt],
+                bgStart,
+                bgEnd,
+                (ImColor)g.Style.Colors[ImGuiCol_TableRowBgAlt],
                 0);
         }
 
@@ -317,8 +343,8 @@ namespace Bess::UI::Widgets {
                                 ImVec2(rowBB.Min.x + toggleWidth, rowBB.Max.y));
         bool toggleHovered = false, toggleHeld = false;
 
-        if (ImGui::ButtonBehavior(toggleRect, toggleId, &toggleHovered,
-                                  &toggleHeld)) {
+        if (ImGui::ButtonBehavior(
+                toggleRect, toggleId, &toggleHovered, &toggleHeld)) {
             opened = !opened;
             st->SetInt(openId, opened ? 1 : 0);
         }
@@ -339,8 +365,8 @@ namespace Bess::UI::Widgets {
             if (iconColor.x >= 0)
                 ImGui::PushStyleColor(
                     ImGuiCol_Text,
-                    ImGui::GetColorU32(ImVec4(iconColor.x, iconColor.y,
-                                              iconColor.z, iconColor.w)));
+                    ImGui::GetColorU32(ImVec4(
+                        iconColor.x, iconColor.y, iconColor.z, iconColor.w)));
             ImGui::RenderText(
                 ImVec2(toggleRect.Max.x, rowBB.Min.y + g.Style.FramePadding.y),
                 icon.c_str());
@@ -418,9 +444,13 @@ namespace Bess::UI::Widgets {
                 char *buf = editBuf->data();
                 ImGui::SetCursorPosY(ImGui::GetCursorPosY() -
                                      g.Style.FramePadding.y);
-                bool accepted = ImGui::InputText(
-                    "##edit", buf, (size_t)editBuf->capacity() + 1, flags,
-                    InputTextCallback, (void *)editBuf);
+                bool accepted =
+                    ImGui::InputText("##edit",
+                                     buf,
+                                     (size_t)editBuf->capacity() + 1,
+                                     flags,
+                                     InputTextCallback,
+                                     (void *)editBuf);
 
                 bool commit = false;
                 bool cancel = false;
@@ -466,7 +496,10 @@ namespace Bess::UI::Widgets {
             bool rowHeld = false;
             bool rowPressed = false;
             rowPressed =
-                ImGui::ButtonBehavior(rowBB, nodeId, &rowHovered, &rowHeld,
+                ImGui::ButtonBehavior(rowBB,
+                                      nodeId,
+                                      &rowHovered,
+                                      &rowHeld,
                                       ImGuiButtonFlags_PressedOnClick |
                                           ImGuiButtonFlags_AllowOverlap);
 
@@ -500,10 +533,12 @@ namespace Bess::UI::Widgets {
         return {opened, clicked};
     }
 
-    void SelectableText(const std::string &id, const std::string &text,
+    void SelectableText(const std::string &id,
+                        const std::string &text,
                         const glm::vec2 &size) {
         ImGui::InputTextMultiline(std::format("##{}", id).c_str(),
-                                  (char *)text.data(), text.size() + 1,
+                                  (char *)text.data(),
+                                  text.size() + 1,
                                   ImVec2(size.x, size.y),
                                   ImGuiInputTextFlags_ReadOnly);
     }

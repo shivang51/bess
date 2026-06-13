@@ -68,7 +68,8 @@ namespace Bess {
 
         void onKeyEvent(KeyCode key, KeyAction action);
         void onTextInputEvent(char32_t codepoint);
-        void onMouseButtonEvent(MouseButton button, MouseButtonAction action,
+        void onMouseButtonEvent(MouseButton button,
+                                MouseButtonAction action,
                                 const glm::vec2 &pos);
         void onMouseMoveEvent(const glm::vec2 &pos);
         void onMouseWheelEvent(const glm::vec2 &offset);

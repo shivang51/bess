@@ -41,9 +41,12 @@ namespace {
         return Bess::PickingId::fromUint64(id);
     }
 
-    void drawRendererQuad(IRenderer2D &renderer, const glm::vec3 &pos,
-                          const glm::vec2 &size, const glm::vec4 &color,
-                          uint64_t id, float angle = 0.f) {
+    void drawRendererQuad(IRenderer2D &renderer,
+                          const glm::vec3 &pos,
+                          const glm::vec2 &size,
+                          const glm::vec4 &color,
+                          uint64_t id,
+                          float angle = 0.f) {
 
         QuadProps quad;
         quad.position = {pos.x, pos.y};
@@ -55,8 +58,10 @@ namespace {
         renderer.drawQuad(quad);
     }
 
-    void drawRendererTexturedQuad(IRenderer2D &renderer, const glm::vec3 &pos,
-                                  const glm::vec2 &size, const glm::vec4 &tint,
+    void drawRendererTexturedQuad(IRenderer2D &renderer,
+                                  const glm::vec3 &pos,
+                                  const glm::vec2 &size,
+                                  const glm::vec4 &tint,
                                   uint64_t id,
                                   const std::shared_ptr<WgpuTexture> &texture,
                                   float angle = 0.f) {
@@ -75,10 +80,14 @@ namespace {
         renderer.drawQuad(quad);
     }
 
-    void drawRendererSubTexturedQuad(
-        IRenderer2D &renderer, const glm::vec3 &pos, const glm::vec2 &size,
-        const glm::vec4 &tint, uint64_t id,
-        const std::shared_ptr<PySubTexture> &subTexture, float angle = 0.f) {
+    void
+    drawRendererSubTexturedQuad(IRenderer2D &renderer,
+                                const glm::vec3 &pos,
+                                const glm::vec2 &size,
+                                const glm::vec4 &tint,
+                                uint64_t id,
+                                const std::shared_ptr<PySubTexture> &subTexture,
+                                float angle = 0.f) {
         if (!subTexture || !subTexture->texture) {
             return;
         }
@@ -103,7 +112,8 @@ namespace {
             .def_readwrite("g", &Color::g)
             .def_readwrite("b", &Color::b)
             .def_readwrite("a", &Color::a)
-            .def_static("from_hex", &Color::fromHex,
+            .def_static("from_hex",
+                        &Color::fromHex,
                         "Create a Color from a hex value (e.g., 0xRRGGBBAA)");
     }
 } // namespace
@@ -115,7 +125,8 @@ void bind_renderer(py::module_ &m) {
 
     const auto createSubTexture = [](std::shared_ptr<WgpuTexture> texture,
                                      const glm::vec2 &coord,
-                                     const glm::vec2 &spriteSize, float margin,
+                                     const glm::vec2 &spriteSize,
+                                     float margin,
                                      const glm::vec2 &cellSize) {
         py::gil_scoped_acquire gil;
         auto st = std::make_shared<PySubTexture>();
@@ -129,52 +140,92 @@ void bind_renderer(py::module_ &m) {
     };
 
     py::class_<PySubTexture, py::smart_holder>(m, "SubTexture")
-        .def_static("create", createSubTexture,
+        .def_static("create",
+                    createSubTexture,
                     "Create a SubTexture from a Texture (WGPU) with margin "
                     "and cell size",
-                    py::arg("texture"), py::arg("coord"),
-                    py::arg("sprite_size"), py::arg("margin"),
+                    py::arg("texture"),
+                    py::arg("coord"),
+                    py::arg("sprite_size"),
+                    py::arg("margin"),
                     py::arg("cell_size"))
-        .def_property_readonly("size", &PySubTexture::getScale,
-                               "Get the size of the SubTexture");
+        .def_property_readonly(
+            "size", &PySubTexture::getScale, "Get the size of the SubTexture");
 
     py::class_<Bess::Core::Renderer::IRenderer2D,
                std::shared_ptr<Bess::Core::Renderer::IRenderer2D>>(
         m, "IRenderer2D")
         .def(
             "get_text_render_size",
-            [](IRenderer2D &renderer, const std::string &text,
+            [](IRenderer2D &renderer,
+               const std::string &text,
                float renderSize) {
                 FontProps props;
                 props.fontSize = renderSize;
                 return renderer.measureText(text, props);
             },
-            py::arg("text"), py::arg("render_size"))
+            py::arg("text"),
+            py::arg("render_size"))
         .def(
             "draw_quad",
-            [](IRenderer2D &renderer, const glm::vec3 &pos,
-               const glm::vec2 &size, const glm::vec4 &color, uint64_t id) {
+            [](IRenderer2D &renderer,
+               const glm::vec3 &pos,
+               const glm::vec2 &size,
+               const glm::vec4 &color,
+               uint64_t id) {
                 drawRendererQuad(renderer, pos, size, color, id, {});
             },
-            py::arg("pos"), py::arg("size"), py::arg("color"), py::arg("id"))
-        .def("draw_quad", &drawRendererQuad, py::arg("pos"), py::arg("size"),
-             py::arg("color"), py::arg("id"), py::arg("props"))
-        .def("draw_quad", &drawRendererSubTexturedQuad, py::arg("pos"),
-             py::arg("size"), py::arg("tint"), py::arg("id"),
-             py::arg("sub_texture"), py::arg("props"))
-        .def("draw_textured_quad", &drawRendererTexturedQuad, py::arg("pos"),
-             py::arg("size"), py::arg("tint"), py::arg("id"),
-             py::arg("texture"), py::arg("props"))
-        .def("draw_sub_textured_quad", &drawRendererSubTexturedQuad,
-             py::arg("pos"), py::arg("size"), py::arg("tint"), py::arg("id"),
-             py::arg("sub_texture"), py::arg("props"))
-        .def("draw_subtextured_quad", &drawRendererSubTexturedQuad,
-             py::arg("pos"), py::arg("size"), py::arg("tint"), py::arg("id"),
-             py::arg("sub_texture"), py::arg("props"))
+            py::arg("pos"),
+            py::arg("size"),
+            py::arg("color"),
+            py::arg("id"))
+        .def("draw_quad",
+             &drawRendererQuad,
+             py::arg("pos"),
+             py::arg("size"),
+             py::arg("color"),
+             py::arg("id"),
+             py::arg("props"))
+        .def("draw_quad",
+             &drawRendererSubTexturedQuad,
+             py::arg("pos"),
+             py::arg("size"),
+             py::arg("tint"),
+             py::arg("id"),
+             py::arg("sub_texture"),
+             py::arg("props"))
+        .def("draw_textured_quad",
+             &drawRendererTexturedQuad,
+             py::arg("pos"),
+             py::arg("size"),
+             py::arg("tint"),
+             py::arg("id"),
+             py::arg("texture"),
+             py::arg("props"))
+        .def("draw_sub_textured_quad",
+             &drawRendererSubTexturedQuad,
+             py::arg("pos"),
+             py::arg("size"),
+             py::arg("tint"),
+             py::arg("id"),
+             py::arg("sub_texture"),
+             py::arg("props"))
+        .def("draw_subtextured_quad",
+             &drawRendererSubTexturedQuad,
+             py::arg("pos"),
+             py::arg("size"),
+             py::arg("tint"),
+             py::arg("id"),
+             py::arg("sub_texture"),
+             py::arg("props"))
         .def(
             "draw_circle",
-            [](IRenderer2D &renderer, const glm::vec3 &center, float radius,
-               const glm::vec4 &color, uint64_t id, float innerRadius) {
+            [](IRenderer2D &renderer,
+               const glm::vec3 &center,
+               float radius,
+               const glm::vec4 &color,
+               uint64_t id,
+               float innerRadius) {
                 CircleProps props;
                 props.position = {center.x, center.y};
                 props.radius = radius;
@@ -186,12 +237,18 @@ void bind_renderer(py::module_ &m) {
                 props.id = toPickingId(id);
                 renderer.drawCircle(props);
             },
-            py::arg("center"), py::arg("radius"), py::arg("color"),
-            py::arg("id"), py::arg("inner_radius") = 0.0f)
+            py::arg("center"),
+            py::arg("radius"),
+            py::arg("color"),
+            py::arg("id"),
+            py::arg("inner_radius") = 0.0f)
         .def(
             "draw_line",
-            [](IRenderer2D &renderer, const glm::vec3 &start,
-               const glm::vec3 &end, float thickness, const glm::vec4 &color,
+            [](IRenderer2D &renderer,
+               const glm::vec3 &start,
+               const glm::vec3 &end,
+               float thickness,
+               const glm::vec4 &color,
                uint64_t id) {
                 LineProps props;
                 props.p0 = {start.x, start.y};
@@ -202,13 +259,20 @@ void bind_renderer(py::module_ &m) {
                 props.id = toPickingId(id);
                 renderer.drawLine(props);
             },
-            py::arg("start"), py::arg("end"), py::arg("thickness"),
-            py::arg("color"), py::arg("id"))
+            py::arg("start"),
+            py::arg("end"),
+            py::arg("thickness"),
+            py::arg("color"),
+            py::arg("id"))
         .def(
             "draw_text",
-            [](IRenderer2D &renderer, const std::string &text,
-               const glm::vec3 &pos, size_t size, const glm::vec4 &color,
-               uint64_t id, float angle) {
+            [](IRenderer2D &renderer,
+               const std::string &text,
+               const glm::vec3 &pos,
+               size_t size,
+               const glm::vec4 &color,
+               uint64_t id,
+               float angle) {
                 (void)angle;
                 FontProps props;
                 props.position = {pos.x, pos.y};
@@ -218,13 +282,23 @@ void bind_renderer(py::module_ &m) {
                 props.id = toPickingId(id);
                 renderer.drawFont(text, props);
             },
-            py::arg("text"), py::arg("position"), py::arg("size"),
-            py::arg("color"), py::arg("id"), py::arg("angle") = 0.0f)
+            py::arg("text"),
+            py::arg("position"),
+            py::arg("size"),
+            py::arg("color"),
+            py::arg("id"),
+            py::arg("angle") = 0.0f)
         .def(
             "begin_path",
-            [](IRenderer2D &renderer, const glm::vec3 &startPos, float weight,
-               const glm::vec4 &color, uint64_t id, bool closePath,
-               bool renderFill, const glm::vec4 &fillColor, bool renderStroke,
+            [](IRenderer2D &renderer,
+               const glm::vec3 &startPos,
+               float weight,
+               const glm::vec4 &color,
+               uint64_t id,
+               bool closePath,
+               bool renderFill,
+               const glm::vec4 &fillColor,
+               bool renderStroke,
                bool roundedJoints) {
                 PathProps props;
                 props.strokeColor =
@@ -240,48 +314,70 @@ void bind_renderer(py::module_ &m) {
                 renderer.beginPath(props);
                 renderer.pathMoveTo({startPos.x, startPos.y});
             },
-            py::arg("start_pos"), py::arg("weight"), py::arg("color"),
-            py::arg("id"), py::arg("close_path") = false,
+            py::arg("start_pos"),
+            py::arg("weight"),
+            py::arg("color"),
+            py::arg("id"),
+            py::arg("close_path") = false,
             py::arg("render_fill") = false,
             py::arg("fill_color") = glm::vec4(1.f),
-            py::arg("render_stroke") = true, py::arg("rounded_joints") = false)
+            py::arg("render_stroke") = true,
+            py::arg("rounded_joints") = false)
         .def(
             "path_line_to",
             [](IRenderer2D &renderer, const glm::vec3 &pos, float weight) {
                 renderer.pathLineTo({pos.x, pos.y},
                                     PathCommandStroke::withWidth(weight));
             },
-            py::arg("pos"), py::arg("weight"))
+            py::arg("pos"),
+            py::arg("weight"))
         .def(
             "path_line_to_with_id",
-            [](IRenderer2D &renderer, const glm::vec3 &pos, float weight,
+            [](IRenderer2D &renderer,
+               const glm::vec3 &pos,
+               float weight,
                uint64_t id) {
                 renderer.pathLineTo(
                     {pos.x, pos.y},
                     PathCommandStroke::withWidthAndId(weight, toPickingId(id)));
             },
-            py::arg("pos"), py::arg("weight"), py::arg("id"))
+            py::arg("pos"),
+            py::arg("weight"),
+            py::arg("id"))
         .def(
             "path_cubic_to",
-            [](IRenderer2D &renderer, const glm::vec3 &end,
-               const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2,
+            [](IRenderer2D &renderer,
+               const glm::vec3 &end,
+               const glm::vec2 &controlPoint1,
+               const glm::vec2 &controlPoint2,
                float weight) {
-                renderer.pathCubicTo(controlPoint1, controlPoint2,
+                renderer.pathCubicTo(controlPoint1,
+                                     controlPoint2,
                                      {end.x, end.y},
                                      PathCommandStroke::withWidth(weight));
             },
-            py::arg("end"), py::arg("control_point_1"),
-            py::arg("control_point_2"), py::arg("weight"))
+            py::arg("end"),
+            py::arg("control_point_1"),
+            py::arg("control_point_2"),
+            py::arg("weight"))
         .def(
             "path_cubic_to_with_id",
-            [](IRenderer2D &renderer, const glm::vec3 &end,
-               const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2,
-               float weight, uint64_t id) {
+            [](IRenderer2D &renderer,
+               const glm::vec3 &end,
+               const glm::vec2 &controlPoint1,
+               const glm::vec2 &controlPoint2,
+               float weight,
+               uint64_t id) {
                 renderer.pathCubicTo(
-                    controlPoint1, controlPoint2, {end.x, end.y},
+                    controlPoint1,
+                    controlPoint2,
+                    {end.x, end.y},
                     PathCommandStroke::withWidthAndId(weight, toPickingId(id)));
             },
-            py::arg("end"), py::arg("control_point_1"),
-            py::arg("control_point_2"), py::arg("weight"), py::arg("id"))
+            py::arg("end"),
+            py::arg("control_point_1"),
+            py::arg("control_point_2"),
+            py::arg("weight"),
+            py::arg("id"))
         .def("end_path", &IRenderer2D::endPath);
 }

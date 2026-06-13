@@ -79,7 +79,8 @@ namespace Bess::Plugins {
 
                 m_plugins[name] = std::make_shared<PluginHandle>(pluginHwd);
 
-                BESS_INFO("Successfully loaded plugin: {} from {}", name,
+                BESS_INFO("Successfully loaded plugin: {} from {}",
+                          name,
                           path.parent_path().string());
 
                 return true;
@@ -117,13 +118,15 @@ namespace Bess::Plugins {
                 }
             }
 
-            BESS_INFO("Loaded {} plugins from directory: {}", loadedCount,
+            BESS_INFO("Loaded {} plugins from directory: {}",
+                      loadedCount,
                       pluginsDir);
             return loadedCount > 0;
 
         } catch (const std::exception &e) {
             BESS_ERROR("Failed to load plugins from directory {}: {}",
-                       pluginsDir, e.what());
+                       pluginsDir,
+                       e.what());
             return false;
         }
     }

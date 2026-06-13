@@ -38,8 +38,13 @@ namespace Bess::Core::Renderer {
     }
 
     // Convers Arc to Cubics ---
-    void arcToCubics(Path2D &path, glm::vec2 cur, glm::vec2 rxry, float phi_deg,
-                     bool large_arc, bool sweep, glm::vec2 end) {
+    void arcToCubics(Path2D &path,
+                     glm::vec2 cur,
+                     glm::vec2 rxry,
+                     float phi_deg,
+                     bool large_arc,
+                     bool sweep,
+                     glm::vec2 end) {
         if (rxry.x == 0 || rxry.y == 0) {
             path.lineTo(end);
             return;
@@ -335,8 +340,13 @@ namespace Bess::Core::Renderer {
                 if (!absolute)
                     e += cur;
 
-                arcToCubics(path, cur, glm::vec2(rx, ry), rot, laf != 0.0f,
-                            sf != 0.0f, e);
+                arcToCubics(path,
+                            cur,
+                            glm::vec2(rx, ry),
+                            rot,
+                            laf != 0.0f,
+                            sf != 0.0f,
+                            e);
 
                 // After an arc, the spec isn't strictly clear on "previous
                 // control point" for subsequent smooth curves, usually assumed
@@ -426,7 +436,8 @@ namespace Bess::Core::Renderer {
         }
 
         BESS_ASSERT(size.x > 0 && size.y > 0.f,
-                    "Invalid size ({}, {}) for normalizing path.", scaleSize.x,
+                    "Invalid size ({}, {}) for normalizing path.",
+                    scaleSize.x,
                     scaleSize.y);
 
         scale(1.f / scaleSize);
@@ -503,8 +514,8 @@ namespace Bess::Core::Renderer {
         return lineTo(pos, PathCommandStroke::withWidth(strokeWidth));
     }
 
-    Path2D &Path2D::lineTo(const glm::vec2 &pos, float strokeWidth,
-                           PickingId id) {
+    Path2D &
+    Path2D::lineTo(const glm::vec2 &pos, float strokeWidth, PickingId id) {
         return lineTo(pos, PathCommandStroke::withWidthAndId(strokeWidth, id));
     }
 
@@ -512,20 +523,24 @@ namespace Bess::Core::Renderer {
         return addCommand(PathCommand::quadTo(control, pos));
     }
 
-    Path2D &Path2D::quadTo(const glm::vec2 &control, const glm::vec2 &pos,
+    Path2D &Path2D::quadTo(const glm::vec2 &control,
+                           const glm::vec2 &pos,
                            const PathCommandStroke &stroke) {
         return addCommand(PathCommand::quadTo(control, pos, stroke));
     }
 
-    Path2D &Path2D::quadTo(const glm::vec2 &control, const glm::vec2 &pos,
+    Path2D &Path2D::quadTo(const glm::vec2 &control,
+                           const glm::vec2 &pos,
                            float strokeWidth) {
         return quadTo(control, pos, PathCommandStroke::withWidth(strokeWidth));
     }
 
-    Path2D &Path2D::quadTo(const glm::vec2 &control, const glm::vec2 &pos,
-                           float strokeWidth, PickingId id) {
-        return quadTo(control, pos,
-                      PathCommandStroke::withWidthAndId(strokeWidth, id));
+    Path2D &Path2D::quadTo(const glm::vec2 &control,
+                           const glm::vec2 &pos,
+                           float strokeWidth,
+                           PickingId id) {
+        return quadTo(
+            control, pos, PathCommandStroke::withWidthAndId(strokeWidth, id));
     }
 
     Path2D &Path2D::quadraticTo(const glm::vec2 &control,
@@ -533,18 +548,22 @@ namespace Bess::Core::Renderer {
         return quadTo(control, pos);
     }
 
-    Path2D &Path2D::quadraticTo(const glm::vec2 &control, const glm::vec2 &pos,
+    Path2D &Path2D::quadraticTo(const glm::vec2 &control,
+                                const glm::vec2 &pos,
                                 const PathCommandStroke &stroke) {
         return quadTo(control, pos, stroke);
     }
 
-    Path2D &Path2D::quadraticTo(const glm::vec2 &control, const glm::vec2 &pos,
+    Path2D &Path2D::quadraticTo(const glm::vec2 &control,
+                                const glm::vec2 &pos,
                                 float strokeWidth) {
         return quadTo(control, pos, strokeWidth);
     }
 
-    Path2D &Path2D::quadraticTo(const glm::vec2 &control, const glm::vec2 &pos,
-                                float strokeWidth, PickingId id) {
+    Path2D &Path2D::quadraticTo(const glm::vec2 &control,
+                                const glm::vec2 &pos,
+                                float strokeWidth,
+                                PickingId id) {
         return quadTo(control, pos, strokeWidth, id);
     }
 
@@ -560,39 +579,48 @@ namespace Bess::Core::Renderer {
     }
 
     Path2D &Path2D::quadraticBezierTo(const glm::vec2 &control,
-                                      const glm::vec2 &pos, float strokeWidth) {
+                                      const glm::vec2 &pos,
+                                      float strokeWidth) {
         return quadTo(control, pos, strokeWidth);
     }
 
     Path2D &Path2D::quadraticBezierTo(const glm::vec2 &control,
-                                      const glm::vec2 &pos, float strokeWidth,
+                                      const glm::vec2 &pos,
+                                      float strokeWidth,
                                       PickingId id) {
         return quadTo(control, pos, strokeWidth, id);
     }
 
     Path2D &Path2D::cubicTo(const glm::vec2 &control1,
-                            const glm::vec2 &control2, const glm::vec2 &pos) {
+                            const glm::vec2 &control2,
+                            const glm::vec2 &pos) {
         return addCommand(PathCommand::cubicTo(control1, control2, pos));
     }
 
     Path2D &Path2D::cubicTo(const glm::vec2 &control1,
-                            const glm::vec2 &control2, const glm::vec2 &pos,
+                            const glm::vec2 &control2,
+                            const glm::vec2 &pos,
                             const PathCommandStroke &stroke) {
         return addCommand(
             PathCommand::cubicTo(control1, control2, pos, stroke));
     }
 
     Path2D &Path2D::cubicTo(const glm::vec2 &control1,
-                            const glm::vec2 &control2, const glm::vec2 &pos,
+                            const glm::vec2 &control2,
+                            const glm::vec2 &pos,
                             float strokeWidth) {
-        return cubicTo(control1, control2, pos,
-                       PathCommandStroke::withWidth(strokeWidth));
+        return cubicTo(
+            control1, control2, pos, PathCommandStroke::withWidth(strokeWidth));
     }
 
     Path2D &Path2D::cubicTo(const glm::vec2 &control1,
-                            const glm::vec2 &control2, const glm::vec2 &pos,
-                            float strokeWidth, PickingId id) {
-        return cubicTo(control1, control2, pos,
+                            const glm::vec2 &control2,
+                            const glm::vec2 &pos,
+                            float strokeWidth,
+                            PickingId id) {
+        return cubicTo(control1,
+                       control2,
+                       pos,
                        PathCommandStroke::withWidthAndId(strokeWidth, id));
     }
 
@@ -611,13 +639,15 @@ namespace Bess::Core::Renderer {
 
     Path2D &Path2D::cubicBezierTo(const glm::vec2 &control1,
                                   const glm::vec2 &control2,
-                                  const glm::vec2 &pos, float strokeWidth) {
+                                  const glm::vec2 &pos,
+                                  float strokeWidth) {
         return cubicTo(control1, control2, pos, strokeWidth);
     }
 
     Path2D &Path2D::cubicBezierTo(const glm::vec2 &control1,
                                   const glm::vec2 &control2,
-                                  const glm::vec2 &pos, float strokeWidth,
+                                  const glm::vec2 &pos,
+                                  float strokeWidth,
                                   PickingId id) {
         return cubicTo(control1, control2, pos, strokeWidth, id);
     }
@@ -637,13 +667,15 @@ namespace Bess::Core::Renderer {
 
     Path2D &Path2D::bezierCurveTo(const glm::vec2 &control1,
                                   const glm::vec2 &control2,
-                                  const glm::vec2 &pos, float strokeWidth) {
+                                  const glm::vec2 &pos,
+                                  float strokeWidth) {
         return cubicTo(control1, control2, pos, strokeWidth);
     }
 
     Path2D &Path2D::bezierCurveTo(const glm::vec2 &control1,
                                   const glm::vec2 &control2,
-                                  const glm::vec2 &pos, float strokeWidth,
+                                  const glm::vec2 &pos,
+                                  float strokeWidth,
                                   PickingId id) {
         return cubicTo(control1, control2, pos, strokeWidth, id);
     }

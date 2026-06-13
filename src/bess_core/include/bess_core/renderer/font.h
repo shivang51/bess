@@ -21,8 +21,8 @@ namespace Bess::Core::Renderer {
 
         [[nodiscard]] bool isValid() const noexcept;
 
-        bool init(float fontSize, char32_t glyphMin = 0,
-                  char32_t glyphMax = 128);
+        bool
+        init(float fontSize, char32_t glyphMin = 0, char32_t glyphMax = 128);
         void clearCache();
 
         [[nodiscard]] Glyph &getGlyph(char32_t ch);

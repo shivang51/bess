@@ -22,7 +22,8 @@ namespace Bess::Core::Renderer {
     }
 
     TextureReadbackResult IRenderer2D::readTexture(TextureHandle texture,
-                                                   uint32_t x, uint32_t y,
+                                                   uint32_t x,
+                                                   uint32_t y,
                                                    uint32_t width,
                                                    uint32_t height) {
         return readTexture({.texture = texture,
@@ -32,14 +33,15 @@ namespace Bess::Core::Renderer {
                             .height = height});
     }
 
-    PickingId IRenderer2D::readPickingId(TextureHandle texture, uint32_t x,
-                                         uint32_t y) {
+    PickingId
+    IRenderer2D::readPickingId(TextureHandle texture, uint32_t x, uint32_t y) {
         const auto ids = readPickingIds(texture, x, y, 1, 1);
         return ids.empty() ? PickingId::invalid() : ids.front();
     }
 
     std::vector<PickingId> IRenderer2D::readPickingIds(TextureHandle texture,
-                                                       uint32_t x, uint32_t y,
+                                                       uint32_t x,
+                                                       uint32_t y,
                                                        uint32_t width,
                                                        uint32_t height) {
         const auto readback = readTexture(texture, x, y, width, height);
@@ -64,7 +66,8 @@ namespace Bess::Core::Renderer {
         const auto *src = readback.pixels.data();
         for (size_t i = 0; i < pixelCount; ++i) {
             PickingId id{};
-            std::memcpy(&id.runtimeId, src + (i * readback.bytesPerPixel),
+            std::memcpy(&id.runtimeId,
+                        src + (i * readback.bytesPerPixel),
                         sizeof(uint32_t));
             std::memcpy(&id.info,
                         src + (i * readback.bytesPerPixel) + sizeof(uint32_t),
@@ -74,7 +77,8 @@ namespace Bess::Core::Renderer {
         return ids;
     }
 
-    void IRenderer2D::requestPickingId(TextureHandle texture, uint32_t x,
+    void IRenderer2D::requestPickingId(TextureHandle texture,
+                                       uint32_t x,
                                        uint32_t y) {
         requestPickingIds(
             {.texture = texture, .x = x, .y = y, .width = 1, .height = 1});

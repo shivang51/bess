@@ -6,18 +6,9 @@
 
 namespace Bess::Core::Renderer {
 
-    enum class ShaderLanguage : uint8_t {
-        WGSL,
-        GLSL,
-        SPIRV,
-        BackendNative
-    };
+    enum class ShaderLanguage : uint8_t { WGSL, GLSL, SPIRV, BackendNative };
 
-    enum class ShaderStage : uint8_t {
-        Vertex,
-        Fragment,
-        Compute
-    };
+    enum class ShaderStage : uint8_t { Vertex, Fragment, Compute };
 
     struct ShaderModuleDesc {
         ShaderLanguage language = ShaderLanguage::BackendNative;

@@ -80,7 +80,8 @@ class PyComponentDefinition : public ComponentDefinition,
 
     SimTime getRescheduleTime(SimTime currentTime) const override {
         PYBIND11_OVERRIDE_NAME(
-            Bess::TimeNs, ComponentDefinition,
+            Bess::TimeNs,
+            ComponentDefinition,
             "get_reschedule_time", // very important to match the Python name
             getRescheduleTime,
             currentTime // in nano seconds
@@ -89,8 +90,12 @@ class PyComponentDefinition : public ComponentDefinition,
 
     void onStateChange(const ComponentState &oldState,
                        const ComponentState &newState) override {
-        PYBIND11_OVERRIDE_NAME(void, ComponentDefinition, "on_state_change",
-                               onStateChange, oldState, newState);
+        PYBIND11_OVERRIDE_NAME(void,
+                               ComponentDefinition,
+                               "on_state_change",
+                               onStateChange,
+                               oldState,
+                               newState);
     }
 };
 
@@ -127,10 +132,12 @@ void bind_sim_engine_component_definition(py::module_ &m) {
         return py::none();
     };
 
-    auto from_sim_fn =
-        [](const std::string &name, const std::string &group_name,
-           const SlotsGroupInfo &inputs, const SlotsGroupInfo &outputs,
-           SimDelayNanoSeconds sim_delay, const py::function &sim_function)
+    auto from_sim_fn = [](const std::string &name,
+                          const std::string &group_name,
+                          const SlotsGroupInfo &inputs,
+                          const SlotsGroupInfo &outputs,
+                          SimDelayNanoSeconds sim_delay,
+                          const py::function &sim_function)
         -> std::shared_ptr<ComponentDefinition> {
         py::gil_scoped_acquire gil;
         auto comp_def = std::make_shared<PyComponentDefinition>();
@@ -145,8 +152,10 @@ void bind_sim_engine_component_definition(py::module_ &m) {
     };
 
     auto from_operator_info =
-        [](const std::string &name, const std::string &group_name,
-           const SlotsGroupInfo &inputs, const SlotsGroupInfo &outputs,
+        [](const std::string &name,
+           const std::string &group_name,
+           const SlotsGroupInfo &inputs,
+           const SlotsGroupInfo &outputs,
            SimDelayNanoSeconds sim_delay,
            OperatorInfo info) -> std::shared_ptr<ComponentDefinition> {
         py::gil_scoped_acquire gil;
@@ -162,8 +171,10 @@ void bind_sim_engine_component_definition(py::module_ &m) {
     };
 
     auto from_output_expressions =
-        [](const std::string &name, const std::string &group_name,
-           const SlotsGroupInfo &inputs, const SlotsGroupInfo &outputs,
+        [](const std::string &name,
+           const std::string &group_name,
+           const SlotsGroupInfo &inputs,
+           const SlotsGroupInfo &outputs,
            SimDelayNanoSeconds sim_delay,
            const std::vector<std::string> &output_expressions)
         -> std::shared_ptr<ComponentDefinition> {
@@ -185,12 +196,15 @@ void bind_sim_engine_component_definition(py::module_ &m) {
         .def("get_hash", &ComponentDefinition::getHash)
         .def("clone", &ComponentDefinition::clone)
         .def("compute_hash", &ComponentDefinition::computeHash)
-        .def("get_reschedule_time", &ComponentDefinition::getRescheduleTime,
+        .def("get_reschedule_time",
+             &ComponentDefinition::getRescheduleTime,
              py::arg("current_time_ns"),
              "Get the next reschedule time given the current time in "
              "nanoseconds.")
-        .def("on_state_change", &ComponentDefinition::onStateChange,
-             py::arg("old_state"), py::arg("new_state"),
+        .def("on_state_change",
+             &ComponentDefinition::onStateChange,
+             py::arg("old_state"),
+             py::arg("new_state"),
              "Callback invoked when the component's state changes.")
         .DEF_PROP_STR_GSET("name", Name)
         .DEF_PROP_STR_GSET("group_name", GroupName)
@@ -200,27 +214,41 @@ void bind_sim_engine_component_definition(py::module_ &m) {
         .DEF_PROP_GSET_T(SlotsGroupInfo, "output_slots_info", OutputSlotsInfo)
         .DEF_PROP_GSET_T(SimDelayNanoSeconds, "sim_delay", SimDelay)
         .DEF_PROP_GSET_T(OperatorInfo, "op_info", OpInfo)
-        .DEF_PROP_GSET_T(CompDefIOGrowthPolicy, "io_growth_policy",
-                         IOGrowthPolicy)
-        .DEF_PROP_GSET_T(std::vector<std::string>, "output_expressions",
-                         OutputExpressions)
-        .def_property("aux_data", getAuxData, setAuxData,
+        .DEF_PROP_GSET_T(
+            CompDefIOGrowthPolicy, "io_growth_policy", IOGrowthPolicy)
+        .DEF_PROP_GSET_T(
+            std::vector<std::string>, "output_expressions", OutputExpressions)
+        .def_property("aux_data",
+                      getAuxData,
+                      setAuxData,
                       "Get Set Aux Data as a Python object.")
-        .DEF_PROP_GSET_T(SimulationFunction, "simulation_function",
-                         SimulationFunction)
-        .def_static("from_expressions", from_output_expressions,
-                    py::arg("name"), py::arg("group_name"), py::arg("inputs"),
-                    py::arg("outputs"), py::arg("sim_delay"),
+        .DEF_PROP_GSET_T(
+            SimulationFunction, "simulation_function", SimulationFunction)
+        .def_static("from_expressions",
+                    from_output_expressions,
+                    py::arg("name"),
+                    py::arg("group_name"),
+                    py::arg("inputs"),
+                    py::arg("outputs"),
+                    py::arg("sim_delay"),
                     py::arg("expressions"),
                     "Create a ComponentDefinition from output expressions.")
-        .def_static("from_operator", from_operator_info, py::arg("name"),
-                    py::arg("group_name"), py::arg("inputs"),
-                    py::arg("outputs"), py::arg("sim_delay"),
+        .def_static("from_operator",
+                    from_operator_info,
+                    py::arg("name"),
+                    py::arg("group_name"),
+                    py::arg("inputs"),
+                    py::arg("outputs"),
+                    py::arg("sim_delay"),
                     py::arg("op_info"),
                     "Create a ComponentDefinition from operator info.")
-        .def_static("from_sim_fn", from_sim_fn, py::arg("name"),
-                    py::arg("group_name"), py::arg("inputs"),
-                    py::arg("outputs"), py::arg("sim_delay"),
+        .def_static("from_sim_fn",
+                    from_sim_fn,
+                    py::arg("name"),
+                    py::arg("group_name"),
+                    py::arg("inputs"),
+                    py::arg("outputs"),
+                    py::arg("sim_delay"),
                     py::arg("sim_function"),
                     "Create a ComponentDefinition from a simulation function.");
 }

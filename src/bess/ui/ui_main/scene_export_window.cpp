@@ -45,27 +45,39 @@ namespace Bess::UI {
                     const float startY = std::floor(min.y / spacing) * spacing;
 
                     for (float x = startX; x <= max.x; x += spacing) {
-                        Canvas::SceneDraw::drawLine(context, {x, min.y, gridZ},
+                        Canvas::SceneDraw::drawLine(context,
+                                                    {x, min.y, gridZ},
                                                     {x, max.y, gridZ},
-                                                    thickness, color, id);
+                                                    thickness,
+                                                    color,
+                                                    id);
                     }
 
                     for (float y = startY; y <= max.y; y += spacing) {
-                        Canvas::SceneDraw::drawLine(context, {min.x, y, gridZ},
+                        Canvas::SceneDraw::drawLine(context,
+                                                    {min.x, y, gridZ},
                                                     {max.x, y, gridZ},
-                                                    thickness, color, id);
+                                                    thickness,
+                                                    color,
+                                                    id);
                     }
                 };
 
             drawGridLines(10.f, ViewportTheme::colors.gridMinorColor, 1.f);
             drawGridLines(100.f, ViewportTheme::colors.gridMajorColor, 2.f);
 
-            Canvas::SceneDraw::drawLine(
-                context, {0.f, min.y, gridZ}, {0.f, max.y, gridZ}, 2.f,
-                ViewportTheme::colors.gridAxisYColor, id);
-            Canvas::SceneDraw::drawLine(
-                context, {min.x, 0.f, gridZ}, {max.x, 0.f, gridZ}, 2.f,
-                ViewportTheme::colors.gridAxisXColor, id);
+            Canvas::SceneDraw::drawLine(context,
+                                        {0.f, min.y, gridZ},
+                                        {0.f, max.y, gridZ},
+                                        2.f,
+                                        ViewportTheme::colors.gridAxisYColor,
+                                        id);
+            Canvas::SceneDraw::drawLine(context,
+                                        {min.x, 0.f, gridZ},
+                                        {max.x, 0.f, gridZ},
+                                        2.f,
+                                        ViewportTheme::colors.gridAxisXColor,
+                                        id);
         }
 
         void drawExportComponents(SceneDrawContext &context) {
@@ -171,9 +183,10 @@ namespace Bess::UI {
         refreshSelectedScene();
         const auto selectedScene = getSelectedScene();
 
-        if (ImGui::BeginCombo(
-                "Scene", selectedScene ? getSceneLabel(selectedScene).c_str()
-                                       : "No Scene")) {
+        if (ImGui::BeginCombo("Scene",
+                              selectedScene
+                                  ? getSceneLabel(selectedScene).c_str()
+                                  : "No Scene")) {
             auto sceneDriver = GAppContext::getInstance()
                                    .getSubSystem<Bess::ProjectContext>()
                                    ->getSubSystem<SceneDriver>();
@@ -189,8 +202,8 @@ namespace Bess::UI {
                 if (ImGui::Selectable(label.c_str(), isSelected)) {
                     m_selectedSceneId = scene->getSceneId();
                     sceneBounds = computeSceneBounds(scene);
-                    imgSize = getSceneExportInfo(scene, sceneBounds,
-                                                 static_cast<float>(zoom))
+                    imgSize = getSceneExportInfo(
+                                  scene, sceneBounds, static_cast<float>(zoom))
                                   .imgSize;
                 }
                 if (isSelected) {
@@ -223,14 +236,15 @@ namespace Bess::UI {
         ImGui::Spacing();
         if (ImGui::SliderInt("Scale", &zoom, 1, 4)) {
             if (selectedScene) {
-                imgSize = getSceneExportInfo(selectedScene, sceneBounds,
+                imgSize = getSceneExportInfo(selectedScene,
+                                             sceneBounds,
                                              static_cast<float>(zoom))
                               .imgSize;
             }
         }
 
-        ImGui::TextDisabled("Image Size %lux%lu px.", (uint64_t)imgSize.x,
-                            (uint64_t)imgSize.y);
+        ImGui::TextDisabled(
+            "Image Size %lux%lu px.", (uint64_t)imgSize.x, (uint64_t)imgSize.y);
 
         ImGui::Spacing();
         ImGui::Spacing();
@@ -241,8 +255,8 @@ namespace Bess::UI {
                 return;
             }
 
-            auto info = getSceneExportInfo(selectedScene, sceneBounds,
-                                           static_cast<float>(zoom));
+            auto info = getSceneExportInfo(
+                selectedScene, sceneBounds, static_cast<float>(zoom));
             info.path = exportPath;
             info.path /= fileName + ".png";
             exportScene(selectedScene, info);
@@ -260,9 +274,9 @@ namespace Bess::UI {
         const std::chrono::zoned_time localTime{std::chrono::current_zone(),
                                                 now};
 
-        fileName =
-            std::format("{}_{:%Y-%m-%d_%H:%M:%S}",
-                        mainPage.getCurrentProjectFile()->getName(), localTime);
+        fileName = std::format("{}_{:%Y-%m-%d_%H:%M:%S}",
+                               mainPage.getCurrentProjectFile()->getName(),
+                               localTime);
 
         refreshSelectedScene();
         if (const auto scene = getSelectedScene()) {
@@ -371,10 +385,12 @@ namespace Bess::UI {
     }
 
     SceneExportInfo SceneExportWindow::getSceneExportInfo(
-        const std::shared_ptr<Canvas::Scene> &scene, const SceneBounds &bounds,
+        const std::shared_ptr<Canvas::Scene> &scene,
+        const SceneBounds &bounds,
         float zoom) {
-        BESS_ASSERT(scene, "[SceneExportWindow] Scene must be valid while "
-                           "preparing export info");
+        BESS_ASSERT(scene,
+                    "[SceneExportWindow] Scene must be valid while "
+                    "preparing export info");
 
         auto size = scene->getSize();
         std::shared_ptr<Camera> camera =
@@ -425,9 +441,13 @@ namespace Bess::UI {
         const int finalHeight = info.imgSize.y;
 
         BESS_INFO("[ExportSceneView] Snaps = {}, {} with size per snap {}, {}",
-                  snaps.x, snaps.y, size.x, size.y);
+                  snaps.x,
+                  snaps.y,
+                  size.x,
+                  size.y);
         BESS_INFO("[ExportSceneView] Generating image of size {}x{}",
-                  finalWidth, finalHeight);
+                  finalWidth,
+                  finalHeight);
 
         const auto &path = info.path;
         std::ofstream imgFile = std::ofstream(path, std::ios::binary);
@@ -458,8 +478,10 @@ namespace Bess::UI {
         }
 
         png_set_write_fn(
-            pngPtr, &imgFile,
-            [](const png_structp png_ptr, const png_bytep data,
+            pngPtr,
+            &imgFile,
+            [](const png_structp png_ptr,
+               const png_bytep data,
                const png_size_t length) {
                 auto &stream =
                     *static_cast<std::ostream *>(png_get_io_ptr(png_ptr));
@@ -471,9 +493,15 @@ namespace Bess::UI {
                 stream.flush();
             });
 
-        png_set_IHDR(pngPtr, pngInfoPtr, finalWidth, finalHeight, 8,
-                     PNG_COLOR_TYPE_RGBA, PNG_INTERLACE_NONE,
-                     PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
+        png_set_IHDR(pngPtr,
+                     pngInfoPtr,
+                     finalWidth,
+                     finalHeight,
+                     8,
+                     PNG_COLOR_TYPE_RGBA,
+                     PNG_INTERLACE_NONE,
+                     PNG_COMPRESSION_TYPE_DEFAULT,
+                     PNG_FILTER_TYPE_DEFAULT);
 
         png_write_info(pngPtr, pngInfoPtr);
 
@@ -510,11 +538,13 @@ namespace Bess::UI {
             snapsData.reserve(snaps.x);
             for (int j = 0; j < snaps.x; j++) {
                 camera->setPos(pos);
-                renderSceneToTexture(scene, renderer, renderTarget,
-                                     pickingTarget, camera);
+                renderSceneToTexture(
+                    scene, renderer, renderTarget, pickingTarget, camera);
 
                 auto snapPixels =
-                    renderer->readTexture(renderTarget->getHandle(), 0, 0,
+                    renderer->readTexture(renderTarget->getHandle(),
+                                          0,
+                                          0,
                                           static_cast<uint32_t>(size.x),
                                           static_cast<uint32_t>(size.y));
                 convertReadbackToRgba(snapPixels);

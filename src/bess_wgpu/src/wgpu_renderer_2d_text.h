@@ -60,8 +60,7 @@ namespace Bess::Wgpu::Renderer2DDetail {
                 offset = start + 1;
                 return kReplacementCodepoint;
             }
-            codepoint =
-                (codepoint << 6) | (static_cast<uint32_t>(byte) & 0x3F);
+            codepoint = (codepoint << 6) | (static_cast<uint32_t>(byte) & 0x3F);
         }
 
         if (codepoint < minCodepoint || codepoint > 0x10FFFF ||
@@ -74,9 +73,10 @@ namespace Bess::Wgpu::Renderer2DDetail {
         return codepoint;
     }
 
-    inline Core::Renderer::PathCommand transformTextCommand(
-        const Core::Renderer::PathCommand &command, const glm::vec2 &origin,
-        float scale) {
+    inline Core::Renderer::PathCommand
+    transformTextCommand(const Core::Renderer::PathCommand &command,
+                         const glm::vec2 &origin,
+                         float scale) {
         using Core::Renderer::PathCommandKind;
 
         Core::Renderer::PathCommand transformed = command;
@@ -104,9 +104,9 @@ namespace Bess::Wgpu::Renderer2DDetail {
         return transformed;
     }
 
-    inline glm::vec2 measurePathText(
-        std::string_view text, const Core::Renderer::FontProps &props,
-        Core::Renderer::FontFile &font) {
+    inline glm::vec2 measurePathText(std::string_view text,
+                                     const Core::Renderer::FontProps &props,
+                                     Core::Renderer::FontFile &font) {
         if (text.empty() || props.fontSize <= 0.f || font.getSize() <= 0.f) {
             return {0.f, 0.f};
         }
@@ -148,9 +148,8 @@ namespace Bess::Wgpu::Renderer2DDetail {
             }
 
             if (codepoint == '\t') {
-                lineAdvance +=
-                    (spaceAdvance * std::max(props.tabSize, 1.f)) +
-                    props.letterSpacing;
+                lineAdvance += (spaceAdvance * std::max(props.tabSize, 1.f)) +
+                               props.letterSpacing;
                 continue;
             }
 
@@ -219,13 +218,11 @@ namespace Bess::Wgpu::Renderer2DDetail {
             }
 
             inkTop = std::min(inkTop, baselineY + (bounds.min.y * scale));
-            inkBottom =
-                std::max(inkBottom, baselineY + (bounds.max.y * scale));
+            inkBottom = std::max(inkBottom, baselineY + (bounds.max.y * scale));
             hasInk = true;
         }
 
-        return hasInk ? -((inkTop + inkBottom) * 0.5f)
-                      : props.fontSize * 0.35f;
+        return hasInk ? -((inkTop + inkBottom) * 0.5f) : props.fontSize * 0.35f;
     }
 
 } // namespace Bess::Wgpu::Renderer2DDetail

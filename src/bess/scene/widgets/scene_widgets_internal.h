@@ -1,8 +1,8 @@
 #pragma once
 
-#include "scene/widgets/scene_widgets.h"
 #include "scene/scene_event.h"
 #include "scene/scene_state/scene_state.h"
+#include "scene/widgets/scene_widgets.h"
 #include <cstdint>
 #include <glm.hpp>
 #include <optional>
@@ -87,7 +87,8 @@ namespace Bess::Canvas::SceneWidgets::Detail {
     WidgetState *getWidgetState(const SceneState *sceneState,
                                 const PickingId &id);
 
-    WidgetState *registerWidget(SceneState *sceneState, const PickingId &id,
+    WidgetState *registerWidget(SceneState *sceneState,
+                                const PickingId &id,
                                 WidgetState::Type type);
     bool consumeClick(SceneState *sceneState, const PickingId &id);
 
@@ -105,7 +106,8 @@ namespace Bess::Canvas::SceneWidgets::Detail {
     bool handleTextInputCodepoint(WidgetState &state, char32_t codepoint);
     bool handleSliderKey(WidgetState &state, const SceneEvent &evt);
     bool handleDropdownKey(SceneWidgetsState &widgetsState,
-                           WidgetState &state, const SceneEvent &evt);
+                           WidgetState &state,
+                           const SceneEvent &evt);
     PickingId makeChildId(const PickingId &parentId, uint32_t childIndex);
     void ensureDropdownHighlightVisible(WidgetState &state);
 } // namespace Bess::Canvas::SceneWidgets::Detail

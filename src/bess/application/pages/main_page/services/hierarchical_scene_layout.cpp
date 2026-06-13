@@ -624,7 +624,8 @@ namespace Bess::Pages {
     } // namespace
 
     HierarchicalSceneLayoutResult applyHierarchicalSceneLayout(
-        Canvas::Scene &scene, SimEngine::SimulationEngine &simEngine,
+        Canvas::Scene &scene,
+        SimEngine::SimulationEngine &simEngine,
         const HierarchicalSceneLayoutOptions &options) {
         HierarchicalSceneLayoutResult result;
 

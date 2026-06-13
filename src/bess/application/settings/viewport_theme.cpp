@@ -9,8 +9,7 @@ namespace Bess {
 
     namespace {
         glm::vec4 toVec4(const ImVec4 &color, float alpha = -1.f) {
-            return {color.x, color.y, color.z,
-                    alpha >= 0.f ? alpha : color.w};
+            return {color.x, color.y, color.z, alpha >= 0.f ? alpha : color.w};
         }
 
         glm::vec4 withAlpha(glm::vec4 color, float alpha) {
@@ -34,8 +33,8 @@ namespace Bess {
         const ImVec4 *imguiColors = style.Colors;
 
         const ImVec4 windowBg = imguiColors[ImGuiCol_WindowBg];
-        colors.background = glm::vec4(windowBg.x * 0.85f, windowBg.y * 0.85f,
-                                      windowBg.z * 0.85f, 1.0f);
+        colors.background = glm::vec4(
+            windowBg.x * 0.85f, windowBg.y * 0.85f, windowBg.z * 0.85f, 1.0f);
 
         const ImVec4 frameBg = imguiColors[ImGuiCol_FrameBg];
         colors.componentBG = glm::vec4(frameBg.x, frameBg.y, frameBg.z, 0.95f);
@@ -72,10 +71,12 @@ namespace Bess {
             // subtle additive grid (uses very faint lines)
             float gridAlpha = 0.2f;
 
-            colors.gridMinorColor = glm::vec4(base.r + 0.04f, base.g + 0.04f,
-                                              base.b + 0.04f, gridAlpha);
-            colors.gridMajorColor = glm::vec4(base.r + 0.08f, base.g + 0.08f,
-                                              base.b + 0.08f, gridAlpha * 2.0f);
+            colors.gridMinorColor = glm::vec4(
+                base.r + 0.04f, base.g + 0.04f, base.b + 0.04f, gridAlpha);
+            colors.gridMajorColor = glm::vec4(base.r + 0.08f,
+                                              base.g + 0.08f,
+                                              base.b + 0.08f,
+                                              gridAlpha * 2.0f);
 
             // axis colors standard RG
             colors.gridAxisXColor =
@@ -93,13 +94,10 @@ namespace Bess {
             toVec4(imguiColors[ImGuiCol_FrameBgHovered], 0.98f);
         const glm::vec4 frameActive =
             toVec4(imguiColors[ImGuiCol_FrameBgActive], 1.0f);
-        const glm::vec4 popup =
-            toVec4(imguiColors[ImGuiCol_PopupBg], 0.99f);
-        const glm::vec4 border =
-            toVec4(imguiColors[ImGuiCol_Border], 0.82f);
+        const glm::vec4 popup = toVec4(imguiColors[ImGuiCol_PopupBg], 0.99f);
+        const glm::vec4 border = toVec4(imguiColors[ImGuiCol_Border], 0.82f);
         const glm::vec4 text = toVec4(imguiColors[ImGuiCol_Text]);
-        const glm::vec4 textMuted =
-            toVec4(imguiColors[ImGuiCol_TextDisabled]);
+        const glm::vec4 textMuted = toVec4(imguiColors[ImGuiCol_TextDisabled]);
         const glm::vec4 checkMark =
             toVec4(imguiColors[ImGuiCol_CheckMark], 1.0f);
         const glm::vec4 sliderGrab =
@@ -126,8 +124,7 @@ namespace Bess {
             withAlpha(mixColor(sliderGrabActive, checkMark, 0.20f), 1.0f);
         sceneWidgetsColors.track =
             withAlpha(mixColor(frame, border, 0.55f), 0.95f);
-        sceneWidgetsColors.knob =
-            withAlpha(mixColor(text, frame, 0.20f), 1.0f);
+        sceneWidgetsColors.knob = withAlpha(mixColor(text, frame, 0.20f), 1.0f);
     }
 
     glm::vec4 ViewportTheme::getCompHeaderColor(const std::string &group) {

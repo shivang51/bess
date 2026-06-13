@@ -17,7 +17,8 @@
 #include <memory>
 
 namespace Bess::Canvas {
-    ConnJointSceneComp::ConnJointSceneComp(UUID connectionId, int connSegIdx,
+    ConnJointSceneComp::ConnJointSceneComp(UUID connectionId,
+                                           int connSegIdx,
                                            ConnSegOrientaion segOrientation)
         : m_connSegIdx(connSegIdx),
           m_connectionId(connectionId),
@@ -30,8 +31,9 @@ namespace Bess::Canvas {
     std::vector<std::shared_ptr<SceneComponent>>
     ConnJointSceneComp::clone(const SceneState &sceneState) const {
         (void)sceneState;
-        BESS_ASSERT(false, "Cloning ConnJointSceneComp is supported through "
-                           "cloneConnJoin function");
+        BESS_ASSERT(false,
+                    "Cloning ConnJointSceneComp is supported through "
+                    "cloneConnJoin function");
     }
 
     std::vector<std::shared_ptr<SceneComponent>>
@@ -77,8 +79,8 @@ namespace Bess::Canvas {
 
             auto clonedConn = conn->cloneConn(sceneState, ogToClonedIdMap);
 
-            clonedComps.insert(clonedComps.end(), clonedConn.begin(),
-                               clonedConn.end());
+            clonedComps.insert(
+                clonedComps.end(), clonedConn.begin(), clonedConn.end());
             clone->m_connections.push_back(clonedConn.front()->getUuid());
         }
 
@@ -120,8 +122,10 @@ namespace Bess::Canvas {
         }
 
         const auto pickingId = PickingId{m_runtimeId, 0};
-        SceneDraw::drawQuad(context, getAbsolutePosition(state),
-                            glm::vec2{sideLength, sideLength}, color,
+        SceneDraw::drawQuad(context,
+                            getAbsolutePosition(state),
+                            glm::vec2{sideLength, sideLength},
+                            color,
                             pickingId,
                             {
                                 .angle = 45,
@@ -148,9 +152,11 @@ namespace Bess::Canvas {
         }
 
         const auto &state = *context.sceneState;
-        SceneDraw::drawCircle(context, getAbsolutePosition(state),
+        SceneDraw::drawCircle(context,
+                              getAbsolutePosition(state),
                               Styles::compSchematicStyles.connJointRadius,
-                              color, pickingId);
+                              color,
+                              pickingId);
     }
 
     void ConnJointSceneComp::onMouseEnter(const Events::MouseEnterEvent &e) {
@@ -304,7 +310,8 @@ namespace Bess::Canvas {
             std::make_unique<Cmd::AddCompCmd<ConnectionSceneComponent>>(conn));
 
         BESS_INFO("[Scene] Created connection {} between slots {} and {}",
-                  (uint64_t)conn->getUuid(), (uint64_t)startSlot->getUuid(),
+                  (uint64_t)conn->getUuid(),
+                  (uint64_t)startSlot->getUuid(),
                   (uint64_t)endComp->getUuid());
 
         return true;
@@ -345,7 +352,8 @@ namespace Bess::Canvas {
                 state.getComponentByUuid<ConnectionSceneComponent>(connId);
             BESS_ASSERT(connComp,
                         "[ConnJointDeps] connComp not found {} in joint {}",
-                        (uint64_t)connId, (uint64_t)m_uuid);
+                        (uint64_t)connId,
+                        (uint64_t)m_uuid);
             if (!connComp)
                 continue;
             const auto &ids = connComp->getDependants(state);

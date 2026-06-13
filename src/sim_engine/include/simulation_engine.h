@@ -44,20 +44,31 @@ namespace Bess::SimEngine {
             return nullptr;
         }
 
-        bool connectComponent(const UUID &src, int srcSlotIdx, SlotType srcType,
-                              const UUID &dst, int dstSlotIdx, SlotType dstType,
+        bool connectComponent(const UUID &src,
+                              int srcSlotIdx,
+                              SlotType srcType,
+                              const UUID &dst,
+                              int dstSlotIdx,
+                              SlotType dstType,
                               bool overrideConn = false);
 
         // returns {canConnect, errorMessage}
         std::pair<bool, std::string>
-        canConnectComponents(const UUID &src, int srcSlotIdx, SlotType srcType,
-                             const UUID &dst, int dstSlotIdx,
+        canConnectComponents(const UUID &src,
+                             int srcSlotIdx,
+                             SlotType srcType,
+                             const UUID &dst,
+                             int dstSlotIdx,
                              SlotType dstType) const;
 
         void deleteComponent(const UUID &uuid);
 
-        void deleteConnection(const UUID &compA, SlotType pinAType, int idxA,
-                              const UUID &compB, SlotType pinBType, int idxB);
+        void deleteConnection(const UUID &compA,
+                              SlotType pinAType,
+                              int idxA,
+                              const UUID &compB,
+                              SlotType pinBType,
+                              int idxB);
 
         SlotState getDigitalSlotState(const UUID &uuid, SlotType type, int idx);
 
@@ -81,9 +92,13 @@ namespace Bess::SimEngine {
 
         void clear();
 
-        bool addSlot(const UUID &compId, SlotType type, int index,
+        bool addSlot(const UUID &compId,
+                     SlotType type,
+                     int index,
                      bool force = false);
-        bool removeSlot(const UUID &compId, SlotType type, int index,
+        bool removeSlot(const UUID &compId,
+                        SlotType type,
+                        int index,
                         bool force = false);
 
         friend class SimEngineSerializer;

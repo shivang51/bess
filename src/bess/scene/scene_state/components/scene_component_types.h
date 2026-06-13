@@ -42,7 +42,11 @@ namespace Bess::Canvas {
 
 REFLECT(Bess::Canvas::Transform, position, scale, angle);
 
-REFLECT(Bess::Canvas::Style, color, borderColor, borderSize, borderRadius,
+REFLECT(Bess::Canvas::Style,
+        color,
+        borderColor,
+        borderSize,
+        borderRadius,
         headerColor);
 
 REFLECT_ENUM(Bess::Canvas::ConnSegOrientaion);

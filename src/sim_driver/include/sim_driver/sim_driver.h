@@ -134,38 +134,50 @@ namespace Bess::SimEngine::Drivers {
 
         // Connection management
         virtual std::pair<bool, std::string>
-        canConnectComponents(const UUID &src, int srcSlotIdx, SlotType srcType,
-                             const UUID &dst, int dstSlotIdx,
+        canConnectComponents(const UUID &src,
+                             int srcSlotIdx,
+                             SlotType srcType,
+                             const UUID &dst,
+                             int dstSlotIdx,
                              SlotType dstType) const = 0;
 
-        virtual bool connectComponent(const UUID &src, int srcSlotIdx,
-                                      SlotType srcType, const UUID &dst,
-                                      int dstSlotIdx, SlotType dstType,
+        virtual bool connectComponent(const UUID &src,
+                                      int srcSlotIdx,
+                                      SlotType srcType,
+                                      const UUID &dst,
+                                      int dstSlotIdx,
+                                      SlotType dstType,
                                       bool overrideConn) = 0;
 
-        virtual void deleteConnection(const UUID &compA, SlotType pinAType,
-                                      int idxA, const UUID &compB,
-                                      SlotType pinBType, int idxB) = 0;
+        virtual void deleteConnection(const UUID &compA,
+                                      SlotType pinAType,
+                                      int idxA,
+                                      const UUID &compB,
+                                      SlotType pinBType,
+                                      int idxB) = 0;
 
-        virtual SlotsCountChangeRes addSlot(const UUID &compId, SlotType type,
-                                            int index, bool force = false) = 0;
+        virtual SlotsCountChangeRes addSlot(const UUID &compId,
+                                            SlotType type,
+                                            int index,
+                                            bool force = false) = 0;
 
         virtual SlotsCountChangeRes removeSlot(const UUID &compId,
-                                               SlotType type, int index,
+                                               SlotType type,
+                                               int index,
                                                bool force = false) = 0;
 
         virtual ConnectionBundle getConnections(const UUID &uuid) const;
 
         virtual std::vector<SlotState> getInputSlotsState(const UUID &compId);
 
-        virtual SlotState getSlotState(const UUID &uuid, SlotType type,
-                                       int idx) const;
+        virtual SlotState
+        getSlotState(const UUID &uuid, SlotType type, int idx) const;
 
-        virtual bool setInputSlotState(const UUID &uuid, int pinIdx,
-                                       LogicState state);
+        virtual bool
+        setInputSlotState(const UUID &uuid, int pinIdx, LogicState state);
 
-        virtual bool setOutputSlotState(const UUID &uuid, int pinIdx,
-                                        LogicState state);
+        virtual bool
+        setOutputSlotState(const UUID &uuid, int pinIdx, LogicState state);
 
         virtual ComponentState getComponentState(const UUID &uuid) const;
 
@@ -204,14 +216,17 @@ namespace Bess::SimEngine::Drivers {
 
         virtual void onDestroy() {};
 
-        void triggerSlotCountChangeCbs(const UUID &compId, SlotType type,
+        void triggerSlotCountChangeCbs(const UUID &compId,
+                                       SlotType type,
                                        int newCount);
 
       public:
         typedef std::shared_ptr<SimComponent> SimComponentPtr;
         typedef std::unordered_map<UUID, SimComponentPtr> ComponentsMap;
 
-        MAKE_GETTER_SETTER_MT(ComponentsMap, ComponentsMap, m_components,
+        MAKE_GETTER_SETTER_MT(ComponentsMap,
+                              ComponentsMap,
+                              m_components,
                               m_compMapMutex)
 
         MAKE_GETTER_SETTER_MT(SimDriverState, State, m_state, m_stateMutex)

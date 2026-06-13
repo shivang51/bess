@@ -41,7 +41,8 @@ namespace Bess::Pages {
         void syncSceneComponentSlots(
             Canvas::SceneState &sceneState,
             const std::shared_ptr<Canvas::SimulationSceneComponent> &comp,
-            const SimEngine::SlotsGroupInfo &slotsInfo, bool isInput) {
+            const SimEngine::SlotsGroupInfo &slotsInfo,
+            bool isInput) {
             if (!comp) {
                 return;
             }
@@ -86,8 +87,8 @@ namespace Bess::Pages {
                 auto newSlot = std::make_shared<Canvas::SlotSceneComponent>();
                 newSlot->setSlotType(slotType);
                 sceneState.addComponent<Canvas::SlotSceneComponent>(newSlot);
-                sceneState.attachChild(comp->getUuid(), newSlot->getUuid(),
-                                       false);
+                sceneState.attachChild(
+                    comp->getUuid(), newSlot->getUuid(), false);
                 realSlots.push_back(newSlot->getUuid());
             }
 
@@ -99,8 +100,8 @@ namespace Bess::Pages {
                     resizeSlot->setIndex(-1);
                     sceneState.addComponent<Canvas::SlotSceneComponent>(
                         resizeSlot);
-                    sceneState.attachChild(comp->getUuid(),
-                                           resizeSlot->getUuid(), false);
+                    sceneState.attachChild(
+                        comp->getUuid(), resizeSlot->getUuid(), false);
                     resizeSlotId = resizeSlot->getUuid();
                 }
             } else if (resizeSlotId != UUID::null) {
@@ -265,7 +266,8 @@ namespace Bess::Pages {
             }
             BESS_ERROR("[MainPageState] Failed to import Verilog files "
                        "(primary {}): {}",
-                       primaryImportPath(paths), ex.what());
+                       primaryImportPath(paths),
+                       ex.what());
             return false;
         }
     }
@@ -350,8 +352,8 @@ namespace Bess::Pages {
                     throw std::runtime_error(
                         "No staged result available for scene population");
                 }
-                populateSceneFromVerilogImportResult(res.value(), simEngine,
-                                                     *scene);
+                populateSceneFromVerilogImportResult(
+                    res.value(), simEngine, *scene);
                 session.progress = 0.92f;
                 session.stageMessage = "Updating nets";
                 session.phase = VerilogImportSession::Phase::updateNets;
@@ -486,25 +488,25 @@ namespace Bess::Pages {
         }
 
         /// undo redo callback
-        const auto callback = [this, entityUuid = e.entityUuid,
-                               sceneId = e.sceneId](bool isUndo,
-                                                    const UUID &newParent) {
-            (void)isUndo;
-            if (newParent == UUID::null)
-                return;
+        const auto callback =
+            [this, entityUuid = e.entityUuid, sceneId = e.sceneId](
+                bool isUndo, const UUID &newParent) {
+                (void)isUndo;
+                if (newParent == UUID::null)
+                    return;
 
-            const auto scene = getTrackedScene(getSceneDriver(), sceneId);
-            if (!scene) {
-                return;
-            }
+                const auto scene = getTrackedScene(getSceneDriver(), sceneId);
+                if (!scene) {
+                    return;
+                }
 
-            const auto &parent =
-                scene->getState().getComponentByUuid(newParent);
-            if (!parent) {
-                return;
-            }
-            parent->addChildComponent(entityUuid);
-        };
+                const auto &parent =
+                    scene->getState().getComponentByUuid(newParent);
+                if (!parent) {
+                    return;
+                }
+                parent->addChildComponent(entityUuid);
+            };
 
         if (entity) {
             auto cmd = std::make_unique<Cmd::UpdateValCommand<UUID>>(

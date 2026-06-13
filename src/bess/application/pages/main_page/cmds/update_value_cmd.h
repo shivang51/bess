@@ -20,19 +20,22 @@ namespace Bess::Cmd {
             : m_orignalLoc(originalLoc),
               m_newValue(newValue) {}
 
-        UpdateValCommand(ValType *originalLoc, const ValType &newValue,
+        UpdateValCommand(ValType *originalLoc,
+                         const ValType &newValue,
                          const OnUndoRedoCB &onUndoRedo)
             : m_orignalLoc(originalLoc),
               m_newValue(newValue),
               m_onUndoRedo(onUndoRedo) {}
 
-        UpdateValCommand(ValType *originalLoc, const ValType &newValue,
+        UpdateValCommand(ValType *originalLoc,
+                         const ValType &newValue,
                          const ValType &oldValue)
             : m_orignalLoc(originalLoc),
               m_newValue(newValue),
               m_oldValue(oldValue) {}
 
-        UpdateValCommand(ValType *originalLoc, const ValType &newValue,
+        UpdateValCommand(ValType *originalLoc,
+                         const ValType &newValue,
                          const ValType &oldValue,
                          const OnUndoRedoCB &onUndoRedo)
             : m_orignalLoc(originalLoc),

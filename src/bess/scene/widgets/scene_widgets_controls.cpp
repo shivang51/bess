@@ -4,7 +4,8 @@
 
 namespace Bess::Canvas::SceneWidgets {
     namespace {
-        void drawToggleButton(const PickingId &id, bool isHigh,
+        void drawToggleButton(const PickingId &id,
+                              bool isHigh,
                               const glm::vec3 &buttonPos,
                               const glm::vec2 &buttonSize,
                               SceneDrawContext &context) {
@@ -28,8 +29,8 @@ namespace Bess::Canvas::SceneWidgets {
                 trackColor = Core::Renderer::Color(trackColor) * 0.85f;
             }
 
-            SceneDraw::drawQuad(context, buttonPos, buttonSize, trackColor, id,
-                                style);
+            SceneDraw::drawQuad(
+                context, buttonPos, buttonSize, trackColor, id, style);
 
             const float buttonHeadPosX =
                 isHigh
@@ -38,23 +39,30 @@ namespace Bess::Canvas::SceneWidgets {
 
             const glm::vec3 buttonHeadPos =
                 glm::vec3(buttonHeadPosX, buttonPos.y, buttonPos.z);
-            SceneDraw::drawQuad(context, buttonHeadPos,
+            SceneDraw::drawQuad(context,
+                                buttonHeadPos,
                                 {buttonSize.y - 1.f, buttonSize.y - 1.f},
-                                palette.knob, id, buttonProps);
+                                palette.knob,
+                                id,
+                                buttonProps);
         }
     } // namespace
 
-    bool toggleButton(const PickingId &id, bool value,
-                      const glm::vec3 &buttonPos, const glm::vec2 &buttonSize,
+    bool toggleButton(const PickingId &id,
+                      bool value,
+                      const glm::vec3 &buttonPos,
+                      const glm::vec2 &buttonSize,
                       SceneDrawContext &context) {
-        Detail::registerWidget(context.sceneState, id,
-                               Detail::WidgetState::Type::toggleButton);
+        Detail::registerWidget(
+            context.sceneState, id, Detail::WidgetState::Type::toggleButton);
         drawToggleButton(id, value, buttonPos, buttonSize, context);
         return Detail::consumeClick(context.sceneState, id);
     }
 
-    bool toggleButton(const PickingId &id, bool *value,
-                      const glm::vec3 &buttonPos, const glm::vec2 &buttonSize,
+    bool toggleButton(const PickingId &id,
+                      bool *value,
+                      const glm::vec3 &buttonPos,
+                      const glm::vec2 &buttonSize,
                       SceneDrawContext &context) {
         if (value == nullptr) {
             return false;
@@ -68,15 +76,17 @@ namespace Bess::Canvas::SceneWidgets {
         return clicked;
     }
 
-    bool button(const PickingId &id, const std::string &label,
-                const glm::vec3 &buttonPos, const glm::vec2 &buttonSize,
+    bool button(const PickingId &id,
+                const std::string &label,
+                const glm::vec3 &buttonPos,
+                const glm::vec2 &buttonSize,
                 const Core::Renderer::Color &labelColor,
                 SceneDrawContext &context) {
         constexpr float paddingY = 2.f;
         constexpr float paddingX = 3.f;
 
-        Detail::registerWidget(context.sceneState, id,
-                               Detail::WidgetState::Type::button);
+        Detail::registerWidget(
+            context.sceneState, id, Detail::WidgetState::Type::button);
 
         const auto &palette = ViewportTheme::sceneWidgetsColors;
         const SceneDraw::QuadStyle buttonProps{
@@ -111,11 +121,15 @@ namespace Bess::Canvas::SceneWidgets {
 
         SceneDraw::drawQuad(context, buttonPos, size, bgColor, id, buttonProps);
 
-        const auto textPos =
-            glm::vec3(buttonPos.x - (textSize.x / 2.f), buttonPos.y + textOffY,
-                      buttonPos.z + 0.0001f);
-        SceneDraw::drawText(context, label, textPos,
-                            Detail::kDefaultButtonTextSize, labelColor, id);
+        const auto textPos = glm::vec3(buttonPos.x - (textSize.x / 2.f),
+                                       buttonPos.y + textOffY,
+                                       buttonPos.z + 0.0001f);
+        SceneDraw::drawText(context,
+                            label,
+                            textPos,
+                            Detail::kDefaultButtonTextSize,
+                            labelColor,
+                            id);
 
         return Detail::consumeClick(context.sceneState, id);
     }

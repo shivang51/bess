@@ -44,7 +44,9 @@ namespace Bess::Assets {
             }
 
             BESS_INFO("[AssetManager] Loading {} from 1st path {} with ID {}",
-                      typeid(T).name(), id.paths[0], id.id);
+                      typeid(T).name(),
+                      id.paths[0],
+                      id.id);
 
             std::shared_ptr<T> asset = std::apply(
                 [](auto &&...paths) {

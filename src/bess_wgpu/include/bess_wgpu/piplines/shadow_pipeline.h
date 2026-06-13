@@ -30,7 +30,8 @@ namespace Bess::Wgpu::Piplines {
       public:
         void init(const wgpu::Device &device,
                   wgpu::TextureFormat targetFormat,
-                  const wgpu::Buffer &frameBuffer, uint64_t frameBufferSize,
+                  const wgpu::Buffer &frameBuffer,
+                  uint64_t frameBufferSize,
                   wgpu::TextureFormat pickingFormat =
                       wgpu::TextureFormat::Undefined) override;
         void destroy() override;
@@ -49,7 +50,8 @@ namespace Bess::Wgpu::Piplines {
                            uint32_t firstInstance,
                            uint32_t instanceCount) const;
 
-        void draw(wgpu::RenderPassEncoder &renderPass, uint32_t firstInstance,
+        void draw(wgpu::RenderPassEncoder &renderPass,
+                  uint32_t firstInstance,
                   uint32_t instanceCount) const;
 
       private:

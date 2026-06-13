@@ -16,18 +16,18 @@ class PyDigCompDef : public Bess::SimEngine::Drivers::Digital::DigCompDef,
   public:
     using Bess::SimEngine::Drivers::Digital::DigCompDef::DigCompDef;
     std::shared_ptr<CompDef> clone() const override {
-        PYBIND11_OVERRIDE_NAME(std::shared_ptr<DigCompDef>, DigCompDef, "clone",
-                               clone);
+        PYBIND11_OVERRIDE_NAME(
+            std::shared_ptr<DigCompDef>, DigCompDef, "clone", clone);
     }
 
     std::string getTypeName() const override {
-        PYBIND11_OVERRIDE_NAME(std::string, DigCompDef, "get_type_name",
-                               getTypeName);
+        PYBIND11_OVERRIDE_NAME(
+            std::string, DigCompDef, "get_type_name", getTypeName);
     }
 
     Bess::TimeNs getSelfSimDelay() override {
-        PYBIND11_OVERRIDE_NAME(Bess::TimeNs, DigCompDef, "get_self_sim_delay",
-                               getSelfSimDelay);
+        PYBIND11_OVERRIDE_NAME(
+            Bess::TimeNs, DigCompDef, "get_self_sim_delay", getSelfSimDelay);
     }
 
     Json::Value toJson() const override {
@@ -78,7 +78,8 @@ void bind_dig_sim_driver(py::module_ &m) {
         .def_readwrite("input_states", &Digital::DigCompState::inputStates)
         .def_readwrite("output_states", &Digital::DigCompState::outputStates);
 
-    py::class_<Digital::DigCompSimData, SimFnDataBase,
+    py::class_<Digital::DigCompSimData,
+               SimFnDataBase,
                std::shared_ptr<Digital::DigCompSimData>>(m, "DigCompSimData")
         .def(py::init<>())
         .def_readwrite("input_states", &Digital::DigCompSimData::inputStates)
@@ -88,8 +89,10 @@ void bind_dig_sim_driver(py::module_ &m) {
         .def_readwrite("expressions", &Digital::DigCompSimData::expressions);
 
     auto from_operator_info =
-        [](const std::string &name, const std::string &group_name,
-           const SlotsGroupInfo &inputs, const SlotsGroupInfo &outputs,
+        [](const std::string &name,
+           const std::string &group_name,
+           const SlotsGroupInfo &inputs,
+           const SlotsGroupInfo &outputs,
            Bess::TimeNs prop_delay,
            OperatorInfo info) -> std::shared_ptr<Digital::DigCompDef> {
         py::gil_scoped_acquire gil;
@@ -105,8 +108,10 @@ void bind_dig_sim_driver(py::module_ &m) {
     };
 
     auto from_output_expressions =
-        [](const std::string &name, const std::string &group_name,
-           const SlotsGroupInfo &inputs, const SlotsGroupInfo &outputs,
+        [](const std::string &name,
+           const std::string &group_name,
+           const SlotsGroupInfo &inputs,
+           const SlotsGroupInfo &outputs,
            Bess::TimeNs prop_delay,
            const std::vector<std::string> &output_expressions)
         -> std::shared_ptr<Digital::DigCompDef> {
@@ -122,10 +127,12 @@ void bind_dig_sim_driver(py::module_ &m) {
         return comp_def;
     };
 
-    auto from_sim_fn =
-        [](const std::string &name, const std::string &group_name,
-           const SlotsGroupInfo &inputs, const SlotsGroupInfo &outputs,
-           Bess::TimeNs prop_delay, const py::function &sim_function)
+    auto from_sim_fn = [](const std::string &name,
+                          const std::string &group_name,
+                          const SlotsGroupInfo &inputs,
+                          const SlotsGroupInfo &outputs,
+                          Bess::TimeNs prop_delay,
+                          const py::function &sim_function)
         -> std::shared_ptr<Digital::DigCompDef> {
         py::gil_scoped_acquire gil;
         auto comp_def = std::make_shared<Digital::DigCompDef>();
@@ -138,22 +145,37 @@ void bind_dig_sim_driver(py::module_ &m) {
         return comp_def;
     };
 
-    py::class_<Digital::DigCompDef, PyDigCompDef, EvtBasedCompDef,
+    py::class_<Digital::DigCompDef,
+               PyDigCompDef,
+               EvtBasedCompDef,
                py::smart_holder>(m, "DigCompDef")
         .def(py::init<>())
-        .def_static("from_operator", from_operator_info, py::arg("name"),
-                    py::arg("group_name"), py::arg("inputs"),
-                    py::arg("outputs"), py::arg("prop_delay"),
+        .def_static("from_operator",
+                    from_operator_info,
+                    py::arg("name"),
+                    py::arg("group_name"),
+                    py::arg("inputs"),
+                    py::arg("outputs"),
+                    py::arg("prop_delay"),
                     py::arg("op_info"),
                     "Create a ComponentDefinition from operator info.")
-        .def_static("from_output_expressions", from_output_expressions,
-                    py::arg("name"), py::arg("group_name"), py::arg("inputs"),
-                    py::arg("outputs"), py::arg("prop_delay"),
+        .def_static("from_output_expressions",
+                    from_output_expressions,
+                    py::arg("name"),
+                    py::arg("group_name"),
+                    py::arg("inputs"),
+                    py::arg("outputs"),
+                    py::arg("prop_delay"),
                     py::arg("output_expressions"),
                     "Create a ComponentDefinition from output expressions.")
         .def_static(
-            "from_sim_fn", from_sim_fn, py::arg("name"), py::arg("group_name"),
-            py::arg("inputs"), py::arg("outputs"), py::arg("prop_delay"),
+            "from_sim_fn",
+            from_sim_fn,
+            py::arg("name"),
+            py::arg("group_name"),
+            py::arg("inputs"),
+            py::arg("outputs"),
+            py::arg("prop_delay"),
             py::arg("sim_function"),
             "Create a ComponentDefinition from a custom simulation function.")
         .def_property(
@@ -199,12 +221,14 @@ void bind_dig_sim_driver(py::module_ &m) {
         .def("clone", &Digital::DigCompDef::clone)
         .def("get_type_name", &Digital::DigCompDef::getTypeName);
 
-    py::class_<Digital::DigSimComp, EvtBasedSimComp,
+    py::class_<Digital::DigSimComp,
+               EvtBasedSimComp,
                std::shared_ptr<Digital::DigSimComp>>(m, "DigSimComp")
         .def(py::init<>())
         .def_static("from_def",
                     &Digital::DigSimComp::template fromDef<Digital::DigSimComp>,
-                    py::arg("comp_def"), py::arg("clone_def") = true)
+                    py::arg("comp_def"),
+                    py::arg("clone_def") = true)
         .def_property("input_states",
                       py::overload_cast<>(&Digital::DigSimComp::getInputStates),
                       py::overload_cast<const std::vector<SlotState> &>(
@@ -239,30 +263,53 @@ void bind_dig_sim_driver(py::module_ &m) {
                       py::overload_cast<const Bess::UUID &>(
                           &Digital::DigSimComp::setNetUuid));
 
-    py::class_<Digital::DigitalSimDriver, EvtBasedSimDriver,
+    py::class_<Digital::DigitalSimDriver,
+               EvtBasedSimDriver,
                std::shared_ptr<Digital::DigitalSimDriver>>(m,
                                                            "DigitalSimDriver")
         .def(py::init<>())
         .def("supports_def", &Digital::DigitalSimDriver::supportsDef)
         .def("create_component", &Digital::DigitalSimDriver::createComp)
         .def("simulate", &Digital::DigitalSimDriver::simulate)
-        .def("add_component", &Digital::DigitalSimDriver::addComponent,
-             py::arg("component"), py::arg("schedule_sim") = true)
+        .def("add_component",
+             &Digital::DigitalSimDriver::addComponent,
+             py::arg("component"),
+             py::arg("schedule_sim") = true)
         .def("can_connect_components",
-             &Digital::DigitalSimDriver::canConnectComponents, py::arg("src"),
-             py::arg("src_slot_idx"), py::arg("src_type"), py::arg("dst"),
-             py::arg("dst_slot_idx"), py::arg("dst_type"))
-        .def("connect_component", &Digital::DigitalSimDriver::connectComponent,
-             py::arg("src"), py::arg("src_slot_idx"), py::arg("src_type"),
-             py::arg("dst"), py::arg("dst_slot_idx"), py::arg("dst_type"),
+             &Digital::DigitalSimDriver::canConnectComponents,
+             py::arg("src"),
+             py::arg("src_slot_idx"),
+             py::arg("src_type"),
+             py::arg("dst"),
+             py::arg("dst_slot_idx"),
+             py::arg("dst_type"))
+        .def("connect_component",
+             &Digital::DigitalSimDriver::connectComponent,
+             py::arg("src"),
+             py::arg("src_slot_idx"),
+             py::arg("src_type"),
+             py::arg("dst"),
+             py::arg("dst_slot_idx"),
+             py::arg("dst_type"),
              py::arg("override_conn") = false)
-        .def("delete_connection", &Digital::DigitalSimDriver::deleteConnection,
-             py::arg("comp_a"), py::arg("pin_a_type"), py::arg("idx_a"),
-             py::arg("comp_b"), py::arg("pin_b_type"), py::arg("idx_b"))
-        .def("add_slot", &Digital::DigitalSimDriver::addSlot,
-             py::arg("component_id"), py::arg("slot_type"), py::arg("index"),
+        .def("delete_connection",
+             &Digital::DigitalSimDriver::deleteConnection,
+             py::arg("comp_a"),
+             py::arg("pin_a_type"),
+             py::arg("idx_a"),
+             py::arg("comp_b"),
+             py::arg("pin_b_type"),
+             py::arg("idx_b"))
+        .def("add_slot",
+             &Digital::DigitalSimDriver::addSlot,
+             py::arg("component_id"),
+             py::arg("slot_type"),
+             py::arg("index"),
              py::arg("force") = false)
-        .def("remove_slot", &Digital::DigitalSimDriver::removeSlot,
-             py::arg("component_id"), py::arg("slot_type"), py::arg("index"),
+        .def("remove_slot",
+             &Digital::DigitalSimDriver::removeSlot,
+             py::arg("component_id"),
+             py::arg("slot_type"),
+             py::arg("index"),
              py::arg("force") = false);
 }

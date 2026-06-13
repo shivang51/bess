@@ -23,8 +23,10 @@ namespace Bess::Wgpu::Piplines {
 
     class PathPipeline final : public Pipeline {
       public:
-        void init(const wgpu::Device &device, wgpu::TextureFormat targetFormat,
-                  const wgpu::Buffer &frameBuffer, uint64_t frameBufferSize,
+        void init(const wgpu::Device &device,
+                  wgpu::TextureFormat targetFormat,
+                  const wgpu::Buffer &frameBuffer,
+                  uint64_t frameBufferSize,
                   wgpu::TextureFormat pickingFormat =
                       wgpu::TextureFormat::Undefined) override;
         void destroy() override;
@@ -60,11 +62,15 @@ namespace Bess::Wgpu::Piplines {
         [[nodiscard]] const wgpu::Buffer &getStrokeVertexBuffer() const;
 
         void drawPath(wgpu::RenderPassEncoder &renderPass,
-                      uint32_t firstStencilVertex, uint32_t stencilVertexCount,
-                      uint32_t firstCoverVertex, uint32_t coverVertexCount,
-                      bool transparent, bool evenOddFill) const;
+                      uint32_t firstStencilVertex,
+                      uint32_t stencilVertexCount,
+                      uint32_t firstCoverVertex,
+                      uint32_t coverVertexCount,
+                      bool transparent,
+                      bool evenOddFill) const;
         void drawStroke(wgpu::RenderPassEncoder &renderPass,
-                        uint32_t firstVertex, uint32_t vertexCount,
+                        uint32_t firstVertex,
+                        uint32_t vertexCount,
                         bool transparent) const;
 
       private:

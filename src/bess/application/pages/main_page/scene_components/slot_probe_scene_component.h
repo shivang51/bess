@@ -18,14 +18,17 @@ namespace Bess::Canvas {
         REG_SCENE_COMP_TYPE("SlotProbeSceneComponent",
                             SceneComponentType::nonSimulation)
 
-        MAKE_GETTER_SETTER_BC_AC(UUID, ProbedSlotUuid, m_probedSlotUuid,
+        MAKE_GETTER_SETTER_BC_AC(UUID,
+                                 ProbedSlotUuid,
+                                 m_probedSlotUuid,
                                  onBeforeProbedSlotChanged,
                                  onProbedSlotChanged);
 
         typedef std::pair<TimeNs, SimEngine::LogicState> ProbeDataEntry;
         MAKE_GETTER_SETTER(std::vector<ProbeDataEntry>, ProbeData, m_probeData)
 
-        SCENE_COMP_SER(SlotProbeSceneComponent, NonSimSceneComponent,
+        SCENE_COMP_SER(SlotProbeSceneComponent,
+                       NonSimSceneComponent,
                        SLOT_PROBE_SER_PROPS)
 
         std::vector<std::shared_ptr<SceneComponent>>
@@ -65,4 +68,5 @@ namespace Bess::Canvas {
 } // namespace Bess::Canvas
 
 REG_SCENE_COMP(Bess::Canvas::SlotProbeSceneComponent,
-               Bess::Canvas::SceneComponent, SLOT_PROBE_SER_PROPS)
+               Bess::Canvas::SceneComponent,
+               SLOT_PROBE_SER_PROPS)

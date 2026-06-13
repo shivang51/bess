@@ -43,8 +43,10 @@ namespace Bess::SimEngine::Drivers::Digital {
         MAKE_GETTER_SETTER(SlotsGroupInfo, OutputSlotsInfo, m_outputSlotsInfo)
         MAKE_GETTER_SETTER(OperatorInfo, OpInfo, m_opInfo)
         MAKE_GETTER_SETTER(ComponentBehaviorType, BehaviorType, m_behaviorType)
-        MAKE_GETTER_SETTER_WC(std::vector<std::string>, OutputExpressions,
-                              m_outputExpressions, onExpressionsChange)
+        MAKE_GETTER_SETTER_WC(std::vector<std::string>,
+                              OutputExpressions,
+                              m_outputExpressions,
+                              onExpressionsChange)
         MAKE_GETTER_SETTER(bool, KeepIOCountEq, m_keepIOCountEq)
 
         void setSimFn(const TDigSimFn &simFn);
@@ -143,9 +145,11 @@ namespace Bess::SimEngine::Drivers::Digital {
         MAKE_GETTER_SETTER(std::vector<SlotState>, OutputStates, m_outputStates)
         MAKE_GETTER_SETTER(Connections, InputConnections, m_inputConnections)
         MAKE_GETTER_SETTER(Connections, OutputConnections, m_outputConnections)
-        MAKE_GETTER_SETTER(std::vector<bool>, IsInputConnected,
+        MAKE_GETTER_SETTER(std::vector<bool>,
+                           IsInputConnected,
                            m_isInputConnected)
-        MAKE_GETTER_SETTER(std::vector<bool>, IsOutputConnected,
+        MAKE_GETTER_SETTER(std::vector<bool>,
+                           IsOutputConnected,
                            m_isOutputConnected)
         MAKE_GETTER_SETTER(UUID, NetUuid, m_netUuid)
 
@@ -210,32 +214,48 @@ namespace Bess::SimEngine::Drivers::Digital {
         bool isSimStable() const override;
 
         std::pair<bool, std::string>
-        canConnectComponents(const UUID &src, int srcSlotIdx, SlotType srcType,
-                             const UUID &dst, int dstSlotIdx,
+        canConnectComponents(const UUID &src,
+                             int srcSlotIdx,
+                             SlotType srcType,
+                             const UUID &dst,
+                             int dstSlotIdx,
                              SlotType dstType) const override;
 
-        bool connectComponent(const UUID &src, int srcSlotIdx, SlotType srcType,
-                              const UUID &dst, int dstSlotIdx, SlotType dstType,
+        bool connectComponent(const UUID &src,
+                              int srcSlotIdx,
+                              SlotType srcType,
+                              const UUID &dst,
+                              int dstSlotIdx,
+                              SlotType dstType,
                               bool overrideConn) override;
 
-        void deleteConnection(const UUID &compA, SlotType pinAType, int idxA,
-                              const UUID &compB, SlotType pinBType,
+        void deleteConnection(const UUID &compA,
+                              SlotType pinAType,
+                              int idxA,
+                              const UUID &compB,
+                              SlotType pinBType,
                               int idxB) override;
 
-        SlotsCountChangeRes addSlot(const UUID &compId, SlotType type,
-                                    int index, bool force = false) override;
-        SlotsCountChangeRes removeSlot(const UUID &compId, SlotType type,
-                                       int index, bool force = false) override;
+        SlotsCountChangeRes addSlot(const UUID &compId,
+                                    SlotType type,
+                                    int index,
+                                    bool force = false) override;
+        SlotsCountChangeRes removeSlot(const UUID &compId,
+                                       SlotType type,
+                                       int index,
+                                       bool force = false) override;
 
         ConnectionBundle getConnections(const UUID &uuid) const override;
         std::vector<UUID> getDependants(const UUID &id) override;
         std::vector<SlotState> collapseInputs(const UUID &id) override;
         std::vector<SlotState> getInputSlotsState(const UUID &compId) override;
-        SlotState getSlotState(const UUID &uuid, SlotType type,
-                               int idx) const override;
-        bool setInputSlotState(const UUID &uuid, int pinIdx,
+        SlotState
+        getSlotState(const UUID &uuid, SlotType type, int idx) const override;
+        bool setInputSlotState(const UUID &uuid,
+                               int pinIdx,
                                LogicState state) override;
-        bool setOutputSlotState(const UUID &uuid, int pinIdx,
+        bool setOutputSlotState(const UUID &uuid,
+                                int pinIdx,
                                 LogicState state) override;
         ComponentState getComponentState(const UUID &uuid) const override;
 

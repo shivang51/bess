@@ -186,8 +186,11 @@ namespace Bess::UI {
         const float height = ImGui::GetFrameHeight();
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-        if (ImGui::BeginViewportSideBar("##MainStatusBar", viewport,
-                                        ImGuiDir_Down, height, window_flags)) {
+        if (ImGui::BeginViewportSideBar("##MainStatusBar",
+                                        viewport,
+                                        ImGuiDir_Down,
+                                        height,
+                                        window_flags)) {
             if (ImGui::BeginMenuBar()) {
                 if (simEngine.getSimulationState() ==
                     SimEngine::SimulationState::running) {
@@ -313,14 +316,18 @@ namespace Bess::UI {
             auto &cmdSystem = mainPageState.getCommandSystem();
 
             std::string icon = Icons::CodIcons::DISCARD;
-            if (ImGui::MenuItem((icon + "  Undo").c_str(), "Ctrl+Z", false,
+            if (ImGui::MenuItem((icon + "  Undo").c_str(),
+                                "Ctrl+Z",
+                                false,
                                 cmdSystem.canUndo())) {
                 cmdSystem.undo();
             }
 
             icon = Icons::CodIcons::REDO;
-            if (ImGui::MenuItem((icon + "  Redo").c_str(), "Ctrl+Shift+Z",
-                                false, cmdSystem.canRedo())) {
+            if (ImGui::MenuItem((icon + "  Redo").c_str(),
+                                "Ctrl+Shift+Z",
+                                false,
+                                cmdSystem.canRedo())) {
                 cmdSystem.redo();
             }
 
@@ -414,7 +421,8 @@ namespace Bess::UI {
         window->DrawList->AddRectFilled(
             ImVec2(winX, 2.f),
             ImVec2(winX + winSizeX - 4.f, menubar_size.y - 2.f),
-            ImGui::GetColorU32(ImGuiCol_WindowBg), 4.f);
+            ImGui::GetColorU32(ImGuiCol_WindowBg),
+            4.f);
         ImGui::SameLine(winX - 8.f);
         ImGui::SetCursorPosY(((targetHeight - buttonSize.y) * 0.5f) + 2.f);
 
@@ -509,8 +517,8 @@ namespace Bess::UI {
         }
 
         ImGui::SetNextWindowSize(ImVec2(520.f, 0.f), ImGuiCond_FirstUseEver);
-        if (!ImGui::BeginPopupModal("Import Verilog", nullptr,
-                                    ImGuiWindowFlags_AlwaysAutoResize)) {
+        if (!ImGui::BeginPopupModal(
+                "Import Verilog", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             return;
         }
 
@@ -540,16 +548,19 @@ namespace Bess::UI {
         }
 
         ImGui::TextUnformatted("Files");
-        if (Widgets::TextBox("##VerilogImportPath", wizard.filePath,
+        if (Widgets::TextBox("##VerilogImportPath",
+                             wizard.filePath,
                              "Select Verilog files")) {
             wizard.filePaths.clear();
         }
         ImGui::SameLine();
         if (ImGui::Button("Browse") && !wizard.importing) {
-            const auto paths = Dialogs::showOpenFilesDialog(
-                "Import Verilog Files",
-                {"Verilog Source Files", "*.sv *.v *.svh *.vh", "All Files",
-                 "*.*"});
+            const auto paths =
+                Dialogs::showOpenFilesDialog("Import Verilog Files",
+                                             {"Verilog Source Files",
+                                              "*.sv *.v *.svh *.vh",
+                                              "All Files",
+                                              "*.*"});
             if (!paths.empty()) {
                 wizard.filePaths = paths;
                 wizard.filePath = importSelectionLabel(paths);
@@ -616,8 +627,11 @@ namespace Bess::UI {
 
     void UIMain::resetDockspace() {
         static std::unordered_map<Dock, ImGuiID> DockIds{
-            {Dock::left, 0},   {Dock::right, 0}, {Dock::top, 0},
-            {Dock::bottom, 0}, {Dock::main, 0},
+            {Dock::left, 0},
+            {Dock::right, 0},
+            {Dock::top, 0},
+            {Dock::bottom, 0},
+            {Dock::main, 0},
         };
 
         auto mainDockspaceId = ImGui::GetID("MainDockspace");

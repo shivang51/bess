@@ -17,7 +17,8 @@ namespace Bess::Core::Renderer {
       public:
         SubTexture() = default;
 
-        SubTexture(const glm::vec2 &textureSize, const glm::vec2 &pixelPos,
+        SubTexture(const glm::vec2 &textureSize,
+                   const glm::vec2 &pixelPos,
                    const glm::vec2 &pixelSize,
                    TextureOrigin origin = TextureOrigin::TopLeft) {
             reset(textureSize, pixelPos, pixelSize, origin);
@@ -33,7 +34,8 @@ namespace Bess::Core::Renderer {
             return SubTexture(textureSize, pixelPos, pixelSize);
         }
 
-        void reset(const glm::vec2 &textureSize, const glm::vec2 &pixelPos,
+        void reset(const glm::vec2 &textureSize,
+                   const glm::vec2 &pixelPos,
                    const glm::vec2 &pixelSize,
                    TextureOrigin origin = TextureOrigin::TopLeft) {
             m_textureSize = glm::max(textureSize, glm::vec2(1.f));
@@ -48,7 +50,9 @@ namespace Bess::Core::Renderer {
                     m_textureSize.y;
             }
 
-            m_startWH = {normalizedPos.x, normalizedPos.y, normalizedSize.x,
+            m_startWH = {normalizedPos.x,
+                         normalizedPos.y,
+                         normalizedSize.x,
                          normalizedSize.y};
             m_texCoords = {
                 glm::vec2(m_startWH.x, m_startWH.y + m_startWH.w),

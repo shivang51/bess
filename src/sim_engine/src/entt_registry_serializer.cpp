@@ -13,8 +13,8 @@ namespace Bess {
         }
 
         for (auto entity : registry.view<entt::entity>()) {
-            serializeEntity(registry, entity,
-                            j["entities"].append(Json::objectValue));
+            serializeEntity(
+                registry, entity, j["entities"].append(Json::objectValue));
         }
     }
 

@@ -33,7 +33,8 @@ namespace Bess::Wgpu::Piplines {
                   wgpu::TextureFormat targetFormat,
                   const wgpu::Buffer &frameBuffer,
                   uint64_t frameBufferSize,
-                  wgpu::TextureFormat pickingFormat = wgpu::TextureFormat::Undefined) override;
+                  wgpu::TextureFormat pickingFormat =
+                      wgpu::TextureFormat::Undefined) override;
         void destroy() override;
 
         [[nodiscard]] bool ensureInstanceBufferSize(std::size_t quadCount);

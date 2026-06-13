@@ -11,7 +11,8 @@ using namespace Bess::Canvas::SceneWidgets;
 namespace {
     void bind_options(py::module_ &m);
 
-    bool draw_toggle_button(const Bess::PickingId &id, bool value,
+    bool draw_toggle_button(const Bess::PickingId &id,
+                            bool value,
                             const glm::vec3 &buttonPos,
                             const glm::vec2 &buttonSize,
                             Bess::SceneDrawContext &context) {
@@ -19,40 +20,66 @@ namespace {
     }
 
     std::tuple<TextBoxResult, std::string>
-    draw_tb(const Bess::PickingId &id, std::string &value,
-            const glm::vec3 &boxPos, const glm::vec2 &boxSize,
+    draw_tb(const Bess::PickingId &id,
+            std::string &value,
+            const glm::vec3 &boxPos,
+            const glm::vec2 &boxSize,
             Bess::SceneDrawContext &context,
             const TextBoxOptions &options = {}) {
         auto res = textBox(id, &value, boxPos, boxSize, context, options);
         return {res, value};
     }
 
-    std::tuple<SliderResult, float> draw_slider_float(
-        const Bess::PickingId &id, float value, float minValue, float maxValue,
-        const glm::vec3 &sliderPos, const glm::vec2 &sliderSize,
-        Bess::SceneDrawContext &context, const SliderOptions &options = {}) {
-        auto res = sliderFloat(id, &value, minValue, maxValue, sliderPos,
-                               sliderSize, context, options);
+    std::tuple<SliderResult, float>
+    draw_slider_float(const Bess::PickingId &id,
+                      float value,
+                      float minValue,
+                      float maxValue,
+                      const glm::vec3 &sliderPos,
+                      const glm::vec2 &sliderSize,
+                      Bess::SceneDrawContext &context,
+                      const SliderOptions &options = {}) {
+        auto res = sliderFloat(id,
+                               &value,
+                               minValue,
+                               maxValue,
+                               sliderPos,
+                               sliderSize,
+                               context,
+                               options);
         return {res, value};
     }
 
-    std::tuple<SliderResult, int> draw_slider_int(
-        const Bess::PickingId &id, int value, int minValue, int maxValue,
-        const glm::vec3 &sliderPos, const glm::vec2 &sliderSize,
-        Bess::SceneDrawContext &context, const SliderOptions &options = {}) {
-        auto res = sliderInt(id, &value, minValue, maxValue, sliderPos,
-                             sliderSize, context, options);
+    std::tuple<SliderResult, int>
+    draw_slider_int(const Bess::PickingId &id,
+                    int value,
+                    int minValue,
+                    int maxValue,
+                    const glm::vec3 &sliderPos,
+                    const glm::vec2 &sliderSize,
+                    Bess::SceneDrawContext &context,
+                    const SliderOptions &options = {}) {
+        auto res = sliderInt(id,
+                             &value,
+                             minValue,
+                             maxValue,
+                             sliderPos,
+                             sliderSize,
+                             context,
+                             options);
         return {res, value};
     }
 
     std::tuple<DropdownResult, int>
-    draw_dropdown(const Bess::PickingId &id, int selectedIndex,
+    draw_dropdown(const Bess::PickingId &id,
+                  int selectedIndex,
                   const std::vector<std::string> &items,
-                  const glm::vec3 &boxPos, const glm::vec2 &boxSize,
+                  const glm::vec3 &boxPos,
+                  const glm::vec2 &boxSize,
                   Bess::SceneDrawContext &context,
                   const DropdownOptions &options = {}) {
-        auto res = dropdown(id, &selectedIndex, items, boxPos, boxSize, context,
-                            options);
+        auto res = dropdown(
+            id, &selectedIndex, items, boxPos, boxSize, context, options);
         return {res, selectedIndex};
     }
 } // namespace
@@ -62,35 +89,63 @@ void bind_scene_widgets(py::module_ &m) {
 
     bind_options(mSceneWidgets);
 
-    mSceneWidgets.def("toggle_button", &draw_toggle_button, py::arg("id"),
-                      py::arg("value"), py::arg("button_pos"),
-                      py::arg("button_size"), py::arg("context"));
+    mSceneWidgets.def("toggle_button",
+                      &draw_toggle_button,
+                      py::arg("id"),
+                      py::arg("value"),
+                      py::arg("button_pos"),
+                      py::arg("button_size"),
+                      py::arg("context"));
 
-    mSceneWidgets.def("button", &button, py::arg("id"), py::arg("label"),
-                      py::arg("button_pos"), py::arg("button_size"),
-                      py::arg("label_color"), py::arg("context"));
+    mSceneWidgets.def("button",
+                      &button,
+                      py::arg("id"),
+                      py::arg("label"),
+                      py::arg("button_pos"),
+                      py::arg("button_size"),
+                      py::arg("label_color"),
+                      py::arg("context"));
 
-    mSceneWidgets.def("text_box", &draw_tb, py::arg("id"), py::arg("value"),
-                      py::arg("box_pos"), py::arg("box_size"),
+    mSceneWidgets.def("text_box",
+                      &draw_tb,
+                      py::arg("id"),
+                      py::arg("value"),
+                      py::arg("box_pos"),
+                      py::arg("box_size"),
                       py::arg("context"),
                       py::arg("options") = TextBoxOptions{});
 
-    mSceneWidgets.def("slider_float", &draw_slider_float, py::arg("id"),
-                      py::arg("value"), py::arg("min_value"),
-                      py::arg("max_value"), py::arg("slider_pos"),
-                      py::arg("slider_size"), py::arg("context"),
+    mSceneWidgets.def("slider_float",
+                      &draw_slider_float,
+                      py::arg("id"),
+                      py::arg("value"),
+                      py::arg("min_value"),
+                      py::arg("max_value"),
+                      py::arg("slider_pos"),
+                      py::arg("slider_size"),
+                      py::arg("context"),
                       py::arg("options") = SliderOptions{});
 
-    mSceneWidgets.def("slider_int", &draw_slider_int, py::arg("id"),
-                      py::arg("value"), py::arg("min_value"),
-                      py::arg("max_value"), py::arg("slider_pos"),
-                      py::arg("slider_size"), py::arg("context"),
+    mSceneWidgets.def("slider_int",
+                      &draw_slider_int,
+                      py::arg("id"),
+                      py::arg("value"),
+                      py::arg("min_value"),
+                      py::arg("max_value"),
+                      py::arg("slider_pos"),
+                      py::arg("slider_size"),
+                      py::arg("context"),
                       py::arg("options") = SliderOptions{});
 
-    mSceneWidgets.def(
-        "dropdown", &draw_dropdown, py::arg("id"), py::arg("selected_index"),
-        py::arg("items"), py::arg("box_pos"), py::arg("box_size"),
-        py::arg("context"), py::arg("options") = DropdownOptions{});
+    mSceneWidgets.def("dropdown",
+                      &draw_dropdown,
+                      py::arg("id"),
+                      py::arg("selected_index"),
+                      py::arg("items"),
+                      py::arg("box_pos"),
+                      py::arg("box_size"),
+                      py::arg("context"),
+                      py::arg("options") = DropdownOptions{});
 }
 
 namespace {

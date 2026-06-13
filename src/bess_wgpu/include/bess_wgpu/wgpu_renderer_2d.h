@@ -107,35 +107,48 @@ namespace Bess::Wgpu {
                 pos, Core::Renderer::PathCommandStroke::withWidth(strokeWidth));
         }
         void pathLineTo(const glm::vec2 &pos, float strokeWidth, PickingId id) {
-            pathLineTo(pos, Core::Renderer::PathCommandStroke::withWidthAndId(
-                                strokeWidth, id));
+            pathLineTo(pos,
+                       Core::Renderer::PathCommandStroke::withWidthAndId(
+                           strokeWidth, id));
         }
         void pathQuadTo(
-            const glm::vec2 &control, const glm::vec2 &pos,
+            const glm::vec2 &control,
+            const glm::vec2 &pos,
             const Core::Renderer::PathCommandStroke &stroke = {}) override;
-        void pathQuadTo(const glm::vec2 &control, const glm::vec2 &pos,
+        void pathQuadTo(const glm::vec2 &control,
+                        const glm::vec2 &pos,
                         float strokeWidth) {
             pathQuadTo(
-                control, pos,
+                control,
+                pos,
                 Core::Renderer::PathCommandStroke::withWidth(strokeWidth));
         }
-        void pathQuadTo(const glm::vec2 &control, const glm::vec2 &pos,
-                        float strokeWidth, PickingId id) {
-            pathQuadTo(control, pos,
+        void pathQuadTo(const glm::vec2 &control,
+                        const glm::vec2 &pos,
+                        float strokeWidth,
+                        PickingId id) {
+            pathQuadTo(control,
+                       pos,
                        Core::Renderer::PathCommandStroke::withWidthAndId(
                            strokeWidth, id));
         }
 
         void pathCubicTo(
-            const glm::vec2 &control1, const glm::vec2 &control2,
+            const glm::vec2 &control1,
+            const glm::vec2 &control2,
             const glm::vec2 &pos,
             const Core::Renderer::PathCommandStroke &stroke = {}) override;
 
-        void pathCubicTo(const glm::vec2 &control1, const glm::vec2 &control2,
-                         const glm::vec2 &pos, float strokeWidth);
+        void pathCubicTo(const glm::vec2 &control1,
+                         const glm::vec2 &control2,
+                         const glm::vec2 &pos,
+                         float strokeWidth);
 
-        void pathCubicTo(const glm::vec2 &control1, const glm::vec2 &control2,
-                         const glm::vec2 &pos, float strokeWidth, PickingId id);
+        void pathCubicTo(const glm::vec2 &control1,
+                         const glm::vec2 &control2,
+                         const glm::vec2 &pos,
+                         float strokeWidth,
+                         PickingId id);
         void pathClose(
             const Core::Renderer::PathCommandStroke &stroke = {}) override;
 

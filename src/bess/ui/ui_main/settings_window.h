@@ -19,9 +19,10 @@ namespace Bess::UI {
 
         template <std::ranges::input_range Range,
                   class TValue = std::ranges::range_value_t<Range>>
-        static bool
-        drawSetting(const std::string &label, const std::string &hintText,
-                    TValue &currentValue, Range &&predefinedValues) {
+        static bool drawSetting(const std::string &label,
+                                const std::string &hintText,
+                                TValue &currentValue,
+                                Range &&predefinedValues) {
             ImGui::Text("%s", label.c_str());
             ImGui::SameLine();
             ImGui::PushStyleColor(
@@ -30,7 +31,8 @@ namespace Bess::UI {
             ImGui::PopStyleColor();
             ImGui::Indent();
             auto changed =
-                Widgets::ComboBox("##" + label, currentValue,
+                Widgets::ComboBox("##" + label,
+                                  currentValue,
                                   std::forward<Range>(predefinedValues));
             ImGui::Unindent();
             return changed;

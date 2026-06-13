@@ -52,22 +52,24 @@ namespace Bess::Wgpu::Renderer2DDetail {
     constexpr float kShadowZOffset = 0.0001f;
     constexpr float kShadowGeometryPadding = 2.f;
 
-    inline bool hasDrawableShadow(
-        const Core::Renderer::ShadowProps &shadow) {
+    inline bool hasDrawableShadow(const Core::Renderer::ShadowProps &shadow) {
         return shadow.enabled && shadow.color.a > 0.f;
     }
 
-    inline float shadowGeometryMargin(
-        const Core::Renderer::ShadowProps &shadow) {
-        return std::max(0.f, shadow.blur) +
-               std::max(0.f, shadow.spread) + kShadowGeometryPadding;
+    inline float
+    shadowGeometryMargin(const Core::Renderer::ShadowProps &shadow) {
+        return std::max(0.f, shadow.blur) + std::max(0.f, shadow.spread) +
+               kShadowGeometryPadding;
     }
 
-    inline void fillShadowCommon(
-        Piplines::ShadowInstance &instance,
-        const Core::Renderer::ShadowProps &shadow, const glm::vec2 &position,
-        float zIndex, float rotation, const glm::vec2 &drawSize,
-        uint32_t shapeType, bool applyCameraTransform) {
+    inline void fillShadowCommon(Piplines::ShadowInstance &instance,
+                                 const Core::Renderer::ShadowProps &shadow,
+                                 const glm::vec2 &position,
+                                 float zIndex,
+                                 float rotation,
+                                 const glm::vec2 &drawSize,
+                                 uint32_t shapeType,
+                                 bool applyCameraTransform) {
         instance.position[0] = position.x + shadow.offset.x;
         instance.position[1] = position.y + shadow.offset.y;
         instance.position[2] = zIndex - kShadowZOffset;
@@ -92,11 +94,15 @@ namespace Bess::Wgpu::Renderer2DDetail {
         const glm::vec2 sourceSize{std::max(props.size.x, 0.f),
                                    std::max(props.size.y, 0.f)};
         const float margin = shadowGeometryMargin(props.shadow);
-        fillShadowCommon(
-            instance, props.shadow, props.position, props.zIndex,
-            props.rotation, sourceSize + glm::vec2(margin * 2.f),
-            kShadowShapeRoundedRect,
-            transformMode == Core::Renderer::CustomQuadTransformMode::Camera);
+        fillShadowCommon(instance,
+                         props.shadow,
+                         props.position,
+                         props.zIndex,
+                         props.rotation,
+                         sourceSize + glm::vec2(margin * 2.f),
+                         kShadowShapeRoundedRect,
+                         transformMode ==
+                             Core::Renderer::CustomQuadTransformMode::Camera);
         copyVec4(instance.radii, props.radius);
         instance.shapeData[0] = sourceSize.x;
         instance.shapeData[1] = sourceSize.y;
@@ -104,15 +110,20 @@ namespace Bess::Wgpu::Renderer2DDetail {
         instance.shapeData[3] = 0.f;
     }
 
-    inline void makeCircleShadowInstanceInPlace(
-        Piplines::ShadowInstance &instance,
-        const Core::Renderer::CircleProps &props) {
+    inline void
+    makeCircleShadowInstanceInPlace(Piplines::ShadowInstance &instance,
+                                    const Core::Renderer::CircleProps &props) {
         const float radius = std::max(props.radius, 0.f);
         const float margin = shadowGeometryMargin(props.shadow);
         const float drawDiameter = (radius + margin) * 2.f;
-        fillShadowCommon(instance, props.shadow, props.position, props.zIndex,
-                         0.f, glm::vec2(drawDiameter, drawDiameter),
-                         kShadowShapeCircle, true);
+        fillShadowCommon(instance,
+                         props.shadow,
+                         props.position,
+                         props.zIndex,
+                         0.f,
+                         glm::vec2(drawDiameter, drawDiameter),
+                         kShadowShapeCircle,
+                         true);
         instance.radii[0] = 0.f;
         instance.radii[1] = 0.f;
         instance.radii[2] = 0.f;
@@ -123,9 +134,9 @@ namespace Bess::Wgpu::Renderer2DDetail {
         instance.shapeData[3] = 0.f;
     }
 
-    inline void makeLineShadowInstanceInPlace(
-        Piplines::ShadowInstance &instance,
-        const Core::Renderer::LineProps &props) {
+    inline void
+    makeLineShadowInstanceInPlace(Piplines::ShadowInstance &instance,
+                                  const Core::Renderer::LineProps &props) {
         const glm::vec2 diff = props.p1 - props.p0;
         const float length = glm::length(diff);
         const float thickness = std::max(props.thickness, 1.f);
@@ -133,9 +144,14 @@ namespace Bess::Wgpu::Renderer2DDetail {
         const glm::vec2 position = (props.p0 + props.p1) * 0.5f;
         const float margin = shadowGeometryMargin(props.shadow);
         fillShadowCommon(
-            instance, props.shadow, position, props.zIndex, angle,
+            instance,
+            props.shadow,
+            position,
+            props.zIndex,
+            angle,
             glm::vec2(length + (margin * 2.f), thickness + (margin * 2.f)),
-            kShadowShapeLine, true);
+            kShadowShapeLine,
+            true);
         instance.radii[0] = 0.f;
         instance.radii[1] = 0.f;
         instance.radii[2] = 0.f;
@@ -146,9 +162,9 @@ namespace Bess::Wgpu::Renderer2DDetail {
         instance.shapeData[3] = 0.f;
     }
 
-    inline void makePrimitiveInstanceInPlace(
-        Piplines::PrimitiveInstance &instance,
-        const Core::Renderer::QuadProps &props) {
+    inline void
+    makePrimitiveInstanceInPlace(Piplines::PrimitiveInstance &instance,
+                                 const Core::Renderer::QuadProps &props) {
         instance.position[0] = props.position.x;
         instance.position[1] = props.position.y;
         instance.position[2] = props.zIndex;
@@ -223,9 +239,9 @@ namespace Bess::Wgpu::Renderer2DDetail {
         instance.flags[1] = 0;
     }
 
-    inline void makeCircleInstanceInPlace(
-        Piplines::PrimitiveInstance &instance,
-        const Core::Renderer::CircleProps &props) {
+    inline void
+    makeCircleInstanceInPlace(Piplines::PrimitiveInstance &instance,
+                              const Core::Renderer::CircleProps &props) {
         instance.position[0] = props.position.x;
         instance.position[1] = props.position.y;
         instance.position[2] = props.zIndex;
@@ -266,9 +282,9 @@ namespace Bess::Wgpu::Renderer2DDetail {
         instance.borderColor[3] = 0.f;
     }
 
-    inline void makeLineInstanceInPlace(
-        Piplines::PrimitiveInstance &instance,
-        const Core::Renderer::LineProps &props) {
+    inline void
+    makeLineInstanceInPlace(Piplines::PrimitiveInstance &instance,
+                            const Core::Renderer::LineProps &props) {
         glm::vec2 diff = props.p1 - props.p0;
         float length = glm::length(diff);
         float angle = std::atan2(diff.y, diff.x);

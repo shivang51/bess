@@ -47,8 +47,10 @@ namespace Bess::Canvas::SceneDraw {
     }
 
     [[nodiscard]] inline Core::Renderer::QuadProps
-    makeQuadProps(const glm::vec3 &pos, const glm::vec2 &size,
-                  const glm::vec4 &color, const PickingId &id,
+    makeQuadProps(const glm::vec3 &pos,
+                  const glm::vec2 &size,
+                  const glm::vec4 &color,
+                  const PickingId &id,
                   const QuadStyle &style = {}) {
         Core::Renderer::QuadProps props;
         props.position = xy(pos);
@@ -68,9 +70,12 @@ namespace Bess::Canvas::SceneDraw {
         return props;
     }
 
-    inline void drawQuad(SceneDrawContext &context, const glm::vec3 &pos,
-                         const glm::vec2 &size, const glm::vec4 &color,
-                         const PickingId &id, const QuadStyle &style = {}) {
+    inline void drawQuad(SceneDrawContext &context,
+                         const glm::vec3 &pos,
+                         const glm::vec2 &size,
+                         const glm::vec4 &color,
+                         const PickingId &id,
+                         const QuadStyle &style = {}) {
         if (!context.renderer) {
             return;
         }
@@ -78,9 +83,12 @@ namespace Bess::Canvas::SceneDraw {
         context.renderer->drawQuad(makeQuadProps(pos, size, color, id, style));
     }
 
-    inline void drawCircle(SceneDrawContext &context, const glm::vec3 &center,
-                           float radius, const glm::vec4 &color,
-                           const PickingId &id, float innerRadius = 0.f) {
+    inline void drawCircle(SceneDrawContext &context,
+                           const glm::vec3 &center,
+                           float radius,
+                           const glm::vec4 &color,
+                           const PickingId &id,
+                           float innerRadius = 0.f) {
         if (!context.renderer) {
             return;
         }
@@ -96,9 +104,12 @@ namespace Bess::Canvas::SceneDraw {
         context.renderer->drawCircle(props);
     }
 
-    inline void drawLine(SceneDrawContext &context, const glm::vec3 &start,
-                         const glm::vec3 &end, float thickness,
-                         const glm::vec4 &color, const PickingId &id) {
+    inline void drawLine(SceneDrawContext &context,
+                         const glm::vec3 &start,
+                         const glm::vec3 &end,
+                         float thickness,
+                         const glm::vec4 &color,
+                         const PickingId &id) {
         if (!context.renderer) {
             return;
         }
@@ -113,9 +124,12 @@ namespace Bess::Canvas::SceneDraw {
         context.renderer->drawLine(props);
     }
 
-    inline void drawText(SceneDrawContext &context, std::string_view text,
-                         const glm::vec3 &pos, std::size_t size,
-                         const glm::vec4 &color, const PickingId &id,
+    inline void drawText(SceneDrawContext &context,
+                         std::string_view text,
+                         const glm::vec3 &pos,
+                         std::size_t size,
+                         const glm::vec4 &color,
+                         const PickingId &id,
                          float angle = 0.f) {
         (void)angle;
         if (!context.renderer) {
@@ -132,8 +146,10 @@ namespace Bess::Canvas::SceneDraw {
     }
 
     [[nodiscard]] inline Core::Renderer::PathProps
-    makePathProps(const glm::vec3 &startPos, float strokeSize,
-                  const glm::vec4 &strokeColor, const PickingId &id,
+    makePathProps(const glm::vec3 &startPos,
+                  float strokeSize,
+                  const glm::vec4 &strokeColor,
+                  const PickingId &id,
                   const PathStyle &style = {}) {
         Core::Renderer::PathProps props;
         props.fillColor = style.fillColor;
@@ -152,9 +168,12 @@ namespace Bess::Canvas::SceneDraw {
         return props;
     }
 
-    inline void beginPath(SceneDrawContext &context, const glm::vec3 &startPos,
-                          float strokeSize, const glm::vec4 &strokeColor,
-                          const PickingId &id, const PathStyle &style = {}) {
+    inline void beginPath(SceneDrawContext &context,
+                          const glm::vec3 &startPos,
+                          float strokeSize,
+                          const glm::vec4 &strokeColor,
+                          const PickingId &id,
+                          const PathStyle &style = {}) {
         if (!context.renderer) {
             return;
         }
@@ -164,7 +183,8 @@ namespace Bess::Canvas::SceneDraw {
         context.renderer->pathMoveTo(xy(startPos));
     }
 
-    inline void pathLineTo(SceneDrawContext &context, const glm::vec3 &pos,
+    inline void pathLineTo(SceneDrawContext &context,
+                           const glm::vec3 &pos,
                            float strokeSize) {
         if (!context.renderer) {
             return;
@@ -174,8 +194,10 @@ namespace Bess::Canvas::SceneDraw {
             xy(pos), Core::Renderer::PathCommandStroke::withWidth(strokeSize));
     }
 
-    inline void pathLineTo(SceneDrawContext &context, const glm::vec3 &pos,
-                           float strokeSize, const PickingId &id) {
+    inline void pathLineTo(SceneDrawContext &context,
+                           const glm::vec3 &pos,
+                           float strokeSize,
+                           const PickingId &id) {
         if (!context.renderer) {
             return;
         }
@@ -185,28 +207,36 @@ namespace Bess::Canvas::SceneDraw {
             Core::Renderer::PathCommandStroke::withWidthAndId(strokeSize, id));
     }
 
-    inline void pathCubicTo(SceneDrawContext &context, const glm::vec3 &end,
+    inline void pathCubicTo(SceneDrawContext &context,
+                            const glm::vec3 &end,
                             const glm::vec2 &controlPoint1,
-                            const glm::vec2 &controlPoint2, float strokeSize) {
+                            const glm::vec2 &controlPoint2,
+                            float strokeSize) {
         if (!context.renderer) {
             return;
         }
 
         context.renderer->pathCubicTo(
-            controlPoint1, controlPoint2, xy(end),
+            controlPoint1,
+            controlPoint2,
+            xy(end),
             Core::Renderer::PathCommandStroke::withWidth(strokeSize));
     }
 
-    inline void pathCubicTo(SceneDrawContext &context, const glm::vec3 &end,
+    inline void pathCubicTo(SceneDrawContext &context,
+                            const glm::vec3 &end,
                             const glm::vec2 &controlPoint1,
-                            const glm::vec2 &controlPoint2, float strokeSize,
+                            const glm::vec2 &controlPoint2,
+                            float strokeSize,
                             const PickingId &id) {
         if (!context.renderer) {
             return;
         }
 
         context.renderer->pathCubicTo(
-            controlPoint1, controlPoint2, xy(end),
+            controlPoint1,
+            controlPoint2,
+            xy(end),
             Core::Renderer::PathCommandStroke::withWidthAndId(strokeSize, id));
     }
 

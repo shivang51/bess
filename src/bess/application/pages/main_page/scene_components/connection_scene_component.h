@@ -15,11 +15,13 @@
         ("endSlot", getEndSlot, setEndSlot),                                   \
         ("segments", getSegments, setSegments),                                \
         ("schemeticSegments", getSchematicSegments, setSchematicSegments),     \
-        ("shouldReconstructSegments", getShouldReconstructSegments,            \
+        ("shouldReconstructSegments",                                          \
+         getShouldReconstructSegments,                                         \
          setShouldReconstructSegments),                                        \
         ("useCustomColor", getUseCustomColor, setUseCustomColor),              \
         ("associatedJoints", getAssociatedJoints, setAssociatedJoints),        \
-        ("initialSegmentCount", getInitialSegmentCount,                        \
+        ("initialSegmentCount",                                                \
+         getInitialSegmentCount,                                               \
          setInitialSegmentCount)
 
 namespace Bess::Canvas {
@@ -53,18 +55,22 @@ namespace Bess::Canvas {
         REG_SCENE_COMP_TYPE("ConnSceneComponent",
                             SceneComponentType::connection)
         SCENE_COMP_SER(Bess::Canvas::ConnectionSceneComponent,
-                       Canvas::SceneComponent, CONN_SC_SER_PROPS)
+                       Canvas::SceneComponent,
+                       CONN_SC_SER_PROPS)
 
         MAKE_GETTER_SETTER(UUID, StartSlot, m_startSlot)
         MAKE_GETTER_SETTER(UUID, EndSlot, m_endSlot)
         MAKE_GETTER_SETTER(std::vector<ConnSegment>, Segments, m_segments)
-        MAKE_GETTER_SETTER(std::vector<ConnSegment>, SchematicSegments,
+        MAKE_GETTER_SETTER(std::vector<ConnSegment>,
+                           SchematicSegments,
                            m_schematicSegments)
-        MAKE_GETTER_SETTER(bool, ShouldReconstructSegments,
+        MAKE_GETTER_SETTER(bool,
+                           ShouldReconstructSegments,
                            m_shouldReconstructSegments)
         MAKE_GETTER_SETTER(bool, UseCustomColor, m_useCustomColor)
         MAKE_GETTER_SETTER(int, InitialSegmentCount, m_initialSegmentCount)
-        MAKE_GETTER_SETTER(std::vector<UUID>, AssociatedJoints,
+        MAKE_GETTER_SETTER(std::vector<UUID>,
+                           AssociatedJoints,
                            m_associatedJoints)
 
         void addAssociatedJoint(const UUID &jointId);
@@ -84,10 +90,11 @@ namespace Bess::Canvas {
       private:
         void onFirstDraw(SceneDrawContext &context) override;
 
-        void drawSegments(
-            const SceneState &state, const glm::vec3 &startPos,
-            const glm::vec3 &endPos, const glm::vec4 &color,
-            SceneDrawContext &context);
+        void drawSegments(const SceneState &state,
+                          const glm::vec3 &startPos,
+                          const glm::vec3 &endPos,
+                          const glm::vec4 &color,
+                          SceneDrawContext &context);
 
         void resetSegmentPositionCache(const SceneState &state);
         UUID m_startSlot = UUID::null;
@@ -105,5 +112,6 @@ namespace Bess::Canvas {
     };
 } // namespace Bess::Canvas
 
-REG_SCENE_COMP(Bess::Canvas::ConnectionSceneComponent, Canvas::SceneComponent,
+REG_SCENE_COMP(Bess::Canvas::ConnectionSceneComponent,
+               Canvas::SceneComponent,
                CONN_SC_SER_PROPS)

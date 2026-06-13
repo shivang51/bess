@@ -21,14 +21,18 @@ namespace Bess::UI {
             GAppContext::getInstance().getSubSystem<Config::Settings>();
         auto currentTheme = settings->getCurrentTheme();
 
-        if (drawSetting("Theme", "(Default: Bess Minimal Dark)", currentTheme,
+        if (drawSetting("Theme",
+                        "(Default: Bess Minimal Dark)",
+                        currentTheme,
                         m_availableThemes)) {
             settings->applyTheme(currentTheme);
         }
 
         ImGui::NewLine();
         auto fontSize = settings->getFontSize();
-        if (drawSetting("Font Size", "(Default: 18px)", fontSize,
+        if (drawSetting("Font Size",
+                        "(Default: 18px)",
+                        fontSize,
                         m_availableFontSizes)) {
             settings->setFontSize(fontSize);
         }
@@ -44,7 +48,8 @@ namespace Bess::UI {
         if (drawSetting("FPS",
                         "(Default and Recommended: 60) Higher number gives "
                         "smoothness but with high GPU consumption.",
-                        fps, m_availableFps)) {
+                        fps,
+                        m_availableFps)) {
             settings->setFps(fps);
         }
 

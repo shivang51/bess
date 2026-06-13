@@ -78,7 +78,8 @@ namespace Bess::Canvas::SceneWidgets::Detail {
         return getWidgetState(*widgetsState, id);
     }
 
-    WidgetState *registerWidget(SceneState *sceneState, const PickingId &id,
+    WidgetState *registerWidget(SceneState *sceneState,
+                                const PickingId &id,
                                 WidgetState::Type type) {
         if (sceneState == nullptr || !id.isValid()) {
             return nullptr;

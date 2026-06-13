@@ -102,8 +102,7 @@ namespace Bess::Canvas {
         if (!m_name.empty() && drawContext.renderer) {
             const float labeldx = Styles::simCompStyles.slotMargin +
                                   (Styles::simCompStyles.slotRadius * 2.f);
-            constexpr float labelFontSize =
-                Styles::simCompStyles.slotLabelSize;
+            constexpr float labelFontSize = Styles::simCompStyles.slotLabelSize;
             Core::Renderer::FontProps labelProps;
             labelProps.fontSize = labelFontSize;
 
@@ -123,7 +122,8 @@ namespace Bess::Canvas {
             const auto parentComp =
                 state.getComponentByUuid<SimulationSceneComponent>(
                     m_parentComponent);
-            SceneDraw::drawText(drawContext, m_name,
+            SceneDraw::drawText(drawContext,
+                                m_name,
                                 {labelX, labelY, pos.z},
                                 static_cast<std::size_t>(labelFontSize),
                                 ViewportTheme::colors.text,
@@ -156,18 +156,21 @@ namespace Bess::Canvas {
             startPos.x += 5.f;
         }
 
-        SceneDraw::drawLine(drawContext, startPos,
+        SceneDraw::drawLine(drawContext,
+                            startPos,
                             {pos.x + offset.x, pos.y + offset.y, pos.z},
-                            nodeWeight, pinColor, pinId);
+                            nodeWeight,
+                            pinColor,
+                            pinId);
         m_invalidateCache = true;
 
         if (!m_name.empty()) {
             Core::Renderer::FontProps labelProps;
             labelProps.fontSize = Styles::simCompStyles.slotLabelSize;
-            const auto textSize = drawContext.renderer
-                                      ? drawContext.renderer->measureText(
-                                            m_name, labelProps)
-                                      : glm::vec2(0.f);
+            const auto textSize =
+                drawContext.renderer
+                    ? drawContext.renderer->measureText(m_name, labelProps)
+                    : glm::vec2(0.f);
 
             float textOffsetX = 4.f;
 
@@ -181,20 +184,24 @@ namespace Bess::Canvas {
             // slot is rendered behind the component but text should be in front
             // of component so using z of node view
             SceneDraw::drawText(
-                drawContext, m_name,
-                {pos.x + textOffsetX, pos.y + (textSize.y / 2.f) - 2.f,
+                drawContext,
+                m_name,
+                {pos.x + textOffsetX,
+                 pos.y + (textSize.y / 2.f) - 2.f,
                  SceneComponent::getAbsolutePosition(state)
                      .z}, // because we don't want schematic pos
                 static_cast<std::size_t>(labelProps.fontSize),
                 ViewportTheme::schematicViewColors.componentStroke,
-                PickingId{parentComp->getRuntimeId(), 0}, 0.f);
+                PickingId{parentComp->getRuntimeId(), 0},
+                0.f);
         }
     }
 
     SimEngine::SlotState
     SlotSceneComponent::getSlotState(const SceneState &state) const {
         BESS_ASSERT(m_parentComponent != UUID::null,
-                    "Parent component UUID is null, {}", (uint64_t)m_uuid);
+                    "Parent component UUID is null, {}",
+                    (uint64_t)m_uuid);
         BESS_ASSERT(m_index >= 0, "Slot index is negative");
 
         const auto parentComp =
@@ -348,13 +355,16 @@ namespace Bess::Canvas {
         auto sceneDriver = projCtx->getSubSystem<SceneDriver>();
         auto connectionsSvc = projCtx->getSubSystem<Svc::SvcConnection>();
         const auto [canConnect, reason] = connectionsSvc->canConnect(
-            connStartSlot, m_uuid,
+            connStartSlot,
+            m_uuid,
             sceneDriver->getSceneWithId(e.sceneState->getSceneId()));
 
         if (!canConnect) {
             BESS_WARN("Cannot create connection between component {} and "
                       "component {}: {}",
-                      (uint64_t)connStartSlot, (uint64_t)m_uuid, reason);
+                      (uint64_t)connStartSlot,
+                      (uint64_t)m_uuid,
+                      reason);
             e.sceneState->setConnectionStartSlot(UUID::null);
             return;
         }
@@ -362,13 +372,15 @@ namespace Bess::Canvas {
         UUID starSlotUuid =
             jointComp ? jointComp->getUuid() : startSlot->getUuid();
         auto conn = connectionsSvc->createConnection(
-            starSlotUuid, m_uuid,
+            starSlotUuid,
+            m_uuid,
             sceneDriver->getSceneWithId(e.sceneState->getSceneId()));
 
         if (!conn) {
             BESS_ERROR("Failed to create connection between component {} and "
                        "component {}",
-                       (uint64_t)connStartSlot, (uint64_t)m_uuid);
+                       (uint64_t)connStartSlot,
+                       (uint64_t)m_uuid);
             e.sceneState->setConnectionStartSlot(UUID::null);
             return;
         }
@@ -379,7 +391,8 @@ namespace Bess::Canvas {
             std::make_unique<Cmd::AddCompCmd<ConnectionSceneComponent>>(conn));
 
         BESS_INFO("[Scene] Created connection {} between slots {} and {}",
-                  (uint64_t)conn->getUuid(), (uint64_t)starSlotUuid,
+                  (uint64_t)conn->getUuid(),
+                  (uint64_t)starSlotUuid,
                   (uint64_t)m_uuid);
 
         e.sceneState->setConnectionStartSlot(UUID::null);
@@ -398,8 +411,8 @@ namespace Bess::Canvas {
             const auto &connComp =
                 state.getComponentByUuid<ConnectionSceneComponent>(connUuid);
             const auto &connDeps = connComp->getDependants(state);
-            dependants.insert(dependants.end(), connDeps.begin(),
-                              connDeps.end());
+            dependants.insert(
+                dependants.end(), connDeps.begin(), connDeps.end());
             dependants.push_back(connUuid);
         }
 

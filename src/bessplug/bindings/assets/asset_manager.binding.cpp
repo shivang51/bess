@@ -46,22 +46,25 @@ class PyAssetManager {
 void bind_asset_manager(py::module_ &m) {
     py::class_<AssetID<Bess::Wgpu::WgpuTexture, 1>>(m, "TextureAssetID")
         .def(py::init<const std::string &>())
-        .def_readonly("paths", &AssetID<Bess::Wgpu::WgpuTexture, 1>::paths,
+        .def_readonly("paths",
+                      &AssetID<Bess::Wgpu::WgpuTexture, 1>::paths,
                       "Get the paths of the texture asset")
-        .def("__repr__",
-             [](const AssetID<Bess::Wgpu::WgpuTexture, 1> &self) {
-                 std::string repr = "TextureAssetID(";
-                 if (!self.paths.empty()) {
-                     repr += py::repr(py::cast(self.paths[0])).cast<std::string>();
-                 }
-                 repr += ")";
-                 return repr;
-             });
+        .def("__repr__", [](const AssetID<Bess::Wgpu::WgpuTexture, 1> &self) {
+            std::string repr = "TextureAssetID(";
+            if (!self.paths.empty()) {
+                repr += py::repr(py::cast(self.paths[0])).cast<std::string>();
+            }
+            repr += ")";
+            return repr;
+        });
 
     py::class_<PyAssetManager>(m, "AssetManager")
         .def_static("register_texture_asset",
-                    &PyAssetManager::register_texture_asset, py::arg("path"),
+                    &PyAssetManager::register_texture_asset,
+                    py::arg("path"),
                     "Register a texture asset and return its AssetID")
-        .def_static("get_texture_asset", &PyAssetManager::get_texture_asset,
-                    py::arg("asset_id"), "Get a texture asset by its AssetID");
+        .def_static("get_texture_asset",
+                    &PyAssetManager::get_texture_asset,
+                    py::arg("asset_id"),
+                    "Get a texture asset by its AssetID");
 }

@@ -120,7 +120,8 @@ namespace Bess::Canvas {
         auto json = SERIALIZE_PROPS(
             ("uuid", getUuid, setUuid),
             ("transform", getTransform, setTransform),
-            ("style", getStyle, setStyle), ("name", getName, setName),
+            ("style", getStyle, setStyle),
+            ("name", getName, setName),
             ("parentComponent", getParentComponent, setParentComponent),
             ("childComponents", getChildComponents, setChildComponents),
             ("typeName", getTypeName));
@@ -131,9 +132,11 @@ namespace Bess::Canvas {
     void SceneComponent::fromJson(const Json::Value &j,
                                   const std::shared_ptr<SceneComponent> &ptr) {
         DESERIALIZE_PROPS(
-            ptr, ("uuid", getUuid, setUuid),
+            ptr,
+            ("uuid", getUuid, setUuid),
             ("transform", getTransform, setTransform),
-            ("style", getStyle, setStyle), ("name", getName, setName),
+            ("style", getStyle, setStyle),
+            ("name", getName, setName),
             ("parentComponent", getParentComponent, setParentComponent),
             ("childComponents", getChildComponents, setChildComponents));
     }

@@ -13,7 +13,9 @@ namespace Bess::Core::Renderer {
 
         constexpr Color() noexcept = default;
 
-        constexpr Color(float red, float green, float blue,
+        constexpr Color(float red,
+                        float green,
+                        float blue,
                         float alpha = 1.f) noexcept
             : r(red),
               g(green),
@@ -46,7 +48,8 @@ namespace Bess::Core::Renderer {
         }
 
         // RGBA order each val between 0-255, alpha defaults to 255 (opaque)
-        static constexpr Color fromRGBA8(uint8_t red, uint8_t green,
+        static constexpr Color fromRGBA8(uint8_t red,
+                                         uint8_t green,
                                          uint8_t blue,
                                          uint8_t alpha = 255) noexcept {
             Color col;
@@ -194,7 +197,11 @@ struct fmt::formatter<Bess::Core::Renderer::Color>
     : fmt::formatter<std::string> {
     auto format(Bess::Core::Renderer::Color color, format_context &ctx) const
         -> decltype(ctx.out()) {
-        return fmt::format_to(ctx.out(), "Color({}, {}, {}, {})", color.r,
-                              color.g, color.b, color.a);
+        return fmt::format_to(ctx.out(),
+                              "Color({}, {}, {}, {})",
+                              color.r,
+                              color.g,
+                              color.b,
+                              color.a);
     }
 };

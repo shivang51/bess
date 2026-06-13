@@ -61,8 +61,8 @@ namespace Bess::Core::Renderer {
             return 0;
         }
 
-        static int conicCb(const FT_Vector *control, const FT_Vector *to,
-                           void *user) {
+        static int
+        conicCb(const FT_Vector *control, const FT_Vector *to, void *user) {
             auto *self = static_cast<OutlineCollector *>(user);
             const glm::vec2 controlPos = self->toPx(*control);
             const glm::vec2 pos = self->toPx(*to);
@@ -71,8 +71,10 @@ namespace Bess::Core::Renderer {
             return 0;
         }
 
-        static int cubicCb(const FT_Vector *c1, const FT_Vector *c2,
-                           const FT_Vector *to, void *user) {
+        static int cubicCb(const FT_Vector *c1,
+                           const FT_Vector *c2,
+                           const FT_Vector *to,
+                           void *user) {
             auto *self = static_cast<OutlineCollector *>(user);
             const glm::vec2 control1 = self->toPx(*c1);
             const glm::vec2 control2 = self->toPx(*c2);
@@ -153,8 +155,10 @@ namespace Bess::Core::Renderer {
         m_hasLibraryRef = true;
 
         FT_Face face = nullptr;
-        if (FT_New_Face(static_cast<FT_Library>(s_ftLibrary), fontPath.c_str(),
-                        0, &face) != 0) {
+        if (FT_New_Face(static_cast<FT_Library>(s_ftLibrary),
+                        fontPath.c_str(),
+                        0,
+                        &face) != 0) {
             BESS_ERROR("[GlyphExtractor] Failed to load font: {}", fontPath);
             unload();
             return false;
@@ -198,19 +202,20 @@ namespace Bess::Core::Renderer {
         if (m_face == nullptr || pixelHeight <= 0) {
             return false;
         }
-        return FT_Set_Pixel_Sizes(static_cast<FT_Face>(m_face), 0,
-                                  pixelHeight) == 0;
+        return FT_Set_Pixel_Sizes(
+                   static_cast<FT_Face>(m_face), 0, pixelHeight) == 0;
     }
 
-    bool GlyphExtractor::extractGlyph(const char *codepoint, Glyph &out,
+    bool GlyphExtractor::extractGlyph(const char *codepoint,
+                                      Glyph &out,
                                       bool yDown) {
         int bytesConsumed = 0;
-        return extractGlyph(decodeSingleUTF8(codepoint, bytesConsumed), out,
-                            yDown);
+        return extractGlyph(
+            decodeSingleUTF8(codepoint, bytesConsumed), out, yDown);
     }
 
-    bool GlyphExtractor::extractGlyph(char32_t codepoint, Glyph &out,
-                                      bool yDown) {
+    bool
+    GlyphExtractor::extractGlyph(char32_t codepoint, Glyph &out, bool yDown) {
         out = {};
         out.charCode = codepoint;
         out.pathProps = makeGlyphPathProps();

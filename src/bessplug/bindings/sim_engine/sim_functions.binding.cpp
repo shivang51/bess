@@ -19,6 +19,8 @@ TSimFnDataPtr exprEvalSimFunc(const TSimFnDataPtr &simData);
 void bind_sim_functions(py::module_ &m) {
     using namespace Bess::SimEngine;
 
-    m.def("expr_eval_sim_func", exprEvalSimFunc, py::arg("sim_data"),
+    m.def("expr_eval_sim_func",
+          exprEvalSimFunc,
+          py::arg("sim_data"),
           "Expression evaluator simulation function.");
 }

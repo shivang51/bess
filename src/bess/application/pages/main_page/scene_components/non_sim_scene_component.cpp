@@ -49,8 +49,12 @@ namespace Bess::Canvas {
         }
 
         const auto pickingId = PickingId{m_runtimeId, 0};
-        SceneDraw::drawText(context, m_data, m_transform.position, m_size,
-                            m_foregroundColor, pickingId);
+        SceneDraw::drawText(context,
+                            m_data,
+                            m_transform.position,
+                            m_size,
+                            m_foregroundColor,
+                            pickingId);
 
         // draw background if selected
         if (m_isSelected) {
@@ -70,10 +74,14 @@ namespace Bess::Canvas {
 
             const auto offset = glm::vec3((m_transform.scale.x / 2.f) -
                                               Styles::componentStyles.paddingX,
-                                          -textOffset, -0.0001f);
+                                          -textOffset,
+                                          -0.0001f);
 
-            SceneDraw::drawQuad(context, m_transform.position + offset,
-                                m_transform.scale, m_style.color, pickingId,
+            SceneDraw::drawQuad(context,
+                                m_transform.position + offset,
+                                m_transform.scale,
+                                m_style.color,
+                                pickingId,
                                 props);
         }
     }
@@ -185,31 +193,45 @@ namespace Bess::Canvas {
         backgroundStyle.shadow.color =
             Core::Renderer::Color{0.f, 0.f, 0.f, 0.30f};
 
-        SceneDraw::drawQuad(context, pos, m_transform.scale, m_style.color,
-                            backgroundId, backgroundStyle);
+        SceneDraw::drawQuad(context,
+                            pos,
+                            m_transform.scale,
+                            m_style.color,
+                            backgroundId,
+                            backgroundStyle);
 
         const float left = pos.x - (m_transform.scale.x / 2.f) + 10.f;
         const float top = pos.y - (m_transform.scale.y / 2.f) + 10.f;
         constexpr float labelSize = 9.f;
 
-        SceneDraw::drawText(context, m_name, {left, top + 6.f, z + 0.001f},
-                            labelSize, ViewportTheme::colors.text,
+        SceneDraw::drawText(context,
+                            m_name,
+                            {left, top + 6.f, z + 0.001f},
+                            labelSize,
+                            ViewportTheme::colors.text,
                             backgroundId);
 
         const glm::vec3 togglePos{left + 22.f, top + 32.f, z + 0.001f};
-        SceneWidgets::toggleButton(PickingId{m_runtimeId, 1}, &m_toggleValue,
-                                   togglePos, {34.f, 16.f}, context);
+        SceneWidgets::toggleButton(PickingId{m_runtimeId, 1},
+                                   &m_toggleValue,
+                                   togglePos,
+                                   {34.f, 16.f},
+                                   context);
         SceneDraw::drawText(context,
                             m_toggleValue ? "Toggle: on" : "Toggle: off",
-                            {left + 48.f, top + 35.f, z + 0.001f}, labelSize,
-                            ViewportTheme::colors.text, backgroundId);
+                            {left + 48.f, top + 35.f, z + 0.001f},
+                            labelSize,
+                            ViewportTheme::colors.text,
+                            backgroundId);
 
         const std::string buttonLabel =
             std::string("Clicks: ") + std::to_string(m_buttonClicks);
-        if (SceneWidgets::button(
-                PickingId{m_runtimeId, 2}, buttonLabel,
-                {left + 52.f, top + 58.f, z + 0.001f}, {84.f, 18.f},
-                ViewportTheme::sceneWidgetsColors.text, context)) {
+        if (SceneWidgets::button(PickingId{m_runtimeId, 2},
+                                 buttonLabel,
+                                 {left + 52.f, top + 58.f, z + 0.001f},
+                                 {84.f, 18.f},
+                                 ViewportTheme::sceneWidgetsColors.text,
+                                 context)) {
             ++m_buttonClicks;
         }
 
@@ -219,12 +241,18 @@ namespace Bess::Canvas {
             .fontSize = 8.f,
             .padding = {5.f, 2.f},
         };
-        SceneWidgets::textBox(PickingId{m_runtimeId, 3}, &m_name,
+        SceneWidgets::textBox(PickingId{m_runtimeId, 3},
+                              &m_name,
                               {left + 160.f, top + 58.f, z + 0.001f},
-                              {100.f, 18.f}, context, textBoxOptions);
+                              {100.f, 18.f},
+                              context,
+                              textBoxOptions);
 
-        SceneDraw::drawText(context, "Level", {left, top + 87.f, z + 0.001f},
-                            labelSize, ViewportTheme::colors.text,
+        SceneDraw::drawText(context,
+                            "Level",
+                            {left, top + 87.f, z + 0.001f},
+                            labelSize,
+                            ViewportTheme::colors.text,
                             backgroundId);
         SceneWidgets::SliderOptions sliderOptions{
             .step = 0.01f,
@@ -233,25 +261,40 @@ namespace Bess::Canvas {
             .trackHeight = 4.f,
             .knobRadius = 5.f,
         };
-        SceneWidgets::sliderFloat(PickingId{m_runtimeId, 4}, &m_sliderValue,
-                                  0.f, 1.f,
+        SceneWidgets::sliderFloat(PickingId{m_runtimeId, 4},
+                                  &m_sliderValue,
+                                  0.f,
+                                  1.f,
                                   {left + 136.f, top + 86.f, z + 0.001f},
-                                  {168.f, 20.f}, context, sliderOptions);
+                                  {168.f, 20.f},
+                                  context,
+                                  sliderOptions);
 
-        SceneDraw::drawText(context, "Steps", {left, top + 113.f, z + 0.001f},
-                            labelSize, ViewportTheme::colors.text,
+        SceneDraw::drawText(context,
+                            "Steps",
+                            {left, top + 113.f, z + 0.001f},
+                            labelSize,
+                            ViewportTheme::colors.text,
                             backgroundId);
         SceneWidgets::SliderOptions intSliderOptions = sliderOptions;
         intSliderOptions.step = 1.f;
         intSliderOptions.precision = 0;
-        SceneWidgets::sliderInt(PickingId{m_runtimeId, 5}, &m_intSliderValue, 0,
-                                12, {left + 136.f, top + 112.f, z + 0.001f},
-                                {168.f, 20.f}, context, intSliderOptions);
+        SceneWidgets::sliderInt(PickingId{m_runtimeId, 5},
+                                &m_intSliderValue,
+                                0,
+                                12,
+                                {left + 136.f, top + 112.f, z + 0.001f},
+                                {168.f, 20.f},
+                                context,
+                                intSliderOptions);
 
         static const std::vector<std::string> modeItems{
             "Inspect", "Edit", "Route", "Measure", "Debug"};
-        SceneDraw::drawText(context, "Mode", {left, top + 140.f, z + 0.001f},
-                            labelSize, ViewportTheme::colors.text,
+        SceneDraw::drawText(context,
+                            "Mode",
+                            {left, top + 140.f, z + 0.001f},
+                            labelSize,
+                            ViewportTheme::colors.text,
                             backgroundId);
         SceneWidgets::DropdownOptions dropdownOptions{
             .placeholder = "Mode",
@@ -259,9 +302,12 @@ namespace Bess::Canvas {
             .optionHeight = 18.f,
             .maxVisibleOptions = 5,
         };
-        SceneWidgets::dropdown(PickingId{m_runtimeId, 6}, &m_dropdownIndex,
+        SceneWidgets::dropdown(PickingId{m_runtimeId, 6},
+                               &m_dropdownIndex,
                                modeItems,
                                {left + 136.f, top + 138.f, z + 0.001f},
-                               {168.f, 20.f}, context, dropdownOptions);
+                               {168.f, 20.f},
+                               context,
+                               dropdownOptions);
     }
 } // namespace Bess::Canvas

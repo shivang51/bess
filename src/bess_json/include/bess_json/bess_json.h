@@ -3,14 +3,52 @@
 #include <type_traits>
 
 #define EXPAND(x) x
-#define GET_MACRO(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, \
-                  _15, _16, _17, _18, _19, _20, NAME, ...)                     \
+#define GET_MACRO(_1,                                                          \
+                  _2,                                                          \
+                  _3,                                                          \
+                  _4,                                                          \
+                  _5,                                                          \
+                  _6,                                                          \
+                  _7,                                                          \
+                  _8,                                                          \
+                  _9,                                                          \
+                  _10,                                                         \
+                  _11,                                                         \
+                  _12,                                                         \
+                  _13,                                                         \
+                  _14,                                                         \
+                  _15,                                                         \
+                  _16,                                                         \
+                  _17,                                                         \
+                  _18,                                                         \
+                  _19,                                                         \
+                  _20,                                                         \
+                  NAME,                                                        \
+                  ...)                                                         \
     NAME
 
 #define FOR_EACH(action, ...)                                                  \
-    EXPAND(GET_MACRO(__VA_ARGS__, FE_20, FE_19, FE_18, FE_17, FE_16, FE_15,    \
-                     FE_14, FE_13, FE_12, FE_11, FE_10, FE_9, FE_8, FE_7,      \
-                     FE_6, FE_5, FE_4, FE_3, FE_2, FE_1)(action, __VA_ARGS__))
+    EXPAND(GET_MACRO(__VA_ARGS__,                                              \
+                     FE_20,                                                    \
+                     FE_19,                                                    \
+                     FE_18,                                                    \
+                     FE_17,                                                    \
+                     FE_16,                                                    \
+                     FE_15,                                                    \
+                     FE_14,                                                    \
+                     FE_13,                                                    \
+                     FE_12,                                                    \
+                     FE_11,                                                    \
+                     FE_10,                                                    \
+                     FE_9,                                                     \
+                     FE_8,                                                     \
+                     FE_7,                                                     \
+                     FE_6,                                                     \
+                     FE_5,                                                     \
+                     FE_4,                                                     \
+                     FE_3,                                                     \
+                     FE_2,                                                     \
+                     FE_1)(action, __VA_ARGS__))
 
 #define FE_1(m, x) m(x)
 #define FE_2(m, x, ...) m(x) EXPAND(FE_1(m, __VA_ARGS__))
@@ -218,10 +256,27 @@
     }
 
 #define FOR_EACH_ENUM(action, type, ...)                                       \
-    EXPAND(GET_MACRO(__VA_ARGS__, FE_E_20, FE_E_19, FE_E_18, FE_E_17, FE_E_16, \
-                     FE_E_15, FE_E_14, FE_E_13, FE_E_12, FE_E_11, FE_E_10,     \
-                     FE_E_9, FE_E_8, FE_E_7, FE_E_6, FE_E_5, FE_E_4, FE_E_3,   \
-                     FE_E_2, FE_E_1)(action, type, __VA_ARGS__))
+    EXPAND(GET_MACRO(__VA_ARGS__,                                              \
+                     FE_E_20,                                                  \
+                     FE_E_19,                                                  \
+                     FE_E_18,                                                  \
+                     FE_E_17,                                                  \
+                     FE_E_16,                                                  \
+                     FE_E_15,                                                  \
+                     FE_E_14,                                                  \
+                     FE_E_13,                                                  \
+                     FE_E_12,                                                  \
+                     FE_E_11,                                                  \
+                     FE_E_10,                                                  \
+                     FE_E_9,                                                   \
+                     FE_E_8,                                                   \
+                     FE_E_7,                                                   \
+                     FE_E_6,                                                   \
+                     FE_E_5,                                                   \
+                     FE_E_4,                                                   \
+                     FE_E_3,                                                   \
+                     FE_E_2,                                                   \
+                     FE_E_1)(action, type, __VA_ARGS__))
 
 #define FE_E_1(m, t, x) m(t, x)
 #define FE_E_2(m, t, x, ...) m(t, x) EXPAND(FE_E_1(m, t, __VA_ARGS__))

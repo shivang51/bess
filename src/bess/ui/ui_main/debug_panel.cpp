@@ -34,7 +34,8 @@ namespace Bess::UI {
         if (!sceneDriver->getIsPaused()) {
             const auto &hoverId =
                 sceneDriver->getActiveScene()->getHoveredEntity();
-            ImGui::Text("Hovered  Runtime Id: %u | Info: %u", hoverId.runtimeId,
+            ImGui::Text("Hovered  Runtime Id: %u | Info: %u",
+                        hoverId.runtimeId,
                         hoverId.info);
         }
 
@@ -204,11 +205,13 @@ namespace Bess::UI {
 
         if (Widgets::TreeNode(1,
                               std::format("Dependants of component {} ({}):",
-                                          comp->getName(), (uint64_t)compId))) {
+                                          comp->getName(),
+                                          (uint64_t)compId))) {
             ImGui::Indent();
             for (const auto &depId : dependants) {
                 const auto &depComp = sceneState.getComponentByUuid(depId);
-                ImGui::BulletText("%s (%lu) - %s", depComp->getName().c_str(),
+                ImGui::BulletText("%s (%lu) - %s",
+                                  depComp->getName().c_str(),
                                   (uint64_t)depId,
                                   typeid(depComp->getType()).name());
             }

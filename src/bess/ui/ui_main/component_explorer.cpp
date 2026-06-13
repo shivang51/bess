@@ -93,8 +93,8 @@ namespace Bess::UI {
                 if (!shouldCollectionShow)
                     continue;
 
-                if (Widgets::TreeNode(key, ent.first,
-                                      ImGuiTreeNodeFlags_DefaultOpen)) {
+                if (Widgets::TreeNode(
+                        key, ent.first, ImGuiTreeNodeFlags_DefaultOpen)) {
                     for (const auto &comp : ent.second) {
                         if (m_searchQuery != "" &&
                             Common::Helpers::toLowerCase(comp->getName())
@@ -103,8 +103,8 @@ namespace Bess::UI {
 
                         const std::string &name = comp->getName();
 
-                        if (Widgets::ButtonWithPopup(name, name + "OptionsMenu",
-                                                     false)) {
+                        if (Widgets::ButtonWithPopup(
+                                name, name + "OptionsMenu", false)) {
                             auto sceneDriver =
                                 GAppContext::getInstance()
                                     .getSubSystem<Bess::ProjectContext>()
@@ -126,8 +126,8 @@ namespace Bess::UI {
         }
 
         // non simulation components
-        if (Widgets::TreeNode(++key, "Miscellaneous",
-                              ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (Widgets::TreeNode(
+                ++key, "Miscellaneous", ImGuiTreeNodeFlags_DefaultOpen)) {
             static auto nonSimComponents =
                 Canvas::NonSimSceneComponent::getRegistry();
             for (auto &comp : nonSimComponents) {

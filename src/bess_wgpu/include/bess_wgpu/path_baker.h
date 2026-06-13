@@ -99,9 +99,11 @@ namespace Bess::Wgpu {
         void clear();
 
         void push(const std::vector<Piplines::PathCoverVertex> &vertices,
-                  float zIndex, uint64_t submitOrder);
+                  float zIndex,
+                  uint64_t submitOrder);
         void push(std::vector<Piplines::PathCoverVertex> &&vertices,
-                  float zIndex, uint64_t submitOrder);
+                  float zIndex,
+                  uint64_t submitOrder);
 
         void prepareForRendering(bool sortBackToFront);
 
@@ -122,32 +124,44 @@ namespace Bess::Wgpu {
     makePathBakeMetrics(const float *cameraTransform,
                         const Renderer2DExtent &extent);
 
-    [[nodiscard]] BakedPathSubmission BESS_API bakePathSubmission(
-        std::span<const PathCommand> commands, const PathProps &props,
-        const PathBakeMetrics &metrics);
+    [[nodiscard]] BakedPathSubmission BESS_API
+    bakePathSubmission(std::span<const PathCommand> commands,
+                       const PathProps &props,
+                       const PathBakeMetrics &metrics);
 
-    void BESS_API submitBakedPathSubmission(
-        const BakedPathSubmission &submission, const PathProps &props,
-        uint64_t submitOrder, PathBatch &opaquePathBatch,
-        PathBatch &transparentPathBatch, PathStrokeBatch &opaquePathStrokeBatch,
-        PathStrokeBatch &transparentPathStrokeBatch);
+    void BESS_API
+    submitBakedPathSubmission(const BakedPathSubmission &submission,
+                              const PathProps &props,
+                              uint64_t submitOrder,
+                              PathBatch &opaquePathBatch,
+                              PathBatch &transparentPathBatch,
+                              PathStrokeBatch &opaquePathStrokeBatch,
+                              PathStrokeBatch &transparentPathStrokeBatch);
 
-    void BESS_API submitPathCommands(
-        std::span<const PathCommand> commands, const PathProps &props,
-        const PathBakeMetrics &metrics, uint64_t submitOrder,
-        PathBatch &opaquePathBatch, PathBatch &transparentPathBatch,
-        PathStrokeBatch &opaquePathStrokeBatch,
-        PathStrokeBatch &transparentPathStrokeBatch);
+    void BESS_API
+    submitPathCommands(std::span<const PathCommand> commands,
+                       const PathProps &props,
+                       const PathBakeMetrics &metrics,
+                       uint64_t submitOrder,
+                       PathBatch &opaquePathBatch,
+                       PathBatch &transparentPathBatch,
+                       PathStrokeBatch &opaquePathStrokeBatch,
+                       PathStrokeBatch &transparentPathStrokeBatch);
 
-    void BESS_API submitPathCommands(
-        std::span<const PathCommand> commands, const PathProps &props,
-        const PathBakeMetrics &metrics, PathBatch &opaquePathBatch,
-        PathBatch &transparentPathBatch, PathStrokeBatch &opaquePathStrokeBatch,
-        PathStrokeBatch &transparentPathStrokeBatch);
+    void BESS_API
+    submitPathCommands(std::span<const PathCommand> commands,
+                       const PathProps &props,
+                       const PathBakeMetrics &metrics,
+                       PathBatch &opaquePathBatch,
+                       PathBatch &transparentPathBatch,
+                       PathStrokeBatch &opaquePathStrokeBatch,
+                       PathStrokeBatch &transparentPathStrokeBatch);
 
-    std::vector<Piplines::PathCoverVertex> BESS_API bakePathFillAntiAlias(
-        std::span<const PathCommand> commands, const PathProps &props,
-        const PathBakeMetrics &metrics, float fringeScale);
+    std::vector<Piplines::PathCoverVertex>
+        BESS_API bakePathFillAntiAlias(std::span<const PathCommand> commands,
+                                       const PathProps &props,
+                                       const PathBakeMetrics &metrics,
+                                       float fringeScale);
 
     StrokeMeshParams BESS_API makeStrokeMeshParams(
         const PathProps &props, const PathBakeMetrics &metrics);

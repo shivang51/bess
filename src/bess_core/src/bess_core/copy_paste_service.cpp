@@ -64,7 +64,8 @@ namespace Bess::Svc::CopyPaste {
             addEntity(entity);
         }
 
-        BESS_DEBUG("Copied {} entities from scene {}", m_entities.size(),
+        BESS_DEBUG("Copied {} entities from scene {}",
+                   m_entities.size(),
                    (uint64_t)sceneState.getSceneId());
     }
 
@@ -154,8 +155,9 @@ namespace Bess::Svc::CopyPaste {
                 auto inst =
                     std::dynamic_pointer_cast<Canvas::NonSimSceneComponent>(
                         clonedComponents.front());
-                BESS_ASSERT(inst, "Non-simulation clone did not return a "
-                                  "non-simulation component first");
+                BESS_ASSERT(inst,
+                            "Non-simulation clone did not return a "
+                            "non-simulation component first");
                 clonedComponents.erase(clonedComponents.begin());
                 BESS_ASSERT(clonedComponents.size() ==
                                 entityData.comp->getChildComponents().size(),
@@ -238,7 +240,8 @@ namespace Bess::Svc::CopyPaste {
                 projectCtx->getSubSystem<SimEngine::SimulationEngine>());
         }
 
-        BESS_DEBUG("Pasted {} entities into scene {}", m_entities.size(),
+        BESS_DEBUG("Pasted {} entities into scene {}",
+                   m_entities.size(),
                    (uint64_t)targetScene->getState().getSceneId());
 
         return ogToClonedIdMap;

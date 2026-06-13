@@ -10,8 +10,8 @@
 
 namespace Bess::Wgpu {
     namespace {
-        wgpu::TextureFormat toWgpuFormat(
-            Core::Renderer::Renderer2DTargetFormat format) {
+        wgpu::TextureFormat
+        toWgpuFormat(Core::Renderer::Renderer2DTargetFormat format) {
             using Core::Renderer::Renderer2DTargetFormat;
             switch (format) {
             case Renderer2DTargetFormat::RGBA8Unorm:
@@ -143,7 +143,8 @@ namespace Bess::Wgpu {
                                      " - " + stbi_failure_reason());
         }
 
-        createTextureFromPixels(pixels.get(), static_cast<uint32_t>(width),
+        createTextureFromPixels(pixels.get(),
+                                static_cast<uint32_t>(width),
                                 static_cast<uint32_t>(height));
         setSize({static_cast<float>(width), static_cast<float>(height)});
     }
@@ -158,7 +159,8 @@ namespace Bess::Wgpu {
         wgpu::TextureDescriptor descriptor{};
         descriptor.dimension = wgpu::TextureDimension::e2D;
         descriptor.size = {std::max(1u, (uint32_t)m_size.x),
-                           std::max(1u, (uint32_t)m_size.y), 1};
+                           std::max(1u, (uint32_t)m_size.y),
+                           1};
         descriptor.format = m_wgpuFormat;
         descriptor.mipLevelCount = 1;
         descriptor.sampleCount = 1;
@@ -172,7 +174,8 @@ namespace Bess::Wgpu {
     }
 
     void WgpuTexture::createTextureFromPixels(const uint8_t *pixels,
-                                              uint32_t width, uint32_t height) {
+                                              uint32_t width,
+                                              uint32_t height) {
         if (pixels == nullptr || width == 0 || height == 0) {
             throw std::runtime_error("Invalid texture pixel data");
         }
@@ -204,9 +207,12 @@ namespace Bess::Wgpu {
         layout.rowsPerImage = height;
 
         wgpu::Extent3D writeSize{width, height, 1};
-        s_renderer->getQueue().WriteTexture(
-            &destination, pixels, static_cast<size_t>(width) * height * 4,
-            &layout, &writeSize);
+        s_renderer->getQueue().WriteTexture(&destination,
+                                            pixels,
+                                            static_cast<size_t>(width) *
+                                                height * 4,
+                                            &layout,
+                                            &writeSize);
         m_isRenderTarget = false;
     }
 

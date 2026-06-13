@@ -33,15 +33,15 @@ namespace Bess::Wgpu {
                     "WgpuShader module is missing an entry point");
             }
 
-            m_compiledModules.push_back(
-                {module.stage, module.entryPoint, compileModule(device, module)});
+            m_compiledModules.push_back({module.stage,
+                                         module.entryPoint,
+                                         compileModule(device, module)});
         }
     }
 
     const std::string &WgpuShader::getName() const noexcept { return m_name; }
 
-    Core::Renderer::ShaderLanguage
-    WgpuShader::getLanguage() const noexcept {
+    Core::Renderer::ShaderLanguage WgpuShader::getLanguage() const noexcept {
         return m_language;
     }
 
@@ -70,9 +70,9 @@ namespace Bess::Wgpu {
         throw std::runtime_error("Requested WGPU shader stage is missing");
     }
 
-    wgpu::ShaderModule WgpuShader::compileModule(
-        const wgpu::Device &device,
-        const Core::Renderer::ShaderModuleDesc &desc) {
+    wgpu::ShaderModule
+    WgpuShader::compileModule(const wgpu::Device &device,
+                              const Core::Renderer::ShaderModuleDesc &desc) {
         wgpu::ShaderSourceWGSL wgslSource{};
         wgslSource.code = desc.source.c_str();
 

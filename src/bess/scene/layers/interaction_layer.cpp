@@ -79,9 +79,11 @@ namespace Bess::Canvas {
                         continue;
                     }
 
-                    dragComp->onMouseDragged(
-                        {data.pos, input.dMousePos, ctx.pickingId->info,
-                         selectedComps.size() > 1, ctx.sceneState});
+                    dragComp->onMouseDragged({data.pos,
+                                              input.dMousePos,
+                                              ctx.pickingId->info,
+                                              selectedComps.size() > 1,
+                                              ctx.sceneState});
 
                     if (ctx.sceneState->getConnectionStartSlot() == compId) {
                         ctx.sceneState->setConnectionStartSlot(UUID::null);
@@ -109,7 +111,9 @@ namespace Bess::Canvas {
         } else if (data.button == MouseButton::middle) {
             return handleMiddleMouseButton(evt, ctx, isPressed);
         } else if (data.button == MouseButton::right) {
-            queueMouseButtonEvent(evt, ctx, Events::MouseButton::right,
+            queueMouseButtonEvent(evt,
+                                  ctx,
+                                  Events::MouseButton::right,
                                   toSceneMouseAction(data.action));
             return EventResult::Consumed;
         }
@@ -133,8 +137,10 @@ namespace Bess::Canvas {
                 if (auto comp = ctx.sceneState->getComponentByPickingId(
                         *ctx.pickingId)) {
                     comp->onMouseButton({evt.data.mouseButton.pos,
-                                         Events::MouseButton::left, action,
-                                         ctx.pickingId->info, ctx.sceneState});
+                                         Events::MouseButton::left,
+                                         action,
+                                         ctx.pickingId->info,
+                                         ctx.sceneState});
                 }
             }
             return EventResult::Consumed;
@@ -159,8 +165,10 @@ namespace Bess::Canvas {
                 if (auto comp = ctx.sceneState->getComponentByPickingId(
                         *ctx.pickingId)) {
                     comp->onMouseButton({evt.data.mouseButton.pos,
-                                         Events::MouseButton::left, action,
-                                         ctx.pickingId->info, ctx.sceneState});
+                                         Events::MouseButton::left,
+                                         action,
+                                         ctx.pickingId->info,
+                                         ctx.sceneState});
                 }
             }
 
@@ -174,8 +182,10 @@ namespace Bess::Canvas {
             }
 
             comp->onMouseButton({evt.data.mouseButton.pos,
-                                 Events::MouseButton::left, action,
-                                 ctx.pickingId->info, ctx.sceneState});
+                                 Events::MouseButton::left,
+                                 action,
+                                 ctx.pickingId->info,
+                                 ctx.sceneState});
 
             if (evt.isCtrlPressed) {
                 if (ctx.sceneState->isComponentSelected(*ctx.pickingId)) {
@@ -205,7 +215,9 @@ namespace Bess::Canvas {
         BESS_ASSERT(ctx.inputState,
                     "InteractionLayer missing middle mouse state");
         ctx.inputState->isMiddleMousePressed = isPressed;
-        queueMouseButtonEvent(evt, ctx, Events::MouseButton::middle,
+        queueMouseButtonEvent(evt,
+                              ctx,
+                              Events::MouseButton::middle,
                               toSceneMouseAction(evt.data.mouseButton.action));
         return EventResult::Consumed;
     }
@@ -233,7 +245,9 @@ namespace Bess::Canvas {
     }
 
     void InteractionLayer::queueMouseButtonEvent(
-        SceneEvent &evt, SceneEventContext &ctx, Events::MouseButton button,
+        SceneEvent &evt,
+        SceneEventContext &ctx,
+        Events::MouseButton button,
         Events::MouseClickAction action) const {
         auto &appCtx = GAppContext::getInstance();
         auto eventDispatcher =
@@ -309,12 +323,14 @@ namespace Bess::Canvas {
             std::clamp(std::floor(minX), 0.f, static_cast<float>(width - 1u)));
         const auto y0 = static_cast<uint32_t>(
             std::clamp(std::floor(minY), 0.f, static_cast<float>(height - 1u)));
-        const auto x1 = static_cast<uint32_t>(
-            std::clamp(std::ceil(maxX), static_cast<float>(x0 + 1u),
-                       static_cast<float>(width)));
-        const auto y1 = static_cast<uint32_t>(
-            std::clamp(std::ceil(maxY), static_cast<float>(y0 + 1u),
-                       static_cast<float>(height)));
+        const auto x1 =
+            static_cast<uint32_t>(std::clamp(std::ceil(maxX),
+                                             static_cast<float>(x0 + 1u),
+                                             static_cast<float>(width)));
+        const auto y1 =
+            static_cast<uint32_t>(std::clamp(std::ceil(maxY),
+                                             static_cast<float>(y0 + 1u),
+                                             static_cast<float>(height)));
 
         request = {
             .x = x0,

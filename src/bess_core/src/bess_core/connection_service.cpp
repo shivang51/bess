@@ -28,7 +28,8 @@ namespace Bess::Svc {
 
     std::shared_ptr<Canvas::ConnectionSceneComponent>
     SvcConnection::createConnection(
-        const UUID &slotAId, const UUID &slotBId,
+        const UUID &slotAId,
+        const UUID &slotBId,
         const std::shared_ptr<Canvas::Scene> &scene) {
         auto conn = std::make_shared<Canvas::ConnectionSceneComponent>();
         conn->setStartEndSlots(slotAId, slotBId);
@@ -40,9 +41,12 @@ namespace Bess::Svc {
 
     std::shared_ptr<Canvas::ConnectionSceneComponent>
     SvcConnection::createConnection(
-        const Bess::UUID &fromCompId, Bess::Canvas::SlotType fromSlotType,
-        int fromSlotIdx, const Bess::UUID &toCompId,
-        Bess::Canvas::SlotType toSlotType, int toSlotIdx,
+        const Bess::UUID &fromCompId,
+        Bess::Canvas::SlotType fromSlotType,
+        int fromSlotIdx,
+        const Bess::UUID &toCompId,
+        Bess::Canvas::SlotType toSlotType,
+        int toSlotIdx,
         const std::shared_ptr<Canvas::Scene> &scene) {
         mp_scene = scene;
         auto &sceneState = getScene()->getState();
@@ -126,7 +130,8 @@ namespace Bess::Svc {
         const std::shared_ptr<Canvas::ConnectionSceneComponent> &conn,
         const std::shared_ptr<Canvas::Scene> &scene) {
         BESS_DEBUG("Adding connection with uuid {} between slot {} and slot {}",
-                   (uint64_t)conn->getUuid(), (uint64_t)conn->getStartSlot(),
+                   (uint64_t)conn->getUuid(),
+                   (uint64_t)conn->getStartSlot(),
                    (uint64_t)conn->getEndSlot());
 
         if (!conn) {
@@ -161,7 +166,8 @@ namespace Bess::Svc {
         if (!slotA && !endpointAIsProxy) {
 
             BESS_ERROR("Slot A with id {} of connection {} not found",
-                       (uint64_t)slotAId, (uint64_t)conn->getUuid());
+                       (uint64_t)slotAId,
+                       (uint64_t)conn->getUuid());
             BESS_ASSERT(false, "Slot A of the connection not found");
             mp_scene = nullptr;
             return false;
@@ -169,7 +175,8 @@ namespace Bess::Svc {
 
         if (!slotB && !endpointBIsProxy) {
             BESS_ERROR("Slot B with id {} of connection {} not found",
-                       (uint64_t)slotBId, (uint64_t)conn->getUuid());
+                       (uint64_t)slotBId,
+                       (uint64_t)conn->getUuid());
             BESS_ASSERT(false, "Slot B of the connection not found");
             mp_scene = nullptr;
             return false;
@@ -191,7 +198,8 @@ namespace Bess::Svc {
 
         if (slotA && !foundAInScene && !addSlot(slotA)) {
             BESS_ERROR("Failed to add slot A with id {} for connection {}",
-                       (uint64_t)slotAId, (uint64_t)conn->getUuid());
+                       (uint64_t)slotAId,
+                       (uint64_t)conn->getUuid());
             BESS_ASSERT(false, "Failed to add slot A for connection");
             mp_scene = nullptr;
             return false;
@@ -213,7 +221,8 @@ namespace Bess::Svc {
 
         if (slotB && !foundBInScene && !addSlot(slotB)) {
             BESS_ERROR("Failed to add slot B with id {} for connection {}",
-                       (uint64_t)slotBId, (uint64_t)conn->getUuid());
+                       (uint64_t)slotBId,
+                       (uint64_t)conn->getUuid());
             BESS_ASSERT(false, "Failed to add slot B for connection");
             mp_scene = nullptr;
             return false;
@@ -224,8 +233,10 @@ namespace Bess::Svc {
         if (res.has_value()) {
             BESS_ERROR("Failed to connect slots {} and {} in sim engine for "
                        "connection {}, error: {}",
-                       (uint64_t)slotAId, (uint64_t)slotBId,
-                       (uint64_t)conn->getUuid(), res.value());
+                       (uint64_t)slotAId,
+                       (uint64_t)slotBId,
+                       (uint64_t)conn->getUuid(),
+                       res.value());
             // BESS_ASSERT(false, "Failed to connect slots in sim engine for
             // connection");
             mp_scene = nullptr;
@@ -239,7 +250,9 @@ namespace Bess::Svc {
 
         BESS_INFO(
             "[ConnectionSvc] Added connection {} between slot {} and slot {}",
-            (uint64_t)conn->getUuid(), (uint64_t)slotAId, (uint64_t)slotBId);
+            (uint64_t)conn->getUuid(),
+            (uint64_t)slotAId,
+            (uint64_t)slotBId);
 
         mp_scene = nullptr;
         return true;
@@ -291,7 +304,8 @@ namespace Bess::Svc {
                 if (!removeSlot(slotA)) {
                     BESS_ERROR(
                         "Failed to remove slot A with id {} for connection {}",
-                        (uint64_t)slotAId, (uint64_t)conn->getUuid());
+                        (uint64_t)slotAId,
+                        (uint64_t)conn->getUuid());
                     BESS_ASSERT(false,
                                 "Failed to remove slot A for connection");
                     mp_scene = nullptr;
@@ -309,7 +323,8 @@ namespace Bess::Svc {
                 if (!removeSlot(slotB)) {
                     BESS_ERROR(
                         "Failed to remove slot B with id {} for connection {}",
-                        (uint64_t)slotBId, (uint64_t)conn->getUuid());
+                        (uint64_t)slotBId,
+                        (uint64_t)conn->getUuid());
                     BESS_ASSERT(false,
                                 "Failed to remove slot B for connection");
                     mp_scene = nullptr;
@@ -593,16 +608,22 @@ namespace Bess::Svc {
                 ? SimEngine::SlotType::digitalInput
                 : SimEngine::SlotType::digitalOutput;
 
-        const auto success = simEngine.connectComponent(
-            simCompA->getSimEngineId(), slotCompA->getIndex(), pinTypeA,
-            simCompB->getSimEngineId(), slotCompB->getIndex(), pinTypeB);
+        const auto success =
+            simEngine.connectComponent(simCompA->getSimEngineId(),
+                                       slotCompA->getIndex(),
+                                       pinTypeA,
+                                       simCompB->getSimEngineId(),
+                                       slotCompB->getIndex(),
+                                       pinTypeB);
 
         if (!success) {
             BESS_WARN(
                 "[ConnectionSvc] Failed to connect slots in simulation engine "
                 "between component {} slot {} and component {} slot {}",
-                (uint64_t)simCompA->getUuid(), slotCompA->getIndex(),
-                (uint64_t)simCompB->getUuid(), slotCompB->getIndex());
+                (uint64_t)simCompA->getUuid(),
+                slotCompA->getIndex(),
+                (uint64_t)simCompB->getUuid(),
+                slotCompB->getIndex());
             return "Failed to connect slots in simulation engine";
         }
 
@@ -650,9 +671,12 @@ namespace Bess::Svc {
                 ? SimEngine::SlotType::digitalInput
                 : SimEngine::SlotType::digitalOutput;
 
-        simEngine.deleteConnection(
-            simCompA->getSimEngineId(), pinTypeA, slotCompA->getIndex(),
-            simCompB->getSimEngineId(), pinTypeB, slotCompB->getIndex());
+        simEngine.deleteConnection(simCompA->getSimEngineId(),
+                                   pinTypeA,
+                                   slotCompA->getIndex(),
+                                   simCompB->getSimEngineId(),
+                                   pinTypeB,
+                                   slotCompB->getIndex());
 
         return true;
     }
@@ -754,7 +778,9 @@ namespace Bess::Svc {
         if (res.has_value()) {
             BESS_ERROR("Failed to connect proxy slot A {} to proxy slot B {} "
                        "in sim engine, error: {}",
-                       (uint64_t)proxyA, (uint64_t)proxyB, res.value());
+                       (uint64_t)proxyA,
+                       (uint64_t)proxyB,
+                       res.value());
             BESS_ASSERT(false,
                         "Failed to connect proxy to proxy in sim engine");
             return "Failed to connect proxy to proxy in sim engine";
@@ -810,7 +836,9 @@ namespace Bess::Svc {
         if (res.has_value()) {
             BESS_WARN("Failed to connect slot with id {} to proxy slot with id "
                       "{} in sim engine, error: {}",
-                      (uint64_t)slotId, (uint64_t)actualSlotId, res.value());
+                      (uint64_t)slotId,
+                      (uint64_t)actualSlotId,
+                      res.value());
             return "Failed to connect slot to proxy slot in sim engine";
         }
 
@@ -993,7 +1021,8 @@ namespace Bess::Svc {
         if (!compA || !compB) {
             BESS_ERROR("Components not found in scene for disconnecting "
                        "endpoints: {} and {}",
-                       (uint64_t)idA, (uint64_t)idB);
+                       (uint64_t)idA,
+                       (uint64_t)idB);
             return "Components not found";
         }
 
@@ -1041,8 +1070,9 @@ namespace Bess::Svc {
                 BESS_ERROR("Component with id {} is not a proxy slot component "
                            "for registering connection",
                            (uint64_t)compId);
-                BESS_ASSERT(false, "Component is not a proxy slot component "
-                                   "for registering connection");
+                BESS_ASSERT(false,
+                            "Component is not a proxy slot component "
+                            "for registering connection");
                 return "Component is not a proxy slot component for "
                        "registering connection";
             }
@@ -1084,7 +1114,8 @@ namespace Bess::Svc {
     }
 
     std::pair<bool, std::string>
-    SvcConnection::canConnect(const UUID &idA, const UUID &idB,
+    SvcConnection::canConnect(const UUID &idA,
+                              const UUID &idB,
                               const std::shared_ptr<Canvas::Scene> &scene) {
         mp_scene = scene;
         auto &simEngine = getSimEngine();
@@ -1094,8 +1125,9 @@ namespace Bess::Svc {
 
         if (!slotCompA || !slotCompB) {
             mp_scene = nullptr;
-            return {false, "Invalid slot components for connection check "
-                           "(Proxy links might be dead)"};
+            return {false,
+                    "Invalid slot components for connection check "
+                    "(Proxy links might be dead)"};
         }
 
         const auto simCompA =
@@ -1125,8 +1157,9 @@ namespace Bess::Svc {
 
         if (pinTypeA == pinTypeB) {
             mp_scene = nullptr;
-            return {false, "Cannot connect pins of the same type i.e. input -> "
-                           "input or output -> output"};
+            return {false,
+                    "Cannot connect pins of the same type i.e. input -> "
+                    "input or output -> output"};
         }
 
         const bool isResizeA = slotCompA->isResizeSlot();
@@ -1144,9 +1177,12 @@ namespace Bess::Svc {
         auto indexB = slotCompB->getIndex();
 
         mp_scene = nullptr;
-        return simEngine.canConnectComponents(
-            simCompA->getSimEngineId(), indexA, pinTypeA,
-            simCompB->getSimEngineId(), indexB, pinTypeB);
+        return simEngine.canConnectComponents(simCompA->getSimEngineId(),
+                                              indexA,
+                                              pinTypeA,
+                                              simCompB->getSimEngineId(),
+                                              indexB,
+                                              pinTypeB);
     }
 
 } // namespace Bess::Svc

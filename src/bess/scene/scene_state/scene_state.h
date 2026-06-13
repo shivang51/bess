@@ -47,7 +47,9 @@ namespace Bess::Canvas {
             assignRuntimeId(id);
 
             BESS_DEBUG("[SceneState] Added {} | {} to scene {}",
-                       component->getName(), (uint64_t)id, (uint64_t)m_sceneId);
+                       component->getName(),
+                       (uint64_t)id,
+                       (uint64_t)m_sceneId);
 
             if (triggerAttach)
                 component->onAttach(*this);
@@ -114,7 +116,8 @@ namespace Bess::Canvas {
 
         const std::unordered_map<UUID, bool> &getSelectedComponents() const;
 
-        void attachChild(const UUID &parentId, const UUID &childId,
+        void attachChild(const UUID &parentId,
+                         const UUID &childId,
                          bool emitEvent = true);
         void detachChild(const UUID &childId);
 

@@ -65,7 +65,8 @@ namespace Bess::Cmd {
             BESS_DEBUG("Deletion order:");
             for (const auto &uuid : deletionOrder) {
                 auto comp = sceneState.getComponentByUuid(uuid);
-                BESS_DEBUG(" -> {} ({})", comp ? comp->getName() : "Unknown",
+                BESS_DEBUG(" -> {} ({})",
+                           comp ? comp->getName() : "Unknown",
                            (uint64_t)uuid);
             }
 #endif
@@ -73,7 +74,8 @@ namespace Bess::Cmd {
             std::vector<std::shared_ptr<Canvas::ConnectionSceneComponent>>
                 connections;
             std::unordered_map<
-                UUID, std::vector<std::shared_ptr<Canvas::ConnJointSceneComp>>>
+                UUID,
+                std::vector<std::shared_ptr<Canvas::ConnJointSceneComp>>>
                 jointsByConnection;
             std::unordered_set<UUID> connectionDeletionIds;
 
@@ -120,34 +122,36 @@ namespace Bess::Cmd {
 
             // Sort connections:
             // sort by slot Index DESCENDING (3 -> 2 -> 1)
-            std::ranges::sort(connections, [&sceneState](const auto &a,
-                                                         const auto &b) {
-                if (a->getParentComponent() != b->getParentComponent()) {
-                    return true;
-                }
+            std::ranges::sort(
+                connections, [&sceneState](const auto &a, const auto &b) {
+                    if (a->getParentComponent() != b->getParentComponent()) {
+                        return true;
+                    }
 
-                const auto getMaxSlotIdx = [&](const auto &conn) {
-                    const auto &slotA = conn->getStartSlot();
-                    const auto &slotB = conn->getEndSlot();
-                    const auto &slotAComp =
-                        sceneState
-                            .getComponentByUuid<Canvas::SlotSceneComponent>(
-                                slotA);
-                    const auto &slotBComp =
-                        sceneState
-                            .getComponentByUuid<Canvas::SlotSceneComponent>(
-                                slotB);
+                    const auto getMaxSlotIdx = [&](const auto &conn) {
+                        const auto &slotA = conn->getStartSlot();
+                        const auto &slotB = conn->getEndSlot();
+                        const auto &slotAComp =
+                            sceneState
+                                .getComponentByUuid<Canvas::SlotSceneComponent>(
+                                    slotA);
+                        const auto &slotBComp =
+                            sceneState
+                                .getComponentByUuid<Canvas::SlotSceneComponent>(
+                                    slotB);
 
-                    const auto &idxA = slotAComp ? slotAComp->getIndex() : 0;
-                    const auto &idxB = slotBComp ? slotBComp->getIndex() : 0;
-                    return std::max(idxA, idxB);
-                };
+                        const auto &idxA =
+                            slotAComp ? slotAComp->getIndex() : 0;
+                        const auto &idxB =
+                            slotBComp ? slotBComp->getIndex() : 0;
+                        return std::max(idxA, idxB);
+                    };
 
-                const auto &maxSlotIdxA = getMaxSlotIdx(a);
-                const auto &maxSlotIdxB = getMaxSlotIdx(b);
+                    const auto &maxSlotIdxA = getMaxSlotIdx(a);
+                    const auto &maxSlotIdxB = getMaxSlotIdx(b);
 
-                return maxSlotIdxA > maxSlotIdxB; // Descending order
-            });
+                    return maxSlotIdxA > maxSlotIdxB; // Descending order
+                });
 
             auto projCtx =
                 GAppContext::getInstance().getSubSystem<Bess::ProjectContext>();
@@ -170,7 +174,8 @@ namespace Bess::Cmd {
                 if (!comp)
                     continue;
 
-                BESS_DEBUG("Removing Component {} ({})", (uint64_t)uuid,
+                BESS_DEBUG("Removing Component {} ({})",
+                           (uint64_t)uuid,
                            comp->getName());
 
                 sceneState.removeComponent(uuid, UUID::master);
@@ -223,9 +228,11 @@ namespace Bess::Cmd {
                 if (!parentComp) {
                     BESS_ERROR(
                         "Parent  {} not found for {} during undo of del cmd.",
-                        (uint64_t)parentUuid, deletedComponent->getName());
-                    BESS_ASSERT(false, "Parent component not found during undo "
-                                       "of delete command");
+                        (uint64_t)parentUuid,
+                        deletedComponent->getName());
+                    BESS_ASSERT(false,
+                                "Parent component not found during undo "
+                                "of delete command");
                     continue;
                 }
 

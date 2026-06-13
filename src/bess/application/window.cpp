@@ -41,8 +41,8 @@ namespace Bess {
             BESS_ERROR("[-] GLFW ERROR {} -> {}", code, msg);
         });
 
-        BESS_INFO("[Window] GLFW {}.{}", GLFW_VERSION_MAJOR,
-                  GLFW_VERSION_MINOR);
+        BESS_INFO(
+            "[Window] GLFW {}.{}", GLFW_VERSION_MAJOR, GLFW_VERSION_MINOR);
 
 #ifdef __linux__
         // Dawn in this build supports X11 surfaces, not Wayland surfaces.
@@ -76,9 +76,11 @@ namespace Bess {
             (int)m_width, (int)m_height, m_title.c_str(), nullptr, nullptr);
 
         GLFWimage images[1];
-        images[0].pixels =
-            stbi_load("assets/images/logo/BessLogo.png", &images[0].width,
-                      &images[0].height, nullptr, 4); // rgba channels
+        images[0].pixels = stbi_load("assets/images/logo/BessLogo.png",
+                                     &images[0].width,
+                                     &images[0].height,
+                                     nullptr,
+                                     4); // rgba channels
         glfwSetWindowIcon(window, 1, images);
         stbi_image_free(images[0].pixels);
 
@@ -110,8 +112,8 @@ namespace Bess {
 
         mp_window = std::unique_ptr<GLFWwindow, GLFWwindowDeleter>(window);
 
-        glfwSetWindowSizeLimits(window, 600, 500, GLFW_DONT_CARE,
-                                GLFW_DONT_CARE);
+        glfwSetWindowSizeLimits(
+            window, 600, 500, GLFW_DONT_CARE, GLFW_DONT_CARE);
 
         glfwSetFramebufferSizeCallback(
             window, [](GLFWwindow *window, int w, int h) {
@@ -135,61 +137,68 @@ namespace Bess {
                 inputSubSystem->onMouseWheelEvent({x, y});
             });
 
-        glfwSetKeyCallback(window, [](GLFWwindow *window, int key, int scancode,
-                                      int action, int mods) {
-            const auto this_ = (Window *)glfwGetWindowUserPointer(window);
-            KeyAction keyAction =
-                action == GLFW_PRESS
-                    ? KeyAction::press
-                    : (action == GLFW_RELEASE
-                           ? KeyAction::release
-                           : (action == GLFW_REPEAT ? KeyAction::hold
-                                                    : KeyAction::unknown));
+        glfwSetKeyCallback(
+            window,
+            [](GLFWwindow *window,
+               int key,
+               int scancode,
+               int action,
+               int mods) {
+                const auto this_ = (Window *)glfwGetWindowUserPointer(window);
+                KeyAction keyAction =
+                    action == GLFW_PRESS
+                        ? KeyAction::press
+                        : (action == GLFW_RELEASE
+                               ? KeyAction::release
+                               : (action == GLFW_REPEAT ? KeyAction::hold
+                                                        : KeyAction::unknown));
 
-            auto inputSubSystem =
-                GAppContext::getInstance().getSubSystem<InputSubSystem>();
-            inputSubSystem->onKeyEvent(this_->glfwKeyToKeyCode(key), keyAction);
-        });
+                auto inputSubSystem =
+                    GAppContext::getInstance().getSubSystem<InputSubSystem>();
+                inputSubSystem->onKeyEvent(this_->glfwKeyToKeyCode(key),
+                                           keyAction);
+            });
 
-        glfwSetCharCallback(window, [](GLFWwindow *window,
-                                       unsigned int codepoint) {
-            auto inputSubSystem =
-                GAppContext::getInstance().getSubSystem<InputSubSystem>();
-            inputSubSystem->onTextInputEvent(
-                static_cast<char32_t>(codepoint));
-        });
+        glfwSetCharCallback(
+            window, [](GLFWwindow *window, unsigned int codepoint) {
+                auto inputSubSystem =
+                    GAppContext::getInstance().getSubSystem<InputSubSystem>();
+                inputSubSystem->onTextInputEvent(
+                    static_cast<char32_t>(codepoint));
+            });
 
-        glfwSetMouseButtonCallback(window, [](GLFWwindow *window, int button,
-                                              int action, int mods) {
-            const auto this_ = (Window *)glfwGetWindowUserPointer(window);
-            MouseButton btn = MouseButton::unknown;
+        glfwSetMouseButtonCallback(
+            window, [](GLFWwindow *window, int button, int action, int mods) {
+                const auto this_ = (Window *)glfwGetWindowUserPointer(window);
+                MouseButton btn = MouseButton::unknown;
 
-            switch (button) {
-            case GLFW_MOUSE_BUTTON_LEFT: {
-                btn = MouseButton::left;
-            } break;
-            case GLFW_MOUSE_BUTTON_RIGHT: {
-                btn = MouseButton::right;
-            } break;
-            case GLFW_MOUSE_BUTTON_MIDDLE: {
-                btn = MouseButton::middle;
-            } break;
-            default:
-                BESS_WARN("[Window] Unhandled mouse button type {}", button);
-                break;
-            }
+                switch (button) {
+                case GLFW_MOUSE_BUTTON_LEFT: {
+                    btn = MouseButton::left;
+                } break;
+                case GLFW_MOUSE_BUTTON_RIGHT: {
+                    btn = MouseButton::right;
+                } break;
+                case GLFW_MOUSE_BUTTON_MIDDLE: {
+                    btn = MouseButton::middle;
+                } break;
+                default:
+                    BESS_WARN("[Window] Unhandled mouse button type {}",
+                              button);
+                    break;
+                }
 
-            const auto btnAction = action == GLFW_PRESS
-                                       ? MouseButtonAction::press
-                                       : MouseButtonAction::release;
+                const auto btnAction = action == GLFW_PRESS
+                                           ? MouseButtonAction::press
+                                           : MouseButtonAction::release;
 
-            auto inputSubSystem =
-                GAppContext::getInstance().getSubSystem<InputSubSystem>();
+                auto inputSubSystem =
+                    GAppContext::getInstance().getSubSystem<InputSubSystem>();
 
-            double x = 0.0, y = 0.0;
-            glfwGetCursorPos(window, &x, &y);
-            inputSubSystem->onMouseButtonEvent(btn, btnAction, {x, y});
-        });
+                double x = 0.0, y = 0.0;
+                glfwGetCursorPos(window, &x, &y);
+                inputSubSystem->onMouseButtonEvent(btn, btnAction, {x, y});
+            });
 
         glfwSetCursorPosCallback(
             window, [](GLFWwindow *window, double x, double y) {
@@ -258,7 +267,8 @@ namespace Bess {
         return {x, y};
     }
 
-    void Window::framebufferResizeCallback(GLFWwindow *window, int width,
+    void Window::framebufferResizeCallback(GLFWwindow *window,
+                                           int width,
                                            int height) {
         const auto this_ =
             static_cast<Window *>(glfwGetWindowUserPointer(window));
@@ -273,8 +283,8 @@ namespace Bess {
         if (enable) {
             glfwSetInputMode(mp_window.get(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         } else {
-            glfwSetInputMode(mp_window.get(), GLFW_CURSOR,
-                             GLFW_CURSOR_DISABLED);
+            glfwSetInputMode(
+                mp_window.get(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         }
     }
 

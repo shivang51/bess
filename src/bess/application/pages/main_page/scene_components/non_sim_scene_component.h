@@ -66,7 +66,8 @@ namespace Bess::Canvas {
 
         REG_SCENE_COMP_TYPE("TextComponent", SceneComponentType::nonSimulation)
         SCENE_COMP_SER(Bess::Canvas::TextComponent,
-                       Bess::Canvas::NonSimSceneComponent, TEXT_SER_PROPS)
+                       Bess::Canvas::NonSimSceneComponent,
+                       TEXT_SER_PROPS)
 
         std::vector<std::shared_ptr<SceneComponent>>
         clone(const SceneState &sceneState) const override;
@@ -137,7 +138,8 @@ REG_SCENE_COMP_NP(Bess::Canvas::NonSimSceneComponent,
                   Bess::Canvas::SceneComponent)
 
 REFLECT_DERIVED_PROPS(Bess::Canvas::TextComponent,
-                      Bess::Canvas::NonSimSceneComponent, TEXT_SER_PROPS);
+                      Bess::Canvas::NonSimSceneComponent,
+                      TEXT_SER_PROPS);
 
 REFLECT_DERIVED_PROPS(Bess::Canvas::WidgetsTestComponent,
                       Bess::Canvas::NonSimSceneComponent,

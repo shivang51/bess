@@ -77,8 +77,8 @@ namespace Bess {
         std::string m_title;
 
         void initGLFW() const;
-        static void framebufferResizeCallback(GLFWwindow *window, int width,
-                                              int height);
+        static void
+        framebufferResizeCallback(GLFWwindow *window, int width, int height);
 
         WindowSurface m_surface;
         UIHandle m_ui;

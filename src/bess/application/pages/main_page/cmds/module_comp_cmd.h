@@ -22,7 +22,8 @@
 namespace Bess::Cmd {
     namespace Detail {
         inline void transferComponents(
-            Canvas::Scene *fromScene, Canvas::Scene *toScene,
+            Canvas::Scene *fromScene,
+            Canvas::Scene *toScene,
             const std::vector<std::shared_ptr<Canvas::SceneComponent>>
                 &components) {
             BESS_ASSERT(fromScene, "[ModuleCmd] Source scene must be valid");
@@ -88,8 +89,9 @@ namespace Bess::Cmd {
 
         inline std::shared_ptr<Canvas::ModuleSceneComponent>
         getOwningModuleComponent(const std::shared_ptr<Canvas::Scene> &scene) {
-            BESS_ASSERT(scene, "[ModuleCmd] Scene must be valid while "
-                               "resolving owning module");
+            BESS_ASSERT(scene,
+                        "[ModuleCmd] Scene must be valid while "
+                        "resolving owning module");
 
             const auto &sceneState = scene->getState();
             if (sceneState.getIsRootScene() ||
@@ -115,8 +117,9 @@ namespace Bess::Cmd {
         inline std::unordered_set<UUID> collectConnectedConnectionIds(
             const std::shared_ptr<Canvas::Scene> &scene,
             const UUID &componentId) {
-            BESS_ASSERT(scene, "[ModuleCmd] Scene must be valid while "
-                               "collecting boundary connections");
+            BESS_ASSERT(scene,
+                        "[ModuleCmd] Scene must be valid while "
+                        "collecting boundary connections");
 
             std::unordered_set<UUID> connectionIds;
             const auto simComponent =
@@ -151,10 +154,12 @@ namespace Bess::Cmd {
         }
 
         inline std::unordered_set<UUID> collectBoundaryExclusionIds(
-            const std::shared_ptr<Canvas::Scene> &scene, const UUID &netId,
+            const std::shared_ptr<Canvas::Scene> &scene,
+            const UUID &netId,
             std::vector<UUID> &connectionIdsToDisconnect) {
-            BESS_ASSERT(scene, "[ModuleCmd] Scene must be valid while "
-                               "collecting module boundary exclusions");
+            BESS_ASSERT(scene,
+                        "[ModuleCmd] Scene must be valid while "
+                        "collecting module boundary exclusions");
 
             std::unordered_set<UUID> excludedIds;
             const auto owningModule = getOwningModuleComponent(scene);
@@ -296,8 +301,8 @@ namespace Bess::Cmd {
                 m_boundaryDisconnectCmd->execute(m_sourceScene, simEngine);
             }
 
-            Detail::transferComponents(m_sourceScene.get(), m_moduleScene.get(),
-                                       m_movedComponents);
+            Detail::transferComponents(
+                m_sourceScene.get(), m_moduleScene.get(), m_movedComponents);
             m_executed = true;
             return true;
         }
@@ -310,8 +315,8 @@ namespace Bess::Cmd {
                 m_executed,
                 "[ModuleCmd] Cannot undo a module command that never executed");
 
-            Detail::transferComponents(m_moduleScene.get(), m_sourceScene.get(),
-                                       m_movedComponents);
+            Detail::transferComponents(
+                m_moduleScene.get(), m_sourceScene.get(), m_movedComponents);
             m_addModuleCmd->undo(m_sourceScene, simEngine);
             if (m_boundaryDisconnectCmd) {
                 m_boundaryDisconnectCmd->undo(m_sourceScene, simEngine);
@@ -346,8 +351,8 @@ namespace Bess::Cmd {
             }
 
             m_addModuleCmd->redo(m_sourceScene, simEngine);
-            Detail::transferComponents(m_sourceScene.get(), m_moduleScene.get(),
-                                       m_movedComponents);
+            Detail::transferComponents(
+                m_sourceScene.get(), m_moduleScene.get(), m_movedComponents);
         }
 
         std::shared_ptr<Canvas::ModuleSceneComponent>
@@ -472,8 +477,9 @@ namespace Bess::Cmd {
                   const std::shared_ptr<SimEngine::SimulationEngine> &simEngine)
             override {
             (void)scene;
-            BESS_ASSERT(m_executed, "[ModuleCmd] Cannot undo a module delete "
-                                    "command that never executed");
+            BESS_ASSERT(m_executed,
+                        "[ModuleCmd] Cannot undo a module delete "
+                        "command that never executed");
 
             Detail::ensureSceneRegistered(m_moduleScene);
             m_moduleSceneDeleteCmd->undo(m_moduleScene, simEngine);
@@ -485,8 +491,9 @@ namespace Bess::Cmd {
                   const std::shared_ptr<SimEngine::SimulationEngine> &simEngine)
             override {
             (void)scene;
-            BESS_ASSERT(m_executed, "[ModuleCmd] Cannot redo a module delete "
-                                    "command that never executed");
+            BESS_ASSERT(m_executed,
+                        "[ModuleCmd] Cannot redo a module delete "
+                        "command that never executed");
 
             m_rootDeleteCmd->redo(m_rootScene, simEngine);
             m_moduleSceneDeleteCmd->redo(m_moduleScene, simEngine);

@@ -28,15 +28,19 @@ class PySimSceneComponent : public Bess::Canvas::SimulationSceneComponent,
     ~PySimSceneComponent() override = default;
 
     void draw(Bess::SceneDrawContext &context) override {
-        PYBIND11_OVERRIDE(void, Bess::Canvas::SimulationSceneComponent, draw,
+        PYBIND11_OVERRIDE(void,
+                          Bess::Canvas::SimulationSceneComponent,
+                          draw,
                           std::ref(context));
     }
 
     std::vector<Bess::UUID> cleanup(Bess::Canvas::SceneState &state,
                                     Bess::UUID caller) override {
         PYBIND11_OVERRIDE(std::vector<Bess::UUID>,
-                          Bess::Canvas::SimulationSceneComponent, cleanup,
-                          std::ref(state), caller);
+                          Bess::Canvas::SimulationSceneComponent,
+                          cleanup,
+                          std::ref(state),
+                          caller);
     }
 
     std::vector<std::shared_ptr<SceneComponent>>
@@ -49,48 +53,63 @@ class PySimSceneComponent : public Bess::Canvas::SimulationSceneComponent,
     copy() const {
         PYBIND11_OVERRIDE_NAME(
             std::shared_ptr<Bess::Canvas::SimulationSceneComponent>,
-            PySimSceneComponent, "copy", copy);
+            PySimSceneComponent,
+            "copy",
+            copy);
     }
 
     void drawSchematic(Bess::SceneDrawContext &context) override {
-        PYBIND11_OVERRIDE_NAME(void, Bess::Canvas::SimulationSceneComponent,
-                               "draw_schematic", drawSchematic,
+        PYBIND11_OVERRIDE_NAME(void,
+                               Bess::Canvas::SimulationSceneComponent,
+                               "draw_schematic",
+                               drawSchematic,
                                std::ref(context));
     }
 
     void update(Bess::TimeMs timeStep,
                 Bess::Canvas::SceneState &state) override {
-        PYBIND11_OVERRIDE(void, Bess::Canvas::SimulationSceneComponent, update,
-                          timeStep, std::ref(state));
+        PYBIND11_OVERRIDE(void,
+                          Bess::Canvas::SimulationSceneComponent,
+                          update,
+                          timeStep,
+                          std::ref(state));
     }
 
     void onScaleChanged() override {
-        PYBIND11_OVERRIDE_NAME(void, Bess::Canvas::SimulationSceneComponent,
-                               "on_scale_changed", onScaleChanged);
+        PYBIND11_OVERRIDE_NAME(void,
+                               Bess::Canvas::SimulationSceneComponent,
+                               "on_scale_changed",
+                               onScaleChanged);
     }
 
     std::string getTypeName() const override {
         PYBIND11_OVERRIDE_NAME(std::string,
                                Bess::Canvas::SimulationSceneComponent,
-                               "get_type_name", getTypeName);
+                               "get_type_name",
+                               getTypeName);
     }
 
     Json::Value toJson() const override {
         PYBIND11_OVERRIDE_NAME(Json::Value,
                                Bess::Canvas::SimulationSceneComponent,
-                               "to_json", toJson);
+                               "to_json",
+                               toJson);
     }
 
     void drawPropertiesUI(Bess::Canvas::SceneState &sceneState) override {
-        PYBIND11_OVERRIDE_NAME(void, Bess::Canvas::SimulationSceneComponent,
-                               "draw_properties_ui", drawPropertiesUI,
+        PYBIND11_OVERRIDE_NAME(void,
+                               Bess::Canvas::SimulationSceneComponent,
+                               "draw_properties_ui",
+                               drawPropertiesUI,
                                std::ref(sceneState));
     }
 
     glm::vec2 calculateScale(const Bess::Canvas::SceneState &state) override {
         PYBIND11_OVERRIDE_NAME(glm::vec2,
                                Bess::Canvas::SimulationSceneComponent,
-                               "calc_scale", calculateScale, std::ref(state));
+                               "calc_scale",
+                               calculateScale,
+                               std::ref(state));
     }
 };
 
@@ -183,9 +202,10 @@ void bind_sim_scene_component(py::module_ &m) {
     };
 
     auto simCompBinding =
-        py::class_<Bess::Canvas::SimulationSceneComponent, PySimSceneComponent,
-                   Bess::Canvas::SceneComponent, py::smart_holder>(
-            m, "SimulationSceneComponent")
+        py::class_<Bess::Canvas::SimulationSceneComponent,
+                   PySimSceneComponent,
+                   Bess::Canvas::SceneComponent,
+                   py::smart_holder>(m, "SimulationSceneComponent")
             .def(py::init<>())
             .def(py::pickle(
                 [](const Bess::Canvas::SimulationSceneComponent &self) {
@@ -206,8 +226,10 @@ void bind_sim_scene_component(py::module_ &m) {
                     std::string errors;
 
                     bool parsingSuccessful =
-                        reader->parse(self.c_str(), self.c_str() + self.size(),
-                                      &json, &errors);
+                        reader->parse(self.c_str(),
+                                      self.c_str() + self.size(),
+                                      &json,
+                                      &errors);
 
                     if (!parsingSuccessful) {
                         throw std::runtime_error(
@@ -225,15 +247,20 @@ void bind_sim_scene_component(py::module_ &m) {
                         json, sharedComp);
                     return newComp;
                 }))
-            .def("cleanup", &Bess::Canvas::SimulationSceneComponent::cleanup,
-                 py::arg("state"), py::arg("caller") = 0)
-            .def("draw", &Bess::Canvas::SimulationSceneComponent::draw,
+            .def("cleanup",
+                 &Bess::Canvas::SimulationSceneComponent::cleanup,
+                 py::arg("state"),
+                 py::arg("caller") = 0)
+            .def("draw",
+                 &Bess::Canvas::SimulationSceneComponent::draw,
                  py::arg("context"))
             .def("draw_schematic",
                  &Bess::Canvas::SimulationSceneComponent::drawSchematic,
                  py::arg("context"))
-            .def("update", &Bess::Canvas::SimulationSceneComponent::update,
-                 py::arg("time_step"), py::arg("scene_state"))
+            .def("update",
+                 &Bess::Canvas::SimulationSceneComponent::update,
+                 py::arg("time_step"),
+                 py::arg("scene_state"))
             .def("setup", setup, py::arg("comp_def"))
             .def("get_input_states",
                  &Bess::Canvas::SimulationSceneComponent::getInputStates,
@@ -343,6 +370,7 @@ void bind_sim_scene_component(py::module_ &m) {
         });
     };
     simCompBinding.def_static(
-        "deser", deserDecorator,
+        "deser",
+        deserDecorator,
         py::arg("Use as a decorator over from_json static function"));
 }

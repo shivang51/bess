@@ -17,9 +17,8 @@ namespace Bess::Assets {
     }
 
     template <typename... TStrs>
-    constexpr uint64_t
-    fnv1a_hash_combined_recursive(uint64_t current_hash,
-                                  const std::string_view first, TStrs... rest) {
+    constexpr uint64_t fnv1a_hash_combined_recursive(
+        uint64_t current_hash, const std::string_view first, TStrs... rest) {
         uint64_t hash_after_first = fnv1a_hash_step(current_hash, first);
         if constexpr (sizeof...(rest) > 0) {
             hash_after_first ^= static_cast<uint64_t>('\0');

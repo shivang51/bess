@@ -33,7 +33,8 @@ namespace Bess::UI {
     namespace {
         bool matchesProjectExplorerIoFilter(
             const std::shared_ptr<Canvas::SceneComponent> &comp,
-            bool filterInputs, bool filterOutputs) {
+            bool filterInputs,
+            bool filterOutputs) {
             if (!filterInputs && !filterOutputs) {
                 return true;
             }
@@ -162,9 +163,11 @@ namespace Bess::UI {
             constexpr auto filterTitle = Common::Helpers::concat(
                 Icons::FontAwesomeIcons::FA_FILTER, " Filters");
             if (ImGui::BeginMenu(filterTitle.data())) {
-                ImGui::Selectable("Inputs", &m_filterInputs,
+                ImGui::Selectable("Inputs",
+                                  &m_filterInputs,
                                   ImGuiSelectableFlags_DontClosePopups);
-                ImGui::Selectable("Outputs", &m_filterOutputs,
+                ImGui::Selectable("Outputs",
+                                  &m_filterOutputs,
                                   ImGuiSelectableFlags_DontClosePopups);
                 ImGui::EndMenu();
             }
@@ -175,8 +178,8 @@ namespace Bess::UI {
         const float footerHeight = ImGui::GetTextLineHeightWithSpacing() +
                                    (style.ItemSpacing.y * 2) +
                                    style.WindowPadding.y;
-        if (ImGui::BeginChild("project_explorer_list",
-                              ImVec2(0.f, -footerHeight), false)) {
+        if (ImGui::BeginChild(
+                "project_explorer_list", ImVec2(0.f, -footerHeight), false)) {
             ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
 
@@ -265,8 +268,10 @@ namespace Bess::UI {
         ImGui::PopStyleVar();
     }
 
-    bool ProjectExplorer::drawLeafNode(const size_t key, const uint64_t nodeId,
-                                       const char *label, bool selected,
+    bool ProjectExplorer::drawLeafNode(const size_t key,
+                                       const uint64_t nodeId,
+                                       const char *label,
+                                       bool selected,
                                        const bool multiSelectMode) {
         const ImGuiContext &g = *ImGui::GetCurrentContext();
         const float rounding = g.Style.FrameRounding;
@@ -286,13 +291,14 @@ namespace Bess::UI {
             ImVec2 bgStart(x, y);
             ImVec2 bgEnd(x + window->Size.x,
                          y + g.FontSize + (g.Style.FramePadding.y * 2));
-            drawList->AddRectFilled(bgStart, bgEnd,
-                                    (ImColor)colors[ImGuiCol_TableRowBgAlt], 0);
+            drawList->AddRectFilled(
+                bgStart, bgEnd, (ImColor)colors[ImGuiCol_TableRowBgAlt], 0);
         }
 
         const ImRect bb(
-            pos, ImVec2(window->Pos.x + window->Size.x - g.Style.FramePadding.x,
-                        pos.y + g.FontSize + (g.Style.FramePadding.y * 2)));
+            pos,
+            ImVec2(window->Pos.x + window->Size.x - g.Style.FramePadding.x,
+                   pos.y + g.FontSize + (g.Style.FramePadding.y * 2)));
 
         bool hovered = false, held = false;
         const auto pressed = ImGui::ButtonBehavior(
@@ -324,8 +330,10 @@ namespace Bess::UI {
         textStart.y += g.Style.FramePadding.y;
         textStart.x += g.Style.FramePadding.x;
         drawList->AddText(textStart,
-                          IM_COL32(fgColor.x * 255, fgColor.y * 255,
-                                   fgColor.z * 255, fgColor.w * 255),
+                          IM_COL32(fgColor.x * 255,
+                                   fgColor.y * 255,
+                                   fgColor.z * 255,
+                                   fgColor.w * 255),
                           label);
 
         ImGui::ItemSize(bb, g.Style.FramePadding.y * 2);
@@ -523,10 +531,15 @@ namespace Bess::UI {
 
                 const auto icon = opened ? groupOpenIcon : groupIcon;
 
-                const auto ret = Widgets::EditableTreeNode(
-                    key, comp->getName(), comp->getIsSelected(), treeFlags,
-                    icon, ViewportTheme::colors.groupColor, nodePopupName,
-                    comp->getUuid());
+                const auto ret =
+                    Widgets::EditableTreeNode(key,
+                                              comp->getName(),
+                                              comp->getIsSelected(),
+                                              treeFlags,
+                                              icon,
+                                              ViewportTheme::colors.groupColor,
+                                              nodePopupName,
+                                              comp->getUuid());
 
                 count++;
                 opened = ret.first;
@@ -550,23 +563,27 @@ namespace Bess::UI {
                 const bool isAtRoot = comp->getParentComponent() == UUID::null;
                 std::string name;
                 if (isAtRoot) {
-                    name = std::format(" {}   {}", comp->getIcon(),
-                                       comp->getName());
+                    name = std::format(
+                        " {}   {}", comp->getIcon(), comp->getName());
                 } else {
-                    name = std::format("  {} {}", comp->getIcon(),
-                                       comp->getName());
+                    name = std::format(
+                        "  {} {}", comp->getIcon(), comp->getName());
                 }
 
                 if (isModule) {
                     const auto &moduleColor = ViewportTheme::colors.moduleColor;
                     ImGui::PushStyleColor(ImGuiCol_Text,
-                                          ImVec4(moduleColor.x, moduleColor.y,
-                                                 moduleColor.z, moduleColor.w));
+                                          ImVec4(moduleColor.x,
+                                                 moduleColor.y,
+                                                 moduleColor.z,
+                                                 moduleColor.w));
                 }
 
-                const auto &pressed =
-                    drawLeafNode(m_nodesKeyCounter++, compId, name.c_str(),
-                                 comp->getIsSelected(), selSize > 1);
+                const auto &pressed = drawLeafNode(m_nodesKeyCounter++,
+                                                   compId,
+                                                   name.c_str(),
+                                                   comp->getIsSelected(),
+                                                   selSize > 1);
                 if (isModule) {
                     ImGui::PopStyleColor();
                 }
@@ -583,9 +600,10 @@ namespace Bess::UI {
                             payloadData.emplace_back(selId);
                         }
                     }
-                    ImGui::SetDragDropPayload(
-                        "TREE_NODE_PAYLOAD", payloadData.data(),
-                        payloadData.size() * sizeof(uint64_t));
+                    ImGui::SetDragDropPayload("TREE_NODE_PAYLOAD",
+                                              payloadData.data(),
+                                              payloadData.size() *
+                                                  sizeof(uint64_t));
                     ImGui::Text("Dragging %lu nodes", payloadData.size());
                     ImGui::EndDragDropSource();
                 }

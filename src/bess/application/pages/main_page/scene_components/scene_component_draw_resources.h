@@ -39,34 +39,33 @@ namespace Bess::Canvas::SceneComponentDrawResources {
             const uint32_t srcHeight = static_cast<uint32_t>(height);
             const uint32_t longest = std::max(srcWidth, srcHeight);
             if (longest <= kShadowTextureMaxSize) {
-                return Wgpu::WgpuTexture::fromPixels(pixels.get(), srcWidth,
-                                                     srcHeight);
+                return Wgpu::WgpuTexture::fromPixels(
+                    pixels.get(), srcWidth, srcHeight);
             }
 
             const uint32_t dstWidth =
                 std::max(1u, srcWidth * kShadowTextureMaxSize / longest);
             const uint32_t dstHeight =
                 std::max(1u, srcHeight * kShadowTextureMaxSize / longest);
-            std::vector<uint8_t> resized(
-                static_cast<size_t>(dstWidth) * dstHeight * 4u);
+            std::vector<uint8_t> resized(static_cast<size_t>(dstWidth) *
+                                         dstHeight * 4u);
 
             const stbi_uc *src = pixels.get();
             for (uint32_t y = 0; y < dstHeight; ++y) {
                 const uint32_t srcY0 = y * srcHeight / dstHeight;
-                const uint32_t srcY1 = std::max(
-                    srcY0 + 1u, (y + 1u) * srcHeight / dstHeight);
+                const uint32_t srcY1 =
+                    std::max(srcY0 + 1u, (y + 1u) * srcHeight / dstHeight);
                 for (uint32_t x = 0; x < dstWidth; ++x) {
                     const uint32_t srcX0 = x * srcWidth / dstWidth;
-                    const uint32_t srcX1 = std::max(
-                        srcX0 + 1u, (x + 1u) * srcWidth / dstWidth);
+                    const uint32_t srcX1 =
+                        std::max(srcX0 + 1u, (x + 1u) * srcWidth / dstWidth);
 
                     uint64_t rgba[4] = {};
                     uint64_t count = 0;
                     for (uint32_t sy = srcY0; sy < srcY1; ++sy) {
                         for (uint32_t sx = srcX0; sx < srcX1; ++sx) {
                             const size_t offset =
-                                (static_cast<size_t>(sy) * srcWidth + sx) *
-                                4u;
+                                (static_cast<size_t>(sy) * srcWidth + sx) * 4u;
                             rgba[0] += src[offset + 0u];
                             rgba[1] += src[offset + 1u];
                             rgba[2] += src[offset + 2u];
@@ -88,8 +87,8 @@ namespace Bess::Canvas::SceneComponentDrawResources {
                 }
             }
 
-            return Wgpu::WgpuTexture::fromPixels(resized.data(), dstWidth,
-                                                 dstHeight);
+            return Wgpu::WgpuTexture::fromPixels(
+                resized.data(), dstWidth, dstHeight);
         }
     } // namespace Detail
 

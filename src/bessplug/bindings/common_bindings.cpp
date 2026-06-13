@@ -58,14 +58,19 @@ void bind_common_bindings(py::module_ &m) {
 void bind_vec4(py::module_ &m) {
     py::class_<glm::vec4>(m, "vec4")
         .def(py::init<>()) // default (0,0)
-        .def(py::init<float, float, float, float>(), py::arg("x"), py::arg("y"),
-             py::arg("z"), py::arg("w"))
+        .def(py::init<float, float, float, float>(),
+             py::arg("x"),
+             py::arg("y"),
+             py::arg("z"),
+             py::arg("w"))
         .def(py::init([](py::sequence seq) {
                  if (py::len(seq) != 4)
                      throw std::runtime_error(
                          "vec4 requires a sequence of length 4");
-                 return glm::vec4(seq[0].cast<float>(), seq[1].cast<float>(),
-                                  seq[2].cast<float>(), seq[3].cast<float>());
+                 return glm::vec4(seq[0].cast<float>(),
+                                  seq[1].cast<float>(),
+                                  seq[2].cast<float>(),
+                                  seq[3].cast<float>());
              }),
              py::arg("seq"))
         .def_readwrite("x", &glm::vec4::x)
@@ -83,13 +88,16 @@ void bind_vec3(py::module_ &m) {
     py::class_<glm::vec3>(m, "vec3")
         // Constructors
         .def(py::init<>()) // default (0,0)
-        .def(py::init<float, float, float>(), py::arg("x"), py::arg("y"),
+        .def(py::init<float, float, float>(),
+             py::arg("x"),
+             py::arg("y"),
              py::arg("z"))
         .def(py::init([](py::sequence seq) {
                  if (py::len(seq) != 2)
                      throw std::runtime_error(
                          "vec3 requires a sequence of length 2");
-                 return glm::vec3(seq[0].cast<float>(), seq[1].cast<float>(),
+                 return glm::vec3(seq[0].cast<float>(),
+                                  seq[1].cast<float>(),
                                   seq[2].cast<float>());
              }),
              py::arg("seq"))
@@ -313,18 +321,23 @@ void bind_time(py::module_ &m) {
                  return std::format("<TimeNS {} ns>",
                                     static_cast<uint64_t>(self.count()));
              })
-        .def("__eq__", [](const Bess::TimeNs &a,
-                          const Bess::TimeNs &b) { return a == b; })
-        .def("__ne__", [](const Bess::TimeNs &a,
-                          const Bess::TimeNs &b) { return !(a == b); })
+        .def(
+            "__eq__",
+            [](const Bess::TimeNs &a, const Bess::TimeNs &b) { return a == b; })
+        .def("__ne__",
+             [](const Bess::TimeNs &a, const Bess::TimeNs &b) {
+                 return !(a == b);
+             })
         .def("__lt__",
              [](const Bess::TimeNs &a, const Bess::TimeNs &b) { return a < b; })
-        .def("__le__", [](const Bess::TimeNs &a,
-                          const Bess::TimeNs &b) { return a <= b; })
+        .def(
+            "__le__",
+            [](const Bess::TimeNs &a, const Bess::TimeNs &b) { return a <= b; })
         .def("__gt__",
              [](const Bess::TimeNs &a, const Bess::TimeNs &b) { return a > b; })
-        .def("__ge__", [](const Bess::TimeNs &a,
-                          const Bess::TimeNs &b) { return a >= b; })
+        .def(
+            "__ge__",
+            [](const Bess::TimeNs &a, const Bess::TimeNs &b) { return a >= b; })
         .def("__add__",
              [](const Bess::TimeNs &a, const Bess::TimeNs &b) {
                  return Bess::TimeNs(static_cast<uint64_t>(a.count()) +
@@ -384,12 +397,13 @@ void bind_time(py::module_ &m) {
                      static_cast<uint64_t>(a.count()) +
                      static_cast<uint64_t>(b.count()));
              })
-        .def("__sub__", [](const std::chrono::duration<double, std::milli> &a,
-                           const std::chrono::duration<double, std::milli> &b) {
-            return std::chrono::duration<double, std::milli>(
-                static_cast<uint64_t>(a.count()) -
-                static_cast<uint64_t>(b.count()));
-        });
+        .def("__sub__",
+             [](const std::chrono::duration<double, std::milli> &a,
+                const std::chrono::duration<double, std::milli> &b) {
+                 return std::chrono::duration<double, std::milli>(
+                     static_cast<uint64_t>(a.count()) -
+                     static_cast<uint64_t>(b.count()));
+             });
 
     // std::chrono::duration<double, std::ratio<1l, 1000l>> alias to TimeMs
 }
@@ -423,19 +437,31 @@ void bind_json_cpp(py::module_ &m) {
                      throw py::type_error("Not a JSON Array");
                  return v[index];
              })
-        .def("__setitem__", [](Json::Value &v, const std::string &key,
-                               const Json::Value &val) { v[key] = val; })
-        .def("__setitem__", [](Json::Value &v, int index,
-                               const Json::Value &val) { v[index] = val; })
+        .def("__setitem__",
+             [](Json::Value &v,
+                const std::string &key,
+                const Json::Value &val) { v[key] = val; })
+        .def("__setitem__",
+             [](Json::Value &v, int index, const Json::Value &val) {
+                 v[index] = val;
+             })
 
-        .def("__setitem__", [](Json::Value &v, const std::string &key,
-                               const int &val) { v[key] = val; })
-        .def("__setitem__", [](Json::Value &v, const std::string &key,
-                               const std::string &val) { v[key] = val; })
-        .def("__setitem__", [](Json::Value &v, const std::string &key,
-                               const double &val) { v[key] = val; })
-        .def("__setitem__", [](Json::Value &v, const std::string &key,
-                               const bool val) { v[key] = val; })
+        .def("__setitem__",
+             [](Json::Value &v, const std::string &key, const int &val) {
+                 v[key] = val;
+             })
+        .def("__setitem__",
+             [](Json::Value &v,
+                const std::string &key,
+                const std::string &val) { v[key] = val; })
+        .def("__setitem__",
+             [](Json::Value &v, const std::string &key, const double &val) {
+                 v[key] = val;
+             })
+        .def("__setitem__",
+             [](Json::Value &v, const std::string &key, const bool val) {
+                 v[key] = val;
+             })
 
         .def("__len__", &Json::Value::size)
         .def("is_object", &Json::Value::isObject)

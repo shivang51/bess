@@ -10,8 +10,22 @@ namespace Bess::Wgpu::Piplines {
         float viewport[2] = {1.f, 1.f};
         float padding[2] = {0.f, 0.f};
         float cameraTransform[16] = {
-            1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f,
-            0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f,
+            1.f,
+            0.f,
+            0.f,
+            0.f,
+            0.f,
+            1.f,
+            0.f,
+            0.f,
+            0.f,
+            0.f,
+            1.f,
+            0.f,
+            0.f,
+            0.f,
+            0.f,
+            1.f,
         };
     };
 
@@ -39,18 +53,32 @@ namespace Bess::Wgpu::Piplines {
 
             m_frameUniform.viewport[0] = static_cast<float>(width);
             m_frameUniform.viewport[1] = static_cast<float>(height);
-            queue.WriteBuffer(m_buffer, 0, &m_frameUniform,
-                              sizeof(FrameUniform));
+            queue.WriteBuffer(
+                m_buffer, 0, &m_frameUniform, sizeof(FrameUniform));
         }
 
         void setCameraTransform(const float *data) {
             if (data == nullptr) {
                 constexpr float identity[16] = {
-                    1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f,
-                    0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f,
+                    1.f,
+                    0.f,
+                    0.f,
+                    0.f,
+                    0.f,
+                    1.f,
+                    0.f,
+                    0.f,
+                    0.f,
+                    0.f,
+                    1.f,
+                    0.f,
+                    0.f,
+                    0.f,
+                    0.f,
+                    1.f,
                 };
-                std::copy(identity, identity + 16,
-                          m_frameUniform.cameraTransform);
+                std::copy(
+                    identity, identity + 16, m_frameUniform.cameraTransform);
                 return;
             }
             std::copy(data, data + 16, m_frameUniform.cameraTransform);

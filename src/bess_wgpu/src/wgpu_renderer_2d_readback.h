@@ -55,8 +55,7 @@ namespace Bess::Wgpu::Renderer2DDetail {
         case wgpu::TextureFormat::RG32Uint:
             return 8;
         default:
-            throw std::runtime_error(
-                "Unsupported texture format for readback");
+            throw std::runtime_error("Unsupported texture format for readback");
         }
     }
 
@@ -79,12 +78,15 @@ namespace Bess::Wgpu::Renderer2DDetail {
         return ((value + alignment - 1) / alignment) * alignment;
     }
 
-    inline Core::Renderer::TextureReadbackResult readTextureRegion(
-        const wgpu::Instance &instance, const wgpu::Device &device,
-        const wgpu::Queue &queue, const wgpu::Texture &texture,
-        wgpu::TextureFormat format, uint32_t textureWidth,
-        uint32_t textureHeight,
-        const Core::Renderer::TextureReadbackRegion &region) {
+    inline Core::Renderer::TextureReadbackResult
+    readTextureRegion(const wgpu::Instance &instance,
+                      const wgpu::Device &device,
+                      const wgpu::Queue &queue,
+                      const wgpu::Texture &texture,
+                      wgpu::TextureFormat format,
+                      uint32_t textureWidth,
+                      uint32_t textureHeight,
+                      const Core::Renderer::TextureReadbackRegion &region) {
         if (texture == nullptr) {
             throw std::runtime_error("Cannot read a null WGPU texture");
         }
@@ -133,19 +135,21 @@ namespace Bess::Wgpu::Renderer2DDetail {
 
         wgpu::MapAsyncStatus mapStatus = wgpu::MapAsyncStatus::Error;
         std::string mapError;
-        auto mapCallback =
-            [&mapStatus, &mapError](wgpu::MapAsyncStatus status,
-                                    wgpu::StringView message) {
-                mapStatus = status;
-                if (status != wgpu::MapAsyncStatus::Success &&
-                    message.data != nullptr) {
-                    mapError.assign(message.data, message.length);
-                }
-            };
+        auto mapCallback = [&mapStatus, &mapError](wgpu::MapAsyncStatus status,
+                                                   wgpu::StringView message) {
+            mapStatus = status;
+            if (status != wgpu::MapAsyncStatus::Success &&
+                message.data != nullptr) {
+                mapError.assign(message.data, message.length);
+            }
+        };
 
-        wgpu::Future mapFuture = readbackBuffer.MapAsync(
-            wgpu::MapMode::Read, 0, readbackSize,
-            wgpu::CallbackMode::WaitAnyOnly, mapCallback);
+        wgpu::Future mapFuture =
+            readbackBuffer.MapAsync(wgpu::MapMode::Read,
+                                    0,
+                                    readbackSize,
+                                    wgpu::CallbackMode::WaitAnyOnly,
+                                    mapCallback);
         if (instance.WaitAny(mapFuture, UINT64_MAX) !=
             wgpu::WaitStatus::Success) {
             throw std::runtime_error(
@@ -192,17 +196,18 @@ namespace Bess::Wgpu::Renderer2DDetail {
         }
     };
 
-    inline void writePng(const std::string &path, const uint8_t *rgba,
-                         uint32_t width, uint32_t height) {
+    inline void writePng(const std::string &path,
+                         const uint8_t *rgba,
+                         uint32_t width,
+                         uint32_t height) {
         using FilePtr = std::unique_ptr<FILE, FileDeleter>;
         FilePtr file(std::fopen(path.c_str(), "wb"));
         if (!file) {
-            throw std::runtime_error("Failed to open PNG for writing: " +
-                                     path);
+            throw std::runtime_error("Failed to open PNG for writing: " + path);
         }
 
-        png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING,
-                                                  nullptr, nullptr, nullptr);
+        png_structp png = png_create_write_struct(
+            PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
         if (png == nullptr) {
             throw std::runtime_error("Failed to create PNG write struct");
         }
@@ -219,16 +224,22 @@ namespace Bess::Wgpu::Renderer2DDetail {
         }
 
         png_init_io(png, file.get());
-        png_set_IHDR(png, info, width, height, 8, PNG_COLOR_TYPE_RGBA,
-                     PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
+        png_set_IHDR(png,
+                     info,
+                     width,
+                     height,
+                     8,
+                     PNG_COLOR_TYPE_RGBA,
+                     PNG_INTERLACE_NONE,
+                     PNG_COMPRESSION_TYPE_DEFAULT,
                      PNG_FILTER_TYPE_DEFAULT);
         png_write_info(png, info);
 
         std::vector<png_bytep> rows(height);
         const auto rowBytes = static_cast<size_t>(width) * 4;
         for (uint32_t row = 0; row < height; ++row) {
-            rows[row] = (unsigned char *)(rgba + (static_cast<size_t>(row) *
-                                                  rowBytes));
+            rows[row] =
+                (unsigned char *)(rgba + (static_cast<size_t>(row) * rowBytes));
         }
 
         png_write_image(png, rows.data());

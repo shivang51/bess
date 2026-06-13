@@ -103,14 +103,19 @@ namespace Bess::Canvas {
         clone(const SceneState &sceneState) const;
 
         MAKE_GETTER_SETTER(UUID, Uuid, m_uuid)
-        MAKE_GETTER_SETTER_WC(Transform, Transform, m_transform,
+        MAKE_GETTER_SETTER_WC(Transform,
+                              Transform,
+                              m_transform,
                               onTransformChanged)
         MAKE_GETTER_SETTER_WC(Style, Style, m_style, onStyleChanged)
         MAKE_GETTER_SETTER_WC(std::string, Name, m_name, onNameChanged)
         MAKE_GETTER_SETTER(UUID, ParentComponent, m_parentComponent)
-        MAKE_GETTER_SETTER(std::unordered_set<UUID>, ChildComponents,
+        MAKE_GETTER_SETTER(std::unordered_set<UUID>,
+                           ChildComponents,
                            m_childComponents)
-        MAKE_GETTER_SETTER_WC(uint32_t, RuntimeId, m_runtimeId,
+        MAKE_GETTER_SETTER_WC(uint32_t,
+                              RuntimeId,
+                              m_runtimeId,
                               onRuntimeIdChanged)
         MAKE_GETTER_SETTER_WC(bool, IsSelected, m_isSelected, onSelect)
         MAKE_GETTER_SETTER(std::string, Icon, m_icon);
@@ -198,9 +203,11 @@ namespace Bess::Canvas {
     };
 } // namespace Bess::Canvas
 
-REFLECT_PROPS(Bess::Canvas::SceneComponent, ("uuid", getUuid, setUuid),
+REFLECT_PROPS(Bess::Canvas::SceneComponent,
+              ("uuid", getUuid, setUuid),
               ("transform", getTransform, setTransform),
-              ("style", getStyle, setStyle), ("name", getName, setName),
+              ("style", getStyle, setStyle),
+              ("name", getName, setName),
               ("icon", getIcon, setIcon),
               ("parentComponent", getParentComponent, setParentComponent),
               ("childComponents", getChildComponents, setChildComponents))

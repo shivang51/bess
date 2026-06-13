@@ -58,7 +58,8 @@ namespace Bess::Wgpu {
                     }
 
                     std::stable_sort(
-                        m_sortIndices.begin(), m_sortIndices.end(),
+                        m_sortIndices.begin(),
+                        m_sortIndices.end(),
                         [this](uint32_t a, uint32_t b) {
                             if (m_instances[a].position[2] !=
                                 m_instances[b].position[2]) {
@@ -143,14 +144,14 @@ namespace Bess::Wgpu {
           public:
             void init(const wgpu::Device &device,
                       wgpu::TextureFormat targetFormat,
-                      const wgpu::Buffer &frameBuffer, uint64_t frameBufferSize,
+                      const wgpu::Buffer &frameBuffer,
+                      uint64_t frameBufferSize,
                       wgpu::TextureFormat pickingFormat,
                       const TextureResource &atlasResource);
 
             void destroy();
 
-            [[nodiscard]] bool
-            ensureInstanceBufferSize(std::size_t glyphCount);
+            [[nodiscard]] bool ensureInstanceBufferSize(std::size_t glyphCount);
 
             void uploadInstances(const wgpu::Queue &queue,
                                  const MsdfTextInstance *instances,
@@ -164,7 +165,8 @@ namespace Bess::Wgpu {
                                uint32_t firstGlyph,
                                uint32_t glyphCount) const;
 
-            void draw(wgpu::RenderPassEncoder &renderPass, uint32_t firstGlyph,
+            void draw(wgpu::RenderPassEncoder &renderPass,
+                      uint32_t firstGlyph,
                       uint32_t glyphCount) const;
 
           private:
@@ -196,7 +198,8 @@ namespace Bess::Wgpu {
         template <typename TAtlas>
         bool appendMsdfText(std::string_view text,
                             const Core::Renderer::FontProps &props,
-                            const TAtlas &atlas, MsdfTextBatch &batch,
+                            const TAtlas &atlas,
+                            MsdfTextBatch &batch,
                             uint64_t submitOrder = 0);
 
         template <typename TAtlas>

@@ -14,5 +14,6 @@ namespace Bess {
 namespace Bess::Pages {
     void populateSceneFromVerilogImportResult(
         const Verilog::SimEngineImportResult &result,
-        SimEngine::SimulationEngine &simEngine, Canvas::Scene &scene);
+        SimEngine::SimulationEngine &simEngine,
+        Canvas::Scene &scene);
 }

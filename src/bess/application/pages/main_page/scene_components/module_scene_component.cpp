@@ -79,15 +79,17 @@ namespace Bess::Canvas {
         auto clonedInp =
             newSceneState.getComponentByUuid<SimulationSceneComponent>(
                 clonedInpId);
-        BESS_ASSERT(clonedInp, "[CloneModule] Cloned associated input "
-                               "component not found in new scene");
+        BESS_ASSERT(clonedInp,
+                    "[CloneModule] Cloned associated input "
+                    "component not found in new scene");
         simEngine.deleteComponent(clonedModDef->getInputId());
         clonedModDef->setInputId(clonedInp->getSimEngineId());
         auto clonedOut =
             newSceneState.getComponentByUuid<SimulationSceneComponent>(
                 clonedOutId);
-        BESS_ASSERT(clonedOut, "[CloneModule] Cloned associated output "
-                               "component not found in new scene");
+        BESS_ASSERT(clonedOut,
+                    "[CloneModule] Cloned associated output "
+                    "component not found in new scene");
         simEngine.deleteComponent(clonedModDef->getOutputId());
         clonedModDef->setOutputId(clonedOut->getSimEngineId());
 
@@ -100,8 +102,9 @@ namespace Bess::Canvas {
         auto &simEngine = projectCtx->getSimEngine();
         auto moduleDef =
             std::dynamic_pointer_cast<SimEngine::ModuleDefinition>(m_compDef);
-        BESS_ASSERT(moduleDef, "[ModuleSceneComponent] Module definition not "
-                               "found while setting callbacks");
+        BESS_ASSERT(moduleDef,
+                    "[ModuleSceneComponent] Module definition not "
+                    "found while setting callbacks");
         const auto ownerSceneId = state.getSceneId();
 
         const auto &outputDigitalComp =
@@ -117,23 +120,27 @@ namespace Bess::Canvas {
         BESS_ASSERT(outputDigitalComp,
                     "[ModuleSceneComponent] Missing output sim component {} "
                     "for module {}",
-                    (uint64_t)moduleDef->getOutputId(), (uint64_t)m_uuid);
+                    (uint64_t)moduleDef->getOutputId(),
+                    (uint64_t)m_uuid);
 
         BESS_ASSERT(inputDigitalComp,
                     "[ModuleSceneComponent] Missing input sim component {} for "
                     "module {}",
-                    (uint64_t)moduleDef->getInputId(), (uint64_t)m_uuid);
+                    (uint64_t)moduleDef->getInputId(),
+                    (uint64_t)m_uuid);
 
         BESS_ASSERT(moduleDigComp,
                     "[ModuleSceneComponent] Missing module sim component {} "
                     "for module {}",
-                    (uint64_t)m_simEngineId, (uint64_t)m_uuid);
+                    (uint64_t)m_simEngineId,
+                    (uint64_t)m_uuid);
 
         if (!outputDigitalComp || !inputDigitalComp || !moduleDigComp) {
             BESS_ERROR(
                 "[ModuleSceneComponent] Failed to bind callbacks for module "
                 "{}. Missing sim components. module={}, input={}, output={}",
-                m_name, (uint64_t)m_simEngineId,
+                m_name,
+                (uint64_t)m_simEngineId,
                 (uint64_t)moduleDef->getInputId(),
                 (uint64_t)moduleDef->getOutputId());
             return;
@@ -164,8 +171,8 @@ namespace Bess::Canvas {
                 }
 
                 if (!outputs.empty()) { // to schedule sim event
-                    simEngine.setOutputSlotState(this->m_simEngineId, 0,
-                                                 outputs[0].getLogicState());
+                    simEngine.setOutputSlotState(
+                        this->m_simEngineId, 0, outputs[0].getLogicState());
                 }
             });
 
@@ -200,7 +207,8 @@ namespace Bess::Canvas {
                 for (size_t i = currCount; i < newCount; ++i) {
                     simEngine.addSlot(this->m_simEngineId,
                                       SimEngine::SlotType::digitalOutput,
-                                      (int)i, true);
+                                      (int)i,
+                                      true);
                     auto slot = std::make_shared<SlotSceneComponent>();
                     slot->setIndex((int)i);
                     slot->setSlotType(SlotType::digitalOutput);
@@ -212,7 +220,8 @@ namespace Bess::Canvas {
                 for (size_t i = newCount; i < currCount; ++i) {
                     simEngine.removeSlot(this->m_simEngineId,
                                          SimEngine::SlotType::digitalOutput,
-                                         (int)i, true);
+                                         (int)i,
+                                         true);
                     ownerSceneState.removeComponent(m_outputSlots.back(),
                                                     m_uuid);
                     removeChildComponent(m_outputSlots.back());
@@ -258,7 +267,8 @@ namespace Bess::Canvas {
             if (newCount > currCount) {
                 for (size_t i = currCount; i < newCount; ++i) {
                     simEngine.addSlot(this->m_simEngineId,
-                                      SimEngine::SlotType::digitalInput, (int)i,
+                                      SimEngine::SlotType::digitalInput,
+                                      (int)i,
                                       true);
                     auto slot = std::make_shared<SlotSceneComponent>();
                     slot->setIndex((int)i);
@@ -271,7 +281,8 @@ namespace Bess::Canvas {
                 for (size_t i = newCount; i < currCount; ++i) {
                     simEngine.removeSlot(this->m_simEngineId,
                                          SimEngine::SlotType::digitalInput,
-                                         (int)i, true);
+                                         (int)i,
+                                         true);
                     ownerSceneState.removeComponent(m_inputSlots.back(),
                                                     m_uuid);
                     removeChildComponent(m_inputSlots.back());
@@ -293,9 +304,11 @@ namespace Bess::Canvas {
         simEngine.removeOnSlotCountChangeCB(m_simEngineId);
         simEngine.addOnSlotCountChangeCB(
             m_simEngineId,
-            [inputDigitalComp, outputDigitalComp, onInputSlotChange,
-             onOutputSlotChange](const UUID &id, SimEngine::SlotType type,
-                                 int newCount) {
+            [inputDigitalComp,
+             outputDigitalComp,
+             onInputSlotChange,
+             onOutputSlotChange](
+                const UUID &id, SimEngine::SlotType type, int newCount) {
                 if (id == inputDigitalComp->getUuid()) {
                     onInputSlotChange(id, type, newCount);
                 } else if (id == outputDigitalComp->getUuid()) {
@@ -361,8 +374,8 @@ namespace Bess::Canvas {
 
         for (const auto &inpComp : inpComps) {
             newSceneState.addComponent(inpComp);
-            newSceneState.attachChild(inpSceneComp->getUuid(),
-                                      inpComp->getUuid(), false);
+            newSceneState.attachChild(
+                inpSceneComp->getUuid(), inpComp->getUuid(), false);
         }
 
         // adding module output
@@ -383,8 +396,8 @@ namespace Bess::Canvas {
         for (const auto &outComp : outComps) {
             outComp->setIsSelected(false);
             newSceneState.addComponent(outComp);
-            newSceneState.attachChild(outSceneComp->getUuid(),
-                                      outComp->getUuid(), false);
+            newSceneState.attachChild(
+                outSceneComp->getUuid(), outComp->getUuid(), false);
         }
 
         return comps;

@@ -102,7 +102,8 @@ namespace Bess {
                 : voltage(voltage),
                   lastChangeTime(time) {}
 
-            constexpr SlotState(LogicState logicState, SimTime time,
+            constexpr SlotState(LogicState logicState,
+                                SimTime time,
                                 const LogicThresholds &thresholds = {}) noexcept
                 : lastChangeTime(time) {
                 fromLogicState(logicState, thresholds);
@@ -215,8 +216,8 @@ namespace Bess {
             std::string errorMessage;
         };
 
-        typedef std::function<ComponentState(const std::vector<SlotState> &,
-                                             SimTime, const ComponentState &)>
+        typedef std::function<ComponentState(
+            const std::vector<SlotState> &, SimTime, const ComponentState &)>
             SimulationFunction;
 
     } // namespace SimEngine
@@ -233,8 +234,14 @@ REFLECT(Bess::SimEngine::SlotState, voltage, lastChangeTime)
 REFLECT_VECTOR(Bess::SimEngine::SlotState)
 REFLECT_VECTOR(bool)
 
-REFLECT(Bess::SimEngine::ComponentState, inputStates, inputConnected,
-        outputStates, outputConnected, isChanged, simError, errorMessage)
+REFLECT(Bess::SimEngine::ComponentState,
+        inputStates,
+        inputConnected,
+        outputStates,
+        outputConnected,
+        isChanged,
+        simError,
+        errorMessage)
 
 REFLECT_VECTOR(Bess::SimEngine::ComponentState)
 
@@ -247,5 +254,9 @@ REFLECT(SimEngine::OperatorInfo, op, shouldNegateOutput)
 typedef std::pair<int, Bess::SimEngine::SlotCatergory> SlotCategoryPair;
 REFLECT(SlotCategoryPair, first, second)
 REFLECT_VECTOR(SlotCategoryPair)
-REFLECT(Bess::SimEngine::SlotsGroupInfo, type, isResizeable, count, names,
+REFLECT(Bess::SimEngine::SlotsGroupInfo,
+        type,
+        isResizeable,
+        count,
+        names,
         categories)

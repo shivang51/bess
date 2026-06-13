@@ -24,7 +24,8 @@ namespace Bess::Canvas {
         EventResult handleMiddleMouseButton(SceneEvent &evt,
                                             SceneEventContext &ctx,
                                             bool isPressed);
-        void queueMouseButtonEvent(SceneEvent &evt, SceneEventContext &ctx,
+        void queueMouseButtonEvent(SceneEvent &evt,
+                                   SceneEventContext &ctx,
                                    Events::MouseButton button,
                                    Events::MouseClickAction action) const;
 

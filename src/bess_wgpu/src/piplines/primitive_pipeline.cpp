@@ -111,7 +111,8 @@ namespace Bess::Wgpu::Piplines {
 
     void PrimitivePipeline::createShader() {
         m_shader = std::make_unique<Bess::Wgpu::WgpuShader>(
-            "renderer_2d_primitive", Shaders::getPrimitiveShaderModules(),
+            "renderer_2d_primitive",
+            Shaders::getPrimitiveShaderModules(),
             m_device);
     }
 

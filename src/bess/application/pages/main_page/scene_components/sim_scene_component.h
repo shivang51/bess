@@ -129,7 +129,8 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(std::vector<UUID>, OutputSlots, m_outputSlots)
         MAKE_GETTER_SETTER(Transform, SchematicTransform, m_schematicTransform)
         MAKE_GETTER_SETTER(std::shared_ptr<SimEngine::Drivers::CompDef>,
-                           CompDef, m_compDef)
+                           CompDef,
+                           m_compDef)
 
         void setSchSlotsPosDirty(bool val = true);
         size_t getInputSlotsCount() const;
@@ -157,7 +158,8 @@ namespace Bess::Canvas {
         REG_SCENE_COMP_TYPE("SimulationSceneComponent",
                             SceneComponentType::simulation)
         SCENE_COMP_SER(Bess::Canvas::SimulationSceneComponent,
-                       Bess::Canvas::SceneComponent, SIM_SC_SER_PROPS)
+                       Bess::Canvas::SceneComponent,
+                       SIM_SC_SER_PROPS)
 
         std::vector<UUID> getDependants(const SceneState &state) const override;
 
@@ -219,4 +221,5 @@ namespace Bess::Canvas {
 } // namespace Bess::Canvas
 
 REG_SCENE_COMP(Bess::Canvas::SimulationSceneComponent,
-               Bess::Canvas::SceneComponent, SIM_SC_SER_PROPS)
+               Bess::Canvas::SceneComponent,
+               SIM_SC_SER_PROPS)

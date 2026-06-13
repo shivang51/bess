@@ -221,7 +221,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
 }
 )";
 
-    }
+    } // namespace
 
     void MsdfTextPipeline::init(const wgpu::Device &device,
                                 wgpu::TextureFormat targetFormat,
@@ -325,19 +325,19 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         using Core::Renderer::ShaderLanguage;
         using Core::Renderer::ShaderModuleDesc;
         using Core::Renderer::ShaderStage;
-        m_shader = std::make_unique<WgpuShader>(
-            "renderer_2d_msdf_text",
-            std::vector<ShaderModuleDesc>{
-                {.language = ShaderLanguage::WGSL,
-                 .stage = ShaderStage::Vertex,
-                 .entryPoint = "vs_main",
-                 .source = kMsdfTextShader},
-                {.language = ShaderLanguage::WGSL,
-                 .stage = ShaderStage::Fragment,
-                 .entryPoint = "fs_main",
-                 .source = kMsdfTextShader},
-            },
-            m_device);
+        m_shader =
+            std::make_unique<WgpuShader>("renderer_2d_msdf_text",
+                                         std::vector<ShaderModuleDesc>{
+                                             {.language = ShaderLanguage::WGSL,
+                                              .stage = ShaderStage::Vertex,
+                                              .entryPoint = "vs_main",
+                                              .source = kMsdfTextShader},
+                                             {.language = ShaderLanguage::WGSL,
+                                              .stage = ShaderStage::Fragment,
+                                              .entryPoint = "fs_main",
+                                              .source = kMsdfTextShader},
+                                         },
+                                         m_device);
     }
 
     void MsdfTextPipeline::createBindGroupLayout() {
@@ -469,7 +469,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
     template <typename TAtlas>
     bool appendMsdfText(std::string_view text,
                         const Core::Renderer::FontProps &props,
-                        const TAtlas &atlas, MsdfTextBatch &batch,
+                        const TAtlas &atlas,
+                        MsdfTextBatch &batch,
                         uint64_t submitOrder) {
         if (!atlas.valid()) {
             return false;
@@ -516,14 +517,12 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             }
 
             if (codepoint == '\t') {
-                baseline.x +=
-                    (spaceAdvance * std::max(props.tabSize, 1.f)) +
-                    props.letterSpacing;
+                baseline.x += (spaceAdvance * std::max(props.tabSize, 1.f)) +
+                              props.letterSpacing;
                 continue;
             }
 
-            const Core::Renderer::MsdfGlyph *glyph =
-                atlas.findGlyph(codepoint);
+            const Core::Renderer::MsdfGlyph *glyph = atlas.findGlyph(codepoint);
             if (glyph == nullptr) {
                 continue;
             }
@@ -632,14 +631,12 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             }
 
             if (codepoint == '\t') {
-                lineAdvance +=
-                    (spaceAdvance * std::max(props.tabSize, 1.f)) +
-                    props.letterSpacing;
+                lineAdvance += (spaceAdvance * std::max(props.tabSize, 1.f)) +
+                               props.letterSpacing;
                 continue;
             }
 
-            const Core::Renderer::MsdfGlyph *glyph =
-                atlas.findGlyph(codepoint);
+            const Core::Renderer::MsdfGlyph *glyph = atlas.findGlyph(codepoint);
             if (glyph == nullptr) {
                 continue;
             }
@@ -647,8 +644,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             if (glyph->drawable) {
                 const glm::vec4 &bounds = glyph->planeBounds;
                 const float glyphLeft = lineAdvance + (bounds.x * fontSize);
-                const float glyphRight =
-                    lineAdvance + (bounds.z * fontSize);
+                const float glyphRight = lineAdvance + (bounds.z * fontSize);
                 if (hasLineInk) {
                     lineInkMin = std::min(lineInkMin, glyphLeft);
                     lineInkMax = std::max(lineInkMax, glyphRight);
@@ -712,8 +708,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 continue;
             }
 
-            const Core::Renderer::MsdfGlyph *glyph =
-                atlas.findGlyph(codepoint);
+            const Core::Renderer::MsdfGlyph *glyph = atlas.findGlyph(codepoint);
             if (glyph == nullptr || !glyph->drawable) {
                 continue;
             }
@@ -729,20 +724,23 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         return hasInk ? -((inkTop + inkBottom) * 0.5f) : fontSize * 0.35f;
     }
 
-    template bool
-    appendMsdfText<Core::Renderer::MsdfFontAtlas<WgpuTexture>>(
-        std::string_view, const Core::Renderer::FontProps &,
-        const Core::Renderer::MsdfFontAtlas<WgpuTexture> &, MsdfTextBatch &,
+    template bool appendMsdfText<Core::Renderer::MsdfFontAtlas<WgpuTexture>>(
+        std::string_view,
+        const Core::Renderer::FontProps &,
+        const Core::Renderer::MsdfFontAtlas<WgpuTexture> &,
+        MsdfTextBatch &,
         uint64_t);
 
     template glm::vec2
     measureMsdfText<Core::Renderer::MsdfFontAtlas<WgpuTexture>>(
-        std::string_view, const Core::Renderer::FontProps &,
+        std::string_view,
+        const Core::Renderer::FontProps &,
         const Core::Renderer::MsdfFontAtlas<WgpuTexture> &);
 
     template float
     msdfCenterOffsetY<Core::Renderer::MsdfFontAtlas<WgpuTexture>>(
-        std::string_view, const Core::Renderer::FontProps &,
+        std::string_view,
+        const Core::Renderer::FontProps &,
         const Core::Renderer::MsdfFontAtlas<WgpuTexture> &);
 
-}
+} // namespace Bess::Wgpu::Text

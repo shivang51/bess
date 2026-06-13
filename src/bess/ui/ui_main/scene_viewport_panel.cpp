@@ -301,7 +301,8 @@ namespace Bess::UI {
 
         // Force height 34
         ImGui::SetNextWindowSize({0, 34});
-        ImGui::Begin("SceneBottomRightControls", nullptr,
+        ImGui::Begin("SceneBottomRightControls",
+                     nullptr,
                      NO_MOVE_FLAGS | ImGuiWindowFlags_NoScrollbar);
 
         const float windowHeight = 34.0f;
@@ -343,8 +344,11 @@ namespace Bess::UI {
 
             ImGui::SetNextItemWidth(150.0f);
             auto zoom = scene->getCameraZoom();
-            if (ImGui::SliderFloat("##Zoom", &zoom, Camera::zoomMin,
-                                   Camera::zoomMax, "%.1fx",
+            if (ImGui::SliderFloat("##Zoom",
+                                   &zoom,
+                                   Camera::zoomMin,
+                                   Camera::zoomMax,
+                                   "%.1fx",
                                    ImGuiSliderFlags_AlwaysClamp)) {
                 const float stepSize = 0.1f;
                 const float val = roundf(zoom / stepSize) * stepSize;
@@ -412,6 +416,7 @@ namespace Bess::UI {
 
         BESS_DEBUG(
             "[SceneVewportPanel] Scene {} attached to viewport panel '{}'",
-            (uint64_t)m_attachedScene->getState().getSceneId(), m_viewportName);
+            (uint64_t)m_attachedScene->getState().getSceneId(),
+            m_viewportName);
     }
 } // namespace Bess::UI

@@ -102,7 +102,8 @@ namespace Bess::Canvas {
         return m_rootComponents;
     }
 
-    void SceneState::attachChild(const UUID &parentId, const UUID &childId,
+    void SceneState::attachChild(const UUID &parentId,
+                                 const UUID &childId,
                                  bool emitEvent) {
         auto parent = getComponentByUuid(parentId);
         auto child = getComponentByUuid(childId);
@@ -123,7 +124,8 @@ namespace Bess::Canvas {
         child->setParentComponent(parentId);
 
         BESS_INFO("[SceneState] Attached component {} to parent component {}",
-                  (uint64_t)childId, (uint64_t)parentId);
+                  (uint64_t)childId,
+                  (uint64_t)parentId);
 
         if (emitEvent) {
             auto &appCtx = GAppContext::getInstance();
@@ -155,7 +157,8 @@ namespace Bess::Canvas {
         child->setParentComponent(UUID::null);
 
         BESS_INFO("[SceneState] Detached component {} from parent component {}",
-                  (uint64_t)childId, (uint64_t)parentId);
+                  (uint64_t)childId,
+                  (uint64_t)parentId);
 
         auto &appCtx = GAppContext::getInstance();
         auto eventDispatcher =

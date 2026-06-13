@@ -52,8 +52,8 @@ namespace Bess {
             }
         }
 
-        m_mouseBtnStates[button] = {button, action, pos,
-                                    std::chrono::steady_clock::now()};
+        m_mouseBtnStates[button] = {
+            button, action, pos, std::chrono::steady_clock::now()};
 
         m_frameInputState.hasMouseBtnEvent = true;
         m_frameInputState.mouseBtnState = m_mouseBtnStates[button];

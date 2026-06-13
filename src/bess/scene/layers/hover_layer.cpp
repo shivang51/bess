@@ -53,7 +53,8 @@ namespace Bess::Canvas {
         } else {
             BESS_WARN("[HoverLayer] PickingId is valid but no component found "
                       "for id {} in scene {}",
-                      (uint64_t)m_pickingId, (uint64_t)state.getSceneId());
+                      (uint64_t)m_pickingId,
+                      (uint64_t)state.getSceneId());
         }
     }
 

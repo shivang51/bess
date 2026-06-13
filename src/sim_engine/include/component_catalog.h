@@ -31,7 +31,8 @@ namespace Bess::SimEngine {
         // Get the full list of registered components as tree format, grouped
         // based on the category.
         typedef std::unordered_map<
-            std::string, std::vector<std::shared_ptr<Drivers::CompDef>>>
+            std::string,
+            std::vector<std::shared_ptr<Drivers::CompDef>>>
             ComponentTree;
         std::shared_ptr<ComponentTree> getComponentsTree();
 

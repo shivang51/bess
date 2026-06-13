@@ -9,7 +9,9 @@ namespace Bess::Canvas::SceneWidgets {
     namespace {
         size_t findVisibleStart(
             const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer,
-            std::string_view text, size_t cursor, float maxWidth,
+            std::string_view text,
+            size_t cursor,
+            float maxWidth,
             const Core::Renderer::FontProps &fontProps) {
             cursor = std::min(cursor, text.size());
             if (cursor == 0 ||
@@ -35,7 +37,10 @@ namespace Bess::Canvas::SceneWidgets {
 
         size_t findVisibleEnd(
             const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer,
-            std::string_view text, size_t start, size_t cursor, float maxWidth,
+            std::string_view text,
+            size_t start,
+            size_t cursor,
+            float maxWidth,
             const Core::Renderer::FontProps &fontProps) {
             size_t low = std::min(cursor, text.size());
             size_t high = text.size();
@@ -55,8 +60,11 @@ namespace Bess::Canvas::SceneWidgets {
 
         std::string_view visibleTextForCursor(
             const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer,
-            std::string_view text, size_t cursor, float maxWidth,
-            const Core::Renderer::FontProps &fontProps, size_t &visibleStart) {
+            std::string_view text,
+            size_t cursor,
+            float maxWidth,
+            const Core::Renderer::FontProps &fontProps,
+            size_t &visibleStart) {
             if (text.empty() || maxWidth <= 1.f) {
                 visibleStart = 0;
                 return {};
@@ -75,8 +83,10 @@ namespace Bess::Canvas::SceneWidgets {
         }
     } // namespace
 
-    TextBoxResult textBox(const PickingId &id, std::string *value,
-                          const glm::vec3 &boxPos, const glm::vec2 &boxSize,
+    TextBoxResult textBox(const PickingId &id,
+                          std::string *value,
+                          const glm::vec3 &boxPos,
+                          const glm::vec2 &boxSize,
                           SceneDrawContext &context,
                           const TextBoxOptions &options) {
         TextBoxResult result;
@@ -173,9 +183,12 @@ namespace Bess::Canvas::SceneWidgets {
             textColor =
                 Detail::colorOr(options.placeholderColor, palette.textMuted);
         } else {
-            visibleText = visibleTextForCursor(context.renderer, widget->text,
-                                               widget->cursorPos, contentWidth,
-                                               fontProps, visibleStart);
+            visibleText = visibleTextForCursor(context.renderer,
+                                               widget->text,
+                                               widget->cursorPos,
+                                               contentWidth,
+                                               fontProps,
+                                               visibleStart);
         }
 
         const float textOffY = context.renderer->textCenterOffsetY(
@@ -186,8 +199,11 @@ namespace Bess::Canvas::SceneWidgets {
             boxPos.y + textOffY,
             boxPos.z + 0.0001f,
         };
-        SceneDraw::drawText(context, visibleText, textPos,
-                            static_cast<size_t>(options.fontSize), textColor,
+        SceneDraw::drawText(context,
+                            visibleText,
+                            textPos,
+                            static_cast<size_t>(options.fontSize),
+                            textColor,
                             id);
 
         if (focused) {
@@ -199,9 +215,11 @@ namespace Bess::Canvas::SceneWidgets {
             const float cursorHeight =
                 std::max(4.f, size.y - (options.padding.y * 2.f));
             SceneDraw::drawQuad(
-                context, {cursorX, boxPos.y, boxPos.z + 0.0002f},
+                context,
+                {cursorX, boxPos.y, boxPos.z + 0.0002f},
                 {1.f, cursorHeight},
-                Detail::colorOr(options.cursorColor, palette.text), id);
+                Detail::colorOr(options.cursorColor, palette.text),
+                id);
         }
 
         return result;

@@ -81,7 +81,8 @@ namespace Bess::UI {
 
             const auto &prevId = val.second;
             if (Widgets::ComboBox(std::format("Select node for graph {}", idx),
-                                  val.first, comps)) {
+                                  val.first,
+                                  comps)) {
                 s_data.allSignals.erase(prevId);
                 val.second = nameToIdMap.at(val.first);
             }
@@ -123,8 +124,8 @@ namespace Bess::UI {
             x_max = 100.f;
         }
 
-        ImGui::BeginChild(plotName.c_str(), ImVec2(0, 0), false,
-                          ImGuiWindowFlags_None);
+        ImGui::BeginChild(
+            plotName.c_str(), ImVec2(0, 0), false, ImGuiWindowFlags_None);
 
         const auto numSignals = signals.size();
 
@@ -133,17 +134,19 @@ namespace Bess::UI {
             const float height =
                 plotHeight + (i == numSignals - 1 ? 20.f : 0.f);
 
-            if (ImPlot::BeginPlot(signal.name.c_str(), ImVec2(-1, height),
+            if (ImPlot::BeginPlot(signal.name.c_str(),
+                                  ImVec2(-1, height),
                                   ImPlotFlags_NoLegend | ImPlotFlags_NoTitle)) {
-                ImPlot::SetupAxis(ImAxis_Y1, signal.name.c_str(),
+                ImPlot::SetupAxis(ImAxis_Y1,
+                                  signal.name.c_str(),
                                   ImPlotAxisFlags_NoTickLabels);
                 ImPlot::SetupAxisLimits(ImAxis_Y1, -0.2, 1.2, ImGuiCond_Always);
 
                 ImPlot::SetupAxisLinks(ImAxis_X1, &x_min, &x_max);
 
                 if (i < numSignals - 1) {
-                    ImPlot::SetupAxis(ImAxis_X1, nullptr,
-                                      ImPlotAxisFlags_NoTickLabels);
+                    ImPlot::SetupAxis(
+                        ImAxis_X1, nullptr, ImPlotAxisFlags_NoTickLabels);
                 } else {
                     ImPlot::SetupAxis(ImAxis_X1, "Time");
                 }
@@ -165,8 +168,10 @@ namespace Bess::UI {
                     plotY.push_back(data[i].second);
                 }
 
-                ImPlot::PlotLine(name.toString().c_str(), plotX.data(),
-                                 plotY.data(), (int)plotX.size());
+                ImPlot::PlotLine(name.toString().c_str(),
+                                 plotX.data(),
+                                 plotY.data(),
+                                 (int)plotX.size());
 
                 ImPlot::EndPlot();
             }

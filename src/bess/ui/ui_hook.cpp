@@ -35,15 +35,15 @@ namespace Bess::UI::Hook {
         } break;
         case PropertyDescType::int_t: {
             int64_t value = std::get<int64_t>(desc.binding.getter());
-            if (ImGui::InputScalar(desc.name.c_str(), ImGuiDataType_S64,
-                                   &value)) {
+            if (ImGui::InputScalar(
+                    desc.name.c_str(), ImGuiDataType_S64, &value)) {
                 desc.binding.setter(value);
             }
         } break;
         case PropertyDescType::uint_t: {
             uint64_t value = std::get<uint64_t>(desc.binding.getter());
-            if (ImGui::InputScalar(desc.name.c_str(), ImGuiDataType_U64,
-                                   &value)) {
+            if (ImGui::InputScalar(
+                    desc.name.c_str(), ImGuiDataType_U64, &value)) {
                 desc.binding.setter(value);
             }
         } break;

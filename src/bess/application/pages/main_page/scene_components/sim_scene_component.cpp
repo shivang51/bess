@@ -263,12 +263,14 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
             .shader = s_nodeShader,
             .data =
                 {
-                    glm::vec4{m_style.borderRadius.x, m_style.borderRadius.y,
-                              m_style.borderSize.x, m_style.borderSize.y},
+                    glm::vec4{m_style.borderRadius.x,
+                              m_style.borderRadius.y,
+                              m_style.borderSize.x,
+                              m_style.borderSize.y},
                     m_style.headerColor,
                     borderColor,
-                    glm::vec4(headerHeight / m_transform.scale.y, 0.f, 0.f,
-                              0.f),
+                    glm::vec4(
+                        headerHeight / m_transform.scale.y, 0.f, 0.f, 0.f),
                 },
         });
 
@@ -283,9 +285,13 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
                       m_transform.position.z + 0.0005f);
 
         // component name
-        SceneDraw::drawText(
-            context, m_name, textPos, Styles::simCompStyles.headerFontSize,
-            ViewportTheme::colors.text, pickingId, m_transform.angle);
+        SceneDraw::drawText(context,
+                            m_name,
+                            textPos,
+                            Styles::simCompStyles.headerFontSize,
+                            ViewportTheme::colors.text,
+                            pickingId,
+                            m_transform.angle);
     }
 
     void SimulationSceneComponent::drawSlots(SceneDrawContext &context) {
@@ -320,7 +326,11 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
         const auto &strokeColor =
             ViewportTheme::schematicViewColors.componentStroke;
         SceneDraw::beginPath(
-            context, {x, y, pos.z}, nodeWeight, strokeColor, id,
+            context,
+            {x, y, pos.z},
+            nodeWeight,
+            strokeColor,
+            id,
             {.closePath = true, .renderFill = true, .fillColor = fillColor});
         SceneDraw::pathLineTo(context, {x1, y, pos.z}, nodeWeight);
         SceneDraw::pathLineTo(context, {x1, y1, pos.z}, nodeWeight);
@@ -332,9 +342,13 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
         glm::vec3 textPos = {pos.x, y + ((y1 - y) / 2.f), pos.z + 0.0005f};
         textPos.x -= textSize.x / 2.f;
         textPos.y += Styles::simCompStyles.headerFontSize / 2.f;
-        SceneDraw::drawText(context, m_name, textPos,
-                            Styles::compSchematicStyles.nameFontSize, textColor,
-                            id, 0.f);
+        SceneDraw::drawText(context,
+                            m_name,
+                            textPos,
+                            Styles::compSchematicStyles.nameFontSize,
+                            textColor,
+                            id,
+                            0.f);
 
         drawSlots(context);
 
@@ -499,8 +513,9 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
 
     void SimulationSceneComponent::onAttach(SceneState &state) {
         SceneComponent::onAttach(state);
-        BESS_ASSERT(m_compDef, "SimSceneComp: Component definition must be set "
-                               "before attaching to scene");
+        BESS_ASSERT(m_compDef,
+                    "SimSceneComp: Component definition must be set "
+                    "before attaching to scene");
 
         if (m_simEngineId != UUID::null)
             return;
@@ -656,8 +671,8 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
             const auto &slotComp =
                 state.getComponentByUuid<SlotSceneComponent>(inp);
             const auto &slotDeps = slotComp->getDependants(state);
-            dependants.insert(dependants.end(), slotDeps.begin(),
-                              slotDeps.end());
+            dependants.insert(
+                dependants.end(), slotDeps.begin(), slotDeps.end());
             dependants.push_back(inp);
         }
 
@@ -665,8 +680,8 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
             const auto &slotComp =
                 state.getComponentByUuid<SlotSceneComponent>(out);
             const auto &slotDeps = slotComp->getDependants(state);
-            dependants.insert(dependants.end(), slotDeps.begin(),
-                              slotDeps.end());
+            dependants.insert(
+                dependants.end(), slotDeps.begin(), slotDeps.end());
             dependants.push_back(out);
         }
 
@@ -677,8 +692,8 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
             }
             const auto &childComp = state.getComponentByUuid(childId);
             const auto &childDeps = childComp->getDependants(state);
-            dependants.insert(dependants.end(), childDeps.begin(),
-                              childDeps.end());
+            dependants.insert(
+                dependants.end(), childDeps.begin(), childDeps.end());
             dependants.push_back(childId);
         }
 
@@ -788,8 +803,8 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
                 clonedComponent->addOutputSlot(clonedSlot->getUuid(), false);
             }
 
-            clonedComponents.insert(clonedComponents.end(), slotClones.begin(),
-                                    slotClones.end());
+            clonedComponents.insert(
+                clonedComponents.end(), slotClones.begin(), slotClones.end());
             clonedChildren.insert(slotId);
         };
 
@@ -826,8 +841,8 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
             BESS_ASSERT(!childClones.empty(),
                         "Simulation child clone returned no components");
 
-            clonedComponents.insert(clonedComponents.end(), childClones.begin(),
-                                    childClones.end());
+            clonedComponents.insert(
+                clonedComponents.end(), childClones.begin(), childClones.end());
 
             clonedChildren.insert(childId);
         }

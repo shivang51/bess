@@ -95,17 +95,19 @@ namespace Bess::SimEngine::Drivers {
         return {};
     }
 
-    SlotState SimDriver::getSlotState(const UUID &uuid, SlotType type,
-                                      int idx) const {
+    SlotState
+    SimDriver::getSlotState(const UUID &uuid, SlotType type, int idx) const {
         return {LogicState::unknown, SimTime(0)};
     }
 
-    bool SimDriver::setInputSlotState(const UUID &uuid, int pinIdx,
+    bool SimDriver::setInputSlotState(const UUID &uuid,
+                                      int pinIdx,
                                       LogicState state) {
         return false;
     }
 
-    bool SimDriver::setOutputSlotState(const UUID &uuid, int pinIdx,
+    bool SimDriver::setOutputSlotState(const UUID &uuid,
+                                       int pinIdx,
                                        LogicState state) {
         return false;
     }
@@ -219,7 +221,8 @@ namespace Bess::SimEngine::Drivers {
         m_onSlotCountChnageCBs.erase(id);
     }
 
-    void SimDriver::triggerSlotCountChangeCbs(const UUID &compId, SlotType type,
+    void SimDriver::triggerSlotCountChangeCbs(const UUID &compId,
+                                              SlotType type,
                                               int newCount) {
         for (const auto &[id, cb] : m_onSlotCountChnageCBs) {
             cb(compId, type, newCount);

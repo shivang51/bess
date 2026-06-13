@@ -1,5 +1,5 @@
-#include "scene_widgets_internal.h"
 #include "common/logger.h"
+#include "scene_widgets_internal.h"
 #include <algorithm>
 #include <string_view>
 
@@ -88,8 +88,7 @@ namespace Bess::Canvas::SceneWidgets::Detail {
 
     bool handleTextInputKey(WidgetState &state, const SceneEvent &evt) {
         const auto &data = evt.data.keyPress;
-        if (data.action != KeyAction::press &&
-            data.action != KeyAction::hold) {
+        if (data.action != KeyAction::press && data.action != KeyAction::hold) {
             return true;
         }
 
@@ -116,8 +115,9 @@ namespace Bess::Canvas::SceneWidgets::Detail {
             }
 
             const size_t eraseEnd =
-                evt.isCtrlPressed ? nextWordBoundary(state.text, state.cursorPos)
-                                  : nextCharBoundary(state.text, state.cursorPos);
+                evt.isCtrlPressed
+                    ? nextWordBoundary(state.text, state.cursorPos)
+                    : nextCharBoundary(state.text, state.cursorPos);
             state.text.erase(state.cursorPos, eraseEnd - state.cursorPos);
             markTextChanged(state);
             return true;
@@ -183,8 +183,7 @@ namespace Bess::Canvas::SceneWidgets::Detail {
         }
 
         const auto &data = evt.data.keyPress;
-        if (data.action != KeyAction::press &&
-            data.action != KeyAction::hold) {
+        if (data.action != KeyAction::press && data.action != KeyAction::hold) {
             return false;
         }
 
@@ -217,14 +216,14 @@ namespace Bess::Canvas::SceneWidgets::Detail {
     }
 
     bool handleDropdownKey(SceneWidgetsState &widgetsState,
-                           WidgetState &state, const SceneEvent &evt) {
+                           WidgetState &state,
+                           const SceneEvent &evt) {
         if (evt.type != SceneEvent::Type::key) {
             return false;
         }
 
         const auto &data = evt.data.keyPress;
-        if (data.action != KeyAction::press &&
-            data.action != KeyAction::hold) {
+        if (data.action != KeyAction::press && data.action != KeyAction::hold) {
             return false;
         }
 
@@ -242,8 +241,7 @@ namespace Bess::Canvas::SceneWidgets::Detail {
                 return;
             }
 
-            const auto count =
-                static_cast<int>(state.dropdownOptionCount);
+            const auto count = static_cast<int>(state.dropdownOptionCount);
             auto next =
                 static_cast<int>(state.dropdownHighlightedIndex) + delta;
             next = ((next % count) + count) % count;
@@ -281,8 +279,7 @@ namespace Bess::Canvas::SceneWidgets::Detail {
         case KeyCode::end:
             openDropdown();
             if (state.dropdownOptionCount > 0) {
-                state.dropdownHighlightedIndex =
-                    state.dropdownOptionCount - 1;
+                state.dropdownHighlightedIndex = state.dropdownOptionCount - 1;
             }
             ensureDropdownHighlightVisible(state);
             return true;
@@ -416,8 +413,8 @@ namespace Bess::Canvas::SceneWidgets {
             return;
         }
 
-        auto pressed = widgetsState->widgetStates.find(
-            widgetsState->pressedWidgetId);
+        auto pressed =
+            widgetsState->widgetStates.find(widgetsState->pressedWidgetId);
         if (pressed == widgetsState->widgetStates.end()) {
             return;
         }
@@ -426,7 +423,8 @@ namespace Bess::Canvas::SceneWidgets {
         pressed->second.pointerInputQueued = true;
     }
 
-    void queuePress(SceneState *sceneState, const PickingId &id,
+    void queuePress(SceneState *sceneState,
+                    const PickingId &id,
                     const glm::vec2 &pos) {
         auto widgetsState = Detail::findSceneState(sceneState);
         if (widgetsState == nullptr) {
@@ -473,7 +471,8 @@ namespace Bess::Canvas::SceneWidgets {
         }
     }
 
-    void queueRelease(SceneState *sceneState, const PickingId &id,
+    void queueRelease(SceneState *sceneState,
+                      const PickingId &id,
                       const glm::vec2 &pos) {
         auto widgetsState = Detail::findSceneState(sceneState);
         if (widgetsState == nullptr) {
@@ -554,8 +553,8 @@ namespace Bess::Canvas::SceneWidgets {
             }
             return Detail::handleSliderKey(state->second, evt);
         case Detail::WidgetState::Type::dropdown:
-            handled = Detail::handleDropdownKey(*widgetsState, state->second,
-                                                evt);
+            handled =
+                Detail::handleDropdownKey(*widgetsState, state->second, evt);
             if (evt.type == SceneEvent::Type::key &&
                 evt.data.keyPress.keycode == KeyCode::escape &&
                 !state->second.dropdownOpen) {
@@ -590,8 +589,7 @@ namespace Bess::Canvas::SceneWidgets {
         if (widget->type == Detail::WidgetState::Type::dropdownOption &&
             widget->ownerWidgetId != Detail::kInvalidWidgetId) {
             widget = Detail::getWidgetState(
-                *widgetsState,
-                PickingId::fromUint64(widget->ownerWidgetId));
+                *widgetsState, PickingId::fromUint64(widget->ownerWidgetId));
         }
 
         if (widget == nullptr ||
@@ -603,11 +601,12 @@ namespace Bess::Canvas::SceneWidgets {
         }
 
         const int delta = evt.data.mouseWheel.delta.y > 0.f ? -1 : 1;
-        const auto maxOffset = widget->dropdownOptionCount -
-                               widget->dropdownMaxVisibleOptions;
+        const auto maxOffset =
+            widget->dropdownOptionCount - widget->dropdownMaxVisibleOptions;
         const int nextOffset =
             std::clamp(static_cast<int>(widget->dropdownScrollOffset) + delta,
-                       0, static_cast<int>(maxOffset));
+                       0,
+                       static_cast<int>(maxOffset));
         widget->dropdownScrollOffset = static_cast<size_t>(nextOffset);
         return true;
     }

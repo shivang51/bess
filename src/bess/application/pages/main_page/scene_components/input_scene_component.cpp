@@ -72,7 +72,8 @@ namespace Bess::Canvas {
                     }
 
                     simEngine.setOutputSlotState(
-                        slotParentComp->getSimEngineId(), slotComp->getIndex(),
+                        slotParentComp->getSimEngineId(),
+                        slotComp->getIndex(),
                         SimEngine::LogicState::low);
                 }
             }
@@ -100,7 +101,8 @@ namespace Bess::Canvas {
     }
 
     void InputSceneComponent::drawToggleButton(SceneDrawContext &context,
-                                               UUID slotUuid, int buttonIndex) {
+                                               UUID slotUuid,
+                                               int buttonIndex) {
         constexpr float buttonWidth = 30.f;
         constexpr float buttonHeight = Styles::SIM_COMP_SLOT_ROW_SIZE -
                                        (Styles::simCompStyles.rowMargin * 2.f);
@@ -133,9 +135,12 @@ namespace Bess::Canvas {
             PickingId{m_runtimeId, static_cast<uint32_t>(buttonIndex + 1)};
 
         if (slotType == SlotType::outputsResize) {
-            if (SceneWidgets::button(
-                    pickingId, "All Low", buttonPos, {0.f, 0.f},
-                    ViewportTheme::sceneWidgetsColors.text, context)) {
+            if (SceneWidgets::button(pickingId,
+                                     "All Low",
+                                     buttonPos,
+                                     {0.f, 0.f},
+                                     ViewportTheme::sceneWidgetsColors.text,
+                                     context)) {
                 makeAllLow = true;
             }
             return;
@@ -145,8 +150,8 @@ namespace Bess::Canvas {
                             SimEngine::LogicState::high;
 
         bool nextValue = isHigh;
-        if (SceneWidgets::toggleButton(pickingId, &nextValue, buttonPos,
-                                       buttonSize, context)) {
+        if (SceneWidgets::toggleButton(
+                pickingId, &nextValue, buttonPos, buttonSize, context)) {
             setOutputSlotState(state, slotComp, nextValue);
         }
 
@@ -157,12 +162,15 @@ namespace Bess::Canvas {
         const float textPosX = buttonPos.x + (buttonSize.x / 2.f) + 8.f;
         const float textOffY = context.renderer->textCenterOffsetY(
             label, {.fontSize = Styles::simCompStyles.slotLabelSize});
-        const glm::vec3 textPos = glm::vec3(textPosX, slotPosY + textOffY,
-                                            m_transform.position.z + 0.0001f);
+        const glm::vec3 textPos = glm::vec3(
+            textPosX, slotPosY + textOffY, m_transform.position.z + 0.0001f);
 
-        SceneDraw::drawText(
-            context, label, textPos, Styles::simCompStyles.slotLabelSize,
-            ViewportTheme::colors.text, PickingId{m_runtimeId, 0});
+        SceneDraw::drawText(context,
+                            label,
+                            textPos,
+                            Styles::simCompStyles.slotLabelSize,
+                            ViewportTheme::colors.text,
+                            PickingId{m_runtimeId, 0});
     }
 
     void InputSceneComponent::calculateSchematicScale(const SceneState &state) {

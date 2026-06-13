@@ -25,7 +25,8 @@ namespace Bess::Canvas {
 
         void calculateSchematicScale(const SceneState &state) override;
 
-        void drawToggleButton(SceneDrawContext &context, UUID slotUuid,
+        void drawToggleButton(SceneDrawContext &context,
+                              UUID slotUuid,
                               int buttonIndex);
 
         void update(TimeMs ts, SceneState &state) override;

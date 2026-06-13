@@ -11,7 +11,9 @@ namespace Bess::Assets {
             for (const auto &[id, assetPtr] : assets) {
                 BESS_TRACE("[AssetManager] Asset of type {} with ID {} has {} "
                            "references",
-                           typeIdx.name(), id, assetPtr.use_count());
+                           typeIdx.name(),
+                           id,
+                           assetPtr.use_count());
             }
         }
     }

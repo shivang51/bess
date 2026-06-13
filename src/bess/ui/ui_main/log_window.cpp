@@ -19,8 +19,8 @@ namespace Bess::UI {
     void LogWindow::drawControls() {
         const auto &uiLogSink = Logger::getUISink();
 
-        Widgets::CheckboxWithLabel("Auto Scroll ", &m_controls.autoScroll,
-                                   false, true);
+        Widgets::CheckboxWithLabel(
+            "Auto Scroll ", &m_controls.autoScroll, false, true);
 
         ImGui::SameLine();
         ImGui::AlignTextToFramePadding();

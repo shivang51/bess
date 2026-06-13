@@ -47,9 +47,11 @@ void bind_sim_engine_types(py::module_ &m) {
                  p.lastChangeTime = SimTime(last_change_time_ns);
                  return p;
              }),
-             py::arg("state"), py::arg("last_change_time_ns"))
+             py::arg("state"),
+             py::arg("last_change_time_ns"))
         .def_property(
-            "state", [](SlotState &self) { return self.getLogicState(); },
+            "state",
+            [](SlotState &self) { return self.getLogicState(); },
             [](SlotState &self, LogicState state) { self = state; })
         .def_readwrite("voltage", &SlotState::voltage)
         .def_readwrite("conn_state", &SlotState::connState)

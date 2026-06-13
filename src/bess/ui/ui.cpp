@@ -188,30 +188,34 @@ namespace Bess {
 
         static const std::array<ImWchar, 3> compIconRanges = {
             UI::Icons::ComponentIcons::SIZE_MIN_CI,
-            UI::Icons::ComponentIcons::SIZE_MAX_CI, 0};
-        io.Fonts->AddFontFromFileTTF(compIconsPath, fontSize * r, &config,
-                                     compIconRanges.data());
+            UI::Icons::ComponentIcons::SIZE_MAX_CI,
+            0};
+        io.Fonts->AddFontFromFileTTF(
+            compIconsPath, fontSize * r, &config, compIconRanges.data());
 
         static const std::array<ImWchar, 3> codiconIconRanges = {
-            UI::Icons::CodIcons::ICON_MIN_CI, UI::Icons::CodIcons::ICON_MAX_CI,
+            UI::Icons::CodIcons::ICON_MIN_CI,
+            UI::Icons::CodIcons::ICON_MAX_CI,
             0};
         config.GlyphOffset.y = fontSize / 5.0F;
-        io.Fonts->AddFontFromFileTTF(codeIconsPath, fontSize, &config,
-                                     codiconIconRanges.data());
+        io.Fonts->AddFontFromFileTTF(
+            codeIconsPath, fontSize, &config, codiconIconRanges.data());
 
         static const std::array<ImWchar, 3> faIconRangesR = {
             UI::Icons::FontAwesomeIcons::SIZE_MIN_FA,
-            UI::Icons::FontAwesomeIcons::SIZE_MAX_FA, 0};
+            UI::Icons::FontAwesomeIcons::SIZE_MAX_FA,
+            0};
         config.GlyphOffset.y = -r;
-        io.Fonts->AddFontFromFileTTF(fontAwesomeIconsPath, fontSize * r,
-                                     &config, faIconRangesR.data());
+        io.Fonts->AddFontFromFileTTF(
+            fontAwesomeIconsPath, fontSize * r, &config, faIconRangesR.data());
 
         config.GlyphOffset.y = r;
         static const std::array<ImWchar, 3> matIconRanges = {
             UI::Icons::MaterialIcons::ICON_MIN_MD,
-            UI::Icons::MaterialIcons::ICON_MAX_MD, 0};
-        io.Fonts->AddFontFromFileTTF(materialIconsPath, fontSize * r, &config,
-                                     matIconRanges.data());
+            UI::Icons::MaterialIcons::ICON_MAX_MD,
+            0};
+        io.Fonts->AddFontFromFileTTF(
+            materialIconsPath, fontSize * r, &config, matIconRanges.data());
 
         io.FontGlobalScale = scale;
     }
@@ -234,10 +238,11 @@ namespace Bess {
                 .c_str());
         ImGui::Text("FPS: %d", fps);
         ImGuiIO &io = ImGui::GetIO();
-        ImGui::Text("DisplaySize: %.1f x %.1f", io.DisplaySize.x,
-                    io.DisplaySize.y);
+        ImGui::Text(
+            "DisplaySize: %.1f x %.1f", io.DisplaySize.x, io.DisplaySize.y);
         ImGui::Text("FramebufferScale: %.2f x %.2f",
-                    io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
+                    io.DisplayFramebufferScale.x,
+                    io.DisplayFramebufferScale.y);
         ImGui::End();
     }
 

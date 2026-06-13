@@ -52,8 +52,11 @@ namespace Bess::Canvas {
         const auto &id = PickingId::invalid();
         constexpr float z = 0.48f;
 
-        SceneDraw::beginPath(drawCtx, glm::vec3(startPos.x, startPos.y, z), 2.f,
-                             ViewportTheme::colors.ghostWire, id,
+        SceneDraw::beginPath(drawCtx,
+                             glm::vec3(startPos.x, startPos.y, z),
+                             2.f,
+                             ViewportTheme::colors.ghostWire,
+                             id,
                              {.roundedJoints = true});
         SceneDraw::pathLineTo(drawCtx, glm::vec3(midX, startPos.y, z), 2.f);
         SceneDraw::pathLineTo(drawCtx, glm::vec3(midX, endPos.y, z), 2.f);
@@ -79,8 +82,11 @@ namespace Bess::Canvas {
         props.borderColor = ViewportTheme::colors.selectionBoxBorder;
         props.borderSize = glm::vec4(1.f);
 
-        SceneDraw::drawQuad(drawCtx, glm::vec3(pos, 7.f), size,
+        SceneDraw::drawQuad(drawCtx,
+                            glm::vec3(pos, 7.f),
+                            size,
                             ViewportTheme::colors.selectionBoxFill,
-                            PickingId::invalid(), props);
+                            PickingId::invalid(),
+                            props);
     }
 } // namespace Bess::Canvas

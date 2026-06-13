@@ -8,13 +8,16 @@
 
 namespace Bess::UI::Widgets {
 
-    void SelectableText(const std::string &id, const std::string &text,
+    void SelectableText(const std::string &id,
+                        const std::string &text,
                         const glm::vec2 &size = glm::vec2(0, 800));
 
-    bool TextBox(const std::string &label, std::string &value,
+    bool TextBox(const std::string &label,
+                 std::string &value,
                  const std::string &hintText = "");
 
-    bool TextBoxMultiline(const std::string &label, std::string &value,
+    bool TextBoxMultiline(const std::string &label,
+                          std::string &value,
                           const glm::vec2 &size = glm::vec2(0, 800));
 
     template <typename T> auto UnpackValue(const T &item) {
@@ -30,7 +33,8 @@ namespace Bess::UI::Widgets {
 
     template <std::ranges::input_range Range,
               class TValue = std::ranges::range_value_t<Range>>
-    bool ComboBox(const std::string &label, TValue &currentValue,
+    bool ComboBox(const std::string &label,
+                  TValue &currentValue,
                   Range &&predefinedValues) {
         bool valueChanged = false;
 
@@ -57,7 +61,8 @@ namespace Bess::UI::Widgets {
         return valueChanged;
     }
 
-    bool CheckboxWithLabel(const char *label, bool *value,
+    bool CheckboxWithLabel(const char *label,
+                           bool *value,
                            bool expandToFullWidth = true,
                            bool alignToFramePadding = false);
 
@@ -67,13 +72,17 @@ namespace Bess::UI::Widgets {
                   const std::string &icon = "",
                   glm::vec4 iconColor = glm::vec4(-1.0f));
 
-    bool ButtonWithPopup(const std::string &label, const std::string &popupName,
+    bool ButtonWithPopup(const std::string &label,
+                         const std::string &popupName,
                          bool showMenuButton = true);
 
-    std::pair<bool, bool>
-    EditableTreeNode(uint64_t key, std::string &name, bool selected,
-                     ImGuiTreeNodeFlags treeFlags, const std::string &icon,
-                     glm::vec4 iconColor, const std::string &popupName,
-                     uint64_t payloadId);
+    std::pair<bool, bool> EditableTreeNode(uint64_t key,
+                                           std::string &name,
+                                           bool selected,
+                                           ImGuiTreeNodeFlags treeFlags,
+                                           const std::string &icon,
+                                           glm::vec4 iconColor,
+                                           const std::string &popupName,
+                                           uint64_t payloadId);
 
 } // namespace Bess::UI::Widgets

@@ -16,8 +16,8 @@ namespace Bess::Canvas::SceneWidgets {
             return std::isfinite(value) ? value : fallback;
         }
 
-        float snappedValue(float value, float minValue, float maxValue,
-                           float step) {
+        float
+        snappedValue(float value, float minValue, float maxValue, float step) {
             value = std::clamp(value, minValue, maxValue);
             if (step <= 0.f || maxValue <= minValue) {
                 return value;
@@ -31,12 +31,14 @@ namespace Bess::Canvas::SceneWidgets {
             if (maxValue <= minValue) {
                 return 0.f;
             }
-            return std::clamp((value - minValue) / (maxValue - minValue), 0.f,
-                              1.f);
+            return std::clamp(
+                (value - minValue) / (maxValue - minValue), 0.f, 1.f);
         }
 
-        float pointerToValue(const Detail::WidgetState &widget, float minValue,
-                             float maxValue, float valueTextWidth,
+        float pointerToValue(const Detail::WidgetState &widget,
+                             float minValue,
+                             float maxValue,
+                             float valueTextWidth,
                              const SliderOptions &options) {
             const float left = widget.boundsPos.x -
                                (widget.boundsSize.x * 0.5f) + options.padding.x;
@@ -61,7 +63,8 @@ namespace Bess::Canvas::SceneWidgets {
 
         glm::vec2 resolveSliderSize(
             const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer,
-            const glm::vec2 &requestedSize, const SliderOptions &options) {
+            const glm::vec2 &requestedSize,
+            const SliderOptions &options) {
             auto size = requestedSize;
             const auto textSize =
                 renderer->measureText("0", {.fontSize = options.fontSize});
@@ -80,7 +83,8 @@ namespace Bess::Canvas::SceneWidgets {
 
         float valueTextWidth(
             const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer,
-            const std::string &valueLabel, const SliderOptions &options) {
+            const std::string &valueLabel,
+            const SliderOptions &options) {
             if (!options.showValue) {
                 return 0.f;
             }
@@ -90,8 +94,10 @@ namespace Bess::Canvas::SceneWidgets {
                    options.padding.x;
         }
 
-        bool applySliderInput(Detail::WidgetState &widget, float *value,
-                              float minValue, float maxValue,
+        bool applySliderInput(Detail::WidgetState &widget,
+                              float *value,
+                              float minValue,
+                              float maxValue,
                               float valueTextWidth,
                               const SliderOptions &options) {
             if (value == nullptr || maxValue <= minValue) {
@@ -110,8 +116,8 @@ namespace Bess::Canvas::SceneWidgets {
             bool hasInput = false;
 
             if (widget.pointerInputQueued) {
-                next = pointerToValue(widget, minValue, maxValue,
-                                      valueTextWidth, options);
+                next = pointerToValue(
+                    widget, minValue, maxValue, valueTextWidth, options);
                 hasInput = true;
             }
 
@@ -146,10 +152,15 @@ namespace Bess::Canvas::SceneWidgets {
             return true;
         }
 
-        void drawSlider(Detail::WidgetState &widget, const PickingId &id,
-                        float value, float minValue, float maxValue,
-                        const std::string &valueLabel, float valueTextWidth,
-                        const glm::vec3 &sliderPos, const glm::vec2 &size,
+        void drawSlider(Detail::WidgetState &widget,
+                        const PickingId &id,
+                        float value,
+                        float minValue,
+                        float maxValue,
+                        const std::string &valueLabel,
+                        float valueTextWidth,
+                        const glm::vec3 &sliderPos,
+                        const glm::vec2 &size,
                         SceneDrawContext &context,
                         const SliderOptions &options) {
             const auto &palette = ViewportTheme::sceneWidgetsColors;
@@ -174,8 +185,8 @@ namespace Bess::Canvas::SceneWidgets {
                 .borderSize = glm::vec4(focused ? 0.8f : 0.f),
             };
 
-            SceneDraw::drawQuad(context, sliderPos, size, bgColor, id,
-                                backgroundStyle);
+            SceneDraw::drawQuad(
+                context, sliderPos, size, bgColor, id, backgroundStyle);
 
             const float left =
                 sliderPos.x - (size.x * 0.5f) + options.padding.x;
@@ -190,9 +201,11 @@ namespace Bess::Canvas::SceneWidgets {
                 .borderRadius = glm::vec4(options.trackHeight * 0.5f),
             };
             SceneDraw::drawQuad(
-                context, {trackCenterX, sliderPos.y, sliderPos.z + 0.0001f},
+                context,
+                {trackCenterX, sliderPos.y, sliderPos.z + 0.0001f},
                 {trackWidth, options.trackHeight},
-                Detail::colorOr(options.trackColor, palette.track), id,
+                Detail::colorOr(options.trackColor, palette.track),
+                id,
                 trackStyle);
 
             const float fillWidth = std::max(0.5f, knobX - left);
@@ -200,13 +213,16 @@ namespace Bess::Canvas::SceneWidgets {
                 context,
                 {left + (fillWidth * 0.5f), sliderPos.y, sliderPos.z + 0.0002f},
                 {fillWidth, options.trackHeight},
-                Detail::colorOr(options.fillColor, palette.accent), id,
+                Detail::colorOr(options.fillColor, palette.accent),
+                id,
                 trackStyle);
 
             SceneDraw::drawCircle(
-                context, {knobX, sliderPos.y, sliderPos.z + 0.0003f},
+                context,
+                {knobX, sliderPos.y, sliderPos.z + 0.0003f},
                 options.knobRadius,
-                Detail::colorOr(options.knobColor, palette.knob), id);
+                Detail::colorOr(options.knobColor, palette.knob),
+                id);
 
             if (options.showValue) {
                 const float textOffY = context.renderer->textCenterOffsetY(
@@ -217,15 +233,21 @@ namespace Bess::Canvas::SceneWidgets {
                     sliderPos.z + 0.0004f,
                 };
                 SceneDraw::drawText(
-                    context, valueLabel, textPos,
+                    context,
+                    valueLabel,
+                    textPos,
                     static_cast<size_t>(options.fontSize),
-                    Detail::colorOr(options.textColor, palette.textMuted), id);
+                    Detail::colorOr(options.textColor, palette.textMuted),
+                    id);
             }
         }
     } // namespace
 
-    SliderResult sliderFloat(const PickingId &id, float *value, float minValue,
-                             float maxValue, const glm::vec3 &sliderPos,
+    SliderResult sliderFloat(const PickingId &id,
+                             float *value,
+                             float minValue,
+                             float maxValue,
+                             const glm::vec3 &sliderPos,
                              const glm::vec2 &sliderSize,
                              SceneDrawContext &context,
                              const SliderOptions &options) {
@@ -236,11 +258,11 @@ namespace Bess::Canvas::SceneWidgets {
 
         const float rangeMin = std::min(minValue, maxValue);
         const float rangeMax = std::max(minValue, maxValue);
-        *value = snappedValue(sanitizeValue(*value, rangeMin), rangeMin,
-                              rangeMax, options.step);
+        *value = snappedValue(
+            sanitizeValue(*value, rangeMin), rangeMin, rangeMax, options.step);
 
-        auto widget = Detail::registerWidget(context.sceneState, id,
-                                             Detail::WidgetState::Type::slider);
+        auto widget = Detail::registerWidget(
+            context.sceneState, id, Detail::WidgetState::Type::slider);
         if (widget == nullptr) {
             return result;
         }
@@ -254,23 +276,35 @@ namespace Bess::Canvas::SceneWidgets {
         auto reservedValueWidth =
             valueTextWidth(context.renderer, valueLabel, options);
 
-        result.changed = applySliderInput(*widget, value, rangeMin, rangeMax,
-                                          reservedValueWidth, options);
+        result.changed = applySliderInput(
+            *widget, value, rangeMin, rangeMax, reservedValueWidth, options);
 
         valueLabel = formatValue(*value, options.precision);
         reservedValueWidth =
             valueTextWidth(context.renderer, valueLabel, options);
 
-        drawSlider(*widget, id, *value, rangeMin, rangeMax, valueLabel,
-                   reservedValueWidth, sliderPos, size, context, options);
+        drawSlider(*widget,
+                   id,
+                   *value,
+                   rangeMin,
+                   rangeMax,
+                   valueLabel,
+                   reservedValueWidth,
+                   sliderPos,
+                   size,
+                   context,
+                   options);
 
         result.editing = widget->isPressed;
         result.focused = widget->isFocused;
         return result;
     }
 
-    SliderResult sliderInt(const PickingId &id, int *value, int minValue,
-                           int maxValue, const glm::vec3 &sliderPos,
+    SliderResult sliderInt(const PickingId &id,
+                           int *value,
+                           int minValue,
+                           int maxValue,
+                           const glm::vec3 &sliderPos,
                            const glm::vec2 &sliderSize,
                            SceneDrawContext &context,
                            const SliderOptions &options) {
@@ -288,9 +322,14 @@ namespace Bess::Canvas::SceneWidgets {
         intOptions.precision = 0;
 
         float floatValue = static_cast<float>(*value);
-        result = sliderFloat(id, &floatValue, static_cast<float>(rangeMin),
-                             static_cast<float>(rangeMax), sliderPos,
-                             sliderSize, context, intOptions);
+        result = sliderFloat(id,
+                             &floatValue,
+                             static_cast<float>(rangeMin),
+                             static_cast<float>(rangeMax),
+                             sliderPos,
+                             sliderSize,
+                             context,
+                             intOptions);
 
         const int nextValue = std::clamp(
             static_cast<int>(std::lround(floatValue)), rangeMin, rangeMax);

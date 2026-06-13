@@ -40,7 +40,8 @@ namespace Bess::Wgpu {
         // If path is empty, creates a render target
         void initRenderTarget();
 
-        void createTextureFromPixels(const uint8_t *pixels, uint32_t width,
+        void createTextureFromPixels(const uint8_t *pixels,
+                                     uint32_t width,
                                      uint32_t height);
 
       private:

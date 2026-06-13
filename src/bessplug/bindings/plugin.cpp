@@ -53,12 +53,15 @@ void bind_plugin(py::module &m) {
         .def("cleanup",
              [](Plugin &self) {
                  py::print(std::format("Cleaning plugin: {} v{}",
-                                       self.get_name(), self.get_version()));
+                                       self.get_name(),
+                                       self.get_version()));
              })
         .def("draw_ui", &Plugin::draw_ui)
-        .def("has_sim_scene_comp", &Plugin::has_sim_scene_comp,
+        .def("has_sim_scene_comp",
+             &Plugin::has_sim_scene_comp,
              py::arg("def_name"))
-        .def("get_sim_scene_comp", &Plugin::get_sim_scene_comp,
+        .def("get_sim_scene_comp",
+             &Plugin::get_sim_scene_comp,
              py::arg("comp_def"))
         .def_property("name", &Plugin::get_name, &Plugin::set_name)
         .def_property("version", &Plugin::get_version, &Plugin::set_version);

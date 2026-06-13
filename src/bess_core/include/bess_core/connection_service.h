@@ -42,14 +42,17 @@ namespace Bess::Svc {
         // @returns: shared_ptr to the created connection component on success,
         // nullptr on failure
         std::shared_ptr<Canvas::ConnectionSceneComponent>
-        createConnection(const UUID &slotAId, const UUID &slotBId,
+        createConnection(const UUID &slotAId,
+                         const UUID &slotBId,
                          const std::shared_ptr<Canvas::Scene> &scene);
 
         std::shared_ptr<Canvas::ConnectionSceneComponent>
         createConnection(const Bess::UUID &fromCompId,
-                         Bess::Canvas::SlotType fromSlotType, int fromSlotIdx,
+                         Bess::Canvas::SlotType fromSlotType,
+                         int fromSlotIdx,
                          const Bess::UUID &toCompId,
-                         Bess::Canvas::SlotType toSlotType, int toSlotIdx,
+                         Bess::Canvas::SlotType toSlotType,
+                         int toSlotIdx,
                          const std::shared_ptr<Canvas::Scene> &scene);
 
         // Takes a connection component and tries to add it to the correct place
@@ -78,7 +81,8 @@ namespace Bess::Svc {
         // first (bool): true if they can connect.
         // second (string): error message if they cannot connect.
         std::pair<bool, std::string>
-        canConnect(const UUID &idA, const UUID &idB,
+        canConnect(const UUID &idA,
+                   const UUID &idB,
                    const std::shared_ptr<Canvas::Scene> &scene);
 
       private:

@@ -33,7 +33,8 @@ namespace Bess {
             static ImFont *mediumFont;
         };
 
-        MAKE_GETTER_SETTER(std::shared_ptr<Pages::Page>, currentPage,
+        MAKE_GETTER_SETTER(std::shared_ptr<Pages::Page>,
+                           currentPage,
                            m_currentPage)
 
       private:

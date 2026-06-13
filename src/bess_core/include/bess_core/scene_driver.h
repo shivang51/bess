@@ -53,7 +53,8 @@ namespace Bess {
         }
 
         MAKE_GETTER_SETTER(UUID, RootSceneId, m_rootSceneId);
-        MAKE_GETTER_SETTER(std::vector<std::shared_ptr<Canvas::Scene>>, Scenes,
+        MAKE_GETTER_SETTER(std::vector<std::shared_ptr<Canvas::Scene>>,
+                           Scenes,
                            m_scenes);
 
         MAKE_GETTER_SETTER(bool, IsPaused, m_isPaused);

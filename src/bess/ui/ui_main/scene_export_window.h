@@ -47,7 +47,8 @@ namespace Bess::UI {
         computeSceneBounds(const std::shared_ptr<Canvas::Scene> &scene);
         static SceneExportInfo
         getSceneExportInfo(const std::shared_ptr<Canvas::Scene> &scene,
-                           const SceneBounds &bounds, float zoom);
+                           const SceneBounds &bounds,
+                           float zoom);
         static void exportScene(const std::shared_ptr<Canvas::Scene> &scene,
                                 const SceneExportInfo &info);
 

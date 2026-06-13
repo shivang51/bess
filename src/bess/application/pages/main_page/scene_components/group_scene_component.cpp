@@ -28,8 +28,8 @@ namespace Bess::Canvas {
 
             clonedComponent->addChildComponent(childClones.front()->getUuid());
             childClones.front()->setParentComponent(clonedComponent->getUuid());
-            clonedComponents.insert(clonedComponents.end(), childClones.begin(),
-                                    childClones.end());
+            clonedComponents.insert(
+                clonedComponents.end(), childClones.begin(), childClones.end());
         }
 
         return clonedComponents;

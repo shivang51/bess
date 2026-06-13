@@ -164,14 +164,18 @@ namespace Bess::Core::Renderer {
         [[nodiscard]] virtual TextureReadbackResult
         readTexture(const TextureReadbackRegion &region) = 0;
         [[nodiscard]] TextureReadbackResult readTexture(TextureHandle texture,
-                                                        uint32_t x, uint32_t y,
+                                                        uint32_t x,
+                                                        uint32_t y,
                                                         uint32_t width = 1,
                                                         uint32_t height = 1);
-        [[nodiscard]] PickingId readPickingId(TextureHandle texture, uint32_t x,
-                                              uint32_t y);
+        [[nodiscard]] PickingId
+        readPickingId(TextureHandle texture, uint32_t x, uint32_t y);
         [[nodiscard]] std::vector<PickingId>
-        readPickingIds(TextureHandle texture, uint32_t x, uint32_t y,
-                       uint32_t width, uint32_t height);
+        readPickingIds(TextureHandle texture,
+                       uint32_t x,
+                       uint32_t y,
+                       uint32_t width,
+                       uint32_t height);
         virtual void requestPickingIds(const TextureReadbackRegion &region) = 0;
         void requestPickingId(TextureHandle texture, uint32_t x, uint32_t y);
         [[nodiscard]] virtual bool
@@ -229,16 +233,21 @@ namespace Bess::Core::Renderer {
             pathLineTo(pos, PathCommandStroke::withWidthAndId(strokeWidth, id));
         }
 
-        virtual void pathQuadTo(const glm::vec2 &control, const glm::vec2 &pos,
+        virtual void pathQuadTo(const glm::vec2 &control,
+                                const glm::vec2 &pos,
                                 const PathCommandStroke &stroke = {}) = 0;
 
-        void pathQuadTo(const glm::vec2 &control, const glm::vec2 &pos,
+        void pathQuadTo(const glm::vec2 &control,
+                        const glm::vec2 &pos,
                         float strokeWidth) {
             pathQuadTo(control, pos, PathCommandStroke::withWidth(strokeWidth));
         }
-        void pathQuadTo(const glm::vec2 &control, const glm::vec2 &pos,
-                        float strokeWidth, PickingId id) {
-            pathQuadTo(control, pos,
+        void pathQuadTo(const glm::vec2 &control,
+                        const glm::vec2 &pos,
+                        float strokeWidth,
+                        PickingId id) {
+            pathQuadTo(control,
+                       pos,
                        PathCommandStroke::withWidthAndId(strokeWidth, id));
         }
 
@@ -247,16 +256,24 @@ namespace Bess::Core::Renderer {
                                  const glm::vec2 &pos,
                                  const PathCommandStroke &stroke = {}) = 0;
 
-        void pathCubicTo(const glm::vec2 &control1, const glm::vec2 &control2,
-                         const glm::vec2 &pos, float strokeWidth) {
-            pathCubicTo(control1, control2, pos,
+        void pathCubicTo(const glm::vec2 &control1,
+                         const glm::vec2 &control2,
+                         const glm::vec2 &pos,
+                         float strokeWidth) {
+            pathCubicTo(control1,
+                        control2,
+                        pos,
                         PathCommandStroke::withWidth(strokeWidth));
         }
 
-        void pathCubicTo(const glm::vec2 &control1, const glm::vec2 &control2,
-                         const glm::vec2 &pos, float strokeWidth,
+        void pathCubicTo(const glm::vec2 &control1,
+                         const glm::vec2 &control2,
+                         const glm::vec2 &pos,
+                         float strokeWidth,
                          PickingId id) {
-            pathCubicTo(control1, control2, pos,
+            pathCubicTo(control1,
+                        control2,
+                        pos,
                         PathCommandStroke::withWidthAndId(strokeWidth, id));
         }
 

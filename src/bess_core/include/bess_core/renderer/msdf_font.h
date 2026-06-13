@@ -61,7 +61,8 @@ namespace Bess::Core::Renderer {
             } catch (const std::exception &error) {
                 BESS_WARN("[WgpuRenderer2D] Failed to load MSDF font "
                           "atlas texture {}: {}",
-                          pngPath.string(), error.what());
+                          pngPath.string(),
+                          error.what());
                 m_texture = nullptr;
                 return false;
             }
@@ -91,7 +92,8 @@ namespace Bess::Core::Renderer {
                     const float bottom = bounds.get("bottom", 0.f).asFloat();
                     const float right = bounds.get("right", 0.f).asFloat();
                     const float top = bounds.get("top", 0.f).asFloat();
-                    glyph.atlasRegion.reset(m_atlasSize, {left, bottom},
+                    glyph.atlasRegion.reset(m_atlasSize,
+                                            {left, bottom},
                                             {std::max(0.f, right - left),
                                              std::max(0.f, top - bottom)},
                                             TextureOrigin::BottomLeft);

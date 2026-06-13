@@ -26,8 +26,10 @@ namespace Bess {
 
     class CustomQuadPipeline {
       public:
-        void init(const wgpu::Device &device, wgpu::TextureFormat targetFormat,
-                  const wgpu::Buffer &frameBuffer, uint64_t frameBufferSize,
+        void init(const wgpu::Device &device,
+                  wgpu::TextureFormat targetFormat,
+                  const wgpu::Buffer &frameBuffer,
+                  uint64_t frameBufferSize,
                   wgpu::TextureFormat pickingFormat);
 
         void destroy();
@@ -56,8 +58,10 @@ namespace Bess {
                            uint32_t instanceCount) const;
 
         void draw(wgpu::RenderPassEncoder &renderPass,
-                  CustomQuadShaderHandle shader, uint32_t firstInstance,
-                  uint32_t instanceCount, bool transparent) const;
+                  CustomQuadShaderHandle shader,
+                  uint32_t firstInstance,
+                  uint32_t instanceCount,
+                  bool transparent) const;
 
       private:
         bool isWGSLIdentifier(std::string_view value);

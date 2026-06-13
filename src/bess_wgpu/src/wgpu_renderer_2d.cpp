@@ -10,13 +10,13 @@
 #include "bess_wgpu/text/msdf_text_pipeline.h"
 #include "bess_wgpu/wgpu_shader.h"
 #include "bess_wgpu/wgpu_texture.h"
+#include "common/bess_assert.h"
+#include "common/logger.h"
+#include "glfw3webgpu.h"
 #include "wgpu_renderer_2d_batches.h"
 #include "wgpu_renderer_2d_instances.h"
 #include "wgpu_renderer_2d_readback.h"
 #include "wgpu_renderer_2d_text.h"
-#include "common/bess_assert.h"
-#include "common/logger.h"
-#include "glfw3webgpu.h"
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -50,9 +50,9 @@ namespace Bess::Wgpu {
         using Bess::Wgpu::Piplines::PathCoverVertex;
         using Bess::Wgpu::Piplines::PathStencilVertex;
 
+        using Bess::Wgpu::BakedPathSubmission;
         using Bess::Wgpu::bakePathFillAntiAlias;
         using Bess::Wgpu::bakePathSubmission;
-        using Bess::Wgpu::BakedPathSubmission;
         using Bess::Wgpu::makePathBakeMetrics;
         using Bess::Wgpu::PathBakeMetrics;
         using Bess::Wgpu::PathBatch;
@@ -98,8 +98,7 @@ namespace Bess::Wgpu {
                    a.miterLimit == b.miterLimit &&
                    a.curveTolerance == b.curveTolerance &&
                    a.renderFill == b.renderFill && a.zIndex == b.zIndex &&
-                   samePickingId(a.id, b.id) &&
-                   a.renderPass == b.renderPass &&
+                   samePickingId(a.id, b.id) && a.renderPass == b.renderPass &&
                    a.fillRule == b.fillRule && a.lineJoin == b.lineJoin &&
                    a.lineCap == b.lineCap && a.closePath == b.closePath;
         }
@@ -236,7 +235,8 @@ namespace Bess::Wgpu {
         [[nodiscard]] uint64_t nextSubmitOrder() noexcept;
         void prunePathCache();
         [[nodiscard]] const BakedPathSubmission &
-        cachedPathSubmission(const Path2D &path, const PathProps &props,
+        cachedPathSubmission(const Path2D &path,
+                             const PathProps &props,
                              const PathBakeMetrics &metrics);
         void queueCommandBuffer(wgpu::CommandBuffer commandBuffer);
         void flushPendingCommandBuffers();
@@ -283,7 +283,8 @@ namespace Bess::Wgpu {
         RequestResult adapterResult;
         auto adapterCallback =
             [&adapterResult](wgpu::RequestAdapterStatus status,
-                             wgpu::Adapter adapter, wgpu::StringView message) {
+                             wgpu::Adapter adapter,
+                             wgpu::StringView message) {
                 if (status != wgpu::RequestAdapterStatus::Success) {
                     adapterResult.error =
                         message.data != nullptr
@@ -294,10 +295,11 @@ namespace Bess::Wgpu {
                 adapterResult.adapter = std::move(adapter);
             };
 
-        instance.WaitAny(instance.RequestAdapter(
-                             &adapterOptions, wgpu::CallbackMode::WaitAnyOnly,
-                             adapterCallback),
-                         UINT64_MAX);
+        instance.WaitAny(
+            instance.RequestAdapter(&adapterOptions,
+                                    wgpu::CallbackMode::WaitAnyOnly,
+                                    adapterCallback),
+            UINT64_MAX);
         adapter = adapterResult.adapter;
         if (adapter == nullptr) {
             throw std::runtime_error("Failed to request WebGPU adapter: " +
@@ -306,7 +308,8 @@ namespace Bess::Wgpu {
 
         wgpu::DeviceDescriptor deviceDescriptor{};
         deviceDescriptor.SetUncapturedErrorCallback(
-            [](const wgpu::Device &, wgpu::ErrorType type,
+            [](const wgpu::Device &,
+               wgpu::ErrorType type,
                wgpu::StringView message) {
                 BESS_ERROR("Dawn Validation Error [{}]: {}",
                            static_cast<int>(type),
@@ -314,7 +317,8 @@ namespace Bess::Wgpu {
             });
         deviceDescriptor.SetDeviceLostCallback(
             wgpu::CallbackMode::AllowSpontaneous,
-            [](const wgpu::Device &, wgpu::DeviceLostReason reason,
+            [](const wgpu::Device &,
+               wgpu::DeviceLostReason reason,
                wgpu::StringView message) {
                 BESS_ERROR("Dawn Device Lost [{}]: {}",
                            static_cast<int>(reason),
@@ -350,8 +354,8 @@ namespace Bess::Wgpu {
     void WgpuRenderer2D::Impl::createOffscreenTarget() {
         wgpu::TextureDescriptor descriptor{};
         descriptor.dimension = wgpu::TextureDimension::e2D;
-        descriptor.size = {std::max(1u, extent.width),
-                           std::max(1u, extent.height), 1};
+        descriptor.size = {
+            std::max(1u, extent.width), std::max(1u, extent.height), 1};
         descriptor.format = targetFormat;
         descriptor.mipLevelCount = 1;
         descriptor.sampleCount = 1;
@@ -367,8 +371,8 @@ namespace Bess::Wgpu {
     void WgpuRenderer2D::Impl::createDepthTarget() {
         wgpu::TextureDescriptor descriptor{};
         descriptor.dimension = wgpu::TextureDimension::e2D;
-        descriptor.size = {std::max(1u, extent.width),
-                           std::max(1u, extent.height), 1};
+        descriptor.size = {
+            std::max(1u, extent.width), std::max(1u, extent.height), 1};
         descriptor.format = kDepthStencilFormat;
         descriptor.mipLevelCount = 1;
         descriptor.sampleCount = 1;
@@ -435,21 +439,21 @@ namespace Bess::Wgpu {
         }
     }
 
-    const BakedPathSubmission &WgpuRenderer2D::Impl::cachedPathSubmission(
-        const Path2D &path, const PathProps &props,
-        const PathBakeMetrics &metrics) {
+    const BakedPathSubmission &
+    WgpuRenderer2D::Impl::cachedPathSubmission(const Path2D &path,
+                                               const PathProps &props,
+                                               const PathBakeMetrics &metrics) {
         CachedPathEntry &entry = pathCache[&path];
         const auto bounds = path.bounds();
         const auto commandCount = path.commandCount();
         const PathCommand *commandData = path.data();
-        const bool cacheHit =
-            entry.initialized &&
-            entry.revision == path.revision() &&
-            entry.commandCount == commandCount &&
-            entry.commandData == commandData &&
-            samePathBounds(entry.bounds, bounds) &&
-            samePathProps(entry.props, props) &&
-            samePathBakeMetrics(entry.metrics, metrics);
+        const bool cacheHit = entry.initialized &&
+                              entry.revision == path.revision() &&
+                              entry.commandCount == commandCount &&
+                              entry.commandData == commandData &&
+                              samePathBounds(entry.bounds, bounds) &&
+                              samePathProps(entry.props, props) &&
+                              samePathBakeMetrics(entry.metrics, metrics);
 
         if (!cacheHit) {
             const auto commands = path.commands();
@@ -480,7 +484,8 @@ namespace Bess::Wgpu {
             return;
         }
 
-        queue.Submit(pendingCommandBuffers.size(), pendingCommandBuffers.data());
+        queue.Submit(pendingCommandBuffers.size(),
+                     pendingCommandBuffers.data());
         pendingCommandBuffers.clear();
         beginRecordedPickingReadbackMaps();
     }
@@ -579,7 +584,9 @@ namespace Bess::Wgpu {
             slot->state = AsyncPickingReadbackSlot::State::Mapping;
             auto callbackSlot = slot;
             slot->buffer.MapAsync(
-                wgpu::MapMode::Read, 0, slot->mappedSize,
+                wgpu::MapMode::Read,
+                0,
+                slot->mappedSize,
                 wgpu::CallbackMode::AllowProcessEvents,
                 [callbackSlot](wgpu::MapAsyncStatus status,
                                wgpu::StringView message) {
@@ -727,7 +734,8 @@ namespace Bess::Wgpu {
             return it->second;
         }
 
-        BESS_ASSERT(false, "Requested texture handle {} not found in renderer",
+        BESS_ASSERT(false,
+                    "Requested texture handle {} not found in renderer",
                     texture);
         return textures.at(defaultTexture->getHandle());
     }
@@ -771,22 +779,26 @@ namespace Bess::Wgpu {
         m_impl->pickingFormat = toWgpuFormat(createInfo.pickingFormat);
         m_impl->primitivePipeline =
             std::make_unique<Piplines::PrimitivePipeline>();
-        m_impl->primitivePipeline->init(m_impl->device, m_impl->targetFormat,
+        m_impl->primitivePipeline->init(m_impl->device,
+                                        m_impl->targetFormat,
                                         m_impl->sharedFrameBuffer.getBuffer(),
                                         m_impl->sharedFrameBuffer.getSize(),
                                         m_impl->pickingFormat);
         m_impl->pathPipeline = std::make_unique<Piplines::PathPipeline>();
-        m_impl->pathPipeline->init(m_impl->device, m_impl->targetFormat,
+        m_impl->pathPipeline->init(m_impl->device,
+                                   m_impl->targetFormat,
                                    m_impl->sharedFrameBuffer.getBuffer(),
                                    m_impl->sharedFrameBuffer.getSize(),
                                    m_impl->pickingFormat);
         m_impl->shadowPipeline = std::make_unique<Piplines::ShadowPipeline>();
-        m_impl->shadowPipeline->init(m_impl->device, m_impl->targetFormat,
+        m_impl->shadowPipeline->init(m_impl->device,
+                                     m_impl->targetFormat,
                                      m_impl->sharedFrameBuffer.getBuffer(),
                                      m_impl->sharedFrameBuffer.getSize(),
                                      m_impl->pickingFormat);
         m_impl->customQuadPipeline = std::make_unique<CustomQuadPipeline>();
-        m_impl->customQuadPipeline->init(m_impl->device, m_impl->targetFormat,
+        m_impl->customQuadPipeline->init(m_impl->device,
+                                         m_impl->targetFormat,
                                          m_impl->sharedFrameBuffer.getBuffer(),
                                          m_impl->sharedFrameBuffer.getSize(),
                                          m_impl->pickingFormat);
@@ -805,9 +817,11 @@ namespace Bess::Wgpu {
                                         kDefaultMsdfFontName)) {
             m_impl->textPipeline = std::make_unique<Text::MsdfTextPipeline>();
             m_impl->textPipeline->init(
-                m_impl->device, m_impl->targetFormat,
+                m_impl->device,
+                m_impl->targetFormat,
                 m_impl->sharedFrameBuffer.getBuffer(),
-                m_impl->sharedFrameBuffer.getSize(), m_impl->pickingFormat,
+                m_impl->sharedFrameBuffer.getSize(),
+                m_impl->pickingFormat,
                 m_impl->msdfFontAtlas->getTexture()->getResource());
             static_cast<void>(m_impl->textPipeline->ensureInstanceBufferSize(
                 std::max(1u, createInfo.batching.initialQuadCapacity)));
@@ -1039,7 +1053,9 @@ namespace Bess::Wgpu {
             colorAttachments[1].loadOp = wgpu::LoadOp::Clear;
             colorAttachments[1].storeOp = wgpu::StoreOp::Store;
             colorAttachments[1].clearValue = {
-                static_cast<double>(PickingId::invalidRuntimeId), 0.0, 0.0,
+                static_cast<double>(PickingId::invalidRuntimeId),
+                0.0,
+                0.0,
                 0.0};
             colorAttachmentCount = 2;
         }
@@ -1133,7 +1149,8 @@ namespace Bess::Wgpu {
 
         if (!m_impl->opaquePrimitiveBatch.empty()) {
             m_impl->primitivePipeline->uploadInstances(
-                m_impl->queue, m_impl->opaquePrimitiveBatch.data(),
+                m_impl->queue,
+                m_impl->opaquePrimitiveBatch.data(),
                 m_impl->opaquePrimitiveBatch.byteSize(),
                 opaqueInstanceOffset * sizeof(Piplines::PrimitiveInstance));
             m_impl->stats.uploadedBytes +=
@@ -1142,7 +1159,8 @@ namespace Bess::Wgpu {
 
         if (!m_impl->transparentPrimitiveBatch.empty()) {
             m_impl->primitivePipeline->uploadInstances(
-                m_impl->queue, m_impl->transparentPrimitiveBatch.data(),
+                m_impl->queue,
+                m_impl->transparentPrimitiveBatch.data(),
                 m_impl->transparentPrimitiveBatch.byteSize(),
                 transparentInstanceOffset *
                     sizeof(Piplines::PrimitiveInstance));
@@ -1152,7 +1170,8 @@ namespace Bess::Wgpu {
 
         if (!m_impl->opaqueCustomQuadBatch.empty()) {
             m_impl->customQuadPipeline->uploadInstances(
-                m_impl->queue, m_impl->opaqueCustomQuadBatch.data(),
+                m_impl->queue,
+                m_impl->opaqueCustomQuadBatch.data(),
                 m_impl->opaqueCustomQuadBatch.byteSize(),
                 opaqueCustomInstanceOffset * sizeof(CustomQuadInstance));
             m_impl->stats.uploadedBytes +=
@@ -1161,7 +1180,8 @@ namespace Bess::Wgpu {
 
         if (!m_impl->transparentCustomQuadBatch.empty()) {
             m_impl->customQuadPipeline->uploadInstances(
-                m_impl->queue, m_impl->transparentCustomQuadBatch.data(),
+                m_impl->queue,
+                m_impl->transparentCustomQuadBatch.data(),
                 m_impl->transparentCustomQuadBatch.byteSize(),
                 transparentCustomInstanceOffset * sizeof(CustomQuadInstance));
             m_impl->stats.uploadedBytes +=
@@ -1170,7 +1190,8 @@ namespace Bess::Wgpu {
 
         if (!m_impl->shadowBatch.empty()) {
             m_impl->shadowPipeline->uploadInstances(
-                m_impl->queue, m_impl->shadowBatch.data(),
+                m_impl->queue,
+                m_impl->shadowBatch.data(),
                 m_impl->shadowBatch.byteSize());
             m_impl->stats.uploadedBytes += m_impl->shadowBatch.byteSize();
         }
@@ -1205,11 +1226,13 @@ namespace Bess::Wgpu {
 
         if (!m_impl->opaquePathBatch.empty()) {
             m_impl->pathPipeline->uploadStencilVertices(
-                m_impl->queue, m_impl->opaquePathBatch.stencilData(),
+                m_impl->queue,
+                m_impl->opaquePathBatch.stencilData(),
                 m_impl->opaquePathBatch.stencilByteSize(),
                 opaqueStencilVertexOffset * sizeof(PathStencilVertex));
             m_impl->pathPipeline->uploadCoverVertices(
-                m_impl->queue, m_impl->opaquePathBatch.coverData(),
+                m_impl->queue,
+                m_impl->opaquePathBatch.coverData(),
                 m_impl->opaquePathBatch.coverByteSize(),
                 opaqueCoverVertexOffset * sizeof(PathCoverVertex));
             m_impl->stats.uploadedBytes +=
@@ -1219,11 +1242,13 @@ namespace Bess::Wgpu {
 
         if (!m_impl->transparentPathBatch.empty()) {
             m_impl->pathPipeline->uploadStencilVertices(
-                m_impl->queue, m_impl->transparentPathBatch.stencilData(),
+                m_impl->queue,
+                m_impl->transparentPathBatch.stencilData(),
                 m_impl->transparentPathBatch.stencilByteSize(),
                 transparentStencilVertexOffset * sizeof(PathStencilVertex));
             m_impl->pathPipeline->uploadCoverVertices(
-                m_impl->queue, m_impl->transparentPathBatch.coverData(),
+                m_impl->queue,
+                m_impl->transparentPathBatch.coverData(),
                 m_impl->transparentPathBatch.coverByteSize(),
                 transparentCoverVertexOffset * sizeof(PathCoverVertex));
             m_impl->stats.uploadedBytes +=
@@ -1233,7 +1258,8 @@ namespace Bess::Wgpu {
 
         if (!m_impl->opaquePathStrokeBatch.empty()) {
             m_impl->pathPipeline->uploadStrokeVertices(
-                m_impl->queue, m_impl->opaquePathStrokeBatch.data(),
+                m_impl->queue,
+                m_impl->opaquePathStrokeBatch.data(),
                 m_impl->opaquePathStrokeBatch.byteSize(),
                 opaqueStrokeVertexOffset * sizeof(PathCoverVertex));
             m_impl->stats.uploadedBytes +=
@@ -1242,7 +1268,8 @@ namespace Bess::Wgpu {
 
         if (!m_impl->transparentPathStrokeBatch.empty()) {
             m_impl->pathPipeline->uploadStrokeVertices(
-                m_impl->queue, m_impl->transparentPathStrokeBatch.data(),
+                m_impl->queue,
+                m_impl->transparentPathStrokeBatch.data(),
                 m_impl->transparentPathStrokeBatch.byteSize(),
                 transparentStrokeVertexOffset * sizeof(PathCoverVertex));
             m_impl->stats.uploadedBytes +=
@@ -1250,8 +1277,8 @@ namespace Bess::Wgpu {
         }
 
         m_impl->sharedFrameBuffer.setCameraTransform(m_impl->cameraTransform);
-        m_impl->sharedFrameBuffer.update(m_impl->queue, m_impl->extent.width,
-                                         m_impl->extent.height);
+        m_impl->sharedFrameBuffer.update(
+            m_impl->queue, m_impl->extent.width, m_impl->extent.height);
 
         wgpu::RenderPassEncoder renderPass =
             m_impl->commandEncoder.BeginRenderPass(&renderPassDescriptor);
@@ -1275,8 +1302,8 @@ namespace Bess::Wgpu {
             RenderPipelineKind kind = RenderPipelineKind::PrimitiveOpaque;
             uint64_t resource = 0;
 
-            [[nodiscard]] bool operator==(
-                const RenderPipelineKey &other) const noexcept {
+            [[nodiscard]] bool
+            operator==(const RenderPipelineKey &other) const noexcept {
                 return kind == other.kind && resource == other.resource;
             }
         };
@@ -1293,8 +1320,8 @@ namespace Bess::Wgpu {
             RenderBindGroupKind kind = RenderBindGroupKind::PrimitiveTexture;
             uint64_t resource = 0;
 
-            [[nodiscard]] bool operator==(
-                const RenderBindGroupKey &other) const noexcept {
+            [[nodiscard]] bool
+            operator==(const RenderBindGroupKey &other) const noexcept {
                 return kind == other.kind && resource == other.resource;
             }
         };
@@ -1328,7 +1355,8 @@ namespace Bess::Wgpu {
 
         RenderPassStateCache passState;
 
-        auto renderBatch = [&](PrimitiveBatch &batch, uint32_t instanceOffset,
+        auto renderBatch = [&](PrimitiveBatch &batch,
+                               uint32_t instanceOffset,
                                const wgpu::RenderPipeline &pipeline,
                                RenderPipelineKey pipelineKey) {
             if (batch.empty()) {
@@ -1346,7 +1374,9 @@ namespace Bess::Wgpu {
                     renderPass,
                     {RenderBindGroupKind::PrimitiveTexture, run.texture},
                     texture.bindGroup);
-                renderPass.Draw(6, run.instanceCount, 0,
+                renderPass.Draw(6,
+                                run.instanceCount,
+                                0,
                                 instanceOffset + run.firstInstance);
                 m_impl->stats.drawCallCount++;
             }
@@ -1366,8 +1396,8 @@ namespace Bess::Wgpu {
                 renderPass,
                 {RenderBindGroupKind::PrimitiveTexture, run.texture},
                 texture.bindGroup);
-            renderPass.Draw(6, run.instanceCount, 0,
-                            instanceOffset + run.firstInstance);
+            renderPass.Draw(
+                6, run.instanceCount, 0, instanceOffset + run.firstInstance);
             m_impl->stats.drawCallCount++;
         };
 
@@ -1385,12 +1415,13 @@ namespace Bess::Wgpu {
                  run.shader},
                 m_impl->customQuadPipeline->getPipeline(run.shader,
                                                         transparent));
-            passState.setBindGroup(
-                renderPass, {RenderBindGroupKind::CustomQuad, 0},
-                m_impl->customQuadPipeline->getBindGroup());
-            m_impl->customQuadPipeline->drawInstances(
-                renderPass, instanceOffset + run.firstInstance,
-                run.instanceCount);
+            passState.setBindGroup(renderPass,
+                                   {RenderBindGroupKind::CustomQuad, 0},
+                                   m_impl->customQuadPipeline->getBindGroup());
+            m_impl->customQuadPipeline->drawInstances(renderPass,
+                                                      instanceOffset +
+                                                          run.firstInstance,
+                                                      run.instanceCount);
             m_impl->stats.drawCallCount++;
         };
 
@@ -1413,60 +1444,61 @@ namespace Bess::Wgpu {
                 return;
             }
 
-            passState.setPipeline(renderPass, {RenderPipelineKind::Shadow, 0},
+            passState.setPipeline(renderPass,
+                                  {RenderPipelineKind::Shadow, 0},
                                   m_impl->shadowPipeline->getPipeline());
             passState.setBindGroup(renderPass,
                                    {RenderBindGroupKind::Shadow, 0},
                                    m_impl->shadowPipeline->getBindGroup());
-            m_impl->shadowPipeline->drawInstances(renderPass, run.firstInstance,
-                                                  run.instanceCount);
+            m_impl->shadowPipeline->drawInstances(
+                renderPass, run.firstInstance, run.instanceCount);
             m_impl->stats.drawCallCount++;
         };
 
-        auto renderPathRange =
-            [&](const PathDrawRange &range, uint32_t stencilVertexOffset,
-                uint32_t coverVertexOffset, bool transparent) {
-                if (range.stencilVertexCount == 0 ||
-                    range.coverVertexCount == 0) {
-                    return;
-                }
+        auto renderPathRange = [&](const PathDrawRange &range,
+                                   uint32_t stencilVertexOffset,
+                                   uint32_t coverVertexOffset,
+                                   bool transparent) {
+            if (range.stencilVertexCount == 0 || range.coverVertexCount == 0) {
+                return;
+            }
 
-                passState.setBindGroup(renderPass,
-                                       {RenderBindGroupKind::Path, 0},
-                                       m_impl->pathPipeline->getBindGroup());
-                passState.setPipeline(
-                    renderPass,
-                    {range.evenOddFill
-                         ? RenderPipelineKind::PathStencilEvenOdd
-                         : RenderPipelineKind::PathStencilNonZero,
-                     0},
-                    m_impl->pathPipeline->getStencilPipeline(
-                        range.evenOddFill));
-                renderPass.SetVertexBuffer(
-                    0, m_impl->pathPipeline->getStencilVertexBuffer(),
-                    static_cast<uint64_t>(stencilVertexOffset +
-                                          range.firstStencilVertex) *
-                        sizeof(PathStencilVertex),
-                    static_cast<uint64_t>(range.stencilVertexCount) *
-                        sizeof(PathStencilVertex));
-                renderPass.Draw(range.stencilVertexCount, 1, 0, 0);
+            passState.setBindGroup(renderPass,
+                                   {RenderBindGroupKind::Path, 0},
+                                   m_impl->pathPipeline->getBindGroup());
+            passState.setPipeline(
+                renderPass,
+                {range.evenOddFill ? RenderPipelineKind::PathStencilEvenOdd
+                                   : RenderPipelineKind::PathStencilNonZero,
+                 0},
+                m_impl->pathPipeline->getStencilPipeline(range.evenOddFill));
+            renderPass.SetVertexBuffer(
+                0,
+                m_impl->pathPipeline->getStencilVertexBuffer(),
+                static_cast<uint64_t>(stencilVertexOffset +
+                                      range.firstStencilVertex) *
+                    sizeof(PathStencilVertex),
+                static_cast<uint64_t>(range.stencilVertexCount) *
+                    sizeof(PathStencilVertex));
+            renderPass.Draw(range.stencilVertexCount, 1, 0, 0);
 
-                passState.setPipeline(
-                    renderPass,
-                    {transparent ? RenderPipelineKind::PathCoverTransparent
-                                 : RenderPipelineKind::PathCoverOpaque,
-                     0},
-                    m_impl->pathPipeline->getCoverPipeline(transparent));
-                renderPass.SetVertexBuffer(
-                    0, m_impl->pathPipeline->getCoverVertexBuffer(),
-                    static_cast<uint64_t>(coverVertexOffset +
-                                          range.firstCoverVertex) *
-                        sizeof(PathCoverVertex),
-                    static_cast<uint64_t>(range.coverVertexCount) *
-                        sizeof(PathCoverVertex));
-                renderPass.Draw(range.coverVertexCount, 1, 0, 0);
-                m_impl->stats.drawCallCount += 2;
-            };
+            passState.setPipeline(
+                renderPass,
+                {transparent ? RenderPipelineKind::PathCoverTransparent
+                             : RenderPipelineKind::PathCoverOpaque,
+                 0},
+                m_impl->pathPipeline->getCoverPipeline(transparent));
+            renderPass.SetVertexBuffer(
+                0,
+                m_impl->pathPipeline->getCoverVertexBuffer(),
+                static_cast<uint64_t>(coverVertexOffset +
+                                      range.firstCoverVertex) *
+                    sizeof(PathCoverVertex),
+                static_cast<uint64_t>(range.coverVertexCount) *
+                    sizeof(PathCoverVertex));
+            renderPass.Draw(range.coverVertexCount, 1, 0, 0);
+            m_impl->stats.drawCallCount += 2;
+        };
 
         auto renderPathBatch = [&](const PathBatch &batch,
                                    uint32_t stencilVertexOffset,
@@ -1479,8 +1511,10 @@ namespace Bess::Wgpu {
             const PathDrawRange *ranges = batch.drawRanges();
             const uint32_t rangeCount = batch.drawCount();
             for (uint32_t i = 0; i < rangeCount; ++i) {
-                renderPathRange(ranges[i], stencilVertexOffset,
-                                coverVertexOffset, transparent);
+                renderPathRange(ranges[i],
+                                stencilVertexOffset,
+                                coverVertexOffset,
+                                transparent);
             }
         };
 
@@ -1491,7 +1525,8 @@ namespace Bess::Wgpu {
                 return;
             }
 
-            passState.setBindGroup(renderPass, {RenderBindGroupKind::Path, 0},
+            passState.setBindGroup(renderPass,
+                                   {RenderBindGroupKind::Path, 0},
                                    m_impl->pathPipeline->getBindGroup());
             passState.setPipeline(
                 renderPass,
@@ -1500,7 +1535,8 @@ namespace Bess::Wgpu {
                  0},
                 m_impl->pathPipeline->getStrokePipeline(transparent));
             renderPass.SetVertexBuffer(
-                0, m_impl->pathPipeline->getStrokeVertexBuffer(),
+                0,
+                m_impl->pathPipeline->getStrokeVertexBuffer(),
                 static_cast<uint64_t>(vertexOffset + range.firstVertex) *
                     sizeof(PathCoverVertex),
                 static_cast<uint64_t>(range.vertexCount) *
@@ -1528,24 +1564,29 @@ namespace Bess::Wgpu {
                 return;
             }
 
-            passState.setPipeline(renderPass, {RenderPipelineKind::Text, 0},
+            passState.setPipeline(renderPass,
+                                  {RenderPipelineKind::Text, 0},
                                   m_impl->textPipeline->getPipeline());
-            passState.setBindGroup(renderPass, {RenderBindGroupKind::Text, 0},
+            passState.setBindGroup(renderPass,
+                                   {RenderBindGroupKind::Text, 0},
                                    m_impl->textPipeline->getBindGroup());
-            m_impl->textPipeline->drawInstances(renderPass, run.firstGlyph,
-                                                run.glyphCount);
+            m_impl->textPipeline->drawInstances(
+                renderPass, run.firstGlyph, run.glyphCount);
             m_impl->stats.drawCallCount++;
         };
 
-        renderBatch(m_impl->opaquePrimitiveBatch, opaqueInstanceOffset,
+        renderBatch(m_impl->opaquePrimitiveBatch,
+                    opaqueInstanceOffset,
                     m_impl->primitivePipeline->getOpaquePipeline(),
                     {RenderPipelineKind::PrimitiveOpaque, 0});
-        renderCustomQuadBatch(m_impl->opaqueCustomQuadBatch,
-                              opaqueCustomInstanceOffset, false);
-        renderPathBatch(m_impl->opaquePathBatch, opaqueStencilVertexOffset,
-                        opaqueCoverVertexOffset, false);
-        renderPathStrokeBatch(m_impl->opaquePathStrokeBatch,
-                              opaqueStrokeVertexOffset, false);
+        renderCustomQuadBatch(
+            m_impl->opaqueCustomQuadBatch, opaqueCustomInstanceOffset, false);
+        renderPathBatch(m_impl->opaquePathBatch,
+                        opaqueStencilVertexOffset,
+                        opaqueCoverVertexOffset,
+                        false);
+        renderPathStrokeBatch(
+            m_impl->opaquePathStrokeBatch, opaqueStrokeVertexOffset, false);
 
         m_impl->transparentDrawItems.clear();
         m_impl->transparentDrawItems.reserve(
@@ -1569,7 +1610,8 @@ namespace Bess::Wgpu {
         const DrawRun *transparentPrimitiveRuns =
             m_impl->transparentPrimitiveBatch.drawRunsData();
         for (uint32_t i = 0;
-             i < m_impl->transparentPrimitiveBatch.drawRunsCount(); ++i) {
+             i < m_impl->transparentPrimitiveBatch.drawRunsCount();
+             ++i) {
             m_impl->transparentDrawItems.push_back({
                 .kind = TransparentDrawKind::Primitive,
                 .zIndex = transparentPrimitiveRuns[i].zIndex,
@@ -1581,7 +1623,8 @@ namespace Bess::Wgpu {
         const CustomQuadDrawRun *transparentCustomQuadRuns =
             m_impl->transparentCustomQuadBatch.drawRunsData();
         for (uint32_t i = 0;
-             i < m_impl->transparentCustomQuadBatch.drawRunsCount(); ++i) {
+             i < m_impl->transparentCustomQuadBatch.drawRunsCount();
+             ++i) {
             m_impl->transparentDrawItems.push_back({
                 .kind = TransparentDrawKind::CustomQuad,
                 .zIndex = transparentCustomQuadRuns[i].zIndex,
@@ -1648,13 +1691,16 @@ namespace Bess::Wgpu {
                 break;
             case TransparentDrawKind::CustomQuad:
                 renderCustomQuadRun(transparentCustomQuadRuns[item.index],
-                                    transparentCustomInstanceOffset, true);
+                                    transparentCustomInstanceOffset,
+                                    true);
                 break;
             case TransparentDrawKind::PathFill: {
                 const auto &r =
                     m_impl->transparentPathBatch.drawRanges()[item.index];
-                renderPathRange(r, transparentStencilVertexOffset,
-                                transparentCoverVertexOffset, true);
+                renderPathRange(r,
+                                transparentStencilVertexOffset,
+                                transparentCoverVertexOffset,
+                                true);
             } break;
             case TransparentDrawKind::PathStroke: {
                 const auto &r =
@@ -1707,9 +1753,14 @@ namespace Bess::Wgpu {
         }
 
         const auto &resource = m_impl->getTexture(region.texture);
-        return readTextureRegion(
-            m_impl->instance, m_impl->device, m_impl->queue, resource.texture,
-            resource.format, resource.width, resource.height, region);
+        return readTextureRegion(m_impl->instance,
+                                 m_impl->device,
+                                 m_impl->queue,
+                                 resource.texture,
+                                 resource.format,
+                                 resource.width,
+                                 resource.height,
+                                 region);
     }
 
     void WgpuRenderer2D::requestPickingIds(
@@ -1793,9 +1844,12 @@ namespace Bess::Wgpu {
         if (m_impl->lastCompletedTargetTexture != 0) {
             const auto &resource =
                 m_impl->getTexture(m_impl->lastCompletedTargetTexture);
-            readback = readTextureRegion(m_impl->instance, m_impl->device,
-                                         m_impl->queue, resource.texture,
-                                         resource.format, resource.width,
+            readback = readTextureRegion(m_impl->instance,
+                                         m_impl->device,
+                                         m_impl->queue,
+                                         resource.texture,
+                                         resource.format,
+                                         resource.width,
                                          resource.height,
                                          {.texture = resource.handle,
                                           .x = 0,
@@ -1805,9 +1859,13 @@ namespace Bess::Wgpu {
         } else {
             const uint32_t width = std::max(1u, m_impl->extent.width);
             const uint32_t height = std::max(1u, m_impl->extent.height);
-            readback = readTextureRegion(m_impl->instance, m_impl->device,
-                                         m_impl->queue, m_impl->offscreenTarget,
-                                         m_impl->targetFormat, width, height,
+            readback = readTextureRegion(m_impl->instance,
+                                         m_impl->device,
+                                         m_impl->queue,
+                                         m_impl->offscreenTarget,
+                                         m_impl->targetFormat,
+                                         width,
+                                         height,
                                          {.texture = 0,
                                           .x = 0,
                                           .y = 0,
@@ -1844,15 +1902,14 @@ namespace Bess::Wgpu {
 
         const uint64_t submitOrder = m_impl->nextSubmitOrder();
         if (hasDrawableShadow(props.shadow)) {
-            makeQuadShadowInstanceInPlace(
-                m_impl->shadowBatch.push(submitOrder), props);
+            makeQuadShadowInstanceInPlace(m_impl->shadowBatch.push(submitOrder),
+                                          props);
         }
 
         if (isTransparent(props)) {
-            makePrimitiveInstanceInPlace(
-                m_impl->transparentPrimitiveBatch.push(props.texture,
-                                                       submitOrder),
-                props);
+            makePrimitiveInstanceInPlace(m_impl->transparentPrimitiveBatch.push(
+                                             props.texture, submitOrder),
+                                         props);
         } else {
             makePrimitiveInstanceInPlace(
                 m_impl->opaquePrimitiveBatch.push(props.texture, submitOrder),
@@ -1891,7 +1948,8 @@ namespace Bess::Wgpu {
         const uint64_t submitOrder = m_impl->nextSubmitOrder();
         if (hasDrawableShadow(props.quad.shadow)) {
             makeQuadShadowInstanceInPlace(m_impl->shadowBatch.push(submitOrder),
-                                          props.quad, props.transformMode);
+                                          props.quad,
+                                          props.transformMode);
         }
 
         if (isTransparent(props.quad)) {
@@ -1908,7 +1966,8 @@ namespace Bess::Wgpu {
     }
 
     void WgpuRenderer2D::drawCustomQuad(
-        const Core::Renderer::QuadProps &quad, CustomQuadShaderHandle shader,
+        const Core::Renderer::QuadProps &quad,
+        CustomQuadShaderHandle shader,
         std::array<glm::vec4, 4> data,
         Core::Renderer::CustomQuadTransformMode transformMode) {
         drawCustomQuad(CustomQuadProps{.quad = quad,
@@ -1929,13 +1988,11 @@ namespace Bess::Wgpu {
         }
 
         if (props.color.a < 1.0f) {
-            makeCircleInstanceInPlace(m_impl->transparentPrimitiveBatch.push(
-                                          0, submitOrder),
-                                      props);
+            makeCircleInstanceInPlace(
+                m_impl->transparentPrimitiveBatch.push(0, submitOrder), props);
         } else {
-            makeCircleInstanceInPlace(m_impl->opaquePrimitiveBatch.push(
-                                          0, submitOrder),
-                                      props);
+            makeCircleInstanceInPlace(
+                m_impl->opaquePrimitiveBatch.push(0, submitOrder), props);
         }
         m_impl->stats.quadCount = m_impl->quadStatsCount();
     }
@@ -1947,18 +2004,16 @@ namespace Bess::Wgpu {
 
         const uint64_t submitOrder = m_impl->nextSubmitOrder();
         if (hasDrawableShadow(props.shadow)) {
-            makeLineShadowInstanceInPlace(
-                m_impl->shadowBatch.push(submitOrder), props);
+            makeLineShadowInstanceInPlace(m_impl->shadowBatch.push(submitOrder),
+                                          props);
         }
 
         if (props.color.a < 1.0f) {
-            makeLineInstanceInPlace(m_impl->transparentPrimitiveBatch.push(
-                                        0, submitOrder),
-                                    props);
+            makeLineInstanceInPlace(
+                m_impl->transparentPrimitiveBatch.push(0, submitOrder), props);
         } else {
-            makeLineInstanceInPlace(m_impl->opaquePrimitiveBatch.push(
-                                        0, submitOrder),
-                                    props);
+            makeLineInstanceInPlace(
+                m_impl->opaquePrimitiveBatch.push(0, submitOrder), props);
         }
         m_impl->stats.quadCount = m_impl->quadStatsCount();
     }
@@ -1977,8 +2032,11 @@ namespace Bess::Wgpu {
         const uint64_t submitOrder = m_impl->nextSubmitOrder();
         if (m_impl->textPipeline != nullptr &&
             m_impl->msdfFontAtlas != nullptr &&
-            Text::appendMsdfText(text, props, *m_impl->msdfFontAtlas,
-                                 m_impl->textBatch, submitOrder)) {
+            Text::appendMsdfText(text,
+                                 props,
+                                 *m_impl->msdfFontAtlas,
+                                 m_impl->textBatch,
+                                 submitOrder)) {
             m_impl->stats.quadCount = m_impl->quadStatsCount();
             return;
         }
@@ -2030,17 +2088,23 @@ namespace Bess::Wgpu {
             const std::span<const PathCommand> textCommands{
                 m_impl->textPathCommandsScratch.data(),
                 m_impl->textPathCommandsScratch.size()};
-            submitPathCommands(
-                textCommands, pathProps, metrics, submitOrder,
-                m_impl->opaquePathBatch,
-                m_impl->transparentPathBatch, m_impl->opaquePathStrokeBatch,
-                m_impl->transparentPathStrokeBatch);
+            submitPathCommands(textCommands,
+                               pathProps,
+                               metrics,
+                               submitOrder,
+                               m_impl->opaquePathBatch,
+                               m_impl->transparentPathBatch,
+                               m_impl->opaquePathStrokeBatch,
+                               m_impl->transparentPathStrokeBatch);
 
             if (props.antiAlias) {
                 m_impl->transparentPathStrokeBatch.push(
-                    bakePathFillAntiAlias(textCommands, pathProps, metrics,
+                    bakePathFillAntiAlias(textCommands,
+                                          pathProps,
+                                          metrics,
                                           props.antiAliasFringeScale),
-                    props.zIndex, submitOrder);
+                    props.zIndex,
+                    submitOrder);
             }
 
             m_impl->textPathCommandsScratch.clear();
@@ -2168,7 +2232,10 @@ namespace Bess::Wgpu {
 
         const PathBakeMetrics metrics =
             makePathBakeMetrics(m_impl->cameraTransform, m_impl->extent);
-        submitPathCommands(commands, props, metrics, m_impl->nextSubmitOrder(),
+        submitPathCommands(commands,
+                           props,
+                           metrics,
+                           m_impl->nextSubmitOrder(),
                            m_impl->opaquePathBatch,
                            m_impl->transparentPathBatch,
                            m_impl->opaquePathStrokeBatch,
@@ -2189,10 +2256,13 @@ namespace Bess::Wgpu {
         const uint64_t submitOrder = m_impl->nextSubmitOrder();
         const BakedPathSubmission &submission =
             m_impl->cachedPathSubmission(path, props, metrics);
-        submitBakedPathSubmission(
-            submission, props, submitOrder, m_impl->opaquePathBatch,
-            m_impl->transparentPathBatch, m_impl->opaquePathStrokeBatch,
-            m_impl->transparentPathStrokeBatch);
+        submitBakedPathSubmission(submission,
+                                  props,
+                                  submitOrder,
+                                  m_impl->opaquePathBatch,
+                                  m_impl->transparentPathBatch,
+                                  m_impl->opaquePathStrokeBatch,
+                                  m_impl->transparentPathStrokeBatch);
     }
 
     void WgpuRenderer2D::beginPath(const PathProps &props) {
@@ -2265,17 +2335,23 @@ namespace Bess::Wgpu {
 
     void WgpuRenderer2D::pathCubicTo(const glm::vec2 &control1,
                                      const glm::vec2 &control2,
-                                     const glm::vec2 &pos, float strokeWidth) {
-        pathCubicTo(control1, control2, pos,
+                                     const glm::vec2 &pos,
+                                     float strokeWidth) {
+        pathCubicTo(control1,
+                    control2,
+                    pos,
                     Core::Renderer::PathCommandStroke::withWidth(strokeWidth));
     }
 
     void WgpuRenderer2D::pathCubicTo(const glm::vec2 &control1,
                                      const glm::vec2 &control2,
-                                     const glm::vec2 &pos, float strokeWidth,
+                                     const glm::vec2 &pos,
+                                     float strokeWidth,
                                      PickingId id) {
         pathCubicTo(
-            control1, control2, pos,
+            control1,
+            control2,
+            pos,
             Core::Renderer::PathCommandStroke::withWidthAndId(strokeWidth, id));
     }
 
@@ -2310,11 +2386,14 @@ namespace Bess::Wgpu {
         const std::span<const PathCommand> commands{
             m_impl->activePathCommands.data(),
             m_impl->activePathCommands.size()};
-        submitPathCommands(
-            commands, m_impl->activePathProps, metrics,
-            m_impl->activePathSubmitOrder, m_impl->opaquePathBatch,
-            m_impl->transparentPathBatch, m_impl->opaquePathStrokeBatch,
-            m_impl->transparentPathStrokeBatch);
+        submitPathCommands(commands,
+                           m_impl->activePathProps,
+                           metrics,
+                           m_impl->activePathSubmitOrder,
+                           m_impl->opaquePathBatch,
+                           m_impl->transparentPathBatch,
+                           m_impl->opaquePathStrokeBatch,
+                           m_impl->transparentPathStrokeBatch);
 
         m_impl->activePathCommands.clear();
         m_impl->activePathSubmitOrder = 0;

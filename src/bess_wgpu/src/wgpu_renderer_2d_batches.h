@@ -70,8 +70,8 @@ namespace Bess::Wgpu::Renderer2DDetail {
             m_drawRunsCount = 0;
         }
 
-        Piplines::PrimitiveInstance &
-        push(Core::Renderer::TextureHandle texture, uint64_t submitOrder) {
+        Piplines::PrimitiveInstance &push(Core::Renderer::TextureHandle texture,
+                                          uint64_t submitOrder) {
             if (m_instanceCount >= m_maxCapacity) {
                 throw std::runtime_error("WGPU quad batch capacity exceeded");
             }
@@ -98,8 +98,7 @@ namespace Bess::Wgpu::Renderer2DDetail {
 
             if (m_instanceCount == 1) {
                 if (m_drawRunsCount == 1) {
-                    m_drawRunsPtr[0].zIndex =
-                        m_gpuInstancesPtr[0].position[2];
+                    m_drawRunsPtr[0].zIndex = m_gpuInstancesPtr[0].position[2];
                     m_drawRunsPtr[0].submitOrder = m_submitOrdersPtr[0];
                 }
                 return;
@@ -112,7 +111,8 @@ namespace Bess::Wgpu::Renderer2DDetail {
             }
 
             std::stable_sort(
-                m_sortIndices.begin(), m_sortIndices.end(),
+                m_sortIndices.begin(),
+                m_sortIndices.end(),
                 [this](uint32_t a, uint32_t b) {
                     if (m_gpuInstancesPtr[a].position[2] !=
                         m_gpuInstancesPtr[b].position[2]) {
@@ -181,8 +181,7 @@ namespace Bess::Wgpu::Renderer2DDetail {
                    sizeof(Piplines::PrimitiveInstance);
         }
 
-        [[nodiscard]] const Piplines::PrimitiveInstance *
-        data() const noexcept {
+        [[nodiscard]] const Piplines::PrimitiveInstance *data() const noexcept {
             return m_gpuInstancesPtr;
         }
 
@@ -264,8 +263,7 @@ namespace Bess::Wgpu::Renderer2DDetail {
 
             if (m_instanceCount == 1) {
                 if (m_drawRunsCount == 1) {
-                    m_drawRunsPtr[0].zIndex =
-                        m_gpuInstancesPtr[0].position[2];
+                    m_drawRunsPtr[0].zIndex = m_gpuInstancesPtr[0].position[2];
                     m_drawRunsPtr[0].submitOrder = m_submitOrdersPtr[0];
                 }
                 return;
@@ -278,7 +276,8 @@ namespace Bess::Wgpu::Renderer2DDetail {
             }
 
             std::stable_sort(
-                m_sortIndices.begin(), m_sortIndices.end(),
+                m_sortIndices.begin(),
+                m_sortIndices.end(),
                 [this](uint32_t a, uint32_t b) {
                     if (m_gpuInstancesPtr[a].position[2] !=
                         m_gpuInstancesPtr[b].position[2]) {
@@ -415,7 +414,8 @@ namespace Bess::Wgpu::Renderer2DDetail {
                     indicesPtr[i] = i;
                 }
                 std::stable_sort(
-                    m_sortIndices.begin(), m_sortIndices.end(),
+                    m_sortIndices.begin(),
+                    m_sortIndices.end(),
                     [this](uint32_t a, uint32_t b) {
                         if (m_instancesPtr[a].position[2] !=
                             m_instancesPtr[b].position[2]) {
@@ -423,8 +423,7 @@ namespace Bess::Wgpu::Renderer2DDetail {
                                    m_instancesPtr[b].position[2];
                         }
                         if (m_submitOrdersPtr[a] != m_submitOrdersPtr[b]) {
-                            return m_submitOrdersPtr[a] <
-                                   m_submitOrdersPtr[b];
+                            return m_submitOrdersPtr[a] < m_submitOrdersPtr[b];
                         }
                         return a < b;
                     });

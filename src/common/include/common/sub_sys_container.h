@@ -49,8 +49,8 @@ namespace Bess {
             if (it != m_subSystems.end()) {
                 return std::static_pointer_cast<T>(it->second);
             }
-            BESS_ASSERT(false, "SubSystem of type {} not found",
-                        typeid(T).name());
+            BESS_ASSERT(
+                false, "SubSystem of type {} not found", typeid(T).name());
             return nullptr;
         }
 
@@ -59,7 +59,8 @@ namespace Bess {
         void removeSubSystem() {
             m_subSystemsInOrder.erase(
                 std::remove_if(
-                    m_subSystemsInOrder.begin(), m_subSystemsInOrder.end(),
+                    m_subSystemsInOrder.begin(),
+                    m_subSystemsInOrder.end(),
                     [](const std::shared_ptr<ISubSystem> &subsystem) {
                         return std::dynamic_pointer_cast<T>(subsystem) !=
                                nullptr;

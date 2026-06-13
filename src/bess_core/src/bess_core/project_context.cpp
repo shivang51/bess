@@ -24,8 +24,9 @@ namespace Bess {
 
     SimEngine::SimulationEngine &ProjectContext::getSimEngine() {
         auto simEngine = getSubSystem<SimEngine::SimulationEngine>();
-        BESS_ASSERT(simEngine, "SimulationEngine subsystem must be initialized "
-                               "before accessing ProjectContext");
+        BESS_ASSERT(simEngine,
+                    "SimulationEngine subsystem must be initialized "
+                    "before accessing ProjectContext");
         return *simEngine;
     }
 
@@ -37,14 +38,16 @@ namespace Bess {
 
         auto sceneDriver = getSubSystem<SceneDriver>();
 
-        BESS_ASSERT(sceneDriver, "SceneDriver subsystem must be initialized "
-                                 "before loading a project");
+        BESS_ASSERT(sceneDriver,
+                    "SceneDriver subsystem must be initialized "
+                    "before loading a project");
 
         sceneDriver->reset();
 
         auto simEngine = getSubSystem<SimEngine::SimulationEngine>();
-        BESS_ASSERT(simEngine, "SimulationEngine subsystem must be initialized "
-                               "before loading a project");
+        BESS_ASSERT(simEngine,
+                    "SimulationEngine subsystem must be initialized "
+                    "before loading a project");
         simEngine->clear();
 
         m_projectFile = std::make_shared<ProjectFile>(path);
@@ -64,13 +67,15 @@ namespace Bess {
 
     void ProjectContext::createNewProject() {
         auto sceneDriver = getSubSystem<SceneDriver>();
-        BESS_ASSERT(sceneDriver, "SceneDriver subsystem must be initialized "
-                                 "before creating a new project");
+        BESS_ASSERT(sceneDriver,
+                    "SceneDriver subsystem must be initialized "
+                    "before creating a new project");
         sceneDriver->reset();
 
         auto simEngine = getSubSystem<SimEngine::SimulationEngine>();
-        BESS_ASSERT(simEngine, "SimulationEngine subsystem must be initialized "
-                               "before creating a new project");
+        BESS_ASSERT(simEngine,
+                    "SimulationEngine subsystem must be initialized "
+                    "before creating a new project");
         simEngine->clear();
 
         m_projectFile = std::make_shared<ProjectFile>();

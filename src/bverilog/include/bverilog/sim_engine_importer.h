@@ -65,7 +65,8 @@ namespace Bess::Verilog {
     };
 
     BESS_API SimEngineImportResult importDesignIntoSimulationEngine(
-        const Design &design, Bess::SimEngine::SimulationEngine &engine,
+        const Design &design,
+        Bess::SimEngine::SimulationEngine &engine,
         const std::optional<std::string> &topModuleName = std::nullopt);
 
     BESS_API SimEngineImportResult importVerilogFileIntoSimulationEngine(

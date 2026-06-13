@@ -31,8 +31,10 @@ namespace Bess::UI {
         const glm::vec2 &getViewportPos() const;
         bool isHovered() const;
 
-        MAKE_GETTER_SETTER_WC(std::shared_ptr<Canvas::Scene>, AttachedScene,
-                              m_attachedScene, onSceneAttached);
+        MAKE_GETTER_SETTER_WC(std::shared_ptr<Canvas::Scene>,
+                              AttachedScene,
+                              m_attachedScene,
+                              onSceneAttached);
 
       private:
         void updateScene(TimeMs ts);
@@ -55,7 +57,9 @@ namespace Bess::UI {
             uint32_t height = 0;
             bool active = false;
 
-            bool matches(uint32_t otherX, uint32_t otherY, uint32_t otherWidth,
+            bool matches(uint32_t otherX,
+                         uint32_t otherY,
+                         uint32_t otherWidth,
                          uint32_t otherHeight) const {
                 return active && x == otherX && y == otherY &&
                        width == otherWidth && height == otherHeight;

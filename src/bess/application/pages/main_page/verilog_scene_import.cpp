@@ -88,8 +88,9 @@ namespace Bess::Pages {
             UUID moduleOutputId = UUID::null;
             auto created =
                 ModuleSceneComponent::createNew(moduleInputId, moduleOutputId);
-            BESS_ASSERT(!created.empty(), "Failed to create module scene "
-                                          "component for imported instance");
+            BESS_ASSERT(!created.empty(),
+                        "Failed to create module scene "
+                        "component for imported instance");
 
             ImportedModuleSceneComponent result;
             result.component = std::dynamic_pointer_cast<ModuleSceneComponent>(
@@ -108,8 +109,8 @@ namespace Bess::Pages {
             sceneState.addComponent(importedComp.component);
             for (const auto &child : importedComp.children) {
                 sceneState.addComponent(child);
-                sceneState.attachChild(importedComp.component->getUuid(),
-                                       child->getUuid(), false);
+                sceneState.attachChild(
+                    importedComp.component->getUuid(), child->getUuid(), false);
             }
         }
 
@@ -118,8 +119,8 @@ namespace Bess::Pages {
             sceneState.addComponent(moduleComp.component);
             for (const auto &child : moduleComp.children) {
                 sceneState.addComponent(child);
-                sceneState.attachChild(moduleComp.component->getUuid(),
-                                       child->getUuid(), false);
+                sceneState.attachChild(
+                    moduleComp.component->getUuid(), child->getUuid(), false);
             }
         }
 
@@ -209,7 +210,8 @@ namespace Bess::Pages {
         void syncSceneComponentSlots(
             SceneState &sceneState,
             const std::shared_ptr<SimulationSceneComponent> &comp,
-            const SlotsGroupInfo &slotsInfo, bool isInput) {
+            const SlotsGroupInfo &slotsInfo,
+            bool isInput) {
             if (!comp) {
                 return;
             }
@@ -253,8 +255,8 @@ namespace Bess::Pages {
                 auto newSlot = std::make_shared<SlotSceneComponent>();
                 newSlot->setSlotType(slotType);
                 sceneState.addComponent<SlotSceneComponent>(newSlot);
-                sceneState.attachChild(comp->getUuid(), newSlot->getUuid(),
-                                       false);
+                sceneState.attachChild(
+                    comp->getUuid(), newSlot->getUuid(), false);
                 realSlots.push_back(newSlot->getUuid());
             }
 
@@ -264,8 +266,8 @@ namespace Bess::Pages {
                     resizeSlot->setSlotType(resizeSlotType);
                     resizeSlot->setIndex(-1);
                     sceneState.addComponent<SlotSceneComponent>(resizeSlot);
-                    sceneState.attachChild(comp->getUuid(),
-                                           resizeSlot->getUuid(), false);
+                    sceneState.attachChild(
+                        comp->getUuid(), resizeSlot->getUuid(), false);
                     resizeSlotId = resizeSlot->getUuid();
                 }
             } else if (resizeSlotId != UUID::null) {
@@ -313,7 +315,8 @@ namespace Bess::Pages {
         }
 
         void addImportedConnections(
-            Scene &scene, const std::vector<UUID> &componentIds,
+            Scene &scene,
+            const std::vector<UUID> &componentIds,
             SimulationEngine &simEngine,
             const std::unordered_map<UUID,
                                      std::shared_ptr<SimulationSceneComponent>>
@@ -425,7 +428,8 @@ namespace Bess::Pages {
             }
         }
 
-        std::string endpointKey(UUID componentId, SimEngine::SlotType slotType,
+        std::string endpointKey(UUID componentId,
+                                SimEngine::SlotType slotType,
                                 int slotIndex) {
             return std::to_string(static_cast<uint64_t>(componentId)) + ":" +
                    std::to_string(static_cast<int>(slotType)) + ":" +
@@ -433,8 +437,8 @@ namespace Bess::Pages {
         }
 
         std::string endpointKey(const ImportedSlotEndpoint &endpoint) {
-            return endpointKey(endpoint.componentId, endpoint.slotType,
-                               endpoint.slotIndex);
+            return endpointKey(
+                endpoint.componentId, endpoint.slotType, endpoint.slotIndex);
         }
 
         bool isInstancePathOrDescendant(std::string_view path,
@@ -470,7 +474,8 @@ namespace Bess::Pages {
 
         std::optional<size_t>
         findBoundarySlotIndex(const std::vector<std::string> &slotNames,
-                              const std::string &portName, size_t bitIndex) {
+                              const std::string &portName,
+                              size_t bitIndex) {
             if (slotNames.empty()) {
                 return std::nullopt;
             }
@@ -499,7 +504,8 @@ namespace Bess::Pages {
             const std::unordered_map<std::string,
                                      std::shared_ptr<ModuleSceneComponent>>
                 &moduleByPath,
-            const UUID &componentId, std::string_view instancePath) {
+            const UUID &componentId,
+            std::string_view instancePath) {
             // Treat top IO components as external to any module instance
             // (including the top module itself), so that their connections get
             // properly bridged through the ModuleSceneComponent.
@@ -529,7 +535,8 @@ namespace Bess::Pages {
 
         void configureImportedModuleInterface(
             const std::shared_ptr<ModuleSceneComponent> &moduleComp,
-            const ImportedModuleInstance &instance, SimulationEngine &simEngine,
+            const ImportedModuleInstance &instance,
+            SimulationEngine &simEngine,
             SceneState &ownerSceneState) {
             auto moduleDef = std::dynamic_pointer_cast<ModuleDefinition>(
                 moduleComp->getCompDef());
@@ -570,10 +577,12 @@ namespace Bess::Pages {
             auto outComp =
                 std::dynamic_pointer_cast<Drivers::Digital::DigSimComp>(
                     outputComponent);
-            BESS_ASSERT(inpDef, "Imported module input bridge component "
-                                "definition was not found");
-            BESS_ASSERT(outDef, "Imported module output bridge component "
-                                "definition was not found");
+            BESS_ASSERT(inpDef,
+                        "Imported module input bridge component "
+                        "definition was not found");
+            BESS_ASSERT(outDef,
+                        "Imported module output bridge component "
+                        "definition was not found");
             resizeOutputs(inpComp, inputCount);
             auto bridgeInputSlots = inpDef->getOutputSlotsInfo();
             bridgeInputSlots.names = instance.inputSlotNames;
@@ -626,27 +635,39 @@ namespace Bess::Pages {
                 moduleSceneState.getComponentByUuid<SimulationSceneComponent>(
                     moduleComp->getAssociatedOut());
             if (moduleInput) {
-                syncSceneComponentSlots(moduleSceneState, moduleInput,
-                                        inpDef->getOutputSlotsInfo(), false);
+                syncSceneComponentSlots(moduleSceneState,
+                                        moduleInput,
+                                        inpDef->getOutputSlotsInfo(),
+                                        false);
                 moduleInput->setName("Module Input");
-                applySlotNames(moduleSceneState, moduleInput->getOutputSlots(),
+                applySlotNames(moduleSceneState,
+                               moduleInput->getOutputSlots(),
                                instance.inputSlotNames);
             }
             if (moduleOutput) {
-                syncSceneComponentSlots(moduleSceneState, moduleOutput,
-                                        outDef->getInputSlotsInfo(), true);
+                syncSceneComponentSlots(moduleSceneState,
+                                        moduleOutput,
+                                        outDef->getInputSlotsInfo(),
+                                        true);
                 moduleOutput->setName("Module Output");
-                applySlotNames(moduleSceneState, moduleOutput->getInputSlots(),
+                applySlotNames(moduleSceneState,
+                               moduleOutput->getInputSlots(),
                                instance.outputSlotNames);
             }
 
-            syncSceneComponentSlots(ownerSceneState, moduleComp,
-                                    moduleDef->getInputSlotsInfo(), true);
-            syncSceneComponentSlots(ownerSceneState, moduleComp,
-                                    moduleDef->getOutputSlotsInfo(), false);
-            applySlotNames(ownerSceneState, moduleComp->getInputSlots(),
+            syncSceneComponentSlots(ownerSceneState,
+                                    moduleComp,
+                                    moduleDef->getInputSlotsInfo(),
+                                    true);
+            syncSceneComponentSlots(ownerSceneState,
+                                    moduleComp,
+                                    moduleDef->getOutputSlotsInfo(),
+                                    false);
+            applySlotNames(ownerSceneState,
+                           moduleComp->getInputSlots(),
                            instance.inputSlotNames);
-            applySlotNames(ownerSceneState, moduleComp->getOutputSlots(),
+            applySlotNames(ownerSceneState,
+                           moduleComp->getOutputSlots(),
                            instance.outputSlotNames);
         }
 
@@ -680,13 +701,15 @@ namespace Bess::Pages {
                     outputBoundaryDrivers.size());
 
                 for (size_t slotIndex = 0;
-                     slotIndex < inputBoundarySinks.size(); ++slotIndex) {
+                     slotIndex < inputBoundarySinks.size();
+                     ++slotIndex) {
                     for (const auto &endpoint : inputBoundarySinks[slotIndex]) {
                         seenInputSinks[slotIndex].insert(endpointKey(endpoint));
                     }
                 }
                 for (size_t slotIndex = 0;
-                     slotIndex < outputBoundaryDrivers.size(); ++slotIndex) {
+                     slotIndex < outputBoundaryDrivers.size();
+                     ++slotIndex) {
                     for (const auto &endpoint :
                          outputBoundaryDrivers[slotIndex]) {
                         seenOutputDrivers[slotIndex].insert(
@@ -714,7 +737,9 @@ namespace Bess::Pages {
                                 continue;
                             }
 
-                            if (!isOwnedByInstance(result, moduleByPath, dstId,
+                            if (!isOwnedByInstance(result,
+                                                   moduleByPath,
+                                                   dstId,
                                                    instance.instancePath)) {
                                 continue;
                             }
@@ -752,7 +777,8 @@ namespace Bess::Pages {
                         }
 
                         topOutputTargetToBoundarySlot[endpointKey(
-                            topOutputId, SimEngine::SlotType::digitalInput,
+                            topOutputId,
+                            SimEngine::SlotType::digitalInput,
                             static_cast<int>(dstSlot))] = *slotIndex;
 
                         for (const auto &[srcId, srcSlot] :
@@ -761,7 +787,9 @@ namespace Bess::Pages {
                                 continue;
                             }
 
-                            if (!isOwnedByInstance(result, moduleByPath, srcId,
+                            if (!isOwnedByInstance(result,
+                                                   moduleByPath,
+                                                   srcId,
                                                    instance.instancePath)) {
                                 continue;
                             }
@@ -806,34 +834,45 @@ namespace Bess::Pages {
                             continue;
                         }
 
-                        if (isOwnedByInstance(result, moduleByPath, srcId,
+                        if (isOwnedByInstance(result,
+                                              moduleByPath,
+                                              srcId,
                                               instance.instancePath)) {
                             continue;
                         }
 
                         simEngine.deleteConnection(
-                            srcId, SimEngine::SlotType::digitalOutput,
-                            srcSlotIndex, sink.componentId, sink.slotType,
+                            srcId,
+                            SimEngine::SlotType::digitalOutput,
+                            srcSlotIndex,
+                            sink.componentId,
+                            sink.slotType,
                             sink.slotIndex);
 
-                        const auto key = endpointKey(
-                            srcId, SimEngine::SlotType::digitalOutput,
-                            srcSlotIndex);
+                        const auto key =
+                            endpointKey(srcId,
+                                        SimEngine::SlotType::digitalOutput,
+                                        srcSlotIndex);
                         if (!seenSources.insert(key).second) {
                             continue;
                         }
 
                         simEngine.connectComponent(
-                            srcId, srcSlotIndex,
-                            SimEngine::SlotType::digitalOutput, wrapperId,
+                            srcId,
+                            srcSlotIndex,
+                            SimEngine::SlotType::digitalOutput,
+                            wrapperId,
                             static_cast<int>(slotIndex),
                             SimEngine::SlotType::digitalInput);
                     }
 
                     simEngine.connectComponent(
-                        moduleInputId, static_cast<int>(slotIndex),
-                        SimEngine::SlotType::digitalOutput, sink.componentId,
-                        sink.slotIndex, sink.slotType);
+                        moduleInputId,
+                        static_cast<int>(slotIndex),
+                        SimEngine::SlotType::digitalOutput,
+                        sink.componentId,
+                        sink.slotIndex,
+                        sink.slotType);
                 }
             }
 
@@ -842,8 +881,11 @@ namespace Bess::Pages {
                 std::unordered_set<std::string> seenTargets;
                 for (const auto &driver : outputBoundaryDrivers[slotIndex]) {
                     simEngine.connectComponent(
-                        driver.componentId, driver.slotIndex, driver.slotType,
-                        moduleOutputId, static_cast<int>(slotIndex),
+                        driver.componentId,
+                        driver.slotIndex,
+                        driver.slotType,
+                        moduleOutputId,
+                        static_cast<int>(slotIndex),
                         SimEngine::SlotType::digitalInput);
 
                     const auto connections =
@@ -863,9 +905,10 @@ namespace Bess::Pages {
                         }
 
                         if (!topOutputTargetToBoundarySlot.empty()) {
-                            const auto targetKey = endpointKey(
-                                dstId, SimEngine::SlotType::digitalInput,
-                                dstSlotIndex);
+                            const auto targetKey =
+                                endpointKey(dstId,
+                                            SimEngine::SlotType::digitalInput,
+                                            dstSlotIndex);
                             const auto mappedSlotIt =
                                 topOutputTargetToBoundarySlot.find(targetKey);
                             if (mappedSlotIt !=
@@ -875,27 +918,36 @@ namespace Bess::Pages {
                             }
                         }
 
-                        if (isOwnedByInstance(result, moduleByPath, dstId,
+                        if (isOwnedByInstance(result,
+                                              moduleByPath,
+                                              dstId,
                                               instance.instancePath)) {
                             continue;
                         }
 
                         simEngine.deleteConnection(
-                            driver.componentId, driver.slotType,
-                            driver.slotIndex, dstId,
-                            SimEngine::SlotType::digitalInput, dstSlotIndex);
-
-                        const auto key = endpointKey(
-                            dstId, SimEngine::SlotType::digitalInput,
+                            driver.componentId,
+                            driver.slotType,
+                            driver.slotIndex,
+                            dstId,
+                            SimEngine::SlotType::digitalInput,
                             dstSlotIndex);
+
+                        const auto key =
+                            endpointKey(dstId,
+                                        SimEngine::SlotType::digitalInput,
+                                        dstSlotIndex);
                         if (!seenTargets.insert(key).second) {
                             continue;
                         }
 
                         simEngine.connectComponent(
-                            wrapperId, static_cast<int>(slotIndex),
-                            SimEngine::SlotType::digitalOutput, dstId,
-                            dstSlotIndex, SimEngine::SlotType::digitalInput);
+                            wrapperId,
+                            static_cast<int>(slotIndex),
+                            SimEngine::SlotType::digitalOutput,
+                            dstId,
+                            dstSlotIndex,
+                            SimEngine::SlotType::digitalInput);
                     }
                 }
             }
@@ -903,7 +955,8 @@ namespace Bess::Pages {
 
         void populateImportedModuleScene(
             const SimEngineImportResult &result,
-            const ImportedModuleInstance &instance, SimulationEngine &simEngine,
+            const ImportedModuleInstance &instance,
+            SimulationEngine &simEngine,
             const std::shared_ptr<ModuleSceneComponent> &moduleComp,
             const std::unordered_map<std::string,
                                      std::shared_ptr<ModuleSceneComponent>>
@@ -1014,14 +1067,17 @@ namespace Bess::Pages {
             if (!internalSimIds.empty()) {
                 updateSimulationComponentScalesForLayout(*moduleScene);
                 applyHierarchicalSceneLayout(*moduleScene, simEngine);
-                addImportedConnections(*moduleScene, internalSimIds, simEngine,
+                addImportedConnections(*moduleScene,
+                                       internalSimIds,
+                                       simEngine,
                                        internalSceneBySimId);
             }
         }
 
         std::unordered_map<std::string, std::shared_ptr<ModuleSceneComponent>>
         buildImportedModuleHierarchy(
-            const SimEngineImportResult &result, Scene &scene,
+            const SimEngineImportResult &result,
+            Scene &scene,
             SimulationEngine &simEngine,
             const std::unordered_map<UUID,
                                      std::shared_ptr<SimulationSceneComponent>>
@@ -1095,16 +1151,16 @@ namespace Bess::Pages {
                     ownerScene,
                     "Imported module wrapper owner scene was not found");
 
-                configureImportedModuleInterface(wrapper, instance, simEngine,
-                                                 ownerScene->getState());
+                configureImportedModuleInterface(
+                    wrapper, instance, simEngine, ownerScene->getState());
                 auto &appCtx = GAppContext::getInstance();
                 auto eventDispatcher =
                     appCtx.getSubSystem<Bess::EventSystem::EventDispatcher>();
                 eventDispatcher->dispatchAll();
-                bridgeImportedModuleBoundary(result, instance, wrapper,
-                                             simEngine, moduleByPath);
-                populateImportedModuleScene(result, instance, simEngine,
-                                            wrapper, moduleByPath);
+                bridgeImportedModuleBoundary(
+                    result, instance, wrapper, simEngine, moduleByPath);
+                populateImportedModuleScene(
+                    result, instance, simEngine, wrapper, moduleByPath);
 
                 std::vector<std::shared_ptr<SceneComponent>> layoutChildren;
                 for (const auto &[simId, ownerPath] :
@@ -1145,7 +1201,8 @@ namespace Bess::Pages {
         }
 
         void removeNestedImportedComponentsFromRootScene(
-            const SimEngineImportResult &result, Scene &scene,
+            const SimEngineImportResult &result,
+            Scene &scene,
             std::unordered_map<UUID, std::shared_ptr<SimulationSceneComponent>>
                 &sceneBySimId) {
             auto collectSceneTree = [&](const std::shared_ptr<SceneComponent>
@@ -1225,9 +1282,11 @@ namespace Bess::Pages {
         }
 
         void addRootModuleConnections(
-            Scene &scene, SimulationEngine &simEngine,
-            const std::unordered_map<
-                UUID, std::shared_ptr<SimulationSceneComponent>> &sceneBySimId,
+            Scene &scene,
+            SimulationEngine &simEngine,
+            const std::unordered_map<UUID,
+                                     std::shared_ptr<SimulationSceneComponent>>
+                &sceneBySimId,
             const std::unordered_map<std::string,
                                      std::shared_ptr<ModuleSceneComponent>>
                 &moduleByPath) {
@@ -1340,7 +1399,8 @@ namespace Bess::Pages {
 
     void populateSceneFromVerilogImportResult(
         const Verilog::SimEngineImportResult &result,
-        SimEngine::SimulationEngine &simEngine, Canvas::Scene &scene) {
+        SimEngine::SimulationEngine &simEngine,
+        Canvas::Scene &scene) {
         const auto previousSimulationState = simEngine.getSimulationState();
         simEngine.setSimulationState(SimEngine::SimulationState::paused);
         const auto restoreSimulationState = [&]() {
@@ -1356,7 +1416,8 @@ namespace Bess::Pages {
 
         try {
             std::unordered_map<
-                UUID, std::shared_ptr<Canvas::SimulationSceneComponent>>
+                UUID,
+                std::shared_ptr<Canvas::SimulationSceneComponent>>
                 sceneBySimId;
             for (const auto &simId : result.createdComponentIds) {
                 auto created =
@@ -1371,13 +1432,13 @@ namespace Bess::Pages {
 
             const auto moduleByPath = buildImportedModuleHierarchy(
                 result, scene, simEngine, sceneBySimId);
-            removeNestedImportedComponentsFromRootScene(result, scene,
-                                                        sceneBySimId);
+            removeNestedImportedComponentsFromRootScene(
+                result, scene, sceneBySimId);
             updateSimulationComponentScalesForLayout(scene);
             applyHierarchicalSceneLayout(scene, simEngine);
 
-            addRootModuleConnections(scene, simEngine, sceneBySimId,
-                                     moduleByPath);
+            addRootModuleConnections(
+                scene, simEngine, sceneBySimId, moduleByPath);
             auto &appCtx = GAppContext::getInstance();
             auto eventDispatcher =
                 appCtx.getSubSystem<Bess::EventSystem::EventDispatcher>();

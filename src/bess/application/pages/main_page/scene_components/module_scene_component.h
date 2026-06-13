@@ -24,7 +24,8 @@ namespace Bess::Canvas {
 
         REG_SCENE_COMP_TYPE("ModuleSceneComponent", SceneComponentType::module)
         SCENE_COMP_SER(Bess::Canvas::ModuleSceneComponent,
-                       Bess::Canvas::SimulationSceneComponent, MODULE_SER_PROPS)
+                       Bess::Canvas::SimulationSceneComponent,
+                       MODULE_SER_PROPS)
 
         std::vector<std::shared_ptr<SceneComponent>>
         clone(const SceneState &sceneState) const override;
@@ -51,4 +52,5 @@ namespace Bess::Canvas {
 } // namespace Bess::Canvas
 
 REG_SCENE_COMP(Bess::Canvas::ModuleSceneComponent,
-               Bess::Canvas::SimulationSceneComponent, MODULE_SER_PROPS)
+               Bess::Canvas::SimulationSceneComponent,
+               MODULE_SER_PROPS)

@@ -4,8 +4,8 @@
 namespace Bess::SimEngine {
 
     void Net::addComponents(const std::vector<UUID> &componentUuids) {
-        m_components.insert(m_components.end(), componentUuids.begin(),
-                            componentUuids.end());
+        m_components.insert(
+            m_components.end(), componentUuids.begin(), componentUuids.end());
     }
 
     void Net::join(Net &other) {

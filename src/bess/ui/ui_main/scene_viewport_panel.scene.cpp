@@ -107,10 +107,12 @@ namespace Bess::UI {
                 vel.y = kEdgePanStep;
             }
 
-            newPos.x = std::clamp(newPos.x, m_viewportPos.x + kViewportInsetPx,
+            newPos.x = std::clamp(newPos.x,
+                                  m_viewportPos.x + kViewportInsetPx,
                                   m_viewportPos.x + m_viewportSize.x -
                                       kViewportInsetPx);
-            newPos.y = std::clamp(newPos.y, m_viewportPos.y + kViewportInsetPx,
+            newPos.y = std::clamp(newPos.y,
+                                  m_viewportPos.y + kViewportInsetPx,
                                   m_viewportPos.y + m_viewportSize.y -
                                       kViewportInsetPx);
 
@@ -231,9 +233,11 @@ namespace Bess::UI {
         Core::Renderer::PickingReadbackResult pickingResult;
         if (renderer->tryGetPickingIds(pickingResult) &&
             !pickingResult.empty()) {
-            const bool isSelectionResult = m_pendingSelectionReadback.matches(
-                pickingResult.x, pickingResult.y, pickingResult.width,
-                pickingResult.height);
+            const bool isSelectionResult =
+                m_pendingSelectionReadback.matches(pickingResult.x,
+                                                   pickingResult.y,
+                                                   pickingResult.width,
+                                                   pickingResult.height);
 
             if (isSelectionResult) {
                 m_attachedScene->applySelectionReadback(pickingResult.ids);

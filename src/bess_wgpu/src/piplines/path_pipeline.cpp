@@ -108,8 +108,8 @@ namespace Bess::Wgpu::Piplines {
             byteSize == 0) {
             return;
         }
-        queue.WriteBuffer(m_stencilVertexBuffer, bufferOffset, vertices,
-                          byteSize);
+        queue.WriteBuffer(
+            m_stencilVertexBuffer, bufferOffset, vertices, byteSize);
     }
 
     void PathPipeline::uploadCoverVertices(const wgpu::Queue &queue,
@@ -120,8 +120,8 @@ namespace Bess::Wgpu::Piplines {
             byteSize == 0) {
             return;
         }
-        queue.WriteBuffer(m_coverVertexBuffer, bufferOffset, vertices,
-                          byteSize);
+        queue.WriteBuffer(
+            m_coverVertexBuffer, bufferOffset, vertices, byteSize);
     }
 
     void PathPipeline::uploadStrokeVertices(const wgpu::Queue &queue,
@@ -132,8 +132,8 @@ namespace Bess::Wgpu::Piplines {
             byteSize == 0) {
             return;
         }
-        queue.WriteBuffer(m_strokeVertexBuffer, bufferOffset, vertices,
-                          byteSize);
+        queue.WriteBuffer(
+            m_strokeVertexBuffer, bufferOffset, vertices, byteSize);
     }
 
     const wgpu::BindGroup &PathPipeline::getBindGroup() const {
@@ -175,8 +175,7 @@ namespace Bess::Wgpu::Piplines {
 
     const wgpu::Buffer &PathPipeline::getStencilVertexBuffer() const {
         if (m_stencilVertexBuffer == nullptr) {
-            throw std::runtime_error(
-                "Path stencil vertex buffer is not ready");
+            throw std::runtime_error("Path stencil vertex buffer is not ready");
         }
         return m_stencilVertexBuffer;
     }
@@ -199,7 +198,8 @@ namespace Bess::Wgpu::Piplines {
                                 uint32_t firstStencilVertex,
                                 uint32_t stencilVertexCount,
                                 uint32_t firstCoverVertex,
-                                uint32_t coverVertexCount, bool transparent,
+                                uint32_t coverVertexCount,
+                                bool transparent,
                                 bool evenOddFill) const {
         if (stencilVertexCount == 0 || coverVertexCount == 0) {
             return;
@@ -209,7 +209,8 @@ namespace Bess::Wgpu::Piplines {
 
         renderPass.SetPipeline(evenOddFill ? m_evenOddStencilPipeline
                                            : m_stencilPipeline);
-        renderPass.SetVertexBuffer(0, m_stencilVertexBuffer,
+        renderPass.SetVertexBuffer(0,
+                                   m_stencilVertexBuffer,
                                    static_cast<uint64_t>(firstStencilVertex) *
                                        sizeof(PathStencilVertex),
                                    static_cast<uint64_t>(stencilVertexCount) *
@@ -219,14 +220,16 @@ namespace Bess::Wgpu::Piplines {
         renderPass.SetPipeline(transparent ? m_transparentCoverPipeline
                                            : m_opaqueCoverPipeline);
         renderPass.SetVertexBuffer(
-            0, m_coverVertexBuffer,
+            0,
+            m_coverVertexBuffer,
             static_cast<uint64_t>(firstCoverVertex) * sizeof(PathCoverVertex),
             static_cast<uint64_t>(coverVertexCount) * sizeof(PathCoverVertex));
         renderPass.Draw(coverVertexCount, 1, 0, 0);
     }
 
     void PathPipeline::drawStroke(wgpu::RenderPassEncoder &renderPass,
-                                  uint32_t firstVertex, uint32_t vertexCount,
+                                  uint32_t firstVertex,
+                                  uint32_t vertexCount,
                                   bool transparent) const {
         if (vertexCount == 0) {
             return;
@@ -236,7 +239,8 @@ namespace Bess::Wgpu::Piplines {
         renderPass.SetPipeline(transparent ? m_transparentStrokePipeline
                                            : m_opaqueStrokePipeline);
         renderPass.SetVertexBuffer(
-            0, m_strokeVertexBuffer,
+            0,
+            m_strokeVertexBuffer,
             static_cast<uint64_t>(firstVertex) * sizeof(PathCoverVertex),
             static_cast<uint64_t>(vertexCount) * sizeof(PathCoverVertex));
         renderPass.Draw(vertexCount, 1, 0, 0);

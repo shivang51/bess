@@ -48,12 +48,16 @@ namespace Bess::Canvas {
         const auto &startPos = getAbsolutePosition(sceneState);
         const bool isProbed = m_probedSlotUuid != UUID::null;
 
-        SceneDraw::drawQuad(context, startPos, scale,
+        SceneDraw::drawQuad(context,
+                            startPos,
+                            scale,
                             isProbed ? ViewportTheme::colors.clockConnectionLow
                                      : ViewportTheme::colors.componentBG,
-                            PickingId{m_runtimeId, 0}, props);
+                            PickingId{m_runtimeId, 0},
+                            props);
 
-        SceneDraw::drawText(context, m_name,
+        SceneDraw::drawText(context,
+                            m_name,
                             startPos + glm::vec3(-textSize.x / 2.f,
                                                  (textSize.y / 2.f) - 2.f,
                                                  0.0001f),
@@ -72,12 +76,12 @@ namespace Bess::Canvas {
             auto endPos = comp->getConnectionPos(sceneState);
 
             // This looks awesome, just hit and trial :)
-            const glm::vec2 ctrl1 =
-                glm::mix(glm::vec2(startPos.x, startPos.y),
-                         glm::vec2(endPos.x, startPos.y), 0.25f);
-            const glm::vec2 ctrl2 =
-                glm::mix(glm::vec2(endPos.x, startPos.y),
-                         glm::vec2(endPos.x, endPos.y), 0.75f);
+            const glm::vec2 ctrl1 = glm::mix(glm::vec2(startPos.x, startPos.y),
+                                             glm::vec2(endPos.x, startPos.y),
+                                             0.25f);
+            const glm::vec2 ctrl2 = glm::mix(glm::vec2(endPos.x, startPos.y),
+                                             glm::vec2(endPos.x, endPos.y),
+                                             0.75f);
 
             const auto &color =
                 !m_probeData.empty() &&
@@ -86,8 +90,11 @@ namespace Bess::Canvas {
                     : ViewportTheme::colors.stateLow;
 
             SceneDraw::beginPath(
-                context, {startPos.x - (textSize.x / 2.f), startPos.y, 0.51},
-                1.f, color, PickingId{m_runtimeId, 1});
+                context,
+                {startPos.x - (textSize.x / 2.f), startPos.y, 0.51},
+                1.f,
+                color,
+                PickingId{m_runtimeId, 1});
 
             endPos.z = 0.51f;
             SceneDraw::pathCubicTo(context, endPos, ctrl1, ctrl2, 1.f);
@@ -158,9 +165,10 @@ namespace Bess::Canvas {
 
     void SlotProbeSceneComponent::drawPropertiesUI(SceneState &sceneState) {
         // render 20 most recent probe data entries in imgui table
-        ImGui::Text("Probed Slot: %s", m_probedSlotUuid != UUID::null
-                                           ? m_probedSlotUuid.toString().c_str()
-                                           : "None");
+        ImGui::Text("Probed Slot: %s",
+                    m_probedSlotUuid != UUID::null
+                        ? m_probedSlotUuid.toString().c_str()
+                        : "None");
         if (ImGui::BeginTable("ProbeDataTable", 2, ImGuiTableFlags_Borders)) {
             ImGui::TableSetupColumn("Time");
             ImGui::TableSetupColumn("State");
@@ -174,9 +182,9 @@ namespace Bess::Canvas {
                 ImGui::Text("%.3f s",
                             std::chrono::duration<float>(it->first).count());
                 ImGui::TableSetColumnIndex(1);
-                ImGui::Text("%s", it->second == SimEngine::LogicState::high
-                                      ? "High"
-                                      : "Low");
+                ImGui::Text("%s",
+                            it->second == SimEngine::LogicState::high ? "High"
+                                                                      : "Low");
             }
             ImGui::EndTable();
         }
@@ -202,9 +210,10 @@ namespace Bess::Canvas {
                 simId);
 
         digComp->addOnStateChangeCB(
-            m_uuid, [this, slotComp = comp](
-                        const std::vector<SimEngine::SlotState> &inputStates,
-                        const std::vector<SimEngine::SlotState> &outputStates) {
+            m_uuid,
+            [this, slotComp = comp](
+                const std::vector<SimEngine::SlotState> &inputStates,
+                const std::vector<SimEngine::SlotState> &outputStates) {
                 SimEngine::SlotState slotState;
 
                 if (slotComp->isInputSlot()) {

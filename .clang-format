@@ -5,3 +5,5 @@ IndentPPDirectives: BeforeHash
 ColumnLimit: 80
 ConstructorInitializerIndentWidth: 4
 PackConstructorInitializers: CurrentLine
+BinPackArguments: false
+BinPackParameters: false

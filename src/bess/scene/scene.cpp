@@ -24,8 +24,10 @@
 
 namespace Bess::Canvas {
     SceneLifecycleContext makeLifecycleContext(
-        SceneState &state, const std::shared_ptr<Camera> &camera,
-        ViewportTransform &viewportTransform, SceneInputState &inputState,
+        SceneState &state,
+        const std::shared_ptr<Camera> &camera,
+        ViewportTransform &viewportTransform,
+        SceneInputState &inputState,
         PickingId &pickingId,
         const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer) {
         SceneLifecycleContext ctx;
@@ -67,8 +69,10 @@ namespace Bess::Canvas {
     }
 
     SceneRenderContext makeRenderContext(
-        SceneState &state, const std::shared_ptr<Camera> &camera,
-        ViewportTransform &viewportTransform, SceneInputState &inputState,
+        SceneState &state,
+        const std::shared_ptr<Camera> &camera,
+        ViewportTransform &viewportTransform,
+        SceneInputState &inputState,
         PickingId &pickingId,
         const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer) {
         SceneRenderContext ctx;
@@ -99,8 +103,12 @@ namespace Bess::Canvas {
 
         SceneWidgets::clearScene(&m_state);
 
-        auto ctx = makeLifecycleContext(m_state, m_camera, m_viewportTransform,
-                                        m_inputState, m_pickingId, nullptr);
+        auto ctx = makeLifecycleContext(m_state,
+                                        m_camera,
+                                        m_viewportTransform,
+                                        m_inputState,
+                                        m_pickingId,
+                                        nullptr);
         BESS_INFO("[Scene] Destroying {}", (uint64_t)m_state.getSceneId());
         for (auto &layer : m_sceneLayers) {
             layer->destroy(ctx);
@@ -122,8 +130,11 @@ namespace Bess::Canvas {
         const auto &appCtx = Bess::GAppContext::getInstance();
 
         const auto &renderCtx = appCtx.getSubSystem<RendererContext>();
-        auto ctx = makeLifecycleContext(m_state, m_camera, m_viewportTransform,
-                                        m_inputState, m_pickingId,
+        auto ctx = makeLifecycleContext(m_state,
+                                        m_camera,
+                                        m_viewportTransform,
+                                        m_inputState,
+                                        m_pickingId,
                                         renderCtx->getRenderer());
 
         for (auto &layer : m_sceneLayers) {
@@ -154,14 +165,14 @@ namespace Bess::Canvas {
             m_inputState.isCtrlPressed = inputSystem->isCtrlPressed();
             m_inputState.isShiftPressed = inputSystem->isShiftPressed();
             m_inputState.isAltPressed = inputSystem->isAltPressed();
-            events = SceneEventBuilder::buildFrameEvents(*inputSystem, m_camera,
-                                                         m_viewportTransform);
+            events = SceneEventBuilder::buildFrameEvents(
+                *inputSystem, m_camera, m_viewportTransform);
         }
 
         m_camera->update(ts);
 
-        auto ctx = makeUpdateContext(m_state, m_camera, m_viewportTransform,
-                                     m_inputState, m_pickingId);
+        auto ctx = makeUpdateContext(
+            m_state, m_camera, m_viewportTransform, m_inputState, m_pickingId);
 
         for (auto &evt : events) {
             dispatchEvent(evt);
@@ -183,8 +194,12 @@ namespace Bess::Canvas {
 
     void
     Scene::draw(const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer) {
-        auto ctx = makeRenderContext(m_state, m_camera, m_viewportTransform,
-                                     m_inputState, m_pickingId, renderer);
+        auto ctx = makeRenderContext(m_state,
+                                     m_camera,
+                                     m_viewportTransform,
+                                     m_inputState,
+                                     m_pickingId,
+                                     renderer);
 
         SceneWidgets::beginFrame(&m_state);
         for (auto &layer : m_sceneLayers) {
@@ -409,8 +424,8 @@ namespace Bess::Canvas {
     bool Scene::dispatchEvent(SceneEvent &evt) {
         evt.pickingId = m_pickingId;
 
-        auto ctx = makeEventContext(m_state, m_camera, m_viewportTransform,
-                                    m_inputState, m_pickingId);
+        auto ctx = makeEventContext(
+            m_state, m_camera, m_viewportTransform, m_inputState, m_pickingId);
 
         bool wasHandled = false;
         for (auto &layer : std::ranges::reverse_view(m_sceneLayers)) {

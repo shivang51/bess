@@ -76,8 +76,8 @@ namespace Bess::Canvas {
         if (data.action == MouseButtonAction::press ||
             data.action == MouseButtonAction::doubleClick) {
             if (isWidget) {
-                SceneWidgets::queuePress(ctx.sceneState, evt.pickingId,
-                                         data.pos);
+                SceneWidgets::queuePress(
+                    ctx.sceneState, evt.pickingId, data.pos);
                 return EventResult::Consumed;
             }
 
@@ -87,8 +87,8 @@ namespace Bess::Canvas {
 
         if (data.action == MouseButtonAction::release) {
             if (SceneWidgets::hasPointerCapture(ctx.sceneState)) {
-                SceneWidgets::queueRelease(ctx.sceneState, evt.pickingId,
-                                           data.pos);
+                SceneWidgets::queueRelease(
+                    ctx.sceneState, evt.pickingId, data.pos);
                 return EventResult::Consumed;
             }
         }
