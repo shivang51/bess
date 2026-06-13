@@ -1,6 +1,6 @@
-#include "scene_widgets_internal.h"
 #include "bess_core/renderer/renderer_2d.h"
 #include "scene/scene_draw_helpers.h"
+#include "scene_widgets_internal.h"
 #include "settings/viewport_theme.h"
 #include <algorithm>
 #include <string_view>
@@ -12,9 +12,9 @@ namespace Bess::Canvas::SceneWidgets {
             std::string_view text, size_t cursor, float maxWidth,
             const Core::Renderer::FontProps &fontProps) {
             cursor = std::min(cursor, text.size());
-            if (cursor == 0 || renderer->measureText(text.substr(0, cursor),
-                                                     fontProps)
-                                      .x <= maxWidth) {
+            if (cursor == 0 ||
+                renderer->measureText(text.substr(0, cursor), fontProps).x <=
+                    maxWidth) {
                 return 0;
             }
 
@@ -22,8 +22,8 @@ namespace Bess::Canvas::SceneWidgets {
             size_t high = cursor;
             while (low < high) {
                 const size_t mid = (low + high) / 2;
-                if (renderer->measureText(text.substr(mid, cursor - mid),
-                                          fontProps)
+                if (renderer
+                        ->measureText(text.substr(mid, cursor - mid), fontProps)
                         .x <= maxWidth) {
                     high = mid;
                 } else {
@@ -41,8 +41,9 @@ namespace Bess::Canvas::SceneWidgets {
             size_t high = text.size();
             while (low < high) {
                 const size_t mid = (low + high + 1) / 2;
-                if (renderer->measureText(text.substr(start, mid - start),
-                                          fontProps)
+                if (renderer
+                        ->measureText(text.substr(start, mid - start),
+                                      fontProps)
                         .x <= maxWidth) {
                     low = mid;
                 } else {
@@ -75,8 +76,7 @@ namespace Bess::Canvas::SceneWidgets {
     } // namespace
 
     TextBoxResult textBox(const PickingId &id, std::string *value,
-                          const glm::vec3 &boxPos,
-                          const glm::vec2 &boxSize,
+                          const glm::vec3 &boxPos, const glm::vec2 &boxSize,
                           SceneDrawContext &context,
                           const TextBoxOptions &options) {
         TextBoxResult result;
@@ -108,7 +108,7 @@ namespace Bess::Canvas::SceneWidgets {
 
         Detail::clampCursor(*widget);
 
-        if (widget->textChanged) {
+        if (widget->textChanged || widget->textSubmitted) {
             *value = widget->text;
         }
 
@@ -139,20 +139,17 @@ namespace Bess::Canvas::SceneWidgets {
         auto bgColor =
             focused ? Detail::colorOr(options.focusedBackgroundColor,
                                       palette.surfaceActive)
-                    : Detail::colorOr(options.backgroundColor,
-                                      palette.surface);
+                    : Detail::colorOr(options.backgroundColor, palette.surface);
         if (!focused && Detail::isHovering(context.sceneState, id)) {
-            bgColor =
-                Detail::colorOr(options.hoverBackgroundColor,
-                                palette.surfaceHover);
+            bgColor = Detail::colorOr(options.hoverBackgroundColor,
+                                      palette.surfaceHover);
         }
 
         const SceneDraw::QuadStyle style{
             .borderColor =
                 focused ? Detail::colorOr(options.focusedBorderColor,
                                           palette.borderFocus)
-                        : Detail::colorOr(options.borderColor,
-                                          palette.border),
+                        : Detail::colorOr(options.borderColor, palette.border),
             .borderRadius = glm::vec4(2.f),
             .borderSize = glm::vec4(focused ? 0.8f : 0.5f),
         };
@@ -176,9 +173,9 @@ namespace Bess::Canvas::SceneWidgets {
             textColor =
                 Detail::colorOr(options.placeholderColor, palette.textMuted);
         } else {
-            visibleText = visibleTextForCursor(
-                context.renderer, widget->text, widget->cursorPos,
-                contentWidth, fontProps, visibleStart);
+            visibleText = visibleTextForCursor(context.renderer, widget->text,
+                                               widget->cursorPos, contentWidth,
+                                               fontProps, visibleStart);
         }
 
         const float textOffY = context.renderer->textCenterOffsetY(
@@ -187,21 +184,22 @@ namespace Bess::Canvas::SceneWidgets {
         const glm::vec3 textPos{
             left,
             boxPos.y + textOffY,
-            boxPos.z + 0.001f,
+            boxPos.z + 0.0001f,
         };
         SceneDraw::drawText(context, visibleText, textPos,
                             static_cast<size_t>(options.fontSize), textColor,
                             id);
 
         if (focused) {
-            const auto cursorText = std::string_view(widget->text).substr(
-                visibleStart, widget->cursorPos - visibleStart);
+            const auto cursorText =
+                std::string_view(widget->text)
+                    .substr(visibleStart, widget->cursorPos - visibleStart);
             const float cursorX =
                 left + context.renderer->measureText(cursorText, fontProps).x;
             const float cursorHeight =
                 std::max(4.f, size.y - (options.padding.y * 2.f));
             SceneDraw::drawQuad(
-                context, {cursorX, boxPos.y, boxPos.z + 0.002f},
+                context, {cursorX, boxPos.y, boxPos.z + 0.0002f},
                 {1.f, cursorHeight},
                 Detail::colorOr(options.cursorColor, palette.text), id);
         }

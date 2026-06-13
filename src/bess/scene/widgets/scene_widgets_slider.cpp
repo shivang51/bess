@@ -1,5 +1,5 @@
-#include "scene_widgets_internal.h"
 #include "scene/scene_draw_helpers.h"
+#include "scene_widgets_internal.h"
 #include "settings/viewport_theme.h"
 #include <algorithm>
 #include <cmath>
@@ -38,15 +38,14 @@ namespace Bess::Canvas::SceneWidgets {
         float pointerToValue(const Detail::WidgetState &widget, float minValue,
                              float maxValue, float valueTextWidth,
                              const SliderOptions &options) {
-            const float left =
-                widget.boundsPos.x - (widget.boundsSize.x * 0.5f) +
-                options.padding.x;
-            const float right =
-                widget.boundsPos.x + (widget.boundsSize.x * 0.5f) -
-                options.padding.x - valueTextWidth;
+            const float left = widget.boundsPos.x -
+                               (widget.boundsSize.x * 0.5f) + options.padding.x;
+            const float right = widget.boundsPos.x +
+                                (widget.boundsSize.x * 0.5f) -
+                                options.padding.x - valueTextWidth;
             const float width = std::max(1.f, right - left);
-            const float t = std::clamp((widget.pointerPos.x - left) / width,
-                                       0.f, 1.f);
+            const float t =
+                std::clamp((widget.pointerPos.x - left) / width, 0.f, 1.f);
             return minValue + ((maxValue - minValue) * t);
         }
 
@@ -73,13 +72,9 @@ namespace Bess::Canvas::SceneWidgets {
             if (size.y <= 0.f) {
                 size.y =
                     std::max(kMinSliderHeight,
-                             std::max(textSize.y,
-                                      options.knobRadius * 2.f) +
+                             std::max(textSize.y, options.knobRadius * 2.f) +
                                  (options.padding.y * 2.f));
             }
-
-            size.x = std::max(size.x, kMinSliderWidth);
-            size.y = std::max(size.y, kMinSliderHeight);
             return size;
         }
 
@@ -90,8 +85,7 @@ namespace Bess::Canvas::SceneWidgets {
                 return 0.f;
             }
             return renderer
-                       ->measureText(valueLabel,
-                                     {.fontSize = options.fontSize})
+                       ->measureText(valueLabel, {.fontSize = options.fontSize})
                        .x +
                    options.padding.x;
         }
@@ -109,8 +103,9 @@ namespace Bess::Canvas::SceneWidgets {
             }
 
             const float range = maxValue - minValue;
-            const float step =
-                options.step > 0.f ? options.step : std::max(range / 100.f, 0.f);
+            const float step = options.step > 0.f
+                                   ? options.step
+                                   : std::max(range / 100.f, 0.f);
             float next = sanitizeValue(*value, minValue);
             bool hasInput = false;
 
@@ -141,9 +136,8 @@ namespace Bess::Canvas::SceneWidgets {
             }
 
             next = snappedValue(next, minValue, maxValue, options.step);
-            const float epsilon =
-                std::max(std::numeric_limits<float>::epsilon() * 8.f,
-                         range * 0.000001f);
+            const float epsilon = std::max(
+                std::numeric_limits<float>::epsilon() * 8.f, range * 0.000001f);
             if (std::abs(next - *value) <= epsilon) {
                 return false;
             }
@@ -164,8 +158,7 @@ namespace Bess::Canvas::SceneWidgets {
                 widget.isHovered
                     ? Detail::colorOr(options.hoverBackgroundColor,
                                       palette.surfaceHover)
-                    : Detail::colorOr(options.backgroundColor,
-                                      palette.surface);
+                    : Detail::colorOr(options.backgroundColor, palette.surface);
             if (widget.isPressed) {
                 bgColor = options.backgroundColor.has_value()
                               ? *options.backgroundColor * 0.85f
@@ -173,21 +166,21 @@ namespace Bess::Canvas::SceneWidgets {
             }
 
             const SceneDraw::QuadStyle backgroundStyle{
-                .borderColor =
-                    focused ? Detail::colorOr(options.focusedBorderColor,
-                                              palette.borderFocus)
-                            : Core::Renderer::Color(0.f, 0.f, 0.f, 0.f),
+                .borderColor = focused
+                                   ? Detail::colorOr(options.focusedBorderColor,
+                                                     palette.borderFocus)
+                                   : Core::Renderer::Color(0.f, 0.f, 0.f, 0.f),
                 .borderRadius = glm::vec4(2.f),
                 .borderSize = glm::vec4(focused ? 0.8f : 0.f),
             };
+
             SceneDraw::drawQuad(context, sliderPos, size, bgColor, id,
                                 backgroundStyle);
 
             const float left =
                 sliderPos.x - (size.x * 0.5f) + options.padding.x;
-            const float right =
-                sliderPos.x + (size.x * 0.5f) - options.padding.x -
-                valueTextWidth;
+            const float right = sliderPos.x + (size.x * 0.5f) -
+                                options.padding.x - valueTextWidth;
             const float trackWidth = std::max(1.f, right - left);
             const float trackCenterX = left + (trackWidth * 0.5f);
             const float t = valueToNormalized(value, minValue, maxValue);
@@ -197,7 +190,7 @@ namespace Bess::Canvas::SceneWidgets {
                 .borderRadius = glm::vec4(options.trackHeight * 0.5f),
             };
             SceneDraw::drawQuad(
-                context, {trackCenterX, sliderPos.y, sliderPos.z + 0.001f},
+                context, {trackCenterX, sliderPos.y, sliderPos.z + 0.0001f},
                 {trackWidth, options.trackHeight},
                 Detail::colorOr(options.trackColor, palette.track), id,
                 trackStyle);
@@ -205,14 +198,13 @@ namespace Bess::Canvas::SceneWidgets {
             const float fillWidth = std::max(0.5f, knobX - left);
             SceneDraw::drawQuad(
                 context,
-                {left + (fillWidth * 0.5f), sliderPos.y,
-                 sliderPos.z + 0.002f},
+                {left + (fillWidth * 0.5f), sliderPos.y, sliderPos.z + 0.0002f},
                 {fillWidth, options.trackHeight},
                 Detail::colorOr(options.fillColor, palette.accent), id,
                 trackStyle);
 
             SceneDraw::drawCircle(
-                context, {knobX, sliderPos.y, sliderPos.z + 0.003f},
+                context, {knobX, sliderPos.y, sliderPos.z + 0.0003f},
                 options.knobRadius,
                 Detail::colorOr(options.knobColor, palette.knob), id);
 
@@ -222,13 +214,12 @@ namespace Bess::Canvas::SceneWidgets {
                 const glm::vec3 textPos{
                     right + options.padding.x,
                     sliderPos.y + textOffY,
-                    sliderPos.z + 0.004f,
+                    sliderPos.z + 0.0004f,
                 };
-                SceneDraw::drawText(context, valueLabel, textPos,
-                                    static_cast<size_t>(options.fontSize),
-                                    Detail::colorOr(options.textColor,
-                                                    palette.textMuted),
-                                    id);
+                SceneDraw::drawText(
+                    context, valueLabel, textPos,
+                    static_cast<size_t>(options.fontSize),
+                    Detail::colorOr(options.textColor, palette.textMuted), id);
             }
         }
     } // namespace
@@ -248,8 +239,8 @@ namespace Bess::Canvas::SceneWidgets {
         *value = snappedValue(sanitizeValue(*value, rangeMin), rangeMin,
                               rangeMax, options.step);
 
-        auto widget = Detail::registerWidget(
-            context.sceneState, id, Detail::WidgetState::Type::slider);
+        auto widget = Detail::registerWidget(context.sceneState, id,
+                                             Detail::WidgetState::Type::slider);
         if (widget == nullptr) {
             return result;
         }
@@ -301,9 +292,8 @@ namespace Bess::Canvas::SceneWidgets {
                              static_cast<float>(rangeMax), sliderPos,
                              sliderSize, context, intOptions);
 
-        const int nextValue =
-            std::clamp(static_cast<int>(std::lround(floatValue)), rangeMin,
-                       rangeMax);
+        const int nextValue = std::clamp(
+            static_cast<int>(std::lround(floatValue)), rangeMin, rangeMax);
         result.changed = nextValue != *value;
         if (result.changed) {
             *value = nextValue;

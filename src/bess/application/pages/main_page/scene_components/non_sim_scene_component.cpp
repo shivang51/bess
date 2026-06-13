@@ -192,9 +192,9 @@ namespace Bess::Canvas {
         const float top = pos.y - (m_transform.scale.y / 2.f) + 10.f;
         constexpr float labelSize = 9.f;
 
-        SceneDraw::drawText(context, "Widgets Test",
-                            {left, top + 6.f, z + 0.001f}, labelSize,
-                            ViewportTheme::colors.text, backgroundId);
+        SceneDraw::drawText(context, m_name, {left, top + 6.f, z + 0.001f},
+                            labelSize, ViewportTheme::colors.text,
+                            backgroundId);
 
         const glm::vec3 togglePos{left + 22.f, top + 32.f, z + 0.001f};
         SceneWidgets::toggleButton(PickingId{m_runtimeId, 1}, &m_toggleValue,
@@ -219,7 +219,7 @@ namespace Bess::Canvas {
             .fontSize = 8.f,
             .padding = {5.f, 2.f},
         };
-        SceneWidgets::textBox(PickingId{m_runtimeId, 3}, &m_textValue,
+        SceneWidgets::textBox(PickingId{m_runtimeId, 3}, &m_name,
                               {left + 160.f, top + 58.f, z + 0.001f},
                               {100.f, 18.f}, context, textBoxOptions);
 

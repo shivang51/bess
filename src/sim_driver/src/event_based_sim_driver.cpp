@@ -58,7 +58,7 @@ namespace Bess::SimEngine::Drivers {
         while (!isStopped()) {
             {
                 std::unique_lock lk(m_runIterMutex);
-                BESS_DEBUG("Sim waiting for events");
+                // BESS_DEBUG("Sim waiting for events");
 
                 m_runIterCv.wait(lk, [&] {
                     return isStopped() || (!isPaused() && !m_events.empty());
@@ -74,7 +74,7 @@ namespace Bess::SimEngine::Drivers {
             }
 
             const auto evtsToSim = collectEvts();
-            BESS_DEBUG("Simulating {}", evtsToSim.size());
+            // BESS_DEBUG("Simulating {}", evtsToSim.size());
 
             if (evtsToSim.empty()) {
                 const auto &nextEvt = getNextEvt();

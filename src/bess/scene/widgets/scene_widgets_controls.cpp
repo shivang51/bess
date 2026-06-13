@@ -40,8 +40,7 @@ namespace Bess::Canvas::SceneWidgets {
                 glm::vec3(buttonHeadPosX, buttonPos.y, buttonPos.z);
             SceneDraw::drawQuad(context, buttonHeadPos,
                                 {buttonSize.y - 1.f, buttonSize.y - 1.f},
-                                palette.knob, id,
-                                buttonProps);
+                                palette.knob, id, buttonProps);
         }
     } // namespace
 

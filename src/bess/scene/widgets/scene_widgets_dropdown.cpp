@@ -38,8 +38,6 @@ namespace Bess::Canvas::SceneWidgets {
                 size.x = maxTextWidth + (options.padding.x * 3.f) + 8.f;
             }
 
-            size.x = std::max(size.x, kMinDropdownWidth);
-            size.y = std::max(size.y, kMinDropdownHeight);
             return size;
         }
 
@@ -67,7 +65,7 @@ namespace Bess::Canvas::SceneWidgets {
             return {boxPos.x,
                     boxPos.y + (boxSize.y * 0.5f) + (optionHeight * 0.5f) +
                         (static_cast<float>(visibleIndex) * optionHeight),
-                    boxPos.z + 0.006f};
+                    boxPos.z + 0.0006f};
         }
 
         void openDropdown(Detail::SceneWidgetsState &widgetsState,
@@ -177,7 +175,7 @@ namespace Bess::Canvas::SceneWidgets {
                 label.empty() ? std::string_view("M") : label,
                 {.fontSize = options.fontSize});
             SceneDraw::drawText(
-                context, label, {left, boxPos.y + textOffY, boxPos.z + 0.001f},
+                context, label, {left, boxPos.y + textOffY, boxPos.z + 0.0001f},
                 static_cast<size_t>(options.fontSize),
                 hasSelection ? Detail::colorOr(options.textColor, palette.text)
                              : Detail::colorOr(options.mutedTextColor,
@@ -191,7 +189,7 @@ namespace Bess::Canvas::SceneWidgets {
                 context, caret,
                 {boxPos.x + (boxSize.x * 0.5f) - options.padding.x -
                      caretSize.x,
-                 boxPos.y + textOffY, boxPos.z + 0.001f},
+                 boxPos.y + textOffY, boxPos.z + 0.0001f},
                 static_cast<size_t>(options.fontSize),
                 Detail::colorOr(options.mutedTextColor, palette.textMuted), id);
         }
@@ -256,7 +254,7 @@ namespace Bess::Canvas::SceneWidgets {
                     items[optionIndex], {.fontSize = options.fontSize});
                 SceneDraw::drawText(
                     context, items[optionIndex],
-                    {left, rowCenter.y + textOffY, rowCenter.z + 0.001f},
+                    {left, rowCenter.y + textOffY, rowCenter.z + 0.0001f},
                     static_cast<size_t>(options.fontSize),
                     Detail::colorOr(options.textColor, palette.text), optionId);
             }

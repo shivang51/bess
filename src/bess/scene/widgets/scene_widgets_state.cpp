@@ -1,5 +1,5 @@
-#include "scene_widgets_internal.h"
 #include "common/logger.h"
+#include "scene_widgets_internal.h"
 #include <algorithm>
 #include <array>
 
@@ -140,7 +140,8 @@ namespace Bess::Canvas::SceneWidgets::Detail {
             return;
         }
 
-        auto prev = widgetsState.widgetStates.find(widgetsState.focusedWidgetId);
+        auto prev =
+            widgetsState.widgetStates.find(widgetsState.focusedWidgetId);
         if (prev != widgetsState.widgetStates.end()) {
             prev->second.isFocused = false;
             prev->second.focusStarted = false;
@@ -213,8 +214,7 @@ namespace Bess::Canvas::SceneWidgets::Detail {
                 : std::min(state.dropdownMaxVisibleOptions,
                            state.dropdownOptionCount);
 
-        if (visibleCount == 0 ||
-            state.dropdownOptionCount <= visibleCount) {
+        if (visibleCount == 0 || state.dropdownOptionCount <= visibleCount) {
             state.dropdownScrollOffset = 0;
             return;
         }
@@ -227,7 +227,8 @@ namespace Bess::Canvas::SceneWidgets::Detail {
                 state.dropdownHighlightedIndex - visibleCount + 1;
         }
 
-        state.dropdownScrollOffset = std::min(
-            state.dropdownScrollOffset, state.dropdownOptionCount - visibleCount);
+        state.dropdownScrollOffset =
+            std::min(state.dropdownScrollOffset,
+                     state.dropdownOptionCount - visibleCount);
     }
 } // namespace Bess::Canvas::SceneWidgets::Detail

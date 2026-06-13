@@ -177,6 +177,10 @@ namespace Bess::Canvas {
                                  const std::shared_ptr<SimulationSceneComponent>
                                      &clonedComponent) const;
 
+        glm::vec2 calculateScale(const SceneState &state) override;
+
+        float getSlotStartY() const;
+
       protected:
         /**
          * Resets the slot positions based on the current scale and number of
@@ -194,8 +198,6 @@ namespace Bess::Canvas {
         // Generates the positions relative to the component position
         std::pair<std::vector<glm::vec3>, std::vector<glm::vec3>>
         calculateSlotPositions(size_t inputCount, size_t outputCount) const;
-
-        glm::vec2 calculateScale(const SceneState &state) override;
 
         virtual void calculateSchematicScale(const SceneState &state);
 

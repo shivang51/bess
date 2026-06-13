@@ -86,6 +86,12 @@ class PySimSceneComponent : public Bess::Canvas::SimulationSceneComponent,
                                "draw_properties_ui", drawPropertiesUI,
                                std::ref(sceneState));
     }
+
+    glm::vec2 calculateScale(const Bess::Canvas::SceneState &state) override {
+        PYBIND11_OVERRIDE_NAME(glm::vec2,
+                               Bess::Canvas::SimulationSceneComponent,
+                               "calc_scale", calculateScale, std::ref(state));
+    }
 };
 
 void bind_sim_scene_component(py::module_ &m) {
@@ -309,6 +315,11 @@ void bind_sim_scene_component(py::module_ &m) {
                      return c;
                  })
             .def("to_json", &Bess::Canvas::SimulationSceneComponent::toJson)
+            .def("calc_scale",
+                 &Bess::Canvas::SimulationSceneComponent::calculateScale,
+                 py::arg("scene_state"))
+            .def("get_slot_start_y",
+                 &Bess::Canvas::SimulationSceneComponent::getSlotStartY)
             .def("draw_properties_ui",
                  &Bess::Canvas::SimulationSceneComponent::drawPropertiesUI,
                  py::arg("scene_state"));

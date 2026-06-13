@@ -251,8 +251,7 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
         quadProps.shadow.offset = {0.f, 7.f};
         quadProps.shadow.blur = 18.f;
         quadProps.shadow.spread = 1.f;
-        quadProps.shadow.color =
-            Core::Renderer::Color{0.f, 0.f, 0.f, 0.28f};
+        quadProps.shadow.color = Core::Renderer::Color{0.f, 0.f, 0.f, 0.28f};
 
         const auto &borderColor = m_isSelected
                                       ? ViewportTheme::colors.selectedComp
@@ -395,6 +394,11 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
         height = glm::round(height / SNAP_AMOUNT) * SNAP_AMOUNT;
 
         return {width, height};
+    }
+
+    float SimulationSceneComponent::getSlotStartY() const {
+        return Styles::SIM_COMP_SLOT_START_Y +
+               (Styles::SIM_COMP_SLOT_ROW_SIZE / 2.f);
     }
 
     void SimulationSceneComponent::resetSlotPositions(const SceneState &state) {
