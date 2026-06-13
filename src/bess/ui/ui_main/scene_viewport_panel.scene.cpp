@@ -168,6 +168,9 @@ namespace Bess::UI {
         case Canvas::SceneCursor::move:
             window->getui().setCursorMove();
             break;
+        case Canvas::SceneCursor::text:
+            window->getui().setCursorText();
+            break;
         case Canvas::SceneCursor::normal:
             window->getui().setCursorNormal();
             break;

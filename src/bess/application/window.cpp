@@ -141,8 +141,10 @@ namespace Bess {
             KeyAction keyAction =
                 action == GLFW_PRESS
                     ? KeyAction::press
-                    : (action == GLFW_RELEASE ? KeyAction::release
-                                              : KeyAction::unknown);
+                    : (action == GLFW_RELEASE
+                           ? KeyAction::release
+                           : (action == GLFW_REPEAT ? KeyAction::hold
+                                                    : KeyAction::unknown));
 
             auto inputSubSystem =
                 GAppContext::getInstance().getSubSystem<InputSubSystem>();

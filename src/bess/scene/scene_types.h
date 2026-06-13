@@ -26,6 +26,7 @@ namespace Bess::Canvas {
         normal,
         pointer,
         move,
+        text,
     };
 
     struct SelBoxContext {

@@ -24,6 +24,7 @@
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "plugin_manager.h"
 #include "scene_ser_reg.h"
+#include "scene/scene_widgets.h"
 #include "sub_systems/input_sub_system.h"
 #include "sub_systems/input_sub_system_types.h"
 #include "ui/ui.h"
@@ -119,7 +120,12 @@ namespace Bess::Pages {
     void MainPage::update(TimeMs ts) {
         m_state.update();
 
-        const bool imguiWantsKeyboard = ImGui::GetIO().WantTextInput;
+        const auto activeScene = m_state.getSceneDriver()->getActiveScene();
+        const bool sceneWantsKeyboard =
+            activeScene &&
+            Canvas::SceneWidgets::wantsKeyboard(&activeScene->getState());
+        const bool imguiWantsKeyboard =
+            ImGui::GetIO().WantTextInput || sceneWantsKeyboard;
 
         if (!imguiWantsKeyboard)
             handleKeyboardShortcuts();

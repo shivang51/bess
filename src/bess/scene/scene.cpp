@@ -97,6 +97,8 @@ namespace Bess::Canvas {
         if (m_isDestroyed)
             return;
 
+        SceneWidgets::clearScene(&m_state);
+
         auto ctx = makeLifecycleContext(m_state, m_camera, m_viewportTransform,
                                         m_inputState, m_pickingId, nullptr);
         BESS_INFO("[Scene] Destroying {}", (uint64_t)m_state.getSceneId());
@@ -134,6 +136,7 @@ namespace Bess::Canvas {
     }
 
     void Scene::clear() {
+        SceneWidgets::clearScene(&m_state);
         m_state.clear();
         m_compZCoord = 1.f + m_zIncrement;
         m_inputState.reset();
@@ -183,11 +186,11 @@ namespace Bess::Canvas {
         auto ctx = makeRenderContext(m_state, m_camera, m_viewportTransform,
                                      m_inputState, m_pickingId, renderer);
 
-        SceneWidgets::beginFrame();
+        SceneWidgets::beginFrame(&m_state);
         for (auto &layer : m_sceneLayers) {
             layer->draw(ctx);
         }
-        SceneWidgets::endFrame();
+        SceneWidgets::endFrame(&m_state);
     }
 
     void Scene::selectAllEntities() {

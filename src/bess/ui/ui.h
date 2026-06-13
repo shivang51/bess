@@ -22,9 +22,10 @@ namespace Bess {
         void loadFontAndSetScale(float fontSize, float scale);
         void setCursorPointer();
         void setCursorMove();
+        void setCursorText();
         void setCursorNormal();
 
-        enum class CursorType : uint8_t { pointer, move, normal };
+        enum class CursorType : uint8_t { pointer, move, text, normal };
 
         class Fonts {
           public:

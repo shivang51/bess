@@ -11,10 +11,49 @@
 #include "settings/viewport_theme.h"
 #include "sim_scene_component.h"
 #include "simulation_engine.h"
+#include <string_view>
 
 namespace Bess::Canvas {
     namespace {
         bool makeAllLow = false;
+
+        bool parseBinaryValue(std::string_view text, bool &value) {
+            if (text == "0") {
+                value = false;
+                return true;
+            }
+
+            if (text == "1") {
+                value = true;
+                return true;
+            }
+
+            return false;
+        }
+
+        bool setOutputSlotState(
+            const SceneState &state,
+            const std::shared_ptr<SlotSceneComponent> &slotComp, bool isHigh) {
+            const auto slotParentComp =
+                state.getComponentByUuid<SimulationSceneComponent>(
+                    slotComp->getParentComponent());
+            if (!slotParentComp) {
+                return false;
+            }
+
+            auto &appCtx = Bess::GAppContext::getInstance();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+            if (!projectCtx) {
+                return false;
+            }
+
+            auto &simEngine = projectCtx->getSimEngine();
+            simEngine.setOutputSlotState(
+                slotParentComp->getSimEngineId(), slotComp->getIndex(),
+                isHigh ? SimEngine::LogicState::high
+                       : SimEngine::LogicState::low);
+            return true;
+        }
     }
 
     InputSceneComponent::InputSceneComponent() {
@@ -123,41 +162,44 @@ namespace Bess::Canvas {
         bool nextValue = isHigh;
         if (SceneWidgets::toggleButton(pickingId, &nextValue, buttonPos,
                                        buttonSize, context)) {
-            const auto slotParentComp =
-                state.getComponentByUuid<SimulationSceneComponent>(
-                    slotComp->getParentComponent());
-            if (!slotParentComp) {
-                return;
-            }
-
-            auto &appCtx = Bess::GAppContext::getInstance();
-            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-            if (!projectCtx) {
-                return;
-            }
-
-            auto &simEngine = projectCtx->getSimEngine();
-
-            simEngine.setOutputSlotState(
-                slotParentComp->getSimEngineId(), slotComp->getIndex(),
-                nextValue ? SimEngine::LogicState::high
-                          : SimEngine::LogicState::low);
+            setOutputSlotState(state, slotComp, nextValue);
         }
 
-        // Button label
-        const std::string label = nextValue ? "1" : "0";
-        const auto textSize = context.renderer->measureText(
-            label, {.fontSize = Styles::simCompStyles.slotLabelSize});
+        std::string valueText = nextValue ? "1" : "0";
+        constexpr float valueBoxWidth = 18.f;
+        const glm::vec2 valueBoxSize = {valueBoxWidth, buttonSize.y};
+        const glm::vec3 valueBoxPos = {
+            buttonPos.x + (buttonSize.x / 2.f) + 5.f + (valueBoxWidth / 2.f),
+            slotPosY,
+            m_transform.position.z + 0.001f,
+        };
+        const auto textBoxId = PickingId{
+            m_runtimeId,
+            static_cast<uint32_t>(0x10000u + buttonIndex + 1),
+        };
 
-        const float textPosX = buttonPos.x + (buttonSize.x / 2.f) + 8.f;
-        const float textOffY = context.renderer->textCenterOffsetY(
-            label, {.fontSize = Styles::simCompStyles.slotLabelSize});
-        const glm::vec3 textPos = glm::vec3(textPosX, slotPosY + textOffY,
-                                            m_transform.position.z + 0.001f);
+        const SceneWidgets::TextBoxOptions textBoxOptions{
+            .maxLength = 1,
+            .fontSize = Styles::simCompStyles.slotLabelSize,
+            .padding = {5.f, 1.f},
+            .backgroundColor = Core::Renderer::Colors::slate900,
+            .hoverBackgroundColor = Core::Renderer::Colors::slate700,
+            .focusedBackgroundColor = Core::Renderer::Colors::slate900,
+            .borderColor = ViewportTheme::colors.componentBorder,
+            .focusedBorderColor = ViewportTheme::colors.selectedComp,
+            .textColor = ViewportTheme::colors.text,
+            .placeholderColor = Core::Renderer::Colors::slate500,
+            .cursorColor = ViewportTheme::colors.text,
+        };
 
-        SceneDraw::drawText(
-            context, label, textPos, Styles::simCompStyles.slotLabelSize,
-            ViewportTheme::colors.text, PickingId{m_runtimeId, 0});
+        const auto textResult =
+            SceneWidgets::textBox(textBoxId, &valueText, valueBoxPos,
+                                  valueBoxSize, context, textBoxOptions);
+        bool parsedValue = nextValue;
+        if (textResult.changed && parseBinaryValue(valueText, parsedValue) &&
+            parsedValue != nextValue) {
+            setOutputSlotState(state, slotComp, parsedValue);
+        }
     }
 
     void InputSceneComponent::calculateSchematicScale(const SceneState &state) {
