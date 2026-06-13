@@ -58,6 +58,7 @@ namespace Bess::UI {
                 m_pickingTexture->destroy();
                 m_pickingTexture->init();
             }
+            m_pendingSelectionReadback.clear();
             m_isResized = false;
         }
 

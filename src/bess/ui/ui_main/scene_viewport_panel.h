@@ -2,11 +2,14 @@
 #include "bess_core/renderer/texture.h"
 #include "common/bess_uuid.h"
 #include "common/class_helpers.h"
-#include "events/application_event.h"
 #include "imgui.h"
 #include "scene.h"
 #include "string"
 #include "ui_panel.h"
+
+namespace Bess {
+    struct MouseButtonState;
+} // namespace Bess
 
 namespace Bess::UI {
     class SceneViewportPanel : public Panel {
@@ -36,11 +39,30 @@ namespace Bess::UI {
 
         void updatePickingIds(bool mouseMoved);
 
-        void handleMouseMoveEvt(const ApplicationEvent &event);
+        void handleMouseMove(const glm::vec2 &mousePos);
+        void releaseMouseButtonOutsideViewport(
+            const MouseButtonState &mouseBtnState);
 
         bool isInsideViewport(const glm::vec2 &pos) const;
+        bool hasRenderableViewport() const;
 
       private:
+        struct PendingPickingReadback {
+            uint32_t x = 0;
+            uint32_t y = 0;
+            uint32_t width = 0;
+            uint32_t height = 0;
+            bool active = false;
+
+            bool matches(uint32_t otherX, uint32_t otherY, uint32_t otherWidth,
+                         uint32_t otherHeight) const {
+                return active && x == otherX && y == otherY &&
+                       width == otherWidth && height == otherHeight;
+            }
+
+            void clear() { *this = {}; }
+        };
+
         void firstTime();
         void drawTopLeftControls();
         void drawBottomControls() const;
@@ -65,10 +87,6 @@ namespace Bess::UI {
         std::shared_ptr<Core::Renderer::ITexture> m_pickingTexture = nullptr;
         std::vector<const Canvas::SceneState *> m_rootToSceneStatePtrs;
         uint32_t m_gridShader = 0;
-        bool m_waitingForSelReadback = false;
-        uint32_t m_selReadbackX = 0;
-        uint32_t m_selReadbackY = 0;
-        uint32_t m_selReadbackWidth = 0;
-        uint32_t m_selReadbackHeight = 0;
+        PendingPickingReadback m_pendingSelectionReadback;
     };
 } // namespace Bess::UI
