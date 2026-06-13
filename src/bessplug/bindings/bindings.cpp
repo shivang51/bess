@@ -21,6 +21,7 @@ void bind_bess_ui(py::module_ &m);
 void bind_plugin(py::module_ &m);
 void bind_cmds(py::module_ &m);
 void bind_sim_engine_core(py::module_ &m);
+void bind_scene_widgets(py::module_ &m);
 
 void bind_api(py::module_ &m);
 
@@ -72,6 +73,7 @@ void bind_api(py::module_ &m) {
     bind_scene_component(scene);
     bind_scene_schematic_diagram(scene);
     bind_sim_scene_component(scene);
+    bind_scene_widgets(scene);
 
     // Asset Manager
     bind_asset_manager(assetMgr);

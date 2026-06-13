@@ -12,11 +12,11 @@
 namespace Bess::Canvas {
     struct SceneEvent;
     class SceneState;
-}
+} // namespace Bess::Canvas
 
 namespace Bess::Canvas::SceneWidgets {
     struct TextBoxOptions {
-        std::string_view placeholder = {};
+        std::string_view placeholder;
         size_t maxLength = 256;
         float fontSize = 8.f;
         glm::vec2 padding{4.f, 2.f};
@@ -119,8 +119,7 @@ namespace Bess::Canvas::SceneWidgets {
                 SceneDrawContext &context);
 
     TextBoxResult textBox(const PickingId &id, std::string *value,
-                          const glm::vec3 &boxPos,
-                          const glm::vec2 &boxSize,
+                          const glm::vec3 &boxPos, const glm::vec2 &boxSize,
                           SceneDrawContext &context,
                           const TextBoxOptions &options = {});
 
@@ -137,9 +136,8 @@ namespace Bess::Canvas::SceneWidgets {
                            const SliderOptions &options = {});
 
     DropdownResult dropdown(const PickingId &id, int *selectedIndex,
-                            std::span<const std::string_view> items,
-                            const glm::vec3 &boxPos,
-                            const glm::vec2 &boxSize,
+                            const std::vector<std::string> &items,
+                            const glm::vec3 &boxPos, const glm::vec2 &boxSize,
                             SceneDrawContext &context,
                             const DropdownOptions &options = {});
 } // namespace Bess::Canvas::SceneWidgets

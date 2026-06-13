@@ -8,7 +8,6 @@
 #include "scene_draw_context.h"
 #include "settings/viewport_theme.h"
 #include "widgets/m_widgets.h"
-#include <array>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -64,8 +63,7 @@ namespace Bess::Canvas {
             props.shadow.offset = {0.f, 3.f};
             props.shadow.blur = 10.f;
             props.shadow.spread = 1.f;
-            props.shadow.color =
-                Core::Renderer::Color{0.f, 0.f, 0.f, 0.35f};
+            props.shadow.color = Core::Renderer::Color{0.f, 0.f, 0.f, 0.35f};
 
             const auto textOffset = context.renderer->textCenterOffsetY(
                 m_data, {.fontSize = (float)m_size});
@@ -194,25 +192,24 @@ namespace Bess::Canvas {
         const float top = pos.y - (m_transform.scale.y / 2.f) + 10.f;
         constexpr float labelSize = 9.f;
 
-        SceneDraw::drawText(context, "Widgets Test", {left, top + 6.f, z + 0.001f},
-                            labelSize, ViewportTheme::colors.text,
-                            backgroundId);
+        SceneDraw::drawText(context, "Widgets Test",
+                            {left, top + 6.f, z + 0.001f}, labelSize,
+                            ViewportTheme::colors.text, backgroundId);
 
         const glm::vec3 togglePos{left + 22.f, top + 32.f, z + 0.001f};
         SceneWidgets::toggleButton(PickingId{m_runtimeId, 1}, &m_toggleValue,
                                    togglePos, {34.f, 16.f}, context);
-        SceneDraw::drawText(
-            context, m_toggleValue ? "Toggle: on" : "Toggle: off",
-            {left + 48.f, top + 35.f, z + 0.001f}, labelSize,
-            ViewportTheme::colors.text, backgroundId);
+        SceneDraw::drawText(context,
+                            m_toggleValue ? "Toggle: on" : "Toggle: off",
+                            {left + 48.f, top + 35.f, z + 0.001f}, labelSize,
+                            ViewportTheme::colors.text, backgroundId);
 
         const std::string buttonLabel =
             std::string("Clicks: ") + std::to_string(m_buttonClicks);
-        if (SceneWidgets::button(PickingId{m_runtimeId, 2}, buttonLabel,
-                                 {left + 52.f, top + 58.f, z + 0.001f},
-                                 {84.f, 18.f},
-                                 ViewportTheme::sceneWidgetsColors.text,
-                                 context)) {
+        if (SceneWidgets::button(
+                PickingId{m_runtimeId, 2}, buttonLabel,
+                {left + 52.f, top + 58.f, z + 0.001f}, {84.f, 18.f},
+                ViewportTheme::sceneWidgetsColors.text, context)) {
             ++m_buttonClicks;
         }
 
@@ -226,9 +223,9 @@ namespace Bess::Canvas {
                               {left + 160.f, top + 58.f, z + 0.001f},
                               {100.f, 18.f}, context, textBoxOptions);
 
-        SceneDraw::drawText(context, "Level",
-                            {left, top + 87.f, z + 0.001f}, labelSize,
-                            ViewportTheme::colors.text, backgroundId);
+        SceneDraw::drawText(context, "Level", {left, top + 87.f, z + 0.001f},
+                            labelSize, ViewportTheme::colors.text,
+                            backgroundId);
         SceneWidgets::SliderOptions sliderOptions{
             .step = 0.01f,
             .precision = 2,
@@ -241,22 +238,21 @@ namespace Bess::Canvas {
                                   {left + 136.f, top + 86.f, z + 0.001f},
                                   {168.f, 20.f}, context, sliderOptions);
 
-        SceneDraw::drawText(context, "Steps",
-                            {left, top + 113.f, z + 0.001f}, labelSize,
-                            ViewportTheme::colors.text, backgroundId);
+        SceneDraw::drawText(context, "Steps", {left, top + 113.f, z + 0.001f},
+                            labelSize, ViewportTheme::colors.text,
+                            backgroundId);
         SceneWidgets::SliderOptions intSliderOptions = sliderOptions;
         intSliderOptions.step = 1.f;
         intSliderOptions.precision = 0;
-        SceneWidgets::sliderInt(PickingId{m_runtimeId, 5}, &m_intSliderValue,
-                                0, 12,
-                                {left + 136.f, top + 112.f, z + 0.001f},
+        SceneWidgets::sliderInt(PickingId{m_runtimeId, 5}, &m_intSliderValue, 0,
+                                12, {left + 136.f, top + 112.f, z + 0.001f},
                                 {168.f, 20.f}, context, intSliderOptions);
 
-        static constexpr std::array<std::string_view, 5> modeItems{
+        static const std::vector<std::string> modeItems{
             "Inspect", "Edit", "Route", "Measure", "Debug"};
-        SceneDraw::drawText(context, "Mode",
-                            {left, top + 140.f, z + 0.001f}, labelSize,
-                            ViewportTheme::colors.text, backgroundId);
+        SceneDraw::drawText(context, "Mode", {left, top + 140.f, z + 0.001f},
+                            labelSize, ViewportTheme::colors.text,
+                            backgroundId);
         SceneWidgets::DropdownOptions dropdownOptions{
             .placeholder = "Mode",
             .fontSize = 8.f,

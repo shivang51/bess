@@ -95,10 +95,22 @@ namespace {
         quad.uvRect = {uv.x, uv.y, uv.x + uv.z, uv.y + uv.w};
         renderer.drawQuad(quad);
     }
+
+    void bindRendererTypes(py::module_ &m) {
+        py::class_<Color>(m, "Color")
+            .def(py::init<>())
+            .def_readwrite("r", &Color::r)
+            .def_readwrite("g", &Color::g)
+            .def_readwrite("b", &Color::b)
+            .def_readwrite("a", &Color::a)
+            .def_static("from_hex", &Color::fromHex,
+                        "Create a Color from a hex value (e.g., 0xRRGGBBAA)");
+    }
 } // namespace
 
 void bind_renderer(py::module_ &m) {
 
+    bindRendererTypes(m);
     py::class_<WgpuTexture, std::shared_ptr<WgpuTexture>>(m, "Texture");
 
     const auto createSubTexture = [](std::shared_ptr<WgpuTexture> texture,

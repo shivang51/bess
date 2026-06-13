@@ -1,5 +1,5 @@
-#include "scene_widgets_internal.h"
 #include "scene/scene_draw_helpers.h"
+#include "scene_widgets_internal.h"
 #include "settings/viewport_theme.h"
 #include <algorithm>
 #include <string_view>
@@ -11,17 +11,15 @@ namespace Bess::Canvas::SceneWidgets {
 
         glm::vec2 resolveDropdownSize(
             const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer,
-            std::span<const std::string_view> items,
-            const glm::vec2 &requestedSize,
-            const DropdownOptions &options) {
+            const std::vector<std::string> &items,
+            const glm::vec2 &requestedSize, const DropdownOptions &options) {
             auto size = requestedSize;
             const auto referenceSize =
                 renderer->measureText("M", {.fontSize = options.fontSize});
 
             if (size.y <= 0.f) {
                 size.y = std::max(kMinDropdownHeight,
-                                  referenceSize.y +
-                                      (options.padding.y * 2.f));
+                                  referenceSize.y + (options.padding.y * 2.f));
             }
 
             if (size.x <= 0.f) {
@@ -30,11 +28,11 @@ namespace Bess::Canvas::SceneWidgets {
                         ->measureText(options.placeholder,
                                       {.fontSize = options.fontSize})
                         .x;
-                for (const auto item : items) {
+                for (const auto &item : items) {
                     maxTextWidth = std::max(
                         maxTextWidth,
-                        renderer->measureText(item,
-                                              {.fontSize = options.fontSize})
+                        renderer
+                            ->measureText(item, {.fontSize = options.fontSize})
                             .x);
                 }
                 size.x = maxTextWidth + (options.padding.x * 3.f) + 8.f;
@@ -64,11 +62,10 @@ namespace Bess::Canvas::SceneWidgets {
         }
 
         glm::vec3 optionCenter(const glm::vec3 &boxPos,
-                               const glm::vec2 &boxSize,
-                               float optionHeight, size_t visibleIndex) {
+                               const glm::vec2 &boxSize, float optionHeight,
+                               size_t visibleIndex) {
             return {boxPos.x,
-                    boxPos.y + (boxSize.y * 0.5f) +
-                        (optionHeight * 0.5f) +
+                    boxPos.y + (boxSize.y * 0.5f) + (optionHeight * 0.5f) +
                         (static_cast<float>(visibleIndex) * optionHeight),
                     boxPos.z + 0.006f};
         }
@@ -127,10 +124,10 @@ namespace Bess::Canvas::SceneWidgets {
                 return;
             }
 
-            const size_t count = std::min(itemCount,
-                                          widget.dropdownMaxVisibleOptions);
-            const size_t start = std::min(widget.dropdownScrollOffset,
-                                          itemCount - count);
+            const size_t count =
+                std::min(itemCount, widget.dropdownMaxVisibleOptions);
+            const size_t start =
+                std::min(widget.dropdownScrollOffset, itemCount - count);
 
             for (size_t row = 0; row < count; ++row) {
                 const auto optionIndex = start + row;
@@ -157,20 +154,18 @@ namespace Bess::Canvas::SceneWidgets {
                 widget.dropdownOpen
                     ? Detail::colorOr(options.expandedBackgroundColor,
                                       palette.surfaceActive)
-                    : Detail::colorOr(options.backgroundColor,
-                                      palette.surface);
+                    : Detail::colorOr(options.backgroundColor, palette.surface);
             if (!widget.dropdownOpen && widget.isHovered) {
-                bgColor =
-                    Detail::colorOr(options.hoverBackgroundColor,
-                                    palette.surfaceHover);
+                bgColor = Detail::colorOr(options.hoverBackgroundColor,
+                                          palette.surfaceHover);
             }
 
             const SceneDraw::QuadStyle style{
                 .borderColor =
-                    focused ? Detail::colorOr(options.focusedBorderColor,
-                                              palette.borderFocus)
-                            : Detail::colorOr(options.borderColor,
-                                              palette.border),
+                    focused
+                        ? Detail::colorOr(options.focusedBorderColor,
+                                          palette.borderFocus)
+                        : Detail::colorOr(options.borderColor, palette.border),
                 .borderRadius = glm::vec4(2.f),
                 .borderSize = glm::vec4(focused ? 0.8f : 0.5f),
             };
@@ -190,9 +185,8 @@ namespace Bess::Canvas::SceneWidgets {
                 id);
 
             const std::string_view caret = widget.dropdownOpen ? "^" : "v";
-            const auto caretSize =
-                context.renderer->measureText(caret,
-                                              {.fontSize = options.fontSize});
+            const auto caretSize = context.renderer->measureText(
+                caret, {.fontSize = options.fontSize});
             SceneDraw::drawText(
                 context, caret,
                 {boxPos.x + (boxSize.x * 0.5f) - options.padding.x -
@@ -204,7 +198,7 @@ namespace Bess::Canvas::SceneWidgets {
 
         void drawOptions(Detail::WidgetState &widget, const PickingId &id,
                          int selectedIndex,
-                         std::span<const std::string_view> items,
+                         const std::vector<std::string> &items,
                          const glm::vec3 &boxPos, const glm::vec2 &boxSize,
                          SceneDrawContext &context,
                          const DropdownOptions &options) {
@@ -214,8 +208,8 @@ namespace Bess::Canvas::SceneWidgets {
 
             const auto &palette = ViewportTheme::sceneWidgetsColors;
             const size_t count = visibleOptionCount(items.size(), options);
-            const size_t start = std::min(widget.dropdownScrollOffset,
-                                          items.size() - count);
+            const size_t start =
+                std::min(widget.dropdownScrollOffset, items.size() - count);
 
             for (size_t row = 0; row < count; ++row) {
                 const size_t optionIndex = start + row;
@@ -248,8 +242,8 @@ namespace Bess::Canvas::SceneWidgets {
                 }
 
                 const SceneDraw::QuadStyle rowStyle{
-                    .borderColor = Detail::colorOr(options.borderColor,
-                                                   palette.border),
+                    .borderColor =
+                        Detail::colorOr(options.borderColor, palette.border),
                     .borderRadius = glm::vec4(0.f),
                     .borderSize = glm::vec4(0.f, 0.f, 0.5f, 0.f),
                 };
@@ -270,9 +264,8 @@ namespace Bess::Canvas::SceneWidgets {
     } // namespace
 
     DropdownResult dropdown(const PickingId &id, int *selectedIndex,
-                            std::span<const std::string_view> items,
-                            const glm::vec3 &boxPos,
-                            const glm::vec2 &boxSize,
+                            const std::vector<std::string> &items,
+                            const glm::vec3 &boxPos, const glm::vec2 &boxSize,
                             SceneDrawContext &context,
                             const DropdownOptions &options) {
         DropdownResult result;
@@ -304,7 +297,8 @@ namespace Bess::Canvas::SceneWidgets {
             widget->dropdownScrollOffset = 0;
         } else if (safeSelection >= 0 &&
                    widget->dropdownHighlightedIndex >= itemCount) {
-            widget->dropdownHighlightedIndex = static_cast<size_t>(safeSelection);
+            widget->dropdownHighlightedIndex =
+                static_cast<size_t>(safeSelection);
         }
         Detail::ensureDropdownHighlightVisible(*widget);
 
@@ -323,9 +317,9 @@ namespace Bess::Canvas::SceneWidgets {
         }
 
         if (widget->pendingDropdownSelection >= 0) {
-            result.changed |= applySelection(
-                *widget, selectedIndex, widget->pendingDropdownSelection,
-                itemCount);
+            result.changed |=
+                applySelection(*widget, selectedIndex,
+                               widget->pendingDropdownSelection, itemCount);
             widget->pendingDropdownSelection = -1;
             result.closed = true;
         }
