@@ -5,6 +5,7 @@
 #include "scene/scene_state/scene_state.h"
 #include <cstdint>
 #include <glm.hpp>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -12,6 +13,12 @@
 namespace Bess::Canvas::SceneWidgets::Detail {
     constexpr uint64_t kInvalidWidgetId = PickingId::invalid().toUint64();
     constexpr float kDefaultButtonTextSize = 8.f;
+
+    inline Core::Renderer::Color
+    colorOr(const std::optional<Core::Renderer::Color> &overrideColor,
+            const glm::vec4 &themeColor) {
+        return overrideColor.value_or(Core::Renderer::Color(themeColor));
+    }
 
     struct WidgetState {
         enum class Type : uint8_t {

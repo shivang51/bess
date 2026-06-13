@@ -1,4 +1,3 @@
-#include "bess_core/renderer/colors.h"
 #include "scene/scene_draw_helpers.h"
 #include "scene_widgets_internal.h"
 #include "settings/viewport_theme.h"
@@ -9,16 +8,19 @@ namespace Bess::Canvas::SceneWidgets {
                               const glm::vec3 &buttonPos,
                               const glm::vec2 &buttonSize,
                               SceneDrawContext &context) {
+            const auto &palette = ViewportTheme::sceneWidgetsColors;
             static const SceneDraw::QuadStyle trackProps{
-                .borderColor = ViewportTheme::colors.componentBorder,
                 .borderRadius = glm::vec4(5.5f),
                 .borderSize = glm::vec4(0.5f),
             };
             constexpr SceneDraw::QuadStyle buttonProps{.borderRadius =
                                                            glm::vec4(5.f)};
 
-            auto trackColor = isHigh ? ViewportTheme::colors.stateHigh
-                                     : ViewportTheme::colors.background;
+            auto style = trackProps;
+            style.borderColor = palette.border;
+
+            auto trackColor = isHigh ? Core::Renderer::Color(palette.accent)
+                                     : Core::Renderer::Color(palette.track);
             if (Detail::isHovering(context.sceneState, id)) {
                 trackColor = Core::Renderer::Color(trackColor) * 1.15f;
             }
@@ -27,7 +29,7 @@ namespace Bess::Canvas::SceneWidgets {
             }
 
             SceneDraw::drawQuad(context, buttonPos, buttonSize, trackColor, id,
-                                trackProps);
+                                style);
 
             const float buttonHeadPosX =
                 isHigh
@@ -38,7 +40,7 @@ namespace Bess::Canvas::SceneWidgets {
                 glm::vec3(buttonHeadPosX, buttonPos.y, buttonPos.z);
             SceneDraw::drawQuad(context, buttonHeadPos,
                                 {buttonSize.y - 1.f, buttonSize.y - 1.f},
-                                ViewportTheme::colors.stateLow, id,
+                                palette.knob, id,
                                 buttonProps);
         }
     } // namespace
@@ -77,18 +79,19 @@ namespace Bess::Canvas::SceneWidgets {
         Detail::registerWidget(context.sceneState, id,
                                Detail::WidgetState::Type::button);
 
-        static const SceneDraw::QuadStyle buttonProps{
-            .borderColor = Core::Renderer::Colors::slate700,
+        const auto &palette = ViewportTheme::sceneWidgetsColors;
+        const SceneDraw::QuadStyle buttonProps{
+            .borderColor = palette.border,
             .borderRadius = glm::vec4(2.f),
             .borderSize = glm::vec4(0.5f),
         };
 
-        auto bgColor = Core::Renderer::Colors::slate900;
+        auto bgColor = Core::Renderer::Color(palette.surface);
         if (Detail::isHovering(context.sceneState, id)) {
-            bgColor = bgColor * 1.2f;
+            bgColor = palette.surfaceHover;
         }
         if (Detail::isPressed(context.sceneState, id)) {
-            bgColor = bgColor * 0.8f;
+            bgColor = palette.surfaceActive;
         }
 
         const auto textSize = context.renderer->measureText(

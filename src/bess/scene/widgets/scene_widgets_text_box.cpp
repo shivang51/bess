@@ -1,6 +1,7 @@
 #include "scene_widgets_internal.h"
 #include "bess_core/renderer/renderer_2d.h"
 #include "scene/scene_draw_helpers.h"
+#include "settings/viewport_theme.h"
 #include <algorithm>
 #include <string_view>
 
@@ -133,16 +134,25 @@ namespace Bess::Canvas::SceneWidgets {
             size.x = std::max(48.f, measuredText.x + (options.padding.x * 2.f));
         }
 
+        const auto &palette = ViewportTheme::sceneWidgetsColors;
         const bool focused = Detail::isFocused(context.sceneState, id);
-        auto bgColor = focused ? options.focusedBackgroundColor
-                               : options.backgroundColor;
+        auto bgColor =
+            focused ? Detail::colorOr(options.focusedBackgroundColor,
+                                      palette.surfaceActive)
+                    : Detail::colorOr(options.backgroundColor,
+                                      palette.surface);
         if (!focused && Detail::isHovering(context.sceneState, id)) {
-            bgColor = options.hoverBackgroundColor;
+            bgColor =
+                Detail::colorOr(options.hoverBackgroundColor,
+                                palette.surfaceHover);
         }
 
         const SceneDraw::QuadStyle style{
-            .borderColor = focused ? options.focusedBorderColor
-                                   : options.borderColor,
+            .borderColor =
+                focused ? Detail::colorOr(options.focusedBorderColor,
+                                          palette.borderFocus)
+                        : Detail::colorOr(options.borderColor,
+                                          palette.border),
             .borderRadius = glm::vec4(2.f),
             .borderSize = glm::vec4(focused ? 0.8f : 0.5f),
         };
@@ -158,11 +168,13 @@ namespace Bess::Canvas::SceneWidgets {
 
         size_t visibleStart = 0;
         std::string_view visibleText;
-        Core::Renderer::Color textColor = options.textColor;
+        Core::Renderer::Color textColor =
+            Detail::colorOr(options.textColor, palette.text);
 
         if (widget->text.empty() && !focused && !options.placeholder.empty()) {
             visibleText = options.placeholder;
-            textColor = options.placeholderColor;
+            textColor =
+                Detail::colorOr(options.placeholderColor, palette.textMuted);
         } else {
             visibleText = visibleTextForCursor(
                 context.renderer, widget->text, widget->cursorPos,
@@ -190,7 +202,8 @@ namespace Bess::Canvas::SceneWidgets {
                 std::max(4.f, size.y - (options.padding.y * 2.f));
             SceneDraw::drawQuad(
                 context, {cursorX, boxPos.y, boxPos.z + 0.002f},
-                {1.f, cursorHeight}, options.cursorColor, id);
+                {1.f, cursorHeight},
+                Detail::colorOr(options.cursorColor, palette.text), id);
         }
 
         return result;

@@ -4,6 +4,7 @@
 #include "common/types.h"
 #include "scene_draw_context.h"
 #include <glm.hpp>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -19,22 +20,14 @@ namespace Bess::Canvas::SceneWidgets {
         size_t maxLength = 256;
         float fontSize = 8.f;
         glm::vec2 padding{4.f, 2.f};
-        Core::Renderer::Color backgroundColor =
-            Core::Renderer::Color::fromHex(0x0F172AFF);
-        Core::Renderer::Color hoverBackgroundColor =
-            Core::Renderer::Color::fromHex(0x182033FF);
-        Core::Renderer::Color focusedBackgroundColor =
-            Core::Renderer::Color::fromHex(0x111827FF);
-        Core::Renderer::Color borderColor =
-            Core::Renderer::Color::fromHex(0x334155FF);
-        Core::Renderer::Color focusedBorderColor =
-            Core::Renderer::Color::fromHex(0x60A5FAFF);
-        Core::Renderer::Color textColor =
-            Core::Renderer::Color::fromHex(0xF1F5F9FF);
-        Core::Renderer::Color placeholderColor =
-            Core::Renderer::Color::fromHex(0x64748BFF);
-        Core::Renderer::Color cursorColor =
-            Core::Renderer::Color::fromHex(0xF8FAFCFF);
+        std::optional<Core::Renderer::Color> backgroundColor;
+        std::optional<Core::Renderer::Color> hoverBackgroundColor;
+        std::optional<Core::Renderer::Color> focusedBackgroundColor;
+        std::optional<Core::Renderer::Color> borderColor;
+        std::optional<Core::Renderer::Color> focusedBorderColor;
+        std::optional<Core::Renderer::Color> textColor;
+        std::optional<Core::Renderer::Color> placeholderColor;
+        std::optional<Core::Renderer::Color> cursorColor;
     };
 
     struct TextBoxResult {
@@ -52,20 +45,13 @@ namespace Bess::Canvas::SceneWidgets {
         float trackHeight = 4.f;
         float knobRadius = 5.f;
         glm::vec2 padding{6.f, 2.f};
-        Core::Renderer::Color backgroundColor =
-            Core::Renderer::Color::fromHex(0x0F172AFF);
-        Core::Renderer::Color hoverBackgroundColor =
-            Core::Renderer::Color::fromHex(0x182033FF);
-        Core::Renderer::Color focusedBorderColor =
-            Core::Renderer::Color::fromHex(0x60A5FAFF);
-        Core::Renderer::Color trackColor =
-            Core::Renderer::Color::fromHex(0x334155FF);
-        Core::Renderer::Color fillColor =
-            Core::Renderer::Color::fromHex(0x38BDF8FF);
-        Core::Renderer::Color knobColor =
-            Core::Renderer::Color::fromHex(0xF8FAFCFF);
-        Core::Renderer::Color textColor =
-            Core::Renderer::Color::fromHex(0xCBD5E1FF);
+        std::optional<Core::Renderer::Color> backgroundColor;
+        std::optional<Core::Renderer::Color> hoverBackgroundColor;
+        std::optional<Core::Renderer::Color> focusedBorderColor;
+        std::optional<Core::Renderer::Color> trackColor;
+        std::optional<Core::Renderer::Color> fillColor;
+        std::optional<Core::Renderer::Color> knobColor;
+        std::optional<Core::Renderer::Color> textColor;
     };
 
     struct SliderResult {
@@ -80,24 +66,15 @@ namespace Bess::Canvas::SceneWidgets {
         float optionHeight = 18.f;
         size_t maxVisibleOptions = 8;
         glm::vec2 padding{5.f, 2.f};
-        Core::Renderer::Color backgroundColor =
-            Core::Renderer::Color::fromHex(0x0F172AFF);
-        Core::Renderer::Color hoverBackgroundColor =
-            Core::Renderer::Color::fromHex(0x182033FF);
-        Core::Renderer::Color expandedBackgroundColor =
-            Core::Renderer::Color::fromHex(0x111827FF);
-        Core::Renderer::Color borderColor =
-            Core::Renderer::Color::fromHex(0x334155FF);
-        Core::Renderer::Color focusedBorderColor =
-            Core::Renderer::Color::fromHex(0x60A5FAFF);
-        Core::Renderer::Color optionHoverColor =
-            Core::Renderer::Color::fromHex(0x1E293BFF);
-        Core::Renderer::Color optionSelectedColor =
-            Core::Renderer::Color::fromHex(0x075985FF);
-        Core::Renderer::Color textColor =
-            Core::Renderer::Color::fromHex(0xF1F5F9FF);
-        Core::Renderer::Color mutedTextColor =
-            Core::Renderer::Color::fromHex(0x94A3B8FF);
+        std::optional<Core::Renderer::Color> backgroundColor;
+        std::optional<Core::Renderer::Color> hoverBackgroundColor;
+        std::optional<Core::Renderer::Color> expandedBackgroundColor;
+        std::optional<Core::Renderer::Color> borderColor;
+        std::optional<Core::Renderer::Color> focusedBorderColor;
+        std::optional<Core::Renderer::Color> optionHoverColor;
+        std::optional<Core::Renderer::Color> optionSelectedColor;
+        std::optional<Core::Renderer::Color> textColor;
+        std::optional<Core::Renderer::Color> mutedTextColor;
     };
 
     struct DropdownResult {

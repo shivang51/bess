@@ -1,5 +1,6 @@
 #include "scene_widgets_internal.h"
 #include "scene/scene_draw_helpers.h"
+#include "settings/viewport_theme.h"
 #include <algorithm>
 #include <string_view>
 
@@ -150,16 +151,26 @@ namespace Bess::Canvas::SceneWidgets {
                       const glm::vec3 &boxPos, const glm::vec2 &boxSize,
                       SceneDrawContext &context,
                       const DropdownOptions &options) {
+            const auto &palette = ViewportTheme::sceneWidgetsColors;
             const bool focused = widget.isFocused || widget.dropdownOpen;
-            auto bgColor = widget.dropdownOpen ? options.expandedBackgroundColor
-                                               : options.backgroundColor;
+            auto bgColor =
+                widget.dropdownOpen
+                    ? Detail::colorOr(options.expandedBackgroundColor,
+                                      palette.surfaceActive)
+                    : Detail::colorOr(options.backgroundColor,
+                                      palette.surface);
             if (!widget.dropdownOpen && widget.isHovered) {
-                bgColor = options.hoverBackgroundColor;
+                bgColor =
+                    Detail::colorOr(options.hoverBackgroundColor,
+                                    palette.surfaceHover);
             }
 
             const SceneDraw::QuadStyle style{
-                .borderColor = focused ? options.focusedBorderColor
-                                       : options.borderColor,
+                .borderColor =
+                    focused ? Detail::colorOr(options.focusedBorderColor,
+                                              palette.borderFocus)
+                            : Detail::colorOr(options.borderColor,
+                                              palette.border),
                 .borderRadius = glm::vec4(2.f),
                 .borderSize = glm::vec4(focused ? 0.8f : 0.5f),
             };
@@ -173,7 +184,10 @@ namespace Bess::Canvas::SceneWidgets {
             SceneDraw::drawText(
                 context, label, {left, boxPos.y + textOffY, boxPos.z + 0.001f},
                 static_cast<size_t>(options.fontSize),
-                hasSelection ? options.textColor : options.mutedTextColor, id);
+                hasSelection ? Detail::colorOr(options.textColor, palette.text)
+                             : Detail::colorOr(options.mutedTextColor,
+                                               palette.textMuted),
+                id);
 
             const std::string_view caret = widget.dropdownOpen ? "^" : "v";
             const auto caretSize =
@@ -184,8 +198,8 @@ namespace Bess::Canvas::SceneWidgets {
                 {boxPos.x + (boxSize.x * 0.5f) - options.padding.x -
                      caretSize.x,
                  boxPos.y + textOffY, boxPos.z + 0.001f},
-                static_cast<size_t>(options.fontSize), options.mutedTextColor,
-                id);
+                static_cast<size_t>(options.fontSize),
+                Detail::colorOr(options.mutedTextColor, palette.textMuted), id);
         }
 
         void drawOptions(Detail::WidgetState &widget, const PickingId &id,
@@ -198,6 +212,7 @@ namespace Bess::Canvas::SceneWidgets {
                 return;
             }
 
+            const auto &palette = ViewportTheme::sceneWidgetsColors;
             const size_t count = visibleOptionCount(items.size(), options);
             const size_t start = std::min(widget.dropdownScrollOffset,
                                           items.size() - count);
@@ -221,16 +236,20 @@ namespace Bess::Canvas::SceneWidgets {
                 optionState->boundsPos = rowCenter;
                 optionState->boundsSize = rowSize;
 
-                auto rowColor = options.expandedBackgroundColor;
+                auto rowColor = Detail::colorOr(options.expandedBackgroundColor,
+                                                palette.popupSurface);
                 if (static_cast<int>(optionIndex) == selectedIndex) {
-                    rowColor = options.optionSelectedColor;
+                    rowColor = Detail::colorOr(options.optionSelectedColor,
+                                               palette.accentStrong);
                 } else if (optionState->isHovered ||
                            optionIndex == widget.dropdownHighlightedIndex) {
-                    rowColor = options.optionHoverColor;
+                    rowColor = Detail::colorOr(options.optionHoverColor,
+                                               palette.surfaceHover);
                 }
 
                 const SceneDraw::QuadStyle rowStyle{
-                    .borderColor = options.borderColor,
+                    .borderColor = Detail::colorOr(options.borderColor,
+                                                   palette.border),
                     .borderRadius = glm::vec4(0.f),
                     .borderSize = glm::vec4(0.f, 0.f, 0.5f, 0.f),
                 };
@@ -244,8 +263,8 @@ namespace Bess::Canvas::SceneWidgets {
                 SceneDraw::drawText(
                     context, items[optionIndex],
                     {left, rowCenter.y + textOffY, rowCenter.z + 0.001f},
-                    static_cast<size_t>(options.fontSize), options.textColor,
-                    optionId);
+                    static_cast<size_t>(options.fontSize),
+                    Detail::colorOr(options.textColor, palette.text), optionId);
             }
         }
     } // namespace

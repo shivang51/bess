@@ -1,9 +1,33 @@
 #include "settings/viewport_theme.h"
 #include "imgui.h"
+#include <algorithm>
 
 namespace Bess {
     SceneColors ViewportTheme::colors;
     SchematicViewColors ViewportTheme::schematicViewColors;
+    SceneWidgetsColors ViewportTheme::sceneWidgetsColors;
+
+    namespace {
+        glm::vec4 toVec4(const ImVec4 &color, float alpha = -1.f) {
+            return {color.x, color.y, color.z,
+                    alpha >= 0.f ? alpha : color.w};
+        }
+
+        glm::vec4 withAlpha(glm::vec4 color, float alpha) {
+            color.a = alpha;
+            return color;
+        }
+
+        glm::vec4 mixColor(const glm::vec4 &a, const glm::vec4 &b, float t) {
+            t = std::clamp(t, 0.f, 1.f);
+            return {
+                a.r + ((b.r - a.r) * t),
+                a.g + ((b.g - a.g) * t),
+                a.b + ((b.b - a.b) * t),
+                a.a + ((b.a - a.a) * t),
+            };
+        }
+    } // namespace
 
     void ViewportTheme::updateColorsFromImGuiStyle() {
         ImGuiStyle &style = ImGui::GetStyle();
@@ -63,6 +87,47 @@ namespace Bess {
         initCompColorMap();
 
         colors.moduleColor = glm::vec4(0.49, 0.81, 0.99f, 1.f);
+
+        const glm::vec4 frame = toVec4(imguiColors[ImGuiCol_FrameBg], 0.96f);
+        const glm::vec4 frameHover =
+            toVec4(imguiColors[ImGuiCol_FrameBgHovered], 0.98f);
+        const glm::vec4 frameActive =
+            toVec4(imguiColors[ImGuiCol_FrameBgActive], 1.0f);
+        const glm::vec4 popup =
+            toVec4(imguiColors[ImGuiCol_PopupBg], 0.99f);
+        const glm::vec4 border =
+            toVec4(imguiColors[ImGuiCol_Border], 0.82f);
+        const glm::vec4 text = toVec4(imguiColors[ImGuiCol_Text]);
+        const glm::vec4 textMuted =
+            toVec4(imguiColors[ImGuiCol_TextDisabled]);
+        const glm::vec4 checkMark =
+            toVec4(imguiColors[ImGuiCol_CheckMark], 1.0f);
+        const glm::vec4 sliderGrab =
+            toVec4(imguiColors[ImGuiCol_SliderGrab], 1.0f);
+        const glm::vec4 sliderGrabActive =
+            toVec4(imguiColors[ImGuiCol_SliderGrabActive], 1.0f);
+
+        sceneWidgetsColors.surface =
+            withAlpha(mixColor(colors.background, frame, 0.70f), 0.96f);
+        sceneWidgetsColors.surfaceHover =
+            withAlpha(mixColor(frameHover, colors.background, 0.10f), 0.98f);
+        sceneWidgetsColors.surfaceActive =
+            withAlpha(mixColor(frameActive, colors.background, 0.08f), 1.0f);
+        sceneWidgetsColors.popupSurface =
+            withAlpha(mixColor(popup, frame, 0.20f), 0.99f);
+        sceneWidgetsColors.border = border;
+        sceneWidgetsColors.borderFocus =
+            withAlpha(mixColor(sliderGrabActive, checkMark, 0.35f), 1.0f);
+        sceneWidgetsColors.text = text;
+        sceneWidgetsColors.textMuted = textMuted;
+        sceneWidgetsColors.accent =
+            withAlpha(mixColor(checkMark, sliderGrab, 0.35f), 1.0f);
+        sceneWidgetsColors.accentStrong =
+            withAlpha(mixColor(sliderGrabActive, checkMark, 0.20f), 1.0f);
+        sceneWidgetsColors.track =
+            withAlpha(mixColor(frame, border, 0.55f), 0.95f);
+        sceneWidgetsColors.knob =
+            withAlpha(mixColor(text, frame, 0.20f), 1.0f);
     }
 
     glm::vec4 ViewportTheme::getCompHeaderColor(const std::string &group) {
@@ -111,6 +176,7 @@ namespace Bess {
     void ViewportTheme::cleanup() {
         getCompHeaderColorMap().clear();
         schematicViewColors = {};
+        sceneWidgetsColors = {};
         colors = {};
     }
 

@@ -1,5 +1,4 @@
 #include "non_sim_scene_component.h"
-#include "bess_core/renderer/colors.h"
 #include "bess_core/renderer/renderer_2d.h"
 #include "gtc/type_ptr.hpp"
 #include "icons/FontAwesomeIcons.h"
@@ -212,7 +211,8 @@ namespace Bess::Canvas {
         if (SceneWidgets::button(PickingId{m_runtimeId, 2}, buttonLabel,
                                  {left + 52.f, top + 58.f, z + 0.001f},
                                  {84.f, 18.f},
-                                 Core::Renderer::Colors::slate100, context)) {
+                                 ViewportTheme::sceneWidgetsColors.text,
+                                 context)) {
             ++m_buttonClicks;
         }
 
@@ -221,10 +221,6 @@ namespace Bess::Canvas {
             .maxLength = 48,
             .fontSize = 8.f,
             .padding = {5.f, 2.f},
-            .borderColor = ViewportTheme::colors.componentBorder,
-            .focusedBorderColor = ViewportTheme::colors.selectedComp,
-            .textColor = ViewportTheme::colors.text,
-            .cursorColor = ViewportTheme::colors.text,
         };
         SceneWidgets::textBox(PickingId{m_runtimeId, 3}, &m_textValue,
                               {left + 160.f, top + 58.f, z + 0.001f},
@@ -239,8 +235,6 @@ namespace Bess::Canvas {
             .fontSize = 8.f,
             .trackHeight = 4.f,
             .knobRadius = 5.f,
-            .focusedBorderColor = ViewportTheme::colors.selectedComp,
-            .textColor = ViewportTheme::colors.text,
         };
         SceneWidgets::sliderFloat(PickingId{m_runtimeId, 4}, &m_sliderValue,
                                   0.f, 1.f,
@@ -268,9 +262,6 @@ namespace Bess::Canvas {
             .fontSize = 8.f,
             .optionHeight = 18.f,
             .maxVisibleOptions = 5,
-            .borderColor = ViewportTheme::colors.componentBorder,
-            .focusedBorderColor = ViewportTheme::colors.selectedComp,
-            .textColor = ViewportTheme::colors.text,
         };
         SceneWidgets::dropdown(PickingId{m_runtimeId, 6}, &m_dropdownIndex,
                                modeItems,

@@ -48,11 +48,30 @@ namespace Bess {
         glm::vec4 activeSignal = glm::vec4(1.00f, 0.90f, 0.20f, 1.0f);
     };
 
+    struct SceneWidgetsColors {
+        glm::vec4 surface;
+        glm::vec4 surfaceHover;
+        glm::vec4 surfaceActive;
+        glm::vec4 popupSurface;
+
+        glm::vec4 border;
+        glm::vec4 borderFocus;
+
+        glm::vec4 text;
+        glm::vec4 textMuted;
+
+        glm::vec4 accent;
+        glm::vec4 accentStrong;
+        glm::vec4 track;
+        glm::vec4 knob;
+    };
+
     class ViewportTheme {
       public:
         static void cleanup();
         static SceneColors colors;
         static SchematicViewColors schematicViewColors;
+        static SceneWidgetsColors sceneWidgetsColors;
         static void updateColorsFromImGuiStyle();
 
         static glm::vec4 getCompHeaderColor(const std::string &group);

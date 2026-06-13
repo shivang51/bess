@@ -1,7 +1,6 @@
 #include "input_scene_component.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
-#include "bess_core/renderer/colors.h"
 #include "icons/FontAwesomeIcons.h"
 #include "scene/scene_draw_helpers.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
@@ -136,7 +135,7 @@ namespace Bess::Canvas {
         if (slotType == SlotType::outputsResize) {
             if (SceneWidgets::button(
                     pickingId, "All Low", buttonPos, {0.f, 0.f},
-                    Core::Renderer::Colors::slate100, context)) {
+                    ViewportTheme::sceneWidgetsColors.text, context)) {
                 makeAllLow = true;
             }
             return;

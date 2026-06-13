@@ -1,5 +1,6 @@
 #include "scene_widgets_internal.h"
 #include "scene/scene_draw_helpers.h"
+#include "settings/viewport_theme.h"
 #include <algorithm>
 #include <cmath>
 #include <iomanip>
@@ -157,18 +158,25 @@ namespace Bess::Canvas::SceneWidgets {
                         const glm::vec3 &sliderPos, const glm::vec2 &size,
                         SceneDrawContext &context,
                         const SliderOptions &options) {
+            const auto &palette = ViewportTheme::sceneWidgetsColors;
             const bool focused = widget.isFocused;
             auto bgColor =
-                widget.isHovered ? options.hoverBackgroundColor
-                                 : options.backgroundColor;
+                widget.isHovered
+                    ? Detail::colorOr(options.hoverBackgroundColor,
+                                      palette.surfaceHover)
+                    : Detail::colorOr(options.backgroundColor,
+                                      palette.surface);
             if (widget.isPressed) {
-                bgColor = bgColor * 0.85f;
+                bgColor = options.backgroundColor.has_value()
+                              ? *options.backgroundColor * 0.85f
+                              : Core::Renderer::Color(palette.surfaceActive);
             }
 
             const SceneDraw::QuadStyle backgroundStyle{
-                .borderColor = focused ? options.focusedBorderColor
-                                       : Core::Renderer::Color(0.f, 0.f, 0.f,
-                                                               0.f),
+                .borderColor =
+                    focused ? Detail::colorOr(options.focusedBorderColor,
+                                              palette.borderFocus)
+                            : Core::Renderer::Color(0.f, 0.f, 0.f, 0.f),
                 .borderRadius = glm::vec4(2.f),
                 .borderSize = glm::vec4(focused ? 0.8f : 0.f),
             };
@@ -190,7 +198,8 @@ namespace Bess::Canvas::SceneWidgets {
             };
             SceneDraw::drawQuad(
                 context, {trackCenterX, sliderPos.y, sliderPos.z + 0.001f},
-                {trackWidth, options.trackHeight}, options.trackColor, id,
+                {trackWidth, options.trackHeight},
+                Detail::colorOr(options.trackColor, palette.track), id,
                 trackStyle);
 
             const float fillWidth = std::max(0.5f, knobX - left);
@@ -198,12 +207,14 @@ namespace Bess::Canvas::SceneWidgets {
                 context,
                 {left + (fillWidth * 0.5f), sliderPos.y,
                  sliderPos.z + 0.002f},
-                {fillWidth, options.trackHeight}, options.fillColor, id,
+                {fillWidth, options.trackHeight},
+                Detail::colorOr(options.fillColor, palette.accent), id,
                 trackStyle);
 
             SceneDraw::drawCircle(
                 context, {knobX, sliderPos.y, sliderPos.z + 0.003f},
-                options.knobRadius, options.knobColor, id);
+                options.knobRadius,
+                Detail::colorOr(options.knobColor, palette.knob), id);
 
             if (options.showValue) {
                 const float textOffY = context.renderer->textCenterOffsetY(
@@ -215,7 +226,9 @@ namespace Bess::Canvas::SceneWidgets {
                 };
                 SceneDraw::drawText(context, valueLabel, textPos,
                                     static_cast<size_t>(options.fontSize),
-                                    options.textColor, id);
+                                    Detail::colorOr(options.textColor,
+                                                    palette.textMuted),
+                                    id);
             }
         }
     } // namespace
