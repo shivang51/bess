@@ -1,6 +1,7 @@
 #include "input_scene_component.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "bess_core/renderer/colors.h"
 #include "icons/FontAwesomeIcons.h"
 #include "scene/scene_draw_helpers.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
@@ -12,8 +13,46 @@
 #include "simulation_engine.h"
 
 namespace Bess::Canvas {
+    namespace {
+        bool makeAllLow = false;
+    }
+
     InputSceneComponent::InputSceneComponent() {
         m_icon = UI::Icons::FontAwesomeIcons::FA_TOGGLE_OFF;
+    }
+
+    void InputSceneComponent::update(TimeMs ts, SceneState &state) {
+        SimulationSceneComponent::update(ts, state);
+        if (makeAllLow) {
+            makeAllLow = false;
+            auto &appCtx = Bess::GAppContext::getInstance();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+            BESS_ASSERT(projectCtx, "ProjectContext not found in AppContext");
+
+            auto &simEngine = projectCtx->getSimEngine();
+
+            for (const auto &slotUuid : m_outputSlots) {
+                const auto slotComp =
+                    state.getComponentByUuid<SlotSceneComponent>(slotUuid);
+                if (!slotComp) {
+                    continue;
+                }
+
+                const auto slotType = slotComp->getSlotType();
+                if (slotType != SlotType::outputsResize) {
+                    const auto slotParentComp =
+                        state.getComponentByUuid<SimulationSceneComponent>(
+                            slotComp->getParentComponent());
+                    if (!slotParentComp) {
+                        continue;
+                    }
+
+                    simEngine.setOutputSlotState(
+                        slotParentComp->getSimEngineId(), slotComp->getIndex(),
+                        SimEngine::LogicState::low);
+                }
+            }
+        }
     }
 
     std::vector<std::shared_ptr<SceneComponent>>
@@ -52,23 +91,34 @@ namespace Bess::Canvas {
 
         const auto slotType = slotComp->getSlotType();
 
-        if (slotType == SlotType::inputsResize ||
-            slotType == SlotType::outputsResize) {
-            return;
-        }
+        BESS_ASSERT(slotType == SlotType::digitalOutput ||
+                        slotType == SlotType::outputsResize,
+                    "Unexpected slot type for input component: {}",
+                    static_cast<int>(slotType));
 
         const auto slotPosY = slotComp->getAbsolutePosition(state).y;
-        const bool isHigh = slotComp->getSlotState(state).getLogicState() ==
-                            SimEngine::LogicState::high;
 
         const float buttonPosX =
             m_transform.position.x - (m_transform.scale.x / 2.f) +
             Styles::simCompStyles.paddingX + (buttonSize.x / 2.f);
+
         const glm::vec3 buttonPos =
             glm::vec3(buttonPosX, slotPosY, m_transform.position.z + 0.001f);
 
         const auto pickingId =
             PickingId{m_runtimeId, static_cast<uint32_t>(buttonIndex + 1)};
+
+        if (slotType == SlotType::outputsResize) {
+            if (SceneWidgets::button(
+                    pickingId, "All Low", buttonPos, {0.f, 0.f},
+                    Core::Renderer::Colors::slate100, context)) {
+                makeAllLow = true;
+            }
+            return;
+        }
+
+        const bool isHigh = slotComp->getSlotState(state).getLogicState() ==
+                            SimEngine::LogicState::high;
 
         bool nextValue = isHigh;
         if (SceneWidgets::toggleButton(pickingId, &nextValue, buttonPos,
@@ -100,11 +150,10 @@ namespace Bess::Canvas {
             label, {.fontSize = Styles::simCompStyles.slotLabelSize});
 
         const float textPosX = buttonPos.x + (buttonSize.x / 2.f) + 8.f;
-        const glm::vec3 textPos =
-            glm::vec3(textPosX,
-                      slotPosY + (textSize.y / 2.f) -
-                          1.f, // FIXME: why -2.f, maybe the baseline?
-                      m_transform.position.z + 0.001f);
+        const float textOffY = context.renderer->textCenterOffsetY(
+            label, {.fontSize = Styles::simCompStyles.slotLabelSize});
+        const glm::vec3 textPos = glm::vec3(textPosX, slotPosY + textOffY,
+                                            m_transform.position.z + 0.001f);
 
         SceneDraw::drawText(
             context, label, textPos, Styles::simCompStyles.slotLabelSize,
@@ -115,4 +164,5 @@ namespace Bess::Canvas {
         SimulationSceneComponent::calculateSchematicScale(state);
         m_schematicTransform.scale.x = 50.f;
     }
+
 } // namespace Bess::Canvas

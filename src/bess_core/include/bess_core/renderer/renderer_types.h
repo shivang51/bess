@@ -69,6 +69,10 @@ namespace Bess::Core::Renderer {
         Json::Value toJson() const;
         static Color fromJson(const Json::Value &json);
 
+        Color operator*(float scalar) const {
+            return {r * scalar, g * scalar, b * scalar, a * scalar};
+        }
+
         // std::cout operator
         friend std::ostream &operator<<(std::ostream &os, const Color &color) {
             os << "Color(r=" << color.r << ", g=" << color.g

@@ -1,4 +1,5 @@
 #include "scene_widgets_layer.h"
+#include "common/types.h"
 #include "scene/scene_widgets.h"
 #include "scene_event.h"
 #include "scene_types.h"
@@ -30,6 +31,7 @@ namespace Bess::Canvas {
             if (ctx.inputState) {
                 ctx.inputState->cursor = SceneCursor::pointer;
             }
+            SceneWidgets::setHoverId(evt.pickingId);
             return EventResult::Handled;
         }
 
@@ -38,6 +40,7 @@ namespace Bess::Canvas {
             if (ctx.inputState) {
                 ctx.inputState->cursor = SceneCursor::normal;
             }
+            SceneWidgets::setHoverId(PickingId::invalid());
             return EventResult::Handled;
         }
 
