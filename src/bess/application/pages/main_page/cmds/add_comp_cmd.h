@@ -15,7 +15,9 @@ namespace Bess::Cmd {
     template <typename TComponent>
     class AddCompCmd : public Bess::Cmd::Command {
       public:
-        AddCompCmd() { m_name = "AddComponentCmd"; }
+        AddCompCmd() {
+            m_name = "AddComponentCmd";
+        }
 
         AddCompCmd(std::shared_ptr<TComponent> comp) : m_comp(std::move(comp)) {
             m_name = "AddComponentCmd";

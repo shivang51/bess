@@ -30,7 +30,8 @@ namespace Bess::Cmd {
         }
     } // namespace
 
-    void CommandSystem::onDestroy() {}
+    void CommandSystem::onDestroy() {
+    }
 
     void CommandSystem::onInit() {
         m_redoStack = {};
@@ -100,9 +101,13 @@ namespace Bess::Cmd {
         m_redoStack = std::stack<std::unique_ptr<Command>>();
     }
 
-    bool CommandSystem::canUndo() const { return !m_undoStack.empty(); }
+    bool CommandSystem::canUndo() const {
+        return !m_undoStack.empty();
+    }
 
-    bool CommandSystem::canRedo() const { return !m_redoStack.empty(); }
+    bool CommandSystem::canRedo() const {
+        return !m_redoStack.empty();
+    }
 
     std::shared_ptr<Canvas::Scene> CommandSystem::getInternalScene() const {
         return m_scene;

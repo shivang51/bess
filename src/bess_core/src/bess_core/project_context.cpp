@@ -20,7 +20,9 @@ namespace Bess {
         ISubSysContainer::init();
     }
 
-    void ProjectContext::onDestroy() { ISubSysContainer::destroy(); }
+    void ProjectContext::onDestroy() {
+        ISubSysContainer::destroy();
+    }
 
     SimEngine::SimulationEngine &ProjectContext::getSimEngine() {
         auto simEngine = getSubSystem<SimEngine::SimulationEngine>();

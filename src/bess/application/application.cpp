@@ -17,7 +17,9 @@
 namespace Bess {
     Application::Application() = default;
 
-    Application::~Application() { shutdown(); }
+    Application::~Application() {
+        shutdown();
+    }
 
     void Application::run() {
         BESS_ASSERT(m_mainWindow, "Main window is not initialized or set");
@@ -59,7 +61,9 @@ namespace Bess {
         }
     }
 
-    void Application::quit() const { m_mainWindow->close(); }
+    void Application::quit() const {
+        m_mainWindow->close();
+    }
 
     void Application::init(const std::string &path, AppStartupFlags flags) {
 #ifdef DISABLE_PLUGINS

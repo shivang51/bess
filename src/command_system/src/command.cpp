@@ -1,11 +1,17 @@
 #include "command.h"
 
 namespace Bess::Cmd {
-    std::string Command::getName() const { return m_name; }
+    std::string Command::getName() const {
+        return m_name;
+    }
 
-    bool Command::mergeWith(const Command *other) { return false; }
+    bool Command::mergeWith(const Command *other) {
+        return false;
+    }
 
-    bool Command::canMergeWith(const Command *other) const { return false; }
+    bool Command::canMergeWith(const Command *other) const {
+        return false;
+    }
 
     void Command::setSceneContext(const std::shared_ptr<Canvas::Scene> &scene) {
         m_sceneContext = scene;
@@ -15,7 +21,9 @@ namespace Bess::Cmd {
         return m_sceneContext;
     }
 
-    bool Command::hasSceneContext() const { return m_sceneContext != nullptr; }
+    bool Command::hasSceneContext() const {
+        return m_sceneContext != nullptr;
+    }
 
     bool Command::sharesSceneContextWith(const Command *other) const {
         return other && m_sceneContext != nullptr &&

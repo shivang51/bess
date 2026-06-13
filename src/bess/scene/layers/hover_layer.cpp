@@ -58,9 +58,11 @@ namespace Bess::Canvas {
         }
     }
 
-    void HoverLayer::update(TimeMs ts, SceneUpdateContext &ctx) {}
+    void HoverLayer::update(TimeMs ts, SceneUpdateContext &ctx) {
+    }
 
-    void HoverLayer::draw(SceneRenderContext &ctx) {}
+    void HoverLayer::draw(SceneRenderContext &ctx) {
+    }
 
     void HoverLayer::reset(SceneLifecycleContext &ctx) {
         if (ctx.sceneState && ctx.inputState) {
@@ -72,5 +74,7 @@ namespace Bess::Canvas {
         m_pickingId = PickingId::invalid();
     }
 
-    void HoverLayer::destroy(SceneLifecycleContext &ctx) { reset(ctx); }
+    void HoverLayer::destroy(SceneLifecycleContext &ctx) {
+        reset(ctx);
+    }
 } // namespace Bess::Canvas

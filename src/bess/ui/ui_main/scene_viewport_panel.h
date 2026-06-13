@@ -65,7 +65,9 @@ namespace Bess::UI {
                        width == otherWidth && height == otherHeight;
             }
 
-            void clear() { *this = {}; }
+            void clear() {
+                *this = {};
+            }
         };
 
         void firstTime();

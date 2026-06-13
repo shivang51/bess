@@ -161,7 +161,9 @@ namespace Bess::Canvas {
         return typeid(SlotProbeSceneComponent);
     }
 
-    void SlotProbeSceneComponent::onNameChanged() { m_scaleDirty = true; }
+    void SlotProbeSceneComponent::onNameChanged() {
+        m_scaleDirty = true;
+    }
 
     void SlotProbeSceneComponent::drawPropertiesUI(SceneState &sceneState) {
         // render 20 most recent probe data entries in imgui table

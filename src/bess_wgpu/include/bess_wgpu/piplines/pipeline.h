@@ -84,8 +84,12 @@ namespace Bess::Wgpu::Piplines {
             std::copy(data, data + 16, m_frameUniform.cameraTransform);
         }
 
-        [[nodiscard]] const wgpu::Buffer &getBuffer() const { return m_buffer; }
-        [[nodiscard]] uint64_t getSize() const { return sizeof(FrameUniform); }
+        [[nodiscard]] const wgpu::Buffer &getBuffer() const {
+            return m_buffer;
+        }
+        [[nodiscard]] uint64_t getSize() const {
+            return sizeof(FrameUniform);
+        }
 
       private:
         wgpu::Device m_device;

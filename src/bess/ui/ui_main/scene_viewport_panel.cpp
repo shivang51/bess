@@ -23,7 +23,8 @@
 namespace Bess::UI {
     SceneViewportPanel::SceneViewportPanel(const std::string &viewportName)
         : Panel(viewportName),
-          m_viewportName(viewportName) {}
+          m_viewportName(viewportName) {
+    }
 
     void SceneViewportPanel::init() {
         m_flags = NO_MOVE_FLAGS | ImGuiWindowFlags_NoFocusOnAppearing;
@@ -361,9 +362,12 @@ namespace Bess::UI {
         ImGui::PopStyleVar(2);
     }
 
-    void SceneViewportPanel::firstTime() {}
+    void SceneViewportPanel::firstTime() {
+    }
 
-    bool SceneViewportPanel::isHovered() const { return m_isHovered; }
+    bool SceneViewportPanel::isHovered() const {
+        return m_isHovered;
+    }
 
     const glm::vec2 &SceneViewportPanel::getViewportPos() const {
         return m_viewportPos;

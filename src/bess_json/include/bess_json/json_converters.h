@@ -11,11 +11,21 @@ namespace Bess::JsonConvert {
     inline void toJsonValue(const char &v, Json::Value &j) {
         j = static_cast<int>(v);
     }
-    inline void toJsonValue(const int &v, Json::Value &j) { j = v; }
-    inline void toJsonValue(const float &v, Json::Value &j) { j = v; }
-    inline void toJsonValue(const double &v, Json::Value &j) { j = v; }
-    inline void toJsonValue(const std::string &v, Json::Value &j) { j = v; }
-    inline void toJsonValue(const bool &v, Json::Value &j) { j = v; }
+    inline void toJsonValue(const int &v, Json::Value &j) {
+        j = v;
+    }
+    inline void toJsonValue(const float &v, Json::Value &j) {
+        j = v;
+    }
+    inline void toJsonValue(const double &v, Json::Value &j) {
+        j = v;
+    }
+    inline void toJsonValue(const std::string &v, Json::Value &j) {
+        j = v;
+    }
+    inline void toJsonValue(const bool &v, Json::Value &j) {
+        j = v;
+    }
     inline void toJsonValue(const uint32_t &v, Json::Value &j) {
         j = Json::UInt(v);
     }

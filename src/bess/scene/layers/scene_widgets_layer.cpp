@@ -110,9 +110,11 @@ namespace Bess::Canvas {
                    : EventResult::Ignored;
     }
 
-    void SceneWidgetsLayer::update(TimeMs ts, SceneUpdateContext &ctx) {}
+    void SceneWidgetsLayer::update(TimeMs ts, SceneUpdateContext &ctx) {
+    }
 
-    void SceneWidgetsLayer::draw(SceneRenderContext &ctx) {}
+    void SceneWidgetsLayer::draw(SceneRenderContext &ctx) {
+    }
 
     void SceneWidgetsLayer::reset(SceneLifecycleContext &ctx) {
         m_hoveredWidget = PickingId::invalid();
@@ -122,5 +124,7 @@ namespace Bess::Canvas {
         SceneWidgets::clearFocus(ctx.sceneState);
     }
 
-    void SceneWidgetsLayer::destroy(SceneLifecycleContext &ctx) { reset(ctx); }
+    void SceneWidgetsLayer::destroy(SceneLifecycleContext &ctx) {
+        reset(ctx);
+    }
 } // namespace Bess::Canvas

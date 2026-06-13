@@ -15,7 +15,9 @@ namespace Bess::Canvas {
 
     template <typename Derived> class DragBehaviour : public IDragBehaviour {
       public:
-        DragBehaviour() { initDragBehaviour(); }
+        DragBehaviour() {
+            initDragBehaviour();
+        }
 
         void onMouseDragged(const Events::MouseDraggedEvent &e) override {
             if (!m_isDragging) {

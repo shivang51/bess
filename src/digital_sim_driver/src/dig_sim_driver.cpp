@@ -988,9 +988,13 @@ namespace Bess::SimEngine::Drivers::Digital {
         return m_nets;
     }
 
-    bool DigitalSimDriver::isNetUpdated() const { return m_isNetUpdated; }
+    bool DigitalSimDriver::isNetUpdated() const {
+        return m_isNetUpdated;
+    }
 
-    void DigitalSimDriver::clearNetUpdated() { m_isNetUpdated = false; }
+    void DigitalSimDriver::clearNetUpdated() {
+        m_isNetUpdated = false;
+    }
 
     Json::Value DigCompDef::toJson() const {
         Json::Value json = EvtBasedCompDef::toJson();
@@ -1018,9 +1022,11 @@ namespace Bess::SimEngine::Drivers::Digital {
     }
 
     void DigCompDef::onStateChange(const ComponentState &oldState,
-                                   const ComponentState &newState) {}
+                                   const ComponentState &newState) {
+    }
 
-    void DigCompDef::onExpressionsChange() {}
+    void DigCompDef::onExpressionsChange() {
+    }
 
     std::shared_ptr<CompDef> DigCompDef::clone() const {
         return std::make_shared<DigCompDef>(*this);
@@ -1081,7 +1087,9 @@ namespace Bess::SimEngine::Drivers::Digital {
         };
     }
 
-    std::string DigCompDef::getTypeName() const { return TypeName; }
+    std::string DigCompDef::getTypeName() const {
+        return TypeName;
+    }
 
     std::shared_ptr<DigSimComp>
     DigSimComp::fromDef(const std::shared_ptr<CompDef> &compDef,

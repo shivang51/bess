@@ -740,9 +740,12 @@ namespace Bess::Wgpu {
         return textures.at(defaultTexture->getHandle());
     }
 
-    WgpuRenderer2D::WgpuRenderer2D() : m_impl(std::make_unique<Impl>()) {}
+    WgpuRenderer2D::WgpuRenderer2D() : m_impl(std::make_unique<Impl>()) {
+    }
 
-    WgpuRenderer2D::~WgpuRenderer2D() { destroy(); }
+    WgpuRenderer2D::~WgpuRenderer2D() {
+        destroy();
+    }
 
     void WgpuRenderer2D::init(
         const Core::Renderer::Renderer2DCreateInfo &createInfo) {
@@ -2460,8 +2463,12 @@ namespace Bess::Wgpu {
         m_impl->commandEncoder = nullptr;
     }
 
-    wgpu::Device WgpuRenderer2D::getDevice() const { return m_impl->device; }
-    wgpu::Queue WgpuRenderer2D::getQueue() const { return m_impl->queue; }
+    wgpu::Device WgpuRenderer2D::getDevice() const {
+        return m_impl->device;
+    }
+    wgpu::Queue WgpuRenderer2D::getQueue() const {
+        return m_impl->queue;
+    }
 
     wgpu::TextureView WgpuRenderer2D::getCurrentTargetView() const {
         return m_impl->offscreenTargetView;

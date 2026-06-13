@@ -40,11 +40,17 @@ namespace Bess {
         updateTransform();
     }
 
-    const glm::vec2 &Camera::getPos() const { return m_pos; }
+    const glm::vec2 &Camera::getPos() const {
+        return m_pos;
+    }
 
-    glm::vec2 &Camera::getPosRef() { return m_pos; }
+    glm::vec2 &Camera::getPosRef() {
+        return m_pos;
+    }
 
-    glm::vec2 Camera::getSize() const { return {m_width, m_height}; }
+    glm::vec2 Camera::getSize() const {
+        return {m_width, m_height};
+    }
 
     void Camera::setZoom(float zoom) {
         if (zoom > zoomMax)
@@ -55,7 +61,9 @@ namespace Bess {
         recalculateOrtho();
     }
 
-    void Camera::incrementZoom(float value) { setZoom(m_zoom + value); }
+    void Camera::incrementZoom(float value) {
+        setZoom(m_zoom + value);
+    }
 
     void Camera::incrementZoomToPoint(const glm::vec2 &point, float value) {
         const auto newZoom = m_zoom + value;
@@ -83,9 +91,13 @@ namespace Bess {
         m_posZoomAnimation.finised = false;
     }
 
-    float Camera::getZoom() const { return m_zoom; }
+    float Camera::getZoom() const {
+        return m_zoom;
+    }
 
-    float &Camera::getZoomRef() { return m_zoom; }
+    float &Camera::getZoomRef() {
+        return m_zoom;
+    }
 
     glm::vec2 Camera::getSpan() const {
         float xSpan = m_width / m_zoom;
@@ -109,7 +121,9 @@ namespace Bess {
         updateTransform();
     }
 
-    const glm::mat4 &Camera::getOrtho() const { return m_ortho; }
+    const glm::mat4 &Camera::getOrtho() const {
+        return m_ortho;
+    }
 
     void Camera::updateTransform() {
         m_transform =
@@ -127,7 +141,9 @@ namespace Bess {
         updateTransform();
     }
 
-    float Camera::getZPos() const { return m_zPos; }
+    float Camera::getZPos() const {
+        return m_zPos;
+    }
 
     glm::vec2 Camera::toWorldPos(const glm::vec2 &viewportPos) const {
         glm::vec2 pos = m_worldTransform *

@@ -23,13 +23,20 @@ namespace Bess {
     Window::Window(int width, int height, const std::string &title)
         : m_width(width),
           m_height(height),
-          m_title(title) {}
+          m_title(title) {
+    }
 
-    void Window::onPreUpdate() { pollEvents(); }
+    void Window::onPreUpdate() {
+        pollEvents();
+    }
 
-    void Window::onUpdate(TimeMs dt) { m_ui.update(dt); }
+    void Window::onUpdate(TimeMs dt) {
+        m_ui.update(dt);
+    }
 
-    void Window::onPreInit() { initGLFW(); }
+    void Window::onPreInit() {
+        initGLFW();
+    }
 
     void Window::initGLFW() const {
         if (isGLFWInitialized)
@@ -210,9 +217,13 @@ namespace Bess {
         BESS_INFO("[Window] Created GLFW window {}", m_title);
     }
 
-    void Window::onPostInit() { m_ui.init(shared_from_this()); }
+    void Window::onPostInit() {
+        m_ui.init(shared_from_this());
+    }
 
-    void Window::onShutdown() { m_ui.shutdown(); }
+    void Window::onShutdown() {
+        m_ui.shutdown();
+    }
 
     void Window::onDestroy() {
         if (!isGLFWInitialized)
@@ -228,9 +239,13 @@ namespace Bess {
         isGLFWInitialized = false;
     }
 
-    void Window::onPreDraw() { m_ui.begin(); }
+    void Window::onPreDraw() {
+        m_ui.begin();
+    }
 
-    void Window::onDraw() { m_ui.draw(); }
+    void Window::onDraw() {
+        m_ui.draw();
+    }
 
     void Window::onPostDraw() {
         m_ui.end();
@@ -247,7 +262,9 @@ namespace Bess {
                                });
     }
 
-    void Window::onBeginFrame() { pollEvents(); }
+    void Window::onBeginFrame() {
+        pollEvents();
+    }
 
     bool Window::isClosed() const {
         return glfwWindowShouldClose(mp_window.get());

@@ -85,7 +85,9 @@ namespace Bess::SimEngine::Drivers {
         m_components.clear();
     }
 
-    bool SimDriver::isSimStable() const { return true; }
+    bool SimDriver::isSimStable() const {
+        return true;
+    }
 
     ConnectionBundle SimDriver::getConnections(const UUID &uuid) const {
         return {};
@@ -116,16 +118,20 @@ namespace Bess::SimEngine::Drivers {
         return {};
     }
 
-    void SimDriver::propagateFromComponent(const UUID &sourceId) {}
+    void SimDriver::propagateFromComponent(const UUID &sourceId) {
+    }
 
     const std::unordered_map<UUID, Net> &SimDriver::getNetsMap() const {
         static const std::unordered_map<UUID, Net> empty;
         return empty;
     }
 
-    bool SimDriver::isNetUpdated() const { return false; }
+    bool SimDriver::isNetUpdated() const {
+        return false;
+    }
 
-    void SimDriver::clearNetUpdated() {}
+    void SimDriver::clearNetUpdated() {
+    }
 
     void SimDriver::init() {
         onInit();

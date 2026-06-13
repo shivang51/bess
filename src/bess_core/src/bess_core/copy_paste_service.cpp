@@ -271,8 +271,12 @@ namespace Bess::Svc::CopyPaste {
         m_center = sumPos / (float)m_entities.size();
     }
 
-    void Context::onInit() { clear(); }
+    void Context::onInit() {
+        clear();
+    }
 
-    void Context::onDestroy() { clear(); }
+    void Context::onDestroy() {
+        clear();
+    }
 
 } // namespace Bess::Svc::CopyPaste

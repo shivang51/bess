@@ -2,11 +2,13 @@
 #include <stdexcept>
 
 namespace Bess::Core::Renderer {
-    ITexture::ITexture(const std::string &path) : m_path(path) {}
+    ITexture::ITexture(const std::string &path) : m_path(path) {
+    }
 
     ITexture::ITexture(const TextureCreateInfo &createInfo)
         : m_path(createInfo.path),
-          m_format(createInfo.format) {}
+          m_format(createInfo.format) {
+    }
 
     void ITexture::saveToFile(const std::string &path) const {
         static_cast<void>(path);

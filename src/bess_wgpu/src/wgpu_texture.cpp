@@ -50,13 +50,17 @@ namespace Bess::Wgpu {
         return texture;
     }
 
-    WgpuTexture::WgpuTexture(const std::string &path) : ITexture(path) {}
+    WgpuTexture::WgpuTexture(const std::string &path) : ITexture(path) {
+    }
 
     WgpuTexture::WgpuTexture(
         const Core::Renderer::TextureCreateInfo &createInfo)
-        : ITexture(createInfo) {}
+        : ITexture(createInfo) {
+    }
 
-    WgpuTexture::~WgpuTexture() { destroy(); }
+    WgpuTexture::~WgpuTexture() {
+        destroy();
+    }
 
     void WgpuTexture::init() {
         if (s_renderer == nullptr) {
@@ -124,7 +128,9 @@ namespace Bess::Wgpu {
     }
 
     struct StbiImageDeleter {
-        void operator()(stbi_uc *pixels) const { stbi_image_free(pixels); }
+        void operator()(stbi_uc *pixels) const {
+            stbi_image_free(pixels);
+        }
     };
 
     void WgpuTexture::initTexture() {

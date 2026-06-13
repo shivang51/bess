@@ -70,7 +70,9 @@ namespace Bess::EventSystem {
             }
         };
 
-        template <typename Event> Sink<Event> sink() { return Sink<Event>(); }
+        template <typename Event> Sink<Event> sink() {
+            return Sink<Event>();
+        }
 
         template <typename Event> void queue(const Event &event) {
             // BESS_DEBUG("[EventSystem] Queueing event of type {}",
@@ -91,7 +93,9 @@ namespace Bess::EventSystem {
             }
         }
 
-        void clear() { m_handlers.clear(); }
+        void clear() {
+            m_handlers.clear();
+        }
 
       private:
         template <typename Event>

@@ -18,21 +18,24 @@ namespace Bess::Cmd {
 
         UpdateValCommand(ValType *originalLoc, const ValType &newValue)
             : m_orignalLoc(originalLoc),
-              m_newValue(newValue) {}
+              m_newValue(newValue) {
+        }
 
         UpdateValCommand(ValType *originalLoc,
                          const ValType &newValue,
                          const OnUndoRedoCB &onUndoRedo)
             : m_orignalLoc(originalLoc),
               m_newValue(newValue),
-              m_onUndoRedo(onUndoRedo) {}
+              m_onUndoRedo(onUndoRedo) {
+        }
 
         UpdateValCommand(ValType *originalLoc,
                          const ValType &newValue,
                          const ValType &oldValue)
             : m_orignalLoc(originalLoc),
               m_newValue(newValue),
-              m_oldValue(oldValue) {}
+              m_oldValue(oldValue) {
+        }
 
         UpdateValCommand(ValType *originalLoc,
                          const ValType &newValue,
@@ -94,7 +97,9 @@ namespace Bess::Cmd {
             return false;
         }
 
-        std::type_index getTypeIndex() const { return m_typeIndex; }
+        std::type_index getTypeIndex() const {
+            return m_typeIndex;
+        }
 
       private:
         ValType *m_orignalLoc;

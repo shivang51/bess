@@ -23,7 +23,9 @@ namespace Bess::Cmd {
 
     class DeleteCompCmd : public Bess::Cmd::Command {
       public:
-        DeleteCompCmd() { m_name = "DeleteComponentCmd"; }
+        DeleteCompCmd() {
+            m_name = "DeleteComponentCmd";
+        }
 
         DeleteCompCmd(const std::vector<UUID> &compUuids,
                       const DeleteCompCmdCB &callback = nullptr)

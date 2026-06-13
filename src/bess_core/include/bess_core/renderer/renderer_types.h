@@ -20,7 +20,8 @@ namespace Bess::Core::Renderer {
             : r(red),
               g(green),
               b(blue),
-              a(alpha) {}
+              a(alpha) {
+        }
 
         Color &operator=(const glm::vec4 &vec) {
             r = vec.r;
@@ -34,9 +35,12 @@ namespace Bess::Core::Renderer {
             : r(vec.r),
               g(vec.g),
               b(vec.b),
-              a(vec.a) {}
+              a(vec.a) {
+        }
 
-        constexpr operator glm::vec4() const noexcept { return {r, g, b, a}; }
+        constexpr operator glm::vec4() const noexcept {
+            return {r, g, b, a};
+        }
 
         static constexpr Color fromHex(uint32_t hex) noexcept {
             Color col;

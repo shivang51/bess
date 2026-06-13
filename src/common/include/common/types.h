@@ -40,7 +40,9 @@ namespace Bess {
                    static_cast<uint64_t>(info);
         }
 
-        constexpr operator uint64_t() const noexcept { return toUint64(); }
+        constexpr operator uint64_t() const noexcept {
+            return toUint64();
+        }
 
         static constexpr PickingId fromUint64(uint64_t value) noexcept {
             return {static_cast<uint32_t>(value >> 32),
@@ -100,7 +102,8 @@ namespace Bess {
 
             constexpr SlotState(float voltage, SimTime time) noexcept
                 : voltage(voltage),
-                  lastChangeTime(time) {}
+                  lastChangeTime(time) {
+            }
 
             constexpr SlotState(LogicState logicState,
                                 SimTime time,
@@ -136,7 +139,9 @@ namespace Bess {
                 return *this;
             }
 
-            bool isHighZ() const noexcept { return std::isnan(voltage); }
+            bool isHighZ() const noexcept {
+                return std::isnan(voltage);
+            }
 
             bool isUnknown() const noexcept {
                 return !isHighZ() && std::isnan(voltage);

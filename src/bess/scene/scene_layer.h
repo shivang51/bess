@@ -46,10 +46,15 @@ namespace Bess::Canvas {
         virtual void update(TimeMs ts, SceneUpdateContext &ctx) = 0;
         virtual void draw(SceneRenderContext &ctx) = 0;
 
-        virtual void init(SceneLifecycleContext &ctx) {}
-        virtual void reset(SceneLifecycleContext &ctx) {}
-        virtual void destroy(SceneLifecycleContext &ctx) {}
+        virtual void init(SceneLifecycleContext &ctx) {
+        }
+        virtual void reset(SceneLifecycleContext &ctx) {
+        }
+        virtual void destroy(SceneLifecycleContext &ctx) {
+        }
 
-        virtual std::string getName() const { return "ISceneLayer"; }
+        virtual std::string getName() const {
+            return "ISceneLayer";
+        }
     };
 } // namespace Bess::Canvas

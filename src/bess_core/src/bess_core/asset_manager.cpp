@@ -18,8 +18,12 @@ namespace Bess::Assets {
         }
     }
 
-    void AssetManager::onInit() { m_assetCaches.clear(); }
+    void AssetManager::onInit() {
+        m_assetCaches.clear();
+    }
 
-    void AssetManager::onShutdown() { m_assetCaches.clear(); }
+    void AssetManager::onShutdown() {
+        m_assetCaches.clear();
+    }
 
 } // namespace Bess::Assets

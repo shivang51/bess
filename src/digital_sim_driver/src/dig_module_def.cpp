@@ -94,7 +94,9 @@ namespace Bess::SimEngine {
         return data;
     }
 
-    std::string ModuleDefinition::getTypeName() const { return TypeName; }
+    std::string ModuleDefinition::getTypeName() const {
+        return TypeName;
+    }
 
     Json::Value ModuleDefinition::toJson() const {
         Json::Value json = Drivers::Digital::DigCompDef::toJson();

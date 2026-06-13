@@ -25,7 +25,9 @@ class PyComponentDefinition : public ComponentDefinition,
   public:
     using ComponentDefinition::ComponentDefinition;
 
-    PyComponentDefinition() { m_ownership = CompDefinitionOwnership::Python; }
+    PyComponentDefinition() {
+        m_ownership = CompDefinitionOwnership::Python;
+    }
 
     ~PyComponentDefinition() override {
         py::gil_scoped_acquire gil;

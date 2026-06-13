@@ -12,17 +12,29 @@ namespace Bess::Canvas {
         m_paths = paths;
     }
 
-    const glm::vec2 &SchematicDiagram::getSize() const { return m_size; }
+    const glm::vec2 &SchematicDiagram::getSize() const {
+        return m_size;
+    }
 
-    void SchematicDiagram::setSize(const glm::vec2 &size) { m_size = size; }
+    void SchematicDiagram::setSize(const glm::vec2 &size) {
+        m_size = size;
+    }
 
-    std::vector<Path> &SchematicDiagram::getPathsMut() { return m_paths; }
+    std::vector<Path> &SchematicDiagram::getPathsMut() {
+        return m_paths;
+    }
 
-    bool SchematicDiagram::getShowName() const { return m_showName; }
+    bool SchematicDiagram::getShowName() const {
+        return m_showName;
+    }
 
-    void SchematicDiagram::setShowName(const bool show) { m_showName = show; }
+    void SchematicDiagram::setShowName(const bool show) {
+        m_showName = show;
+    }
 
-    float SchematicDiagram::getStrokeSize() const { return m_strokeSize; }
+    float SchematicDiagram::getStrokeSize() const {
+        return m_strokeSize;
+    }
 
     void SchematicDiagram::setStrokeSize(const float size) {
         m_strokeSize = size;

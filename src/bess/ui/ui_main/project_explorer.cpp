@@ -132,7 +132,9 @@ namespace Bess::UI {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 2.f));
     }
 
-    void ProjectExplorer::onAfterDraw() { ImGui::PopStyleVar(); }
+    void ProjectExplorer::onAfterDraw() {
+        ImGui::PopStyleVar();
+    }
 
     void ProjectExplorer::onDraw() {
         const ImColor &itemAltBg =

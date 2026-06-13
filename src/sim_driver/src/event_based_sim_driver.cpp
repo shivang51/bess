@@ -20,7 +20,9 @@ namespace Bess::SimEngine::Drivers {
         return json;
     }
 
-    TimeNs EvtBasedCompDef::getSelfSimDelay() { return TimeNs(0); }
+    TimeNs EvtBasedCompDef::getSelfSimDelay() {
+        return TimeNs(0);
+    }
 
     TimeNs EvtBasedSimComp::getPropDelay() const {
         auto def = std::dynamic_pointer_cast<EvtBasedCompDef>(m_def);
@@ -124,11 +126,16 @@ namespace Bess::SimEngine::Drivers {
         scheduleDependantsOf(sourceId);
     }
 
-    void EvtBasedSimDriver::onBeforeRun() {}
+    void EvtBasedSimDriver::onBeforeRun() {
+    }
 
-    void EvtBasedSimDriver::onPause() { m_runIterCv.notify_all(); }
+    void EvtBasedSimDriver::onPause() {
+        m_runIterCv.notify_all();
+    }
 
-    void EvtBasedSimDriver::onResume() { m_runIterCv.notify_all(); }
+    void EvtBasedSimDriver::onResume() {
+        m_runIterCv.notify_all();
+    }
 
     void EvtBasedSimDriver::onStop() {
         SimDriver::onStop();

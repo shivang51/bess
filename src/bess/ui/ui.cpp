@@ -224,9 +224,13 @@ namespace Bess {
         m_currentCursorType = CursorType::pointer;
     }
 
-    void UIHandle::setCursorMove() { m_currentCursorType = CursorType::move; }
+    void UIHandle::setCursorMove() {
+        m_currentCursorType = CursorType::move;
+    }
 
-    void UIHandle::setCursorText() { m_currentCursorType = CursorType::text; }
+    void UIHandle::setCursorText() {
+        m_currentCursorType = CursorType::text;
+    }
 
     void UIHandle::setCursorNormal() {
         m_currentCursorType = CursorType::normal;

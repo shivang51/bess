@@ -48,7 +48,9 @@ Bess::AppStartupFlags prepareFlags(const AppArgs &args) {
     return flags;
 }
 
-bool isValidStartDir() { return std::filesystem::exists("assets"); }
+bool isValidStartDir() {
+    return std::filesystem::exists("assets");
+}
 
 bool validateStartDir(char **argv) {
     if (isValidStartDir()) {

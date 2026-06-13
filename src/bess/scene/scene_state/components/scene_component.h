@@ -13,8 +13,12 @@
 
 namespace Bess::Canvas {
 #define REG_SCENE_COMP_TYPE(TypeName, type)                                    \
-    SceneComponentType getType() const override { return type; }               \
-    std::string getTypeName() const override { return TypeName; }              \
+    SceneComponentType getType() const override {                              \
+        return type;                                                           \
+    }                                                                          \
+    std::string getTypeName() const override {                                 \
+        return TypeName;                                                       \
+    }                                                                          \
     static std::string getStaticTypeName() {                                   \
         static std::string typeName = TypeName;                                \
         return typeName;                                                       \
@@ -88,11 +92,16 @@ namespace Bess::Canvas {
         SceneComponent(const SceneComponent &other) = default;
         virtual ~SceneComponent() = default;
 
-        static std::string getStaticTypeName() { return "SceneComponent"; }
+        static std::string getStaticTypeName() {
+            return "SceneComponent";
+        }
 
-        virtual std::string getTypeName() const { return "SceneComponent"; }
+        virtual std::string getTypeName() const {
+            return "SceneComponent";
+        }
 
-        virtual void update(TimeMs frameTime, SceneState & /*state*/) {}
+        virtual void update(TimeMs frameTime, SceneState & /*state*/) {
+        }
 
         virtual void draw(SceneDrawContext &);
         virtual void drawSchematic(SceneDrawContext &);
@@ -160,7 +169,8 @@ namespace Bess::Canvas {
         virtual std::vector<UUID> getDependants(const SceneState &state) const;
 
         virtual void onScaleChanged();
-        virtual void onNameChanged() {}
+        virtual void onNameChanged() {
+        }
 
       protected:
         // Deserialize the component from JSON
@@ -168,12 +178,17 @@ namespace Bess::Canvas {
                              const std::shared_ptr<SceneComponent> &ptr);
 
         void prepareClone(SceneComponent &clonedComponent) const;
-        virtual void onTransformChanged() {}
-        virtual void onSelect() {}
-        virtual void onStyleChanged() {}
-        virtual void onRuntimeIdChanged() {}
+        virtual void onTransformChanged() {
+        }
+        virtual void onSelect() {
+        }
+        virtual void onStyleChanged() {
+        }
+        virtual void onRuntimeIdChanged() {
+        }
 
-        virtual void onBeforeToJson() const {}
+        virtual void onBeforeToJson() const {
+        }
 
         virtual glm::vec2 calculateScale(const SceneState &);
 

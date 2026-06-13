@@ -11,7 +11,9 @@ namespace Bess::Canvas {
 
         glm::mat4 getTransform() const;
 
-        operator glm::mat4() const { return getTransform(); }
+        operator glm::mat4() const {
+            return getTransform();
+        }
 
         glm::vec3 position = {0.f, 0.f, 0.f};
         glm::vec2 scale = {100.f, 100.f};

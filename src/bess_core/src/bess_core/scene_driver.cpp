@@ -10,11 +10,15 @@
 #include <mutex>
 
 namespace Bess {
-    void SceneDriver::onInit() {}
+    void SceneDriver::onInit() {
+    }
 
-    void SceneDriver::onShutdown() { removeScenes(); }
+    void SceneDriver::onShutdown() {
+        removeScenes();
+    }
 
-    void SceneDriver::onDestroy() {}
+    void SceneDriver::onDestroy() {
+    }
 
     std::shared_ptr<Canvas::Scene> SceneDriver::getActiveScene() const {
         return m_activeScene;
@@ -184,9 +188,13 @@ namespace Bess {
         }
     }
 
-    size_t SceneDriver::getSceneCount() const { return m_scenes.size(); }
+    size_t SceneDriver::getSceneCount() const {
+        return m_scenes.size();
+    }
 
-    size_t SceneDriver::getActiveSceneIdx() const { return m_activeSceneIdx; }
+    size_t SceneDriver::getActiveSceneIdx() const {
+        return m_activeSceneIdx;
+    }
 
     void SceneDriver::updateNets(const std::shared_ptr<Canvas::Scene> &scene) {
         auto &appCtx = Bess::GAppContext::getInstance();
@@ -227,7 +235,9 @@ namespace Bess {
         // }
     }
 
-    void SceneDriver::updateNets() { updateNets(m_activeScene); }
+    void SceneDriver::updateNets() {
+        updateNets(m_activeScene);
+    }
 
     void SceneDriver::makeRootSceneActive() {
         if (m_rootSceneId != UUID::null) {

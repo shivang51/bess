@@ -16,7 +16,9 @@ namespace Bess::Canvas {
         void reset(SceneLifecycleContext &ctx) override;
         void destroy(SceneLifecycleContext &ctx) override;
 
-        std::string getName() const override { return "HoverLayer"; }
+        std::string getName() const override {
+            return "HoverLayer";
+        }
 
       private:
         EventResult handleMouseMove(SceneEvent &evt, SceneEventContext &ctx);

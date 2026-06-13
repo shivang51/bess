@@ -6,7 +6,8 @@
 #include "settings/viewport_theme.h"
 
 namespace Bess::Canvas {
-    void OverlayLayer::update(TimeMs ts, SceneUpdateContext &ctx) {}
+    void OverlayLayer::update(TimeMs ts, SceneUpdateContext &ctx) {
+    }
 
     void OverlayLayer::draw(SceneRenderContext &ctx) {
         if (!ctx.sceneState || !ctx.renderer || !ctx.camera) {

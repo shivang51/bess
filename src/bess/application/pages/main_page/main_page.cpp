@@ -40,7 +40,9 @@
 namespace Bess::Pages {
     bool MainPage::s_headless = false;
 
-    void MainPage::setHeadless(bool headless) { s_headless = headless; }
+    void MainPage::setHeadless(bool headless) {
+        s_headless = headless;
+    }
 
     std::shared_ptr<MainPage> &
     MainPage::getInstance(const std::shared_ptr<Window> &parentWindow) {
@@ -302,7 +304,9 @@ namespace Bess::Pages {
         }
     }
 
-    MainPageState &MainPage::getState() { return m_state; };
+    MainPageState &MainPage::getState() {
+        return m_state;
+    };
 
     void MainPage::copySelectedEntities() {
         auto projCtx =

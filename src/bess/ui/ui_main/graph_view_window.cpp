@@ -107,7 +107,9 @@ namespace Bess::UI {
         plotDigitalSignals("Signals", s_data.allSignals);
     }
 
-    GraphViewWindowData &GraphViewWindow::getDataRef() { return s_data; }
+    GraphViewWindowData &GraphViewWindow::getDataRef() {
+        return s_data;
+    }
 
     void GraphViewWindow::plotDigitalSignals(
         const std::string &plotName,
@@ -181,5 +183,7 @@ namespace Bess::UI {
         ImGui::EndChild();
     }
 
-    void GraphViewWindow::destroy() { s_data = {}; }
+    void GraphViewWindow::destroy() {
+        s_data = {};
+    }
 } // namespace Bess::UI

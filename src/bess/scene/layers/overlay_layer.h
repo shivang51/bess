@@ -8,7 +8,9 @@ namespace Bess::Canvas {
         void update(TimeMs ts, SceneUpdateContext &ctx) override;
         void draw(SceneRenderContext &ctx) override;
 
-        std::string getName() const override { return "OverlayLayer"; }
+        std::string getName() const override {
+            return "OverlayLayer";
+        }
 
       private:
         void drawGhostConnection(SceneDrawContext &drawCtx,

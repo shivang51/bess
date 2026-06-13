@@ -59,7 +59,8 @@ namespace Bess::SimEngine::Drivers {
         virtual Json::Value toJson() const;
         virtual void loadJson(const Json::Value &json);
 
-        virtual void onPostSimulate() {}
+        virtual void onPostSimulate() {
+        }
 
         virtual std::shared_ptr<SimFnDataBase>
         simulate(const std::shared_ptr<SimFnDataBase> &data);
@@ -101,7 +102,9 @@ namespace Bess::SimEngine::Drivers {
             return SlotsCountChangeRes{true, true};
         }
 
-        bool hasChange() const { return changedInp || changedOut; }
+        bool hasChange() const {
+            return changedInp || changedOut;
+        }
     };
 
     class SimDriver {
@@ -130,7 +133,8 @@ namespace Bess::SimEngine::Drivers {
 
         virtual bool isSimStable() const;
 
-        virtual void clearPendingEvents() {}
+        virtual void clearPendingEvents() {
+        }
 
         // Connection management
         virtual std::pair<bool, std::string>
@@ -200,7 +204,8 @@ namespace Bess::SimEngine::Drivers {
 
       protected:
         virtual void
-        onComponentAdded(const std::shared_ptr<SimComponent> &comp) {}
+        onComponentAdded(const std::shared_ptr<SimComponent> &comp) {
+        }
 
         virtual void onInit() {};
 

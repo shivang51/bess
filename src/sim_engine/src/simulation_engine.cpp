@@ -85,9 +85,13 @@ namespace Bess::SimEngine {
         }
     }
 
-    SimulationEngine::~SimulationEngine() { destroy(); }
+    SimulationEngine::~SimulationEngine() {
+        destroy();
+    }
 
-    void SimulationEngine::onDestroy() { destroy(); }
+    void SimulationEngine::onDestroy() {
+        destroy();
+    }
 
     void SimulationEngine::destroy() {
         if (m_destroyed)

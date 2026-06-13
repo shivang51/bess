@@ -19,7 +19,9 @@ namespace Bess {
                    public std::enable_shared_from_this<Window> {
       public:
         struct GLFWwindowDeleter {
-            void operator()(GLFWwindow *window) { glfwDestroyWindow(window); }
+            void operator()(GLFWwindow *window) {
+                glfwDestroyWindow(window);
+            }
         };
 
         Window() = default;
@@ -45,8 +47,12 @@ namespace Bess {
 
         void setName(const std::string &name) const;
 
-        static void pollEvents() { glfwPollEvents(); }
-        static void waitEvents() { glfwWaitEvents(); }
+        static void pollEvents() {
+            glfwPollEvents();
+        }
+        static void waitEvents() {
+            glfwWaitEvents();
+        }
         static void waitEventsTimeout(double seconds) {
             glfwWaitEventsTimeout(seconds);
         }
@@ -59,10 +65,16 @@ namespace Bess {
 
         void setEnableCursor(bool enable) const;
 
-        GLFWwindow *getGLFWHandle() const { return mp_window.get(); }
+        GLFWwindow *getGLFWHandle() const {
+            return mp_window.get();
+        }
 
-        bool wasWindowResized() const { return m_framebufferResized; }
-        void resetWindowResizedFlag() { m_framebufferResized = false; }
+        bool wasWindowResized() const {
+            return m_framebufferResized;
+        }
+        void resetWindowResizedFlag() {
+            m_framebufferResized = false;
+        }
 
         MAKE_GETTER_SETTER(WindowSurface, surface, m_surface)
         MAKE_GETTER(UIHandle, ui, m_ui)

@@ -41,7 +41,9 @@ namespace Bess::Canvas {
 
         const ViewportTransform &getViewportTransform() const;
 
-        PickingId getHoveredEntity() const { return m_pickingId; }
+        PickingId getHoveredEntity() const {
+            return m_pickingId;
+        }
         void setPickingId(const PickingId &value);
 
         const PickingReadbackRequest &getPickingReadbackRequest() const;
@@ -94,9 +96,6 @@ namespace Bess::Canvas {
         void clearPickingReadbackRequest();
 
       private:
-        void onPrePickingIdChange(const PickingId &newId);
-        void onPickingIdChange();
-
         glm::vec2 getViewportMousePos(const glm::vec2 &mousePos) const;
 
       private:
@@ -109,7 +108,6 @@ namespace Bess::Canvas {
         SceneInputState m_inputState;
 
         PickingId m_pickingId = PickingId::invalid();
-        PickingId m_prevPickingId = PickingId::invalid();
         SceneMode m_sceneMode = SceneMode::general;
 
         static constexpr float m_zIncrement = 0.001f;

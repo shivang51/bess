@@ -1,7 +1,8 @@
 #include "ui_panel.h"
 
 namespace Bess::UI {
-    Panel::Panel(const std::string &name) : m_name(name) {}
+    Panel::Panel(const std::string &name) : m_name(name) {
+    }
 
     void Panel::hide() {
         if (m_visible) {
@@ -37,14 +38,19 @@ namespace Bess::UI {
         onAfterDraw();
     }
 
-    void Panel::onShow() {}
+    void Panel::onShow() {
+    }
 
-    void Panel::onHide() {}
+    void Panel::onHide() {
+    }
 
-    void Panel::update(TimeMs ts) {}
+    void Panel::update(TimeMs ts) {
+    }
 
-    void Panel::init() {}
+    void Panel::init() {
+    }
 
-    void Panel::destroy() {}
+    void Panel::destroy() {
+    }
 
 } // namespace Bess::UI

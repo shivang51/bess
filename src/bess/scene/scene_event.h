@@ -42,8 +42,10 @@ namespace Bess::Canvas {
                 char32_t codepoint;
             } textInput;
 
-            Data() {}
-            ~Data() {}
+            Data() {
+            }
+            ~Data() {
+            }
         } data;
 
         bool isCtrlPressed = false;

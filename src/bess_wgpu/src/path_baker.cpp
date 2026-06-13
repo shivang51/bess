@@ -331,7 +331,9 @@ namespace Bess::Wgpu {
             return v / len;
         }
 
-        glm::vec2 perpendicular(const glm::vec2 &v) { return {-v.y, v.x}; }
+        glm::vec2 perpendicular(const glm::vec2 &v) {
+            return {-v.y, v.x};
+        }
 
         int roundArcSegmentCount(float arcRadians,
                                  float radius,
@@ -1759,7 +1761,9 @@ namespace Bess::Wgpu {
                          });
     }
 
-    bool PathBatch::empty() const noexcept { return m_drawRanges.empty(); }
+    bool PathBatch::empty() const noexcept {
+        return m_drawRanges.empty();
+    }
 
     uint32_t PathBatch::drawCount() const noexcept {
         return static_cast<uint32_t>(m_drawRanges.size());

@@ -101,9 +101,13 @@ namespace Bess::Verilog {
         return bit;
     }
 
-    bool SignalBit::isNet() const { return netId.has_value(); }
+    bool SignalBit::isNet() const {
+        return netId.has_value();
+    }
 
-    bool SignalBit::isConstant() const { return constant.has_value(); }
+    bool SignalBit::isConstant() const {
+        return constant.has_value();
+    }
 
     std::string SignalBit::toString() const {
         if (isNet()) {

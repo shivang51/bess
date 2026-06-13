@@ -125,7 +125,9 @@ namespace Bess::Core::Renderer {
         static_cast<void>(loadFont(fontPath));
     }
 
-    GlyphExtractor::~GlyphExtractor() { unload(); }
+    GlyphExtractor::~GlyphExtractor() {
+        unload();
+    }
 
     GlyphExtractor::GlyphExtractor(GlyphExtractor &&other) noexcept
         : m_face(other.m_face),

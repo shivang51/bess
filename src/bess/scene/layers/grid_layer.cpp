@@ -4,9 +4,11 @@
 
 namespace Bess::Canvas {
 
-    void GridLayer::destroy(SceneLifecycleContext &ctx) {}
+    void GridLayer::destroy(SceneLifecycleContext &ctx) {
+    }
 
-    void GridLayer::update(TimeMs ts, SceneUpdateContext &ctx) {}
+    void GridLayer::update(TimeMs ts, SceneUpdateContext &ctx) {
+    }
 
     void GridLayer::draw(SceneRenderContext &ctx) {
         ctx.renderer->drawCustomQuad(

@@ -7,3 +7,4 @@ ConstructorInitializerIndentWidth: 4
 PackConstructorInitializers: CurrentLine
 BinPackArguments: false
 BinPackParameters: false
+AllowShortFunctionsOnASingleLine: None

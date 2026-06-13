@@ -132,10 +132,18 @@ namespace Bess::Core::Renderer {
             return m_texture;
         }
 
-        [[nodiscard]] float pxRange() const noexcept { return m_pxRange; }
-        [[nodiscard]] float lineHeight() const noexcept { return m_lineHeight; }
-        [[nodiscard]] float ascender() const noexcept { return m_ascender; }
-        [[nodiscard]] float fontSize() const noexcept { return m_fontSize; }
+        [[nodiscard]] float pxRange() const noexcept {
+            return m_pxRange;
+        }
+        [[nodiscard]] float lineHeight() const noexcept {
+            return m_lineHeight;
+        }
+        [[nodiscard]] float ascender() const noexcept {
+            return m_ascender;
+        }
+        [[nodiscard]] float fontSize() const noexcept {
+            return m_fontSize;
+        }
 
       private:
         std::shared_ptr<TTexture> m_texture;

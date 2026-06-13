@@ -10,14 +10,17 @@ namespace Bess {
       public:
         static UUID fromString(const std::string &str) noexcept;
 
-        constexpr UUID(uint64_t id) noexcept : m_UUID(id) {}
+        constexpr UUID(uint64_t id) noexcept : m_UUID(id) {
+        }
 
         UUID();
         ~UUID() = default;
 
         constexpr UUID(const UUID &other) noexcept = default;
 
-        constexpr operator uint64_t() const noexcept { return m_UUID; }
+        constexpr operator uint64_t() const noexcept {
+            return m_UUID;
+        }
 
         constexpr bool operator==(const UUID &other) const noexcept {
             return m_UUID == other.m_UUID;

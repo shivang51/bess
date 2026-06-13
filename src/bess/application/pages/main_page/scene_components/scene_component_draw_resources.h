@@ -19,7 +19,9 @@ namespace Bess::Canvas::SceneComponentDrawResources {
         constexpr uint32_t kShadowTextureMaxSize = 384;
 
         struct StbiImageDeleter {
-            void operator()(stbi_uc *pixels) const { stbi_image_free(pixels); }
+            void operator()(stbi_uc *pixels) const {
+                stbi_image_free(pixels);
+            }
         };
 
         [[nodiscard]] inline std::shared_ptr<Wgpu::WgpuTexture>

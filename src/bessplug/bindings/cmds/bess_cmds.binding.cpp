@@ -37,7 +37,8 @@ class ScriptLogger {
         m_output += text;
     }
 
-    void flush() {}
+    void flush() {
+    }
 
     std::string popLogs() {
         std::lock_guard<std::mutex> lock(m_mutex);

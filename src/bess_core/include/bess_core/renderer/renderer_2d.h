@@ -88,7 +88,9 @@ namespace Bess::Core::Renderer {
         uint32_t bytesPerPixel = 0;
         std::vector<uint8_t> pixels;
 
-        [[nodiscard]] bool empty() const noexcept { return pixels.empty(); }
+        [[nodiscard]] bool empty() const noexcept {
+            return pixels.empty();
+        }
     };
 
     struct PickingReadbackResult {
@@ -98,7 +100,9 @@ namespace Bess::Core::Renderer {
         uint32_t height = 0;
         std::vector<PickingId> ids;
 
-        [[nodiscard]] bool empty() const noexcept { return ids.empty(); }
+        [[nodiscard]] bool empty() const noexcept {
+            return ids.empty();
+        }
         [[nodiscard]] PickingId firstOrInvalid() const noexcept {
             return ids.empty() ? PickingId::invalid() : ids.front();
         }
@@ -287,7 +291,8 @@ namespace Bess::Core::Renderer {
         virtual void endPath() = 0;
 
         virtual void
-        drawImGui(const std::function<void(void *)> &imguiRenderFn) {}
+        drawImGui(const std::function<void(void *)> &imguiRenderFn) {
+        }
 
         virtual void drawToWindow(const std::shared_ptr<Window> &window,
                                   const std::function<void(void *)> &renderFn) {

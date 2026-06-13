@@ -2,7 +2,8 @@
 #include "sub_systems/input_sub_system_types.h"
 
 namespace Bess {
-    void InputSubSystem::onInit() {}
+    void InputSubSystem::onInit() {
+    }
 
     void InputSubSystem::onDestroy() {
         m_keyStates.clear();

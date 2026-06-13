@@ -202,7 +202,8 @@
             j = Json::objectValue;                                             \
         }                                                                      \
                                                                                \
-        inline void fromJsonValue(const Json::Value &j, className &obj) {}     \
+        inline void fromJsonValue(const Json::Value &j, className &obj) {      \
+        }                                                                      \
     }
 
 #define REFLECT_VECTOR(ElementType)                                            \

@@ -14,7 +14,8 @@
 #include <fstream>
 
 namespace Bess {
-    ProjectFile::ProjectFile() : m_name("Unnamed") {}
+    ProjectFile::ProjectFile() : m_name("Unnamed") {
+    }
 
     ProjectFile::ProjectFile(const std::string &path)
         : m_path(path),
@@ -41,17 +42,29 @@ namespace Bess {
         m_saved = true;
     }
 
-    const std::string &ProjectFile::getName() const { return m_name; }
+    const std::string &ProjectFile::getName() const {
+        return m_name;
+    }
 
-    std::string &ProjectFile::getNameRef() { return m_name; }
+    std::string &ProjectFile::getNameRef() {
+        return m_name;
+    }
 
-    void ProjectFile::setName(const std::string &name) { m_name = name; }
+    void ProjectFile::setName(const std::string &name) {
+        m_name = name;
+    }
 
-    const std::string &ProjectFile::getPath() const { return m_path; }
+    const std::string &ProjectFile::getPath() const {
+        return m_path;
+    }
 
-    void ProjectFile::setPath(const std::string &path) { m_path = path; }
+    void ProjectFile::setPath(const std::string &path) {
+        m_path = path;
+    }
 
-    bool ProjectFile::isSaved() const { return m_saved; }
+    bool ProjectFile::isSaved() const {
+        return m_saved;
+    }
 
     void ProjectFile::encodeAndSave() {
         std::ofstream outFile(m_path, std::ios::out);
@@ -163,7 +176,8 @@ namespace Bess {
         BESS_INFO("Project path {} selected with name {}", m_path, m_name);
     }
 
-    void ProjectFile::patchFile() const {}
+    void ProjectFile::patchFile() const {
+    }
 
     Json::Value ProjectFile::toJson() const {
         Json::Value data;
@@ -193,5 +207,6 @@ namespace Bess {
         return data;
     }
 
-    void ProjectFile::loadJson(const Json::Value &json) {}
+    void ProjectFile::loadJson(const Json::Value &json) {
+    }
 } // namespace Bess

@@ -27,7 +27,8 @@ namespace Bess::Core::Renderer {
 
     FontFile::FontFile(const std::string &path)
         : m_glyphExtractor(path),
-          m_glyphCount(m_glyphExtractor.glyphCount()) {}
+          m_glyphCount(m_glyphExtractor.glyphCount()) {
+    }
 
     FontFile::FontFile(FontFile &&other) noexcept
         : m_glyphsTable(std::move(other.m_glyphsTable)),
@@ -130,23 +131,37 @@ namespace Bess::Core::Renderer {
         return getGlyph(ch);
     }
 
-    float FontFile::getSize() const noexcept { return m_size; }
+    float FontFile::getSize() const noexcept {
+        return m_size;
+    }
 
-    char32_t FontFile::glyphMin() const noexcept { return m_min; }
+    char32_t FontFile::glyphMin() const noexcept {
+        return m_min;
+    }
 
-    char32_t FontFile::glyphMax() const noexcept { return m_max; }
+    char32_t FontFile::glyphMax() const noexcept {
+        return m_max;
+    }
 
-    std::size_t FontFile::glyphCount() const noexcept { return m_glyphCount; }
+    std::size_t FontFile::glyphCount() const noexcept {
+        return m_glyphCount;
+    }
 
     std::size_t FontFile::cachedGlyphCount() const noexcept {
         return m_cachedGlyphCount;
     }
 
-    float FontFile::ascent() const { return m_glyphExtractor.ascent(); }
+    float FontFile::ascent() const {
+        return m_glyphExtractor.ascent();
+    }
 
-    float FontFile::descent() const { return m_glyphExtractor.descent(); }
+    float FontFile::descent() const {
+        return m_glyphExtractor.descent();
+    }
 
-    float FontFile::lineHeight() const { return m_glyphExtractor.lineHeight(); }
+    float FontFile::lineHeight() const {
+        return m_glyphExtractor.lineHeight();
+    }
 
     bool FontFile::hasTableEntry(char32_t ch) const noexcept {
         return !m_glyphsTable.empty() && ch >= m_min && ch <= m_max;

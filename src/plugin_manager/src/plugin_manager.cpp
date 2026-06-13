@@ -47,7 +47,9 @@ namespace Bess::Plugins {
         isIntialized = false;
     }
 
-    PluginManager::~PluginManager() { destroy(); }
+    PluginManager::~PluginManager() {
+        destroy();
+    }
 
     bool PluginManager::loadPlugin(const std::string &pluginPath) {
         pybind11::gil_scoped_acquire gil;
@@ -168,7 +170,9 @@ namespace Bess::Plugins {
         return nullptr;
     }
 
-    PyGILState_STATE capturePyThreadState() { return PyGILState_Ensure(); }
+    PyGILState_STATE capturePyThreadState() {
+        return PyGILState_Ensure();
+    }
 
     void releasePyThreadState(PyGILState_STATE state) {
         PyGILState_Release(state);

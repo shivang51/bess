@@ -12,9 +12,12 @@
 namespace Bess::Canvas {
     SceneComponent::SceneComponent()
         : m_uuid{UUID()},
-          m_icon(UI::Icons::FontAwesomeIcons::FA_CUBE) {}
+          m_icon(UI::Icons::FontAwesomeIcons::FA_CUBE) {
+    }
 
-    bool SceneComponent::isDraggable() const { return m_isDraggable; }
+    bool SceneComponent::isDraggable() const {
+        return m_isDraggable;
+    }
 
     void SceneComponent::setPosition(const glm::vec3 &pos) {
         m_transform.position = pos;
@@ -114,7 +117,8 @@ namespace Bess::Canvas {
         onChildrenChanged();
     }
 
-    void SceneComponent::onAttach(SceneState &state) {}
+    void SceneComponent::onAttach(SceneState &state) {
+    }
 
     Json::Value SceneComponent::toJson() const {
         auto json = SERIALIZE_PROPS(
@@ -149,11 +153,14 @@ namespace Bess::Canvas {
                                        m_childComponents.end());
     }
 
-    void SceneComponent::onChildrenChanged() {}
+    void SceneComponent::onChildrenChanged() {
+    }
 
-    void SceneComponent::onScaleChanged() {}
+    void SceneComponent::onScaleChanged() {
+    }
 
-    void SceneComponent::drawPropertiesUI(SceneState &sceneState) {}
+    void SceneComponent::drawPropertiesUI(SceneState &sceneState) {
+    }
 
     std::vector<std::shared_ptr<SceneComponent>>
     SceneComponent::clone(const SceneState &sceneState) const {

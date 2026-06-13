@@ -39,7 +39,9 @@ namespace Bess::Wgpu {
         }
     }
 
-    const std::string &WgpuShader::getName() const noexcept { return m_name; }
+    const std::string &WgpuShader::getName() const noexcept {
+        return m_name;
+    }
 
     Core::Renderer::ShaderLanguage WgpuShader::getLanguage() const noexcept {
         return m_language;

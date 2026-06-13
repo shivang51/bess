@@ -398,7 +398,9 @@ namespace Bess::Canvas {
         e.sceneState->setConnectionStartSlot(UUID::null);
     }
 
-    void SlotSceneComponent::onRuntimeIdChanged() { m_invalidateCache = true; }
+    void SlotSceneComponent::onRuntimeIdChanged() {
+        m_invalidateCache = true;
+    }
 
     std::vector<UUID>
     SlotSceneComponent::getDependants(const SceneState &state) const {

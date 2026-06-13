@@ -32,7 +32,8 @@ namespace Bess {
                 logs.erase(logs.begin());
         }
 
-        void flush_() override {}
+        void flush_() override {
+        }
 
       public:
         std::vector<LogMessage> logs;

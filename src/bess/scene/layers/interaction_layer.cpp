@@ -341,5 +341,6 @@ namespace Bess::Canvas {
         };
     }
 
-    void InteractionLayer::draw(SceneRenderContext &ctx) {}
+    void InteractionLayer::draw(SceneRenderContext &ctx) {
+    }
 } // namespace Bess::Canvas

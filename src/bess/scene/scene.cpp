@@ -95,7 +95,9 @@ namespace Bess::Canvas {
         reset();
     }
 
-    Scene::~Scene() { destroy(); }
+    Scene::~Scene() {
+        destroy();
+    }
 
     void Scene::destroy() {
         if (m_isDestroyed)
@@ -152,7 +154,6 @@ namespace Bess::Canvas {
         m_compZCoord = 1.f + m_zIncrement;
         m_inputState.reset();
         m_pickingId = PickingId::invalid();
-        m_prevPickingId = PickingId::invalid();
     }
 
     void Scene::update(TimeMs ts, bool isFocused) {
@@ -236,9 +237,13 @@ namespace Bess::Canvas {
         }
     }
 
-    const glm::vec2 &Scene::getSize() const { return m_size; }
+    const glm::vec2 &Scene::getSize() const {
+        return m_size;
+    }
 
-    void Scene::resize(const glm::vec2 &size) { m_size = size; }
+    void Scene::resize(const glm::vec2 &size) {
+        m_size = size;
+    }
 
     glm::vec2 Scene::getViewportMousePos(const glm::vec2 &mousePos) const {
         const auto &viewportPos = m_viewportTransform.pos;
@@ -295,9 +300,13 @@ namespace Bess::Canvas {
         dispatchEvent(evt);
     }
 
-    const glm::vec2 &Scene::getCameraPos() const { return m_camera->getPos(); }
+    const glm::vec2 &Scene::getCameraPos() const {
+        return m_camera->getPos();
+    }
 
-    bool Scene::isDragging() const { return m_inputState.isDragging; }
+    bool Scene::isDragging() const {
+        return m_inputState.isDragging;
+    }
 
     bool Scene::isLeftMousePressed() const {
         return m_inputState.isLeftMousePressed;
@@ -321,9 +330,13 @@ namespace Bess::Canvas {
         return toScenePos(m_inputState.mousePos);
     }
 
-    float Scene::getCameraZoom() const { return m_camera->getZoom(); }
+    float Scene::getCameraZoom() const {
+        return m_camera->getZoom();
+    }
 
-    void Scene::setZoom(float value) const { m_camera->setZoom(value); }
+    void Scene::setZoom(float value) const {
+        m_camera->setZoom(value);
+    }
 
     const glm::mat4 &Scene::getCameraTransform() const {
         return m_camera->getTransform();
@@ -351,11 +364,17 @@ namespace Bess::Canvas {
         return z;
     }
 
-    void Scene::setZCoord(float value) { m_compZCoord = value + m_zIncrement; }
+    void Scene::setZCoord(float value) {
+        m_compZCoord = value + m_zIncrement;
+    }
 
-    void Scene::setSceneMode(SceneMode mode) { m_sceneMode = mode; }
+    void Scene::setSceneMode(SceneMode mode) {
+        m_sceneMode = mode;
+    }
 
-    SceneMode Scene::getSceneMode() const { return m_sceneMode; }
+    SceneMode Scene::getSceneMode() const {
+        return m_sceneMode;
+    }
 
     bool Scene::getIsSchematicView() const {
         return m_state.getIsSchematicView();
@@ -369,52 +388,12 @@ namespace Bess::Canvas {
         m_state.setIsSchematicView(!m_state.getIsSchematicView());
     }
 
-    void Scene::onPrePickingIdChange(const PickingId &newId) {
-        if (m_inputState.isDragging)
-            return;
-
-        // if (m_pickingId.isValid() && m_pickingId != newId) {
-        //     const auto prevComp =
-        //     m_state.getComponentByPickingId(m_pickingId); if (prevComp) {
-        //         prevComp->onMouseLeave(
-        //             {toScenePos(m_mousePos), m_pickingId.info});
-        //     } else {
-        //         BESS_WARN("[Scene] PickingId is valid but no component found
-        //         "
-        //                   "for id {}",
-        //                   (uint64_t)m_pickingId);
-        //     }
-        // }
-        //
-        m_prevPickingId = m_pickingId;
+    bool Scene::isHoveredEntityValid() {
+        return m_pickingId.isValid();
     }
-
-    void Scene::onPickingIdChange() {
-        if (m_inputState.isDragging)
-            return;
-
-        // if (m_pickingId.isValid()) {
-        //     const auto currComp =
-        //     m_state.getComponentByPickingId(m_pickingId);
-        //
-        //     if (currComp) {
-        //         currComp->onMouseEnter(
-        //             {toScenePos(m_mousePos), m_pickingId.info});
-        //     } else {
-        //         BESS_WARN("[Scene] PickingId is valid but no component found
-        //         "
-        //                   "for id {}",
-        //                   (uint64_t)m_pickingId);
-        //     }
-        // }
-    }
-
-    bool Scene::isHoveredEntityValid() { return m_pickingId.isValid(); }
 
     void Scene::setPickingId(const PickingId &value) {
-        onPrePickingIdChange(value);
         m_pickingId = value;
-        onPickingIdChange();
     }
 
     const PickingReadbackRequest &Scene::getPickingReadbackRequest() const {
@@ -468,9 +447,13 @@ namespace Bess::Canvas {
         m_inputState.pickingReadbackRequest = {};
     }
 
-    const SceneState &Scene::getState() const { return m_state; }
+    const SceneState &Scene::getState() const {
+        return m_state;
+    }
 
-    SceneState &Scene::getState() { return m_state; }
+    SceneState &Scene::getState() {
+        return m_state;
+    }
 
     void Scene::updateViewportTransform(const ViewportTransform &transform) {
         m_viewportTransform = transform;
@@ -504,6 +487,8 @@ namespace Bess::Canvas {
         m_state.addComponent(comp);
     }
 
-    const UUID &Scene::getSceneId() const { return m_state.getSceneId(); }
+    const UUID &Scene::getSceneId() const {
+        return m_state.getSceneId();
+    }
 
 } // namespace Bess::Canvas

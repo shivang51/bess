@@ -680,7 +680,9 @@ namespace Bess::Core::Renderer {
         return cubicTo(control1, control2, pos, strokeWidth, id);
     }
 
-    Path2D &Path2D::closePath() { return addCommand(PathCommand::closePath()); }
+    Path2D &Path2D::closePath() {
+        return addCommand(PathCommand::closePath());
+    }
 
     Path2D &Path2D::closePath(const PathCommandStroke &stroke) {
         return addCommand(PathCommand::closePath(stroke));
@@ -694,13 +696,17 @@ namespace Bess::Core::Renderer {
         return closePath(PathCommandStroke::withWidthAndId(strokeWidth, id));
     }
 
-    Path2D &Path2D::close() { return closePath(); }
+    Path2D &Path2D::close() {
+        return closePath();
+    }
 
     Path2D &Path2D::close(const PathCommandStroke &stroke) {
         return closePath(stroke);
     }
 
-    Path2D &Path2D::close(float strokeWidth) { return closePath(strokeWidth); }
+    Path2D &Path2D::close(float strokeWidth) {
+        return closePath(strokeWidth);
+    }
 
     Path2D &Path2D::close(float strokeWidth, PickingId id) {
         return closePath(strokeWidth, id);

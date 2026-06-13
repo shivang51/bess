@@ -391,7 +391,9 @@ namespace Bess::Verilog {
 
             // Input slot indices depend on which features are present.
             // D is always 0, CLK is always 1.
-            int rstSlotIndex() const { return hasReset ? 2 : -1; }
+            int rstSlotIndex() const {
+                return hasReset ? 2 : -1;
+            }
             int enSlotIndex() const {
                 if (!hasEnable)
                     return -1;
@@ -1953,7 +1955,8 @@ namespace Bess::Verilog {
           public:
             Importer(const Design &design, SimulationEngine &engine)
                 : m_design(design),
-                  m_engine(engine) {}
+                  m_engine(engine) {
+            }
 
             SimEngineImportResult importTop(const std::string &topModuleName) {
                 const auto &topModule = *requireModule(topModuleName);
