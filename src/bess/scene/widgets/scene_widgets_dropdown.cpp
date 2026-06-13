@@ -1,13 +1,21 @@
+#include "bess_core/renderer/renderer_types.h"
 #include "scene/scene_draw_helpers.h"
 #include "scene_widgets_internal.h"
 #include "settings/viewport_theme.h"
 #include <algorithm>
+#include <filesystem>
 #include <string_view>
 
 namespace Bess::Canvas::SceneWidgets {
     namespace {
         constexpr float kMinDropdownWidth = 72.f;
         constexpr float kMinDropdownHeight = 18.f;
+
+        Core::Renderer::Path2D arrowDown =
+            Core::Renderer::Path2D::fromSvgString("M 0 0 L 0.5 0.5 L 1 0");
+
+        Core::Renderer::Path2D arrowUp =
+            Core::Renderer::Path2D::fromSvgString("M 0 0.5 L 0.5 0 L 1 0.5");
 
         glm::vec2 resolveDropdownSize(
             const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer,
@@ -182,16 +190,29 @@ namespace Bess::Canvas::SceneWidgets {
                                                palette.textMuted),
                 id);
 
-            const std::string_view caret = widget.dropdownOpen ? "^" : "v";
-            const auto caretSize = context.renderer->measureText(
-                caret, {.fontSize = options.fontSize});
-            SceneDraw::drawText(
-                context, caret,
-                {boxPos.x + (boxSize.x * 0.5f) - options.padding.x -
-                     caretSize.x,
-                 boxPos.y + textOffY, boxPos.z + 0.0001f},
-                static_cast<size_t>(options.fontSize),
-                Detail::colorOr(options.mutedTextColor, palette.textMuted), id);
+            Core::Renderer::PathProps pathProps;
+            pathProps.id = id;
+            pathProps.zIndex = boxPos.z + 0.0001f;
+            pathProps.renderFill = false;
+            pathProps.closePath = false;
+            pathProps.strokeSize = 0.5f;
+            pathProps.lineJoin = Core::Renderer::PathLineJoin::Round;
+            pathProps.lineCap = Core::Renderer::PathLineCap::Butt;
+            pathProps.strokeColor =
+                Detail::colorOr(options.mutedTextColor, palette.textMuted);
+
+            Core::Renderer::Path2D &arrow =
+                widget.dropdownOpen ? arrowUp : arrowDown;
+
+            const glm::vec2 arrowSize{options.fontSize * 0.65,
+                                      options.fontSize * 0.65f};
+
+            arrow.scale(arrowSize);
+            arrow.translate({
+                boxPos.x + (boxSize.x * 0.5f) - options.padding.x - arrowSize.x,
+                boxPos.y - (textOffY / 2.f),
+            });
+            context.renderer->drawPath(arrow, pathProps);
         }
 
         void drawOptions(Detail::WidgetState &widget, const PickingId &id,
