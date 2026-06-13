@@ -1,8 +1,31 @@
 #include "scene_widgets_internal.h"
 #include "common/logger.h"
 #include <algorithm>
+#include <array>
 
 namespace Bess::Canvas::SceneWidgets::Detail {
+    namespace {
+        constexpr uint32_t kWidgetGeneratedInfoBit = 1u << 30;
+        constexpr uint32_t kWidgetGeneratedInfoMask =
+            kWidgetGeneratedInfoBit - 1u;
+
+        uint32_t fnv1a(uint32_t hash, uint32_t value) {
+            constexpr uint32_t prime = 16777619u;
+            const std::array bytes{
+                static_cast<uint8_t>(value & 0xFFu),
+                static_cast<uint8_t>((value >> 8u) & 0xFFu),
+                static_cast<uint8_t>((value >> 16u) & 0xFFu),
+                static_cast<uint8_t>((value >> 24u) & 0xFFu),
+            };
+
+            for (const uint8_t byte : bytes) {
+                hash ^= byte;
+                hash *= prime;
+            }
+            return hash;
+        }
+    } // namespace
+
     std::unordered_map<uint64_t, SceneWidgetsState> &sceneStates() {
         static std::unordered_map<uint64_t, SceneWidgetsState> states;
         return states;
@@ -143,6 +166,19 @@ namespace Bess::Canvas::SceneWidgets::Detail {
         state->focusStarted = true;
     }
 
+    void closeDropdowns(SceneWidgetsState &widgetsState,
+                        uint64_t keepOpenWidgetId) {
+        for (auto &[widgetId, widget] : widgetsState.widgetStates) {
+            if (widget.type != WidgetState::Type::dropdown ||
+                widgetId == keepOpenWidgetId || !widget.dropdownOpen) {
+                continue;
+            }
+
+            widget.dropdownOpen = false;
+            widget.dropdownClosed = true;
+        }
+    }
+
     void clampCursor(WidgetState &state) {
         state.cursorPos = std::min(state.cursorPos, state.text.size());
     }
@@ -150,5 +186,48 @@ namespace Bess::Canvas::SceneWidgets::Detail {
     void markTextChanged(WidgetState &state) {
         state.textChanged = true;
         clampCursor(state);
+    }
+
+    PickingId makeChildId(const PickingId &parentId, uint32_t childIndex) {
+        constexpr uint32_t offsetBasis = 2166136261u;
+        uint32_t hash = fnv1a(offsetBasis, parentId.info);
+        hash = fnv1a(hash, childIndex);
+        hash = (hash & kWidgetGeneratedInfoMask) | kWidgetGeneratedInfoBit |
+               PickingId::InfoFlags::unSelectable;
+        return {parentId.runtimeId, hash};
+    }
+
+    void ensureDropdownHighlightVisible(WidgetState &state) {
+        if (state.dropdownOptionCount == 0) {
+            state.dropdownHighlightedIndex = 0;
+            state.dropdownScrollOffset = 0;
+            return;
+        }
+
+        state.dropdownHighlightedIndex = std::min(
+            state.dropdownHighlightedIndex, state.dropdownOptionCount - 1);
+
+        const size_t visibleCount =
+            state.dropdownMaxVisibleOptions == 0
+                ? state.dropdownOptionCount
+                : std::min(state.dropdownMaxVisibleOptions,
+                           state.dropdownOptionCount);
+
+        if (visibleCount == 0 ||
+            state.dropdownOptionCount <= visibleCount) {
+            state.dropdownScrollOffset = 0;
+            return;
+        }
+
+        if (state.dropdownHighlightedIndex < state.dropdownScrollOffset) {
+            state.dropdownScrollOffset = state.dropdownHighlightedIndex;
+        } else if (state.dropdownHighlightedIndex >=
+                   state.dropdownScrollOffset + visibleCount) {
+            state.dropdownScrollOffset =
+                state.dropdownHighlightedIndex - visibleCount + 1;
+        }
+
+        state.dropdownScrollOffset = std::min(
+            state.dropdownScrollOffset, state.dropdownOptionCount - visibleCount);
     }
 } // namespace Bess::Canvas::SceneWidgets::Detail

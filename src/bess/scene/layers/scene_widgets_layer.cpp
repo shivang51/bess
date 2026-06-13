@@ -16,6 +16,7 @@ namespace Bess::Canvas {
         case SceneEvent::Type::textInput:
             return handleKey(evt, ctx);
         case SceneEvent::Type::mouseWheel:
+            return handleMouseWheel(evt, ctx);
         case SceneEvent::Type::none:
             return EventResult::Ignored;
         }
@@ -25,6 +26,15 @@ namespace Bess::Canvas {
 
     EventResult SceneWidgetsLayer::handleMouseMove(SceneEvent &evt,
                                                    SceneEventContext &ctx) {
+        if (SceneWidgets::hasPointerCapture(ctx.sceneState)) {
+            SceneWidgets::queuePointerMove(ctx.sceneState,
+                                           evt.data.mouseMove.pos);
+            if (ctx.inputState) {
+                ctx.inputState->cursor = SceneCursor::pointer;
+            }
+            return EventResult::Consumed;
+        }
+
         const bool isWidget =
             SceneWidgets::contains(ctx.sceneState, evt.pickingId);
         if (isWidget) {
@@ -66,7 +76,8 @@ namespace Bess::Canvas {
         if (data.action == MouseButtonAction::press ||
             data.action == MouseButtonAction::doubleClick) {
             if (isWidget) {
-                SceneWidgets::queuePress(ctx.sceneState, evt.pickingId);
+                SceneWidgets::queuePress(ctx.sceneState, evt.pickingId,
+                                         data.pos);
                 return EventResult::Consumed;
             }
 
@@ -76,12 +87,20 @@ namespace Bess::Canvas {
 
         if (data.action == MouseButtonAction::release) {
             if (SceneWidgets::hasPointerCapture(ctx.sceneState)) {
-                SceneWidgets::queueRelease(ctx.sceneState, evt.pickingId);
+                SceneWidgets::queueRelease(ctx.sceneState, evt.pickingId,
+                                           data.pos);
                 return EventResult::Consumed;
             }
         }
 
         return EventResult::Ignored;
+    }
+
+    EventResult SceneWidgetsLayer::handleMouseWheel(SceneEvent &evt,
+                                                    SceneEventContext &ctx) {
+        return SceneWidgets::queueWheel(ctx.sceneState, evt)
+                   ? EventResult::Consumed
+                   : EventResult::Ignored;
     }
 
     EventResult SceneWidgetsLayer::handleKey(SceneEvent &evt,

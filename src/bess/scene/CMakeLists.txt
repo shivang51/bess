@@ -42,6 +42,8 @@ set(Source_Files
 	"widgets/scene_widgets_input.cpp"
 	"widgets/scene_widgets_controls.cpp"
 	"widgets/scene_widgets_text_box.cpp"
+	"widgets/scene_widgets_slider.cpp"
+	"widgets/scene_widgets_dropdown.cpp"
 	"scene.cpp"
 	"camera.cpp"
 	"schematic_diagram.cpp"

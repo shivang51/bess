@@ -15,7 +15,10 @@
 #define WIDGETS_TEST_SER_PROPS                                                 \
     ("toggleValue", getToggleValue, setToggleValue),                           \
         ("textValue", getTextValue, setTextValue),                             \
-        ("buttonClicks", getButtonClicks, setButtonClicks)
+        ("buttonClicks", getButtonClicks, setButtonClicks),                    \
+        ("sliderValue", getSliderValue, setSliderValue),                       \
+        ("intSliderValue", getIntSliderValue, setIntSliderValue),              \
+        ("dropdownIndex", getDropdownIndex, setDropdownIndex)
 
 namespace Bess::Canvas {
     class NonSimSceneComponent : public SceneComponent,
@@ -112,6 +115,9 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(bool, ToggleValue, m_toggleValue)
         MAKE_GETTER_SETTER(std::string, TextValue, m_textValue)
         MAKE_GETTER_SETTER(int, ButtonClicks, m_buttonClicks)
+        MAKE_GETTER_SETTER(float, SliderValue, m_sliderValue)
+        MAKE_GETTER_SETTER(int, IntSliderValue, m_intSliderValue)
+        MAKE_GETTER_SETTER(int, DropdownIndex, m_dropdownIndex)
 
       private:
         glm::vec2 calculateScale(const SceneState &state) override;
@@ -120,6 +126,9 @@ namespace Bess::Canvas {
         bool m_toggleValue = false;
         std::string m_textValue = "edit me";
         int m_buttonClicks = 0;
+        float m_sliderValue = 0.35f;
+        int m_intSliderValue = 6;
+        int m_dropdownIndex = 1;
     };
 
 } // namespace Bess::Canvas

@@ -21,6 +21,7 @@ namespace Bess::Canvas {
       private:
         EventResult handleMouseMove(SceneEvent &evt, SceneEventContext &ctx);
         EventResult handleMouseButton(SceneEvent &evt, SceneEventContext &ctx);
+        EventResult handleMouseWheel(SceneEvent &evt, SceneEventContext &ctx);
         EventResult handleKey(SceneEvent &evt, SceneEventContext &ctx);
 
       private:

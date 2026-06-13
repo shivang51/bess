@@ -9,7 +9,9 @@
 #include "scene_draw_context.h"
 #include "settings/viewport_theme.h"
 #include "widgets/m_widgets.h"
+#include <array>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 namespace Bess::Canvas {
@@ -161,7 +163,7 @@ namespace Bess::Canvas {
 
     glm::vec2 WidgetsTestComponent::calculateScale(const SceneState &state) {
         (void)state;
-        return {190.f, 94.f};
+        return {230.f, 174.f};
     }
 
     void WidgetsTestComponent::draw(SceneDrawContext &context) {
@@ -225,7 +227,54 @@ namespace Bess::Canvas {
             .cursorColor = ViewportTheme::colors.text,
         };
         SceneWidgets::textBox(PickingId{m_runtimeId, 3}, &m_textValue,
-                              {left + 133.f, top + 58.f, z + 0.001f},
-                              {88.f, 18.f}, context, textBoxOptions);
+                              {left + 160.f, top + 58.f, z + 0.001f},
+                              {100.f, 18.f}, context, textBoxOptions);
+
+        SceneDraw::drawText(context, "Level",
+                            {left, top + 87.f, z + 0.001f}, labelSize,
+                            ViewportTheme::colors.text, backgroundId);
+        SceneWidgets::SliderOptions sliderOptions{
+            .step = 0.01f,
+            .precision = 2,
+            .fontSize = 8.f,
+            .trackHeight = 4.f,
+            .knobRadius = 5.f,
+            .focusedBorderColor = ViewportTheme::colors.selectedComp,
+            .textColor = ViewportTheme::colors.text,
+        };
+        SceneWidgets::sliderFloat(PickingId{m_runtimeId, 4}, &m_sliderValue,
+                                  0.f, 1.f,
+                                  {left + 136.f, top + 86.f, z + 0.001f},
+                                  {168.f, 20.f}, context, sliderOptions);
+
+        SceneDraw::drawText(context, "Steps",
+                            {left, top + 113.f, z + 0.001f}, labelSize,
+                            ViewportTheme::colors.text, backgroundId);
+        SceneWidgets::SliderOptions intSliderOptions = sliderOptions;
+        intSliderOptions.step = 1.f;
+        intSliderOptions.precision = 0;
+        SceneWidgets::sliderInt(PickingId{m_runtimeId, 5}, &m_intSliderValue,
+                                0, 12,
+                                {left + 136.f, top + 112.f, z + 0.001f},
+                                {168.f, 20.f}, context, intSliderOptions);
+
+        static constexpr std::array<std::string_view, 5> modeItems{
+            "Inspect", "Edit", "Route", "Measure", "Debug"};
+        SceneDraw::drawText(context, "Mode",
+                            {left, top + 140.f, z + 0.001f}, labelSize,
+                            ViewportTheme::colors.text, backgroundId);
+        SceneWidgets::DropdownOptions dropdownOptions{
+            .placeholder = "Mode",
+            .fontSize = 8.f,
+            .optionHeight = 18.f,
+            .maxVisibleOptions = 5,
+            .borderColor = ViewportTheme::colors.componentBorder,
+            .focusedBorderColor = ViewportTheme::colors.selectedComp,
+            .textColor = ViewportTheme::colors.text,
+        };
+        SceneWidgets::dropdown(PickingId{m_runtimeId, 6}, &m_dropdownIndex,
+                               modeItems,
+                               {left + 136.f, top + 138.f, z + 0.001f},
+                               {168.f, 20.f}, context, dropdownOptions);
     }
 } // namespace Bess::Canvas

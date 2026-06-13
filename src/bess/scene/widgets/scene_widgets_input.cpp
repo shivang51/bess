@@ -83,6 +83,7 @@ namespace Bess::Canvas::SceneWidgets::Detail {
             }
             return cursor;
         }
+
     } // namespace
 
     bool handleTextInputKey(WidgetState &state, const SceneEvent &evt) {
@@ -175,6 +176,126 @@ namespace Bess::Canvas::SceneWidgets::Detail {
         markTextChanged(state);
         return true;
     }
+
+    bool handleSliderKey(WidgetState &state, const SceneEvent &evt) {
+        if (evt.type != SceneEvent::Type::key) {
+            return false;
+        }
+
+        const auto &data = evt.data.keyPress;
+        if (data.action != KeyAction::press &&
+            data.action != KeyAction::hold) {
+            return false;
+        }
+
+        switch (data.keycode) {
+        case KeyCode::arrowLeft:
+        case KeyCode::arrowDown:
+            --state.sliderKeyboardDelta;
+            return true;
+        case KeyCode::arrowRight:
+        case KeyCode::arrowUp:
+            ++state.sliderKeyboardDelta;
+            return true;
+        case KeyCode::pageDown:
+            state.sliderKeyboardDelta -= 10;
+            return true;
+        case KeyCode::pageUp:
+            state.sliderKeyboardDelta += 10;
+            return true;
+        case KeyCode::home:
+            state.sliderSetToMin = true;
+            return true;
+        case KeyCode::end:
+            state.sliderSetToMax = true;
+            return true;
+        case KeyCode::escape:
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    bool handleDropdownKey(SceneWidgetsState &widgetsState,
+                           WidgetState &state, const SceneEvent &evt) {
+        if (evt.type != SceneEvent::Type::key) {
+            return false;
+        }
+
+        const auto &data = evt.data.keyPress;
+        if (data.action != KeyAction::press &&
+            data.action != KeyAction::hold) {
+            return false;
+        }
+
+        auto openDropdown = [&]() {
+            if (!state.dropdownOpen) {
+                state.dropdownOpen = true;
+                state.dropdownOpened = true;
+                closeDropdowns(widgetsState, widgetsState.focusedWidgetId);
+            }
+            ensureDropdownHighlightVisible(state);
+        };
+
+        auto moveHighlight = [&](int delta) {
+            if (state.dropdownOptionCount == 0) {
+                return;
+            }
+
+            const auto count =
+                static_cast<int>(state.dropdownOptionCount);
+            auto next =
+                static_cast<int>(state.dropdownHighlightedIndex) + delta;
+            next = ((next % count) + count) % count;
+            state.dropdownHighlightedIndex = static_cast<size_t>(next);
+            ensureDropdownHighlightVisible(state);
+        };
+
+        switch (data.keycode) {
+        case KeyCode::space:
+        case KeyCode::enter:
+            if (state.dropdownOpen) {
+                if (state.dropdownOptionCount > 0) {
+                    state.pendingDropdownSelection =
+                        static_cast<int>(state.dropdownHighlightedIndex);
+                }
+                state.dropdownOpen = false;
+                state.dropdownClosed = true;
+            } else {
+                openDropdown();
+            }
+            return true;
+        case KeyCode::arrowDown:
+            openDropdown();
+            moveHighlight(1);
+            return true;
+        case KeyCode::arrowUp:
+            openDropdown();
+            moveHighlight(-1);
+            return true;
+        case KeyCode::home:
+            openDropdown();
+            state.dropdownHighlightedIndex = 0;
+            ensureDropdownHighlightVisible(state);
+            return true;
+        case KeyCode::end:
+            openDropdown();
+            if (state.dropdownOptionCount > 0) {
+                state.dropdownHighlightedIndex =
+                    state.dropdownOptionCount - 1;
+            }
+            ensureDropdownHighlightVisible(state);
+            return true;
+        case KeyCode::escape:
+            if (state.dropdownOpen) {
+                state.dropdownOpen = false;
+                state.dropdownClosed = true;
+            }
+            return true;
+        default:
+            return false;
+        }
+    }
 } // namespace Bess::Canvas::SceneWidgets::Detail
 
 namespace Bess::Canvas::SceneWidgets {
@@ -213,6 +334,13 @@ namespace Bess::Canvas::SceneWidgets {
             widget.textSubmitted = false;
             widget.textCanceled = false;
             widget.focusStarted = false;
+            widget.pointerInputQueued = false;
+            widget.sliderKeyboardDelta = 0;
+            widget.sliderSetToMin = false;
+            widget.sliderSetToMax = false;
+            widget.dropdownOpened = false;
+            widget.dropdownClosed = false;
+            widget.pendingDropdownSelection = -1;
             ++it;
         }
     }
@@ -257,9 +385,14 @@ namespace Bess::Canvas::SceneWidgets {
 
                 const auto it = widgetsState.widgetStates.find(
                     widgetsState.focusedWidgetId);
-                return it != widgetsState.widgetStates.end() &&
-                       it->second.type ==
-                           Detail::WidgetState::Type::textInput;
+                if (it == widgetsState.widgetStates.end()) {
+                    return false;
+                }
+
+                const auto &widget = it->second;
+                return widget.type == Detail::WidgetState::Type::textInput ||
+                       widget.type == Detail::WidgetState::Type::slider ||
+                       widget.type == Detail::WidgetState::Type::dropdown;
             };
 
         if (sceneState != nullptr) {
@@ -276,7 +409,25 @@ namespace Bess::Canvas::SceneWidgets {
         return false;
     }
 
-    void queuePress(SceneState *sceneState, const PickingId &id) {
+    void queuePointerMove(SceneState *sceneState, const glm::vec2 &pos) {
+        auto widgetsState = Detail::findSceneState(sceneState);
+        if (widgetsState == nullptr ||
+            widgetsState->pressedWidgetId == Detail::kInvalidWidgetId) {
+            return;
+        }
+
+        auto pressed = widgetsState->widgetStates.find(
+            widgetsState->pressedWidgetId);
+        if (pressed == widgetsState->widgetStates.end()) {
+            return;
+        }
+
+        pressed->second.pointerPos = pos;
+        pressed->second.pointerInputQueued = true;
+    }
+
+    void queuePress(SceneState *sceneState, const PickingId &id,
+                    const glm::vec2 &pos) {
         auto widgetsState = Detail::findSceneState(sceneState);
         if (widgetsState == nullptr) {
             BESS_WARN("[SceneWidgets] Trying to press widget before scene "
@@ -292,15 +443,38 @@ namespace Bess::Canvas::SceneWidgets {
 
         widgetsState->pressedWidgetId = id.toUint64();
         widget->isPressed = true;
+        widget->pointerPos = pos;
+        widget->pointerInputQueued = true;
 
-        if (widget->type == Detail::WidgetState::Type::textInput) {
+        if (widget->type == Detail::WidgetState::Type::dropdownOption) {
+            Detail::closeDropdowns(*widgetsState, widget->ownerWidgetId);
+            if (widget->ownerWidgetId != Detail::kInvalidWidgetId) {
+                Detail::focusWidget(
+                    *widgetsState,
+                    PickingId::fromUint64(widget->ownerWidgetId));
+            }
+            return;
+        }
+
+        const uint64_t keepOpenWidgetId =
+            widget->type == Detail::WidgetState::Type::dropdown
+                ? id.toUint64()
+                : Detail::kInvalidWidgetId;
+        Detail::closeDropdowns(*widgetsState, keepOpenWidgetId);
+
+        const bool keyboardFocusable =
+            widget->type == Detail::WidgetState::Type::textInput ||
+            widget->type == Detail::WidgetState::Type::slider ||
+            widget->type == Detail::WidgetState::Type::dropdown;
+        if (keyboardFocusable) {
             Detail::focusWidget(*widgetsState, id);
         } else {
             Detail::clearFocusState(*widgetsState);
         }
     }
 
-    void queueRelease(SceneState *sceneState, const PickingId &id) {
+    void queueRelease(SceneState *sceneState, const PickingId &id,
+                      const glm::vec2 &pos) {
         auto widgetsState = Detail::findSceneState(sceneState);
         if (widgetsState == nullptr) {
             return;
@@ -314,6 +488,8 @@ namespace Bess::Canvas::SceneWidgets {
         if (auto pressed = widgetsState->widgetStates.find(pressedWidgetId);
             pressed != widgetsState->widgetStates.end()) {
             pressed->second.isPressed = false;
+            pressed->second.pointerPos = pos;
+            pressed->second.pointerInputQueued = true;
         }
 
         widgetsState->pressedWidgetId = Detail::kInvalidWidgetId;
@@ -355,25 +531,91 @@ namespace Bess::Canvas::SceneWidgets {
 
         auto state =
             widgetsState->widgetStates.find(widgetsState->focusedWidgetId);
-        if (state == widgetsState->widgetStates.end() ||
-            state->second.type != Detail::WidgetState::Type::textInput) {
+        if (state == widgetsState->widgetStates.end()) {
             return false;
         }
 
-        const bool handled =
-            evt.type == SceneEvent::Type::key
-                ? Detail::handleTextInputKey(state->second, evt)
-                : Detail::handleTextInputCodepoint(
-                      state->second, evt.data.textInput.codepoint);
-        if (state->second.textSubmitted || state->second.textCanceled) {
-            Detail::clearFocusState(*widgetsState);
+        bool handled = false;
+        switch (state->second.type) {
+        case Detail::WidgetState::Type::textInput:
+            handled = evt.type == SceneEvent::Type::key
+                          ? Detail::handleTextInputKey(state->second, evt)
+                          : Detail::handleTextInputCodepoint(
+                                state->second, evt.data.textInput.codepoint);
+            if (state->second.textSubmitted || state->second.textCanceled) {
+                Detail::clearFocusState(*widgetsState);
+            }
+            return handled;
+        case Detail::WidgetState::Type::slider:
+            if (evt.type == SceneEvent::Type::key &&
+                evt.data.keyPress.keycode == KeyCode::escape) {
+                Detail::clearFocusState(*widgetsState);
+                return true;
+            }
+            return Detail::handleSliderKey(state->second, evt);
+        case Detail::WidgetState::Type::dropdown:
+            handled = Detail::handleDropdownKey(*widgetsState, state->second,
+                                                evt);
+            if (evt.type == SceneEvent::Type::key &&
+                evt.data.keyPress.keycode == KeyCode::escape &&
+                !state->second.dropdownOpen) {
+                Detail::clearFocusState(*widgetsState);
+            }
+            return handled;
+        case Detail::WidgetState::Type::unknown:
+        case Detail::WidgetState::Type::toggleButton:
+        case Detail::WidgetState::Type::button:
+        case Detail::WidgetState::Type::dropdownOption:
+            return false;
         }
-        return handled;
+
+        return false;
+    }
+
+    bool queueWheel(SceneState *sceneState, const SceneEvent &evt) {
+        if (evt.type != SceneEvent::Type::mouseWheel) {
+            return false;
+        }
+
+        auto widgetsState = Detail::findSceneState(sceneState);
+        if (widgetsState == nullptr) {
+            return false;
+        }
+
+        auto widget = Detail::getWidgetState(*widgetsState, evt.pickingId);
+        if (widget == nullptr) {
+            return false;
+        }
+
+        if (widget->type == Detail::WidgetState::Type::dropdownOption &&
+            widget->ownerWidgetId != Detail::kInvalidWidgetId) {
+            widget = Detail::getWidgetState(
+                *widgetsState,
+                PickingId::fromUint64(widget->ownerWidgetId));
+        }
+
+        if (widget == nullptr ||
+            widget->type != Detail::WidgetState::Type::dropdown ||
+            !widget->dropdownOpen || widget->dropdownOptionCount == 0 ||
+            widget->dropdownMaxVisibleOptions == 0 ||
+            widget->dropdownOptionCount <= widget->dropdownMaxVisibleOptions) {
+            return false;
+        }
+
+        const int delta = evt.data.mouseWheel.delta.y > 0.f ? -1 : 1;
+        const auto maxOffset = widget->dropdownOptionCount -
+                               widget->dropdownMaxVisibleOptions;
+        const int nextOffset =
+            std::clamp(static_cast<int>(widget->dropdownScrollOffset) + delta,
+                       0, static_cast<int>(maxOffset));
+        widget->dropdownScrollOffset = static_cast<size_t>(nextOffset);
+        return true;
     }
 
     void clearFocus(SceneState *sceneState) {
         auto widgetsState = Detail::findSceneState(sceneState);
         if (widgetsState != nullptr) {
+            Detail::closeDropdowns(*widgetsState);
             Detail::clearFocusState(*widgetsState);
         }
     }
