@@ -6,34 +6,20 @@
 #include "scene/scene_draw_helpers.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
-#include "scene/scene_widgets.h"
+#include "scene/widgets/scene_widgets.h"
 #include "scene_draw_context.h"
 #include "settings/viewport_theme.h"
 #include "sim_scene_component.h"
 #include "simulation_engine.h"
-#include <string_view>
 
 namespace Bess::Canvas {
     namespace {
         bool makeAllLow = false;
 
-        bool parseBinaryValue(std::string_view text, bool &value) {
-            if (text == "0") {
-                value = false;
-                return true;
-            }
-
-            if (text == "1") {
-                value = true;
-                return true;
-            }
-
-            return false;
-        }
-
-        bool setOutputSlotState(
-            const SceneState &state,
-            const std::shared_ptr<SlotSceneComponent> &slotComp, bool isHigh) {
+        bool
+        setOutputSlotState(const SceneState &state,
+                           const std::shared_ptr<SlotSceneComponent> &slotComp,
+                           bool isHigh) {
             const auto slotParentComp =
                 state.getComponentByUuid<SimulationSceneComponent>(
                     slotComp->getParentComponent());
@@ -48,13 +34,13 @@ namespace Bess::Canvas {
             }
 
             auto &simEngine = projectCtx->getSimEngine();
-            simEngine.setOutputSlotState(
-                slotParentComp->getSimEngineId(), slotComp->getIndex(),
-                isHigh ? SimEngine::LogicState::high
-                       : SimEngine::LogicState::low);
+            simEngine.setOutputSlotState(slotParentComp->getSimEngineId(),
+                                         slotComp->getIndex(),
+                                         isHigh ? SimEngine::LogicState::high
+                                                : SimEngine::LogicState::low);
             return true;
         }
-    }
+    } // namespace
 
     InputSceneComponent::InputSceneComponent() {
         m_icon = UI::Icons::FontAwesomeIcons::FA_TOGGLE_OFF;
@@ -142,7 +128,7 @@ namespace Bess::Canvas {
             Styles::simCompStyles.paddingX + (buttonSize.x / 2.f);
 
         const glm::vec3 buttonPos =
-            glm::vec3(buttonPosX, slotPosY, m_transform.position.z + 0.001f);
+            glm::vec3(buttonPosX, slotPosY, m_transform.position.z + 0.0001f);
 
         const auto pickingId =
             PickingId{m_runtimeId, static_cast<uint32_t>(buttonIndex + 1)};
@@ -165,41 +151,19 @@ namespace Bess::Canvas {
             setOutputSlotState(state, slotComp, nextValue);
         }
 
-        std::string valueText = nextValue ? "1" : "0";
-        constexpr float valueBoxWidth = 18.f;
-        const glm::vec2 valueBoxSize = {valueBoxWidth, buttonSize.y};
-        const glm::vec3 valueBoxPos = {
-            buttonPos.x + (buttonSize.x / 2.f) + 5.f + (valueBoxWidth / 2.f),
-            slotPosY,
-            m_transform.position.z + 0.001f,
-        };
-        const auto textBoxId = PickingId{
-            m_runtimeId,
-            static_cast<uint32_t>(0x10000u + buttonIndex + 1),
-        };
+        const std::string label = nextValue ? "1" : "0";
+        const auto textSize = context.renderer->measureText(
+            label, {.fontSize = Styles::simCompStyles.slotLabelSize});
 
-        const SceneWidgets::TextBoxOptions textBoxOptions{
-            .maxLength = 1,
-            .fontSize = Styles::simCompStyles.slotLabelSize,
-            .padding = {5.f, 1.f},
-            .backgroundColor = Core::Renderer::Colors::slate900,
-            .hoverBackgroundColor = Core::Renderer::Colors::slate700,
-            .focusedBackgroundColor = Core::Renderer::Colors::slate900,
-            .borderColor = ViewportTheme::colors.componentBorder,
-            .focusedBorderColor = ViewportTheme::colors.selectedComp,
-            .textColor = ViewportTheme::colors.text,
-            .placeholderColor = Core::Renderer::Colors::slate500,
-            .cursorColor = ViewportTheme::colors.text,
-        };
+        const float textPosX = buttonPos.x + (buttonSize.x / 2.f) + 8.f;
+        const float textOffY = context.renderer->textCenterOffsetY(
+            label, {.fontSize = Styles::simCompStyles.slotLabelSize});
+        const glm::vec3 textPos = glm::vec3(textPosX, slotPosY + textOffY,
+                                            m_transform.position.z + 0.0001f);
 
-        const auto textResult =
-            SceneWidgets::textBox(textBoxId, &valueText, valueBoxPos,
-                                  valueBoxSize, context, textBoxOptions);
-        bool parsedValue = nextValue;
-        if (textResult.changed && parseBinaryValue(valueText, parsedValue) &&
-            parsedValue != nextValue) {
-            setOutputSlotState(state, slotComp, parsedValue);
-        }
+        SceneDraw::drawText(
+            context, label, textPos, Styles::simCompStyles.slotLabelSize,
+            ViewportTheme::colors.text, PickingId{m_runtimeId, 0});
     }
 
     void InputSceneComponent::calculateSchematicScale(const SceneState &state) {

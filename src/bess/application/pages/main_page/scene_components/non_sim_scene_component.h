@@ -12,6 +12,11 @@
         ("foregroundColor", getForegroundColor, setForegroundColor),           \
         ("size", getSize, setSize)
 
+#define WIDGETS_TEST_SER_PROPS                                                 \
+    ("toggleValue", getToggleValue, setToggleValue),                           \
+        ("textValue", getTextValue, setTextValue),                             \
+        ("buttonClicks", getButtonClicks, setButtonClicks)
+
 namespace Bess::Canvas {
     class NonSimSceneComponent : public SceneComponent,
                                  public DragBehaviour<NonSimSceneComponent> {
@@ -85,6 +90,38 @@ namespace Bess::Canvas {
         bool m_isScaleDirty = true;
     };
 
+    class WidgetsTestComponent : public NonSimSceneComponent {
+      public:
+        WidgetsTestComponent();
+
+        REG_SCENE_COMP_TYPE("WidgetsTestComponent",
+                            SceneComponentType::nonSimulation)
+        SCENE_COMP_SER(Bess::Canvas::WidgetsTestComponent,
+                       Bess::Canvas::NonSimSceneComponent,
+                       WIDGETS_TEST_SER_PROPS)
+
+        std::vector<std::shared_ptr<SceneComponent>>
+        clone(const SceneState &sceneState) const override;
+
+        void draw(SceneDrawContext &context) override;
+
+        std::type_index getTypeIndex() override {
+            return typeid(WidgetsTestComponent);
+        }
+
+        MAKE_GETTER_SETTER(bool, ToggleValue, m_toggleValue)
+        MAKE_GETTER_SETTER(std::string, TextValue, m_textValue)
+        MAKE_GETTER_SETTER(int, ButtonClicks, m_buttonClicks)
+
+      private:
+        glm::vec2 calculateScale(const SceneState &state) override;
+
+      private:
+        bool m_toggleValue = false;
+        std::string m_textValue = "edit me";
+        int m_buttonClicks = 0;
+    };
+
 } // namespace Bess::Canvas
 
 REG_SCENE_COMP_NP(Bess::Canvas::NonSimSceneComponent,
@@ -92,3 +129,7 @@ REG_SCENE_COMP_NP(Bess::Canvas::NonSimSceneComponent,
 
 REFLECT_DERIVED_PROPS(Bess::Canvas::TextComponent,
                       Bess::Canvas::NonSimSceneComponent, TEXT_SER_PROPS);
+
+REFLECT_DERIVED_PROPS(Bess::Canvas::WidgetsTestComponent,
+                      Bess::Canvas::NonSimSceneComponent,
+                      WIDGETS_TEST_SER_PROPS);

@@ -10,7 +10,7 @@
 #include "scene/scene_event_builder.h"
 #include "scene/scene_events.h"
 #include "scene/scene_state/components/scene_component.h"
-#include "scene/scene_widgets.h"
+#include "scene/widgets/scene_widgets.h"
 #include "scene_event.h"
 #include "scene_layer.h"
 #include "sub_systems/input_sub_system.h"

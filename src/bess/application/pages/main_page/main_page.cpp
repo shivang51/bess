@@ -24,7 +24,7 @@
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "plugin_manager.h"
 #include "scene_ser_reg.h"
-#include "scene/scene_widgets.h"
+#include "scene/widgets/scene_widgets.h"
 #include "sub_systems/input_sub_system.h"
 #include "sub_systems/input_sub_system_types.h"
 #include "ui/ui.h"
@@ -60,6 +60,8 @@ namespace Bess::Pages {
         Canvas::NonSimSceneComponent::registerComponent<Canvas::TextComponent>(
             "Text Component");
         Canvas::NonSimSceneComponent::registerComponent<
+            Canvas::WidgetsTestComponent>("Widgets Test");
+        Canvas::NonSimSceneComponent::registerComponent<
             Canvas::SlotProbeSceneComponent>("Probe");
 
         REG_TO_SER_REGISTRY(Canvas::ConnJointSceneComp);
@@ -70,6 +72,7 @@ namespace Bess::Pages {
         REG_TO_SER_REGISTRY(Canvas::SimulationSceneComponent);
         REG_TO_SER_REGISTRY(Canvas::SlotSceneComponent);
         REG_TO_SER_REGISTRY(Canvas::TextComponent);
+        REG_TO_SER_REGISTRY(Canvas::WidgetsTestComponent);
         REG_TO_SER_REGISTRY(Canvas::SlotProbeSceneComponent);
         REG_TO_SER_REGISTRY(Canvas::ModuleSceneComponent);
 

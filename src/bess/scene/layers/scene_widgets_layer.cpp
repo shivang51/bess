@@ -1,6 +1,6 @@
 #include "scene_widgets_layer.h"
 #include "common/types.h"
-#include "scene/scene_widgets.h"
+#include "scene/widgets/scene_widgets.h"
 #include "scene_event.h"
 #include "scene_types.h"
 

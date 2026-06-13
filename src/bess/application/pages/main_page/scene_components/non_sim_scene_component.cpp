@@ -5,6 +5,7 @@
 #include "icons/FontAwesomeIcons.h"
 #include "scene/scene_draw_helpers.h"
 #include "scene/scene_state/components/styles/comp_style.h"
+#include "scene/widgets/scene_widgets.h"
 #include "scene_draw_context.h"
 #include "settings/viewport_theme.h"
 #include "widgets/m_widgets.h"
@@ -139,5 +140,92 @@ namespace Bess::Canvas {
             ImGui::ColorEdit4("Color", glm::value_ptr(m_foregroundColor));
             ImGui::TreePop();
         }
+    }
+
+    WidgetsTestComponent::WidgetsTestComponent() {
+        m_name = "Widgets Test";
+        m_icon = UI::Icons::FontAwesomeIcons::FA_FLASK;
+        m_style.color = ViewportTheme::colors.componentBG;
+        m_style.borderColor = ViewportTheme::colors.componentBorder;
+        m_style.borderRadius = glm::vec4(5.f);
+        m_style.borderSize = glm::vec4(1.f);
+    }
+
+    std::vector<std::shared_ptr<SceneComponent>>
+    WidgetsTestComponent::clone(const SceneState &sceneState) const {
+        (void)sceneState;
+        auto clonedComponent = std::make_shared<WidgetsTestComponent>(*this);
+        prepareClone(*clonedComponent);
+        return {clonedComponent};
+    }
+
+    glm::vec2 WidgetsTestComponent::calculateScale(const SceneState &state) {
+        (void)state;
+        return {190.f, 94.f};
+    }
+
+    void WidgetsTestComponent::draw(SceneDrawContext &context) {
+        if (m_isFirstDraw) {
+            onFirstDraw(context);
+        }
+
+        const auto backgroundId = PickingId{m_runtimeId, 0};
+        const auto pos = getAbsolutePosition(*context.sceneState);
+        const auto z = pos.z;
+
+        SceneDraw::QuadStyle backgroundStyle{
+            .borderColor = m_isSelected ? ViewportTheme::colors.selectedComp
+                                        : m_style.borderColor,
+            .borderRadius = m_style.borderRadius,
+            .borderSize = m_style.borderSize,
+        };
+        backgroundStyle.shadow.enabled = true;
+        backgroundStyle.shadow.offset = {0.f, 4.f};
+        backgroundStyle.shadow.blur = 12.f;
+        backgroundStyle.shadow.spread = 1.f;
+        backgroundStyle.shadow.color =
+            Core::Renderer::Color{0.f, 0.f, 0.f, 0.30f};
+
+        SceneDraw::drawQuad(context, pos, m_transform.scale, m_style.color,
+                            backgroundId, backgroundStyle);
+
+        const float left = pos.x - (m_transform.scale.x / 2.f) + 10.f;
+        const float top = pos.y - (m_transform.scale.y / 2.f) + 10.f;
+        constexpr float labelSize = 9.f;
+
+        SceneDraw::drawText(context, "Widgets Test", {left, top + 6.f, z + 0.001f},
+                            labelSize, ViewportTheme::colors.text,
+                            backgroundId);
+
+        const glm::vec3 togglePos{left + 22.f, top + 32.f, z + 0.001f};
+        SceneWidgets::toggleButton(PickingId{m_runtimeId, 1}, &m_toggleValue,
+                                   togglePos, {34.f, 16.f}, context);
+        SceneDraw::drawText(
+            context, m_toggleValue ? "Toggle: on" : "Toggle: off",
+            {left + 48.f, top + 35.f, z + 0.001f}, labelSize,
+            ViewportTheme::colors.text, backgroundId);
+
+        const std::string buttonLabel =
+            std::string("Clicks: ") + std::to_string(m_buttonClicks);
+        if (SceneWidgets::button(PickingId{m_runtimeId, 2}, buttonLabel,
+                                 {left + 52.f, top + 58.f, z + 0.001f},
+                                 {84.f, 18.f},
+                                 Core::Renderer::Colors::slate100, context)) {
+            ++m_buttonClicks;
+        }
+
+        SceneWidgets::TextBoxOptions textBoxOptions{
+            .placeholder = "type here",
+            .maxLength = 48,
+            .fontSize = 8.f,
+            .padding = {5.f, 2.f},
+            .borderColor = ViewportTheme::colors.componentBorder,
+            .focusedBorderColor = ViewportTheme::colors.selectedComp,
+            .textColor = ViewportTheme::colors.text,
+            .cursorColor = ViewportTheme::colors.text,
+        };
+        SceneWidgets::textBox(PickingId{m_runtimeId, 3}, &m_textValue,
+                              {left + 133.f, top + 58.f, z + 0.001f},
+                              {88.f, 18.f}, context, textBoxOptions);
     }
 } // namespace Bess::Canvas
