@@ -23,6 +23,7 @@ namespace Bess::Canvas {
             struct MouseMoveData {
                 glm::vec2 pos;
                 glm::vec2 delta;
+                glm::vec2 viewportPos;
             } mouseMove, mouseWheel;
 
             struct MouseButtonData {

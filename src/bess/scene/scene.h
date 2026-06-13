@@ -6,38 +6,12 @@
 #include "scene/scene_events.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/scene_state.h"
+#include "scene/scene_types.h"
 #include "scene_layer.h"
 #include "sim_driver/sim_driver.h"
 #include <memory>
 
 namespace Bess::Canvas {
-
-    // Need to contain the size and pos of the UI viewport in which
-    // scene is rendered, so that mouse coordinates can be transformed correctly
-    struct ViewportTransform {
-        glm::vec2 pos;
-        glm::vec2 size;
-    };
-
-    enum class SceneMode : uint8_t {
-        general,
-    };
-
-    enum class SceneDrawMode : uint8_t {
-        none,
-        connection,
-    };
-
-    struct SelBoxContext {
-        glm::vec2 start;
-        glm::vec2 end;
-        bool draw = false;    // to draw sel box
-        bool readIds = false; // to read the picking ids
-        bool queueSelInNextFrame =
-            false; // to queue sel in next frame, needed to avoid sel box
-        bool queueForSel =
-            false; // to queue reading of ids from picking attachment
-    };
 
     class Scene {
       public:
@@ -57,6 +31,8 @@ namespace Bess::Canvas {
 
         MAKE_GETTER_SETTER(std::shared_ptr<Camera>, Camera, m_camera)
         MAKE_GETTER_SETTER(SelBoxContext, SelBoxContext, m_selBoxContext)
+        MAKE_GETTER(PickingReadbackRequest, PickingReadbackRequest,
+                    m_pickingReadbackRequest)
         MAKE_GETTER_SETTER(bool, IsFirstFrame, m_isFirstFrame)
         MAKE_GETTER_SETTER_BC_AC(PickingId, PickingId, m_pickingId,
                                  onPrePickingIdChange, onPickingIdChange)
@@ -106,25 +82,20 @@ namespace Bess::Canvas {
         MAKE_GETTER(bool, IsLeftMousePressed, m_isLeftMousePressed);
         MAKE_GETTER(bool, IsMiddleMousePressed, m_isMiddleMousePressed);
         void processEvents();
+        bool dispatchEvent(SceneEvent &evt);
 
         void onLeftMouse(bool isPressed);
         void onRightMouse(bool isPressed);
         void onMiddleMouse(bool isPressed);
         void onMouseMove(const glm::vec2 &pos);
+        void applySelectionReadback(const std::vector<PickingId> &ids);
+        void clearPickingReadbackRequest();
 
       private:
         void onPrePickingIdChange(const PickingId &newId);
         void onPickingIdChange();
 
-        bool isCursorInViewport(const glm::vec2 &pos) const;
         glm::vec2 getViewportMousePos(const glm::vec2 &mousePos) const;
-
-        void onLeftDoubleClick();
-        void onMouseWheel(double x, double y);
-
-        glm::vec2 viewportToWinPos(const glm::vec2 &viewportPos) const;
-
-        glm::vec2 getSnappedPos(const glm::vec2 &pos) const;
 
       private:
         glm::vec2 m_size, m_mousePos, m_dMousePos;
@@ -141,13 +112,13 @@ namespace Bess::Canvas {
 
         // selection box
         SelBoxContext m_selBoxContext;
+        PickingReadbackRequest m_pickingReadbackRequest;
 
         bool m_isDragging = false;
         SceneDrawMode m_drawMode = SceneDrawMode::none;
         SceneMode m_sceneMode = SceneMode::general;
 
         static constexpr float m_zIncrement = 0.001f;
-        static constexpr float snapSize = 2.f;
         float m_compZCoord = m_zIncrement;
 
         TimeMs m_frameTimeStep = {};

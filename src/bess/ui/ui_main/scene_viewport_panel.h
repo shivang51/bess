@@ -5,18 +5,10 @@
 #include "events/application_event.h"
 #include "imgui.h"
 #include "scene.h"
-#include "scene/scene_draw_context.h"
 #include "string"
 #include "ui_panel.h"
 
 namespace Bess::UI {
-
-    struct SceneDrawFlags {
-        bool drawGrid = true;
-        bool drawConnections = true;
-        bool drawSelectionBox = true;
-    };
-
     class SceneViewportPanel : public Panel {
       public:
         SceneViewportPanel(const std::string &viewportName);
@@ -39,17 +31,10 @@ namespace Bess::UI {
         MAKE_GETTER_SETTER_WC(std::shared_ptr<Canvas::Scene>, AttachedScene,
                               m_attachedScene, onSceneAttached);
 
-      private: // scene rendering funcs
-        void drawConnections(SceneDrawContext &context);
-        void drawSelectionBox(SceneDrawContext &context);
-        void drawGhostConnection(SceneDrawContext &context,
-                                 const glm::vec2 &startPos,
-                                 const glm::vec2 &endPos);
-
+      private:
         void updateScene(TimeMs ts);
 
         void updatePickingIds(bool mouseMoved);
-        SceneDrawFlags m_sceneDrawFlags{};
 
         void handleMouseMoveEvt(const ApplicationEvent &event);
 

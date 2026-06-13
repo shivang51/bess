@@ -1,0 +1,85 @@
+#include "overlay_layer.h"
+#include "common/bess_uuid.h"
+#include "pages/main_page/scene_components/scene_comp_types.h"
+#include "pages/main_page/scene_components/slot_scene_component.h"
+#include "scene/scene_draw_helpers.h"
+#include "settings/viewport_theme.h"
+
+namespace Bess::Canvas {
+    void OverlayLayer::update(TimeMs ts, SceneContext &ctx) {}
+
+    void OverlayLayer::draw(SceneContext &ctx) {
+        if (!ctx.sceneState || !ctx.renderer || !ctx.camera) {
+            return;
+        }
+
+        SceneDrawContext drawCtx{
+            ctx.sceneState,
+            ctx.renderer,
+            ctx.camera,
+        };
+
+        drawGhostConnection(drawCtx, ctx);
+        drawSelectionBox(drawCtx, ctx);
+    }
+
+    void OverlayLayer::drawGhostConnection(SceneDrawContext &drawCtx,
+                                           SceneContext &ctx) const {
+        if (ctx.sceneState->getConnectionStartSlot() == UUID::null ||
+            !ctx.mousePos) {
+            return;
+        }
+
+        const auto comp = ctx.sceneState->getComponentByUuid(
+            ctx.sceneState->getConnectionStartSlot());
+        if (!comp) {
+            ctx.sceneState->setConnectionStartSlot(UUID::null);
+            return;
+        }
+
+        glm::vec3 startPos;
+        if (comp->getType() == Canvas::SceneComponentType::slot) {
+            startPos =
+                comp->cast<Canvas::SlotSceneComponent>()->getConnectionPos(
+                    *ctx.sceneState);
+        } else {
+            startPos = comp->getAbsolutePosition(*ctx.sceneState);
+        }
+
+        const auto endPos = ctx.camera->toWorldPos(*ctx.mousePos);
+        const float midX = (startPos.x + endPos.x) / 2.f;
+
+        const auto &id = PickingId::invalid();
+        constexpr float z = 0.48f;
+
+        SceneDraw::beginPath(drawCtx, glm::vec3(startPos.x, startPos.y, z), 2.f,
+                             ViewportTheme::colors.ghostWire, id,
+                             {.roundedJoints = true});
+        SceneDraw::pathLineTo(drawCtx, glm::vec3(midX, startPos.y, z), 2.f);
+        SceneDraw::pathLineTo(drawCtx, glm::vec3(midX, endPos.y, z), 2.f);
+        SceneDraw::pathLineTo(drawCtx, glm::vec3(endPos, z), 2.f);
+        SceneDraw::endPath(drawCtx);
+    }
+
+    void OverlayLayer::drawSelectionBox(SceneDrawContext &drawCtx,
+                                        SceneContext &ctx) const {
+        if (!ctx.selBoxContext || !ctx.selBoxContext->draw || !ctx.mousePos) {
+            return;
+        }
+
+        const auto start = ctx.camera->toWorldPos(ctx.selBoxContext->start);
+        const auto end = ctx.camera->toWorldPos(*ctx.mousePos);
+
+        auto size = end - start;
+        const auto pos = start + (size / 2.f);
+        size = glm::abs(size);
+
+        SceneDraw::QuadStyle props;
+        props.borderColor = ViewportTheme::colors.selectionBoxBorder;
+        props.borderSize = glm::vec4(1.f);
+
+        SceneDraw::drawQuad(drawCtx, glm::vec3(pos, 7.f), size,
+                            ViewportTheme::colors.selectionBoxFill,
+                            PickingId::invalid(), props);
+    }
+} // namespace Bess::Canvas

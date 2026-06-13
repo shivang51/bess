@@ -21,6 +21,8 @@ namespace Bess {
 
     void InputSubSystem::onKeyEvent(KeyCode key, KeyAction action) {
         m_keyStates[key] = {key, action};
+        m_frameInputState.hasKeyEvent = true;
+        m_frameInputState.keyState = m_keyStates[key];
     }
 
     void InputSubSystem::onMouseButtonEvent(MouseButton button,

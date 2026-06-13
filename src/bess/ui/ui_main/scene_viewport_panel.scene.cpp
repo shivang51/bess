@@ -3,26 +3,13 @@
 #include "common/types.h"
 #include "events/application_event.h"
 #include "pages/main_page/main_page.h"
-#include "pages/main_page/scene_components/scene_comp_types.h"
-#include "pages/main_page/scene_components/slot_scene_component.h"
 #include "scene.h"
-#include "scene/scene_draw_context.h"
-#include "scene/scene_draw_helpers.h"
 #include "settings/viewport_theme.h"
 #include "sub_systems/input_sub_system.h"
 #include "sub_systems/renderer_context.h"
-#include <algorithm>
-#include <cmath>
 #include <cstdint>
-#include <unordered_set>
 
 namespace Bess::UI {
-    uint64_t decodeGpuHoverValue(const glm::uvec2 &encodedId) {
-        uint64_t id = static_cast<uint64_t>(encodedId.x);
-        id |= (static_cast<uint64_t>(encodedId.y) << 32);
-        return id;
-    }
-
     void SceneViewportPanel::updateScene(TimeMs ts) {
         Canvas::ViewportTransform vpTrans{.pos = m_viewportPos,
                                           .size = m_viewportSize};
@@ -132,8 +119,6 @@ namespace Bess::UI {
         }
         const auto &appCtx = GAppContext::getInstance();
         const auto &renderCtx = appCtx.getSubSystem<RendererContext>();
-        auto &sceneState = m_attachedScene->getState();
-
         const auto &renderer = renderCtx->getRenderer();
 
         renderer->beginFrame({
@@ -146,86 +131,13 @@ namespace Bess::UI {
                 glm::value_ptr(m_attachedScene->getCamera()->getTransform()),
         });
 
-        SceneDrawContext context;
-        context.sceneState = &sceneState;
-        context.renderer = renderer;
-        context.camera = m_attachedScene->getCamera();
-
         m_attachedScene->draw(renderer);
-
-        if (sceneState.getConnectionStartSlot() != UUID::null) {
-            const auto comp = sceneState.getComponentByUuid(
-                sceneState.getConnectionStartSlot());
-            if (!comp) {
-                sceneState.setConnectionStartSlot(UUID::null);
-                return;
-            }
-
-            glm::vec3 pos;
-            if (comp->getType() == Canvas::SceneComponentType::slot) {
-                pos =
-                    comp->cast<Canvas::SlotSceneComponent>()->getConnectionPos(
-                        sceneState);
-            } else {
-                pos = comp->getAbsolutePosition(sceneState);
-            }
-
-            const auto endPos =
-                m_attachedScene->toScenePos(m_attachedScene->getMousePos());
-
-            drawGhostConnection(context, glm::vec2(pos), endPos);
-        }
-
-        if (m_sceneDrawFlags.drawSelectionBox &&
-            m_attachedScene->getSelBoxContext().draw) {
-            drawSelectionBox(context);
-        }
 
         renderer->endFrame();
 
         if (m_attachedScene->getIsFirstFrame()) {
             m_attachedScene->setIsFirstFrame(false);
         }
-    }
-
-    void SceneViewportPanel::drawGhostConnection(SceneDrawContext &context,
-                                                 const glm::vec2 &startPos,
-                                                 const glm::vec2 &endPos) {
-        auto midX = (startPos.x + endPos.x) / 2.f;
-
-        const auto &id = PickingId::invalid();
-        constexpr float z = 0.48f; // Behind the connections so i can do joints
-
-        Canvas::SceneDraw::beginPath(
-            context, glm::vec3(startPos.x, startPos.y, z), 2.f,
-            ViewportTheme::colors.ghostWire, id, {.roundedJoints = true});
-        Canvas::SceneDraw::pathLineTo(context, glm::vec3(midX, startPos.y, z),
-                                      2.f);
-        Canvas::SceneDraw::pathLineTo(context, glm::vec3(midX, endPos.y, z),
-                                      2.f);
-        Canvas::SceneDraw::pathLineTo(context, glm::vec3(endPos, z), 2.f);
-        Canvas::SceneDraw::endPath(context);
-    }
-
-    void SceneViewportPanel::drawSelectionBox(SceneDrawContext &context) {
-        const auto &state = *context.sceneState;
-        const auto &selCtx = m_attachedScene->getSelBoxContext();
-
-        const auto start = m_attachedScene->toScenePos(selCtx.start);
-        const auto end =
-            m_attachedScene->toScenePos(m_attachedScene->getMousePos());
-
-        auto size = end - start;
-        const auto pos = start + (size / 2.f);
-        size = glm::abs(size);
-
-        Canvas::SceneDraw::QuadStyle props;
-        props.borderColor = ViewportTheme::colors.selectionBoxBorder;
-        props.borderSize = glm::vec4(1.f);
-
-        Canvas::SceneDraw::drawQuad(context, glm::vec3(pos, 7.f), size,
-                                    ViewportTheme::colors.selectionBoxFill,
-                                    PickingId::invalid(), props);
     }
 
     void SceneViewportPanel::updatePickingIds(bool mouseMoved) {
@@ -243,24 +155,7 @@ namespace Bess::UI {
                 pickingResult.height == m_selReadbackHeight;
 
             if (isSelectionResult) {
-                auto &sceneState = m_attachedScene->getState();
-                sceneState.clearSelectedComponents();
-
-                std::unordered_set<uint32_t> selectedRuntimeIds;
-                for (const auto &id : pickingResult.ids) {
-                    if (!id.isValid() || !id.isSelectable()) {
-                        continue;
-                    }
-                    if (!selectedRuntimeIds.insert(id.runtimeId).second) {
-                        continue;
-                    }
-
-                    const auto comp = sceneState.getComponentByPickingId(id);
-                    if (comp) {
-                        sceneState.addSelectedComponent(comp->getUuid());
-                    }
-                }
-
+                m_attachedScene->applySelectionReadback(pickingResult.ids);
                 m_waitingForSelReadback = false;
                 return;
             }
@@ -278,13 +173,6 @@ namespace Bess::UI {
             return;
         }
 
-        auto &selCtx = m_attachedScene->getSelBoxContext();
-        if (selCtx.queueSelInNextFrame) {
-            selCtx.queueSelInNextFrame = false;
-            selCtx.queueForSel = true;
-            return;
-        }
-
         const glm::vec2 mousePos = m_attachedScene->getMousePos();
         const glm::vec2 textureSize = m_pickingTexture->getSize();
         const uint32_t width =
@@ -292,31 +180,13 @@ namespace Bess::UI {
         const uint32_t height =
             textureSize.y > 1.f ? static_cast<uint32_t>(textureSize.y) : 1u;
 
-        if (selCtx.queueForSel) {
-            selCtx.queueForSel = false;
-
-            const glm::vec2 start = selCtx.start;
-            const glm::vec2 end = selCtx.end;
-            const float minX = std::min(start.x, end.x);
-            const float minY = std::min(start.y, end.y);
-            const float maxX = std::max(start.x, end.x);
-            const float maxY = std::max(start.y, end.y);
-
-            const auto x0 = static_cast<uint32_t>(std::clamp(
-                std::floor(minX), 0.f, static_cast<float>(width - 1u)));
-            const auto y0 = static_cast<uint32_t>(std::clamp(
-                std::floor(minY), 0.f, static_cast<float>(height - 1u)));
-            const auto x1 = static_cast<uint32_t>(
-                std::clamp(std::ceil(maxX), static_cast<float>(x0 + 1u),
-                           static_cast<float>(width)));
-            const auto y1 = static_cast<uint32_t>(
-                std::clamp(std::ceil(maxY), static_cast<float>(y0 + 1u),
-                           static_cast<float>(height)));
-
-            m_selReadbackX = x0;
-            m_selReadbackY = y0;
-            m_selReadbackWidth = x1 - x0;
-            m_selReadbackHeight = y1 - y0;
+        const auto &selectionRequest =
+            m_attachedScene->getPickingReadbackRequest();
+        if (selectionRequest.active) {
+            m_selReadbackX = selectionRequest.x;
+            m_selReadbackY = selectionRequest.y;
+            m_selReadbackWidth = selectionRequest.width;
+            m_selReadbackHeight = selectionRequest.height;
             m_waitingForSelReadback = true;
 
             renderer->requestPickingIds(

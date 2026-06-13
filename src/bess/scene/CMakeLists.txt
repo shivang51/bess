@@ -17,8 +17,11 @@ set(Header_Files
 	"schematic_diagram.h"
 	"scene_layer.h"
 	"scene_event.h"
+	"scene_types.h"
 	"layers/grid_layer.h"
 	"layers/components_layer.h"
+	"layers/interaction_layer.h"
+	"layers/overlay_layer.h"
 )
 
 source_group("include/scene" FILES ${Header_Files})
@@ -34,6 +37,8 @@ set(Source_Files
 	"schematic_diagram.cpp"
 	"layers/grid_layer.cpp"
 	"layers/components_layer.cpp"
+	"layers/interaction_layer.cpp"
+	"layers/overlay_layer.cpp"
 )
 
 source_group("src/scene" FILES ${Source_Files})

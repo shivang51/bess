@@ -6,6 +6,7 @@
 #include "scene_draw_context.h"
 #include "scene_event.h"
 #include "scene_state/scene_state.h"
+#include "scene_types.h"
 
 namespace Bess::Canvas {
 
@@ -13,6 +14,16 @@ namespace Bess::Canvas {
         SceneState *sceneState = nullptr;
         std::shared_ptr<Camera> camera = nullptr;
         std::shared_ptr<Core::Renderer::IRenderer2D> renderer = nullptr;
+        ViewportTransform *viewportTransform = nullptr;
+        SelBoxContext *selBoxContext = nullptr;
+        PickingReadbackRequest *pickingReadbackRequest = nullptr;
+        PickingId *pickingId = nullptr;
+        glm::vec2 *mousePos = nullptr;
+        glm::vec2 *dMousePos = nullptr;
+        bool *isLeftMousePressed = nullptr;
+        bool *isMiddleMousePressed = nullptr;
+        bool *isDragging = nullptr;
+        SceneDrawMode *drawMode = nullptr;
     };
 
     class ISceneLayer {

@@ -34,9 +34,11 @@ namespace Bess {
         bool hasMouseMoved = false;
         bool hasMouseWheelScrolled = false;
         bool hasMouseBtnEvent = false;
+        bool hasKeyEvent = false;
 
         MouseButtonState mouseBtnState =
             {}; // state of mouse button updated in current frame
+        KeyState keyState = {};
     };
 
     class InputSubSystem : public ISubSystem {
