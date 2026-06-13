@@ -6,9 +6,9 @@
 #include "settings/viewport_theme.h"
 
 namespace Bess::Canvas {
-    void OverlayLayer::update(TimeMs ts, SceneContext &ctx) {}
+    void OverlayLayer::update(TimeMs ts, SceneUpdateContext &ctx) {}
 
-    void OverlayLayer::draw(SceneContext &ctx) {
+    void OverlayLayer::draw(SceneRenderContext &ctx) {
         if (!ctx.sceneState || !ctx.renderer || !ctx.camera) {
             return;
         }
@@ -24,9 +24,9 @@ namespace Bess::Canvas {
     }
 
     void OverlayLayer::drawGhostConnection(SceneDrawContext &drawCtx,
-                                           SceneContext &ctx) const {
+                                           SceneRenderContext &ctx) const {
         if (ctx.sceneState->getConnectionStartSlot() == UUID::null ||
-            !ctx.mousePos) {
+            !ctx.inputState) {
             return;
         }
 
@@ -46,7 +46,7 @@ namespace Bess::Canvas {
             startPos = comp->getAbsolutePosition(*ctx.sceneState);
         }
 
-        const auto endPos = ctx.camera->toWorldPos(*ctx.mousePos);
+        const auto endPos = ctx.camera->toWorldPos(ctx.inputState->mousePos);
         const float midX = (startPos.x + endPos.x) / 2.f;
 
         const auto &id = PickingId::invalid();
@@ -62,13 +62,14 @@ namespace Bess::Canvas {
     }
 
     void OverlayLayer::drawSelectionBox(SceneDrawContext &drawCtx,
-                                        SceneContext &ctx) const {
-        if (!ctx.selBoxContext || !ctx.selBoxContext->draw || !ctx.mousePos) {
+                                        SceneRenderContext &ctx) const {
+        if (!ctx.inputState || !ctx.inputState->selectionBox.draw) {
             return;
         }
 
-        const auto start = ctx.camera->toWorldPos(ctx.selBoxContext->start);
-        const auto end = ctx.camera->toWorldPos(*ctx.mousePos);
+        const auto start =
+            ctx.camera->toWorldPos(ctx.inputState->selectionBox.start);
+        const auto end = ctx.camera->toWorldPos(ctx.inputState->mousePos);
 
         auto size = end - start;
         const auto pos = start + (size / 2.f);

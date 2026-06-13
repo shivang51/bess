@@ -4,11 +4,11 @@
 
 namespace Bess::Canvas {
 
-    void GridLayer::destroy(SceneContext &ctx) {}
+    void GridLayer::destroy(SceneLifecycleContext &ctx) {}
 
-    void GridLayer::update(TimeMs ts, SceneContext &ctx) {}
+    void GridLayer::update(TimeMs ts, SceneUpdateContext &ctx) {}
 
-    void GridLayer::draw(SceneContext &ctx) {
+    void GridLayer::draw(SceneRenderContext &ctx) {
         ctx.renderer->drawCustomQuad(
             {.position = {0.f, 0.f},
              .size = ctx.camera->getSize(),
@@ -24,7 +24,7 @@ namespace Bess::Canvas {
             Core::Renderer::CustomQuadTransformMode::Screen);
     }
 
-    void GridLayer::init(SceneContext &ctx) {
+    void GridLayer::init(SceneLifecycleContext &ctx) {
         BESS_ASSERT(ctx.renderer, "Renderer is null in GridLayer init");
 
         if (m_gridShader == 0) {

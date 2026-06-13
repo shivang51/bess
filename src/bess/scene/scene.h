@@ -99,24 +99,16 @@ namespace Bess::Canvas {
         glm::vec2 getViewportMousePos(const glm::vec2 &mousePos) const;
 
       private:
-        glm::vec2 m_size, m_mousePos, m_dMousePos;
+        glm::vec2 m_size;
         std::shared_ptr<Camera> m_camera = nullptr;
 
-        bool m_isLeftMousePressed = false, m_isMiddleMousePressed = false;
         SceneState m_state;
 
-        bool m_isCtrlPressed = false, m_isShiftPressed = false;
         ViewportTransform m_viewportTransform;
+        SceneInputState m_inputState;
 
         PickingId m_pickingId = PickingId::invalid();
         PickingId m_prevPickingId = PickingId::invalid();
-
-        // selection box
-        SelBoxContext m_selBoxContext;
-        PickingReadbackRequest m_pickingReadbackRequest;
-
-        bool m_isDragging = false;
-        SceneDrawMode m_drawMode = SceneDrawMode::none;
         SceneMode m_sceneMode = SceneMode::general;
 
         static constexpr float m_zIncrement = 0.001f;

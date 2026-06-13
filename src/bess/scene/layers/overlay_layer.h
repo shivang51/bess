@@ -5,15 +5,15 @@
 namespace Bess::Canvas {
     class OverlayLayer : public ISceneLayer {
       public:
-        void update(TimeMs ts, SceneContext &ctx) override;
-        void draw(SceneContext &ctx) override;
+        void update(TimeMs ts, SceneUpdateContext &ctx) override;
+        void draw(SceneRenderContext &ctx) override;
 
         std::string getName() const override { return "OverlayLayer"; }
 
       private:
         void drawGhostConnection(SceneDrawContext &drawCtx,
-                                 SceneContext &ctx) const;
+                                 SceneRenderContext &ctx) const;
         void drawSelectionBox(SceneDrawContext &drawCtx,
-                              SceneContext &ctx) const;
+                              SceneRenderContext &ctx) const;
     };
 } // namespace Bess::Canvas

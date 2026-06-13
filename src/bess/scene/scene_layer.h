@@ -16,36 +16,39 @@ namespace Bess::Canvas {
         Consumed,
     };
 
-    struct SceneContext {
+    struct SceneLayerContext {
         SceneState *sceneState = nullptr;
         std::shared_ptr<Camera> camera = nullptr;
-        std::shared_ptr<Core::Renderer::IRenderer2D> renderer = nullptr;
         ViewportTransform *viewportTransform = nullptr;
-        SelBoxContext *selBoxContext = nullptr;
-        PickingReadbackRequest *pickingReadbackRequest = nullptr;
+        SceneInputState *inputState = nullptr;
         PickingId *pickingId = nullptr;
-        glm::vec2 *mousePos = nullptr;
-        glm::vec2 *dMousePos = nullptr;
-        bool *isLeftMousePressed = nullptr;
-        bool *isMiddleMousePressed = nullptr;
-        bool *isDragging = nullptr;
-        SceneDrawMode *drawMode = nullptr;
     };
+
+    struct SceneEventContext : SceneLayerContext {};
+
+    struct SceneUpdateContext : SceneLayerContext {};
+
+    struct SceneRenderContext : SceneLayerContext {
+        std::shared_ptr<Core::Renderer::IRenderer2D> renderer = nullptr;
+    };
+
+    struct SceneLifecycleContext : SceneRenderContext {};
 
     class ISceneLayer {
       public:
         virtual ~ISceneLayer() = default;
 
-        virtual EventResult handleEvent(SceneEvent &evt, SceneContext &ctx) {
+        virtual EventResult handleEvent(SceneEvent &evt,
+                                        SceneEventContext &ctx) {
             return EventResult::Ignored;
         }
 
-        virtual void update(TimeMs ts, SceneContext &ctx) = 0;
-        virtual void draw(SceneContext &ctx) = 0;
+        virtual void update(TimeMs ts, SceneUpdateContext &ctx) = 0;
+        virtual void draw(SceneRenderContext &ctx) = 0;
 
-        virtual void init(SceneContext &ctx) {}
-        virtual void reset(SceneContext &ctx) {}
-        virtual void destroy(SceneContext &ctx) {}
+        virtual void init(SceneLifecycleContext &ctx) {}
+        virtual void reset(SceneLifecycleContext &ctx) {}
+        virtual void destroy(SceneLifecycleContext &ctx) {}
 
         virtual std::string getName() const { return "ISceneLayer"; }
     };

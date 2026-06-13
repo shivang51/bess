@@ -36,4 +36,32 @@ namespace Bess::Canvas {
         uint32_t height = 0;
         bool active = false;
     };
+
+    struct SceneInputState {
+        glm::vec2 mousePos{0.f};
+        glm::vec2 dMousePos{0.f};
+        bool isLeftMousePressed = false;
+        bool isMiddleMousePressed = false;
+        bool isDragging = false;
+        bool isCtrlPressed = false;
+        bool isShiftPressed = false;
+        bool isAltPressed = false;
+        SceneDrawMode drawMode = SceneDrawMode::none;
+        SelBoxContext selectionBox;
+        PickingReadbackRequest pickingReadbackRequest;
+
+        void reset() {
+            mousePos = {0.f, 0.f};
+            dMousePos = {0.f, 0.f};
+            isLeftMousePressed = false;
+            isMiddleMousePressed = false;
+            isDragging = false;
+            isCtrlPressed = false;
+            isShiftPressed = false;
+            isAltPressed = false;
+            drawMode = SceneDrawMode::none;
+            selectionBox = {};
+            pickingReadbackRequest = {};
+        }
+    };
 } // namespace Bess::Canvas

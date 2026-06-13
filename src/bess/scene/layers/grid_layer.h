@@ -9,11 +9,11 @@ namespace Bess::Canvas {
         GridLayer() = default;
         ~GridLayer() override = default;
 
-        void init(SceneContext &ctx) override;
-        void destroy(SceneContext &ctx) override;
+        void init(SceneLifecycleContext &ctx) override;
+        void destroy(SceneLifecycleContext &ctx) override;
 
-        void update(TimeMs ts, SceneContext &ctx) override;
-        void draw(SceneContext &ctx) override;
+        void update(TimeMs ts, SceneUpdateContext &ctx) override;
+        void draw(SceneRenderContext &ctx) override;
 
       private:
         Core::Renderer::CustomQuadShaderHandle m_gridShader = 0;

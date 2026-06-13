@@ -27,7 +27,7 @@ namespace Bess::Canvas {
     } // namespace
 
     EventResult InteractionLayer::handleEvent(SceneEvent &evt,
-                                              SceneContext &ctx) {
+                                              SceneEventContext &ctx) {
         switch (evt.type) {
         case SceneEvent::Type::mouseMove:
             return handleMouseMove(evt, ctx);
@@ -44,20 +44,19 @@ namespace Bess::Canvas {
     }
 
     EventResult InteractionLayer::handleMouseMove(SceneEvent &evt,
-                                                  SceneContext &ctx) {
-        BESS_ASSERT(ctx.sceneState && ctx.camera && ctx.mousePos &&
-                        ctx.dMousePos && ctx.isLeftMousePressed &&
-                        ctx.isMiddleMousePressed && ctx.isDragging &&
-                        ctx.selBoxContext && ctx.drawMode && ctx.pickingId,
+                                                  SceneEventContext &ctx) {
+        BESS_ASSERT(ctx.sceneState && ctx.camera && ctx.inputState &&
+                        ctx.pickingId,
                     "InteractionLayer missing scene context");
 
+        auto &input = *ctx.inputState;
         const auto &data = evt.data.mouseMove;
         ctx.sceneState->setMousePos(data.pos);
 
-        *ctx.dMousePos = data.pos - ctx.camera->toWorldPos(*ctx.mousePos);
-        *ctx.mousePos = data.viewportPos;
+        input.dMousePos = data.pos - ctx.camera->toWorldPos(input.mousePos);
+        input.mousePos = data.viewportPos;
 
-        if (*ctx.isLeftMousePressed && *ctx.drawMode == SceneDrawMode::none) {
+        if (input.isLeftMousePressed && input.drawMode == SceneDrawMode::none) {
             if (ctx.pickingId->isValid()) {
                 const auto &selectedComps =
                     ctx.sceneState->getSelectedComponents();
@@ -80,27 +79,27 @@ namespace Bess::Canvas {
                     }
 
                     dragComp->onMouseDragged(
-                        {data.pos, *ctx.dMousePos, ctx.pickingId->info,
+                        {data.pos, input.dMousePos, ctx.pickingId->info,
                          selectedComps.size() > 1, ctx.sceneState});
 
                     if (ctx.sceneState->getConnectionStartSlot() == compId) {
                         ctx.sceneState->setConnectionStartSlot(UUID::null);
                     }
-                    *ctx.isDragging = true;
+                    input.isDragging = true;
                 }
-            } else if (!ctx.selBoxContext->draw) {
-                ctx.selBoxContext->draw = true;
-                ctx.selBoxContext->start = *ctx.mousePos;
+            } else if (!input.selectionBox.draw) {
+                input.selectionBox.draw = true;
+                input.selectionBox.start = input.mousePos;
             }
-        } else if (*ctx.isMiddleMousePressed) {
-            ctx.camera->incrementPos(-*ctx.dMousePos);
+        } else if (input.isMiddleMousePressed) {
+            ctx.camera->incrementPos(-input.dMousePos);
         }
 
         return EventResult::Handled;
     }
 
     EventResult InteractionLayer::handleMouseButton(SceneEvent &evt,
-                                                    SceneContext &ctx) {
+                                                    SceneEventContext &ctx) {
         const auto &data = evt.data.mouseButton;
         const bool isPressed = data.action == MouseButtonAction::press;
 
@@ -118,14 +117,13 @@ namespace Bess::Canvas {
     }
 
     EventResult InteractionLayer::handleLeftMouseButton(SceneEvent &evt,
-                                                        SceneContext &ctx,
+                                                        SceneEventContext &ctx,
                                                         bool isPressed) {
-        BESS_ASSERT(ctx.sceneState && ctx.mousePos && ctx.isLeftMousePressed &&
-                        ctx.isDragging && ctx.selBoxContext && ctx.drawMode &&
-                        ctx.pickingId,
+        BESS_ASSERT(ctx.sceneState && ctx.inputState && ctx.pickingId,
                     "InteractionLayer missing scene context");
 
-        *ctx.isLeftMousePressed = isPressed;
+        auto &input = *ctx.inputState;
+        input.isLeftMousePressed = isPressed;
         const auto action = toSceneMouseAction(evt.data.mouseButton.action);
         queueMouseButtonEvent(evt, ctx, Events::MouseButton::left, action);
 
@@ -144,17 +142,17 @@ namespace Bess::Canvas {
         if (!isPressed) {
             const size_t selSize =
                 ctx.sceneState->getSelectedComponents().size();
-            if (selSize > 1 && !*ctx.isDragging && !evt.isCtrlPressed &&
+            if (selSize > 1 && !input.isDragging && !evt.isCtrlPressed &&
                 ctx.sceneState->isComponentSelected(*ctx.pickingId)) {
                 ctx.sceneState->clearSelectedComponents();
                 ctx.sceneState->addSelectedComponent(*ctx.pickingId);
             }
 
-            if (ctx.selBoxContext->draw) {
-                ctx.selBoxContext->draw = false;
-                ctx.selBoxContext->queueSelInNextFrame = true;
-                ctx.selBoxContext->end = *ctx.mousePos;
-            } else if (*ctx.isDragging) {
+            if (input.selectionBox.draw) {
+                input.selectionBox.draw = false;
+                input.selectionBox.queueSelInNextFrame = true;
+                input.selectionBox.end = input.mousePos;
+            } else if (input.isDragging) {
                 endActiveDrag(ctx);
             } else if (ctx.pickingId->isValid()) {
                 if (auto comp = ctx.sceneState->getComponentByPickingId(
@@ -195,26 +193,25 @@ namespace Bess::Canvas {
         } else {
             ctx.sceneState->clearSelectedComponents();
             ctx.sceneState->setConnectionStartSlot(UUID::null);
-            *ctx.drawMode = SceneDrawMode::none;
+            input.drawMode = SceneDrawMode::none;
         }
 
         return EventResult::Consumed;
     }
 
-    EventResult InteractionLayer::handleMiddleMouseButton(SceneEvent &evt,
-                                                          SceneContext &ctx,
-                                                          bool isPressed) {
-        BESS_ASSERT(ctx.isMiddleMousePressed,
+    EventResult InteractionLayer::handleMiddleMouseButton(
+        SceneEvent &evt, SceneEventContext &ctx, bool isPressed) {
+        BESS_ASSERT(ctx.inputState,
                     "InteractionLayer missing middle mouse state");
-        *ctx.isMiddleMousePressed = isPressed;
+        ctx.inputState->isMiddleMousePressed = isPressed;
         queueMouseButtonEvent(evt, ctx, Events::MouseButton::middle,
                               toSceneMouseAction(evt.data.mouseButton.action));
         return EventResult::Consumed;
     }
 
     EventResult InteractionLayer::handleMouseWheel(SceneEvent &evt,
-                                                   SceneContext &ctx) {
-        BESS_ASSERT(ctx.camera && ctx.mousePos,
+                                                   SceneEventContext &ctx) {
+        BESS_ASSERT(ctx.camera && ctx.inputState,
                     "InteractionLayer missing wheel context");
 
         if (!isCursorInViewport(ctx)) {
@@ -235,7 +232,7 @@ namespace Bess::Canvas {
     }
 
     void InteractionLayer::queueMouseButtonEvent(
-        SceneEvent &evt, SceneContext &ctx, Events::MouseButton button,
+        SceneEvent &evt, SceneEventContext &ctx, Events::MouseButton button,
         Events::MouseClickAction action) const {
         auto &appCtx = GAppContext::getInstance();
         auto eventDispatcher =
@@ -247,19 +244,19 @@ namespace Bess::Canvas {
             evt.data.mouseButton.pos, button, action, details, ctx.sceneState});
     }
 
-    bool InteractionLayer::isCursorInViewport(SceneContext &ctx) const {
-        if (!ctx.viewportTransform || !ctx.mousePos) {
+    bool InteractionLayer::isCursorInViewport(SceneEventContext &ctx) const {
+        if (!ctx.viewportTransform || !ctx.inputState) {
             return false;
         }
 
         const auto &viewportSize = ctx.viewportTransform->size;
-        const auto &pos = *ctx.mousePos;
+        const auto &pos = ctx.inputState->mousePos;
         return pos.x >= 1.f && pos.x < viewportSize.x - 1.f && pos.y >= 1.f &&
                pos.y < viewportSize.y - 1.f;
     }
 
-    void InteractionLayer::endActiveDrag(SceneContext &ctx) const {
-        *ctx.isDragging = false;
+    void InteractionLayer::endActiveDrag(SceneEventContext &ctx) const {
+        ctx.inputState->isDragging = false;
         for (const auto &compId : ctx.sceneState->getSelectedComponents() |
                                       std::ranges::views::keys) {
             auto comp = ctx.sceneState->getComponentByUuid(compId);
@@ -272,14 +269,13 @@ namespace Bess::Canvas {
         }
     }
 
-    void InteractionLayer::update(TimeMs ts, SceneContext &ctx) {
-        if (!ctx.selBoxContext || !ctx.pickingReadbackRequest ||
-            !ctx.viewportTransform) {
+    void InteractionLayer::update(TimeMs ts, SceneUpdateContext &ctx) {
+        if (!ctx.inputState || !ctx.viewportTransform) {
             return;
         }
 
-        auto &selCtx = *ctx.selBoxContext;
-        auto &request = *ctx.pickingReadbackRequest;
+        auto &selCtx = ctx.inputState->selectionBox;
+        auto &request = ctx.inputState->pickingReadbackRequest;
 
         if (request.active) {
             return;
@@ -328,5 +324,5 @@ namespace Bess::Canvas {
         };
     }
 
-    void InteractionLayer::draw(SceneContext &ctx) {}
+    void InteractionLayer::draw(SceneRenderContext &ctx) {}
 } // namespace Bess::Canvas
