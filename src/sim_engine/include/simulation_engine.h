@@ -25,6 +25,7 @@ namespace Bess::SimEngine {
 
         void onInit() override;
         void onDestroy() override;
+        void onPostInit() override;
 
         void destroy();
 
@@ -143,13 +144,10 @@ namespace Bess::SimEngine {
 
         void run();
 
-        std::thread m_simThread;
-
         mutable std::mutex m_stateMutex;
         mutable std::mutex m_driversMutex;
         mutable std::mutex m_pendingSignalSourcesMutex;
 
-        std::atomic<bool> m_stopFlag{false};
         std::atomic<bool> m_stepFlag{false};
         std::atomic<SimulationState> m_simState{SimulationState::running};
         std::condition_variable m_stateCV;

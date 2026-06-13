@@ -1,10 +1,7 @@
 #pragma once
 
 #include "application/window.h"
-#include "common/types.h"
-#include "events/application_event.h"
 #include <memory>
-#include <vector>
 
 namespace Bess {
 

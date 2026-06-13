@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/bess_api.h"
+#include "common/file_watcher.h"
 #include "plugin_handle.h"
 #include <memory>
 #include <string>
@@ -8,11 +9,6 @@
 #include <vector>
 
 namespace Bess::Plugins {
-    PyGILState_STATE capturePyThreadState();
-    void releasePyThreadState(PyGILState_STATE state);
-    void savePyThreadState();
-    void restorePyThreadState();
-
     class BESS_API PluginManager {
       public:
         static PluginManager &getInstance();
@@ -22,14 +18,18 @@ namespace Bess::Plugins {
 
         void init();
         void destroy();
-        bool loadPlugin(const std::string &pluginPath);
+        bool loadPlugin(const std::string &pluginPath, bool watchPlugin = true);
         bool unloadPlugin(const std::string &pluginName);
         void unloadAllPlugins();
         bool
         loadPluginsFromDirectory(const std::string &pluginsDir = "plugins");
 
+        bool reloadPlugin(const std::string &pluginName,
+                          const std::filesystem::path &mainPath);
+
         std::vector<std::string> getLoadedPluginsNames() const;
-        const std::unordered_map<std::string, std::shared_ptr<PluginHandle>> &
+        // Returning copy intentionally to avoid map corrouption while reloading
+        std::unordered_map<std::string, std::shared_ptr<PluginHandle>>
         getLoadedPlugins() const;
         bool isPluginLoaded(const std::string &pluginName) const;
         std::shared_ptr<PluginHandle>
@@ -38,6 +38,10 @@ namespace Bess::Plugins {
       private:
         std::unordered_map<std::string, std::shared_ptr<PluginHandle>>
             m_plugins;
+        std::vector<std::unique_ptr<Bess::Common::FileWatcher>>
+            m_pluginFileWatchers;
+
+        mutable std::mutex m_pluginMutex;
     };
 
 } // namespace Bess::Plugins

@@ -14,9 +14,7 @@ from components.clock import FrequencyUnit
 
 class ClockComp(SimulationSceneComponent):
     FREQ_UNITS = [str(v.name) for v in FrequencyUnit]
-    FREQ_UNIT_INDEX = {
-        str(v.name): index for index, v in enumerate(FrequencyUnit)
-    }
+    FREQ_UNIT_INDEX = {str(v.name): index for index, v in enumerate(FrequencyUnit)}
 
     def __init__(self):
         super().__init__()

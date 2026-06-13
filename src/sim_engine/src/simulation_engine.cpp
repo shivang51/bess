@@ -11,7 +11,6 @@
 
 #include "plugin_manager.h"
 
-#include <chrono>
 #include <condition_variable>
 #include <cstdint>
 #include <memory>
@@ -43,28 +42,13 @@ namespace Bess::SimEngine {
                       comps.size(),
                       plugin.first);
         }
-        m_simThread = std::thread(&SimulationEngine::run, this);
     }
 
-    SimulationEngine::SimulationEngine() {
-        // loadDrivers();
-        // initDrivers();
-        //
-        // const auto &pluginMangaer = Plugins::PluginManager::getInstance();
-        //
-        // auto &catalog = ComponentCatalog::instance();
-        // for (const auto &plugin : pluginMangaer.getLoadedPlugins()) {
-        //     const auto comps = plugin.second->onCompCatalogLoad();
-        //     for (const auto &comp : comps) {
-        //         catalog.registerComponent(comp);
-        //     }
-        //     BESS_INFO("Registered {} components from plugin {}",
-        //     comps.size(),
-        //               plugin.first);
-        // }
-        // Plugins::savePyThreadState();
-        // m_simThread = std::thread(&SimulationEngine::run, this);
+    void SimulationEngine::onPostInit() {
+        run();
     }
+
+    SimulationEngine::SimulationEngine() = default;
 
     void SimulationEngine::clear() {
         const auto previousState = getSimulationState();
@@ -103,10 +87,7 @@ namespace Bess::SimEngine {
         destroyDrivers();
         unloadDrivers();
 
-        m_stopFlag.store(true);
         m_stateCV.notify_all();
-        if (m_simThread.joinable())
-            m_simThread.join();
 
         ComponentCatalog::instance().destroy();
 
@@ -385,9 +366,6 @@ namespace Bess::SimEngine {
 
     void SimulationEngine::run() {
         runDrivers();
-        while (!m_stopFlag.load()) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
     }
 
     bool SimulationEngine::isNetUpdated() const {

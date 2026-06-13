@@ -115,9 +115,11 @@ namespace Bess::Pages {
     void MainPage::draw() {
         UI::UIMain::draw();
 
-        const auto &plugins =
+        const auto plugins =
             Plugins::PluginManager::getInstance().getLoadedPlugins();
         for (const auto &plugin : plugins) {
+            if (!plugin.second)
+                continue;
             plugin.second->drawUI();
         }
     }
