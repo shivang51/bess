@@ -77,22 +77,34 @@ namespace Bess::Canvas {
             });
         }
 
-        if (frameInputState.hasKeyEvent) {
-            const auto &keyState = frameInputState.keyState;
-
+        for (const auto &keyboardEvent : frameInputState.keyboardEvents) {
             SceneEvent::Data data;
-            data.keyPress = {
-                .keycode = keyState.key,
-                .action = keyState.action,
-            };
+            if (keyboardEvent.type == KeyboardInputEvent::Type::key) {
+                data.keyPress = {
+                    .keycode = keyboardEvent.key.key,
+                    .action = keyboardEvent.key.action,
+                };
 
-            events.emplace_back(SceneEvent{
-                .type = SceneEvent::Type::key,
-                .data = data,
-                .isCtrlPressed = isCtrlPressed,
-                .isShiftPressed = isShiftPressed,
-                .isAltPressed = isAltPressed,
-            });
+                events.emplace_back(SceneEvent{
+                    .type = SceneEvent::Type::key,
+                    .data = data,
+                    .isCtrlPressed = isCtrlPressed,
+                    .isShiftPressed = isShiftPressed,
+                    .isAltPressed = isAltPressed,
+                });
+            } else {
+                data.textInput = {
+                    .codepoint = keyboardEvent.text.codepoint,
+                };
+
+                events.emplace_back(SceneEvent{
+                    .type = SceneEvent::Type::textInput,
+                    .data = data,
+                    .isCtrlPressed = isCtrlPressed,
+                    .isShiftPressed = isShiftPressed,
+                    .isAltPressed = isAltPressed,
+                });
+            }
         }
 
         return events;

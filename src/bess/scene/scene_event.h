@@ -16,7 +16,8 @@ namespace Bess::Canvas {
             mouseMove,
             mouseButton,
             mouseWheel,
-            key
+            key,
+            textInput,
         } type;
 
         union Data {
@@ -36,6 +37,10 @@ namespace Bess::Canvas {
                 KeyCode keycode;
                 KeyAction action;
             } keyPress;
+
+            struct TextInputData {
+                char32_t codepoint;
+            } textInput;
 
             Data() {}
             ~Data() {}

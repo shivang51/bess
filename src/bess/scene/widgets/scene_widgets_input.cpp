@@ -1,57 +1,65 @@
 #include "scene_widgets_internal.h"
 #include "common/logger.h"
 #include <algorithm>
-#include <optional>
 #include <string_view>
 
 namespace Bess::Canvas::SceneWidgets::Detail {
     namespace {
-        std::optional<char> keyToChar(KeyCode key, bool shift) {
-            if (key >= KeyCode::a && key <= KeyCode::z) {
-                const char base = shift ? 'A' : 'a';
-                return static_cast<char>(
-                    base + (static_cast<uint16_t>(key) -
-                            static_cast<uint16_t>(KeyCode::a)));
+        bool isUtf8Continuation(char ch) {
+            return (static_cast<unsigned char>(ch) & 0xC0) == 0x80;
+        }
+
+        size_t previousCharBoundary(std::string_view text, size_t cursor) {
+            cursor = std::min(cursor, text.size());
+            if (cursor == 0) {
+                return 0;
             }
 
-            if (key >= KeyCode::d0 && key <= KeyCode::d9) {
-                static constexpr char shiftedDigits[] = {
-                    ')', '!', '@', '#', '$', '%', '^', '&', '*', '('};
-                const auto digit =
-                    static_cast<size_t>(static_cast<uint16_t>(key) -
-                                        static_cast<uint16_t>(KeyCode::d0));
-                return shift ? shiftedDigits[digit]
-                             : static_cast<char>('0' + digit);
+            --cursor;
+            while (cursor > 0 && isUtf8Continuation(text[cursor])) {
+                --cursor;
+            }
+            return cursor;
+        }
+
+        size_t nextCharBoundary(std::string_view text, size_t cursor) {
+            cursor = std::min(cursor, text.size());
+            if (cursor >= text.size()) {
+                return text.size();
             }
 
-            switch (key) {
-            case KeyCode::space:
-                return ' ';
-            case KeyCode::apostrophe:
-                return shift ? '"' : '\'';
-            case KeyCode::comma:
-                return shift ? '<' : ',';
-            case KeyCode::minus:
-                return shift ? '_' : '-';
-            case KeyCode::period:
-                return shift ? '>' : '.';
-            case KeyCode::slash:
-                return shift ? '?' : '/';
-            case KeyCode::semicolon:
-                return shift ? ':' : ';';
-            case KeyCode::equal:
-                return shift ? '+' : '=';
-            case KeyCode::leftBracket:
-                return shift ? '{' : '[';
-            case KeyCode::backslash:
-                return shift ? '|' : '\\';
-            case KeyCode::rightBracket:
-                return shift ? '}' : ']';
-            case KeyCode::graveAccent:
-                return shift ? '~' : '`';
-            default:
-                return std::nullopt;
+            ++cursor;
+            while (cursor < text.size() && isUtf8Continuation(text[cursor])) {
+                ++cursor;
             }
+            return cursor;
+        }
+
+        bool appendUtf8(char32_t codepoint, std::string &out) {
+            if (codepoint == 0 || codepoint > 0x10FFFF ||
+                (codepoint >= 0xD800 && codepoint <= 0xDFFF)) {
+                return false;
+            }
+
+            if (codepoint <= 0x7F) {
+                out.push_back(static_cast<char>(codepoint));
+            } else if (codepoint <= 0x7FF) {
+                out.push_back(static_cast<char>(0xC0 | (codepoint >> 6)));
+                out.push_back(static_cast<char>(0x80 | (codepoint & 0x3F)));
+            } else if (codepoint <= 0xFFFF) {
+                out.push_back(static_cast<char>(0xE0 | (codepoint >> 12)));
+                out.push_back(
+                    static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F)));
+                out.push_back(static_cast<char>(0x80 | (codepoint & 0x3F)));
+            } else {
+                out.push_back(static_cast<char>(0xF0 | (codepoint >> 18)));
+                out.push_back(
+                    static_cast<char>(0x80 | ((codepoint >> 12) & 0x3F)));
+                out.push_back(
+                    static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F)));
+                out.push_back(static_cast<char>(0x80 | (codepoint & 0x3F)));
+            }
+            return true;
         }
 
         size_t previousWordBoundary(std::string_view text, size_t cursor) {
@@ -95,7 +103,7 @@ namespace Bess::Canvas::SceneWidgets::Detail {
             const size_t eraseBegin =
                 evt.isCtrlPressed
                     ? previousWordBoundary(state.text, state.cursorPos)
-                    : state.cursorPos - 1;
+                    : previousCharBoundary(state.text, state.cursorPos);
             state.text.erase(eraseBegin, state.cursorPos - eraseBegin);
             state.cursorPos = eraseBegin;
             markTextChanged(state);
@@ -108,7 +116,7 @@ namespace Bess::Canvas::SceneWidgets::Detail {
 
             const size_t eraseEnd =
                 evt.isCtrlPressed ? nextWordBoundary(state.text, state.cursorPos)
-                                  : state.cursorPos + 1;
+                                  : nextCharBoundary(state.text, state.cursorPos);
             state.text.erase(state.cursorPos, eraseEnd - state.cursorPos);
             markTextChanged(state);
             return true;
@@ -117,13 +125,13 @@ namespace Bess::Canvas::SceneWidgets::Detail {
             state.cursorPos =
                 evt.isCtrlPressed
                     ? previousWordBoundary(state.text, state.cursorPos)
-                    : (state.cursorPos > 0 ? state.cursorPos - 1 : 0);
+                    : previousCharBoundary(state.text, state.cursorPos);
             return true;
         case KeyCode::arrowRight:
             state.cursorPos =
                 evt.isCtrlPressed
                     ? nextWordBoundary(state.text, state.cursorPos)
-                    : std::min(state.cursorPos + 1, state.text.size());
+                    : nextCharBoundary(state.text, state.cursorPos);
             return true;
         case KeyCode::home:
             state.cursorPos = 0;
@@ -145,20 +153,25 @@ namespace Bess::Canvas::SceneWidgets::Detail {
         case KeyCode::tab:
             return true;
         default:
-            break;
+            return true;
         }
+    }
 
-        if (evt.isCtrlPressed || evt.isAltPressed) {
+    bool handleTextInputCodepoint(WidgetState &state, char32_t codepoint) {
+        if (codepoint < 0x20 || codepoint == 0x7F ||
+            state.text.size() >= state.maxLength) {
             return true;
         }
 
-        const auto ch = keyToChar(data.keycode, evt.isShiftPressed);
-        if (!ch.has_value() || state.text.size() >= state.maxLength) {
+        std::string utf8;
+        if (!appendUtf8(codepoint, utf8) ||
+            state.text.size() + utf8.size() > state.maxLength) {
             return true;
         }
 
-        state.text.insert(state.cursorPos, 1, *ch);
-        ++state.cursorPos;
+        clampCursor(state);
+        state.text.insert(state.cursorPos, utf8);
+        state.cursorPos += utf8.size();
         markTextChanged(state);
         return true;
     }
@@ -329,7 +342,8 @@ namespace Bess::Canvas::SceneWidgets {
     }
 
     bool queueKey(SceneState *sceneState, const SceneEvent &evt) {
-        if (evt.type != SceneEvent::Type::key) {
+        if (evt.type != SceneEvent::Type::key &&
+            evt.type != SceneEvent::Type::textInput) {
             return false;
         }
 
@@ -346,7 +360,11 @@ namespace Bess::Canvas::SceneWidgets {
             return false;
         }
 
-        const bool handled = Detail::handleTextInputKey(state->second, evt);
+        const bool handled =
+            evt.type == SceneEvent::Type::key
+                ? Detail::handleTextInputKey(state->second, evt)
+                : Detail::handleTextInputCodepoint(
+                      state->second, evt.data.textInput.codepoint);
         if (state->second.textSubmitted || state->second.textCanceled) {
             Detail::clearFocusState(*widgetsState);
         }

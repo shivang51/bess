@@ -5,12 +5,28 @@
 #include "ext/vector_float2.hpp"
 #include "input_sub_system_types.h"
 #include <unordered_map>
+#include <vector>
 
 namespace Bess {
 
     struct KeyState {
         KeyCode key = KeyCode::unknown;
         KeyAction action = KeyAction::release;
+    };
+
+    struct TextInputState {
+        char32_t codepoint = 0;
+    };
+
+    struct KeyboardInputEvent {
+        enum class Type : uint8_t {
+            key,
+            text,
+        };
+
+        Type type = Type::key;
+        KeyState key;
+        TextInputState text;
     };
 
     struct MouseWheelState {
@@ -35,10 +51,12 @@ namespace Bess {
         bool hasMouseWheelScrolled = false;
         bool hasMouseBtnEvent = false;
         bool hasKeyEvent = false;
+        bool hasTextInputEvent = false;
 
         MouseButtonState mouseBtnState =
             {}; // state of mouse button updated in current frame
         KeyState keyState = {};
+        std::vector<KeyboardInputEvent> keyboardEvents;
     };
 
     class InputSubSystem : public ISubSystem {
@@ -49,6 +67,7 @@ namespace Bess {
         void onBeginFrame() override;
 
         void onKeyEvent(KeyCode key, KeyAction action);
+        void onTextInputEvent(char32_t codepoint);
         void onMouseButtonEvent(MouseButton button, MouseButtonAction action,
                                 const glm::vec2 &pos);
         void onMouseMoveEvent(const glm::vec2 &pos);

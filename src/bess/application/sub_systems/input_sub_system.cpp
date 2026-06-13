@@ -23,6 +23,18 @@ namespace Bess {
         m_keyStates[key] = {key, action};
         m_frameInputState.hasKeyEvent = true;
         m_frameInputState.keyState = m_keyStates[key];
+        m_frameInputState.keyboardEvents.push_back({
+            .type = KeyboardInputEvent::Type::key,
+            .key = m_keyStates[key],
+        });
+    }
+
+    void InputSubSystem::onTextInputEvent(char32_t codepoint) {
+        m_frameInputState.hasTextInputEvent = true;
+        m_frameInputState.keyboardEvents.push_back({
+            .type = KeyboardInputEvent::Type::text,
+            .text = {.codepoint = codepoint},
+        });
     }
 
     void InputSubSystem::onMouseButtonEvent(MouseButton button,

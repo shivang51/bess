@@ -151,6 +151,14 @@ namespace Bess {
             inputSubSystem->onKeyEvent(this_->glfwKeyToKeyCode(key), keyAction);
         });
 
+        glfwSetCharCallback(window, [](GLFWwindow *window,
+                                       unsigned int codepoint) {
+            auto inputSubSystem =
+                GAppContext::getInstance().getSubSystem<InputSubSystem>();
+            inputSubSystem->onTextInputEvent(
+                static_cast<char32_t>(codepoint));
+        });
+
         glfwSetMouseButtonCallback(window, [](GLFWwindow *window, int button,
                                               int action, int mods) {
             const auto this_ = (Window *)glfwGetWindowUserPointer(window);

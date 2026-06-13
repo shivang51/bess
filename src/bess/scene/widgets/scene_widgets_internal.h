@@ -70,4 +70,5 @@ namespace Bess::Canvas::SceneWidgets::Detail {
     void clampCursor(WidgetState &state);
     void markTextChanged(WidgetState &state);
     bool handleTextInputKey(WidgetState &state, const SceneEvent &evt);
+    bool handleTextInputCodepoint(WidgetState &state, char32_t codepoint);
 } // namespace Bess::Canvas::SceneWidgets::Detail

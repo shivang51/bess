@@ -36,6 +36,7 @@ namespace Bess::Canvas {
         case SceneEvent::Type::mouseWheel:
             return handleMouseWheel(evt, ctx);
         case SceneEvent::Type::key:
+        case SceneEvent::Type::textInput:
         case SceneEvent::Type::none:
             break;
         }
