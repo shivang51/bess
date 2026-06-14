@@ -9,6 +9,7 @@ namespace Bess::Canvas {
       public:
         EventResult handleEvent(SceneEvent &evt,
                                 SceneEventContext &ctx) override;
+        bool shouldReceiveConsumedEvent(const SceneEvent &evt) const override;
 
         void update(TimeMs ts, SceneUpdateContext &ctx) override;
         void draw(SceneRenderContext &ctx) override;

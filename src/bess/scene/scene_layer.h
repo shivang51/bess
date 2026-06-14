@@ -43,6 +43,10 @@ namespace Bess::Canvas {
             return EventResult::Ignored;
         }
 
+        virtual bool shouldReceiveConsumedEvent(const SceneEvent &evt) const {
+            return false;
+        }
+
         virtual void update(TimeMs ts, SceneUpdateContext &ctx) = 0;
         virtual void draw(SceneRenderContext &ctx) = 0;
 

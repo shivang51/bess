@@ -48,7 +48,7 @@ namespace Bess::Canvas {
                         : SceneCursor::pointer;
             }
             SceneWidgets::setHoverId(ctx.sceneState, evt.pickingId);
-            return EventResult::Handled;
+            return EventResult::Consumed;
         }
 
         if (m_hoveredWidget.isValid()) {
@@ -57,7 +57,7 @@ namespace Bess::Canvas {
                 ctx.inputState->cursor = SceneCursor::normal;
             }
             SceneWidgets::setHoverId(ctx.sceneState, PickingId::invalid());
-            return EventResult::Handled;
+            return EventResult::Consumed;
         }
 
         return EventResult::Ignored;

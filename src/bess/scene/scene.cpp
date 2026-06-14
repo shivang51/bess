@@ -419,13 +419,26 @@ namespace Bess::Canvas {
     }
 
     bool Scene::dispatchEvent(SceneEvent &evt) {
+        if (evt.type == SceneEvent::Type::mouseMove && m_camera) {
+            const auto &data = evt.data.mouseMove;
+            m_state.setMousePos(data.pos);
+            m_inputState.dMousePos =
+                data.pos - m_camera->toWorldPos(m_inputState.mousePos);
+            m_inputState.mousePos = data.viewportPos;
+        }
+
         evt.pickingId = m_pickingId;
 
         auto ctx = makeEventContext(
             m_state, m_camera, m_viewportTransform, m_inputState, m_pickingId);
 
         bool wasHandled = false;
+        bool wasConsumed = false;
         for (auto &layer : std::ranges::reverse_view(m_sceneLayers)) {
+            if (wasConsumed && !layer->shouldReceiveConsumedEvent(evt)) {
+                continue;
+            }
+
             const auto result = layer->handleEvent(evt, ctx);
             if (result == EventResult::Ignored) {
                 continue;
@@ -433,7 +446,7 @@ namespace Bess::Canvas {
 
             wasHandled = true;
             if (result == EventResult::Consumed) {
-                return true;
+                wasConsumed = true;
             }
         }
 

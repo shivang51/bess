@@ -52,10 +52,6 @@ namespace Bess::Canvas {
 
         auto &input = *ctx.inputState;
         const auto &data = evt.data.mouseMove;
-        ctx.sceneState->setMousePos(data.pos);
-
-        input.dMousePos = data.pos - ctx.camera->toWorldPos(input.mousePos);
-        input.mousePos = data.viewportPos;
 
         if (input.isLeftMousePressed && input.drawMode == SceneDrawMode::none) {
             if (ctx.pickingId->isValid()) {

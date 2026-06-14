@@ -1,6 +1,7 @@
 #include "hover_layer.h"
 #include "common/logger.h"
 #include "scene/scene_state/components/scene_component.h"
+#include "scene/widgets/scene_widgets.h"
 
 namespace Bess::Canvas {
     EventResult HoverLayer::handleEvent(SceneEvent &evt,
@@ -12,6 +13,10 @@ namespace Bess::Canvas {
         return handleMouseMove(evt, ctx);
     }
 
+    bool HoverLayer::shouldReceiveConsumedEvent(const SceneEvent &evt) const {
+        return evt.type == SceneEvent::Type::mouseMove;
+    }
+
     EventResult HoverLayer::handleMouseMove(SceneEvent &evt,
                                             SceneEventContext &ctx) {
         if (!ctx.sceneState) {
@@ -19,26 +24,31 @@ namespace Bess::Canvas {
         }
 
         const auto &data = evt.data.mouseMove;
+        if (SceneWidgets::contains(ctx.sceneState, evt.pickingId)) {
+            clearHover(*ctx.sceneState, data.pos);
+            m_pickingId = PickingId::invalid();
+            return EventResult::Handled;
+        }
+
+        const auto comp =
+            evt.pickingId.isValid()
+                ? ctx.sceneState->getComponentByPickingId(evt.pickingId)
+                : nullptr;
+
+        if (!comp) {
+            clearHover(*ctx.sceneState, data.pos);
+            m_pickingId = PickingId::invalid();
+            return evt.pickingId.isValid() ? EventResult::Handled
+                                           : EventResult::Ignored;
+        }
+
         if (evt.pickingId == m_pickingId) {
             return EventResult::Ignored;
         }
 
         clearHover(*ctx.sceneState, data.pos);
         m_pickingId = evt.pickingId;
-
-        if (m_pickingId.isValid()) {
-            const auto &comp =
-                ctx.sceneState->getComponentByPickingId(m_pickingId);
-            if (comp) {
-                comp->onMouseEnter({data.pos, m_pickingId.info});
-            } else {
-                BESS_WARN("[HoverLayer] PickingId is valid but no component "
-                          "found for id {} in scene {}",
-                          (uint64_t)m_pickingId,
-                          (uint64_t)ctx.sceneState->getSceneId());
-            }
-        }
-
+        comp->onMouseEnter({data.pos, m_pickingId.info});
         return EventResult::Handled;
     }
 
@@ -50,11 +60,6 @@ namespace Bess::Canvas {
         const auto &comp = state.getComponentByPickingId(m_pickingId);
         if (comp) {
             comp->onMouseLeave({mousePos, m_pickingId.info});
-        } else {
-            BESS_WARN("[HoverLayer] PickingId is valid but no component found "
-                      "for id {} in scene {}",
-                      (uint64_t)m_pickingId,
-                      (uint64_t)state.getSceneId());
         }
     }
 
