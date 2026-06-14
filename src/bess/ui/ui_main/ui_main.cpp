@@ -80,7 +80,7 @@ namespace Bess::UI {
                 return {};
             }
 
-            const auto primary =
+            auto primary =
                 std::filesystem::path(paths.front()).filename().string();
             if (paths.size() == 1) {
                 return primary;
@@ -631,7 +631,6 @@ namespace Bess::UI {
             {Dock::right, 0},
             {Dock::top, 0},
             {Dock::bottom, 0},
-            {Dock::main, 0},
         };
 
         auto mainDockspaceId = ImGui::GetID("MainDockspace");
@@ -645,13 +644,16 @@ namespace Bess::UI {
         const auto dockIdRight = ImGui::DockBuilderSplitNode(
             mainDockspaceId, ImGuiDir_Right, 0.15f, nullptr, &mainDockspaceId);
 
+        const auto dockIdTop = ImGui::DockBuilderSplitNode(
+            mainDockspaceId, ImGuiDir_Up, 0.75f, nullptr, &mainDockspaceId);
+
         const auto dockIdBot = ImGui::DockBuilderSplitNode(
             mainDockspaceId, ImGuiDir_Down, 0.25f, nullptr, &mainDockspaceId);
 
-        DockIds[Dock::main] = mainDockspaceId;
         DockIds[Dock::left] = dockIdLeft;
         DockIds[Dock::right] = dockIdRight;
         DockIds[Dock::bottom] = dockIdBot;
+        DockIds[Dock::top] = dockIdTop;
 
         ImGui::DockBuilderDockWindow("MainViewport", mainDockspaceId);
 
@@ -758,7 +760,8 @@ namespace Bess::UI {
         registerPanel<ProjectSettingsWindow>();
         registerPanel<SceneExportWindow>();
         registerPanel<SettingsWindow>();
-        registerPanel<SceneViewportPanel>("MainViewport");
+        registerPanel<SceneViewportPanel>("Scene Viewport");
+        registerPanel<SceneViewportPanel>("Scene Viewport 2");
     }
 
     std::vector<std::shared_ptr<Panel>> &UIMain::getPanels() {

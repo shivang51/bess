@@ -114,7 +114,6 @@ namespace Bess {
             break;
         }
 
-        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDocking;
         const ImGuiViewport *viewport = ImGui::GetMainViewport();
 
         ImGui::SetNextWindowPos(viewport->WorkPos);
@@ -122,6 +121,7 @@ namespace Bess {
         ImGui::SetNextWindowViewport(viewport->ID);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0F);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0F);
+        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDocking;
         windowFlags |= ImGuiWindowFlags_NoTitleBar |
                        ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
                        ImGuiWindowFlags_NoMove;

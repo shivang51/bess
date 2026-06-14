@@ -27,8 +27,7 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::init() {
-        m_flags = NO_MOVE_FLAGS | ImGuiWindowFlags_NoFocusOnAppearing;
-        m_defaultDock = Dock::main;
+        m_defaultDock = Dock::top;
         m_showInMenuBar = false;
         m_visible = true;
 
@@ -161,16 +160,16 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::onAfterDraw() {
-        auto sceneDriver = GAppContext::getInstance()
-                               .getSubSystem<Bess::ProjectContext>()
-                               ->getSubSystem<SceneDriver>();
+        // auto sceneDriver = GAppContext::getInstance()
+        //                        .getSubSystem<Bess::ProjectContext>()
+        //                        ->getSubSystem<SceneDriver>();
+        //
+        // if (sceneDriver->getIsPaused()) {
+        //     return;
+        // }
 
-        if (sceneDriver->getIsPaused()) {
-            return;
-        }
-
-        drawTopLeftControls();
-        drawBottomControls();
+        // drawTopLeftControls();
+        // drawBottomControls();
     }
 
     void SceneViewportPanel::drawTopLeftControls() {
