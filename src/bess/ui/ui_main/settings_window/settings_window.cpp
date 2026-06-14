@@ -3,6 +3,7 @@
 #include "imgui.h"
 
 #include "settings/settings.h"
+#include "settings/viewport_theme.h"
 #include "ui/widgets/m_widgets.h"
 
 namespace Bess::UI {
@@ -17,6 +18,7 @@ namespace Bess::UI {
         m_settingsCallbacks["Viewport Colors"] = [this]() {
             drawViewportColorsSettings();
         };
+        m_visible = true;
     }
 
     void SettingsWindow::onBeforeDraw() {
@@ -119,15 +121,109 @@ namespace Bess::UI {
     }
 
     void SettingsWindow::drawViewportColorsSettings() {
-        ImGui::TextWrapped(
-            "Here you can customize the colors used in the viewport. This "
-            "allows you to "
-            "tailor the visual appearance of the viewport to your preferences, "
-            "making it easier to work with different lighting conditions or to "
-            "simply match your aesthetic preferences. Adjusting these colors "
-            "can enhance visibility and reduce eye strain during long sessions "
-            "of work in the viewport.");
-        ImGui::NewLine();
+        // Scene Colors
+        {
+            auto &sceneColors = ViewportTheme::colors;
+            ImGui::Text("Scene Colors");
+
+            ImGui::Indent();
+            ImGui::ColorEdit4("Text Color", sceneColors.text.data());
+
+            ImGui::ColorEdit4("Compnent Header Default",
+                              sceneColors.compHeader.data());
+            ImGui::ColorEdit4("Component Background",
+                              sceneColors.componentBG.data());
+            ImGui::ColorEdit4("Component Border",
+                              sceneColors.componentBorder.data());
+            ImGui::ColorEdit4("Selected Component",
+                              sceneColors.selectedComp.data());
+            ImGui::ColorEdit4("Module Color", sceneColors.moduleColor.data());
+
+            ImGui::ColorEdit4("State High", sceneColors.stateHigh.data());
+            ImGui::ColorEdit4("State Low", sceneColors.stateLow.data());
+            ImGui::ColorEdit4("State High Z", sceneColors.stateHighZ.data());
+            ImGui::ColorEdit4("State Unknow", sceneColors.stateUnknow.data());
+
+            ImGui::ColorEdit4("Wire Color", sceneColors.wire.data());
+            ImGui::ColorEdit4("Ghost Wire Color", sceneColors.ghostWire.data());
+            ImGui::ColorEdit4("Selected Wire Color",
+                              sceneColors.selectedWire.data());
+            ImGui::ColorEdit4("Clock Connection Low",
+                              sceneColors.clockConnectionLow.data());
+            ImGui::ColorEdit4("Clock Connection High",
+                              sceneColors.clockConnectionHigh.data());
+
+            ImGui::ColorEdit4("Selection Box Border",
+                              sceneColors.selectionBoxBorder.data());
+            ImGui::ColorEdit4("Selection Box Fill",
+                              sceneColors.selectionBoxFill.data());
+
+            ImGui::ColorEdit4("Grid Minor Color",
+                              sceneColors.gridMinorColor.data());
+            ImGui::ColorEdit4("Grid Major Color",
+                              sceneColors.gridMajorColor.data());
+            ImGui::ColorEdit4("Grid Axis X Color",
+                              sceneColors.gridAxisXColor.data());
+            ImGui::ColorEdit4("Grid Axis Y Color",
+                              sceneColors.gridAxisYColor.data());
+            ImGui::ColorEdit4("Error Color", sceneColors.error.data());
+
+            ImGui::Unindent();
+        }
+
+        // Schematic View Colors
+        {
+            auto &schematicColors = ViewportTheme::schematicViewColors;
+
+            ImGui::Text("Schematic View Colors");
+
+            ImGui::Indent();
+            ImGui::ColorEdit4("Pin Color", schematicColors.pin.data());
+            ImGui::ColorEdit4("Text Color", schematicColors.text.data());
+            ImGui::ColorEdit4("Connection Color",
+                              schematicColors.connection.data());
+            ImGui::ColorEdit4("Component Fill Color",
+                              schematicColors.componentFill.data());
+            ImGui::ColorEdit4("Component Stroke Color",
+                              schematicColors.componentStroke.data());
+            ImGui::ColorEdit4("Active Signal Color",
+                              schematicColors.activeSignal.data());
+            ImGui::Unindent();
+        }
+
+        // Widget Colors
+        {
+            auto &widgetColors = ViewportTheme::sceneWidgetsColors;
+
+            ImGui::Text("Scene Widgets Colors");
+
+            ImGui::Indent();
+            ImGui::ColorEdit4("Surface Color", widgetColors.surface.data());
+            ImGui::ColorEdit4("Surface Hover Color",
+                              widgetColors.surfaceHover.data());
+            ImGui::ColorEdit4("Surface Active Color",
+                              widgetColors.surfaceActive.data());
+            ImGui::ColorEdit4("Popup Surface Color",
+                              widgetColors.popupSurface.data());
+
+            ImGui::ColorEdit4("Border Color", widgetColors.border.data());
+            ImGui::ColorEdit4("Border Focus Color",
+                              widgetColors.borderFocus.data());
+
+            ImGui::ColorEdit4("Text Color", widgetColors.text.data());
+            ImGui::ColorEdit4("Text Muted Color",
+                              widgetColors.textMuted.data());
+
+            ImGui::ColorEdit4("Accent Color", widgetColors.accent.data());
+            ImGui::ColorEdit4("Accent Strong Color",
+                              widgetColors.accentStrong.data());
+            ImGui::ColorEdit4("Item Hover Color",
+                              widgetColors.itemHover.data());
+            ImGui::ColorEdit4("Track Color", widgetColors.track.data());
+            ImGui::ColorEdit4("Knob Color", widgetColors.knob.data());
+
+            ImGui::Unindent();
+        }
     }
 
     void SettingsWindow::drawLeftPanel() {
