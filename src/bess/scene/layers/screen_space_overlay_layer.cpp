@@ -38,17 +38,24 @@ namespace Bess::Canvas {
             const auto textPos =
                 quadPos + glm::vec2{(-quadSize.x / 2.f) + padding, textOffY};
 
-            if (SceneWidgets::button(PickingId{0, 0},
-                                     "",
-                                     {quadPos.x, quadPos.y, 1000},
-                                     drawCtx,
-                                     {
-                                         .textSize = fontSize,
-                                         .buttonSize = quadSize,
-                                         .padding = glm::vec2{padding},
-                                         .borderThickness = glm::vec4(0.f),
-                                         .borderRadius = glm::vec4(8.f),
-                                     })) {
+            static constexpr auto pickingId = PickingId::forWidget(0);
+
+            if (SceneWidgets::button(
+                    pickingId,
+                    "",
+                    {quadPos.x, quadPos.y, 1000},
+                    drawCtx,
+                    {
+                        .textSize = fontSize,
+                        .buttonSize = quadSize,
+                        .padding = glm::vec2{padding},
+                        .borderThickness = glm::vec4(0.f),
+                        .borderRadius = glm::vec4(8.f),
+                        .shadow = Core::Renderer::ShadowProps{.enabled = true},
+                        .backgroundColor =
+                            ViewportTheme::sceneWidgetsColors.surface.withAlpha(
+                                0.5f),
+                    })) {
                 ctx.camera->focusAtPoint({0.f, 0.f}, false);
             }
 
@@ -59,7 +66,7 @@ namespace Bess::Canvas {
                     .fontSize = fontSize,
                     .color = ViewportTheme::sceneWidgetsColors.text,
                     .zIndex = 1000.1,
-                    .id = PickingId{0, 0},
+                    .id = pickingId,
                     .transformMode =
                         Core::Renderer::RenderTransformMode::Screen,
                 });
@@ -71,7 +78,7 @@ namespace Bess::Canvas {
                     .fontSize = fontSize,
                     .color = ViewportTheme::sceneWidgetsColors.textMuted,
                     .zIndex = 1000.1,
-                    .id = PickingId{0, 0},
+                    .id = pickingId,
                     .transformMode =
                         Core::Renderer::RenderTransformMode::Screen,
                 });

@@ -106,6 +106,14 @@ namespace {
     }
 
     void bindRendererTypes(py::module_ &m) {
+        py::class_<Bess::Core::Renderer::ShadowProps>(m, "ShadowProps")
+            .def(py::init<>())
+            .def_readwrite("enabled",
+                           &Bess::Core::Renderer::ShadowProps::enabled)
+            .def_readwrite("offset", &Bess::Core::Renderer::ShadowProps::offset)
+            .def_readwrite("blur", &Bess::Core::Renderer::ShadowProps::blur)
+            .def_readwrite("spread", &Bess::Core::Renderer::ShadowProps::spread)
+            .def_readwrite("color", &Bess::Core::Renderer::ShadowProps::color);
     }
 } // namespace
 

@@ -3,6 +3,7 @@
 #include "common/bess_uuid.h"
 #include <any>
 #include <chrono>
+#include <cstdint>
 #include <ratio>
 
 namespace Bess {
@@ -47,6 +48,16 @@ namespace Bess {
         static constexpr PickingId fromUint64(uint64_t value) noexcept {
             return {static_cast<uint32_t>(value >> 32),
                     static_cast<uint32_t>(value & 0xFFFFFFFF)};
+        }
+
+        // Only use it for widget without node or component parent,
+        // Or when runtime id is not available. This will create picking id with
+        // runtimeId = 0. As scene state makes sure runtime id 0 is not
+        // assigned to a scene component.
+        //
+        // NOTE: Make sure info is unique for each unique widget
+        static constexpr PickingId forWidget(uint32_t info) {
+            return {0, info};
         }
 
         void set(uint64_t value) {

@@ -24,6 +24,10 @@ namespace Bess::Core::Renderer {
               a(alpha) {
         }
 
+        constexpr Color withAlpha(float alpha) const {
+            return {r, g, b, alpha};
+        }
+
         Color &operator=(const glm::vec4 &vec) {
             r = vec.r;
             g = vec.g;

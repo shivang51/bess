@@ -349,6 +349,7 @@ namespace {
                            &ButtonOptions::pressedBackgroundColor)
             .def_readwrite("border_color", &ButtonOptions::borderColor)
             .def_readwrite("text_color", &ButtonOptions::textColor)
+            .def_readwrite("shadow", &ButtonOptions::shadow)
             .def("__repr__", [](const ButtonOptions &options) {
                 return "bessplug.api.scene.widgets.ButtonOptions()";
             });

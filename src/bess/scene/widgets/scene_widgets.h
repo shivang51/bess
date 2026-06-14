@@ -125,6 +125,7 @@ namespace Bess::Canvas::SceneWidgets {
         glm::vec2 padding{3.f, 2.f};
         glm::vec4 borderThickness{1.f};
         glm::vec4 borderRadius{2.f};
+        Core::Renderer::ShadowProps shadow = {};
         std::optional<Core::Renderer::Color> backgroundColor;
         std::optional<Core::Renderer::Color> hoverBackgroundColor;
         std::optional<Core::Renderer::Color> pressedBackgroundColor;

@@ -23,6 +23,9 @@ namespace Bess::Canvas {
         m_rootComponents.clear();
         m_freeRuntimeIds.clear();
         m_selectedComponents.clear();
+
+        // 0 will be used by widgets
+        m_runtimeIdMap[0] = UUID::null;
     }
 
     std::shared_ptr<SceneComponent>

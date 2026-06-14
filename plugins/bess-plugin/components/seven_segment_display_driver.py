@@ -52,8 +52,6 @@ def _simulate_seven_seg_disp_driver(data: DigCompSimData) -> DigCompSimData:
 
     data.sim_dependants = changed
 
-    print(data.sim_dependants)
-
     return data
 
 

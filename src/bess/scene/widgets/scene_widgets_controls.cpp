@@ -1,3 +1,4 @@
+#include "bess_core/renderer/renderer_types.h"
 #include "scene/scene_draw_helpers.h"
 #include "scene_widgets_internal.h"
 #include "settings/viewport_theme.h"
@@ -86,13 +87,6 @@ namespace Bess::Canvas::SceneWidgets {
             context.sceneState, id, Detail::WidgetState::Type::button);
 
         const auto &palette = ViewportTheme::sceneWidgetsColors;
-        const SceneDraw::QuadStyle buttonProps{
-            .borderColor = options.borderColor.has_value()
-                               ? options.borderColor.value()
-                               : palette.border,
-            .borderRadius = options.borderRadius,
-            .borderSize = options.borderThickness,
-        };
 
         auto bgColor = Core::Renderer::Color(palette.surface);
         if (Detail::isHovering(context.sceneState, id)) {
@@ -124,7 +118,20 @@ namespace Bess::Canvas::SceneWidgets {
             size.y = textSize.y + (options.padding.y * 2.f);
         }
 
-        SceneDraw::drawQuad(context, buttonPos, size, bgColor, id, buttonProps);
+        const Core::Renderer::QuadProps btnProps{
+            .position = glm::vec2(buttonPos.x, buttonPos.y),
+            .size = size,
+            .zIndex = buttonPos.z,
+            .color = bgColor,
+            .id = id,
+            .transformMode = context.transformMode,
+            .radius = options.borderRadius,
+            .thickness = options.borderThickness,
+            .borderColor = Detail::colorOr(options.borderColor, palette.border),
+            .shadow = options.shadow,
+        };
+
+        context.renderer->drawQuad(btnProps);
 
         const auto textPos = glm::vec3(buttonPos.x - (textSize.x / 2.f),
                                        buttonPos.y + textOffY,
