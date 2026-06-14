@@ -6,6 +6,7 @@
 #include "color_utils.h"
 #include "common/bess_assert.h"
 #include "common/class_helpers.h"
+#include "cpp/cam/hct.h"
 #include <cstdint>
 
 namespace Bess::Core::Style {
@@ -99,7 +100,7 @@ namespace Bess::Core::Style {
 
             const bool isDark = brightness == Brightness::dark;
 
-            const HctColor sourceCol = HctColor::fromColor(seedColor);
+            const material_color_utilities::Hct sourceCol(seedColor.toARGB8());
 
             ColorScheme scheme;
 

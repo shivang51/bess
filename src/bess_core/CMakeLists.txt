@@ -20,6 +20,9 @@ set(Header_Files
 	"include/bess_core/asset_manager/asset_loader.h"
 	"include/bess_core/asset_manager/asset_manager.h"
 	"include/bess_core/asset_manager/asset_id.h"
+	
+	"include/bess_core/style/color_scheme.h"
+	"include/bess_core/style/color_utils.h"
 )
 
 source_group("include/bess_core" FILES ${Header_Files})
@@ -39,6 +42,9 @@ set(Source_Files
 	"src/bess_core/renderer/glyph_extractor.cpp"
 	"src/bess_core/renderer/renderer.cpp"
 	"src/bess_core/asset_manager.cpp"
+	
+	"src/bess_core/style/color_scheme.cpp"
+	"src/bess_core/style/color_utils.cpp"
 )
 
 source_group("src" FILES ${Source_Files})

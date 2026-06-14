@@ -118,10 +118,13 @@ set(External
 
 target_sources(${PROJECT_NAME} PRIVATE ${External})
 
+add_subdirectory(material-color-utilities)
+
 target_link_libraries(${PROJECT_NAME} PUBLIC 
 	png_static
 	glfw
 	webgpu_dawn
+	material-color-utils
 )
 
 if(LINUX)
