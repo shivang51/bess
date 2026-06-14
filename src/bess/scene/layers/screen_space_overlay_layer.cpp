@@ -25,30 +25,30 @@ namespace Bess::Canvas {
             }
         }
 
-        static bool show = true;
-
-        if (show) {
-            ctx.renderer->drawFont(
-                "Hello World",
-                {
-                    .position = {0, 0},
-                    .fontSize = 32.f,
-                    .color = Bess::Core::Renderer::Colors::white,
-                    .zIndex = 1000,
-                    .transformMode =
-                        Core::Renderer::RenderTransformMode::Screen,
-                });
-        }
-
-        if (SceneWidgets::button(PickingId{2, 0},
-                                 "Toggle Overlay",
-                                 {10.f, 50.f, 1000},
-                                 drawCtx,
-                                 {
-                                     .textSize = 32.f,
-                                 })) {
-            show = !show;
-        }
+        // static bool show = true;
+        //
+        // if (show) {
+        //     ctx.renderer->drawFont(
+        //         "Hello World",
+        //         {
+        //             .position = {0, 0},
+        //             .fontSize = 32.f,
+        //             .color = Bess::Core::Renderer::Colors::white,
+        //             .zIndex = 1000,
+        //             .transformMode =
+        //                 Core::Renderer::RenderTransformMode::Screen,
+        //         });
+        // }
+        //
+        // if (SceneWidgets::button(PickingId{2, 0},
+        //                          "Toggle Overlay",
+        //                          {10.f, 50.f, 1000},
+        //                          drawCtx,
+        //                          {
+        //                              .textSize = 32.f,
+        //                          })) {
+        //     show = !show;
+        // }
     }
 
     void ScreenSpaceOverlayLayer::reset(SceneLifecycleContext &ctx) {
