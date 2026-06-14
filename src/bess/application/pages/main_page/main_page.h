@@ -9,7 +9,6 @@
 
 #include <chrono>
 #include <memory>
-#include <vector>
 
 namespace Bess::Pages {
 

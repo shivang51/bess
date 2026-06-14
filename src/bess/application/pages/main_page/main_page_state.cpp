@@ -255,10 +255,11 @@ namespace Bess::Pages {
             auto &appCtx = Bess::GAppContext::getInstance();
             auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
             auto &simEngine = projectCtx->getSimEngine();
-            // const auto result =
-            // Verilog::importVerilogFilesIntoSimulationEngine(toFilesystemPaths(paths),
-            // simEngine); populateSceneFromVerilogImportResult(result,
-            // simEngine, *scene); getSceneDriver()->updateNets(scene);
+            const auto result = Verilog::importVerilogFilesIntoSimulationEngine(
+                toFilesystemPaths(paths), simEngine);
+            populateSceneFromVerilogImportResult(result, simEngine, *scene);
+            updateNets(scene);
+
             return true;
         } catch (const std::exception &ex) {
             if (errorMessage) {
@@ -363,7 +364,7 @@ namespace Bess::Pages {
                 if (!scene) {
                     throw std::runtime_error("No active scene available");
                 }
-                getSceneDriver()->updateNets(scene);
+                updateNets(scene);
                 session.progress = 1.f;
                 session.stageMessage = "Import complete";
                 session.phase = VerilogImportSession::Phase::completed;
@@ -671,5 +672,44 @@ namespace Bess::Pages {
         }
 
         return m_netIdToCompMap.at(sceneId);
+    }
+
+    void
+    MainPageState::updateNets(const std::shared_ptr<Canvas::Scene> &scene) {
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        auto &simEngine = projectCtx->getSimEngine();
+        if (!simEngine.isNetUpdated())
+            return;
+
+        auto &mainPageState = Pages::MainPage::getInstance()->getState();
+        auto &netIdToNameMap = mainPageState.getNetIdToNameMap();
+        auto &netIdCompMap =
+            mainPageState.getNetIdToCompMap(scene->getSceneId());
+        auto &sceneState = scene->getState();
+
+        std::unordered_map<UUID,
+                           std::shared_ptr<Canvas::SimulationSceneComponent>>
+            simIdToComp;
+
+        for (const auto &[compId, comp] : sceneState.getAllComponents()) {
+            if (comp->getType() == Canvas::SceneComponentType::group ||
+                comp->getType() == Canvas::SceneComponentType::simulation) {
+                const auto simComp =
+                    comp->cast<Canvas::SimulationSceneComponent>();
+                simIdToComp[simComp->getSimEngineId()] = simComp;
+            }
+        }
+
+        const auto &nets = simEngine.getNetsMap();
+        for (const auto &[netId, net] : nets) {
+            for (const auto &simId : net.getComponents()) {
+                if (simIdToComp.contains(simId)) {
+                    const auto &comp = simIdToComp[simId];
+                    netIdCompMap[netId].emplace_back(comp->getUuid());
+                    comp->setNetId(netId);
+                }
+            }
+        }
     }
 } // namespace Bess::Pages

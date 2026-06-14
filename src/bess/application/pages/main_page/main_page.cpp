@@ -272,7 +272,7 @@ namespace Bess::Pages {
                                          std::views::keys |
                                          std::ranges::to<std::vector<UUID>>();
                 if (!selectedIds.empty()) {
-                    sceneDriver->updateNets();
+                    m_state.updateNets(sceneDriver->getActiveScene());
                     std::unordered_set<UUID> processedNetIds;
                     std::vector<UUID> netIdsToModule;
                     netIdsToModule.reserve(selectedIds.size());

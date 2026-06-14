@@ -73,6 +73,7 @@ namespace Bess::Pages {
         PageActionFlags actionFlags = {};
 
         bool m_simulationPaused = false;
+        void updateNets(const std::shared_ptr<Canvas::Scene> &scene);
 
         // contains the state of keyboard keys pressed
 
