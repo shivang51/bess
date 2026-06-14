@@ -29,22 +29,23 @@ namespace Bess::UI {
 
     void SettingsWindow::onDraw() {
         ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 0.0f);
-        ImGui::BeginChild("##SettingsLeftPanel",
-                          ImVec2(200, 0),
-                          ImGuiChildFlags_AlwaysUseWindowPadding);
-        ImGui::PopStyleVar();
-        drawLeftPanel();
+        if (ImGui::BeginChild("##SettingsLeftPanel",
+                              ImVec2(200, 0),
+                              ImGuiChildFlags_AlwaysUseWindowPadding)) {
+            drawLeftPanel();
+        }
         ImGui::EndChild();
 
         ImGui::SameLine();
 
-        ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 0.0f);
-        ImGui::BeginChild("##SettingsRightPanel",
-                          ImVec2(0, 0),
-                          ImGuiChildFlags_AlwaysUseWindowPadding);
-        ImGui::PopStyleVar();
-        drawRightPanel();
+        if (ImGui::BeginChild("##SettingsRightPanel",
+                              ImVec2(0, 0),
+                              ImGuiChildFlags_AlwaysUseWindowPadding)) {
+            drawRightPanel();
+        }
         ImGui::EndChild();
+
+        ImGui::PopStyleVar();
     }
 
     void SettingsWindow::onShow() {
