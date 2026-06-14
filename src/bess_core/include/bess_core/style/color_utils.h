@@ -6,6 +6,27 @@
 #include "bess_core/renderer/renderer_types.h"
 
 namespace Bess::Core::Style {
+    using Vec3 = glm::highp_dvec3;
+    typedef uint32_t Argb;
+
+    // From:
+    // https://github.com/material-foundation/material-color-utilities/blob/main/cpp/cam/cam.h
+    struct Cam {
+        double hue = 0.0;
+        double chroma = 0.0;
+        double j = 0.0;
+        double q = 0.0;
+        double m = 0.0;
+        double s = 0.0;
+
+        double jstar = 0.0;
+        double astar = 0.0;
+        double bstar = 0.0;
+    };
+
+    Cam CamFromInt(Argb argb);
+    double LstarFromArgb(Argb argb);
+    Argb SolveToInt(double hue_degrees, double chroma, double lstar);
 
     // Hue-Chroma-Tone color representation, used for color scheme generation
     // and manipulation.
@@ -22,8 +43,19 @@ namespace Bess::Core::Style {
               tone(t) {
         }
 
-        constexpr HctColor fromColor(const Renderer::Color &color);
+        static constexpr HctColor fromColor(const Renderer::Color &color) {
+            Argb argb = color.toARGB8();
+            Cam cam = CamFromInt(argb);
 
-        constexpr Renderer::Color toColor() const;
+            HctColor hct;
+            hct.hue = cam.hue;
+            hct.chroma = cam.chroma;
+            hct.tone = LstarFromArgb(argb);
+            return hct;
+        }
+
+        constexpr Renderer::Color toColor() const {
+            return Renderer::Color::FromARGB(SolveToInt(hue, chroma, tone));
+        }
     };
 } // namespace Bess::Core::Style

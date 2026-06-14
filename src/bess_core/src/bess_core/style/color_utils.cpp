@@ -10,9 +10,6 @@ namespace Bess::Core::Style {
         // glm Vec3 -> glm::highp_dvec3
         // https://github.com/material-foundation/material-color-utilities/blob/main/cpp/utils/utils.cc
 
-        using Vec3 = glm::highp_dvec3;
-        typedef uint32_t Argb;
-
         int Delinearized(const double rgb_component) {
             double normalized = rgb_component / 100;
             double delinearized = 0;
@@ -69,21 +66,6 @@ namespace Bess::Core::Style {
                 return 1;
             }
         }
-
-        // From:
-        // https://github.com/material-foundation/material-color-utilities/blob/main/cpp/cam/cam.h
-        struct Cam {
-            double hue = 0.0;
-            double chroma = 0.0;
-            double j = 0.0;
-            double q = 0.0;
-            double m = 0.0;
-            double s = 0.0;
-
-            double jstar = 0.0;
-            double astar = 0.0;
-            double bstar = 0.0;
-        };
 
         struct ViewingConditions {
             double adapting_luminance = 0.0;
@@ -757,19 +739,4 @@ namespace Bess::Core::Style {
         }
 
     } // namespace
-
-    constexpr HctColor HctColor::fromColor(const Renderer::Color &color) {
-        Argb argb = color.toARGB8();
-        Cam cam = CamFromInt(argb);
-
-        HctColor hct;
-        hct.hue = cam.hue;
-        hct.chroma = cam.chroma;
-        hct.tone = LstarFromArgb(argb);
-        return hct;
-    }
-
-    constexpr Renderer::Color HctColor::toColor() const {
-        return Renderer::Color::FromARGB(SolveToInt(hue, chroma, tone));
-    }
 } // namespace Bess::Core::Style

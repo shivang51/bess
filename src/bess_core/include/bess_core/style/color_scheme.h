@@ -91,13 +91,15 @@ namespace Bess::Core::Style {
 
       private:
         static ColorScheme buildDynamicScheme(const Renderer::Color &seedColor,
-                                              Brightness brightness,
-                                              float contrast) {
+                                              const Brightness brightness,
+                                              const float contrast) {
 
             BESS_ASSERT(contrast >= -1.0f && contrast <= 1.0f,
                         "Contrast must be between -1.0 and 1.0");
 
             const bool isDark = brightness == Brightness::dark;
+
+            const HctColor sourceCol = HctColor::fromColor(seedColor);
 
             ColorScheme scheme;
 
