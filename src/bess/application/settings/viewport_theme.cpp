@@ -5,6 +5,7 @@ namespace Bess {
     SceneColors ViewportTheme::colors;
     SchematicViewColors ViewportTheme::schematicViewColors;
     SceneWidgetsColors ViewportTheme::sceneWidgetsColors;
+    NodeHeaderColors ViewportTheme::headerColors;
 
     namespace {
         Color toVec4(const ImVec4 &color, float alpha = -1.f) {
@@ -68,8 +69,6 @@ namespace Bess {
                 Color(0.3f, 0.8f, 0.3f, 0.1f); // Muted Green
         }
 
-        initCompColorMap();
-
         colors.moduleColor = Color(0.49, 0.81, 0.99f, 1.f);
 
         const Color frame = toVec4(imguiColors[ImGuiCol_FrameBg], 0.96f);
@@ -105,58 +104,28 @@ namespace Bess {
     }
 
     Color ViewportTheme::getCompHeaderColor(const std::string &group) {
-        const auto &s_compHeaderColorMap = getCompHeaderColorMap();
-        if (!s_compHeaderColorMap.contains(group))
-            return colors.compHeader;
-        return s_compHeaderColorMap.at(group);
-    }
-
-    void ViewportTheme::initCompColorMap() {
-
-        const Color memoryColor =
-            Color(0.48f, 0.35f, 0.58f, 0.90f); // Muted Amethyst (State/Memory)
-        const Color arithmeticColor =
-            Color(0.32f, 0.56f, 0.32f, 0.90f); // Sage Green (Math/Numbers)
-        const Color routingColor = Color(
-            0.72f, 0.45f, 0.25f, 0.90f); // Ochre/Orange (Routing/Data Flow)
-        const Color encoderDecoderColor =
-            Color(0.65f, 0.30f, 0.30f, 0.90f); // Muted Terracotta (Conversion)
-        const Color combinationalColor =
-            Color(0.25f, 0.55f, 0.55f, 0.90f); // Deep Cyan (Process)
-        const Color ioColor =
-            Color(0.45f, 0.45f, 0.45f, 0.90f); // Graphite (Hardware I/O)
-        const Color specialColor =
-            Color(0.35f, 0.35f, 0.35f, 0.85f); // Dark Grey
-        const Color logicColor = arithmeticColor;
-
-        auto &s_compHeaderColorMap = getCompHeaderColorMap();
-        s_compHeaderColorMap.clear();
-
-        s_compHeaderColorMap["IO"] = ioColor;
-
-        s_compHeaderColorMap["Flip Flops"] = memoryColor;
-        s_compHeaderColorMap["Registers/Memory"] =
-            memoryColor; // Added for future use
-
-        s_compHeaderColorMap["Digital Gates"] = logicColor;
-
-        s_compHeaderColorMap["Latches"] = encoderDecoderColor;
-
-        s_compHeaderColorMap["Combinational Circuits"] = combinationalColor;
-
-        s_compHeaderColorMap["Miscellaneous"] = specialColor;
+        if (group == "IO")
+            return headerColors.io;
+        else if (group == "Flip Flops")
+            return headerColors.flipFlops;
+        else if (group == "Digital Gates")
+            return headerColors.digitalGates;
+        else if (group == "Latches")
+            return headerColors.latches;
+        else if (group == "Combinational Circuits")
+            return headerColors.combinationalCircuits;
+        else if (group == "Registers" || group == "Memory" ||
+                 group == "Register/Memory")
+            return headerColors.registersMemory;
+        else
+            return headerColors.default_;
     }
 
     void ViewportTheme::cleanup() {
-        getCompHeaderColorMap().clear();
+        headerColors = {};
         schematicViewColors = {};
         sceneWidgetsColors = {};
         colors = {};
     }
 
-    std::unordered_map<std::string, Color> &
-    ViewportTheme::getCompHeaderColorMap() {
-        static std::unordered_map<std::string, Color> s_compHeaderColorMap;
-        return s_compHeaderColorMap;
-    }
 } // namespace Bess

@@ -1,7 +1,6 @@
 #pragma once
 #include "bess_core/renderer/renderer_types.h"
 #include <string>
-#include <unordered_map>
 
 namespace Bess {
     using Color = Bess::Core::Renderer::Color;
@@ -68,18 +67,27 @@ namespace Bess {
         Color knob = Color(0.30f, 0.30f, 0.30f, 1.00f);
     };
 
+    struct NodeHeaderColors {
+        // Make sure default_ remains the first member
+        // See ViewportTheme::getCompHeaderColor for the reason
+        Color default_ = Color(0.45f, 0.45f, 0.45f, 0.90f);
+        Color io = Color(0.48f, 0.35f, 0.58f, 0.90f);
+        Color flipFlops = Color(0.48f, 0.35f, 0.58f, 0.90f);
+        Color registersMemory = Color(0.48f, 0.35f, 0.58f, 0.90f);
+        Color digitalGates = Color(0.32f, 0.56f, 0.32f, 0.90f);
+        Color latches = Color(0.65f, 0.30f, 0.30f, 0.90f);
+        Color combinationalCircuits = Color(0.25f, 0.55f, 0.55f, 0.90f);
+    };
+
     class ViewportTheme {
       public:
         static void cleanup();
         static SceneColors colors;
         static SchematicViewColors schematicViewColors;
         static SceneWidgetsColors sceneWidgetsColors;
+        static NodeHeaderColors headerColors;
         static void updateColorsFromImGuiStyle();
 
         static Color getCompHeaderColor(const std::string &group);
-
-      private:
-        static void initCompColorMap();
-        static std::unordered_map<std::string, Color> &getCompHeaderColorMap();
     };
 } // namespace Bess

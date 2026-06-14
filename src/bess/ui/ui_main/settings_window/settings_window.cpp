@@ -19,6 +19,7 @@ namespace Bess::UI {
             drawViewportColorsSettings();
         };
         m_visible = true;
+        onShow();
     }
 
     void SettingsWindow::onBeforeDraw() {
@@ -121,12 +122,12 @@ namespace Bess::UI {
     }
 
     void SettingsWindow::drawViewportColorsSettings() {
-        // Scene Colors
-        {
+        if (Widgets::TreeNode(0, "Scene Colors")) {
             auto &sceneColors = ViewportTheme::colors;
-            ImGui::Text("Scene Colors");
 
             ImGui::Indent();
+            ImGui::ColorEdit4("Background Color",
+                              sceneColors.background.data());
             ImGui::ColorEdit4("Text Color", sceneColors.text.data());
 
             ImGui::ColorEdit4("Compnent Header Default",
@@ -169,13 +170,11 @@ namespace Bess::UI {
             ImGui::ColorEdit4("Error Color", sceneColors.error.data());
 
             ImGui::Unindent();
+            ImGui::TreePop();
         }
 
-        // Schematic View Colors
-        {
+        if (Widgets::TreeNode(1, "Schematic View Colors")) {
             auto &schematicColors = ViewportTheme::schematicViewColors;
-
-            ImGui::Text("Schematic View Colors");
 
             ImGui::Indent();
             ImGui::ColorEdit4("Pin Color", schematicColors.pin.data());
@@ -189,13 +188,11 @@ namespace Bess::UI {
             ImGui::ColorEdit4("Active Signal Color",
                               schematicColors.activeSignal.data());
             ImGui::Unindent();
+            ImGui::TreePop();
         }
 
-        // Widget Colors
-        {
+        if (Widgets::TreeNode(2, "Scene Widgets Colors")) {
             auto &widgetColors = ViewportTheme::sceneWidgetsColors;
-
-            ImGui::Text("Scene Widgets Colors");
 
             ImGui::Indent();
             ImGui::ColorEdit4("Surface Color", widgetColors.surface.data());
@@ -223,6 +220,27 @@ namespace Bess::UI {
             ImGui::ColorEdit4("Knob Color", widgetColors.knob.data());
 
             ImGui::Unindent();
+            ImGui::TreePop();
+        }
+
+        if (Widgets::TreeNode(3, "Component Header Colors")) {
+            auto &headerColors = ViewportTheme::headerColors;
+
+            ImGui::Indent();
+            ImGui::ColorEdit4("Default Color", headerColors.default_.data());
+            ImGui::ColorEdit4("IO Color", headerColors.io.data());
+            ImGui::ColorEdit4("Flip Flops Color",
+                              headerColors.flipFlops.data());
+            ImGui::ColorEdit4("Registers/Memory Color",
+                              headerColors.registersMemory.data());
+            ImGui::ColorEdit4("Digital Gates Color",
+                              headerColors.digitalGates.data());
+            ImGui::ColorEdit4("Latches Color", headerColors.latches.data());
+            ImGui::ColorEdit4("Combinational Circuits Color",
+                              headerColors.combinationalCircuits.data());
+
+            ImGui::Unindent();
+            ImGui::TreePop();
         }
     }
 
