@@ -7,7 +7,7 @@ namespace Bess::Core::Renderer {
 
     glm::vec2 IRenderer2D::getTextRenderSize(const std::string_view &text,
                                              const FontProps &props) {
-        glm::vec2 size = {0.f, 0.f};
+        glm::vec2 size = {0.f, props.fontSize};
 
         for (const char &ch : text) {
             if (ch == '\n') {

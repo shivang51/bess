@@ -279,6 +279,7 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::drawBottomControls() const {
+        return;
         auto sceneDriver = GAppContext::getInstance()
                                .getSubSystem<Bess::ProjectContext>()
                                ->getSubSystem<SceneDriver>();
