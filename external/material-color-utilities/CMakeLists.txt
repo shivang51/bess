@@ -32,7 +32,11 @@ set(ALL_SOURCE_FILES
 "cpp/dynamiccolor/dynamic_color.cc"
 )
 
-add_library(material-color-utils OBJECT ${ALL_SOURCE_FILES})
+add_library(material-color-utils STATIC ${ALL_SOURCE_FILES})
 
 target_include_directories(material-color-utils PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
+
+target_link_libraries(material-color-utils PRIVATE
+		absl::strings
+)

@@ -23,6 +23,7 @@ set(Header_Files
 	
 	"include/bess_core/style/color_scheme.h"
 	"include/bess_core/style/color_utils.h"
+	"include/bess_core/style/bess_theme.h"
 )
 
 source_group("include/bess_core" FILES ${Header_Files})
@@ -45,6 +46,7 @@ set(Source_Files
 	
 	"src/bess_core/style/color_scheme.cpp"
 	"src/bess_core/style/color_utils.cpp"
+	"src/bess_core/style/bess_theme.cpp"
 )
 
 source_group("src" FILES ${Source_Files})

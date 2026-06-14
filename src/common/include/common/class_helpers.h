@@ -89,3 +89,11 @@
     type &get##name() {                                                        \
         return varName;                                                        \
     }
+
+#define DEFAULT_CONTRS(className)                                              \
+    className() = default;                                                     \
+    className(const className &) = default;                                    \
+    className(className &&) = default;                                         \
+    ~className() = default;                                                    \
+    className &operator=(const className &) = default;                         \
+    className &operator=(className &&) = default;

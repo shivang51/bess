@@ -3,11 +3,9 @@
 // Just trying to create something like Flutter
 // https://github.com/flutter/flutter/blob/master/packages/flutter/lib/src/material/color_scheme.dart
 #include "bess_core/renderer/renderer_types.h"
-#include "common/bess_assert.h"
 #include "common/class_helpers.h"
-#include "cpp/cam/hct.h"
 #include "cpp/dynamiccolor/dynamic_scheme.h"
-#include "cpp/scheme/scheme_tonal_spot.h"
+#include "json/value.h"
 #include <cstdint>
 
 namespace Bess::Core::Style {
@@ -85,6 +83,8 @@ namespace Bess::Core::Style {
         constexpr ColorScheme &operator=(const ColorScheme &) = default;
         constexpr ColorScheme &operator=(ColorScheme &&) = default;
 
+        ColorScheme(const ColorSchemeColors &colors, Brightness brightness);
+
         static constexpr ColorScheme
         fromSeed(const Renderer::Color &seedColor,
                  Brightness brightness = Brightness::dark) {
@@ -102,22 +102,14 @@ namespace Bess::Core::Style {
 
         MAKE_GETTER_SETTER(Brightness, Brightness, m_brightness);
 
+        Json::Value toJson() const;
+        static ColorScheme fromJson(const Json::Value &json);
+
       private:
         static DynamicScheme
         buildDynamicScheme(const Renderer::Color &seedColor,
-                           const Brightness brightness,
-                           const float contrast) {
-
-            BESS_ASSERT(contrast >= -1.0f && contrast <= 1.0f,
-                        "Contrast must be between -1.0 and 1.0");
-
-            const bool isDark = brightness == Brightness::dark;
-
-            const material_color_utilities::Hct sourceCol(seedColor.toARGB8());
-
-            return material_color_utilities::SchemeTonalSpot(
-                sourceCol, isDark, contrast);
-        }
+                           Brightness brightness,
+                           float contrast);
 
       private:
         ColorSchemeColors m_colors;
