@@ -17,6 +17,12 @@ namespace Bess::UI {
         void onDraw() override;
         void onShow() override;
 
+        void drawLeftPanel();
+        void drawRightPanel();
+
+        void drawGeneralSettings();
+        void drawViewportColorsSettings();
+
         template <std::ranges::input_range Range,
                   class TValue = std::ranges::range_value_t<Range>>
         static bool drawSetting(const std::string &label,
@@ -42,5 +48,12 @@ namespace Bess::UI {
         std::vector<float> m_availableFontSizes;
         std::vector<std::string> m_availableThemes;
         std::vector<int> m_availableFps;
+
+        // Map of Category name and draw function callbacks
+        // General -> drawGeneralSettings
+        // ViewportColors -> drawViewportColorsSettings
+        std::map<std::string, std::function<void()>> m_settingsCallbacks;
+
+        std::string m_currentCategory;
     };
 } // namespace Bess::UI
