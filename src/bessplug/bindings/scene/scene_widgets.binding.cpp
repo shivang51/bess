@@ -2,9 +2,9 @@
 #include "common/types.h"
 #include "scene_draw_context.h"
 
+#include <optional>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <optional>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -95,10 +95,9 @@ namespace {
     bool draw_button(const Bess::PickingId &id,
                      const std::string &label,
                      const glm::vec3 &buttonPos,
-                     const glm::vec2 &buttonSize,
-                     const Bess::Core::Renderer::Color &labelColor,
-                     Bess::SceneDrawContext &context) {
-        return button(id, label, buttonPos, buttonSize, labelColor, context);
+                     Bess::SceneDrawContext &context,
+                     const ButtonOptions &options = {}) {
+        return button(id, label, buttonPos, context, options);
     }
 
     std::tuple<TextBoxResult, std::string>
@@ -197,9 +196,8 @@ void bind_scene_widgets(py::module_ &m) {
                       py::arg("id"),
                       py::arg("label"),
                       py::arg("button_pos"),
-                      py::arg("button_size"),
-                      py::arg("label_color"),
-                      py::arg("context"));
+                      py::arg("context"),
+                      py::arg("options") = ButtonOptions{});
 
     mSceneWidgets.def("text_box",
                       &draw_tb,
@@ -335,6 +333,24 @@ namespace {
             .def_readwrite("text_color", &SliderOptions::textColor)
             .def("__repr__", [](const SliderOptions &options) {
                 return "bessplug.api.scene.widgets.SliderOptions()";
+            });
+
+        py::class_<ButtonOptions>(m, "ButtonOptions")
+            .def(py::init<>())
+            .def_readwrite("text_size", &ButtonOptions::textSize)
+            .def_readwrite("button_size", &ButtonOptions::buttonSize)
+            .def_readwrite("padding", &ButtonOptions::padding)
+            .def_readwrite("border_thickness", &ButtonOptions::borderThickness)
+            .def_readwrite("border_radius", &ButtonOptions::borderRadius)
+            .def_readwrite("background_color", &ButtonOptions::backgroundColor)
+            .def_readwrite("hover_background_color",
+                           &ButtonOptions::hoverBackgroundColor)
+            .def_readwrite("pressed_background_color",
+                           &ButtonOptions::pressedBackgroundColor)
+            .def_readwrite("border_color", &ButtonOptions::borderColor)
+            .def_readwrite("text_color", &ButtonOptions::textColor)
+            .def("__repr__", [](const ButtonOptions &options) {
+                return "bessplug.api.scene.widgets.ButtonOptions()";
             });
     }
 } // namespace

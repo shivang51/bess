@@ -119,12 +119,23 @@ namespace Bess::Canvas::SceneWidgets {
                       const glm::vec2 &buttonSize,
                       SceneDrawContext &context);
 
+    struct ButtonOptions {
+        float textSize = 12.f;
+        glm::vec2 buttonSize{0.f};
+        glm::vec2 padding{3.f, 2.f};
+        glm::vec4 borderThickness{1.f};
+        glm::vec4 borderRadius{2.f};
+        std::optional<Core::Renderer::Color> backgroundColor;
+        std::optional<Core::Renderer::Color> hoverBackgroundColor;
+        std::optional<Core::Renderer::Color> pressedBackgroundColor;
+        std::optional<Core::Renderer::Color> borderColor;
+        std::optional<Core::Renderer::Color> textColor;
+    };
     bool button(const PickingId &id,
                 std::string_view label,
                 const glm::vec3 &buttonPos,
-                const glm::vec2 &buttonSize,
-                const Core::Renderer::Color &labelColor,
-                SceneDrawContext &context);
+                SceneDrawContext &context,
+                const ButtonOptions &options = {});
 
     TextBoxResult textBox(const PickingId &id,
                           std::string *value,

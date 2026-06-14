@@ -18,8 +18,6 @@ namespace Bess::UI {
         m_settingsCallbacks["Viewport Colors"] = [this]() {
             drawViewportColorsSettings();
         };
-        m_visible = true;
-        onShow();
     }
 
     void SettingsWindow::onBeforeDraw() {

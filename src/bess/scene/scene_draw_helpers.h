@@ -21,7 +21,7 @@ namespace Bess::Canvas::SceneDraw {
 
     struct QuadStyle {
         float angle = 0.f;
-        glm::vec4 borderColor = {0.f, 0.f, 0.f, 0.f};
+        Core::Renderer::Color borderColor = {0.f, 0.f, 0.f, 0.f};
         glm::vec4 borderRadius = {0.f, 0.f, 0.f, 0.f};
         glm::vec4 borderSize = {0.f, 0.f, 0.f, 0.f};
         ShadowStyle shadow{};

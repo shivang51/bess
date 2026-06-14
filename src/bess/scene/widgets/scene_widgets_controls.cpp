@@ -1,6 +1,7 @@
 #include "scene/scene_draw_helpers.h"
 #include "scene_widgets_internal.h"
 #include "settings/viewport_theme.h"
+#include <cstddef>
 
 namespace Bess::Canvas::SceneWidgets {
     namespace {
@@ -79,44 +80,48 @@ namespace Bess::Canvas::SceneWidgets {
     bool button(const PickingId &id,
                 std::string_view label,
                 const glm::vec3 &buttonPos,
-                const glm::vec2 &buttonSize,
-                const Core::Renderer::Color &labelColor,
-                SceneDrawContext &context) {
-        constexpr float paddingY = 2.f;
-        constexpr float paddingX = 3.f;
-
+                SceneDrawContext &context,
+                const ButtonOptions &options) {
         Detail::registerWidget(
             context.sceneState, id, Detail::WidgetState::Type::button);
 
         const auto &palette = ViewportTheme::sceneWidgetsColors;
         const SceneDraw::QuadStyle buttonProps{
-            .borderColor = palette.border,
-            .borderRadius = glm::vec4(2.f),
-            .borderSize = glm::vec4(0.5f),
+            .borderColor = options.borderColor.has_value()
+                               ? options.borderColor.value()
+                               : palette.border,
+            .borderRadius = options.borderRadius,
+            .borderSize = options.borderThickness,
         };
 
         auto bgColor = Core::Renderer::Color(palette.surface);
         if (Detail::isHovering(context.sceneState, id)) {
-            bgColor = palette.surfaceHover;
+            bgColor = Detail::colorOr(options.hoverBackgroundColor,
+                                      palette.surfaceHover);
         }
         if (Detail::isPressed(context.sceneState, id)) {
-            bgColor = palette.surfaceActive;
+            bgColor = Detail::colorOr(options.pressedBackgroundColor,
+                                      palette.surfaceActive);
         }
 
-        const auto textSize = context.renderer->measureText(
-            label, {.fontSize = Detail::kDefaultButtonTextSize});
+        const auto textSize =
+            context.renderer->measureText(label,
+                                          {
+                                              .fontSize = options.textSize,
+                                          });
 
         const float textOffY = context.renderer->textCenterOffsetY(
-            label, {.fontSize = Detail::kDefaultButtonTextSize});
+            label,
+            {
+                .fontSize = options.textSize,
+            });
 
-        auto size = buttonSize;
-
-        if (size.y == 0.f) {
-            size.y = textSize.y + (paddingY * 2.f);
-        }
-
+        auto size = options.buttonSize;
         if (size.x == 0.f) {
-            size.x = textSize.x + (paddingX * 2.f);
+            size.x = textSize.x + (options.padding.x * 2.f);
+        }
+        if (size.y == 0.f) {
+            size.y = textSize.y + (options.padding.y * 2.f);
         }
 
         SceneDraw::drawQuad(context, buttonPos, size, bgColor, id, buttonProps);
@@ -124,12 +129,12 @@ namespace Bess::Canvas::SceneWidgets {
         const auto textPos = glm::vec3(buttonPos.x - (textSize.x / 2.f),
                                        buttonPos.y + textOffY,
                                        buttonPos.z + 0.0001f);
-        SceneDraw::drawText(context,
-                            label,
-                            textPos,
-                            Detail::kDefaultButtonTextSize,
-                            labelColor,
-                            id);
+
+        const auto textColor = options.textColor.has_value()
+                                   ? options.textColor.value()
+                                   : Core::Renderer::Color(palette.text);
+        SceneDraw::drawText(
+            context, label, textPos, (size_t)options.textSize, textColor, id);
 
         return Detail::consumeClick(context.sceneState, id);
     }

@@ -230,8 +230,6 @@ namespace Bess::Canvas {
         if (SceneWidgets::button(PickingId{m_runtimeId, 2},
                                  buttonLabel,
                                  {left + 52.f, top + 58.f, z + 0.001f},
-                                 {84.f, 18.f},
-                                 ViewportTheme::sceneWidgetsColors.text,
                                  context)) {
             ++m_buttonClicks;
         }

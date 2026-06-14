@@ -135,12 +135,12 @@ namespace Bess::Canvas {
             PickingId{m_runtimeId, static_cast<uint32_t>(buttonIndex + 1)};
 
         if (slotType == SlotType::outputsResize) {
-            if (SceneWidgets::button(pickingId,
-                                     "All Low",
-                                     buttonPos,
-                                     {0.f, 0.f},
-                                     ViewportTheme::sceneWidgetsColors.text,
-                                     context)) {
+            if (SceneWidgets::button(
+                    pickingId,
+                    "All Low",
+                    buttonPos,
+                    context,
+                    {.textSize = Styles::simCompStyles.slotLabelSize})) {
                 makeAllLow = true;
             }
             return;

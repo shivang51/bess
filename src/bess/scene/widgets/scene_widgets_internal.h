@@ -12,7 +12,6 @@
 
 namespace Bess::Canvas::SceneWidgets::Detail {
     constexpr uint64_t kInvalidWidgetId = PickingId::invalid().toUint64();
-    constexpr float kDefaultButtonTextSize = 8.f;
 
     inline Core::Renderer::Color
     colorOr(const std::optional<Core::Renderer::Color> &overrideColor,

@@ -43,9 +43,10 @@ namespace Bess::Canvas {
         if (SceneWidgets::button(PickingId{2, 0},
                                  "Toggle Overlay",
                                  {10.f, 50.f, 1000},
-                                 {80.f, 30.f},
-                                 Core::Renderer::Colors::white,
-                                 drawCtx)) {
+                                 drawCtx,
+                                 {
+                                     .textSize = 32.f,
+                                 })) {
             show = !show;
         }
     }
