@@ -4,12 +4,12 @@
 #include "json/value.h"
 
 namespace Bess::Core::Style {
-    class Theme {
+    class BessTheme {
       public:
-        DEFAULT_CONTRS(Theme)
+        DEFAULT_CONTRS(BessTheme)
 
-        constexpr Theme(const std::string_view &name,
-                        const ColorScheme &colorScheme)
+        constexpr BessTheme(const std::string_view &name,
+                            const ColorScheme &colorScheme)
             : m_name(name),
               m_colorScheme(colorScheme) {
         }
@@ -19,7 +19,7 @@ namespace Bess::Core::Style {
         MAKE_GETTER_SETTER(ColorScheme, ColorScheme, m_colorScheme);
 
         Json::Value toJson() const;
-        static Theme fromJson(const Json::Value &json);
+        static BessTheme fromJson(const Json::Value &json);
 
       private:
         ColorScheme m_colorScheme;
