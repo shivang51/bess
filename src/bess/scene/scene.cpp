@@ -7,6 +7,7 @@
 #include "layers/interaction_layer.h"
 #include "layers/overlay_layer.h"
 #include "layers/scene_widgets_layer.h"
+#include "layers/screen_space_overlay_layer.h"
 #include "scene/scene_event_builder.h"
 #include "scene/scene_events.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -92,6 +93,9 @@ namespace Bess::Canvas {
         m_sceneLayers.push_back(std::make_unique<OverlayLayer>());
         m_sceneLayers.push_back(std::make_unique<InteractionLayer>());
         m_sceneLayers.push_back(std::make_unique<SceneWidgetsLayer>());
+        auto screenOverlayLayer = std::make_unique<ScreenSpaceOverlayLayer>();
+        m_screenSpaceOverlayLayer = screenOverlayLayer.get();
+        m_sceneLayers.push_back(std::move(screenOverlayLayer));
         reset();
     }
 
@@ -117,6 +121,7 @@ namespace Bess::Canvas {
         }
 
         m_sceneLayers.clear();
+        m_screenSpaceOverlayLayer = nullptr;
         m_isDestroyed = true;
         m_state.clear();
     }
@@ -207,6 +212,19 @@ namespace Bess::Canvas {
             layer->draw(ctx);
         }
         SceneWidgets::endFrame(&m_state);
+    }
+
+    void
+    Scene::addScreenOverlayDrawCallback(ScreenOverlayDrawCallback callback) {
+        if (m_screenSpaceOverlayLayer) {
+            m_screenSpaceOverlayLayer->addDrawCallback(std::move(callback));
+        }
+    }
+
+    void Scene::clearScreenOverlayDrawCallbacks() {
+        if (m_screenSpaceOverlayLayer) {
+            m_screenSpaceOverlayLayer->clearDrawCallbacks();
+        }
     }
 
     void Scene::selectAllEntities() {

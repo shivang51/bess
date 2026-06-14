@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bess_core/renderer/renderer_types.h"
 #include <memory>
 
 namespace Bess {
@@ -18,5 +19,7 @@ namespace Bess {
         Bess::Canvas::SceneState *sceneState;
         std::shared_ptr<Core::Renderer::IRenderer2D> renderer;
         std::shared_ptr<Camera> camera;
+        Core::Renderer::RenderTransformMode transformMode =
+            Core::Renderer::RenderTransformMode::Camera;
     };
 } // namespace Bess

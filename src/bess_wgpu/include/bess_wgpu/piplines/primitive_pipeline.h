@@ -12,7 +12,7 @@ namespace Bess::Wgpu::Piplines {
 
     struct PrimitiveInstance {
         float position[3] = {0.f, 0.f, 0.f};
-        float padding0 = 0.f;
+        uint32_t flags = 0;
         float color[4] = {1.f, 1.f, 1.f, 1.f};
         float borderRadius[4] = {0.f, 0.f, 0.f, 0.f};
         float borderColor[4] = {0.f, 0.f, 0.f, 1.f};

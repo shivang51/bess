@@ -49,8 +49,26 @@ namespace Bess::Wgpu::Renderer2DDetail {
     constexpr uint32_t kShadowShapeCircle = 1;
     constexpr uint32_t kShadowShapeLine = 2;
     constexpr uint32_t kShadowFlagApplyCameraTransform = 1u << 0u;
+    constexpr uint32_t kPrimitiveFlagApplyCameraTransform = 1u << 0u;
     constexpr float kShadowZOffset = 0.0001f;
     constexpr float kShadowGeometryPadding = 2.f;
+
+    inline bool
+    appliesCameraTransform(Core::Renderer::RenderTransformMode transformMode) {
+        return transformMode == Core::Renderer::RenderTransformMode::Camera;
+    }
+
+    inline bool appliesCameraTransform(
+        Core::Renderer::CustomQuadTransformMode transformMode) {
+        return transformMode == Core::Renderer::CustomQuadTransformMode::Camera;
+    }
+
+    inline uint32_t
+    makePrimitiveFlags(Core::Renderer::RenderTransformMode transformMode) {
+        return appliesCameraTransform(transformMode)
+                   ? kPrimitiveFlagApplyCameraTransform
+                   : 0u;
+    }
 
     inline bool hasDrawableShadow(const Core::Renderer::ShadowProps &shadow) {
         return shadow.enabled && shadow.color.a > 0.f;
@@ -86,11 +104,10 @@ namespace Bess::Wgpu::Renderer2DDetail {
         instance.padding[1] = 0;
     }
 
-    inline void makeQuadShadowInstanceInPlace(
+    inline void makeQuadShadowInstanceInPlaceWithMode(
         Piplines::ShadowInstance &instance,
         const Core::Renderer::QuadProps &props,
-        Core::Renderer::CustomQuadTransformMode transformMode =
-            Core::Renderer::CustomQuadTransformMode::Camera) {
+        bool applyCameraTransform) {
         const glm::vec2 sourceSize{std::max(props.size.x, 0.f),
                                    std::max(props.size.y, 0.f)};
         const float margin = shadowGeometryMargin(props.shadow);
@@ -101,13 +118,27 @@ namespace Bess::Wgpu::Renderer2DDetail {
                          props.rotation,
                          sourceSize + glm::vec2(margin * 2.f),
                          kShadowShapeRoundedRect,
-                         transformMode ==
-                             Core::Renderer::CustomQuadTransformMode::Camera);
+                         applyCameraTransform);
         copyVec4(instance.radii, props.radius);
         instance.shapeData[0] = sourceSize.x;
         instance.shapeData[1] = sourceSize.y;
         instance.shapeData[2] = 0.f;
         instance.shapeData[3] = 0.f;
+    }
+
+    inline void
+    makeQuadShadowInstanceInPlace(Piplines::ShadowInstance &instance,
+                                  const Core::Renderer::QuadProps &props) {
+        makeQuadShadowInstanceInPlaceWithMode(
+            instance, props, appliesCameraTransform(props.transformMode));
+    }
+
+    inline void makeQuadShadowInstanceInPlace(
+        Piplines::ShadowInstance &instance,
+        const Core::Renderer::QuadProps &props,
+        Core::Renderer::CustomQuadTransformMode transformMode) {
+        makeQuadShadowInstanceInPlaceWithMode(
+            instance, props, appliesCameraTransform(transformMode));
     }
 
     inline void
@@ -123,7 +154,7 @@ namespace Bess::Wgpu::Renderer2DDetail {
                          0.f,
                          glm::vec2(drawDiameter, drawDiameter),
                          kShadowShapeCircle,
-                         true);
+                         appliesCameraTransform(props.transformMode));
         instance.radii[0] = 0.f;
         instance.radii[1] = 0.f;
         instance.radii[2] = 0.f;
@@ -151,7 +182,7 @@ namespace Bess::Wgpu::Renderer2DDetail {
             angle,
             glm::vec2(length + (margin * 2.f), thickness + (margin * 2.f)),
             kShadowShapeLine,
-            true);
+            appliesCameraTransform(props.transformMode));
         instance.radii[0] = 0.f;
         instance.radii[1] = 0.f;
         instance.radii[2] = 0.f;
@@ -168,7 +199,7 @@ namespace Bess::Wgpu::Renderer2DDetail {
         instance.position[0] = props.position.x;
         instance.position[1] = props.position.y;
         instance.position[2] = props.zIndex;
-        instance.padding0 = 0.f;
+        instance.flags = makePrimitiveFlags(props.transformMode);
         instance.color[0] = props.color.r;
         instance.color[1] = props.color.g;
         instance.color[2] = props.color.b;
@@ -245,7 +276,7 @@ namespace Bess::Wgpu::Renderer2DDetail {
         instance.position[0] = props.position.x;
         instance.position[1] = props.position.y;
         instance.position[2] = props.zIndex;
-        instance.padding0 = 0.f;
+        instance.flags = makePrimitiveFlags(props.transformMode);
         instance.color[0] = props.color.r;
         instance.color[1] = props.color.g;
         instance.color[2] = props.color.b;
@@ -295,7 +326,7 @@ namespace Bess::Wgpu::Renderer2DDetail {
         instance.position[0] = pos.x;
         instance.position[1] = pos.y;
         instance.position[2] = props.zIndex;
-        instance.padding0 = 0.f;
+        instance.flags = makePrimitiveFlags(props.transformMode);
         instance.color[0] = props.color.r;
         instance.color[1] = props.color.g;
         instance.color[2] = props.color.b;

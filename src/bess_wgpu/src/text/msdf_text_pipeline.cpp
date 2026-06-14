@@ -127,6 +127,22 @@ fn text_depth(z_index: f32) -> f32 {
     return clamp(0.5 - 0.5 * tanh(z_index * 0.01), 0.0, 1.0);
 }
 
+const TEXT_FLAG_APPLY_CAMERA_TRANSFORM: u32 = 1u;
+
+fn text_screen_clip_position(world: vec2f, z_index: f32) -> vec4f {
+    let safe_viewport = max(frame.viewport, vec2f(1.0, 1.0));
+    let clip_xy = vec2f(
+        (world.x / safe_viewport.x) * 2.0,
+        -(world.y / safe_viewport.y) * 2.0);
+    return vec4f(clip_xy, text_depth(z_index), 1.0);
+}
+
+fn text_camera_clip_position(world: vec2f, z_index: f32) -> vec4f {
+    var clip = frame.camera_transform * vec4f(world, 0.0, 1.0);
+    clip.z = text_depth(z_index);
+    return clip;
+}
+
 @vertex
 fn vs_main(@builtin(vertex_index) vertex_index: u32,
            @builtin(instance_index) instance_index: u32) -> VertexOut {
@@ -145,8 +161,11 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32,
     let world = glyph.position.xy + rotated;
 
     var out: VertexOut;
-    out.position = frame.camera_transform * vec4f(world, 0.0, 1.0);
-    out.position.z = text_depth(glyph.position.z);
+    if ((glyph.flags.x & TEXT_FLAG_APPLY_CAMERA_TRANSFORM) != 0u) {
+        out.position = text_camera_clip_position(world, glyph.position.z);
+    } else {
+        out.position = text_screen_clip_position(world, glyph.position.z);
+    }
     out.uv = glyph.uv_rect.xy + local * glyph.uv_rect.zw;
     out.color = glyph.color;
     out.id = glyph.id;
@@ -557,6 +576,11 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                     instance.uvRect[3] = uv.w;
                     instance.id[0] = props.id.runtimeId;
                     instance.id[1] = props.id.info;
+                    instance.flags[0] =
+                        props.transformMode ==
+                                Core::Renderer::RenderTransformMode::Camera
+                            ? kMsdfTextFlagApplyCameraTransform
+                            : 0u;
                     batch.push(instance, submitOrder);
                 }
             }

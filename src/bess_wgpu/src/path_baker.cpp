@@ -20,6 +20,7 @@ namespace Bess::Wgpu {
     using Core::Renderer::PathProps;
     using Core::Renderer::QuadRenderPass;
     using Core::Renderer::Renderer2DExtent;
+    using Core::Renderer::RenderTransformMode;
 
     namespace {
 
@@ -28,6 +29,7 @@ namespace Bess::Wgpu {
 
         constexpr uint32_t kPathCurveTypeLine = 0;
         constexpr uint32_t kPathCurveTypeQuadratic = 1;
+        constexpr uint32_t kPathFlagApplyCameraTransform = 1u << 0u;
 
         struct StyledStrokeSegment {
             glm::vec2 from{0.f};
@@ -40,6 +42,21 @@ namespace Bess::Wgpu {
         bool hasPathFill(const PathProps &props);
         bool pathHasDrawableStroke(std::span<const PathCommand> commands,
                                    const PathProps &props);
+
+        uint32_t pathTransformFlags(const PathProps &props) {
+            return props.transformMode == RenderTransformMode::Camera
+                       ? kPathFlagApplyCameraTransform
+                       : 0u;
+        }
+
+        void applyPathTransformFlags(BakedPath &path, uint32_t flags) {
+            for (auto &vertex : path.stencilVertices) {
+                vertex.flags = flags;
+            }
+            for (auto &vertex : path.coverVertices) {
+                vertex.flags = flags;
+            }
+        }
         float strokeSizeForCommand(const PathCommand &command,
                                    const PathProps &props);
         PickingId pickingIdForCommand(const PathCommand &command,
@@ -219,7 +236,8 @@ namespace Bess::Wgpu {
                             const glm::vec2 &pos,
                             float z,
                             const Core::Renderer::Color &color,
-                            const PickingId &id) {
+                            const PickingId &id,
+                            uint32_t flags) {
             vertex.position[0] = pos.x;
             vertex.position[1] = pos.y;
             vertex.position[2] = z;
@@ -229,6 +247,7 @@ namespace Bess::Wgpu {
             vertex.color[3] = color.a;
             vertex.id[0] = id.runtimeId;
             vertex.id[1] = id.info;
+            vertex.flags = flags;
         }
 
         std::array<PathCoverVertex, 6>
@@ -240,19 +259,44 @@ namespace Bess::Wgpu {
             const glm::vec2 p1(maxPt.x, minPt.y);
             const glm::vec2 p2(minPt.x, maxPt.y);
             const glm::vec2 p3(maxPt.x, maxPt.y);
+            const uint32_t flags = pathTransformFlags(props);
 
-            setCoverVertex(
-                vertices[0], p0, props.zIndex, props.fillColor, props.id);
-            setCoverVertex(
-                vertices[1], p1, props.zIndex, props.fillColor, props.id);
-            setCoverVertex(
-                vertices[2], p2, props.zIndex, props.fillColor, props.id);
-            setCoverVertex(
-                vertices[3], p2, props.zIndex, props.fillColor, props.id);
-            setCoverVertex(
-                vertices[4], p1, props.zIndex, props.fillColor, props.id);
-            setCoverVertex(
-                vertices[5], p3, props.zIndex, props.fillColor, props.id);
+            setCoverVertex(vertices[0],
+                           p0,
+                           props.zIndex,
+                           props.fillColor,
+                           props.id,
+                           flags);
+            setCoverVertex(vertices[1],
+                           p1,
+                           props.zIndex,
+                           props.fillColor,
+                           props.id,
+                           flags);
+            setCoverVertex(vertices[2],
+                           p2,
+                           props.zIndex,
+                           props.fillColor,
+                           props.id,
+                           flags);
+            setCoverVertex(vertices[3],
+                           p2,
+                           props.zIndex,
+                           props.fillColor,
+                           props.id,
+                           flags);
+            setCoverVertex(vertices[4],
+                           p1,
+                           props.zIndex,
+                           props.fillColor,
+                           props.id,
+                           flags);
+            setCoverVertex(vertices[5],
+                           p3,
+                           props.zIndex,
+                           props.fillColor,
+                           props.id,
+                           flags);
             return vertices;
         }
 
@@ -376,7 +420,12 @@ namespace Bess::Wgpu {
                              float alphaScale = 1.f) {
             Core::Renderer::Color color = props.strokeColor;
             color.a *= std::clamp(alphaScale, 0.f, 1.f);
-            setCoverVertex(vertex, pos, props.zIndex, color, props.id);
+            setCoverVertex(vertex,
+                           pos,
+                           props.zIndex,
+                           color,
+                           props.id,
+                           pathTransformFlags(props));
         }
 
         void appendStrokeTriangle(std::vector<PathCoverVertex> &vertices,
@@ -1703,6 +1752,7 @@ namespace Bess::Wgpu {
         }
 
         baked.coverVertices = makeCoverVertices(minPt, maxPt, props);
+        applyPathTransformFlags(baked, pathTransformFlags(props));
         baked.evenOddFill =
             props.fillRule == Core::Renderer::PathFillRule::EvenOdd;
         baked.valid = true;

@@ -13,6 +13,7 @@ struct StencilVertexIn {
     @location(0) position: vec3f,
     @location(1) curve_coord: vec2f,
     @location(2) curve_type: u32,
+    @location(3) flags: u32,
 };
 
 struct StencilVertexOut {
@@ -25,6 +26,7 @@ struct CoverVertexIn {
     @location(0) position: vec3f,
     @location(1) color: vec4f,
     @location(2) id: vec2u,
+    @location(3) flags: u32,
 };
 
 struct CoverVertexOut {
@@ -55,16 +57,34 @@ struct StencilFragmentOutPicking {
 
 const CURVE_TYPE_LINE = 0u;
 const CURVE_TYPE_QUADRATIC = 1u;
+const PATH_FLAG_APPLY_CAMERA_TRANSFORM: u32 = 1u;
 
 fn path_depth(z_index: f32) -> f32 {
     return clamp(0.5 - 0.5 * tanh(z_index * 0.01), 0.0, 1.0);
 }
 
+fn path_screen_clip_position(world: vec2f, z_index: f32) -> vec4f {
+    let safe_viewport = max(frame.viewport, vec2f(1.0, 1.0));
+    let clip_xy = vec2f(
+        (world.x / safe_viewport.x) * 2.0,
+        -(world.y / safe_viewport.y) * 2.0);
+    return vec4f(clip_xy, path_depth(z_index), 1.0);
+}
+
+fn path_camera_clip_position(world: vec2f, z_index: f32) -> vec4f {
+    var clip = frame.camera_transform * vec4f(world, 0.0, 1.0);
+    clip.z = path_depth(z_index);
+    return clip;
+}
+
 @vertex
 fn vs_stencil(in: StencilVertexIn) -> StencilVertexOut {
     var out: StencilVertexOut;
-    out.position = frame.camera_transform * vec4f(in.position.xy, 0.0, 1.0);
-    out.position.z = path_depth(in.position.z);
+    if ((in.flags & PATH_FLAG_APPLY_CAMERA_TRANSFORM) != 0u) {
+        out.position = path_camera_clip_position(in.position.xy, in.position.z);
+    } else {
+        out.position = path_screen_clip_position(in.position.xy, in.position.z);
+    }
     out.curve_coord = in.curve_coord;
     out.curve_type = in.curve_type;
     return out;
@@ -100,8 +120,11 @@ fn fs_stencil_picking(in: StencilVertexOut) -> StencilFragmentOutPicking {
 @vertex
 fn vs_cover(in: CoverVertexIn) -> CoverVertexOut {
     var out: CoverVertexOut;
-    out.position = frame.camera_transform * vec4f(in.position.xy, 0.0, 1.0);
-    out.position.z = path_depth(in.position.z);
+    if ((in.flags & PATH_FLAG_APPLY_CAMERA_TRANSFORM) != 0u) {
+        out.position = path_camera_clip_position(in.position.xy, in.position.z);
+    } else {
+        out.position = path_screen_clip_position(in.position.xy, in.position.z);
+    }
     out.color = in.color;
     out.id = in.id;
     return out;

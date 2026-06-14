@@ -100,13 +100,33 @@ namespace Bess::Wgpu {
                    a.renderFill == b.renderFill && a.zIndex == b.zIndex &&
                    samePickingId(a.id, b.id) && a.renderPass == b.renderPass &&
                    a.fillRule == b.fillRule && a.lineJoin == b.lineJoin &&
-                   a.lineCap == b.lineCap && a.closePath == b.closePath;
+                   a.lineCap == b.lineCap && a.closePath == b.closePath &&
+                   a.transformMode == b.transformMode;
         }
 
         bool samePathBakeMetrics(const PathBakeMetrics &a,
                                  const PathBakeMetrics &b) noexcept {
             return a.screenScale == b.screenScale &&
                    a.pixelWorldSize == b.pixelWorldSize;
+        }
+
+        PathBakeMetrics makePathBakeMetricsForTransform(
+            Core::Renderer::RenderTransformMode transformMode,
+            const float *cameraTransform,
+            const Renderer2DExtent &extent) {
+            if (transformMode == Core::Renderer::RenderTransformMode::Screen) {
+                return {};
+            }
+
+            return makePathBakeMetrics(cameraTransform, extent);
+        }
+
+        PathBakeMetrics
+        makePathBakeMetricsForProps(const PathProps &props,
+                                    const float *cameraTransform,
+                                    const Renderer2DExtent &extent) {
+            return makePathBakeMetricsForTransform(
+                props.transformMode, cameraTransform, extent);
         }
 
         bool supportsPresentMode(const wgpu::SurfaceCapabilities &capabilities,
@@ -2065,8 +2085,8 @@ namespace Bess::Wgpu {
         const float spaceAdvance =
             std::max(spaceGlyph.advanceX * scale, props.fontSize * 0.25f);
 
-        const PathBakeMetrics metrics =
-            makePathBakeMetrics(m_impl->cameraTransform, m_impl->extent);
+        const PathBakeMetrics metrics = makePathBakeMetricsForTransform(
+            props.transformMode, m_impl->cameraTransform, m_impl->extent);
 
         const float lineStartX = props.position.x;
         glm::vec2 cursor{props.position.x, props.position.y};
@@ -2088,6 +2108,7 @@ namespace Bess::Wgpu {
             pathProps.zIndex = props.zIndex;
             pathProps.id = props.id;
             pathProps.renderPass = props.renderPass;
+            pathProps.transformMode = props.transformMode;
             const std::span<const PathCommand> textCommands{
                 m_impl->textPathCommandsScratch.data(),
                 m_impl->textPathCommandsScratch.size()};
@@ -2233,8 +2254,8 @@ namespace Bess::Wgpu {
             endPath();
         }
 
-        const PathBakeMetrics metrics =
-            makePathBakeMetrics(m_impl->cameraTransform, m_impl->extent);
+        const PathBakeMetrics metrics = makePathBakeMetricsForProps(
+            props, m_impl->cameraTransform, m_impl->extent);
         submitPathCommands(commands,
                            props,
                            metrics,
@@ -2254,8 +2275,8 @@ namespace Bess::Wgpu {
             endPath();
         }
 
-        const PathBakeMetrics metrics =
-            makePathBakeMetrics(m_impl->cameraTransform, m_impl->extent);
+        const PathBakeMetrics metrics = makePathBakeMetricsForProps(
+            props, m_impl->cameraTransform, m_impl->extent);
         const uint64_t submitOrder = m_impl->nextSubmitOrder();
         const BakedPathSubmission &submission =
             m_impl->cachedPathSubmission(path, props, metrics);
@@ -2383,8 +2404,8 @@ namespace Bess::Wgpu {
             return;
         }
 
-        const PathBakeMetrics metrics =
-            makePathBakeMetrics(m_impl->cameraTransform, m_impl->extent);
+        const PathBakeMetrics metrics = makePathBakeMetricsForProps(
+            m_impl->activePathProps, m_impl->cameraTransform, m_impl->extent);
 
         const std::span<const PathCommand> commands{
             m_impl->activePathCommands.data(),

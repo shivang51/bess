@@ -2,6 +2,7 @@
 
 #include "common/bess_uuid.h"
 #include "common/types.h"
+#include "layers/screen_space_overlay_layer.h"
 #include "scene/camera.h"
 #include "scene/scene_events.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -19,12 +20,16 @@ namespace Bess::Canvas {
         ~Scene();
 
       public:
+        using ScreenOverlayDrawCallback = ScreenSpaceOverlayLayer::DrawCallback;
+
         void destroy();
 
         void reset();
         void clear();
         void update(TimeMs ts, bool isFocused);
         void draw(const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer);
+        void addScreenOverlayDrawCallback(ScreenOverlayDrawCallback callback);
+        void clearScreenOverlayDrawCallbacks();
 
         const SceneState &getState() const;
         SceneState &getState();
@@ -119,5 +124,6 @@ namespace Bess::Canvas {
         bool m_isFirstFrame = true;
 
         std::vector<std::unique_ptr<ISceneLayer>> m_sceneLayers;
+        ScreenSpaceOverlayLayer *m_screenSpaceOverlayLayer = nullptr;
     };
 } // namespace Bess::Canvas

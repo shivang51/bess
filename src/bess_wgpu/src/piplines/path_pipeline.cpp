@@ -284,7 +284,7 @@ namespace Bess::Wgpu::Piplines {
         wgpu::PipelineLayout pipelineLayout =
             m_device.CreatePipelineLayout(&pipelineLayoutDescriptor);
 
-        std::array<wgpu::VertexAttribute, 3> stencilAttributes{};
+        std::array<wgpu::VertexAttribute, 4> stencilAttributes{};
         stencilAttributes[0].shaderLocation = 0;
         stencilAttributes[0].format = wgpu::VertexFormat::Float32x3;
         stencilAttributes[0].offset = offsetof(PathStencilVertex, position);
@@ -294,6 +294,9 @@ namespace Bess::Wgpu::Piplines {
         stencilAttributes[2].shaderLocation = 2;
         stencilAttributes[2].format = wgpu::VertexFormat::Uint32;
         stencilAttributes[2].offset = offsetof(PathStencilVertex, curveType);
+        stencilAttributes[3].shaderLocation = 3;
+        stencilAttributes[3].format = wgpu::VertexFormat::Uint32;
+        stencilAttributes[3].offset = offsetof(PathStencilVertex, flags);
 
         wgpu::VertexBufferLayout stencilVertexBufferLayout{};
         stencilVertexBufferLayout.arrayStride = sizeof(PathStencilVertex);
@@ -360,7 +363,7 @@ namespace Bess::Wgpu::Piplines {
         m_evenOddStencilPipeline =
             m_device.CreateRenderPipeline(&stencilDescriptor);
 
-        std::array<wgpu::VertexAttribute, 3> coverAttributes{};
+        std::array<wgpu::VertexAttribute, 4> coverAttributes{};
         coverAttributes[0].shaderLocation = 0;
         coverAttributes[0].format = wgpu::VertexFormat::Float32x3;
         coverAttributes[0].offset = offsetof(PathCoverVertex, position);
@@ -370,6 +373,9 @@ namespace Bess::Wgpu::Piplines {
         coverAttributes[2].shaderLocation = 2;
         coverAttributes[2].format = wgpu::VertexFormat::Uint32x2;
         coverAttributes[2].offset = offsetof(PathCoverVertex, id);
+        coverAttributes[3].shaderLocation = 3;
+        coverAttributes[3].format = wgpu::VertexFormat::Uint32;
+        coverAttributes[3].offset = offsetof(PathCoverVertex, flags);
 
         wgpu::VertexBufferLayout coverVertexBufferLayout{};
         coverVertexBufferLayout.arrayStride = sizeof(PathCoverVertex);

@@ -111,6 +111,15 @@ namespace Bess::Core::Renderer {
 
     enum class QuadRenderPass : uint8_t { Auto, Opaque, Transparent };
 
+    enum class RenderTransformMode : uint8_t {
+        // Positions and sizes are scene/world units and the active camera
+        // transform is applied.
+        Camera,
+        // Positions and sizes are render-target pixels with origin at the
+        // target center; the active camera transform is ignored.
+        Screen,
+    };
+
     enum class PathLineJoin : uint8_t {
         Miter,
         Bevel,
@@ -155,6 +164,7 @@ namespace Bess::Core::Renderer {
         glm::vec4 uvRect{0.f, 0.f, 1.f, 1.f}; // min u/v, max u/v
         PickingId id = PickingId::invalid();
         QuadRenderPass renderPass = QuadRenderPass::Auto;
+        RenderTransformMode transformMode = RenderTransformMode::Camera;
 
         glm::vec4 radius{0.f}; // Top-left, top-right, bottom-right, bottom-left
         glm::vec4 thickness{0.f}; // same order as radius
@@ -169,6 +179,7 @@ namespace Bess::Core::Renderer {
         Color color{1.f, 1.f, 1.f, 1.f};
         PickingId id = PickingId::invalid();
         QuadRenderPass renderPass = QuadRenderPass::Auto;
+        RenderTransformMode transformMode = RenderTransformMode::Camera;
         ShadowProps shadow{};
     };
 
@@ -180,6 +191,7 @@ namespace Bess::Core::Renderer {
         Color color{1.f, 1.f, 1.f, 1.f};
         PickingId id = PickingId::invalid();
         QuadRenderPass renderPass = QuadRenderPass::Auto;
+        RenderTransformMode transformMode = RenderTransformMode::Camera;
         ShadowProps shadow{};
     };
 
@@ -197,6 +209,7 @@ namespace Bess::Core::Renderer {
         PathLineJoin lineJoin = PathLineJoin::Miter;
         PathLineCap lineCap = PathLineCap::Round;
         bool closePath = true;
+        RenderTransformMode transformMode = RenderTransformMode::Camera;
     };
 
     struct FontProps {
@@ -212,6 +225,7 @@ namespace Bess::Core::Renderer {
         float antiAliasFringeScale = 1.f;
         PickingId id = PickingId::invalid();
         QuadRenderPass renderPass = QuadRenderPass::Auto;
+        RenderTransformMode transformMode = RenderTransformMode::Camera;
     };
 } // namespace Bess::Core::Renderer
 

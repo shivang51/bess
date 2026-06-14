@@ -80,7 +80,9 @@ namespace Bess::Canvas::SceneDraw {
             return;
         }
 
-        context.renderer->drawQuad(makeQuadProps(pos, size, color, id, style));
+        auto props = makeQuadProps(pos, size, color, id, style);
+        props.transformMode = context.transformMode;
+        context.renderer->drawQuad(props);
     }
 
     inline void drawCircle(SceneDrawContext &context,
@@ -101,6 +103,7 @@ namespace Bess::Canvas::SceneDraw {
         props.zIndex = center.z;
         props.color = color;
         props.id = id;
+        props.transformMode = context.transformMode;
         context.renderer->drawCircle(props);
     }
 
@@ -121,6 +124,7 @@ namespace Bess::Canvas::SceneDraw {
         props.zIndex = (start.z + end.z) * 0.5f;
         props.color = color;
         props.id = id;
+        props.transformMode = context.transformMode;
         context.renderer->drawLine(props);
     }
 
@@ -142,6 +146,7 @@ namespace Bess::Canvas::SceneDraw {
         props.color = color;
         props.zIndex = pos.z;
         props.id = id;
+        props.transformMode = context.transformMode;
         context.renderer->drawFont(text, props);
     }
 
@@ -178,8 +183,10 @@ namespace Bess::Canvas::SceneDraw {
             return;
         }
 
-        context.renderer->beginPath(
-            makePathProps(startPos, strokeSize, strokeColor, id, style));
+        auto props =
+            makePathProps(startPos, strokeSize, strokeColor, id, style);
+        props.transformMode = context.transformMode;
+        context.renderer->beginPath(props);
         context.renderer->pathMoveTo(xy(startPos));
     }
 

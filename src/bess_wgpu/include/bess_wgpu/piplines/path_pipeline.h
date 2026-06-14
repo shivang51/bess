@@ -13,12 +13,14 @@ namespace Bess::Wgpu::Piplines {
         float position[3] = {0.f, 0.f, 0.f};
         float curveCoord[2] = {0.f, 0.f};
         uint32_t curveType = 0;
+        uint32_t flags = 1u;
     };
 
     struct PathCoverVertex {
         float position[3] = {0.f, 0.f, 0.f};
         float color[4] = {1.f, 1.f, 1.f, 1.f};
         uint32_t id[2] = {0, 0};
+        uint32_t flags = 1u;
     };
 
     class PathPipeline final : public Pipeline {

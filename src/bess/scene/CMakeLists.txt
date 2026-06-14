@@ -26,6 +26,7 @@ set(Header_Files
 	"layers/hover_layer.h"
 	"layers/interaction_layer.h"
 	"layers/overlay_layer.h"
+	"layers/screen_space_overlay_layer.h"
 	"layers/scene_widgets_layer.h"
 )
 
@@ -52,6 +53,7 @@ set(Source_Files
 	"layers/hover_layer.cpp"
 	"layers/interaction_layer.cpp"
 	"layers/overlay_layer.cpp"
+	"layers/screen_space_overlay_layer.cpp"
 	"layers/scene_widgets_layer.cpp"
 )
 

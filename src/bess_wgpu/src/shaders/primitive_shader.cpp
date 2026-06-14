@@ -11,7 +11,7 @@ struct Frame {
 
 struct Primitive {
     position: vec3f,
-    padding0: f32,
+    flags: u32,
     color: vec4f,
     border_radius: vec4f,
     border_color: vec4f,
@@ -59,9 +59,24 @@ struct FragmentOutPicking {
 const PRIMITIVE_TYPE_QUAD = 0;
 const PRIMITIVE_TYPE_CIRCLE = 1;
 const PRIMITIVE_TYPE_LINE = 2;
+const PRIMITIVE_FLAG_APPLY_CAMERA_TRANSFORM: u32 = 1u;
 
 fn primitive_depth(z_index: f32) -> f32 {
     return clamp(0.5 - 0.5 * tanh(z_index * 0.01), 0.0, 1.0);
+}
+
+fn primitive_screen_clip_position(world: vec2f, z_index: f32) -> vec4f {
+    let safe_viewport = max(frame.viewport, vec2f(1.0, 1.0));
+    let clip_xy = vec2f(
+        (world.x / safe_viewport.x) * 2.0,
+        -(world.y / safe_viewport.y) * 2.0);
+    return vec4f(clip_xy, primitive_depth(z_index), 1.0);
+}
+
+fn primitive_camera_clip_position(world: vec2f, z_index: f32) -> vec4f {
+    var clip = frame.camera_transform * vec4f(world, 0.0, 1.0);
+    clip.z = primitive_depth(z_index);
+    return clip;
 }
 
 @vertex
@@ -82,8 +97,11 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32,
         centered.x * s + centered.y * c);
     let world = q.position.xy + rotated;
     var out: VertexOut;
-    out.position = frame.camera_transform * vec4f(world, 0.0, 1.0);
-    out.position.z = primitive_depth(q.position.z);
+    if ((q.flags & PRIMITIVE_FLAG_APPLY_CAMERA_TRANSFORM) != 0u) {
+        out.position = primitive_camera_clip_position(world, q.position.z);
+    } else {
+        out.position = primitive_screen_clip_position(world, q.position.z);
+    }
     out.local_pos = local * q.size;
     out.local_coord = local_coord;
     out.size = q.size;

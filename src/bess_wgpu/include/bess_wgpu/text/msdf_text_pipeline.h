@@ -13,6 +13,7 @@ namespace Bess::Wgpu {
     struct TextureResource;
 
     namespace Text {
+        constexpr uint32_t kMsdfTextFlagApplyCameraTransform = 1u << 0u;
 
         struct MsdfTextInstance {
             float position[3] = {0.f, 0.f, 0.f};
