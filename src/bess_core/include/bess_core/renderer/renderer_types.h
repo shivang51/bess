@@ -5,6 +5,7 @@
 #include "ext/vector_float4.hpp"
 #include "spdlog/fmt/bundled/format.h"
 #include "json/value.h"
+#include <cstdint>
 
 namespace Bess::Core::Renderer {
 
@@ -64,6 +65,14 @@ namespace Bess::Core::Renderer {
             return col;
         }
 
+        static constexpr Color FromARGB(uint32_t argb) noexcept {
+            uint8_t alpha = (argb >> 24) & 0xFF;
+            uint8_t red = (argb >> 16) & 0xFF;
+            uint8_t green = (argb >> 8) & 0xFF;
+            uint8_t blue = argb & 0xFF;
+            return fromRGBA8(red, green, blue, alpha);
+        }
+
         // Converts the color to a 32-bit hex value in RGBA order
         constexpr uint32_t toHex() const noexcept {
             uint8_t red = static_cast<uint8_t>(r * 255.f);
@@ -71,6 +80,14 @@ namespace Bess::Core::Renderer {
             uint8_t blue = static_cast<uint8_t>(b * 255.f);
             uint8_t alpha = static_cast<uint8_t>(a * 255.f);
             return (red << 24) | (green << 16) | (blue << 8) | alpha;
+        }
+
+        constexpr uint32_t toARGB8() const noexcept {
+            uint8_t alpha = static_cast<uint8_t>(a * 255.f);
+            uint8_t red = static_cast<uint8_t>(r * 255.f);
+            uint8_t green = static_cast<uint8_t>(g * 255.f);
+            uint8_t blue = static_cast<uint8_t>(b * 255.f);
+            return (alpha << 24) | (red << 16) | (green << 8) | blue;
         }
 
         Json::Value toJson() const;
