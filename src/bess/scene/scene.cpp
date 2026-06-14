@@ -42,13 +42,12 @@ namespace Bess::Canvas {
     }
 
     SceneUpdateContext makeUpdateContext(SceneState &state,
-                                         const std::shared_ptr<Camera> &camera,
                                          ViewportTransform &viewportTransform,
                                          SceneInputState &inputState,
                                          PickingId &pickingId) {
         SceneUpdateContext ctx;
         ctx.sceneState = &state;
-        ctx.camera = camera;
+        ctx.camera = nullptr;
         ctx.viewportTransform = &viewportTransform;
         ctx.inputState = &inputState;
         ctx.pickingId = &pickingId;
@@ -178,7 +177,7 @@ namespace Bess::Canvas {
         m_camera->update(ts);
 
         auto ctx = makeUpdateContext(
-            m_state, m_camera, m_viewportTransform, m_inputState, m_pickingId);
+            m_state, m_viewportTransform, m_inputState, m_pickingId);
 
         for (auto &evt : events) {
             dispatchEvent(evt);

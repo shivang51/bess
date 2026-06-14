@@ -142,10 +142,9 @@ namespace Bess::UI {
         }
 
         const auto gPos = ImGui::GetMainViewport()->Pos;
-
         m_localPos = ImGui::GetWindowPos();
-        m_viewportPos = {m_localPos.x - gPos.x + offset.x,
-                         m_localPos.y - gPos.y + offset.y};
+        m_viewportPos = {m_localPos.x + gPos.x + offset.x,
+                         m_localPos.y + gPos.y + offset.y};
 
         ImGui::PopStyleVar();
 

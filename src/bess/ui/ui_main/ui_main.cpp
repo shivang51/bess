@@ -761,7 +761,7 @@ namespace Bess::UI {
         registerPanel<SceneExportWindow>();
         registerPanel<SettingsWindow>();
         registerPanel<SceneViewportPanel>("Scene Viewport");
-        registerPanel<SceneViewportPanel>("Scene Viewport 2");
+        // registerPanel<SceneViewportPanel>("Scene Viewport 2");
     }
 
     std::vector<std::shared_ptr<Panel>> &UIMain::getPanels() {

@@ -18,8 +18,8 @@ namespace Bess::Canvas {
             const auto bottomRight =
                 (ctx.viewportTransform->size / 2.f) - padding;
 
-            const glm::vec2 mouseWorldPos = ctx.camera->toWorldPos(
-                ctx.inputState->mousePos - ctx.viewportTransform->pos);
+            const glm::vec2 mouseWorldPos =
+                ctx.camera->toWorldPos(ctx.inputState->mousePos);
 
             // aligns the text to the right, padding the left side with spaces
             const std::string xText =
