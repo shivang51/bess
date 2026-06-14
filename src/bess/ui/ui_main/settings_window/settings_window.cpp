@@ -28,17 +28,20 @@ namespace Bess::UI {
     }
 
     void SettingsWindow::onDraw() {
-        // No Border Child to separate the settings visually
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-        ImGui::BeginChild("##SettingsLeftPanel", ImVec2(200, 0), true);
+        ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 0.0f);
+        ImGui::BeginChild("##SettingsLeftPanel",
+                          ImVec2(200, 0),
+                          ImGuiChildFlags_AlwaysUseWindowPadding);
         ImGui::PopStyleVar();
         drawLeftPanel();
         ImGui::EndChild();
 
         ImGui::SameLine();
 
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-        ImGui::BeginChild("##SettingsRightPanel", ImVec2(0, 0), true);
+        ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 0.0f);
+        ImGui::BeginChild("##SettingsRightPanel",
+                          ImVec2(0, 0),
+                          ImGuiChildFlags_AlwaysUseWindowPadding);
         ImGui::PopStyleVar();
         drawRightPanel();
         ImGui::EndChild();
