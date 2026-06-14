@@ -3,10 +3,16 @@
 #include "common/bess_api.h"
 #include "common/file_watcher.h"
 #include "plugin_handle.h"
+#include <filesystem>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+namespace pybind11 {
+    class gil_scoped_release;
+}
 
 namespace Bess::Plugins {
     class BESS_API PluginManager {
@@ -36,10 +42,16 @@ namespace Bess::Plugins {
         getPlugin(const std::string &pluginName) const;
 
       private:
+        bool loadPluginHandle(const std::filesystem::path &pluginPath,
+                              bool reload,
+                              std::string &pluginName,
+                              std::shared_ptr<PluginHandle> &pluginHandle);
+
         std::unordered_map<std::string, std::shared_ptr<PluginHandle>>
             m_plugins;
         std::vector<std::unique_ptr<Bess::Common::FileWatcher>>
             m_pluginFileWatchers;
+        std::unique_ptr<pybind11::gil_scoped_release> m_gilRelease;
 
         mutable std::mutex m_pluginMutex;
     };

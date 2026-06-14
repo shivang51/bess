@@ -2,11 +2,135 @@
 #include "common/file_watcher.h"
 #include "common/logger.h"
 #include "plugin_handle.h"
+#include <cctype>
 #include <filesystem>
+#include <functional>
 #include <mutex>
+#include <optional>
 #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
-#include <pystate.h>
+#include <sstream>
+#include <stdexcept>
+
+namespace {
+    namespace py = pybind11;
+
+    std::string sanitizeModulePart(std::string value) {
+        for (char &ch : value) {
+            const auto uch = static_cast<unsigned char>(ch);
+            if (!std::isalnum(uch) && ch != '_') {
+                ch = '_';
+            }
+        }
+
+        if (value.empty() ||
+            std::isdigit(static_cast<unsigned char>(value.front()))) {
+            value.insert(value.begin(), '_');
+        }
+
+        return value;
+    }
+
+    std::string makePluginModuleName(const std::filesystem::path &pluginPath) {
+        const auto normalized =
+            std::filesystem::absolute(pluginPath).lexically_normal().string();
+        std::ostringstream name;
+        name << "bess_plugin_" << sanitizeModulePart(pluginPath.stem().string())
+             << "_" << std::hex << std::hash<std::string>{}(normalized);
+        return name.str();
+    }
+
+    bool isPathInside(const std::filesystem::path &path,
+                      const std::filesystem::path &root) {
+        auto pathIt = path.begin();
+        auto rootIt = root.begin();
+
+        for (; rootIt != root.end(); ++rootIt, ++pathIt) {
+            if (pathIt == path.end() || *pathIt != *rootIt) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    std::optional<std::filesystem::path>
+    canonicalPathIfPossible(const std::filesystem::path &path) {
+        try {
+            return std::filesystem::weakly_canonical(path);
+        } catch (const std::filesystem::filesystem_error &) {
+            return std::nullopt;
+        }
+    }
+
+    void putSysPathFirst(const std::filesystem::path &path) {
+        py::module_ sys = py::module_::import("sys");
+        py::list sysPath = sys.attr("path");
+        const auto pathString = path.string();
+
+        while (sysPath.contains(pathString)) {
+            sysPath.attr("remove")(pathString);
+        }
+        sysPath.attr("insert")(0, pathString);
+    }
+
+    void removeCachedModulesUnder(const std::filesystem::path &root) {
+        const auto canonicalRoot = canonicalPathIfPossible(root);
+        if (!canonicalRoot.has_value()) {
+            return;
+        }
+
+        py::dict modules = py::module_::import("sys").attr("modules");
+        py::list moduleNames = py::list(modules.attr("keys")());
+
+        for (py::handle moduleName : moduleNames) {
+            py::object module = modules[moduleName];
+            if (!py::hasattr(module, "__file__")) {
+                continue;
+            }
+
+            py::object moduleFile = module.attr("__file__");
+            if (moduleFile.is_none()) {
+                continue;
+            }
+
+            const auto canonicalModulePath = canonicalPathIfPossible(
+                py::str(moduleFile).cast<std::string>());
+            if (!canonicalModulePath.has_value()) {
+                continue;
+            }
+
+            if (isPathInside(*canonicalModulePath, *canonicalRoot)) {
+                modules.attr("pop")(moduleName, py::none());
+            }
+        }
+    }
+
+    py::module_
+    importPluginModuleFromFile(const std::filesystem::path &pluginPath,
+                               const std::string &moduleName) {
+        py::module_ importlibUtil = py::module_::import("importlib.util");
+        py::object spec = importlibUtil.attr("spec_from_file_location")(
+            moduleName, pluginPath.string());
+        if (spec.is_none()) {
+            throw std::runtime_error("Could not create import spec for " +
+                                     pluginPath.string());
+        }
+
+        py::object module = importlibUtil.attr("module_from_spec")(spec);
+        py::dict modules = py::module_::import("sys").attr("modules");
+        modules[py::str(moduleName)] = module;
+
+        try {
+            spec.attr("loader").attr("exec_module")(module);
+        } catch (...) {
+            modules.attr("pop")(moduleName, py::none());
+            throw;
+        }
+
+        return py::reinterpret_borrow<py::module_>(module);
+    }
+} // namespace
 
 namespace Bess::Plugins {
     PluginManager &PluginManager::getInstance() {
@@ -23,15 +147,18 @@ namespace Bess::Plugins {
             return;
         pybind11::initialize_interpreter(false);
 
-        pybind11::module_ sys = pybind11::module_::import("sys");
-        pybind11::list path_list = sys.attr("path");
+        {
+            pybind11::module_ sys = pybind11::module_::import("sys");
+            pybind11::list path_list = sys.attr("path");
 
 #ifdef DEBUG
-        path_list.append("src/bessplug/py");
+            path_list.append("src/bessplug/py");
 #else
-        path_list.append("bindings/bessplug");
+            path_list.append("bindings/bessplug");
 #endif
-        pybind11::gil_scoped_release gil;
+        }
+
+        m_gilRelease = std::make_unique<pybind11::gil_scoped_release>();
         BESS_INFO("PluginManager initialized with Python interpreter");
         isIntialized = true;
     }
@@ -39,9 +166,14 @@ namespace Bess::Plugins {
     void PluginManager::destroy() {
         if (!isIntialized)
             return;
-        {
-            unloadAllPlugins();
+
+        for (auto &watcher : m_pluginFileWatchers) {
+            watcher->stop();
         }
+        m_pluginFileWatchers.clear();
+
+        unloadAllPlugins();
+        m_gilRelease.reset();
         pybind11::finalize_interpreter();
         BESS_INFO("PluginManager destroyed");
 
@@ -55,62 +187,33 @@ namespace Bess::Plugins {
     bool PluginManager::loadPlugin(const std::string &pluginPath,
                                    bool watchPlugin) {
         try {
-            namespace py = pybind11;
-
             if (!std::filesystem::exists(pluginPath)) {
                 BESS_ERROR("Plugin file not found: {}", pluginPath);
                 return false;
             }
 
             const std::filesystem::path path(pluginPath);
-            const std::string mainFile = path.stem().string();
             std::string pluginName;
+            std::shared_ptr<PluginHandle> pluginHandle;
+            if (!loadPluginHandle(path, false, pluginName, pluginHandle)) {
+                return false;
+            }
 
             {
-                BESS_INFO("Loading plugin from file: {}", pluginPath);
-                pybind11::gil_scoped_acquire gil;
-                py::module_ sys = py::module_::import("sys");
-                py::list path_list = sys.attr("path");
-                path_list.append(path.parent_path().string());
-
-                bool hasMainModule =
-                    py::module::import("sys").attr("modules").contains(
-                        mainFile.c_str());
-
-                if (hasMainModule) {
-                    BESS_WARN("Plugin module already in sys.modules: {}. "
-                              "This may cause unexpected behavior.",
-                              mainFile);
-
-                    return false;
-                }
-
-                auto pluginModule = py::module::import(mainFile.c_str());
-
-                if (py::hasattr(pluginModule, "plug_hwd")) {
-                    BESS_ERROR(
-                        "Plugin {} does not have required 'plug_hwd' variable",
-                        mainFile);
-                    return false;
-                }
-
-                py::object pluginHwd = pluginModule.attr("plugin_hwd");
-                pluginName = pluginHwd.attr("name").cast<std::string>();
-
-                if (isPluginLoaded(pluginName)) {
-                    BESS_WARN("Plugin already loaded: {}", mainFile);
+                std::scoped_lock<std::mutex> lock(m_pluginMutex);
+                if (m_plugins.contains(pluginName)) {
+                    BESS_WARN("Plugin already loaded: {}", pluginName);
                     return true;
                 }
+                m_plugins[pluginName] = std::move(pluginHandle);
+            }
 
-                m_plugins[pluginName] =
-                    std::make_shared<PluginHandle>(pluginHwd);
-                BESS_INFO("Successfully loaded plugin: {} from {}",
-                          pluginName,
-                          path.parent_path().string());
+            BESS_INFO("Successfully loaded plugin: {} from {}",
+                      pluginName,
+                      path.parent_path().string());
 
-                if (!watchPlugin) {
-                    return true;
-                }
+            if (!watchPlugin) {
+                return true;
             }
 
             static constexpr std::array<const std::string_view, 1> extsToWatch =
@@ -177,60 +280,82 @@ namespace Bess::Plugins {
 
     bool PluginManager::reloadPlugin(const std::string &pluginName,
                                      const std::filesystem::path &mainPath) {
-        pybind11::gil_scoped_acquire gil;
-        std::scoped_lock<std::mutex> lock(m_pluginMutex);
         BESS_INFO("Reloading plugin: {}", pluginName);
-        if (!unloadPlugin(pluginName)) {
-            BESS_ERROR("Failed to unload plugin: {}", pluginName);
-            return false;
-        }
 
-        if (!loadPlugin(mainPath, false)) {
+        std::string reloadedPluginName;
+        std::shared_ptr<PluginHandle> reloadedPlugin;
+        if (!loadPluginHandle(
+                mainPath, true, reloadedPluginName, reloadedPlugin)) {
             BESS_ERROR("Failed to load plugin {} from {}",
                        pluginName,
                        mainPath.string());
             return false;
         }
 
-        BESS_INFO("Successfully reloaded plugin: {}", pluginName);
+        std::shared_ptr<PluginHandle> oldPlugin;
+        {
+            std::scoped_lock<std::mutex> lock(m_pluginMutex);
+            auto it = m_plugins.find(pluginName);
+            if (it == m_plugins.end()) {
+                BESS_WARN("Plugin not found for reloading: {}", pluginName);
+                return false;
+            }
+
+            oldPlugin = std::move(it->second);
+            m_plugins.erase(it);
+            m_plugins[reloadedPluginName] = std::move(reloadedPlugin);
+        }
+
+        if (reloadedPluginName != pluginName) {
+            BESS_WARN("Plugin name changed during reload: {} -> {}",
+                      pluginName,
+                      reloadedPluginName);
+        }
+
+        {
+            pybind11::gil_scoped_acquire gil;
+            oldPlugin.reset();
+        }
+
+        BESS_INFO("Successfully reloaded plugin: {}", reloadedPluginName);
         return true;
     }
 
     bool PluginManager::unloadPlugin(const std::string &pluginName) {
-        pybind11::gil_scoped_acquire gil;
-        auto it = m_plugins.find(pluginName);
-        if (it == m_plugins.end()) {
-            BESS_WARN("Plugin not found for unloading: {}", pluginName);
-            return false;
+        std::shared_ptr<PluginHandle> plugin;
+        {
+            std::scoped_lock<std::mutex> lock(m_pluginMutex);
+            auto it = m_plugins.find(pluginName);
+            if (it == m_plugins.end()) {
+                BESS_WARN("Plugin not found for unloading: {}", pluginName);
+                return false;
+            }
+            plugin = std::move(it->second);
+            m_plugins.erase(it);
         }
 
         BESS_WARN("Unloading plugin: {}", pluginName);
-
-        try {
-            namespace py = pybind11;
-            auto sys = py::module_::import("sys");
-            auto modules = sys.attr("modules");
-            modules.attr("pop")("main", py::none());
-
-            BESS_DEBUG("Removed plugin module from sys.modules: {}", "main");
-        } catch (const std::exception &e) {
-            BESS_ERROR("Failed to clear python module cache for {}: {}",
-                       pybind11::str(it->second->getPluginObject())
-                           .cast<std::string>(),
-                       e.what());
+        {
+            pybind11::gil_scoped_acquire gil;
+            plugin.reset();
         }
-
-        m_plugins.erase(it);
         BESS_INFO("Successfully unloaded plugin: {}", pluginName);
         return true;
     }
 
     void PluginManager::unloadAllPlugins() {
+        std::unordered_map<std::string, std::shared_ptr<PluginHandle>> plugins;
+        {
+            std::scoped_lock<std::mutex> lock(m_pluginMutex);
+            plugins.swap(m_plugins);
+        }
+
         pybind11::gil_scoped_acquire gil;
-        m_plugins.clear();
+        plugins.clear();
     }
 
     std::vector<std::string> PluginManager::getLoadedPluginsNames() const {
+        std::scoped_lock<std::mutex> lock(m_pluginMutex);
         std::vector<std::string> pluginNames;
         pluginNames.reserve(m_plugins.size());
         for (const auto &[name, plugin] : m_plugins) {
@@ -246,6 +371,7 @@ namespace Bess::Plugins {
     }
 
     bool PluginManager::isPluginLoaded(const std::string &pluginName) const {
+        std::scoped_lock<std::mutex> lock(m_pluginMutex);
         return m_plugins.contains(pluginName);
     }
 
@@ -257,5 +383,49 @@ namespace Bess::Plugins {
             return it->second;
         }
         return nullptr;
+    }
+
+    bool PluginManager::loadPluginHandle(
+        const std::filesystem::path &pluginPath,
+        bool reload,
+        std::string &pluginName,
+        std::shared_ptr<PluginHandle> &pluginHandle) {
+        try {
+            namespace py = pybind11;
+
+            py::gil_scoped_acquire gil;
+            const auto absolutePluginPath =
+                std::filesystem::absolute(pluginPath).lexically_normal();
+            const auto pluginRoot = absolutePluginPath.parent_path();
+            const auto moduleName = makePluginModuleName(absolutePluginPath);
+
+            putSysPathFirst(pluginRoot);
+            if (reload) {
+                removeCachedModulesUnder(pluginRoot);
+            }
+
+            BESS_INFO("{} plugin from file: {}",
+                      reload ? "Reloading" : "Loading",
+                      absolutePluginPath.string());
+
+            py::module_ pluginModule =
+                importPluginModuleFromFile(absolutePluginPath, moduleName);
+
+            if (!py::hasattr(pluginModule, "plugin_hwd")) {
+                BESS_ERROR(
+                    "Plugin {} does not have required 'plugin_hwd' variable",
+                    absolutePluginPath.string());
+                return false;
+            }
+
+            py::object pluginHwd = pluginModule.attr("plugin_hwd");
+            pluginName = pluginHwd.attr("name").cast<std::string>();
+            pluginHandle = std::make_shared<PluginHandle>(pluginHwd);
+            return true;
+        } catch (const std::exception &e) {
+            BESS_ERROR(
+                "Failed to load plugin {}: {}", pluginPath.string(), e.what());
+            return false;
+        }
     }
 } // namespace Bess::Plugins

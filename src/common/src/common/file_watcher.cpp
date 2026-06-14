@@ -40,11 +40,17 @@ namespace Bess::Common {
                    m_files.size());
     }
 
+    FileWatcher::~FileWatcher() {
+        stop();
+    }
+
     void FileWatcher::start(const OnChangeCallback &onChange) {
+        if (m_running) {
+            return;
+        }
 
         const auto runLoop = [this, onChange]() {
             BESS_DEBUG("Starting FileWatcher for path: {}", m_path);
-            m_running = true;
             while (m_running) {
                 std::this_thread::sleep_for(m_config.checkInterval);
 
@@ -61,11 +67,20 @@ namespace Bess::Common {
             BESS_DEBUG("Stopped FileWatcher for path: {}", m_path);
         };
 
+        m_running = true;
         m_watchThread = std::thread(runLoop);
     }
 
     void FileWatcher::stop() {
         m_running = false;
+        if (m_watchThread.joinable() &&
+            m_watchThread.get_id() != std::this_thread::get_id()) {
+            m_watchThread.join();
+        }
+    }
+
+    bool FileWatcher::isRunning() const {
+        return m_running;
     }
 
 } // namespace Bess::Common

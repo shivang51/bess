@@ -28,6 +28,20 @@ namespace Bess::Plugins {
         }
     }
 
+    PluginHandle::~PluginHandle() {
+        if (!m_pluginObj.ptr()) {
+            return;
+        }
+
+        if (!Py_IsInitialized()) {
+            m_pluginObj.release();
+            return;
+        }
+
+        py::gil_scoped_acquire gil;
+        m_pluginObj = py::object();
+    }
+
     std::vector<std::shared_ptr<SimEngine::Drivers::CompDef>>
     PluginHandle::onCompCatalogLoad() const {
         std::vector<std::shared_ptr<SimEngine::Drivers::CompDef>> components;

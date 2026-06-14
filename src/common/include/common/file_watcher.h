@@ -19,7 +19,7 @@ namespace Bess::Common {
       public:
         FileWatcher(const std::string &path,
                     const FileWatcherConfig &config = {});
-        ~FileWatcher() = default;
+        ~FileWatcher();
 
         typedef std::function<void(const std::string &filePath,
                                    const std::string &watchPath)>
