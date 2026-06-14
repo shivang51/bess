@@ -1,6 +1,4 @@
 #include "bess_core/style/color_utils.h"
-#include "ext/vector_double4_precision.hpp"
-#include "ext/vector_float3_precision.hpp"
 #include "fwd.hpp"
 
 #include <numbers>
@@ -8,12 +6,12 @@
 namespace Bess::Core::Style {
     namespace {
         // Got helpers from following source:
-        // I have only copied what was required
-        // Changed its types to match glm
-        // Vec3 -> glm::highp_dvec3
+        // I have only copied what was required and changed its types to match
+        // glm Vec3 -> glm::highp_dvec3
         // https://github.com/material-foundation/material-color-utilities/blob/main/cpp/utils/utils.cc
 
         using Vec3 = glm::highp_dvec3;
+        typedef uint32_t Argb;
 
         int Delinearized(const double rgb_component) {
             double normalized = rgb_component / 100;
@@ -46,11 +44,11 @@ namespace Bess::Core::Style {
             }
         }
 
-        double LstarFromArgb(int32_t argb) {
+        double LstarFromArgb(Argb argb) {
             // xyz from argb
-            int red = (argb & 0x00ff0000) >> 16;
-            int green = (argb & 0x0000ff00) >> 8;
-            int blue = (argb & 0x000000ff);
+            int red = (int)((argb & 0x00ff0000) >> 16);
+            int green = (int)((argb & 0x0000ff00) >> 8);
+            int blue = (int)((argb & 0x000000ff));
             double red_l = Linearized(red);
             double green_l = Linearized(green);
             double blue_l = Linearized(blue);
@@ -71,8 +69,6 @@ namespace Bess::Core::Style {
                 return 1;
             }
         }
-
-        typedef uint32_t Argb;
 
         // From:
         // https://github.com/material-foundation/material-color-utilities/blob/main/cpp/cam/cam.h
@@ -126,9 +122,9 @@ namespace Bess::Core::Style {
         Cam CamFromIntAndViewingConditions(
             Argb argb, const ViewingConditions &viewing_conditions) {
             // XYZ from ARGB, inlined.
-            int red = (argb & 0x00ff0000) >> 16;
-            int green = (argb & 0x0000ff00) >> 8;
-            int blue = (argb & 0x000000ff);
+            int red = (int)((argb & 0x00ff0000) >> 16);
+            int green = (int)((argb & 0x0000ff00) >> 8);
+            int blue = (int)((argb & 0x000000ff));
             double red_l = Linearized(red);
             double green_l = Linearized(green);
             double blue_l = Linearized(blue);
@@ -351,7 +347,7 @@ namespace Bess::Core::Style {
                 if (fnj <= 0) {
                     return 0;
                 }
-                if (iteration_round == 4 || abs(fnj - y) < 0.002) {
+                if (iteration_round == 4 || std::abs(fnj - y) < 0.002) {
                     if (linrgb.x > 100.01 || linrgb.y > 100.01 ||
                         linrgb.z > 100.01) {
                         return 0;
@@ -390,7 +386,7 @@ namespace Bess::Core::Style {
         }
 
         double ChromaticAdaptation(double component) {
-            double af = pow(abs(component), 0.42);
+            double af = pow(std::abs(component), 0.42);
             return Signum(component) * 400.0 * af / (af + 27.13);
         }
 
@@ -416,7 +412,7 @@ namespace Bess::Core::Style {
             0.015176349177441876, 0.045529047532325624, 0.07588174588720938,
             0.10623444424209313,  0.13658714259697685,  0.16693984095186062,
             0.19729253930674434,  0.2276452376616281,   0.2579979360165119,
-            0.28835063437139563,  0.3188300904430532,   0.350925934958123,
+            0.28835063437139563,  std::numbers::inv_pi, 0.350925934958123,
             0.3848314933096426,   0.42057480301049466,  0.458183274052838,
             0.4976837250274023,   0.5391024159806381,   0.5824650784040898,
             0.6277969426914107,   0.6751227633498623,   0.7244668422128921,
