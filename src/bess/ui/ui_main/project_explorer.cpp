@@ -574,11 +574,7 @@ namespace Bess::UI {
 
                 if (isModule) {
                     const auto &moduleColor = ViewportTheme::colors.moduleColor;
-                    ImGui::PushStyleColor(ImGuiCol_Text,
-                                          ImVec4(moduleColor.x,
-                                                 moduleColor.y,
-                                                 moduleColor.z,
-                                                 moduleColor.w));
+                    ImGui::PushStyleColor(ImGuiCol_Text, moduleColor.toHex());
                 }
 
                 const auto &pressed = drawLeafNode(m_nodesKeyCounter++,

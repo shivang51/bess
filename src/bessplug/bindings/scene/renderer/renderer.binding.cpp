@@ -106,15 +106,6 @@ namespace {
     }
 
     void bindRendererTypes(py::module_ &m) {
-        py::class_<Color>(m, "Color")
-            .def(py::init<>())
-            .def_readwrite("r", &Color::r)
-            .def_readwrite("g", &Color::g)
-            .def_readwrite("b", &Color::b)
-            .def_readwrite("a", &Color::a)
-            .def_static("from_hex",
-                        &Color::fromHex,
-                        "Create a Color from a hex value (e.g., 0xRRGGBBAA)");
     }
 } // namespace
 

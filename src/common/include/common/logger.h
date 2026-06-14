@@ -36,8 +36,6 @@ namespace Bess {
     #define LOGGER_NAME "Default"
 #endif
 
-// idea from
-// https://github.com/TheCherno/Hazel/blob/master/Hazel/src/Hazel/Core/Log.h
 #define LOGGER(name) ::Bess::Logger::getInstance().getLogger(name)
 #define BESS_INFO(...) LOGGER(LOGGER_NAME)->info(__VA_ARGS__)
 #define BESS_WARN(...) LOGGER(LOGGER_NAME)->warn(__VA_ARGS__)

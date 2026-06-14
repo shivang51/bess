@@ -27,7 +27,7 @@ namespace Bess::UI {
                                    &comp->getUseCustomColor());
         if (comp->getUseCustomColor()) {
             auto &style = comp->getStyle();
-            ImGui::ColorEdit4("Color", glm::value_ptr(style.color));
+            ImGui::ColorEdit4("Color", style.color.data());
         }
     }
 

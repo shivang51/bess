@@ -3,24 +3,25 @@
 namespace Bess::Core::Renderer {
 
     Json::Value Color::toJson() const {
-        Json::Value json;
-        json["r"] = r;
-        json["g"] = g;
-        json["b"] = b;
-        json["a"] = a;
-        return json;
+        return toHex();
     }
 
     Color Color::fromJson(const Json::Value &json) {
-        Color color;
-        if (json.isMember("r") && json["r"].isNumeric())
-            color.r = json["r"].asFloat();
-        if (json.isMember("g") && json["g"].isNumeric())
-            color.g = json["g"].asFloat();
-        if (json.isMember("b") && json["b"].isNumeric())
-            color.b = json["b"].asFloat();
-        if (json.isMember("a") && json["a"].isNumeric())
-            color.a = json["a"].asFloat();
-        return color;
+        return Color::fromHex(json.asUInt());
     }
+
+    float *Color::data() {
+        return &r;
+    }
+
 } // namespace Bess::Core::Renderer
+
+namespace Bess::JsonConvert {
+    Json::Value toJson(const Core::Renderer::Color &color) {
+        return color.toJson();
+    }
+
+    void fromJsonValue(const Json::Value &json, Core::Renderer::Color &color) {
+        color = Core::Renderer::Color::fromJson(json);
+    }
+} // namespace Bess::JsonConvert

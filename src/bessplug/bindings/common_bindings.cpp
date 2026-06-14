@@ -1,3 +1,4 @@
+#include "bess_core/renderer/renderer_types.h"
 #include "common/bess_uuid.h"
 #include "common/types.h"
 #include "glm.hpp"
@@ -291,6 +292,17 @@ void bind_bess_uuid(py::module_ &m) {
 void bind_theme(py::module_ &m) {
     auto themeModule = m.def_submodule("theme");
 
+    using Color = Bess::Core::Renderer::Color;
+    py::class_<Color>(m, "Color")
+        .def(py::init<>())
+        .def_readwrite("r", &Color::r)
+        .def_readwrite("g", &Color::g)
+        .def_readwrite("b", &Color::b)
+        .def_readwrite("a", &Color::a)
+        .def_static("from_hex",
+                    &Color::fromHex,
+                    "Create a Color from a hex value (e.g., 0xRRGGBBAA)");
+
     py::class_<Bess::SchematicViewColors>(themeModule, "SchematicThemeColors")
         .def(py::init<>())
         .def_readwrite("pin", &Bess::SchematicViewColors::pin)
@@ -306,20 +318,16 @@ void bind_theme(py::module_ &m) {
     py::class_<Bess::SceneWidgetsColors>(themeModule, "SceneWidgetsColors")
         .def(py::init<>())
         .def_readwrite("surface", &Bess::SceneWidgetsColors::surface)
-        .def_readwrite("surface_hover",
-                       &Bess::SceneWidgetsColors::surfaceHover)
+        .def_readwrite("surface_hover", &Bess::SceneWidgetsColors::surfaceHover)
         .def_readwrite("surface_active",
                        &Bess::SceneWidgetsColors::surfaceActive)
-        .def_readwrite("popup_surface",
-                       &Bess::SceneWidgetsColors::popupSurface)
+        .def_readwrite("popup_surface", &Bess::SceneWidgetsColors::popupSurface)
         .def_readwrite("border", &Bess::SceneWidgetsColors::border)
-        .def_readwrite("border_focus",
-                       &Bess::SceneWidgetsColors::borderFocus)
+        .def_readwrite("border_focus", &Bess::SceneWidgetsColors::borderFocus)
         .def_readwrite("text", &Bess::SceneWidgetsColors::text)
         .def_readwrite("text_muted", &Bess::SceneWidgetsColors::textMuted)
         .def_readwrite("accent", &Bess::SceneWidgetsColors::accent)
-        .def_readwrite("accent_strong",
-                       &Bess::SceneWidgetsColors::accentStrong)
+        .def_readwrite("accent_strong", &Bess::SceneWidgetsColors::accentStrong)
         .def_readwrite("item_hover", &Bess::SceneWidgetsColors::itemHover)
         .def_readwrite("track", &Bess::SceneWidgetsColors::track)
         .def_readwrite("knob", &Bess::SceneWidgetsColors::knob);

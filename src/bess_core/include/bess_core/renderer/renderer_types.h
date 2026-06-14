@@ -86,6 +86,8 @@ namespace Bess::Core::Renderer {
                << ", b=" << color.b << ", a=" << color.a << ")";
             return os;
         }
+
+        float *data();
     };
 
     typedef uint32_t TextureHandle;
@@ -209,3 +211,8 @@ struct fmt::formatter<Bess::Core::Renderer::Color>
                               color.a);
     }
 };
+
+namespace Bess::JsonConvert {
+    Json::Value toJson(const Core::Renderer::Color &color);
+    void fromJsonValue(const Json::Value &j, Core::Renderer::Color &color);
+} // namespace Bess::JsonConvert

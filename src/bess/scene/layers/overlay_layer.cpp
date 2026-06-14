@@ -56,7 +56,7 @@ namespace Bess::Canvas {
         SceneDraw::beginPath(drawCtx,
                              glm::vec3(startPos.x, startPos.y, z),
                              2.f,
-                             ViewportTheme::colors.ghostWire,
+                             ViewportTheme::colors.wire,
                              id,
                              {.roundedJoints = true});
         SceneDraw::pathLineTo(drawCtx, glm::vec3(midX, startPos.y, z), 2.f);

@@ -1,70 +1,71 @@
 #pragma once
-#include "glm.hpp"
+#include "bess_core/renderer/renderer_types.h"
 #include <string>
 #include <unordered_map>
 
 namespace Bess {
+    using Color = Bess::Core::Renderer::Color;
 
     struct SceneColors {
-        glm::vec4 background;
+        Color background;
 
-        glm::vec4 compHeader;
-        glm::vec4 componentBG;
-        glm::vec4 componentBorder;
-        glm::vec4 selectedComp;
-        glm::vec4 moduleColor;
+        Color compHeader;
+        Color componentBG;
+        Color componentBorder;
+        Color selectedComp;
+        Color moduleColor;
 
-        glm::vec4 wire;
-        glm::vec4 ghostWire;
-        glm::vec4 selectedWire;
-        glm::vec4 clockConnectionLow;
-        glm::vec4 clockConnectionHigh;
+        Color wire;
+        Color ghostWire;
+        Color selectedWire;
+        Color clockConnectionLow;
+        Color clockConnectionHigh;
 
-        glm::vec4 groupColor = glm::vec4(188, 151, 76, 255) / 255.0f;
-        glm::vec4 text;
+        Color groupColor = Color::fromRGBA8(188, 151, 76, 255);
+        Color text;
 
-        glm::vec4 selectionBoxBorder;
-        glm::vec4 selectionBoxFill;
+        Color selectionBoxBorder;
+        Color selectionBoxFill;
 
-        glm::vec4 stateHigh;
-        glm::vec4 stateLow;
-        glm::vec4 stateHighZ = glm::vec4(0.60f, 0.60f, 0.90f, 1.0f);
-        glm::vec4 stateUnknow = glm::vec4(0.90f, 0.45f, 0.45f, 1.0f);
+        Color stateHigh;
+        Color stateLow;
+        Color stateHighZ = Color(0.60f, 0.60f, 0.90f, 1.0f);
+        Color stateUnknow = Color(0.90f, 0.45f, 0.45f, 1.0f);
 
-        glm::vec4 gridMinorColor;
-        glm::vec4 gridMajorColor;
-        glm::vec4 gridAxisXColor;
-        glm::vec4 gridAxisYColor;
+        Color gridMinorColor;
+        Color gridMajorColor;
+        Color gridAxisXColor;
+        Color gridAxisYColor;
 
-        glm::vec4 error = glm::vec4(0.95f, 0.25f, 0.25f, 1.0f);
+        Color error = Color(0.95f, 0.25f, 0.25f, 1.0f);
     };
 
     struct SchematicViewColors {
-        glm::vec4 pin = glm::vec4(0.20f, 0.75f, 0.85f, 1.0f);
-        glm::vec4 text = glm::vec4(0.85f, 0.85f, 0.85f, 1.0f);
-        glm::vec4 connection = glm::vec4(0.00f, 0.80f, 0.40f, 1.0f);
-        glm::vec4 componentFill = glm::vec4(0.08f, 0.09f, 0.11f, 1.0f);
-        glm::vec4 componentStroke = glm::vec4(0.45f, 0.50f, 0.60f, 1.0f);
-        glm::vec4 activeSignal = glm::vec4(1.00f, 0.90f, 0.20f, 1.0f);
+        Color pin = Color(0.20f, 0.75f, 0.85f, 1.0f);
+        Color text = Color(0.85f, 0.85f, 0.85f, 1.0f);
+        Color connection = Color(0.00f, 0.80f, 0.40f, 1.0f);
+        Color componentFill = Color(0.08f, 0.09f, 0.11f, 1.0f);
+        Color componentStroke = Color(0.45f, 0.50f, 0.60f, 1.0f);
+        Color activeSignal = Color(1.00f, 0.90f, 0.20f, 1.0f);
     };
 
     struct SceneWidgetsColors {
-        glm::vec4 surface = glm::vec4(0.12f, 0.12f, 0.13f, 0.96f);
-        glm::vec4 surfaceHover = glm::vec4(0.16f, 0.16f, 0.17f, 0.98f);
-        glm::vec4 surfaceActive = glm::vec4(0.20f, 0.20f, 0.21f, 1.00f);
-        glm::vec4 popupSurface = glm::vec4(0.14f, 0.14f, 0.15f, 0.99f);
+        Color surface = Color(0.12f, 0.12f, 0.13f, 0.96f);
+        Color surfaceHover = Color(0.16f, 0.16f, 0.17f, 0.98f);
+        Color surfaceActive = Color(0.20f, 0.20f, 0.21f, 1.00f);
+        Color popupSurface = Color(0.14f, 0.14f, 0.15f, 0.99f);
 
-        glm::vec4 border = glm::vec4(0.20f, 0.20f, 0.20f, 0.82f);
-        glm::vec4 borderFocus = glm::vec4(0.38f, 0.38f, 0.38f, 1.00f);
+        Color border = Color(0.20f, 0.20f, 0.20f, 0.82f);
+        Color borderFocus = Color(0.38f, 0.38f, 0.38f, 1.00f);
 
-        glm::vec4 text = glm::vec4(0.98f, 0.98f, 0.98f, 1.00f);
-        glm::vec4 textMuted = glm::vec4(0.48f, 0.48f, 0.48f, 1.00f);
+        Color text = Color(0.98f, 0.98f, 0.98f, 1.00f);
+        Color textMuted = Color(0.48f, 0.48f, 0.48f, 1.00f);
 
-        glm::vec4 accent = glm::vec4(0.38f, 0.38f, 0.38f, 1.00f);
-        glm::vec4 accentStrong = glm::vec4(0.24f, 0.25f, 0.27f, 1.00f);
-        glm::vec4 itemHover = glm::vec4(0.20f, 0.21f, 0.23f, 1.00f);
-        glm::vec4 track = glm::vec4(0.12f, 0.12f, 0.13f, 0.96f);
-        glm::vec4 knob = glm::vec4(0.30f, 0.30f, 0.30f, 1.00f);
+        Color accent = Color(0.38f, 0.38f, 0.38f, 1.00f);
+        Color accentStrong = Color(0.24f, 0.25f, 0.27f, 1.00f);
+        Color itemHover = Color(0.20f, 0.21f, 0.23f, 1.00f);
+        Color track = Color(0.12f, 0.12f, 0.13f, 0.96f);
+        Color knob = Color(0.30f, 0.30f, 0.30f, 1.00f);
     };
 
     class ViewportTheme {
@@ -75,11 +76,10 @@ namespace Bess {
         static SceneWidgetsColors sceneWidgetsColors;
         static void updateColorsFromImGuiStyle();
 
-        static glm::vec4 getCompHeaderColor(const std::string &group);
+        static Color getCompHeaderColor(const std::string &group);
 
       private:
         static void initCompColorMap();
-        static std::unordered_map<std::string, glm::vec4> &
-        getCompHeaderColorMap();
+        static std::unordered_map<std::string, Color> &getCompHeaderColorMap();
     };
 } // namespace Bess

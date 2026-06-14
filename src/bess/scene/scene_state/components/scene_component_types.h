@@ -1,4 +1,6 @@
 #pragma once
+#include "bess_core/renderer/colors.h"
+#include "bess_core/renderer/renderer_types.h"
 #include "bess_json/bess_json.h"
 #include "fwd.hpp"
 #include <cstdint>
@@ -25,11 +27,11 @@ namespace Bess::Canvas {
         Style() = default;
         Style(const Style &other) = default;
 
-        glm::vec4 color = glm::vec4(1.f);
-        glm::vec4 borderColor = glm::vec4(1.f);
+        Core::Renderer::Color color = Core::Renderer::Colors::white;
+        Core::Renderer::Color borderColor = Core::Renderer::Colors::black;
         glm::vec4 borderSize = glm::vec4(0.f);
         glm::vec4 borderRadius = glm::vec4(0.f);
-        glm::vec4 headerColor = glm::vec4(0.2f, 0.2f, 0.2f, 1.f);
+        Core::Renderer::Color headerColor = Core::Renderer::Colors::slate900;
     };
 
     // Not serialized
