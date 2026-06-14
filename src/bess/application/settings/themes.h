@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bess_core/style/color_scheme.h"
 #include <functional>
 #include <string>
 #include <unordered_map>
@@ -25,7 +26,7 @@ namespace Bess::Config {
 
         static void setBessLightColors();
 
-        static void setMaterialColors();
+        static void setMaterialColors(Core::Style::Brightness brightness);
 
         static void setGeometry();
 

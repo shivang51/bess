@@ -15,7 +15,12 @@ namespace Bess::Config {
         m_themes["Bess Minimal Dark"] = [this]() { setBessMinimalColors(); };
         m_themes["Fluent UI"] = [this]() { setFluentUIColors(); };
         m_themes["Bess Light"] = [this]() { setBessLightColors(); };
-        m_themes["Material"] = [this]() { setMaterialColors(); };
+        m_themes["Material"] = [this]() {
+            setMaterialColors(Core::Style::Brightness::dark);
+        };
+        m_themes["Material Light"] = [this]() {
+            setMaterialColors(Core::Style::Brightness::light);
+        };
     }
 
     void Themes::applyTheme(const std::string &theme) {
@@ -774,12 +779,11 @@ namespace Bess::Config {
         return {color.r, color.g, color.b, color.a};
     }
 
-    void Themes::setMaterialColors() {
+    void Themes::setMaterialColors(Core::Style::Brightness brightness) {
         setGeometry();
 
-        static const auto colorScheme =
-            Bess::Core::Style::ColorScheme::fromSeed(
-                Core::Renderer::Colors::darkGray);
+        const auto colorScheme = Bess::Core::Style::ColorScheme::fromSeed(
+            Core::Renderer::Colors::pastelBlue, brightness);
 
         const bool isDark = colorScheme.isDark();
         auto themeColors = colorScheme.getColors();

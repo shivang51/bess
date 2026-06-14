@@ -1,7 +1,7 @@
 #include "bess_core/style/color_scheme.h"
 #include "common/bess_assert.h"
 #include "cpp/cam/hct.h"
-#include "cpp/scheme/scheme_tonal_spot.h"
+#include "cpp/scheme/scheme_neutral.h"
 
 namespace Bess::Core::Style {
     ColorSchemeColors
@@ -275,7 +275,8 @@ namespace Bess::Core::Style {
 
         const material_color_utilities::Hct sourceCol(seedColor.toARGB8());
 
-        return material_color_utilities::SchemeTonalSpot(
+        // SchemeNeutral felt good to me, its not too much in your face
+        return material_color_utilities::SchemeNeutral(
             sourceCol, isDark, contrast);
     }
 } // namespace Bess::Core::Style
