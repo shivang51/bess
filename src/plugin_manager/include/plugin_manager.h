@@ -24,7 +24,12 @@ namespace Bess::Plugins {
 
         void init();
         void destroy();
+#ifdef DEBUG
         bool loadPlugin(const std::string &pluginPath, bool watchPlugin = true);
+#else
+        bool loadPlugin(const std::string &pluginPath,
+                        bool watchPlugin = false);
+#endif
         bool unloadPlugin(const std::string &pluginName);
         void unloadAllPlugins();
         bool
@@ -49,10 +54,13 @@ namespace Bess::Plugins {
 
         std::unordered_map<std::string, std::shared_ptr<PluginHandle>>
             m_plugins;
+
+#ifdef DEBUG
         std::vector<std::unique_ptr<Bess::Common::FileWatcher>>
             m_pluginFileWatchers;
-        std::unique_ptr<pybind11::gil_scoped_release> m_gilRelease;
+#endif
 
+        std::unique_ptr<pybind11::gil_scoped_release> m_gilRelease;
         mutable std::mutex m_pluginMutex;
     };
 

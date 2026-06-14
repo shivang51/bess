@@ -88,6 +88,7 @@ namespace Bess::Plugins {
                       pluginName,
                       path.parent_path().string());
 
+#ifdef DEBUG
             if (!watchPlugin) {
                 return true;
             }
@@ -112,6 +113,7 @@ namespace Bess::Plugins {
             });
 
             m_pluginFileWatchers.emplace_back(std::move(watcher));
+#endif
 
             return true;
         } catch (const std::exception &e) {
