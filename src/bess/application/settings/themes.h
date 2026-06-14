@@ -25,6 +25,10 @@ namespace Bess::Config {
 
         static void setBessLightColors();
 
+        static void setMaterialColors();
+
+        static void setGeometry();
+
         // theme name and a void callback
         std::unordered_map<std::string, std::function<void()>> m_themes;
     };

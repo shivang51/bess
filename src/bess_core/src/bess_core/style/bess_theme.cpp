@@ -14,5 +14,8 @@ namespace Bess::Core::Style {
     }
 
     BessTheme BessTheme::fromJson(const Json::Value &json) {
+        std::string name = json["name"].asString();
+        ColorScheme colorScheme = ColorScheme::fromJson(json["colorScheme"]);
+        return {name, colorScheme};
     }
 } // namespace Bess::Core::Style

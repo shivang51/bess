@@ -1,4 +1,6 @@
 #include "settings/themes.h"
+#include "bess_core/renderer/colors.h"
+#include "bess_core/style/color_scheme.h"
 #include "imgui.h"
 #include "settings/viewport_theme.h"
 
@@ -13,6 +15,7 @@ namespace Bess::Config {
         m_themes["Bess Minimal Dark"] = [this]() { setBessMinimalColors(); };
         m_themes["Fluent UI"] = [this]() { setFluentUIColors(); };
         m_themes["Bess Light"] = [this]() { setBessLightColors(); };
+        m_themes["Material"] = [this]() { setMaterialColors(); };
     }
 
     void Themes::applyTheme(const std::string &theme) {
@@ -34,36 +37,12 @@ namespace Bess::Config {
     }
 
     void Themes::setBessMinimalColors() {
+        setGeometry();
+
         auto &style = ImGui::GetStyle();
         auto &colors = style.Colors;
 
         ImGui::StyleColorsDark(&style);
-
-        // --- 1. Geometry & Spacing  ---
-        style.WindowPadding = ImVec2(10, 10);
-        style.FramePadding = ImVec2(6, 4);
-        style.CellPadding = ImVec2(4, 2);
-        style.ItemSpacing = ImVec2(8, 6);
-        style.ItemInnerSpacing = ImVec2(6, 4);
-        style.IndentSpacing = 20.0f;
-        style.ScrollbarSize = 14.0f;
-        style.GrabMinSize = 10.0f;
-
-        // --- 2. Borders & Rounding  ---
-        style.WindowRounding = 6.0f;
-        style.ChildRounding = 4.0f;
-        style.FrameRounding = 4.0f;
-        style.PopupRounding = 4.0f;
-        style.ScrollbarRounding = 9.0f;
-        style.GrabRounding = 3.0f;
-        style.TabRounding = 4.0f;
-
-        style.WindowBorderSize = 1.0f;
-        style.ChildBorderSize = 1.0f;
-        style.PopupBorderSize = 1.0f;
-        style.FrameBorderSize = 0.0f;
-
-        // --- 3. Color Palette (Godot-like passive start)  ---
 
         // Overall background (outer UI)
         colors[ImGuiCol_WindowBg] = ImVec4(0.10f, 0.10f, 0.11f, 1.00f);
@@ -790,4 +769,172 @@ namespace Bess::Config {
         colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.20f);
         colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.35f);
     }
+
+    inline ImVec4 getImVec4(const Bess::Core::Renderer::Color &color) {
+        return {color.r, color.g, color.b, color.a};
+    }
+
+    void Themes::setMaterialColors() {
+        setGeometry();
+
+        static const auto colorScheme =
+            Bess::Core::Style::ColorScheme::fromSeed(
+                Core::Renderer::Colors::darkGray);
+
+        const bool isDark = colorScheme.isDark();
+        auto themeColors = colorScheme.getColors();
+
+        auto &style = ImGui::GetStyle();
+        auto &colors = style.Colors;
+
+        auto withAlpha = [](Color color, float alpha) {
+            ImVec4 v = getImVec4(color);
+            v.w *= alpha;
+            return v;
+        };
+
+        // Overall background
+        colors[ImGuiCol_WindowBg] = getImVec4(themeColors.surface);
+        colors[ImGuiCol_ChildBg] = getImVec4(themeColors.surfaceContainerLow);
+        colors[ImGuiCol_PopupBg] = getImVec4(themeColors.surfaceContainerHigh);
+
+        // Borders & separators
+        colors[ImGuiCol_Border] = getImVec4(themeColors.outlineVariant);
+        colors[ImGuiCol_BorderShadow] = withAlpha(themeColors.shadow, 0.0f);
+
+        colors[ImGuiCol_Separator] = getImVec4(themeColors.outlineVariant);
+        colors[ImGuiCol_SeparatorHovered] = getImVec4(themeColors.primary);
+        colors[ImGuiCol_SeparatorActive] = getImVec4(themeColors.primary);
+
+        // Text
+        colors[ImGuiCol_Text] = getImVec4(themeColors.onSurface);
+        colors[ImGuiCol_TextDisabled] = withAlpha(themeColors.onSurface, 0.38f);
+
+        // Headers / tree nodes / collapsing bars
+        colors[ImGuiCol_Header] = getImVec4(themeColors.surfaceContainerHigh);
+        colors[ImGuiCol_HeaderHovered] =
+            getImVec4(themeColors.surfaceContainerHighest);
+        colors[ImGuiCol_HeaderActive] = getImVec4(themeColors.primaryContainer);
+
+        // Frames: inputs, checkboxes bg, combo bg, sliders bg
+        colors[ImGuiCol_FrameBg] =
+            getImVec4(themeColors.surfaceContainerHighest);
+        colors[ImGuiCol_FrameBgHovered] =
+            getImVec4(themeColors.secondaryContainer);
+        colors[ImGuiCol_FrameBgActive] =
+            getImVec4(themeColors.primaryContainer);
+
+        // Buttons
+        // Avoid themeColors.primary here unless you also change text to
+        // onPrimary per-widget. ImGui uses global ImGuiCol_Text, so containers
+        // are safer.
+        colors[ImGuiCol_Button] =
+            getImVec4(themeColors.surfaceContainerHighest);
+        colors[ImGuiCol_ButtonHovered] =
+            getImVec4(themeColors.primaryContainer);
+        colors[ImGuiCol_ButtonActive] = getImVec4(themeColors.primaryFixedDim);
+
+        // Accent controls
+        colors[ImGuiCol_CheckMark] = getImVec4(themeColors.primary);
+        colors[ImGuiCol_SliderGrab] = getImVec4(themeColors.primary);
+        colors[ImGuiCol_SliderGrabActive] =
+            getImVec4(themeColors.inversePrimary);
+
+        // Tabs
+        colors[ImGuiCol_Tab] = getImVec4(themeColors.surfaceContainer);
+        colors[ImGuiCol_TabHovered] = getImVec4(themeColors.primaryContainer);
+        colors[ImGuiCol_TabActive] =
+            getImVec4(themeColors.surfaceContainerHighest);
+        colors[ImGuiCol_TabUnfocused] =
+            getImVec4(themeColors.surfaceContainerLow);
+        colors[ImGuiCol_TabUnfocusedActive] =
+            getImVec4(themeColors.surfaceContainerHigh);
+
+        // Title bar
+        colors[ImGuiCol_TitleBg] = getImVec4(themeColors.surfaceContainerLow);
+        colors[ImGuiCol_TitleBgActive] =
+            getImVec4(themeColors.surfaceContainerHigh);
+        colors[ImGuiCol_TitleBgCollapsed] =
+            getImVec4(themeColors.surfaceContainerLowest);
+
+        // Menu bar
+        colors[ImGuiCol_MenuBarBg] = getImVec4(themeColors.surfaceContainerLow);
+
+        // Scrolling
+        colors[ImGuiCol_ScrollbarBg] =
+            getImVec4(themeColors.surfaceContainerLowest);
+        colors[ImGuiCol_ScrollbarGrab] =
+            getImVec4(themeColors.surfaceContainerHighest);
+        colors[ImGuiCol_ScrollbarGrabHovered] =
+            getImVec4(themeColors.outlineVariant);
+        colors[ImGuiCol_ScrollbarGrabActive] = getImVec4(themeColors.outline);
+
+        // Resize grips
+        colors[ImGuiCol_ResizeGrip] = withAlpha(themeColors.primary, 0.35f);
+        colors[ImGuiCol_ResizeGripHovered] =
+            withAlpha(themeColors.primary, 0.65f);
+        colors[ImGuiCol_ResizeGripActive] = getImVec4(themeColors.primary);
+
+        // Docking
+        colors[ImGuiCol_DockingPreview] = withAlpha(themeColors.primary, 0.45f);
+        colors[ImGuiCol_DockingEmptyBg] = getImVec4(themeColors.surfaceDim);
+
+        // Plots
+        colors[ImGuiCol_PlotLines] = getImVec4(themeColors.primary);
+        colors[ImGuiCol_PlotLinesHovered] =
+            getImVec4(themeColors.inversePrimary);
+        colors[ImGuiCol_PlotHistogram] = getImVec4(themeColors.tertiary);
+        colors[ImGuiCol_PlotHistogramHovered] =
+            getImVec4(themeColors.tertiaryContainer);
+
+        // Tables
+        colors[ImGuiCol_TableHeaderBg] =
+            getImVec4(themeColors.surfaceContainerHigh);
+        colors[ImGuiCol_TableBorderStrong] = getImVec4(themeColors.outline);
+        colors[ImGuiCol_TableBorderLight] =
+            getImVec4(themeColors.outlineVariant);
+        colors[ImGuiCol_TableRowBg] =
+            withAlpha(themeColors.surfaceContainerLowest, 0.0f);
+        colors[ImGuiCol_TableRowBgAlt] = getImVec4(themeColors.surfaceDim);
+
+        // Selection & drag-drop
+        colors[ImGuiCol_TextSelectedBg] = withAlpha(themeColors.primary, 0.32f);
+        colors[ImGuiCol_DragDropTarget] = getImVec4(themeColors.primary);
+
+        // Navigation & modal
+        colors[ImGuiCol_NavHighlight] = withAlpha(themeColors.primary, 0.65f);
+        colors[ImGuiCol_NavWindowingHighlight] =
+            withAlpha(themeColors.inverseSurface, 0.70f);
+        colors[ImGuiCol_NavWindowingDimBg] =
+            withAlpha(themeColors.scrim, 0.20f);
+        colors[ImGuiCol_ModalWindowDimBg] = withAlpha(themeColors.scrim, 0.45f);
+    }
+
+    void Themes::setGeometry() {
+        auto &style = ImGui::GetStyle();
+        // --- 1. Geometry & Spacing  ---
+        style.WindowPadding = ImVec2(10, 10);
+        style.FramePadding = ImVec2(6, 4);
+        style.CellPadding = ImVec2(4, 2);
+        style.ItemSpacing = ImVec2(8, 6);
+        style.ItemInnerSpacing = ImVec2(6, 4);
+        style.IndentSpacing = 20.0f;
+        style.ScrollbarSize = 14.0f;
+        style.GrabMinSize = 10.0f;
+
+        // --- 2. Borders & Rounding  ---
+        style.WindowRounding = 6.0f;
+        style.ChildRounding = 4.0f;
+        style.FrameRounding = 4.0f;
+        style.PopupRounding = 4.0f;
+        style.ScrollbarRounding = 9.0f;
+        style.GrabRounding = 3.0f;
+        style.TabRounding = 4.0f;
+
+        style.WindowBorderSize = 1.0f;
+        style.ChildBorderSize = 1.0f;
+        style.PopupBorderSize = 1.0f;
+        style.FrameBorderSize = 0.0f;
+    }
+
 } // namespace Bess::Config

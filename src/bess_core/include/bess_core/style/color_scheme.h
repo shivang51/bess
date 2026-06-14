@@ -101,9 +101,12 @@ namespace Bess::Core::Style {
         }
 
         MAKE_GETTER_SETTER(Brightness, Brightness, m_brightness);
+        MAKE_GETTER_SETTER(ColorSchemeColors, Colors, m_colors);
 
         Json::Value toJson() const;
         static ColorScheme fromJson(const Json::Value &json);
+
+        bool isDark() const;
 
       private:
         static DynamicScheme

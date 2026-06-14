@@ -99,6 +99,11 @@ namespace Bess::Core::Style {
         : m_colors(colors),
           m_brightness(brightness) {
     }
+
+    bool ColorScheme::isDark() const {
+        return m_brightness == Brightness::dark;
+    }
+
     Json::Value ColorScheme::toJson() const {
         Json::Value json;
         auto &colors = json["colors"];
