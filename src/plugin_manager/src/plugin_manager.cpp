@@ -2,135 +2,11 @@
 #include "common/file_watcher.h"
 #include "common/logger.h"
 #include "plugin_handle.h"
-#include <cctype>
+#include "plugin_hot_reload.h"
 #include <filesystem>
-#include <functional>
 #include <mutex>
-#include <optional>
 #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
-#include <sstream>
-#include <stdexcept>
-
-namespace {
-    namespace py = pybind11;
-
-    std::string sanitizeModulePart(std::string value) {
-        for (char &ch : value) {
-            const auto uch = static_cast<unsigned char>(ch);
-            if (!std::isalnum(uch) && ch != '_') {
-                ch = '_';
-            }
-        }
-
-        if (value.empty() ||
-            std::isdigit(static_cast<unsigned char>(value.front()))) {
-            value.insert(value.begin(), '_');
-        }
-
-        return value;
-    }
-
-    std::string makePluginModuleName(const std::filesystem::path &pluginPath) {
-        const auto normalized =
-            std::filesystem::absolute(pluginPath).lexically_normal().string();
-        std::ostringstream name;
-        name << "bess_plugin_" << sanitizeModulePart(pluginPath.stem().string())
-             << "_" << std::hex << std::hash<std::string>{}(normalized);
-        return name.str();
-    }
-
-    bool isPathInside(const std::filesystem::path &path,
-                      const std::filesystem::path &root) {
-        auto pathIt = path.begin();
-        auto rootIt = root.begin();
-
-        for (; rootIt != root.end(); ++rootIt, ++pathIt) {
-            if (pathIt == path.end() || *pathIt != *rootIt) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    std::optional<std::filesystem::path>
-    canonicalPathIfPossible(const std::filesystem::path &path) {
-        try {
-            return std::filesystem::weakly_canonical(path);
-        } catch (const std::filesystem::filesystem_error &) {
-            return std::nullopt;
-        }
-    }
-
-    void putSysPathFirst(const std::filesystem::path &path) {
-        py::module_ sys = py::module_::import("sys");
-        py::list sysPath = sys.attr("path");
-        const auto pathString = path.string();
-
-        while (sysPath.contains(pathString)) {
-            sysPath.attr("remove")(pathString);
-        }
-        sysPath.attr("insert")(0, pathString);
-    }
-
-    void removeCachedModulesUnder(const std::filesystem::path &root) {
-        const auto canonicalRoot = canonicalPathIfPossible(root);
-        if (!canonicalRoot.has_value()) {
-            return;
-        }
-
-        py::dict modules = py::module_::import("sys").attr("modules");
-        py::list moduleNames = py::list(modules.attr("keys")());
-
-        for (py::handle moduleName : moduleNames) {
-            py::object module = modules[moduleName];
-            if (!py::hasattr(module, "__file__")) {
-                continue;
-            }
-
-            py::object moduleFile = module.attr("__file__");
-            if (moduleFile.is_none()) {
-                continue;
-            }
-
-            const auto canonicalModulePath = canonicalPathIfPossible(
-                py::str(moduleFile).cast<std::string>());
-            if (!canonicalModulePath.has_value()) {
-                continue;
-            }
-
-            if (isPathInside(*canonicalModulePath, *canonicalRoot)) {
-                modules.attr("pop")(moduleName, py::none());
-            }
-        }
-    }
-
-    py::module_
-    importPluginModuleFromFile(const std::filesystem::path &pluginPath,
-                               const std::string &moduleName) {
-        py::module_ importlibUtil = py::module_::import("importlib.util");
-        py::object spec = importlibUtil.attr("spec_from_file_location")(
-            moduleName, pluginPath.string());
-        if (spec.is_none()) {
-            throw std::runtime_error("Could not create import spec for " +
-                                     pluginPath.string());
-        }
-
-        py::object module = importlibUtil.attr("module_from_spec")(spec);
-        py::dict modules = py::module_::import("sys").attr("modules");
-        modules[py::str(moduleName)] = module;
-
-        try {
-            spec.attr("loader").attr("exec_module")(module);
-        } catch (...) {
-            modules.attr("pop")(moduleName, py::none());
-            throw;
-        }
-
-        return py::reinterpret_borrow<py::module_>(module);
-    }
-} // namespace
 
 namespace Bess::Plugins {
     PluginManager &PluginManager::getInstance() {
@@ -397,19 +273,38 @@ namespace Bess::Plugins {
             const auto absolutePluginPath =
                 std::filesystem::absolute(pluginPath).lexically_normal();
             const auto pluginRoot = absolutePluginPath.parent_path();
-            const auto moduleName = makePluginModuleName(absolutePluginPath);
+            const auto moduleName =
+                HotReload::makePluginModuleName(absolutePluginPath);
 
-            putSysPathFirst(pluginRoot);
+            HotReload::putSysPathFirst(pluginRoot);
+            py::dict liveClasses;
+            py::dict removedModules;
             if (reload) {
-                removeCachedModulesUnder(pluginRoot);
+                liveClasses = HotReload::collectLivePluginClasses(pluginRoot);
+                removedModules = HotReload::removeCachedModules(pluginRoot);
             }
 
             BESS_INFO("{} plugin from file: {}",
                       reload ? "Reloading" : "Loading",
                       absolutePluginPath.string());
 
-            py::module_ pluginModule =
-                importPluginModuleFromFile(absolutePluginPath, moduleName);
+            py::module_ pluginModule;
+            try {
+                pluginModule = HotReload::importPluginModuleFromFile(
+                    absolutePluginPath, moduleName);
+            } catch (...) {
+                if (reload) {
+                    HotReload::restoreCachedModules(removedModules);
+                }
+                throw;
+            }
+
+            if (reload) {
+                const auto patchedClassCount =
+                    HotReload::patchLivePluginClasses(liveClasses, pluginRoot);
+                BESS_DEBUG("Patched {} live plugin classes after reload",
+                           patchedClassCount);
+            }
 
             if (!py::hasattr(pluginModule, "plugin_hwd")) {
                 BESS_ERROR(

@@ -22,6 +22,7 @@ FetchContent_MakeAvailable(pybind11)
 set(Header_Files
     "include/plugin_manager.h"
     "include/plugin_handle.h"
+    "src/plugin_hot_reload.h"
 )
 
 source_group("include" FILES ${Header_Files})
@@ -29,6 +30,7 @@ source_group("include" FILES ${Header_Files})
 set(Source_Files
     "src/plugin_manager.cpp"
     "src/plugin_handle.cpp"
+    "src/plugin_hot_reload.cpp"
 )
 
 source_group("src" FILES ${Source_Files})

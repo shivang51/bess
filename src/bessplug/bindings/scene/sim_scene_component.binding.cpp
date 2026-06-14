@@ -4,6 +4,7 @@
 #include "bess_core/project_context.h"
 #include "bess_core/scene_driver.h"
 #include "common/bess_uuid.h"
+#include "common/logger.h"
 
 #include "dig_sim_driver.h"
 #include "pages/main_page/main_page.h"
@@ -21,6 +22,15 @@
 
 namespace py = pybind11;
 
+namespace {
+    void logPythonOverrideError(const char *method,
+                                const py::error_already_set &error) {
+        BESS_ERROR("Python SimulationSceneComponent.{} failed: {}",
+                   method,
+                   error.what());
+    }
+} // namespace
+
 class PySimSceneComponent : public Bess::Canvas::SimulationSceneComponent,
                             public py::trampoline_self_life_support {
   public:
@@ -28,19 +38,29 @@ class PySimSceneComponent : public Bess::Canvas::SimulationSceneComponent,
     ~PySimSceneComponent() override = default;
 
     void draw(Bess::SceneDrawContext &context) override {
-        PYBIND11_OVERRIDE(void,
-                          Bess::Canvas::SimulationSceneComponent,
-                          draw,
-                          std::ref(context));
+        try {
+            PYBIND11_OVERRIDE(void,
+                              Bess::Canvas::SimulationSceneComponent,
+                              draw,
+                              std::ref(context));
+        } catch (const py::error_already_set &error) {
+            logPythonOverrideError("draw", error);
+        }
+        Bess::Canvas::SimulationSceneComponent::draw(context);
     }
 
     std::vector<Bess::UUID> cleanup(Bess::Canvas::SceneState &state,
                                     Bess::UUID caller) override {
-        PYBIND11_OVERRIDE(std::vector<Bess::UUID>,
-                          Bess::Canvas::SimulationSceneComponent,
-                          cleanup,
-                          std::ref(state),
-                          caller);
+        try {
+            PYBIND11_OVERRIDE(std::vector<Bess::UUID>,
+                              Bess::Canvas::SimulationSceneComponent,
+                              cleanup,
+                              std::ref(state),
+                              caller);
+        } catch (const py::error_already_set &error) {
+            logPythonOverrideError("cleanup", error);
+        }
+        return Bess::Canvas::SimulationSceneComponent::cleanup(state, caller);
     }
 
     std::vector<std::shared_ptr<SceneComponent>>
@@ -51,65 +71,105 @@ class PySimSceneComponent : public Bess::Canvas::SimulationSceneComponent,
 
     virtual std::shared_ptr<Bess::Canvas::SimulationSceneComponent>
     copy() const {
-        PYBIND11_OVERRIDE_NAME(
-            std::shared_ptr<Bess::Canvas::SimulationSceneComponent>,
-            PySimSceneComponent,
-            "copy",
-            copy);
+        try {
+            PYBIND11_OVERRIDE_NAME(
+                std::shared_ptr<Bess::Canvas::SimulationSceneComponent>,
+                PySimSceneComponent,
+                "copy",
+                copy);
+        } catch (const py::error_already_set &error) {
+            logPythonOverrideError("copy", error);
+        }
+        return std::make_shared<Bess::Canvas::SimulationSceneComponent>(*this);
     }
 
     void drawSchematic(Bess::SceneDrawContext &context) override {
-        PYBIND11_OVERRIDE_NAME(void,
-                               Bess::Canvas::SimulationSceneComponent,
-                               "draw_schematic",
-                               drawSchematic,
-                               std::ref(context));
+        try {
+            PYBIND11_OVERRIDE_NAME(void,
+                                   Bess::Canvas::SimulationSceneComponent,
+                                   "draw_schematic",
+                                   drawSchematic,
+                                   std::ref(context));
+        } catch (const py::error_already_set &error) {
+            logPythonOverrideError("draw_schematic", error);
+        }
+        Bess::Canvas::SimulationSceneComponent::drawSchematic(context);
     }
 
     void update(Bess::TimeMs timeStep,
                 Bess::Canvas::SceneState &state) override {
-        PYBIND11_OVERRIDE(void,
-                          Bess::Canvas::SimulationSceneComponent,
-                          update,
-                          timeStep,
-                          std::ref(state));
+        try {
+            PYBIND11_OVERRIDE(void,
+                              Bess::Canvas::SimulationSceneComponent,
+                              update,
+                              timeStep,
+                              std::ref(state));
+        } catch (const py::error_already_set &error) {
+            logPythonOverrideError("update", error);
+        }
+        Bess::Canvas::SimulationSceneComponent::update(timeStep, state);
     }
 
     void onScaleChanged() override {
-        PYBIND11_OVERRIDE_NAME(void,
-                               Bess::Canvas::SimulationSceneComponent,
-                               "on_scale_changed",
-                               onScaleChanged);
+        try {
+            PYBIND11_OVERRIDE_NAME(void,
+                                   Bess::Canvas::SimulationSceneComponent,
+                                   "on_scale_changed",
+                                   onScaleChanged);
+        } catch (const py::error_already_set &error) {
+            logPythonOverrideError("on_scale_changed", error);
+        }
+        Bess::Canvas::SimulationSceneComponent::onScaleChanged();
     }
 
     std::string getTypeName() const override {
-        PYBIND11_OVERRIDE_NAME(std::string,
-                               Bess::Canvas::SimulationSceneComponent,
-                               "get_type_name",
-                               getTypeName);
+        try {
+            PYBIND11_OVERRIDE_NAME(std::string,
+                                   Bess::Canvas::SimulationSceneComponent,
+                                   "get_type_name",
+                                   getTypeName);
+        } catch (const py::error_already_set &error) {
+            logPythonOverrideError("get_type_name", error);
+        }
+        return Bess::Canvas::SimulationSceneComponent::getTypeName();
     }
 
     Json::Value toJson() const override {
-        PYBIND11_OVERRIDE_NAME(Json::Value,
-                               Bess::Canvas::SimulationSceneComponent,
-                               "to_json",
-                               toJson);
+        try {
+            PYBIND11_OVERRIDE_NAME(Json::Value,
+                                   Bess::Canvas::SimulationSceneComponent,
+                                   "to_json",
+                                   toJson);
+        } catch (const py::error_already_set &error) {
+            logPythonOverrideError("to_json", error);
+        }
+        return Bess::Canvas::SimulationSceneComponent::toJson();
     }
 
     void drawPropertiesUI(Bess::Canvas::SceneState &sceneState) override {
-        PYBIND11_OVERRIDE_NAME(void,
-                               Bess::Canvas::SimulationSceneComponent,
-                               "draw_properties_ui",
-                               drawPropertiesUI,
-                               std::ref(sceneState));
+        try {
+            PYBIND11_OVERRIDE_NAME(void,
+                                   Bess::Canvas::SimulationSceneComponent,
+                                   "draw_properties_ui",
+                                   drawPropertiesUI,
+                                   std::ref(sceneState));
+        } catch (const py::error_already_set &error) {
+            logPythonOverrideError("draw_properties_ui", error);
+        }
+        Bess::Canvas::SimulationSceneComponent::drawPropertiesUI(sceneState);
     }
 
     glm::vec2 calculateScale(const Bess::Canvas::SceneState &state) override {
-        PYBIND11_OVERRIDE_NAME(glm::vec2,
-                               Bess::Canvas::SimulationSceneComponent,
-                               "calc_scale",
-                               calculateScale,
-                               std::ref(state));
+        try {
+            PYBIND11_OVERRIDE_NAME(glm::vec2,
+                                   Bess::Canvas::SimulationSceneComponent,
+                                   "calc_scale",
+                                   calculateScale,
+                                   std::ref(state));
+        } catch (const py::error_already_set &error) {
+            logPythonOverrideError("calc_scale", error);
+        }
+        return Bess::Canvas::SimulationSceneComponent::calculateScale(state);
     }
 };
 

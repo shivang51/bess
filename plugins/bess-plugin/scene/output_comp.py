@@ -51,8 +51,11 @@ class OutputComp(SimulationSceneComponent):
         id.runtime_id = self.runtime_id
         id.info = 0
 
-        scale_hf = self.scale * 0.5
-        posOffset = vec3(6, -scale_hf.y + 31.5, 0.0001)
+        posOffset = vec3(
+            4,
+            self.get_slot_start_y() - self.transform.scale.y / 2,
+            0.0001,
+        )
 
         context.renderer.draw_text(
             f"Dec = {self.decimal_value}",
