@@ -55,9 +55,8 @@ namespace Bess {
                 Color(0.12f, 0.22f, 0.14f, 1.00f); // Deep forest shadow
         } else {
             colors.stateHigh =
-                Color(0.08f, 0.55f, 0.20f, 1.00f); // Rich legible jade green
-            colors.stateLow =
-                Color(0.85f, 0.94f, 0.87f, 1.00f); // Soft, tinted sage pastel
+                Color(0.08f, 0.7f, 0.20f, 1.00f); // Rich legible jade green
+            colors.stateLow = Color(0.35f, 0.42f, 0.37f, 1.00f);
         }
 
         // 4. Responsive Clock Connections (Blue)
@@ -150,6 +149,37 @@ namespace Bess {
         sceneWidgetsColors.itemHover = headerHovered;
         sceneWidgetsColors.track = frame;
         sceneWidgetsColors.knob = sliderGrab;
+
+        if (isDark) {
+            schematicViewColors.componentFill =
+                Color(0.13f, 0.14f, 0.17f, 1.0f);
+
+            schematicViewColors.componentStroke =
+                Color(0.26f, 0.30f, 0.36f, 1.0f);
+
+            schematicViewColors.text = Color(0.86f, 0.88f, 0.92f, 1.0f);
+
+            schematicViewColors.pin =
+                Color(0.22f, 0.78f, 0.88f, 1.0f); // Vivid Electric Cyan
+            schematicViewColors.connection =
+                Color(0.00f, 0.85f, 0.45f, 1.0f); // Cyberpunk Emerald Green
+
+            schematicViewColors.activeSignal = Color(1.00f, 0.84f, 0.10f, 1.0f);
+        } else {
+            schematicViewColors.pin = Color(0.02f, 0.48f, 0.62f, 1.0f);
+
+            schematicViewColors.text = Color(0.12f, 0.14f, 0.16f, 1.0f);
+
+            schematicViewColors.connection = Color(0.00f, 0.52f, 0.26f, 1.0f);
+
+            schematicViewColors.componentFill =
+                Color(1.00f, 1.00f, 1.00f, 1.0f);
+
+            schematicViewColors.componentStroke =
+                Color(0.25f, 0.28f, 0.35f, 1.0f);
+
+            schematicViewColors.activeSignal = Color(0.92f, 0.45f, 0.00f, 1.0f);
+        }
     }
 
     Color ViewportTheme::getCompHeaderColor(const std::string &group) {
