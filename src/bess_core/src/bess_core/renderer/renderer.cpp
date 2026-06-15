@@ -5,22 +5,6 @@
 namespace Bess::Core::Renderer {
     IRenderer2D::~IRenderer2D() = default;
 
-    glm::vec2 IRenderer2D::getTextRenderSize(const std::string_view &text,
-                                             const FontProps &props) {
-        glm::vec2 size = {0.f, props.fontSize};
-
-        for (const char &ch : text) {
-            if (ch == '\n') {
-                size.y += props.fontSize;
-                continue;
-            }
-
-            size.x += props.fontSize * 0.6f;
-        }
-
-        return size;
-    }
-
     TextureReadbackResult IRenderer2D::readTexture(TextureHandle texture,
                                                    uint32_t x,
                                                    uint32_t y,
