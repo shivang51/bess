@@ -97,8 +97,13 @@ namespace Bess::Canvas {
         const auto &startComp = state.getComponentByUuid(m_startSlot);
         const auto &endComp = state.getComponentByUuid(m_endSlot);
 
-        if (!startComp || !endComp)
+        if (!startComp || !endComp) {
+            BESS_WARN("Tried to draw connection with invalid start "
+                      "or end component (start: {}, end: {})",
+                      (uint64_t)m_startSlot,
+                      (uint64_t)m_endSlot);
             return;
+        }
 
         if (m_isFirstDraw) {
             if (m_segments.empty()) {
@@ -205,13 +210,17 @@ namespace Bess::Canvas {
             resetSegmentPositionCache(state);
         }
 
-        const auto startComp =
-            state.getComponentByUuid<SlotSceneComponent>(m_startSlot);
-        const auto endComp =
-            state.getComponentByUuid<SlotSceneComponent>(m_endSlot);
+        const auto startComp = state.getComponentByUuid(m_startSlot);
+        const auto endComp = state.getComponentByUuid(m_endSlot);
 
-        if (!startComp || !endComp)
+        if (!startComp || !endComp) {
+
+            BESS_WARN("Tried to draw schematic connection with invalid start "
+                      "or end component (start: {}, end: {})",
+                      (uint64_t)m_startSlot,
+                      (uint64_t)m_endSlot);
             return;
+        }
 
         glm::vec4 color;
 
@@ -235,14 +244,6 @@ namespace Bess::Canvas {
                 endComp->cast<SlotSceneComponent>()->getConnectionPos(state);
         }
 
-        if (startComp->getType() == SceneComponentType::slot &&
-            startComp->isInputSlot()) {
-            startPos.x -= Styles::compSchematicStyles.pinSize;
-            endPos.x += Styles::compSchematicStyles.pinSize;
-        } else {
-            startPos.x += Styles::compSchematicStyles.pinSize;
-            endPos.x -= Styles::compSchematicStyles.pinSize;
-        }
         drawSegments(state, startPos, endPos, color, context);
     }
 
