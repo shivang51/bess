@@ -30,12 +30,9 @@ namespace Bess::UI {
 
     void SceneViewportPanel::updateScene(TimeMs ts) {
         (void)ts;
-        if (!m_isHovered || !m_attachedScene) {
+        if (!m_attachedScene || !m_camera) {
             return;
         }
-
-        Canvas::ViewportTransform vpTrans{.pos = m_viewportPos,
-                                          .size = m_viewportSize};
 
         auto &appCtx = Bess::GAppContext::getInstance();
         auto inputSystem = appCtx.getSubSystem<InputSubSystem>();
@@ -53,12 +50,21 @@ namespace Bess::UI {
             releaseMouseButtonOutsideViewport(frameInputState.mouseBtnState);
         }
 
-        if (m_pickingTexture && !m_attachedScene->getIsFirstFrame() &&
-            !m_inputState.isDragging) {
-            updatePickingIds(mouseMoved);
+        const bool shouldProcessPicking =
+            m_isHovered || m_inputState.pickingReadbackRequest.active ||
+            m_pendingSelectionReadback.active;
+
+        if (m_pickingTexture && shouldProcessPicking &&
+            !m_attachedScene->getIsFirstFrame() && !m_inputState.isDragging) {
+            updatePickingIds(mouseMoved && m_isHovered);
         }
 
-        applySceneCursor();
+        if (m_isHovered) {
+            applySceneCursor();
+        } else if (!hasMouseCapture()) {
+            m_pickingId = PickingId::invalid();
+            m_inputState.cursor = Canvas::SceneCursor::inherit;
+        }
     }
 
     bool SceneViewportPanel::isInsideViewport(const glm::vec2 &pos) const {
@@ -74,6 +80,12 @@ namespace Bess::UI {
 
     bool SceneViewportPanel::hasRenderableViewport() const {
         return isValidExtent(m_viewportSize);
+    }
+
+    bool SceneViewportPanel::hasMouseCapture() const {
+        return m_inputState.isLeftMousePressed ||
+               m_inputState.isMiddleMousePressed || m_inputState.isDragging ||
+               m_inputState.selectionBox.draw;
     }
 
     void SceneViewportPanel::handleMouseMove(const glm::vec2 &mousePos) {
@@ -120,6 +132,7 @@ namespace Bess::UI {
             window->setMousePos(newPos);
 
             m_attachedScene->onMouseMove({newPos.x, newPos.y},
+                                         m_camera,
                                          {
                                              m_viewportPos,
                                              m_viewportSize,
@@ -143,6 +156,7 @@ namespace Bess::UI {
         if (mouseBtnState.button == MouseButton::left &&
             m_inputState.isLeftMousePressed) {
             m_attachedScene->onLeftMouse(false,
+                                         m_camera,
                                          {
                                              m_viewportPos,
                                              m_viewportSize,
@@ -152,6 +166,7 @@ namespace Bess::UI {
         } else if (mouseBtnState.button == MouseButton::middle &&
                    m_inputState.isMiddleMousePressed) {
             m_attachedScene->onMiddleMouse(false,
+                                           m_camera,
                                            {
                                                m_viewportPos,
                                                m_viewportSize,
@@ -278,6 +293,7 @@ namespace Bess::UI {
                 }
 
                 m_pendingSelectionReadback.clear();
+                m_inputState.pickingReadbackRequest = {};
                 return;
             }
 
@@ -321,6 +337,7 @@ namespace Bess::UI {
                  .y = m_pendingSelectionReadback.y,
                  .width = m_pendingSelectionReadback.width,
                  .height = m_pendingSelectionReadback.height});
+            m_inputState.pickingReadbackRequest = {};
             return;
         }
 

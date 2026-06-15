@@ -46,8 +46,10 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::update(TimeMs ts) {
-        BESS_ASSERT(m_attachedScene,
-                    "SceneViewportPanel must have an attached scene to update");
+        if (!m_attachedScene || !m_camera) {
+            return;
+        }
+
         if (m_isResized) {
             m_camera->resize(m_viewportSize.x, m_viewportSize.y);
             if (m_sceneTexture) {
@@ -64,9 +66,7 @@ namespace Bess::UI {
             m_isResized = false;
         }
 
-        if (!m_isHovered) {
-            return;
-        }
+        m_camera->update(ts);
 
         auto sceneDriver = GAppContext::getInstance()
                                .getSubSystem<Bess::ProjectContext>()
@@ -75,6 +75,7 @@ namespace Bess::UI {
         if (!sceneDriver->getIsPaused()) {
             m_attachedScene->viewportUpdate(ts,
                                             m_isHovered,
+                                            m_camera,
                                             {m_viewportPos, m_viewportSize},
                                             m_inputState,
                                             m_pickingId);
@@ -385,7 +386,17 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::onSceneAttached() {
+        m_inputState.reset();
+        m_pickingId = PickingId::invalid();
+        m_pendingSelectionReadback.clear();
+        if (m_camera) {
+            m_camera->resize(m_viewportSize.x, m_viewportSize.y);
+        }
+
         m_rootToSceneStatePtrs.clear();
+        if (!m_attachedScene) {
+            return;
+        }
 
         // Very Important: to avoid circular intialization of mainpage,
         // we do this, do not remove this
@@ -432,5 +443,23 @@ namespace Bess::UI {
 
     glm::vec2 SceneViewportPanel::getSceneMousePos() {
         return m_camera->toWorldPos(m_inputState.mousePos);
+    }
+
+    bool SceneViewportPanel::isFocused() const {
+        return m_isFocused;
+    }
+
+    bool SceneViewportPanel::isAttachedToScene(
+        const std::shared_ptr<Canvas::Scene> &scene) const {
+        return scene && m_attachedScene &&
+               scene->getSceneId() == m_attachedScene->getSceneId();
+    }
+
+    void SceneViewportPanel::focusCameraOnSelected() {
+        if (!m_attachedScene || !m_camera) {
+            return;
+        }
+
+        m_attachedScene->focusCameraOnSelected(m_camera);
     }
 } // namespace Bess::UI

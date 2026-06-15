@@ -32,6 +32,10 @@ namespace Bess::UI {
         const glm::vec2 &getViewportSize() const;
         const glm::vec2 &getViewportPos() const;
         bool isHovered() const;
+        bool isFocused() const;
+        bool
+        isAttachedToScene(const std::shared_ptr<Canvas::Scene> &scene) const;
+        void focusCameraOnSelected();
 
         MAKE_GETTER_SETTER_WC(std::shared_ptr<Canvas::Scene>,
                               AttachedScene,
@@ -50,6 +54,7 @@ namespace Bess::UI {
 
         bool isInsideViewport(const glm::vec2 &pos) const;
         bool hasRenderableViewport() const;
+        bool hasMouseCapture() const;
 
       private:
         struct PendingPickingReadback {

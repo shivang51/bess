@@ -94,6 +94,56 @@ namespace Bess::UI {
             return extension == ".v" || extension == ".sv" ||
                    extension == ".vh" || extension == ".svh";
         }
+
+        std::weak_ptr<SceneViewportPanel> &hoveredSceneViewportPanelRef() {
+            static std::weak_ptr<SceneViewportPanel> panel;
+            return panel;
+        }
+
+        std::weak_ptr<SceneViewportPanel> &focusedSceneViewportPanelRef() {
+            static std::weak_ptr<SceneViewportPanel> panel;
+            return panel;
+        }
+
+        std::weak_ptr<SceneViewportPanel> &activeSceneViewportPanelRef() {
+            static std::weak_ptr<SceneViewportPanel> panel;
+            return panel;
+        }
+
+        std::weak_ptr<SceneViewportPanel> &targetSceneViewportPanelRef() {
+            static std::weak_ptr<SceneViewportPanel> panel;
+            return panel;
+        }
+
+        bool isUsableSceneViewportPanel(
+            const std::shared_ptr<SceneViewportPanel> &panel) {
+            return panel && panel->getVisible() && panel->getAttachedScene();
+        }
+
+        std::shared_ptr<SceneViewportPanel>
+        validSceneViewportPanel(std::weak_ptr<SceneViewportPanel> &ref) {
+            auto panel = ref.lock();
+            if (isUsableSceneViewportPanel(panel)) {
+                return panel;
+            }
+
+            ref.reset();
+            return nullptr;
+        }
+
+        std::shared_ptr<SceneViewportPanel> firstUsableSceneViewportPanel() {
+            for (const auto &panel : UIMain::getScenePanels()) {
+                if (isUsableSceneViewportPanel(panel)) {
+                    return panel;
+                }
+            }
+            return nullptr;
+        }
+
+        std::shared_ptr<Canvas::Scene> attachedSceneForPanel(
+            const std::shared_ptr<SceneViewportPanel> &panel) {
+            return panel ? panel->getAttachedScene() : nullptr;
+        }
     } // namespace
 
     bool UIMain::m_isDockSpaceDirty = true;
@@ -108,6 +158,7 @@ namespace Bess::UI {
                 panel->render();
             }
         }
+        updateSceneViewportTargets();
 
         drawMenubar();
         drawStatusbar();
@@ -729,6 +780,9 @@ namespace Bess::UI {
             panel->destroy();
         }
 
+        clearSceneViewportTargets();
+        getScenePanels().clear();
+        getPanelMap().clear();
         getPanels().clear();
         getPreInitCallbacks().clear();
 
@@ -791,6 +845,120 @@ namespace Bess::UI {
         return m_scenePanels;
     }
 
+    std::shared_ptr<SceneViewportPanel> UIMain::getHoveredSceneViewportPanel() {
+        return validSceneViewportPanel(hoveredSceneViewportPanelRef());
+    }
+
+    std::shared_ptr<SceneViewportPanel> UIMain::getFocusedSceneViewportPanel() {
+        return validSceneViewportPanel(focusedSceneViewportPanelRef());
+    }
+
+    std::shared_ptr<SceneViewportPanel> UIMain::getActiveSceneViewportPanel() {
+        auto panel = validSceneViewportPanel(activeSceneViewportPanelRef());
+        return panel ? panel : getTargetSceneViewportPanel();
+    }
+
+    std::shared_ptr<SceneViewportPanel> UIMain::getTargetSceneViewportPanel() {
+        if (auto panel =
+                validSceneViewportPanel(targetSceneViewportPanelRef())) {
+            return panel;
+        }
+
+        if (auto panel =
+                validSceneViewportPanel(activeSceneViewportPanelRef())) {
+            targetSceneViewportPanelRef() = panel;
+            return panel;
+        }
+
+        auto panel = firstUsableSceneViewportPanel();
+        if (panel) {
+            targetSceneViewportPanelRef() = panel;
+            activeSceneViewportPanelRef() = panel;
+        }
+        return panel;
+    }
+
+    void UIMain::setTargetSceneViewportPanel(
+        const std::shared_ptr<SceneViewportPanel> &panel) {
+        if (!isUsableSceneViewportPanel(panel)) {
+            return;
+        }
+
+        targetSceneViewportPanelRef() = panel;
+        activeSceneViewportPanelRef() = panel;
+    }
+
+    std::shared_ptr<Canvas::Scene> UIMain::getHoveredViewportScene() {
+        return attachedSceneForPanel(getHoveredSceneViewportPanel());
+    }
+
+    std::shared_ptr<Canvas::Scene> UIMain::getFocusedViewportScene() {
+        return attachedSceneForPanel(getFocusedSceneViewportPanel());
+    }
+
+    std::shared_ptr<Canvas::Scene> UIMain::getActiveViewportScene() {
+        return attachedSceneForPanel(getActiveSceneViewportPanel());
+    }
+
+    std::shared_ptr<Canvas::Scene> UIMain::getTargetViewportScene() {
+        return attachedSceneForPanel(getTargetSceneViewportPanel());
+    }
+
+    void UIMain::updateSceneViewportTargets() {
+        std::shared_ptr<SceneViewportPanel> hoveredPanel = nullptr;
+        std::shared_ptr<SceneViewportPanel> focusedPanel = nullptr;
+
+        for (const auto &panel : getScenePanels()) {
+            if (!isUsableSceneViewportPanel(panel)) {
+                continue;
+            }
+
+            if (!hoveredPanel && panel->isHovered()) {
+                hoveredPanel = panel;
+            }
+            if (!focusedPanel && panel->isFocused()) {
+                focusedPanel = panel;
+            }
+        }
+
+        hoveredSceneViewportPanelRef() = hoveredPanel;
+        focusedSceneViewportPanelRef() = focusedPanel;
+
+        if (focusedPanel) {
+            activeSceneViewportPanelRef() = focusedPanel;
+            targetSceneViewportPanelRef() = focusedPanel;
+            return;
+        }
+
+        if (hoveredPanel) {
+            activeSceneViewportPanelRef() = hoveredPanel;
+            targetSceneViewportPanelRef() = hoveredPanel;
+            return;
+        }
+
+        if (validSceneViewportPanel(targetSceneViewportPanelRef())) {
+            return;
+        }
+
+        auto fallbackPanel =
+            validSceneViewportPanel(activeSceneViewportPanelRef());
+        if (!fallbackPanel) {
+            fallbackPanel = firstUsableSceneViewportPanel();
+        }
+
+        if (fallbackPanel) {
+            activeSceneViewportPanelRef() = fallbackPanel;
+            targetSceneViewportPanelRef() = fallbackPanel;
+        }
+    }
+
+    void UIMain::clearSceneViewportTargets() {
+        hoveredSceneViewportPanelRef().reset();
+        focusedSceneViewportPanelRef().reset();
+        activeSceneViewportPanelRef().reset();
+        targetSceneViewportPanelRef().reset();
+    }
+
     void UIMain::regExtPanelDock(const std::string &panelName,
                                  const Dock &dock) {
         auto &map = getExtPanelsDockMap();
@@ -809,6 +977,7 @@ namespace Bess::UI {
                 panel->update(ts);
             }
         }
+        updateSceneViewportTargets();
     }
 
     UIState &UIMain::getState() {

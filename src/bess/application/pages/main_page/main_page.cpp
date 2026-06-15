@@ -174,7 +174,13 @@ namespace Bess::Pages {
                 UI::UIMain::getPanel<UI::ProjectExplorer>()
                     ->groupSelectedNodes();
             } else if (inpSystem->isKeyPressed(KeyCode::a)) {
-                m_state.getSceneDriver()->getActiveScene()->selectAllEntities();
+                auto targetScene = UI::UIMain::getTargetViewportScene();
+                if (!targetScene) {
+                    targetScene = m_state.getSceneDriver()->getActiveScene();
+                }
+                if (targetScene) {
+                    targetScene->selectAllEntities();
+                }
             } else if (inpSystem->isKeyPressed(KeyCode::c)) {
                 copySelectedEntities();
             } else if (inpSystem->isKeyPressed(KeyCode::v)) {
@@ -187,8 +193,15 @@ namespace Bess::Pages {
             }
         } else {
             if (inpSystem->isKeyPressed(KeyCode::del)) {
-                const auto &sceneState =
-                    m_state.getSceneDriver()->getActiveScene()->getState();
+                auto targetScene = UI::UIMain::getTargetViewportScene();
+                if (!targetScene) {
+                    targetScene = m_state.getSceneDriver()->getActiveScene();
+                }
+                if (!targetScene) {
+                    return;
+                }
+
+                const auto &sceneState = targetScene->getState();
                 const auto selectedIds = sceneState.getSelectedComponents() |
                                          std::ranges::views::keys |
                                          std::ranges::to<std::vector<UUID>>();
@@ -242,9 +255,8 @@ namespace Bess::Pages {
                 auto deleteCommand = std::make_unique<Cmd::MacroCommand>();
                 for (const auto &moduleId : moduleIds) {
                     deleteCommand->addCommand(
-                        std::make_unique<Cmd::DeleteModuleCmd>(
-                            m_state.getSceneDriver()->getActiveScene(),
-                            moduleId));
+                        std::make_unique<Cmd::DeleteModuleCmd>(targetScene,
+                                                               moduleId));
                 }
 
                 if (!regularIds.empty()) {
@@ -252,15 +264,21 @@ namespace Bess::Pages {
                         std::make_unique<Cmd::DeleteCompCmd>(regularIds));
                 }
 
+                deleteCommand->setSceneContext(targetScene);
                 m_state.getCommandSystem().execute(std::move(deleteCommand));
             } else if (inpSystem->isKeyPressed(KeyCode::f)) {
-                m_state.getSceneDriver()
-                    ->getActiveScene()
-                    ->focusCameraOnSelected();
+                if (const auto targetPanel =
+                        UI::UIMain::getTargetSceneViewportPanel()) {
+                    targetPanel->focusCameraOnSelected();
+                }
             } else if (inpSystem->isKeyPressed(KeyCode::tab)) {
-                m_state.getSceneDriver()
-                    ->getActiveScene()
-                    ->toggleSchematicView();
+                auto targetScene = UI::UIMain::getTargetViewportScene();
+                if (!targetScene) {
+                    targetScene = m_state.getSceneDriver()->getActiveScene();
+                }
+                if (targetScene) {
+                    targetScene->toggleSchematicView();
+                }
             } else if (inpSystem->isKeyPressed(KeyCode::escape)) {
                 UI::UIMain::getPanel<UI::ComponentExplorer>()->hide();
             } else if (inpSystem->isKeyPressed(KeyCode::c)) {
@@ -314,14 +332,26 @@ namespace Bess::Pages {
         auto projCtx =
             GAppContext::getInstance().getSubSystem<Bess::ProjectContext>();
         auto ctx = projCtx->getSubSystem<Svc::CopyPaste::Context>();
-        ctx->copy(m_state.getSceneDriver()->getActiveScene());
+        auto targetScene = UI::UIMain::getTargetViewportScene();
+        if (!targetScene) {
+            targetScene = m_state.getSceneDriver()->getActiveScene();
+        }
+        if (targetScene) {
+            ctx->copy(targetScene);
+        }
     }
 
     void MainPage::pasteCopiedEntities() {
         auto projCtx =
             GAppContext::getInstance().getSubSystem<Bess::ProjectContext>();
         auto ctx = projCtx->getSubSystem<Svc::CopyPaste::Context>();
-        ctx->paste(m_state.getSceneDriver()->getActiveScene(), {0.f, 0.f});
+        auto targetScene = UI::UIMain::getTargetViewportScene();
+        if (!targetScene) {
+            targetScene = m_state.getSceneDriver()->getActiveScene();
+        }
+        if (targetScene) {
+            ctx->paste(targetScene, {0.f, 0.f});
+        }
     }
 
 } // namespace Bess::Pages

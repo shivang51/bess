@@ -7,6 +7,9 @@ namespace Bess::Canvas {
         const std::shared_ptr<Camera> &camera,
         const ViewportTransform &viewportTransform) {
         std::vector<SceneEvent> events;
+        if (!camera) {
+            return events;
+        }
 
         const bool isCtrlPressed = inputSystem.isCtrlPressed();
         const bool isShiftPressed = inputSystem.isShiftPressed();

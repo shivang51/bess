@@ -61,6 +61,22 @@ namespace Bess::UI {
         static std::vector<std::shared_ptr<SceneViewportPanel>> &
         getScenePanels();
 
+        static std::shared_ptr<SceneViewportPanel>
+        getHoveredSceneViewportPanel();
+        static std::shared_ptr<SceneViewportPanel>
+        getFocusedSceneViewportPanel();
+        static std::shared_ptr<SceneViewportPanel>
+        getActiveSceneViewportPanel();
+        static std::shared_ptr<SceneViewportPanel>
+        getTargetSceneViewportPanel();
+        static void setTargetSceneViewportPanel(
+            const std::shared_ptr<SceneViewportPanel> &panel);
+
+        static std::shared_ptr<Canvas::Scene> getHoveredViewportScene();
+        static std::shared_ptr<Canvas::Scene> getFocusedViewportScene();
+        static std::shared_ptr<Canvas::Scene> getActiveViewportScene();
+        static std::shared_ptr<Canvas::Scene> getTargetViewportScene();
+
         static void regExtPanelDock(const std::string &panelName,
                                     const Dock &dock);
 
@@ -70,6 +86,8 @@ namespace Bess::UI {
         static void drawStatusbar();
         static void drawVerilogImportWizard();
         static void resetDockspace();
+        static void updateSceneViewportTargets();
+        static void clearSceneViewportTargets();
         static void onOpenProject();
         static void onSaveProject();
 

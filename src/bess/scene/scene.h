@@ -40,6 +40,7 @@ namespace Bess::Canvas {
         void update(TimeMs ts, bool isFocused);
         void viewportUpdate(TimeMs ts,
                             bool isFocused,
+                            const std::shared_ptr<Camera> &camera,
                             const ViewportTransform &viewportTransform,
                             SceneInputState &inputState,
                             const PickingId &pickingId);
@@ -74,27 +75,32 @@ namespace Bess::Canvas {
         void toggleSchematicView();
 
         void selectAllEntities();
-        void focusCameraOnSelected();
-        glm::vec2 toScenePos(const glm::vec2 &mousePos) const;
+        void focusCameraOnSelected(const std::shared_ptr<Camera> &camera);
+        glm::vec2 toScenePos(const glm::vec2 &mousePos,
+                             const std::shared_ptr<Camera> &camera) const;
 
         float getNextZCoord();
 
         bool dispatchEvent(SceneEvent &evt,
+                           const std::shared_ptr<Camera> &camera,
                            const ViewportTransform &viewportTransform,
                            const PickingId &pickingId,
                            SceneInputState &inputState);
 
         void onLeftMouse(bool isPressed,
+                         const std::shared_ptr<Camera> &camera,
                          const ViewportTransform &viewportTransform,
                          const PickingId &pickingId,
                          SceneInputState &inputState);
 
         void onMiddleMouse(bool isPressed,
+                           const std::shared_ptr<Camera> &camera,
                            const ViewportTransform &viewportTransform,
                            const PickingId &pickingId,
                            SceneInputState &inputState);
 
         void onMouseMove(const glm::vec2 &pos,
+                         const std::shared_ptr<Camera> &camera,
                          const ViewportTransform &viewportTransform,
                          const PickingId &pickingId,
                          SceneInputState &inputState);
