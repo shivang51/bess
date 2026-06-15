@@ -13,6 +13,7 @@
 #include "scene_ser_reg.h"
 #include "services/plugin_service/plugin_service.h"
 #include "simulation_engine.h"
+#include "ui_main/ui_main.h"
 #include "widgets/m_widgets.h"
 
 namespace Bess::UI {
@@ -32,11 +33,13 @@ namespace Bess::UI {
         const auto &sceneState = sceneDriver->getActiveScene()->getState();
 
         if (!sceneDriver->getIsPaused()) {
-            // const auto &hoverId =
-            //     sceneDriver->getActiveScene()->getHoveredEntity();
-            // ImGui::Text("Hovered  Runtime Id: %u | Info: %u",
-            //             hoverId.runtimeId,
-            //             hoverId.info);
+            const auto &hoverVp = UI::UIMain::getHoveredSceneViewportPanel();
+
+            const auto &pickingId =
+                hoverVp ? hoverVp->getPickingId() : PickingId::invalid();
+            ImGui::Text("Hovered  Runtime Id: %u | Info: %u",
+                        pickingId.runtimeId,
+                        pickingId.info);
         }
 
         if (ImGui::BeginTabBar("MyTabBar")) {

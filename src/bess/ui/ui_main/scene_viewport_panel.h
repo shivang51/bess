@@ -45,6 +45,7 @@ namespace Bess::UI {
                               onSceneAttached);
 
         MAKE_GETTER(size_t, ViewportId, m_viewportId)
+        MAKE_GETTER(PickingId, PickingId, m_pickingId)
 
       private:
         void updateScene(TimeMs ts);
