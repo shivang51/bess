@@ -242,10 +242,11 @@ namespace Bess::SimEngine::Drivers {
         std::shared_ptr<TComp> getComponent(const UUID &id) const {
             std::lock_guard lk(m_compMapMutex);
 
-            if (!m_components.contains(id)) {
+            auto it = m_components.find(id);
+            if (it == m_components.end()) {
                 return nullptr;
             }
-            return std::dynamic_pointer_cast<TComp>(m_components.at(id));
+            return std::dynamic_pointer_cast<TComp>(it->second);
         }
 
         void init();
