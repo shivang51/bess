@@ -462,4 +462,9 @@ namespace Bess::UI {
 
         m_attachedScene->focusCameraOnSelected(m_camera);
     }
+
+    std::shared_ptr<Camera> SceneViewportPanel::getCamera() const {
+        return m_camera;
+    }
+
 } // namespace Bess::UI

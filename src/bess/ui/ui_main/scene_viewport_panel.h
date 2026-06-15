@@ -37,6 +37,8 @@ namespace Bess::UI {
         isAttachedToScene(const std::shared_ptr<Canvas::Scene> &scene) const;
         void focusCameraOnSelected();
 
+        std::shared_ptr<Camera> getCamera() const;
+
         MAKE_GETTER_SETTER_WC(std::shared_ptr<Canvas::Scene>,
                               AttachedScene,
                               m_attachedScene,

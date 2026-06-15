@@ -15,6 +15,7 @@
 #include "sim_driver/sim_driver.h"
 #include "ui/icons/CodIcons.h"
 #include "ui/widgets/m_widgets.h"
+#include "ui_main/ui_main.h"
 #include <utility>
 
 namespace Bess::UI {
@@ -109,11 +110,10 @@ namespace Bess::UI {
                                 GAppContext::getInstance()
                                     .getSubSystem<Bess::ProjectContext>()
                                     ->getSubSystem<SceneDriver>();
-                            // FIXME: Camera Pos
-                            // const auto &pos =
-                            //     sceneDriver->getActiveScene()->getCameraPos();
+                            auto cam = UI::UIMain::getTargetSceneViewportPanel()
+                                           ->getCamera();
 
-                            createComponent(comp, {0.f, 0.f});
+                            createComponent(comp, cam->getPos());
                             hide();
                         }
 
@@ -138,13 +138,9 @@ namespace Bess::UI {
                     continue;
 
                 if (Widgets::ButtonWithPopup(comp.second, "", false)) {
-                    auto sceneDriver = GAppContext::getInstance()
-                                           .getSubSystem<Bess::ProjectContext>()
-                                           ->getSubSystem<SceneDriver>();
-                    // FIXME: Camera Pos
-                    // const auto &pos =
-                    //     sceneDriver->getActiveScene()->getCameraPos();
-                    createComponent(comp.first, {0.f, 0.f});
+                    auto cam =
+                        UI::UIMain::getTargetSceneViewportPanel()->getCamera();
+                    createComponent(comp.first, cam->getPos());
                     hide();
                 }
             }

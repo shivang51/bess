@@ -1,5 +1,6 @@
 #include "scene_viewport_panel.h"
 #include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "common/types.h"
 #include "pages/main_page/main_page.h"
 #include "scene.h"
@@ -213,6 +214,13 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::renderAttachedScene() {
+        if (!m_attachedScene) {
+            setAttachedScene(GAppContext::getInstance()
+                                 .getSubSystem<Bess::ProjectContext>()
+                                 ->getSubSystem<SceneDriver>()
+                                 ->getActiveScene());
+        }
+
         if (!m_attachedScene || !m_sceneTexture || !m_pickingTexture ||
             !hasRenderableViewport()) {
             return;

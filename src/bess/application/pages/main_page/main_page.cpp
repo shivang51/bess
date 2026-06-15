@@ -350,7 +350,7 @@ namespace Bess::Pages {
             targetScene = m_state.getSceneDriver()->getActiveScene();
         }
         if (targetScene) {
-            ctx->paste(targetScene, {0.f, 0.f});
+            ctx->paste(targetScene, targetScene->getState().getMousePos());
         }
     }
 

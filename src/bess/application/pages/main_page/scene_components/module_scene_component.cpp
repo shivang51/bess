@@ -53,7 +53,8 @@ namespace Bess::Canvas {
             Svc::CopyPaste::Context cpCtx;
             cpCtx.onInit();
             cpCtx.copy(ogScene);
-            ogToCloneId = cpCtx.paste(newScene, {0.f, 0.f}, false);
+            ogToCloneId = cpCtx.paste(
+                newScene, newScene->getState().getMousePos(), false);
             cpCtx.onDestroy();
             ogScene->getState().clearSelectedComponents();
         }
