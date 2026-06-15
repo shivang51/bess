@@ -167,6 +167,8 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
         discard;
     }
 
+		let isDark = in.data3.y > 0.5;
+
 		let borderSizeIn = vec4f(in.data0.z);
     let borderSize = clamp(borderSizeIn, vec4f(0.0),
                            vec4f(halfSize.y, halfSize.x, halfSize.y, halfSize.x));
@@ -269,8 +271,10 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
                               m_style.borderSize.y},
                     m_style.headerColor,
                     borderColor,
-                    glm::vec4(
-                        headerHeight / m_transform.scale.y, 0.f, 0.f, 0.f),
+                    glm::vec4(headerHeight / m_transform.scale.y,
+                              (int)ViewportTheme::isDark,
+                              0.f,
+                              0.f),
                 },
         });
 

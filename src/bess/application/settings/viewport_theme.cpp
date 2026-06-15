@@ -2,6 +2,7 @@
 #include "imgui.h"
 
 namespace Bess {
+    bool ViewportTheme::isDark = true;
     SceneColors ViewportTheme::colors;
     SchematicViewColors ViewportTheme::schematicViewColors;
     SceneWidgetsColors ViewportTheme::sceneWidgetsColors;
@@ -14,63 +15,113 @@ namespace Bess {
 
     } // namespace
 
-    void ViewportTheme::updateColorsFromImGuiStyle() {
+    void ViewportTheme::updateColorsFromImGuiStyle(bool isDark) {
+        ViewportTheme::isDark = isDark;
         ImGuiStyle &style = ImGui::GetStyle();
         const ImVec4 *imguiColors = style.Colors;
 
         const ImVec4 windowBg = imguiColors[ImGuiCol_WindowBg];
-        colors.background = Color(
-            windowBg.x * 0.85f, windowBg.y * 0.85f, windowBg.z * 0.85f, 1.0f);
-
-        const ImVec4 frameBg = imguiColors[ImGuiCol_FrameBg];
-        colors.componentBG = Color(frameBg.x, frameBg.y, frameBg.z, 0.95f);
-
-        const ImVec4 borderCol = imguiColors[ImGuiCol_Border];
-        colors.componentBorder =
-            Color(borderCol.x, borderCol.y, borderCol.z, 0.8f);
-
-        const ImVec4 headerCol = imguiColors[ImGuiCol_Header];
-        colors.compHeader = Color(headerCol.x, headerCol.y, headerCol.z, 1.0f);
-
         const ImVec4 textCol = imguiColors[ImGuiCol_Text];
-        colors.text = Color(textCol.x, textCol.y, textCol.z, textCol.w);
+        const ImVec4 borderCol = imguiColors[ImGuiCol_Border];
+        const ImVec4 frameBg = imguiColors[ImGuiCol_FrameBg];
+        const ImVec4 headerCol = imguiColors[ImGuiCol_Header];
+        const ImVec4 sliderGrabActive = imguiColors[ImGuiCol_SliderGrabActive];
 
-        colors.stateHigh = Color(0.35f, 0.85f, 0.35f, 1.00f);
-        colors.stateLow = Color(0.15f, 0.25f, 0.15f, 1.00f);
-
-        colors.wire = colors.componentBorder;
-        colors.ghostWire = Color(textCol.x, textCol.y, textCol.z, 1.f);
-
-        colors.selectedWire = Color(1.0f, 0.60f, 0.0f, 1.0f);
-        colors.selectedComp = colors.selectedWire;
-
-        colors.clockConnectionHigh = Color(0.30f, 0.70f, 1.0f, 1.0f);
-        colors.clockConnectionLow = Color(0.10f, 0.20f, 0.4f, 1.0f);
-
-        colors.selectionBoxBorder = colors.selectedWire;
-        colors.selectionBoxFill =
-            Color(1.0f, 0.60f, 0.0f, 0.08f); // Very faint orange tint
-
-        {
-            const Color base = colors.background;
-            // subtle additive grid (uses very faint lines)
-            float gridAlpha = 0.2f;
-
-            colors.gridMinorColor = Color(
-                base.r + 0.04f, base.g + 0.04f, base.b + 0.04f, gridAlpha);
-            colors.gridMajorColor = Color(base.r + 0.08f,
-                                          base.g + 0.08f,
-                                          base.b + 0.08f,
-                                          gridAlpha * 2.0f);
-
-            // axis colors standard RG
-            colors.gridAxisXColor = Color(0.8f, 0.3f, 0.3f, 0.1f); // Muted Red
-            colors.gridAxisYColor =
-                Color(0.3f, 0.8f, 0.3f, 0.1f); // Muted Green
+        // 1. Core Viewport Canvas Background
+        if (isDark) {
+            colors.background = Color(windowBg.x * 0.82f,
+                                      windowBg.y * 0.82f,
+                                      windowBg.z * 0.85f,
+                                      1.0f);
+        } else {
+            colors.background = Color(windowBg.x * 0.97f,
+                                      windowBg.y * 0.97f,
+                                      windowBg.z * 0.95f,
+                                      1.0f);
         }
 
-        colors.moduleColor = Color(0.49, 0.81, 0.99f, 1.f);
+        // 2. Structural Node/Component Properties
+        colors.componentBG = Color(frameBg.x, frameBg.y, frameBg.z, 0.95f);
+        colors.componentBorder =
+            Color(borderCol.x, borderCol.y, borderCol.z, 0.8f);
+        colors.compHeader = Color(headerCol.x, headerCol.y, headerCol.z, 1.0f);
+        colors.text = Color(textCol.x, textCol.y, textCol.z, textCol.w);
 
+        // 3. Responsive Logic Signals (Green)
+        if (isDark) {
+            colors.stateHigh =
+                Color(0.30f, 0.80f, 0.40f, 1.00f); // Bright electric emerald
+            colors.stateLow =
+                Color(0.12f, 0.22f, 0.14f, 1.00f); // Deep forest shadow
+        } else {
+            colors.stateHigh =
+                Color(0.08f, 0.55f, 0.20f, 1.00f); // Rich legible jade green
+            colors.stateLow =
+                Color(0.85f, 0.94f, 0.87f, 1.00f); // Soft, tinted sage pastel
+        }
+
+        // 4. Responsive Clock Connections (Blue)
+        if (isDark) {
+            colors.clockConnectionHigh =
+                Color(0.25f, 0.65f, 1.00f, 1.00f); // Electric sky blue
+            colors.clockConnectionLow =
+                Color(0.10f, 0.18f, 0.32f, 1.00f); // Midnight blue tint
+        } else {
+            colors.clockConnectionHigh =
+                Color(0.00f, 0.45f, 0.85f, 1.00f); // Strong deep corporate blue
+            colors.clockConnectionLow =
+                Color(0.88f, 0.93f, 0.98f, 1.00f); // Airy powder blue sheet
+        }
+
+        // 5. Wires & Interactive Selection (Vibrant Orange Accent)
+        colors.wire = colors.componentBorder;
+        colors.ghostWire = Color(textCol.x, textCol.y, textCol.z, 0.40f);
+
+        if (isDark) {
+            colors.selectedWire =
+                Color(1.00f, 0.55f, 0.05f, 1.0f); // Neon glowing orange
+            colors.selectionBoxFill = Color(1.00f, 0.55f, 0.05f, 0.06f);
+        } else {
+            colors.selectedWire = Color(
+                0.90f, 0.42f, 0.00f, 1.0f); // Deeper burnt amber for visibility
+            colors.selectionBoxFill = Color(0.90f, 0.42f, 0.00f, 0.08f);
+        }
+        colors.selectedComp = colors.selectedWire;
+        colors.selectionBoxBorder = colors.selectedWire;
+
+        // 6. Responsive Schematic Grid Generation
+        {
+            const Color base = colors.background;
+            if (isDark) {
+                colors.gridMinorColor =
+                    Color(1.0f, 1.0f, 1.0f, 0.015f); // 4% white overlay
+                colors.gridMajorColor =
+                    Color(1.0f, 1.0f, 1.0f, 0.02f); // 9% white overlay
+
+                // FIXED: Restored your exact, beautiful dark theme layout
+                // constraints
+                colors.gridAxisXColor =
+                    Color(0.80f, 0.30f, 0.30f, 0.10f); // Muted Red
+                colors.gridAxisYColor =
+                    Color(0.30f, 0.80f, 0.30f, 0.10f); // Muted Green
+            } else {
+                colors.gridMinorColor = Color(
+                    base.r * 0.94f, base.g * 0.94f, base.b * 0.92f, 0.60f);
+                colors.gridMajorColor = Color(
+                    base.r * 0.86f, base.g * 0.86f, base.b * 0.83f, 0.85f);
+
+                // Balanced light theme axis profile so they remain legible but
+                // clean
+                colors.gridAxisXColor = Color(0.75f, 0.25f, 0.25f, 0.15f);
+                colors.gridAxisYColor = Color(0.25f, 0.70f, 0.25f, 0.15f);
+            }
+        }
+
+        // 7. Base Component Module Fill
+        colors.moduleColor = isDark ? Color(0.38f, 0.72f, 0.95f, 1.0f)
+                                    : Color(0.05f, 0.50f, 0.80f, 1.0f);
+
+        // 8. Scene Widgets Sync Mapping
         const Color frame = toVec4(imguiColors[ImGuiCol_FrameBg], 0.96f);
         const Color frameHover =
             toVec4(imguiColors[ImGuiCol_FrameBgHovered], 0.98f);
@@ -85,18 +136,16 @@ namespace Bess {
         const Color headerActive =
             toVec4(imguiColors[ImGuiCol_HeaderActive], 1.0f);
         const Color sliderGrab = toVec4(imguiColors[ImGuiCol_SliderGrab], 1.0f);
-        const Color sliderGrabActive =
-            toVec4(imguiColors[ImGuiCol_SliderGrabActive], 1.0f);
 
         sceneWidgetsColors.surface = frame;
         sceneWidgetsColors.surfaceHover = frameHover;
         sceneWidgetsColors.surfaceActive = frameActive;
         sceneWidgetsColors.popupSurface = popup;
         sceneWidgetsColors.border = border;
-        sceneWidgetsColors.borderFocus = sliderGrabActive;
+        sceneWidgetsColors.borderFocus = toVec4(sliderGrabActive, 1.0f);
         sceneWidgetsColors.text = text;
         sceneWidgetsColors.textMuted = textMuted;
-        sceneWidgetsColors.accent = sliderGrabActive;
+        sceneWidgetsColors.accent = toVec4(sliderGrabActive, 1.0f);
         sceneWidgetsColors.accentStrong = headerActive;
         sceneWidgetsColors.itemHover = headerHovered;
         sceneWidgetsColors.track = frame;

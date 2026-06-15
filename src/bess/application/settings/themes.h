@@ -12,8 +12,8 @@ namespace Bess::Config {
 
         void applyTheme(const std::string &theme);
         void addTheme(const std::string &name,
-                      const std::function<void()> &callback);
-        const std::unordered_map<std::string, std::function<void()>> &
+                      const std::function<bool()> &callback);
+        const std::unordered_map<std::string, std::function<bool()>> &
         getThemes() const;
 
       private:
@@ -31,6 +31,6 @@ namespace Bess::Config {
         static void setGeometry();
 
         // theme name and a void callback
-        std::unordered_map<std::string, std::function<void()>> m_themes;
+        std::unordered_map<std::string, std::function<bool()>> m_themes;
     };
 } // namespace Bess::Config

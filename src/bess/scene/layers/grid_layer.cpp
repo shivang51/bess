@@ -67,7 +67,7 @@ namespace Bess::Canvas {
                       camera_offset;
 
       var small_grid = viewport_grid_line(world_pos, small_spacing, 1.0, zoom);
-      let big_grid = viewport_grid_line(world_pos, big_spacing, 2.0, zoom);
+      let big_grid = viewport_grid_line(world_pos, big_spacing, 1.5, zoom);
 
       let small_fade = clamp((zoom - 0.5) * 2.0, 0.0, 1.0);
       small_grid *= small_fade;

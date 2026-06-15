@@ -84,8 +84,10 @@ namespace Bess {
         static SchematicViewColors schematicViewColors;
         static SceneWidgetsColors sceneWidgetsColors;
         static NodeHeaderColors headerColors;
-        static void updateColorsFromImGuiStyle();
+        static void updateColorsFromImGuiStyle(bool isDark);
 
         static Color getCompHeaderColor(const std::string &group);
+
+        static bool isDark;
     };
 } // namespace Bess

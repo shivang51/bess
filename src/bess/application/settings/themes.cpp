@@ -8,18 +8,41 @@
 
 namespace Bess::Config {
     Themes::Themes() {
-        m_themes["Dark"] = [this]() { setDarkThemeColors(); };
-        m_themes["Modern Dark"] = [this]() { setModernDarkColors(); };
-        m_themes["Catpuccin Mocha"] = [this]() { setCatpuccinMochaColors(); };
-        m_themes["Bess Dark"] = [this]() { setBessDarkColors(); };
-        m_themes["Bess Minimal Dark"] = [this]() { setBessMinimalColors(); };
-        m_themes["Fluent UI"] = [this]() { setFluentUIColors(); };
-        m_themes["Bess Light"] = [this]() { setBessLightColors(); };
+        m_themes["Dark"] = [this]() {
+            setDarkThemeColors();
+            return true;
+        };
+        m_themes["Modern Dark"] = [this]() {
+            setModernDarkColors();
+            return true;
+        };
+        m_themes["Catpuccin Mocha"] = [this]() {
+            setCatpuccinMochaColors();
+            return true;
+        };
+        m_themes["Bess Dark"] = [this]() {
+            setBessDarkColors();
+            return true;
+        };
+        m_themes["Bess Minimal Dark"] = [this]() {
+            setBessMinimalColors();
+            return true;
+        };
+        m_themes["Fluent UI"] = [this]() {
+            setFluentUIColors();
+            return true;
+        };
+        m_themes["Bess Light"] = [this]() {
+            setBessLightColors();
+            return false;
+        };
         m_themes["Material"] = [this]() {
             setMaterialColors(Core::Style::Brightness::dark);
+            return true;
         };
         m_themes["Material Light"] = [this]() {
             setMaterialColors(Core::Style::Brightness::light);
+            return false;
         };
     }
 
@@ -27,16 +50,16 @@ namespace Bess::Config {
         if (!m_themes.contains(theme))
             return;
 
-        m_themes[theme]();
-        ViewportTheme::updateColorsFromImGuiStyle();
+        const bool isDark = m_themes[theme]();
+        ViewportTheme::updateColorsFromImGuiStyle(isDark);
     }
 
     void Themes::addTheme(const std::string &name,
-                          const std::function<void()> &callback) {
+                          const std::function<bool()> &callback) {
         m_themes[name] = callback;
     }
 
-    const std::unordered_map<std::string, std::function<void()>> &
+    const std::unordered_map<std::string, std::function<bool()>> &
     Themes::getThemes() const {
         return m_themes;
     }
