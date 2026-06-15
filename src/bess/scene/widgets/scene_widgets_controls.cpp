@@ -24,10 +24,11 @@ namespace Bess::Canvas::SceneWidgets {
 
             auto trackColor = isHigh ? Core::Renderer::Color(palette.accent)
                                      : Core::Renderer::Color(palette.track);
-            if (Detail::isHovering(context.sceneState, id)) {
+            if (Detail::isHovering(
+                    context.sceneState, id, context.viewportId)) {
                 trackColor = Core::Renderer::Color(trackColor) * 1.15f;
             }
-            if (Detail::isPressed(context.sceneState, id)) {
+            if (Detail::isPressed(context.sceneState, id, context.viewportId)) {
                 trackColor = Core::Renderer::Color(trackColor) * 0.85f;
             }
 
@@ -55,10 +56,12 @@ namespace Bess::Canvas::SceneWidgets {
                       const glm::vec3 &buttonPos,
                       const glm::vec2 &buttonSize,
                       SceneDrawContext &context) {
-        Detail::registerWidget(
-            context.sceneState, id, Detail::WidgetState::Type::toggleButton);
+        Detail::registerWidget(context.sceneState,
+                               id,
+                               Detail::WidgetState::Type::toggleButton,
+                               context.viewportId);
         drawToggleButton(id, value, buttonPos, buttonSize, context);
-        return Detail::consumeClick(context.sceneState, id);
+        return Detail::consumeClick(context.sceneState, id, context.viewportId);
     }
 
     bool toggleButton(const PickingId &id,
@@ -83,17 +86,19 @@ namespace Bess::Canvas::SceneWidgets {
                 const glm::vec3 &buttonPos,
                 SceneDrawContext &context,
                 const ButtonOptions &options) {
-        Detail::registerWidget(
-            context.sceneState, id, Detail::WidgetState::Type::button);
+        Detail::registerWidget(context.sceneState,
+                               id,
+                               Detail::WidgetState::Type::button,
+                               context.viewportId);
 
         const auto &palette = ViewportTheme::sceneWidgetsColors;
 
         auto bgColor = Core::Renderer::Color(palette.surface);
-        if (Detail::isHovering(context.sceneState, id)) {
+        if (Detail::isHovering(context.sceneState, id, context.viewportId)) {
             bgColor = Detail::colorOr(options.hoverBackgroundColor,
                                       palette.surfaceHover);
         }
-        if (Detail::isPressed(context.sceneState, id)) {
+        if (Detail::isPressed(context.sceneState, id, context.viewportId)) {
             bgColor = Detail::colorOr(options.pressedBackgroundColor,
                                       palette.surfaceActive);
         }
@@ -143,6 +148,6 @@ namespace Bess::Canvas::SceneWidgets {
         SceneDraw::drawText(
             context, label, textPos, (size_t)options.textSize, textColor, id);
 
-        return Detail::consumeClick(context.sceneState, id);
+        return Detail::consumeClick(context.sceneState, id, context.viewportId);
     }
 } // namespace Bess::Canvas::SceneWidgets

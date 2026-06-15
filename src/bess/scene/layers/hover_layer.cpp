@@ -1,5 +1,4 @@
 #include "hover_layer.h"
-#include "common/logger.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/widgets/scene_widgets.h"
 
@@ -24,7 +23,8 @@ namespace Bess::Canvas {
         }
 
         const auto &data = evt.data.mouseMove;
-        if (SceneWidgets::contains(ctx.sceneState, evt.pickingId)) {
+        if (SceneWidgets::contains(
+                ctx.sceneState, evt.pickingId, ctx.viewportId)) {
             clearHover(*ctx.sceneState, data.pos);
             m_pickingId = PickingId::invalid();
             return EventResult::Handled;

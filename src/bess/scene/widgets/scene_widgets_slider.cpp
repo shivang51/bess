@@ -55,10 +55,10 @@ namespace Bess::Canvas::SceneWidgets {
             std::array<char, 64> buffer{};
             std::to_chars_result result{};
             if (precision <= 0) {
-                result = std::to_chars(buffer.data(),
-                                       buffer.data() + buffer.size(),
-                                       static_cast<long long>(
-                                           std::llround(value)));
+                result =
+                    std::to_chars(buffer.data(),
+                                  buffer.data() + buffer.size(),
+                                  static_cast<long long>(std::llround(value)));
             } else {
                 result = std::to_chars(buffer.data(),
                                        buffer.data() + buffer.size(),
@@ -276,8 +276,10 @@ namespace Bess::Canvas::SceneWidgets {
         *value = snappedValue(
             sanitizeValue(*value, rangeMin), rangeMin, rangeMax, options.step);
 
-        auto widget = Detail::registerWidget(
-            context.sceneState, id, Detail::WidgetState::Type::slider);
+        auto widget = Detail::registerWidget(context.sceneState,
+                                             id,
+                                             Detail::WidgetState::Type::slider,
+                                             context.viewportId);
         if (widget == nullptr) {
             return result;
         }

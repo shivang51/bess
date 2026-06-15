@@ -44,6 +44,8 @@ namespace Bess::UI {
                               m_attachedScene,
                               onSceneAttached);
 
+        MAKE_GETTER(size_t, ViewportId, m_viewportId)
+
       private:
         void updateScene(TimeMs ts);
 
@@ -109,5 +111,6 @@ namespace Bess::UI {
         std::vector<const Canvas::SceneState *> m_rootToSceneStatePtrs;
         uint32_t m_gridShader = 0;
         PendingPickingReadback m_pendingSelectionReadback;
+        size_t m_viewportId = 0;
     };
 } // namespace Bess::UI

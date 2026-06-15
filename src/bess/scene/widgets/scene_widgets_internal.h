@@ -74,26 +74,40 @@ namespace Bess::Canvas::SceneWidgets::Detail {
         uint64_t focusedWidgetId = kInvalidWidgetId;
     };
 
-    std::unordered_map<uint64_t, SceneWidgetsState> &sceneStates();
-    uint64_t sceneKey(const SceneState *sceneState);
-    SceneWidgetsState *findSceneState(const SceneState *sceneState);
-    SceneWidgetsState &getSceneState(SceneState *sceneState);
+    std::unordered_map<uint64_t, SceneWidgetsState> &sceneWidgetsState();
+    uint64_t sceneKey(const SceneState *sceneState, size_t viewportId);
+    SceneWidgetsState *findSceneWidgetsState(const SceneState *sceneState,
+                                             size_t viewportId);
+    SceneWidgetsState &getWidgetsState(SceneState *sceneState,
+                                       size_t viewportId);
 
     WidgetState *getWidgetState(SceneWidgetsState &widgetsState,
                                 const PickingId &id);
+
     const WidgetState *getWidgetState(const SceneWidgetsState &widgetsState,
                                       const PickingId &id);
+
     WidgetState *getWidgetState(const SceneState *sceneState,
-                                const PickingId &id);
+                                const PickingId &id,
+                                size_t viewportId);
 
     WidgetState *registerWidget(SceneState *sceneState,
                                 const PickingId &id,
-                                WidgetState::Type type);
-    bool consumeClick(SceneState *sceneState, const PickingId &id);
+                                WidgetState::Type type,
+                                size_t viewportId);
+    bool consumeClick(SceneState *sceneState,
+                      const PickingId &id,
+                      size_t viewportId);
 
-    bool isHovering(const SceneState *sceneState, const PickingId &id);
-    bool isPressed(const SceneState *sceneState, const PickingId &id);
-    bool isFocused(const SceneState *sceneState, const PickingId &id);
+    bool isHovering(const SceneState *sceneState,
+                    const PickingId &id,
+                    size_t viewportId);
+    bool isPressed(const SceneState *sceneState,
+                   const PickingId &id,
+                   size_t viewportId);
+    bool isFocused(const SceneState *sceneState,
+                   const PickingId &id,
+                   size_t viewportId);
 
     void clearFocusState(SceneWidgetsState &widgetsState);
     void focusWidget(SceneWidgetsState &widgetsState, const PickingId &id);

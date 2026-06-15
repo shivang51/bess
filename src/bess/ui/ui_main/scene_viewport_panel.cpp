@@ -24,6 +24,8 @@ namespace Bess::UI {
     SceneViewportPanel::SceneViewportPanel(const std::string &viewportName)
         : Panel(viewportName),
           m_viewportName(viewportName) {
+        static size_t viewportCounter = 0;
+        m_viewportId = viewportCounter++;
     }
 
     void SceneViewportPanel::init() {
@@ -78,7 +80,8 @@ namespace Bess::UI {
                                             m_camera,
                                             {m_viewportPos, m_viewportSize},
                                             m_inputState,
-                                            m_pickingId);
+                                            m_pickingId,
+                                            m_viewportId);
             updateScene(ts);
         }
 

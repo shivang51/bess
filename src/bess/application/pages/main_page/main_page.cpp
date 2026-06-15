@@ -127,10 +127,11 @@ namespace Bess::Pages {
     void MainPage::update(TimeMs ts) {
         m_state.update();
 
-        const auto activeScene = m_state.getSceneDriver()->getActiveScene();
-        const bool sceneWantsKeyboard =
-            activeScene &&
-            Canvas::SceneWidgets::wantsKeyboard(&activeScene->getState());
+        const auto activePanel = UI::UIMain::getActiveSceneViewportPanel();
+
+        const bool sceneWantsKeyboard = Canvas::SceneWidgets::wantsKeyboard(
+            activePanel->getViewportId(),
+            &activePanel->getAttachedScene()->getState());
         const bool imguiWantsKeyboard =
             ImGui::GetIO().WantTextInput || sceneWantsKeyboard;
 

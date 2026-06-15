@@ -94,8 +94,11 @@ namespace Bess::Canvas::SceneWidgets {
             return result;
         }
 
-        auto widget = Detail::registerWidget(
-            context.sceneState, id, Detail::WidgetState::Type::textInput);
+        auto widget =
+            Detail::registerWidget(context.sceneState,
+                                   id,
+                                   Detail::WidgetState::Type::textInput,
+                                   context.viewportId);
         if (widget == nullptr) {
             return result;
         }
@@ -146,12 +149,14 @@ namespace Bess::Canvas::SceneWidgets {
         }
 
         const auto &palette = ViewportTheme::sceneWidgetsColors;
-        const bool focused = Detail::isFocused(context.sceneState, id);
+        const bool focused =
+            Detail::isFocused(context.sceneState, id, context.viewportId);
         auto bgColor =
             focused ? Detail::colorOr(options.focusedBackgroundColor,
                                       palette.surfaceActive)
                     : Detail::colorOr(options.backgroundColor, palette.surface);
-        if (!focused && Detail::isHovering(context.sceneState, id)) {
+        if (!focused &&
+            Detail::isHovering(context.sceneState, id, context.viewportId)) {
             bgColor = Detail::colorOr(options.hoverBackgroundColor,
                                       palette.surfaceHover);
         }

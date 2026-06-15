@@ -3,7 +3,6 @@
 #include "scene_widgets_internal.h"
 #include "settings/viewport_theme.h"
 #include <algorithm>
-#include <filesystem>
 #include <span>
 #include <string_view>
 
@@ -132,7 +131,8 @@ namespace Bess::Canvas::SceneWidgets {
                                         Detail::WidgetState &widget,
                                         int *selectedIndex,
                                         size_t itemCount,
-                                        bool &changed) {
+                                        bool &changed,
+                                        size_t viewportId) {
             if (!widget.dropdownOpen || itemCount == 0) {
                 return;
             }
@@ -146,8 +146,9 @@ namespace Bess::Canvas::SceneWidgets {
                 const auto optionIndex = start + row;
                 const auto optionId =
                     Detail::makeChildId(id, static_cast<uint32_t>(optionIndex));
-                if (Detail::getWidgetState(sceneState, optionId) != nullptr &&
-                    Detail::consumeClick(sceneState, optionId)) {
+                if (Detail::getWidgetState(sceneState, optionId, viewportId) !=
+                        nullptr &&
+                    Detail::consumeClick(sceneState, optionId, viewportId)) {
                     changed |= applySelection(widget,
                                               selectedIndex,
                                               static_cast<int>(optionIndex),
@@ -252,7 +253,8 @@ namespace Bess::Canvas::SceneWidgets {
                 auto optionState = Detail::registerWidget(
                     context.sceneState,
                     optionId,
-                    Detail::WidgetState::Type::dropdownOption);
+                    Detail::WidgetState::Type::dropdownOption,
+                    context.viewportId);
                 if (optionState == nullptr) {
                     continue;
                 }
@@ -313,9 +315,13 @@ namespace Bess::Canvas::SceneWidgets {
             return result;
         }
 
-        auto widgetsState = Detail::findSceneState(context.sceneState);
-        auto widget = Detail::registerWidget(
-            context.sceneState, id, Detail::WidgetState::Type::dropdown);
+        auto widgetsState = Detail::findSceneWidgetsState(context.sceneState,
+                                                          context.viewportId);
+        auto widget =
+            Detail::registerWidget(context.sceneState,
+                                   id,
+                                   Detail::WidgetState::Type::dropdown,
+                                   context.viewportId);
         if (widgetsState == nullptr || widget == nullptr) {
             return result;
         }
@@ -344,7 +350,7 @@ namespace Bess::Canvas::SceneWidgets {
         result.opened = widget->dropdownOpened;
         result.closed = widget->dropdownClosed;
 
-        if (Detail::consumeClick(context.sceneState, id)) {
+        if (Detail::consumeClick(context.sceneState, id, context.viewportId)) {
             if (widget->dropdownOpen) {
                 closeDropdown(*widget);
                 result.closed = true;
@@ -369,7 +375,8 @@ namespace Bess::Canvas::SceneWidgets {
                                    *widget,
                                    selectedIndex,
                                    itemCount,
-                                   result.changed);
+                                   result.changed,
+                                   context.viewportId);
 
         const int selected = clampedSelection(*selectedIndex, itemCount);
         const bool hasSelection = selected >= 0;

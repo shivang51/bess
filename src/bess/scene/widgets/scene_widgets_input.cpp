@@ -296,12 +296,14 @@ namespace Bess::Canvas::SceneWidgets::Detail {
 } // namespace Bess::Canvas::SceneWidgets::Detail
 
 namespace Bess::Canvas::SceneWidgets {
-    void beginFrame(SceneState *sceneState) {
-        Detail::getSceneState(sceneState).registeredWidgets.clear();
+    void beginFrame(SceneState *sceneState, size_t viewportId) {
+        Detail::getWidgetsState(sceneState, viewportId)
+            .registeredWidgets.clear();
     }
 
-    void endFrame(SceneState *sceneState) {
-        auto widgetsState = Detail::findSceneState(sceneState);
+    void endFrame(SceneState *sceneState, size_t viewportId) {
+        auto widgetsState =
+            Detail::findSceneWidgetsState(sceneState, viewportId);
         if (widgetsState == nullptr) {
             return;
         }
@@ -342,22 +344,29 @@ namespace Bess::Canvas::SceneWidgets {
         }
     }
 
-    void clearScene(SceneState *sceneState) {
-        Detail::sceneStates().erase(Detail::sceneKey(sceneState));
+    void clearScene(SceneState *sceneState, size_t viewportId) {
+        Detail::sceneWidgetsState().erase(
+            Detail::sceneKey(sceneState, viewportId));
     }
 
-    bool contains(const SceneState *sceneState, const PickingId &id) {
+    bool contains(const SceneState *sceneState,
+                  const PickingId &id,
+                  size_t viewportId) {
         if (!id.isValid()) {
             return false;
         }
 
-        auto widgetsState = Detail::findSceneState(sceneState);
+        auto widgetsState =
+            Detail::findSceneWidgetsState(sceneState, viewportId);
         return widgetsState != nullptr &&
                widgetsState->registeredWidgets.contains(id.toUint64());
     }
 
-    bool isTextInput(const SceneState *sceneState, const PickingId &id) {
-        auto widgetsState = Detail::findSceneState(sceneState);
+    bool isTextInput(const SceneState *sceneState,
+                     const PickingId &id,
+                     size_t viewportId) {
+        auto widgetsState =
+            Detail::findSceneWidgetsState(sceneState, viewportId);
         if (widgetsState == nullptr) {
             return false;
         }
@@ -367,13 +376,14 @@ namespace Bess::Canvas::SceneWidgets {
                widget->type == Detail::WidgetState::Type::textInput;
     }
 
-    bool hasPointerCapture(const SceneState *sceneState) {
-        auto widgetsState = Detail::findSceneState(sceneState);
+    bool hasPointerCapture(const SceneState *sceneState, size_t viewportId) {
+        auto widgetsState =
+            Detail::findSceneWidgetsState(sceneState, viewportId);
         return widgetsState != nullptr &&
                widgetsState->pressedWidgetId != Detail::kInvalidWidgetId;
     }
 
-    bool wantsKeyboard(const SceneState *sceneState) {
+    bool wantsKeyboard(size_t viewportId, const SceneState *sceneState) {
         auto wantsKeyboardInState =
             [](const Detail::SceneWidgetsState &widgetsState) {
                 if (widgetsState.focusedWidgetId == Detail::kInvalidWidgetId) {
@@ -393,12 +403,13 @@ namespace Bess::Canvas::SceneWidgets {
             };
 
         if (sceneState != nullptr) {
-            auto widgetsState = Detail::findSceneState(sceneState);
+            auto widgetsState =
+                Detail::findSceneWidgetsState(sceneState, viewportId);
             return widgetsState != nullptr &&
                    wantsKeyboardInState(*widgetsState);
         }
 
-        for (const auto &[_, widgetsState] : Detail::sceneStates()) {
+        for (const auto &[_, widgetsState] : Detail::sceneWidgetsState()) {
             if (wantsKeyboardInState(widgetsState)) {
                 return true;
             }
@@ -406,8 +417,11 @@ namespace Bess::Canvas::SceneWidgets {
         return false;
     }
 
-    void queuePointerMove(SceneState *sceneState, const glm::vec2 &pos) {
-        auto widgetsState = Detail::findSceneState(sceneState);
+    void queuePointerMove(SceneState *sceneState,
+                          const glm::vec2 &pos,
+                          size_t viewportId) {
+        auto widgetsState =
+            Detail::findSceneWidgetsState(sceneState, viewportId);
         if (widgetsState == nullptr ||
             widgetsState->pressedWidgetId == Detail::kInvalidWidgetId) {
             return;
@@ -425,8 +439,10 @@ namespace Bess::Canvas::SceneWidgets {
 
     void queuePress(SceneState *sceneState,
                     const PickingId &id,
-                    const glm::vec2 &pos) {
-        auto widgetsState = Detail::findSceneState(sceneState);
+                    const glm::vec2 &pos,
+                    size_t viewportId) {
+        auto widgetsState =
+            Detail::findSceneWidgetsState(sceneState, viewportId);
         if (widgetsState == nullptr) {
             BESS_WARN("[SceneWidgets] Trying to press widget before scene "
                       "widgets were registered");
@@ -473,8 +489,10 @@ namespace Bess::Canvas::SceneWidgets {
 
     void queueRelease(SceneState *sceneState,
                       const PickingId &id,
-                      const glm::vec2 &pos) {
-        auto widgetsState = Detail::findSceneState(sceneState);
+                      const glm::vec2 &pos,
+                      size_t viewportId) {
+        auto widgetsState =
+            Detail::findSceneWidgetsState(sceneState, viewportId);
         if (widgetsState == nullptr) {
             return;
         }
@@ -504,8 +522,9 @@ namespace Bess::Canvas::SceneWidgets {
         }
     }
 
-    void queueClick(SceneState *sceneState, const PickingId &id) {
-        auto state = Detail::getWidgetState(sceneState, id);
+    void
+    queueClick(SceneState *sceneState, const PickingId &id, size_t viewportId) {
+        auto state = Detail::getWidgetState(sceneState, id, viewportId);
 
         if (!state) {
             BESS_WARN("[SceneWidgets] Trying to queue click for "
@@ -516,13 +535,15 @@ namespace Bess::Canvas::SceneWidgets {
         state->isClicked = true;
     }
 
-    bool queueKey(SceneState *sceneState, const SceneEvent &evt) {
+    bool
+    queueKey(SceneState *sceneState, const SceneEvent &evt, size_t viewportId) {
         if (evt.type != SceneEvent::Type::key &&
             evt.type != SceneEvent::Type::textInput) {
             return false;
         }
 
-        auto widgetsState = Detail::findSceneState(sceneState);
+        auto widgetsState =
+            Detail::findSceneWidgetsState(sceneState, viewportId);
         if (widgetsState == nullptr ||
             widgetsState->focusedWidgetId == Detail::kInvalidWidgetId) {
             return false;
@@ -571,12 +592,15 @@ namespace Bess::Canvas::SceneWidgets {
         return false;
     }
 
-    bool queueWheel(SceneState *sceneState, const SceneEvent &evt) {
+    bool queueWheel(SceneState *sceneState,
+                    const SceneEvent &evt,
+                    size_t viewportId) {
         if (evt.type != SceneEvent::Type::mouseWheel) {
             return false;
         }
 
-        auto widgetsState = Detail::findSceneState(sceneState);
+        auto widgetsState =
+            Detail::findSceneWidgetsState(sceneState, viewportId);
         if (widgetsState == nullptr) {
             return false;
         }
@@ -611,16 +635,19 @@ namespace Bess::Canvas::SceneWidgets {
         return true;
     }
 
-    void clearFocus(SceneState *sceneState) {
-        auto widgetsState = Detail::findSceneState(sceneState);
+    void clearFocus(SceneState *sceneState, size_t viewportId) {
+        auto widgetsState =
+            Detail::findSceneWidgetsState(sceneState, viewportId);
         if (widgetsState != nullptr) {
             Detail::closeDropdowns(*widgetsState);
             Detail::clearFocusState(*widgetsState);
         }
     }
 
-    void setHoverId(SceneState *sceneState, const PickingId &id) {
-        auto widgetsState = Detail::findSceneState(sceneState);
+    void
+    setHoverId(SceneState *sceneState, const PickingId &id, size_t viewportId) {
+        auto widgetsState =
+            Detail::findSceneWidgetsState(sceneState, viewportId);
         if (widgetsState == nullptr) {
             return;
         }

@@ -23,6 +23,7 @@ namespace Bess::Canvas {
         ViewportTransform viewportTransform;
         PickingId pickingId;
         SceneInputState &inputState;
+        size_t viewportId;
     };
 
     class Scene {
@@ -43,7 +44,8 @@ namespace Bess::Canvas {
                             const std::shared_ptr<Camera> &camera,
                             const ViewportTransform &viewportTransform,
                             SceneInputState &inputState,
-                            const PickingId &pickingId);
+                            const PickingId &pickingId,
+                            size_t viewportId);
         void draw(const View2D &view);
         void addScreenOverlayDrawCallback(ScreenOverlayDrawCallback callback);
         void clearScreenOverlayDrawCallbacks();
@@ -85,25 +87,29 @@ namespace Bess::Canvas {
                            const std::shared_ptr<Camera> &camera,
                            const ViewportTransform &viewportTransform,
                            const PickingId &pickingId,
-                           SceneInputState &inputState);
+                           SceneInputState &inputState,
+                           size_t viewportId);
 
         void onLeftMouse(bool isPressed,
                          const std::shared_ptr<Camera> &camera,
                          const ViewportTransform &viewportTransform,
                          const PickingId &pickingId,
-                         SceneInputState &inputState);
+                         SceneInputState &inputState,
+                         size_t viewportId);
 
         void onMiddleMouse(bool isPressed,
                            const std::shared_ptr<Camera> &camera,
                            const ViewportTransform &viewportTransform,
                            const PickingId &pickingId,
-                           SceneInputState &inputState);
+                           SceneInputState &inputState,
+                           size_t viewportId);
 
         void onMouseMove(const glm::vec2 &pos,
                          const std::shared_ptr<Camera> &camera,
                          const ViewportTransform &viewportTransform,
                          const PickingId &pickingId,
-                         SceneInputState &inputState);
+                         SceneInputState &inputState,
+                         size_t viewportId);
 
       private:
         glm::vec2 getViewportMousePos(const glm::vec2 &mousePos,

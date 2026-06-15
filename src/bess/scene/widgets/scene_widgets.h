@@ -85,27 +85,41 @@ namespace Bess::Canvas::SceneWidgets {
         int selectedIndex = -1;
     };
 
-    void beginFrame(SceneState *sceneState);
-    void endFrame(SceneState *sceneState);
-    void clearScene(SceneState *sceneState);
+    void beginFrame(SceneState *sceneState, size_t viewportId);
+    void endFrame(SceneState *sceneState, size_t viewportId);
+    void clearScene(SceneState *sceneState, size_t viewportId);
 
-    bool contains(const SceneState *sceneState, const PickingId &id);
-    bool isTextInput(const SceneState *sceneState, const PickingId &id);
-    bool hasPointerCapture(const SceneState *sceneState);
-    bool wantsKeyboard(const SceneState *sceneState = nullptr);
+    bool contains(const SceneState *sceneState,
+                  const PickingId &id,
+                  size_t viewportId);
+    bool isTextInput(const SceneState *sceneState,
+                     const PickingId &id,
+                     size_t viewportId);
+    bool hasPointerCapture(const SceneState *sceneState, size_t viewportId);
+    bool wantsKeyboard(size_t viewportId,
+                       const SceneState *sceneState = nullptr);
 
-    void queuePointerMove(SceneState *sceneState, const glm::vec2 &pos);
+    void queuePointerMove(SceneState *sceneState,
+                          const glm::vec2 &pos,
+                          size_t viewportId);
     void queuePress(SceneState *sceneState,
                     const PickingId &id,
-                    const glm::vec2 &pos);
+                    const glm::vec2 &pos,
+                    size_t viewportId);
     void queueRelease(SceneState *sceneState,
                       const PickingId &id,
-                      const glm::vec2 &pos);
-    void queueClick(SceneState *sceneState, const PickingId &id);
-    bool queueKey(SceneState *sceneState, const SceneEvent &evt);
-    bool queueWheel(SceneState *sceneState, const SceneEvent &evt);
-    void clearFocus(SceneState *sceneState);
-    void setHoverId(SceneState *sceneState, const PickingId &id);
+                      const glm::vec2 &pos,
+                      size_t viewportId);
+    void
+    queueClick(SceneState *sceneState, const PickingId &id, size_t viewportId);
+    bool
+    queueKey(SceneState *sceneState, const SceneEvent &evt, size_t viewportId);
+    bool queueWheel(SceneState *sceneState,
+                    const SceneEvent &evt,
+                    size_t viewportId);
+    void clearFocus(SceneState *sceneState, size_t viewportId);
+    void
+    setHoverId(SceneState *sceneState, const PickingId &id, size_t viewportId);
 
     bool toggleButton(const PickingId &id,
                       bool value,
@@ -132,6 +146,7 @@ namespace Bess::Canvas::SceneWidgets {
         std::optional<Core::Renderer::Color> borderColor;
         std::optional<Core::Renderer::Color> textColor;
     };
+
     bool button(const PickingId &id,
                 std::string_view label,
                 const glm::vec3 &buttonPos,

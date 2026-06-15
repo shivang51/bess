@@ -24,13 +24,16 @@ namespace Bess::Canvas {
         const PickingId *pickingId = nullptr;
     };
 
-    struct SceneEventContext : SceneLayerContext {};
+    struct SceneEventContext : SceneLayerContext {
+        size_t viewportId;
+    };
 
     struct SceneUpdateContext : SceneLayerContext {};
 
     struct SceneVpUpdateContext : SceneLayerContext {};
 
     struct SceneRenderContext : SceneLayerContext {
+        size_t viewportId;
         std::shared_ptr<Core::Renderer::IRenderer2D> renderer = nullptr;
     };
 

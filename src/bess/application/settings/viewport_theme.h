@@ -68,8 +68,6 @@ namespace Bess {
     };
 
     struct NodeHeaderColors {
-        // Make sure default_ remains the first member
-        // See ViewportTheme::getCompHeaderColor for the reason
         Color default_ = Color(0.45f, 0.45f, 0.45f, 0.90f);
         Color io = Color(0.48f, 0.35f, 0.58f, 0.90f);
         Color flipFlops = Color(0.48f, 0.35f, 0.58f, 0.90f);

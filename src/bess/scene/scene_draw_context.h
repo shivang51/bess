@@ -21,5 +21,6 @@ namespace Bess {
         std::shared_ptr<Camera> camera;
         Core::Renderer::RenderTransformMode transformMode =
             Core::Renderer::RenderTransformMode::Camera;
+        size_t viewportId;
     };
 } // namespace Bess

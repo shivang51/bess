@@ -26,29 +26,32 @@ namespace Bess::Canvas::SceneWidgets::Detail {
         }
     } // namespace
 
-    std::unordered_map<uint64_t, SceneWidgetsState> &sceneStates() {
+    std::unordered_map<uint64_t, SceneWidgetsState> &sceneWidgetsState() {
         static std::unordered_map<uint64_t, SceneWidgetsState> states;
         return states;
     }
 
-    uint64_t sceneKey(const SceneState *sceneState) {
+    uint64_t sceneKey(const SceneState *sceneState, size_t viewportId) {
         if (sceneState == nullptr) {
             return 0;
         }
-        return static_cast<uint64_t>(sceneState->getSceneId());
+        return (static_cast<std::size_t>(sceneState->getSceneId()) << 32) |
+               viewportId;
     }
 
-    SceneWidgetsState *findSceneState(const SceneState *sceneState) {
-        auto &states = sceneStates();
-        const auto it = states.find(sceneKey(sceneState));
+    SceneWidgetsState *findSceneWidgetsState(const SceneState *sceneState,
+                                             size_t viewportId) {
+        auto &states = sceneWidgetsState();
+        const auto it = states.find(sceneKey(sceneState, viewportId));
         if (it == states.end()) {
             return nullptr;
         }
         return &it->second;
     }
 
-    SceneWidgetsState &getSceneState(SceneState *sceneState) {
-        return sceneStates()[sceneKey(sceneState)];
+    SceneWidgetsState &getWidgetsState(SceneState *sceneState,
+                                       size_t viewportId) {
+        return sceneWidgetsState()[sceneKey(sceneState, viewportId)];
     }
 
     WidgetState *getWidgetState(SceneWidgetsState &widgetsState,
@@ -70,8 +73,9 @@ namespace Bess::Canvas::SceneWidgets::Detail {
     }
 
     WidgetState *getWidgetState(const SceneState *sceneState,
-                                const PickingId &id) {
-        auto widgetsState = findSceneState(sceneState);
+                                const PickingId &id,
+                                const size_t viewportId) {
+        auto widgetsState = findSceneWidgetsState(sceneState, viewportId);
         if (widgetsState == nullptr) {
             return nullptr;
         }
@@ -80,12 +84,13 @@ namespace Bess::Canvas::SceneWidgets::Detail {
 
     WidgetState *registerWidget(SceneState *sceneState,
                                 const PickingId &id,
-                                WidgetState::Type type) {
+                                WidgetState::Type type,
+                                size_t viewportId) {
         if (sceneState == nullptr || !id.isValid()) {
             return nullptr;
         }
 
-        auto &widgetsState = getSceneState(sceneState);
+        auto &widgetsState = getWidgetsState(sceneState, viewportId);
         widgetsState.registeredWidgets.insert(id.toUint64());
 
         auto &state = widgetsState.widgetStates[id.toUint64()];
@@ -100,8 +105,10 @@ namespace Bess::Canvas::SceneWidgets::Detail {
         return &state;
     }
 
-    bool consumeClick(SceneState *sceneState, const PickingId &id) {
-        auto state = getWidgetState(sceneState, id);
+    bool consumeClick(SceneState *sceneState,
+                      const PickingId &id,
+                      size_t viewportId) {
+        auto state = getWidgetState(sceneState, id, viewportId);
 
         if (state == nullptr) {
             BESS_WARN("[SceneWidgets] Trying to consume click for "
@@ -118,20 +125,26 @@ namespace Bess::Canvas::SceneWidgets::Detail {
         return true;
     }
 
-    bool isHovering(const SceneState *sceneState, const PickingId &id) {
-        auto widgetsState = findSceneState(sceneState);
+    bool isHovering(const SceneState *sceneState,
+                    const PickingId &id,
+                    const size_t viewportId) {
+        auto widgetsState = findSceneWidgetsState(sceneState, viewportId);
         return widgetsState != nullptr &&
                widgetsState->hoveredWidgetId == id.toUint64();
     }
 
-    bool isPressed(const SceneState *sceneState, const PickingId &id) {
-        auto widgetsState = findSceneState(sceneState);
+    bool isPressed(const SceneState *sceneState,
+                   const PickingId &id,
+                   const size_t viewportId) {
+        auto widgetsState = findSceneWidgetsState(sceneState, viewportId);
         return widgetsState != nullptr &&
                widgetsState->pressedWidgetId == id.toUint64();
     }
 
-    bool isFocused(const SceneState *sceneState, const PickingId &id) {
-        auto widgetsState = findSceneState(sceneState);
+    bool isFocused(const SceneState *sceneState,
+                   const PickingId &id,
+                   const size_t viewportId) {
+        auto widgetsState = findSceneWidgetsState(sceneState, viewportId);
         return widgetsState != nullptr &&
                widgetsState->focusedWidgetId == id.toUint64();
     }

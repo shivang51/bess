@@ -107,6 +107,7 @@ namespace Bess::Canvas {
             ctx.renderer,
             ctx.camera,
             Core::Renderer::RenderTransformMode::Screen,
+            ctx.viewportId,
         };
 
         for (auto &callback : m_drawCallbacks) {
