@@ -19,6 +19,9 @@ namespace Bess::Core::Renderer::Colors {
     constexpr Color gold = Color::fromHex(0xFFD700FF);
     constexpr Color brown = Color::fromHex(0x8B4513FF);
 
+    constexpr Color royalBlue = Color::fromHex(0x4169E1FF);
+    constexpr Color deepCyan = Color::fromHex(0x008B8BFF);
+
     // Note: Following are generated with help of llm
 
     //
