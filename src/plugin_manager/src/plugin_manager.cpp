@@ -43,10 +43,12 @@ namespace Bess::Plugins {
         if (!isIntialized)
             return;
 
+#ifdef DEBUG
         for (auto &watcher : m_pluginFileWatchers) {
             watcher->stop();
         }
         m_pluginFileWatchers.clear();
+#endif
 
         unloadAllPlugins();
         m_gilRelease.reset();
