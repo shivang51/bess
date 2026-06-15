@@ -102,8 +102,8 @@ def _init_paths():
     nandDiagram.show_name = False
     nandPath = Path()
     nandPath.move_to(0, 0)
-    nandPath.line_to(62, 0)
-    nandPath.quad_to(122, 50, 62, 100)
+    nandPath.line_to(60, 0)
+    nandPath.quad_to(120, 50, 60, 100)
     nandPath.line_to(0, 100)
     nandPath.close()
     nandDiagram.add_path(nandPath)
@@ -127,11 +127,11 @@ def _init_paths():
     norDiagram = SchematicDiagram()
     norDiagram.show_name = False
     norPath = Path()
-    norPath.move_to(0, 0)
-    norPath.line_to(62, 0)
-    norPath.quad_to(122, 50, 62, 100)
-    norPath.line_to(0, 100)
-    norPath.quad_to(30, 50, 0, 0)
+    norPath.move_to(-2, 0)
+    norPath.line_to(60, 0)
+    norPath.quad_to(120, 50, 62, 100)
+    norPath.line_to(-2, 100)
+    norPath.quad_to(28, 50, -2, 0)
     norPath.close()
     norDiagram.add_path(norPath)
     norDiagram.add_path(circle.copy())
@@ -143,8 +143,8 @@ def _init_paths():
 
     # arc
     xorArcPath = Path()
-    xorArcPath.move_to(0, 0)
-    xorArcPath.quad_to(30, 50, 0, 100)
+    xorArcPath.move_to(-2, 0)
+    xorArcPath.quad_to(28, 50, -2, 100)
     xorArcPath.no_fill()
 
     # similar to or gate path. just shifted
@@ -173,7 +173,7 @@ def _init_paths():
     xnorPath.quad_to(30, 50, 0, 0)
     xnorPath.close()
 
-    xnorPath.set_pos(vec2(10, 0))
+    xnorPath.set_pos(vec2(8, 0))
 
     xnorDiagram.add_path(xorArcPath.copy())
     xnorDiagram.add_path(xnorPath)
