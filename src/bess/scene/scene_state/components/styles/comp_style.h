@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ext/vector_float4.hpp"
 namespace Bess::Canvas::Styles {
     constexpr class CompNodeStyles {
       public:
@@ -13,6 +14,8 @@ namespace Bess::Canvas::Styles {
         float rowMargin = 4.f;
         float rowGap = 4.f;
         float slotLabelSize = 10.f;
+        glm::vec4 borderRadius = glm::vec4(6.f);
+        glm::vec4 borderSize = glm::vec4(1.f);
 
         float getSlotColumnSize() const {
             return (slotRadius * 2.f) + slotMargin + slotLabelSize;

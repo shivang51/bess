@@ -271,12 +271,12 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         Core::Renderer::QuadProps quadProps;
         quadProps.position = m_transform.position;
         quadProps.size = m_transform.scale;
-        quadProps.color = m_style.color;
+        quadProps.color = ViewportTheme::colors.componentBG;
         quadProps.id = pickingId;
         quadProps.rotation = m_transform.angle;
         quadProps.zIndex = m_transform.position.z;
         quadProps.renderPass = Core::Renderer::QuadRenderPass::Transparent;
-        quadProps.radius = m_style.borderRadius;
+        quadProps.radius = Styles::componentStyles.borderRadius;
         quadProps.shadow.enabled = true;
         quadProps.shadow.offset = {0.f, 7.f};
         quadProps.shadow.blur = 18.f;
@@ -285,7 +285,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
 
         const auto &borderColor = m_isSelected
                                       ? ViewportTheme::colors.selectedComp
-                                      : m_style.borderColor;
+                                      : ViewportTheme::colors.componentBorder;
         const float headerHeight = Styles::componentStyles.headerHeight;
 
         context.renderer->drawCustomQuad({
@@ -293,10 +293,12 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
             .shader = s_nodeShader,
             .data =
                 {
-                    glm::vec4{m_style.borderRadius.x,
-                              m_style.borderRadius.y,
-                              m_style.borderSize.x,
-                              m_style.borderSize.y},
+                    glm::vec4{
+                        Styles::componentStyles.borderRadius.x, // border raidus
+                        Styles::componentStyles.borderRadius.y,
+                        Styles::componentStyles.borderSize.x, // border size
+                        Styles::componentStyles.borderSize.y,
+                    },
                     m_style.headerColor,
                     borderColor,
                     glm::vec4(headerHeight / m_transform.scale.y,

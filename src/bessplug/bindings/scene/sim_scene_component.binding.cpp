@@ -7,7 +7,6 @@
 #include "common/logger.h"
 
 #include "dig_sim_driver.h"
-#include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/scene_state.h" // included for pybind11
@@ -187,11 +186,8 @@ void bind_sim_scene_component(py::module_ &m) {
         auto &style = comp.getStyle();
         const auto &colors = Bess::ViewportTheme::colors;
         style.color = colors.componentBG;
-        style.borderRadius = glm::vec4(6.f);
         style.headerColor =
             Bess::ViewportTheme::getCompHeaderColor(compDef->getGroupName());
-        style.borderColor = colors.componentBorder;
-        style.borderSize = glm::vec4(1.f);
         style.color = colors.componentBG;
 
         Bess::SimEngine::SlotsGroupInfo inpDetails, outDetails;

@@ -61,14 +61,14 @@ namespace Bess::Canvas {
         if (m_isSelected) {
             SceneDraw::QuadStyle props;
             props.angle = m_transform.angle;
-            props.borderRadius = m_style.borderRadius;
-            props.borderSize = m_style.borderSize;
+            props.borderRadius = Styles::componentStyles.borderRadius;
+            props.borderSize = Styles::componentStyles.borderSize;
             props.borderColor = ViewportTheme::colors.selectedComp;
             props.shadow.enabled = true;
             props.shadow.offset = {0.f, 3.f};
             props.shadow.blur = 10.f;
             props.shadow.spread = 1.f;
-            props.shadow.color = Core::Renderer::Color{0.f, 0.f, 0.f, 0.35f};
+            props.shadow.color = ViewportTheme::colors.componentBG;
 
             const auto textOffset = context.renderer->textCenterOffsetY(
                 m_data, {.fontSize = (float)m_size});
@@ -120,8 +120,6 @@ namespace Bess::Canvas {
         m_name = "New Text";
         m_icon = UI::Icons::FontAwesomeIcons::FA_FONT;
         m_style.color = ViewportTheme::colors.componentBG;
-        m_style.borderRadius = glm::vec4(6.f);
-        m_style.borderSize = glm::vec4(1.f);
         m_style.color = ViewportTheme::colors.componentBG;
     }
 
@@ -154,9 +152,6 @@ namespace Bess::Canvas {
         m_name = "Widgets Test";
         m_icon = UI::Icons::FontAwesomeIcons::FA_FLASK;
         m_style.color = ViewportTheme::colors.componentBG;
-        m_style.borderColor = ViewportTheme::colors.componentBorder;
-        m_style.borderRadius = glm::vec4(5.f);
-        m_style.borderSize = glm::vec4(1.f);
     }
 
     std::vector<std::shared_ptr<SceneComponent>>
@@ -183,9 +178,9 @@ namespace Bess::Canvas {
 
         SceneDraw::QuadStyle backgroundStyle{
             .borderColor = m_isSelected ? ViewportTheme::colors.selectedComp
-                                        : m_style.borderColor,
-            .borderRadius = m_style.borderRadius,
-            .borderSize = m_style.borderSize,
+                                        : ViewportTheme::colors.componentBorder,
+            .borderRadius = Styles::componentStyles.borderRadius,
+            .borderSize = Styles::componentStyles.borderSize,
         };
         backgroundStyle.shadow.enabled = true;
         backgroundStyle.shadow.offset = {0.f, 4.f};

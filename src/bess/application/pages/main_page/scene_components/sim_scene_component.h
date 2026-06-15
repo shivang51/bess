@@ -55,13 +55,8 @@ namespace Bess::Canvas {
             // style
             auto &style = sceneComp->getStyle();
 
-            style.color = ViewportTheme::colors.componentBG;
-            style.borderRadius = glm::vec4(6.f);
             style.headerColor =
                 ViewportTheme::getCompHeaderColor(compDef->getGroupName());
-            style.borderColor = ViewportTheme::colors.componentBorder;
-            style.borderSize = glm::vec4(1.f);
-            style.color = ViewportTheme::colors.componentBG;
 
             const auto &inpDetails = def->getInputSlotsInfo();
             const auto &outDetails = def->getOutputSlotsInfo();

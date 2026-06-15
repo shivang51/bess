@@ -22,16 +22,34 @@ namespace Bess::Canvas {
         float angle = 0.f;
     };
 
+    enum class PinLabelAlignment : uint8_t {
+        adjacent, // left or right of the pin, depending on inp or out
+        topCenter,
+        bottomCenter,
+    };
+
+    enum class SchematicLableAlignement : uint8_t {
+        adjacent, // left or right of the pin, depending on inp or out
+        topCenter,
+        bottomCenter,
+    };
+
+    struct SchematicStyle {
+        PinLabelAlignment pinLabelAlign = PinLabelAlignment::adjacent;
+        bool showPinLabels = true;
+        SchematicLableAlignement schematicLabelAlign =
+            SchematicLableAlignement::adjacent;
+        bool showName = true;
+    };
+
     class Style {
       public:
         Style() = default;
         Style(const Style &other) = default;
 
-        Core::Renderer::Color color = Core::Renderer::Colors::white;
-        Core::Renderer::Color borderColor = Core::Renderer::Colors::black;
-        glm::vec4 borderSize = glm::vec4(0.f);
-        glm::vec4 borderRadius = glm::vec4(0.f);
+        SchematicStyle schematicStyle = {};
         Core::Renderer::Color headerColor = Core::Renderer::Colors::slate900;
+        Core::Renderer::Color color = Core::Renderer::Colors::white;
     };
 
     // Not serialized
@@ -45,13 +63,15 @@ namespace Bess::Canvas {
 } // namespace Bess::Canvas
 
 REFLECT(Bess::Canvas::Transform, position, scale, angle);
+REFLECT_ENUM(Bess::Canvas::PinLabelAlignment);
+REFLECT_ENUM(Bess::Canvas::SchematicLableAlignement);
+REFLECT(Bess::Canvas::SchematicStyle,
+        pinLabelAlign,
+        showPinLabels,
+        showName,
+        schematicLabelAlign);
 
-REFLECT(Bess::Canvas::Style,
-        color,
-        borderColor,
-        borderSize,
-        borderRadius,
-        headerColor);
+REFLECT(Bess::Canvas::Style, schematicStyle, headerColor);
 
 REFLECT_ENUM(Bess::Canvas::ConnSegOrientaion);
 
