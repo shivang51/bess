@@ -1,5 +1,6 @@
 #include "screen_space_overlay_layer.h"
 #include "bess_core/renderer/renderer_2d.h"
+#include "bess_core/renderer/renderer_types.h"
 #include "common/types.h"
 #include "ext/vector_float2.hpp"
 #include "scene/widgets/scene_widgets.h"
@@ -9,14 +10,15 @@
 
 namespace Bess::Canvas {
     namespace {
-        void drawCameraPos(SceneDrawContext &drawCtx, SceneRenderContext &ctx) {
-            static constexpr float padding = 8.f;
-            static constexpr float fontSize = 16.f;
-            static const glm::vec2 textSize =
+        constexpr float padding = 8.f;
+        constexpr float fontSize = 16.f;
+
+        void drawCameraPos(SceneDrawContext &drawCtx,
+                           SceneRenderContext &ctx,
+                           const glm::vec2 &bottomRight) {
+            static constexpr glm::vec2 textSize =
                 Core::Renderer::IRenderer2D::getTextRenderSize(
                     "X: -000.00Y: -000.00", {.fontSize = fontSize});
-            const auto bottomRight =
-                (ctx.viewportTransform->size / 2.f) - padding;
 
             const glm::vec2 mouseWorldPos =
                 ctx.camera->toWorldPos(ctx.inputState->mousePos);
@@ -95,6 +97,57 @@ namespace Bess::Canvas {
                         Core::Renderer::RenderTransformMode::Screen,
                 });
         }
+
+        float drawCameraZoom(SceneDrawContext &drawCtx,
+                             SceneRenderContext &ctx,
+                             const glm::vec2 &bottomRight) {
+            constexpr glm::vec2 textSize =
+                Core::Renderer::IRenderer2D::getTextRenderSize(
+                    "Zoom: 0.00x", {.fontSize = fontSize});
+
+            const std::string zoomText =
+                std::format("Zoom: {:.2f}x", ctx.camera->getZoom());
+
+            const auto textOffY = ctx.renderer->textCenterOffsetY(
+                zoomText,
+                {.fontSize = fontSize,
+                 .transformMode = Core::Renderer::RenderTransformMode::Screen});
+
+            const auto quadSize =
+                textSize + glm::vec2{padding * 2.f, padding * 2.f};
+            const auto quadPos =
+                bottomRight +
+                glm::vec2{(-quadSize.x / 2.f), -((textSize.y / 2.f) + padding)};
+
+            Core::Renderer::QuadProps quad{
+                .position = quadPos,
+                .size = quadSize,
+                .zIndex = 1000,
+                .color =
+                    ViewportTheme::sceneWidgetsColors.surface.withAlpha(0.5f),
+                .transformMode = Core::Renderer::RenderTransformMode::Screen,
+                .radius = glm::vec4(8.f),
+                .shadow = {.enabled = true},
+            };
+
+            ctx.renderer->drawQuad(quad);
+
+            const auto textPos =
+                quadPos + glm::vec2{(-quadSize.x / 2.f) + padding, textOffY};
+
+            ctx.renderer->drawFont(
+                zoomText,
+                {
+                    .position = {textPos.x, textPos.y},
+                    .fontSize = fontSize,
+                    .color = ViewportTheme::sceneWidgetsColors.text,
+                    .zIndex = 1000.1,
+                    .transformMode =
+                        Core::Renderer::RenderTransformMode::Screen,
+                });
+
+            return quadSize.x + padding;
+        }
     } // namespace
 
     void ScreenSpaceOverlayLayer::draw(SceneRenderContext &ctx) {
@@ -116,7 +169,10 @@ namespace Bess::Canvas {
             }
         }
 
-        drawCameraPos(drawCtx, ctx);
+        auto bottomRight = (ctx.viewportTransform->size / 2.f) - padding;
+        float xOffset = drawCameraZoom(drawCtx, ctx, bottomRight);
+        bottomRight.x -= xOffset;
+        drawCameraPos(drawCtx, ctx, bottomRight);
     }
 
     void ScreenSpaceOverlayLayer::reset(SceneLifecycleContext &ctx) {

@@ -93,7 +93,8 @@ namespace Bess::Canvas::SceneWidgets {
 
         const auto &palette = ViewportTheme::sceneWidgetsColors;
 
-        auto bgColor = Core::Renderer::Color(palette.surface);
+        auto bgColor =
+            Detail::colorOr(options.backgroundColor, palette.surface);
         if (Detail::isHovering(context.sceneState, id, context.viewportId)) {
             bgColor = Detail::colorOr(options.hoverBackgroundColor,
                                       palette.surfaceHover);
