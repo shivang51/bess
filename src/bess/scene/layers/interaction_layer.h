@@ -9,8 +9,9 @@ namespace Bess::Canvas {
         EventResult handleEvent(SceneEvent &evt,
                                 SceneEventContext &ctx) override;
 
-        void update(TimeMs ts, SceneUpdateContext &ctx) override;
+        void viewportUpdate(TimeMs ts, SceneVpUpdateContext &ctx) override;
         void draw(SceneRenderContext &ctx) override;
+        void update(TimeMs ts, SceneUpdateContext &ctx) override;
 
         std::string getName() const override {
             return "InteractionLayer";

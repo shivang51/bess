@@ -15,6 +15,7 @@ namespace Bess {
         void onInit() override;
         void onShutdown() override;
         void onDestroy() override;
+        void onUpdate(TimeMs ts) override;
 
         std::shared_ptr<Canvas::Scene> getActiveScene() const;
 

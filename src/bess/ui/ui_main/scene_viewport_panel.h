@@ -2,8 +2,10 @@
 #include "bess_core/renderer/texture.h"
 #include "common/bess_uuid.h"
 #include "common/class_helpers.h"
+#include "common/types.h"
 #include "imgui.h"
 #include "scene.h"
+#include "scene_types.h"
 #include "string"
 #include "ui_panel.h"
 
@@ -44,7 +46,7 @@ namespace Bess::UI {
         void handleMouseMove(const glm::vec2 &mousePos);
         void releaseMouseButtonOutsideViewport(
             const MouseButtonState &mouseBtnState);
-        void applySceneCursor() const;
+        void applySceneCursor();
 
         bool isInsideViewport(const glm::vec2 &pos) const;
         bool hasRenderableViewport() const;
@@ -76,6 +78,8 @@ namespace Bess::UI {
 
         void onSceneAttached();
 
+        glm::vec2 getSceneMousePos();
+
         static constexpr ImGuiWindowFlags NO_MOVE_FLAGS =
             ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
@@ -89,9 +93,12 @@ namespace Bess::UI {
         std::string m_viewportName;
         bool m_isResized = false;
         UUID m_nextSceneId = UUID::null;
+        PickingId m_pickingId = PickingId::invalid();
+        Canvas::SceneInputState m_inputState;
         std::shared_ptr<Canvas::Scene> m_attachedScene;
         std::shared_ptr<Core::Renderer::ITexture> m_sceneTexture = nullptr;
         std::shared_ptr<Core::Renderer::ITexture> m_pickingTexture = nullptr;
+        std::shared_ptr<Camera> m_camera = nullptr;
         std::vector<const Canvas::SceneState *> m_rootToSceneStatePtrs;
         uint32_t m_gridShader = 0;
         PendingPickingReadback m_pendingSelectionReadback;

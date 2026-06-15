@@ -19,14 +19,16 @@ namespace Bess::Canvas {
     struct SceneLayerContext {
         SceneState *sceneState = nullptr;
         std::shared_ptr<Camera> camera = nullptr;
-        ViewportTransform *viewportTransform = nullptr;
+        const ViewportTransform *viewportTransform = nullptr;
         SceneInputState *inputState = nullptr;
-        PickingId *pickingId = nullptr;
+        const PickingId *pickingId = nullptr;
     };
 
     struct SceneEventContext : SceneLayerContext {};
 
     struct SceneUpdateContext : SceneLayerContext {};
+
+    struct SceneVpUpdateContext : SceneLayerContext {};
 
     struct SceneRenderContext : SceneLayerContext {
         std::shared_ptr<Core::Renderer::IRenderer2D> renderer = nullptr;
@@ -48,12 +50,18 @@ namespace Bess::Canvas {
         }
 
         virtual void update(TimeMs ts, SceneUpdateContext &ctx) = 0;
+
         virtual void draw(SceneRenderContext &ctx) = 0;
+
+        virtual void viewportUpdate(TimeMs ts, SceneVpUpdateContext &ctx) {
+        }
 
         virtual void init(SceneLifecycleContext &ctx) {
         }
+
         virtual void reset(SceneLifecycleContext &ctx) {
         }
+
         virtual void destroy(SceneLifecycleContext &ctx) {
         }
 

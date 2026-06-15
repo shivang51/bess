@@ -41,13 +41,15 @@ namespace Bess::UI {
                 .format = Core::Renderer::Renderer2DTargetFormat::RG32Uint});
         m_pickingTexture->setSize({800.f, 600.f});
         m_pickingTexture->init();
+
+        m_camera = std::make_shared<Camera>(800.f, 600.f);
     }
 
     void SceneViewportPanel::update(TimeMs ts) {
         BESS_ASSERT(m_attachedScene,
                     "SceneViewportPanel must have an attached scene to update");
         if (m_isResized) {
-            m_attachedScene->resizeCamera(m_viewportSize);
+            m_camera->resize(m_viewportSize.x, m_viewportSize.y);
             if (m_sceneTexture) {
                 m_sceneTexture->setSize(m_viewportSize);
                 m_sceneTexture->destroy();
@@ -62,12 +64,20 @@ namespace Bess::UI {
             m_isResized = false;
         }
 
+        if (!m_isHovered) {
+            return;
+        }
+
         auto sceneDriver = GAppContext::getInstance()
                                .getSubSystem<Bess::ProjectContext>()
                                ->getSubSystem<SceneDriver>();
 
         if (!sceneDriver->getIsPaused()) {
-            m_attachedScene->update(ts, m_isHovered);
+            m_attachedScene->viewportUpdate(ts,
+                                            m_isHovered,
+                                            {m_viewportPos, m_viewportSize},
+                                            m_inputState,
+                                            m_pickingId);
             updateScene(ts);
         }
 
@@ -148,8 +158,7 @@ namespace Bess::UI {
 
         ImGui::PopStyleVar();
 
-        if (!scene->isHoveredEntityValid() &&
-            ImGui::BeginPopupContextWindow()) {
+        if (!m_pickingId.isValid() && ImGui::BeginPopupContextWindow()) {
             if (ImGui::MenuItem("Add Component", "Shift-A")) {
                 UI::UIMain::getPanel<ComponentExplorer>()->show();
             }
@@ -281,8 +290,7 @@ namespace Bess::UI {
         auto sceneDriver = GAppContext::getInstance()
                                .getSubSystem<Bess::ProjectContext>()
                                ->getSubSystem<SceneDriver>();
-        const auto &mousePos =
-            sceneDriver->getActiveScene()->getSceneMousePos();
+        const auto &mousePos = m_inputState.mousePos;
         const auto posLabel =
             std::format("Pos: ({:.2f}, {:.2f})", mousePos.x, mousePos.y);
 
@@ -329,7 +337,7 @@ namespace Bess::UI {
 
             // Recenter on click
             if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-                scene->focusCameraAt({0.f, 0.f}, false);
+                m_camera->focusAtPoint({0.f, 0.f}, false);
             }
         }
 
@@ -343,7 +351,7 @@ namespace Bess::UI {
             ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 8);
 
             ImGui::SetNextItemWidth(150.0f);
-            auto zoom = scene->getCameraZoom();
+            auto zoom = m_camera->getZoom();
             if (ImGui::SliderFloat("##Zoom",
                                    &zoom,
                                    Camera::zoomMin,
@@ -352,7 +360,7 @@ namespace Bess::UI {
                                    ImGuiSliderFlags_AlwaysClamp)) {
                 const float stepSize = 0.1f;
                 const float val = roundf(zoom / stepSize) * stepSize;
-                scene->setZoom(val);
+                m_camera->setZoom(val);
             }
             ImGui::PopStyleVar(2);
         }
@@ -377,7 +385,6 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::onSceneAttached() {
-        m_attachedScene->resizeCamera(m_viewportSize);
         m_rootToSceneStatePtrs.clear();
 
         // Very Important: to avoid circular intialization of mainpage,
@@ -421,5 +428,9 @@ namespace Bess::UI {
             "[SceneVewportPanel] Scene {} attached to viewport panel '{}'",
             (uint64_t)m_attachedScene->getState().getSceneId(),
             m_viewportName);
+    }
+
+    glm::vec2 SceneViewportPanel::getSceneMousePos() {
+        return m_camera->toWorldPos(m_inputState.mousePos);
     }
 } // namespace Bess::UI

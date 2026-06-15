@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bess_core/renderer/renderer_types.h"
 #include "common/bess_uuid.h"
 #include "common/types.h"
 #include "layers/screen_space_overlay_layer.h"
@@ -14,6 +15,16 @@
 
 namespace Bess::Canvas {
 
+    struct View2D {
+        std::shared_ptr<Camera> camera;
+        std::shared_ptr<Core::Renderer::IRenderer2D> renderer;
+        Core::Renderer::TextureHandle drawRenderTarget;
+        Core::Renderer::TextureHandle pickingRenderTarget;
+        ViewportTransform viewportTransform;
+        PickingId pickingId;
+        SceneInputState &inputState;
+    };
+
     class Scene {
       public:
         Scene();
@@ -27,7 +38,12 @@ namespace Bess::Canvas {
         void reset();
         void clear();
         void update(TimeMs ts, bool isFocused);
-        void draw(const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer);
+        void viewportUpdate(TimeMs ts,
+                            bool isFocused,
+                            const ViewportTransform &viewportTransform,
+                            SceneInputState &inputState,
+                            const PickingId &pickingId);
+        void draw(const View2D &view);
         void addScreenOverlayDrawCallback(ScreenOverlayDrawCallback callback);
         void clearScreenOverlayDrawCallbacks();
 
@@ -41,33 +57,6 @@ namespace Bess::Canvas {
 
         void addComponent(const std::shared_ptr<SceneComponent> &comp,
                           bool setZ = true);
-
-        void updateViewportTransform(const ViewportTransform &transform);
-
-        const ViewportTransform &getViewportTransform() const;
-
-        PickingId getHoveredEntity() const {
-            return m_pickingId;
-        }
-        void setPickingId(const PickingId &value);
-
-        const PickingReadbackRequest &getPickingReadbackRequest() const;
-
-        bool isDragging() const;
-        bool isLeftMousePressed() const;
-        bool isMiddleMousePressed() const;
-        SceneCursor consumeCursorRequest();
-
-        const glm::vec2 &getMousePos() const;
-        glm::vec2 getSceneMousePos();
-        const glm::vec2 &getCameraPos() const;
-        float getCameraZoom() const;
-        void setZoom(float value) const;
-        const glm::mat4 &getCameraTransform() const;
-        float *getCameraTransformData() const;
-        void resizeCamera(const glm::vec2 &size) const;
-        void panCamera(const glm::vec2 &delta) const;
-        void focusCameraAt(const glm::vec2 &pos, bool smooth = true) const;
 
         void setSceneMode(SceneMode mode);
         SceneMode getSceneMode() const;
@@ -84,24 +73,35 @@ namespace Bess::Canvas {
         void setIsSchematicView(bool value);
         void toggleSchematicView();
 
-        bool isHoveredEntityValid();
-
         void selectAllEntities();
         void focusCameraOnSelected();
         glm::vec2 toScenePos(const glm::vec2 &mousePos) const;
 
         float getNextZCoord();
 
-        bool dispatchEvent(SceneEvent &evt);
+        bool dispatchEvent(SceneEvent &evt,
+                           const ViewportTransform &viewportTransform,
+                           const PickingId &pickingId,
+                           SceneInputState &inputState);
 
-        void onLeftMouse(bool isPressed);
-        void onMiddleMouse(bool isPressed);
-        void onMouseMove(const glm::vec2 &pos);
-        void applySelectionReadback(const std::vector<PickingId> &ids);
-        void clearPickingReadbackRequest();
+        void onLeftMouse(bool isPressed,
+                         const ViewportTransform &viewportTransform,
+                         const PickingId &pickingId,
+                         SceneInputState &inputState);
+
+        void onMiddleMouse(bool isPressed,
+                           const ViewportTransform &viewportTransform,
+                           const PickingId &pickingId,
+                           SceneInputState &inputState);
+
+        void onMouseMove(const glm::vec2 &pos,
+                         const ViewportTransform &viewportTransform,
+                         const PickingId &pickingId,
+                         SceneInputState &inputState);
 
       private:
-        glm::vec2 getViewportMousePos(const glm::vec2 &mousePos) const;
+        glm::vec2 getViewportMousePos(const glm::vec2 &mousePos,
+                                      const glm::vec2 &viewportPos) const;
 
       private:
         glm::vec2 m_size;
@@ -109,10 +109,6 @@ namespace Bess::Canvas {
 
         SceneState m_state;
 
-        ViewportTransform m_viewportTransform;
-        SceneInputState m_inputState;
-
-        PickingId m_pickingId = PickingId::invalid();
         SceneMode m_sceneMode = SceneMode::general;
 
         static constexpr float m_zIncrement = 0.001f;

@@ -321,7 +321,7 @@ namespace Bess::Pages {
         auto projCtx =
             GAppContext::getInstance().getSubSystem<Bess::ProjectContext>();
         auto ctx = projCtx->getSubSystem<Svc::CopyPaste::Context>();
-        ctx->paste(m_state.getSceneDriver()->getActiveScene());
+        ctx->paste(m_state.getSceneDriver()->getActiveScene(), {0.f, 0.f});
     }
 
 } // namespace Bess::Pages

@@ -17,6 +17,14 @@ namespace Bess {
     void SceneDriver::onDestroy() {
     }
 
+    void SceneDriver::onUpdate(TimeMs ts) {
+        for (auto &scene : m_scenes) {
+            if (scene) {
+                scene->update(ts, scene == m_activeScene);
+            }
+        }
+    }
+
     std::shared_ptr<Canvas::Scene> SceneDriver::getActiveScene() const {
         return m_activeScene;
     }

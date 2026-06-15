@@ -1,6 +1,7 @@
 #include "scene/scene.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
+#include "common/types.h"
 #include "layers/components_layer.h"
 #include "layers/grid_layer.h"
 #include "layers/hover_layer.h"
@@ -14,13 +15,14 @@
 #include "scene/widgets/scene_widgets.h"
 #include "scene_event.h"
 #include "scene_layer.h"
+#include "scene_types.h"
+#include "settings/viewport_theme.h"
 #include "sub_systems/input_sub_system.h"
 #include "sub_systems/renderer_context.h"
 #include <cstdint>
 #include <gtc/type_ptr.hpp>
 #include <memory>
 #include <ranges>
-#include <unordered_set>
 #include <utility>
 
 namespace Bess::Canvas {
@@ -34,18 +36,25 @@ namespace Bess::Canvas {
         SceneLifecycleContext ctx;
         ctx.sceneState = &state;
         ctx.camera = camera;
-        ctx.viewportTransform = &viewportTransform;
+        ctx.viewportTransform = nullptr;
         ctx.inputState = &inputState;
         ctx.pickingId = &pickingId;
         ctx.renderer = renderer;
         return ctx;
     }
 
-    SceneUpdateContext makeUpdateContext(SceneState &state,
-                                         ViewportTransform &viewportTransform,
-                                         SceneInputState &inputState,
-                                         PickingId &pickingId) {
+    SceneUpdateContext makeUpdateContext(SceneState &state) {
         SceneUpdateContext ctx;
+        ctx.sceneState = &state;
+        return ctx;
+    }
+
+    SceneVpUpdateContext
+    makeVpUpdateContext(SceneState &state,
+                        const ViewportTransform &viewportTransform,
+                        SceneInputState &inputState,
+                        const PickingId &pickingId) {
+        SceneVpUpdateContext ctx;
         ctx.sceneState = &state;
         ctx.camera = nullptr;
         ctx.viewportTransform = &viewportTransform;
@@ -54,11 +63,12 @@ namespace Bess::Canvas {
         return ctx;
     }
 
-    SceneEventContext makeEventContext(SceneState &state,
-                                       const std::shared_ptr<Camera> &camera,
-                                       ViewportTransform &viewportTransform,
-                                       SceneInputState &inputState,
-                                       PickingId &pickingId) {
+    SceneEventContext
+    makeEventContext(SceneState &state,
+                     const std::shared_ptr<Camera> &camera,
+                     const ViewportTransform &viewportTransform,
+                     SceneInputState &inputState,
+                     const PickingId &pickingId) {
         SceneEventContext ctx;
         ctx.sceneState = &state;
         ctx.camera = camera;
@@ -71,9 +81,9 @@ namespace Bess::Canvas {
     SceneRenderContext makeRenderContext(
         SceneState &state,
         const std::shared_ptr<Camera> &camera,
-        ViewportTransform &viewportTransform,
+        const ViewportTransform &viewportTransform,
         SceneInputState &inputState,
-        PickingId &pickingId,
+        const PickingId &pickingId,
         const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer) {
         SceneRenderContext ctx;
         ctx.sceneState = &state;
@@ -108,13 +118,14 @@ namespace Bess::Canvas {
 
         SceneWidgets::clearScene(&m_state);
 
-        auto ctx = makeLifecycleContext(m_state,
-                                        m_camera,
-                                        m_viewportTransform,
-                                        m_inputState,
-                                        m_pickingId,
-                                        nullptr);
+        ViewportTransform transform;
+        PickingId pickingId = PickingId::invalid();
+        SceneInputState inputState;
+        auto ctx = makeLifecycleContext(
+            m_state, m_camera, transform, inputState, pickingId, nullptr);
+
         BESS_INFO("[Scene] Destroying {}", (uint64_t)m_state.getSceneId());
+
         for (auto &layer : m_sceneLayers) {
             layer->destroy(ctx);
         }
@@ -131,16 +142,19 @@ namespace Bess::Canvas {
         m_size = glm::vec2(800.f, 600.f);
         m_camera = std::make_shared<Camera>(m_size.x, m_size.y);
 
-        m_inputState.mousePos = {0.f, 0.f};
+        SceneInputState inputState;
+        inputState.mousePos = {0.f, 0.f};
 
         const auto &appCtx = Bess::GAppContext::getInstance();
 
+        ViewportTransform transform;
+        PickingId pickingId = PickingId::invalid();
         const auto &renderCtx = appCtx.getSubSystem<RendererContext>();
         auto ctx = makeLifecycleContext(m_state,
                                         m_camera,
-                                        m_viewportTransform,
-                                        m_inputState,
-                                        m_pickingId,
+                                        transform,
+                                        inputState,
+                                        pickingId,
                                         renderCtx->getRenderer());
 
         for (auto &layer : m_sceneLayers) {
@@ -156,61 +170,73 @@ namespace Bess::Canvas {
         SceneWidgets::clearScene(&m_state);
         m_state.clear();
         m_compZCoord = 1.f + m_zIncrement;
-        m_inputState.reset();
-        m_pickingId = PickingId::invalid();
     }
 
     void Scene::update(TimeMs ts, bool isFocused) {
+        m_frameTimeStep = ts;
+
+        auto ctx = makeUpdateContext(m_state);
+
+        for (auto &layer : m_sceneLayers) {
+            layer->update(ts, ctx);
+        }
+    }
+
+    void Scene::viewportUpdate(TimeMs ts,
+                               bool isFocused,
+                               const ViewportTransform &viewportTransform,
+                               SceneInputState &inputState,
+                               const PickingId &pickingId) {
         m_frameTimeStep = ts;
 
         std::vector<SceneEvent> events;
         if (isFocused) {
             auto inputSystem =
                 GAppContext::getInstance().getSubSystem<InputSubSystem>();
-            m_inputState.isCtrlPressed = inputSystem->isCtrlPressed();
-            m_inputState.isShiftPressed = inputSystem->isShiftPressed();
-            m_inputState.isAltPressed = inputSystem->isAltPressed();
+            inputState.isCtrlPressed = inputSystem->isCtrlPressed();
+            inputState.isShiftPressed = inputSystem->isShiftPressed();
+            inputState.isAltPressed = inputSystem->isAltPressed();
             events = SceneEventBuilder::buildFrameEvents(
-                *inputSystem, m_camera, m_viewportTransform);
+                *inputSystem, m_camera, viewportTransform);
         }
 
-        m_camera->update(ts);
-
-        auto ctx = makeUpdateContext(
-            m_state, m_viewportTransform, m_inputState, m_pickingId);
+        auto ctx = makeVpUpdateContext(
+            m_state, viewportTransform, inputState, pickingId);
 
         for (auto &evt : events) {
-            dispatchEvent(evt);
+            dispatchEvent(evt, viewportTransform, pickingId, inputState);
         }
 
         for (auto &layer : m_sceneLayers) {
-            layer->update(ts, ctx);
-        }
-
-        const auto &rootComps = m_state.getRootComponents();
-
-        for (const auto &compId : rootComps) {
-            auto comp = m_state.getComponentByUuid(compId);
-            if (comp) {
-                comp->update(ts, m_state);
-            }
+            layer->viewportUpdate(ts, ctx);
         }
     }
 
-    void
-    Scene::draw(const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer) {
+    void Scene::draw(const View2D &view) {
         auto ctx = makeRenderContext(m_state,
-                                     m_camera,
-                                     m_viewportTransform,
-                                     m_inputState,
-                                     m_pickingId,
-                                     renderer);
+                                     view.camera,
+                                     view.viewportTransform,
+                                     view.inputState,
+                                     view.pickingId,
+                                     view.renderer);
+
+        const auto &extent = view.viewportTransform.size;
+        view.renderer->beginFrame({
+            .extent = {(uint32_t)extent.x, (uint32_t)extent.y},
+            .clearColor = ViewportTheme::colors.background,
+            .shouldClear = true,
+            .targetTexture = view.drawRenderTarget,
+            .pickingTexture = view.pickingRenderTarget,
+            .cameraTransform = glm::value_ptr(view.camera->getTransform()),
+        });
 
         SceneWidgets::beginFrame(&m_state);
         for (auto &layer : m_sceneLayers) {
             layer->draw(ctx);
         }
         SceneWidgets::endFrame(&m_state);
+
+        ctx.renderer->endFrame();
     }
 
     void
@@ -262,8 +288,8 @@ namespace Bess::Canvas {
         m_size = size;
     }
 
-    glm::vec2 Scene::getViewportMousePos(const glm::vec2 &mousePos) const {
-        const auto &viewportPos = m_viewportTransform.pos;
+    glm::vec2 Scene::getViewportMousePos(const glm::vec2 &mousePos,
+                                         const glm::vec2 &viewportPos) const {
         auto x = mousePos.x - viewportPos.x;
         auto y = mousePos.y - viewportPos.y;
         return {x, y};
@@ -273,106 +299,58 @@ namespace Bess::Canvas {
         return m_camera->toWorldPos(mousePos);
     }
 
-    void Scene::onMouseMove(const glm::vec2 &pos) {
-        const auto viewportMousePos = getViewportMousePos(pos);
+    void Scene::onMouseMove(const glm::vec2 &pos,
+                            const ViewportTransform &viewportTransform,
+                            const PickingId &pickingId,
+                            SceneInputState &inputState) {
+        const auto viewportMousePos =
+            getViewportMousePos(pos, viewportTransform.pos);
         const auto scenePos = m_camera->toWorldPos(viewportMousePos);
 
         SceneEvent::Data data;
         data.mouseMove = {
             .pos = scenePos,
-            .delta = viewportMousePos - m_inputState.mousePos,
+            .delta = viewportMousePos - inputState.mousePos,
             .viewportPos = viewportMousePos,
         };
         SceneEvent evt{
             .type = SceneEvent::Type::mouseMove,
             .data = data,
-            .isCtrlPressed = m_inputState.isCtrlPressed,
-            .isShiftPressed = m_inputState.isShiftPressed,
-            .isAltPressed = m_inputState.isAltPressed,
+            .isCtrlPressed = inputState.isCtrlPressed,
+            .isShiftPressed = inputState.isShiftPressed,
+            .isAltPressed = inputState.isAltPressed,
         };
-        dispatchEvent(evt);
+        dispatchEvent(evt, viewportTransform, pickingId, inputState);
     }
 
-    void Scene::onMiddleMouse(bool isPressed) {
+    void Scene::onMiddleMouse(bool isPressed,
+                              const ViewportTransform &viewportTransform,
+                              const PickingId &pickingId,
+                              SceneInputState &inputState) {
         SceneEvent::Data data;
         data.mouseButton = {.button = MouseButton::middle,
                             .action = isPressed ? MouseButtonAction::press
                                                 : MouseButtonAction::release,
-                            .pos = toScenePos(m_inputState.mousePos)};
+                            .pos = toScenePos(inputState.mousePos)};
         SceneEvent evt{.type = SceneEvent::Type::mouseButton, .data = data};
-        dispatchEvent(evt);
+        dispatchEvent(evt, viewportTransform, pickingId, inputState);
     }
 
-    void Scene::onLeftMouse(bool isPressed) {
+    void Scene::onLeftMouse(bool isPressed,
+                            const ViewportTransform &viewportTransform,
+                            const PickingId &pickingId,
+                            SceneInputState &inputState) {
         SceneEvent::Data data;
         data.mouseButton = {.button = MouseButton::left,
                             .action = isPressed ? MouseButtonAction::press
                                                 : MouseButtonAction::release,
-                            .pos = toScenePos(m_inputState.mousePos)};
+                            .pos = toScenePos(inputState.mousePos)};
         SceneEvent evt{.type = SceneEvent::Type::mouseButton,
                        .data = data,
-                       .isCtrlPressed = m_inputState.isCtrlPressed,
-                       .isShiftPressed = m_inputState.isShiftPressed,
-                       .isAltPressed = m_inputState.isAltPressed};
-        dispatchEvent(evt);
-    }
-
-    const glm::vec2 &Scene::getCameraPos() const {
-        return m_camera->getPos();
-    }
-
-    bool Scene::isDragging() const {
-        return m_inputState.isDragging;
-    }
-
-    bool Scene::isLeftMousePressed() const {
-        return m_inputState.isLeftMousePressed;
-    }
-
-    bool Scene::isMiddleMousePressed() const {
-        return m_inputState.isMiddleMousePressed;
-    }
-
-    SceneCursor Scene::consumeCursorRequest() {
-        const auto cursor = m_inputState.cursor;
-        m_inputState.cursor = SceneCursor::inherit;
-        return cursor;
-    }
-
-    const glm::vec2 &Scene::getMousePos() const {
-        return m_inputState.mousePos;
-    }
-
-    glm::vec2 Scene::getSceneMousePos() {
-        return toScenePos(m_inputState.mousePos);
-    }
-
-    float Scene::getCameraZoom() const {
-        return m_camera->getZoom();
-    }
-
-    void Scene::setZoom(float value) const {
-        m_camera->setZoom(value);
-    }
-
-    const glm::mat4 &Scene::getCameraTransform() const {
-        return m_camera->getTransform();
-    }
-
-    float *Scene::getCameraTransformData() const {
-        return const_cast<float *>(glm::value_ptr(m_camera->getTransform()));
-    }
-
-    void Scene::resizeCamera(const glm::vec2 &size) const {
-        m_camera->resize(size.x, size.y);
-    }
-
-    void Scene::panCamera(const glm::vec2 &delta) const {
-        m_camera->incrementPos(delta);
-    }
-
-    void Scene::focusCameraAt(const glm::vec2 &pos, bool smooth) const {
-        m_camera->focusAtPoint(pos, smooth);
+                       .isCtrlPressed = inputState.isCtrlPressed,
+                       .isShiftPressed = inputState.isShiftPressed,
+                       .isAltPressed = inputState.isAltPressed};
+        dispatchEvent(evt, viewportTransform, pickingId, inputState);
     }
 
     float Scene::getNextZCoord() {
@@ -405,31 +383,22 @@ namespace Bess::Canvas {
         m_state.setIsSchematicView(!m_state.getIsSchematicView());
     }
 
-    bool Scene::isHoveredEntityValid() {
-        return m_pickingId.isValid();
-    }
-
-    void Scene::setPickingId(const PickingId &value) {
-        m_pickingId = value;
-    }
-
-    const PickingReadbackRequest &Scene::getPickingReadbackRequest() const {
-        return m_inputState.pickingReadbackRequest;
-    }
-
-    bool Scene::dispatchEvent(SceneEvent &evt) {
+    bool Scene::dispatchEvent(SceneEvent &evt,
+                              const ViewportTransform &viewportTransform,
+                              const PickingId &pickingId,
+                              SceneInputState &inputState) {
         if (evt.type == SceneEvent::Type::mouseMove && m_camera) {
             const auto &data = evt.data.mouseMove;
             m_state.setMousePos(data.pos);
-            m_inputState.dMousePos =
-                data.pos - m_camera->toWorldPos(m_inputState.mousePos);
-            m_inputState.mousePos = data.viewportPos;
+            inputState.dMousePos =
+                data.pos - m_camera->toWorldPos(inputState.mousePos);
+            inputState.mousePos = data.viewportPos;
         }
 
-        evt.pickingId = m_pickingId;
+        evt.pickingId = pickingId;
 
         auto ctx = makeEventContext(
-            m_state, m_camera, m_viewportTransform, m_inputState, m_pickingId);
+            m_state, m_camera, viewportTransform, inputState, pickingId);
 
         bool wasHandled = false;
         bool wasConsumed = false;
@@ -452,45 +421,12 @@ namespace Bess::Canvas {
         return wasHandled;
     }
 
-    void Scene::applySelectionReadback(const std::vector<PickingId> &ids) {
-        m_state.clearSelectedComponents();
-
-        std::unordered_set<uint32_t> selectedRuntimeIds;
-        for (const auto &id : ids) {
-            if (!id.isValid() || !id.isSelectable()) {
-                continue;
-            }
-            if (!selectedRuntimeIds.insert(id.runtimeId).second) {
-                continue;
-            }
-
-            const auto comp = m_state.getComponentByPickingId(id);
-            if (comp) {
-                m_state.addSelectedComponent(comp->getUuid());
-            }
-        }
-
-        clearPickingReadbackRequest();
-    }
-
-    void Scene::clearPickingReadbackRequest() {
-        m_inputState.pickingReadbackRequest = {};
-    }
-
     const SceneState &Scene::getState() const {
         return m_state;
     }
 
     SceneState &Scene::getState() {
         return m_state;
-    }
-
-    void Scene::updateViewportTransform(const ViewportTransform &transform) {
-        m_viewportTransform = transform;
-    }
-
-    const ViewportTransform &Scene::getViewportTransform() const {
-        return m_viewportTransform;
     }
 
     void Scene::focusCameraOnSelected() {

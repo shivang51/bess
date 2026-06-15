@@ -71,6 +71,7 @@ namespace Bess::Svc::CopyPaste {
 
     std::unordered_map<UUID, UUID>
     Context::paste(const std::shared_ptr<Canvas::Scene> &targetScene,
+                   const glm::vec2 &targetPos,
                    bool recordHistory) {
         if (m_entities.empty())
             return {};
@@ -82,13 +83,12 @@ namespace Bess::Svc::CopyPaste {
 
         auto macroCmd = std::make_unique<Cmd::MacroCommand>();
 
-        const auto &newCenter = targetScene->getSceneMousePos();
         std::vector<Svc::CopyPaste::CopiedEntity> connEntites;
 
         std::unordered_map<UUID, UUID> ogToClonedIdMap;
 
         for (auto &entity : m_entities) {
-            const auto pos = newCenter + entity.pos - m_center;
+            const auto pos = targetPos + entity.pos - m_center;
             if (entity.type == Canvas::SceneComponentType::simulation ||
                 entity.type == Canvas::SceneComponentType::module) {
                 const auto &entityData =

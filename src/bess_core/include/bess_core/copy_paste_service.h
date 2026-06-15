@@ -44,6 +44,7 @@ namespace Bess::Svc::CopyPaste {
         // Retruns og id to clone id map
         std::unordered_map<UUID, UUID>
         paste(const std::shared_ptr<Canvas::Scene> &scene,
+              const glm::vec2 &targetPos,
               bool recordHistory = true);
 
       private:

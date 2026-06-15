@@ -280,7 +280,8 @@ namespace Bess::Canvas {
         }
     }
 
-    void InteractionLayer::update(TimeMs ts, SceneUpdateContext &ctx) {
+    void InteractionLayer::viewportUpdate(TimeMs ts,
+                                          SceneVpUpdateContext &ctx) {
         if (!ctx.inputState || !ctx.viewportTransform) {
             return;
         }
@@ -339,4 +340,6 @@ namespace Bess::Canvas {
 
     void InteractionLayer::draw(SceneRenderContext &ctx) {
     }
+
+    void InteractionLayer::update(TimeMs ts, SceneUpdateContext &ctx) {};
 } // namespace Bess::Canvas

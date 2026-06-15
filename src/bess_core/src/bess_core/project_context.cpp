@@ -5,11 +5,24 @@
 #include "bess_core/scene_driver.h"
 #include "command_system.h"
 #include "common/logger.h"
+#include "common/sub_sys_container.h"
 #include "project_file.h"
 #include "simulation_engine.h"
 // #include "window.h"
 
 namespace Bess {
+    void ProjectContext::onBeginFrame() {
+        ISubSysContainer::beginFrame();
+    }
+
+    void ProjectContext::onEndFrame() {
+        ISubSysContainer::endFrame();
+    }
+
+    void ProjectContext::onUpdate(TimeMs ts) {
+        ISubSysContainer::update(ts);
+    }
+
     void ProjectContext::onInit() {
         addSubSystem<SceneDriver>();
         addSubSystem<SimEngine::SimulationEngine>();

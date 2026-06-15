@@ -109,10 +109,11 @@ namespace Bess::UI {
                                 GAppContext::getInstance()
                                     .getSubSystem<Bess::ProjectContext>()
                                     ->getSubSystem<SceneDriver>();
-                            const auto &pos =
-                                sceneDriver->getActiveScene()->getCameraPos();
+                            // FIXME: Camera Pos
+                            // const auto &pos =
+                            //     sceneDriver->getActiveScene()->getCameraPos();
 
-                            createComponent(comp, pos);
+                            createComponent(comp, {0.f, 0.f});
                             hide();
                         }
 
@@ -140,9 +141,10 @@ namespace Bess::UI {
                     auto sceneDriver = GAppContext::getInstance()
                                            .getSubSystem<Bess::ProjectContext>()
                                            ->getSubSystem<SceneDriver>();
-                    const auto &pos =
-                        sceneDriver->getActiveScene()->getCameraPos();
-                    createComponent(comp.first, pos);
+                    // FIXME: Camera Pos
+                    // const auto &pos =
+                    //     sceneDriver->getActiveScene()->getCameraPos();
+                    createComponent(comp.first, {0.f, 0.f});
                     hide();
                 }
             }

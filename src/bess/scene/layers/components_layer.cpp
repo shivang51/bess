@@ -6,6 +6,7 @@
 
 namespace Bess::Canvas {
     void ComponentsLayer::update(TimeMs ts, SceneUpdateContext &ctx) {
+
         for (const auto &compId : ctx.sceneState->getRootComponents()) {
             const auto comp = ctx.sceneState->getComponentByUuid(compId);
             comp->update(ts, *ctx.sceneState);

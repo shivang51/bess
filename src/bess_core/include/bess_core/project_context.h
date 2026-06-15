@@ -17,6 +17,12 @@ namespace Bess {
       public:
         ProjectContext() = default;
 
+        void onBeginFrame() override;
+
+        void onEndFrame() override;
+
+        void onUpdate(TimeMs ts) override;
+
         void onInit() override;
 
         void onDestroy() override;
