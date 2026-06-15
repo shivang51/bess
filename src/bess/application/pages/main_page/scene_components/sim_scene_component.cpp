@@ -104,55 +104,81 @@ fn aaWidth(fw: vec2f) -> f32 {
     return max(length(fw) * 0.5, 0.000001);
 }
 
-fn shadeTintedGlass(base: vec4f, localUv: vec2f, style: vec4f, headerColor: vec4f) -> vec4f {
+fn shadeTintedGlass(base: vec4f, localUv: vec2f, style: vec4f, headerColor: vec4f, isDark: bool) -> vec4f {
     let uv = clamp(localUv, vec2f(0.0), vec2f(1.0));
     let headerHeight = clamp(style.x, 0.0, 1.0);
     
     let centeredUv = abs((uv * 2.0) - vec2f(1.0));
     let edge = smoothstep(0.15, 1.0, max(centeredUv.x, centeredUv.y));
     let cornerGlow = smoothstep(0.20, 0.6, length(centeredUv));
-    let rimTint = vec3f(0.03, 0.03, 0.03); // Darker border frame for node contrast
+
+    // --- PROCEDURAL DESIGN REGIME TOKENS ---
+    var rimTint = vec3f(0.0);
+    var headerBase = vec3f(0.0);
+    var headerColorMul = 0.0;
+    var headerFalloffMul = 0.0;
+    var bodyBase = vec3f(0.0);
+    var bodyColorMul = 0.0;
+    var bodyBleed = 0.0;
+    var bodyShadow = 0.0;
+    var alphaMin = 0.0;
+    var alphaMax = 0.0;
+
+    if (isDark) {
+        rimTint           = vec3f(0.03); // Lightweight interior additive edge light
+        headerBase        = vec3f(0.010, 0.012, 0.014); // Deep slate canvas floor
+        headerColorMul    = 0.48;
+        headerFalloffMul  = 0.35; // Rich dark gradient attenuation
+        bodyBase          = max(base.rgb * 0.35, vec3f(0.018, 0.020, 0.024));
+        bodyColorMul      = 0.55;
+        bodyBleed         = 0.06;
+        bodyShadow        = 0.008; // Bottom structural anchor shade
+        alphaMin          = 0.62;
+        alphaMax          = 0.74;
+    } else {
+        rimTint           = vec3f(-0.06); // Negative coefficients translate to structural drop-vignettes
+        headerBase        = vec3f(0.95, 0.95, 0.96); // Clean, luminous bright background base
+        headerColorMul    = 0.88; // Keep headers vibrant and punchy
+        headerFalloffMul  = 0.92; // Extremely soft top-down shadow blend
+        bodyBase          = min(base.rgb * 1.02, vec3f(0.98, 0.98, 0.99)); // Crisp paper look
+        bodyColorMul      = 1.00;
+        bodyBleed         = 0.01; // Restrained color bleeding to prevent looking messy
+        bodyShadow        = 0.025; // Enhanced grounding ambient shadow profile
+        alphaMin          = 0.84; // Elevated opacity to shield underlying grids and keep text readable
+        alphaMax          = 0.94;
+    }
 
     let headerBlend = 1.0 - smoothstep(headerHeight - 0.02, headerHeight + 0.06, uv.y);
     
-    // --- HEADER ---
+    // --- HEADER SEGMENT ---
     let radialCenter = vec2f(0.5, 0.0);
     let radialDist = length(uv - radialCenter);
     let headerRadialGlow = smoothstep(0.85, 0.0, radialDist); 
     
     let topEdgeLight = smoothstep(0.025, 0.0, uv.y) * smoothstep(0.02, 0.08, uv.x) * smoothstep(0.98, 0.92, uv.x);
-    
     let headerVerticalFalloff = smoothstep(0.0, headerHeight, uv.y);
     
-    let headerDarkBase = vec3f(0.010, 0.012, 0.014); 
+    var headerRgb = mix(headerBase, headerColor.rgb * headerColorMul, headerRadialGlow);
+    headerRgb = mix(headerRgb, headerRgb * headerFalloffMul, headerVerticalFalloff);
     
-    var headerRgb = mix(headerDarkBase, headerColor.rgb * 0.48, headerRadialGlow);
-    
-    headerRgb = mix(headerRgb, headerRgb * 0.35, headerVerticalFalloff);
-    
+    // Specular reflections remain crisp and clean across light and dark profiles
     let specularColor = mix(vec3f(1.0), headerColor.rgb, 0.25);
     headerRgb += specularColor * 0.45 * topEdgeLight;
-    
     headerRgb += headerColor.rgb * 0.12 * headerRadialGlow * (1.0 - headerVerticalFalloff);
 
-    // --- BODY ---
+    // --- BODY SEGMENT ---
     let bodyTopGlow = smoothstep(headerHeight + 0.30, headerHeight, uv.y);
     let bodyBottomShadow = smoothstep(0.75, 1.0, uv.y);
-    let bodyBase = max(base.rgb * 0.35, vec3f(0.018, 0.020, 0.024));
     
-    var bodyRgb = mix(bodyBase, base.rgb * 0.55, 0.22); 
-    
-    let bodyRadialBleed = smoothstep(0.85, 0.0, length(uv - vec2f(0.5, headerHeight * 0.5)));
-    bodyRgb += headerColor.rgb * 0.06 * bodyTopGlow * bodyRadialBleed; 
-    bodyRgb -= vec3f(bodyBottomShadow * 0.008);
+    var bodyRgb = mix(bodyBase, base.rgb * bodyColorMul, 0.22); 
+    bodyRgb += headerColor.rgb * bodyBleed * bodyTopGlow; 
+    bodyRgb -= vec3f(bodyBottomShadow * bodyShadow);
 
+    // --- FINAL LAYER COMPOSITING ---
     var finalRgb = mix(bodyRgb, headerRgb, headerBlend);
-
     finalRgb += rimTint * ((edge * 0.055) + (cornerGlow * 0.020));
 
-    // Keep the glass layer translucent enough for the grid and lower-z
-    // primitives to remain visible behind the component.
-    let alpha = base.a * mix(0.62, 0.74, headerBlend);
+    let alpha = base.a * mix(alphaMin, alphaMax, headerBlend);
     return vec4f(clamp(finalRgb, vec3f(0.0), vec3f(1.0)), alpha);
 }
 
@@ -167,9 +193,10 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
         discard;
     }
 
-		let isDark = in.data3.y > 0.5;
+    // Capture the runtime environment flag safely 
+    let isDark = in.data3.y > 0.5;
 
-		let borderSizeIn = vec4f(in.data0.z);
+    let borderSizeIn = vec4f(in.data0.z);
     let borderSize = clamp(borderSizeIn, vec4f(0.0),
                            vec4f(halfSize.y, halfSize.x, halfSize.y, halfSize.x));
     let border = max(max(borderSize.x, borderSize.y),
@@ -177,7 +204,8 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
     let borderWidth = borderWidthForPoint(p, halfSize, in.data0, borderSize);
     let borderMask = smoothstep(-borderWidth - aa, -borderWidth + aa, outerDistance);
 
-    var color = shadeTintedGlass(in.color, in.local_uv, in.data3, in.data1);
+    // FIXED: Passed runtime context down to the rendering pipeline
+    var color = shadeTintedGlass(in.color, in.local_uv, in.data3, in.data1, isDark);
 
     if (border > 0.0) {
         color = mix(color, in.data2, borderMask);
@@ -186,10 +214,10 @@ fn shadeQuad(in: CustomQuadFragmentInput, fw: vec2f) -> vec4f {
     return color;
 }
 
-  fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
-			let fw_local_px = fwidth(in.local_pos);
-			return shadeQuad(in, fw_local_px);
-  }
+fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
+    let fw_local_px = fwidth(in.local_pos);
+    return shadeQuad(in, fw_local_px);
+}
 	)";
 
             s_nodeShader =
