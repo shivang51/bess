@@ -4,7 +4,7 @@
 #include "bess_core/scene_driver.h"
 #include "common/bess_uuid.h"
 #include "dig_sim_driver.h"
-#include "icons/CodIcons.h"
+#include "icons/CodIcons_Remapped.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/main_page.h"

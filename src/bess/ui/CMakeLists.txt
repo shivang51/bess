@@ -3,10 +3,10 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(Header_Files
-	"icons/ComponentIcons.h"
-	"icons/CodIcons.h"
-	"icons/FontAwesomeIcons.h"
-	"icons/MaterialIcons.h"
+	"icons/ComponentIcons_Remapped.h"
+	"icons/CodIcons_Remapped.h"
+	"icons/FontAwesomeIcons_Remapped.h"
+	"icons/MaterialIcons_Remapped.h"
 	"widgets/m_widgets.h"
 	"ui.h"
 	"ui_hook.h"

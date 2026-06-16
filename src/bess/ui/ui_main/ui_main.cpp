@@ -8,7 +8,7 @@
 #include "pages/main_page/main_page.h"
 #include "simulation_engine.h"
 #include "stb_image_write.h"
-#include "ui/icons/CodIcons.h"
+#include "ui/icons/CodIcons_Remapped.h"
 #include "ui/ui_main/log_window.h"
 #include "ui/ui_main/scene_export_window.h"
 #include "ui/widgets/m_widgets.h"
@@ -16,7 +16,7 @@
 
 #include "dock_ids.h"
 #include "pages/main_page/main_page_state.h"
-#include "ui/icons/FontAwesomeIcons.h"
+#include "ui/icons/FontAwesomeIcons_Remapped.h"
 #include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/dialogs.h"
 #include "ui/ui_main/graph_view_window.h"

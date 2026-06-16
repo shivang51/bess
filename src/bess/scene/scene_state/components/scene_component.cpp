@@ -7,7 +7,7 @@
 #include "scene/scene_state/components/styles/comp_style.h"
 #include "scene/scene_state/scene_state.h"
 #include "scene_draw_context.h"
-#include "ui/icons/FontAwesomeIcons.h"
+#include "ui/icons/FontAwesomeIcons_Remapped.h"
 
 namespace Bess::Canvas {
     SceneComponent::SceneComponent()

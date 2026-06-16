@@ -5,13 +5,13 @@
 #include "imgui_impl_wgpu.h"
 #include "pages/main_page/main_page.h"
 #include "sub_systems/renderer_context.h"
-#include "ui/icons/CodIcons.h"
-#include "ui/icons/ComponentIcons.h"
-#include "ui/icons/FontAwesomeIcons.h"
+#include "ui/icons/CodIcons_Remapped.h"
+#include "ui/icons/ComponentIcons_Remapped.h"
+#include "ui/icons/FontAwesomeIcons_Remapped.h"
 
 #include "application/assets.h"
 #include "application/settings/settings.h"
-#include "ui/icons/MaterialIcons.h"
+#include "ui/icons/MaterialIcons_Remapped.h"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"

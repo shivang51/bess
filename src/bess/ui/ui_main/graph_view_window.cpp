@@ -9,7 +9,7 @@
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/slot_probe_scene_component.h"
 
-#include "ui/icons/CodIcons.h"
+#include "ui/icons/CodIcons_Remapped.h"
 #include "ui/widgets/m_widgets.h"
 
 namespace Bess::UI {

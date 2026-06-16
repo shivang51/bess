@@ -13,7 +13,7 @@
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "services/plugin_service/plugin_service.h"
 #include "sim_driver/sim_driver.h"
-#include "ui/icons/CodIcons.h"
+#include "ui/icons/CodIcons_Remapped.h"
 #include "ui/widgets/m_widgets.h"
 #include "ui_main/ui_main.h"
 #include <utility>

@@ -7,7 +7,7 @@
 #include "common/bess_uuid.h"
 #include "dig_module_def.h"
 #include "dig_sim_driver.h"
-#include "icons/FontAwesomeIcons.h"
+#include "icons/FontAwesomeIcons_Remapped.h"
 #include "pages/main_page/cmds/module_comp_cmd.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"

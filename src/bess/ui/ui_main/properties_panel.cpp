@@ -8,7 +8,7 @@
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "simulation_engine.h"
-#include "ui/icons/CodIcons.h"
+#include "ui/icons/CodIcons_Remapped.h"
 #include "ui/widgets/m_widgets.h"
 #include <imgui.h>
 

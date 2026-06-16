@@ -9,13 +9,13 @@ namespace Bess::Assets {
         constexpr auto alexBrush = AssetID<std::string, 1>(
             "assets/fonts/AlexBrush/AlexBrush-Regular.ttf");
         constexpr auto componentIcons =
-            AssetID<std::string, 1>("assets/fonts/icons/ComponentIcons.ttf");
+            AssetID<std::string, 1>("assets/bess_fonts/ComponentIcons_remapped.ttf");
         constexpr auto codeIcons =
-            AssetID<std::string, 1>("assets/fonts/icons/codicon.ttf");
+            AssetID<std::string, 1>("assets/bess_fonts/CodIcons_remapped.ttf");
         constexpr auto materialIcons = AssetID<std::string, 1>(
-            "assets/fonts/icons/MaterialIcons-Regular.ttf");
+            "assets/bess_fonts/MaterialIcons_remapped.ttf");
         constexpr auto fontAwesomeIcons = AssetID<std::string, 1>(
-            "assets/fonts/icons/Font-Awesome-7-Free-Regular-400.otf");
+            "assets/bess_fonts/FontAwesomeIcons_remapped.ttf");
     } // namespace Fonts::Paths
 
     namespace Textures {

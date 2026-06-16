@@ -12,7 +12,7 @@
 #include "scene/scene_draw_helpers.h"
 #include "settings/viewport_theme.h"
 #include "sub_systems/renderer_context.h"
-#include "ui/icons/FontAwesomeIcons.h"
+#include "ui/icons/FontAwesomeIcons_Remapped.h"
 #include "ui/ui_main/dialogs.h"
 #include "ui/widgets/m_widgets.h"
 

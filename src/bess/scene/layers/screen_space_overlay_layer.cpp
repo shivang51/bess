@@ -5,6 +5,8 @@
 #include "ext/vector_float2.hpp"
 #include "scene/widgets/scene_widgets.h"
 #include "settings/viewport_theme.h"
+#include "ui/icons/CodIcons_Remapped.h"
+#include "ui/icons/FontAwesomeIcons_Remapped.h"
 
 #include <utility>
 
@@ -25,9 +27,13 @@ namespace Bess::Canvas {
 
             // aligns the text to the right, padding the left side with spaces
             const std::string xText =
-                std::format("X: {:>9.2f}", mouseWorldPos.x);
+                std::format("{} {:>9.2f}",
+                            UI::Icons::FontAwesomeIcons::FA_X,
+                            mouseWorldPos.x);
             const std::string yText =
-                std::format("    Y: {:>9.2f}", mouseWorldPos.y);
+                std::format("{} {:>9.2f}",
+                            UI::Icons::FontAwesomeIcons::FA_Y,
+                            mouseWorldPos.y);
 
             const auto textOffY = ctx.renderer->textCenterOffsetY(
                 xText,
@@ -88,7 +94,7 @@ namespace Bess::Canvas {
             ctx.renderer->drawFont(
                 yText,
                 {
-                    .position = {quadPos.x, textPos.y},
+                    .position = {quadPos.x + 24.f, textPos.y},
                     .fontSize = fontSize,
                     .color = ViewportTheme::sceneWidgetsColors.text,
                     .zIndex = 1000.1,
@@ -103,10 +109,10 @@ namespace Bess::Canvas {
                              const glm::vec2 &bottomRight) {
             constexpr glm::vec2 textSize =
                 Core::Renderer::IRenderer2D::getTextRenderSize(
-                    "Zoom: 0.00x", {.fontSize = fontSize});
+                    "0.00x ZZ", {.fontSize = fontSize});
 
             const std::string zoomText =
-                std::format("Zoom: {:.2f}x", ctx.camera->getZoom());
+                std::format("{:.2f}x", ctx.camera->getZoom());
 
             const auto textOffY = ctx.renderer->textCenterOffsetY(
                 zoomText,
@@ -139,6 +145,18 @@ namespace Bess::Canvas {
                 zoomText,
                 {
                     .position = {textPos.x, textPos.y},
+                    .fontSize = fontSize,
+                    .color = ViewportTheme::sceneWidgetsColors.text,
+                    .zIndex = 1000.1,
+                    .transformMode =
+                        Core::Renderer::RenderTransformMode::Screen,
+                });
+
+            ctx.renderer->drawFont(
+                std::format(" {}", UI::Icons::CodIcons::ZOOM_IN),
+                {
+                    .position = {textPos.x + (textSize.x / 2.f) + 8.f,
+                                 textPos.y + 2.f},
                     .fontSize = fontSize,
                     .color = ViewportTheme::sceneWidgetsColors.text,
                     .zIndex = 1000.1,

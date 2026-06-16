@@ -1,7 +1,7 @@
 #include "non_sim_scene_component.h"
 #include "bess_core/renderer/renderer_2d.h"
 #include "gtc/type_ptr.hpp"
-#include "icons/FontAwesomeIcons.h"
+#include "icons/FontAwesomeIcons_Remapped.h"
 #include "scene/scene_draw_helpers.h"
 #include "scene/scene_state/components/styles/comp_style.h"
 #include "scene/widgets/scene_widgets.h"

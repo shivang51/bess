@@ -101,7 +101,6 @@ namespace Bess::Core::Renderer {
                 }
 
                 m_glyphs[glyph.codepoint] = glyph;
-                m_glyphTable[glyph.codepoint] = glyph;
             }
 
             BESS_DEBUG("Loaded MSDF font with {} glyphs from {}",
@@ -119,9 +118,8 @@ namespace Bess::Core::Renderer {
 
         [[nodiscard]] const MsdfGlyph *
         findGlyph(uint32_t codepoint) const noexcept {
-            // Temp: Will use max and min range to map to correct index inside
-            // the table latter.
-            return &m_glyphTable[codepoint];
+            auto it = m_glyphs.find(codepoint);
+            return it != m_glyphs.end() ? &it->second : nullptr;
         }
 
         [[nodiscard]] std::shared_ptr<TTexture> getTexture() const {
@@ -144,7 +142,6 @@ namespace Bess::Core::Renderer {
       private:
         std::shared_ptr<TTexture> m_texture;
         std::unordered_map<uint32_t, MsdfGlyph> m_glyphs;
-        std::array<MsdfGlyph, 256> m_glyphTable;
         glm::vec2 m_atlasSize{1.f};
         float m_fontSize = 32.f;
         float m_pxRange = 4.f;

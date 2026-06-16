@@ -64,9 +64,8 @@ namespace Bess::Wgpu {
             wgpu::TextureFormat::Depth24PlusStencil8;
         constexpr const char *kDefaultFontFile =
             "assets/fonts/Roboto/Roboto-Regular.ttf";
-        constexpr const char *kDefaultMsdfFontDirectory =
-            "assets/fonts/Roboto/msdf-Roboto-Regular-32";
-        constexpr const char *kDefaultMsdfFontName = "Roboto-Regular";
+        constexpr const char *kDefaultMsdfFontDirectory = "assets/bess_fonts";
+        constexpr const char *kDefaultMsdfFontName = "bess_fonts_merged";
         constexpr float kFontOutlinePixelSize = 64.f;
         constexpr uint64_t kPathCacheMaxIdleFrames = 240;
         constexpr std::size_t kPathCachePruneThreshold = 512;

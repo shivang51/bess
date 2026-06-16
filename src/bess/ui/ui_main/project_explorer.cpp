@@ -5,7 +5,7 @@
 #include "common/bess_uuid.h"
 #include "common/helpers.h"
 #include "common/logger.h"
-#include "icons/FontAwesomeIcons.h"
+#include "icons/FontAwesomeIcons_Remapped.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/cmds/add_comp_cmd.h"
@@ -15,7 +15,7 @@
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
-#include "ui/icons/CodIcons.h"
+#include "ui/icons/CodIcons_Remapped.h"
 #include "ui/widgets/m_widgets.h"
 #include <cstdint>
 #include <memory>

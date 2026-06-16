@@ -5,7 +5,7 @@
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/renderer/renderer_types.h"
 #include "common/bess_uuid.h"
-#include "icons/FontAwesomeIcons.h"
+#include "icons/FontAwesomeIcons_Remapped.h"
 #include "input_scene_component.h"
 #include "scene/scene_draw_helpers.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -320,7 +320,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
 
         // component name
         SceneDraw::drawText(context,
-                            m_name,
+                            std::format("{} {}", m_icon, m_name),
                             textPos,
                             Styles::simCompStyles.headerFontSize,
                             ViewportTheme::colors.text,
