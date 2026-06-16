@@ -49,6 +49,11 @@ namespace Bess::UI {
             return;
         }
 
+        if (m_updateAttachedScene) {
+            setAttachedScene(m_updateAttachedScene);
+            m_updateAttachedScene = nullptr;
+        }
+
         if (m_isResized) {
             m_camera->resize(m_viewportSize.x, m_viewportSize.y);
             if (m_sceneTexture) {

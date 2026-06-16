@@ -1,6 +1,9 @@
 #include "screen_space_overlay_layer.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/project_context.h"
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/renderer/renderer_types.h"
+#include "bess_core/scene_driver.h"
 #include "common/types.h"
 #include "ext/vector_float2.hpp"
 #include "scene/widgets/scene_widgets.h"
@@ -8,6 +11,7 @@
 #include "ui/icons/CodIcons_Remapped.h"
 #include "ui/icons/FontAwesomeIcons_Remapped.h"
 
+#include <cstdint>
 #include <utility>
 
 namespace Bess::Canvas {
@@ -167,9 +171,9 @@ namespace Bess::Canvas {
             return quadSize.x + padding;
         }
 
-        void drawSchematicToggle(SceneDrawContext &drawCtx,
-                                 SceneRenderContext &ctx,
-                                 const glm::vec2 &topLeft) {
+        glm::vec2 drawSchematicToggle(SceneDrawContext &drawCtx,
+                                      SceneRenderContext &ctx,
+                                      const glm::vec2 &topLeft) {
             BESS_ASSERT(ctx.isSchematicMode, "isSchematicMode pointer is null");
 
             static constexpr std::string_view label = "Schematic View";
@@ -229,6 +233,141 @@ namespace Bess::Canvas {
                                        },
                                        {28.f, 16.f},
                                        drawCtx);
+
+            return boxPos + glm::vec2{boxSize.x / 2.f, 0.f};
+        }
+
+        void drawSceneControls(SceneDrawContext &drawCtx,
+                               SceneRenderContext &ctx,
+                               const glm::vec2 &offset) {
+
+            constexpr std::string_view rootLabel = "Root";
+            constexpr glm::vec2 textSize =
+                Core::Renderer::IRenderer2D::getTextRenderSize(
+                    rootLabel, {.fontSize = fontSize});
+
+            const float textOffY =
+                ctx.renderer->textCenterOffsetY("Root",
+                                                {
+                                                    .fontSize = fontSize,
+                                                });
+
+            glm::vec2 cursor = offset + glm::vec2{padding + 16.f, 0.f};
+
+            if (ctx.sceneState->getIsRootScene()) {
+                ctx.renderer->drawFont(
+                    rootLabel,
+                    {
+                        .position = {cursor.x, cursor.y + textOffY},
+                        .fontSize = fontSize,
+                        .color = ViewportTheme::sceneWidgetsColors.textMuted,
+                        .zIndex = 1000.1,
+                        .transformMode =
+                            Core::Renderer::RenderTransformMode::Screen,
+                    });
+
+                return;
+            }
+
+            const auto &appCtx = GAppContext::getInstance();
+            const auto &sceneDriver = appCtx.getSubSystem<ProjectContext>()
+                                          ->getSubSystem<SceneDriver>();
+
+            uint32_t btnId = 2;
+
+            const auto drawSceneButton = [&](const SceneState *state,
+                                             const SceneState *parentState) {
+                BESS_ASSERT(state, "SceneState pointer is null");
+
+                const auto sceneId = state->getSceneId();
+                std::string sceneName = "Root";
+
+                if (parentState) {
+                    const auto moduleComp =
+                        parentState->getComponentByUuid(state->getModuleId());
+                    BESS_ASSERT(moduleComp,
+                                "Module component not found for scene {}",
+                                (uint64_t)state->getSceneId());
+                    if (moduleComp) {
+                        sceneName = moduleComp->getName();
+                    }
+                }
+
+                const auto buttonSize = ctx.renderer->measureText(
+                                            sceneName, {.fontSize = fontSize}) +
+                                        glm::vec2{padding * 2.f, padding * 2.f};
+
+                const auto buttonPos = glm::vec3(
+                    cursor.x + (buttonSize.x / 2.f), cursor.y, 1000.1f);
+
+                if (SceneWidgets::button(
+                        PickingId::forWidget(btnId++),
+                        sceneName,
+                        buttonPos,
+                        drawCtx,
+                        {
+                            .textSize = fontSize,
+                            .buttonSize = buttonSize,
+                            .padding = glm::vec2{padding},
+                            .borderThickness = glm::vec4(0.f),
+                            .borderRadius = glm::vec4(8.f),
+                            .backgroundColor = ViewportTheme::sceneWidgetsColors
+                                                   .surface.withAlpha(0.25f),
+                        })) {
+                    sceneDriver->setActiveScene(sceneId);
+                }
+
+                cursor.x += buttonSize.x + padding;
+
+                ctx.renderer->drawFont(
+                    UI::Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT,
+                    {
+                        .position = {cursor.x, cursor.y + textOffY},
+                        .fontSize = fontSize,
+                        .color = ViewportTheme::sceneWidgetsColors.textMuted,
+                        .zIndex = 1000.1,
+                        .transformMode =
+                            Core::Renderer::RenderTransformMode::Screen,
+                    });
+
+                cursor.x += padding * 2.f;
+            };
+
+            const std::function<void(const SceneState *, bool)> drawSceneBtns =
+                [&](const SceneState *state, bool isLeaf) {
+                    if (!state)
+                        return;
+
+                    const auto parentSceneId = state->getParentSceneId();
+                    auto parentScene =
+                        sceneDriver->getSceneWithId(parentSceneId);
+
+                    drawSceneBtns(parentScene ? &parentScene->getState()
+                                              : nullptr,
+                                  false);
+
+                    if (!isLeaf) {
+                        drawSceneButton(state,
+                                        parentScene ? &parentScene->getState()
+                                                    : nullptr);
+
+                        return;
+                    }
+
+                    ctx.renderer->drawFont(
+                        "Leaf",
+                        {
+                            .position = {cursor.x, cursor.y + textOffY},
+                            .fontSize = fontSize,
+                            .color =
+                                ViewportTheme::sceneWidgetsColors.textMuted,
+                            .zIndex = 1000.1,
+                            .transformMode =
+                                Core::Renderer::RenderTransformMode::Screen,
+                        });
+                };
+
+            drawSceneBtns(ctx.sceneState, true);
         }
     } // namespace
 
@@ -258,7 +397,8 @@ namespace Bess::Canvas {
         bottomRight.x -= xOffset;
         drawCameraPos(drawCtx, ctx, bottomRight);
 
-        drawSchematicToggle(drawCtx, ctx, topLeft);
+        const auto off = drawSchematicToggle(drawCtx, ctx, topLeft);
+        drawSceneControls(drawCtx, ctx, off);
     }
 
     void ScreenSpaceOverlayLayer::reset(SceneLifecycleContext &ctx) {

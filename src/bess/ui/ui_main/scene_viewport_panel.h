@@ -48,6 +48,9 @@ namespace Bess::UI {
         MAKE_GETTER(PickingId, PickingId, m_pickingId)
 
         MAKE_GETTER_SETTER(bool, IsSchematicView, m_isSchematicView)
+        MAKE_GETTER_SETTER(std::shared_ptr<Canvas::Scene>,
+                           UpdateAttachedScene,
+                           m_updateAttachedScene)
 
       private:
         void updateScene(TimeMs ts);
@@ -107,6 +110,7 @@ namespace Bess::UI {
         PickingId m_pickingId = PickingId::invalid();
         Canvas::SceneInputState m_inputState;
         std::shared_ptr<Canvas::Scene> m_attachedScene;
+        std::shared_ptr<Canvas::Scene> m_updateAttachedScene = nullptr;
         std::shared_ptr<Core::Renderer::ITexture> m_sceneTexture = nullptr;
         std::shared_ptr<Core::Renderer::ITexture> m_pickingTexture = nullptr;
         std::shared_ptr<Camera> m_camera = nullptr;
