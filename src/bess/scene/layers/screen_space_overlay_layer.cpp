@@ -170,6 +170,65 @@ namespace Bess::Canvas {
         void drawSchematicToggle(SceneDrawContext &drawCtx,
                                  SceneRenderContext &ctx,
                                  const glm::vec2 &topLeft) {
+            BESS_ASSERT(ctx.isSchematicMode, "isSchematicMode pointer is null");
+
+            static constexpr std::string_view label = "Schematic View";
+            static constexpr glm::vec2 textSize =
+                Core::Renderer::IRenderer2D::getTextRenderSize(
+                    label, {.fontSize = fontSize});
+            static constexpr float toggleWidth = 28.f;
+            static constexpr float gapX = 8.f;
+            static constexpr glm::vec2 boxSize =
+                textSize + glm::vec2{padding * 2.f, padding * 2.f} +
+                glm::vec2{toggleWidth + gapX, 0.f};
+
+            const auto textOffY = ctx.renderer->textCenterOffsetY(
+                label,
+                {
+                    .fontSize = fontSize,
+                    .transformMode =
+                        Core::Renderer::RenderTransformMode::Screen,
+                });
+
+            const glm::vec2 boxPos = {
+                topLeft.x + (boxSize.x / 2.f),
+                topLeft.y + (boxSize.y / 2.f),
+            };
+
+            ctx.renderer->drawQuad({
+                .position = boxPos,
+                .size = boxSize,
+                .zIndex = 1000,
+                .color =
+                    ViewportTheme::sceneWidgetsColors.surface.withAlpha(0.5f),
+                .transformMode = Core::Renderer::RenderTransformMode::Screen,
+                .radius = glm::vec4(8.f),
+                .shadow = {.enabled = true},
+            });
+
+            const auto left = boxPos.x - (boxSize.x / 2.f) + padding;
+            const auto yPos = boxPos.y;
+
+            ctx.renderer->drawFont(
+                label,
+                {
+                    .position = {left, yPos + textOffY},
+                    .fontSize = fontSize,
+                    .color = ViewportTheme::sceneWidgetsColors.text,
+                    .zIndex = 1000.1,
+                    .transformMode =
+                        Core::Renderer::RenderTransformMode::Screen,
+                });
+
+            SceneWidgets::toggleButton(PickingId::forWidget(1),
+                                       ctx.isSchematicMode,
+                                       {
+                                           left + textSize.x + gapX,
+                                           yPos,
+                                           1000.1,
+                                       },
+                                       {28.f, 16.f},
+                                       drawCtx);
         }
     } // namespace
 

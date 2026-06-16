@@ -26,8 +26,9 @@ namespace Bess::Canvas {
 
     void OverlayLayer::drawGhostConnection(SceneDrawContext &drawCtx,
                                            SceneRenderContext &ctx) const {
+
         if (ctx.sceneState->getConnectionStartSlot() == UUID::null ||
-            !ctx.inputState) {
+            !ctx.inputState || !ctx.isInFocusedViewport) {
             return;
         }
 
@@ -42,10 +43,10 @@ namespace Bess::Canvas {
         if (comp->getType() == Canvas::SceneComponentType::slot) {
             startPos =
                 comp->cast<Canvas::SlotSceneComponent>()->getConnectionPos(
-                    *ctx.sceneState, ctx.isSchematicMode);
+                    *ctx.sceneState, drawCtx.isSchematicMode);
         } else {
-            startPos =
-                comp->getAbsolutePosition(*ctx.sceneState, ctx.isSchematicMode);
+            startPos = comp->getAbsolutePosition(*drawCtx.sceneState,
+                                                 drawCtx.isSchematicMode);
         }
 
         const auto endPos = ctx.camera->toWorldPos(ctx.inputState->mousePos);

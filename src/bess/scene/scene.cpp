@@ -32,7 +32,8 @@ namespace Bess::Canvas {
         ViewportTransform &viewportTransform,
         SceneInputState &inputState,
         PickingId &pickingId,
-        const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer) {
+        const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer,
+        bool *isSchematicMode) {
         SceneLifecycleContext ctx;
         ctx.sceneState = &state;
         ctx.camera = camera;
@@ -40,6 +41,7 @@ namespace Bess::Canvas {
         ctx.inputState = &inputState;
         ctx.pickingId = &pickingId;
         ctx.renderer = renderer;
+        ctx.isSchematicMode = isSchematicMode;
         return ctx;
     }
 
@@ -90,7 +92,8 @@ namespace Bess::Canvas {
         SceneInputState &inputState,
         const PickingId &pickingId,
         const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer,
-        bool isSchematicMode) {
+        bool *isSchematicMode,
+        bool isFocusedViewport) {
         SceneRenderContext ctx;
         ctx.sceneState = &state;
         ctx.camera = camera;
@@ -99,6 +102,7 @@ namespace Bess::Canvas {
         ctx.pickingId = &pickingId;
         ctx.renderer = renderer;
         ctx.isSchematicMode = isSchematicMode;
+        ctx.isInFocusedViewport = isFocusedViewport;
         return ctx;
     }
 
@@ -128,8 +132,13 @@ namespace Bess::Canvas {
         ViewportTransform transform;
         PickingId pickingId = PickingId::invalid();
         SceneInputState inputState;
-        auto ctx = makeLifecycleContext(
-            m_state, m_camera, transform, inputState, pickingId, nullptr);
+        auto ctx = makeLifecycleContext(m_state,
+                                        m_camera,
+                                        transform,
+                                        inputState,
+                                        pickingId,
+                                        nullptr,
+                                        nullptr);
 
         BESS_INFO("[Scene] Destroying {}", (uint64_t)m_state.getSceneId());
 
@@ -157,12 +166,14 @@ namespace Bess::Canvas {
         ViewportTransform transform;
         PickingId pickingId = PickingId::invalid();
         const auto &renderCtx = appCtx.getSubSystem<RendererContext>();
+        bool isSchematicMode = false;
         auto ctx = makeLifecycleContext(m_state,
                                         m_camera,
                                         transform,
                                         inputState,
                                         pickingId,
-                                        renderCtx->getRenderer());
+                                        renderCtx->getRenderer(),
+                                        nullptr);
 
         for (auto &layer : m_sceneLayers) {
             layer->reset(ctx);
@@ -232,7 +243,8 @@ namespace Bess::Canvas {
                                      view.inputState,
                                      view.pickingId,
                                      view.renderer,
-                                     view.isSchematicMode);
+                                     view.isSchematicMode,
+                                     view.isViewportFocused);
 
         ctx.viewportId = view.viewportId;
 

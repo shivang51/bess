@@ -258,7 +258,8 @@ namespace Bess::UI {
             .pickingId = m_pickingId,
             .inputState = m_inputState,
             .viewportId = m_viewportId,
-            .isSchematicMode = m_isSchematicView,
+            .isSchematicMode = &m_isSchematicView,
+            .isViewportFocused = m_isHovered,
         };
 
         m_attachedScene->draw(view);

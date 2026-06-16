@@ -24,7 +24,8 @@ namespace Bess::Canvas {
         PickingId pickingId;
         SceneInputState &inputState;
         size_t viewportId;
-        bool isSchematicMode;
+        bool *isSchematicMode;
+        bool isViewportFocused;
     };
 
     struct ViewportUpdateContext {

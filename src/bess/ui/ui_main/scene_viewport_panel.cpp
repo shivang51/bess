@@ -264,7 +264,7 @@ namespace Bess::UI {
     }
 
     bool SceneViewportPanel::isFocused() const {
-        return m_isFocused;
+        return m_isHovered;
     }
 
     bool SceneViewportPanel::isAttachedToScene(
