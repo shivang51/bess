@@ -47,6 +47,8 @@ namespace Bess::UI {
         MAKE_GETTER(size_t, ViewportId, m_viewportId)
         MAKE_GETTER(PickingId, PickingId, m_pickingId)
 
+        MAKE_GETTER_SETTER(bool, IsSchematicView, m_isSchematicView)
+
       private:
         void updateScene(TimeMs ts);
 
@@ -83,8 +85,6 @@ namespace Bess::UI {
         };
 
         void firstTime();
-        void drawTopLeftControls();
-        void drawBottomControls() const;
 
         void onSceneAttached();
 
@@ -96,6 +96,7 @@ namespace Bess::UI {
             ImGuiWindowFlags_NoDecoration;
 
       private:
+        bool m_isSchematicView = false;
         bool m_isfirstTimeDraw;
         glm::vec2 m_viewportSize = {800.f, 600.f};
         glm::vec2 m_viewportPos;

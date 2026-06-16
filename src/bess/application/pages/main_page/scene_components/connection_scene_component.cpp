@@ -21,6 +21,7 @@
 #include "scene_draw_context.h"
 #include "settings/viewport_theme.h"
 #include "slot_scene_component.h"
+#include "ui_main/ui_main.h"
 
 #include <cstdint>
 
@@ -34,7 +35,9 @@ namespace Bess::Canvas {
     void ConnectionSceneComponent::update(TimeMs frameTime,
                                           SceneState &sceneState) {
         if (m_segmentPosCacheDirty) {
-            resetSegmentPositionCache(sceneState);
+            const auto &viewport = UI::UIMain::getTargetSceneViewportPanel();
+            resetSegmentPositionCache(sceneState,
+                                      viewport->getIsSchematicView());
         }
     }
 
@@ -52,7 +55,7 @@ namespace Bess::Canvas {
                                                 const glm::vec4 &color,
                                                 SceneDrawContext &context) {
 
-        const auto &segCache = state.getIsSchematicView()
+        const auto &segCache = context.isSchematicMode
                                    ? m_segCachedSchemeticPos
                                    : m_segmentCachedPositions;
 
@@ -60,10 +63,10 @@ namespace Bess::Canvas {
 
         if (m_segmentPosCacheDirty || startPos != segCache.front() ||
             endPos != segCache.back()) {
-            resetSegmentPositionCache(state);
+            resetSegmentPositionCache(state, context.isSchematicMode);
         }
 
-        const float weight = state.getIsSchematicView()
+        const float weight = context.isSchematicMode
                                  ? Styles::compSchematicStyles.strokeSize
                                  : 2.f;
 
@@ -118,11 +121,11 @@ namespace Bess::Canvas {
         }
 
         if (m_shouldReconstructSegments) {
-            reconstructSegments(state);
+            reconstructSegments(state, context.isSchematicMode);
         }
 
         if (m_segmentPosCacheDirty) {
-            resetSegmentPositionCache(state);
+            resetSegmentPositionCache(state, context.isSchematicMode);
         }
 
         glm::vec4 color;
@@ -167,16 +170,18 @@ namespace Bess::Canvas {
             color = m_style.color;
         }
 
-        auto startPos = startComp->getAbsolutePosition(state);
+        auto startPos =
+            startComp->getAbsolutePosition(state, context.isSchematicMode);
         if (startComp->getType() == SceneComponentType::slot) {
-            startPos =
-                startComp->cast<SlotSceneComponent>()->getConnectionPos(state);
+            startPos = startComp->cast<SlotSceneComponent>()->getConnectionPos(
+                state, context.isSchematicMode);
         }
 
-        auto endPos = endComp->getAbsolutePosition(state);
+        auto endPos =
+            endComp->getAbsolutePosition(state, context.isSchematicMode);
         if (endComp->getType() == SceneComponentType::slot) {
-            endPos =
-                endComp->cast<SlotSceneComponent>()->getConnectionPos(state);
+            endPos = endComp->cast<SlotSceneComponent>()->getConnectionPos(
+                state, context.isSchematicMode);
         }
 
         drawSegments(state, startPos, endPos, color, context);
@@ -203,11 +208,11 @@ namespace Bess::Canvas {
 
         const auto &state = *context.sceneState;
         if (m_shouldReconstructSegments) {
-            reconstructSegments(state);
+            reconstructSegments(state, context.isSchematicMode);
         }
 
         if (m_segmentPosCacheDirty) {
-            resetSegmentPositionCache(state);
+            resetSegmentPositionCache(state, context.isSchematicMode);
         }
 
         const auto startComp = state.getComponentByUuid(m_startSlot);
@@ -232,16 +237,18 @@ namespace Bess::Canvas {
             color = m_style.color;
         }
 
-        auto startPos = startComp->getAbsolutePosition(state);
+        auto startPos =
+            startComp->getAbsolutePosition(state, context.isSchematicMode);
         if (startComp->getType() == SceneComponentType::slot) {
-            startPos =
-                startComp->cast<SlotSceneComponent>()->getConnectionPos(state);
+            startPos = startComp->cast<SlotSceneComponent>()->getConnectionPos(
+                state, context.isSchematicMode);
         }
 
-        auto endPos = endComp->getAbsolutePosition(state);
+        auto endPos =
+            endComp->getAbsolutePosition(state, context.isSchematicMode);
         if (endComp->getType() == SceneComponentType::slot) {
-            endPos =
-                endComp->cast<SlotSceneComponent>()->getConnectionPos(state);
+            endPos = endComp->cast<SlotSceneComponent>()->getConnectionPos(
+                state, context.isSchematicMode);
         }
 
         drawSegments(state, startPos, endPos, color, context);
@@ -256,8 +263,10 @@ namespace Bess::Canvas {
             onMouseDragBegin(e);
         }
 
-        auto &segs = e.sceneState->getIsSchematicView() ? m_schematicSegments
-                                                        : m_segments;
+        const auto &viewport = UI::UIMain::getTargetSceneViewportPanel();
+
+        auto &segs =
+            viewport->getIsSchematicView() ? m_schematicSegments : m_segments;
 
         if (m_draggedSegIdx == 0) {
             ConnSegment newSeg{};
@@ -312,14 +321,13 @@ namespace Bess::Canvas {
         m_endSlot = endSlot;
     }
 
-    void
-    ConnectionSceneComponent::reconstructSegments(const SceneState &state) {
+    void ConnectionSceneComponent::reconstructSegments(const SceneState &state,
+                                                       bool isSchematic) {
         if (m_startSlot == UUID::null || m_endSlot == UUID::null) {
             return;
         }
 
-        auto &segments =
-            state.getIsSchematicView() ? m_schematicSegments : m_segments;
+        auto &segments = isSchematic ? m_schematicSegments : m_segments;
         segments.clear();
 
         auto startSlotComp = state.getComponentByUuid(m_startSlot);
@@ -328,8 +336,10 @@ namespace Bess::Canvas {
         if (!startSlotComp || !endSlotComp)
             return;
 
-        const auto startPos = startSlotComp->getAbsolutePosition(state);
-        const auto endPos = endSlotComp->getAbsolutePosition(state);
+        const auto startPos =
+            startSlotComp->getAbsolutePosition(state, isSchematic);
+        const auto endPos =
+            endSlotComp->getAbsolutePosition(state, isSchematic);
 
         const float midX = (endPos.x - startPos.x) / 2.f;
         const float height = (endPos.y - startPos.y) / 2.f;
@@ -399,6 +409,8 @@ namespace Bess::Canvas {
             return;
 
         const int segIdx = (int)e.details;
+        const auto &viewport = UI::UIMain::getTargetSceneViewportPanel();
+        const auto isSchematic = viewport->getIsSchematicView();
 
         if (e.sceneState->getConnectionStartSlot() != UUID::null) {
 
@@ -440,8 +452,10 @@ namespace Bess::Canvas {
 
             // calculating t value for joint position between segment vertices
             const auto jointPos = e.sceneState->getMousePos();
-            const auto segStartPos = getSegVertexPos(*e.sceneState, segIdx);
-            const auto segEndPos = getSegVertexPos(*e.sceneState, segIdx + 1);
+            const auto segStartPos =
+                getSegVertexPos(*e.sceneState, segIdx, isSchematic);
+            const auto segEndPos =
+                getSegVertexPos(*e.sceneState, segIdx + 1, isSchematic);
             float t = 0.f;
             if (glm::distance(segStartPos, segEndPos) > 0.f) {
                 t = glm::distance(segStartPos, glm::vec3{jointPos, 0.f}) /
@@ -466,7 +480,7 @@ namespace Bess::Canvas {
     }
 
     void ConnectionSceneComponent::resetSegmentPositionCache(
-        const SceneState &state) {
+        const SceneState &state, const bool isSchematic) {
         m_segmentPosCacheDirty = false;
 
         const auto &startComp = state.getComponentByUuid(m_startSlot);
@@ -479,29 +493,27 @@ namespace Bess::Canvas {
             return;
         }
 
-        auto startPos = startComp->getAbsolutePosition(state);
+        auto startPos = startComp->getAbsolutePosition(state, isSchematic);
         if (startComp->getType() == SceneComponentType::slot) {
-            startPos =
-                startComp->cast<SlotSceneComponent>()->getConnectionPos(state);
+            startPos = startComp->cast<SlotSceneComponent>()->getConnectionPos(
+                state, isSchematic);
         }
 
-        auto endPos = endComp->getAbsolutePosition(state);
+        auto endPos = endComp->getAbsolutePosition(state, isSchematic);
         if (endComp->getType() == SceneComponentType::slot) {
-            endPos =
-                endComp->cast<SlotSceneComponent>()->getConnectionPos(state);
+            endPos = endComp->cast<SlotSceneComponent>()->getConnectionPos(
+                state, isSchematic);
         }
 
-        const float offsetXDecr = state.getIsSchematicView()
-                                      ? Styles::compSchematicStyles.pinSize
-                                      : 0.f;
+        const float offsetXDecr =
+            isSchematic ? Styles::compSchematicStyles.pinSize : 0.f;
         auto pos = startPos;
         auto prevPos = pos;
 
-        auto &segments =
-            state.getIsSchematicView() ? m_schematicSegments : m_segments;
+        auto &segments = isSchematic ? m_schematicSegments : m_segments;
 
-        auto &cache = state.getIsSchematicView() ? m_segCachedSchemeticPos
-                                                 : m_segmentCachedPositions;
+        auto &cache =
+            isSchematic ? m_segCachedSchemeticPos : m_segmentCachedPositions;
 
         cache.clear();
         cache.push_back(startPos);
@@ -536,13 +548,14 @@ namespace Bess::Canvas {
     }
 
     glm::vec3 ConnectionSceneComponent::getSegVertexPos(const SceneState &state,
-                                                        size_t vertexIdx) {
+                                                        size_t vertexIdx,
+                                                        bool isSchematic) {
         if (m_segmentPosCacheDirty) {
-            resetSegmentPositionCache(state);
+            resetSegmentPositionCache(state, isSchematic);
         }
 
-        auto &segments = state.getIsSchematicView() ? m_segCachedSchemeticPos
-                                                    : m_segmentCachedPositions;
+        auto &segments =
+            isSchematic ? m_segCachedSchemeticPos : m_segmentCachedPositions;
 
         if (vertexIdx >= segments.size()) {
             BESS_WARN("[ConnectionSceneComponent] Requested segment vertex "

@@ -18,6 +18,7 @@
 #include "slot_scene_component.h"
 #include "sub_systems/renderer_context.h"
 #include "ui/widgets/m_widgets.h"
+#include "ui_main/ui_main.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -331,7 +332,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
     void SimulationSceneComponent::drawSlots(SceneDrawContext &context) {
         // I know i am repeating my self here :), I have trust issues
 
-        if (context.sceneState->getIsSchematicView()) {
+        if (context.isSchematicMode) {
             for (const auto &childId : m_childComponents) {
                 auto child = context.sceneState->getComponentByUuid(childId);
                 child->drawSchematic(context);
@@ -348,7 +349,8 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         auto &state = *context.sceneState;
         const auto &id = PickingId{m_runtimeId, 0};
 
-        const glm::vec3 &pos = getAbsolutePosition(state);
+        const glm::vec3 &pos =
+            getAbsolutePosition(state, context.isSchematicMode);
         float x = pos.x - (m_schematicTransform.scale.x / 2.f);
         float y = pos.y - (m_schematicTransform.scale.y / 2.f);
         float x1 = x + m_schematicTransform.scale.x;
@@ -661,7 +663,10 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         auto newPos = e.mousePos + m_dragOffset;
         newPos = glm::round(newPos / SNAP_AMOUNT) * SNAP_AMOUNT;
 
-        if (e.sceneState->getIsSchematicView()) {
+        const bool isSchematic =
+            UI::UIMain::getTargetSceneViewportPanel()->getIsSchematicView();
+
+        if (isSchematic) {
             m_schematicTransform.position =
                 glm::vec3(newPos, m_schematicTransform.position.z);
         } else {
@@ -673,9 +678,10 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         }
     }
 
-    glm::vec3 SimulationSceneComponent::getAbsolutePosition(
-        const SceneState &state) const {
-        if (state.getIsSchematicView()) {
+    glm::vec3
+    SimulationSceneComponent::getAbsolutePosition(const SceneState &state,
+                                                  bool isSchematicMode) const {
+        if (isSchematicMode) {
             if (m_parentComponent == UUID::null) {
                 return m_schematicTransform.position;
             }
@@ -685,10 +691,10 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
                 return m_schematicTransform.position;
             }
 
-            return parentComp->getAbsolutePosition(state) +
+            return parentComp->getAbsolutePosition(state, isSchematicMode) +
                    m_schematicTransform.position;
         } else {
-            return SceneComponent::getAbsolutePosition(state);
+            return SceneComponent::getAbsolutePosition(state, isSchematicMode);
         }
     }
 

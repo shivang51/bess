@@ -22,5 +22,6 @@ namespace Bess {
         Core::Renderer::RenderTransformMode transformMode =
             Core::Renderer::RenderTransformMode::Camera;
         size_t viewportId;
+        bool isSchematicMode = false;
     };
 } // namespace Bess

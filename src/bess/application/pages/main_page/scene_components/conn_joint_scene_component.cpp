@@ -13,6 +13,7 @@
 #include "slot_scene_component.h"
 
 #include "ui/ui.h"
+#include "ui_main/ui_main.h"
 #include <cstdint>
 #include <memory>
 
@@ -123,7 +124,7 @@ namespace Bess::Canvas {
 
         const auto pickingId = PickingId{m_runtimeId, 0};
         SceneDraw::drawQuad(context,
-                            getAbsolutePosition(state),
+                            getAbsolutePosition(state, context.isSchematicMode),
                             glm::vec2{sideLength, sideLength},
                             color,
                             pickingId,
@@ -152,11 +153,12 @@ namespace Bess::Canvas {
         }
 
         const auto &state = *context.sceneState;
-        SceneDraw::drawCircle(context,
-                              getAbsolutePosition(state),
-                              Styles::compSchematicStyles.connJointRadius,
-                              color,
-                              pickingId);
+        SceneDraw::drawCircle(
+            context,
+            getAbsolutePosition(state, context.isSchematicMode),
+            Styles::compSchematicStyles.connJointRadius,
+            color,
+            pickingId);
     }
 
     void ConnJointSceneComp::onMouseEnter(const Events::MouseEnterEvent &e) {
@@ -174,17 +176,17 @@ namespace Bess::Canvas {
     }
 
     glm::vec3
-    ConnJointSceneComp::getAbsolutePosition(const SceneState &state) const {
+    ConnJointSceneComp::getAbsolutePosition(const SceneState &state,
+                                            bool isSchematicMode) const {
         const auto &conn =
             state.getComponentByUuid<ConnectionSceneComponent>(m_connectionId);
 
         const glm::vec3 &segStartPos =
-            conn->getSegVertexPos(state, m_connSegIdx);
+            conn->getSegVertexPos(state, m_connSegIdx, isSchematicMode);
         const glm::vec3 &segEndPos =
-            conn->getSegVertexPos(state, m_connSegIdx + 1);
+            conn->getSegVertexPos(state, m_connSegIdx + 1, isSchematicMode);
 
-        const float offset =
-            state.getIsSchematicView() ? m_schematicOffset : m_offset;
+        const float offset = isSchematicMode ? m_schematicOffset : m_offset;
         auto pos = glm::mix(segStartPos, segEndPos, offset);
         pos.z += 0.0001f;
 
@@ -209,10 +211,15 @@ namespace Bess::Canvas {
                 m_connectionId);
         const auto &slot = e.sceneState->getComponentByUuid<SlotSceneComponent>(
             m_outputSlotId);
+
+        const bool isSchematic =
+            UI::UIMain::getTargetSceneViewportPanel()->getIsSchematicView();
+
         const glm::vec3 &segStartPos =
-            conn->getSegVertexPos(*e.sceneState, m_connSegIdx);
+            conn->getSegVertexPos(*e.sceneState, m_connSegIdx, isSchematic);
+
         const glm::vec3 &segEndPos =
-            conn->getSegVertexPos(*e.sceneState, m_connSegIdx + 1);
+            conn->getSegVertexPos(*e.sceneState, m_connSegIdx + 1, isSchematic);
         const auto &segLen = glm::distance(segEndPos, segStartPos);
 
         float startCoord = (m_segOrientation == ConnSegOrientaion::horizontal)
@@ -228,7 +235,7 @@ namespace Bess::Canvas {
             delta = -delta / segLen;
         }
 
-        if (e.sceneState->getIsSchematicView()) {
+        if (isSchematic) {
             m_schematicOffset += delta;
             m_schematicOffset = glm::clamp(m_schematicOffset, 0.0f, 1.0f);
         } else {

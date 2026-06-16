@@ -273,12 +273,11 @@ namespace Bess::Pages {
                     targetPanel->focusCameraOnSelected();
                 }
             } else if (inpSystem->isKeyPressed(KeyCode::tab)) {
-                auto targetScene = UI::UIMain::getTargetViewportScene();
-                if (!targetScene) {
-                    targetScene = m_state.getSceneDriver()->getActiveScene();
-                }
-                if (targetScene) {
-                    targetScene->toggleSchematicView();
+                auto targetPanel = UI::UIMain::getTargetSceneViewportPanel();
+                BESS_ASSERT(targetPanel, "No active viewport panel found");
+                if (targetPanel) {
+                    targetPanel->setIsSchematicView(
+                        !targetPanel->getIsSchematicView());
                 }
             } else if (inpSystem->isKeyPressed(KeyCode::escape)) {
                 UI::UIMain::getPanel<UI::ComponentExplorer>()->hide();

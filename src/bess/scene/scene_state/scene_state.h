@@ -85,7 +85,6 @@ namespace Bess::Canvas {
 
         const std::unordered_set<UUID> &getRootComponents() const;
 
-        MAKE_GETTER_SETTER(bool, IsSchematicView, m_isSchematicView);
         MAKE_GETTER_SETTER(UUID, ConnectionStartSlot, m_connectionStartSlot);
         MAKE_GETTER_SETTER(glm::vec2, MousePos, m_mousePos);
         MAKE_GETTER_SETTER(bool, IsRootScene, m_isRootScene);
@@ -141,7 +140,6 @@ namespace Bess::Canvas {
         std::set<uint32_t> m_freeRuntimeIds;
 
         UUID m_connectionStartSlot = UUID::null;
-        bool m_isSchematicView = false;
         bool m_isRootScene = true;
         UUID m_moduleId = UUID::null; // only used for sub scenes, to know which
                                       // module it belongs to

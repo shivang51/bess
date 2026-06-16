@@ -59,9 +59,11 @@ namespace Bess::Canvas {
         void addConnection(const UUID &connectionId);
         void removeConnection(const UUID &connectionId);
 
-        glm::vec3 getAbsolutePosition(const SceneState &state) const override;
+        glm::vec3 getAbsolutePosition(const SceneState &state,
+                                      bool isSchematicMode) const override;
 
-        glm::vec3 getConnectionPos(const SceneState &state) const;
+        glm::vec3 getConnectionPos(const SceneState &state,
+                                   bool isSchematicMode) const;
 
         SimEngine::SlotState getSlotState(const SceneState &state) const;
         bool isSlotConnected(const SceneState &state) const;
@@ -75,7 +77,8 @@ namespace Bess::Canvas {
       private:
         void onRuntimeIdChanged() override;
 
-        glm::vec3 getSchematicPosAbsolute(const SceneState &state) const;
+        glm::vec3 getSchematicPosAbsolute(const SceneState &state,
+                                          bool isSchematicMode) const;
 
         void onMouseLeftClick(const Events::MouseButtonEvent &e);
 

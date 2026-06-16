@@ -122,7 +122,8 @@ namespace Bess::Canvas {
                     "Unexpected slot type for input component: {}",
                     static_cast<int>(slotType));
 
-        const auto slotPosY = slotComp->getAbsolutePosition(state).y;
+        const auto slotPosY =
+            slotComp->getAbsolutePosition(state, context.isSchematicMode).y;
 
         const float buttonPosX =
             m_transform.position.x - (m_transform.scale.x / 2.f) +

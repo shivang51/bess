@@ -60,6 +60,7 @@ namespace Bess::Canvas::Events {
         uint32_t details;
         bool isMultiDrag;
         Canvas::SceneState *sceneState;
+        bool isSchematicMode;
     };
 
     struct MouseHoveredEvent {

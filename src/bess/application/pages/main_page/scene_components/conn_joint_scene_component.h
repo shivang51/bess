@@ -61,7 +61,8 @@ namespace Bess::Canvas {
         void onMouseLeave(const Events::MouseLeaveEvent &e) override;
         void onMouseButton(const Events::MouseButtonEvent &e) override;
 
-        glm::vec3 getAbsolutePosition(const SceneState &state) const override;
+        glm::vec3 getAbsolutePosition(const SceneState &state,
+                                      bool isSchematicMode) const override;
         void onMouseLeftClick(const Events::MouseButtonEvent &e);
 
         void removeConnection(const UUID &connectionId);

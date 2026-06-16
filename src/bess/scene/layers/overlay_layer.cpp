@@ -42,9 +42,10 @@ namespace Bess::Canvas {
         if (comp->getType() == Canvas::SceneComponentType::slot) {
             startPos =
                 comp->cast<Canvas::SlotSceneComponent>()->getConnectionPos(
-                    *ctx.sceneState);
+                    *ctx.sceneState, ctx.isSchematicMode);
         } else {
-            startPos = comp->getAbsolutePosition(*ctx.sceneState);
+            startPos =
+                comp->getAbsolutePosition(*ctx.sceneState, ctx.isSchematicMode);
         }
 
         const auto endPos = ctx.camera->toWorldPos(ctx.inputState->mousePos);

@@ -4,6 +4,7 @@
 #include "common/bess_uuid.h"
 #include "common/class_helpers.h"
 #include "common/types.h"
+#include "pages/main_page/scene_components/scene_comp_types.h"
 #include "scene/scene_state/components/behaviours/mouse_behaviour.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene_draw_context.h"
@@ -137,7 +138,7 @@ namespace Bess::Canvas {
         void setScale(const glm::vec2 &scale);
 
         virtual SceneComponentType getType() const {
-            return (SceneComponentType)-1;
+            return SceneComponentType::_base;
         }
 
         template <typename T> std::shared_ptr<T> cast() {
@@ -152,7 +153,8 @@ namespace Bess::Canvas {
 
         void setIsDraggable(bool draggable);
 
-        virtual glm::vec3 getAbsolutePosition(const SceneState &state) const;
+        virtual glm::vec3 getAbsolutePosition(const SceneState &state,
+                                              bool isSchematicMode) const;
 
         // Cleanup function
         // Default implementation removes all child components recursively

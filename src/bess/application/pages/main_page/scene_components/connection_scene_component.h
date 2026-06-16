@@ -78,12 +78,14 @@ namespace Bess::Canvas {
 
         void setStartEndSlots(const UUID &startSlot, const UUID &endSlot);
 
-        void reconstructSegments(const SceneState &state);
+        void reconstructSegments(const SceneState &state, bool isSchematic);
 
         std::vector<UUID> cleanup(SceneState &state,
                                   UUID caller = UUID::null) override;
 
-        glm::vec3 getSegVertexPos(const SceneState &state, size_t vertexIdx);
+        glm::vec3 getSegVertexPos(const SceneState &state,
+                                  size_t vertexIdx,
+                                  bool isSchematic);
 
         std::vector<UUID> getDependants(const SceneState &state) const override;
 
@@ -96,7 +98,8 @@ namespace Bess::Canvas {
                           const glm::vec4 &color,
                           SceneDrawContext &context);
 
-        void resetSegmentPositionCache(const SceneState &state);
+        void resetSegmentPositionCache(const SceneState &state,
+                                       bool isSchematic);
         UUID m_startSlot = UUID::null;
         UUID m_endSlot = UUID::null;
         std::vector<ConnSegment> m_segments, m_schematicSegments;

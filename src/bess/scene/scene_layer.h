@@ -26,6 +26,7 @@ namespace Bess::Canvas {
 
     struct SceneEventContext : SceneLayerContext {
         size_t viewportId;
+        bool isSchematicMode;
     };
 
     struct SceneUpdateContext : SceneLayerContext {};
@@ -35,6 +36,7 @@ namespace Bess::Canvas {
     struct SceneRenderContext : SceneLayerContext {
         size_t viewportId;
         std::shared_ptr<Core::Renderer::IRenderer2D> renderer = nullptr;
+        bool isSchematicMode = false;
     };
 
     struct SceneLifecycleContext : SceneRenderContext {};

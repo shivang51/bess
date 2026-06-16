@@ -148,7 +148,8 @@ namespace Bess::Canvas {
 
         void onMouseDragged(const Events::MouseDraggedEvent &e) override;
 
-        glm::vec3 getAbsolutePosition(const SceneState &state) const override;
+        glm::vec3 getAbsolutePosition(const SceneState &state,
+                                      bool isSchematicMode) const override;
 
         REG_SCENE_COMP_TYPE("SimulationSceneComponent",
                             SceneComponentType::simulation)

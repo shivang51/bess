@@ -166,6 +166,11 @@ namespace Bess::Canvas {
 
             return quadSize.x + padding;
         }
+
+        void drawSchematicToggle(SceneDrawContext &drawCtx,
+                                 SceneRenderContext &ctx,
+                                 const glm::vec2 &topLeft) {
+        }
     } // namespace
 
     void ScreenSpaceOverlayLayer::draw(SceneRenderContext &ctx) {
@@ -188,9 +193,13 @@ namespace Bess::Canvas {
         }
 
         auto bottomRight = (ctx.viewportTransform->size / 2.f) - padding;
+        auto topLeft = (-ctx.viewportTransform->size / 2.f) + padding;
+
         float xOffset = drawCameraZoom(drawCtx, ctx, bottomRight);
         bottomRight.x -= xOffset;
         drawCameraPos(drawCtx, ctx, bottomRight);
+
+        drawSchematicToggle(drawCtx, ctx, topLeft);
     }
 
     void ScreenSpaceOverlayLayer::reset(SceneLifecycleContext &ctx) {

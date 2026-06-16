@@ -5,16 +5,13 @@
 #include "bess_core/scene_driver.h"
 #include "bess_wgpu/wgpu_texture.h"
 #include "common/bess_uuid.h"
-#include "common/helpers.h"
 #include "common/logger.h"
-#include "icons/CodIcons_Remapped.h"
 #include "imgui.h"
-#include "imgui_internal.h"
 #include "pages/main_page/main_page.h"
+#include "scene.h"
 #include "scene/camera.h"
 #include "scene/scene_draw_context.h"
 #include "sub_systems/renderer_context.h"
-#include "ui/icons/FontAwesomeIcons_Remapped.h"
 #include "ui/ui_main/component_explorer.h"
 #include "ui_main/ui_main.h"
 #include "ui_panel.h"
@@ -74,14 +71,21 @@ namespace Bess::UI {
                                .getSubSystem<Bess::ProjectContext>()
                                ->getSubSystem<SceneDriver>();
 
+        Canvas::ViewportUpdateContext ctx{
+            .isFocused = m_isHovered,
+            .camera = m_camera,
+            .viewportTransform =
+                {
+                    .pos = m_viewportPos,
+                    .size = m_viewportSize,
+                },
+            .inputState = m_inputState,
+            .pickingId = m_pickingId,
+            .viewportId = m_viewportId,
+            .isSchematicMode = m_isSchematicView,
+        };
         if (!sceneDriver->getIsPaused()) {
-            m_attachedScene->viewportUpdate(ts,
-                                            m_isHovered,
-                                            m_camera,
-                                            {m_viewportPos, m_viewportSize},
-                                            m_inputState,
-                                            m_pickingId,
-                                            m_viewportId);
+            m_attachedScene->viewportUpdate(ts, ctx);
             updateScene(ts);
         }
 
@@ -182,195 +186,6 @@ namespace Bess::UI {
 
         // drawTopLeftControls();
         // drawBottomControls();
-    }
-
-    void SceneViewportPanel::drawTopLeftControls() {
-        constexpr float windowR = 16.f;
-
-        const ImGuiContext &g = *ImGui::GetCurrentContext();
-
-        static float checkboxWidth =
-            ImGui::CalcTextSize("W").x + g.Style.FramePadding.x + 2.f;
-        static const auto textSize = ImGui::CalcTextSize("   Schematic Mode");
-        static float size = textSize.x + checkboxWidth + (windowR * 2) +
-                            (g.Style.FramePadding.x);
-
-        const auto colors = g.Style.Colors;
-
-        // Is schematic mode
-        ImGui::SetNextWindowPos({m_localPos.x + g.Style.FramePadding.x,
-                                 m_localPos.y + g.Style.FramePadding.y});
-        ImGui::SetNextWindowSize({size, 0});
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(windowR, 4));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, windowR);
-
-        auto col = colors[ImGuiCol_ButtonActive];
-        col.w = 0.2f;
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, col);
-        ImGui::Begin("TopLeftViewportActions", nullptr, NO_MOVE_FLAGS);
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
-        ImGui::Text("%s Schematic Mode",
-                    Icons::FontAwesomeIcons::FA_WAVE_SQUARE);
-        ImGui::SameLine();
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-
-        auto sceneDriver = GAppContext::getInstance()
-                               .getSubSystem<Bess::ProjectContext>()
-                               ->getSubSystem<SceneDriver>();
-
-        const auto rootScene =
-            sceneDriver->getSceneWithId(sceneDriver->getRootSceneId());
-
-        auto isSchematicView = m_attachedScene->getIsSchematicView();
-        if (ImGui::Checkbox("##CheckBoxSchematicMode", &isSchematicView)) {
-            m_attachedScene->setIsSchematicView(isSchematicView);
-        }
-        ImGui::PopStyleVar();
-        ImGui::End();
-        ImGui::PopStyleColor(1);
-
-        // Scene path (root > module ...)
-        ImGui::SetNextWindowPos(
-            {m_localPos.x + g.Style.FramePadding.x + size + 8.f,
-             m_localPos.y + g.Style.FramePadding.y});
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
-        ImGui::SetNextWindowSize({0, 0});
-        ImGui::Begin("TopLeftViewportActions1", nullptr, NO_MOVE_FLAGS);
-
-        constexpr auto rootIcon =
-            Common::Helpers::concat(Icons::CodIcons::RECORD, " Root");
-
-        if (m_attachedScene->getState().getIsRootScene()) {
-            ImGui::AlignTextToFramePadding();
-            ImGui::TextDisabled("%s", rootIcon.data());
-        } else {
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-
-            for (int i = 0; i < m_rootToSceneStatePtrs.size(); i++) {
-                if (i == 0) {
-                    if (ImGui::Button(rootIcon.data())) {
-                        m_nextSceneId = sceneDriver->getRootSceneId();
-                    }
-                    continue;
-                }
-
-                const auto &sceneStatePtr = m_rootToSceneStatePtrs[i];
-                const auto &parentStatePtr = m_rootToSceneStatePtrs[i - 1];
-                const auto &module = parentStatePtr->getComponentByUuid(
-                    sceneStatePtr->getModuleId());
-
-                ImGui::SameLine();
-                ImGui::AlignTextToFramePadding();
-                ImGui::TextDisabled(Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT);
-                ImGui::SameLine();
-
-                if (i == m_rootToSceneStatePtrs.size() - 1) {
-                    ImGui::AlignTextToFramePadding();
-                    if (module) {
-                        ImGui::TextDisabled(" %s", module->getName().c_str());
-                    } else {
-                        ImGui::TextDisabled(" Unknown Module");
-                    }
-                } else {
-                    ImGui::PushID(i);
-                    if (ImGui::Button(module ? module->getName().c_str()
-                                             : " Unknown Module")) {
-                        m_nextSceneId = sceneStatePtr->getSceneId();
-                    }
-                    ImGui::PopID();
-                }
-            }
-            ImGui::PopStyleColor(1);
-        }
-        ImGui::End();
-        ImGui::PopStyleColor(1);
-
-        ImGui::PopStyleVar(3);
-    }
-
-    void SceneViewportPanel::drawBottomControls() const {
-        return;
-        auto sceneDriver = GAppContext::getInstance()
-                               .getSubSystem<Bess::ProjectContext>()
-                               ->getSubSystem<SceneDriver>();
-        const auto &mousePos = m_inputState.mousePos;
-        const auto posLabel =
-            std::format("Pos: ({:.2f}, {:.2f})", mousePos.x, mousePos.y);
-
-        static const auto fixedPosLabelSize =
-            ImGui::CalcTextSize("Pos: (-1000.00, -1000.00)");
-        static const float fixedWinWidth = fixedPosLabelSize.x +
-                                           ImGui::GetStyle().ItemSpacing.x +
-                                           150.0f + 50.f;
-
-        ImGui::SetNextWindowPos(
-            {m_localPos.x + m_viewportSize.x - fixedWinWidth - 10.f,
-             m_localPos.y + m_viewportSize.y - 44.f});
-
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 0));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1);
-
-        // Force height 34
-        ImGui::SetNextWindowSize({0, 34});
-        ImGui::Begin("SceneBottomRightControls",
-                     nullptr,
-                     NO_MOVE_FLAGS | ImGuiWindowFlags_NoScrollbar);
-
-        const float windowHeight = 34.0f;
-        const float sliderHeight = ImGui::GetFrameHeight();
-
-        ImGui::SetCursorPosY((windowHeight - sliderHeight) * 0.5f);
-        const auto scene = sceneDriver->getActiveScene();
-
-        // Camera Icon
-        {
-            ImGui::AlignTextToFramePadding();
-            ImGui::Text(" %s", Icons::FontAwesomeIcons::FA_CAMERA_RETRO);
-        }
-
-        ImGui::SameLine();
-
-        const auto zoomSliderX = ImGui::GetCursorPosX() + fixedPosLabelSize.x +
-                                 ImGui::GetStyle().ItemSpacing.x;
-
-        // Mouse Pos Text
-        {
-            ImGui::AlignTextToFramePadding();
-            ImGui::Text(" %s", posLabel.c_str());
-
-            // Recenter on click
-            if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-                m_camera->focusAtPoint({0.f, 0.f}, false);
-            }
-        }
-
-        ImGui::SameLine();
-
-        ImGui::SetCursorPosX(zoomSliderX);
-
-        // Zoom Slider
-        {
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8);
-            ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 8);
-
-            ImGui::SetNextItemWidth(150.0f);
-            auto zoom = m_camera->getZoom();
-            if (ImGui::SliderFloat("##Zoom",
-                                   &zoom,
-                                   Camera::zoomMin,
-                                   Camera::zoomMax,
-                                   "%.1fx",
-                                   ImGuiSliderFlags_AlwaysClamp)) {
-                const float stepSize = 0.1f;
-                const float val = roundf(zoom / stepSize) * stepSize;
-                m_camera->setZoom(val);
-            }
-            ImGui::PopStyleVar(2);
-        }
-
-        ImGui::End();
-        ImGui::PopStyleVar(2);
     }
 
     void SceneViewportPanel::firstTime() {

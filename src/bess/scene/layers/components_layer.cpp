@@ -18,17 +18,18 @@ namespace Bess::Canvas {
         const auto &span = (cam->getSpan() / 2.f) + 200.f;
         const auto &camPos = cam->getPos();
 
-        // FIXME: Temp
         SceneDrawContext drawCtx{
-            ctx.sceneState,
-            ctx.renderer,
-            ctx.camera,
+            .sceneState = ctx.sceneState,
+            .renderer = ctx.renderer,
+            .camera = ctx.camera,
+            .isSchematicMode = ctx.isSchematicMode,
         };
 
         for (const auto &compId : ctx.sceneState->getRootComponents()) {
             const auto comp = ctx.sceneState->getComponentByUuid(compId);
 
-            const auto &pos = comp->getAbsolutePosition(*ctx.sceneState);
+            const auto &pos =
+                comp->getAbsolutePosition(*ctx.sceneState, ctx.isSchematicMode);
             const auto x = pos.x - camPos.x;
             const auto y = pos.y - camPos.y;
 
@@ -38,7 +39,7 @@ namespace Bess::Canvas {
                 (x < -span.x || x > span.x || y < -span.y || y > span.y))
                 continue;
 
-            if (ctx.sceneState->getIsSchematicView()) {
+            if (ctx.isSchematicMode) {
                 comp->drawSchematic(drawCtx);
             } else {
                 comp->draw(drawCtx);

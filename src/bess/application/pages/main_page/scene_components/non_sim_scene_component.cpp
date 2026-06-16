@@ -173,7 +173,8 @@ namespace Bess::Canvas {
         }
 
         const auto backgroundId = PickingId{m_runtimeId, 0};
-        const auto pos = getAbsolutePosition(*context.sceneState);
+        const auto pos =
+            getAbsolutePosition(*context.sceneState, context.isSchematicMode);
         const auto z = pos.z;
 
         SceneDraw::QuadStyle backgroundStyle{

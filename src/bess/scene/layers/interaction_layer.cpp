@@ -5,6 +5,7 @@
 #include "event_dispatcher.h"
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
+#include "scene_events.h"
 #include <algorithm>
 #include <cmath>
 #include <ranges>
@@ -75,11 +76,14 @@ namespace Bess::Canvas {
                         continue;
                     }
 
-                    dragComp->onMouseDragged({data.pos,
-                                              input.dMousePos,
-                                              ctx.pickingId->info,
-                                              selectedComps.size() > 1,
-                                              ctx.sceneState});
+                    dragComp->onMouseDragged(Events::MouseDraggedEvent{
+                        data.pos,
+                        input.dMousePos,
+                        ctx.pickingId->info,
+                        selectedComps.size() > 1,
+                        ctx.sceneState,
+                        ctx.isSchematicMode,
+                    });
 
                     if (ctx.sceneState->getConnectionStartSlot() == compId) {
                         ctx.sceneState->setConnectionStartSlot(UUID::null);

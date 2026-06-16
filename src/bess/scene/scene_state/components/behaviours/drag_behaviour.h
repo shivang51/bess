@@ -50,8 +50,9 @@ namespace Bess::Canvas {
 
         virtual void onMouseDragBegin(const Events::MouseDraggedEvent &e) {
             const auto &self = static_cast<const Derived &>(*this);
-            m_dragOffset =
-                glm::vec2(self.getAbsolutePosition(*e.sceneState)) - e.mousePos;
+            m_dragOffset = glm::vec2(self.getAbsolutePosition(
+                               *e.sceneState, e.isSchematicMode)) -
+                           e.mousePos;
             m_dragStartPos = self.getTransform().position;
             m_isDragging = true;
         }

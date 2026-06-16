@@ -45,7 +45,8 @@ namespace Bess::Canvas {
 
         const auto &sceneState = *context.sceneState;
         const auto &scale = m_transform.scale;
-        const auto &startPos = getAbsolutePosition(sceneState);
+        const auto &startPos =
+            getAbsolutePosition(sceneState, context.isSchematicMode);
         const bool isProbed = m_probedSlotUuid != UUID::null;
 
         SceneDraw::drawQuad(context,
@@ -73,7 +74,8 @@ namespace Bess::Canvas {
             if (!comp) {
                 return;
             }
-            auto endPos = comp->getConnectionPos(sceneState);
+            auto endPos =
+                comp->getConnectionPos(sceneState, context.isSchematicMode);
 
             // This looks awesome, just hit and trial :)
             const glm::vec2 ctrl1 = glm::mix(glm::vec2(startPos.x, startPos.y),

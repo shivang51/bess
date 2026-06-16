@@ -81,8 +81,8 @@ namespace Bess::Canvas {
         onChildrenChanged();
     }
 
-    glm::vec3
-    SceneComponent::getAbsolutePosition(const SceneState &state) const {
+    glm::vec3 SceneComponent::getAbsolutePosition(const SceneState &state,
+                                                  bool isSchematicMode) const {
         if (m_parentComponent == UUID::null) {
             return m_transform.position;
         }
@@ -92,7 +92,8 @@ namespace Bess::Canvas {
             return m_transform.position;
         }
 
-        return parentComp->getAbsolutePosition(state) + m_transform.position;
+        return parentComp->getAbsolutePosition(state, isSchematicMode) +
+               m_transform.position;
     }
 
     std::vector<UUID> SceneComponent::cleanup(SceneState &state, UUID caller) {

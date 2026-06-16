@@ -51,7 +51,8 @@ namespace Bess::Canvas {
 
     void SlotSceneComponent::draw(SceneDrawContext &drawContext) {
         const auto &state = *drawContext.sceneState;
-        const auto pos = getAbsolutePosition(state);
+        const auto pos =
+            getAbsolutePosition(state, drawContext.isSchematicMode);
         const auto pickingId =
             PickingId{m_runtimeId, PickingId::InfoFlags::unSelectable};
 
@@ -138,7 +139,8 @@ namespace Bess::Canvas {
             return;
 
         const auto &state = *drawContext.sceneState;
-        const auto &pos = getSchematicPosAbsolute(state);
+        const auto &pos =
+            getSchematicPosAbsolute(state, drawContext.isSchematicMode);
         const auto pinId =
             PickingId{m_runtimeId, PickingId::InfoFlags::unSelectable};
         constexpr float nodeWeight = Styles::compSchematicStyles.strokeSize;
@@ -188,7 +190,8 @@ namespace Bess::Canvas {
                 m_name,
                 {pos.x + textOffsetX,
                  pos.y + (textSize.y / 2.f) - 2.f,
-                 SceneComponent::getAbsolutePosition(state)
+                 SceneComponent::getAbsolutePosition(
+                     state, drawContext.isSchematicMode)
                      .z}, // because we don't want schematic pos
                 static_cast<std::size_t>(labelProps.fontSize),
                 ViewportTheme::schematicViewColors.componentStroke,
@@ -289,11 +292,11 @@ namespace Bess::Canvas {
             m_connectedConnections.end());
     }
 
-    glm::vec3
-    SlotSceneComponent::getConnectionPos(const SceneState &state) const {
-        auto pos = getAbsolutePosition(state);
+    glm::vec3 SlotSceneComponent::getConnectionPos(const SceneState &state,
+                                                   bool isSchematicMode) const {
+        auto pos = getAbsolutePosition(state, isSchematicMode);
 
-        if (state.getIsSchematicView()) {
+        if (isSchematicMode) {
             const float offsetX = (m_slotType == SlotType::digitalInput)
                                       ? -Styles::compSchematicStyles.pinSize
                                       : Styles::compSchematicStyles.pinSize;
@@ -313,18 +316,20 @@ namespace Bess::Canvas {
     }
 
     glm::vec3
-    SlotSceneComponent::getAbsolutePosition(const SceneState &state) const {
-        if (state.getIsSchematicView()) {
-            return getSchematicPosAbsolute(state);
+    SlotSceneComponent::getAbsolutePosition(const SceneState &state,
+                                            bool isSchematicMode) const {
+        if (isSchematicMode) {
+            return getSchematicPosAbsolute(state, isSchematicMode);
         }
 
-        return SceneComponent::getAbsolutePosition(state);
+        return SceneComponent::getAbsolutePosition(state, isSchematicMode);
     }
 
     glm::vec3
-    SlotSceneComponent::getSchematicPosAbsolute(const SceneState &state) const {
+    SlotSceneComponent::getSchematicPosAbsolute(const SceneState &state,
+                                                bool isSchematicMode) const {
         return state.getComponentByUuid(m_parentComponent)
-                   ->getAbsolutePosition(state) +
+                   ->getAbsolutePosition(state, isSchematicMode) +
                m_schematicPos;
     }
 

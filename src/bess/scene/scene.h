@@ -24,6 +24,17 @@ namespace Bess::Canvas {
         PickingId pickingId;
         SceneInputState &inputState;
         size_t viewportId;
+        bool isSchematicMode;
+    };
+
+    struct ViewportUpdateContext {
+        bool isFocused;
+        std::shared_ptr<Camera> camera;
+        const ViewportTransform &viewportTransform;
+        SceneInputState &inputState;
+        PickingId pickingId;
+        size_t viewportId;
+        bool isSchematicMode;
     };
 
     class Scene {
@@ -39,13 +50,7 @@ namespace Bess::Canvas {
         void reset();
         void clear();
         void update(TimeMs ts, bool isFocused);
-        void viewportUpdate(TimeMs ts,
-                            bool isFocused,
-                            const std::shared_ptr<Camera> &camera,
-                            const ViewportTransform &viewportTransform,
-                            SceneInputState &inputState,
-                            const PickingId &pickingId,
-                            size_t viewportId);
+        void viewportUpdate(TimeMs ts, const ViewportUpdateContext &ctx);
         void draw(const View2D &view);
         void addScreenOverlayDrawCallback(ScreenOverlayDrawCallback callback);
         void clearScreenOverlayDrawCallbacks();
@@ -72,10 +77,6 @@ namespace Bess::Canvas {
 
         void setZCoord(float val);
 
-        bool getIsSchematicView() const;
-        void setIsSchematicView(bool value);
-        void toggleSchematicView();
-
         void selectAllEntities();
         void focusCameraOnSelected(const std::shared_ptr<Camera> &camera);
         glm::vec2 toScenePos(const glm::vec2 &mousePos,
@@ -88,28 +89,32 @@ namespace Bess::Canvas {
                            const ViewportTransform &viewportTransform,
                            const PickingId &pickingId,
                            SceneInputState &inputState,
-                           size_t viewportId);
+                           size_t viewportId,
+                           bool isSchematicMode);
 
         void onLeftMouse(bool isPressed,
                          const std::shared_ptr<Camera> &camera,
                          const ViewportTransform &viewportTransform,
                          const PickingId &pickingId,
                          SceneInputState &inputState,
-                         size_t viewportId);
+                         size_t viewportId,
+                         bool isSchematicMode);
 
         void onMiddleMouse(bool isPressed,
                            const std::shared_ptr<Camera> &camera,
                            const ViewportTransform &viewportTransform,
                            const PickingId &pickingId,
                            SceneInputState &inputState,
-                           size_t viewportId);
+                           size_t viewportId,
+                           bool isSchematicMode);
 
         void onMouseMove(const glm::vec2 &pos,
                          const std::shared_ptr<Camera> &camera,
                          const ViewportTransform &viewportTransform,
                          const PickingId &pickingId,
                          SceneInputState &inputState,
-                         size_t viewportId);
+                         size_t viewportId,
+                         bool isSchematicMode);
 
       private:
         glm::vec2 getViewportMousePos(const glm::vec2 &mousePos,

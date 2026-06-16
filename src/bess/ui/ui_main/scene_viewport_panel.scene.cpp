@@ -140,7 +140,8 @@ namespace Bess::UI {
                                          },
                                          m_pickingId,
                                          m_inputState,
-                                         m_viewportId);
+                                         m_viewportId,
+                                         m_isSchematicView);
         } else {
             window->setEnableCursor(true);
         }
@@ -165,7 +166,8 @@ namespace Bess::UI {
                                          },
                                          m_pickingId,
                                          m_inputState,
-                                         m_viewportId);
+                                         m_viewportId,
+                                         m_isSchematicView);
         } else if (mouseBtnState.button == MouseButton::middle &&
                    m_inputState.isMiddleMousePressed) {
             m_attachedScene->onMiddleMouse(false,
@@ -176,7 +178,8 @@ namespace Bess::UI {
                                            },
                                            m_pickingId,
                                            m_inputState,
-                                           m_viewportId);
+                                           m_viewportId,
+                                           m_isSchematicView);
         }
     }
 
@@ -255,6 +258,7 @@ namespace Bess::UI {
             .pickingId = m_pickingId,
             .inputState = m_inputState,
             .viewportId = m_viewportId,
+            .isSchematicMode = m_isSchematicView,
         };
 
         m_attachedScene->draw(view);

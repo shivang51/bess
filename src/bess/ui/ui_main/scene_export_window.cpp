@@ -92,7 +92,8 @@ namespace Bess::UI {
                     continue;
                 }
 
-                const auto &pos = comp->getAbsolutePosition(sceneState);
+                const auto &pos = comp->getAbsolutePosition(
+                    sceneState, context.isSchematicMode);
                 const auto x = pos.x - camPos.x;
                 const auto y = pos.y - camPos.y;
 
@@ -100,7 +101,7 @@ namespace Bess::UI {
                     continue;
                 }
 
-                if (sceneState.getIsSchematicView()) {
+                if (context.isSchematicMode) {
                     comp->drawSchematic(context);
                 } else {
                     comp->draw(context);
