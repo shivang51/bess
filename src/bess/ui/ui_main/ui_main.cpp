@@ -173,6 +173,8 @@ namespace Bess::UI {
             pageState.actionFlags.openProject = false;
         }
 
+        Popups::showAboutPopup();
+
         Popups::PopupRes res = Popups::handleUnsavedProjectWarning();
         if (res != Popups::PopupRes::none) {
             if (res == Popups::PopupRes::yes) {
@@ -270,7 +272,7 @@ namespace Bess::UI {
     }
 
     void UIMain::drawMenubar() {
-        bool newFileClicked = false;
+        bool newFileClicked = false, aboutClicked = false;
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.f, 6.f));
         ImGui::BeginMainMenuBar();
@@ -424,6 +426,13 @@ namespace Bess::UI {
             ImGui::EndMenu();
         }
 
+        if (ImGui::BeginMenu("Help")) {
+            if (ImGui::MenuItem("About")) {
+                aboutClicked = true;
+            }
+            ImGui::EndMenu();
+        }
+
         const auto menubar_size = ImGui::GetWindowSize();
 
         // project name textbox - begin
@@ -542,6 +551,7 @@ namespace Bess::UI {
 
             ImGui::PopStyleColor();
         }
+
         ImGui::PopStyleVar(2);
 
         ImGui::EndMainMenuBar();
@@ -549,6 +559,10 @@ namespace Bess::UI {
 
         if (newFileClicked) {
             onNewProject();
+        }
+
+        if (aboutClicked) {
+            ImGui::OpenPopup(Popups::PopupIds::about);
         }
     }
 
@@ -750,7 +764,7 @@ namespace Bess::UI {
         }
 
         auto &pageState = Pages::MainPage::getInstance()->getState();
-        if (!pageState.getCurrentProjectFile()->isSaved()) {
+        if (false && !pageState.getCurrentProjectFile()->isSaved()) {
             getState()._internalData.openFileClicked = true;
             getState()._internalData.path = filepath;
             ImGui::OpenPopup(Popups::PopupIds::unsavedProjectWarning);

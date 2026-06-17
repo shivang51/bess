@@ -1,5 +1,6 @@
 #include "ui/ui_main/popups.h"
 
+#include "common/logger.h"
 #include "imgui.h"
 
 namespace Bess::UI {
@@ -38,4 +39,24 @@ namespace Bess::UI {
 
         return val;
     }
+
+    void Popups::showAboutPopup() {
+        const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(
+            center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+        if (ImGui::BeginPopupModal(
+                PopupIds::about, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("BESS - Basic Electrical Simulation Software");
+            ImGui::Text("Version: <dev>");
+            ImGui::Text("");
+            ImGui::Text("");
+            ImGui::Separator();
+            if (ImGui::Button("Close", ImVec2(120, 0))) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+    }
+
 } // namespace Bess::UI
