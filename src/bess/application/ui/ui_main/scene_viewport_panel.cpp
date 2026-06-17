@@ -204,7 +204,6 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::onSceneAttached() {
-        // does not resets the transform
         m_viewportCtx->reset();
         m_pendingSelectionReadback.clear();
     }

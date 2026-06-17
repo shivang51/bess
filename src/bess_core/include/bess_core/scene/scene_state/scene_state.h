@@ -1,13 +1,13 @@
 #pragma once
 
 #include "bess_core/g_app_context.h"
-#include "common/bess_uuid.h"
-#include "event_dispatcher.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
+#include "common/bess_uuid.h"
+#include "common/types.h"
+#include "event_dispatcher.h"
+
 #include <cstdint>
 #include <mutex>
-#include <set>
-#include <unordered_set>
 
 namespace Bess::Canvas {
     class SceneState {
@@ -80,10 +80,10 @@ namespace Bess::Canvas {
         std::shared_ptr<SceneComponent>
         getComponentByPickingId(const PickingId &id) const;
 
-        const std::unordered_map<UUID, std::shared_ptr<SceneComponent>> &
+        const HashMap<UUID, std::shared_ptr<SceneComponent>> &
         getAllComponents() const;
 
-        const std::unordered_set<UUID> &getRootComponents() const;
+        const HashSet<UUID> &getRootComponents() const;
 
         MAKE_GETTER_SETTER(UUID, ConnectionStartSlot, m_connectionStartSlot);
         MAKE_GETTER_SETTER(glm::vec2, MousePos, m_mousePos);
@@ -113,7 +113,7 @@ namespace Bess::Canvas {
 
         bool isRootComponent(const UUID &uuid) const;
 
-        const std::unordered_map<UUID, bool> &getSelectedComponents() const;
+        const HashMap<UUID, bool> &getSelectedComponents() const;
 
         void attachChild(const UUID &parentId,
                          const UUID &childId,
@@ -131,13 +131,12 @@ namespace Bess::Canvas {
         void removeFromMap(const UUID &uuid);
 
       private:
-        std::unordered_map<UUID, std::shared_ptr<SceneComponent>>
-            m_componentsMap;
-        std::unordered_map<UUID, bool> m_selectedComponents;
+        HashMap<UUID, std::shared_ptr<SceneComponent>> m_componentsMap;
+        HashMap<UUID, bool> m_selectedComponents;
 
-        std::unordered_map<uint32_t, UUID> m_runtimeIdMap;
-        std::unordered_set<UUID> m_rootComponents;
-        std::set<uint32_t> m_freeRuntimeIds;
+        HashMap<uint32_t, UUID> m_runtimeIdMap;
+        HashSet<UUID> m_rootComponents;
+        OrderedSet<uint32_t> m_freeRuntimeIds;
 
         UUID m_connectionStartSlot = UUID::null;
         bool m_isRootScene = true;

@@ -1,13 +1,13 @@
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "bess_core/scene/scene_ser_reg.h"
+#include "bess_core/scene/scene_state/components/scene_component.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "event_dispatcher.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
-#include "bess_core/scene/scene_state/components/scene_component.h"
-#include "bess_core/scene/scene_ser_reg.h"
 #include "services/plugin_service/plugin_service.h"
 #include "simulation_engine.h"
 #include <cstdint>
@@ -38,9 +38,13 @@ namespace Bess::Canvas {
         return nullptr;
     }
 
-    const std::unordered_map<UUID, std::shared_ptr<SceneComponent>> &
+    const HashMap<UUID, std::shared_ptr<SceneComponent>> &
     SceneState::getAllComponents() const {
         return m_componentsMap;
+    }
+
+    const HashSet<UUID> &SceneState::getRootComponents() const {
+        return m_rootComponents;
     }
 
     bool SceneState::isComponentValid(const UUID &uuid) const {
@@ -86,23 +90,21 @@ namespace Bess::Canvas {
     }
 
     bool SceneState::isComponentSelected(const UUID &uuid) const {
-        if (!isComponentValid(uuid) || !m_selectedComponents.contains(uuid))
-            return false;
+        auto itr = m_selectedComponents.find(uuid);
 
-        return m_selectedComponents.at(uuid);
+        if (itr == m_selectedComponents.end() || !itr->second) {
+            return false;
+        }
+
+        return isComponentValid(uuid);
     }
 
     bool SceneState::isComponentSelected(const PickingId &pickingId) const {
         return isComponentSelected(m_runtimeIdMap.at(pickingId.runtimeId));
     }
 
-    const std::unordered_map<UUID, bool> &
-    SceneState::getSelectedComponents() const {
+    const HashMap<UUID, bool> &SceneState::getSelectedComponents() const {
         return m_selectedComponents;
-    }
-
-    const std::unordered_set<UUID> &SceneState::getRootComponents() const {
-        return m_rootComponents;
     }
 
     void SceneState::attachChild(const UUID &parentId,

@@ -6,9 +6,17 @@
 #include <cstdint>
 #include <ratio>
 
+#include "absl/container/btree_set.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
+
 namespace Bess {
     using TimeMs = std::chrono::duration<double, std::milli>;
     using TimeNs = std::chrono::duration<double, std::nano>;
+
+    template <typename K, typename V> using HashMap = absl::flat_hash_map<K, V>;
+    template <typename K> using HashSet = absl::flat_hash_set<K>;
+    template <typename K> using OrderedSet = absl::btree_set<K>;
 
     struct PickingId {
         uint32_t runtimeId;
@@ -238,6 +246,79 @@ namespace Bess {
 
     } // namespace SimEngine
 }; // namespace Bess
+
+namespace Bess::JsonConvert {
+
+    template <typename T>
+    void fromJsonValue(const Json::Value &j, Bess::HashSet<T> &vec) {
+        vec.clear();
+        if (j.isArray()) {
+            for (const auto &item : j) {
+                T val;
+                fromJsonValue(item, val);
+                vec.insert(val);
+            }
+        }
+    }
+
+    template <typename T>
+    void toJsonValue(const Bess::HashSet<T> &vec, Json::Value &j) {
+        j = Json::arrayValue;
+        for (const auto &item : vec) {
+            Json::Value val;
+            toJsonValue(item, val);
+            j.append(val);
+        }
+    }
+
+    template <typename T>
+    void fromJsonValue(const Json::Value &j, Bess::OrderedSet<T> &vec) {
+        vec.clear();
+        if (j.isArray()) {
+            for (const auto &item : j) {
+                T val;
+                fromJsonValue(item, val);
+                vec.insert(val);
+            }
+        }
+    }
+
+    template <typename T>
+    void toJsonValue(const Bess::OrderedSet<T> &vec, Json::Value &j) {
+        j = Json::arrayValue;
+        for (const auto &item : vec) {
+            Json::Value val;
+            toJsonValue(item, val);
+            j.append(val);
+        }
+    }
+
+    template <typename K, typename V>
+    void fromJsonValue(const Json::Value &j, Bess::HashMap<K, V> &map) {
+        map.clear();
+        if (j.isObject()) {
+            for (const auto &key : j.getMemberNames()) {
+                K k;
+                fromJsonValue(Json::Value(key), k);
+                V v;
+                fromJsonValue(j[key], v);
+                map[k] = v;
+            }
+        }
+    }
+
+    template <typename K, typename V>
+    void toJsonValue(const Bess::HashMap<K, V> &map, Json::Value &j) {
+        j = Json::objectValue;
+        for (const auto &[key, value] : map) {
+            Json::Value k;
+            toJsonValue(key, k);
+            Json::Value v;
+            toJsonValue(value, v);
+            j[k.asString()] = v;
+        }
+    }
+} // namespace Bess::JsonConvert
 
 REFLECT_ENUM(Bess::SimEngine::SimulationState)
 REFLECT_ENUM(Bess::SimEngine::LogicState)

@@ -125,6 +125,9 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 	glfw
 	webgpu_dawn
 	material-color-utils
+	absl::flat_hash_map
+	absl::flat_hash_set
+	absl::btree
 )
 
 if(LINUX)

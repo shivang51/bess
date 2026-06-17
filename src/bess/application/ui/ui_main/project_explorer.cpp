@@ -1,21 +1,21 @@
 #include "ui/ui_main/project_explorer.h"
-#include "pages/main_page/main_page.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "bess_core/settings/viewport_theme.h"
 #include "common/bess_uuid.h"
 #include "common/helpers.h"
 #include "common/logger.h"
-#include "ui/icons/FontAwesomeIcons_Remapped.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/cmds/delete_comp_cmd.h"
+#include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/group_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
-#include "bess_core/settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include "ui/icons/CodIcons_Remapped.h"
+#include "ui/icons/FontAwesomeIcons_Remapped.h"
 #include "ui/widgets/m_widgets.h"
 #include <cstdint>
 #include <memory>
@@ -484,8 +484,7 @@ namespace Bess::UI {
             netIdCompMap.size());
     }
 
-    size_t
-    ProjectExplorer::drawEntites(const std::unordered_set<UUID> &entities) {
+    size_t ProjectExplorer::drawEntites(const HashSet<UUID> &entities) {
         constexpr auto groupIcon = Icons::FontAwesomeIcons::FA_FOLDER;
         constexpr auto groupOpenIcon = Icons::FontAwesomeIcons::FA_FOLDER_OPEN;
         constexpr auto nodePopupName = "node_popup";
