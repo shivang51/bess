@@ -559,7 +559,7 @@ namespace Bess::Pages {
 
         auto &sceneState = scene->getState();
         const auto &comp =
-            sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(
+            sceneState.getComponentByUuidSP<Canvas::SimulationSceneComponent>(
                 compData.sceneCompId);
         if (!comp)
             return; // most likely the component was deleted, so we can ignore
@@ -598,7 +598,7 @@ namespace Bess::Pages {
 
         auto &sceneState = scene->getState();
         const auto &comp =
-            sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(
+            sceneState.getComponentByUuidSP<Canvas::SimulationSceneComponent>(
                 compData.sceneCompId);
         if (!comp)
             return; // most likely the component was deleted, so we can ignore
@@ -630,7 +630,7 @@ namespace Bess::Pages {
         }
 
         const auto &sceneState = scene->getState();
-        const auto &comp = sceneState.getComponentByUuid(e.uuid);
+        const auto &comp = sceneState.getComponentByUuidSP(e.uuid);
         if (!comp) {
             return;
         }

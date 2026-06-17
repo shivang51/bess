@@ -29,12 +29,22 @@ namespace Bess::Canvas {
     }
 
     std::shared_ptr<SceneComponent>
-    SceneState::getComponentByUuid(const UUID &uuid) const {
+    SceneState::getComponentByUuidSP(const UUID &uuid) const {
         std::lock_guard lock(m_componentsMutex);
         auto itr = m_componentsMap.find(uuid);
         if (itr != m_componentsMap.end()) {
             return itr->second;
         }
+        return nullptr;
+    }
+
+    SceneComponent *SceneState::getComponentByUuid(const UUID &uuid) const {
+        auto itr = m_componentsMap.find(uuid);
+
+        if (itr != m_componentsMap.end()) {
+            return itr->second.get();
+        }
+
         return nullptr;
     }
 
@@ -210,7 +220,7 @@ namespace Bess::Canvas {
         if (!id.isValid())
             return nullptr;
 
-        return getComponentByUuid(runtimeIdToUuid(id.runtimeId));
+        return getComponentByUuidSP(runtimeIdToUuid(id.runtimeId));
     }
 
     std::vector<UUID> SceneState::removeComponent(const UUID &uuid,

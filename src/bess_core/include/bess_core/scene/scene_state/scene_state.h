@@ -66,19 +66,33 @@ namespace Bess::Canvas {
             }
         }
 
+        // Slightly expensive, but keapt for ease of use.
         template <typename T>
-        std::shared_ptr<T> getComponentByUuid(const UUID &uuid) const {
+        std::shared_ptr<T> getComponentByUuidSP(const UUID &uuid) const {
             auto itr = m_componentsMap.find(uuid);
 
             if (itr != m_componentsMap.end()) {
-                return std::static_pointer_cast<T>(itr->second);
+                return dynamic_pointer_cast<T>(itr->second);
+            }
+
+            return nullptr;
+        }
+
+        // I use it for hotpaths
+        template <typename T> T *getComponentByUuid(const UUID &uuid) const {
+            auto itr = m_componentsMap.find(uuid);
+
+            if (itr != m_componentsMap.end()) {
+                return static_cast<T *>(itr->second.get());
             }
 
             return nullptr;
         }
 
         std::shared_ptr<SceneComponent>
-        getComponentByUuid(const UUID &uuid) const;
+        getComponentByUuidSP(const UUID &uuid) const;
+
+        SceneComponent *getComponentByUuid(const UUID &uuid) const;
 
         std::shared_ptr<SceneComponent>
         getComponentByPickingId(const PickingId &id) const;

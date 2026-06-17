@@ -2,6 +2,7 @@
 
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "bess_core/scene/scene.h"
 #include "bess_core/scene_driver.h"
 #include "command.h"
 #include "common/bess_assert.h"
@@ -12,7 +13,6 @@
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
-#include "bess_core/scene/scene.h"
 #include "simulation_engine.h"
 #include <functional>
 #include <memory>
@@ -58,7 +58,7 @@ namespace Bess::Cmd {
                     return;
                 }
 
-                const auto component = sceneState.getComponentByUuid(uuid);
+                const auto component = sceneState.getComponentByUuidSP(uuid);
                 if (!component) {
                     return;
                 }
@@ -110,7 +110,7 @@ namespace Bess::Cmd {
             }
 
             return parentScene->getState()
-                .getComponentByUuid<Canvas::ModuleSceneComponent>(
+                .getComponentByUuidSP<Canvas::ModuleSceneComponent>(
                     sceneState.getModuleId());
         }
 
@@ -124,29 +124,29 @@ namespace Bess::Cmd {
             std::unordered_set<UUID> connectionIds;
             const auto simComponent =
                 scene->getState()
-                    .getComponentByUuid<Canvas::SimulationSceneComponent>(
+                    .getComponentByUuidSP<Canvas::SimulationSceneComponent>(
                         componentId);
             if (!simComponent) {
                 return connectionIds;
             }
 
-            const auto collectSlotConnections =
-                [&](const std::vector<UUID> &slotIds) {
-                    for (const auto &slotId : slotIds) {
-                        const auto slotComponent =
-                            scene->getState()
-                                .getComponentByUuid<Canvas::SlotSceneComponent>(
-                                    slotId);
-                        if (!slotComponent || slotComponent->isResizeSlot()) {
-                            continue;
-                        }
-
-                        for (const auto &connectionId :
-                             slotComponent->getConnectedConnections()) {
-                            connectionIds.insert(connectionId);
-                        }
+            const auto collectSlotConnections = [&](const std::vector<UUID>
+                                                        &slotIds) {
+                for (const auto &slotId : slotIds) {
+                    const auto slotComponent =
+                        scene->getState()
+                            .getComponentByUuidSP<Canvas::SlotSceneComponent>(
+                                slotId);
+                    if (!slotComponent || slotComponent->isResizeSlot()) {
+                        continue;
                     }
-                };
+
+                    for (const auto &connectionId :
+                         slotComponent->getConnectedConnections()) {
+                        connectionIds.insert(connectionId);
+                    }
+                }
+            };
 
             collectSlotConnections(simComponent->getInputSlots());
             collectSlotConnections(simComponent->getOutputSlots());
@@ -173,7 +173,7 @@ namespace Bess::Cmd {
                   owningModule->getAssociatedOut()}) {
                 const auto boundaryComponent =
                     sceneState
-                        .getComponentByUuid<Canvas::SimulationSceneComponent>(
+                        .getComponentByUuidSP<Canvas::SimulationSceneComponent>(
                             boundaryComponentId);
                 if (!boundaryComponent ||
                     boundaryComponent->getNetId() != netId) {
@@ -226,11 +226,11 @@ namespace Bess::Cmd {
             const auto &moduleState = moduleScene->getState();
             const auto inputComponent =
                 moduleState
-                    .getComponentByUuid<Canvas::SimulationSceneComponent>(
+                    .getComponentByUuidSP<Canvas::SimulationSceneComponent>(
                         moduleComponent->getAssociatedInp());
             const auto outputComponent =
                 moduleState
-                    .getComponentByUuid<Canvas::SimulationSceneComponent>(
+                    .getComponentByUuidSP<Canvas::SimulationSceneComponent>(
                         moduleComponent->getAssociatedOut());
 
             BESS_ASSERT(
@@ -510,7 +510,7 @@ namespace Bess::Cmd {
 
             m_moduleComponent =
                 m_rootScene->getState()
-                    .getComponentByUuid<Canvas::ModuleSceneComponent>(
+                    .getComponentByUuidSP<Canvas::ModuleSceneComponent>(
                         m_moduleComponentId);
             if (!m_moduleComponent) {
                 return false;

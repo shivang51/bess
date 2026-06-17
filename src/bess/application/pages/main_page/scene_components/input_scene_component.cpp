@@ -1,24 +1,23 @@
 #include "input_scene_component.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
-#include "ui/icons/FontAwesomeIcons_Remapped.h"
+#include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_draw_helpers.h"
 #include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene/widgets/scene_widgets.h"
-#include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/settings/viewport_theme.h"
 #include "sim_scene_component.h"
 #include "simulation_engine.h"
+#include "ui/icons/FontAwesomeIcons_Remapped.h"
 
 namespace Bess::Canvas {
     namespace {
         bool makeAllLow = false;
 
-        bool
-        setOutputSlotState(const SceneState &state,
-                           const std::shared_ptr<SlotSceneComponent> &slotComp,
-                           bool isHigh) {
+        bool setOutputSlotState(const SceneState &state,
+                                const SlotSceneComponent *slotComp,
+                                bool isHigh) {
             const auto slotParentComp =
                 state.getComponentByUuid<SimulationSceneComponent>(
                     slotComp->getParentComponent());

@@ -67,8 +67,7 @@ namespace Bess::Canvas {
                         continue;
                     }
 
-                    auto dragComp =
-                        std::dynamic_pointer_cast<IDragBehaviour>(comp);
+                    auto dragComp = dynamic_cast<IDragBehaviour *>(comp);
                     if (!dragComp) {
                         BESS_ERROR("Component {} of type {} is marked as "
                                    "draggable but does not implement "
@@ -285,8 +284,7 @@ namespace Bess::Canvas {
                                       std::ranges::views::keys) {
             auto comp = ctx.sceneState->getComponentByUuid(compId);
             if (comp && comp->isDraggable()) {
-                if (auto dragComp =
-                        std::dynamic_pointer_cast<IDragBehaviour>(comp)) {
+                if (auto dragComp = dynamic_cast<IDragBehaviour *>(comp)) {
                     dragComp->onMouseDragEnd();
                 }
             }

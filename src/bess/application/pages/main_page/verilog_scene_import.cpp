@@ -2,6 +2,7 @@
 
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "bess_core/scene/scene.h"
 #include "bess_core/scene_driver.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
@@ -13,7 +14,6 @@
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "pages/main_page/services/hierarchical_scene_layout.h"
-#include "bess_core/scene/scene.h"
 #include "simulation_engine.h"
 #include <algorithm>
 #include <chrono>
@@ -629,10 +629,10 @@ namespace Bess::Pages {
 
             auto &moduleSceneState = moduleScene->getState();
             const auto moduleInput =
-                moduleSceneState.getComponentByUuid<SimulationSceneComponent>(
+                moduleSceneState.getComponentByUuidSP<SimulationSceneComponent>(
                     moduleComp->getAssociatedInp());
             const auto moduleOutput =
-                moduleSceneState.getComponentByUuid<SimulationSceneComponent>(
+                moduleSceneState.getComponentByUuidSP<SimulationSceneComponent>(
                     moduleComp->getAssociatedOut());
             if (moduleInput) {
                 syncSceneComponentSlots(moduleSceneState,
@@ -976,10 +976,10 @@ namespace Bess::Pages {
             std::vector<UUID> internalSimIds;
 
             const auto moduleInput =
-                moduleSceneState.getComponentByUuid<SimulationSceneComponent>(
+                moduleSceneState.getComponentByUuidSP<SimulationSceneComponent>(
                     moduleComp->getAssociatedInp());
             const auto moduleOutput =
-                moduleSceneState.getComponentByUuid<SimulationSceneComponent>(
+                moduleSceneState.getComponentByUuidSP<SimulationSceneComponent>(
                     moduleComp->getAssociatedOut());
             if (moduleInput) {
                 internalSceneBySimId[moduleInput->getSimEngineId()] =
@@ -1221,7 +1221,7 @@ namespace Bess::Pages {
                             const auto dependants =
                                 component->getDependants(scene.getState());
                             for (const auto &dependantId : dependants) {
-                                walk(scene.getState().getComponentByUuid(
+                                walk(scene.getState().getComponentByUuidSP(
                                     dependantId));
                             }
                             ordered.push_back(component);

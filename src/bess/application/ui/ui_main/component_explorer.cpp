@@ -1,7 +1,4 @@
 #include "ui/ui_main/component_explorer.h"
-#include "pages/main_page/cmds/add_comp_cmd.h"
-#include "pages/main_page/main_page.h"
-#include "pages/main_page/scene_components/non_sim_scene_component.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "bess_core/scene_driver.h"
@@ -10,12 +7,15 @@
 #include "component_catalog.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "pages/main_page/cmds/add_comp_cmd.h"
+#include "pages/main_page/main_page.h"
+#include "pages/main_page/scene_components/non_sim_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "services/plugin_service/plugin_service.h"
 #include "sim_driver/sim_driver.h"
 #include "ui/icons/CodIcons_Remapped.h"
-#include "ui/widgets/m_widgets.h"
 #include "ui/ui_main/ui_main.h"
+#include "ui/widgets/m_widgets.h"
 #include <utility>
 
 namespace Bess::UI {
@@ -84,7 +84,7 @@ namespace Bess::UI {
                 if (!shouldCollectionShow) {
                     for (const auto &comp : ent.second) {
                         if (Common::Helpers::toLowerCase(comp->getName())
-                                .find(m_searchQuery) != std::string::npos) {
+                                .contains(m_searchQuery)) {
                             shouldCollectionShow = true;
                             break;
                         }
@@ -99,7 +99,7 @@ namespace Bess::UI {
                     for (const auto &comp : ent.second) {
                         if (m_searchQuery != "" &&
                             Common::Helpers::toLowerCase(comp->getName())
-                                    .find(m_searchQuery) == std::string::npos)
+                                .contains(m_searchQuery))
                             continue;
 
                         const std::string &name = comp->getName();
@@ -134,7 +134,7 @@ namespace Bess::UI {
             for (auto &comp : nonSimComponents) {
                 if (m_searchQuery != "" &&
                     Common::Helpers::toLowerCase(comp.second)
-                            .find(m_searchQuery) == std::string::npos)
+                        .contains(m_searchQuery))
                     continue;
 
                 if (Widgets::ButtonWithPopup(comp.second, "", false)) {
@@ -180,14 +180,14 @@ namespace Bess::UI {
 
             std::vector<std::shared_ptr<Canvas::SceneComponent>> children;
             for (const auto &childId : simComp->getInputSlots()) {
-                const auto &child = sceneState.getComponentByUuid(childId);
+                const auto &child = sceneState.getComponentByUuidSP(childId);
                 BESS_ASSERT(child, "Child component not found in scene state");
                 children.push_back(child);
                 sceneState.attachChild(simComp->getUuid(), childId);
             }
 
             for (const auto &childId : simComp->getOutputSlots()) {
-                const auto &child = sceneState.getComponentByUuid(childId);
+                const auto &child = sceneState.getComponentByUuidSP(childId);
                 BESS_ASSERT(child, "Child component not found in scene state");
                 children.push_back(child);
                 sceneState.attachChild(simComp->getUuid(), childId);

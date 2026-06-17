@@ -2,6 +2,8 @@
 
 #include "bess_core/connection_service.h"
 #include "bess_core/project_context.h"
+#include "bess_core/scene/scene.h"
+#include "bess_core/scene/scene_state/components/scene_component.h"
 #include "command.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
@@ -9,8 +11,6 @@
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
-#include "bess_core/scene/scene.h"
-#include "bess_core/scene/scene_state/components/scene_component.h"
 #include <algorithm>
 #include <vector>
 
@@ -48,7 +48,7 @@ namespace Bess::Cmd {
             std::function<void(const UUID &)> collect = [&](const UUID &uuid) {
                 if (visited.contains(uuid))
                     return;
-                auto comp = sceneState.getComponentByUuid(uuid);
+                auto comp = sceneState.getComponentByUuidSP(uuid);
                 if (!comp)
                     return;
 
@@ -66,7 +66,7 @@ namespace Bess::Cmd {
 #ifdef DEBUG
             BESS_DEBUG("Deletion order:");
             for (const auto &uuid : deletionOrder) {
-                auto comp = sceneState.getComponentByUuid(uuid);
+                auto comp = sceneState.getComponentByUuidSP(uuid);
                 BESS_DEBUG(" -> {} ({})",
                            comp ? comp->getName() : "Unknown",
                            (uint64_t)uuid);
@@ -82,7 +82,7 @@ namespace Bess::Cmd {
             std::unordered_set<UUID> connectionDeletionIds;
 
             for (const auto &uuid : deletionOrder) {
-                auto comp = sceneState.getComponentByUuid(uuid);
+                auto comp = sceneState.getComponentByUuidSP(uuid);
                 if (comp &&
                     comp->getType() == Canvas::SceneComponentType::connection) {
                     connectionDeletionIds.insert(uuid);
@@ -95,7 +95,7 @@ namespace Bess::Cmd {
             // joint deletion must remain in the regular deletion order so the
             // joint itself is removed after its dependant branches.
             for (auto it = deletionOrder.begin(); it != deletionOrder.end();) {
-                auto comp = sceneState.getComponentByUuid(*it);
+                auto comp = sceneState.getComponentByUuidSP(*it);
                 if (!comp) {
                     it++;
                     continue;
@@ -133,14 +133,10 @@ namespace Bess::Cmd {
                     const auto getMaxSlotIdx = [&](const auto &conn) {
                         const auto &slotA = conn->getStartSlot();
                         const auto &slotB = conn->getEndSlot();
-                        const auto &slotAComp =
-                            sceneState
-                                .getComponentByUuid<Canvas::SlotSceneComponent>(
-                                    slotA);
-                        const auto &slotBComp =
-                            sceneState
-                                .getComponentByUuid<Canvas::SlotSceneComponent>(
-                                    slotB);
+                        const auto &slotAComp = sceneState.getComponentByUuidSP<
+                            Canvas::SlotSceneComponent>(slotA);
+                        const auto &slotBComp = sceneState.getComponentByUuidSP<
+                            Canvas::SlotSceneComponent>(slotB);
 
                         const auto &idxA =
                             slotAComp ? slotAComp->getIndex() : 0;
@@ -172,7 +168,7 @@ namespace Bess::Cmd {
 
             //  delete the rest (slots, nodes, etc.)
             for (const auto &uuid : deletionOrder) {
-                auto comp = sceneState.getComponentByUuid(uuid);
+                auto comp = sceneState.getComponentByUuidSP(uuid);
                 if (!comp)
                     continue;
 
@@ -225,7 +221,7 @@ namespace Bess::Cmd {
                     continue;
 
                 const auto &parentComp =
-                    sceneState.getComponentByUuid(parentUuid);
+                    sceneState.getComponentByUuidSP(parentUuid);
 
                 if (!parentComp) {
                     BESS_ERROR(

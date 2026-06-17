@@ -2,6 +2,11 @@
 #include "bess_core/connection_service.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "bess_core/scene/scene_draw_helpers.h"
+#include "bess_core/scene/scene_state/components/scene_component_types.h"
+#include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
+#include "bess_core/scene/scene_state/scene_state.h"
+#include "bess_core/settings/viewport_theme.h"
 #include "conn_joint_scene_component.h"
 #include "connection_scene_component.h"
 #include "dig_sim_driver.h"
@@ -9,11 +14,6 @@
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
-#include "bess_core/scene/scene_draw_helpers.h"
-#include "bess_core/scene/scene_state/components/scene_component_types.h"
-#include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
-#include "bess_core/scene/scene_state/scene_state.h"
-#include "bess_core/settings/viewport_theme.h"
 #include "sim_scene_component.h"
 #include "simulation_engine.h"
 #include "ui/ui.h"
@@ -341,11 +341,12 @@ namespace Bess::Canvas {
             return;
         }
 
-        auto startComp = e.sceneState->getComponentByUuid(connStartSlot);
-        std::shared_ptr<ConnJointSceneComp> jointComp = nullptr;
-        std::shared_ptr<SlotSceneComponent> startSlot = nullptr;
+        SceneComponent *startComp =
+            e.sceneState->getComponentByUuid(connStartSlot);
+        ConnJointSceneComp *jointComp = nullptr;
+        SlotSceneComponent *startSlot = nullptr;
         if (startComp->getType() == SceneComponentType::connJoint) {
-            jointComp = startComp->cast<ConnJointSceneComp>();
+            jointComp = dynamic_cast<ConnJointSceneComp *>(startComp);
             startSlot = e.sceneState->getComponentByUuid<SlotSceneComponent>(
                 jointComp->getOutputSlotId());
         } else {

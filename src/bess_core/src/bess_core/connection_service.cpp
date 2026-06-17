@@ -5,12 +5,12 @@
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 
+#include "bess_core/scene/scene.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/proxy_slot_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
-#include "bess_core/scene/scene.h"
 #include "simulation_engine.h"
 #include <algorithm>
 #include <cstdint>
@@ -155,13 +155,11 @@ namespace Bess::Svc {
         const bool endpointAIsProxy =
             endpointA &&
             endpointA->getType() != Canvas::SceneComponentType::slot &&
-            (std::dynamic_pointer_cast<Canvas::ProxySlotComponent>(endpointA) !=
-             nullptr);
+            (dynamic_cast<Canvas::ProxySlotComponent *>(endpointA) != nullptr);
         const bool endpointBIsProxy =
             endpointB &&
             endpointB->getType() != Canvas::SceneComponentType::slot &&
-            (std::dynamic_pointer_cast<Canvas::ProxySlotComponent>(endpointB) !=
-             nullptr);
+            (dynamic_cast<Canvas::ProxySlotComponent *>(endpointB) != nullptr);
 
         if (!slotA && !endpointAIsProxy) {
 
@@ -340,16 +338,14 @@ namespace Bess::Svc {
         auto startComp = sceneState.getComponentByUuid(startSlotId);
         if (startComp &&
             startComp->getType() != Canvas::SceneComponentType::slot) {
-            auto proxyA = std::dynamic_pointer_cast<Canvas::ProxySlotComponent>(
-                startComp);
+            auto proxyA = dynamic_cast<Canvas::ProxySlotComponent *>(startComp);
             if (proxyA)
                 proxyA->removeConnection(conn->getUuid());
         }
 
         auto endComp = sceneState.getComponentByUuid(endSlotId);
         if (endComp && endComp->getType() != Canvas::SceneComponentType::slot) {
-            auto proxyB =
-                std::dynamic_pointer_cast<Canvas::ProxySlotComponent>(endComp);
+            auto proxyB = dynamic_cast<Canvas::ProxySlotComponent *>(endComp);
             if (proxyB)
                 proxyB->removeConnection(conn->getUuid());
         }
@@ -552,7 +548,7 @@ namespace Bess::Svc {
 
         // try to find in scene
         const auto &slot =
-            sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(slotId);
+            sceneState.getComponentByUuidSP<Canvas::SlotSceneComponent>(slotId);
 
         if (slot) {
             return {slot, true};
@@ -685,19 +681,16 @@ namespace Bess::Svc {
     SvcConnection::getSlot(const UUID &compId) {
         const auto &sceneState = getScene()->getState();
 
-        auto comp = sceneState.getComponentByUuid(compId);
+        auto comp =
+            sceneState.getComponentByUuidSP<Canvas::SlotSceneComponent>(compId);
 
         if (!comp) {
-            BESS_ERROR("Component with id {} not found in scene",
+            BESS_ERROR("Slot component with id {} not found in scene",
                        (uint64_t)compId);
             return nullptr;
         }
 
-        if (comp->getType() == Canvas::SceneComponentType::slot) {
-            return std::dynamic_pointer_cast<Canvas::SlotSceneComponent>(comp);
-        }
-
-        return nullptr;
+        return comp;
     }
 
     std::pair<std::shared_ptr<Canvas::SlotSceneComponent>,
@@ -710,9 +703,9 @@ namespace Bess::Svc {
             return getSlot(id);
         };
 
-        auto proxyA = std::dynamic_pointer_cast<Canvas::ProxySlotComponent>(
+        auto proxyA = dynamic_cast<Canvas::ProxySlotComponent *>(
             sceneState.getComponentByUuid(idA));
-        auto proxyB = std::dynamic_pointer_cast<Canvas::ProxySlotComponent>(
+        auto proxyB = dynamic_cast<Canvas::ProxySlotComponent *>(
             sceneState.getComponentByUuid(idB));
 
         auto slotA = getOrCastSlot(idA);
@@ -749,11 +742,11 @@ namespace Bess::Svc {
 
         const auto &proxyCompA = sceneState.getComponentByUuid(proxyA);
         auto proxySlotA =
-            std::dynamic_pointer_cast<Canvas::ProxySlotComponent>(proxyCompA);
+            dynamic_cast<Canvas::ProxySlotComponent *>(proxyCompA);
 
         const auto &proxyCompB = sceneState.getComponentByUuid(proxyB);
         auto proxySlotB =
-            std::dynamic_pointer_cast<Canvas::ProxySlotComponent>(proxyCompB);
+            dynamic_cast<Canvas::ProxySlotComponent *>(proxyCompB);
 
         if (!proxySlotA || !proxySlotB) {
             BESS_ERROR(
@@ -804,8 +797,7 @@ namespace Bess::Svc {
         }
 
         const auto &proxyComp = sceneState.getComponentByUuid(proxyId);
-        auto proxySlot =
-            std::dynamic_pointer_cast<Canvas::ProxySlotComponent>(proxyComp);
+        auto proxySlot = dynamic_cast<Canvas::ProxySlotComponent *>(proxyComp);
 
         if (!proxySlot) {
             BESS_ERROR("Failed to get proxy slot component with id {} for "
@@ -888,8 +880,7 @@ namespace Bess::Svc {
         // joint
         const auto &sceneState = getScene()->getState();
         const auto &proxyComp = sceneState.getComponentByUuid(proxyId);
-        auto proxySlot =
-            std::dynamic_pointer_cast<Canvas::ProxySlotComponent>(proxyComp);
+        auto proxySlot = dynamic_cast<Canvas::ProxySlotComponent *>(proxyComp);
         if (proxySlot) {
             for (const auto &connId : proxySlot->getConnections()) {
                 const auto &connComp =
@@ -961,7 +952,7 @@ namespace Bess::Svc {
         // Type A is slot then assume slot B is proxy slot
         if (typeA == Canvas::SceneComponentType::slot) {
             const auto &proxySlot =
-                std::dynamic_pointer_cast<Canvas::ProxySlotComponent>(compB);
+                dynamic_cast<Canvas::ProxySlotComponent *>(compB);
             if (!proxySlot) {
                 BESS_ERROR(
                     "Component B with id {} is not a proxy slot component",
@@ -976,7 +967,7 @@ namespace Bess::Svc {
         // Type B is slot then assume slot A is proxy slot
         if (typeB == Canvas::SceneComponentType::slot) {
             const auto &proxySlot =
-                std::dynamic_pointer_cast<Canvas::ProxySlotComponent>(compA);
+                dynamic_cast<Canvas::ProxySlotComponent *>(compA);
             if (!proxySlot) {
                 BESS_ERROR(
                     "Component A with id {} is not a proxy slot component",
@@ -990,9 +981,9 @@ namespace Bess::Svc {
 
         // Both are proxy slots
         const auto &proxySlotA =
-            std::dynamic_pointer_cast<Canvas::ProxySlotComponent>(compA);
+            dynamic_cast<Canvas::ProxySlotComponent *>(compA);
         const auto &proxySlotB =
-            std::dynamic_pointer_cast<Canvas::ProxySlotComponent>(compB);
+            dynamic_cast<Canvas::ProxySlotComponent *>(compB);
 
         if (!proxySlotA) {
             BESS_ERROR("Component A with id {} is not a proxy slot component",
@@ -1065,7 +1056,7 @@ namespace Bess::Svc {
             slotComp->addConnection(connId);
         } else {
             const auto &proxy =
-                std::dynamic_pointer_cast<Canvas::ProxySlotComponent>(comp);
+                dynamic_cast<Canvas::ProxySlotComponent *>(comp);
             if (!proxy) {
                 BESS_ERROR("Component with id {} is not a proxy slot component "
                            "for registering connection",

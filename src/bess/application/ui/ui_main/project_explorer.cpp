@@ -31,16 +31,17 @@ namespace Bess::UI {
     }
 
     namespace {
-        bool matchesProjectExplorerIoFilter(
-            const std::shared_ptr<Canvas::SceneComponent> &comp,
-            bool filterInputs,
-            bool filterOutputs) {
+        bool matchesProjectExplorerIoFilter(const Canvas::SceneComponent *comp,
+                                            bool filterInputs,
+                                            bool filterOutputs) {
             if (!filterInputs && !filterOutputs) {
                 return true;
             }
 
             const auto simComp =
-                comp ? comp->cast<Canvas::SimulationSceneComponent>() : nullptr;
+                comp ? dynamic_cast<const Canvas::SimulationSceneComponent *>(
+                           comp)
+                     : nullptr;
             if (!simComp) {
                 return false;
             }
@@ -96,7 +97,7 @@ namespace Bess::UI {
         if (!passesSearch) {
             const auto query = Common::Helpers::toLowerCase(m_searchQuery);
             const auto name = Common::Helpers::toLowerCase(comp->getName());
-            passesSearch = name.find(query) != std::string::npos;
+            passesSearch = name.contains(query);
         }
 
         if (passesIoFilter && passesSearch) {
@@ -444,9 +445,9 @@ namespace Bess::UI {
                 group = Canvas::GroupSceneComponent::create(
                     "Net " + std::to_string(i++));
             } else {
-                group =
-                    sceneState.getComponentByUuid<Canvas::GroupSceneComponent>(
-                        emptyGroups.back());
+                group = sceneState
+                            .getComponentByUuidSP<Canvas::GroupSceneComponent>(
+                                emptyGroups.back());
                 emptyGroups.pop_back();
                 group->setName("Net " + std::to_string(i++));
             }
