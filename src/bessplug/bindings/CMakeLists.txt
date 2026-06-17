@@ -18,7 +18,13 @@ FetchContent_Declare(
   GIT_TAG        v3.0.0
 )
 
-FetchContent_MakeAvailable(pybind11)
+FetchContent_Declare (
+  pybind11_abseil
+  GIT_REPOSITORY https://github.com/pybind/pybind11_abseil.git
+  GIT_TAG master
+)
+
+FetchContent_MakeAvailable(pybind11 pybind11_abseil)
 
 set(BESS_PYBIND_SOURCES
 		internal_types.h
@@ -64,6 +70,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 	BessCmdSystem
 	BessApp
 	bverilog
+	pybind11_abseil::absl_casters
 )
 
 add_dependencies(${PROJECT_NAME}
