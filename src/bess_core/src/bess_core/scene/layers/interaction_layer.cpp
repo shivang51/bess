@@ -153,6 +153,7 @@ namespace Bess::Canvas {
             const size_t selSize =
                 ctx.sceneState->getSelectedComponents().size();
             if (selSize > 1 && !input.isDragging && !evt.isCtrlPressed &&
+                pickingId.isValid() &&
                 ctx.sceneState->isComponentSelected(pickingId)) {
                 ctx.sceneState->clearSelectedComponents();
                 ctx.sceneState->addSelectedComponent(pickingId);

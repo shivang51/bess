@@ -131,6 +131,9 @@ namespace Bess::Canvas {
         void removeFromMap(const UUID &uuid);
 
       private:
+        const UUID &runtimeIdToUuid(uint32_t runtimeId) const;
+
+      private:
         HashMap<UUID, std::shared_ptr<SceneComponent>> m_componentsMap;
         HashMap<UUID, bool> m_selectedComponents;
 

@@ -69,11 +69,11 @@ namespace Bess::Canvas {
     }
 
     void SceneState::addSelectedComponent(const PickingId &id) {
-        if (id.info & PickingId::InfoFlags::unSelectable) {
+        if (!id.isValid() || (id.info & PickingId::InfoFlags::unSelectable)) {
             return;
         }
 
-        addSelectedComponent(m_runtimeIdMap.at(id.runtimeId));
+        addSelectedComponent(runtimeIdToUuid(id.runtimeId));
     }
 
     void SceneState::removeSelectedComponent(const UUID &uuid) {
@@ -86,7 +86,9 @@ namespace Bess::Canvas {
     }
 
     void SceneState::removeSelectedComponent(const PickingId &id) {
-        removeSelectedComponent(m_runtimeIdMap.at(id.runtimeId));
+        if (!id.isValid())
+            return;
+        removeSelectedComponent(runtimeIdToUuid(id.runtimeId));
     }
 
     bool SceneState::isComponentSelected(const UUID &uuid) const {
@@ -100,7 +102,10 @@ namespace Bess::Canvas {
     }
 
     bool SceneState::isComponentSelected(const PickingId &pickingId) const {
-        return isComponentSelected(m_runtimeIdMap.at(pickingId.runtimeId));
+        if (!pickingId.isValid())
+            return false;
+
+        return isComponentSelected(runtimeIdToUuid(pickingId.runtimeId));
     }
 
     const HashMap<UUID, bool> &SceneState::getSelectedComponents() const {
@@ -190,7 +195,7 @@ namespace Bess::Canvas {
         if (!m_freeRuntimeIds.empty()) {
             runtimeId = *m_freeRuntimeIds.rbegin();
             m_freeRuntimeIds.erase(runtimeId);
-            BESS_ASSERT(m_runtimeIdMap.at(runtimeId) == UUID::null,
+            BESS_ASSERT(runtimeIdToUuid(runtimeId) == UUID::null,
                         "Reusing runtimeId that is still mapped");
         } else {
             runtimeId = static_cast<uint32_t>(m_runtimeIdMap.size());
@@ -202,12 +207,10 @@ namespace Bess::Canvas {
 
     std::shared_ptr<SceneComponent>
     SceneState::getComponentByPickingId(const PickingId &id) const {
-        if (!m_runtimeIdMap.contains(id.runtimeId)) {
+        if (!id.isValid())
             return nullptr;
-        }
 
-        const auto &uuid = m_runtimeIdMap.at(id.runtimeId);
-        return getComponentByUuid(uuid);
+        return getComponentByUuid(runtimeIdToUuid(id.runtimeId));
     }
 
     std::vector<UUID> SceneState::removeComponent(const UUID &uuid,
@@ -321,6 +324,17 @@ namespace Bess::Canvas {
         m_selectedComponents.erase(uuid);
         m_componentsMap.erase(uuid);
     }
+
+    const UUID &SceneState::runtimeIdToUuid(uint32_t runtimeId) const {
+        auto itr = m_runtimeIdMap.find(runtimeId);
+        if (itr == m_runtimeIdMap.end()) {
+            BESS_ASSERT(
+                false, "RuntimeId {} not found in runtimeIdMap", runtimeId);
+            return UUID::null;
+        }
+        return itr->second;
+    }
+
 } // namespace Bess::Canvas
 
 namespace Bess::JsonConvert {
