@@ -73,6 +73,7 @@ namespace Bess::Canvas {
         clone(const SceneState &sceneState) const override;
 
         void draw(SceneDrawContext &context) override;
+        void drawSchematic(SceneDrawContext &context) override;
 
         std::type_index getTypeIndex() override {
             return typeid(TextComponent);

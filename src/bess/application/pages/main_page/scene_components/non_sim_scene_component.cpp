@@ -31,6 +31,10 @@ namespace Bess::Canvas {
         return nullptr;
     }
 
+    void TextComponent::drawSchematic(SceneDrawContext &context) {
+        draw(context);
+    }
+
     void TextComponent::draw(SceneDrawContext &context) {
         if (m_isFirstDraw) {
             onFirstDraw(context);
@@ -65,10 +69,6 @@ namespace Bess::Canvas {
             props.borderSize = Styles::componentStyles.borderSize;
             props.borderColor = ViewportTheme::colors.selectedComp;
             props.shadow.enabled = true;
-            props.shadow.offset = {0.f, 3.f};
-            props.shadow.blur = 10.f;
-            props.shadow.spread = 1.f;
-            props.shadow.color = ViewportTheme::colors.componentBG;
 
             const auto textOffset = context.renderer->textCenterOffsetY(
                 m_data, {.fontSize = (float)m_size});
@@ -81,7 +81,7 @@ namespace Bess::Canvas {
             SceneDraw::drawQuad(context,
                                 m_transform.position + offset,
                                 m_transform.scale,
-                                m_style.color,
+                                ViewportTheme::colors.componentBG,
                                 pickingId,
                                 props);
         }
