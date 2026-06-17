@@ -1,9 +1,9 @@
 #include "bess_core/scene/layers/overlay_layer.h"
+#include "bess_core/scene/scene_draw_helpers.h"
+#include "bess_core/settings/viewport_theme.h"
 #include "common/bess_uuid.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
-#include "bess_core/scene/scene_draw_helpers.h"
-#include "bess_core/settings/viewport_theme.h"
 
 namespace Bess::Canvas {
     void OverlayLayer::update(TimeMs ts, SceneUpdateContext &ctx) {
@@ -20,7 +20,7 @@ namespace Bess::Canvas {
             ctx.camera,
         };
 
-        drawCtx.isSchematicMode = *ctx.isSchematicMode;
+        drawCtx.isSchematicMode = ctx.viewportCtx->isSchematicMode();
 
         drawGhostConnection(drawCtx, ctx);
         drawSelectionBox(drawCtx, ctx);
@@ -30,7 +30,7 @@ namespace Bess::Canvas {
                                            SceneRenderContext &ctx) const {
 
         if (ctx.sceneState->getConnectionStartSlot() == UUID::null ||
-            !ctx.inputState || !ctx.isInFocusedViewport) {
+            !ctx.viewportCtx || !ctx.viewportCtx->isFocused) {
             return;
         }
 
@@ -51,7 +51,8 @@ namespace Bess::Canvas {
                                                  drawCtx.isSchematicMode);
         }
 
-        const auto endPos = ctx.camera->toWorldPos(ctx.inputState->mousePos);
+        const auto endPos =
+            ctx.camera->toWorldPos(ctx.viewportCtx->inputCtx.mousePos);
         const float midX = (startPos.x + endPos.x) / 2.f;
 
         const auto &id = PickingId::invalid();
@@ -71,13 +72,14 @@ namespace Bess::Canvas {
 
     void OverlayLayer::drawSelectionBox(SceneDrawContext &drawCtx,
                                         SceneRenderContext &ctx) const {
-        if (!ctx.inputState || !ctx.inputState->selectionBox.draw) {
+        if (!ctx.viewportCtx || !ctx.viewportCtx->selBoxCtx.draw) {
             return;
         }
 
-        const auto start =
-            ctx.camera->toWorldPos(ctx.inputState->selectionBox.start);
-        const auto end = ctx.camera->toWorldPos(ctx.inputState->mousePos);
+        const auto &selBox = ctx.viewportCtx->selBoxCtx;
+        const auto start = ctx.camera->toWorldPos(selBox.start);
+        const auto end =
+            ctx.camera->toWorldPos(ctx.viewportCtx->inputCtx.mousePos);
 
         auto size = end - start;
         const auto pos = start + (size / 2.f);

@@ -30,14 +30,14 @@ namespace Bess::UI {
     } // namespace
 
     bool SceneViewportPanel::isSchematicMode() const {
-        return m_viewportCtx.mode == Core::Viewport::ViewportMode::schematic;
+        return m_viewportCtx->mode == Core::Viewport::ViewportMode::schematic;
     }
 
     bool SceneViewportPanel::toggleSchematicMode() {
-        m_viewportCtx.mode = isSchematicMode()
-                                 ? Core::Viewport::ViewportMode::normal
-                                 : Core::Viewport::ViewportMode::schematic;
-        return m_viewportCtx.mode == Core::Viewport::ViewportMode::schematic;
+        m_viewportCtx->mode = isSchematicMode()
+                                  ? Core::Viewport::ViewportMode::normal
+                                  : Core::Viewport::ViewportMode::schematic;
+        return m_viewportCtx->mode == Core::Viewport::ViewportMode::schematic;
     }
 
     void SceneViewportPanel::updateScene(TimeMs ts) {
@@ -62,20 +62,21 @@ namespace Bess::UI {
             releaseMouseButtonOutsideViewport(frameInputState.mouseBtnState);
         }
 
+        auto &inpCtx = m_viewportCtx->inputCtx;
         const bool shouldProcessPicking =
-            m_isHovered || m_inputState.pickingReadbackRequest.active ||
+            m_isHovered || m_viewportCtx->pickingReadbackRequest.active ||
             m_pendingSelectionReadback.active;
 
         if (m_pickingTexture && shouldProcessPicking &&
-            !m_attachedScene->getIsFirstFrame() && !m_inputState.isDragging) {
+            !m_attachedScene->getIsFirstFrame() && !inpCtx.isDragging) {
             updatePickingIds(mouseMoved && m_isHovered);
         }
 
         if (m_isHovered) {
             applySceneCursor();
         } else if (!hasMouseCapture()) {
-            m_pickingId = PickingId::invalid();
-            m_inputState.cursor = Canvas::SceneCursor::inherit;
+            inpCtx.pickingId = PickingId::invalid();
+            inpCtx.cursor = Core::Viewport::SceneCursor::inherit;
         }
     }
 
@@ -84,20 +85,22 @@ namespace Bess::UI {
             return false;
         }
 
-        return pos.x >= m_viewportPos.x &&
-               pos.x < m_viewportPos.x + m_viewportSize.x &&
-               pos.y >= m_viewportPos.y &&
-               pos.y < m_viewportPos.y + m_viewportSize.y;
+        const auto &vpSize = m_viewportCtx->transform.size;
+        const auto &vpPos = m_viewportCtx->transform.pos;
+
+        return pos.x >= vpPos.x && pos.x < vpPos.x + vpSize.x &&
+               pos.y >= vpPos.y && pos.y < vpPos.y + vpSize.y;
     }
 
     bool SceneViewportPanel::hasRenderableViewport() const {
-        return isValidExtent(m_viewportSize);
+        return isValidExtent(m_viewportCtx->transform.size) && m_sceneTexture &&
+               m_pickingTexture;
     }
 
     bool SceneViewportPanel::hasMouseCapture() const {
-        return m_inputState.isLeftMousePressed ||
-               m_inputState.isMiddleMousePressed || m_inputState.isDragging ||
-               m_inputState.selectionBox.draw;
+        const auto &inputCtx = m_viewportCtx->inputCtx;
+        return inputCtx.isLeftMousePressed || inputCtx.isMiddleMousePressed ||
+               inputCtx.isDragging || m_viewportCtx->selBoxCtx.draw;
     }
 
     void SceneViewportPanel::handleMouseMove(const glm::vec2 &mousePos) {
@@ -111,48 +114,45 @@ namespace Bess::UI {
             return;
         }
 
-        const bool isLeftPressed = m_inputState.isLeftMousePressed;
+        const auto &inpCtx = m_viewportCtx->inputCtx;
+        const bool isLeftPressed = inpCtx.isLeftMousePressed;
 
         if (isLeftPressed) {
             auto newPos = mousePos;
             auto vel = glm::vec2(0.f);
 
-            if (mousePos.x < m_viewportPos.x) {
+            if (mousePos.x < m_viewportCtx->transform.pos.x) {
                 vel.x = -kEdgePanStep;
-            } else if (mousePos.x > m_viewportPos.x + m_viewportSize.x) {
+            } else if (mousePos.x > m_viewportCtx->transform.pos.x +
+                                        m_viewportCtx->transform.size.x) {
                 vel.x = kEdgePanStep;
             }
 
-            if (mousePos.y < m_viewportPos.y) {
+            if (mousePos.y < m_viewportCtx->transform.pos.y) {
                 vel.y = -kEdgePanStep;
-            } else if (mousePos.y > m_viewportPos.y + m_viewportSize.y) {
+            } else if (mousePos.y > m_viewportCtx->transform.pos.y +
+                                        m_viewportCtx->transform.size.y) {
                 vel.y = kEdgePanStep;
             }
 
-            newPos.x = std::clamp(newPos.x,
-                                  m_viewportPos.x + kViewportInsetPx,
-                                  m_viewportPos.x + m_viewportSize.x -
-                                      kViewportInsetPx);
-            newPos.y = std::clamp(newPos.y,
-                                  m_viewportPos.y + kViewportInsetPx,
-                                  m_viewportPos.y + m_viewportSize.y -
-                                      kViewportInsetPx);
+            newPos.x = std::clamp(
+                newPos.x,
+                m_viewportCtx->transform.pos.x + kViewportInsetPx,
+                m_viewportCtx->transform.pos.x +
+                    m_viewportCtx->transform.size.x - kViewportInsetPx);
+            newPos.y = std::clamp(
+                newPos.y,
+                m_viewportCtx->transform.pos.y + kViewportInsetPx,
+                m_viewportCtx->transform.pos.y +
+                    m_viewportCtx->transform.size.y - kViewportInsetPx);
 
             m_camera->incrementPos(vel);
 
             window->setEnableCursor(false);
             window->setMousePos(newPos);
 
-            m_attachedScene->onMouseMove({newPos.x, newPos.y},
-                                         m_camera,
-                                         {
-                                             m_viewportPos,
-                                             m_viewportSize,
-                                         },
-                                         m_pickingId,
-                                         m_inputState,
-                                         m_viewportCtx.viewportId,
-                                         isSchematicMode());
+            m_attachedScene->onMouseMove(
+                {newPos.x, newPos.y}, m_camera, m_viewportCtx);
         } else {
             window->setEnableCursor(true);
         }
@@ -168,29 +168,11 @@ namespace Bess::UI {
         // The scene is only updated while the viewport is active. Release
         // locally so drag/pan state cannot get stuck after leaving the panel.
         if (mouseBtnState.button == MouseButton::left &&
-            m_inputState.isLeftMousePressed) {
-            m_attachedScene->onLeftMouse(false,
-                                         m_camera,
-                                         {
-                                             m_viewportPos,
-                                             m_viewportSize,
-                                         },
-                                         m_pickingId,
-                                         m_inputState,
-                                         m_viewportCtx.viewportId,
-                                         isSchematicMode());
+            m_viewportCtx->inputCtx.isLeftMousePressed) {
+            m_attachedScene->onLeftMouse(false, m_camera, m_viewportCtx);
         } else if (mouseBtnState.button == MouseButton::middle &&
-                   m_inputState.isMiddleMousePressed) {
-            m_attachedScene->onMiddleMouse(false,
-                                           m_camera,
-                                           {
-                                               m_viewportPos,
-                                               m_viewportSize,
-                                           },
-                                           m_pickingId,
-                                           m_inputState,
-                                           m_viewportCtx.viewportId,
-                                           isSchematicMode());
+                   m_viewportCtx->inputCtx.isMiddleMousePressed) {
+            m_attachedScene->onMiddleMouse(false, m_camera, m_viewportCtx);
         }
     }
 
@@ -199,9 +181,10 @@ namespace Bess::UI {
             return;
         }
 
-        const auto &mousePos = m_inputState.mousePos;
+        const auto &mousePos = m_viewportCtx->inputCtx.mousePos;
         if (mousePos.x < 0.f || mousePos.y < 0.f ||
-            mousePos.x >= m_viewportSize.x || mousePos.y >= m_viewportSize.y) {
+            mousePos.x >= m_viewportCtx->transform.size.x ||
+            mousePos.y >= m_viewportCtx->transform.size.y) {
             return;
         }
 
@@ -210,24 +193,24 @@ namespace Bess::UI {
             return;
         }
 
-        switch (m_inputState.cursor) {
-        case Canvas::SceneCursor::inherit:
+        switch (m_viewportCtx->inputCtx.cursor) {
+        case Core::Viewport::SceneCursor::inherit:
             break;
-        case Canvas::SceneCursor::pointer:
+        case Core::Viewport::SceneCursor::pointer:
             window->getui().setCursorPointer();
             break;
-        case Canvas::SceneCursor::move:
+        case Core::Viewport::SceneCursor::move:
             window->getui().setCursorMove();
             break;
-        case Canvas::SceneCursor::text:
+        case Core::Viewport::SceneCursor::text:
             window->getui().setCursorText();
             break;
-        case Canvas::SceneCursor::normal:
+        case Core::Viewport::SceneCursor::normal:
             window->getui().setCursorNormal();
             break;
         }
 
-        m_inputState.cursor = Canvas::SceneCursor::inherit;
+        m_viewportCtx->inputCtx.cursor = Core::Viewport::SceneCursor::inherit;
     }
 
     void SceneViewportPanel::renderAttachedScene() {
@@ -263,16 +246,7 @@ namespace Bess::UI {
             .renderer = renderer,
             .drawRenderTarget = sceneHandle,
             .pickingRenderTarget = pickingHandle,
-            .viewportTransform =
-                {
-                    .pos = m_viewportPos,
-                    .size = m_viewportSize,
-                },
-            .pickingId = m_pickingId,
-            .inputState = m_inputState,
-            .viewportId = m_viewportCtx.viewportId,
-            .isSchematicMode = &isSchemMode,
-            .isViewportFocused = m_isHovered,
+            .viewportCtx = m_viewportCtx,
         };
 
         m_attachedScene->draw(view);
@@ -323,12 +297,13 @@ namespace Bess::UI {
                 }
 
                 m_pendingSelectionReadback.clear();
-                m_inputState.pickingReadbackRequest = {};
+                m_viewportCtx->pickingReadbackRequest = {};
                 return;
             }
 
             if (!m_pendingSelectionReadback.active) {
-                m_pickingId = pickingResult.firstOrInvalid();
+                m_viewportCtx->inputCtx.pickingId =
+                    pickingResult.firstOrInvalid();
             }
         }
 
@@ -341,15 +316,15 @@ namespace Bess::UI {
             return;
         }
 
-        const glm::vec2 mousePos = m_inputState.mousePos;
+        const glm::vec2 mousePos = m_viewportCtx->inputCtx.mousePos;
         const glm::vec2 textureSize = m_pickingTexture->getSize();
         const uint32_t width = positiveDimension(textureSize.x);
         const uint32_t height = positiveDimension(textureSize.y);
 
-        const auto &selectionRequest = m_inputState.pickingReadbackRequest;
+        const auto &selectionRequest = m_viewportCtx->pickingReadbackRequest;
         if (selectionRequest.active) {
             if (selectionRequest.width == 0 || selectionRequest.height == 0) {
-                m_inputState.pickingReadbackRequest = {};
+                m_viewportCtx->pickingReadbackRequest = {};
                 return;
             }
 
@@ -367,7 +342,7 @@ namespace Bess::UI {
                  .y = m_pendingSelectionReadback.y,
                  .width = m_pendingSelectionReadback.width,
                  .height = m_pendingSelectionReadback.height});
-            m_inputState.pickingReadbackRequest = {};
+            m_viewportCtx->pickingReadbackRequest = {};
             return;
         }
 
@@ -378,7 +353,7 @@ namespace Bess::UI {
         if (mousePos.x < 0.f || mousePos.y < 0.f ||
             mousePos.x >= static_cast<float>(width) ||
             mousePos.y >= static_cast<float>(height)) {
-            m_pickingId = PickingId::invalid();
+            m_viewportCtx->inputCtx.pickingId = PickingId::invalid();
             return;
         }
 

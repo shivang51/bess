@@ -5,7 +5,7 @@ namespace Bess::Canvas {
     std::vector<SceneEvent> SceneEventBuilder::buildFrameEvents(
         const InputSubSystem &inputSystem,
         const std::shared_ptr<Camera> &camera,
-        const ViewportTransform &viewportTransform) {
+        const Core::Viewport::ViewportTransform &viewportTransform) {
         std::vector<SceneEvent> events;
         if (!camera) {
             return events;

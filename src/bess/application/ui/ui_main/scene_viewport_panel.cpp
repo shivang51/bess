@@ -8,21 +8,19 @@
 #include "bess_core/scene_driver.h"
 #include "bess_wgpu/wgpu_texture.h"
 #include "common/bess_uuid.h"
-#include "common/logger.h"
 #include "imgui.h"
-#include "pages/main_page/main_page.h"
 #include "sub_systems/renderer_context.h"
 #include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/ui_main.h"
 #include "ui/ui_panel.h"
-#include <cstdint>
 
 namespace Bess::UI {
     SceneViewportPanel::SceneViewportPanel(const std::string &viewportName)
         : Panel(viewportName),
           m_viewportName(viewportName) {
         static size_t viewportCounter = 0;
-        m_viewportCtx.viewportId = viewportCounter++;
+        m_viewportCtx = std::make_shared<Core::Viewport::ViewportContext>();
+        m_viewportCtx->viewportId = viewportCounter++;
     }
 
     void SceneViewportPanel::init() {
@@ -55,14 +53,15 @@ namespace Bess::UI {
         }
 
         if (m_isResized) {
-            m_camera->resize(m_viewportSize.x, m_viewportSize.y);
+            m_camera->resize(m_viewportCtx->transform.size.x,
+                             m_viewportCtx->transform.size.y);
             if (m_sceneTexture) {
-                m_sceneTexture->setSize(m_viewportSize);
+                m_sceneTexture->setSize(m_viewportCtx->transform.size);
                 m_sceneTexture->destroy();
                 m_sceneTexture->init();
             }
             if (m_pickingTexture) {
-                m_pickingTexture->setSize(m_viewportSize);
+                m_pickingTexture->setSize(m_viewportCtx->transform.size);
                 m_pickingTexture->destroy();
                 m_pickingTexture->init();
             }
@@ -79,16 +78,7 @@ namespace Bess::UI {
         Canvas::ViewportUpdateContext ctx{
             .isFocused = m_isHovered,
             .camera = m_camera,
-            .viewportTransform =
-                {
-                    .pos = m_viewportPos,
-                    .size = m_viewportSize,
-                },
-            .inputState = m_inputState,
-            .pickingId = m_pickingId,
-            .viewportId = m_viewportCtx.viewportId,
-            .isSchematicMode =
-                m_viewportCtx.mode == Core::Viewport::ViewportMode::schematic,
+            .viewportCtx = m_viewportCtx,
         };
         if (!sceneDriver->getIsPaused()) {
             m_attachedScene->viewportUpdate(ts, ctx);
@@ -124,7 +114,8 @@ namespace Bess::UI {
             m_pickingTexture->destroy();
             m_pickingTexture = nullptr;
         }
-        m_rootToSceneStatePtrs.clear();
+
+        m_viewportCtx->reset();
     }
 
     void SceneViewportPanel::onBeforeDraw() {
@@ -148,10 +139,11 @@ namespace Bess::UI {
         const auto scene = sceneDriver->getActiveScene();
 
         const auto viewportPanelSize = ImGui::GetContentRegionAvail();
-        if (viewportPanelSize.x != m_viewportSize.x ||
-            viewportPanelSize.y != m_viewportSize.y) {
+        if (viewportPanelSize.x != m_viewportCtx->transform.size.x ||
+            viewportPanelSize.y != m_viewportCtx->transform.size.y) {
             m_isResized = true;
-            m_viewportSize = {viewportPanelSize.x, viewportPanelSize.y};
+            m_viewportCtx->transform.size = {viewportPanelSize.x,
+                                             viewportPanelSize.y};
         }
 
         const auto offset = ImGui::GetCursorPos();
@@ -167,12 +159,13 @@ namespace Bess::UI {
 
         const auto gPos = ImGui::GetMainViewport()->Pos;
         m_localPos = ImGui::GetWindowPos();
-        m_viewportPos = {m_localPos.x + gPos.x + offset.x,
-                         m_localPos.y + gPos.y + offset.y};
+        m_viewportCtx->transform.pos = {m_localPos.x + gPos.x + offset.x,
+                                        m_localPos.y + gPos.y + offset.y};
 
         ImGui::PopStyleVar();
 
-        if (!m_pickingId.isValid() && ImGui::BeginPopupContextWindow()) {
+        const auto &pickingId = m_viewportCtx->inputCtx.pickingId;
+        if (!pickingId.isValid() && ImGui::BeginPopupContextWindow()) {
             if (ImGui::MenuItem("Add Component", "Shift-A")) {
                 UI::UIMain::getPanel<ComponentExplorer>()->show();
             }
@@ -202,71 +195,21 @@ namespace Bess::UI {
     }
 
     const glm::vec2 &SceneViewportPanel::getViewportPos() const {
-        return m_viewportPos;
+        return m_viewportCtx->transform.pos;
     }
 
     const glm::vec2 &SceneViewportPanel::getViewportSize() const {
-        return m_viewportSize;
+        return m_viewportCtx->transform.size;
     }
 
     void SceneViewportPanel::onSceneAttached() {
-        m_inputState.reset();
-        m_pickingId = PickingId::invalid();
+        // does not resets the transform
+        m_viewportCtx->reset();
         m_pendingSelectionReadback.clear();
-        if (m_camera) {
-            m_camera->resize(m_viewportSize.x, m_viewportSize.y);
-        }
-
-        m_rootToSceneStatePtrs.clear();
-        if (!m_attachedScene) {
-            return;
-        }
-
-        // Very Important: to avoid circular intialization of mainpage,
-        // we do this, do not remove this
-        if (m_attachedScene->getState().getIsRootScene()) {
-            m_rootToSceneStatePtrs.push_back(&m_attachedScene->getState());
-            BESS_DEBUG(
-                "[SceneVewportPanel] Scene {} attached to viewport panel '{}'",
-                (uint64_t)m_attachedScene->getState().getSceneId(),
-                m_viewportName);
-            return;
-        }
-
-        const auto &mainPageState = Pages::MainPage::getInstance()->getState();
-        auto sceneDriver = GAppContext::getInstance()
-                               .getSubSystem<Bess::ProjectContext>()
-                               ->getSubSystem<SceneDriver>();
-
-        UUID sceneId = m_attachedScene->getSceneId();
-
-        while (sceneId != UUID::null) {
-            const auto scene = sceneDriver->getSceneWithId(sceneId);
-            if (!scene) {
-                BESS_ERROR(
-                    "[SceneVewportPanel] Scene with id {} not found while "
-                    "traversing parent scenes during scene attach.",
-                    (uint64_t)sceneId);
-                break;
-            }
-            m_rootToSceneStatePtrs.push_back(&scene->getState());
-            sceneId = scene->getState().getParentSceneId();
-            if (sceneDriver->getRootSceneId() != scene->getSceneId()) {
-                BESS_ASSERT(sceneId != UUID::null,
-                            "Non-root scene has null parent scene id.");
-            }
-        }
-
-        std::ranges::reverse(m_rootToSceneStatePtrs);
-
-        BESS_DEBUG(
-            "[SceneVewportPanel] Scene {} attached to viewport panel '{}'",
-            (uint64_t)m_attachedScene->getState().getSceneId(),
-            m_viewportName);
     }
 
     glm::vec2 SceneViewportPanel::getSceneMousePos() {
-        return m_camera->toWorldPos(m_inputState.mousePos);
+        return m_camera->toWorldPos(m_viewportCtx->inputCtx.mousePos);
     }
 
     bool SceneViewportPanel::isFocused() const {

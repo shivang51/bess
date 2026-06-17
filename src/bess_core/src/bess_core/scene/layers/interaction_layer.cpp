@@ -1,11 +1,12 @@
 #include "bess_core/scene/layers/interaction_layer.h"
 #include "bess_core/g_app_context.h"
+#include "bess_core/scene/scene_events.h"
+#include "bess_core/scene/scene_state/components/behaviours/drag_behaviour.h"
+#include "bess_core/scene/scene_state/components/scene_component.h"
+#include "bess_core/viewport.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
 #include "event_dispatcher.h"
-#include "bess_core/scene/scene_state/components/behaviours/drag_behaviour.h"
-#include "bess_core/scene/scene_state/components/scene_component.h"
-#include "bess_core/scene/scene_events.h"
 #include <algorithm>
 #include <cmath>
 #include <ranges>
@@ -47,15 +48,16 @@ namespace Bess::Canvas {
 
     EventResult InteractionLayer::handleMouseMove(SceneEvent &evt,
                                                   SceneEventContext &ctx) {
-        BESS_ASSERT(ctx.sceneState && ctx.camera && ctx.inputState &&
-                        ctx.pickingId,
+        BESS_ASSERT(ctx.sceneState && ctx.camera && ctx.viewportCtx,
                     "InteractionLayer missing scene context");
 
-        auto &input = *ctx.inputState;
+        auto &input = ctx.viewportCtx->inputCtx;
         const auto &data = evt.data.mouseMove;
 
-        if (input.isLeftMousePressed && input.drawMode == SceneDrawMode::none) {
-            if (ctx.pickingId->isValid()) {
+        if (input.isLeftMousePressed &&
+            ctx.viewportCtx->drawMode ==
+                Core::Viewport::ViewportDrawMode::none) {
+            if (ctx.viewportCtx->inputCtx.pickingId.isValid()) {
                 const auto &selectedComps =
                     ctx.sceneState->getSelectedComponents();
                 for (const auto &compId :
@@ -79,10 +81,10 @@ namespace Bess::Canvas {
                     dragComp->onMouseDragged(Events::MouseDraggedEvent{
                         data.pos,
                         input.dMousePos,
-                        ctx.pickingId->info,
+                        ctx.viewportCtx->inputCtx.pickingId.info,
                         selectedComps.size() > 1,
                         ctx.sceneState,
-                        ctx.isSchematicMode,
+                        ctx.viewportCtx->isSchematicMode(),
                     });
 
                     if (ctx.sceneState->getConnectionStartSlot() == compId) {
@@ -90,9 +92,9 @@ namespace Bess::Canvas {
                     }
                     input.isDragging = true;
                 }
-            } else if (!input.selectionBox.draw) {
-                input.selectionBox.draw = true;
-                input.selectionBox.start = input.mousePos;
+            } else if (!ctx.viewportCtx->selBoxCtx.draw) {
+                ctx.viewportCtx->selBoxCtx.draw = true;
+                ctx.viewportCtx->selBoxCtx.start = input.mousePos;
             }
         } else if (input.isMiddleMousePressed) {
             ctx.camera->incrementPos(-input.dMousePos);
@@ -124,22 +126,23 @@ namespace Bess::Canvas {
     EventResult InteractionLayer::handleLeftMouseButton(SceneEvent &evt,
                                                         SceneEventContext &ctx,
                                                         bool isPressed) {
-        BESS_ASSERT(ctx.sceneState && ctx.inputState && ctx.pickingId,
+        BESS_ASSERT(ctx.sceneState && ctx.viewportCtx,
                     "InteractionLayer missing scene context");
 
-        auto &input = *ctx.inputState;
+        const auto &pickingId = ctx.viewportCtx->inputCtx.pickingId;
+        auto &input = ctx.viewportCtx->inputCtx;
         input.isLeftMousePressed = isPressed;
         const auto action = toSceneMouseAction(evt.data.mouseButton.action);
         queueMouseButtonEvent(evt, ctx, Events::MouseButton::left, action);
 
         if (evt.data.mouseButton.action == MouseButtonAction::doubleClick) {
-            if (ctx.pickingId->isValid()) {
-                if (auto comp = ctx.sceneState->getComponentByPickingId(
-                        *ctx.pickingId)) {
+            if (pickingId.isValid()) {
+                if (auto comp =
+                        ctx.sceneState->getComponentByPickingId(pickingId)) {
                     comp->onMouseButton({evt.data.mouseButton.pos,
                                          Events::MouseButton::left,
                                          action,
-                                         ctx.pickingId->info,
+                                         pickingId.info,
                                          ctx.sceneState});
                 }
             }
@@ -150,24 +153,26 @@ namespace Bess::Canvas {
             const size_t selSize =
                 ctx.sceneState->getSelectedComponents().size();
             if (selSize > 1 && !input.isDragging && !evt.isCtrlPressed &&
-                ctx.sceneState->isComponentSelected(*ctx.pickingId)) {
+                ctx.sceneState->isComponentSelected(pickingId)) {
                 ctx.sceneState->clearSelectedComponents();
-                ctx.sceneState->addSelectedComponent(*ctx.pickingId);
+                ctx.sceneState->addSelectedComponent(pickingId);
             }
 
-            if (input.selectionBox.draw) {
-                input.selectionBox.draw = false;
-                input.selectionBox.queueSelInNextFrame = true;
-                input.selectionBox.end = input.mousePos;
+            auto &selBox = ctx.viewportCtx->selBoxCtx;
+
+            if (selBox.draw) {
+                selBox.draw = false;
+                selBox.queueSelInNextFrame = true;
+                selBox.end = input.mousePos;
             } else if (input.isDragging) {
                 endActiveDrag(ctx);
-            } else if (ctx.pickingId->isValid()) {
-                if (auto comp = ctx.sceneState->getComponentByPickingId(
-                        *ctx.pickingId)) {
+            } else if (pickingId.isValid()) {
+                if (auto comp =
+                        ctx.sceneState->getComponentByPickingId(pickingId)) {
                     comp->onMouseButton({evt.data.mouseButton.pos,
                                          Events::MouseButton::left,
                                          action,
-                                         ctx.pickingId->info,
+                                         pickingId.info,
                                          ctx.sceneState});
                 }
             }
@@ -175,8 +180,8 @@ namespace Bess::Canvas {
             return EventResult::Consumed;
         }
 
-        if (ctx.pickingId->isValid()) {
-            auto comp = ctx.sceneState->getComponentByPickingId(*ctx.pickingId);
+        if (pickingId.isValid()) {
+            auto comp = ctx.sceneState->getComponentByPickingId(pickingId);
             if (!comp) {
                 return EventResult::Consumed;
             }
@@ -184,27 +189,27 @@ namespace Bess::Canvas {
             comp->onMouseButton({evt.data.mouseButton.pos,
                                  Events::MouseButton::left,
                                  action,
-                                 ctx.pickingId->info,
+                                 pickingId.info,
                                  ctx.sceneState});
 
             if (evt.isCtrlPressed) {
-                if (ctx.sceneState->isComponentSelected(*ctx.pickingId)) {
-                    ctx.sceneState->removeSelectedComponent(*ctx.pickingId);
+                if (ctx.sceneState->isComponentSelected(pickingId)) {
+                    ctx.sceneState->removeSelectedComponent(pickingId);
                 } else {
-                    ctx.sceneState->addSelectedComponent(*ctx.pickingId);
+                    ctx.sceneState->addSelectedComponent(pickingId);
                 }
             } else {
                 const size_t selSize =
                     ctx.sceneState->getSelectedComponents().size();
                 if (selSize < 2 || !comp->getIsSelected()) {
                     ctx.sceneState->clearSelectedComponents();
-                    ctx.sceneState->addSelectedComponent(*ctx.pickingId);
+                    ctx.sceneState->addSelectedComponent(pickingId);
                 }
             }
         } else {
             ctx.sceneState->clearSelectedComponents();
             ctx.sceneState->setConnectionStartSlot(UUID::null);
-            input.drawMode = SceneDrawMode::none;
+            ctx.viewportCtx->drawMode = Core::Viewport::ViewportDrawMode::none;
         }
 
         return EventResult::Consumed;
@@ -212,9 +217,9 @@ namespace Bess::Canvas {
 
     EventResult InteractionLayer::handleMiddleMouseButton(
         SceneEvent &evt, SceneEventContext &ctx, bool isPressed) {
-        BESS_ASSERT(ctx.inputState,
-                    "InteractionLayer missing middle mouse state");
-        ctx.inputState->isMiddleMousePressed = isPressed;
+        BESS_ASSERT(ctx.viewportCtx,
+                    "InteractionLayer missing viewport context");
+        ctx.viewportCtx->inputCtx.isMiddleMousePressed = isPressed;
         queueMouseButtonEvent(evt,
                               ctx,
                               Events::MouseButton::middle,
@@ -224,7 +229,7 @@ namespace Bess::Canvas {
 
     EventResult InteractionLayer::handleMouseWheel(SceneEvent &evt,
                                                    SceneEventContext &ctx) {
-        BESS_ASSERT(ctx.camera && ctx.inputState,
+        BESS_ASSERT(ctx.camera && ctx.viewportCtx,
                     "InteractionLayer missing wheel context");
 
         if (!isCursorInViewport(ctx)) {
@@ -253,25 +258,28 @@ namespace Bess::Canvas {
         auto eventDispatcher =
             appCtx.getSubSystem<Bess::EventSystem::EventDispatcher>();
 
-        const uint32_t details =
-            ctx.pickingId != nullptr ? ctx.pickingId->info : 0u;
-        eventDispatcher->queue(Events::MouseButtonEvent{
-            evt.data.mouseButton.pos, button, action, details, ctx.sceneState});
+        const auto &pickingId = ctx.viewportCtx->inputCtx.pickingId;
+        eventDispatcher->queue(
+            Events::MouseButtonEvent{evt.data.mouseButton.pos,
+                                     button,
+                                     action,
+                                     pickingId.info,
+                                     ctx.sceneState});
     }
 
     bool InteractionLayer::isCursorInViewport(SceneEventContext &ctx) const {
-        if (!ctx.viewportTransform || !ctx.inputState) {
+        if (!ctx.viewportCtx) {
             return false;
         }
 
-        const auto &viewportSize = ctx.viewportTransform->size;
-        const auto &pos = ctx.inputState->mousePos;
+        const auto &viewportSize = ctx.viewportCtx->transform.size;
+        const auto &pos = ctx.viewportCtx->inputCtx.mousePos;
         return pos.x >= 1.f && pos.x < viewportSize.x - 1.f && pos.y >= 1.f &&
                pos.y < viewportSize.y - 1.f;
     }
 
     void InteractionLayer::endActiveDrag(SceneEventContext &ctx) const {
-        ctx.inputState->isDragging = false;
+        ctx.viewportCtx->inputCtx.isDragging = false;
         for (const auto &compId : ctx.sceneState->getSelectedComponents() |
                                       std::ranges::views::keys) {
             auto comp = ctx.sceneState->getComponentByUuid(compId);
@@ -286,12 +294,12 @@ namespace Bess::Canvas {
 
     void InteractionLayer::viewportUpdate(TimeMs ts,
                                           SceneVpUpdateContext &ctx) {
-        if (!ctx.inputState || !ctx.viewportTransform) {
+        if (!ctx.viewportCtx) {
             return;
         }
 
-        auto &selCtx = ctx.inputState->selectionBox;
-        auto &request = ctx.inputState->pickingReadbackRequest;
+        auto &selCtx = ctx.viewportCtx->selBoxCtx;
+        auto &request = ctx.viewportCtx->pickingReadbackRequest;
 
         if (request.active) {
             return;
@@ -309,7 +317,7 @@ namespace Bess::Canvas {
 
         selCtx.queueForSel = false;
 
-        const auto viewportSize = ctx.viewportTransform->size;
+        const auto viewportSize = ctx.viewportCtx->transform.size;
         const uint32_t width =
             viewportSize.x > 1.f ? static_cast<uint32_t>(viewportSize.x) : 1u;
         const uint32_t height =

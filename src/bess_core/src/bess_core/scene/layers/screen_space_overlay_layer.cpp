@@ -3,11 +3,11 @@
 #include "bess_core/project_context.h"
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/renderer/renderer_types.h"
+#include "bess_core/scene/widgets/scene_widgets.h"
 #include "bess_core/scene_driver.h"
+#include "bess_core/settings/viewport_theme.h"
 #include "common/types.h"
 #include "ext/vector_float2.hpp"
-#include "bess_core/scene/widgets/scene_widgets.h"
-#include "bess_core/settings/viewport_theme.h"
 #include "ui/icons/CodIcons_Remapped.h"
 #include "ui/icons/FontAwesomeIcons_Remapped.h"
 
@@ -27,7 +27,7 @@ namespace Bess::Canvas {
                     "X: -000.00Y: -000.00", {.fontSize = fontSize});
 
             const glm::vec2 mouseWorldPos =
-                ctx.camera->toWorldPos(ctx.inputState->mousePos);
+                ctx.camera->toWorldPos(ctx.viewportCtx->inputCtx.mousePos);
 
             // aligns the text to the right, padding the left side with spaces
             const std::string xText =
@@ -174,7 +174,7 @@ namespace Bess::Canvas {
         glm::vec2 drawSchematicToggle(SceneDrawContext &drawCtx,
                                       SceneRenderContext &ctx,
                                       const glm::vec2 &topLeft) {
-            BESS_ASSERT(ctx.isSchematicMode, "isSchematicMode pointer is null");
+            BESS_ASSERT(ctx.viewportCtx, "ViewportCtx is invalid");
 
             static constexpr std::string_view label = "Schematic View";
             static constexpr glm::vec2 textSize =
@@ -224,15 +224,17 @@ namespace Bess::Canvas {
                         Core::Renderer::RenderTransformMode::Screen,
                 });
 
-            SceneWidgets::toggleButton(PickingId::forWidget(1),
-                                       ctx.isSchematicMode,
-                                       {
-                                           left + textSize.x + gapX,
-                                           yPos,
-                                           1000.1,
-                                       },
-                                       {28.f, 16.f},
-                                       drawCtx);
+            if (SceneWidgets::toggleButton(PickingId::forWidget(1),
+                                           ctx.viewportCtx->isSchematicMode(),
+                                           {
+                                               left + textSize.x + gapX,
+                                               yPos,
+                                               1000.1,
+                                           },
+                                           {28.f, 16.f},
+                                           drawCtx)) {
+                ctx.viewportCtx->toggleSchematicMode();
+            }
 
             return boxPos + glm::vec2{boxSize.x / 2.f, 0.f};
         }
@@ -381,7 +383,7 @@ namespace Bess::Canvas {
             ctx.renderer,
             ctx.camera,
             Core::Renderer::RenderTransformMode::Screen,
-            ctx.viewportId,
+            ctx.viewportCtx->viewportId,
         };
 
         for (auto &callback : m_drawCallbacks) {
@@ -390,8 +392,9 @@ namespace Bess::Canvas {
             }
         }
 
-        auto bottomRight = (ctx.viewportTransform->size / 2.f) - padding;
-        auto topLeft = (-ctx.viewportTransform->size / 2.f) + padding;
+        const auto &viewportSize = ctx.viewportCtx->transform.size;
+        auto bottomRight = (viewportSize / 2.f) - padding;
+        auto topLeft = (-viewportSize / 2.f) + padding;
 
         float xOffset = drawCameraZoom(drawCtx, ctx, bottomRight);
         bottomRight.x -= xOffset;

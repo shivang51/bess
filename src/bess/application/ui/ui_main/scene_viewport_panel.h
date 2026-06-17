@@ -1,7 +1,6 @@
 #pragma once
 #include "bess_core/renderer/texture.h"
 #include "bess_core/scene/scene.h"
-#include "bess_core/scene/scene_types.h"
 #include "bess_core/viewport.h"
 #include "common/bess_uuid.h"
 #include "common/class_helpers.h"
@@ -45,8 +44,8 @@ namespace Bess::UI {
                               m_attachedScene,
                               onSceneAttached);
 
-        MAKE_GETTER(size_t, ViewportId, m_viewportCtx.viewportId)
-        MAKE_GETTER(PickingId, PickingId, m_pickingId)
+        MAKE_GETTER(size_t, ViewportId, m_viewportCtx->viewportId)
+        MAKE_GETTER(PickingId, PickingId, m_viewportCtx->inputCtx.pickingId)
 
         bool isSchematicMode() const;
         bool toggleSchematicMode();
@@ -103,22 +102,17 @@ namespace Bess::UI {
 
       private:
         bool m_isfirstTimeDraw;
-        glm::vec2 m_viewportSize = {800.f, 600.f};
-        glm::vec2 m_viewportPos;
         ImVec2 m_localPos;
         std::string m_viewportName;
         bool m_isResized = false;
         UUID m_nextSceneId = UUID::null;
-        PickingId m_pickingId = PickingId::invalid();
-        Canvas::SceneInputState m_inputState;
         std::shared_ptr<Canvas::Scene> m_attachedScene;
         std::shared_ptr<Canvas::Scene> m_updateAttachedScene = nullptr;
         std::shared_ptr<Core::Renderer::ITexture> m_sceneTexture = nullptr;
         std::shared_ptr<Core::Renderer::ITexture> m_pickingTexture = nullptr;
         std::shared_ptr<Camera> m_camera = nullptr;
-        std::vector<const Canvas::SceneState *> m_rootToSceneStatePtrs;
         uint32_t m_gridShader = 0;
+        std::shared_ptr<Core::Viewport::ViewportContext> m_viewportCtx;
         PendingPickingReadback m_pendingSelectionReadback;
-        Core::Viewport::ViewportContext m_viewportCtx;
     };
 } // namespace Bess::UI

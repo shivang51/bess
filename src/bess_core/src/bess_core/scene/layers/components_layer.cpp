@@ -1,8 +1,8 @@
 #include "bess_core/scene/layers/components_layer.h"
-#include "common/types.h"
-#include "pages/main_page/scene_components/scene_comp_types.h"
 #include "bess_core/scene/scene_event.h"
 #include "bess_core/scene/scene_layer.h"
+#include "common/types.h"
+#include "pages/main_page/scene_components/scene_comp_types.h"
 
 namespace Bess::Canvas {
     void ComponentsLayer::update(TimeMs ts, SceneUpdateContext &ctx) {
@@ -22,14 +22,14 @@ namespace Bess::Canvas {
             .sceneState = ctx.sceneState,
             .renderer = ctx.renderer,
             .camera = ctx.camera,
-            .isSchematicMode = *ctx.isSchematicMode,
+            .isSchematicMode = ctx.viewportCtx->isSchematicMode(),
         };
 
         for (const auto &compId : ctx.sceneState->getRootComponents()) {
             const auto comp = ctx.sceneState->getComponentByUuid(compId);
 
-            const auto &pos = comp->getAbsolutePosition(*ctx.sceneState,
-                                                        *ctx.isSchematicMode);
+            const auto &pos = comp->getAbsolutePosition(
+                *ctx.sceneState, ctx.viewportCtx->isSchematicMode());
             const auto x = pos.x - camPos.x;
             const auto y = pos.y - camPos.y;
 
@@ -39,7 +39,7 @@ namespace Bess::Canvas {
                 (x < -span.x || x > span.x || y < -span.y || y > span.y))
                 continue;
 
-            if (*ctx.isSchematicMode) {
+            if (ctx.viewportCtx->isSchematicMode()) {
                 comp->drawSchematic(drawCtx);
             } else {
                 comp->draw(drawCtx);

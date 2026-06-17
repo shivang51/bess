@@ -2,10 +2,11 @@
 
 #include "common/bess_api.h"
 #include "common/bess_uuid.h"
+#include "common/types.h"
 #include "ext/vector_float2.hpp"
 
 namespace Bess::Core::Viewport {
-    struct BESS_API ViewportTransfrom {
+    struct BESS_API ViewportTransform {
         glm::vec2 pos{0.f};
         glm::vec2 size{0.f};
     };
@@ -22,7 +23,16 @@ namespace Bess::Core::Viewport {
         }
     };
 
+    enum class SceneCursor : uint8_t {
+        inherit,
+        normal,
+        pointer,
+        move,
+        text,
+    };
+
     struct BESS_API ViewportInputContext {
+        PickingId pickingId = PickingId::invalid();
         glm::vec2 mousePos{0.f};
         glm::vec2 dMousePos{0.f};
         bool isLeftMousePressed = false;
@@ -31,6 +41,7 @@ namespace Bess::Core::Viewport {
         bool isCtrlPressed = false;
         bool isShiftPressed = false;
         bool isAltPressed = false;
+        SceneCursor cursor = SceneCursor::inherit;
 
         void reset() {
             mousePos = {0.f, 0.f};
@@ -41,6 +52,8 @@ namespace Bess::Core::Viewport {
             isCtrlPressed = false;
             isShiftPressed = false;
             isAltPressed = false;
+            pickingId = PickingId::invalid();
+            cursor = SceneCursor::inherit;
         }
     };
 
@@ -77,7 +90,7 @@ namespace Bess::Core::Viewport {
     };
 
     struct BESS_API ViewportContext {
-        ViewportTransfrom transform;
+        ViewportTransform transform;
         ViewportMode mode;
         ViewportDrawMode drawMode;
         ViewportConnDrawContext connDrawCtx;
@@ -85,9 +98,21 @@ namespace Bess::Core::Viewport {
         PickingReadbackRequest pickingReadbackRequest;
         SelBoxContext selBoxCtx;
         size_t viewportId = 0;
+        bool isFocused = false;
+
+        bool isSchematicMode() const {
+            return mode == ViewportMode::schematic;
+        }
+
+        void toggleSchematicMode() {
+            mode = isSchematicMode() ? ViewportMode::normal
+                                     : ViewportMode::schematic;
+        }
 
         void reset() {
-            transform = {};
+            viewportId = 0;
+            isFocused = false;
+
             mode = ViewportMode::normal;
             drawMode = ViewportDrawMode::none;
             connDrawCtx.reset();

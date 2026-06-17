@@ -1,12 +1,12 @@
 #pragma once
 
 #include "bess_core/renderer/renderer_2d.h"
-#include "camera.h"
-#include "common/types.h"
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_event.h"
 #include "bess_core/scene/scene_state/scene_state.h"
-#include "bess_core/scene/scene_types.h"
+#include "bess_core/viewport.h"
+#include "camera.h"
+#include "common/types.h"
 
 namespace Bess::Canvas {
 
@@ -19,25 +19,17 @@ namespace Bess::Canvas {
     struct SceneLayerContext {
         SceneState *sceneState = nullptr;
         std::shared_ptr<Camera> camera = nullptr;
-        const ViewportTransform *viewportTransform = nullptr;
-        SceneInputState *inputState = nullptr;
-        const PickingId *pickingId = nullptr;
+        std::shared_ptr<Core::Viewport::ViewportContext> viewportCtx = nullptr;
     };
 
-    struct SceneEventContext : SceneLayerContext {
-        size_t viewportId;
-        bool isSchematicMode;
-    };
+    struct SceneEventContext : SceneLayerContext {};
 
     struct SceneUpdateContext : SceneLayerContext {};
 
     struct SceneVpUpdateContext : SceneLayerContext {};
 
     struct SceneRenderContext : SceneLayerContext {
-        size_t viewportId;
         std::shared_ptr<Core::Renderer::IRenderer2D> renderer = nullptr;
-        bool *isSchematicMode;
-        bool isInFocusedViewport = true;
     };
 
     struct SceneLifecycleContext : SceneRenderContext {};

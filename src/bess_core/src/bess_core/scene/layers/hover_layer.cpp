@@ -24,7 +24,7 @@ namespace Bess::Canvas {
 
         const auto &data = evt.data.mouseMove;
         if (SceneWidgets::contains(
-                ctx.sceneState, evt.pickingId, ctx.viewportId)) {
+                ctx.sceneState, evt.pickingId, ctx.viewportCtx->viewportId)) {
             clearHover(*ctx.sceneState, data.pos);
             m_pickingId = PickingId::invalid();
             return EventResult::Handled;
@@ -70,11 +70,11 @@ namespace Bess::Canvas {
     }
 
     void HoverLayer::reset(SceneLifecycleContext &ctx) {
-        if (ctx.sceneState && ctx.inputState) {
+        if (ctx.sceneState && ctx.viewportCtx) {
             clearHover(*ctx.sceneState,
-                       ctx.camera
-                           ? ctx.camera->toWorldPos(ctx.inputState->mousePos)
-                           : glm::vec2{0.f});
+                       ctx.camera ? ctx.camera->toWorldPos(
+                                        ctx.viewportCtx->inputCtx.mousePos)
+                                  : glm::vec2{0.f});
         }
         m_pickingId = PickingId::invalid();
     }

@@ -7,11 +7,6 @@ namespace Bess::Canvas {
 
     // UI viewport bounds in window coordinates. Scene input events are formed
     // from this so layers can work in scene coordinates.
-    struct ViewportTransform {
-        glm::vec2 pos{0.f};
-        glm::vec2 size{0.f};
-    };
-
     enum class SceneMode : uint8_t {
         general,
     };
@@ -19,14 +14,6 @@ namespace Bess::Canvas {
     enum class SceneDrawMode : uint8_t {
         none,
         connection,
-    };
-
-    enum class SceneCursor : uint8_t {
-        inherit,
-        normal,
-        pointer,
-        move,
-        text,
     };
 
     struct SelBoxContext {
@@ -55,7 +42,6 @@ namespace Bess::Canvas {
         bool isShiftPressed = false;
         bool isAltPressed = false;
         SceneDrawMode drawMode = SceneDrawMode::none;
-        SceneCursor cursor = SceneCursor::inherit;
         SelBoxContext selectionBox;
         PickingReadbackRequest pickingReadbackRequest;
 
@@ -69,7 +55,6 @@ namespace Bess::Canvas {
             isShiftPressed = false;
             isAltPressed = false;
             drawMode = SceneDrawMode::none;
-            cursor = SceneCursor::inherit;
             selectionBox = {};
             pickingReadbackRequest = {};
         }
