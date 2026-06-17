@@ -2,15 +2,15 @@
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "bess_core/renderer/renderer_2d.h"
+#include "bess_core/scene/camera.h"
+#include "bess_core/scene/scene.h"
+#include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene_driver.h"
 #include "bess_wgpu/wgpu_texture.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "imgui.h"
 #include "pages/main_page/main_page.h"
-#include "bess_core/scene/scene.h"
-#include "bess_core/scene/camera.h"
-#include "bess_core/scene/scene_draw_context.h"
 #include "sub_systems/renderer_context.h"
 #include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/ui_main.h"
@@ -22,7 +22,7 @@ namespace Bess::UI {
         : Panel(viewportName),
           m_viewportName(viewportName) {
         static size_t viewportCounter = 0;
-        m_viewportId = viewportCounter++;
+        m_viewportCtx.viewportId = viewportCounter++;
     }
 
     void SceneViewportPanel::init() {
@@ -86,8 +86,9 @@ namespace Bess::UI {
                 },
             .inputState = m_inputState,
             .pickingId = m_pickingId,
-            .viewportId = m_viewportId,
-            .isSchematicMode = m_isSchematicView,
+            .viewportId = m_viewportCtx.viewportId,
+            .isSchematicMode =
+                m_viewportCtx.mode == Core::Viewport::ViewportMode::schematic,
         };
         if (!sceneDriver->getIsPaused()) {
             m_attachedScene->viewportUpdate(ts, ctx);

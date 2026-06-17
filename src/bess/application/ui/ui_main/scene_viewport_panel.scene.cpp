@@ -1,10 +1,10 @@
 #include "scene_viewport_panel.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
-#include "common/types.h"
-#include "pages/main_page/main_page.h"
 #include "bess_core/scene/scene.h"
 #include "bess_core/sub_systems/input_sub_system.h"
+#include "common/types.h"
+#include "pages/main_page/main_page.h"
 #include "sub_systems/renderer_context.h"
 #include <algorithm>
 #include <cstdint>
@@ -28,6 +28,17 @@ namespace Bess::UI {
             return texture ? texture->getHandle() : 0;
         }
     } // namespace
+
+    bool SceneViewportPanel::isSchematicMode() const {
+        return m_viewportCtx.mode == Core::Viewport::ViewportMode::schematic;
+    }
+
+    bool SceneViewportPanel::toggleSchematicMode() {
+        m_viewportCtx.mode = isSchematicMode()
+                                 ? Core::Viewport::ViewportMode::normal
+                                 : Core::Viewport::ViewportMode::schematic;
+        return m_viewportCtx.mode == Core::Viewport::ViewportMode::schematic;
+    }
 
     void SceneViewportPanel::updateScene(TimeMs ts) {
         (void)ts;
@@ -140,8 +151,8 @@ namespace Bess::UI {
                                          },
                                          m_pickingId,
                                          m_inputState,
-                                         m_viewportId,
-                                         m_isSchematicView);
+                                         m_viewportCtx.viewportId,
+                                         isSchematicMode());
         } else {
             window->setEnableCursor(true);
         }
@@ -166,8 +177,8 @@ namespace Bess::UI {
                                          },
                                          m_pickingId,
                                          m_inputState,
-                                         m_viewportId,
-                                         m_isSchematicView);
+                                         m_viewportCtx.viewportId,
+                                         isSchematicMode());
         } else if (mouseBtnState.button == MouseButton::middle &&
                    m_inputState.isMiddleMousePressed) {
             m_attachedScene->onMiddleMouse(false,
@@ -178,8 +189,8 @@ namespace Bess::UI {
                                            },
                                            m_pickingId,
                                            m_inputState,
-                                           m_viewportId,
-                                           m_isSchematicView);
+                                           m_viewportCtx.viewportId,
+                                           isSchematicMode());
         }
     }
 
@@ -245,6 +256,8 @@ namespace Bess::UI {
             return;
         }
 
+        bool isSchemMode = isSchematicMode();
+
         Canvas::View2D view{
             .camera = m_camera,
             .renderer = renderer,
@@ -257,8 +270,8 @@ namespace Bess::UI {
                 },
             .pickingId = m_pickingId,
             .inputState = m_inputState,
-            .viewportId = m_viewportId,
-            .isSchematicMode = &m_isSchematicView,
+            .viewportId = m_viewportCtx.viewportId,
+            .isSchematicMode = &isSchemMode,
             .isViewportFocused = m_isHovered,
         };
 

@@ -664,7 +664,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         newPos = glm::round(newPos / SNAP_AMOUNT) * SNAP_AMOUNT;
 
         const bool isSchematic =
-            UI::UIMain::getTargetSceneViewportPanel()->getIsSchematicView();
+            UI::UIMain::getTargetSceneViewportPanel()->isSchematicMode();
 
         if (isSchematic) {
             m_schematicTransform.position =

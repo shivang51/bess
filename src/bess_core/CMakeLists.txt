@@ -3,6 +3,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(Header_Files
 	"include/bess_core/g_app_context.h"
+	"include/bess_core/viewport.h"
 	"include/bess_core/connection_service.h"
 
 	"include/bess_core/style/bess_theme.h"

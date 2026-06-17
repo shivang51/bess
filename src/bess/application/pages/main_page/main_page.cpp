@@ -4,6 +4,10 @@
 #include "bess_core/copy_paste_service.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "bess_core/scene/scene_ser_reg.h"
+#include "bess_core/scene/widgets/scene_widgets.h"
+#include "bess_core/sub_systems/input_sub_system.h"
+#include "bess_core/sub_systems/input_sub_system_types.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
@@ -23,10 +27,6 @@
 #include "pages/main_page/scene_components/slot_probe_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "plugin_manager.h"
-#include "bess_core/scene/widgets/scene_widgets.h"
-#include "bess_core/scene/scene_ser_reg.h"
-#include "bess_core/sub_systems/input_sub_system.h"
-#include "bess_core/sub_systems/input_sub_system_types.h"
 #include "ui/ui.h"
 #include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/project_explorer.h"
@@ -276,8 +276,7 @@ namespace Bess::Pages {
                 auto targetPanel = UI::UIMain::getTargetSceneViewportPanel();
                 BESS_ASSERT(targetPanel, "No active viewport panel found");
                 if (targetPanel) {
-                    targetPanel->setIsSchematicView(
-                        !targetPanel->getIsSchematicView());
+                    targetPanel->toggleSchematicMode();
                 }
             } else if (inpSystem->isKeyPressed(KeyCode::escape)) {
                 UI::UIMain::getPanel<UI::ComponentExplorer>()->hide();

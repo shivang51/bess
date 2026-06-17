@@ -1,11 +1,12 @@
 #pragma once
 #include "bess_core/renderer/texture.h"
+#include "bess_core/scene/scene.h"
+#include "bess_core/scene/scene_types.h"
+#include "bess_core/viewport.h"
 #include "common/bess_uuid.h"
 #include "common/class_helpers.h"
 #include "common/types.h"
 #include "imgui.h"
-#include "bess_core/scene/scene.h"
-#include "bess_core/scene/scene_types.h"
 #include "string"
 #include "ui/ui_panel.h"
 
@@ -44,10 +45,12 @@ namespace Bess::UI {
                               m_attachedScene,
                               onSceneAttached);
 
-        MAKE_GETTER(size_t, ViewportId, m_viewportId)
+        MAKE_GETTER(size_t, ViewportId, m_viewportCtx.viewportId)
         MAKE_GETTER(PickingId, PickingId, m_pickingId)
 
-        MAKE_GETTER_SETTER(bool, IsSchematicView, m_isSchematicView)
+        bool isSchematicMode() const;
+        bool toggleSchematicMode();
+
         MAKE_GETTER_SETTER(std::shared_ptr<Canvas::Scene>,
                            UpdateAttachedScene,
                            m_updateAttachedScene)
@@ -99,7 +102,6 @@ namespace Bess::UI {
             ImGuiWindowFlags_NoDecoration;
 
       private:
-        bool m_isSchematicView = false;
         bool m_isfirstTimeDraw;
         glm::vec2 m_viewportSize = {800.f, 600.f};
         glm::vec2 m_viewportPos;
@@ -117,6 +119,6 @@ namespace Bess::UI {
         std::vector<const Canvas::SceneState *> m_rootToSceneStatePtrs;
         uint32_t m_gridShader = 0;
         PendingPickingReadback m_pendingSelectionReadback;
-        size_t m_viewportId = 0;
+        Core::Viewport::ViewportContext m_viewportCtx;
     };
 } // namespace Bess::UI
