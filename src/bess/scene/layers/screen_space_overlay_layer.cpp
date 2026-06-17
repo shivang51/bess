@@ -17,7 +17,7 @@
 namespace Bess::Canvas {
     namespace {
         constexpr float padding = 8.f;
-        constexpr float fontSize = 16.f;
+        constexpr float fontSize = 14.f;
 
         void drawCameraPos(SceneDrawContext &drawCtx,
                            SceneRenderContext &ctx,
