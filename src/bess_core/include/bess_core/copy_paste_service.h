@@ -6,7 +6,7 @@
 #include "pages/main_page/scene_components/non_sim_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
-#include "scene.h"
+#include "bess_core/scene/scene.h"
 #include <typeindex>
 #include <vector>
 

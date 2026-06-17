@@ -3,7 +3,7 @@
 #include "bess_core/g_app_context.h"
 #include "common/bess_uuid.h"
 #include "event_dispatcher.h"
-#include "scene/scene_state/components/scene_component.h"
+#include "bess_core/scene/scene_state/components/scene_component.h"
 #include <cstdint>
 #include <mutex>
 #include <set>

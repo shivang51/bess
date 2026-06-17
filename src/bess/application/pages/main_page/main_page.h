@@ -1,9 +1,9 @@
 #pragma once
 
-#include "application/events/application_event.h"
-#include "application/pages/main_page/main_page_state.h"
-#include "application/pages/page.h"
-#include "application/window.h"
+#include "events/application_event.h"
+#include "pages/main_page/main_page_state.h"
+#include "pages/page.h"
+#include "window.h"
 #include "common/types.h"
 #include "sim_driver/sim_driver.h"
 

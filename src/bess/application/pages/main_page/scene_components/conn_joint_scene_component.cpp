@@ -4,16 +4,16 @@
 #include "geometric.hpp"
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/main_page.h"
-#include "scene/scene_draw_helpers.h"
-#include "scene/scene_state/components/scene_component_types.h"
-#include "scene/scene_state/components/styles/sim_comp_style.h"
-#include "scene/scene_state/scene_state.h"
-#include "settings/viewport_theme.h"
+#include "bess_core/scene/scene_draw_helpers.h"
+#include "bess_core/scene/scene_state/components/scene_component_types.h"
+#include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
+#include "bess_core/scene/scene_state/scene_state.h"
+#include "bess_core/settings/viewport_theme.h"
 #include "sim_scene_component.h"
 #include "slot_scene_component.h"
 
 #include "ui/ui.h"
-#include "ui_main/ui_main.h"
+#include "ui/ui_main/ui_main.h"
 #include <cstdint>
 #include <memory>
 

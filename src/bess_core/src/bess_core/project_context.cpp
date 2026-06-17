@@ -8,7 +8,6 @@
 #include "common/sub_sys_container.h"
 #include "project_file.h"
 #include "simulation_engine.h"
-// #include "window.h"
 
 namespace Bess {
     void ProjectContext::onBeginFrame() {

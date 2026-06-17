@@ -1,6 +1,6 @@
-#include "scene/widgets/scene_widgets.h"
+#include "bess_core/scene/widgets/scene_widgets.h"
 #include "common/types.h"
-#include "scene_draw_context.h"
+#include "bess_core/scene/scene_draw_context.h"
 
 #include <optional>
 #include <pybind11/pybind11.h>

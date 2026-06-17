@@ -2,7 +2,7 @@
 
 #include "ext/vector_float2.hpp"
 #include "fwd.hpp"
-#include "sub_systems/input_sub_system_types.h"
+#include "bess_core/sub_systems/input_sub_system_types.h"
 #include <any>
 namespace Bess {
     enum class ApplicationEventType : uint8_t {

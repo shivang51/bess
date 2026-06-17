@@ -36,7 +36,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 	"${CMAKE_SOURCE_DIR}/src/common/include"
 )
 
-target_link_libraries(BessTests PRIVATE GTest::gtest BessExtDeps common BessSimEngine bverilog BessScene BessUI BessApp EventSystem)
+target_link_libraries(BessTests PRIVATE GTest::gtest BessExtDeps common BessSimEngine bverilog BessScene BessApp EventSystem)
 
 include(GoogleTest)
 gtest_discover_tests(BessTests WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})

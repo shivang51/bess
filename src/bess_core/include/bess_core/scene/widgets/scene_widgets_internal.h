@@ -1,8 +1,8 @@
 #pragma once
 
-#include "scene/scene_event.h"
-#include "scene/scene_state/scene_state.h"
-#include "scene/widgets/scene_widgets.h"
+#include "bess_core/scene/scene_event.h"
+#include "bess_core/scene/scene_state/scene_state.h"
+#include "bess_core/scene/widgets/scene_widgets.h"
 #include <cstdint>
 #include <glm.hpp>
 #include <optional>

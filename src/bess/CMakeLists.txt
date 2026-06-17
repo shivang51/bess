@@ -5,7 +5,6 @@ set(CMAKE_BUILD_RPATH "\$ORIGIN")
 set(CMAKE_INSTALL_RPATH "\$ORIGIN")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-add_subdirectory("ui")
 add_subdirectory("application")
 
 set(Header_Files
@@ -26,8 +25,8 @@ set(ALL_FILES
 
 add_executable(${PROJECT_NAME} ${ALL_FILES})
 set_target_properties(${PROJECT_NAME} PROPERTIES ENABLE_EXPORTS ON)
-target_link_libraries(${PROJECT_NAME} PUBLIC BessExtDeps BessUI BessCore BessApp)
-add_dependencies(${PROJECT_NAME} BessUI BessCore BessApp besspybindings)
+target_link_libraries(${PROJECT_NAME} PUBLIC BessExtDeps BessCore BessApp)
+add_dependencies(${PROJECT_NAME} BessCore BessApp besspybindings)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
 

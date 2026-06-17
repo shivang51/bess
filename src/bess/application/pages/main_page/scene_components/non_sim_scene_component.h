@@ -1,10 +1,10 @@
 #pragma once
 
-#include "scene/scene_state/components/behaviours/drag_behaviour.h"
-#include "scene/scene_state/components/scene_component.h"
-#include "scene/scene_state/scene_state.h"
+#include "bess_core/scene/scene_state/components/behaviours/drag_behaviour.h"
+#include "bess_core/scene/scene_state/components/scene_component.h"
+#include "bess_core/scene/scene_state/scene_state.h"
 #include "scene_comp_types.h"
-#include "scene_draw_context.h"
+#include "bess_core/scene/scene_draw_context.h"
 #include <typeindex>
 
 #define TEXT_SER_PROPS                                                         \

@@ -3,8 +3,8 @@
 #include "bess_core/renderer/texture.h"
 #include "common/sub_system.h"
 #include "fwd.hpp"
-#include "sub_systems/input_sub_system_types.h"
-#include "ui.h"
+#include "bess_core/sub_systems/input_sub_system_types.h"
+#include "ui/ui.h"
 
 #include <memory>
 #include <string>

@@ -1,4 +1,4 @@
-#include "scene/scene_state/scene_state.h"
+#include "bess_core/scene/scene_state/scene_state.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 

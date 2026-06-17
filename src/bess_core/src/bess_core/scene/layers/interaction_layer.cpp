@@ -1,11 +1,11 @@
-#include "interaction_layer.h"
+#include "bess_core/scene/layers/interaction_layer.h"
 #include "bess_core/g_app_context.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
 #include "event_dispatcher.h"
-#include "scene/scene_state/components/behaviours/drag_behaviour.h"
-#include "scene/scene_state/components/scene_component.h"
-#include "scene_events.h"
+#include "bess_core/scene/scene_state/components/behaviours/drag_behaviour.h"
+#include "bess_core/scene/scene_state/components/scene_component.h"
+#include "bess_core/scene/scene_events.h"
 #include <algorithm>
 #include <cmath>
 #include <ranges>

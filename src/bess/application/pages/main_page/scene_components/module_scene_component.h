@@ -1,9 +1,9 @@
 #pragma once
 #include "common/bess_uuid.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
-#include "scene/scene_state/components/scene_component.h"
+#include "bess_core/scene/scene_state/components/scene_component.h"
 #include "scene_comp_types.h"
-#include "scene_state/scene_state.h"
+#include "bess_core/scene/scene_state/scene_state.h"
 
 #define MODULE_SER_PROPS                                                       \
     ("sceneId", getSceneId, setSceneId),                                       \

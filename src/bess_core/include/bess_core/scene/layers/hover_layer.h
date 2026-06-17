@@ -1,8 +1,8 @@
 #pragma once
 
 #include "common/types.h"
-#include "scene_event.h"
-#include "scene_layer.h"
+#include "bess_core/scene/scene_event.h"
+#include "bess_core/scene/scene_layer.h"
 
 namespace Bess::Canvas {
     class HoverLayer : public ISceneLayer {

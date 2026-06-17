@@ -1,6 +1,6 @@
 #pragma once
 
-#include "scene_layer.h"
+#include "bess_core/scene/scene_layer.h"
 #include <functional>
 #include <vector>
 

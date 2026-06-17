@@ -2,10 +2,10 @@
 
 #include "common/bess_uuid.h"
 #include "fwd.hpp"
-#include "scene/scene_events.h"
-#include "scene/scene_state/components/scene_component.h"
+#include "bess_core/scene/scene_events.h"
+#include "bess_core/scene/scene_state/components/scene_component.h"
 #include "scene_comp_types.h"
-#include "scene_draw_context.h"
+#include "bess_core/scene/scene_draw_context.h"
 
 namespace Bess::Canvas {
     enum class SlotType : uint8_t {

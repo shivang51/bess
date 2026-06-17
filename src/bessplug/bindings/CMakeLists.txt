@@ -60,7 +60,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 	BessWgpu
 	BessSimEngine
 	EventSystem
-	BessUI
 	BessJson
 	BessCmdSystem
 	BessApp
@@ -74,7 +73,6 @@ add_dependencies(${PROJECT_NAME}
 	BessWgpu
 	BessSimEngine
 	EventSystem
-	BessUI
 	BessJson
 	bverilog
 )

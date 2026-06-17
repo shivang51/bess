@@ -1,6 +1,6 @@
-#include "hover_layer.h"
-#include "scene/scene_state/components/scene_component.h"
-#include "scene/widgets/scene_widgets.h"
+#include "bess_core/scene/layers/hover_layer.h"
+#include "bess_core/scene/scene_state/components/scene_component.h"
+#include "bess_core/scene/widgets/scene_widgets.h"
 
 namespace Bess::Canvas {
     EventResult HoverLayer::handleEvent(SceneEvent &evt,

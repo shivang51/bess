@@ -1,11 +1,11 @@
 #pragma once
 
-#include "application/pages/main_page/services/hierarchical_scene_layout.h"
-#include "application/project_file.h"
+#include "pages/main_page/services/hierarchical_scene_layout.h"
+#include "project_file.h"
 #include "bess_core/scene_driver.h"
 #include "command_system.h"
 #include "events/sim_engine_events.h"
-#include "scene_events.h"
+#include "bess_core/scene/scene_events.h"
 #include <vector>
 
 namespace Bess {

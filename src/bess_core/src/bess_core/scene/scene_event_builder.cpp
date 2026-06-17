@@ -1,5 +1,5 @@
-#include "scene_event_builder.h"
-#include "sub_systems/input_sub_system.h"
+#include "bess_core/scene/scene_event_builder.h"
+#include "bess_core/sub_systems/input_sub_system.h"
 
 namespace Bess::Canvas {
     std::vector<SceneEvent> SceneEventBuilder::buildFrameEvents(

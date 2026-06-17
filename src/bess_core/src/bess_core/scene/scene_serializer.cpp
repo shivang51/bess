@@ -1,7 +1,7 @@
-#include "scene/scene_serializer.h"
+#include "bess_core/scene/scene_serializer.h"
 
 #include "common/bess_uuid.h"
-#include "scene/scene.h"
+#include "bess_core/scene/scene.h"
 
 namespace Bess {
 

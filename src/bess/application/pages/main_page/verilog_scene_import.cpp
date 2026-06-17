@@ -13,7 +13,7 @@
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "pages/main_page/services/hierarchical_scene_layout.h"
-#include "scene/scene.h"
+#include "bess_core/scene/scene.h"
 #include "simulation_engine.h"
 #include <algorithm>
 #include <chrono>

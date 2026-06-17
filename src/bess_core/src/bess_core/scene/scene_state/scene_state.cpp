@@ -1,4 +1,4 @@
-#include "scene/scene_state/scene_state.h"
+#include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "common/bess_uuid.h"
@@ -6,8 +6,8 @@
 #include "event_dispatcher.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
-#include "scene/scene_state/components/scene_component.h"
-#include "scene_ser_reg.h"
+#include "bess_core/scene/scene_state/components/scene_component.h"
+#include "bess_core/scene/scene_ser_reg.h"
 #include "services/plugin_service/plugin_service.h"
 #include "simulation_engine.h"
 #include <cstdint>

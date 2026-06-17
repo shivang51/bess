@@ -1,8 +1,8 @@
 #pragma once
 
 #include "camera.h"
-#include "scene_event.h"
-#include "scene_types.h"
+#include "bess_core/scene/scene_event.h"
+#include "bess_core/scene/scene_types.h"
 #include <memory>
 #include <vector>
 

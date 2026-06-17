@@ -1,14 +1,13 @@
 #pragma once
 
+#include "bess_core/scene/scene_draw_context.h"
+#include "bess_core/scene/scene_ser_reg.h"
+#include "bess_core/scene/scene_state/components/behaviours/mouse_behaviour.h"
+#include "bess_core/scene/scene_state/components/scene_component_types.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "common/class_helpers.h"
 #include "common/types.h"
-#include "pages/main_page/scene_components/scene_comp_types.h"
-#include "scene/scene_state/components/behaviours/mouse_behaviour.h"
-#include "scene/scene_state/components/scene_component_types.h"
-#include "scene_draw_context.h"
-#include "scene_ser_reg.h"
 #include "json/value.h"
 #include <unordered_set>
 
@@ -138,7 +137,7 @@ namespace Bess::Canvas {
         void setScale(const glm::vec2 &scale);
 
         virtual SceneComponentType getType() const {
-            return SceneComponentType::_base;
+            return (SceneComponentType)-1;
         }
 
         template <typename T> std::shared_ptr<T> cast() {

@@ -12,7 +12,7 @@
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
-#include "scene/scene.h"
+#include "bess_core/scene/scene.h"
 #include "simulation_engine.h"
 #include <functional>
 #include <memory>

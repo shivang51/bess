@@ -2,7 +2,7 @@
 
 #include "common/bess_uuid.h"
 #include "common/sub_system.h"
-#include "scene/scene.h"
+#include "bess_core/scene/scene.h"
 
 #include <memory>
 

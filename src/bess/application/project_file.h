@@ -1,6 +1,6 @@
 #pragma once
 
-#include "scene/scene_serializer.h"
+#include "bess_core/scene/scene_serializer.h"
 #include <string>
 
 namespace Bess {

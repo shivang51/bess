@@ -2,7 +2,7 @@
 
 #include "bess_core/renderer/renderer_types.h"
 #include "common/types.h"
-#include "scene_draw_context.h"
+#include "bess_core/scene/scene_draw_context.h"
 #include <glm.hpp>
 #include <optional>
 #include <span>

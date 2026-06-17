@@ -6,10 +6,10 @@
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
-#include "scene/scene_draw_helpers.h"
-#include "scene_draw_context.h"
-#include "scene_state/scene_state.h"
-#include "settings/viewport_theme.h"
+#include "bess_core/scene/scene_draw_helpers.h"
+#include "bess_core/scene/scene_draw_context.h"
+#include "bess_core/scene/scene_state/scene_state.h"
+#include "bess_core/settings/viewport_theme.h"
 #include "simulation_engine.h"
 
 namespace Bess::Canvas {

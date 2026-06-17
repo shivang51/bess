@@ -3,10 +3,10 @@
 #include "bess_core/renderer/renderer_2d.h"
 #include "camera.h"
 #include "common/types.h"
-#include "scene_draw_context.h"
-#include "scene_event.h"
-#include "scene_state/scene_state.h"
-#include "scene_types.h"
+#include "bess_core/scene/scene_draw_context.h"
+#include "bess_core/scene/scene_event.h"
+#include "bess_core/scene/scene_state/scene_state.h"
+#include "bess_core/scene/scene_types.h"
 
 namespace Bess::Canvas {
 

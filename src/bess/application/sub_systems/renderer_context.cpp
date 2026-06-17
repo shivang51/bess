@@ -1,5 +1,5 @@
 #include "sub_systems/renderer_context.h"
-#include "application/window.h"
+#include "window.h"
 #include "bess_core/g_app_context.h"
 #include "bess_wgpu/wgpu_renderer_2d.h"
 #include "bess_wgpu/wgpu_texture.h"

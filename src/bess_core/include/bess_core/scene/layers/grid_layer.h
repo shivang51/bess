@@ -1,7 +1,7 @@
 #pragma once
 
 #include "bess_core/renderer/renderer_2d.h"
-#include "scene_layer.h"
+#include "bess_core/scene/scene_layer.h"
 
 namespace Bess::Canvas {
     class GridLayer : public ISceneLayer {

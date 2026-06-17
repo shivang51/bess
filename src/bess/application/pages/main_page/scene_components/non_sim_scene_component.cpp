@@ -2,11 +2,11 @@
 #include "bess_core/renderer/renderer_2d.h"
 #include "gtc/type_ptr.hpp"
 #include "icons/FontAwesomeIcons_Remapped.h"
-#include "scene/scene_draw_helpers.h"
-#include "scene/scene_state/components/styles/comp_style.h"
-#include "scene/widgets/scene_widgets.h"
-#include "scene_draw_context.h"
-#include "settings/viewport_theme.h"
+#include "bess_core/scene/scene_draw_helpers.h"
+#include "bess_core/scene/scene_state/components/styles/comp_style.h"
+#include "bess_core/scene/widgets/scene_widgets.h"
+#include "bess_core/scene/scene_draw_context.h"
+#include "bess_core/settings/viewport_theme.h"
 #include "widgets/m_widgets.h"
 #include <array>
 #include <string>

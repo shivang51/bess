@@ -1,5 +1,5 @@
-#include "scene/schematic_diagram.h"
-#include "application/settings/viewport_theme.h"
+#include "bess_core/scene/schematic_diagram.h"
+#include "bess_core/settings/viewport_theme.h"
 #include "bess_core/renderer/renderer_types.h"
 #include "common/bess_assert.h"
 

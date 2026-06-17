@@ -2,10 +2,10 @@
 #include "bess_json/bess_json.h"
 #include "common/bess_uuid.h"
 #include "pages/main_page/scene_components/proxy_slot_component.h"
-#include "scene/scene_state/components/behaviours/drag_behaviour.h"
-#include "scene/scene_state/components/scene_component.h"
+#include "bess_core/scene/scene_state/components/behaviours/drag_behaviour.h"
+#include "bess_core/scene/scene_state/components/scene_component.h"
 #include "scene_comp_types.h"
-#include "scene_draw_context.h"
+#include "bess_core/scene/scene_draw_context.h"
 
 #define CONNJOINT_SC_SER_PROPS                                                 \
     ("connSegIdx", getConnSegIdx, setConnSegIdx),                              \

@@ -11,7 +11,7 @@
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "simulation_engine.h"
-#include "ui_main/component_explorer.h"
+#include "ui/ui_main/component_explorer.h"
 #include <pybind11/eval.h>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>

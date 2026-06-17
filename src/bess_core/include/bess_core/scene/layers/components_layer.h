@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/types.h"
-#include "scene_layer.h"
+#include "bess_core/scene/scene_layer.h"
 
 namespace Bess::Canvas {
     class ComponentsLayer : public ISceneLayer {

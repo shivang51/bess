@@ -1,5 +1,5 @@
-#include "scene/schematic_diagram.h"
-#include "scene_draw_context.h"
+#include "bess_core/scene/schematic_diagram.h"
+#include "bess_core/scene/scene_draw_context.h"
 
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>

@@ -1,7 +1,7 @@
 #include "bess_core/renderer/renderer_types.h"
-#include "scene/scene_draw_helpers.h"
-#include "scene_widgets_internal.h"
-#include "settings/viewport_theme.h"
+#include "bess_core/scene/scene_draw_helpers.h"
+#include "bess_core/scene/widgets/scene_widgets_internal.h"
+#include "bess_core/settings/viewport_theme.h"
 #include <cstddef>
 
 namespace Bess::Canvas::SceneWidgets {

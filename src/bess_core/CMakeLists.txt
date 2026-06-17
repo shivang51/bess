@@ -56,6 +56,13 @@ set(Header_Files
 	"include/bess_core/renderer/msdf_font.h"
 	"include/bess_core/renderer/glyph_extractor.h"
 	"include/bess_core/renderer/font.h"
+	
+	"include/bess_core/settings/settings.h"
+	"include/bess_core/settings/themes.h"
+	"include/bess_core/settings/viewport_theme.h"
+	
+	"include/bess_core/sub_systems/input_sub_system.h"
+	"include/bess_core/sub_systems/input_sub_system_types.h"
 )
 
 source_group("include/bess_core" FILES ${Header_Files})
@@ -103,6 +110,12 @@ set(Source_Files
 	"src/bess_core/renderer/texture.cpp"
 	"src/bess_core/renderer/renderer.cpp"
 	"src/bess_core/renderer/renderer_types.cpp"
+	
+	"src/bess_core/settings/settings.cpp"
+	"src/bess_core/settings/themes.cpp"
+	"src/bess_core/settings/viewport_theme.cpp"
+	
+	"src/bess_core/sub_systems/input_sub_system.cpp"
 )
 
 source_group("src" FILES ${Source_Files})
@@ -117,7 +130,7 @@ add_library(${PROJECT_NAME} SHARED ${ALL_FILES})
 target_compile_definitions(${PROJECT_NAME} PRIVATE BESS_EXPORTS)
 target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}")
 
-target_link_libraries(${PROJECT_NAME} PUBLIC common BessJson BessExtDeps)
+target_link_libraries(${PROJECT_NAME} PUBLIC common BessJson BessExtDeps EventSystem)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
 	"${CMAKE_CURRENT_SOURCE_DIR}/include"

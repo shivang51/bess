@@ -1,4 +1,4 @@
-#include "scene/camera.h"
+#include "bess_core/scene/camera.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
 #include "common/types.h"

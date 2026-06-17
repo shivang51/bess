@@ -1,8 +1,8 @@
 #include "bess_core/renderer/renderer_2d.h"
 #include "camera.h"
-#include "scene/scene_draw_context.h"
-#include "scene/scene_state/scene_state.h" // included for pybind11
-#include "scene_draw_context.h"
+#include "bess_core/scene/scene_draw_context.h"
+#include "bess_core/scene/scene_state/scene_state.h" // included for pybind11
+#include "bess_core/scene/scene_draw_context.h"
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>

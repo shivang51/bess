@@ -1,4 +1,4 @@
-#include "screen_space_overlay_layer.h"
+#include "bess_core/scene/layers/screen_space_overlay_layer.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "bess_core/renderer/renderer_2d.h"
@@ -6,8 +6,8 @@
 #include "bess_core/scene_driver.h"
 #include "common/types.h"
 #include "ext/vector_float2.hpp"
-#include "scene/widgets/scene_widgets.h"
-#include "settings/viewport_theme.h"
+#include "bess_core/scene/widgets/scene_widgets.h"
+#include "bess_core/settings/viewport_theme.h"
 #include "ui/icons/CodIcons_Remapped.h"
 #include "ui/icons/FontAwesomeIcons_Remapped.h"
 

@@ -4,7 +4,7 @@
 
 #include "common/types.h"
 #include "glm.hpp"
-#include "settings/settings.h"
+#include "bess_core/settings/settings.h"
 
 namespace Bess {
     struct CameraPositionAnimation {

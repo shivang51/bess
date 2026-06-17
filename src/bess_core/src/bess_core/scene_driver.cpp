@@ -1,7 +1,7 @@
 #include "bess_core/scene_driver.h"
 
 #include "common/bess_uuid.h"
-#include "ui_main/ui_main.h"
+#include "ui/ui_main/ui_main.h"
 
 #include <algorithm>
 #include <mutex>

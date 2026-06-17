@@ -1,6 +1,6 @@
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "pybind11/pybind11.h"
-#include "scene/scene_state/components/scene_component_types.h"
+#include "bess_core/scene/scene_state/components/scene_component_types.h"
 
 namespace py = pybind11;
 

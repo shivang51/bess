@@ -1,9 +1,9 @@
-#include "overlay_layer.h"
+#include "bess_core/scene/layers/overlay_layer.h"
 #include "common/bess_uuid.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
-#include "scene/scene_draw_helpers.h"
-#include "settings/viewport_theme.h"
+#include "bess_core/scene/scene_draw_helpers.h"
+#include "bess_core/settings/viewport_theme.h"
 
 namespace Bess::Canvas {
     void OverlayLayer::update(TimeMs ts, SceneUpdateContext &ctx) {

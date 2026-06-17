@@ -3,7 +3,7 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "ui/widgets/m_widgets.h"
-#include "ui_main/ui_main.h"
+#include "ui/ui_main/ui_main.h"
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>

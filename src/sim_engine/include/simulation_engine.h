@@ -4,7 +4,6 @@
 #include "common/bess_uuid.h"
 #include "common/sub_system.h"
 #include "common/types.h"
-#include "net/net.h"
 #include "sim_driver/sim_driver.h"
 #include <condition_variable>
 #include <memory>

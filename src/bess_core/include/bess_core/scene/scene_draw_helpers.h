@@ -2,7 +2,7 @@
 
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/renderer/renderer_types.h"
-#include "scene/scene_draw_context.h"
+#include "bess_core/scene/scene_draw_context.h"
 #include <algorithm>
 #include <cstddef>
 #include <string_view>

@@ -2,7 +2,7 @@
 #include "common/bess_uuid.h"
 #include "common/types.h"
 #include "glm.hpp"
-#include "settings/viewport_theme.h"
+#include "bess_core/settings/viewport_theme.h"
 
 #include <format>
 #include <pybind11/functional.h>

@@ -1,4 +1,4 @@
-#include "scene_ser_reg.h"
+#include "bess_core/scene/scene_ser_reg.h"
 #include "common/logger.h"
 
 namespace Bess::Canvas {

@@ -4,7 +4,7 @@
 #include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
-#include "scene/scene.h"
+#include "bess_core/scene/scene.h"
 #include "sim_driver/sim_driver.h"
 #include "simulation_engine.h"
 #include <algorithm>

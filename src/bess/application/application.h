@@ -1,6 +1,6 @@
 #pragma once
 
-#include "application/window.h"
+#include "window.h"
 #include <memory>
 
 namespace Bess {

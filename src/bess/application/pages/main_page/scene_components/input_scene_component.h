@@ -2,8 +2,8 @@
 
 #include "common/bess_uuid.h"
 #include "common/types.h"
-#include "scene/scene_state/scene_state.h"
-#include "scene_draw_context.h"
+#include "bess_core/scene/scene_state/scene_state.h"
+#include "bess_core/scene/scene_draw_context.h"
 #include "sim_scene_component.h"
 
 namespace Bess::Canvas {

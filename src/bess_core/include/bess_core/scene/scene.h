@@ -1,16 +1,15 @@
 #pragma once
 
 #include "bess_core/renderer/renderer_types.h"
+#include "bess_core/scene/camera.h"
+#include "bess_core/scene/layers/screen_space_overlay_layer.h"
+#include "bess_core/scene/scene_events.h"
+#include "bess_core/scene/scene_layer.h"
+#include "bess_core/scene/scene_state/components/scene_component.h"
+#include "bess_core/scene/scene_state/scene_state.h"
+#include "bess_core/scene/scene_types.h"
 #include "common/bess_uuid.h"
 #include "common/types.h"
-#include "layers/screen_space_overlay_layer.h"
-#include "scene/camera.h"
-#include "scene/scene_events.h"
-#include "scene/scene_state/components/scene_component.h"
-#include "scene/scene_state/scene_state.h"
-#include "scene/scene_types.h"
-#include "scene_layer.h"
-#include "sim_driver/sim_driver.h"
 #include <memory>
 
 namespace Bess::Canvas {

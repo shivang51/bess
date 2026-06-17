@@ -6,7 +6,7 @@
 #include "common/bess_uuid.h"
 #include "common/sub_system.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
-#include "scene.h"
+#include "bess_core/scene/scene.h"
 #include <memory>
 #include <optional>
 #include <unordered_map>

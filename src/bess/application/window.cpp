@@ -1,4 +1,4 @@
-#include "application/window.h"
+#include "window.h"
 #include "bess_core/g_app_context.h"
 #include "bess_wgpu/wgpu_renderer_2d.h"
 #include "common/bess_assert.h"
@@ -8,7 +8,7 @@
 #include "ext/vector_float2.hpp"
 #include "imgui_impl_wgpu.h"
 #include "stb_image.h"
-#include "sub_systems/input_sub_system.h"
+#include "bess_core/sub_systems/input_sub_system.h"
 #include "sub_systems/renderer_context.h"
 #include <GLFW/glfw3.h>
 #include <cassert>

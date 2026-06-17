@@ -1,6 +1,6 @@
 #pragma once
 
-#include "scene/scene_state/components/styles/comp_style.h"
+#include "bess_core/scene/scene_state/components/styles/comp_style.h"
 
 namespace Bess::Canvas::Styles {
     constexpr class SimCompNodeStyles : public CompNodeStyles {

@@ -1,10 +1,9 @@
 #include "command_system.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "bess_core/scene/scene.h"
 #include "bess_core/scene_driver.h"
 #include "common/logger.h"
-#include "pages/main_page/main_page_state.h"
-#include "scene/scene.h"
 #include "simulation_engine.h"
 
 namespace Bess::Cmd {

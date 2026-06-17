@@ -20,15 +20,19 @@ set(Source_Files
 
 
 add_library(${PROJECT_NAME} STATIC ${Header_Files} ${Source_Files})
-add_dependencies(${PROJECT_NAME} BessExtDeps BessSimEngine common)
+add_dependencies(${PROJECT_NAME} BessJson BessExtDeps BessSimEngine common)
 
-target_link_libraries(${PROJECT_NAME} PUBLIC BessExtDeps BessSimEngine common)
+target_link_libraries(${PROJECT_NAME} PUBLIC BessJson BessExtDeps BessSimEngine common)
 
 target_include_directories(${PROJECT_NAME} PUBLIC 
-	${CMAKE_CURRENT_SOURCE_DIR}/include)
+	${CMAKE_CURRENT_SOURCE_DIR}/include
+)
 
 
 target_include_directories(${PROJECT_NAME} PRIVATE 
-	${CMAKE_SOURCE_DIR}/src/Bess/scene
-	${CMAKE_SOURCE_DIR}/src/BessSimEngine/include
+	${CMAKE_SOURCE_DIR}/src/Bess/application/
+	${CMAKE_SOURCE_DIR}/src/bess_core/include/
+	${CMAKE_SOURCE_DIR}/src/sim_engine/include/
+	${CMAKE_SOURCE_DIR}/src/sim_driver/include/
+	${CMAKE_SOURCE_DIR}/src/event_system/include
 )

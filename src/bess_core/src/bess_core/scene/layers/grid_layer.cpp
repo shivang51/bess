@@ -1,6 +1,6 @@
-#include "grid_layer.h"
-#include "scene_layer.h"
-#include "settings/viewport_theme.h"
+#include "bess_core/scene/layers/grid_layer.h"
+#include "bess_core/scene/scene_layer.h"
+#include "bess_core/settings/viewport_theme.h"
 
 namespace Bess::Canvas {
 

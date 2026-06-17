@@ -1,5 +1,5 @@
 #include "plugin_handle.h"
-#include "application/pages/main_page/scene_components/sim_scene_component.h"
+#include "pages/main_page/scene_components/sim_scene_component.h"
 #include <memory>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>

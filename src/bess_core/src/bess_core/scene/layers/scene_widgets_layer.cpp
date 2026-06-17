@@ -1,8 +1,8 @@
-#include "scene_widgets_layer.h"
+#include "bess_core/scene/layers/scene_widgets_layer.h"
 #include "common/types.h"
-#include "scene/widgets/scene_widgets.h"
-#include "scene_event.h"
-#include "scene_types.h"
+#include "bess_core/scene/widgets/scene_widgets.h"
+#include "bess_core/scene/scene_event.h"
+#include "bess_core/scene/scene_types.h"
 
 namespace Bess::Canvas {
     EventResult SceneWidgetsLayer::handleEvent(SceneEvent &evt,

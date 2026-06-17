@@ -2,12 +2,12 @@
 
 #include "common/bess_uuid.h"
 #include "dig_sim_driver.h"
-#include "scene/scene_state/components/behaviours/drag_behaviour.h"
-#include "scene/scene_state/components/scene_component.h"
-#include "scene/scene_state/components/scene_component_types.h"
+#include "bess_core/scene/scene_state/components/behaviours/drag_behaviour.h"
+#include "bess_core/scene/scene_state/components/scene_component.h"
+#include "bess_core/scene/scene_state/components/scene_component_types.h"
 #include "scene_comp_types.h"
-#include "scene_draw_context.h"
-#include "settings/viewport_theme.h"
+#include "bess_core/scene/scene_draw_context.h"
+#include "bess_core/settings/viewport_theme.h"
 #include "sim_driver/sim_driver.h"
 #include "slot_scene_component.h"
 

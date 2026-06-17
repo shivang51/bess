@@ -2,17 +2,16 @@
 #include "bess_core/asset_manager/asset_manager.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "bess_core/sub_systems/input_sub_system.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
 #include "common/types.h"
 #include "event_dispatcher.h"
 #include "services/plugin_service/plugin_service.h"
-#include "sub_systems/input_sub_system.h"
 #include "sub_systems/renderer_context.h"
 #include <chrono>
 
-#include "application/window.h"
-#include "settings/settings.h"
+#include "bess_core/settings/settings.h"
 
 namespace Bess {
     Application::Application() = default;

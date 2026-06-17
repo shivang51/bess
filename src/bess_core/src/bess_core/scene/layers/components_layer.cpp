@@ -1,8 +1,8 @@
-#include "components_layer.h"
+#include "bess_core/scene/layers/components_layer.h"
 #include "common/types.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
-#include "scene_event.h"
-#include "scene_layer.h"
+#include "bess_core/scene/scene_event.h"
+#include "bess_core/scene/scene_layer.h"
 
 namespace Bess::Canvas {
     void ComponentsLayer::update(TimeMs ts, SceneUpdateContext &ctx) {

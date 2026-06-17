@@ -1,5 +1,5 @@
 #include "common/logger.h"
-#include "scene_widgets_internal.h"
+#include "bess_core/scene/widgets/scene_widgets_internal.h"
 #include <algorithm>
 #include <array>
 

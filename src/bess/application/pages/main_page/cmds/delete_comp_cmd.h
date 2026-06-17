@@ -9,8 +9,8 @@
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
-#include "scene/scene.h"
-#include "scene/scene_state/components/scene_component.h"
+#include "bess_core/scene/scene.h"
+#include "bess_core/scene/scene_state/components/scene_component.h"
 #include <algorithm>
 #include <vector>
 
