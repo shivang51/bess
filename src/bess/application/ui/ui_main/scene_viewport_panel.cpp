@@ -70,6 +70,7 @@ namespace Bess::UI {
         }
 
         m_camera->update(ts);
+        m_viewportCtx->isFocused = m_isHovered;
 
         auto sceneDriver = GAppContext::getInstance()
                                .getSubSystem<Bess::ProjectContext>()

@@ -109,8 +109,9 @@ namespace Bess::Core::Viewport {
                                      : ViewportMode::schematic;
         }
 
+        // does not resets the transform
+        // and viewportId
         void reset() {
-            viewportId = 0;
             isFocused = false;
 
             mode = ViewportMode::normal;
