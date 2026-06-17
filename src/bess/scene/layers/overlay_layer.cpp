@@ -20,6 +20,8 @@ namespace Bess::Canvas {
             ctx.camera,
         };
 
+        drawCtx.isSchematicMode = *ctx.isSchematicMode;
+
         drawGhostConnection(drawCtx, ctx);
         drawSelectionBox(drawCtx, ctx);
     }
