@@ -2,6 +2,10 @@ set(PROJECT_NAME bverilog)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# IDK why for this target, fmt needs this, 
+# but it won't link without
+add_compile_definitions(FMT_HEADER_ONLY)
+
 set(Header_Files
     "include/bess_api.h"
     "include/bverilog/types.h"
@@ -25,15 +29,11 @@ set(ALL_FILES
 
 add_library(${PROJECT_NAME} STATIC ${ALL_FILES})
 
-target_link_libraries(${PROJECT_NAME} PUBLIC BessJson common BessSimEngine BessSimDriver DigitalSimDriver)
+target_link_libraries(${PROJECT_NAME} PRIVATE BessJson common BessSimEngine BessSimDriver DigitalSimDriver)
 add_dependencies(${PROJECT_NAME} BessJson common BessSimEngine BessSimDriver DigitalSimDriver)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    "${CMAKE_SOURCE_DIR}/external/jsoncpp/include"
-    "${CMAKE_SOURCE_DIR}/src/common/include"
-    "${CMAKE_SOURCE_DIR}/src/bess_json/include"
-    "${CMAKE_SOURCE_DIR}/src/sim_engine/include"
 )
 
 if(MSVC)

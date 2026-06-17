@@ -350,8 +350,8 @@ namespace Bess::Verilog {
                 return definition;
             }
 
-            BESS_TRACE("Creating new component definition for %s with %zu "
-                       "inputs and %zu outputs",
+            BESS_TRACE("Creating new component definition for {} with {} "
+                       "inputs and {} outputs",
                        name.c_str(),
                        inputs,
                        outputs);
