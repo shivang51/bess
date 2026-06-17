@@ -269,7 +269,7 @@ void bind_renderer(py::module_ &m) {
                const std::string &text,
                const glm::vec3 &pos,
                size_t size,
-               const glm::vec4 &color,
+               const Color &color,
                uint64_t id,
                float angle) {
                 (void)angle;
@@ -292,7 +292,7 @@ void bind_renderer(py::module_ &m) {
             [](IRenderer2D &renderer,
                const glm::vec3 &startPos,
                float weight,
-               const glm::vec4 &color,
+               const Color &color,
                uint64_t id,
                bool closePath,
                bool renderFill,
