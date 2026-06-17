@@ -68,9 +68,12 @@ namespace Bess::Canvas {
 
         template <typename T>
         std::shared_ptr<T> getComponentByUuid(const UUID &uuid) const {
-            if (m_componentsMap.contains(uuid)) {
-                return std::dynamic_pointer_cast<T>(m_componentsMap.at(uuid));
+            auto itr = m_componentsMap.find(uuid);
+
+            if (itr != m_componentsMap.end()) {
+                return std::static_pointer_cast<T>(itr->second);
             }
+
             return nullptr;
         }
 

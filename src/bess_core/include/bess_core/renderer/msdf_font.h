@@ -107,8 +107,18 @@ namespace Bess::Core::Renderer {
                        m_glyphs.size(),
                        jsonPath.string());
 
+            bakeLookupCache();
+
             return m_texture != nullptr && m_texture->getHandle() != 0 &&
                    !m_glyphs.empty();
+        }
+
+        void bakeLookupCache() {
+            for (size_t i = 0; i < FAST_GLYPH_CACHE_SIZE; ++i) {
+                auto it = m_glyphs.find(static_cast<uint32_t>(i));
+                m_lookupCache[i] =
+                    (it != m_glyphs.end()) ? &it->second : nullptr;
+            }
         }
 
         [[nodiscard]] bool valid() const noexcept {
@@ -118,6 +128,10 @@ namespace Bess::Core::Renderer {
 
         [[nodiscard]] const MsdfGlyph *
         findGlyph(uint32_t codepoint) const noexcept {
+            if (codepoint < FAST_GLYPH_CACHE_SIZE) [[likely]] {
+                return m_lookupCache[codepoint];
+            }
+
             auto it = m_glyphs.find(codepoint);
             return it != m_glyphs.end() ? &it->second : nullptr;
         }
@@ -141,7 +155,10 @@ namespace Bess::Core::Renderer {
 
       private:
         std::shared_ptr<TTexture> m_texture;
-        std::unordered_map<uint32_t, MsdfGlyph> m_glyphs;
+        HashMap<uint32_t, MsdfGlyph> m_glyphs;
+        static constexpr size_t FAST_GLYPH_CACHE_SIZE = 256;
+        std::array<const MsdfGlyph *, FAST_GLYPH_CACHE_SIZE> m_lookupCache{
+            nullptr};
         glm::vec2 m_atlasSize{1.f};
         float m_fontSize = 32.f;
         float m_pxRange = 4.f;
