@@ -22,14 +22,15 @@ namespace Bess::Canvas::SceneWidgets {
             auto style = trackProps;
             style.borderColor = palette.border;
 
-            auto trackColor = isHigh ? Core::Renderer::Color(palette.accent)
-                                     : Core::Renderer::Color(palette.track);
+            auto trackColor = isHigh
+                                  ? Core::Renderer::Color(palette.accentStrong)
+                                  : Core::Renderer::Color(palette.track);
             if (Detail::isHovering(
                     context.sceneState, id, context.viewportId)) {
-                trackColor = Core::Renderer::Color(trackColor) * 1.15f;
+                trackColor = palette.surfaceHover;
             }
             if (Detail::isPressed(context.sceneState, id, context.viewportId)) {
-                trackColor = Core::Renderer::Color(trackColor) * 0.85f;
+                trackColor = palette.surfaceActive;
             }
 
             SceneDraw::drawQuad(

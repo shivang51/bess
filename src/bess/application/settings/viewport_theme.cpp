@@ -121,11 +121,11 @@ namespace Bess {
                                     : Color(0.05f, 0.50f, 0.80f, 1.0f);
 
         // 8. Scene Widgets Sync Mapping
-        const Color frame = toVec4(imguiColors[ImGuiCol_FrameBg], 0.96f);
+        const Color frame = toVec4(imguiColors[ImGuiCol_Button], 0.96f);
         const Color frameHover =
-            toVec4(imguiColors[ImGuiCol_FrameBgHovered], 0.98f);
+            toVec4(imguiColors[ImGuiCol_ButtonHovered], 0.98f);
         const Color frameActive =
-            toVec4(imguiColors[ImGuiCol_FrameBgActive], 1.0f);
+            toVec4(imguiColors[ImGuiCol_ButtonActive], 1.0f);
         const Color popup = toVec4(imguiColors[ImGuiCol_PopupBg], 0.99f);
         const Color border = toVec4(imguiColors[ImGuiCol_Border], 0.82f);
         const Color text = toVec4(imguiColors[ImGuiCol_Text]);
