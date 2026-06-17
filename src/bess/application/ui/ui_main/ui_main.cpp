@@ -14,7 +14,7 @@
 #include "ui/widgets/m_widgets.h"
 #include <string>
 
-#include "dock_ids.h"
+#include "ui/dock_ids.h"
 #include "pages/main_page/main_page_state.h"
 #include "ui/icons/FontAwesomeIcons_Remapped.h"
 #include "ui/ui_main/component_explorer.h"

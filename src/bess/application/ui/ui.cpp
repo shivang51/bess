@@ -1,14 +1,17 @@
 #include "ui/ui.h"
 #include "bess_core/g_app_context.h"
+#include "bess_wgpu/wgpu_renderer_2d.h"
 #include "common/logger.h"
 #include "imgui_impl_wgpu.h"
+#include "pages/main_page/main_page.h"
 #include "sub_systems/renderer_context.h"
 #include "ui/icons/CodIcons_Remapped.h"
 #include "ui/icons/ComponentIcons_Remapped.h"
 #include "ui/icons/FontAwesomeIcons_Remapped.h"
+#include "window.h"
 
 #include "assets.h"
-#include "bess_core/settings/ettings.h"
+#include "bess_core/settings/settings.h"
 #include "ui/icons/MaterialIcons_Remapped.h"
 
 #include "imgui.h"

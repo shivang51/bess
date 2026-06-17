@@ -2,7 +2,7 @@
 
 #include "common/class_helpers.h"
 #include "common/types.h"
-#include "dock_ids.h"
+#include "ui/dock_ids.h"
 #include "imgui.h"
 #include <string>
 

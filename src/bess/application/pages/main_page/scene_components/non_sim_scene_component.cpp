@@ -1,13 +1,13 @@
 #include "non_sim_scene_component.h"
 #include "bess_core/renderer/renderer_2d.h"
 #include "gtc/type_ptr.hpp"
-#include "icons/FontAwesomeIcons_Remapped.h"
+#include "ui/icons/FontAwesomeIcons_Remapped.h"
 #include "bess_core/scene/scene_draw_helpers.h"
 #include "bess_core/scene/scene_state/components/styles/comp_style.h"
 #include "bess_core/scene/widgets/scene_widgets.h"
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/settings/viewport_theme.h"
-#include "widgets/m_widgets.h"
+#include "ui/widgets/m_widgets.h"
 #include <array>
 #include <string>
 #include <string_view>

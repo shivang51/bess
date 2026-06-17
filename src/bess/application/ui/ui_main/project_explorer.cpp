@@ -5,7 +5,7 @@
 #include "common/bess_uuid.h"
 #include "common/helpers.h"
 #include "common/logger.h"
-#include "icons/FontAwesomeIcons_Remapped.h"
+#include "ui/icons/FontAwesomeIcons_Remapped.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/cmds/add_comp_cmd.h"

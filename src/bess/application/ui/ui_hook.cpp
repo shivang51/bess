@@ -1,7 +1,7 @@
 #include "ui/ui_hook.h"
 #include "gtc/type_ptr.hpp"
 #include "imgui.h"
-#include "widgets/m_widgets.h"
+#include "ui/widgets/m_widgets.h"
 
 namespace Bess::UI::Hook {
     void

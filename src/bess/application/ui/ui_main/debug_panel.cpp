@@ -4,7 +4,7 @@
 #include "bess_core/scene_driver.h"
 #include "common/bess_uuid.h"
 #include "dig_sim_driver.h"
-#include "icons/CodIcons_Remapped.h"
+#include "ui/icons/CodIcons_Remapped.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/main_page.h"
@@ -14,7 +14,7 @@
 #include "services/plugin_service/plugin_service.h"
 #include "simulation_engine.h"
 #include "ui/ui_main/ui_main.h"
-#include "widgets/m_widgets.h"
+#include "ui/widgets/m_widgets.h"
 
 namespace Bess::UI {
     DebugPanel::DebugPanel() : Panel("Debug Panel") {

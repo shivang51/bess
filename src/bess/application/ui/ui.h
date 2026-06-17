@@ -3,6 +3,10 @@
 #include "bess_wgpu/wgpu_texture.h"
 #include "imgui.h"
 
+namespace Bess::Pages {
+    class Page;
+}
+
 namespace Bess {
     class Window;
 
@@ -36,5 +40,6 @@ namespace Bess {
         int m_currentFps = 0;
         CursorType m_currentCursorType = CursorType::normal;
         std::shared_ptr<Wgpu::WgpuTexture> m_previewTex = nullptr;
+        std::shared_ptr<Pages::Page> m_currentPage = nullptr;
     };
 } // namespace Bess

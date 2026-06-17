@@ -1,7 +1,7 @@
 #include "input_scene_component.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
-#include "icons/FontAwesomeIcons_Remapped.h"
+#include "ui/icons/FontAwesomeIcons_Remapped.h"
 #include "bess_core/scene/scene_draw_helpers.h"
 #include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
 #include "bess_core/scene/scene_state/scene_state.h"
