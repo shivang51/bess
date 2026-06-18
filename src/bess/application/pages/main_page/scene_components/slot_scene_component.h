@@ -1,11 +1,11 @@
 #pragma once
 
-#include "common/bess_uuid.h"
-#include "fwd.hpp"
+#include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_events.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
+#include "common/bess_uuid.h"
+#include "fwd.hpp"
 #include "scene_comp_types.h"
-#include "bess_core/scene/scene_draw_context.h"
 
 namespace Bess::Canvas {
     enum class SlotType : uint8_t {
@@ -86,6 +86,7 @@ namespace Bess::Canvas {
         glm::vec3 m_schematicPos = glm::vec3(0.f);
         SlotType m_slotType = SlotType::none;
         std::vector<UUID> m_connectedConnections;
+        bool m_isHovered = false;
 
         bool m_invalidateCache = false;
         int m_index = -1;

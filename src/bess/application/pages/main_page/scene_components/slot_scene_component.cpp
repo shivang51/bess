@@ -33,12 +33,14 @@ namespace Bess::Canvas {
         auto &appCtx = GAppContext::getInstance();
         auto window = appCtx.getSubSystem<Window>();
         window->getui().setCursorPointer();
+        m_isHovered = true;
     }
 
     void SlotSceneComponent::onMouseLeave(const Events::MouseLeaveEvent &e) {
         auto &appCtx = GAppContext::getInstance();
         auto window = appCtx.getSubSystem<Window>();
         window->getui().setCursorNormal();
+        m_isHovered = false;
     }
 
     void SlotSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
@@ -161,7 +163,7 @@ namespace Bess::Canvas {
         SceneDraw::drawLine(drawContext,
                             startPos,
                             {pos.x + offset.x, pos.y + offset.y, pos.z},
-                            nodeWeight,
+                            m_isHovered ? nodeWeight + 2.f : nodeWeight,
                             pinColor,
                             pinId);
         m_invalidateCache = true;

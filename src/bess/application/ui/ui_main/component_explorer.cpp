@@ -98,8 +98,8 @@ namespace Bess::UI {
                         key, ent.first, ImGuiTreeNodeFlags_DefaultOpen)) {
                     for (const auto &comp : ent.second) {
                         if (m_searchQuery != "" &&
-                            Common::Helpers::toLowerCase(comp->getName())
-                                .contains(m_searchQuery))
+                            !Common::Helpers::toLowerCase(comp->getName())
+                                 .contains(m_searchQuery))
                             continue;
 
                         const std::string &name = comp->getName();
@@ -133,8 +133,8 @@ namespace Bess::UI {
                 Canvas::NonSimSceneComponent::getRegistry();
             for (auto &comp : nonSimComponents) {
                 if (m_searchQuery != "" &&
-                    Common::Helpers::toLowerCase(comp.second)
-                        .contains(m_searchQuery))
+                    !Common::Helpers::toLowerCase(comp.second)
+                         .contains(m_searchQuery))
                     continue;
 
                 if (Widgets::ButtonWithPopup(comp.second, "", false)) {
