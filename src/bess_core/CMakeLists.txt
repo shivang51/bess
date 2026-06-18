@@ -117,6 +117,8 @@ set(Source_Files
 	"src/bess_core/settings/viewport_theme.cpp"
 	
 	"src/bess_core/sub_systems/input_sub_system.cpp"
+	
+	"src/bess_core/scene/scene_ui/layout.cpp"
 )
 
 source_group("src" FILES ${Source_Files})

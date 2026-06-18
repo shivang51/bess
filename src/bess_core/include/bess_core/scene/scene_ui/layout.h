@@ -37,7 +37,7 @@ namespace Bess::Canvas::UI {
 
         void removeNode(const UUID &id);
 
-        UINode *getNode(const UUID &id) const;
+        UINode *getNode(const UUID &id);
 
       private:
         HashMap<UUID, UINode> m_nodes;
@@ -79,8 +79,7 @@ namespace Bess::Canvas::UI {
             m_children.clear();
         }
 
-        glm::vec2 measure(const UINodeRegistry &registry,
-                          const UUID &parentId) {
+        glm::vec2 measure(UINodeRegistry &registry, const UUID &parentId) {
             if (!m_sizeDirty) {
                 return m_cachedSize;
             }
@@ -128,7 +127,7 @@ namespace Bess::Canvas::UI {
             return totalSize;
         }
 
-        void layout(const UINodeRegistry &registry, const UUID &parentId) {
+        void layout(UINodeRegistry &registry, const UUID &parentId) {
             if (!m_posDirty) {
                 return;
             }
