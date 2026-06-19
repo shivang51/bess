@@ -20,6 +20,7 @@ namespace Bess::Wgpu {
         uint32_t stencilVertexCount = 0;
         uint32_t firstCoverVertex = 0;
         uint32_t coverVertexCount = 0;
+        uint32_t firstInstance = 0;
         bool evenOddFill = true;
         float zIndex = 0.f;
         uint64_t submitOrder = 0;
@@ -63,8 +64,11 @@ namespace Bess::Wgpu {
       public:
         void clear();
 
-        void push(const BakedPath &path, float zIndex, uint64_t submitOrder);
-        void push(BakedPath &&path, float zIndex, uint64_t submitOrder);
+        void push(const BakedPath &path,
+                  const PathProps &props,
+                  uint64_t submitOrder);
+        void
+        push(BakedPath &&path, const PathProps &props, uint64_t submitOrder);
 
         void prepareForRendering(bool sortBackToFront);
 
@@ -72,24 +76,30 @@ namespace Bess::Wgpu {
         [[nodiscard]] uint32_t drawCount() const noexcept;
         [[nodiscard]] uint32_t stencilVertexCount() const noexcept;
         [[nodiscard]] uint32_t coverVertexCount() const noexcept;
+        [[nodiscard]] uint32_t instanceCount() const noexcept;
         [[nodiscard]] uint64_t stencilByteSize() const noexcept;
         [[nodiscard]] uint64_t coverByteSize() const noexcept;
+        [[nodiscard]] uint64_t instanceByteSize() const noexcept;
 
         [[nodiscard]] const Piplines::PathStencilVertex *
         stencilData() const noexcept;
         [[nodiscard]] const Piplines::PathCoverVertex *
         coverData() const noexcept;
+        [[nodiscard]] const Piplines::PathInstance *
+        instanceData() const noexcept;
         [[nodiscard]] const PathDrawRange *drawRanges() const noexcept;
 
       private:
         std::vector<Piplines::PathStencilVertex> m_stencilVertices;
         std::vector<Piplines::PathCoverVertex> m_coverVertices;
+        std::vector<Piplines::PathInstance> m_instances;
         std::vector<PathDrawRange> m_drawRanges;
     };
 
     struct PathStrokeDrawRange {
         uint32_t firstVertex = 0;
         uint32_t vertexCount = 0;
+        uint32_t firstInstance = 0;
         float zIndex = 0.f;
         uint64_t submitOrder = 0;
     };
@@ -99,10 +109,10 @@ namespace Bess::Wgpu {
         void clear();
 
         void push(const std::vector<Piplines::PathCoverVertex> &vertices,
-                  float zIndex,
+                  const PathProps &props,
                   uint64_t submitOrder);
         void push(std::vector<Piplines::PathCoverVertex> &&vertices,
-                  float zIndex,
+                  const PathProps &props,
                   uint64_t submitOrder);
 
         void prepareForRendering(bool sortBackToFront);
@@ -110,13 +120,18 @@ namespace Bess::Wgpu {
         [[nodiscard]] bool empty() const noexcept;
         [[nodiscard]] uint32_t drawCount() const noexcept;
         [[nodiscard]] uint32_t vertexCount() const noexcept;
+        [[nodiscard]] uint32_t instanceCount() const noexcept;
         [[nodiscard]] uint64_t byteSize() const noexcept;
+        [[nodiscard]] uint64_t instanceByteSize() const noexcept;
 
         [[nodiscard]] const Piplines::PathCoverVertex *data() const noexcept;
+        [[nodiscard]] const Piplines::PathInstance *
+        instanceData() const noexcept;
         [[nodiscard]] const PathStrokeDrawRange *drawRanges() const noexcept;
 
       private:
         std::vector<Piplines::PathCoverVertex> m_vertices;
+        std::vector<Piplines::PathInstance> m_instances;
         std::vector<PathStrokeDrawRange> m_drawRanges;
     };
 

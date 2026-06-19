@@ -48,6 +48,7 @@ namespace Bess::Wgpu {
         using Bess::Core::Renderer::Color;
         using Bess::Core::Renderer::Renderer2DExtent;
         using Bess::Wgpu::Piplines::PathCoverVertex;
+        using Bess::Wgpu::Piplines::PathInstance;
         using Bess::Wgpu::Piplines::PathStencilVertex;
 
         using Bess::Wgpu::BakedPathSubmission;
@@ -96,11 +97,10 @@ namespace Bess::Wgpu {
                    a.strokeSize == b.strokeSize &&
                    a.miterLimit == b.miterLimit &&
                    a.curveTolerance == b.curveTolerance &&
-                   a.renderFill == b.renderFill && a.zIndex == b.zIndex &&
+                   a.renderFill == b.renderFill &&
                    samePickingId(a.id, b.id) && a.renderPass == b.renderPass &&
                    a.fillRule == b.fillRule && a.lineJoin == b.lineJoin &&
-                   a.lineCap == b.lineCap && a.closePath == b.closePath &&
-                   a.transformMode == b.transformMode;
+                   a.lineCap == b.lineCap && a.closePath == b.closePath;
         }
 
         bool samePathBakeMetrics(const PathBakeMetrics &a,
@@ -1145,6 +1145,19 @@ namespace Bess::Wgpu {
             transparentStrokeVertexOffset +
             m_impl->transparentPathStrokeBatch.vertexCount();
 
+        const uint32_t opaquePathInstanceOffset = 0;
+        const uint32_t transparentPathInstanceOffset =
+            m_impl->opaquePathBatch.instanceCount();
+        const uint32_t opaquePathStrokeInstanceOffset =
+            transparentPathInstanceOffset +
+            m_impl->transparentPathBatch.instanceCount();
+        const uint32_t transparentPathStrokeInstanceOffset =
+            opaquePathStrokeInstanceOffset +
+            m_impl->opaquePathStrokeBatch.instanceCount();
+        const uint32_t totalPathInstanceCount =
+            transparentPathStrokeInstanceOffset +
+            m_impl->transparentPathStrokeBatch.instanceCount();
+
         const uint32_t totalTextGlyphCount = m_impl->textBatch.count();
 
         if (totalInstanceCount > 0 &&
@@ -1246,6 +1259,11 @@ namespace Bess::Wgpu {
                     totalStrokeVertexCount));
         }
 
+        if (totalPathInstanceCount > 0) {
+            static_cast<void>(m_impl->pathPipeline->ensureInstanceBufferSize(
+                totalPathInstanceCount));
+        }
+
         if (!m_impl->opaquePathBatch.empty()) {
             m_impl->pathPipeline->uploadStencilVertices(
                 m_impl->queue,
@@ -1257,9 +1275,15 @@ namespace Bess::Wgpu {
                 m_impl->opaquePathBatch.coverData(),
                 m_impl->opaquePathBatch.coverByteSize(),
                 opaqueCoverVertexOffset * sizeof(PathCoverVertex));
+            m_impl->pathPipeline->uploadInstances(
+                m_impl->queue,
+                m_impl->opaquePathBatch.instanceData(),
+                m_impl->opaquePathBatch.instanceByteSize(),
+                opaquePathInstanceOffset * sizeof(PathInstance));
             m_impl->stats.uploadedBytes +=
                 m_impl->opaquePathBatch.stencilByteSize() +
-                m_impl->opaquePathBatch.coverByteSize();
+                m_impl->opaquePathBatch.coverByteSize() +
+                m_impl->opaquePathBatch.instanceByteSize();
         }
 
         if (!m_impl->transparentPathBatch.empty()) {
@@ -1273,9 +1297,15 @@ namespace Bess::Wgpu {
                 m_impl->transparentPathBatch.coverData(),
                 m_impl->transparentPathBatch.coverByteSize(),
                 transparentCoverVertexOffset * sizeof(PathCoverVertex));
+            m_impl->pathPipeline->uploadInstances(
+                m_impl->queue,
+                m_impl->transparentPathBatch.instanceData(),
+                m_impl->transparentPathBatch.instanceByteSize(),
+                transparentPathInstanceOffset * sizeof(PathInstance));
             m_impl->stats.uploadedBytes +=
                 m_impl->transparentPathBatch.stencilByteSize() +
-                m_impl->transparentPathBatch.coverByteSize();
+                m_impl->transparentPathBatch.coverByteSize() +
+                m_impl->transparentPathBatch.instanceByteSize();
         }
 
         if (!m_impl->opaquePathStrokeBatch.empty()) {
@@ -1284,8 +1314,14 @@ namespace Bess::Wgpu {
                 m_impl->opaquePathStrokeBatch.data(),
                 m_impl->opaquePathStrokeBatch.byteSize(),
                 opaqueStrokeVertexOffset * sizeof(PathCoverVertex));
+            m_impl->pathPipeline->uploadInstances(
+                m_impl->queue,
+                m_impl->opaquePathStrokeBatch.instanceData(),
+                m_impl->opaquePathStrokeBatch.instanceByteSize(),
+                opaquePathStrokeInstanceOffset * sizeof(PathInstance));
             m_impl->stats.uploadedBytes +=
-                m_impl->opaquePathStrokeBatch.byteSize();
+                m_impl->opaquePathStrokeBatch.byteSize() +
+                m_impl->opaquePathStrokeBatch.instanceByteSize();
         }
 
         if (!m_impl->transparentPathStrokeBatch.empty()) {
@@ -1294,8 +1330,14 @@ namespace Bess::Wgpu {
                 m_impl->transparentPathStrokeBatch.data(),
                 m_impl->transparentPathStrokeBatch.byteSize(),
                 transparentStrokeVertexOffset * sizeof(PathCoverVertex));
+            m_impl->pathPipeline->uploadInstances(
+                m_impl->queue,
+                m_impl->transparentPathStrokeBatch.instanceData(),
+                m_impl->transparentPathStrokeBatch.instanceByteSize(),
+                transparentPathStrokeInstanceOffset * sizeof(PathInstance));
             m_impl->stats.uploadedBytes +=
-                m_impl->transparentPathStrokeBatch.byteSize();
+                m_impl->transparentPathStrokeBatch.byteSize() +
+                m_impl->transparentPathStrokeBatch.instanceByteSize();
         }
 
         m_impl->sharedFrameBuffer.setCameraTransform(m_impl->cameraTransform);
@@ -1480,6 +1522,7 @@ namespace Bess::Wgpu {
         auto renderPathRange = [&](const PathDrawRange &range,
                                    uint32_t stencilVertexOffset,
                                    uint32_t coverVertexOffset,
+                                   uint32_t instanceOffset,
                                    bool transparent) {
             if (range.stencilVertexCount == 0 || range.coverVertexCount == 0) {
                 return;
@@ -1502,6 +1545,12 @@ namespace Bess::Wgpu {
                     sizeof(PathStencilVertex),
                 static_cast<uint64_t>(range.stencilVertexCount) *
                     sizeof(PathStencilVertex));
+            renderPass.SetVertexBuffer(
+                1,
+                m_impl->pathPipeline->getInstanceBuffer(),
+                static_cast<uint64_t>(instanceOffset + range.firstInstance) *
+                    sizeof(PathInstance),
+                sizeof(PathInstance));
             renderPass.Draw(range.stencilVertexCount, 1, 0, 0);
 
             passState.setPipeline(
@@ -1518,6 +1567,12 @@ namespace Bess::Wgpu {
                     sizeof(PathCoverVertex),
                 static_cast<uint64_t>(range.coverVertexCount) *
                     sizeof(PathCoverVertex));
+            renderPass.SetVertexBuffer(
+                1,
+                m_impl->pathPipeline->getInstanceBuffer(),
+                static_cast<uint64_t>(instanceOffset + range.firstInstance) *
+                    sizeof(PathInstance),
+                sizeof(PathInstance));
             renderPass.Draw(range.coverVertexCount, 1, 0, 0);
             m_impl->stats.drawCallCount += 2;
         };
@@ -1525,6 +1580,7 @@ namespace Bess::Wgpu {
         auto renderPathBatch = [&](const PathBatch &batch,
                                    uint32_t stencilVertexOffset,
                                    uint32_t coverVertexOffset,
+                                   uint32_t instanceOffset,
                                    bool transparent) {
             if (batch.empty()) {
                 return;
@@ -1536,12 +1592,14 @@ namespace Bess::Wgpu {
                 renderPathRange(ranges[i],
                                 stencilVertexOffset,
                                 coverVertexOffset,
+                                instanceOffset,
                                 transparent);
             }
         };
 
         auto renderPathStrokeRange = [&](const PathStrokeDrawRange &range,
                                          uint32_t vertexOffset,
+                                         uint32_t instanceOffset,
                                          bool transparent) {
             if (range.vertexCount == 0) {
                 return;
@@ -1563,12 +1621,19 @@ namespace Bess::Wgpu {
                     sizeof(PathCoverVertex),
                 static_cast<uint64_t>(range.vertexCount) *
                     sizeof(PathCoverVertex));
+            renderPass.SetVertexBuffer(
+                1,
+                m_impl->pathPipeline->getInstanceBuffer(),
+                static_cast<uint64_t>(instanceOffset + range.firstInstance) *
+                    sizeof(PathInstance),
+                sizeof(PathInstance));
             renderPass.Draw(range.vertexCount, 1, 0, 0);
             m_impl->stats.drawCallCount++;
         };
 
         auto renderPathStrokeBatch = [&](const PathStrokeBatch &batch,
                                          uint32_t vertexOffset,
+                                         uint32_t instanceOffset,
                                          bool transparent) {
             if (batch.empty()) {
                 return;
@@ -1577,7 +1642,8 @@ namespace Bess::Wgpu {
             const PathStrokeDrawRange *ranges = batch.drawRanges();
             const uint32_t rangeCount = batch.drawCount();
             for (uint32_t i = 0; i < rangeCount; ++i) {
-                renderPathStrokeRange(ranges[i], vertexOffset, transparent);
+                renderPathStrokeRange(
+                    ranges[i], vertexOffset, instanceOffset, transparent);
             }
         };
 
@@ -1606,9 +1672,12 @@ namespace Bess::Wgpu {
         renderPathBatch(m_impl->opaquePathBatch,
                         opaqueStencilVertexOffset,
                         opaqueCoverVertexOffset,
+                        opaquePathInstanceOffset,
                         false);
-        renderPathStrokeBatch(
-            m_impl->opaquePathStrokeBatch, opaqueStrokeVertexOffset, false);
+        renderPathStrokeBatch(m_impl->opaquePathStrokeBatch,
+                              opaqueStrokeVertexOffset,
+                              opaquePathStrokeInstanceOffset,
+                              false);
 
         m_impl->transparentDrawItems.clear();
         m_impl->transparentDrawItems.reserve(
@@ -1722,12 +1791,16 @@ namespace Bess::Wgpu {
                 renderPathRange(r,
                                 transparentStencilVertexOffset,
                                 transparentCoverVertexOffset,
+                                transparentPathInstanceOffset,
                                 true);
             } break;
             case TransparentDrawKind::PathStroke: {
                 const auto &r =
                     m_impl->transparentPathStrokeBatch.drawRanges()[item.index];
-                renderPathStrokeRange(r, transparentStrokeVertexOffset, true);
+                renderPathStrokeRange(r,
+                                      transparentStrokeVertexOffset,
+                                      transparentPathStrokeInstanceOffset,
+                                      true);
             } break;
             case TransparentDrawKind::Text:
                 renderTextRun(textRuns[item.index]);
@@ -2126,7 +2199,7 @@ namespace Bess::Wgpu {
                                           pathProps,
                                           metrics,
                                           props.antiAliasFringeScale),
-                    props.zIndex,
+                    pathProps,
                     submitOrder);
             }
 

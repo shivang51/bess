@@ -23,6 +23,13 @@ namespace Bess::Wgpu::Piplines {
         uint32_t flags = 1u;
     };
 
+    struct PathInstance {
+        float position[3] = {0.f, 0.f, 0.f};
+        float scale[2] = {1.f, 1.f};
+        float rotation = 0.f;
+        uint32_t flags = 1u;
+    };
+
     class PathPipeline final : public Pipeline {
       public:
         void init(const wgpu::Device &device,
@@ -38,6 +45,7 @@ namespace Bess::Wgpu::Piplines {
         [[nodiscard]] bool ensureCoverVertexBufferSize(std::size_t vertexCount);
         [[nodiscard]] bool
         ensureStrokeVertexBufferSize(std::size_t vertexCount);
+        [[nodiscard]] bool ensureInstanceBufferSize(std::size_t instanceCount);
 
         void uploadStencilVertices(const wgpu::Queue &queue,
                                    const PathStencilVertex *vertices,
@@ -51,6 +59,10 @@ namespace Bess::Wgpu::Piplines {
                                   const PathCoverVertex *vertices,
                                   uint64_t byteSize,
                                   uint64_t bufferOffset = 0) const;
+        void uploadInstances(const wgpu::Queue &queue,
+                             const PathInstance *instances,
+                             uint64_t byteSize,
+                             uint64_t bufferOffset = 0) const;
 
         [[nodiscard]] const wgpu::BindGroup &getBindGroup() const;
         [[nodiscard]] const wgpu::RenderPipeline &
@@ -62,17 +74,20 @@ namespace Bess::Wgpu::Piplines {
         [[nodiscard]] const wgpu::Buffer &getStencilVertexBuffer() const;
         [[nodiscard]] const wgpu::Buffer &getCoverVertexBuffer() const;
         [[nodiscard]] const wgpu::Buffer &getStrokeVertexBuffer() const;
+        [[nodiscard]] const wgpu::Buffer &getInstanceBuffer() const;
 
         void drawPath(wgpu::RenderPassEncoder &renderPass,
                       uint32_t firstStencilVertex,
                       uint32_t stencilVertexCount,
                       uint32_t firstCoverVertex,
                       uint32_t coverVertexCount,
+                      uint32_t firstInstance,
                       bool transparent,
                       bool evenOddFill) const;
         void drawStroke(wgpu::RenderPassEncoder &renderPass,
                         uint32_t firstVertex,
                         uint32_t vertexCount,
+                        uint32_t firstInstance,
                         bool transparent) const;
 
       private:
@@ -101,6 +116,8 @@ namespace Bess::Wgpu::Piplines {
         uint64_t m_coverVertexBufferSize = 0;
         wgpu::Buffer m_strokeVertexBuffer;
         uint64_t m_strokeVertexBufferSize = 0;
+        wgpu::Buffer m_instanceBuffer;
+        uint64_t m_instanceBufferSize = 0;
     };
 
 } // namespace Bess::Wgpu::Piplines

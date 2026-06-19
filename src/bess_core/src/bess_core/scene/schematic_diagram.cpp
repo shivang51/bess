@@ -67,6 +67,7 @@ namespace Bess::Canvas {
         digScale.x *= adAr;
 
         auto mid = digScale * 0.5f;
+        const glm::vec2 diagramPosition{pos.x - mid.x, pos.y - mid.y};
 
         Core::Renderer::PathProps props;
         props.strokeColor =
@@ -78,20 +79,12 @@ namespace Bess::Canvas {
         props.lineJoin = Core::Renderer::PathLineJoin::Round;
         props.id = pickingId;
         props.closePath = false;
+        props.zIndex = pos.z;
+        props.position = diagramPosition;
+        props.scale = digScale;
 
-        for (auto &path : getPathsMut()) {
-            const auto pathPos = path.ogBounds().min * digScale;
-            const glm::vec2 translation = {
-                pathPos.x + pos.x - mid.x,
-                pathPos.y + pos.y - mid.y,
-            };
-
-            props.zIndex = transform.position.z;
+        for (const auto &path : getPaths()) {
             props.renderFill = path.getFill();
-
-            path.scale(digScale);
-            path.translate(translation);
-
             renderer->drawPath(path, props);
         }
 

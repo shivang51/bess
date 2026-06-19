@@ -14,6 +14,10 @@ struct StencilVertexIn {
     @location(1) curve_coord: vec2f,
     @location(2) curve_type: u32,
     @location(3) flags: u32,
+    @location(4) instance_position: vec3f,
+    @location(5) instance_scale: vec2f,
+    @location(6) instance_rotation: f32,
+    @location(7) instance_flags: u32,
 };
 
 struct StencilVertexOut {
@@ -27,6 +31,10 @@ struct CoverVertexIn {
     @location(1) color: vec4f,
     @location(2) id: vec2u,
     @location(3) flags: u32,
+    @location(4) instance_position: vec3f,
+    @location(5) instance_scale: vec2f,
+    @location(6) instance_rotation: f32,
+    @location(7) instance_flags: u32,
 };
 
 struct CoverVertexOut {
@@ -77,13 +85,29 @@ fn path_camera_clip_position(world: vec2f, z_index: f32) -> vec4f {
     return clip;
 }
 
+fn path_instance_world_position(local: vec2f, instance_position: vec2f, instance_scale: vec2f, rotation: f32) -> vec2f {
+    let scaled = local * instance_scale;
+    let s = sin(rotation);
+    let c = cos(rotation);
+    let rotated = vec2f(
+        scaled.x * c - scaled.y * s,
+        scaled.x * s + scaled.y * c);
+    return instance_position + rotated;
+}
+
 @vertex
 fn vs_stencil(in: StencilVertexIn) -> StencilVertexOut {
     var out: StencilVertexOut;
-    if ((in.flags & PATH_FLAG_APPLY_CAMERA_TRANSFORM) != 0u) {
-        out.position = path_camera_clip_position(in.position.xy, in.position.z);
+    let world = path_instance_world_position(
+        in.position.xy,
+        in.instance_position.xy,
+        in.instance_scale,
+        in.instance_rotation);
+    let z_index = in.position.z + in.instance_position.z;
+    if ((in.instance_flags & PATH_FLAG_APPLY_CAMERA_TRANSFORM) != 0u) {
+        out.position = path_camera_clip_position(world, z_index);
     } else {
-        out.position = path_screen_clip_position(in.position.xy, in.position.z);
+        out.position = path_screen_clip_position(world, z_index);
     }
     out.curve_coord = in.curve_coord;
     out.curve_type = in.curve_type;
@@ -120,10 +144,16 @@ fn fs_stencil_picking(in: StencilVertexOut) -> StencilFragmentOutPicking {
 @vertex
 fn vs_cover(in: CoverVertexIn) -> CoverVertexOut {
     var out: CoverVertexOut;
-    if ((in.flags & PATH_FLAG_APPLY_CAMERA_TRANSFORM) != 0u) {
-        out.position = path_camera_clip_position(in.position.xy, in.position.z);
+    let world = path_instance_world_position(
+        in.position.xy,
+        in.instance_position.xy,
+        in.instance_scale,
+        in.instance_rotation);
+    let z_index = in.position.z + in.instance_position.z;
+    if ((in.instance_flags & PATH_FLAG_APPLY_CAMERA_TRANSFORM) != 0u) {
+        out.position = path_camera_clip_position(world, z_index);
     } else {
-        out.position = path_screen_clip_position(in.position.xy, in.position.z);
+        out.position = path_screen_clip_position(world, z_index);
     }
     out.color = in.color;
     out.id = in.id;

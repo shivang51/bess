@@ -96,6 +96,7 @@ namespace Bess::Wgpu {
                       const Core::Renderer::PathProps &props = {}) override;
         void drawPath(const Core::Renderer::Path2D &path,
                       const Core::Renderer::PathProps &props = {}) override;
+        using Core::Renderer::IRenderer2D::drawPath;
 
         void beginPath(const Core::Renderer::PathProps &props = {}) override;
         void pathMoveTo(const glm::vec2 &pos) override;

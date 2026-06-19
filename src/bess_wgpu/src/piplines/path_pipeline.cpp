@@ -29,6 +29,8 @@ namespace Bess::Wgpu::Piplines {
     }
 
     void PathPipeline::destroy() {
+        m_instanceBuffer = nullptr;
+        m_instanceBufferSize = 0;
         m_strokeVertexBuffer = nullptr;
         m_strokeVertexBufferSize = 0;
         m_coverVertexBuffer = nullptr;
@@ -100,6 +102,23 @@ namespace Bess::Wgpu::Piplines {
         return true;
     }
 
+    bool PathPipeline::ensureInstanceBufferSize(std::size_t instanceCount) {
+        const auto requiredSize = std::max<std::size_t>(
+            sizeof(PathInstance), instanceCount * sizeof(PathInstance));
+        if (m_instanceBuffer != nullptr &&
+            m_instanceBufferSize >= requiredSize) {
+            return false;
+        }
+
+        wgpu::BufferDescriptor descriptor{};
+        descriptor.size = requiredSize;
+        descriptor.usage =
+            wgpu::BufferUsage::Vertex | wgpu::BufferUsage::CopyDst;
+        m_instanceBuffer = m_device.CreateBuffer(&descriptor);
+        m_instanceBufferSize = requiredSize;
+        return true;
+    }
+
     void PathPipeline::uploadStencilVertices(const wgpu::Queue &queue,
                                              const PathStencilVertex *vertices,
                                              uint64_t byteSize,
@@ -134,6 +153,17 @@ namespace Bess::Wgpu::Piplines {
         }
         queue.WriteBuffer(
             m_strokeVertexBuffer, bufferOffset, vertices, byteSize);
+    }
+
+    void PathPipeline::uploadInstances(const wgpu::Queue &queue,
+                                       const PathInstance *instances,
+                                       uint64_t byteSize,
+                                       uint64_t bufferOffset) const {
+        if (m_instanceBuffer == nullptr || instances == nullptr ||
+            byteSize == 0) {
+            return;
+        }
+        queue.WriteBuffer(m_instanceBuffer, bufferOffset, instances, byteSize);
     }
 
     const wgpu::BindGroup &PathPipeline::getBindGroup() const {
@@ -194,11 +224,19 @@ namespace Bess::Wgpu::Piplines {
         return m_strokeVertexBuffer;
     }
 
+    const wgpu::Buffer &PathPipeline::getInstanceBuffer() const {
+        if (m_instanceBuffer == nullptr) {
+            throw std::runtime_error("Path instance buffer is not ready");
+        }
+        return m_instanceBuffer;
+    }
+
     void PathPipeline::drawPath(wgpu::RenderPassEncoder &renderPass,
                                 uint32_t firstStencilVertex,
                                 uint32_t stencilVertexCount,
                                 uint32_t firstCoverVertex,
                                 uint32_t coverVertexCount,
+                                uint32_t firstInstance,
                                 bool transparent,
                                 bool evenOddFill) const {
         if (stencilVertexCount == 0 || coverVertexCount == 0) {
@@ -215,6 +253,11 @@ namespace Bess::Wgpu::Piplines {
                                        sizeof(PathStencilVertex),
                                    static_cast<uint64_t>(stencilVertexCount) *
                                        sizeof(PathStencilVertex));
+        renderPass.SetVertexBuffer(
+            1,
+            m_instanceBuffer,
+            static_cast<uint64_t>(firstInstance) * sizeof(PathInstance),
+            sizeof(PathInstance));
         renderPass.Draw(stencilVertexCount, 1, 0, 0);
 
         renderPass.SetPipeline(transparent ? m_transparentCoverPipeline
@@ -224,12 +267,18 @@ namespace Bess::Wgpu::Piplines {
             m_coverVertexBuffer,
             static_cast<uint64_t>(firstCoverVertex) * sizeof(PathCoverVertex),
             static_cast<uint64_t>(coverVertexCount) * sizeof(PathCoverVertex));
+        renderPass.SetVertexBuffer(
+            1,
+            m_instanceBuffer,
+            static_cast<uint64_t>(firstInstance) * sizeof(PathInstance),
+            sizeof(PathInstance));
         renderPass.Draw(coverVertexCount, 1, 0, 0);
     }
 
     void PathPipeline::drawStroke(wgpu::RenderPassEncoder &renderPass,
                                   uint32_t firstVertex,
                                   uint32_t vertexCount,
+                                  uint32_t firstInstance,
                                   bool transparent) const {
         if (vertexCount == 0) {
             return;
@@ -243,6 +292,11 @@ namespace Bess::Wgpu::Piplines {
             m_strokeVertexBuffer,
             static_cast<uint64_t>(firstVertex) * sizeof(PathCoverVertex),
             static_cast<uint64_t>(vertexCount) * sizeof(PathCoverVertex));
+        renderPass.SetVertexBuffer(
+            1,
+            m_instanceBuffer,
+            static_cast<uint64_t>(firstInstance) * sizeof(PathInstance),
+            sizeof(PathInstance));
         renderPass.Draw(vertexCount, 1, 0, 0);
     }
 
@@ -304,6 +358,31 @@ namespace Bess::Wgpu::Piplines {
         stencilVertexBufferLayout.attributeCount = stencilAttributes.size();
         stencilVertexBufferLayout.attributes = stencilAttributes.data();
 
+        std::array<wgpu::VertexAttribute, 4> instanceAttributes{};
+        instanceAttributes[0].shaderLocation = 4;
+        instanceAttributes[0].format = wgpu::VertexFormat::Float32x3;
+        instanceAttributes[0].offset = offsetof(PathInstance, position);
+        instanceAttributes[1].shaderLocation = 5;
+        instanceAttributes[1].format = wgpu::VertexFormat::Float32x2;
+        instanceAttributes[1].offset = offsetof(PathInstance, scale);
+        instanceAttributes[2].shaderLocation = 6;
+        instanceAttributes[2].format = wgpu::VertexFormat::Float32;
+        instanceAttributes[2].offset = offsetof(PathInstance, rotation);
+        instanceAttributes[3].shaderLocation = 7;
+        instanceAttributes[3].format = wgpu::VertexFormat::Uint32;
+        instanceAttributes[3].offset = offsetof(PathInstance, flags);
+
+        wgpu::VertexBufferLayout instanceVertexBufferLayout{};
+        instanceVertexBufferLayout.arrayStride = sizeof(PathInstance);
+        instanceVertexBufferLayout.stepMode = wgpu::VertexStepMode::Instance;
+        instanceVertexBufferLayout.attributeCount = instanceAttributes.size();
+        instanceVertexBufferLayout.attributes = instanceAttributes.data();
+
+        std::array<wgpu::VertexBufferLayout, 2> stencilVertexBuffers{
+            stencilVertexBufferLayout,
+            instanceVertexBufferLayout,
+        };
+
         wgpu::FragmentState stencilFragment{};
         stencilFragment.module =
             m_shader->getModule(Core::Renderer::ShaderStage::Fragment);
@@ -348,8 +427,8 @@ namespace Bess::Wgpu::Piplines {
         stencilDescriptor.vertex.module =
             m_shader->getModule(Core::Renderer::ShaderStage::Vertex);
         stencilDescriptor.vertex.entryPoint = "vs_stencil";
-        stencilDescriptor.vertex.bufferCount = 1;
-        stencilDescriptor.vertex.buffers = &stencilVertexBufferLayout;
+        stencilDescriptor.vertex.bufferCount = stencilVertexBuffers.size();
+        stencilDescriptor.vertex.buffers = stencilVertexBuffers.data();
         stencilDescriptor.primitive.topology =
             wgpu::PrimitiveTopology::TriangleList;
         stencilDescriptor.primitive.cullMode = wgpu::CullMode::None;
@@ -382,6 +461,11 @@ namespace Bess::Wgpu::Piplines {
         coverVertexBufferLayout.stepMode = wgpu::VertexStepMode::Vertex;
         coverVertexBufferLayout.attributeCount = coverAttributes.size();
         coverVertexBufferLayout.attributes = coverAttributes.data();
+
+        std::array<wgpu::VertexBufferLayout, 2> coverVertexBuffers{
+            coverVertexBufferLayout,
+            instanceVertexBufferLayout,
+        };
 
         wgpu::BlendState blendState{};
         blendState.color.operation = wgpu::BlendOperation::Add;
@@ -429,8 +513,8 @@ namespace Bess::Wgpu::Piplines {
         coverDescriptor.vertex.module =
             m_shader->getModule(Core::Renderer::ShaderStage::Vertex);
         coverDescriptor.vertex.entryPoint = "vs_cover";
-        coverDescriptor.vertex.bufferCount = 1;
-        coverDescriptor.vertex.buffers = &coverVertexBufferLayout;
+        coverDescriptor.vertex.bufferCount = coverVertexBuffers.size();
+        coverDescriptor.vertex.buffers = coverVertexBuffers.data();
         coverDescriptor.primitive.topology =
             wgpu::PrimitiveTopology::TriangleList;
         coverDescriptor.primitive.cullMode = wgpu::CullMode::None;

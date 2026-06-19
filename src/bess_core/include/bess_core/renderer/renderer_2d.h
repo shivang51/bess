@@ -235,6 +235,24 @@ namespace Bess::Core::Renderer {
         virtual void drawPath(const Path2D &path, const PathProps &props = {}) {
             drawPath(path.commands(), props);
         }
+        void drawPath(std::span<const PathCommand> commands,
+                      glm::vec2 translation,
+                      glm::vec2 scale,
+                      float rotation,
+                      const PathProps &props = {}) {
+            PathProps transformedProps = props;
+            transformedProps.position = translation;
+            transformedProps.scale = scale;
+            transformedProps.rotation = rotation;
+            drawPath(commands, transformedProps);
+        }
+        void drawPath(const Path2D &path,
+                      glm::vec2 translation,
+                      glm::vec2 scale,
+                      float rotation,
+                      const PathProps &props = {}) {
+            drawPath(path.commands(), translation, scale, rotation, props);
+        }
 
         virtual void beginPath(const PathProps &props = {}) = 0;
 

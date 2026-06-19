@@ -25,6 +25,7 @@ namespace Bess::Wgpu {
     namespace {
 
         using Piplines::PathCoverVertex;
+        using Piplines::PathInstance;
         using Piplines::PathStencilVertex;
 
         constexpr uint32_t kPathCurveTypeLine = 0;
@@ -47,6 +48,18 @@ namespace Bess::Wgpu {
             return props.transformMode == RenderTransformMode::Camera
                        ? kPathFlagApplyCameraTransform
                        : 0u;
+        }
+
+        PathInstance makePathInstance(const PathProps &props) {
+            PathInstance instance{};
+            instance.position[0] = props.position.x;
+            instance.position[1] = props.position.y;
+            instance.position[2] = props.zIndex;
+            instance.scale[0] = props.scale.x;
+            instance.scale[1] = props.scale.y;
+            instance.rotation = props.rotation;
+            instance.flags = pathTransformFlags(props);
+            return instance;
         }
 
         void applyPathTransformFlags(BakedPath &path, uint32_t flags) {
@@ -1530,6 +1543,7 @@ namespace Bess::Wgpu {
         }
 
         PathProps fringeProps = props;
+        fringeProps.zIndex = 0.f;
         fringeProps.strokeColor = props.fillColor;
         fringeProps.lineJoin = Core::Renderer::PathLineJoin::Round;
         fringeProps.lineCap = Core::Renderer::PathLineCap::Round;
@@ -1762,11 +1776,13 @@ namespace Bess::Wgpu {
     void PathBatch::clear() {
         m_stencilVertices.clear();
         m_coverVertices.clear();
+        m_instances.clear();
         m_drawRanges.clear();
     }
 
-    void
-    PathBatch::push(const BakedPath &path, float zIndex, uint64_t submitOrder) {
+    void PathBatch::push(const BakedPath &path,
+                         const PathProps &props,
+                         uint64_t submitOrder) {
         if (!path.valid || path.stencilVertices.empty()) {
             return;
         }
@@ -1779,8 +1795,9 @@ namespace Bess::Wgpu {
         range.firstCoverVertex = static_cast<uint32_t>(m_coverVertices.size());
         range.coverVertexCount =
             static_cast<uint32_t>(path.coverVertices.size());
+        range.firstInstance = static_cast<uint32_t>(m_instances.size());
         range.evenOddFill = path.evenOddFill;
-        range.zIndex = zIndex;
+        range.zIndex = props.zIndex;
         range.submitOrder = submitOrder;
 
         m_stencilVertices.insert(m_stencilVertices.end(),
@@ -1789,11 +1806,14 @@ namespace Bess::Wgpu {
         m_coverVertices.insert(m_coverVertices.end(),
                                path.coverVertices.begin(),
                                path.coverVertices.end());
+        m_instances.push_back(makePathInstance(props));
         m_drawRanges.push_back(range);
     }
 
-    void PathBatch::push(BakedPath &&path, float zIndex, uint64_t submitOrder) {
-        push(path, zIndex, submitOrder);
+    void PathBatch::push(BakedPath &&path,
+                         const PathProps &props,
+                         uint64_t submitOrder) {
+        push(path, props, submitOrder);
     }
 
     void PathBatch::prepareForRendering(bool sortBackToFront) {
@@ -1827,6 +1847,10 @@ namespace Bess::Wgpu {
         return static_cast<uint32_t>(m_coverVertices.size());
     }
 
+    uint32_t PathBatch::instanceCount() const noexcept {
+        return static_cast<uint32_t>(m_instances.size());
+    }
+
     uint64_t PathBatch::stencilByteSize() const noexcept {
         return static_cast<uint64_t>(m_stencilVertices.size()) *
                sizeof(Piplines::PathStencilVertex);
@@ -1837,6 +1861,11 @@ namespace Bess::Wgpu {
                sizeof(Piplines::PathCoverVertex);
     }
 
+    uint64_t PathBatch::instanceByteSize() const noexcept {
+        return static_cast<uint64_t>(m_instances.size()) *
+               sizeof(Piplines::PathInstance);
+    }
+
     const Piplines::PathStencilVertex *PathBatch::stencilData() const noexcept {
         return m_stencilVertices.data();
     }
@@ -1845,18 +1874,23 @@ namespace Bess::Wgpu {
         return m_coverVertices.data();
     }
 
+    const Piplines::PathInstance *PathBatch::instanceData() const noexcept {
+        return m_instances.data();
+    }
+
     const PathDrawRange *PathBatch::drawRanges() const noexcept {
         return m_drawRanges.data();
     }
 
     void PathStrokeBatch::clear() {
         m_vertices.clear();
+        m_instances.clear();
         m_drawRanges.clear();
     }
 
     void PathStrokeBatch::push(
         const std::vector<Piplines::PathCoverVertex> &vertices,
-        float zIndex,
+        const PathProps &props,
         uint64_t submitOrder) {
         if (vertices.empty()) {
             return;
@@ -1865,17 +1899,19 @@ namespace Bess::Wgpu {
         PathStrokeDrawRange range{};
         range.firstVertex = static_cast<uint32_t>(m_vertices.size());
         range.vertexCount = static_cast<uint32_t>(vertices.size());
-        range.zIndex = zIndex;
+        range.firstInstance = static_cast<uint32_t>(m_instances.size());
+        range.zIndex = props.zIndex;
         range.submitOrder = submitOrder;
         m_vertices.insert(m_vertices.end(), vertices.begin(), vertices.end());
+        m_instances.push_back(makePathInstance(props));
         m_drawRanges.push_back(range);
     }
 
     void
     PathStrokeBatch::push(std::vector<Piplines::PathCoverVertex> &&vertices,
-                          float zIndex,
+                          const PathProps &props,
                           uint64_t submitOrder) {
-        push(vertices, zIndex, submitOrder);
+        push(vertices, props, submitOrder);
     }
 
     void PathStrokeBatch::prepareForRendering(bool sortBackToFront) {
@@ -1906,13 +1942,27 @@ namespace Bess::Wgpu {
         return static_cast<uint32_t>(m_vertices.size());
     }
 
+    uint32_t PathStrokeBatch::instanceCount() const noexcept {
+        return static_cast<uint32_t>(m_instances.size());
+    }
+
     uint64_t PathStrokeBatch::byteSize() const noexcept {
         return static_cast<uint64_t>(m_vertices.size()) *
                sizeof(Piplines::PathCoverVertex);
     }
 
+    uint64_t PathStrokeBatch::instanceByteSize() const noexcept {
+        return static_cast<uint64_t>(m_instances.size()) *
+               sizeof(Piplines::PathInstance);
+    }
+
     const Piplines::PathCoverVertex *PathStrokeBatch::data() const noexcept {
         return m_vertices.data();
+    }
+
+    const Piplines::PathInstance *
+    PathStrokeBatch::instanceData() const noexcept {
+        return m_instances.data();
     }
 
     const PathStrokeDrawRange *PathStrokeBatch::drawRanges() const noexcept {
@@ -1959,8 +2009,11 @@ namespace Bess::Wgpu {
             return submission;
         }
 
+        PathProps bakeProps = props;
+        bakeProps.zIndex = 0.f;
+
         if (hasPathFill(props)) {
-            BakedPath baked = bakePath(commands, props, metrics);
+            BakedPath baked = bakePath(commands, bakeProps, metrics);
             if (baked.valid) {
                 submission.fill = std::move(baked);
                 submission.fillTransparent = isFillTransparent(props);
@@ -1973,7 +2026,7 @@ namespace Bess::Wgpu {
             submission.strokeTransparent =
                 forceTransparentStroke || isStrokeTransparent(props);
             submission.strokeVertices =
-                bakePathStroke(commands, props, metrics);
+                bakePathStroke(commands, bakeProps, metrics);
         }
 
         return submission;
@@ -1991,15 +2044,14 @@ namespace Bess::Wgpu {
             PathBatch &fillBatch = submission.fillTransparent
                                        ? transparentPathBatch
                                        : opaquePathBatch;
-            fillBatch.push(submission.fill, props.zIndex, submitOrder);
+            fillBatch.push(submission.fill, props, submitOrder);
         }
 
         if (!submission.strokeVertices.empty()) {
             PathStrokeBatch &strokeBatch = submission.strokeTransparent
                                                ? transparentPathStrokeBatch
                                                : opaquePathStrokeBatch;
-            strokeBatch.push(
-                submission.strokeVertices, props.zIndex, submitOrder);
+            strokeBatch.push(submission.strokeVertices, props, submitOrder);
         }
     }
 
