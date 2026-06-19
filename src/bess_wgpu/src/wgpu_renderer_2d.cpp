@@ -12,6 +12,7 @@
 #include "bess_wgpu/wgpu_texture.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
+#include "common/types.h"
 #include "glfw3webgpu.h"
 #include "wgpu_renderer_2d_batches.h"
 #include "wgpu_renderer_2d_instances.h"
@@ -19,6 +20,7 @@
 #include "wgpu_renderer_2d_text.h"
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <memory>
@@ -26,7 +28,6 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -157,17 +158,72 @@ namespace Bess::Wgpu {
             return capabilities.presentModes[0];
         }
 
+        struct PathCacheVariantKey {
+            PathProps props{};
+            PathBakeMetrics metrics{};
+
+            [[nodiscard]] bool
+            operator==(const PathCacheVariantKey &other) const noexcept {
+                return samePathProps(props, other.props) &&
+                       samePathBakeMetrics(metrics, other.metrics);
+            }
+
+            template <typename H>
+            friend H AbslHashValue(H h, const PathCacheVariantKey &key) {
+                const PathProps &props = key.props;
+                return H::combine(std::move(h),
+                                  props.fillColor.r,
+                                  props.fillColor.g,
+                                  props.fillColor.b,
+                                  props.fillColor.a,
+                                  props.strokeColor.r,
+                                  props.strokeColor.g,
+                                  props.strokeColor.b,
+                                  props.strokeColor.a,
+                                  props.strokeSize,
+                                  props.miterLimit,
+                                  props.curveTolerance,
+                                  props.renderFill,
+                                  props.id.runtimeId,
+                                  props.id.info,
+                                  static_cast<int>(props.renderPass),
+                                  static_cast<int>(props.fillRule),
+                                  static_cast<int>(props.lineJoin),
+                                  static_cast<int>(props.lineCap),
+                                  props.closePath,
+                                  props.scale.x,
+                                  props.scale.y,
+                                  props.rotation,
+                                  key.metrics.screenScale,
+                                  key.metrics.pixelWorldSize);
+            }
+        };
+
+        struct CachedPathVariant {
+            BakedPathSubmission submission{};
+            uint64_t lastUsedFrame = 0;
+        };
+
         struct CachedPathEntry {
             bool initialized = false;
             uint64_t revision = 0;
             std::size_t commandCount = 0;
             const PathCommand *commandData = nullptr;
             Core::Renderer::PathBounds bounds{};
-            PathProps props{};
-            PathBakeMetrics metrics{};
-            BakedPathSubmission submission{};
             uint64_t lastUsedFrame = 0;
+            HashMap<PathCacheVariantKey, CachedPathVariant> variants;
         };
+
+        bool samePathCacheIdentity(const CachedPathEntry &entry,
+                                   const Path2D &path,
+                                   const Core::Renderer::PathBounds &bounds,
+                                   std::size_t commandCount,
+                                   const PathCommand *commandData) noexcept {
+            return entry.initialized && entry.revision == path.revision() &&
+                   entry.commandCount == commandCount &&
+                   entry.commandData == commandData &&
+                   samePathBounds(entry.bounds, bounds);
+        }
 
     } // namespace
 
@@ -207,8 +263,7 @@ namespace Bess::Wgpu {
         std::unique_ptr<Text::MsdfTextPipeline> textPipeline;
         wgpu::CommandEncoder commandEncoder;
         std::vector<wgpu::CommandBuffer> pendingCommandBuffers;
-        std::unordered_map<Core::Renderer::TextureHandle, TextureResource>
-            textures;
+        HashMap<Core::Renderer::TextureHandle, TextureResource> textures;
         std::shared_ptr<WgpuTexture> defaultTexture;
 
         PrimitiveBatch opaquePrimitiveBatch;
@@ -229,7 +284,8 @@ namespace Bess::Wgpu {
         std::unique_ptr<MsdfFontAtlas> msdfFontAtlas;
         std::vector<TransparentDrawItem> transparentDrawItems;
         std::vector<PathCommand> textPathCommandsScratch;
-        std::unordered_map<const Path2D *, CachedPathEntry> pathCache;
+        HashMap<const Path2D *, CachedPathEntry> pathCache;
+        std::size_t cachedPathVariantCount = 0;
         Core::Renderer::Renderer2DStats stats;
         Color clearColor{0.f, 0.f, 0.f, 1.f};
         bool shouldClear = true;
@@ -432,30 +488,75 @@ namespace Bess::Wgpu {
     }
 
     void WgpuRenderer2D::Impl::prunePathCache() {
-        if (pathCache.size() < kPathCachePruneThreshold) {
+        if (cachedPathVariantCount < kPathCachePruneThreshold) {
             return;
         }
 
         for (auto it = pathCache.begin(); it != pathCache.end();) {
-            if (frameSequence > it->second.lastUsedFrame &&
-                frameSequence - it->second.lastUsedFrame >
-                    kPathCacheMaxIdleFrames) {
-                it = pathCache.erase(it);
+            CachedPathEntry &entry = it->second;
+            entry.lastUsedFrame = 0;
+            for (auto variantIt = entry.variants.begin();
+                 variantIt != entry.variants.end();) {
+                const CachedPathVariant &variant = variantIt->second;
+                if (frameSequence > variant.lastUsedFrame &&
+                    frameSequence - variant.lastUsedFrame >
+                        kPathCacheMaxIdleFrames) {
+                    entry.variants.erase(variantIt++);
+                    --cachedPathVariantCount;
+                } else {
+                    entry.lastUsedFrame =
+                        std::max(entry.lastUsedFrame, variant.lastUsedFrame);
+                    ++variantIt;
+                }
+            }
+
+            if (entry.variants.empty()) {
+                pathCache.erase(it++);
             } else {
                 ++it;
             }
         }
 
-        while (pathCache.size() > kPathCacheHardLimit) {
-            auto oldest = pathCache.begin();
-            auto it = pathCache.begin();
-            ++it;
-            for (; it != pathCache.end(); ++it) {
-                if (it->second.lastUsedFrame < oldest->second.lastUsedFrame) {
-                    oldest = it;
+        while (cachedPathVariantCount > kPathCacheHardLimit &&
+               !pathCache.empty()) {
+            auto oldestEntry = pathCache.end();
+            PathCacheVariantKey oldestKey{};
+            uint64_t oldestFrame = 0;
+            bool foundOldest = false;
+
+            for (auto entryIt = pathCache.begin(); entryIt != pathCache.end();
+                 ++entryIt) {
+                const auto &variants = entryIt->second.variants;
+                for (const auto &variantPair : variants) {
+                    if (!foundOldest ||
+                        variantPair.second.lastUsedFrame < oldestFrame) {
+                        oldestEntry = entryIt;
+                        oldestKey = variantPair.first;
+                        oldestFrame = variantPair.second.lastUsedFrame;
+                        foundOldest = true;
+                    }
                 }
             }
-            pathCache.erase(oldest);
+
+            if (!foundOldest || oldestEntry == pathCache.end()) {
+                cachedPathVariantCount = 0;
+                break;
+            }
+
+            auto &variants = oldestEntry->second.variants;
+            variants.erase(oldestKey);
+            --cachedPathVariantCount;
+
+            if (variants.empty()) {
+                pathCache.erase(oldestEntry);
+            } else {
+                oldestEntry->second.lastUsedFrame = 0;
+                for (const auto &variantPair : variants) {
+                    oldestEntry->second.lastUsedFrame =
+                        std::max(oldestEntry->second.lastUsedFrame,
+                                 variantPair.second.lastUsedFrame);
+                }
+            }
         }
     }
 
@@ -467,28 +568,36 @@ namespace Bess::Wgpu {
         const auto bounds = path.bounds();
         const auto commandCount = path.commandCount();
         const PathCommand *commandData = path.data();
-        const bool cacheHit = entry.initialized &&
-                              entry.revision == path.revision() &&
-                              entry.commandCount == commandCount &&
-                              entry.commandData == commandData &&
-                              samePathBounds(entry.bounds, bounds) &&
-                              samePathProps(entry.props, props) &&
-                              samePathBakeMetrics(entry.metrics, metrics);
-
-        if (!cacheHit) {
-            const auto commands = path.commands();
+        if (!samePathCacheIdentity(
+                entry, path, bounds, commandCount, commandData)) {
+            cachedPathVariantCount -= entry.variants.size();
+            entry.variants.clear();
             entry.revision = path.revision();
             entry.commandCount = commandCount;
             entry.commandData = commandData;
             entry.bounds = bounds;
-            entry.props = props;
-            entry.metrics = metrics;
-            entry.submission = bakePathSubmission(commands, props, metrics);
             entry.initialized = true;
         }
 
+        PathCacheVariantKey key{.props = props, .metrics = metrics};
+        auto variantIt = entry.variants.find(key);
+        if (variantIt != entry.variants.end()) {
+            variantIt->second.lastUsedFrame = frameSequence;
+            entry.lastUsedFrame = frameSequence;
+            return variantIt->second.submission;
+        }
+
+        CachedPathVariant variant{};
+        variant.submission =
+            bakePathSubmission(path.commands(), props, metrics);
+        variant.lastUsedFrame = frameSequence;
+        auto [insertedIt, inserted] =
+            entry.variants.emplace(std::move(key), std::move(variant));
+        if (inserted) {
+            ++cachedPathVariantCount;
+        }
         entry.lastUsedFrame = frameSequence;
-        return entry.submission;
+        return insertedIt->second.submission;
     }
 
     void WgpuRenderer2D::Impl::queueCommandBuffer(
@@ -921,6 +1030,7 @@ namespace Bess::Wgpu {
         m_impl->activePathCommands.clear();
         m_impl->textPathCommandsScratch.clear();
         m_impl->pathCache.clear();
+        m_impl->cachedPathVariantCount = 0;
         m_impl->pendingCommandBuffers.clear();
         m_impl->fontFile = nullptr;
         m_impl->pathStarted = false;
