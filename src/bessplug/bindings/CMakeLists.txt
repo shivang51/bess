@@ -53,6 +53,8 @@ set(BESS_PYBIND_SOURCES
 		assets/asset_manager.binding.cpp
 
 		cmds/bess_cmds.binding.cpp
+		
+		core/icons.binding.cpp
 
 		ui/ui_hook.binding.cpp
 		ui/bess_ui.binding.cpp

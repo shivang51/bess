@@ -4,7 +4,7 @@ from bessplug.api.sim_engine import SlotsGroupInfo, OperatorInfo
 from bessplug.api.scene.renderer import Path
 from bessplug.api.scene import SchematicDiagram
 import math
-
+from bessplug.api.icons import component_icons
 from bessplug.api.sim_engine.driver import CompDef, DigCompDef
 
 _gates = {
@@ -20,12 +20,14 @@ _gates = {
         "input_pins": ["A", "B"],
         "output_pins": ["Y"],
         "op": "*",
+        "icons": component_icons.AND_GATE,
     },
     "OR": {
         "name": "OR Gate",
         "input_pins": ["A", "B"],
         "output_pins": ["Y"],
         "op": "+",
+        "icons": component_icons.AND_GATE,
     },
     "NOT": {
         "name": "NOT Gate",
@@ -33,6 +35,7 @@ _gates = {
         "output_pins": ["Y"],
         "op": "!",
         "keep_io_count_eq": True,
+        "icons": component_icons.NOT_GATE,
     },
     "NAND": {
         "name": "NAND Gate",
@@ -40,6 +43,7 @@ _gates = {
         "output_pins": ["Y"],
         "op": "*",
         "negate_output": True,
+        "icons": component_icons.NAND_GATE,
     },
     "NOR": {
         "name": "NOR Gate",
@@ -47,12 +51,14 @@ _gates = {
         "output_pins": ["Y"],
         "op": "+",
         "negate_output": True,
+        "icons": component_icons.NOR_GATE,
     },
     "XOR": {
         "name": "XOR Gate",
         "input_pins": ["A", "B"],
         "output_pins": ["Y"],
         "op": "^",
+        "icons": component_icons.XOR_GATE,
     },
     "XNOR": {
         "name": "XNOR Gate",
@@ -60,6 +66,7 @@ _gates = {
         "output_pins": ["Y"],
         "op": "^",
         "negate_output": True,
+        "icons": component_icons.XNOR_GATE,
     },
 }
 
@@ -204,7 +211,7 @@ def _init_paths():
 
 _paths = _init_paths()
 
-
+icons: dict[str, str] = {}
 digital_gates: list[CompDef] = []
 schematic_diagrams: dict[str, SchematicDiagram] = {}
 
@@ -231,6 +238,8 @@ for gate_key, gate_data in _gates.items():
     def_gate.keep_io_count_eq = gate_data.get("keep_io_count_eq", False)
     digital_gates.append(def_gate)
 
+    icons[def_gate.name] = gate_data.get("icon", "")
+
     if _paths.get(gate_key) is None:
         continue
 
@@ -240,4 +249,4 @@ for gate_key, gate_data in _gates.items():
     schematic_diagrams[def_gate.name] = dig
 
 
-__all__ = ["digital_gates", "schematic_diagrams"]
+__all__ = ["digital_gates", "schematic_diagrams", "icons"]

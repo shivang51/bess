@@ -3,7 +3,7 @@ from typing import override
 from bessplug.api.common import theme, vec3
 from bessplug.api.scene import PickingId, SchematicDiagram, SimulationSceneComponent
 from bessplug.api.sim_engine.driver import CompDef
-from components.digital_gates import schematic_diagrams
+from components.digital_gates import schematic_diagrams, icons
 
 
 class DigitalGateComp(SimulationSceneComponent):
@@ -12,6 +12,8 @@ class DigitalGateComp(SimulationSceneComponent):
         comp = DigitalGateComp()
         diagram = schematic_diagrams.get(comp_def.name, None)
         comp.schematic_diagram = diagram.copy() if diagram else None
+        if icons.get(comp_def.name, ""):
+            comp.icon = icons[comp_def.name]
         return comp
 
     def __init__(self):

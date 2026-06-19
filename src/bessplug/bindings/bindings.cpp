@@ -22,7 +22,7 @@ void bind_plugin(py::module_ &m);
 void bind_cmds(py::module_ &m);
 void bind_sim_engine_core(py::module_ &m);
 void bind_scene_widgets(py::module_ &m);
-
+void bind_icons(py::module_ &m);
 void bind_api(py::module_ &m);
 
 PYBIND11_MODULE(bessplug, m) {
@@ -84,6 +84,9 @@ void bind_api(py::module_ &m) {
 
     // Commands
     bind_cmds(mCmds);
+
+    // Icons
+    bind_icons(mApi);
 
     bind_plugin(m);
 }
