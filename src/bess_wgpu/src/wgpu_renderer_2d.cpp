@@ -100,7 +100,8 @@ namespace Bess::Wgpu {
                    a.renderFill == b.renderFill &&
                    samePickingId(a.id, b.id) && a.renderPass == b.renderPass &&
                    a.fillRule == b.fillRule && a.lineJoin == b.lineJoin &&
-                   a.lineCap == b.lineCap && a.closePath == b.closePath;
+                   a.lineCap == b.lineCap && a.closePath == b.closePath &&
+                   a.scale == b.scale && a.rotation == b.rotation;
         }
 
         bool samePathBakeMetrics(const PathBakeMetrics &a,

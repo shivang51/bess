@@ -62,6 +62,93 @@ namespace Bess::Wgpu {
             return instance;
         }
 
+        float pathObjectScale(const PathProps &props) {
+            return std::max(std::abs(props.scale.x), std::abs(props.scale.y));
+        }
+
+        bool hasPathLinearTransform(const PathProps &props) {
+            return std::abs(props.scale.x - 1.f) > 0.0001f ||
+                   std::abs(props.scale.y - 1.f) > 0.0001f ||
+                   std::abs(props.rotation) > 0.0001f;
+        }
+
+        PathBakeMetrics scalePathBakeMetrics(
+            const PathBakeMetrics &metrics, const PathProps &props) {
+            PathBakeMetrics scaled = metrics;
+            const float objectScale = pathObjectScale(props);
+            if (objectScale > 0.0001f) {
+                scaled.screenScale *= objectScale;
+                scaled.pixelWorldSize /= objectScale;
+            }
+            return scaled;
+        }
+
+        glm::vec2 transformPathPointLinear(const glm::vec2 &point,
+                                           const PathProps &props) {
+            const glm::vec2 scaled = point * props.scale;
+            if (std::abs(props.rotation) <= 0.0001f) {
+                return scaled;
+            }
+
+            const float sinAngle = std::sin(props.rotation);
+            const float cosAngle = std::cos(props.rotation);
+            return {scaled.x * cosAngle - scaled.y * sinAngle,
+                    scaled.x * sinAngle + scaled.y * cosAngle};
+        }
+
+        PathCommand transformPathCommandLinear(PathCommand command,
+                                               const PathProps &props) {
+            switch (command.kind) {
+            case PathCommandKind::Move:
+            case PathCommandKind::Line:
+                command.p = transformPathPointLinear(command.p, props);
+                break;
+            case PathCommandKind::Quad:
+                command.p = transformPathPointLinear(command.p, props);
+                command.control =
+                    transformPathPointLinear(command.control, props);
+                break;
+            case PathCommandKind::Cubic:
+                command.p = transformPathPointLinear(command.p, props);
+                command.control =
+                    transformPathPointLinear(command.control, props);
+                command.control2 =
+                    transformPathPointLinear(command.control2, props);
+                break;
+            case PathCommandKind::Close:
+                break;
+            }
+            return command;
+        }
+
+        std::vector<PathCommand>
+        transformPathCommandsLinear(std::span<const PathCommand> commands,
+                                    const PathProps &props) {
+            std::vector<PathCommand> transformed;
+            transformed.reserve(commands.size());
+            for (const PathCommand &command : commands) {
+                transformed.push_back(
+                    transformPathCommandLinear(command, props));
+            }
+            return transformed;
+        }
+
+        PathProps makeLinearBakedStrokeProps(const PathProps &props) {
+            PathProps strokeProps = props;
+            strokeProps.position = {0.f, 0.f};
+            strokeProps.scale = {1.f, 1.f};
+            strokeProps.rotation = 0.f;
+            strokeProps.zIndex = 0.f;
+            return strokeProps;
+        }
+
+        PathProps makeLinearBakedStrokeSubmitProps(const PathProps &props) {
+            PathProps strokeProps = props;
+            strokeProps.scale = {1.f, 1.f};
+            strokeProps.rotation = 0.f;
+            return strokeProps;
+        }
+
         void applyPathTransformFlags(BakedPath &path, uint32_t flags) {
             for (auto &vertex : path.stencilVertices) {
                 vertex.flags = flags;
@@ -2012,8 +2099,11 @@ namespace Bess::Wgpu {
         PathProps bakeProps = props;
         bakeProps.zIndex = 0.f;
 
+        const PathBakeMetrics fillMetrics =
+            scalePathBakeMetrics(metrics, props);
+
         if (hasPathFill(props)) {
-            BakedPath baked = bakePath(commands, bakeProps, metrics);
+            BakedPath baked = bakePath(commands, bakeProps, fillMetrics);
             if (baked.valid) {
                 submission.fill = std::move(baked);
                 submission.fillTransparent = isFillTransparent(props);
@@ -2025,8 +2115,19 @@ namespace Bess::Wgpu {
                 hasPathFill(props) && isFillTransparent(props);
             submission.strokeTransparent =
                 forceTransparentStroke || isStrokeTransparent(props);
-            submission.strokeVertices =
-                bakePathStroke(commands, bakeProps, metrics);
+
+            const PathProps strokeProps = makeLinearBakedStrokeProps(props);
+            if (hasPathLinearTransform(props)) {
+                const std::vector<PathCommand> transformedCommands =
+                    transformPathCommandsLinear(commands, props);
+                submission.strokeVertices =
+                    bakePathStroke(transformedCommands,
+                                   strokeProps,
+                                   metrics);
+            } else {
+                submission.strokeVertices =
+                    bakePathStroke(commands, strokeProps, metrics);
+            }
         }
 
         return submission;
@@ -2051,7 +2152,9 @@ namespace Bess::Wgpu {
             PathStrokeBatch &strokeBatch = submission.strokeTransparent
                                                ? transparentPathStrokeBatch
                                                : opaquePathStrokeBatch;
-            strokeBatch.push(submission.strokeVertices, props, submitOrder);
+            strokeBatch.push(submission.strokeVertices,
+                             makeLinearBakedStrokeSubmitProps(props),
+                             submitOrder);
         }
     }
 
