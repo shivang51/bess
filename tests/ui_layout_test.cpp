@@ -2,6 +2,18 @@
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include <gtest/gtest.h>
+
+namespace {
+    void expectVec2(const glm::vec2 &actual, float expectedX, float expectedY) {
+        EXPECT_FLOAT_EQ(actual.x, expectedX);
+        EXPECT_FLOAT_EQ(actual.y, expectedY);
+    }
+
+    glm::vec2 boxEdges(const glm::vec4 &edges) {
+        return {edges.y + edges.w, edges.x + edges.z};
+    }
+} // namespace
+
 class UiLayoutTests : public testing::Test {};
 
 TEST_F(UiLayoutTests, UINodeRegistryAddGetRemoveNode) {
@@ -25,9 +37,8 @@ TEST_F(UiLayoutTests, UINodeMeasure) {
     constexpr glm::vec2 size(100, 50);
     constexpr glm::vec4 padding(10, 5, 9, 6);
     constexpr glm::vec4 margin(2, 3, 4, 5);
-    constexpr glm::vec2 wrapContentSize =
-        glm::vec2(padding.x + padding.z, padding.y + padding.w) +
-        glm::vec2(margin.x + margin.z, margin.y + margin.w);
+    const glm::vec2 paddingSize = boxEdges(padding);
+    const glm::vec2 marginSize = boxEdges(margin);
 
     Bess::Canvas::UI::UINode node;
     node.setSize(size);
@@ -45,12 +56,11 @@ TEST_F(UiLayoutTests, UINodeMeasure) {
     auto measuredSize = node.measure(registry, Bess::UUID::null);
     auto worldSize = node.getCachedSize();
 
-    EXPECT_EQ(measuredSize.x, worldSize.x);
-    EXPECT_EQ(measuredSize.y, worldSize.y);
+    expectVec2(measuredSize, worldSize.x, worldSize.y);
 
-    // checking for SizeContraint::fixed size
-    EXPECT_EQ(worldSize.x, size.x);
-    EXPECT_EQ(worldSize.y, size.y);
+    // Fixed size describes the drawn box. Margin contributes to layout size.
+    expectVec2(node.getDrawSize(), size.x, size.y);
+    expectVec2(worldSize, size.x + marginSize.x, size.y + marginSize.y);
 
     BESS_INFO("Measured with fixed constraint");
 
@@ -58,12 +68,12 @@ TEST_F(UiLayoutTests, UINodeMeasure) {
     measuredSize = node.measure(registry, Bess::UUID::null);
     worldSize = node.getCachedSize();
 
-    // checking for SizeContraint::wrap_content size
-    EXPECT_EQ(measuredSize.x, worldSize.x);
-    EXPECT_EQ(measuredSize.y, worldSize.y);
+    // Wrap content uses padding as the drawn box when there are no children.
+    expectVec2(measuredSize, worldSize.x, worldSize.y);
 
-    EXPECT_EQ(worldSize.x, wrapContentSize.x);
-    EXPECT_EQ(worldSize.y, wrapContentSize.y);
+    expectVec2(node.getDrawSize(), paddingSize.x, paddingSize.y);
+    expectVec2(
+        worldSize, paddingSize.x + marginSize.x, paddingSize.y + marginSize.y);
 
     BESS_INFO("Measured with wrap_content constraint");
 
@@ -75,17 +85,18 @@ TEST_F(UiLayoutTests, UINodeMeasure) {
     measuredSize = node.measure(registry, Bess::UUID::null);
     worldSize = node.getCachedSize();
 
-    // checking for SizeContraint::wrap_content size with child
-    EXPECT_EQ(measuredSize.x, worldSize.x);
-    EXPECT_EQ(measuredSize.y, worldSize.y);
+    // Child layout footprints are placed inside the padded content box.
+    expectVec2(measuredSize, worldSize.x, worldSize.y);
 
-    EXPECT_EQ(worldSize.x, wrapContentSize.x + 20);
-    EXPECT_EQ(worldSize.y, wrapContentSize.y + 10);
+    expectVec2(node.getDrawSize(), paddingSize.x + 20, paddingSize.y + 10);
+    expectVec2(worldSize,
+               paddingSize.x + 20 + marginSize.x,
+               paddingSize.y + 10 + marginSize.y);
 
     auto childNodePtr = registry.getNode(childNode.getId());
     ASSERT_NE(childNodePtr, nullptr);
-    EXPECT_EQ(childNodePtr->getCachedSize().x, 20);
-    EXPECT_EQ(childNodePtr->getCachedSize().y, 10);
+    expectVec2(childNodePtr->getCachedSize(), 20, 10);
+    expectVec2(childNodePtr->getDrawSize(), 20, 10);
 
     BESS_INFO("Measured with wrap_content constraint and child node");
 
@@ -94,11 +105,10 @@ TEST_F(UiLayoutTests, UINodeMeasure) {
     worldSize = node.getCachedSize();
 
     // checking for SizeContraint::wrap_content size with child and min size
-    EXPECT_EQ(measuredSize.x, worldSize.x);
-    EXPECT_EQ(measuredSize.y, worldSize.y);
+    expectVec2(measuredSize, worldSize.x, worldSize.y);
 
-    EXPECT_EQ(worldSize.x, 150);
-    EXPECT_EQ(worldSize.y, 100);
+    expectVec2(node.getDrawSize(), 150, 100);
+    expectVec2(worldSize, 150 + marginSize.x, 100 + marginSize.y);
 
     BESS_INFO("Measured with wrap_content constraint, child node and min size");
 
@@ -108,12 +118,11 @@ TEST_F(UiLayoutTests, UINodeMeasure) {
 
     // checking for SizeContraint::wrap_content size with child, min size and
     // max size
-    EXPECT_EQ(measuredSize.x, worldSize.x);
-    EXPECT_EQ(measuredSize.y, worldSize.y);
+    expectVec2(measuredSize, worldSize.x, worldSize.y);
 
     // Minimum width overrides maximum width
-    EXPECT_EQ(worldSize.x, 150);
-    EXPECT_EQ(worldSize.y, 100);
+    expectVec2(node.getDrawSize(), 150, 100);
+    expectVec2(worldSize, 150 + marginSize.x, 100 + marginSize.y);
 
     node.setMinSize(glm::vec2(50, 40));
     node.setSize(glm::vec2(200, 150));
@@ -122,11 +131,10 @@ TEST_F(UiLayoutTests, UINodeMeasure) {
     measuredSize = node.measure(registry, Bess::UUID::null);
     worldSize = node.getCachedSize();
 
-    EXPECT_EQ(measuredSize.x, worldSize.x);
-    EXPECT_EQ(measuredSize.y, worldSize.y);
+    expectVec2(measuredSize, worldSize.x, worldSize.y);
 
-    EXPECT_EQ(worldSize.x, 120);
-    EXPECT_EQ(worldSize.y, 80);
+    expectVec2(node.getDrawSize(), 120, 80);
+    expectVec2(worldSize, 120 + marginSize.x, 80 + marginSize.y);
 
     BESS_INFO("Checked min max size overrides");
 }
@@ -166,12 +174,10 @@ TEST_F(UiLayoutTests, UINodeLayout) {
     parentNode.measure(registry, Bess::UUID::null);
 
     glm::vec2 childSize = childNode1Ptr->getCachedSize();
-    EXPECT_EQ(childSize.x, 50);
-    EXPECT_EQ(childSize.y, 50);
+    expectVec2(childSize, 50, 50);
 
     childSize = childNode2Ptr->getCachedSize();
-    EXPECT_EQ(childSize.x, 30);
-    EXPECT_EQ(childSize.y, 30);
+    expectVec2(childSize, 30, 30);
 
     parentNode.layout(registry, Bess::UUID::null);
 
@@ -180,11 +186,113 @@ TEST_F(UiLayoutTests, UINodeLayout) {
     auto child1Pos = childNode1Ptr->getCachedPos();
     auto child2Pos = childNode2Ptr->getCachedPos();
 
-    EXPECT_EQ(child1Pos.x, -75);
-    EXPECT_EQ(child1Pos.y, -25);
+    expectVec2(child1Pos, -75, -25);
 
-    EXPECT_EQ(child2Pos.x, -35);
-    EXPECT_EQ(child2Pos.y, -35);
+    expectVec2(child2Pos, -35, -35);
 
     BESS_INFO("Checked layout positions of child nodes");
+}
+
+TEST_F(UiLayoutTests, UINodeLayoutHonorsMarginAndCenterAlignment) {
+    Bess::Canvas::UI::UINodeRegistry registry;
+
+    Bess::Canvas::UI::UINode parentNode;
+    parentNode.setSize(glm::vec2(200, 100));
+    parentNode.setAlignment(Bess::Canvas::UI::LayoutAlignment::center);
+
+    Bess::Canvas::UI::UINode childNode1;
+    childNode1.setSize(glm::vec2(50, 50));
+    childNode1.setMargin(glm::vec4(5, 50, 5, 5));
+    registry.addNode(childNode1);
+    parentNode.addChild(childNode1.getId());
+
+    Bess::Canvas::UI::UINode childNode2;
+    childNode2.setSize(glm::vec2(30, 30));
+    registry.addNode(childNode2);
+    parentNode.addChild(childNode2.getId());
+
+    parentNode.layout(registry, Bess::UUID::null);
+
+    const auto *childNode1Ptr = registry.getNode(childNode1.getId());
+    const auto *childNode2Ptr = registry.getNode(childNode2.getId());
+    ASSERT_NE(childNode1Ptr, nullptr);
+    ASSERT_NE(childNode2Ptr, nullptr);
+
+    expectVec2(parentNode.getDrawSize(), 200, 100);
+    expectVec2(childNode1Ptr->getCachedSize(), 105, 60);
+    expectVec2(childNode1Ptr->getDrawSize(), 50, 50);
+    expectVec2(childNode1Ptr->getCachedPos(), -70, 0);
+    expectVec2(childNode2Ptr->getCachedPos(), 20, 0);
+}
+
+TEST_F(UiLayoutTests, UINodeLayoutHonorsEndAlignmentInVerticalFlow) {
+    Bess::Canvas::UI::UINodeRegistry registry;
+
+    Bess::Canvas::UI::UINode parentNode;
+    parentNode.setSize(glm::vec2(100, 100));
+    parentNode.setDirection(Bess::Canvas::UI::LayoutDirection::vertical);
+    parentNode.setAlignment(Bess::Canvas::UI::LayoutAlignment::end);
+
+    Bess::Canvas::UI::UINode childNode;
+    childNode.setSize(glm::vec2(20, 30));
+    registry.addNode(childNode);
+    parentNode.addChild(childNode.getId());
+
+    parentNode.layout(registry, Bess::UUID::null);
+
+    const auto *childNodePtr = registry.getNode(childNode.getId());
+    ASSERT_NE(childNodePtr, nullptr);
+    expectVec2(childNodePtr->getCachedPos(), 40, -35);
+}
+
+TEST_F(UiLayoutTests, UINodeRelativeSizeUsesParentContentBox) {
+    Bess::Canvas::UI::UINodeRegistry registry;
+
+    Bess::Canvas::UI::UINode parentNode;
+    parentNode.setSize(glm::vec2(200, 100));
+    parentNode.setPadding(glm::vec4(10, 10, 10, 10));
+
+    Bess::Canvas::UI::UINode childNode;
+    childNode.setSizeUnit(Bess::Canvas::UI::Unit::relative);
+    childNode.setSize(glm::vec2(0.5f, 0.25f));
+    registry.addNode(childNode);
+    parentNode.addChild(childNode.getId());
+
+    parentNode.layout(registry, Bess::UUID::null);
+
+    const auto *childNodePtr = registry.getNode(childNode.getId());
+    ASSERT_NE(childNodePtr, nullptr);
+    expectVec2(childNodePtr->getDrawSize(), 90, 20);
+    expectVec2(childNodePtr->getCachedPos(), -45, -30);
+}
+
+TEST_F(UiLayoutTests, UINodeLayoutRefreshesWhenChildSizeChanges) {
+    Bess::Canvas::UI::UINodeRegistry registry;
+
+    Bess::Canvas::UI::UINode parentNode;
+    parentNode.setSize(glm::vec2(200, 100));
+
+    Bess::Canvas::UI::UINode childNode1;
+    childNode1.setSize(glm::vec2(50, 50));
+    registry.addNode(childNode1);
+    parentNode.addChild(childNode1.getId());
+
+    Bess::Canvas::UI::UINode childNode2;
+    childNode2.setSize(glm::vec2(30, 30));
+    registry.addNode(childNode2);
+    parentNode.addChild(childNode2.getId());
+
+    parentNode.layout(registry, Bess::UUID::null);
+
+    auto *childNode1Ptr = registry.getNode(childNode1.getId());
+    const auto *childNode2Ptr = registry.getNode(childNode2.getId());
+    ASSERT_NE(childNode1Ptr, nullptr);
+    ASSERT_NE(childNode2Ptr, nullptr);
+    expectVec2(childNode2Ptr->getCachedPos(), -35, -35);
+
+    childNode1Ptr->setSize(glm::vec2(100, 50));
+    parentNode.layout(registry, Bess::UUID::null);
+
+    expectVec2(childNode1Ptr->getCachedPos(), -50, -25);
+    expectVec2(childNode2Ptr->getCachedPos(), 15, -35);
 }
