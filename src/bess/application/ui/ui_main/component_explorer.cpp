@@ -163,12 +163,14 @@ namespace Bess::UI {
         auto scene = GAppContext::getInstance()
                          .getSubSystem<Bess::ProjectContext>()
                          ->getSubSystem<SceneDriver>();
-        auto &sceneState = scene->getActiveScene()->getState();
+
+        auto activeScene = UI::UIMain::getTargetViewportScene();
+        auto &sceneState = activeScene->getState();
 
         auto pluginSvc = appCtx.getSubSystem<Bess::Svc::PluginService>();
 
         // Try finding in plugins first, if not found the use default.
-        if (pluginSvc->hasSimSceneComp(def->getName())) {
+        if (pluginSvc && pluginSvc->hasSimSceneComp(def->getName())) {
             auto simComp = pluginSvc->getSimSceneComp(def);
 
             BESS_ASSERT(simComp, "PluginService returned invalid sim comp");
@@ -176,7 +178,7 @@ namespace Bess::UI {
             simComp->getTransform().position.x = pos.x;
             simComp->getTransform().position.y = pos.y;
             simComp->setCompDef(def->clone());
-            scene->getActiveScene()->addComponent(simComp);
+            activeScene->addComponent(simComp);
 
             std::vector<std::shared_ptr<Canvas::SceneComponent>> children;
             for (const auto &childId : simComp->getInputSlots()) {

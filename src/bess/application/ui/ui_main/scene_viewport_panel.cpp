@@ -47,9 +47,14 @@ namespace Bess::UI {
             return;
         }
 
-        if (m_updateAttachedScene) {
-            setAttachedScene(m_updateAttachedScene);
-            m_updateAttachedScene = nullptr;
+        auto sceneDriver = GAppContext::getInstance()
+                               .getSubSystem<Bess::ProjectContext>()
+                               ->getSubSystem<SceneDriver>();
+
+        if (m_viewportCtx->updateSceneId != UUID::null) {
+            setAttachedScene(
+                sceneDriver->getSceneWithId(m_viewportCtx->updateSceneId));
+            m_viewportCtx->updateSceneId = UUID::null;
         }
 
         if (m_isResized) {
@@ -72,15 +77,18 @@ namespace Bess::UI {
         m_camera->update(ts);
         m_viewportCtx->isFocused = m_isHovered;
 
-        auto sceneDriver = GAppContext::getInstance()
-                               .getSubSystem<Bess::ProjectContext>()
-                               ->getSubSystem<SceneDriver>();
+        if (m_viewportCtx->isFocused && m_attachedScene &&
+            m_attachedScene != sceneDriver->getActiveScene()) {
+            sceneDriver->setActiveScene(m_attachedScene->getSceneId());
+            m_viewportCtx->inputCtx.pickingId = PickingId::invalid();
+        }
 
         Canvas::ViewportUpdateContext ctx{
             .isFocused = m_isHovered,
             .camera = m_camera,
             .viewportCtx = m_viewportCtx,
         };
+
         if (!sceneDriver->getIsPaused()) {
             m_attachedScene->viewportUpdate(ts, ctx);
             updateScene(ts);
@@ -175,22 +183,6 @@ namespace Bess::UI {
         }
     }
 
-    void SceneViewportPanel::onAfterDraw() {
-        // auto sceneDriver = GAppContext::getInstance()
-        //                        .getSubSystem<Bess::ProjectContext>()
-        //                        ->getSubSystem<SceneDriver>();
-        //
-        // if (sceneDriver->getIsPaused()) {
-        //     return;
-        // }
-
-        // drawTopLeftControls();
-        // drawBottomControls();
-    }
-
-    void SceneViewportPanel::firstTime() {
-    }
-
     bool SceneViewportPanel::isHovered() const {
         return m_isHovered;
     }
@@ -232,6 +224,10 @@ namespace Bess::UI {
 
     std::shared_ptr<Camera> SceneViewportPanel::getCamera() const {
         return m_camera;
+    }
+
+    void SceneViewportPanel::updateAttachedSceneId(const UUID &sceneId) {
+        m_viewportCtx->updateSceneId = sceneId;
     }
 
 } // namespace Bess::UI

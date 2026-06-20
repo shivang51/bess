@@ -245,7 +245,8 @@ namespace Bess::Cmd {
         }
 
         inline void
-        ensureSceneRegistered(const std::shared_ptr<Canvas::Scene> &scene) {
+        ensureSceneRegistered(const std::shared_ptr<Canvas::Scene> &scene,
+                              UUID parentSceneId) {
             BESS_ASSERT(scene,
                         "[ModuleCmd] Scene must be valid before registration");
 
@@ -257,8 +258,7 @@ namespace Bess::Cmd {
             }
 
             if (scene->getState().getParentSceneId() == UUID::null) {
-                scene->getState().setParentSceneId(
-                    sceneDriver->getActiveScene()->getSceneId());
+                scene->getState().setParentSceneId(parentSceneId);
             }
         }
 
@@ -289,7 +289,8 @@ namespace Bess::Cmd {
                 return false;
             }
 
-            Detail::ensureSceneRegistered(m_moduleScene);
+            Detail::ensureSceneRegistered(m_moduleScene,
+                                          m_sourceScene->getSceneId());
 
             BESS_ASSERT(m_addModuleCmd,
                         "[ModuleCmd] Add module command was not initialized");
@@ -339,7 +340,8 @@ namespace Bess::Cmd {
                 m_executed,
                 "[ModuleCmd] Cannot redo a module command that never executed");
 
-            Detail::ensureSceneRegistered(m_moduleScene);
+            Detail::ensureSceneRegistered(m_moduleScene,
+                                          m_sourceScene->getSceneId());
 
             if (m_moduleSceneCleanupCmd) {
                 m_moduleSceneCleanupCmd->undo(m_moduleScene, simEngine);
@@ -449,9 +451,9 @@ namespace Bess::Cmd {
 
     class DeleteModuleCmd : public Command {
       public:
-        DeleteModuleCmd(const std::shared_ptr<Canvas::Scene> &rootScene,
+        DeleteModuleCmd(const std::shared_ptr<Canvas::Scene> &parentScene,
                         const UUID &moduleComponentId)
-            : m_rootScene(rootScene),
+            : m_parentScene(parentScene),
               m_moduleComponentId(moduleComponentId) {
             m_name = "DeleteModuleCmd";
         }
@@ -465,7 +467,7 @@ namespace Bess::Cmd {
             }
 
             const bool deletedRoot =
-                m_rootDeleteCmd->execute(m_rootScene, simEngine);
+                m_rootDeleteCmd->execute(m_parentScene, simEngine);
             const bool deletedModuleScene =
                 m_moduleSceneDeleteCmd->execute(m_moduleScene, simEngine);
             Detail::unregisterScene(m_moduleScene->getSceneId());
@@ -481,10 +483,11 @@ namespace Bess::Cmd {
                         "[ModuleCmd] Cannot undo a module delete "
                         "command that never executed");
 
-            Detail::ensureSceneRegistered(m_moduleScene);
+            Detail::ensureSceneRegistered(m_moduleScene,
+                                          m_parentScene->getSceneId());
             m_moduleSceneDeleteCmd->undo(m_moduleScene, simEngine);
             Detail::rewireModuleIoIds(m_moduleComponent, m_moduleScene);
-            m_rootDeleteCmd->undo(m_rootScene, simEngine);
+            m_rootDeleteCmd->undo(m_parentScene, simEngine);
         }
 
         void redo(const std::shared_ptr<Canvas::Scene> &scene,
@@ -495,7 +498,7 @@ namespace Bess::Cmd {
                         "[ModuleCmd] Cannot redo a module delete "
                         "command that never executed");
 
-            m_rootDeleteCmd->redo(m_rootScene, simEngine);
+            m_rootDeleteCmd->redo(m_parentScene, simEngine);
             m_moduleSceneDeleteCmd->redo(m_moduleScene, simEngine);
             Detail::unregisterScene(m_moduleScene->getSceneId());
         }
@@ -506,10 +509,10 @@ namespace Bess::Cmd {
                 return true;
             }
 
-            BESS_ASSERT(m_rootScene, "[ModuleCmd] Root scene must be valid");
+            BESS_ASSERT(m_parentScene, "[ModuleCmd] Root scene must be valid");
 
             m_moduleComponent =
-                m_rootScene->getState()
+                m_parentScene->getState()
                     .getComponentByUuidSP<Canvas::ModuleSceneComponent>(
                         m_moduleComponentId);
             if (!m_moduleComponent) {
@@ -534,7 +537,7 @@ namespace Bess::Cmd {
         }
 
       private:
-        std::shared_ptr<Canvas::Scene> m_rootScene;
+        std::shared_ptr<Canvas::Scene> m_parentScene;
         std::shared_ptr<Canvas::Scene> m_moduleScene;
         std::shared_ptr<Canvas::ModuleSceneComponent> m_moduleComponent;
         std::unique_ptr<DeleteCompCmd> m_rootDeleteCmd;

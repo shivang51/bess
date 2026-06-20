@@ -1,37 +1,9 @@
 #include "bess_core/scene_driver.h"
 
 #include "common/bess_uuid.h"
-#include "ui/ui_main/ui_main.h"
 
 #include <algorithm>
 #include <mutex>
-
-namespace {
-    bool attachSceneToTargetViewport(
-        const std::shared_ptr<Bess::Canvas::Scene> &scene) {
-        if (!scene) {
-            return false;
-        }
-
-        auto panel = Bess::UI::UIMain::getTargetSceneViewportPanel();
-        if (!panel) {
-            for (const auto &candidate : Bess::UI::UIMain::getScenePanels()) {
-                if (candidate && candidate->getVisible()) {
-                    panel = candidate;
-                    break;
-                }
-            }
-        }
-
-        if (!panel) {
-            return false;
-        }
-
-        panel->setAttachedScene(scene);
-        Bess::UI::UIMain::setTargetSceneViewportPanel(panel);
-        return true;
-    }
-} // namespace
 
 namespace Bess {
     void SceneDriver::onInit() {
@@ -85,14 +57,6 @@ namespace Bess {
             }
         }
 
-        const bool attachedToPanel = attachSceneToTargetViewport(m_activeScene);
-#ifdef DEBUG
-        if (!attachedToPanel) {
-            BESS_WARN(
-                "[SceneDriver] No target scene viewport available to attach "
-                "the active scene to.");
-        }
-#endif
         BESS_INFO("[SceneDriver] Active scene set to id {}.", (uint64_t)id);
         return m_activeScene;
     }
@@ -114,14 +78,6 @@ namespace Bess {
             }
 
             lock.unlock();
-            const bool attachedToPanel =
-                attachSceneToTargetViewport(m_activeScene);
-#ifdef DEBUG
-            if (!attachedToPanel) {
-                BESS_WARN("[SceneDriver] No target scene viewport available to "
-                          "attach the active scene to.");
-            }
-#endif
             BESS_INFO("[SceneDriver] Active scene set to index {}.", index);
             return m_activeScene;
         }

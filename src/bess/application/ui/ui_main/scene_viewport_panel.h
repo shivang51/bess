@@ -22,7 +22,6 @@ namespace Bess::UI {
 
         void onBeforeDraw() override;
         void onDraw() override;
-        void onAfterDraw() override;
 
         void init() override;
         void destroy() override;
@@ -50,9 +49,8 @@ namespace Bess::UI {
         bool isSchematicMode() const;
         bool toggleSchematicMode();
 
-        MAKE_GETTER_SETTER(std::shared_ptr<Canvas::Scene>,
-                           UpdateAttachedScene,
-                           m_updateAttachedScene)
+        // Updates the attached scene with the given id, during update cycle
+        void updateAttachedSceneId(const UUID &sceneId);
 
       private:
         void updateScene(TimeMs ts);
@@ -89,8 +87,6 @@ namespace Bess::UI {
             }
         };
 
-        void firstTime();
-
         void onSceneAttached();
 
         glm::vec2 getSceneMousePos();
@@ -107,7 +103,6 @@ namespace Bess::UI {
         bool m_isResized = false;
         UUID m_nextSceneId = UUID::null;
         std::shared_ptr<Canvas::Scene> m_attachedScene;
-        std::shared_ptr<Canvas::Scene> m_updateAttachedScene = nullptr;
         std::shared_ptr<Core::Renderer::ITexture> m_sceneTexture = nullptr;
         std::shared_ptr<Core::Renderer::ITexture> m_pickingTexture = nullptr;
         std::shared_ptr<Camera> m_camera = nullptr;

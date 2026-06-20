@@ -2,18 +2,19 @@
 #include "bess_core/copy_paste_service.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene_driver.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "dig_module_def.h"
 #include "dig_sim_driver.h"
-#include "ui/icons/FontAwesomeIcons_Remapped.h"
 #include "pages/main_page/cmds/module_comp_cmd.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
-#include "bess_core/scene/scene_state/scene_state.h"
 #include "simulation_engine.h"
+#include "ui/icons/FontAwesomeIcons_Remapped.h"
+#include "ui/ui_main/ui_main.h"
 #include <cstdint>
 #include <memory>
 #include <unordered_map>
@@ -36,10 +37,11 @@ namespace Bess::Canvas {
                                .getSubSystem<Bess::ProjectContext>()
                                ->getSubSystem<SceneDriver>();
 
+        const auto &targetScene = UI::UIMain::getTargetViewportScene();
         auto newScene = sceneDriver->createNewScene();
         auto &newSceneState = newScene->getState();
         newSceneState.setIsRootScene(false);
-        newSceneState.setParentSceneId(sceneState.getSceneId());
+        newSceneState.setParentSceneId(targetScene->getSceneId());
         newSceneState.setModuleId(moduleClone->getUuid());
 
         moduleClone->setSceneId(newSceneState.getSceneId());
@@ -407,11 +409,9 @@ namespace Bess::Canvas {
     std::shared_ptr<ModuleSceneComponent>
     ModuleSceneComponent::fromNet(const UUID &netId, const std::string &name) {
         auto &mainPageState = Pages::MainPage::getInstance()->getState();
-        auto sceneDriver = GAppContext::getInstance()
-                               .getSubSystem<Bess::ProjectContext>()
-                               ->getSubSystem<SceneDriver>();
-        auto command = std::make_unique<Cmd::CreateModuleCmd>(
-            sceneDriver->getActiveScene(), netId, name);
+        auto activeScene = UI::UIMain::getTargetViewportScene();
+        auto command =
+            std::make_unique<Cmd::CreateModuleCmd>(activeScene, netId, name);
         auto *commandPtr = command.get();
         mainPageState.getCommandSystem().execute(std::move(command));
         return commandPtr->getModuleComponent();
@@ -421,10 +421,8 @@ namespace Bess::Canvas {
     ModuleSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
         if (e.button == Canvas::Events::MouseButton::left &&
             e.action == Canvas::Events::MouseClickAction::doubleClick) {
-            auto sceneDriver = GAppContext::getInstance()
-                                   .getSubSystem<Bess::ProjectContext>()
-                                   ->getSubSystem<SceneDriver>();
-            sceneDriver->setActiveScene(m_sceneId);
+            auto viewportPanel = UI::UIMain::getTargetSceneViewportPanel();
+            viewportPanel->updateAttachedSceneId(m_sceneId);
         }
     }
 } // namespace Bess::Canvas

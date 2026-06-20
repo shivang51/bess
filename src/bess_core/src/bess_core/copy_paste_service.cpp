@@ -1,6 +1,8 @@
 #include "bess_core/copy_paste_service.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "bess_core/scene/scene_state/components/scene_component.h"
+#include "bess_core/scene/scene_state/scene_state.h"
 #include "command_system.h"
 #include "common/bess_uuid.h"
 #include "component_catalog.h"
@@ -8,8 +10,6 @@
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
-#include "bess_core/scene/scene_state/components/scene_component.h"
-#include "bess_core/scene/scene_state/scene_state.h"
 #include "simulation_engine.h"
 #include <unordered_map>
 
@@ -103,6 +103,7 @@ namespace Bess::Svc::CopyPaste {
                         std::dynamic_pointer_cast<Canvas::ModuleSceneComponent>(
                             clonedComponents.front()),
                         "Module clone did not return a module component first");
+
                 } else {
                     BESS_ASSERT(std::dynamic_pointer_cast<
                                     Canvas::SimulationSceneComponent>(

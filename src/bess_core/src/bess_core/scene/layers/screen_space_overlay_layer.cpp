@@ -316,7 +316,7 @@ namespace Bess::Canvas {
                             .backgroundColor = ViewportTheme::sceneWidgetsColors
                                                    .surface.withAlpha(0.25f),
                         })) {
-                    sceneDriver->setActiveScene(sceneId);
+                    ctx.viewportCtx->updateSceneId = sceneId;
                 }
 
                 cursor.x += buttonSize.x + padding;

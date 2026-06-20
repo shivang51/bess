@@ -129,14 +129,19 @@ namespace Bess::Pages {
 
         const auto activePanel = UI::UIMain::getActiveSceneViewportPanel();
 
-        const bool sceneWantsKeyboard = Canvas::SceneWidgets::wantsKeyboard(
-            activePanel->getViewportId(),
-            &activePanel->getAttachedScene()->getState());
-        const bool imguiWantsKeyboard =
-            ImGui::GetIO().WantTextInput || sceneWantsKeyboard;
+        auto attachedScene =
+            activePanel ? activePanel->getAttachedScene() : nullptr;
 
-        if (!imguiWantsKeyboard)
-            handleKeyboardShortcuts();
+        if (attachedScene) {
+            const bool sceneWantsKeyboard = Canvas::SceneWidgets::wantsKeyboard(
+                activePanel->getViewportId(),
+                &activePanel->getAttachedScene()->getState());
+            const bool imguiWantsKeyboard =
+                ImGui::GetIO().WantTextInput || sceneWantsKeyboard;
+
+            if (!imguiWantsKeyboard)
+                handleKeyboardShortcuts();
+        }
 
         // dispatching events after handling keyboard shortcuts,
         // so all modification are synced before updaing UI

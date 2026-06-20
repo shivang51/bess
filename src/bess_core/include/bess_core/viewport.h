@@ -97,6 +97,7 @@ namespace Bess::Core::Viewport {
         ViewportInputContext inputCtx;
         PickingReadbackRequest pickingReadbackRequest;
         SelBoxContext selBoxCtx;
+        UUID updateSceneId = UUID::null;
         size_t viewportId = 0;
         bool isFocused = false;
 
