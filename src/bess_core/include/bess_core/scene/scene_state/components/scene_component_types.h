@@ -40,6 +40,7 @@ namespace Bess::Canvas {
         SchematicLableAlignement schematicLabelAlign =
             SchematicLableAlignement::center;
         bool showName = true;
+        bool flipSlotsX = false;
     };
 
     class Style {
@@ -69,6 +70,7 @@ REFLECT(Bess::Canvas::SchematicStyle,
         pinLabelAlign,
         showPinLabels,
         showName,
+        flipSlotsX,
         schematicLabelAlign);
 
 REFLECT(Bess::Canvas::Style, schematicStyle, headerColor, color);

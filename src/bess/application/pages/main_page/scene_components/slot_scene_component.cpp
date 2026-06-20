@@ -149,11 +149,13 @@ namespace Bess::Canvas {
         const auto &pinColor = ViewportTheme::schematicViewColors.pin;
         glm::vec2 offset = {0.f, 0.f};
 
+        const bool isOnRight = m_schematicPos.x > 0.f;
+
         // will begin pin from little behind than the position
         // so that line joins nicely with the components like OR gate or xor
         // gate which have curved edges
         auto startPos = pos;
-        if (m_slotType == SlotType::digitalOutput) {
+        if (isOnRight) {
             offset.x = Styles::compSchematicStyles.pinSize;
         } else {
             offset.x = -Styles::compSchematicStyles.pinSize;
@@ -166,7 +168,6 @@ namespace Bess::Canvas {
                             m_isHovered ? nodeWeight + 2.f : nodeWeight,
                             pinColor,
                             pinId);
-        m_invalidateCache = true;
 
         if (!m_name.empty()) {
             Core::Renderer::FontProps labelProps;
@@ -178,7 +179,7 @@ namespace Bess::Canvas {
 
             float textOffsetX = 4.f;
 
-            if (m_slotType == SlotType::digitalOutput)
+            if (isOnRight)
                 textOffsetX -= textSize.x + 6.f;
 
             const auto parentComp =

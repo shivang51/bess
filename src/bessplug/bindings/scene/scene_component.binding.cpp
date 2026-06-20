@@ -2,6 +2,7 @@
 #include "bess_core/scene/camera.h"
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_state/scene_state.h" // included for pybind11
+#include <pybind11/detail/common.h>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -69,5 +70,10 @@ void bind_scene_component(py::module_ &m) {
              &Bess::Canvas::SceneComponent::update,
              py::arg("time_step"),
              py::arg("scene_state"))
-        .def("get_type_name", &Bess::Canvas::SceneComponent::getTypeName);
+        .def("get_type_name", &Bess::Canvas::SceneComponent::getTypeName)
+        .def_property(
+            "style",
+            py::overload_cast<>(&Bess::Canvas::SceneComponent::getStyle),
+            &Bess::Canvas::SceneComponent::setStyle,
+            py::return_value_policy::reference_internal);
 }

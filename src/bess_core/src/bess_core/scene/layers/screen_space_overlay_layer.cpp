@@ -8,8 +8,11 @@
 #include "bess_core/settings/viewport_theme.h"
 #include "common/types.h"
 #include "ext/vector_float2.hpp"
+#include "pages/main_page/scene_components/scene_comp_types.h"
+#include "pages/main_page/scene_components/sim_scene_component.h"
 #include "ui/icons/CodIcons_Remapped.h"
 #include "ui/icons/FontAwesomeIcons_Remapped.h"
+#include "ui/icons/MaterialIcons_Remapped.h"
 
 #include <cstdint>
 #include <utility>
@@ -371,6 +374,51 @@ namespace Bess::Canvas {
 
             drawSceneBtns(ctx.sceneState, true);
         }
+
+        // Draws from the right side
+        void drawSchematicViewControls(SceneDrawContext &drawCtx,
+                                       SceneRenderContext &ctx,
+                                       const glm::vec2 &offset) {
+            if (!ctx.viewportCtx->isSchematicMode()) {
+                return;
+            }
+
+            auto selComps = ctx.sceneState->getSelectedComponents();
+
+            if (selComps.empty()) {
+                return;
+            }
+
+            auto selComp =
+                ctx.sceneState->getComponentByUuid(selComps.begin()->first);
+
+            if (!selComp ||
+                selComp->getType() != SceneComponentType::simulation) {
+                return;
+            }
+            auto &style = selComp->getStyle();
+            const auto isFlipped = style.schematicStyle.flipSlotsX;
+
+            if (Canvas::SceneWidgets::button(
+                    PickingId::forWidget(100),
+                    UI::Icons::MaterialIcons::FLIP,
+                    {offset.x, offset.y, 1000},
+                    drawCtx,
+                    {
+                        .textSize = fontSize,
+                        .backgroundColor =
+                            ViewportTheme::sceneWidgetsColors.surface.withAlpha(
+                                isFlipped ? 1.f : 0.5f),
+                    })) {
+                style.schematicStyle.flipSlotsX = !isFlipped;
+                const auto &simComp =
+                    dynamic_cast<SimulationSceneComponent *>(selComp);
+                BESS_ASSERT(simComp,
+                            "Failed to cast selected component to "
+                            "SimulationSceneComponent");
+                simComp->setSchSlotsPosDirty(true);
+            }
+        }
     } // namespace
 
     void ScreenSpaceOverlayLayer::draw(SceneRenderContext &ctx) {
@@ -402,6 +450,10 @@ namespace Bess::Canvas {
 
         const auto off = drawSchematicToggle(drawCtx, ctx, topLeft);
         drawSceneControls(drawCtx, ctx, off);
+
+        auto topRight = glm::vec2{(viewportSize.x / 2.f) - padding,
+                                  (-viewportSize.y / 2.f) + padding};
+        drawSchematicViewControls(drawCtx, ctx, topRight);
     }
 
     void ScreenSpaceOverlayLayer::reset(SceneLifecycleContext &ctx) {

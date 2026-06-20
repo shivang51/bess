@@ -1,6 +1,6 @@
 #include "bess_core/scene/schematic_diagram.h"
-#include "bess_core/settings/viewport_theme.h"
 #include "bess_core/renderer/renderer_types.h"
+#include "bess_core/settings/viewport_theme.h"
 #include "common/bess_assert.h"
 
 namespace Bess::Canvas {
@@ -82,6 +82,7 @@ namespace Bess::Canvas {
         props.zIndex = pos.z;
         props.position = diagramPosition;
         props.scale = digScale;
+        props.rotation = transform.angle;
 
         for (const auto &path : getPaths()) {
             props.renderFill = path.getFill();

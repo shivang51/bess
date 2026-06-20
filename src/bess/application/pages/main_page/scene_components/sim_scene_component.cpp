@@ -490,13 +490,20 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
             outCount -= 1;
         }
 
-        const float inpStartX = -m_schematicTransform.scale.x / 2.f;
         const float inpOffsetY =
             (m_schematicTransform.scale.y / ((float)inpCount + 1.f));
-        const float outStartX = m_schematicTransform.scale.x / 2.f;
         const float outOffsetY =
             (m_schematicTransform.scale.y / ((float)outCount + 1.f));
         const float startY = -(m_schematicTransform.scale.y / 2.f);
+
+        float inpStartX = -m_schematicTransform.scale.x / 2.f;
+        float outStartX = m_schematicTransform.scale.x / 2.f;
+
+        if (m_style.schematicStyle.flipSlotsX) {
+            auto temp = inpStartX;
+            inpStartX = outStartX;
+            outStartX = temp;
+        }
 
         for (size_t i = 0; i < inpCount; i++) {
             const auto slotComp =

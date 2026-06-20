@@ -1,4 +1,5 @@
 import copy
+import math
 from typing import override
 from bessplug.api.common import theme, vec3
 from bessplug.api.scene import PickingId, SchematicDiagram, SimulationSceneComponent
@@ -70,6 +71,12 @@ class DigitalGateComp(SimulationSceneComponent):
         id.info = 0
 
         transform = self.schematic_transform
+
+        if self.style.schem_style.flip_slots_x:
+            transform.angle = math.pi
+        else:
+            transform.angle = 0
+
         scale = self.schematic_diagram.draw(transform, id, context)
 
         if scale != self.schematic_transform.scale:
