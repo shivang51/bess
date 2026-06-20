@@ -5,6 +5,7 @@
 #include "bess_core/scene/layers/interaction_layer.h"
 #include "bess_core/scene/layers/overlay_layer.h"
 #include "bess_core/scene/layers/scene_widgets_layer.h"
+#include "bess_core/scene/layers/scratch_layer.h"
 #include "bess_core/scene/layers/screen_space_overlay_layer.h"
 #include "bess_core/scene/scene_event.h"
 #include "bess_core/scene/scene_event_builder.h"
@@ -87,6 +88,7 @@ namespace Bess::Canvas {
         m_sceneLayers.push_back(std::make_unique<OverlayLayer>());
         m_sceneLayers.push_back(std::make_unique<InteractionLayer>());
         m_sceneLayers.push_back(std::make_unique<SceneWidgetsLayer>());
+        m_sceneLayers.push_back(std::make_unique<ScratchLayer>());
         auto screenOverlayLayer = std::make_unique<ScreenSpaceOverlayLayer>();
         m_screenSpaceOverlayLayer = screenOverlayLayer.get();
         m_sceneLayers.push_back(std::move(screenOverlayLayer));
