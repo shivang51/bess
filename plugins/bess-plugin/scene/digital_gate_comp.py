@@ -56,7 +56,7 @@ class DigitalGateComp(SimulationSceneComponent):
             comp.schematic_diagram = diagram.copy() if diagram else None
 
         if data.has_key("icon"):
-            comp.icon = data["icon"]
+            comp.icon = data["icon"].as_str()
         return comp
 
     @override

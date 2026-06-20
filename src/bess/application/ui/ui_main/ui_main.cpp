@@ -14,8 +14,8 @@
 #include "ui/widgets/m_widgets.h"
 #include <string>
 
-#include "ui/dock_ids.h"
 #include "pages/main_page/main_page_state.h"
+#include "ui/dock_ids.h"
 #include "ui/icons/FontAwesomeIcons_Remapped.h"
 #include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/dialogs.h"
@@ -24,8 +24,8 @@
 #include "ui/ui_main/project_explorer.h"
 #include "ui/ui_main/project_settings_window.h"
 #include "ui/ui_main/properties_panel.h"
-#include "ui/ui_main/settings_window/settings_window.h"
 #include "ui/ui_main/scene_viewport_panel.h"
+#include "ui/ui_main/settings_window/settings_window.h"
 #include <filesystem>
 #include <vector>
 
