@@ -6,9 +6,9 @@
 #include <cstdint>
 #include <ratio>
 
-#include "absl/container/btree_set.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/container/linked_hash_set.h"
 
 namespace Bess {
     using TimeMs = std::chrono::duration<double, std::milli>;
@@ -16,7 +16,7 @@ namespace Bess {
 
     template <typename K, typename V> using HashMap = absl::flat_hash_map<K, V>;
     template <typename K> using HashSet = absl::flat_hash_set<K>;
-    template <typename K> using OrderedSet = absl::btree_set<K>;
+    template <typename K> using OrderedSet = absl::linked_hash_set<K>;
 
     struct PickingId {
         uint32_t runtimeId;

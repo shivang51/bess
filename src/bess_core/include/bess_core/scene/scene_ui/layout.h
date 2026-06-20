@@ -1,10 +1,8 @@
 #pragma once
-
 #include "common/bess_api.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "common/class_helpers.h"
-#include "common/logger.h"
 #include "common/types.h"
 #include "ext/vector_float2.hpp"
 #include <cstdint>
@@ -40,6 +38,8 @@ namespace Bess::Canvas::UI {
         void removeNode(const UUID &id);
 
         UINode *getNode(const UUID &id);
+
+        const HashMap<UUID, UINode> &getAllNodes() const;
 
       private:
         HashMap<UUID, UINode> m_nodes;
@@ -81,6 +81,7 @@ namespace Bess::Canvas::UI {
         MAKE_GETTER_SETTER_WC(glm::vec4, Margin, m_margin, setSizeDirty);
         MAKE_GETTER_SETTER_WC(glm::vec2, MinSize, m_minSize, setSizeDirty);
         MAKE_GETTER_SETTER_WC(glm::vec2, MaxSize, m_maxSize, setSizeDirty);
+        MAKE_GETTER(glm::vec2, DrawSize, m_drawSize);
 
         void addChild(const UUID &childId) {
             m_children.insert(childId);
@@ -105,6 +106,7 @@ namespace Bess::Canvas::UI {
             auto parentNode = registry.getNode(parentId);
 
             glm::vec2 size = {};
+            glm::vec2 childrenSpan{0.f};
             if (m_sizeConstraint == SizeContraint::fixed) {
                 BESS_ASSERT(m_sizeUnit != Unit::relative ||
                                 parentNode != nullptr,
@@ -115,34 +117,36 @@ namespace Bess::Canvas::UI {
                 } else {
                     size = m_size * registry.getNode(parentId)->getCachedSize();
                 }
-            }
 
-            glm::vec2 childrenSpan{0.f};
-            for (const auto &childId : m_children) {
-                UINode *childNode = registry.getNode(childId);
-                if (childNode) {
-                    const auto childSize = childNode->measure(registry, m_id);
-                    if (m_sizeConstraint != SizeContraint::fixed) {
-                        if (m_direction == LayoutDirection::horizontal) {
-                            childrenSpan.x += childSize.x;
-                            childrenSpan.y =
-                                std::max(childrenSpan.y, childSize.y);
-                        } else {
-                            childrenSpan.y += childSize.y;
-                            childrenSpan.x =
-                                std::max(childrenSpan.x, childSize.x);
+            } else {
+                // Calculate children span if the size constraint is not fixed
+
+                for (const auto &childId : m_children) {
+                    UINode *childNode = registry.getNode(childId);
+                    if (childNode) {
+                        const auto childSize =
+                            childNode->measure(registry, m_id);
+                        if (m_sizeConstraint != SizeContraint::fixed) {
+                            if (m_direction == LayoutDirection::horizontal) {
+                                childrenSpan.x += childSize.x;
+                                childrenSpan.y =
+                                    std::max(childrenSpan.y, childSize.y);
+                            } else {
+                                childrenSpan.y += childSize.y;
+                                childrenSpan.x =
+                                    std::max(childrenSpan.x, childSize.x);
+                            }
                         }
                     }
                 }
             }
 
-            if (m_sizeConstraint != SizeContraint::fixed) {
-                size =
-                    childrenSpan +
-                    glm::vec2(m_padding.x + m_padding.z,
-                              m_padding.y + m_padding.w) +
-                    glm::vec2(m_margin.x + m_margin.z, m_margin.y + m_margin.w);
-            }
+            const auto &margin =
+                glm::vec2(m_margin.y + m_margin.w, m_margin.x + m_margin.z);
+            size += childrenSpan;
+            size += glm::vec2(m_padding.y + m_padding.w,
+                              m_padding.x + m_padding.z) +
+                    margin;
 
             if (m_maxSize.x >= 0.f)
                 size.x = std::min(size.x, m_maxSize.x);
@@ -158,14 +162,12 @@ namespace Bess::Canvas::UI {
             m_cachedSize = size;
             m_sizeDirty = false;
             m_posDirty = true;
-
+            m_drawSize = size - margin;
             return m_cachedSize;
         }
 
         void layout(UINodeRegistry &registry, const UUID &parentId) {
             if (!m_posDirty) {
-                BESS_TRACE("Node {} position is not dirty, skipping layout.",
-                           (uint64_t)m_id);
                 return;
             }
 
@@ -174,7 +176,7 @@ namespace Bess::Canvas::UI {
             }
 
             glm::vec2 cursor = m_cachedPos - (m_cachedSize / 2.f);
-            cursor += glm::vec2(m_padding.x, m_padding.y);
+            cursor += glm::vec2(m_padding.w, m_padding.x);
 
             for (const auto &childId : m_children) {
                 UINode *childNode = registry.getNode(childId);
@@ -186,8 +188,20 @@ namespace Bess::Canvas::UI {
                 if (childNode == nullptr)
                     continue;
 
-                const glm::vec2 &childMargin = childNode->getMargin();
-                glm::vec2 childPos = cursor + glm::vec2(childMargin);
+                const auto &childMargin = childNode->getMargin();
+                glm::vec2 childPos =
+                    cursor + glm::vec2(childMargin.w, childMargin.x);
+
+                if (m_alignment == LayoutAlignment::center) {
+                    if (m_direction == LayoutDirection::horizontal) {
+                        childPos.y = m_cachedPos.y -
+                                     (childNode->getCachedSize().y / 2.f);
+                    } else {
+                        childPos.x = m_cachedPos.x -
+                                     (childNode->getCachedSize().x / 2.f);
+                    }
+                }
+
                 childNode->setCachedPos(childPos +
                                         (childNode->getCachedSize() / 2.f));
 
@@ -208,18 +222,18 @@ namespace Bess::Canvas::UI {
       private:
         UUID m_id;
 
-        glm::vec2 m_pos;
+        glm::vec2 m_pos{0};
         float zVal = 0.0f;
         Unit m_posUnit = Unit::pixel;
 
-        glm::vec2 m_size;
+        glm::vec2 m_size{0};
         Unit m_sizeUnit = Unit::pixel;
         glm::vec2 m_minSize{-1};
         glm::vec2 m_maxSize{-1};
 
         glm::vec4 m_padding = glm::vec4(0.0f); // top, right, bottom, left
         glm::vec4 m_margin = glm::vec4(0.0f);  // top, right, bottom, left
-                                               //
+
         LayoutDirection m_direction = LayoutDirection::horizontal;
         LayoutAlignment m_alignment = LayoutAlignment::start;
         PosMode m_posMode = PosMode::absolute;
@@ -230,5 +244,6 @@ namespace Bess::Canvas::UI {
 
         glm::vec2 m_cachedPos{0};
         glm::vec2 m_cachedSize{-1};
+        glm::vec2 m_drawSize{0};
     };
 } // namespace Bess::Canvas::UI

@@ -16,4 +16,9 @@ namespace Bess::Canvas::UI {
         }
         return nullptr;
     }
+
+    const HashMap<UUID, UINode> &UINodeRegistry::getAllNodes() const {
+        return m_nodes;
+    }
+
 } // namespace Bess::Canvas::UI

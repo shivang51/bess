@@ -7,6 +7,7 @@ namespace Bess::Canvas {
         ScratchLayer() = default;
         ~ScratchLayer() override = default;
 
+        void init(SceneLifecycleContext &ctx) override;
         void update(TimeMs ts, SceneUpdateContext &ctx) override;
         void draw(SceneRenderContext &ctx) override;
     };

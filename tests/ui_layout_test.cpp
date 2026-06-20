@@ -1,5 +1,6 @@
 #include "bess_core/scene/scene_ui/layout.h"
 #include "common/bess_uuid.h"
+#include "common/logger.h"
 #include <gtest/gtest.h>
 class UiLayoutTests : public testing::Test {};
 
