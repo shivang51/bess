@@ -1,13 +1,14 @@
 #pragma once
 
+#include "bess_core/scene/scene.h"
 #include "common/bess_api.h"
 #include "common/sub_system.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/non_sim_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
-#include "bess_core/scene/scene.h"
 #include <typeindex>
+#include <unordered_map>
 #include <vector>
 
 namespace Bess::Svc::CopyPaste {
@@ -40,6 +41,7 @@ namespace Bess::Svc::CopyPaste {
         void onDestroy() override;
 
         void copy(const std::shared_ptr<Canvas::Scene> &scene);
+        void copyScene(const std::shared_ptr<Canvas::Scene> &scene);
 
         // Retruns og id to clone id map
         std::unordered_map<UUID, UUID>
@@ -48,6 +50,9 @@ namespace Bess::Svc::CopyPaste {
               bool recordHistory = true);
 
       private:
+        bool addEntityFromComponent(const Canvas::SceneState &sceneState,
+                                    const UUID &componentId);
+
         void addEntity(const CopiedEntity &entity);
 
         void clear();

@@ -20,6 +20,28 @@
 #include <unordered_map>
 
 namespace Bess::Canvas {
+    namespace {
+        glm::vec2 calculateCopiedSceneCenter(const SceneState &sceneState) {
+            glm::vec2 sum{0.f, 0.f};
+            size_t count = 0;
+
+            for (const auto &componentId : sceneState.getRootComponents()) {
+                const auto component =
+                    sceneState.getComponentByUuid(componentId);
+                if (!component) {
+                    continue;
+                }
+
+                const auto &position = component->getTransform().position;
+                sum += glm::vec2{position.x, position.y};
+                ++count;
+            }
+
+            return count == 0 ? glm::vec2{0.f, 0.f}
+                              : sum / static_cast<float>(count);
+        }
+    } // namespace
+
     ModuleSceneComponent::ModuleSceneComponent() {
         m_icon = UI::Icons::FontAwesomeIcons::FA_CUBES;
     };
@@ -37,11 +59,10 @@ namespace Bess::Canvas {
                                .getSubSystem<Bess::ProjectContext>()
                                ->getSubSystem<SceneDriver>();
 
-        const auto &targetScene = UI::UIMain::getTargetViewportScene();
         auto newScene = sceneDriver->createNewScene();
         auto &newSceneState = newScene->getState();
         newSceneState.setIsRootScene(false);
-        newSceneState.setParentSceneId(targetScene->getSceneId());
+        newSceneState.setParentSceneId(sceneState.getSceneId());
         newSceneState.setModuleId(moduleClone->getUuid());
 
         moduleClone->setSceneId(newSceneState.getSceneId());
@@ -51,14 +72,20 @@ namespace Bess::Canvas {
         // Copying comps from old scene to new
         {
             auto ogScene = sceneDriver->getSceneWithId(m_sceneId);
-            ogScene->selectAllEntities();
+            BESS_ASSERT(ogScene, "[CloneModule] Source module scene not found");
+            if (!ogScene) {
+                BESS_ERROR("[CloneModule] Source module scene {} not found",
+                           (uint64_t)m_sceneId);
+                sceneDriver->removeScene(newSceneState.getSceneId());
+                return {};
+            }
+
             Svc::CopyPaste::Context cpCtx;
-            cpCtx.onInit();
-            cpCtx.copy(ogScene);
-            ogToCloneId = cpCtx.paste(
-                newScene, newScene->getState().getMousePos(), false);
-            cpCtx.onDestroy();
-            ogScene->getState().clearSelectedComponents();
+            cpCtx.copyScene(ogScene);
+            ogToCloneId =
+                cpCtx.paste(newScene,
+                            calculateCopiedSceneCenter(ogScene->getState()),
+                            false);
         }
 
         BESS_ASSERT(ogToCloneId.contains(m_associatedInp),
