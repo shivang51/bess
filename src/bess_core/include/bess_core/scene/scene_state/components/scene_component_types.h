@@ -29,7 +29,7 @@ namespace Bess::Canvas {
     };
 
     enum class SchematicLableAlignement : uint8_t {
-        adjacent, // left or right of the pin, depending on inp or out
+        center, // center of the component
         topCenter,
         bottomCenter,
     };
@@ -38,7 +38,7 @@ namespace Bess::Canvas {
         PinLabelAlignment pinLabelAlign = PinLabelAlignment::adjacent;
         bool showPinLabels = true;
         SchematicLableAlignement schematicLabelAlign =
-            SchematicLableAlignement::adjacent;
+            SchematicLableAlignement::center;
         bool showName = true;
     };
 
