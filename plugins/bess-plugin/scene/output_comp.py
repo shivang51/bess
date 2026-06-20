@@ -53,7 +53,7 @@ class OutputComp(SimulationSceneComponent):
 
         posOffset = vec3(
             4,
-            self.get_slot_start_y() - self.transform.scale.y / 2,
+            -self.transform.scale.y / 2 + self.get_slot_start_y() + 3.5,
             0.0001,
         )
 

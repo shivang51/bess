@@ -71,7 +71,7 @@ REFLECT(Bess::Canvas::SchematicStyle,
         showName,
         schematicLabelAlign);
 
-REFLECT(Bess::Canvas::Style, schematicStyle, headerColor);
+REFLECT(Bess::Canvas::Style, schematicStyle, headerColor, color);
 
 REFLECT_ENUM(Bess::Canvas::ConnSegOrientaion);
 

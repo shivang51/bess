@@ -20,14 +20,14 @@ _gates = {
         "input_pins": ["A", "B"],
         "output_pins": ["Y"],
         "op": "*",
-        "icons": component_icons.AND_GATE,
+        "icon": component_icons.AND_GATE,
     },
     "OR": {
         "name": "OR Gate",
         "input_pins": ["A", "B"],
         "output_pins": ["Y"],
         "op": "+",
-        "icons": component_icons.AND_GATE,
+        "icon": component_icons.OR_GATE,
     },
     "NOT": {
         "name": "NOT Gate",
@@ -35,7 +35,7 @@ _gates = {
         "output_pins": ["Y"],
         "op": "!",
         "keep_io_count_eq": True,
-        "icons": component_icons.NOT_GATE,
+        "icon": component_icons.NOT_GATE,
     },
     "NAND": {
         "name": "NAND Gate",
@@ -43,7 +43,7 @@ _gates = {
         "output_pins": ["Y"],
         "op": "*",
         "negate_output": True,
-        "icons": component_icons.NAND_GATE,
+        "icon": component_icons.NAND_GATE,
     },
     "NOR": {
         "name": "NOR Gate",
@@ -51,14 +51,14 @@ _gates = {
         "output_pins": ["Y"],
         "op": "+",
         "negate_output": True,
-        "icons": component_icons.NOR_GATE,
+        "icon": component_icons.NOR_GATE,
     },
     "XOR": {
         "name": "XOR Gate",
         "input_pins": ["A", "B"],
         "output_pins": ["Y"],
         "op": "^",
-        "icons": component_icons.XOR_GATE,
+        "icon": component_icons.XOR_GATE,
     },
     "XNOR": {
         "name": "XNOR Gate",
@@ -66,7 +66,7 @@ _gates = {
         "output_pins": ["Y"],
         "op": "^",
         "negate_output": True,
-        "icons": component_icons.XNOR_GATE,
+        "icon": component_icons.XNOR_GATE,
     },
 }
 

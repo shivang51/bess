@@ -6,12 +6,12 @@
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 
-#include "dig_sim_driver.h"
-#include "pages/main_page/scene_components/slot_scene_component.h"
+#include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_state/scene_state.h" // included for pybind11
-#include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/settings/viewport_theme.h"
+#include "dig_sim_driver.h"
+#include "pages/main_page/scene_components/slot_scene_component.h"
 #include "json/value.h"
 #include <memory>
 #include <pybind11/functional.h>
@@ -409,7 +409,11 @@ void bind_sim_scene_component(py::module_ &m) {
                  &Bess::Canvas::SimulationSceneComponent::getSlotStartY)
             .def("draw_properties_ui",
                  &Bess::Canvas::SimulationSceneComponent::drawPropertiesUI,
-                 py::arg("scene_state"));
+                 py::arg("scene_state"))
+            .def_property("icon",
+                          py::overload_cast<>(
+                              &Bess::Canvas::SimulationSceneComponent::getIcon),
+                          &Bess::Canvas::SimulationSceneComponent::setIcon);
 
     // decorators
     auto deserDecorator = [&](const py::function &fromJsonFunc) {

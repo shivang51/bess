@@ -251,6 +251,6 @@ struct fmt::formatter<Bess::Core::Renderer::Color>
 };
 
 namespace Bess::JsonConvert {
-    Json::Value toJson(const Core::Renderer::Color &color);
+    void toJsonValue(const Core::Renderer::Color &color, Json::Value &j);
     void fromJsonValue(const Json::Value &j, Core::Renderer::Color &color);
 } // namespace Bess::JsonConvert

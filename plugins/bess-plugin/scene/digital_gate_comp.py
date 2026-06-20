@@ -27,6 +27,7 @@ class DigitalGateComp(SimulationSceneComponent):
         cloned.schematic_diagram = (
             self.schematic_diagram.copy() if self.schematic_diagram else None
         )
+        cloned.icon = self.icon
         cloned.label_size = self.label_size
         return cloned
 
@@ -39,6 +40,7 @@ class DigitalGateComp(SimulationSceneComponent):
         data = super().to_json()
         if self.schematic_diagram:
             data["schm_name"] = self.comp_def.name
+        data["icon"] = self.icon
         return data
 
     @staticmethod
@@ -52,6 +54,9 @@ class DigitalGateComp(SimulationSceneComponent):
                 schematic_name = data["schm_hash"]
             diagram = schematic_diagrams.get(schematic_name, None)
             comp.schematic_diagram = diagram.copy() if diagram else None
+
+        if data.has_key("icon"):
+            comp.icon = data["icon"]
         return comp
 
     @override

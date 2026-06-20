@@ -17,8 +17,8 @@ namespace Bess::Core::Renderer {
 } // namespace Bess::Core::Renderer
 
 namespace Bess::JsonConvert {
-    Json::Value toJson(const Core::Renderer::Color &color) {
-        return color.toJson();
+    void toJsonValue(const Core::Renderer::Color &color, Json::Value &j) {
+        j = color.toJson();
     }
 
     void fromJsonValue(const Json::Value &json, Core::Renderer::Color &color) {

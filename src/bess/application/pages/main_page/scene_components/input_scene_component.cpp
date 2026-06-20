@@ -140,7 +140,10 @@ namespace Bess::Canvas {
                     "All Low",
                     buttonPos,
                     context,
-                    {.textSize = Styles::simCompStyles.slotLabelSize})) {
+                    {
+                        .textSize = Styles::simCompStyles.slotLabelSize - 2.f,
+                        .buttonSize = buttonSize,
+                    })) {
                 makeAllLow = true;
             }
             return;
