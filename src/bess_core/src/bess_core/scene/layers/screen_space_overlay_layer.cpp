@@ -379,6 +379,11 @@ namespace Bess::Canvas {
         void drawSchematicViewControls(SceneDrawContext &drawCtx,
                                        SceneRenderContext &ctx,
                                        const glm::vec2 &offset) {
+            constexpr glm::vec2 buttonSize =
+                Core::Renderer::IRenderer2D::getTextRenderSize(
+                    UI::Icons::MaterialIcons::FLIP, {.fontSize = fontSize}) +
+                glm::vec2{padding * 2.f, padding * 2.f};
+
             if (!ctx.viewportCtx->isSchematicMode()) {
                 return;
             }
@@ -399,13 +404,18 @@ namespace Bess::Canvas {
             auto &style = selComp->getStyle();
             const auto isFlipped = style.schematicStyle.flipSlotsX;
 
+            glm::vec2 cursor =
+                offset + glm::vec2{-buttonSize.x / 2.f, buttonSize.y / 2.f};
             if (Canvas::SceneWidgets::button(
                     PickingId::forWidget(100),
                     UI::Icons::MaterialIcons::FLIP,
-                    {offset.x, offset.y, 1000},
+                    {cursor, 1000},
                     drawCtx,
                     {
                         .textSize = fontSize,
+                        .buttonSize = buttonSize,
+                        .borderRadius = glm::vec4(8.f),
+                        .shadow = Core::Renderer::ShadowProps{.enabled = true},
                         .backgroundColor =
                             ViewportTheme::sceneWidgetsColors.surface.withAlpha(
                                 isFlipped ? 1.f : 0.5f),

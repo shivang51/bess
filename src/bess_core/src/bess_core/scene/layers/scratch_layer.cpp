@@ -54,13 +54,13 @@ namespace Bess::Canvas {
     }
 
     void ScratchLayer::update(TimeMs ts, SceneUpdateContext &ctx) {
-        rootNode->measure(registry, Bess::UUID::null);
-        rootNode->layout(registry, Bess::UUID::null);
+        // rootNode->measure(registry, Bess::UUID::null);
+        // rootNode->layout(registry, Bess::UUID::null);
     }
 
     void ScratchLayer::draw(SceneRenderContext &ctx) {
-        for (const auto &node : registry.getAllNodes()) {
-            drawNode(node.second, ctx);
-        }
+        // for (const auto &node : registry.getAllNodes()) {
+        //     drawNode(node.second, ctx);
+        // }
     }
 } // namespace Bess::Canvas
