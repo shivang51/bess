@@ -251,7 +251,11 @@ namespace Bess::Core::Renderer {
                       glm::vec2 scale,
                       float rotation,
                       const PathProps &props = {}) {
-            drawPath(path.commands(), translation, scale, rotation, props);
+            PathProps transformedProps = props;
+            transformedProps.position = translation;
+            transformedProps.scale = scale;
+            transformedProps.rotation = rotation;
+            drawPath(path, transformedProps);
         }
 
         virtual void beginPath(const PathProps &props = {}) = 0;

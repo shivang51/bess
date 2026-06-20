@@ -20,6 +20,7 @@
 #include "wgpu_renderer_2d_text.h"
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -69,6 +70,7 @@ namespace Bess::Wgpu {
         constexpr const char *kDefaultMsdfFontDirectory = "assets/bess_fonts";
         constexpr const char *kDefaultMsdfFontName = "bess_fonts_merged";
         constexpr float kFontOutlinePixelSize = 64.f;
+        constexpr float kPathRotationEpsilon = 0.0001f;
         constexpr uint64_t kPathCacheMaxIdleFrames = 240;
         constexpr std::size_t kPathCachePruneThreshold = 512;
         constexpr std::size_t kPathCacheHardLimit = 2048;
@@ -98,11 +100,11 @@ namespace Bess::Wgpu {
                    a.strokeSize == b.strokeSize &&
                    a.miterLimit == b.miterLimit &&
                    a.curveTolerance == b.curveTolerance &&
-                   a.renderFill == b.renderFill &&
-                   samePickingId(a.id, b.id) && a.renderPass == b.renderPass &&
-                   a.fillRule == b.fillRule && a.lineJoin == b.lineJoin &&
-                   a.lineCap == b.lineCap && a.closePath == b.closePath &&
-                   a.scale == b.scale && a.rotation == b.rotation;
+                   a.renderFill == b.renderFill && samePickingId(a.id, b.id) &&
+                   a.renderPass == b.renderPass && a.fillRule == b.fillRule &&
+                   a.lineJoin == b.lineJoin && a.lineCap == b.lineCap &&
+                   a.closePath == b.closePath && a.scale == b.scale &&
+                   a.rotation == b.rotation;
         }
 
         bool samePathBakeMetrics(const PathBakeMetrics &a,
@@ -128,6 +130,33 @@ namespace Bess::Wgpu {
                                     const Renderer2DExtent &extent) {
             return makePathBakeMetricsForTransform(
                 props.transformMode, cameraTransform, extent);
+        }
+
+        glm::vec2 rotatePathPoint(const glm::vec2 &point, float rotation) {
+            const float sinAngle = std::sin(rotation);
+            const float cosAngle = std::cos(rotation);
+            return {point.x * cosAngle - point.y * sinAngle,
+                    point.x * sinAngle + point.y * cosAngle};
+        }
+
+        PathProps
+        pathPropsWithRotationPivot(const PathProps &props,
+                                   const Core::Renderer::PathBounds &bounds) {
+            if (std::abs(props.rotation) <= kPathRotationEpsilon) {
+                return props;
+            }
+            if (!props.hasRotationPivot && !bounds.valid) {
+                return props;
+            }
+
+            PathProps adjusted = props;
+            const glm::vec2 pivot = props.hasRotationPivot
+                                        ? props.rotationPivot
+                                        : (bounds.min + bounds.max) * 0.5f;
+            const glm::vec2 scaledPivot = pivot * props.scale;
+            adjusted.position +=
+                scaledPivot - rotatePathPoint(scaledPivot, props.rotation);
+            return adjusted;
         }
 
         bool supportsPresentMode(const wgpu::SurfaceCapabilities &capabilities,
@@ -313,6 +342,7 @@ namespace Bess::Wgpu {
         [[nodiscard]] const BakedPathSubmission &
         cachedPathSubmission(const Path2D &path,
                              const PathProps &props,
+                             const Core::Renderer::PathBounds &bounds,
                              const PathBakeMetrics &metrics);
         void queueCommandBuffer(wgpu::CommandBuffer commandBuffer);
         void flushPendingCommandBuffers();
@@ -560,12 +590,12 @@ namespace Bess::Wgpu {
         }
     }
 
-    const BakedPathSubmission &
-    WgpuRenderer2D::Impl::cachedPathSubmission(const Path2D &path,
-                                               const PathProps &props,
-                                               const PathBakeMetrics &metrics) {
+    const BakedPathSubmission &WgpuRenderer2D::Impl::cachedPathSubmission(
+        const Path2D &path,
+        const PathProps &props,
+        const Core::Renderer::PathBounds &bounds,
+        const PathBakeMetrics &metrics) {
         CachedPathEntry &entry = pathCache[&path];
-        const auto bounds = path.bounds();
         const auto commandCount = path.commandCount();
         const PathCommand *commandData = path.data();
         if (!samePathCacheIdentity(
@@ -2458,13 +2488,15 @@ namespace Bess::Wgpu {
             endPath();
         }
 
+        const auto bounds = path.bounds();
+        const PathProps pathProps = pathPropsWithRotationPivot(props, bounds);
         const PathBakeMetrics metrics = makePathBakeMetricsForProps(
-            props, m_impl->cameraTransform, m_impl->extent);
+            pathProps, m_impl->cameraTransform, m_impl->extent);
         const uint64_t submitOrder = m_impl->nextSubmitOrder();
         const BakedPathSubmission &submission =
-            m_impl->cachedPathSubmission(path, props, metrics);
+            m_impl->cachedPathSubmission(path, pathProps, bounds, metrics);
         submitBakedPathSubmission(submission,
-                                  props,
+                                  pathProps,
                                   submitOrder,
                                   m_impl->opaquePathBatch,
                                   m_impl->transparentPathBatch,

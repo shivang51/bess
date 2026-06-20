@@ -83,6 +83,8 @@ namespace Bess::Canvas {
         props.position = diagramPosition;
         props.scale = digScale;
         props.rotation = transform.angle;
+        props.hasRotationPivot = true;
+        props.rotationPivot = {0.5f, 0.5f};
 
         for (const auto &path : getPaths()) {
             props.renderFill = path.getFill();
