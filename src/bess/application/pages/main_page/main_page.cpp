@@ -21,6 +21,7 @@
 #include "pages/main_page/scene_components/group_scene_component.h"
 #include "pages/main_page/scene_components/input_scene_component.h"
 #include "pages/main_page/scene_components/module_scene_component.h"
+#include "pages/main_page/scene_components/monitor_scene_comp.h"
 #include "pages/main_page/scene_components/non_sim_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
@@ -65,6 +66,8 @@ namespace Bess::Pages {
             Canvas::WidgetsTestComponent>("Widgets Test");
         Canvas::NonSimSceneComponent::registerComponent<
             Canvas::SlotProbeSceneComponent>("Probe");
+        Canvas::NonSimSceneComponent::registerComponent<
+            Canvas::MonitorSceneComp>("Monitor Node");
 
         REG_TO_SER_REGISTRY(Canvas::ConnJointSceneComp);
         REG_TO_SER_REGISTRY(Canvas::ConnectionSceneComponent);
