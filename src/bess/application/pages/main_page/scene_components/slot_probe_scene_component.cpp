@@ -1,20 +1,21 @@
 #include "slot_probe_scene_component.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "bess_core/scene/scene_draw_context.h"
+#include "bess_core/scene/scene_draw_helpers.h"
+#include "bess_core/scene/scene_state/scene_state.h"
+#include "bess_core/settings/viewport_theme.h"
 #include "common/bess_uuid.h"
 #include "imgui.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
-#include "bess_core/scene/scene_draw_helpers.h"
-#include "bess_core/scene/scene_draw_context.h"
-#include "bess_core/scene/scene_state/scene_state.h"
-#include "bess_core/settings/viewport_theme.h"
 #include "simulation_engine.h"
 
 namespace Bess::Canvas {
     std::vector<std::shared_ptr<SceneComponent>>
     SlotProbeSceneComponent::clone(const SceneState &sceneState) const {
+
         (void)sceneState;
         auto clonedComponent = std::make_shared<SlotProbeSceneComponent>(*this);
         prepareClone(*clonedComponent);
