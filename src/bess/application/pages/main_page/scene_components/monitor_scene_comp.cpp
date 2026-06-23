@@ -32,11 +32,15 @@ namespace Bess::Canvas {
             .position = m_transform.position,
             .size = m_transform.scale,
             .zIndex = m_transform.position.z,
-            .color = ViewportTheme::colors.componentBG,
+            .color = ViewportTheme::colors.componentBG.withAlpha(0.7f),
             .id = pickingId,
             .radius = Styles::componentStyles.borderRadius,
             .shadow = {.enabled = true},
         });
+
+        const auto paddingSize =
+            glm::vec2(Styles::componentStyles.paddingX * 2.f,
+                      Styles::componentStyles.paddingY * 2.f);
 
         const glm::vec2 &topLeft =
             m_transform.position -
@@ -49,6 +53,9 @@ namespace Bess::Canvas {
         const auto textYOffset = context.renderer->textCenterOffsetY(
             m_name, {.fontSize = Styles::componentStyles.headerFontSize});
 
+        const auto textSize = context.renderer->measureText(
+            m_name, {.fontSize = Styles::componentStyles.headerFontSize});
+
         context.renderer->drawFont(
             m_name,
             {
@@ -57,6 +64,20 @@ namespace Bess::Canvas {
                 .zIndex = m_transform.position.z + 0.0001f,
                 .id = pickingId,
             });
+
+        context.renderer->drawQuad({
+            .position =
+                glm::vec2(m_transform.position) +
+                glm::vec2(0, textSize.y - Styles::componentStyles.paddingY),
+            .size =
+                m_transform.scale - paddingSize -
+                glm::vec2(
+                    0, textSize.y + (Styles::componentStyles.paddingY * 2.f)),
+            .zIndex = m_transform.position.z,
+            .color = ViewportTheme::colors.componentBG,
+            .id = {m_runtimeId, 2},
+            .radius = Styles::componentStyles.borderRadius,
+        });
 
         plotProbedData(context);
 

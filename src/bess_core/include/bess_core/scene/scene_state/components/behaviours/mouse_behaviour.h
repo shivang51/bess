@@ -6,14 +6,34 @@
 namespace Bess::Canvas {
     template <typename Derived> class MouseBehaviour {
       public:
-        virtual void onMouseHovered(const Events::MouseHoveredEvent &e) {
-        }
-        virtual void onMouseEnter(const Events::MouseEnterEvent &e) {
-        }
-        virtual void onMouseLeave(const Events::MouseLeaveEvent &e) {
+        [[nodiscard]] virtual bool
+        onMouseHovered(const Events::MouseHoveredEvent &e) {
+            return false;
         }
 
-        virtual void onMouseButton(const Events::MouseButtonEvent &e) {
+        [[nodiscard]] virtual bool
+        onMouseEnter(const Events::MouseEnterEvent &e) {
+            return false;
+        }
+
+        [[nodiscard]] virtual bool
+        onMouseLeave(const Events::MouseLeaveEvent &e) {
+            return false;
+        }
+
+        [[nodiscard]] virtual bool
+        onMouseButton(const Events::MouseButtonEvent &e) {
+            return false;
+        }
+
+        [[nodiscard]] virtual bool
+        onMouseWheel(const Events::MouseWheelEvent &e) {
+            return false;
+        }
+
+        [[nodiscard]] virtual bool
+        onMouseMove(const Events::MouseMoveEvent &e) {
+            return false;
         }
 
         friend Derived;

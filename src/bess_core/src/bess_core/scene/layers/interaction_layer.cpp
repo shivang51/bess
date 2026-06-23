@@ -135,17 +135,18 @@ namespace Bess::Canvas {
         queueMouseButtonEvent(evt, ctx, Events::MouseButton::left, action);
 
         if (evt.data.mouseButton.action == MouseButtonAction::doubleClick) {
+            bool res = false;
             if (pickingId.isValid()) {
                 if (auto comp =
                         ctx.sceneState->getComponentByPickingId(pickingId)) {
-                    comp->onMouseButton({evt.data.mouseButton.pos,
-                                         Events::MouseButton::left,
-                                         action,
-                                         pickingId.info,
-                                         ctx.sceneState});
+                    res = comp->onMouseButton({evt.data.mouseButton.pos,
+                                               Events::MouseButton::left,
+                                               action,
+                                               pickingId.info,
+                                               ctx.sceneState});
                 }
             }
-            return EventResult::Consumed;
+            return res ? EventResult::Consumed : EventResult::Ignored;
         }
 
         if (!isPressed) {
@@ -159,38 +160,42 @@ namespace Bess::Canvas {
             }
 
             auto &selBox = ctx.viewportCtx->selBoxCtx;
+            bool res = false;
 
             if (selBox.draw) {
                 selBox.draw = false;
                 selBox.queueSelInNextFrame = true;
                 selBox.end = input.mousePos;
+                res = true;
             } else if (input.isDragging) {
                 endActiveDrag(ctx);
+                res = true;
             } else if (pickingId.isValid()) {
                 if (auto comp =
                         ctx.sceneState->getComponentByPickingId(pickingId)) {
-                    comp->onMouseButton({evt.data.mouseButton.pos,
-                                         Events::MouseButton::left,
-                                         action,
-                                         pickingId.info,
-                                         ctx.sceneState});
+                    res = comp->onMouseButton({evt.data.mouseButton.pos,
+                                               Events::MouseButton::left,
+                                               action,
+                                               pickingId.info,
+                                               ctx.sceneState});
                 }
             }
 
-            return EventResult::Consumed;
+            return res ? EventResult::Consumed : EventResult::Ignored;
         }
 
+        bool res = false;
         if (pickingId.isValid()) {
             auto comp = ctx.sceneState->getComponentByPickingId(pickingId);
             if (!comp) {
-                return EventResult::Consumed;
+                return EventResult::Ignored;
             }
 
-            comp->onMouseButton({evt.data.mouseButton.pos,
-                                 Events::MouseButton::left,
-                                 action,
-                                 pickingId.info,
-                                 ctx.sceneState});
+            res = comp->onMouseButton({evt.data.mouseButton.pos,
+                                       Events::MouseButton::left,
+                                       action,
+                                       pickingId.info,
+                                       ctx.sceneState});
 
             if (evt.isCtrlPressed) {
                 if (ctx.sceneState->isComponentSelected(pickingId)) {
@@ -212,7 +217,7 @@ namespace Bess::Canvas {
             ctx.viewportCtx->drawMode = Core::Viewport::ViewportDrawMode::none;
         }
 
-        return EventResult::Consumed;
+        return res ? EventResult::Consumed : EventResult::Ignored;
     }
 
     EventResult InteractionLayer::handleMiddleMouseButton(
@@ -224,6 +229,7 @@ namespace Bess::Canvas {
                               ctx,
                               Events::MouseButton::middle,
                               toSceneMouseAction(evt.data.mouseButton.action));
+
         return EventResult::Consumed;
     }
 
@@ -236,14 +242,29 @@ namespace Bess::Canvas {
             return EventResult::Consumed;
         }
 
-        const auto &delta = evt.data.mouseWheel.delta;
-        if (evt.isCtrlPressed) {
-            ctx.camera->incrementZoomToPoint(evt.data.mouseWheel.pos,
-                                             delta.y * 0.1f);
-        } else {
-            glm::vec2 dPos = delta;
-            dPos *= 10.f / ctx.camera->getZoom() * -1.f;
-            ctx.camera->incrementPos(dPos);
+        const auto pickingId = ctx.viewportCtx->inputCtx.pickingId;
+        bool res = false;
+
+        if (pickingId.isValid()) {
+            if (auto comp =
+                    ctx.sceneState->getComponentByPickingId(pickingId)) {
+                res = comp->onMouseWheel({evt.data.mouseWheel.pos,
+                                          evt.data.mouseWheel.delta,
+                                          pickingId.info,
+                                          ctx.sceneState});
+            }
+        }
+
+        if (!res) {
+            const auto &delta = evt.data.mouseWheel.delta;
+            if (evt.isCtrlPressed) {
+                ctx.camera->incrementZoomToPoint(evt.data.mouseWheel.pos,
+                                                 delta.y * 0.1f);
+            } else {
+                glm::vec2 dPos = delta;
+                dPos *= 10.f / ctx.camera->getZoom() * -1.f;
+                ctx.camera->incrementPos(dPos);
+            }
         }
 
         return EventResult::Consumed;

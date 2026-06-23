@@ -86,6 +86,19 @@ namespace Bess::Canvas::Events {
         Canvas::SceneState *sceneState;
     };
 
+    struct MouseWheelEvent {
+        glm::vec2 mousePos;
+        glm::vec2 delta;
+        uint32_t details;
+        Canvas::SceneState *sceneState;
+    };
+
+    struct MouseMoveEvent {
+        glm::vec2 mousePos;
+        uint32_t details;
+        Canvas::SceneState *sceneState;
+    };
+
     struct ConnectionRemovedEvent {
         UUID slotAId;
         UUID slotBId;
