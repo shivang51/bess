@@ -18,4 +18,21 @@ namespace Bess::Core::Style {
         ColorScheme colorScheme = ColorScheme::fromJson(json["colorScheme"]);
         return {name, colorScheme};
     }
+
+    const TextStyle &BessTheme::getLabelSize() const {
+        return m_labelStyle;
+    }
+
+    const TextStyle &BessTheme::getHeaderSize() const {
+        return m_headerStyle;
+    }
+
+    const ElementStyle &BessTheme::getTextInputStyle() const {
+        return m_textInputStyle;
+    }
+
+    const ElementStyle &BessTheme::getButtonStyle() const {
+        return m_buttonStyle;
+    }
+
 } // namespace Bess::Core::Style

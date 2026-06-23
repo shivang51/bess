@@ -97,3 +97,11 @@
     ~className() = default;                                                    \
     className &operator=(const className &) = default;                         \
     className &operator=(className &&) = default;
+
+#define DEFAULT_CONTRS_VDES(className)                                         \
+    className() = default;                                                     \
+    className(const className &) = default;                                    \
+    className(className &&) = default;                                         \
+    virtual ~className() = default;                                            \
+    className &operator=(const className &) = default;                         \
+    className &operator=(className &&) = default;
