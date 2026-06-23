@@ -42,7 +42,7 @@ namespace Bess::Canvas {
         std::vector<UUID> cleanup(SceneState &state,
                                   UUID caller = UUID::null) override;
 
-        void onMouseButton(const Events::MouseButtonEvent &e) override;
+        bool onMouseButton(const Events::MouseButtonEvent &e) override;
 
         std::type_index getTypeIndex() override;
 

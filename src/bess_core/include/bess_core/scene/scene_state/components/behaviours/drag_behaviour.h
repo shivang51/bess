@@ -1,7 +1,7 @@
 #pragma once
 
-#include "event_dispatcher.h"
 #include "bess_core/scene/scene_events.h"
+#include "event_dispatcher.h"
 
 namespace Bess::Canvas {
     constexpr float SNAP_ANOUNT = 2.f;

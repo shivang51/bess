@@ -444,12 +444,14 @@ namespace Bess::Canvas {
         return commandPtr->getModuleComponent();
     }
 
-    void
+    bool
     ModuleSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
         if (e.button == Canvas::Events::MouseButton::left &&
             e.action == Canvas::Events::MouseClickAction::doubleClick) {
             auto viewportPanel = UI::UIMain::getTargetSceneViewportPanel();
             viewportPanel->updateAttachedSceneId(m_sceneId);
+            return true;
         }
+        return false;
     }
 } // namespace Bess::Canvas

@@ -1,14 +1,14 @@
 #include "conn_joint_scene_component.h"
-#include "common/bess_uuid.h"
-#include "connection_scene_component.h"
-#include "geometric.hpp"
-#include "pages/main_page/cmds/add_comp_cmd.h"
-#include "pages/main_page/main_page.h"
 #include "bess_core/scene/scene_draw_helpers.h"
 #include "bess_core/scene/scene_state/components/scene_component_types.h"
 #include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/settings/viewport_theme.h"
+#include "common/bess_uuid.h"
+#include "connection_scene_component.h"
+#include "geometric.hpp"
+#include "pages/main_page/cmds/add_comp_cmd.h"
+#include "pages/main_page/main_page.h"
 #include "sim_scene_component.h"
 #include "slot_scene_component.h"
 
@@ -161,18 +161,20 @@ namespace Bess::Canvas {
             pickingId);
     }
 
-    void ConnJointSceneComp::onMouseEnter(const Events::MouseEnterEvent &e) {
+    bool ConnJointSceneComp::onMouseEnter(const Events::MouseEnterEvent &e) {
         auto &appCtx = GAppContext::getInstance();
         auto window = appCtx.getSubSystem<Window>();
         window->getui().setCursorPointer();
         m_isHovered = true;
+        return true;
     }
 
-    void ConnJointSceneComp::onMouseLeave(const Events::MouseLeaveEvent &e) {
+    bool ConnJointSceneComp::onMouseLeave(const Events::MouseLeaveEvent &e) {
         auto &appCtx = GAppContext::getInstance();
         auto window = appCtx.getSubSystem<Window>();
         window->getui().setCursorNormal();
         m_isHovered = false;
+        return true;
     }
 
     glm::vec3
@@ -244,12 +246,14 @@ namespace Bess::Canvas {
         }
     }
 
-    void ConnJointSceneComp::onMouseButton(const Events::MouseButtonEvent &e) {
+    bool ConnJointSceneComp::onMouseButton(const Events::MouseButtonEvent &e) {
         if (e.action == Events::MouseClickAction::press) {
             if (e.button == Events::MouseButton::left) {
                 onMouseLeftClick(e);
+                return true;
             }
         }
+        return false;
     }
 
     SimEngine::SlotState
@@ -263,17 +267,18 @@ namespace Bess::Canvas {
         m_connections.emplace_back(connectionId);
     }
 
-    void
+    bool
     ConnJointSceneComp::onMouseLeftClick(const Events::MouseButtonEvent &e) {
         auto &connStartSlot = e.sceneState->getConnectionStartSlot();
 
         if (connStartSlot == UUID::null) {
             connStartSlot = m_uuid;
-            return;
+            return true;
         }
 
         connectWith(*e.sceneState, connStartSlot);
         connStartSlot = UUID::null;
+        return true;
     }
 
     bool ConnJointSceneComp::connectWith(SceneState &sceneState,

@@ -36,10 +36,10 @@ namespace Bess::Canvas {
 
         void drawSchematic(SceneDrawContext &drawContext) override;
 
-        void onMouseEnter(const Events::MouseEnterEvent &e) override;
-        void onMouseLeave(const Events::MouseLeaveEvent &e) override;
+        bool onMouseEnter(const Events::MouseEnterEvent &e) override;
+        bool onMouseLeave(const Events::MouseLeaveEvent &e) override;
 
-        void onMouseButton(const Events::MouseButtonEvent &e) override;
+        bool onMouseButton(const Events::MouseButtonEvent &e) override;
 
         std::vector<std::shared_ptr<SceneComponent>>
         clone(const SceneState &sceneState) const override;
@@ -80,7 +80,7 @@ namespace Bess::Canvas {
         glm::vec3 getSchematicPosAbsolute(const SceneState &state,
                                           bool isSchematicMode) const;
 
-        void onMouseLeftClick(const Events::MouseButtonEvent &e);
+        bool onMouseLeftClick(const Events::MouseButtonEvent &e);
 
       private:
         glm::vec3 m_schematicPos = glm::vec3(0.f);

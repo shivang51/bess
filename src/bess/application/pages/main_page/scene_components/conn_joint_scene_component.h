@@ -57,13 +57,13 @@ namespace Bess::Canvas {
 
         SimEngine::SlotState getSlotState(const SceneState &state) const;
         void onMouseDragged(const Events::MouseDraggedEvent &e) override;
-        void onMouseEnter(const Events::MouseEnterEvent &e) override;
-        void onMouseLeave(const Events::MouseLeaveEvent &e) override;
-        void onMouseButton(const Events::MouseButtonEvent &e) override;
+        bool onMouseEnter(const Events::MouseEnterEvent &e) override;
+        bool onMouseLeave(const Events::MouseLeaveEvent &e) override;
+        bool onMouseButton(const Events::MouseButtonEvent &e) override;
 
         glm::vec3 getAbsolutePosition(const SceneState &state,
                                       bool isSchematicMode) const override;
-        void onMouseLeftClick(const Events::MouseButtonEvent &e);
+        bool onMouseLeftClick(const Events::MouseButtonEvent &e);
 
         void removeConnection(const UUID &connectionId);
         std::vector<UUID> cleanup(SceneState &state,

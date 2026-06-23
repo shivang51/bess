@@ -48,9 +48,9 @@ namespace Bess::Canvas {
 
         void onMouseDragged(const Events::MouseDraggedEvent &e) override;
         void onMouseDragBegin(const Events::MouseDraggedEvent &e) override;
-        void onMouseEnter(const Events::MouseEnterEvent &e) override;
-        void onMouseLeave(const Events::MouseLeaveEvent &e) override;
-        void onMouseButton(const Events::MouseButtonEvent &e) override;
+        bool onMouseEnter(const Events::MouseEnterEvent &e) override;
+        bool onMouseLeave(const Events::MouseLeaveEvent &e) override;
+        bool onMouseButton(const Events::MouseButtonEvent &e) override;
 
         REG_SCENE_COMP_TYPE("ConnSceneComponent",
                             SceneComponentType::connection)

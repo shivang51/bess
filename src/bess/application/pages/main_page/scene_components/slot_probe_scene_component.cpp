@@ -121,7 +121,7 @@ namespace Bess::Canvas {
         }
     }
 
-    void
+    bool
     SlotProbeSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
         if (e.action == Events::MouseClickAction::press &&
             e.button == Events::MouseButton::left) {
@@ -135,9 +135,11 @@ namespace Bess::Canvas {
                     comp->getSlotType() != SlotType::outputsResize) {
                     setProbedSlotUuid(e.sceneState->getConnectionStartSlot());
                     e.sceneState->setConnectionStartSlot(UUID::null);
+                    return true;
                 }
             }
         }
+        return false;
     }
 
     void SlotProbeSceneComponent::onProbedSlotChanged() {

@@ -1,4 +1,5 @@
 #include "pages/main_page/scene_components/monitor_scene_comp.h"
+
 #include "bess_core/project_context.h"
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/renderer/renderer_types.h"
@@ -8,6 +9,7 @@
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "simulation_engine.h"
+#include <algorithm>
 
 namespace Bess::Canvas {
     MonitorSceneComp::MonitorSceneComp() {
@@ -133,12 +135,13 @@ namespace Bess::Canvas {
             auto prev = data.front();
             auto timeSec = std::chrono::duration<float>(prev.first).count();
             const auto offset =
-                glm::vec2(startPos) - glm::vec2(timeSec * 10, 25.f);
+                glm::vec2(startPos) - glm::vec2(timeSec * m_scale, 25.f);
 
             for (size_t i = 0; i < data.size(); ++i) {
                 auto &[time, voltage] = data[i];
                 timeSec = std::chrono::duration<float>(time).count();
-                auto pos = glm::vec2(timeSec * 10, voltage * 10) + offset;
+                auto pos =
+                    glm::vec2(timeSec * m_scale, voltage * m_scale) + offset;
 
                 if (i == 0) {
                     context.renderer->pathMoveTo(pos);
@@ -150,7 +153,8 @@ namespace Bess::Canvas {
                 if (i + 1 < data.size()) {
                     auto &[_, voltageN] = data[i + 1];
                     auto nextPos =
-                        glm::vec2(timeSec * 10, voltageN * 10) + offset;
+                        glm::vec2(timeSec * m_scale, voltageN * m_scale) +
+                        offset;
                     context.renderer->pathLineTo(nextPos, 1.f);
                 }
             }
@@ -162,7 +166,7 @@ namespace Bess::Canvas {
     void MonitorSceneComp::update(TimeMs frameTime, SceneState &state) {
     }
 
-    void MonitorSceneComp::onMouseButton(const Events::MouseButtonEvent &e) {
+    bool MonitorSceneComp::onMouseButton(const Events::MouseButtonEvent &e) {
         if (e.action == Events::MouseClickAction::press &&
             e.button == Events::MouseButton::left) {
             const auto &connStartSlot = e.sceneState->getConnectionStartSlot();
@@ -176,9 +180,22 @@ namespace Bess::Canvas {
                     addSlotProbe(*e.sceneState,
                                  e.sceneState->getConnectionStartSlot());
                     e.sceneState->setConnectionStartSlot(UUID::null);
+                    return true;
                 }
             }
         }
+
+        return false;
+    }
+
+    bool MonitorSceneComp::onMouseWheel(const Events::MouseWheelEvent &e) {
+        if (e.details != 2) {
+            return false;
+        }
+
+        m_scale += e.delta.y;
+        m_scale = std::max(m_scale, 0.1f);
+        return true;
     }
 
     void MonitorSceneComp::addSlotProbe(const SceneState &sceneState,

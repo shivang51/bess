@@ -23,7 +23,8 @@ namespace Bess::Canvas {
 
         void update(TimeMs frameTime, SceneState &state) override;
 
-        void onMouseButton(const Events::MouseButtonEvent &e) override;
+        bool onMouseButton(const Events::MouseButtonEvent &e) override;
+        bool onMouseWheel(const Events::MouseWheelEvent &e) override;
 
         void addSlotProbe(const SceneState &sceneState, const UUID &slotUuid);
 
@@ -47,6 +48,7 @@ namespace Bess::Canvas {
       private:
         OrderedSet<UUID> m_probedSlots;
         HashMap<UUID, std::vector<std::pair<TimeNs, float>>> m_probeData;
+        float m_scale = 10.f;
     };
 
 } // namespace Bess::Canvas

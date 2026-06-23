@@ -2,7 +2,14 @@
 #include "bess_core/connection_service.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "bess_core/scene/scene_draw_context.h"
+#include "bess_core/scene/scene_draw_helpers.h"
+#include "bess_core/scene/scene_state/components/scene_component.h"
+#include "bess_core/scene/scene_state/components/scene_component_types.h"
+#include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
+#include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene_driver.h"
+#include "bess_core/settings/viewport_theme.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
@@ -13,13 +20,6 @@
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
-#include "bess_core/scene/scene_draw_helpers.h"
-#include "bess_core/scene/scene_state/components/scene_component.h"
-#include "bess_core/scene/scene_state/components/scene_component_types.h"
-#include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
-#include "bess_core/scene/scene_state/scene_state.h"
-#include "bess_core/scene/scene_draw_context.h"
-#include "bess_core/settings/viewport_theme.h"
 #include "slot_scene_component.h"
 #include "ui/ui_main/ui_main.h"
 
@@ -36,8 +36,7 @@ namespace Bess::Canvas {
                                           SceneState &sceneState) {
         if (m_segmentPosCacheDirty) {
             const auto &viewport = UI::UIMain::getTargetSceneViewportPanel();
-            resetSegmentPositionCache(sceneState,
-                                      viewport->isSchematicMode());
+            resetSegmentPositionCache(sceneState, viewport->isSchematicMode());
         }
     }
 
@@ -364,20 +363,22 @@ namespace Bess::Canvas {
         m_isFirstDraw = false;
     }
 
-    void
+    bool
     ConnectionSceneComponent::onMouseEnter(const Events::MouseEnterEvent &e) {
         m_hoveredSegIdx = (int)e.details;
         auto &appCtx = GAppContext::getInstance();
         auto window = appCtx.getSubSystem<Window>();
         window->getui().setCursorPointer();
+        return true;
     }
 
-    void
+    bool
     ConnectionSceneComponent::onMouseLeave(const Events::MouseLeaveEvent &e) {
         m_hoveredSegIdx = -1;
         auto &appCtx = GAppContext::getInstance();
         auto window = appCtx.getSubSystem<Window>();
         window->getui().setCursorNormal();
+        return true;
     }
 
     std::vector<UUID> ConnectionSceneComponent::cleanup(SceneState &state,
@@ -402,11 +403,11 @@ namespace Bess::Canvas {
         return {};
     }
 
-    void
+    bool
     ConnectionSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
         if (e.action != Events::MouseClickAction::press ||
             e.button != Events::MouseButton::left)
-            return;
+            return false;
 
         const int segIdx = (int)e.details;
         const auto &viewport = UI::UIMain::getTargetSceneViewportPanel();
@@ -475,8 +476,10 @@ namespace Bess::Canvas {
                                    e.sceneState->getConnectionStartSlot());
 
             e.sceneState->setConnectionStartSlot(UUID::null);
-            return;
+            return true;
         }
+
+        return false;
     }
 
     void ConnectionSceneComponent::resetSegmentPositionCache(

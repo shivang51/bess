@@ -29,26 +29,30 @@ namespace Bess::Canvas {
         return {clonedComponent};
     }
 
-    void SlotSceneComponent::onMouseEnter(const Events::MouseEnterEvent &e) {
+    bool SlotSceneComponent::onMouseEnter(const Events::MouseEnterEvent &e) {
         auto &appCtx = GAppContext::getInstance();
         auto window = appCtx.getSubSystem<Window>();
         window->getui().setCursorPointer();
         m_isHovered = true;
+        return true;
     }
 
-    void SlotSceneComponent::onMouseLeave(const Events::MouseLeaveEvent &e) {
+    bool SlotSceneComponent::onMouseLeave(const Events::MouseLeaveEvent &e) {
         auto &appCtx = GAppContext::getInstance();
         auto window = appCtx.getSubSystem<Window>();
         window->getui().setCursorNormal();
         m_isHovered = false;
+        return true;
     }
 
-    void SlotSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
+    bool SlotSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
         if (e.action == Events::MouseClickAction::press) {
             if (e.button == Events::MouseButton::left) {
                 onMouseLeftClick(e);
+                return true;
             }
         }
+        return false;
     }
 
     void SlotSceneComponent::draw(SceneDrawContext &drawContext) {
@@ -336,12 +340,12 @@ namespace Bess::Canvas {
                m_schematicPos;
     }
 
-    void
+    bool
     SlotSceneComponent::onMouseLeftClick(const Events::MouseButtonEvent &e) {
         const auto &connStartSlot = e.sceneState->getConnectionStartSlot();
         if (connStartSlot == UUID::null) {
             e.sceneState->setConnectionStartSlot(m_uuid);
-            return;
+            return true;
         }
 
         SceneComponent *startComp =
@@ -375,7 +379,7 @@ namespace Bess::Canvas {
                       (uint64_t)m_uuid,
                       reason);
             e.sceneState->setConnectionStartSlot(UUID::null);
-            return;
+            return true;
         }
 
         UUID starSlotUuid =
@@ -391,7 +395,7 @@ namespace Bess::Canvas {
                        (uint64_t)connStartSlot,
                        (uint64_t)m_uuid);
             e.sceneState->setConnectionStartSlot(UUID::null);
-            return;
+            return false;
         }
 
         auto &cmdManager =
@@ -405,6 +409,7 @@ namespace Bess::Canvas {
                   (uint64_t)m_uuid);
 
         e.sceneState->setConnectionStartSlot(UUID::null);
+        return true;
     }
 
     void SlotSceneComponent::onRuntimeIdChanged() {
