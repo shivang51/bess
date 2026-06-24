@@ -23,6 +23,7 @@ namespace Bess::Canvas {
         m_rootComponents.clear();
         m_freeRuntimeIds.clear();
         m_selectedComponents.clear();
+        m_uiNodeRegistry = std::make_shared<UI::UINodeRegistry>();
 
         // 0 will be used by widgets
         m_runtimeIdMap[0] = UUID::null;
@@ -311,6 +312,10 @@ namespace Bess::Canvas {
     bool SceneState::isRootComponent(const UUID &uuid) const {
         return m_rootComponents.contains(uuid);
     }
+
+    SceneState::SceneState() {
+        clear();
+    };
 
     SceneState::SceneState(const SceneState &scene) {
         BESS_ERROR("SceneState copy is not allowed");

@@ -215,7 +215,7 @@ namespace Bess::Canvas {
             m_outputSlotId);
 
         const bool isSchematic =
-            UI::UIMain::getTargetSceneViewportPanel()->isSchematicMode();
+            Bess::UI::UIMain::getTargetSceneViewportPanel()->isSchematicMode();
 
         const glm::vec3 &segStartPos =
             conn->getSegVertexPos(*e.sceneState, m_connSegIdx, isSchematic);

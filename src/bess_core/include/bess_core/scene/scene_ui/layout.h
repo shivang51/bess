@@ -9,7 +9,6 @@
 #include "common/types.h"
 #include "ext/vector_float2.hpp"
 #include "ext/vector_float4.hpp"
-#include <cstddef>
 #include <cstdint>
 
 namespace Bess::Canvas::UI {
@@ -29,27 +28,24 @@ namespace Bess::Canvas::UI {
 
     class UINode;
 
-    struct UINodeIdHash {
-        std::size_t operator()(const UUID &id) const {
-            return (uint64_t)id;
-        }
-    };
+    ;
 
     class BESS_API UINodeRegistry {
       public:
         UINodeRegistry() = default;
 
-        void addNode(const UINode &node);
+        UINode *addNode(const UINode &node);
 
         void removeNode(const UUID &id);
 
         UINode *getNode(const UUID &id);
         const UINode *getNode(const UUID &id) const;
 
-        const HashMap<UUID, UINode> &getAllNodes() const;
+        using NodesMap = HashMap<UUID, UINode>;
+        MAKE_GETTER(NodesMap, AllNodes, m_nodes);
 
       private:
-        HashMap<UUID, UINode> m_nodes;
+        NodesMap m_nodes;
     };
 
     // UINode represents a node in the UI layout tree.
@@ -95,6 +91,7 @@ namespace Bess::Canvas::UI {
         MAKE_GETTER(glm::vec2, CachedSize, m_cachedSize);
         MAKE_GETTER(glm::vec2, DrawSize, m_drawSize);
         MAKE_GETTER(float, CachedZVal, m_cachedZVal);
+        MAKE_GETTER(UUID, ParentId, m_parentId);
 
         const LayoutDirection &getDirection() const;
 
@@ -126,9 +123,9 @@ namespace Bess::Canvas::UI {
 
         float &getZVal();
 
-        void addChild(const UUID &childId);
+        void addChild(UINode *node);
 
-        void removeChild(const UUID &childId);
+        void removeChild(UINode *node);
 
         void clearChildren();
 
@@ -177,5 +174,7 @@ namespace Bess::Canvas::UI {
         glm::vec2 m_cachedPos{0};
         glm::vec2 m_cachedSize{-1};
         glm::vec2 m_drawSize{0};
+
+        UUID m_parentId = UUID::null;
     };
 } // namespace Bess::Canvas::UI

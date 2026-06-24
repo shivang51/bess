@@ -27,30 +27,30 @@ namespace Bess::Canvas {
     } // namespace
 
     void ScratchLayer::init(SceneLifecycleContext &ctx) {
-        Bess::Canvas::UI::UINode node;
-        node.setSize(size);
-        node.setPadding(padding);
-        node.setMargin(margin);
-        node.setSizeConstraint(Bess::Canvas::UI::SizeContraint::wrap_content);
-        node.setAlignment(Bess::Canvas::UI::LayoutAlignment::center);
-
-        {
-            Bess::Canvas::UI::UINode childNode1;
-            childNode1.setSize(glm::vec2(50, 50));
-            childNode1.setMargin(glm::vec4(5, 50, 5, 5));
-            registry.addNode(childNode1);
-            node.addChild(childNode1.getId());
-        }
-
-        {
-            Bess::Canvas::UI::UINode childNode2;
-            childNode2.setSize(glm::vec2(30, 30));
-            registry.addNode(childNode2);
-            node.addChild(childNode2.getId());
-        }
-
-        registry.addNode(node);
-        rootNode = registry.getNode(node.getId());
+        // Bess::Canvas::UI::UINode node;
+        // node.setSize(size);
+        // node.setPadding(padding);
+        // node.setMargin(margin);
+        // node.setSizeConstraint(Bess::Canvas::UI::SizeContraint::wrap_content);
+        // node.setAlignment(Bess::Canvas::UI::LayoutAlignment::center);
+        //
+        // {
+        //     Bess::Canvas::UI::UINode childNode1;
+        //     childNode1.setSize(glm::vec2(50, 50));
+        //     childNode1.setMargin(glm::vec4(5, 50, 5, 5));
+        //     registry.addNode(childNode1);
+        //     node.addChild(childNode1.getId());
+        // }
+        //
+        // {
+        //     Bess::Canvas::UI::UINode childNode2;
+        //     childNode2.setSize(glm::vec2(30, 30));
+        //     registry.addNode(childNode2);
+        //     node.addChild(childNode2.getId());
+        // }
+        //
+        // registry.addNode(node);
+        // rootNode = registry.getNode(node.getId());
     }
 
     void ScratchLayer::update(TimeMs ts, SceneUpdateContext &ctx) {

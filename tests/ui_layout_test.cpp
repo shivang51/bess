@@ -79,8 +79,8 @@ TEST_F(UiLayoutTests, UINodeMeasure) {
 
     Bess::Canvas::UI::UINode childNode;
     childNode.setSize(glm::vec2(20, 10));
-    registry.addNode(childNode);
-    node.addChild(childNode.getId());
+    auto childNodePtr = registry.addNode(childNode);
+    node.addChild(childNodePtr);
 
     measuredSize = node.measure(registry, Bess::UUID::null);
     worldSize = node.getCachedSize();
@@ -93,7 +93,6 @@ TEST_F(UiLayoutTests, UINodeMeasure) {
                paddingSize.x + 20 + marginSize.x,
                paddingSize.y + 10 + marginSize.y);
 
-    auto childNodePtr = registry.getNode(childNode.getId());
     ASSERT_NE(childNodePtr, nullptr);
     expectVec2(childNodePtr->getCachedSize(), 20, 10);
     expectVec2(childNodePtr->getDrawSize(), 20, 10);
@@ -152,17 +151,15 @@ TEST_F(UiLayoutTests, UINodeLayout) {
     {
         Bess::Canvas::UI::UINode childNode1;
         childNode1.setSize(glm::vec2(50, 50));
-        registry.addNode(childNode1);
-        parentNode.addChild(childNode1.getId());
-        childNode1Ptr = registry.getNode(childNode1.getId());
+        childNode1Ptr = registry.addNode(childNode1);
+        parentNode.addChild(childNode1Ptr);
     }
 
     {
         Bess::Canvas::UI::UINode childNode2;
         childNode2.setSize(glm::vec2(30, 30));
-        registry.addNode(childNode2);
-        parentNode.addChild(childNode2.getId());
-        childNode2Ptr = registry.getNode(childNode2.getId());
+        childNode2Ptr = registry.addNode(childNode2);
+        parentNode.addChild(childNode2Ptr);
     }
 
     EXPECT_EQ(parentNode.getAlignment(),
@@ -203,18 +200,16 @@ TEST_F(UiLayoutTests, UINodeLayoutHonorsMarginAndCenterAlignment) {
     Bess::Canvas::UI::UINode childNode1;
     childNode1.setSize(glm::vec2(50, 50));
     childNode1.setMargin(glm::vec4(5, 50, 5, 5));
-    registry.addNode(childNode1);
-    parentNode.addChild(childNode1.getId());
+    auto childNode1Ptr = registry.addNode(childNode1);
+    parentNode.addChild(childNode1Ptr);
 
     Bess::Canvas::UI::UINode childNode2;
     childNode2.setSize(glm::vec2(30, 30));
-    registry.addNode(childNode2);
-    parentNode.addChild(childNode2.getId());
+    auto childNode2Ptr = registry.addNode(childNode2);
+    parentNode.addChild(childNode2Ptr);
 
     parentNode.layout(registry, Bess::UUID::null);
 
-    const auto *childNode1Ptr = registry.getNode(childNode1.getId());
-    const auto *childNode2Ptr = registry.getNode(childNode2.getId());
     ASSERT_NE(childNode1Ptr, nullptr);
     ASSERT_NE(childNode2Ptr, nullptr);
 
@@ -235,13 +230,13 @@ TEST_F(UiLayoutTests, UINodeLayoutHonorsEndAlignmentInVerticalFlow) {
 
     Bess::Canvas::UI::UINode childNode;
     childNode.setSize(glm::vec2(20, 30));
-    registry.addNode(childNode);
-    parentNode.addChild(childNode.getId());
+    auto childNodePtr = registry.addNode(childNode);
+    ASSERT_NE(childNodePtr, nullptr);
+
+    parentNode.addChild(childNodePtr);
 
     parentNode.layout(registry, Bess::UUID::null);
 
-    const auto *childNodePtr = registry.getNode(childNode.getId());
-    ASSERT_NE(childNodePtr, nullptr);
     expectVec2(childNodePtr->getCachedPos(), 40, -35);
 }
 
@@ -255,13 +250,12 @@ TEST_F(UiLayoutTests, UINodeRelativeSizeUsesParentContentBox) {
     Bess::Canvas::UI::UINode childNode;
     childNode.setSizeUnit(Bess::Canvas::UI::Unit::relative);
     childNode.setSize(glm::vec2(0.5f, 0.25f));
-    registry.addNode(childNode);
-    parentNode.addChild(childNode.getId());
+    auto childNodePtr = registry.addNode(childNode);
+    ASSERT_NE(childNodePtr, nullptr);
+    parentNode.addChild(childNodePtr);
 
     parentNode.layout(registry, Bess::UUID::null);
 
-    const auto *childNodePtr = registry.getNode(childNode.getId());
-    ASSERT_NE(childNodePtr, nullptr);
     expectVec2(childNodePtr->getDrawSize(), 90, 20);
     expectVec2(childNodePtr->getCachedPos(), -45, -30);
 }
@@ -274,20 +268,18 @@ TEST_F(UiLayoutTests, UINodeLayoutRefreshesWhenChildSizeChanges) {
 
     Bess::Canvas::UI::UINode childNode1;
     childNode1.setSize(glm::vec2(50, 50));
-    registry.addNode(childNode1);
-    parentNode.addChild(childNode1.getId());
+    auto childNode1Ptr = registry.addNode(childNode1);
+    ASSERT_NE(childNode1Ptr, nullptr);
+    parentNode.addChild(childNode1Ptr);
 
     Bess::Canvas::UI::UINode childNode2;
     childNode2.setSize(glm::vec2(30, 30));
-    registry.addNode(childNode2);
-    parentNode.addChild(childNode2.getId());
+    auto childNode2Ptr = registry.addNode(childNode2);
+    ASSERT_NE(childNode2Ptr, nullptr);
+    parentNode.addChild(childNode2Ptr);
 
     parentNode.layout(registry, Bess::UUID::null);
 
-    auto *childNode1Ptr = registry.getNode(childNode1.getId());
-    const auto *childNode2Ptr = registry.getNode(childNode2.getId());
-    ASSERT_NE(childNode1Ptr, nullptr);
-    ASSERT_NE(childNode2Ptr, nullptr);
     expectVec2(childNode2Ptr->getCachedPos(), -35, -35);
 
     childNode1Ptr->setSize(glm::vec2(100, 50));

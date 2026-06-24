@@ -2,17 +2,19 @@
 #include "json/value.h"
 
 #include "bess_core/renderer/renderer_2d.h"
-#include "ext/matrix_transform.hpp"
+#include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_state/components/scene_component_types.h"
 #include "bess_core/scene/scene_state/components/styles/comp_style.h"
 #include "bess_core/scene/scene_state/scene_state.h"
-#include "bess_core/scene/scene_draw_context.h"
+#include "ext/matrix_transform.hpp"
 #include "ui/icons/FontAwesomeIcons_Remapped.h"
+
+namespace Icons = Bess::UI::Icons;
 
 namespace Bess::Canvas {
     SceneComponent::SceneComponent()
         : m_uuid{UUID()},
-          m_icon(UI::Icons::FontAwesomeIcons::FA_CUBE) {
+          m_icon(Icons::FontAwesomeIcons::FA_CUBE) {
     }
 
     bool SceneComponent::isDraggable() const {

@@ -35,7 +35,8 @@ namespace Bess::Canvas {
     void ConnectionSceneComponent::update(TimeMs frameTime,
                                           SceneState &sceneState) {
         if (m_segmentPosCacheDirty) {
-            const auto &viewport = UI::UIMain::getTargetSceneViewportPanel();
+            const auto &viewport =
+                Bess::UI::UIMain::getTargetSceneViewportPanel();
             resetSegmentPositionCache(sceneState, viewport->isSchematicMode());
         }
     }
@@ -262,7 +263,7 @@ namespace Bess::Canvas {
             onMouseDragBegin(e);
         }
 
-        const auto &viewport = UI::UIMain::getTargetSceneViewportPanel();
+        const auto &viewport = Bess::UI::UIMain::getTargetSceneViewportPanel();
 
         auto &segs =
             viewport->isSchematicMode() ? m_schematicSegments : m_segments;
@@ -410,7 +411,7 @@ namespace Bess::Canvas {
             return false;
 
         const int segIdx = (int)e.details;
-        const auto &viewport = UI::UIMain::getTargetSceneViewportPanel();
+        const auto &viewport = Bess::UI::UIMain::getTargetSceneViewportPanel();
         const auto isSchematic = viewport->isSchematicMode();
 
         if (e.sceneState->getConnectionStartSlot() != UUID::null) {

@@ -41,7 +41,7 @@ namespace Bess::Canvas {
     } // namespace
 
     InputSceneComponent::InputSceneComponent() {
-        m_icon = UI::Icons::FontAwesomeIcons::FA_TOGGLE_OFF;
+        m_icon = Bess::UI::Icons::FontAwesomeIcons::FA_TOGGLE_OFF;
     }
 
     void InputSceneComponent::update(TimeMs ts, SceneState &state) {

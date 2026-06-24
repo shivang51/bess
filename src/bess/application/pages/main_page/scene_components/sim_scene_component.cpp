@@ -24,6 +24,9 @@
 #include <cstdint>
 #include <unordered_set>
 
+namespace Icons = Bess::UI::Icons;
+namespace Widgets = Bess::UI::Widgets;
+
 namespace Bess::Canvas {
     uint32_t SimulationSceneComponent::s_nodeShader = 0;
     size_t SimulationSceneComponent::s_instanceCount = 0;
@@ -31,7 +34,7 @@ namespace Bess::Canvas {
     constexpr float SNAP_AMOUNT = 2.f;
 
     SimulationSceneComponent::SimulationSceneComponent() {
-        m_icon = UI::Icons::FontAwesomeIcons::FA_MICROCHIP;
+        m_icon = Icons::FontAwesomeIcons::FA_MICROCHIP;
 
         if (s_nodeShader == 0) {
             const auto &appCtx = Bess::GAppContext::getInstance();
@@ -671,7 +674,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         newPos = glm::round(newPos / SNAP_AMOUNT) * SNAP_AMOUNT;
 
         const bool isSchematic =
-            UI::UIMain::getTargetSceneViewportPanel()->isSchematicMode();
+            Bess::UI::UIMain::getTargetSceneViewportPanel()->isSchematicMode();
 
         if (isSchematic) {
             m_schematicTransform.position =
@@ -901,7 +904,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         SceneComponent::drawPropertiesUI(state);
 
         // Width and Height
-        if (UI::Widgets::TreeNode(0, "Size")) {
+        if (Widgets::TreeNode(0, "Size")) {
             float width = m_transform.scale.x;
             float height = m_transform.scale.y;
             if (ImGui::InputFloat("Width", &width, 1.f, 1000.f) ||
@@ -914,7 +917,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         }
 
         // Input Slots Names
-        if (UI::Widgets::TreeNode(0, "Input Slots")) {
+        if (Widgets::TreeNode(0, "Input Slots")) {
             for (size_t i = 0; i < m_inputSlots.size(); i++) {
                 const auto slotComp =
                     state.getComponentByUuid<SlotSceneComponent>(
@@ -923,7 +926,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
                     continue;
                 }
                 std::string label = "Input Slot " + std::to_string(i);
-                if (UI::Widgets::TextBox(label, slotComp->getName())) {
+                if (Widgets::TextBox(label, slotComp->getName())) {
                     slotComp->onNameChanged();
                 }
             }
@@ -931,7 +934,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         }
 
         // Output Slots Names
-        if (UI::Widgets::TreeNode(0, "Output Slots")) {
+        if (Widgets::TreeNode(0, "Output Slots")) {
             for (size_t i = 0; i < m_outputSlots.size(); i++) {
                 const auto slotComp =
                     state.getComponentByUuid<SlotSceneComponent>(
@@ -940,7 +943,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
                     continue;
                 }
                 std::string label = "Output Slot " + std::to_string(i);
-                if (UI::Widgets::TextBox(label, slotComp->getName())) {
+                if (Widgets::TextBox(label, slotComp->getName())) {
                     slotComp->onNameChanged();
                 }
             }

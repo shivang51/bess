@@ -2,6 +2,7 @@
 
 #include "bess_core/g_app_context.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
+#include "bess_core/scene/scene_ui/layout.h"
 #include "common/bess_uuid.h"
 #include "common/types.h"
 #include "event_dispatcher.h"
@@ -12,7 +13,7 @@
 namespace Bess::Canvas {
     class SceneState {
       public:
-        SceneState() = default;
+        SceneState();
         ~SceneState() = default;
 
         SceneState(const SceneState &);
@@ -108,6 +109,9 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(UUID, ModuleId, m_moduleId);
         MAKE_GETTER_SETTER(UUID, SceneId, m_sceneId);
         MAKE_GETTER_SETTER(UUID, ParentSceneId, m_parentSceneId);
+        MAKE_GETTER_SETTER(std::shared_ptr<UI::UINodeRegistry>,
+                           UINodeRegistry,
+                           m_uiNodeRegistry);
 
         // Removes the parent reference of the component,
         // but keeps this component in parents children list,
@@ -166,6 +170,8 @@ namespace Bess::Canvas {
         glm::vec2 m_mousePos;
 
         mutable std::mutex m_componentsMutex;
+
+        std::shared_ptr<UI::UINodeRegistry> m_uiNodeRegistry;
     };
 } // namespace Bess::Canvas
 

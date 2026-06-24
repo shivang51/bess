@@ -17,6 +17,8 @@
 #include <cstdint>
 #include <utility>
 
+namespace Icons = Bess::UI::Icons;
+
 namespace Bess::Canvas {
     namespace {
         constexpr float padding = 8.f;
@@ -33,14 +35,10 @@ namespace Bess::Canvas {
                 ctx.camera->toWorldPos(ctx.viewportCtx->inputCtx.mousePos);
 
             // aligns the text to the right, padding the left side with spaces
-            const std::string xText =
-                std::format("{} {:>9.2f}",
-                            UI::Icons::FontAwesomeIcons::FA_X,
-                            mouseWorldPos.x);
-            const std::string yText =
-                std::format("{} {:>9.2f}",
-                            UI::Icons::FontAwesomeIcons::FA_Y,
-                            mouseWorldPos.y);
+            const std::string xText = std::format(
+                "{} {:>9.2f}", Icons::FontAwesomeIcons::FA_X, mouseWorldPos.x);
+            const std::string yText = std::format(
+                "{} {:>9.2f}", Icons::FontAwesomeIcons::FA_Y, mouseWorldPos.y);
 
             const auto textOffY = ctx.renderer->textCenterOffsetY(
                 xText,
@@ -160,7 +158,7 @@ namespace Bess::Canvas {
                 });
 
             ctx.renderer->drawFont(
-                std::format(" {}", UI::Icons::CodIcons::ZOOM_IN),
+                std::format(" {}", Icons::CodIcons::ZOOM_IN),
                 {
                     .position = {textPos.x + (textSize.x / 2.f) + 8.f,
                                  textPos.y + 2.f},
@@ -325,7 +323,7 @@ namespace Bess::Canvas {
                 cursor.x += buttonSize.x + padding;
 
                 ctx.renderer->drawFont(
-                    UI::Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT,
+                    Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT,
                     {
                         .position = {cursor.x, cursor.y + textOffY},
                         .fontSize = fontSize,
@@ -381,7 +379,7 @@ namespace Bess::Canvas {
                                        const glm::vec2 &offset) {
             constexpr glm::vec2 buttonSize =
                 Core::Renderer::IRenderer2D::getTextRenderSize(
-                    UI::Icons::MaterialIcons::FLIP, {.fontSize = fontSize}) +
+                    Icons::MaterialIcons::FLIP, {.fontSize = fontSize}) +
                 glm::vec2{padding * 2.f, padding * 2.f};
 
             if (!ctx.viewportCtx->isSchematicMode()) {
@@ -408,7 +406,7 @@ namespace Bess::Canvas {
                 offset + glm::vec2{-buttonSize.x / 2.f, buttonSize.y / 2.f};
             if (Canvas::SceneWidgets::button(
                     PickingId::forWidget(100),
-                    UI::Icons::MaterialIcons::FLIP,
+                    Icons::MaterialIcons::FLIP,
                     {cursor, 1000},
                     drawCtx,
                     {

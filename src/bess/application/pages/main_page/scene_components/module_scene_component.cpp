@@ -43,7 +43,7 @@ namespace Bess::Canvas {
     } // namespace
 
     ModuleSceneComponent::ModuleSceneComponent() {
-        m_icon = UI::Icons::FontAwesomeIcons::FA_CUBES;
+        m_icon = Bess::UI::Icons::FontAwesomeIcons::FA_CUBES;
     };
 
     std::vector<std::shared_ptr<SceneComponent>>
@@ -436,7 +436,7 @@ namespace Bess::Canvas {
     std::shared_ptr<ModuleSceneComponent>
     ModuleSceneComponent::fromNet(const UUID &netId, const std::string &name) {
         auto &mainPageState = Pages::MainPage::getInstance()->getState();
-        auto activeScene = UI::UIMain::getTargetViewportScene();
+        auto activeScene = Bess::UI::UIMain::getTargetViewportScene();
         auto command =
             std::make_unique<Cmd::CreateModuleCmd>(activeScene, netId, name);
         auto *commandPtr = command.get();
@@ -448,7 +448,8 @@ namespace Bess::Canvas {
     ModuleSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
         if (e.button == Canvas::Events::MouseButton::left &&
             e.action == Canvas::Events::MouseClickAction::doubleClick) {
-            auto viewportPanel = UI::UIMain::getTargetSceneViewportPanel();
+            auto viewportPanel =
+                Bess::UI::UIMain::getTargetSceneViewportPanel();
             viewportPanel->updateAttachedSceneId(m_sceneId);
             return true;
         }

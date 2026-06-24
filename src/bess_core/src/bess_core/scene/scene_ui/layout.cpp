@@ -93,8 +93,9 @@ namespace Bess::Canvas::UI {
         }
     } // namespace
 
-    void UINodeRegistry::addNode(const UINode &node) {
+    UINode *UINodeRegistry::addNode(const UINode &node) {
         m_nodes[node.getId()] = node;
+        return &m_nodes[node.getId()];
     }
 
     void UINodeRegistry::removeNode(const UUID &id) {
@@ -115,10 +116,6 @@ namespace Bess::Canvas::UI {
             return &it->second;
         }
         return nullptr;
-    }
-
-    const HashMap<UUID, UINode> &UINodeRegistry::getAllNodes() const {
-        return m_nodes;
     }
 
     const LayoutDirection &UINode::getDirection() const {
@@ -188,23 +185,27 @@ namespace Bess::Canvas::UI {
         return m_zVal;
     }
 
-    void UINode::addChild(const UUID &childId) {
-        BESS_ASSERT(childId != UUID::null, "Cannot add a null UI node child.");
-        BESS_ASSERT(childId != m_id, "Cannot add a UI node as its own child.");
+    void UINode::addChild(UINode *node) {
+        BESS_ASSERT(node != nullptr, "Cannot add a null UI node child.");
+        BESS_ASSERT(node->m_id != m_id,
+                    "Cannot add a UI node as its own child.");
 
-        if (childId == UUID::null || childId == m_id) {
+        if (node == nullptr || node->m_id == m_id) {
             return;
         }
 
         const auto previousSize = m_children.size();
-        m_children.insert(childId);
+        m_children.insert(node->m_id);
         if (m_children.size() != previousSize) {
+            node->m_parentId = m_id;
             setSizeDirty();
         }
     }
 
-    void UINode::removeChild(const UUID &childId) {
-        if (m_children.erase(childId) > 0) {
+    void UINode::removeChild(UINode *node) {
+        BESS_ASSERT(node != nullptr, "Cannot remove a null UI node child.");
+        if (m_children.erase(node->m_id) > 0) {
+            node->m_parentId = UUID::null;
             setSizeDirty();
         }
     }

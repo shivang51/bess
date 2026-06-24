@@ -1,17 +1,20 @@
 #include "non_sim_scene_component.h"
 #include "bess_core/renderer/renderer_2d.h"
-#include "gtc/type_ptr.hpp"
-#include "ui/icons/FontAwesomeIcons_Remapped.h"
+#include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_draw_helpers.h"
 #include "bess_core/scene/scene_state/components/styles/comp_style.h"
 #include "bess_core/scene/widgets/scene_widgets.h"
-#include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/settings/viewport_theme.h"
+#include "gtc/type_ptr.hpp"
+#include "ui/icons/FontAwesomeIcons_Remapped.h"
 #include "ui/widgets/m_widgets.h"
 #include <array>
 #include <string>
 #include <string_view>
 #include <unordered_map>
+
+namespace Icons = Bess::UI::Icons;
+namespace Widgets = Bess::UI::Widgets;
 
 namespace Bess::Canvas {
     std::vector<std::shared_ptr<SceneComponent>>
@@ -118,7 +121,7 @@ namespace Bess::Canvas {
 
     TextComponent::TextComponent() {
         m_name = "New Text";
-        m_icon = UI::Icons::FontAwesomeIcons::FA_FONT;
+        m_icon = Icons::FontAwesomeIcons::FA_FONT;
         m_style.color = ViewportTheme::colors.componentBG;
         m_style.color = ViewportTheme::colors.componentBG;
     }
@@ -134,8 +137,8 @@ namespace Bess::Canvas {
     void TextComponent::drawPropertiesUI(SceneState &sceneState) {
         NonSimSceneComponent::drawPropertiesUI(sceneState);
 
-        if (UI::Widgets::TreeNode(0, "Text Properties")) {
-            if (UI::Widgets::TextBox("Text", m_data)) {
+        if (Widgets::TreeNode(0, "Text Properties")) {
+            if (Widgets::TextBox("Text", m_data)) {
                 m_isScaleDirty = true;
             }
 
@@ -150,7 +153,7 @@ namespace Bess::Canvas {
 
     WidgetsTestComponent::WidgetsTestComponent() {
         m_name = "Widgets Test";
-        m_icon = UI::Icons::FontAwesomeIcons::FA_FLASK;
+        m_icon = Icons::FontAwesomeIcons::FA_FLASK;
         m_style.color = ViewportTheme::colors.componentBG;
     }
 
