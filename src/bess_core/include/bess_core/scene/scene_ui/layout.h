@@ -60,17 +60,11 @@ namespace Bess::Canvas::UI {
     class BESS_API UINode {
       public:
         UINode() = default;
+        UINode(const UUID &id);
 
-        void setPosDirty(bool dirty = true) {
-            m_posDirty = dirty;
-        }
+        void setPosDirty(bool dirty = true);
 
-        void setSizeDirty(bool dirty = true) {
-            m_sizeDirty = dirty;
-            if (dirty) {
-                m_posDirty = true;
-            }
-        }
+        void setSizeDirty(bool dirty = true);
 
         MAKE_GETTER_SETTER(UUID, Id, m_id);
         MAKE_GETTER_SETTER_WC(glm::vec2, Pos, m_pos, setPosDirty);

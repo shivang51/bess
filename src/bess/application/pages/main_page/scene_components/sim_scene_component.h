@@ -1,13 +1,14 @@
 #pragma once
 
-#include "common/bess_uuid.h"
-#include "dig_sim_driver.h"
+#include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_state/components/scene_component_types.h"
-#include "scene_comp_types.h"
-#include "bess_core/scene/scene_draw_context.h"
+#include "bess_core/scene/scene_ui/layout.h"
 #include "bess_core/settings/viewport_theme.h"
+#include "common/bess_uuid.h"
+#include "dig_sim_driver.h"
+#include "scene_comp_types.h"
 #include "sim_driver/sim_driver.h"
 #include "slot_scene_component.h"
 
@@ -211,6 +212,7 @@ namespace Bess::Canvas {
         bool m_isSchSlotsPosDirty = true;
         Transform m_schematicTransform;
         std::shared_ptr<SimEngine::Drivers::CompDef> m_compDef = nullptr;
+        UI::UINode *m_uiNode = nullptr;
         static uint32_t s_nodeShader;
         static size_t s_instanceCount;
     };

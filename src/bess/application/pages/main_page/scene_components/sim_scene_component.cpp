@@ -240,6 +240,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
 
     void SimulationSceneComponent::update(Bess::TimeMs timeStep,
                                           SceneState &state) {
+
         updateScales(state);
     }
 

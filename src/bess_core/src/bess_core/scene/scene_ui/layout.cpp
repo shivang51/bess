@@ -118,6 +118,20 @@ namespace Bess::Canvas::UI {
         return nullptr;
     }
 
+    UINode::UINode(const UUID &id) : m_id(id) {
+    }
+
+    void UINode::setPosDirty(bool dirty) {
+        m_posDirty = dirty;
+    }
+
+    void UINode::setSizeDirty(bool dirty) {
+        m_sizeDirty = dirty;
+        if (dirty) {
+            m_posDirty = true;
+        }
+    }
+
     const LayoutDirection &UINode::getDirection() const {
         return m_direction;
     }
