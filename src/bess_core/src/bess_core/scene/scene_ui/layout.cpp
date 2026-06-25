@@ -95,11 +95,12 @@ namespace Bess::Canvas::UI {
 
     UINode *UINodeRegistry::addNode(const UINode &node) {
         m_nodes[node.getId()] = node;
-        return &m_nodes[node.getId()];
+        return &m_nodes.at(node.getId());
     }
 
     UINode *UINodeRegistry::addNode(const UUID &nodeId) {
-        return addNode(UINode(nodeId));
+        m_nodes[nodeId] = UINode(nodeId);
+        return &m_nodes.at(nodeId);
     }
 
     void UINodeRegistry::removeNode(const UUID &id) {
