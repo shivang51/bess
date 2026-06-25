@@ -11,6 +11,7 @@
 #include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/settings/viewport_theme.h"
+#include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "input_scene_component.h"
 #include "simulation_engine.h"
@@ -240,12 +241,15 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
 
     void SimulationSceneComponent::update(Bess::TimeMs timeStep,
                                           SceneState &state) {
-
+        BESS_ASSERT(m_simEngineId != UUID::null,
+                    "Simulation engine ID is null");
+        BESS_ASSERT(m_uiNode != nullptr, "SimSceneComp UI node is nullptr");
         updateScales(state);
     }
 
     void SimulationSceneComponent::updateScales(const SceneState &state) {
         if (m_isScaleDirty) {
+            m_uiNode->setSizeDirty();
             setScale(calculateScale(state));
             resetSlotPositions(state);
             m_isScaleDirty = false;
@@ -680,7 +684,13 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         if (isSchematic) {
             m_schematicTransform.position =
                 glm::vec3(newPos, m_schematicTransform.position.z);
+            if (m_isFirstDraw) {
+                m_transform.position =
+                    glm::vec3(newPos, m_transform.position.z);
+                m_uiNode->setPosDirty();
+            }
         } else {
+            m_uiNode->setPosDirty();
             setPosition(glm::vec3(newPos, m_transform.position.z));
             if (m_isFirstSchematicDraw) {
                 m_schematicTransform.position =

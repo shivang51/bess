@@ -105,3 +105,14 @@
     virtual ~className() = default;                                            \
     className &operator=(const className &) = default;                         \
     className &operator=(className &&) = default;
+
+#define MAKE_GETTER_SETTER_PTR(type, name, varName)                            \
+    const type *get##name() const {                                            \
+        return varName;                                                        \
+    }                                                                          \
+    void set##name(type *value) {                                              \
+        varName = value;                                                       \
+    }                                                                          \
+    type *get##name() {                                                        \
+        return varName;                                                        \
+    }

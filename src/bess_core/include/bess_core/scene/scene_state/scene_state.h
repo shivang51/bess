@@ -171,7 +171,7 @@ namespace Bess::Canvas {
 
         mutable std::mutex m_componentsMutex;
 
-        std::shared_ptr<UI::UINodeRegistry> m_uiNodeRegistry;
+        std::shared_ptr<UI::UINodeRegistry> m_uiNodeRegistry = nullptr;
     };
 } // namespace Bess::Canvas
 

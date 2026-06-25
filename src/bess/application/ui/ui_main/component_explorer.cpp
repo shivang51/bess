@@ -168,6 +168,7 @@ namespace Bess::UI {
         auto &sceneState = activeScene->getState();
 
         auto pluginSvc = appCtx.getSubSystem<Bess::Svc::PluginService>();
+        auto uiNodeReg = sceneState.getUINodeRegistry();
 
         // Try finding in plugins first, if not found the use default.
         if (pluginSvc && pluginSvc->hasSimSceneComp(def->getName())) {
@@ -178,6 +179,8 @@ namespace Bess::UI {
             simComp->getTransform().position.x = pos.x;
             simComp->getTransform().position.y = pos.y;
             simComp->setCompDef(def->clone());
+            auto parentNode = uiNodeReg->addNode(simComp->getUuid());
+            simComp->setUINode(parentNode);
             activeScene->addComponent(simComp);
 
             std::vector<std::shared_ptr<Canvas::SceneComponent>> children;
@@ -185,6 +188,9 @@ namespace Bess::UI {
                 const auto &child = sceneState.getComponentByUuidSP(childId);
                 BESS_ASSERT(child, "Child component not found in scene state");
                 children.push_back(child);
+                auto childNode = uiNodeReg->addNode(childId);
+                parentNode->addChild(childNode);
+                simComp->setUINode(childNode);
                 sceneState.attachChild(simComp->getUuid(), childId);
             }
 
@@ -192,6 +198,9 @@ namespace Bess::UI {
                 const auto &child = sceneState.getComponentByUuidSP(childId);
                 BESS_ASSERT(child, "Child component not found in scene state");
                 children.push_back(child);
+                auto childNode = uiNodeReg->addNode(childId);
+                parentNode->addChild(childNode);
+                simComp->setUINode(childNode);
                 sceneState.attachChild(simComp->getUuid(), childId);
             }
 
@@ -209,6 +218,9 @@ namespace Bess::UI {
             sceneComp->setCompDef(def->clone());
             sceneComp->getTransform().position.x = pos.x;
             sceneComp->getTransform().position.y = pos.y;
+
+            auto parentNode = uiNodeReg->addNode(sceneComp->getUuid());
+            sceneComp->setUINode(parentNode);
 
             cmdSystem.execute(
                 std::make_unique<

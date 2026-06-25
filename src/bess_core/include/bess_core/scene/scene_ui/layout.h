@@ -32,14 +32,17 @@ namespace Bess::Canvas::UI {
 
     class BESS_API UINodeRegistry {
       public:
-        UINodeRegistry() = default;
+        DEFAULT_CONTRS(UINodeRegistry)
 
         UINode *addNode(const UINode &node);
+        UINode *addNode(const UUID &nodeId);
 
         void removeNode(const UUID &id);
 
         UINode *getNode(const UUID &id);
         const UINode *getNode(const UUID &id) const;
+
+        void clear();
 
         using NodesMap = HashMap<UUID, UINode>;
         MAKE_GETTER(NodesMap, AllNodes, m_nodes);
@@ -59,7 +62,7 @@ namespace Bess::Canvas::UI {
     // Id is auto generated and unique for each node.
     class BESS_API UINode {
       public:
-        UINode() = default;
+        DEFAULT_CONTRS(UINode)
         UINode(const UUID &id);
 
         void setPosDirty(bool dirty = true);

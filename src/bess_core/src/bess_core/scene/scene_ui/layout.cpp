@@ -98,6 +98,10 @@ namespace Bess::Canvas::UI {
         return &m_nodes[node.getId()];
     }
 
+    UINode *UINodeRegistry::addNode(const UUID &nodeId) {
+        return addNode(UINode(nodeId));
+    }
+
     void UINodeRegistry::removeNode(const UUID &id) {
         m_nodes.erase(id);
     }
@@ -116,6 +120,10 @@ namespace Bess::Canvas::UI {
             return &it->second;
         }
         return nullptr;
+    }
+
+    void UINodeRegistry::clear() {
+        m_nodes.clear();
     }
 
     UINode::UINode(const UUID &id) : m_id(id) {

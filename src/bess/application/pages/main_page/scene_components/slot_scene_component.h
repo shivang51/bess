@@ -3,6 +3,7 @@
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_events.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
+#include "bess_core/scene/scene_ui/layout.h"
 #include "common/bess_uuid.h"
 #include "fwd.hpp"
 #include "scene_comp_types.h"
@@ -32,6 +33,7 @@ namespace Bess::Canvas {
         SlotSceneComponent(const SlotSceneComponent &other) = default;
         ~SlotSceneComponent() override = default;
 
+        void update(TimeMs frameTime, SceneState &state) override;
         void draw(SceneDrawContext &drawContext) override;
 
         void drawSchematic(SceneDrawContext &drawContext) override;
@@ -90,6 +92,8 @@ namespace Bess::Canvas {
 
         bool m_invalidateCache = false;
         int m_index = -1;
+
+        UI::UINode *m_uiNode = nullptr;
     };
 
 } // namespace Bess::Canvas

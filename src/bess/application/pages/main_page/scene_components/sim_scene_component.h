@@ -128,6 +128,8 @@ namespace Bess::Canvas {
                            CompDef,
                            m_compDef)
 
+        MAKE_GETTER_SETTER_PTR(UI::UINode, UINode, m_uiNode)
+
         void setSchSlotsPosDirty(bool val = true);
         size_t getInputSlotsCount() const;
         size_t getOutputSlotsCount() const;

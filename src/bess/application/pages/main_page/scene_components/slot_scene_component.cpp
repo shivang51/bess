@@ -55,6 +55,13 @@ namespace Bess::Canvas {
         return false;
     }
 
+    void SlotSceneComponent::update(TimeMs frameTime, SceneState &state) {
+        BESS_ASSERT(m_parentComponent != UUID::null,
+                    "SlotSceneComponent must have a parent component");
+        BESS_ASSERT(m_uiNode != nullptr,
+                    "SlotSceneComponent UI node is nullptr");
+    }
+
     void SlotSceneComponent::draw(SceneDrawContext &drawContext) {
         const auto &state = *drawContext.sceneState;
         const auto pos =

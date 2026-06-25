@@ -23,7 +23,11 @@ namespace Bess::Canvas {
         m_rootComponents.clear();
         m_freeRuntimeIds.clear();
         m_selectedComponents.clear();
-        m_uiNodeRegistry = std::make_shared<UI::UINodeRegistry>();
+        if (m_uiNodeRegistry) {
+            m_uiNodeRegistry->clear();
+        } else {
+            m_uiNodeRegistry = std::make_shared<UI::UINodeRegistry>();
+        }
 
         // 0 will be used by widgets
         m_runtimeIdMap[0] = UUID::null;
