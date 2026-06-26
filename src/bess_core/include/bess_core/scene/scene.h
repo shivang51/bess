@@ -27,6 +27,7 @@ namespace Bess::Canvas {
         bool isFocused;
         std::shared_ptr<Camera> camera;
         std::shared_ptr<Core::Viewport::ViewportContext> viewportCtx;
+        std::shared_ptr<Core::Renderer::IRenderer2D> renderer;
     };
 
     class Scene {

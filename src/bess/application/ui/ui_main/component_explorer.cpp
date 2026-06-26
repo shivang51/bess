@@ -1,7 +1,6 @@
 #include "ui/ui_main/component_explorer.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
-#include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
 #include "bess_core/scene_driver.h"
 #include "common/bess_uuid.h"
 #include "common/helpers.h"
@@ -170,7 +169,6 @@ namespace Bess::UI {
         auto &sceneState = activeScene->getState();
 
         auto pluginSvc = appCtx.getSubSystem<Bess::Svc::PluginService>();
-        auto uiNodeReg = sceneState.getUINodeRegistry();
 
         // Try finding in plugins first, if not found the use default.
         if (pluginSvc && pluginSvc->hasSimSceneComp(def->getName())) {
@@ -181,15 +179,6 @@ namespace Bess::UI {
             simComp->getTransform().position.x = pos.x;
             simComp->getTransform().position.y = pos.y;
             simComp->setCompDef(def->clone());
-            auto parentNode = uiNodeReg->addNode(simComp->getUuid());
-            parentNode->setDirection(Canvas::UI::LayoutDirection::vertical);
-            parentNode->setPadding({
-                Canvas::Styles::simCompStyles.paddingY,
-                Canvas::Styles::simCompStyles.paddingX,
-                Canvas::Styles::simCompStyles.paddingY,
-                Canvas::Styles::simCompStyles.paddingX,
-            });
-            simComp->setUINode(parentNode);
             activeScene->addComponent(simComp);
 
             std::vector<std::shared_ptr<Canvas::SceneComponent>> children;
@@ -199,16 +188,6 @@ namespace Bess::UI {
                         childId);
                 BESS_ASSERT(child, "Child component not found in scene state");
                 children.push_back(child);
-                auto childNode = uiNodeReg->addNode(childId);
-                BESS_ASSERT(childNode,
-                            "Failed to create UI node for child component");
-                childNode->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
-                childNode->setSize(
-                    glm::vec2(Canvas::Styles::simCompStyles.slotRadius * 2.f));
-                childNode->setMargin(
-                    glm::vec4(Canvas::Styles::simCompStyles.slotMargin));
-                parentNode->addChild(childNode);
-                child->setUINode(childNode);
                 sceneState.attachChild(simComp->getUuid(), childId);
             }
 
@@ -218,16 +197,6 @@ namespace Bess::UI {
                         childId);
                 BESS_ASSERT(child, "Child component not found in scene state");
                 children.push_back(child);
-                auto childNode = uiNodeReg->addNode(childId);
-                BESS_ASSERT(childNode,
-                            "Failed to create UI node for child component");
-                childNode->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
-                childNode->setSize(
-                    glm::vec2(Canvas::Styles::simCompStyles.slotRadius * 2.f));
-                childNode->setMargin(
-                    glm::vec4(Canvas::Styles::simCompStyles.slotMargin));
-                parentNode->addChild(childNode);
-                child->setUINode(childNode);
                 sceneState.attachChild(simComp->getUuid(), childId);
             }
 
@@ -245,9 +214,6 @@ namespace Bess::UI {
             sceneComp->setCompDef(def->clone());
             sceneComp->getTransform().position.x = pos.x;
             sceneComp->getTransform().position.y = pos.y;
-
-            auto parentNode = uiNodeReg->addNode(sceneComp->getUuid());
-            sceneComp->setUINode(parentNode);
 
             cmdSystem.execute(
                 std::make_unique<

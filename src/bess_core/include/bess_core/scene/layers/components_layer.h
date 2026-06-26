@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/types.h"
 #include "bess_core/scene/scene_layer.h"
+#include "common/types.h"
 
 namespace Bess::Canvas {
     class ComponentsLayer : public ISceneLayer {
@@ -11,5 +11,6 @@ namespace Bess::Canvas {
 
         void update(TimeMs ts, SceneUpdateContext &ctx) override;
         void draw(SceneRenderContext &ctx) override;
+        void viewportUpdate(TimeMs dt, SceneVpUpdateContext &ctx) override;
     };
 } // namespace Bess::Canvas

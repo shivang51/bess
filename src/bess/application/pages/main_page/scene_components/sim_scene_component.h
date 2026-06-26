@@ -182,6 +182,8 @@ namespace Bess::Canvas {
 
         float getSlotStartY() const;
 
+        void prepareUI(SceneUIPrepareCtx &ctx) override;
+
       protected:
         /**
          * Resets the slot positions based on the current scale and number of

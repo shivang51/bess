@@ -459,6 +459,33 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
                (Styles::SIM_COMP_SLOT_ROW_SIZE / 2.f);
     }
 
+    void SimulationSceneComponent::prepareUI(SceneUIPrepareCtx &ctx) {
+        auto uiNodeReg = ctx.sceneState->getUINodeRegistry();
+        if (!m_uiNode) {
+            m_uiNode = uiNodeReg->addNode(m_uuid);
+        }
+
+        m_uiNode->setDirection(Canvas::UI::LayoutDirection::vertical);
+        m_uiNode->setPadding({
+            Canvas::Styles::simCompStyles.paddingY,
+            Canvas::Styles::simCompStyles.paddingX,
+            Canvas::Styles::simCompStyles.paddingY,
+            Canvas::Styles::simCompStyles.paddingX,
+        });
+
+        // auto childNode = uiNodeReg->addNode(childId);
+        // BESS_ASSERT(childNode,
+        //             "Failed to create UI node for child component");
+        // childNode->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
+        // childNode->setSize(
+        //     glm::vec2(Canvas::Styles::simCompStyles.slotRadius * 2.f));
+        // childNode->setMargin(
+        //     glm::vec4(Canvas::Styles::simCompStyles.slotMargin));
+        // child->setUINode(childNode);
+
+        SceneComponent::prepareUI(ctx);
+    }
+
     void SimulationSceneComponent::resetSlotPositions(const SceneState &state) {
         const auto [inpPositions, outPositions] =
             calculateSlotPositions(m_inputSlots.size(), m_outputSlots.size());
@@ -720,7 +747,9 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
 
     void SimulationSceneComponent::onTransformChanged() {
         m_schematicTransform.position.z = m_transform.position.z;
-        m_uiNode->setPos(m_transform.position);
+        if (m_uiNode) {
+            m_uiNode->setPos(m_transform.position);
+        }
     }
 
     std::vector<UUID>

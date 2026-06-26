@@ -54,6 +54,10 @@ namespace Bess::Canvas {
         m_isFirstDraw = false;
     }
 
+    void SceneComponent::prepareUI(SceneUIPrepareCtx &ctx) {
+        m_uiDirty = false;
+    }
+
     void SceneComponent::draw(SceneDrawContext &context) {
         if (m_isFirstDraw) {
             onFirstDraw(context);

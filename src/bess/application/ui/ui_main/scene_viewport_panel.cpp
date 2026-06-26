@@ -87,6 +87,9 @@ namespace Bess::UI {
             .isFocused = m_isHovered,
             .camera = m_camera,
             .viewportCtx = m_viewportCtx,
+            .renderer = GAppContext::getInstance()
+                            .getSubSystem<RendererContext>()
+                            ->getRenderer(),
         };
 
         if (!sceneDriver->getIsPaused()) {

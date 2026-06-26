@@ -26,7 +26,9 @@ namespace Bess::Canvas {
 
     struct SceneUpdateContext : SceneLayerContext {};
 
-    struct SceneVpUpdateContext : SceneLayerContext {};
+    struct SceneVpUpdateContext : SceneLayerContext {
+        std::shared_ptr<Core::Renderer::IRenderer2D> renderer = nullptr;
+    };
 
     struct SceneRenderContext : SceneLayerContext {
         std::shared_ptr<Core::Renderer::IRenderer2D> renderer = nullptr;

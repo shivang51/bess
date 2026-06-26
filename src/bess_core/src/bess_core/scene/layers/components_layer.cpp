@@ -1,11 +1,23 @@
 #include "bess_core/scene/layers/components_layer.h"
+#include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_event.h"
 #include "bess_core/scene/scene_layer.h"
 #include "common/types.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 
 namespace Bess::Canvas {
-    void ComponentsLayer::update(TimeMs ts, SceneUpdateContext &ctx) {
+    void ComponentsLayer::viewportUpdate(TimeMs dt, SceneVpUpdateContext &ctx) {
+        SceneUIPrepareCtx prepCtx{
+            .sceneState = ctx.sceneState,
+            .renderer = ctx.renderer,
+        };
+
+        for (const auto &compId : ctx.sceneState->getRootComponents()) {
+            const auto comp = ctx.sceneState->getComponentByUuid(compId);
+            if (comp->getUIDirty()) {
+                comp->prepareUI(prepCtx);
+            }
+        }
 
         for (auto &[id, node] :
              ctx.sceneState->getUINodeRegistry()->getAllNodes()) {
@@ -14,6 +26,9 @@ namespace Bess::Canvas {
             node.layout(*ctx.sceneState->getUINodeRegistry(), UUID::null);
             node.measure(*ctx.sceneState->getUINodeRegistry(), UUID::null);
         }
+    }
+
+    void ComponentsLayer::update(TimeMs ts, SceneUpdateContext &ctx) {
 
         for (const auto &compId : ctx.sceneState->getRootComponents()) {
             const auto comp = ctx.sceneState->getComponentByUuid(compId);
@@ -54,4 +69,5 @@ namespace Bess::Canvas {
             }
         }
     }
+
 } // namespace Bess::Canvas

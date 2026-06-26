@@ -49,11 +49,13 @@ namespace Bess::Canvas {
     SceneVpUpdateContext makeVpUpdateContext(
         SceneState &state,
         const std::shared_ptr<Camera> &camera,
-        const std::shared_ptr<Core::Viewport::ViewportContext> &viewportCtx) {
+        const std::shared_ptr<Core::Viewport::ViewportContext> &viewportCtx,
+        const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer) {
         SceneVpUpdateContext ctx;
         ctx.sceneState = &state;
         ctx.camera = camera;
         ctx.viewportCtx = viewportCtx;
+        ctx.renderer = renderer;
         return ctx;
     }
 
@@ -184,8 +186,8 @@ namespace Bess::Canvas {
             dispatchEvent(evt, ctx.camera, ctx.viewportCtx);
         }
 
-        auto updateCtx =
-            makeVpUpdateContext(m_state, ctx.camera, ctx.viewportCtx);
+        auto updateCtx = makeVpUpdateContext(
+            m_state, ctx.camera, ctx.viewportCtx, ctx.renderer);
 
         for (auto &layer : m_sceneLayers) {
             layer->viewportUpdate(ts, updateCtx);

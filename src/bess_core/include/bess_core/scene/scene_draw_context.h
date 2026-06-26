@@ -24,4 +24,9 @@ namespace Bess {
         size_t viewportId;
         bool isSchematicMode = false;
     };
+
+    struct SceneUIPrepareCtx {
+        Bess::Canvas::SceneState *sceneState;
+        std::shared_ptr<Core::Renderer::IRenderer2D> renderer;
+    };
 } // namespace Bess
