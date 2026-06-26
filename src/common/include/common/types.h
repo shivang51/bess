@@ -1,5 +1,6 @@
 #pragma once
 
+#include "absl/container/node_hash_map.h"
 #include "common/bess_uuid.h"
 #include <any>
 #include <chrono>
@@ -15,6 +16,8 @@ namespace Bess {
     using TimeNs = std::chrono::duration<double, std::nano>;
 
     template <typename K, typename V> using HashMap = absl::flat_hash_map<K, V>;
+    template <typename K, typename V>
+    using NodeHashMap = absl::node_hash_map<K, V>;
     template <typename K> using HashSet = absl::flat_hash_set<K>;
     template <typename K> using OrderedSet = absl::linked_hash_set<K>;
 

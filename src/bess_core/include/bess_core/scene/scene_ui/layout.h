@@ -44,7 +44,7 @@ namespace Bess::Canvas::UI {
 
         void clear();
 
-        using NodesMap = HashMap<UUID, UINode>;
+        using NodesMap = NodeHashMap<UUID, UINode>;
         MAKE_GETTER(NodesMap, AllNodes, m_nodes);
 
       private:

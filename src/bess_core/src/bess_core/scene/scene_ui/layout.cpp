@@ -1,5 +1,6 @@
 #include "bess_core/scene/scene_ui/layout.h"
 #include "common/bess_assert.h"
+#include "common/logger.h"
 #include <algorithm>
 #include <cmath>
 
@@ -99,8 +100,11 @@ namespace Bess::Canvas::UI {
     }
 
     UINode *UINodeRegistry::addNode(const UUID &nodeId) {
-        m_nodes[nodeId] = UINode(nodeId);
-        return &m_nodes.at(nodeId);
+        auto [itr, success] = m_nodes.try_emplace(nodeId, nodeId);
+        if (!success) {
+            return nullptr;
+        }
+        return &itr->second;
     }
 
     void UINodeRegistry::removeNode(const UUID &id) {
