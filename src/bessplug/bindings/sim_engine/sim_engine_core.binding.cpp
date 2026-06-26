@@ -37,7 +37,7 @@ getComp(const Bess::UUID &id) {
     auto &appCtx = Bess::GAppContext::getInstance();
     auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
     return projectCtx->getSimEngine()
-        .getComponent<Bess::SimEngine::Drivers::SimComponent>(id);
+        .getComponentSP<Bess::SimEngine::Drivers::SimComponent>(id);
 }
 
 bool isSimStable() {

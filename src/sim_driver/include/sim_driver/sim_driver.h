@@ -239,7 +239,7 @@ namespace Bess::SimEngine::Drivers {
         bool hasComponent(const UUID &id) const;
 
         template <typename TComp>
-        std::shared_ptr<TComp> getComponent(const UUID &id) const {
+        std::shared_ptr<TComp> getComponentSP(const UUID &id) const {
             std::lock_guard lk(m_compMapMutex);
 
             auto it = m_components.find(id);
@@ -247,6 +247,17 @@ namespace Bess::SimEngine::Drivers {
                 return nullptr;
             }
             return std::dynamic_pointer_cast<TComp>(it->second);
+        }
+
+        // For hotpaths
+        template <typename TComp> TComp *getComponent(const UUID &id) const {
+            std::lock_guard lk(m_compMapMutex);
+
+            auto it = m_components.find(id);
+            if (it == m_components.end()) {
+                return nullptr;
+            }
+            return static_cast<TComp *>(it->second.get());
         }
 
         void init();

@@ -33,7 +33,18 @@ namespace Bess::SimEngine {
                      bool cloneDef = true);
 
         template <typename T>
-        std::shared_ptr<T> getComponent(const UUID &uuid) const {
+        std::shared_ptr<T> getComponentSP(const UUID &uuid) const {
+            for (const auto &driver : m_simDrivers) {
+                auto comp = driver->template getComponentSP<T>(uuid);
+                if (comp) {
+                    return comp;
+                }
+            }
+
+            return nullptr;
+        }
+
+        template <typename T> T *getComponent(const UUID &uuid) const {
             for (const auto &driver : m_simDrivers) {
                 auto comp = driver->template getComponent<T>(uuid);
                 if (comp) {

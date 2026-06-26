@@ -544,7 +544,6 @@ findDigCompBySceneId(uint64_t compId) {
     }
 
     auto snapshot =
-        std::make_shared<Bess::SimEngine::Drivers::Digital::DigSimComp>(
-            *comp.get());
+        std::make_shared<Bess::SimEngine::Drivers::Digital::DigSimComp>(*comp);
     return snapshot;
 }

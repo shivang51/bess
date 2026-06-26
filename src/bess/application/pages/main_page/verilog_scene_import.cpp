@@ -5,10 +5,8 @@
 #include "bess_core/scene/scene.h"
 #include "bess_core/scene_driver.h"
 #include "common/bess_assert.h"
-#include "common/logger.h"
 #include "dig_module_def.h"
 #include "event_dispatcher.h"
-#include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
@@ -550,14 +548,17 @@ namespace Bess::Pages {
                 std::max<size_t>(1, instance.outputSlotNames.size());
 
             const auto inputComponent =
-                simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
-                    moduleDef->getInputId());
+                simEngine
+                    .getComponentSP<SimEngine::Drivers::Digital::DigSimComp>(
+                        moduleDef->getInputId());
             const auto outputComponent =
-                simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
-                    moduleDef->getOutputId());
+                simEngine
+                    .getComponentSP<SimEngine::Drivers::Digital::DigSimComp>(
+                        moduleDef->getOutputId());
             const auto moduleSimComponent =
-                simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
-                    moduleComp->getSimEngineId());
+                simEngine
+                    .getComponentSP<SimEngine::Drivers::Digital::DigSimComp>(
+                        moduleComp->getSimEngineId());
             BESS_ASSERT(inputComponent,
                         "Imported module input bridge component was not found");
             BESS_ASSERT(
