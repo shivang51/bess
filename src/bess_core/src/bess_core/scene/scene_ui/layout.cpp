@@ -330,24 +330,42 @@ namespace Bess::Canvas::UI {
         };
 
         if (m_sizeConstraint == SizeContraint::fixed) {
+            auto size = resolveSize(parentNode);
+            auto tentativeSize = size;
+
+            if (m_size.x < 0.f) {
+                tentativeSize.x = 0.f;
+            }
+            if (m_size.y < 0.f) {
+                tentativeSize.y = 0.f;
+            }
+
+            m_drawSize = constrainSize(tentativeSize, m_minSize, m_maxSize);
+
             glm::vec2 childrenSpan{0.f};
             for (const auto &childId : m_children) {
                 measureChild(childId, &childrenSpan);
             }
 
-            auto size = resolveSize(parentNode);
+            const auto minContentSize = childrenSpan + paddingSize();
 
             if (m_size.x < 0.f) {
-                size.x = childrenSpan.x + paddingSize().x;
+                size.x = minContentSize.x;
+            } else {
+                size.x = std::max(size.x, minContentSize.x);
             }
             if (m_size.y < 0.f) {
-                size.y = childrenSpan.y + paddingSize().y;
+                size.y = minContentSize.y;
+            } else {
+                size.y = std::max(size.y, minContentSize.y);
             }
 
             drawSize = constrainSize(size, m_minSize, m_maxSize);
             m_drawSize = drawSize;
 
         } else {
+            m_drawSize = constrainSize(paddingSize(), m_minSize, m_maxSize);
+
             glm::vec2 childrenSpan{0.f};
             for (const auto &childId : m_children) {
                 measureChild(childId, &childrenSpan);
