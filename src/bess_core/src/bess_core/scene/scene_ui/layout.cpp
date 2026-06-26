@@ -275,6 +275,10 @@ namespace Bess::Canvas::UI {
                activeNodes);
     }
 
+    glm::vec3 UINode::getDrawPos() const {
+        return {m_cachedPos, m_cachedZVal};
+    }
+
     glm::vec2 UINode::measure(UINodeRegistry &registry,
                               const UINode *parentNode,
                               HashSet<UUID> &activeNodes) {

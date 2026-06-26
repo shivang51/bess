@@ -97,6 +97,8 @@ namespace Bess::Canvas {
         int m_index = -1;
 
         UI::UINode *m_uiNode = nullptr;
+        UI::UINode *m_slotNode = nullptr;
+        UI::UINode *m_labelNode = nullptr;
     };
 
 } // namespace Bess::Canvas

@@ -59,14 +59,41 @@ namespace Bess::Canvas {
         auto uiNodeReg = ctx.sceneState->getUINodeRegistry();
         if (m_uiNode == nullptr) {
             m_uiNode = uiNodeReg->addNode(m_uuid);
+            m_slotNode = uiNodeReg->addNode(UUID());
+            m_labelNode = uiNodeReg->addNode(UUID());
         }
 
         ctx.parentNode->addChild(m_uiNode);
-        m_uiNode->setSizeConstraint(UI::SizeContraint::fixed);
-        m_uiNode->setSize({Styles::simCompStyles.slotRadius * 2.f,
-                           Styles::simCompStyles.slotRadius * 2.f});
-        m_uiNode->setMargin(
-            glm::vec4(Canvas::Styles::simCompStyles.slotMargin));
+        m_uiNode->clearChildren();
+        m_uiNode->setZVal(0.0001f);
+
+        m_uiNode->setDirection(Canvas::UI::LayoutDirection::horizontal);
+        m_uiNode->setMargin({Canvas::Styles::simCompStyles.rowMargin,
+                             0.f,
+                             Canvas::Styles::simCompStyles.rowMargin,
+                             0.f});
+
+        // Slot goes first for input slots
+        if (isInputSlot()) {
+            m_uiNode->addChild(m_slotNode);
+            m_uiNode->addChild(m_labelNode);
+            m_slotNode->setMargin({0.f, 4.f, 0.f, 0.f});
+        } else {
+            m_uiNode->addChild(m_labelNode);
+            m_uiNode->addChild(m_slotNode);
+            m_slotNode->setMargin({0.f, 0.f, 0.f, 4.f});
+        }
+
+        m_slotNode->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
+        m_slotNode->setSize({Styles::simCompStyles.slotRadius * 2.f,
+                             Styles::simCompStyles.slotRadius * 2.f});
+
+        m_labelNode->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
+
+        auto lableSize = ctx.renderer->measureText(
+            m_name, {.fontSize = Styles::simCompStyles.slotLabelSize});
+        m_labelNode->setSize(lableSize);
+        m_isUIDirty = false;
     }
 
     void SlotSceneComponent::update(TimeMs frameTime, SceneState &state) {
@@ -124,44 +151,28 @@ namespace Bess::Canvas {
         const float ir = Styles::simCompStyles.slotRadius -
                          Styles::simCompStyles.slotBorderSize;
         const float r = Styles::simCompStyles.slotRadius;
+        SceneDraw::drawCircle(
+            drawContext, m_slotNode->getDrawPos(), r, border, pickingId, ir);
         SceneDraw::drawCircle(drawContext,
-                              {m_uiNode->getCachedPos(), pos.z},
-                              r,
-                              border,
-                              pickingId,
-                              ir);
-        SceneDraw::drawCircle(drawContext,
-                              {m_uiNode->getCachedPos(), pos.z},
+                              m_slotNode->getDrawPos(),
                               ir - radiusGap,
                               bg,
                               pickingId);
 
         if (!m_name.empty() && drawContext.renderer) {
-            const float labeldx = Styles::simCompStyles.slotMargin +
-                                  (Styles::simCompStyles.slotRadius * 2.f);
             constexpr float labelFontSize = Styles::simCompStyles.slotLabelSize;
-            Core::Renderer::FontProps labelProps;
-            labelProps.fontSize = labelFontSize;
-
-            float labelX = pos.x;
-            const auto labelSize =
-                drawContext.renderer->measureText(m_name, labelProps);
-            if (m_slotType == SlotType::digitalInput) {
-                labelX += labeldx;
-            } else {
-                labelX -= labeldx + labelSize.x;
-            }
-
-            const float baselineOffset =
-                drawContext.renderer->textCenterOffsetY(m_name, labelProps);
-            const float labelY = pos.y + baselineOffset;
-
+            const auto yOff = drawContext.renderer->textCenterOffsetY(
+                m_name, {.fontSize = labelFontSize});
+            const auto textSize = m_labelNode->getDrawSize();
+            const auto textPos = m_labelNode->getDrawPos() +
+                                 glm::vec3{-textSize.x / 2.f, yOff, 0.f};
             const auto parentComp =
                 state.getComponentByUuid<SimulationSceneComponent>(
                     m_parentComponent);
+
             SceneDraw::drawText(drawContext,
                                 m_name,
-                                {labelX, labelY, pos.z},
+                                textPos,
                                 static_cast<std::size_t>(labelFontSize),
                                 ViewportTheme::colors.text,
                                 PickingId{parentComp->getRuntimeId(), 0},
@@ -359,7 +370,7 @@ namespace Bess::Canvas {
             return getSchematicPosAbsolute(state, isSchematicMode);
         }
 
-        return SceneComponent::getAbsolutePosition(state, isSchematicMode);
+        return m_slotNode->getDrawPos();
     }
 
     glm::vec3

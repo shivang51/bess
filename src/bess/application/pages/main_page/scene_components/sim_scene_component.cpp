@@ -325,11 +325,17 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
                                 (m_transform.scale.y / 2.f) +
                                 (headerHeight / 2.f);
 
-        const auto textPos =
+        const auto textPos_ =
             glm::vec3(m_transform.position.x - (m_transform.scale.x / 2.f) +
                           Styles::componentStyles.paddingX,
                       headerPosY + Styles::simCompStyles.paddingY,
                       m_transform.position.z + 0.0005f);
+
+        const auto textSize = m_headerNode->getDrawSize();
+        const auto yOff = context.renderer->textCenterOffsetY(
+            m_name, {.fontSize = Styles::simCompStyles.headerFontSize});
+        const auto textPos = m_headerNode->getDrawPos() +
+                             glm::vec3{-textSize.x / 2.f, yOff, 0.f};
 
         // component name
         SceneDraw::drawText(context,
@@ -483,7 +489,8 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         m_slotsBoxNode->addChild(m_outBoxNode);
 
         const auto labelSize = ctx.renderer->measureText(
-            m_name, {.fontSize = Styles::simCompStyles.headerFontSize});
+            std::format("{} {}", m_icon, m_name),
+            {.fontSize = Styles::simCompStyles.headerFontSize});
 
         // Main Node
         m_uiNode->setDirection(Canvas::UI::LayoutDirection::vertical);
@@ -493,7 +500,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
             Canvas::Styles::simCompStyles.paddingY,
             Canvas::Styles::simCompStyles.paddingX,
         });
-        // m_uiNode->setMinSize(labelSize);
+        m_uiNode->setZVal(m_transform.position.z);
 
         // Header Node
         m_headerNode->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
@@ -518,6 +525,13 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         m_inpBoxNode->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
         m_inpBoxNode->setSize({0.5f, -1.f});
         m_inpBoxNode->setSizeUnit(Canvas::UI::Unit::relative);
+        m_inpBoxNode->setMargin({
+            0,
+            Canvas::Styles::simCompStyles.paddingX,
+            0,
+            0,
+        });
+        m_inpBoxNode->setZVal(0.0001f);
         for (const auto &childId : m_inputSlots) {
             auto child = ctx.sceneState->getComponentByUuid(childId);
             BESS_ASSERT(child,
@@ -533,6 +547,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         m_outBoxNode->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
         m_outBoxNode->setSize({0.5f, -1.f});
         m_outBoxNode->setSizeUnit(Canvas::UI::Unit::relative);
+        m_outBoxNode->setZVal(0.0001f);
         for (const auto &childId : m_outputSlots) {
             auto child = ctx.sceneState->getComponentByUuid(childId);
             BESS_ASSERT(child,

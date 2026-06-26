@@ -130,6 +130,8 @@ namespace Bess::Canvas::UI {
 
         void layout(UINodeRegistry &registry, const UUID &parentId);
 
+        glm::vec3 getDrawPos() const;
+
       private:
         glm::vec2 measure(UINodeRegistry &registry,
                           const UINode *parentNode,
