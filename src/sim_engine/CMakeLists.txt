@@ -37,7 +37,7 @@ else()
 endif()
 endif()
 
-target_link_libraries(${PROJECT_NAME} PRIVATE BessPluginManager EventSystem BessJson common BessSimDriver)
+target_link_libraries(${PROJECT_NAME} PRIVATE BessPluginManager EventSystem BessJson common BessSimDriver BessExtDeps)
 add_dependencies(${PROJECT_NAME} BessPluginManager EventSystem BessJson common BessSimDriver)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE BESS_EXPORTS)

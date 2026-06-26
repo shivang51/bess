@@ -128,6 +128,9 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 	absl::flat_hash_map
 	absl::flat_hash_set
 	absl::btree
+	absl::raw_hash_set           
+	absl::base
+	absl::raw_logging_internal
 )
 
 if(LINUX)

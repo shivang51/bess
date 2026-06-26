@@ -227,7 +227,7 @@ namespace Bess::SimEngine::Drivers {
 
       public:
         typedef std::shared_ptr<SimComponent> SimComponentPtr;
-        typedef std::unordered_map<UUID, SimComponentPtr> ComponentsMap;
+        typedef HashMap<UUID, SimComponentPtr> ComponentsMap;
 
         MAKE_GETTER_SETTER_MT(ComponentsMap,
                               ComponentsMap,
