@@ -32,7 +32,7 @@ namespace Bess::Canvas {
         // node.setPadding(padding);
         // node.setMargin(margin);
         // node.setSizeConstraint(Bess::Canvas::UI::SizeContraint::wrap_content);
-        // node.setAlignment(Bess::Canvas::UI::LayoutAlignment::center);
+        // node.setCrossAxisAlignment(Bess::Canvas::UI::LayoutAlignment::center);
         //
         // {
         //     Bess::Canvas::UI::UINode childNode1;

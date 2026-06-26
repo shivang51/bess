@@ -521,7 +521,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         // Inputs
         ctx.parentNode = m_inpBoxNode;
         m_inpBoxNode->setDirection(Canvas::UI::LayoutDirection::vertical);
-        m_inpBoxNode->setAlignment(Canvas::UI::LayoutAlignment::start);
+        m_inpBoxNode->setCrossAxisAlignment(Canvas::UI::LayoutAlignment::start);
         m_inpBoxNode->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
         m_inpBoxNode->setSize({0.5f, -1.f});
         m_inpBoxNode->setSizeUnit(Canvas::UI::Unit::relative);
@@ -543,7 +543,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         // Outputs
         ctx.parentNode = m_outBoxNode;
         m_outBoxNode->setDirection(Canvas::UI::LayoutDirection::vertical);
-        m_outBoxNode->setAlignment(Canvas::UI::LayoutAlignment::end);
+        m_outBoxNode->setCrossAxisAlignment(Canvas::UI::LayoutAlignment::end);
         m_outBoxNode->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
         m_outBoxNode->setSize({0.5f, -1.f});
         m_outBoxNode->setSizeUnit(Canvas::UI::Unit::relative);

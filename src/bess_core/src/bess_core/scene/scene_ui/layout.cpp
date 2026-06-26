@@ -157,17 +157,30 @@ namespace Bess::Canvas::UI {
         return m_direction;
     }
 
-    const LayoutAlignment &UINode::getAlignment() const {
-        return m_alignment;
+    const LayoutAlignment &UINode::getMainAxisAlignment() const {
+        return m_mainAxisAlignment;
     }
 
-    void UINode::setAlignment(const LayoutAlignment &alignment) {
-        m_alignment = alignment;
+    void UINode::setMainAxisAlignment(const LayoutAlignment &alignment) {
+        m_mainAxisAlignment = alignment;
         setPosDirty();
     }
 
-    LayoutAlignment &UINode::getAlignment() {
-        return m_alignment;
+    LayoutAlignment &UINode::getMainAxisAlignment() {
+        return m_mainAxisAlignment;
+    }
+
+    const LayoutAlignment &UINode::getCrossAxisAlignment() const {
+        return m_crossAxisAlignment;
+    }
+
+    void UINode::setCrossAxisAlignment(const LayoutAlignment &alignment) {
+        m_crossAxisAlignment = alignment;
+        setPosDirty();
+    }
+
+    LayoutAlignment &UINode::getCrossAxisAlignment() {
+        return m_crossAxisAlignment;
     }
 
     const PosMode &UINode::getPosMode() const {
@@ -369,6 +382,8 @@ namespace Bess::Canvas::UI {
             glm::vec2 childrenSpan{0.f};
             for (const auto &childId : m_children) {
                 measureChild(childId, &childrenSpan);
+                m_drawSize = constrainSize(
+                    childrenSpan + paddingSize(), m_minSize, m_maxSize);
             }
 
             drawSize = constrainSize(
@@ -418,7 +433,28 @@ namespace Bess::Canvas::UI {
         const glm::vec2 contentTopLeft =
             m_cachedPos - (m_drawSize * 0.5f) + edgeTopLeft(m_padding, false);
         const glm::vec2 availableContentSize = contentSize();
-        glm::vec2 cursor = contentTopLeft;
+        const bool isHorizontal = m_direction == LayoutDirection::horizontal;
+
+        float childrenMainSpan = 0.f;
+        for (const auto &childId : m_children) {
+            const UINode *childNode = registry.getNode(childId);
+            if (childNode == nullptr ||
+                childNode->m_posMode == PosMode::absolute) {
+                continue;
+            }
+
+            childrenMainSpan += isHorizontal ? childNode->m_cachedSize.x
+                                             : childNode->m_cachedSize.y;
+        }
+
+        const float contentMainStart =
+            isHorizontal ? contentTopLeft.x : contentTopLeft.y;
+        const float availableMainSize =
+            isHorizontal ? availableContentSize.x : availableContentSize.y;
+        float cursor = alignedStart(contentMainStart,
+                                    availableMainSize,
+                                    childrenMainSpan,
+                                    m_mainAxisAlignment);
 
         for (const auto &childId : m_children) {
             UINode *childNode = registry.getNode(childId);
@@ -436,17 +472,19 @@ namespace Bess::Canvas::UI {
                 continue;
             }
 
-            glm::vec2 marginBoxTopLeft = cursor;
-            if (m_direction == LayoutDirection::horizontal) {
+            glm::vec2 marginBoxTopLeft{0.f};
+            if (isHorizontal) {
+                marginBoxTopLeft = {cursor, contentTopLeft.y};
                 marginBoxTopLeft.y = alignedStart(contentTopLeft.y,
                                                   availableContentSize.y,
                                                   childNode->m_cachedSize.y,
-                                                  m_alignment);
+                                                  m_crossAxisAlignment);
             } else {
+                marginBoxTopLeft = {contentTopLeft.x, cursor};
                 marginBoxTopLeft.x = alignedStart(contentTopLeft.x,
                                                   availableContentSize.x,
                                                   childNode->m_cachedSize.x,
-                                                  m_alignment);
+                                                  m_crossAxisAlignment);
             }
 
             const glm::vec2 drawTopLeft =
@@ -457,10 +495,10 @@ namespace Bess::Canvas::UI {
 
             childNode->layout(registry, this, m_cachedZVal, activeNodes);
 
-            if (m_direction == LayoutDirection::horizontal) {
-                cursor.x += childNode->m_cachedSize.x;
+            if (isHorizontal) {
+                cursor += childNode->m_cachedSize.x;
             } else {
-                cursor.y += childNode->m_cachedSize.y;
+                cursor += childNode->m_cachedSize.y;
             }
         }
 

@@ -96,11 +96,22 @@ namespace Bess::Canvas::UI {
 
         LayoutDirection &getDirection();
 
-        const LayoutAlignment &getAlignment() const;
+        // Main axis follows Direction: x for horizontal, y for vertical.
+        // This is equivalent to CSS flexbox justify-content for the supported
+        // start/center/end values.
+        const LayoutAlignment &getMainAxisAlignment() const;
 
-        void setAlignment(const LayoutAlignment &alignment);
+        void setMainAxisAlignment(const LayoutAlignment &alignment);
 
-        LayoutAlignment &getAlignment();
+        LayoutAlignment &getMainAxisAlignment();
+
+        // Cross axis is perpendicular to Direction. This is equivalent to CSS
+        // flexbox align-items for the supported start/center/end values.
+        const LayoutAlignment &getCrossAxisAlignment() const;
+
+        void setCrossAxisAlignment(const LayoutAlignment &alignment);
+
+        LayoutAlignment &getCrossAxisAlignment();
 
         const PosMode &getPosMode() const;
 
@@ -163,7 +174,8 @@ namespace Bess::Canvas::UI {
         glm::vec4 m_margin = glm::vec4(0.0f);  // top, right, bottom, left
 
         LayoutDirection m_direction = LayoutDirection::horizontal;
-        LayoutAlignment m_alignment = LayoutAlignment::start;
+        LayoutAlignment m_mainAxisAlignment = LayoutAlignment::start;
+        LayoutAlignment m_crossAxisAlignment = LayoutAlignment::start;
         PosMode m_posMode = PosMode::relative;
         SizeContraint m_sizeConstraint = SizeContraint::wrap_content;
         OrderedSet<UUID> m_children;
