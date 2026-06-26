@@ -43,18 +43,34 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::update(TimeMs ts) {
-        if (!m_attachedScene || !m_camera) {
-            return;
-        }
-
         auto sceneDriver = GAppContext::getInstance()
                                .getSubSystem<Bess::ProjectContext>()
                                ->getSubSystem<SceneDriver>();
+        const auto activeScene = sceneDriver->getActiveScene();
+        if (!m_attachedScene ||
+            sceneDriver->getSceneWithId(m_attachedScene->getSceneId()) !=
+                m_attachedScene) {
+            setAttachedScene(activeScene);
+        }
+
+        if (!m_camera) {
+            m_camera =
+                std::make_shared<Camera>(m_viewportCtx->transform.size.x,
+                                         m_viewportCtx->transform.size.y);
+        }
 
         if (m_viewportCtx->updateSceneId != UUID::null) {
             setAttachedScene(
                 sceneDriver->getSceneWithId(m_viewportCtx->updateSceneId));
             m_viewportCtx->updateSceneId = UUID::null;
+        }
+
+        if (!m_attachedScene) {
+            setAttachedScene(activeScene);
+        }
+
+        if (!m_attachedScene) {
+            return;
         }
 
         if (m_isResized) {

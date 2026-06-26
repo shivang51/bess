@@ -86,6 +86,7 @@ namespace Bess::UI {
         static void drawStatusbar();
         static void drawVerilogImportWizard();
         static void resetDockspace();
+        static void refreshSceneViewportAttachments();
         static void updateSceneViewportTargets();
         static void clearSceneViewportTargets();
         static void onOpenProject();

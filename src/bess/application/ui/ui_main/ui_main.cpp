@@ -1,6 +1,7 @@
 #include "ui/ui_main/ui_main.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "bess_core/scene_driver.h"
 #include "common/logger.h"
 #include "debug_panel.h"
 #include "imgui.h"
@@ -115,9 +116,25 @@ namespace Bess::UI {
             return panel;
         }
 
+        std::shared_ptr<SceneDriver> currentSceneDriver() {
+            auto &appCtx = Bess::GAppContext::getInstance();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+            return projectCtx ? projectCtx->getSubSystem<SceneDriver>()
+                              : nullptr;
+        }
+
+        bool sceneBelongsToDriver(
+            const std::shared_ptr<SceneDriver> &sceneDriver,
+            const std::shared_ptr<Canvas::Scene> &scene) {
+            return sceneDriver && scene &&
+                   sceneDriver->getSceneWithId(scene->getSceneId()) == scene;
+        }
+
         bool isUsableSceneViewportPanel(
             const std::shared_ptr<SceneViewportPanel> &panel) {
-            return panel && panel->getVisible() && panel->getAttachedScene();
+            return panel && panel->getVisible() &&
+                   sceneBelongsToDriver(currentSceneDriver(),
+                                        panel->getAttachedScene());
         }
 
         std::shared_ptr<SceneViewportPanel>
@@ -189,9 +206,11 @@ namespace Bess::UI {
             if (res != Popups::PopupRes::cancel) {
                 if (getState()._internalData.newFileClicked) {
                     pageState.createNewProject();
+                    refreshSceneViewportAttachments();
                     getState()._internalData.newFileClicked = false;
                 } else if (getState()._internalData.openFileClicked) {
                     pageState.loadProject(getState()._internalData.path);
+                    refreshSceneViewportAttachments();
                     getState()._internalData.statusMessage = std::format(
                         "Opened project: {}",
                         std::filesystem::path(getState()._internalData.path)
@@ -595,6 +614,7 @@ namespace Bess::UI {
             wizard.importing = status.importing;
             wizard.finished = status.finished;
             wizard.failed = status.failed;
+            getState()._internalData.statusMessage = status.stageMessage;
 
             if (status.finished) {
                 if (status.failed) {
@@ -604,6 +624,7 @@ namespace Bess::UI {
                     const auto paths = selectedVerilogPaths(wizard);
                     getState()._internalData.statusMessage = std::format(
                         "Imported Verilog: {}", importSelectionLabel(paths));
+                    refreshSceneViewportAttachments();
                     wizard.open = false;
                     resetVerilogImportWizard(wizard);
                     pageState.cancelVerilogImport();
@@ -672,6 +693,7 @@ namespace Bess::UI {
                 wizard.failed = false;
                 wizard.progress = 0.05f;
                 wizard.stageMessage = "Clearing current project";
+                getState()._internalData.statusMessage = wizard.stageMessage;
             }
         }
         ImGui::EndDisabled();
@@ -748,6 +770,7 @@ namespace Bess::UI {
             ImGui::OpenPopup(Popups::PopupIds::unsavedProjectWarning);
         } else {
             pageState.createNewProject();
+            refreshSceneViewportAttachments();
         }
     }
 
@@ -770,6 +793,7 @@ namespace Bess::UI {
             ImGui::OpenPopup(Popups::PopupIds::unsavedProjectWarning);
         } else {
             pageState.loadProject(filepath);
+            refreshSceneViewportAttachments();
             getState()._internalData.statusMessage =
                 std::format("Project loaded from {}", filepath);
         }
@@ -890,6 +914,54 @@ namespace Bess::UI {
             activeSceneViewportPanelRef() = panel;
         }
         return panel;
+    }
+
+    void UIMain::refreshSceneViewportAttachments() {
+        const auto sceneDriver = currentSceneDriver();
+        const auto activeScene =
+            sceneDriver ? sceneDriver->getActiveScene() : nullptr;
+
+        if (!activeScene) {
+            clearSceneViewportTargets();
+            return;
+        }
+
+        auto preferredPanel = activeSceneViewportPanelRef().lock();
+        if (!preferredPanel || !preferredPanel->getVisible()) {
+            preferredPanel = targetSceneViewportPanelRef().lock();
+        }
+        if (!preferredPanel || !preferredPanel->getVisible()) {
+            preferredPanel = focusedSceneViewportPanelRef().lock();
+        }
+        if (!preferredPanel || !preferredPanel->getVisible()) {
+            preferredPanel = hoveredSceneViewportPanelRef().lock();
+        }
+
+        for (const auto &panel : getScenePanels()) {
+            if (!panel) {
+                continue;
+            }
+
+            if (!preferredPanel && panel->getVisible()) {
+                preferredPanel = panel;
+            }
+
+            if (!sceneBelongsToDriver(sceneDriver,
+                                      panel->getAttachedScene())) {
+                panel->setAttachedScene(activeScene);
+            }
+        }
+
+        if (!preferredPanel) {
+            preferredPanel = firstUsableSceneViewportPanel();
+        }
+
+        if (preferredPanel) {
+            activeSceneViewportPanelRef() = preferredPanel;
+            targetSceneViewportPanelRef() = preferredPanel;
+        } else {
+            clearSceneViewportTargets();
+        }
     }
 
     void UIMain::setTargetSceneViewportPanel(

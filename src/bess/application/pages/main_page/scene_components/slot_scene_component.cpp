@@ -381,7 +381,9 @@ namespace Bess::Canvas {
             return getSchematicPosAbsolute(state, isSchematicMode);
         }
 
-        return m_slotNode->getDrawPos();
+        return m_slotNode ? m_slotNode->getDrawPos()
+                          : SceneComponent::getAbsolutePosition(
+                                state, isSchematicMode);
     }
 
     glm::vec3

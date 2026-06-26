@@ -243,6 +243,7 @@ namespace Bess::Pages {
                 return false;
             }
 
+            resetProjectState();
             auto scene = getSceneDriver()->getActiveScene();
             if (!scene) {
                 if (errorMessage) {
@@ -251,7 +252,6 @@ namespace Bess::Pages {
                 return false;
             }
 
-            resetProjectState();
             auto &appCtx = Bess::GAppContext::getInstance();
             auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
             auto &simEngine = projectCtx->getSimEngine();

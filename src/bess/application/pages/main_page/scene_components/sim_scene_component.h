@@ -186,12 +186,6 @@ namespace Bess::Canvas {
 
       protected:
         /**
-         * Resets the slot positions based on the current scale and number of
-         * slots in the component.
-         */
-        void resetSlotPositions(const SceneState &state);
-
-        /**
          * Resets the schematic pin positions based on the current schematic
          * scale and number of slots in the component. Will ignore slots that
          * are resize slots for the schematic view.
@@ -199,9 +193,6 @@ namespace Bess::Canvas {
         void resetSchematicPinsPositions(const SceneState &state);
 
         // Generates the positions relative to the component position
-        std::pair<std::vector<glm::vec3>, std::vector<glm::vec3>>
-        calculateSlotPositions(size_t inputCount, size_t outputCount) const;
-
         virtual void calculateSchematicScale(const SceneState &state);
 
         void onChildrenChanged() override;

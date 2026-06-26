@@ -258,15 +258,12 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
                                           SceneState &state) {
         BESS_ASSERT(m_simEngineId != UUID::null,
                     "Simulation engine ID is null");
-        BESS_ASSERT(m_uiNode != nullptr, "SimSceneComp UI node is nullptr");
         updateScales(state);
     }
 
     void SimulationSceneComponent::updateScales(const SceneState &state) {
-        if (m_isScaleDirty) {
+        if (m_isScaleDirty && m_uiNode != nullptr) {
             m_uiNode->setSizeDirty();
-            setScale(calculateScale(state));
-            resetSlotPositions(state);
             m_isScaleDirty = false;
         }
 
@@ -425,41 +422,6 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         }
     }
 
-    std::pair<std::vector<glm::vec3>, std::vector<glm::vec3>>
-    SimulationSceneComponent::calculateSlotPositions(size_t inputCount,
-                                                     size_t outputCount) const {
-        const auto pScale = m_transform.scale;
-
-        std::vector<glm::vec3> inputPositions;
-        inputPositions.reserve(inputCount);
-        std::vector<glm::vec3> outputPositions;
-        outputPositions.reserve(outputCount);
-
-        const auto slotRowSize = Styles::SIM_COMP_SLOT_ROW_SIZE;
-
-        for (size_t i = 0; i < inputCount; i++) {
-            auto posX = -(pScale.x / 2.f) + Styles::SIM_COMP_SLOT_DX;
-            float posY = -(pScale.y / 2.f) + (slotRowSize * (float)i) +
-                         (slotRowSize / 2.f);
-            posY += Styles::SIM_COMP_SLOT_START_Y;
-            glm::vec2 pos =
-                glm::round(glm::vec2(posX, posY) / SNAP_AMOUNT) * SNAP_AMOUNT;
-            inputPositions.emplace_back(pos.x, pos.y, 0.0005f);
-        }
-
-        for (size_t i = 0; i < outputCount; i++) {
-            auto posX = (pScale.x / 2.f) - Styles::SIM_COMP_SLOT_DX;
-            float posY = -(pScale.y / 2.f) + (slotRowSize * (float)i) +
-                         (slotRowSize / 2.f);
-            posY += Styles::SIM_COMP_SLOT_START_Y;
-            glm::vec2 pos =
-                glm::round(glm::vec2(posX, posY) / SNAP_AMOUNT) * SNAP_AMOUNT;
-            outputPositions.emplace_back(pos.x, pos.y, 0.0005f);
-        }
-
-        return {inputPositions, outputPositions};
-    }
-
     glm::vec2
     SimulationSceneComponent::calculateScale(const SceneState &state) {
         const auto labelSize = Core::Renderer::IRenderer2D::getTextRenderSize(
@@ -487,6 +449,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         auto uiNodeReg = ctx.sceneState->getUINodeRegistry();
         if (!m_uiNode) {
             m_uiNode = uiNodeReg->addNode(m_uuid);
+            m_uiNode->setPos(m_transform.position);
             m_headerNode = uiNodeReg->addNode(UUID());
             m_inpBoxNode = uiNodeReg->addNode(UUID());
             m_outBoxNode = uiNodeReg->addNode(UUID());
@@ -571,26 +534,6 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         }
 
         m_isUIDirty = false;
-    }
-
-    void SimulationSceneComponent::resetSlotPositions(const SceneState &state) {
-        const auto [inpPositions, outPositions] =
-            calculateSlotPositions(m_inputSlots.size(), m_outputSlots.size());
-
-        for (size_t i = 0; i < inpPositions.size(); i++) {
-            const auto slotComp =
-                state.getComponentByUuid<SlotSceneComponent>(m_inputSlots[i]);
-            slotComp->setPosition(inpPositions[i]);
-        }
-
-        for (size_t i = 0; i < outPositions.size(); i++) {
-            const auto slotComp =
-                state.getComponentByUuid<SlotSceneComponent>(m_outputSlots[i]);
-            BESS_ASSERT(slotComp,
-                        "Slot component with UUID {} not found in scene state",
-                        (uint64_t)m_outputSlots[i]);
-            slotComp->setPosition(outPositions[i]);
-        }
     }
 
     void SimulationSceneComponent::resetSchematicPinsPositions(
@@ -1031,19 +974,6 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
 
     void SimulationSceneComponent::drawPropertiesUI(SceneState &state) {
         SceneComponent::drawPropertiesUI(state);
-
-        // Width and Height
-        if (Widgets::TreeNode(0, "Size")) {
-            float width = m_transform.scale.x;
-            float height = m_transform.scale.y;
-            if (ImGui::InputFloat("Width", &width, 1.f, 1000.f) ||
-                ImGui::InputFloat("Height", &height, 1.f, 1000.f)) {
-                setScale(glm::vec2(width, height));
-                resetSlotPositions(state);
-                setSchematicScaleDirty();
-            }
-            ImGui::TreePop();
-        }
 
         // Input Slots Names
         if (Widgets::TreeNode(0, "Input Slots")) {

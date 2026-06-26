@@ -2,6 +2,7 @@
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "bess_core/scene/scene.h"
+#include "bess_core/scene_driver.h"
 #include "bess_core/sub_systems/input_sub_system.h"
 #include "common/types.h"
 #include "pages/main_page/main_page.h"
@@ -214,11 +215,13 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::renderAttachedScene() {
-        if (!m_attachedScene) {
-            setAttachedScene(GAppContext::getInstance()
-                                 .getSubSystem<Bess::ProjectContext>()
-                                 ->getSubSystem<SceneDriver>()
-                                 ->getActiveScene());
+        const auto sceneDriver = GAppContext::getInstance()
+                                     .getSubSystem<Bess::ProjectContext>()
+                                     ->getSubSystem<SceneDriver>();
+        if (!m_attachedScene ||
+            sceneDriver->getSceneWithId(m_attachedScene->getSceneId()) !=
+                m_attachedScene) {
+            setAttachedScene(sceneDriver->getActiveScene());
         }
 
         if (!m_attachedScene || !m_sceneTexture || !m_pickingTexture ||
