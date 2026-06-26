@@ -1,7 +1,7 @@
 #pragma once
 
 /// File contains code for laying out UI nodes,
-/// somethig like a CSS box model, with padding, margin, and alignment.
+/// something like a CSS box model, with padding, margin, and alignment.
 
 #include "common/bess_api.h"
 #include "common/bess_uuid.h"
@@ -27,8 +27,6 @@ namespace Bess::Canvas::UI {
     enum class SizeContraint : uint8_t { fixed, wrap_content };
 
     class UINode;
-
-    ;
 
     class BESS_API UINodeRegistry {
       public:
@@ -61,6 +59,8 @@ namespace Bess::Canvas::UI {
     //
     // Id is auto generated and unique for each node.
     class BESS_API UINode {
+        friend class UINodeRegistry;
+
       public:
         DEFAULT_CONTRS(UINode)
         UINode(const UUID &id);
@@ -70,25 +70,50 @@ namespace Bess::Canvas::UI {
         void setSizeDirty(bool dirty = true);
 
         MAKE_GETTER_SETTER(UUID, Id, m_id);
-        MAKE_GETTER_SETTER_WC(glm::vec2, Pos, m_pos, setPosDirty);
-        MAKE_GETTER_SETTER_WC(Unit, PosUnit, m_posUnit, setPosDirty);
-        MAKE_GETTER_SETTER_WC(glm::vec2, Size, m_size, setSizeDirty);
-        MAKE_GETTER_SETTER_WC(Unit, SizeUnit, m_sizeUnit, setSizeDirty);
-        MAKE_GETTER_SETTER_WC(SizeContraint,
-                              SizeConstraint,
-                              m_sizeConstraint,
-                              setSizeDirty);
-        MAKE_GETTER_SETTER(bool, PosDirty, m_posDirty);
-        MAKE_GETTER_SETTER(bool, SizeDirty, m_sizeDirty);
-        MAKE_GETTER_SETTER_WC(glm::vec4, Padding, m_padding, setSizeDirty);
-        MAKE_GETTER_SETTER_WC(glm::vec4, Margin, m_margin, setSizeDirty);
-        MAKE_GETTER_SETTER_WC(glm::vec2, MinSize, m_minSize, setSizeDirty);
-        MAKE_GETTER_SETTER_WC(glm::vec2, MaxSize, m_maxSize, setSizeDirty);
-        MAKE_GETTER(glm::vec2, CachedPos, m_cachedPos);
-        MAKE_GETTER(glm::vec2, CachedSize, m_cachedSize);
-        MAKE_GETTER(glm::vec2, DrawSize, m_drawSize);
-        MAKE_GETTER(float, CachedZVal, m_cachedZVal);
-        MAKE_GETTER(UUID, ParentId, m_parentId);
+        const glm::vec2 &getPos() const;
+        void setPos(const glm::vec2 &pos);
+        glm::vec2 &getPos();
+
+        const Unit &getPosUnit() const;
+        void setPosUnit(const Unit &posUnit);
+        Unit &getPosUnit();
+
+        const glm::vec2 &getSize() const;
+        void setSize(const glm::vec2 &size);
+        glm::vec2 &getSize();
+
+        const Unit &getSizeUnit() const;
+        void setSizeUnit(const Unit &sizeUnit);
+        Unit &getSizeUnit();
+
+        const SizeContraint &getSizeConstraint() const;
+        void setSizeConstraint(const SizeContraint &sizeConstraint);
+        SizeContraint &getSizeConstraint();
+
+        bool getPosDirty() const;
+        bool getSizeDirty() const;
+
+        const glm::vec4 &getPadding() const;
+        void setPadding(const glm::vec4 &padding);
+        glm::vec4 &getPadding();
+
+        const glm::vec4 &getMargin() const;
+        void setMargin(const glm::vec4 &margin);
+        glm::vec4 &getMargin();
+
+        const glm::vec2 &getMinSize() const;
+        void setMinSize(const glm::vec2 &minSize);
+        glm::vec2 &getMinSize();
+
+        const glm::vec2 &getMaxSize() const;
+        void setMaxSize(const glm::vec2 &maxSize);
+        glm::vec2 &getMaxSize();
+
+        const glm::vec2 &getCachedPos() const;
+        const glm::vec2 &getCachedSize() const;
+        const glm::vec2 &getDrawSize() const;
+        const float &getCachedZVal() const;
+        const UUID &getParentId() const;
 
         const LayoutDirection &getDirection() const;
 
@@ -152,6 +177,10 @@ namespace Bess::Canvas::UI {
                     float parentZVal,
                     HashSet<UUID> &activeNodes);
 
+        void attachRegistry(UINodeRegistry *registry);
+        void propagateSizeDirtyToAncestors();
+        void propagatePosDirtyToAncestors();
+
         glm::vec2 resolveSize(const UINode *parentNode) const;
         glm::vec2 resolvePos(const UINode *parentNode) const;
         glm::vec2 contentSize() const;
@@ -187,5 +216,6 @@ namespace Bess::Canvas::UI {
         glm::vec2 m_drawSize{0};
 
         UUID m_parentId = UUID::null;
+        UINodeRegistry *m_registry = nullptr;
     };
 } // namespace Bess::Canvas::UI

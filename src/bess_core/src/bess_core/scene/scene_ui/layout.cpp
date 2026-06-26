@@ -76,6 +76,11 @@ namespace Bess::Canvas::UI {
             return lhs.x == rhs.x && lhs.y == rhs.y;
         }
 
+        bool sameVec(const glm::vec4 &lhs, const glm::vec4 &rhs) {
+            return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z &&
+                   lhs.w == rhs.w;
+        }
+
         float alignedStart(float start,
                            float availableSize,
                            float childSize,
@@ -95,6 +100,7 @@ namespace Bess::Canvas::UI {
 
     UINode *UINodeRegistry::addNode(const UINode &node) {
         m_nodes[node.getId()] = node;
+        m_nodes.at(node.getId()).attachRegistry(this);
         return &m_nodes.at(node.getId());
     }
 
@@ -103,10 +109,32 @@ namespace Bess::Canvas::UI {
         if (!success) {
             return nullptr;
         }
+        itr->second.attachRegistry(this);
         return &itr->second;
     }
 
     void UINodeRegistry::removeNode(const UUID &id) {
+        auto it = m_nodes.find(id);
+        if (it == m_nodes.end()) {
+            return;
+        }
+
+        UINode &node = it->second;
+        if (node.m_parentId != UUID::null) {
+            if (auto *parentNode = getNode(node.m_parentId)) {
+                parentNode->m_children.erase(id);
+                parentNode->setSizeDirty();
+            }
+        }
+
+        for (const auto &childId : node.m_children) {
+            if (auto *childNode = getNode(childId)) {
+                childNode->m_parentId = UUID::null;
+                childNode->setPosDirty();
+            }
+        }
+
+        node.attachRegistry(nullptr);
         m_nodes.erase(id);
     }
 
@@ -135,13 +163,198 @@ namespace Bess::Canvas::UI {
 
     void UINode::setPosDirty(bool dirty) {
         m_posDirty = dirty;
+        if (dirty) {
+            propagatePosDirtyToAncestors();
+        }
     }
 
     void UINode::setSizeDirty(bool dirty) {
         m_sizeDirty = dirty;
         if (dirty) {
             m_posDirty = true;
+            propagateSizeDirtyToAncestors();
         }
+    }
+
+    bool UINode::getPosDirty() const {
+        return m_posDirty;
+    }
+
+    bool UINode::getSizeDirty() const {
+        return m_sizeDirty;
+    }
+
+    const glm::vec2 &UINode::getPos() const {
+        return m_pos;
+    }
+
+    void UINode::setPos(const glm::vec2 &pos) {
+        if (sameVec(m_pos, pos)) {
+            return;
+        }
+        m_pos = pos;
+        setPosDirty();
+    }
+
+    glm::vec2 &UINode::getPos() {
+        setPosDirty();
+        return m_pos;
+    }
+
+    const Unit &UINode::getPosUnit() const {
+        return m_posUnit;
+    }
+
+    void UINode::setPosUnit(const Unit &posUnit) {
+        if (m_posUnit == posUnit) {
+            return;
+        }
+        m_posUnit = posUnit;
+        setPosDirty();
+    }
+
+    Unit &UINode::getPosUnit() {
+        setPosDirty();
+        return m_posUnit;
+    }
+
+    const glm::vec2 &UINode::getSize() const {
+        return m_size;
+    }
+
+    void UINode::setSize(const glm::vec2 &size) {
+        if (sameVec(m_size, size)) {
+            return;
+        }
+        m_size = size;
+        setSizeDirty();
+    }
+
+    glm::vec2 &UINode::getSize() {
+        setSizeDirty();
+        return m_size;
+    }
+
+    const Unit &UINode::getSizeUnit() const {
+        return m_sizeUnit;
+    }
+
+    void UINode::setSizeUnit(const Unit &sizeUnit) {
+        if (m_sizeUnit == sizeUnit) {
+            return;
+        }
+        m_sizeUnit = sizeUnit;
+        setSizeDirty();
+    }
+
+    Unit &UINode::getSizeUnit() {
+        setSizeDirty();
+        return m_sizeUnit;
+    }
+
+    const SizeContraint &UINode::getSizeConstraint() const {
+        return m_sizeConstraint;
+    }
+
+    void UINode::setSizeConstraint(const SizeContraint &sizeConstraint) {
+        if (m_sizeConstraint == sizeConstraint) {
+            return;
+        }
+        m_sizeConstraint = sizeConstraint;
+        setSizeDirty();
+    }
+
+    SizeContraint &UINode::getSizeConstraint() {
+        setSizeDirty();
+        return m_sizeConstraint;
+    }
+
+    const glm::vec4 &UINode::getPadding() const {
+        return m_padding;
+    }
+
+    void UINode::setPadding(const glm::vec4 &padding) {
+        if (sameVec(m_padding, padding)) {
+            return;
+        }
+        m_padding = padding;
+        setSizeDirty();
+    }
+
+    glm::vec4 &UINode::getPadding() {
+        setSizeDirty();
+        return m_padding;
+    }
+
+    const glm::vec4 &UINode::getMargin() const {
+        return m_margin;
+    }
+
+    void UINode::setMargin(const glm::vec4 &margin) {
+        if (sameVec(m_margin, margin)) {
+            return;
+        }
+        m_margin = margin;
+        setSizeDirty();
+    }
+
+    glm::vec4 &UINode::getMargin() {
+        setSizeDirty();
+        return m_margin;
+    }
+
+    const glm::vec2 &UINode::getMinSize() const {
+        return m_minSize;
+    }
+
+    void UINode::setMinSize(const glm::vec2 &minSize) {
+        if (sameVec(m_minSize, minSize)) {
+            return;
+        }
+        m_minSize = minSize;
+        setSizeDirty();
+    }
+
+    glm::vec2 &UINode::getMinSize() {
+        setSizeDirty();
+        return m_minSize;
+    }
+
+    const glm::vec2 &UINode::getMaxSize() const {
+        return m_maxSize;
+    }
+
+    void UINode::setMaxSize(const glm::vec2 &maxSize) {
+        if (sameVec(m_maxSize, maxSize)) {
+            return;
+        }
+        m_maxSize = maxSize;
+        setSizeDirty();
+    }
+
+    glm::vec2 &UINode::getMaxSize() {
+        setSizeDirty();
+        return m_maxSize;
+    }
+
+    const glm::vec2 &UINode::getCachedPos() const {
+        return m_cachedPos;
+    }
+
+    const glm::vec2 &UINode::getCachedSize() const {
+        return m_cachedSize;
+    }
+
+    const glm::vec2 &UINode::getDrawSize() const {
+        return m_drawSize;
+    }
+
+    const float &UINode::getCachedZVal() const {
+        return m_cachedZVal;
+    }
+
+    const UUID &UINode::getParentId() const {
+        return m_parentId;
     }
 
     const LayoutDirection &UINode::getDirection() const {
@@ -149,11 +362,15 @@ namespace Bess::Canvas::UI {
     }
 
     void UINode::setDirection(const LayoutDirection &direction) {
+        if (m_direction == direction) {
+            return;
+        }
         m_direction = direction;
         setSizeDirty();
     }
 
     LayoutDirection &UINode::getDirection() {
+        setSizeDirty();
         return m_direction;
     }
 
@@ -162,11 +379,15 @@ namespace Bess::Canvas::UI {
     }
 
     void UINode::setMainAxisAlignment(const LayoutAlignment &alignment) {
+        if (m_mainAxisAlignment == alignment) {
+            return;
+        }
         m_mainAxisAlignment = alignment;
         setPosDirty();
     }
 
     LayoutAlignment &UINode::getMainAxisAlignment() {
+        setPosDirty();
         return m_mainAxisAlignment;
     }
 
@@ -175,11 +396,15 @@ namespace Bess::Canvas::UI {
     }
 
     void UINode::setCrossAxisAlignment(const LayoutAlignment &alignment) {
+        if (m_crossAxisAlignment == alignment) {
+            return;
+        }
         m_crossAxisAlignment = alignment;
         setPosDirty();
     }
 
     LayoutAlignment &UINode::getCrossAxisAlignment() {
+        setPosDirty();
         return m_crossAxisAlignment;
     }
 
@@ -188,11 +413,15 @@ namespace Bess::Canvas::UI {
     }
 
     void UINode::setPosMode(const PosMode &posMode) {
+        if (m_posMode == posMode) {
+            return;
+        }
         m_posMode = posMode;
         setSizeDirty();
     }
 
     PosMode &UINode::getPosMode() {
+        setSizeDirty();
         return m_posMode;
     }
 
@@ -201,7 +430,28 @@ namespace Bess::Canvas::UI {
     }
 
     void UINode::setChildren(const OrderedSet<UUID> &children) {
+        if (m_children == children) {
+            return;
+        }
+
+        if (m_registry != nullptr) {
+            for (const auto &childId : m_children) {
+                if (auto *childNode = m_registry->getNode(childId)) {
+                    childNode->m_parentId = UUID::null;
+                    childNode->setPosDirty();
+                }
+            }
+        }
+
         m_children = children;
+        if (m_registry != nullptr) {
+            for (const auto &childId : m_children) {
+                if (auto *childNode = m_registry->getNode(childId)) {
+                    childNode->m_parentId = m_id;
+                    childNode->setPosDirty();
+                }
+            }
+        }
         setSizeDirty();
     }
 
@@ -215,6 +465,9 @@ namespace Bess::Canvas::UI {
     }
 
     void UINode::setZVal(const float &zVal) {
+        if (m_zVal == zVal) {
+            return;
+        }
         m_zVal = zVal;
         setPosDirty();
     }
@@ -237,6 +490,7 @@ namespace Bess::Canvas::UI {
         m_children.insert(node->m_id);
         if (m_children.size() != previousSize) {
             node->m_parentId = m_id;
+            node->setPosDirty();
             setSizeDirty();
         }
     }
@@ -245,12 +499,21 @@ namespace Bess::Canvas::UI {
         BESS_ASSERT(node != nullptr, "Cannot remove a null UI node child.");
         if (m_children.erase(node->m_id) > 0) {
             node->m_parentId = UUID::null;
+            node->setPosDirty();
             setSizeDirty();
         }
     }
 
     void UINode::clearChildren() {
         if (!m_children.empty()) {
+            if (m_registry != nullptr) {
+                for (const auto &childId : m_children) {
+                    if (auto *childNode = m_registry->getNode(childId)) {
+                        childNode->m_parentId = UUID::null;
+                        childNode->setPosDirty();
+                    }
+                }
+            }
             m_children.clear();
             setSizeDirty();
         }
@@ -304,6 +567,13 @@ namespace Bess::Canvas::UI {
                 return nonNegativeVec(m_cachedSize);
             }
             activeNodes.insert(m_id);
+        }
+
+        if (!m_sizeDirty) {
+            if (tracksCycle) {
+                activeNodes.erase(m_id);
+            }
+            return m_cachedSize;
         }
 
         const glm::vec2 previousCachedSize = m_cachedSize;
@@ -422,6 +692,13 @@ namespace Bess::Canvas::UI {
             activeNodes.insert(m_id);
         }
 
+        if (!m_posDirty) {
+            if (tracksCycle) {
+                activeNodes.erase(m_id);
+            }
+            return;
+        }
+
         if (parentNode == nullptr) {
             m_cachedPos = resolvePos(nullptr);
         } else if (m_posMode == PosMode::absolute) {
@@ -466,8 +743,13 @@ namespace Bess::Canvas::UI {
             }
 
             if (childNode->m_posMode == PosMode::absolute) {
-                childNode->m_cachedPos =
-                    m_cachedPos + childNode->resolvePos(this);
+                const auto childPos = m_cachedPos + childNode->resolvePos(this);
+                const auto childZ = m_cachedZVal + childNode->m_zVal;
+                if (!sameVec(childNode->m_cachedPos, childPos) ||
+                    childNode->m_cachedZVal != childZ) {
+                    childNode->m_posDirty = true;
+                }
+                childNode->m_cachedPos = childPos;
                 childNode->layout(registry, this, m_cachedZVal, activeNodes);
                 continue;
             }
@@ -489,9 +771,14 @@ namespace Bess::Canvas::UI {
 
             const glm::vec2 drawTopLeft =
                 marginBoxTopLeft + edgeTopLeft(childNode->m_margin, true);
-            childNode->m_cachedPos = drawTopLeft +
-                                     (childNode->m_drawSize * 0.5f) +
-                                     childNode->resolvePos(this);
+            const auto childPos = drawTopLeft + (childNode->m_drawSize * 0.5f) +
+                                  childNode->resolvePos(this);
+            const auto childZ = m_cachedZVal + childNode->m_zVal;
+            if (!sameVec(childNode->m_cachedPos, childPos) ||
+                childNode->m_cachedZVal != childZ) {
+                childNode->m_posDirty = true;
+            }
+            childNode->m_cachedPos = childPos;
 
             childNode->layout(registry, this, m_cachedZVal, activeNodes);
 
@@ -506,6 +793,45 @@ namespace Bess::Canvas::UI {
 
         if (tracksCycle) {
             activeNodes.erase(m_id);
+        }
+    }
+
+    void UINode::attachRegistry(UINodeRegistry *registry) {
+        m_registry = registry;
+    }
+
+    void UINode::propagateSizeDirtyToAncestors() {
+        if (m_registry == nullptr) {
+            return;
+        }
+
+        UUID parentId = m_parentId;
+        while (parentId != UUID::null) {
+            UINode *parentNode = m_registry->getNode(parentId);
+            if (parentNode == nullptr) {
+                return;
+            }
+
+            parentNode->m_sizeDirty = true;
+            parentNode->m_posDirty = true;
+            parentId = parentNode->m_parentId;
+        }
+    }
+
+    void UINode::propagatePosDirtyToAncestors() {
+        if (m_registry == nullptr) {
+            return;
+        }
+
+        UUID parentId = m_parentId;
+        while (parentId != UUID::null) {
+            UINode *parentNode = m_registry->getNode(parentId);
+            if (parentNode == nullptr) {
+                return;
+            }
+
+            parentNode->m_posDirty = true;
+            parentId = parentNode->m_parentId;
         }
     }
 

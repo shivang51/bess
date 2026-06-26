@@ -468,31 +468,174 @@ TEST_F(UiLayoutTests, UINodeRelativeSizeUsesParentContentBox) {
 TEST_F(UiLayoutTests, UINodeLayoutRefreshesWhenChildSizeChanges) {
     Bess::Canvas::UI::UINodeRegistry registry;
 
-    Bess::Canvas::UI::UINode parentNode;
-    parentNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    parentNode.setSize(glm::vec2(200, 100));
+    auto parentNode = registry.addNode(Bess::UUID());
+    ASSERT_NE(parentNode, nullptr);
+    parentNode->setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
+    parentNode->setSize(glm::vec2(200, 100));
 
     Bess::Canvas::UI::UINode childNode1;
     childNode1.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
     childNode1.setSize(glm::vec2(50, 50));
     auto childNode1Ptr = registry.addNode(childNode1);
     ASSERT_NE(childNode1Ptr, nullptr);
-    parentNode.addChild(childNode1Ptr);
+    parentNode->addChild(childNode1Ptr);
 
     Bess::Canvas::UI::UINode childNode2;
     childNode2.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
     childNode2.setSize(glm::vec2(30, 30));
     auto childNode2Ptr = registry.addNode(childNode2);
     ASSERT_NE(childNode2Ptr, nullptr);
-    parentNode.addChild(childNode2Ptr);
+    parentNode->addChild(childNode2Ptr);
 
-    parentNode.layout(registry, Bess::UUID::null);
+    parentNode->layout(registry, Bess::UUID::null);
 
     expectVec2(childNode2Ptr->getCachedPos(), -35, -35);
 
     childNode1Ptr->setSize(glm::vec2(100, 50));
-    parentNode.layout(registry, Bess::UUID::null);
+    EXPECT_TRUE(childNode1Ptr->getSizeDirty());
+    EXPECT_TRUE(parentNode->getSizeDirty());
+    EXPECT_FALSE(childNode2Ptr->getSizeDirty());
+
+    parentNode->layout(registry, Bess::UUID::null);
 
     expectVec2(childNode1Ptr->getCachedPos(), -50, -25);
     expectVec2(childNode2Ptr->getCachedPos(), 15, -35);
+    EXPECT_FALSE(parentNode->getSizeDirty());
+    EXPECT_FALSE(parentNode->getPosDirty());
+    EXPECT_FALSE(childNode1Ptr->getSizeDirty());
+    EXPECT_FALSE(childNode1Ptr->getPosDirty());
+    EXPECT_FALSE(childNode2Ptr->getSizeDirty());
+    EXPECT_FALSE(childNode2Ptr->getPosDirty());
+}
+
+TEST_F(UiLayoutTests, UINodeDirtySizePropagatesThroughAncestors) {
+    Bess::Canvas::UI::UINodeRegistry registry;
+
+    auto rootNode = registry.addNode(Bess::UUID());
+    auto rowNode = registry.addNode(Bess::UUID());
+    auto childNode1 = registry.addNode(Bess::UUID());
+    auto childNode2 = registry.addNode(Bess::UUID());
+    ASSERT_NE(rootNode, nullptr);
+    ASSERT_NE(rowNode, nullptr);
+    ASSERT_NE(childNode1, nullptr);
+    ASSERT_NE(childNode2, nullptr);
+
+    rootNode->setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
+    rootNode->setSize(glm::vec2(200, 100));
+    rootNode->addChild(rowNode);
+
+    rowNode->setSizeConstraint(Bess::Canvas::UI::SizeContraint::wrap_content);
+    rowNode->addChild(childNode1);
+    rowNode->addChild(childNode2);
+
+    childNode1->setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
+    childNode1->setSize(glm::vec2(50, 20));
+    childNode2->setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
+    childNode2->setSize(glm::vec2(30, 20));
+
+    rootNode->layout(registry, Bess::UUID::null);
+    const auto child2CachedSize = childNode2->getCachedSize();
+    const auto child2CachedPos = childNode2->getCachedPos();
+
+    EXPECT_FALSE(rootNode->getSizeDirty());
+    EXPECT_FALSE(rowNode->getSizeDirty());
+    EXPECT_FALSE(childNode1->getSizeDirty());
+    EXPECT_FALSE(childNode2->getSizeDirty());
+
+    childNode1->setSize(glm::vec2(80, 20));
+
+    EXPECT_TRUE(childNode1->getSizeDirty());
+    EXPECT_TRUE(rowNode->getSizeDirty());
+    EXPECT_TRUE(rootNode->getSizeDirty());
+    EXPECT_FALSE(childNode2->getSizeDirty());
+
+    rootNode->layout(registry, Bess::UUID::null);
+
+    expectVec2(rowNode->getDrawSize(), 110, 20);
+    expectVec2(childNode1->getDrawSize(), 80, 20);
+    expectVec2(child2CachedSize, 30, 20);
+    expectVec2(
+        childNode2->getCachedSize(), child2CachedSize.x, child2CachedSize.y);
+    EXPECT_NE(childNode2->getCachedPos().x, child2CachedPos.x);
+
+    EXPECT_FALSE(rootNode->getSizeDirty());
+    EXPECT_FALSE(rootNode->getPosDirty());
+    EXPECT_FALSE(rowNode->getSizeDirty());
+    EXPECT_FALSE(rowNode->getPosDirty());
+    EXPECT_FALSE(childNode1->getSizeDirty());
+    EXPECT_FALSE(childNode1->getPosDirty());
+    EXPECT_FALSE(childNode2->getSizeDirty());
+    EXPECT_FALSE(childNode2->getPosDirty());
+}
+
+TEST_F(UiLayoutTests, UINodeDirtyPositionPropagatesWithoutSizeInvalidation) {
+    Bess::Canvas::UI::UINodeRegistry registry;
+
+    auto rootNode = registry.addNode(Bess::UUID());
+    auto rowNode = registry.addNode(Bess::UUID());
+    auto childNode = registry.addNode(Bess::UUID());
+    ASSERT_NE(rootNode, nullptr);
+    ASSERT_NE(rowNode, nullptr);
+    ASSERT_NE(childNode, nullptr);
+
+    rootNode->setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
+    rootNode->setSize(glm::vec2(200, 100));
+    rootNode->addChild(rowNode);
+
+    rowNode->setSizeConstraint(Bess::Canvas::UI::SizeContraint::wrap_content);
+    rowNode->addChild(childNode);
+
+    childNode->setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
+    childNode->setSize(glm::vec2(50, 20));
+
+    rootNode->layout(registry, Bess::UUID::null);
+    const auto previousCachedSize = rootNode->getCachedSize();
+
+    childNode->setPos(glm::vec2(4, 0));
+
+    EXPECT_TRUE(childNode->getPosDirty());
+    EXPECT_TRUE(rowNode->getPosDirty());
+    EXPECT_TRUE(rootNode->getPosDirty());
+    EXPECT_FALSE(childNode->getSizeDirty());
+    EXPECT_FALSE(rowNode->getSizeDirty());
+    EXPECT_FALSE(rootNode->getSizeDirty());
+
+    rootNode->layout(registry, Bess::UUID::null);
+
+    expectVec2(
+        rootNode->getCachedSize(), previousCachedSize.x, previousCachedSize.y);
+    expectVec2(childNode->getCachedPos(), -71, -40);
+    EXPECT_FALSE(rootNode->getPosDirty());
+    EXPECT_FALSE(rowNode->getPosDirty());
+    EXPECT_FALSE(childNode->getPosDirty());
+}
+
+TEST_F(UiLayoutTests, UINodeSameValueSettersDoNotInvalidateCleanTree) {
+    Bess::Canvas::UI::UINodeRegistry registry;
+
+    auto rootNode = registry.addNode(Bess::UUID());
+    ASSERT_NE(rootNode, nullptr);
+
+    rootNode->setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
+    rootNode->setSize(glm::vec2(100, 60));
+    rootNode->setPos(glm::vec2(2, 4));
+    rootNode->setPadding(glm::vec4(1, 2, 3, 4));
+    rootNode->setMargin(glm::vec4(5, 6, 7, 8));
+    rootNode->layout(registry, Bess::UUID::null);
+
+    ASSERT_FALSE(rootNode->getSizeDirty());
+    ASSERT_FALSE(rootNode->getPosDirty());
+
+    rootNode->setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
+    rootNode->setSize(glm::vec2(100, 60));
+    rootNode->setPos(glm::vec2(2, 4));
+    rootNode->setPadding(glm::vec4(1, 2, 3, 4));
+    rootNode->setMargin(glm::vec4(5, 6, 7, 8));
+    rootNode->setDirection(Bess::Canvas::UI::LayoutDirection::horizontal);
+    rootNode->setMainAxisAlignment(Bess::Canvas::UI::LayoutAlignment::start);
+    rootNode->setCrossAxisAlignment(Bess::Canvas::UI::LayoutAlignment::start);
+    rootNode->setZVal(0.f);
+
+    EXPECT_FALSE(rootNode->getSizeDirty());
+    EXPECT_FALSE(rootNode->getPosDirty());
 }
