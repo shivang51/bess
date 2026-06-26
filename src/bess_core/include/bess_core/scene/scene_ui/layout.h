@@ -163,7 +163,7 @@ namespace Bess::Canvas::UI {
         LayoutDirection m_direction = LayoutDirection::horizontal;
         LayoutAlignment m_alignment = LayoutAlignment::start;
         PosMode m_posMode = PosMode::relative;
-        SizeContraint m_sizeConstraint = SizeContraint::fixed;
+        SizeContraint m_sizeConstraint = SizeContraint::wrap_content;
         OrderedSet<UUID> m_children;
         bool m_posDirty = true;
         bool m_sizeDirty = true;

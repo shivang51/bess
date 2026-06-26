@@ -57,6 +57,7 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(std::vector<UUID>,
                            ConnectedConnections,
                            m_connectedConnections)
+        MAKE_GETTER_SETTER_PTR(UI::UINode, UINode, m_uiNode)
 
         void addConnection(const UUID &connectionId);
         void removeConnection(const UUID &connectionId);

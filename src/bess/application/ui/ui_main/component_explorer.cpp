@@ -1,6 +1,7 @@
 #include "ui/ui_main/component_explorer.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
 #include "bess_core/scene_driver.h"
 #include "common/bess_uuid.h"
 #include "common/helpers.h"
@@ -11,6 +12,7 @@
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/non_sim_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
+#include "pages/main_page/scene_components/slot_scene_component.h"
 #include "services/plugin_service/plugin_service.h"
 #include "sim_driver/sim_driver.h"
 #include "ui/icons/CodIcons_Remapped.h"
@@ -180,27 +182,52 @@ namespace Bess::UI {
             simComp->getTransform().position.y = pos.y;
             simComp->setCompDef(def->clone());
             auto parentNode = uiNodeReg->addNode(simComp->getUuid());
+            parentNode->setDirection(Canvas::UI::LayoutDirection::vertical);
+            parentNode->setPadding({
+                Canvas::Styles::simCompStyles.paddingY,
+                Canvas::Styles::simCompStyles.paddingX,
+                Canvas::Styles::simCompStyles.paddingY,
+                Canvas::Styles::simCompStyles.paddingX,
+            });
             simComp->setUINode(parentNode);
             activeScene->addComponent(simComp);
 
             std::vector<std::shared_ptr<Canvas::SceneComponent>> children;
             for (const auto &childId : simComp->getInputSlots()) {
-                const auto &child = sceneState.getComponentByUuidSP(childId);
+                const auto &child =
+                    sceneState.getComponentByUuidSP<Canvas::SlotSceneComponent>(
+                        childId);
                 BESS_ASSERT(child, "Child component not found in scene state");
                 children.push_back(child);
                 auto childNode = uiNodeReg->addNode(childId);
+                BESS_ASSERT(childNode,
+                            "Failed to create UI node for child component");
+                childNode->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
+                childNode->setSize(
+                    glm::vec2(Canvas::Styles::simCompStyles.slotRadius * 2.f));
+                childNode->setMargin(
+                    glm::vec4(Canvas::Styles::simCompStyles.slotMargin));
                 parentNode->addChild(childNode);
-                simComp->setUINode(childNode);
+                child->setUINode(childNode);
                 sceneState.attachChild(simComp->getUuid(), childId);
             }
 
             for (const auto &childId : simComp->getOutputSlots()) {
-                const auto &child = sceneState.getComponentByUuidSP(childId);
+                const auto &child =
+                    sceneState.getComponentByUuidSP<Canvas::SlotSceneComponent>(
+                        childId);
                 BESS_ASSERT(child, "Child component not found in scene state");
                 children.push_back(child);
                 auto childNode = uiNodeReg->addNode(childId);
+                BESS_ASSERT(childNode,
+                            "Failed to create UI node for child component");
+                childNode->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
+                childNode->setSize(
+                    glm::vec2(Canvas::Styles::simCompStyles.slotRadius * 2.f));
+                childNode->setMargin(
+                    glm::vec4(Canvas::Styles::simCompStyles.slotMargin));
                 parentNode->addChild(childNode);
-                simComp->setUINode(childNode);
+                child->setUINode(childNode);
                 sceneState.attachChild(simComp->getUuid(), childId);
             }
 

@@ -687,7 +687,6 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
             if (m_isFirstDraw) {
                 m_transform.position =
                     glm::vec3(newPos, m_transform.position.z);
-                m_uiNode->setPosDirty();
             }
         } else {
             m_uiNode->setPosDirty();
@@ -721,6 +720,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
 
     void SimulationSceneComponent::onTransformChanged() {
         m_schematicTransform.position.z = m_transform.position.z;
+        m_uiNode->setPos(m_transform.position);
     }
 
     std::vector<UUID>
