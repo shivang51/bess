@@ -827,6 +827,8 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
 
             return parentComp->getAbsolutePosition(state, isSchematicMode) +
                    m_schematicTransform.position;
+        } else if (m_uiNode) {
+            return m_uiNode->getDrawPos();
         } else {
             return SceneComponent::getAbsolutePosition(state, isSchematicMode);
         }
