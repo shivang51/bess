@@ -10,6 +10,7 @@
 #include "bess_core/scene/scene_state/components/styles/comp_style.h"
 #include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
 #include "bess_core/scene/scene_state/scene_state.h"
+#include "bess_core/scene/scene_ui/layout.h"
 #include "bess_core/settings/viewport_theme.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
@@ -268,18 +269,21 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
     }
 
     void SimulationSceneComponent::draw(SceneDrawContext &context) {
-        drawBackground(context);
-        drawSlots(context);
+        if (m_uiNode != nullptr) {
+            drawBackground(context);
+            drawSlots(context);
+        }
     }
 
     void SimulationSceneComponent::drawBackground(SceneDrawContext &context) {
         BESS_ASSERT(s_nodeShader != 0, "Mica shader not initialized");
+        BESS_ASSERT(m_uiNode != nullptr, "SimSceneComp UI node is nullptr");
 
         const auto pickingId = PickingId{m_runtimeId, 0};
 
         Core::Renderer::QuadProps quadProps;
-        quadProps.position = m_transform.position;
-        quadProps.size = m_transform.scale;
+        quadProps.position = m_uiNode->getCachedPos();
+        quadProps.size = m_uiNode->getDrawSize();
         quadProps.color = ViewportTheme::colors.componentBG;
         quadProps.id = pickingId;
         quadProps.rotation = m_transform.angle;
@@ -463,8 +467,25 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         auto uiNodeReg = ctx.sceneState->getUINodeRegistry();
         if (!m_uiNode) {
             m_uiNode = uiNodeReg->addNode(m_uuid);
+            m_headerNode = uiNodeReg->addNode(UUID());
+            m_inpBoxNode = uiNodeReg->addNode(UUID());
+            m_outBoxNode = uiNodeReg->addNode(UUID());
+            m_slotsBoxNode = uiNodeReg->addNode(UUID());
         }
 
+        m_uiNode->clearChildren();
+        m_inpBoxNode->clearChildren();
+        m_outBoxNode->clearChildren();
+
+        m_uiNode->addChild(m_headerNode);
+        m_uiNode->addChild(m_slotsBoxNode);
+        m_slotsBoxNode->addChild(m_inpBoxNode);
+        m_slotsBoxNode->addChild(m_outBoxNode);
+
+        const auto labelSize = ctx.renderer->measureText(
+            m_name, {.fontSize = Styles::simCompStyles.headerFontSize});
+
+        // Main Node
         m_uiNode->setDirection(Canvas::UI::LayoutDirection::vertical);
         m_uiNode->setPadding({
             Canvas::Styles::simCompStyles.paddingY,
@@ -472,18 +493,55 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
             Canvas::Styles::simCompStyles.paddingY,
             Canvas::Styles::simCompStyles.paddingX,
         });
+        // m_uiNode->setMinSize(labelSize);
 
-        // auto childNode = uiNodeReg->addNode(childId);
-        // BESS_ASSERT(childNode,
-        //             "Failed to create UI node for child component");
-        // childNode->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
-        // childNode->setSize(
-        //     glm::vec2(Canvas::Styles::simCompStyles.slotRadius * 2.f));
-        // childNode->setMargin(
-        //     glm::vec4(Canvas::Styles::simCompStyles.slotMargin));
-        // child->setUINode(childNode);
+        // Header Node
+        m_headerNode->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
+        m_headerNode->setSize(labelSize);
+        m_headerNode->setMargin({
+            0,
+            0,
+            Canvas::Styles::simCompStyles.rowMargin,
+            0,
+        });
 
-        SceneComponent::prepareUI(ctx);
+        // Slots Box Node
+        m_slotsBoxNode->setDirection(Canvas::UI::LayoutDirection::horizontal);
+        m_slotsBoxNode->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
+        m_slotsBoxNode->setSize({1.f, -1.f});
+        m_slotsBoxNode->setSizeUnit(Canvas::UI::Unit::relative);
+
+        // Inputs
+        ctx.parentNode = m_inpBoxNode;
+        m_inpBoxNode->setDirection(Canvas::UI::LayoutDirection::vertical);
+        m_inpBoxNode->setAlignment(Canvas::UI::LayoutAlignment::start);
+        m_inpBoxNode->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
+        m_inpBoxNode->setSize({0.5f, -1.f});
+        m_inpBoxNode->setSizeUnit(Canvas::UI::Unit::relative);
+        for (const auto &childId : m_inputSlots) {
+            auto child = ctx.sceneState->getComponentByUuid(childId);
+            BESS_ASSERT(child,
+                        "Input slot component with UUID {} not found",
+                        (uint64_t)childId);
+            child->prepareUI(ctx);
+        }
+
+        // Outputs
+        ctx.parentNode = m_outBoxNode;
+        m_outBoxNode->setDirection(Canvas::UI::LayoutDirection::vertical);
+        m_outBoxNode->setAlignment(Canvas::UI::LayoutAlignment::end);
+        m_outBoxNode->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
+        m_outBoxNode->setSize({0.5f, -1.f});
+        m_outBoxNode->setSizeUnit(Canvas::UI::Unit::relative);
+        for (const auto &childId : m_outputSlots) {
+            auto child = ctx.sceneState->getComponentByUuid(childId);
+            BESS_ASSERT(child,
+                        "Output slot component with UUID {} not found",
+                        (uint64_t)childId);
+            child->prepareUI(ctx);
+        }
+
+        m_isUIDirty = false;
     }
 
     void SimulationSceneComponent::resetSlotPositions(const SceneState &state) {

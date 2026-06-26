@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bess_core/renderer/renderer_types.h"
+#include "bess_core/scene/scene_ui/layout.h"
 #include <memory>
 
 namespace Bess {
@@ -28,5 +29,6 @@ namespace Bess {
     struct SceneUIPrepareCtx {
         Bess::Canvas::SceneState *sceneState;
         std::shared_ptr<Core::Renderer::IRenderer2D> renderer;
+        Canvas::UI::UINode *parentNode = nullptr;
     };
 } // namespace Bess

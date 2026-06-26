@@ -55,7 +55,7 @@ namespace Bess::Canvas {
     }
 
     void SceneComponent::prepareUI(SceneUIPrepareCtx &ctx) {
-        m_uiDirty = false;
+        m_isUIDirty = false;
     }
 
     void SceneComponent::draw(SceneDrawContext &context) {

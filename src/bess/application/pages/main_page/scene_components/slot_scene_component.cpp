@@ -55,6 +55,20 @@ namespace Bess::Canvas {
         return false;
     }
 
+    void SlotSceneComponent::prepareUI(SceneUIPrepareCtx &ctx) {
+        auto uiNodeReg = ctx.sceneState->getUINodeRegistry();
+        if (m_uiNode == nullptr) {
+            m_uiNode = uiNodeReg->addNode(m_uuid);
+        }
+
+        ctx.parentNode->addChild(m_uiNode);
+        m_uiNode->setSizeConstraint(UI::SizeContraint::fixed);
+        m_uiNode->setSize({Styles::simCompStyles.slotRadius * 2.f,
+                           Styles::simCompStyles.slotRadius * 2.f});
+        m_uiNode->setMargin(
+            glm::vec4(Canvas::Styles::simCompStyles.slotMargin));
+    }
+
     void SlotSceneComponent::update(TimeMs frameTime, SceneState &state) {
         BESS_ASSERT(m_parentComponent != UUID::null,
                     "SlotSceneComponent must have a parent component");
@@ -110,8 +124,17 @@ namespace Bess::Canvas {
         const float ir = Styles::simCompStyles.slotRadius -
                          Styles::simCompStyles.slotBorderSize;
         const float r = Styles::simCompStyles.slotRadius;
-        SceneDraw::drawCircle(drawContext, pos, r, border, pickingId, ir);
-        SceneDraw::drawCircle(drawContext, pos, ir - radiusGap, bg, pickingId);
+        SceneDraw::drawCircle(drawContext,
+                              {m_uiNode->getCachedPos(), pos.z},
+                              r,
+                              border,
+                              pickingId,
+                              ir);
+        SceneDraw::drawCircle(drawContext,
+                              {m_uiNode->getCachedPos(), pos.z},
+                              ir - radiusGap,
+                              bg,
+                              pickingId);
 
         if (!m_name.empty() && drawContext.renderer) {
             const float labeldx = Styles::simCompStyles.slotMargin +
@@ -197,8 +220,8 @@ namespace Bess::Canvas {
                 state.getComponentByUuid<SimulationSceneComponent>(
                     m_parentComponent);
             // not using schematic slot pos for text as in schematic view,
-            // slot is rendered behind the component but text should be in front
-            // of component so using z of node view
+            // slot is rendered behind the component but text should be in
+            // front of component so using z of node view
             SceneDraw::drawText(
                 drawContext,
                 m_name,

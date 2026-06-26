@@ -216,7 +216,12 @@ namespace Bess::Canvas {
         bool m_isSchSlotsPosDirty = true;
         Transform m_schematicTransform;
         std::shared_ptr<SimEngine::Drivers::CompDef> m_compDef = nullptr;
-        UI::UINode *m_uiNode = nullptr;
+
+        UI::UINode *m_uiNode = nullptr, *m_headerNode = nullptr;
+        UI::UINode *m_inpBoxNode = nullptr, *m_outBoxNode = nullptr;
+        UI::UINode *m_slotsBoxNode =
+            nullptr; // contains both inp and out box nodes horizontally
+
         static uint32_t s_nodeShader;
         static size_t s_instanceCount;
     };

@@ -43,6 +43,8 @@ namespace Bess::Canvas {
 
         bool onMouseButton(const Events::MouseButtonEvent &e) override;
 
+        void prepareUI(SceneUIPrepareCtx &ctx) override;
+
         std::vector<std::shared_ptr<SceneComponent>>
         clone(const SceneState &sceneState) const override;
 
