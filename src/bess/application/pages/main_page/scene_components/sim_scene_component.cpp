@@ -240,6 +240,20 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         return cloneSimulationComponent(sceneState, clonedComponent);
     }
 
+    void SimulationSceneComponent::resetCloneRuntimeState() {
+        SceneComponent::resetCloneRuntimeState();
+
+        m_uiNode = nullptr;
+        m_headerNode = nullptr;
+        m_inpBoxNode = nullptr;
+        m_outBoxNode = nullptr;
+        m_slotsBoxNode = nullptr;
+
+        m_isScaleDirty = true;
+        m_isSchematicScaleDirty = true;
+        m_isSchSlotsPosDirty = true;
+    }
+
     void SimulationSceneComponent::update(Bess::TimeMs timeStep,
                                           SceneState &state) {
         BESS_ASSERT(m_simEngineId != UUID::null,

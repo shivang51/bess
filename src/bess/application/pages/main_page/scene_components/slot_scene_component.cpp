@@ -29,6 +29,17 @@ namespace Bess::Canvas {
         return {clonedComponent};
     }
 
+    void SlotSceneComponent::resetCloneRuntimeState() {
+        SceneComponent::resetCloneRuntimeState();
+
+        m_uiNode = nullptr;
+        m_slotNode = nullptr;
+        m_labelNode = nullptr;
+
+        m_isHovered = false;
+        m_invalidateCache = true;
+    }
+
     bool SlotSceneComponent::onMouseEnter(const Events::MouseEnterEvent &e) {
         auto &appCtx = GAppContext::getInstance();
         auto window = appCtx.getSubSystem<Window>();

@@ -206,6 +206,8 @@ namespace Bess::Canvas {
 
         void onChildrenChanged() override;
 
+        void resetCloneRuntimeState() override;
+
       protected:
         // Associated simulation engine ID
         UUID m_simEngineId = UUID::null;

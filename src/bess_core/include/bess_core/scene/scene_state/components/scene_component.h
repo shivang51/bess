@@ -179,6 +179,7 @@ namespace Bess::Canvas {
                              const std::shared_ptr<SceneComponent> &ptr);
 
         void prepareClone(SceneComponent &clonedComponent) const;
+        virtual void resetCloneRuntimeState();
         virtual void onTransformChanged() {
         }
         virtual void onSelect() {

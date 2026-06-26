@@ -183,6 +183,13 @@ namespace Bess::Canvas {
         clonedComponent.setParentComponent(UUID::null);
         clonedComponent.setChildComponents({});
         clonedComponent.setIsSelected(false);
+        clonedComponent.setUIDirty(true);
+        clonedComponent.m_isFirstDraw = true;
+        clonedComponent.m_isFirstSchematicDraw = true;
+        clonedComponent.resetCloneRuntimeState();
+    }
+
+    void SceneComponent::resetCloneRuntimeState() {
     }
 
 } // namespace Bess::Canvas

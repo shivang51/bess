@@ -82,6 +82,8 @@ namespace Bess::Canvas {
       private:
         void onRuntimeIdChanged() override;
 
+        void resetCloneRuntimeState() override;
+
         glm::vec3 getSchematicPosAbsolute(const SceneState &state,
                                           bool isSchematicMode) const;
 
