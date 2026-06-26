@@ -1,6 +1,5 @@
 #include "bess_core/scene/scene_ui/layout.h"
 #include "common/bess_assert.h"
-#include "common/logger.h"
 #include <algorithm>
 #include <cmath>
 
@@ -327,13 +326,23 @@ namespace Bess::Canvas::UI {
         };
 
         if (m_sizeConstraint == SizeContraint::fixed) {
-            drawSize =
-                constrainSize(resolveSize(parentNode), m_minSize, m_maxSize);
+            glm::vec2 childrenSpan{0.f};
+            for (const auto &childId : m_children) {
+                measureChild(childId, &childrenSpan);
+            }
+
+            auto size = resolveSize(parentNode);
+
+            if (m_size.x < 0.f) {
+                size.x = childrenSpan.x + paddingSize().x;
+            }
+            if (m_size.y < 0.f) {
+                size.y = childrenSpan.y + paddingSize().y;
+            }
+
+            drawSize = constrainSize(size, m_minSize, m_maxSize);
             m_drawSize = drawSize;
 
-            for (const auto &childId : m_children) {
-                measureChild(childId, nullptr);
-            }
         } else {
             glm::vec2 childrenSpan{0.f};
             for (const auto &childId : m_children) {
