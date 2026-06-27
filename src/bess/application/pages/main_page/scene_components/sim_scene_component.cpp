@@ -310,8 +310,11 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
     }
 
     void SimulationSceneComponent::drawBackground(SceneDrawContext &context) {
-        BESS_ASSERT(s_nodeShader != 0, "Mica shader not initialized");
-        BESS_ASSERT(m_uiNode != nullptr, "SimSceneComp UI node is nullptr");
+        BESS_ASSERT(s_nodeShader != 0, "Node shader not initialized");
+
+        if (m_uiNode == nullptr) {
+            return;
+        }
 
         const auto pickingId = PickingId{m_runtimeId, 0};
 
