@@ -10,6 +10,10 @@
 
 namespace Bess::Canvas {
 
+    namespace SceneWidgets {
+        struct SceneWidgetsState;
+    } // namespace SceneWidgets
+
     enum class EventResult : uint8_t {
         Ignored,
         Handled,
@@ -20,6 +24,7 @@ namespace Bess::Canvas {
         SceneState *sceneState = nullptr;
         std::shared_ptr<Camera> camera = nullptr;
         std::shared_ptr<Core::Viewport::ViewportContext> viewportCtx = nullptr;
+        SceneWidgets::SceneWidgetsState *sceneWidgetsState = nullptr;
     };
 
     struct SceneEventContext : SceneLayerContext {};

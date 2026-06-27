@@ -1,8 +1,8 @@
 #pragma once
 
 #include "bess_core/renderer/renderer_types.h"
-#include "common/types.h"
 #include "bess_core/scene/scene_draw_context.h"
+#include "common/types.h"
 #include <glm.hpp>
 #include <optional>
 #include <span>
@@ -14,7 +14,14 @@ namespace Bess::Canvas {
     class SceneState;
 } // namespace Bess::Canvas
 
+namespace Bess::Core::Viewport {
+    struct ViewportContext;
+} // namespace Bess::Core::Viewport
+
 namespace Bess::Canvas::SceneWidgets {
+    struct SceneWidgetsState;
+    struct ViewportSceneWidgetsState;
+
     struct TextBoxOptions {
         std::string_view placeholder;
         size_t maxLength = 256;
@@ -85,41 +92,36 @@ namespace Bess::Canvas::SceneWidgets {
         int selectedIndex = -1;
     };
 
-    void beginFrame(SceneState *sceneState, size_t viewportId);
-    void endFrame(SceneState *sceneState, size_t viewportId);
-    void clearScene(SceneState *sceneState, size_t viewportId);
+    SceneWidgetsState *getState(Core::Viewport::ViewportContext *viewportCtx,
+                                const SceneState *sceneState);
+    const SceneWidgetsState *
+    findState(const Core::Viewport::ViewportContext *viewportCtx,
+              const SceneState *sceneState);
+    void clearScene(Core::Viewport::ViewportContext *viewportCtx,
+                    const SceneState *sceneState);
 
-    bool contains(const SceneState *sceneState,
-                  const PickingId &id,
-                  size_t viewportId);
-    bool isTextInput(const SceneState *sceneState,
-                     const PickingId &id,
-                     size_t viewportId);
-    bool hasPointerCapture(const SceneState *sceneState, size_t viewportId);
-    bool wantsKeyboard(size_t viewportId,
-                       const SceneState *sceneState = nullptr);
+    void beginFrame(SceneWidgetsState *widgetsState);
+    void endFrame(SceneWidgetsState *widgetsState);
 
-    void queuePointerMove(SceneState *sceneState,
-                          const glm::vec2 &pos,
-                          size_t viewportId);
-    void queuePress(SceneState *sceneState,
+    bool contains(const SceneWidgetsState *widgetsState, const PickingId &id);
+    bool isTextInput(const SceneWidgetsState *widgetsState,
+                     const PickingId &id);
+    bool hasPointerCapture(const SceneWidgetsState *widgetsState);
+    bool wantsKeyboard(const SceneWidgetsState *widgetsState);
+
+    void queuePointerMove(SceneWidgetsState *widgetsState,
+                          const glm::vec2 &pos);
+    void queuePress(SceneWidgetsState *widgetsState,
                     const PickingId &id,
-                    const glm::vec2 &pos,
-                    size_t viewportId);
-    void queueRelease(SceneState *sceneState,
+                    const glm::vec2 &pos);
+    void queueRelease(SceneWidgetsState *widgetsState,
                       const PickingId &id,
-                      const glm::vec2 &pos,
-                      size_t viewportId);
-    void
-    queueClick(SceneState *sceneState, const PickingId &id, size_t viewportId);
-    bool
-    queueKey(SceneState *sceneState, const SceneEvent &evt, size_t viewportId);
-    bool queueWheel(SceneState *sceneState,
-                    const SceneEvent &evt,
-                    size_t viewportId);
-    void clearFocus(SceneState *sceneState, size_t viewportId);
-    void
-    setHoverId(SceneState *sceneState, const PickingId &id, size_t viewportId);
+                      const glm::vec2 &pos);
+    void queueClick(SceneWidgetsState *widgetsState, const PickingId &id);
+    bool queueKey(SceneWidgetsState *widgetsState, const SceneEvent &evt);
+    bool queueWheel(SceneWidgetsState *widgetsState, const SceneEvent &evt);
+    void clearFocus(SceneWidgetsState *widgetsState);
+    void setHoverId(SceneWidgetsState *widgetsState, const PickingId &id);
 
     bool toggleButton(const PickingId &id,
                       bool value,

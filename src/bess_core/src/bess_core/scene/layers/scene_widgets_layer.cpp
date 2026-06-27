@@ -31,11 +31,9 @@ namespace Bess::Canvas {
         BESS_ASSERT(
             ctx.viewportCtx,
             "SceneWidgetsLayer.handleMouseMove missing viewport context");
-        if (SceneWidgets::hasPointerCapture(ctx.sceneState,
-                                            ctx.viewportCtx->viewportId)) {
-            SceneWidgets::queuePointerMove(ctx.sceneState,
-                                           evt.data.mouseMove.pos,
-                                           ctx.viewportCtx->viewportId);
+        if (SceneWidgets::hasPointerCapture(ctx.sceneWidgetsState)) {
+            SceneWidgets::queuePointerMove(ctx.sceneWidgetsState,
+                                           evt.data.mouseMove.pos);
             if (ctx.viewportCtx) {
                 ctx.viewportCtx->inputCtx.cursor =
                     Bess::Core::Viewport::SceneCursor::pointer;
@@ -43,22 +41,20 @@ namespace Bess::Canvas {
             return EventResult::Consumed;
         }
 
-        const bool isWidget = SceneWidgets::contains(
-            ctx.sceneState, evt.pickingId, ctx.viewportCtx->viewportId);
+        const bool isWidget =
+            SceneWidgets::contains(ctx.sceneWidgetsState, evt.pickingId);
         if (isWidget) {
             if (m_hoveredWidget != evt.pickingId) {
                 m_hoveredWidget = evt.pickingId;
             }
             if (ctx.viewportCtx) {
                 ctx.viewportCtx->inputCtx.cursor =
-                    SceneWidgets::isTextInput(ctx.sceneState,
-                                              evt.pickingId,
-                                              ctx.viewportCtx->viewportId)
+                    SceneWidgets::isTextInput(ctx.sceneWidgetsState,
+                                              evt.pickingId)
                         ? Core::Viewport::SceneCursor::text
                         : Core::Viewport::SceneCursor::pointer;
             }
-            SceneWidgets::setHoverId(
-                ctx.sceneState, evt.pickingId, ctx.viewportCtx->viewportId);
+            SceneWidgets::setHoverId(ctx.sceneWidgetsState, evt.pickingId);
             return EventResult::Consumed;
         }
 
@@ -68,9 +64,8 @@ namespace Bess::Canvas {
                 ctx.viewportCtx->inputCtx.cursor =
                     Core::Viewport::SceneCursor::normal;
             }
-            SceneWidgets::setHoverId(ctx.sceneState,
-                                     PickingId::invalid(),
-                                     ctx.viewportCtx->viewportId);
+            SceneWidgets::setHoverId(ctx.sceneWidgetsState,
+                                     PickingId::invalid());
             return EventResult::Consumed;
         }
 
@@ -84,31 +79,25 @@ namespace Bess::Canvas {
             return EventResult::Ignored;
         }
 
-        const bool isWidget = SceneWidgets::contains(
-            ctx.sceneState, evt.pickingId, ctx.viewportCtx->viewportId);
+        const bool isWidget =
+            SceneWidgets::contains(ctx.sceneWidgetsState, evt.pickingId);
 
         if (data.action == MouseButtonAction::press ||
             data.action == MouseButtonAction::doubleClick) {
             if (isWidget) {
-                SceneWidgets::queuePress(ctx.sceneState,
-                                         evt.pickingId,
-                                         data.pos,
-                                         ctx.viewportCtx->viewportId);
+                SceneWidgets::queuePress(
+                    ctx.sceneWidgetsState, evt.pickingId, data.pos);
                 return EventResult::Consumed;
             }
 
-            SceneWidgets::clearFocus(ctx.sceneState,
-                                     ctx.viewportCtx->viewportId);
+            SceneWidgets::clearFocus(ctx.sceneWidgetsState);
             return EventResult::Ignored;
         }
 
         if (data.action == MouseButtonAction::release) {
-            if (SceneWidgets::hasPointerCapture(ctx.sceneState,
-                                                ctx.viewportCtx->viewportId)) {
-                SceneWidgets::queueRelease(ctx.sceneState,
-                                           evt.pickingId,
-                                           data.pos,
-                                           ctx.viewportCtx->viewportId);
+            if (SceneWidgets::hasPointerCapture(ctx.sceneWidgetsState)) {
+                SceneWidgets::queueRelease(
+                    ctx.sceneWidgetsState, evt.pickingId, data.pos);
                 return EventResult::Consumed;
             }
         }
@@ -118,16 +107,14 @@ namespace Bess::Canvas {
 
     EventResult SceneWidgetsLayer::handleMouseWheel(SceneEvent &evt,
                                                     SceneEventContext &ctx) {
-        return SceneWidgets::queueWheel(
-                   ctx.sceneState, evt, ctx.viewportCtx->viewportId)
+        return SceneWidgets::queueWheel(ctx.sceneWidgetsState, evt)
                    ? EventResult::Consumed
                    : EventResult::Ignored;
     }
 
     EventResult SceneWidgetsLayer::handleKey(SceneEvent &evt,
                                              SceneEventContext &ctx) {
-        return SceneWidgets::queueKey(
-                   ctx.sceneState, evt, ctx.viewportCtx->viewportId)
+        return SceneWidgets::queueKey(ctx.sceneWidgetsState, evt)
                    ? EventResult::Consumed
                    : EventResult::Ignored;
     }
@@ -143,8 +130,7 @@ namespace Bess::Canvas {
         if (ctx.viewportCtx) {
             ctx.viewportCtx->inputCtx.cursor =
                 Bess::Core::Viewport::SceneCursor::inherit;
-            SceneWidgets::clearFocus(ctx.sceneState,
-                                     ctx.viewportCtx->viewportId);
+            SceneWidgets::clearFocus(ctx.sceneWidgetsState);
         }
     }
 

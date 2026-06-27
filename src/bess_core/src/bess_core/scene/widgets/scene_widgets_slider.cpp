@@ -276,10 +276,8 @@ namespace Bess::Canvas::SceneWidgets {
         *value = snappedValue(
             sanitizeValue(*value, rangeMin), rangeMin, rangeMax, options.step);
 
-        auto widget = Detail::registerWidget(context.sceneState,
-                                             id,
-                                             Detail::WidgetState::Type::slider,
-                                             context.viewportId);
+        auto widget = Detail::registerWidget(
+            context.sceneWidgetsState, id, Detail::WidgetState::Type::slider);
         if (widget == nullptr) {
             return result;
         }

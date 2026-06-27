@@ -136,9 +136,11 @@ namespace Bess::Pages {
             activePanel ? activePanel->getAttachedScene() : nullptr;
 
         if (attachedScene) {
-            const bool sceneWantsKeyboard = Canvas::SceneWidgets::wantsKeyboard(
-                activePanel->getViewportId(),
-                &activePanel->getAttachedScene()->getState());
+            const auto sceneWidgetsState = Canvas::SceneWidgets::findState(
+                activePanel->getViewportContext().get(),
+                &attachedScene->getState());
+            const bool sceneWantsKeyboard =
+                Canvas::SceneWidgets::wantsKeyboard(sceneWidgetsState);
             const bool imguiWantsKeyboard =
                 ImGui::GetIO().WantTextInput || sceneWantsKeyboard;
 

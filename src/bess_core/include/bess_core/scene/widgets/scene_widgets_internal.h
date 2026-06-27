@@ -66,20 +66,37 @@ namespace Bess::Canvas::SceneWidgets::Detail {
         size_t optionIndex = 0;
     };
 
+} // namespace Bess::Canvas::SceneWidgets::Detail
+
+namespace Bess::Canvas::SceneWidgets {
     struct SceneWidgetsState {
         std::unordered_set<uint64_t> registeredWidgets;
-        std::unordered_map<uint64_t, WidgetState> widgetStates;
-        uint64_t hoveredWidgetId = kInvalidWidgetId;
-        uint64_t pressedWidgetId = kInvalidWidgetId;
-        uint64_t focusedWidgetId = kInvalidWidgetId;
+        std::unordered_map<uint64_t, Detail::WidgetState> widgetStates;
+        uint64_t hoveredWidgetId = Detail::kInvalidWidgetId;
+        uint64_t pressedWidgetId = Detail::kInvalidWidgetId;
+        uint64_t focusedWidgetId = Detail::kInvalidWidgetId;
     };
 
-    std::unordered_map<uint64_t, SceneWidgetsState> &sceneWidgetsState();
-    uint64_t sceneKey(const SceneState *sceneState, size_t viewportId);
-    SceneWidgetsState *findSceneWidgetsState(const SceneState *sceneState,
-                                             size_t viewportId);
-    SceneWidgetsState &getWidgetsState(SceneState *sceneState,
-                                       size_t viewportId);
+    struct ViewportSceneWidgetsState {
+        std::unordered_map<UUID, SceneWidgetsState> sceneStates;
+
+        void clear() {
+            sceneStates.clear();
+        }
+    };
+} // namespace Bess::Canvas::SceneWidgets
+
+namespace Bess::Canvas::SceneWidgets::Detail {
+    using Bess::Canvas::SceneWidgets::SceneWidgetsState;
+
+    SceneWidgetsState *
+    findSceneWidgetsState(ViewportSceneWidgetsState *viewportState,
+                          const SceneState *sceneState);
+    const SceneWidgetsState *
+    findSceneWidgetsState(const ViewportSceneWidgetsState *viewportState,
+                          const SceneState *sceneState);
+    SceneWidgetsState *getWidgetsState(ViewportSceneWidgetsState *viewportState,
+                                       const SceneState *sceneState);
 
     WidgetState *getWidgetState(SceneWidgetsState &widgetsState,
                                 const PickingId &id);
@@ -87,27 +104,18 @@ namespace Bess::Canvas::SceneWidgets::Detail {
     const WidgetState *getWidgetState(const SceneWidgetsState &widgetsState,
                                       const PickingId &id);
 
-    WidgetState *getWidgetState(const SceneState *sceneState,
+    WidgetState *getWidgetState(SceneWidgetsState *widgetsState,
                                 const PickingId &id,
-                                size_t viewportId);
+                                const char *warningContext = nullptr);
 
-    WidgetState *registerWidget(SceneState *sceneState,
+    WidgetState *registerWidget(SceneWidgetsState *widgetsState,
                                 const PickingId &id,
-                                WidgetState::Type type,
-                                size_t viewportId);
-    bool consumeClick(SceneState *sceneState,
-                      const PickingId &id,
-                      size_t viewportId);
+                                WidgetState::Type type);
+    bool consumeClick(SceneWidgetsState *widgetsState, const PickingId &id);
 
-    bool isHovering(const SceneState *sceneState,
-                    const PickingId &id,
-                    size_t viewportId);
-    bool isPressed(const SceneState *sceneState,
-                   const PickingId &id,
-                   size_t viewportId);
-    bool isFocused(const SceneState *sceneState,
-                   const PickingId &id,
-                   size_t viewportId);
+    bool isHovering(const SceneWidgetsState *widgetsState, const PickingId &id);
+    bool isPressed(const SceneWidgetsState *widgetsState, const PickingId &id);
+    bool isFocused(const SceneWidgetsState *widgetsState, const PickingId &id);
 
     void clearFocusState(SceneWidgetsState &widgetsState);
     void focusWidget(SceneWidgetsState &widgetsState, const PickingId &id);

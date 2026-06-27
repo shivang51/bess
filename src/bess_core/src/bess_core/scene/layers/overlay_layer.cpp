@@ -15,9 +15,11 @@ namespace Bess::Canvas {
         }
 
         SceneDrawContext drawCtx{
-            ctx.sceneState,
-            ctx.renderer,
-            ctx.camera,
+            .sceneState = ctx.sceneState,
+            .renderer = ctx.renderer,
+            .camera = ctx.camera,
+            .viewportId = ctx.viewportCtx->viewportId,
+            .sceneWidgetsState = ctx.sceneWidgetsState,
         };
 
         drawCtx.isSchematicMode = ctx.viewportCtx->isSchematicMode();

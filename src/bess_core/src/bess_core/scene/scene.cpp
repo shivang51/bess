@@ -37,6 +37,8 @@ namespace Bess::Canvas {
         ctx.camera = camera;
         ctx.renderer = renderer;
         ctx.viewportCtx = viewportCtx;
+        ctx.sceneWidgetsState =
+            SceneWidgets::getState(viewportCtx.get(), &state);
         return ctx;
     }
 
@@ -56,6 +58,8 @@ namespace Bess::Canvas {
         ctx.camera = camera;
         ctx.viewportCtx = viewportCtx;
         ctx.renderer = renderer;
+        ctx.sceneWidgetsState =
+            SceneWidgets::getState(viewportCtx.get(), &state);
         return ctx;
     }
 
@@ -67,6 +71,8 @@ namespace Bess::Canvas {
         ctx.sceneState = &state;
         ctx.camera = camera;
         ctx.viewportCtx = viewportCtx;
+        ctx.sceneWidgetsState =
+            SceneWidgets::getState(viewportCtx.get(), &state);
         return ctx;
     }
 
@@ -80,6 +86,8 @@ namespace Bess::Canvas {
         ctx.camera = camera;
         ctx.viewportCtx = viewportCtx;
         ctx.renderer = renderer;
+        ctx.sceneWidgetsState =
+            SceneWidgets::getState(viewportCtx.get(), &state);
         return ctx;
     }
 
@@ -108,8 +116,6 @@ namespace Bess::Canvas {
     void Scene::destroy() {
         if (m_isDestroyed)
             return;
-
-        SceneWidgets::clearScene(&m_state, 0);
 
         auto ctx = makeLifecycleContext(m_state, m_camera, nullptr, nullptr);
 
@@ -151,7 +157,6 @@ namespace Bess::Canvas {
     }
 
     void Scene::clear() {
-        SceneWidgets::clearScene(&m_state, 0);
         m_state.clear();
         m_compZCoord = 1.f + m_zIncrement;
     }
@@ -217,11 +222,11 @@ namespace Bess::Canvas {
             .cameraTransform = glm::value_ptr(view.camera->getTransform()),
         });
 
-        SceneWidgets::beginFrame(&m_state, ctx.viewportCtx->viewportId);
+        SceneWidgets::beginFrame(ctx.sceneWidgetsState);
         for (auto &layer : m_sceneLayers) {
             layer->draw(ctx);
         }
-        SceneWidgets::endFrame(&m_state, ctx.viewportCtx->viewportId);
+        SceneWidgets::endFrame(ctx.sceneWidgetsState);
 
         ctx.renderer->endFrame();
     }

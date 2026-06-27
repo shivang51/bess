@@ -1,5 +1,6 @@
-#include "common/logger.h"
 #include "bess_core/scene/widgets/scene_widgets_internal.h"
+#include "bess_core/viewport.h"
+#include "common/logger.h"
 #include <algorithm>
 #include <array>
 
@@ -26,32 +27,43 @@ namespace Bess::Canvas::SceneWidgets::Detail {
         }
     } // namespace
 
-    std::unordered_map<uint64_t, SceneWidgetsState> &sceneWidgetsState() {
-        static std::unordered_map<uint64_t, SceneWidgetsState> states;
-        return states;
-    }
-
-    uint64_t sceneKey(const SceneState *sceneState, size_t viewportId) {
-        if (sceneState == nullptr) {
-            return 0;
+    SceneWidgetsState *
+    findSceneWidgetsState(ViewportSceneWidgetsState *viewportState,
+                          const SceneState *sceneState) {
+        if (viewportState == nullptr || sceneState == nullptr) {
+            return nullptr;
         }
-        return (static_cast<std::size_t>(sceneState->getSceneId()) << 32) |
-               viewportId;
-    }
 
-    SceneWidgetsState *findSceneWidgetsState(const SceneState *sceneState,
-                                             size_t viewportId) {
-        auto &states = sceneWidgetsState();
-        const auto it = states.find(sceneKey(sceneState, viewportId));
-        if (it == states.end()) {
+        const auto it =
+            viewportState->sceneStates.find(sceneState->getSceneId());
+        if (it == viewportState->sceneStates.end()) {
             return nullptr;
         }
         return &it->second;
     }
 
-    SceneWidgetsState &getWidgetsState(SceneState *sceneState,
-                                       size_t viewportId) {
-        return sceneWidgetsState()[sceneKey(sceneState, viewportId)];
+    const SceneWidgetsState *
+    findSceneWidgetsState(const ViewportSceneWidgetsState *viewportState,
+                          const SceneState *sceneState) {
+        if (viewportState == nullptr || sceneState == nullptr) {
+            return nullptr;
+        }
+
+        const auto it =
+            viewportState->sceneStates.find(sceneState->getSceneId());
+        if (it == viewportState->sceneStates.end()) {
+            return nullptr;
+        }
+        return &it->second;
+    }
+
+    SceneWidgetsState *getWidgetsState(ViewportSceneWidgetsState *viewportState,
+                                       const SceneState *sceneState) {
+        if (viewportState == nullptr || sceneState == nullptr) {
+            return nullptr;
+        }
+
+        return &viewportState->sceneStates[sceneState->getSceneId()];
     }
 
     WidgetState *getWidgetState(SceneWidgetsState &widgetsState,
@@ -72,43 +84,44 @@ namespace Bess::Canvas::SceneWidgets::Detail {
         return &it->second;
     }
 
-    WidgetState *getWidgetState(const SceneState *sceneState,
+    WidgetState *getWidgetState(SceneWidgetsState *widgetsState,
                                 const PickingId &id,
-                                const size_t viewportId) {
-        auto widgetsState = findSceneWidgetsState(sceneState, viewportId);
+                                const char *warningContext) {
         if (widgetsState == nullptr) {
             return nullptr;
         }
-        return getWidgetState(*widgetsState, id);
+
+        auto widget = getWidgetState(*widgetsState, id);
+        if (widget == nullptr && warningContext != nullptr) {
+            BESS_WARN("[SceneWidgets] Trying to {} unregistered widget",
+                      warningContext);
+        }
+        return widget;
     }
 
-    WidgetState *registerWidget(SceneState *sceneState,
+    WidgetState *registerWidget(SceneWidgetsState *widgetsState,
                                 const PickingId &id,
-                                WidgetState::Type type,
-                                size_t viewportId) {
-        if (sceneState == nullptr || !id.isValid()) {
+                                WidgetState::Type type) {
+        if (widgetsState == nullptr || !id.isValid()) {
             return nullptr;
         }
 
-        auto &widgetsState = getWidgetsState(sceneState, viewportId);
-        widgetsState.registeredWidgets.insert(id.toUint64());
+        widgetsState->registeredWidgets.insert(id.toUint64());
 
-        auto &state = widgetsState.widgetStates[id.toUint64()];
+        auto &state = widgetsState->widgetStates[id.toUint64()];
         if (state.type != WidgetState::Type::unknown && state.type != type) {
             state = {};
         }
 
         state.type = type;
-        state.isHovered = widgetsState.hoveredWidgetId == id.toUint64();
-        state.isPressed = widgetsState.pressedWidgetId == id.toUint64();
-        state.isFocused = widgetsState.focusedWidgetId == id.toUint64();
+        state.isHovered = widgetsState->hoveredWidgetId == id.toUint64();
+        state.isPressed = widgetsState->pressedWidgetId == id.toUint64();
+        state.isFocused = widgetsState->focusedWidgetId == id.toUint64();
         return &state;
     }
 
-    bool consumeClick(SceneState *sceneState,
-                      const PickingId &id,
-                      size_t viewportId) {
-        auto state = getWidgetState(sceneState, id, viewportId);
+    bool consumeClick(SceneWidgetsState *widgetsState, const PickingId &id) {
+        auto state = getWidgetState(widgetsState, id);
 
         if (state == nullptr) {
             BESS_WARN("[SceneWidgets] Trying to consume click for "
@@ -125,26 +138,18 @@ namespace Bess::Canvas::SceneWidgets::Detail {
         return true;
     }
 
-    bool isHovering(const SceneState *sceneState,
-                    const PickingId &id,
-                    const size_t viewportId) {
-        auto widgetsState = findSceneWidgetsState(sceneState, viewportId);
+    bool isHovering(const SceneWidgetsState *widgetsState,
+                    const PickingId &id) {
         return widgetsState != nullptr &&
                widgetsState->hoveredWidgetId == id.toUint64();
     }
 
-    bool isPressed(const SceneState *sceneState,
-                   const PickingId &id,
-                   const size_t viewportId) {
-        auto widgetsState = findSceneWidgetsState(sceneState, viewportId);
+    bool isPressed(const SceneWidgetsState *widgetsState, const PickingId &id) {
         return widgetsState != nullptr &&
                widgetsState->pressedWidgetId == id.toUint64();
     }
 
-    bool isFocused(const SceneState *sceneState,
-                   const PickingId &id,
-                   const size_t viewportId) {
-        auto widgetsState = findSceneWidgetsState(sceneState, viewportId);
+    bool isFocused(const SceneWidgetsState *widgetsState, const PickingId &id) {
         return widgetsState != nullptr &&
                widgetsState->focusedWidgetId == id.toUint64();
     }
@@ -246,3 +251,40 @@ namespace Bess::Canvas::SceneWidgets::Detail {
                      state.dropdownOptionCount - visibleCount);
     }
 } // namespace Bess::Canvas::SceneWidgets::Detail
+
+namespace Bess::Canvas::SceneWidgets {
+    SceneWidgetsState *getState(Core::Viewport::ViewportContext *viewportCtx,
+                                const SceneState *sceneState) {
+        if (viewportCtx == nullptr ||
+            viewportCtx->sceneWidgetsState == nullptr) {
+            return nullptr;
+        }
+
+        return Detail::getWidgetsState(viewportCtx->sceneWidgetsState.get(),
+                                       sceneState);
+    }
+
+    const SceneWidgetsState *
+    findState(const Core::Viewport::ViewportContext *viewportCtx,
+              const SceneState *sceneState) {
+        if (viewportCtx == nullptr ||
+            viewportCtx->sceneWidgetsState == nullptr) {
+            return nullptr;
+        }
+
+        return Detail::findSceneWidgetsState(
+            viewportCtx->sceneWidgetsState.get(), sceneState);
+    }
+
+    void clearScene(Core::Viewport::ViewportContext *viewportCtx,
+                    const SceneState *sceneState) {
+        if (viewportCtx == nullptr ||
+            viewportCtx->sceneWidgetsState == nullptr ||
+            sceneState == nullptr) {
+            return;
+        }
+
+        viewportCtx->sceneWidgetsState->sceneStates.erase(
+            sceneState->getSceneId());
+    }
+} // namespace Bess::Canvas::SceneWidgets

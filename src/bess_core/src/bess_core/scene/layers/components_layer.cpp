@@ -45,7 +45,9 @@ namespace Bess::Canvas {
             .sceneState = ctx.sceneState,
             .renderer = ctx.renderer,
             .camera = ctx.camera,
+            .viewportId = ctx.viewportCtx->viewportId,
             .isSchematicMode = ctx.viewportCtx->isSchematicMode(),
+            .sceneWidgetsState = ctx.sceneWidgetsState,
         };
 
         for (const auto &compId : ctx.sceneState->getRootComponents()) {

@@ -45,6 +45,9 @@ namespace Bess::UI {
 
         MAKE_GETTER(size_t, ViewportId, m_viewportCtx->viewportId)
         MAKE_GETTER(PickingId, PickingId, m_viewportCtx->inputCtx.pickingId)
+        MAKE_GETTER(std::shared_ptr<Core::Viewport::ViewportContext>,
+                    ViewportContext,
+                    m_viewportCtx)
 
         bool isSchematicMode() const;
         bool toggleSchematicMode();

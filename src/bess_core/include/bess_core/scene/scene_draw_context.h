@@ -14,16 +14,21 @@ namespace Bess {
 
     namespace Canvas {
         class SceneState;
+
+        namespace SceneWidgets {
+            struct SceneWidgetsState;
+        } // namespace SceneWidgets
     } // namespace Canvas
 
     struct SceneDrawContext {
-        Bess::Canvas::SceneState *sceneState;
-        std::shared_ptr<Core::Renderer::IRenderer2D> renderer;
-        std::shared_ptr<Camera> camera;
+        Bess::Canvas::SceneState *sceneState = nullptr;
+        std::shared_ptr<Core::Renderer::IRenderer2D> renderer = nullptr;
+        std::shared_ptr<Camera> camera = nullptr;
         Core::Renderer::RenderTransformMode transformMode =
             Core::Renderer::RenderTransformMode::Camera;
-        size_t viewportId;
+        size_t viewportId = 0;
         bool isSchematicMode = false;
+        Canvas::SceneWidgets::SceneWidgetsState *sceneWidgetsState = nullptr;
     };
 
     struct SceneUIPrepareCtx {

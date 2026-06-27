@@ -23,8 +23,7 @@ namespace Bess::Canvas {
         }
 
         const auto &data = evt.data.mouseMove;
-        if (SceneWidgets::contains(
-                ctx.sceneState, evt.pickingId, ctx.viewportCtx->viewportId)) {
+        if (SceneWidgets::contains(ctx.sceneWidgetsState, evt.pickingId)) {
             clearHover(*ctx.sceneState, data.pos);
             m_pickingId = PickingId::invalid();
             return EventResult::Handled;

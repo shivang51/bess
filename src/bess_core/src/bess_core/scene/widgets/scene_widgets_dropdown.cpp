@@ -126,13 +126,12 @@ namespace Bess::Canvas::SceneWidgets {
             return true;
         }
 
-        void processVisibleOptionClicks(SceneState *sceneState,
+        void processVisibleOptionClicks(SceneWidgetsState *widgetsState,
                                         const PickingId &id,
                                         Detail::WidgetState &widget,
                                         int *selectedIndex,
                                         size_t itemCount,
-                                        bool &changed,
-                                        size_t viewportId) {
+                                        bool &changed) {
             if (!widget.dropdownOpen || itemCount == 0) {
                 return;
             }
@@ -146,9 +145,8 @@ namespace Bess::Canvas::SceneWidgets {
                 const auto optionIndex = start + row;
                 const auto optionId =
                     Detail::makeChildId(id, static_cast<uint32_t>(optionIndex));
-                if (Detail::getWidgetState(sceneState, optionId, viewportId) !=
-                        nullptr &&
-                    Detail::consumeClick(sceneState, optionId, viewportId)) {
+                if (Detail::getWidgetState(widgetsState, optionId) != nullptr &&
+                    Detail::consumeClick(widgetsState, optionId)) {
                     changed |= applySelection(widget,
                                               selectedIndex,
                                               static_cast<int>(optionIndex),
@@ -251,10 +249,9 @@ namespace Bess::Canvas::SceneWidgets {
                 const auto optionId =
                     Detail::makeChildId(id, static_cast<uint32_t>(optionIndex));
                 auto optionState = Detail::registerWidget(
-                    context.sceneState,
+                    context.sceneWidgetsState,
                     optionId,
-                    Detail::WidgetState::Type::dropdownOption,
-                    context.viewportId);
+                    Detail::WidgetState::Type::dropdownOption);
                 if (optionState == nullptr) {
                     continue;
                 }
@@ -315,13 +312,9 @@ namespace Bess::Canvas::SceneWidgets {
             return result;
         }
 
-        auto widgetsState = Detail::findSceneWidgetsState(context.sceneState,
-                                                          context.viewportId);
-        auto widget =
-            Detail::registerWidget(context.sceneState,
-                                   id,
-                                   Detail::WidgetState::Type::dropdown,
-                                   context.viewportId);
+        auto widgetsState = context.sceneWidgetsState;
+        auto widget = Detail::registerWidget(
+            context.sceneWidgetsState, id, Detail::WidgetState::Type::dropdown);
         if (widgetsState == nullptr || widget == nullptr) {
             return result;
         }
@@ -350,7 +343,7 @@ namespace Bess::Canvas::SceneWidgets {
         result.opened = widget->dropdownOpened;
         result.closed = widget->dropdownClosed;
 
-        if (Detail::consumeClick(context.sceneState, id, context.viewportId)) {
+        if (Detail::consumeClick(context.sceneWidgetsState, id)) {
             if (widget->dropdownOpen) {
                 closeDropdown(*widget);
                 result.closed = true;
@@ -370,13 +363,12 @@ namespace Bess::Canvas::SceneWidgets {
             result.closed = true;
         }
 
-        processVisibleOptionClicks(context.sceneState,
+        processVisibleOptionClicks(context.sceneWidgetsState,
                                    id,
                                    *widget,
                                    selectedIndex,
                                    itemCount,
-                                   result.changed,
-                                   context.viewportId);
+                                   result.changed);
 
         const int selected = clampedSelection(*selectedIndex, itemCount);
         const bool hasSelection = selected >= 0;

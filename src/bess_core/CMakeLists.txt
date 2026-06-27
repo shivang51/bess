@@ -74,6 +74,7 @@ set(Source_Files
 	"src/bess_core/project_context.cpp"
 	"src/bess_core/connection_service.cpp"
 	"src/bess_core/copy_paste_service.cpp"
+	"src/bess_core/viewport.cpp"
 	
 	"src/bess_core/style/bess_theme.cpp"
 	"src/bess_core/style/color_scheme.cpp"

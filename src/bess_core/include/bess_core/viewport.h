@@ -4,6 +4,11 @@
 #include "common/bess_uuid.h"
 #include "common/types.h"
 #include "ext/vector_float2.hpp"
+#include <memory>
+
+namespace Bess::Canvas::SceneWidgets {
+    struct ViewportSceneWidgetsState;
+} // namespace Bess::Canvas::SceneWidgets
 
 namespace Bess::Core::Viewport {
     struct BESS_API ViewportTransform {
@@ -90,13 +95,23 @@ namespace Bess::Core::Viewport {
     };
 
     struct BESS_API ViewportContext {
+        ViewportContext();
+        ~ViewportContext();
+
+        ViewportContext(const ViewportContext &) = delete;
+        ViewportContext &operator=(const ViewportContext &) = delete;
+        ViewportContext(ViewportContext &&) noexcept;
+        ViewportContext &operator=(ViewportContext &&) noexcept;
+
         ViewportTransform transform;
-        ViewportMode mode;
-        ViewportDrawMode drawMode;
+        ViewportMode mode = ViewportMode::normal;
+        ViewportDrawMode drawMode = ViewportDrawMode::none;
         ViewportConnDrawContext connDrawCtx;
         ViewportInputContext inputCtx;
         PickingReadbackRequest pickingReadbackRequest;
         SelBoxContext selBoxCtx;
+        std::unique_ptr<Bess::Canvas::SceneWidgets::ViewportSceneWidgetsState>
+            sceneWidgetsState;
         UUID updateSceneId = UUID::null;
         size_t viewportId = 0;
         bool isFocused = false;
@@ -110,18 +125,9 @@ namespace Bess::Core::Viewport {
                                      : ViewportMode::schematic;
         }
 
-        // does not resets the transform
-        // and viewportId
-        void reset() {
-            isFocused = false;
-
-            mode = ViewportMode::normal;
-            drawMode = ViewportDrawMode::none;
-            connDrawCtx.reset();
-            inputCtx.reset();
-            pickingReadbackRequest.reset();
-            selBoxCtx.reset();
-        }
+        // Does not reset transform or viewportId. Clears transient input,
+        // selection, and scene-widget state owned by this viewport.
+        void reset();
     };
 
 } // namespace Bess::Core::Viewport

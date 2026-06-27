@@ -435,11 +435,12 @@ namespace Bess::Canvas {
         }
 
         SceneDrawContext drawCtx{
-            ctx.sceneState,
-            ctx.renderer,
-            ctx.camera,
-            Core::Renderer::RenderTransformMode::Screen,
-            ctx.viewportCtx->viewportId,
+            .sceneState = ctx.sceneState,
+            .renderer = ctx.renderer,
+            .camera = ctx.camera,
+            .transformMode = Core::Renderer::RenderTransformMode::Screen,
+            .viewportId = ctx.viewportCtx->viewportId,
+            .sceneWidgetsState = ctx.sceneWidgetsState,
         };
 
         for (auto &callback : m_drawCallbacks) {
