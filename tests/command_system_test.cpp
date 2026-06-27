@@ -1,5 +1,5 @@
 #include "bess_core/commands/macro_command.h"
-#include "pages/main_page/cmds/delete_comp_cmd.h"
+#include "bess_core/commands/delete_component_command.h"
 #include "test_scene_graph_fixture.h"
 #include <array>
 
