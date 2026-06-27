@@ -205,7 +205,7 @@ namespace Bess::Canvas {
         UUID m_netId = UUID::null;
         std::vector<UUID> m_inputSlots;
         std::vector<UUID> m_outputSlots;
-        bool m_isScaleDirty = true, m_isSchematicScaleDirty = true;
+        bool m_isSchematicScaleDirty = true;
         bool m_isSchSlotsPosDirty = true;
         Transform m_schematicTransform;
         std::shared_ptr<SimEngine::Drivers::CompDef> m_compDef = nullptr;

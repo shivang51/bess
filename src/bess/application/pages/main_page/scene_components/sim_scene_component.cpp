@@ -258,7 +258,6 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         m_outBoxNode = nullptr;
         m_slotsBoxNode = nullptr;
 
-        m_isScaleDirty = true;
         m_isSchematicScaleDirty = true;
         m_isSchSlotsPosDirty = true;
     }
@@ -271,11 +270,6 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
     }
 
     void SimulationSceneComponent::updateScales(const SceneState &state) {
-        if (m_isScaleDirty && m_uiNode != nullptr) {
-            m_uiNode->setSizeDirty();
-            m_isScaleDirty = false;
-        }
-
         if (m_isSchematicScaleDirty) {
             calculateSchematicScale(state);
             resetSchematicPinsPositions(state);
@@ -378,6 +372,8 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         } else {
             for (const auto &childId : m_childComponents) {
                 auto child = context.sceneState->getComponentByUuid(childId);
+                m_isUIDirty = child->getUIDirty();
+
                 child->draw(context);
             }
         }
@@ -631,7 +627,17 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
     }
 
     void SimulationSceneComponent::setScaleDirty(bool val) {
-        m_isScaleDirty = val;
+        if (val && m_uiNode) {
+            m_uiNode->setSizeDirty();
+
+            if (m_inpBoxNode->getChildren().size() != m_inputSlots.size()) {
+                m_isUIDirty = true;
+            }
+
+            if (m_outBoxNode->getChildren().size() != m_outputSlots.size()) {
+                m_isUIDirty = true;
+            }
+        }
     }
 
     void SimulationSceneComponent::onAttach(SceneState &state) {
