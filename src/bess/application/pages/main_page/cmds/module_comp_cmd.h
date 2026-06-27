@@ -1,19 +1,18 @@
 #pragma once
 
+#include "bess_core/commands/add_component_command.h"
+#include "bess_core/commands/command.h"
+#include "bess_core/commands/delete_component_command.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "bess_core/scene/scene.h"
 #include "bess_core/scene_driver.h"
-#include "command.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "dig_module_def.h"
-#include "pages/main_page/cmds/add_comp_cmd.h"
-#include "pages/main_page/cmds/delete_comp_cmd.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
-#include "simulation_engine.h"
 #include <functional>
 #include <memory>
 #include <unordered_set>
@@ -281,11 +280,9 @@ namespace Bess::Cmd {
             m_name = "CreateModuleCmd";
         }
 
-        bool execute(const std::shared_ptr<Canvas::Scene> &scene,
-                     const std::shared_ptr<SimEngine::SimulationEngine>
-                         &simEngine) override {
-            (void)scene;
-            if (!initialize(simEngine)) {
+        bool execute(const CommandContext &context) override {
+            const auto commandContext = makeContext(context);
+            if (!initialize()) {
                 return false;
             }
 
@@ -294,12 +291,16 @@ namespace Bess::Cmd {
 
             BESS_ASSERT(m_addModuleCmd,
                         "[ModuleCmd] Add module command was not initialized");
-            if (!m_addModuleCmd->execute(m_sourceScene, simEngine)) {
+            const CommandContext sourceContext{
+                .scene = m_sourceScene,
+                .componentHooks = commandContext.componentHooks};
+
+            if (!m_addModuleCmd->execute(sourceContext)) {
                 return false;
             }
 
             if (m_boundaryDisconnectCmd) {
-                m_boundaryDisconnectCmd->execute(m_sourceScene, simEngine);
+                m_boundaryDisconnectCmd->execute(sourceContext);
             }
 
             Detail::transferComponents(
@@ -308,19 +309,24 @@ namespace Bess::Cmd {
             return true;
         }
 
-        void undo(const std::shared_ptr<Canvas::Scene> &scene,
-                  const std::shared_ptr<SimEngine::SimulationEngine> &simEngine)
-            override {
-            (void)scene;
+        void undo(const CommandContext &context) override {
+            const auto commandContext = makeContext(context);
             BESS_ASSERT(
                 m_executed,
                 "[ModuleCmd] Cannot undo a module command that never executed");
 
+            const CommandContext sourceContext{
+                .scene = m_sourceScene,
+                .componentHooks = commandContext.componentHooks};
+            const CommandContext moduleContext{
+                .scene = m_moduleScene,
+                .componentHooks = commandContext.componentHooks};
+
             Detail::transferComponents(
                 m_moduleScene.get(), m_sourceScene.get(), m_movedComponents);
-            m_addModuleCmd->undo(m_sourceScene, simEngine);
+            m_addModuleCmd->undo(sourceContext);
             if (m_boundaryDisconnectCmd) {
-                m_boundaryDisconnectCmd->undo(m_sourceScene, simEngine);
+                m_boundaryDisconnectCmd->undo(sourceContext);
             }
 
             if (!m_moduleSceneCleanupCmd) {
@@ -328,31 +334,36 @@ namespace Bess::Cmd {
                     Detail::collectRootComponentIds(m_moduleScene));
             }
 
-            m_moduleSceneCleanupCmd->execute(m_moduleScene, simEngine);
+            m_moduleSceneCleanupCmd->execute(moduleContext);
             Detail::unregisterScene(m_moduleScene->getSceneId());
         }
 
-        void redo(const std::shared_ptr<Canvas::Scene> &scene,
-                  const std::shared_ptr<SimEngine::SimulationEngine> &simEngine)
-            override {
-            (void)scene;
+        void redo(const CommandContext &context) override {
+            const auto commandContext = makeContext(context);
             BESS_ASSERT(
                 m_executed,
                 "[ModuleCmd] Cannot redo a module command that never executed");
+
+            const CommandContext sourceContext{
+                .scene = m_sourceScene,
+                .componentHooks = commandContext.componentHooks};
+            const CommandContext moduleContext{
+                .scene = m_moduleScene,
+                .componentHooks = commandContext.componentHooks};
 
             Detail::ensureSceneRegistered(m_moduleScene,
                                           m_sourceScene->getSceneId());
 
             if (m_moduleSceneCleanupCmd) {
-                m_moduleSceneCleanupCmd->undo(m_moduleScene, simEngine);
+                m_moduleSceneCleanupCmd->undo(moduleContext);
                 Detail::rewireModuleIoIds(m_moduleComponent, m_moduleScene);
             }
 
             if (m_boundaryDisconnectCmd) {
-                m_boundaryDisconnectCmd->redo(m_sourceScene, simEngine);
+                m_boundaryDisconnectCmd->redo(sourceContext);
             }
 
-            m_addModuleCmd->redo(m_sourceScene, simEngine);
+            m_addModuleCmd->redo(sourceContext);
             Detail::transferComponents(
                 m_sourceScene.get(), m_moduleScene.get(), m_movedComponents);
         }
@@ -363,9 +374,7 @@ namespace Bess::Cmd {
         }
 
       private:
-        bool initialize(
-            const std::shared_ptr<SimEngine::SimulationEngine> &simEngine) {
-            (void)simEngine;
+        bool initialize() {
             if (m_initialized) {
                 return true;
             }
@@ -458,48 +467,62 @@ namespace Bess::Cmd {
             m_name = "DeleteModuleCmd";
         }
 
-        bool execute(const std::shared_ptr<Canvas::Scene> &scene,
-                     const std::shared_ptr<SimEngine::SimulationEngine>
-                         &simEngine) override {
-            (void)scene;
+        bool execute(const CommandContext &context) override {
+            const auto commandContext = makeContext(context);
             if (!initialize()) {
                 return false;
             }
 
-            const bool deletedRoot =
-                m_rootDeleteCmd->execute(m_parentScene, simEngine);
+            const CommandContext parentContext{
+                .scene = m_parentScene,
+                .componentHooks = commandContext.componentHooks};
+            const CommandContext moduleContext{
+                .scene = m_moduleScene,
+                .componentHooks = commandContext.componentHooks};
+
+            const bool deletedRoot = m_rootDeleteCmd->execute(parentContext);
             const bool deletedModuleScene =
-                m_moduleSceneDeleteCmd->execute(m_moduleScene, simEngine);
+                m_moduleSceneDeleteCmd->execute(moduleContext);
             Detail::unregisterScene(m_moduleScene->getSceneId());
             m_executed = deletedRoot || deletedModuleScene;
             return m_executed;
         }
 
-        void undo(const std::shared_ptr<Canvas::Scene> &scene,
-                  const std::shared_ptr<SimEngine::SimulationEngine> &simEngine)
-            override {
-            (void)scene;
+        void undo(const CommandContext &context) override {
+            const auto commandContext = makeContext(context);
             BESS_ASSERT(m_executed,
                         "[ModuleCmd] Cannot undo a module delete "
                         "command that never executed");
 
+            const CommandContext parentContext{
+                .scene = m_parentScene,
+                .componentHooks = commandContext.componentHooks};
+            const CommandContext moduleContext{
+                .scene = m_moduleScene,
+                .componentHooks = commandContext.componentHooks};
+
             Detail::ensureSceneRegistered(m_moduleScene,
                                           m_parentScene->getSceneId());
-            m_moduleSceneDeleteCmd->undo(m_moduleScene, simEngine);
+            m_moduleSceneDeleteCmd->undo(moduleContext);
             Detail::rewireModuleIoIds(m_moduleComponent, m_moduleScene);
-            m_rootDeleteCmd->undo(m_parentScene, simEngine);
+            m_rootDeleteCmd->undo(parentContext);
         }
 
-        void redo(const std::shared_ptr<Canvas::Scene> &scene,
-                  const std::shared_ptr<SimEngine::SimulationEngine> &simEngine)
-            override {
-            (void)scene;
+        void redo(const CommandContext &context) override {
+            const auto commandContext = makeContext(context);
             BESS_ASSERT(m_executed,
                         "[ModuleCmd] Cannot redo a module delete "
                         "command that never executed");
 
-            m_rootDeleteCmd->redo(m_parentScene, simEngine);
-            m_moduleSceneDeleteCmd->redo(m_moduleScene, simEngine);
+            const CommandContext parentContext{
+                .scene = m_parentScene,
+                .componentHooks = commandContext.componentHooks};
+            const CommandContext moduleContext{
+                .scene = m_moduleScene,
+                .componentHooks = commandContext.componentHooks};
+
+            m_rootDeleteCmd->redo(parentContext);
+            m_moduleSceneDeleteCmd->redo(moduleContext);
             Detail::unregisterScene(m_moduleScene->getSceneId());
         }
 

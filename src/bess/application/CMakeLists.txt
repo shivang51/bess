@@ -7,10 +7,8 @@ set(Header_Files
 	"pages/page.h"
 	"pages/main_page/main_page.h"
 	"pages/main_page/main_page_state.h"
-	"pages/main_page/cmds/add_comp_cmd.h"
-	"pages/main_page/cmds/update_value_cmd.h"
-	"pages/main_page/cmds/delete_comp_cmd.h"
 	"pages/main_page/cmds/module_comp_cmd.h"
+	"pages/main_page/main_page_command_hooks.h"
 	"pages/main_page/scene_components/conn_joint_scene_component.h"
 	"pages/main_page/scene_components/group_scene_component.h"
 	"pages/main_page/scene_components/slot_scene_component.h"
@@ -75,6 +73,7 @@ set(Source_Files
 	"pages/main_page/verilog_scene_import.cpp"
 	"pages/main_page/main_page_state.cpp"
 	"pages/main_page/main_page.cpp"
+	"pages/main_page/main_page_command_hooks.cpp"
 	"pages/main_page/scene_components/slot_scene_component.cpp"
 	"pages/main_page/scene_components/sim_scene_component.cpp"
 	"pages/main_page/scene_components/monitor_scene_comp.cpp"
@@ -125,9 +124,9 @@ set(ALL_FILES
 
 add_library(${PROJECT_NAME} OBJECT ${ALL_FILES})
 
-target_link_libraries(${PROJECT_NAME} PUBLIC common BessCore BessExtDeps BessJson BessSimEngine  BessPluginManager EventSystem BessCmdSystem BessSimDriver DigitalSimDriver bverilog BessWgpu)
+target_link_libraries(${PROJECT_NAME} PUBLIC common BessCore BessExtDeps BessJson BessSimEngine  BessPluginManager EventSystem BessSimDriver DigitalSimDriver bverilog BessWgpu)
 
-add_dependencies(${PROJECT_NAME} common BessCore BessExtDeps BessJson BessSimEngine  BessPluginManager BessCmdSystem BessSimDriver DigitalSimDriver bverilog BessWgpu)
+add_dependencies(${PROJECT_NAME} common BessCore BessExtDeps BessJson BessSimEngine  BessPluginManager BessSimDriver DigitalSimDriver bverilog BessWgpu)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}")
 

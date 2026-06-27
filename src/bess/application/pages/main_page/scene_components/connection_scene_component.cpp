@@ -1,4 +1,5 @@
 #include "connection_scene_component.h"
+#include "bess_core/commands/add_component_command.h"
 #include "bess_core/connection_service.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
@@ -17,7 +18,6 @@
 #include "conn_joint_scene_component.h"
 #include "event_dispatcher.h"
 #include "fwd.hpp"
-#include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
 #include "slot_scene_component.h"

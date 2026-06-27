@@ -1,13 +1,13 @@
 #include "bess_core/copy_paste_service.h"
+#include "bess_core/commands/add_component_command.h"
+#include "bess_core/commands/command_system.h"
+#include "bess_core/commands/macro_command.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene_driver.h"
-#include "command_system.h"
 #include "common/bess_uuid.h"
-#include "macro_command.h"
-#include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "simulation_engine.h"
@@ -343,9 +343,15 @@ namespace Bess::Svc::CopyPaste {
         } else {
             auto &appCtx = Bess::GAppContext::getInstance();
             auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-            macroCmd->execute(
-                targetScene,
-                projectCtx->getSubSystem<SimEngine::SimulationEngine>());
+            const auto cmdSystem =
+                projectCtx ? projectCtx->getSubSystem<Cmd::CommandSystem>()
+                           : nullptr;
+            macroCmd->execute({
+                .scene = targetScene,
+                .componentHooks =
+                    cmdSystem ? cmdSystem->getSceneComponentHooks()
+                              : Cmd::defaultSceneComponentCommandHooks(),
+            });
         }
 
         BESS_DEBUG("Pasted {} entities into scene {}",

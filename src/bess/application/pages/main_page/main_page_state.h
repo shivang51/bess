@@ -1,9 +1,9 @@
 #pragma once
 
+#include "bess_core/commands/command_system.h"
 #include "pages/main_page/services/hierarchical_scene_layout.h"
 #include "project_file.h"
 #include "bess_core/scene_driver.h"
-#include "command_system.h"
 #include "events/sim_engine_events.h"
 #include "bess_core/scene/scene_events.h"
 #include <vector>

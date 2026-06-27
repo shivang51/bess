@@ -1,9 +1,9 @@
 #include "bess_core/project_context.h"
 
 #include "bess_core/connection_service.h"
+#include "bess_core/commands/command_system.h"
 #include "bess_core/copy_paste_service.h"
 #include "bess_core/scene_driver.h"
-#include "command_system.h"
 #include "common/logger.h"
 #include "common/sub_sys_container.h"
 #include "project_file.h"

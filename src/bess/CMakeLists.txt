@@ -63,7 +63,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 	"${CMAKE_SOURCE_DIR}/src//include"
 	"${CMAKE_SOURCE_DIR}/src/BessPluginManager/include"
 	"${CMAKE_SOURCE_DIR}/src/EventSystem/include"
-	"${CMAKE_SOURCE_DIR}/src/CommandSystem/include"
 	"${CMAKE_SOURCE_DIR}/src/BessJson/include"
 )
 
@@ -72,4 +71,3 @@ set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "
 if(MSVC)
 	target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8" "/Zc:__cplusplus")
 endif()
-

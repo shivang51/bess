@@ -69,7 +69,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 	BessSimEngine
 	EventSystem
 	BessJson
-	BessCmdSystem
 	BessApp
 	bverilog
 	pybind11_abseil::absl_casters

@@ -33,6 +33,7 @@ namespace Bess::Canvas {
     class Scene {
       public:
         Scene();
+        explicit Scene(bool initializeLayers);
         ~Scene();
 
       public:

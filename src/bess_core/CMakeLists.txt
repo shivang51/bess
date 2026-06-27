@@ -6,6 +6,14 @@ set(Header_Files
 	"include/bess_core/viewport.h"
 	"include/bess_core/connection_service.h"
 
+	"include/bess_core/commands/add_component_command.h"
+	"include/bess_core/commands/command.h"
+	"include/bess_core/commands/command_system.h"
+	"include/bess_core/commands/delete_component_command.h"
+	"include/bess_core/commands/macro_command.h"
+	"include/bess_core/commands/scene_component_command_hooks.h"
+	"include/bess_core/commands/update_value_command.h"
+
 	"include/bess_core/style/bess_theme.h"
 	"include/bess_core/style/color_scheme.h"
 	"include/bess_core/style/color_utils.h"
@@ -75,6 +83,13 @@ set(Source_Files
 	"src/bess_core/connection_service.cpp"
 	"src/bess_core/copy_paste_service.cpp"
 	"src/bess_core/viewport.cpp"
+
+	"src/bess_core/commands/add_component_command.cpp"
+	"src/bess_core/commands/command.cpp"
+	"src/bess_core/commands/command_system.cpp"
+	"src/bess_core/commands/delete_component_command.cpp"
+	"src/bess_core/commands/macro_command.cpp"
+	"src/bess_core/commands/scene_component_command_hooks.cpp"
 	
 	"src/bess_core/style/bess_theme.cpp"
 	"src/bess_core/style/color_scheme.cpp"
@@ -148,7 +163,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 	"${CMAKE_SOURCE_DIR}/src/bess"
 	"${CMAKE_SOURCE_DIR}/src/bess/scene"
 	"${CMAKE_SOURCE_DIR}/src/event_system/include"
-	"${CMAKE_SOURCE_DIR}/src/command_system/include"
 	"${CMAKE_SOURCE_DIR}/external/freetype/include"
 	"${CMAKE_SOURCE_DIR}/external/imgui"
 	"${CMAKE_SOURCE_DIR}/src/sim_driver/include"

@@ -14,6 +14,7 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(BessTests
     main_test.cpp
+    core_scene_commands_test.cpp
     ui_layout_test.cpp
     # scene_component_clone_test.cpp
     # sim_driver_test.cpp

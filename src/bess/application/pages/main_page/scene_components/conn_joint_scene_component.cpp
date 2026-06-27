@@ -1,4 +1,5 @@
 #include "conn_joint_scene_component.h"
+#include "bess_core/commands/add_component_command.h"
 #include "bess_core/scene/scene_draw_helpers.h"
 #include "bess_core/scene/scene_state/components/scene_component_types.h"
 #include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
@@ -7,7 +8,6 @@
 #include "common/bess_uuid.h"
 #include "connection_scene_component.h"
 #include "geometric.hpp"
-#include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/main_page.h"
 #include "sim_scene_component.h"
 #include "slot_scene_component.h"

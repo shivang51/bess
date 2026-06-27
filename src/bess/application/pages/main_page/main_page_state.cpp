@@ -1,16 +1,16 @@
 #include "pages/main_page/main_page_state.h"
 
+#include "bess_core/commands/update_value_command.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "bess_core/scene_driver.h"
 #include "bverilog/sim_engine_importer.h"
-#include "command_system.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "dig_sim_driver.h"
 #include "event_dispatcher.h"
-#include "pages/main_page/cmds/update_value_cmd.h"
 #include "pages/main_page/main_page.h"
+#include "pages/main_page/main_page_command_hooks.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_probe_scene_component.h"
@@ -409,6 +409,8 @@ namespace Bess::Pages {
     }
 
     void MainPageState::init() {
+        getCommandSystem().setSceneComponentHooks(createMainPageCommandHooks());
+
         auto &appCtx = GAppContext::getInstance();
         auto dispatcher = appCtx.getSubSystem<EventSystem::EventDispatcher>();
         dispatcher->sink<Canvas::Events::EntityMovedEvent>()

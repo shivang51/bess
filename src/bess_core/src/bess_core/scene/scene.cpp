@@ -91,7 +91,17 @@ namespace Bess::Canvas {
         return ctx;
     }
 
-    Scene::Scene() {
+    Scene::Scene() : Scene(true) {
+    }
+
+    Scene::Scene(bool initializeLayers) {
+        if (!initializeLayers) {
+            clear();
+            m_size = glm::vec2(800.f, 600.f);
+            m_camera = std::make_shared<Camera>(m_size.x, m_size.y);
+            return;
+        }
+
         m_sceneLayers.push_back(std::make_unique<GridLayer>());
         m_sceneLayers.push_back(std::make_unique<ComponentsLayer>());
         m_sceneLayers.push_back(std::make_unique<HoverLayer>());
