@@ -4,7 +4,6 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(Header_Files
 	"include/bess_core/g_app_context.h"
 	"include/bess_core/viewport.h"
-	"include/bess_core/connection_service.h"
 
 	"include/bess_core/commands/add_component_command.h"
 	"include/bess_core/commands/command.h"
@@ -80,7 +79,6 @@ source_group("include/bess_core" FILES ${Header_Files})
 set(Source_Files
 	"src/bess_core/asset_manager.cpp"
 	"src/bess_core/project_context.cpp"
-	"src/bess_core/connection_service.cpp"
 	"src/bess_core/copy_paste_service.cpp"
 	"src/bess_core/viewport.cpp"
 

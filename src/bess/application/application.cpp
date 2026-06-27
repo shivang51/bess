@@ -7,6 +7,7 @@
 #include "common/logger.h"
 #include "common/types.h"
 #include "event_dispatcher.h"
+#include "pages/main_page/services/connection_service.h"
 #include "services/plugin_service/plugin_service.h"
 #include "sub_systems/renderer_context.h"
 #include <chrono>
@@ -88,6 +89,7 @@ namespace Bess {
         }
 
         auto projCtx = appCtx.addSubSystem<ProjectContext>();
+        projCtx->addSubSystem<Svc::SvcConnection>();
 
         appCtx.init();
 

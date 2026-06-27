@@ -47,7 +47,7 @@ namespace Bess::Pages {
                 return;
             }
 
-            auto &slotIds =
+            const auto &slotIds =
                 isInput ? comp->getInputSlots() : comp->getOutputSlots();
             const auto slotType = isInput ? Canvas::SlotType::digitalInput
                                           : Canvas::SlotType::digitalOutput;
@@ -110,10 +110,19 @@ namespace Bess::Pages {
                 resizeSlotId = UUID::null;
             }
 
-            slotIds.clear();
-            slotIds.insert(slotIds.end(), realSlots.begin(), realSlots.end());
+            std::vector<UUID> nextSlotIds;
+            nextSlotIds.reserve(realSlots.size() +
+                                (resizeSlotId != UUID::null ? 1 : 0));
+            nextSlotIds.insert(
+                nextSlotIds.end(), realSlots.begin(), realSlots.end());
             if (resizeSlotId != UUID::null) {
-                slotIds.push_back(resizeSlotId);
+                nextSlotIds.push_back(resizeSlotId);
+            }
+
+            if (isInput) {
+                comp->setInputSlots(nextSlotIds);
+            } else {
+                comp->setOutputSlots(nextSlotIds);
             }
 
             for (size_t i = 0; i < realSlots.size(); ++i) {

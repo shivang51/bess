@@ -1,7 +1,6 @@
 #include "bess_core/commands/add_component_command.h"
 #include "bess_core/commands/command_system.h"
 #include "bess_core/commands/delete_component_command.h"
-#include "bess_core/connection_service.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "bess_core/scene/scene.h"
@@ -9,14 +8,17 @@
 #include "dig_sim_driver.h"
 #include "event_dispatcher.h"
 #include "pages/main_page/main_page_command_hooks.h"
+#include "pages/main_page/main_page_state.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
+#include "pages/main_page/services/connection_service.h"
 #include "simulation_engine.h"
 #include <algorithm>
 #include <gtest/gtest.h>
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace {
@@ -28,22 +30,30 @@ namespace {
     using Bess::Canvas::SlotSceneComponent;
     using Bess::SimEngine::Drivers::Digital::DigCompDef;
 
-    std::shared_ptr<DigCompDef>
-    makeDefinition(std::string name, size_t inputCount, size_t outputCount) {
+    std::shared_ptr<DigCompDef> makeDefinition(std::string name,
+                                               size_t inputCount,
+                                               size_t outputCount,
+                                               bool inputsResizable = false,
+                                               bool outputsResizable = false,
+                                               bool keepIOCountEq = false,
+                                               char op = '0') {
         auto definition = std::make_shared<DigCompDef>();
         definition->setName(name);
         definition->setGroupName("Test");
+        definition->setKeepIOCountEq(keepIOCountEq);
+        Bess::SimEngine::OperatorInfo opInfo;
+        opInfo.op = op;
+        definition->setOpInfo(opInfo);
         definition->setInputSlotsInfo({Bess::SimEngine::SlotsGroupType::input,
-                                       false,
+                                       inputsResizable,
                                        inputCount,
                                        {},
                                        {}});
-        definition->setOutputSlotsInfo(
-            {Bess::SimEngine::SlotsGroupType::output,
-             false,
-             outputCount,
-             {},
-             {}});
+        definition->setOutputSlotsInfo({Bess::SimEngine::SlotsGroupType::output,
+                                        outputsResizable,
+                                        outputCount,
+                                        {},
+                                        {}});
         definition->setPropDelay(Bess::TimeNs(1));
         definition->setSimFn(
             [](const std::shared_ptr<
@@ -76,8 +86,8 @@ namespace {
             std::dynamic_pointer_cast<SimulationSceneComponent>(created[0]);
         for (size_t i = 1; i < created.size(); ++i) {
             fixture.children.push_back(created[i]);
-            auto slot = std::dynamic_pointer_cast<SlotSceneComponent>(
-                created[i]);
+            auto slot =
+                std::dynamic_pointer_cast<SlotSceneComponent>(created[i]);
             if (!slot) {
                 continue;
             }
@@ -97,17 +107,20 @@ class MainPageConnectionCommandsTest : public testing::Test {
     void SetUp() override {
         auto &appCtx = Bess::GAppContext::getInstance();
         if (!appCtx.hasSubSystem<Bess::EventSystem::EventDispatcher>()) {
-            appCtx.addSubSystem<Bess::EventSystem::EventDispatcher>()
-                ->onInit();
+            appCtx.addSubSystem<Bess::EventSystem::EventDispatcher>()->onInit();
         } else {
             appCtx.getSubSystem<Bess::EventSystem::EventDispatcher>()->clear();
+            appCtx.getSubSystem<Bess::EventSystem::EventDispatcher>()
+                ->dispatchAll();
         }
 
         if (!appCtx.hasSubSystem<Bess::ProjectContext>()) {
             projectContext = appCtx.addSubSystem<Bess::ProjectContext>();
+            projectContext->addSubSystem<Bess::Svc::SvcConnection>();
             projectContext->onInit();
         } else {
             projectContext = appCtx.getSubSystem<Bess::ProjectContext>();
+            projectContext->addSubSystem<Bess::Svc::SvcConnection>();
             if (!projectContext->hasSubSystem<Bess::SceneDriver>()) {
                 projectContext->onInit();
             }
@@ -118,7 +131,8 @@ class MainPageConnectionCommandsTest : public testing::Test {
             projectContext->getSubSystem<Bess::SimEngine::SimulationEngine>();
         connectionService =
             projectContext->getSubSystem<Bess::Svc::SvcConnection>();
-        commandSystem = projectContext->getSubSystem<Bess::Cmd::CommandSystem>();
+        commandSystem =
+            projectContext->getSubSystem<Bess::Cmd::CommandSystem>();
 
         connectionService->onDestroy();
         connectionService->onInit();
@@ -191,11 +205,9 @@ class MainPageConnectionCommandsTest : public testing::Test {
         }
 
         commandSystem->execute(
-            std::make_unique<
-                Bess::Cmd::AddCompCmd<SimulationSceneComponent>>(
+            std::make_unique<Bess::Cmd::AddCompCmd<SimulationSceneComponent>>(
                 fixture.comp, fixture.children));
-        EXPECT_NE(scene->getState().getComponentByUuid(
-                      fixture.comp->getUuid()),
+        EXPECT_NE(scene->getState().getComponentByUuid(fixture.comp->getUuid()),
                   nullptr);
         EXPECT_NE(fixture.comp->getSimEngineId(), UUID::null);
         return fixture;
@@ -214,15 +226,51 @@ class MainPageConnectionCommandsTest : public testing::Test {
         EXPECT_NE(scene->getState().getComponentByUuid(
                       source.outputs.front()->getUuid()),
                   nullptr);
-        EXPECT_NE(
-            scene->getState().getComponentByUuid(connection->getUuid()),
-            nullptr);
-        EXPECT_TRUE(containsUuid(
-            source.outputs.front()->getConnectedConnections(),
-            connection->getUuid()));
+        EXPECT_NE(scene->getState().getComponentByUuid(connection->getUuid()),
+                  nullptr);
+        EXPECT_TRUE(
+            containsUuid(source.outputs.front()->getConnectedConnections(),
+                         connection->getUuid()));
         EXPECT_TRUE(containsUuid(sink.inputs.front()->getConnectedConnections(),
                                  connection->getUuid()));
         EXPECT_NE(source.comp->getSimEngineId(), UUID::null);
+    }
+
+    size_t simSlotCount(const SimComponentFixture &fixture,
+                        bool inputSlots) const {
+        const auto digComp =
+            simEngine
+                ->getComponent<Bess::SimEngine::Drivers::Digital::DigSimComp>(
+                    fixture.comp->getSimEngineId());
+        EXPECT_NE(digComp, nullptr);
+        if (!digComp) {
+            return 0;
+        }
+
+        const auto digDef = digComp->getDefinition<DigCompDef>();
+        EXPECT_NE(digDef, nullptr);
+        if (!digDef) {
+            return 0;
+        }
+
+        return inputSlots ? digDef->getInputSlotsInfo().count
+                          : digDef->getOutputSlotsInfo().count;
+    }
+
+    size_t sceneRealSlotCount(const SimComponentFixture &fixture,
+                              bool inputSlots) const {
+        const auto &slotIds = inputSlots ? fixture.comp->getInputSlots()
+                                         : fixture.comp->getOutputSlots();
+        size_t count = 0;
+        for (const auto &slotId : slotIds) {
+            const auto slot =
+                scene->getState().getComponentByUuid<SlotSceneComponent>(
+                    slotId);
+            if (slot && !slot->isResizeSlot()) {
+                ++count;
+            }
+        }
+        return count;
     }
 
     std::shared_ptr<Bess::ProjectContext> projectContext;
@@ -235,6 +283,54 @@ class MainPageConnectionCommandsTest : public testing::Test {
     std::shared_ptr<DigCompDef> sinkDef;
 };
 
+TEST(SimulationSceneComponentSlotDirtyTest, SlotMutatorsMarkUIDirty) {
+    auto comp = std::make_shared<SimulationSceneComponent>();
+
+    const UUID inputA;
+    comp->setUIDirty(false);
+    comp->addInputSlot(inputA, false);
+    EXPECT_TRUE(comp->getUIDirty());
+    EXPECT_TRUE(containsUuid(comp->getInputSlots(), inputA));
+
+    const UUID inputB;
+    comp->setUIDirty(false);
+    comp->insertInputSlot(inputB, 0);
+    EXPECT_TRUE(comp->getUIDirty());
+    ASSERT_FALSE(comp->getInputSlots().empty());
+    EXPECT_EQ(comp->getInputSlots().front(), inputB);
+
+    comp->setUIDirty(false);
+    EXPECT_TRUE(comp->removeInputSlot(inputA));
+    EXPECT_TRUE(comp->getUIDirty());
+    EXPECT_FALSE(containsUuid(comp->getInputSlots(), inputA));
+
+    comp->setUIDirty(false);
+    EXPECT_FALSE(comp->removeInputSlot(inputA));
+    EXPECT_FALSE(comp->getUIDirty());
+
+    const UUID outputA;
+    comp->setUIDirty(false);
+    comp->addOutputSlot(outputA);
+    EXPECT_TRUE(comp->getUIDirty());
+    EXPECT_TRUE(containsUuid(comp->getOutputSlots(), outputA));
+
+    const std::vector<UUID> outputSlots{outputA};
+    comp->setUIDirty(false);
+    comp->setOutputSlots(outputSlots);
+    EXPECT_FALSE(comp->getUIDirty());
+
+    const UUID outputB;
+    comp->setUIDirty(false);
+    comp->setOutputSlots({outputA, outputB});
+    EXPECT_TRUE(comp->getUIDirty());
+    EXPECT_TRUE(containsUuid(comp->getOutputSlots(), outputB));
+
+    comp->setUIDirty(false);
+    EXPECT_TRUE(comp->removeOutputSlot(outputA));
+    EXPECT_TRUE(comp->getUIDirty());
+    EXPECT_FALSE(containsUuid(comp->getOutputSlots(), outputA));
+}
+
 TEST_F(MainPageConnectionCommandsTest,
        DeleteComponentUndoRestoresItsConnections) {
     const auto source = addSimComponent(sourceDef);
@@ -244,9 +340,10 @@ TEST_F(MainPageConnectionCommandsTest,
     ASSERT_FALSE(source.outputs.empty());
     ASSERT_FALSE(sink.inputs.empty());
 
-    auto connection = connectionService->createConnection(
-        source.outputs.front()->getUuid(), sink.inputs.front()->getUuid(),
-        scene);
+    auto connection =
+        connectionService->createConnection(source.outputs.front()->getUuid(),
+                                            sink.inputs.front()->getUuid(),
+                                            scene);
     ASSERT_NE(connection, nullptr);
     expectConnectionRestored(source, sink, connection);
 
@@ -256,9 +353,9 @@ TEST_F(MainPageConnectionCommandsTest,
     EXPECT_TRUE(commandSystem->canUndo());
     EXPECT_EQ(scene->getState().getComponentByUuid(source.comp->getUuid()),
               nullptr);
-    EXPECT_EQ(scene->getState().getComponentByUuid(
-                  source.outputs.front()->getUuid()),
-              nullptr);
+    EXPECT_EQ(
+        scene->getState().getComponentByUuid(source.outputs.front()->getUuid()),
+        nullptr);
     EXPECT_EQ(scene->getState().getComponentByUuid(connection->getUuid()),
               nullptr);
     EXPECT_FALSE(containsUuid(sink.inputs.front()->getConnectedConnections(),
@@ -279,4 +376,133 @@ TEST_F(MainPageConnectionCommandsTest,
     ASSERT_TRUE(commandSystem->canUndo());
     commandSystem->undo();
     expectConnectionRestored(source, sink, connection);
+}
+
+TEST_F(MainPageConnectionCommandsTest,
+       DeleteConnectionUndoRestoresRemovedResizableSlotInSimEngine) {
+    const auto resizableSourceDef =
+        makeDefinition("Resizable Source", 0, 2, false, true);
+    const auto source = addSimComponent(resizableSourceDef);
+    const auto sink = addSimComponent(sinkDef);
+
+    ASSERT_NE(source.comp, nullptr);
+    ASSERT_NE(sink.comp, nullptr);
+    ASSERT_GE(source.outputs.size(), 3u);
+    ASSERT_FALSE(sink.inputs.empty());
+
+    auto sourceSlot = source.outputs[1];
+    ASSERT_FALSE(sourceSlot->isResizeSlot());
+    ASSERT_EQ(sourceSlot->getIndex(), 1);
+    ASSERT_EQ(simSlotCount(source, false), 2u);
+
+    auto connection = connectionService->createConnection(
+        sourceSlot->getUuid(), sink.inputs.front()->getUuid(), scene);
+    ASSERT_NE(connection, nullptr);
+    EXPECT_TRUE(containsUuid(sourceSlot->getConnectedConnections(),
+                             connection->getUuid()));
+
+    commandSystem->execute(std::make_unique<Bess::Cmd::DeleteCompCmd>(
+        std::vector<UUID>{connection->getUuid()}));
+
+    EXPECT_TRUE(commandSystem->canUndo());
+    EXPECT_EQ(scene->getState().getComponentByUuid(connection->getUuid()),
+              nullptr);
+    EXPECT_EQ(scene->getState().getComponentByUuid(sourceSlot->getUuid()),
+              nullptr);
+    EXPECT_EQ(simSlotCount(source, false), 1u);
+    EXPECT_FALSE(containsUuid(sink.inputs.front()->getConnectedConnections(),
+                              connection->getUuid()));
+
+    commandSystem->undo();
+
+    EXPECT_NE(scene->getState().getComponentByUuid(sourceSlot->getUuid()),
+              nullptr);
+    EXPECT_NE(scene->getState().getComponentByUuid(connection->getUuid()),
+              nullptr);
+    EXPECT_EQ(simSlotCount(source, false), 2u);
+    EXPECT_EQ(sourceSlot->getIndex(), 1);
+    EXPECT_TRUE(containsUuid(sourceSlot->getConnectedConnections(),
+                             connection->getUuid()));
+    EXPECT_TRUE(containsUuid(sink.inputs.front()->getConnectedConnections(),
+                             connection->getUuid()));
+}
+
+TEST_F(MainPageConnectionCommandsTest,
+       DeleteConnectionUndoDoesNotDuplicateNotGatePairedOutputSlot) {
+    Bess::Pages::MainPageState mainPageState;
+    mainPageState.init();
+
+    const auto notDef =
+        makeDefinition("NOT Gate", 1, 1, true, false, true, '!');
+    const auto source = addSimComponent(sourceDef);
+    const auto notGate = addSimComponent(notDef);
+
+    ASSERT_NE(source.comp, nullptr);
+    ASSERT_NE(notGate.comp, nullptr);
+    ASSERT_FALSE(source.outputs.empty());
+    ASSERT_GE(notGate.inputs.size(), 2u);
+
+    auto dispatcher = Bess::GAppContext::getInstance()
+                          .getSubSystem<Bess::EventSystem::EventDispatcher>();
+    dispatcher->dispatchAll();
+
+    const auto resizeInput = notGate.inputs.back();
+    ASSERT_TRUE(resizeInput->isResizeSlot());
+
+    auto connection = connectionService->createConnection(
+        source.outputs.front()->getUuid(), resizeInput->getUuid(), scene);
+    ASSERT_NE(connection, nullptr);
+    dispatcher->dispatchAll();
+
+    const auto restoredInputId = connection->getEndSlot();
+    ASSERT_NE(restoredInputId, resizeInput->getUuid());
+    const auto restoredInput =
+        scene->getState().getComponentByUuid<SlotSceneComponent>(
+            restoredInputId);
+    ASSERT_NE(restoredInput, nullptr);
+    ASSERT_EQ(restoredInput->getIndex(), 1);
+    ASSERT_EQ(simSlotCount(notGate, true), 2u);
+    ASSERT_EQ(simSlotCount(notGate, false), 2u);
+    ASSERT_EQ(sceneRealSlotCount(notGate, true), 2u);
+    ASSERT_EQ(sceneRealSlotCount(notGate, false), 2u);
+    ASSERT_GE(notGate.comp->getOutputSlots().size(), 2u);
+
+    const auto pairedOutputId = notGate.comp->getOutputSlots()[1];
+    const auto outputCountBeforeDelete = notGate.comp->getOutputSlots().size();
+    ASSERT_NE(scene->getState().getComponentByUuid<SlotSceneComponent>(
+                  pairedOutputId),
+              nullptr);
+
+    commandSystem->execute(std::make_unique<Bess::Cmd::DeleteCompCmd>(
+        std::vector<UUID>{connection->getUuid()}));
+    dispatcher->dispatchAll();
+
+    EXPECT_EQ(scene->getState().getComponentByUuid(connection->getUuid()),
+              nullptr);
+    EXPECT_EQ(scene->getState().getComponentByUuid(restoredInputId), nullptr);
+    EXPECT_EQ(scene->getState().getComponentByUuid(pairedOutputId), nullptr);
+    EXPECT_EQ(simSlotCount(notGate, true), 1u);
+    EXPECT_EQ(simSlotCount(notGate, false), 1u);
+    EXPECT_EQ(sceneRealSlotCount(notGate, true), 1u);
+    EXPECT_EQ(sceneRealSlotCount(notGate, false), 1u);
+
+    ASSERT_TRUE(commandSystem->canUndo());
+    commandSystem->undo();
+    dispatcher->dispatchAll();
+
+    EXPECT_NE(scene->getState().getComponentByUuid(restoredInputId), nullptr);
+    EXPECT_NE(scene->getState().getComponentByUuid(pairedOutputId), nullptr);
+    EXPECT_NE(scene->getState().getComponentByUuid(connection->getUuid()),
+              nullptr);
+    EXPECT_EQ(simSlotCount(notGate, true), 2u);
+    EXPECT_EQ(simSlotCount(notGate, false), 2u);
+    EXPECT_EQ(sceneRealSlotCount(notGate, true), 2u);
+    EXPECT_EQ(sceneRealSlotCount(notGate, false), 2u);
+    EXPECT_EQ(notGate.comp->getOutputSlots().size(), outputCountBeforeDelete);
+    EXPECT_TRUE(containsUuid(notGate.comp->getOutputSlots(), pairedOutputId));
+
+    const auto outputIds = notGate.comp->getOutputSlots();
+    const std::unordered_set<UUID> uniqueOutputIds(outputIds.begin(),
+                                                   outputIds.end());
+    EXPECT_EQ(uniqueOutputIds.size(), outputIds.size());
 }

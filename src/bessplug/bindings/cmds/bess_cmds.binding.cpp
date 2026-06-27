@@ -1,4 +1,3 @@
-#include "bess_core/connection_service.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "bess_core/scene_driver.h"
@@ -10,6 +9,7 @@
 #include "pages/main_page/scene_components/connection_scene_component.h" // IWYU pragma: keep
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
+#include "pages/main_page/services/connection_service.h"
 #include "simulation_engine.h"
 #include "ui/ui_main/component_explorer.h"
 #include <pybind11/eval.h>

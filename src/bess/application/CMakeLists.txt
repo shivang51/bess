@@ -22,6 +22,7 @@ set(Header_Files
 	"pages/main_page/scene_components/sim_scene_component.h"
 	"pages/main_page/scene_components/module_scene_component.h"
 	"pages/main_page/scene_components/scene_comp_types.h"
+	"pages/main_page/services/connection_service.h"
 	"pages/main_page/services/hierarchical_scene_layout.h"
 	"pages/main_page/verilog_scene_import.h"
 	"pages/start_page/start_page.h"
@@ -85,6 +86,7 @@ set(Source_Files
 	"pages/main_page/scene_components/module_scene_component.cpp"
 	"pages/main_page/scene_components/input_scene_component.cpp"
 	"pages/main_page/scene_components/slot_probe_scene_component.cpp"
+	"pages/main_page/services/connection_service.cpp"
 	"pages/main_page/services/hierarchical_scene_layout.cpp"
 	
 	"window.cpp"

@@ -1,12 +1,12 @@
 #include "pages/main_page/main_page_command_hooks.h"
 
-#include "bess_core/connection_service.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "bess_core/scene/scene.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_state/components/scene_component_types.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
+#include "pages/main_page/services/connection_service.h"
 #include <algorithm>
 
 namespace Bess::Pages {

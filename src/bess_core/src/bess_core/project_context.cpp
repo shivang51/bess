@@ -1,6 +1,5 @@
 #include "bess_core/project_context.h"
 
-#include "bess_core/connection_service.h"
 #include "bess_core/commands/command_system.h"
 #include "bess_core/copy_paste_service.h"
 #include "bess_core/scene_driver.h"
@@ -25,7 +24,6 @@ namespace Bess {
     void ProjectContext::onInit() {
         addSubSystem<SceneDriver>();
         addSubSystem<SimEngine::SimulationEngine>();
-        addSubSystem<Svc::SvcConnection>();
         addSubSystem<Svc::CopyPaste::Context>();
         addSubSystem<Cmd::CommandSystem>();
 

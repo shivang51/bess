@@ -1,5 +1,4 @@
 #include "sim_scene_component.h"
-#include "bess_core/connection_service.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "bess_core/renderer/renderer_2d.h"
@@ -15,6 +14,7 @@
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "input_scene_component.h"
+#include "pages/main_page/services/connection_service.h"
 #include "simulation_engine.h"
 #include "slot_scene_component.h"
 #include "sub_systems/renderer_context.h"
@@ -34,6 +34,26 @@ namespace Bess::Canvas {
     size_t SimulationSceneComponent::s_instanceCount = 0;
 
     constexpr float SNAP_AMOUNT = 2.f;
+
+    namespace {
+        void insertSlotId(std::vector<UUID> &slotIds,
+                          const UUID &slotId,
+                          size_t index) {
+            if (std::ranges::contains(slotIds, slotId)) {
+                return;
+            }
+
+            const auto insertPos = std::min(index, slotIds.size());
+            slotIds.insert(slotIds.begin() + static_cast<long>(insertPos),
+                           slotId);
+        }
+
+        bool eraseSlotId(std::vector<UUID> &slotIds, const UUID &slotId) {
+            const auto oldSize = slotIds.size();
+            std::erase(slotIds, slotId);
+            return slotIds.size() != oldSize;
+        }
+    } // namespace
 
     SimulationSceneComponent::SimulationSceneComponent() {
         m_icon = Icons::FontAwesomeIcons::FA_MICROCHIP;
@@ -372,7 +392,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         } else {
             for (const auto &childId : m_childComponents) {
                 auto child = context.sceneState->getComponentByUuid(childId);
-                m_isUIDirty = child->getUIDirty();
+                m_isUIDirty = m_isUIDirty || child->getUIDirty();
 
                 child->draw(context);
             }
@@ -596,6 +616,41 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         }
     }
 
+    void SimulationSceneComponent::markSlotsUIDirty() {
+        m_isUIDirty = true;
+        if (m_uiNode) {
+            m_uiNode->setSizeDirty();
+        }
+    }
+
+    const std::vector<UUID> &SimulationSceneComponent::getInputSlots() const {
+        return m_inputSlots;
+    }
+
+    void
+    SimulationSceneComponent::setInputSlots(const std::vector<UUID> &slotIds) {
+        if (m_inputSlots == slotIds) {
+            return;
+        }
+
+        m_inputSlots = slotIds;
+        markSlotsUIDirty();
+    }
+
+    const std::vector<UUID> &SimulationSceneComponent::getOutputSlots() const {
+        return m_outputSlots;
+    }
+
+    void
+    SimulationSceneComponent::setOutputSlots(const std::vector<UUID> &slotIds) {
+        if (m_outputSlots == slotIds) {
+            return;
+        }
+
+        m_outputSlots = slotIds;
+        markSlotsUIDirty();
+    }
+
     size_t SimulationSceneComponent::getInputSlotsCount() const {
         return m_inputSlots.size();
     }
@@ -606,37 +661,55 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
 
     void SimulationSceneComponent::addOutputSlot(UUID slotId,
                                                  bool isLastResizeable) {
-        if (isLastResizeable) {
-            m_outputSlots.insert(m_outputSlots.end() - 1, slotId);
-        } else {
-            m_outputSlots.emplace_back(slotId);
-        }
-
-        m_isUIDirty = true;
+        const auto insertIndex = isLastResizeable && !m_outputSlots.empty()
+                                     ? m_outputSlots.size() - 1
+                                     : m_outputSlots.size();
+        insertOutputSlot(slotId, insertIndex);
     }
 
     void SimulationSceneComponent::addInputSlot(UUID slotId,
                                                 bool isLastResizeable) {
-        if (isLastResizeable) {
-            m_inputSlots.insert(m_inputSlots.end() - 1, slotId);
-        } else {
-            m_inputSlots.emplace_back(slotId);
-        }
+        const auto insertIndex = isLastResizeable && !m_inputSlots.empty()
+                                     ? m_inputSlots.size() - 1
+                                     : m_inputSlots.size();
+        insertInputSlot(slotId, insertIndex);
+    }
 
-        m_isUIDirty = true;
+    void SimulationSceneComponent::insertInputSlot(UUID slotId, size_t index) {
+        const auto oldSize = m_inputSlots.size();
+        insertSlotId(m_inputSlots, slotId, index);
+        if (m_inputSlots.size() != oldSize) {
+            markSlotsUIDirty();
+        }
+    }
+
+    void SimulationSceneComponent::insertOutputSlot(UUID slotId, size_t index) {
+        const auto oldSize = m_outputSlots.size();
+        insertSlotId(m_outputSlots, slotId, index);
+        if (m_outputSlots.size() != oldSize) {
+            markSlotsUIDirty();
+        }
+    }
+
+    bool SimulationSceneComponent::removeInputSlot(UUID slotId) {
+        const bool removed = eraseSlotId(m_inputSlots, slotId);
+        if (removed) {
+            markSlotsUIDirty();
+        }
+        return removed;
+    }
+
+    bool SimulationSceneComponent::removeOutputSlot(UUID slotId) {
+        const bool removed = eraseSlotId(m_outputSlots, slotId);
+        if (removed) {
+            markSlotsUIDirty();
+        }
+        return removed;
     }
 
     void SimulationSceneComponent::setScaleDirty(bool val) {
         if (val && m_uiNode) {
             m_uiNode->setSizeDirty();
-
-            if (m_inpBoxNode->getChildren().size() != m_inputSlots.size()) {
-                m_isUIDirty = true;
-            }
-
-            if (m_outBoxNode->getChildren().size() != m_outputSlots.size()) {
-                m_isUIDirty = true;
-            }
         }
     }
 

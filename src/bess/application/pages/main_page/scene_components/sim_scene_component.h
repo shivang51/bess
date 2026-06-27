@@ -121,8 +121,6 @@ namespace Bess::Canvas {
 
         MAKE_GETTER_SETTER(UUID, SimEngineId, m_simEngineId)
         MAKE_GETTER_SETTER(UUID, NetId, m_netId)
-        MAKE_GETTER_SETTER(std::vector<UUID>, InputSlots, m_inputSlots)
-        MAKE_GETTER_SETTER(std::vector<UUID>, OutputSlots, m_outputSlots)
         MAKE_GETTER_SETTER(Transform, SchematicTransform, m_schematicTransform)
         MAKE_GETTER_SETTER(std::shared_ptr<SimEngine::Drivers::CompDef>,
                            CompDef,
@@ -130,12 +128,22 @@ namespace Bess::Canvas {
 
         MAKE_GETTER_SETTER_PTR(UI::UINode, UINode, m_uiNode)
 
+        const std::vector<UUID> &getInputSlots() const;
+        void setInputSlots(const std::vector<UUID> &slotIds);
+
+        const std::vector<UUID> &getOutputSlots() const;
+        void setOutputSlots(const std::vector<UUID> &slotIds);
+
         void setSchSlotsPosDirty(bool val = true);
         size_t getInputSlotsCount() const;
         size_t getOutputSlotsCount() const;
 
         void addInputSlot(UUID slotId, bool isLastResizeable = true);
         void addOutputSlot(UUID slotId, bool isLastResizeable = true);
+        void insertInputSlot(UUID slotId, size_t index);
+        void insertOutputSlot(UUID slotId, size_t index);
+        bool removeInputSlot(UUID slotId);
+        bool removeOutputSlot(UUID slotId);
 
         void setScaleDirty(bool val = true);
 
@@ -198,6 +206,8 @@ namespace Bess::Canvas {
         void onChildrenChanged() override;
 
         void resetCloneRuntimeState() override;
+
+        void markSlotsUIDirty();
 
       protected:
         // Associated simulation engine ID
