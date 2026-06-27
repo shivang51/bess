@@ -40,8 +40,17 @@ namespace Bess::Canvas {
 
         if (s_nodeShader == 0) {
             const auto &appCtx = Bess::GAppContext::getInstance();
+            if (!appCtx.hasSubSystem<Bess::RendererContext>()) {
+                s_instanceCount++;
+                return;
+            }
+
             const auto &rendererCtx =
                 appCtx.getSubSystem<Bess::RendererContext>();
+            if (!rendererCtx || !rendererCtx->getRenderer()) {
+                s_instanceCount++;
+                return;
+            }
 
             Core::Renderer::CustomQuadShaderDesc desc;
 

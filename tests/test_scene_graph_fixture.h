@@ -1,6 +1,6 @@
 #pragma once
 
-#include "command_system.h"
+#include "bess_core/commands/command_system.h"
 #include "component_catalog.h"
 #include "dig_sim_driver.h"
 #include "bess_core/g_app_context.h"
@@ -201,8 +201,7 @@ namespace Bess::Tests {
             scene = std::make_shared<Scene>();
 
             cmdSystem.init();
-            cmdSystem.setScene(scene.get());
-            cmdSystem.setSimEngine(&projectCtx->getSimEngine());
+            cmdSystem.setScene(scene);
         }
 
         void TearDown() override {

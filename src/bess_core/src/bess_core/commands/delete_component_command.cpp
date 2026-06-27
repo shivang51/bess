@@ -132,41 +132,88 @@ namespace Bess::Cmd {
 
     void DeleteCompCmd::restoreStoredComponents(const CommandContext &context) {
         auto &sceneState = context.scene->getState();
+        std::vector<std::shared_ptr<Canvas::SceneComponent>>
+            deferredComponents;
+
+        const auto restoreComponent =
+            [&](const std::shared_ptr<Canvas::SceneComponent> &component) {
+                if (!component) {
+                    return false;
+                }
+
+                if (!sceneState.isComponentValid(component->getUuid()) &&
+                    !addSceneComponentWithHooks(
+                        context.scene,
+                        component,
+                        {.setZ = false,
+                         .triggerAttach = false,
+                         .dispatchEvent = true},
+                        context.componentHooks)) {
+                    return false;
+                }
+
+                if (!sceneState.isComponentValid(component->getUuid())) {
+                    return false;
+                }
+
+                const auto parentId = component->getParentComponent();
+                if (parentId == UUID::null ||
+                    !sceneState.isComponentValid(parentId)) {
+                    return true;
+                }
+
+                const auto parent = sceneState.getComponentByUuid(parentId);
+                if (parent && !parent->getChildComponents().contains(
+                                  component->getUuid())) {
+                    sceneState.attachChild(parentId, component->getUuid());
+                }
+                return true;
+            };
+
+        const auto attachRestoredComponent =
+            [&](const std::shared_ptr<Canvas::SceneComponent> &component) {
+                if (component &&
+                    sceneState.isComponentValid(component->getUuid())) {
+                    component->onAttach(sceneState);
+                }
+            };
 
         for (auto it = m_deletedComponents.rbegin();
              it != m_deletedComponents.rend();
              ++it) {
-            const auto &component = *it;
-            if (!component) {
-                continue;
-            }
-
-            addSceneComponentWithHooks(
-                context.scene,
-                component,
-                {.setZ = false, .triggerAttach = false, .dispatchEvent = true},
-                context.componentHooks);
-
-            const auto parentId = component->getParentComponent();
-            if (parentId == UUID::null ||
-                !sceneState.isComponentValid(component->getUuid()) ||
-                !sceneState.isComponentValid(parentId)) {
-                continue;
-            }
-
-            const auto parent = sceneState.getComponentByUuid(parentId);
-            if (parent &&
-                !parent->getChildComponents().contains(component->getUuid())) {
-                sceneState.attachChild(parentId, component->getUuid());
+            if (restoreComponent(*it)) {
+                attachRestoredComponent(*it);
+            } else if (*it) {
+                deferredComponents.push_back(*it);
             }
         }
 
-        for (auto it = m_deletedComponents.rbegin();
-             it != m_deletedComponents.rend();
-             ++it) {
-            if (*it && sceneState.isComponentValid((*it)->getUuid())) {
-                (*it)->onAttach(sceneState);
+        while (!deferredComponents.empty()) {
+            std::vector<std::shared_ptr<Canvas::SceneComponent>> stillDeferred;
+            bool madeProgress = false;
+
+            for (const auto &component : deferredComponents) {
+                if (restoreComponent(component)) {
+                    attachRestoredComponent(component);
+                    madeProgress = true;
+                } else {
+                    stillDeferred.push_back(component);
+                }
             }
+
+            if (!madeProgress) {
+                for (const auto &component : stillDeferred) {
+                    if (component) {
+                        BESS_WARN("[DeleteCompCmd] Failed to restore component "
+                                  "{} ({}) during undo",
+                                  component->getName(),
+                                  (uint64_t)component->getUuid());
+                    }
+                }
+                break;
+            }
+
+            deferredComponents = std::move(stillDeferred);
         }
     }
 } // namespace Bess::Cmd

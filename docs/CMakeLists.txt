@@ -4,7 +4,6 @@ set(DOXYGEN_INPUT_DIRS
 		${CMAKE_SOURCE_DIR}/src/bess_json/
 		${CMAKE_SOURCE_DIR}/src/bessplug/
 		${CMAKE_SOURCE_DIR}/src/bverilog/
-		${CMAKE_SOURCE_DIR}/src/command_system/
 		${CMAKE_SOURCE_DIR}/src/common/
 		${CMAKE_SOURCE_DIR}/src/event_system/
 		${CMAKE_SOURCE_DIR}/src/plugin_manager/
@@ -23,4 +22,3 @@ add_custom_target(docs
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Generating API documentation for all modules"
 )
-
