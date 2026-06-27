@@ -115,6 +115,9 @@ namespace Bess::Canvas {
     }
 
     void SlotSceneComponent::draw(SceneDrawContext &drawContext) {
+        if (!m_uiNode)
+            return;
+
         const auto &state = *drawContext.sceneState;
         const auto pos =
             getAbsolutePosition(state, drawContext.isSchematicMode);

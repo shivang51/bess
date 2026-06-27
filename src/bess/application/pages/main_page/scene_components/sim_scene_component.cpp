@@ -450,15 +450,17 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         if (!m_uiNode) {
             m_uiNode = uiNodeReg->addNode(m_uuid);
             m_uiNode->setPos(m_transform.position);
-            m_headerNode = uiNodeReg->addNode(UUID());
-            m_inpBoxNode = uiNodeReg->addNode(UUID());
-            m_outBoxNode = uiNodeReg->addNode(UUID());
-            m_slotsBoxNode = uiNodeReg->addNode(UUID());
+            m_headerNode = uiNodeReg->addNode(UUID()); // for our header
+            m_inpBoxNode = uiNodeReg->addNode(UUID()); // for the input slots
+            m_outBoxNode = uiNodeReg->addNode(UUID()); // for the output slots
+            m_slotsBoxNode = uiNodeReg->addNode(
+                UUID()); // for thne inp and out box containers
         }
 
         m_uiNode->clearChildren();
         m_inpBoxNode->clearChildren();
         m_outBoxNode->clearChildren();
+        m_slotsBoxNode->clearChildren();
 
         m_uiNode->addChild(m_headerNode);
         m_uiNode->addChild(m_slotsBoxNode);
@@ -604,6 +606,8 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         } else {
             m_outputSlots.emplace_back(slotId);
         }
+
+        m_isUIDirty = true;
     }
 
     void SimulationSceneComponent::addInputSlot(UUID slotId,
@@ -613,6 +617,8 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         } else {
             m_inputSlots.emplace_back(slotId);
         }
+
+        m_isUIDirty = true;
     }
 
     void SimulationSceneComponent::setScaleDirty(bool val) {
