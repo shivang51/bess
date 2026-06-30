@@ -124,7 +124,10 @@ namespace Bess::SimEngine {
         const std::shared_ptr<Drivers::CompDef> &
         getComponentDefinition(const UUID &uuid) const;
 
-        void clear();
+        // Clears all components and connections from the simulation engine.
+        // If restoreState is true, the simulation engine will be restored to
+        // its initial sim state after clearing otherwise it will be stopped.
+        void clear(bool restoreState = true);
 
         bool addSlot(const UUID &compId,
                      SlotType type,
@@ -196,6 +199,7 @@ namespace Bess::SimEngine {
 
         std::vector<std::shared_ptr<Drivers::SimDriver>> m_simDrivers;
         std::vector<std::thread> m_driverThreads;
+        std::thread m_timedRunThread;
 
         SimRunCtx m_runCtx;
 

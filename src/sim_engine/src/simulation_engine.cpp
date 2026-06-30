@@ -51,7 +51,7 @@ namespace Bess::SimEngine {
 
     SimulationEngine::SimulationEngine() = default;
 
-    void SimulationEngine::clear() {
+    void SimulationEngine::clear(bool restoreState) {
         const auto previousState = getSimulationState();
         setSimulationState(SimulationState::stopped);
         clearPendingDriverEvents();
@@ -65,7 +65,7 @@ namespace Bess::SimEngine {
             m_pendingSignalSources.clear();
         }
 
-        if (previousState == SimulationState::running) {
+        if (restoreState && previousState == SimulationState::running) {
             setSimulationState(SimulationState::running);
         }
     }
@@ -82,9 +82,10 @@ namespace Bess::SimEngine {
         if (m_destroyed)
             return;
 
-        clear();
+        clear(false);
 
-        stopDrivers();
+        stop();
+
         destroyDrivers();
         unloadDrivers();
 
@@ -383,6 +384,7 @@ namespace Bess::SimEngine {
         m_runCtx.elapsedTime = TimeMs(0);
         m_runCtx.runDuration = TimeMs(0);
         m_runCtx.stepInterval = TimeMs(0);
+        m_runCtx.isTimedRun = false;
         setSimulationState(SimulationState::running);
     }
 
@@ -392,24 +394,42 @@ namespace Bess::SimEngine {
         m_runCtx.runDuration = duration;
         m_runCtx.stepInterval = stepInterval;
         m_runCtx.elapsedTime = TimeMs(0);
+        m_runCtx.isTimedRun = true;
+
+        if (m_timedRunThread.joinable()) {
+            BESS_WARN("Joining timed run thread before new run");
+            m_timedRunThread.join();
+        }
 
         // Do the intial stamping
         stampSim(TimeMs(0));
         setSimulationState(SimulationState::running);
 
-        while (std::chrono::steady_clock::now() < endTime) {
-            if (stepInterval.count() > 0) {
-                std::this_thread::sleep_for(stepInterval);
+        auto runFn = [this, startTime, endTime, stepInterval]() {
+            while (std::chrono::steady_clock::now() <= endTime &&
+                   (getSimulationState() == SimulationState::paused ||
+                    getSimulationState() == SimulationState::running)) {
+                if (stepInterval.count() > 0) {
+                    std::this_thread::sleep_for(stepInterval);
+                }
+                m_runCtx.elapsedTime =
+                    std::chrono::steady_clock::now() - startTime;
+                stampSim(m_runCtx.elapsedTime);
             }
-            m_runCtx.elapsedTime = std::chrono::steady_clock::now() - startTime;
-            stampSim(m_runCtx.elapsedTime);
-        }
 
-        stop();
+            m_runCtx.elapsedTime = std::chrono::steady_clock::now() - startTime;
+            setSimulationState(SimulationState::stopped);
+        };
+
+        m_timedRunThread = std::thread(runFn);
     }
 
     void SimulationEngine::stop() {
         setSimulationState(SimulationState::stopped);
+        if (m_timedRunThread.joinable()) {
+            BESS_DEBUG("Joining timed run thread");
+            m_timedRunThread.join();
+        }
     }
 
     bool SimulationEngine::isNetUpdated() const {
