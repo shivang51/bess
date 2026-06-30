@@ -17,6 +17,14 @@ namespace Bess::SimEngine {
         class DigSimComp;
     } // namespace Drivers::Digital
 
+    struct BESS_API SimRunCtx {
+        TimeMs runDuration{0};
+        TimeMs stepInterval{0};
+        TimeMs elapsedTime{0};
+        bool isTimedRun{false};
+        bool isSimulating{false};
+    };
+
     class BESS_API SimulationEngine : public ISubSystem {
       public:
         SimulationEngine();
@@ -25,6 +33,8 @@ namespace Bess::SimEngine {
         void onInit() override;
         void onDestroy() override;
         void onPostInit() override;
+
+        MAKE_GETTER_SETTER(SimRunCtx, RunCtx, m_runCtx);
 
         void destroy();
 
@@ -138,6 +148,10 @@ namespace Bess::SimEngine {
         Json::Value toJson() const;
         void loadJson(const Json::Value &json);
 
+        void run();
+        void runFor(TimeMs duration, TimeMs stepInterval = TimeMs(0));
+        void stop();
+
       private:
         void loadDrivers();
         void unloadDrivers();
@@ -148,11 +162,12 @@ namespace Bess::SimEngine {
         void runDrivers();
         void stopDrivers();
 
+        // Stamps state of each component at this time
+        void stampSim(TimeMs elapsedTime);
+
       private:
         void propagateFromComponent(const UUID &sourceId);
         void processPendingPropagation();
-
-        void run();
 
         mutable std::mutex m_stateMutex;
         mutable std::mutex m_driversMutex;
@@ -167,8 +182,8 @@ namespace Bess::SimEngine {
         std::vector<std::shared_ptr<Drivers::SimDriver>> m_simDrivers;
         std::vector<std::thread> m_driverThreads;
 
-        bool m_destroyed{false};
+        SimRunCtx m_runCtx;
 
-        bool m_isSimulating{false};
+        bool m_destroyed{false};
     };
 } // namespace Bess::SimEngine

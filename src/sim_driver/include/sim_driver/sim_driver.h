@@ -127,9 +127,22 @@ namespace Bess::SimEngine::Drivers {
         virtual UUID addComponent(const std::shared_ptr<SimComponent> &comp,
                                   bool scheduleSim);
 
+        // For each component, store the state of all states at stamp times.
+        // SlotStates vector contains, first all inps and then all outs.
+        // I am using nodeshashmap here hopping it will reduce the overhead of
+        // reallocating memory for continous blocks which the flat_hash_map
+        // does.
+        typedef NodeHashMap<UUID, std::pair<TimeMs, std::vector<SlotState>>>
+            CompStampData;
+
         virtual void deleteComponent(const UUID &uuid);
 
         virtual void clearComponents();
+
+        // Stamps state of each component in the driver
+        // at this time.
+        virtual void stampSim(TimeMs elapsedTime) {
+        }
 
         virtual bool isSimStable() const;
 
@@ -290,6 +303,7 @@ namespace Bess::SimEngine::Drivers {
         mutable std::mutex m_compMapMutex;
         mutable std::mutex m_stateMutex;
 
+        CompStampData m_compStampData;
         std::unordered_map<UUID, SlotCountChangeCB> m_onSlotCountChnageCBs;
     };
 } // namespace Bess::SimEngine::Drivers

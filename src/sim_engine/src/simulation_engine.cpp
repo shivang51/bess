@@ -11,6 +11,7 @@
 
 #include "plugin_manager.h"
 
+#include <chrono>
 #include <condition_variable>
 #include <cstdint>
 #include <memory>
@@ -368,6 +369,34 @@ namespace Bess::SimEngine {
         runDrivers();
     }
 
+    void SimulationEngine::runFor(TimeMs duration, TimeMs stepInterval) {
+        const auto startTime = std::chrono::steady_clock::now();
+        const auto endTime = startTime + duration;
+        m_runCtx.isSimulating = true;
+        m_runCtx.runDuration = duration;
+        m_runCtx.stepInterval = stepInterval;
+        m_runCtx.elapsedTime = TimeMs(0);
+
+        // Do the intial stamping
+        stampSim(TimeMs(0));
+        runDrivers();
+
+        while (std::chrono::steady_clock::now() < endTime) {
+            if (stepInterval.count() > 0) {
+                std::this_thread::sleep_for(stepInterval);
+            }
+            m_runCtx.elapsedTime = std::chrono::steady_clock::now() - startTime;
+            stampSim(m_runCtx.elapsedTime);
+        }
+
+        stop();
+    }
+
+    void SimulationEngine::stop() {
+        stopDrivers();
+        m_runCtx.isSimulating = false;
+    }
+
     bool SimulationEngine::isNetUpdated() const {
         for (const auto &driver : m_simDrivers) {
             if (driver->isNetUpdated()) {
@@ -559,6 +588,12 @@ namespace Bess::SimEngine {
             if (thread.joinable()) {
                 thread.join();
             }
+        }
+    }
+
+    void SimulationEngine::stampSim(TimeMs elapsedTime) {
+        for (const auto &driver : m_simDrivers) {
+            driver->stampSim(elapsedTime);
         }
     }
 
