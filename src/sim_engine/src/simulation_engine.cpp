@@ -46,14 +46,14 @@ namespace Bess::SimEngine {
     }
 
     void SimulationEngine::onPostInit() {
-        run();
+        // run();
     }
 
     SimulationEngine::SimulationEngine() = default;
 
     void SimulationEngine::clear() {
         const auto previousState = getSimulationState();
-        setSimulationState(SimulationState::paused);
+        setSimulationState(SimulationState::stopped);
         clearPendingDriverEvents();
 
         for (auto &driver : m_simDrivers) {
@@ -330,11 +330,22 @@ namespace Bess::SimEngine {
         m_stepFlag.store(false);
     }
 
-    SimulationState SimulationEngine::toggleSimState() {
-        if (m_simState == SimulationState::paused) {
+    SimulationState SimulationEngine::toggleStartStop() {
+        if (m_simState == SimulationState::stopped) {
             setSimulationState(SimulationState::running);
-        } else if (m_simState == SimulationState::running) {
+        } else if (m_simState == SimulationState::running ||
+                   m_simState == SimulationState::paused) {
+            setSimulationState(SimulationState::stopped);
+        }
+
+        return m_simState.load();
+    }
+
+    SimulationState SimulationEngine::togglePlayPause() {
+        if (m_simState == SimulationState::running) {
             setSimulationState(SimulationState::paused);
+        } else if (m_simState == SimulationState::paused) {
+            setSimulationState(SimulationState::running);
         }
 
         return m_simState.load();
@@ -342,20 +353,23 @@ namespace Bess::SimEngine {
 
     void SimulationEngine::setSimulationState(SimulationState state) {
         std::unique_lock stateLock(m_stateMutex);
+        SimulationState prevState = m_simState.load();
         m_simState.store(state);
+        m_runCtx.simState = state;
         m_stateCV.notify_all();
         stateLock.unlock();
 
-        for (auto &driver : m_simDrivers) {
-            if (state == SimulationState::paused) {
-                driver->pause();
-            } else if (state == SimulationState::running) {
-                driver->resume();
-            }
-        }
-
         if (state == SimulationState::running) {
-            processPendingPropagation();
+            if (prevState == SimulationState::paused) {
+                resumeDrivers();
+                processPendingPropagation();
+            } else {
+                runDrivers();
+            }
+        } else if (state == SimulationState::stopped) {
+            stopDrivers();
+        } else if (state == SimulationState::paused) {
+            pauseDrivers();
         }
     }
 
@@ -366,20 +380,22 @@ namespace Bess::SimEngine {
     }
 
     void SimulationEngine::run() {
-        runDrivers();
+        m_runCtx.elapsedTime = TimeMs(0);
+        m_runCtx.runDuration = TimeMs(0);
+        m_runCtx.stepInterval = TimeMs(0);
+        setSimulationState(SimulationState::running);
     }
 
     void SimulationEngine::runFor(TimeMs duration, TimeMs stepInterval) {
         const auto startTime = std::chrono::steady_clock::now();
         const auto endTime = startTime + duration;
-        m_runCtx.isSimulating = true;
         m_runCtx.runDuration = duration;
         m_runCtx.stepInterval = stepInterval;
         m_runCtx.elapsedTime = TimeMs(0);
 
         // Do the intial stamping
         stampSim(TimeMs(0));
-        runDrivers();
+        setSimulationState(SimulationState::running);
 
         while (std::chrono::steady_clock::now() < endTime) {
             if (stepInterval.count() > 0) {
@@ -393,8 +409,7 @@ namespace Bess::SimEngine {
     }
 
     void SimulationEngine::stop() {
-        stopDrivers();
-        m_runCtx.isSimulating = false;
+        setSimulationState(SimulationState::stopped);
     }
 
     bool SimulationEngine::isNetUpdated() const {
@@ -588,6 +603,20 @@ namespace Bess::SimEngine {
             if (thread.joinable()) {
                 thread.join();
             }
+        }
+    }
+
+    void SimulationEngine::pauseDrivers() {
+        for (auto &driver : m_simDrivers) {
+            driver->pause();
+            BESS_INFO("Paused driver {}", driver->getName());
+        }
+    }
+
+    void SimulationEngine::resumeDrivers() {
+        for (auto &driver : m_simDrivers) {
+            driver->resume();
+            BESS_INFO("Resumed driver {}", driver->getName());
         }
     }
 

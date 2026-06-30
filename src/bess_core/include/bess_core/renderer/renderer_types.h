@@ -69,7 +69,7 @@ namespace Bess::Core::Renderer {
             return col;
         }
 
-        static constexpr Color FromARGB(uint32_t argb) noexcept {
+        static constexpr Color fromARGB(uint32_t argb) noexcept {
             uint8_t alpha = (argb >> 24) & 0xFF;
             uint8_t red = (argb >> 16) & 0xFF;
             uint8_t green = (argb >> 8) & 0xFF;
@@ -84,6 +84,16 @@ namespace Bess::Core::Renderer {
             uint8_t blue = static_cast<uint8_t>(b * 255.f);
             uint8_t alpha = static_cast<uint8_t>(a * 255.f);
             return (red << 24) | (green << 16) | (blue << 8) | alpha;
+        }
+
+        // Converts the color to a 32-bit hex value in ABGR order
+        // Useful for dear imgui
+        constexpr uint32_t toHexRev() const noexcept {
+            uint8_t red = static_cast<uint8_t>(r * 255.f);
+            uint8_t green = static_cast<uint8_t>(g * 255.f);
+            uint8_t blue = static_cast<uint8_t>(b * 255.f);
+            uint8_t alpha = static_cast<uint8_t>(a * 255.f);
+            return (alpha << 24) | (blue << 16) | (green << 8) | red;
         }
 
         constexpr uint32_t toARGB8() const noexcept {

@@ -22,7 +22,19 @@ namespace Bess::SimEngine {
         TimeMs stepInterval{0};
         TimeMs elapsedTime{0};
         bool isTimedRun{false};
-        bool isSimulating{false};
+        SimulationState simState{SimulationState::stopped};
+
+        bool isSimulating() const {
+            return simState == SimulationState::running;
+        }
+
+        bool isPaused() const {
+            return simState == SimulationState::paused;
+        }
+
+        bool isStopped() const {
+            return simState == SimulationState::stopped;
+        }
     };
 
     class BESS_API SimulationEngine : public ISubSystem {
@@ -99,7 +111,8 @@ namespace Bess::SimEngine {
         void setInputSlotState(const UUID &uuid, int pinIdx, LogicState state);
         void setOutputSlotState(const UUID &uuid, int pinIdx, LogicState state);
 
-        SimulationState toggleSimState();
+        SimulationState toggleStartStop();
+        SimulationState togglePlayPause();
         SimulationState getSimulationState() const;
         void setSimulationState(SimulationState state);
         void clearPendingDriverEvents();
@@ -161,6 +174,8 @@ namespace Bess::SimEngine {
 
         void runDrivers();
         void stopDrivers();
+        void pauseDrivers();
+        void resumeDrivers();
 
         // Stamps state of each component at this time
         void stampSim(TimeMs elapsedTime);
@@ -174,7 +189,7 @@ namespace Bess::SimEngine {
         mutable std::mutex m_pendingSignalSourcesMutex;
 
         std::atomic<bool> m_stepFlag{false};
-        std::atomic<SimulationState> m_simState{SimulationState::running};
+        std::atomic<SimulationState> m_simState{SimulationState::stopped};
         std::condition_variable m_stateCV;
 
         std::set<UUID> m_pendingSignalSources;

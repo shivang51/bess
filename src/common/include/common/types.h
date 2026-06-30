@@ -91,7 +91,7 @@ namespace Bess {
             Connections outputs;
         };
 
-        enum class SimulationState : uint8_t { running, paused };
+        enum class SimulationState : uint8_t { running, paused, stopped };
 
         enum class LogicState : uint8_t { low, high, unknown, high_z };
 

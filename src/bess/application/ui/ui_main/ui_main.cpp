@@ -2,6 +2,7 @@
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "bess_core/scene_driver.h"
+#include "bess_core/settings/viewport_theme.h"
 #include "common/logger.h"
 #include "debug_panel.h"
 #include "imgui.h"
@@ -123,9 +124,9 @@ namespace Bess::UI {
                               : nullptr;
         }
 
-        bool sceneBelongsToDriver(
-            const std::shared_ptr<SceneDriver> &sceneDriver,
-            const std::shared_ptr<Canvas::Scene> &scene) {
+        bool
+        sceneBelongsToDriver(const std::shared_ptr<SceneDriver> &sceneDriver,
+                             const std::shared_ptr<Canvas::Scene> &scene) {
             return sceneDriver && scene &&
                    sceneDriver->getSceneWithId(scene->getSceneId()) == scene;
         }
@@ -263,15 +264,31 @@ namespace Bess::UI {
                                         ImGuiDir_Down,
                                         height,
                                         window_flags)) {
+
+            const auto &simCtx = simEngine.getRunCtx();
+
             if (ImGui::BeginMenuBar()) {
-                if (simEngine.getSimulationState() ==
-                    SimEngine::SimulationState::running) {
+                if (simCtx.isSimulating()) {
                     ImGui::Text("Simulation Running");
-                } else if (simEngine.getSimulationState() ==
-                           SimEngine::SimulationState::paused) {
+                } else if (simCtx.isPaused()) {
                     ImGui::Text("Simulation Paused");
+                } else if (simCtx.isStopped()) {
+                    ImGui::Text("Simulation Stopped");
                 } else {
                     ImGui::Text("Unknown State");
+                }
+
+                if (simCtx.isTimedRun) {
+                    ImGui::SameLine();
+                    ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+
+                    ImGui::SameLine();
+                    ImGui::TextDisabled("Elapsed Time:");
+                    ImGui::SameLine();
+                    const auto sec =
+                        std::chrono::duration_cast<std::chrono::seconds>(
+                            simCtx.elapsedTime);
+                    ImGui::Text("%s s", std::format("{:%T}", sec).c_str());
                 }
 
                 if (!getState()._internalData.statusMessage.empty()) {
@@ -483,10 +500,23 @@ namespace Bess::UI {
 
         getState()._internalData.isTbFocused = ImGui::IsItemFocused();
 
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        auto &simEngine = projectCtx->getSimEngine();
+        const auto &simCtx = simEngine.getRunCtx();
         // project name textbox - end
 
         // right aligned controls
-        constexpr size_t buttonCount = 3;
+        size_t buttonCount = 2; // Layout + Start/Stop
+
+        if (!simCtx.isStopped()) {
+            buttonCount += 1; // Pause/Resume
+        }
+
+        if (simCtx.isPaused()) {
+            buttonCount += 1; // Step when paused
+        }
+
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
         ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.5f, 0.5f));
 
@@ -506,11 +536,6 @@ namespace Bess::UI {
         ImGui::SetCursorPosY(((targetHeight - buttonSize.y) * 0.5f) + 2.f);
 
         {
-            auto &appCtx = Bess::GAppContext::getInstance();
-            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-            auto &simEngine = projectCtx->getSimEngine();
-            const auto isSimPaused = simEngine.getSimulationState() ==
-                                     SimEngine::SimulationState::paused;
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0, 0, 0, 0});
 
             if (ImGui::Button(Icons::CodIcons::LAYOUT, buttonSize)) {
@@ -527,45 +552,77 @@ namespace Bess::UI {
             // Play / Pause
             {
 
-                const auto icon = isSimPaused ? Icons::CodIcons::DEBUG_START
-                                              : Icons::CodIcons::DEBUG_PAUSE;
-
-                if (isSimPaused) {
-                    ImGui::PushStyleColor(ImGuiCol_Text,
-                                          ImVec4{1.f, 0.667f, 0.f, 1.f});
+                if (simCtx.isStopped()) {
+                    ImGui::PushStyleColor(
+                        ImGuiCol_Text,
+                        ViewportTheme::colors.stateHigh.toHexRev());
+                } else if (simCtx.isSimulating() || simCtx.isPaused()) {
+                    ImGui::PushStyleColor(
+                        ImGuiCol_Text, ViewportTheme::colors.error.toHexRev());
                 }
+
+                auto icon = simCtx.isStopped()
+                                ? Icons::FontAwesomeIcons::FA_PLAY
+                                : Icons::FontAwesomeIcons::FA_STOP;
 
                 if (ImGui::Button(icon, buttonSize)) {
-                    simEngine.toggleSimState();
+                    simEngine.toggleStartStop();
                 }
 
-                if (isSimPaused) {
-                    ImGui::PopStyleColor();
-                }
+                ImGui::PopStyleColor();
 
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                    const auto msg =
-                        isSimPaused ? "Resume Simulation" : "Pause Simulation";
+                    const auto msg = simCtx.isStopped() ? "Start Simulation"
+                                                        : "Stop Simulation";
                     ImGui::SetTooltip("%s", msg);
+                }
+
+                if (!simCtx.isStopped()) {
+                    icon = simCtx.isPaused()
+                               ? Icons::CodIcons::DEBUG_START
+                               : Icons::FontAwesomeIcons::FA_PAUSE;
+
+                    ImGui::SameLine();
+                    ImGui::SetCursorPosY(
+                        ((targetHeight - buttonSize.y) * 0.5f) + 2.f);
+
+                    ImGui::PushStyleColor(
+                        ImGuiCol_Text,
+                        ViewportTheme::colors.stateHighZ.toHexRev());
+                    if (ImGui::Button(icon, buttonSize)) {
+                        simEngine.togglePlayPause();
+                    }
+                    ImGui::PopStyleColor();
+
+                    if (ImGui::IsItemHovered(
+                            ImGuiHoveredFlags_AllowWhenDisabled)) {
+                        const auto msg = simCtx.isPaused() ? "Resume Simulation"
+                                                           : "Pause Simulation";
+                        ImGui::SetTooltip("%s", msg);
+                    }
                 }
             }
 
-            ImGui::SameLine();
-            ImGui::SetCursorPosY(((targetHeight - buttonSize.y) * 0.5f) + 2.f);
+            if (simCtx.isPaused()) {
+                ImGui::SameLine();
+                ImGui::SetCursorPosY(((targetHeight - buttonSize.y) * 0.5f) +
+                                     2.f);
 
-            // Step when paused
-            {
-                ImGui::BeginDisabled(!isSimPaused);
+                // Step when paused
+                {
+                    ImGui::BeginDisabled(!simCtx.isPaused());
 
-                if (ImGui::Button(Icons::CodIcons::DEBUG_STEP_OVER,
-                                  buttonSize)) {
-                    simEngine.stepSimulation();
+                    if (ImGui::Button(Icons::CodIcons::DEBUG_STEP_OVER,
+                                      buttonSize)) {
+                        simEngine.stepSimulation();
+                    }
+
+                    if (ImGui::IsItemHovered(
+                            ImGuiHoveredFlags_AllowWhenDisabled)) {
+                        ImGui::SetTooltip("%s", "Step");
+                    }
+                    ImGui::EndDisabled();
                 }
-
-                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                    ImGui::SetTooltip("%s", "Step");
-                }
-                ImGui::EndDisabled();
             }
 
             ImGui::PopStyleColor();
@@ -946,8 +1003,7 @@ namespace Bess::UI {
                 preferredPanel = panel;
             }
 
-            if (!sceneBelongsToDriver(sceneDriver,
-                                      panel->getAttachedScene())) {
+            if (!sceneBelongsToDriver(sceneDriver, panel->getAttachedScene())) {
                 panel->setAttachedScene(activeScene);
             }
         }
