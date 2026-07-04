@@ -1,20 +1,39 @@
 #pragma once
+
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
+#include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene/scene_ui/layout.h"
 #include "bess_core/style/bess_theme.h"
+#include "bess_core/style/color_scheme.h"
+#include "common/logger.h"
 #include "common/types.h"
+#include <optional>
 
 namespace Bess::Canvas::UI {
+
+    using Color = Core::Style::Color;
+
+    struct UIElementStyle {
+        std::optional<Core::Style::Color> backgroundColor;
+        std::optional<Core::Style::Color> hoverColor;
+        std::optional<Core::Style::Color> borderColor;
+        std::optional<Core::Style::Color> activeColor;
+
+        std::optional<glm::vec4> padding;
+        std::optional<glm::vec4> margin;
+    };
+
     class UISceneComponent : public SceneComponent {
       public:
         DEFAULT_CONTRS(UISceneComponent)
 
         MAKE_GETTER_SETTER_PTR(UINode, UINode, m_node);
+        MAKE_GETTER_SETTER(UIElementStyle, Style, m_customStyle);
 
         void prepareUI(SceneUIPrepareCtx &state) override {
-            prepStyle(state);
+            prepStyle(state.theme);
 
             const auto labelSize = state.renderer->measureText(
                 getName(),
@@ -46,6 +65,10 @@ namespace Bess::Canvas::UI {
         }
 
       protected:
+        void onNameChanged() override {
+            makeUIDirty();
+        }
+
         void initNode(const glm::vec2 &size,
                       const Unit &sizeUnit = Unit::pixel) {
             BESS_ASSERT(m_node != nullptr,
@@ -55,10 +78,35 @@ namespace Bess::Canvas::UI {
             m_node->setSizeConstraint(SizeContraint::fixed);
         }
 
-        void prepStyle(SceneUIPrepareCtx &ctx) {
-            BESS_ASSERT(ctx.theme != nullptr, "Theme must be set in context.");
-            m_style = ctx.theme->generalElementStyle();
-            m_style.metrics.margin = glm::vec4(0);
+        void makeUIDirty() {
+            setUIDirty(true);
+            if (m_node != nullptr) {
+                m_node->setSizeDirty(true);
+                m_node->setPosDirty(true);
+            }
+        }
+
+        void prepStyle(const std::shared_ptr<Core::Style::BessTheme> &theme) {
+            BESS_ASSERT(theme != nullptr, "Theme must be set in context.");
+            m_style = theme->generalElementStyle();
+
+            m_style.metrics.margin =
+                getVec4(m_customStyle.margin, m_style.metrics.margin);
+
+            m_style.metrics.padding =
+                getVec4(m_customStyle.padding, m_style.metrics.padding);
+
+            m_style.backgroundColor = getColor(m_customStyle.backgroundColor,
+                                               m_style.backgroundColor);
+
+            m_style.hoverColor =
+                getColor(m_customStyle.hoverColor, m_style.hoverColor);
+
+            m_style.borderColor =
+                getColor(m_customStyle.borderColor, m_style.borderColor);
+
+            m_style.activeColor =
+                getColor(m_customStyle.activeColor, m_style.activeColor);
         }
 
         void drawBgQuad(SceneDrawContext &state) {
@@ -66,6 +114,7 @@ namespace Bess::Canvas::UI {
                 .runtimeId = m_runtimeId,
                 .info = 0,
             };
+
             Core::Renderer::QuadProps quadProps;
             quadProps.position = m_node->getDrawPos();
             quadProps.size = m_node->getDrawSize();
@@ -109,6 +158,18 @@ namespace Bess::Canvas::UI {
         UINode *m_node = nullptr;
         bool m_hovered = false;
         Core::Style::ElementStyle m_style;
+        UIElementStyle m_customStyle;
+
+      private:
+        glm::vec4 getVec4(const std::optional<glm::vec4> &custom,
+                          const glm::vec4 &defaultVal) {
+            return custom.has_value() ? custom.value() : defaultVal;
+        }
+
+        Core::Style::Color getColor(const std::optional<Color> &custom,
+                                    const Color &defaultVal) {
+            return custom.has_value() ? custom.value() : defaultVal;
+        }
     };
 
     class LabelComp : public UISceneComponent {
@@ -161,5 +222,81 @@ namespace Bess::Canvas::UI {
 
       private:
         UIButtonCallback m_callback;
+    };
+
+    class ContainerComp : public UISceneComponent {
+      public:
+        DEFAULT_CONTRS(ContainerComp)
+
+        MAKE_GETTER_SETTER_WC(LayoutDirection,
+                              Direction,
+                              m_direction,
+                              makeUIDirty)
+
+        MAKE_GETTER_SETTER_WC(LayoutAlignment,
+                              MainAxisAlignment,
+                              m_mainAxisAlignment,
+                              makeUIDirty)
+
+        MAKE_GETTER_SETTER_WC(LayoutAlignment,
+                              CrossAxisAlignment,
+                              m_crossAxisAlignment,
+                              makeUIDirty)
+
+        static std::shared_ptr<ContainerComp>
+        create(const LayoutDirection &direction = LayoutDirection::horizontal) {
+            auto container = std::make_shared<ContainerComp>();
+            container->setDirection(direction);
+            return container;
+        }
+
+        void draw(SceneDrawContext &state) override {
+            drawChildren(state);
+        }
+
+        void prepareUI(SceneUIPrepareCtx &state) override {
+            prepStyle(state.theme);
+
+            m_node->setDirection(m_direction);
+            m_node->setMainAxisAlignment(m_mainAxisAlignment);
+            m_node->setCrossAxisAlignment(m_crossAxisAlignment);
+
+            if (state.parentNode != nullptr) {
+                state.parentNode->addChild(m_node);
+            }
+
+            prepChildren(state);
+        }
+
+      private:
+        void prepChildren(SceneUIPrepareCtx &state) {
+            auto prevParent = state.parentNode;
+            state.parentNode = m_node;
+            for (const auto &childId : m_childComponents) {
+                auto childComp = state.sceneState->getComponentByUuid(childId);
+                if (childComp == nullptr) {
+                    BESS_WARN("Child component with UUID {} not found in "
+                              "scene state.",
+                              (uint64_t)childId);
+                    continue;
+                }
+                childComp->prepareUI(state);
+            }
+            state.parentNode = prevParent;
+        }
+
+        void drawChildren(SceneDrawContext &state) {
+            for (const auto &childId : m_childComponents) {
+                auto childComp = state.sceneState->getComponentByUuid(childId);
+                if (childComp != nullptr) {
+                    childComp->draw(state);
+                }
+            }
+        }
+
+      private:
+        LayoutDirection m_direction = LayoutDirection::horizontal;
+        LayoutAlignment m_mainAxisAlignment = LayoutAlignment::start;
+        LayoutAlignment m_crossAxisAlignment = LayoutAlignment::center;
     };
 } // namespace Bess::Canvas::UI

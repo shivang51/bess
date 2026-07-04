@@ -5,18 +5,39 @@
 
 namespace Bess::Canvas {
     namespace {
-        std::shared_ptr<UI::UISceneComponent> btnComp = nullptr;
+        std::shared_ptr<UI::ContainerComp> container = nullptr;
     } // namespace
 
     void ScratchLayer::init(SceneLifecycleContext &ctx) {
-        btnComp = Canvas::UI::ButtonComp::create("Button", []() {
-            BESS_INFO("Button clicked!"); //
-        });
+        container = Canvas::UI::ContainerComp::create();
+        ctx.sceneState->addComponent(container);
+        auto containerNode =
+            ctx.sceneState->getUINodeRegistry()->addNode(container->getUuid());
+        container->setUINode(containerNode);
 
-        auto btnNode = ctx.sceneState->getUINodeRegistry()->addNode(UUID());
-        btnComp->setUINode(btnNode);
+        for (int i = 0; i < 3; ++i) {
+            auto btnComp = Canvas::UI::ButtonComp::create("Button", [i]() {
+                if (i == 0) {
+                    container->setDirection(
+                        Canvas::UI::LayoutDirection::horizontal);
+                } else {
+                    container->setDirection(
+                        Canvas::UI::LayoutDirection::vertical);
+                }
+            });
 
-        ctx.sceneState->addComponent(btnComp);
+            btnComp->getStyle().margin = glm::vec4(5);
+
+            auto btnNode = ctx.sceneState->getUINodeRegistry()->addNode(
+                btnComp->getUuid());
+            btnComp->setUINode(btnNode);
+            containerNode->addChild(btnNode);
+
+            ctx.sceneState->addComponent(btnComp);
+
+            ctx.sceneState->attachChild(container->getUuid(),
+                                        btnComp->getUuid());
+        }
     }
 
     void ScratchLayer::update(TimeMs ts, SceneUpdateContext &ctx) {
