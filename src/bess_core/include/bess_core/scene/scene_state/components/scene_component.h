@@ -120,7 +120,7 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER_WC(Style, Style, m_style, onStyleChanged)
         MAKE_GETTER_SETTER_WC(std::string, Name, m_name, onNameChanged)
         MAKE_GETTER_SETTER(UUID, ParentComponent, m_parentComponent)
-        MAKE_GETTER_SETTER(HashSet<UUID>, ChildComponents, m_childComponents)
+        MAKE_GETTER_SETTER(OrderedSet<UUID>, ChildComponents, m_childComponents)
         MAKE_GETTER_SETTER_WC(uint32_t,
                               RuntimeId,
                               m_runtimeId,
@@ -217,7 +217,7 @@ namespace Bess::Canvas {
         bool m_isFirstSchematicDraw = true;
 
         UUID m_parentComponent = UUID::null;
-        HashSet<UUID> m_childComponents;
+        OrderedSet<UUID> m_childComponents;
     };
 } // namespace Bess::Canvas
 

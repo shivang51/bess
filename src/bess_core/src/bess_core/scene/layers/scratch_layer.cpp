@@ -13,15 +13,16 @@ namespace Bess::Canvas {
         ctx.sceneState->addComponent(container);
 
         for (int i = 0; i < 3; ++i) {
-            auto btnComp = Canvas::UI::ButtonComp::create("Button", [i]() {
-                if (i == 0) {
-                    container->setDirection(
-                        Canvas::UI::LayoutDirection::horizontal);
-                } else {
-                    container->setDirection(
-                        Canvas::UI::LayoutDirection::vertical);
-                }
-            });
+            auto btnComp = Canvas::UI::ButtonComp::create(
+                std::format("Button {}", i), [i]() {
+                    if (i == 0) {
+                        container->setDirection(
+                            Canvas::UI::LayoutDirection::horizontal);
+                    } else {
+                        container->setDirection(
+                            Canvas::UI::LayoutDirection::vertical);
+                    }
+                });
 
             btnComp->getStyle().margin = glm::vec4(5);
 

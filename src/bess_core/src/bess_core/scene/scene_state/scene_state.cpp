@@ -58,7 +58,7 @@ namespace Bess::Canvas {
         return m_componentsMap;
     }
 
-    const HashSet<UUID> &SceneState::getRootComponents() const {
+    const OrderedSet<UUID> &SceneState::getRootComponents() const {
         return m_rootComponents;
     }
 

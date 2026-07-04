@@ -101,7 +101,7 @@ namespace Bess::Canvas {
         const HashMap<UUID, std::shared_ptr<SceneComponent>> &
         getAllComponents() const;
 
-        const HashSet<UUID> &getRootComponents() const;
+        const OrderedSet<UUID> &getRootComponents() const;
 
         MAKE_GETTER_SETTER(UUID, ConnectionStartSlot, m_connectionStartSlot);
         MAKE_GETTER_SETTER(glm::vec2, MousePos, m_mousePos);
@@ -159,7 +159,7 @@ namespace Bess::Canvas {
         HashMap<UUID, bool> m_selectedComponents;
 
         HashMap<uint32_t, UUID> m_runtimeIdMap;
-        HashSet<UUID> m_rootComponents;
+        OrderedSet<UUID> m_rootComponents;
         OrderedSet<uint32_t> m_freeRuntimeIds;
 
         UUID m_connectionStartSlot = UUID::null;

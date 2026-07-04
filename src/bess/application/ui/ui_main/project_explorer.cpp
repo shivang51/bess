@@ -7,6 +7,7 @@
 #include "common/bess_uuid.h"
 #include "common/helpers.h"
 #include "common/logger.h"
+#include "common/types.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/main_page.h"
@@ -485,7 +486,7 @@ namespace Bess::UI {
             netIdCompMap.size());
     }
 
-    size_t ProjectExplorer::drawEntites(const HashSet<UUID> &entities) {
+    size_t ProjectExplorer::drawEntites(const OrderedSet<UUID> &entities) {
         constexpr auto groupIcon = Icons::FontAwesomeIcons::FA_FOLDER;
         constexpr auto groupOpenIcon = Icons::FontAwesomeIcons::FA_FOLDER_OPEN;
         constexpr auto nodePopupName = "node_popup";

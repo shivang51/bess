@@ -29,7 +29,7 @@ namespace Bess::UI {
                                  bool multiSelectMode);
 
         bool shouldDisplayEntity(const UUID &entityId) const;
-        size_t drawEntites(const HashSet<UUID> &entities);
+        size_t drawEntites(const OrderedSet<UUID> &entities);
 
         int32_t m_lastSelectedIndex;
         size_t m_nodesKeyCounter;
