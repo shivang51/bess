@@ -106,6 +106,13 @@
     className &operator=(const className &) = default;                         \
     className &operator=(className &&) = default;
 
+#define DEFAULT_CONTRS_NODES(className)                                        \
+    className() = default;                                                     \
+    className(const className &) = default;                                    \
+    className(className &&) = default;                                         \
+    className &operator=(const className &) = default;                         \
+    className &operator=(className &&) = default;
+
 #define MAKE_GETTER_SETTER_PTR(type, name, varName)                            \
     const type *get##name() const {                                            \
         return varName;                                                        \

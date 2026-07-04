@@ -7,6 +7,7 @@
 #include "bess_core/scene/scene_ui/layout.h"
 #include "bess_core/style/bess_theme.h"
 #include "bess_core/style/color_scheme.h"
+#include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "common/types.h"
 #include <optional>
@@ -32,19 +33,43 @@ namespace Bess::Canvas::UI {
         MAKE_GETTER_SETTER_PTR(UINode, UINode, m_node);
         MAKE_GETTER_SETTER(UIElementStyle, Style, m_customStyle);
 
+        std::vector<UUID> cleanup(SceneState &state,
+                                  UUID caller = UUID::null) override {
+            auto reg = state.getUINodeRegistry();
+
+            std::vector<UUID> removedComponents;
+
+            for (const auto &childId : m_childComponents) {
+                if (auto childComp = state.getComponentByUuid(childId)) {
+                    auto ids = childComp->cleanup(state, m_uuid);
+                    removedComponents.insert(
+                        removedComponents.end(), ids.begin(), ids.end());
+                }
+            }
+
+            if (m_node != nullptr) {
+                reg->removeNode(m_node->getId());
+                m_node = nullptr;
+                removedComponents.push_back(m_uuid);
+            }
+
+            return removedComponents;
+        }
+
         void prepareUI(SceneUIPrepareCtx &state) override {
+            initNode(state.sceneState->getUINodeRegistry());
+
             prepStyle(state.theme);
 
-            const auto labelSize = state.renderer->measureText(
+            const auto size = state.renderer->measureText(
                 getName(),
                 {
                     .fontSize = m_style.textStyle.fontSize,
                 });
 
-            initNode({
-                labelSize.x,
-                labelSize.y,
-            });
+            m_node->setSize(size);
+            m_node->setSizeUnit(Unit::pixel);
+            m_node->setSizeConstraint(SizeContraint::fixed);
 
             m_node->setPadding(m_style.metrics.padding);
             m_node->setMargin(m_style.metrics.margin);
@@ -69,13 +94,11 @@ namespace Bess::Canvas::UI {
             makeUIDirty();
         }
 
-        void initNode(const glm::vec2 &size,
-                      const Unit &sizeUnit = Unit::pixel) {
-            BESS_ASSERT(m_node != nullptr,
-                        "UINode must be initialized before setting size.");
-            m_node->setSize(size);
-            m_node->setSizeUnit(sizeUnit);
-            m_node->setSizeConstraint(SizeContraint::fixed);
+        void initNode(const std::shared_ptr<UINodeRegistry> &reg) {
+            if (m_node == nullptr) {
+                m_node = reg->addNode(m_uuid);
+                setUINode(m_node);
+            }
         }
 
         void makeUIDirty() {
@@ -255,6 +278,7 @@ namespace Bess::Canvas::UI {
         }
 
         void prepareUI(SceneUIPrepareCtx &state) override {
+            initNode(state.sceneState->getUINodeRegistry());
             prepStyle(state.theme);
 
             m_node->setDirection(m_direction);

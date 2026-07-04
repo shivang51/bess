@@ -11,9 +11,6 @@ namespace Bess::Canvas {
     void ScratchLayer::init(SceneLifecycleContext &ctx) {
         container = Canvas::UI::ContainerComp::create();
         ctx.sceneState->addComponent(container);
-        auto containerNode =
-            ctx.sceneState->getUINodeRegistry()->addNode(container->getUuid());
-        container->setUINode(containerNode);
 
         for (int i = 0; i < 3; ++i) {
             auto btnComp = Canvas::UI::ButtonComp::create("Button", [i]() {
@@ -27,11 +24,6 @@ namespace Bess::Canvas {
             });
 
             btnComp->getStyle().margin = glm::vec4(5);
-
-            auto btnNode = ctx.sceneState->getUINodeRegistry()->addNode(
-                btnComp->getUuid());
-            btnComp->setUINode(btnNode);
-            containerNode->addChild(btnNode);
 
             ctx.sceneState->addComponent(btnComp);
 
