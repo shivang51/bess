@@ -228,7 +228,10 @@ namespace Bess::Canvas::UI {
             BESS_ASSERT(m_callback,
                         "UIButtonComponent must have a valid callback");
 
-            m_callback();
+            if (e.action == Events::MouseClickAction::press &&
+                e.button == Events::MouseButton::left) {
+                m_callback();
+            }
             return true;
         }
 
@@ -266,6 +269,8 @@ namespace Bess::Canvas::UI {
                               m_crossAxisAlignment,
                               makeUIDirty)
 
+        MAKE_GETTER_SETTER(bool, DrawBackground, m_drawBg)
+
         static std::shared_ptr<ContainerComp>
         create(const LayoutDirection &direction = LayoutDirection::horizontal) {
             auto container = std::make_shared<ContainerComp>();
@@ -274,6 +279,10 @@ namespace Bess::Canvas::UI {
         }
 
         void draw(SceneDrawContext &state) override {
+            if (m_drawBg) {
+                drawBgQuad(state);
+            }
+
             drawChildren(state);
         }
 
@@ -322,5 +331,7 @@ namespace Bess::Canvas::UI {
         LayoutDirection m_direction = LayoutDirection::horizontal;
         LayoutAlignment m_mainAxisAlignment = LayoutAlignment::start;
         LayoutAlignment m_crossAxisAlignment = LayoutAlignment::center;
+
+        bool m_drawBg = false;
     };
 } // namespace Bess::Canvas::UI

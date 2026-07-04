@@ -18,9 +18,12 @@ namespace Bess::Canvas {
                     if (i == 0) {
                         container->setDirection(
                             Canvas::UI::LayoutDirection::horizontal);
-                    } else {
+                    } else if (i == 1) {
                         container->setDirection(
                             Canvas::UI::LayoutDirection::vertical);
+                    } else if (i == 2) {
+                        container->setDrawBackground(
+                            !container->getDrawBackground());
                     }
                 });
 
