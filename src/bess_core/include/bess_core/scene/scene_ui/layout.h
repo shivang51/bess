@@ -94,11 +94,19 @@ namespace Bess::Canvas::UI {
         bool getSizeDirty() const;
 
         const glm::vec4 &getPadding() const;
+
+        // top, right, bottom, left
         void setPadding(const glm::vec4 &padding);
+
+        // top, right, bottom, left
         glm::vec4 &getPadding();
 
         const glm::vec4 &getMargin() const;
+
+        // top, right, bottom, left
         void setMargin(const glm::vec4 &margin);
+
+        // top, right, bottom, left
         glm::vec4 &getMargin();
 
         const glm::vec2 &getMinSize() const;

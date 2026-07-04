@@ -2,6 +2,7 @@
 
 #include "bess_core/renderer/renderer_types.h"
 #include "bess_core/scene/scene_ui/layout.h"
+#include "bess_core/style/bess_theme.h"
 #include <memory>
 
 namespace Bess {
@@ -35,5 +36,6 @@ namespace Bess {
         Bess::Canvas::SceneState *sceneState;
         std::shared_ptr<Core::Renderer::IRenderer2D> renderer;
         Canvas::UI::UINode *parentNode = nullptr;
+        std::shared_ptr<Bess::Core::Style::BessTheme> theme = nullptr;
     };
 } // namespace Bess

@@ -10,6 +10,8 @@ namespace Bess::Canvas {
         SceneUIPrepareCtx prepCtx{
             .sceneState = ctx.sceneState,
             .renderer = ctx.renderer,
+            .parentNode = nullptr,
+            .theme = Bess::Core::Style::BessTheme::defaultTheme(),
         };
 
         for (const auto &compId : ctx.sceneState->getRootComponents()) {

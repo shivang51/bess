@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bess_core/renderer/colors.h"
 #include "bess_core/style/color_scheme.h"
 #include "json/value.h"
 
@@ -33,6 +34,31 @@ namespace Bess::Core::Style {
                             const ColorScheme &colorScheme)
             : m_name(name),
               m_colorScheme(colorScheme) {
+            const auto &colors = m_colorScheme.getColors();
+            m_generalElementStyle = {
+                .backgroundColor = colors.surfaceContainerLow,
+                .hoverColor = colors.surfaceContainerHigh,
+                .borderColor = colors.outlineVariant,
+                .activeColor = colors.primary,
+                .metrics =
+                    Metrics{
+                        .padding = glm::vec4(16.f, 32.f, 16.f, 32.f),
+                        .borderRadius = glm::vec4(4.f),
+                        .borderSize = glm::vec4(1.f),
+                        .margin = glm::vec4(2.f, 4.f, 2.f, 4.f),
+                    },
+                .textStyle =
+                    {
+                        .textColor = colors.onSurface,
+                        .fontSize = 12.f,
+                    },
+            };
+        }
+
+        static constexpr std::shared_ptr<BessTheme> defaultTheme() {
+            return std::make_shared<BessTheme>(
+                "Default",
+                ColorScheme::fromSeed(Core::Renderer::Colors::pastelBlue));
         }
 
         [[nodiscard]] bool isDark() const;
@@ -44,6 +70,7 @@ namespace Bess::Core::Style {
 
         virtual const ElementStyle &getButtonStyle() const;
         virtual const ElementStyle &getTextInputStyle() const;
+        virtual const ElementStyle &generalElementStyle() const;
         virtual const TextStyle &getLabelSize() const;
         virtual const TextStyle &getHeaderSize() const;
 
@@ -53,5 +80,6 @@ namespace Bess::Core::Style {
         ElementStyle m_buttonStyle;
         ElementStyle m_textInputStyle;
         TextStyle m_labelStyle, m_headerStyle;
+        ElementStyle m_generalElementStyle;
     };
 } // namespace Bess::Core::Style

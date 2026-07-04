@@ -31,6 +31,10 @@ namespace Bess::Core::Style {
         return m_textInputStyle;
     }
 
+    const ElementStyle &BessTheme::generalElementStyle() const {
+        return m_generalElementStyle;
+    }
+
     const ElementStyle &BessTheme::getButtonStyle() const {
         return m_buttonStyle;
     }
