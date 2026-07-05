@@ -456,7 +456,8 @@ namespace Bess::Canvas::UI {
                 m_labelNode->setPosMode(PosMode::relative);
                 m_labelNode->setPos(glm::vec2(0.f));
                 m_labelNode->setPadding(0.f);
-                m_labelNode->setMargin(0.f);
+                m_labelNode->setMargin(
+                    Core::Style::Margin::onlyRight(m_labelTrackSpacing));
 
                 m_node->addChild(m_labelNode);
             }

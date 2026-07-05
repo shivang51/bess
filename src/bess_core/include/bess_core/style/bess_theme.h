@@ -57,6 +57,22 @@ namespace Bess::Core::Style {
             return top + bottom;
         }
 
+        constexpr static Padding onlyTop(float top) {
+            return Padding{top, 0.f, 0.f, 0.f};
+        }
+
+        constexpr static Padding onlyRight(float right) {
+            return Padding{0.f, right, 0.f, 0.f};
+        }
+
+        constexpr static Padding onlyBottom(float bottom) {
+            return Padding{0.f, 0.f, bottom, 0.f};
+        }
+
+        constexpr static Padding onlyLeft(float left) {
+            return Padding{0.f, 0.f, 0.f, left};
+        }
+
         bool operator==(const Padding &other) const {
             return top == other.top && right == other.right &&
                    bottom == other.bottom && left == other.left;
