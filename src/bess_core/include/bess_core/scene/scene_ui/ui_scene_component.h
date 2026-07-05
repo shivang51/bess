@@ -365,6 +365,8 @@ namespace Bess::Canvas::UI {
         bool m_drawBg = false;
     };
 
+    typedef std::function<void(bool)> ToggleBtnCallback;
+
     class ToggleBtnComp : public UISceneComponent {
       public:
         DEFAULT_CONTRS(ToggleBtnComp)
@@ -378,53 +380,60 @@ namespace Bess::Canvas::UI {
                               makeUIDirty)
         MAKE_GETTER_SETTER_WC(glm::vec2, TrackSize, m_trackSize, makeUIDirty)
         MAKE_GETTER_SETTER_WC(glm::vec2, ThumbSize, m_thumbSize, makeUIDirty)
+        MAKE_GETTER_SETTER(ToggleBtnCallback, Callback, m_callback)
 
-        static std::shared_ptr<ToggleBtnComp> create(const std::string &label,
-                                                     bool toggled = false) {
+        static std::shared_ptr<ToggleBtnComp>
+        create(const std::string &label,
+               const ToggleBtnCallback &callback = nullptr,
+               bool toggled = false) {
             auto toggleBtn = std::make_shared<ToggleBtnComp>();
-            toggleBtn->setName(label);
-            toggleBtn->setToggled(toggled);
+            toggleBtn->m_name = label;
+            toggleBtn->m_callback = callback;
+            toggleBtn->m_toggled = toggled;
             return toggleBtn;
         }
 
         void draw(SceneDrawContext &state) override {
-            drawBgQuad(state);
             if (m_showLabel) {
-                PickingId pickingId{
-                    .runtimeId = m_runtimeId,
-                    .info = 0,
-                };
-                const auto offsetY = state.renderer->textCenterOffsetY(
-                    m_name,
-                    {
-                        .fontSize = m_style.textStyle.fontSize,
-                    });
-
-                const auto pos = m_labelNode->getDrawPos();
-                const auto pos_ = glm::vec2(
-                    pos.x - (m_labelNode->getSize().x * 0.5f), pos.y + offsetY);
-                state.renderer->drawFont(
-                    m_name,
-                    {
-                        .position = pos_,
-                        .fontSize = m_style.textStyle.fontSize,
-                        .color = m_style.textStyle.textColor,
-                        .zIndex = pos.z + 0.0001f,
-                        .id = pickingId,
-                    });
+                drawText(state, m_name, m_labelNode);
             }
 
             Core::Renderer::QuadProps trackProps;
             trackProps.position = m_trackNode->getDrawPos();
             trackProps.size = m_trackNode->getDrawSize();
             trackProps.zIndex = m_trackNode->getZVal();
-            trackProps.color = m_style.backgroundColor;
+            trackProps.color = m_trackColor;
             trackProps.borderColor = m_style.borderColor;
             trackProps.thickness = m_style.metrics.borderSize.toVec4();
             trackProps.radius = m_style.metrics.borderRadius;
             trackProps.id = PickingId{.runtimeId = m_runtimeId, .info = 1};
 
             state.renderer->drawQuad(trackProps);
+            trackProps.position.x +=
+                m_toggled ? (m_trackNode->getDrawSize().x / 2.f) -
+                                (m_thumbSize.x / 2.f) -
+                                (m_style.metrics.borderSize.left)
+                          : -(m_trackNode->getDrawSize().x / 2.f) +
+                                ((m_thumbSize.x / 2.f) +
+                                 m_style.metrics.borderSize.right);
+            trackProps.size = m_thumbSize;
+            trackProps.zIndex += 0.0001f;
+            trackProps.thickness = glm::vec4(0.f);
+            trackProps.color = m_toggled ? m_style.activeColor : m_thumbColor;
+            state.renderer->drawQuad(trackProps);
+        }
+
+        bool onMouseButton(const Events::MouseButtonEvent &e) override {
+            if (e.action == Events::MouseClickAction::press &&
+                e.button == Events::MouseButton::left && e.details == 1) {
+                m_toggled = !m_toggled;
+                if (m_callback) {
+                    m_callback(m_toggled);
+                }
+                return true;
+            }
+
+            return false;
         }
 
         void prepareUI(SceneUIPrepareCtx &state) override {
@@ -438,8 +447,14 @@ namespace Bess::Canvas::UI {
             }
 
             prepStyle(state.theme);
+            const auto &colors = state.theme->getColorScheme().getColors();
+            m_style.metrics.borderSize = Core::Style::BorderSize(0.f);
+            m_trackColor = colors.secondaryContainer;
+            m_thumbColor = colors.tertiaryContainer;
+
             m_node->setDirection(LayoutDirection::horizontal);
             m_node->setSizeConstraint(SizeContraint::wrap_content);
+            m_node->setCrossAxisAlignment(LayoutAlignment::center);
             m_node->setPadding(m_style.metrics.padding);
             m_node->setMargin(m_style.metrics.margin);
 
@@ -454,7 +469,6 @@ namespace Bess::Canvas::UI {
                 m_labelNode->setSizeUnit(Unit::pixel);
                 m_labelNode->setSizeConstraint(SizeContraint::fixed);
                 m_labelNode->setPosMode(PosMode::relative);
-                m_labelNode->setPos(glm::vec2(0.f));
                 m_labelNode->setPadding(0.f);
                 m_labelNode->setMargin(
                     Core::Style::Margin::onlyRight(m_labelTrackSpacing));
@@ -481,9 +495,11 @@ namespace Bess::Canvas::UI {
         bool m_toggled = false;
         bool m_showLabel = true;
         float m_labelTrackSpacing = 4.f;
-        glm::vec2 m_trackSize{40.f, 18.f};
-        glm::vec2 m_thumbSize{18.f, 18.f};
+        glm::vec2 m_trackSize{24.f, 12.f};
+        glm::vec2 m_thumbSize{12.f, 12.f};
         UINode *m_trackNode = nullptr;
         UINode *m_labelNode = nullptr;
+        ToggleBtnCallback m_callback;
+        Color m_trackColor, m_thumbColor;
     };
 } // namespace Bess::Canvas::UI

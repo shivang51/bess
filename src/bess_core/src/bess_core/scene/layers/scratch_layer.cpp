@@ -35,7 +35,11 @@ namespace Bess::Canvas {
                                         btnComp->getUuid());
         }
 
-        auto toggle = Canvas::UI::ToggleBtnComp::create("Toggle Me", false);
+        auto toggle = Canvas::UI::ToggleBtnComp::create("Toggle Me");
+
+        toggle->setCallback([toggle](bool toggled) {
+            toggle->setName(toggled ? "Toggled On" : "Toggled Off");
+        });
         toggle->setShowLabel(true);
         toggle->getStyle().margin = 5;
 
