@@ -1,6 +1,8 @@
 #include "bess_core/scene/layers/scratch_layer.h"
 #include "bess_core/scene/scene_draw_context.h"
-#include "bess_core/scene/scene_ui/ui_scene_component.h"
+#include "bess_core/scene/scene_ui/controls/button_comp.h"
+#include "bess_core/scene/scene_ui/controls/container_comp.h"
+#include "bess_core/scene/scene_ui/controls/toggle_btn_comp.h"
 
 namespace Bess::Canvas {
     namespace {
