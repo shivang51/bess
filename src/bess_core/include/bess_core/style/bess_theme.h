@@ -42,7 +42,7 @@ namespace Bess::Core::Style {
                 .activeColor = colors.primary,
                 .metrics =
                     Metrics{
-                        .padding = glm::vec4(16.f, 32.f, 16.f, 32.f),
+                        .padding = glm::vec4(8.f, 16.f, 8.f, 16.f),
                         .borderRadius = glm::vec4(4.f),
                         .borderSize = glm::vec4(1.f),
                         .margin = glm::vec4(2.f, 4.f, 2.f, 4.f),

@@ -99,6 +99,7 @@ namespace Bess::Canvas::UI {
                 m_node = reg->addNode(m_uuid);
                 setUINode(m_node);
             }
+            m_node->clearChildren();
         }
 
         void makeUIDirty() {
@@ -154,19 +155,23 @@ namespace Bess::Canvas::UI {
 
         void drawText(SceneDrawContext &state,
                       const std::string &text,
-                      const glm::vec3 &pos) {
+                      UINode *node) {
+
             PickingId pickingId{
                 .runtimeId = m_runtimeId,
                 .info = 0,
             };
+
             const auto offsetY = state.renderer->textCenterOffsetY(
                 text,
                 {
                     .fontSize = m_style.textStyle.fontSize,
                 });
 
-            const auto pos_ = glm::vec2(pos.x - (m_node->getSize().x * 0.5f),
-                                        pos.y + offsetY);
+            auto pos = node->getDrawPos();
+            const auto pos_ =
+                glm::vec2(pos.x - (node->getSize().x * 0.5f), pos.y + offsetY);
+
             state.renderer->drawFont(text,
                                      {
                                          .position = pos_,
@@ -206,7 +211,7 @@ namespace Bess::Canvas::UI {
         }
 
         void draw(SceneDrawContext &state) override {
-            drawText(state, m_name, m_node->getDrawPos());
+            drawText(state, m_name, m_node);
         }
     };
 
@@ -243,10 +248,40 @@ namespace Bess::Canvas::UI {
 
         void draw(SceneDrawContext &state) override {
             drawBgQuad(state);
-            drawText(state, m_name, m_node->getDrawPos());
+            drawText(state, m_name, m_labelNode);
+        }
+
+        void prepareUI(SceneUIPrepareCtx &state) override {
+            initNode(state.sceneState->getUINodeRegistry());
+            prepStyle(state.theme);
+
+            if (m_labelNode == nullptr) {
+                m_labelNode =
+                    state.sceneState->getUINodeRegistry()->addNode(UUID());
+            }
+
+            const auto size = state.renderer->measureText(
+                getName(),
+                {
+                    .fontSize = m_style.textStyle.fontSize,
+                });
+
+            m_labelNode->setSize(size);
+            m_labelNode->setSizeUnit(Unit::pixel);
+            m_labelNode->setSizeConstraint(SizeContraint::fixed);
+
+            m_node->addChild(m_labelNode);
+
+            m_node->setPadding(m_style.metrics.padding);
+            m_node->setMargin(m_style.metrics.margin);
+
+            if (state.parentNode != nullptr) {
+                state.parentNode->addChild(m_node);
+            }
         }
 
       private:
+        UINode *m_labelNode = nullptr;
         UIButtonCallback m_callback;
     };
 
@@ -333,5 +368,126 @@ namespace Bess::Canvas::UI {
         LayoutAlignment m_crossAxisAlignment = LayoutAlignment::center;
 
         bool m_drawBg = false;
+    };
+
+    class ToggleBtnComp : public UISceneComponent {
+      public:
+        DEFAULT_CONTRS(ToggleBtnComp)
+
+        MAKE_GETTER_SETTER(bool, Toggled, m_toggled)
+
+        MAKE_GETTER_SETTER_WC(bool, ShowLabel, m_showLabel, makeUIDirty)
+        MAKE_GETTER_SETTER_WC(float,
+                              LabelTrackSpacing,
+                              m_labelTrackSpacing,
+                              makeUIDirty)
+        MAKE_GETTER_SETTER_WC(glm::vec2, TrackSize, m_trackSize, makeUIDirty)
+        MAKE_GETTER_SETTER_WC(glm::vec2, ThumbSize, m_thumbSize, makeUIDirty)
+
+        static std::shared_ptr<ToggleBtnComp> create(const std::string &label,
+                                                     bool toggled = false) {
+            auto toggleBtn = std::make_shared<ToggleBtnComp>();
+            toggleBtn->setName(label);
+            toggleBtn->setToggled(toggled);
+            return toggleBtn;
+        }
+
+        void draw(SceneDrawContext &state) override {
+            drawBgQuad(state);
+            if (m_showLabel) {
+                PickingId pickingId{
+                    .runtimeId = m_runtimeId,
+                    .info = 0,
+                };
+                const auto offsetY = state.renderer->textCenterOffsetY(
+                    m_name,
+                    {
+                        .fontSize = m_style.textStyle.fontSize,
+                    });
+
+                const auto pos = m_labelNode->getDrawPos();
+                const auto pos_ = glm::vec2(
+                    pos.x - (m_labelNode->getSize().x * 0.5f), pos.y + offsetY);
+                state.renderer->drawFont(
+                    m_name,
+                    {
+                        .position = pos_,
+                        .fontSize = m_style.textStyle.fontSize,
+                        .color = m_style.textStyle.textColor,
+                        .zIndex = pos.z + 0.0001f,
+                        .id = pickingId,
+                    });
+            }
+
+            Core::Renderer::QuadProps trackProps;
+            trackProps.position = m_trackNode->getDrawPos();
+            trackProps.size = m_trackNode->getDrawSize();
+            trackProps.zIndex = m_trackNode->getZVal();
+            trackProps.color = m_style.backgroundColor;
+            trackProps.borderColor = m_style.borderColor;
+            trackProps.thickness = m_style.metrics.borderSize;
+            trackProps.radius = m_style.metrics.borderRadius;
+            trackProps.id = PickingId{.runtimeId = m_runtimeId, .info = 1};
+
+            state.renderer->drawQuad(trackProps);
+        }
+
+        void prepareUI(SceneUIPrepareCtx &state) override {
+            initNode(state.sceneState->getUINodeRegistry());
+
+            if (m_labelNode == nullptr || m_trackNode == nullptr) {
+                m_labelNode =
+                    state.sceneState->getUINodeRegistry()->addNode(UUID());
+                m_trackNode =
+                    state.sceneState->getUINodeRegistry()->addNode(UUID());
+            }
+
+            prepStyle(state.theme);
+            m_node->setDirection(LayoutDirection::horizontal);
+            m_node->setSizeConstraint(SizeContraint::wrap_content);
+            m_node->setPadding(m_style.metrics.padding);
+            m_node->setMargin(m_style.metrics.margin);
+
+            if (m_showLabel) {
+                auto labelSize = state.renderer->measureText(
+                    m_name,
+                    {
+                        .fontSize = m_style.textStyle.fontSize,
+                    });
+
+                m_labelNode->setSize(labelSize);
+                m_labelNode->setSizeUnit(Unit::pixel);
+                m_labelNode->setSizeConstraint(SizeContraint::fixed);
+                m_labelNode->setPosMode(PosMode::relative);
+                m_labelNode->setPos(glm::vec2(0.f));
+                m_labelNode->setPadding(glm::vec4(0.f));
+                m_labelNode->setMargin(glm::vec4(0.f));
+
+                m_node->addChild(m_labelNode);
+            }
+
+            m_node->addChild(m_trackNode);
+
+            m_trackNode->setSize(m_trackSize);
+            m_trackNode->setSizeUnit(Unit::pixel);
+            m_trackNode->setSizeConstraint(SizeContraint::fixed);
+            m_trackNode->setPosMode(PosMode::relative);
+            m_trackNode->setPos(glm::vec2(0.f));
+            m_trackNode->setPadding(glm::vec4(0.f));
+            m_trackNode->setMargin(glm::vec4(0.f));
+
+            if (state.parentNode != nullptr) {
+                state.parentNode->addChild(m_node);
+            }
+        }
+
+      private:
+        bool m_toggled = false;
+        bool m_showLabel = true;
+        float m_labelTrackSpacing = 4.f;
+        glm::vec2 m_trackSize{40.f, 18.f};
+        glm::vec2 m_thumbSize{18.f, 18.f};
+        UINode *m_trackNode = nullptr;
+        UINode *m_labelNode = nullptr;
     };
 } // namespace Bess::Canvas::UI

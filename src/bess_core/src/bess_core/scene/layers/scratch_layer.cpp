@@ -1,7 +1,6 @@
 #include "bess_core/scene/layers/scratch_layer.h"
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_ui/ui_scene_component.h"
-#include "common/bess_uuid.h"
 
 namespace Bess::Canvas {
     namespace {
@@ -11,6 +10,7 @@ namespace Bess::Canvas {
     void ScratchLayer::init(SceneLifecycleContext &ctx) {
         container = Canvas::UI::ContainerComp::create();
         ctx.sceneState->addComponent(container);
+        container->setDrawBackground(true);
 
         for (int i = 0; i < 3; ++i) {
             auto btnComp = Canvas::UI::ButtonComp::create(
@@ -34,6 +34,13 @@ namespace Bess::Canvas {
             ctx.sceneState->attachChild(container->getUuid(),
                                         btnComp->getUuid());
         }
+
+        auto toggle = Canvas::UI::ToggleBtnComp::create("Toggle Me", false);
+        toggle->setShowLabel(false);
+        toggle->getStyle().margin = glm::vec4(5);
+
+        container->addChildComponent(toggle->getUuid());
+        ctx.sceneState->addComponent(toggle);
     }
 
     void ScratchLayer::update(TimeMs ts, SceneUpdateContext &ctx) {
