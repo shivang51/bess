@@ -269,36 +269,36 @@ namespace Bess::Canvas::UI {
         return m_sizeConstraint;
     }
 
-    const glm::vec4 &UINode::getPadding() const {
+    const Core::Style::Padding &UINode::getPadding() const {
         return m_padding;
     }
 
-    void UINode::setPadding(const glm::vec4 &padding) {
-        if (sameVec(m_padding, padding)) {
+    void UINode::setPadding(const Core::Style::Padding &padding) {
+        if (m_padding == padding) {
             return;
         }
         m_padding = padding;
         setSizeDirty();
     }
 
-    glm::vec4 &UINode::getPadding() {
+    Core::Style::Padding &UINode::getPadding() {
         setSizeDirty();
         return m_padding;
     }
 
-    const glm::vec4 &UINode::getMargin() const {
+    const Core::Style::Margin &UINode::getMargin() const {
         return m_margin;
     }
 
-    void UINode::setMargin(const glm::vec4 &margin) {
-        if (sameVec(m_margin, margin)) {
+    void UINode::setMargin(const Core::Style::Margin &margin) {
+        if (m_margin == margin) {
             return;
         }
         m_margin = margin;
         setSizeDirty();
     }
 
-    glm::vec4 &UINode::getMargin() {
+    Core::Style::Margin &UINode::getMargin() {
         setSizeDirty();
         return m_margin;
     }
@@ -707,8 +707,8 @@ namespace Bess::Canvas::UI {
 
         m_cachedZVal = parentZVal + m_zVal;
 
-        const glm::vec2 contentTopLeft =
-            m_cachedPos - (m_drawSize * 0.5f) + edgeTopLeft(m_padding, false);
+        const glm::vec2 contentTopLeft = m_cachedPos - (m_drawSize * 0.5f) +
+                                         edgeTopLeft(m_padding.toVec4(), false);
         const glm::vec2 availableContentSize = contentSize();
         const bool isHorizontal = m_direction == LayoutDirection::horizontal;
 
@@ -770,7 +770,8 @@ namespace Bess::Canvas::UI {
             }
 
             const glm::vec2 drawTopLeft =
-                marginBoxTopLeft + edgeTopLeft(childNode->m_margin, true);
+                marginBoxTopLeft +
+                edgeTopLeft(childNode->m_margin.toVec4(), true);
             const auto childPos = drawTopLeft + (childNode->m_drawSize * 0.5f) +
                                   childNode->resolvePos(this);
             const auto childZ = m_cachedZVal + childNode->m_zVal;
@@ -868,11 +869,11 @@ namespace Bess::Canvas::UI {
     }
 
     glm::vec2 UINode::marginSize() const {
-        return edgeSize(m_margin, true);
+        return edgeSize(m_margin.toVec4(), true);
     }
 
     glm::vec2 UINode::paddingSize() const {
-        return edgeSize(m_padding, false);
+        return edgeSize(m_padding.toVec4(), false);
     }
 
 } // namespace Bess::Canvas::UI

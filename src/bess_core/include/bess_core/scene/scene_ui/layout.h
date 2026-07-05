@@ -3,6 +3,7 @@
 /// File contains code for laying out UI nodes,
 /// something like a CSS box model, with padding, margin, and alignment.
 
+#include "bess_core/style/bess_theme.h"
 #include "common/bess_api.h"
 #include "common/bess_uuid.h"
 #include "common/class_helpers.h"
@@ -93,21 +94,21 @@ namespace Bess::Canvas::UI {
         bool getPosDirty() const;
         bool getSizeDirty() const;
 
-        const glm::vec4 &getPadding() const;
+        const Core::Style::Padding &getPadding() const;
 
         // top, right, bottom, left
-        void setPadding(const glm::vec4 &padding);
+        void setPadding(const Core::Style::Padding &padding);
 
         // top, right, bottom, left
-        glm::vec4 &getPadding();
+        Core::Style::Padding &getPadding();
 
-        const glm::vec4 &getMargin() const;
-
-        // top, right, bottom, left
-        void setMargin(const glm::vec4 &margin);
+        const Core::Style::Margin &getMargin() const;
 
         // top, right, bottom, left
-        glm::vec4 &getMargin();
+        void setMargin(const Core::Style::Margin &margin);
+
+        // top, right, bottom, left
+        Core::Style::Margin &getMargin();
 
         const glm::vec2 &getMinSize() const;
         void setMinSize(const glm::vec2 &minSize);
@@ -207,8 +208,8 @@ namespace Bess::Canvas::UI {
         glm::vec2 m_minSize{-1};
         glm::vec2 m_maxSize{-1};
 
-        glm::vec4 m_padding = glm::vec4(0.0f); // top, right, bottom, left
-        glm::vec4 m_margin = glm::vec4(0.0f);  // top, right, bottom, left
+        Core::Style::Padding m_padding;
+        Core::Style::Margin m_margin;
 
         LayoutDirection m_direction = LayoutDirection::horizontal;
         LayoutAlignment m_mainAxisAlignment = LayoutAlignment::start;

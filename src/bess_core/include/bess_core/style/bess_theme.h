@@ -10,11 +10,71 @@ namespace Bess::Core::Style {
         float fontSize{12.f};
     };
 
+    struct Padding {
+        float top{0.f};
+        float right{0.f};
+        float bottom{0.f};
+        float left{0.f};
+
+        constexpr Padding() = default;
+
+        constexpr Padding(float top, float right, float bottom, float left)
+            : top(top),
+              right(right),
+              bottom(bottom),
+              left(left) {
+        }
+
+        constexpr Padding(float val)
+            : top(val),
+              right(val),
+              bottom(val),
+              left(val) {
+        }
+
+        static constexpr Padding fromHorizontal(float horizontal) {
+            return Padding{0.f, horizontal, 0.f, horizontal};
+        }
+
+        static constexpr Padding fromVertical(float vertical) {
+            return Padding{vertical, 0.f, vertical, 0.f};
+        }
+
+        static constexpr Padding fromSymmetric(float vertical,
+                                               float horizontal) {
+            return Padding{vertical, horizontal, vertical, horizontal};
+        }
+
+        constexpr glm::vec4 toVec4() const {
+            return {top, right, bottom, left};
+        }
+
+        constexpr float horizontal() const {
+            return right + left;
+        }
+
+        constexpr float vertical() const {
+            return top + bottom;
+        }
+
+        bool operator==(const Padding &other) const {
+            return top == other.top && right == other.right &&
+                   bottom == other.bottom && left == other.left;
+        }
+
+        bool operator!=(const Padding &other) const {
+            return !(*this == other);
+        }
+    };
+
+    typedef Padding Margin;
+    typedef Padding BorderSize;
+
     struct Metrics {
-        glm::vec4 padding{0};
+        Padding padding{0};
         glm::vec4 borderRadius{0};
-        glm::vec4 borderSize{0};
-        glm::vec4 margin{0};
+        BorderSize borderSize{0};
+        Margin margin{0};
     };
 
     struct ElementStyle {
@@ -42,10 +102,10 @@ namespace Bess::Core::Style {
                 .activeColor = colors.primary,
                 .metrics =
                     Metrics{
-                        .padding = glm::vec4(8.f, 16.f, 8.f, 16.f),
+                        .padding = Padding(8.f, 16.f, 8.f, 16.f),
                         .borderRadius = glm::vec4(4.f),
-                        .borderSize = glm::vec4(1.f),
-                        .margin = glm::vec4(2.f, 4.f, 2.f, 4.f),
+                        .borderSize = BorderSize(1.f),
+                        .margin = Margin(2.f, 4.f, 2.f, 4.f),
                     },
                 .textStyle =
                     {

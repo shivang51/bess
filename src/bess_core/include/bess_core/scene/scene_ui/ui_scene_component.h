@@ -22,8 +22,8 @@ namespace Bess::Canvas::UI {
         std::optional<Core::Style::Color> borderColor;
         std::optional<Core::Style::Color> activeColor;
 
-        std::optional<glm::vec4> padding;
-        std::optional<glm::vec4> margin;
+        std::optional<Core::Style::Padding> padding;
+        std::optional<Core::Style::Margin> margin;
     };
 
     class UISceneComponent : public SceneComponent {
@@ -115,22 +115,22 @@ namespace Bess::Canvas::UI {
             m_style = theme->generalElementStyle();
 
             m_style.metrics.margin =
-                getVec4(m_customStyle.margin, m_style.metrics.margin);
+                resolveOptional(m_customStyle.margin, m_style.metrics.margin);
 
             m_style.metrics.padding =
-                getVec4(m_customStyle.padding, m_style.metrics.padding);
+                resolveOptional(m_customStyle.padding, m_style.metrics.padding);
 
-            m_style.backgroundColor = getColor(m_customStyle.backgroundColor,
-                                               m_style.backgroundColor);
+            m_style.backgroundColor = resolveOptional(
+                m_customStyle.backgroundColor, m_style.backgroundColor);
 
             m_style.hoverColor =
-                getColor(m_customStyle.hoverColor, m_style.hoverColor);
+                resolveOptional(m_customStyle.hoverColor, m_style.hoverColor);
 
             m_style.borderColor =
-                getColor(m_customStyle.borderColor, m_style.borderColor);
+                resolveOptional(m_customStyle.borderColor, m_style.borderColor);
 
             m_style.activeColor =
-                getColor(m_customStyle.activeColor, m_style.activeColor);
+                resolveOptional(m_customStyle.activeColor, m_style.activeColor);
         }
 
         void drawBgQuad(SceneDrawContext &state) {
@@ -146,7 +146,7 @@ namespace Bess::Canvas::UI {
             quadProps.color =
                 m_hovered ? m_style.hoverColor : m_style.backgroundColor;
             quadProps.borderColor = m_style.borderColor;
-            quadProps.thickness = m_style.metrics.borderSize;
+            quadProps.thickness = m_style.metrics.borderSize.toVec4();
             quadProps.radius = m_style.metrics.borderRadius;
             quadProps.id = pickingId;
 
@@ -189,13 +189,8 @@ namespace Bess::Canvas::UI {
         UIElementStyle m_customStyle;
 
       private:
-        glm::vec4 getVec4(const std::optional<glm::vec4> &custom,
-                          const glm::vec4 &defaultVal) {
-            return custom.has_value() ? custom.value() : defaultVal;
-        }
-
-        Core::Style::Color getColor(const std::optional<Color> &custom,
-                                    const Color &defaultVal) {
+        template <typename T>
+        T resolveOptional(const std::optional<T> &custom, const T &defaultVal) {
             return custom.has_value() ? custom.value() : defaultVal;
         }
     };
@@ -425,7 +420,7 @@ namespace Bess::Canvas::UI {
             trackProps.zIndex = m_trackNode->getZVal();
             trackProps.color = m_style.backgroundColor;
             trackProps.borderColor = m_style.borderColor;
-            trackProps.thickness = m_style.metrics.borderSize;
+            trackProps.thickness = m_style.metrics.borderSize.toVec4();
             trackProps.radius = m_style.metrics.borderRadius;
             trackProps.id = PickingId{.runtimeId = m_runtimeId, .info = 1};
 
@@ -460,8 +455,8 @@ namespace Bess::Canvas::UI {
                 m_labelNode->setSizeConstraint(SizeContraint::fixed);
                 m_labelNode->setPosMode(PosMode::relative);
                 m_labelNode->setPos(glm::vec2(0.f));
-                m_labelNode->setPadding(glm::vec4(0.f));
-                m_labelNode->setMargin(glm::vec4(0.f));
+                m_labelNode->setPadding(0.f);
+                m_labelNode->setMargin(0.f);
 
                 m_node->addChild(m_labelNode);
             }
@@ -473,8 +468,8 @@ namespace Bess::Canvas::UI {
             m_trackNode->setSizeConstraint(SizeContraint::fixed);
             m_trackNode->setPosMode(PosMode::relative);
             m_trackNode->setPos(glm::vec2(0.f));
-            m_trackNode->setPadding(glm::vec4(0.f));
-            m_trackNode->setMargin(glm::vec4(0.f));
+            m_trackNode->setPadding(0.f);
+            m_trackNode->setMargin(0.f);
 
             if (state.parentNode != nullptr) {
                 state.parentNode->addChild(m_node);

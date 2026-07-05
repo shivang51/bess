@@ -1,4 +1,5 @@
 #include "bess_core/scene/scene_ui/layout.h"
+#include "bess_core/style/bess_theme.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include <gtest/gtest.h>
@@ -35,10 +36,10 @@ TEST_F(UiLayoutTests, UINodeMeasure) {
     Bess::Canvas::UI::UINodeRegistry registry;
 
     constexpr glm::vec2 size(100, 50);
-    constexpr glm::vec4 padding(10, 5, 9, 6);
-    constexpr glm::vec4 margin(2, 3, 4, 5);
-    const glm::vec2 paddingSize = boxEdges(padding);
-    const glm::vec2 marginSize = boxEdges(margin);
+    constexpr Bess::Core::Style::Padding padding(10, 5, 9, 6);
+    constexpr Bess::Core::Style::Margin margin(2, 3, 4, 5);
+    const glm::vec2 paddingSize = boxEdges(padding.toVec4());
+    const glm::vec2 marginSize = boxEdges(margin.toVec4());
 
     Bess::Canvas::UI::UINode node;
     node.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
@@ -208,7 +209,7 @@ TEST_F(UiLayoutTests, UINodeLayoutHonorsMarginAndCenterAlignment) {
     Bess::Canvas::UI::UINode childNode1;
     childNode1.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
     childNode1.setSize(glm::vec2(50, 50));
-    childNode1.setMargin(glm::vec4(5, 50, 5, 5));
+    childNode1.setMargin(Bess::Core::Style::Margin(5, 50, 5, 5));
     auto childNode1Ptr = registry.addNode(childNode1);
     parentNode.addChild(childNode1Ptr);
 
@@ -270,7 +271,7 @@ TEST_F(UiLayoutTests, FixedContainerGrowsToFitRelativeChildrenMargins) {
     childNode1.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
     childNode1.setSizeUnit(Bess::Canvas::UI::Unit::relative);
     childNode1.setSize(glm::vec2(0.5f, 0.2f));
-    childNode1.setMargin(glm::vec4(0.f, 16.f, 0.f, 0.f));
+    childNode1.setMargin(Bess::Core::Style::Margin(0.f, 16.f, 0.f, 0.f));
     auto childNode1Ptr = registry.addNode(childNode1);
     ASSERT_NE(childNode1Ptr, nullptr);
     parentNode.addChild(childNode1Ptr);
@@ -314,7 +315,7 @@ TEST_F(UiLayoutTests, WrapContainerDoesNotGrowFromStaleRelativeSizes) {
     inputBoxNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
     inputBoxNode.setSizeUnit(Bess::Canvas::UI::Unit::relative);
     inputBoxNode.setSize(glm::vec2(0.5f, -1.f));
-    inputBoxNode.setMargin(glm::vec4(0.f, 16.f, 0.f, 0.f));
+    inputBoxNode.setMargin(Bess::Core::Style::Margin(0.f, 16.f, 0.f, 0.f));
     auto inputBoxNodePtr = registry.addNode(inputBoxNode);
     ASSERT_NE(inputBoxNodePtr, nullptr);
     slotsBoxNodePtr->addChild(inputBoxNodePtr);
@@ -383,7 +384,7 @@ TEST_F(UiLayoutTests, OutputColumnCrossAxisEndAlignsRowsToRightEdge) {
     inputBoxNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
     inputBoxNode.setSizeUnit(Bess::Canvas::UI::Unit::relative);
     inputBoxNode.setSize(glm::vec2(0.5f, -1.f));
-    inputBoxNode.setMargin(glm::vec4(0.f, 16.f, 0.f, 0.f));
+    inputBoxNode.setMargin(Bess::Core::Style::Margin(0.f, 16.f, 0.f, 0.f));
     auto inputBoxNodePtr = registry.addNode(inputBoxNode);
     ASSERT_NE(inputBoxNodePtr, nullptr);
     slotsBoxNodePtr->addChild(inputBoxNodePtr);
@@ -449,7 +450,7 @@ TEST_F(UiLayoutTests, UINodeRelativeSizeUsesParentContentBox) {
     Bess::Canvas::UI::UINode parentNode;
     parentNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
     parentNode.setSize(glm::vec2(200, 100));
-    parentNode.setPadding(glm::vec4(10, 10, 10, 10));
+    parentNode.setPadding(Bess::Core::Style::Margin(10, 10, 10, 10));
 
     Bess::Canvas::UI::UINode childNode;
     childNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
@@ -619,8 +620,8 @@ TEST_F(UiLayoutTests, UINodeSameValueSettersDoNotInvalidateCleanTree) {
     rootNode->setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
     rootNode->setSize(glm::vec2(100, 60));
     rootNode->setPos(glm::vec2(2, 4));
-    rootNode->setPadding(glm::vec4(1, 2, 3, 4));
-    rootNode->setMargin(glm::vec4(5, 6, 7, 8));
+    rootNode->setPadding(Bess::Core::Style::Padding(1, 2, 3, 4));
+    rootNode->setMargin(Bess::Core::Style::Margin(5, 6, 7, 8));
     rootNode->layout(registry, Bess::UUID::null);
 
     ASSERT_FALSE(rootNode->getSizeDirty());
@@ -629,8 +630,8 @@ TEST_F(UiLayoutTests, UINodeSameValueSettersDoNotInvalidateCleanTree) {
     rootNode->setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
     rootNode->setSize(glm::vec2(100, 60));
     rootNode->setPos(glm::vec2(2, 4));
-    rootNode->setPadding(glm::vec4(1, 2, 3, 4));
-    rootNode->setMargin(glm::vec4(5, 6, 7, 8));
+    rootNode->setPadding(Bess::Core::Style::Padding(1, 2, 3, 4));
+    rootNode->setMargin(Bess::Core::Style::Margin(5, 6, 7, 8));
     rootNode->setDirection(Bess::Canvas::UI::LayoutDirection::horizontal);
     rootNode->setMainAxisAlignment(Bess::Canvas::UI::LayoutAlignment::start);
     rootNode->setCrossAxisAlignment(Bess::Canvas::UI::LayoutAlignment::start);

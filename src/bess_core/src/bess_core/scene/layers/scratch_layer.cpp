@@ -27,7 +27,7 @@ namespace Bess::Canvas {
                     }
                 });
 
-            btnComp->getStyle().margin = glm::vec4(5);
+            btnComp->getStyle().margin = 5;
 
             ctx.sceneState->addComponent(btnComp);
 
@@ -37,7 +37,7 @@ namespace Bess::Canvas {
 
         auto toggle = Canvas::UI::ToggleBtnComp::create("Toggle Me", false);
         toggle->setShowLabel(false);
-        toggle->getStyle().margin = glm::vec4(5);
+        toggle->getStyle().margin = 5;
 
         container->addChildComponent(toggle->getUuid());
         ctx.sceneState->addComponent(toggle);
