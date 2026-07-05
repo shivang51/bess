@@ -2,6 +2,7 @@
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_ui/controls/button_comp.h"
 #include "bess_core/scene/scene_ui/controls/container_comp.h"
+#include "bess_core/scene/scene_ui/controls/text_box_comp.h"
 #include "bess_core/scene/scene_ui/controls/toggle_btn_comp.h"
 
 namespace Bess::Canvas {
@@ -47,6 +48,14 @@ namespace Bess::Canvas {
 
         container->addChildComponent(toggle->getUuid());
         ctx.sceneState->addComponent(toggle);
+
+        auto textBox = Canvas::UI::TextBoxComp::create("Type here...");
+        textBox->setChangedCallback([](const std::string &value) {
+            BESS_INFO("Text changed: {}", value);
+        });
+
+        container->addChildComponent(textBox->getUuid());
+        ctx.sceneState->addComponent(textBox);
     }
 
     void ScratchLayer::update(TimeMs ts, SceneUpdateContext &ctx) {
