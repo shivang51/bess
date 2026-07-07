@@ -67,6 +67,9 @@ namespace Bess::Canvas {
     }
 
     void SlotSceneComponent::prepareUI(SceneUIPrepareCtx &ctx) {
+        BESS_TRACE("Preparing UI for SlotSceneComponent: {} | {}",
+                   m_name,
+                   (uint64_t)m_uuid);
         auto uiNodeReg = ctx.sceneState->getUINodeRegistry();
         if (m_uiNode == nullptr) {
             m_uiNode = uiNodeReg->addNode(m_uuid);
@@ -165,6 +168,7 @@ namespace Bess::Canvas {
         const float ir = Styles::simCompStyles.slotRadius -
                          Styles::simCompStyles.slotBorderSize;
         const float r = Styles::simCompStyles.slotRadius;
+
         SceneDraw::drawCircle(
             drawContext, m_slotNode->getDrawPos(), r, border, pickingId, ir);
         SceneDraw::drawCircle(drawContext,

@@ -58,6 +58,7 @@ namespace Bess::Canvas::UI {
     }
 
     void ToggleBtnComp::prepareUI(SceneUIPrepareCtx &state) {
+        prepStyle(state.theme);
         initNode(state.sceneState->getUINodeRegistry());
 
         if (m_labelNode == nullptr || m_trackNode == nullptr) {
@@ -67,7 +68,6 @@ namespace Bess::Canvas::UI {
                 state.sceneState->getUINodeRegistry()->addNode(UUID());
         }
 
-        prepStyle(state.theme);
         const auto &colors = state.theme->getColorScheme().getColors();
         m_style.metrics.borderSize = Core::Style::BorderSize(0.f);
         m_trackColor = colors.secondaryContainer;

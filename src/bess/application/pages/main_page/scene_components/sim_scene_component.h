@@ -220,13 +220,13 @@ namespace Bess::Canvas {
         Transform m_schematicTransform;
         std::shared_ptr<SimEngine::Drivers::CompDef> m_compDef = nullptr;
 
-        UI::UINode *m_inpBoxNode = nullptr, *m_outBoxNode = nullptr;
-        UI::UINode *m_slotsBoxNode =
-            nullptr; // contains both inp and out box nodes horizontally
-
         std::shared_ptr<Bess::Canvas::UI::ContainerComp> m_nodeContainer =
                                                              nullptr,
                                                          m_slotsContainer =
+                                                             nullptr,
+                                                         m_inpSlotsContainer =
+                                                             nullptr,
+                                                         m_outSlotsContainer =
                                                              nullptr;
 
         std::shared_ptr<Bess::Canvas::UI::LabelComp> m_labelComp = nullptr;

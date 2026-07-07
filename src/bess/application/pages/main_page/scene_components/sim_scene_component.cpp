@@ -16,6 +16,7 @@
 #include "bess_core/style/bess_theme.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
+#include "imgui.h"
 #include "input_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
 #include "simulation_engine.h"
@@ -278,9 +279,8 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         m_nodeContainer = nullptr;
         m_slotsContainer = nullptr;
         m_labelComp = nullptr;
-        m_inpBoxNode = nullptr;
-        m_outBoxNode = nullptr;
-        m_slotsBoxNode = nullptr;
+        m_inpSlotsContainer = nullptr;
+        m_outSlotsContainer = nullptr;
 
         m_isSchematicScaleDirty = true;
         m_isSchSlotsPosDirty = true;
@@ -307,9 +307,14 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
     }
 
     void SimulationSceneComponent::draw(SceneDrawContext &context) {
+        if (!m_nodeContainer)
+            return;
+
+        const auto &size = m_inpSlotsContainer->getUINode()->getDrawSize();
+        // BESS_TRACE("{},{}", size.x, size.y);
         // if (m_uiNode != nullptr) {
         //     // drawBackground(context);
-        //     // drawSlots(context);
+        drawSlots(context);
         // }
     }
 
@@ -481,10 +486,19 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         auto prevParentNode = ctx.parentNode;
         auto uiNodeReg = ctx.sceneState->getUINodeRegistry();
 
+        BESS_TRACE("Preparing UI for SimulationSceneComponent: {}", m_name);
+
         if (m_nodeContainer == nullptr) {
             m_nodeContainer =
                 UI::ContainerComp::create(UI::LayoutDirection::vertical);
+
+            m_nodeContainer->setCrossAxisAlignment(UI::LayoutAlignment::start);
+
             ctx.sceneState->addComponent(m_nodeContainer);
+            m_nodeContainer->getStyle().padding =
+                Core::Style::Padding::fromSymmetric(
+                    Styles::simCompStyles.paddingX,
+                    Styles::simCompStyles.paddingY);
 
             m_labelComp = UI::LabelComp::create(m_name);
             m_labelComp->setDrawRuntimeId(m_runtimeId);
@@ -492,16 +506,11 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
 
             auto &labelStyle = m_labelComp->getStyle();
             labelStyle.fontSize = Styles::simCompStyles.headerFontSize;
+            labelStyle.padding = Core::Style::Padding(0);
+            labelStyle.margin =
+                Core::Style::Margin::onlyBottom(Styles::simCompStyles.rowGap);
 
             ctx.sceneState->addComponent(m_labelComp);
-
-            ctx.sceneState->attachChild(m_nodeContainer->getUuid(),
-                                        m_labelComp->getUuid());
-
-            m_nodeContainer->getStyle().padding =
-                Core::Style::Padding::fromSymmetric(
-                    Styles::simCompStyles.paddingX,
-                    Styles::simCompStyles.paddingY);
 
             ctx.parentNode = m_nodeContainer->getUINode();
             m_nodeContainer->setDrawBackground(true);
@@ -511,8 +520,9 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
                         m_runtimeId,
                         0,
                     };
-
                     const auto *uiNode = comp->getUINode();
+                    BESS_TRACE("{}", uiNode->getDrawPos().z);
+
                     Core::Renderer::QuadProps quadProps;
                     quadProps.position = uiNode->getDrawPos();
                     quadProps.size = uiNode->getDrawSize();
@@ -562,13 +572,113 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
                             },
                     });
                 });
+
+            m_slotsContainer = UI::ContainerComp::create();
+            m_slotsContainer->setCrossAxisAlignment(UI::LayoutAlignment::start);
+
+            m_inpSlotsContainer =
+                UI::ContainerComp::create(UI::LayoutDirection::vertical);
+
+            m_outSlotsContainer =
+                UI::ContainerComp::create(UI::LayoutDirection::vertical);
+
+            ctx.sceneState->addComponent(m_slotsContainer);
+            ctx.sceneState->addComponent(m_inpSlotsContainer);
+            ctx.sceneState->addComponent(m_outSlotsContainer);
+
+            ctx.sceneState->attachChild(m_nodeContainer->getUuid(),
+                                        m_labelComp->getUuid());
+            ctx.sceneState->attachChild(m_nodeContainer->getUuid(),
+                                        m_slotsContainer->getUuid());
+            ctx.sceneState->attachChild(m_slotsContainer->getUuid(),
+                                        m_inpSlotsContainer->getUuid());
+            ctx.sceneState->attachChild(m_slotsContainer->getUuid(),
+                                        m_outSlotsContainer->getUuid());
+
+            m_slotsContainer->getStyle().padding = Core::Style::Padding::zero();
+            m_slotsContainer->getStyle().margin = Core::Style::Margin::zero();
+            m_inpSlotsContainer->getStyle().padding =
+                Core::Style::Padding::zero();
+            m_inpSlotsContainer->getStyle().margin =
+                Core::Style::Margin::zero();
+            m_outSlotsContainer->getStyle().padding =
+                Core::Style::Padding::zero();
+            m_outSlotsContainer->getStyle().margin =
+                Core::Style::Margin::zero();
+
+            m_inpSlotsContainer->setMainAxisAlignment(
+                UI::LayoutAlignment::start);
+            m_inpSlotsContainer->setCrossAxisAlignment(
+                UI::LayoutAlignment::start);
+            m_outSlotsContainer->setMainAxisAlignment(
+                UI::LayoutAlignment::start);
+            m_outSlotsContainer->setCrossAxisAlignment(
+                UI::LayoutAlignment::end);
         }
 
+        m_nodeContainer->setPosition(m_transform.position);
         m_nodeContainer->prepareUI(ctx);
 
-        m_nodeContainer->setPosition(m_transform.position);
+        auto node = m_slotsContainer->getUINode();
+        BESS_ASSERT(node != nullptr, "Slots container UI node is null");
+        node->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
+        node->setSize({1.f, -1.f});
+        node->setSizeUnit(Canvas::UI::Unit::relative);
+        node->setZVal(0.0001f);
+
+        node = m_inpSlotsContainer->getUINode();
+        BESS_ASSERT(node != nullptr, "Input slots container UI node is null");
+        node->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
+        node->setSize({0.5f, -1.f});
+        node->setSizeUnit(Canvas::UI::Unit::relative);
+        node->setMargin(
+            Core::Style::Margin::onlyRight(Styles::simCompStyles.paddingX));
+
+        ctx.parentNode = m_inpSlotsContainer->getUINode();
+        for (const auto &slotId : m_inputSlots) {
+            auto slotComp =
+                ctx.sceneState->getComponentByUuid<SlotSceneComponent>(slotId);
+            BESS_ASSERT(slotComp != nullptr,
+                        "SlotSceneComponent not found for slotId: {}",
+                        (uint64_t)slotId);
+            if (slotComp) {
+                slotComp->prepareUI(ctx);
+            }
+        }
+
+        BESS_ASSERT(m_inpSlotsContainer->getUINode()->getChildren().size() ==
+                        m_inputSlots.size(),
+                    "Input slots container children count does not match input "
+                    "slots count");
+
+        node = m_outSlotsContainer->getUINode();
+        BESS_ASSERT(node != nullptr, "Output slots container UI node is null");
+        node->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
+        node->setSize({0.5f, -1.f});
+        node->setSizeUnit(Canvas::UI::Unit::relative);
+
+        ctx.parentNode = m_outSlotsContainer->getUINode();
+        for (const auto &slotId : m_outputSlots) {
+            auto slotComp =
+                ctx.sceneState->getComponentByUuid<SlotSceneComponent>(slotId);
+            BESS_ASSERT(slotComp != nullptr,
+                        "SlotSceneComponent not found for slotId: {}",
+                        (uint64_t)slotId);
+            if (slotComp) {
+                slotComp->prepareUI(ctx);
+            }
+        }
+
+        BESS_ASSERT(m_nodeContainer->getUINode()->getChildren().size() == 2,
+                    "Node container children count does not match expected "
+                    "count of 2 (label and slots container)");
+
+        BESS_ASSERT(m_slotsContainer->getUINode()->getChildren().size() == 2,
+                    "Slots container children count does not match expected "
+                    "count of 2 (input and output slots containers)");
 
         ctx.parentNode = prevParentNode;
+        m_isUIDirty = false;
     }
 
     void SimulationSceneComponent::resetSchematicPinsPositions(
@@ -1110,6 +1220,24 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
             }
             ImGui::TreePop();
         }
+
+        // Drawing UI Tree
+        std::function<void(UI::UINode *)> drawNode = [&](UI::UINode *node) {
+            ImGui::Text(
+                "%s",
+                std::format("Node: {}", node->getId().toString()).c_str());
+
+            ImGui::Indent();
+
+            for (const auto &child : node->getChildren()) {
+                auto node = state.getUINodeRegistry()->getNode(child);
+                drawNode(node);
+            }
+
+            ImGui::Unindent();
+        };
+
+        drawNode(m_nodeContainer->getUINode());
     }
 
     void SimulationSceneComponent::onNameChanged() {

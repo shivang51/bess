@@ -58,8 +58,8 @@ namespace Bess::Canvas::UI {
     }
 
     void TextBoxComp::prepareUI(SceneUIPrepareCtx &state) {
-        initNode(state.sceneState->getUINodeRegistry());
         prepStyle(state.theme);
+        initNode(state.sceneState->getUINodeRegistry());
 
         m_node->setSize(resolveBoxSize(state));
         m_node->setSizeUnit(Unit::pixel);

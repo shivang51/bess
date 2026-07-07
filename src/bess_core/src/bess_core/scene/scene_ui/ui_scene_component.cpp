@@ -88,6 +88,9 @@ namespace Bess::Canvas::UI {
         }
         m_node->clearChildren();
         m_node->setZVal(m_transform.position.z);
+        m_node->setPos(m_transform.position);
+        m_node->setPadding(m_style.metrics.padding);
+        m_node->setMargin(m_style.metrics.margin);
     }
 
     void UISceneComponent::makeUIDirty() {
@@ -134,7 +137,7 @@ namespace Bess::Canvas::UI {
         Core::Renderer::QuadProps quadProps;
         quadProps.position = m_node->getDrawPos();
         quadProps.size = m_node->getDrawSize();
-        quadProps.zIndex = m_node->getZVal();
+        quadProps.zIndex = m_node->getDrawPos().z;
         quadProps.color =
             m_hovered ? m_style.hoverColor : m_style.backgroundColor;
         quadProps.borderColor = m_style.borderColor;
@@ -175,7 +178,7 @@ namespace Bess::Canvas::UI {
                                      .position = pos_,
                                      .fontSize = m_style.textStyle.fontSize,
                                      .color = m_style.textStyle.textColor,
-                                     .zIndex = pos.z + 0.0001f,
+                                     .zIndex = pos.z,
                                      .id = pickingId,
                                  });
     }

@@ -80,31 +80,31 @@ namespace Bess::Canvas {
     }
 
     void InputSceneComponent::prepareUI(SceneUIPrepareCtx &ctx) {
-        SimulationSceneComponent::prepareUI(ctx);
-        auto prevParent = ctx.parentNode;
-        ctx.parentNode = m_inpBoxNode;
-
-        for (const auto &btn : m_toggleButtons) {
-            ctx.sceneState->removeComponent(btn->getUuid());
-        }
-
-        m_toggleButtons.clear();
-
-        for (size_t i = 0; i < m_outputSlots.size() - 1; i++) {
-            const auto &slotUuid = m_outputSlots[i];
-            auto btn = std::make_shared<Bess::Canvas::UI::ToggleBtnComp>();
-            btn->setShowLabel(false);
-            btn->getStyle().margin = 0;
-            btn->getStyle().padding = 0;
-            ctx.sceneState->addComponent(btn);
-            m_toggleButtons.push_back(btn);
-
-            btn->prepareUI(ctx);
-        }
-
-        m_setBtnCbs = true;
-        ctx.parentNode = prevParent;
-        m_isUIDirty = false;
+        // SimulationSceneComponent::prepareUI(ctx);
+        // auto prevParent = ctx.parentNode;
+        // ctx.parentNode = m_inpBoxNode;
+        //
+        // for (const auto &btn : m_toggleButtons) {
+        //     ctx.sceneState->removeComponent(btn->getUuid());
+        // }
+        //
+        // m_toggleButtons.clear();
+        //
+        // for (size_t i = 0; i < m_outputSlots.size() - 1; i++) {
+        //     const auto &slotUuid = m_outputSlots[i];
+        //     auto btn = std::make_shared<Bess::Canvas::UI::ToggleBtnComp>();
+        //     btn->setShowLabel(false);
+        //     btn->getStyle().margin = 0;
+        //     btn->getStyle().padding = 0;
+        //     ctx.sceneState->addComponent(btn);
+        //     m_toggleButtons.push_back(btn);
+        //
+        //     btn->prepareUI(ctx);
+        // }
+        //
+        // m_setBtnCbs = true;
+        // ctx.parentNode = prevParent;
+        // m_isUIDirty = false;
     }
 
     std::vector<std::shared_ptr<SceneComponent>>

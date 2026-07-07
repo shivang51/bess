@@ -40,9 +40,18 @@ namespace Bess::Core::Style {
             return Padding{vertical, 0.f, vertical, 0.f};
         }
 
-        static constexpr Padding fromSymmetric(float vertical,
-                                               float horizontal) {
-            return Padding{vertical, horizontal, vertical, horizontal};
+        static constexpr Padding fromSymmetric(float horizontal,
+                                               float vertical) {
+            return Padding{
+                vertical,
+                horizontal,
+                vertical,
+                horizontal,
+            };
+        }
+
+        static constexpr Padding zero() {
+            return Padding{0.f, 0.f, 0.f, 0.f};
         }
 
         constexpr glm::vec4 toVec4() const {

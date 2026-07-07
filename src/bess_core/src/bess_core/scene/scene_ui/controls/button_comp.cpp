@@ -33,8 +33,8 @@ namespace Bess::Canvas::UI {
     }
 
     void ButtonComp::prepareUI(SceneUIPrepareCtx &state) {
-        initNode(state.sceneState->getUINodeRegistry());
         prepStyle(state.theme);
+        initNode(state.sceneState->getUINodeRegistry());
 
         if (m_labelNode == nullptr) {
             m_labelNode =

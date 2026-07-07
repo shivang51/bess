@@ -23,8 +23,8 @@ namespace Bess::Canvas::UI {
     }
 
     void ContainerComp::prepareUI(SceneUIPrepareCtx &state) {
-        initNode(state.sceneState->getUINodeRegistry());
         prepStyle(state.theme);
+        initNode(state.sceneState->getUINodeRegistry());
 
         m_node->setDirection(m_direction);
         m_node->setMainAxisAlignment(m_mainAxisAlignment);
@@ -35,6 +35,7 @@ namespace Bess::Canvas::UI {
         }
 
         prepChildren(state);
+        m_isUIDirty = false;
     }
 
     void ContainerComp::prepChildren(SceneUIPrepareCtx &state) {
