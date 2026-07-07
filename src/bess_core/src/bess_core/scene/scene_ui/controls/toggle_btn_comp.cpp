@@ -22,7 +22,7 @@ namespace Bess::Canvas::UI {
         Core::Renderer::QuadProps trackProps;
         trackProps.position = m_trackNode->getDrawPos();
         trackProps.size = m_trackNode->getDrawSize();
-        trackProps.zIndex = m_trackNode->getZVal();
+        trackProps.zIndex = m_trackNode->getDrawPos().z;
         trackProps.color = m_trackColor;
         trackProps.borderColor = m_style.borderColor;
         trackProps.thickness = m_style.metrics.borderSize.toVec4();

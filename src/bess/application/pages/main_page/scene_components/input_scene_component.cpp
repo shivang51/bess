@@ -79,6 +79,34 @@ namespace Bess::Canvas {
         }
     }
 
+    void InputSceneComponent::prepareUI(SceneUIPrepareCtx &ctx) {
+        SimulationSceneComponent::prepareUI(ctx);
+        auto prevParent = ctx.parentNode;
+        ctx.parentNode = m_inpBoxNode;
+
+        for (const auto &btn : m_toggleButtons) {
+            ctx.sceneState->removeComponent(btn->getUuid());
+        }
+
+        m_toggleButtons.clear();
+
+        for (size_t i = 0; i < m_outputSlots.size() - 1; i++) {
+            const auto &slotUuid = m_outputSlots[i];
+            auto btn = std::make_shared<Bess::Canvas::UI::ToggleBtnComp>();
+            btn->setShowLabel(false);
+            btn->getStyle().margin = 0;
+            btn->getStyle().padding = 0;
+            ctx.sceneState->addComponent(btn);
+            m_toggleButtons.push_back(btn);
+
+            btn->prepareUI(ctx);
+        }
+
+        m_setBtnCbs = true;
+        ctx.parentNode = prevParent;
+        m_isUIDirty = false;
+    }
+
     std::vector<std::shared_ptr<SceneComponent>>
     InputSceneComponent::clone(const SceneState &sceneState) const {
         auto clonedComponent = std::make_shared<InputSceneComponent>(*this);
@@ -91,12 +119,31 @@ namespace Bess::Canvas {
             onFirstDraw(context);
         }
 
-        SimulationSceneComponent::draw(context);
+        if (m_setBtnCbs) {
+            for (size_t i = 0; i < m_toggleButtons.size(); i++) {
+                auto btn = m_toggleButtons[i];
+                const auto &slotUuid = m_outputSlots[i];
 
-        int i = 0;
-        for (const auto &slotUuid : m_outputSlots) {
-            drawToggleButton(context, slotUuid, i++);
+                const auto state = context.sceneState;
+                btn->setCallback([this, state, slotUuid](bool toggled) {
+                    const auto slotComp =
+                        state->getComponentByUuid<SlotSceneComponent>(slotUuid);
+                    BESS_ASSERT(slotComp,
+                                "Slot component not found for UUID: {}",
+                                (uint64_t)slotUuid);
+
+                    if (!slotComp) {
+                        return;
+                    }
+
+                    setOutputSlotState(*state, slotComp, toggled);
+                });
+            }
+
+            m_setBtnCbs = false;
         }
+
+        SimulationSceneComponent::draw(context);
     }
 
     void InputSceneComponent::drawToggleButton(SceneDrawContext &context,

@@ -474,6 +474,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
     }
 
     void SimulationSceneComponent::prepareUI(SceneUIPrepareCtx &ctx) {
+        auto prevParentNode = ctx.parentNode;
         auto uiNodeReg = ctx.sceneState->getUINodeRegistry();
         if (!m_uiNode) {
             m_uiNode = uiNodeReg->addNode(m_uuid);
@@ -564,6 +565,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         }
 
         m_isUIDirty = false;
+        ctx.parentNode = prevParentNode;
     }
 
     void SimulationSceneComponent::resetSchematicPinsPositions(

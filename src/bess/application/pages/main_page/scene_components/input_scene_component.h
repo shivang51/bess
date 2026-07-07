@@ -1,9 +1,10 @@
 #pragma once
 
+#include "bess_core/scene/scene_draw_context.h"
+#include "bess_core/scene/scene_state/scene_state.h"
+#include "bess_core/scene/scene_ui/controls/toggle_btn_comp.h"
 #include "common/bess_uuid.h"
 #include "common/types.h"
-#include "bess_core/scene/scene_state/scene_state.h"
-#include "bess_core/scene/scene_draw_context.h"
 #include "sim_scene_component.h"
 
 namespace Bess::Canvas {
@@ -30,6 +31,14 @@ namespace Bess::Canvas {
                               int buttonIndex);
 
         void update(TimeMs ts, SceneState &state) override;
+
+        void prepareUI(SceneUIPrepareCtx &ctx) override;
+
+      private:
+        std::vector<std::shared_ptr<Bess::Canvas::UI::ToggleBtnComp>>
+            m_toggleButtons;
+
+        bool m_setBtnCbs = false;
     };
 } // namespace Bess::Canvas
 
