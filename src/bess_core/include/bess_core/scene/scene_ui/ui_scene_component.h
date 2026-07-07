@@ -4,6 +4,7 @@
 #include "bess_core/scene/scene_ui/layout.h"
 #include "bess_core/style/bess_theme.h"
 #include "common/types.h"
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
@@ -23,12 +24,20 @@ namespace Bess::Canvas::UI {
         std::optional<Core::Style::Margin> margin;
     };
 
+    class UISceneComponent;
+    typedef std::function<void(SceneDrawContext &ctx, UISceneComponent *comp)>
+        UIDrawCallback;
+
     class UISceneComponent : public SceneComponent {
       public:
         DEFAULT_CONTRS(UISceneComponent)
 
         MAKE_GETTER_SETTER_PTR(UINode, UINode, m_node);
         MAKE_GETTER_SETTER(UIElementStyle, Style, m_customStyle);
+        MAKE_GETTER_SETTER(UIDrawCallback, DrawCallback, m_drawCallback);
+        MAKE_GETTER_SETTER(std::optional<uint32_t>,
+                           DrawRuntimeId,
+                           m_drawRuntimeId);
 
         std::vector<UUID> cleanup(SceneState &state,
                                   UUID caller = UUID::null) override;
@@ -39,6 +48,8 @@ namespace Bess::Canvas::UI {
         bool onMouseLeave(const Events::MouseLeaveEvent &e) override;
 
       protected:
+        uint32_t resolveRuntimeId() const;
+
         void onNameChanged() override;
 
         void initNode(const std::shared_ptr<UINodeRegistry> &reg);
@@ -53,5 +64,7 @@ namespace Bess::Canvas::UI {
         bool m_hovered = false;
         Core::Style::ElementStyle m_style;
         UIElementStyle m_customStyle;
+        UIDrawCallback m_drawCallback = nullptr;
+        std::optional<uint32_t> m_drawRuntimeId = std::nullopt;
     };
 } // namespace Bess::Canvas::UI

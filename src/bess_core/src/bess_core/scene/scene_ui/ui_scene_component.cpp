@@ -2,6 +2,7 @@
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "common/bess_assert.h"
+#include "common/bess_uuid.h"
 
 namespace Bess::Canvas::UI {
     namespace {
@@ -71,6 +72,10 @@ namespace Bess::Canvas::UI {
         return true;
     }
 
+    uint32_t UISceneComponent::resolveRuntimeId() const {
+        return resolveOptional(m_drawRuntimeId, m_runtimeId);
+    }
+
     void UISceneComponent::onNameChanged() {
         makeUIDirty();
     }
@@ -82,6 +87,7 @@ namespace Bess::Canvas::UI {
             setUINode(m_node);
         }
         m_node->clearChildren();
+        m_node->setZVal(m_transform.position.z);
     }
 
     void UISceneComponent::makeUIDirty() {
@@ -139,8 +145,15 @@ namespace Bess::Canvas::UI {
     void UISceneComponent::drawText(SceneDrawContext &state,
                                     const std::string &text,
                                     UINode *node) {
+
+        SceneComponent *parent = nullptr;
+
+        if (m_parentComponent != UUID::null) {
+            parent = state.sceneState->getComponentByUuid(m_parentComponent);
+        }
+
         PickingId pickingId{
-            .runtimeId = m_runtimeId,
+            .runtimeId = resolveRuntimeId(),
             .info = 0,
         };
 

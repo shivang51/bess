@@ -4,6 +4,8 @@
 #include "bess_core/scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_state/components/scene_component_types.h"
+#include "bess_core/scene/scene_ui/controls/container_comp.h"
+#include "bess_core/scene/scene_ui/controls/label_comp.h"
 #include "bess_core/scene/scene_ui/layout.h"
 #include "bess_core/settings/viewport_theme.h"
 #include "common/bess_uuid.h"
@@ -224,6 +226,11 @@ namespace Bess::Canvas {
         UI::UINode *m_inpBoxNode = nullptr, *m_outBoxNode = nullptr;
         UI::UINode *m_slotsBoxNode =
             nullptr; // contains both inp and out box nodes horizontally
+
+        std::shared_ptr<Bess::Canvas::UI::ContainerComp> m_nodeContainer =
+            nullptr;
+
+        std::shared_ptr<Bess::Canvas::UI::LabelComp> m_labelComp = nullptr;
 
         static uint32_t s_nodeShader;
         static size_t s_instanceCount;

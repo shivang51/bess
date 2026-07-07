@@ -12,7 +12,11 @@ namespace Bess::Canvas::UI {
 
     void ContainerComp::draw(SceneDrawContext &state) {
         if (m_drawBg) {
-            drawBgQuad(state);
+            if (m_drawCallback) {
+                m_drawCallback(state, this);
+            } else {
+                drawBgQuad(state);
+            }
         }
 
         drawChildren(state);

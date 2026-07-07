@@ -9,8 +9,11 @@
 #include "bess_core/scene/scene_state/components/styles/comp_style.h"
 #include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
 #include "bess_core/scene/scene_state/scene_state.h"
+#include "bess_core/scene/scene_ui/controls/container_comp.h"
+#include "bess_core/scene/scene_ui/controls/label_comp.h"
 #include "bess_core/scene/scene_ui/layout.h"
 #include "bess_core/settings/viewport_theme.h"
+#include "bess_core/style/bess_theme.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "input_scene_component.h"
@@ -303,10 +306,10 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
     }
 
     void SimulationSceneComponent::draw(SceneDrawContext &context) {
-        if (m_uiNode != nullptr) {
-            drawBackground(context);
-            drawSlots(context);
-        }
+        // if (m_uiNode != nullptr) {
+        //     // drawBackground(context);
+        //     // drawSlots(context);
+        // }
     }
 
     void SimulationSceneComponent::drawBackground(SceneDrawContext &context) {
@@ -358,30 +361,30 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
                 },
         });
 
-        const auto headerPosY = m_transform.position.y -
-                                (m_transform.scale.y / 2.f) +
-                                (headerHeight / 2.f);
-
-        const auto textPos_ =
-            glm::vec3(m_transform.position.x - (m_transform.scale.x / 2.f) +
-                          Styles::componentStyles.paddingX,
-                      headerPosY + Styles::simCompStyles.paddingY,
-                      m_transform.position.z + 0.0005f);
-
-        const auto textSize = m_headerNode->getDrawSize();
-        const auto yOff = context.renderer->textCenterOffsetY(
-            m_name, {.fontSize = Styles::simCompStyles.headerFontSize});
-        const auto textPos = m_headerNode->getDrawPos() +
-                             glm::vec3{-textSize.x / 2.f, yOff, 0.f};
-
-        // component name
-        SceneDraw::drawText(context,
-                            std::format("{} {}", m_icon, m_name),
-                            textPos,
-                            Styles::simCompStyles.headerFontSize,
-                            ViewportTheme::colors.text,
-                            pickingId,
-                            m_transform.angle);
+        // const auto headerPosY = m_transform.position.y -
+        //                         (m_transform.scale.y / 2.f) +
+        //                         (headerHeight / 2.f);
+        //
+        // const auto textPos_ =
+        //     glm::vec3(m_transform.position.x - (m_transform.scale.x / 2.f) +
+        //                   Styles::componentStyles.paddingX,
+        //               headerPosY + Styles::simCompStyles.paddingY,
+        //               m_transform.position.z + 0.0005f);
+        //
+        // const auto textSize = m_headerNode->getDrawSize();
+        // const auto yOff = context.renderer->textCenterOffsetY(
+        //     m_name, {.fontSize = Styles::simCompStyles.headerFontSize});
+        // const auto textPos = m_headerNode->getDrawPos() +
+        //                      glm::vec3{-textSize.x / 2.f, yOff, 0.f};
+        //
+        // // component name
+        // SceneDraw::drawText(context,
+        //                     std::format("{} {}", m_icon, m_name),
+        //                     textPos,
+        //                     Styles::simCompStyles.headerFontSize,
+        //                     ViewportTheme::colors.text,
+        //                     pickingId,
+        //                     m_transform.angle);
     }
 
     void SimulationSceneComponent::drawSlots(SceneDrawContext &context) {
@@ -476,95 +479,90 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
     void SimulationSceneComponent::prepareUI(SceneUIPrepareCtx &ctx) {
         auto prevParentNode = ctx.parentNode;
         auto uiNodeReg = ctx.sceneState->getUINodeRegistry();
-        if (!m_uiNode) {
-            m_uiNode = uiNodeReg->addNode(m_uuid);
-            m_uiNode->setPos(m_transform.position);
-            m_headerNode = uiNodeReg->addNode(UUID()); // for our header
-            m_inpBoxNode = uiNodeReg->addNode(UUID()); // for the input slots
-            m_outBoxNode = uiNodeReg->addNode(UUID()); // for the output slots
-            m_slotsBoxNode = uiNodeReg->addNode(
-                UUID()); // for thne inp and out box containers
+
+        if (m_nodeContainer == nullptr) {
+            m_nodeContainer =
+                UI::ContainerComp::create(UI::LayoutDirection::vertical);
+            ctx.sceneState->addComponent(m_nodeContainer);
+
+            m_labelComp = UI::LabelComp::create(m_name);
+            m_labelComp->setDrawRuntimeId(m_runtimeId);
+            ctx.sceneState->addComponent(m_labelComp);
+
+            ctx.sceneState->attachChild(m_nodeContainer->getUuid(),
+                                        m_labelComp->getUuid());
+
+            m_nodeContainer->getStyle().padding =
+                Core::Style::Padding::fromSymmetric(
+                    Styles::simCompStyles.paddingX,
+                    Styles::simCompStyles.paddingY);
+
+            ctx.parentNode = m_nodeContainer->getUINode();
+            m_nodeContainer->setDrawBackground(true);
+            m_nodeContainer->setDrawCallback(
+                [this](SceneDrawContext &context, UI::UISceneComponent *comp) {
+                    const auto pickingId = PickingId{
+                        m_runtimeId,
+                        0,
+                    };
+
+                    const auto *uiNode = comp->getUINode();
+                    Core::Renderer::QuadProps quadProps;
+                    quadProps.position = uiNode->getDrawPos();
+                    quadProps.size = uiNode->getDrawSize();
+                    quadProps.color = ViewportTheme::colors.componentBG;
+                    quadProps.id = pickingId;
+                    // quadProps.rotation = m_transform.angle;
+                    quadProps.zIndex = uiNode->getDrawPos().z;
+                    quadProps.renderPass =
+                        Core::Renderer::QuadRenderPass::Transparent;
+                    quadProps.radius = Styles::componentStyles.borderRadius;
+                    quadProps.shadow.enabled = true;
+                    quadProps.shadow.offset = {0.f, 7.f};
+                    quadProps.shadow.blur = 18.f;
+                    quadProps.shadow.spread = 1.f;
+                    quadProps.shadow.color = Core::Renderer::Color{
+                        0.f,
+                        0.f,
+                        0.f,
+                        0.28f,
+                    };
+
+                    const auto &borderColor =
+                        m_isSelected ? ViewportTheme::colors.selectedComp
+                                     : ViewportTheme::colors.componentBorder;
+                    const float headerHeight =
+                        Styles::componentStyles.headerHeight;
+
+                    context.renderer->drawCustomQuad({
+                        .quad = quadProps,
+                        .shader = s_nodeShader,
+                        .data =
+                            {
+                                glm::vec4{
+                                    Styles::componentStyles.borderRadius
+                                        .x, // border raidus
+                                    Styles::componentStyles.borderRadius.y,
+                                    Styles::componentStyles.borderSize
+                                        .x, // border size
+                                    Styles::componentStyles.borderSize.y,
+                                },
+                                m_style.headerColor,
+                                borderColor,
+                                glm::vec4(headerHeight / m_transform.scale.y,
+                                          (int)ViewportTheme::isDark,
+                                          0.f,
+                                          0.f),
+                            },
+                    });
+                });
         }
 
-        m_uiNode->clearChildren();
-        m_inpBoxNode->clearChildren();
-        m_outBoxNode->clearChildren();
-        m_slotsBoxNode->clearChildren();
+        m_nodeContainer->prepareUI(ctx);
+        m_uiNode = m_nodeContainer->getUINode();
 
-        m_uiNode->addChild(m_headerNode);
-        m_uiNode->addChild(m_slotsBoxNode);
-        m_slotsBoxNode->addChild(m_inpBoxNode);
-        m_slotsBoxNode->addChild(m_outBoxNode);
+        m_nodeContainer->setPosition(m_transform.position);
 
-        const auto labelSize = ctx.renderer->measureText(
-            std::format("{} {}", m_icon, m_name),
-            {.fontSize = Styles::simCompStyles.headerFontSize});
-
-        // Main Node
-        m_uiNode->setDirection(Canvas::UI::LayoutDirection::vertical);
-        m_uiNode->setPadding({
-            Canvas::Styles::simCompStyles.paddingY,
-            Canvas::Styles::simCompStyles.paddingX,
-            Canvas::Styles::simCompStyles.paddingY,
-            Canvas::Styles::simCompStyles.paddingX,
-        });
-        m_uiNode->setZVal(m_transform.position.z);
-
-        // Header Node
-        m_headerNode->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
-        m_headerNode->setSize(labelSize);
-        m_headerNode->setMargin({
-            0,
-            0,
-            Canvas::Styles::simCompStyles.rowMargin,
-            0,
-        });
-
-        // Slots Box Node
-        m_slotsBoxNode->setDirection(Canvas::UI::LayoutDirection::horizontal);
-        m_slotsBoxNode->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
-        m_slotsBoxNode->setSize({1.f, -1.f});
-        m_slotsBoxNode->setSizeUnit(Canvas::UI::Unit::relative);
-
-        // Inputs
-        ctx.parentNode = m_inpBoxNode;
-        m_inpBoxNode->setDirection(Canvas::UI::LayoutDirection::vertical);
-        m_inpBoxNode->setCrossAxisAlignment(Canvas::UI::LayoutAlignment::start);
-        m_inpBoxNode->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
-        m_inpBoxNode->setSize({0.5f, -1.f});
-        m_inpBoxNode->setSizeUnit(Canvas::UI::Unit::relative);
-        m_inpBoxNode->setMargin({
-            0,
-            Canvas::Styles::simCompStyles.paddingX,
-            0,
-            0,
-        });
-        m_inpBoxNode->setZVal(0.0001f);
-        for (const auto &childId : m_inputSlots) {
-            auto child = ctx.sceneState->getComponentByUuid(childId);
-            BESS_ASSERT(child,
-                        "Input slot component with UUID {} not found",
-                        (uint64_t)childId);
-            child->prepareUI(ctx);
-        }
-
-        // Outputs
-        ctx.parentNode = m_outBoxNode;
-        m_outBoxNode->setDirection(Canvas::UI::LayoutDirection::vertical);
-        m_outBoxNode->setCrossAxisAlignment(Canvas::UI::LayoutAlignment::end);
-        m_outBoxNode->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
-        m_outBoxNode->setSize({0.5f, -1.f});
-        m_outBoxNode->setSizeUnit(Canvas::UI::Unit::relative);
-        m_outBoxNode->setZVal(0.0001f);
-        for (const auto &childId : m_outputSlots) {
-            auto child = ctx.sceneState->getComponentByUuid(childId);
-            BESS_ASSERT(child,
-                        "Output slot component with UUID {} not found",
-                        (uint64_t)childId);
-            child->prepareUI(ctx);
-        }
-
-        m_isUIDirty = false;
         ctx.parentNode = prevParentNode;
     }
 
