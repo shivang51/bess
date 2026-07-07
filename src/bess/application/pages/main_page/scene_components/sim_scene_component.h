@@ -128,8 +128,6 @@ namespace Bess::Canvas {
                            CompDef,
                            m_compDef)
 
-        MAKE_GETTER_SETTER_PTR(UI::UINode, UINode, m_uiNode)
-
         const std::vector<UUID> &getInputSlots() const;
         void setInputSlots(const std::vector<UUID> &slotIds);
 
@@ -222,13 +220,14 @@ namespace Bess::Canvas {
         Transform m_schematicTransform;
         std::shared_ptr<SimEngine::Drivers::CompDef> m_compDef = nullptr;
 
-        UI::UINode *m_uiNode = nullptr, *m_headerNode = nullptr;
         UI::UINode *m_inpBoxNode = nullptr, *m_outBoxNode = nullptr;
         UI::UINode *m_slotsBoxNode =
             nullptr; // contains both inp and out box nodes horizontally
 
         std::shared_ptr<Bess::Canvas::UI::ContainerComp> m_nodeContainer =
-            nullptr;
+                                                             nullptr,
+                                                         m_slotsContainer =
+                                                             nullptr;
 
         std::shared_ptr<Bess::Canvas::UI::LabelComp> m_labelComp = nullptr;
 

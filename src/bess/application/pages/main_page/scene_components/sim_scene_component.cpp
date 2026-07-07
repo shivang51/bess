@@ -275,8 +275,9 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
     void SimulationSceneComponent::resetCloneRuntimeState() {
         SceneComponent::resetCloneRuntimeState();
 
-        m_uiNode = nullptr;
-        m_headerNode = nullptr;
+        m_nodeContainer = nullptr;
+        m_slotsContainer = nullptr;
+        m_labelComp = nullptr;
         m_inpBoxNode = nullptr;
         m_outBoxNode = nullptr;
         m_slotsBoxNode = nullptr;
@@ -315,15 +316,15 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
     void SimulationSceneComponent::drawBackground(SceneDrawContext &context) {
         BESS_ASSERT(s_nodeShader != 0, "Node shader not initialized");
 
-        if (m_uiNode == nullptr) {
+        if (m_nodeContainer == nullptr) {
             return;
         }
 
         const auto pickingId = PickingId{m_runtimeId, 0};
 
         Core::Renderer::QuadProps quadProps;
-        quadProps.position = m_uiNode->getCachedPos();
-        quadProps.size = m_uiNode->getDrawSize();
+        quadProps.position = m_nodeContainer->getUINode()->getDrawPos();
+        quadProps.size = m_nodeContainer->getUINode()->getDrawSize();
         quadProps.color = ViewportTheme::colors.componentBG;
         quadProps.id = pickingId;
         quadProps.rotation = m_transform.angle;
@@ -487,6 +488,11 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
 
             m_labelComp = UI::LabelComp::create(m_name);
             m_labelComp->setDrawRuntimeId(m_runtimeId);
+            m_labelComp->setName(std::format("{} {}", m_icon, m_name));
+
+            auto &labelStyle = m_labelComp->getStyle();
+            labelStyle.fontSize = Styles::simCompStyles.headerFontSize;
+
             ctx.sceneState->addComponent(m_labelComp);
 
             ctx.sceneState->attachChild(m_nodeContainer->getUuid(),
@@ -559,7 +565,6 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         }
 
         m_nodeContainer->prepareUI(ctx);
-        m_uiNode = m_nodeContainer->getUINode();
 
         m_nodeContainer->setPosition(m_transform.position);
 
@@ -621,8 +626,8 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
 
     void SimulationSceneComponent::markSlotsUIDirty() {
         m_isUIDirty = true;
-        if (m_uiNode) {
-            m_uiNode->setSizeDirty();
+        if (m_slotsContainer) {
+            m_slotsContainer->getUINode()->setSizeDirty();
         }
     }
 
@@ -711,8 +716,8 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
     }
 
     void SimulationSceneComponent::setScaleDirty(bool val) {
-        if (val && m_uiNode) {
-            m_uiNode->setSizeDirty();
+        if (val && m_nodeContainer) {
+            m_nodeContainer->getUINode()->setSizeDirty();
         }
     }
 
@@ -843,7 +848,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
                     glm::vec3(newPos, m_transform.position.z);
             }
         } else {
-            m_uiNode->setPosDirty();
+            m_nodeContainer->getUINode()->setPosDirty();
             setPosition(glm::vec3(newPos, m_transform.position.z));
             if (m_isFirstSchematicDraw) {
                 m_schematicTransform.position =
@@ -867,8 +872,8 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
 
             return parentComp->getAbsolutePosition(state, isSchematicMode) +
                    m_schematicTransform.position;
-        } else if (m_uiNode) {
-            return m_uiNode->getDrawPos();
+        } else if (m_nodeContainer) {
+            return m_nodeContainer->getUINode()->getDrawPos();
         } else {
             return SceneComponent::getAbsolutePosition(state, isSchematicMode);
         }
@@ -876,8 +881,8 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
 
     void SimulationSceneComponent::onTransformChanged() {
         m_schematicTransform.position.z = m_transform.position.z;
-        if (m_uiNode) {
-            m_uiNode->setPos(m_transform.position);
+        if (m_nodeContainer) {
+            m_nodeContainer->getUINode()->setPos(m_transform.position);
         }
     }
 

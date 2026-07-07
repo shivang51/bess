@@ -120,6 +120,9 @@ namespace Bess::Canvas::UI {
 
         m_style.activeColor =
             resolveOptional(m_customStyle.activeColor, m_style.activeColor);
+
+        m_style.textStyle.fontSize =
+            resolveOptional(m_customStyle.fontSize, m_style.textStyle.fontSize);
     }
 
     void UISceneComponent::drawBgQuad(SceneDrawContext &state) {

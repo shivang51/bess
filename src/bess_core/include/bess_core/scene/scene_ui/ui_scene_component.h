@@ -3,7 +3,6 @@
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_ui/layout.h"
 #include "bess_core/style/bess_theme.h"
-#include "common/types.h"
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -22,6 +21,8 @@ namespace Bess::Canvas::UI {
 
         std::optional<Core::Style::Padding> padding;
         std::optional<Core::Style::Margin> margin;
+
+        std::optional<float> fontSize;
     };
 
     class UISceneComponent;
