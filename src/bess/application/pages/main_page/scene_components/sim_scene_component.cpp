@@ -798,7 +798,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
     }
 
     void SimulationSceneComponent::setScaleDirty(bool val) {
-        if (val && m_nodeContainer) {
+        if (val && m_nodeContainer && m_nodeContainer->getUINode()) {
             m_nodeContainer->getUINode()->setSizeDirty();
         }
     }
@@ -829,6 +829,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
         auto &simEngine = projectCtx->getSimEngine();
         simEngine.deleteComponent(m_simEngineId);
+        m_isUIDirty = true;
         m_simEngineId = UUID::null;
 
         return removedIds;
@@ -954,7 +955,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
 
             return parentComp->getAbsolutePosition(state, isSchematicMode) +
                    m_schematicTransform.position;
-        } else if (m_nodeContainer) {
+        } else if (m_nodeContainer && m_nodeContainer->getUINode()) {
             return m_nodeContainer->getUINode()->getDrawPos();
         } else {
             return SceneComponent::getAbsolutePosition(state, isSchematicMode);
