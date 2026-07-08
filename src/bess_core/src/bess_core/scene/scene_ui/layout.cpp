@@ -695,6 +695,9 @@ namespace Bess::Canvas::UI {
             parentTopLeft.x = parentPos.x - parentSize.x / 2.f;
             parentTopLeft.y = parentPos.y - parentSize.y / 2.f;
             parentTopLeft.z = parentPos.z;
+        } else {
+            parentTopLeft.x = -m_drawSize.x / 2.f;
+            parentTopLeft.y = -m_drawSize.y / 2.f;
         }
 
         // Absolute screen-space coordinates
