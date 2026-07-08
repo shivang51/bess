@@ -192,6 +192,14 @@ namespace Bess::Canvas {
 
         void prepareUI(SceneUIPrepareCtx &ctx) override;
 
+        std::shared_ptr<UI::ContainerComp> getInputSlotsContainer() const {
+            return m_inpSlotsContainer;
+        }
+
+        std::shared_ptr<UI::ContainerComp> getOutputSlotsContainer() const {
+            return m_outSlotsContainer;
+        }
+
       protected:
         /**
          * Resets the schematic pin positions based on the current schematic

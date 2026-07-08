@@ -15,6 +15,7 @@ void bind_sim_scene_component(py::module_ &m);
 void bind_scene_state(py::module_ &m);
 void bind_renderer(py::module_ &m);
 void bind_scene_common_binding(py::module_ &m);
+void bind_scene_ui(py::module_ &m);
 void bind_asset_manager(py::module_ &m);
 void bind_ui_hook(py::module_ &m);
 void bind_bess_ui(py::module_ &m);
@@ -71,6 +72,7 @@ void bind_api(py::module_ &m) {
     bind_renderer(renderer);
     bind_scene_state(scene);
     bind_scene_component(scene);
+    bind_scene_ui(scene);
     bind_scene_schematic_diagram(scene);
     bind_sim_scene_component(scene);
     bind_scene_widgets(scene);

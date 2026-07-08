@@ -395,6 +395,26 @@ void bind_sim_scene_component(py::module_ &m) {
                 [](const Bess::Canvas::SimulationSceneComponent &self) {
                     return self.getRuntimeId();
                 })
+            .def_property_readonly(
+                "inp_slots_container",
+                [](const Bess::Canvas::SimulationSceneComponent &self) {
+                    return self.getInputSlotsContainer();
+                })
+            .def_property_readonly(
+                "out_slots_container",
+                [](const Bess::Canvas::SimulationSceneComponent &self) {
+                    return self.getOutputSlotsContainer();
+                })
+            .def_property_readonly(
+                "input_slots_container",
+                [](const Bess::Canvas::SimulationSceneComponent &self) {
+                    return self.getInputSlotsContainer();
+                })
+            .def_property_readonly(
+                "output_slots_container",
+                [](const Bess::Canvas::SimulationSceneComponent &self) {
+                    return self.getOutputSlotsContainer();
+                })
             .def("copy",
                  [&](const Bess::Canvas::SimulationSceneComponent &self) {
                      auto c = std::make_shared<
