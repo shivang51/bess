@@ -62,8 +62,7 @@ namespace Bess::Canvas {
                     continue;
                 }
 
-                const auto slotType = slotComp->getSlotType();
-                if (slotType != SlotType::outputsResize) {
+                if (!slotComp->isResizeSlot()) {
                     const auto slotParentComp =
                         state.getComponentByUuid<SimulationSceneComponent>(
                             slotComp->getParentComponent());
@@ -207,12 +206,8 @@ namespace Bess::Canvas {
             return;
         }
 
-        const auto slotType = slotComp->getSlotType();
-
-        BESS_ASSERT(slotType == SlotType::digitalOutput ||
-                        slotType == SlotType::outputsResize,
-                    "Unexpected slot type for input component: {}",
-                    static_cast<int>(slotType));
+        BESS_ASSERT(!slotComp->isInputSlot(),
+                    "Unexpected input port for input component");
 
         const auto slotPosY =
             slotComp->getAbsolutePosition(state, context.isSchematicMode).y;
@@ -227,7 +222,7 @@ namespace Bess::Canvas {
         const auto pickingId =
             PickingId{m_runtimeId, static_cast<uint32_t>(buttonIndex + 1)};
 
-        if (slotType == SlotType::outputsResize) {
+        if (slotComp->isResizeSlot()) {
             if (SceneWidgets::button(
                     pickingId,
                     "All Low",

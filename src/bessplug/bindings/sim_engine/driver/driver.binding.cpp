@@ -46,91 +46,59 @@ class PySimDriver : public Bess::SimEngine::Drivers::SimDriver {
     }
 
     CanConnectResult
-    canConnectComponents(const Bess::UUID &src,
-                         int srcSlotIdx,
-                         Bess::SimEngine::SlotType srcType,
-                         const Bess::UUID &dst,
-                         int dstSlotIdx,
-                         Bess::SimEngine::SlotType dstType) const override {
+    canConnectPorts(const Bess::SimEngine::PortRef &src,
+                    const Bess::SimEngine::PortRef &dst) const override {
         PYBIND11_OVERRIDE_PURE_NAME(CanConnectResult,
                                     Bess::SimEngine::Drivers::SimDriver,
-                                    "can_connect_components",
-                                    canConnectComponents,
+                                    "can_connect_ports",
+                                    canConnectPorts,
                                     src,
-                                    srcSlotIdx,
-                                    srcType,
-                                    dst,
-                                    dstSlotIdx,
-                                    dstType);
+                                    dst);
     }
 
-    bool connectComponent(const Bess::UUID &src,
-                          int srcSlotIdx,
-                          Bess::SimEngine::SlotType srcType,
-                          const Bess::UUID &dst,
-                          int dstSlotIdx,
-                          Bess::SimEngine::SlotType dstType,
-                          bool overrideConn) override {
+    bool connectPorts(const Bess::SimEngine::PortRef &src,
+                      const Bess::SimEngine::PortRef &dst,
+                      bool overrideConn) override {
         PYBIND11_OVERRIDE_PURE_NAME(bool,
                                     Bess::SimEngine::Drivers::SimDriver,
-                                    "connect_component",
-                                    connectComponent,
+                                    "connect_ports",
+                                    connectPorts,
                                     src,
-                                    srcSlotIdx,
-                                    srcType,
                                     dst,
-                                    dstSlotIdx,
-                                    dstType,
                                     overrideConn);
     }
 
-    void deleteConnection(const Bess::UUID &compA,
-                          Bess::SimEngine::SlotType pinAType,
-                          int idxA,
-                          const Bess::UUID &compB,
-                          Bess::SimEngine::SlotType pinBType,
-                          int idxB) override {
+    void deleteConnection(const Bess::SimEngine::PortRef &portA,
+                          const Bess::SimEngine::PortRef &portB) override {
         PYBIND11_OVERRIDE_PURE_NAME(void,
                                     Bess::SimEngine::Drivers::SimDriver,
                                     "delete_connection",
                                     deleteConnection,
-                                    compA,
-                                    pinAType,
-                                    idxA,
-                                    compB,
-                                    pinBType,
-                                    idxB);
+                                    portA,
+                                    portB);
     }
 
     Bess::SimEngine::Drivers::SlotsCountChangeRes
-    addSlot(const Bess::UUID &compId,
-            Bess::SimEngine::SlotType type,
-            int index,
+    addPort(const Bess::SimEngine::PortRef &port,
             bool force = false) override {
         PYBIND11_OVERRIDE_PURE_NAME(
             Bess::SimEngine::Drivers::SlotsCountChangeRes,
             Bess::SimEngine::Drivers::SimDriver,
-            "add_slot",
-            addSlot,
-            compId,
-            type,
-            index,
+            "add_port",
+            addPort,
+            port,
             force);
     }
 
     Bess::SimEngine::Drivers::SlotsCountChangeRes
-    removeSlot(const Bess::UUID &compId,
-               Bess::SimEngine::SlotType type,
-               int index,
+    removePort(const Bess::SimEngine::PortRef &port,
                bool force = false) override {
         PYBIND11_OVERRIDE_PURE_NAME(
             Bess::SimEngine::Drivers::SlotsCountChangeRes,
             Bess::SimEngine::Drivers::SimDriver,
-            "remove_slot",
-            removeSlot,
-            compId,
-            type,
-            index,
+            "remove_port",
+            removePort,
+            port,
             force);
     }
 
@@ -275,42 +243,26 @@ void bind_sim_engine_driver(py::module_ &m) {
         .def("is_stopped", &SimDriver::isStopped)
         .def("is_destroyed", &SimDriver::isDestroyed)
         .def("has_component", &SimDriver::hasComponent)
-        .def("can_connect_components",
-             &SimDriver::canConnectComponents,
+        .def("can_connect_ports",
+             &SimDriver::canConnectPorts,
              py::arg("src"),
-             py::arg("src_slot_idx"),
-             py::arg("src_type"),
-             py::arg("dst"),
-             py::arg("dst_slot_idx"),
-             py::arg("dst_type"))
-        .def("connect_component",
-             &SimDriver::connectComponent,
+             py::arg("dst"))
+        .def("connect_ports",
+             &SimDriver::connectPorts,
              py::arg("src"),
-             py::arg("src_slot_idx"),
-             py::arg("src_type"),
              py::arg("dst"),
-             py::arg("dst_slot_idx"),
-             py::arg("dst_type"),
              py::arg("override_conn") = false)
         .def("delete_connection",
              &SimDriver::deleteConnection,
-             py::arg("comp_a"),
-             py::arg("pin_a_type"),
-             py::arg("idx_a"),
-             py::arg("comp_b"),
-             py::arg("pin_b_type"),
-             py::arg("idx_b"))
-        .def("add_slot",
-             &SimDriver::addSlot,
-             py::arg("component_id"),
-             py::arg("slot_type"),
-             py::arg("index"),
+             py::arg("port_a"),
+             py::arg("port_b"))
+        .def("add_port",
+             &SimDriver::addPort,
+             py::arg("port"),
              py::arg("force") = false)
-        .def("remove_slot",
-             &SimDriver::removeSlot,
-             py::arg("component_id"),
-             py::arg("slot_type"),
-             py::arg("index"),
+        .def("remove_port",
+             &SimDriver::removePort,
+             py::arg("port"),
              py::arg("force") = false)
         .def("clear_pending_events", &SimDriver::clearPendingEvents)
         .def("is_sim_stable", &SimDriver::isSimStable)

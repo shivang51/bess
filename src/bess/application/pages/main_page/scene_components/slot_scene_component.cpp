@@ -132,12 +132,11 @@ namespace Bess::Canvas {
         auto bg = ViewportTheme::colors.stateLow;
         auto border = bg;
 
-        const bool isResizeSlot = m_slotType == SlotType::inputsResize ||
-                                  m_slotType == SlotType::outputsResize;
-        const bool isConnected = !isResizeSlot && isSlotConnected(state);
+        const bool isResizeTrigger = isResizeSlot();
+        const bool isConnected = !isResizeTrigger && isSlotConnected(state);
         float radiusGap = 1.f;
 
-        if (isResizeSlot) {
+        if (isResizeTrigger) {
             bg.a = 0.1f;
             radiusGap = 0.25f;
         } else {
@@ -253,81 +252,43 @@ namespace Bess::Canvas {
         BESS_ASSERT(m_parentComponent != UUID::null,
                     "Parent component UUID is null, {}",
                     (uint64_t)m_uuid);
-        BESS_ASSERT(m_index >= 0, "Slot index is negative");
 
-        const auto parentComp =
-            state.getComponentByUuid<SimulationSceneComponent>(
-                m_parentComponent);
-        if (!parentComp || m_index < 0) {
+        const auto port = getPortRef(state);
+        if (!port.isValid()) {
             return {SimEngine::LogicState::unknown, SimEngine::SimTime(0)};
         }
 
         auto &appCtx = Bess::GAppContext::getInstance();
         auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
         auto &simEngine = projectCtx->getSimEngine();
-        const auto digitalComp =
-            simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
-                parentComp->getSimEngineId());
-        if (!digitalComp) {
-            return {SimEngine::LogicState::unknown, SimEngine::SimTime(0)};
-        }
-
-        if (isInputSlot()) {
-            const auto &inputs = digitalComp->getInputStates();
-            BESS_ASSERT(static_cast<size_t>(m_index) < inputs.size(),
-                        "Slot index greater than input states size");
-            if (static_cast<size_t>(m_index) >= inputs.size()) {
-                return {SimEngine::LogicState::unknown, SimEngine::SimTime(0)};
-            }
-            return inputs[m_index];
-        }
-
-        const auto &outputs = digitalComp->getOutputStates();
-
-        BESS_ASSERT(static_cast<size_t>(m_index) < outputs.size(),
-                    "Slot index greater than output states size");
-        if (static_cast<size_t>(m_index) >= outputs.size()) {
-            return {SimEngine::LogicState::unknown, SimEngine::SimTime(0)};
-        }
-
-        return outputs[m_index];
+        return simEngine.getPortState(port);
     }
 
     bool SlotSceneComponent::isSlotConnected(const SceneState &state) const {
-        const auto parentComp =
-            state.getComponentByUuid<SimulationSceneComponent>(
-                m_parentComponent);
-        if (!parentComp || m_index < 0) {
+        const auto port = getPortRef(state);
+        if (!port.isValid()) {
             return false;
         }
 
         auto &appCtx = Bess::GAppContext::getInstance();
         auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
         auto &simEngine = projectCtx->getSimEngine();
-        const auto digitalComp =
-            simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
-                parentComp->getSimEngineId());
-        if (!digitalComp) {
-            return false;
+        const auto stateSnapshot =
+            simEngine.getComponentState(port.componentId);
+
+        if (port.isInput()) {
+            if (static_cast<size_t>(port.index) >=
+                stateSnapshot.inputConnected.size()) {
+                return false;
+            }
+            return stateSnapshot.inputConnected[port.index];
         }
 
-        if (isInputSlot()) {
-            const auto &connected = digitalComp->getIsInputConnected();
-            BESS_ASSERT(static_cast<size_t>(m_index) < connected.size(),
-                        "Slot index greater than inputs in sim engine");
-            if (static_cast<size_t>(m_index) >= connected.size()) {
-                return false;
-            }
-            return connected[m_index];
-        } else {
-            const auto &connected = digitalComp->getIsOutputConnected();
-            BESS_ASSERT(static_cast<size_t>(m_index) < connected.size(),
-                        "Slot index greater than outputs in sim engine");
-            if (static_cast<size_t>(m_index) >= connected.size()) {
-                return false;
-            }
-            return connected[m_index];
+        if (static_cast<size_t>(port.index) >=
+            stateSnapshot.outputConnected.size()) {
+            return false;
         }
+        return stateSnapshot.outputConnected[port.index];
     }
 
     void SlotSceneComponent::addConnection(const UUID &connectionId) {
@@ -345,7 +306,7 @@ namespace Bess::Canvas {
         auto pos = getAbsolutePosition(state, isSchematicMode);
 
         if (isSchematicMode) {
-            const float offsetX = (m_slotType == SlotType::digitalInput)
+            const float offsetX = isInputSlot()
                                       ? -Styles::compSchematicStyles.pinSize
                                       : Styles::compSchematicStyles.pinSize;
             pos.x += offsetX;
@@ -354,13 +315,26 @@ namespace Bess::Canvas {
         return pos;
     }
 
+    SimEngine::PortRef
+    SlotSceneComponent::getPortRef(const SceneState &state) const {
+        const auto parentComp =
+            state.getComponentByUuid<SimulationSceneComponent>(
+                m_parentComponent);
+        if (!parentComp) {
+            return {};
+        }
+
+        return {.componentId = parentComp->getSimEngineId(),
+                .direction = m_portDirection,
+                .signalKind = m_signalKind,
+                .index = m_index};
+    }
+
     bool SlotSceneComponent::isResizeSlot() const {
-        return m_slotType == SlotType::inputsResize ||
-               m_slotType == SlotType::outputsResize;
+        return m_resizeTrigger;
     }
     bool SlotSceneComponent::isInputSlot() const {
-        return m_slotType == SlotType::digitalInput ||
-               m_slotType == SlotType::inputsResize;
+        return m_portDirection == SimEngine::PortDirection::input;
     }
 
     glm::vec3

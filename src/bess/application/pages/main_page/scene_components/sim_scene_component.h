@@ -72,7 +72,7 @@ namespace Bess::Canvas {
                                          def->getOutputSlotsInfo().count);
 
             for (const auto &slot : slots) {
-                if (slot->getSlotType() == SlotType::digitalInput) {
+                if (slot->isInputSlot()) {
                     if (inpDetails.names.size() > inSlotIdx)
                         slot->setName(inpDetails.names[inSlotIdx++]);
                     else
@@ -88,7 +88,9 @@ namespace Bess::Canvas {
 
             if (inpDetails.isResizeable) {
                 auto slot = std::make_shared<SlotSceneComponent>();
-                slot->setSlotType(SlotType::inputsResize);
+                slot->setPortDirection(SimEngine::PortDirection::input);
+                slot->setSignalKind(SimEngine::SignalKind::digital);
+                slot->setResizeTrigger(true);
                 slot->setIndex(-1); // assign -1 for resize slots
                 sceneComp->addInputSlot(slot->getUuid(), false);
                 createdComps.push_back(slot);
@@ -96,7 +98,9 @@ namespace Bess::Canvas {
 
             if (outDetails.isResizeable) {
                 auto slot = std::make_shared<SlotSceneComponent>();
-                slot->setSlotType(SlotType::outputsResize);
+                slot->setPortDirection(SimEngine::PortDirection::output);
+                slot->setSignalKind(SimEngine::SignalKind::digital);
+                slot->setResizeTrigger(true);
                 slot->setIndex(-1); // assign -1 for resize slots
                 sceneComp->addOutputSlot(slot->getUuid(), false);
                 createdComps.push_back(slot);

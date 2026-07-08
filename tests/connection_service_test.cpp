@@ -26,6 +26,13 @@ namespace {
         return projectCtx->getSimEngine();
     }
 
+    PortRef digitalPort(const UUID &uuid, PortDirection direction, int index) {
+        return {.componentId = uuid,
+                .direction = direction,
+                .signalKind = SignalKind::digital,
+                .index = index};
+    }
+
     std::shared_ptr<Drivers::CompDef>
     findDefinitionByName(std::string_view name) {
         const auto &components = ComponentCatalog::instance().getComponents();
@@ -301,8 +308,7 @@ TEST_F(ResizeSlotConnectionTest,
     const size_t originalConnSize = digComp->getInputConnections().size();
 
     bool added =
-        simEngine.addSlot(simId, Bess::SimEngine::SlotType::digitalInput,
-                          static_cast<int>(originalInputCount));
+        simEngine.addPort(digitalPort(simId, Bess::SimEngine::PortDirection::input, static_cast<int>(originalInputCount)));
 
     EXPECT_TRUE(added);
     EXPECT_EQ(digDef->getInputSlotsInfo().count, originalInputCount + 1);
@@ -323,13 +329,11 @@ TEST_F(ResizeSlotConnectionTest,
     ASSERT_NE(digDef, nullptr);
 
     // First grow the gate to 3 inputs
-    simEngine.addSlot(gate.comp->getSimEngineId(),
-                      Bess::SimEngine::SlotType::digitalInput, 2);
+    simEngine.addPort(digitalPort(gate.comp->getSimEngineId(), Bess::SimEngine::PortDirection::input, 2));
     ASSERT_EQ(digDef->getInputSlotsInfo().count, 3u);
 
     bool removed =
-        simEngine.removeSlot(gate.comp->getSimEngineId(),
-                             Bess::SimEngine::SlotType::digitalInput, 2);
+        simEngine.removePort(digitalPort(gate.comp->getSimEngineId(), Bess::SimEngine::PortDirection::input, 2));
 
     EXPECT_TRUE(removed);
     EXPECT_EQ(digDef->getInputSlotsInfo().count, 2u);
@@ -343,8 +347,7 @@ TEST_F(ResizeSlotConnectionTest, RemoveSlotOnNonResizeableOutputReturnsFalse) {
 
     // AND gate output is NOT resizeable
     bool removed =
-        simEngine.removeSlot(gate.comp->getSimEngineId(),
-                             Bess::SimEngine::SlotType::digitalOutput, 0);
+        simEngine.removePort(digitalPort(gate.comp->getSimEngineId(), Bess::SimEngine::PortDirection::output, 0));
     EXPECT_FALSE(removed);
 }
 
@@ -352,8 +355,7 @@ TEST_F(ResizeSlotConnectionTest, AddSlotOnNonResizeableOutputReturnsFalse) {
     const auto gate = addSimComponent(andDef);
     auto &simEngine = testSimEngine();
 
-    bool added = simEngine.addSlot(gate.comp->getSimEngineId(),
-                                   Bess::SimEngine::SlotType::digitalOutput, 0);
+    bool added = simEngine.addPort(digitalPort(gate.comp->getSimEngineId(), Bess::SimEngine::PortDirection::output, 0));
     EXPECT_FALSE(added);
 }
 
@@ -368,16 +370,12 @@ TEST_F(ResizeSlotConnectionTest, ConnectToNewlyAddedSlotSucceeds) {
     ASSERT_NE(digComp, nullptr);
 
     // Add a third input slot
-    bool added = simEngine.addSlot(gate.comp->getSimEngineId(),
-                                   Bess::SimEngine::SlotType::digitalInput, 2);
+    bool added = simEngine.addPort(digitalPort(gate.comp->getSimEngineId(), Bess::SimEngine::PortDirection::input, 2));
     ASSERT_TRUE(added);
     ASSERT_EQ(digComp->getInputConnections().size(), 3u);
 
     // Connect source output 0 → gate input 2
-    bool connected = simEngine.connectComponent(
-        source.comp->getSimEngineId(), 0,
-        Bess::SimEngine::SlotType::digitalOutput, gate.comp->getSimEngineId(),
-        2, Bess::SimEngine::SlotType::digitalInput);
+    bool connected = simEngine.connectPorts(digitalPort(source.comp->getSimEngineId(), Bess::SimEngine::PortDirection::output, 0), digitalPort(gate.comp->getSimEngineId(), Bess::SimEngine::PortDirection::input, 2));
 
     EXPECT_TRUE(connected);
     EXPECT_FALSE(digComp->getInputConnections()[2].empty());
@@ -389,9 +387,7 @@ TEST_F(ResizeSlotConnectionTest, MultipleAddSlotsThenConnectEachSlot) {
 
     // Grow from 2 to 5 inputs
     for (int i = 2; i < 5; ++i) {
-        EXPECT_TRUE(simEngine.addSlot(gate.comp->getSimEngineId(),
-                                      Bess::SimEngine::SlotType::digitalInput,
-                                      i));
+        EXPECT_TRUE(simEngine.addPort(digitalPort(gate.comp->getSimEngineId(), Bess::SimEngine::PortDirection::input, i)));
     }
 
     const auto digComp =
@@ -404,10 +400,7 @@ TEST_F(ResizeSlotConnectionTest, MultipleAddSlotsThenConnectEachSlot) {
     for (int i = 0; i < 5; ++i) {
         const auto src = addSimComponent(inputDef);
         bool ok =
-            simEngine.connectComponent(src.comp->getSimEngineId(), 0,
-                                       Bess::SimEngine::SlotType::digitalOutput,
-                                       gate.comp->getSimEngineId(), i,
-                                       Bess::SimEngine::SlotType::digitalInput);
+            simEngine.connectPorts(digitalPort(src.comp->getSimEngineId(), Bess::SimEngine::PortDirection::output, 0), digitalPort(gate.comp->getSimEngineId(), Bess::SimEngine::PortDirection::input, i));
         EXPECT_TRUE(ok) << "Connection to input slot " << i << " failed";
     }
 
@@ -424,12 +417,8 @@ TEST_F(ResizeSlotConnectionTest, RemoveSlotWithExistingConnectionClearsIt) {
     auto &simEngine = testSimEngine();
 
     // Add slot at index 2, connect to it, then remove it
-    ASSERT_TRUE(simEngine.addSlot(gate.comp->getSimEngineId(),
-                                  Bess::SimEngine::SlotType::digitalInput, 2));
-    ASSERT_TRUE(simEngine.connectComponent(
-        source.comp->getSimEngineId(), 0,
-        Bess::SimEngine::SlotType::digitalOutput, gate.comp->getSimEngineId(),
-        2, Bess::SimEngine::SlotType::digitalInput));
+    ASSERT_TRUE(simEngine.addPort(digitalPort(gate.comp->getSimEngineId(), Bess::SimEngine::PortDirection::input, 2)));
+    ASSERT_TRUE(simEngine.connectPorts(digitalPort(source.comp->getSimEngineId(), Bess::SimEngine::PortDirection::output, 0), digitalPort(gate.comp->getSimEngineId(), Bess::SimEngine::PortDirection::input, 2)));
 
     const auto digComp =
         simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
@@ -437,24 +426,20 @@ TEST_F(ResizeSlotConnectionTest, RemoveSlotWithExistingConnectionClearsIt) {
     ASSERT_EQ(digComp->getInputConnections().size(), 3u);
 
     // Remove last slot (index 2)
-    EXPECT_TRUE(simEngine.removeSlot(gate.comp->getSimEngineId(),
-                                     Bess::SimEngine::SlotType::digitalInput,
-                                     2));
+    EXPECT_TRUE(simEngine.removePort(digitalPort(gate.comp->getSimEngineId(), Bess::SimEngine::PortDirection::input, 2)));
     EXPECT_EQ(digComp->getInputConnections().size(), 2u);
     EXPECT_EQ(digComp->getInputStates().size(), 2u);
 }
 
 TEST_F(ResizeSlotConnectionTest, AddSlotForUnknownComponentReturnsFalse) {
     auto &simEngine = testSimEngine();
-    bool added = simEngine.addSlot(Bess::UUID(99999),
-                                   Bess::SimEngine::SlotType::digitalInput, 0);
+    bool added = simEngine.addPort(digitalPort(Bess::UUID(99999), Bess::SimEngine::PortDirection::input, 0));
     EXPECT_FALSE(added);
 }
 
 TEST_F(ResizeSlotConnectionTest, RemoveSlotForUnknownComponentReturnsFalse) {
     auto &simEngine = testSimEngine();
-    bool removed = simEngine.removeSlot(
-        Bess::UUID(99999), Bess::SimEngine::SlotType::digitalInput, 0);
+    bool removed = simEngine.removePort(digitalPort(Bess::UUID(99999), Bess::SimEngine::PortDirection::input, 0));
     EXPECT_FALSE(removed);
 }
 
@@ -464,10 +449,7 @@ TEST_F(ResizeSlotConnectionTest, CanConnectRejectsOutOfBoundsSlotIndex) {
     auto &simEngine = testSimEngine();
 
     // AND gate has 2 inputs (indices 0, 1). Trying index 2 should fail.
-    auto [ok, msg] = simEngine.canConnectComponents(
-        source.comp->getSimEngineId(), 0,
-        Bess::SimEngine::SlotType::digitalOutput, gate.comp->getSimEngineId(),
-        2, Bess::SimEngine::SlotType::digitalInput);
+    auto [ok, msg] = simEngine.canConnectPorts(digitalPort(source.comp->getSimEngineId(), Bess::SimEngine::PortDirection::output, 0), digitalPort(gate.comp->getSimEngineId(), Bess::SimEngine::PortDirection::input, 2));
 
     EXPECT_FALSE(ok);
     EXPECT_NE(msg.find("Invalid"), std::string::npos);
@@ -478,10 +460,7 @@ TEST_F(ResizeSlotConnectionTest, CanConnectRejectsNegativeSlotIndex) {
     const auto source = addSimComponent(inputDef);
     auto &simEngine = testSimEngine();
 
-    auto [ok, msg] = simEngine.canConnectComponents(
-        source.comp->getSimEngineId(), 0,
-        Bess::SimEngine::SlotType::digitalOutput, gate.comp->getSimEngineId(),
-        -1, Bess::SimEngine::SlotType::digitalInput);
+    auto [ok, msg] = simEngine.canConnectPorts(digitalPort(source.comp->getSimEngineId(), Bess::SimEngine::PortDirection::output, 0), digitalPort(gate.comp->getSimEngineId(), Bess::SimEngine::PortDirection::input, -1));
 
     EXPECT_FALSE(ok);
 }
@@ -492,20 +471,14 @@ TEST_F(ResizeSlotConnectionTest,
     const auto source = addSimComponent(inputDef);
     auto &simEngine = testSimEngine();
 
-    simEngine.connectComponent(source.comp->getSimEngineId(), 0,
-                               Bess::SimEngine::SlotType::digitalOutput,
-                               gate.comp->getSimEngineId(), 0,
-                               Bess::SimEngine::SlotType::digitalInput);
+    simEngine.connectPorts(digitalPort(source.comp->getSimEngineId(), Bess::SimEngine::PortDirection::output, 0), digitalPort(gate.comp->getSimEngineId(), Bess::SimEngine::PortDirection::input, 0));
 
     const auto digComp =
         simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
             gate.comp->getSimEngineId());
     EXPECT_TRUE(digComp->getIsInputConnected()[0]);
 
-    simEngine.deleteConnection(source.comp->getSimEngineId(),
-                               Bess::SimEngine::SlotType::digitalOutput, 0,
-                               gate.comp->getSimEngineId(),
-                               Bess::SimEngine::SlotType::digitalInput, 0);
+    simEngine.deleteConnection(digitalPort(source.comp->getSimEngineId(), Bess::SimEngine::PortDirection::output, 0), digitalPort(gate.comp->getSimEngineId(), Bess::SimEngine::PortDirection::input, 0));
 
     EXPECT_FALSE(digComp->getIsInputConnected()[0]);
 }
@@ -522,17 +495,14 @@ TEST_F(ResizeSlotConnectionTest,
 
     // Add 3 more slots (2 → 5)
     for (int i = 2; i < 5; ++i) {
-        simEngine.addSlot(gate.comp->getSimEngineId(),
-                          Bess::SimEngine::SlotType::digitalInput, i);
+        simEngine.addPort(digitalPort(gate.comp->getSimEngineId(), Bess::SimEngine::PortDirection::input, i));
     }
     EXPECT_EQ(digDef->getInputSlotsInfo().count, 5u);
     EXPECT_EQ(digComp->getInputStates().size(), 5u);
 
     // Remove 2 slots (5 → 3)
-    simEngine.removeSlot(gate.comp->getSimEngineId(),
-                         Bess::SimEngine::SlotType::digitalInput, 4);
-    simEngine.removeSlot(gate.comp->getSimEngineId(),
-                         Bess::SimEngine::SlotType::digitalInput, 3);
+    simEngine.removePort(digitalPort(gate.comp->getSimEngineId(), Bess::SimEngine::PortDirection::input, 4));
+    simEngine.removePort(digitalPort(gate.comp->getSimEngineId(), Bess::SimEngine::PortDirection::input, 3));
     EXPECT_EQ(digDef->getInputSlotsInfo().count, 3u);
     EXPECT_EQ(digComp->getInputStates().size(), 3u);
     EXPECT_EQ(digComp->getInputConnections().size(), 3u);

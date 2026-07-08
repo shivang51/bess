@@ -163,17 +163,43 @@ namespace Bess::Verilog {
         }
 
         struct SlotEndpoint {
+            SlotEndpoint() = default;
+
+            SlotEndpoint(UUID componentId,
+                         SimEngine::PortDirection direction,
+                         int portIndex,
+                         SimEngine::SignalKind signalKind =
+                             SimEngine::SignalKind::digital)
+                : componentId(componentId),
+                  direction(direction),
+                  signalKind(signalKind),
+                  portIndex(portIndex) {
+            }
+
+            SlotEndpoint(UUID componentId,
+                         SimEngine::PortDirection direction,
+                         SimEngine::SignalKind signalKind,
+                         int portIndex)
+                : componentId(componentId),
+                  direction(direction),
+                  signalKind(signalKind),
+                  portIndex(portIndex) {
+            }
+
             UUID componentId = UUID::null;
-            SlotType slotType = SlotType::digitalInput;
-            int slotIndex = 0;
+            SimEngine::PortDirection direction =
+                SimEngine::PortDirection::input;
+            SimEngine::SignalKind signalKind = SimEngine::SignalKind::digital;
+            int portIndex = 0;
         };
 
         ImportedSlotEndpoint
         toImportedSlotEndpoint(const SlotEndpoint &endpoint) {
             return ImportedSlotEndpoint{
                 .componentId = endpoint.componentId,
-                .slotType = endpoint.slotType,
-                .slotIndex = endpoint.slotIndex,
+                .direction = endpoint.direction,
+                .signalKind = endpoint.signalKind,
+                .portIndex = endpoint.portIndex,
             };
         }
 
@@ -2098,7 +2124,11 @@ namespace Bess::Verilog {
                 m_createdComponentIds.push_back(id);
                 m_result.componentInstancePathById[id] = m_result.topModuleName;
 
-                SlotEndpoint endpoint{id, SlotType::digitalOutput, 0};
+                SlotEndpoint endpoint{
+                    id,
+                    SimEngine::PortDirection::output,
+                    SimEngine::SignalKind::digital,
+                    0};
                 m_constantDrivers[constant] = endpoint;
                 return endpoint;
             }
@@ -2165,7 +2195,7 @@ namespace Bess::Verilog {
                             const auto signal = SignalRef::net(*signalKey);
                             registerDriver(signal,
                                            SlotEndpoint{id,
-                                                        SlotType::digitalOutput,
+                                                        SimEngine::PortDirection::output,
                                                         static_cast<int>(i)});
                         }
                     } else if (port.direction == PortDirection::output) {
@@ -2182,14 +2212,14 @@ namespace Bess::Verilog {
                                 registerLoad(
                                     SignalRef::net(*signalKey),
                                     SlotEndpoint{id,
-                                                 SlotType::digitalInput,
+                                                 SimEngine::PortDirection::input,
                                                  static_cast<int>(i)});
                             } else if (port.bits[i].isConstant()) {
                                 registerLoad(
                                     SignalRef::constantValue(
                                         *port.bits[i].constant),
                                     SlotEndpoint{id,
-                                                 SlotType::digitalInput,
+                                                 SimEngine::PortDirection::input,
                                                  static_cast<int>(i)});
                             }
                         }
@@ -2217,19 +2247,19 @@ namespace Bess::Verilog {
                                 registerLoad(
                                     SignalRef::net(*signalKey),
                                     SlotEndpoint{outputId,
-                                                 SlotType::digitalInput,
+                                                 SimEngine::PortDirection::input,
                                                  static_cast<int>(i)});
                                 m_pendingTopInputDrivers.emplace_back(
                                     *signalKey,
                                     SlotEndpoint{inputId,
-                                                 SlotType::digitalOutput,
+                                                 SimEngine::PortDirection::output,
                                                  static_cast<int>(i)});
                             } else if (port.bits[i].isConstant()) {
                                 registerLoad(
                                     SignalRef::constantValue(
                                         *port.bits[i].constant),
                                     SlotEndpoint{outputId,
-                                                 SlotType::digitalInput,
+                                                 SimEngine::PortDirection::input,
                                                  static_cast<int>(i)});
                             }
                         }
@@ -2374,7 +2404,7 @@ namespace Bess::Verilog {
 
                         for (size_t i = 0; i < inputBits.size(); ++i) {
                             const SlotEndpoint endpoint{componentId,
-                                                        SlotType::digitalInput,
+                                                        SimEngine::PortDirection::input,
                                                         static_cast<int>(i)};
                             registerLoad(
                                 resolveSignal(path, inputBits[i], bindings),
@@ -2384,7 +2414,7 @@ namespace Bess::Verilog {
 
                         for (size_t i = 0; i < outputBits.size(); ++i) {
                             const SlotEndpoint endpoint{componentId,
-                                                        SlotType::digitalOutput,
+                                                        SimEngine::PortDirection::output,
                                                         static_cast<int>(i)};
                             registerDriver(
                                 resolveSignal(path, outputBits[i], bindings),
@@ -2585,7 +2615,7 @@ namespace Bess::Verilog {
                     int inputIndex = 0;
                     for (const auto &bit : addrBits) {
                         const SlotEndpoint endpoint{
-                            componentId, SlotType::digitalInput, inputIndex++};
+                            componentId, SimEngine::PortDirection::input, inputIndex++};
                         registerLoad(resolveSignal(path, bit, bindings),
                                      endpoint);
                         recordBoundaryInputSink(bit, endpoint);
@@ -2593,7 +2623,7 @@ namespace Bess::Verilog {
 
                     for (const auto &bit : enBits) {
                         const SlotEndpoint endpoint{
-                            componentId, SlotType::digitalInput, inputIndex++};
+                            componentId, SimEngine::PortDirection::input, inputIndex++};
                         registerLoad(resolveSignal(path, bit, bindings),
                                      endpoint);
                         recordBoundaryInputSink(bit, endpoint);
@@ -2601,7 +2631,7 @@ namespace Bess::Verilog {
 
                     if (hasClockInput) {
                         const SlotEndpoint endpoint{
-                            componentId, SlotType::digitalInput, inputIndex++};
+                            componentId, SimEngine::PortDirection::input, inputIndex++};
                         registerLoad(resolveSignal(path, clkBits[0], bindings),
                                      endpoint);
                         recordBoundaryInputSink(clkBits[0], endpoint);
@@ -2610,12 +2640,12 @@ namespace Bess::Verilog {
                     const auto syncNet = memorySyncNetKey(memoryKey);
                     registerLoad(SignalRef::net(syncNet),
                                  SlotEndpoint{componentId,
-                                              SlotType::digitalInput,
+                                              SimEngine::PortDirection::input,
                                               inputIndex});
 
                     for (size_t i = 0; i < dataBits.size(); ++i) {
                         const SlotEndpoint endpoint{componentId,
-                                                    SlotType::digitalOutput,
+                                                    SimEngine::PortDirection::output,
                                                     static_cast<int>(i)};
                         registerDriver(
                             resolveSignal(path, dataBits[i], bindings),
@@ -2671,7 +2701,7 @@ namespace Bess::Verilog {
                     int inputIndex = 0;
                     for (const auto &bit : addrBits) {
                         const SlotEndpoint endpoint{
-                            componentId, SlotType::digitalInput, inputIndex++};
+                            componentId, SimEngine::PortDirection::input, inputIndex++};
                         registerLoad(resolveSignal(path, bit, bindings),
                                      endpoint);
                         recordBoundaryInputSink(bit, endpoint);
@@ -2679,7 +2709,7 @@ namespace Bess::Verilog {
 
                     for (const auto &bit : dataBits) {
                         const SlotEndpoint endpoint{
-                            componentId, SlotType::digitalInput, inputIndex++};
+                            componentId, SimEngine::PortDirection::input, inputIndex++};
                         registerLoad(resolveSignal(path, bit, bindings),
                                      endpoint);
                         recordBoundaryInputSink(bit, endpoint);
@@ -2687,7 +2717,7 @@ namespace Bess::Verilog {
 
                     for (const auto &bit : enBits) {
                         const SlotEndpoint endpoint{
-                            componentId, SlotType::digitalInput, inputIndex++};
+                            componentId, SimEngine::PortDirection::input, inputIndex++};
                         registerLoad(resolveSignal(path, bit, bindings),
                                      endpoint);
                         recordBoundaryInputSink(bit, endpoint);
@@ -2695,7 +2725,7 @@ namespace Bess::Verilog {
 
                     if (hasClockInput) {
                         const SlotEndpoint endpoint{
-                            componentId, SlotType::digitalInput, inputIndex++};
+                            componentId, SimEngine::PortDirection::input, inputIndex++};
                         registerLoad(resolveSignal(path, clkBits[0], bindings),
                                      endpoint);
                         recordBoundaryInputSink(clkBits[0], endpoint);
@@ -2704,7 +2734,7 @@ namespace Bess::Verilog {
                     const auto syncNet = memorySyncNetKey(memoryKey);
                     registerDriver(
                         SignalRef::net(syncNet),
-                        SlotEndpoint{componentId, SlotType::digitalOutput, 0});
+                        SlotEndpoint{componentId, SimEngine::PortDirection::output, 0});
                     return;
                 }
 
@@ -2731,9 +2761,9 @@ namespace Bess::Verilog {
                         m_createdComponentIds.push_back(componentId);
                         m_result.componentInstancePathById[componentId] = path;
                         const SlotEndpoint inputEndpoint{
-                            componentId, SlotType::digitalInput, 0};
+                            componentId, SimEngine::PortDirection::input, 0};
                         const SlotEndpoint outputEndpoint{
-                            componentId, SlotType::digitalOutput, 0};
+                            componentId, SimEngine::PortDirection::output, 0};
                         registerLoad(resolveSignal(path, inBits[i], bindings),
                                      inputEndpoint);
                         registerDriver(
@@ -2765,11 +2795,11 @@ namespace Bess::Verilog {
                         m_createdComponentIds.push_back(componentId);
                         m_result.componentInstancePathById[componentId] = path;
                         const SlotEndpoint aEndpoint{
-                            componentId, SlotType::digitalInput, 0};
+                            componentId, SimEngine::PortDirection::input, 0};
                         const SlotEndpoint bEndpoint{
-                            componentId, SlotType::digitalInput, 1};
+                            componentId, SimEngine::PortDirection::input, 1};
                         const SlotEndpoint yEndpoint{
-                            componentId, SlotType::digitalOutput, 0};
+                            componentId, SimEngine::PortDirection::output, 0};
                         registerLoad(resolveSignal(path, aBits[i], bindings),
                                      aEndpoint);
                         registerLoad(resolveSignal(path, bBits[i], bindings),
@@ -2804,14 +2834,14 @@ namespace Bess::Verilog {
                     resizeInputs(component, aBits.size());
                     for (size_t i = 0; i < aBits.size(); ++i) {
                         const SlotEndpoint inputEndpoint{componentId,
-                                                         SlotType::digitalInput,
+                                                         SimEngine::PortDirection::input,
                                                          static_cast<int>(i)};
                         registerLoad(resolveSignal(path, aBits[i], bindings),
                                      inputEndpoint);
                         recordBoundaryInputSink(aBits[i], inputEndpoint);
                     }
                     const SlotEndpoint outputEndpoint{
-                        componentId, SlotType::digitalOutput, 0};
+                        componentId, SimEngine::PortDirection::output, 0};
                     registerDriver(resolveSignal(path, yBits[0], bindings),
                                    outputEndpoint);
                     recordBoundaryOutputDriver(yBits[0], outputEndpoint);
@@ -2835,13 +2865,13 @@ namespace Bess::Verilog {
                         m_createdComponentIds.push_back(componentId);
                         m_result.componentInstancePathById[componentId] = path;
                         const SlotEndpoint aEndpoint{
-                            componentId, SlotType::digitalInput, 0};
+                            componentId, SimEngine::PortDirection::input, 0};
                         const SlotEndpoint bEndpoint{
-                            componentId, SlotType::digitalInput, 1};
+                            componentId, SimEngine::PortDirection::input, 1};
                         const SlotEndpoint sEndpoint{
-                            componentId, SlotType::digitalInput, 2};
+                            componentId, SimEngine::PortDirection::input, 2};
                         const SlotEndpoint yEndpoint{
-                            componentId, SlotType::digitalOutput, 0};
+                            componentId, SimEngine::PortDirection::output, 0};
                         registerLoad(resolveSignal(path, aBits[i], bindings),
                                      aEndpoint);
                         registerLoad(resolveSignal(path, bBits[i], bindings),
@@ -2925,11 +2955,11 @@ namespace Bess::Verilog {
 
                             // D → slot 0, CLK → slot 1
                             const SlotEndpoint dEndpoint{
-                                componentId, SlotType::digitalInput, 0};
+                                componentId, SimEngine::PortDirection::input, 0};
                             const SlotEndpoint clkEndpoint{
-                                componentId, SlotType::digitalInput, 1};
+                                componentId, SimEngine::PortDirection::input, 1};
                             const SlotEndpoint qEndpoint{
-                                componentId, SlotType::digitalOutput, 0};
+                                componentId, SimEngine::PortDirection::output, 0};
                             registerLoad(
                                 resolveSignal(path, dBits[i], bindings),
                                 dEndpoint);
@@ -2943,7 +2973,7 @@ namespace Bess::Verilog {
                             if (dp.hasReset) {
                                 const SlotEndpoint rstEndpoint{
                                     componentId,
-                                    SlotType::digitalInput,
+                                    SimEngine::PortDirection::input,
                                     dp.rstSlotIndex()};
                                 if (resetBits && !resetBits->empty()) {
                                     registerLoad(resolveSignal(path,
@@ -2965,7 +2995,7 @@ namespace Bess::Verilog {
                             if (dp.hasEnable) {
                                 const SlotEndpoint enEndpoint{
                                     componentId,
-                                    SlotType::digitalInput,
+                                    SimEngine::PortDirection::input,
                                     dp.enSlotIndex()};
                                 if (enableBits && !enableBits->empty()) {
                                     registerLoad(resolveSignal(path,
@@ -3033,12 +3063,15 @@ namespace Bess::Verilog {
 
             void connectEndpoints(const SlotEndpoint &source,
                                   const SlotEndpoint &sink) {
-                if (!m_engine.connectComponent(source.componentId,
-                                               source.slotIndex,
-                                               source.slotType,
-                                               sink.componentId,
-                                               sink.slotIndex,
-                                               sink.slotType)) {
+                if (!m_engine.connectPorts(
+                        {.componentId = source.componentId,
+                         .direction = source.direction,
+                         .signalKind = source.signalKind,
+                         .index = source.portIndex},
+                        {.componentId = sink.componentId,
+                         .direction = sink.direction,
+                         .signalKind = sink.signalKind,
+                         .index = sink.portIndex})) {
                     throw std::runtime_error(
                         "Failed to connect imported Verilog graph");
                 }

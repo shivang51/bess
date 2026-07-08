@@ -239,11 +239,11 @@ void bind_cmds(py::module &m) {
     // connect slots
 
     auto connectSlotsFn = [](const Bess::UUID &fromCompId,
-                             Bess::Canvas::SlotType fromSlotType,
-                             int fromSlotIdx,
+                             Bess::SimEngine::PortDirection fromDirection,
+                             int fromPortIdx,
                              const Bess::UUID &toCompId,
-                             Bess::Canvas::SlotType toSlotType,
-                             int toSlotIdx) -> CmdResult {
+                             Bess::SimEngine::PortDirection toDirection,
+                             int toPortIdx) -> CmdResult {
         auto projectCtx = Bess::GAppContext::getInstance()
                               .getSubSystem<Bess::ProjectContext>();
 
@@ -251,11 +251,11 @@ void bind_cmds(py::module &m) {
         auto connSvc = projectCtx->getSubSystem<Bess::Svc::SvcConnection>();
 
         auto conn = connSvc->createConnection(fromCompId,
-                                              fromSlotType,
-                                              fromSlotIdx,
+                                              fromDirection,
+                                              fromPortIdx,
                                               toCompId,
-                                              toSlotType,
-                                              toSlotIdx,
+                                              toDirection,
+                                              toPortIdx,
                                               sceneDriver->getActiveScene());
 
         if (conn) {
@@ -270,14 +270,13 @@ void bind_cmds(py::module &m) {
     m.def("connect",
           connectSlotsFn,
           "Connects two slots together.\
-					Use slot types and indices to specify the slots to connect.\
-					Slot types can be 'input' or 'output'.",
+					Use port directions and indices to specify the ports to connect.",
           py::arg("from_comp_id"),
-          py::arg("from_slot_type"),
-          py::arg("from_slot_idx"),
+          py::arg("from_direction"),
+          py::arg("from_port_idx"),
           py::arg("to_comp_id"),
-          py::arg("to_slot_type"),
-          py::arg("to_slot_idx"));
+          py::arg("to_direction"),
+          py::arg("to_port_idx"));
 
     // organize components
     auto orgCompsFn = []() -> CmdResult {

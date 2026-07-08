@@ -206,9 +206,17 @@ namespace Bess::Canvas {
                 }
             });
 
-        auto onOutputSlotChange = [this, ownerSceneId](const UUID &id,
-                                                       SimEngine::SlotType type,
-                                                       int newCount) {
+        auto onOutputSlotChange =
+            [this, ownerSceneId](const UUID &id,
+                                 SimEngine::PortDirection direction,
+                                 SimEngine::SignalKind signalKind,
+                                 int newCount) {
+            (void)id;
+            if (direction != SimEngine::PortDirection::output ||
+                signalKind != SimEngine::SignalKind::digital) {
+                return;
+            }
+
             auto &appCtx = Bess::GAppContext::getInstance();
             auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
             auto &simEngine = projectCtx->getSimEngine();
@@ -235,23 +243,29 @@ namespace Bess::Canvas {
 
             if (newCount > currCount) {
                 for (size_t i = currCount; i < newCount; ++i) {
-                    simEngine.addSlot(this->m_simEngineId,
-                                      SimEngine::SlotType::digitalOutput,
-                                      (int)i,
-                                      true);
+                    simEngine.addPort(
+                        {.componentId = this->m_simEngineId,
+                         .direction = SimEngine::PortDirection::output,
+                         .signalKind = SimEngine::SignalKind::digital,
+                         .index = (int)i},
+                        true);
                     auto slot = std::make_shared<SlotSceneComponent>();
                     slot->setIndex((int)i);
-                    slot->setSlotType(SlotType::digitalOutput);
+                    slot->setPortDirection(SimEngine::PortDirection::output);
+                    slot->setSignalKind(SimEngine::SignalKind::digital);
+                    slot->setResizeTrigger(false);
                     m_outputSlots.push_back(slot->getUuid());
                     ownerSceneState.addComponent(slot, false, false);
                     ownerSceneState.attachChild(m_uuid, slot->getUuid(), false);
                 }
             } else if (newCount < currCount) {
                 for (size_t i = newCount; i < currCount; ++i) {
-                    simEngine.removeSlot(this->m_simEngineId,
-                                         SimEngine::SlotType::digitalOutput,
-                                         (int)i,
-                                         true);
+                    simEngine.removePort(
+                        {.componentId = this->m_simEngineId,
+                         .direction = SimEngine::PortDirection::output,
+                         .signalKind = SimEngine::SignalKind::digital,
+                         .index = (int)i},
+                        true);
                     ownerSceneState.removeComponent(m_outputSlots.back(),
                                                     m_uuid);
                     removeChildComponent(m_outputSlots.back());
@@ -267,9 +281,17 @@ namespace Bess::Canvas {
                         "Failed to sync module inputs");
         };
 
-        auto onInputSlotChange = [this, ownerSceneId](const UUID &id,
-                                                      SimEngine::SlotType type,
-                                                      int newCount) {
+        auto onInputSlotChange =
+            [this, ownerSceneId](const UUID &id,
+                                 SimEngine::PortDirection direction,
+                                 SimEngine::SignalKind signalKind,
+                                 int newCount) {
+            (void)id;
+            if (direction != SimEngine::PortDirection::input ||
+                signalKind != SimEngine::SignalKind::digital) {
+                return;
+            }
+
             auto &appCtx = Bess::GAppContext::getInstance();
             auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
             auto &simEngine = projectCtx->getSimEngine();
@@ -296,23 +318,29 @@ namespace Bess::Canvas {
 
             if (newCount > currCount) {
                 for (size_t i = currCount; i < newCount; ++i) {
-                    simEngine.addSlot(this->m_simEngineId,
-                                      SimEngine::SlotType::digitalInput,
-                                      (int)i,
-                                      true);
+                    simEngine.addPort(
+                        {.componentId = this->m_simEngineId,
+                         .direction = SimEngine::PortDirection::input,
+                         .signalKind = SimEngine::SignalKind::digital,
+                         .index = (int)i},
+                        true);
                     auto slot = std::make_shared<SlotSceneComponent>();
                     slot->setIndex((int)i);
-                    slot->setSlotType(SlotType::digitalInput);
+                    slot->setPortDirection(SimEngine::PortDirection::input);
+                    slot->setSignalKind(SimEngine::SignalKind::digital);
+                    slot->setResizeTrigger(false);
                     m_inputSlots.push_back(slot->getUuid());
                     ownerSceneState.addComponent(slot, false, false);
                     ownerSceneState.attachChild(m_uuid, slot->getUuid(), false);
                 }
             } else if (newCount < currCount) {
                 for (size_t i = newCount; i < currCount; ++i) {
-                    simEngine.removeSlot(this->m_simEngineId,
-                                         SimEngine::SlotType::digitalInput,
-                                         (int)i,
-                                         true);
+                    simEngine.removePort(
+                        {.componentId = this->m_simEngineId,
+                         .direction = SimEngine::PortDirection::input,
+                         .signalKind = SimEngine::SignalKind::digital,
+                         .index = (int)i},
+                        true);
                     ownerSceneState.removeComponent(m_inputSlots.back(),
                                                     m_uuid);
                     removeChildComponent(m_inputSlots.back());
@@ -331,18 +359,21 @@ namespace Bess::Canvas {
 
         // slot count: to sync module io slots and associated inp and output
         // comp slots
-        simEngine.removeOnSlotCountChangeCB(m_simEngineId);
-        simEngine.addOnSlotCountChangeCB(
+        simEngine.removeOnPortCountChangeCB(m_simEngineId);
+        simEngine.addOnPortCountChangeCB(
             m_simEngineId,
             [inputDigitalComp,
              outputDigitalComp,
              onInputSlotChange,
              onOutputSlotChange](
-                const UUID &id, SimEngine::SlotType type, int newCount) {
+                const UUID &id,
+                SimEngine::PortDirection direction,
+                SimEngine::SignalKind signalKind,
+                int newCount) {
                 if (id == inputDigitalComp->getUuid()) {
-                    onInputSlotChange(id, type, newCount);
+                    onInputSlotChange(id, direction, signalKind, newCount);
                 } else if (id == outputDigitalComp->getUuid()) {
-                    onOutputSlotChange(id, type, newCount);
+                    onOutputSlotChange(id, direction, signalKind, newCount);
                 }
             });
     }

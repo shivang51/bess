@@ -4,8 +4,12 @@ import bessplug
 import bessplug.api.bess_ui as bess_ui
 import threading
 from bessplug.api.common import UUID, vec2
-from bessplug.api.scene import SlotType
-from bessplug.api.sim_engine import ComponentBehaviorType, LogicState, core
+from bessplug.api.sim_engine import (
+    ComponentBehaviorType,
+    LogicState,
+    PortDirection,
+    core,
+)
 from bessplug.api.sim_engine.driver import DigCompDef, DigSimComp, Net
 
 
@@ -285,7 +289,7 @@ class TruthTablePanel:
         out = bessplug.cmds.add("Output")
 
         bessplug.cmds.connect(
-            inp.result, SlotType.dOut, 0, out.result, SlotType.dInp, 0
+            inp.result, PortDirection.OUTPUT, 0, out.result, PortDirection.INPUT, 0
         )
 
         bessplug.cmds.org_comps()

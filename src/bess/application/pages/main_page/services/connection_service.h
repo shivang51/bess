@@ -47,12 +47,14 @@ namespace Bess::Svc {
 
         std::shared_ptr<Canvas::ConnectionSceneComponent>
         createConnection(const Bess::UUID &fromCompId,
-                         Bess::Canvas::SlotType fromSlotType,
-                         int fromSlotIdx,
+                         Bess::SimEngine::PortDirection fromDirection,
+                         int fromPortIdx,
                          const Bess::UUID &toCompId,
-                         Bess::Canvas::SlotType toSlotType,
-                         int toSlotIdx,
-                         const std::shared_ptr<Canvas::Scene> &scene);
+                         Bess::SimEngine::PortDirection toDirection,
+                         int toPortIdx,
+                         const std::shared_ptr<Canvas::Scene> &scene,
+                         Bess::SimEngine::SignalKind signalKind =
+                             Bess::SimEngine::SignalKind::digital);
 
         // Takes a connection component and tries to add it to the correct place
         // @returns: true on sucess and false otherwise

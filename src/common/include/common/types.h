@@ -106,7 +106,38 @@ namespace Bess {
 
         enum class ComponentBehaviorType : uint8_t { none, input, output };
 
-        enum class SlotType : uint8_t { digitalInput, digitalOutput };
+        enum class PortDirection : uint8_t { none, input, output };
+
+        enum class SignalKind : uint8_t { none, digital, scalar, vector };
+
+        struct PortRef {
+            UUID componentId = UUID::null;
+            PortDirection direction = PortDirection::none;
+            SignalKind signalKind = SignalKind::none;
+            int index = -1;
+
+            bool isValid() const {
+                return componentId != UUID::null &&
+                       direction != PortDirection::none &&
+                       signalKind != SignalKind::none && index >= 0;
+            }
+
+            bool isInput() const {
+                return direction == PortDirection::input;
+            }
+
+            bool isOutput() const {
+                return direction == PortDirection::output;
+            }
+        };
+
+        struct PortDescriptor {
+            PortDirection direction = PortDirection::none;
+            SignalKind signalKind = SignalKind::none;
+            size_t count = 0;
+            std::vector<std::string> names;
+            bool isResizeable = false;
+        };
 
         enum class ConnectionState : uint8_t { unknown = 0, driven, high_z };
 
@@ -328,7 +359,16 @@ REFLECT_ENUM(Bess::SimEngine::LogicState)
 REFLECT_ENUM(Bess::SimEngine::SlotsGroupType)
 REFLECT_ENUM(Bess::SimEngine::SlotCatergory)
 REFLECT_ENUM(Bess::SimEngine::ComponentBehaviorType)
-REFLECT_ENUM(Bess::SimEngine::SlotType)
+REFLECT_ENUM(Bess::SimEngine::PortDirection)
+REFLECT_ENUM(Bess::SimEngine::SignalKind)
+
+REFLECT(Bess::SimEngine::PortRef, componentId, direction, signalKind, index)
+REFLECT(Bess::SimEngine::PortDescriptor,
+        direction,
+        signalKind,
+        count,
+        names,
+        isResizeable)
 
 REFLECT(Bess::SimEngine::SlotState, voltage, lastChangeTime)
 REFLECT_VECTOR(Bess::SimEngine::SlotState)

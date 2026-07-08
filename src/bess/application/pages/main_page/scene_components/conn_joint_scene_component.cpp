@@ -296,22 +296,6 @@ namespace Bess::Canvas {
         auto endSlot = sceneState.getComponentByUuid<SlotSceneComponent>(
             endComp->getOutputSlotId());
 
-        const auto startParent =
-            sceneState.getComponentByUuid<SimulationSceneComponent>(
-                startSlot->getParentComponent());
-        const auto endParent =
-            sceneState.getComponentByUuid<SimulationSceneComponent>(
-                endSlot->getParentComponent());
-
-        const auto startPinType =
-            startSlot->getSlotType() == SlotType::digitalInput
-                ? SimEngine::SlotType::digitalInput
-                : SimEngine::SlotType::digitalOutput;
-
-        const auto endPinType = endSlot->getSlotType() == SlotType::digitalInput
-                                    ? SimEngine::SlotType::digitalInput
-                                    : SimEngine::SlotType::digitalOutput;
-
         auto conn = std::make_shared<ConnectionSceneComponent>();
         conn->setInitialSegmentCount(2);
         conn->setStartEndSlots(startSlot->getUuid(), endComp->getUuid());

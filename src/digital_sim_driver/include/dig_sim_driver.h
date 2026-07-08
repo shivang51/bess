@@ -214,43 +214,26 @@ namespace Bess::SimEngine::Drivers::Digital {
         bool isSimStable() const override;
 
         std::pair<bool, std::string>
-        canConnectComponents(const UUID &src,
-                             int srcSlotIdx,
-                             SlotType srcType,
-                             const UUID &dst,
-                             int dstSlotIdx,
-                             SlotType dstType) const override;
+        canConnectPorts(const PortRef &src,
+                        const PortRef &dst) const override;
 
-        bool connectComponent(const UUID &src,
-                              int srcSlotIdx,
-                              SlotType srcType,
-                              const UUID &dst,
-                              int dstSlotIdx,
-                              SlotType dstType,
-                              bool overrideConn) override;
+        bool connectPorts(const PortRef &src,
+                          const PortRef &dst,
+                          bool overrideConn) override;
 
-        void deleteConnection(const UUID &compA,
-                              SlotType pinAType,
-                              int idxA,
-                              const UUID &compB,
-                              SlotType pinBType,
-                              int idxB) override;
+        void deleteConnection(const PortRef &portA,
+                              const PortRef &portB) override;
 
-        SlotsCountChangeRes addSlot(const UUID &compId,
-                                    SlotType type,
-                                    int index,
+        SlotsCountChangeRes addPort(const PortRef &port,
                                     bool force = false) override;
-        SlotsCountChangeRes removeSlot(const UUID &compId,
-                                       SlotType type,
-                                       int index,
+        SlotsCountChangeRes removePort(const PortRef &port,
                                        bool force = false) override;
 
         ConnectionBundle getConnections(const UUID &uuid) const override;
         std::vector<UUID> getDependants(const UUID &id) override;
         std::vector<SlotState> collapseInputs(const UUID &id) override;
         std::vector<SlotState> getInputSlotsState(const UUID &compId) override;
-        SlotState
-        getSlotState(const UUID &uuid, SlotType type, int idx) const override;
+        SlotState getPortState(const PortRef &port) const override;
         bool setInputSlotState(const UUID &uuid,
                                int pinIdx,
                                LogicState state) override;

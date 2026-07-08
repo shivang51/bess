@@ -97,8 +97,7 @@ namespace Bess::SimEngine::Drivers {
         return {};
     }
 
-    SlotState
-    SimDriver::getSlotState(const UUID &uuid, SlotType type, int idx) const {
+    SlotState SimDriver::getPortState(const PortRef &port) const {
         return {LogicState::unknown, SimTime(0)};
     }
 
@@ -205,7 +204,7 @@ namespace Bess::SimEngine::Drivers {
             return;
         }
 
-        m_onSlotCountChnageCBs.clear();
+        m_onPortCountChnageCBs.clear();
 
         onDestroy();
         std::lock_guard lk(m_stateMutex);
@@ -218,20 +217,21 @@ namespace Bess::SimEngine::Drivers {
         }
     }
 
-    void SimDriver::addOnSlotCountChangeCB(const UUID &id,
-                                           const SlotCountChangeCB &cb) {
-        m_onSlotCountChnageCBs[id] = cb;
+    void SimDriver::addOnPortCountChangeCB(const UUID &id,
+                                           const PortCountChangeCB &cb) {
+        m_onPortCountChnageCBs[id] = cb;
     }
 
-    void SimDriver::removeOnSlotCountChangeCB(const UUID &id) {
-        m_onSlotCountChnageCBs.erase(id);
+    void SimDriver::removeOnPortCountChangeCB(const UUID &id) {
+        m_onPortCountChnageCBs.erase(id);
     }
 
     void SimDriver::triggerSlotCountChangeCbs(const UUID &compId,
-                                              SlotType type,
+                                              PortDirection direction,
+                                              SignalKind signalKind,
                                               int newCount) {
-        for (const auto &[id, cb] : m_onSlotCountChnageCBs) {
-            cb(compId, type, newCount);
+        for (const auto &[id, cb] : m_onPortCountChnageCBs) {
+            cb(compId, direction, signalKind, newCount);
         }
     }
 

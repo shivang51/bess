@@ -77,33 +77,19 @@ namespace Bess::SimEngine {
             return nullptr;
         }
 
-        bool connectComponent(const UUID &src,
-                              int srcSlotIdx,
-                              SlotType srcType,
-                              const UUID &dst,
-                              int dstSlotIdx,
-                              SlotType dstType,
-                              bool overrideConn = false);
+        bool connectPorts(const PortRef &src,
+                          const PortRef &dst,
+                          bool overrideConn = false);
 
         // returns {canConnect, errorMessage}
         std::pair<bool, std::string>
-        canConnectComponents(const UUID &src,
-                             int srcSlotIdx,
-                             SlotType srcType,
-                             const UUID &dst,
-                             int dstSlotIdx,
-                             SlotType dstType) const;
+        canConnectPorts(const PortRef &src, const PortRef &dst) const;
 
         void deleteComponent(const UUID &uuid);
 
-        void deleteConnection(const UUID &compA,
-                              SlotType pinAType,
-                              int idxA,
-                              const UUID &compB,
-                              SlotType pinBType,
-                              int idxB);
+        void deleteConnection(const PortRef &portA, const PortRef &portB);
 
-        SlotState getDigitalSlotState(const UUID &uuid, SlotType type, int idx);
+        SlotState getPortState(const PortRef &port);
 
         ConnectionBundle getConnections(const UUID &uuid);
         std::vector<SlotState> getInputSlotsState(UUID compId) const;
@@ -129,14 +115,8 @@ namespace Bess::SimEngine {
         // its initial sim state after clearing otherwise it will be stopped.
         void clear(bool restoreState = true);
 
-        bool addSlot(const UUID &compId,
-                     SlotType type,
-                     int index,
-                     bool force = false);
-        bool removeSlot(const UUID &compId,
-                        SlotType type,
-                        int index,
-                        bool force = false);
+        bool addPort(const PortRef &port, bool force = false);
+        bool removePort(const PortRef &port, bool force = false);
 
         friend class SimEngineSerializer;
 
@@ -150,10 +130,10 @@ namespace Bess::SimEngine {
 
         bool isSimStable();
 
-        void addOnSlotCountChangeCB(const UUID &id,
-                                    const Drivers::SlotCountChangeCB &cb);
+        void addOnPortCountChangeCB(const UUID &id,
+                                    const Drivers::PortCountChangeCB &cb);
 
-        void removeOnSlotCountChangeCB(const UUID &id);
+        void removeOnPortCountChangeCB(const UUID &id);
 
         std::shared_ptr<Drivers::SimDriver>
         getDriverWithName(const std::string &name) const;

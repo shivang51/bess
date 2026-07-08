@@ -116,21 +116,17 @@ namespace Bess::SimEngine {
     }
 
     std::pair<bool, std::string>
-    SimulationEngine::canConnectComponents(const UUID &src,
-                                           int srcSlot,
-                                           SlotType srcType,
-                                           const UUID &dst,
-                                           int dstSlot,
-                                           SlotType dstType) const {
-        if (src == UUID::null || dst == UUID::null) {
+    SimulationEngine::canConnectPorts(const PortRef &src,
+                                      const PortRef &dst) const {
+        if (!src.isValid() || !dst.isValid()) {
             return {false, "Cannot connect to/from null component"};
         }
 
         std::shared_ptr<Drivers::SimDriver> srcDriver, dstDriver;
         for (const auto &driver : m_simDrivers) {
-            if (driver->hasComponent(src))
+            if (driver->hasComponent(src.componentId))
                 srcDriver = driver;
-            if (driver->hasComponent(dst))
+            if (driver->hasComponent(dst.componentId))
                 dstDriver = driver;
         }
 
@@ -146,22 +142,17 @@ namespace Bess::SimEngine {
                     "generically"};
         }
 
-        return srcDriver->canConnectComponents(
-            src, srcSlot, srcType, dst, dstSlot, dstType);
+        return srcDriver->canConnectPorts(src, dst);
     }
 
-    bool SimulationEngine::connectComponent(const UUID &src,
-                                            int srcSlot,
-                                            SlotType srcType,
-                                            const UUID &dst,
-                                            int dstSlot,
-                                            SlotType dstType,
-                                            bool overrideConn) {
+    bool SimulationEngine::connectPorts(const PortRef &src,
+                                        const PortRef &dst,
+                                        bool overrideConn) {
         std::shared_ptr<Drivers::SimDriver> srcDriver, dstDriver;
         for (const auto &driver : m_simDrivers) {
-            if (driver->hasComponent(src))
+            if (driver->hasComponent(src.componentId))
                 srcDriver = driver;
-            if (driver->hasComponent(dst))
+            if (driver->hasComponent(dst.componentId))
                 dstDriver = driver;
         }
 
@@ -170,8 +161,7 @@ namespace Bess::SimEngine {
         }
 
         std::lock_guard lk(m_driversMutex);
-        return srcDriver->connectComponent(
-            src, srcSlot, srcType, dst, dstSlot, dstType, overrideConn);
+        return srcDriver->connectPorts(src, dst, overrideConn);
     }
 
     void SimulationEngine::deleteComponent(const UUID &uuid) {
@@ -193,18 +183,16 @@ namespace Bess::SimEngine {
         BESS_INFO("Deleted component {}", (uint64_t)uuid);
     }
 
-    SlotState SimulationEngine::getDigitalSlotState(const UUID &uuid,
-                                                    SlotType type,
-                                                    int idx) {
-        if (!getComponentDefinition(uuid)) {
+    SlotState SimulationEngine::getPortState(const PortRef &port) {
+        if (!port.isValid() || !getComponentDefinition(port.componentId)) {
             BESS_WARN("[getDigitalPinState] Component with UUID {} is invalid",
-                      (uint64_t)uuid);
+                      (uint64_t)port.componentId);
             return {LogicState::low, SimTime(0)};
         }
 
         for (const auto &driver : m_simDrivers) {
-            if (driver->hasComponent(uuid)) {
-                return driver->getSlotState(uuid, type, idx);
+            if (driver->hasComponent(port.componentId)) {
+                return driver->getPortState(port);
             }
         }
 
@@ -274,21 +262,21 @@ namespace Bess::SimEngine {
 
     const std::shared_ptr<Drivers::CompDef> &
     SimulationEngine::getComponentDefinition(const UUID &uuid) const {
-        const auto &comp = getComponent<Drivers::SimComponent>(uuid);
+        static const std::shared_ptr<Drivers::CompDef> nullDef;
+        const auto comp = getComponent<Drivers::SimComponent>(uuid);
+        if (!comp) {
+            return nullDef;
+        }
         return comp->getDefinition();
     }
 
-    void SimulationEngine::deleteConnection(const UUID &compA,
-                                            SlotType pinAType,
-                                            int idxA,
-                                            const UUID &compB,
-                                            SlotType pinBType,
-                                            int idxB) {
+    void SimulationEngine::deleteConnection(const PortRef &portA,
+                                            const PortRef &portB) {
         std::shared_ptr<Drivers::SimDriver> aDriver, bDriver;
         for (const auto &driver : m_simDrivers) {
-            if (driver->hasComponent(compA))
+            if (driver->hasComponent(portA.componentId))
                 aDriver = driver;
-            if (driver->hasComponent(compB))
+            if (driver->hasComponent(portB.componentId))
                 bDriver = driver;
         }
 
@@ -297,7 +285,7 @@ namespace Bess::SimEngine {
         }
 
         std::lock_guard lk(m_driversMutex);
-        aDriver->deleteConnection(compA, pinAType, idxA, compB, pinBType, idxB);
+        aDriver->deleteConnection(portA, portB);
     }
 
     std::vector<SlotState>
@@ -471,19 +459,16 @@ namespace Bess::SimEngine {
         m_pendingSignalSources.insert(sourceId);
     }
 
-    bool SimulationEngine::addSlot(const UUID &compId,
-                                   SlotType type,
-                                   int index,
-                                   bool force) {
+    bool SimulationEngine::addPort(const PortRef &port, bool force) {
         for (const auto &driver : m_simDrivers) {
-            if (driver->hasComponent(compId)) {
-                const auto res = driver->addSlot(compId, type, index, force);
+            if (driver->hasComponent(port.componentId)) {
+                const auto res = driver->addPort(port, force);
 
                 if (!res.hasChange())
                     return false;
 
                 if (res.changedInp) {
-                    Events::CompDefInputsResizedEvent event{compId};
+                    Events::CompDefInputsResizedEvent event{port.componentId};
                     auto &appCtx = GAppContext::getInstance();
                     auto eventDispatcher =
                         appCtx
@@ -492,7 +477,7 @@ namespace Bess::SimEngine {
                 }
 
                 if (res.changedOut) {
-                    Events::CompDefOutputsResizedEvent event{compId};
+                    Events::CompDefOutputsResizedEvent event{port.componentId};
                     auto &appCtx = GAppContext::getInstance();
                     auto eventDispatcher =
                         appCtx
@@ -506,19 +491,16 @@ namespace Bess::SimEngine {
         return false;
     }
 
-    bool SimulationEngine::removeSlot(const UUID &compId,
-                                      SlotType type,
-                                      int index,
-                                      bool force) {
+    bool SimulationEngine::removePort(const PortRef &port, bool force) {
         for (const auto &driver : m_simDrivers) {
-            if (driver->hasComponent(compId)) {
-                const auto res = driver->removeSlot(compId, type, index, force);
+            if (driver->hasComponent(port.componentId)) {
+                const auto res = driver->removePort(port, force);
 
                 if (!res.hasChange())
                     return false;
 
                 if (res.changedInp) {
-                    Events::CompDefInputsResizedEvent event{compId};
+                    Events::CompDefInputsResizedEvent event{port.componentId};
                     auto &appCtx = GAppContext::getInstance();
                     auto eventDispatcher =
                         appCtx
@@ -527,7 +509,7 @@ namespace Bess::SimEngine {
                 }
 
                 if (res.changedOut) {
-                    Events::CompDefOutputsResizedEvent event{compId};
+                    Events::CompDefOutputsResizedEvent event{port.componentId};
                     auto &appCtx = GAppContext::getInstance();
                     auto eventDispatcher =
                         appCtx
@@ -646,12 +628,12 @@ namespace Bess::SimEngine {
         }
     }
 
-    void SimulationEngine::addOnSlotCountChangeCB(
-        const UUID &id, const Drivers::SlotCountChangeCB &cb) {
+    void SimulationEngine::addOnPortCountChangeCB(
+        const UUID &id, const Drivers::PortCountChangeCB &cb) {
         for (const auto &driver : m_simDrivers) {
             if (driver->hasComponent(id)) {
-                driver->addOnSlotCountChangeCB(id, cb);
-                BESS_DEBUG("Added slot count change callback for component "
+                driver->addOnPortCountChangeCB(id, cb);
+                BESS_DEBUG("Added port count change callback for component "
                            "with UUID {} to driver {}",
                            (uint64_t)id,
                            driver->getName());
@@ -660,15 +642,15 @@ namespace Bess::SimEngine {
         }
 
         BESS_WARN("Component with UUID {} not found in any driver. Cannot add "
-                  "slot count change callback.",
+                  "port count change callback.",
                   (uint64_t)id);
     }
 
-    void SimulationEngine::removeOnSlotCountChangeCB(const UUID &id) {
+    void SimulationEngine::removeOnPortCountChangeCB(const UUID &id) {
         for (const auto &driver : m_simDrivers) {
             if (driver->hasComponent(id)) {
-                driver->removeOnSlotCountChangeCB(id);
-                BESS_DEBUG("Removed slot count change callback for component "
+                driver->removeOnPortCountChangeCB(id);
+                BESS_DEBUG("Removed port count change callback for component "
                            "with UUID {} from driver {}",
                            (uint64_t)id,
                            driver->getName());
@@ -677,7 +659,7 @@ namespace Bess::SimEngine {
         }
 
         BESS_WARN("Component with UUID {} not found in any driver. Cannot "
-                  "remove slot count change callback.",
+                  "remove port count change callback.",
                   (uint64_t)id);
     }
 

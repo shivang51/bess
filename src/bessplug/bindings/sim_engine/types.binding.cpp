@@ -100,10 +100,36 @@ void bind_sim_engine_types(py::module_ &m) {
                    ">";
         });
 
-    py::enum_<SlotType>(m, "PinType")
-        .value("INPUT", SlotType::digitalInput)
-        .value("OUTPUT", SlotType::digitalOutput)
+    py::enum_<PortDirection>(m, "PortDirection")
+        .value("NONE", PortDirection::none)
+        .value("INPUT", PortDirection::input)
+        .value("OUTPUT", PortDirection::output)
         .export_values();
+
+    py::enum_<SignalKind>(m, "SignalKind")
+        .value("NONE", SignalKind::none)
+        .value("DIGITAL", SignalKind::digital)
+        .value("SCALAR", SignalKind::scalar)
+        .value("VECTOR", SignalKind::vector)
+        .export_values();
+
+    py::class_<PortRef>(m, "PortRef")
+        .def(py::init<>())
+        .def_readwrite("component_id", &PortRef::componentId)
+        .def_readwrite("direction", &PortRef::direction)
+        .def_readwrite("signal_kind", &PortRef::signalKind)
+        .def_readwrite("index", &PortRef::index)
+        .def("is_valid", &PortRef::isValid)
+        .def("is_input", &PortRef::isInput)
+        .def("is_output", &PortRef::isOutput);
+
+    py::class_<PortDescriptor>(m, "PortDescriptor")
+        .def(py::init<>())
+        .def_readwrite("direction", &PortDescriptor::direction)
+        .def_readwrite("signal_kind", &PortDescriptor::signalKind)
+        .def_readwrite("count", &PortDescriptor::count)
+        .def_readwrite("names", &PortDescriptor::names)
+        .def_readwrite("is_resizeable", &PortDescriptor::isResizeable);
 
     py::enum_<SlotsGroupType>(m, "SlotsGroupType")
         .value("NONE", SlotsGroupType::none)

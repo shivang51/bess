@@ -17,15 +17,34 @@
 
 namespace Bess::Svc {
     namespace {
-        Canvas::SlotType realSlotTypeFor(bool isInput) {
-            return isInput ? Canvas::SlotType::digitalInput
-                           : Canvas::SlotType::digitalOutput;
+        SimEngine::PortDirection realPortDirectionFor(bool isInput) {
+            return isInput ? SimEngine::PortDirection::input
+                           : SimEngine::PortDirection::output;
         }
 
         bool isRealSlotForSide(const Canvas::SlotSceneComponent &slot,
                                bool isInput) {
             return !slot.isResizeSlot() &&
-                   slot.getSlotType() == realSlotTypeFor(isInput);
+                   slot.getPortDirection() == realPortDirectionFor(isInput);
+        }
+
+        void configureSlotPort(
+            const std::shared_ptr<Canvas::SlotSceneComponent> &slot,
+            bool isInput,
+            bool resizeTrigger = false,
+            SimEngine::SignalKind signalKind =
+                SimEngine::SignalKind::digital) {
+            if (!slot) {
+                return;
+            }
+
+            if (signalKind == SimEngine::SignalKind::none) {
+                signalKind = SimEngine::SignalKind::digital;
+            }
+
+            slot->setPortDirection(realPortDirectionFor(isInput));
+            slot->setSignalKind(signalKind);
+            slot->setResizeTrigger(resizeTrigger);
         }
 
         size_t realSlotEnd(const Canvas::SceneState &sceneState,
@@ -112,12 +131,14 @@ namespace Bess::Svc {
     std::shared_ptr<Canvas::ConnectionSceneComponent>
     SvcConnection::createConnection(
         const Bess::UUID &fromCompId,
-        Bess::Canvas::SlotType fromSlotType,
-        int fromSlotIdx,
+        Bess::SimEngine::PortDirection fromDirection,
+        int fromPortIdx,
         const Bess::UUID &toCompId,
-        Bess::Canvas::SlotType toSlotType,
-        int toSlotIdx,
-        const std::shared_ptr<Canvas::Scene> &scene) {
+        Bess::SimEngine::PortDirection toDirection,
+        int toPortIdx,
+        const std::shared_ptr<Canvas::Scene> &scene,
+        Bess::SimEngine::SignalKind signalKind) {
+        (void)signalKind;
         if (!scene) {
             BESS_ERROR("[SvcConnection] Cannot create connection without a "
                        "scene");
@@ -147,16 +168,16 @@ namespace Bess::Svc {
 
         UUID fromSlotId, toSlotId;
 
-        if (fromSlotType == Canvas::SlotType::digitalInput) {
-            fromSlotId = fromComp->getInputSlots().at(fromSlotIdx);
+        if (fromDirection == SimEngine::PortDirection::input) {
+            fromSlotId = fromComp->getInputSlots().at(fromPortIdx);
         } else {
-            fromSlotId = fromComp->getOutputSlots().at(fromSlotIdx);
+            fromSlotId = fromComp->getOutputSlots().at(fromPortIdx);
         }
 
-        if (toSlotType == Canvas::SlotType::digitalInput) {
-            toSlotId = toComp->getInputSlots().at(toSlotIdx);
+        if (toDirection == SimEngine::PortDirection::input) {
+            toSlotId = toComp->getInputSlots().at(toPortIdx);
         } else {
-            toSlotId = toComp->getOutputSlots().at(toSlotIdx);
+            toSlotId = toComp->getOutputSlots().at(toPortIdx);
         }
 
         return createConnection(fromSlotId, toSlotId, scene);
@@ -648,10 +669,15 @@ namespace Bess::Svc {
             reindexRealSlots(sceneState, pairedSlots);
         }
 
-        getSimEngine().removeSlot(parent->getSimEngineId(),
-                                  isInput ? SimEngine::SlotType::digitalInput
-                                          : SimEngine::SlotType::digitalOutput,
-                                  removedIndex);
+        const auto signalKind =
+            slot->getSignalKind() == SimEngine::SignalKind::none
+                ? SimEngine::SignalKind::digital
+                : slot->getSignalKind();
+        getSimEngine().removePort(
+            {.componentId = parent->getSimEngineId(),
+             .direction = realPortDirectionFor(isInput),
+             .signalKind = signalKind,
+             .index = removedIndex});
 
         reindexRealSlots(sceneState, slots);
 
@@ -716,7 +742,7 @@ namespace Bess::Svc {
             itr == slots.end()
                 ? (slots.empty() ? 0 : slots.size() - 1)
                 : static_cast<size_t>(std::distance(slots.begin(), itr));
-        slot->setSlotType(realSlotTypeFor(isInput));
+        configureSlotPort(slot, isInput, false, slot->getSignalKind());
         slot->setIndex(static_cast<int>(insertedIndex));
 
         reindexRealSlots(sceneState, slots);
@@ -788,7 +814,10 @@ namespace Bess::Svc {
 
             auto created = std::make_shared<Canvas::SlotSceneComponent>();
             created->setParentComponent(parent->getUuid());
-            created->setSlotType(realSlotTypeFor(pairedIsInput));
+            configureSlotPort(created,
+                              pairedIsInput,
+                              false,
+                              slot->getSignalKind());
             created->setIndex(targetIndex);
             return created;
         };
@@ -796,7 +825,10 @@ namespace Bess::Svc {
         pairedSlot = findOrCreatePairedSlot();
         if (pairedSlot && pairedSlots) {
             pairedSlot->setParentComponent(parent->getUuid());
-            pairedSlot->setSlotType(realSlotTypeFor(pairedIsInput));
+            configureSlotPort(pairedSlot,
+                              pairedIsInput,
+                              false,
+                              slot->getSignalKind());
 
             pairedWasInScene =
                 sceneState.isComponentValid(pairedSlot->getUuid());
@@ -829,11 +861,11 @@ namespace Bess::Svc {
         }
 
         if (needsSimSlot) {
-            if (!getSimEngine().addSlot(
-                    parent->getSimEngineId(),
-                    isInput ? SimEngine::SlotType::digitalInput
-                            : SimEngine::SlotType::digitalOutput,
-                    static_cast<int>(insertedIndex))) {
+            if (!getSimEngine().addPort(
+                    {.componentId = parent->getSimEngineId(),
+                     .direction = realPortDirectionFor(isInput),
+                     .signalKind = slot->getSignalKind(),
+                     .index = static_cast<int>(insertedIndex)})) {
                 if (!wasParentChild) {
                     parent->removeChildComponent(slot->getUuid());
                 }
@@ -883,9 +915,7 @@ namespace Bess::Svc {
 
     bool SvcConnection::isResizeTriggerSlot(
         const std::shared_ptr<Canvas::SlotSceneComponent> &slot) {
-        const auto type = slot->getSlotType();
-        return type == Canvas::SlotType::inputsResize ||
-               type == Canvas::SlotType::outputsResize;
+        return slot && slot->isResizeSlot();
     }
 
     SimEngine::SimulationEngine &SvcConnection::getSimEngine() {
@@ -944,37 +974,17 @@ namespace Bess::Svc {
             return "Failed to get slot component B for connection";
         }
 
-        const auto &simCompA =
-            sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(
-                slotCompA->getParentComponent());
-        const auto &simCompB =
-            sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(
-                slotCompB->getParentComponent());
-
-        const auto pinTypeA =
-            slotCompA->getSlotType() == Canvas::SlotType::digitalInput
-                ? SimEngine::SlotType::digitalInput
-                : SimEngine::SlotType::digitalOutput;
-        const auto pinTypeB =
-            slotCompB->getSlotType() == Canvas::SlotType::digitalInput
-                ? SimEngine::SlotType::digitalInput
-                : SimEngine::SlotType::digitalOutput;
-
         const auto success =
-            simEngine.connectComponent(simCompA->getSimEngineId(),
-                                       slotCompA->getIndex(),
-                                       pinTypeA,
-                                       simCompB->getSimEngineId(),
-                                       slotCompB->getIndex(),
-                                       pinTypeB);
+            simEngine.connectPorts(slotCompA->getPortRef(sceneState),
+                                   slotCompB->getPortRef(sceneState));
 
         if (!success) {
             BESS_WARN(
                 "[ConnectionSvc] Failed to connect slots in simulation engine "
                 "between component {} slot {} and component {} slot {}",
-                (uint64_t)simCompA->getUuid(),
+                (uint64_t)slotCompA->getParentComponent(),
                 slotCompA->getIndex(),
-                (uint64_t)simCompB->getUuid(),
+                (uint64_t)slotCompB->getParentComponent(),
                 slotCompB->getIndex());
             return "Failed to connect slots in simulation engine";
         }
@@ -1009,28 +1019,8 @@ namespace Bess::Svc {
             return false;
         }
 
-        const auto &simCompA =
-            sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(
-                slotCompA->getParentComponent());
-        const auto &simCompB =
-            sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(
-                slotCompB->getParentComponent());
-
-        const auto pinTypeA =
-            slotCompA->getSlotType() == Canvas::SlotType::digitalInput
-                ? SimEngine::SlotType::digitalInput
-                : SimEngine::SlotType::digitalOutput;
-        const auto pinTypeB =
-            slotCompB->getSlotType() == Canvas::SlotType::digitalInput
-                ? SimEngine::SlotType::digitalInput
-                : SimEngine::SlotType::digitalOutput;
-
-        simEngine.deleteConnection(simCompA->getSimEngineId(),
-                                   pinTypeA,
-                                   slotCompA->getIndex(),
-                                   simCompB->getSimEngineId(),
-                                   pinTypeB,
-                                   slotCompB->getIndex());
+        simEngine.deleteConnection(slotCompA->getPortRef(sceneState),
+                                   slotCompB->getPortRef(sceneState));
 
         return true;
     }
@@ -1074,15 +1064,11 @@ namespace Bess::Svc {
         auto slotB = getOrCastSlot(idB);
 
         if (proxyA && slotB) {
-            bool isBInput =
-                (slotB->getSlotType() == Canvas::SlotType::digitalInput ||
-                 slotB->getSlotType() == Canvas::SlotType::inputsResize);
+            bool isBInput = slotB->isInputSlot();
             slotA = getOrCastSlot(isBInput ? proxyA->getOutputSlotId()
                                            : proxyA->getInputSlotId());
         } else if (slotA && proxyB) {
-            bool isAInput =
-                (slotA->getSlotType() == Canvas::SlotType::digitalInput ||
-                 slotA->getSlotType() == Canvas::SlotType::inputsResize);
+            bool isAInput = slotA->isInputSlot();
             slotB = getOrCastSlot(isAInput ? proxyB->getOutputSlotId()
                                            : proxyB->getInputSlotId());
         } else if (proxyA && proxyB) {
@@ -1182,7 +1168,7 @@ namespace Bess::Svc {
             actualSlotId = (slotA->getUuid() == slotId) ? slotB->getUuid()
                                                         : slotA->getUuid();
         } else {
-            if (slotComp->getSlotType() == Canvas::SlotType::digitalInput) {
+            if (slotComp->isInputSlot()) {
                 actualSlotId = proxySlot->getOutputSlotId();
             } else {
                 actualSlotId = proxySlot->getInputSlotId();
@@ -1467,12 +1453,9 @@ namespace Bess::Svc {
 
         auto newSlot = std::make_shared<Canvas::SlotSceneComponent>();
         newSlot->setParentComponent(parent->getUuid());
-
-        if (resizeSlot->getSlotType() == Canvas::SlotType::inputsResize) {
-            newSlot->setSlotType(Canvas::SlotType::digitalInput);
-        } else {
-            newSlot->setSlotType(Canvas::SlotType::digitalOutput);
-        }
+        newSlot->setPortDirection(resizeSlot->getPortDirection());
+        newSlot->setSignalKind(resizeSlot->getSignalKind());
+        newSlot->setResizeTrigger(false);
 
         if (!addSlot(scene, newSlot)) {
             return nullptr;
@@ -1500,34 +1483,44 @@ namespace Bess::Svc {
                     "(Proxy links might be dead)"};
         }
 
-        const auto simCompA =
-            sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(
-                slotCompA->getParentComponent());
-        const auto simCompB =
-            sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(
-                slotCompB->getParentComponent());
+        const auto portForCheck =
+            [&](const std::shared_ptr<Canvas::SlotSceneComponent> &slot) {
+                auto port = slot->getPortRef(sceneState);
+                if (slot->isResizeSlot()) {
+                    const auto parent = sceneState.getComponentByUuid<
+                        Canvas::SimulationSceneComponent>(
+                        slot->getParentComponent());
+                    if (parent) {
+                        const auto &slots = slot->isInputSlot()
+                                                ? parent->getInputSlots()
+                                                : parent->getOutputSlots();
+                        port.index =
+                            static_cast<int>(realSlotEnd(sceneState, slots));
+                    }
+                }
+                if (port.signalKind == SimEngine::SignalKind::none) {
+                    port.signalKind = SimEngine::SignalKind::digital;
+                }
+                return port;
+            };
 
-        if (!simCompA || !simCompB) {
+        const auto portA = portForCheck(slotCompA);
+        const auto portB = portForCheck(slotCompB);
+
+        if (!portA.isValid() || !portB.isValid()) {
             return {
                 false,
                 "Missing parent simulation components for connection check"};
         }
 
-        const auto pinTypeA =
-            (slotCompA->getSlotType() == Canvas::SlotType::digitalInput ||
-             slotCompA->getSlotType() == Canvas::SlotType::inputsResize)
-                ? SimEngine::SlotType::digitalInput
-                : SimEngine::SlotType::digitalOutput;
-        const auto pinTypeB =
-            (slotCompB->getSlotType() == Canvas::SlotType::digitalInput ||
-             slotCompB->getSlotType() == Canvas::SlotType::inputsResize)
-                ? SimEngine::SlotType::digitalInput
-                : SimEngine::SlotType::digitalOutput;
-
-        if (pinTypeA == pinTypeB) {
+        if (portA.direction == portB.direction) {
             return {false,
                     "Cannot connect pins of the same type i.e. input -> "
                     "input or output -> output"};
+        }
+
+        if (portA.signalKind != portB.signalKind) {
+            return {false, "Cannot connect ports with different signal kinds"};
         }
 
         const bool isResizeA = slotCompA->isResizeSlot();
@@ -1540,15 +1533,7 @@ namespace Bess::Svc {
             return {true, ""};
         }
 
-        auto indexA = slotCompA->getIndex();
-        auto indexB = slotCompB->getIndex();
-
-        return simEngine.canConnectComponents(simCompA->getSimEngineId(),
-                                              indexA,
-                                              pinTypeA,
-                                              simCompB->getSimEngineId(),
-                                              indexB,
-                                              pinTypeB);
+        return simEngine.canConnectPorts(portA, portB);
     }
 
 } // namespace Bess::Svc

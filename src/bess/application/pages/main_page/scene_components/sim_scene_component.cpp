@@ -1036,7 +1036,9 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
 
         for (size_t i = 0; i < inputCount; i++) {
             auto slot = std::make_shared<SlotSceneComponent>();
-            slot->setSlotType(SlotType::digitalInput);
+            slot->setPortDirection(SimEngine::PortDirection::input);
+            slot->setSignalKind(SimEngine::SignalKind::digital);
+            slot->setResizeTrigger(false);
             slot->setIndex(static_cast<int>(i));
             m_inputSlots.push_back(slot->getUuid());
             slots.push_back(slot);
@@ -1044,7 +1046,9 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
 
         for (size_t i = 0; i < outputCount; i++) {
             auto slot = std::make_shared<SlotSceneComponent>();
-            slot->setSlotType(SlotType::digitalOutput);
+            slot->setPortDirection(SimEngine::PortDirection::output);
+            slot->setSignalKind(SimEngine::SignalKind::digital);
+            slot->setResizeTrigger(false);
             slot->setIndex(static_cast<int>(i));
             m_outputSlots.push_back(slot->getUuid());
             slots.push_back(slot);

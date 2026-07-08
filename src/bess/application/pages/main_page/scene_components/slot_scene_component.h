@@ -7,22 +7,15 @@
 #include "bess_core/scene/scene_ui/controls/label_comp.h"
 #include "bess_core/scene/scene_ui/layout.h"
 #include "common/bess_uuid.h"
+#include "common/types.h"
 #include "fwd.hpp"
 #include "scene_comp_types.h"
 
-namespace Bess::Canvas {
-    enum class SlotType : uint8_t {
-        none,
-        digitalInput,
-        digitalOutput,
-        inputsResize,
-        outputsResize,
-    };
-}
-
-REFLECT_ENUM(Bess::Canvas::SlotType);
 #define SLOT_SC_SER_PROPS                                                      \
-    ("slotType", getSlotType, setSlotType), ("index", getIndex, setIndex),     \
+    ("portDirection", getPortDirection, setPortDirection),                     \
+        ("signalKind", getSignalKind, setSignalKind),                          \
+        ("resizeTrigger", getResizeTrigger, setResizeTrigger),                 \
+        ("index", getIndex, setIndex),                                         \
         ("schematicPos", getSchematicPos, setSchematicPos),                    \
         ("connectedConnections",                                               \
          getConnectedConnections,                                              \
@@ -55,7 +48,11 @@ namespace Bess::Canvas {
                        Bess::Canvas::SceneComponent,
                        SLOT_SC_SER_PROPS)
 
-        MAKE_GETTER_SETTER(SlotType, SlotType, m_slotType)
+        MAKE_GETTER_SETTER(SimEngine::PortDirection,
+                           PortDirection,
+                           m_portDirection)
+        MAKE_GETTER_SETTER(SimEngine::SignalKind, SignalKind, m_signalKind)
+        MAKE_GETTER_SETTER(bool, ResizeTrigger, m_resizeTrigger)
         MAKE_GETTER_SETTER(int, Index, m_index)
         MAKE_GETTER_SETTER(glm::vec3, SchematicPos, m_schematicPos)
         MAKE_GETTER_SETTER(std::vector<UUID>,
@@ -70,6 +67,8 @@ namespace Bess::Canvas {
 
         glm::vec3 getConnectionPos(const SceneState &state,
                                    bool isSchematicMode) const;
+
+        SimEngine::PortRef getPortRef(const SceneState &state) const;
 
         SimEngine::SlotState getSlotState(const SceneState &state) const;
         bool isSlotConnected(const SceneState &state) const;
@@ -97,7 +96,10 @@ namespace Bess::Canvas {
 
       private:
         glm::vec3 m_schematicPos = glm::vec3(0.f);
-        SlotType m_slotType = SlotType::none;
+        SimEngine::PortDirection m_portDirection =
+            SimEngine::PortDirection::none;
+        SimEngine::SignalKind m_signalKind = SimEngine::SignalKind::none;
+        bool m_resizeTrigger = false;
         std::vector<UUID> m_connectedConnections;
         bool m_isHovered = false;
 

@@ -2,7 +2,6 @@
 #include "bess_core/project_context.h"
 #include "bverilog/sim_engine_importer.h"
 #include "bverilog/yosys_runner.h"
-#include "simulation_engine.h"
 
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
@@ -87,8 +86,9 @@ void bind_verilog(py::module_ &m) {
         .def(py::init<>())
         .def(py::init<const ImportedSlotEndpoint &>())
         .def_readwrite("component_id", &ImportedSlotEndpoint::componentId)
-        .def_readwrite("slot_type", &ImportedSlotEndpoint::slotType)
-        .def_readwrite("slot_index", &ImportedSlotEndpoint::slotIndex);
+        .def_readwrite("direction", &ImportedSlotEndpoint::direction)
+        .def_readwrite("signal_kind", &ImportedSlotEndpoint::signalKind)
+        .def_readwrite("port_index", &ImportedSlotEndpoint::portIndex);
 
     py::class_<ImportedModuleInstance>(m, "ImportedModuleInstance")
         .def(py::init<>())

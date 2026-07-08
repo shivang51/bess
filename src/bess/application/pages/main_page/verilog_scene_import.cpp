@@ -216,11 +216,9 @@ namespace Bess::Pages {
 
             const auto &slotIds =
                 isInput ? comp->getInputSlots() : comp->getOutputSlots();
-            const auto slotType = isInput ? Canvas::SlotType::digitalInput
-                                          : Canvas::SlotType::digitalOutput;
-            const auto resizeSlotType = isInput
-                                            ? Canvas::SlotType::inputsResize
-                                            : Canvas::SlotType::outputsResize;
+            const auto direction = isInput ? SimEngine::PortDirection::input
+                                           : SimEngine::PortDirection::output;
+            constexpr auto signalKind = SimEngine::SignalKind::digital;
 
             std::vector<UUID> realSlots;
             realSlots.reserve(slotIds.size());
@@ -233,8 +231,7 @@ namespace Bess::Pages {
                     continue;
                 }
 
-                if (slot->getSlotType() == resizeSlotType ||
-                    slot->isResizeSlot()) {
+                if (slot->isResizeSlot()) {
                     resizeSlotId = slotId;
                     continue;
                 }
@@ -251,7 +248,9 @@ namespace Bess::Pages {
 
             while (realSlots.size() < slotsInfo.count) {
                 auto newSlot = std::make_shared<SlotSceneComponent>();
-                newSlot->setSlotType(slotType);
+                newSlot->setPortDirection(direction);
+                newSlot->setSignalKind(signalKind);
+                newSlot->setResizeTrigger(false);
                 sceneState.addComponent<SlotSceneComponent>(newSlot);
                 sceneState.attachChild(
                     comp->getUuid(), newSlot->getUuid(), false);
@@ -261,7 +260,9 @@ namespace Bess::Pages {
             if (slotsInfo.isResizeable) {
                 if (resizeSlotId == UUID::null) {
                     auto resizeSlot = std::make_shared<SlotSceneComponent>();
-                    resizeSlot->setSlotType(resizeSlotType);
+                    resizeSlot->setPortDirection(direction);
+                    resizeSlot->setSignalKind(signalKind);
+                    resizeSlot->setResizeTrigger(true);
                     resizeSlot->setIndex(-1);
                     sceneState.addComponent<SlotSceneComponent>(resizeSlot);
                     sceneState.attachChild(
@@ -297,7 +298,9 @@ namespace Bess::Pages {
                     continue;
                 }
 
-                slot->setSlotType(slotType);
+                slot->setPortDirection(direction);
+                slot->setSignalKind(signalKind);
+                slot->setResizeTrigger(false);
                 slot->setIndex(static_cast<int>(i));
                 if (i < slotsInfo.names.size()) {
                     slot->setName(slotsInfo.names[i]);
@@ -311,7 +314,9 @@ namespace Bess::Pages {
                     sceneState.getComponentByUuid<SlotSceneComponent>(
                         resizeSlotId);
                 if (resizeSlot) {
-                    resizeSlot->setSlotType(resizeSlotType);
+                    resizeSlot->setPortDirection(direction);
+                    resizeSlot->setSignalKind(signalKind);
+                    resizeSlot->setResizeTrigger(true);
                     resizeSlot->setIndex(-1);
                     resizeSlot->setName("");
                 }
@@ -436,16 +441,22 @@ namespace Bess::Pages {
         }
 
         std::string endpointKey(UUID componentId,
-                                SimEngine::SlotType slotType,
-                                int slotIndex) {
+                                SimEngine::PortDirection direction,
+                                int portIndex,
+                                SimEngine::SignalKind signalKind =
+                                    SimEngine::SignalKind::digital) {
             return std::to_string(static_cast<uint64_t>(componentId)) + ":" +
-                   std::to_string(static_cast<int>(slotType)) + ":" +
-                   std::to_string(slotIndex);
+                   std::to_string(static_cast<int>(direction)) + ":" +
+                   std::to_string(static_cast<int>(signalKind)) + ":" +
+                   std::to_string(portIndex);
         }
 
         std::string endpointKey(const ImportedSlotEndpoint &endpoint) {
             return endpointKey(
-                endpoint.componentId, endpoint.slotType, endpoint.slotIndex);
+                endpoint.componentId,
+                endpoint.direction,
+                endpoint.portIndex,
+                endpoint.signalKind);
         }
 
         bool isInstancePathOrDescendant(std::string_view path,
@@ -698,6 +709,15 @@ namespace Bess::Pages {
             const auto wrapperId = moduleComp->getSimEngineId();
             const auto moduleInputId = moduleDef->getInputId();
             const auto moduleOutputId = moduleDef->getOutputId();
+            const auto digitalPort = [](UUID componentId,
+                                        SimEngine::PortDirection direction,
+                                        int index) {
+                return SimEngine::PortRef{
+                    .componentId = componentId,
+                    .direction = direction,
+                    .signalKind = SimEngine::SignalKind::digital,
+                    .index = index};
+            };
 
             auto inputBoundarySinks = instance.internalInputSinks;
             auto outputBoundaryDrivers = instance.internalOutputDrivers;
@@ -710,19 +730,19 @@ namespace Bess::Pages {
                 std::vector<std::unordered_set<std::string>> seenOutputDrivers(
                     outputBoundaryDrivers.size());
 
-                for (size_t slotIndex = 0;
-                     slotIndex < inputBoundarySinks.size();
-                     ++slotIndex) {
-                    for (const auto &endpoint : inputBoundarySinks[slotIndex]) {
-                        seenInputSinks[slotIndex].insert(endpointKey(endpoint));
+                for (size_t portIndex = 0;
+                     portIndex < inputBoundarySinks.size();
+                     ++portIndex) {
+                    for (const auto &endpoint : inputBoundarySinks[portIndex]) {
+                        seenInputSinks[portIndex].insert(endpointKey(endpoint));
                     }
                 }
-                for (size_t slotIndex = 0;
-                     slotIndex < outputBoundaryDrivers.size();
-                     ++slotIndex) {
+                for (size_t portIndex = 0;
+                     portIndex < outputBoundaryDrivers.size();
+                     ++portIndex) {
                     for (const auto &endpoint :
-                         outputBoundaryDrivers[slotIndex]) {
-                        seenOutputDrivers[slotIndex].insert(
+                         outputBoundaryDrivers[portIndex]) {
+                        seenOutputDrivers[portIndex].insert(
                             endpointKey(endpoint));
                     }
                 }
@@ -734,10 +754,10 @@ namespace Bess::Pages {
                     for (size_t srcSlot = 0;
                          srcSlot < topInputConnections.outputs.size();
                          ++srcSlot) {
-                        const auto slotIndex = findBoundarySlotIndex(
+                        const auto portIndex = findBoundarySlotIndex(
                             instance.inputSlotNames, portName, srcSlot);
-                        if (!slotIndex.has_value() ||
-                            *slotIndex >= inputBoundarySinks.size()) {
+                        if (!portIndex.has_value() ||
+                            *portIndex >= inputBoundarySinks.size()) {
                             continue;
                         }
 
@@ -756,18 +776,18 @@ namespace Bess::Pages {
 
                             const ImportedSlotEndpoint endpoint{
                                 .componentId = dstId,
-                                .slotType = SimEngine::SlotType::digitalInput,
-                                .slotIndex = dstSlot,
+                                .direction = SimEngine::PortDirection::input,
+                                .portIndex = dstSlot,
                             };
 
                             const auto key = endpointKey(endpoint);
-                            if (!seenInputSinks[*slotIndex]
+                            if (!seenInputSinks[*portIndex]
                                      .insert(key)
                                      .second) {
                                 continue;
                             }
 
-                            inputBoundarySinks[*slotIndex].push_back(endpoint);
+                            inputBoundarySinks[*portIndex].push_back(endpoint);
                         }
                     }
                 }
@@ -779,17 +799,17 @@ namespace Bess::Pages {
                     for (size_t dstSlot = 0;
                          dstSlot < topOutputConnections.inputs.size();
                          ++dstSlot) {
-                        const auto slotIndex = findBoundarySlotIndex(
+                        const auto portIndex = findBoundarySlotIndex(
                             instance.outputSlotNames, portName, dstSlot);
-                        if (!slotIndex.has_value() ||
-                            *slotIndex >= outputBoundaryDrivers.size()) {
+                        if (!portIndex.has_value() ||
+                            *portIndex >= outputBoundaryDrivers.size()) {
                             continue;
                         }
 
                         topOutputTargetToBoundarySlot[endpointKey(
                             topOutputId,
-                            SimEngine::SlotType::digitalInput,
-                            static_cast<int>(dstSlot))] = *slotIndex;
+                            SimEngine::PortDirection::input,
+                            static_cast<int>(dstSlot))] = *portIndex;
 
                         for (const auto &[srcId, srcSlot] :
                              topOutputConnections.inputs[dstSlot]) {
@@ -806,38 +826,38 @@ namespace Bess::Pages {
 
                             const ImportedSlotEndpoint endpoint{
                                 .componentId = srcId,
-                                .slotType = SimEngine::SlotType::digitalOutput,
-                                .slotIndex = srcSlot,
+                                .direction = SimEngine::PortDirection::output,
+                                .portIndex = srcSlot,
                             };
 
                             const auto key = endpointKey(endpoint);
-                            if (!seenOutputDrivers[*slotIndex]
+                            if (!seenOutputDrivers[*portIndex]
                                      .insert(key)
                                      .second) {
                                 continue;
                             }
 
-                            outputBoundaryDrivers[*slotIndex].push_back(
+                            outputBoundaryDrivers[*portIndex].push_back(
                                 endpoint);
                         }
                     }
                 }
             }
 
-            for (size_t slotIndex = 0; slotIndex < inputBoundarySinks.size();
-                 ++slotIndex) {
+            for (size_t portIndex = 0; portIndex < inputBoundarySinks.size();
+                 ++portIndex) {
                 std::unordered_set<std::string> seenSources;
-                for (const auto &sink : inputBoundarySinks[slotIndex]) {
+                for (const auto &sink : inputBoundarySinks[portIndex]) {
                     const auto connections =
                         simEngine.getConnections(sink.componentId);
-                    if (sink.slotIndex < 0 ||
-                        sink.slotIndex >=
+                    if (sink.portIndex < 0 ||
+                        sink.portIndex >=
                             static_cast<int>(connections.inputs.size())) {
                         continue;
                     }
 
                     const auto incomingConnections =
-                        connections.inputs[sink.slotIndex];
+                        connections.inputs[sink.portIndex];
                     for (const auto &[srcId, srcSlotIndex] :
                          incomingConnections) {
                         if (srcId == moduleInputId || srcId == wrapperId) {
@@ -852,62 +872,65 @@ namespace Bess::Pages {
                         }
 
                         simEngine.deleteConnection(
-                            srcId,
-                            SimEngine::SlotType::digitalOutput,
-                            srcSlotIndex,
-                            sink.componentId,
-                            sink.slotType,
-                            sink.slotIndex);
+                            digitalPort(srcId,
+                                        SimEngine::PortDirection::output,
+                                        srcSlotIndex),
+                            {.componentId = sink.componentId,
+                             .direction = sink.direction,
+                             .signalKind = sink.signalKind,
+                             .index = sink.portIndex});
 
                         const auto key =
                             endpointKey(srcId,
-                                        SimEngine::SlotType::digitalOutput,
+                                        SimEngine::PortDirection::output,
                                         srcSlotIndex);
                         if (!seenSources.insert(key).second) {
                             continue;
                         }
 
-                        simEngine.connectComponent(
-                            srcId,
-                            srcSlotIndex,
-                            SimEngine::SlotType::digitalOutput,
-                            wrapperId,
-                            static_cast<int>(slotIndex),
-                            SimEngine::SlotType::digitalInput);
+                        simEngine.connectPorts(
+                            digitalPort(srcId,
+                                        SimEngine::PortDirection::output,
+                                        srcSlotIndex),
+                            digitalPort(wrapperId,
+                                        SimEngine::PortDirection::input,
+                                        static_cast<int>(portIndex)));
                     }
 
-                    simEngine.connectComponent(
-                        moduleInputId,
-                        static_cast<int>(slotIndex),
-                        SimEngine::SlotType::digitalOutput,
-                        sink.componentId,
-                        sink.slotIndex,
-                        sink.slotType);
+                    simEngine.connectPorts(
+                        digitalPort(moduleInputId,
+                                    SimEngine::PortDirection::output,
+                                    static_cast<int>(portIndex)),
+                        {.componentId = sink.componentId,
+                         .direction = sink.direction,
+                         .signalKind = sink.signalKind,
+                         .index = sink.portIndex});
                 }
             }
 
-            for (size_t slotIndex = 0; slotIndex < outputBoundaryDrivers.size();
-                 ++slotIndex) {
+            for (size_t portIndex = 0; portIndex < outputBoundaryDrivers.size();
+                 ++portIndex) {
                 std::unordered_set<std::string> seenTargets;
-                for (const auto &driver : outputBoundaryDrivers[slotIndex]) {
-                    simEngine.connectComponent(
-                        driver.componentId,
-                        driver.slotIndex,
-                        driver.slotType,
-                        moduleOutputId,
-                        static_cast<int>(slotIndex),
-                        SimEngine::SlotType::digitalInput);
+                for (const auto &driver : outputBoundaryDrivers[portIndex]) {
+                    simEngine.connectPorts(
+                        {.componentId = driver.componentId,
+                         .direction = driver.direction,
+                         .signalKind = driver.signalKind,
+                         .index = driver.portIndex},
+                        digitalPort(moduleOutputId,
+                                    SimEngine::PortDirection::input,
+                                    static_cast<int>(portIndex)));
 
                     const auto connections =
                         simEngine.getConnections(driver.componentId);
-                    if (driver.slotIndex < 0 ||
-                        driver.slotIndex >=
+                    if (driver.portIndex < 0 ||
+                        driver.portIndex >=
                             static_cast<int>(connections.outputs.size())) {
                         continue;
                     }
 
                     const auto outgoingConnections =
-                        connections.outputs[driver.slotIndex];
+                        connections.outputs[driver.portIndex];
                     for (const auto &[dstId, dstSlotIndex] :
                          outgoingConnections) {
                         if (dstId == moduleOutputId || dstId == wrapperId) {
@@ -917,13 +940,13 @@ namespace Bess::Pages {
                         if (!topOutputTargetToBoundarySlot.empty()) {
                             const auto targetKey =
                                 endpointKey(dstId,
-                                            SimEngine::SlotType::digitalInput,
+                                            SimEngine::PortDirection::input,
                                             dstSlotIndex);
                             const auto mappedSlotIt =
                                 topOutputTargetToBoundarySlot.find(targetKey);
                             if (mappedSlotIt !=
                                     topOutputTargetToBoundarySlot.end() &&
-                                mappedSlotIt->second != slotIndex) {
+                                mappedSlotIt->second != portIndex) {
                                 continue;
                             }
                         }
@@ -936,28 +959,29 @@ namespace Bess::Pages {
                         }
 
                         simEngine.deleteConnection(
-                            driver.componentId,
-                            driver.slotType,
-                            driver.slotIndex,
-                            dstId,
-                            SimEngine::SlotType::digitalInput,
-                            dstSlotIndex);
+                            {.componentId = driver.componentId,
+                             .direction = driver.direction,
+                             .signalKind = driver.signalKind,
+                             .index = driver.portIndex},
+                            digitalPort(dstId,
+                                        SimEngine::PortDirection::input,
+                                        dstSlotIndex));
 
                         const auto key =
                             endpointKey(dstId,
-                                        SimEngine::SlotType::digitalInput,
+                                        SimEngine::PortDirection::input,
                                         dstSlotIndex);
                         if (!seenTargets.insert(key).second) {
                             continue;
                         }
 
-                        simEngine.connectComponent(
-                            wrapperId,
-                            static_cast<int>(slotIndex),
-                            SimEngine::SlotType::digitalOutput,
-                            dstId,
-                            dstSlotIndex,
-                            SimEngine::SlotType::digitalInput);
+                        simEngine.connectPorts(
+                            digitalPort(wrapperId,
+                                        SimEngine::PortDirection::output,
+                                        static_cast<int>(portIndex)),
+                            digitalPort(dstId,
+                                        SimEngine::PortDirection::input,
+                                        dstSlotIndex));
                     }
                 }
             }

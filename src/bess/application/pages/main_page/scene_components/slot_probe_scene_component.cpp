@@ -131,8 +131,7 @@ namespace Bess::Canvas {
                     e.sceneState->getComponentByUuid<SlotSceneComponent>(
                         connStartSlot);
                 if (comp && comp->getType() == SceneComponentType::slot &&
-                    comp->getSlotType() != SlotType::inputsResize &&
-                    comp->getSlotType() != SlotType::outputsResize) {
+                    !comp->isResizeSlot()) {
                     setProbedSlotUuid(e.sceneState->getConnectionStartSlot());
                     e.sceneState->setConnectionStartSlot(UUID::null);
                     return true;

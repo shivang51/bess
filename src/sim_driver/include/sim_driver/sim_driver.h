@@ -79,8 +79,9 @@ namespace Bess::SimEngine::Drivers {
         paused
     };
 
-    // comp id, slot type, new count
-    typedef std::function<void(const UUID &, SlotType, int)> SlotCountChangeCB;
+    // comp id, direction, signal kind, new count
+    typedef std::function<void(const UUID &, PortDirection, SignalKind, int)>
+        PortCountChangeCB;
 
     struct SlotsCountChangeRes {
         bool changedInp = false;
@@ -151,36 +152,19 @@ namespace Bess::SimEngine::Drivers {
 
         // Connection management
         virtual std::pair<bool, std::string>
-        canConnectComponents(const UUID &src,
-                             int srcSlotIdx,
-                             SlotType srcType,
-                             const UUID &dst,
-                             int dstSlotIdx,
-                             SlotType dstType) const = 0;
+        canConnectPorts(const PortRef &src, const PortRef &dst) const = 0;
 
-        virtual bool connectComponent(const UUID &src,
-                                      int srcSlotIdx,
-                                      SlotType srcType,
-                                      const UUID &dst,
-                                      int dstSlotIdx,
-                                      SlotType dstType,
-                                      bool overrideConn) = 0;
+        virtual bool connectPorts(const PortRef &src,
+                                  const PortRef &dst,
+                                  bool overrideConn) = 0;
 
-        virtual void deleteConnection(const UUID &compA,
-                                      SlotType pinAType,
-                                      int idxA,
-                                      const UUID &compB,
-                                      SlotType pinBType,
-                                      int idxB) = 0;
+        virtual void deleteConnection(const PortRef &portA,
+                                      const PortRef &portB) = 0;
 
-        virtual SlotsCountChangeRes addSlot(const UUID &compId,
-                                            SlotType type,
-                                            int index,
+        virtual SlotsCountChangeRes addPort(const PortRef &port,
                                             bool force = false) = 0;
 
-        virtual SlotsCountChangeRes removeSlot(const UUID &compId,
-                                               SlotType type,
-                                               int index,
+        virtual SlotsCountChangeRes removePort(const PortRef &port,
                                                bool force = false) = 0;
 
         virtual ConnectionBundle getConnections(const UUID &uuid) const;
@@ -188,7 +172,7 @@ namespace Bess::SimEngine::Drivers {
         virtual std::vector<SlotState> getInputSlotsState(const UUID &compId);
 
         virtual SlotState
-        getSlotState(const UUID &uuid, SlotType type, int idx) const;
+        getPortState(const PortRef &port) const;
 
         virtual bool
         setInputSlotState(const UUID &uuid, int pinIdx, LogicState state);
@@ -210,10 +194,10 @@ namespace Bess::SimEngine::Drivers {
 
         virtual void loadJson(const Json::Value &json) = 0;
 
-        void addOnSlotCountChangeCB(const UUID &id,
-                                    const SlotCountChangeCB &cb);
+        void addOnPortCountChangeCB(const UUID &id,
+                                    const PortCountChangeCB &cb);
 
-        void removeOnSlotCountChangeCB(const UUID &id);
+        void removeOnPortCountChangeCB(const UUID &id);
 
       protected:
         virtual void
@@ -235,7 +219,8 @@ namespace Bess::SimEngine::Drivers {
         virtual void onDestroy() {};
 
         void triggerSlotCountChangeCbs(const UUID &compId,
-                                       SlotType type,
+                                       PortDirection direction,
+                                       SignalKind signalKind,
                                        int newCount);
 
       public:
@@ -304,6 +289,6 @@ namespace Bess::SimEngine::Drivers {
         mutable std::mutex m_stateMutex;
 
         CompStampData m_compStampData;
-        std::unordered_map<UUID, SlotCountChangeCB> m_onSlotCountChnageCBs;
+        std::unordered_map<UUID, PortCountChangeCB> m_onPortCountChnageCBs;
     };
 } // namespace Bess::SimEngine::Drivers

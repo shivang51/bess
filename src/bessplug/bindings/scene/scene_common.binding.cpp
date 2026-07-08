@@ -24,14 +24,6 @@ void bind_scene_common_binding(py::module &m) {
              })
         .def("__eq__", &Bess::PickingId::operator==);
 
-    py::enum_<Bess::Canvas::SlotType>(m, "SlotType")
-        .value(
-            "dInp", Bess::Canvas::SlotType::digitalInput, "Digital Input Slot")
-        .value("dOut",
-               Bess::Canvas::SlotType::digitalOutput,
-               "Digital Output Slot")
-        .export_values();
-
     py::enum_<Bess::Canvas::PinLabelAlignment>(m, "PinLabelAlignment")
         .value("adjacent",
                Bess::Canvas::PinLabelAlignment::adjacent,

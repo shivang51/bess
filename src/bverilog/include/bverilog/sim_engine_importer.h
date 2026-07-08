@@ -36,8 +36,9 @@ namespace Bess::Verilog {
 
     struct BESS_API ImportedSlotEndpoint {
         UUID componentId = UUID::null;
-        SimEngine::SlotType slotType = SimEngine::SlotType::digitalInput;
-        int slotIndex = 0;
+        SimEngine::PortDirection direction = SimEngine::PortDirection::input;
+        SimEngine::SignalKind signalKind = SimEngine::SignalKind::digital;
+        int portIndex = 0;
     };
 
     struct BESS_API ImportedModuleInstance {
