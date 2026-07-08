@@ -7,6 +7,7 @@
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene/widgets/scene_widgets.h"
 #include "bess_core/settings/viewport_theme.h"
+#include "bess_core/style/bess_theme.h"
 #include "sim_scene_component.h"
 #include "simulation_engine.h"
 #include "ui/icons/FontAwesomeIcons_Remapped.h"
@@ -80,31 +81,50 @@ namespace Bess::Canvas {
     }
 
     void InputSceneComponent::prepareUI(SceneUIPrepareCtx &ctx) {
-        // SimulationSceneComponent::prepareUI(ctx);
-        // auto prevParent = ctx.parentNode;
-        // ctx.parentNode = m_inpBoxNode;
-        //
-        // for (const auto &btn : m_toggleButtons) {
-        //     ctx.sceneState->removeComponent(btn->getUuid());
-        // }
-        //
-        // m_toggleButtons.clear();
-        //
-        // for (size_t i = 0; i < m_outputSlots.size() - 1; i++) {
-        //     const auto &slotUuid = m_outputSlots[i];
-        //     auto btn = std::make_shared<Bess::Canvas::UI::ToggleBtnComp>();
-        //     btn->setShowLabel(false);
-        //     btn->getStyle().margin = 0;
-        //     btn->getStyle().padding = 0;
-        //     ctx.sceneState->addComponent(btn);
-        //     m_toggleButtons.push_back(btn);
-        //
-        //     btn->prepareUI(ctx);
-        // }
-        //
-        // m_setBtnCbs = true;
-        // ctx.parentNode = prevParent;
-        // m_isUIDirty = false;
+        SimulationSceneComponent::prepareUI(ctx);
+
+        if (m_toggleButtons.size() > m_outputSlots.size() - 1) {
+            size_t diff = m_toggleButtons.size() - (m_outputSlots.size() - 1);
+
+            for (size_t i = 0; i < diff; i++) {
+                auto btn = m_toggleButtons.back();
+                ctx.sceneState->removeComponent(btn->getUuid());
+                m_toggleButtons.pop_back();
+            }
+
+            m_setBtnCbs = true;
+        } else if (m_toggleButtons.size() < m_outputSlots.size() - 1) {
+
+            const auto n = m_outputSlots.size() - 1;
+            while (m_toggleButtons.size() < n) {
+                auto btn = std::make_shared<Bess::Canvas::UI::ToggleBtnComp>();
+                m_toggleButtons.push_back(btn);
+
+                auto &size = btn->getTrackSize();
+                size.y = Styles::simCompStyles.slotLabelSize;
+
+                auto &thumbSize = btn->getThumbSize();
+                thumbSize.y = size.y;
+                thumbSize.x = size.y;
+
+                btn->setShowLabel(false);
+                btn->getStyle().margin = Core::Style::Margin::fromVertical(
+                    Canvas::Styles::simCompStyles.rowMargin);
+                btn->getStyle().padding = 0;
+                ctx.sceneState->addComponent(btn);
+            }
+        }
+
+        auto prevParentNode = ctx.parentNode;
+        ctx.parentNode = m_inpSlotsContainer->getUINode();
+
+        for (const auto &btn : m_toggleButtons) {
+            btn->prepareUI(ctx);
+        }
+
+        ctx.parentNode = prevParentNode;
+        m_setBtnCbs = true;
+        m_isUIDirty = false;
     }
 
     std::vector<std::shared_ptr<SceneComponent>>
@@ -120,6 +140,10 @@ namespace Bess::Canvas {
         }
 
         if (m_setBtnCbs) {
+            BESS_ASSERT(m_toggleButtons.size() == m_outputSlots.size() - 1,
+                        "Toggle buttons size does not match output slots size "
+                        "| ToggleBtns Size = {}",
+                        m_toggleButtons.size());
             for (size_t i = 0; i < m_toggleButtons.size(); i++) {
                 auto btn = m_toggleButtons[i];
                 const auto &slotUuid = m_outputSlots[i];
@@ -138,6 +162,15 @@ namespace Bess::Canvas {
 
                     setOutputSlotState(*state, slotComp, toggled);
                 });
+
+                const auto slotComp =
+                    state->getComponentByUuid<SlotSceneComponent>(slotUuid);
+                auto isHigh = false;
+                if (slotComp) {
+                    isHigh = slotComp->getSlotState(*state).getLogicState() ==
+                             SimEngine::LogicState::high;
+                }
+                btn->setToggled(isHigh);
             }
 
             m_setBtnCbs = false;
