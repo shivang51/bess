@@ -3,6 +3,7 @@
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_ui/layout.h"
 #include "bess_core/style/bess_theme.h"
+#include "pages/main_page/scene_components/scene_comp_types.h"
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -40,6 +41,7 @@ namespace Bess::Canvas::UI {
                            DrawRuntimeId,
                            m_drawRuntimeId);
 
+        REG_SCENE_COMP_TYPE("UISceneComponent", SceneComponentType::ui)
         std::vector<UUID> cleanup(SceneState &state,
                                   UUID caller = UUID::null) override;
 

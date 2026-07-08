@@ -34,6 +34,8 @@ namespace Bess::Canvas {
 
         void prepareUI(SceneUIPrepareCtx &ctx) override;
 
+        std::vector<UUID> getDependants(const SceneState &state) const override;
+
       private:
         std::vector<std::shared_ptr<Bess::Canvas::UI::ToggleBtnComp>>
             m_toggleButtons;

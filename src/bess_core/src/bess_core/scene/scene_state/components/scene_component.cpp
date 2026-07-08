@@ -154,10 +154,14 @@ namespace Bess::Canvas {
 
     std::vector<UUID>
     SceneComponent::getDependants(const SceneState &state) const {
-        return m_childComponents.empty()
-                   ? std::vector<UUID>{}
-                   : std::vector<UUID>(m_childComponents.begin(),
-                                       m_childComponents.end());
+        auto deps = std::vector<UUID>{};
+        for (const auto &childId : m_childComponents) {
+            const auto &childComp = state.getComponentByUuid(childId);
+            const auto &childDeps = childComp->getDependants(state);
+            deps.insert(deps.end(), childDeps.begin(), childDeps.end());
+            deps.push_back(childId);
+        }
+        return deps;
     }
 
     void SceneComponent::onChildrenChanged() {

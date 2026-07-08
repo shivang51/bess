@@ -127,9 +127,22 @@ namespace Bess::Canvas {
         m_isUIDirty = false;
     }
 
+    std::vector<UUID>
+    InputSceneComponent::getDependants(const SceneState &state) const {
+        auto deps = SimulationSceneComponent::getDependants(state);
+        for (auto &btn : m_toggleButtons) {
+            const auto &childDeps = btn->getDependants(state);
+            deps.insert(deps.end(), childDeps.begin(), childDeps.end());
+            deps.push_back(btn->getUuid());
+        }
+        return deps;
+    }
+
     std::vector<std::shared_ptr<SceneComponent>>
     InputSceneComponent::clone(const SceneState &sceneState) const {
         auto clonedComponent = std::make_shared<InputSceneComponent>(*this);
+        clonedComponent->m_toggleButtons.clear();
+        clonedComponent->m_isUIDirty = true;
         return cloneSimulationComponent(sceneState, clonedComponent);
     }
 

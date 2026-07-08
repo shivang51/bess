@@ -485,15 +485,22 @@ namespace Bess::Canvas {
         const bool isUnirary =
             SimEngine::ExprEval::isUninaryOperator(def->getOpInfo().op);
 
-        if (!isUnirary) {
-            return dependants;
+        if (isUnirary) {
+            if (isInputSlot()) {
+                dependants.push_back(simComp->getOutputSlots()[m_index]);
+            } else {
+                dependants.push_back(simComp->getInputSlots()[m_index]);
+            }
         }
 
-        if (isInputSlot()) {
-            dependants.push_back(simComp->getOutputSlots()[m_index]);
-        } else {
-            dependants.push_back(simComp->getInputSlots()[m_index]);
+        for (const auto &childId : m_container->getChildComponents()) {
+            const auto &childComp = state.getComponentByUuid(childId);
+            const auto &childDeps = childComp->getDependants(state);
+            dependants.insert(
+                dependants.end(), childDeps.begin(), childDeps.end());
+            dependants.push_back(childId);
         }
+        dependants.push_back(m_container->getUuid());
 
         return dependants;
     }
