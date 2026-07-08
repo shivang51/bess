@@ -75,6 +75,7 @@ endif()
 
 add_subdirectory(${dawn_SOURCE_DIR} ${dawn_BINARY_DIR})
 add_subdirectory(glfw3webgpu)
+add_subdirectory(yoga)
 
 
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
@@ -131,6 +132,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 	absl::raw_hash_set           
 	absl::base
 	absl::raw_logging_internal
+	yogacore
 )
 
 if(LINUX)
