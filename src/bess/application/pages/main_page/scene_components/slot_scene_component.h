@@ -80,11 +80,7 @@ namespace Bess::Canvas {
 
         std::vector<UUID> getDependants(const SceneState &state) const override;
 
-        void onNameChanged() override {
-            if (m_label) {
-                m_label->setName(m_name);
-            }
-        }
+        void onNameChanged() override;
 
       private:
         void onRuntimeIdChanged() override;

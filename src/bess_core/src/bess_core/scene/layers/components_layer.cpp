@@ -14,9 +14,8 @@ namespace Bess::Canvas {
             .theme = Bess::Core::Style::BessTheme::defaultTheme(),
         };
 
-        for (const auto &compId : ctx.sceneState->getRootComponents()) {
-            const auto comp = ctx.sceneState->getComponentByUuid(compId);
-            if (comp->getUIDirty()) {
+        for (const auto &[compId, comp] : ctx.sceneState->getAllComponents()) {
+            if (comp && comp->getUIDirty()) {
                 BESS_TRACE(
                     "[ComponentsLayer] Preparing UI for component: {} | {}",
                     comp->getName(),

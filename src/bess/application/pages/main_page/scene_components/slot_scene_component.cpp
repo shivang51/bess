@@ -500,4 +500,10 @@ namespace Bess::Canvas {
 
         return dependants;
     }
+
+    void SlotSceneComponent::onNameChanged() {
+        if (m_label) {
+            m_label->setName(m_name);
+        }
+    }
 } // namespace Bess::Canvas
