@@ -8,6 +8,7 @@
 #include <functional>
 #include <memory>
 #include <set>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -32,12 +33,18 @@ namespace Bess::Cmd {
       private:
         std::vector<UUID>
         buildDeletionOrder(const CommandContext &context) const;
+        void captureChildComponentSnapshots(
+            const CommandContext &context,
+            const std::vector<UUID> &deletionOrder);
         bool removeStoredComponents(const CommandContext &context);
         void restoreStoredComponents(const CommandContext &context);
+        void restoreChildComponentSnapshots(
+            Canvas::SceneState &sceneState) const;
 
         std::set<UUID> m_componentUuids;
         std::vector<std::shared_ptr<Canvas::SceneComponent>>
             m_deletedComponents;
+        std::unordered_map<UUID, OrderedSet<UUID>> m_childComponentSnapshots;
         DeleteCompCmdCB m_callback = nullptr;
     };
 } // namespace Bess::Cmd

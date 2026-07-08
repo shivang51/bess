@@ -80,6 +80,9 @@ namespace Bess::Canvas {
 
         std::vector<UUID> getDependants(const SceneState &state) const override;
 
+        std::vector<UUID> cleanup(SceneState &state,
+                                  UUID caller = UUID::null) override;
+
         void onNameChanged() override;
 
       private:

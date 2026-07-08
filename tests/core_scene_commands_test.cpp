@@ -6,9 +6,12 @@
 #include "bess_core/g_app_context.h"
 #include "bess_core/scene/scene.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
+#include "bess_core/scene/scene_ui/controls/container_comp.h"
+#include "bess_core/scene/scene_ui/controls/label_comp.h"
 #include "event_dispatcher.h"
 #include <gtest/gtest.h>
 #include <memory>
+#include <vector>
 
 namespace {
     class FailingCommand : public Bess::Cmd::Command {
@@ -28,6 +31,28 @@ namespace {
 
         void redo(const Bess::Cmd::CommandContext &context) override {
             (void)context;
+        }
+    };
+
+    class InsertionOrderDependantsComponent
+        : public Bess::Canvas::SceneComponent {
+      public:
+        std::vector<Bess::UUID>
+        getDependants(const Bess::Canvas::SceneState &state) const override {
+            std::vector<Bess::UUID> dependants;
+            for (const auto &childId : getChildComponents()) {
+                const auto child = state.getComponentByUuid(childId);
+                if (!child) {
+                    continue;
+                }
+
+                const auto childDependants = child->getDependants(state);
+                dependants.insert(dependants.end(),
+                                  childDependants.begin(),
+                                  childDependants.end());
+                dependants.push_back(childId);
+            }
+            return dependants;
         }
     };
 } // namespace
@@ -112,6 +137,53 @@ TEST_F(CoreSceneCommandsTest, DeleteComponentCommandRestoresDependants) {
 
     commandSystem.redo();
     EXPECT_TRUE(scene->getState().getAllComponents().empty());
+}
+
+TEST_F(CoreSceneCommandsTest, DeleteComponentCommandPreservesChildOrderOnUndo) {
+    auto root = std::make_shared<InsertionOrderDependantsComponent>();
+    auto firstChild = std::make_shared<Bess::Canvas::SceneComponent>();
+    auto secondChild = std::make_shared<Bess::Canvas::SceneComponent>();
+
+    scene->getState().addComponent(root, false, false);
+    scene->getState().addComponent(firstChild, false, false);
+    scene->getState().addComponent(secondChild, false, false);
+    scene->getState().attachChild(
+        root->getUuid(), firstChild->getUuid(), false);
+    scene->getState().attachChild(
+        root->getUuid(), secondChild->getUuid(), false);
+
+    commandSystem.execute(std::make_unique<Bess::Cmd::DeleteCompCmd>(
+        std::vector<Bess::UUID>{root->getUuid()}));
+
+    EXPECT_TRUE(scene->getState().getAllComponents().empty());
+
+    commandSystem.undo();
+
+    const auto restoredRoot =
+        scene->getState().getComponentByUuid(root->getUuid());
+    ASSERT_NE(restoredRoot, nullptr);
+
+    const std::vector<Bess::UUID> restoredChildren{
+        restoredRoot->getChildComponents().begin(),
+        restoredRoot->getChildComponents().end(),
+    };
+    ASSERT_EQ(restoredChildren.size(), 2u);
+    EXPECT_EQ(restoredChildren[0], firstChild->getUuid());
+    EXPECT_EQ(restoredChildren[1], secondChild->getUuid());
+}
+
+TEST_F(CoreSceneCommandsTest, RemoveUiComponentRecursivelyRemovesUiChildren) {
+    auto parent = Bess::Canvas::UI::ContainerComp::create();
+    auto child = Bess::Canvas::UI::LabelComp::create("child");
+
+    scene->getState().addComponent(parent, false, false);
+    scene->getState().addComponent(child, false, false);
+    scene->getState().attachChild(parent->getUuid(), child->getUuid(), false);
+
+    scene->getState().removeComponent(parent->getUuid());
+
+    EXPECT_FALSE(scene->getState().isComponentValid(parent->getUuid()));
+    EXPECT_FALSE(scene->getState().isComponentValid(child->getUuid()));
 }
 
 TEST_F(CoreSceneCommandsTest, UpdateValueCommandsMergeIntoSingleUndoStep) {

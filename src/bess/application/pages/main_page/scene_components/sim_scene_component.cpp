@@ -28,6 +28,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <ranges>
 #include <unordered_set>
 
 namespace Icons = Bess::UI::Icons;
@@ -825,6 +826,18 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         const auto ids = SceneComponent::cleanup(state, caller);
         removedIds.insert(removedIds.end(), ids.begin(), ids.end());
 
+        if (m_nodeContainer &&
+            state.isComponentValid(m_nodeContainer->getUuid())) {
+            const auto uiIds =
+                state.removeComponent(m_nodeContainer->getUuid(), UUID::master);
+            removedIds.insert(removedIds.end(), uiIds.begin(), uiIds.end());
+        }
+        m_nodeContainer = nullptr;
+        m_slotsContainer = nullptr;
+        m_labelComp = nullptr;
+        m_inpSlotsContainer = nullptr;
+        m_outSlotsContainer = nullptr;
+
         auto &appCtx = Bess::GAppContext::getInstance();
         auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
         auto &simEngine = projectCtx->getSimEngine();
@@ -1003,15 +1016,6 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
                 dependants.end(), childDeps.begin(), childDeps.end());
             dependants.push_back(childId);
         }
-
-        for (const auto &childId : m_nodeContainer->getChildComponents()) {
-            const auto &childComp = state.getComponentByUuid(childId);
-            const auto &childDeps = childComp->getDependants(state);
-            dependants.insert(
-                dependants.end(), childDeps.begin(), childDeps.end());
-            dependants.push_back(childId);
-        }
-        dependants.push_back(m_nodeContainer->getUuid());
 
         return dependants;
     }

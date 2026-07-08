@@ -469,6 +469,10 @@ namespace Bess::Canvas {
         for (const auto &connUuid : m_connectedConnections) {
             const auto &connComp =
                 state.getComponentByUuid<ConnectionSceneComponent>(connUuid);
+            if (!connComp) {
+                continue;
+            }
+
             const auto &connDeps = connComp->getDependants(state);
             dependants.insert(
                 dependants.end(), connDeps.begin(), connDeps.end());
@@ -478,10 +482,17 @@ namespace Bess::Canvas {
         const auto &simComp =
             state.getComponentByUuid<SimulationSceneComponent>(
                 m_parentComponent);
+        if (!simComp) {
+            return dependants;
+        }
 
         auto def =
             std::dynamic_pointer_cast<SimEngine::Drivers::Digital::DigCompDef>(
                 simComp->getCompDef());
+        if (!def) {
+            return dependants;
+        }
+
         const bool isUnirary =
             SimEngine::ExprEval::isUninaryOperator(def->getOpInfo().op);
 
@@ -493,10 +504,24 @@ namespace Bess::Canvas {
             }
         }
 
-        const auto &containerDeps = m_container->getDependants(state);
-        dependants.push_back(m_container->getUuid());
-
         return dependants;
+    }
+
+    std::vector<UUID> SlotSceneComponent::cleanup(SceneState &state,
+                                                  UUID caller) {
+        auto removedIds = SceneComponent::cleanup(state, caller);
+
+        if (m_container && state.isComponentValid(m_container->getUuid())) {
+            const auto ids =
+                state.removeComponent(m_container->getUuid(), UUID::master);
+            removedIds.insert(removedIds.end(), ids.begin(), ids.end());
+        }
+
+        m_container = nullptr;
+        m_label = nullptr;
+        m_slotNode = nullptr;
+        m_isUIDirty = true;
+        return removedIds;
     }
 
     void SlotSceneComponent::onNameChanged() {

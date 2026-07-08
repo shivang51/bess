@@ -24,12 +24,14 @@ namespace Bess::Cmd {
         }
 
         m_deletedComponents.clear();
+        m_childComponentSnapshots.clear();
         const auto deletionOrder = buildDeletionOrder(commandContext);
         if (deletionOrder.empty()) {
             return false;
         }
 
         auto &sceneState = commandContext.scene->getState();
+        captureChildComponentSnapshots(commandContext, deletionOrder);
         m_deletedComponents.reserve(deletionOrder.size());
         for (const auto &componentId : deletionOrder) {
             const auto component = sceneState.getComponentByUuidSP(componentId);
@@ -107,6 +109,40 @@ namespace Bess::Cmd {
         sortSceneComponentDeletionOrderWithHooks(
             context.scene, deletionOrder, context.componentHooks);
         return deletionOrder;
+    }
+
+    void DeleteCompCmd::captureChildComponentSnapshots(
+        const CommandContext &context,
+        const std::vector<UUID> &deletionOrder) {
+        if (!context.scene) {
+            return;
+        }
+
+        auto &sceneState = context.scene->getState();
+        const auto capture = [&](const UUID &componentId) {
+            if (componentId == UUID::null ||
+                m_childComponentSnapshots.contains(componentId)) {
+                return;
+            }
+
+            const auto component = sceneState.getComponentByUuid(componentId);
+            if (!component) {
+                return;
+            }
+
+            m_childComponentSnapshots.emplace(componentId,
+                                              component->getChildComponents());
+        };
+
+        for (const auto &componentId : deletionOrder) {
+            const auto component = sceneState.getComponentByUuid(componentId);
+            if (!component) {
+                continue;
+            }
+
+            capture(componentId);
+            capture(component->getParentComponent());
+        }
     }
 
     bool DeleteCompCmd::removeStoredComponents(const CommandContext &context) {
@@ -214,6 +250,29 @@ namespace Bess::Cmd {
             }
 
             deferredComponents = std::move(stillDeferred);
+        }
+
+        restoreChildComponentSnapshots(sceneState);
+    }
+
+    void DeleteCompCmd::restoreChildComponentSnapshots(
+        Canvas::SceneState &sceneState) const {
+        for (const auto &[componentId, childSnapshot] :
+             m_childComponentSnapshots) {
+            const auto component = sceneState.getComponentByUuid(componentId);
+            if (!component) {
+                continue;
+            }
+
+            OrderedSet<UUID> restoredChildren;
+            for (const auto &childId : childSnapshot) {
+                if (sceneState.isComponentValid(childId)) {
+                    restoredChildren.insert(childId);
+                }
+            }
+
+            component->setChildComponents(restoredChildren);
+            component->setUIDirty(true);
         }
     }
 } // namespace Bess::Cmd

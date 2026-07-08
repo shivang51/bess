@@ -3,6 +3,7 @@
 #include "bess_core/commands/delete_component_command.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/scene/scene.h"
 #include "bess_core/scene_driver.h"
 #include "dig_sim_driver.h"
@@ -66,6 +67,102 @@ namespace {
     bool containsUuid(const std::vector<UUID> &values, const UUID &id) {
         return std::ranges::find(values, id) != values.end();
     }
+
+    class TestRenderer2D final : public Bess::Core::Renderer::IRenderer2D {
+      public:
+        void init(const Bess::Core::Renderer::Renderer2DCreateInfo &) override {
+        }
+        void destroy() override {
+        }
+        void resize(const Bess::Core::Renderer::Renderer2DExtent &) override {
+        }
+        void
+        beginFrame(const Bess::Core::Renderer::Renderer2DFrameInfo &) override {
+        }
+        void endFrame() override {
+        }
+        void clear(const Bess::Core::Renderer::Color &) override {
+        }
+        void saveTargetToFile(const std::string &) override {
+        }
+        [[nodiscard]] Bess::Core::Renderer::Renderer2DStats
+        getStats() const noexcept override {
+            return {};
+        }
+        [[nodiscard]] Bess::Core::Renderer::TextureReadbackResult
+        readTexture(
+            const Bess::Core::Renderer::TextureReadbackRegion &) override {
+            return {};
+        }
+        void requestPickingIds(
+            const Bess::Core::Renderer::TextureReadbackRegion &) override {
+        }
+        [[nodiscard]] bool
+        tryGetPickingIds(Bess::Core::Renderer::PickingReadbackResult &) override {
+            return false;
+        }
+        [[nodiscard]] bool isPickingReadbackPending() const noexcept override {
+            return false;
+        }
+        void drawQuad(const Bess::Core::Renderer::QuadProps &) override {
+        }
+        [[nodiscard]] Bess::Core::Renderer::CustomQuadShaderHandle
+        createCustomQuadShader(
+            const Bess::Core::Renderer::CustomQuadShaderDesc &) override {
+            return 1;
+        }
+        void destroyCustomQuadShader(
+            Bess::Core::Renderer::CustomQuadShaderHandle) override {
+        }
+        void drawCustomQuad(
+            const Bess::Core::Renderer::CustomQuadProps &) override {
+        }
+        void drawCircle(const Bess::Core::Renderer::CircleProps &) override {
+        }
+        void drawLine(const Bess::Core::Renderer::LineProps &) override {
+        }
+        void drawFont(std::string_view,
+                      const Bess::Core::Renderer::FontProps & = {}) override {
+        }
+        [[nodiscard]] glm::vec2 measureText(
+            std::string_view text,
+            const Bess::Core::Renderer::FontProps &props = {}) override {
+            return getTextRenderSize(text, props);
+        }
+        [[nodiscard]] float textCenterOffsetY(
+            std::string_view,
+            const Bess::Core::Renderer::FontProps &props = {}) override {
+            return props.fontSize * 0.35f;
+        }
+        void drawPath(
+            std::span<const Bess::Core::Renderer::PathCommand>,
+            const Bess::Core::Renderer::PathProps & = {}) override {
+        }
+        void beginPath(const Bess::Core::Renderer::PathProps & = {}) override {
+        }
+        void pathMoveTo(const glm::vec2 &) override {
+        }
+        void pathLineTo(
+            const glm::vec2 &,
+            const Bess::Core::Renderer::PathCommandStroke & = {}) override {
+        }
+        void pathQuadTo(
+            const glm::vec2 &,
+            const glm::vec2 &,
+            const Bess::Core::Renderer::PathCommandStroke & = {}) override {
+        }
+        void pathCubicTo(
+            const glm::vec2 &,
+            const glm::vec2 &,
+            const glm::vec2 &,
+            const Bess::Core::Renderer::PathCommandStroke & = {}) override {
+        }
+        void pathClose(
+            const Bess::Core::Renderer::PathCommandStroke & = {}) override {
+        }
+        void endPath() override {
+        }
+    };
 
     struct SimComponentFixture {
         std::shared_ptr<SimulationSceneComponent> comp;
@@ -329,6 +426,33 @@ TEST(SimulationSceneComponentSlotDirtyTest, SlotMutatorsMarkUIDirty) {
     EXPECT_TRUE(comp->removeOutputSlot(outputA));
     EXPECT_TRUE(comp->getUIDirty());
     EXPECT_FALSE(containsUuid(comp->getOutputSlots(), outputA));
+}
+
+TEST_F(MainPageConnectionCommandsTest,
+       AddComponentRedoRecreatesPreparedUiHelpers) {
+    const auto fixture = addSimComponent(makeDefinition("JK Flip Flop", 4, 2));
+    ASSERT_NE(fixture.comp, nullptr);
+
+    const auto renderer = std::make_shared<TestRenderer2D>();
+    Bess::SceneUIPrepareCtx prepareCtx{
+        .sceneState = &scene->getState(),
+        .renderer = renderer,
+        .parentNode = nullptr,
+        .theme = Bess::Core::Style::BessTheme::defaultTheme(),
+    };
+
+    fixture.comp->prepareUI(prepareCtx);
+
+    commandSystem->undo();
+    ASSERT_EQ(scene->getState().getComponentByUuid(fixture.comp->getUuid()),
+              nullptr);
+
+    commandSystem->redo();
+    ASSERT_NE(scene->getState().getComponentByUuid(fixture.comp->getUuid()),
+              nullptr);
+
+    fixture.comp->prepareUI(prepareCtx);
+    EXPECT_FALSE(fixture.comp->getUIDirty());
 }
 
 TEST_F(MainPageConnectionCommandsTest,

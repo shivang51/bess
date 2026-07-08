@@ -19,10 +19,14 @@ namespace Bess::Canvas::UI {
         auto reg = state.getUINodeRegistry();
 
         std::vector<UUID> removedComponents;
+        std::vector<UUID> childComponents{
+            m_childComponents.begin(),
+            m_childComponents.end(),
+        };
 
-        for (const auto &childId : m_childComponents) {
-            if (auto childComp = state.getComponentByUuid(childId)) {
-                auto ids = childComp->cleanup(state, m_uuid);
+        for (const auto &childId : childComponents) {
+            if (state.isComponentValid(childId)) {
+                auto ids = state.removeComponent(childId, m_uuid);
                 removedComponents.insert(
                     removedComponents.end(), ids.begin(), ids.end());
             }
@@ -31,8 +35,9 @@ namespace Bess::Canvas::UI {
         if (m_node != nullptr) {
             reg->removeNode(m_node->getId());
             m_node = nullptr;
-            removedComponents.push_back(m_uuid);
         }
+
+        setUIDirty(true);
 
         return removedComponents;
     }
