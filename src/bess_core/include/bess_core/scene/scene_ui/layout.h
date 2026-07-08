@@ -2,13 +2,14 @@
 
 /// File contains code for laying out UI nodes,
 /// something like a CSS box model, with padding, margin, and alignment.
-
 #include "bess_core/style/bess_theme.h"
 #include "common/bess_api.h"
 #include "common/bess_uuid.h"
 #include "common/class_helpers.h"
 #include "common/types.h"
 #include "ext/vector_float2.hpp"
+#include "yoga/Yoga.h"
+#include "yoga/config/Config.h"
 #include <cstdint>
 
 namespace Bess::Canvas::UI {
@@ -49,9 +50,11 @@ namespace Bess::Canvas::UI {
 
         using NodesMap = NodeHashMap<UUID, UINode>;
         MAKE_GETTER(NodesMap, AllNodes, m_nodes);
+        MAKE_GETTER(YGConfigRef, YogaConfig, m_ygConfig);
 
       private:
         NodesMap m_nodes;
+        YGConfigRef m_ygConfig = YGConfigNew();
     };
 
     // UINode represents a node in the UI layout tree.
@@ -230,5 +233,7 @@ namespace Bess::Canvas::UI {
 
         UUID m_parentId = UUID::null;
         UINodeRegistry *m_registry = nullptr;
+
+        YGNodeRef m_ygNode = YGNodeNew();
     };
 } // namespace Bess::Canvas::UI

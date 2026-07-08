@@ -1,5 +1,6 @@
 #include "bess_core/scene/scene_ui/layout.h"
 #include "common/bess_assert.h"
+#include "yoga/YGNodeStyle.h"
 #include <algorithm>
 #include <cmath>
 #include <ranges>
@@ -160,6 +161,18 @@ namespace Bess::Canvas::UI {
     }
 
     UINode::UINode(const UUID &id) : m_id(id) {
+        // Force setters to run by changing the initial members to dummy values
+        LayoutDirection initDir = m_direction; m_direction = (LayoutDirection)-1; setDirection(initDir);
+        LayoutAlignment initMain = m_mainAxisAlignment; m_mainAxisAlignment = (LayoutAlignment)-1; setMainAxisAlignment(initMain);
+        LayoutAlignment initCross = m_crossAxisAlignment; m_crossAxisAlignment = (LayoutAlignment)-1; setCrossAxisAlignment(initCross);
+        PosMode initPosMode = m_posMode; m_posMode = (PosMode)-1; setPosMode(initPosMode);
+        Unit initSizeUnit = m_sizeUnit; m_sizeUnit = (Unit)-1; setSizeUnit(initSizeUnit);
+        Unit initPosUnit = m_posUnit; m_posUnit = (Unit)-1; setPosUnit(initPosUnit);
+        glm::vec2 initPos = m_pos; m_pos = glm::vec2(-9999.f); setPos(initPos);
+        glm::vec2 initSize = m_size; m_size = glm::vec2(-9999.f); setSize(initSize);
+        SizeContraint initConstraint = m_sizeConstraint; m_sizeConstraint = (SizeContraint)-1; setSizeConstraint(initConstraint);
+        Core::Style::Padding initPadding = m_padding; m_padding.left = -9999.f; setPadding(initPadding);
+        Core::Style::Margin initMargin = m_margin; m_margin.left = -9999.f; setMargin(initMargin);
     }
 
     void UINode::setPosDirty(bool dirty) {
@@ -194,6 +207,15 @@ namespace Bess::Canvas::UI {
             return;
         }
         m_pos = pos;
+
+        if (m_posUnit == Unit::pixel) {
+            YGNodeStyleSetPosition(m_ygNode, YGEdgeTop, pos.y);
+            YGNodeStyleSetPosition(m_ygNode, YGEdgeLeft, pos.x);
+        } else if (m_posUnit == Unit::relative) {
+            YGNodeStyleSetPositionPercent(m_ygNode, YGEdgeTop, pos.y * 100.f);
+            YGNodeStyleSetPositionPercent(m_ygNode, YGEdgeLeft, pos.x * 100.f);
+        }
+
         setPosDirty();
     }
 
@@ -211,6 +233,7 @@ namespace Bess::Canvas::UI {
             return;
         }
         m_posUnit = posUnit;
+        setPos(m_pos);
         setPosDirty();
     }
 
@@ -228,6 +251,17 @@ namespace Bess::Canvas::UI {
             return;
         }
         m_size = size;
+
+        if (m_sizeConstraint == SizeContraint::fixed) {
+            if (m_sizeUnit == Unit::pixel) {
+                if (m_size.x >= 0.f) YGNodeStyleSetWidth(m_ygNode, m_size.x); else YGNodeStyleSetWidthAuto(m_ygNode);
+                if (m_size.y >= 0.f) YGNodeStyleSetHeight(m_ygNode, m_size.y); else YGNodeStyleSetHeightAuto(m_ygNode);
+            } else if (m_sizeUnit == Unit::relative) {
+                if (m_size.x >= 0.f) YGNodeStyleSetWidthPercent(m_ygNode, m_size.x * 100.f); else YGNodeStyleSetWidthAuto(m_ygNode);
+                if (m_size.y >= 0.f) YGNodeStyleSetHeightPercent(m_ygNode, m_size.y * 100.f); else YGNodeStyleSetHeightAuto(m_ygNode);
+            }
+        }
+
         setSizeDirty();
     }
 
@@ -245,6 +279,17 @@ namespace Bess::Canvas::UI {
             return;
         }
         m_sizeUnit = sizeUnit;
+
+        if (m_sizeConstraint == SizeContraint::fixed) {
+            if (m_sizeUnit == Unit::pixel) {
+                if (m_size.x >= 0.f) YGNodeStyleSetWidth(m_ygNode, m_size.x); else YGNodeStyleSetWidthAuto(m_ygNode);
+                if (m_size.y >= 0.f) YGNodeStyleSetHeight(m_ygNode, m_size.y); else YGNodeStyleSetHeightAuto(m_ygNode);
+            } else if (m_sizeUnit == Unit::relative) {
+                if (m_size.x >= 0.f) YGNodeStyleSetWidthPercent(m_ygNode, m_size.x * 100.f); else YGNodeStyleSetWidthAuto(m_ygNode);
+                if (m_size.y >= 0.f) YGNodeStyleSetHeightPercent(m_ygNode, m_size.y * 100.f); else YGNodeStyleSetHeightAuto(m_ygNode);
+            }
+        }
+
         setSizeDirty();
     }
 
@@ -262,6 +307,20 @@ namespace Bess::Canvas::UI {
             return;
         }
         m_sizeConstraint = sizeConstraint;
+
+        if (m_sizeConstraint == SizeContraint::fixed) {
+            if (m_sizeUnit == Unit::pixel) {
+                if (m_size.x >= 0.f) YGNodeStyleSetWidth(m_ygNode, m_size.x); else YGNodeStyleSetWidthAuto(m_ygNode);
+                if (m_size.y >= 0.f) YGNodeStyleSetHeight(m_ygNode, m_size.y); else YGNodeStyleSetHeightAuto(m_ygNode);
+            } else if (m_sizeUnit == Unit::relative) {
+                if (m_size.x >= 0.f) YGNodeStyleSetWidthPercent(m_ygNode, m_size.x * 100.f); else YGNodeStyleSetWidthAuto(m_ygNode);
+                if (m_size.y >= 0.f) YGNodeStyleSetHeightPercent(m_ygNode, m_size.y * 100.f); else YGNodeStyleSetHeightAuto(m_ygNode);
+            }
+        } else {
+            YGNodeStyleSetWidthFitContent(m_ygNode);
+            YGNodeStyleSetHeightFitContent(m_ygNode);
+        }
+
         setSizeDirty();
     }
 
@@ -279,6 +338,10 @@ namespace Bess::Canvas::UI {
             return;
         }
         m_padding = padding;
+        YGNodeStyleSetPadding(m_ygNode, YGEdgeTop, padding.top);
+        YGNodeStyleSetPadding(m_ygNode, YGEdgeRight, padding.right);
+        YGNodeStyleSetPadding(m_ygNode, YGEdgeBottom, padding.bottom);
+        YGNodeStyleSetPadding(m_ygNode, YGEdgeLeft, padding.left);
         setSizeDirty();
     }
 
@@ -296,6 +359,10 @@ namespace Bess::Canvas::UI {
             return;
         }
         m_margin = margin;
+        YGNodeStyleSetMargin(m_ygNode, YGEdgeTop, margin.top);
+        YGNodeStyleSetMargin(m_ygNode, YGEdgeRight, margin.right);
+        YGNodeStyleSetMargin(m_ygNode, YGEdgeBottom, margin.bottom);
+        YGNodeStyleSetMargin(m_ygNode, YGEdgeLeft, margin.left);
         setSizeDirty();
     }
 
@@ -313,6 +380,16 @@ namespace Bess::Canvas::UI {
             return;
         }
         m_minSize = minSize;
+        if (m_minSize.x >= 0.f) {
+            YGNodeStyleSetMinWidth(m_ygNode, m_minSize.x);
+        } else {
+            YGNodeStyleSetMinWidth(m_ygNode, YGUndefined);
+        }
+        if (m_minSize.y >= 0.f) {
+            YGNodeStyleSetMinHeight(m_ygNode, m_minSize.y);
+        } else {
+            YGNodeStyleSetMinHeight(m_ygNode, YGUndefined);
+        }
         setSizeDirty();
     }
 
@@ -330,6 +407,16 @@ namespace Bess::Canvas::UI {
             return;
         }
         m_maxSize = maxSize;
+        if (m_maxSize.x >= 0.f) {
+            YGNodeStyleSetMaxWidth(m_ygNode, m_maxSize.x);
+        } else {
+            YGNodeStyleSetMaxWidth(m_ygNode, YGUndefined);
+        }
+        if (m_maxSize.y >= 0.f) {
+            YGNodeStyleSetMaxHeight(m_ygNode, m_maxSize.y);
+        } else {
+            YGNodeStyleSetMaxHeight(m_ygNode, YGUndefined);
+        }
         setSizeDirty();
     }
 
@@ -367,6 +454,20 @@ namespace Bess::Canvas::UI {
             return;
         }
         m_direction = direction;
+        switch (direction) {
+        case LayoutDirection::horizontal:
+            YGNodeStyleSetFlexDirection(m_ygNode, YGFlexDirectionRow);
+            break;
+        case LayoutDirection::horizontalReverse:
+            YGNodeStyleSetFlexDirection(m_ygNode, YGFlexDirectionRowReverse);
+            break;
+        case LayoutDirection::vertical:
+            YGNodeStyleSetFlexDirection(m_ygNode, YGFlexDirectionColumn);
+            break;
+        case LayoutDirection::verticalReverse:
+            YGNodeStyleSetFlexDirection(m_ygNode, YGFlexDirectionColumnReverse);
+            break;
+        }
         setSizeDirty();
     }
 
@@ -384,6 +485,19 @@ namespace Bess::Canvas::UI {
             return;
         }
         m_mainAxisAlignment = alignment;
+
+        switch (alignment) {
+        case LayoutAlignment::start:
+            YGNodeStyleSetJustifyContent(m_ygNode, YGJustifyFlexStart);
+            break;
+        case LayoutAlignment::center:
+            YGNodeStyleSetJustifyContent(m_ygNode, YGJustifyCenter);
+            break;
+        case LayoutAlignment::end:
+            YGNodeStyleSetJustifyContent(m_ygNode, YGJustifyFlexEnd);
+            break;
+        }
+
         setPosDirty();
     }
 
@@ -401,6 +515,19 @@ namespace Bess::Canvas::UI {
             return;
         }
         m_crossAxisAlignment = alignment;
+
+        switch (alignment) {
+        case LayoutAlignment::start:
+            YGNodeStyleSetAlignItems(m_ygNode, YGAlignFlexStart);
+            break;
+        case LayoutAlignment::center:
+            YGNodeStyleSetAlignItems(m_ygNode, YGAlignCenter);
+            break;
+        case LayoutAlignment::end:
+            YGNodeStyleSetAlignItems(m_ygNode, YGAlignFlexEnd);
+            break;
+        }
+
         setPosDirty();
     }
 
@@ -418,6 +545,12 @@ namespace Bess::Canvas::UI {
             return;
         }
         m_posMode = posMode;
+        if (posMode == PosMode::absolute) {
+            YGNodeStyleSetPositionType(m_ygNode, YGPositionTypeAbsolute);
+        } else {
+            YGNodeStyleSetPositionType(m_ygNode, YGPositionTypeRelative);
+        }
+        setPos(m_pos);
         setSizeDirty();
     }
 
@@ -444,11 +577,15 @@ namespace Bess::Canvas::UI {
             }
         }
 
+        YGNodeRemoveAllChildren(m_ygNode);
+
         m_children = children;
         if (m_registry != nullptr) {
+            uint32_t i = 0;
             for (const auto &childId : m_children) {
                 if (auto *childNode = m_registry->getNode(childId)) {
                     childNode->m_parentId = m_id;
+                    YGNodeInsertChild(m_ygNode, childNode->m_ygNode, i++);
                     childNode->setPosDirty();
                 }
             }
@@ -491,6 +628,8 @@ namespace Bess::Canvas::UI {
         m_children.insert(node->m_id);
         if (m_children.size() != previousSize) {
             node->m_parentId = m_id;
+            YGNodeInsertChild(
+                m_ygNode, node->m_ygNode, YGNodeGetChildCount(m_ygNode));
             node->setPosDirty();
             setSizeDirty();
         }
@@ -500,6 +639,7 @@ namespace Bess::Canvas::UI {
         BESS_ASSERT(node != nullptr, "Cannot remove a null UI node child.");
         if (m_children.erase(node->m_id) > 0) {
             node->m_parentId = UUID::null;
+            YGNodeRemoveChild(m_ygNode, node->m_ygNode);
             node->setPosDirty();
             setSizeDirty();
         }
@@ -515,41 +655,65 @@ namespace Bess::Canvas::UI {
                     }
                 }
             }
+            YGNodeRemoveAllChildren(m_ygNode);
             m_children.clear();
             setSizeDirty();
         }
     }
 
     glm::vec2 UINode::measure(UINodeRegistry &registry, const UUID &parentId) {
-        UINode *parentNode = nullptr;
-        if (parentId != UUID::null) {
-            parentNode = registry.getNode(parentId);
-            BESS_ASSERT(parentNode,
-                        "Parent node {} not found in registry.",
-                        static_cast<uint64_t>(parentId));
+        if (parentId == UUID::null) {
+            YGNodeCalculateLayout(
+                m_ygNode, YGUndefined, YGUndefined, YGDirectionLTR);
+        }
+        m_drawSize.x = YGNodeLayoutGetWidth(m_ygNode);
+        m_drawSize.y = YGNodeLayoutGetHeight(m_ygNode);
+
+        for (const auto &childId : m_children) {
+            UINode *childNode = registry.getNode(childId);
+            BESS_ASSERT(childNode,
+                        "Child node {} not found in registry.",
+                        static_cast<uint64_t>(childId));
+            if (childNode == nullptr) {
+                continue;
+            }
+            childNode->measure(registry, m_id);
         }
 
-        HashSet<UUID> activeNodes;
-        return measure(registry, parentNode, activeNodes);
+        return m_drawSize;
     }
 
     void UINode::layout(UINodeRegistry &registry, const UUID &parentId) {
-        UINode *parentNode = nullptr;
+        float relativeX = YGNodeLayoutGetLeft(m_ygNode);
+        float relativeY = YGNodeLayoutGetTop(m_ygNode);
+
+        glm::vec3 parentTopLeft = {0.f, 0.f, 0.f};
         if (parentId != UUID::null) {
-            parentNode = registry.getNode(parentId);
-            BESS_ASSERT(parentNode,
-                        "Parent node {} not found in registry.",
-                        static_cast<uint64_t>(parentId));
+            auto parentNode = registry.getNode(parentId);
+            auto parentPos = parentNode->getDrawPos();
+            auto parentSize = parentNode->getDrawSize();
+            parentTopLeft.x = parentPos.x - parentSize.x / 2.f;
+            parentTopLeft.y = parentPos.y - parentSize.y / 2.f;
+            parentTopLeft.z = parentPos.z;
         }
 
-        HashSet<UUID> measureStack;
-        measure(registry, parentNode, measureStack);
+        // Absolute screen-space coordinates
+        m_cachedPos.x = parentTopLeft.x + relativeX;
+        m_cachedPos.y = parentTopLeft.y + relativeY;
+        m_cachedZVal = parentTopLeft.z + m_zVal;
 
-        HashSet<UUID> activeNodes;
-        layout(registry,
-               parentNode,
-               parentNode != nullptr ? parentNode->m_cachedZVal : 0.f,
-               activeNodes);
+        m_cachedPos += m_drawSize / 2.f;
+
+        for (const auto &childId : m_children) {
+            UINode *childNode = registry.getNode(childId);
+            BESS_ASSERT(childNode,
+                        "Child node {} not found in registry.",
+                        static_cast<uint64_t>(childId));
+            if (childNode == nullptr) {
+                continue;
+            }
+            childNode->layout(registry, m_id);
+        }
     }
 
     glm::vec3 UINode::getDrawPos() const {
