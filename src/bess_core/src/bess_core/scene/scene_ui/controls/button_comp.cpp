@@ -47,9 +47,8 @@ namespace Bess::Canvas::UI {
                 .fontSize = m_style.textStyle.fontSize,
             });
 
-        m_labelNode->setSize(size);
-        m_labelNode->setSizeUnit(Unit::pixel);
-        m_labelNode->setSizeConstraint(SizeContraint::fixed);
+        m_labelNode->setWidth(size.x);
+        m_labelNode->setHeight(size.y);
 
         m_node->addChild(m_labelNode);
 

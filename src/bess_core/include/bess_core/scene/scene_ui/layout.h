@@ -28,15 +28,26 @@ namespace Bess::Canvas::UI {
 
     enum class LayoutAlignment : uint8_t { start, center, end };
 
-    enum class PosMode : uint8_t { absolute, relative };
+    enum class LayoutSelfAlignment : uint8_t {
+        auto_,
+        start,
+        center,
+        end,
+        stretch
+    };
 
-    enum class SizeContraint : uint8_t { fixed, wrapContent };
+    enum class PosMode : uint8_t { absolute, relative };
 
     class UINode;
 
     class BESS_API UINodeRegistry {
       public:
-        DEFAULT_CONTRS(UINodeRegistry)
+        UINodeRegistry();
+        UINodeRegistry(const UINodeRegistry &) = delete;
+        UINodeRegistry(UINodeRegistry &&) = delete;
+        ~UINodeRegistry();
+        UINodeRegistry &operator=(const UINodeRegistry &) = delete;
+        UINodeRegistry &operator=(UINodeRegistry &&) = delete;
 
         UINode *addNode(const UINode &node);
         UINode *addNode(const UUID &nodeId);
@@ -54,13 +65,13 @@ namespace Bess::Canvas::UI {
 
       private:
         NodesMap m_nodes;
-        YGConfigRef m_ygConfig = YGConfigNew();
+        YGConfigRef m_ygConfig = nullptr;
     };
 
     // UINode represents a node in the UI layout tree.
     //
     // The layout model follows a CSS-like box contract:
-    // - m_size / DrawSize describe the rendered box.
+    // - DrawSize describes the rendered box.
     // - padding is inside the rendered box.
     // - margin is outside the rendered box and contributes to CachedSize.
     // - CachedPos is the rendered box center used by renderer draw calls.
@@ -71,12 +82,12 @@ namespace Bess::Canvas::UI {
 
       public:
         UINode();
-        UINode(const UINode &) = default;
-        UINode(UINode &&) = default;
-        ~UINode() = default;
-        UINode &operator=(const UINode &) = default;
-        UINode &operator=(UINode &&) = default;
         UINode(const UUID &id);
+        UINode(const UINode &other);
+        UINode(UINode &&other) noexcept;
+        ~UINode();
+        UINode &operator=(const UINode &other);
+        UINode &operator=(UINode &&other) noexcept;
 
         void setPosDirty(bool dirty = true);
 
@@ -91,17 +102,18 @@ namespace Bess::Canvas::UI {
         void setPosUnit(const Unit &posUnit);
         Unit &getPosUnit();
 
-        const glm::vec2 &getSize() const;
-        void setSize(const glm::vec2 &size);
-        glm::vec2 &getSize();
-
-        const Unit &getSizeUnit() const;
-        void setSizeUnit(const Unit &sizeUnit);
-        Unit &getSizeUnit();
-
-        const SizeContraint &getSizeConstraint() const;
-        void setSizeConstraint(const SizeContraint &sizeConstraint);
-        SizeContraint &getSizeConstraint();
+        void setWidth(float width);
+        void setHeight(float height);
+        void setWidthPercent(float width);
+        void setHeightPercent(float height);
+        void setWidthAuto();
+        void setHeightAuto();
+        void setWidthFitContent();
+        void setHeightFitContent();
+        void setWidthMaxContent();
+        void setHeightMaxContent();
+        void setWidthStretch();
+        void setHeightStretch();
 
         bool getPosDirty() const;
         bool getSizeDirty() const;
@@ -159,6 +171,25 @@ namespace Bess::Canvas::UI {
 
         LayoutAlignment &getCrossAxisAlignment();
 
+        const LayoutSelfAlignment &getAlignSelf() const;
+
+        void setAlignSelf(const LayoutSelfAlignment &alignment);
+
+        LayoutSelfAlignment &getAlignSelf();
+
+        float getFlexGrow() const;
+        void setFlexGrow(float grow);
+
+        float getFlexShrink() const;
+        void setFlexShrink(float shrink);
+
+        void setFlex(float grow, float shrink, float basis = 0.f);
+        void setFlexBasis(float basis, Unit unit = Unit::pixel);
+        void setFlexBasisAuto();
+        void setFlexBasisFitContent();
+        void setFlexBasisMaxContent();
+        void setFlexBasisStretch();
+
         const PosMode &getPosMode() const;
 
         void setPosMode(const PosMode &posMode);
@@ -189,25 +220,55 @@ namespace Bess::Canvas::UI {
 
         glm::vec3 getDrawPos() const;
 
+        YGNodeRef getYogaNode();
+        YGNodeConstRef getYogaNode() const;
+
       private:
-        glm::vec2 measure(UINodeRegistry &registry,
-                          const UINode *parentNode,
-                          HashSet<UUID> &activeNodes);
-        void layout(UINodeRegistry &registry,
-                    const UINode *parentNode,
-                    float parentZVal,
-                    HashSet<UUID> &activeNodes);
+        enum class DimensionMode : uint8_t {
+            auto_,
+            point,
+            percent,
+            fitContent,
+            maxContent,
+            stretch
+        };
+
+        enum class FlexBasisMode : uint8_t {
+            auto_,
+            point,
+            percent,
+            fitContent,
+            maxContent,
+            stretch
+        };
+
+        struct Dimension {
+            DimensionMode mode = DimensionMode::fitContent;
+            float value = 0.f;
+        };
 
         void attachRegistry(UINodeRegistry *registry);
         void propagateSizeDirtyToAncestors();
         void propagatePosDirtyToAncestors();
-        void applyMeasuredYogaSizes(UINodeRegistry &registry,
-                                    HashSet<UUID> &activeNodes);
-        void layoutFromYoga(UINodeRegistry &registry,
-                            const UINode *parentNode,
-                            HashSet<UUID> &activeNodes);
+        void rebuildYogaChildren();
+        void syncLayoutFromYoga(UINodeRegistry &registry,
+                                const UINode *parentNode,
+                                HashSet<UUID> &activeNodes);
 
-        glm::vec2 resolveSize(const UINode *parentNode) const;
+        void copyFrom(const UINode &other);
+        void moveFrom(UINode &other) noexcept;
+        void releaseYogaNode();
+        void createYogaNode(YGConfigRef config = nullptr);
+        void applyYogaStyle();
+        void applyWidthStyle();
+        void applyHeightStyle();
+        void applyPositionStyle();
+        void applyMinSizeStyle();
+        void applyMaxSizeStyle();
+        void applyFlexBasisStyle();
+        void setWidthDimension(const Dimension &dimension);
+        void setHeightDimension(const Dimension &dimension);
+
         glm::vec2 resolvePos(const UINode *parentNode) const;
         glm::vec2 contentSize() const;
         glm::vec2 marginSize() const;
@@ -220,8 +281,6 @@ namespace Bess::Canvas::UI {
         float m_cachedZVal = 0.0f;
         Unit m_posUnit = Unit::pixel;
 
-        glm::vec2 m_size{0};
-        Unit m_sizeUnit = Unit::pixel;
         glm::vec2 m_minSize{-1};
         glm::vec2 m_maxSize{-1};
 
@@ -231,8 +290,15 @@ namespace Bess::Canvas::UI {
         LayoutDirection m_direction = LayoutDirection::horizontal;
         LayoutAlignment m_mainAxisAlignment = LayoutAlignment::start;
         LayoutAlignment m_crossAxisAlignment = LayoutAlignment::start;
+        LayoutSelfAlignment m_alignSelf = LayoutSelfAlignment::auto_;
+        float m_flexGrow = 0.f;
+        float m_flexShrink = 0.f;
+        FlexBasisMode m_flexBasisMode = FlexBasisMode::auto_;
+        float m_flexBasis = 0.f;
+        Unit m_flexBasisUnit = Unit::pixel;
         PosMode m_posMode = PosMode::relative;
-        SizeContraint m_sizeConstraint = SizeContraint::wrapContent;
+        Dimension m_width = {DimensionMode::fitContent, 0.f};
+        Dimension m_height = {DimensionMode::fitContent, 0.f};
         OrderedSet<UUID> m_children;
         bool m_posDirty = true;
         bool m_sizeDirty = true;
@@ -244,6 +310,6 @@ namespace Bess::Canvas::UI {
         UUID m_parentId = UUID::null;
         UINodeRegistry *m_registry = nullptr;
 
-        YGNodeRef m_ygNode = YGNodeNew();
+        YGNodeRef m_ygNode = nullptr;
     };
 } // namespace Bess::Canvas::UI

@@ -61,9 +61,9 @@ namespace Bess::Canvas::UI {
         prepStyle(state.theme);
         initNode(state.sceneState->getUINodeRegistry());
 
-        m_node->setSize(resolveBoxSize(state));
-        m_node->setSizeUnit(Unit::pixel);
-        m_node->setSizeConstraint(SizeContraint::fixed);
+        const auto size = resolveBoxSize(state);
+        m_node->setWidth(size.x);
+        m_node->setHeight(size.y);
         m_node->setPadding(0.f);
         m_node->setMargin(m_style.metrics.margin);
 

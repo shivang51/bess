@@ -1,9 +1,9 @@
 #include "bess_core/scene/scene_ui/layout.h"
 #include "common/bess_assert.h"
+#include "yoga/YGNodeLayout.h"
 #include "yoga/YGNodeStyle.h"
 #include <algorithm>
 #include <cmath>
-#include <ranges>
 
 namespace Bess::Canvas::UI {
     namespace {
@@ -27,8 +27,12 @@ namespace Bess::Canvas::UI {
             return std::clamp(finiteOrZero(value), 0.f, 1.f);
         }
 
-        glm::vec2 relativeVec(const glm::vec2 &value) {
-            return {relativeUnit(value.x), relativeUnit(value.y)};
+        float percentValue(float value) {
+            value = finiteOrZero(value);
+            if (value <= 1.f) {
+                return relativeUnit(value) * 100.f;
+            }
+            return std::clamp(value, 0.f, 100.f);
         }
 
         float edge(float value, bool allowNegative) {
@@ -44,66 +48,87 @@ namespace Bess::Canvas::UI {
             };
         }
 
-        glm::vec2 edgeTopLeft(const glm::vec4 &edges, bool allowNegative) {
-            return {
-                edge(edges.w, allowNegative),
-                edge(edges.x, allowNegative),
-            };
-        }
-
-        glm::vec2 constrainSize(glm::vec2 size,
-                                const glm::vec2 &minSize,
-                                const glm::vec2 &maxSize) {
-            size = nonNegativeVec(size);
-
-            if (std::isfinite(maxSize.x) && maxSize.x >= 0.f) {
-                size.x = std::min(size.x, maxSize.x);
-            }
-            if (std::isfinite(maxSize.y) && maxSize.y >= 0.f) {
-                size.y = std::min(size.y, maxSize.y);
-            }
-
-            // Minimum size wins over max size, matching CSS min/max behavior.
-            if (std::isfinite(minSize.x) && minSize.x >= 0.f) {
-                size.x = std::max(size.x, minSize.x);
-            }
-            if (std::isfinite(minSize.y) && minSize.y >= 0.f) {
-                size.y = std::max(size.y, minSize.y);
-            }
-
-            return nonNegativeVec(size);
-        }
-
         bool sameVec(const glm::vec2 &lhs, const glm::vec2 &rhs) {
             return lhs.x == rhs.x && lhs.y == rhs.y;
         }
 
-        bool sameVec(const glm::vec4 &lhs, const glm::vec4 &rhs) {
-            return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z &&
-                   lhs.w == rhs.w;
+        YGFlexDirection toYoga(LayoutDirection direction) {
+            switch (direction) {
+            case LayoutDirection::horizontal:
+                return YGFlexDirectionRow;
+            case LayoutDirection::horizontalReverse:
+                return YGFlexDirectionRowReverse;
+            case LayoutDirection::vertical:
+                return YGFlexDirectionColumn;
+            case LayoutDirection::verticalReverse:
+                return YGFlexDirectionColumnReverse;
+            }
+            return YGFlexDirectionRow;
         }
 
-        float alignedStart(float start,
-                           float availableSize,
-                           float childSize,
-                           LayoutAlignment alignment) {
+        YGJustify toYoga(LayoutAlignment alignment) {
             switch (alignment) {
-            case LayoutAlignment::center:
-                return start + ((availableSize - childSize) * 0.5f);
-            case LayoutAlignment::end:
-                return start + availableSize - childSize;
             case LayoutAlignment::start:
-                return start;
+                return YGJustifyFlexStart;
+            case LayoutAlignment::center:
+                return YGJustifyCenter;
+            case LayoutAlignment::end:
+                return YGJustifyFlexEnd;
             }
+            return YGJustifyFlexStart;
+        }
 
-            return start;
+        YGAlign toYogaAlign(LayoutAlignment alignment) {
+            switch (alignment) {
+            case LayoutAlignment::start:
+                return YGAlignFlexStart;
+            case LayoutAlignment::center:
+                return YGAlignCenter;
+            case LayoutAlignment::end:
+                return YGAlignFlexEnd;
+            }
+            return YGAlignFlexStart;
+        }
+
+        YGAlign toYoga(LayoutSelfAlignment alignment) {
+            switch (alignment) {
+            case LayoutSelfAlignment::auto_:
+                return YGAlignAuto;
+            case LayoutSelfAlignment::start:
+                return YGAlignFlexStart;
+            case LayoutSelfAlignment::center:
+                return YGAlignCenter;
+            case LayoutSelfAlignment::end:
+                return YGAlignFlexEnd;
+            case LayoutSelfAlignment::stretch:
+                return YGAlignStretch;
+            }
+            return YGAlignAuto;
         }
     } // namespace
 
+    UINodeRegistry::UINodeRegistry() : m_ygConfig(YGConfigNew()) {
+    }
+
+    UINodeRegistry::~UINodeRegistry() {
+        clear();
+        if (m_ygConfig != nullptr) {
+            YGConfigFree(m_ygConfig);
+            m_ygConfig = nullptr;
+        }
+    }
+
     UINode *UINodeRegistry::addNode(const UINode &node) {
-        m_nodes[node.getId()] = node;
-        m_nodes.at(node.getId()).attachRegistry(this);
-        return &m_nodes.at(node.getId());
+        if (auto *existingNode = getNode(node.getId()); existingNode == &node) {
+            return existingNode;
+        }
+
+        removeNode(node.getId());
+
+        auto [it, inserted] = m_nodes.emplace(node.getId(), node);
+        (void)inserted;
+        it->second.attachRegistry(this);
+        return &it->second;
     }
 
     UINode *UINodeRegistry::addNode(const UUID &nodeId) {
@@ -125,6 +150,7 @@ namespace Bess::Canvas::UI {
         if (node.m_parentId != UUID::null) {
             if (auto *parentNode = getNode(node.m_parentId)) {
                 parentNode->m_children.erase(id);
+                YGNodeRemoveChild(parentNode->m_ygNode, node.m_ygNode);
                 parentNode->setSizeDirty();
             }
         }
@@ -157,6 +183,10 @@ namespace Bess::Canvas::UI {
     }
 
     void UINodeRegistry::clear() {
+        for (auto &[id, node] : m_nodes) {
+            (void)id;
+            node.attachRegistry(nullptr);
+        }
         m_nodes.clear();
     }
 
@@ -164,18 +194,36 @@ namespace Bess::Canvas::UI {
     }
 
     UINode::UINode(const UUID &id) : m_id(id) {
-        // Force setters to run by changing the initial members to dummy values
-        LayoutDirection initDir = m_direction; m_direction = (LayoutDirection)-1; setDirection(initDir);
-        LayoutAlignment initMain = m_mainAxisAlignment; m_mainAxisAlignment = (LayoutAlignment)-1; setMainAxisAlignment(initMain);
-        LayoutAlignment initCross = m_crossAxisAlignment; m_crossAxisAlignment = (LayoutAlignment)-1; setCrossAxisAlignment(initCross);
-        PosMode initPosMode = m_posMode; m_posMode = (PosMode)-1; setPosMode(initPosMode);
-        Unit initSizeUnit = m_sizeUnit; m_sizeUnit = (Unit)-1; setSizeUnit(initSizeUnit);
-        Unit initPosUnit = m_posUnit; m_posUnit = (Unit)-1; setPosUnit(initPosUnit);
-        glm::vec2 initPos = m_pos; m_pos = glm::vec2(-9999.f); setPos(initPos);
-        glm::vec2 initSize = m_size; m_size = glm::vec2(-9999.f); setSize(initSize);
-        SizeContraint initConstraint = m_sizeConstraint; m_sizeConstraint = (SizeContraint)-1; setSizeConstraint(initConstraint);
-        Core::Style::Padding initPadding = m_padding; m_padding.left = -9999.f; setPadding(initPadding);
-        Core::Style::Margin initMargin = m_margin; m_margin.left = -9999.f; setMargin(initMargin);
+        createYogaNode();
+        applyYogaStyle();
+    }
+
+    UINode::UINode(const UINode &other) {
+        copyFrom(other);
+    }
+
+    UINode::UINode(UINode &&other) noexcept {
+        moveFrom(other);
+    }
+
+    UINode::~UINode() {
+        releaseYogaNode();
+    }
+
+    UINode &UINode::operator=(const UINode &other) {
+        if (this != &other) {
+            releaseYogaNode();
+            copyFrom(other);
+        }
+        return *this;
+    }
+
+    UINode &UINode::operator=(UINode &&other) noexcept {
+        if (this != &other) {
+            releaseYogaNode();
+            moveFrom(other);
+        }
+        return *this;
     }
 
     void UINode::setPosDirty(bool dirty) {
@@ -210,15 +258,7 @@ namespace Bess::Canvas::UI {
             return;
         }
         m_pos = pos;
-
-        if (m_posUnit == Unit::pixel) {
-            YGNodeStyleSetPosition(m_ygNode, YGEdgeTop, pos.y);
-            YGNodeStyleSetPosition(m_ygNode, YGEdgeLeft, pos.x);
-        } else if (m_posUnit == Unit::relative) {
-            YGNodeStyleSetPositionPercent(m_ygNode, YGEdgeTop, pos.y * 100.f);
-            YGNodeStyleSetPositionPercent(m_ygNode, YGEdgeLeft, pos.x * 100.f);
-        }
-
+        applyPositionStyle();
         setPosDirty();
     }
 
@@ -236,7 +276,7 @@ namespace Bess::Canvas::UI {
             return;
         }
         m_posUnit = posUnit;
-        setPos(m_pos);
+        applyPositionStyle();
         setPosDirty();
     }
 
@@ -245,91 +285,52 @@ namespace Bess::Canvas::UI {
         return m_posUnit;
     }
 
-    const glm::vec2 &UINode::getSize() const {
-        return m_size;
+    void UINode::setWidth(float width) {
+        setWidthDimension({DimensionMode::point, nonNegative(width)});
     }
 
-    void UINode::setSize(const glm::vec2 &size) {
-        if (sameVec(m_size, size)) {
-            return;
-        }
-        m_size = size;
-
-        if (m_sizeConstraint == SizeContraint::fixed) {
-            if (m_sizeUnit == Unit::pixel) {
-                if (m_size.x >= 0.f) YGNodeStyleSetWidth(m_ygNode, m_size.x); else YGNodeStyleSetWidthAuto(m_ygNode);
-                if (m_size.y >= 0.f) YGNodeStyleSetHeight(m_ygNode, m_size.y); else YGNodeStyleSetHeightAuto(m_ygNode);
-            } else if (m_sizeUnit == Unit::relative) {
-                if (m_size.x >= 0.f) YGNodeStyleSetWidthPercent(m_ygNode, m_size.x * 100.f); else YGNodeStyleSetWidthAuto(m_ygNode);
-                if (m_size.y >= 0.f) YGNodeStyleSetHeightPercent(m_ygNode, m_size.y * 100.f); else YGNodeStyleSetHeightAuto(m_ygNode);
-            }
-        }
-
-        setSizeDirty();
+    void UINode::setHeight(float height) {
+        setHeightDimension({DimensionMode::point, nonNegative(height)});
     }
 
-    glm::vec2 &UINode::getSize() {
-        setSizeDirty();
-        return m_size;
+    void UINode::setWidthPercent(float width) {
+        setWidthDimension({DimensionMode::percent, percentValue(width)});
     }
 
-    const Unit &UINode::getSizeUnit() const {
-        return m_sizeUnit;
+    void UINode::setHeightPercent(float height) {
+        setHeightDimension({DimensionMode::percent, percentValue(height)});
     }
 
-    void UINode::setSizeUnit(const Unit &sizeUnit) {
-        if (m_sizeUnit == sizeUnit) {
-            return;
-        }
-        m_sizeUnit = sizeUnit;
-
-        if (m_sizeConstraint == SizeContraint::fixed) {
-            if (m_sizeUnit == Unit::pixel) {
-                if (m_size.x >= 0.f) YGNodeStyleSetWidth(m_ygNode, m_size.x); else YGNodeStyleSetWidthAuto(m_ygNode);
-                if (m_size.y >= 0.f) YGNodeStyleSetHeight(m_ygNode, m_size.y); else YGNodeStyleSetHeightAuto(m_ygNode);
-            } else if (m_sizeUnit == Unit::relative) {
-                if (m_size.x >= 0.f) YGNodeStyleSetWidthPercent(m_ygNode, m_size.x * 100.f); else YGNodeStyleSetWidthAuto(m_ygNode);
-                if (m_size.y >= 0.f) YGNodeStyleSetHeightPercent(m_ygNode, m_size.y * 100.f); else YGNodeStyleSetHeightAuto(m_ygNode);
-            }
-        }
-
-        setSizeDirty();
+    void UINode::setWidthAuto() {
+        setWidthDimension({DimensionMode::auto_, 0.f});
     }
 
-    Unit &UINode::getSizeUnit() {
-        setSizeDirty();
-        return m_sizeUnit;
+    void UINode::setHeightAuto() {
+        setHeightDimension({DimensionMode::auto_, 0.f});
     }
 
-    const SizeContraint &UINode::getSizeConstraint() const {
-        return m_sizeConstraint;
+    void UINode::setWidthFitContent() {
+        setWidthDimension({DimensionMode::fitContent, 0.f});
     }
 
-    void UINode::setSizeConstraint(const SizeContraint &sizeConstraint) {
-        if (m_sizeConstraint == sizeConstraint) {
-            return;
-        }
-        m_sizeConstraint = sizeConstraint;
-
-        if (m_sizeConstraint == SizeContraint::fixed) {
-            if (m_sizeUnit == Unit::pixel) {
-                if (m_size.x >= 0.f) YGNodeStyleSetWidth(m_ygNode, m_size.x); else YGNodeStyleSetWidthAuto(m_ygNode);
-                if (m_size.y >= 0.f) YGNodeStyleSetHeight(m_ygNode, m_size.y); else YGNodeStyleSetHeightAuto(m_ygNode);
-            } else if (m_sizeUnit == Unit::relative) {
-                if (m_size.x >= 0.f) YGNodeStyleSetWidthPercent(m_ygNode, m_size.x * 100.f); else YGNodeStyleSetWidthAuto(m_ygNode);
-                if (m_size.y >= 0.f) YGNodeStyleSetHeightPercent(m_ygNode, m_size.y * 100.f); else YGNodeStyleSetHeightAuto(m_ygNode);
-            }
-        } else {
-            YGNodeStyleSetWidthFitContent(m_ygNode);
-            YGNodeStyleSetHeightFitContent(m_ygNode);
-        }
-
-        setSizeDirty();
+    void UINode::setHeightFitContent() {
+        setHeightDimension({DimensionMode::fitContent, 0.f});
     }
 
-    SizeContraint &UINode::getSizeConstraint() {
-        setSizeDirty();
-        return m_sizeConstraint;
+    void UINode::setWidthMaxContent() {
+        setWidthDimension({DimensionMode::maxContent, 0.f});
+    }
+
+    void UINode::setHeightMaxContent() {
+        setHeightDimension({DimensionMode::maxContent, 0.f});
+    }
+
+    void UINode::setWidthStretch() {
+        setWidthDimension({DimensionMode::stretch, 0.f});
+    }
+
+    void UINode::setHeightStretch() {
+        setHeightDimension({DimensionMode::stretch, 0.f});
     }
 
     const Core::Style::Padding &UINode::getPadding() const {
@@ -383,16 +384,7 @@ namespace Bess::Canvas::UI {
             return;
         }
         m_minSize = minSize;
-        if (m_minSize.x >= 0.f) {
-            YGNodeStyleSetMinWidth(m_ygNode, m_minSize.x);
-        } else {
-            YGNodeStyleSetMinWidth(m_ygNode, YGUndefined);
-        }
-        if (m_minSize.y >= 0.f) {
-            YGNodeStyleSetMinHeight(m_ygNode, m_minSize.y);
-        } else {
-            YGNodeStyleSetMinHeight(m_ygNode, YGUndefined);
-        }
+        applyMinSizeStyle();
         setSizeDirty();
     }
 
@@ -410,16 +402,7 @@ namespace Bess::Canvas::UI {
             return;
         }
         m_maxSize = maxSize;
-        if (m_maxSize.x >= 0.f) {
-            YGNodeStyleSetMaxWidth(m_ygNode, m_maxSize.x);
-        } else {
-            YGNodeStyleSetMaxWidth(m_ygNode, YGUndefined);
-        }
-        if (m_maxSize.y >= 0.f) {
-            YGNodeStyleSetMaxHeight(m_ygNode, m_maxSize.y);
-        } else {
-            YGNodeStyleSetMaxHeight(m_ygNode, YGUndefined);
-        }
+        applyMaxSizeStyle();
         setSizeDirty();
     }
 
@@ -457,20 +440,7 @@ namespace Bess::Canvas::UI {
             return;
         }
         m_direction = direction;
-        switch (direction) {
-        case LayoutDirection::horizontal:
-            YGNodeStyleSetFlexDirection(m_ygNode, YGFlexDirectionRow);
-            break;
-        case LayoutDirection::horizontalReverse:
-            YGNodeStyleSetFlexDirection(m_ygNode, YGFlexDirectionRowReverse);
-            break;
-        case LayoutDirection::vertical:
-            YGNodeStyleSetFlexDirection(m_ygNode, YGFlexDirectionColumn);
-            break;
-        case LayoutDirection::verticalReverse:
-            YGNodeStyleSetFlexDirection(m_ygNode, YGFlexDirectionColumnReverse);
-            break;
-        }
+        YGNodeStyleSetFlexDirection(m_ygNode, toYoga(direction));
         setSizeDirty();
     }
 
@@ -488,19 +458,7 @@ namespace Bess::Canvas::UI {
             return;
         }
         m_mainAxisAlignment = alignment;
-
-        switch (alignment) {
-        case LayoutAlignment::start:
-            YGNodeStyleSetJustifyContent(m_ygNode, YGJustifyFlexStart);
-            break;
-        case LayoutAlignment::center:
-            YGNodeStyleSetJustifyContent(m_ygNode, YGJustifyCenter);
-            break;
-        case LayoutAlignment::end:
-            YGNodeStyleSetJustifyContent(m_ygNode, YGJustifyFlexEnd);
-            break;
-        }
-
+        YGNodeStyleSetJustifyContent(m_ygNode, toYoga(alignment));
         setPosDirty();
     }
 
@@ -518,25 +476,99 @@ namespace Bess::Canvas::UI {
             return;
         }
         m_crossAxisAlignment = alignment;
-
-        switch (alignment) {
-        case LayoutAlignment::start:
-            YGNodeStyleSetAlignItems(m_ygNode, YGAlignFlexStart);
-            break;
-        case LayoutAlignment::center:
-            YGNodeStyleSetAlignItems(m_ygNode, YGAlignCenter);
-            break;
-        case LayoutAlignment::end:
-            YGNodeStyleSetAlignItems(m_ygNode, YGAlignFlexEnd);
-            break;
-        }
-
+        YGNodeStyleSetAlignItems(m_ygNode, toYogaAlign(alignment));
         setPosDirty();
     }
 
     LayoutAlignment &UINode::getCrossAxisAlignment() {
         setPosDirty();
         return m_crossAxisAlignment;
+    }
+
+    const LayoutSelfAlignment &UINode::getAlignSelf() const {
+        return m_alignSelf;
+    }
+
+    void UINode::setAlignSelf(const LayoutSelfAlignment &alignment) {
+        if (m_alignSelf == alignment) {
+            return;
+        }
+        m_alignSelf = alignment;
+        YGNodeStyleSetAlignSelf(m_ygNode, toYoga(alignment));
+        setPosDirty();
+    }
+
+    LayoutSelfAlignment &UINode::getAlignSelf() {
+        setPosDirty();
+        return m_alignSelf;
+    }
+
+    float UINode::getFlexGrow() const {
+        return m_flexGrow;
+    }
+
+    void UINode::setFlexGrow(float grow) {
+        grow = nonNegative(grow);
+        if (m_flexGrow == grow) {
+            return;
+        }
+        m_flexGrow = grow;
+        YGNodeStyleSetFlexGrow(m_ygNode, grow);
+        setSizeDirty();
+    }
+
+    float UINode::getFlexShrink() const {
+        return m_flexShrink;
+    }
+
+    void UINode::setFlexShrink(float shrink) {
+        shrink = nonNegative(shrink);
+        if (m_flexShrink == shrink) {
+            return;
+        }
+        m_flexShrink = shrink;
+        YGNodeStyleSetFlexShrink(m_ygNode, shrink);
+        setSizeDirty();
+    }
+
+    void UINode::setFlex(float grow, float shrink, float basis) {
+        setFlexGrow(grow);
+        setFlexShrink(shrink);
+        setFlexBasis(basis);
+    }
+
+    void UINode::setFlexBasis(float basis, Unit unit) {
+        basis = nonNegative(basis);
+        m_flexBasisMode = unit == Unit::relative ? FlexBasisMode::percent
+                                                 : FlexBasisMode::point;
+        m_flexBasisUnit = unit;
+        m_flexBasis = basis;
+        applyFlexBasisStyle();
+        setSizeDirty();
+    }
+
+    void UINode::setFlexBasisAuto() {
+        m_flexBasisMode = FlexBasisMode::auto_;
+        applyFlexBasisStyle();
+        setSizeDirty();
+    }
+
+    void UINode::setFlexBasisFitContent() {
+        m_flexBasisMode = FlexBasisMode::fitContent;
+        applyFlexBasisStyle();
+        setSizeDirty();
+    }
+
+    void UINode::setFlexBasisMaxContent() {
+        m_flexBasisMode = FlexBasisMode::maxContent;
+        applyFlexBasisStyle();
+        setSizeDirty();
+    }
+
+    void UINode::setFlexBasisStretch() {
+        m_flexBasisMode = FlexBasisMode::stretch;
+        applyFlexBasisStyle();
+        setSizeDirty();
     }
 
     const PosMode &UINode::getPosMode() const {
@@ -548,12 +580,11 @@ namespace Bess::Canvas::UI {
             return;
         }
         m_posMode = posMode;
-        if (posMode == PosMode::absolute) {
-            YGNodeStyleSetPositionType(m_ygNode, YGPositionTypeAbsolute);
-        } else {
-            YGNodeStyleSetPositionType(m_ygNode, YGPositionTypeRelative);
-        }
-        setPos(m_pos);
+        YGNodeStyleSetPositionType(m_ygNode,
+                                   posMode == PosMode::absolute
+                                       ? YGPositionTypeAbsolute
+                                       : YGPositionTypeRelative);
+        applyPositionStyle();
         setSizeDirty();
     }
 
@@ -581,8 +612,8 @@ namespace Bess::Canvas::UI {
         }
 
         YGNodeRemoveAllChildren(m_ygNode);
-
         m_children = children;
+
         if (m_registry != nullptr) {
             uint32_t i = 0;
             for (const auto &childId : m_children) {
@@ -593,6 +624,7 @@ namespace Bess::Canvas::UI {
                 }
             }
         }
+
         setSizeDirty();
     }
 
@@ -627,12 +659,42 @@ namespace Bess::Canvas::UI {
             return;
         }
 
+        if (node->m_parentId != UUID::null && node->m_parentId != m_id) {
+            UINode *previousParent = nullptr;
+            if (node->m_registry != nullptr) {
+                previousParent = node->m_registry->getNode(node->m_parentId);
+            }
+            if (previousParent == nullptr && m_registry != nullptr) {
+                previousParent = m_registry->getNode(node->m_parentId);
+            }
+
+            if (previousParent != nullptr) {
+                previousParent->m_children.erase(node->m_id);
+                if (YGNodeGetOwner(node->m_ygNode) ==
+                    previousParent->m_ygNode) {
+                    YGNodeRemoveChild(previousParent->m_ygNode, node->m_ygNode);
+                }
+                previousParent->setSizeDirty();
+            }
+        }
+
+        if (auto *owner = YGNodeGetOwner(node->m_ygNode);
+            owner != nullptr && owner != m_ygNode) {
+            YGNodeRemoveChild(owner, node->m_ygNode);
+        }
+
         const auto previousSize = m_children.size();
         m_children.insert(node->m_id);
-        if (m_children.size() != previousSize) {
-            node->m_parentId = m_id;
+
+        const bool alreadyYogaChild =
+            YGNodeGetOwner(node->m_ygNode) == m_ygNode;
+        if (!alreadyYogaChild) {
             YGNodeInsertChild(
                 m_ygNode, node->m_ygNode, YGNodeGetChildCount(m_ygNode));
+        }
+
+        if (m_children.size() != previousSize || !alreadyYogaChild) {
+            node->m_parentId = m_id;
             node->setPosDirty();
             setSizeDirty();
         }
@@ -640,7 +702,7 @@ namespace Bess::Canvas::UI {
 
     void UINode::removeChild(UINode *node) {
         BESS_ASSERT(node != nullptr, "Cannot remove a null UI node child.");
-        if (m_children.erase(node->m_id) > 0) {
+        if (node != nullptr && m_children.erase(node->m_id) > 0) {
             node->m_parentId = UUID::null;
             YGNodeRemoveChild(m_ygNode, node->m_ygNode);
             node->setPosDirty();
@@ -649,412 +711,62 @@ namespace Bess::Canvas::UI {
     }
 
     void UINode::clearChildren() {
-        if (!m_children.empty()) {
-            if (m_registry != nullptr) {
-                for (const auto &childId : m_children) {
-                    if (auto *childNode = m_registry->getNode(childId)) {
-                        childNode->m_parentId = UUID::null;
-                        childNode->setPosDirty();
-                    }
+        if (m_children.empty()) {
+            return;
+        }
+
+        if (m_registry != nullptr) {
+            for (const auto &childId : m_children) {
+                if (auto *childNode = m_registry->getNode(childId)) {
+                    childNode->m_parentId = UUID::null;
+                    childNode->setPosDirty();
                 }
             }
-            YGNodeRemoveAllChildren(m_ygNode);
-            m_children.clear();
-            setSizeDirty();
         }
+
+        YGNodeRemoveAllChildren(m_ygNode);
+        m_children.clear();
+        setSizeDirty();
     }
 
     glm::vec2 UINode::measure(UINodeRegistry &registry, const UUID &parentId) {
-        HashSet<UUID> activeNodes;
-        const UINode *parentNode = nullptr;
-        if (parentId != UUID::null) {
-            parentNode = registry.getNode(parentId);
-        }
-
-        const auto measuredSize = measure(registry, parentNode, activeNodes);
-
         if (parentId == UUID::null) {
-            activeNodes.clear();
-            applyMeasuredYogaSizes(registry, activeNodes);
             YGNodeCalculateLayout(
                 m_ygNode, YGUndefined, YGUndefined, YGDirectionLTR);
         }
 
-        return measuredSize;
-    }
-
-    void UINode::layout(UINodeRegistry &registry, const UUID &parentId) {
-        if (parentId == UUID::null) {
-            measure(registry, parentId);
-        }
-
         const UINode *parentNode = nullptr;
         if (parentId != UUID::null) {
             parentNode = registry.getNode(parentId);
         }
 
         HashSet<UUID> activeNodes;
-        layoutFromYoga(registry, parentNode, activeNodes);
+        syncLayoutFromYoga(registry, parentNode, activeNodes);
+        return m_cachedSize;
+    }
+
+    void UINode::layout(UINodeRegistry &registry, const UUID &parentId) {
+        measure(registry, parentId);
     }
 
     glm::vec3 UINode::getDrawPos() const {
         return {m_cachedPos, m_cachedZVal};
     }
 
-    glm::vec2 UINode::measure(UINodeRegistry &registry,
-                              const UINode *parentNode,
-                              HashSet<UUID> &activeNodes) {
-        const bool tracksCycle = m_id != UUID::null;
-        if (tracksCycle) {
-            if (activeNodes.find(m_id) != activeNodes.end()) {
-                BESS_ASSERT(false,
-                            "Cycle detected while measuring UI node {}.",
-                            static_cast<uint64_t>(m_id));
-                return nonNegativeVec(m_cachedSize);
-            }
-            activeNodes.insert(m_id);
-        }
-
-        const glm::vec2 previousCachedSize = m_cachedSize;
-        const glm::vec2 previousDrawSize = m_drawSize;
-        bool childLayoutChanged = false;
-        glm::vec2 drawSize{0.f};
-
-        auto measureChild = [&](const UUID &childId, glm::vec2 *childrenSpan) {
-            UINode *childNode = registry.getNode(childId);
-            BESS_ASSERT(childNode,
-                        "Child node {} not found in registry.",
-                        static_cast<uint64_t>(childId));
-            if (childNode == nullptr) {
-                return;
-            }
-
-            const glm::vec2 childPreviousSize = childNode->m_cachedSize;
-            const glm::vec2 childSize =
-                childNode->measure(registry, this, activeNodes);
-            if (!sameVec(childPreviousSize, childSize) ||
-                childNode->m_posDirty) {
-                childLayoutChanged = true;
-            }
-
-            if (childrenSpan == nullptr ||
-                childNode->m_posMode == PosMode::absolute) {
-                return;
-            }
-
-            if (m_direction == LayoutDirection::horizontal ||
-                m_direction == LayoutDirection::horizontalReverse) {
-                childrenSpan->x += childSize.x;
-                childrenSpan->y = std::max(childrenSpan->y, childSize.y);
-            } else {
-                childrenSpan->y += childSize.y;
-                childrenSpan->x = std::max(childrenSpan->x, childSize.x);
-            }
-        };
-
-        if (m_sizeConstraint == SizeContraint::fixed) {
-            auto size = resolveSize(parentNode);
-            auto tentativeSize = size;
-
-            if (m_size.x < 0.f) {
-                tentativeSize.x = 0.f;
-            }
-            if (m_size.y < 0.f) {
-                tentativeSize.y = 0.f;
-            }
-
-            m_drawSize = constrainSize(tentativeSize, m_minSize, m_maxSize);
-
-            glm::vec2 childrenSpan{0.f};
-            for (const auto &childId : m_children) {
-                measureChild(childId, &childrenSpan);
-            }
-
-            const auto minContentSize = childrenSpan + paddingSize();
-
-            if (m_size.x < 0.f) {
-                size.x = minContentSize.x;
-            } else {
-                size.x = std::max(size.x, minContentSize.x);
-            }
-            if (m_size.y < 0.f) {
-                size.y = minContentSize.y;
-            } else {
-                size.y = std::max(size.y, minContentSize.y);
-            }
-
-            drawSize = constrainSize(size, m_minSize, m_maxSize);
-            m_drawSize = drawSize;
-
-        } else {
-            m_drawSize = constrainSize(paddingSize(), m_minSize, m_maxSize);
-
-            glm::vec2 childrenSpan{0.f};
-            for (const auto &childId : m_children) {
-                measureChild(childId, &childrenSpan);
-                m_drawSize = constrainSize(
-                    childrenSpan + paddingSize(), m_minSize, m_maxSize);
-            }
-
-            drawSize = constrainSize(
-                childrenSpan + paddingSize(), m_minSize, m_maxSize);
-        }
-
-        m_drawSize = drawSize;
-        m_cachedSize = nonNegativeVec(drawSize + marginSize());
-
-        if (m_sizeDirty || childLayoutChanged ||
-            !sameVec(previousCachedSize, m_cachedSize) ||
-            !sameVec(previousDrawSize, m_drawSize)) {
-            m_posDirty = true;
-        }
-        m_sizeDirty = false;
-
-        if (tracksCycle) {
-            activeNodes.erase(m_id);
-        }
-
-        return m_cachedSize;
+    YGNodeRef UINode::getYogaNode() {
+        return m_ygNode;
     }
 
-    void UINode::layout(UINodeRegistry &registry,
-                        const UINode *parentNode,
-                        float parentZVal,
-                        HashSet<UUID> &activeNodes) {
-        const bool tracksCycle = m_id != UUID::null;
-        if (tracksCycle) {
-            if (activeNodes.find(m_id) != activeNodes.end()) {
-                BESS_ASSERT(false,
-                            "Cycle detected while laying out UI node {}.",
-                            static_cast<uint64_t>(m_id));
-                return;
-            }
-            activeNodes.insert(m_id);
-        }
-
-        if (!m_posDirty) {
-            if (tracksCycle) {
-                activeNodes.erase(m_id);
-            }
-            return;
-        }
-
-        if (parentNode == nullptr) {
-            m_cachedPos = resolvePos(nullptr);
-        } else if (m_posMode == PosMode::absolute) {
-            m_cachedPos = parentNode->m_cachedPos + resolvePos(parentNode);
-        }
-
-        m_cachedZVal = parentZVal + m_zVal;
-
-        const glm::vec2 contentTopLeft = m_cachedPos - (m_drawSize * 0.5f) +
-                                         edgeTopLeft(m_padding.toVec4(), false);
-        const glm::vec2 availableContentSize = contentSize();
-        const bool isHorizontal =
-            m_direction == LayoutDirection::horizontal ||
-            m_direction == LayoutDirection::horizontalReverse;
-
-        const bool isReverse =
-            m_direction == LayoutDirection::horizontalReverse ||
-            m_direction == LayoutDirection::verticalReverse;
-
-        float childrenMainSpan = 0.f;
-
-        // Its just span collection so order does not matter
-        // Skipping isReverse here
-        for (const auto &childId : m_children) {
-            const UINode *childNode = registry.getNode(childId);
-            if (childNode == nullptr ||
-                childNode->m_posMode == PosMode::absolute) {
-                continue;
-            }
-
-            childrenMainSpan += isHorizontal ? childNode->m_cachedSize.x
-                                             : childNode->m_cachedSize.y;
-        }
-
-        const float contentMainStart =
-            isHorizontal ? contentTopLeft.x : contentTopLeft.y;
-        const float availableMainSize =
-            isHorizontal ? availableContentSize.x : availableContentSize.y;
-        float cursor = alignedStart(contentMainStart,
-                                    availableMainSize,
-                                    childrenMainSpan,
-                                    m_mainAxisAlignment);
-
-        auto processChild = [&](UINode *childNode) {
-            if (childNode->m_posMode == PosMode::absolute) {
-                const auto childPos = m_cachedPos + childNode->resolvePos(this);
-                const auto childZ = m_cachedZVal + childNode->m_zVal;
-                if (!sameVec(childNode->m_cachedPos, childPos) ||
-                    childNode->m_cachedZVal != childZ) {
-                    childNode->m_posDirty = true;
-                }
-                childNode->m_cachedPos = childPos;
-                childNode->layout(registry, this, m_cachedZVal, activeNodes);
-                return;
-            }
-
-            glm::vec2 marginBoxTopLeft{0.f};
-            if (isHorizontal) {
-                marginBoxTopLeft = {cursor, contentTopLeft.y};
-                marginBoxTopLeft.y = alignedStart(contentTopLeft.y,
-                                                  availableContentSize.y,
-                                                  childNode->m_cachedSize.y,
-                                                  m_crossAxisAlignment);
-            } else {
-                marginBoxTopLeft = {contentTopLeft.x, cursor};
-                marginBoxTopLeft.x = alignedStart(contentTopLeft.x,
-                                                  availableContentSize.x,
-                                                  childNode->m_cachedSize.x,
-                                                  m_crossAxisAlignment);
-            }
-
-            const glm::vec2 drawTopLeft =
-                marginBoxTopLeft +
-                edgeTopLeft(childNode->m_margin.toVec4(), true);
-            const auto childPos = drawTopLeft + (childNode->m_drawSize * 0.5f) +
-                                  childNode->resolvePos(this);
-            const auto childZ = m_cachedZVal + childNode->m_zVal;
-            if (!sameVec(childNode->m_cachedPos, childPos) ||
-                childNode->m_cachedZVal != childZ) {
-                childNode->m_posDirty = true;
-            }
-            childNode->m_cachedPos = childPos;
-
-            childNode->layout(registry, this, m_cachedZVal, activeNodes);
-
-            if (isHorizontal) {
-                cursor += childNode->m_cachedSize.x;
-            } else {
-                cursor += childNode->m_cachedSize.y;
-            }
-        };
-
-        if (isReverse) {
-            for (auto it : std::views::reverse(m_children)) {
-                UINode *childNode = registry.getNode(it);
-                BESS_ASSERT(childNode,
-                            "Child node {} not found in registry.",
-                            static_cast<uint64_t>(it));
-                if (childNode == nullptr) {
-                    continue;
-                }
-                processChild(childNode);
-            }
-        } else {
-            for (const auto &childId : m_children) {
-                UINode *childNode = registry.getNode(childId);
-                BESS_ASSERT(childNode,
-                            "Child node {} not found in registry.",
-                            static_cast<uint64_t>(childId));
-                if (childNode == nullptr) {
-                    continue;
-                }
-                processChild(childNode);
-            }
-        }
-
-        m_posDirty = false;
-
-        if (tracksCycle) {
-            activeNodes.erase(m_id);
-        }
+    YGNodeConstRef UINode::getYogaNode() const {
+        return m_ygNode;
     }
 
     void UINode::attachRegistry(UINodeRegistry *registry) {
         m_registry = registry;
-    }
-
-    void UINode::applyMeasuredYogaSizes(UINodeRegistry &registry,
-                                        HashSet<UUID> &activeNodes) {
-        const bool tracksCycle = m_id != UUID::null;
-        if (tracksCycle) {
-            if (activeNodes.find(m_id) != activeNodes.end()) {
-                BESS_ASSERT(false,
-                            "Cycle detected while applying UI node {} "
-                            "measurement to Yoga.",
-                            static_cast<uint64_t>(m_id));
-                return;
-            }
-            activeNodes.insert(m_id);
+        if (m_ygNode != nullptr && registry != nullptr) {
+            YGNodeSetConfig(m_ygNode, registry->getYogaConfig());
         }
-
-        YGNodeStyleSetWidth(m_ygNode, m_drawSize.x);
-        YGNodeStyleSetHeight(m_ygNode, m_drawSize.y);
-
-        for (const auto &childId : m_children) {
-            UINode *childNode = registry.getNode(childId);
-            BESS_ASSERT(childNode,
-                        "Child node {} not found in registry.",
-                        static_cast<uint64_t>(childId));
-            if (childNode == nullptr) {
-                continue;
-            }
-            childNode->applyMeasuredYogaSizes(registry, activeNodes);
-        }
-
-        if (tracksCycle) {
-            activeNodes.erase(m_id);
-        }
-    }
-
-    void UINode::layoutFromYoga(UINodeRegistry &registry,
-                                const UINode *parentNode,
-                                HashSet<UUID> &activeNodes) {
-        const bool tracksCycle = m_id != UUID::null;
-        if (tracksCycle) {
-            if (activeNodes.find(m_id) != activeNodes.end()) {
-                BESS_ASSERT(false,
-                            "Cycle detected while laying out UI node {} "
-                            "from Yoga.",
-                            static_cast<uint64_t>(m_id));
-                return;
-            }
-            activeNodes.insert(m_id);
-        }
-
-        m_drawSize.x = YGNodeLayoutGetWidth(m_ygNode);
-        m_drawSize.y = YGNodeLayoutGetHeight(m_ygNode);
-        m_cachedSize = nonNegativeVec(m_drawSize + marginSize());
-
-        const float relativeX = YGNodeLayoutGetLeft(m_ygNode);
-        const float relativeY = YGNodeLayoutGetTop(m_ygNode);
-
-        glm::vec3 parentTopLeft = {0.f, 0.f, 0.f};
-        if (parentNode != nullptr) {
-            const auto parentPos = parentNode->getDrawPos();
-            const auto parentSize = parentNode->getDrawSize();
-            parentTopLeft.x = parentPos.x - parentSize.x / 2.f;
-            parentTopLeft.y = parentPos.y - parentSize.y / 2.f;
-            parentTopLeft.z = parentPos.z;
-        } else {
-            parentTopLeft.x = -m_drawSize.x / 2.f;
-            parentTopLeft.y = -m_drawSize.y / 2.f;
-        }
-
-        m_cachedPos.x = parentTopLeft.x + relativeX;
-        m_cachedPos.y = parentTopLeft.y + relativeY;
-        m_cachedZVal = parentTopLeft.z + m_zVal;
-        m_cachedPos += m_drawSize / 2.f;
-
-        for (const auto &childId : m_children) {
-            UINode *childNode = registry.getNode(childId);
-            BESS_ASSERT(childNode,
-                        "Child node {} not found in registry.",
-                        static_cast<uint64_t>(childId));
-            if (childNode == nullptr) {
-                continue;
-            }
-            childNode->layoutFromYoga(registry, this, activeNodes);
-        }
-
-        m_sizeDirty = false;
-        m_posDirty = false;
-
-        if (tracksCycle) {
-            activeNodes.erase(m_id);
-        }
+        rebuildYogaChildren();
     }
 
     void UINode::propagateSizeDirtyToAncestors() {
@@ -1092,18 +804,321 @@ namespace Bess::Canvas::UI {
         }
     }
 
-    glm::vec2 UINode::resolveSize(const UINode *parentNode) const {
-        if (m_sizeUnit == Unit::pixel) {
-            return nonNegativeVec(m_size);
+    void UINode::rebuildYogaChildren() {
+        if (m_ygNode == nullptr) {
+            return;
         }
 
-        BESS_ASSERT(parentNode != nullptr,
-                    "Relative size requires a parent node.");
-        if (parentNode == nullptr) {
-            return {0.f, 0.f};
+        YGNodeRemoveAllChildren(m_ygNode);
+        if (m_registry == nullptr) {
+            return;
         }
 
-        return relativeVec(m_size) * parentNode->contentSize();
+        uint32_t index = 0;
+        for (const auto &childId : m_children) {
+            if (auto *childNode = m_registry->getNode(childId)) {
+                childNode->m_parentId = m_id;
+                YGNodeInsertChild(m_ygNode, childNode->m_ygNode, index++);
+            }
+        }
+    }
+
+    void UINode::syncLayoutFromYoga(UINodeRegistry &registry,
+                                    const UINode *parentNode,
+                                    HashSet<UUID> &activeNodes) {
+        const bool tracksCycle = m_id != UUID::null;
+        if (tracksCycle) {
+            if (activeNodes.find(m_id) != activeNodes.end()) {
+                BESS_ASSERT(false,
+                            "Cycle detected while syncing UI node {} from "
+                            "Yoga.",
+                            static_cast<uint64_t>(m_id));
+                return;
+            }
+            activeNodes.insert(m_id);
+        }
+
+        m_drawSize.x = nonNegative(YGNodeLayoutGetWidth(m_ygNode));
+        m_drawSize.y = nonNegative(YGNodeLayoutGetHeight(m_ygNode));
+        m_cachedSize = nonNegativeVec(m_drawSize + marginSize());
+
+        glm::vec2 topLeft{0.f};
+        float parentZVal = 0.f;
+        if (parentNode != nullptr) {
+            const auto parentPos = parentNode->getDrawPos();
+            const auto parentSize = parentNode->getDrawSize();
+            topLeft = glm::vec2(parentPos) - (parentSize * 0.5f);
+            topLeft.x += YGNodeLayoutGetLeft(m_ygNode);
+            topLeft.y += YGNodeLayoutGetTop(m_ygNode);
+            parentZVal = parentPos.z;
+        } else {
+            topLeft = resolvePos(nullptr) - (m_drawSize * 0.5f);
+        }
+
+        m_cachedPos = topLeft + (m_drawSize * 0.5f);
+        m_cachedZVal = parentZVal + m_zVal;
+
+        for (const auto &childId : m_children) {
+            UINode *childNode = registry.getNode(childId);
+            BESS_ASSERT(childNode,
+                        "Child node {} not found in registry.",
+                        static_cast<uint64_t>(childId));
+            if (childNode == nullptr) {
+                continue;
+            }
+            childNode->syncLayoutFromYoga(registry, this, activeNodes);
+        }
+
+        m_sizeDirty = false;
+        m_posDirty = false;
+
+        if (tracksCycle) {
+            activeNodes.erase(m_id);
+        }
+    }
+
+    void UINode::copyFrom(const UINode &other) {
+        m_id = other.m_id;
+        m_pos = other.m_pos;
+        m_zVal = other.m_zVal;
+        m_cachedZVal = other.m_cachedZVal;
+        m_posUnit = other.m_posUnit;
+        m_minSize = other.m_minSize;
+        m_maxSize = other.m_maxSize;
+        m_padding = other.m_padding;
+        m_margin = other.m_margin;
+        m_direction = other.m_direction;
+        m_mainAxisAlignment = other.m_mainAxisAlignment;
+        m_crossAxisAlignment = other.m_crossAxisAlignment;
+        m_alignSelf = other.m_alignSelf;
+        m_flexGrow = other.m_flexGrow;
+        m_flexShrink = other.m_flexShrink;
+        m_flexBasisMode = other.m_flexBasisMode;
+        m_flexBasis = other.m_flexBasis;
+        m_flexBasisUnit = other.m_flexBasisUnit;
+        m_posMode = other.m_posMode;
+        m_width = other.m_width;
+        m_height = other.m_height;
+        m_children = other.m_children;
+        m_posDirty = other.m_posDirty;
+        m_sizeDirty = other.m_sizeDirty;
+        m_cachedPos = other.m_cachedPos;
+        m_cachedSize = other.m_cachedSize;
+        m_drawSize = other.m_drawSize;
+        m_parentId = other.m_parentId;
+        m_registry = nullptr;
+
+        if (other.m_ygNode != nullptr) {
+            m_ygNode = YGNodeClone(other.m_ygNode);
+            YGNodeRemoveAllChildren(m_ygNode);
+        } else {
+            createYogaNode();
+            applyYogaStyle();
+        }
+    }
+
+    void UINode::moveFrom(UINode &other) noexcept {
+        m_id = other.m_id;
+        m_pos = other.m_pos;
+        m_zVal = other.m_zVal;
+        m_cachedZVal = other.m_cachedZVal;
+        m_posUnit = other.m_posUnit;
+        m_minSize = other.m_minSize;
+        m_maxSize = other.m_maxSize;
+        m_padding = other.m_padding;
+        m_margin = other.m_margin;
+        m_direction = other.m_direction;
+        m_mainAxisAlignment = other.m_mainAxisAlignment;
+        m_crossAxisAlignment = other.m_crossAxisAlignment;
+        m_alignSelf = other.m_alignSelf;
+        m_flexGrow = other.m_flexGrow;
+        m_flexShrink = other.m_flexShrink;
+        m_flexBasisMode = other.m_flexBasisMode;
+        m_flexBasis = other.m_flexBasis;
+        m_flexBasisUnit = other.m_flexBasisUnit;
+        m_posMode = other.m_posMode;
+        m_width = other.m_width;
+        m_height = other.m_height;
+        m_children = other.m_children;
+        m_posDirty = other.m_posDirty;
+        m_sizeDirty = other.m_sizeDirty;
+        m_cachedPos = other.m_cachedPos;
+        m_cachedSize = other.m_cachedSize;
+        m_drawSize = other.m_drawSize;
+        m_parentId = other.m_parentId;
+        m_registry = other.m_registry;
+        m_ygNode = other.m_ygNode;
+
+        other.m_registry = nullptr;
+        other.m_ygNode = nullptr;
+    }
+
+    void UINode::releaseYogaNode() {
+        if (m_ygNode != nullptr) {
+            YGNodeFree(m_ygNode);
+            m_ygNode = nullptr;
+        }
+    }
+
+    void UINode::createYogaNode(YGConfigRef config) {
+        m_ygNode =
+            config != nullptr ? YGNodeNewWithConfig(config) : YGNodeNew();
+    }
+
+    void UINode::applyYogaStyle() {
+        YGNodeStyleSetFlexDirection(m_ygNode, toYoga(m_direction));
+        YGNodeStyleSetJustifyContent(m_ygNode, toYoga(m_mainAxisAlignment));
+        YGNodeStyleSetAlignItems(m_ygNode, toYogaAlign(m_crossAxisAlignment));
+        YGNodeStyleSetAlignSelf(m_ygNode, toYoga(m_alignSelf));
+        YGNodeStyleSetFlexGrow(m_ygNode, m_flexGrow);
+        YGNodeStyleSetFlexShrink(m_ygNode, m_flexShrink);
+        YGNodeStyleSetPositionType(m_ygNode,
+                                   m_posMode == PosMode::absolute
+                                       ? YGPositionTypeAbsolute
+                                       : YGPositionTypeRelative);
+        applyWidthStyle();
+        applyHeightStyle();
+        applyPositionStyle();
+        applyMinSizeStyle();
+        applyMaxSizeStyle();
+        applyFlexBasisStyle();
+        YGNodeStyleSetPadding(m_ygNode, YGEdgeTop, m_padding.top);
+        YGNodeStyleSetPadding(m_ygNode, YGEdgeRight, m_padding.right);
+        YGNodeStyleSetPadding(m_ygNode, YGEdgeBottom, m_padding.bottom);
+        YGNodeStyleSetPadding(m_ygNode, YGEdgeLeft, m_padding.left);
+        YGNodeStyleSetMargin(m_ygNode, YGEdgeTop, m_margin.top);
+        YGNodeStyleSetMargin(m_ygNode, YGEdgeRight, m_margin.right);
+        YGNodeStyleSetMargin(m_ygNode, YGEdgeBottom, m_margin.bottom);
+        YGNodeStyleSetMargin(m_ygNode, YGEdgeLeft, m_margin.left);
+    }
+
+    void UINode::applyWidthStyle() {
+        switch (m_width.mode) {
+        case DimensionMode::auto_:
+            YGNodeStyleSetWidthAuto(m_ygNode);
+            break;
+        case DimensionMode::point:
+            YGNodeStyleSetWidth(m_ygNode, nonNegative(m_width.value));
+            break;
+        case DimensionMode::percent:
+            YGNodeStyleSetWidthPercent(m_ygNode, percentValue(m_width.value));
+            break;
+        case DimensionMode::fitContent:
+            YGNodeStyleSetWidthFitContent(m_ygNode);
+            break;
+        case DimensionMode::maxContent:
+            YGNodeStyleSetWidthMaxContent(m_ygNode);
+            break;
+        case DimensionMode::stretch:
+            YGNodeStyleSetWidthStretch(m_ygNode);
+            break;
+        }
+    }
+
+    void UINode::applyHeightStyle() {
+        switch (m_height.mode) {
+        case DimensionMode::auto_:
+            YGNodeStyleSetHeightAuto(m_ygNode);
+            break;
+        case DimensionMode::point:
+            YGNodeStyleSetHeight(m_ygNode, nonNegative(m_height.value));
+            break;
+        case DimensionMode::percent:
+            YGNodeStyleSetHeightPercent(m_ygNode, percentValue(m_height.value));
+            break;
+        case DimensionMode::fitContent:
+            YGNodeStyleSetHeightFitContent(m_ygNode);
+            break;
+        case DimensionMode::maxContent:
+            YGNodeStyleSetHeightMaxContent(m_ygNode);
+            break;
+        case DimensionMode::stretch:
+            YGNodeStyleSetHeightStretch(m_ygNode);
+            break;
+        }
+    }
+
+    void UINode::applyPositionStyle() {
+        if (m_posUnit == Unit::pixel) {
+            YGNodeStyleSetPosition(m_ygNode, YGEdgeTop, m_pos.y);
+            YGNodeStyleSetPosition(m_ygNode, YGEdgeLeft, m_pos.x);
+        } else {
+            YGNodeStyleSetPositionPercent(
+                m_ygNode, YGEdgeTop, percentValue(m_pos.y));
+            YGNodeStyleSetPositionPercent(
+                m_ygNode, YGEdgeLeft, percentValue(m_pos.x));
+        }
+    }
+
+    void UINode::applyMinSizeStyle() {
+        if (m_minSize.x >= 0.f) {
+            YGNodeStyleSetMinWidth(m_ygNode, m_minSize.x);
+        } else {
+            YGNodeStyleSetMinWidth(m_ygNode, YGUndefined);
+        }
+
+        if (m_minSize.y >= 0.f) {
+            YGNodeStyleSetMinHeight(m_ygNode, m_minSize.y);
+        } else {
+            YGNodeStyleSetMinHeight(m_ygNode, YGUndefined);
+        }
+    }
+
+    void UINode::applyMaxSizeStyle() {
+        if (m_maxSize.x >= 0.f) {
+            YGNodeStyleSetMaxWidth(m_ygNode, m_maxSize.x);
+        } else {
+            YGNodeStyleSetMaxWidth(m_ygNode, YGUndefined);
+        }
+
+        if (m_maxSize.y >= 0.f) {
+            YGNodeStyleSetMaxHeight(m_ygNode, m_maxSize.y);
+        } else {
+            YGNodeStyleSetMaxHeight(m_ygNode, YGUndefined);
+        }
+    }
+
+    void UINode::applyFlexBasisStyle() {
+        switch (m_flexBasisMode) {
+        case FlexBasisMode::auto_:
+            YGNodeStyleSetFlexBasisAuto(m_ygNode);
+            break;
+        case FlexBasisMode::point:
+            YGNodeStyleSetFlexBasis(m_ygNode, m_flexBasis);
+            break;
+        case FlexBasisMode::percent:
+            YGNodeStyleSetFlexBasisPercent(m_ygNode, percentValue(m_flexBasis));
+            break;
+        case FlexBasisMode::fitContent:
+            YGNodeStyleSetFlexBasisFitContent(m_ygNode);
+            break;
+        case FlexBasisMode::maxContent:
+            YGNodeStyleSetFlexBasisMaxContent(m_ygNode);
+            break;
+        case FlexBasisMode::stretch:
+            YGNodeStyleSetFlexBasisStretch(m_ygNode);
+            break;
+        }
+    }
+
+    void UINode::setWidthDimension(const Dimension &dimension) {
+        if (m_width.mode == dimension.mode &&
+            m_width.value == dimension.value) {
+            return;
+        }
+        m_width = dimension;
+        applyWidthStyle();
+        setSizeDirty();
+    }
+
+    void UINode::setHeightDimension(const Dimension &dimension) {
+        if (m_height.mode == dimension.mode &&
+            m_height.value == dimension.value) {
+            return;
+        }
+        m_height = dimension;
+        applyHeightStyle();
+        setSizeDirty();
     }
 
     glm::vec2 UINode::resolvePos(const UINode *parentNode) const {
@@ -1131,5 +1146,4 @@ namespace Bess::Canvas::UI {
     glm::vec2 UINode::paddingSize() const {
         return edgeSize(m_padding.toVec4(), false);
     }
-
 } // namespace Bess::Canvas::UI

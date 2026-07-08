@@ -13,6 +13,16 @@ namespace {
     glm::vec2 boxEdges(const glm::vec4 &edges) {
         return {edges.y + edges.w, edges.x + edges.z};
     }
+
+    void setPointSize(Bess::Canvas::UI::UINode &node, const glm::vec2 &size) {
+        node.setWidth(size.x);
+        node.setHeight(size.y);
+    }
+
+    void setFitContent(Bess::Canvas::UI::UINode &node) {
+        node.setWidthFitContent();
+        node.setHeightFitContent();
+    }
 } // namespace
 
 class UiLayoutTests : public testing::Test {};
@@ -32,6 +42,38 @@ TEST_F(UiLayoutTests, UINodeRegistryAddGetRemoveNode) {
     EXPECT_EQ(retrievedNode, nullptr);
 }
 
+TEST_F(UiLayoutTests, UINodeAddChildReparentsYogaNode) {
+    Bess::Canvas::UI::UINodeRegistry registry;
+
+    auto parentNode1 = registry.addNode(Bess::UUID());
+    auto parentNode2 = registry.addNode(Bess::UUID());
+    auto childNode = registry.addNode(Bess::UUID());
+    ASSERT_NE(parentNode1, nullptr);
+    ASSERT_NE(parentNode2, nullptr);
+    ASSERT_NE(childNode, nullptr);
+
+    setPointSize(*parentNode1, glm::vec2(100, 40));
+    setPointSize(*parentNode2, glm::vec2(100, 40));
+    setPointSize(*childNode, glm::vec2(20, 10));
+
+    parentNode1->addChild(childNode);
+    ASSERT_EQ(childNode->getParentId(), parentNode1->getId());
+    EXPECT_EQ(YGNodeGetChildCount(parentNode1->getYogaNode()), 1u);
+
+    parentNode2->addChild(childNode);
+
+    EXPECT_EQ(childNode->getParentId(), parentNode2->getId());
+    EXPECT_EQ(parentNode1->getChildren().find(childNode->getId()),
+              parentNode1->getChildren().end());
+    EXPECT_NE(parentNode2->getChildren().find(childNode->getId()),
+              parentNode2->getChildren().end());
+    EXPECT_EQ(YGNodeGetChildCount(parentNode1->getYogaNode()), 0u);
+    EXPECT_EQ(YGNodeGetChildCount(parentNode2->getYogaNode()), 1u);
+
+    parentNode2->layout(registry, Bess::UUID::null);
+    expectVec2(childNode->getDrawSize(), 20, 10);
+}
+
 TEST_F(UiLayoutTests, UINodeMeasure) {
     Bess::Canvas::UI::UINodeRegistry registry;
 
@@ -42,10 +84,8 @@ TEST_F(UiLayoutTests, UINodeMeasure) {
     const glm::vec2 marginSize = boxEdges(margin.toVec4());
 
     Bess::Canvas::UI::UINode node;
-    node.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    node.setSize(size);
+    setPointSize(node, size);
     EXPECT_EQ(node.getSizeDirty(), true);
-    EXPECT_EQ(node.getSize(), size);
 
     node.setPadding(padding);
     EXPECT_EQ(node.getSizeDirty(), true);
@@ -66,7 +106,7 @@ TEST_F(UiLayoutTests, UINodeMeasure) {
 
     BESS_INFO("Measured with fixed constraint");
 
-    node.setSizeConstraint(Bess::Canvas::UI::SizeContraint::wrapContent);
+    setFitContent(node);
     measuredSize = node.measure(registry, Bess::UUID::null);
     worldSize = node.getCachedSize();
 
@@ -80,8 +120,7 @@ TEST_F(UiLayoutTests, UINodeMeasure) {
     BESS_INFO("Measured with wrap_content constraint");
 
     Bess::Canvas::UI::UINode childNode;
-    childNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    childNode.setSize(glm::vec2(20, 10));
+    setPointSize(childNode, glm::vec2(20, 10));
     auto childNodePtr = registry.addNode(childNode);
     node.addChild(childNodePtr);
 
@@ -106,7 +145,7 @@ TEST_F(UiLayoutTests, UINodeMeasure) {
     measuredSize = node.measure(registry, Bess::UUID::null);
     worldSize = node.getCachedSize();
 
-    // checking for SizeContraint::wrap_content size with child and min size
+    // Fit-content size with child and min size.
     expectVec2(measuredSize, worldSize.x, worldSize.y);
 
     expectVec2(node.getDrawSize(), 150, 100);
@@ -118,18 +157,15 @@ TEST_F(UiLayoutTests, UINodeMeasure) {
     measuredSize = node.measure(registry, Bess::UUID::null);
     worldSize = node.getCachedSize();
 
-    // checking for SizeContraint::wrap_content size with child, min size and
-    // max size
+    // The wrapper reports Yoga's min/max conflict resolution directly.
     expectVec2(measuredSize, worldSize.x, worldSize.y);
 
-    // Minimum width overrides maximum width
-    expectVec2(node.getDrawSize(), 150, 100);
-    expectVec2(worldSize, 150 + marginSize.x, 100 + marginSize.y);
+    expectVec2(node.getDrawSize(), 150, 80);
+    expectVec2(worldSize, 150 + marginSize.x, 80 + marginSize.y);
 
     node.setMinSize(glm::vec2(50, 40));
-    node.setSize(glm::vec2(200, 150));
+    setPointSize(node, glm::vec2(200, 150));
 
-    node.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
     measuredSize = node.measure(registry, Bess::UUID::null);
     worldSize = node.getCachedSize();
 
@@ -145,8 +181,7 @@ TEST_F(UiLayoutTests, UINodeLayout) {
     Bess::Canvas::UI::UINodeRegistry registry;
 
     Bess::Canvas::UI::UINode parentNode;
-    parentNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    parentNode.setSize(glm::vec2(200, 100));
+    setPointSize(parentNode, glm::vec2(200, 100));
     parentNode.setPos(glm::vec2(0, 0));
     registry.addNode(parentNode);
 
@@ -154,16 +189,14 @@ TEST_F(UiLayoutTests, UINodeLayout) {
     Bess::Canvas::UI::UINode *childNode2Ptr = nullptr;
     {
         Bess::Canvas::UI::UINode childNode1;
-        childNode1.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-        childNode1.setSize(glm::vec2(50, 50));
+        setPointSize(childNode1, glm::vec2(50, 50));
         childNode1Ptr = registry.addNode(childNode1);
         parentNode.addChild(childNode1Ptr);
     }
 
     {
         Bess::Canvas::UI::UINode childNode2;
-        childNode2.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-        childNode2.setSize(glm::vec2(30, 30));
+        setPointSize(childNode2, glm::vec2(30, 30));
         childNode2Ptr = registry.addNode(childNode2);
         parentNode.addChild(childNode2Ptr);
     }
@@ -202,20 +235,17 @@ TEST_F(UiLayoutTests, UINodeLayoutHonorsMarginAndCenterAlignment) {
     Bess::Canvas::UI::UINodeRegistry registry;
 
     Bess::Canvas::UI::UINode parentNode;
-    parentNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    parentNode.setSize(glm::vec2(200, 100));
+    setPointSize(parentNode, glm::vec2(200, 100));
     parentNode.setCrossAxisAlignment(Bess::Canvas::UI::LayoutAlignment::center);
 
     Bess::Canvas::UI::UINode childNode1;
-    childNode1.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    childNode1.setSize(glm::vec2(50, 50));
+    setPointSize(childNode1, glm::vec2(50, 50));
     childNode1.setMargin(Bess::Core::Style::Margin(5, 50, 5, 5));
     auto childNode1Ptr = registry.addNode(childNode1);
     parentNode.addChild(childNode1Ptr);
 
     Bess::Canvas::UI::UINode childNode2;
-    childNode2.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    childNode2.setSize(glm::vec2(30, 30));
+    setPointSize(childNode2, glm::vec2(30, 30));
     auto childNode2Ptr = registry.addNode(childNode2);
     parentNode.addChild(childNode2Ptr);
 
@@ -235,21 +265,18 @@ TEST_F(UiLayoutTests, UINodeLayoutHonorsMainAndCrossAxisAlignment) {
     Bess::Canvas::UI::UINodeRegistry registry;
 
     Bess::Canvas::UI::UINode parentNode;
-    parentNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    parentNode.setSize(glm::vec2(200, 100));
+    setPointSize(parentNode, glm::vec2(200, 100));
     parentNode.setMainAxisAlignment(Bess::Canvas::UI::LayoutAlignment::end);
     parentNode.setCrossAxisAlignment(Bess::Canvas::UI::LayoutAlignment::center);
 
     Bess::Canvas::UI::UINode childNode1;
-    childNode1.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    childNode1.setSize(glm::vec2(50, 50));
+    setPointSize(childNode1, glm::vec2(50, 50));
     auto childNode1Ptr = registry.addNode(childNode1);
     ASSERT_NE(childNode1Ptr, nullptr);
     parentNode.addChild(childNode1Ptr);
 
     Bess::Canvas::UI::UINode childNode2;
-    childNode2.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    childNode2.setSize(glm::vec2(30, 30));
+    setPointSize(childNode2, glm::vec2(30, 30));
     auto childNode2Ptr = registry.addNode(childNode2);
     ASSERT_NE(childNode2Ptr, nullptr);
     parentNode.addChild(childNode2Ptr);
@@ -260,26 +287,25 @@ TEST_F(UiLayoutTests, UINodeLayoutHonorsMainAndCrossAxisAlignment) {
     expectVec2(childNode2Ptr->getCachedPos(), 85, 0);
 }
 
-TEST_F(UiLayoutTests, FixedContainerGrowsToFitRelativeChildrenMargins) {
+TEST_F(UiLayoutTests, EqualFlexColumnsRespectSharedMinimumWidth) {
     Bess::Canvas::UI::UINodeRegistry registry;
 
     Bess::Canvas::UI::UINode parentNode;
-    parentNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    parentNode.setSize(glm::vec2(200, 100));
+    setPointSize(parentNode, glm::vec2(216, 100));
 
     Bess::Canvas::UI::UINode childNode1;
-    childNode1.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    childNode1.setSizeUnit(Bess::Canvas::UI::Unit::relative);
-    childNode1.setSize(glm::vec2(0.5f, 0.2f));
+    childNode1.setFlex(1.f, 0.f, 0.f);
+    childNode1.setMinSize(glm::vec2(100.f, -1.f));
+    childNode1.setHeight(20.f);
     childNode1.setMargin(Bess::Core::Style::Margin(0.f, 16.f, 0.f, 0.f));
     auto childNode1Ptr = registry.addNode(childNode1);
     ASSERT_NE(childNode1Ptr, nullptr);
     parentNode.addChild(childNode1Ptr);
 
     Bess::Canvas::UI::UINode childNode2;
-    childNode2.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    childNode2.setSizeUnit(Bess::Canvas::UI::Unit::relative);
-    childNode2.setSize(glm::vec2(0.5f, 0.2f));
+    childNode2.setFlex(1.f, 0.f, 0.f);
+    childNode2.setMinSize(glm::vec2(100.f, -1.f));
+    childNode2.setHeight(20.f);
     auto childNode2Ptr = registry.addNode(childNode2);
     ASSERT_NE(childNode2Ptr, nullptr);
     parentNode.addChild(childNode2Ptr);
@@ -299,22 +325,21 @@ TEST_F(UiLayoutTests, WrapContainerDoesNotGrowFromStaleRelativeSizes) {
 
     Bess::Canvas::UI::UINode rootNode;
     rootNode.setDirection(Bess::Canvas::UI::LayoutDirection::vertical);
-    rootNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::wrapContent);
+    setFitContent(rootNode);
 
     Bess::Canvas::UI::UINode slotsBoxNode;
     slotsBoxNode.setDirection(Bess::Canvas::UI::LayoutDirection::horizontal);
-    slotsBoxNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    slotsBoxNode.setSizeUnit(Bess::Canvas::UI::Unit::relative);
-    slotsBoxNode.setSize(glm::vec2(1.f, -1.f));
+    slotsBoxNode.setAlignSelf(Bess::Canvas::UI::LayoutSelfAlignment::stretch);
+    slotsBoxNode.setWidthAuto();
+    slotsBoxNode.setHeightFitContent();
     auto slotsBoxNodePtr = registry.addNode(slotsBoxNode);
     ASSERT_NE(slotsBoxNodePtr, nullptr);
     rootNode.addChild(slotsBoxNodePtr);
 
     Bess::Canvas::UI::UINode inputBoxNode;
     inputBoxNode.setDirection(Bess::Canvas::UI::LayoutDirection::vertical);
-    inputBoxNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    inputBoxNode.setSizeUnit(Bess::Canvas::UI::Unit::relative);
-    inputBoxNode.setSize(glm::vec2(0.5f, -1.f));
+    inputBoxNode.setFlex(1.f, 0.f, 0.f);
+    inputBoxNode.setMinSize(glm::vec2(100.f, -1.f));
     inputBoxNode.setMargin(Bess::Core::Style::Margin(0.f, 16.f, 0.f, 0.f));
     auto inputBoxNodePtr = registry.addNode(inputBoxNode);
     ASSERT_NE(inputBoxNodePtr, nullptr);
@@ -322,23 +347,20 @@ TEST_F(UiLayoutTests, WrapContainerDoesNotGrowFromStaleRelativeSizes) {
 
     Bess::Canvas::UI::UINode outputBoxNode;
     outputBoxNode.setDirection(Bess::Canvas::UI::LayoutDirection::vertical);
-    outputBoxNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    outputBoxNode.setSizeUnit(Bess::Canvas::UI::Unit::relative);
-    outputBoxNode.setSize(glm::vec2(0.5f, -1.f));
+    outputBoxNode.setFlex(1.f, 0.f, 0.f);
+    outputBoxNode.setMinSize(glm::vec2(100.f, -1.f));
     auto outputBoxNodePtr = registry.addNode(outputBoxNode);
     ASSERT_NE(outputBoxNodePtr, nullptr);
     slotsBoxNodePtr->addChild(outputBoxNodePtr);
 
     Bess::Canvas::UI::UINode inputRowNode;
-    inputRowNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    inputRowNode.setSize(glm::vec2(100.f, 20.f));
+    setPointSize(inputRowNode, glm::vec2(100.f, 20.f));
     auto inputRowNodePtr = registry.addNode(inputRowNode);
     ASSERT_NE(inputRowNodePtr, nullptr);
     inputBoxNodePtr->addChild(inputRowNodePtr);
 
     Bess::Canvas::UI::UINode outputRowNode;
-    outputRowNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    outputRowNode.setSize(glm::vec2(100.f, 20.f));
+    setPointSize(outputRowNode, glm::vec2(100.f, 20.f));
     auto outputRowNodePtr = registry.addNode(outputRowNode);
     ASSERT_NE(outputRowNodePtr, nullptr);
     outputBoxNodePtr->addChild(outputRowNodePtr);
@@ -361,29 +383,27 @@ TEST_F(UiLayoutTests, OutputColumnCrossAxisEndAlignsRowsToRightEdge) {
 
     Bess::Canvas::UI::UINode rootNode;
     rootNode.setDirection(Bess::Canvas::UI::LayoutDirection::vertical);
-    rootNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::wrapContent);
+    setFitContent(rootNode);
 
     Bess::Canvas::UI::UINode headerNode;
-    headerNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    headerNode.setSize(glm::vec2(200.f, 20.f));
+    setPointSize(headerNode, glm::vec2(200.f, 20.f));
     auto headerNodePtr = registry.addNode(headerNode);
     ASSERT_NE(headerNodePtr, nullptr);
     rootNode.addChild(headerNodePtr);
 
     Bess::Canvas::UI::UINode slotsBoxNode;
     slotsBoxNode.setDirection(Bess::Canvas::UI::LayoutDirection::horizontal);
-    slotsBoxNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    slotsBoxNode.setSizeUnit(Bess::Canvas::UI::Unit::relative);
-    slotsBoxNode.setSize(glm::vec2(1.f, -1.f));
+    slotsBoxNode.setAlignSelf(Bess::Canvas::UI::LayoutSelfAlignment::stretch);
+    slotsBoxNode.setWidthAuto();
+    slotsBoxNode.setHeightFitContent();
     auto slotsBoxNodePtr = registry.addNode(slotsBoxNode);
     ASSERT_NE(slotsBoxNodePtr, nullptr);
     rootNode.addChild(slotsBoxNodePtr);
 
     Bess::Canvas::UI::UINode inputBoxNode;
     inputBoxNode.setDirection(Bess::Canvas::UI::LayoutDirection::vertical);
-    inputBoxNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    inputBoxNode.setSizeUnit(Bess::Canvas::UI::Unit::relative);
-    inputBoxNode.setSize(glm::vec2(0.5f, -1.f));
+    inputBoxNode.setFlex(1.f, 0.f, 0.f);
+    inputBoxNode.setMinSize(glm::vec2(100.f, -1.f));
     inputBoxNode.setMargin(Bess::Core::Style::Margin(0.f, 16.f, 0.f, 0.f));
     auto inputBoxNodePtr = registry.addNode(inputBoxNode);
     ASSERT_NE(inputBoxNodePtr, nullptr);
@@ -392,23 +412,20 @@ TEST_F(UiLayoutTests, OutputColumnCrossAxisEndAlignsRowsToRightEdge) {
     Bess::Canvas::UI::UINode outputBoxNode;
     outputBoxNode.setDirection(Bess::Canvas::UI::LayoutDirection::vertical);
     outputBoxNode.setCrossAxisAlignment(Bess::Canvas::UI::LayoutAlignment::end);
-    outputBoxNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    outputBoxNode.setSizeUnit(Bess::Canvas::UI::Unit::relative);
-    outputBoxNode.setSize(glm::vec2(0.5f, -1.f));
+    outputBoxNode.setFlex(1.f, 0.f, 0.f);
+    outputBoxNode.setMinSize(glm::vec2(100.f, -1.f));
     auto outputBoxNodePtr = registry.addNode(outputBoxNode);
     ASSERT_NE(outputBoxNodePtr, nullptr);
     slotsBoxNodePtr->addChild(outputBoxNodePtr);
 
     Bess::Canvas::UI::UINode inputRowNode;
-    inputRowNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    inputRowNode.setSize(glm::vec2(100.f, 20.f));
+    setPointSize(inputRowNode, glm::vec2(100.f, 20.f));
     auto inputRowNodePtr = registry.addNode(inputRowNode);
     ASSERT_NE(inputRowNodePtr, nullptr);
     inputBoxNodePtr->addChild(inputRowNodePtr);
 
     Bess::Canvas::UI::UINode outputRowNode;
-    outputRowNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    outputRowNode.setSize(glm::vec2(30.f, 20.f));
+    setPointSize(outputRowNode, glm::vec2(30.f, 20.f));
     auto outputRowNodePtr = registry.addNode(outputRowNode);
     ASSERT_NE(outputRowNodePtr, nullptr);
     outputBoxNodePtr->addChild(outputRowNodePtr);
@@ -426,14 +443,12 @@ TEST_F(UiLayoutTests, UINodeLayoutHonorsEndAlignmentInVerticalFlow) {
     Bess::Canvas::UI::UINodeRegistry registry;
 
     Bess::Canvas::UI::UINode parentNode;
-    parentNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    parentNode.setSize(glm::vec2(100, 100));
+    setPointSize(parentNode, glm::vec2(100, 100));
     parentNode.setDirection(Bess::Canvas::UI::LayoutDirection::vertical);
     parentNode.setCrossAxisAlignment(Bess::Canvas::UI::LayoutAlignment::end);
 
     Bess::Canvas::UI::UINode childNode;
-    childNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    childNode.setSize(glm::vec2(20, 30));
+    setPointSize(childNode, glm::vec2(20, 30));
     auto childNodePtr = registry.addNode(childNode);
     ASSERT_NE(childNodePtr, nullptr);
 
@@ -448,14 +463,12 @@ TEST_F(UiLayoutTests, UINodeRelativeSizeUsesParentContentBox) {
     Bess::Canvas::UI::UINodeRegistry registry;
 
     Bess::Canvas::UI::UINode parentNode;
-    parentNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    parentNode.setSize(glm::vec2(200, 100));
+    setPointSize(parentNode, glm::vec2(200, 100));
     parentNode.setPadding(Bess::Core::Style::Margin(10, 10, 10, 10));
 
     Bess::Canvas::UI::UINode childNode;
-    childNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    childNode.setSizeUnit(Bess::Canvas::UI::Unit::relative);
-    childNode.setSize(glm::vec2(0.5f, 0.25f));
+    childNode.setWidthPercent(50.f);
+    childNode.setHeightPercent(25.f);
     auto childNodePtr = registry.addNode(childNode);
     ASSERT_NE(childNodePtr, nullptr);
     parentNode.addChild(childNodePtr);
@@ -471,19 +484,16 @@ TEST_F(UiLayoutTests, UINodeLayoutRefreshesWhenChildSizeChanges) {
 
     auto parentNode = registry.addNode(Bess::UUID());
     ASSERT_NE(parentNode, nullptr);
-    parentNode->setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    parentNode->setSize(glm::vec2(200, 100));
+    setPointSize(*parentNode, glm::vec2(200, 100));
 
     Bess::Canvas::UI::UINode childNode1;
-    childNode1.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    childNode1.setSize(glm::vec2(50, 50));
+    setPointSize(childNode1, glm::vec2(50, 50));
     auto childNode1Ptr = registry.addNode(childNode1);
     ASSERT_NE(childNode1Ptr, nullptr);
     parentNode->addChild(childNode1Ptr);
 
     Bess::Canvas::UI::UINode childNode2;
-    childNode2.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    childNode2.setSize(glm::vec2(30, 30));
+    setPointSize(childNode2, glm::vec2(30, 30));
     auto childNode2Ptr = registry.addNode(childNode2);
     ASSERT_NE(childNode2Ptr, nullptr);
     parentNode->addChild(childNode2Ptr);
@@ -492,7 +502,7 @@ TEST_F(UiLayoutTests, UINodeLayoutRefreshesWhenChildSizeChanges) {
 
     expectVec2(childNode2Ptr->getCachedPos(), -35, -35);
 
-    childNode1Ptr->setSize(glm::vec2(100, 50));
+    setPointSize(*childNode1Ptr, glm::vec2(100, 50));
     EXPECT_TRUE(childNode1Ptr->getSizeDirty());
     EXPECT_TRUE(parentNode->getSizeDirty());
     EXPECT_FALSE(childNode2Ptr->getSizeDirty());
@@ -521,18 +531,15 @@ TEST_F(UiLayoutTests, UINodeDirtySizePropagatesThroughAncestors) {
     ASSERT_NE(childNode1, nullptr);
     ASSERT_NE(childNode2, nullptr);
 
-    rootNode->setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    rootNode->setSize(glm::vec2(200, 100));
+    setPointSize(*rootNode, glm::vec2(200, 100));
     rootNode->addChild(rowNode);
 
-    rowNode->setSizeConstraint(Bess::Canvas::UI::SizeContraint::wrapContent);
+    setFitContent(*rowNode);
     rowNode->addChild(childNode1);
     rowNode->addChild(childNode2);
 
-    childNode1->setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    childNode1->setSize(glm::vec2(50, 20));
-    childNode2->setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    childNode2->setSize(glm::vec2(30, 20));
+    setPointSize(*childNode1, glm::vec2(50, 20));
+    setPointSize(*childNode2, glm::vec2(30, 20));
 
     rootNode->layout(registry, Bess::UUID::null);
     const auto child2CachedSize = childNode2->getCachedSize();
@@ -543,7 +550,7 @@ TEST_F(UiLayoutTests, UINodeDirtySizePropagatesThroughAncestors) {
     EXPECT_FALSE(childNode1->getSizeDirty());
     EXPECT_FALSE(childNode2->getSizeDirty());
 
-    childNode1->setSize(glm::vec2(80, 20));
+    setPointSize(*childNode1, glm::vec2(80, 20));
 
     EXPECT_TRUE(childNode1->getSizeDirty());
     EXPECT_TRUE(rowNode->getSizeDirty());
@@ -579,15 +586,13 @@ TEST_F(UiLayoutTests, UINodeDirtyPositionPropagatesWithoutSizeInvalidation) {
     ASSERT_NE(rowNode, nullptr);
     ASSERT_NE(childNode, nullptr);
 
-    rootNode->setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    rootNode->setSize(glm::vec2(200, 100));
+    setPointSize(*rootNode, glm::vec2(200, 100));
     rootNode->addChild(rowNode);
 
-    rowNode->setSizeConstraint(Bess::Canvas::UI::SizeContraint::wrapContent);
+    setFitContent(*rowNode);
     rowNode->addChild(childNode);
 
-    childNode->setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    childNode->setSize(glm::vec2(50, 20));
+    setPointSize(*childNode, glm::vec2(50, 20));
 
     rootNode->layout(registry, Bess::UUID::null);
     const auto previousCachedSize = rootNode->getCachedSize();
@@ -617,8 +622,7 @@ TEST_F(UiLayoutTests, UINodeSameValueSettersDoNotInvalidateCleanTree) {
     auto rootNode = registry.addNode(Bess::UUID());
     ASSERT_NE(rootNode, nullptr);
 
-    rootNode->setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    rootNode->setSize(glm::vec2(100, 60));
+    setPointSize(*rootNode, glm::vec2(100, 60));
     rootNode->setPos(glm::vec2(2, 4));
     rootNode->setPadding(Bess::Core::Style::Padding(1, 2, 3, 4));
     rootNode->setMargin(Bess::Core::Style::Margin(5, 6, 7, 8));
@@ -627,8 +631,7 @@ TEST_F(UiLayoutTests, UINodeSameValueSettersDoNotInvalidateCleanTree) {
     ASSERT_FALSE(rootNode->getSizeDirty());
     ASSERT_FALSE(rootNode->getPosDirty());
 
-    rootNode->setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
-    rootNode->setSize(glm::vec2(100, 60));
+    setPointSize(*rootNode, glm::vec2(100, 60));
     rootNode->setPos(glm::vec2(2, 4));
     rootNode->setPadding(Bess::Core::Style::Padding(1, 2, 3, 4));
     rootNode->setMargin(Bess::Core::Style::Margin(5, 6, 7, 8));

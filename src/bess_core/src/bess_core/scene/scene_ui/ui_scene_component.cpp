@@ -48,9 +48,8 @@ namespace Bess::Canvas::UI {
                 .fontSize = m_style.textStyle.fontSize,
             });
 
-        m_node->setSize(size);
-        m_node->setSizeUnit(Unit::pixel);
-        m_node->setSizeConstraint(SizeContraint::fixed);
+        m_node->setWidth(size.x);
+        m_node->setHeight(size.y);
 
         m_node->setPadding(m_style.metrics.padding);
         m_node->setMargin(m_style.metrics.margin);
@@ -171,7 +170,7 @@ namespace Bess::Canvas::UI {
 
         auto pos = node->getDrawPos();
         const auto pos_ =
-            glm::vec2(pos.x - (node->getSize().x * 0.5f), pos.y + offsetY);
+            glm::vec2(pos.x - (node->getDrawSize().x * 0.5f), pos.y + offsetY);
 
         state.renderer->drawFont(text,
                                  {

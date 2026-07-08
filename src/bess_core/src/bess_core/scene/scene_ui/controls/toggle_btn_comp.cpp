@@ -74,7 +74,8 @@ namespace Bess::Canvas::UI {
         m_thumbColor = colors.tertiaryContainer;
 
         m_node->setDirection(LayoutDirection::horizontal);
-        m_node->setSizeConstraint(SizeContraint::wrapContent);
+        m_node->setWidthFitContent();
+        m_node->setHeightFitContent();
         m_node->setCrossAxisAlignment(LayoutAlignment::center);
         m_node->setPadding(m_style.metrics.padding);
         m_node->setMargin(m_style.metrics.margin);
@@ -86,9 +87,8 @@ namespace Bess::Canvas::UI {
                     .fontSize = m_style.textStyle.fontSize,
                 });
 
-            m_labelNode->setSize(labelSize);
-            m_labelNode->setSizeUnit(Unit::pixel);
-            m_labelNode->setSizeConstraint(SizeContraint::fixed);
+            m_labelNode->setWidth(labelSize.x);
+            m_labelNode->setHeight(labelSize.y);
             m_labelNode->setPosMode(PosMode::relative);
             m_labelNode->setPadding(0.f);
             m_labelNode->setMargin(
@@ -99,9 +99,8 @@ namespace Bess::Canvas::UI {
 
         m_node->addChild(m_trackNode);
 
-        m_trackNode->setSize(m_trackSize);
-        m_trackNode->setSizeUnit(Unit::pixel);
-        m_trackNode->setSizeConstraint(SizeContraint::fixed);
+        m_trackNode->setWidth(m_trackSize.x);
+        m_trackNode->setHeight(m_trackSize.y);
         m_trackNode->setPosMode(PosMode::relative);
         m_trackNode->setPos(glm::vec2(0.f));
         m_trackNode->setPadding(0.f);

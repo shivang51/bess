@@ -342,6 +342,8 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
                                       ? ViewportTheme::colors.selectedComp
                                       : ViewportTheme::colors.componentBorder;
         const float headerHeight = Styles::componentStyles.headerHeight;
+        const float headerRatio =
+            headerHeight / std::max(quadProps.size.y, 1.f);
 
         context.renderer->drawCustomQuad({
             .quad = quadProps,
@@ -356,37 +358,10 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
                     },
                     m_style.headerColor,
                     borderColor,
-                    glm::vec4(headerHeight / m_transform.scale.y,
-                              (int)ViewportTheme::isDark,
-                              0.f,
-                              0.f),
+                    glm::vec4(
+                        headerRatio, (int)ViewportTheme::isDark, 0.f, 0.f),
                 },
         });
-
-        // const auto headerPosY = m_transform.position.y -
-        //                         (m_transform.scale.y / 2.f) +
-        //                         (headerHeight / 2.f);
-        //
-        // const auto textPos_ =
-        //     glm::vec3(m_transform.position.x - (m_transform.scale.x / 2.f) +
-        //                   Styles::componentStyles.paddingX,
-        //               headerPosY + Styles::simCompStyles.paddingY,
-        //               m_transform.position.z + 0.0005f);
-        //
-        // const auto textSize = m_headerNode->getDrawSize();
-        // const auto yOff = context.renderer->textCenterOffsetY(
-        //     m_name, {.fontSize = Styles::simCompStyles.headerFontSize});
-        // const auto textPos = m_headerNode->getDrawPos() +
-        //                      glm::vec3{-textSize.x / 2.f, yOff, 0.f};
-        //
-        // // component name
-        // SceneDraw::drawText(context,
-        //                     std::format("{} {}", m_icon, m_name),
-        //                     textPos,
-        //                     Styles::simCompStyles.headerFontSize,
-        //                     ViewportTheme::colors.text,
-        //                     pickingId,
-        //                     m_transform.angle);
     }
 
     void SimulationSceneComponent::drawSlots(SceneDrawContext &context) {
@@ -542,6 +517,8 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
                                      : ViewportTheme::colors.componentBorder;
                     const float headerHeight =
                         Styles::componentStyles.headerHeight;
+                    const float headerRatio =
+                        headerHeight / std::max(quadProps.size.y, 1.f);
 
                     context.renderer->drawCustomQuad({
                         .quad = quadProps,
@@ -558,7 +535,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
                                 },
                                 m_style.headerColor,
                                 borderColor,
-                                glm::vec4(headerHeight / m_transform.scale.y,
+                                glm::vec4(headerRatio,
                                           (int)ViewportTheme::isDark,
                                           0.f,
                                           0.f),
@@ -614,16 +591,17 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
 
         auto node = m_slotsContainer->getUINode();
         BESS_ASSERT(node != nullptr, "Slots container UI node is null");
-        node->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
-        node->setSize({1.f, -1.f});
-        node->setSizeUnit(Canvas::UI::Unit::relative);
+        node->setWidthAuto();
+        node->setHeightFitContent();
+        node->setAlignSelf(Canvas::UI::LayoutSelfAlignment::stretch);
         node->setZVal(0.0001f);
 
         node = m_inpSlotsContainer->getUINode();
         BESS_ASSERT(node != nullptr, "Input slots container UI node is null");
-        node->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
-        node->setSize({0.5f, -1.f});
-        node->setSizeUnit(Canvas::UI::Unit::relative);
+        node->setWidthAuto();
+        node->setHeightFitContent();
+        node->setFlex(1.f, 0.f, 0.f);
+        node->setMinSize({Styles::SIM_COMP_SLOT_COLUMN_SIZE, -1.f});
         node->setMargin(
             Core::Style::Margin::onlyRight(Styles::simCompStyles.paddingX));
 
@@ -646,9 +624,10 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
 
         node = m_outSlotsContainer->getUINode();
         BESS_ASSERT(node != nullptr, "Output slots container UI node is null");
-        node->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
-        node->setSize({0.5f, -1.f});
-        node->setSizeUnit(Canvas::UI::Unit::relative);
+        node->setWidthAuto();
+        node->setHeightFitContent();
+        node->setFlex(1.f, 0.f, 0.f);
+        node->setMinSize({Styles::SIM_COMP_SLOT_COLUMN_SIZE, -1.f});
 
         ctx.parentNode = m_outSlotsContainer->getUINode();
         for (const auto &slotId : m_outputSlots) {

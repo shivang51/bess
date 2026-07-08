@@ -104,9 +104,9 @@ namespace Bess::Canvas {
                     Canvas::UI::LayoutDirection::horizontal);
             }
 
-            m_slotNode->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
-            m_slotNode->setSize({Styles::simCompStyles.slotRadius * 2.f,
-                                 Styles::simCompStyles.slotRadius * 2.f});
+            const float slotSize = Styles::simCompStyles.slotRadius * 2.f;
+            m_slotNode->setWidth(slotSize);
+            m_slotNode->setHeight(slotSize);
         }
 
         m_container->prepareUI(ctx);
