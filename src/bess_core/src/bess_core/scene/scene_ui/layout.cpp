@@ -160,6 +160,9 @@ namespace Bess::Canvas::UI {
         m_nodes.clear();
     }
 
+    UINode::UINode() : UINode(UUID()) {
+    }
+
     UINode::UINode(const UUID &id) : m_id(id) {
         // Force setters to run by changing the initial members to dummy values
         LayoutDirection initDir = m_direction; m_direction = (LayoutDirection)-1; setDirection(initDir);
@@ -662,61 +665,36 @@ namespace Bess::Canvas::UI {
     }
 
     glm::vec2 UINode::measure(UINodeRegistry &registry, const UUID &parentId) {
+        HashSet<UUID> activeNodes;
+        const UINode *parentNode = nullptr;
+        if (parentId != UUID::null) {
+            parentNode = registry.getNode(parentId);
+        }
+
+        const auto measuredSize = measure(registry, parentNode, activeNodes);
+
         if (parentId == UUID::null) {
+            activeNodes.clear();
+            applyMeasuredYogaSizes(registry, activeNodes);
             YGNodeCalculateLayout(
                 m_ygNode, YGUndefined, YGUndefined, YGDirectionLTR);
         }
-        m_drawSize.x = YGNodeLayoutGetWidth(m_ygNode);
-        m_drawSize.y = YGNodeLayoutGetHeight(m_ygNode);
 
-        for (const auto &childId : m_children) {
-            UINode *childNode = registry.getNode(childId);
-            BESS_ASSERT(childNode,
-                        "Child node {} not found in registry.",
-                        static_cast<uint64_t>(childId));
-            if (childNode == nullptr) {
-                continue;
-            }
-            childNode->measure(registry, m_id);
-        }
-
-        return m_drawSize;
+        return measuredSize;
     }
 
     void UINode::layout(UINodeRegistry &registry, const UUID &parentId) {
-        float relativeX = YGNodeLayoutGetLeft(m_ygNode);
-        float relativeY = YGNodeLayoutGetTop(m_ygNode);
+        if (parentId == UUID::null) {
+            measure(registry, parentId);
+        }
 
-        glm::vec3 parentTopLeft = {0.f, 0.f, 0.f};
+        const UINode *parentNode = nullptr;
         if (parentId != UUID::null) {
-            auto parentNode = registry.getNode(parentId);
-            auto parentPos = parentNode->getDrawPos();
-            auto parentSize = parentNode->getDrawSize();
-            parentTopLeft.x = parentPos.x - parentSize.x / 2.f;
-            parentTopLeft.y = parentPos.y - parentSize.y / 2.f;
-            parentTopLeft.z = parentPos.z;
-        } else {
-            parentTopLeft.x = -m_drawSize.x / 2.f;
-            parentTopLeft.y = -m_drawSize.y / 2.f;
+            parentNode = registry.getNode(parentId);
         }
 
-        // Absolute screen-space coordinates
-        m_cachedPos.x = parentTopLeft.x + relativeX;
-        m_cachedPos.y = parentTopLeft.y + relativeY;
-        m_cachedZVal = parentTopLeft.z + m_zVal;
-
-        m_cachedPos += m_drawSize / 2.f;
-
-        for (const auto &childId : m_children) {
-            UINode *childNode = registry.getNode(childId);
-            BESS_ASSERT(childNode,
-                        "Child node {} not found in registry.",
-                        static_cast<uint64_t>(childId));
-            if (childNode == nullptr) {
-                continue;
-            }
-            childNode->layout(registry, m_id);
-        }
+        HashSet<UUID> activeNodes;
+        layoutFromYoga(registry, parentNode, activeNodes);
     }
 
     glm::vec3 UINode::getDrawPos() const {
@@ -735,13 +713,6 @@ namespace Bess::Canvas::UI {
                 return nonNegativeVec(m_cachedSize);
             }
             activeNodes.insert(m_id);
-        }
-
-        if (!m_sizeDirty) {
-            if (tracksCycle) {
-                activeNodes.erase(m_id);
-            }
-            return m_cachedSize;
         }
 
         const glm::vec2 previousCachedSize = m_cachedSize;
@@ -993,6 +964,97 @@ namespace Bess::Canvas::UI {
 
     void UINode::attachRegistry(UINodeRegistry *registry) {
         m_registry = registry;
+    }
+
+    void UINode::applyMeasuredYogaSizes(UINodeRegistry &registry,
+                                        HashSet<UUID> &activeNodes) {
+        const bool tracksCycle = m_id != UUID::null;
+        if (tracksCycle) {
+            if (activeNodes.find(m_id) != activeNodes.end()) {
+                BESS_ASSERT(false,
+                            "Cycle detected while applying UI node {} "
+                            "measurement to Yoga.",
+                            static_cast<uint64_t>(m_id));
+                return;
+            }
+            activeNodes.insert(m_id);
+        }
+
+        YGNodeStyleSetWidth(m_ygNode, m_drawSize.x);
+        YGNodeStyleSetHeight(m_ygNode, m_drawSize.y);
+
+        for (const auto &childId : m_children) {
+            UINode *childNode = registry.getNode(childId);
+            BESS_ASSERT(childNode,
+                        "Child node {} not found in registry.",
+                        static_cast<uint64_t>(childId));
+            if (childNode == nullptr) {
+                continue;
+            }
+            childNode->applyMeasuredYogaSizes(registry, activeNodes);
+        }
+
+        if (tracksCycle) {
+            activeNodes.erase(m_id);
+        }
+    }
+
+    void UINode::layoutFromYoga(UINodeRegistry &registry,
+                                const UINode *parentNode,
+                                HashSet<UUID> &activeNodes) {
+        const bool tracksCycle = m_id != UUID::null;
+        if (tracksCycle) {
+            if (activeNodes.find(m_id) != activeNodes.end()) {
+                BESS_ASSERT(false,
+                            "Cycle detected while laying out UI node {} "
+                            "from Yoga.",
+                            static_cast<uint64_t>(m_id));
+                return;
+            }
+            activeNodes.insert(m_id);
+        }
+
+        m_drawSize.x = YGNodeLayoutGetWidth(m_ygNode);
+        m_drawSize.y = YGNodeLayoutGetHeight(m_ygNode);
+        m_cachedSize = nonNegativeVec(m_drawSize + marginSize());
+
+        const float relativeX = YGNodeLayoutGetLeft(m_ygNode);
+        const float relativeY = YGNodeLayoutGetTop(m_ygNode);
+
+        glm::vec3 parentTopLeft = {0.f, 0.f, 0.f};
+        if (parentNode != nullptr) {
+            const auto parentPos = parentNode->getDrawPos();
+            const auto parentSize = parentNode->getDrawSize();
+            parentTopLeft.x = parentPos.x - parentSize.x / 2.f;
+            parentTopLeft.y = parentPos.y - parentSize.y / 2.f;
+            parentTopLeft.z = parentPos.z;
+        } else {
+            parentTopLeft.x = -m_drawSize.x / 2.f;
+            parentTopLeft.y = -m_drawSize.y / 2.f;
+        }
+
+        m_cachedPos.x = parentTopLeft.x + relativeX;
+        m_cachedPos.y = parentTopLeft.y + relativeY;
+        m_cachedZVal = parentTopLeft.z + m_zVal;
+        m_cachedPos += m_drawSize / 2.f;
+
+        for (const auto &childId : m_children) {
+            UINode *childNode = registry.getNode(childId);
+            BESS_ASSERT(childNode,
+                        "Child node {} not found in registry.",
+                        static_cast<uint64_t>(childId));
+            if (childNode == nullptr) {
+                continue;
+            }
+            childNode->layoutFromYoga(registry, this, activeNodes);
+        }
+
+        m_sizeDirty = false;
+        m_posDirty = false;
+
+        if (tracksCycle) {
+            activeNodes.erase(m_id);
+        }
     }
 
     void UINode::propagateSizeDirtyToAncestors() {

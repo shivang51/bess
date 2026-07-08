@@ -70,7 +70,12 @@ namespace Bess::Canvas::UI {
         friend class UINodeRegistry;
 
       public:
-        DEFAULT_CONTRS(UINode)
+        UINode();
+        UINode(const UINode &) = default;
+        UINode(UINode &&) = default;
+        ~UINode() = default;
+        UINode &operator=(const UINode &) = default;
+        UINode &operator=(UINode &&) = default;
         UINode(const UUID &id);
 
         void setPosDirty(bool dirty = true);
@@ -196,6 +201,11 @@ namespace Bess::Canvas::UI {
         void attachRegistry(UINodeRegistry *registry);
         void propagateSizeDirtyToAncestors();
         void propagatePosDirtyToAncestors();
+        void applyMeasuredYogaSizes(UINodeRegistry &registry,
+                                    HashSet<UUID> &activeNodes);
+        void layoutFromYoga(UINodeRegistry &registry,
+                            const UINode *parentNode,
+                            HashSet<UUID> &activeNodes);
 
         glm::vec2 resolveSize(const UINode *parentNode) const;
         glm::vec2 resolvePos(const UINode *parentNode) const;
