@@ -196,11 +196,9 @@ namespace Bess::Canvas::UI {
 
         PosMode &getPosMode();
 
-        const OrderedSet<UUID> &getChildren() const;
-
         void setChildren(const OrderedSet<UUID> &children);
-
         OrderedSet<UUID> &getChildren();
+        const OrderedSet<UUID> &getChildren() const;
 
         const float &getZVal() const;
 

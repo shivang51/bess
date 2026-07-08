@@ -17,10 +17,16 @@ namespace Bess::Canvas {
         for (const auto compId : ctx.sceneState->getRootComponents()) {
             auto comp = ctx.sceneState->getComponentByUuid(compId);
             if (comp && comp->getUIDirty()) {
-                BESS_TRACE(
-                    "[ComponentsLayer] Preparing UI for component: {} | {}",
-                    comp->getName(),
-                    (uint64_t)comp->getUuid());
+                comp->prepareUI(prepCtx);
+            }
+        }
+
+        // Note: Can't think of a better way to do this for now.
+        // Doing all components in seperate pass.
+        // Because of reallocation of allCompMap flap map when doing all in
+        // single pass.
+        for (const auto &[compId, comp] : ctx.sceneState->getAllComponents()) {
+            if (comp && comp->getUIDirty()) {
                 comp->prepareUI(prepCtx);
             }
         }

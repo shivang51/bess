@@ -57,6 +57,8 @@ namespace Bess::Canvas::UI {
         if (state.parentNode != nullptr) {
             state.parentNode->addChild(m_node);
         }
+
+        m_isUIDirty = false;
     }
 
     bool UISceneComponent::onMouseEnter(const Events::MouseEnterEvent &e) {

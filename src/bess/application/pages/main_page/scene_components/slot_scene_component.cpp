@@ -69,9 +69,6 @@ namespace Bess::Canvas {
     }
 
     void SlotSceneComponent::prepareUI(SceneUIPrepareCtx &ctx) {
-        BESS_TRACE("Preparing UI for SlotSceneComponent: {} | {}",
-                   m_name,
-                   (uint64_t)m_uuid);
         auto uiNodeReg = ctx.sceneState->getUINodeRegistry();
         if (m_container == nullptr) {
             m_slotNode = uiNodeReg->addNode(UUID());

@@ -1194,20 +1194,21 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         }
 
         // Drawing UI Tree
-        std::function<void(UI::UINode *)> drawNode = [&](UI::UINode *node) {
-            ImGui::Text(
-                "%s",
-                std::format("Node: {}", node->getId().toString()).c_str());
+        std::function<void(UI::UINode *)> drawNode =
+            [&](const UI::UINode *node) {
+                ImGui::Text(
+                    "%s",
+                    std::format("Node: {}", node->getId().toString()).c_str());
 
-            ImGui::Indent();
+                ImGui::Indent();
 
-            for (const auto &child : node->getChildren()) {
-                auto node = state.getUINodeRegistry()->getNode(child);
-                drawNode(node);
-            }
+                for (const auto &child : node->getChildren()) {
+                    auto node = state.getUINodeRegistry()->getNode(child);
+                    drawNode(node);
+                }
 
-            ImGui::Unindent();
-        };
+                ImGui::Unindent();
+            };
 
         drawNode(m_nodeContainer->getUINode());
     }

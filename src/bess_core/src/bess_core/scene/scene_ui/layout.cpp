@@ -1,9 +1,11 @@
 #include "bess_core/scene/scene_ui/layout.h"
 #include "common/bess_assert.h"
+#include "common/logger.h"
 #include "yoga/YGNodeLayout.h"
 #include "yoga/YGNodeStyle.h"
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 
 namespace Bess::Canvas::UI {
     namespace {
@@ -239,6 +241,7 @@ namespace Bess::Canvas::UI {
             m_posDirty = true;
             propagateSizeDirtyToAncestors();
         }
+        BESS_TRACE("UINode {} setSizeDirty: {}", (uint64_t)m_id, dirty);
     }
 
     bool UINode::getPosDirty() const {
@@ -822,9 +825,18 @@ namespace Bess::Canvas::UI {
     void UINode::syncLayoutFromYoga(UINodeRegistry &registry,
                                     const UINode *parentNode,
                                     HashSet<UUID> &activeNodes) {
+        if (parentNode &&
+            (parentNode->getPosDirty() || parentNode->getSizeDirty())) {
+            m_posDirty = true;
+            m_sizeDirty = true;
+        }
+
         if (!m_posDirty && !m_sizeDirty) {
             return;
         }
+
+        m_posDirty = true;
+        m_sizeDirty = true;
 
         const bool tracksCycle = m_id != UUID::null;
         if (tracksCycle) {
