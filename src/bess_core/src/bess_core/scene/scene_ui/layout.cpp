@@ -241,7 +241,6 @@ namespace Bess::Canvas::UI {
             m_posDirty = true;
             propagateSizeDirtyToAncestors();
         }
-        BESS_TRACE("UINode {} setSizeDirty: {}", (uint64_t)m_id, dirty);
     }
 
     bool UINode::getPosDirty() const {
