@@ -70,7 +70,7 @@ TEST_F(UiLayoutTests, UINodeAddChildReparentsYogaNode) {
     EXPECT_EQ(YGNodeGetChildCount(parentNode1->getYogaNode()), 0u);
     EXPECT_EQ(YGNodeGetChildCount(parentNode2->getYogaNode()), 1u);
 
-    parentNode2->layout(registry, Bess::UUID::null);
+    parentNode2->measure(registry, Bess::UUID::null);
     expectVec2(childNode->getDrawSize(), 20, 10);
 }
 
@@ -100,7 +100,7 @@ TEST_F(UiLayoutTests, UINodeMeasure) {
 
     expectVec2(measuredSize, worldSize.x, worldSize.y);
 
-    // Fixed size describes the drawn box. Margin contributes to layout size.
+    // Fixed size describes the drawn box. Margin contributes to measure size.
     expectVec2(node.getDrawSize(), size.x, size.y);
     expectVec2(worldSize, size.x + marginSize.x, size.y + marginSize.y);
 
@@ -127,7 +127,7 @@ TEST_F(UiLayoutTests, UINodeMeasure) {
     measuredSize = node.measure(registry, Bess::UUID::null);
     worldSize = node.getCachedSize();
 
-    // Child layout footprints are placed inside the padded content box.
+    // Child measure footprints are placed inside the padded content box.
     expectVec2(measuredSize, worldSize.x, worldSize.y);
 
     expectVec2(node.getDrawSize(), paddingSize.x + 20, paddingSize.y + 10);
@@ -217,7 +217,7 @@ TEST_F(UiLayoutTests, UINodeLayout) {
     childSize = childNode2Ptr->getCachedSize();
     expectVec2(childSize, 30, 30);
 
-    parentNode.layout(registry, Bess::UUID::null);
+    parentNode.measure(registry, Bess::UUID::null);
 
     auto parentPos = parentNode.getCachedPos();
 
@@ -228,7 +228,7 @@ TEST_F(UiLayoutTests, UINodeLayout) {
 
     expectVec2(child2Pos, -35, -35);
 
-    BESS_INFO("Checked layout positions of child nodes");
+    BESS_INFO("Checked measure positions of child nodes");
 }
 
 TEST_F(UiLayoutTests, UINodeLayoutHonorsMarginAndCenterAlignment) {
@@ -249,7 +249,7 @@ TEST_F(UiLayoutTests, UINodeLayoutHonorsMarginAndCenterAlignment) {
     auto childNode2Ptr = registry.addNode(childNode2);
     parentNode.addChild(childNode2Ptr);
 
-    parentNode.layout(registry, Bess::UUID::null);
+    parentNode.measure(registry, Bess::UUID::null);
 
     ASSERT_NE(childNode1Ptr, nullptr);
     ASSERT_NE(childNode2Ptr, nullptr);
@@ -281,7 +281,7 @@ TEST_F(UiLayoutTests, UINodeLayoutHonorsMainAndCrossAxisAlignment) {
     ASSERT_NE(childNode2Ptr, nullptr);
     parentNode.addChild(childNode2Ptr);
 
-    parentNode.layout(registry, Bess::UUID::null);
+    parentNode.measure(registry, Bess::UUID::null);
 
     expectVec2(childNode1Ptr->getCachedPos(), 45, 0);
     expectVec2(childNode2Ptr->getCachedPos(), 85, 0);
@@ -310,7 +310,7 @@ TEST_F(UiLayoutTests, EqualFlexColumnsRespectSharedMinimumWidth) {
     ASSERT_NE(childNode2Ptr, nullptr);
     parentNode.addChild(childNode2Ptr);
 
-    parentNode.layout(registry, Bess::UUID::null);
+    parentNode.measure(registry, Bess::UUID::null);
 
     expectVec2(parentNode.getDrawSize(), 216, 100);
     expectVec2(childNode1Ptr->getDrawSize(), 100, 20);
@@ -365,13 +365,13 @@ TEST_F(UiLayoutTests, WrapContainerDoesNotGrowFromStaleRelativeSizes) {
     ASSERT_NE(outputRowNodePtr, nullptr);
     outputBoxNodePtr->addChild(outputRowNodePtr);
 
-    rootNode.layout(registry, Bess::UUID::null);
+    rootNode.measure(registry, Bess::UUID::null);
     expectVec2(rootNode.getDrawSize(), 216.f, 20.f);
     expectVec2(slotsBoxNodePtr->getDrawSize(), 216.f, 20.f);
     expectVec2(inputBoxNodePtr->getCachedSize(), 116.f, 20.f);
     expectVec2(outputBoxNodePtr->getCachedSize(), 100.f, 20.f);
 
-    rootNode.layout(registry, Bess::UUID::null);
+    rootNode.measure(registry, Bess::UUID::null);
     expectVec2(rootNode.getDrawSize(), 216.f, 20.f);
     expectVec2(slotsBoxNodePtr->getDrawSize(), 216.f, 20.f);
     expectVec2(inputBoxNodePtr->getCachedSize(), 116.f, 20.f);
@@ -430,7 +430,7 @@ TEST_F(UiLayoutTests, OutputColumnCrossAxisEndAlignsRowsToRightEdge) {
     ASSERT_NE(outputRowNodePtr, nullptr);
     outputBoxNodePtr->addChild(outputRowNodePtr);
 
-    rootNode.layout(registry, Bess::UUID::null);
+    rootNode.measure(registry, Bess::UUID::null);
 
     expectVec2(rootNode.getDrawSize(), 216.f, 40.f);
     expectVec2(slotsBoxNodePtr->getDrawSize(), 216.f, 20.f);
@@ -454,7 +454,7 @@ TEST_F(UiLayoutTests, UINodeLayoutHonorsEndAlignmentInVerticalFlow) {
 
     parentNode.addChild(childNodePtr);
 
-    parentNode.layout(registry, Bess::UUID::null);
+    parentNode.measure(registry, Bess::UUID::null);
 
     expectVec2(childNodePtr->getCachedPos(), 40, -35);
 }
@@ -473,7 +473,7 @@ TEST_F(UiLayoutTests, UINodeRelativeSizeUsesParentContentBox) {
     ASSERT_NE(childNodePtr, nullptr);
     parentNode.addChild(childNodePtr);
 
-    parentNode.layout(registry, Bess::UUID::null);
+    parentNode.measure(registry, Bess::UUID::null);
 
     expectVec2(childNodePtr->getDrawSize(), 90, 20);
     expectVec2(childNodePtr->getCachedPos(), -45, -30);
@@ -498,7 +498,7 @@ TEST_F(UiLayoutTests, UINodeLayoutRefreshesWhenChildSizeChanges) {
     ASSERT_NE(childNode2Ptr, nullptr);
     parentNode->addChild(childNode2Ptr);
 
-    parentNode->layout(registry, Bess::UUID::null);
+    parentNode->measure(registry, Bess::UUID::null);
 
     expectVec2(childNode2Ptr->getCachedPos(), -35, -35);
 
@@ -507,7 +507,7 @@ TEST_F(UiLayoutTests, UINodeLayoutRefreshesWhenChildSizeChanges) {
     EXPECT_TRUE(parentNode->getSizeDirty());
     EXPECT_FALSE(childNode2Ptr->getSizeDirty());
 
-    parentNode->layout(registry, Bess::UUID::null);
+    parentNode->measure(registry, Bess::UUID::null);
 
     expectVec2(childNode1Ptr->getCachedPos(), -50, -25);
     expectVec2(childNode2Ptr->getCachedPos(), 15, -35);
@@ -541,7 +541,7 @@ TEST_F(UiLayoutTests, UINodeDirtySizePropagatesThroughAncestors) {
     setPointSize(*childNode1, glm::vec2(50, 20));
     setPointSize(*childNode2, glm::vec2(30, 20));
 
-    rootNode->layout(registry, Bess::UUID::null);
+    rootNode->measure(registry, Bess::UUID::null);
     const auto child2CachedSize = childNode2->getCachedSize();
     const auto child2CachedPos = childNode2->getCachedPos();
 
@@ -557,7 +557,7 @@ TEST_F(UiLayoutTests, UINodeDirtySizePropagatesThroughAncestors) {
     EXPECT_TRUE(rootNode->getSizeDirty());
     EXPECT_FALSE(childNode2->getSizeDirty());
 
-    rootNode->layout(registry, Bess::UUID::null);
+    rootNode->measure(registry, Bess::UUID::null);
 
     expectVec2(rowNode->getDrawSize(), 110, 20);
     expectVec2(childNode1->getDrawSize(), 80, 20);
@@ -594,7 +594,7 @@ TEST_F(UiLayoutTests, UINodeDirtyPositionPropagatesWithoutSizeInvalidation) {
 
     setPointSize(*childNode, glm::vec2(50, 20));
 
-    rootNode->layout(registry, Bess::UUID::null);
+    rootNode->measure(registry, Bess::UUID::null);
     const auto previousCachedSize = rootNode->getCachedSize();
 
     childNode->setPos(glm::vec2(4, 0));
@@ -606,7 +606,7 @@ TEST_F(UiLayoutTests, UINodeDirtyPositionPropagatesWithoutSizeInvalidation) {
     EXPECT_FALSE(rowNode->getSizeDirty());
     EXPECT_FALSE(rootNode->getSizeDirty());
 
-    rootNode->layout(registry, Bess::UUID::null);
+    rootNode->measure(registry, Bess::UUID::null);
 
     expectVec2(
         rootNode->getCachedSize(), previousCachedSize.x, previousCachedSize.y);
@@ -626,7 +626,7 @@ TEST_F(UiLayoutTests, UINodeSameValueSettersDoNotInvalidateCleanTree) {
     rootNode->setPos(glm::vec2(2, 4));
     rootNode->setPadding(Bess::Core::Style::Padding(1, 2, 3, 4));
     rootNode->setMargin(Bess::Core::Style::Margin(5, 6, 7, 8));
-    rootNode->layout(registry, Bess::UUID::null);
+    rootNode->measure(registry, Bess::UUID::null);
 
     ASSERT_FALSE(rootNode->getSizeDirty());
     ASSERT_FALSE(rootNode->getPosDirty());

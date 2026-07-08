@@ -216,8 +216,6 @@ namespace Bess::Canvas::UI {
 
         glm::vec2 measure(UINodeRegistry &registry, const UUID &parentId);
 
-        void layout(UINodeRegistry &registry, const UUID &parentId);
-
         glm::vec3 getDrawPos() const;
 
         YGNodeRef getYogaNode();

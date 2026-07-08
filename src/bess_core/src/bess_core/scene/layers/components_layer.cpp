@@ -30,7 +30,6 @@ namespace Bess::Canvas {
             if (node.getParentId() != UUID::null)
                 continue;
             node.measure(*ctx.sceneState->getUINodeRegistry(), UUID::null);
-            node.layout(*ctx.sceneState->getUINodeRegistry(), UUID::null);
         }
     }
 

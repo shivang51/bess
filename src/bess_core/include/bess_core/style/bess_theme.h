@@ -141,9 +141,10 @@ namespace Bess::Core::Style {
         }
 
         static constexpr std::shared_ptr<BessTheme> defaultTheme() {
-            return std::make_shared<BessTheme>(
+            static auto theme = std::make_shared<BessTheme>(
                 "Default",
                 ColorScheme::fromSeed(Core::Renderer::Colors::pastelBlue));
+            return theme;
         }
 
         [[nodiscard]] bool isDark() const;

@@ -745,10 +745,6 @@ namespace Bess::Canvas::UI {
         return m_cachedSize;
     }
 
-    void UINode::layout(UINodeRegistry &registry, const UUID &parentId) {
-        measure(registry, parentId);
-    }
-
     glm::vec3 UINode::getDrawPos() const {
         return {m_cachedPos, m_cachedZVal};
     }
@@ -826,6 +822,10 @@ namespace Bess::Canvas::UI {
     void UINode::syncLayoutFromYoga(UINodeRegistry &registry,
                                     const UINode *parentNode,
                                     HashSet<UUID> &activeNodes) {
+        if (!m_posDirty && !m_sizeDirty) {
+            return;
+        }
+
         const bool tracksCycle = m_id != UUID::null;
         if (tracksCycle) {
             if (activeNodes.find(m_id) != activeNodes.end()) {
