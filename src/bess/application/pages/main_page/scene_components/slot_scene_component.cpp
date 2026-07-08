@@ -493,13 +493,7 @@ namespace Bess::Canvas {
             }
         }
 
-        for (const auto &childId : m_container->getChildComponents()) {
-            const auto &childComp = state.getComponentByUuid(childId);
-            const auto &childDeps = childComp->getDependants(state);
-            dependants.insert(
-                dependants.end(), childDeps.begin(), childDeps.end());
-            dependants.push_back(childId);
-        }
+        const auto &containerDeps = m_container->getDependants(state);
         dependants.push_back(m_container->getUuid());
 
         return dependants;
