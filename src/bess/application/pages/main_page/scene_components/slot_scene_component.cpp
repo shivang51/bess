@@ -3,10 +3,12 @@
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "bess_core/scene/scene_draw_helpers.h"
-#include "bess_core/scene/scene_state/components/scene_component_types.h"
 #include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
 #include "bess_core/scene/scene_state/scene_state.h"
+#include "bess_core/scene/scene_ui/controls/container_comp.h"
+#include "bess_core/scene/scene_ui/controls/label_comp.h"
 #include "bess_core/settings/viewport_theme.h"
+#include "bess_core/style/bess_theme.h"
 #include "conn_joint_scene_component.h"
 #include "connection_scene_component.h"
 #include "dig_sim_driver.h"
@@ -32,9 +34,9 @@ namespace Bess::Canvas {
     void SlotSceneComponent::resetCloneRuntimeState() {
         SceneComponent::resetCloneRuntimeState();
 
-        m_uiNode = nullptr;
+        m_label = nullptr;
         m_slotNode = nullptr;
-        m_labelNode = nullptr;
+        m_container = nullptr;
 
         m_isHovered = false;
         m_invalidateCache = true;
@@ -71,54 +73,57 @@ namespace Bess::Canvas {
                    m_name,
                    (uint64_t)m_uuid);
         auto uiNodeReg = ctx.sceneState->getUINodeRegistry();
-        if (m_uiNode == nullptr) {
-            m_uiNode = uiNodeReg->addNode(m_uuid);
+        if (m_container == nullptr) {
             m_slotNode = uiNodeReg->addNode(UUID());
-            m_labelNode = uiNodeReg->addNode(UUID());
+
+            m_container = UI::ContainerComp::create();
+            auto &style = m_container->getStyle();
+            style.padding = Core::Style::Padding::zero();
+            style.margin = Core::Style::Margin::fromVertical(
+                Canvas::Styles::simCompStyles.rowMargin);
+
+            ctx.sceneState->addComponent(m_container);
+
+            m_label = UI::LabelComp::create(m_name);
+            auto &labelStyle = m_label->getStyle();
+            labelStyle.fontSize = Styles::simCompStyles.slotLabelSize;
+            labelStyle.padding = Core::Style::Padding::zero();
+            labelStyle.margin = Core::Style::Margin::zero();
+            ctx.sceneState->addComponent(m_label);
+
+            ctx.sceneState->attachChild(m_container->getUuid(),
+                                        m_label->getUuid());
+
+            if (isInputSlot()) {
+                m_slotNode->setMargin(Core::Style::Margin::onlyRight(4.f));
+                m_container->setDirection(
+                    Canvas::UI::LayoutDirection::horizontalReverse);
+            } else {
+                m_slotNode->setMargin(Core::Style::Margin::onlyLeft(4.f));
+                m_container->setDirection(
+                    Canvas::UI::LayoutDirection::horizontal);
+            }
+
+            m_slotNode->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
+            m_slotNode->setSize({Styles::simCompStyles.slotRadius * 2.f,
+                                 Styles::simCompStyles.slotRadius * 2.f});
         }
 
-        ctx.parentNode->addChild(m_uiNode);
-        m_uiNode->clearChildren();
-        m_uiNode->setZVal(0.0001f);
+        m_container->prepareUI(ctx);
 
-        m_uiNode->setDirection(Canvas::UI::LayoutDirection::horizontal);
-        m_uiNode->setMargin({Canvas::Styles::simCompStyles.rowMargin,
-                             0.f,
-                             Canvas::Styles::simCompStyles.rowMargin,
-                             0.f});
+        auto uiNode = m_container->getUINode();
+        uiNode->addChild(m_slotNode);
 
-        // Slot goes first for input slots
-        if (isInputSlot()) {
-            m_uiNode->addChild(m_slotNode);
-            m_uiNode->addChild(m_labelNode);
-            m_slotNode->setMargin({0.f, 4.f, 0.f, 0.f});
-        } else {
-            m_uiNode->addChild(m_labelNode);
-            m_uiNode->addChild(m_slotNode);
-            m_slotNode->setMargin({0.f, 0.f, 0.f, 4.f});
-        }
-
-        m_slotNode->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
-        m_slotNode->setSize({Styles::simCompStyles.slotRadius * 2.f,
-                             Styles::simCompStyles.slotRadius * 2.f});
-
-        m_labelNode->setSizeConstraint(Canvas::UI::SizeContraint::fixed);
-
-        auto lableSize = ctx.renderer->measureText(
-            m_name, {.fontSize = Styles::simCompStyles.slotLabelSize});
-        m_labelNode->setSize(lableSize);
         m_isUIDirty = false;
     }
 
     void SlotSceneComponent::update(TimeMs frameTime, SceneState &state) {
         BESS_ASSERT(m_parentComponent != UUID::null,
                     "SlotSceneComponent must have a parent component");
-        BESS_ASSERT(m_uiNode != nullptr,
-                    "SlotSceneComponent UI node is nullptr");
     }
 
     void SlotSceneComponent::draw(SceneDrawContext &drawContext) {
-        if (!m_uiNode)
+        if (!m_container)
             return;
 
         const auto &state = *drawContext.sceneState;
@@ -176,26 +181,6 @@ namespace Bess::Canvas {
                               ir - radiusGap,
                               bg,
                               pickingId);
-
-        if (!m_name.empty() && drawContext.renderer) {
-            constexpr float labelFontSize = Styles::simCompStyles.slotLabelSize;
-            const auto yOff = drawContext.renderer->textCenterOffsetY(
-                m_name, {.fontSize = labelFontSize});
-            const auto textSize = m_labelNode->getDrawSize();
-            const auto textPos = m_labelNode->getDrawPos() +
-                                 glm::vec3{-textSize.x / 2.f, yOff, 0.f};
-            const auto parentComp =
-                state.getComponentByUuid<SimulationSceneComponent>(
-                    m_parentComponent);
-
-            SceneDraw::drawText(drawContext,
-                                m_name,
-                                textPos,
-                                static_cast<std::size_t>(labelFontSize),
-                                ViewportTheme::colors.text,
-                                PickingId{parentComp->getRuntimeId(), 0},
-                                parentComp->getTransform().angle);
-        }
     }
 
     void SlotSceneComponent::drawSchematic(SceneDrawContext &drawContext) {

@@ -9,7 +9,6 @@
 #include "common/class_helpers.h"
 #include "common/types.h"
 #include "ext/vector_float2.hpp"
-#include "ext/vector_float4.hpp"
 #include <cstdint>
 
 namespace Bess::Canvas::UI {
@@ -19,13 +18,18 @@ namespace Bess::Canvas::UI {
                   // of parent size
     };
 
-    enum class LayoutDirection : uint8_t { horizontal, vertical };
+    enum class LayoutDirection : uint8_t {
+        horizontal,
+        vertical,
+        horizontalReverse,
+        verticalReverse
+    };
 
     enum class LayoutAlignment : uint8_t { start, center, end };
 
     enum class PosMode : uint8_t { absolute, relative };
 
-    enum class SizeContraint : uint8_t { fixed, wrap_content };
+    enum class SizeContraint : uint8_t { fixed, wrapContent };
 
     class UINode;
 
@@ -215,7 +219,7 @@ namespace Bess::Canvas::UI {
         LayoutAlignment m_mainAxisAlignment = LayoutAlignment::start;
         LayoutAlignment m_crossAxisAlignment = LayoutAlignment::start;
         PosMode m_posMode = PosMode::relative;
-        SizeContraint m_sizeConstraint = SizeContraint::wrap_content;
+        SizeContraint m_sizeConstraint = SizeContraint::wrapContent;
         OrderedSet<UUID> m_children;
         bool m_posDirty = true;
         bool m_sizeDirty = true;

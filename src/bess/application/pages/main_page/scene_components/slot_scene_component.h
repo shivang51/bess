@@ -3,6 +3,8 @@
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_events.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
+#include "bess_core/scene/scene_ui/controls/container_comp.h"
+#include "bess_core/scene/scene_ui/controls/label_comp.h"
 #include "bess_core/scene/scene_ui/layout.h"
 #include "common/bess_uuid.h"
 #include "fwd.hpp"
@@ -59,7 +61,6 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(std::vector<UUID>,
                            ConnectedConnections,
                            m_connectedConnections)
-        MAKE_GETTER_SETTER_PTR(UI::UINode, UINode, m_uiNode)
 
         void addConnection(const UUID &connectionId);
         void removeConnection(const UUID &connectionId);
@@ -78,6 +79,12 @@ namespace Bess::Canvas {
         bool isInputSlot() const;
 
         std::vector<UUID> getDependants(const SceneState &state) const override;
+
+        void onNameChanged() override {
+            if (m_label) {
+                m_label->setName(m_name);
+            }
+        }
 
       private:
         void onRuntimeIdChanged() override;
@@ -98,9 +105,10 @@ namespace Bess::Canvas {
         bool m_invalidateCache = false;
         int m_index = -1;
 
-        UI::UINode *m_uiNode = nullptr;
+        std::shared_ptr<UI::ContainerComp> m_container = nullptr;
+        std::shared_ptr<UI::LabelComp> m_label = nullptr;
+
         UI::UINode *m_slotNode = nullptr;
-        UI::UINode *m_labelNode = nullptr;
     };
 
 } // namespace Bess::Canvas

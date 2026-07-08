@@ -2,6 +2,7 @@
 #include "common/bess_assert.h"
 #include <algorithm>
 #include <cmath>
+#include <ranges>
 
 namespace Bess::Canvas::UI {
     namespace {
@@ -603,7 +604,8 @@ namespace Bess::Canvas::UI {
                 return;
             }
 
-            if (m_direction == LayoutDirection::horizontal) {
+            if (m_direction == LayoutDirection::horizontal ||
+                m_direction == LayoutDirection::horizontalReverse) {
                 childrenSpan->x += childSize.x;
                 childrenSpan->y = std::max(childrenSpan->y, childSize.y);
             } else {
@@ -710,9 +712,18 @@ namespace Bess::Canvas::UI {
         const glm::vec2 contentTopLeft = m_cachedPos - (m_drawSize * 0.5f) +
                                          edgeTopLeft(m_padding.toVec4(), false);
         const glm::vec2 availableContentSize = contentSize();
-        const bool isHorizontal = m_direction == LayoutDirection::horizontal;
+        const bool isHorizontal =
+            m_direction == LayoutDirection::horizontal ||
+            m_direction == LayoutDirection::horizontalReverse;
+
+        const bool isReverse =
+            m_direction == LayoutDirection::horizontalReverse ||
+            m_direction == LayoutDirection::verticalReverse;
 
         float childrenMainSpan = 0.f;
+
+        // Its just span collection so order does not matter
+        // Skipping isReverse here
         for (const auto &childId : m_children) {
             const UINode *childNode = registry.getNode(childId);
             if (childNode == nullptr ||
@@ -733,15 +744,7 @@ namespace Bess::Canvas::UI {
                                     childrenMainSpan,
                                     m_mainAxisAlignment);
 
-        for (const auto &childId : m_children) {
-            UINode *childNode = registry.getNode(childId);
-            BESS_ASSERT(childNode,
-                        "Child node {} not found in registry.",
-                        static_cast<uint64_t>(childId));
-            if (childNode == nullptr) {
-                continue;
-            }
-
+        auto processChild = [&](UINode *childNode) {
             if (childNode->m_posMode == PosMode::absolute) {
                 const auto childPos = m_cachedPos + childNode->resolvePos(this);
                 const auto childZ = m_cachedZVal + childNode->m_zVal;
@@ -751,7 +754,7 @@ namespace Bess::Canvas::UI {
                 }
                 childNode->m_cachedPos = childPos;
                 childNode->layout(registry, this, m_cachedZVal, activeNodes);
-                continue;
+                return;
             }
 
             glm::vec2 marginBoxTopLeft{0.f};
@@ -787,6 +790,30 @@ namespace Bess::Canvas::UI {
                 cursor += childNode->m_cachedSize.x;
             } else {
                 cursor += childNode->m_cachedSize.y;
+            }
+        };
+
+        if (isReverse) {
+            for (auto it : std::views::reverse(m_children)) {
+                UINode *childNode = registry.getNode(it);
+                BESS_ASSERT(childNode,
+                            "Child node {} not found in registry.",
+                            static_cast<uint64_t>(it));
+                if (childNode == nullptr) {
+                    continue;
+                }
+                processChild(childNode);
+            }
+        } else {
+            for (const auto &childId : m_children) {
+                UINode *childNode = registry.getNode(childId);
+                BESS_ASSERT(childNode,
+                            "Child node {} not found in registry.",
+                            static_cast<uint64_t>(childId));
+                if (childNode == nullptr) {
+                    continue;
+                }
+                processChild(childNode);
             }
         }
 

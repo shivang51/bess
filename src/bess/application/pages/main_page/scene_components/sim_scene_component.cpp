@@ -311,11 +311,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
             return;
 
         const auto &size = m_inpSlotsContainer->getUINode()->getDrawSize();
-        // BESS_TRACE("{},{}", size.x, size.y);
-        // if (m_uiNode != nullptr) {
-        //     // drawBackground(context);
         drawSlots(context);
-        // }
     }
 
     void SimulationSceneComponent::drawBackground(SceneDrawContext &context) {
@@ -486,8 +482,6 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         auto prevParentNode = ctx.parentNode;
         auto uiNodeReg = ctx.sceneState->getUINodeRegistry();
 
-        BESS_TRACE("Preparing UI for SimulationSceneComponent: {}", m_name);
-
         if (m_nodeContainer == nullptr) {
             m_nodeContainer =
                 UI::ContainerComp::create(UI::LayoutDirection::vertical);
@@ -521,7 +515,6 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
                         0,
                     };
                     const auto *uiNode = comp->getUINode();
-                    BESS_TRACE("{}", uiNode->getDrawPos().z);
 
                     Core::Renderer::QuadProps quadProps;
                     quadProps.position = uiNode->getDrawPos();
@@ -1242,6 +1235,9 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
 
     void SimulationSceneComponent::onNameChanged() {
         SceneComponent::onNameChanged();
+        if (m_labelComp) {
+            m_labelComp->setName(m_name);
+        }
         setScaleDirty();
         setSchematicScaleDirty();
     }

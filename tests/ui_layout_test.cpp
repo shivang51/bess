@@ -66,7 +66,7 @@ TEST_F(UiLayoutTests, UINodeMeasure) {
 
     BESS_INFO("Measured with fixed constraint");
 
-    node.setSizeConstraint(Bess::Canvas::UI::SizeContraint::wrap_content);
+    node.setSizeConstraint(Bess::Canvas::UI::SizeContraint::wrapContent);
     measuredSize = node.measure(registry, Bess::UUID::null);
     worldSize = node.getCachedSize();
 
@@ -299,7 +299,7 @@ TEST_F(UiLayoutTests, WrapContainerDoesNotGrowFromStaleRelativeSizes) {
 
     Bess::Canvas::UI::UINode rootNode;
     rootNode.setDirection(Bess::Canvas::UI::LayoutDirection::vertical);
-    rootNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::wrap_content);
+    rootNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::wrapContent);
 
     Bess::Canvas::UI::UINode slotsBoxNode;
     slotsBoxNode.setDirection(Bess::Canvas::UI::LayoutDirection::horizontal);
@@ -361,7 +361,7 @@ TEST_F(UiLayoutTests, OutputColumnCrossAxisEndAlignsRowsToRightEdge) {
 
     Bess::Canvas::UI::UINode rootNode;
     rootNode.setDirection(Bess::Canvas::UI::LayoutDirection::vertical);
-    rootNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::wrap_content);
+    rootNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::wrapContent);
 
     Bess::Canvas::UI::UINode headerNode;
     headerNode.setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);
@@ -525,7 +525,7 @@ TEST_F(UiLayoutTests, UINodeDirtySizePropagatesThroughAncestors) {
     rootNode->setSize(glm::vec2(200, 100));
     rootNode->addChild(rowNode);
 
-    rowNode->setSizeConstraint(Bess::Canvas::UI::SizeContraint::wrap_content);
+    rowNode->setSizeConstraint(Bess::Canvas::UI::SizeContraint::wrapContent);
     rowNode->addChild(childNode1);
     rowNode->addChild(childNode2);
 
@@ -583,7 +583,7 @@ TEST_F(UiLayoutTests, UINodeDirtyPositionPropagatesWithoutSizeInvalidation) {
     rootNode->setSize(glm::vec2(200, 100));
     rootNode->addChild(rowNode);
 
-    rowNode->setSizeConstraint(Bess::Canvas::UI::SizeContraint::wrap_content);
+    rowNode->setSizeConstraint(Bess::Canvas::UI::SizeContraint::wrapContent);
     rowNode->addChild(childNode);
 
     childNode->setSizeConstraint(Bess::Canvas::UI::SizeContraint::fixed);

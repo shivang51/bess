@@ -74,7 +74,7 @@ namespace Bess::Canvas::UI {
         m_thumbColor = colors.tertiaryContainer;
 
         m_node->setDirection(LayoutDirection::horizontal);
-        m_node->setSizeConstraint(SizeContraint::wrap_content);
+        m_node->setSizeConstraint(SizeContraint::wrapContent);
         m_node->setCrossAxisAlignment(LayoutAlignment::center);
         m_node->setPadding(m_style.metrics.padding);
         m_node->setMargin(m_style.metrics.margin);
