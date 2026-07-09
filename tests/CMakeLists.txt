@@ -15,8 +15,9 @@ FetchContent_MakeAvailable(googletest)
 add_executable(BessTests
     main_test.cpp
     core_scene_commands_test.cpp
-    main_page_connection_commands_test.cpp
-    ui_layout_test.cpp
+	    main_page_connection_commands_test.cpp
+	    math_sim_driver_test.cpp
+	    ui_layout_test.cpp
     # scene_component_clone_test.cpp
     # sim_driver_test.cpp
     # scene_state_test.cpp
@@ -37,8 +38,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 	"${CMAKE_SOURCE_DIR}/src/event_system/include"
 	"${CMAKE_SOURCE_DIR}/src/common/include"
 	"${CMAKE_SOURCE_DIR}/src/bess_core/include"
+	"${CMAKE_SOURCE_DIR}/src/math_sim_driver/include"
 )
 
-target_link_libraries(BessTests PUBLIC GTest::gtest BessExtDeps common BessSimEngine bverilog BessApp EventSystem BessCore )
+target_link_libraries(BessTests PUBLIC GTest::gtest BessExtDeps common BessSimEngine MathSimDriver bverilog BessApp EventSystem BessCore )
 include(GoogleTest)
 gtest_discover_tests(BessTests WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})

@@ -8,6 +8,7 @@
 #include "common/helpers.h"
 #include "common/logger.h"
 #include "common/types.h"
+#include "dig_sim_driver.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/main_page.h"

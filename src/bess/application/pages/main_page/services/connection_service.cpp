@@ -4,6 +4,7 @@
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
+#include "dig_sim_driver.h"
 
 #include "bess_core/scene/scene.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
@@ -14,6 +15,7 @@
 #include "simulation_engine.h"
 #include <algorithm>
 #include <cstdint>
+#include <optional>
 
 namespace Bess::Svc {
     namespace {
@@ -69,6 +71,20 @@ namespace Bess::Svc {
             }
 
             return std::min(static_cast<size_t>(savedIndex), concreteEnd);
+        }
+
+        std::optional<SimEngine::PortDescriptor> portDescriptorFor(
+            SimEngine::SimulationEngine &simEngine,
+            const Canvas::SimulationSceneComponent &parent,
+            bool isInput) {
+            const auto &def =
+                simEngine.getComponentDefinition(parent.getSimEngineId());
+            if (!def) {
+                return std::nullopt;
+            }
+
+            return isInput ? def->getInputPortDescriptor()
+                           : def->getOutputPortDescriptor();
         }
 
         void reindexRealSlots(const Canvas::SceneState &sceneState,
@@ -268,25 +284,26 @@ namespace Bess::Svc {
                 return false;
             }
 
-            const auto digComp =
-                getSimEngine()
-                    .getComponent<SimEngine::Drivers::Digital::DigSimComp>(
-                        parent->getSimEngineId());
-            if (!digComp) {
+            if (slot->getIndex() < 0) {
                 return false;
             }
 
-            const auto digDef =
-                digComp
-                    ->getDefinition<SimEngine::Drivers::Digital::DigCompDef>();
-            if (!digDef || slot->getIndex() < 0) {
+            const auto descriptor =
+                portDescriptorFor(getSimEngine(), *parent, slot->isInputSlot());
+            if (!descriptor) {
                 return false;
             }
 
-            const auto slotsInfo = slot->isInputSlot()
-                                       ? digDef->getInputSlotsInfo()
-                                       : digDef->getOutputSlotsInfo();
-            return static_cast<size_t>(slot->getIndex()) < slotsInfo.count;
+            const auto slotSignalKind =
+                slot->getSignalKind() == SimEngine::SignalKind::none
+                    ? SimEngine::SignalKind::digital
+                    : slot->getSignalKind();
+            const auto descriptorSignalKind =
+                descriptor->signalKind == SimEngine::SignalKind::none
+                    ? SimEngine::SignalKind::digital
+                    : descriptor->signalKind;
+            return descriptorSignalKind == slotSignalKind &&
+                   static_cast<size_t>(slot->getIndex()) < descriptor->count;
         };
 
         const auto endpointA = sceneState.getComponentByUuid(slotAId);
@@ -570,29 +587,17 @@ namespace Bess::Svc {
             return false;
         }
 
-        const auto digComp =
-            getSimEngine()
-                .getComponent<SimEngine::Drivers::Digital::DigSimComp>(
-                    parent->getSimEngineId());
-        if (!digComp) {
-            return false;
-        }
-
-        const auto digDef =
-            digComp->getDefinition<SimEngine::Drivers::Digital::DigCompDef>();
-        if (!digDef) {
-            return false;
-        }
-
         const bool isInput = slot->isInputSlot();
-        const auto &slotsInfo = isInput ? digDef->getInputSlotsInfo()
-                                        : digDef->getOutputSlotsInfo();
-
-        if (!slotsInfo.isResizeable) {
+        const auto slotsInfo = portDescriptorFor(getSimEngine(), *parent, isInput);
+        if (!slotsInfo) {
             return false;
         }
 
-        return (slot->getIndex() + 1) == slotsInfo.count;
+        if (!slotsInfo->isResizeable) {
+            return false;
+        }
+
+        return (slot->getIndex() + 1) == slotsInfo->count;
     }
 
     bool SvcConnection::removeSlot(
@@ -747,8 +752,19 @@ namespace Bess::Svc {
 
         reindexRealSlots(sceneState, slots);
 
+        const auto signalKind =
+            slot->getSignalKind() == SimEngine::SignalKind::none
+                ? SimEngine::SignalKind::digital
+                : slot->getSignalKind();
+
         bool needsSimSlot = true;
         std::shared_ptr<SimEngine::Drivers::Digital::DigCompDef> digDef;
+        const auto portDescriptor =
+            portDescriptorFor(getSimEngine(), *parent, isInput);
+        if (portDescriptor) {
+            needsSimSlot =
+                static_cast<size_t>(slot->getIndex()) >= portDescriptor->count;
+        }
         const auto digComp =
             getSimEngine()
                 .getComponent<SimEngine::Drivers::Digital::DigSimComp>(
@@ -757,12 +773,6 @@ namespace Bess::Svc {
             digDef =
                 digComp
                     ->getDefinition<SimEngine::Drivers::Digital::DigCompDef>();
-            if (digDef) {
-                const auto slotsInfo = isInput ? digDef->getInputSlotsInfo()
-                                               : digDef->getOutputSlotsInfo();
-                needsSimSlot =
-                    static_cast<size_t>(slot->getIndex()) >= slotsInfo.count;
-            }
         }
 
         std::shared_ptr<Canvas::SlotSceneComponent> pairedSlot;
@@ -864,7 +874,7 @@ namespace Bess::Svc {
             if (!getSimEngine().addPort(
                     {.componentId = parent->getSimEngineId(),
                      .direction = realPortDirectionFor(isInput),
-                     .signalKind = slot->getSignalKind(),
+                     .signalKind = signalKind,
                      .index = static_cast<int>(insertedIndex)})) {
                 if (!wasParentChild) {
                     parent->removeChildComponent(slot->getUuid());

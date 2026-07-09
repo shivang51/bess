@@ -46,10 +46,11 @@ set(BESS_PYBIND_SOURCES
 		sim_engine/types.binding.cpp
 		sim_engine/sim_engine_core.binding.cpp
 		sim_engine/sim_functions.binding.cpp
-		sim_engine/driver/driver.binding.cpp
-		sim_engine/driver/event_based_sim_driver.binding.cpp
-		sim_engine/driver/dig_sim_driver.binding.cpp
-		verilog.binding.cpp
+			sim_engine/driver/driver.binding.cpp
+			sim_engine/driver/event_based_sim_driver.binding.cpp
+			sim_engine/driver/dig_sim_driver.binding.cpp
+			sim_engine/driver/math_sim_driver.binding.cpp
+			verilog.binding.cpp
 
 		assets/asset_manager.binding.cpp
 
@@ -70,9 +71,10 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 	BessWgpu
 	BessSimEngine
 	EventSystem
-	BessJson
-	BessApp
-	bverilog
+		BessJson
+		BessApp
+		MathSimDriver
+		bverilog
 	pybind11_abseil::absl_casters
 )
 
@@ -83,8 +85,9 @@ add_dependencies(${PROJECT_NAME}
 	BessWgpu
 	BessSimEngine
 	EventSystem
-	BessJson
-	bverilog
+		BessJson
+		MathSimDriver
+		bverilog
 )
 
 if(LINUX)

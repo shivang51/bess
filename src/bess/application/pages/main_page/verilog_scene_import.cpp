@@ -6,6 +6,7 @@
 #include "bess_core/scene_driver.h"
 #include "common/bess_assert.h"
 #include "dig_module_def.h"
+#include "dig_sim_driver.h"
 #include "event_dispatcher.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/module_scene_component.h"

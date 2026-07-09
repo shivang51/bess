@@ -248,4 +248,12 @@ namespace Bess::SimEngine::Drivers {
             m_groupName = json["groupName"].asString();
         }
     }
+
+    PortDescriptor CompDef::getInputPortDescriptor() const {
+        return {.direction = PortDirection::input};
+    }
+
+    PortDescriptor CompDef::getOutputPortDescriptor() const {
+        return {.direction = PortDirection::output};
+    }
 } // namespace Bess::SimEngine::Drivers

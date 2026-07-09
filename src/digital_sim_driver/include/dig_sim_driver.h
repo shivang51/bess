@@ -60,6 +60,10 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         std::shared_ptr<CompDef> clone() const override;
 
+        PortDescriptor getInputPortDescriptor() const override;
+
+        PortDescriptor getOutputPortDescriptor() const override;
+
       public:
         /**
          * This function will be called when resize of the slots group is

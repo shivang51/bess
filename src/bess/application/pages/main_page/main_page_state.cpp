@@ -7,7 +7,6 @@
 #include "bverilog/sim_engine_importer.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
-#include "dig_sim_driver.h"
 #include "event_dispatcher.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_command_hooks.h"
@@ -41,7 +40,7 @@ namespace Bess::Pages {
         void syncSceneComponentSlots(
             Canvas::SceneState &sceneState,
             const std::shared_ptr<Canvas::SimulationSceneComponent> &comp,
-            const SimEngine::SlotsGroupInfo &slotsInfo,
+            const SimEngine::PortDescriptor &portDescriptor,
             bool isInput) {
             if (!comp) {
                 return;
@@ -51,7 +50,10 @@ namespace Bess::Pages {
                 isInput ? comp->getInputSlots() : comp->getOutputSlots();
             const auto direction = isInput ? SimEngine::PortDirection::input
                                            : SimEngine::PortDirection::output;
-            constexpr auto signalKind = SimEngine::SignalKind::digital;
+            const auto signalKind =
+                portDescriptor.signalKind == SimEngine::SignalKind::none
+                    ? SimEngine::SignalKind::digital
+                    : portDescriptor.signalKind;
 
             std::vector<UUID> realSlots;
             realSlots.reserve(slotIds.size());
@@ -73,14 +75,14 @@ namespace Bess::Pages {
                 realSlots.push_back(slotId);
             }
 
-            while (realSlots.size() > slotsInfo.count) {
+            while (realSlots.size() > portDescriptor.count) {
                 const auto slotId = realSlots.back();
                 realSlots.pop_back();
                 comp->removeChildComponent(slotId);
                 sceneState.removeComponent(slotId, UUID::master);
             }
 
-            while (realSlots.size() < slotsInfo.count) {
+            while (realSlots.size() < portDescriptor.count) {
                 auto newSlot = std::make_shared<Canvas::SlotSceneComponent>();
                 newSlot->setPortDirection(direction);
                 newSlot->setSignalKind(signalKind);
@@ -91,7 +93,7 @@ namespace Bess::Pages {
                 realSlots.push_back(newSlot->getUuid());
             }
 
-            if (slotsInfo.isResizeable) {
+            if (portDescriptor.isResizeable) {
                 if (resizeSlotId == UUID::null) {
                     auto resizeSlot =
                         std::make_shared<Canvas::SlotSceneComponent>();
@@ -138,8 +140,8 @@ namespace Bess::Pages {
                 slot->setSignalKind(signalKind);
                 slot->setResizeTrigger(false);
                 slot->setIndex(static_cast<int>(i));
-                if (i < slotsInfo.names.size()) {
-                    slot->setName(slotsInfo.names[i]);
+                if (i < portDescriptor.names.size()) {
+                    slot->setName(portDescriptor.names[i]);
                 } else {
                     slot->setName(fallbackSlotName(i, isInput));
                 }
@@ -583,16 +585,14 @@ namespace Bess::Pages {
 
         auto &appCtx = Bess::GAppContext::getInstance();
         auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        const auto &digitalComp =
-            projectCtx->getSimEngine()
-                .getComponent<SimEngine::Drivers::Digital::DigSimComp>(
-                    e.componentId);
+        const auto &def =
+            projectCtx->getSimEngine().getComponentDefinition(e.componentId);
+        if (!def) {
+            return;
+        }
 
-        const auto &outSlotsInfo =
-            digitalComp
-                ->getDefinition<SimEngine::Drivers::Digital::DigCompDef>()
-                ->getOutputSlotsInfo();
-        syncSceneComponentSlots(sceneState, comp, outSlotsInfo, false);
+        syncSceneComponentSlots(
+            sceneState, comp, def->getOutputPortDescriptor(), false);
     }
 
     void MainPageState::onCompDefInputsResized(
@@ -622,20 +622,14 @@ namespace Bess::Pages {
 
         auto &appCtx = Bess::GAppContext::getInstance();
         auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        const auto &digitalComp =
-            projectCtx->getSimEngine()
-                .getComponent<SimEngine::Drivers::Digital::DigSimComp>(
-                    e.componentId);
-        const auto &outSlotsInfo =
-            digitalComp
-                ->getDefinition<SimEngine::Drivers::Digital::DigCompDef>()
-                ->getOutputSlotsInfo();
+        const auto &def =
+            projectCtx->getSimEngine().getComponentDefinition(e.componentId);
+        if (!def) {
+            return;
+        }
 
-        const auto &inSlotsInfo =
-            digitalComp
-                ->getDefinition<SimEngine::Drivers::Digital::DigCompDef>()
-                ->getInputSlotsInfo();
-        syncSceneComponentSlots(sceneState, comp, inSlotsInfo, true);
+        syncSceneComponentSlots(
+            sceneState, comp, def->getInputPortDescriptor(), true);
     }
 
     void

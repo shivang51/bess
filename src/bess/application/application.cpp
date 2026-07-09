@@ -7,6 +7,7 @@
 #include "common/logger.h"
 #include "common/types.h"
 #include "event_dispatcher.h"
+#include "math_sim_driver.h"
 #include "pages/main_page/services/connection_service.h"
 #include "services/plugin_service/plugin_service.h"
 #include "sub_systems/renderer_context.h"
@@ -72,6 +73,8 @@ namespace Bess {
         BESS_INFO(
             "[Application] Initializing application, with project path: {}",
             path.empty() ? "None" : path);
+
+        SimEngine::Drivers::Math::registerMathSimDriver();
 
         auto &appCtx = GAppContext::getInstance();
 

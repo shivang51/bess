@@ -157,6 +157,7 @@ class PyCompDef : public Bess::SimEngine::Drivers::CompDef,
 
 void bind_event_based_sim_driver(py::module_ &m);
 void bind_dig_sim_driver(py::module_ &m);
+void bind_math_sim_driver(py::module_ &m);
 
 void bind_sim_engine_driver(py::module_ &m) {
     using namespace Bess::SimEngine;
@@ -295,4 +296,5 @@ void bind_sim_engine_driver(py::module_ &m) {
 
     bind_event_based_sim_driver(m);
     bind_dig_sim_driver(m);
+    bind_math_sim_driver(m);
 }

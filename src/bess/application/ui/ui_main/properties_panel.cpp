@@ -3,6 +3,7 @@
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
 #include "common/helpers.h"
+#include "dig_sim_driver.h"
 #include "gtc/type_ptr.hpp"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"

@@ -36,6 +36,10 @@ namespace Bess::SimEngine::Drivers {
 
         virtual std::string getTypeName() const = 0;
 
+        virtual PortDescriptor getInputPortDescriptor() const;
+
+        virtual PortDescriptor getOutputPortDescriptor() const;
+
       protected:
         std::string m_name;
         std::string m_groupName;

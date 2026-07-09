@@ -8,6 +8,7 @@
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene/widgets/scene_widgets.h"
 #include "bess_core/settings/viewport_theme.h"
+#include "dig_sim_driver.h"
 #include "ext/vector_float2.hpp"
 #include "ext/vector_float3.hpp"
 #include "imgui.h"

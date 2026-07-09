@@ -6,6 +6,7 @@
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/settings/viewport_theme.h"
 #include "common/bess_uuid.h"
+#include "dig_sim_driver.h"
 #include "imgui.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"

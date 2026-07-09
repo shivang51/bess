@@ -204,6 +204,17 @@ namespace Bess::SimEngine::Drivers::Digital {
                 stateList[index].connState = ConnectionState::driven;
             }
         }
+
+        PortDescriptor portDescriptorFor(const SlotsGroupInfo &info,
+                                         PortDirection direction) {
+            return {.direction = direction,
+                    .signalKind = SignalKind::digital,
+                    .quantityKind = QuantityKind::logic,
+                    .unit = "",
+                    .count = info.count,
+                    .names = info.names,
+                    .isResizeable = info.isResizeable};
+        }
     } // namespace
 
     std::string DigitalSimDriver::getName() const {
@@ -1069,6 +1080,14 @@ namespace Bess::SimEngine::Drivers::Digital {
 
     std::shared_ptr<CompDef> DigCompDef::clone() const {
         return std::make_shared<DigCompDef>(*this);
+    }
+
+    PortDescriptor DigCompDef::getInputPortDescriptor() const {
+        return portDescriptorFor(m_inputSlotsInfo, PortDirection::input);
+    }
+
+    PortDescriptor DigCompDef::getOutputPortDescriptor() const {
+        return portDescriptorFor(m_outputSlotsInfo, PortDirection::output);
     }
 
     bool DigCompDef::computeExpressionsIfNeeded() {

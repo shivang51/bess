@@ -9,7 +9,6 @@
 #include "bess_core/scene/scene_ui/layout.h"
 #include "bess_core/settings/viewport_theme.h"
 #include "common/bess_uuid.h"
-#include "dig_sim_driver.h"
 #include "scene_comp_types.h"
 #include "sim_driver/sim_driver.h"
 #include "slot_scene_component.h"
@@ -42,18 +41,15 @@ namespace Bess::Canvas {
         createNew(const std::shared_ptr<SimEngine::Drivers::CompDef> &compDef) {
             std::vector<std::shared_ptr<SceneComponent>> createdComps;
 
-            const auto def = std::dynamic_pointer_cast<
-                SimEngine::Drivers::Digital::DigCompDef>(compDef);
-
             const UUID uuid;
             std::shared_ptr<T> sceneComp = std::make_shared<T>();
-            sceneComp->setCompDef(def);
+            sceneComp->setCompDef(compDef);
 
             createdComps.push_back(sceneComp);
 
             // setting the name before adding to scene state, so that event
             // listeners can access it
-            sceneComp->setName(def->getName());
+            sceneComp->setName(compDef->getName());
 
             // style
             auto &style = sceneComp->getStyle();
@@ -61,15 +57,21 @@ namespace Bess::Canvas {
             style.headerColor =
                 ViewportTheme::getCompHeaderColor(compDef->getGroupName());
 
-            const auto &inpDetails = def->getInputSlotsInfo();
-            const auto &outDetails = def->getOutputSlotsInfo();
+            const auto inpDetails = compDef->getInputPortDescriptor();
+            const auto outDetails = compDef->getOutputPortDescriptor();
+            const auto inputSignalKind =
+                inpDetails.signalKind == SimEngine::SignalKind::none
+                    ? SimEngine::SignalKind::digital
+                    : inpDetails.signalKind;
+            const auto outputSignalKind =
+                outDetails.signalKind == SimEngine::SignalKind::none
+                    ? SimEngine::SignalKind::digital
+                    : outDetails.signalKind;
 
             int inSlotIdx = 0, outSlotIdx = 0;
             char inpCh = 'A', outCh = 'a';
 
-            const auto slots =
-                sceneComp->createIOSlots(def->getInputSlotsInfo().count,
-                                         def->getOutputSlotsInfo().count);
+            const auto slots = sceneComp->createIOSlots(inpDetails, outDetails);
 
             for (const auto &slot : slots) {
                 if (slot->isInputSlot()) {
@@ -89,7 +91,7 @@ namespace Bess::Canvas {
             if (inpDetails.isResizeable) {
                 auto slot = std::make_shared<SlotSceneComponent>();
                 slot->setPortDirection(SimEngine::PortDirection::input);
-                slot->setSignalKind(SimEngine::SignalKind::digital);
+                slot->setSignalKind(inputSignalKind);
                 slot->setResizeTrigger(true);
                 slot->setIndex(-1); // assign -1 for resize slots
                 sceneComp->addInputSlot(slot->getUuid(), false);
@@ -99,7 +101,7 @@ namespace Bess::Canvas {
             if (outDetails.isResizeable) {
                 auto slot = std::make_shared<SlotSceneComponent>();
                 slot->setPortDirection(SimEngine::PortDirection::output);
-                slot->setSignalKind(SimEngine::SignalKind::digital);
+                slot->setSignalKind(outputSignalKind);
                 slot->setResizeTrigger(true);
                 slot->setIndex(-1); // assign -1 for resize slots
                 sceneComp->addOutputSlot(slot->getUuid(), false);
@@ -111,6 +113,10 @@ namespace Bess::Canvas {
 
         // Creates the slots and also add there ids inside the components
         // input slots array and output slots array
+        std::vector<std::shared_ptr<SlotSceneComponent>>
+        createIOSlots(const SimEngine::PortDescriptor &inputDescriptor,
+                      const SimEngine::PortDescriptor &outputDescriptor);
+
         std::vector<std::shared_ptr<SlotSceneComponent>>
         createIOSlots(size_t inputCount, size_t outputCount);
 
