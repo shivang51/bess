@@ -168,7 +168,8 @@ namespace Bess::Canvas {
             textBox->setPlaceholder("0");
             textBox->getStyle().margin = Core::Style::Margin::fromVertical(
                 Canvas::Styles::simCompStyles.rowMargin);
-            textBox->getStyle().padding = 0;
+            textBox->getStyle().padding =
+                Core::Style::Padding::fromSymmetric(4.f, 2.f);
             ctx.sceneState->addComponent(textBox);
             return textBox;
         }
