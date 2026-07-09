@@ -35,6 +35,15 @@ namespace Bess::Canvas::SceneWidgets::Detail {
             return cursor;
         }
 
+        size_t utf8PrefixBoundary(std::string_view text, size_t maxBytes) {
+            maxBytes = std::min(maxBytes, text.size());
+            while (maxBytes > 0 && maxBytes < text.size() &&
+                   isUtf8Continuation(text[maxBytes])) {
+                --maxBytes;
+            }
+            return maxBytes;
+        }
+
         bool appendUtf8(char32_t codepoint, std::string &out) {
             if (codepoint == 0 || codepoint > 0x10FFFF ||
                 (codepoint >= 0xD800 && codepoint <= 0xDFFF)) {
@@ -62,40 +71,190 @@ namespace Bess::Canvas::SceneWidgets::Detail {
             return true;
         }
 
+        bool isAsciiSpace(char ch) {
+            return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r';
+        }
+
+        bool isAsciiWord(char ch) {
+            const auto c = static_cast<unsigned char>(ch);
+            return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                   (c >= '0' && c <= '9') || c == '_';
+        }
+
+        enum class CharClass : uint8_t { space, word, punctuation };
+
+        CharClass charClassAt(std::string_view text, size_t cursor) {
+            if (cursor >= text.size()) {
+                return CharClass::space;
+            }
+
+            const char ch = text[cursor];
+            if (isAsciiSpace(ch)) {
+                return CharClass::space;
+            }
+
+            if (static_cast<unsigned char>(ch) >= 0x80 || isAsciiWord(ch)) {
+                return CharClass::word;
+            }
+
+            return CharClass::punctuation;
+        }
+
         size_t previousWordBoundary(std::string_view text, size_t cursor) {
             cursor = std::min(cursor, text.size());
-            while (cursor > 0 && text[cursor - 1] == ' ') {
-                --cursor;
+            while (cursor > 0 &&
+                   charClassAt(text, previousCharBoundary(text, cursor)) ==
+                       CharClass::space) {
+                cursor = previousCharBoundary(text, cursor);
             }
-            while (cursor > 0 && text[cursor - 1] != ' ') {
-                --cursor;
+
+            if (cursor == 0) {
+                return 0;
+            }
+
+            const auto targetClass =
+                charClassAt(text, previousCharBoundary(text, cursor));
+            while (cursor > 0) {
+                const size_t prev = previousCharBoundary(text, cursor);
+                if (charClassAt(text, prev) != targetClass) {
+                    break;
+                }
+                cursor = prev;
             }
             return cursor;
         }
 
         size_t nextWordBoundary(std::string_view text, size_t cursor) {
             cursor = std::min(cursor, text.size());
-            while (cursor < text.size() && text[cursor] == ' ') {
-                ++cursor;
+            while (cursor < text.size() &&
+                   charClassAt(text, cursor) == CharClass::space) {
+                cursor = nextCharBoundary(text, cursor);
             }
-            while (cursor < text.size() && text[cursor] != ' ') {
-                ++cursor;
+
+            if (cursor >= text.size()) {
+                return text.size();
+            }
+
+            const auto targetClass = charClassAt(text, cursor);
+            while (cursor < text.size() &&
+                   charClassAt(text, cursor) == targetClass) {
+                cursor = nextCharBoundary(text, cursor);
             }
             return cursor;
         }
 
+        bool isCommandPressed(const SceneEvent &evt) {
+            return evt.isCtrlPressed;
+        }
+
+        bool deleteSelection(WidgetState &state) {
+            if (!hasTextSelection(state)) {
+                return false;
+            }
+
+            const auto [selStart, selEnd] = textSelectionRange(state);
+            state.text.erase(selStart, selEnd - selStart);
+            state.cursorPos = selStart;
+            clearTextSelection(state);
+            markTextChanged(state);
+            return true;
+        }
+
+        size_t textSizeAfterSelectionDelete(const WidgetState &state) {
+            if (!hasTextSelection(state)) {
+                return state.text.size();
+            }
+
+            const auto [selStart, selEnd] = textSelectionRange(state);
+            return state.text.size() - (selEnd - selStart);
+        }
+
+        void moveCursor(WidgetState &state, size_t nextCursor, bool selecting) {
+            state.cursorPos = std::min(nextCursor, state.text.size());
+            if (!selecting) {
+                clearTextSelection(state);
+            }
+            clampCursor(state);
+        }
+
+        std::string selectedText(const WidgetState &state) {
+            if (!hasTextSelection(state)) {
+                return {};
+            }
+
+            const auto [selStart, selEnd] = textSelectionRange(state);
+            return state.text.substr(selStart, selEnd - selStart);
+        }
+
     } // namespace
 
-    bool handleTextInputKey(WidgetState &state, const SceneEvent &evt) {
+    bool handleTextInputKey(SceneWidgetsState &widgetsState,
+                            WidgetState &state,
+                            const SceneEvent &evt) {
         const auto &data = evt.data.keyPress;
         if (data.action != KeyAction::press && data.action != KeyAction::hold) {
             return true;
         }
 
         clampCursor(state);
+        const bool commandPressed = isCommandPressed(evt);
+        const bool selecting = evt.isShiftPressed;
+
+        if (commandPressed) {
+            switch (data.keycode) {
+            case KeyCode::a:
+                state.selectionAnchorPos = 0;
+                state.cursorPos = state.text.size();
+                return true;
+            case KeyCode::c:
+                if (hasTextSelection(state)) {
+                    widgetsState.textClipboard = selectedText(state);
+                }
+                return true;
+            case KeyCode::x:
+                if (hasTextSelection(state)) {
+                    widgetsState.textClipboard = selectedText(state);
+                    deleteSelection(state);
+                }
+                return true;
+            case KeyCode::v:
+                if (widgetsState.textClipboard.empty()) {
+                    return true;
+                }
+                if (textSizeAfterSelectionDelete(state) >= state.maxLength) {
+                    return true;
+                }
+                {
+                    const size_t remaining =
+                        state.maxLength - textSizeAfterSelectionDelete(state);
+                    const std::string_view clipboard =
+                        widgetsState.textClipboard;
+                    const size_t pasteSize =
+                        clipboard.size() <= remaining
+                            ? clipboard.size()
+                            : utf8PrefixBoundary(clipboard, remaining);
+                    if (pasteSize == 0) {
+                        return true;
+                    }
+                    deleteSelection(state);
+                    state.text.insert(state.cursorPos,
+                                      clipboard.substr(0, pasteSize));
+                    state.cursorPos += pasteSize;
+                    clearTextSelection(state);
+                    markTextChanged(state);
+                }
+                return true;
+            default:
+                break;
+            }
+        }
 
         switch (data.keycode) {
         case KeyCode::backspace: {
+            if (deleteSelection(state)) {
+                return true;
+            }
+
             if (state.cursorPos == 0) {
                 return true;
             }
@@ -110,6 +269,10 @@ namespace Bess::Canvas::SceneWidgets::Detail {
             return true;
         }
         case KeyCode::del: {
+            if (deleteSelection(state)) {
+                return true;
+            }
+
             if (state.cursorPos >= state.text.size()) {
                 return true;
             }
@@ -123,22 +286,32 @@ namespace Bess::Canvas::SceneWidgets::Detail {
             return true;
         }
         case KeyCode::arrowLeft:
-            state.cursorPos =
-                evt.isCtrlPressed
-                    ? previousWordBoundary(state.text, state.cursorPos)
-                    : previousCharBoundary(state.text, state.cursorPos);
+            if (!selecting && hasTextSelection(state)) {
+                moveCursor(state, textSelectionRange(state).first, false);
+                return true;
+            }
+            moveCursor(state,
+                       commandPressed
+                           ? previousWordBoundary(state.text, state.cursorPos)
+                           : previousCharBoundary(state.text, state.cursorPos),
+                       selecting);
             return true;
         case KeyCode::arrowRight:
-            state.cursorPos =
-                evt.isCtrlPressed
-                    ? nextWordBoundary(state.text, state.cursorPos)
-                    : nextCharBoundary(state.text, state.cursorPos);
+            if (!selecting && hasTextSelection(state)) {
+                moveCursor(state, textSelectionRange(state).second, false);
+                return true;
+            }
+            moveCursor(state,
+                       commandPressed
+                           ? nextWordBoundary(state.text, state.cursorPos)
+                           : nextCharBoundary(state.text, state.cursorPos),
+                       selecting);
             return true;
         case KeyCode::home:
-            state.cursorPos = 0;
+            moveCursor(state, 0, selecting);
             return true;
         case KeyCode::end:
-            state.cursorPos = state.text.size();
+            moveCursor(state, state.text.size(), selecting);
             return true;
         case KeyCode::enter:
             state.textSubmitted = true;
@@ -147,6 +320,7 @@ namespace Bess::Canvas::SceneWidgets::Detail {
             if (state.text != state.focusStartText) {
                 state.text = state.focusStartText;
                 state.cursorPos = state.text.size();
+                clearTextSelection(state);
                 markTextChanged(state);
             }
             state.textCanceled = true;
@@ -159,20 +333,25 @@ namespace Bess::Canvas::SceneWidgets::Detail {
     }
 
     bool handleTextInputCodepoint(WidgetState &state, char32_t codepoint) {
-        if (codepoint < 0x20 || codepoint == 0x7F ||
-            state.text.size() >= state.maxLength) {
+        if (codepoint < 0x20 || codepoint == 0x7F) {
             return true;
         }
 
         std::string utf8;
-        if (!appendUtf8(codepoint, utf8) ||
-            state.text.size() + utf8.size() > state.maxLength) {
+        if (!appendUtf8(codepoint, utf8)) {
             return true;
         }
 
         clampCursor(state);
+        if (textSizeAfterSelectionDelete(state) + utf8.size() >
+            state.maxLength) {
+            return true;
+        }
+
+        deleteSelection(state);
         state.text.insert(state.cursorPos, utf8);
         state.cursorPos += utf8.size();
+        clearTextSelection(state);
         markTextChanged(state);
         return true;
     }
@@ -335,6 +514,8 @@ namespace Bess::Canvas::SceneWidgets {
             widget.textCanceled = false;
             widget.focusStarted = false;
             widget.pointerInputQueued = false;
+            widget.textPointerSelectionStarted = false;
+            widget.textPointerExtendSelection = false;
             widget.sliderKeyboardDelta = 0;
             widget.sliderSetToMin = false;
             widget.sliderSetToMax = false;
@@ -411,7 +592,8 @@ namespace Bess::Canvas::SceneWidgets {
 
     void queuePress(SceneWidgetsState *widgetsState,
                     const PickingId &id,
-                    const glm::vec2 &pos) {
+                    const glm::vec2 &pos,
+                    bool extendSelection) {
         if (widgetsState == nullptr) {
             BESS_WARN("[SceneWidgets] Trying to press widget before scene "
                       "widgets were registered");
@@ -428,6 +610,11 @@ namespace Bess::Canvas::SceneWidgets {
         widget->isPressed = true;
         widget->pointerPos = pos;
         widget->pointerInputQueued = true;
+        if (widget->type == Detail::WidgetState::Type::textInput) {
+            widget->textPointerSelecting = true;
+            widget->textPointerSelectionStarted = true;
+            widget->textPointerExtendSelection = extendSelection;
+        }
 
         if (widget->type == Detail::WidgetState::Type::dropdownOption) {
             Detail::closeDropdowns(*widgetsState, widget->ownerWidgetId);
@@ -521,7 +708,8 @@ namespace Bess::Canvas::SceneWidgets {
         switch (state->second.type) {
         case Detail::WidgetState::Type::textInput:
             handled = evt.type == SceneEvent::Type::key
-                          ? Detail::handleTextInputKey(state->second, evt)
+                          ? Detail::handleTextInputKey(
+                                *widgetsState, state->second, evt)
                           : Detail::handleTextInputCodepoint(
                                 state->second, evt.data.textInput.codepoint);
             if (state->second.textSubmitted || state->second.textCanceled) {

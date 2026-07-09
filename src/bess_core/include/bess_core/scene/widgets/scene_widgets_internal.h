@@ -9,6 +9,7 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 
 namespace Bess::Canvas::SceneWidgets::Detail {
     constexpr uint64_t kInvalidWidgetId = PickingId::invalid().toUint64();
@@ -43,12 +44,16 @@ namespace Bess::Canvas::SceneWidgets::Detail {
         std::string text;
         std::string focusStartText;
         size_t cursorPos = 0;
+        size_t selectionAnchorPos = 0;
         size_t maxLength = 256;
         bool textInitialized = false;
         bool focusStarted = false;
         bool textChanged = false;
         bool textSubmitted = false;
         bool textCanceled = false;
+        bool textPointerSelecting = false;
+        bool textPointerSelectionStarted = false;
+        bool textPointerExtendSelection = false;
 
         int sliderKeyboardDelta = 0;
         bool sliderSetToMin = false;
@@ -75,6 +80,7 @@ namespace Bess::Canvas::SceneWidgets {
         uint64_t hoveredWidgetId = Detail::kInvalidWidgetId;
         uint64_t pressedWidgetId = Detail::kInvalidWidgetId;
         uint64_t focusedWidgetId = Detail::kInvalidWidgetId;
+        std::string textClipboard;
     };
 
     struct ViewportSceneWidgetsState {
@@ -122,8 +128,13 @@ namespace Bess::Canvas::SceneWidgets::Detail {
     void closeDropdowns(SceneWidgetsState &widgetsState,
                         uint64_t keepOpenWidgetId = kInvalidWidgetId);
     void clampCursor(WidgetState &state);
+    void clearTextSelection(WidgetState &state);
+    bool hasTextSelection(const WidgetState &state);
+    std::pair<size_t, size_t> textSelectionRange(const WidgetState &state);
     void markTextChanged(WidgetState &state);
-    bool handleTextInputKey(WidgetState &state, const SceneEvent &evt);
+    bool handleTextInputKey(SceneWidgetsState &widgetsState,
+                            WidgetState &state,
+                            const SceneEvent &evt);
     bool handleTextInputCodepoint(WidgetState &state, char32_t codepoint);
     bool handleSliderKey(WidgetState &state, const SceneEvent &evt);
     bool handleDropdownKey(SceneWidgetsState &widgetsState,

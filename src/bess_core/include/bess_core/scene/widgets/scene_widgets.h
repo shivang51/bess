@@ -113,7 +113,8 @@ namespace Bess::Canvas::SceneWidgets {
                           const glm::vec2 &pos);
     void queuePress(SceneWidgetsState *widgetsState,
                     const PickingId &id,
-                    const glm::vec2 &pos);
+                    const glm::vec2 &pos,
+                    bool extendSelection = false);
     void queueRelease(SceneWidgetsState *widgetsState,
                       const PickingId &id,
                       const glm::vec2 &pos);

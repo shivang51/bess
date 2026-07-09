@@ -1,7 +1,10 @@
 #include "bess_core/renderer/renderer_2d.h"
+#include "bess_core/scene/scene_event.h"
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene/scene_ui/controls/text_box_comp.h"
 #include "bess_core/scene/scene_ui/layout.h"
+#include "bess_core/scene/widgets/scene_widgets.h"
+#include "bess_core/scene/widgets/scene_widgets_internal.h"
 #include "bess_core/style/bess_theme.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
@@ -50,16 +53,15 @@ namespace {
         getStats() const noexcept override {
             return {};
         }
-        [[nodiscard]] Bess::Core::Renderer::TextureReadbackResult
-        readTexture(
+        [[nodiscard]] Bess::Core::Renderer::TextureReadbackResult readTexture(
             const Bess::Core::Renderer::TextureReadbackRegion &) override {
             return {};
         }
         void requestPickingIds(
             const Bess::Core::Renderer::TextureReadbackRegion &) override {
         }
-        [[nodiscard]] bool
-        tryGetPickingIds(Bess::Core::Renderer::PickingReadbackResult &) override {
+        [[nodiscard]] bool tryGetPickingIds(
+            Bess::Core::Renderer::PickingReadbackResult &) override {
             return false;
         }
         [[nodiscard]] bool isPickingReadbackPending() const noexcept override {
@@ -75,8 +77,8 @@ namespace {
         void destroyCustomQuadShader(
             Bess::Core::Renderer::CustomQuadShaderHandle) override {
         }
-        void drawCustomQuad(
-            const Bess::Core::Renderer::CustomQuadProps &) override {
+        void
+        drawCustomQuad(const Bess::Core::Renderer::CustomQuadProps &) override {
         }
         void drawCircle(const Bess::Core::Renderer::CircleProps &) override {
         }
@@ -90,15 +92,13 @@ namespace {
             const Bess::Core::Renderer::FontProps &props = {}) override {
             return getTextRenderSize(text, props);
         }
-        [[nodiscard]] float
-        textCenterOffsetY(std::string_view,
-                          const Bess::Core::Renderer::FontProps &props = {})
-            override {
+        [[nodiscard]] float textCenterOffsetY(
+            std::string_view,
+            const Bess::Core::Renderer::FontProps &props = {}) override {
             return props.fontSize * 0.35f;
         }
-        void drawPath(
-            std::span<const Bess::Core::Renderer::PathCommand>,
-            const Bess::Core::Renderer::PathProps & = {}) override {
+        void drawPath(std::span<const Bess::Core::Renderer::PathCommand>,
+                      const Bess::Core::Renderer::PathProps & = {}) override {
         }
         void beginPath(const Bess::Core::Renderer::PathProps & = {}) override {
         }
@@ -125,6 +125,71 @@ namespace {
         void endPath() override {
         }
     };
+
+    Bess::Canvas::SceneEvent
+    keyEvent(Bess::KeyCode key, bool ctrl = false, bool shift = false) {
+        Bess::Canvas::SceneEvent::Data data;
+        data.keyPress = {.keycode = key, .action = Bess::KeyAction::press};
+        return {
+            .type = Bess::Canvas::SceneEvent::Type::key,
+            .data = data,
+            .isCtrlPressed = ctrl,
+            .isShiftPressed = shift,
+        };
+    }
+
+    Bess::Canvas::SceneEvent textInputEvent(char32_t codepoint) {
+        Bess::Canvas::SceneEvent::Data data;
+        data.textInput = {.codepoint = codepoint};
+        return {
+            .type = Bess::Canvas::SceneEvent::Type::textInput,
+            .data = data,
+        };
+    }
+
+    Bess::SceneDrawContext textBoxDrawContext(
+        Bess::Canvas::SceneState &sceneState,
+        const std::shared_ptr<LayoutTestRenderer2D> &renderer,
+        Bess::Canvas::SceneWidgets::SceneWidgetsState &widgetsState) {
+        return {
+            .sceneState = &sceneState,
+            .renderer = renderer,
+            .sceneWidgetsState = &widgetsState,
+        };
+    }
+
+    Bess::Canvas::SceneWidgets::TextBoxResult
+    drawTextBox(Bess::SceneDrawContext &context,
+                const Bess::PickingId &id,
+                std::string &value) {
+        return Bess::Canvas::SceneWidgets::textBox(
+            id, &value, {0.f, 0.f, 0.f}, {180.f, 24.f}, context);
+    }
+
+    glm::vec2 textBoxCursorPointer(
+        const std::shared_ptr<LayoutTestRenderer2D> &renderer,
+        std::string_view text,
+        size_t cursor) {
+        constexpr float textBoxLeft = -90.f + 4.f;
+        cursor = std::min(cursor, text.size());
+        const auto prefix = text.substr(0, cursor);
+        return {
+            textBoxLeft +
+                renderer->measureText(prefix, {.fontSize = 8.f}).x,
+            0.f,
+        };
+    }
+
+    void focusTextBox(Bess::SceneDrawContext &context,
+                      Bess::Canvas::SceneWidgets::SceneWidgetsState &widgets,
+                      const Bess::PickingId &id,
+                      std::string &value) {
+        drawTextBox(context, id, value);
+        Bess::Canvas::SceneWidgets::queuePress(&widgets, id, {86.f, 0.f});
+        drawTextBox(context, id, value);
+        Bess::Canvas::SceneWidgets::queueRelease(&widgets, id, {86.f, 0.f});
+        drawTextBox(context, id, value);
+    }
 } // namespace
 
 class UiLayoutTests : public testing::Test {};
@@ -320,6 +385,104 @@ TEST_F(UiLayoutTests, TextBoxPrepareUIRespectsSizeAndPadding) {
 
     expectVec2(autoNode->getDrawSize(), 70.f, 16.f);
     EXPECT_EQ(autoNode->getPadding(), Bess::Core::Style::Padding::zero());
+}
+
+TEST_F(UiLayoutTests, SceneTextBoxSupportsCtrlCopyCutPasteAndSelectAll) {
+    Bess::Canvas::SceneState sceneState;
+    Bess::Canvas::SceneWidgets::SceneWidgetsState widgets;
+    const auto renderer = std::make_shared<LayoutTestRenderer2D>();
+    auto context = textBoxDrawContext(sceneState, renderer, widgets);
+
+    const auto id = Bess::PickingId::forWidget(0x101);
+    std::string value = "alpha beta";
+    focusTextBox(context, widgets, id, value);
+
+    auto evt = keyEvent(Bess::KeyCode::a, true);
+    EXPECT_TRUE(Bess::Canvas::SceneWidgets::queueKey(&widgets, evt));
+
+    evt = keyEvent(Bess::KeyCode::c, true);
+    EXPECT_TRUE(Bess::Canvas::SceneWidgets::queueKey(&widgets, evt));
+
+    evt = keyEvent(Bess::KeyCode::x, true);
+    EXPECT_TRUE(Bess::Canvas::SceneWidgets::queueKey(&widgets, evt));
+    auto result = drawTextBox(context, id, value);
+    EXPECT_TRUE(result.changed);
+    EXPECT_EQ(value, "");
+
+    evt = keyEvent(Bess::KeyCode::v, true);
+    EXPECT_TRUE(Bess::Canvas::SceneWidgets::queueKey(&widgets, evt));
+    result = drawTextBox(context, id, value);
+    EXPECT_TRUE(result.changed);
+    EXPECT_EQ(value, "alpha beta");
+}
+
+TEST_F(UiLayoutTests, SceneTextBoxReplacesKeyboardSelection) {
+    Bess::Canvas::SceneState sceneState;
+    Bess::Canvas::SceneWidgets::SceneWidgetsState widgets;
+    const auto renderer = std::make_shared<LayoutTestRenderer2D>();
+    auto context = textBoxDrawContext(sceneState, renderer, widgets);
+
+    const auto id = Bess::PickingId::forWidget(0x102);
+    std::string value = "abcd";
+    focusTextBox(context, widgets, id, value);
+
+    auto evt = keyEvent(Bess::KeyCode::arrowLeft, false, true);
+    EXPECT_TRUE(Bess::Canvas::SceneWidgets::queueKey(&widgets, evt));
+    EXPECT_TRUE(Bess::Canvas::SceneWidgets::queueKey(&widgets, evt));
+
+    auto textEvt = textInputEvent(U'X');
+    EXPECT_TRUE(Bess::Canvas::SceneWidgets::queueKey(&widgets, textEvt));
+
+    const auto result = drawTextBox(context, id, value);
+    EXPECT_TRUE(result.changed);
+    EXPECT_EQ(value, "abX");
+}
+
+TEST_F(UiLayoutTests, SceneTextBoxReplacesPointerSelection) {
+    Bess::Canvas::SceneState sceneState;
+    Bess::Canvas::SceneWidgets::SceneWidgetsState widgets;
+    const auto renderer = std::make_shared<LayoutTestRenderer2D>();
+    auto context = textBoxDrawContext(sceneState, renderer, widgets);
+
+    const auto id = Bess::PickingId::forWidget(0x104);
+    std::string value = "abcdef";
+    focusTextBox(context, widgets, id, value);
+
+    auto pointer = textBoxCursorPointer(renderer, value, 1);
+    Bess::Canvas::SceneWidgets::queuePress(&widgets, id, pointer);
+    drawTextBox(context, id, value);
+
+    pointer = textBoxCursorPointer(renderer, value, 4);
+    Bess::Canvas::SceneWidgets::queuePointerMove(&widgets, pointer);
+    drawTextBox(context, id, value);
+
+    Bess::Canvas::SceneWidgets::queueRelease(&widgets, id, pointer);
+    drawTextBox(context, id, value);
+
+    auto textEvt = textInputEvent(U'Z');
+    EXPECT_TRUE(Bess::Canvas::SceneWidgets::queueKey(&widgets, textEvt));
+
+    const auto result = drawTextBox(context, id, value);
+    EXPECT_TRUE(result.changed);
+    EXPECT_EQ(value, "aZef");
+}
+
+TEST_F(UiLayoutTests, SceneTextBoxSupportsCtrlWordDeletion) {
+    Bess::Canvas::SceneState sceneState;
+    Bess::Canvas::SceneWidgets::SceneWidgetsState widgets;
+    const auto renderer = std::make_shared<LayoutTestRenderer2D>();
+    auto context = textBoxDrawContext(sceneState, renderer, widgets);
+
+    const auto id = Bess::PickingId::forWidget(0x103);
+    std::string value = "alpha beta";
+    focusTextBox(context, widgets, id, value);
+
+    auto evt = keyEvent(Bess::KeyCode::backspace, true);
+    EXPECT_TRUE(Bess::Canvas::SceneWidgets::queueKey(&widgets, evt));
+
+    const auto result = drawTextBox(context, id, value);
+    EXPECT_TRUE(result.changed);
+    EXPECT_EQ(value, "alpha ");
 }
 
 TEST_F(UiLayoutTests, UINodeLayout) {

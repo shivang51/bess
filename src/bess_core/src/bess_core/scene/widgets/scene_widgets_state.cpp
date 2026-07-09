@@ -164,6 +164,9 @@ namespace Bess::Canvas::SceneWidgets::Detail {
         if (prev != widgetsState.widgetStates.end()) {
             prev->second.isFocused = false;
             prev->second.focusStarted = false;
+            prev->second.textPointerSelecting = false;
+            prev->second.textPointerSelectionStarted = false;
+            clearTextSelection(prev->second);
         }
         widgetsState.focusedWidgetId = kInvalidWidgetId;
     }
@@ -201,6 +204,21 @@ namespace Bess::Canvas::SceneWidgets::Detail {
 
     void clampCursor(WidgetState &state) {
         state.cursorPos = std::min(state.cursorPos, state.text.size());
+        state.selectionAnchorPos =
+            std::min(state.selectionAnchorPos, state.text.size());
+    }
+
+    void clearTextSelection(WidgetState &state) {
+        state.selectionAnchorPos = state.cursorPos;
+    }
+
+    bool hasTextSelection(const WidgetState &state) {
+        return state.selectionAnchorPos != state.cursorPos;
+    }
+
+    std::pair<size_t, size_t> textSelectionRange(const WidgetState &state) {
+        return {std::min(state.selectionAnchorPos, state.cursorPos),
+                std::max(state.selectionAnchorPos, state.cursorPos)};
     }
 
     void markTextChanged(WidgetState &state) {

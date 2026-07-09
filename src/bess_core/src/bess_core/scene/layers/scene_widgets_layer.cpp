@@ -85,8 +85,10 @@ namespace Bess::Canvas {
         if (data.action == MouseButtonAction::press ||
             data.action == MouseButtonAction::doubleClick) {
             if (isWidget) {
-                SceneWidgets::queuePress(
-                    ctx.sceneWidgetsState, evt.pickingId, data.pos);
+                SceneWidgets::queuePress(ctx.sceneWidgetsState,
+                                         evt.pickingId,
+                                         data.pos,
+                                         evt.isShiftPressed);
                 return EventResult::Consumed;
             }
 
