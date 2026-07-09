@@ -1046,7 +1046,6 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         JsonConvert::toJsonValue(m_inputSlotsInfo, json["inpSlotsInfo"]);
         JsonConvert::toJsonValue(m_outputSlotsInfo, json["outSlotsInfo"]);
-        JsonConvert::toJsonValue(m_behaviorType, json["behaviorType"]);
 
         if (m_opInfo.op != '0') {
             JsonConvert::toJsonValue(m_opInfo, json["opInfo"]);
