@@ -18,14 +18,6 @@
 #include <mutex>
 #include <thread>
 
-// #define BESS_ENABLE_LOG_EVENTS
-
-#ifdef BESS_ENABLE_LOG_EVENTS
-    #define BESS_LOG_EVENT(...) BESS_TRACE(__VA_ARGS__);
-#else
-    #define BESS_LOG_EVENT(...)
-#endif // !BESS_LOG_EVENT
-
 namespace Bess::SimEngine {
     void SimulationEngine::onInit() {
         loadDrivers();
