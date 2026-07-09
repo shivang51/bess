@@ -50,12 +50,16 @@ namespace Bess::Canvas {
                 state.getComponentByUuid<SimulationSceneComponent>(
                     slotComp->getParentComponent());
             if (!slotParentComp) {
+                BESS_WARN("Parent SimulationSceneComponent not found for "
+                          "SlotSceneComponent with UUID: {}",
+                          (uint64_t)slotComp->getUuid());
                 return false;
             }
 
             auto &appCtx = Bess::GAppContext::getInstance();
             auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
             if (!projectCtx) {
+                BESS_WARN("ProjectContext not found in AppContext");
                 return false;
             }
 
@@ -182,9 +186,6 @@ namespace Bess::Canvas {
                     m_inputCtrls[i] = addToggleBtn(ctx);
                 } else if (type == SimEngine::SignalKind::scalar) {
                     m_inputCtrls[i] = addTextBox(ctx);
-                    BESS_TRACE(
-                        "Added TextBox for scalar input control at index {}",
-                        i);
                 } else {
                     BESS_WARN("Unsupported signal kind for input control: {}",
                               (int)type);
@@ -323,7 +324,8 @@ namespace Bess::Canvas {
 
                 if (sigType == SimEngine::SignalKind::digital) {
                     setToggleCb(ctrl, context, slotUuid);
-                } else {
+                } else if (sigType == SimEngine::SignalKind::scalar) {
+                    setTextBoxCb(ctrl, context, slotUuid, sigType);
                 }
             }
 

@@ -1051,7 +1051,6 @@ namespace Bess::SimEngine::Drivers::Math {
 
         outDef->setSimFn([](const std::shared_ptr<MathCompSimData> &data) {
             data->simDependants = true;
-            BESS_TRACE("{}", data->inputStates[0].scalarValue);
             return data;
         });
 
