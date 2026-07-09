@@ -78,11 +78,11 @@ class PySimDriver : public Bess::SimEngine::Drivers::SimDriver {
                                     portB);
     }
 
-    Bess::SimEngine::Drivers::SlotsCountChangeRes
+    Bess::SimEngine::Drivers::PortCountChangeRes
     addPort(const Bess::SimEngine::PortRef &port,
             bool force = false) override {
         PYBIND11_OVERRIDE_PURE_NAME(
-            Bess::SimEngine::Drivers::SlotsCountChangeRes,
+            Bess::SimEngine::Drivers::PortCountChangeRes,
             Bess::SimEngine::Drivers::SimDriver,
             "add_port",
             addPort,
@@ -90,11 +90,11 @@ class PySimDriver : public Bess::SimEngine::Drivers::SimDriver {
             force);
     }
 
-    Bess::SimEngine::Drivers::SlotsCountChangeRes
+    Bess::SimEngine::Drivers::PortCountChangeRes
     removePort(const Bess::SimEngine::PortRef &port,
                bool force = false) override {
         PYBIND11_OVERRIDE_PURE_NAME(
-            Bess::SimEngine::Drivers::SlotsCountChangeRes,
+            Bess::SimEngine::Drivers::PortCountChangeRes,
             Bess::SimEngine::Drivers::SimDriver,
             "remove_port",
             removePort,
@@ -170,15 +170,15 @@ void bind_sim_engine_driver(py::module_ &m) {
         .value("PAUSED", SimDriverState::paused)
         .export_values();
 
-    py::class_<SlotsCountChangeRes>(m, "SlotsCountChangeRes")
+    py::class_<PortCountChangeRes>(m, "PortCountChangeRes")
         .def(py::init<>())
-        .def_static("no_change", &SlotsCountChangeRes::noChange)
-        .def_static("inp_changed", &SlotsCountChangeRes::inpChanged)
-        .def_static("out_changed", &SlotsCountChangeRes::outChanged)
-        .def_static("both_changed", &SlotsCountChangeRes::bothChanged)
-        .def_readwrite("changed_inp", &SlotsCountChangeRes::changedInp)
-        .def_readwrite("changed_out", &SlotsCountChangeRes::changedOut)
-        .def("has_change", &SlotsCountChangeRes::hasChange);
+        .def_static("no_change", &PortCountChangeRes::noChange)
+        .def_static("inputs_changed", &PortCountChangeRes::inputsChanged)
+        .def_static("outputs_changed", &PortCountChangeRes::outputsChanged)
+        .def_static("both_changed", &PortCountChangeRes::bothChanged)
+        .def_readwrite("changed_inputs", &PortCountChangeRes::changedInputs)
+        .def_readwrite("changed_outputs", &PortCountChangeRes::changedOutputs)
+        .def("has_change", &PortCountChangeRes::hasChange);
 
     py::class_<SimFnDataBase, std::shared_ptr<SimFnDataBase>>(m, "SimFnData")
         .def(py::init<>())

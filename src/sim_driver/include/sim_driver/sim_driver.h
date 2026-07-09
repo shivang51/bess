@@ -83,28 +83,28 @@ namespace Bess::SimEngine::Drivers {
     typedef std::function<void(const UUID &, PortDirection, SignalKind, int)>
         PortCountChangeCB;
 
-    struct SlotsCountChangeRes {
-        bool changedInp = false;
-        bool changedOut = false;
+    struct PortCountChangeRes {
+        bool changedInputs = false;
+        bool changedOutputs = false;
 
-        static SlotsCountChangeRes noChange() {
-            return SlotsCountChangeRes{false, false};
+        static PortCountChangeRes noChange() {
+            return PortCountChangeRes{false, false};
         }
 
-        static SlotsCountChangeRes inpChanged() {
-            return SlotsCountChangeRes{true, false};
+        static PortCountChangeRes inputsChanged() {
+            return PortCountChangeRes{true, false};
         }
 
-        static SlotsCountChangeRes outChanged() {
-            return SlotsCountChangeRes{false, true};
+        static PortCountChangeRes outputsChanged() {
+            return PortCountChangeRes{false, true};
         }
 
-        static SlotsCountChangeRes bothChanged() {
-            return SlotsCountChangeRes{true, true};
+        static PortCountChangeRes bothChanged() {
+            return PortCountChangeRes{true, true};
         }
 
         bool hasChange() const {
-            return changedInp || changedOut;
+            return changedInputs || changedOutputs;
         }
     };
 
@@ -161,11 +161,11 @@ namespace Bess::SimEngine::Drivers {
         virtual void deleteConnection(const PortRef &portA,
                                       const PortRef &portB) = 0;
 
-        virtual SlotsCountChangeRes addPort(const PortRef &port,
-                                            bool force = false) = 0;
+        virtual PortCountChangeRes addPort(const PortRef &port,
+                                           bool force = false) = 0;
 
-        virtual SlotsCountChangeRes removePort(const PortRef &port,
-                                               bool force = false) = 0;
+        virtual PortCountChangeRes removePort(const PortRef &port,
+                                              bool force = false) = 0;
 
         virtual ConnectionBundle getConnections(const UUID &uuid) const;
 
@@ -218,7 +218,7 @@ namespace Bess::SimEngine::Drivers {
 
         virtual void onDestroy() {};
 
-        void triggerSlotCountChangeCbs(const UUID &compId,
+        void triggerPortCountChangeCbs(const UUID &compId,
                                        PortDirection direction,
                                        SignalKind signalKind,
                                        int newCount);
@@ -289,6 +289,6 @@ namespace Bess::SimEngine::Drivers {
         mutable std::mutex m_stateMutex;
 
         CompStampData m_compStampData;
-        std::unordered_map<UUID, PortCountChangeCB> m_onPortCountChnageCBs;
+        std::unordered_map<UUID, PortCountChangeCB> m_onPortCountChangeCBs;
     };
 } // namespace Bess::SimEngine::Drivers

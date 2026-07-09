@@ -467,7 +467,7 @@ namespace Bess::SimEngine {
                 if (!res.hasChange())
                     return false;
 
-                if (res.changedInp) {
+                if (res.changedInputs) {
                     Events::CompDefInputsResizedEvent event{port.componentId};
                     auto &appCtx = GAppContext::getInstance();
                     auto eventDispatcher =
@@ -476,7 +476,7 @@ namespace Bess::SimEngine {
                     eventDispatcher->queue(event);
                 }
 
-                if (res.changedOut) {
+                if (res.changedOutputs) {
                     Events::CompDefOutputsResizedEvent event{port.componentId};
                     auto &appCtx = GAppContext::getInstance();
                     auto eventDispatcher =
@@ -499,7 +499,7 @@ namespace Bess::SimEngine {
                 if (!res.hasChange())
                     return false;
 
-                if (res.changedInp) {
+                if (res.changedInputs) {
                     Events::CompDefInputsResizedEvent event{port.componentId};
                     auto &appCtx = GAppContext::getInstance();
                     auto eventDispatcher =
@@ -508,7 +508,7 @@ namespace Bess::SimEngine {
                     eventDispatcher->queue(event);
                 }
 
-                if (res.changedOut) {
+                if (res.changedOutputs) {
                     Events::CompDefOutputsResizedEvent event{port.componentId};
                     auto &appCtx = GAppContext::getInstance();
                     auto eventDispatcher =

@@ -169,10 +169,10 @@ namespace Bess::SimEngine::Drivers::Digital {
                                                      : SlotsGroupType::output;
         }
 
-        SlotsCountChangeRes changeResFor(PortDirection direction) {
+        PortCountChangeRes changeResFor(PortDirection direction) {
             return direction == PortDirection::input
-                       ? SlotsCountChangeRes::inpChanged()
-                       : SlotsCountChangeRes::outChanged();
+                       ? PortCountChangeRes::inputsChanged()
+                       : PortCountChangeRes::outputsChanged();
         }
 
         bool isSupportedDigitalPort(const PortRef &port) {
@@ -556,10 +556,10 @@ namespace Bess::SimEngine::Drivers::Digital {
         BESS_INFO("Deleted connection in DigitalSimDriver");
     }
 
-    SlotsCountChangeRes DigitalSimDriver::addPort(const PortRef &port,
-                                                  bool force) {
+    PortCountChangeRes DigitalSimDriver::addPort(const PortRef &port,
+                                                 bool force) {
         if (!isSupportedDigitalPort(port)) {
-            return SlotsCountChangeRes::noChange();
+            return PortCountChangeRes::noChange();
         }
 
         const auto compId = port.componentId;
@@ -571,7 +571,7 @@ namespace Bess::SimEngine::Drivers::Digital {
             BESS_WARN(
                 "(DigitalSimDriver.addPort) Component with UUID {} not found",
                 (uint64_t)compId);
-            return SlotsCountChangeRes::noChange();
+            return PortCountChangeRes::noChange();
         }
 
         const auto digDef = digComp->getDefinition<DigCompDef>();
@@ -579,7 +579,7 @@ namespace Bess::SimEngine::Drivers::Digital {
             BESS_WARN("(DigitalSimDriver.addPort) Component definition for "
                       "component with UUID {} is not a DigCompDef",
                       (uint64_t)compId);
-            return SlotsCountChangeRes::noChange();
+            return PortCountChangeRes::noChange();
         }
 
         auto info = isInput ? digDef->getInputSlotsInfo()
@@ -590,7 +590,7 @@ namespace Bess::SimEngine::Drivers::Digital {
                       "component with UUID {} are not resizeable",
                       isInput ? "input" : "output",
                       (uint64_t)compId);
-            return SlotsCountChangeRes::noChange();
+            return PortCountChangeRes::noChange();
         }
 
         if (!force &&
@@ -599,7 +599,7 @@ namespace Bess::SimEngine::Drivers::Digital {
             BESS_WARN("(DigitalSimDriver.addPort) Component definition for "
                       "component with UUID {} rejected slot resize request",
                       (uint64_t)compId);
-            return SlotsCountChangeRes::noChange();
+            return PortCountChangeRes::noChange();
         }
 
         if (isInput) {
@@ -607,7 +607,7 @@ namespace Bess::SimEngine::Drivers::Digital {
             auto &connections = digComp->getInputConnections();
             auto &connected = digComp->getIsInputConnected();
             if (static_cast<size_t>(index) > states.size()) {
-                return SlotsCountChangeRes::noChange();
+                return PortCountChangeRes::noChange();
             }
             states.insert(states.begin() + static_cast<long>(index),
                           SlotState{});
@@ -639,7 +639,7 @@ namespace Bess::SimEngine::Drivers::Digital {
             auto &connections = digComp->getOutputConnections();
             auto &connected = digComp->getIsOutputConnected();
             if (static_cast<size_t>(index) > states.size()) {
-                return SlotsCountChangeRes::noChange();
+                return PortCountChangeRes::noChange();
             }
             states.insert(states.begin() + static_cast<long>(index),
                           SlotState{});
@@ -669,25 +669,25 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         digDef->computeExpressionsIfNeeded();
 
-        triggerSlotCountChangeCbs(
+        triggerPortCountChangeCbs(
             compId, direction, port.signalKind, (int)info.count);
 
         if (digDef->getKeepIOCountEq()) {
-            triggerSlotCountChangeCbs(compId,
+            triggerPortCountChangeCbs(compId,
                                       oppositeDirection(direction),
                                       port.signalKind,
                                       (int)info.count);
 
-            return SlotsCountChangeRes::bothChanged();
+            return PortCountChangeRes::bothChanged();
         }
 
         return changeResFor(direction);
     }
 
-    SlotsCountChangeRes DigitalSimDriver::removePort(const PortRef &port,
-                                                     bool force) {
+    PortCountChangeRes DigitalSimDriver::removePort(const PortRef &port,
+                                                    bool force) {
         if (!isSupportedDigitalPort(port)) {
-            return SlotsCountChangeRes::noChange();
+            return PortCountChangeRes::noChange();
         }
 
         const auto compId = port.componentId;
@@ -696,22 +696,22 @@ namespace Bess::SimEngine::Drivers::Digital {
         const bool isInput = port.isInput();
         const auto digComp = getComponent<DigSimComp>(compId);
         if (!digComp)
-            return SlotsCountChangeRes::noChange();
+            return PortCountChangeRes::noChange();
 
         const auto digDef = digComp->getDefinition<DigCompDef>();
         if (!digDef)
-            return SlotsCountChangeRes::noChange();
+            return PortCountChangeRes::noChange();
 
         auto info = isInput ? digDef->getInputSlotsInfo()
                             : digDef->getOutputSlotsInfo();
 
         if ((!force && !info.isResizeable) || info.count <= 0)
-            return SlotsCountChangeRes::noChange();
+            return PortCountChangeRes::noChange();
 
         if (!force &&
             !digDef->onSlotsResizeReq(slotsGroupTypeFor(direction),
                                       info.count - 1)) {
-            return SlotsCountChangeRes::noChange();
+            return PortCountChangeRes::noChange();
         }
 
         if (isInput) {
@@ -719,7 +719,7 @@ namespace Bess::SimEngine::Drivers::Digital {
             auto &connections = digComp->getInputConnections();
             auto &connected = digComp->getIsInputConnected();
             if (index < 0 || static_cast<size_t>(index) >= states.size()) {
-                return SlotsCountChangeRes::noChange();
+                return PortCountChangeRes::noChange();
             }
             if (static_cast<size_t>(index) < states.size())
                 states.erase(states.begin() + index);
@@ -754,7 +754,7 @@ namespace Bess::SimEngine::Drivers::Digital {
             auto &connections = digComp->getOutputConnections();
             auto &connected = digComp->getIsOutputConnected();
             if (index < 0 || static_cast<size_t>(index) >= states.size()) {
-                return SlotsCountChangeRes::noChange();
+                return PortCountChangeRes::noChange();
             }
             if (static_cast<size_t>(index) < states.size())
                 states.erase(states.begin() + index);
@@ -787,16 +787,16 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         digDef->computeExpressionsIfNeeded();
 
-        triggerSlotCountChangeCbs(
+        triggerPortCountChangeCbs(
             compId, direction, port.signalKind, (int)info.count);
 
         if (digDef->getKeepIOCountEq()) {
-            triggerSlotCountChangeCbs(compId,
+            triggerPortCountChangeCbs(compId,
                                       oppositeDirection(direction),
                                       port.signalKind,
                                       (int)info.count);
 
-            return SlotsCountChangeRes::bothChanged();
+            return PortCountChangeRes::bothChanged();
         }
 
         return changeResFor(direction);

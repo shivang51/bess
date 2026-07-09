@@ -224,10 +224,10 @@ namespace Bess::SimEngine::Drivers::Digital {
         void deleteConnection(const PortRef &portA,
                               const PortRef &portB) override;
 
-        SlotsCountChangeRes addPort(const PortRef &port,
-                                    bool force = false) override;
-        SlotsCountChangeRes removePort(const PortRef &port,
-                                       bool force = false) override;
+        PortCountChangeRes addPort(const PortRef &port,
+                                   bool force = false) override;
+        PortCountChangeRes removePort(const PortRef &port,
+                                      bool force = false) override;
 
         ConnectionBundle getConnections(const UUID &uuid) const override;
         std::vector<UUID> getDependants(const UUID &id) override;

@@ -204,7 +204,7 @@ namespace Bess::SimEngine::Drivers {
             return;
         }
 
-        m_onPortCountChnageCBs.clear();
+        m_onPortCountChangeCBs.clear();
 
         onDestroy();
         std::lock_guard lk(m_stateMutex);
@@ -219,18 +219,18 @@ namespace Bess::SimEngine::Drivers {
 
     void SimDriver::addOnPortCountChangeCB(const UUID &id,
                                            const PortCountChangeCB &cb) {
-        m_onPortCountChnageCBs[id] = cb;
+        m_onPortCountChangeCBs[id] = cb;
     }
 
     void SimDriver::removeOnPortCountChangeCB(const UUID &id) {
-        m_onPortCountChnageCBs.erase(id);
+        m_onPortCountChangeCBs.erase(id);
     }
 
-    void SimDriver::triggerSlotCountChangeCbs(const UUID &compId,
+    void SimDriver::triggerPortCountChangeCbs(const UUID &compId,
                                               PortDirection direction,
                                               SignalKind signalKind,
                                               int newCount) {
-        for (const auto &[id, cb] : m_onPortCountChnageCBs) {
+        for (const auto &[id, cb] : m_onPortCountChangeCBs) {
             cb(compId, direction, signalKind, newCount);
         }
     }

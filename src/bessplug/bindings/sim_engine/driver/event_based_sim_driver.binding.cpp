@@ -82,11 +82,11 @@ class PyEvtBasedSimDriver : public Bess::SimEngine::Drivers::EvtBasedSimDriver {
                                     portB);
     }
 
-    Bess::SimEngine::Drivers::SlotsCountChangeRes
+    Bess::SimEngine::Drivers::PortCountChangeRes
     addPort(const Bess::SimEngine::PortRef &port,
             bool force = false) override {
         PYBIND11_OVERRIDE_PURE_NAME(
-            Bess::SimEngine::Drivers::SlotsCountChangeRes,
+            Bess::SimEngine::Drivers::PortCountChangeRes,
             Bess::SimEngine::Drivers::EvtBasedSimDriver,
             "add_port",
             addPort,
@@ -94,11 +94,11 @@ class PyEvtBasedSimDriver : public Bess::SimEngine::Drivers::EvtBasedSimDriver {
             force);
     }
 
-    Bess::SimEngine::Drivers::SlotsCountChangeRes
+    Bess::SimEngine::Drivers::PortCountChangeRes
     removePort(const Bess::SimEngine::PortRef &port,
                bool force = false) override {
         PYBIND11_OVERRIDE_PURE_NAME(
-            Bess::SimEngine::Drivers::SlotsCountChangeRes,
+            Bess::SimEngine::Drivers::PortCountChangeRes,
             Bess::SimEngine::Drivers::EvtBasedSimDriver,
             "remove_port",
             removePort,
