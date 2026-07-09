@@ -92,6 +92,10 @@ namespace Bess::SimEngine::Drivers {
         UUID addComponent(const std::shared_ptr<SimComponent> &comp,
                           bool scheduleSim) override;
 
+        void deleteComponent(const UUID &uuid) override;
+
+        void clearComponents() override;
+
         virtual std::vector<UUID> getDependants(const UUID &id);
 
         virtual std::vector<PortState> collapseInputs(const UUID &id);
@@ -118,6 +122,10 @@ namespace Bess::SimEngine::Drivers {
         TimeNs getCurrentSimTime() const;
 
       private:
+        void prepareRunStartLocked();
+
+        void scheduleDeferredRunStartEvents();
+
         void simulateEvts(const std::vector<SimEvt> &evts);
 
         void scheduleEvtLocked(const UUID &compId,
@@ -139,6 +147,8 @@ namespace Bess::SimEngine::Drivers {
         mutable std::mutex m_runIterMutex;
         mutable std::mutex m_eventsMutex;
         std::set<SimEvt> m_events;
+        HashSet<UUID> m_runStartScheduledCompIds;
+        std::vector<UUID> m_deferredRunStartCompIds;
     };
 
 } // namespace Bess::SimEngine::Drivers

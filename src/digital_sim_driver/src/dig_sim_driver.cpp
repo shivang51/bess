@@ -360,7 +360,7 @@ namespace Bess::SimEngine::Drivers::Digital {
     void DigitalSimDriver::deleteComponent(const UUID &uuid) {
         const auto comp = getComponent<DigSimComp>(uuid);
         if (!comp) {
-            SimDriver::deleteComponent(uuid);
+            EvtBasedSimDriver::deleteComponent(uuid);
             return;
         }
 
@@ -401,11 +401,11 @@ namespace Bess::SimEngine::Drivers::Digital {
             m_isNetUpdated = true;
         }
 
-        SimDriver::deleteComponent(uuid);
+        EvtBasedSimDriver::deleteComponent(uuid);
     }
 
     void DigitalSimDriver::clearComponents() {
-        SimDriver::clearComponents();
+        EvtBasedSimDriver::clearComponents();
         m_nets.clear();
         m_isNetUpdated = true;
     }

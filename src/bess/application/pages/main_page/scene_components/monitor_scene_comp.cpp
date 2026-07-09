@@ -1689,6 +1689,16 @@ namespace Bess::Canvas {
                 }
 
                 auto &probeData = m_probeData[slotUuid];
+
+                if (!probeData.empty() &&
+                    probeData.back().first > slotState.lastChangeTime) {
+                    // If the last recorded time is greater than the new time,
+                    // clear all the probe data
+                    m_probeData.clear();
+                    m_viewEndTimeSeconds = 0.0;
+                    m_viewTimeSpanSeconds = 0.0;
+                }
+
                 const float numericValue =
                     static_cast<float>(slotState.getNumericValue());
                 if (!probeData.empty() &&

@@ -554,7 +554,7 @@ namespace Bess::SimEngine::Drivers::Math {
     void MathSimDriver::deleteComponent(const UUID &uuid) {
         const auto comp = getComponent<MathSimComp>(uuid);
         if (!comp) {
-            SimDriver::deleteComponent(uuid);
+            EvtBasedSimDriver::deleteComponent(uuid);
             return;
         }
 
@@ -595,11 +595,11 @@ namespace Bess::SimEngine::Drivers::Math {
             m_isNetUpdated = true;
         }
 
-        SimDriver::deleteComponent(uuid);
+        EvtBasedSimDriver::deleteComponent(uuid);
     }
 
     void MathSimDriver::clearComponents() {
-        SimDriver::clearComponents();
+        EvtBasedSimDriver::clearComponents();
         m_nets.clear();
         m_isNetUpdated = true;
     }

@@ -371,13 +371,7 @@ namespace Bess::Canvas {
                 state->getComponentByUuid<SlotSceneComponent>(slotUuid);
             if (slotComp) {
                 const auto slotState = slotComp->getSlotState(*state);
-                BESS_TRACE("Slot {} state: isScalar={}, scalarValue={}",
-                           (uint64_t)slotUuid,
-                           slotState.isScalar(),
-                           slotState.scalarValue);
                 if (slotState.isScalar()) {
-                    BESS_TRACE("Setting TextBox value to {}",
-                               slotState.scalarValue);
                     textBox->setValue(std::to_string(slotState.scalarValue));
                 }
             }

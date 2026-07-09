@@ -49,14 +49,21 @@ namespace Bess::SimEngine::Drivers {
     }
 
     void EvtBasedSimDriver::run() {
-        onBeforeRun();
-
         BESS_ASSERT(isInitialized(),
                     "SimDriver must be initialized before running");
         BESS_ASSERT(!isDestroyed(), "SimDriver was destroyed, cannot run");
 
-        setState(SimDriverState::running);
-        m_currentSimTime = TimeNs(0);
+        {
+            std::lock_guard lk(m_runIterMutex);
+            {
+                std::lock_guard stateLock(m_stateMutex);
+                m_state = SimDriverState::running;
+            }
+            prepareRunStartLocked();
+        }
+
+        onBeforeRun();
+        m_runIterCv.notify_all();
 
         while (!isStopped()) {
             {
@@ -87,6 +94,7 @@ namespace Bess::SimEngine::Drivers {
             }
 
             simulateEvts(evtsToSim);
+            scheduleDeferredRunStartEvents();
         }
     }
 
@@ -99,20 +107,74 @@ namespace Bess::SimEngine::Drivers {
                     "EvtBasedSimDriver only supports components of "
                     "type EvtBasedSimComp");
 
-        SimDriver::addComponent(comp, scheduleSim);
+        bool notify = false;
 
-        if (scheduleSim) {
-            BESS_DEBUG(
-                "Scheduling initial event for component {} at time {}ns",
-                (uint64_t)comp->getUuid(),
-                (m_currentSimTime + compCasted->getSelfSimDelay()).count());
-            scheduleEvt(comp->getUuid(),
-                        m_currentSimTime + compCasted->getSelfSimDelay(),
-                        UUID::null,
-                        true);
+        {
+            std::lock_guard lk(m_runIterMutex);
+            SimDriver::addComponent(comp, scheduleSim);
+
+            if (scheduleSim) {
+                m_runStartScheduledCompIds.insert(comp->getUuid());
+            } else {
+                m_runStartScheduledCompIds.erase(comp->getUuid());
+            }
+
+            bool driverActive = false;
+            {
+                std::lock_guard stateLock(m_stateMutex);
+                driverActive = m_state == SimDriverState::running ||
+                               m_state == SimDriverState::paused;
+            }
+
+            const bool shouldScheduleNow = scheduleSim && driverActive;
+            if (shouldScheduleNow) {
+                std::lock_guard evtsLock(m_eventsMutex);
+                BESS_DEBUG(
+                    "Scheduling initial event for component {} at time {}ns",
+                    (uint64_t)comp->getUuid(),
+                    (m_currentSimTime + compCasted->getSelfSimDelay()).count());
+                scheduleEvtLocked(comp->getUuid(),
+                                  m_currentSimTime +
+                                      compCasted->getSelfSimDelay(),
+                                  UUID::null);
+                notify = true;
+            }
+        }
+
+        if (notify) {
+            m_runIterCv.notify_all();
         }
 
         return comp->getUuid();
+    }
+
+    void EvtBasedSimDriver::deleteComponent(const UUID &uuid) {
+        {
+            std::lock_guard lk(m_runIterMutex);
+            m_runStartScheduledCompIds.erase(uuid);
+            std::erase(m_deferredRunStartCompIds, uuid);
+
+            std::lock_guard evtsLock(m_eventsMutex);
+            std::erase_if(m_events, [&](const SimEvt &evt) {
+                return evt.compId == uuid || evt.schedulerId == uuid;
+            });
+        }
+
+        SimDriver::deleteComponent(uuid);
+    }
+
+    void EvtBasedSimDriver::clearComponents() {
+        {
+            std::lock_guard lk(m_runIterMutex);
+            m_runStartScheduledCompIds.clear();
+            m_deferredRunStartCompIds.clear();
+
+            std::lock_guard evtsLock(m_eventsMutex);
+            m_events.clear();
+        }
+
+        SimDriver::clearComponents();
+        m_runIterCv.notify_all();
     }
 
     std::vector<UUID> EvtBasedSimDriver::getDependants(const UUID &id) {
@@ -191,8 +253,99 @@ namespace Bess::SimEngine::Drivers {
 
     void EvtBasedSimDriver::clearPendingEvents() {
         std::lock_guard lk(m_runIterMutex);
+        m_deferredRunStartCompIds.clear();
         std::lock_guard evtsLock(m_eventsMutex);
         m_events.clear();
+        m_runIterCv.notify_all();
+    }
+
+    void EvtBasedSimDriver::prepareRunStartLocked() {
+        std::vector<UUID> selfScheduledCompIds;
+        std::vector<UUID> initiallyScheduledCompIds;
+        m_deferredRunStartCompIds.clear();
+
+        {
+            std::lock_guard compLock(m_compMapMutex);
+            for (const auto &[compId, compBase] : m_components) {
+                const auto comp =
+                    std::dynamic_pointer_cast<EvtBasedSimComp>(compBase);
+                if (!comp) {
+                    continue;
+                }
+
+                if (comp->getSimSelf()) {
+                    selfScheduledCompIds.emplace_back(compId);
+                } else if (m_runStartScheduledCompIds.contains(compId)) {
+                    initiallyScheduledCompIds.emplace_back(compId);
+                }
+            }
+        }
+
+        const auto sortByUuid = [](std::vector<UUID> &ids) {
+            std::ranges::sort(ids, [](const UUID &a, const UUID &b) {
+                return static_cast<uint64_t>(a) < static_cast<uint64_t>(b);
+            });
+        };
+        sortByUuid(selfScheduledCompIds);
+        sortByUuid(initiallyScheduledCompIds);
+
+        m_currentSimTime = TimeNs(0);
+
+        std::lock_guard evtsLock(m_eventsMutex);
+        m_events.clear();
+
+        for (const auto &compId : selfScheduledCompIds) {
+            scheduleEvtLocked(compId, m_currentSimTime, UUID::null);
+        }
+
+        if (!selfScheduledCompIds.empty()) {
+            m_deferredRunStartCompIds = std::move(initiallyScheduledCompIds);
+            return;
+        }
+
+        for (const auto &compId : initiallyScheduledCompIds) {
+            scheduleEvtLocked(compId, m_currentSimTime, UUID::null);
+        }
+    }
+
+    void EvtBasedSimDriver::scheduleDeferredRunStartEvents() {
+        std::vector<UUID> deferredCompIds;
+
+        {
+            std::lock_guard lk(m_runIterMutex);
+            if (m_deferredRunStartCompIds.empty()) {
+                return;
+            }
+
+            deferredCompIds = std::move(m_deferredRunStartCompIds);
+            m_deferredRunStartCompIds.clear();
+
+            {
+                std::lock_guard compLock(m_compMapMutex);
+                std::erase_if(deferredCompIds, [&](const UUID &compId) {
+                    return !m_components.contains(compId);
+                });
+            }
+
+            if (deferredCompIds.empty()) {
+                return;
+            }
+
+            HashSet<UUID> pendingCompIds;
+            std::lock_guard evtsLock(m_eventsMutex);
+            for (const auto &evt : m_events) {
+                pendingCompIds.insert(evt.compId);
+            }
+
+            for (const auto &compId : deferredCompIds) {
+                if (pendingCompIds.contains(compId)) {
+                    continue;
+                }
+
+                scheduleEvtLocked(compId, m_currentSimTime, UUID::null);
+            }
+        }
+
         m_runIterCv.notify_all();
     }
 
