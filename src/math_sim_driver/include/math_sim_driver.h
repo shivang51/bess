@@ -16,7 +16,7 @@
 
 namespace Bess::SimEngine::Drivers::Math {
 
-    enum class MathOpKind : uint8_t { none, add, subtract, multiply };
+    enum class MathOpKind : uint8_t { none, add, subtract, multiply, pow };
 
     struct MathCompState {
         std::vector<PortState> inputStates;

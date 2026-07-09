@@ -382,6 +382,14 @@ namespace Bess::SimEngine::Drivers::Math {
                 return result;
             });
             return true;
+        case MathOpKind::pow:
+            setScalarFn([](TimeMs, const std::vector<double> &values) {
+                if (values.size() < 2) {
+                    return 1.0;
+                }
+                return std::pow(values[0], values[1]);
+            });
+            return true;
         case MathOpKind::none:
             break;
         }
@@ -1056,6 +1064,9 @@ namespace Bess::SimEngine::Drivers::Math {
         catalog.registerComponent(MathCompDef::makeBinaryOp(
             "Multiply", "Maths", MathOpKind::multiply));
 
+        catalog.registerComponent(
+            MathCompDef::makeBinaryOp("Power", "Maths", MathOpKind::pow));
+
         const auto inpDef = std::make_shared<MathCompDef>();
         inpDef->setName("Scalar Input");
         inpDef->setGroupName("IO");
@@ -1100,11 +1111,59 @@ namespace Bess::SimEngine::Drivers::Math {
         catalog.registerComponent(outDef);
 
         auto fnDef = MathCompDef::makeFunction(
-            "Sine",
+            "Sine (sin(F*t))",
             "Maths",
             [](TimeMs time, const std::vector<double> &values) {
-                return std::sin(time.count() / 1000.0);
+                const auto freq = values.empty() ? 1.0 : values[0];
+                const auto t = time.count() / 1000.0;
+                return std::sin(t * freq);
             });
+
+        fnDef->setInputPortDescriptor(
+            scalarPortDescriptor(PortDirection::input,
+                                 1,
+                                 std::vector<std::string>{
+                                     "F",
+                                 },
+                                 false));
+
+        catalog.registerComponent(fnDef);
+
+        fnDef = MathCompDef::makeFunction(
+            "Cosine (cos(F*t))",
+            "Maths",
+            [](TimeMs time, const std::vector<double> &values) {
+                const auto freq = values.empty() ? 1.0 : values[0];
+                const auto t = time.count() / 1000.0;
+                return std::cos(t * freq);
+            });
+
+        fnDef->setInputPortDescriptor(
+            scalarPortDescriptor(PortDirection::input,
+                                 1,
+                                 std::vector<std::string>{
+                                     "F",
+                                 },
+                                 false));
+
+        catalog.registerComponent(fnDef);
+
+        fnDef = MathCompDef::makeFunction(
+            "Exp Decay (e^-xt)",
+            "Maths",
+            [](TimeMs time, const std::vector<double> &values) {
+                auto x = values.empty() ? 1.0 : values[0];
+                const auto t = time.count() / 1000.0;
+                return std::exp(-x * t);
+            });
+
+        fnDef->setInputPortDescriptor(
+            scalarPortDescriptor(PortDirection::input,
+                                 1,
+                                 std::vector<std::string>{
+                                     "X",
+                                 },
+                                 false));
 
         catalog.registerComponent(fnDef);
     }
