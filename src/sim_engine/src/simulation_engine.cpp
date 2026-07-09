@@ -245,6 +245,12 @@ namespace Bess::SimEngine {
                   (uint64_t)uuid);
     }
 
+    void SimulationEngine::setInputPortState(const UUID &uuid,
+                                             int pinIdx,
+                                             LogicState state) {
+        setInputPortState(uuid, pinIdx, PortState::digital(state));
+    }
+
     const ComponentState &
     SimulationEngine::getComponentState(const UUID &uuid) {
         static thread_local ComponentState snapshot;
@@ -317,6 +323,12 @@ namespace Bess::SimEngine {
 
         stateLock.lock();
         m_stepFlag.store(false);
+    }
+
+    void SimulationEngine::setOutputPortState(const UUID &uuid,
+                                              int pinIdx,
+                                              LogicState state) {
+        setOutputPortState(uuid, pinIdx, PortState::digital(state));
     }
 
     SimulationState SimulationEngine::toggleStartStop() {

@@ -59,10 +59,9 @@ namespace Bess::SimEngine::Drivers::Digital {
                 ExprEval::evaluateExpression(expressions->at(i), states);
             changed =
                 changed || prevState.outputStates[i].isHigh() != newStateBool;
-            newOuts[i] =
-                PortState::digital(newStateBool ? LogicState::high
-                                                : LogicState::low,
-                                   simData->simTime);
+            newOuts[i] = PortState::digital(newStateBool ? LogicState::high
+                                                         : LogicState::low,
+                                            simData->simTime);
         }
 
         simData->simDependants = changed;
@@ -124,8 +123,7 @@ namespace Bess::SimEngine::Drivers::Digital {
             return def;
         }
 
-        Connections &connectionsFor(DigSimComp &comp,
-                                    PortDirection direction) {
+        Connections &connectionsFor(DigSimComp &comp, PortDirection direction) {
             return direction == PortDirection::input
                        ? comp.getInputConnections()
                        : comp.getOutputConnections();
@@ -144,8 +142,8 @@ namespace Bess::SimEngine::Drivers::Digital {
                                                      : comp.getOutputStates();
         }
 
-        const std::vector<PortState> &
-        statesFor(const DigSimComp &comp, PortDirection direction) {
+        const std::vector<PortState> &statesFor(const DigSimComp &comp,
+                                                PortDirection direction) {
             return direction == PortDirection::input ? comp.getInputStates()
                                                      : comp.getOutputStates();
         }
@@ -196,8 +194,7 @@ namespace Bess::SimEngine::Drivers::Digital {
             }
 
             connectedList[index] = connected;
-            if (!connected &&
-                static_cast<size_t>(index) < stateList.size()) {
+            if (!connected && static_cast<size_t>(index) < stateList.size()) {
                 stateList[index].connState = ConnectionState::high_z;
             } else if (connected &&
                        static_cast<size_t>(index) < stateList.size()) {
@@ -607,9 +604,8 @@ namespace Bess::SimEngine::Drivers::Digital {
             return PortCountChangeRes::noChange();
         }
 
-        if (!force &&
-            !digDef->onSlotsResizeReq(slotsGroupTypeFor(direction),
-                                      info.count + 1)) {
+        if (!force && !digDef->onSlotsResizeReq(slotsGroupTypeFor(direction),
+                                                info.count + 1)) {
             BESS_WARN("(DigitalSimDriver.addPort) Component definition for "
                       "component with UUID {} rejected slot resize request",
                       (uint64_t)compId);
@@ -722,9 +718,8 @@ namespace Bess::SimEngine::Drivers::Digital {
         if ((!force && !info.isResizeable) || info.count <= 0)
             return PortCountChangeRes::noChange();
 
-        if (!force &&
-            !digDef->onSlotsResizeReq(slotsGroupTypeFor(direction),
-                                      info.count - 1)) {
+        if (!force && !digDef->onSlotsResizeReq(slotsGroupTypeFor(direction),
+                                                info.count - 1)) {
             return PortCountChangeRes::noChange();
         }
 
@@ -1337,7 +1332,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         typedef std::shared_ptr<Drivers::Digital::DigCompSimData> TSimFnData;
 
         const auto inpDef = std::make_shared<Drivers::Digital::DigCompDef>();
-        inpDef->setName("Input");
+        inpDef->setName("Digital Input");
         inpDef->setGroupName("IO");
         inpDef->setBehaviorType(ComponentBehaviorType::input);
         inpDef->setOutputSlotsInfo({SlotsGroupType::output, true, 1, {}, {}});
@@ -1349,7 +1344,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         catalog.registerComponent(inpDef);
 
         const auto outDef = std::make_shared<Drivers::Digital::DigCompDef>();
-        outDef->setName("Output");
+        outDef->setName("Digital Output");
         outDef->setGroupName("IO");
         outDef->setBehaviorType(ComponentBehaviorType::output);
         outDef->setInputSlotsInfo(

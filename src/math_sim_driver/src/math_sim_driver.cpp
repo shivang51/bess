@@ -77,11 +77,12 @@ namespace Bess::SimEngine::Drivers::Math {
 
             std::shared_ptr<MathCompDef> def;
             if (!defName.empty()) {
-                const auto baseDef = ComponentCatalog::instance()
-                                         .getComponentDefinition(defName);
+                const auto baseDef =
+                    ComponentCatalog::instance().getComponentDefinition(
+                        defName);
                 if (baseDef) {
-                    def =
-                        std::dynamic_pointer_cast<MathCompDef>(baseDef->clone());
+                    def = std::dynamic_pointer_cast<MathCompDef>(
+                        baseDef->clone());
                 }
             }
 
@@ -89,11 +90,12 @@ namespace Bess::SimEngine::Drivers::Math {
                 def = std::make_shared<MathCompDef>();
             }
 
-            BESS_ASSERT(def,
-                        "Failed to load math component definition from JSON. No "
-                        "definition found for name '{}' and type '{}'",
-                        defName,
-                        defTypeName);
+            BESS_ASSERT(
+                def,
+                "Failed to load math component definition from JSON. No "
+                "definition found for name '{}' and type '{}'",
+                defName,
+                defTypeName);
             if (!def) {
                 def = std::make_shared<MathCompDef>();
             }
@@ -123,8 +125,8 @@ namespace Bess::SimEngine::Drivers::Math {
                                                      : comp.getOutputStates();
         }
 
-        const std::vector<PortState> &
-        statesFor(const MathSimComp &comp, PortDirection direction) {
+        const std::vector<PortState> &statesFor(const MathSimComp &comp,
+                                                PortDirection direction) {
             return direction == PortDirection::input ? comp.getInputStates()
                                                      : comp.getOutputStates();
         }
@@ -168,7 +170,8 @@ namespace Bess::SimEngine::Drivers::Math {
                 connected ? ConnectionState::driven : ConnectionState::high_z;
         }
 
-        bool stateChanged(const PortState &oldState, const PortState &newState) {
+        bool stateChanged(const PortState &oldState,
+                          const PortState &newState) {
             if (oldState.signalKind != newState.signalKind) {
                 return true;
             }
@@ -238,14 +241,13 @@ namespace Bess::SimEngine::Drivers::Math {
         };
     }
 
-    void MathCompDef::setInputPortDescriptor(
-        const PortDescriptor &descriptor) {
+    void MathCompDef::setInputPortDescriptor(const PortDescriptor &descriptor) {
         m_inputPorts = descriptor;
         m_inputPorts.direction = PortDirection::input;
     }
 
-    void MathCompDef::setOutputPortDescriptor(
-        const PortDescriptor &descriptor) {
+    void
+    MathCompDef::setOutputPortDescriptor(const PortDescriptor &descriptor) {
         m_outputPorts = descriptor;
         m_outputPorts.direction = PortDirection::output;
     }
@@ -268,8 +270,8 @@ namespace Bess::SimEngine::Drivers::Math {
                 data->outputStates.resize(1);
             }
 
-            const auto next = PortState::scalar(fn ? fn(values) : 0.0,
-                                                data->simTime);
+            const auto next =
+                PortState::scalar(fn ? fn(values) : 0.0, data->simTime);
             const auto prev = data->prevState.outputStates.empty()
                                   ? PortState::scalar(0.0)
                                   : data->prevState.outputStates[0];
@@ -406,8 +408,9 @@ namespace Bess::SimEngine::Drivers::Math {
                                  const std::vector<PortState> &inputs) {
         const auto comp = getComponent<MathSimComp>(evt.compId);
         if (!comp) {
-            BESS_WARN("(MathSimDriver.simulate) Component with UUID {} not found",
-                      (uint64_t)evt.compId);
+            BESS_WARN(
+                "(MathSimDriver.simulate) Component with UUID {} not found",
+                (uint64_t)evt.compId);
             return false;
         }
 
@@ -469,11 +472,12 @@ namespace Bess::SimEngine::Drivers::Math {
             return nullptr;
         }
 
-        BESS_DEBUG("(MathSimDriver.createComp) Created component '{}' with UUID "
-                   "{} from definition '{}'",
-                   comp->getName(),
-                   (uint64_t)comp->getUuid(),
-                   def->getName());
+        BESS_DEBUG(
+            "(MathSimDriver.createComp) Created component '{}' with UUID "
+            "{} from definition '{}'",
+            comp->getName(),
+            (uint64_t)comp->getUuid(),
+            def->getName());
         return comp;
     }
 
@@ -613,7 +617,8 @@ namespace Bess::SimEngine::Drivers::Math {
         }
 
         const auto inputComp = getComponent<MathSimComp>(inputPort.componentId);
-        const auto outputComp = getComponent<MathSimComp>(outputPort.componentId);
+        const auto outputComp =
+            getComponent<MathSimComp>(outputPort.componentId);
         if (!inputComp || !outputComp) {
             return false;
         }
@@ -629,12 +634,11 @@ namespace Bess::SimEngine::Drivers::Math {
         if (!inputPins[inputPort.index].empty()) {
             const auto oldConnections = inputPins[inputPort.index];
             for (const auto &[oldOutputCompId, oldOutputIdx] : oldConnections) {
-                deleteConnection(
-                    {.componentId = oldOutputCompId,
-                     .direction = PortDirection::output,
-                     .signalKind = SignalKind::scalar,
-                     .index = oldOutputIdx},
-                    inputPort);
+                deleteConnection({.componentId = oldOutputCompId,
+                                  .direction = PortDirection::output,
+                                  .signalKind = SignalKind::scalar,
+                                  .index = oldOutputIdx},
+                                 inputPort);
             }
         }
 
@@ -643,10 +647,8 @@ namespace Bess::SimEngine::Drivers::Math {
         inputPins[inputPort.index].emplace_back(outputPort.componentId,
                                                 outputPort.index);
 
-        markPortConnection(*outputComp,
-                           PortDirection::output,
-                           outputPort.index,
-                           true);
+        markPortConnection(
+            *outputComp, PortDirection::output, outputPort.index, true);
         markPortConnection(
             *inputComp, PortDirection::input, inputPort.index, true);
 
@@ -701,10 +703,12 @@ namespace Bess::SimEngine::Drivers::Math {
         auto &portAConnections = pinsA[portA.index];
         auto &portBConnections = pinsB[portB.index];
         std::erase_if(portAConnections, [&](const auto &conn) {
-            return conn.first == portB.componentId && conn.second == portB.index;
+            return conn.first == portB.componentId &&
+                   conn.second == portB.index;
         });
         std::erase_if(portBConnections, [&](const auto &conn) {
-            return conn.first == portA.componentId && conn.second == portA.index;
+            return conn.first == portA.componentId &&
+                   conn.second == portA.index;
         });
 
         markPortConnection(
@@ -749,8 +753,10 @@ namespace Bess::SimEngine::Drivers::Math {
             def->setOutputPortDescriptor(descriptor);
         }
 
-        triggerPortCountChangeCbs(
-            port.componentId, port.direction, SignalKind::scalar, states.size());
+        triggerPortCountChangeCbs(port.componentId,
+                                  port.direction,
+                                  SignalKind::scalar,
+                                  states.size());
         return changeResFor(port.direction);
     }
 
@@ -773,7 +779,8 @@ namespace Bess::SimEngine::Drivers::Math {
         auto &states = statesFor(*comp, port.direction);
         auto &connections = connectionsFor(*comp, port.direction);
         auto &connected = connectedFor(*comp, port.direction);
-        if (port.index < 0 || static_cast<size_t>(port.index) >= states.size()) {
+        if (port.index < 0 ||
+            static_cast<size_t>(port.index) >= states.size()) {
             return PortCountChangeRes::noChange();
         }
 
@@ -789,8 +796,10 @@ namespace Bess::SimEngine::Drivers::Math {
             def->setOutputPortDescriptor(descriptor);
         }
 
-        triggerPortCountChangeCbs(
-            port.componentId, port.direction, SignalKind::scalar, states.size());
+        triggerPortCountChangeCbs(port.componentId,
+                                  port.direction,
+                                  SignalKind::scalar,
+                                  states.size());
         return changeResFor(port.direction);
     }
 
@@ -856,8 +865,8 @@ namespace Bess::SimEngine::Drivers::Math {
             }
 
             const auto &srcState = srcComp->getOutputStates()[srcSlotIdx];
-            collapsed[pinIdx] = srcState.isScalar() ? srcState
-                                                    : PortState::scalar(0.0);
+            collapsed[pinIdx] =
+                srcState.isScalar() ? srcState : PortState::scalar(0.0);
         }
 
         return collapsed;
@@ -971,8 +980,8 @@ namespace Bess::SimEngine::Drivers::Math {
                 }
 
                 const auto def = loadMathCompDef(compJson["def"]);
-                const auto comp =
-                    std::dynamic_pointer_cast<MathSimComp>(createComp(def, false));
+                const auto comp = std::dynamic_pointer_cast<MathSimComp>(
+                    createComp(def, false));
                 if (!comp) {
                     continue;
                 }
@@ -1003,14 +1012,45 @@ namespace Bess::SimEngine::Drivers::Math {
             MathCompDef::makeBinaryOp("Add", "Math", MathOpKind::add));
         catalog.registerComponent(MathCompDef::makeBinaryOp(
             "Subtract", "Math", MathOpKind::subtract));
+
+        const auto inpDef = std::make_shared<MathCompDef>();
+        inpDef->setName("Scalar Input");
+        inpDef->setGroupName("IO");
+        inpDef->setBehaviorType(ComponentBehaviorType::input);
+        inpDef->setInputPortDescriptor(
+            scalarPortDescriptor(PortDirection::input, 0));
+        inpDef->setOutputPortDescriptor(
+            scalarPortDescriptor(PortDirection::output,
+                                 1,
+                                 std::vector<std::string>{
+                                     "Y",
+                                 },
+                                 true));
+
+        catalog.registerComponent(inpDef);
+
+        const auto outDef = std::make_shared<MathCompDef>();
+        outDef->setName("Scalar Output");
+        outDef->setGroupName("IO");
+        outDef->setBehaviorType(ComponentBehaviorType::output);
+        outDef->setInputPortDescriptor(
+            scalarPortDescriptor(PortDirection::input,
+                                 1,
+                                 std::vector<std::string>{
+                                     "A",
+                                 },
+                                 true));
+        outDef->setOutputPortDescriptor(
+            scalarPortDescriptor(PortDirection::output, 0));
+
+        catalog.registerComponent(outDef);
     }
 
 } // namespace Bess::SimEngine::Drivers::Math
 
 namespace Bess::JsonConvert {
-    void
-    toJsonValue(Json::Value &json,
-                const Bess::SimEngine::Drivers::Math::MathSimComp &data) {
+    void toJsonValue(Json::Value &json,
+                     const Bess::SimEngine::Drivers::Math::MathSimComp &data) {
         json = data.toJson();
     }
 } // namespace Bess::JsonConvert

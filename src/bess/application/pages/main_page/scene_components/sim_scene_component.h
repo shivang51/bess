@@ -6,7 +6,6 @@
 #include "bess_core/scene/scene_state/components/scene_component_types.h"
 #include "bess_core/scene/scene_ui/controls/container_comp.h"
 #include "bess_core/scene/scene_ui/controls/label_comp.h"
-#include "bess_core/scene/scene_ui/layout.h"
 #include "bess_core/settings/viewport_theme.h"
 #include "common/bess_uuid.h"
 #include "scene_comp_types.h"
@@ -59,14 +58,11 @@ namespace Bess::Canvas {
 
             const auto inpDetails = compDef->getInputPortDescriptor();
             const auto outDetails = compDef->getOutputPortDescriptor();
-            const auto inputSignalKind =
-                inpDetails.signalKind == SimEngine::SignalKind::none
-                    ? SimEngine::SignalKind::digital
-                    : inpDetails.signalKind;
-            const auto outputSignalKind =
-                outDetails.signalKind == SimEngine::SignalKind::none
-                    ? SimEngine::SignalKind::digital
-                    : outDetails.signalKind;
+
+            BESS_ASSERT(inpDetails.signalKind != SimEngine::SignalKind::none,
+                        "Input signal kind cannot be none");
+            BESS_ASSERT(outDetails.signalKind != SimEngine::SignalKind::none,
+                        "Output signal kind cannot be none");
 
             int inSlotIdx = 0, outSlotIdx = 0;
             char inpCh = 'A', outCh = 'a';
@@ -91,7 +87,7 @@ namespace Bess::Canvas {
             if (inpDetails.isResizeable) {
                 auto slot = std::make_shared<SlotSceneComponent>();
                 slot->setPortDirection(SimEngine::PortDirection::input);
-                slot->setSignalKind(inputSignalKind);
+                slot->setSignalKind(inpDetails.signalKind);
                 slot->setResizeTrigger(true);
                 slot->setIndex(-1); // assign -1 for resize slots
                 sceneComp->addInputSlot(slot->getUuid(), false);
@@ -101,7 +97,7 @@ namespace Bess::Canvas {
             if (outDetails.isResizeable) {
                 auto slot = std::make_shared<SlotSceneComponent>();
                 slot->setPortDirection(SimEngine::PortDirection::output);
-                slot->setSignalKind(outputSignalKind);
+                slot->setSignalKind(outDetails.signalKind);
                 slot->setResizeTrigger(true);
                 slot->setIndex(-1); // assign -1 for resize slots
                 sceneComp->addOutputSlot(slot->getUuid(), false);
@@ -116,9 +112,6 @@ namespace Bess::Canvas {
         std::vector<std::shared_ptr<SlotSceneComponent>>
         createIOSlots(const SimEngine::PortDescriptor &inputDescriptor,
                       const SimEngine::PortDescriptor &outputDescriptor);
-
-        std::vector<std::shared_ptr<SlotSceneComponent>>
-        createIOSlots(size_t inputCount, size_t outputCount);
 
         void update(Bess::TimeMs timeStep, SceneState &state) override;
 

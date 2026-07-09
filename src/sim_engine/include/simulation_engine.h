@@ -82,8 +82,8 @@ namespace Bess::SimEngine {
                           bool overrideConn = false);
 
         // returns {canConnect, errorMessage}
-        std::pair<bool, std::string>
-        canConnectPorts(const PortRef &src, const PortRef &dst) const;
+        std::pair<bool, std::string> canConnectPorts(const PortRef &src,
+                                                     const PortRef &dst) const;
 
         void deleteComponent(const UUID &uuid);
 
@@ -94,20 +94,15 @@ namespace Bess::SimEngine {
         ConnectionBundle getConnections(const UUID &uuid);
         std::vector<PortState> getInputPortStates(UUID compId) const;
 
-        void setInputPortState(const UUID &uuid,
-                               int pinIdx,
-                               const PortState &state);
+        void
+        setInputPortState(const UUID &uuid, int pinIdx, const PortState &state);
         void setOutputPortState(const UUID &uuid,
                                 int pinIdx,
                                 const PortState &state);
 
-        void setInputPortState(const UUID &uuid, int pinIdx, LogicState state) {
-            setInputPortState(uuid, pinIdx, PortState::digital(state));
-        }
+        void setInputPortState(const UUID &uuid, int pinIdx, LogicState state);
 
-        void setOutputPortState(const UUID &uuid, int pinIdx, LogicState state) {
-            setOutputPortState(uuid, pinIdx, PortState::digital(state));
-        }
+        void setOutputPortState(const UUID &uuid, int pinIdx, LogicState state);
 
         SimulationState toggleStartStop();
         SimulationState togglePlayPause();

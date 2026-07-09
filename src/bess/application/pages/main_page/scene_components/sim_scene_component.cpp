@@ -913,9 +913,8 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
             std::dynamic_pointer_cast<SimEngine::Drivers::Digital::DigCompDef>(
                 compDef);
 
-        const bool isInput =
-            def &&
-            def->getBehaviorType() == SimEngine::ComponentBehaviorType::input;
+        const bool isInput = def && def->getBehaviorType() ==
+                                        SimEngine::ComponentBehaviorType::input;
 
         if (isInput) {
             return createNew<InputSceneComponent>(compDef);
@@ -1029,29 +1028,16 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         setSchematicScaleDirty();
     }
 
-    namespace {
-        SimEngine::SignalKind normalizedSignalKind(SimEngine::SignalKind kind) {
-            return kind == SimEngine::SignalKind::none
-                       ? SimEngine::SignalKind::digital
-                       : kind;
-        }
-    } // namespace
-
     std::vector<std::shared_ptr<SlotSceneComponent>>
     SimulationSceneComponent::createIOSlots(
         const SimEngine::PortDescriptor &inputDescriptor,
         const SimEngine::PortDescriptor &outputDescriptor) {
         std::vector<std::shared_ptr<SlotSceneComponent>> slots;
 
-        const auto inputSignalKind =
-            normalizedSignalKind(inputDescriptor.signalKind);
-        const auto outputSignalKind =
-            normalizedSignalKind(outputDescriptor.signalKind);
-
         for (size_t i = 0; i < inputDescriptor.count; i++) {
             auto slot = std::make_shared<SlotSceneComponent>();
             slot->setPortDirection(SimEngine::PortDirection::input);
-            slot->setSignalKind(inputSignalKind);
+            slot->setSignalKind(inputDescriptor.signalKind);
             slot->setResizeTrigger(false);
             slot->setIndex(static_cast<int>(i));
             m_inputSlots.push_back(slot->getUuid());
@@ -1061,7 +1047,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         for (size_t i = 0; i < outputDescriptor.count; i++) {
             auto slot = std::make_shared<SlotSceneComponent>();
             slot->setPortDirection(SimEngine::PortDirection::output);
-            slot->setSignalKind(outputSignalKind);
+            slot->setSignalKind(outputDescriptor.signalKind);
             slot->setResizeTrigger(false);
             slot->setIndex(static_cast<int>(i));
             m_outputSlots.push_back(slot->getUuid());
@@ -1069,19 +1055,6 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         }
 
         return slots;
-    }
-
-    std::vector<std::shared_ptr<SlotSceneComponent>>
-    SimulationSceneComponent::createIOSlots(size_t inputCount,
-                                            size_t outputCount) {
-        return createIOSlots({.direction = SimEngine::PortDirection::input,
-                              .signalKind = SimEngine::SignalKind::digital,
-                              .quantityKind = SimEngine::QuantityKind::logic,
-                              .count = inputCount},
-                             {.direction = SimEngine::PortDirection::output,
-                              .signalKind = SimEngine::SignalKind::digital,
-                              .quantityKind = SimEngine::QuantityKind::logic,
-                              .count = outputCount});
     }
 
     std::vector<SimEngine::LogicState>
