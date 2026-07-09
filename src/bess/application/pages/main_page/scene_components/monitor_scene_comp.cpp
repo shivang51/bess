@@ -15,6 +15,7 @@
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "simulation_engine.h"
+#include "ui/icons/FontAwesomeIcons_Remapped.h"
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -483,6 +484,7 @@ namespace Bess::Canvas {
     MonitorSceneComp::MonitorSceneComp() {
         m_name = "Monitor Node";
         m_transform.scale = {380.f, 220.f};
+        m_icon = ::Bess::UI::Icons::FontAwesomeIcons::FA_DISPLAY;
     }
 
     std::vector<std::shared_ptr<SceneComponent>>
@@ -1658,9 +1660,9 @@ namespace Bess::Canvas {
         auto &initialProbeData = m_probeData[slotUuid];
         if (initialProbeData.empty()) {
             const auto slotState = comp->getSlotState(sceneState);
-            initialProbeData.emplace_back(slotState.lastChangeTime,
-                                          static_cast<float>(
-                                              slotState.getNumericValue()));
+            initialProbeData.emplace_back(
+                slotState.lastChangeTime,
+                static_cast<float>(slotState.getNumericValue()));
         }
 
         digComp->addOnStateChangeCB(
