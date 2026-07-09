@@ -71,6 +71,7 @@ namespace Bess::Canvas::UI {
         bool m_pendingTextBoxFocus = false;
         std::optional<glm::vec2> m_pendingTextBoxFocusPos = std::nullopt;
         bool m_wasTextBoxFocused = false;
+        UUID m_focusedViewportId = UUID::null;
         std::string m_editValue;
         std::string m_originalValue;
     };

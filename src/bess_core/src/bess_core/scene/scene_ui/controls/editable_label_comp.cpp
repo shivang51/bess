@@ -79,6 +79,7 @@ namespace Bess::Canvas::UI {
             SceneWidgets::queueRelease(state.sceneWidgetsState, id, pointerPos);
             m_pendingTextBoxFocus = false;
             m_pendingTextBoxFocusPos = std::nullopt;
+            m_focusedViewportId = state.viewportId;
         }
 
         if (result.changed) {
@@ -95,12 +96,18 @@ namespace Bess::Canvas::UI {
             return;
         }
 
-        if (m_wasTextBoxFocused && !result.focused) {
-            commitEdit();
-            return;
+        if (result.focused) {
+            m_focusedViewportId = state.viewportId;
         }
 
-        m_wasTextBoxFocused = result.focused;
+        if ((uint64_t)m_focusedViewportId == state.viewportId) {
+            if (m_wasTextBoxFocused && !result.focused) {
+                commitEdit();
+                return;
+            }
+
+            m_wasTextBoxFocused = result.focused;
+        }
     }
 
     void EditableLabelComp::prepareUI(SceneUIPrepareCtx &state) {
@@ -158,6 +165,7 @@ namespace Bess::Canvas::UI {
         m_pendingTextBoxFocus = true;
         m_pendingTextBoxFocusPos = focusPos;
         m_wasTextBoxFocused = false;
+        m_focusedViewportId = UUID::null;
         makeUIDirty();
     }
 
