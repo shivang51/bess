@@ -1,8 +1,12 @@
+#include "bess_core/renderer/renderer_2d.h"
+#include "bess_core/scene/scene_state/scene_state.h"
+#include "bess_core/scene/scene_ui/controls/text_box_comp.h"
 #include "bess_core/scene/scene_ui/layout.h"
 #include "bess_core/style/bess_theme.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include <gtest/gtest.h>
+#include <memory>
 
 namespace {
     void expectVec2(const glm::vec2 &actual, float expectedX, float expectedY) {
@@ -23,6 +27,104 @@ namespace {
         node.setWidthFitContent();
         node.setHeightFitContent();
     }
+
+    class LayoutTestRenderer2D final
+        : public Bess::Core::Renderer::IRenderer2D {
+      public:
+        void init(const Bess::Core::Renderer::Renderer2DCreateInfo &) override {
+        }
+        void destroy() override {
+        }
+        void resize(const Bess::Core::Renderer::Renderer2DExtent &) override {
+        }
+        void
+        beginFrame(const Bess::Core::Renderer::Renderer2DFrameInfo &) override {
+        }
+        void endFrame() override {
+        }
+        void clear(const Bess::Core::Renderer::Color &) override {
+        }
+        void saveTargetToFile(const std::string &) override {
+        }
+        [[nodiscard]] Bess::Core::Renderer::Renderer2DStats
+        getStats() const noexcept override {
+            return {};
+        }
+        [[nodiscard]] Bess::Core::Renderer::TextureReadbackResult
+        readTexture(
+            const Bess::Core::Renderer::TextureReadbackRegion &) override {
+            return {};
+        }
+        void requestPickingIds(
+            const Bess::Core::Renderer::TextureReadbackRegion &) override {
+        }
+        [[nodiscard]] bool
+        tryGetPickingIds(Bess::Core::Renderer::PickingReadbackResult &) override {
+            return false;
+        }
+        [[nodiscard]] bool isPickingReadbackPending() const noexcept override {
+            return false;
+        }
+        void drawQuad(const Bess::Core::Renderer::QuadProps &) override {
+        }
+        [[nodiscard]] Bess::Core::Renderer::CustomQuadShaderHandle
+        createCustomQuadShader(
+            const Bess::Core::Renderer::CustomQuadShaderDesc &) override {
+            return 1;
+        }
+        void destroyCustomQuadShader(
+            Bess::Core::Renderer::CustomQuadShaderHandle) override {
+        }
+        void drawCustomQuad(
+            const Bess::Core::Renderer::CustomQuadProps &) override {
+        }
+        void drawCircle(const Bess::Core::Renderer::CircleProps &) override {
+        }
+        void drawLine(const Bess::Core::Renderer::LineProps &) override {
+        }
+        void drawFont(std::string_view,
+                      const Bess::Core::Renderer::FontProps & = {}) override {
+        }
+        [[nodiscard]] glm::vec2 measureText(
+            std::string_view text,
+            const Bess::Core::Renderer::FontProps &props = {}) override {
+            return getTextRenderSize(text, props);
+        }
+        [[nodiscard]] float
+        textCenterOffsetY(std::string_view,
+                          const Bess::Core::Renderer::FontProps &props = {})
+            override {
+            return props.fontSize * 0.35f;
+        }
+        void drawPath(
+            std::span<const Bess::Core::Renderer::PathCommand>,
+            const Bess::Core::Renderer::PathProps & = {}) override {
+        }
+        void beginPath(const Bess::Core::Renderer::PathProps & = {}) override {
+        }
+        void pathMoveTo(const glm::vec2 &) override {
+        }
+        void pathLineTo(
+            const glm::vec2 &,
+            const Bess::Core::Renderer::PathCommandStroke & = {}) override {
+        }
+        void pathQuadTo(
+            const glm::vec2 &,
+            const glm::vec2 &,
+            const Bess::Core::Renderer::PathCommandStroke & = {}) override {
+        }
+        void pathCubicTo(
+            const glm::vec2 &,
+            const glm::vec2 &,
+            const glm::vec2 &,
+            const Bess::Core::Renderer::PathCommandStroke & = {}) override {
+        }
+        void pathClose(
+            const Bess::Core::Renderer::PathCommandStroke & = {}) override {
+        }
+        void endPath() override {
+        }
+    };
 } // namespace
 
 class UiLayoutTests : public testing::Test {};
@@ -175,6 +277,49 @@ TEST_F(UiLayoutTests, UINodeMeasure) {
     expectVec2(worldSize, 120 + marginSize.x, 80 + marginSize.y);
 
     BESS_INFO("Checked min max size overrides");
+}
+
+TEST_F(UiLayoutTests, TextBoxPrepareUIRespectsSizeAndPadding) {
+    Bess::Canvas::SceneState sceneState;
+    const auto renderer = std::make_shared<LayoutTestRenderer2D>();
+    Bess::SceneUIPrepareCtx prepareCtx{
+        .sceneState = &sceneState,
+        .renderer = renderer,
+        .parentNode = nullptr,
+        .theme = Bess::Core::Style::BessTheme::defaultTheme(),
+    };
+
+    Bess::Canvas::UI::TextBoxComp fixedBox;
+    fixedBox.setValue("1234567890");
+    fixedBox.setTextBoxSize({80.f, 24.f});
+    fixedBox.getStyle().padding =
+        Bess::Core::Style::Padding::fromSymmetric(9.f, 4.f);
+    fixedBox.getStyle().margin = Bess::Core::Style::Margin(1.f, 2.f, 3.f, 4.f);
+
+    fixedBox.prepareUI(prepareCtx);
+    auto *fixedNode = fixedBox.getUINode();
+    ASSERT_NE(fixedNode, nullptr);
+    fixedNode->measure(*sceneState.getUINodeRegistry(), Bess::UUID::null);
+
+    expectVec2(fixedNode->getDrawSize(), 80.f, 24.f);
+    EXPECT_EQ(fixedNode->getPadding(), Bess::Core::Style::Padding::zero());
+    EXPECT_EQ(fixedNode->getMargin(),
+              Bess::Core::Style::Margin(1.f, 2.f, 3.f, 4.f));
+
+    Bess::Canvas::UI::TextBoxComp autoBox;
+    autoBox.setPlaceholder("abcdefghij");
+    autoBox.setTextBoxSize({0.f, 0.f});
+    autoBox.getStyle().fontSize = 10.f;
+    autoBox.getStyle().padding =
+        Bess::Core::Style::Padding::fromSymmetric(5.f, 3.f);
+
+    autoBox.prepareUI(prepareCtx);
+    auto *autoNode = autoBox.getUINode();
+    ASSERT_NE(autoNode, nullptr);
+    autoNode->measure(*sceneState.getUINodeRegistry(), Bess::UUID::null);
+
+    expectVec2(autoNode->getDrawSize(), 70.f, 16.f);
+    EXPECT_EQ(autoNode->getPadding(), Bess::Core::Style::Padding::zero());
 }
 
 TEST_F(UiLayoutTests, UINodeLayout) {

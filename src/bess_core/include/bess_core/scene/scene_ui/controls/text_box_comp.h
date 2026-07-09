@@ -48,7 +48,7 @@ namespace Bess::Canvas::UI {
 
         std::string m_value;
         std::string m_placeholder;
-        glm::vec2 m_textBoxSize{120.f, 0.f};
+        glm::vec2 m_textBoxSize{64.f, 0.f};
         size_t m_maxLength = 256;
         UITextBoxCallback m_changedCallback;
         UITextBoxCallback m_submittedCallback;
