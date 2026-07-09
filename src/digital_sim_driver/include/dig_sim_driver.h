@@ -42,7 +42,6 @@ namespace Bess::SimEngine::Drivers::Digital {
         MAKE_GETTER_SETTER(SlotsGroupInfo, InputSlotsInfo, m_inputSlotsInfo)
         MAKE_GETTER_SETTER(SlotsGroupInfo, OutputSlotsInfo, m_outputSlotsInfo)
         MAKE_GETTER_SETTER(OperatorInfo, OpInfo, m_opInfo)
-        MAKE_GETTER_SETTER(ComponentBehaviorType, BehaviorType, m_behaviorType)
         MAKE_GETTER_SETTER_WC(std::vector<std::string>,
                               OutputExpressions,
                               m_outputExpressions,
@@ -100,7 +99,6 @@ namespace Bess::SimEngine::Drivers::Digital {
       protected:
         SlotsGroupInfo m_inputSlotsInfo{}, m_outputSlotsInfo{};
         OperatorInfo m_opInfo{};
-        ComponentBehaviorType m_behaviorType = ComponentBehaviorType::none;
         std::vector<std::string> m_outputExpressions; // A+B or A.B etc.
         bool m_keepIOCountEq = false;
     };
@@ -218,8 +216,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         bool isSimStable() const override;
 
         std::pair<bool, std::string>
-        canConnectPorts(const PortRef &src,
-                        const PortRef &dst) const override;
+        canConnectPorts(const PortRef &src, const PortRef &dst) const override;
 
         bool connectPorts(const PortRef &src,
                           const PortRef &dst,

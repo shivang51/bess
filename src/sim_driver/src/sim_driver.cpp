@@ -10,6 +10,7 @@ namespace Bess::SimEngine::Drivers {
         json["groupName"] = m_groupName;
         json["typeName"] = getTypeName();
         json["name"] = m_name;
+        JsonConvert::toJsonValue(m_behaviorType, json["behaviorType"]);
         return json;
     }
 

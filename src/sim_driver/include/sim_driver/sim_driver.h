@@ -27,6 +27,7 @@ namespace Bess::SimEngine::Drivers {
         MAKE_GETTER_SETTER(std::string, Name, m_name)
         MAKE_GETTER_SETTER(std::string, GroupName, m_groupName)
         MAKE_VGETTER_VSETTER(SimFn, SimFn, m_simFn)
+        MAKE_GETTER_SETTER(ComponentBehaviorType, BehaviorType, m_behaviorType)
 
         virtual Json::Value toJson() const;
 
@@ -44,6 +45,7 @@ namespace Bess::SimEngine::Drivers {
         std::string m_name;
         std::string m_groupName;
         SimFn m_simFn = nullptr;
+        ComponentBehaviorType m_behaviorType = ComponentBehaviorType::none;
     };
 
     class SimComponent {
@@ -175,14 +177,14 @@ namespace Bess::SimEngine::Drivers {
 
         virtual std::vector<PortState> getInputPortStates(const UUID &compId);
 
-        virtual PortState
-        getPortState(const PortRef &port) const;
+        virtual PortState getPortState(const PortRef &port) const;
 
         virtual bool
         setInputPortState(const UUID &uuid, int pinIdx, const PortState &state);
 
-        virtual bool
-        setOutputPortState(const UUID &uuid, int pinIdx, const PortState &state);
+        virtual bool setOutputPortState(const UUID &uuid,
+                                        int pinIdx,
+                                        const PortState &state);
 
         virtual ComponentState getComponentState(const UUID &uuid) const;
 

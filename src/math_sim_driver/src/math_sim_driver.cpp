@@ -1016,6 +1016,12 @@ namespace Bess::SimEngine::Drivers::Math {
         const auto inpDef = std::make_shared<MathCompDef>();
         inpDef->setName("Scalar Input");
         inpDef->setGroupName("IO");
+
+        inpDef->setSimFn([](const std::shared_ptr<MathCompSimData> &data) {
+            data->simDependants = true;
+            return data;
+        });
+
         inpDef->setBehaviorType(ComponentBehaviorType::input);
         inpDef->setInputPortDescriptor(
             scalarPortDescriptor(PortDirection::input, 0));
@@ -1042,6 +1048,12 @@ namespace Bess::SimEngine::Drivers::Math {
                                  true));
         outDef->setOutputPortDescriptor(
             scalarPortDescriptor(PortDirection::output, 0));
+
+        outDef->setSimFn([](const std::shared_ptr<MathCompSimData> &data) {
+            data->simDependants = true;
+            BESS_TRACE("{}", data->inputStates[0].scalarValue);
+            return data;
+        });
 
         catalog.registerComponent(outDef);
     }

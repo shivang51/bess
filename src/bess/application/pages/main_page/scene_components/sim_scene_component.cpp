@@ -909,12 +909,8 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
     SimulationSceneComponent::createNew(
         const std::shared_ptr<SimEngine::Drivers::CompDef> &compDef) {
 
-        const auto def =
-            std::dynamic_pointer_cast<SimEngine::Drivers::Digital::DigCompDef>(
-                compDef);
-
-        const bool isInput = def && def->getBehaviorType() ==
-                                        SimEngine::ComponentBehaviorType::input;
+        const bool isInput = compDef->getBehaviorType() ==
+                             SimEngine::ComponentBehaviorType::input;
 
         if (isInput) {
             return createNew<InputSceneComponent>(compDef);

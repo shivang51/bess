@@ -49,7 +49,6 @@ namespace Bess::SimEngine::Drivers::Math {
 
         MAKE_GETTER_SETTER(MathOpKind, OpKind, m_opKind)
         MAKE_GETTER(TScalarFn, ScalarFn, m_scalarFn)
-        MAKE_GETTER_SETTER(ComponentBehaviorType, BehaviorType, m_behaviorType)
 
         void setInputPortDescriptor(const PortDescriptor &descriptor);
         void setOutputPortDescriptor(const PortDescriptor &descriptor);
@@ -72,7 +71,6 @@ namespace Bess::SimEngine::Drivers::Math {
         PortDescriptor m_outputPorts;
         MathOpKind m_opKind = MathOpKind::none;
         TScalarFn m_scalarFn = nullptr;
-        ComponentBehaviorType m_behaviorType = ComponentBehaviorType::none;
     };
 
     class MathSimComp : public EvtBasedSimComp {
