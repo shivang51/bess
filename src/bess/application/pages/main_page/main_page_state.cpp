@@ -50,10 +50,7 @@ namespace Bess::Pages {
                 isInput ? comp->getInputSlots() : comp->getOutputSlots();
             const auto direction = isInput ? SimEngine::PortDirection::input
                                            : SimEngine::PortDirection::output;
-            const auto signalKind =
-                portDescriptor.signalKind == SimEngine::SignalKind::none
-                    ? SimEngine::SignalKind::digital
-                    : portDescriptor.signalKind;
+            const auto signalKind = portDescriptor.signalKind;
 
             std::vector<UUID> realSlots;
             realSlots.reserve(slotIds.size());

@@ -177,13 +177,6 @@ void bind_sim_scene_component(py::module_ &m) {
 
     const auto setup = [](Bess::Canvas::SimulationSceneComponent &comp,
                           const TCompDefPtr &compDef) {
-        const auto normalizedSignalKind =
-            [](Bess::SimEngine::SignalKind kind) {
-                return kind == Bess::SimEngine::SignalKind::none
-                           ? Bess::SimEngine::SignalKind::digital
-                           : kind;
-            };
-
         comp.setCompDef(compDef);
         comp.setName(compDef->getName());
 
@@ -226,7 +219,7 @@ void bind_sim_scene_component(py::module_ &m) {
         if (inpDetails.isResizeable) {
             auto slot = std::make_shared<Bess::Canvas::SlotSceneComponent>();
             slot->setPortDirection(Bess::SimEngine::PortDirection::input);
-            slot->setSignalKind(normalizedSignalKind(inpDetails.signalKind));
+            slot->setSignalKind(inpDetails.signalKind);
             slot->setResizeTrigger(true);
             slot->setIndex(-1); // assign -1 for resize slots
             comp.addInputSlot(slot->getUuid(), false);
@@ -236,7 +229,7 @@ void bind_sim_scene_component(py::module_ &m) {
         if (outDetails.isResizeable) {
             auto slot = std::make_shared<Bess::Canvas::SlotSceneComponent>();
             slot->setPortDirection(Bess::SimEngine::PortDirection::output);
-            slot->setSignalKind(normalizedSignalKind(outDetails.signalKind));
+            slot->setSignalKind(outDetails.signalKind);
             slot->setResizeTrigger(true);
             slot->setIndex(-1); // assign -1 for resize slots
             comp.addOutputSlot(slot->getUuid(), false);

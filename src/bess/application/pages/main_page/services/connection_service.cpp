@@ -33,15 +33,10 @@ namespace Bess::Svc {
         void configureSlotPort(
             const std::shared_ptr<Canvas::SlotSceneComponent> &slot,
             bool isInput,
-            bool resizeTrigger = false,
-            SimEngine::SignalKind signalKind =
-                SimEngine::SignalKind::digital) {
+            bool resizeTrigger,
+            SimEngine::SignalKind signalKind) {
             if (!slot) {
                 return;
-            }
-
-            if (signalKind == SimEngine::SignalKind::none) {
-                signalKind = SimEngine::SignalKind::digital;
             }
 
             slot->setPortDirection(realPortDirectionFor(isInput));
@@ -294,15 +289,7 @@ namespace Bess::Svc {
                 return false;
             }
 
-            const auto slotSignalKind =
-                slot->getSignalKind() == SimEngine::SignalKind::none
-                    ? SimEngine::SignalKind::digital
-                    : slot->getSignalKind();
-            const auto descriptorSignalKind =
-                descriptor->signalKind == SimEngine::SignalKind::none
-                    ? SimEngine::SignalKind::digital
-                    : descriptor->signalKind;
-            return descriptorSignalKind == slotSignalKind &&
+            return descriptor->signalKind == slot->getSignalKind() &&
                    static_cast<size_t>(slot->getIndex()) < descriptor->count;
         };
 
@@ -674,14 +661,10 @@ namespace Bess::Svc {
             reindexRealSlots(sceneState, pairedSlots);
         }
 
-        const auto signalKind =
-            slot->getSignalKind() == SimEngine::SignalKind::none
-                ? SimEngine::SignalKind::digital
-                : slot->getSignalKind();
         getSimEngine().removePort(
             {.componentId = parent->getSimEngineId(),
              .direction = realPortDirectionFor(isInput),
-             .signalKind = signalKind,
+             .signalKind = slot->getSignalKind(),
              .index = removedIndex});
 
         reindexRealSlots(sceneState, slots);
@@ -751,11 +734,6 @@ namespace Bess::Svc {
         slot->setIndex(static_cast<int>(insertedIndex));
 
         reindexRealSlots(sceneState, slots);
-
-        const auto signalKind =
-            slot->getSignalKind() == SimEngine::SignalKind::none
-                ? SimEngine::SignalKind::digital
-                : slot->getSignalKind();
 
         bool needsSimSlot = true;
         std::shared_ptr<SimEngine::Drivers::Digital::DigCompDef> digDef;
@@ -874,7 +852,7 @@ namespace Bess::Svc {
             if (!getSimEngine().addPort(
                     {.componentId = parent->getSimEngineId(),
                      .direction = realPortDirectionFor(isInput),
-                     .signalKind = signalKind,
+                     .signalKind = slot->getSignalKind(),
                      .index = static_cast<int>(insertedIndex)})) {
                 if (!wasParentChild) {
                     parent->removeChildComponent(slot->getUuid());
@@ -1507,9 +1485,6 @@ namespace Bess::Svc {
                         port.index =
                             static_cast<int>(realSlotEnd(sceneState, slots));
                     }
-                }
-                if (port.signalKind == SimEngine::SignalKind::none) {
-                    port.signalKind = SimEngine::SignalKind::digital;
                 }
                 return port;
             };

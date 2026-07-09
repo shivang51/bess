@@ -8,12 +8,16 @@
 #include "bess_core/scene_driver.h"
 #include "dig_sim_driver.h"
 #include "event_dispatcher.h"
+#include "math_sim_driver.h"
 #include "pages/main_page/main_page_command_hooks.h"
 #include "pages/main_page/main_page_state.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
+#include "pages/main_page/scene_components/input_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
+#include "bess_core/scene/scene_ui/controls/text_box_comp.h"
+#include "bess_core/scene/scene_ui/controls/toggle_btn_comp.h"
 #include "simulation_engine.h"
 #include <algorithm>
 #include <gtest/gtest.h>
@@ -453,6 +457,136 @@ TEST_F(MainPageConnectionCommandsTest,
 
     fixture.comp->prepareUI(prepareCtx);
     EXPECT_FALSE(fixture.comp->getUIDirty());
+}
+
+TEST_F(MainPageConnectionCommandsTest,
+       InputResizeSlotCreatesControlForNewSlotSignalKind) {
+    auto definition =
+        Bess::SimEngine::Drivers::Math::MathCompDef::makeFunction(
+            "Scalar Input",
+            "Math",
+            [](Bess::TimeMs, const std::vector<double> &) { return 0.0; },
+            false);
+    definition->setBehaviorType(
+        Bess::SimEngine::ComponentBehaviorType::input);
+    definition->setInputPortDescriptor({
+        .direction = Bess::SimEngine::PortDirection::input,
+        .signalKind = Bess::SimEngine::SignalKind::scalar,
+        .quantityKind = Bess::SimEngine::QuantityKind::dimensionless,
+        .count = 0,
+    });
+    definition->setOutputPortDescriptor({
+        .direction = Bess::SimEngine::PortDirection::output,
+        .signalKind = Bess::SimEngine::SignalKind::scalar,
+        .quantityKind = Bess::SimEngine::QuantityKind::dimensionless,
+        .count = 1,
+        .names = {"x"},
+        .isResizeable = true,
+    });
+
+    const auto fixture = addSimComponent(definition);
+    const auto inputComp =
+        std::dynamic_pointer_cast<Bess::Canvas::InputSceneComponent>(
+            fixture.comp);
+    ASSERT_NE(inputComp, nullptr);
+
+    auto resizeSlot = std::shared_ptr<SlotSceneComponent>{};
+    for (const auto &slot : fixture.outputs) {
+        if (slot && slot->isResizeSlot()) {
+            resizeSlot = slot;
+            break;
+        }
+    }
+    ASSERT_NE(resizeSlot, nullptr);
+    ASSERT_EQ(resizeSlot->getSignalKind(),
+              Bess::SimEngine::SignalKind::scalar);
+
+    auto firstScalarSlot = std::shared_ptr<SlotSceneComponent>{};
+    for (const auto &slot : fixture.outputs) {
+        if (slot && !slot->isResizeSlot()) {
+            firstScalarSlot = slot;
+            break;
+        }
+    }
+    ASSERT_NE(firstScalarSlot, nullptr);
+    EXPECT_EQ(firstScalarSlot->getSignalKind(),
+              Bess::SimEngine::SignalKind::scalar);
+    EXPECT_TRUE(firstScalarSlot->getSlotState(scene->getState()).isScalar());
+
+    const auto renderer = std::make_shared<TestRenderer2D>();
+    Bess::SceneUIPrepareCtx prepareCtx{
+        .sceneState = &scene->getState(),
+        .renderer = renderer,
+        .parentNode = nullptr,
+        .theme = Bess::Core::Style::BessTheme::defaultTheme(),
+    };
+    inputComp->prepareUI(prepareCtx);
+
+    auto sinkDefinition =
+        std::make_shared<Bess::SimEngine::Drivers::Math::MathCompDef>();
+    sinkDefinition->setName("Scalar Sink");
+    sinkDefinition->setGroupName("Math");
+    sinkDefinition->setInputPortDescriptor({
+        .direction = Bess::SimEngine::PortDirection::input,
+        .signalKind = Bess::SimEngine::SignalKind::scalar,
+        .quantityKind = Bess::SimEngine::QuantityKind::dimensionless,
+        .count = 1,
+        .names = {"x"},
+    });
+    sinkDefinition->setOutputPortDescriptor({
+        .direction = Bess::SimEngine::PortDirection::output,
+        .signalKind = Bess::SimEngine::SignalKind::scalar,
+        .quantityKind = Bess::SimEngine::QuantityKind::dimensionless,
+        .count = 0,
+    });
+    sinkDefinition->setSimFn(
+        [](const std::shared_ptr<
+            Bess::SimEngine::Drivers::Math::MathCompSimData> &data) {
+            return data;
+        });
+
+    const auto sinkFixture = addSimComponent(sinkDefinition);
+    ASSERT_FALSE(sinkFixture.inputs.empty());
+
+    const auto connection = connectionService->createConnection(
+        resizeSlot->getUuid(), sinkFixture.inputs.front()->getUuid(), scene);
+    ASSERT_NE(connection, nullptr);
+
+    auto newSlot = std::shared_ptr<SlotSceneComponent>{};
+    for (const auto &slotId : inputComp->getOutputSlots()) {
+        const auto slot =
+            scene->getState().getComponentByUuidSP<SlotSceneComponent>(slotId);
+        if (slot && !slot->isResizeSlot() &&
+            containsUuid(slot->getConnectedConnections(),
+                         connection->getUuid())) {
+            newSlot = slot;
+            break;
+        }
+    }
+    ASSERT_NE(newSlot, nullptr);
+    EXPECT_FALSE(newSlot->isResizeSlot());
+    EXPECT_EQ(newSlot->getSignalKind(),
+              Bess::SimEngine::SignalKind::scalar);
+    EXPECT_TRUE(newSlot->getSlotState(scene->getState()).isScalar());
+
+    inputComp->prepareUI(prepareCtx);
+
+    size_t textBoxCount = 0;
+    size_t toggleCount = 0;
+    for (const auto &depId : inputComp->getDependants(scene->getState())) {
+        if (scene->getState()
+                .getComponentByUuidSP<Bess::Canvas::UI::TextBoxComp>(depId)) {
+            ++textBoxCount;
+        }
+        if (scene->getState()
+                .getComponentByUuidSP<Bess::Canvas::UI::ToggleBtnComp>(
+                    depId)) {
+            ++toggleCount;
+        }
+    }
+
+    EXPECT_EQ(textBoxCount, 2u);
+    EXPECT_EQ(toggleCount, 0u);
 }
 
 TEST_F(MainPageConnectionCommandsTest,

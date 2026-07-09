@@ -14,14 +14,36 @@
 #include "sim_scene_component.h"
 #include "simulation_engine.h"
 #include "ui/icons/FontAwesomeIcons_Remapped.h"
+#include <algorithm>
+#include <stdexcept>
+#include <string>
 
 namespace Bess::Canvas {
     namespace {
         bool makeAllLow = false;
 
-        bool setOutputPortState(const SceneState &state,
-                                const SlotSceneComponent *slotComp,
-                                bool isHigh) {
+        std::vector<UUID>
+        getRealOutputSlots(const SceneState &state,
+                           const std::vector<UUID> &outputSlots) {
+            std::vector<UUID> realOutputSlots;
+            realOutputSlots.reserve(outputSlots.size());
+
+            for (const auto &slotUuid : outputSlots) {
+                const auto slotComp =
+                    state.getComponentByUuid<SlotSceneComponent>(slotUuid);
+                if (!slotComp || slotComp->isResizeSlot()) {
+                    continue;
+                }
+
+                realOutputSlots.push_back(slotUuid);
+            }
+
+            return realOutputSlots;
+        }
+
+        bool setDigPortState(const SceneState &state,
+                             const SlotSceneComponent *slotComp,
+                             bool isHigh) {
             const auto slotParentComp =
                 state.getComponentByUuid<SimulationSceneComponent>(
                     slotComp->getParentComponent());
@@ -100,10 +122,22 @@ namespace Bess::Canvas {
                         continue;
                     }
 
-                    simEngine.setOutputPortState(
-                        slotParentComp->getSimEngineId(),
-                        slotComp->getIndex(),
-                        SimEngine::LogicState::low);
+                    const auto signalKind = slotComp->getSignalKind();
+
+                    if (signalKind == SimEngine::SignalKind::digital) {
+                        simEngine.setOutputPortState(
+                            slotParentComp->getSimEngineId(),
+                            slotComp->getIndex(),
+                            SimEngine::LogicState::low);
+                    } else if (signalKind == SimEngine::SignalKind::scalar) {
+                        simEngine.setOutputPortState(
+                            slotParentComp->getSimEngineId(),
+                            slotComp->getIndex(),
+                            SimEngine::PortState::scalar(0.0));
+                    } else {
+                        BESS_WARN("Unsupported signal kind for reset: {}",
+                                  (int)signalKind);
+                    }
                 }
             }
         }
@@ -131,21 +165,58 @@ namespace Bess::Canvas {
         std::shared_ptr<UI::UISceneComponent>
         addTextBox(SceneUIPrepareCtx &ctx) {
             auto textBox = std::make_shared<Bess::Canvas::UI::TextBoxComp>();
+            textBox->setPlaceholder("0");
             textBox->getStyle().margin = Core::Style::Margin::fromVertical(
                 Canvas::Styles::simCompStyles.rowMargin);
             textBox->getStyle().padding = 0;
             ctx.sceneState->addComponent(textBox);
             return textBox;
         }
+
+        bool controlMatchesSignalKind(
+            const std::shared_ptr<UI::UISceneComponent> &control,
+            SimEngine::SignalKind signalKind) {
+            if (!control) {
+                return false;
+            }
+
+            switch (signalKind) {
+            case SimEngine::SignalKind::digital:
+                return std::dynamic_pointer_cast<UI::ToggleBtnComp>(control) !=
+                       nullptr;
+            case SimEngine::SignalKind::scalar:
+                return std::dynamic_pointer_cast<UI::TextBoxComp>(control) !=
+                       nullptr;
+            default:
+                return false;
+            }
+        }
+
+        std::shared_ptr<UI::UISceneComponent>
+        addInputControl(SceneUIPrepareCtx &ctx,
+                        SimEngine::SignalKind signalKind) {
+            switch (signalKind) {
+            case SimEngine::SignalKind::digital:
+                return addToggleBtn(ctx);
+            case SimEngine::SignalKind::scalar:
+                return addTextBox(ctx);
+            default:
+                BESS_WARN("Unsupported signal kind for input control: {}",
+                          (int)signalKind);
+                return nullptr;
+            }
+        }
     } // namespace
 
     void InputSceneComponent::prepareUI(SceneUIPrepareCtx &ctx) {
         SimulationSceneComponent::prepareUI(ctx);
-        m_inpSignalKinds.resize(m_outputSlots.size() - 1,
+        const auto realOutputSlots =
+            getRealOutputSlots(*ctx.sceneState, m_outputSlots);
+        m_inpSignalKinds.assign(realOutputSlots.size(),
                                 SimEngine::SignalKind::none);
 
-        if (m_inputCtrls.size() > m_outputSlots.size() - 1) {
-            size_t diff = m_inputCtrls.size() - (m_outputSlots.size() - 1);
+        if (m_inputCtrls.size() > realOutputSlots.size()) {
+            size_t diff = m_inputCtrls.size() - realOutputSlots.size();
 
             for (size_t i = 0; i < diff; i++) {
                 auto btn = m_inputCtrls.back();
@@ -156,48 +227,45 @@ namespace Bess::Canvas {
             }
 
             m_setBtnCbs = true;
-        } else if (m_inputCtrls.size() < m_outputSlots.size() - 1) {
-
-            auto n = m_outputSlots.size() - 1;
-            const auto start = m_inputCtrls.size();
-            m_inputCtrls.resize(n, nullptr);
-
-            for (size_t i = start; i < n; i++) {
-                const auto &slotUuid = m_outputSlots[m_inputCtrls.size()];
-                const auto &slotComp =
-                    ctx.sceneState->getComponentByUuid<SlotSceneComponent>(
-                        slotUuid);
-                BESS_ASSERT(slotComp,
-                            "SlotSceneComponent not found for slotUuid: {}",
-                            (uint64_t)slotUuid);
-
-                if (!slotComp) {
-                    BESS_WARN("SlotSceneComponent not found for slotUuid: {}",
-                              (uint64_t)slotUuid);
-                    continue;
-                }
-
-                const auto type = slotComp ? slotComp->getSignalKind()
-                                           : SimEngine::SignalKind::none;
-
-                m_inpSignalKinds[i] = type;
-
-                if (type == SimEngine::SignalKind::digital) {
-                    m_inputCtrls[i] = addToggleBtn(ctx);
-                } else if (type == SimEngine::SignalKind::scalar) {
-                    m_inputCtrls[i] = addTextBox(ctx);
-                } else {
-                    BESS_WARN("Unsupported signal kind for input control: {}",
-                              (int)type);
-                }
-            }
+        } else if (m_inputCtrls.size() < realOutputSlots.size()) {
+            m_inputCtrls.resize(realOutputSlots.size(), nullptr);
+            m_setBtnCbs = true;
         }
 
-        BESS_ASSERT(m_inputCtrls.size() == m_outputSlots.size() - 1,
+        for (size_t i = 0; i < realOutputSlots.size(); i++) {
+            const auto &slotUuid = realOutputSlots[i];
+            const auto &slotComp =
+                ctx.sceneState->getComponentByUuid<SlotSceneComponent>(
+                    slotUuid);
+            BESS_ASSERT(slotComp,
+                        "SlotSceneComponent not found for slotUuid: {}",
+                        (uint64_t)slotUuid);
+
+            if (!slotComp) {
+                BESS_WARN("SlotSceneComponent not found for slotUuid: {}",
+                          (uint64_t)slotUuid);
+                continue;
+            }
+
+            const auto signalKind = slotComp->getSignalKind();
+            m_inpSignalKinds[i] = signalKind;
+
+            if (controlMatchesSignalKind(m_inputCtrls[i], signalKind)) {
+                continue;
+            }
+
+            if (m_inputCtrls[i]) {
+                ctx.sceneState->removeComponent(m_inputCtrls[i]->getUuid());
+            }
+
+            m_inputCtrls[i] = addInputControl(ctx, signalKind);
+        }
+
+        BESS_ASSERT(m_inputCtrls.size() == realOutputSlots.size(),
                     "Input controls size does not match output slots size "
                     "| InputCtrls Size = {}, OutputSlots Size = {}",
                     m_inputCtrls.size(),
-                    m_outputSlots.size() - 1);
+                    realOutputSlots.size());
 
         auto prevParentNode = ctx.parentNode;
         ctx.parentNode = m_inpSlotsContainer->getUINode();
@@ -216,6 +284,10 @@ namespace Bess::Canvas {
     InputSceneComponent::getDependants(const SceneState &state) const {
         auto deps = SimulationSceneComponent::getDependants(state);
         for (auto &btn : m_inputCtrls) {
+            if (!btn) {
+                continue;
+            }
+
             const auto &childDeps = btn->getDependants(state);
             deps.insert(deps.end(), childDeps.begin(), childDeps.end());
             deps.push_back(btn->getUuid());
@@ -252,7 +324,7 @@ namespace Bess::Canvas {
                     return;
                 }
 
-                setOutputPortState(*state, slotComp, toggled);
+                setDigPortState(*state, slotComp, toggled);
             });
 
             const auto slotComp =
@@ -268,8 +340,7 @@ namespace Bess::Canvas {
 
         void setTextBoxCb(const std::shared_ptr<UI::UISceneComponent> &comp,
                           SceneDrawContext &context,
-                          const UUID &slotUuid,
-                          SimEngine::SignalKind sigKind) {
+                          const UUID &slotUuid) {
 
             auto textBox = std::dynamic_pointer_cast<UI::TextBoxComp>(comp);
             const auto state = context.sceneState;
@@ -298,9 +369,16 @@ namespace Bess::Canvas {
             const auto slotComp =
                 state->getComponentByUuid<SlotSceneComponent>(slotUuid);
             if (slotComp) {
-                // Assuming you have a function to get the current scalar value
-                // float currentValue = getOutputPortScalarValue(*state,
-                // slotComp); textBox->setText(std::to_string(currentValue));
+                const auto slotState = slotComp->getSlotState(*state);
+                BESS_TRACE("Slot {} state: isScalar={}, scalarValue={}",
+                           (uint64_t)slotUuid,
+                           slotState.isScalar(),
+                           slotState.scalarValue);
+                if (slotState.isScalar()) {
+                    BESS_TRACE("Setting TextBox value to {}",
+                               slotState.scalarValue);
+                    textBox->setValue(std::to_string(slotState.scalarValue));
+                }
             }
         }
     } // namespace
@@ -312,20 +390,29 @@ namespace Bess::Canvas {
         }
 
         if (m_setBtnCbs) {
-            BESS_ASSERT(m_inputCtrls.size() == m_outputSlots.size() - 1,
+            const auto realOutputSlots =
+                getRealOutputSlots(*context.sceneState, m_outputSlots);
+            BESS_ASSERT(m_inputCtrls.size() == realOutputSlots.size(),
                         "Toggle buttons size does not match output slots size "
                         "| ToggleBtns Size = {}",
                         m_inputCtrls.size());
-            for (size_t i = 0; i < m_inputCtrls.size(); i++) {
+            const auto n =
+                std::min(m_inputCtrls.size(), realOutputSlots.size());
+            for (size_t i = 0; i < n; i++) {
                 auto ctrl = m_inputCtrls[i];
-                const auto &slotUuid = m_outputSlots[i];
+                if (!ctrl) {
+                    continue;
+                }
 
-                const auto &sigType = m_inpSignalKinds[i];
+                const auto &slotUuid = realOutputSlots[i];
+                const auto sigType = i < m_inpSignalKinds.size()
+                                         ? m_inpSignalKinds[i]
+                                         : SimEngine::SignalKind::none;
 
                 if (sigType == SimEngine::SignalKind::digital) {
                     setToggleCb(ctrl, context, slotUuid);
                 } else if (sigType == SimEngine::SignalKind::scalar) {
-                    setTextBoxCb(ctrl, context, slotUuid, sigType);
+                    setTextBoxCb(ctrl, context, slotUuid);
                 }
             }
 

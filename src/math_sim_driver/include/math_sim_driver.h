@@ -108,11 +108,34 @@ namespace Bess::SimEngine::Drivers::Math {
             comp->setName(clone->getName());
             comp->setDefinition(clone);
 
-            const auto inputCount = mathDef->getInputPortDescriptor().count;
-            const auto outputCount = mathDef->getOutputPortDescriptor().count;
+            const auto initialPortStateFor = [](SignalKind signalKind) {
+                switch (signalKind) {
+                case SignalKind::digital:
+                    return PortState::digital(LogicState::low);
+                case SignalKind::scalar:
+                    return PortState::scalar(0.0);
+                case SignalKind::vector:
+                    return PortState::vector(std::vector<double>{});
+                case SignalKind::none:
+                    break;
+                }
 
-            comp->m_inputStates.resize(inputCount);
-            comp->m_outputStates.resize(outputCount);
+                auto state = PortState{};
+                state.signalKind = SignalKind::none;
+                state.state = LogicState::unknown;
+                state.connState = ConnectionState::unknown;
+                return state;
+            };
+
+            const auto inputDescriptor = mathDef->getInputPortDescriptor();
+            const auto outputDescriptor = mathDef->getOutputPortDescriptor();
+            const auto inputCount = inputDescriptor.count;
+            const auto outputCount = outputDescriptor.count;
+
+            comp->m_inputStates.resize(
+                inputCount, initialPortStateFor(inputDescriptor.signalKind));
+            comp->m_outputStates.resize(
+                outputCount, initialPortStateFor(outputDescriptor.signalKind));
             comp->m_isInputConnected.resize(inputCount, false);
             comp->m_isOutputConnected.resize(outputCount, false);
             comp->m_inputConnections.resize(inputCount);

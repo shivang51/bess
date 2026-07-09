@@ -790,7 +790,8 @@ namespace Bess::SimEngine::Drivers::Math {
             std::clamp(port.index, 0, static_cast<int>(states.size()));
 
         states.insert(states.begin() + insertIdx, PortState::scalar(0.0));
-        connections.insert(connections.begin() + insertIdx, {});
+        connections.insert(connections.begin() + insertIdx,
+                           Connections::value_type{});
         connected.insert(connected.begin() + insertIdx, false);
         descriptor.count = states.size();
 
