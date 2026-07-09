@@ -135,7 +135,7 @@ namespace Bess::Core::Style {
                 .textStyle =
                     {
                         .textColor = colors.onSurface,
-                        .fontSize = 12.f,
+                        .fontSize = 8.f,
                     },
             };
         }

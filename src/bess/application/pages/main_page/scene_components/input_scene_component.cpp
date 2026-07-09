@@ -165,11 +165,12 @@ namespace Bess::Canvas {
         std::shared_ptr<UI::UISceneComponent>
         addTextBox(SceneUIPrepareCtx &ctx) {
             auto textBox = std::make_shared<Bess::Canvas::UI::TextBoxComp>();
-            textBox->setPlaceholder("0");
             textBox->getStyle().margin = Core::Style::Margin::fromVertical(
                 Canvas::Styles::simCompStyles.rowMargin);
             textBox->getStyle().padding =
-                Core::Style::Padding::fromSymmetric(4.f, 2.f);
+                Core::Style::Padding::fromSymmetric(4.f, 1.f);
+            textBox->getStyle().fontSize =
+                Styles::simCompStyles.slotLabelSize - 2.f;
             ctx.sceneState->addComponent(textBox);
             return textBox;
         }

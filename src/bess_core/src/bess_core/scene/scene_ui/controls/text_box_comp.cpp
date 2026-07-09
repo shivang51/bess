@@ -64,7 +64,7 @@ namespace Bess::Canvas::UI {
         const auto size = resolveBoxSize(state);
         m_node->setWidth(size.x);
         m_node->setHeight(size.y);
-        m_node->setPadding(0.f);
+        m_node->setPadding(0.f); // padding is resolved in resolveBoxSize
         m_node->setMargin(m_style.metrics.margin);
 
         if (state.parentNode != nullptr) {
