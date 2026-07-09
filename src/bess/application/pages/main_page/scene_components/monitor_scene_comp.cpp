@@ -39,7 +39,7 @@ namespace {
     constexpr float kMinVoltageScale = 0.1f;
     constexpr float kMaxVoltageScale = 100.f;
     constexpr double kMinTimeSpanSec = 1e-9;
-    constexpr std::size_t kMaxProbeSamples = 500;
+    constexpr std::size_t kMaxProbeSamples = 2000;
     constexpr uint32_t kPlotPickingInfo = 2;
     constexpr uint32_t kTracePickingInfoStart = 3;
     constexpr uint32_t kTracePickingInfoEnd = kTracePickingInfoStart + 65;

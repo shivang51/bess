@@ -229,6 +229,28 @@ namespace Bess::SimEngine::Drivers::Math {
         return def;
     }
 
+    std::shared_ptr<MathCompDef>
+    MathCompDef::makeFunction(const std::string &name,
+                              const std::string &groupName,
+                              const TScalarFn &scalarFn,
+                              bool shouldAutoReschedule,
+                              TimeNs stepDelay // 10 ms
+    ) {
+        const auto fnDef = std::make_shared<MathCompDef>();
+        fnDef->setName(name);
+        fnDef->setGroupName(groupName);
+        fnDef->setInputPortDescriptor(
+            scalarPortDescriptor(PortDirection::input, 0));
+        fnDef->setOutputPortDescriptor(
+            scalarPortDescriptor(PortDirection::output, 1));
+
+        fnDef->setScalarFn(scalarFn);
+
+        fnDef->setAutoReschedule(shouldAutoReschedule);
+        fnDef->setAutoRescheduleDelay(stepDelay); // 10 ms
+        return fnDef;
+    }
+
     void MathCompDef::setSimFn(const TMathSimFn &simFn) {
         m_simFn = [simFn](const SimFnDataPtr &data) -> SimFnDataPtr {
             auto mathData = std::dynamic_pointer_cast<MathCompSimData>(data);
@@ -262,6 +284,7 @@ namespace Bess::SimEngine::Drivers::Math {
 
             std::vector<double> values;
             values.reserve(data->inputStates.size());
+
             for (const auto &input : data->inputStates) {
                 values.push_back(input.isScalar() ? input.scalarValue : 0.0);
             }
@@ -270,8 +293,11 @@ namespace Bess::SimEngine::Drivers::Math {
                 data->outputStates.resize(1);
             }
 
+            const auto timeMs =
+                std::chrono::duration<double, std::milli>(data->simTime);
+
             const auto next =
-                PortState::scalar(fn ? fn(values) : 0.0, data->simTime);
+                PortState::scalar(fn ? fn(timeMs, values) : 0.0, data->simTime);
             const auto prev = data->prevState.outputStates.empty()
                                   ? PortState::scalar(0.0)
                                   : data->prevState.outputStates[0];
@@ -322,7 +348,7 @@ namespace Bess::SimEngine::Drivers::Math {
     bool MathCompDef::computeScalarFnIfNeeded() {
         switch (m_opKind) {
         case MathOpKind::add:
-            setScalarFn([](const std::vector<double> &values) {
+            setScalarFn([](TimeMs, const std::vector<double> &values) {
                 double result = 0.0;
                 for (double value : values) {
                     result += value;
@@ -331,7 +357,7 @@ namespace Bess::SimEngine::Drivers::Math {
             });
             return true;
         case MathOpKind::subtract:
-            setScalarFn([](const std::vector<double> &values) {
+            setScalarFn([](TimeMs, const std::vector<double> &values) {
                 if (values.empty()) {
                     return 0.0;
                 }
@@ -339,6 +365,19 @@ namespace Bess::SimEngine::Drivers::Math {
                 double result = values.front();
                 for (size_t i = 1; i < values.size(); ++i) {
                     result -= values[i];
+                }
+                return result;
+            });
+            return true;
+        case MathOpKind::multiply:
+            setScalarFn([](TimeMs, const std::vector<double> &values) {
+                if (values.empty()) {
+                    return 1.0;
+                }
+
+                double result = 1.0;
+                for (double value : values) {
+                    result *= value;
                 }
                 return result;
             });
@@ -1009,9 +1048,13 @@ namespace Bess::SimEngine::Drivers::Math {
     void MathSimDriver::onInit() {
         auto &catalog = ComponentCatalog::instance();
         catalog.registerComponent(
-            MathCompDef::makeBinaryOp("Add", "Math", MathOpKind::add));
+            MathCompDef::makeBinaryOp("Add", "Maths", MathOpKind::add));
+
         catalog.registerComponent(MathCompDef::makeBinaryOp(
-            "Subtract", "Math", MathOpKind::subtract));
+            "Subtract", "Maths", MathOpKind::subtract));
+
+        catalog.registerComponent(MathCompDef::makeBinaryOp(
+            "Multiply", "Maths", MathOpKind::multiply));
 
         const auto inpDef = std::make_shared<MathCompDef>();
         inpDef->setName("Scalar Input");
@@ -1056,27 +1099,12 @@ namespace Bess::SimEngine::Drivers::Math {
 
         catalog.registerComponent(outDef);
 
-        const auto fnDef = std::make_shared<MathCompDef>();
-        fnDef->setName("Function");
-        fnDef->setGroupName("Math");
-        fnDef->setInputPortDescriptor(
-            scalarPortDescriptor(PortDirection::input, 0));
-        fnDef->setOutputPortDescriptor(
-            scalarPortDescriptor(PortDirection::output, 1));
-
-        fnDef->setSimFn([](const std::shared_ptr<MathCompSimData> &data) {
-            data->simDependants = true;
-            auto time =
-                std::chrono::duration_cast<std::chrono::duration<double>>(
-                    data->simTime)
-                    .count();
-            data->outputStates[0] =
-                PortState::scalar(std::sin(time), data->simTime);
-            return data;
-        });
-
-        fnDef->setAutoReschedule(true);
-        fnDef->setAutoRescheduleDelay(TimeNs(10000000)); // 10 ms
+        auto fnDef = MathCompDef::makeFunction(
+            "Sine",
+            "Maths",
+            [](TimeMs time, const std::vector<double> &values) {
+                return std::sin(time.count() / 1000.0);
+            });
 
         catalog.registerComponent(fnDef);
     }

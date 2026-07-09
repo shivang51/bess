@@ -56,6 +56,7 @@ namespace Bess::SimEngine::Drivers {
         BESS_ASSERT(!isDestroyed(), "SimDriver was destroyed, cannot run");
 
         setState(SimDriverState::running);
+        m_currentSimTime = TimeNs(0);
 
         while (!isStopped()) {
             {

@@ -16,7 +16,7 @@
 
 namespace Bess::SimEngine::Drivers::Math {
 
-    enum class MathOpKind : uint8_t { none, add, subtract };
+    enum class MathOpKind : uint8_t { none, add, subtract, multiply };
 
     struct MathCompState {
         std::vector<PortState> inputStates;
@@ -34,7 +34,10 @@ namespace Bess::SimEngine::Drivers::Math {
       public:
         static constexpr const char *TypeName = "math_compdef";
 
-        using TScalarFn = std::function<double(const std::vector<double> &)>;
+        // First inp in vector will be time in seconds
+        using TScalarFn =
+            std::function<double(TimeMs time, const std::vector<double> &)>;
+
         using TMathSimFn = std::function<std::shared_ptr<MathCompSimData>(
             const std::shared_ptr<MathCompSimData> &)>;
 
@@ -46,6 +49,14 @@ namespace Bess::SimEngine::Drivers::Math {
                      const std::string &groupName,
                      MathOpKind opKind,
                      TimeNs propDelay = TimeNs(0));
+
+        static std::shared_ptr<MathCompDef>
+        makeFunction(const std::string &name,
+                     const std::string &groupName,
+                     const TScalarFn &scalarFn,
+                     bool shouldAutoReschedule = true,
+                     TimeNs stepDelay = TimeNs(10000000) // 10 ms
+        );
 
         MAKE_GETTER_SETTER(MathOpKind, OpKind, m_opKind)
         MAKE_GETTER(TScalarFn, ScalarFn, m_scalarFn)
