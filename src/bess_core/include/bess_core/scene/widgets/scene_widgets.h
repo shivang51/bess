@@ -25,6 +25,7 @@ namespace Bess::Canvas::SceneWidgets {
     struct TextBoxOptions {
         std::string_view placeholder;
         size_t maxLength = 256;
+        bool selectAllOnFocus = false;
         float fontSize = 8.f;
         glm::vec2 padding{4.f, 2.f};
         std::optional<Core::Renderer::Color> backgroundColor;

@@ -19,6 +19,7 @@ namespace {
     struct PyTextBoxOptions {
         std::string placeholder;
         size_t maxLength = 256;
+        bool selectAllOnFocus = false;
         float fontSize = 8.f;
         glm::vec2 padding{4.f, 2.f};
         std::optional<Bess::Core::Renderer::Color> backgroundColor;
@@ -52,6 +53,7 @@ namespace {
         TextBoxOptions out;
         out.placeholder = options.placeholder;
         out.maxLength = options.maxLength;
+        out.selectAllOnFocus = options.selectAllOnFocus;
         out.fontSize = options.fontSize;
         out.padding = options.padding;
         out.backgroundColor = options.backgroundColor;
@@ -247,6 +249,8 @@ namespace {
             .def(py::init<>())
             .def_readwrite("placeholder", &PyTextBoxOptions::placeholder)
             .def_readwrite("max_len", &PyTextBoxOptions::maxLength)
+            .def_readwrite("select_all_on_focus",
+                           &PyTextBoxOptions::selectAllOnFocus)
             .def_readwrite("font_size", &PyTextBoxOptions::fontSize)
             .def_readwrite("padding", &PyTextBoxOptions::padding)
             .def_readwrite("bg_color", &PyTextBoxOptions::backgroundColor)

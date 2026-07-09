@@ -248,7 +248,8 @@ namespace Bess::Canvas::SceneWidgets {
             widget->text = boundedText(*value, options.maxLength);
             widget->focusStartText = widget->text;
             widget->cursorPos = widget->text.size();
-            Detail::clearTextSelection(*widget);
+            widget->selectionAnchorPos =
+                options.selectAllOnFocus ? 0 : widget->cursorPos;
             widget->focusStarted = false;
         }
 
