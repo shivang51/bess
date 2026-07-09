@@ -17,6 +17,7 @@ namespace Bess::SimEngine::Drivers {
 
         MAKE_GETTER_SETTER(bool, AutoReschedule, m_autoReschedule)
         MAKE_GETTER_SETTER(TimeNs, PropDelay, m_propDelay)
+        MAKE_GETTER_SETTER(TimeNs, AutoRescheduleDelay, m_autoRescheduleDelay)
 
         Json::Value toJson() const override;
 
@@ -26,7 +27,8 @@ namespace Bess::SimEngine::Drivers {
 
       protected:
         bool m_autoReschedule = false;
-        TimeNs m_propDelay{0}; // propogation delay
+        TimeNs m_propDelay{0};           // propogation delay
+        TimeNs m_autoRescheduleDelay{0}; // self simulation delay
     };
 
     class EvtBasedSimComp : public SimComponent {

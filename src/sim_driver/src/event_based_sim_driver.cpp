@@ -21,7 +21,7 @@ namespace Bess::SimEngine::Drivers {
     }
 
     TimeNs EvtBasedCompDef::getSelfSimDelay() {
-        return TimeNs(0);
+        return m_autoRescheduleDelay;
     }
 
     TimeNs EvtBasedSimComp::getPropDelay() const {

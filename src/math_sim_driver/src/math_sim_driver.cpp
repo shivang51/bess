@@ -1055,6 +1055,30 @@ namespace Bess::SimEngine::Drivers::Math {
         });
 
         catalog.registerComponent(outDef);
+
+        const auto fnDef = std::make_shared<MathCompDef>();
+        fnDef->setName("Function");
+        fnDef->setGroupName("Math");
+        fnDef->setInputPortDescriptor(
+            scalarPortDescriptor(PortDirection::input, 0));
+        fnDef->setOutputPortDescriptor(
+            scalarPortDescriptor(PortDirection::output, 1));
+
+        fnDef->setSimFn([](const std::shared_ptr<MathCompSimData> &data) {
+            data->simDependants = true;
+            auto time =
+                std::chrono::duration_cast<std::chrono::duration<double>>(
+                    data->simTime)
+                    .count();
+            data->outputStates[0] =
+                PortState::scalar(std::sin(time), data->simTime);
+            return data;
+        });
+
+        fnDef->setAutoReschedule(true);
+        fnDef->setAutoRescheduleDelay(TimeNs(10000000)); // 10 ms
+
+        catalog.registerComponent(fnDef);
     }
 
 } // namespace Bess::SimEngine::Drivers::Math
