@@ -6,7 +6,6 @@
 #include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene/scene_ui/controls/container_comp.h"
-#include "bess_core/scene/scene_ui/controls/label_comp.h"
 #include "bess_core/settings/viewport_theme.h"
 #include "bess_core/style/bess_theme.h"
 #include "conn_joint_scene_component.h"
@@ -75,10 +74,9 @@ namespace Bess::Canvas {
                 return false;
             }
 
-            simEngine.setInputPortState(
-                port.componentId,
-                port.index,
-                SimEngine::PortState::scalar(value));
+            simEngine.setInputPortState(port.componentId,
+                                        port.index,
+                                        SimEngine::PortState::scalar(value));
             return true;
         }
     } // namespace
@@ -143,7 +141,9 @@ namespace Bess::Canvas {
 
             ctx.sceneState->addComponent(m_container);
 
-            m_label = UI::LabelComp::create(m_name);
+            m_label = UI::EditableLabelComp::create(
+                m_name, [this](const std::string &val) { setName(val); });
+            m_label->setSelectTextOnEdit(true);
             auto &labelStyle = m_label->getStyle();
             labelStyle.fontSize = Styles::simCompStyles.slotLabelSize;
             labelStyle.padding = Core::Style::Padding::zero();
@@ -169,8 +169,7 @@ namespace Bess::Canvas {
         }
 
         const bool showScalarValueTextBox =
-            !isResizeSlot() &&
-            isInputSlot() &&
+            !isResizeSlot() && isInputSlot() &&
             m_signalKind == SimEngine::SignalKind::scalar &&
             !isSlotConnected(*ctx.sceneState);
 
@@ -180,8 +179,7 @@ namespace Bess::Canvas {
             m_scalarValueTextBox->setTextBoxSize(kScalarSlotTextBoxSize);
             m_scalarValueTextBox->setMaxLength(32);
             auto &textBoxStyle = m_scalarValueTextBox->getStyle();
-            textBoxStyle.margin =
-                Core::Style::Margin::fromSymmetric(3.f, 0.f);
+            textBoxStyle.margin = Core::Style::Margin::fromSymmetric(3.f, 0.f);
             textBoxStyle.padding =
                 Core::Style::Padding::fromSymmetric(3.f, 1.f);
             textBoxStyle.fontSize =
@@ -193,8 +191,8 @@ namespace Bess::Canvas {
         } else if (!showScalarValueTextBox && m_scalarValueTextBox != nullptr) {
             if (ctx.sceneState->isComponentValid(
                     m_scalarValueTextBox->getUuid())) {
-                ctx.sceneState->removeComponent(
-                    m_scalarValueTextBox->getUuid(), UUID::master);
+                ctx.sceneState->removeComponent(m_scalarValueTextBox->getUuid(),
+                                                UUID::master);
             }
             m_scalarValueTextBox = nullptr;
         }
@@ -213,8 +211,8 @@ namespace Bess::Canvas {
 
             const auto slotUuid = m_uuid;
             m_scalarValueTextBox->setChangedCallback(
-                [sceneState = ctx.sceneState, slotUuid](
-                    const std::string &text) {
+                [sceneState = ctx.sceneState,
+                 slotUuid](const std::string &text) {
                     if (sceneState == nullptr) {
                         return;
                     }

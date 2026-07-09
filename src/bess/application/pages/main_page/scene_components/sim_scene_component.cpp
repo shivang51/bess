@@ -10,13 +10,13 @@
 #include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene/scene_ui/controls/container_comp.h"
+#include "bess_core/scene/scene_ui/controls/editable_label_comp.h"
 #include "bess_core/scene/scene_ui/controls/label_comp.h"
 #include "bess_core/scene/scene_ui/layout.h"
 #include "bess_core/settings/viewport_theme.h"
 #include "bess_core/style/bess_theme.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
-#include "dig_sim_driver.h"
 #include "imgui.h"
 #include "input_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
@@ -471,8 +471,9 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
                     Styles::simCompStyles.paddingX,
                     Styles::simCompStyles.paddingY);
 
-            m_labelComp = UI::LabelComp::create(m_name);
-            m_labelComp->setDrawRuntimeId(m_runtimeId);
+            m_labelComp = UI::EditableLabelComp::create(
+                m_name, [this](const std::string &val) { setName(val); });
+            m_labelComp->setSelectTextOnEdit(true);
             m_labelComp->setName(std::format("{} {}", m_icon, m_name));
 
             auto &labelStyle = m_labelComp->getStyle();

@@ -4,6 +4,7 @@
 #include "bess_core/scene/scene_events.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_ui/controls/container_comp.h"
+#include "bess_core/scene/scene_ui/controls/editable_label_comp.h"
 #include "bess_core/scene/scene_ui/controls/label_comp.h"
 #include "bess_core/scene/scene_ui/controls/text_box_comp.h"
 #include "bess_core/scene/scene_ui/layout.h"
@@ -109,7 +110,7 @@ namespace Bess::Canvas {
         int m_index = -1;
 
         std::shared_ptr<UI::ContainerComp> m_container = nullptr;
-        std::shared_ptr<UI::LabelComp> m_label = nullptr;
+        std::shared_ptr<UI::EditableLabelComp> m_label = nullptr;
         std::shared_ptr<UI::TextBoxComp> m_scalarValueTextBox = nullptr;
 
         UI::UINode *m_slotNode = nullptr;

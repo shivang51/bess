@@ -50,8 +50,8 @@ namespace Bess::Canvas::UI {
 
       private:
         [[nodiscard]] std::string displayText() const;
-        [[nodiscard]] glm::vec2 resolveTextBoxSize(
-            SceneUIPrepareCtx &state) const;
+        [[nodiscard]] glm::vec2
+        resolveTextBoxSize(SceneUIPrepareCtx &state) const;
         [[nodiscard]] glm::vec2 stylePadding() const;
         [[nodiscard]] PickingId textBoxPickingId() const;
 
@@ -74,6 +74,4 @@ namespace Bess::Canvas::UI {
         std::string m_editValue;
         std::string m_originalValue;
     };
-
-    using EditableLabel = EditableLabelComp;
 } // namespace Bess::Canvas::UI

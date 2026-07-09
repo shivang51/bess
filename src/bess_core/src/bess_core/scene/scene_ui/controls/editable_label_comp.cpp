@@ -12,9 +12,8 @@ namespace Bess::Canvas::UI {
     } // namespace
 
     std::shared_ptr<EditableLabelComp>
-    EditableLabelComp::create(
-        const std::string &value,
-        const UIEditableLabelCallback &changedCallback) {
+    EditableLabelComp::create(const std::string &value,
+                              const UIEditableLabelCallback &changedCallback) {
         auto label = std::make_shared<EditableLabelComp>();
         label->setName(value);
         label->setChangedCallback(changedCallback);
@@ -75,10 +74,8 @@ namespace Bess::Canvas::UI {
                           drawPos.x + (drawSize.x * 0.5f) - stylePadding().x,
                           drawPos.y,
                       });
-            SceneWidgets::queuePress(state.sceneWidgetsState,
-                                     id,
-                                     pointerPos,
-                                     m_selectTextOnEdit);
+            SceneWidgets::queuePress(
+                state.sceneWidgetsState, id, pointerPos, m_selectTextOnEdit);
             SceneWidgets::queueRelease(state.sceneWidgetsState, id, pointerPos);
             m_pendingTextBoxFocus = false;
             m_pendingTextBoxFocusPos = std::nullopt;
@@ -136,8 +133,7 @@ namespace Bess::Canvas::UI {
         m_isUIDirty = false;
     }
 
-    bool
-    EditableLabelComp::onMouseButton(const Events::MouseButtonEvent &e) {
+    bool EditableLabelComp::onMouseButton(const Events::MouseButtonEvent &e) {
         if (e.button == Events::MouseButton::left &&
             e.action == Events::MouseClickAction::doubleClick) {
             beginEditAt(e.mousePos);
