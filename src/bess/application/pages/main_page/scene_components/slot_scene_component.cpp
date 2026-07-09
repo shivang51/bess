@@ -19,9 +19,70 @@
 #include "sim_scene_component.h"
 #include "simulation_engine.h"
 #include "ui/ui.h"
+#include <algorithm>
+#include <cctype>
+#include <cmath>
 #include <format>
+#include <stdexcept>
+#include <string>
 
 namespace Bess::Canvas {
+    namespace {
+        constexpr glm::vec2 kScalarSlotTextBoxSize{44.f, 0.f};
+
+        std::string formatScalarSlotValue(double value) {
+            return std::format("{:.6g}", value);
+        }
+
+        bool parseScalarSlotValue(const std::string &text, double &value) {
+            try {
+                size_t parsed = 0;
+                const double next = std::stod(text, &parsed);
+                while (parsed < text.size() &&
+                       std::isspace(static_cast<unsigned char>(text[parsed]))) {
+                    ++parsed;
+                }
+                if (parsed != text.size() || !std::isfinite(next)) {
+                    return false;
+                }
+
+                value = next;
+                return true;
+            } catch (const std::invalid_argument &) {
+                return false;
+            } catch (const std::out_of_range &) {
+                return false;
+            }
+        }
+
+        bool setScalarSlotPortState(const SceneState &state,
+                                    const SlotSceneComponent &slot,
+                                    double value) {
+            const auto port = slot.getPortRef(state);
+            if (!port.isValid() ||
+                port.signalKind != SimEngine::SignalKind::scalar) {
+                return false;
+            }
+
+            auto &appCtx = Bess::GAppContext::getInstance();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+            if (!projectCtx) {
+                return false;
+            }
+
+            auto &simEngine = projectCtx->getSimEngine();
+            if (!port.isInput()) {
+                return false;
+            }
+
+            simEngine.setInputPortState(
+                port.componentId,
+                port.index,
+                SimEngine::PortState::scalar(value));
+            return true;
+        }
+    } // namespace
+
     std::vector<std::shared_ptr<SceneComponent>>
     SlotSceneComponent::clone(const SceneState &sceneState) const {
         (void)sceneState;
@@ -37,6 +98,7 @@ namespace Bess::Canvas {
         m_label = nullptr;
         m_slotNode = nullptr;
         m_container = nullptr;
+        m_scalarValueTextBox = nullptr;
 
         m_isHovered = false;
         m_invalidateCache = true;
@@ -104,6 +166,71 @@ namespace Bess::Canvas {
             const float slotSize = Styles::simCompStyles.slotRadius * 2.f;
             m_slotNode->setWidth(slotSize);
             m_slotNode->setHeight(slotSize);
+        }
+
+        const bool showScalarValueTextBox =
+            !isResizeSlot() &&
+            isInputSlot() &&
+            m_signalKind == SimEngine::SignalKind::scalar &&
+            !isSlotConnected(*ctx.sceneState);
+
+        if (showScalarValueTextBox && m_scalarValueTextBox == nullptr) {
+            m_scalarValueTextBox = std::make_shared<UI::TextBoxComp>();
+            m_scalarValueTextBox->setPlaceholder("0");
+            m_scalarValueTextBox->setTextBoxSize(kScalarSlotTextBoxSize);
+            m_scalarValueTextBox->setMaxLength(32);
+            auto &textBoxStyle = m_scalarValueTextBox->getStyle();
+            textBoxStyle.margin =
+                Core::Style::Margin::fromSymmetric(3.f, 0.f);
+            textBoxStyle.padding =
+                Core::Style::Padding::fromSymmetric(3.f, 1.f);
+            textBoxStyle.fontSize =
+                std::max(6.f, Styles::simCompStyles.slotLabelSize - 2.f);
+
+            ctx.sceneState->addComponent(m_scalarValueTextBox);
+            ctx.sceneState->attachChild(m_container->getUuid(),
+                                        m_scalarValueTextBox->getUuid());
+        } else if (!showScalarValueTextBox && m_scalarValueTextBox != nullptr) {
+            if (ctx.sceneState->isComponentValid(
+                    m_scalarValueTextBox->getUuid())) {
+                ctx.sceneState->removeComponent(
+                    m_scalarValueTextBox->getUuid(), UUID::master);
+            }
+            m_scalarValueTextBox = nullptr;
+        }
+
+        if (m_scalarValueTextBox) {
+            if (!m_scalarValueTextBox->getFocused()) {
+                const auto slotState = getSlotState(*ctx.sceneState);
+                if (slotState.isScalar()) {
+                    const auto valueText =
+                        formatScalarSlotValue(slotState.scalarValue);
+                    if (m_scalarValueTextBox->getValue() != valueText) {
+                        m_scalarValueTextBox->setValue(valueText);
+                    }
+                }
+            }
+
+            const auto slotUuid = m_uuid;
+            m_scalarValueTextBox->setChangedCallback(
+                [sceneState = ctx.sceneState, slotUuid](
+                    const std::string &text) {
+                    if (sceneState == nullptr) {
+                        return;
+                    }
+
+                    const auto slot =
+                        sceneState->getComponentByUuid<SlotSceneComponent>(
+                            slotUuid);
+                    if (!slot) {
+                        return;
+                    }
+
+                    double value = 0.0;
+                    if (parseScalarSlotValue(text, value)) {
+                        setScalarSlotPortState(*sceneState, *slot, value);
+                    }
+                });
         }
 
         m_container->prepareUI(ctx);
@@ -293,12 +420,14 @@ namespace Bess::Canvas {
 
     void SlotSceneComponent::addConnection(const UUID &connectionId) {
         m_connectedConnections.emplace_back(connectionId);
+        setSlotLayoutDirty();
     }
 
     void SlotSceneComponent::removeConnection(const UUID &connectionId) {
         m_connectedConnections.erase(
             std::ranges::remove(m_connectedConnections, connectionId).begin(),
             m_connectedConnections.end());
+        setSlotLayoutDirty();
     }
 
     glm::vec3 SlotSceneComponent::getConnectionPos(const SceneState &state,
@@ -431,6 +560,13 @@ namespace Bess::Canvas {
 
     void SlotSceneComponent::onRuntimeIdChanged() {
         m_invalidateCache = true;
+    }
+
+    void SlotSceneComponent::setSlotLayoutDirty() {
+        m_isUIDirty = true;
+        if (m_container && m_container->getUINode()) {
+            m_container->getUINode()->setSizeDirty();
+        }
     }
 
     std::vector<UUID>

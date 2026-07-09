@@ -5,6 +5,7 @@
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_ui/controls/container_comp.h"
 #include "bess_core/scene/scene_ui/controls/label_comp.h"
+#include "bess_core/scene/scene_ui/controls/text_box_comp.h"
 #include "bess_core/scene/scene_ui/layout.h"
 #include "common/bess_uuid.h"
 #include "common/types.h"
@@ -93,6 +94,7 @@ namespace Bess::Canvas {
                                           bool isSchematicMode) const;
 
         bool onMouseLeftClick(const Events::MouseButtonEvent &e);
+        void setSlotLayoutDirty();
 
       private:
         glm::vec3 m_schematicPos = glm::vec3(0.f);
@@ -108,6 +110,7 @@ namespace Bess::Canvas {
 
         std::shared_ptr<UI::ContainerComp> m_container = nullptr;
         std::shared_ptr<UI::LabelComp> m_label = nullptr;
+        std::shared_ptr<UI::TextBoxComp> m_scalarValueTextBox = nullptr;
 
         UI::UINode *m_slotNode = nullptr;
     };

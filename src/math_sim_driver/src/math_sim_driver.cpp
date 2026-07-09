@@ -897,7 +897,10 @@ namespace Bess::SimEngine::Drivers::Math {
         for (size_t pinIdx = 0; pinIdx < inputConns.size(); ++pinIdx) {
             const auto &pinConns = inputConns[pinIdx];
             if (pinConns.empty()) {
-                collapsed[pinIdx] = PortState::scalar(0.0, m_currentSimTime);
+                if (!collapsed[pinIdx].isScalar()) {
+                    collapsed[pinIdx] =
+                        PortState::scalar(0.0, m_currentSimTime);
+                }
                 collapsed[pinIdx].connState = ConnectionState::high_z;
                 continue;
             }
@@ -952,8 +955,17 @@ namespace Bess::SimEngine::Drivers::Math {
             return false;
         }
 
+        const auto prev = inputs[pinIdx];
         inputs[pinIdx] = state;
         inputs[pinIdx].lastChangeTime = m_currentSimTime;
+        if (static_cast<size_t>(pinIdx) < comp->getIsInputConnected().size() &&
+            !comp->getIsInputConnected()[pinIdx]) {
+            inputs[pinIdx].connState = ConnectionState::high_z;
+        }
+
+        if (prev != inputs[pinIdx]) {
+            scheduleEvt(uuid, m_currentSimTime, uuid);
+        }
         return true;
     }
 

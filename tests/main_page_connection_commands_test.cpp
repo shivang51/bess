@@ -5,7 +5,10 @@
 #include "bess_core/project_context.h"
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/scene/scene.h"
+#include "bess_core/scene/scene_event.h"
 #include "bess_core/scene_driver.h"
+#include "bess_core/scene/widgets/scene_widgets.h"
+#include "bess_core/scene/widgets/scene_widgets_internal.h"
 #include "dig_sim_driver.h"
 #include "event_dispatcher.h"
 #include "math_sim_driver.h"
@@ -200,6 +203,73 @@ namespace {
             }
         }
         return fixture;
+    }
+
+    std::shared_ptr<Bess::SimEngine::Drivers::Math::MathCompDef>
+    makeScalarDefinition(std::string name,
+                         size_t inputCount,
+                         size_t outputCount) {
+        auto definition =
+            std::make_shared<Bess::SimEngine::Drivers::Math::MathCompDef>();
+        definition->setName(std::move(name));
+        definition->setGroupName("Math");
+        definition->setInputPortDescriptor({
+            .direction = Bess::SimEngine::PortDirection::input,
+            .signalKind = Bess::SimEngine::SignalKind::scalar,
+            .quantityKind = Bess::SimEngine::QuantityKind::dimensionless,
+            .count = inputCount,
+        });
+        definition->setOutputPortDescriptor({
+            .direction = Bess::SimEngine::PortDirection::output,
+            .signalKind = Bess::SimEngine::SignalKind::scalar,
+            .quantityKind = Bess::SimEngine::QuantityKind::dimensionless,
+            .count = outputCount,
+        });
+        definition->setScalarFn(
+            [](Bess::TimeMs, const std::vector<double> &values) {
+                return values.empty() ? 0.0 : values.front();
+            });
+        return definition;
+    }
+
+    size_t countTextBoxes(const Bess::Canvas::SceneState &state) {
+        size_t count = 0;
+        for (const auto &[_, component] : state.getAllComponents()) {
+            if (std::dynamic_pointer_cast<Bess::Canvas::UI::TextBoxComp>(
+                    component)) {
+                ++count;
+            }
+        }
+        return count;
+    }
+
+    std::shared_ptr<Bess::Canvas::UI::TextBoxComp>
+    firstTextBox(const Bess::Canvas::SceneState &state) {
+        for (const auto &[_, component] : state.getAllComponents()) {
+            if (auto textBox =
+                    std::dynamic_pointer_cast<Bess::Canvas::UI::TextBoxComp>(
+                        component)) {
+                return textBox;
+            }
+        }
+        return nullptr;
+    }
+
+    void measureSceneUi(Bess::Canvas::SceneState &state) {
+        for (auto &[_, node] : state.getUINodeRegistry()->getAllNodes()) {
+            if (node.getParentId() == UUID::null) {
+                node.measure(*state.getUINodeRegistry(), UUID::null);
+            }
+        }
+    }
+
+    Bess::Canvas::SceneEvent textInputEvent(char32_t codepoint) {
+        Bess::Canvas::SceneEvent::Data data;
+        data.textInput = {.codepoint = codepoint};
+        return {
+            .type = Bess::Canvas::SceneEvent::Type::textInput,
+            .data = data,
+        };
     }
 } // namespace
 
@@ -587,6 +657,86 @@ TEST_F(MainPageConnectionCommandsTest,
 
     EXPECT_EQ(textBoxCount, 2u);
     EXPECT_EQ(toggleCount, 0u);
+}
+
+TEST_F(MainPageConnectionCommandsTest,
+       ScalarSlotShowsInlineTextBoxOnlyWhileUnconnected) {
+    const auto sinkFixture =
+        addSimComponent(makeScalarDefinition("Scalar Sink", 1, 0));
+    ASSERT_FALSE(sinkFixture.inputs.empty());
+
+    const auto renderer = std::make_shared<TestRenderer2D>();
+    Bess::SceneUIPrepareCtx prepareCtx{
+        .sceneState = &scene->getState(),
+        .renderer = renderer,
+        .parentNode = nullptr,
+        .theme = Bess::Core::Style::BessTheme::defaultTheme(),
+    };
+
+    sinkFixture.comp->prepareUI(prepareCtx);
+    EXPECT_EQ(countTextBoxes(scene->getState()), 1u);
+
+    const auto sourceFixture =
+        addSimComponent(makeScalarDefinition("Scalar Source", 0, 1));
+    ASSERT_FALSE(sourceFixture.outputs.empty());
+
+    sourceFixture.comp->prepareUI(prepareCtx);
+    EXPECT_EQ(countTextBoxes(scene->getState()), 1u);
+
+    const auto connection = connectionService->createConnection(
+        sourceFixture.outputs.front()->getUuid(),
+        sinkFixture.inputs.front()->getUuid(),
+        scene);
+    ASSERT_NE(connection, nullptr);
+
+    sinkFixture.comp->prepareUI(prepareCtx);
+    EXPECT_EQ(countTextBoxes(scene->getState()), 0u);
+}
+
+TEST_F(MainPageConnectionCommandsTest,
+       ScalarSlotInlineTextBoxUpdatesUnconnectedPortState) {
+    const auto sinkFixture =
+        addSimComponent(makeScalarDefinition("Scalar Sink", 1, 0));
+    ASSERT_FALSE(sinkFixture.inputs.empty());
+    const auto slot = sinkFixture.inputs.front();
+
+    const auto renderer = std::make_shared<TestRenderer2D>();
+    Bess::SceneUIPrepareCtx prepareCtx{
+        .sceneState = &scene->getState(),
+        .renderer = renderer,
+        .parentNode = nullptr,
+        .theme = Bess::Core::Style::BessTheme::defaultTheme(),
+    };
+
+    sinkFixture.comp->prepareUI(prepareCtx);
+    measureSceneUi(scene->getState());
+
+    const auto textBox = firstTextBox(scene->getState());
+    ASSERT_NE(textBox, nullptr);
+    textBox->setValue("");
+
+    Bess::Canvas::SceneWidgets::SceneWidgetsState widgets;
+    Bess::SceneDrawContext drawCtx{
+        .sceneState = &scene->getState(),
+        .renderer = renderer,
+        .sceneWidgetsState = &widgets,
+    };
+
+    textBox->draw(drawCtx);
+    const auto textBoxId = Bess::PickingId{textBox->getRuntimeId(), 0};
+    const auto pointerPos = glm::vec2(textBox->getUINode()->getDrawPos());
+    Bess::Canvas::SceneWidgets::queuePress(&widgets, textBoxId, pointerPos);
+    textBox->draw(drawCtx);
+    Bess::Canvas::SceneWidgets::queueRelease(&widgets, textBoxId, pointerPos);
+    textBox->draw(drawCtx);
+
+    const auto evt = textInputEvent(U'4');
+    EXPECT_TRUE(Bess::Canvas::SceneWidgets::queueKey(&widgets, evt));
+    textBox->draw(drawCtx);
+
+    const auto slotState = slot->getSlotState(scene->getState());
+    ASSERT_TRUE(slotState.isScalar());
+    EXPECT_DOUBLE_EQ(slotState.scalarValue, 4.0);
 }
 
 TEST_F(MainPageConnectionCommandsTest,
