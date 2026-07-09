@@ -128,12 +128,12 @@ namespace Bess::SimEngine::Drivers {
         virtual UUID addComponent(const std::shared_ptr<SimComponent> &comp,
                                   bool scheduleSim);
 
-        // For each component, store the state of all states at stamp times.
-        // SlotStates vector contains, first all inps and then all outs.
+        // For each component, store the port states at stamp times.
+        // PortState vector contains first all inputs and then all outputs.
         // I am using nodeshashmap here hopping it will reduce the overhead of
         // reallocating memory for continous blocks which the flat_hash_map
         // does.
-        typedef NodeHashMap<UUID, std::pair<TimeMs, std::vector<SlotState>>>
+        typedef NodeHashMap<UUID, std::pair<TimeMs, std::vector<PortState>>>
             CompStampData;
 
         virtual void deleteComponent(const UUID &uuid);
@@ -169,16 +169,16 @@ namespace Bess::SimEngine::Drivers {
 
         virtual ConnectionBundle getConnections(const UUID &uuid) const;
 
-        virtual std::vector<SlotState> getInputSlotsState(const UUID &compId);
+        virtual std::vector<PortState> getInputPortStates(const UUID &compId);
 
-        virtual SlotState
+        virtual PortState
         getPortState(const PortRef &port) const;
 
         virtual bool
-        setInputSlotState(const UUID &uuid, int pinIdx, LogicState state);
+        setInputPortState(const UUID &uuid, int pinIdx, const PortState &state);
 
         virtual bool
-        setOutputSlotState(const UUID &uuid, int pinIdx, LogicState state);
+        setOutputPortState(const UUID &uuid, int pinIdx, const PortState &state);
 
         virtual ComponentState getComponentState(const UUID &uuid) const;
 

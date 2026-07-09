@@ -32,8 +32,8 @@ namespace Bess::SimEngine::Drivers {
     class EvtBasedSimComp : public SimComponent {
       public:
         // void(input states, output states)
-        typedef std::function<void(const std::vector<SlotState> &,
-                                   const std::vector<SlotState> &)>
+        typedef std::function<void(const std::vector<PortState> &,
+                                   const std::vector<PortState> &)>
             TOnStateChangeFn;
 
         EvtBasedSimComp() = default;
@@ -85,14 +85,14 @@ namespace Bess::SimEngine::Drivers {
 
         // true if the dependants should be simulated, false otherwise
         virtual bool simulate(const SimEvt &evt,
-                              const std::vector<SlotState> &inputs) = 0;
+                              const std::vector<PortState> &inputs) = 0;
 
         UUID addComponent(const std::shared_ptr<SimComponent> &comp,
                           bool scheduleSim) override;
 
         virtual std::vector<UUID> getDependants(const UUID &id);
 
-        virtual std::vector<SlotState> collapseInputs(const UUID &id);
+        virtual std::vector<PortState> collapseInputs(const UUID &id);
 
         void propagateFromComponent(const UUID &sourceId) override;
 

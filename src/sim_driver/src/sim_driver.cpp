@@ -93,23 +93,23 @@ namespace Bess::SimEngine::Drivers {
         return {};
     }
 
-    std::vector<SlotState> SimDriver::getInputSlotsState(const UUID &compId) {
+    std::vector<PortState> SimDriver::getInputPortStates(const UUID &compId) {
         return {};
     }
 
-    SlotState SimDriver::getPortState(const PortRef &port) const {
+    PortState SimDriver::getPortState(const PortRef &port) const {
         return {LogicState::unknown, SimTime(0)};
     }
 
-    bool SimDriver::setInputSlotState(const UUID &uuid,
+    bool SimDriver::setInputPortState(const UUID &uuid,
                                       int pinIdx,
-                                      LogicState state) {
+                                      const PortState &state) {
         return false;
     }
 
-    bool SimDriver::setOutputSlotState(const UUID &uuid,
+    bool SimDriver::setOutputPortState(const UUID &uuid,
                                        int pinIdx,
-                                       LogicState state) {
+                                       const PortState &state) {
         return false;
     }
 

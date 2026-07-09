@@ -16,7 +16,7 @@ namespace Bess::Canvas {
     namespace {
         bool makeAllLow = false;
 
-        bool setOutputSlotState(const SceneState &state,
+        bool setOutputPortState(const SceneState &state,
                                 const SlotSceneComponent *slotComp,
                                 bool isHigh) {
             const auto slotParentComp =
@@ -33,7 +33,7 @@ namespace Bess::Canvas {
             }
 
             auto &simEngine = projectCtx->getSimEngine();
-            simEngine.setOutputSlotState(slotParentComp->getSimEngineId(),
+            simEngine.setOutputPortState(slotParentComp->getSimEngineId(),
                                          slotComp->getIndex(),
                                          isHigh ? SimEngine::LogicState::high
                                                 : SimEngine::LogicState::low);
@@ -70,7 +70,7 @@ namespace Bess::Canvas {
                         continue;
                     }
 
-                    simEngine.setOutputSlotState(
+                    simEngine.setOutputPortState(
                         slotParentComp->getSimEngineId(),
                         slotComp->getIndex(),
                         SimEngine::LogicState::low);
@@ -172,7 +172,7 @@ namespace Bess::Canvas {
                         return;
                     }
 
-                    setOutputSlotState(*state, slotComp, toggled);
+                    setOutputPortState(*state, slotComp, toggled);
                 });
 
                 const auto slotComp =
@@ -243,7 +243,7 @@ namespace Bess::Canvas {
         bool nextValue = isHigh;
         if (SceneWidgets::toggleButton(
                 pickingId, &nextValue, buttonPos, buttonSize, context)) {
-            setOutputSlotState(state, slotComp, nextValue);
+            setOutputPortState(state, slotComp, nextValue);
         }
 
         const std::string label = nextValue ? "1" : "0";

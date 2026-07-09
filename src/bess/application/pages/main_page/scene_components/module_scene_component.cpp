@@ -179,8 +179,8 @@ namespace Bess::Canvas {
         outputDigitalComp->removeOnStateChangeCB(m_uuid);
         outputDigitalComp->addOnStateChangeCB(
             m_uuid,
-            [this](const std::vector<SimEngine::SlotState> &inputStates,
-                   const std::vector<SimEngine::SlotState> &outputStates) {
+            [this](const std::vector<SimEngine::PortState> &inputStates,
+                   const std::vector<SimEngine::PortState> &outputStates) {
                 auto &appCtx = Bess::GAppContext::getInstance();
                 auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
                 auto &simEngine = projectCtx->getSimEngine();
@@ -201,7 +201,7 @@ namespace Bess::Canvas {
                 }
 
                 if (!outputs.empty()) { // to schedule sim event
-                    simEngine.setOutputSlotState(
+                    simEngine.setOutputPortState(
                         this->m_simEngineId, 0, outputs[0].getLogicState());
                 }
             });

@@ -197,7 +197,7 @@ void bind_cmds(py::module &m) {
         auto &appCtx = Bess::GAppContext::getInstance();
         auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
         auto &simEngine = projectCtx->getSimEngine();
-        simEngine.setOutputSlotState(comp->getUuid(), slotIdx, state);
+        simEngine.setOutputPortState(comp->getUuid(), slotIdx, state);
         return {py::cast(true), ""};
     };
 
@@ -232,7 +232,7 @@ void bind_cmds(py::module &m) {
         auto &appCtx = Bess::GAppContext::getInstance();
         auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
         auto &simEngine = projectCtx->getSimEngine();
-        simEngine.setOutputSlotState(comp->getUuid(), slotIdx, state);
+        simEngine.setOutputPortState(comp->getUuid(), slotIdx, state);
         return {py::cast(true), ""};
     };
 

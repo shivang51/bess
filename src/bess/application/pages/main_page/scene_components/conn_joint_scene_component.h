@@ -55,7 +55,7 @@ namespace Bess::Canvas {
 
         void drawSchematic(SceneDrawContext &context) override;
 
-        SimEngine::SlotState getSlotState(const SceneState &state) const;
+        SimEngine::PortState getSlotState(const SceneState &state) const;
         void onMouseDragged(const Events::MouseDraggedEvent &e) override;
         bool onMouseEnter(const Events::MouseEnterEvent &e) override;
         bool onMouseLeave(const Events::MouseLeaveEvent &e) override;

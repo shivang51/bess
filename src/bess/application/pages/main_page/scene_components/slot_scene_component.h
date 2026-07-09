@@ -70,7 +70,7 @@ namespace Bess::Canvas {
 
         SimEngine::PortRef getPortRef(const SceneState &state) const;
 
-        SimEngine::SlotState getSlotState(const SceneState &state) const;
+        SimEngine::PortState getSlotState(const SceneState &state) const;
         bool isSlotConnected(const SceneState &state) const;
 
         bool isResizeSlot() const;

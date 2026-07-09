@@ -12,13 +12,13 @@
 namespace Bess::SimEngine::Drivers::Digital {
 
     struct DigCompState {
-        std::vector<SlotState> inputStates;
-        std::vector<SlotState> outputStates;
+        std::vector<PortState> inputStates;
+        std::vector<PortState> outputStates;
     };
 
     struct DigCompSimData : SimFnDataBase {
-        std::vector<SlotState> inputStates;
-        std::vector<SlotState> outputStates;
+        std::vector<PortState> inputStates;
+        std::vector<PortState> outputStates;
         std::vector<std::string> *expressions = nullptr;
         TimeNs simTime;
         DigCompState prevState;
@@ -141,8 +141,8 @@ namespace Bess::SimEngine::Drivers::Digital {
         static std::shared_ptr<DigSimComp>
         fromDef(const std::shared_ptr<CompDef> &compDef, bool cloneDef = true);
 
-        MAKE_GETTER_SETTER(std::vector<SlotState>, InputStates, m_inputStates)
-        MAKE_GETTER_SETTER(std::vector<SlotState>, OutputStates, m_outputStates)
+        MAKE_GETTER_SETTER(std::vector<PortState>, InputStates, m_inputStates)
+        MAKE_GETTER_SETTER(std::vector<PortState>, OutputStates, m_outputStates)
         MAKE_GETTER_SETTER(Connections, InputConnections, m_inputConnections)
         MAKE_GETTER_SETTER(Connections, OutputConnections, m_outputConnections)
         MAKE_GETTER_SETTER(std::vector<bool>,
@@ -160,8 +160,8 @@ namespace Bess::SimEngine::Drivers::Digital {
                              const Json::Value &json);
 
       private:
-        std::vector<SlotState> m_inputStates;
-        std::vector<SlotState> m_outputStates;
+        std::vector<PortState> m_inputStates;
+        std::vector<PortState> m_outputStates;
         Connections m_inputConnections;
         Connections m_outputConnections;
         std::vector<bool> m_isInputConnected;
@@ -204,7 +204,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         std::string getName() const override;
 
         bool simulate(const SimEvt &evt,
-                      const std::vector<SlotState> &inputs) override;
+                      const std::vector<PortState> &inputs) override;
 
         UUID addComponent(const std::shared_ptr<SimComponent> &comp,
                           bool scheduleSim = true) override;
@@ -231,15 +231,15 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         ConnectionBundle getConnections(const UUID &uuid) const override;
         std::vector<UUID> getDependants(const UUID &id) override;
-        std::vector<SlotState> collapseInputs(const UUID &id) override;
-        std::vector<SlotState> getInputSlotsState(const UUID &compId) override;
-        SlotState getPortState(const PortRef &port) const override;
-        bool setInputSlotState(const UUID &uuid,
+        std::vector<PortState> collapseInputs(const UUID &id) override;
+        std::vector<PortState> getInputPortStates(const UUID &compId) override;
+        PortState getPortState(const PortRef &port) const override;
+        bool setInputPortState(const UUID &uuid,
                                int pinIdx,
-                               LogicState state) override;
-        bool setOutputSlotState(const UUID &uuid,
+                               const PortState &state) override;
+        bool setOutputPortState(const UUID &uuid,
                                 int pinIdx,
-                                LogicState state) override;
+                                const PortState &state) override;
         ComponentState getComponentState(const UUID &uuid) const override;
 
         const std::unordered_map<UUID, Net> &getNetsMap() const override;

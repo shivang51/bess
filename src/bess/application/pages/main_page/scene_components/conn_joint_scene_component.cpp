@@ -256,7 +256,7 @@ namespace Bess::Canvas {
         return false;
     }
 
-    SimEngine::SlotState
+    SimEngine::PortState
     ConnJointSceneComp::getSlotState(const SceneState &state) const {
         const auto &slotComp =
             state.getComponentByUuid<SlotSceneComponent>(m_outputSlotId);

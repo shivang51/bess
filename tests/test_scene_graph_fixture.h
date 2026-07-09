@@ -42,7 +42,7 @@ namespace Bess::Tests {
     inline void ensurePrimitiveGateDefinitions() {
         auto ensureGate = [](const std::string &name,
                              size_t inputCount,
-                             const std::function<LogicState(const std::vector<SlotState> &)> &eval) {
+                             const std::function<LogicState(const std::vector<PortState> &)> &eval) {
             if (findDefinitionByName(name)) {
                 return;
             }
@@ -78,25 +78,25 @@ namespace Bess::Tests {
             ComponentCatalog::instance().registerComponent(definition);
         };
 
-        ensureGate("NOT Gate", 1, [](const std::vector<SlotState> &inputs) {
+        ensureGate("NOT Gate", 1, [](const std::vector<PortState> &inputs) {
             const auto inState = inputs.empty() ? LogicState::low : inputs[0].state;
             return inState == LogicState::high ? LogicState::low : LogicState::high;
         });
-        ensureGate("AND Gate", 2, [](const std::vector<SlotState> &inputs) {
+        ensureGate("AND Gate", 2, [](const std::vector<PortState> &inputs) {
             const bool a = inputs.size() > 0 && inputs[0].state == LogicState::high;
             const bool b = inputs.size() > 1 && inputs[1].state == LogicState::high;
             return (a && b)
                        ? LogicState::high
                        : LogicState::low;
         });
-        ensureGate("OR Gate", 2, [](const std::vector<SlotState> &inputs) {
+        ensureGate("OR Gate", 2, [](const std::vector<PortState> &inputs) {
             const bool a = inputs.size() > 0 && inputs[0].state == LogicState::high;
             const bool b = inputs.size() > 1 && inputs[1].state == LogicState::high;
             return (a || b)
                        ? LogicState::high
                        : LogicState::low;
         });
-        ensureGate("XOR Gate", 2, [](const std::vector<SlotState> &inputs) {
+        ensureGate("XOR Gate", 2, [](const std::vector<PortState> &inputs) {
             const bool a = inputs.size() > 0 && inputs[0].state == LogicState::high;
             const bool b = inputs.size() > 1 && inputs[1].state == LogicState::high;
             return (a != b) ? LogicState::high : LogicState::low;

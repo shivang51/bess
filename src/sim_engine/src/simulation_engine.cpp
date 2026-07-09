@@ -183,7 +183,7 @@ namespace Bess::SimEngine {
         BESS_INFO("Deleted component {}", (uint64_t)uuid);
     }
 
-    SlotState SimulationEngine::getPortState(const PortRef &port) {
+    PortState SimulationEngine::getPortState(const PortRef &port) {
         if (!port.isValid() || !getComponentDefinition(port.componentId)) {
             BESS_WARN("[getDigitalPinState] Component with UUID {} is invalid",
                       (uint64_t)port.componentId);
@@ -217,31 +217,31 @@ namespace Bess::SimEngine {
         return bundle;
     }
 
-    void SimulationEngine::setInputSlotState(const UUID &uuid,
+    void SimulationEngine::setInputPortState(const UUID &uuid,
                                              int pinIdx,
-                                             LogicState state) {
+                                             const PortState &state) {
         for (const auto &driver : m_simDrivers) {
             if (driver->hasComponent(uuid)) {
-                driver->setInputSlotState(uuid, pinIdx, state);
+                driver->setInputPortState(uuid, pinIdx, state);
                 return;
             }
         }
 
-        BESS_WARN("[setInputSlotState] Component with UUID {} is invalid",
+        BESS_WARN("[setInputPortState] Component with UUID {} is invalid",
                   (uint64_t)uuid);
     }
 
-    void SimulationEngine::setOutputSlotState(const UUID &uuid,
+    void SimulationEngine::setOutputPortState(const UUID &uuid,
                                               int pinIdx,
-                                              LogicState state) {
+                                              const PortState &state) {
         for (const auto &driver : m_simDrivers) {
             if (driver->hasComponent(uuid)) {
-                driver->setOutputSlotState(uuid, pinIdx, state);
+                driver->setOutputPortState(uuid, pinIdx, state);
                 return;
             }
         }
 
-        BESS_WARN("[setOutputSlotState] Component with UUID {} is invalid",
+        BESS_WARN("[setOutputPortState] Component with UUID {} is invalid",
                   (uint64_t)uuid);
     }
 
@@ -288,11 +288,11 @@ namespace Bess::SimEngine {
         aDriver->deleteConnection(portA, portB);
     }
 
-    std::vector<SlotState>
-    SimulationEngine::getInputSlotsState(UUID compId) const {
+    std::vector<PortState>
+    SimulationEngine::getInputPortStates(UUID compId) const {
         for (const auto &driver : m_simDrivers) {
             if (driver->hasComponent(compId)) {
-                return driver->getInputSlotsState(compId);
+                return driver->getInputPortStates(compId);
             }
         }
 

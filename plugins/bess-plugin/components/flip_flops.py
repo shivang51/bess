@@ -1,7 +1,7 @@
 from enum import Enum
 from bessplug.api.common.time import TimeNS
 from bessplug.api.sim_engine import (
-    SlotState,
+    PortState,
     LogicState,
 )
 from bessplug.api.sim_engine import SlotCategory
@@ -70,7 +70,7 @@ def _simulate_flip_flop(state: DigCompSimData) -> DigCompSimData:
     inputs = state.input_states
     clr_input = inputs[aux_data.clr_pin_idx]
     if clr_input.state == LogicState.HIGH:
-        newQ = SlotState()
+        newQ = PortState()
         newQ.state = LogicState.LOW
         newQ.last_change_time_ns = state.sim_time
         inv = newQ.copy()
@@ -92,7 +92,7 @@ def _simulate_flip_flop(state: DigCompSimData) -> DigCompSimData:
         return state
 
     current_q = prev_state.output_states[0]
-    newQ = SlotState()
+    newQ = PortState()
 
     ff_type: FlipFlopType = aux_data.flip_flop_type
 

@@ -118,7 +118,7 @@ namespace Bess::SimEngine::Drivers {
         return {};
     }
 
-    std::vector<SlotState> EvtBasedSimDriver::collapseInputs(const UUID &id) {
+    std::vector<PortState> EvtBasedSimDriver::collapseInputs(const UUID &id) {
         return {};
     }
 
@@ -198,7 +198,7 @@ namespace Bess::SimEngine::Drivers {
     void EvtBasedSimDriver::simulateEvts(const std::vector<SimEvt> &evts) {
         using EvtComp = EvtBasedSimComp;
 
-        std::unordered_map<UUID, std::vector<SlotState>> inputsMap = {};
+        std::unordered_map<UUID, std::vector<PortState>> inputsMap = {};
 
         for (auto &ev : evts) {
             inputsMap[ev.compId] = collapseInputs(ev.compId);

@@ -231,12 +231,12 @@ void bind_dig_sim_driver(py::module_ &m) {
                     py::arg("clone_def") = true)
         .def_property("input_states",
                       py::overload_cast<>(&Digital::DigSimComp::getInputStates),
-                      py::overload_cast<const std::vector<SlotState> &>(
+                      py::overload_cast<const std::vector<PortState> &>(
                           &Digital::DigSimComp::setInputStates))
         .def_property(
             "output_states",
             py::overload_cast<>(&Digital::DigSimComp::getOutputStates),
-            py::overload_cast<const std::vector<SlotState> &>(
+            py::overload_cast<const std::vector<PortState> &>(
                 &Digital::DigSimComp::setOutputStates))
         .def_property(
             "input_connections",

@@ -218,9 +218,9 @@ namespace Bess::Canvas {
         digComp->addOnStateChangeCB(
             m_uuid,
             [this, slotComp = comp](
-                const std::vector<SimEngine::SlotState> &inputStates,
-                const std::vector<SimEngine::SlotState> &outputStates) {
-                SimEngine::SlotState slotState;
+                const std::vector<SimEngine::PortState> &inputStates,
+                const std::vector<SimEngine::PortState> &outputStates) {
+                SimEngine::PortState slotState;
 
                 if (slotComp->isInputSlot()) {
                     slotState = inputStates[slotComp->getIndex()];

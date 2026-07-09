@@ -247,7 +247,7 @@ namespace Bess::Canvas {
         }
     }
 
-    SimEngine::SlotState
+    SimEngine::PortState
     SlotSceneComponent::getSlotState(const SceneState &state) const {
         BESS_ASSERT(m_parentComponent != UUID::null,
                     "Parent component UUID is null, {}",

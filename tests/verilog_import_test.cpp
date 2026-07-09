@@ -201,14 +201,14 @@ TEST_F(VerilogImportTest,
     const auto in1 = result.topInputComponents.at("in1");
     const auto out0 = result.topOutputComponents.at("out0");
 
-    engine->setOutputSlotState(in0, 0, LogicState::high);
-    engine->setOutputSlotState(in1, 0, LogicState::low);
+    engine->setOutputPortState(in0, 0, LogicState::high);
+    engine->setOutputPortState(in1, 0, LogicState::low);
     ASSERT_TRUE(waitUntil([&] {
         return engine->getPortState(digitalPort(out0, Bess::SimEngine::PortDirection::input, 0))
                    .state == LogicState::high;
     })) << "Expected output to resolve high for 1 & !0";
 
-    engine->setOutputSlotState(in1, 0, LogicState::high);
+    engine->setOutputPortState(in1, 0, LogicState::high);
     ASSERT_TRUE(waitUntil([&] {
         return engine->getPortState(digitalPort(out0, Bess::SimEngine::PortDirection::input, 0))
                    .state == LogicState::low;
@@ -334,9 +334,9 @@ endmodule
     };
 
     for (const auto &row : truthTable) {
-        engine->setOutputSlotState(a, 0, asLogic(row[0]));
-        engine->setOutputSlotState(b, 0, asLogic(row[1]));
-        engine->setOutputSlotState(cin, 0, asLogic(row[2]));
+        engine->setOutputPortState(a, 0, asLogic(row[0]));
+        engine->setOutputPortState(b, 0, asLogic(row[1]));
+        engine->setOutputPortState(cin, 0, asLogic(row[2]));
 
         ASSERT_TRUE(waitUntil([&] {
             return engine->getPortState(digitalPort(sum, Bess::SimEngine::PortDirection::input, 0))
@@ -422,12 +422,12 @@ endmodule :half_add
         ASSERT_TRUE(engine->connectPorts(digitalPort(bridgeInputId, Bess::SimEngine::PortDirection::output, 0), digitalPort(sink.componentId, sink.direction, sink.portIndex)));
     }
 
-    engine->setOutputSlotState(bridgeInputId, 0, LogicState::high);
+    engine->setOutputPortState(bridgeInputId, 0, LogicState::high);
 
     ASSERT_TRUE(waitUntil([&] {
         for (const auto &sink : h1.internalInputSinks[0]) {
             const auto aggregatedInputs =
-                engine->getInputSlotsState(sink.componentId);
+                engine->getInputPortStates(sink.componentId);
             if (static_cast<size_t>(sink.portIndex) >=
                     aggregatedInputs.size() ||
                 aggregatedInputs[sink.portIndex].state != LogicState::high) {
@@ -529,7 +529,7 @@ endmodule
         for (size_t i = 0; i < width; ++i) {
             const auto bit =
                 ((value >> i) & 1U) != 0U ? LogicState::high : LogicState::low;
-            engine->setOutputSlotState(componentId, static_cast<int>(i), bit);
+            engine->setOutputPortState(componentId, static_cast<int>(i), bit);
         }
     };
 
@@ -1525,14 +1525,14 @@ endmodule
     const auto b = result.topInputComponents.at("b");
     const auto y = result.topOutputComponents.at("y");
 
-    engine->setOutputSlotState(a, 0, LogicState::high);
-    engine->setOutputSlotState(b, 0, LogicState::high);
+    engine->setOutputPortState(a, 0, LogicState::high);
+    engine->setOutputPortState(b, 0, LogicState::high);
     ASSERT_TRUE(waitUntil([&] {
         return engine->getPortState(digitalPort(y, Bess::SimEngine::PortDirection::input, 0))
                    .state == LogicState::high;
     })) << "Include-based helper module did not propagate expected output";
 
-    engine->setOutputSlotState(b, 0, LogicState::low);
+    engine->setOutputPortState(b, 0, LogicState::low);
     ASSERT_TRUE(waitUntil([&] {
         return engine->getPortState(digitalPort(y, Bess::SimEngine::PortDirection::input, 0))
                    .state == LogicState::low;
@@ -1576,15 +1576,15 @@ endmodule
     const auto b = result.topInputComponents.at("b");
     const auto y = result.topOutputComponents.at("y");
 
-    engine->setOutputSlotState(a, 0, LogicState::high);
-    engine->setOutputSlotState(b, 0, LogicState::high);
+    engine->setOutputPortState(a, 0, LogicState::high);
+    engine->setOutputPortState(b, 0, LogicState::high);
     ASSERT_TRUE(waitUntil([&] {
         return engine->getPortState(digitalPort(y, Bess::SimEngine::PortDirection::input, 0))
                    .state == LogicState::high;
     })) << "Multi-file design output did not resolve high for 1 & 1";
 
-    engine->setOutputSlotState(a, 0, LogicState::high);
-    engine->setOutputSlotState(b, 0, LogicState::low);
+    engine->setOutputPortState(a, 0, LogicState::high);
+    engine->setOutputPortState(b, 0, LogicState::low);
     ASSERT_TRUE(waitUntil([&] {
         return engine->getPortState(digitalPort(y, Bess::SimEngine::PortDirection::input, 0))
                    .state == LogicState::low;
@@ -1691,7 +1691,7 @@ TEST_F(VerilogImportTest, ImportsCoarseAddCellFromYosysJson) {
 
     auto writeBus = [&](const UUID &componentId, uint32_t value, size_t width) {
         for (size_t i = 0; i < width; ++i) {
-            engine->setOutputSlotState(componentId, static_cast<int>(i),
+            engine->setOutputPortState(componentId, static_cast<int>(i),
                                        ((value >> i) & 1U) ? LogicState::high
                                                            : LogicState::low);
         }
@@ -1788,7 +1788,7 @@ TEST_F(VerilogImportTest, ImportsComparatorAndShiftCellsFromYosysJson) {
 
     auto writeBus = [&](const UUID &componentId, uint32_t value, size_t width) {
         for (size_t i = 0; i < width; ++i) {
-            engine->setOutputSlotState(componentId, static_cast<int>(i),
+            engine->setOutputPortState(componentId, static_cast<int>(i),
                                        ((value >> i) & 1U) ? LogicState::high
                                                            : LogicState::low);
         }
@@ -1845,21 +1845,21 @@ TEST_F(VerilogImportTest, ImportsDlatchCellFromYosysJson) {
     const auto en = result.topInputComponents.at("en");
     const auto q = result.topOutputComponents.at("q");
 
-    engine->setOutputSlotState(en, 0, LogicState::high);
-    engine->setOutputSlotState(d, 0, LogicState::high);
+    engine->setOutputPortState(en, 0, LogicState::high);
+    engine->setOutputPortState(d, 0, LogicState::high);
     ASSERT_TRUE(waitUntil([&] {
         return engine->getPortState(digitalPort(q, Bess::SimEngine::PortDirection::input, 0))
                    .state == LogicState::high;
     }));
 
-    engine->setOutputSlotState(en, 0, LogicState::low);
-    engine->setOutputSlotState(d, 0, LogicState::low);
+    engine->setOutputPortState(en, 0, LogicState::low);
+    engine->setOutputPortState(d, 0, LogicState::low);
     ASSERT_TRUE(waitUntil([&] {
         return engine->getPortState(digitalPort(q, Bess::SimEngine::PortDirection::input, 0))
                    .state == LogicState::high;
     })) << "Latch did not hold value while disabled";
 
-    engine->setOutputSlotState(en, 0, LogicState::high);
+    engine->setOutputPortState(en, 0, LogicState::high);
     ASSERT_TRUE(waitUntil([&] {
         return engine->getPortState(digitalPort(q, Bess::SimEngine::PortDirection::input, 0))
                    .state == LogicState::low;
@@ -1913,7 +1913,7 @@ TEST_F(VerilogImportTest, ImportsPmuxCellFromYosysJson) {
 
     auto writeBus = [&](const UUID &componentId, uint32_t value, size_t width) {
         for (size_t i = 0; i < width; ++i) {
-            engine->setOutputSlotState(componentId, static_cast<int>(i),
+            engine->setOutputPortState(componentId, static_cast<int>(i),
                                        ((value >> i) & 1U) ? LogicState::high
                                                            : LogicState::low);
         }
@@ -2015,7 +2015,7 @@ TEST_F(VerilogImportTest, ImportsMemoryReadWriteCellsFromYosysJson) {
 
     auto writeBus = [&](const UUID &componentId, uint32_t value, size_t width) {
         for (size_t i = 0; i < width; ++i) {
-            engine->setOutputSlotState(componentId, static_cast<int>(i),
+            engine->setOutputPortState(componentId, static_cast<int>(i),
                                        ((value >> i) & 1U) ? LogicState::high
                                                            : LogicState::low);
         }
@@ -2032,28 +2032,28 @@ TEST_F(VerilogImportTest, ImportsMemoryReadWriteCellsFromYosysJson) {
         return value;
     };
 
-    engine->setOutputSlotState(clk, 0, LogicState::low);
-    engine->setOutputSlotState(we, 0, LogicState::low);
+    engine->setOutputPortState(clk, 0, LogicState::low);
+    engine->setOutputPortState(we, 0, LogicState::low);
 
     auto pulseClock = [&]() {
-        engine->setOutputSlotState(clk, 0, LogicState::high);
+        engine->setOutputPortState(clk, 0, LogicState::high);
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
-        engine->setOutputSlotState(clk, 0, LogicState::low);
+        engine->setOutputPortState(clk, 0, LogicState::low);
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     };
 
     writeBus(addr, 0, 1);
     writeBus(din, 0xA, 4);
-    engine->setOutputSlotState(we, 0, LogicState::high);
+    engine->setOutputPortState(we, 0, LogicState::high);
     pulseClock();
-    engine->setOutputSlotState(we, 0, LogicState::low);
+    engine->setOutputPortState(we, 0, LogicState::low);
     ASSERT_TRUE(waitUntil([&] { return readBus(dout, 4) == 0xA; }));
 
     writeBus(addr, 1, 1);
     writeBus(din, 0x3, 4);
-    engine->setOutputSlotState(we, 0, LogicState::high);
+    engine->setOutputPortState(we, 0, LogicState::high);
     pulseClock();
-    engine->setOutputSlotState(we, 0, LogicState::low);
+    engine->setOutputPortState(we, 0, LogicState::low);
     ASSERT_TRUE(waitUntil([&] { return readBus(dout, 4) == 0x3; }));
 
     writeBus(addr, 0, 1);
@@ -2111,7 +2111,7 @@ TEST_F(VerilogImportTest, TemporaryHarvardCpuSmokeExecutesBasicInstructions) {
         for (size_t i = 0; i < width; ++i) {
             const auto bit =
                 ((value >> i) & 1U) ? LogicState::high : LogicState::low;
-            engine->setOutputSlotState(componentId, static_cast<int>(i), bit);
+            engine->setOutputPortState(componentId, static_cast<int>(i), bit);
         }
     };
 
@@ -2132,19 +2132,19 @@ TEST_F(VerilogImportTest, TemporaryHarvardCpuSmokeExecutesBasicInstructions) {
     };
 
     auto pulseInputReady = [&]() {
-        engine->setOutputSlotState(inputReady, 0, LogicState::high);
+        engine->setOutputPortState(inputReady, 0, LogicState::high);
         ASSERT_TRUE(waitUntil([&] {
             return readBit(readM) == LogicState::low;
         })) << "CPU did not acknowledge memory response (readM stayed high)";
-        engine->setOutputSlotState(inputReady, 0, LogicState::low);
+        engine->setOutputPortState(inputReady, 0, LogicState::low);
     };
 
     auto clockTick = [&]() {
         const auto before = readBus(numInst, 16);
-        engine->setOutputSlotState(clk, 0, LogicState::high);
+        engine->setOutputPortState(clk, 0, LogicState::high);
         ASSERT_TRUE(waitUntil([&] { return readBus(numInst, 16) != before; }))
             << "CPU did not react to clock rising edge";
-        engine->setOutputSlotState(clk, 0, LogicState::low);
+        engine->setOutputPortState(clk, 0, LogicState::low);
     };
 
     auto fetchInstruction = [&](uint16_t expectedAddress,
@@ -2161,11 +2161,11 @@ TEST_F(VerilogImportTest, TemporaryHarvardCpuSmokeExecutesBasicInstructions) {
     };
 
     // Initialize external inputs and reset sequence.
-    engine->setOutputSlotState(clk, 0, LogicState::low);
-    engine->setOutputSlotState(inputReady, 0, LogicState::low);
+    engine->setOutputPortState(clk, 0, LogicState::low);
+    engine->setOutputPortState(inputReady, 0, LogicState::low);
     writeBus(dataIn, 0, 16);
-    engine->setOutputSlotState(resetN, 0, LogicState::low);
-    engine->setOutputSlotState(resetN, 0, LogicState::high);
+    engine->setOutputPortState(resetN, 0, LogicState::low);
+    engine->setOutputPortState(resetN, 0, LogicState::high);
 
     // Program:
     //   0x6034: LHI r0, 0x34   -> r0 = 0x3400

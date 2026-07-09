@@ -46,20 +46,29 @@ bool isSimStable() {
     return projectCtx->getSimEngine().isSimStable();
 }
 
-void setOutSlotState(const Bess::UUID &compId,
-                     const int slotIdx,
-                     const Bess::SimEngine::LogicState &state) {
+void setOutPortState(const Bess::UUID &compId,
+                     const int portIdx,
+                     const Bess::SimEngine::PortState &state) {
     auto &appCtx = Bess::GAppContext::getInstance();
     auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
     auto &simEngine = projectCtx->getSimEngine();
-    simEngine.setOutputSlotState(compId, slotIdx, state);
+    simEngine.setOutputPortState(compId, portIdx, state);
 }
 
-std::vector<Bess::SimEngine::SlotState> getInpStates(const Bess::UUID &compId) {
+void setOutPortLogicState(const Bess::UUID &compId,
+                          const int portIdx,
+                          const Bess::SimEngine::LogicState &state) {
+    setOutPortState(compId,
+                    portIdx,
+                    Bess::SimEngine::PortState::digital(state));
+}
+
+std::vector<Bess::SimEngine::PortState>
+getInputPortStates(const Bess::UUID &compId) {
     auto &appCtx = Bess::GAppContext::getInstance();
     auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
     auto &simEngine = projectCtx->getSimEngine();
-    return simEngine.getInputSlotsState(compId);
+    return simEngine.getInputPortStates(compId);
 }
 
 void bind_sim_engine_core(py::module_ &m) {
@@ -80,15 +89,21 @@ void bind_sim_engine_core(py::module_ &m) {
                 &isSimStable,
                 "Check if the simulation engine is in a stable state");
 
-    coreMod.def("set_out_slot_state",
-                &setOutSlotState,
+    coreMod.def("set_output_port_state",
+                &setOutPortState,
                 py::arg("comp_id"),
-                py::arg("slot_idx"),
+                py::arg("port_idx"),
                 py::arg("state"),
-                "Set the state of an output slot for a component");
-
-    coreMod.def("get_inp_slots_states",
-                &getInpStates,
+                "Set the state of an output port for a component");
+    coreMod.def("set_output_port_state",
+                &setOutPortLogicState,
                 py::arg("comp_id"),
-                "Get the states of all input slots for a component");
+                py::arg("port_idx"),
+                py::arg("state"),
+                "Set the digital logic state of an output port for a component");
+
+    coreMod.def("get_input_port_states",
+                &getInputPortStates,
+                py::arg("comp_id"),
+                "Get the states of all input ports for a component");
 }

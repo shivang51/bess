@@ -4,8 +4,13 @@
 #include "common/bess_uuid.h"
 #include <any>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
+#include <limits>
 #include <ratio>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
@@ -110,6 +115,21 @@ namespace Bess {
 
         enum class SignalKind : uint8_t { none, digital, scalar, vector };
 
+        enum class QuantityKind : uint8_t {
+            none,
+            logic,
+            dimensionless,
+            voltage,
+            current,
+            resistance,
+            conductance,
+            power,
+            frequency,
+            angle,
+            time,
+            temperature
+        };
+
         struct PortRef {
             UUID componentId = UUID::null;
             PortDirection direction = PortDirection::none;
@@ -134,6 +154,8 @@ namespace Bess {
         struct PortDescriptor {
             PortDirection direction = PortDirection::none;
             SignalKind signalKind = SignalKind::none;
+            QuantityKind quantityKind = QuantityKind::none;
+            std::string unit;
             size_t count = 0;
             std::vector<std::string> names;
             bool isResizeable = false;
@@ -146,58 +168,138 @@ namespace Bess {
             float lowThreshold = 2.0f;
         };
 
-        struct SlotState {
-            float voltage = 0.0f;
+        struct PortState {
+            SignalKind signalKind = SignalKind::digital;
+            LogicState state = LogicState::low;
+            double scalarValue = 0.0;
+            std::vector<double> vectorValue;
             SimTime lastChangeTime{0};
             ConnectionState connState = ConnectionState::driven;
 
-            constexpr SlotState() noexcept = default;
+            PortState() noexcept = default;
 
-            constexpr SlotState(float voltage, SimTime time) noexcept
-                : voltage(voltage),
+            explicit PortState(double value, SimTime time) noexcept
+                : signalKind(SignalKind::scalar),
+                  scalarValue(value),
                   lastChangeTime(time) {
             }
 
-            constexpr SlotState(LogicState logicState,
-                                SimTime time,
-                                const LogicThresholds &thresholds = {}) noexcept
-                : lastChangeTime(time) {
+            PortState(LogicState logicState,
+                      SimTime time,
+                      const LogicThresholds &thresholds = {}) noexcept
+                : signalKind(SignalKind::digital),
+                  lastChangeTime(time) {
                 fromLogicState(logicState, thresholds);
             }
 
-            bool operator==(const SlotState &other) const noexcept {
-                return voltage == other.voltage;
+            static PortState scalar(double value, SimTime time = SimTime{0}) {
+                PortState state;
+                state.signalKind = SignalKind::scalar;
+                state.scalarValue = value;
+                state.lastChangeTime = time;
+                return state;
             }
 
-            bool operator!=(const SlotState &other) const noexcept {
+            static PortState digital(LogicState value,
+                                     SimTime time = SimTime{0}) {
+                return PortState{value, time};
+            }
+
+            static PortState vector(std::vector<double> value,
+                                    SimTime time = SimTime{0}) {
+                PortState state;
+                state.signalKind = SignalKind::vector;
+                state.vectorValue = std::move(value);
+                state.lastChangeTime = time;
+                return state;
+            }
+
+            bool isDigital() const noexcept {
+                return signalKind == SignalKind::digital;
+            }
+
+            bool isScalar() const noexcept {
+                return signalKind == SignalKind::scalar;
+            }
+
+            bool isVector() const noexcept {
+                return signalKind == SignalKind::vector;
+            }
+
+            PortState &setScalarValue(double value,
+                                      SimTime time = SimTime{0}) noexcept {
+                signalKind = SignalKind::scalar;
+                scalarValue = value;
+                lastChangeTime = time;
+                connState = ConnectionState::driven;
+                state = LogicState::unknown;
+                return *this;
+            }
+
+            PortState &setVectorValue(std::vector<double> value,
+                                      SimTime time = SimTime{0}) {
+                signalKind = SignalKind::vector;
+                vectorValue = std::move(value);
+                lastChangeTime = time;
+                connState = ConnectionState::driven;
+                state = LogicState::unknown;
+                return *this;
+            }
+
+            bool operator==(const PortState &other) const {
+                if (signalKind != other.signalKind) {
+                    return false;
+                }
+
+                switch (signalKind) {
+                case SignalKind::scalar:
+                    return scalarValue == other.scalarValue;
+                case SignalKind::vector:
+                    return vectorValue == other.vectorValue;
+                case SignalKind::digital:
+                case SignalKind::none:
+                    return getLogicState() == other.getLogicState() &&
+                           connState == other.connState;
+                }
+
+                return false;
+            }
+
+            bool operator!=(const PortState &other) const {
                 return !(*this == other);
             }
 
-            // Returns the digital logic state based on the voltage and given
-            // thresholds
             LogicState getLogicState(
                 const LogicThresholds &thresholds = {}) const noexcept {
-                if (connState == ConnectionState::high_z)
-                    return LogicState::high_z;
-                else if (voltage > thresholds.highThreshold)
-                    return LogicState::high;
-                else if (voltage < thresholds.lowThreshold)
-                    return LogicState::low;
-                else
+                (void)thresholds;
+                if (signalKind != SignalKind::digital &&
+                    signalKind != SignalKind::none) {
                     return LogicState::unknown;
+                }
+
+                if (connState == ConnectionState::high_z ||
+                    state == LogicState::high_z)
+                    return LogicState::high_z;
+
+                if (connState == ConnectionState::unknown ||
+                    state == LogicState::unknown)
+                    return LogicState::unknown;
+
+                return state;
             }
 
-            SlotState &operator=(const LogicState &state) noexcept {
-                fromLogicState(state, {});
+            PortState &operator=(const LogicState &logicState) noexcept {
+                signalKind = SignalKind::digital;
+                fromLogicState(logicState, {});
                 return *this;
             }
 
             bool isHighZ() const noexcept {
-                return std::isnan(voltage);
+                return getLogicState() == LogicState::high_z;
             }
 
             bool isUnknown() const noexcept {
-                return !isHighZ() && std::isnan(voltage);
+                return getLogicState() == LogicState::unknown;
             }
 
             bool isHigh(const LogicThresholds &thresholds = {}) const noexcept {
@@ -212,25 +314,53 @@ namespace Bess {
                 return getLogicState({}) == other;
             }
 
-          private:
-            constexpr void
-            fromLogicState(LogicState state,
-                           const LogicThresholds &thresholds) noexcept {
-                switch (state) {
+            double getDigitalVoltageValue() const noexcept {
+                switch (getLogicState()) {
                 case LogicState::low:
-                    voltage = 0.0f;
+                    return 0.0;
+                case LogicState::high:
+                    return 5.0;
+                case LogicState::high_z:
+                case LogicState::unknown:
+                    return std::numeric_limits<double>::quiet_NaN();
+                }
+                return std::numeric_limits<double>::quiet_NaN();
+            }
+
+            double getNumericValue() const noexcept {
+                if (signalKind == SignalKind::scalar) {
+                    return scalarValue;
+                }
+                if (signalKind == SignalKind::digital) {
+                    return getDigitalVoltageValue();
+                }
+                return std::numeric_limits<double>::quiet_NaN();
+            }
+
+          private:
+            void
+            fromLogicState(LogicState logicState,
+                           const LogicThresholds &thresholds) noexcept {
+                (void)thresholds;
+                state = logicState;
+                signalKind = SignalKind::digital;
+                scalarValue = 0.0;
+                vectorValue.clear();
+
+                switch (logicState) {
+                case LogicState::low:
+                    scalarValue = 0.0;
+                    connState = ConnectionState::driven;
                     break;
                 case LogicState::high:
-                    voltage = 5.0f;
+                    connState = ConnectionState::driven;
                     break;
                 case LogicState::high_z:
-                    voltage = 0.0f;
+                    scalarValue = 0.0;
                     connState = ConnectionState::high_z;
                     break;
                 case LogicState::unknown:
-                    voltage =
-                        (thresholds.highThreshold + thresholds.lowThreshold) /
-                        2.0f;
+                    scalarValue = 0.0;
                     connState = ConnectionState::unknown;
                     break;
                 }
@@ -264,9 +394,9 @@ namespace Bess {
         };
 
         struct ComponentState {
-            std::vector<SlotState> inputStates;
+            std::vector<PortState> inputStates;
             std::vector<bool> inputConnected;
-            std::vector<SlotState> outputStates;
+            std::vector<PortState> outputStates;
             std::vector<bool> outputConnected;
             bool isChanged = false;
             bool simError = false;
@@ -275,7 +405,7 @@ namespace Bess {
         };
 
         typedef std::function<ComponentState(
-            const std::vector<SlotState> &, SimTime, const ComponentState &)>
+            const std::vector<PortState> &, SimTime, const ComponentState &)>
             SimulationFunction;
 
     } // namespace SimEngine
@@ -356,22 +486,32 @@ namespace Bess::JsonConvert {
 
 REFLECT_ENUM(Bess::SimEngine::SimulationState)
 REFLECT_ENUM(Bess::SimEngine::LogicState)
+REFLECT_ENUM(Bess::SimEngine::ConnectionState)
 REFLECT_ENUM(Bess::SimEngine::SlotsGroupType)
 REFLECT_ENUM(Bess::SimEngine::SlotCatergory)
 REFLECT_ENUM(Bess::SimEngine::ComponentBehaviorType)
 REFLECT_ENUM(Bess::SimEngine::PortDirection)
 REFLECT_ENUM(Bess::SimEngine::SignalKind)
+REFLECT_ENUM(Bess::SimEngine::QuantityKind)
 
 REFLECT(Bess::SimEngine::PortRef, componentId, direction, signalKind, index)
 REFLECT(Bess::SimEngine::PortDescriptor,
         direction,
         signalKind,
+        quantityKind,
+        unit,
         count,
         names,
         isResizeable)
 
-REFLECT(Bess::SimEngine::SlotState, voltage, lastChangeTime)
-REFLECT_VECTOR(Bess::SimEngine::SlotState)
+REFLECT(Bess::SimEngine::PortState,
+        signalKind,
+        state,
+        scalarValue,
+        vectorValue,
+        lastChangeTime,
+        connState)
+REFLECT_VECTOR(Bess::SimEngine::PortState)
 REFLECT_VECTOR(bool)
 
 REFLECT(Bess::SimEngine::ComponentState,

@@ -59,7 +59,10 @@ namespace Bess::SimEngine::Drivers::Digital {
                 ExprEval::evaluateExpression(expressions->at(i), states);
             changed =
                 changed || prevState.outputStates[i].isHigh() != newStateBool;
-            newOuts[i] = {newStateBool ? 5.0f : 0.f, simData->simTime};
+            newOuts[i] =
+                PortState::digital(newStateBool ? LogicState::high
+                                                : LogicState::low,
+                                   simData->simTime);
         }
 
         simData->simDependants = changed;
@@ -135,13 +138,13 @@ namespace Bess::SimEngine::Drivers::Digital {
                        : comp.getOutputConnections();
         }
 
-        std::vector<SlotState> &statesFor(DigSimComp &comp,
+        std::vector<PortState> &statesFor(DigSimComp &comp,
                                           PortDirection direction) {
             return direction == PortDirection::input ? comp.getInputStates()
                                                      : comp.getOutputStates();
         }
 
-        const std::vector<SlotState> &
+        const std::vector<PortState> &
         statesFor(const DigSimComp &comp, PortDirection direction) {
             return direction == PortDirection::input ? comp.getInputStates()
                                                      : comp.getOutputStates();
@@ -208,7 +211,7 @@ namespace Bess::SimEngine::Drivers::Digital {
     }
 
     bool DigitalSimDriver::simulate(const SimEvt &evt,
-                                    const std::vector<SlotState> &inputs) {
+                                    const std::vector<PortState> &inputs) {
         const auto &id = evt.compId;
 
         const auto &comp = this->template getComponent<DigSimComp>(id);
@@ -610,7 +613,7 @@ namespace Bess::SimEngine::Drivers::Digital {
                 return PortCountChangeRes::noChange();
             }
             states.insert(states.begin() + static_cast<long>(index),
-                          SlotState{});
+                          PortState{});
             connections.insert(connections.begin() + static_cast<long>(index),
                                std::vector<ComponentPin>{});
             connected.insert(connected.begin() + static_cast<long>(index),
@@ -623,7 +626,7 @@ namespace Bess::SimEngine::Drivers::Digital {
                 auto &outConnections = digComp->getOutputConnections();
                 auto &outConnected = digComp->getIsOutputConnected();
                 outStates.insert(outStates.begin() + static_cast<long>(index),
-                                 SlotState{});
+                                 PortState{});
                 outConnections.insert(outConnections.begin() +
                                           static_cast<long>(index),
                                       std::vector<ComponentPin>{});
@@ -642,7 +645,7 @@ namespace Bess::SimEngine::Drivers::Digital {
                 return PortCountChangeRes::noChange();
             }
             states.insert(states.begin() + static_cast<long>(index),
-                          SlotState{});
+                          PortState{});
             connections.insert(connections.begin() + static_cast<long>(index),
                                std::vector<ComponentPin>{});
             connected.insert(connected.begin() + static_cast<long>(index),
@@ -655,7 +658,7 @@ namespace Bess::SimEngine::Drivers::Digital {
                 auto &inConnections = digComp->getInputConnections();
                 auto &inConnected = digComp->getIsInputConnected();
                 inStates.insert(inStates.begin() + static_cast<long>(index),
-                                SlotState{});
+                                PortState{});
                 inConnections.insert(inConnections.begin() +
                                          static_cast<long>(index),
                                      std::vector<ComponentPin>{});
@@ -837,7 +840,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         return dependants;
     }
 
-    std::vector<SlotState> DigitalSimDriver::collapseInputs(const UUID &id) {
+    std::vector<PortState> DigitalSimDriver::collapseInputs(const UUID &id) {
         const auto comp = getComponent<DigSimComp>(id);
         if (!comp) {
             return {};
@@ -885,18 +888,18 @@ namespace Bess::SimEngine::Drivers::Digital {
                 mergedState = anyKnown ? LogicState::low : LogicState::unknown;
             }
 
-            collapsed[pinIdx] = SlotState{mergedState, latestTs};
+            collapsed[pinIdx] = PortState{mergedState, latestTs};
         }
 
         return collapsed;
     }
 
-    std::vector<SlotState>
-    DigitalSimDriver::getInputSlotsState(const UUID &compId) {
+    std::vector<PortState>
+    DigitalSimDriver::getInputPortStates(const UUID &compId) {
         return collapseInputs(compId);
     }
 
-    SlotState DigitalSimDriver::getPortState(const PortRef &port) const {
+    PortState DigitalSimDriver::getPortState(const PortRef &port) const {
         const auto comp = getComponent<DigSimComp>(port.componentId);
         if (!comp) {
             BESS_WARN("[getDigitalPinState] Component with UUID {} is invalid",
@@ -932,7 +935,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         }
 
         if (static_cast<size_t>(port.index) >= states.size()) {
-            BESS_WARN("[getDigitalPinState] Input slot index {} out of range "
+            BESS_WARN("[getPortState] Input port index {} out of range "
                       "for component {}",
                       port.index,
                       (uint64_t)port.componentId);
@@ -941,20 +944,26 @@ namespace Bess::SimEngine::Drivers::Digital {
         return states[port.index];
     }
 
-    bool DigitalSimDriver::setInputSlotState(const UUID &uuid,
+    bool DigitalSimDriver::setInputPortState(const UUID &uuid,
                                              int pinIdx,
-                                             LogicState state) {
+                                             const PortState &state) {
         const auto comp = getComponent<DigSimComp>(uuid);
         if (!comp) {
-            BESS_WARN("[setInputSlotState] Component with UUID {} is invalid",
+            BESS_WARN("[setInputPortState] Component with UUID {} is invalid",
                       (uint64_t)uuid);
+            return false;
+        }
+
+        if (!state.isDigital()) {
+            BESS_WARN("[setInputPortState] DigitalSimDriver only accepts "
+                      "digital port states");
             return false;
         }
 
         auto &inputs = comp->getInputStates();
 
         if (pinIdx < 0 || static_cast<size_t>(pinIdx) >= inputs.size()) {
-            BESS_WARN("[setInputSlotState] Input slot index {} out of range "
+            BESS_WARN("[setInputPortState] Input port index {} out of range "
                       "for component {}",
                       pinIdx,
                       (uint64_t)uuid);
@@ -966,20 +975,26 @@ namespace Bess::SimEngine::Drivers::Digital {
         return true;
     }
 
-    bool DigitalSimDriver::setOutputSlotState(const UUID &uuid,
+    bool DigitalSimDriver::setOutputPortState(const UUID &uuid,
                                               int pinIdx,
-                                              LogicState state) {
+                                              const PortState &state) {
         const auto comp = getComponent<DigSimComp>(uuid);
         if (!comp) {
-            BESS_WARN("[setOutputSlotState] Component with UUID {} is invalid",
+            BESS_WARN("[setOutputPortState] Component with UUID {} is invalid",
                       (uint64_t)uuid);
+            return false;
+        }
+
+        if (!state.isDigital()) {
+            BESS_WARN("[setOutputPortState] DigitalSimDriver only accepts "
+                      "digital port states");
             return false;
         }
 
         auto &outputs = comp->getOutputStates();
 
         if (pinIdx < 0 || static_cast<size_t>(pinIdx) >= outputs.size()) {
-            BESS_WARN("[setOutputSlotState] Output slot index {} out of range "
+            BESS_WARN("[setOutputPortState] Output port index {} out of range "
                       "for component {}",
                       pinIdx,
                       (uint64_t)uuid);

@@ -1,8 +1,8 @@
 from enum import Enum
 from bessplug.api.common import time
 from bessplug.api.sim_engine import (
-    SlotState,
     LogicState,
+    PortState,
     SlotsGroupInfo,
 )
 from bessplug.api.sim_engine.driver import DigCompDef, DigCompSimData
@@ -63,7 +63,7 @@ def _simulate_latch(state: DigCompSimData) -> DigCompSimData:
 
     latch_type = aux_data.type
 
-    newQ = SlotState()
+    newQ = PortState()
 
     inputs = state.input_states
     prev_state = state.prev_state

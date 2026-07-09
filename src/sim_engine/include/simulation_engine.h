@@ -89,13 +89,25 @@ namespace Bess::SimEngine {
 
         void deleteConnection(const PortRef &portA, const PortRef &portB);
 
-        SlotState getPortState(const PortRef &port);
+        PortState getPortState(const PortRef &port);
 
         ConnectionBundle getConnections(const UUID &uuid);
-        std::vector<SlotState> getInputSlotsState(UUID compId) const;
+        std::vector<PortState> getInputPortStates(UUID compId) const;
 
-        void setInputSlotState(const UUID &uuid, int pinIdx, LogicState state);
-        void setOutputSlotState(const UUID &uuid, int pinIdx, LogicState state);
+        void setInputPortState(const UUID &uuid,
+                               int pinIdx,
+                               const PortState &state);
+        void setOutputPortState(const UUID &uuid,
+                                int pinIdx,
+                                const PortState &state);
+
+        void setInputPortState(const UUID &uuid, int pinIdx, LogicState state) {
+            setInputPortState(uuid, pinIdx, PortState::digital(state));
+        }
+
+        void setOutputPortState(const UUID &uuid, int pinIdx, LogicState state) {
+            setOutputPortState(uuid, pinIdx, PortState::digital(state));
+        }
 
         SimulationState toggleStartStop();
         SimulationState togglePlayPause();

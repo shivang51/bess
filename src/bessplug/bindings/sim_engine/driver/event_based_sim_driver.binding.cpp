@@ -108,7 +108,7 @@ class PyEvtBasedSimDriver : public Bess::SimEngine::Drivers::EvtBasedSimDriver {
 
     bool
     simulate(const Bess::SimEngine::Drivers::SimEvt &evt,
-             const std::vector<Bess::SimEngine::SlotState> &inputs) override {
+             const std::vector<Bess::SimEngine::PortState> &inputs) override {
         PYBIND11_OVERRIDE_PURE_NAME(bool,
                                     Bess::SimEngine::Drivers::EvtBasedSimDriver,
                                     "simulate",
@@ -136,9 +136,9 @@ class PyEvtBasedSimDriver : public Bess::SimEngine::Drivers::EvtBasedSimDriver {
                                id);
     }
 
-    std::vector<Bess::SimEngine::SlotState>
+    std::vector<Bess::SimEngine::PortState>
     collapseInputs(const Bess::UUID &id) override {
-        PYBIND11_OVERRIDE_NAME(std::vector<Bess::SimEngine::SlotState>,
+        PYBIND11_OVERRIDE_NAME(std::vector<Bess::SimEngine::PortState>,
                                Bess::SimEngine::Drivers::EvtBasedSimDriver,
                                "collapse_inputs",
                                collapseInputs,

@@ -32,17 +32,49 @@ void bind_sim_engine_types(py::module_ &m) {
         .value("UNKNOWN", ConnectionState::unknown)
         .export_values();
 
-    py::class_<SlotState>(m, "SlotState")
+    py::enum_<PortDirection>(m, "PortDirection")
+        .value("NONE", PortDirection::none)
+        .value("INPUT", PortDirection::input)
+        .value("OUTPUT", PortDirection::output)
+        .export_values();
+
+    py::enum_<SignalKind>(m, "SignalKind")
+        .value("NONE", SignalKind::none)
+        .value("DIGITAL", SignalKind::digital)
+        .value("SCALAR", SignalKind::scalar)
+        .value("VECTOR", SignalKind::vector)
+        .export_values();
+
+    py::enum_<QuantityKind>(m, "QuantityKind")
+        .value("NONE", QuantityKind::none)
+        .value("LOGIC", QuantityKind::logic)
+        .value("DIMENSIONLESS", QuantityKind::dimensionless)
+        .value("VOLTAGE", QuantityKind::voltage)
+        .value("CURRENT", QuantityKind::current)
+        .value("RESISTANCE", QuantityKind::resistance)
+        .value("CONDUCTANCE", QuantityKind::conductance)
+        .value("POWER", QuantityKind::power)
+        .value("FREQUENCY", QuantityKind::frequency)
+        .value("ANGLE", QuantityKind::angle)
+        .value("TIME", QuantityKind::time)
+        .value("TEMPERATURE", QuantityKind::temperature)
+        .export_values();
+
+    py::class_<PortState>(m, "PortState")
         .def(py::init<>())
-        .def(py::init<const SlotState &>())
+        .def(py::init<const PortState &>())
+        .def(py::init([](double scalar_value) {
+                 return PortState::scalar(scalar_value);
+             }),
+             py::arg("scalar_value"))
         .def(py::init([](LogicState state) {
-                 SlotState p;
+                 PortState p;
                  p = state;
                  return p;
              }),
              py::arg("state"))
         .def(py::init([](LogicState state, long long last_change_time_ns) {
-                 SlotState p;
+                 PortState p;
                  p = state;
                  p.lastChangeTime = SimTime(last_change_time_ns);
                  return p;
@@ -51,21 +83,65 @@ void bind_sim_engine_types(py::module_ &m) {
              py::arg("last_change_time_ns"))
         .def_property(
             "state",
-            [](SlotState &self) { return self.getLogicState(); },
-            [](SlotState &self, LogicState state) { self = state; })
-        .def_readwrite("voltage", &SlotState::voltage)
-        .def_readwrite("conn_state", &SlotState::connState)
+            [](PortState &self) { return self.getLogicState(); },
+            [](PortState &self, LogicState state) { self = state; })
+        .def_readwrite("signal_kind", &PortState::signalKind)
+        .def_readwrite("scalar_value", &PortState::scalarValue)
+        .def_readwrite("vector_value", &PortState::vectorValue)
+        .def_readwrite("conn_state", &PortState::connState)
         .def_property(
             "last_change_time_ns",
-            [](const SlotState &self) {
+            [](const PortState &self) {
                 return static_cast<long long>(self.lastChangeTime.count());
             },
-            [](SlotState &self, long long ns) {
+            [](PortState &self, long long ns) {
                 self.lastChangeTime = SimTime(ns);
             })
-        .def("copy", [](const SlotState &self) { return SlotState(self); })
+        .def("copy", [](const PortState &self) { return PortState(self); })
+        .def_static("scalar",
+                    [](double value, long long last_change_time_ns) {
+                        return PortState::scalar(
+                            value, SimTime(last_change_time_ns));
+                    },
+                    py::arg("value"),
+                    py::arg("last_change_time_ns") = 0)
+        .def_static("digital",
+                    [](LogicState value, long long last_change_time_ns) {
+                        return PortState::digital(
+                            value, SimTime(last_change_time_ns));
+                    },
+                    py::arg("value"),
+                    py::arg("last_change_time_ns") = 0)
+        .def_static("vector",
+                    [](std::vector<double> value,
+                       long long last_change_time_ns) {
+                        return PortState::vector(
+                            std::move(value), SimTime(last_change_time_ns));
+                    },
+                    py::arg("value"),
+                    py::arg("last_change_time_ns") = 0)
+        .def("is_digital", &PortState::isDigital)
+        .def("is_scalar", &PortState::isScalar)
+        .def("is_vector", &PortState::isVector)
+        .def("set_scalar_value",
+             [](PortState &self, double value, long long last_change_time_ns) {
+                 self.setScalarValue(value, SimTime(last_change_time_ns));
+             },
+             py::arg("value"),
+             py::arg("last_change_time_ns") = 0)
+        .def("set_vector_value",
+             [](PortState &self,
+                std::vector<double> value,
+                long long last_change_time_ns) {
+                 self.setVectorValue(std::move(value),
+                                     SimTime(last_change_time_ns));
+             },
+             py::arg("value"),
+             py::arg("last_change_time_ns") = 0)
+        .def("get_digital_voltage_value", &PortState::getDigitalVoltageValue)
+        .def("get_numeric_value", &PortState::getNumericValue)
         .def("invert",
-             [](SlotState &self) {
+             [](PortState &self) {
                  switch (self.getLogicState()) {
                  case LogicState::low:
                      self = LogicState::high;
@@ -79,7 +155,21 @@ void bind_sim_engine_types(py::module_ &m) {
                      break;
                  }
              })
-        .def("__repr__", [](const SlotState &self) {
+        .def("__repr__", [](const PortState &self) {
+            if (self.signalKind == SignalKind::scalar) {
+                return std::string("<PortState scalar=") +
+                       std::to_string(self.scalarValue) +
+                       ", t_ns=" +
+                       std::to_string(self.lastChangeTime.count()) + ">";
+            }
+
+            if (self.signalKind == SignalKind::vector) {
+                return std::string("<PortState vector_size=") +
+                       std::to_string(self.vectorValue.size()) +
+                       ", t_ns=" +
+                       std::to_string(self.lastChangeTime.count()) + ">";
+            }
+
             const char *s = "UNKNOWN";
             switch (self.getLogicState()) {
             case LogicState::low:
@@ -95,23 +185,10 @@ void bind_sim_engine_types(py::module_ &m) {
                 s = "HIGH_Z";
                 break;
             }
-            return std::string("<PinState state=") + s +
+            return std::string("<PortState state=") + s +
                    ", t_ns=" + std::to_string(self.lastChangeTime.count()) +
                    ">";
         });
-
-    py::enum_<PortDirection>(m, "PortDirection")
-        .value("NONE", PortDirection::none)
-        .value("INPUT", PortDirection::input)
-        .value("OUTPUT", PortDirection::output)
-        .export_values();
-
-    py::enum_<SignalKind>(m, "SignalKind")
-        .value("NONE", SignalKind::none)
-        .value("DIGITAL", SignalKind::digital)
-        .value("SCALAR", SignalKind::scalar)
-        .value("VECTOR", SignalKind::vector)
-        .export_values();
 
     py::class_<PortRef>(m, "PortRef")
         .def(py::init<>())
@@ -127,6 +204,8 @@ void bind_sim_engine_types(py::module_ &m) {
         .def(py::init<>())
         .def_readwrite("direction", &PortDescriptor::direction)
         .def_readwrite("signal_kind", &PortDescriptor::signalKind)
+        .def_readwrite("quantity_kind", &PortDescriptor::quantityKind)
+        .def_readwrite("unit", &PortDescriptor::unit)
         .def_readwrite("count", &PortDescriptor::count)
         .def_readwrite("names", &PortDescriptor::names)
         .def_readwrite("is_resizeable", &PortDescriptor::isResizeable);

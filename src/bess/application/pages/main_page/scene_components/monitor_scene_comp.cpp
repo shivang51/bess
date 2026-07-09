@@ -1658,15 +1658,16 @@ namespace Bess::Canvas {
         if (initialProbeData.empty()) {
             const auto slotState = comp->getSlotState(sceneState);
             initialProbeData.emplace_back(slotState.lastChangeTime,
-                                          slotState.voltage);
+                                          static_cast<float>(
+                                              slotState.getNumericValue()));
         }
 
         digComp->addOnStateChangeCB(
             callbackIdForSlot(m_uuid, slotUuid),
             [this, slotUuid, slotComp = comp](
-                const std::vector<SimEngine::SlotState> &inputStates,
-                const std::vector<SimEngine::SlotState> &outputStates) {
-                SimEngine::SlotState slotState;
+                const std::vector<SimEngine::PortState> &inputStates,
+                const std::vector<SimEngine::PortState> &outputStates) {
+                SimEngine::PortState slotState;
 
                 if (slotComp->isInputSlot()) {
                     if (slotComp->getIndex() < 0 ||
@@ -1685,14 +1686,15 @@ namespace Bess::Canvas {
                 }
 
                 auto &probeData = m_probeData[slotUuid];
+                const float numericValue =
+                    static_cast<float>(slotState.getNumericValue());
                 if (!probeData.empty() &&
                     probeData.back().first == slotState.lastChangeTime &&
-                    probeData.back().second == slotState.voltage) {
+                    probeData.back().second == numericValue) {
                     return;
                 }
 
-                probeData.emplace_back(slotState.lastChangeTime,
-                                       slotState.voltage);
+                probeData.emplace_back(slotState.lastChangeTime, numericValue);
 
                 while (probeData.size() > kMaxProbeSamples) {
                     probeData.erase(probeData.begin());

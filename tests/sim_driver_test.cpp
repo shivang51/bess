@@ -51,7 +51,7 @@ namespace {
                     data->inputStates.size() >= 2 &&
                     data->inputStates[0].state == LogicState::high &&
                     data->inputStates[1].state == LogicState::high;
-                data->outputStates[0] = SlotState(
+                data->outputStates[0] = PortState(
                     out ? LogicState::high : LogicState::low,
                     std::chrono::duration_cast<SimTime>(data->simTime));
                 data->simDependants = true;
@@ -68,8 +68,8 @@ namespace {
 
         const auto simFn = andGate.getSimFn();
         auto data = std::make_shared<DigCompSimData>();
-        data->inputStates = {SlotState(LogicState::high, Bess::TimeNs(0)),
-                             SlotState(LogicState::high, Bess::TimeNs(0))};
+        data->inputStates = {PortState(LogicState::high, Bess::TimeNs(0)),
+                             PortState(LogicState::high, Bess::TimeNs(0))};
         data->simTime = Bess::TimeNs(10);
         const auto nextBase = simFn(data);
         const auto next = std::dynamic_pointer_cast<DigCompSimData>(nextBase);
@@ -128,7 +128,7 @@ namespace {
                     std::chrono::duration_cast<SimTime>(data->simTime);
 
                 data->outputStates =
-                    std::vector<SlotState>{SlotState(outState, slotTs)};
+                    std::vector<PortState>{PortState(outState, slotTs)};
 
                 component->setOutputStates(data->outputStates);
 
@@ -141,10 +141,10 @@ namespace {
         component->setUuid(compId);
         component->setName("NAND#1");
         component->setInputStates(
-            std::vector<SlotState>{SlotState(LogicState::low, SimTime(0)),
-                                   SlotState(LogicState::low, SimTime(0))});
+            std::vector<PortState>{PortState(LogicState::low, SimTime(0)),
+                                   PortState(LogicState::low, SimTime(0))});
         component->setOutputStates(
-            std::vector<SlotState>{SlotState(LogicState::low, SimTime(0))});
+            std::vector<PortState>{PortState(LogicState::low, SimTime(0))});
 
         driver.setState(Drivers::SimDriverState::running);
         std::thread runLoop([&driver]() { driver.run(); });
