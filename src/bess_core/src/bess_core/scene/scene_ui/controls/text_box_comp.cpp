@@ -14,6 +14,15 @@ namespace Bess::Canvas::UI {
         return textBox;
     }
 
+    void TextBoxComp::update(TimeMs ts, SceneState &state) {
+        if (m_clearFocus) {
+            m_clearFocus = false;
+            if (m_focused) {
+                state.clearUIFocus();
+            }
+        }
+    }
+
     void TextBoxComp::draw(SceneDrawContext &state) {
         const auto id = PickingId{
             .runtimeId = m_runtimeId,
@@ -32,6 +41,7 @@ namespace Bess::Canvas::UI {
             .focusedBorderColor = m_style.activeColor,
             .textColor = m_style.textStyle.textColor,
             .placeholderColor = m_style.textStyle.textColor.withAlpha(0.55f),
+            .selectionColor = m_style.activeColor.withAlpha(0.45f),
             .cursorColor = m_style.activeColor,
             .hovered = m_hovered,
         };
@@ -156,11 +166,17 @@ namespace Bess::Canvas::UI {
                 m_changedCallback(m_value);
             }
         }
+
         if (result.submitted && m_submittedCallback) {
             m_submittedCallback(m_value);
         }
+
         if (result.canceled && m_canceledCallback) {
             m_canceledCallback(m_value);
+        }
+
+        if (result.submitted || result.canceled) {
+            m_clearFocus = true;
         }
     }
 } // namespace Bess::Canvas::UI

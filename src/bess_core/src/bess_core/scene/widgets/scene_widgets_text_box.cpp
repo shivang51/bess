@@ -358,7 +358,9 @@ namespace Bess::Canvas::SceneWidgets {
                                      boxPos.y,
                                      boxPos.z + 0.00015f},
                                     {selectionWidth, cursorHeight},
-                                    palette.accent.withAlpha(0.45f),
+                                    Detail::colorOr(
+                                        options.selectionColor,
+                                        palette.accent.withAlpha(0.45f)),
                                     id);
             }
         }

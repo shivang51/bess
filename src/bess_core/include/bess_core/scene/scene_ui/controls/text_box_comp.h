@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene/scene_ui/text_box_context.h"
 #include "bess_core/scene/scene_ui/ui_scene_component.h"
 #include <cstddef>
@@ -39,6 +40,7 @@ namespace Bess::Canvas::UI {
         create(const std::string &value = "",
                const UITextBoxCallback &changedCallback = nullptr);
 
+        void update(TimeMs ts, SceneState &state) override;
         void draw(SceneDrawContext &state) override;
         void prepareUI(SceneUIPrepareCtx &state) override;
         bool isFocusable() const override;
@@ -64,5 +66,6 @@ namespace Bess::Canvas::UI {
         UITextBoxCallback m_submittedCallback;
         UITextBoxCallback m_canceledCallback;
         TextBoxContext m_textInput;
+        bool m_clearFocus = false;
     };
 } // namespace Bess::Canvas::UI

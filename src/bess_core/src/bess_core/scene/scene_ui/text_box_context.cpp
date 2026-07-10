@@ -258,7 +258,7 @@ namespace Bess::Canvas::UI {
     } // namespace
 
     void TextBoxContext::syncExternalValue(std::string_view value,
-                                                   size_t maxLength) {
+                                           size_t maxLength) {
         m_maxLength = maxLength;
         if (m_focused) {
             return;
@@ -275,8 +275,8 @@ namespace Bess::Canvas::UI {
     }
 
     void TextBoxContext::focus(std::string_view value,
-                                       size_t maxLength,
-                                       bool selectAllOnFocus) {
+                               size_t maxLength,
+                               bool selectAllOnFocus) {
         m_maxLength = maxLength;
         m_text = boundedText(value, maxLength);
         m_focusStartText = m_text;
@@ -297,8 +297,7 @@ namespace Bess::Canvas::UI {
         m_pointerExtendSelection = false;
     }
 
-    TextBoxContextResult
-    TextBoxContext::handleEvent(const SceneEvent &evt) {
+    TextBoxContextResult TextBoxContext::handleEvent(const SceneEvent &evt) {
         TextBoxContextResult result;
         if (!m_focused) {
             return result;
@@ -394,9 +393,8 @@ namespace Bess::Canvas::UI {
             }
 
             const size_t eraseBegin =
-                evt.isCtrlPressed
-                    ? previousWordBoundary(m_text, m_cursorPos)
-                    : previousCharBoundary(m_text, m_cursorPos);
+                evt.isCtrlPressed ? previousWordBoundary(m_text, m_cursorPos)
+                                  : previousCharBoundary(m_text, m_cursorPos);
             m_text.erase(eraseBegin, m_cursorPos - eraseBegin);
             m_cursorPos = eraseBegin;
             markChanged(result);
@@ -407,9 +405,9 @@ namespace Bess::Canvas::UI {
                 return result;
             }
 
-            const size_t eraseEnd =
-                evt.isCtrlPressed ? nextWordBoundary(m_text, m_cursorPos)
-                                  : nextCharBoundary(m_text, m_cursorPos);
+            const size_t eraseEnd = evt.isCtrlPressed
+                                        ? nextWordBoundary(m_text, m_cursorPos)
+                                        : nextCharBoundary(m_text, m_cursorPos);
             m_text.erase(m_cursorPos, eraseEnd - m_cursorPos);
             markChanged(result);
             return result;
@@ -419,9 +417,9 @@ namespace Bess::Canvas::UI {
                 moveCursor(selectionRange().first, false, result);
                 return result;
             }
-            moveCursor(commandPressed ? previousWordBoundary(m_text, m_cursorPos)
-                                      : previousCharBoundary(m_text,
-                                                             m_cursorPos),
+            moveCursor(commandPressed
+                           ? previousWordBoundary(m_text, m_cursorPos)
+                           : previousCharBoundary(m_text, m_cursorPos),
                        selecting,
                        result);
             return result;
@@ -460,9 +458,8 @@ namespace Bess::Canvas::UI {
         }
     }
 
-    void TextBoxContext::queuePointerPress(
-        const glm::vec2 &pos,
-        bool extendSelection) {
+    void TextBoxContext::queuePointerPress(const glm::vec2 &pos,
+                                           bool extendSelection) {
         m_pointerPos = pos;
         m_pointerInputQueued = true;
         m_pointerSelecting = true;
@@ -531,8 +528,8 @@ namespace Bess::Canvas::UI {
             return {0, m_text.size()};
         }
 
-        const size_t visibleStart =
-            findVisibleStart(renderer, m_text, m_cursorPos, maxWidth, fontProps);
+        const size_t visibleStart = findVisibleStart(
+            renderer, m_text, m_cursorPos, maxWidth, fontProps);
         const size_t visibleEnd = findVisibleEnd(
             renderer, m_text, visibleStart, m_cursorPos, maxWidth, fontProps);
         return {visibleStart, visibleEnd};
@@ -558,13 +555,11 @@ namespace Bess::Canvas::UI {
         m_selectionAnchorPos = m_cursorPos;
     }
 
-    void TextBoxContext::markChanged(
-        TextBoxContextResult &result) {
+    void TextBoxContext::markChanged(TextBoxContextResult &result) {
         result.changed = true;
     }
 
-    bool TextBoxContext::deleteSelection(
-        TextBoxContextResult &result) {
+    bool TextBoxContext::deleteSelection(TextBoxContextResult &result) {
         if (!hasSelection()) {
             return false;
         }
@@ -586,10 +581,9 @@ namespace Bess::Canvas::UI {
         return m_text.size() - (end - start);
     }
 
-    void TextBoxContext::moveCursor(
-        size_t nextCursor,
-        bool selecting,
-        TextBoxContextResult &result) {
+    void TextBoxContext::moveCursor(size_t nextCursor,
+                                    bool selecting,
+                                    TextBoxContextResult &result) {
         (void)result;
         m_cursorPos = std::min(nextCursor, m_text.size());
         if (!selecting) {
@@ -599,11 +593,11 @@ namespace Bess::Canvas::UI {
     }
 
     void drawTextBoxContext(const PickingId &id,
-                               TextBoxContext &input,
-                               const glm::vec3 &boxPos,
-                               const glm::vec2 &boxSize,
-                               SceneDrawContext &context,
-                               const TextBoxContextDrawOptions &options) {
+                            TextBoxContext &input,
+                            const glm::vec3 &boxPos,
+                            const glm::vec2 &boxSize,
+                            SceneDrawContext &context,
+                            const TextBoxContextDrawOptions &options) {
         if (context.renderer == nullptr) {
             return;
         }
@@ -617,21 +611,20 @@ namespace Bess::Canvas::UI {
         }
 
         if (size.x == 0.f) {
-            const auto displayText =
-                input.text().empty() ? options.placeholder
-                                     : std::string_view(input.text());
-            const auto measuredText =
-                context.renderer->measureText(displayText,
-                                              {.fontSize = options.fontSize});
+            const auto displayText = input.text().empty()
+                                         ? options.placeholder
+                                         : std::string_view(input.text());
+            const auto measuredText = context.renderer->measureText(
+                displayText, {.fontSize = options.fontSize});
             size.x = std::max(48.f, measuredText.x + (options.padding.x * 2.f));
         }
 
         const auto &palette = ViewportTheme::sceneWidgetsColors;
         const bool focused = input.isFocused();
         auto bgColor =
-            focused ? colorOr(options.focusedBackgroundColor,
-                              palette.surfaceActive)
-                    : colorOr(options.backgroundColor, palette.surface);
+            focused
+                ? colorOr(options.focusedBackgroundColor, palette.surfaceActive)
+                : colorOr(options.backgroundColor, palette.surface);
         if (!focused && options.hovered) {
             bgColor =
                 colorOr(options.hoverBackgroundColor, palette.surfaceHover);
@@ -639,9 +632,9 @@ namespace Bess::Canvas::UI {
 
         const SceneDraw::QuadStyle style{
             .borderColor =
-                focused ? colorOr(options.focusedBorderColor,
-                                  palette.borderFocus)
-                        : colorOr(options.borderColor, palette.border),
+                focused
+                    ? colorOr(options.focusedBorderColor, palette.borderFocus)
+                    : colorOr(options.borderColor, palette.border),
             .borderRadius = glm::vec4(2.f),
             .borderSize = glm::vec4(focused ? 0.8f : 0.5f),
         };
@@ -660,9 +653,8 @@ namespace Bess::Canvas::UI {
                 context.renderer, left, contentWidth, fontProps);
         }
 
-        const auto [visibleStart, visibleEnd] =
-            input.visibleRangeForCursor(
-                context.renderer, contentWidth, fontProps);
+        const auto [visibleStart, visibleEnd] = input.visibleRangeForCursor(
+            context.renderer, contentWidth, fontProps);
         std::string_view visibleText =
             std::string_view(input.text())
                 .substr(visibleStart, visibleEnd - visibleStart);
@@ -683,8 +675,8 @@ namespace Bess::Canvas::UI {
 
             if (visibleSelStart < visibleSelEnd) {
                 const auto text = std::string_view(input.text());
-                const auto prefix = text.substr(
-                    visibleStart, visibleSelStart - visibleStart);
+                const auto prefix =
+                    text.substr(visibleStart, visibleSelStart - visibleStart);
                 const auto selected = text.substr(
                     visibleSelStart, visibleSelEnd - visibleSelStart);
                 const float selectionX =
@@ -696,7 +688,8 @@ namespace Bess::Canvas::UI {
                                      boxPos.y,
                                      boxPos.z + 0.00015f},
                                     {selectionWidth, cursorHeight},
-                                    palette.accent.withAlpha(0.45f),
+                                    colorOr(options.selectionColor,
+                                            palette.accent.withAlpha(0.45f)),
                                     id);
             }
         }
@@ -724,12 +717,11 @@ namespace Bess::Canvas::UI {
                     .substr(visibleStart, visibleCursor - visibleStart);
             const float cursorX =
                 left + context.renderer->measureText(cursorText, fontProps).x;
-            SceneDraw::drawQuad(
-                context,
-                {cursorX, boxPos.y, boxPos.z + 0.0002f},
-                {1.f, cursorHeight},
-                colorOr(options.cursorColor, palette.text),
-                id);
+            SceneDraw::drawQuad(context,
+                                {cursorX, boxPos.y, boxPos.z + 0.0002f},
+                                {1.f, cursorHeight},
+                                colorOr(options.cursorColor, palette.text),
+                                id);
         }
     }
 } // namespace Bess::Canvas::UI
