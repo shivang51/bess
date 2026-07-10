@@ -3,6 +3,7 @@
 #include "bess_core/scene/camera.h"
 #include "bess_core/scene/scene_event.h"
 #include "bess_core/scene/scene_state/scene_state.h"
+#include "common/logger.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -85,6 +86,10 @@ namespace Bess::Canvas::UI {
         return m_selectedIndex;
     }
 
+    bool ListBoxComp::hasWidgetChildren() const {
+        return !m_childComponents.empty();
+    }
+
     void ListBoxComp::setSelectedIndex(size_t index) {
         if (index >= m_items.size()) {
             return;
@@ -111,42 +116,63 @@ namespace Bess::Canvas::UI {
         }
     }
 
+    std::vector<UUID> ListBoxComp::cleanup(SceneState &state, UUID caller) {
+        auto removedComponents = UISceneComponent::cleanup(state, caller);
+        if (m_contentNode != nullptr) {
+            state.getUINodeRegistry()->removeNode(m_contentNode->getId());
+            m_contentNode = nullptr;
+        }
+        return removedComponents;
+    }
+
     void ListBoxComp::onDraw(SceneDrawContext &state) {
         if (m_node == nullptr || state.renderer == nullptr) {
             return;
         }
 
-        clampScrollOffset();
         drawBackground(state);
 
-        Rect content = contentRect();
-        Rect scroll = {};
-        const bool scrollable =
-            m_showScrollbar && hasScrollableContent(content);
+        Rect content = scrollableContentRect();
+        const Rect viewport = contentRect();
+        const bool scrollable = m_showScrollbar && hasScrollableContent(viewport);
         if (scrollable) {
-            scroll = scrollbarRect(content);
-            content.right = std::max(content.left, scroll.left - kScrollbarGap);
+            content.right =
+                std::max(content.left, scrollbarRect(viewport).left - kScrollbarGap);
         }
 
-        drawItems(state, content);
+        if (hasWidgetChildren()) {
+            drawChildren(state, content);
+        } else {
+            drawItems(state, content);
+        }
         if (scrollable) {
-            drawScrollbar(state, content, scroll);
+            drawScrollbar(state, viewport, scrollbarRect(viewport));
         }
     }
 
     void ListBoxComp::prepareUI(SceneUIPrepareCtx &state) {
         prepStyle(state.theme);
-        initNode(state.sceneState->getUINodeRegistry());
+        const auto registry = state.sceneState->getUINodeRegistry();
+        initNode(registry);
+        initContentNode(registry);
 
         m_cachedListSize = resolveListSize(state);
 
         m_node->setDirection(LayoutDirection::vertical);
         m_node->setWidth(m_cachedListSize.x);
         m_node->setHeight(m_cachedListSize.y);
-        m_node->setPadding(m_style.metrics.padding);
+        m_node->setPadding(Core::Style::Padding::zero());
         m_node->setMargin(m_style.metrics.margin);
         m_node->setCrossAxisAlignment(LayoutAlignment::start);
         m_node->clearChildren();
+
+        if (hasWidgetChildren()) {
+            configureContentNode();
+            m_node->addChild(m_contentNode);
+            prepareChildren(state);
+        } else if (m_contentNode != nullptr) {
+            m_contentNode->clearChildren();
+        }
 
         if (state.parentNode != nullptr) {
             state.parentNode->addChild(m_node);
@@ -238,7 +264,10 @@ namespace Bess::Canvas::UI {
     }
 
     bool ListBoxComp::onMouseWheel(const Events::MouseWheelEvent &e) {
-        if (m_items.empty()) {
+        if (!hasWidgetChildren() && m_items.empty()) {
+            return false;
+        }
+        if (maxScrollOffset() <= 0.f) {
             return false;
         }
 
@@ -378,6 +407,7 @@ namespace Bess::Canvas::UI {
             std::clamp(std::isfinite(offset) ? offset : 0.f,
                        0.f,
                        maxScrollOffset());
+        configureContentNode();
     }
 
     void ListBoxComp::scrollBy(float delta) {
@@ -525,6 +555,37 @@ namespace Bess::Canvas::UI {
         }
     }
 
+    void ListBoxComp::drawChildren(SceneDrawContext &state,
+                                   const Rect &contentRect) {
+        if (rectEmpty(contentRect) || !hasWidgetChildren()) {
+            return;
+        }
+
+        const bool clipped = pushClip(state, contentRect);
+        if (state.camera != nullptr && !clipped) {
+            return;
+        }
+
+        for (const auto &childId : m_childComponents) {
+            auto childComp = state.sceneState->getComponentByUuid(childId);
+            if (childComp == nullptr) {
+                continue;
+            }
+
+            auto *uiChild = dynamic_cast<UISceneComponent *>(childComp);
+            if (uiChild != nullptr && uiChild->getUINode() != nullptr &&
+                !intersects(nodeRect(uiChild->getUINode()), contentRect)) {
+                continue;
+            }
+
+            childComp->draw(state);
+        }
+
+        if (clipped) {
+            state.renderer->popScissorRect();
+        }
+    }
+
     void ListBoxComp::drawScrollbar(SceneDrawContext &state,
                                     const Rect &contentRect,
                                     const Rect &scrollbarRect) {
@@ -579,9 +640,58 @@ namespace Bess::Canvas::UI {
         state.renderer->drawQuad(thumb);
     }
 
+    void ListBoxComp::initContentNode(
+        const std::shared_ptr<UINodeRegistry> &registry) {
+        if (m_contentNode == nullptr && registry != nullptr) {
+            m_contentNode = registry->addNode(UUID());
+        }
+    }
+
+    void ListBoxComp::prepareChildren(SceneUIPrepareCtx &state) {
+        if (m_contentNode == nullptr) {
+            return;
+        }
+
+        auto *previousParent = state.parentNode;
+        state.parentNode = m_contentNode;
+        for (const auto &childId : m_childComponents) {
+            auto *childComp = state.sceneState->getComponentByUuid(childId);
+            if (childComp == nullptr) {
+                BESS_WARN("ListBox child component with UUID {} not found.",
+                          static_cast<uint64_t>(childId));
+                continue;
+            }
+            childComp->prepareUI(state);
+        }
+        state.parentNode = previousParent;
+    }
+
+    void ListBoxComp::configureContentNode() {
+        if (m_contentNode == nullptr) {
+            return;
+        }
+
+        Rect content = localContentRect();
+        if (reserveScrollbarSpace(content)) {
+            const Rect scroll = scrollbarRect(content);
+            content.right = std::max(content.left, scroll.left - kScrollbarGap);
+        }
+
+        m_contentNode->setDirection(LayoutDirection::vertical);
+        m_contentNode->setMainAxisAlignment(LayoutAlignment::start);
+        m_contentNode->setCrossAxisAlignment(m_childAlignment);
+        m_contentNode->setPosMode(PosMode::absolute);
+        m_contentNode->setPos({content.left, content.top - m_scrollOffset});
+        m_contentNode->setWidth(std::max(0.f, rectWidth(content)));
+        m_contentNode->setHeightFitContent();
+        m_contentNode->setPadding(Core::Style::Padding::zero());
+        m_contentNode->setMargin(0.f);
+        m_contentNode->setZVal(0.0001f);
+    }
+
     glm::vec2 ListBoxComp::resolveListSize(SceneUIPrepareCtx &state) const {
         glm::vec2 size = m_listSize;
-        if (size.x <= 0.f) {
+        if (size.x <= 0.f && !hasWidgetChildren()) {
             float maxTextWidth = 0.f;
             for (const auto &item : m_items) {
                 maxTextWidth = std::max(
@@ -593,12 +703,16 @@ namespace Bess::Canvas::UI {
             }
             size.x = maxTextWidth + kTextInset + m_style.metrics.padding.right +
                      std::max(0.f, m_scrollbarWidth) + kScrollbarGap;
+        } else if (size.x <= 0.f) {
+            size.x = m_cachedListSize.x;
         }
-        if (size.y <= 0.f) {
+        if (size.y <= 0.f && !hasWidgetChildren()) {
             const size_t visible =
                 std::min<size_t>(m_items.empty() ? 1 : m_items.size(), 5);
             size.y = (static_cast<float>(visible) * itemHeight()) +
                      m_style.metrics.padding.vertical();
+        } else if (size.y <= 0.f) {
+            size.y = m_cachedListSize.y;
         }
 
         size.x = std::max(kMinListWidth, size.x);
@@ -611,8 +725,16 @@ namespace Bess::Canvas::UI {
             return {};
         }
 
-        const auto center = m_node->getDrawPos();
-        const auto size = m_node->getDrawSize();
+        return nodeRect(m_node);
+    }
+
+    ListBoxComp::Rect ListBoxComp::nodeRect(const UINode *node) const {
+        if (node == nullptr) {
+            return {};
+        }
+
+        const auto center = node->getDrawPos();
+        const auto size = node->getDrawSize();
         return {
             .left = center.x - (size.x * 0.5f),
             .top = center.y - (size.y * 0.5f),
@@ -647,12 +769,45 @@ namespace Bess::Canvas::UI {
         return rect;
     }
 
-    ListBoxComp::Rect
-    ListBoxComp::scrollbarRect(const Rect &contentRect) const {
+    ListBoxComp::Rect ListBoxComp::localContentRect() const {
+        const float width = std::max(0.f, m_cachedListSize.x);
+        const float height = std::max(0.f, m_cachedListSize.y);
+        Rect rect{
+            .left = m_style.metrics.borderSize.left +
+                    m_style.metrics.padding.left,
+            .top = m_style.metrics.borderSize.top + m_style.metrics.padding.top,
+            .right = width - m_style.metrics.borderSize.right -
+                     m_style.metrics.padding.right,
+            .bottom = height - m_style.metrics.borderSize.bottom -
+                      m_style.metrics.padding.bottom,
+        };
+        if (rect.right < rect.left) {
+            rect.right = rect.left;
+        }
+        if (rect.bottom < rect.top) {
+            rect.bottom = rect.top;
+        }
+        return rect;
+    }
+
+    ListBoxComp::Rect ListBoxComp::scrollableContentRect() const {
+        Rect content = contentRect();
+        if (reserveScrollbarSpace(content)) {
+            const Rect scroll = scrollbarRect(content);
+            content.right = std::max(content.left, scroll.left - kScrollbarGap);
+        }
+        return content;
+    }
+
+    ListBoxComp::Rect ListBoxComp::scrollbarRect(const Rect &contentRect) const {
         const float width = std::clamp(m_scrollbarWidth, 4.f, 18.f);
-        const float right = contentRect.right;
+        const float right =
+            contentRect.right + std::max(0.f, m_style.metrics.padding.right);
+        const float leftLimit =
+            contentRect.left - std::max(0.f, m_style.metrics.padding.left);
+
         return {
-            .left = std::max(contentRect.left, right - width),
+            .left = std::max(leftLimit, right - width),
             .top = contentRect.top,
             .right = right,
             .bottom = contentRect.bottom,
@@ -664,6 +819,10 @@ namespace Bess::Canvas::UI {
     }
 
     float ListBoxComp::totalContentHeight() const {
+        if (hasWidgetChildren()) {
+            return m_contentNode != nullptr ? m_contentNode->getDrawSize().y
+                                            : 0.f;
+        }
         return static_cast<float>(m_items.size()) * itemHeight();
     }
 
@@ -674,6 +833,16 @@ namespace Bess::Canvas::UI {
 
     bool ListBoxComp::hasScrollableContent(const Rect &contentRect) const {
         return totalContentHeight() > rectHeight(contentRect) + 0.5f;
+    }
+
+    bool ListBoxComp::reserveScrollbarSpace(const Rect &contentRect) const {
+        if (!m_showScrollbar) {
+            return false;
+        }
+        if (hasWidgetChildren()) {
+            return true;
+        }
+        return hasScrollableContent(contentRect);
     }
 
     ListBoxComp::VisibleRange
@@ -696,6 +865,11 @@ namespace Bess::Canvas::UI {
             static_cast<size_t>(std::ceil(visibleHeight / height)) + 1u;
         range.count = std::min(range.count, m_items.size() - range.first);
         return range;
+    }
+
+    bool ListBoxComp::intersects(const Rect &lhs, const Rect &rhs) const {
+        return lhs.right > rhs.left && lhs.left < rhs.right &&
+               lhs.bottom > rhs.top && lhs.top < rhs.bottom;
     }
 
     bool ListBoxComp::isItemInfo(uint32_t info) const {
@@ -790,5 +964,9 @@ namespace Bess::Canvas::UI {
             .height = static_cast<uint32_t>(bottom - top),
         });
         return true;
+    }
+
+    void ListBoxComp::onChildrenChanged() {
+        makeUIDirty();
     }
 } // namespace Bess::Canvas::UI

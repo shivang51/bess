@@ -78,6 +78,15 @@ namespace Bess::Canvas {
             return dynamic_cast<UI::UISceneComponent *>(comp.get());
         }
 
+        UI::UISceneComponent *
+        getParentUIComponent(SceneState *state, UI::UISceneComponent *comp) {
+            if (state == nullptr || comp == nullptr ||
+                comp->getParentComponent() == UUID::null) {
+                return nullptr;
+            }
+            return getUIComponent(state, comp->getParentComponent());
+        }
+
         Events::FocusEvent makeFocusEvent(SceneEventContext &ctx,
                                           const UUID &uuid,
                                           const glm::vec2 &mousePos,
@@ -251,19 +260,29 @@ namespace Bess::Canvas {
             return EventResult::Ignored;
         }
 
-        auto uiComp = getUIComponent(ctx.sceneState, evt.pickingId);
+        auto *uiComp = getUIComponent(ctx.sceneState, evt.pickingId);
         if (uiComp == nullptr) {
             return EventResult::Ignored;
         }
 
         const auto &data = evt.data.mouseWheel;
-        const bool handled = uiComp->onMouseWheel({
-            .mousePos = data.pos,
-            .delta = data.delta,
-            .details = evt.pickingId.info,
-            .sceneState = ctx.sceneState,
-        });
-        return handled ? EventResult::Consumed : EventResult::Ignored;
+        uint32_t details = evt.pickingId.info;
+        while (uiComp != nullptr) {
+            const bool handled = uiComp->onMouseWheel({
+                .mousePos = data.pos,
+                .delta = data.delta,
+                .details = details,
+                .sceneState = ctx.sceneState,
+            });
+            if (handled) {
+                return EventResult::Consumed;
+            }
+
+            uiComp = getParentUIComponent(ctx.sceneState, uiComp);
+            details = 0u;
+        }
+
+        return EventResult::Ignored;
     }
 
     EventResult UIComponentsLayer::handleKey(SceneEvent &evt,

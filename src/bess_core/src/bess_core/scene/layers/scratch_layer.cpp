@@ -14,6 +14,7 @@
 #include "bess_core/scene/scene_ui/controls/segmented_button_comp.h"
 #include "bess_core/scene/scene_ui/controls/slider_comp.h"
 #include "bess_core/scene/scene_ui/controls/tree_node_comp.h"
+#include <string>
 
 namespace Bess::Canvas {
     namespace {
@@ -151,29 +152,73 @@ namespace Bess::Canvas {
         demoImage->setCornerRadius(glm::vec4(6.f));
         addChild(ctx, tree, demoImage);
 
-        demoList = UI::ListBoxComp::create(
-            {
-                {.label = "Inputs"},
-                {.label = "Outputs"},
-                {.label = "Signals"},
-                {.label = "Simulation"},
-                {.label = "Diagnostics"},
-                {.label = "Disabled row", .enabled = false},
-                {.label = "Render stats"},
-                {.label = "Theme tokens"},
-                {.label = "Keyboard focus"},
-                {.label = "Pointer capture"},
-                {.label = "Virtualized rows"},
-                {.label = "Scissor viewport"},
-            },
-            1,
-            [title](size_t, const UI::UIListBoxItem &item) {
-                title->setName("List: " + item.label);
-            });
+        demoList = UI::ListBoxComp::create();
         demoList->setListSize({150.f, 88.f});
-        demoList->setItemHeight(20.f);
         demoList->getStyle().margin = Core::Style::Margin::onlyTop(4.f);
         addChild(ctx, tree, demoList);
+
+        auto listInput = UI::SelectableButtonComp::create(
+            "Inputs",
+            [title](bool selected) {
+                title->setName(selected ? "List widget: Inputs"
+                                        : "List widget");
+            },
+            false);
+        listInput->setButtonSize({124.f, 20.f});
+        listInput->getStyle().margin = Core::Style::Margin::onlyBottom(2.f);
+        addChild(ctx, demoList, listInput);
+
+        auto listOutput = UI::SelectableButtonComp::create(
+            "Outputs",
+            [title](bool selected) {
+                title->setName(selected ? "List widget: Outputs"
+                                        : "List widget");
+            },
+            true);
+        listOutput->setButtonSize({124.f, 20.f});
+        listOutput->getStyle().margin = Core::Style::Margin::onlyBottom(2.f);
+        addChild(ctx, demoList, listOutput);
+
+        auto listDiagnostics = UI::CheckboxComp::create(
+            "Diagnostics",
+            [title](bool checked) {
+                title->setName(checked ? "List widget: Diagnostics on"
+                                       : "List widget: Diagnostics off");
+            },
+            true);
+        listDiagnostics->getStyle().margin =
+            Core::Style::Margin::onlyBottom(2.f);
+        addChild(ctx, demoList, listDiagnostics);
+
+        auto listScalar = UI::ScalarInputComp::create(
+            12.0,
+            [title](double value) {
+                title->setName("List scalar: " + std::to_string(
+                                                    static_cast<int>(value)));
+            });
+        listScalar->setInputSize({124.f, 20.f});
+        listScalar->setValueRange(0.0, 64.0);
+        listScalar->setStep(1.0);
+        listScalar->setPrecision(0);
+        listScalar->getStyle().margin = Core::Style::Margin::onlyBottom(2.f);
+        addChild(ctx, demoList, listScalar);
+
+        auto listTheme = UI::ButtonComp::create(
+            "Theme tokens",
+            [title]() { title->setName("List widget: Theme tokens"); });
+        listTheme->getStyle().margin = Core::Style::Margin::onlyBottom(2.f);
+        addChild(ctx, demoList, listTheme);
+
+        auto listScroll = UI::ButtonComp::create(
+            "Scissor viewport",
+            [title]() { title->setName("List widget: Scissor viewport"); });
+        listScroll->getStyle().margin = Core::Style::Margin::onlyBottom(2.f);
+        addChild(ctx, demoList, listScroll);
+
+        auto listFocus = UI::ButtonComp::create(
+            "Keyboard focus",
+            [title]() { title->setName("List widget: Keyboard focus"); });
+        addChild(ctx, demoList, listFocus);
 
         demoProgress = UI::ProgressBarComp::create(
             "Progress", kInitialDemoValue, 0.f, 100.f);

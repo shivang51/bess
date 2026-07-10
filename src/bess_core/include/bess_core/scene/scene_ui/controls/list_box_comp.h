@@ -33,6 +33,7 @@ namespace Bess::Canvas::UI {
         const std::vector<UIListBoxItem> &getItems() const;
 
         [[nodiscard]] std::optional<size_t> getSelectedIndex() const;
+        [[nodiscard]] bool hasWidgetChildren() const;
         void setSelectedIndex(size_t index);
         void clearSelection();
 
@@ -47,14 +48,20 @@ namespace Bess::Canvas::UI {
                               m_minThumbHeight,
                               makeUIDirty)
         MAKE_GETTER_SETTER(float, WheelScrollRows, m_wheelScrollRows)
-        MAKE_GETTER_SETTER(bool, ShowScrollbar, m_showScrollbar)
+        MAKE_GETTER_SETTER_WC(bool, ShowScrollbar, m_showScrollbar, makeUIDirty)
         MAKE_GETTER_SETTER(UIListBoxCallback,
                            ChangedCallback,
                            m_changedCallback)
+        MAKE_GETTER_SETTER_WC(LayoutAlignment,
+                              ChildAlignment,
+                              m_childAlignment,
+                              makeUIDirty)
 
         void scrollToIndex(size_t index);
         void scrollToSelection();
 
+        std::vector<UUID> cleanup(SceneState &state,
+                                  UUID caller = UUID::null) override;
         void onDraw(SceneDrawContext &state) override;
         void prepareUI(SceneUIPrepareCtx &state) override;
         bool onMouseEnter(const Events::MouseEnterEvent &e) override;
@@ -92,25 +99,35 @@ namespace Bess::Canvas::UI {
         void updateScrollFromThumbDrag(float pointerY);
         void drawBackground(SceneDrawContext &state);
         void drawItems(SceneDrawContext &state, const Rect &contentRect);
+        void drawChildren(SceneDrawContext &state, const Rect &contentRect);
         void drawScrollbar(SceneDrawContext &state,
                            const Rect &contentRect,
                            const Rect &scrollbarRect);
+        void initContentNode(const std::shared_ptr<UINodeRegistry> &registry);
+        void prepareChildren(SceneUIPrepareCtx &state);
+        void configureContentNode();
 
         [[nodiscard]] glm::vec2 resolveListSize(SceneUIPrepareCtx &state) const;
         [[nodiscard]] Rect nodeRect() const;
+        [[nodiscard]] Rect nodeRect(const UINode *node) const;
         [[nodiscard]] Rect contentRect() const;
+        [[nodiscard]] Rect localContentRect() const;
+        [[nodiscard]] Rect scrollableContentRect() const;
         [[nodiscard]] Rect scrollbarRect(const Rect &contentRect) const;
         [[nodiscard]] float itemHeight() const;
         [[nodiscard]] float totalContentHeight() const;
         [[nodiscard]] float maxScrollOffset() const;
         [[nodiscard]] bool hasScrollableContent(const Rect &contentRect) const;
+        [[nodiscard]] bool reserveScrollbarSpace(const Rect &contentRect) const;
         [[nodiscard]] VisibleRange visibleRange(const Rect &contentRect) const;
+        [[nodiscard]] bool intersects(const Rect &lhs, const Rect &rhs) const;
         [[nodiscard]] bool isItemInfo(uint32_t info) const;
         [[nodiscard]] size_t itemIndexFromInfo(uint32_t info) const;
         [[nodiscard]] size_t nextEnabledIndex(size_t start) const;
         [[nodiscard]] size_t previousEnabledIndex(size_t start) const;
         [[nodiscard]] bool pushClip(SceneDrawContext &state,
                                     const Rect &rect) const;
+        void onChildrenChanged() override;
 
         std::vector<UIListBoxItem> m_items;
         std::optional<size_t> m_selectedIndex;
@@ -121,11 +138,13 @@ namespace Bess::Canvas::UI {
         float m_minThumbHeight = 18.f;
         float m_wheelScrollRows = 3.f;
         bool m_showScrollbar = true;
+        LayoutAlignment m_childAlignment = LayoutAlignment::start;
         bool m_draggingThumb = false;
         float m_dragStartPointerY = 0.f;
         float m_dragStartScrollOffset = 0.f;
         float m_scrollOffset = 0.f;
         glm::vec2 m_cachedListSize{150.f, 112.f};
+        UINode *m_contentNode = nullptr;
         uint32_t m_hoveredInfo = 0u;
         Color m_selectedTextColor{1.f, 1.f, 1.f, 1.f};
         Color m_disabledTextColor{0.5f, 0.5f, 0.5f, 1.f};
