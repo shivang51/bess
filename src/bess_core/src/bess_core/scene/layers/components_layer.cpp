@@ -2,6 +2,7 @@
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_event.h"
 #include "bess_core/scene/scene_layer.h"
+#include "bess_core/settings/themes.h"
 #include "common/types.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 
@@ -11,7 +12,7 @@ namespace Bess::Canvas {
             .sceneState = ctx.sceneState,
             .renderer = ctx.renderer,
             .parentNode = nullptr,
-            .theme = Bess::Core::Style::BessTheme::defaultTheme(),
+            .theme = Config::Themes::getCurrentTheme(),
         };
 
         for (const auto compId : ctx.sceneState->getRootComponents()) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bess_core/style/bess_theme.h"
 #include "bess_core/style/color_scheme.h"
 #include <functional>
 #include <string>
@@ -10,27 +11,31 @@ namespace Bess::Config {
       public:
         Themes();
 
-        void applyTheme(const std::string &theme);
+        void applyTheme(const std::string &themeName);
         void addTheme(const std::string &name,
                       const std::function<bool()> &callback);
         const std::unordered_map<std::string, std::function<bool()>> &
         getThemes() const;
 
+        static std::shared_ptr<Core::Style::BessTheme> &getCurrentThemeRef();
+
+        static std::shared_ptr<Core::Style::BessTheme> getCurrentTheme();
+
       private:
-        static void setDarkThemeColors();
-        static void setCatpuccinMochaColors();
-        static void setFluentUIColors();
-        static void setBessDarkColors();
-        static void setBessMinimalColors();
-        static void setModernDarkColors();
+        void setDarkThemeColors();
+        void setCatpuccinMochaColors();
+        void setFluentUIColors();
+        void setBessDarkColors();
+        void setBessMinimalColors();
+        void setModernDarkColors();
 
-        static void setBessLightColors();
+        void setBessLightColors();
 
-        static void setMaterialColors(Core::Style::Brightness brightness);
+        void setMaterialColors(Core::Style::Brightness brightness);
 
-        static void setGeometry();
+        void setGeometry();
 
-        // theme name and a void callback
+        // theme name and a callback
         std::unordered_map<std::string, std::function<bool()>> m_themes;
     };
 } // namespace Bess::Config

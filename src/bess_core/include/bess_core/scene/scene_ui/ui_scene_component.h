@@ -33,7 +33,7 @@ namespace Bess::Canvas::UI {
 
     class UISceneComponent : public SceneComponent {
       public:
-        DEFAULT_CONTRS(UISceneComponent)
+        UISceneComponent();
 
         MAKE_GETTER_SETTER_PTR(UINode, UINode, m_node);
         MAKE_GETTER_SETTER(UIElementStyle, Style, m_customStyle);

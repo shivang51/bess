@@ -3,6 +3,7 @@
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
+#include "common/events.h"
 
 namespace Bess::Canvas::UI {
     namespace {
@@ -11,6 +12,15 @@ namespace Bess::Canvas::UI {
             return custom.has_value() ? custom.value() : defaultVal;
         }
     } // namespace
+
+    UISceneComponent::UISceneComponent() {
+        GAppContext::getInstance()
+            .getSubSystem<Bess::EventSystem::EventDispatcher>()
+            ->sink<Bess::Events::ThemeChangeEvent>()
+            .connect([this](const Bess::Events::ThemeChangeEvent &e) {
+                prepStyle(e.theme);
+            });
+    }
 
     std::vector<UUID> UISceneComponent::cleanup(SceneState &state,
                                                 UUID caller) {
