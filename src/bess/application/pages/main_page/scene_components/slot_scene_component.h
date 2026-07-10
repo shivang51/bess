@@ -74,7 +74,12 @@ namespace Bess::Canvas {
         SimEngine::PortRef getPortRef(const SceneState &state) const;
 
         SimEngine::PortState getSlotState(const SceneState &state) const;
+        // Use for draw hot paths
+        SimEngine::PortState getSlotState(const SceneDrawContext &ctx) const;
         bool isSlotConnected(const SceneState &state) const;
+
+        // use for draw hot paths
+        bool isSlotConnected(const SceneDrawContext &ctx) const;
 
         bool isResizeSlot() const;
 

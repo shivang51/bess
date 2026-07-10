@@ -257,14 +257,15 @@ namespace Bess::Canvas {
         auto border = bg;
 
         const bool isResizeTrigger = isResizeSlot();
-        const bool isConnected = !isResizeTrigger && isSlotConnected(state);
+        const bool isConnected =
+            !isResizeTrigger && isSlotConnected(drawContext);
         float radiusGap = 1.f;
 
         if (isResizeTrigger) {
             bg.a = 0.1f;
             radiusGap = 0.25f;
         } else {
-            const auto &slotState = getSlotState(state);
+            const auto &slotState = getSlotState(drawContext);
 
             // state color
             switch (slotState.getLogicState()) {
@@ -388,6 +389,16 @@ namespace Bess::Canvas {
         return simEngine.getPortState(port);
     }
 
+    SimEngine::PortState
+    SlotSceneComponent::getSlotState(const SceneDrawContext &ctx) const {
+        const auto port = getPortRef(*ctx.sceneState);
+        if (!port.isValid()) {
+            return {SimEngine::LogicState::unknown, SimEngine::SimTime(0)};
+        }
+
+        return ctx.simDrawCache->getPortState(port);
+    }
+
     bool SlotSceneComponent::isSlotConnected(const SceneState &state) const {
         const auto port = getPortRef(state);
         if (!port.isValid()) {
@@ -413,6 +424,16 @@ namespace Bess::Canvas {
             return false;
         }
         return stateSnapshot.outputConnected[port.index];
+    }
+
+    bool
+    SlotSceneComponent::isSlotConnected(const SceneDrawContext &ctx) const {
+        const auto port = getPortRef(*ctx.sceneState);
+        if (!port.isValid()) {
+            return false;
+        }
+
+        return ctx.simDrawCache->isPortConnected(port);
     }
 
     void SlotSceneComponent::addConnection(const UUID &connectionId) {

@@ -110,7 +110,7 @@ namespace Bess::Canvas {
             borderColor = ViewportTheme::colors.selectedComp;
         }
 
-        if (slot->getSlotState(state).getLogicState() ==
+        if (slot->getSlotState(context).getLogicState() ==
             SimEngine::LogicState::high) {
             color = ViewportTheme::colors.stateHigh;
         }
@@ -260,6 +260,14 @@ namespace Bess::Canvas {
         const auto &slotComp =
             state.getComponentByUuid<SlotSceneComponent>(m_outputSlotId);
         return slotComp->getSlotState(state);
+    }
+
+    SimEngine::PortState
+    ConnJointSceneComp::getSlotState(const SceneDrawContext &context) const {
+        const auto &slotComp =
+            context.sceneState->getComponentByUuid<SlotSceneComponent>(
+                m_outputSlotId);
+        return slotComp->getSlotState(context);
     }
 
     void ConnJointSceneComp::addConnection(const UUID &connectionId) {

@@ -334,7 +334,7 @@ namespace Bess::Canvas {
             auto isHigh = false;
 
             if (slotComp) {
-                isHigh = slotComp->getSlotState(*state).getLogicState() ==
+                isHigh = slotComp->getSlotState(context).getLogicState() ==
                          SimEngine::LogicState::high;
             }
             btn->setToggled(isHigh);
@@ -371,7 +371,7 @@ namespace Bess::Canvas {
             const auto slotComp =
                 state->getComponentByUuid<SlotSceneComponent>(slotUuid);
             if (slotComp) {
-                const auto slotState = slotComp->getSlotState(*state);
+                const auto slotState = slotComp->getSlotState(context);
                 if (slotState.isScalar()) {
                     textBox->setValue(std::to_string(slotState.scalarValue));
                 }
