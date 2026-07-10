@@ -104,11 +104,6 @@ namespace Bess::Canvas::UI {
                 state.sceneState->getUINodeRegistry()->addNode(UUID());
         }
 
-        const auto &colors = state.theme->getColorScheme().getColors();
-        m_boxColor = colors.surfaceContainerLow;
-        m_checkedColor = colors.primary;
-        m_checkColor = colors.onPrimary;
-
         m_node->setDirection(LayoutDirection::horizontal);
         m_node->setWidthFitContent();
         m_node->setHeightFitContent();
@@ -145,6 +140,16 @@ namespace Bess::Canvas::UI {
         }
 
         m_isUIDirty = false;
+    }
+
+    void CheckboxComp::prepStyle(
+        const std::shared_ptr<Core::Style::BessTheme> &theme) {
+        UISceneComponent::prepStyle(theme);
+
+        const auto &colors = theme->getColorScheme().getColors();
+        m_boxColor = colors.surfaceContainerLow;
+        m_checkedColor = colors.primary;
+        m_checkColor = colors.onPrimary;
     }
 
     bool CheckboxComp::onMouseButton(const Events::MouseButtonEvent &e) {

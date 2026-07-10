@@ -60,6 +60,9 @@ namespace Bess::Canvas::UI {
         Core::Viewport::SceneCursor getCursor() const override;
 
       private:
+        void prepStyle(
+            const std::shared_ptr<Core::Style::BessTheme> &theme) override;
+
         [[nodiscard]] float sanitizeValue(float value, float fallback) const;
         [[nodiscard]] float sanitizeStep(float step) const;
         [[nodiscard]] float snappedValue(float value) const;

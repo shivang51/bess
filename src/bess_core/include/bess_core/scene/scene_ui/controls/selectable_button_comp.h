@@ -36,6 +36,8 @@ namespace Bess::Canvas::UI {
         bool onKeyEvent(const SceneEvent &evt) override;
 
       private:
+        void prepStyle(
+            const std::shared_ptr<Core::Style::BessTheme> &theme) override;
         void activateFromUser();
         void drawLabel(SceneDrawContext &state);
         [[nodiscard]] glm::vec2 resolveButtonSize(SceneUIPrepareCtx &state);

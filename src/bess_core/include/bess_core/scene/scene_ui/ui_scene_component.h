@@ -69,7 +69,8 @@ namespace Bess::Canvas::UI {
 
         void initNode(const std::shared_ptr<UINodeRegistry> &reg);
         void makeUIDirty();
-        void prepStyle(const std::shared_ptr<Core::Style::BessTheme> &theme);
+        virtual void
+        prepStyle(const std::shared_ptr<Core::Style::BessTheme> &theme);
         void drawBgQuad(SceneDrawContext &state);
         void drawText(SceneDrawContext &state,
                       const std::string &text,

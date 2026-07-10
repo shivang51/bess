@@ -117,8 +117,6 @@ namespace Bess::Canvas::UI {
 
     void SegmentedButtonComp::prepareUI(SceneUIPrepareCtx &state) {
         prepStyle(state.theme);
-        m_selectedTextColor =
-            state.theme->getColorScheme().getColors().onPrimary;
         initNode(state.sceneState->getUINodeRegistry());
         ensureNodes(state.sceneState->getUINodeRegistry());
 
@@ -203,6 +201,12 @@ namespace Bess::Canvas::UI {
         }
 
         m_isUIDirty = false;
+    }
+
+    void SegmentedButtonComp::prepStyle(
+        const std::shared_ptr<Core::Style::BessTheme> &theme) {
+        UISceneComponent::prepStyle(theme);
+        m_selectedTextColor = theme->getColorScheme().getColors().onPrimary;
     }
 
     bool SegmentedButtonComp::onMouseEnter(const Events::MouseEnterEvent &e) {

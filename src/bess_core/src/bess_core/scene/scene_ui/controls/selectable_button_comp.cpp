@@ -66,8 +66,6 @@ namespace Bess::Canvas::UI {
 
     void SelectableButtonComp::prepareUI(SceneUIPrepareCtx &state) {
         prepStyle(state.theme);
-        m_selectedTextColor =
-            state.theme->getColorScheme().getColors().onPrimary;
         initNode(state.sceneState->getUINodeRegistry());
 
         if (m_labelNode == nullptr) {
@@ -101,6 +99,12 @@ namespace Bess::Canvas::UI {
         }
 
         m_isUIDirty = false;
+    }
+
+    void SelectableButtonComp::prepStyle(
+        const std::shared_ptr<Core::Style::BessTheme> &theme) {
+        UISceneComponent::prepStyle(theme);
+        m_selectedTextColor = theme->getColorScheme().getColors().onPrimary;
     }
 
     bool SelectableButtonComp::onMouseButton(

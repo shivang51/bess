@@ -35,6 +35,8 @@ namespace Bess::Canvas::UI {
         void onDraw(SceneDrawContext &state) override;
 
       private:
+        void prepStyle(
+            const std::shared_ptr<Core::Style::BessTheme> &theme) override;
         void toggleFromUser();
 
         bool m_checked = false;

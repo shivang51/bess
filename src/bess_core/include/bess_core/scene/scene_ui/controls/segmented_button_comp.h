@@ -56,6 +56,9 @@ namespace Bess::Canvas::UI {
         bool onKeyEvent(const SceneEvent &evt) override;
 
       private:
+        void prepStyle(
+            const std::shared_ptr<Core::Style::BessTheme> &theme) override;
+
         [[nodiscard]] bool isSegmentInfo(uint32_t info) const;
         [[nodiscard]] size_t segmentIndexFromInfo(uint32_t info) const;
         [[nodiscard]] size_t validSelectedIndex(size_t index) const;

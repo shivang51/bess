@@ -34,6 +34,9 @@ namespace Bess::Canvas::UI {
         void prepareUI(SceneUIPrepareCtx &state) override;
 
       private:
+        void prepStyle(
+            const std::shared_ptr<Core::Style::BessTheme> &theme) override;
+
         bool m_toggled = false;
         bool m_showLabel = true;
         float m_labelTrackSpacing = 4.f;

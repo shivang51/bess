@@ -73,13 +73,6 @@ namespace Bess::Canvas::UI {
                 state.sceneState->getUINodeRegistry()->addNode(UUID());
         }
 
-        const auto &colors = state.theme->getColorScheme().getColors();
-        m_style.metrics.borderSize = Core::Style::BorderSize(0.f);
-        m_trackOffColor = colors.secondaryContainer;
-        m_trackOnColor = colors.primary;
-        m_thumbOffColor = colors.onSecondaryContainer;
-        m_thumbOnColor = colors.onPrimary;
-
         m_node->setDirection(LayoutDirection::horizontal);
         m_node->setWidthFitContent();
         m_node->setHeightFitContent();
@@ -118,5 +111,17 @@ namespace Bess::Canvas::UI {
         }
 
         m_isUIDirty = false;
+    }
+
+    void ToggleBtnComp::prepStyle(
+        const std::shared_ptr<Core::Style::BessTheme> &theme) {
+        UISceneComponent::prepStyle(theme);
+
+        const auto &colors = theme->getColorScheme().getColors();
+        m_style.metrics.borderSize = Core::Style::BorderSize(0.f);
+        m_trackOffColor = colors.secondaryContainer;
+        m_trackOnColor = colors.primary;
+        m_thumbOffColor = colors.onSecondaryContainer;
+        m_thumbOnColor = colors.onPrimary;
     }
 } // namespace Bess::Canvas::UI
