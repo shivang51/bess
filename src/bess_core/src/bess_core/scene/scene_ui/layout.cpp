@@ -107,6 +107,22 @@ namespace Bess::Canvas::UI {
             }
             return YGAlignAuto;
         }
+
+        glm::vec2 drawPivotOffset(DrawPivot pivot, const glm::vec2 &size) {
+            switch (pivot) {
+            case DrawPivot::topLeft:
+                return {0.f, 0.f};
+            case DrawPivot::topCenter:
+                return {size.x * 0.5f, 0.f};
+            case DrawPivot::center:
+                return size * 0.5f;
+            case DrawPivot::bottomLeft:
+                return {0.f, size.y};
+            case DrawPivot::bottomCenter:
+                return {size.x * 0.5f, size.y};
+            }
+            return size * 0.5f;
+        }
     } // namespace
 
     UINodeRegistry::UINodeRegistry() : m_ygConfig(YGConfigNew()) {
@@ -226,6 +242,23 @@ namespace Bess::Canvas::UI {
             moveFrom(other);
         }
         return *this;
+    }
+
+    const DrawPivot &UINode::getDrawPivot() const {
+        return m_drawPivot;
+    }
+
+    void UINode::setDrawPivot(const DrawPivot &drawPivot) {
+        if (m_drawPivot == drawPivot) {
+            return;
+        }
+        m_drawPivot = drawPivot;
+        setPosDirty();
+    }
+
+    DrawPivot &UINode::getDrawPivot() {
+        setPosDirty();
+        return m_drawPivot;
     }
 
     void UINode::setPosDirty(bool dirty) {
@@ -856,16 +889,16 @@ namespace Bess::Canvas::UI {
         glm::vec2 topLeft{0.f};
         float parentZVal = 0.f;
         if (parentNode != nullptr) {
-            const auto parentPos = parentNode->getDrawPos();
-            const auto parentSize = parentNode->getDrawSize();
-            topLeft = glm::vec2(parentPos) - (parentSize * 0.5f);
+            topLeft = parentNode->m_topLeftPos;
             topLeft.x += YGNodeLayoutGetLeft(m_ygNode);
             topLeft.y += YGNodeLayoutGetTop(m_ygNode);
-            parentZVal = parentPos.z;
+            parentZVal = parentNode->m_cachedZVal;
         } else {
-            topLeft = resolvePos(nullptr) - (m_drawSize * 0.5f);
+            topLeft =
+                resolvePos(nullptr) - drawPivotOffset(m_drawPivot, m_drawSize);
         }
 
+        m_topLeftPos = topLeft;
         m_cachedPos = topLeft + (m_drawSize * 0.5f);
         m_cachedZVal = parentZVal + m_zVal;
 
@@ -917,6 +950,8 @@ namespace Bess::Canvas::UI {
         m_cachedSize = other.m_cachedSize;
         m_drawSize = other.m_drawSize;
         m_parentId = other.m_parentId;
+        m_drawPivot = other.m_drawPivot;
+        m_topLeftPos = other.m_topLeftPos;
         m_registry = nullptr;
 
         if (other.m_ygNode != nullptr) {
@@ -957,6 +992,8 @@ namespace Bess::Canvas::UI {
         m_cachedSize = other.m_cachedSize;
         m_drawSize = other.m_drawSize;
         m_parentId = other.m_parentId;
+        m_drawPivot = other.m_drawPivot;
+        m_topLeftPos = other.m_topLeftPos;
         m_registry = other.m_registry;
         m_ygNode = other.m_ygNode;
 

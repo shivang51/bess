@@ -36,6 +36,14 @@ namespace Bess::Canvas::UI {
         stretch
     };
 
+    enum class DrawPivot : uint8_t {
+        topLeft,
+        topCenter,
+        center,
+        bottomLeft,
+        bottomCenter
+    };
+
     enum class PosMode : uint8_t { absolute, relative };
 
     class UINode;
@@ -88,6 +96,10 @@ namespace Bess::Canvas::UI {
         ~UINode();
         UINode &operator=(const UINode &other);
         UINode &operator=(UINode &&other) noexcept;
+
+        const DrawPivot &getDrawPivot() const;
+        void setDrawPivot(const DrawPivot &drawPivot);
+        DrawPivot &getDrawPivot();
 
         void setPosDirty(bool dirty = true);
 
@@ -307,5 +319,7 @@ namespace Bess::Canvas::UI {
         UINodeRegistry *m_registry = nullptr;
 
         YGNodeRef m_ygNode = nullptr;
+        DrawPivot m_drawPivot = DrawPivot::center;
+        glm::vec2 m_topLeftPos{0};
     };
 } // namespace Bess::Canvas::UI

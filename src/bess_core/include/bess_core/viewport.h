@@ -142,6 +142,7 @@ namespace Bess::Core::Viewport {
         UUID updateSceneId = UUID::null;
         size_t viewportId = 0;
         bool isFocused = false;
+        bool isResized = false;
 
         bool isSchematicMode() const {
             return mode == ViewportMode::schematic;

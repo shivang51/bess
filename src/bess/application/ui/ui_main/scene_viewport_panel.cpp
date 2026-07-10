@@ -170,6 +170,7 @@ namespace Bess::UI {
         if (viewportPanelSize.x != m_viewportCtx->transform.size.x ||
             viewportPanelSize.y != m_viewportCtx->transform.size.y) {
             m_isResized = true;
+            m_viewportCtx->isResized = true;
             m_viewportCtx->transform.size = {viewportPanelSize.x,
                                              viewportPanelSize.y};
         }
