@@ -7,6 +7,7 @@
 #include "bess_core/scene/scene_ui/controls/dropdown_comp.h"
 #include "bess_core/scene/scene_ui/controls/image_comp.h"
 #include "bess_core/scene/scene_ui/controls/label_comp.h"
+#include "bess_core/scene/scene_ui/controls/list_box_comp.h"
 #include "bess_core/scene/scene_ui/controls/progress_bar_comp.h"
 #include "bess_core/scene/scene_ui/controls/scalar_input_comp.h"
 #include "bess_core/scene/scene_ui/controls/selectable_button_comp.h"
@@ -23,6 +24,7 @@ namespace Bess::Canvas {
         std::shared_ptr<UI::ProgressBarComp> demoProgress = nullptr;
         std::shared_ptr<UI::ScalarInputComp> demoScalar = nullptr;
         std::shared_ptr<UI::ImageComp> demoImage = nullptr;
+        std::shared_ptr<UI::ListBoxComp> demoList = nullptr;
 
         template <typename T>
         void addPanelChild(SceneLifecycleContext &ctx,
@@ -148,6 +150,30 @@ namespace Bess::Canvas {
         demoImage->setDrawBackground(true);
         demoImage->setCornerRadius(glm::vec4(6.f));
         addChild(ctx, tree, demoImage);
+
+        demoList = UI::ListBoxComp::create(
+            {
+                {.label = "Inputs"},
+                {.label = "Outputs"},
+                {.label = "Signals"},
+                {.label = "Simulation"},
+                {.label = "Diagnostics"},
+                {.label = "Disabled row", .enabled = false},
+                {.label = "Render stats"},
+                {.label = "Theme tokens"},
+                {.label = "Keyboard focus"},
+                {.label = "Pointer capture"},
+                {.label = "Virtualized rows"},
+                {.label = "Scissor viewport"},
+            },
+            1,
+            [title](size_t, const UI::UIListBoxItem &item) {
+                title->setName("List: " + item.label);
+            });
+        demoList->setListSize({150.f, 88.f});
+        demoList->setItemHeight(20.f);
+        demoList->getStyle().margin = Core::Style::Margin::onlyTop(4.f);
+        addChild(ctx, tree, demoList);
 
         demoProgress = UI::ProgressBarComp::create(
             "Progress", kInitialDemoValue, 0.f, 100.f);
