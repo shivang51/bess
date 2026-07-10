@@ -54,7 +54,7 @@ namespace Bess::Canvas::UI {
         void onFocusGained(const Events::FocusEvent &e) override;
         void onFocusLost(const Events::FocusEvent &e) override;
 
-        virtual Core::Viewport::SceneCursor getCursor() const;
+        Core::Viewport::SceneCursor getCursor() const override;
 
       protected:
         uint32_t resolveRuntimeId() const;

@@ -4,6 +4,11 @@
 #include "pages/main_page/scene_components/scene_comp_types.h"
 
 namespace Bess::Canvas {
+    namespace {
+        constexpr uint8_t kCursorPriorityReset = 5;
+        constexpr uint8_t kCursorPriorityHover = 10;
+    } // namespace
+
     EventResult HoverLayer::handleEvent(SceneEvent &evt,
                                         SceneEventContext &ctx) {
         if (evt.type != SceneEvent::Type::mouseMove) {
@@ -35,7 +40,20 @@ namespace Bess::Canvas {
                 ? ctx.sceneState->getComponentByPickingId(evt.pickingId)
                 : nullptr;
 
-        if (!comp || comp->getType() == SceneComponentType::ui) {
+        if (!comp) {
+            const bool hadHoveredComponent = m_pickingId.isValid();
+            clearHover(*ctx.sceneState, data.pos);
+            m_pickingId = PickingId::invalid();
+            if (ctx.viewportCtx && hadHoveredComponent) {
+                ctx.viewportCtx->inputCtx.requestCursor(
+                    Core::Viewport::SceneCursor::normal,
+                    kCursorPriorityReset);
+            }
+            return evt.pickingId.isValid() ? EventResult::Handled
+                                           : EventResult::Ignored;
+        }
+
+        if (comp->getType() == SceneComponentType::ui) {
             clearHover(*ctx.sceneState, data.pos);
             m_pickingId = PickingId::invalid();
             return evt.pickingId.isValid() ? EventResult::Handled
@@ -43,12 +61,20 @@ namespace Bess::Canvas {
         }
 
         if (evt.pickingId == m_pickingId) {
+            if (ctx.viewportCtx) {
+                ctx.viewportCtx->inputCtx.requestCursor(comp->getCursor(),
+                                                        kCursorPriorityHover);
+            }
             return EventResult::Ignored;
         }
 
         clearHover(*ctx.sceneState, data.pos);
         m_pickingId = evt.pickingId;
         comp->onMouseEnter({data.pos, m_pickingId.info});
+        if (ctx.viewportCtx) {
+            ctx.viewportCtx->inputCtx.requestCursor(comp->getCursor(),
+                                                    kCursorPriorityHover);
+        }
         return EventResult::Handled;
     }
 

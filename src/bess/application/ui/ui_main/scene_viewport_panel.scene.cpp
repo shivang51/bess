@@ -77,7 +77,7 @@ namespace Bess::UI {
             applySceneCursor();
         } else if (!hasMouseCapture()) {
             inpCtx.pickingId = PickingId::invalid();
-            inpCtx.cursor = Core::Viewport::SceneCursor::inherit;
+            inpCtx.resetCursorRequest();
         }
     }
 
@@ -194,7 +194,18 @@ namespace Bess::UI {
             return;
         }
 
-        switch (m_viewportCtx->inputCtx.cursor) {
+        auto &inputCtx = m_viewportCtx->inputCtx;
+        const auto requestedCursor = inputCtx.cursorRequest.cursor;
+        if (requestedCursor == Core::Viewport::SceneCursor::inherit) {
+            return;
+        }
+
+        if (requestedCursor == inputCtx.lastAppliedCursor) {
+            inputCtx.resetCursorRequest();
+            return;
+        }
+
+        switch (requestedCursor) {
         case Core::Viewport::SceneCursor::inherit:
             break;
         case Core::Viewport::SceneCursor::pointer:
@@ -211,7 +222,8 @@ namespace Bess::UI {
             break;
         }
 
-        m_viewportCtx->inputCtx.cursor = Core::Viewport::SceneCursor::inherit;
+        inputCtx.lastAppliedCursor = requestedCursor;
+        inputCtx.resetCursorRequest();
     }
 
     void SceneViewportPanel::renderAttachedScene() {

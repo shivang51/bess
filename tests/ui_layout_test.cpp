@@ -504,23 +504,23 @@ TEST_F(UiLayoutTests, UIComponentsLayerResetsCursorAfterLeavingTextBox) {
     auto enterEvent = mouseMoveEvent(textBoxPickingId);
     EXPECT_EQ(layer.handleEvent(enterEvent, eventCtx),
               Bess::Canvas::EventResult::Consumed);
-    EXPECT_EQ(viewportCtx->inputCtx.cursor,
+    EXPECT_EQ(viewportCtx->inputCtx.cursorRequest.cursor,
               Bess::Core::Viewport::SceneCursor::text);
 
-    viewportCtx->inputCtx.cursor = Bess::Core::Viewport::SceneCursor::inherit;
+    viewportCtx->inputCtx.resetCursorRequest();
     auto leaveEvent = mouseMoveEvent(Bess::PickingId::invalid());
     EXPECT_EQ(layer.handleEvent(leaveEvent, eventCtx),
               Bess::Canvas::EventResult::Ignored);
-    EXPECT_EQ(viewportCtx->inputCtx.cursor,
+    EXPECT_EQ(viewportCtx->inputCtx.cursorRequest.cursor,
               Bess::Core::Viewport::SceneCursor::normal);
 
     auto reenterEvent = mouseMoveEvent(textBoxPickingId);
     EXPECT_EQ(layer.handleEvent(reenterEvent, eventCtx),
               Bess::Canvas::EventResult::Consumed);
-    EXPECT_EQ(viewportCtx->inputCtx.cursor,
+    EXPECT_EQ(viewportCtx->inputCtx.cursorRequest.cursor,
               Bess::Core::Viewport::SceneCursor::text);
 
-    viewportCtx->inputCtx.cursor = Bess::Core::Viewport::SceneCursor::inherit;
+    viewportCtx->inputCtx.resetCursorRequest();
     const auto sceneCompPickingId = Bess::PickingId{
         .runtimeId = sceneComp->getRuntimeId(),
         .info = 0,
@@ -528,7 +528,7 @@ TEST_F(UiLayoutTests, UIComponentsLayerResetsCursorAfterLeavingTextBox) {
     auto leaveToSceneCompEvent = mouseMoveEvent(sceneCompPickingId);
     EXPECT_EQ(layer.handleEvent(leaveToSceneCompEvent, eventCtx),
               Bess::Canvas::EventResult::Ignored);
-    EXPECT_EQ(viewportCtx->inputCtx.cursor,
+    EXPECT_EQ(viewportCtx->inputCtx.cursorRequest.cursor,
               Bess::Core::Viewport::SceneCursor::normal);
 }
 

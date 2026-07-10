@@ -3,12 +3,15 @@
 #include "bess_core/scene/scene_events.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_ui/ui_scene_component.h"
-#include "bess_core/scene/widgets/scene_widgets.h"
 #include "bess_core/viewport.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 
 namespace Bess::Canvas {
     namespace {
+        constexpr uint8_t kCursorPriorityReset = 5;
+        constexpr uint8_t kCursorPriorityHover = 20;
+        constexpr uint8_t kCursorPriorityCapture = 30;
+
         Events::MouseClickAction toSceneMouseAction(MouseButtonAction action) {
             switch (action) {
             case MouseButtonAction::press:
@@ -49,31 +52,6 @@ namespace Bess::Canvas {
             }
 
             return dynamic_cast<UI::UISceneComponent *>(comp.get());
-        }
-
-        bool targetKeepsOwnCursor(SceneEventContext &ctx,
-                                  const PickingId &pickingId) {
-            if (SceneWidgets::contains(ctx.sceneWidgetsState, pickingId)) {
-                return true;
-            }
-
-            if (ctx.sceneState == nullptr || !pickingId.isValid()) {
-                return false;
-            }
-
-            const auto comp = ctx.sceneState->getComponentByPickingId(pickingId);
-            if (comp == nullptr) {
-                return false;
-            }
-
-            switch (comp->getType()) {
-            case SceneComponentType::slot:
-            case SceneComponentType::connection:
-            case SceneComponentType::connJoint:
-                return true;
-            default:
-                return false;
-            }
         }
 
         Events::FocusEvent makeFocusEvent(SceneEventContext &ctx,
@@ -128,7 +106,8 @@ namespace Bess::Canvas {
                 .sceneState = ctx.sceneState,
             });
             if (ctx.viewportCtx) {
-                ctx.viewportCtx->inputCtx.cursor = pressed->getCursor();
+                ctx.viewportCtx->inputCtx.requestCursor(
+                    pressed->getCursor(), kCursorPriorityCapture);
             }
             return handled ? EventResult::Consumed : EventResult::Handled;
         }
@@ -137,10 +116,10 @@ namespace Bess::Canvas {
         if (uiComp == nullptr) {
             const bool hadHoveredComponent = m_hoveredComponent != UUID::null;
             clearHover(ctx, data.pos);
-            if (ctx.viewportCtx && hadHoveredComponent &&
-                !targetKeepsOwnCursor(ctx, evt.pickingId)) {
-                ctx.viewportCtx->inputCtx.cursor =
-                    Core::Viewport::SceneCursor::normal;
+            if (ctx.viewportCtx && hadHoveredComponent) {
+                ctx.viewportCtx->inputCtx.requestCursor(
+                    Core::Viewport::SceneCursor::normal,
+                    kCursorPriorityReset);
             }
             return EventResult::Ignored;
         }
@@ -154,7 +133,8 @@ namespace Bess::Canvas {
         }
 
         if (ctx.viewportCtx) {
-            ctx.viewportCtx->inputCtx.cursor = uiComp->getCursor();
+            ctx.viewportCtx->inputCtx.requestCursor(uiComp->getCursor(),
+                                                    kCursorPriorityHover);
         }
 
         return EventResult::Consumed;

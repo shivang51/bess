@@ -12,7 +12,6 @@
 #include "sim_scene_component.h"
 #include "slot_scene_component.h"
 
-#include "ui/ui.h"
 #include "ui/ui_main/ui_main.h"
 #include <cstdint>
 #include <memory>
@@ -162,19 +161,19 @@ namespace Bess::Canvas {
     }
 
     bool ConnJointSceneComp::onMouseEnter(const Events::MouseEnterEvent &e) {
-        auto &appCtx = GAppContext::getInstance();
-        auto window = appCtx.getSubSystem<Window>();
-        window->getui().setCursorPointer();
+        (void)e;
         m_isHovered = true;
         return true;
     }
 
     bool ConnJointSceneComp::onMouseLeave(const Events::MouseLeaveEvent &e) {
-        auto &appCtx = GAppContext::getInstance();
-        auto window = appCtx.getSubSystem<Window>();
-        window->getui().setCursorNormal();
+        (void)e;
         m_isHovered = false;
         return true;
+    }
+
+    Core::Viewport::SceneCursor ConnJointSceneComp::getCursor() const {
+        return Core::Viewport::SceneCursor::pointer;
     }
 
     glm::vec3

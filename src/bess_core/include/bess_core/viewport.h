@@ -36,6 +36,16 @@ namespace Bess::Core::Viewport {
         text,
     };
 
+    struct BESS_API CursorRequest {
+        SceneCursor cursor = SceneCursor::inherit;
+        uint8_t priority = 0;
+
+        void reset() {
+            cursor = SceneCursor::inherit;
+            priority = 0;
+        }
+    };
+
     struct BESS_API ViewportInputContext {
         PickingId pickingId = PickingId::invalid();
         glm::vec2 mousePos{0.f};
@@ -46,7 +56,23 @@ namespace Bess::Core::Viewport {
         bool isCtrlPressed = false;
         bool isShiftPressed = false;
         bool isAltPressed = false;
-        SceneCursor cursor = SceneCursor::inherit;
+        CursorRequest cursorRequest;
+        SceneCursor lastAppliedCursor = SceneCursor::inherit;
+
+        void requestCursor(SceneCursor cursor, uint8_t priority = 0) {
+            if (cursor == SceneCursor::inherit) {
+                return;
+            }
+
+            if (priority >= cursorRequest.priority) {
+                cursorRequest.cursor = cursor;
+                cursorRequest.priority = priority;
+            }
+        }
+
+        void resetCursorRequest() {
+            cursorRequest.reset();
+        }
 
         void reset() {
             mousePos = {0.f, 0.f};
@@ -58,7 +84,8 @@ namespace Bess::Core::Viewport {
             isShiftPressed = false;
             isAltPressed = false;
             pickingId = PickingId::invalid();
-            cursor = SceneCursor::inherit;
+            cursorRequest.reset();
+            lastAppliedCursor = SceneCursor::inherit;
         }
     };
 

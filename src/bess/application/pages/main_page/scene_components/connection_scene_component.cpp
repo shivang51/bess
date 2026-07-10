@@ -367,19 +367,18 @@ namespace Bess::Canvas {
     bool
     ConnectionSceneComponent::onMouseEnter(const Events::MouseEnterEvent &e) {
         m_hoveredSegIdx = (int)e.details;
-        auto &appCtx = GAppContext::getInstance();
-        auto window = appCtx.getSubSystem<Window>();
-        window->getui().setCursorPointer();
         return true;
     }
 
     bool
     ConnectionSceneComponent::onMouseLeave(const Events::MouseLeaveEvent &e) {
+        (void)e;
         m_hoveredSegIdx = -1;
-        auto &appCtx = GAppContext::getInstance();
-        auto window = appCtx.getSubSystem<Window>();
-        window->getui().setCursorNormal();
         return true;
+    }
+
+    Core::Viewport::SceneCursor ConnectionSceneComponent::getCursor() const {
+        return Core::Viewport::SceneCursor::pointer;
     }
 
     std::vector<UUID> ConnectionSceneComponent::cleanup(SceneState &state,

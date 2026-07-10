@@ -17,7 +17,6 @@
 #include "pages/main_page/services/connection_service.h"
 #include "sim_scene_component.h"
 #include "simulation_engine.h"
-#include "ui/ui.h"
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -103,19 +102,19 @@ namespace Bess::Canvas {
     }
 
     bool SlotSceneComponent::onMouseEnter(const Events::MouseEnterEvent &e) {
-        auto &appCtx = GAppContext::getInstance();
-        auto window = appCtx.getSubSystem<Window>();
-        window->getui().setCursorPointer();
+        (void)e;
         m_isHovered = true;
         return true;
     }
 
     bool SlotSceneComponent::onMouseLeave(const Events::MouseLeaveEvent &e) {
-        auto &appCtx = GAppContext::getInstance();
-        auto window = appCtx.getSubSystem<Window>();
-        window->getui().setCursorNormal();
+        (void)e;
         m_isHovered = false;
         return true;
+    }
+
+    Core::Viewport::SceneCursor SlotSceneComponent::getCursor() const {
+        return Core::Viewport::SceneCursor::pointer;
     }
 
     bool SlotSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {

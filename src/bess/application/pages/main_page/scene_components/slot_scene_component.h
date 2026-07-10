@@ -37,6 +37,7 @@ namespace Bess::Canvas {
 
         bool onMouseEnter(const Events::MouseEnterEvent &e) override;
         bool onMouseLeave(const Events::MouseLeaveEvent &e) override;
+        Core::Viewport::SceneCursor getCursor() const override;
 
         bool onMouseButton(const Events::MouseButtonEvent &e) override;
 

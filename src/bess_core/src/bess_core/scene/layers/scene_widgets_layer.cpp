@@ -4,6 +4,12 @@
 #include "common/types.h"
 
 namespace Bess::Canvas {
+    namespace {
+        constexpr uint8_t kCursorPriorityReset = 5;
+        constexpr uint8_t kCursorPriorityHover = 20;
+        constexpr uint8_t kCursorPriorityCapture = 30;
+    } // namespace
+
     EventResult SceneWidgetsLayer::handleEvent(SceneEvent &evt,
                                                SceneEventContext &ctx) {
         switch (evt.type) {
@@ -35,8 +41,9 @@ namespace Bess::Canvas {
             SceneWidgets::queuePointerMove(ctx.sceneWidgetsState,
                                            evt.data.mouseMove.pos);
             if (ctx.viewportCtx) {
-                ctx.viewportCtx->inputCtx.cursor =
-                    Bess::Core::Viewport::SceneCursor::pointer;
+                ctx.viewportCtx->inputCtx.requestCursor(
+                    Bess::Core::Viewport::SceneCursor::pointer,
+                    kCursorPriorityCapture);
             }
             return EventResult::Consumed;
         }
@@ -48,11 +55,13 @@ namespace Bess::Canvas {
                 m_hoveredWidget = evt.pickingId;
             }
             if (ctx.viewportCtx) {
-                ctx.viewportCtx->inputCtx.cursor =
+                const auto cursor =
                     SceneWidgets::isTextInput(ctx.sceneWidgetsState,
                                               evt.pickingId)
                         ? Core::Viewport::SceneCursor::text
                         : Core::Viewport::SceneCursor::pointer;
+                ctx.viewportCtx->inputCtx.requestCursor(
+                    cursor, kCursorPriorityHover);
             }
             SceneWidgets::setHoverId(ctx.sceneWidgetsState, evt.pickingId);
             return EventResult::Consumed;
@@ -61,8 +70,9 @@ namespace Bess::Canvas {
         if (m_hoveredWidget.isValid()) {
             m_hoveredWidget = PickingId::invalid();
             if (ctx.viewportCtx) {
-                ctx.viewportCtx->inputCtx.cursor =
-                    Core::Viewport::SceneCursor::normal;
+                ctx.viewportCtx->inputCtx.requestCursor(
+                    Core::Viewport::SceneCursor::normal,
+                    kCursorPriorityReset);
             }
             SceneWidgets::setHoverId(ctx.sceneWidgetsState,
                                      PickingId::invalid());
@@ -137,8 +147,7 @@ namespace Bess::Canvas {
     void SceneWidgetsLayer::reset(SceneLifecycleContext &ctx) {
         m_hoveredWidget = PickingId::invalid();
         if (ctx.viewportCtx) {
-            ctx.viewportCtx->inputCtx.cursor =
-                Bess::Core::Viewport::SceneCursor::inherit;
+            ctx.viewportCtx->inputCtx.resetCursorRequest();
             SceneWidgets::clearFocus(ctx.sceneWidgetsState);
         }
     }

@@ -5,6 +5,7 @@
 #include "bess_core/scene/scene_ser_reg.h"
 #include "bess_core/scene/scene_state/components/behaviours/mouse_behaviour.h"
 #include "bess_core/scene/scene_state/components/scene_component_types.h"
+#include "bess_core/viewport.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "common/class_helpers.h"
@@ -116,6 +117,10 @@ namespace Bess::Canvas {
 
         virtual bool wantsKeyboardInput() const {
             return false;
+        }
+
+        virtual Core::Viewport::SceneCursor getCursor() const {
+            return Core::Viewport::SceneCursor::normal;
         }
 
         virtual void onFocusGained(const Events::FocusEvent &e) {
