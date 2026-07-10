@@ -26,6 +26,7 @@
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_probe_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
+#include "pages/main_page/scene_components/text_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
 #include "plugin_manager.h"
 #include "ui/ui.h"
@@ -146,9 +147,9 @@ namespace Bess::Pages {
             const bool retainedUIWantsKeyboard =
                 focusedUIComponent != nullptr &&
                 focusedUIComponent->wantsKeyboardInput();
-            const bool imguiWantsKeyboard =
-                ImGui::GetIO().WantTextInput || sceneWantsKeyboard ||
-                retainedUIWantsKeyboard;
+            const bool imguiWantsKeyboard = ImGui::GetIO().WantTextInput ||
+                                            sceneWantsKeyboard ||
+                                            retainedUIWantsKeyboard;
 
             if (!imguiWantsKeyboard)
                 handleKeyboardShortcuts();

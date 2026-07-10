@@ -1,16 +1,11 @@
 #pragma once
 
+#include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "scene_comp_types.h"
-#include "bess_core/scene/scene_draw_context.h"
 #include <typeindex>
-
-#define TEXT_SER_PROPS                                                         \
-    ("data", getData, setData),                                                \
-        ("foregroundColor", getForegroundColor, setForegroundColor),           \
-        ("size", getSize, setSize)
 
 #define WIDGETS_TEST_SER_PROPS                                                 \
     ("toggleValue", getToggleValue, setToggleValue),                           \
@@ -60,41 +55,6 @@ namespace Bess::Canvas {
         getContrRegistry();
     };
 
-    class TextComponent : public NonSimSceneComponent {
-      public:
-        TextComponent();
-
-        REG_SCENE_COMP_TYPE("TextComponent", SceneComponentType::nonSimulation)
-        SCENE_COMP_SER(Bess::Canvas::TextComponent,
-                       Bess::Canvas::NonSimSceneComponent,
-                       TEXT_SER_PROPS)
-
-        std::vector<std::shared_ptr<SceneComponent>>
-        clone(const SceneState &sceneState) const override;
-
-        void draw(SceneDrawContext &context) override;
-        void drawSchematic(SceneDrawContext &context) override;
-
-        std::type_index getTypeIndex() override {
-            return typeid(TextComponent);
-        }
-
-        MAKE_GETTER_SETTER(std::string, Data, m_data)
-        MAKE_GETTER_SETTER(glm::vec4, ForegroundColor, m_foregroundColor)
-        MAKE_GETTER_SETTER(size_t, Size, m_size)
-
-        void drawPropertiesUI(SceneState &sceneState) override;
-
-      private:
-        glm::vec2 calculateScale(const SceneState &state) override;
-
-      private:
-        std::string m_data = "New Text";
-        glm::vec4 m_foregroundColor = glm::vec4(1.f);
-        size_t m_size = 12.f;
-        bool m_isScaleDirty = true;
-    };
-
     class WidgetsTestComponent : public NonSimSceneComponent {
       public:
         WidgetsTestComponent();
@@ -137,10 +97,6 @@ namespace Bess::Canvas {
 
 REG_SCENE_COMP_NP(Bess::Canvas::NonSimSceneComponent,
                   Bess::Canvas::SceneComponent)
-
-REFLECT_DERIVED_PROPS(Bess::Canvas::TextComponent,
-                      Bess::Canvas::NonSimSceneComponent,
-                      TEXT_SER_PROPS);
 
 REFLECT_DERIVED_PROPS(Bess::Canvas::WidgetsTestComponent,
                       Bess::Canvas::NonSimSceneComponent,
