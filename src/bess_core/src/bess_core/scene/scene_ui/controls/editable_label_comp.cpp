@@ -19,7 +19,7 @@ namespace Bess::Canvas::UI {
         return label;
     }
 
-    void EditableLabelComp::draw(SceneDrawContext &state) {
+    void EditableLabelComp::onDraw(SceneDrawContext &state) {
         if (m_node == nullptr) {
             return;
         }
@@ -47,11 +47,11 @@ namespace Bess::Canvas::UI {
         };
 
         drawTextBoxContext(id,
-                              m_textInput,
-                              m_node->getDrawPos(),
-                              m_node->getDrawSize(),
-                              state,
-                              options);
+                           m_textInput,
+                           m_node->getDrawPos(),
+                           m_node->getDrawSize(),
+                           state,
+                           options);
     }
 
     void EditableLabelComp::prepareUI(SceneUIPrepareCtx &state) {
@@ -90,14 +90,13 @@ namespace Bess::Canvas::UI {
             beginEditAt(e.mousePos);
             if (e.sceneState != nullptr &&
                 e.sceneState->isComponentValid(m_uuid)) {
-                e.sceneState->focusUIComponent(
-                    m_uuid,
-                    {
-                        .entityUuid = m_uuid,
-                        .mousePos = e.mousePos,
-                        .details = e.details,
-                        .sceneState = e.sceneState,
-                    });
+                e.sceneState->focusUIComponent(m_uuid,
+                                               {
+                                                   .entityUuid = m_uuid,
+                                                   .mousePos = e.mousePos,
+                                                   .details = e.details,
+                                                   .sceneState = e.sceneState,
+                                               });
             }
             return true;
         }

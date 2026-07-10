@@ -131,7 +131,7 @@ namespace Bess::Canvas::UI {
         updateCachedValueLabel();
     }
 
-    void ProgressBarComp::draw(SceneDrawContext &state) {
+    void ProgressBarComp::onDraw(SceneDrawContext &state) {
         if (m_barNode == nullptr || state.renderer == nullptr) {
             return;
         }

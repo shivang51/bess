@@ -102,6 +102,17 @@ namespace Bess::Canvas::UI {
         return Core::Viewport::SceneCursor::pointer;
     }
 
+    void UISceneComponent::setIsScreenSpace(bool val) {
+        m_transformMode = val ? Core::Renderer::RenderTransformMode::Screen
+                              : Core::Renderer::RenderTransformMode::Camera;
+    }
+
+    void UISceneComponent::draw(SceneDrawContext &state) {
+        onBeforeDraw(state);
+        onDraw(state);
+        onAfterDraw(state);
+    }
+
     uint32_t UISceneComponent::resolveRuntimeId() const {
         return resolveOptional(m_drawRuntimeId, m_runtimeId);
     }
@@ -160,7 +171,7 @@ namespace Bess::Canvas::UI {
 
     void UISceneComponent::drawBgQuad(SceneDrawContext &state) {
         PickingId pickingId{
-            .runtimeId = m_runtimeId,
+            .runtimeId = resolveRuntimeId(),
             .info = 0,
         };
 
@@ -174,6 +185,7 @@ namespace Bess::Canvas::UI {
         quadProps.thickness = m_style.metrics.borderSize.toVec4();
         quadProps.radius = m_style.metrics.borderRadius;
         quadProps.id = pickingId;
+        quadProps.transformMode = state.transformMode;
 
         state.renderer->drawQuad(quadProps);
     }
@@ -210,6 +222,21 @@ namespace Bess::Canvas::UI {
                                      .color = m_style.textStyle.textColor,
                                      .zIndex = pos.z,
                                      .id = pickingId,
+                                     .transformMode = state.transformMode,
                                  });
     }
+
+    void UISceneComponent::onBeforeDraw(SceneDrawContext &state) {
+        m_lastTransformMode = state.transformMode;
+        // Camera is default so if the component is set to screen space, we
+        // override it to screen mode
+        if (m_transformMode == Core::Renderer::RenderTransformMode::Screen) {
+            state.transformMode = Core::Renderer::RenderTransformMode::Screen;
+        }
+    }
+
+    void UISceneComponent::onAfterDraw(SceneDrawContext &state) {
+        state.transformMode = m_lastTransformMode;
+    }
+
 } // namespace Bess::Canvas::UI

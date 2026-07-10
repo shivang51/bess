@@ -38,7 +38,7 @@ namespace Bess::Canvas::UI {
                bool expanded = true,
                const UITreeNodeCallback &toggledCallback = nullptr);
 
-        void draw(SceneDrawContext &state) override;
+        void onDraw(SceneDrawContext &state) override;
         void prepareUI(SceneUIPrepareCtx &state) override;
         bool onMouseButton(const Events::MouseButtonEvent &e) override;
         bool isFocusable() const override;

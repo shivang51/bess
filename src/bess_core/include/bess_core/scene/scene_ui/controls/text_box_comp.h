@@ -41,7 +41,7 @@ namespace Bess::Canvas::UI {
                const UITextBoxCallback &changedCallback = nullptr);
 
         void update(TimeMs ts, SceneState &state) override;
-        void draw(SceneDrawContext &state) override;
+        void onDraw(SceneDrawContext &state) override;
         void prepareUI(SceneUIPrepareCtx &state) override;
         bool isFocusable() const override;
         bool wantsKeyboardInput() const override;

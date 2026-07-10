@@ -27,12 +27,12 @@ namespace Bess::Canvas::UI {
                const UICheckboxCallback &callback = nullptr,
                bool checked = false);
 
-        void draw(SceneDrawContext &state) override;
         void prepareUI(SceneUIPrepareCtx &state) override;
         bool onMouseButton(const Events::MouseButtonEvent &e) override;
         bool isFocusable() const override;
         bool wantsKeyboardInput() const override;
         bool onKeyEvent(const SceneEvent &evt) override;
+        void onDraw(SceneDrawContext &state) override;
 
       private:
         void toggleFromUser();

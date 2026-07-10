@@ -50,7 +50,7 @@ namespace Bess::Canvas::UI {
         void close();
         void toggleOpen();
 
-        void draw(SceneDrawContext &state) override;
+        void onDraw(SceneDrawContext &state) override;
         void prepareUI(SceneUIPrepareCtx &state) override;
         bool onMouseEnter(const Events::MouseEnterEvent &e) override;
         bool onMouseLeave(const Events::MouseLeaveEvent &e) override;

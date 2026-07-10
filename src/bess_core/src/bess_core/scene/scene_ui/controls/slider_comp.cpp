@@ -146,7 +146,7 @@ namespace Bess::Canvas::UI {
         setValue(m_value);
     }
 
-    void SliderComp::draw(SceneDrawContext &state) {
+    void SliderComp::onDraw(SceneDrawContext &state) {
         if (m_trackNode == nullptr || state.renderer == nullptr) {
             return;
         }

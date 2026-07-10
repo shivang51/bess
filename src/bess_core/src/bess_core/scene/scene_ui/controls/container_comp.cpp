@@ -11,7 +11,7 @@ namespace Bess::Canvas::UI {
         return container;
     }
 
-    void ContainerComp::draw(SceneDrawContext &state) {
+    void ContainerComp::onDraw(SceneDrawContext &state) {
         if (m_drawBg) {
             if (m_drawCallback) {
                 m_drawCallback(state, this);

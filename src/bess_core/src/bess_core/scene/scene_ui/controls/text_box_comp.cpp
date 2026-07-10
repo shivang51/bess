@@ -23,7 +23,7 @@ namespace Bess::Canvas::UI {
         }
     }
 
-    void TextBoxComp::draw(SceneDrawContext &state) {
+    void TextBoxComp::onDraw(SceneDrawContext &state) {
         const auto id = PickingId{
             .runtimeId = m_runtimeId,
             .info = 0,

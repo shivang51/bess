@@ -49,7 +49,7 @@ namespace Bess::Canvas::UI {
                float maxValue,
                const UISliderCallback &changedCallback = nullptr);
 
-        void draw(SceneDrawContext &state) override;
+        void onDraw(SceneDrawContext &state) override;
         void prepareUI(SceneUIPrepareCtx &state) override;
         bool onMouseButton(const Events::MouseButtonEvent &e) override;
         bool onPointerMove(const Events::MouseMoveEvent &e) override;

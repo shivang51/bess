@@ -7,7 +7,7 @@ namespace Bess::Canvas::UI {
         return labelComp;
     }
 
-    void LabelComp::draw(SceneDrawContext &state) {
+    void LabelComp::onDraw(SceneDrawContext &state) {
         drawText(state, m_name, m_node);
     }
 } // namespace Bess::Canvas::UI

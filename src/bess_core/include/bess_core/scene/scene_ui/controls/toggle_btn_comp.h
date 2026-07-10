@@ -29,7 +29,7 @@ namespace Bess::Canvas::UI {
                const ToggleBtnCallback &callback = nullptr,
                bool toggled = false);
 
-        void draw(SceneDrawContext &state) override;
+        void onDraw(SceneDrawContext &state) override;
         bool onMouseButton(const Events::MouseButtonEvent &e) override;
         void prepareUI(SceneUIPrepareCtx &state) override;
 

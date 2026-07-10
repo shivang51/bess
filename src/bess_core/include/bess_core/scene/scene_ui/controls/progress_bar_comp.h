@@ -39,7 +39,7 @@ namespace Bess::Canvas::UI {
                                                        float minValue = 0.f,
                                                        float maxValue = 1.f);
 
-        void draw(SceneDrawContext &state) override;
+        void onDraw(SceneDrawContext &state) override;
         void prepareUI(SceneUIPrepareCtx &state) override;
         Core::Viewport::SceneCursor getCursor() const override;
 

@@ -48,7 +48,7 @@ namespace Bess::Canvas::UI {
         m_hoveredInfo = 0u;
     }
 
-    void ContextMenuComp::draw(SceneDrawContext &state) {
+    void ContextMenuComp::onDraw(SceneDrawContext &state) {
         if (m_node == nullptr || state.renderer == nullptr) {
             return;
         }

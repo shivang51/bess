@@ -86,7 +86,7 @@ namespace Bess::Canvas::UI {
         }
     }
 
-    void DropdownComp::draw(SceneDrawContext &state) {
+    void DropdownComp::onDraw(SceneDrawContext &state) {
         if (m_node == nullptr || state.renderer == nullptr) {
             return;
         }

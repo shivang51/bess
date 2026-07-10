@@ -248,7 +248,7 @@ namespace Bess::Canvas::UI {
         resolveTexture();
     }
 
-    void ImageComp::draw(SceneDrawContext &state) {
+    void ImageComp::onDraw(SceneDrawContext &state) {
         if (m_node == nullptr || state.renderer == nullptr) {
             return;
         }

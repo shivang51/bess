@@ -42,7 +42,7 @@ namespace Bess::Canvas::UI {
         void showAt(const glm::vec2 &position);
         void hide();
 
-        void draw(SceneDrawContext &state) override;
+        void onDraw(SceneDrawContext &state) override;
         void prepareUI(SceneUIPrepareCtx &state) override;
         bool onMouseEnter(const Events::MouseEnterEvent &e) override;
         bool onMouseLeave(const Events::MouseLeaveEvent &e) override;

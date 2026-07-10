@@ -12,6 +12,6 @@ namespace Bess::Canvas::UI {
 
         static std::shared_ptr<LabelComp> create(const std::string &label);
 
-        void draw(SceneDrawContext &state) override;
+        void onDraw(SceneDrawContext &state) override;
     };
 } // namespace Bess::Canvas::UI

@@ -21,7 +21,7 @@ namespace Bess::Canvas::UI {
         MAKE_GETTER_SETTER(UIButtonCallback, Callback, m_callback)
 
         void update(TimeMs ts, SceneState &state) override;
-        void draw(SceneDrawContext &state) override;
+        void onDraw(SceneDrawContext &state) override;
         void prepareUI(SceneUIPrepareCtx &state) override;
 
       private:

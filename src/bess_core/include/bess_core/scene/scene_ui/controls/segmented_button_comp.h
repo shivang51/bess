@@ -46,7 +46,7 @@ namespace Bess::Canvas::UI {
                               makeUIDirty)
         MAKE_GETTER_SETTER(UISegmentedButtonCallback, Callback, m_callback)
 
-        void draw(SceneDrawContext &state) override;
+        void onDraw(SceneDrawContext &state) override;
         void prepareUI(SceneUIPrepareCtx &state) override;
         bool onMouseEnter(const Events::MouseEnterEvent &e) override;
         bool onMouseLeave(const Events::MouseLeaveEvent &e) override;

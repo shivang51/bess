@@ -35,7 +35,7 @@ namespace Bess::Canvas::UI {
         setSelected(!m_selected);
     }
 
-    void SelectableButtonComp::draw(SceneDrawContext &state) {
+    void SelectableButtonComp::onDraw(SceneDrawContext &state) {
         if (m_node == nullptr || state.renderer == nullptr) {
             return;
         }

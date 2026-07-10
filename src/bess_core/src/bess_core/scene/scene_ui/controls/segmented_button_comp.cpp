@@ -47,7 +47,7 @@ namespace Bess::Canvas::UI {
         m_selectedIndex = validSelectedIndex(index);
     }
 
-    void SegmentedButtonComp::draw(SceneDrawContext &state) {
+    void SegmentedButtonComp::onDraw(SceneDrawContext &state) {
         if (m_node == nullptr || state.renderer == nullptr ||
             m_options.empty()) {
             return;

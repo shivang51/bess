@@ -31,7 +31,7 @@ namespace Bess::Canvas::UI {
         return checkbox;
     }
 
-    void CheckboxComp::draw(SceneDrawContext &state) {
+    void CheckboxComp::onDraw(SceneDrawContext &state) {
         if (m_boxNode == nullptr || state.renderer == nullptr) {
             return;
         }

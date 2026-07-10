@@ -98,18 +98,16 @@ void bind_scene_ui(py::module_ &m) {
                     py::arg("horizontal"),
                     py::arg("vertical"))
         .def_static("zero", &Bess::Core::Style::Padding::zero)
-        .def_static("only_top",
-                    &Bess::Core::Style::Padding::onlyTop,
-                    py::arg("top"))
+        .def_static(
+            "only_top", &Bess::Core::Style::Padding::onlyTop, py::arg("top"))
         .def_static("only_right",
                     &Bess::Core::Style::Padding::onlyRight,
                     py::arg("right"))
         .def_static("only_bottom",
                     &Bess::Core::Style::Padding::onlyBottom,
                     py::arg("bottom"))
-        .def_static("only_left",
-                    &Bess::Core::Style::Padding::onlyLeft,
-                    py::arg("left"))
+        .def_static(
+            "only_left", &Bess::Core::Style::Padding::onlyLeft, py::arg("left"))
         .def("to_vec4", &Bess::Core::Style::Padding::toVec4)
         .def_property_readonly("horizontal_size",
                                &Bess::Core::Style::Padding::horizontal)
@@ -124,8 +122,7 @@ void bind_scene_ui(py::module_ &m) {
 
     py::class_<UI::UIElementStyle>(m, "UIElementStyle")
         .def(py::init<>())
-        .def_readwrite("background_color",
-                       &UI::UIElementStyle::backgroundColor)
+        .def_readwrite("background_color", &UI::UIElementStyle::backgroundColor)
         .def_readwrite("hover_color", &UI::UIElementStyle::hoverColor)
         .def_readwrite("border_color", &UI::UIElementStyle::borderColor)
         .def_readwrite("active_color", &UI::UIElementStyle::activeColor)
@@ -135,11 +132,10 @@ void bind_scene_ui(py::module_ &m) {
 
     auto uiNodeBinding = py::class_<UI::UINode>(m, "UINode");
     auto uiNodeRegistryBinding =
-        py::class_<UI::UINodeRegistry,
-                   std::shared_ptr<UI::UINodeRegistry>>(m, "UINodeRegistry");
+        py::class_<UI::UINodeRegistry, std::shared_ptr<UI::UINodeRegistry>>(
+            m, "UINodeRegistry");
 
-    uiNodeBinding
-        .def(py::init<>())
+    uiNodeBinding.def(py::init<>())
         .def(py::init<const UUID &>(), py::arg("id"))
         .def_property(
             "id",
@@ -153,9 +149,7 @@ void bind_scene_ui(py::module_ &m) {
             "pos_unit",
             [](const UI::UINode &self) { return self.getPosUnit(); },
             &UI::UINode::setPosUnit)
-        .def("set_pos_dirty",
-             &UI::UINode::setPosDirty,
-             py::arg("dirty") = true)
+        .def("set_pos_dirty", &UI::UINode::setPosDirty, py::arg("dirty") = true)
         .def("set_size_dirty",
              &UI::UINode::setSizeDirty,
              py::arg("dirty") = true)
@@ -163,9 +157,8 @@ void bind_scene_ui(py::module_ &m) {
         .def_property_readonly("size_dirty", &UI::UINode::getSizeDirty)
         .def("set_width", &UI::UINode::setWidth, py::arg("width"))
         .def("set_height", &UI::UINode::setHeight, py::arg("height"))
-        .def("set_width_percent",
-             &UI::UINode::setWidthPercent,
-             py::arg("width"))
+        .def(
+            "set_width_percent", &UI::UINode::setWidthPercent, py::arg("width"))
         .def("set_height_percent",
              &UI::UINode::setHeightPercent,
              py::arg("height"))
@@ -204,23 +197,18 @@ void bind_scene_ui(py::module_ &m) {
             &UI::UINode::setDirection)
         .def_property(
             "main_axis_alignment",
-            [](const UI::UINode &self) {
-                return self.getMainAxisAlignment();
-            },
+            [](const UI::UINode &self) { return self.getMainAxisAlignment(); },
             &UI::UINode::setMainAxisAlignment)
         .def_property(
             "cross_axis_alignment",
-            [](const UI::UINode &self) {
-                return self.getCrossAxisAlignment();
-            },
+            [](const UI::UINode &self) { return self.getCrossAxisAlignment(); },
             &UI::UINode::setCrossAxisAlignment)
         .def_property(
             "align_self",
             [](const UI::UINode &self) { return self.getAlignSelf(); },
             &UI::UINode::setAlignSelf)
-        .def_property("flex_grow",
-                      &UI::UINode::getFlexGrow,
-                      &UI::UINode::setFlexGrow)
+        .def_property(
+            "flex_grow", &UI::UINode::getFlexGrow, &UI::UINode::setFlexGrow)
         .def_property("flex_shrink",
                       &UI::UINode::getFlexShrink,
                       &UI::UINode::setFlexShrink)
@@ -234,10 +222,8 @@ void bind_scene_ui(py::module_ &m) {
              py::arg("basis"),
              py::arg_v("unit", UI::Unit::pixel, "UIUnit.pixel"))
         .def("set_flex_basis_auto", &UI::UINode::setFlexBasisAuto)
-        .def("set_flex_basis_fit_content",
-             &UI::UINode::setFlexBasisFitContent)
-        .def("set_flex_basis_max_content",
-             &UI::UINode::setFlexBasisMaxContent)
+        .def("set_flex_basis_fit_content", &UI::UINode::setFlexBasisFitContent)
+        .def("set_flex_basis_max_content", &UI::UINode::setFlexBasisMaxContent)
         .def("set_flex_basis_stretch", &UI::UINode::setFlexBasisStretch)
         .def_property(
             "pos_mode",
@@ -248,16 +234,16 @@ void bind_scene_ui(py::module_ &m) {
             "z_val",
             [](const UI::UINode &self) { return self.getZVal(); },
             &UI::UINode::setZVal)
-        .def("add_child",
-             [](UI::UINode &self, UI::UINode &child) {
-                 self.addChild(&child);
-             },
-             py::arg("child"))
-        .def("remove_child",
-             [](UI::UINode &self, UI::UINode &child) {
-                 self.removeChild(&child);
-             },
-             py::arg("child"))
+        .def(
+            "add_child",
+            [](UI::UINode &self, UI::UINode &child) { self.addChild(&child); },
+            py::arg("child"))
+        .def(
+            "remove_child",
+            [](UI::UINode &self, UI::UINode &child) {
+                self.removeChild(&child);
+            },
+            py::arg("child"))
         .def("clear_children", &UI::UINode::clearChildren)
         .def("measure",
              &UI::UINode::measure,
@@ -268,20 +254,21 @@ void bind_scene_ui(py::module_ &m) {
             return "<UINode " + self.getId().toString() + ">";
         });
 
-    uiNodeRegistryBinding
-        .def(py::init<>())
-        .def("add_node",
-             [](UI::UINodeRegistry &self, const UUID &id) {
-                 return self.addNode(id);
-             },
-             py::arg("id"),
-             py::return_value_policy::reference_internal)
-        .def("add_node_copy",
-             [](UI::UINodeRegistry &self, const UI::UINode &node) {
-                 return self.addNode(node);
-             },
-             py::arg("node"),
-             py::return_value_policy::reference_internal)
+    uiNodeRegistryBinding.def(py::init<>())
+        .def(
+            "add_node",
+            [](UI::UINodeRegistry &self, const UUID &id) {
+                return self.addNode(id);
+            },
+            py::arg("id"),
+            py::return_value_policy::reference_internal)
+        .def(
+            "add_node_copy",
+            [](UI::UINodeRegistry &self, const UI::UINode &node) {
+                return self.addNode(node);
+            },
+            py::arg("node"),
+            py::return_value_policy::reference_internal)
         .def("remove_node", &UI::UINodeRegistry::removeNode, py::arg("id"))
         .def("get_node",
              py::overload_cast<const UUID &>(&UI::UINodeRegistry::getNode),
@@ -293,7 +280,6 @@ void bind_scene_ui(py::module_ &m) {
     py::class_<UI::UISceneComponent,
                Bess::Canvas::SceneComponent,
                py::smart_holder>(m, "UISceneComponent")
-        .def(py::init<>())
         .def_property_readonly(
             "uuid",
             [](const UI::UISceneComponent &self) { return self.getUuid(); })
@@ -318,18 +304,21 @@ void bind_scene_ui(py::module_ &m) {
             "ui_node",
             [](UI::UISceneComponent &self) { return self.getUINode(); },
             py::return_value_policy::reference_internal)
-        .def("get_ui_node",
-             [](UI::UISceneComponent &self) { return self.getUINode(); },
-             py::return_value_policy::reference_internal)
-        .def("set_ui_node",
-             [](UI::UISceneComponent &self, UI::UINode *node) {
-                 self.setUINode(node);
-             },
-             py::arg("node"))
+        .def(
+            "get_ui_node",
+            [](UI::UISceneComponent &self) { return self.getUINode(); },
+            py::return_value_policy::reference_internal)
+        .def(
+            "set_ui_node",
+            [](UI::UISceneComponent &self, UI::UINode *node) {
+                self.setUINode(node);
+            },
+            py::arg("node"))
         .def("cleanup",
              &UI::UISceneComponent::cleanup,
              py::arg("state"),
              py::arg_v("caller", UUID::null, "UUID.null"))
+        .def("on_draw", &UI::UISceneComponent::onDraw)
         .def("get_type_name", &UI::UISceneComponent::getTypeName);
 
     py::class_<UI::ContainerComp, UI::UISceneComponent, py::smart_holder>(
@@ -356,9 +345,10 @@ void bind_scene_ui(py::module_ &m) {
                 return self.getCrossAxisAlignment();
             },
             &UI::ContainerComp::setCrossAxisAlignment)
-        .def_property("draw_background",
-                      [](const UI::ContainerComp &self) {
-                          return self.getDrawBackground();
-                      },
-                      &UI::ContainerComp::setDrawBackground);
+        .def_property(
+            "draw_background",
+            [](const UI::ContainerComp &self) {
+                return self.getDrawBackground();
+            },
+            &UI::ContainerComp::setDrawBackground);
 }

@@ -146,7 +146,7 @@ namespace Bess::Canvas::UI {
                            ClickCallback,
                            m_clickCallback)
 
-        void draw(SceneDrawContext &state) override;
+        void onDraw(SceneDrawContext &state) override;
         void prepareUI(SceneUIPrepareCtx &state) override;
         bool onMouseButton(const Events::MouseButtonEvent &e) override;
         Core::Viewport::SceneCursor getCursor() const override;

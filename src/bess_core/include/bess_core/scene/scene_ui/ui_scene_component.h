@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bess_core/renderer/renderer_types.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_ui/layout.h"
 #include "bess_core/style/bess_theme.h"
@@ -56,6 +57,11 @@ namespace Bess::Canvas::UI {
 
         Core::Viewport::SceneCursor getCursor() const override;
 
+        void setIsScreenSpace(bool val = true);
+        void draw(SceneDrawContext &state) override;
+
+        virtual void onDraw(SceneDrawContext &state) = 0;
+
       protected:
         uint32_t resolveRuntimeId() const;
 
@@ -69,6 +75,9 @@ namespace Bess::Canvas::UI {
                       const std::string &text,
                       UINode *node);
 
+        void onBeforeDraw(SceneDrawContext &state);
+        void onAfterDraw(SceneDrawContext &state);
+
         UINode *m_node = nullptr;
         bool m_hovered = false;
         bool m_focused = false;
@@ -76,5 +85,9 @@ namespace Bess::Canvas::UI {
         UIElementStyle m_customStyle;
         UIDrawCallback m_drawCallback = nullptr;
         std::optional<uint32_t> m_drawRuntimeId = std::nullopt;
+        Core::Renderer::RenderTransformMode m_transformMode =
+            Core::Renderer::RenderTransformMode::Camera;
+        Core::Renderer::RenderTransformMode m_lastTransformMode =
+            Core::Renderer::RenderTransformMode::Camera;
     };
 } // namespace Bess::Canvas::UI

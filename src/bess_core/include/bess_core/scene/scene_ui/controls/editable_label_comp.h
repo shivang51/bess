@@ -41,7 +41,7 @@ namespace Bess::Canvas::UI {
         create(const std::string &value = "",
                const UIEditableLabelCallback &changedCallback = nullptr);
 
-        void draw(SceneDrawContext &state) override;
+        void onDraw(SceneDrawContext &state) override;
         void prepareUI(SceneUIPrepareCtx &state) override;
         bool onMouseButton(const Events::MouseButtonEvent &e) override;
         bool isFocusable() const override;

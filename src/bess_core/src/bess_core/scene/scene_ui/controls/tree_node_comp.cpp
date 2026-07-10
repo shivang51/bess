@@ -28,7 +28,7 @@ namespace Bess::Canvas::UI {
         return node;
     }
 
-    void TreeNodeComp::draw(SceneDrawContext &state) {
+    void TreeNodeComp::onDraw(SceneDrawContext &state) {
         if (m_headerNode == nullptr || state.renderer == nullptr) {
             return;
         }

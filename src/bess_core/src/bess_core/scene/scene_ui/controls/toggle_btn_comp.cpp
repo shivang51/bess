@@ -14,7 +14,7 @@ namespace Bess::Canvas::UI {
         return toggleBtn;
     }
 
-    void ToggleBtnComp::draw(SceneDrawContext &state) {
+    void ToggleBtnComp::onDraw(SceneDrawContext &state) {
         if (m_trackNode == nullptr || state.renderer == nullptr) {
             return;
         }
@@ -31,6 +31,7 @@ namespace Bess::Canvas::UI {
         trackProps.borderColor = m_style.borderColor;
         trackProps.thickness = m_style.metrics.borderSize.toVec4();
         trackProps.radius = m_style.metrics.borderRadius;
+        trackProps.transformMode = state.transformMode;
         trackProps.id = PickingId{.runtimeId = resolveRuntimeId(), .info = 1};
 
         state.renderer->drawQuad(trackProps);

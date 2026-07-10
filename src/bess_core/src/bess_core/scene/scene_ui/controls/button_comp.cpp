@@ -31,7 +31,7 @@ namespace Bess::Canvas::UI {
         UISceneComponent::update(ts, state);
     }
 
-    void ButtonComp::draw(SceneDrawContext &state) {
+    void ButtonComp::onDraw(SceneDrawContext &state) {
         drawBgQuad(state);
         drawText(state, m_name, m_labelNode);
     }

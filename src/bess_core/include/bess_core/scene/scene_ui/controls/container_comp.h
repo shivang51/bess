@@ -29,7 +29,7 @@ namespace Bess::Canvas::UI {
         static std::shared_ptr<ContainerComp>
         create(const LayoutDirection &direction = LayoutDirection::horizontal);
 
-        void draw(SceneDrawContext &state) override;
+        void onDraw(SceneDrawContext &state) override;
         void prepareUI(SceneUIPrepareCtx &state) override;
 
       private:
