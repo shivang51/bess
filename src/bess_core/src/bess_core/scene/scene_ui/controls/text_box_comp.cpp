@@ -37,11 +37,11 @@ namespace Bess::Canvas::UI {
         };
 
         drawTextBoxContext(id,
-                              m_textInput,
-                              m_node->getDrawPos(),
-                              m_node->getDrawSize(),
-                              state,
-                              options);
+                           m_textInput,
+                           m_node->getDrawPos(),
+                           m_node->getDrawSize(),
+                           state,
+                           options);
     }
 
     void TextBoxComp::prepareUI(SceneUIPrepareCtx &state) {
@@ -57,6 +57,8 @@ namespace Bess::Canvas::UI {
         if (state.parentNode != nullptr) {
             state.parentNode->addChild(m_node);
         }
+
+        m_isUIDirty = false;
     }
 
     glm::vec2 TextBoxComp::resolveBoxSize(SceneUIPrepareCtx &state) const {
@@ -146,8 +148,7 @@ namespace Bess::Canvas::UI {
         return Core::Viewport::SceneCursor::text;
     }
 
-    void TextBoxComp::applyTextInputResult(
-        const TextBoxContextResult &result) {
+    void TextBoxComp::applyTextInputResult(const TextBoxContextResult &result) {
         if (result.changed) {
             m_value = m_textInput.text();
             makeUIDirty();

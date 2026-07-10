@@ -1,4 +1,5 @@
 #include "bess_core/scene/scene_ui/controls/container_comp.h"
+#include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "common/logger.h"
 
@@ -15,7 +16,7 @@ namespace Bess::Canvas::UI {
             if (m_drawCallback) {
                 m_drawCallback(state, this);
             } else {
-                drawBgQuad(state);
+                drawBackground(state);
             }
         }
 
@@ -36,6 +37,25 @@ namespace Bess::Canvas::UI {
 
         prepChildren(state);
         m_isUIDirty = false;
+    }
+
+    void ContainerComp::drawBackground(SceneDrawContext &state) {
+        if (m_node == nullptr || state.renderer == nullptr) {
+            return;
+        }
+
+        Core::Renderer::QuadProps quadProps;
+        quadProps.position = m_node->getDrawPos();
+        quadProps.size = m_node->getDrawSize();
+        quadProps.zIndex = m_node->getDrawPos().z;
+        quadProps.color = m_style.backgroundColor;
+        quadProps.borderColor = m_style.borderColor;
+        quadProps.thickness = m_style.metrics.borderSize.toVec4();
+        quadProps.radius = m_style.metrics.borderRadius;
+        quadProps.id = PickingId::invalid();
+        quadProps.transformMode = state.transformMode;
+
+        state.renderer->drawQuad(quadProps);
     }
 
     void ContainerComp::prepChildren(SceneUIPrepareCtx &state) {

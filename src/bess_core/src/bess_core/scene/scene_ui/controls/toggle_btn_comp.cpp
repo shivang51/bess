@@ -109,5 +109,7 @@ namespace Bess::Canvas::UI {
         if (state.parentNode != nullptr) {
             state.parentNode->addChild(m_node);
         }
+
+        m_isUIDirty = false;
     }
 } // namespace Bess::Canvas::UI

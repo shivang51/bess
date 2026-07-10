@@ -1,61 +1,99 @@
 #include "bess_core/scene/layers/scratch_layer.h"
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_ui/controls/button_comp.h"
+#include "bess_core/scene/scene_ui/controls/checkbox_comp.h"
 #include "bess_core/scene/scene_ui/controls/container_comp.h"
-#include "bess_core/scene/scene_ui/controls/text_box_comp.h"
-#include "bess_core/scene/scene_ui/controls/toggle_btn_comp.h"
+#include "bess_core/scene/scene_ui/controls/label_comp.h"
+#include "bess_core/scene/scene_ui/controls/progress_bar_comp.h"
+#include "bess_core/scene/scene_ui/controls/slider_comp.h"
 
 namespace Bess::Canvas {
     namespace {
-        std::shared_ptr<UI::ContainerComp> container = nullptr;
+        constexpr float kInitialDemoValue = 35.f;
+
+        std::shared_ptr<UI::ContainerComp> demoPanel = nullptr;
+        std::shared_ptr<UI::SliderComp> demoSlider = nullptr;
+        std::shared_ptr<UI::ProgressBarComp> demoProgress = nullptr;
+
+        template <typename T>
+        void addPanelChild(SceneLifecycleContext &ctx,
+                           const std::shared_ptr<T> &component) {
+            ctx.sceneState->addComponent(component);
+            ctx.sceneState->attachChild(
+                demoPanel->getUuid(), component->getUuid(), false);
+        }
     } // namespace
 
     void ScratchLayer::init(SceneLifecycleContext &ctx) {
-        // container = Canvas::UI::ContainerComp::create();
-        // ctx.sceneState->addComponent(container);
-        // container->setDrawBackground(true);
-        //
-        // for (int i = 0; i < 3; ++i) {
-        //     auto btnComp = Canvas::UI::ButtonComp::create(
-        //         std::format("Button {}", i), [i]() {
-        //             if (i == 0) {
-        //                 container->setDirection(
-        //                     Canvas::UI::LayoutDirection::horizontal);
-        //             } else if (i == 1) {
-        //                 container->setDirection(
-        //                     Canvas::UI::LayoutDirection::vertical);
-        //             } else if (i == 2) {
-        //                 container->setDrawBackground(
-        //                     !container->getDrawBackground());
-        //             }
-        //         });
-        //
-        //     btnComp->getStyle().margin = 5;
-        //
-        //     ctx.sceneState->addComponent(btnComp);
-        //
-        //     ctx.sceneState->attachChild(container->getUuid(),
-        //                                 btnComp->getUuid());
-        // }
-        //
-        // auto toggle = Canvas::UI::ToggleBtnComp::create("Toggle Me");
-        //
-        // toggle->setCallback([toggle](bool toggled) {
-        //     toggle->setName(toggled ? "Toggled On" : "Toggled Off");
-        // });
-        // toggle->setShowLabel(true);
-        // toggle->getStyle().margin = 5;
-        //
-        // container->addChildComponent(toggle->getUuid());
-        // ctx.sceneState->addComponent(toggle);
-        //
-        // auto textBox = Canvas::UI::TextBoxComp::create("Type here...");
-        // textBox->setChangedCallback([](const std::string &value) {
-        //     BESS_INFO("Text changed: {}", value);
-        // });
-        //
-        // container->addChildComponent(textBox->getUuid());
-        // ctx.sceneState->addComponent(textBox);
+        demoPanel = UI::ContainerComp::create(UI::LayoutDirection::vertical);
+        demoPanel->setName("Scratch Retained UI");
+        demoPanel->setPosition({-260.f, 160.f, 1.f});
+        demoPanel->setDrawBackground(true);
+        demoPanel->setCrossAxisAlignment(UI::LayoutAlignment::start);
+        demoPanel->getStyle().padding =
+            Core::Style::Padding(10.f, 12.f, 10.f, 12.f);
+        demoPanel->getStyle().margin = Core::Style::Margin(0.f);
+        ctx.sceneState->addComponent(demoPanel);
+
+        auto title = UI::LabelComp::create("Retained UI Controls");
+        title->getStyle().fontSize = 10.f;
+        title->getStyle().margin = Core::Style::Margin::onlyBottom(4.f);
+        addPanelChild(ctx, title);
+
+        demoProgress = UI::ProgressBarComp::create(
+            "Progress", kInitialDemoValue, 0.f, 100.f);
+        demoProgress->setBarSize({150.f, 10.f});
+        demoProgress->setValuePrecision(0);
+        demoProgress->getStyle().margin = Core::Style::Margin::onlyBottom(4.f);
+        addPanelChild(ctx, demoProgress);
+
+        demoSlider = UI::SliderComp::create(
+            "Output", kInitialDemoValue, 0.f, 100.f, [](float value) {
+                if (demoProgress) {
+                    demoProgress->setValue(value);
+                }
+            });
+        demoSlider->setStep(1.f);
+        demoSlider->setValuePrecision(0);
+        demoSlider->setSliderSize({150.f, 0.f});
+        addPanelChild(ctx, demoSlider);
+
+        auto showValues = UI::CheckboxComp::create(
+            "Show values",
+            [](bool checked) {
+                if (demoSlider) {
+                    demoSlider->setShowValue(checked);
+                }
+                if (demoProgress) {
+                    demoProgress->setShowValue(checked);
+                }
+            },
+            true);
+        addPanelChild(ctx, showValues);
+
+        auto compactLabels = UI::CheckboxComp::create(
+            "Compact labels",
+            [](bool checked) {
+                if (demoSlider) {
+                    demoSlider->setShowLabel(!checked);
+                }
+                if (demoProgress) {
+                    demoProgress->setShowLabel(!checked);
+                }
+            },
+            false);
+        addPanelChild(ctx, compactLabels);
+
+        auto reset = UI::ButtonComp::create("Reset", []() {
+            if (demoSlider) {
+                demoSlider->setValue(kInitialDemoValue);
+            }
+            if (demoProgress) {
+                demoProgress->setValue(kInitialDemoValue);
+            }
+        });
+        reset->getStyle().margin = Core::Style::Margin::onlyTop(4.f);
+        addPanelChild(ctx, reset);
     }
 
     void ScratchLayer::update(TimeMs ts, SceneUpdateContext &ctx) {

@@ -33,6 +33,7 @@ namespace Bess::Canvas::UI {
         void prepareUI(SceneUIPrepareCtx &state) override;
 
       private:
+        void drawBackground(SceneDrawContext &state);
         void prepChildren(SceneUIPrepareCtx &state);
         void drawChildren(SceneDrawContext &state);
 
