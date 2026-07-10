@@ -701,8 +701,15 @@ namespace Bess::Canvas::UI {
             textColor = colorOr(options.placeholderColor, palette.textMuted);
         }
 
+        const float maxCursorHeight = std::max(4.f, size.y - 4.f);
+        const float defaultCursorHeight =
+            std::max(referenceTextSize.y, size.y - (options.padding.y * 2.f));
         const float cursorHeight =
-            std::max(4.f, size.y - (options.padding.y * 2.f));
+            std::clamp(options.cursorHeight.value_or(defaultCursorHeight),
+                       4.f,
+                       maxCursorHeight);
+        const float cursorWidth =
+            std::clamp(options.cursorWidth.value_or(1.5f), 1.f, 4.f);
         if (focused && input.hasSelection()) {
             const auto [selStart, selEnd] = input.selectionRange();
             const size_t visibleSelStart = std::max(selStart, visibleStart);
@@ -753,8 +760,10 @@ namespace Bess::Canvas::UI {
             const float cursorX =
                 left + context.renderer->measureText(cursorText, fontProps).x;
             SceneDraw::drawQuad(context,
-                                {cursorX, boxPos.y, boxPos.z + 0.0002f},
-                                {1.f, cursorHeight},
+                                {cursorX + (cursorWidth * 0.5f),
+                                 boxPos.y,
+                                 boxPos.z + 0.0002f},
+                                {cursorWidth, cursorHeight},
                                 colorOr(options.cursorColor, palette.text),
                                 id);
         }

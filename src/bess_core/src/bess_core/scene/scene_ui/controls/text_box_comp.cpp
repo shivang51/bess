@@ -30,10 +30,11 @@ namespace Bess::Canvas::UI {
         };
 
         m_textInput.syncExternalValue(m_value, m_maxLength);
+        const auto padding = stylePadding();
         const TextBoxContextDrawOptions options{
             .placeholder = m_placeholder,
             .fontSize = m_style.textStyle.fontSize,
-            .padding = stylePadding(),
+            .padding = padding,
             .backgroundColor = m_style.backgroundColor,
             .hoverBackgroundColor = m_style.hoverColor,
             .focusedBackgroundColor = m_style.backgroundColor,
@@ -43,6 +44,7 @@ namespace Bess::Canvas::UI {
             .placeholderColor = m_style.textStyle.textColor.withAlpha(0.55f),
             .selectionColor = m_style.activeColor.withAlpha(0.45f),
             .cursorColor = m_style.activeColor,
+            .cursorHeight = m_node->getDrawSize().y - (padding.y * 2.f),
             .hovered = m_hovered,
         };
 

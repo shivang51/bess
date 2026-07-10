@@ -104,6 +104,8 @@ namespace Bess::Canvas::UI {
         std::optional<Core::Renderer::Color> placeholderColor;
         std::optional<Core::Renderer::Color> selectionColor;
         std::optional<Core::Renderer::Color> cursorColor;
+        std::optional<float> cursorWidth;
+        std::optional<float> cursorHeight;
         bool hovered = false;
     };
 

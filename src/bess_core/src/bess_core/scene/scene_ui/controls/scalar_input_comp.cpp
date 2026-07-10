@@ -79,9 +79,8 @@ namespace Bess::Canvas::UI {
                     continue;
                 }
                 if ((ch == '-' || ch == '+') &&
-                    (index == 0 ||
-                     (sawExponent &&
-                      (text[index - 1] == 'e' || text[index - 1] == 'E')))) {
+                    (index == 0 || (sawExponent && (text[index - 1] == 'e' ||
+                                                    text[index - 1] == 'E')))) {
                     continue;
                 }
                 if (ch == '.' && !sawDot && !sawExponent) {
@@ -231,6 +230,8 @@ namespace Bess::Canvas::UI {
             .placeholderColor = m_style.textStyle.textColor.withAlpha(0.55f),
             .selectionColor = m_style.activeColor.withAlpha(0.45f),
             .cursorColor = m_style.activeColor,
+            .cursorWidth = 1.f,
+            .cursorHeight = std::max(10.f, m_node->getDrawSize().y - 6.f),
             .hovered = m_hovered,
         };
 
@@ -307,8 +308,7 @@ namespace Bess::Canvas::UI {
             (evt.data.keyPress.action == KeyAction::press ||
              evt.data.keyPress.action == KeyAction::hold)) {
             const double baseStep = m_step > 0.0 ? m_step : 1.0;
-            const double step = evt.isShiftPressed ? baseStep * 10.0
-                                                    : baseStep;
+            const double step = evt.isShiftPressed ? baseStep * 10.0 : baseStep;
             switch (evt.data.keyPress.keycode) {
             case KeyCode::arrowUp:
                 commitText();
@@ -352,7 +352,8 @@ namespace Bess::Canvas::UI {
         return std::clamp(value, m_minValue, m_maxValue);
     }
 
-    glm::vec2 ScalarInputComp::resolveInputSize(SceneUIPrepareCtx &state) const {
+    glm::vec2
+    ScalarInputComp::resolveInputSize(SceneUIPrepareCtx &state) const {
         auto size = m_inputSize;
         const auto padding = stylePadding();
         const auto fontProps = Core::Renderer::FontProps{
@@ -430,8 +431,8 @@ namespace Bess::Canvas::UI {
         invalidateTextLayout();
     }
 
-    void ScalarInputComp::applyTextInputResult(
-        const TextBoxContextResult &result) {
+    void
+    ScalarInputComp::applyTextInputResult(const TextBoxContextResult &result) {
         if (result.changed) {
             const auto &candidate = m_textInput.text();
             if (!isValidNumericEdit(candidate)) {
