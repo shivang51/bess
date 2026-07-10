@@ -5,8 +5,10 @@
 #include "bess_core/scene/scene_ui/controls/container_comp.h"
 #include "bess_core/scene/scene_ui/controls/context_menu_comp.h"
 #include "bess_core/scene/scene_ui/controls/dropdown_comp.h"
+#include "bess_core/scene/scene_ui/controls/image_comp.h"
 #include "bess_core/scene/scene_ui/controls/label_comp.h"
 #include "bess_core/scene/scene_ui/controls/progress_bar_comp.h"
+#include "bess_core/scene/scene_ui/controls/selectable_button_comp.h"
 #include "bess_core/scene/scene_ui/controls/slider_comp.h"
 #include "bess_core/scene/scene_ui/controls/tree_node_comp.h"
 
@@ -17,6 +19,7 @@ namespace Bess::Canvas {
         std::shared_ptr<UI::ContainerComp> demoPanel = nullptr;
         std::shared_ptr<UI::SliderComp> demoSlider = nullptr;
         std::shared_ptr<UI::ProgressBarComp> demoProgress = nullptr;
+        std::shared_ptr<UI::ImageComp> demoImage = nullptr;
 
         template <typename T>
         void addPanelChild(SceneLifecycleContext &ctx,
@@ -91,6 +94,27 @@ namespace Bess::Canvas {
             "Right click actions");
         menu->setTriggerSize({150.f, 22.f});
         addChild(ctx, tree, menu);
+
+        auto selectable = UI::SelectableButtonComp::create(
+            "Selected",
+            [](bool selected) {
+                if (demoImage) {
+                    demoImage->setTintColor(
+                        selected
+                            ? Core::Renderer::Color{1.f, 1.f, 1.f, 1.f}
+                            : Core::Renderer::Color{0.72f, 0.72f, 0.72f, 1.f});
+                }
+            },
+            true);
+        selectable->setButtonSize({150.f, 22.f});
+        addChild(ctx, tree, selectable);
+
+        demoImage = UI::ImageComp::create({150.f, 46.f});
+        demoImage->setSourceFile("assets/images/logo/BessLogo.png");
+        demoImage->setFit(UI::UIImageFit::Contain);
+        demoImage->setDrawBackground(true);
+        demoImage->setCornerRadius(glm::vec4(6.f));
+        addChild(ctx, tree, demoImage);
 
         demoProgress = UI::ProgressBarComp::create(
             "Progress", kInitialDemoValue, 0.f, 100.f);
