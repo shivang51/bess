@@ -475,39 +475,40 @@ namespace Bess::Canvas {
     }
 
     void ScreenSpaceOverlayLayer::init(SceneLifecycleContext &ctx) {
-        if (m_topContainer && m_bottomContainer) {
-            return;
-        }
-
-        m_topContainer = UI::ContainerComp::create();
-        m_topContainer->setIsScreenSpace();
-        m_topContainer->setDrawBackground(true);
-
-        m_bottomContainer = UI::ContainerComp::create();
-        m_bottomContainer->setIsScreenSpace();
-        m_bottomContainer->setDrawBackground(true);
-
-        m_topContainer->getStyle().margin = 0.f;
-        m_topContainer->getStyle().padding = 4.f;
-        m_bottomContainer->getStyle().margin = 8.f;
-        m_bottomContainer->getStyle().padding = 4.f;
-
-        auto btn = UI::ButtonComp::create(
-            "Test", []() { BESS_INFO("Button clicked!"); });
-
-        auto btn1 = UI::ButtonComp::create(
-            "Test 2", []() { BESS_INFO("Button clicked!"); });
-
-        ctx.sceneState->addComponent(m_topContainer);
-        ctx.sceneState->addComponent(m_bottomContainer);
-        ctx.sceneState->addComponent(btn);
-        ctx.sceneState->addComponent(btn1);
-
-        ctx.sceneState->attachChild(m_topContainer->getUuid(), btn->getUuid());
-        ctx.sceneState->attachChild(m_bottomContainer->getUuid(),
-                                    btn1->getUuid());
-
-        m_updateTransforms = true;
+        // if (m_topContainer && m_bottomContainer) {
+        //     return;
+        // }
+        //
+        // m_topContainer = UI::ContainerComp::create();
+        // m_topContainer->setIsScreenSpace();
+        // m_topContainer->setDrawBackground(true);
+        //
+        // m_bottomContainer = UI::ContainerComp::create();
+        // m_bottomContainer->setIsScreenSpace();
+        // m_bottomContainer->setDrawBackground(true);
+        //
+        // m_topContainer->getStyle().margin = 0.f;
+        // m_topContainer->getStyle().padding = 4.f;
+        // m_bottomContainer->getStyle().margin = 8.f;
+        // m_bottomContainer->getStyle().padding = 4.f;
+        //
+        // auto btn = UI::ButtonComp::create(
+        //     "Test", []() { BESS_INFO("Button clicked!"); });
+        //
+        // auto btn1 = UI::ButtonComp::create(
+        //     "Test 2", []() { BESS_INFO("Button clicked!"); });
+        //
+        // ctx.sceneState->addComponent(m_topContainer);
+        // ctx.sceneState->addComponent(m_bottomContainer);
+        // ctx.sceneState->addComponent(btn);
+        // ctx.sceneState->addComponent(btn1);
+        //
+        // ctx.sceneState->attachChild(m_topContainer->getUuid(),
+        // btn->getUuid());
+        // ctx.sceneState->attachChild(m_bottomContainer->getUuid(),
+        //                             btn1->getUuid());
+        //
+        // m_updateTransforms = true;
     }
 
     void ScreenSpaceOverlayLayer::addDrawCallback(DrawCallback callback) {
@@ -567,23 +568,24 @@ namespace Bess::Canvas {
 
     void ScreenSpaceOverlayLayer::viewportUpdate(TimeMs ts,
                                                  SceneVpUpdateContext &ctx) {
-        m_updateTransforms = ctx.viewportCtx->isResized || m_updateTransforms;
-
-        if (!m_updateTransforms) {
-            return;
-        }
-
-        if (!updateTransform(ctx.viewportCtx) || ctx.sceneState == nullptr) {
-            return;
-        }
-
-        const auto registry = ctx.sceneState->getUINodeRegistry();
-        if (registry == nullptr) {
-            return;
-        }
-
-        m_topContainer->getUINode()->measure(*registry, UUID::null);
-        m_bottomContainer->getUINode()->measure(*registry, UUID::null);
+        // m_updateTransforms = ctx.viewportCtx->isResized ||
+        // m_updateTransforms;
+        //
+        // if (!m_updateTransforms) {
+        //     return;
+        // }
+        //
+        // if (!updateTransform(ctx.viewportCtx) || ctx.sceneState == nullptr) {
+        //     return;
+        // }
+        //
+        // const auto registry = ctx.sceneState->getUINodeRegistry();
+        // if (registry == nullptr) {
+        //     return;
+        // }
+        //
+        // m_topContainer->getUINode()->measure(*registry, UUID::null);
+        // m_bottomContainer->getUINode()->measure(*registry, UUID::null);
     }
 
 } // namespace Bess::Canvas
