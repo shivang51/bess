@@ -134,6 +134,47 @@ namespace Bess::Core::Renderer {
         Screen,
     };
 
+    struct RendererScissorRect {
+        uint32_t x = 0;
+        uint32_t y = 0;
+        uint32_t width = 0;
+        uint32_t height = 0;
+
+        [[nodiscard]] constexpr bool empty() const noexcept {
+            return width == 0 || height == 0;
+        }
+
+        [[nodiscard]] constexpr bool
+        operator==(const RendererScissorRect &other) const noexcept {
+            return x == other.x && y == other.y && width == other.width &&
+                   height == other.height;
+        }
+
+        [[nodiscard]] constexpr bool
+        operator!=(const RendererScissorRect &other) const noexcept {
+            return !(*this == other);
+        }
+    };
+
+    struct RendererScissorState {
+        bool enabled = false;
+        RendererScissorRect rect{};
+
+        [[nodiscard]] constexpr bool empty() const noexcept {
+            return enabled && rect.empty();
+        }
+
+        [[nodiscard]] constexpr bool
+        operator==(const RendererScissorState &other) const noexcept {
+            return enabled == other.enabled && rect == other.rect;
+        }
+
+        [[nodiscard]] constexpr bool
+        operator!=(const RendererScissorState &other) const noexcept {
+            return !(*this == other);
+        }
+    };
+
     enum class PathLineJoin : uint8_t {
         Miter,
         Bevel,

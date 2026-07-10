@@ -490,7 +490,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                         const Core::Renderer::FontProps &props,
                         const TAtlas &atlas,
                         MsdfTextBatch &batch,
-                        uint64_t submitOrder) {
+                        uint64_t submitOrder,
+                        Core::Renderer::RendererScissorState scissor) {
         if (!atlas.valid()) {
             return false;
         }
@@ -581,7 +582,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                                 Core::Renderer::RenderTransformMode::Camera
                             ? kMsdfTextFlagApplyCameraTransform
                             : 0u;
-                    batch.push(instance, submitOrder);
+                    batch.push(instance, submitOrder, scissor);
                 }
             }
 
@@ -753,7 +754,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         const Core::Renderer::FontProps &,
         const Core::Renderer::MsdfFontAtlas<WgpuTexture> &,
         MsdfTextBatch &,
-        uint64_t);
+        uint64_t,
+        Core::Renderer::RendererScissorState);
 
     template glm::vec2
     measureMsdfText<Core::Renderer::MsdfFontAtlas<WgpuTexture>>(

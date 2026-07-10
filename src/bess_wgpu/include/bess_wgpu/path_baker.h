@@ -24,6 +24,7 @@ namespace Bess::Wgpu {
         bool evenOddFill = true;
         float zIndex = 0.f;
         uint64_t submitOrder = 0;
+        Core::Renderer::RendererScissorState scissor{};
     };
 
     struct BakedPath {
@@ -66,9 +67,13 @@ namespace Bess::Wgpu {
 
         void push(const BakedPath &path,
                   const PathProps &props,
-                  uint64_t submitOrder);
+                  uint64_t submitOrder,
+                  Core::Renderer::RendererScissorState scissor = {});
         void
-        push(BakedPath &&path, const PathProps &props, uint64_t submitOrder);
+        push(BakedPath &&path,
+             const PathProps &props,
+             uint64_t submitOrder,
+             Core::Renderer::RendererScissorState scissor = {});
 
         void prepareForRendering(bool sortBackToFront);
 
@@ -102,6 +107,7 @@ namespace Bess::Wgpu {
         uint32_t firstInstance = 0;
         float zIndex = 0.f;
         uint64_t submitOrder = 0;
+        Core::Renderer::RendererScissorState scissor{};
     };
 
     class PathStrokeBatch {
@@ -110,10 +116,12 @@ namespace Bess::Wgpu {
 
         void push(const std::vector<Piplines::PathCoverVertex> &vertices,
                   const PathProps &props,
-                  uint64_t submitOrder);
+                  uint64_t submitOrder,
+                  Core::Renderer::RendererScissorState scissor = {});
         void push(std::vector<Piplines::PathCoverVertex> &&vertices,
                   const PathProps &props,
-                  uint64_t submitOrder);
+                  uint64_t submitOrder,
+                  Core::Renderer::RendererScissorState scissor = {});
 
         void prepareForRendering(bool sortBackToFront);
 
@@ -151,7 +159,9 @@ namespace Bess::Wgpu {
                               PathBatch &opaquePathBatch,
                               PathBatch &transparentPathBatch,
                               PathStrokeBatch &opaquePathStrokeBatch,
-                              PathStrokeBatch &transparentPathStrokeBatch);
+                              PathStrokeBatch &transparentPathStrokeBatch,
+                              Core::Renderer::RendererScissorState scissor =
+                                  {});
 
     void BESS_API
     submitPathCommands(std::span<const PathCommand> commands,
@@ -161,7 +171,8 @@ namespace Bess::Wgpu {
                        PathBatch &opaquePathBatch,
                        PathBatch &transparentPathBatch,
                        PathStrokeBatch &opaquePathStrokeBatch,
-                       PathStrokeBatch &transparentPathStrokeBatch);
+                       PathStrokeBatch &transparentPathStrokeBatch,
+                       Core::Renderer::RendererScissorState scissor = {});
 
     void BESS_API
     submitPathCommands(std::span<const PathCommand> commands,
@@ -170,7 +181,8 @@ namespace Bess::Wgpu {
                        PathBatch &opaquePathBatch,
                        PathBatch &transparentPathBatch,
                        PathStrokeBatch &opaquePathStrokeBatch,
-                       PathStrokeBatch &transparentPathStrokeBatch);
+                       PathStrokeBatch &transparentPathStrokeBatch,
+                       Core::Renderer::RendererScissorState scissor = {});
 
     std::vector<Piplines::PathCoverVertex>
         BESS_API bakePathFillAntiAlias(std::span<const PathCommand> commands,

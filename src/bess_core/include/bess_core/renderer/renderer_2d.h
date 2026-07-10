@@ -201,6 +201,10 @@ namespace Bess::Core::Renderer {
         [[nodiscard]] virtual bool
         isPickingReadbackPending() const noexcept = 0;
 
+        virtual void pushScissorRect(const RendererScissorRect &rect) = 0;
+        virtual void popScissorRect() = 0;
+        virtual void clearScissorRects() = 0;
+
         virtual void drawQuad(const QuadProps &props) = 0;
 
         [[nodiscard]] virtual CustomQuadShaderHandle

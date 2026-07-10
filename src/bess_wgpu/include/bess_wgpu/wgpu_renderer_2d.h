@@ -59,6 +59,11 @@ namespace Bess::Wgpu {
             Core::Renderer::PickingReadbackResult &result) override;
         [[nodiscard]] bool isPickingReadbackPending() const noexcept override;
 
+        void pushScissorRect(
+            const Core::Renderer::RendererScissorRect &rect) override;
+        void popScissorRect() override;
+        void clearScissorRects() override;
+
         void unregisterTexture(Core::Renderer::TextureHandle texture);
 
         void registerTexture(const TextureResource &texture);

@@ -53,6 +53,8 @@ namespace Bess::Wgpu {
         using Bess::Wgpu::Piplines::PathInstance;
         using Bess::Wgpu::Piplines::PathStencilVertex;
 
+        using Bess::Core::Renderer::RendererScissorRect;
+        using Bess::Core::Renderer::RendererScissorState;
         using Bess::Wgpu::BakedPathSubmission;
         using Bess::Wgpu::bakePathFillAntiAlias;
         using Bess::Wgpu::bakePathSubmission;
@@ -130,6 +132,89 @@ namespace Bess::Wgpu {
                                     const Renderer2DExtent &extent) {
             return makePathBakeMetricsForTransform(
                 props.transformMode, cameraTransform, extent);
+        }
+
+        RendererScissorRect fullScissorRect(
+            const Renderer2DExtent &extent) noexcept {
+            return {.x = 0,
+                    .y = 0,
+                    .width = std::max(1u, extent.width),
+                    .height = std::max(1u, extent.height)};
+        }
+
+        RendererScissorState canonicalizeScissor(
+            RendererScissorState state,
+            const Renderer2DExtent &extent) noexcept {
+            if (!state.enabled) {
+                return {};
+            }
+
+            const RendererScissorRect full = fullScissorRect(extent);
+            if (!state.rect.empty() && state.rect == full) {
+                return {};
+            }
+            return state;
+        }
+
+        RendererScissorState clampScissorToExtent(
+            const RendererScissorRect &rect,
+            const Renderer2DExtent &extent) noexcept {
+            const RendererScissorRect full = fullScissorRect(extent);
+            const uint32_t left = static_cast<uint32_t>(
+                std::min<uint64_t>(rect.x, full.width));
+            const uint32_t top = static_cast<uint32_t>(
+                std::min<uint64_t>(rect.y, full.height));
+            const uint32_t right = static_cast<uint32_t>(
+                std::min<uint64_t>(static_cast<uint64_t>(rect.x) + rect.width,
+                                   full.width));
+            const uint32_t bottom = static_cast<uint32_t>(
+                std::min<uint64_t>(static_cast<uint64_t>(rect.y) + rect.height,
+                                   full.height));
+
+            RendererScissorState state{
+                .enabled = true,
+                .rect = {.x = left,
+                         .y = top,
+                         .width = right > left ? right - left : 0u,
+                         .height = bottom > top ? bottom - top : 0u},
+            };
+            return canonicalizeScissor(state, extent);
+        }
+
+        RendererScissorState intersectScissors(
+            RendererScissorState a,
+            RendererScissorState b,
+            const Renderer2DExtent &extent) noexcept {
+            if (!a.enabled) {
+                return b;
+            }
+            if (!b.enabled) {
+                return a;
+            }
+
+            const uint32_t left = std::max(a.rect.x, b.rect.x);
+            const uint32_t top = std::max(a.rect.y, b.rect.y);
+            const uint64_t aRight =
+                static_cast<uint64_t>(a.rect.x) + a.rect.width;
+            const uint64_t bRight =
+                static_cast<uint64_t>(b.rect.x) + b.rect.width;
+            const uint64_t aBottom =
+                static_cast<uint64_t>(a.rect.y) + a.rect.height;
+            const uint64_t bBottom =
+                static_cast<uint64_t>(b.rect.y) + b.rect.height;
+            const uint32_t right =
+                static_cast<uint32_t>(std::min<uint64_t>(aRight, bRight));
+            const uint32_t bottom =
+                static_cast<uint32_t>(std::min<uint64_t>(aBottom, bBottom));
+
+            RendererScissorState state{
+                .enabled = true,
+                .rect = {.x = left,
+                         .y = top,
+                         .width = right > left ? right - left : 0u,
+                         .height = bottom > top ? bottom - top : 0u},
+            };
+            return canonicalizeScissor(state, extent);
         }
 
         glm::vec2 rotatePathPoint(const glm::vec2 &point, float rotation) {
@@ -307,11 +392,13 @@ namespace Bess::Wgpu {
         Text::MsdfTextBatch textBatch;
         std::vector<PathCommand> activePathCommands;
         PathProps activePathProps;
+        Core::Renderer::RendererScissorState activePathScissor{};
         bool pathStarted = false;
         uint64_t activePathSubmitOrder = 0;
         std::unique_ptr<FontFile> fontFile;
         std::unique_ptr<MsdfFontAtlas> msdfFontAtlas;
         std::vector<TransparentDrawItem> transparentDrawItems;
+        std::vector<Core::Renderer::RendererScissorState> scissorStack;
         std::vector<PathCommand> textPathCommandsScratch;
         HashMap<const Path2D *, CachedPathEntry> pathCache;
         std::size_t cachedPathVariantCount = 0;
@@ -357,6 +444,12 @@ namespace Bess::Wgpu {
         void resetPickingReadbacks() noexcept;
         [[nodiscard]] const TextureResource &
         getTexture(Core::Renderer::TextureHandle texture) const;
+        [[nodiscard]] Core::Renderer::RendererScissorState
+        currentScissor() const noexcept {
+            return scissorStack.empty()
+                       ? Core::Renderer::RendererScissorState{}
+                       : scissorStack.back();
+        }
         [[nodiscard]] uint32_t primitiveStatsCount() const noexcept {
             return opaquePrimitiveBatch.count() +
                    transparentPrimitiveBatch.count();
@@ -1158,8 +1251,10 @@ namespace Bess::Wgpu {
         m_impl->transparentPathBatch.clear();
         m_impl->textBatch.clear();
         m_impl->activePathCommands.clear();
+        m_impl->activePathScissor = {};
         m_impl->pathStarted = false;
         m_impl->activePathSubmitOrder = 0;
+        m_impl->scissorStack.clear();
         m_impl->stats = {};
         m_impl->cameraTransform = nullptr;
 
@@ -1534,8 +1629,10 @@ namespace Bess::Wgpu {
         struct RenderPassStateCache {
             bool hasPipeline = false;
             bool hasBindGroup = false;
+            bool hasExplicitScissor = false;
             RenderPipelineKey pipelineKey{};
             RenderBindGroupKey bindGroupKey{};
+            RendererScissorState scissor{};
 
             void setPipeline(wgpu::RenderPassEncoder &pass,
                              RenderPipelineKey key,
@@ -1556,6 +1653,36 @@ namespace Bess::Wgpu {
                     hasBindGroup = true;
                 }
             }
+
+            [[nodiscard]] bool
+            applyScissor(wgpu::RenderPassEncoder &pass,
+                         RendererScissorState next,
+                         const Renderer2DExtent &extent) {
+                if (next.empty()) {
+                    return false;
+                }
+
+                if (!next.enabled) {
+                    if (hasExplicitScissor) {
+                        const RendererScissorRect full = fullScissorRect(extent);
+                        pass.SetScissorRect(
+                            full.x, full.y, full.width, full.height);
+                        hasExplicitScissor = false;
+                        scissor = {};
+                    }
+                    return true;
+                }
+
+                if (!hasExplicitScissor || scissor != next) {
+                    pass.SetScissorRect(next.rect.x,
+                                        next.rect.y,
+                                        next.rect.width,
+                                        next.rect.height);
+                    scissor = next;
+                    hasExplicitScissor = true;
+                }
+                return true;
+            }
         };
 
         RenderPassStateCache passState;
@@ -1574,6 +1701,10 @@ namespace Bess::Wgpu {
             const DrawRun *runs = batch.drawRunsData();
             for (uint32_t i = 0; i < runCount; ++i) {
                 const auto &run = runs[i];
+                if (!passState.applyScissor(
+                        renderPass, run.scissor, m_impl->extent)) {
+                    continue;
+                }
                 const auto &texture = m_impl->getTexture(run.texture);
                 passState.setBindGroup(
                     renderPass,
@@ -1594,6 +1725,10 @@ namespace Bess::Wgpu {
             if (run.instanceCount == 0) {
                 return;
             }
+            if (!passState.applyScissor(
+                    renderPass, run.scissor, m_impl->extent)) {
+                return;
+            }
 
             passState.setPipeline(renderPass, pipelineKey, pipeline);
             const auto &texture = m_impl->getTexture(run.texture);
@@ -1610,6 +1745,10 @@ namespace Bess::Wgpu {
                                        uint32_t instanceOffset,
                                        bool transparent) {
             if (run.instanceCount == 0) {
+                return;
+            }
+            if (!passState.applyScissor(
+                    renderPass, run.scissor, m_impl->extent)) {
                 return;
             }
 
@@ -1648,6 +1787,10 @@ namespace Bess::Wgpu {
             if (run.instanceCount == 0) {
                 return;
             }
+            if (!passState.applyScissor(
+                    renderPass, run.scissor, m_impl->extent)) {
+                return;
+            }
 
             passState.setPipeline(renderPass,
                                   {RenderPipelineKind::Shadow, 0},
@@ -1666,6 +1809,10 @@ namespace Bess::Wgpu {
                                    uint32_t instanceOffset,
                                    bool transparent) {
             if (range.stencilVertexCount == 0 || range.coverVertexCount == 0) {
+                return;
+            }
+            if (!passState.applyScissor(
+                    renderPass, range.scissor, m_impl->extent)) {
                 return;
             }
 
@@ -1745,6 +1892,10 @@ namespace Bess::Wgpu {
             if (range.vertexCount == 0) {
                 return;
             }
+            if (!passState.applyScissor(
+                    renderPass, range.scissor, m_impl->extent)) {
+                return;
+            }
 
             passState.setBindGroup(renderPass,
                                    {RenderBindGroupKind::Path, 0},
@@ -1790,6 +1941,10 @@ namespace Bess::Wgpu {
 
         auto renderTextRun = [&](const Text::TextDrawRun &run) {
             if (run.glyphCount == 0 || m_impl->textPipeline == nullptr) {
+                return;
+            }
+            if (!passState.applyScissor(
+                    renderPass, run.scissor, m_impl->extent)) {
                 return;
             }
 
@@ -2049,6 +2204,35 @@ namespace Bess::Wgpu {
         return m_impl != nullptr && m_impl->hasPickingReadbackWork();
     }
 
+    void WgpuRenderer2D::pushScissorRect(
+        const Core::Renderer::RendererScissorRect &rect) {
+        if (m_impl == nullptr) {
+            return;
+        }
+
+        RendererScissorState next = clampScissorToExtent(rect, m_impl->extent);
+        if (!m_impl->scissorStack.empty()) {
+            next = intersectScissors(m_impl->scissorStack.back(),
+                                     next,
+                                     m_impl->extent);
+        }
+        m_impl->scissorStack.push_back(next);
+    }
+
+    void WgpuRenderer2D::popScissorRect() {
+        if (m_impl == nullptr || m_impl->scissorStack.empty()) {
+            return;
+        }
+        m_impl->scissorStack.pop_back();
+    }
+
+    void WgpuRenderer2D::clearScissorRects() {
+        if (m_impl == nullptr) {
+            return;
+        }
+        m_impl->scissorStack.clear();
+    }
+
     void
     WgpuRenderer2D::saveTextureToFile(Core::Renderer::TextureHandle texture,
                                       const std::string &path) {
@@ -2136,19 +2320,28 @@ namespace Bess::Wgpu {
             return;
         }
 
+        const RendererScissorState scissor = m_impl->currentScissor();
+        if (scissor.empty()) {
+            return;
+        }
         const uint64_t submitOrder = m_impl->nextSubmitOrder();
         if (hasDrawableShadow(props.shadow)) {
-            makeQuadShadowInstanceInPlace(m_impl->shadowBatch.push(submitOrder),
+            makeQuadShadowInstanceInPlace(m_impl->shadowBatch.push(submitOrder,
+                                                                    scissor),
                                           props);
         }
 
         if (isTransparent(props)) {
             makePrimitiveInstanceInPlace(m_impl->transparentPrimitiveBatch.push(
-                                             props.texture, submitOrder),
+                                             props.texture,
+                                             submitOrder,
+                                             scissor),
                                          props);
         } else {
             makePrimitiveInstanceInPlace(
-                m_impl->opaquePrimitiveBatch.push(props.texture, submitOrder),
+                m_impl->opaquePrimitiveBatch.push(props.texture,
+                                                  submitOrder,
+                                                  scissor),
                 props);
         }
         m_impl->stats.quadCount = m_impl->quadStatsCount();
@@ -2181,9 +2374,14 @@ namespace Bess::Wgpu {
                 "Custom quad shader handle is not registered");
         }
 
+        const RendererScissorState scissor = m_impl->currentScissor();
+        if (scissor.empty()) {
+            return;
+        }
         const uint64_t submitOrder = m_impl->nextSubmitOrder();
         if (hasDrawableShadow(props.quad.shadow)) {
-            makeQuadShadowInstanceInPlace(m_impl->shadowBatch.push(submitOrder),
+            makeQuadShadowInstanceInPlace(m_impl->shadowBatch.push(submitOrder,
+                                                                    scissor),
                                           props.quad,
                                           props.transformMode);
         }
@@ -2191,11 +2389,14 @@ namespace Bess::Wgpu {
         if (isTransparent(props.quad)) {
             makeCustomQuadInstanceInPlace(
                 m_impl->transparentCustomQuadBatch.push(props.shader,
-                                                        submitOrder),
+                                                        submitOrder,
+                                                        scissor),
                 props);
         } else {
             makeCustomQuadInstanceInPlace(
-                m_impl->opaqueCustomQuadBatch.push(props.shader, submitOrder),
+                m_impl->opaqueCustomQuadBatch.push(props.shader,
+                                                   submitOrder,
+                                                   scissor),
                 props);
         }
         m_impl->stats.quadCount = m_impl->quadStatsCount();
@@ -2217,18 +2418,26 @@ namespace Bess::Wgpu {
             return;
         }
 
+        const RendererScissorState scissor = m_impl->currentScissor();
+        if (scissor.empty()) {
+            return;
+        }
         const uint64_t submitOrder = m_impl->nextSubmitOrder();
         if (hasDrawableShadow(props.shadow)) {
             makeCircleShadowInstanceInPlace(
-                m_impl->shadowBatch.push(submitOrder), props);
+                m_impl->shadowBatch.push(submitOrder, scissor), props);
         }
 
         if (props.color.a < 1.0f) {
             makeCircleInstanceInPlace(
-                m_impl->transparentPrimitiveBatch.push(0, submitOrder), props);
+                m_impl->transparentPrimitiveBatch.push(0,
+                                                       submitOrder,
+                                                       scissor),
+                props);
         } else {
             makeCircleInstanceInPlace(
-                m_impl->opaquePrimitiveBatch.push(0, submitOrder), props);
+                m_impl->opaquePrimitiveBatch.push(0, submitOrder, scissor),
+                props);
         }
         m_impl->stats.quadCount = m_impl->quadStatsCount();
     }
@@ -2238,18 +2447,27 @@ namespace Bess::Wgpu {
             return;
         }
 
+        const RendererScissorState scissor = m_impl->currentScissor();
+        if (scissor.empty()) {
+            return;
+        }
         const uint64_t submitOrder = m_impl->nextSubmitOrder();
         if (hasDrawableShadow(props.shadow)) {
-            makeLineShadowInstanceInPlace(m_impl->shadowBatch.push(submitOrder),
+            makeLineShadowInstanceInPlace(m_impl->shadowBatch.push(submitOrder,
+                                                                    scissor),
                                           props);
         }
 
         if (props.color.a < 1.0f) {
             makeLineInstanceInPlace(
-                m_impl->transparentPrimitiveBatch.push(0, submitOrder), props);
+                m_impl->transparentPrimitiveBatch.push(0,
+                                                       submitOrder,
+                                                       scissor),
+                props);
         } else {
             makeLineInstanceInPlace(
-                m_impl->opaquePrimitiveBatch.push(0, submitOrder), props);
+                m_impl->opaquePrimitiveBatch.push(0, submitOrder, scissor),
+                props);
         }
         m_impl->stats.quadCount = m_impl->quadStatsCount();
     }
@@ -2265,6 +2483,10 @@ namespace Bess::Wgpu {
             endPath();
         }
 
+        const RendererScissorState scissor = m_impl->currentScissor();
+        if (scissor.empty()) {
+            return;
+        }
         const uint64_t submitOrder = m_impl->nextSubmitOrder();
         if (m_impl->textPipeline != nullptr &&
             m_impl->msdfFontAtlas != nullptr &&
@@ -2272,7 +2494,8 @@ namespace Bess::Wgpu {
                                  props,
                                  *m_impl->msdfFontAtlas,
                                  m_impl->textBatch,
-                                 submitOrder)) {
+                                 submitOrder,
+                                 scissor)) {
             m_impl->stats.quadCount = m_impl->quadStatsCount();
             return;
         }
@@ -2332,7 +2555,8 @@ namespace Bess::Wgpu {
                                m_impl->opaquePathBatch,
                                m_impl->transparentPathBatch,
                                m_impl->opaquePathStrokeBatch,
-                               m_impl->transparentPathStrokeBatch);
+                               m_impl->transparentPathStrokeBatch,
+                               scissor);
 
             if (props.antiAlias) {
                 m_impl->transparentPathStrokeBatch.push(
@@ -2341,7 +2565,8 @@ namespace Bess::Wgpu {
                                           metrics,
                                           props.antiAliasFringeScale),
                     pathProps,
-                    submitOrder);
+                    submitOrder,
+                    scissor);
             }
 
             m_impl->textPathCommandsScratch.clear();
@@ -2467,6 +2692,10 @@ namespace Bess::Wgpu {
             endPath();
         }
 
+        const RendererScissorState scissor = m_impl->currentScissor();
+        if (scissor.empty()) {
+            return;
+        }
         const PathBakeMetrics metrics = makePathBakeMetricsForProps(
             props, m_impl->cameraTransform, m_impl->extent);
         submitPathCommands(commands,
@@ -2476,7 +2705,8 @@ namespace Bess::Wgpu {
                            m_impl->opaquePathBatch,
                            m_impl->transparentPathBatch,
                            m_impl->opaquePathStrokeBatch,
-                           m_impl->transparentPathStrokeBatch);
+                           m_impl->transparentPathStrokeBatch,
+                           scissor);
     }
 
     void WgpuRenderer2D::drawPath(const Path2D &path, const PathProps &props) {
@@ -2488,6 +2718,10 @@ namespace Bess::Wgpu {
             endPath();
         }
 
+        const RendererScissorState scissor = m_impl->currentScissor();
+        if (scissor.empty()) {
+            return;
+        }
         const auto bounds = path.bounds();
         const PathProps pathProps = pathPropsWithRotationPivot(props, bounds);
         const PathBakeMetrics metrics = makePathBakeMetricsForProps(
@@ -2501,7 +2735,8 @@ namespace Bess::Wgpu {
                                   m_impl->opaquePathBatch,
                                   m_impl->transparentPathBatch,
                                   m_impl->opaquePathStrokeBatch,
-                                  m_impl->transparentPathStrokeBatch);
+                                  m_impl->transparentPathStrokeBatch,
+                                  scissor);
     }
 
     void WgpuRenderer2D::beginPath(const PathProps &props) {
@@ -2515,6 +2750,7 @@ namespace Bess::Wgpu {
 
         m_impl->activePathCommands.clear();
         m_impl->activePathProps = props;
+        m_impl->activePathScissor = m_impl->currentScissor();
         m_impl->activePathSubmitOrder = m_impl->nextSubmitOrder();
         m_impl->pathStarted = true;
     }
@@ -2619,22 +2855,27 @@ namespace Bess::Wgpu {
             return;
         }
 
-        const PathBakeMetrics metrics = makePathBakeMetricsForProps(
-            m_impl->activePathProps, m_impl->cameraTransform, m_impl->extent);
+        if (!m_impl->activePathScissor.empty() &&
+            !m_impl->activePathCommands.empty()) {
+            const PathBakeMetrics metrics = makePathBakeMetricsForProps(
+                m_impl->activePathProps, m_impl->cameraTransform, m_impl->extent);
 
-        const std::span<const PathCommand> commands{
-            m_impl->activePathCommands.data(),
-            m_impl->activePathCommands.size()};
-        submitPathCommands(commands,
-                           m_impl->activePathProps,
-                           metrics,
-                           m_impl->activePathSubmitOrder,
-                           m_impl->opaquePathBatch,
-                           m_impl->transparentPathBatch,
-                           m_impl->opaquePathStrokeBatch,
-                           m_impl->transparentPathStrokeBatch);
+            const std::span<const PathCommand> commands{
+                m_impl->activePathCommands.data(),
+                m_impl->activePathCommands.size()};
+            submitPathCommands(commands,
+                               m_impl->activePathProps,
+                               metrics,
+                               m_impl->activePathSubmitOrder,
+                               m_impl->opaquePathBatch,
+                               m_impl->transparentPathBatch,
+                               m_impl->opaquePathStrokeBatch,
+                               m_impl->transparentPathStrokeBatch,
+                               m_impl->activePathScissor);
+        }
 
         m_impl->activePathCommands.clear();
+        m_impl->activePathScissor = {};
         m_impl->activePathSubmitOrder = 0;
         m_impl->pathStarted = false;
     }

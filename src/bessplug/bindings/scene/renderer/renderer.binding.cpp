@@ -21,6 +21,7 @@ namespace {
     using Bess::Core::Renderer::PathLineJoin;
     using Bess::Core::Renderer::PathProps;
     using Bess::Core::Renderer::QuadProps;
+    using Bess::Core::Renderer::RendererScissorRect;
     using Bess::Wgpu::WgpuTexture;
 
     struct PySubTexture {
@@ -165,6 +166,22 @@ void bind_renderer(py::module_ &m) {
             },
             py::arg("text"),
             py::arg("render_size"))
+        .def(
+            "push_scissor_rect",
+            [](IRenderer2D &renderer,
+               uint32_t x,
+               uint32_t y,
+               uint32_t width,
+               uint32_t height) {
+                renderer.pushScissorRect(RendererScissorRect{
+                    .x = x, .y = y, .width = width, .height = height});
+            },
+            py::arg("x"),
+            py::arg("y"),
+            py::arg("width"),
+            py::arg("height"))
+        .def("pop_scissor_rect", &IRenderer2D::popScissorRect)
+        .def("clear_scissor_rects", &IRenderer2D::clearScissorRects)
         .def(
             "draw_quad",
             [](IRenderer2D &renderer,

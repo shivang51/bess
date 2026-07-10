@@ -109,6 +109,13 @@ namespace {
         [[nodiscard]] bool isPickingReadbackPending() const noexcept override {
             return false;
         }
+        void pushScissorRect(
+            const Bess::Core::Renderer::RendererScissorRect &) override {
+        }
+        void popScissorRect() override {
+        }
+        void clearScissorRects() override {
+        }
         void drawQuad(const Bess::Core::Renderer::QuadProps &) override {
         }
         [[nodiscard]] Bess::Core::Renderer::CustomQuadShaderHandle

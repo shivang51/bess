@@ -4,6 +4,7 @@
 #include "bess_core/renderer/renderer_types.h"
 #include "bess_wgpu/wgpu_shader.h"
 #include "bess_wgpu/wgpu_texture.h"
+#include <algorithm>
 #include <cstdint>
 #include <vector>
 #include <webgpu/webgpu_cpp.h>
@@ -35,6 +36,7 @@ namespace Bess::Wgpu {
             uint32_t glyphCount = 0;
             float zIndex = 0.f;
             uint64_t submitOrder = 0;
+            Core::Renderer::RendererScissorState scissor{};
         };
 
         class MsdfTextBatch {
@@ -42,13 +44,16 @@ namespace Bess::Wgpu {
             void clear() {
                 m_instances.clear();
                 m_submitOrders.clear();
+                m_scissors.clear();
                 m_drawRuns.clear();
             }
 
             void push(const MsdfTextInstance &instance,
-                      uint64_t submitOrder = 0) {
+                      uint64_t submitOrder = 0,
+                      Core::Renderer::RendererScissorState scissor = {}) {
                 m_instances.push_back(instance);
                 m_submitOrders.push_back(submitOrder);
+                m_scissors.push_back(scissor);
             }
 
             void prepareForRendering() {
@@ -75,13 +80,16 @@ namespace Bess::Wgpu {
 
                     m_sortInstances.resize(m_instances.size());
                     m_sortSubmitOrders.resize(m_instances.size());
+                    m_sortScissors.resize(m_instances.size());
                     for (uint32_t i = 0; i < m_sortIndices.size(); ++i) {
                         const uint32_t oldIdx = m_sortIndices[i];
                         m_sortInstances[i] = m_instances[oldIdx];
                         m_sortSubmitOrders[i] = m_submitOrders[oldIdx];
+                        m_sortScissors[i] = m_scissors[oldIdx];
                     }
                     m_instances = m_sortInstances;
                     m_submitOrders = m_sortSubmitOrders;
+                    m_scissors = m_sortScissors;
                 }
 
                 m_drawRuns.clear();
@@ -93,13 +101,16 @@ namespace Bess::Wgpu {
                 for (uint32_t i = 0; i < m_instances.size(); ++i) {
                     const float zIndex = m_instances[i].position[2];
                     const uint64_t submitOrder = m_submitOrders[i];
+                    const auto scissor = m_scissors[i];
                     if (m_drawRuns.empty() ||
-                        m_drawRuns.back().zIndex != zIndex) {
+                        m_drawRuns.back().zIndex != zIndex ||
+                        m_drawRuns.back().scissor != scissor) {
                         m_drawRuns.push_back({
                             .firstGlyph = i,
                             .glyphCount = 1,
                             .zIndex = zIndex,
                             .submitOrder = submitOrder,
+                            .scissor = scissor,
                         });
                     } else {
                         m_drawRuns.back().glyphCount++;
@@ -135,9 +146,11 @@ namespace Bess::Wgpu {
           private:
             std::vector<MsdfTextInstance> m_instances;
             std::vector<uint64_t> m_submitOrders;
+            std::vector<Core::Renderer::RendererScissorState> m_scissors;
             std::vector<uint32_t> m_sortIndices;
             std::vector<MsdfTextInstance> m_sortInstances;
             std::vector<uint64_t> m_sortSubmitOrders;
+            std::vector<Core::Renderer::RendererScissorState> m_sortScissors;
             std::vector<TextDrawRun> m_drawRuns;
         };
 
@@ -201,7 +214,8 @@ namespace Bess::Wgpu {
                             const Core::Renderer::FontProps &props,
                             const TAtlas &atlas,
                             MsdfTextBatch &batch,
-                            uint64_t submitOrder = 0);
+                            uint64_t submitOrder = 0,
+                            Core::Renderer::RendererScissorState scissor = {});
 
         template <typename TAtlas>
         glm::vec2 measureMsdfText(std::string_view text,

@@ -1869,7 +1869,8 @@ namespace Bess::Wgpu {
 
     void PathBatch::push(const BakedPath &path,
                          const PathProps &props,
-                         uint64_t submitOrder) {
+                         uint64_t submitOrder,
+                         Core::Renderer::RendererScissorState scissor) {
         if (!path.valid || path.stencilVertices.empty()) {
             return;
         }
@@ -1886,6 +1887,7 @@ namespace Bess::Wgpu {
         range.evenOddFill = path.evenOddFill;
         range.zIndex = props.zIndex;
         range.submitOrder = submitOrder;
+        range.scissor = scissor;
 
         m_stencilVertices.insert(m_stencilVertices.end(),
                                  path.stencilVertices.begin(),
@@ -1899,8 +1901,9 @@ namespace Bess::Wgpu {
 
     void PathBatch::push(BakedPath &&path,
                          const PathProps &props,
-                         uint64_t submitOrder) {
-        push(path, props, submitOrder);
+                         uint64_t submitOrder,
+                         Core::Renderer::RendererScissorState scissor) {
+        push(path, props, submitOrder, scissor);
     }
 
     void PathBatch::prepareForRendering(bool sortBackToFront) {
@@ -1978,7 +1981,8 @@ namespace Bess::Wgpu {
     void PathStrokeBatch::push(
         const std::vector<Piplines::PathCoverVertex> &vertices,
         const PathProps &props,
-        uint64_t submitOrder) {
+        uint64_t submitOrder,
+        Core::Renderer::RendererScissorState scissor) {
         if (vertices.empty()) {
             return;
         }
@@ -1989,6 +1993,7 @@ namespace Bess::Wgpu {
         range.firstInstance = static_cast<uint32_t>(m_instances.size());
         range.zIndex = props.zIndex;
         range.submitOrder = submitOrder;
+        range.scissor = scissor;
         m_vertices.insert(m_vertices.end(), vertices.begin(), vertices.end());
         m_instances.push_back(makePathInstance(props));
         m_drawRanges.push_back(range);
@@ -1997,8 +2002,9 @@ namespace Bess::Wgpu {
     void
     PathStrokeBatch::push(std::vector<Piplines::PathCoverVertex> &&vertices,
                           const PathProps &props,
-                          uint64_t submitOrder) {
-        push(vertices, props, submitOrder);
+                          uint64_t submitOrder,
+                          Core::Renderer::RendererScissorState scissor) {
+        push(vertices, props, submitOrder, scissor);
     }
 
     void PathStrokeBatch::prepareForRendering(bool sortBackToFront) {
@@ -2140,12 +2146,13 @@ namespace Bess::Wgpu {
                               PathBatch &opaquePathBatch,
                               PathBatch &transparentPathBatch,
                               PathStrokeBatch &opaquePathStrokeBatch,
-                              PathStrokeBatch &transparentPathStrokeBatch) {
+                              PathStrokeBatch &transparentPathStrokeBatch,
+                              Core::Renderer::RendererScissorState scissor) {
         if (submission.fill.valid) {
             PathBatch &fillBatch = submission.fillTransparent
                                        ? transparentPathBatch
                                        : opaquePathBatch;
-            fillBatch.push(submission.fill, props, submitOrder);
+            fillBatch.push(submission.fill, props, submitOrder, scissor);
         }
 
         if (!submission.strokeVertices.empty()) {
@@ -2154,7 +2161,8 @@ namespace Bess::Wgpu {
                                                : opaquePathStrokeBatch;
             strokeBatch.push(submission.strokeVertices,
                              makeLinearBakedStrokeSubmitProps(props),
-                             submitOrder);
+                             submitOrder,
+                             scissor);
         }
     }
 
@@ -2165,7 +2173,8 @@ namespace Bess::Wgpu {
                             PathBatch &opaquePathBatch,
                             PathBatch &transparentPathBatch,
                             PathStrokeBatch &opaquePathStrokeBatch,
-                            PathStrokeBatch &transparentPathStrokeBatch) {
+                            PathStrokeBatch &transparentPathStrokeBatch,
+                            Core::Renderer::RendererScissorState scissor) {
         const BakedPathSubmission submission =
             bakePathSubmission(commands, props, metrics);
         submitBakedPathSubmission(submission,
@@ -2174,7 +2183,8 @@ namespace Bess::Wgpu {
                                   opaquePathBatch,
                                   transparentPathBatch,
                                   opaquePathStrokeBatch,
-                                  transparentPathStrokeBatch);
+                                  transparentPathStrokeBatch,
+                                  scissor);
     }
 
     void submitPathCommands(std::span<const PathCommand> commands,
@@ -2183,7 +2193,8 @@ namespace Bess::Wgpu {
                             PathBatch &opaquePathBatch,
                             PathBatch &transparentPathBatch,
                             PathStrokeBatch &opaquePathStrokeBatch,
-                            PathStrokeBatch &transparentPathStrokeBatch) {
+                            PathStrokeBatch &transparentPathStrokeBatch,
+                            Core::Renderer::RendererScissorState scissor) {
         submitPathCommands(commands,
                            props,
                            metrics,
@@ -2191,7 +2202,8 @@ namespace Bess::Wgpu {
                            opaquePathBatch,
                            transparentPathBatch,
                            opaquePathStrokeBatch,
-                           transparentPathStrokeBatch);
+                           transparentPathStrokeBatch,
+                           scissor);
     }
 
 } // namespace Bess::Wgpu
