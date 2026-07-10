@@ -34,5 +34,6 @@ namespace Bess::Canvas {
         UUID m_pressedComponent = UUID::null;
         PickingId m_hoveredPickingId = PickingId::invalid();
         PickingId m_pressedPickingId = PickingId::invalid();
+        Events::MouseButton m_pressedButton = Events::MouseButton::left;
     };
 } // namespace Bess::Canvas

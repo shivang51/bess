@@ -26,6 +26,30 @@ namespace Bess::Canvas {
             }
         }
 
+        Events::MouseButton toSceneMouseButton(MouseButton button) {
+            switch (button) {
+            case MouseButton::left:
+                return Events::MouseButton::left;
+            case MouseButton::right:
+                return Events::MouseButton::right;
+            case MouseButton::middle:
+                return Events::MouseButton::middle;
+            case MouseButton::button4:
+                return Events::MouseButton::button4;
+            case MouseButton::button5:
+                return Events::MouseButton::button5;
+            case MouseButton::button6:
+                return Events::MouseButton::button6;
+            case MouseButton::button7:
+                return Events::MouseButton::button7;
+            case MouseButton::button8:
+                return Events::MouseButton::button8;
+            case MouseButton::unknown:
+            default:
+                return Events::MouseButton::left;
+            }
+        }
+
         UI::UISceneComponent *getUIComponent(SceneState *state,
                                              const UUID &uuid) {
             if (state == nullptr || uuid == UUID::null) {
@@ -86,8 +110,8 @@ namespace Bess::Canvas {
         return EventResult::Ignored;
     }
 
-    bool UIComponentsLayer::shouldReceiveConsumedEvent(
-        const SceneEvent &evt) const {
+    bool
+    UIComponentsLayer::shouldReceiveConsumedEvent(const SceneEvent &evt) const {
         return evt.type == SceneEvent::Type::mouseMove;
     }
 
@@ -106,8 +130,8 @@ namespace Bess::Canvas {
                 .sceneState = ctx.sceneState,
             });
             if (ctx.viewportCtx) {
-                ctx.viewportCtx->inputCtx.requestCursor(
-                    pressed->getCursor(), kCursorPriorityCapture);
+                ctx.viewportCtx->inputCtx.requestCursor(pressed->getCursor(),
+                                                        kCursorPriorityCapture);
             }
             return handled ? EventResult::Consumed : EventResult::Handled;
         }
@@ -118,8 +142,7 @@ namespace Bess::Canvas {
             clearHover(ctx, data.pos);
             if (ctx.viewportCtx && hadHoveredComponent) {
                 ctx.viewportCtx->inputCtx.requestCursor(
-                    Core::Viewport::SceneCursor::normal,
-                    kCursorPriorityReset);
+                    Core::Viewport::SceneCursor::normal, kCursorPriorityReset);
             }
             return EventResult::Ignored;
         }
@@ -147,9 +170,10 @@ namespace Bess::Canvas {
         }
 
         const auto &data = evt.data.mouseButton;
-        if (data.button != MouseButton::left) {
+        if (data.button == MouseButton::unknown) {
             return EventResult::Ignored;
         }
+        const auto sceneButton = toSceneMouseButton(data.button);
 
         const bool isPress = data.action == MouseButtonAction::press ||
                              data.action == MouseButtonAction::doubleClick;
@@ -159,10 +183,11 @@ namespace Bess::Canvas {
 
         auto uiComp = getUIComponent(ctx.sceneState, evt.pickingId);
         if (isPress && uiComp == nullptr) {
-            ctx.sceneState->clearUIFocus(makeFocusEvent(
-                ctx, UUID::null, data.pos, evt.pickingId.info));
+            ctx.sceneState->clearUIFocus(
+                makeFocusEvent(ctx, UUID::null, data.pos, evt.pickingId.info));
             m_pressedComponent = UUID::null;
             m_pressedPickingId = PickingId::invalid();
+            m_pressedButton = Events::MouseButton::left;
             return EventResult::Ignored;
         }
 
@@ -170,6 +195,7 @@ namespace Bess::Canvas {
             const UUID compId = uiComp->getUuid();
             m_pressedComponent = compId;
             m_pressedPickingId = evt.pickingId;
+            m_pressedButton = sceneButton;
             const auto focusEvent =
                 makeFocusEvent(ctx, compId, data.pos, evt.pickingId.info);
 
@@ -179,7 +205,7 @@ namespace Bess::Canvas {
 
             const bool handled = uiComp->onMouseButton({
                 .mousePos = data.pos,
-                .button = Events::MouseButton::left,
+                .button = sceneButton,
                 .action = toSceneMouseAction(data.action),
                 .details = evt.pickingId.info,
                 .sceneState = ctx.sceneState,
@@ -203,7 +229,7 @@ namespace Bess::Canvas {
             if (pressed != nullptr) {
                 pressed->onMouseButton({
                     .mousePos = data.pos,
-                    .button = Events::MouseButton::left,
+                    .button = m_pressedButton,
                     .action = Events::MouseClickAction::release,
                     .details = m_pressedPickingId.info,
                     .sceneState = ctx.sceneState,
@@ -212,11 +238,11 @@ namespace Bess::Canvas {
 
             m_pressedComponent = UUID::null;
             m_pressedPickingId = PickingId::invalid();
+            m_pressedButton = Events::MouseButton::left;
             return EventResult::Consumed;
         }
 
-        return uiComp != nullptr ? EventResult::Consumed
-                                 : EventResult::Ignored;
+        return uiComp != nullptr ? EventResult::Consumed : EventResult::Ignored;
     }
 
     EventResult UIComponentsLayer::handleMouseWheel(SceneEvent &evt,
@@ -331,6 +357,7 @@ namespace Bess::Canvas {
         m_pressedComponent = UUID::null;
         m_hoveredPickingId = PickingId::invalid();
         m_pressedPickingId = PickingId::invalid();
+        m_pressedButton = Events::MouseButton::left;
     }
 
     void UIComponentsLayer::destroy(SceneLifecycleContext &ctx) {

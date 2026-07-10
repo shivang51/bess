@@ -3,9 +3,12 @@
 #include "bess_core/scene/scene_ui/controls/button_comp.h"
 #include "bess_core/scene/scene_ui/controls/checkbox_comp.h"
 #include "bess_core/scene/scene_ui/controls/container_comp.h"
+#include "bess_core/scene/scene_ui/controls/context_menu_comp.h"
+#include "bess_core/scene/scene_ui/controls/dropdown_comp.h"
 #include "bess_core/scene/scene_ui/controls/label_comp.h"
 #include "bess_core/scene/scene_ui/controls/progress_bar_comp.h"
 #include "bess_core/scene/scene_ui/controls/slider_comp.h"
+#include "bess_core/scene/scene_ui/controls/tree_node_comp.h"
 
 namespace Bess::Canvas {
     namespace {
@@ -21,6 +24,15 @@ namespace Bess::Canvas {
             ctx.sceneState->addComponent(component);
             ctx.sceneState->attachChild(
                 demoPanel->getUuid(), component->getUuid(), false);
+        }
+
+        template <typename T>
+        void addChild(SceneLifecycleContext &ctx,
+                      const std::shared_ptr<UI::UISceneComponent> &parent,
+                      const std::shared_ptr<T> &component) {
+            ctx.sceneState->addComponent(component);
+            ctx.sceneState->attachChild(
+                parent->getUuid(), component->getUuid(), false);
         }
     } // namespace
 
@@ -39,6 +51,46 @@ namespace Bess::Canvas {
         title->getStyle().fontSize = 10.f;
         title->getStyle().margin = Core::Style::Margin::onlyBottom(4.f);
         addPanelChild(ctx, title);
+
+        auto tree = UI::TreeNodeComp::create("Advanced controls", true);
+        tree->getStyle().margin = Core::Style::Margin::onlyBottom(4.f);
+        addPanelChild(ctx, tree);
+
+        auto dropdown = UI::DropdownComp::create(
+            {
+                {.label = "Balanced"},
+                {.label = "Performance"},
+                {.label = "Quality"},
+                {.label = "Disabled option", .enabled = false},
+                {.label = "Experimental"},
+            },
+            0,
+            [title](size_t, const UI::UIDropdownOption &option) {
+                title->setName("Mode: " + option.label);
+            });
+        dropdown->setHeaderSize({150.f, 22.f});
+        addChild(ctx, tree, dropdown);
+
+        auto menu = UI::ContextMenuComp::create(
+            {
+                {.label = "Reset output",
+                 .callback =
+                     []() {
+                         if (demoSlider) {
+                             demoSlider->setValue(kInitialDemoValue);
+                         }
+                         if (demoProgress) {
+                             demoProgress->setValue(kInitialDemoValue);
+                         }
+                     }},
+                {.separator = true},
+                {.label = "Mark title",
+                 .callback = [title]() { title->setName("Context action"); }},
+                {.label = "Disabled action", .enabled = false},
+            },
+            "Right click actions");
+        menu->setTriggerSize({150.f, 22.f});
+        addChild(ctx, tree, menu);
 
         demoProgress = UI::ProgressBarComp::create(
             "Progress", kInitialDemoValue, 0.f, 100.f);
