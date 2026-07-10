@@ -3,6 +3,7 @@
 #include "bess_core/scene/scene_events.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_ui/ui_scene_component.h"
+#include "bess_core/scene/widgets/scene_widgets.h"
 #include "bess_core/viewport.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 
@@ -48,6 +49,31 @@ namespace Bess::Canvas {
             }
 
             return dynamic_cast<UI::UISceneComponent *>(comp.get());
+        }
+
+        bool targetKeepsOwnCursor(SceneEventContext &ctx,
+                                  const PickingId &pickingId) {
+            if (SceneWidgets::contains(ctx.sceneWidgetsState, pickingId)) {
+                return true;
+            }
+
+            if (ctx.sceneState == nullptr || !pickingId.isValid()) {
+                return false;
+            }
+
+            const auto comp = ctx.sceneState->getComponentByPickingId(pickingId);
+            if (comp == nullptr) {
+                return false;
+            }
+
+            switch (comp->getType()) {
+            case SceneComponentType::slot:
+            case SceneComponentType::connection:
+            case SceneComponentType::connJoint:
+                return true;
+            default:
+                return false;
+            }
         }
 
         Events::FocusEvent makeFocusEvent(SceneEventContext &ctx,
@@ -112,7 +138,7 @@ namespace Bess::Canvas {
             const bool hadHoveredComponent = m_hoveredComponent != UUID::null;
             clearHover(ctx, data.pos);
             if (ctx.viewportCtx && hadHoveredComponent &&
-                !evt.pickingId.isValid()) {
+                !targetKeepsOwnCursor(ctx, evt.pickingId)) {
                 ctx.viewportCtx->inputCtx.cursor =
                     Core::Viewport::SceneCursor::normal;
             }

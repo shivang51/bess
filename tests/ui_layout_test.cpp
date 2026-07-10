@@ -1,3 +1,4 @@
+#include "bess_core/g_app_context.h"
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/scene/layers/ui_components_layer.h"
 #include "bess_core/scene/scene_event.h"
@@ -10,6 +11,7 @@
 #include "bess_core/style/bess_theme.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
+#include "event_dispatcher.h"
 #include <gtest/gtest.h>
 #include <memory>
 
@@ -274,7 +276,18 @@ namespace {
     }
 } // namespace
 
-class UiLayoutTests : public testing::Test {};
+class UiLayoutTests : public testing::Test {
+  protected:
+    void SetUp() override {
+        auto &appCtx = Bess::GAppContext::getInstance();
+        if (!appCtx.hasSubSystem<Bess::EventSystem::EventDispatcher>()) {
+            appCtx.addSubSystem<Bess::EventSystem::EventDispatcher>()
+                ->onInit();
+        } else {
+            appCtx.getSubSystem<Bess::EventSystem::EventDispatcher>()->clear();
+        }
+    }
+};
 
 TEST_F(UiLayoutTests, UINodeRegistryAddGetRemoveNode) {
     Bess::Canvas::UI::UINodeRegistry registry;
@@ -473,6 +486,8 @@ TEST_F(UiLayoutTests, UIComponentsLayerResetsCursorAfterLeavingTextBox) {
     Bess::Canvas::SceneState sceneState;
     auto textBox = Bess::Canvas::UI::TextBoxComp::create();
     sceneState.addComponent(textBox, false, false);
+    auto sceneComp = std::make_shared<Bess::Canvas::SceneComponent>();
+    sceneState.addComponent(sceneComp, false, false);
 
     auto viewportCtx =
         std::make_shared<Bess::Core::Viewport::ViewportContext>();
@@ -495,6 +510,23 @@ TEST_F(UiLayoutTests, UIComponentsLayerResetsCursorAfterLeavingTextBox) {
     viewportCtx->inputCtx.cursor = Bess::Core::Viewport::SceneCursor::inherit;
     auto leaveEvent = mouseMoveEvent(Bess::PickingId::invalid());
     EXPECT_EQ(layer.handleEvent(leaveEvent, eventCtx),
+              Bess::Canvas::EventResult::Ignored);
+    EXPECT_EQ(viewportCtx->inputCtx.cursor,
+              Bess::Core::Viewport::SceneCursor::normal);
+
+    auto reenterEvent = mouseMoveEvent(textBoxPickingId);
+    EXPECT_EQ(layer.handleEvent(reenterEvent, eventCtx),
+              Bess::Canvas::EventResult::Consumed);
+    EXPECT_EQ(viewportCtx->inputCtx.cursor,
+              Bess::Core::Viewport::SceneCursor::text);
+
+    viewportCtx->inputCtx.cursor = Bess::Core::Viewport::SceneCursor::inherit;
+    const auto sceneCompPickingId = Bess::PickingId{
+        .runtimeId = sceneComp->getRuntimeId(),
+        .info = 0,
+    };
+    auto leaveToSceneCompEvent = mouseMoveEvent(sceneCompPickingId);
+    EXPECT_EQ(layer.handleEvent(leaveToSceneCompEvent, eventCtx),
               Bess::Canvas::EventResult::Ignored);
     EXPECT_EQ(viewportCtx->inputCtx.cursor,
               Bess::Core::Viewport::SceneCursor::normal);
