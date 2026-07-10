@@ -25,6 +25,9 @@ namespace Bess::Canvas::UI {
     class TextBoxContext {
       public:
         void syncExternalValue(std::string_view value, size_t maxLength);
+        void replaceText(std::string_view value,
+                         size_t maxLength,
+                         bool preserveCursor = true);
         void focus(std::string_view value,
                    size_t maxLength,
                    bool selectAllOnFocus = false);

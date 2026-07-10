@@ -1,7 +1,6 @@
 #include "bess_core/scene/scene_ui/text_box_context.h"
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/scene/scene_draw_helpers.h"
-#include "bess_core/settings/viewport_theme.h"
 #include <algorithm>
 
 namespace Bess::Canvas::UI {
@@ -250,10 +249,32 @@ namespace Bess::Canvas::UI {
             return visibleEnd;
         }
 
+        struct TextBoxFallbackPalette {
+            Core::Renderer::Color surface;
+            Core::Renderer::Color surfaceHover;
+            Core::Renderer::Color surfaceActive;
+            Core::Renderer::Color border;
+            Core::Renderer::Color borderFocus;
+            Core::Renderer::Color text;
+            Core::Renderer::Color textMuted;
+            Core::Renderer::Color accent;
+        };
+
+        constexpr TextBoxFallbackPalette kTextBoxFallbackPalette{
+            .surface = Core::Renderer::Color::fromRGBA8(31, 34, 38),
+            .surfaceHover = Core::Renderer::Color::fromRGBA8(39, 43, 48),
+            .surfaceActive = Core::Renderer::Color::fromRGBA8(31, 34, 38),
+            .border = Core::Renderer::Color::fromRGBA8(78, 84, 92),
+            .borderFocus = Core::Renderer::Color::fromRGBA8(99, 151, 236),
+            .text = Core::Renderer::Color::fromRGBA8(236, 239, 243),
+            .textMuted = Core::Renderer::Color::fromRGBA8(154, 162, 173),
+            .accent = Core::Renderer::Color::fromRGBA8(99, 151, 236),
+        };
+
         Core::Renderer::Color
         colorOr(const std::optional<Core::Renderer::Color> &overrideColor,
-                const glm::vec4 &fallback) {
-            return overrideColor.value_or(Core::Renderer::Color(fallback));
+                const Core::Renderer::Color &fallback) {
+            return overrideColor.value_or(fallback);
         }
     } // namespace
 
@@ -272,6 +293,20 @@ namespace Bess::Canvas::UI {
         m_text = next;
         m_cursorPos = m_text.size();
         clearSelection();
+    }
+
+    void TextBoxContext::replaceText(std::string_view value,
+                                     size_t maxLength,
+                                     bool preserveCursor) {
+        m_maxLength = maxLength;
+        const auto next = boundedText(value, maxLength);
+        const size_t previousCursor = m_cursorPos;
+
+        m_text = next;
+        m_cursorPos = preserveCursor ? std::min(previousCursor, m_text.size())
+                                     : m_text.size();
+        clearSelection();
+        clampCursor();
     }
 
     void TextBoxContext::focus(std::string_view value,
@@ -619,7 +654,7 @@ namespace Bess::Canvas::UI {
             size.x = std::max(48.f, measuredText.x + (options.padding.x * 2.f));
         }
 
-        const auto &palette = ViewportTheme::sceneWidgetsColors;
+        const auto &palette = kTextBoxFallbackPalette;
         const bool focused = input.isFocused();
         auto bgColor =
             focused

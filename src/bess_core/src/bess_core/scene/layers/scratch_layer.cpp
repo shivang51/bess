@@ -8,6 +8,7 @@
 #include "bess_core/scene/scene_ui/controls/image_comp.h"
 #include "bess_core/scene/scene_ui/controls/label_comp.h"
 #include "bess_core/scene/scene_ui/controls/progress_bar_comp.h"
+#include "bess_core/scene/scene_ui/controls/scalar_input_comp.h"
 #include "bess_core/scene/scene_ui/controls/selectable_button_comp.h"
 #include "bess_core/scene/scene_ui/controls/segmented_button_comp.h"
 #include "bess_core/scene/scene_ui/controls/slider_comp.h"
@@ -20,6 +21,7 @@ namespace Bess::Canvas {
         std::shared_ptr<UI::ContainerComp> demoPanel = nullptr;
         std::shared_ptr<UI::SliderComp> demoSlider = nullptr;
         std::shared_ptr<UI::ProgressBarComp> demoProgress = nullptr;
+        std::shared_ptr<UI::ScalarInputComp> demoScalar = nullptr;
         std::shared_ptr<UI::ImageComp> demoImage = nullptr;
 
         template <typename T>
@@ -86,6 +88,9 @@ namespace Bess::Canvas {
                          if (demoProgress) {
                              demoProgress->setValue(kInitialDemoValue);
                          }
+                         if (demoScalar) {
+                             demoScalar->setValue(kInitialDemoValue);
+                         }
                      }},
                 {.separator = true},
                 {.label = "Mark title",
@@ -151,10 +156,30 @@ namespace Bess::Canvas {
         demoProgress->getStyle().margin = Core::Style::Margin::onlyBottom(4.f);
         addPanelChild(ctx, demoProgress);
 
+        demoScalar = UI::ScalarInputComp::create(
+            kInitialDemoValue,
+            [](double value) {
+                if (demoSlider) {
+                    demoSlider->setValue(static_cast<float>(value));
+                }
+                if (demoProgress) {
+                    demoProgress->setValue(static_cast<float>(value));
+                }
+            });
+        demoScalar->setValueRange(0.0, 100.0);
+        demoScalar->setStep(1.0);
+        demoScalar->setPrecision(0);
+        demoScalar->setInputSize({150.f, 22.f});
+        demoScalar->getStyle().margin = Core::Style::Margin::onlyBottom(4.f);
+        addPanelChild(ctx, demoScalar);
+
         demoSlider = UI::SliderComp::create(
             "Output", kInitialDemoValue, 0.f, 100.f, [](float value) {
                 if (demoProgress) {
                     demoProgress->setValue(value);
+                }
+                if (demoScalar) {
+                    demoScalar->setValue(value);
                 }
             });
         demoSlider->setStep(1.f);
@@ -194,6 +219,9 @@ namespace Bess::Canvas {
             }
             if (demoProgress) {
                 demoProgress->setValue(kInitialDemoValue);
+            }
+            if (demoScalar) {
+                demoScalar->setValue(kInitialDemoValue);
             }
         });
         reset->getStyle().margin = Core::Style::Margin::onlyTop(4.f);
