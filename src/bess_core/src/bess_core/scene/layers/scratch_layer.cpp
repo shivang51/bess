@@ -9,6 +9,7 @@
 #include "bess_core/scene/scene_ui/controls/label_comp.h"
 #include "bess_core/scene/scene_ui/controls/progress_bar_comp.h"
 #include "bess_core/scene/scene_ui/controls/selectable_button_comp.h"
+#include "bess_core/scene/scene_ui/controls/segmented_button_comp.h"
 #include "bess_core/scene/scene_ui/controls/slider_comp.h"
 #include "bess_core/scene/scene_ui/controls/tree_node_comp.h"
 
@@ -108,6 +109,33 @@ namespace Bess::Canvas {
             true);
         selectable->setButtonSize({150.f, 22.f});
         addChild(ctx, tree, selectable);
+
+        auto imageMode = UI::SegmentedButtonComp::create(
+            {
+                {.label = "Fit"},
+                {.label = "Fill"},
+                {.label = "Stretch"},
+            },
+            0,
+            [title](size_t index, const UI::UISegmentedButtonOption &option) {
+                if (demoImage) {
+                    switch (index) {
+                    case 1:
+                        demoImage->setFit(UI::UIImageFit::Cover);
+                        break;
+                    case 2:
+                        demoImage->setFit(UI::UIImageFit::Stretch);
+                        break;
+                    case 0:
+                    default:
+                        demoImage->setFit(UI::UIImageFit::Contain);
+                        break;
+                    }
+                }
+                title->setName("Image mode: " + option.label);
+            });
+        imageMode->setSegmentSize({50.f, 22.f});
+        addChild(ctx, tree, imageMode);
 
         demoImage = UI::ImageComp::create({150.f, 46.f});
         demoImage->setSourceFile("assets/images/logo/BessLogo.png");

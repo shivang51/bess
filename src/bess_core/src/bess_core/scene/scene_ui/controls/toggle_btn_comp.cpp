@@ -15,6 +15,10 @@ namespace Bess::Canvas::UI {
     }
 
     void ToggleBtnComp::draw(SceneDrawContext &state) {
+        if (m_trackNode == nullptr || state.renderer == nullptr) {
+            return;
+        }
+
         if (m_showLabel) {
             drawText(state, m_name, m_labelNode);
         }
@@ -23,11 +27,11 @@ namespace Bess::Canvas::UI {
         trackProps.position = m_trackNode->getDrawPos();
         trackProps.size = m_trackNode->getDrawSize();
         trackProps.zIndex = m_trackNode->getDrawPos().z;
-        trackProps.color = m_trackColor;
+        trackProps.color = m_toggled ? m_trackOnColor : m_trackOffColor;
         trackProps.borderColor = m_style.borderColor;
         trackProps.thickness = m_style.metrics.borderSize.toVec4();
         trackProps.radius = m_style.metrics.borderRadius;
-        trackProps.id = PickingId{.runtimeId = m_runtimeId, .info = 1};
+        trackProps.id = PickingId{.runtimeId = resolveRuntimeId(), .info = 1};
 
         state.renderer->drawQuad(trackProps);
         trackProps.position.x += m_toggled
@@ -40,7 +44,7 @@ namespace Bess::Canvas::UI {
         trackProps.size = m_thumbSize;
         trackProps.zIndex += 0.0001f;
         trackProps.thickness = glm::vec4(0.f);
-        trackProps.color = m_toggled ? m_style.activeColor : m_thumbColor;
+        trackProps.color = m_toggled ? m_thumbOnColor : m_thumbOffColor;
         state.renderer->drawQuad(trackProps);
     }
 
@@ -70,8 +74,10 @@ namespace Bess::Canvas::UI {
 
         const auto &colors = state.theme->getColorScheme().getColors();
         m_style.metrics.borderSize = Core::Style::BorderSize(0.f);
-        m_trackColor = colors.secondaryContainer;
-        m_thumbColor = colors.tertiaryContainer;
+        m_trackOffColor = colors.secondaryContainer;
+        m_trackOnColor = colors.primary;
+        m_thumbOffColor = colors.onSecondaryContainer;
+        m_thumbOnColor = colors.onPrimary;
 
         m_node->setDirection(LayoutDirection::horizontal);
         m_node->setWidthFitContent();

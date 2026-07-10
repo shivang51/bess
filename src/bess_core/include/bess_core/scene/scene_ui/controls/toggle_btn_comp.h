@@ -42,6 +42,9 @@ namespace Bess::Canvas::UI {
         UINode *m_trackNode = nullptr;
         UINode *m_labelNode = nullptr;
         ToggleBtnCallback m_callback;
-        Color m_trackColor, m_thumbColor;
+        Color m_trackOffColor;
+        Color m_trackOnColor;
+        Color m_thumbOffColor;
+        Color m_thumbOnColor;
     };
 } // namespace Bess::Canvas::UI

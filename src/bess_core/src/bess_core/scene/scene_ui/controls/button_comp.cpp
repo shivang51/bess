@@ -1,7 +1,6 @@
 #include "bess_core/scene/scene_ui/controls/button_comp.h"
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/scene/scene_state/scene_state.h"
-#include "common/bess_assert.h"
 
 namespace Bess::Canvas::UI {
     std::shared_ptr<ButtonComp>
@@ -14,13 +13,18 @@ namespace Bess::Canvas::UI {
     }
 
     bool ButtonComp::onMouseButton(const Events::MouseButtonEvent &e) {
-        BESS_ASSERT(m_callback, "UIButtonComponent must have a valid callback");
-
-        if (e.action == Events::MouseClickAction::press &&
-            e.button == Events::MouseButton::left) {
-            m_callback();
+        if (e.button != Events::MouseButton::left) {
+            return false;
         }
-        return true;
+
+        if (e.action == Events::MouseClickAction::press) {
+            if (m_callback) {
+                m_callback();
+            }
+            return true;
+        }
+
+        return e.action == Events::MouseClickAction::release;
     }
 
     void ButtonComp::update(TimeMs ts, SceneState &state) {
