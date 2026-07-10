@@ -78,6 +78,20 @@ namespace Bess::Canvas::UI {
         return true;
     }
 
+    void UISceneComponent::onFocusGained(const Events::FocusEvent &e) {
+        (void)e;
+        m_focused = true;
+    }
+
+    void UISceneComponent::onFocusLost(const Events::FocusEvent &e) {
+        (void)e;
+        m_focused = false;
+    }
+
+    Core::Viewport::SceneCursor UISceneComponent::getCursor() const {
+        return Core::Viewport::SceneCursor::pointer;
+    }
+
     uint32_t UISceneComponent::resolveRuntimeId() const {
         return resolveOptional(m_drawRuntimeId, m_runtimeId);
     }

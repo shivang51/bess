@@ -2,7 +2,6 @@
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/scene/scene_events.h"
 #include "bess_core/scene/scene_state/scene_state.h"
-#include "bess_core/scene/widgets/scene_widgets.h"
 #include <algorithm>
 
 namespace Bess::Canvas::UI {
@@ -30,18 +29,10 @@ namespace Bess::Canvas::UI {
             return;
         }
 
-        if (state.sceneWidgetsState == nullptr) {
-            drawText(state,
-                     m_editValue.empty() ? m_placeholder : m_editValue,
-                     m_node);
-            return;
-        }
-
         const auto id = textBoxPickingId();
-        const SceneWidgets::TextBoxOptions options{
+        m_textInput.syncExternalValue(m_editValue, m_maxLength);
+        const TextBoxContextDrawOptions options{
             .placeholder = m_placeholder,
-            .maxLength = m_maxLength,
-            .selectAllOnFocus = m_selectTextOnEdit,
             .fontSize = m_style.textStyle.fontSize,
             .padding = stylePadding(),
             .backgroundColor = m_style.backgroundColor,
@@ -52,62 +43,15 @@ namespace Bess::Canvas::UI {
             .textColor = m_style.textStyle.textColor,
             .placeholderColor = m_style.textStyle.textColor.withAlpha(0.55f),
             .cursorColor = m_style.activeColor,
+            .hovered = m_hovered,
         };
 
-        const auto result = SceneWidgets::textBox(id,
-                                                  &m_editValue,
-                                                  m_node->getDrawPos(),
-                                                  m_node->getDrawSize(),
-                                                  state,
-                                                  options);
-
-        if (m_pendingTextBoxFocus && state.sceneWidgetsState != nullptr) {
-            const auto drawPos = m_node->getDrawPos();
-            const auto drawSize = m_node->getDrawSize();
-            const auto pointerPos =
-                m_selectTextOnEdit
-                    ? glm::vec2{
-                          drawPos.x + (drawSize.x * 0.5f) - stylePadding().x,
-                          drawPos.y,
-                      }
-                    : m_pendingTextBoxFocusPos.value_or(glm::vec2{
-                          drawPos.x + (drawSize.x * 0.5f) - stylePadding().x,
-                          drawPos.y,
-                      });
-            SceneWidgets::queuePress(
-                state.sceneWidgetsState, id, pointerPos, m_selectTextOnEdit);
-            SceneWidgets::queueRelease(state.sceneWidgetsState, id, pointerPos);
-            m_pendingTextBoxFocus = false;
-            m_pendingTextBoxFocusPos = std::nullopt;
-            m_focusedViewportId = state.viewportId;
-        }
-
-        if (result.changed) {
-            makeUIDirty();
-        }
-
-        if (result.canceled) {
-            cancelEdit();
-            return;
-        }
-
-        if (result.submitted) {
-            commitEdit();
-            return;
-        }
-
-        if (result.focused) {
-            m_focusedViewportId = state.viewportId;
-        }
-
-        if ((uint64_t)m_focusedViewportId == state.viewportId) {
-            if (m_wasTextBoxFocused && !result.focused) {
-                commitEdit();
-                return;
-            }
-
-            m_wasTextBoxFocused = result.focused;
-        }
+        drawTextBoxContext(id,
+                              m_textInput,
+                              m_node->getDrawPos(),
+                              m_node->getDrawSize(),
+                              state,
+                              options);
     }
 
     void EditableLabelComp::prepareUI(SceneUIPrepareCtx &state) {
@@ -144,6 +88,29 @@ namespace Bess::Canvas::UI {
         if (e.button == Events::MouseButton::left &&
             e.action == Events::MouseClickAction::doubleClick) {
             beginEditAt(e.mousePos);
+            if (e.sceneState != nullptr &&
+                e.sceneState->isComponentValid(m_uuid)) {
+                e.sceneState->focusUIComponent(
+                    m_uuid,
+                    {
+                        .entityUuid = m_uuid,
+                        .mousePos = e.mousePos,
+                        .details = e.details,
+                        .sceneState = e.sceneState,
+                    });
+            }
+            return true;
+        }
+
+        if (m_editing && e.button == Events::MouseButton::left) {
+            if (e.action == Events::MouseClickAction::press) {
+                m_textInput.queuePointerPress(e.mousePos);
+                return true;
+            }
+            if (e.action == Events::MouseClickAction::release) {
+                m_textInput.queuePointerRelease(e.mousePos);
+                return true;
+            }
             return true;
         }
 
@@ -162,10 +129,7 @@ namespace Bess::Canvas::UI {
         m_originalValue = m_name;
         m_editValue = m_name;
         m_editing = true;
-        m_pendingTextBoxFocus = true;
         m_pendingTextBoxFocusPos = focusPos;
-        m_wasTextBoxFocused = false;
-        m_focusedViewportId = UUID::null;
         makeUIDirty();
     }
 
@@ -231,9 +195,8 @@ namespace Bess::Canvas::UI {
         const auto originalValue = m_originalValue;
 
         m_editing = false;
-        m_pendingTextBoxFocus = false;
         m_pendingTextBoxFocusPos = std::nullopt;
-        m_wasTextBoxFocused = false;
+        m_textInput.blur();
         m_editValue.clear();
         m_originalValue.clear();
 
@@ -257,5 +220,79 @@ namespace Bess::Canvas::UI {
         if (m_canceledCallback) {
             m_canceledCallback(originalValue);
         }
+    }
+
+    bool EditableLabelComp::isFocusable() const {
+        return m_editing;
+    }
+
+    bool EditableLabelComp::wantsKeyboardInput() const {
+        return m_editing && m_focused;
+    }
+
+    void EditableLabelComp::onFocusGained(const Events::FocusEvent &e) {
+        UISceneComponent::onFocusGained(e);
+        if (!m_editing) {
+            return;
+        }
+
+        m_textInput.focus(m_editValue, m_maxLength, m_selectTextOnEdit);
+        if (!m_selectTextOnEdit && m_pendingTextBoxFocusPos.has_value()) {
+            m_textInput.queuePointerPress(*m_pendingTextBoxFocusPos);
+            m_textInput.queuePointerRelease(*m_pendingTextBoxFocusPos);
+        }
+        m_pendingTextBoxFocusPos = std::nullopt;
+    }
+
+    void EditableLabelComp::onFocusLost(const Events::FocusEvent &e) {
+        UISceneComponent::onFocusLost(e);
+        if (m_editing) {
+            commitEdit();
+            return;
+        }
+
+        m_textInput.blur();
+    }
+
+    bool EditableLabelComp::onPointerMove(const Events::MouseMoveEvent &e) {
+        if (!m_editing) {
+            return false;
+        }
+
+        m_textInput.queuePointerMove(e.mousePos);
+        return true;
+    }
+
+    bool EditableLabelComp::onKeyEvent(const SceneEvent &evt) {
+        if (!m_editing) {
+            return false;
+        }
+
+        const auto result = m_textInput.handleEvent(evt);
+        if (result.changed) {
+            m_editValue = m_textInput.text();
+            makeUIDirty();
+        }
+
+        if (result.canceled) {
+            cancelEdit();
+            return result.handled;
+        }
+
+        if (result.submitted) {
+            commitEdit();
+            return result.handled;
+        }
+
+        return result.handled;
+    }
+
+    bool EditableLabelComp::hasPointerCapture() const {
+        return m_textInput.hasPointerCapture();
+    }
+
+    Core::Viewport::SceneCursor EditableLabelComp::getCursor() const {
+        return m_editing ? Core::Viewport::SceneCursor::text
+                         : Core::Viewport::SceneCursor::pointer;
     }
 } // namespace Bess::Canvas::UI

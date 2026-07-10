@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bess_core/scene/scene_draw_context.h"
+#include "bess_core/scene/scene_event.h"
 #include "bess_core/scene/scene_ser_reg.h"
 #include "bess_core/scene/scene_state/components/behaviours/mouse_behaviour.h"
 #include "bess_core/scene/scene_state/components/scene_component_types.h"
@@ -108,6 +109,36 @@ namespace Bess::Canvas {
         virtual void drawSchematic(SceneDrawContext &);
 
         virtual void drawPropertiesUI(SceneState &sceneState);
+
+        virtual bool isFocusable() const {
+            return false;
+        }
+
+        virtual bool wantsKeyboardInput() const {
+            return false;
+        }
+
+        virtual void onFocusGained(const Events::FocusEvent &e) {
+            (void)e;
+        }
+
+        virtual void onFocusLost(const Events::FocusEvent &e) {
+            (void)e;
+        }
+
+        virtual bool onKeyEvent(const SceneEvent &evt) {
+            (void)evt;
+            return false;
+        }
+
+        virtual bool hasPointerCapture() const {
+            return false;
+        }
+
+        virtual bool onPointerMove(const Events::MouseMoveEvent &e) {
+            (void)e;
+            return false;
+        }
 
         virtual std::vector<std::shared_ptr<SceneComponent>>
         clone(const SceneState &sceneState) const;

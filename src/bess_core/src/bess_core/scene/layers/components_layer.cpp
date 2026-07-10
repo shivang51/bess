@@ -43,6 +43,9 @@ namespace Bess::Canvas {
 
         for (const auto &compId : ctx.sceneState->getRootComponents()) {
             const auto comp = ctx.sceneState->getComponentByUuid(compId);
+            if (comp->getType() == Canvas::SceneComponentType::ui) {
+                continue;
+            }
             comp->update(ts, *ctx.sceneState);
         }
     }
@@ -63,6 +66,9 @@ namespace Bess::Canvas {
 
         for (const auto &compId : ctx.sceneState->getRootComponents()) {
             const auto comp = ctx.sceneState->getComponentByUuid(compId);
+            if (comp->getType() == Canvas::SceneComponentType::ui) {
+                continue;
+            }
 
             const auto &pos = comp->getAbsolutePosition(
                 *ctx.sceneState, ctx.viewportCtx->isSchematicMode());

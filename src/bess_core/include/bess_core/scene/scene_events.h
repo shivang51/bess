@@ -99,6 +99,13 @@ namespace Bess::Canvas::Events {
         Canvas::SceneState *sceneState;
     };
 
+    struct FocusEvent {
+        UUID entityUuid;
+        glm::vec2 mousePos{0.f};
+        uint32_t details = 0;
+        Canvas::SceneState *sceneState = nullptr;
+    };
+
     struct ConnectionRemovedEvent {
         UUID slotAId;
         UUID slotBId;

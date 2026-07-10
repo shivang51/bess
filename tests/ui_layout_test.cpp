@@ -1,4 +1,5 @@
 #include "bess_core/renderer/renderer_2d.h"
+#include "bess_core/scene/layers/ui_components_layer.h"
 #include "bess_core/scene/scene_event.h"
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene/scene_ui/controls/editable_label_comp.h"
@@ -148,6 +149,21 @@ namespace {
         };
     }
 
+    Bess::Canvas::SceneEvent mouseMoveEvent(
+        const Bess::PickingId &pickingId) {
+        Bess::Canvas::SceneEvent::Data data;
+        data.mouseMove = {
+            .pos = {0.f, 0.f},
+            .delta = {0.f, 0.f},
+            .viewportPos = {0.f, 0.f},
+        };
+        return {
+            .type = Bess::Canvas::SceneEvent::Type::mouseMove,
+            .data = data,
+            .pickingId = pickingId,
+        };
+    }
+
     Bess::SceneDrawContext textBoxDrawContext(
         Bess::Canvas::SceneState &sceneState,
         const std::shared_ptr<LayoutTestRenderer2D> &renderer,
@@ -156,6 +172,15 @@ namespace {
             .sceneState = &sceneState,
             .renderer = renderer,
             .sceneWidgetsState = &widgetsState,
+        };
+    }
+
+    Bess::SceneDrawContext uiDrawContext(
+        Bess::Canvas::SceneState &sceneState,
+        const std::shared_ptr<LayoutTestRenderer2D> &renderer) {
+        return {
+            .sceneState = &sceneState,
+            .renderer = renderer,
         };
     }
 
@@ -217,7 +242,6 @@ namespace {
     void beginEditableLabelEdit(
         Bess::Canvas::UI::EditableLabelComp &label,
         Bess::SceneDrawContext &drawCtx,
-        Bess::Canvas::SceneWidgets::SceneWidgetsState &widgets,
         Bess::Canvas::SceneState &sceneState,
         const std::shared_ptr<LayoutTestRenderer2D> &renderer) {
         const auto *node = label.getUINode();
@@ -236,11 +260,17 @@ namespace {
             .details = 0,
             .sceneState = &sceneState,
         }));
+        label.onFocusGained({
+            .entityUuid = label.getUuid(),
+            .mousePos = clickPos,
+            .details = 0,
+            .sceneState = &sceneState,
+        });
 
         prepareEditableLabel(label, sceneState, renderer);
         label.draw(drawCtx);
         label.draw(drawCtx);
-        EXPECT_TRUE(Bess::Canvas::SceneWidgets::wantsKeyboard(&widgets));
+        EXPECT_TRUE(label.wantsKeyboardInput());
     }
 } // namespace
 
@@ -439,11 +469,41 @@ TEST_F(UiLayoutTests, TextBoxPrepareUIRespectsSizeAndPadding) {
     EXPECT_EQ(autoNode->getPadding(), Bess::Core::Style::Padding::zero());
 }
 
+TEST_F(UiLayoutTests, UIComponentsLayerResetsCursorAfterLeavingTextBox) {
+    Bess::Canvas::SceneState sceneState;
+    auto textBox = Bess::Canvas::UI::TextBoxComp::create();
+    sceneState.addComponent(textBox, false, false);
+
+    auto viewportCtx =
+        std::make_shared<Bess::Core::Viewport::ViewportContext>();
+    Bess::Canvas::SceneEventContext eventCtx;
+    eventCtx.sceneState = &sceneState;
+    eventCtx.viewportCtx = viewportCtx;
+
+    Bess::Canvas::UIComponentsLayer layer;
+    const auto textBoxPickingId = Bess::PickingId{
+        .runtimeId = textBox->getRuntimeId(),
+        .info = 0,
+    };
+
+    auto enterEvent = mouseMoveEvent(textBoxPickingId);
+    EXPECT_EQ(layer.handleEvent(enterEvent, eventCtx),
+              Bess::Canvas::EventResult::Consumed);
+    EXPECT_EQ(viewportCtx->inputCtx.cursor,
+              Bess::Core::Viewport::SceneCursor::text);
+
+    viewportCtx->inputCtx.cursor = Bess::Core::Viewport::SceneCursor::inherit;
+    auto leaveEvent = mouseMoveEvent(Bess::PickingId::invalid());
+    EXPECT_EQ(layer.handleEvent(leaveEvent, eventCtx),
+              Bess::Canvas::EventResult::Ignored);
+    EXPECT_EQ(viewportCtx->inputCtx.cursor,
+              Bess::Core::Viewport::SceneCursor::normal);
+}
+
 TEST_F(UiLayoutTests, EditableLabelCommitsSubmittedEdit) {
     Bess::Canvas::SceneState sceneState;
-    Bess::Canvas::SceneWidgets::SceneWidgetsState widgets;
     const auto renderer = std::make_shared<LayoutTestRenderer2D>();
-    auto drawCtx = textBoxDrawContext(sceneState, renderer, widgets);
+    auto drawCtx = uiDrawContext(sceneState, renderer);
 
     Bess::Canvas::UI::EditableLabelComp label;
     label.setName("Alpha");
@@ -463,16 +523,16 @@ TEST_F(UiLayoutTests, EditableLabelCommitsSubmittedEdit) {
     });
 
     prepareEditableLabel(label, sceneState, renderer);
-    beginEditableLabelEdit(label, drawCtx, widgets, sceneState, renderer);
+    beginEditableLabelEdit(label, drawCtx, sceneState, renderer);
 
     auto textEvt = textInputEvent(U'X');
-    EXPECT_TRUE(Bess::Canvas::SceneWidgets::queueKey(&widgets, textEvt));
+    EXPECT_TRUE(label.onKeyEvent(textEvt));
     label.draw(drawCtx);
     EXPECT_EQ(label.getName(), "Alpha");
     EXPECT_EQ(changedCount, 0);
 
     auto enterEvt = keyEvent(Bess::KeyCode::enter);
-    EXPECT_TRUE(Bess::Canvas::SceneWidgets::queueKey(&widgets, enterEvt));
+    EXPECT_TRUE(label.onKeyEvent(enterEvt));
     label.draw(drawCtx);
 
     EXPECT_FALSE(label.getEditing());
@@ -485,9 +545,8 @@ TEST_F(UiLayoutTests, EditableLabelCommitsSubmittedEdit) {
 
 TEST_F(UiLayoutTests, EditableLabelCanSelectTextWhenEditStarts) {
     Bess::Canvas::SceneState sceneState;
-    Bess::Canvas::SceneWidgets::SceneWidgetsState widgets;
     const auto renderer = std::make_shared<LayoutTestRenderer2D>();
-    auto drawCtx = textBoxDrawContext(sceneState, renderer, widgets);
+    auto drawCtx = uiDrawContext(sceneState, renderer);
 
     Bess::Canvas::UI::EditableLabelComp label;
     label.setName("Alpha");
@@ -495,14 +554,14 @@ TEST_F(UiLayoutTests, EditableLabelCanSelectTextWhenEditStarts) {
     label.setSelectTextOnEdit(true);
 
     prepareEditableLabel(label, sceneState, renderer);
-    beginEditableLabelEdit(label, drawCtx, widgets, sceneState, renderer);
+    beginEditableLabelEdit(label, drawCtx, sceneState, renderer);
 
     auto textEvt = textInputEvent(U'X');
-    EXPECT_TRUE(Bess::Canvas::SceneWidgets::queueKey(&widgets, textEvt));
+    EXPECT_TRUE(label.onKeyEvent(textEvt));
     label.draw(drawCtx);
 
     auto enterEvt = keyEvent(Bess::KeyCode::enter);
-    EXPECT_TRUE(Bess::Canvas::SceneWidgets::queueKey(&widgets, enterEvt));
+    EXPECT_TRUE(label.onKeyEvent(enterEvt));
     label.draw(drawCtx);
 
     EXPECT_FALSE(label.getEditing());
@@ -511,9 +570,8 @@ TEST_F(UiLayoutTests, EditableLabelCanSelectTextWhenEditStarts) {
 
 TEST_F(UiLayoutTests, EditableLabelCancelsEscapedEdit) {
     Bess::Canvas::SceneState sceneState;
-    Bess::Canvas::SceneWidgets::SceneWidgetsState widgets;
     const auto renderer = std::make_shared<LayoutTestRenderer2D>();
-    auto drawCtx = textBoxDrawContext(sceneState, renderer, widgets);
+    auto drawCtx = uiDrawContext(sceneState, renderer);
 
     Bess::Canvas::UI::EditableLabelComp label;
     label.setName("Alpha");
@@ -529,14 +587,14 @@ TEST_F(UiLayoutTests, EditableLabelCancelsEscapedEdit) {
     });
 
     prepareEditableLabel(label, sceneState, renderer);
-    beginEditableLabelEdit(label, drawCtx, widgets, sceneState, renderer);
+    beginEditableLabelEdit(label, drawCtx, sceneState, renderer);
 
     auto textEvt = textInputEvent(U'X');
-    EXPECT_TRUE(Bess::Canvas::SceneWidgets::queueKey(&widgets, textEvt));
+    EXPECT_TRUE(label.onKeyEvent(textEvt));
     label.draw(drawCtx);
 
     auto escapeEvt = keyEvent(Bess::KeyCode::escape);
-    EXPECT_TRUE(Bess::Canvas::SceneWidgets::queueKey(&widgets, escapeEvt));
+    EXPECT_TRUE(label.onKeyEvent(escapeEvt));
     label.draw(drawCtx);
 
     EXPECT_FALSE(label.getEditing());
@@ -548,9 +606,8 @@ TEST_F(UiLayoutTests, EditableLabelCancelsEscapedEdit) {
 
 TEST_F(UiLayoutTests, EditableLabelCommitsEditOnBlur) {
     Bess::Canvas::SceneState sceneState;
-    Bess::Canvas::SceneWidgets::SceneWidgetsState widgets;
     const auto renderer = std::make_shared<LayoutTestRenderer2D>();
-    auto drawCtx = textBoxDrawContext(sceneState, renderer, widgets);
+    auto drawCtx = uiDrawContext(sceneState, renderer);
 
     Bess::Canvas::UI::EditableLabelComp label;
     label.setName("Alpha");
@@ -560,13 +617,16 @@ TEST_F(UiLayoutTests, EditableLabelCommitsEditOnBlur) {
     label.setChangedCallback([&](const std::string &) { ++changedCount; });
 
     prepareEditableLabel(label, sceneState, renderer);
-    beginEditableLabelEdit(label, drawCtx, widgets, sceneState, renderer);
+    beginEditableLabelEdit(label, drawCtx, sceneState, renderer);
 
     auto textEvt = textInputEvent(U'Z');
-    EXPECT_TRUE(Bess::Canvas::SceneWidgets::queueKey(&widgets, textEvt));
+    EXPECT_TRUE(label.onKeyEvent(textEvt));
     label.draw(drawCtx);
 
-    Bess::Canvas::SceneWidgets::clearFocus(&widgets);
+    label.onFocusLost({
+        .entityUuid = label.getUuid(),
+        .sceneState = &sceneState,
+    });
     label.draw(drawCtx);
 
     EXPECT_FALSE(label.getEditing());

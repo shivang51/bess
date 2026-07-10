@@ -23,6 +23,7 @@ namespace Bess::Canvas {
         m_rootComponents.clear();
         m_freeRuntimeIds.clear();
         m_selectedComponents.clear();
+        m_focusedUIComponent = UUID::null;
         if (m_uiNodeRegistry) {
             m_uiNodeRegistry->clear();
         } else {
@@ -125,6 +126,63 @@ namespace Bess::Canvas {
 
     const HashMap<UUID, bool> &SceneState::getSelectedComponents() const {
         return m_selectedComponents;
+    }
+
+    const UUID &SceneState::getFocusedUIComponent() const {
+        return m_focusedUIComponent;
+    }
+
+    bool SceneState::isUIComponentFocused(const UUID &uuid) const {
+        return m_focusedUIComponent == uuid && isComponentValid(uuid);
+    }
+
+    SceneComponent *SceneState::getFocusedUIComponentPtr() const {
+        if (m_focusedUIComponent == UUID::null) {
+            return nullptr;
+        }
+
+        return getComponentByUuid(m_focusedUIComponent);
+    }
+
+    bool SceneState::focusUIComponent(const UUID &uuid,
+                                      const Events::FocusEvent &event) {
+        auto next = getComponentByUuid(uuid);
+        if (next == nullptr || !next->isFocusable()) {
+            clearUIFocus(event);
+            return false;
+        }
+
+        if (m_focusedUIComponent == uuid) {
+            return true;
+        }
+
+        clearUIFocus(event);
+        m_focusedUIComponent = uuid;
+
+        auto focusEvent = event;
+        focusEvent.entityUuid = uuid;
+        focusEvent.sceneState = this;
+        next->onFocusGained(focusEvent);
+        return true;
+    }
+
+    void SceneState::clearUIFocus(const Events::FocusEvent &event) {
+        if (m_focusedUIComponent == UUID::null) {
+            return;
+        }
+
+        const auto previousId = m_focusedUIComponent;
+        m_focusedUIComponent = UUID::null;
+
+        auto previous = getComponentByUuid(previousId);
+        if (previous == nullptr) {
+            return;
+        }
+
+        auto focusEvent = event;
+        focusEvent.entityUuid = previousId;
+        focusEvent.sceneState = this;
+        previous->onFocusLost(focusEvent);
     }
 
     void SceneState::attachChild(const UUID &parentId,
@@ -260,6 +318,12 @@ namespace Bess::Canvas {
         }
 
         removeSelectedComponent(uuid);
+        if (m_focusedUIComponent == uuid) {
+            clearUIFocus({
+                .entityUuid = uuid,
+                .sceneState = this,
+            });
+        }
 
         if (component->getParentComponent() == UUID::null) {
             m_rootComponents.erase(uuid);
@@ -341,6 +405,12 @@ namespace Bess::Canvas {
 
         m_rootComponents.erase(uuid);
         m_selectedComponents.erase(uuid);
+        if (m_focusedUIComponent == uuid) {
+            clearUIFocus({
+                .entityUuid = uuid,
+                .sceneState = this,
+            });
+        }
         m_componentsMap.erase(uuid);
     }
 

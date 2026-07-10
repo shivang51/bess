@@ -136,6 +136,13 @@ namespace Bess::Canvas {
 
         const HashMap<UUID, bool> &getSelectedComponents() const;
 
+        const UUID &getFocusedUIComponent() const;
+        bool isUIComponentFocused(const UUID &uuid) const;
+        SceneComponent *getFocusedUIComponentPtr() const;
+        bool focusUIComponent(const UUID &uuid,
+                              const Events::FocusEvent &event = {});
+        void clearUIFocus(const Events::FocusEvent &event = {});
+
         void attachChild(const UUID &parentId,
                          const UUID &childId,
                          bool emitEvent = true);
@@ -163,6 +170,7 @@ namespace Bess::Canvas {
         OrderedSet<uint32_t> m_freeRuntimeIds;
 
         UUID m_connectionStartSlot = UUID::null;
+        UUID m_focusedUIComponent = UUID::null;
         bool m_isRootScene = true;
         UUID m_moduleId = UUID::null; // only used for sub scenes, to know which
                                       // module it belongs to

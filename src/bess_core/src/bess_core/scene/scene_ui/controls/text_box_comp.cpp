@@ -1,7 +1,7 @@
 #include "bess_core/scene/scene_ui/controls/text_box_comp.h"
 #include "bess_core/renderer/renderer_2d.h"
+#include "bess_core/scene/scene_events.h"
 #include "bess_core/scene/scene_state/scene_state.h"
-#include "bess_core/scene/widgets/scene_widgets.h"
 #include <algorithm>
 
 namespace Bess::Canvas::UI {
@@ -20,9 +20,9 @@ namespace Bess::Canvas::UI {
             .info = 0,
         };
 
-        const SceneWidgets::TextBoxOptions options{
+        m_textInput.syncExternalValue(m_value, m_maxLength);
+        const TextBoxContextDrawOptions options{
             .placeholder = m_placeholder,
-            .maxLength = m_maxLength,
             .fontSize = m_style.textStyle.fontSize,
             .padding = stylePadding(),
             .backgroundColor = m_style.backgroundColor,
@@ -33,28 +33,15 @@ namespace Bess::Canvas::UI {
             .textColor = m_style.textStyle.textColor,
             .placeholderColor = m_style.textStyle.textColor.withAlpha(0.55f),
             .cursorColor = m_style.activeColor,
+            .hovered = m_hovered,
         };
 
-        const auto result = SceneWidgets::textBox(id,
-                                                  &m_value,
-                                                  m_node->getDrawPos(),
-                                                  m_node->getDrawSize(),
-                                                  state,
-                                                  options);
-
-        m_focused = result.focused;
-        if (result.changed) {
-            makeUIDirty();
-            if (m_changedCallback) {
-                m_changedCallback(m_value);
-            }
-        }
-        if (result.submitted && m_submittedCallback) {
-            m_submittedCallback(m_value);
-        }
-        if (result.canceled && m_canceledCallback) {
-            m_canceledCallback(m_value);
-        }
+        drawTextBoxContext(id,
+                              m_textInput,
+                              m_node->getDrawPos(),
+                              m_node->getDrawSize(),
+                              state,
+                              options);
     }
 
     void TextBoxComp::prepareUI(SceneUIPrepareCtx &state) {
@@ -101,5 +88,78 @@ namespace Bess::Canvas::UI {
             std::max(padding.left, padding.right),
             std::max(padding.top, padding.bottom),
         };
+    }
+
+    bool TextBoxComp::isFocusable() const {
+        return true;
+    }
+
+    bool TextBoxComp::wantsKeyboardInput() const {
+        return m_focused;
+    }
+
+    void TextBoxComp::onFocusGained(const Events::FocusEvent &e) {
+        UISceneComponent::onFocusGained(e);
+        m_textInput.focus(m_value, m_maxLength);
+    }
+
+    void TextBoxComp::onFocusLost(const Events::FocusEvent &e) {
+        UISceneComponent::onFocusLost(e);
+        m_textInput.blur();
+    }
+
+    bool TextBoxComp::onMouseButton(const Events::MouseButtonEvent &e) {
+        if (e.button != Events::MouseButton::left) {
+            return false;
+        }
+
+        if (e.action == Events::MouseClickAction::press ||
+            e.action == Events::MouseClickAction::doubleClick) {
+            m_textInput.queuePointerPress(e.mousePos);
+            return true;
+        }
+
+        if (e.action == Events::MouseClickAction::release) {
+            m_textInput.queuePointerRelease(e.mousePos);
+            return true;
+        }
+
+        return false;
+    }
+
+    bool TextBoxComp::onPointerMove(const Events::MouseMoveEvent &e) {
+        m_textInput.queuePointerMove(e.mousePos);
+        return true;
+    }
+
+    bool TextBoxComp::onKeyEvent(const SceneEvent &evt) {
+        const auto result = m_textInput.handleEvent(evt);
+        applyTextInputResult(result);
+        return result.handled;
+    }
+
+    bool TextBoxComp::hasPointerCapture() const {
+        return m_textInput.hasPointerCapture();
+    }
+
+    Core::Viewport::SceneCursor TextBoxComp::getCursor() const {
+        return Core::Viewport::SceneCursor::text;
+    }
+
+    void TextBoxComp::applyTextInputResult(
+        const TextBoxContextResult &result) {
+        if (result.changed) {
+            m_value = m_textInput.text();
+            makeUIDirty();
+            if (m_changedCallback) {
+                m_changedCallback(m_value);
+            }
+        }
+        if (result.submitted && m_submittedCallback) {
+            m_submittedCallback(m_value);
+        }
+        if (result.canceled && m_canceledCallback) {
+            m_canceledCallback(m_value);
+        }
     }
 } // namespace Bess::Canvas::UI

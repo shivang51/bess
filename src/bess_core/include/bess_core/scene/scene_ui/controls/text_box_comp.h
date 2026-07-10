@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bess_core/scene/scene_ui/text_box_context.h"
 #include "bess_core/scene/scene_ui/ui_scene_component.h"
 #include <cstddef>
 #include <functional>
@@ -33,7 +34,6 @@ namespace Bess::Canvas::UI {
         MAKE_GETTER_SETTER(UITextBoxCallback,
                            CanceledCallback,
                            m_canceledCallback)
-        MAKE_GETTER(bool, Focused, m_focused)
 
         static std::shared_ptr<TextBoxComp>
         create(const std::string &value = "",
@@ -41,10 +41,20 @@ namespace Bess::Canvas::UI {
 
         void draw(SceneDrawContext &state) override;
         void prepareUI(SceneUIPrepareCtx &state) override;
+        bool isFocusable() const override;
+        bool wantsKeyboardInput() const override;
+        void onFocusGained(const Events::FocusEvent &e) override;
+        void onFocusLost(const Events::FocusEvent &e) override;
+        bool onMouseButton(const Events::MouseButtonEvent &e) override;
+        bool onPointerMove(const Events::MouseMoveEvent &e) override;
+        bool onKeyEvent(const SceneEvent &evt) override;
+        bool hasPointerCapture() const override;
+        Core::Viewport::SceneCursor getCursor() const override;
 
       private:
         glm::vec2 resolveBoxSize(SceneUIPrepareCtx &state) const;
         glm::vec2 stylePadding() const;
+        void applyTextInputResult(const TextBoxContextResult &result);
 
         std::string m_value;
         std::string m_placeholder;
@@ -53,6 +63,6 @@ namespace Bess::Canvas::UI {
         UITextBoxCallback m_changedCallback;
         UITextBoxCallback m_submittedCallback;
         UITextBoxCallback m_canceledCallback;
-        bool m_focused = false;
+        TextBoxContext m_textInput;
     };
 } // namespace Bess::Canvas::UI

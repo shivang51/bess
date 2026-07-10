@@ -1,6 +1,7 @@
 #include "bess_core/scene/layers/hover_layer.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/widgets/scene_widgets.h"
+#include "pages/main_page/scene_components/scene_comp_types.h"
 
 namespace Bess::Canvas {
     EventResult HoverLayer::handleEvent(SceneEvent &evt,
@@ -34,7 +35,7 @@ namespace Bess::Canvas {
                 ? ctx.sceneState->getComponentByPickingId(evt.pickingId)
                 : nullptr;
 
-        if (!comp) {
+        if (!comp || comp->getType() == SceneComponentType::ui) {
             clearHover(*ctx.sceneState, data.pos);
             m_pickingId = PickingId::invalid();
             return evt.pickingId.isValid() ? EventResult::Handled

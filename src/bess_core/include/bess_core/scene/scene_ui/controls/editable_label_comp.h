@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bess_core/scene/scene_ui/text_box_context.h"
 #include "bess_core/scene/scene_ui/ui_scene_component.h"
 #include <cstddef>
 #include <functional>
@@ -43,6 +44,14 @@ namespace Bess::Canvas::UI {
         void draw(SceneDrawContext &state) override;
         void prepareUI(SceneUIPrepareCtx &state) override;
         bool onMouseButton(const Events::MouseButtonEvent &e) override;
+        bool isFocusable() const override;
+        bool wantsKeyboardInput() const override;
+        void onFocusGained(const Events::FocusEvent &e) override;
+        void onFocusLost(const Events::FocusEvent &e) override;
+        bool onPointerMove(const Events::MouseMoveEvent &e) override;
+        bool onKeyEvent(const SceneEvent &evt) override;
+        bool hasPointerCapture() const override;
+        Core::Viewport::SceneCursor getCursor() const override;
 
         void beginEdit();
         void commitEdit();
@@ -68,10 +77,8 @@ namespace Bess::Canvas::UI {
         UIEditableLabelCallback m_canceledCallback;
 
         bool m_editing = false;
-        bool m_pendingTextBoxFocus = false;
         std::optional<glm::vec2> m_pendingTextBoxFocusPos = std::nullopt;
-        bool m_wasTextBoxFocused = false;
-        UUID m_focusedViewportId = UUID::null;
+        TextBoxContext m_textInput;
         std::string m_editValue;
         std::string m_originalValue;
     };

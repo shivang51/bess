@@ -7,8 +7,6 @@
 #include "bess_core/scene/scene.h"
 #include "bess_core/scene/scene_event.h"
 #include "bess_core/scene_driver.h"
-#include "bess_core/scene/widgets/scene_widgets.h"
-#include "bess_core/scene/widgets/scene_widgets_internal.h"
 #include "dig_sim_driver.h"
 #include "event_dispatcher.h"
 #include "math_sim_driver.h"
@@ -715,23 +713,36 @@ TEST_F(MainPageConnectionCommandsTest,
     ASSERT_NE(textBox, nullptr);
     textBox->setValue("");
 
-    Bess::Canvas::SceneWidgets::SceneWidgetsState widgets;
     Bess::SceneDrawContext drawCtx{
         .sceneState = &scene->getState(),
         .renderer = renderer,
-        .sceneWidgetsState = &widgets,
     };
 
     textBox->draw(drawCtx);
-    const auto textBoxId = Bess::PickingId{textBox->getRuntimeId(), 0};
     const auto pointerPos = glm::vec2(textBox->getUINode()->getDrawPos());
-    Bess::Canvas::SceneWidgets::queuePress(&widgets, textBoxId, pointerPos);
-    textBox->draw(drawCtx);
-    Bess::Canvas::SceneWidgets::queueRelease(&widgets, textBoxId, pointerPos);
+    textBox->onFocusGained({
+        .entityUuid = textBox->getUuid(),
+        .mousePos = pointerPos,
+        .sceneState = &scene->getState(),
+    });
+    textBox->onMouseButton({
+        .mousePos = pointerPos,
+        .button = Bess::Canvas::Events::MouseButton::left,
+        .action = Bess::Canvas::Events::MouseClickAction::press,
+        .details = 0,
+        .sceneState = &scene->getState(),
+    });
+    textBox->onMouseButton({
+        .mousePos = pointerPos,
+        .button = Bess::Canvas::Events::MouseButton::left,
+        .action = Bess::Canvas::Events::MouseClickAction::release,
+        .details = 0,
+        .sceneState = &scene->getState(),
+    });
     textBox->draw(drawCtx);
 
     const auto evt = textInputEvent(U'4');
-    EXPECT_TRUE(Bess::Canvas::SceneWidgets::queueKey(&widgets, evt));
+    EXPECT_TRUE(textBox->onKeyEvent(evt));
     textBox->draw(drawCtx);
 
     const auto slotState = slot->getSlotState(scene->getState());

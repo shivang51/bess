@@ -141,8 +141,14 @@ namespace Bess::Pages {
                 &attachedScene->getState());
             const bool sceneWantsKeyboard =
                 Canvas::SceneWidgets::wantsKeyboard(sceneWidgetsState);
+            const auto focusedUIComponent =
+                attachedScene->getState().getFocusedUIComponentPtr();
+            const bool retainedUIWantsKeyboard =
+                focusedUIComponent != nullptr &&
+                focusedUIComponent->wantsKeyboardInput();
             const bool imguiWantsKeyboard =
-                ImGui::GetIO().WantTextInput || sceneWantsKeyboard;
+                ImGui::GetIO().WantTextInput || sceneWantsKeyboard ||
+                retainedUIWantsKeyboard;
 
             if (!imguiWantsKeyboard)
                 handleKeyboardShortcuts();

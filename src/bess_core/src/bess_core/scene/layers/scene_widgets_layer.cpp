@@ -85,6 +85,13 @@ namespace Bess::Canvas {
         if (data.action == MouseButtonAction::press ||
             data.action == MouseButtonAction::doubleClick) {
             if (isWidget) {
+                if (ctx.sceneState) {
+                    ctx.sceneState->clearUIFocus({
+                        .mousePos = data.pos,
+                        .details = evt.pickingId.info,
+                        .sceneState = ctx.sceneState,
+                    });
+                }
                 SceneWidgets::queuePress(ctx.sceneWidgetsState,
                                          evt.pickingId,
                                          data.pos,

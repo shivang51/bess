@@ -3,6 +3,7 @@
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_ui/layout.h"
 #include "bess_core/style/bess_theme.h"
+#include "bess_core/viewport.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include <cstdint>
 #include <memory>
@@ -40,6 +41,7 @@ namespace Bess::Canvas::UI {
         MAKE_GETTER_SETTER(std::optional<uint32_t>,
                            DrawRuntimeId,
                            m_drawRuntimeId);
+        MAKE_GETTER(bool, Focused, m_focused)
 
         REG_SCENE_COMP_TYPE("UISceneComponent", SceneComponentType::ui)
         std::vector<UUID> cleanup(SceneState &state,
@@ -49,6 +51,10 @@ namespace Bess::Canvas::UI {
 
         bool onMouseEnter(const Events::MouseEnterEvent &e) override;
         bool onMouseLeave(const Events::MouseLeaveEvent &e) override;
+        void onFocusGained(const Events::FocusEvent &e) override;
+        void onFocusLost(const Events::FocusEvent &e) override;
+
+        virtual Core::Viewport::SceneCursor getCursor() const;
 
       protected:
         uint32_t resolveRuntimeId() const;
@@ -65,6 +71,7 @@ namespace Bess::Canvas::UI {
 
         UINode *m_node = nullptr;
         bool m_hovered = false;
+        bool m_focused = false;
         Core::Style::ElementStyle m_style;
         UIElementStyle m_customStyle;
         UIDrawCallback m_drawCallback = nullptr;
