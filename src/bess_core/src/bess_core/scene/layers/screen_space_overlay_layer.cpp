@@ -514,6 +514,12 @@ namespace Bess::Canvas {
         fmtCamPos({0.f, 0.f});
         fmtCamZoom(1.f);
 
+        const auto onPosLabelClick = [this]() {
+            if (m_camera) {
+                m_camera->focusAtPoint({0.f, 0.f}, false);
+            }
+        };
+
         m_bottomContainer =
             ui.row(UI::
                        CompConfig{
@@ -539,11 +545,7 @@ namespace Bess::Canvas {
                                                },
                                            .style = containerStyle,
                                        },
-                                       []() {
-                                           BESS_TRACE("[ScreenSpaceOverlayLayer"
-                                                      "] Resetting "
-                                                      "camera to origin");
-                                       }),
+                                       onPosLabelClick),
                                    ui.row(UI::
                                               CompConfig{
                                                   .children =
@@ -652,14 +654,18 @@ namespace Bess::Canvas {
         // Very important to update for focused viewport only.
         // since same scene can be rendered in multiple viewports, we only want
         // to update the camera position label for the focused viewport
-        if (m_camPosXLabel && ctx.viewportCtx->isFocused) {
-            const auto &mPos = ctx.viewportCtx->inputCtx.mousePos;
-            const glm::vec2 mouseWorldPos = ctx.camera->toWorldPos(mPos);
-            fmtCamPos(mouseWorldPos);
-        }
+        if (ctx.viewportCtx->isFocused) {
+            m_camera = ctx.camera;
 
-        if (m_camZoomLabel && ctx.viewportCtx->isFocused) {
-            fmtCamZoom(ctx.camera->getZoom());
+            if (m_camPosXLabel) {
+                const auto &mPos = ctx.viewportCtx->inputCtx.mousePos;
+                const glm::vec2 mouseWorldPos = ctx.camera->toWorldPos(mPos);
+                fmtCamPos(mouseWorldPos);
+            }
+
+            if (m_camZoomLabel && ctx.viewportCtx->isFocused) {
+                fmtCamZoom(ctx.camera->getZoom());
+            }
         }
     }
 

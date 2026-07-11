@@ -64,6 +64,7 @@ namespace Bess::Canvas::UI {
         boxProps.radius = m_style.metrics.borderRadius;
         boxProps.id = boxId;
         boxProps.transformMode = state.transformMode;
+        boxProps.shadow = m_style.shadowProps;
         state.renderer->drawQuad(boxProps);
 
         if (!m_checked) {

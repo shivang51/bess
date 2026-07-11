@@ -484,6 +484,7 @@ namespace Bess::Canvas::UI {
             m_focused ? m_style.activeColor : m_style.borderColor;
         props.thickness = m_style.metrics.borderSize.toVec4();
         props.radius = m_style.metrics.borderRadius;
+        props.shadow = m_style.shadowProps;
         props.id = id;
         props.transformMode = state.transformMode;
         state.renderer->drawQuad(props);

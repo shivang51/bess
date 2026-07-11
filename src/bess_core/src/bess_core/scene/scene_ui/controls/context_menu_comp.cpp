@@ -79,6 +79,7 @@ namespace Bess::Canvas::UI {
             triggerProps.radius = m_style.metrics.borderRadius;
             triggerProps.id = triggerId;
             triggerProps.transformMode = state.transformMode;
+            triggerProps.shadow = m_style.shadowProps;
             state.renderer->drawQuad(triggerProps);
 
             drawText(state, m_triggerLabel, m_labelNode);
@@ -279,6 +280,7 @@ namespace Bess::Canvas::UI {
         menuProps.radius = m_style.metrics.borderRadius;
         menuProps.id = PickingId::invalid();
         menuProps.transformMode = state.transformMode;
+        menuProps.shadow = m_style.shadowProps;
         state.renderer->drawQuad(menuProps);
 
         const auto textColor = m_style.textStyle.textColor;

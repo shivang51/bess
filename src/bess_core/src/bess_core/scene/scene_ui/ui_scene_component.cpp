@@ -417,6 +417,7 @@ namespace Bess::Canvas::UI {
         quadProps.radius = m_style.metrics.borderRadius;
         quadProps.id = pickingId;
         quadProps.transformMode = state.transformMode;
+        quadProps.shadow = m_style.shadowProps;
 
         state.renderer->drawQuad(quadProps);
     }

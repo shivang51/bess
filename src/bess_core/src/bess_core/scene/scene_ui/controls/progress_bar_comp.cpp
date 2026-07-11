@@ -165,6 +165,7 @@ namespace Bess::Canvas::UI {
         trackProps.borderColor = m_style.borderColor;
         trackProps.thickness = m_style.metrics.borderSize.toVec4();
         trackProps.radius = m_style.metrics.borderRadius;
+        trackProps.shadow = m_style.shadowProps;
         trackProps.id = PickingId::invalid();
         trackProps.transformMode = state.transformMode;
         state.renderer->drawQuad(trackProps);
@@ -182,6 +183,7 @@ namespace Bess::Canvas::UI {
         fillProps.color = m_fillColor;
         fillProps.borderColor = Core::Renderer::Color{0.f, 0.f, 0.f, 0.f};
         fillProps.thickness = glm::vec4(0.f);
+        fillProps.shadow = Core::Renderer::ShadowProps{};
         state.renderer->drawQuad(fillProps);
     }
 

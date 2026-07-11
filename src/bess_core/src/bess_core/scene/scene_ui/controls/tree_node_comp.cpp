@@ -56,6 +56,9 @@ namespace Bess::Canvas::UI {
                                     ? m_style.metrics.borderSize.toVec4()
                                     : glm::vec4(0.f);
         headerProps.radius = m_style.metrics.borderRadius;
+        headerProps.shadow = (m_drawHeaderBackground || m_drawHeaderBorder)
+                                 ? m_style.shadowProps
+                                 : Core::Renderer::ShadowProps{};
         headerProps.id = {
             .runtimeId = resolveRuntimeId(),
             .info = kTreeHeaderInfo,

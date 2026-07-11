@@ -66,6 +66,7 @@ namespace Bess::Canvas::UI {
         props.radius = m_style.metrics.borderRadius;
         props.id = id;
         props.transformMode = state.transformMode;
+        props.shadow = m_style.shadowProps;
         state.renderer->drawQuad(props);
 
         drawLabel(state);

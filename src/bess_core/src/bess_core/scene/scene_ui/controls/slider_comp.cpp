@@ -185,6 +185,7 @@ namespace Bess::Canvas::UI {
         railProps.zIndex = trackPos.z;
         railProps.color = m_trackColor;
         railProps.radius = glm::vec4(std::max(1.f, m_trackHeight) * 0.5f);
+        railProps.shadow = m_style.shadowProps;
         railProps.id = trackId;
         railProps.transformMode = state.transformMode;
         state.renderer->drawQuad(railProps);
@@ -199,6 +200,7 @@ namespace Bess::Canvas::UI {
             fillProps.size.x = fillWidth;
             fillProps.zIndex = trackPos.z + 0.0001f;
             fillProps.color = m_fillColor;
+            fillProps.shadow = Core::Renderer::ShadowProps{};
             state.renderer->drawQuad(fillProps);
         }
 

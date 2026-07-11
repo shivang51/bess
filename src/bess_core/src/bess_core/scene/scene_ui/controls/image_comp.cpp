@@ -288,6 +288,9 @@ namespace Bess::Canvas::UI {
         props.radius = m_cornerRadius;
         props.id = id;
         props.transformMode = state.transformMode;
+        props.shadow = (m_drawBackground || m_drawBorder)
+                           ? Core::Renderer::ShadowProps{}
+                           : m_style.shadowProps;
         state.renderer->drawQuad(props);
     }
 
@@ -458,6 +461,7 @@ namespace Bess::Canvas::UI {
         props.radius = m_cornerRadius;
         props.id = id;
         props.transformMode = state.transformMode;
+        props.shadow = m_style.shadowProps;
         state.renderer->drawQuad(props);
     }
 

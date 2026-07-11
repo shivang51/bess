@@ -38,6 +38,7 @@ namespace Bess::Canvas::UI {
         trackProps.borderColor = m_style.borderColor;
         trackProps.thickness = m_style.metrics.borderSize.toVec4();
         trackProps.radius = m_style.metrics.borderRadius;
+        trackProps.shadow = m_style.shadowProps;
         trackProps.transformMode = state.transformMode;
         trackProps.id = PickingId{.runtimeId = resolveRuntimeId(), .info = 1};
 
@@ -52,6 +53,7 @@ namespace Bess::Canvas::UI {
         trackProps.size = m_thumbSize;
         trackProps.zIndex += 0.0001f;
         trackProps.thickness = glm::vec4(0.f);
+        trackProps.shadow = Core::Renderer::ShadowProps{};
         trackProps.color = m_toggled ? m_thumbOnColor : m_thumbOffColor;
         state.renderer->drawQuad(trackProps);
     }
@@ -128,6 +130,9 @@ namespace Bess::Canvas::UI {
 
         const auto &colors = theme->getColorScheme().getColors();
         m_style.metrics.borderSize = Core::Style::BorderSize(0.f);
+        if (m_customStyle.borderSize.has_value()) {
+            m_style.metrics.borderSize = m_customStyle.borderSize.value();
+        }
         m_trackOffColor = colors.secondaryContainer;
         m_trackOnColor = colors.primary;
         m_thumbOffColor = colors.onSecondaryContainer;

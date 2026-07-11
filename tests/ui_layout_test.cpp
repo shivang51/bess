@@ -25,6 +25,25 @@ namespace {
         EXPECT_FLOAT_EQ(actual.y, expectedY);
     }
 
+    Bess::Core::Renderer::ShadowProps testShadow() {
+        return {
+            .enabled = true,
+            .offset = {2.f, 3.f},
+            .blur = 5.f,
+            .spread = 1.f,
+            .color = Bess::Core::Style::Color{0.1f, 0.2f, 0.3f, 0.4f},
+        };
+    }
+
+    void expectShadow(const Bess::Core::Renderer::ShadowProps &actual,
+                      const Bess::Core::Renderer::ShadowProps &expected) {
+        EXPECT_EQ(actual.enabled, expected.enabled);
+        expectVec2(actual.offset, expected.offset.x, expected.offset.y);
+        EXPECT_FLOAT_EQ(actual.blur, expected.blur);
+        EXPECT_FLOAT_EQ(actual.spread, expected.spread);
+        EXPECT_EQ(actual.color.toHex(), expected.color.toHex());
+    }
+
     glm::vec2 boxEdges(const glm::vec4 &edges) {
         return {edges.y + edges.w, edges.x + edges.z};
     }
@@ -549,6 +568,100 @@ TEST_F(UiLayoutTests, UIElementStyleAppliesLayoutPropertiesToNode) {
     EXPECT_FLOAT_EQ(node->getFlexShrink(), 3.f);
     EXPECT_FLOAT_EQ(node->getZVal(), 7.f);
     EXPECT_EQ(node->getDrawPivot(), Bess::Canvas::UI::DrawPivot::topLeft);
+}
+
+TEST_F(UiLayoutTests, UIStyleShadowAppliesToBaseAndCustomFrameControls) {
+    Bess::Canvas::SceneState sceneState;
+    Bess::Canvas::UI::View ui{sceneState};
+    const auto renderer = std::make_shared<LayoutTestRenderer2D>();
+    const auto shadow = testShadow();
+
+    auto button = ui.button("base",
+                            nullptr,
+                            Bess::Canvas::UI::UIElementStyle{
+                                .shadow = shadow,
+                            });
+    auto progress =
+        ui.progressBar("load",
+                       0.5f,
+                       0.f,
+                       1.f,
+                       Bess::Canvas::UI::UIElementStyle{
+                           .shadow = shadow,
+                       });
+    progress->setShowLabel(false);
+    progress->setShowValue(false);
+    auto tree = ui.treeNode("tree",
+                            Bess::Canvas::UI::UIElementStyle{
+                                .shadow = shadow,
+                            });
+
+    auto prepareCtx = uiPrepareContext(sceneState, renderer);
+    button->prepareUI(prepareCtx);
+    progress->prepareUI(prepareCtx);
+    tree->prepareUI(prepareCtx);
+    button->getUINode()->measure(*sceneState.getUINodeRegistry(),
+                                 Bess::UUID::null);
+    progress->getUINode()->measure(*sceneState.getUINodeRegistry(),
+                                   Bess::UUID::null);
+    tree->getUINode()->measure(*sceneState.getUINodeRegistry(),
+                               Bess::UUID::null);
+
+    auto drawCtx = uiDrawContext(sceneState, renderer);
+    button->draw(drawCtx);
+
+    ASSERT_FALSE(renderer->quads.empty());
+    expectShadow(renderer->quads.front().shadow, shadow);
+
+    renderer->quads.clear();
+    progress->draw(drawCtx);
+
+    ASSERT_GE(renderer->quads.size(), 2u);
+    expectShadow(renderer->quads[0].shadow, shadow);
+    EXPECT_FALSE(renderer->quads[1].shadow.enabled);
+
+    renderer->quads.clear();
+    tree->draw(drawCtx);
+
+    ASSERT_FALSE(renderer->quads.empty());
+    EXPECT_FALSE(renderer->quads.front().shadow.enabled);
+
+    tree->setDrawHeaderBackground(true);
+    renderer->quads.clear();
+    tree->draw(drawCtx);
+
+    ASSERT_FALSE(renderer->quads.empty());
+    expectShadow(renderer->quads.front().shadow, shadow);
+}
+
+TEST_F(UiLayoutTests, ToggleButtonRespectsConfiguredBorderAndShadowStyle) {
+    Bess::Canvas::SceneState sceneState;
+    Bess::Canvas::UI::View ui{sceneState};
+    const auto renderer = std::make_shared<LayoutTestRenderer2D>();
+    const auto shadow = testShadow();
+
+    auto toggle = ui.toggleButton("toggle",
+                                  Bess::Canvas::UI::UIElementStyle{
+                                      .shadow = shadow,
+                                      .borderSize =
+                                          Bess::Core::Style::BorderSize(2.f),
+                                  });
+    toggle->setShowLabel(false);
+
+    auto prepareCtx = uiPrepareContext(sceneState, renderer);
+    toggle->prepareUI(prepareCtx);
+
+    auto drawCtx = uiDrawContext(sceneState, renderer);
+    toggle->draw(drawCtx);
+
+    ASSERT_GE(renderer->quads.size(), 2u);
+    const auto &track = renderer->quads[0];
+    EXPECT_FLOAT_EQ(track.thickness.x, 2.f);
+    EXPECT_FLOAT_EQ(track.thickness.y, 2.f);
+    EXPECT_FLOAT_EQ(track.thickness.z, 2.f);
+    EXPECT_FLOAT_EQ(track.thickness.w, 2.f);
+    expectShadow(track.shadow, shadow);
+    EXPECT_FALSE(renderer->quads[1].shadow.enabled);
 }
 
 TEST_F(UiLayoutTests, CompConfigMountsComponentTreeAndStyle) {

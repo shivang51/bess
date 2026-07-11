@@ -40,6 +40,7 @@ namespace Bess::Canvas {
             m_camPosYLabel, m_camZoomLabel;
         std::shared_ptr<Bess::Canvas::UI::ContainerComp> m_topContainer;
         std::shared_ptr<Bess::Canvas::UI::ContainerComp> m_bottomContainer;
+        std::shared_ptr<Camera> m_camera;
         bool m_updateTransforms = true;
     };
 } // namespace Bess::Canvas
