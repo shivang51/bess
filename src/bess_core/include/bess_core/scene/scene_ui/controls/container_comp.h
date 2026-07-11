@@ -27,7 +27,10 @@ namespace Bess::Canvas::UI {
         MAKE_GETTER_SETTER(bool, DrawBackground, m_drawBg)
 
         static std::shared_ptr<ContainerComp>
-        create(const LayoutDirection &direction = LayoutDirection::horizontal);
+        create(const CompConfig &config);
+        static std::shared_ptr<ContainerComp>
+        create(const LayoutDirection &direction = LayoutDirection::horizontal,
+               const CompConfig &config = CompConfig{});
 
         void onDraw(SceneDrawContext &state) override;
         void prepareUI(SceneUIPrepareCtx &state) override;

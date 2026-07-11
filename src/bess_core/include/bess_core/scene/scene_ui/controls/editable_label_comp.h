@@ -38,8 +38,11 @@ namespace Bess::Canvas::UI {
         MAKE_GETTER(bool, Editing, m_editing)
 
         static std::shared_ptr<EditableLabelComp>
+        create(const CompConfig &config);
+        static std::shared_ptr<EditableLabelComp>
         create(const std::string &value = "",
-               const UIEditableLabelCallback &changedCallback = nullptr);
+               const UIEditableLabelCallback &changedCallback = nullptr,
+               const CompConfig &config = CompConfig{});
 
         void onDraw(SceneDrawContext &state) override;
         void prepareUI(SceneUIPrepareCtx &state) override;

@@ -34,8 +34,11 @@ namespace Bess::Canvas::UI {
         MAKE_GETTER(bool, Open, m_open)
 
         static std::shared_ptr<ContextMenuComp>
+        create(const CompConfig &config);
+        static std::shared_ptr<ContextMenuComp>
         create(const std::vector<UIContextMenuItem> &items = {},
-               const std::string &triggerLabel = "Right click");
+               const std::string &triggerLabel = "Right click",
+               const CompConfig &config = CompConfig{});
 
         void setItems(const std::vector<UIContextMenuItem> &items);
         const std::vector<UIContextMenuItem> &getItems() const;

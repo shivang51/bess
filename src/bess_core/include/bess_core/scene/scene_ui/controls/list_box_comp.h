@@ -25,9 +25,12 @@ namespace Bess::Canvas::UI {
         static constexpr size_t noSelection = static_cast<size_t>(-1);
 
         static std::shared_ptr<ListBoxComp>
+        create(const CompConfig &config);
+        static std::shared_ptr<ListBoxComp>
         create(const std::vector<UIListBoxItem> &items = {},
                size_t selectedIndex = noSelection,
-               const UIListBoxCallback &changedCallback = nullptr);
+               const UIListBoxCallback &changedCallback = nullptr,
+               const CompConfig &config = CompConfig{});
 
         void setItems(const std::vector<UIListBoxItem> &items);
         const std::vector<UIListBoxItem> &getItems() const;

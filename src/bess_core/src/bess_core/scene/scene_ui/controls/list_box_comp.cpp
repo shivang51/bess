@@ -57,15 +57,22 @@ namespace Bess::Canvas::UI {
     } // namespace
 
     std::shared_ptr<ListBoxComp>
+    ListBoxComp::create(const CompConfig &config) {
+        return create({}, noSelection, nullptr, config);
+    }
+
+    std::shared_ptr<ListBoxComp>
     ListBoxComp::create(const std::vector<UIListBoxItem> &items,
                         size_t selectedIndex,
-                        const UIListBoxCallback &changedCallback) {
+                        const UIListBoxCallback &changedCallback,
+                        const CompConfig &config) {
         auto listBox = std::make_shared<ListBoxComp>();
         listBox->setItems(items);
         if (selectedIndex != noSelection) {
             listBox->setSelectedIndex(selectedIndex);
         }
         listBox->setChangedCallback(changedCallback);
+        applyCompConfig(listBox, config);
         return listBox;
     }
 

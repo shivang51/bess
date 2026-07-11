@@ -21,13 +21,20 @@ namespace Bess::Canvas::UI {
     } // namespace
 
     std::shared_ptr<CheckboxComp>
+    CheckboxComp::create(const CompConfig &config) {
+        return create("", nullptr, false, config);
+    }
+
+    std::shared_ptr<CheckboxComp>
     CheckboxComp::create(const std::string &label,
                          const UICheckboxCallback &callback,
-                         bool checked) {
+                         bool checked,
+                         const CompConfig &config) {
         auto checkbox = std::make_shared<CheckboxComp>();
         checkbox->setName(label);
         checkbox->setCallback(callback);
         checkbox->setChecked(checked);
+        applyCompConfig(checkbox, config);
         return checkbox;
     }
 

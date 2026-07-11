@@ -43,11 +43,14 @@ namespace Bess::Canvas::UI {
         MAKE_GETTER_SETTER(UISliderCallback, ChangedCallback, m_changedCallback)
 
         static std::shared_ptr<SliderComp>
+        create(const CompConfig &config);
+        static std::shared_ptr<SliderComp>
         create(const std::string &label,
                float value,
                float minValue,
                float maxValue,
-               const UISliderCallback &changedCallback = nullptr);
+               const UISliderCallback &changedCallback = nullptr,
+               const CompConfig &config = CompConfig{});
 
         void onDraw(SceneDrawContext &state) override;
         void prepareUI(SceneUIPrepareCtx &state) override;

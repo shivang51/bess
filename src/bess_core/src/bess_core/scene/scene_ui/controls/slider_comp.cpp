@@ -74,16 +74,23 @@ namespace Bess::Canvas::UI {
     } // namespace
 
     std::shared_ptr<SliderComp>
+    SliderComp::create(const CompConfig &config) {
+        return create("", 0.f, 0.f, 1.f, nullptr, config);
+    }
+
+    std::shared_ptr<SliderComp>
     SliderComp::create(const std::string &label,
                        float value,
                        float minValue,
                        float maxValue,
-                       const UISliderCallback &changedCallback) {
+                       const UISliderCallback &changedCallback,
+                       const CompConfig &config) {
         auto slider = std::make_shared<SliderComp>();
         slider->setName(label);
         slider->setValueRange(minValue, maxValue);
         slider->setValue(value);
         slider->setChangedCallback(changedCallback);
+        applyCompConfig(slider, config);
         return slider;
     }
 

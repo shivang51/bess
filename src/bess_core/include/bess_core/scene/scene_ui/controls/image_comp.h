@@ -47,15 +47,19 @@ namespace Bess::Canvas::UI {
       public:
         DEFAULT_CONTRS(ImageComp)
 
+        static std::shared_ptr<ImageComp> create(const CompConfig &config);
         static std::shared_ptr<ImageComp>
-        create(const glm::vec2 &imageSize = {64.f, 64.f});
+        create(const glm::vec2 &imageSize = {64.f, 64.f},
+               const CompConfig &config = CompConfig{});
         static std::shared_ptr<ImageComp>
         create(const std::shared_ptr<Core::Renderer::ITexture> &texture,
-               const glm::vec2 &imageSize = {0.f, 0.f});
+               const glm::vec2 &imageSize = {0.f, 0.f},
+               const CompConfig &config = CompConfig{});
         static std::shared_ptr<ImageComp>
         create(Core::Renderer::TextureHandle texture,
                const glm::vec2 &sourceSize,
-               const glm::vec2 &imageSize = {0.f, 0.f});
+               const glm::vec2 &imageSize = {0.f, 0.f},
+               const CompConfig &config = CompConfig{});
 
         template <typename TTexture>
         static std::shared_ptr<ImageComp>

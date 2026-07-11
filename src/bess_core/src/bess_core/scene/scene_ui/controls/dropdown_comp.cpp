@@ -24,13 +24,20 @@ namespace Bess::Canvas::UI {
     } // namespace
 
     std::shared_ptr<DropdownComp>
+    DropdownComp::create(const CompConfig &config) {
+        return create({}, 0, nullptr, config);
+    }
+
+    std::shared_ptr<DropdownComp>
     DropdownComp::create(const std::vector<UIDropdownOption> &options,
                          size_t selectedIndex,
-                         const UIDropdownCallback &changedCallback) {
+                         const UIDropdownCallback &changedCallback,
+                         const CompConfig &config) {
         auto dropdown = std::make_shared<DropdownComp>();
         dropdown->setOptions(options);
         dropdown->setSelectedIndex(selectedIndex);
         dropdown->setChangedCallback(changedCallback);
+        applyCompConfig(dropdown, config);
         return dropdown;
     }
 

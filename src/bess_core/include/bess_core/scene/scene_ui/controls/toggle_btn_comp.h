@@ -25,9 +25,12 @@ namespace Bess::Canvas::UI {
         MAKE_GETTER_SETTER(ToggleBtnCallback, Callback, m_callback)
 
         static std::shared_ptr<ToggleBtnComp>
+        create(const CompConfig &config);
+        static std::shared_ptr<ToggleBtnComp>
         create(const std::string &label,
                const ToggleBtnCallback &callback = nullptr,
-               bool toggled = false);
+               bool toggled = false,
+               const CompConfig &config = CompConfig{});
 
         void onDraw(SceneDrawContext &state) override;
         bool onMouseButton(const Events::MouseButtonEvent &e) override;

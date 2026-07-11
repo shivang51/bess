@@ -17,8 +17,11 @@ namespace Bess::Canvas::UI {
         DEFAULT_CONTRS(ScalarInputComp)
 
         static std::shared_ptr<ScalarInputComp>
+        create(const CompConfig &config);
+        static std::shared_ptr<ScalarInputComp>
         create(double value = 0.0,
-               const UIScalarInputCallback &changedCallback = nullptr);
+               const UIScalarInputCallback &changedCallback = nullptr,
+               const CompConfig &config = CompConfig{});
 
         [[nodiscard]] double getValue() const;
         void setValue(double value);

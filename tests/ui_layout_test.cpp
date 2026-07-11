@@ -3,7 +3,9 @@
 #include "bess_core/scene/layers/ui_components_layer.h"
 #include "bess_core/scene/scene_event.h"
 #include "bess_core/scene/scene_state/scene_state.h"
+#include "bess_core/scene/scene_ui/controls/container_comp.h"
 #include "bess_core/scene/scene_ui/controls/editable_label_comp.h"
+#include "bess_core/scene/scene_ui/controls/label_comp.h"
 #include "bess_core/scene/scene_ui/controls/text_box_comp.h"
 #include "bess_core/scene/scene_ui/layout.h"
 #include "bess_core/scene/widgets/scene_widgets.h"
@@ -542,6 +544,53 @@ TEST_F(UiLayoutTests, UIElementStyleAppliesLayoutPropertiesToNode) {
     EXPECT_FLOAT_EQ(node->getFlexShrink(), 3.f);
     EXPECT_FLOAT_EQ(node->getZVal(), 7.f);
     EXPECT_EQ(node->getDrawPivot(), Bess::Canvas::UI::DrawPivot::topLeft);
+}
+
+TEST_F(UiLayoutTests, CompConfigMountsComponentTreeAndStyle) {
+    Bess::Canvas::SceneState sceneState;
+
+    const auto margin = Bess::Core::Style::Margin::onlyTop(3.f);
+    auto nestedChild = Bess::Canvas::UI::ContainerComp::create({
+        .sceneState = &sceneState,
+        .children =
+            {
+                Bess::Canvas::UI::LabelComp::create(
+                    "inline"),
+            },
+    });
+    auto secondChild = Bess::Canvas::UI::LabelComp::create("second");
+
+    auto root = Bess::Canvas::UI::ContainerComp::create(
+        {
+            .sceneState = &sceneState,
+            .children =
+                {
+                    nestedChild,
+                    secondChild,
+                },
+            .style = Bess::Canvas::UI::UIElementStyle{
+                .margin = margin,
+            },
+        });
+
+    EXPECT_TRUE(sceneState.isComponentValid(root->getUuid()));
+    EXPECT_TRUE(sceneState.isComponentValid(nestedChild->getUuid()));
+    EXPECT_TRUE(sceneState.isComponentValid(secondChild->getUuid()));
+    EXPECT_TRUE(sceneState.isRootComponent(root->getUuid()));
+    EXPECT_FALSE(sceneState.isRootComponent(nestedChild->getUuid()));
+    EXPECT_FALSE(sceneState.isRootComponent(secondChild->getUuid()));
+    EXPECT_EQ(nestedChild->getParentComponent(), root->getUuid());
+    EXPECT_EQ(secondChild->getParentComponent(), root->getUuid());
+    EXPECT_TRUE(root->getChildComponents().contains(nestedChild->getUuid()));
+    EXPECT_TRUE(root->getChildComponents().contains(secondChild->getUuid()));
+    ASSERT_EQ(nestedChild->getChildComponents().size(), 1u);
+    const auto inlineChildId = *nestedChild->getChildComponents().begin();
+    EXPECT_TRUE(sceneState.isComponentValid(inlineChildId));
+    EXPECT_FALSE(sceneState.isRootComponent(inlineChildId));
+    EXPECT_EQ(sceneState.getComponentByUuid(inlineChildId)->getParentComponent(),
+              nestedChild->getUuid());
+    ASSERT_TRUE(root->getStyle().margin.has_value());
+    EXPECT_EQ(root->getStyle().margin.value(), margin);
 }
 
 TEST_F(UiLayoutTests, UIComponentsLayerResetsCursorAfterLeavingTextBox) {

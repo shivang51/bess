@@ -23,9 +23,12 @@ namespace Bess::Canvas::UI {
         MAKE_GETTER_SETTER(UICheckboxCallback, Callback, m_callback)
 
         static std::shared_ptr<CheckboxComp>
+        create(const CompConfig &config);
+        static std::shared_ptr<CheckboxComp>
         create(const std::string &label,
                const UICheckboxCallback &callback = nullptr,
-               bool checked = false);
+               bool checked = false,
+               const CompConfig &config = CompConfig{});
 
         void prepareUI(SceneUIPrepareCtx &state) override;
         bool onMouseButton(const Events::MouseButtonEvent &e) override;

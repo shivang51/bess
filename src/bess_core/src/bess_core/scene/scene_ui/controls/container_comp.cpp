@@ -5,9 +5,16 @@
 
 namespace Bess::Canvas::UI {
     std::shared_ptr<ContainerComp>
-    ContainerComp::create(const LayoutDirection &direction) {
+    ContainerComp::create(const CompConfig &config) {
+        return create(LayoutDirection::horizontal, config);
+    }
+
+    std::shared_ptr<ContainerComp>
+    ContainerComp::create(const LayoutDirection &direction,
+                          const CompConfig &config) {
         auto container = std::make_shared<ContainerComp>();
         container->setDirection(direction);
+        applyCompConfig(container, config);
         return container;
     }
 

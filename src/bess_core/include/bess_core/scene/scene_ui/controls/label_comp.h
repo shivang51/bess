@@ -10,7 +10,10 @@ namespace Bess::Canvas::UI {
       public:
         DEFAULT_CONTRS(LabelComp)
 
-        static std::shared_ptr<LabelComp> create(const std::string &label);
+        static std::shared_ptr<LabelComp> create(const CompConfig &config);
+        static std::shared_ptr<LabelComp>
+        create(const std::string &label,
+               const CompConfig &config = CompConfig{});
 
         void onDraw(SceneDrawContext &state) override;
     };

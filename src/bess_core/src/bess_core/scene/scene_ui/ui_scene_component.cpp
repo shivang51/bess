@@ -120,6 +120,43 @@ namespace Bess::Canvas::UI {
             });
     }
 
+    void applyCompConfig(const std::shared_ptr<UISceneComponent> &component,
+                         const CompConfig &config) {
+        BESS_ASSERT(component != nullptr,
+                    "Cannot apply UI component config to null component.");
+
+        if (config.style.has_value()) {
+            component->setStyle(config.style.value());
+            component->setUIDirty(true);
+        }
+
+        if (config.sceneState == nullptr) {
+            BESS_ASSERT(config.children.empty(),
+                        "UI component children require a scene state.");
+            return;
+        }
+
+        auto &sceneState = *config.sceneState;
+        if (!sceneState.isComponentValid(component->getUuid())) {
+            sceneState.addComponent(
+                component, config.triggerAttach, config.dispatchAddEvent);
+        }
+
+        for (const auto &child : config.children) {
+            BESS_ASSERT(child != nullptr, "Cannot attach null UI child.");
+            BESS_ASSERT(child->getUuid() != component->getUuid(),
+                        "UI component cannot be attached to itself.");
+
+            if (!sceneState.isComponentValid(child->getUuid())) {
+                sceneState.addComponent(
+                    child, config.triggerAttach, config.dispatchAddEvent);
+            }
+            sceneState.attachChild(component->getUuid(),
+                                   child->getUuid(),
+                                   config.emitReparentEvent);
+        }
+    }
+
     std::vector<UUID> UISceneComponent::cleanup(SceneState &state,
                                                 UUID caller) {
         (void)caller;

@@ -6,11 +6,18 @@
 
 namespace Bess::Canvas::UI {
     std::shared_ptr<TextBoxComp>
+    TextBoxComp::create(const CompConfig &config) {
+        return create("", nullptr, config);
+    }
+
+    std::shared_ptr<TextBoxComp>
     TextBoxComp::create(const std::string &value,
-                        const UITextBoxCallback &changedCallback) {
+                        const UITextBoxCallback &changedCallback,
+                        const CompConfig &config) {
         auto textBox = std::make_shared<TextBoxComp>();
         textBox->setValue(value);
         textBox->setChangedCallback(changedCallback);
+        applyCompConfig(textBox, config);
         return textBox;
     }
 

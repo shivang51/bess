@@ -18,13 +18,20 @@ namespace Bess::Canvas::UI {
     } // namespace
 
     std::shared_ptr<TreeNodeComp>
+    TreeNodeComp::create(const CompConfig &config) {
+        return create("", true, nullptr, config);
+    }
+
+    std::shared_ptr<TreeNodeComp>
     TreeNodeComp::create(const std::string &label,
                          bool expanded,
-                         const UITreeNodeCallback &toggledCallback) {
+                         const UITreeNodeCallback &toggledCallback,
+                         const CompConfig &config) {
         auto node = std::make_shared<TreeNodeComp>();
         node->setName(label);
         node->setExpanded(expanded);
         node->setToggledCallback(toggledCallback);
+        applyCompConfig(node, config);
         return node;
     }
 

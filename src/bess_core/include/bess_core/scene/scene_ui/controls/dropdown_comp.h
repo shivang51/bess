@@ -38,9 +38,12 @@ namespace Bess::Canvas::UI {
         MAKE_GETTER(bool, Open, m_open)
 
         static std::shared_ptr<DropdownComp>
+        create(const CompConfig &config);
+        static std::shared_ptr<DropdownComp>
         create(const std::vector<UIDropdownOption> &options = {},
                size_t selectedIndex = 0,
-               const UIDropdownCallback &changedCallback = nullptr);
+               const UIDropdownCallback &changedCallback = nullptr,
+               const CompConfig &config = CompConfig{});
 
         void setOptions(const std::vector<UIDropdownOption> &options);
         const std::vector<UIDropdownOption> &getOptions() const;

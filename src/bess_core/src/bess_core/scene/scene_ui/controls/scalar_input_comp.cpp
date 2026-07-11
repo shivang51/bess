@@ -116,11 +116,18 @@ namespace Bess::Canvas::UI {
     } // namespace
 
     std::shared_ptr<ScalarInputComp>
+    ScalarInputComp::create(const CompConfig &config) {
+        return create(0.0, nullptr, config);
+    }
+
+    std::shared_ptr<ScalarInputComp>
     ScalarInputComp::create(double value,
-                            const UIScalarInputCallback &changedCallback) {
+                            const UIScalarInputCallback &changedCallback,
+                            const CompConfig &config) {
         auto input = std::make_shared<ScalarInputComp>();
         input->setValue(value);
         input->setChangedCallback(changedCallback);
+        applyCompConfig(input, config);
         return input;
     }
 

@@ -11,11 +11,18 @@ namespace Bess::Canvas::UI {
     } // namespace
 
     std::shared_ptr<EditableLabelComp>
+    EditableLabelComp::create(const CompConfig &config) {
+        return create("", nullptr, config);
+    }
+
+    std::shared_ptr<EditableLabelComp>
     EditableLabelComp::create(const std::string &value,
-                              const UIEditableLabelCallback &changedCallback) {
+                              const UIEditableLabelCallback &changedCallback,
+                              const CompConfig &config) {
         auto label = std::make_shared<EditableLabelComp>();
         label->setName(value);
         label->setChangedCallback(changedCallback);
+        applyCompConfig(label, config);
         return label;
     }
 

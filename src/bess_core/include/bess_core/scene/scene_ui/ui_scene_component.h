@@ -61,6 +61,15 @@ namespace Bess::Canvas::UI {
     typedef std::function<void(SceneDrawContext &ctx, UISceneComponent *comp)>
         UIDrawCallback;
 
+    struct CompConfig {
+        SceneState *sceneState = nullptr;
+        std::vector<std::shared_ptr<UISceneComponent>> children;
+        std::optional<UIElementStyle> style = std::nullopt;
+        bool triggerAttach = true;
+        bool dispatchAddEvent = true;
+        bool emitReparentEvent = false;
+    };
+
     class UISceneComponent : public SceneComponent {
       public:
         UISceneComponent();
@@ -121,4 +130,7 @@ namespace Bess::Canvas::UI {
         Core::Renderer::RenderTransformMode m_lastTransformMode =
             Core::Renderer::RenderTransformMode::Camera;
     };
+
+    void applyCompConfig(const std::shared_ptr<UISceneComponent> &component,
+                         const CompConfig &config);
 } // namespace Bess::Canvas::UI

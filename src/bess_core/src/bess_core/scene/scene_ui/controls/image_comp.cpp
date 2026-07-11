@@ -80,28 +80,38 @@ namespace Bess::Canvas::UI {
         }
     } // namespace
 
-    std::shared_ptr<ImageComp> ImageComp::create(const glm::vec2 &imageSize) {
+    std::shared_ptr<ImageComp> ImageComp::create(const CompConfig &config) {
+        return create({64.f, 64.f}, config);
+    }
+
+    std::shared_ptr<ImageComp>
+    ImageComp::create(const glm::vec2 &imageSize, const CompConfig &config) {
         auto image = std::make_shared<ImageComp>();
         image->setImageSize(imageSize);
+        applyCompConfig(image, config);
         return image;
     }
 
     std::shared_ptr<ImageComp> ImageComp::create(
         const std::shared_ptr<Core::Renderer::ITexture> &texture,
-        const glm::vec2 &imageSize) {
+        const glm::vec2 &imageSize,
+        const CompConfig &config) {
         auto image = std::make_shared<ImageComp>();
         image->setImageSize(imageSize);
         image->setTexture(texture);
+        applyCompConfig(image, config);
         return image;
     }
 
     std::shared_ptr<ImageComp>
     ImageComp::create(Core::Renderer::TextureHandle texture,
                       const glm::vec2 &sourceSize,
-                      const glm::vec2 &imageSize) {
+                      const glm::vec2 &imageSize,
+                      const CompConfig &config) {
         auto image = std::make_shared<ImageComp>();
         image->setImageSize(imageSize);
         image->setTextureHandle(texture, sourceSize);
+        applyCompConfig(image, config);
         return image;
     }
 

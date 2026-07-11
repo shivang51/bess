@@ -37,8 +37,11 @@ namespace Bess::Canvas::UI {
                            m_canceledCallback)
 
         static std::shared_ptr<TextBoxComp>
+        create(const CompConfig &config);
+        static std::shared_ptr<TextBoxComp>
         create(const std::string &value = "",
-               const UITextBoxCallback &changedCallback = nullptr);
+               const UITextBoxCallback &changedCallback = nullptr,
+               const CompConfig &config = CompConfig{});
 
         void update(TimeMs ts, SceneState &state) override;
         void onDraw(SceneDrawContext &state) override;

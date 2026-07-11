@@ -15,14 +15,21 @@ namespace Bess::Canvas::UI {
     } // namespace
 
     std::shared_ptr<SegmentedButtonComp>
+    SegmentedButtonComp::create(const CompConfig &config) {
+        return create({}, 0, nullptr, config);
+    }
+
+    std::shared_ptr<SegmentedButtonComp>
     SegmentedButtonComp::create(
         const std::vector<UISegmentedButtonOption> &options,
         size_t selectedIndex,
-        const UISegmentedButtonCallback &callback) {
+        const UISegmentedButtonCallback &callback,
+        const CompConfig &config) {
         auto button = std::make_shared<SegmentedButtonComp>();
         button->setOptions(options);
         button->setSelectedIndex(selectedIndex);
         button->setCallback(callback);
+        applyCompConfig(button, config);
         return button;
     }
 

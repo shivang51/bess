@@ -12,14 +12,21 @@ namespace Bess::Canvas::UI {
     } // namespace
 
     std::shared_ptr<SelectableButtonComp>
+    SelectableButtonComp::create(const CompConfig &config) {
+        return create("", nullptr, false, config);
+    }
+
+    std::shared_ptr<SelectableButtonComp>
     SelectableButtonComp::create(
         const std::string &label,
         const UISelectableButtonCallback &callback,
-        bool selected) {
+        bool selected,
+        const CompConfig &config) {
         auto button = std::make_shared<SelectableButtonComp>();
         button->setName(label);
         button->setCallback(callback);
         button->setSelected(selected);
+        applyCompConfig(button, config);
         return button;
     }
 

@@ -34,9 +34,12 @@ namespace Bess::Canvas::UI {
                            m_toggledCallback)
 
         static std::shared_ptr<TreeNodeComp>
+        create(const CompConfig &config);
+        static std::shared_ptr<TreeNodeComp>
         create(const std::string &label,
                bool expanded = true,
-               const UITreeNodeCallback &toggledCallback = nullptr);
+               const UITreeNodeCallback &toggledCallback = nullptr,
+               const CompConfig &config = CompConfig{});
 
         void onDraw(SceneDrawContext &state) override;
         void prepareUI(SceneUIPrepareCtx &state) override;

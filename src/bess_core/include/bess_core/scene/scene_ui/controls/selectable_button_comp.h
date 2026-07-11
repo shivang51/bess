@@ -14,9 +14,12 @@ namespace Bess::Canvas::UI {
         DEFAULT_CONTRS(SelectableButtonComp)
 
         static std::shared_ptr<SelectableButtonComp>
+        create(const CompConfig &config);
+        static std::shared_ptr<SelectableButtonComp>
         create(const std::string &label,
                const UISelectableButtonCallback &callback = nullptr,
-               bool selected = false);
+               bool selected = false,
+               const CompConfig &config = CompConfig{});
 
         [[nodiscard]] bool getSelected() const noexcept;
         void setSelected(bool selected) noexcept;

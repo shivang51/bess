@@ -82,12 +82,22 @@ namespace Bess::Canvas::UI {
         }
     } // namespace
 
+    std::shared_ptr<ProgressBarComp>
+    ProgressBarComp::create(const CompConfig &config) {
+        return create("", 0.f, 0.f, 1.f, config);
+    }
+
     std::shared_ptr<ProgressBarComp> ProgressBarComp::create(
-        const std::string &label, float value, float minValue, float maxValue) {
+        const std::string &label,
+        float value,
+        float minValue,
+        float maxValue,
+        const CompConfig &config) {
         auto progress = std::make_shared<ProgressBarComp>();
         progress->setName(label);
         progress->setValueRange(minValue, maxValue);
         progress->setValue(value);
+        applyCompConfig(progress, config);
         return progress;
     }
 

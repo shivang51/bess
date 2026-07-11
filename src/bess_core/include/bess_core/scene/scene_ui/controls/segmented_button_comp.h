@@ -22,9 +22,12 @@ namespace Bess::Canvas::UI {
         DEFAULT_CONTRS(SegmentedButtonComp)
 
         static std::shared_ptr<SegmentedButtonComp>
+        create(const CompConfig &config);
+        static std::shared_ptr<SegmentedButtonComp>
         create(const std::vector<UISegmentedButtonOption> &options = {},
                size_t selectedIndex = 0,
-               const UISegmentedButtonCallback &callback = nullptr);
+               const UISegmentedButtonCallback &callback = nullptr,
+               const CompConfig &config = CompConfig{});
 
         void setOptions(const std::vector<UISegmentedButtonOption> &options);
         [[nodiscard]] const std::vector<UISegmentedButtonOption> &

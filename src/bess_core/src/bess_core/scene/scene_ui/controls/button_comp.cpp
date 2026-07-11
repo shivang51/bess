@@ -3,12 +3,18 @@
 #include "bess_core/scene/scene_state/scene_state.h"
 
 namespace Bess::Canvas::UI {
+    std::shared_ptr<ButtonComp> ButtonComp::create(const CompConfig &config) {
+        return create("", nullptr, config);
+    }
+
     std::shared_ptr<ButtonComp>
     ButtonComp::create(const std::string &label,
-                       const UIButtonCallback &callback) {
+                       const UIButtonCallback &callback,
+                       const CompConfig &config) {
         auto button = std::make_shared<ButtonComp>();
         button->setName(label);
         button->setCallback(callback);
+        applyCompConfig(button, config);
         return button;
     }
 

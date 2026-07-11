@@ -34,10 +34,13 @@ namespace Bess::Canvas::UI {
                               m_valuePrecision,
                               onValueFormatChanged)
 
-        static std::shared_ptr<ProgressBarComp> create(const std::string &label,
-                                                       float value,
-                                                       float minValue = 0.f,
-                                                       float maxValue = 1.f);
+        static std::shared_ptr<ProgressBarComp> create(const CompConfig &config);
+        static std::shared_ptr<ProgressBarComp>
+        create(const std::string &label,
+               float value,
+               float minValue = 0.f,
+               float maxValue = 1.f,
+               const CompConfig &config = CompConfig{});
 
         void onDraw(SceneDrawContext &state) override;
         void prepareUI(SceneUIPrepareCtx &state) override;

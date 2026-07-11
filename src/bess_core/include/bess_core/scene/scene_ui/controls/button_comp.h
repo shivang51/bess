@@ -14,7 +14,11 @@ namespace Bess::Canvas::UI {
         DEFAULT_CONTRS(ButtonComp)
 
         static std::shared_ptr<ButtonComp>
-        create(const std::string &label, const UIButtonCallback &callback);
+        create(const CompConfig &config);
+        static std::shared_ptr<ButtonComp>
+        create(const std::string &label,
+               const UIButtonCallback &callback,
+               const CompConfig &config = CompConfig{});
 
         bool onMouseButton(const Events::MouseButtonEvent &e) override;
 

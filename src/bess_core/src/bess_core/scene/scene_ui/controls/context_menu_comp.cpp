@@ -19,11 +19,18 @@ namespace Bess::Canvas::UI {
     } // namespace
 
     std::shared_ptr<ContextMenuComp>
+    ContextMenuComp::create(const CompConfig &config) {
+        return create({}, "Right click", config);
+    }
+
+    std::shared_ptr<ContextMenuComp>
     ContextMenuComp::create(const std::vector<UIContextMenuItem> &items,
-                            const std::string &triggerLabel) {
+                            const std::string &triggerLabel,
+                            const CompConfig &config) {
         auto menu = std::make_shared<ContextMenuComp>();
         menu->setItems(items);
         menu->setTriggerLabel(triggerLabel);
+        applyCompConfig(menu, config);
         return menu;
     }
 

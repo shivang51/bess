@@ -4,13 +4,20 @@
 
 namespace Bess::Canvas::UI {
     std::shared_ptr<ToggleBtnComp>
+    ToggleBtnComp::create(const CompConfig &config) {
+        return create("", nullptr, false, config);
+    }
+
+    std::shared_ptr<ToggleBtnComp>
     ToggleBtnComp::create(const std::string &label,
                           const ToggleBtnCallback &callback,
-                          bool toggled) {
+                          bool toggled,
+                          const CompConfig &config) {
         auto toggleBtn = std::make_shared<ToggleBtnComp>();
         toggleBtn->m_name = label;
         toggleBtn->m_callback = callback;
         toggleBtn->m_toggled = toggled;
+        applyCompConfig(toggleBtn, config);
         return toggleBtn;
     }
 
