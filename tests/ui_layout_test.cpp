@@ -8,6 +8,7 @@
 #include "bess_core/scene/scene_ui/controls/label_comp.h"
 #include "bess_core/scene/scene_ui/controls/text_box_comp.h"
 #include "bess_core/scene/scene_ui/layout.h"
+#include "bess_core/scene/scene_ui/ui_view.h"
 #include "bess_core/scene/widgets/scene_widgets.h"
 #include "bess_core/scene/widgets/scene_widgets_internal.h"
 #include "bess_core/style/bess_theme.h"
@@ -160,8 +161,7 @@ namespace {
         };
     }
 
-    Bess::Canvas::SceneEvent mouseMoveEvent(
-        const Bess::PickingId &pickingId) {
+    Bess::Canvas::SceneEvent mouseMoveEvent(const Bess::PickingId &pickingId) {
         Bess::Canvas::SceneEvent::Data data;
         data.mouseMove = {
             .pos = {0.f, 0.f},
@@ -186,9 +186,9 @@ namespace {
         };
     }
 
-    Bess::SceneDrawContext uiDrawContext(
-        Bess::Canvas::SceneState &sceneState,
-        const std::shared_ptr<LayoutTestRenderer2D> &renderer) {
+    Bess::SceneDrawContext
+    uiDrawContext(Bess::Canvas::SceneState &sceneState,
+                  const std::shared_ptr<LayoutTestRenderer2D> &renderer) {
         return {
             .sceneState = &sceneState,
             .renderer = renderer,
@@ -203,16 +203,15 @@ namespace {
             id, &value, {0.f, 0.f, 0.f}, {180.f, 24.f}, context);
     }
 
-    glm::vec2 textBoxCursorPointer(
-        const std::shared_ptr<LayoutTestRenderer2D> &renderer,
-        std::string_view text,
-        size_t cursor) {
+    glm::vec2
+    textBoxCursorPointer(const std::shared_ptr<LayoutTestRenderer2D> &renderer,
+                         std::string_view text,
+                         size_t cursor) {
         constexpr float textBoxLeft = -90.f + 4.f;
         cursor = std::min(cursor, text.size());
         const auto prefix = text.substr(0, cursor);
         return {
-            textBoxLeft +
-                renderer->measureText(prefix, {.fontSize = 8.f}).x,
+            textBoxLeft + renderer->measureText(prefix, {.fontSize = 8.f}).x,
             0.f,
         };
     }
@@ -228,9 +227,9 @@ namespace {
         drawTextBox(context, id, value);
     }
 
-    Bess::SceneUIPrepareCtx uiPrepareContext(
-        Bess::Canvas::SceneState &sceneState,
-        const std::shared_ptr<LayoutTestRenderer2D> &renderer) {
+    Bess::SceneUIPrepareCtx
+    uiPrepareContext(Bess::Canvas::SceneState &sceneState,
+                     const std::shared_ptr<LayoutTestRenderer2D> &renderer) {
         return {
             .sceneState = &sceneState,
             .renderer = renderer,
@@ -247,7 +246,7 @@ namespace {
         label.prepareUI(prepareCtx);
         ASSERT_NE(label.getUINode(), nullptr);
         label.getUINode()->measure(*sceneState.getUINodeRegistry(),
-                                    Bess::UUID::null);
+                                   Bess::UUID::null);
     }
 
     void beginEditableLabelEdit(
@@ -290,8 +289,7 @@ class UiLayoutTests : public testing::Test {
     void SetUp() override {
         auto &appCtx = Bess::GAppContext::getInstance();
         if (!appCtx.hasSubSystem<Bess::EventSystem::EventDispatcher>()) {
-            appCtx.addSubSystem<Bess::EventSystem::EventDispatcher>()
-                ->onInit();
+            appCtx.addSubSystem<Bess::EventSystem::EventDispatcher>()->onInit();
         } else {
             appCtx.getSubSystem<Bess::EventSystem::EventDispatcher>()->clear();
         }
@@ -554,24 +552,23 @@ TEST_F(UiLayoutTests, CompConfigMountsComponentTreeAndStyle) {
         .sceneState = &sceneState,
         .children =
             {
-                Bess::Canvas::UI::LabelComp::create(
-                    "inline"),
+                Bess::Canvas::UI::LabelComp::create("inline"),
             },
     });
     auto secondChild = Bess::Canvas::UI::LabelComp::create("second");
 
-    auto root = Bess::Canvas::UI::ContainerComp::create(
-        {
-            .sceneState = &sceneState,
-            .children =
-                {
-                    nestedChild,
-                    secondChild,
-                },
-            .style = Bess::Canvas::UI::UIElementStyle{
+    auto root = Bess::Canvas::UI::ContainerComp::create({
+        .sceneState = &sceneState,
+        .children =
+            {
+                nestedChild,
+                secondChild,
+            },
+        .style =
+            Bess::Canvas::UI::UIElementStyle{
                 .margin = margin,
             },
-        });
+    });
 
     EXPECT_TRUE(sceneState.isComponentValid(root->getUuid()));
     EXPECT_TRUE(sceneState.isComponentValid(nestedChild->getUuid()));
@@ -587,10 +584,72 @@ TEST_F(UiLayoutTests, CompConfigMountsComponentTreeAndStyle) {
     const auto inlineChildId = *nestedChild->getChildComponents().begin();
     EXPECT_TRUE(sceneState.isComponentValid(inlineChildId));
     EXPECT_FALSE(sceneState.isRootComponent(inlineChildId));
-    EXPECT_EQ(sceneState.getComponentByUuid(inlineChildId)->getParentComponent(),
-              nestedChild->getUuid());
+    EXPECT_EQ(
+        sceneState.getComponentByUuid(inlineChildId)->getParentComponent(),
+        nestedChild->getUuid());
     ASSERT_TRUE(root->getStyle().margin.has_value());
     EXPECT_EQ(root->getStyle().margin.value(), margin);
+}
+
+TEST_F(UiLayoutTests, ViewMountsComponentTreeAndStyles) {
+    Bess::Canvas::SceneState sceneState;
+    Bess::Canvas::UI::View ui{sceneState};
+
+    const auto leafMargin = Bess::Core::Style::Margin::onlyBottom(2.f);
+    const auto rootPadding = Bess::Core::Style::Padding(4.f);
+
+    auto inlineLabel = ui.label("inline",
+                                Bess::Canvas::UI::UIElementStyle{
+                                    .fontSize = 9.f,
+                                });
+    auto action = ui.button("action",
+                            Bess::Canvas::UI::UIElementStyle{
+                                .margin = leafMargin,
+                            });
+    auto nested = ui.column({
+        .children =
+            {
+                inlineLabel,
+            },
+    });
+    auto root = ui.row({
+        .children =
+            {
+                nested,
+                action,
+            },
+        .style =
+            Bess::Canvas::UI::UIElementStyle{
+                .padding = rootPadding,
+            },
+    });
+
+    EXPECT_TRUE(sceneState.isComponentValid(root->getUuid()));
+    EXPECT_TRUE(sceneState.isComponentValid(nested->getUuid()));
+    EXPECT_TRUE(sceneState.isComponentValid(inlineLabel->getUuid()));
+    EXPECT_TRUE(sceneState.isComponentValid(action->getUuid()));
+    EXPECT_TRUE(sceneState.isRootComponent(root->getUuid()));
+    EXPECT_FALSE(sceneState.isRootComponent(nested->getUuid()));
+    EXPECT_FALSE(sceneState.isRootComponent(inlineLabel->getUuid()));
+    EXPECT_FALSE(sceneState.isRootComponent(action->getUuid()));
+
+    EXPECT_EQ(root->getDirection(),
+              Bess::Canvas::UI::LayoutDirection::horizontal);
+    EXPECT_EQ(nested->getDirection(),
+              Bess::Canvas::UI::LayoutDirection::vertical);
+    EXPECT_EQ(nested->getParentComponent(), root->getUuid());
+    EXPECT_EQ(action->getParentComponent(), root->getUuid());
+    EXPECT_EQ(inlineLabel->getParentComponent(), nested->getUuid());
+    EXPECT_TRUE(root->getChildComponents().contains(nested->getUuid()));
+    EXPECT_TRUE(root->getChildComponents().contains(action->getUuid()));
+    EXPECT_TRUE(nested->getChildComponents().contains(inlineLabel->getUuid()));
+
+    ASSERT_TRUE(root->getStyle().padding.has_value());
+    EXPECT_EQ(root->getStyle().padding.value(), rootPadding);
+    ASSERT_TRUE(action->getStyle().margin.has_value());
+    EXPECT_EQ(action->getStyle().margin.value(), leafMargin);
+    ASSERT_TRUE(inlineLabel->getStyle().fontSize.has_value());
+    EXPECT_FLOAT_EQ(inlineLabel->getStyle().fontSize.value(), 9.f);
 }
 
 TEST_F(UiLayoutTests, UIComponentsLayerResetsCursorAfterLeavingTextBox) {

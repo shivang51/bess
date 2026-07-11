@@ -381,7 +381,9 @@ void bind_scene_ui(py::module_ &m) {
         m, "ContainerComp")
         .def(py::init<>())
         .def_static("create",
-                    &UI::ContainerComp::create,
+                    [](const UI::LayoutDirection &direction) {
+                        return UI::ContainerComp::create(direction);
+                    },
                     py::arg_v("direction",
                               UI::LayoutDirection::horizontal,
                               "UILayoutDirection.horizontal"))

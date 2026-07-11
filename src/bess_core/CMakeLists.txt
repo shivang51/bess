@@ -41,6 +41,7 @@ set(Header_Files
 	"include/bess_core/scene/scene_ui/layout.h"
 	"include/bess_core/scene/scene_ui/text_box_context.h"
 	"include/bess_core/scene/scene_ui/ui_scene_component.h"
+	"include/bess_core/scene/scene_ui/ui_view.h"
 	"include/bess_core/scene/scene_ui/controls/button_comp.h"
 	"include/bess_core/scene/scene_ui/controls/checkbox_comp.h"
 	"include/bess_core/scene/scene_ui/controls/container_comp.h"
