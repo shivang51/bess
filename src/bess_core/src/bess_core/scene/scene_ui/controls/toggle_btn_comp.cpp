@@ -3,6 +3,10 @@
 #include "bess_core/scene/scene_state/scene_state.h"
 
 namespace Bess::Canvas::UI {
+    namespace {
+        constexpr float kToggleLayerStepZ = 0.01f;
+    } // namespace
+
     std::shared_ptr<ToggleBtnComp>
     ToggleBtnComp::create(const CompConfig &config) {
         return create("", nullptr, false, config);
@@ -33,16 +37,18 @@ namespace Bess::Canvas::UI {
         Core::Renderer::QuadProps trackProps;
         trackProps.position = m_trackNode->getDrawPos();
         trackProps.size = m_trackNode->getDrawSize();
-        trackProps.zIndex = m_trackNode->getDrawPos().z;
+        trackProps.zIndex = m_trackNode->getDrawPos().z + kToggleLayerStepZ;
         trackProps.color = m_toggled ? m_trackOnColor : m_trackOffColor;
         trackProps.borderColor = m_style.borderColor;
         trackProps.thickness = m_style.metrics.borderSize.toVec4();
         trackProps.radius = m_style.metrics.borderRadius;
         trackProps.shadow = m_style.shadowProps;
+        trackProps.renderPass = Core::Renderer::QuadRenderPass::Transparent;
         trackProps.transformMode = state.transformMode;
         trackProps.id = PickingId{.runtimeId = resolveRuntimeId(), .info = 1};
 
         state.renderer->drawQuad(trackProps);
+
         trackProps.position.x += m_toggled
                                      ? (m_trackNode->getDrawSize().x / 2.f) -
                                            (m_thumbSize.x / 2.f) -
@@ -51,10 +57,11 @@ namespace Bess::Canvas::UI {
                                            ((m_thumbSize.x / 2.f) +
                                             m_style.metrics.borderSize.right);
         trackProps.size = m_thumbSize;
-        trackProps.zIndex += 0.0001f;
+        trackProps.zIndex += kToggleLayerStepZ;
         trackProps.thickness = glm::vec4(0.f);
         trackProps.shadow = Core::Renderer::ShadowProps{};
         trackProps.color = m_toggled ? m_thumbOnColor : m_thumbOffColor;
+
         state.renderer->drawQuad(trackProps);
     }
 
@@ -98,8 +105,6 @@ namespace Bess::Canvas::UI {
 
             m_labelNode->setWidth(labelSize.x);
             m_labelNode->setHeight(labelSize.y);
-            m_labelNode->setPosMode(PosMode::relative);
-            m_labelNode->setPadding(0.f);
             m_labelNode->setMargin(
                 Core::Style::Margin::onlyRight(m_labelTrackSpacing));
 
@@ -110,8 +115,6 @@ namespace Bess::Canvas::UI {
 
         m_trackNode->setWidth(m_trackSize.x);
         m_trackNode->setHeight(m_trackSize.y);
-        m_trackNode->setPosMode(PosMode::relative);
-        m_trackNode->setPos(glm::vec2(0.f));
         m_trackNode->setPadding(0.f);
         m_trackNode->setMargin(0.f);
 

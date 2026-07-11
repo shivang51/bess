@@ -41,6 +41,7 @@ namespace Bess::Canvas {
         std::shared_ptr<Bess::Canvas::UI::ContainerComp> m_topContainer;
         std::shared_ptr<Bess::Canvas::UI::ContainerComp> m_bottomContainer;
         std::shared_ptr<Camera> m_camera;
+        std::shared_ptr<Core::Viewport::ViewportContext> m_vpCtx = nullptr;
         bool m_updateTransforms = true;
     };
 } // namespace Bess::Canvas

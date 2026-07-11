@@ -565,15 +565,35 @@ namespace Bess::Canvas {
                                    .drawPivot = UI::DrawPivot::bottomCenter,
                                },
                        });
+        auto toggleBtn = ui.toggleButton(
+            "Schematic Mode",
+            [this](bool toggled) { m_vpCtx->toggleSchematicMode(); },
+            false,
+            UI::UIElementStyle{
+                .padding = 0.f,
+                .margin = 0.f,
+                .fontSize = fontSize,
+            });
 
+        // toggleBtn = UI::ToggleBtnComp::create(
+        //     "Schematic Mode 1",
+        //     [this](bool toggled) { m_vpCtx->toggleSchematicMode(); },
+        //     false,
+        //     UI::CompConfig{
+        //         .sceneState = ctx.sceneState,
+        //         .style =
+        //             UI::UIElementStyle{
+        //                 .padding = 0.f,
+        //                 .margin = 0.f,
+        //                 .fontSize = fontSize,
+        //             },
+        //     });
+        //
         m_topContainer = ui.row(UI::CompConfig{
             .children =
                 {
                     ui.row(UI::CompConfig{
-                        .children =
-                            {
-                                ui.label("Top Overlay", {.fontSize = fontSize}),
-                            },
+                        .children = {toggleBtn},
                         .style = containerStyle,
                     }),
                 },
@@ -587,6 +607,13 @@ namespace Bess::Canvas {
 
         m_topContainer->setIsScreenSpace();
         m_bottomContainer->setIsScreenSpace();
+
+        const auto isHiddenCb = [](const SceneDrawContext &ctx) -> bool {
+            return !ctx.viewportCtx->isFocused;
+        };
+
+        m_topContainer->setIsHiddenCb(isHiddenCb);
+        m_bottomContainer->setIsHiddenCb(isHiddenCb);
     }
 
     void ScreenSpaceOverlayLayer::addDrawCallback(DrawCallback callback) {
@@ -656,6 +683,7 @@ namespace Bess::Canvas {
         // to update the camera position label for the focused viewport
         if (ctx.viewportCtx->isFocused) {
             m_camera = ctx.camera;
+            m_vpCtx = ctx.viewportCtx;
 
             if (m_camPosXLabel) {
                 const auto &mPos = ctx.viewportCtx->inputCtx.mousePos;

@@ -78,8 +78,8 @@ namespace Bess::Canvas {
             return dynamic_cast<UI::UISceneComponent *>(comp.get());
         }
 
-        UI::UISceneComponent *
-        getParentUIComponent(SceneState *state, UI::UISceneComponent *comp) {
+        UI::UISceneComponent *getParentUIComponent(SceneState *state,
+                                                   UI::UISceneComponent *comp) {
             if (state == nullptr || comp == nullptr ||
                 comp->getParentComponent() == UUID::null) {
                 return nullptr;
@@ -219,11 +219,8 @@ namespace Bess::Canvas {
             m_pressedComponent = compId;
             m_pressedPickingId = evt.pickingId;
             m_pressedButton = sceneButton;
-            const auto focusEvent =
-                makeFocusEvent(ctx,
-                               compId,
-                               data.pos,
-                               eventDetails(evt.pickingId));
+            const auto focusEvent = makeFocusEvent(
+                ctx, compId, data.pos, eventDetails(evt.pickingId));
 
             if (uiComp->isFocusable()) {
                 ctx.sceneState->focusUIComponent(compId, focusEvent);
@@ -368,6 +365,7 @@ namespace Bess::Canvas {
             .viewportId = ctx.viewportCtx->viewportId,
             .isSchematicMode = false,
             .sceneWidgetsState = ctx.sceneWidgetsState,
+            .viewportCtx = ctx.viewportCtx,
         };
 
         for (const auto &compId : ctx.sceneState->getRootComponents()) {

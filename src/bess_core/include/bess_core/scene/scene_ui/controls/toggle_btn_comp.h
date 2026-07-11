@@ -24,8 +24,7 @@ namespace Bess::Canvas::UI {
         MAKE_GETTER_SETTER_WC(glm::vec2, ThumbSize, m_thumbSize, makeUIDirty)
         MAKE_GETTER_SETTER(ToggleBtnCallback, Callback, m_callback)
 
-        static std::shared_ptr<ToggleBtnComp>
-        create(const CompConfig &config);
+        static std::shared_ptr<ToggleBtnComp> create(const CompConfig &config);
         static std::shared_ptr<ToggleBtnComp>
         create(const std::string &label,
                const ToggleBtnCallback &callback = nullptr,

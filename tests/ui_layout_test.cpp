@@ -664,6 +664,59 @@ TEST_F(UiLayoutTests, ToggleButtonRespectsConfiguredBorderAndShadowStyle) {
     EXPECT_FALSE(renderer->quads[1].shadow.enabled);
 }
 
+TEST_F(UiLayoutTests, ToggleButtonTrackStaysAboveTransparentParentRow) {
+    Bess::Canvas::SceneState sceneState;
+    Bess::Canvas::UI::View ui{sceneState};
+    const auto renderer = std::make_shared<LayoutTestRenderer2D>();
+
+    auto toggle = ui.toggleButton("Schematic Mode",
+                                  nullptr,
+                                  false,
+                                  Bess::Canvas::UI::UIElementStyle{
+                                      .padding = 0.f,
+                                      .margin = 0.f,
+                                  });
+    auto row = ui.row(Bess::Canvas::UI::CompConfig{
+        .children =
+            {
+                toggle,
+            },
+        .style =
+            Bess::Canvas::UI::UIElementStyle{
+                .backgroundColor =
+                    Bess::Core::Style::Color{0.2f, 0.3f, 0.4f, 0.5f},
+                .padding = Bess::Core::Style::Padding(4.f),
+                .zVal = 5000.f,
+                .drawBg = true,
+            },
+    });
+
+    auto prepareCtx = uiPrepareContext(sceneState, renderer);
+    row->prepareUI(prepareCtx);
+    row->getUINode()->measure(*sceneState.getUINodeRegistry(),
+                              Bess::UUID::null);
+
+    auto drawCtx = uiDrawContext(sceneState, renderer);
+    row->draw(drawCtx);
+
+    ASSERT_GE(renderer->quads.size(), 3u);
+    const auto parentZ = renderer->quads.front().zIndex;
+
+    size_t toggleQuadCount = 0;
+    for (const auto &quad : renderer->quads) {
+        if (quad.id.runtimeId != toggle->getRuntimeId() ||
+            quad.id.info != 1u) {
+            continue;
+        }
+        ++toggleQuadCount;
+        EXPECT_EQ(quad.renderPass,
+                  Bess::Core::Renderer::QuadRenderPass::Transparent);
+        EXPECT_GT(quad.zIndex, parentZ);
+    }
+
+    EXPECT_EQ(toggleQuadCount, 2u);
+}
+
 TEST_F(UiLayoutTests, CompConfigMountsComponentTreeAndStyle) {
     Bess::Canvas::SceneState sceneState;
 

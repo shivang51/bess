@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bess_core/renderer/renderer_types.h"
+#include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_ui/layout.h"
 #include "bess_core/style/bess_theme.h"
@@ -78,6 +79,8 @@ namespace Bess::Canvas::UI {
       public:
         UISceneComponent();
 
+        typedef std::function<bool(const SceneDrawContext &ctx)> IsHiddenCb;
+
         MAKE_GETTER_SETTER_PTR(UINode, UINode, m_node);
         MAKE_GETTER_SETTER(UIElementStyle, Style, m_customStyle);
         MAKE_GETTER_SETTER(UIDrawCallback, DrawCallback, m_drawCallback);
@@ -85,6 +88,7 @@ namespace Bess::Canvas::UI {
                            DrawRuntimeId,
                            m_drawRuntimeId);
         MAKE_GETTER(bool, Focused, m_focused)
+        MAKE_GETTER_SETTER(IsHiddenCb, IsHiddenCb, m_isHiddenCb)
 
         REG_SCENE_COMP_TYPE("UISceneComponent", SceneComponentType::ui)
         std::vector<UUID> cleanup(SceneState &state,
@@ -101,6 +105,8 @@ namespace Bess::Canvas::UI {
 
         void setIsScreenSpace(bool val = true);
         void draw(SceneDrawContext &state) override;
+        void hide();
+        void show();
 
         virtual void onDraw(SceneDrawContext &state) = 0;
 
@@ -137,6 +143,8 @@ namespace Bess::Canvas::UI {
             Core::Renderer::RenderTransformMode::Camera;
         Core::Renderer::RenderTransformMode m_lastTransformMode =
             Core::Renderer::RenderTransformMode::Camera;
+        bool m_hidden = false;
+        IsHiddenCb m_isHiddenCb = nullptr;
     };
 
     void applyCompConfig(const std::shared_ptr<UISceneComponent> &component,

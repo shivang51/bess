@@ -3,6 +3,7 @@
 #include "bess_core/renderer/renderer_types.h"
 #include "bess_core/scene/scene_ui/layout.h"
 #include "bess_core/style/bess_theme.h"
+#include "bess_core/viewport.h"
 #include "common/bess_assert.h"
 #include "simulation_engine.h"
 #include <memory>
@@ -89,6 +90,7 @@ namespace Bess {
         bool isSchematicMode = false;
         Canvas::SceneWidgets::SceneWidgetsState *sceneWidgetsState = nullptr;
         SimDrawCache *simDrawCache = nullptr;
+        std::shared_ptr<Core::Viewport::ViewportContext> viewportCtx = nullptr;
     };
 
     struct SceneUIPrepareCtx {

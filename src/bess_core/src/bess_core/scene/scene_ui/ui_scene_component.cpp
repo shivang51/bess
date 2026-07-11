@@ -262,9 +262,25 @@ namespace Bess::Canvas::UI {
     }
 
     void UISceneComponent::draw(SceneDrawContext &state) {
+        if (m_hidden) {
+            return;
+        }
+
+        if (m_isHiddenCb && m_isHiddenCb(state)) {
+            return;
+        }
+
         onBeforeDraw(state);
         onDraw(state);
         onAfterDraw(state);
+    }
+
+    void UISceneComponent::hide() {
+        m_hidden = true;
+    }
+
+    void UISceneComponent::show() {
+        m_hidden = false;
     }
 
     uint32_t UISceneComponent::resolveRuntimeId() const {
