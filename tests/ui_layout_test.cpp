@@ -17,6 +17,7 @@
 #include "event_dispatcher.h"
 #include <gtest/gtest.h>
 #include <memory>
+#include <vector>
 
 namespace {
     void expectVec2(const glm::vec2 &actual, float expectedX, float expectedY) {
@@ -81,7 +82,8 @@ namespace {
         }
         void clearScissorRects() override {
         }
-        void drawQuad(const Bess::Core::Renderer::QuadProps &) override {
+        void drawQuad(const Bess::Core::Renderer::QuadProps &props) override {
+            quads.push_back(props);
         }
         [[nodiscard]] Bess::Core::Renderer::CustomQuadShaderHandle
         createCustomQuadShader(
@@ -98,8 +100,10 @@ namespace {
         }
         void drawLine(const Bess::Core::Renderer::LineProps &) override {
         }
-        void drawFont(std::string_view,
-                      const Bess::Core::Renderer::FontProps & = {}) override {
+        void
+        drawFont(std::string_view,
+                 const Bess::Core::Renderer::FontProps &props = {}) override {
+            fonts.push_back(props);
         }
         [[nodiscard]] glm::vec2 measureText(
             std::string_view text,
@@ -138,6 +142,9 @@ namespace {
         }
         void endPath() override {
         }
+
+        std::vector<Bess::Core::Renderer::QuadProps> quads;
+        std::vector<Bess::Core::Renderer::FontProps> fonts;
     };
 
     Bess::Canvas::SceneEvent
@@ -650,6 +657,256 @@ TEST_F(UiLayoutTests, ViewMountsComponentTreeAndStyles) {
     EXPECT_EQ(action->getStyle().margin.value(), leafMargin);
     ASSERT_TRUE(inlineLabel->getStyle().fontSize.has_value());
     EXPECT_FLOAT_EQ(inlineLabel->getStyle().fontSize.value(), 9.f);
+}
+
+TEST_F(UiLayoutTests, LabelDrawPickingIdUsesInvalidOrParentId) {
+    Bess::Canvas::SceneState sceneState;
+    Bess::Canvas::UI::View ui{sceneState};
+    const auto renderer = std::make_shared<LayoutTestRenderer2D>();
+
+    auto standaloneLabel = ui.label("standalone");
+    auto childLabel = ui.label("child");
+    auto parentRow = ui.row({
+        .children =
+            {
+                childLabel,
+            },
+    });
+
+    auto prepareCtx = uiPrepareContext(sceneState, renderer);
+    standaloneLabel->prepareUI(prepareCtx);
+    parentRow->prepareUI(prepareCtx);
+
+    auto drawCtx = uiDrawContext(sceneState, renderer);
+    standaloneLabel->draw(drawCtx);
+
+    ASSERT_EQ(renderer->fonts.size(), 1u);
+    EXPECT_EQ(renderer->fonts.front().id, Bess::PickingId::invalid());
+    EXPECT_EQ(standaloneLabel->getCursor(),
+              Bess::Core::Viewport::SceneCursor::normal);
+
+    renderer->fonts.clear();
+    parentRow->draw(drawCtx);
+
+    ASSERT_EQ(renderer->fonts.size(), 1u);
+    EXPECT_EQ(renderer->fonts.front().id.runtimeId, parentRow->getRuntimeId());
+    EXPECT_EQ(renderer->fonts.front().id.info,
+              Bess::PickingId::InfoFlags::passiveCursor);
+    EXPECT_EQ(childLabel->getCursor(),
+              Bess::Core::Viewport::SceneCursor::normal);
+}
+
+TEST_F(UiLayoutTests, PassiveLabelPickingHoversParentWithoutPointerCursor) {
+    Bess::Canvas::SceneState sceneState;
+    Bess::Canvas::UI::View ui{sceneState};
+    const auto renderer = std::make_shared<LayoutTestRenderer2D>();
+
+    const auto background = Bess::Core::Style::Color{0.1f, 0.2f, 0.3f, 0.4f};
+    const auto hover = Bess::Core::Style::Color{0.3f, 0.4f, 0.5f, 0.4f};
+    auto button = ui.button(Bess::Canvas::UI::CompConfig{
+        .children =
+            {
+                ui.label("child"),
+            },
+        .style =
+            Bess::Canvas::UI::UIElementStyle{
+                .backgroundColor = background,
+                .hoverColor = hover,
+            },
+    });
+
+    auto prepareCtx = uiPrepareContext(sceneState, renderer);
+    button->prepareUI(prepareCtx);
+
+    auto viewportCtx =
+        std::make_shared<Bess::Core::Viewport::ViewportContext>();
+    Bess::Canvas::SceneEventContext eventCtx;
+    eventCtx.sceneState = &sceneState;
+    eventCtx.viewportCtx = viewportCtx;
+
+    Bess::Canvas::UIComponentsLayer layer;
+    auto hoverEvent = mouseMoveEvent(Bess::PickingId{
+        .runtimeId = button->getRuntimeId(),
+        .info = Bess::PickingId::InfoFlags::passiveCursor,
+    });
+
+    EXPECT_EQ(layer.handleEvent(hoverEvent, eventCtx),
+              Bess::Canvas::EventResult::Consumed);
+    EXPECT_EQ(viewportCtx->inputCtx.cursorRequest.cursor,
+              Bess::Core::Viewport::SceneCursor::normal);
+
+    auto drawCtx = uiDrawContext(sceneState, renderer);
+    button->draw(drawCtx);
+
+    ASSERT_FALSE(renderer->quads.empty());
+    EXPECT_EQ(renderer->quads.front().color.toHex(), hover.toHex());
+}
+
+TEST_F(UiLayoutTests, ButtonWithChildrenDoesNotAddTextLabelNode) {
+    Bess::Canvas::SceneState sceneState;
+    Bess::Canvas::UI::View ui{sceneState};
+    const auto renderer = std::make_shared<LayoutTestRenderer2D>();
+
+    auto child = ui.label("child",
+                          Bess::Canvas::UI::UIElementStyle{
+                              .padding = Bess::Core::Style::Padding::zero(),
+                              .margin = Bess::Core::Style::Margin::zero(),
+                          });
+    auto childRow = ui.row(Bess::Canvas::UI::CompConfig{
+        .children =
+            {
+                child,
+            },
+        .style =
+            Bess::Canvas::UI::UIElementStyle{
+                .padding = Bess::Core::Style::Padding::zero(),
+                .margin = Bess::Core::Style::Margin::zero(),
+            },
+    });
+
+    auto button =
+        ui.button("ignored label",
+                  nullptr,
+                  Bess::Canvas::UI::CompConfig{
+                      .children =
+                          {
+                              childRow,
+                          },
+                      .style =
+                          Bess::Canvas::UI::UIElementStyle{
+                              .padding = Bess::Core::Style::Padding(3.f),
+                          },
+                  });
+
+    auto prepareCtx = uiPrepareContext(sceneState, renderer);
+    button->prepareUI(prepareCtx);
+
+    ASSERT_NE(button->getUINode(), nullptr);
+    ASSERT_NE(child->getUINode(), nullptr);
+
+    const auto &nodeChildren = button->getUINode()->getChildren();
+    ASSERT_EQ(nodeChildren.size(), 1u);
+    EXPECT_TRUE(nodeChildren.contains(childRow->getUINode()->getId()));
+    ASSERT_TRUE(childRow->getDrawRuntimeId().has_value());
+    ASSERT_TRUE(child->getDrawRuntimeId().has_value());
+    EXPECT_EQ(childRow->getDrawRuntimeId().value(), button->getRuntimeId());
+    EXPECT_EQ(child->getDrawRuntimeId().value(), button->getRuntimeId());
+
+    auto drawCtx = uiDrawContext(sceneState, renderer);
+    button->draw(drawCtx);
+
+    ASSERT_EQ(renderer->fonts.size(), 1u);
+    EXPECT_EQ(renderer->fonts.front().id.runtimeId, button->getRuntimeId());
+    EXPECT_EQ(renderer->fonts.front().id.info,
+              Bess::PickingId::InfoFlags::passiveCursor);
+}
+
+TEST_F(UiLayoutTests, CustomBackgroundButtonHoverPreservesAlpha) {
+    Bess::Canvas::SceneState sceneState;
+    Bess::Canvas::UI::View ui{sceneState};
+    const auto renderer = std::make_shared<LayoutTestRenderer2D>();
+
+    const auto background = Bess::Core::Style::Color{0.2f, 0.3f, 0.4f, 0.5f};
+    auto button = ui.button("hover",
+                            nullptr,
+                            Bess::Canvas::UI::UIElementStyle{
+                                .backgroundColor = background,
+                            });
+
+    auto prepareCtx = uiPrepareContext(sceneState, renderer);
+    button->prepareUI(prepareCtx);
+
+    auto drawCtx = uiDrawContext(sceneState, renderer);
+    button->onMouseEnter({});
+    button->draw(drawCtx);
+
+    ASSERT_FALSE(renderer->quads.empty());
+    const auto hoverColor = renderer->quads.front().color;
+    EXPECT_FLOAT_EQ(hoverColor.a, background.a);
+    EXPECT_NE(hoverColor.toHex(), background.toHex());
+}
+
+TEST_F(UiLayoutTests, HoveringButtonDoesNotChangeSiblingRowBackgrounds) {
+    Bess::Canvas::SceneState sceneState;
+    Bess::Canvas::UI::View ui{sceneState};
+    const auto renderer = std::make_shared<LayoutTestRenderer2D>();
+
+    const auto background = Bess::Core::Style::Color{0.2f, 0.3f, 0.4f, 0.5f};
+    const auto containerStyle = Bess::Canvas::UI::UIElementStyle{
+        .backgroundColor = background,
+        .padding = Bess::Core::Style::Padding::zero(),
+        .margin = Bess::Core::Style::Margin::zero(),
+        .drawBg = true,
+    };
+    const auto labelStyle = Bess::Canvas::UI::UIElementStyle{
+        .padding = Bess::Core::Style::Padding::zero(),
+        .margin = Bess::Core::Style::Margin::zero(),
+    };
+
+    auto camButton = ui.button(Bess::Canvas::UI::CompConfig{
+        .children =
+            {
+                ui.label("cam", labelStyle),
+            },
+        .style = containerStyle,
+    });
+    auto zoomRow = ui.row(Bess::Canvas::UI::CompConfig{
+        .children =
+            {
+                ui.label("zoom", labelStyle),
+            },
+        .style = containerStyle,
+    });
+    auto topRow = ui.row(Bess::Canvas::UI::CompConfig{
+        .children =
+            {
+                ui.label("top", labelStyle),
+            },
+        .style = containerStyle,
+    });
+
+    auto bottomRoot = ui.row(Bess::Canvas::UI::CompConfig{
+        .children =
+            {
+                camButton,
+                zoomRow,
+            },
+        .style =
+            Bess::Canvas::UI::UIElementStyle{
+                .padding = Bess::Core::Style::Padding::zero(),
+                .margin = Bess::Core::Style::Margin::zero(),
+            },
+    });
+    auto topRoot = ui.row(Bess::Canvas::UI::CompConfig{
+        .children =
+            {
+                topRow,
+            },
+        .style =
+            Bess::Canvas::UI::UIElementStyle{
+                .padding = Bess::Core::Style::Padding::zero(),
+                .margin = Bess::Core::Style::Margin::zero(),
+            },
+    });
+
+    auto prepareCtx = uiPrepareContext(sceneState, renderer);
+    bottomRoot->prepareUI(prepareCtx);
+    topRoot->prepareUI(prepareCtx);
+    bottomRoot->getUINode()->measure(*sceneState.getUINodeRegistry(),
+                                     Bess::UUID::null);
+    topRoot->getUINode()->measure(*sceneState.getUINodeRegistry(),
+                                  Bess::UUID::null);
+
+    auto drawCtx = uiDrawContext(sceneState, renderer);
+    camButton->onMouseEnter({});
+    bottomRoot->draw(drawCtx);
+    topRoot->draw(drawCtx);
+
+    ASSERT_EQ(renderer->quads.size(), 3u);
+    EXPECT_NE(renderer->quads[0].color.toHex(), background.toHex());
+    EXPECT_FLOAT_EQ(renderer->quads[0].color.a, background.a);
+    EXPECT_EQ(renderer->quads[1].color.toHex(), background.toHex());
+    EXPECT_EQ(renderer->quads[2].color.toHex(), background.toHex());
 }
 
 TEST_F(UiLayoutTests, UIComponentsLayerResetsCursorAfterLeavingTextBox) {

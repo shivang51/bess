@@ -118,6 +118,10 @@ namespace Bess::Canvas::UI {
         void drawText(SceneDrawContext &state,
                       const std::string &text,
                       UINode *node);
+        void drawText(SceneDrawContext &state,
+                      const std::string &text,
+                      UINode *node,
+                      const PickingId &pickingId);
 
         void onBeforeDraw(SceneDrawContext &state);
         void onAfterDraw(SceneDrawContext &state);

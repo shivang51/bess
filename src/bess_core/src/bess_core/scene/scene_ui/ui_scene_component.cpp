@@ -4,12 +4,29 @@
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "common/events.h"
+#include <algorithm>
 
 namespace Bess::Canvas::UI {
     namespace {
         template <typename T>
         T resolveOptional(const std::optional<T> &custom, const T &defaultVal) {
             return custom.has_value() ? custom.value() : defaultVal;
+        }
+
+        Core::Style::Color
+        makeCustomBackgroundHoverColor(Core::Style::Color color) {
+            constexpr float hoverMix = 0.12f;
+            const float luminance =
+                (0.2126f * color.r) + (0.7152f * color.g) + (0.0722f * color.b);
+            const float target = luminance > 0.5f ? 0.f : 1.f;
+
+            color.r =
+                std::clamp(color.r + ((target - color.r) * hoverMix), 0.f, 1.f);
+            color.g =
+                std::clamp(color.g + ((target - color.g) * hoverMix), 0.f, 1.f);
+            color.b =
+                std::clamp(color.b + ((target - color.b) * hoverMix), 0.f, 1.f);
+            return color;
         }
 
         void applySizeMode(UINode &node,
@@ -293,8 +310,12 @@ namespace Bess::Canvas::UI {
         m_style.backgroundColor = resolveOptional(m_customStyle.backgroundColor,
                                                   m_style.backgroundColor);
 
-        m_style.hoverColor =
-            resolveOptional(m_customStyle.hoverColor, m_style.hoverColor);
+        if (m_customStyle.hoverColor.has_value()) {
+            m_style.hoverColor = m_customStyle.hoverColor.value();
+        } else if (m_customStyle.backgroundColor.has_value()) {
+            m_style.hoverColor =
+                makeCustomBackgroundHoverColor(m_style.backgroundColor);
+        }
 
         m_style.borderColor =
             resolveOptional(m_customStyle.borderColor, m_style.borderColor);
@@ -403,17 +424,22 @@ namespace Bess::Canvas::UI {
     void UISceneComponent::drawText(SceneDrawContext &state,
                                     const std::string &text,
                                     UINode *node) {
+        drawText(state,
+                 text,
+                 node,
+                 PickingId{
+                     .runtimeId = resolveRuntimeId(),
+                     .info = 0,
+                 });
+    }
 
-        SceneComponent *parent = nullptr;
-
-        if (m_parentComponent != UUID::null) {
-            parent = state.sceneState->getComponentByUuid(m_parentComponent);
+    void UISceneComponent::drawText(SceneDrawContext &state,
+                                    const std::string &text,
+                                    UINode *node,
+                                    const PickingId &pickingId) {
+        if (node == nullptr || state.renderer == nullptr) {
+            return;
         }
-
-        PickingId pickingId{
-            .runtimeId = resolveRuntimeId(),
-            .info = 0,
-        };
 
         const auto offsetY = state.renderer->textCenterOffsetY(
             text,

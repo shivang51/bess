@@ -32,6 +32,7 @@ namespace Bess {
 
         struct InfoFlags {
             static constexpr uint32_t unSelectable = 1 << 31;
+            static constexpr uint32_t passiveCursor = 1 << 29;
         };
 
         static constexpr uint32_t invalidRuntimeId =

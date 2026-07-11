@@ -16,5 +16,9 @@ namespace Bess::Canvas::UI {
                const CompConfig &config = CompConfig{});
 
         void onDraw(SceneDrawContext &state) override;
+        Core::Viewport::SceneCursor getCursor() const override;
+
+      private:
+        PickingId resolveLabelPickingId(SceneDrawContext &state) const;
     };
 } // namespace Bess::Canvas::UI

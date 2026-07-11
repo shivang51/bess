@@ -87,6 +87,14 @@ namespace Bess::Canvas {
             return getUIComponent(state, comp->getParentComponent());
         }
 
+        bool hasPassiveCursor(const PickingId &pickingId) {
+            return (pickingId.info & PickingId::InfoFlags::passiveCursor) != 0u;
+        }
+
+        uint32_t eventDetails(const PickingId &pickingId) {
+            return pickingId.info & ~PickingId::InfoFlags::passiveCursor;
+        }
+
         Events::FocusEvent makeFocusEvent(SceneEventContext &ctx,
                                           const UUID &uuid,
                                           const glm::vec2 &mousePos,
@@ -135,11 +143,14 @@ namespace Bess::Canvas {
             pressed != nullptr && pressed->hasPointerCapture()) {
             const bool handled = pressed->onPointerMove({
                 .mousePos = data.pos,
-                .details = m_pressedPickingId.info,
+                .details = eventDetails(m_pressedPickingId),
                 .sceneState = ctx.sceneState,
             });
             if (ctx.viewportCtx) {
-                ctx.viewportCtx->inputCtx.requestCursor(pressed->getCursor(),
+                const auto cursor = hasPassiveCursor(m_pressedPickingId)
+                                        ? Core::Viewport::SceneCursor::normal
+                                        : pressed->getCursor();
+                ctx.viewportCtx->inputCtx.requestCursor(cursor,
                                                         kCursorPriorityCapture);
             }
             return handled ? EventResult::Consumed : EventResult::Handled;
@@ -161,11 +172,14 @@ namespace Bess::Canvas {
             clearHover(ctx, data.pos);
             m_hoveredComponent = uiComp->getUuid();
             m_hoveredPickingId = evt.pickingId;
-            uiComp->onMouseEnter({data.pos, evt.pickingId.info});
+            uiComp->onMouseEnter({data.pos, eventDetails(evt.pickingId)});
         }
 
         if (ctx.viewportCtx) {
-            ctx.viewportCtx->inputCtx.requestCursor(uiComp->getCursor(),
+            const auto cursor = hasPassiveCursor(evt.pickingId)
+                                    ? Core::Viewport::SceneCursor::normal
+                                    : uiComp->getCursor();
+            ctx.viewportCtx->inputCtx.requestCursor(cursor,
                                                     kCursorPriorityHover);
         }
 
@@ -206,7 +220,10 @@ namespace Bess::Canvas {
             m_pressedPickingId = evt.pickingId;
             m_pressedButton = sceneButton;
             const auto focusEvent =
-                makeFocusEvent(ctx, compId, data.pos, evt.pickingId.info);
+                makeFocusEvent(ctx,
+                               compId,
+                               data.pos,
+                               eventDetails(evt.pickingId));
 
             if (uiComp->isFocusable()) {
                 ctx.sceneState->focusUIComponent(compId, focusEvent);
@@ -216,7 +233,7 @@ namespace Bess::Canvas {
                 .mousePos = data.pos,
                 .button = sceneButton,
                 .action = toSceneMouseAction(data.action),
-                .details = evt.pickingId.info,
+                .details = eventDetails(evt.pickingId),
                 .sceneState = ctx.sceneState,
             });
 
@@ -240,7 +257,7 @@ namespace Bess::Canvas {
                     .mousePos = data.pos,
                     .button = m_pressedButton,
                     .action = Events::MouseClickAction::release,
-                    .details = m_pressedPickingId.info,
+                    .details = eventDetails(m_pressedPickingId),
                     .sceneState = ctx.sceneState,
                 });
             }
@@ -266,7 +283,7 @@ namespace Bess::Canvas {
         }
 
         const auto &data = evt.data.mouseWheel;
-        uint32_t details = evt.pickingId.info;
+        uint32_t details = eventDetails(evt.pickingId);
         while (uiComp != nullptr) {
             const bool handled = uiComp->onMouseWheel({
                 .mousePos = data.pos,
@@ -318,7 +335,7 @@ namespace Bess::Canvas {
         }
 
         if (auto prev = getUIComponent(ctx.sceneState, m_hoveredComponent)) {
-            prev->onMouseLeave({mousePos, m_hoveredPickingId.info});
+            prev->onMouseLeave({mousePos, eventDetails(m_hoveredPickingId)});
         }
 
         m_hoveredComponent = UUID::null;

@@ -3,6 +3,25 @@
 #include "bess_core/scene/scene_state/scene_state.h"
 
 namespace Bess::Canvas::UI {
+    namespace {
+        void setDrawRuntimeIdRecursive(SceneState &sceneState,
+                                       const UUID &componentId,
+                                       uint32_t runtimeId) {
+            auto *component = sceneState.getComponentByUuid(componentId);
+            if (component == nullptr ||
+                component->getType() != SceneComponentType::ui) {
+                return;
+            }
+
+            auto *uiComponent = static_cast<UISceneComponent *>(component);
+            uiComponent->setDrawRuntimeId(runtimeId);
+
+            for (const auto &childId : uiComponent->getChildComponents()) {
+                setDrawRuntimeIdRecursive(sceneState, childId, runtimeId);
+            }
+        }
+    } // namespace
+
     std::shared_ptr<ButtonComp> ButtonComp::create(const CompConfig &config) {
         return create("", nullptr, config);
     }
@@ -57,13 +76,13 @@ namespace Bess::Canvas::UI {
         prepStyle(state.theme);
         initNode(state.sceneState->getUINodeRegistry());
 
-        const auto size = state.renderer->measureText(
-            getName(),
-            {
-                .fontSize = m_style.textStyle.fontSize,
-            });
+        if (m_childComponents.empty()) {
+            const auto size = state.renderer->measureText(
+                getName(),
+                {
+                    .fontSize = m_style.textStyle.fontSize,
+                });
 
-        if (m_node->getChildren().empty()) {
             if (m_labelNode == nullptr) {
                 m_labelNode =
                     state.sceneState->getUINodeRegistry()->addNode(UUID());
@@ -72,26 +91,21 @@ namespace Bess::Canvas::UI {
             m_labelNode->setWidth(size.x);
             m_labelNode->setHeight(size.y);
             m_node->addChild(m_labelNode);
-            m_node->setPadding(m_style.metrics.padding);
-            m_node->setMargin(m_style.metrics.margin);
         }
 
+        m_node->setPadding(m_style.metrics.padding);
+        m_node->setMargin(m_style.metrics.margin);
         applyCustomLayoutStyle();
-
-        for (auto &child : m_childComponents) {
-            if (state.sceneState->isComponentValid(child)) {
-                auto comp =
-                    state.sceneState->getComponentByUuid<UISceneComponent>(
-                        child);
-                comp->setDrawRuntimeId(m_runtimeId);
-            }
-        }
 
         if (state.parentNode != nullptr) {
             state.parentNode->addChild(m_node);
         }
 
         prepChildren(state);
+
+        for (const auto &child : m_childComponents) {
+            setDrawRuntimeIdRecursive(*state.sceneState, child, m_runtimeId);
+        }
 
         m_isUIDirty = false;
     }
