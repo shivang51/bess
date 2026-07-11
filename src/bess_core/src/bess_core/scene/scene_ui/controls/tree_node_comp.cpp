@@ -139,6 +139,8 @@ namespace Bess::Canvas::UI {
             prepChildren(state);
         }
 
+        applyCustomLayoutStyle();
+
         if (state.parentNode != nullptr) {
             state.parentNode->addChild(m_node);
         }

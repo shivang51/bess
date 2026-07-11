@@ -11,6 +11,104 @@ namespace Bess::Canvas::UI {
         T resolveOptional(const std::optional<T> &custom, const T &defaultVal) {
             return custom.has_value() ? custom.value() : defaultVal;
         }
+
+        void applySizeMode(UINode &node,
+                           bool isWidth,
+                           LayoutSizeMode mode,
+                           float value) {
+            switch (mode) {
+            case LayoutSizeMode::auto_:
+                if (isWidth) {
+                    node.setWidthAuto();
+                } else {
+                    node.setHeightAuto();
+                }
+                break;
+            case LayoutSizeMode::point:
+                if (isWidth) {
+                    node.setWidth(value);
+                } else {
+                    node.setHeight(value);
+                }
+                break;
+            case LayoutSizeMode::percent:
+                if (isWidth) {
+                    node.setWidthPercent(value);
+                } else {
+                    node.setHeightPercent(value);
+                }
+                break;
+            case LayoutSizeMode::fitContent:
+                if (isWidth) {
+                    node.setWidthFitContent();
+                } else {
+                    node.setHeightFitContent();
+                }
+                break;
+            case LayoutSizeMode::maxContent:
+                if (isWidth) {
+                    node.setWidthMaxContent();
+                } else {
+                    node.setHeightMaxContent();
+                }
+                break;
+            case LayoutSizeMode::stretch:
+                if (isWidth) {
+                    node.setWidthStretch();
+                } else {
+                    node.setHeightStretch();
+                }
+                break;
+            }
+        }
+
+        void applyOptionalSize(UINode &node,
+                               bool isWidth,
+                               const std::optional<LayoutSizeMode> &mode,
+                               const std::optional<float> &value) {
+            if (!mode.has_value() && !value.has_value()) {
+                return;
+            }
+            applySizeMode(
+                node, isWidth, mode.value_or(LayoutSizeMode::point),
+                value.value_or(0.f));
+        }
+
+        void applyFlexBasis(UINode &node,
+                            const std::optional<LayoutSizeMode> &mode,
+                            const std::optional<float> &value,
+                            const std::optional<Unit> &unit) {
+            if (!mode.has_value() && !value.has_value() && !unit.has_value()) {
+                return;
+            }
+
+            const auto basisValue = value.value_or(0.f);
+            if (!mode.has_value()) {
+                node.setFlexBasis(basisValue, unit.value_or(Unit::pixel));
+                return;
+            }
+
+            switch (*mode) {
+            case LayoutSizeMode::auto_:
+                node.setFlexBasisAuto();
+                break;
+            case LayoutSizeMode::point:
+                node.setFlexBasis(basisValue, Unit::pixel);
+                break;
+            case LayoutSizeMode::percent:
+                node.setFlexBasis(basisValue, Unit::relative);
+                break;
+            case LayoutSizeMode::fitContent:
+                node.setFlexBasisFitContent();
+                break;
+            case LayoutSizeMode::maxContent:
+                node.setFlexBasisMaxContent();
+                break;
+            case LayoutSizeMode::stretch:
+                node.setFlexBasisStretch();
+                break;
+            }
+        }
     } // namespace
 
     UISceneComponent::UISceneComponent() {
@@ -68,6 +166,7 @@ namespace Bess::Canvas::UI {
 
         m_node->setPadding(m_style.metrics.padding);
         m_node->setMargin(m_style.metrics.margin);
+        applyCustomLayoutStyle();
 
         if (state.parentNode != nullptr) {
             state.parentNode->addChild(m_node);
@@ -167,6 +266,70 @@ namespace Bess::Canvas::UI {
 
         m_style.textStyle.fontSize =
             resolveOptional(m_customStyle.fontSize, m_style.textStyle.fontSize);
+    }
+
+    void UISceneComponent::applyCustomLayoutStyle() {
+        if (m_node == nullptr) {
+            return;
+        }
+
+        if (m_customStyle.posMode.has_value()) {
+            m_node->setPosMode(*m_customStyle.posMode);
+        }
+        if (m_customStyle.posUnit.has_value()) {
+            m_node->setPosUnit(*m_customStyle.posUnit);
+        }
+        if (m_customStyle.pos.has_value()) {
+            m_node->setPos(*m_customStyle.pos);
+        }
+
+        applyOptionalSize(
+            *m_node, true, m_customStyle.widthMode, m_customStyle.width);
+        applyOptionalSize(
+            *m_node, false, m_customStyle.heightMode, m_customStyle.height);
+
+        if (m_customStyle.minSize.has_value()) {
+            m_node->setMinSize(*m_customStyle.minSize);
+        }
+        if (m_customStyle.maxSize.has_value()) {
+            m_node->setMaxSize(*m_customStyle.maxSize);
+        }
+        if (m_customStyle.direction.has_value()) {
+            m_node->setDirection(*m_customStyle.direction);
+        }
+        if (m_customStyle.mainAxisAlignment.has_value()) {
+            m_node->setMainAxisAlignment(*m_customStyle.mainAxisAlignment);
+        }
+        if (m_customStyle.crossAxisAlignment.has_value()) {
+            m_node->setCrossAxisAlignment(*m_customStyle.crossAxisAlignment);
+        }
+        if (m_customStyle.alignSelf.has_value()) {
+            m_node->setAlignSelf(*m_customStyle.alignSelf);
+        }
+
+        if (m_customStyle.flex.has_value()) {
+            const auto &flex = *m_customStyle.flex;
+            m_node->setFlexGrow(flex.grow);
+            m_node->setFlexShrink(flex.shrink);
+            m_node->setFlexBasis(flex.basis, flex.basisUnit);
+        }
+        if (m_customStyle.flexGrow.has_value()) {
+            m_node->setFlexGrow(*m_customStyle.flexGrow);
+        }
+        if (m_customStyle.flexShrink.has_value()) {
+            m_node->setFlexShrink(*m_customStyle.flexShrink);
+        }
+        applyFlexBasis(*m_node,
+                       m_customStyle.flexBasisMode,
+                       m_customStyle.flexBasis,
+                       m_customStyle.flexBasisUnit);
+
+        if (m_customStyle.zVal.has_value()) {
+            m_node->setZVal(*m_customStyle.zVal);
+        }
+        if (m_customStyle.drawPivot.has_value()) {
+            m_node->setDrawPivot(*m_customStyle.drawPivot);
+        }
     }
 
     void UISceneComponent::drawBgQuad(SceneDrawContext &state) {

@@ -196,6 +196,8 @@ namespace Bess::Canvas::UI {
             m_node->addChild(segmentNode);
         }
 
+        applyCustomLayoutStyle();
+
         if (state.parentNode != nullptr) {
             state.parentNode->addChild(m_node);
         }

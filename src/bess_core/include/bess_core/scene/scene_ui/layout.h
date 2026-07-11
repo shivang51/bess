@@ -36,6 +36,15 @@ namespace Bess::Canvas::UI {
         stretch
     };
 
+    enum class LayoutSizeMode : uint8_t {
+        auto_,
+        point,
+        percent,
+        fitContent,
+        maxContent,
+        stretch
+    };
+
     enum class DrawPivot : uint8_t {
         topLeft,
         topCenter,

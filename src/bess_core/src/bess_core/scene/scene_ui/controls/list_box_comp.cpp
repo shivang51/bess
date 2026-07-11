@@ -174,6 +174,8 @@ namespace Bess::Canvas::UI {
             m_contentNode->clearChildren();
         }
 
+        applyCustomLayoutStyle();
+
         if (state.parentNode != nullptr) {
             state.parentNode->addChild(m_node);
         }

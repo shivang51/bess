@@ -30,6 +30,7 @@ namespace Bess::Canvas::UI {
         m_node->setDirection(m_direction);
         m_node->setMainAxisAlignment(m_mainAxisAlignment);
         m_node->setCrossAxisAlignment(m_crossAxisAlignment);
+        applyCustomLayoutStyle();
 
         if (state.parentNode != nullptr) {
             state.parentNode->addChild(m_node);

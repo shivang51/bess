@@ -16,6 +16,13 @@ namespace Bess::Canvas::UI {
 
     using Color = Core::Style::Color;
 
+    struct UIFlex {
+        float grow = 0.f;
+        float shrink = 0.f;
+        float basis = 0.f;
+        Unit basisUnit = Unit::pixel;
+    };
+
     struct UIElementStyle {
         std::optional<Core::Style::Color> backgroundColor;
         std::optional<Core::Style::Color> hoverColor;
@@ -26,6 +33,28 @@ namespace Bess::Canvas::UI {
         std::optional<Core::Style::Margin> margin;
 
         std::optional<float> fontSize;
+
+        std::optional<glm::vec2> pos;
+        std::optional<Unit> posUnit;
+        std::optional<LayoutSizeMode> widthMode;
+        std::optional<float> width;
+        std::optional<LayoutSizeMode> heightMode;
+        std::optional<float> height;
+        std::optional<glm::vec2> minSize;
+        std::optional<glm::vec2> maxSize;
+        std::optional<LayoutDirection> direction;
+        std::optional<LayoutAlignment> mainAxisAlignment;
+        std::optional<LayoutAlignment> crossAxisAlignment;
+        std::optional<LayoutSelfAlignment> alignSelf;
+        std::optional<UIFlex> flex;
+        std::optional<float> flexGrow;
+        std::optional<float> flexShrink;
+        std::optional<LayoutSizeMode> flexBasisMode;
+        std::optional<float> flexBasis;
+        std::optional<Unit> flexBasisUnit;
+        std::optional<PosMode> posMode;
+        std::optional<float> zVal;
+        std::optional<DrawPivot> drawPivot;
     };
 
     class UISceneComponent;
@@ -71,6 +100,7 @@ namespace Bess::Canvas::UI {
         void makeUIDirty();
         virtual void
         prepStyle(const std::shared_ptr<Core::Style::BessTheme> &theme);
+        void applyCustomLayoutStyle();
         void drawBgQuad(SceneDrawContext &state);
         void drawText(SceneDrawContext &state,
                       const std::string &text,

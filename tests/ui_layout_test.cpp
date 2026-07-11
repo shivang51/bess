@@ -489,6 +489,61 @@ TEST_F(UiLayoutTests, TextBoxPrepareUIRespectsSizeAndPadding) {
     EXPECT_EQ(autoNode->getPadding(), Bess::Core::Style::Padding::zero());
 }
 
+TEST_F(UiLayoutTests, UIElementStyleAppliesLayoutPropertiesToNode) {
+    Bess::Canvas::SceneState sceneState;
+    const auto renderer = std::make_shared<LayoutTestRenderer2D>();
+    Bess::SceneUIPrepareCtx prepareCtx{
+        .sceneState = &sceneState,
+        .renderer = renderer,
+        .parentNode = nullptr,
+        .theme = Bess::Core::Style::BessTheme::defaultTheme(),
+    };
+
+    Bess::Canvas::UI::TextBoxComp box;
+    box.setTextBoxSize({80.f, 24.f});
+
+    Bess::Canvas::UI::UIFlex flex;
+    flex.grow = 2.f;
+    flex.shrink = 3.f;
+    flex.basis = 4.f;
+
+    auto &style = box.getStyle();
+    style.width = 120.f;
+    style.height = 30.f;
+    style.pos = glm::vec2(10.f, 12.f);
+    style.posMode = Bess::Canvas::UI::PosMode::absolute;
+    style.direction = Bess::Canvas::UI::LayoutDirection::vertical;
+    style.mainAxisAlignment = Bess::Canvas::UI::LayoutAlignment::center;
+    style.crossAxisAlignment = Bess::Canvas::UI::LayoutAlignment::end;
+    style.alignSelf = Bess::Canvas::UI::LayoutSelfAlignment::stretch;
+    style.flex = flex;
+    style.flexGrow = 5.f;
+    style.zVal = 7.f;
+    style.drawPivot = Bess::Canvas::UI::DrawPivot::topLeft;
+
+    box.prepareUI(prepareCtx);
+    auto *node = box.getUINode();
+    ASSERT_NE(node, nullptr);
+
+    node->measure(*sceneState.getUINodeRegistry(), Bess::UUID::null);
+
+    expectVec2(node->getDrawSize(), 120.f, 30.f);
+    expectVec2(node->getPos(), 10.f, 12.f);
+    EXPECT_EQ(node->getPosMode(), Bess::Canvas::UI::PosMode::absolute);
+    EXPECT_EQ(node->getDirection(),
+              Bess::Canvas::UI::LayoutDirection::vertical);
+    EXPECT_EQ(node->getMainAxisAlignment(),
+              Bess::Canvas::UI::LayoutAlignment::center);
+    EXPECT_EQ(node->getCrossAxisAlignment(),
+              Bess::Canvas::UI::LayoutAlignment::end);
+    EXPECT_EQ(node->getAlignSelf(),
+              Bess::Canvas::UI::LayoutSelfAlignment::stretch);
+    EXPECT_FLOAT_EQ(node->getFlexGrow(), 5.f);
+    EXPECT_FLOAT_EQ(node->getFlexShrink(), 3.f);
+    EXPECT_FLOAT_EQ(node->getZVal(), 7.f);
+    EXPECT_EQ(node->getDrawPivot(), Bess::Canvas::UI::DrawPivot::topLeft);
+}
+
 TEST_F(UiLayoutTests, UIComponentsLayerResetsCursorAfterLeavingTextBox) {
     Bess::Canvas::SceneState sceneState;
     auto textBox = Bess::Canvas::UI::TextBoxComp::create();

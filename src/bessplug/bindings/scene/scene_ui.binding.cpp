@@ -70,6 +70,21 @@ void bind_scene_ui(py::module_ &m) {
         .value("stretch", UI::LayoutSelfAlignment::stretch)
         .export_values();
 
+    py::enum_<UI::LayoutSizeMode>(m, "UILayoutSizeMode")
+        .value("auto", UI::LayoutSizeMode::auto_)
+        .value("point", UI::LayoutSizeMode::point)
+        .value("percent", UI::LayoutSizeMode::percent)
+        .value("fit_content", UI::LayoutSizeMode::fitContent)
+        .value("max_content", UI::LayoutSizeMode::maxContent)
+        .value("stretch", UI::LayoutSizeMode::stretch);
+
+    py::enum_<UI::DrawPivot>(m, "UIDrawPivot")
+        .value("top_left", UI::DrawPivot::topLeft)
+        .value("top_center", UI::DrawPivot::topCenter)
+        .value("center", UI::DrawPivot::center)
+        .value("bottom_left", UI::DrawPivot::bottomLeft)
+        .value("bottom_center", UI::DrawPivot::bottomCenter);
+
     py::enum_<UI::PosMode>(m, "UIPosMode")
         .value("absolute", UI::PosMode::absolute)
         .value("relative", UI::PosMode::relative)
@@ -120,15 +135,52 @@ void bind_scene_ui(py::module_ &m) {
                    std::to_string(padding.left) + ")";
         });
 
-    py::class_<UI::UIElementStyle>(m, "UIElementStyle")
+    py::class_<UI::UIFlex>(m, "UIFlex")
         .def(py::init<>())
+        .def(py::init<float, float, float, UI::Unit>(),
+             py::arg("grow"),
+             py::arg("shrink"),
+             py::arg("basis") = 0.f,
+             py::arg_v("basis_unit", UI::Unit::pixel, "UIUnit.pixel"))
+        .def_readwrite("grow", &UI::UIFlex::grow)
+        .def_readwrite("shrink", &UI::UIFlex::shrink)
+        .def_readwrite("basis", &UI::UIFlex::basis)
+        .def_readwrite("basis_unit", &UI::UIFlex::basisUnit);
+
+    auto uiElementStyleBinding =
+        py::class_<UI::UIElementStyle>(m, "UIElementStyle");
+    uiElementStyleBinding.def(py::init<>())
         .def_readwrite("background_color", &UI::UIElementStyle::backgroundColor)
         .def_readwrite("hover_color", &UI::UIElementStyle::hoverColor)
         .def_readwrite("border_color", &UI::UIElementStyle::borderColor)
         .def_readwrite("active_color", &UI::UIElementStyle::activeColor)
         .def_readwrite("padding", &UI::UIElementStyle::padding)
         .def_readwrite("margin", &UI::UIElementStyle::margin)
-        .def_readwrite("font_size", &UI::UIElementStyle::fontSize);
+        .def_readwrite("font_size", &UI::UIElementStyle::fontSize)
+        .def_readwrite("pos", &UI::UIElementStyle::pos)
+        .def_readwrite("pos_unit", &UI::UIElementStyle::posUnit)
+        .def_readwrite("width_mode", &UI::UIElementStyle::widthMode)
+        .def_readwrite("width", &UI::UIElementStyle::width)
+        .def_readwrite("height_mode", &UI::UIElementStyle::heightMode)
+        .def_readwrite("height", &UI::UIElementStyle::height)
+        .def_readwrite("min_size", &UI::UIElementStyle::minSize)
+        .def_readwrite("max_size", &UI::UIElementStyle::maxSize)
+        .def_readwrite("direction", &UI::UIElementStyle::direction)
+        .def_readwrite("main_axis_alignment",
+                       &UI::UIElementStyle::mainAxisAlignment)
+        .def_readwrite("cross_axis_alignment",
+                       &UI::UIElementStyle::crossAxisAlignment)
+        .def_readwrite("align_self", &UI::UIElementStyle::alignSelf)
+        .def_readwrite("flex", &UI::UIElementStyle::flex)
+        .def_readwrite("flex_grow", &UI::UIElementStyle::flexGrow)
+        .def_readwrite("flex_shrink", &UI::UIElementStyle::flexShrink)
+        .def_readwrite("flex_basis_mode", &UI::UIElementStyle::flexBasisMode)
+        .def_readwrite("flex_basis", &UI::UIElementStyle::flexBasis)
+        .def_readwrite("flex_basis_unit", &UI::UIElementStyle::flexBasisUnit)
+        .def_readwrite("pos_mode", &UI::UIElementStyle::posMode)
+        .def_readwrite("z_val", &UI::UIElementStyle::zVal)
+        .def_readwrite("draw_pivot", &UI::UIElementStyle::drawPivot);
+    m.attr("UIStyle") = uiElementStyleBinding;
 
     auto uiNodeBinding = py::class_<UI::UINode>(m, "UINode");
     auto uiNodeRegistryBinding =
@@ -149,6 +201,10 @@ void bind_scene_ui(py::module_ &m) {
             "pos_unit",
             [](const UI::UINode &self) { return self.getPosUnit(); },
             &UI::UINode::setPosUnit)
+        .def_property(
+            "draw_pivot",
+            [](const UI::UINode &self) { return self.getDrawPivot(); },
+            &UI::UINode::setDrawPivot)
         .def("set_pos_dirty", &UI::UINode::setPosDirty, py::arg("dirty") = true)
         .def("set_size_dirty",
              &UI::UINode::setSizeDirty,

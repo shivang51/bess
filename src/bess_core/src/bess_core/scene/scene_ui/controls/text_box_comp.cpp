@@ -65,6 +65,7 @@ namespace Bess::Canvas::UI {
         m_node->setHeight(size.y);
         m_node->setPadding(0.f); // padding is resolved in resolveBoxSize
         m_node->setMargin(m_style.metrics.margin);
+        applyCustomLayoutStyle();
 
         if (state.parentNode != nullptr) {
             state.parentNode->addChild(m_node);

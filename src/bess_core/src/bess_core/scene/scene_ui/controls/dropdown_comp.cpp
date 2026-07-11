@@ -159,6 +159,8 @@ namespace Bess::Canvas::UI {
         m_chevronNode->setMargin(0.f);
         m_node->addChild(m_chevronNode);
 
+        applyCustomLayoutStyle();
+
         if (state.parentNode != nullptr) {
             state.parentNode->addChild(m_node);
         }

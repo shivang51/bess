@@ -106,6 +106,8 @@ namespace Bess::Canvas::UI {
         m_trackNode->setPadding(0.f);
         m_trackNode->setMargin(0.f);
 
+        applyCustomLayoutStyle();
+
         if (state.parentNode != nullptr) {
             state.parentNode->addChild(m_node);
         }
