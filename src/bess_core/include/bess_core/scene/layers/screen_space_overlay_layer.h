@@ -2,6 +2,7 @@
 
 #include "bess_core/scene/scene_layer.h"
 #include "bess_core/scene/scene_ui/controls/container_comp.h"
+#include "bess_core/scene/scene_ui/controls/label_comp.h"
 #include "bess_core/viewport.h"
 #include <functional>
 #include <vector>
@@ -30,8 +31,13 @@ namespace Bess::Canvas {
         bool updateTransform(
             const std::shared_ptr<Core::Viewport::ViewportContext> &ctx);
 
+        void fmtCamPos(const glm::vec2 &pos);
+        void fmtCamZoom(float zoom);
+
       private:
         std::vector<DrawCallback> m_drawCallbacks;
+        std::shared_ptr<Bess::Canvas::UI::LabelComp> m_camPosXLabel,
+            m_camPosYLabel, m_camZoomLabel;
         std::shared_ptr<Bess::Canvas::UI::ContainerComp> m_topContainer;
         std::shared_ptr<Bess::Canvas::UI::ContainerComp> m_bottomContainer;
         bool m_updateTransforms = true;

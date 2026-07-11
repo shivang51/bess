@@ -3,8 +3,8 @@
 #include "bess_core/project_context.h"
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/renderer/renderer_types.h"
-#include "bess_core/scene/scene_ui/controls/button_comp.h"
-#include "bess_core/scene/scene_ui/controls/container_comp.h"
+#include "bess_core/scene/scene_ui/ui_scene_component.h"
+#include "bess_core/scene/scene_ui/ui_view.h"
 #include "bess_core/scene/widgets/scene_widgets.h"
 #include "bess_core/scene_driver.h"
 #include "bess_core/settings/viewport_theme.h"
@@ -23,7 +23,7 @@ namespace Icons = Bess::UI::Icons;
 
 namespace Bess::Canvas {
     namespace {
-        constexpr float padding = 8.f;
+        constexpr float padding = 6.f;
         constexpr float fontSize = 14.f;
 
         void drawCameraPos(SceneDrawContext &drawCtx,
@@ -432,6 +432,7 @@ namespace Bess::Canvas {
     } // namespace
 
     void ScreenSpaceOverlayLayer::draw(SceneRenderContext &ctx) {
+        return;
         if (!ctx.sceneState || !ctx.renderer || !ctx.camera) {
             return;
         }
@@ -475,40 +476,115 @@ namespace Bess::Canvas {
     }
 
     void ScreenSpaceOverlayLayer::init(SceneLifecycleContext &ctx) {
-        // if (m_topContainer && m_bottomContainer) {
-        //     return;
-        // }
-        //
-        // m_topContainer = UI::ContainerComp::create();
-        // m_topContainer->setIsScreenSpace();
-        // m_topContainer->setDrawBackground(true);
-        //
-        // m_bottomContainer = UI::ContainerComp::create();
-        // m_bottomContainer->setIsScreenSpace();
-        // m_bottomContainer->setDrawBackground(true);
-        //
-        // m_topContainer->getStyle().margin = 0.f;
-        // m_topContainer->getStyle().padding = 4.f;
-        // m_bottomContainer->getStyle().margin = 8.f;
-        // m_bottomContainer->getStyle().padding = 4.f;
-        //
-        // auto btn = UI::ButtonComp::create(
-        //     "Test", []() { BESS_INFO("Button clicked!"); });
-        //
-        // auto btn1 = UI::ButtonComp::create(
-        //     "Test 2", []() { BESS_INFO("Button clicked!"); });
-        //
-        // ctx.sceneState->addComponent(m_topContainer);
-        // ctx.sceneState->addComponent(m_bottomContainer);
-        // ctx.sceneState->addComponent(btn);
-        // ctx.sceneState->addComponent(btn1);
-        //
-        // ctx.sceneState->attachChild(m_topContainer->getUuid(),
-        // btn->getUuid());
-        // ctx.sceneState->attachChild(m_bottomContainer->getUuid(),
-        //                             btn1->getUuid());
-        //
-        // m_updateTransforms = true;
+        UI::View ui{ctx.sceneState};
+
+        const auto containerStyle = UI::UIElementStyle{
+            .backgroundColor =
+                ViewportTheme::sceneWidgetsColors.surface.withAlpha(0.5f),
+            .padding = padding,
+            .margin = Core::Style::Margin::fromHorizontal(4.f),
+            .shadow = Core::Renderer::ShadowProps{.enabled = true},
+            .borderRadius = glm::vec4(8.f),
+            .borderSize = Core::Style::BorderSize(0.f),
+            .drawBg = true,
+        };
+
+        m_camPosXLabel =
+            ui.label("",
+                     UI::UIElementStyle{.padding = 0.f,
+                                        .fontSize = fontSize,
+                                        .widthMode = UI::LayoutSizeMode::point,
+                                        .width = 90.f});
+
+        m_camPosYLabel =
+            ui.label("",
+                     UI::UIElementStyle{.padding = 0.f,
+                                        .margin = 0.f,
+                                        .fontSize = fontSize,
+                                        .widthMode = UI::LayoutSizeMode::point,
+                                        .width = 90.f});
+
+        m_camZoomLabel =
+            ui.label("",
+                     UI::UIElementStyle{.padding = 0.f,
+                                        .fontSize = fontSize,
+                                        .widthMode = UI::LayoutSizeMode::point,
+                                        .width = 50.f});
+
+        fmtCamPos({0.f, 0.f});
+        fmtCamZoom(1.f);
+
+        m_bottomContainer =
+            ui.row(UI::
+                       CompConfig{
+                           .children =
+                               {
+                                   ui.button(
+                                       UI::CompConfig{
+                                           .children =
+                                               {
+                                                   ui.row(UI::CompConfig{
+                                                       .children =
+                                                           {
+                                                               m_camPosXLabel,
+                                                               m_camPosYLabel,
+                                                           },
+																													 .style = UI::UIElementStyle{
+																														 .padding = 0.f,
+																														 .margin = 0.f,
+																														 .mainAxisAlignment =
+																															 UI::LayoutAlignment::center,
+																													 },
+                                                   }),
+                                               },
+                                           .style = containerStyle,
+                                       },
+                                       []() {
+                                           BESS_TRACE("[ScreenSpaceOverlayLayer"
+                                                      "] Resetting "
+                                                      "camera to origin");
+                                       }),
+                                   ui.row(UI::
+                                              CompConfig{
+                                                  .children =
+                                                      {
+                                                          m_camZoomLabel,
+                                                      },
+                                                  .style = containerStyle,
+                                              }),
+                               },
+
+                           .style =
+                               UI::UIElementStyle{
+                                   .margin = 0,
+                                   .mainAxisAlignment =
+                                       UI::LayoutAlignment::end,
+                                   .zVal = 5000.f,
+                                   .drawPivot = UI::DrawPivot::bottomCenter,
+                               },
+                       });
+
+        m_topContainer = ui.row(UI::CompConfig{
+            .children =
+                {
+                    ui.row(UI::CompConfig{
+                        .children =
+                            {
+                                ui.label("Top Overlay", {.fontSize = fontSize}),
+                            },
+                        .style = containerStyle,
+                    }),
+                },
+            .style =
+                UI::UIElementStyle{
+                    .margin = 0,
+                    .zVal = 5000.f,
+                    .drawPivot = UI::DrawPivot::topCenter,
+                },
+        });
+
+        m_topContainer->setIsScreenSpace();
+        m_bottomContainer->setIsScreenSpace();
     }
 
     void ScreenSpaceOverlayLayer::addDrawCallback(DrawCallback callback) {
@@ -543,24 +619,24 @@ namespace Bess::Canvas {
             (size.y / 2.f),
         };
 
-        m_topContainer->getUINode()->setHeightAuto();
-        m_bottomContainer->getUINode()->setHeightAuto();
-
         m_topContainer->getUINode()->setPos(topCenter);
         m_bottomContainer->getUINode()->setPos(bottomCenter);
-
-        m_topContainer->getUINode()->setZVal(5000);
-        m_bottomContainer->getUINode()->setZVal(5000);
-
         m_topContainer->getUINode()->setWidth(size.x);
         m_bottomContainer->getUINode()->setWidth(size.x);
 
-        m_topContainer->getUINode()->setDrawPivot(UI::DrawPivot::topCenter);
-        m_bottomContainer->getUINode()->setDrawPivot(
-            UI::DrawPivot::bottomCenter);
-
         m_updateTransforms = false;
         return true;
+    }
+
+    void ScreenSpaceOverlayLayer::fmtCamPos(const glm::vec2 &pos) {
+        m_camPosXLabel->setName(
+            std::format("{} {:>12.2f}", Icons::FontAwesomeIcons::FA_X, pos.x));
+        m_camPosYLabel->setName(
+            std::format("{} {:>12.2f}", Icons::FontAwesomeIcons::FA_Y, pos.y));
+    }
+
+    void ScreenSpaceOverlayLayer::fmtCamZoom(const float zoom) {
+        m_camZoomLabel->setName(std::format("{:.2f}x", zoom));
     }
 
     void ScreenSpaceOverlayLayer::update(TimeMs ts, SceneUpdateContext &ctx) {
@@ -568,24 +644,23 @@ namespace Bess::Canvas {
 
     void ScreenSpaceOverlayLayer::viewportUpdate(TimeMs ts,
                                                  SceneVpUpdateContext &ctx) {
-        // m_updateTransforms = ctx.viewportCtx->isResized ||
-        // m_updateTransforms;
-        //
-        // if (!m_updateTransforms) {
-        //     return;
-        // }
-        //
-        // if (!updateTransform(ctx.viewportCtx) || ctx.sceneState == nullptr) {
-        //     return;
-        // }
-        //
-        // const auto registry = ctx.sceneState->getUINodeRegistry();
-        // if (registry == nullptr) {
-        //     return;
-        // }
-        //
-        // m_topContainer->getUINode()->measure(*registry, UUID::null);
-        // m_bottomContainer->getUINode()->measure(*registry, UUID::null);
+        m_updateTransforms = ctx.viewportCtx->isResized || m_updateTransforms;
+        if (m_updateTransforms) {
+            updateTransform(ctx.viewportCtx);
+        }
+
+        // Very important to update for focused viewport only.
+        // since same scene can be rendered in multiple viewports, we only want
+        // to update the camera position label for the focused viewport
+        if (m_camPosXLabel && ctx.viewportCtx->isFocused) {
+            const auto &mPos = ctx.viewportCtx->inputCtx.mousePos;
+            const glm::vec2 mouseWorldPos = ctx.camera->toWorldPos(mPos);
+            fmtCamPos(mouseWorldPos);
+        }
+
+        if (m_camZoomLabel && ctx.viewportCtx->isFocused) {
+            fmtCamZoom(ctx.camera->getZoom());
+        }
     }
 
 } // namespace Bess::Canvas

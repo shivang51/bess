@@ -55,6 +55,10 @@ namespace Bess::Canvas::UI {
         std::optional<PosMode> posMode;
         std::optional<float> zVal;
         std::optional<DrawPivot> drawPivot;
+        std::optional<Core::Renderer::ShadowProps> shadow;
+        std::optional<glm::vec4> borderRadius;
+        std::optional<Core::Style::BorderSize> borderSize;
+        std::optional<bool> drawBg;
     };
 
     class UISceneComponent;

@@ -104,6 +104,13 @@ namespace Bess::Canvas::UI {
         }
 
         [[nodiscard]] std::shared_ptr<ButtonComp>
+        button(CompConfig config, const UIButtonCallback &cb) const {
+            auto btn = ButtonComp::create(bindConfig(std::move(config)));
+            btn->setCallback(cb);
+            return btn;
+        }
+
+        [[nodiscard]] std::shared_ptr<ButtonComp>
         button(CompConfig config) const {
             return ButtonComp::create(bindConfig(std::move(config)));
         }

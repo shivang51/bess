@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bess_core/renderer/colors.h"
+#include "bess_core/renderer/renderer_types.h"
 #include "bess_core/style/color_scheme.h"
 #include "json/value.h"
 
@@ -109,6 +110,7 @@ namespace Bess::Core::Style {
         Color activeColor;
         Metrics metrics;
         TextStyle textStyle;
+        Renderer::ShadowProps shadowProps{.enabled = false};
     };
 
     class BessTheme {

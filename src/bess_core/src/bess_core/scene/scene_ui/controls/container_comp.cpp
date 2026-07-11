@@ -30,6 +30,27 @@ namespace Bess::Canvas::UI {
         drawChildren(state);
     }
 
+    void ContainerComp::prepStyle(
+        const std::shared_ptr<Core::Style::BessTheme> &theme) {
+        UISceneComponent::prepStyle(theme);
+
+        if (m_customStyle.direction.has_value()) {
+            m_direction = m_customStyle.direction.value();
+        }
+
+        if (m_customStyle.mainAxisAlignment.has_value()) {
+            m_mainAxisAlignment = m_customStyle.mainAxisAlignment.value();
+        }
+
+        if (m_customStyle.crossAxisAlignment.has_value()) {
+            m_crossAxisAlignment = m_customStyle.crossAxisAlignment.value();
+        }
+
+        if (m_customStyle.drawBg.has_value()) {
+            m_drawBg = m_customStyle.drawBg.value();
+        }
+    }
+
     void ContainerComp::prepareUI(SceneUIPrepareCtx &state) {
         prepStyle(state.theme);
         initNode(state.sceneState->getUINodeRegistry());
@@ -62,6 +83,7 @@ namespace Bess::Canvas::UI {
         quadProps.radius = m_style.metrics.borderRadius;
         quadProps.id = PickingId::invalid();
         quadProps.transformMode = state.transformMode;
+        quadProps.shadow = m_style.shadowProps;
 
         state.renderer->drawQuad(quadProps);
     }

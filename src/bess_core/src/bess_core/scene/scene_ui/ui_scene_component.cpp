@@ -69,9 +69,10 @@ namespace Bess::Canvas::UI {
             if (!mode.has_value() && !value.has_value()) {
                 return;
             }
-            applySizeMode(
-                node, isWidth, mode.value_or(LayoutSizeMode::point),
-                value.value_or(0.f));
+            applySizeMode(node,
+                          isWidth,
+                          mode.value_or(LayoutSizeMode::point),
+                          value.value_or(0.f));
         }
 
         void applyFlexBasis(UINode &node,
@@ -303,6 +304,15 @@ namespace Bess::Canvas::UI {
 
         m_style.textStyle.fontSize =
             resolveOptional(m_customStyle.fontSize, m_style.textStyle.fontSize);
+
+        m_style.shadowProps =
+            resolveOptional(m_customStyle.shadow, m_style.shadowProps);
+
+        m_style.metrics.borderRadius = resolveOptional(
+            m_customStyle.borderRadius, m_style.metrics.borderRadius);
+
+        m_style.metrics.borderSize = resolveOptional(
+            m_customStyle.borderSize, m_style.metrics.borderSize);
     }
 
     void UISceneComponent::applyCustomLayoutStyle() {

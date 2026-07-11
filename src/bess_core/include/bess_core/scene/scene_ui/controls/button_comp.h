@@ -13,8 +13,7 @@ namespace Bess::Canvas::UI {
       public:
         DEFAULT_CONTRS(ButtonComp)
 
-        static std::shared_ptr<ButtonComp>
-        create(const CompConfig &config);
+        static std::shared_ptr<ButtonComp> create(const CompConfig &config);
         static std::shared_ptr<ButtonComp>
         create(const std::string &label,
                const UIButtonCallback &callback,
@@ -27,6 +26,9 @@ namespace Bess::Canvas::UI {
         void update(TimeMs ts, SceneState &state) override;
         void onDraw(SceneDrawContext &state) override;
         void prepareUI(SceneUIPrepareCtx &state) override;
+
+      private:
+        void prepChildren(SceneUIPrepareCtx &state);
 
       private:
         UINode *m_labelNode = nullptr;

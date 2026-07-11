@@ -43,9 +43,12 @@ namespace Bess::Canvas {
         return ctx;
     }
 
-    SceneUpdateContext makeUpdateContext(SceneState &state) {
+    SceneUpdateContext
+    makeUpdateContext(SceneState &state,
+                      const std::shared_ptr<Camera> &camera) {
         SceneUpdateContext ctx;
         ctx.sceneState = &state;
+        ctx.camera = camera;
         return ctx;
     }
 
@@ -176,7 +179,7 @@ namespace Bess::Canvas {
     void Scene::update(TimeMs ts, bool isFocused) {
         m_frameTimeStep = ts;
 
-        auto ctx = makeUpdateContext(m_state);
+        auto ctx = makeUpdateContext(m_state, m_camera);
 
         for (auto &layer : m_sceneLayers) {
             layer->update(ts, ctx);

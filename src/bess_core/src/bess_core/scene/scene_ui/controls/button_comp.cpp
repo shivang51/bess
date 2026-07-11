@@ -39,17 +39,23 @@ namespace Bess::Canvas::UI {
 
     void ButtonComp::onDraw(SceneDrawContext &state) {
         drawBgQuad(state);
-        drawText(state, m_name, m_labelNode);
+        if (m_childComponents.empty()) {
+            drawText(state, m_name, m_labelNode);
+        } else {
+            for (auto &child : m_childComponents) {
+                if (state.sceneState->isComponentValid(child)) {
+                    auto comp =
+                        state.sceneState->getComponentByUuid<UISceneComponent>(
+                            child);
+                    comp->draw(state);
+                }
+            }
+        }
     }
 
     void ButtonComp::prepareUI(SceneUIPrepareCtx &state) {
         prepStyle(state.theme);
         initNode(state.sceneState->getUINodeRegistry());
-
-        if (m_labelNode == nullptr) {
-            m_labelNode =
-                state.sceneState->getUINodeRegistry()->addNode(UUID());
-        }
 
         const auto size = state.renderer->measureText(
             getName(),
@@ -57,19 +63,52 @@ namespace Bess::Canvas::UI {
                 .fontSize = m_style.textStyle.fontSize,
             });
 
-        m_labelNode->setWidth(size.x);
-        m_labelNode->setHeight(size.y);
+        if (m_node->getChildren().empty()) {
+            if (m_labelNode == nullptr) {
+                m_labelNode =
+                    state.sceneState->getUINodeRegistry()->addNode(UUID());
+            }
 
-        m_node->addChild(m_labelNode);
+            m_labelNode->setWidth(size.x);
+            m_labelNode->setHeight(size.y);
+            m_node->addChild(m_labelNode);
+            m_node->setPadding(m_style.metrics.padding);
+            m_node->setMargin(m_style.metrics.margin);
+        }
 
-        m_node->setPadding(m_style.metrics.padding);
-        m_node->setMargin(m_style.metrics.margin);
         applyCustomLayoutStyle();
+
+        for (auto &child : m_childComponents) {
+            if (state.sceneState->isComponentValid(child)) {
+                auto comp =
+                    state.sceneState->getComponentByUuid<UISceneComponent>(
+                        child);
+                comp->setDrawRuntimeId(m_runtimeId);
+            }
+        }
 
         if (state.parentNode != nullptr) {
             state.parentNode->addChild(m_node);
         }
 
+        prepChildren(state);
+
         m_isUIDirty = false;
+    }
+
+    void ButtonComp::prepChildren(SceneUIPrepareCtx &state) {
+        auto prevParent = state.parentNode;
+        state.parentNode = m_node;
+        for (const auto &childId : m_childComponents) {
+            auto childComp = state.sceneState->getComponentByUuid(childId);
+            if (childComp == nullptr) {
+                BESS_WARN("Child component with UUID {} not found in "
+                          "scene state.",
+                          (uint64_t)childId);
+                continue;
+            }
+            childComp->prepareUI(state);
+        }
+        state.parentNode = prevParent;
     }
 } // namespace Bess::Canvas::UI
