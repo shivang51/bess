@@ -6,6 +6,7 @@
 #include "bess_core/scene/scene_ui/controls/container_comp.h"
 #include "bess_core/scene/scene_ui/controls/editable_label_comp.h"
 #include "bess_core/scene/scene_ui/controls/label_comp.h"
+#include "bess_core/scene/scene_ui/controls/spacer_comp.h"
 #include "bess_core/scene/scene_ui/controls/text_box_comp.h"
 #include "bess_core/scene/scene_ui/layout.h"
 #include "bess_core/scene/scene_ui/ui_view.h"
@@ -56,6 +57,13 @@ namespace {
     void setFitContent(Bess::Canvas::UI::UINode &node) {
         node.setWidthFitContent();
         node.setHeightFitContent();
+    }
+
+    Bess::Canvas::UI::UIElementStyle zeroSpacingStyle() {
+        Bess::Canvas::UI::UIElementStyle style;
+        style.padding = Bess::Core::Style::Padding::zero();
+        style.margin = Bess::Core::Style::Margin::zero();
+        return style;
     }
 
     class LayoutTestRenderer2D final
@@ -568,6 +576,127 @@ TEST_F(UiLayoutTests, UIElementStyleAppliesLayoutPropertiesToNode) {
     EXPECT_FLOAT_EQ(node->getFlexShrink(), 3.f);
     EXPECT_FLOAT_EQ(node->getZVal(), 7.f);
     EXPECT_EQ(node->getDrawPivot(), Bess::Canvas::UI::DrawPivot::topLeft);
+}
+
+TEST_F(UiLayoutTests, SpacerCompExpandsAcrossHorizontalParent) {
+    Bess::Canvas::SceneState sceneState;
+    const auto renderer = std::make_shared<LayoutTestRenderer2D>();
+
+    auto rootStyle = zeroSpacingStyle();
+    rootStyle.widthMode = Bess::Canvas::UI::LayoutSizeMode::point;
+    rootStyle.width = 200.f;
+    rootStyle.heightMode = Bess::Canvas::UI::LayoutSizeMode::point;
+    rootStyle.height = 40.f;
+
+    const auto childStyle = zeroSpacingStyle();
+
+    auto left = Bess::Canvas::UI::TextBoxComp::create();
+    left->setStyle(childStyle);
+    left->setTextBoxSize({20.f, 10.f});
+
+    auto spacer = Bess::Canvas::UI::SpacerComp::create();
+
+    auto right = Bess::Canvas::UI::TextBoxComp::create();
+    right->setStyle(childStyle);
+    right->setTextBoxSize({20.f, 10.f});
+
+    auto root = Bess::Canvas::UI::ContainerComp::create(
+        Bess::Canvas::UI::LayoutDirection::horizontal,
+        {
+            .sceneState = &sceneState,
+            .children = {left, spacer, right},
+            .style = rootStyle,
+        });
+
+    auto prepareCtx = uiPrepareContext(sceneState, renderer);
+    root->prepareUI(prepareCtx);
+
+    auto *rootNode = root->getUINode();
+    auto *leftNode = left->getUINode();
+    auto *spacerNode = spacer->getUINode();
+    auto *rightNode = right->getUINode();
+    ASSERT_NE(rootNode, nullptr);
+    ASSERT_NE(leftNode, nullptr);
+    ASSERT_NE(spacerNode, nullptr);
+    ASSERT_NE(rightNode, nullptr);
+
+    rootNode->measure(*sceneState.getUINodeRegistry(), Bess::UUID::null);
+
+    expectVec2(rootNode->getDrawSize(), 200.f, 40.f);
+    expectVec2(leftNode->getCachedPos(), -90.f, 0.f);
+    expectVec2(spacerNode->getDrawSize(), 160.f, 0.f);
+    expectVec2(rightNode->getCachedPos(), 90.f, 0.f);
+}
+
+TEST_F(UiLayoutTests, SpacerCompExpandsAcrossVerticalParent) {
+    Bess::Canvas::SceneState sceneState;
+    const auto renderer = std::make_shared<LayoutTestRenderer2D>();
+
+    auto rootStyle = zeroSpacingStyle();
+    rootStyle.widthMode = Bess::Canvas::UI::LayoutSizeMode::point;
+    rootStyle.width = 40.f;
+    rootStyle.heightMode = Bess::Canvas::UI::LayoutSizeMode::point;
+    rootStyle.height = 100.f;
+
+    const auto childStyle = zeroSpacingStyle();
+
+    auto top = Bess::Canvas::UI::TextBoxComp::create();
+    top->setStyle(childStyle);
+    top->setTextBoxSize({20.f, 10.f});
+
+    auto spacer = Bess::Canvas::UI::SpacerComp::create();
+
+    auto bottom = Bess::Canvas::UI::TextBoxComp::create();
+    bottom->setStyle(childStyle);
+    bottom->setTextBoxSize({20.f, 10.f});
+
+    auto root = Bess::Canvas::UI::ContainerComp::create(
+        Bess::Canvas::UI::LayoutDirection::vertical,
+        {
+            .sceneState = &sceneState,
+            .children = {top, spacer, bottom},
+            .style = rootStyle,
+        });
+
+    auto prepareCtx = uiPrepareContext(sceneState, renderer);
+    root->prepareUI(prepareCtx);
+
+    auto *rootNode = root->getUINode();
+    auto *topNode = top->getUINode();
+    auto *spacerNode = spacer->getUINode();
+    auto *bottomNode = bottom->getUINode();
+    ASSERT_NE(rootNode, nullptr);
+    ASSERT_NE(topNode, nullptr);
+    ASSERT_NE(spacerNode, nullptr);
+    ASSERT_NE(bottomNode, nullptr);
+
+    rootNode->measure(*sceneState.getUINodeRegistry(), Bess::UUID::null);
+
+    expectVec2(rootNode->getDrawSize(), 40.f, 100.f);
+    expectVec2(topNode->getCachedPos(), 0.f, -45.f);
+    expectVec2(spacerNode->getDrawSize(), 0.f, 80.f);
+    expectVec2(bottomNode->getCachedPos(), 0.f, 45.f);
+}
+
+TEST_F(UiLayoutTests, SpacerCompDoesNotDraw) {
+    Bess::Canvas::SceneState sceneState;
+    const auto renderer = std::make_shared<LayoutTestRenderer2D>();
+    auto prepareCtx = uiPrepareContext(sceneState, renderer);
+
+    auto spacer = Bess::Canvas::UI::SpacerComp::create({
+        .sceneState = &sceneState,
+    });
+    spacer->prepareUI(prepareCtx);
+
+    auto *node = spacer->getUINode();
+    ASSERT_NE(node, nullptr);
+    node->measure(*sceneState.getUINodeRegistry(), Bess::UUID::null);
+
+    auto drawCtx = uiDrawContext(sceneState, renderer);
+    spacer->draw(drawCtx);
+
+    EXPECT_TRUE(renderer->quads.empty());
+    EXPECT_TRUE(renderer->fonts.empty());
 }
 
 TEST_F(UiLayoutTests, UIStyleShadowAppliesToBaseAndCustomFrameControls) {
@@ -1465,6 +1594,70 @@ TEST_F(UiLayoutTests, UINodeLayoutHonorsMainAndCrossAxisAlignment) {
 
     expectVec2(childNode1Ptr->getCachedPos(), 45, 0);
     expectVec2(childNode2Ptr->getCachedPos(), 85, 0);
+}
+
+TEST_F(UiLayoutTests, UINodeLayoutHonorsDistributedMainAxisAlignment) {
+    Bess::Canvas::UI::UINodeRegistry registry;
+
+    Bess::Canvas::UI::UINode parentNode;
+    setPointSize(parentNode, glm::vec2(200, 100));
+
+    Bess::Canvas::UI::UINode childNode1;
+    setPointSize(childNode1, glm::vec2(50, 50));
+    auto childNode1Ptr = registry.addNode(childNode1);
+    ASSERT_NE(childNode1Ptr, nullptr);
+    parentNode.addChild(childNode1Ptr);
+
+    Bess::Canvas::UI::UINode childNode2;
+    setPointSize(childNode2, glm::vec2(30, 30));
+    auto childNode2Ptr = registry.addNode(childNode2);
+    ASSERT_NE(childNode2Ptr, nullptr);
+    parentNode.addChild(childNode2Ptr);
+
+    parentNode.setMainAxisAlignment(
+        Bess::Canvas::UI::LayoutAlignment::spaceBetween);
+    parentNode.measure(registry, Bess::UUID::null);
+    expectVec2(childNode1Ptr->getCachedPos(), -75, -25);
+    expectVec2(childNode2Ptr->getCachedPos(), 85, -35);
+
+    parentNode.setMainAxisAlignment(
+        Bess::Canvas::UI::LayoutAlignment::spaceAround);
+    parentNode.measure(registry, Bess::UUID::null);
+    expectVec2(childNode1Ptr->getCachedPos(), -45, -25);
+    expectVec2(childNode2Ptr->getCachedPos(), 55, -35);
+
+    parentNode.setMainAxisAlignment(
+        Bess::Canvas::UI::LayoutAlignment::spaceEvenly);
+    parentNode.measure(registry, Bess::UUID::null);
+    expectVec2(childNode1Ptr->getCachedPos(), -35, -25);
+    expectVec2(childNode2Ptr->getCachedPos(), 45, -35);
+}
+
+TEST_F(UiLayoutTests, UINodeLayoutHonorsDistributedVerticalMainAxisAlignment) {
+    Bess::Canvas::UI::UINodeRegistry registry;
+
+    Bess::Canvas::UI::UINode parentNode;
+    setPointSize(parentNode, glm::vec2(100, 200));
+    parentNode.setDirection(Bess::Canvas::UI::LayoutDirection::vertical);
+    parentNode.setMainAxisAlignment(
+        Bess::Canvas::UI::LayoutAlignment::spaceEvenly);
+
+    Bess::Canvas::UI::UINode childNode1;
+    setPointSize(childNode1, glm::vec2(50, 50));
+    auto childNode1Ptr = registry.addNode(childNode1);
+    ASSERT_NE(childNode1Ptr, nullptr);
+    parentNode.addChild(childNode1Ptr);
+
+    Bess::Canvas::UI::UINode childNode2;
+    setPointSize(childNode2, glm::vec2(30, 30));
+    auto childNode2Ptr = registry.addNode(childNode2);
+    ASSERT_NE(childNode2Ptr, nullptr);
+    parentNode.addChild(childNode2Ptr);
+
+    parentNode.measure(registry, Bess::UUID::null);
+
+    expectVec2(childNode1Ptr->getCachedPos(), -25, -35);
+    expectVec2(childNode2Ptr->getCachedPos(), -35, 45);
 }
 
 TEST_F(UiLayoutTests, EqualFlexColumnsRespectSharedMinimumWidth) {

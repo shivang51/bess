@@ -26,7 +26,14 @@ namespace Bess::Canvas::UI {
         verticalReverse
     };
 
-    enum class LayoutAlignment : uint8_t { start, center, end };
+    enum class LayoutAlignment : uint8_t {
+        start,
+        center,
+        end,
+        spaceBetween,
+        spaceAround,
+        spaceEvenly
+    };
 
     enum class LayoutSelfAlignment : uint8_t {
         auto_,
@@ -176,8 +183,7 @@ namespace Bess::Canvas::UI {
         LayoutDirection &getDirection();
 
         // Main axis follows Direction: x for horizontal, y for vertical.
-        // This is equivalent to CSS flexbox justify-content for the supported
-        // start/center/end values.
+        // This is equivalent to CSS flexbox justify-content.
         const LayoutAlignment &getMainAxisAlignment() const;
 
         void setMainAxisAlignment(const LayoutAlignment &alignment);
@@ -185,7 +191,8 @@ namespace Bess::Canvas::UI {
         LayoutAlignment &getMainAxisAlignment();
 
         // Cross axis is perpendicular to Direction. This is equivalent to CSS
-        // flexbox align-items for the supported start/center/end values.
+        // flexbox align-items for start/center/end. Distributed values such as
+        // spaceBetween are main-axis only.
         const LayoutAlignment &getCrossAxisAlignment() const;
 
         void setCrossAxisAlignment(const LayoutAlignment &alignment);

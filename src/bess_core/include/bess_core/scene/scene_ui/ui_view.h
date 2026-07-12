@@ -16,6 +16,7 @@
 #include "bess_core/scene/scene_ui/controls/segmented_button_comp.h"
 #include "bess_core/scene/scene_ui/controls/selectable_button_comp.h"
 #include "bess_core/scene/scene_ui/controls/slider_comp.h"
+#include "bess_core/scene/scene_ui/controls/spacer_comp.h"
 #include "bess_core/scene/scene_ui/controls/text_box_comp.h"
 #include "bess_core/scene/scene_ui/controls/toggle_btn_comp.h"
 #include "bess_core/scene/scene_ui/controls/tree_node_comp.h"
@@ -91,6 +92,37 @@ namespace Bess::Canvas::UI {
         [[nodiscard]] std::shared_ptr<ContainerComp>
         column(UIElementStyle style) const {
             return column(styleConfig(std::move(style)));
+        }
+
+        [[nodiscard]] std::shared_ptr<SpacerComp>
+        spacer(CompConfig config = CompConfig{}) const {
+            return SpacerComp::create(bindConfig(std::move(config)));
+        }
+
+        [[nodiscard]] std::shared_ptr<SpacerComp>
+        spacer(UIElementStyle style) const {
+            return spacer(styleConfig(std::move(style)));
+        }
+
+        [[nodiscard]] std::shared_ptr<SpacerComp>
+        spacer(float grow, CompConfig config = CompConfig{}) const {
+            return SpacerComp::create(grow, bindConfig(std::move(config)));
+        }
+
+        [[nodiscard]] std::shared_ptr<SpacerComp>
+        spacer(float grow, UIElementStyle style) const {
+            return spacer(grow, styleConfig(std::move(style)));
+        }
+
+        [[nodiscard]] std::shared_ptr<SpacerComp>
+        fixedSpacer(float size, CompConfig config = CompConfig{}) const {
+            return SpacerComp::createFixed(size,
+                                           bindConfig(std::move(config)));
+        }
+
+        [[nodiscard]] std::shared_ptr<SpacerComp>
+        fixedSpacer(float size, UIElementStyle style) const {
+            return fixedSpacer(size, styleConfig(std::move(style)));
         }
 
         [[nodiscard]] std::shared_ptr<LabelComp>

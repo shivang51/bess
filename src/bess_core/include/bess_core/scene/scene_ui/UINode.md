@@ -143,6 +143,13 @@ Supported container alignment values:
 - `start`
 - `center`
 - `end`
+- `spaceBetween` (main axis only)
+- `spaceAround` (main axis only)
+- `spaceEvenly` (main axis only)
+
+`spaceBetween`, `spaceAround`, and `spaceEvenly` map to `justify-content`.
+Cross-axis alignment maps to `align-items`, so it supports only start, center,
+and end placement.
 
 Supported self alignment values:
 
@@ -291,4 +298,3 @@ node->setPosDirty();
 ```
 
 `getSizeDirty()` and `getPosDirty()` are mainly useful for tests and diagnostics.
-

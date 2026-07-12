@@ -76,6 +76,12 @@ namespace Bess::Canvas::UI {
                 return YGJustifyCenter;
             case LayoutAlignment::end:
                 return YGJustifyFlexEnd;
+            case LayoutAlignment::spaceBetween:
+                return YGJustifySpaceBetween;
+            case LayoutAlignment::spaceAround:
+                return YGJustifySpaceAround;
+            case LayoutAlignment::spaceEvenly:
+                return YGJustifySpaceEvenly;
             }
             return YGJustifyFlexStart;
         }
@@ -88,6 +94,10 @@ namespace Bess::Canvas::UI {
                 return YGAlignCenter;
             case LayoutAlignment::end:
                 return YGAlignFlexEnd;
+            case LayoutAlignment::spaceBetween:
+            case LayoutAlignment::spaceAround:
+            case LayoutAlignment::spaceEvenly:
+                return YGAlignFlexStart;
             }
             return YGAlignFlexStart;
         }

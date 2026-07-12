@@ -1,5 +1,6 @@
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene/scene_ui/controls/container_comp.h"
+#include "bess_core/scene/scene_ui/controls/spacer_comp.h"
 #include "bess_core/scene/scene_ui/layout.h"
 #include "bess_core/scene/scene_ui/ui_scene_component.h"
 #include "bess_core/style/bess_theme.h"
@@ -60,6 +61,9 @@ void bind_scene_ui(py::module_ &m) {
         .value("start", UI::LayoutAlignment::start)
         .value("center", UI::LayoutAlignment::center)
         .value("end", UI::LayoutAlignment::end)
+        .value("space_between", UI::LayoutAlignment::spaceBetween)
+        .value("space_around", UI::LayoutAlignment::spaceAround)
+        .value("space_evenly", UI::LayoutAlignment::spaceEvenly)
         .export_values();
 
     py::enum_<UI::LayoutSelfAlignment>(m, "UILayoutSelfAlignment")
@@ -409,4 +413,40 @@ void bind_scene_ui(py::module_ &m) {
                 return self.getDrawBackground();
             },
             &UI::ContainerComp::setDrawBackground);
+
+    py::class_<UI::SpacerComp, UI::UISceneComponent, py::smart_holder>(
+        m, "SpacerComp")
+        .def(py::init<>())
+        .def_static("create", []() { return UI::SpacerComp::create(); })
+        .def_static("create",
+                    [](float grow) { return UI::SpacerComp::create(grow); },
+                    py::arg("grow"))
+        .def_static("create_fixed",
+                    [](float size) {
+                        return UI::SpacerComp::createFixed(size);
+                    },
+                    py::arg("size"))
+        .def_property("flex_grow",
+                      &UI::SpacerComp::getFlexGrow,
+                      &UI::SpacerComp::setFlexGrow)
+        .def_property("flex_shrink",
+                      &UI::SpacerComp::getFlexShrink,
+                      &UI::SpacerComp::setFlexShrink)
+        .def_property_readonly("flex_basis",
+                               &UI::SpacerComp::getFlexBasis)
+        .def_property_readonly("flex_basis_unit",
+                               &UI::SpacerComp::getFlexBasisUnit)
+        .def("set_flex",
+             &UI::SpacerComp::setFlex,
+             py::arg("grow"),
+             py::arg("shrink") = 1.f,
+             py::arg("basis") = 0.f,
+             py::arg_v("basis_unit", UI::Unit::pixel, "UIUnit.pixel"))
+        .def("set_flex_basis",
+             &UI::SpacerComp::setFlexBasis,
+             py::arg("basis"),
+             py::arg_v("unit", UI::Unit::pixel, "UIUnit.pixel"))
+        .def("set_fixed_size",
+             &UI::SpacerComp::setFixedSize,
+             py::arg("size"));
 }
