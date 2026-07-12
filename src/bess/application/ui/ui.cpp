@@ -110,6 +110,18 @@ namespace Bess {
         case CursorType::text:
             ImGui::SetMouseCursor(ImGuiMouseCursor_TextInput);
             break;
+        case CursorType::resizeHorizontal:
+            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+            break;
+        case CursorType::resizeVertical:
+            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+            break;
+        case CursorType::resizeDiagonalNWSE:
+            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
+            break;
+        case CursorType::resizeDiagonalNESW:
+            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNESW);
+            break;
         case CursorType::normal:
             ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
             break;
@@ -231,6 +243,22 @@ namespace Bess {
 
     void UIHandle::setCursorText() {
         m_currentCursorType = CursorType::text;
+    }
+
+    void UIHandle::setCursorResizeHorizontal() {
+        m_currentCursorType = CursorType::resizeHorizontal;
+    }
+
+    void UIHandle::setCursorResizeVertical() {
+        m_currentCursorType = CursorType::resizeVertical;
+    }
+
+    void UIHandle::setCursorResizeDiagonalNWSE() {
+        m_currentCursorType = CursorType::resizeDiagonalNWSE;
+    }
+
+    void UIHandle::setCursorResizeDiagonalNESW() {
+        m_currentCursorType = CursorType::resizeDiagonalNESW;
     }
 
     void UIHandle::setCursorNormal() {

@@ -7,7 +7,7 @@ namespace Bess::Canvas {
     namespace {
         constexpr float kInitialDemoValue = 35.f;
 
-        std::shared_ptr<UI::ContainerComp> demoPanel = nullptr;
+        std::shared_ptr<UI::PanelComp> demoPanel = nullptr;
         std::shared_ptr<UI::SliderComp> demoSlider = nullptr;
         std::shared_ptr<UI::ProgressBarComp> demoProgress = nullptr;
         std::shared_ptr<UI::ScalarInputComp> demoScalar = nullptr;
@@ -295,28 +295,43 @@ namespace Bess::Canvas {
                 .margin = Core::Style::Margin::onlyTop(4.f),
             });
 
-        demoPanel = ui.column({
-            .children =
-                {
-                    title,
-                    tree,
-                    demoProgress,
-                    demoScalar,
-                    demoSlider,
-                    showValues,
-                    compactLabels,
-                    reset,
-                },
-            .style =
-                UI::UIElementStyle{
-                    .padding = Core::Style::Padding(10.f, 12.f, 10.f, 12.f),
-                    .margin = Core::Style::Margin(0.f),
-                },
+        demoPanel = ui.panel(
+            "Scratch Retained UI",
+            {210.f, 428.f},
+            {
+                .children =
+                    {
+                        title,
+                        tree,
+                        demoProgress,
+                        demoScalar,
+                        demoSlider,
+                        showValues,
+                        compactLabels,
+                        reset,
+                    },
+                .style =
+                    UI::UIElementStyle{
+                        .padding = Core::Style::Padding(10.f, 12.f, 10.f, 12.f),
+                        .margin = Core::Style::Margin(0.f),
+                        .shadow =
+                            Core::Renderer::ShadowProps{
+                                .enabled = true,
+                                .offset = {0.f, 4.f},
+                                .blur = 10.f,
+                                .color = {0.f, 0.f, 0.f, 0.22f},
+                            },
+                    },
+            });
+        demoPanel->setPosition({-360.f, -210.f, 1.f});
+        demoPanel->setMinPanelSize({190.f, 210.f});
+        demoPanel->setMaxPanelSize({420.f, 720.f});
+        demoPanel->setContentAlignment(UI::LayoutAlignment::start);
+        demoPanel->setResizeCallback([title](const glm::vec2 &size) {
+            title->setName(
+                "Panel size: " + std::to_string(static_cast<int>(size.x)) +
+                " x " + std::to_string(static_cast<int>(size.y)));
         });
-        demoPanel->setName("Scratch Retained UI");
-        demoPanel->setPosition({-260.f, 160.f, 1.f});
-        demoPanel->setDrawBackground(true);
-        demoPanel->setCrossAxisAlignment(UI::LayoutAlignment::start);
     }
 
     void ScratchLayer::update(TimeMs ts, SceneUpdateContext &ctx) {

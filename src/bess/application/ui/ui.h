@@ -26,9 +26,22 @@ namespace Bess {
         void setCursorPointer();
         void setCursorMove();
         void setCursorText();
+        void setCursorResizeHorizontal();
+        void setCursorResizeVertical();
+        void setCursorResizeDiagonalNWSE();
+        void setCursorResizeDiagonalNESW();
         void setCursorNormal();
 
-        enum class CursorType : uint8_t { pointer, move, text, normal };
+        enum class CursorType : uint8_t {
+            pointer,
+            move,
+            text,
+            resizeHorizontal,
+            resizeVertical,
+            resizeDiagonalNWSE,
+            resizeDiagonalNESW,
+            normal
+        };
 
         class Fonts {
           public:

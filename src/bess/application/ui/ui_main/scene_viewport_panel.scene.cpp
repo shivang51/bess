@@ -217,6 +217,18 @@ namespace Bess::UI {
         case Core::Viewport::SceneCursor::text:
             window->getui().setCursorText();
             break;
+        case Core::Viewport::SceneCursor::resizeHorizontal:
+            window->getui().setCursorResizeHorizontal();
+            break;
+        case Core::Viewport::SceneCursor::resizeVertical:
+            window->getui().setCursorResizeVertical();
+            break;
+        case Core::Viewport::SceneCursor::resizeDiagonalNWSE:
+            window->getui().setCursorResizeDiagonalNWSE();
+            break;
+        case Core::Viewport::SceneCursor::resizeDiagonalNESW:
+            window->getui().setCursorResizeDiagonalNESW();
+            break;
         case Core::Viewport::SceneCursor::normal:
             window->getui().setCursorNormal();
             break;

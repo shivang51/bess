@@ -34,6 +34,10 @@ namespace Bess::Core::Viewport {
         pointer,
         move,
         text,
+        resizeHorizontal,
+        resizeVertical,
+        resizeDiagonalNWSE,
+        resizeDiagonalNESW,
     };
 
     struct BESS_API CursorRequest {

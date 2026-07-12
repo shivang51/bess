@@ -10,6 +10,7 @@
 #include "bess_core/scene/scene_ui/controls/image_comp.h"
 #include "bess_core/scene/scene_ui/controls/label_comp.h"
 #include "bess_core/scene/scene_ui/controls/list_box_comp.h"
+#include "bess_core/scene/scene_ui/controls/panel_comp.h"
 #include "bess_core/scene/scene_ui/controls/progress_bar_comp.h"
 #include "bess_core/scene/scene_ui/controls/scalar_input_comp.h"
 #include "bess_core/scene/scene_ui/controls/segmented_button_comp.h"
@@ -317,6 +318,42 @@ namespace Bess::Canvas::UI {
                            selectedIndex,
                            changedCallback,
                            styleConfig(std::move(style)));
+        }
+
+        [[nodiscard]] std::shared_ptr<PanelComp>
+        panel(CompConfig config = CompConfig{}) const {
+            return PanelComp::create(bindConfig(std::move(config)));
+        }
+
+        [[nodiscard]] std::shared_ptr<PanelComp>
+        panel(UIElementStyle style) const {
+            return panel(styleConfig(std::move(style)));
+        }
+
+        [[nodiscard]] std::shared_ptr<PanelComp>
+        panel(const std::string &title,
+              CompConfig config = CompConfig{}) const {
+            return PanelComp::create(title, bindConfig(std::move(config)));
+        }
+
+        [[nodiscard]] std::shared_ptr<PanelComp>
+        panel(const std::string &title, UIElementStyle style) const {
+            return panel(title, styleConfig(std::move(style)));
+        }
+
+        [[nodiscard]] std::shared_ptr<PanelComp>
+        panel(const std::string &title,
+              const glm::vec2 &panelSize,
+              CompConfig config = CompConfig{}) const {
+            return PanelComp::create(
+                title, panelSize, bindConfig(std::move(config)));
+        }
+
+        [[nodiscard]] std::shared_ptr<PanelComp>
+        panel(const std::string &title,
+              const glm::vec2 &panelSize,
+              UIElementStyle style) const {
+            return panel(title, panelSize, styleConfig(std::move(style)));
         }
 
         [[nodiscard]] std::shared_ptr<ProgressBarComp>
