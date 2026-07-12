@@ -7,6 +7,7 @@
 #include "bess_wgpu/piplines/path_pipeline.h"
 #include "bess_wgpu/piplines/primitive_pipeline.h"
 #include "bess_wgpu/piplines/shadow_pipeline.h"
+#include "bess_wgpu/text/bitmap_text_pipeline.h"
 #include "bess_wgpu/text/msdf_text_pipeline.h"
 #include "bess_wgpu/wgpu_shader.h"
 #include "bess_wgpu/wgpu_texture.h"
@@ -72,6 +73,9 @@ namespace Bess::Wgpu {
         constexpr const char *kDefaultMsdfFontDirectory = "assets/bess_fonts";
         constexpr const char *kDefaultMsdfFontName = "bess_fonts_merged";
         constexpr float kFontOutlinePixelSize = 64.f;
+        constexpr float kBitmapTextMinProjectedPixelSize = 4.f;
+        constexpr float kBitmapTextMaxProjectedPixelSize = 24.f;
+        constexpr uint32_t kBitmapTextAtlasSize = 2048;
         constexpr float kPathRotationEpsilon = 0.0001f;
         constexpr uint64_t kPathCacheMaxIdleFrames = 240;
         constexpr std::size_t kPathCachePruneThreshold = 512;
@@ -132,6 +136,25 @@ namespace Bess::Wgpu {
                                     const Renderer2DExtent &extent) {
             return makePathBakeMetricsForTransform(
                 props.transformMode, cameraTransform, extent);
+        }
+
+        float projectedFontPixelSize(
+            const FontProps &props,
+            const float *cameraTransform,
+            const Renderer2DExtent &extent) {
+            if (props.transformMode ==
+                Core::Renderer::RenderTransformMode::Screen) {
+                return props.fontSize;
+            }
+
+            const PathBakeMetrics metrics =
+                makePathBakeMetrics(cameraTransform, extent);
+            return props.fontSize * std::max(metrics.screenScale, 0.0001f);
+        }
+
+        bool shouldUseBitmapText(float projectedPixelSize) noexcept {
+            return projectedPixelSize >= kBitmapTextMinProjectedPixelSize &&
+                   projectedPixelSize <= kBitmapTextMaxProjectedPixelSize;
         }
 
         RendererScissorRect fullScissorRect(
@@ -375,6 +398,7 @@ namespace Bess::Wgpu {
         std::unique_ptr<Piplines::ShadowPipeline> shadowPipeline;
         std::unique_ptr<CustomQuadPipeline> customQuadPipeline;
         std::unique_ptr<Text::MsdfTextPipeline> textPipeline;
+        std::unique_ptr<Text::BitmapTextPipeline> bitmapTextPipeline;
         wgpu::CommandEncoder commandEncoder;
         std::vector<wgpu::CommandBuffer> pendingCommandBuffers;
         HashMap<Core::Renderer::TextureHandle, TextureResource> textures;
@@ -390,6 +414,7 @@ namespace Bess::Wgpu {
         PathBatch opaquePathBatch;
         PathBatch transparentPathBatch;
         Text::MsdfTextBatch textBatch;
+        Text::BitmapTextBatch bitmapTextBatch;
         std::vector<PathCommand> activePathCommands;
         PathProps activePathProps;
         Core::Renderer::RendererScissorState activePathScissor{};
@@ -397,6 +422,7 @@ namespace Bess::Wgpu {
         uint64_t activePathSubmitOrder = 0;
         std::unique_ptr<FontFile> fontFile;
         std::unique_ptr<MsdfFontAtlas> msdfFontAtlas;
+        std::unique_ptr<Text::BitmapFontAtlas> bitmapFontAtlas;
         std::vector<TransparentDrawItem> transparentDrawItems;
         std::vector<Core::Renderer::RendererScissorState> scissorStack;
         std::vector<PathCommand> textPathCommandsScratch;
@@ -460,7 +486,8 @@ namespace Bess::Wgpu {
         }
         [[nodiscard]] uint32_t quadStatsCount() const noexcept {
             return primitiveStatsCount() + customQuadStatsCount() +
-                   shadowBatch.count() + textBatch.count();
+                   shadowBatch.count() + textBatch.count() +
+                   bitmapTextBatch.count();
         }
     };
 
@@ -1067,6 +1094,35 @@ namespace Bess::Wgpu {
             std::max(1u, createInfo.batching.initialQuadCapacity)));
         m_impl->createDefaultTexture();
 
+        const std::string fontPath = createInfo.fontFile.empty()
+                                         ? kDefaultFontFile
+                                         : createInfo.fontFile;
+        m_impl->bitmapFontAtlas = std::make_unique<Text::BitmapFontAtlas>();
+        if (m_impl->bitmapFontAtlas->init(
+                m_impl->device,
+                m_impl->queue,
+                fontPath,
+                kBitmapTextAtlasSize,
+                static_cast<uint32_t>(kBitmapTextMinProjectedPixelSize),
+                static_cast<uint32_t>(kBitmapTextMaxProjectedPixelSize))) {
+            m_impl->bitmapTextPipeline =
+                std::make_unique<Text::BitmapTextPipeline>();
+            m_impl->bitmapTextPipeline->init(
+                m_impl->device,
+                m_impl->targetFormat,
+                m_impl->sharedFrameBuffer.getBuffer(),
+                m_impl->sharedFrameBuffer.getSize(),
+                m_impl->pickingFormat,
+                m_impl->bitmapFontAtlas->getTextureView());
+            static_cast<void>(
+                m_impl->bitmapTextPipeline->ensureInstanceBufferSize(
+                    std::max(1u, createInfo.batching.initialQuadCapacity)));
+        } else {
+            m_impl->bitmapFontAtlas = nullptr;
+            BESS_WARN("[WgpuRenderer2D] Bitmap font atlas unavailable; small "
+                      "text will use MSDF/outline fallback");
+        }
+
         m_impl->msdfFontAtlas = std::make_unique<MsdfFontAtlas>();
         if (m_impl->msdfFontAtlas->load(kDefaultMsdfFontDirectory,
                                         kDefaultMsdfFontName)) {
@@ -1086,9 +1142,6 @@ namespace Bess::Wgpu {
                       "back to outline text rendering");
         }
 
-        const std::string fontPath = createInfo.fontFile.empty()
-                                         ? kDefaultFontFile
-                                         : createInfo.fontFile;
         m_impl->fontFile = std::make_unique<FontFile>(fontPath);
         if (!m_impl->fontFile->isValid() ||
             !m_impl->fontFile->init(kFontOutlinePixelSize, 0, 255)) {
@@ -1124,7 +1177,12 @@ namespace Bess::Wgpu {
             m_impl->textPipeline->destroy();
             m_impl->textPipeline = nullptr;
         }
+        if (m_impl->bitmapTextPipeline) {
+            m_impl->bitmapTextPipeline->destroy();
+            m_impl->bitmapTextPipeline = nullptr;
+        }
         m_impl->msdfFontAtlas = nullptr;
+        m_impl->bitmapFontAtlas = nullptr;
         m_impl->sharedFrameBuffer.destroy();
         m_impl->textures.clear();
         m_impl->surface = nullptr;
@@ -1150,6 +1208,7 @@ namespace Bess::Wgpu {
         m_impl->opaquePathBatch.clear();
         m_impl->transparentPathBatch.clear();
         m_impl->textBatch.clear();
+        m_impl->bitmapTextBatch.clear();
         m_impl->activePathCommands.clear();
         m_impl->textPathCommandsScratch.clear();
         m_impl->pathCache.clear();
@@ -1250,6 +1309,7 @@ namespace Bess::Wgpu {
         m_impl->opaquePathBatch.clear();
         m_impl->transparentPathBatch.clear();
         m_impl->textBatch.clear();
+        m_impl->bitmapTextBatch.clear();
         m_impl->activePathCommands.clear();
         m_impl->activePathScissor = {};
         m_impl->pathStarted = false;
@@ -1343,6 +1403,7 @@ namespace Bess::Wgpu {
         m_impl->opaquePathBatch.prepareForRendering(false);
         m_impl->transparentPathBatch.prepareForRendering(true);
         m_impl->textBatch.prepareForRendering();
+        m_impl->bitmapTextBatch.prepareForRendering();
 
         const uint32_t opaqueInstanceOffset = 0;
         const uint32_t transparentInstanceOffset =
@@ -1395,6 +1456,8 @@ namespace Bess::Wgpu {
             m_impl->transparentPathStrokeBatch.instanceCount();
 
         const uint32_t totalTextGlyphCount = m_impl->textBatch.count();
+        const uint32_t totalBitmapTextGlyphCount =
+            m_impl->bitmapTextBatch.count();
 
         if (totalInstanceCount > 0 &&
             m_impl->primitivePipeline->ensureInstanceBufferSize(
@@ -1416,6 +1479,13 @@ namespace Bess::Wgpu {
         if (totalTextGlyphCount > 0 && m_impl->textPipeline != nullptr) {
             static_cast<void>(m_impl->textPipeline->ensureInstanceBufferSize(
                 totalTextGlyphCount));
+        }
+
+        if (totalBitmapTextGlyphCount > 0 &&
+            m_impl->bitmapTextPipeline != nullptr) {
+            static_cast<void>(
+                m_impl->bitmapTextPipeline->ensureInstanceBufferSize(
+                    totalBitmapTextGlyphCount));
         }
 
         if (!m_impl->opaquePrimitiveBatch.empty()) {
@@ -1474,9 +1544,20 @@ namespace Bess::Wgpu {
             m_impl->stats.uploadedBytes += m_impl->textBatch.byteSize();
         }
 
+        if (!m_impl->bitmapTextBatch.empty() &&
+            m_impl->bitmapTextPipeline != nullptr) {
+            m_impl->bitmapTextPipeline->uploadInstances(
+                m_impl->queue,
+                m_impl->bitmapTextBatch.data(),
+                m_impl->bitmapTextBatch.byteSize());
+            m_impl->stats.uploadedBytes +=
+                m_impl->bitmapTextBatch.byteSize();
+        }
+
         m_impl->stats.quadCount =
             totalInstanceCount + totalCustomInstanceCount +
-            totalShadowInstanceCount + totalTextGlyphCount;
+            totalShadowInstanceCount + totalTextGlyphCount +
+            totalBitmapTextGlyphCount;
 
         if (totalStencilVertexCount > 0) {
             static_cast<void>(
@@ -1596,6 +1677,7 @@ namespace Bess::Wgpu {
             PathStrokeOpaque,
             PathStrokeTransparent,
             Text,
+            BitmapText,
         };
 
         struct RenderPipelineKey {
@@ -1614,6 +1696,7 @@ namespace Bess::Wgpu {
             Shadow,
             Path,
             Text,
+            BitmapText,
         };
 
         struct RenderBindGroupKey {
@@ -1959,6 +2042,29 @@ namespace Bess::Wgpu {
             m_impl->stats.drawCallCount++;
         };
 
+        auto renderBitmapTextRun = [&](const Text::BitmapTextDrawRun &run) {
+            if (run.glyphCount == 0 ||
+                m_impl->bitmapTextPipeline == nullptr) {
+                return;
+            }
+            if (!passState.applyScissor(
+                    renderPass, run.scissor, m_impl->extent)) {
+                return;
+            }
+
+            passState.setPipeline(
+                renderPass,
+                {RenderPipelineKind::BitmapText, 0},
+                m_impl->bitmapTextPipeline->getPipeline());
+            passState.setBindGroup(
+                renderPass,
+                {RenderBindGroupKind::BitmapText, 0},
+                m_impl->bitmapTextPipeline->getBindGroup());
+            m_impl->bitmapTextPipeline->drawInstances(
+                renderPass, run.firstGlyph, run.glyphCount);
+            m_impl->stats.drawCallCount++;
+        };
+
         renderBatch(m_impl->opaquePrimitiveBatch,
                     opaqueInstanceOffset,
                     m_impl->primitivePipeline->getOpaquePipeline(),
@@ -1982,7 +2088,8 @@ namespace Bess::Wgpu {
             m_impl->transparentCustomQuadBatch.drawRunsCount() +
             m_impl->transparentPathBatch.drawCount() +
             m_impl->transparentPathStrokeBatch.drawCount() +
-            m_impl->textBatch.drawRunsCount());
+            m_impl->textBatch.drawRunsCount() +
+            m_impl->bitmapTextBatch.drawRunsCount());
 
         const ShadowDrawRun *shadowRuns = m_impl->shadowBatch.drawRunsData();
         for (uint32_t i = 0; i < m_impl->shadowBatch.drawRunsCount(); ++i) {
@@ -2054,6 +2161,18 @@ namespace Bess::Wgpu {
             });
         }
 
+        const Text::BitmapTextDrawRun *bitmapTextRuns =
+            m_impl->bitmapTextBatch.drawRunsData();
+        for (uint32_t i = 0; i < m_impl->bitmapTextBatch.drawRunsCount();
+             ++i) {
+            m_impl->transparentDrawItems.push_back({
+                .kind = TransparentDrawKind::BitmapText,
+                .zIndex = bitmapTextRuns[i].zIndex,
+                .index = i,
+                .order = bitmapTextRuns[i].submitOrder,
+            });
+        }
+
         std::stable_sort(
             m_impl->transparentDrawItems.begin(),
             m_impl->transparentDrawItems.end(),
@@ -2100,6 +2219,9 @@ namespace Bess::Wgpu {
             } break;
             case TransparentDrawKind::Text:
                 renderTextRun(textRuns[item.index]);
+                break;
+            case TransparentDrawKind::BitmapText:
+                renderBitmapTextRun(bitmapTextRuns[item.index]);
                 break;
             }
         }
@@ -2488,6 +2610,22 @@ namespace Bess::Wgpu {
             return;
         }
         const uint64_t submitOrder = m_impl->nextSubmitOrder();
+        const float projectedPixelSize = projectedFontPixelSize(
+            props, m_impl->cameraTransform, m_impl->extent);
+        if (m_impl->bitmapTextPipeline != nullptr &&
+            m_impl->bitmapFontAtlas != nullptr &&
+            shouldUseBitmapText(projectedPixelSize) &&
+            Text::appendBitmapText(text,
+                                   props,
+                                   projectedPixelSize,
+                                   *m_impl->bitmapFontAtlas,
+                                   m_impl->bitmapTextBatch,
+                                   submitOrder,
+                                   scissor)) {
+            m_impl->stats.quadCount = m_impl->quadStatsCount();
+            return;
+        }
+
         if (m_impl->textPipeline != nullptr &&
             m_impl->msdfFontAtlas != nullptr &&
             Text::appendMsdfText(text,
@@ -2637,6 +2775,18 @@ namespace Bess::Wgpu {
             return {0.f, 0.f};
         }
 
+        if (m_impl->bitmapFontAtlas != nullptr &&
+            m_impl->bitmapFontAtlas->valid() &&
+            shouldUseBitmapText(props.fontSize) &&
+            Text::ensureBitmapTextGlyphs(
+                text, props.fontSize, *m_impl->bitmapFontAtlas)) {
+            const glm::vec2 measured =
+                Text::measureBitmapText(text, props, *m_impl->bitmapFontAtlas);
+            if (measured.x > 0.f || measured.y > 0.f) {
+                return measured;
+            }
+        }
+
         if (m_impl->msdfFontAtlas != nullptr &&
             m_impl->msdfFontAtlas->valid()) {
             return Text::measureMsdfText(text, props, *m_impl->msdfFontAtlas);
@@ -2668,6 +2818,15 @@ namespace Bess::Wgpu {
                                             const FontProps &props) {
         if (text.empty() || props.fontSize <= 0.f) {
             return 0.f;
+        }
+
+        if (m_impl->bitmapFontAtlas != nullptr &&
+            m_impl->bitmapFontAtlas->valid() &&
+            shouldUseBitmapText(props.fontSize) &&
+            Text::ensureBitmapTextGlyphs(
+                text, props.fontSize, *m_impl->bitmapFontAtlas)) {
+            return Text::bitmapCenterOffsetY(
+                text, props, *m_impl->bitmapFontAtlas);
         }
 
         if (m_impl->msdfFontAtlas != nullptr &&

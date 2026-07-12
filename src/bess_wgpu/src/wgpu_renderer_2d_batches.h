@@ -44,6 +44,7 @@ namespace Bess::Wgpu::Renderer2DDetail {
         PathFill,
         PathStroke,
         Text,
+        BitmapText,
     };
 
     struct TransparentDrawItem {
