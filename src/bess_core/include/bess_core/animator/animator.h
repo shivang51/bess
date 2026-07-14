@@ -27,11 +27,15 @@ namespace Bess::Core {
         virtual void update(TimeMs ts) = 0;
     };
 
+    typedef std::function<void()> TOnAnimFinish;
+
     template <typename TVal> class Animation : public AnimationBase {
       public:
         DEFAULT_CONTRS(Animation);
 
-        typedef std::function<TVal(float t, TVal start, TVal end)> TMixerFn;
+        typedef std::function<TVal(float t, const TVal &start, const TVal &end)>
+            TMixerFn;
+        typedef std::function<void(const TVal &value)> TOnValChange;
 
         MAKE_GETTER_SETTER_PTR(TVal, CurrValPtr, m_currVal);
         MAKE_GETTER_SETTER(TVal, StartVal, m_startVal);
@@ -42,6 +46,8 @@ namespace Bess::Core {
         MAKE_GETTER_SETTER(TimeMs, CurrTime, m_currTime);
 
         MAKE_GETTER_SETTER(std::string, Label, m_label);
+        MAKE_GETTER_SETTER(TOnAnimFinish, OnAnimFinish, m_onAnimFinish)
+        MAKE_GETTER_SETTER(TOnValChange, OnValChange, m_onValChange)
 
         static std::shared_ptr<Animation<TVal>>
         fromDesc(const AnimDesc<TVal> &desc) {
@@ -72,7 +78,9 @@ namespace Bess::Core {
                 switch (m_loop) {
                 case Loop::none:
                     stop();
-                    reset();
+                    if (m_onAnimFinish) {
+                        m_onAnimFinish();
+                    }
                     break;
                 case Loop::loop:
                     reset();
@@ -86,14 +94,29 @@ namespace Bess::Core {
                 return;
             }
 
+            // Note(Shivang): This is just temp linear function
+            // Will use more functions in future (easin, out, etc)
             const float t = m_currTime.count() / m_duration.count();
 
             const TVal nextVal = m_mixerFn(t, m_startVal, m_endVal);
             setVal(nextVal);
+
+            if (m_onValChange) {
+                m_onValChange(nextVal);
+            }
         }
 
         void play(bool restart = false) {
             m_state = AnimationState::playing;
+
+            if (restart) {
+                reset();
+            }
+        }
+
+        void playReversed(bool restart = false) {
+            m_state = AnimationState::playing;
+            std::swap(m_startVal, m_endVal);
 
             if (restart) {
                 reset();
@@ -124,7 +147,6 @@ namespace Bess::Core {
       private:
         void reset() {
             m_currTime = TimeMs(0);
-            *m_currVal = m_startVal;
         }
 
         void setVal(TVal val) {
@@ -142,6 +164,9 @@ namespace Bess::Core {
         TMixerFn m_mixerFn = nullptr;
         std::string m_label = "Unlabeled";
         Loop m_loop = Loop::none;
+
+        TOnAnimFinish m_onAnimFinish = nullptr;
+        TOnValChange m_onValChange = nullptr;
     };
 
     template <typename T>
@@ -162,7 +187,7 @@ namespace Bess::Core {
         std::shared_ptr<Animation<T>> createScalar(const AnimDesc<T> desc) {
             auto anim = Animation<T>::fromDesc(desc);
 
-            const auto mixer = [](float t, T start, T end) {
+            const auto mixer = [](float t, const T &start, const T &end) {
                 return std::lerp(start, end, t);
             };
 
@@ -174,7 +199,7 @@ namespace Bess::Core {
         std::shared_ptr<Animation<T>> createVec(const AnimDesc<T> desc) {
             auto anim = Animation<T>::fromDesc(desc);
 
-            const auto mixer = [](float t, T start, T end) {
+            const auto mixer = [](float t, const T &start, const T &end) {
                 return glm::mix(start, end, t);
             };
 

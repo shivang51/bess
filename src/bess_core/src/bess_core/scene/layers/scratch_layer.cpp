@@ -29,22 +29,42 @@ namespace Bess::Canvas {
             .start = 0.f,
             .end = 50.f,
             .duration = TimeMs(2000),
-            .loop = Core::Loop::loopReverse,
         };
 
         Core::AnimDesc posAnimDesc = {
             .valPtr = &m_pos,
             .start = {0.f, 0.f},
-            .end = {-100.f, -100.f},
+            .end = {0.f, -100.f},
             .duration = TimeMs(2000),
-            .loop = Core::Loop::loopReverse,
+            // .loop = Core::Loop::loopReverse,
         };
 
         auto &appCtx = GAppContext::getInstance();
         auto animator = appCtx.getSubSystem<Core::Animator>();
 
-        animator->addVec(posAnimDesc, true);
-        animator->addScalar(desc, true);
+        auto rAnim = animator->addScalar(desc);
+        auto posAnim = animator->addVec(posAnimDesc);
+
+        static bool isFirstRun = true;
+
+        rAnim->setOnAnimFinish([posAnim]() {
+            BESS_TRACE("{}", isFirstRun);
+            if (isFirstRun)
+                posAnim->play();
+            else
+                posAnim->playReversed();
+        });
+
+        rAnim->setOnValChange(
+            [this](const float &value) { BESS_TRACE("Radius: {}", value); });
+
+        posAnim->setOnAnimFinish([rAnim]() {
+            BESS_TRACE("Pos Animation Finished");
+            isFirstRun = false;
+            rAnim->playReversed();
+        });
+
+        rAnim->play();
 
 #ifdef UI_DEMO
         UI::View ui{ctx.sceneState};
