@@ -16,24 +16,37 @@ namespace Bess::Canvas {
         std::shared_ptr<UI::ScalarInputComp> demoScalar = nullptr;
         std::shared_ptr<UI::ImageComp> demoImage = nullptr;
         std::shared_ptr<UI::ListBoxComp> demoList = nullptr;
+        float m_radius = 0.f;
+        glm::vec2 m_pos = glm::vec2{0.f};
     } // namespace
+
+    // #define UI_DEMO
 
     void ScratchLayer::init(SceneLifecycleContext &ctx) {
 
-        Core::AnimDesc<float> desc = {
+        Core::AnimDesc desc = {
             .valPtr = &m_radius,
             .start = 0.f,
             .end = 50.f,
             .duration = TimeMs(2000),
-            .loop = true,
+            .loop = Core::Loop::loopReverse,
+        };
+
+        Core::AnimDesc posAnimDesc = {
+            .valPtr = &m_pos,
+            .start = {0.f, 0.f},
+            .end = {-100.f, -100.f},
+            .duration = TimeMs(2000),
+            .loop = Core::Loop::loopReverse,
         };
 
         auto &appCtx = GAppContext::getInstance();
         auto animator = appCtx.getSubSystem<Core::Animator>();
-        auto anim = Core::Anim::createScalar(desc);
-        anim->play();
-        animator->add(anim);
 
+        animator->addVec(posAnimDesc, true);
+        animator->addScalar(desc, true);
+
+#ifdef UI_DEMO
         UI::View ui{ctx.sceneState};
 
         auto title =
@@ -350,6 +363,7 @@ namespace Bess::Canvas {
                 "Panel size: " + std::to_string(static_cast<int>(size.x)) +
                 " x " + std::to_string(static_cast<int>(size.y)));
         });
+#endif
     }
 
     void ScratchLayer::update(TimeMs ts, SceneUpdateContext &ctx) {
@@ -357,17 +371,12 @@ namespace Bess::Canvas {
 
     void ScratchLayer::draw(SceneRenderContext &ctx) {
         Core::Renderer::QuadProps props;
-        props.position = {0.f, 0.f};
+        props.position = m_pos;
         props.radius = glm::vec4{m_radius};
         props.color = Core::Renderer::Colors::pastelRed;
         props.zIndex = 1;
         props.size = {100.f, 100.f};
 
         ctx.renderer->drawQuad(props);
-        Core::Renderer::FontProps textProps;
-        textProps.position = {0.f, 80.f};
-        textProps.fontSize = 24;
-
-        ctx.renderer->drawFont(std::to_string(m_radius), textProps);
     }
 } // namespace Bess::Canvas

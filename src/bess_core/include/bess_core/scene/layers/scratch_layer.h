@@ -10,9 +10,6 @@ namespace Bess::Canvas {
         void init(SceneLifecycleContext &ctx) override;
         void update(TimeMs ts, SceneUpdateContext &ctx) override;
         void draw(SceneRenderContext &ctx) override;
-
-      private:
-        float m_radius = 0.f;
     };
 
 } // namespace Bess::Canvas

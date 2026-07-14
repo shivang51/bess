@@ -11,13 +11,14 @@
 namespace Bess::Core {
 
     enum class AnimationState : uint8_t { stopped, playing, paused };
+    enum class Loop : uint8_t { none, loop, loopReverse };
 
     template <typename T> struct AnimDesc {
         T *valPtr = nullptr;
         T start;
         T end;
         TimeMs duration;
-        bool loop = false;
+        Loop loop = Loop::none;
     };
 
     class AnimationBase {
@@ -30,7 +31,7 @@ namespace Bess::Core {
       public:
         DEFAULT_CONTRS(Animation);
 
-        typedef std::function<TVal(float t, TVal curr, TVal end)> TMixerFn;
+        typedef std::function<TVal(float t, TVal start, TVal end)> TMixerFn;
 
         MAKE_GETTER_SETTER_PTR(TVal, CurrValPtr, m_currVal);
         MAKE_GETTER_SETTER(TVal, StartVal, m_startVal);
@@ -68,10 +69,18 @@ namespace Bess::Core {
             if (m_currTime >= m_duration) {
                 setVal(m_endVal);
 
-                if (!m_loop) {
+                switch (m_loop) {
+                case Loop::none:
                     stop();
-                } else {
                     reset();
+                    break;
+                case Loop::loop:
+                    reset();
+                    break;
+                case Loop::loopReverse:
+                    std::swap(m_startVal, m_endVal);
+                    reset();
+                    break;
                 }
 
                 return;
@@ -132,7 +141,7 @@ namespace Bess::Core {
 
         TMixerFn m_mixerFn = nullptr;
         std::string m_label = "Unlabeled";
-        bool m_loop = false;
+        Loop m_loop = Loop::none;
     };
 
     template <typename T>
@@ -153,8 +162,8 @@ namespace Bess::Core {
         std::shared_ptr<Animation<T>> createScalar(const AnimDesc<T> desc) {
             auto anim = Animation<T>::fromDesc(desc);
 
-            const auto mixer = [](float t, T curr, T end) {
-                return std::lerp(curr, end, t);
+            const auto mixer = [](float t, T start, T end) {
+                return std::lerp(start, end, t);
             };
 
             anim->setMixerFn(mixer);
@@ -165,8 +174,8 @@ namespace Bess::Core {
         std::shared_ptr<Animation<T>> createVec(const AnimDesc<T> desc) {
             auto anim = Animation<T>::fromDesc(desc);
 
-            const auto mixer = [](float t, T curr, T end) {
-                return glm::mix(curr, end, t);
+            const auto mixer = [](float t, T start, T end) {
+                return glm::mix(start, end, t);
             };
 
             anim->setMixerFn(mixer);
@@ -193,6 +202,28 @@ namespace Bess::Core {
 
         void add(const std::shared_ptr<AnimationBase> &anim) {
             m_animations.push_back(anim);
+        }
+
+        template <typename T>
+        std::shared_ptr<Animation<T>> addVec(const AnimDesc<T> &desc,
+                                             bool play = false) {
+            auto anim = Core::Anim::createVec(desc);
+            m_animations.push_back(anim);
+            if (play) {
+                anim->play();
+            }
+            return anim;
+        }
+
+        template <typename T>
+        std::shared_ptr<Animation<T>> addScalar(const AnimDesc<T> &desc,
+                                                bool play = false) {
+            auto anim = Core::Anim::createScalar(desc);
+            m_animations.push_back(anim);
+            if (play) {
+                anim->play();
+            }
+            return anim;
         }
 
       private:
