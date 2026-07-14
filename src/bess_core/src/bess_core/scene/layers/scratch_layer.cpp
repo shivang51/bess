@@ -1,6 +1,9 @@
 #include "bess_core/scene/layers/scratch_layer.h"
-#include "bess_core/scene/scene_draw_context.h"
+#include "bess_core/animator/animator.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/renderer/renderer_types.h"
 #include "bess_core/scene/scene_ui/ui_view.h"
+#include "common/types.h"
 #include <string>
 
 namespace Bess::Canvas {
@@ -16,6 +19,21 @@ namespace Bess::Canvas {
     } // namespace
 
     void ScratchLayer::init(SceneLifecycleContext &ctx) {
+
+        Core::AnimDesc<float> desc = {
+            .valPtr = &m_radius,
+            .start = 0.f,
+            .end = 50.f,
+            .duration = TimeMs(2000),
+            .loop = true,
+        };
+
+        auto &appCtx = GAppContext::getInstance();
+        auto animator = appCtx.getSubSystem<Core::Animator>();
+        auto anim = Core::Anim::createScalar(desc);
+        anim->play();
+        animator->add(anim);
+
         UI::View ui{ctx.sceneState};
 
         auto title =
@@ -338,5 +356,18 @@ namespace Bess::Canvas {
     }
 
     void ScratchLayer::draw(SceneRenderContext &ctx) {
+        Core::Renderer::QuadProps props;
+        props.position = {0.f, 0.f};
+        props.radius = glm::vec4{m_radius};
+        props.color = Core::Renderer::Colors::pastelRed;
+        props.zIndex = 1;
+        props.size = {100.f, 100.f};
+
+        ctx.renderer->drawQuad(props);
+        Core::Renderer::FontProps textProps;
+        textProps.position = {0.f, 80.f};
+        textProps.fontSize = 24;
+
+        ctx.renderer->drawFont(std::to_string(m_radius), textProps);
     }
 } // namespace Bess::Canvas

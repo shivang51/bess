@@ -1,4 +1,5 @@
 #include "application.h"
+#include "bess_core/animator/animator.h"
 #include "bess_core/asset_manager/asset_manager.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
@@ -84,6 +85,7 @@ namespace Bess {
         m_mainWindow = appCtx.addSubSystem<Window>(800, 660, "Bess");
         appCtx.addSubSystem<RendererContext>();
         appCtx.addSubSystem<Assets::AssetManager>();
+        appCtx.addSubSystem<Core::Animator>();
 
         if (flags & AppStartupFlag::disablePlugins) {
             BESS_WARN("[Application] Plugin support is disabled");
