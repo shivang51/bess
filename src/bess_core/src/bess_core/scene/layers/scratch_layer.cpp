@@ -48,18 +48,13 @@ namespace Bess::Canvas {
         static bool isFirstRun = true;
 
         rAnim->setOnAnimFinish([posAnim]() {
-            BESS_TRACE("{}", isFirstRun);
             if (isFirstRun)
                 posAnim->play();
             else
                 posAnim->playReversed();
         });
 
-        rAnim->setOnValChange(
-            [this](const float &value) { BESS_TRACE("Radius: {}", value); });
-
         posAnim->setOnAnimFinish([rAnim]() {
-            BESS_TRACE("Pos Animation Finished");
             isFirstRun = false;
             rAnim->playReversed();
         });
