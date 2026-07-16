@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_wgpu/piplines/pipeline.h"
 #include "bess_wgpu/wgpu_shader.h"
 #include <cstddef>
@@ -9,7 +11,7 @@
 
 namespace Bess::Wgpu::Piplines {
 
-    struct ShadowInstance {
+    struct BESS_API ShadowInstance {
         float position[3] = {0.f, 0.f, 0.f};
         float rotation = 0.f;
         float size[2] = {1.f, 1.f};
@@ -26,8 +28,12 @@ namespace Bess::Wgpu::Piplines {
     static_assert(sizeof(ShadowInstance) == 96,
                   "ShadowInstance must match WGSL layout");
 
-    class ShadowPipeline final : public Pipeline {
+    class BESS_API ShadowPipeline final : public Pipeline {
       public:
+        ShadowPipeline() = default;
+        ShadowPipeline(const ShadowPipeline &) = delete;
+        ShadowPipeline &operator=(const ShadowPipeline &) = delete;
+
         void init(const wgpu::Device &device,
                   wgpu::TextureFormat targetFormat,
                   const wgpu::Buffer &frameBuffer,

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/g_app_context.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_ui/layout.h"
@@ -11,7 +13,7 @@
 #include <mutex>
 
 namespace Bess::Canvas {
-    class SceneState {
+    class BESS_API SceneState {
       public:
         SceneState();
         ~SceneState() = default;
@@ -184,6 +186,8 @@ namespace Bess::Canvas {
 } // namespace Bess::Canvas
 
 namespace Bess::JsonConvert {
-    void toJsonValue(const Bess::Canvas::SceneState &state, Json::Value &j);
-    void fromJsonValue(const Json::Value &j, Bess::Canvas::SceneState &state);
+    BESS_API void toJsonValue(const Bess::Canvas::SceneState &state,
+                              Json::Value &j);
+    BESS_API void fromJsonValue(const Json::Value &j,
+                                Bess::Canvas::SceneState &state);
 } // namespace Bess::JsonConvert

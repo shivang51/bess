@@ -385,13 +385,13 @@ namespace Bess::Canvas {
     }
 
     void ScratchLayer::draw(SceneRenderContext &ctx) {
-        Core::Renderer::QuadProps props;
-        props.position = m_pos;
-        props.radius = glm::vec4{m_radius};
-        props.color = Core::Renderer::Colors::pastelRed;
-        props.zIndex = 1;
-        props.size = {100.f, 100.f};
-
-        ctx.renderer->drawQuad(props);
+        // Core::Renderer::QuadProps props;
+        // props.position = m_pos;
+        // props.radius = glm::vec4{m_radius};
+        // props.color = Core::Renderer::Colors::pastelRed;
+        // props.zIndex = 1;
+        // props.size = {100.f, 100.f};
+        //
+        // ctx.renderer->drawQuad(props);
     }
 } // namespace Bess::Canvas

@@ -45,6 +45,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 	"${CMAKE_SOURCE_DIR}/src/math_sim_driver/include"
 )
 
-target_link_libraries(BessTests PUBLIC GTest::gtest BessExtDeps common BessSimEngine MathSimDriver bverilog BessApp EventSystem BessCore )
+target_link_libraries(BessTests PRIVATE GTest::gtest BessRuntime)
 include(GoogleTest)
 gtest_discover_tests(BessTests WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})

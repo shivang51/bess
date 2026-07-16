@@ -1,11 +1,13 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "common/types.h"
 #include "bess_core/scene/scene_event.h"
 #include "bess_core/scene/scene_layer.h"
 
 namespace Bess::Canvas {
-    class SceneWidgetsLayer : public ISceneLayer {
+    class BESS_API SceneWidgetsLayer : public ISceneLayer {
       public:
         EventResult handleEvent(SceneEvent &evt,
                                 SceneEventContext &ctx) override;

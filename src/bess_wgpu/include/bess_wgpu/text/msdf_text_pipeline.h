@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/renderer/renderer_types.h"
 #include "bess_wgpu/wgpu_shader.h"
@@ -16,7 +18,7 @@ namespace Bess::Wgpu {
     namespace Text {
         constexpr uint32_t kMsdfTextFlagApplyCameraTransform = 1u << 0u;
 
-        struct MsdfTextInstance {
+        struct BESS_API MsdfTextInstance {
             float position[3] = {0.f, 0.f, 0.f};
             float pxRange = 4.f;
             float size[2] = {0.f, 0.f};
@@ -31,7 +33,7 @@ namespace Bess::Wgpu {
         static_assert(sizeof(MsdfTextInstance) == 80,
                       "MsdfTextInstance must match WGSL layout");
 
-        struct TextDrawRun {
+        struct BESS_API TextDrawRun {
             uint32_t firstGlyph = 0;
             uint32_t glyphCount = 0;
             float zIndex = 0.f;
@@ -39,7 +41,7 @@ namespace Bess::Wgpu {
             Core::Renderer::RendererScissorState scissor{};
         };
 
-        class MsdfTextBatch {
+        class BESS_API MsdfTextBatch {
           public:
             void clear() {
                 m_instances.clear();
@@ -154,8 +156,12 @@ namespace Bess::Wgpu {
             std::vector<TextDrawRun> m_drawRuns;
         };
 
-        class MsdfTextPipeline {
+        class BESS_API MsdfTextPipeline {
           public:
+            MsdfTextPipeline() = default;
+            MsdfTextPipeline(const MsdfTextPipeline &) = delete;
+            MsdfTextPipeline &operator=(const MsdfTextPipeline &) = delete;
+
             void init(const wgpu::Device &device,
                       wgpu::TextureFormat targetFormat,
                       const wgpu::Buffer &frameBuffer,

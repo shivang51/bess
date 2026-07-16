@@ -1,10 +1,12 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/scene/scene_layer.h"
 #include "common/types.h"
 
 namespace Bess::Canvas {
-    class ComponentsLayer : public ISceneLayer {
+    class BESS_API ComponentsLayer : public ISceneLayer {
       public:
         ComponentsLayer() = default;
         ~ComponentsLayer() override = default;

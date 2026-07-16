@@ -1,10 +1,12 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/scene/scene_serializer.h"
 #include <string>
 
 namespace Bess {
-    class ProjectFile {
+    class BESS_API ProjectFile {
       public:
         ProjectFile();
         ProjectFile(const std::string &path);

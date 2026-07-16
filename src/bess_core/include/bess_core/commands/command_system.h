@@ -13,6 +13,10 @@ namespace Bess::Cmd {
     class BESS_API CommandSystem : public ISubSystem {
       public:
         CommandSystem() = default;
+        CommandSystem(const CommandSystem &) = delete;
+        CommandSystem &operator=(const CommandSystem &) = delete;
+        CommandSystem(CommandSystem &&) = delete;
+        CommandSystem &operator=(CommandSystem &&) = delete;
 
         void onInit() override;
         void onShutdown() override;

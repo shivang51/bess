@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/scene/scene_ui/ui_scene_component.h"
 #include <cstddef>
 #include <functional>
@@ -9,7 +11,7 @@
 
 namespace Bess::Canvas::UI {
 
-    struct UIDropdownOption {
+    struct BESS_API UIDropdownOption {
         std::string label;
         bool enabled = true;
     };
@@ -17,7 +19,7 @@ namespace Bess::Canvas::UI {
     using UIDropdownCallback =
         std::function<void(size_t, const UIDropdownOption &)>;
 
-    class DropdownComp : public UISceneComponent {
+    class BESS_API DropdownComp : public UISceneComponent {
       public:
         DEFAULT_CONTRS(DropdownComp)
 

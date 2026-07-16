@@ -1,12 +1,14 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include <algorithm>
 #include <cstdint>
 #include <webgpu/webgpu_cpp.h>
 
 namespace Bess::Wgpu::Piplines {
 
-    struct FrameUniform {
+    struct BESS_API FrameUniform {
         float viewport[2] = {1.f, 1.f};
         float padding[2] = {0.f, 0.f};
         float cameraTransform[16] = {
@@ -29,7 +31,7 @@ namespace Bess::Wgpu::Piplines {
         };
     };
 
-    class SharedFrameBuffer {
+    class BESS_API SharedFrameBuffer {
       public:
         void init(const wgpu::Device &device) {
             m_device = device;
@@ -97,7 +99,7 @@ namespace Bess::Wgpu::Piplines {
         FrameUniform m_frameUniform;
     };
 
-    class Pipeline {
+    class BESS_API Pipeline {
       public:
         virtual ~Pipeline() = default;
 

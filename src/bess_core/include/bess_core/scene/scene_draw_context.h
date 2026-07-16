@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/renderer/renderer_types.h"
 #include "bess_core/scene/scene_ui/layout.h"
 #include "bess_core/style/bess_theme.h"
@@ -24,7 +26,7 @@ namespace Bess {
         } // namespace SceneWidgets
     } // namespace Canvas
 
-    struct SimDrawCache {
+    struct BESS_API SimDrawCache {
       public:
         void setSimEngine(
             const std::shared_ptr<SimEngine::SimulationEngine> &engine) {
@@ -80,7 +82,7 @@ namespace Bess {
         HashMap<UUID, SimEngine::ComponentState> m_states;
     };
 
-    struct SceneDrawContext {
+    struct BESS_API SceneDrawContext {
         Bess::Canvas::SceneState *sceneState = nullptr;
         std::shared_ptr<Core::Renderer::IRenderer2D> renderer = nullptr;
         std::shared_ptr<Camera> camera = nullptr;
@@ -93,7 +95,7 @@ namespace Bess {
         std::shared_ptr<Core::Viewport::ViewportContext> viewportCtx = nullptr;
     };
 
-    struct SceneUIPrepareCtx {
+    struct BESS_API SceneUIPrepareCtx {
         Bess::Canvas::SceneState *sceneState;
         std::shared_ptr<Core::Renderer::IRenderer2D> renderer;
         Canvas::UI::UINode *parentNode = nullptr;

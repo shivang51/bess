@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/scene/scene_event.h"
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene/widgets/scene_widgets.h"
@@ -20,7 +22,7 @@ namespace Bess::Canvas::SceneWidgets::Detail {
         return overrideColor.value_or(Core::Renderer::Color(themeColor));
     }
 
-    struct WidgetState {
+    struct BESS_API WidgetState {
         enum class Type : uint8_t {
             unknown,
             toggleButton,
@@ -74,7 +76,7 @@ namespace Bess::Canvas::SceneWidgets::Detail {
 } // namespace Bess::Canvas::SceneWidgets::Detail
 
 namespace Bess::Canvas::SceneWidgets {
-    struct SceneWidgetsState {
+    struct BESS_API SceneWidgetsState {
         std::unordered_set<uint64_t> registeredWidgets;
         std::unordered_map<uint64_t, Detail::WidgetState> widgetStates;
         uint64_t hoveredWidgetId = Detail::kInvalidWidgetId;
@@ -83,7 +85,7 @@ namespace Bess::Canvas::SceneWidgets {
         std::string textClipboard;
     };
 
-    struct ViewportSceneWidgetsState {
+    struct BESS_API ViewportSceneWidgetsState {
         std::unordered_map<UUID, SceneWidgetsState> sceneStates;
 
         void clear() {

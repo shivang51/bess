@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include <algorithm>
 
 #include "common/types.h"
@@ -7,7 +9,7 @@
 #include "bess_core/settings/settings.h"
 
 namespace Bess {
-    struct CameraPositionAnimation {
+    struct BESS_API CameraPositionAnimation {
         glm::vec2 startPos, endPos;
         TimeMs duration;
         TimeMs currentTime = TimeMs(0);
@@ -27,7 +29,7 @@ namespace Bess {
         }
     };
 
-    struct CameraPositionZoomAnimation {
+    struct BESS_API CameraPositionZoomAnimation {
         glm::vec2 startPos, endPos;
         float startZoom, endZoom;
         TimeMs duration;
@@ -49,7 +51,7 @@ namespace Bess {
         }
     };
 
-    class Camera {
+    class BESS_API Camera {
       public:
         Camera(float width, float height);
         ~Camera() = default;
@@ -88,7 +90,9 @@ namespace Bess {
         // Converts given viewportPos to world pos
         glm::vec2 toWorldPos(const glm::vec2 &viewportPos) const;
 
-        static float zoomMin, zoomMax, defaultZoom;
+        static float zoomMin;
+        static float zoomMax;
+        static float defaultZoom;
 
       private:
         glm::vec2 m_pos;

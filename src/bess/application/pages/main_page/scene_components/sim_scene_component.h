@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
@@ -21,7 +23,7 @@
         ("schematicTransform", getSchematicTransform, setSchematicTransform)
 
 namespace Bess::Canvas {
-    class SimulationSceneComponent
+    class BESS_API SimulationSceneComponent
         : public SceneComponent,
           public DragBehaviour<SimulationSceneComponent> {
       public:

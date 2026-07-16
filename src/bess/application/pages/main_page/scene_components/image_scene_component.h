@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/renderer/texture.h"
 #include "bess_core/scene/scene_draw_context.h"
 #include "pages/main_page/scene_components/non_sim_scene_component.h"
@@ -17,7 +19,7 @@
          setMaintainAspectRatio)
 
 namespace Bess::Canvas {
-    class ImageSceneComponent : public NonSimSceneComponent {
+    class BESS_API ImageSceneComponent : public NonSimSceneComponent {
       public:
         ImageSceneComponent();
 

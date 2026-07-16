@@ -1,4 +1,6 @@
 #pragma once
+
+#include "common/bess_api.h"
 #include <memory>
 #include <string>
 
@@ -6,7 +8,7 @@
 #include "ui/ui_panel.h"
 
 namespace Bess::UI {
-    class ProjectSettingsWindow : public Panel {
+    class BESS_API ProjectSettingsWindow : public Panel {
       public:
         ProjectSettingsWindow();
 

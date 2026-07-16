@@ -4,8 +4,8 @@
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 
-#include "pages/main_page/main_page.h"
 #include "bess_core/scene/scene.h"
+#include "pages/main_page/main_page.h"
 #include "simulation_engine.h"
 #include "ui/ui_main/dialogs.h"
 
@@ -165,7 +165,7 @@ namespace Bess {
         m_path = pathStr;
 
         const auto path = std::filesystem::path(pathStr);
-        m_name = path.filename();
+        m_name = path.filename().string();
 
         if (!m_path.ends_with(".bproj")) {
             m_path += ".bproj";

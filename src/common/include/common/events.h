@@ -1,4 +1,6 @@
 #pragma once
+
+#include "common/bess_api.h"
 #include "bess_core/style/bess_theme.h"
 #include <cstdint>
 #include <memory>
@@ -10,12 +12,12 @@ namespace Bess {
 }
 
 namespace Bess::Events {
-    struct WindowResizeEvent {
+    struct BESS_API WindowResizeEvent {
         uint32_t width;
         uint32_t height;
     };
 
-    struct WindowDropPayload {
+    struct BESS_API WindowDropPayload {
         std::string requestedMimeType;
         std::string mimeType;
         std::string data;
@@ -23,14 +25,14 @@ namespace Bess::Events {
         int formatBits = 0;
     };
 
-    struct WindowDropEvent {
+    struct BESS_API WindowDropEvent {
         Window *window = nullptr;
         std::shared_ptr<const WindowDropPayload> payload;
         int x = 0;
         int y = 0;
     };
 
-    struct ThemeChangeEvent {
+    struct BESS_API ThemeChangeEvent {
         bool isDarkMode = false;
         std::shared_ptr<Core::Style::BessTheme> theme = nullptr;
     };

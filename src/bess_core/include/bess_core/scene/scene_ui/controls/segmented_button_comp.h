@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/scene/scene_ui/ui_scene_component.h"
 #include <cstddef>
 #include <functional>
@@ -9,7 +11,7 @@
 
 namespace Bess::Canvas::UI {
 
-    struct UISegmentedButtonOption {
+    struct BESS_API UISegmentedButtonOption {
         std::string label;
         bool enabled = true;
     };
@@ -17,7 +19,7 @@ namespace Bess::Canvas::UI {
     using UISegmentedButtonCallback =
         std::function<void(size_t, const UISegmentedButtonOption &)>;
 
-    class SegmentedButtonComp : public UISceneComponent {
+    class BESS_API SegmentedButtonComp : public UISceneComponent {
       public:
         DEFAULT_CONTRS(SegmentedButtonComp)
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "common/bess_uuid.h"
 #include "ui/ui_panel.h"
 #include <filesystem>
@@ -10,17 +12,17 @@ namespace Bess::Canvas {
 }
 
 namespace Bess::UI {
-    struct SceneBounds {
+    struct BESS_API SceneBounds {
         glm::vec2 min, max;
     };
 
-    struct SceneSnapsInfo {
+    struct BESS_API SceneSnapsInfo {
         glm::ivec2 count;
         glm::vec2 span;
         glm::vec2 size;
     };
 
-    struct SceneExportInfo {
+    struct BESS_API SceneExportInfo {
         SceneBounds sceneBounds;
         SceneSnapsInfo snapsInfo;
         float scale;
@@ -29,7 +31,7 @@ namespace Bess::UI {
         UUID sceneId = UUID::null;
     };
 
-    class SceneExportWindow : public Panel {
+    class BESS_API SceneExportWindow : public Panel {
       public:
         SceneExportWindow();
 

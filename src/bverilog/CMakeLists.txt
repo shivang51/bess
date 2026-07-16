@@ -27,7 +27,7 @@ set(ALL_FILES
     ${Source_Files}
 )
 
-add_library(${PROJECT_NAME} STATIC ${ALL_FILES})
+add_library(${PROJECT_NAME} OBJECT ${ALL_FILES})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE BessExtDeps BessJson common BessSimEngine BessSimDriver DigitalSimDriver)
 add_dependencies(${PROJECT_NAME} BessJson common BessExtDeps BessSimEngine BessSimDriver DigitalSimDriver)

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene/scene_ui/text_box_context.h"
 #include "bess_core/scene/scene_ui/ui_scene_component.h"
@@ -12,7 +14,7 @@ namespace Bess::Canvas::UI {
 
     typedef std::function<void(const std::string &)> UITextBoxCallback;
 
-    class TextBoxComp : public UISceneComponent {
+    class BESS_API TextBoxComp : public UISceneComponent {
       public:
         DEFAULT_CONTRS(TextBoxComp)
 

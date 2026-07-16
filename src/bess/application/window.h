@@ -1,4 +1,6 @@
 #pragma once
+
+#include "common/bess_api.h"
 #include "GLFW/glfw3.h"
 #include "bess_core/renderer/texture.h"
 #include "common/sub_system.h"
@@ -11,11 +13,11 @@
 
 namespace Bess {
 
-    struct WindowSurface {
+    struct BESS_API WindowSurface {
         void *rendereHwd = nullptr;
     };
 
-    class Window : public ISubSystem,
+    class BESS_API Window : public ISubSystem,
                    public std::enable_shared_from_this<Window> {
       public:
         struct GLFWwindowDeleter {
@@ -25,6 +27,9 @@ namespace Bess {
         };
 
         Window() = default;
+
+        Window(const Window &) = delete;
+        Window &operator=(const Window &) = delete;
 
         Window(int width, int height, const std::string &title);
 

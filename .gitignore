@@ -45,3 +45,8 @@ src/bessplug/py/
 cmake_test_discovery*.json
 
 notes.txt
+
+!external/**/*.so
+!external/**/*.dll
+!external/**/*.lib
+!external/**/bin/

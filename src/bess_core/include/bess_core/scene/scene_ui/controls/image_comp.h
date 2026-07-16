@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/renderer/subtexture.h"
 #include "bess_core/renderer/texture.h"
 #include "bess_core/scene/scene_ui/ui_scene_component.h"
@@ -26,13 +28,13 @@ namespace Bess::Canvas::UI {
         Pixels,
     };
 
-    struct UIImagePixelData {
+    struct BESS_API UIImagePixelData {
         std::vector<uint8_t> rgba8;
         uint32_t width = 0;
         uint32_t height = 0;
     };
 
-    struct UIImageSourceRequest {
+    struct BESS_API UIImageSourceRequest {
         UIImageSourceType type = UIImageSourceType::None;
         std::string path;
         UIImagePixelData pixels;
@@ -43,7 +45,7 @@ namespace Bess::Canvas::UI {
     using UIImageClickCallback =
         std::function<void(const Events::MouseButtonEvent &)>;
 
-    class ImageComp : public UISceneComponent {
+    class BESS_API ImageComp : public UISceneComponent {
       public:
         DEFAULT_CONTRS(ImageComp)
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "common/class_helpers.h"
 #include "common/types.h"
 #include "pages/main_page/scene_components/non_sim_scene_component.h"
@@ -19,7 +21,7 @@
         ("showLegend", getShowLegend, setShowLegend)
 
 namespace Bess::Canvas {
-    class MonitorSceneComp : public NonSimSceneComponent {
+    class BESS_API MonitorSceneComp : public NonSimSceneComponent {
       public:
         MonitorSceneComp();
         ~MonitorSceneComp() override = default;

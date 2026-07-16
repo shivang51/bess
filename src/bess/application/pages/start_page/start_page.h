@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "common/types.h"
 #include "pages/page.h"
 #include <memory>
@@ -7,7 +9,7 @@
 #include <vector>
 
 namespace Bess::Pages {
-    class StartPage final : public Page {
+    class BESS_API StartPage final : public Page {
       public:
         StartPage() = default;
         static std::shared_ptr<Page> getInstance();

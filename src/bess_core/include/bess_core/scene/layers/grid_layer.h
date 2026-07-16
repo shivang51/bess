@@ -1,10 +1,12 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/scene/scene_layer.h"
 
 namespace Bess::Canvas {
-    class GridLayer : public ISceneLayer {
+    class BESS_API GridLayer : public ISceneLayer {
       public:
         GridLayer() = default;
         ~GridLayer() override = default;

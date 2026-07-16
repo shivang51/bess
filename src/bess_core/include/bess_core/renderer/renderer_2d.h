@@ -1,4 +1,6 @@
 #pragma once
+
+#include "common/bess_api.h"
 #include "bess_core/renderer/renderer_path.h"
 #include "bess_core/renderer/renderer_types.h"
 #include <array>
@@ -23,7 +25,7 @@ namespace Bess::Core::Renderer {
         RG32Uint
     };
 
-    struct Renderer2DExtent {
+    struct BESS_API Renderer2DExtent {
         uint32_t width = 1;
         uint32_t height = 1;
     };
@@ -34,19 +36,19 @@ namespace Bess::Core::Renderer {
         PlatformHandle
     };
 
-    struct Renderer2DNativeSurface {
+    struct BESS_API Renderer2DNativeSurface {
         Renderer2DNativeSurfaceType type = Renderer2DNativeSurfaceType::None;
         void *handle = nullptr;
     };
 
-    struct Renderer2DBatchConfig {
+    struct BESS_API Renderer2DBatchConfig {
         uint32_t initialQuadCapacity = 1024;
         uint32_t maxQuadCapacity =
             524288; // Assuming atleast 128MB of GPU memory will be there and
                     // 256 bytes per quad instance
     };
 
-    struct Renderer2DCreateInfo {
+    struct BESS_API Renderer2DCreateInfo {
         Renderer2DExtent extent;
         Renderer2DTargetFormat targetFormat =
             Renderer2DTargetFormat::BGRA8Unorm;
@@ -58,13 +60,13 @@ namespace Bess::Core::Renderer {
         bool enableValidation = true;
     };
 
-    struct Renderer2DStats {
+    struct BESS_API Renderer2DStats {
         uint32_t quadCount = 0;
         uint32_t drawCallCount = 0;
         uint64_t uploadedBytes = 0;
     };
 
-    struct Renderer2DFrameInfo {
+    struct BESS_API Renderer2DFrameInfo {
         Renderer2DExtent extent{0, 0};
         Color clearColor{0.f, 0.f, 0.f, 1.f};
         bool shouldClear = true;
@@ -73,7 +75,7 @@ namespace Bess::Core::Renderer {
         float *cameraTransform = nullptr;
     };
 
-    struct TextureReadbackRegion {
+    struct BESS_API TextureReadbackRegion {
         TextureHandle texture = 0;
         uint32_t x = 0;
         uint32_t y = 0;
@@ -81,7 +83,7 @@ namespace Bess::Core::Renderer {
         uint32_t height = 1;
     };
 
-    struct TextureReadbackResult {
+    struct BESS_API TextureReadbackResult {
         Renderer2DTargetFormat format = Renderer2DTargetFormat::None;
         uint32_t width = 0;
         uint32_t height = 0;
@@ -93,7 +95,7 @@ namespace Bess::Core::Renderer {
         }
     };
 
-    struct PickingReadbackResult {
+    struct BESS_API PickingReadbackResult {
         uint32_t x = 0;
         uint32_t y = 0;
         uint32_t width = 0;
@@ -120,7 +122,7 @@ namespace Bess::Core::Renderer {
         Screen,
     };
 
-    struct CustomQuadShaderDesc {
+    struct BESS_API CustomQuadShaderDesc {
         std::string label;
         // Appended after the renderer's WGSL prelude. Define:
         // fn <fragmentEntryPoint>(in: CustomQuadFragmentInput) -> vec4f
@@ -136,14 +138,14 @@ namespace Bess::Core::Renderer {
         std::string fragmentEntryPoint = "custom_quad_fragment";
     };
 
-    struct CustomQuadProps {
+    struct BESS_API CustomQuadProps {
         QuadProps quad;
         CustomQuadShaderHandle shader = 0;
         std::array<glm::vec4, 4> data{};
         CustomQuadTransformMode transformMode = CustomQuadTransformMode::Camera;
     };
 
-    class IRenderer2D {
+    class BESS_API IRenderer2D {
       public:
         /// Returns a well educated guess of the render size
         /// Assumes the aspect ratio of each glyph be 0.6:1 (width:height)

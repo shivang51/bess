@@ -1,4 +1,6 @@
 #pragma once
+
+#include "common/bess_api.h"
 #include "bess_core/sub_systems/input_sub_system_types.h"
 #include "common/types.h"
 #include <cstdint>
@@ -10,7 +12,7 @@ namespace Bess::Canvas {
 } // namespace Bess::Canvas
 
 namespace Bess::Canvas {
-    struct SceneEvent {
+    struct BESS_API SceneEvent {
         enum class Type : uint8_t {
             none,
             mouseMove,

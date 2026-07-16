@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene/scene_ui/controls/button_comp.h"
 #include "bess_core/scene/scene_ui/controls/checkbox_comp.h"
@@ -27,7 +29,7 @@
 
 namespace Bess::Canvas::UI {
 
-    class View {
+    class BESS_API View {
       public:
         explicit View(SceneState &sceneState) noexcept
             : m_sceneState(&sceneState) {

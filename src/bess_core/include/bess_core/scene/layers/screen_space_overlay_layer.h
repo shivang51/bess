@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/scene/scene_layer.h"
 #include "bess_core/scene/scene_ui/controls/container_comp.h"
 #include "bess_core/scene/scene_ui/controls/label_comp.h"
@@ -8,7 +10,7 @@
 #include <vector>
 
 namespace Bess::Canvas {
-    class ScreenSpaceOverlayLayer : public ISceneLayer {
+    class BESS_API ScreenSpaceOverlayLayer : public ISceneLayer {
       public:
         using DrawCallback =
             std::function<void(SceneDrawContext &, SceneRenderContext &)>;

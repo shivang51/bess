@@ -1,8 +1,10 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "ui/ui_panel.h"
 namespace Bess::UI {
-    class LogWindow : public Panel {
+    class BESS_API LogWindow : public Panel {
       public:
         LogWindow();
 

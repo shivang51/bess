@@ -1,22 +1,24 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "ui/ui_panel.h"
 #include <unordered_map>
 #include <vector>
 
 namespace Bess::UI {
-    struct LabeledDigitalSignal {
+    struct BESS_API LabeledDigitalSignal {
         std::string name;
         std::vector<std::pair<float, int>> values;
     };
 
-    struct GraphViewWindowData {
+    struct BESS_API GraphViewWindowData {
         int offset = 0;
         std::unordered_map<int, std::pair<std::string, UUID>> graphs;
         std::unordered_map<UUID, LabeledDigitalSignal> allSignals;
     };
 
-    class GraphViewWindow : public Panel {
+    class BESS_API GraphViewWindow : public Panel {
       public:
         GraphViewWindow();
 

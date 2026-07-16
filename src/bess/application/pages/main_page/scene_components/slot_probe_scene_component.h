@@ -1,4 +1,6 @@
 #pragma once
+
+#include "common/bess_api.h"
 #include "common/bess_uuid.h"
 #include "pages/main_page/scene_components/non_sim_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
@@ -10,7 +12,7 @@
 namespace Bess::Canvas {
     class SceneState;
 
-    class SlotProbeSceneComponent : public NonSimSceneComponent {
+    class BESS_API SlotProbeSceneComponent : public NonSimSceneComponent {
       public:
         SlotProbeSceneComponent();
         ~SlotProbeSceneComponent() override = default;

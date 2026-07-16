@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/g_app_context.h"
 #include "common/logger.h"
 #include "common/sub_system.h"
@@ -15,7 +17,7 @@ namespace Bess::EventSystem {
     template <typename Event>
     using EventHandler = std::function<void(const Event &)>;
 
-    class EventDispatcher : public ISubSystem {
+    class BESS_API EventDispatcher : public ISubSystem {
       public:
         void onInit() override {
             BESS_INFO("[EventDispatcher] Initializing Event Dispatcher");

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "glm.hpp"
 #include <cstdint>
 #include <functional>
@@ -22,18 +24,18 @@ namespace Bess::UI::Hook {
     using PropertyValue =
         std::variant<bool, int64_t, uint64_t, double, std::string, glm::vec4>;
 
-    struct NumericConstraints {
+    struct BESS_API NumericConstraints {
         double min;
         double max;
         double step;
     };
 
-    struct EnumConstraints {
+    struct BESS_API EnumConstraints {
         std::vector<std::string> labels;
         std::vector<int> values;
     };
 
-    struct PropertyBinding {
+    struct BESS_API PropertyBinding {
         std::function<PropertyValue()> getter;
         std::function<void(const PropertyValue &)> setter;
     };
@@ -41,7 +43,7 @@ namespace Bess::UI::Hook {
     using PropertyConstraints =
         std::variant<std::monostate, NumericConstraints, EnumConstraints>;
 
-    struct PropertyDesc {
+    struct BESS_API PropertyDesc {
         std::string name;
         PropertyDescType type;
         PropertyValue defaultValue;
@@ -49,7 +51,7 @@ namespace Bess::UI::Hook {
         PropertyBinding binding;
     };
 
-    class UIHook {
+    class BESS_API UIHook {
       public:
         virtual ~UIHook() = default;
 

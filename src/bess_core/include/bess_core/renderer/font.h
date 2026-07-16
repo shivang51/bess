@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/renderer/glyph_extractor.h"
 #include <cstddef>
 #include <string>
@@ -8,7 +10,7 @@
 
 namespace Bess::Core::Renderer {
 
-    class FontFile {
+    class BESS_API FontFile {
       public:
         FontFile() = default;
         explicit FontFile(const std::string &path);

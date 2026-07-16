@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/renderer/renderer_types.h"
 #include "bess_wgpu/wgpu_shader.h"
@@ -15,7 +17,7 @@
 namespace Bess::Wgpu::Text {
     constexpr uint32_t kBitmapTextFlagApplyCameraTransform = 1u << 0u;
 
-    struct BitmapGlyph {
+    struct BESS_API BitmapGlyph {
         uint32_t codepoint = 0;
         uint32_t pixelSize = 0;
         float advance = 0.f;
@@ -27,13 +29,13 @@ namespace Bess::Wgpu::Text {
         bool drawable = false;
     };
 
-    struct BitmapTextLineMetrics {
+    struct BESS_API BitmapTextLineMetrics {
         float lineHeight = 0.f;
         float ascender = 0.f;
         float descender = 0.f;
     };
 
-    class BitmapFontAtlas {
+    class BESS_API BitmapFontAtlas {
       public:
         bool init(const wgpu::Device &device,
                   const wgpu::Queue &queue,
@@ -89,7 +91,7 @@ namespace Bess::Wgpu::Text {
         HashMap<uint32_t, BitmapTextLineMetrics> m_metrics;
     };
 
-    struct BitmapTextInstance {
+    struct BESS_API BitmapTextInstance {
         float position[3] = {0.f, 0.f, 0.f};
         float padding0 = 0.f;
         float size[2] = {0.f, 0.f};
@@ -104,7 +106,7 @@ namespace Bess::Wgpu::Text {
     static_assert(sizeof(BitmapTextInstance) == 80,
                   "BitmapTextInstance must match WGSL layout");
 
-    struct BitmapTextDrawRun {
+    struct BESS_API BitmapTextDrawRun {
         uint32_t firstGlyph = 0;
         uint32_t glyphCount = 0;
         float zIndex = 0.f;
@@ -112,7 +114,7 @@ namespace Bess::Wgpu::Text {
         Core::Renderer::RendererScissorState scissor{};
     };
 
-    class BitmapTextBatch {
+    class BESS_API BitmapTextBatch {
       public:
         void clear() {
             m_instances.clear();
@@ -222,8 +224,12 @@ namespace Bess::Wgpu::Text {
         std::vector<BitmapTextDrawRun> m_drawRuns;
     };
 
-    class BitmapTextPipeline {
+    class BESS_API BitmapTextPipeline {
       public:
+        BitmapTextPipeline() = default;
+        BitmapTextPipeline(const BitmapTextPipeline &) = delete;
+        BitmapTextPipeline &operator=(const BitmapTextPipeline &) = delete;
+
         void init(const wgpu::Device &device,
                   wgpu::TextureFormat targetFormat,
                   const wgpu::Buffer &frameBuffer,

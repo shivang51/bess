@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/scene/scene_ui/ui_scene_component.h"
 #include <cstdint>
 #include <functional>
@@ -42,7 +44,7 @@ namespace Bess::Canvas::UI {
         return (resizeEdgeMask(edges) & resizeEdgeMask(edge)) != 0u;
     }
 
-    class PanelComp : public UISceneComponent {
+    class BESS_API PanelComp : public UISceneComponent {
       public:
         DEFAULT_CONTRS(PanelComp)
 

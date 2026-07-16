@@ -26,7 +26,7 @@ namespace Bess::Verilog {
                 id);
             Json::Value j;
             j["id"] = id;
-            j["type"] = type;
+            j["type"] = std::string(type);
             if (toJsonCb) {
                 j["data"] = toJsonCb();
             }

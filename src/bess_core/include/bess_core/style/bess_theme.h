@@ -1,17 +1,19 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/renderer/colors.h"
 #include "bess_core/renderer/renderer_types.h"
 #include "bess_core/style/color_scheme.h"
 #include "json/value.h"
 
 namespace Bess::Core::Style {
-    struct TextStyle {
+    struct BESS_API TextStyle {
         Color textColor;
         float fontSize{12.f};
     };
 
-    struct Padding {
+    struct BESS_API Padding {
         float top{0.f};
         float right{0.f};
         float bottom{0.f};
@@ -96,14 +98,14 @@ namespace Bess::Core::Style {
     typedef Padding Margin;
     typedef Padding BorderSize;
 
-    struct Metrics {
+    struct BESS_API Metrics {
         Padding padding{0};
         glm::vec4 borderRadius{0};
         BorderSize borderSize{0};
         Margin margin{0};
     };
 
-    struct ElementStyle {
+    struct BESS_API ElementStyle {
         Color backgroundColor;
         Color hoverColor;
         Color borderColor;
@@ -113,7 +115,7 @@ namespace Bess::Core::Style {
         Renderer::ShadowProps shadowProps{.enabled = false};
     };
 
-    class BessTheme {
+    class BESS_API BessTheme {
       public:
         DEFAULT_CONTRS_VDES(BessTheme)
 

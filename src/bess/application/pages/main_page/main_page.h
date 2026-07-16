@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "events/application_event.h"
 #include "pages/main_page/main_page_state.h"
 #include "pages/page.h"
@@ -12,18 +14,18 @@
 
 namespace Bess::Pages {
 
-    struct CopiedComponent {
+    struct BESS_API CopiedComponent {
         std::shared_ptr<SimEngine::Drivers::CompDef> def;
         std::type_index nsComp = typeid(void);
         glm::vec2 pos = {0.f, 0.f};
     };
 
-    struct LastMouseButtonEvent {
+    struct BESS_API LastMouseButtonEvent {
         std::chrono::time_point<std::chrono::steady_clock> timestamp;
         ApplicationEvent::MouseButtonData data;
     };
 
-    class MainPage : public Page {
+    class BESS_API MainPage : public Page {
       public:
         MainPage(const std::shared_ptr<Window> &parentWindow);
         ~MainPage() override;

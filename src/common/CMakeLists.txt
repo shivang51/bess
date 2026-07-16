@@ -35,7 +35,7 @@ set(ALL_FILES
 		${External}
 )
 
-add_library(${PROJECT_NAME} STATIC ${ALL_FILES})
+add_library(${PROJECT_NAME} OBJECT ${ALL_FILES})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE BessJson BessExtDeps)
 add_dependencies(${PROJECT_NAME} BessJson)
@@ -54,5 +54,4 @@ if(MSVC)
 endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 23)
-
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "common/class_helpers.h"
 #include "common/types.h"
 #include <cstddef>
@@ -16,7 +18,7 @@ namespace Bess::Core::Renderer {
         Close,
     };
 
-    struct PathCommandStroke {
+    struct BESS_API PathCommandStroke {
         // 0 inherits PathProps::strokeSize for this command.
         float width = 0.f;
         // Dash and gap are in path/world units. A non-positive value disables
@@ -108,7 +110,7 @@ namespace Bess::Core::Renderer {
         }
     };
 
-    struct PathCommand {
+    struct BESS_API PathCommand {
         PathCommandKind kind = PathCommandKind::Move;
         glm::vec2 p{0.f};
         glm::vec2 control{0.f};
@@ -234,7 +236,7 @@ namespace Bess::Core::Renderer {
         }
     };
 
-    struct PathBounds {
+    struct BESS_API PathBounds {
         glm::vec2 min{0.f};
         glm::vec2 max{0.f};
         bool valid = false;
@@ -244,7 +246,7 @@ namespace Bess::Core::Renderer {
         }
     };
 
-    class Path2D final {
+    class BESS_API Path2D final {
       public:
         using Command = PathCommand;
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/renderer/renderer_types.h"
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
@@ -17,14 +19,14 @@ namespace Bess::Canvas::UI {
 
     using Color = Core::Style::Color;
 
-    struct UIFlex {
+    struct BESS_API UIFlex {
         float grow = 0.f;
         float shrink = 0.f;
         float basis = 0.f;
         Unit basisUnit = Unit::pixel;
     };
 
-    struct UIElementStyle {
+    struct BESS_API UIElementStyle {
         std::optional<Core::Style::Color> backgroundColor;
         std::optional<Core::Style::Color> hoverColor;
         std::optional<Core::Style::Color> borderColor;
@@ -66,7 +68,7 @@ namespace Bess::Canvas::UI {
     typedef std::function<void(SceneDrawContext &ctx, UISceneComponent *comp)>
         UIDrawCallback;
 
-    struct CompConfig {
+    struct BESS_API CompConfig {
         SceneState *sceneState = nullptr;
         std::vector<std::shared_ptr<UISceneComponent>> children;
         std::optional<UIElementStyle> style = std::nullopt;
@@ -75,7 +77,7 @@ namespace Bess::Canvas::UI {
         bool emitReparentEvent = false;
     };
 
-    class UISceneComponent : public SceneComponent {
+    class BESS_API UISceneComponent : public SceneComponent {
       public:
         UISceneComponent();
 

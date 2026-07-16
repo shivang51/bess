@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "common/class_helpers.h"
 #include "common/types.h"
 #include "ui/dock_ids.h"
@@ -7,7 +9,7 @@
 #include <string>
 
 namespace Bess::UI {
-    class Panel {
+    class BESS_API Panel {
       public:
         Panel(const std::string &name);
         virtual ~Panel() = default;

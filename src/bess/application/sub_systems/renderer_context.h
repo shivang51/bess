@@ -1,10 +1,12 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/renderer/renderer_2d.h"
 #include "common/sub_system.h"
 namespace Bess {
 
-    class RendererContext : public ISubSystem {
+    class BESS_API RendererContext : public ISubSystem {
       public:
         void onInit() override;
         void onPreInit() override;

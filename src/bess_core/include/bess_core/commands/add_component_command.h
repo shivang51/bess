@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/commands/command.h"
 #include "bess_core/commands/scene_component_command_hooks.h"
 #include "bess_core/scene/scene.h"
@@ -38,7 +40,7 @@ namespace Bess::Cmd {
 
     template <typename TComponent>
         requires std::is_base_of_v<Canvas::SceneComponent, TComponent>
-    class AddCompCmd : public AddSceneComponentCmd {
+    class BESS_API AddCompCmd : public AddSceneComponentCmd {
       public:
         AddCompCmd() = default;
 

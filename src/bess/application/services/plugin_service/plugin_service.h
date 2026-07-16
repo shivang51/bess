@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 /// Responsible for managing plugins, including loading, unloading, and
 /// providing access to plugin functionalities. Simulation DOES NOT use this, it
 /// being an independent module handles plugins on its own.
@@ -16,7 +18,7 @@ namespace Bess::Canvas {
 
 namespace Bess::Svc {
 
-    class PluginService : public ISubSystem {
+    class BESS_API PluginService : public ISubSystem {
       public:
         void onInit() override;
         void onPreInit() override;

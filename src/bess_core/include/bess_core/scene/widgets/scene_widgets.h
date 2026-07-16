@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/renderer/renderer_types.h"
 #include "bess_core/scene/scene_draw_context.h"
 #include "common/types.h"
@@ -22,7 +24,7 @@ namespace Bess::Canvas::SceneWidgets {
     struct SceneWidgetsState;
     struct ViewportSceneWidgetsState;
 
-    struct TextBoxOptions {
+    struct BESS_API TextBoxOptions {
         std::string_view placeholder;
         size_t maxLength = 256;
         bool selectAllOnFocus = false;
@@ -39,14 +41,14 @@ namespace Bess::Canvas::SceneWidgets {
         std::optional<Core::Renderer::Color> cursorColor;
     };
 
-    struct TextBoxResult {
+    struct BESS_API TextBoxResult {
         bool changed = false;
         bool submitted = false;
         bool canceled = false;
         bool focused = false;
     };
 
-    struct SliderOptions {
+    struct BESS_API SliderOptions {
         float step = 0.f;
         int precision = 2;
         bool showValue = true;
@@ -63,13 +65,13 @@ namespace Bess::Canvas::SceneWidgets {
         std::optional<Core::Renderer::Color> textColor;
     };
 
-    struct SliderResult {
+    struct BESS_API SliderResult {
         bool changed = false;
         bool editing = false;
         bool focused = false;
     };
 
-    struct DropdownOptions {
+    struct BESS_API DropdownOptions {
         std::string_view placeholder = "Select";
         float fontSize = 8.f;
         float optionHeight = 18.f;
@@ -86,7 +88,7 @@ namespace Bess::Canvas::SceneWidgets {
         std::optional<Core::Renderer::Color> mutedTextColor;
     };
 
-    struct DropdownResult {
+    struct BESS_API DropdownResult {
         bool changed = false;
         bool opened = false;
         bool closed = false;
@@ -94,51 +96,57 @@ namespace Bess::Canvas::SceneWidgets {
         int selectedIndex = -1;
     };
 
-    SceneWidgetsState *getState(Core::Viewport::ViewportContext *viewportCtx,
-                                const SceneState *sceneState);
-    const SceneWidgetsState *
+    BESS_API SceneWidgetsState *
+    getState(Core::Viewport::ViewportContext *viewportCtx,
+             const SceneState *sceneState);
+    BESS_API const SceneWidgetsState *
     findState(const Core::Viewport::ViewportContext *viewportCtx,
               const SceneState *sceneState);
-    void clearScene(Core::Viewport::ViewportContext *viewportCtx,
-                    const SceneState *sceneState);
+    BESS_API void clearScene(Core::Viewport::ViewportContext *viewportCtx,
+                             const SceneState *sceneState);
 
-    void beginFrame(SceneWidgetsState *widgetsState);
-    void endFrame(SceneWidgetsState *widgetsState);
+    BESS_API void beginFrame(SceneWidgetsState *widgetsState);
+    BESS_API void endFrame(SceneWidgetsState *widgetsState);
 
-    bool contains(const SceneWidgetsState *widgetsState, const PickingId &id);
-    bool isTextInput(const SceneWidgetsState *widgetsState,
-                     const PickingId &id);
-    bool hasPointerCapture(const SceneWidgetsState *widgetsState);
-    bool wantsKeyboard(const SceneWidgetsState *widgetsState);
+    BESS_API bool contains(const SceneWidgetsState *widgetsState,
+                           const PickingId &id);
+    BESS_API bool isTextInput(const SceneWidgetsState *widgetsState,
+                              const PickingId &id);
+    BESS_API bool hasPointerCapture(const SceneWidgetsState *widgetsState);
+    BESS_API bool wantsKeyboard(const SceneWidgetsState *widgetsState);
 
-    void queuePointerMove(SceneWidgetsState *widgetsState,
-                          const glm::vec2 &pos);
-    void queuePress(SceneWidgetsState *widgetsState,
-                    const PickingId &id,
-                    const glm::vec2 &pos,
-                    bool extendSelection = false);
-    void queueRelease(SceneWidgetsState *widgetsState,
-                      const PickingId &id,
-                      const glm::vec2 &pos);
-    void queueClick(SceneWidgetsState *widgetsState, const PickingId &id);
-    bool queueKey(SceneWidgetsState *widgetsState, const SceneEvent &evt);
-    bool queueWheel(SceneWidgetsState *widgetsState, const SceneEvent &evt);
-    void clearFocus(SceneWidgetsState *widgetsState);
-    void setHoverId(SceneWidgetsState *widgetsState, const PickingId &id);
+    BESS_API void queuePointerMove(SceneWidgetsState *widgetsState,
+                                   const glm::vec2 &pos);
+    BESS_API void queuePress(SceneWidgetsState *widgetsState,
+                             const PickingId &id,
+                             const glm::vec2 &pos,
+                             bool extendSelection = false);
+    BESS_API void queueRelease(SceneWidgetsState *widgetsState,
+                               const PickingId &id,
+                               const glm::vec2 &pos);
+    BESS_API void queueClick(SceneWidgetsState *widgetsState,
+                             const PickingId &id);
+    BESS_API bool queueKey(SceneWidgetsState *widgetsState,
+                           const SceneEvent &evt);
+    BESS_API bool queueWheel(SceneWidgetsState *widgetsState,
+                             const SceneEvent &evt);
+    BESS_API void clearFocus(SceneWidgetsState *widgetsState);
+    BESS_API void setHoverId(SceneWidgetsState *widgetsState,
+                             const PickingId &id);
 
-    bool toggleButton(const PickingId &id,
-                      bool value,
-                      const glm::vec3 &buttonPos,
-                      const glm::vec2 &buttonSize,
-                      SceneDrawContext &context);
+    BESS_API bool toggleButton(const PickingId &id,
+                               bool value,
+                               const glm::vec3 &buttonPos,
+                               const glm::vec2 &buttonSize,
+                               SceneDrawContext &context);
 
-    bool toggleButton(const PickingId &id,
-                      bool *value,
-                      const glm::vec3 &buttonPos,
-                      const glm::vec2 &buttonSize,
-                      SceneDrawContext &context);
+    BESS_API bool toggleButton(const PickingId &id,
+                               bool *value,
+                               const glm::vec3 &buttonPos,
+                               const glm::vec2 &buttonSize,
+                               SceneDrawContext &context);
 
-    struct ButtonOptions {
+    struct BESS_API ButtonOptions {
         float textSize = 12.f;
         glm::vec2 buttonSize{0.f};
         glm::vec2 padding{3.f, 2.f};
@@ -152,42 +160,43 @@ namespace Bess::Canvas::SceneWidgets {
         std::optional<Core::Renderer::Color> textColor;
     };
 
-    bool button(const PickingId &id,
-                std::string_view label,
-                const glm::vec3 &buttonPos,
-                SceneDrawContext &context,
-                const ButtonOptions &options = {});
+    BESS_API bool button(const PickingId &id,
+                         std::string_view label,
+                         const glm::vec3 &buttonPos,
+                         SceneDrawContext &context,
+                         const ButtonOptions &options = {});
 
-    TextBoxResult textBox(const PickingId &id,
-                          std::string *value,
-                          const glm::vec3 &boxPos,
-                          const glm::vec2 &boxSize,
-                          SceneDrawContext &context,
-                          const TextBoxOptions &options = {});
+    BESS_API TextBoxResult textBox(const PickingId &id,
+                                   std::string *value,
+                                   const glm::vec3 &boxPos,
+                                   const glm::vec2 &boxSize,
+                                   SceneDrawContext &context,
+                                   const TextBoxOptions &options = {});
 
-    SliderResult sliderFloat(const PickingId &id,
-                             float *value,
-                             float minValue,
-                             float maxValue,
-                             const glm::vec3 &sliderPos,
-                             const glm::vec2 &sliderSize,
-                             SceneDrawContext &context,
-                             const SliderOptions &options = {});
+    BESS_API SliderResult sliderFloat(const PickingId &id,
+                                      float *value,
+                                      float minValue,
+                                      float maxValue,
+                                      const glm::vec3 &sliderPos,
+                                      const glm::vec2 &sliderSize,
+                                      SceneDrawContext &context,
+                                      const SliderOptions &options = {});
 
-    SliderResult sliderInt(const PickingId &id,
-                           int *value,
-                           int minValue,
-                           int maxValue,
-                           const glm::vec3 &sliderPos,
-                           const glm::vec2 &sliderSize,
-                           SceneDrawContext &context,
-                           const SliderOptions &options = {});
+    BESS_API SliderResult sliderInt(const PickingId &id,
+                                    int *value,
+                                    int minValue,
+                                    int maxValue,
+                                    const glm::vec3 &sliderPos,
+                                    const glm::vec2 &sliderSize,
+                                    SceneDrawContext &context,
+                                    const SliderOptions &options = {});
 
-    DropdownResult dropdown(const PickingId &id,
-                            int *selectedIndex,
-                            std::span<const std::string_view> items,
-                            const glm::vec3 &boxPos,
-                            const glm::vec2 &boxSize,
-                            SceneDrawContext &context,
-                            const DropdownOptions &options = {});
+    BESS_API DropdownResult
+    dropdown(const PickingId &id,
+             int *selectedIndex,
+             std::span<const std::string_view> items,
+             const glm::vec3 &boxPos,
+             const glm::vec2 &boxSize,
+             SceneDrawContext &context,
+             const DropdownOptions &options = {});
 } // namespace Bess::Canvas::SceneWidgets

@@ -34,6 +34,7 @@ namespace Bess::Canvas {
         BESS_ASSERT(false,
                     "Cloning ConnJointSceneComp is supported through "
                     "cloneConnJoin function");
+        return {};
     }
 
     std::vector<std::shared_ptr<SceneComponent>>

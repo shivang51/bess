@@ -1,4 +1,6 @@
 #pragma once
+
+#include "common/bess_api.h"
 #include "common/class_helpers.h"
 #include "common/types.h"
 #include "net/net.h"
@@ -10,13 +12,13 @@
 
 namespace Bess::SimEngine::Drivers {
 
-    class SimFnDataBase {
+    class BESS_API SimFnDataBase {
       public:
         virtual ~SimFnDataBase() = default;
         bool simDependants = false;
     };
 
-    class CompDef {
+    class BESS_API CompDef {
       public:
         typedef std::shared_ptr<SimFnDataBase> SimFnDataPtr;
         typedef std::function<SimFnDataPtr(const SimFnDataPtr &)> SimFn;
@@ -48,7 +50,7 @@ namespace Bess::SimEngine::Drivers {
         ComponentBehaviorType m_behaviorType = ComponentBehaviorType::none;
     };
 
-    class SimComponent {
+    class BESS_API SimComponent {
       public:
         SimComponent() = default;
         virtual ~SimComponent() = default;
@@ -89,7 +91,7 @@ namespace Bess::SimEngine::Drivers {
     typedef std::function<void(const UUID &, PortDirection, SignalKind, int)>
         PortCountChangeCB;
 
-    struct PortCountChangeRes {
+    struct BESS_API PortCountChangeRes {
         bool changedInputs = false;
         bool changedOutputs = false;
 
@@ -114,7 +116,7 @@ namespace Bess::SimEngine::Drivers {
         }
     };
 
-    class SimDriver {
+    class BESS_API SimDriver {
       public:
         SimDriver() = default;
         virtual ~SimDriver() = default;

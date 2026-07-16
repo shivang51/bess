@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/renderer/renderer_types.h"
 #include "bess_wgpu/wgpu_texture.h"
@@ -13,7 +15,7 @@
 
 namespace Bess::Wgpu {
 
-    struct TextureResource {
+    struct BESS_API TextureResource {
         wgpu::Texture texture;
         wgpu::TextureView view;
         wgpu::BindGroup bindGroup;
@@ -23,7 +25,7 @@ namespace Bess::Wgpu {
         wgpu::TextureFormat format = wgpu::TextureFormat::RGBA8Unorm;
     };
 
-    class WgpuRenderer2D final : public Core::Renderer::IRenderer2D {
+    class BESS_API WgpuRenderer2D final : public Core::Renderer::IRenderer2D {
       public:
         WgpuRenderer2D();
         ~WgpuRenderer2D() override;

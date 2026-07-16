@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_wgpu/wgpu_shader.h"
 #include "webgpu/webgpu_cpp.h"
@@ -9,7 +11,7 @@ namespace Bess {
     using CustomQuadShaderDesc = Core::Renderer::CustomQuadShaderDesc;
     using CustomQuadProps = Core::Renderer::CustomQuadProps;
 
-    struct CustomQuadInstance {
+    struct BESS_API CustomQuadInstance {
         float position[3] = {0.f, 0.f, 0.f};
         float rotation = 0.f;
         float size[2] = {1.f, 1.f};
@@ -24,8 +26,12 @@ namespace Bess {
         uint32_t flags[2] = {0, 0};
     };
 
-    class CustomQuadPipeline {
+    class BESS_API CustomQuadPipeline {
       public:
+        CustomQuadPipeline() = default;
+        CustomQuadPipeline(const CustomQuadPipeline &) = delete;
+        CustomQuadPipeline &operator=(const CustomQuadPipeline &) = delete;
+
         void init(const wgpu::Device &device,
                   wgpu::TextureFormat targetFormat,
                   const wgpu::Buffer &frameBuffer,

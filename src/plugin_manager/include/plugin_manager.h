@@ -20,6 +20,11 @@ namespace Bess::Plugins {
         static PluginManager &getInstance();
         static bool isIntialized;
 
+        PluginManager(const PluginManager &) = delete;
+        PluginManager &operator=(const PluginManager &) = delete;
+        PluginManager(PluginManager &&) = delete;
+        PluginManager &operator=(PluginManager &&) = delete;
+
         ~PluginManager();
 
         void init();
@@ -47,6 +52,8 @@ namespace Bess::Plugins {
         getPlugin(const std::string &pluginName) const;
 
       private:
+        PluginManager() = default;
+
         bool loadPluginHandle(const std::filesystem::path &pluginPath,
                               bool reload,
                               std::string &pluginName,

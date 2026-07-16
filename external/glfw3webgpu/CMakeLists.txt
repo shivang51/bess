@@ -6,7 +6,7 @@
 add_library(glfw3webgpu STATIC glfw3webgpu.c)
 target_include_directories(glfw3webgpu PUBLIC .)
 target_link_libraries(glfw3webgpu PUBLIC glfw)
-target_link_libraries(glfw3webgpu PRIVATE webgpu_dawn)
+target_link_libraries(glfw3webgpu PRIVATE dawn)
 
 if(GLFW_BUILD_X11)
     target_compile_definitions(glfw3webgpu PRIVATE _GLFW_X11)

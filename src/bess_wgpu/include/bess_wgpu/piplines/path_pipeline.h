@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_wgpu/piplines/pipeline.h"
 #include "bess_wgpu/wgpu_shader.h"
 #include <cstddef>
@@ -9,29 +11,33 @@
 
 namespace Bess::Wgpu::Piplines {
 
-    struct PathStencilVertex {
+    struct BESS_API PathStencilVertex {
         float position[3] = {0.f, 0.f, 0.f};
         float curveCoord[2] = {0.f, 0.f};
         uint32_t curveType = 0;
         uint32_t flags = 1u;
     };
 
-    struct PathCoverVertex {
+    struct BESS_API PathCoverVertex {
         float position[3] = {0.f, 0.f, 0.f};
         float color[4] = {1.f, 1.f, 1.f, 1.f};
         uint32_t id[2] = {0, 0};
         uint32_t flags = 1u;
     };
 
-    struct PathInstance {
+    struct BESS_API PathInstance {
         float position[3] = {0.f, 0.f, 0.f};
         float scale[2] = {1.f, 1.f};
         float rotation = 0.f;
         uint32_t flags = 1u;
     };
 
-    class PathPipeline final : public Pipeline {
+    class BESS_API PathPipeline final : public Pipeline {
       public:
+        PathPipeline() = default;
+        PathPipeline(const PathPipeline &) = delete;
+        PathPipeline &operator=(const PathPipeline &) = delete;
+
         void init(const wgpu::Device &device,
                   wgpu::TextureFormat targetFormat,
                   const wgpu::Buffer &frameBuffer,

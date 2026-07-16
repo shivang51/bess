@@ -1,4 +1,6 @@
 #pragma once
+
+#include "common/bess_api.h"
 #include "bess_json/bess_json.h"
 #include <functional>
 #include <memory>
@@ -7,7 +9,7 @@
 namespace Bess::Canvas {
     class SceneComponent;
 
-    class SceneSerReg {
+    class BESS_API SceneSerReg {
       public:
         typedef std::function<std::shared_ptr<SceneComponent>(
             const Json::Value &)>

@@ -11,7 +11,17 @@
 #include "event_dispatcher.h"
 #include <gtest/gtest.h>
 #include <memory>
+#include <type_traits>
 #include <vector>
+
+static_assert(!std::is_copy_constructible_v<Bess::Cmd::CommandSystem>);
+static_assert(!std::is_copy_assignable_v<Bess::Cmd::CommandSystem>);
+static_assert(!std::is_move_constructible_v<Bess::Cmd::CommandSystem>);
+static_assert(!std::is_move_assignable_v<Bess::Cmd::CommandSystem>);
+static_assert(!std::is_copy_constructible_v<Bess::Cmd::MacroCommand>);
+static_assert(!std::is_copy_assignable_v<Bess::Cmd::MacroCommand>);
+static_assert(!std::is_move_constructible_v<Bess::Cmd::MacroCommand>);
+static_assert(!std::is_move_assignable_v<Bess::Cmd::MacroCommand>);
 
 namespace {
     class FailingCommand : public Bess::Cmd::Command {

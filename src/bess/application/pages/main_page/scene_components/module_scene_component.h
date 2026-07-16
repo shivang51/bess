@@ -1,4 +1,6 @@
 #pragma once
+
+#include "common/bess_api.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "common/bess_uuid.h"
@@ -11,7 +13,7 @@
         ("associatedOut", getAssociatedOut, setAssociatedOut)
 
 namespace Bess::Canvas {
-    class ModuleSceneComponent : public SimulationSceneComponent {
+    class BESS_API ModuleSceneComponent : public SimulationSceneComponent {
       public:
         ModuleSceneComponent();
         ModuleSceneComponent(const ModuleSceneComponent &other) = default;

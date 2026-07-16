@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "types.h"
 #include <filesystem>
 #include <string>
@@ -8,14 +10,14 @@
 
 namespace Bess::Common {
 
-    struct FileWatcherConfig {
+    struct BESS_API FileWatcherConfig {
         TimeMs checkInterval = TimeMs(1000.0);
         std::span<const std::string_view>
             extToWatch; // Will be priortized over ignore
         std::span<const std::string_view> extToIgnore;
     };
 
-    class FileWatcher {
+    class BESS_API FileWatcher {
       public:
         FileWatcher(const std::string &path,
                     const FileWatcherConfig &config = {});

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/renderer/shader.h"
 #include <string>
 #include <vector>
@@ -7,7 +9,7 @@
 
 namespace Bess::Wgpu {
 
-    class WgpuShader final : public Core::Renderer::IShader {
+    class BESS_API WgpuShader final : public Core::Renderer::IShader {
       public:
         WgpuShader(std::string name,
                    std::vector<Core::Renderer::ShaderModuleDesc> modules,

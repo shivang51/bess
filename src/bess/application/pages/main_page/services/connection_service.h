@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 /// Service is responsible to create, remove and maintain the connections in the
 /// scene. To update connections any where use this service only.
 
@@ -26,7 +28,7 @@ namespace Bess::SimEngine {
 }
 
 namespace Bess::Svc {
-    class SvcConnection : public ISubSystem {
+    class BESS_API SvcConnection : public ISubSystem {
       public:
         void onInit() override;
         void onDestroy() override;

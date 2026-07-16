@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/commands/add_component_command.h"
 #include "bess_core/commands/command.h"
 #include "bess_core/commands/delete_component_command.h"
@@ -269,8 +271,11 @@ namespace Bess::Cmd {
         }
     } // namespace Detail
 
-    class CreateModuleCmd : public Command {
+    class BESS_API CreateModuleCmd : public Command {
       public:
+        CreateModuleCmd(const CreateModuleCmd &) = delete;
+        CreateModuleCmd &operator=(const CreateModuleCmd &) = delete;
+
         CreateModuleCmd(const std::shared_ptr<Canvas::Scene> &sourceScene,
                         const UUID &netId,
                         const std::string &name = "New Module")
@@ -458,7 +463,7 @@ namespace Bess::Cmd {
         bool m_executed = false;
     };
 
-    class DeleteModuleCmd : public Command {
+    class BESS_API DeleteModuleCmd : public Command {
       public:
         DeleteModuleCmd(const std::shared_ptr<Canvas::Scene> &parentScene,
                         const UUID &moduleComponentId)

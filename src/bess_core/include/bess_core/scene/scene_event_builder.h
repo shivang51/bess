@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/scene/scene_event.h"
 #include "bess_core/viewport.h"
 #include "camera.h"
@@ -11,7 +13,7 @@ namespace Bess {
 } // namespace Bess
 
 namespace Bess::Canvas {
-    class SceneEventBuilder {
+    class BESS_API SceneEventBuilder {
       public:
         static std::vector<SceneEvent> buildFrameEvents(
             const InputSubSystem &inputSystem,

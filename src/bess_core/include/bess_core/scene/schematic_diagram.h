@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/renderer/renderer_path.h"
 #include "common/types.h"
@@ -10,7 +12,7 @@ namespace Bess::Canvas {
 
     using Path = Bess::Core::Renderer::Path2D;
 
-    class SchematicDiagram {
+    class BESS_API SchematicDiagram {
       public:
         SchematicDiagram() = default;
         virtual ~SchematicDiagram() = default;

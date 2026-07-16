@@ -1,16 +1,16 @@
 #include "ui/ui_main/scene_export_window.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "bess_core/scene/scene_draw_context.h"
+#include "bess_core/scene/scene_draw_helpers.h"
 #include "bess_core/scene_driver.h"
+#include "bess_core/settings/viewport_theme.h"
 #include "bess_wgpu/wgpu_texture.h"
 #include "common/logger.h"
 #include "gtc/type_ptr.hpp"
 #include "imgui.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
-#include "bess_core/scene/scene_draw_context.h"
-#include "bess_core/scene/scene_draw_helpers.h"
-#include "bess_core/settings/viewport_theme.h"
 #include "sub_systems/renderer_context.h"
 #include "ui/icons/FontAwesomeIcons_Remapped.h"
 #include "ui/ui_main/dialogs.h"
@@ -166,13 +166,13 @@ namespace Bess::UI {
         : Panel("Scene Export Window"),
           defaultExportPath("Pictures") {
 #ifdef _WIN32
-        const std::filsystem::path homeDir = std::getenv("USERPROFILE");
+        const std::filesystem::path homeDir = std::getenv("USERPROFILE");
 #else
         const std::filesystem::path homeDir = std::getenv("HOME");
 #endif
 
         defaultExportPath /= "bess";
-        exportPath = homeDir / defaultExportPath;
+        exportPath = (homeDir / defaultExportPath).string();
         m_showInMenuBar = false;
         m_defaultDock = Dock::none;
     }
@@ -265,9 +265,11 @@ namespace Bess::UI {
     }
 
     void SceneExportWindow::onShow() {
-        exportPath = std::filesystem::absolute(exportPath);
-        if (!std::filesystem::exists(exportPath))
-            std::filesystem::create_directories(exportPath);
+        const auto absPath = std::filesystem::absolute(exportPath);
+        if (!std::filesystem::exists(absPath))
+            std::filesystem::create_directories(absPath);
+
+        exportPath = absPath.string();
 
         const auto &mainPage = Pages::MainPage::getInstance()->getState();
 

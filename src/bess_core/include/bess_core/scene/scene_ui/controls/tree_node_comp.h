@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/scene/scene_ui/ui_scene_component.h"
 #include <functional>
 #include <memory>
@@ -9,7 +11,7 @@ namespace Bess::Canvas::UI {
 
     using UITreeNodeCallback = std::function<void(bool)>;
 
-    class TreeNodeComp : public UISceneComponent {
+    class BESS_API TreeNodeComp : public UISceneComponent {
       public:
         DEFAULT_CONTRS(TreeNodeComp)
 

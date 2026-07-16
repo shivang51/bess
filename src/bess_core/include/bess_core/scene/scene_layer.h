@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_event.h"
@@ -20,28 +22,28 @@ namespace Bess::Canvas {
         Consumed,
     };
 
-    struct SceneLayerContext {
+    struct BESS_API SceneLayerContext {
         SceneState *sceneState = nullptr;
         std::shared_ptr<Camera> camera = nullptr;
         std::shared_ptr<Core::Viewport::ViewportContext> viewportCtx = nullptr;
         SceneWidgets::SceneWidgetsState *sceneWidgetsState = nullptr;
     };
 
-    struct SceneEventContext : SceneLayerContext {};
+    struct BESS_API SceneEventContext : SceneLayerContext {};
 
-    struct SceneUpdateContext : SceneLayerContext {};
+    struct BESS_API SceneUpdateContext : SceneLayerContext {};
 
-    struct SceneVpUpdateContext : SceneLayerContext {
+    struct BESS_API SceneVpUpdateContext : SceneLayerContext {
         std::shared_ptr<Core::Renderer::IRenderer2D> renderer = nullptr;
     };
 
-    struct SceneRenderContext : SceneLayerContext {
+    struct BESS_API SceneRenderContext : SceneLayerContext {
         std::shared_ptr<Core::Renderer::IRenderer2D> renderer = nullptr;
     };
 
-    struct SceneLifecycleContext : SceneRenderContext {};
+    struct BESS_API SceneLifecycleContext : SceneRenderContext {};
 
-    class ISceneLayer {
+    class BESS_API ISceneLayer {
       public:
         virtual ~ISceneLayer() = default;
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "common/bess_uuid.h"
 #include "json/json.h"
 #include <string>
@@ -9,7 +11,7 @@ namespace Bess {
         class Scene;
     }
 
-    class SceneSerializer {
+    class BESS_API SceneSerializer {
       public:
         SceneSerializer() = default;
 

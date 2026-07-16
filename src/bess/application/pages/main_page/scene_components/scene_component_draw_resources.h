@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/renderer/renderer_types.h"
 #include "bess_wgpu/wgpu_texture.h"
 #include "common/logger.h"
@@ -18,7 +20,7 @@ namespace Bess::Canvas::SceneComponentDrawResources {
             "assets/images/shadow_texture.png";
         constexpr uint32_t kShadowTextureMaxSize = 384;
 
-        struct StbiImageDeleter {
+        struct BESS_API StbiImageDeleter {
             void operator()(stbi_uc *pixels) const {
                 stbi_image_free(pixels);
             }

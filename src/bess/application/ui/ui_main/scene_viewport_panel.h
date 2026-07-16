@@ -1,4 +1,6 @@
 #pragma once
+
+#include "common/bess_api.h"
 #include "bess_core/renderer/texture.h"
 #include "bess_core/scene/scene.h"
 #include "bess_core/viewport.h"
@@ -14,7 +16,7 @@ namespace Bess {
 } // namespace Bess
 
 namespace Bess::UI {
-    class SceneViewportPanel : public Panel {
+    class BESS_API SceneViewportPanel : public Panel {
       public:
         SceneViewportPanel(const std::string &viewportName);
 

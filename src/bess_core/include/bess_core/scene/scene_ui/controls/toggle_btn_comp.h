@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/scene/scene_ui/ui_scene_component.h"
 #include <functional>
 #include <memory>
@@ -9,7 +11,7 @@ namespace Bess::Canvas::UI {
 
     typedef std::function<void(bool)> ToggleBtnCallback;
 
-    class ToggleBtnComp : public UISceneComponent {
+    class BESS_API ToggleBtnComp : public UISceneComponent {
       public:
         DEFAULT_CONTRS(ToggleBtnComp)
 

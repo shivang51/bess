@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/commands/command_system.h"
 #include "bess_core/scene/scene_events.h"
 #include "bess_core/scene_driver.h"
@@ -19,12 +21,12 @@ namespace Bess {
 } // namespace Bess
 
 namespace Bess::Pages {
-    struct PageActionFlags {
+    struct BESS_API PageActionFlags {
         bool openProject = false;
         bool saveProject = false;
     };
 
-    struct VerilogImportStatus {
+    struct BESS_API VerilogImportStatus {
         float progress = 0.f;
         std::string stageMessage;
         bool importing = false;
@@ -32,10 +34,13 @@ namespace Bess::Pages {
         bool failed = false;
     };
 
-    class MainPageState {
+    class BESS_API MainPageState {
       public:
         MainPageState();
         ~MainPageState();
+
+        MainPageState(const MainPageState &) = delete;
+        MainPageState &operator=(const MainPageState &) = delete;
 
         Cmd::CommandSystem &getCommandSystem();
 

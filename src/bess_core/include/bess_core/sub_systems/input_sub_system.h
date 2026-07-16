@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "common/class_helpers.h"
 #include "common/sub_system.h"
 #include "ext/vector_float2.hpp"
@@ -9,16 +11,16 @@
 
 namespace Bess {
 
-    struct KeyState {
+    struct BESS_API KeyState {
         KeyCode key = KeyCode::unknown;
         KeyAction action = KeyAction::release;
     };
 
-    struct TextInputState {
+    struct BESS_API TextInputState {
         char32_t codepoint = 0;
     };
 
-    struct KeyboardInputEvent {
+    struct BESS_API KeyboardInputEvent {
         enum class Type : uint8_t {
             key,
             text,
@@ -29,24 +31,24 @@ namespace Bess {
         TextInputState text;
     };
 
-    struct MouseWheelState {
+    struct BESS_API MouseWheelState {
         glm::vec2 pos;
         glm::vec2 offset;
     };
 
-    struct MouseMoveState {
+    struct BESS_API MouseMoveState {
         glm::vec2 pos;
         glm::vec2 delta;
     };
 
-    struct MouseButtonState {
+    struct BESS_API MouseButtonState {
         MouseButton button = MouseButton::unknown;
         MouseButtonAction action = MouseButtonAction::press;
         glm::vec2 pos = {0.f, 0.f};
         std::chrono::time_point<std::chrono::steady_clock> timestamp;
     };
 
-    struct FrameInputState {
+    struct BESS_API FrameInputState {
         bool hasMouseMoved = false;
         bool hasMouseWheelScrolled = false;
         bool hasMouseBtnEvent = false;
@@ -59,7 +61,7 @@ namespace Bess {
         std::vector<KeyboardInputEvent> keyboardEvents;
     };
 
-    class InputSubSystem : public ISubSystem {
+    class BESS_API InputSubSystem : public ISubSystem {
       public:
         void onInit() override;
         void onDestroy() override;

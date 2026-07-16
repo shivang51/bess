@@ -1,9 +1,11 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include <cstdint>
 
 namespace Bess::UI {
-    class Popups {
+    class BESS_API Popups {
       public:
         // const char* is easier to use with ImGui than string_view
         struct PopupIds {

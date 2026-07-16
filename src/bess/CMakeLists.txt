@@ -7,6 +7,70 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 add_subdirectory("application")
 
+include(GenerateExportHeader)
+
+set(BESS_RUNTIME_COMPONENT_TARGETS
+    common
+    BessJson
+    bverilog
+    BessPluginManager
+    EventSystem
+    BessSimEngine
+    BessSimDriver
+    DigitalSimDriver
+    MathSimDriver
+    BessCore
+    BessWgpu
+    BessApp
+    BessExtDeps
+)
+
+set(BESS_RUNTIME_GENERATED_INCLUDE_DIR
+    "${CMAKE_BINARY_DIR}/generated/bess_runtime"
+)
+file(MAKE_DIRECTORY "${BESS_RUNTIME_GENERATED_INCLUDE_DIR}")
+
+add_library(BessRuntime SHARED "runtime.cpp")
+generate_export_header(
+    BessRuntime
+    BASE_NAME BESS_RUNTIME
+    EXPORT_MACRO_NAME BESS_RUNTIME_API
+    EXPORT_FILE_NAME
+        "${BESS_RUNTIME_GENERATED_INCLUDE_DIR}/bess_runtime_export.h"
+    STATIC_DEFINE BESS_RUNTIME_STATIC
+)
+
+target_include_directories(BessRuntime PUBLIC
+    "$<BUILD_INTERFACE:${BESS_RUNTIME_GENERATED_INCLUDE_DIR}>"
+)
+
+target_link_libraries(BessRuntime PUBLIC ${BESS_RUNTIME_COMPONENT_TARGETS})
+
+		
+add_custom_command(TARGET BessRuntime POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:dawn> 
+				$<TARGET_FILE_DIR:BessRuntime>
+)
+
+foreach(component_target IN LISTS BESS_RUNTIME_COMPONENT_TARGETS)
+    if(NOT component_target STREQUAL "BessExtDeps")
+        target_compile_definitions(
+            ${component_target} PRIVATE BessRuntime_EXPORTS
+        )
+        target_include_directories(
+            ${component_target} PRIVATE
+            "${BESS_RUNTIME_GENERATED_INCLUDE_DIR}"
+        )
+    endif()
+endforeach()
+
+set_target_properties(BessRuntime PROPERTIES
+    CXX_STANDARD 23
+    CXX_STANDARD_REQUIRED ON
+    WINDOWS_EXPORT_ALL_SYMBOLS ON
+)
+
 set(Header_Files
 )
 
@@ -25,8 +89,8 @@ set(ALL_FILES
 
 add_executable(${PROJECT_NAME} ${ALL_FILES})
 set_target_properties(${PROJECT_NAME} PROPERTIES ENABLE_EXPORTS ON)
-target_link_libraries(${PROJECT_NAME} PUBLIC BessExtDeps BessCore BessApp)
-add_dependencies(${PROJECT_NAME} BessCore BessApp besspybindings)
+target_link_libraries(${PROJECT_NAME} PRIVATE BessRuntime)
+add_dependencies(${PROJECT_NAME} BessRuntime besspybindings)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
 

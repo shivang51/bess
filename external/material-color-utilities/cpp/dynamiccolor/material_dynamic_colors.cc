@@ -51,7 +51,7 @@ Vec3 XyzInViewingConditions(Cam cam, ViewingConditions viewing_conditions) {
                              viewing_conditions.background_y_to_white_point_y),
                   0.73),
       1.0 / 0.9);
-  double h_rad = cam.hue * M_PI / 180.0;
+  double h_rad = cam.hue * kPi / 180.0;
 
   double e_hue = 0.25 * (cos(h_rad + 2.0) + 3.8);
   double ac =

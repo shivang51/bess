@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
@@ -16,7 +18,7 @@
         ("dropdownIndex", getDropdownIndex, setDropdownIndex)
 
 namespace Bess::Canvas {
-    class NonSimSceneComponent : public SceneComponent,
+    class BESS_API NonSimSceneComponent : public SceneComponent,
                                  public DragBehaviour<NonSimSceneComponent> {
       public:
         NonSimSceneComponent() = default;
@@ -55,7 +57,7 @@ namespace Bess::Canvas {
         getContrRegistry();
     };
 
-    class WidgetsTestComponent : public NonSimSceneComponent {
+    class BESS_API WidgetsTestComponent : public NonSimSceneComponent {
       public:
         WidgetsTestComponent();
 

@@ -1,4 +1,6 @@
 #pragma once
+
+#include "common/bess_api.h"
 #include "common/bess_uuid.h"
 #include <cstdint>
 #include <glm.hpp>
@@ -27,21 +29,21 @@ namespace Bess::Canvas::Events {
         button8 = 7
     };
 
-    struct ComponentAddedEvent {
+    struct BESS_API ComponentAddedEvent {
         UUID uuid;
         Canvas::SceneComponentType type;
         UUID sceneId;
         Canvas::SceneState *state;
     };
 
-    struct ComponentRemovedEvent {
+    struct BESS_API ComponentRemovedEvent {
         UUID uuid;
         Canvas::SceneComponentType type;
         UUID sceneId;
         Canvas::SceneState *state;
     };
 
-    struct EntityReparentedEvent {
+    struct BESS_API EntityReparentedEvent {
         UUID entityUuid;
         UUID newParentUuid;
         UUID prevParent;
@@ -49,12 +51,12 @@ namespace Bess::Canvas::Events {
         Canvas::SceneState *state;
     };
 
-    struct EntityHoveredEvent {
+    struct BESS_API EntityHoveredEvent {
         UUID entityUuid;
         glm::vec2 mousePos;
     };
 
-    struct MouseDraggedEvent {
+    struct BESS_API MouseDraggedEvent {
         glm::vec2 mousePos;
         glm::vec2 delta;
         uint32_t details;
@@ -63,22 +65,22 @@ namespace Bess::Canvas::Events {
         bool isSchematicMode;
     };
 
-    struct MouseHoveredEvent {
+    struct BESS_API MouseHoveredEvent {
         glm::vec2 mousePos;
         uint32_t details;
     };
 
-    struct MouseEnterEvent {
+    struct BESS_API MouseEnterEvent {
         glm::vec2 mousePos;
         uint32_t details;
     };
 
-    struct MouseLeaveEvent {
+    struct BESS_API MouseLeaveEvent {
         glm::vec2 mousePos;
         uint32_t details;
     };
 
-    struct MouseButtonEvent {
+    struct BESS_API MouseButtonEvent {
         glm::vec2 mousePos;
         MouseButton button;
         MouseClickAction action;
@@ -86,32 +88,32 @@ namespace Bess::Canvas::Events {
         Canvas::SceneState *sceneState;
     };
 
-    struct MouseWheelEvent {
+    struct BESS_API MouseWheelEvent {
         glm::vec2 mousePos;
         glm::vec2 delta;
         uint32_t details;
         Canvas::SceneState *sceneState;
     };
 
-    struct MouseMoveEvent {
+    struct BESS_API MouseMoveEvent {
         glm::vec2 mousePos;
         uint32_t details;
         Canvas::SceneState *sceneState;
     };
 
-    struct FocusEvent {
+    struct BESS_API FocusEvent {
         UUID entityUuid;
         glm::vec2 mousePos{0.f};
         uint32_t details = 0;
         Canvas::SceneState *sceneState = nullptr;
     };
 
-    struct ConnectionRemovedEvent {
+    struct BESS_API ConnectionRemovedEvent {
         UUID slotAId;
         UUID slotBId;
     };
 
-    struct EntityMovedEvent {
+    struct BESS_API EntityMovedEvent {
         UUID entityUuid;
         glm::vec3 oldPos;
         glm::vec3 newPos;

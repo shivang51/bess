@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/style/bess_theme.h"
 #include "bess_core/style/color_scheme.h"
 #include <functional>
@@ -7,7 +9,7 @@
 #include <unordered_map>
 
 namespace Bess::Config {
-    class Themes {
+    class BESS_API Themes {
       public:
         Themes();
 

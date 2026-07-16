@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "common/bess_uuid.h"
 #include "common/types.h"
 #include "bess_core/scene/scene_events.h"
@@ -26,7 +28,7 @@
 
 namespace Bess::Canvas {
 
-    class ConnectionSceneComponent
+    class BESS_API ConnectionSceneComponent
         : public SceneComponent,
           public DragBehaviour<ConnectionSceneComponent> {
       public:

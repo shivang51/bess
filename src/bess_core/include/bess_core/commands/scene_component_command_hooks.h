@@ -12,7 +12,7 @@ namespace Bess::Canvas {
 } // namespace Bess::Canvas
 
 namespace Bess::Cmd {
-    struct SceneComponentAddOptions {
+    struct BESS_API SceneComponentAddOptions {
         bool setZ = false;
         bool triggerAttach = true;
         bool dispatchEvent = true;

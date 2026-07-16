@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_event.h"
 #include "bess_core/scene/scene_ser_reg.h"
@@ -86,7 +88,7 @@ namespace Bess::Canvas {
 
     class SceneState;
 
-    class SceneComponent : public std::enable_shared_from_this<SceneComponent>,
+    class BESS_API SceneComponent : public std::enable_shared_from_this<SceneComponent>,
                            public MouseBehaviour<SceneComponent> {
       public:
         SceneComponent();

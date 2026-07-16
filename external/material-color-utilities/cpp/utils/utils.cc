@@ -172,6 +172,6 @@ Vec3 MatrixMultiply(Vec3 input, const double matrix[3][3]) {
       input.a * matrix[1][0] + input.b * matrix[1][1] + input.c * matrix[1][2];
   double c =
       input.a * matrix[2][0] + input.b * matrix[2][1] + input.c * matrix[2][2];
-  return (Vec3){a, b, c};
+  return Vec3{a, b, c};
 }
 }  // namespace material_color_utilities

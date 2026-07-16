@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "common/logger.h"
 #include "common/sub_system.h"
 #include "common/types.h"
@@ -21,7 +23,7 @@ namespace Bess::Core {
         Loop loop = Loop::none;
     };
 
-    class AnimationBase {
+    class BESS_API AnimationBase {
       public:
         virtual ~AnimationBase() = default;
         virtual void update(TimeMs ts) = 0;
@@ -208,7 +210,7 @@ namespace Bess::Core {
         }
     } // namespace Anim
 
-    class Animator : public ISubSystem {
+    class BESS_API Animator : public ISubSystem {
       public:
         DEFAULT_CONTRS(Animator);
 

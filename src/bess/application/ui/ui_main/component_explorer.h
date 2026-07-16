@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "sim_driver/sim_driver.h"
 #include "ui/ui_panel.h"
 
@@ -8,7 +10,7 @@
 
 namespace Bess::UI {
 
-    class ComponentExplorer : public Panel {
+    class BESS_API ComponentExplorer : public Panel {
       public:
         ComponentExplorer();
         void onDraw() override;

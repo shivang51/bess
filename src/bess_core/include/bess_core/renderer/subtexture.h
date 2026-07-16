@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "ext/scalar_common.hpp"
 #include "ext/vector_float2.hpp"
 #include "ext/vector_float4.hpp"
@@ -13,7 +15,7 @@ namespace Bess::Core::Renderer {
         BottomLeft,
     };
 
-    class SubTexture {
+    class BESS_API SubTexture {
       public:
         SubTexture() = default;
 

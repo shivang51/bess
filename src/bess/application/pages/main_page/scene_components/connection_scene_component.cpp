@@ -47,6 +47,7 @@ namespace Bess::Canvas {
         BESS_ASSERT(false,
                     "Cloning ConnectionSceneComponent is supported via "
                     "cloneConn function");
+        return {};
     }
 
     void ConnectionSceneComponent::drawSegments(const SceneState &state,

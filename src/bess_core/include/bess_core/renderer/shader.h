@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -10,7 +12,7 @@ namespace Bess::Core::Renderer {
 
     enum class ShaderStage : uint8_t { Vertex, Fragment, Compute };
 
-    struct ShaderModuleDesc {
+    struct BESS_API ShaderModuleDesc {
         ShaderLanguage language = ShaderLanguage::BackendNative;
         ShaderStage stage = ShaderStage::Vertex;
         std::string entryPoint;
@@ -18,7 +20,7 @@ namespace Bess::Core::Renderer {
         std::vector<uint32_t> spirv;
     };
 
-    class IShader {
+    class BESS_API IShader {
       public:
         virtual ~IShader();
 

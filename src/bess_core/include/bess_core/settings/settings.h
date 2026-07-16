@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/settings/themes.h"
 #include "common/class_helpers.h"
 #include "common/sub_system.h"
@@ -8,7 +10,7 @@
 
 namespace Bess::Config {
 
-    class Settings : public ISubSystem {
+    class BESS_API Settings : public ISubSystem {
       public:
         void onInit() override;
         void onDestroy() override;

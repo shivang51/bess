@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "common/bess_assert.h"
 #include "ui/ui_main/scene_viewport_panel.h"
 #include "ui/ui_panel.h"
@@ -7,7 +9,7 @@
 
 namespace Bess::UI {
 
-    struct InternalData {
+    struct BESS_API InternalData {
         std::string path;
         std::string statusMessage;
         bool newFileClicked = false, openFileClicked = false;
@@ -15,14 +17,14 @@ namespace Bess::UI {
         bool isTbFocused = false;
     };
 
-    struct UIState {
+    struct BESS_API UIState {
         SceneViewportPanel mainViewport{"MainViewport"};
         InternalData _internalData{};
     };
 
     typedef std::function<void()> PreInitCallback;
 
-    class UIMain {
+    class BESS_API UIMain {
       public:
         static void onPreInit(const PreInitCallback &callback);
 

@@ -1,9 +1,11 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/scene/scene_layer.h"
 
 namespace Bess::Canvas {
-    class OverlayLayer : public ISceneLayer {
+    class BESS_API OverlayLayer : public ISceneLayer {
       public:
         void update(TimeMs ts, SceneUpdateContext &ctx) override;
         void draw(SceneRenderContext &ctx) override;

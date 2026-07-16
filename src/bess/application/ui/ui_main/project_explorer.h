@@ -1,12 +1,14 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "common/bess_uuid.h"
 #include "ui/ui_panel.h"
 #include <cstdint>
 #include <string>
 
 namespace Bess::UI {
-    class ProjectExplorer : public Panel {
+    class BESS_API ProjectExplorer : public Panel {
       public:
         ProjectExplorer();
 

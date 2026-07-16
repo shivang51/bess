@@ -44,7 +44,7 @@ set(ALL_FILES
     ${Source_Files}
 )
 
-add_library(${PROJECT_NAME} STATIC ${ALL_FILES})
+add_library(${PROJECT_NAME} OBJECT ${ALL_FILES})
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}")
 
@@ -56,18 +56,13 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     "${CMAKE_SOURCE_DIR}/external/stb_image/include"
 )
 
+
+
 target_link_libraries(${PROJECT_NAME} PUBLIC
     BessCore
     glfw3webgpu
+		dawn
 )
-
-if(TARGET dawn::webgpu_dawn)
-    target_link_libraries(${PROJECT_NAME} PUBLIC dawn::webgpu_dawn)
-elseif(TARGET webgpu_dawn)
-    target_link_libraries(${PROJECT_NAME} PUBLIC webgpu_dawn)
-else()
-    message(FATAL_ERROR "Dawn target webgpu_dawn was not created")
-endif()
 
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8" "/Zc:__cplusplus")

@@ -1,12 +1,14 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/scene/scene_ui/ui_scene_component.h"
 #include <memory>
 #include <string>
 
 namespace Bess::Canvas::UI {
 
-    class LabelComp : public UISceneComponent {
+    class BESS_API LabelComp : public UISceneComponent {
       public:
         DEFAULT_CONTRS(LabelComp)
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 // Just trying to create something like Flutter
 // https://github.com/flutter/flutter/blob/master/packages/flutter/lib/src/material/color_scheme.dart
 #include "bess_core/renderer/renderer_types.h"
@@ -14,7 +16,7 @@ namespace Bess::Core::Style {
     using Color = Renderer::Color;
     using DynamicScheme = material_color_utilities::DynamicScheme;
 
-    struct ColorSchemeColors {
+    struct BESS_API ColorSchemeColors {
         Color primary;
         Color onPrimary;
         Color primaryContainer;
@@ -73,7 +75,7 @@ namespace Bess::Core::Style {
         fromDynamicScheme(const DynamicScheme &dynamicScheme);
     };
 
-    class ColorScheme {
+    class BESS_API ColorScheme {
       public:
         constexpr ColorScheme() = default;
         constexpr ColorScheme(const ColorScheme &) = default;

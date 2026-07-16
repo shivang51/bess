@@ -1,11 +1,13 @@
 #pragma once
+
+#include "common/bess_api.h"
 #include "bess_core/renderer/renderer_types.h"
 #include <string>
 
 namespace Bess {
     using Color = Bess::Core::Renderer::Color;
 
-    struct SceneColors {
+    struct BESS_API SceneColors {
         Color background;
 
         Color compHeader;
@@ -39,7 +41,7 @@ namespace Bess {
         Color error = Color(0.95f, 0.25f, 0.25f, 1.0f);
     };
 
-    struct SchematicViewColors {
+    struct BESS_API SchematicViewColors {
         Color pin = Color(0.20f, 0.75f, 0.85f, 1.0f);
         Color text = Color(0.85f, 0.85f, 0.85f, 1.0f);
         Color connection = Color(0.00f, 0.80f, 0.40f, 1.0f);
@@ -48,7 +50,7 @@ namespace Bess {
         Color activeSignal = Color(1.00f, 0.90f, 0.20f, 1.0f);
     };
 
-    struct SceneWidgetsColors {
+    struct BESS_API SceneWidgetsColors {
         Color surface = Color(0.12f, 0.12f, 0.13f, 0.96f);
         Color surfaceHover = Color(0.16f, 0.16f, 0.17f, 0.98f);
         Color surfaceActive = Color(0.20f, 0.20f, 0.21f, 1.00f);
@@ -67,7 +69,7 @@ namespace Bess {
         Color knob = Color(0.30f, 0.30f, 0.30f, 1.00f);
     };
 
-    struct NodeHeaderColors {
+    struct BESS_API NodeHeaderColors {
         Color default_ = Color(0.45f, 0.45f, 0.45f, 0.90f);
         Color io = Color(0.48f, 0.35f, 0.58f, 0.90f);
         Color flipFlops = Color(0.48f, 0.35f, 0.58f, 0.90f);
@@ -77,17 +79,17 @@ namespace Bess {
         Color combinationalCircuits = Color(0.25f, 0.55f, 0.55f, 0.90f);
     };
 
-    class ViewportTheme {
+    class BESS_API ViewportTheme {
       public:
         static void cleanup();
-        static SceneColors colors;
-        static SchematicViewColors schematicViewColors;
-        static SceneWidgetsColors sceneWidgetsColors;
-        static NodeHeaderColors headerColors;
+        BESS_DATA_API static SceneColors colors;
+        BESS_DATA_API static SchematicViewColors schematicViewColors;
+        BESS_DATA_API static SceneWidgetsColors sceneWidgetsColors;
+        BESS_DATA_API static NodeHeaderColors headerColors;
         static void updateColorsFromImGuiStyle(bool isDark);
 
         static Color getCompHeaderColor(const std::string &group);
 
-        static bool isDark;
+        BESS_DATA_API static bool isDark;
     };
 } // namespace Bess

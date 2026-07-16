@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_events.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
@@ -24,7 +26,7 @@
          setConnectedConnections)
 
 namespace Bess::Canvas {
-    class SlotSceneComponent : public SceneComponent {
+    class BESS_API SlotSceneComponent : public SceneComponent {
       public:
         SlotSceneComponent() = default;
         SlotSceneComponent(const SlotSceneComponent &other) = default;

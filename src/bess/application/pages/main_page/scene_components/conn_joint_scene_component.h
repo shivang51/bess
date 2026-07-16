@@ -1,4 +1,6 @@
 #pragma once
+
+#include "common/bess_api.h"
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
@@ -19,7 +21,7 @@
 
 namespace Bess::Canvas {
 
-    class ConnJointSceneComp : public SceneComponent,
+    class BESS_API ConnJointSceneComp : public SceneComponent,
                                public DragBehaviour<ConnJointSceneComp>,
                                public ProxySlotComponent {
       public:

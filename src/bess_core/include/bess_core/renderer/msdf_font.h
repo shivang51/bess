@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/renderer/subtexture.h"
 #include "bess_core/renderer/texture.h"
 #include "common/logger.h"
@@ -9,7 +11,7 @@
 
 namespace Bess::Core::Renderer {
 
-    struct MsdfGlyph {
+    struct BESS_API MsdfGlyph {
         uint32_t codepoint = 0;
         float advance = 0.f;
         glm::vec4 planeBounds{0.f}; // left, bottom, right, top in em units
@@ -19,7 +21,7 @@ namespace Bess::Core::Renderer {
 
     template <typename TTexture>
         requires std::derived_from<TTexture, ITexture>
-    class MsdfFontAtlas {
+    class BESS_API MsdfFontAtlas {
       public:
         bool load(const std::filesystem::path &fontDirectory,
                   const std::string &fontName) {

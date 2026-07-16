@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include <cstdint>
 #include <glm.hpp>
 
@@ -16,7 +18,7 @@ namespace Bess::Canvas {
         connection,
     };
 
-    struct SelBoxContext {
+    struct BESS_API SelBoxContext {
         glm::vec2 start{0.f};
         glm::vec2 end{0.f};
         bool draw = false;
@@ -24,7 +26,7 @@ namespace Bess::Canvas {
         bool queueForSel = false;
     };
 
-    struct PickingReadbackRequest {
+    struct BESS_API PickingReadbackRequest {
         uint32_t x = 0;
         uint32_t y = 0;
         uint32_t width = 0;
@@ -32,7 +34,7 @@ namespace Bess::Canvas {
         bool active = false;
     };
 
-    struct SceneInputState {
+    struct BESS_API SceneInputState {
         glm::vec2 mousePos{0.f};
         glm::vec2 dMousePos{0.f};
         bool isLeftMousePressed = false;

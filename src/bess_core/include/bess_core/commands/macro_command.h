@@ -9,6 +9,10 @@ namespace Bess::Cmd {
       public:
         MacroCommand();
         explicit MacroCommand(std::vector<std::unique_ptr<Command>> commands);
+        MacroCommand(const MacroCommand &) = delete;
+        MacroCommand &operator=(const MacroCommand &) = delete;
+        MacroCommand(MacroCommand &&) = delete;
+        MacroCommand &operator=(MacroCommand &&) = delete;
 
         bool execute(const CommandContext &context) override;
         void undo(const CommandContext &context) override;

@@ -1,4 +1,6 @@
 #pragma once
+
+#include "common/bess_api.h"
 #include "bess_core/renderer/renderer_types.h"
 #include "common/class_helpers.h"
 #include "ext/vector_float2.hpp"
@@ -8,13 +10,13 @@ namespace Bess::Core::Renderer {
 
     enum class Renderer2DTargetFormat : uint8_t;
 
-    struct TextureCreateInfo {
+    struct BESS_API TextureCreateInfo {
         std::string path;
         // None means use the renderer's color target format for render targets.
         Renderer2DTargetFormat format{};
     };
 
-    class ITexture {
+    class BESS_API ITexture {
       public:
         ITexture() = default;
         ITexture(const std::string &path);

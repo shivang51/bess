@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "ext/vector_float2.hpp"
 #include "fwd.hpp"
 #include "bess_core/sub_systems/input_sub_system_types.h"
@@ -14,7 +16,7 @@ namespace Bess {
         KeyRelease
     };
 
-    class ApplicationEvent {
+    class BESS_API ApplicationEvent {
       public:
         ApplicationEvent(ApplicationEventType type, std::any data);
         ApplicationEventType getType() const;

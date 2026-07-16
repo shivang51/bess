@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "spdlog/sinks/basic_file_sink.h"
 #include "ui_log_sink.h"
 
@@ -9,7 +11,7 @@
 
 namespace Bess {
 
-    class Logger {
+    class BESS_API Logger {
       public:
         static Logger &getInstance();
         static const std::shared_ptr<SpdLogUISink> &getUISink();

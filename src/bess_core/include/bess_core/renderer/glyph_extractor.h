@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/renderer/renderer_path.h"
 #include "bess_core/renderer/renderer_types.h"
 #include <cstddef>
@@ -8,7 +10,7 @@
 
 namespace Bess::Core::Renderer {
 
-    struct Glyph {
+    struct BESS_API Glyph {
         char32_t charCode{};
         Path2D path;
         PathProps pathProps{};
@@ -22,7 +24,7 @@ namespace Bess::Core::Renderer {
         bool loaded = false;
     };
 
-    class GlyphExtractor {
+    class BESS_API GlyphExtractor {
       public:
         GlyphExtractor() = default;
         explicit GlyphExtractor(const std::string &fontPath);

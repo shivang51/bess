@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "common/types.h"
 #include "ext/vector_float2.hpp"
 #include "ext/vector_float4.hpp"
@@ -9,7 +11,7 @@
 
 namespace Bess::Core::Renderer {
 
-    struct Color {
+    struct BESS_API Color {
         float r = 0.f, g = 0.f, b = 0.f, a = 1.f;
 
         constexpr Color() noexcept = default;
@@ -134,7 +136,7 @@ namespace Bess::Core::Renderer {
         Screen,
     };
 
-    struct RendererScissorRect {
+    struct BESS_API RendererScissorRect {
         uint32_t x = 0;
         uint32_t y = 0;
         uint32_t width = 0;
@@ -156,7 +158,7 @@ namespace Bess::Core::Renderer {
         }
     };
 
-    struct RendererScissorState {
+    struct BESS_API RendererScissorState {
         bool enabled = false;
         RendererScissorRect rect{};
 
@@ -192,7 +194,7 @@ namespace Bess::Core::Renderer {
         EvenOdd,
     };
 
-    struct ShadowProps {
+    struct BESS_API ShadowProps {
         bool enabled = false;
         // Offset is in the same coordinate space as the geometry. For normal
         // scene geometry this means world units; for screen-space custom quads
@@ -207,7 +209,7 @@ namespace Bess::Core::Renderer {
         Color color{0.f, 0.f, 0.f, 0.35f};
     };
 
-    struct QuadProps {
+    struct BESS_API QuadProps {
         glm::vec2 position{0.f, 0.f};
         glm::vec2 size{1.f, 1.f};
         float rotation = 0.f;
@@ -226,7 +228,7 @@ namespace Bess::Core::Renderer {
         Color borderColor{0.f, 0.f, 0.f, 0.f};
         ShadowProps shadow{};
     };
-    struct CircleProps {
+    struct BESS_API CircleProps {
         glm::vec2 position{0.f, 0.f};
         float radius = 0.5f;
         float thickness = 0.f; // 0 for filled circle
@@ -238,7 +240,7 @@ namespace Bess::Core::Renderer {
         ShadowProps shadow{};
     };
 
-    struct LineProps {
+    struct BESS_API LineProps {
         glm::vec2 p0{0.f, 0.f};
         glm::vec2 p1{1.f, 1.f};
         float thickness = 1.f;
@@ -250,7 +252,7 @@ namespace Bess::Core::Renderer {
         ShadowProps shadow{};
     };
 
-    struct PathProps {
+    struct BESS_API PathProps {
         Color fillColor{1.f, 1.f, 1.f, 1.f};
         Color strokeColor{1.f, 1.f, 1.f, 1.f};
         float strokeSize = 4.f;
@@ -272,7 +274,7 @@ namespace Bess::Core::Renderer {
         glm::vec2 rotationPivot{0.f, 0.f};
     };
 
-    struct FontProps {
+    struct BESS_API FontProps {
         glm::vec2 position{0.f, 0.f};
         float fontSize = 16.f;
         Color color{1.f, 1.f, 1.f, 1.f};
@@ -290,7 +292,7 @@ namespace Bess::Core::Renderer {
 } // namespace Bess::Core::Renderer
 
 template <>
-struct fmt::formatter<Bess::Core::Renderer::Color>
+struct BESS_API fmt::formatter<Bess::Core::Renderer::Color>
     : fmt::formatter<std::string> {
     auto format(Bess::Core::Renderer::Color color, format_context &ctx) const
         -> decltype(ctx.out()) {
@@ -304,6 +306,8 @@ struct fmt::formatter<Bess::Core::Renderer::Color>
 };
 
 namespace Bess::JsonConvert {
-    void toJsonValue(const Core::Renderer::Color &color, Json::Value &j);
-    void fromJsonValue(const Json::Value &j, Core::Renderer::Color &color);
+    BESS_API void toJsonValue(const Core::Renderer::Color &color,
+                              Json::Value &j);
+    BESS_API void fromJsonValue(const Json::Value &j,
+                                Core::Renderer::Color &color);
 } // namespace Bess::JsonConvert

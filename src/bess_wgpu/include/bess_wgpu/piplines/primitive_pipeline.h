@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_wgpu/piplines/pipeline.h"
 #include "bess_wgpu/wgpu_shader.h"
 #include <cstddef>
@@ -10,7 +12,7 @@
 
 namespace Bess::Wgpu::Piplines {
 
-    struct PrimitiveInstance {
+    struct BESS_API PrimitiveInstance {
         float position[3] = {0.f, 0.f, 0.f};
         uint32_t flags = 0;
         float color[4] = {1.f, 1.f, 1.f, 1.f};
@@ -27,8 +29,12 @@ namespace Bess::Wgpu::Piplines {
         float angle = 0.f;
     };
 
-    class PrimitivePipeline final : public Pipeline {
+    class BESS_API PrimitivePipeline final : public Pipeline {
       public:
+        PrimitivePipeline() = default;
+        PrimitivePipeline(const PrimitivePipeline &) = delete;
+        PrimitivePipeline &operator=(const PrimitivePipeline &) = delete;
+
         void init(const wgpu::Device &device,
                   wgpu::TextureFormat targetFormat,
                   const wgpu::Buffer &frameBuffer,

@@ -1,6 +1,7 @@
 #pragma once
 
-#include "absl/container/node_hash_map.h"
+#include "common/bess_api.h"
+
 #include "common/bess_uuid.h"
 #include <any>
 #include <chrono>
@@ -15,6 +16,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/container/linked_hash_set.h"
+#include "absl/container/node_hash_map.h"
 
 namespace Bess {
     using TimeMs = std::chrono::duration<double, std::milli>;
@@ -26,7 +28,7 @@ namespace Bess {
     template <typename K> using HashSet = absl::flat_hash_set<K>;
     template <typename K> using OrderedSet = absl::linked_hash_set<K>;
 
-    struct PickingId {
+    struct BESS_API PickingId {
         uint32_t runtimeId;
         uint32_t info;
 
@@ -92,7 +94,7 @@ namespace Bess {
 
         typedef std::vector<std::vector<ComponentPin>> Connections;
 
-        struct ConnectionBundle {
+        struct BESS_API ConnectionBundle {
             Connections inputs;
             Connections outputs;
         };
@@ -131,7 +133,7 @@ namespace Bess {
             temperature
         };
 
-        struct PortRef {
+        struct BESS_API PortRef {
             UUID componentId = UUID::null;
             PortDirection direction = PortDirection::none;
             SignalKind signalKind = SignalKind::none;
@@ -152,7 +154,7 @@ namespace Bess {
             }
         };
 
-        struct PortDescriptor {
+        struct BESS_API PortDescriptor {
             PortDirection direction = PortDirection::none;
             SignalKind signalKind = SignalKind::none;
             QuantityKind quantityKind = QuantityKind::none;
@@ -164,12 +166,12 @@ namespace Bess {
 
         enum class ConnectionState : uint8_t { unknown = 0, driven, high_z };
 
-        struct LogicThresholds {
+        struct BESS_API LogicThresholds {
             float highThreshold = 0.8f;
             float lowThreshold = 2.0f;
         };
 
-        struct PortState {
+        struct BESS_API PortState {
             SignalKind signalKind = SignalKind::digital;
             LogicState state = LogicState::low;
             double scalarValue = 0.0;
@@ -339,9 +341,8 @@ namespace Bess {
             }
 
           private:
-            void
-            fromLogicState(LogicState logicState,
-                           const LogicThresholds &thresholds) noexcept {
+            void fromLogicState(LogicState logicState,
+                                const LogicThresholds &thresholds) noexcept {
                 (void)thresholds;
                 state = logicState;
                 signalKind = SignalKind::digital;
@@ -368,7 +369,7 @@ namespace Bess {
             }
         };
 
-        struct SimulationEvent {
+        struct BESS_API SimulationEvent {
             SimTime simTime;
             UUID compId;
             UUID schedulerId; // enitity that triggered the change
@@ -380,7 +381,7 @@ namespace Bess {
             }
         };
 
-        struct SlotsGroupInfo {
+        struct BESS_API SlotsGroupInfo {
             SlotsGroupType type = SlotsGroupType::none;
             bool isResizeable = false;
             size_t count = 0;
@@ -389,12 +390,12 @@ namespace Bess {
                 categories; // slot_index, category
         };
 
-        struct OperatorInfo {
+        struct BESS_API OperatorInfo {
             char op = '0';
             bool shouldNegateOutput = false;
         };
 
-        struct ComponentState {
+        struct BESS_API ComponentState {
             std::vector<PortState> inputStates;
             std::vector<bool> inputConnected;
             std::vector<PortState> outputStates;

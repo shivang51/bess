@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene/scene_ui/controls/toggle_btn_comp.h"
@@ -9,7 +11,7 @@
 #include "sim_scene_component.h"
 
 namespace Bess::Canvas {
-    class InputSceneComponent : public SimulationSceneComponent {
+    class BESS_API InputSceneComponent : public SimulationSceneComponent {
       public:
         InputSceneComponent();
 

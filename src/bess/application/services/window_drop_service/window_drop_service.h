@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "common/events.h"
 #include "common/sub_system.h"
 
@@ -20,8 +22,12 @@ namespace Bess {
 } // namespace Bess
 
 namespace Bess::Svc {
-    class WindowDropService : public ISubSystem {
+    class BESS_API WindowDropService : public ISubSystem {
       public:
+        WindowDropService() = default;
+        WindowDropService(const WindowDropService &) = delete;
+        WindowDropService &operator=(const WindowDropService &) = delete;
+
         using SubscriptionId = std::size_t;
         using Callback = std::function<void(const Events::WindowDropEvent &)>;
 

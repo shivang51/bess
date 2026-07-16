@@ -1,10 +1,12 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "common/bess_uuid.h"
 #include "common/class_helpers.h"
 
 namespace Bess::Canvas {
-    class ProxySlotComponent {
+    class BESS_API ProxySlotComponent {
       public:
         ProxySlotComponent() = default;
 

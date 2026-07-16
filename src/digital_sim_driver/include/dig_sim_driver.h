@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "common/types.h"
@@ -11,12 +13,12 @@
 
 namespace Bess::SimEngine::Drivers::Digital {
 
-    struct DigCompState {
+    struct BESS_API DigCompState {
         std::vector<PortState> inputStates;
         std::vector<PortState> outputStates;
     };
 
-    struct DigCompSimData : SimFnDataBase {
+    struct BESS_API DigCompSimData : SimFnDataBase {
         std::vector<PortState> inputStates;
         std::vector<PortState> outputStates;
         std::vector<std::string> *expressions = nullptr;
@@ -24,7 +26,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         DigCompState prevState;
     };
 
-    class DigCompDef : public EvtBasedCompDef {
+    class BESS_API DigCompDef : public EvtBasedCompDef {
       public:
         static constexpr const char *TypeName = "digital_compdef";
 
@@ -103,7 +105,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         bool m_keepIOCountEq = false;
     };
 
-    class DigSimComp : public EvtBasedSimComp {
+    class BESS_API DigSimComp : public EvtBasedSimComp {
       public:
         DigSimComp() = default;
         ~DigSimComp() override = default;
@@ -171,7 +173,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         UUID m_netUuid = UUID::null;
     };
 
-    class DigModuleSimComp : public DigSimComp {
+    class BESS_API DigModuleSimComp : public DigSimComp {
       public:
         DigModuleSimComp() = default;
         ~DigModuleSimComp() override = default;
@@ -179,7 +181,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         void onPostSimulate() override;
     };
 
-    class DigitalSimDriver final : public EvtBasedSimDriver {
+    class BESS_API DigitalSimDriver final : public EvtBasedSimDriver {
       public:
         DigitalSimDriver() = default;
         ~DigitalSimDriver() override = default;
@@ -261,6 +263,7 @@ namespace Bess::SimEngine::Drivers::Digital {
 
 namespace Bess::JsonConvert {
 
-    void toJsonValue(Json::Value &json,
-                     const Bess::SimEngine::Drivers::Digital::DigSimComp &data);
+    BESS_API void
+    toJsonValue(Json::Value &json,
+                const Bess::SimEngine::Drivers::Digital::DigSimComp &data);
 } // namespace Bess::JsonConvert

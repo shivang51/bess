@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/scene/scene_ui/ui_scene_component.h"
 #include <functional>
 #include <memory>
@@ -9,7 +11,7 @@ namespace Bess::Canvas::UI {
 
     using UISliderCallback = std::function<void(float)>;
 
-    class SliderComp : public UISceneComponent {
+    class BESS_API SliderComp : public UISceneComponent {
       public:
         DEFAULT_CONTRS(SliderComp)
 

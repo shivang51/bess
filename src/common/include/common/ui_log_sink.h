@@ -1,3 +1,4 @@
+#include "common/bess_api.h"
 #include "spdlog/sinks/base_sink.h"
 #include <mutex>
 #include <string>
@@ -13,13 +14,13 @@ namespace Bess {
         critical = spdlog::level::critical,
     };
 
-    struct LogMessage {
+    struct BESS_API LogMessage {
         LogLevel level;
         std::string message;
     };
 
     template <typename Mutex>
-    class UILogSink : public spdlog::sinks::base_sink<Mutex> {
+    class BESS_API UILogSink : public spdlog::sinks::base_sink<Mutex> {
       protected:
         void sink_it_(const spdlog::details::log_msg &msg) override {
             spdlog::memory_buf_t formatted;

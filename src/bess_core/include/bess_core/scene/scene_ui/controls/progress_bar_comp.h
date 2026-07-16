@@ -1,12 +1,14 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/scene/scene_ui/ui_scene_component.h"
 #include <memory>
 #include <string>
 
 namespace Bess::Canvas::UI {
 
-    class ProgressBarComp : public UISceneComponent {
+    class BESS_API ProgressBarComp : public UISceneComponent {
       public:
         DEFAULT_CONTRS(ProgressBarComp)
 

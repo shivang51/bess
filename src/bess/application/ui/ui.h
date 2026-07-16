@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_wgpu/wgpu_texture.h"
 #include "imgui.h"
 
@@ -10,7 +12,7 @@ namespace Bess::Pages {
 namespace Bess {
     class Window;
 
-    class UIHandle {
+    class BESS_API UIHandle {
       public:
         void init(const std::shared_ptr<Window> &window);
         void begin();

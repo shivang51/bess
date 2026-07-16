@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/commands/command.h"
 #include "common/bess_uuid.h"
 #include "fwd.hpp"
@@ -14,7 +16,7 @@ namespace Bess::Cmd {
                  std::is_same_v<ValType, glm::vec3> ||
                  std::is_same_v<ValType, glm::vec4> ||
                  std::is_same_v<ValType, UUID>
-    class UpdateValCommand : public Command {
+    class BESS_API UpdateValCommand : public Command {
       public:
         using OnUndoRedoCB = std::function<void(bool, const ValType &)>;
 

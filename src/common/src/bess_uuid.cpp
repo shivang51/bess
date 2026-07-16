@@ -7,8 +7,8 @@ namespace Bess {
     static std::mt19937_64 s_Engine(s_RandomDevice());
     static std::uniform_int_distribution<uint64_t> s_UniformDistribution;
 
-    constexpr UUID UUID::null = UUID(0);
-    constexpr UUID UUID::master = UUID(9);
+    const UUID UUID::null{0};
+    const UUID UUID::master{9};
 
     UUID::UUID() : m_UUID(s_UniformDistribution(s_Engine)) {
     }

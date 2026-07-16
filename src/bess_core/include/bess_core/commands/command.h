@@ -10,7 +10,7 @@ namespace Bess::Canvas {
 }
 
 namespace Bess::Cmd {
-    struct CommandContext {
+    struct BESS_API CommandContext {
         std::shared_ptr<Canvas::Scene> scene = nullptr;
         std::shared_ptr<const SceneComponentCommandHooks> componentHooks =
             defaultSceneComponentCommandHooks();

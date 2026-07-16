@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/renderer/renderer_types.h"
 #include "bess_core/scene/scene_draw_context.h"
@@ -8,7 +10,7 @@
 #include <string_view>
 
 namespace Bess::Canvas::SceneDraw {
-    struct ShadowStyle {
+    struct BESS_API ShadowStyle {
         bool enabled = false;
         bool useInvalidId = true;
         glm::vec2 offset = {5.f, 5.f};
@@ -19,7 +21,7 @@ namespace Bess::Canvas::SceneDraw {
         Core::Renderer::TextureHandle texture = 0;
     };
 
-    struct QuadStyle {
+    struct BESS_API QuadStyle {
         float angle = 0.f;
         Core::Renderer::Color borderColor = {0.f, 0.f, 0.f, 0.f};
         glm::vec4 borderRadius = {0.f, 0.f, 0.f, 0.f};
@@ -27,7 +29,7 @@ namespace Bess::Canvas::SceneDraw {
         ShadowStyle shadow{};
     };
 
-    struct PathStyle {
+    struct BESS_API PathStyle {
         bool closePath = false;
         bool renderFill = false;
         glm::vec4 fillColor = glm::vec4(1.f);

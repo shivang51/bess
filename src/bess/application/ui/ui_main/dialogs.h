@@ -1,10 +1,12 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include <string>
 #include <vector>
 
 namespace Bess::UI {
-    class Dialogs {
+    class BESS_API Dialogs {
       public:
         typedef std::vector<std::string> FilterMap;
 

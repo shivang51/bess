@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/renderer/texture.h"
 #include "webgpu/webgpu_cpp.h"
 
@@ -8,7 +10,7 @@ namespace Bess::Wgpu {
 
     class WgpuRenderer2D;
 
-    class WgpuTexture final : public Core::Renderer::ITexture {
+    class BESS_API WgpuTexture final : public Core::Renderer::ITexture {
       public:
         static void
         setRenderer(const std::shared_ptr<WgpuRenderer2D> &renderer) noexcept;

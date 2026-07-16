@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/scene/scene_ui/text_box_context.h"
 #include "bess_core/scene/scene_ui/ui_scene_component.h"
 #include <cstddef>
@@ -12,7 +14,7 @@ namespace Bess::Canvas::UI {
 
     using UIEditableLabelCallback = std::function<void(const std::string &)>;
 
-    class EditableLabelComp : public UISceneComponent {
+    class BESS_API EditableLabelComp : public UISceneComponent {
       public:
         DEFAULT_CONTRS(EditableLabelComp)
 

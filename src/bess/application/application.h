@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "window.h"
 #include <memory>
 
@@ -12,7 +14,7 @@ namespace Bess {
         disablePlugins = 1 << 0,
     };
 
-    class Application {
+    class BESS_API Application {
       public:
         Application();
         ~Application();

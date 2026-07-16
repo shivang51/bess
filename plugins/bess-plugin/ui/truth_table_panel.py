@@ -277,10 +277,10 @@ class TruthTablePanel:
 
         logic_state = LogicState.HIGH if state == 1 else LogicState.LOW
 
-        core.set_out_slot_state(comp_id, idx, logic_state)
+        core.set_output_port_state(comp_id, idx, logic_state)
 
     def _get_output_comp_states(self, comp_id: UUID) -> list[int]:
-        states = core.get_inp_slots_states(comp_id)
+        states = core.get_input_port_states(comp_id)
 
         return [1 if s.state == LogicState.HIGH else 0 for s in states]
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/renderer/renderer_types.h"
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_event.h"
@@ -15,14 +17,14 @@ namespace Bess::Core::Renderer {
 } // namespace Bess::Core::Renderer
 
 namespace Bess::Canvas::UI {
-    struct TextBoxContextResult {
+    struct BESS_API TextBoxContextResult {
         bool handled = false;
         bool changed = false;
         bool submitted = false;
         bool canceled = false;
     };
 
-    class TextBoxContext {
+    class BESS_API TextBoxContext {
       public:
         void syncExternalValue(std::string_view value, size_t maxLength);
         void replaceText(std::string_view value,
@@ -91,7 +93,7 @@ namespace Bess::Canvas::UI {
         glm::vec2 m_pointerPos{0.f};
     };
 
-    struct TextBoxContextDrawOptions {
+    struct BESS_API TextBoxContextDrawOptions {
         std::string_view placeholder;
         float fontSize = 8.f;
         glm::vec2 padding{4.f, 2.f};

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/scene/scene_ui/ui_scene_component.h"
 #include <cstddef>
 #include <functional>
@@ -9,14 +11,14 @@
 
 namespace Bess::Canvas::UI {
 
-    struct UIContextMenuItem {
+    struct BESS_API UIContextMenuItem {
         std::string label;
         std::function<void()> callback = nullptr;
         bool enabled = true;
         bool separator = false;
     };
 
-    class ContextMenuComp : public UISceneComponent {
+    class BESS_API ContextMenuComp : public UISceneComponent {
       public:
         DEFAULT_CONTRS(ContextMenuComp)
 

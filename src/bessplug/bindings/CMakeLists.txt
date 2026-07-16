@@ -21,10 +21,14 @@ FetchContent_Declare(
 FetchContent_Declare (
   pybind11_abseil
   GIT_REPOSITORY https://github.com/pybind/pybind11_abseil.git
-  GIT_TAG master
+  GIT_TAG        dba6e38b79d93bc718e28b8f8ea2e8b00b60cdec
 )
 
+set(BESS_BUILD_TESTING ${BUILD_TESTING})
+set(BUILD_TESTING OFF)
 FetchContent_MakeAvailable(pybind11 pybind11_abseil)
+set(BUILD_TESTING ${BESS_BUILD_TESTING})
+unset(BESS_BUILD_TESTING)
 
 set(BESS_PYBIND_SOURCES
 		internal_types.h
@@ -66,28 +70,12 @@ set(BESS_PYBIND_SOURCES
 pybind11_add_module(${PROJECT_NAME} ${BESS_PYBIND_SOURCES})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-	BessExtDeps
-	BessCore
-	BessWgpu
-	BessSimEngine
-	EventSystem
-		BessJson
-		BessApp
-		MathSimDriver
-		bverilog
+	BessRuntime
 	pybind11_abseil::absl_casters
 )
 
 add_dependencies(${PROJECT_NAME}
-	BessApp
-	BessExtDeps
-	BessCore
-	BessWgpu
-	BessSimEngine
-	EventSystem
-		BessJson
-		MathSimDriver
-		bverilog
+	BessRuntime
 )
 
 if(LINUX)
@@ -119,17 +107,38 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     OUTPUT_NAME "bessplug"
 )
 
-add_custom_command(
-    TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E env "PYTHONPATH=$<TARGET_FILE_DIR:${PROJECT_NAME}>"
-            pybind11-stubgen 
-            "bessplug"
-            -o "${OUT_DIR}"
-    WORKING_DIRECTORY $<TARGET_FILE_DIR:${PROJECT_NAME}>
-    COMMENT "Generating python stubs for bessplug bindings..."
-)
+option(BESS_GENERATE_PY_STUBS "Run pybind11-stubgen after building bessplug" ON)
+
+if(BESS_GENERATE_PY_STUBS)
+    execute_process(
+        COMMAND "${Python3_EXECUTABLE}" -c "import pybind11_stubgen"
+        RESULT_VARIABLE _bess_stubgen_import_result
+        OUTPUT_QUIET
+        ERROR_QUIET
+    )
+    if(NOT _bess_stubgen_import_result EQUAL 0)
+        message(FATAL_ERROR
+            "BESS_GENERATE_PY_STUBS is ON but pybind11_stubgen is not available "
+            "for Python \"${Python3_EXECUTABLE}\". Install it with:\n"
+            "  \"${Python3_EXECUTABLE}\" -m pip install pybind11-stubgen\n"
+            "Or configure with -DBESS_GENERATE_PY_STUBS=OFF.")
+    endif()
+
+    add_custom_command(
+        TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND
+            ${CMAKE_COMMAND}
+            "-DPython3_EXECUTABLE=${Python3_EXECUTABLE}"
+            "-DBESS_RUNTIME_DIR=$<TARGET_FILE_DIR:BessRuntime>"
+            "-DBESS_MODULE_DIR=$<TARGET_FILE_DIR:${PROJECT_NAME}>"
+            "-DOUT_DIR=${OUT_DIR}"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/run_stubgen.cmake"
+        COMMENT "Generating python stubs for bessplug bindings..."
+        VERBATIM
+    )
+endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
-    BUILD_RPATH "${CMAKE_SOURCE_DIR}/build/lib"
-    INSTALL_RPATH "${CMAKE_SOURCE_DIR}/build/lib"
+    BUILD_RPATH "$<TARGET_FILE_DIR:BessRuntime>"
+    INSTALL_RPATH "$ORIGIN"
 )

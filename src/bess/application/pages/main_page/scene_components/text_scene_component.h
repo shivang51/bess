@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "pages/main_page/scene_components/non_sim_scene_component.h"
 
 #define TEXT_SER_PROPS                                                         \
@@ -8,7 +10,7 @@
         ("size", getSize, setSize)
 
 namespace Bess::Canvas {
-    class TextComponent : public NonSimSceneComponent {
+    class BESS_API TextComponent : public NonSimSceneComponent {
       public:
         TextComponent();
 

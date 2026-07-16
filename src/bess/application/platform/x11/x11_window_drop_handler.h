@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "common/events.h"
 
 #include <cstddef>
@@ -19,7 +21,7 @@ namespace Bess::Platform::X11 {
         drop,
     };
 
-    struct WindowDropEvent {
+    struct BESS_API WindowDropEvent {
         WindowDropEventType type = WindowDropEventType::enter;
         std::shared_ptr<const Events::WindowDropPayload> payload;
         int x = 0;
@@ -27,7 +29,7 @@ namespace Bess::Platform::X11 {
         bool accepted = false;
     };
 
-    class WindowDropHandler {
+    class BESS_API WindowDropHandler {
       public:
         using SubscriptionId = std::size_t;
         using Callback = std::function<void(const WindowDropEvent &)>;

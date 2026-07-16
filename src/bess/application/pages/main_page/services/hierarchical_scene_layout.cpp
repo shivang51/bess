@@ -145,10 +145,12 @@ namespace Bess::Pages {
                 if (componentDef) {
                     auto def = std::dynamic_pointer_cast<
                         SimEngine::Drivers::Digital::DigCompDef>(componentDef);
-                    node.boundaryInput =
-                        def->getBehaviorType() == ComponentBehaviorType::input;
-                    node.boundaryOutput =
-                        def->getBehaviorType() == ComponentBehaviorType::output;
+                    if (def) {
+                        node.boundaryInput = def->getBehaviorType() ==
+                                             ComponentBehaviorType::input;
+                        node.boundaryOutput = def->getBehaviorType() ==
+                                              ComponentBehaviorType::output;
+                    }
                 }
 
                 nodes.push_back(std::move(node));

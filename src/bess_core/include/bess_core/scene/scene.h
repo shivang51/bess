@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/renderer/renderer_types.h"
 #include "bess_core/scene/camera.h"
 #include "bess_core/scene/layers/screen_space_overlay_layer.h"
@@ -15,7 +17,7 @@
 
 namespace Bess::Canvas {
 
-    struct View2D {
+    struct BESS_API View2D {
         std::shared_ptr<Camera> camera;
         std::shared_ptr<Core::Renderer::IRenderer2D> renderer;
         Core::Renderer::TextureHandle drawRenderTarget;
@@ -23,18 +25,21 @@ namespace Bess::Canvas {
         std::shared_ptr<Core::Viewport::ViewportContext> viewportCtx;
     };
 
-    struct ViewportUpdateContext {
+    struct BESS_API ViewportUpdateContext {
         bool isFocused;
         std::shared_ptr<Camera> camera;
         std::shared_ptr<Core::Viewport::ViewportContext> viewportCtx;
         std::shared_ptr<Core::Renderer::IRenderer2D> renderer;
     };
 
-    class Scene {
+    class BESS_API Scene {
       public:
         Scene();
         explicit Scene(bool initializeLayers);
         ~Scene();
+
+        Scene(const Scene &) = delete;
+        Scene &operator=(const Scene &) = delete;
 
       public:
         using ScreenOverlayDrawCallback = ScreenSpaceOverlayLayer::DrawCallback;

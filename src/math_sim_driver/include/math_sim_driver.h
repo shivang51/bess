@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "common/bess_uuid.h"
 #include "common/types.h"
 #include "net/net.h"
@@ -18,19 +20,19 @@ namespace Bess::SimEngine::Drivers::Math {
 
     enum class MathOpKind : uint8_t { none, add, subtract, multiply, pow };
 
-    struct MathCompState {
+    struct BESS_API MathCompState {
         std::vector<PortState> inputStates;
         std::vector<PortState> outputStates;
     };
 
-    struct MathCompSimData : SimFnDataBase {
+    struct BESS_API MathCompSimData : SimFnDataBase {
         std::vector<PortState> inputStates;
         std::vector<PortState> outputStates;
         SimTime simTime;
         MathCompState prevState;
     };
 
-    class MathCompDef : public EvtBasedCompDef {
+    class BESS_API MathCompDef : public EvtBasedCompDef {
       public:
         static constexpr const char *TypeName = "math_compdef";
 
@@ -84,7 +86,7 @@ namespace Bess::SimEngine::Drivers::Math {
         TScalarFn m_scalarFn = nullptr;
     };
 
-    class MathSimComp : public EvtBasedSimComp {
+    class BESS_API MathSimComp : public EvtBasedSimComp {
       public:
         MathSimComp() = default;
         ~MathSimComp() override = default;
@@ -172,7 +174,7 @@ namespace Bess::SimEngine::Drivers::Math {
         UUID m_netUuid = UUID::null;
     };
 
-    class MathSimDriver final : public EvtBasedSimDriver {
+    class BESS_API MathSimDriver final : public EvtBasedSimDriver {
       public:
         MathSimDriver() = default;
         ~MathSimDriver() override = default;
@@ -245,12 +247,13 @@ namespace Bess::SimEngine::Drivers::Math {
         bool m_isNetUpdated{false};
     };
 
-    void registerMathSimDriver();
-    void unregisterMathSimDriver();
+    BESS_API void registerMathSimDriver();
+    BESS_API void unregisterMathSimDriver();
 
 } // namespace Bess::SimEngine::Drivers::Math
 
 namespace Bess::JsonConvert {
-    void toJsonValue(Json::Value &json,
-                     const Bess::SimEngine::Drivers::Math::MathSimComp &data);
+    BESS_API void
+    toJsonValue(Json::Value &json,
+                const Bess::SimEngine::Drivers::Math::MathSimComp &data);
 } // namespace Bess::JsonConvert

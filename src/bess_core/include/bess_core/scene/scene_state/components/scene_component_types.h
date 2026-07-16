@@ -1,4 +1,6 @@
 #pragma once
+
+#include "common/bess_api.h"
 #include "bess_core/renderer/colors.h"
 #include "bess_core/renderer/renderer_types.h"
 #include "bess_json/bess_json.h"
@@ -6,7 +8,7 @@
 #include <cstdint>
 
 namespace Bess::Canvas {
-    class Transform {
+    class BESS_API Transform {
       public:
         Transform() = default;
         Transform(const Transform &other) = default;
@@ -34,7 +36,7 @@ namespace Bess::Canvas {
         bottomCenter,
     };
 
-    struct SchematicStyle {
+    struct BESS_API SchematicStyle {
         PinLabelAlignment pinLabelAlign = PinLabelAlignment::adjacent;
         bool showPinLabels = true;
         SchematicLableAlignement schematicLabelAlign =
@@ -43,7 +45,7 @@ namespace Bess::Canvas {
         bool flipSlotsX = false;
     };
 
-    class Style {
+    class BESS_API Style {
       public:
         Style() = default;
         Style(const Style &other) = default;
@@ -56,7 +58,7 @@ namespace Bess::Canvas {
     // Not serialized
     enum class ConnSegOrientaion : uint8_t { horizontal, vertical };
 
-    struct ConnSegment {
+    struct BESS_API ConnSegment {
         glm::vec2 offset;
         ConnSegOrientaion orientation = ConnSegOrientaion::horizontal;
     };

@@ -40,9 +40,8 @@ set(ALL_FILES
     ${Source_Files}
 )
 
-add_library(${PROJECT_NAME} SHARED ${ALL_FILES})
+add_library(${PROJECT_NAME} OBJECT ${ALL_FILES})
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE BESS_EXPORTS)
 target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}")
 
 target_link_libraries(${PROJECT_NAME} PUBLIC 
@@ -75,8 +74,6 @@ target_include_directories(BessPluginManager
     PUBLIC include
 )
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE BESS_PLUGIN_MANAGER_EXPORTS)
-
 if(UNIX)
     if (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "14")
         target_link_libraries(${PROJECT_NAME} PRIVATE stdc++exp)
@@ -87,9 +84,6 @@ endif()
 
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8" "/Zc:__cplusplus")
-    set_property(TARGET ${PROJECT_NAME} PROPERTY
-        MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-    )
 endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "imgui.h"
 #include "ui/widgets/m_widgets.h"
 #include "ui/ui_panel.h"
@@ -7,7 +9,7 @@
 #include <vector>
 
 namespace Bess::UI {
-    class SettingsWindow : public Panel {
+    class BESS_API SettingsWindow : public Panel {
 
       public:
         SettingsWindow();

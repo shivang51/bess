@@ -15,7 +15,7 @@ namespace Bess::Wgpu {
     using Core::Renderer::PathProps;
     using Core::Renderer::Renderer2DExtent;
 
-    struct PathDrawRange {
+    struct BESS_API PathDrawRange {
         uint32_t firstStencilVertex = 0;
         uint32_t stencilVertexCount = 0;
         uint32_t firstCoverVertex = 0;
@@ -27,26 +27,26 @@ namespace Bess::Wgpu {
         Core::Renderer::RendererScissorState scissor{};
     };
 
-    struct BakedPath {
+    struct BESS_API BakedPath {
         std::vector<Piplines::PathStencilVertex> stencilVertices;
         std::array<Piplines::PathCoverVertex, 6> coverVertices{};
         bool evenOddFill = true;
         bool valid = false;
     };
 
-    struct PathBakeMetrics {
+    struct BESS_API PathBakeMetrics {
         float screenScale = 1.f;
         float pixelWorldSize = 1.f;
     };
 
-    struct StrokeMeshParams {
+    struct BESS_API StrokeMeshParams {
         PathBakeMetrics metrics;
         float halfWidth = 0.5f;
         float fringe = 1.f;
         float overlap = 1.f;
     };
 
-    struct StyledStrokeSegment {
+    struct BESS_API StyledStrokeSegment {
         glm::vec2 from{0.f};
         glm::vec2 to{0.f};
         float fromHalfWidth = 0.5f;
@@ -54,14 +54,14 @@ namespace Bess::Wgpu {
         PickingId id = PickingId::invalid();
     };
 
-    struct BakedPathSubmission {
+    struct BESS_API BakedPathSubmission {
         BakedPath fill;
         std::vector<Piplines::PathCoverVertex> strokeVertices;
         bool fillTransparent = false;
         bool strokeTransparent = false;
     };
 
-    class PathBatch {
+    class BESS_API PathBatch {
       public:
         void clear();
 
@@ -101,7 +101,7 @@ namespace Bess::Wgpu {
         std::vector<PathDrawRange> m_drawRanges;
     };
 
-    struct PathStrokeDrawRange {
+    struct BESS_API PathStrokeDrawRange {
         uint32_t firstVertex = 0;
         uint32_t vertexCount = 0;
         uint32_t firstInstance = 0;
@@ -110,7 +110,7 @@ namespace Bess::Wgpu {
         Core::Renderer::RendererScissorState scissor{};
     };
 
-    class PathStrokeBatch {
+    class BESS_API PathStrokeBatch {
       public:
         void clear();
 

@@ -1,12 +1,14 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "bess_core/scene/scene_events.h"
 #include "event_dispatcher.h"
 
 namespace Bess::Canvas {
     constexpr float SNAP_ANOUNT = 2.f;
 
-    class IDragBehaviour {
+    class BESS_API IDragBehaviour {
       public:
         virtual ~IDragBehaviour() = default;
         virtual void onMouseDragged(const Events::MouseDraggedEvent &e) = 0;
