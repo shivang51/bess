@@ -20,14 +20,14 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup Vulkan SDK
-      uses: jakoch/install-vulkan-sdk-action@v1
-      with:
-        vulkan_version: 1.4.335.0
-        optional_components: com.lunarg.vulkan.vma
-        install_runtime: true
-        cache: true
-        stripdown: true
+    # - name: Setup Vulkan SDK
+    #   uses: jakoch/install-vulkan-sdk-action@v1
+    #   with:
+    #     vulkan_version: 1.4.335.0
+    #     optional_components: com.lunarg.vulkan.vma
+    #     install_runtime: true
+    #     cache: true
+    #     stripdown: true
 
     - name: Install dependencies
       run: vcpkg install zlib:x64-windows
@@ -42,7 +42,7 @@ jobs:
         
     - name: Build
       # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --parallel $(nproc)
 
     - name: Test
       working-directory: ${{github.workspace}}/build
