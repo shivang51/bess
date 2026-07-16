@@ -30,6 +30,10 @@ add_executable(BessTests
     # command_system_test.cpp
 )
 
+if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+    target_sources(BessTests PRIVATE x11_file_drop_handler_test.cpp)
+endif()
+
 target_include_directories(${PROJECT_NAME} PRIVATE
 	"${CMAKE_SOURCE_DIR}/src/sim_engine/include"
 	"${CMAKE_SOURCE_DIR}/src/bverilog/include"

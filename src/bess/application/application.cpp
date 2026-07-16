@@ -10,6 +10,7 @@
 #include "event_dispatcher.h"
 #include "math_sim_driver.h"
 #include "pages/main_page/services/connection_service.h"
+#include "services/file_drag_drop_service/file_drag_drop_service.h"
 #include "services/plugin_service/plugin_service.h"
 #include "sub_systems/renderer_context.h"
 #include <chrono>
@@ -82,6 +83,7 @@ namespace Bess {
         appCtx.addSubSystem<Config::Settings>();
         appCtx.addSubSystem<InputSubSystem>();
         appCtx.addSubSystem<EventSystem::EventDispatcher>();
+        appCtx.addSubSystem<Svc::FileDragDropService>();
         m_mainWindow = appCtx.addSubSystem<Window>(800, 660, "Bess");
         appCtx.addSubSystem<RendererContext>();
         appCtx.addSubSystem<Assets::AssetManager>();

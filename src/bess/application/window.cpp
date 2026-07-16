@@ -10,7 +10,12 @@
 #include "imgui_impl_wgpu.h"
 #include "stb_image.h"
 #include "sub_systems/renderer_context.h"
+
 #include <GLFW/glfw3.h>
+#ifdef __linux__
+    #define GLFW_EXPOSE_NATIVE_X11
+    #include <GLFW/glfw3native.h>
+#endif
 #include <cassert>
 #include <cstdint>
 #include <memory>
@@ -122,22 +127,7 @@ namespace Bess {
         glfwSetWindowSizeLimits(
             window, 600, 500, GLFW_DONT_CARE, GLFW_DONT_CARE);
 
-        glfwSetDropCallback(
-            window, [](GLFWwindow *window, int count, const char **paths) {
-                const auto this_ = (Window *)glfwGetWindowUserPointer(window);
-                std::vector<std::string> files;
-                files.reserve(count);
-                for (int i = 0; i < count; ++i) {
-                    BESS_DEBUG("[Window] File dropped: {}", paths[i]);
-                    files.emplace_back(paths[i]);
-                }
-                Events::FileDropEvent evt{this_, files};
-
-                auto &ctx = GAppContext::getInstance();
-                auto eventDispatcher =
-                    ctx.getSubSystem<EventSystem::EventDispatcher>();
-                eventDispatcher->queue(evt);
-            });
+        BESS_INFO("[Window] File drops are handled by FileDragDropService");
 
         glfwSetFramebufferSizeCallback(
             window, [](GLFWwindow *window, int w, int h) {
@@ -286,6 +276,28 @@ namespace Bess {
     bool Window::isClosed() const {
         return glfwWindowShouldClose(mp_window.get());
     }
+
+#ifdef __linux__
+    bool Window::isNativeX11() const {
+        return mp_window && glfwGetPlatform() == GLFW_PLATFORM_X11;
+    }
+
+    void *Window::getNativeX11Display() const {
+        if (!isNativeX11()) {
+            return nullptr;
+        }
+
+        return glfwGetX11Display();
+    }
+
+    unsigned long Window::getNativeX11Window() const {
+        if (!isNativeX11()) {
+            return 0;
+        }
+
+        return glfwGetX11Window(mp_window.get());
+    }
+#endif
 
     void Window::close() const {
         glfwSetWindowShouldClose(mp_window.get(), true);

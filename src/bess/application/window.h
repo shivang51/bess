@@ -69,6 +69,12 @@ namespace Bess {
             return mp_window.get();
         }
 
+#if defined(__linux__)
+        bool isNativeX11() const;
+        void *getNativeX11Display() const;
+        unsigned long getNativeX11Window() const;
+#endif
+
         bool wasWindowResized() const {
             return m_framebufferResized;
         }
