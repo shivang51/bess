@@ -129,7 +129,7 @@ namespace Bess {
         const bool removingActiveScene =
             m_activeScene && m_activeScene->getSceneId() == id;
 
-        const auto &scene = m_sceneIdToSceneMap.at(id);
+        auto scene = m_sceneIdToSceneMap.at(id);
         m_scenes.erase(std::ranges::remove_if(
                            m_scenes,
                            [&id](const std::shared_ptr<Canvas::Scene> &scene) {
