@@ -127,8 +127,6 @@ namespace Bess {
         glfwSetWindowSizeLimits(
             window, 600, 500, GLFW_DONT_CARE, GLFW_DONT_CARE);
 
-        BESS_INFO("[Window] File drops are handled by FileDragDropService");
-
         glfwSetFramebufferSizeCallback(
             window, [](GLFWwindow *window, int w, int h) {
                 const auto this_ = (Window *)glfwGetWindowUserPointer(window);

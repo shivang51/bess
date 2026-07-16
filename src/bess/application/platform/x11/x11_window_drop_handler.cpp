@@ -1,25 +1,28 @@
-#include "platform/x11/x11_file_drop_handler.h"
+#include "platform/x11/x11_window_drop_handler.h"
 
 #include "common/logger.h"
 
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
-#include <X11/Xutil.h>
-
 #include <algorithm>
 #include <cctype>
 #include <chrono>
 #include <cstdint>
 #include <optional>
-#include <sstream>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 namespace Bess::Platform::X11 {
     namespace {
         constexpr long kXdndVersion = 5;
         constexpr auto kSelectionNotifyTimeout = std::chrono::milliseconds(750);
+        constexpr unsigned long kMaxDropPayloadBytes = 4UL * 1024UL * 1024UL;
+        constexpr long kMaxDropPayloadLongs =
+            static_cast<long>((kMaxDropPayloadBytes + 3UL) / 4UL);
+        constexpr std::size_t kMaxDroppedPaths = 4096;
+        constexpr std::size_t kMaxPathBytes = 64UL * 1024UL;
 
         struct XdndAtoms {
             Atom xdndAware = None;
@@ -41,7 +44,7 @@ namespace Bess::Platform::X11 {
         };
 
         struct SelectionPayload {
-            std::string rawData;
+            std::string data;
             Atom actualType = None;
             int actualFormat = 0;
             unsigned long bytesAfter = 0;
@@ -147,24 +150,37 @@ namespace Bess::Platform::X11 {
                 rest.remove_prefix(pathStart);
             }
 
-            if (rest.empty()) {
+            if (rest.empty() || !rest.starts_with('/') ||
+                rest.find('\0') != std::string_view::npos) {
                 return std::nullopt;
             }
 
             return std::string(rest);
         }
 
-        std::vector<std::string> parseFileList(const std::string &rawData) {
-            std::vector<std::string> files;
-            std::stringstream stream(rawData);
-            std::string line;
+        std::vector<std::string> parseLocalPaths(std::string_view data) {
+            std::vector<std::string> paths;
+            paths.reserve(8);
+            std::unordered_set<std::string> seen;
+            seen.reserve(8);
+            std::size_t offset = 0;
 
-            while (std::getline(stream, line)) {
+            while (offset < data.size() && paths.size() < kMaxDroppedPaths) {
+                const auto lineEnd = data.find('\n', offset);
+                const auto lineLength = lineEnd == std::string_view::npos
+                                            ? data.size() - offset
+                                            : lineEnd - offset;
+                auto line = data.substr(offset, lineLength);
+                offset = lineEnd == std::string_view::npos ? data.size()
+                                                           : lineEnd + 1;
+
                 if (!line.empty() && line.back() == '\r') {
-                    line.pop_back();
+                    line.remove_suffix(1);
                 }
 
-                if (line.empty() || line.front() == '#') {
+                if (line.empty() || line.size() > kMaxPathBytes ||
+                    line.front() == '#' ||
+                    line.find('\0') != std::string::npos) {
                     continue;
                 }
 
@@ -176,16 +192,21 @@ namespace Bess::Platform::X11 {
 
                 auto path = fileUriToPath(line);
                 if (path) {
-                    files.emplace_back(std::move(*path));
+                    if (seen.emplace(*path).second) {
+                        paths.emplace_back(std::move(*path));
+                    }
                     continue;
                 }
 
                 if (line.front() == '/') {
-                    files.emplace_back(std::move(line));
+                    std::string path(line);
+                    if (seen.emplace(path).second) {
+                        paths.emplace_back(std::move(path));
+                    }
                 }
             }
 
-            return files;
+            return paths;
         }
 
         int packedPositionX(long packedPosition) {
@@ -213,71 +234,9 @@ namespace Bess::Platform::X11 {
             return result;
         }
 
-        std::string atomListNames(Display *display,
-                                  const std::vector<Atom> &atoms) {
-            if (atoms.empty()) {
-                return "[]";
-            }
-
-            std::string result = "[";
-            for (std::size_t i = 0; i < atoms.size(); ++i) {
-                if (i != 0) {
-                    result += ", ";
-                }
-                result += atomName(display, atoms[i]);
-            }
-            result += "]";
-            return result;
-        }
-
-        std::string windowSummary(Display *display, ::Window window) {
-            if (!display || window == None) {
-                return "None";
-            }
-
-            std::string result = std::to_string(window);
-
-            XClassHint classHint{};
-            if (XGetClassHint(display, window, &classHint)) {
-                if (classHint.res_name || classHint.res_class) {
-                    result += " class=";
-                    result += classHint.res_name ? classHint.res_name : "?";
-                    result += "/";
-                    result += classHint.res_class ? classHint.res_class : "?";
-                }
-
-                if (classHint.res_name) {
-                    XFree(classHint.res_name);
-                }
-                if (classHint.res_class) {
-                    XFree(classHint.res_class);
-                }
-            }
-
-            return result;
-        }
     } // namespace
 
-    const char *toString(FileDropEventType type) {
-        switch (type) {
-        case FileDropEventType::enter:
-            return "enter";
-        case FileDropEventType::position:
-            return "position";
-        case FileDropEventType::leave:
-            return "leave";
-        case FileDropEventType::drop:
-            return "drop";
-        case FileDropEventType::selectionData:
-            return "selection-data";
-        case FileDropEventType::finished:
-            return "finished";
-        }
-
-        return "unknown";
-    }
-
-    struct FileDropHandler::Impl {
+    struct WindowDropHandler::Impl {
         enum class SelectionRequestPhase {
             none,
             positionPrefetch,
@@ -303,7 +262,7 @@ namespace Bess::Platform::X11 {
 
             display = XOpenDisplay(XDisplayString(nativeDisplay));
             if (!display) {
-                BESS_ERROR("[FileDragDrop] Failed to open a dedicated X11 "
+                BESS_ERROR("[WindowDrop] Failed to open a dedicated X11 "
                            "connection for XDND");
                 return;
             }
@@ -324,7 +283,7 @@ namespace Bess::Platform::X11 {
                                         0,
                                         nullptr);
             if (proxyWindow == None) {
-                BESS_ERROR("[FileDragDrop] Failed to create the native XDND "
+                BESS_ERROR("[WindowDrop] Failed to create the native XDND "
                            "proxy window");
                 XCloseDisplay(display);
                 display = nullptr;
@@ -376,10 +335,6 @@ namespace Bess::Platform::X11 {
 
             XSync(display, False);
             initialized = true;
-
-            BESS_DEBUG("[FileDragDrop] XDND proxy target={} proxy={}",
-                       windowSummary(display, targetWindow),
-                       proxyWindow);
         }
 
         void shutdown() {
@@ -440,7 +395,7 @@ namespace Bess::Platform::X11 {
                    dropPending;
         }
 
-        FileDropHandler::SubscriptionId subscribe(Callback callback) {
+        WindowDropHandler::SubscriptionId subscribe(Callback callback) {
             if (!callback) {
                 return 0;
             }
@@ -450,7 +405,7 @@ namespace Bess::Platform::X11 {
             return subscriptionId;
         }
 
-        void unsubscribe(FileDropHandler::SubscriptionId subscriptionId) {
+        void unsubscribe(WindowDropHandler::SubscriptionId subscriptionId) {
             callbacks.erase(subscriptionId);
         }
 
@@ -524,7 +479,7 @@ namespace Bess::Platform::X11 {
 
             if (xdndVersion > kXdndVersion) {
                 emit({
-                    .type = FileDropEventType::enter,
+                    .type = WindowDropEventType::enter,
                 });
                 return;
             }
@@ -534,42 +489,19 @@ namespace Bess::Platform::X11 {
             acceptedTarget =
                 offeredTargets.empty() ? None : offeredTargets.front();
 
-            BESS_DEBUG("[FileDragDrop] Xdnd offered targets: {}",
-                       atomListNames(display, offeredTypes));
-            BESS_DEBUG("[FileDragDrop] Xdnd prioritized targets: {}",
-                       atomListNames(display, offeredTargets));
-            BESS_DEBUG("[FileDragDrop] accepted Xdnd target: {}",
-                       atomName(display, acceptedTarget));
-            BESS_DEBUG(
-                "[FileDragDrop] XdndEnter source={} selection-owner={} "
-                "target={} source-proxy={} target-proxy={}",
-                windowSummary(display, sourceWindow),
-                windowSummary(display,
-                              XGetSelectionOwner(display, atoms.xdndSelection)),
-                windowSummary(display, targetWindow),
-                readWindowAtom(sourceWindow, atoms.xdndProxy),
-                readWindowAtom(targetWindow, atoms.xdndProxy));
-
             emit({
-                .type = FileDropEventType::enter,
+                .type = WindowDropEventType::enter,
                 .accepted = acceptedTarget != None,
             });
         }
 
         void handlePosition(const XClientMessageEvent &message) {
             if (!dragActive) {
-                BESS_DEBUG("[FileDragDrop] Ignoring XdndPosition with no "
-                           "active drag");
                 return;
             }
 
             const auto eventSource = static_cast<::Window>(message.data.l[0]);
             if (sourceWindow != None && eventSource != sourceWindow) {
-                BESS_DEBUG(
-                    "[FileDragDrop] Ignoring XdndPosition from source {} "
-                    "while tracking source {}",
-                    eventSource,
-                    sourceWindow);
                 return;
             }
 
@@ -582,13 +514,21 @@ namespace Bess::Platform::X11 {
             }
 
             const long packedPosition = message.data.l[2];
-            lastPositionX = packedPositionX(packedPosition);
-            lastPositionY = packedPositionY(packedPosition);
+            const int rootX = packedPositionX(packedPosition);
+            const int rootY = packedPositionY(packedPosition);
+            ::Window child = None;
+            if (!XTranslateCoordinates(display,
+                                       DefaultRootWindow(display),
+                                       targetWindow,
+                                       rootX,
+                                       rootY,
+                                       &lastPositionX,
+                                       &lastPositionY,
+                                       &child)) {
+                lastPositionX = rootX;
+                lastPositionY = rootY;
+            }
             hasLastPosition = true;
-
-            BESS_DEBUG("[FileDragDrop] XdndPosition action={} timestamp={}",
-                       atomName(display, static_cast<Atom>(message.data.l[4])),
-                       lastPositionTimestamp);
 
             if (!accepted) {
                 completePosition(false);
@@ -607,7 +547,7 @@ namespace Bess::Platform::X11 {
             const auto selectionOwner =
                 XGetSelectionOwner(display, atoms.xdndSelection);
             if (selectionOwner != sourceWindow) {
-                BESS_WARN("[FileDragDrop] Cannot prefetch XdndSelection: "
+                BESS_WARN("[WindowDrop] Cannot prefetch XdndSelection: "
                           "owner {} differs from source {}",
                           selectionOwner,
                           sourceWindow);
@@ -624,7 +564,7 @@ namespace Bess::Platform::X11 {
 
         void handleLeave(const XClientMessageEvent &) {
             emit({
-                .type = FileDropEventType::leave,
+                .type = WindowDropEventType::leave,
             });
             resetDragState();
         }
@@ -632,18 +572,11 @@ namespace Bess::Platform::X11 {
         void handleDrop(const XClientMessageEvent &message) {
             const auto eventSource = static_cast<::Window>(message.data.l[0]);
             if (!dragActive) {
-                BESS_DEBUG("[FileDragDrop] Rejecting XdndDrop from source {} "
-                           "with no active drag",
-                           eventSource);
                 sendFinishedTo(eventSource, false);
                 return;
             }
 
             if (sourceWindow != None && eventSource != sourceWindow) {
-                BESS_DEBUG("[FileDragDrop] Rejecting XdndDrop from source {} "
-                           "while tracking source {}",
-                           eventSource,
-                           sourceWindow);
                 sendFinishedTo(eventSource, false);
                 return;
             }
@@ -653,24 +586,13 @@ namespace Bess::Platform::X11 {
 
             dragActive = false;
             dropPending = true;
-            activeDropTimestamp = xdndVersion >= 1
-                                      ? static_cast<Time>(message.data.l[2])
-                                      : CurrentTime;
-
-            BESS_DEBUG("[FileDragDrop] XdndDrop timestamp={} "
-                       "prefetch-complete={} prefetched-files={}",
-                       activeDropTimestamp,
-                       prefetchComplete,
-                       prefetchedFiles.size());
 
             if (awaitingSelection) {
-                BESS_DEBUG("[FileDragDrop] XdndDrop is waiting for the active "
-                           "XdndPosition selection request");
                 return;
             }
 
             if (!prefetchComplete) {
-                BESS_WARN("[FileDragDrop] Rejecting XdndDrop because no "
+                BESS_WARN("[WindowDrop] Rejecting XdndDrop because no "
                           "XdndPosition payload was prefetched");
             }
 
@@ -683,12 +605,6 @@ namespace Bess::Platform::X11 {
             selectionRequestPhase = SelectionRequestPhase::positionPrefetch;
             selectionRequestDeadline =
                 std::chrono::steady_clock::now() + kSelectionNotifyTimeout;
-            BESS_DEBUG("[FileDragDrop] XdndPosition selection request "
-                       "target={} property={} timestamp={}",
-                       atomName(display, activeSelectionTarget),
-                       atomName(display, activeSelectionProperty),
-                       timestamp);
-
             XDeleteProperty(
                 display, selectionWindow(), activeSelectionProperty);
             XSync(display, False);
@@ -707,7 +623,7 @@ namespace Bess::Platform::X11 {
 
             if (selectionRequestPhase !=
                 SelectionRequestPhase::positionPrefetch) {
-                BESS_WARN("[FileDragDrop] Ignoring XdndSelection response "
+                BESS_WARN("[WindowDrop] Ignoring XdndSelection response "
                           "without an active XdndPosition request");
                 return;
             }
@@ -718,11 +634,10 @@ namespace Bess::Platform::X11 {
             }
 
             if (selection.target != activeSelectionTarget) {
-                BESS_WARN(
-                    "[FileDragDrop] Rejecting selection data for target {} "
-                    "while waiting for {}",
-                    atomName(display, selection.target),
-                    atomName(display, activeSelectionTarget));
+                BESS_WARN("[WindowDrop] Rejecting selection data for target {} "
+                          "while waiting for {}",
+                          atomName(display, selection.target),
+                          atomName(display, activeSelectionTarget));
                 XDeleteProperty(display, selectionWindow(), selection.property);
                 completePositionPrefetch(std::nullopt);
                 return;
@@ -732,8 +647,16 @@ namespace Bess::Platform::X11 {
         }
 
         bool hasValidPrefetchedData() const {
-            return prefetchComplete && prefetchedPayload.has_value() &&
-                   !prefetchedFiles.empty();
+            if (!prefetchComplete || !prefetchedPayload ||
+                prefetchedPayload->formatBits != 8 ||
+                prefetchedPayload->data.empty()) {
+                return false;
+            }
+
+            const bool requiresPaths =
+                prefetchedTarget == atoms.textUriList ||
+                prefetchedTarget == atoms.xSpecialGnomeCopiedFiles;
+            return !requiresPaths || !prefetchedPayload->paths.empty();
         }
 
         void completePosition(bool accepted) const {
@@ -743,44 +666,52 @@ namespace Bess::Platform::X11 {
             }
 
             emit({
-                .type = FileDropEventType::position,
+                .type = WindowDropEventType::position,
                 .x = lastPositionX,
                 .y = lastPositionY,
                 .accepted = accepted,
             });
         }
 
-        void completePositionPrefetch(std::optional<SelectionPayload> payload) {
+        void completePositionPrefetch(
+            std::optional<SelectionPayload> selectionPayload) {
             const auto requestedTarget = activeSelectionTarget;
             clearActiveSelectionRequest();
 
-            prefetchedPayload = std::move(payload);
-            prefetchedFiles.clear();
-            if (prefetchedPayload) {
-                prefetchedFiles = parseFileList(prefetchedPayload->rawData);
+            prefetchedPayload.reset();
+            prefetchedTarget = requestedTarget;
+            if (selectionPayload && selectionPayload->bytesAfter == 0 &&
+                selectionPayload->actualFormat == 8 &&
+                selectionPayload->actualType != None) {
+                auto payload = std::make_shared<Events::WindowDropPayload>();
+                payload->requestedMimeType = atomName(display, requestedTarget);
+                payload->mimeType =
+                    atomName(display, selectionPayload->actualType);
+                payload->data = std::move(selectionPayload->data);
+                if (requestedTarget == atoms.textUriList ||
+                    requestedTarget == atoms.xSpecialGnomeCopiedFiles) {
+                    payload->paths = parseLocalPaths(payload->data);
+                }
+                payload->formatBits = selectionPayload->actualFormat;
+                prefetchedPayload = std::move(payload);
             }
             prefetchComplete = true;
 
             const bool success = hasValidPrefetchedData();
-            BESS_DEBUG("[FileDragDrop] XdndPosition selection received "
-                       "target={} actual-type={} format={} raw-bytes={} "
-                       "files={} accepted={}",
-                       atomName(display, requestedTarget),
-                       prefetchedPayload
-                           ? atomName(display, prefetchedPayload->actualType)
-                           : "None",
-                       prefetchedPayload ? prefetchedPayload->actualFormat : 0,
-                       prefetchedPayload ? prefetchedPayload->rawData.size()
-                                         : 0,
-                       prefetchedFiles.size(),
-                       success);
-
             if (!success) {
-                BESS_WARN("[FileDragDrop] Rejected prefetched {} payload "
-                          "because it did not contain file URIs or absolute "
-                          "paths",
-                          atomName(display, requestedTarget));
-                emitSelectionData(false);
+                BESS_WARN("[WindowDrop] Rejected payload target={} type={} "
+                          "format={} bytes={} trailing-bytes={}",
+                          atomName(display, requestedTarget),
+                          selectionPayload
+                              ? atomName(display, selectionPayload->actualType)
+                              : "None",
+                          selectionPayload ? selectionPayload->actualFormat : 0,
+                          prefetchedPayload
+                              ? prefetchedPayload->data.size()
+                              : (selectionPayload
+                                     ? selectionPayload->data.size()
+                                     : 0),
+                          selectionPayload ? selectionPayload->bytesAfter : 0);
             }
 
             if (dragActive) {
@@ -792,33 +723,14 @@ namespace Bess::Platform::X11 {
             }
         }
 
-        void emitSelectionData(bool accepted) {
-            emit({
-                .type = FileDropEventType::selectionData,
-                .files = prefetchedFiles,
-                .rawData = prefetchedPayload ? prefetchedPayload->rawData
-                                             : std::string{},
-                .requestedType = atomName(display, acceptedTarget),
-                .actualType =
-                    prefetchedPayload
-                        ? atomName(display, prefetchedPayload->actualType)
-                        : std::string{},
-                .actualFormat =
-                    prefetchedPayload ? prefetchedPayload->actualFormat : 0,
-                .accepted = accepted,
-            });
-            selectionDataEmitted = true;
-        }
-
         void finishDrop(bool accepted) {
             emit({
-                .type = FileDropEventType::drop,
+                .type = WindowDropEventType::drop,
+                .payload = accepted ? prefetchedPayload : nullptr,
+                .x = lastPositionX,
+                .y = lastPositionY,
                 .accepted = accepted,
             });
-
-            if (!selectionDataEmitted || accepted) {
-                emitSelectionData(accepted);
-            }
 
             sendFinished(accepted);
             resetDragState();
@@ -838,16 +750,12 @@ namespace Bess::Platform::X11 {
         }
 
         void handleSelectionTimeout() {
-            BESS_WARN("[FileDragDrop] Timed out waiting for XdndSelection "
+            BESS_WARN("[WindowDrop] Timed out waiting for XdndSelection "
                       "data requested during XdndPosition");
             clearActiveSelectionRequest();
             prefetchedPayload.reset();
-            prefetchedFiles.clear();
+            prefetchedTarget = None;
             prefetchComplete = true;
-
-            if (!selectionDataEmitted) {
-                emitSelectionData(false);
-            }
 
             if (dragActive) {
                 completePosition(false);
@@ -915,41 +823,6 @@ namespace Bess::Platform::X11 {
             return offeredTypes;
         }
 
-        std::string readWindowAtom(::Window window, Atom property) const {
-            Atom actualType = None;
-            int actualFormat = 0;
-            unsigned long itemCount = 0;
-            unsigned long bytesAfter = 0;
-            unsigned char *data = nullptr;
-
-            const int status = XGetWindowProperty(display,
-                                                  window,
-                                                  property,
-                                                  0,
-                                                  1,
-                                                  False,
-                                                  XA_WINDOW,
-                                                  &actualType,
-                                                  &actualFormat,
-                                                  &itemCount,
-                                                  &bytesAfter,
-                                                  &data);
-
-            std::string result = "None";
-            if (status == Success && actualFormat == 32 && itemCount > 0 &&
-                data) {
-                const auto *windowData =
-                    reinterpret_cast<const ::Window *>(data);
-                result = windowSummary(display, *windowData);
-            }
-
-            if (data) {
-                XFree(data);
-            }
-
-            return result;
-        }
-
         std::vector<Atom>
         prioritizeTargets(const std::vector<Atom> &offeredTypes) const {
             std::vector<Atom> prioritized;
@@ -1006,7 +879,7 @@ namespace Bess::Platform::X11 {
                                                   selectionWindow(),
                                                   property,
                                                   0,
-                                                  1024 * 1024,
+                                                  kMaxDropPayloadLongs,
                                                   True,
                                                   AnyPropertyType,
                                                   &actualType,
@@ -1033,16 +906,10 @@ namespace Bess::Platform::X11 {
                 .bytesAfter = bytesAfter,
             };
 
-            if (actualFormat == 8) {
-                payload.rawData.assign(reinterpret_cast<const char *>(data),
-                                       reinterpret_cast<const char *>(data) +
-                                           itemCount);
-            } else if (actualFormat == 32) {
-                const auto *longData = reinterpret_cast<const long *>(data);
-                for (unsigned long i = 0; i < itemCount; ++i) {
-                    payload.rawData += std::to_string(longData[i]);
-                    payload.rawData.push_back('\n');
-                }
+            if (actualFormat == 8 && itemCount <= kMaxDropPayloadBytes) {
+                payload.data.assign(reinterpret_cast<const char *>(data),
+                                    reinterpret_cast<const char *>(data) +
+                                        itemCount);
             }
 
             XFree(data);
@@ -1095,15 +962,15 @@ namespace Bess::Platform::X11 {
 
             XSendEvent(display, destination, False, NoEventMask, &reply);
             XFlush(display);
-
-            emit({
-                .type = FileDropEventType::finished,
-                .accepted = accepted,
-            });
         }
 
-        void emit(const FileDropEvent &event) const {
+        void emit(const WindowDropEvent &event) const {
+            std::vector<Callback> snapshot;
+            snapshot.reserve(callbacks.size());
             for (const auto &[_, callback] : callbacks) {
+                snapshot.push_back(callback);
+            }
+            for (const auto &callback : snapshot) {
                 callback(event);
             }
         }
@@ -1122,18 +989,16 @@ namespace Bess::Platform::X11 {
             activeSelectionProperty = None;
             selectionRequestPhase = SelectionRequestPhase::none;
             prefetchedPayload.reset();
-            prefetchedFiles.clear();
+            prefetchedTarget = None;
             awaitingSelection = false;
             dragActive = false;
             dropPending = false;
             prefetchComplete = false;
-            selectionDataEmitted = false;
             hasLastPosition = false;
             lastPositionX = 0;
             lastPositionY = 0;
             xdndVersion = 0;
             lastPositionTimestamp = CurrentTime;
-            activeDropTimestamp = CurrentTime;
         }
 
       private:
@@ -1148,12 +1013,11 @@ namespace Bess::Platform::X11 {
         Atom activeSelectionProperty = None;
         SelectionRequestPhase selectionRequestPhase =
             SelectionRequestPhase::none;
-        std::optional<SelectionPayload> prefetchedPayload;
-        std::vector<std::string> prefetchedFiles;
+        std::shared_ptr<Events::WindowDropPayload> prefetchedPayload;
+        Atom prefetchedTarget = None;
         std::chrono::steady_clock::time_point selectionRequestDeadline{};
         long xdndVersion = 0;
         Time lastPositionTimestamp = CurrentTime;
-        Time activeDropTimestamp = CurrentTime;
         unsigned long selectionRequestSerial = 0;
         int lastPositionX = 0;
         int lastPositionY = 0;
@@ -1161,40 +1025,41 @@ namespace Bess::Platform::X11 {
         bool dragActive = false;
         bool dropPending = false;
         bool prefetchComplete = false;
-        bool selectionDataEmitted = false;
         bool hasLastPosition = false;
         bool initialized = false;
 
-        FileDropHandler::SubscriptionId nextSubscriptionId = 1;
-        std::unordered_map<FileDropHandler::SubscriptionId, Callback> callbacks;
+        WindowDropHandler::SubscriptionId nextSubscriptionId = 1;
+        std::unordered_map<WindowDropHandler::SubscriptionId, Callback>
+            callbacks;
     };
 
-    FileDropHandler::FileDropHandler(_XDisplay *display,
-                                     X11WindowHandle targetWindow)
+    WindowDropHandler::WindowDropHandler(_XDisplay *display,
+                                         X11WindowHandle targetWindow)
         : m_impl(std::make_unique<Impl>(display, targetWindow)) {
     }
 
-    FileDropHandler::~FileDropHandler() = default;
+    WindowDropHandler::~WindowDropHandler() = default;
 
-    FileDropHandler::FileDropHandler(FileDropHandler &&) noexcept = default;
+    WindowDropHandler::WindowDropHandler(WindowDropHandler &&) noexcept =
+        default;
 
-    FileDropHandler &
-    FileDropHandler::operator=(FileDropHandler &&) noexcept = default;
+    WindowDropHandler &
+    WindowDropHandler::operator=(WindowDropHandler &&) noexcept = default;
 
-    bool FileDropHandler::isInitialized() const {
+    bool WindowDropHandler::isInitialized() const {
         return m_impl->isInitialized();
     }
 
-    bool FileDropHandler::poll() {
+    bool WindowDropHandler::poll() {
         return m_impl->poll();
     }
 
-    FileDropHandler::SubscriptionId
-    FileDropHandler::subscribe(Callback callback) {
+    WindowDropHandler::SubscriptionId
+    WindowDropHandler::subscribe(Callback callback) {
         return m_impl->subscribe(std::move(callback));
     }
 
-    void FileDropHandler::unsubscribe(SubscriptionId subscriptionId) {
+    void WindowDropHandler::unsubscribe(SubscriptionId subscriptionId) {
         m_impl->unsubscribe(subscriptionId);
     }
 

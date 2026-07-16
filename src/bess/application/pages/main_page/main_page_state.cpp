@@ -589,8 +589,8 @@ namespace Bess::Pages {
         auto &appCtx = GAppContext::getInstance();
         auto dispatcher = appCtx.getSubSystem<EventSystem::EventDispatcher>();
 
-        dispatcher->sink<Events::FileDropEvent>()
-            .connect<&MainPageState::onFileDropped>(this);
+        dispatcher->sink<Events::WindowDropEvent>()
+            .connect<&MainPageState::onWindowDropped>(this);
         dispatcher->sink<Canvas::Events::EntityMovedEvent>()
             .connect<&MainPageState::onEntityMoved>(this);
         dispatcher->sink<Canvas::Events::EntityReparentedEvent>()
@@ -605,8 +605,8 @@ namespace Bess::Pages {
             .connect<&MainPageState::onCompDefInputsResized>(this);
     }
 
-    void MainPageState::onFileDropped(const Events::FileDropEvent &e) {
-        if (e.files.empty()) {
+    void MainPageState::onWindowDropped(const Events::WindowDropEvent &event) {
+        if (!event.payload || event.payload->paths.empty()) {
             return;
         }
 
@@ -618,7 +618,7 @@ namespace Bess::Pages {
 
         auto activeScene = sceneDriver->getActiveScene();
         if (!activeScene) {
-            BESS_ERROR("No active scene available for dropped image");
+            BESS_ERROR("No active scene available for dropped files");
             return;
         }
 
@@ -630,7 +630,7 @@ namespace Bess::Pages {
         };
         size_t handledCount = 0;
 
-        for (const auto &filePath : e.files) {
+        for (const auto &filePath : event.payload->paths) {
             if (handleDroppedFile(filePath, dropCtx)) {
                 ++handledCount;
                 continue;

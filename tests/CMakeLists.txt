@@ -31,7 +31,7 @@ add_executable(BessTests
 )
 
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
-    target_sources(BessTests PRIVATE x11_file_drop_handler_test.cpp)
+    target_sources(BessTests PRIVATE x11_window_drop_handler_test.cpp)
 endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE

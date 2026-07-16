@@ -79,7 +79,7 @@ namespace Bess::Pages {
         // contains the state of keyboard keys pressed
 
       private:
-        void onFileDropped(const Events::FileDropEvent &e);
+        void onWindowDropped(const Events::WindowDropEvent &event);
         void onEntityMoved(const Canvas::Events::EntityMovedEvent &e);
         void onEntityReparented(const Canvas::Events::EntityReparentedEvent &e);
 

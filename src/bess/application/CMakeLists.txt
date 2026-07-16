@@ -33,7 +33,7 @@ set(Header_Files
 	"application.h"
 	"assets.h"
 	"project_file.h"
-	"services/file_drag_drop_service/file_drag_drop_service.h"
+	"services/window_drop_service/window_drop_service.h"
 	"services/plugin_service/plugin_service.h"
 	
 	"ui/ui_hook.h"
@@ -70,7 +70,7 @@ set(Header_Files
 
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
 	list(APPEND Header_Files
-		"platform/x11/x11_file_drop_handler.h"
+		"platform/x11/x11_window_drop_handler.h"
 	)
 endif()
 
@@ -102,7 +102,7 @@ set(Source_Files
 	
 	"window.cpp"
 	
-	"services/file_drag_drop_service/file_drag_drop_service.cpp"
+	"services/window_drop_service/window_drop_service.cpp"
 	"services/plugin_service/plugin_service.cpp"
 	
 	"ui/ui.cpp"
@@ -131,7 +131,7 @@ set(Source_Files
 
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
 	list(APPEND Source_Files
-		"platform/x11/x11_file_drop_handler.cpp"
+		"platform/x11/x11_window_drop_handler.cpp"
 	)
 endif()
 
