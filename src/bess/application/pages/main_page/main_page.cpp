@@ -18,6 +18,7 @@
 #include "pages/main_page/scene_components/conn_joint_scene_component.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/group_scene_component.h"
+#include "pages/main_page/scene_components/image_scene_component.h"
 #include "pages/main_page/scene_components/input_scene_component.h"
 #include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/monitor_scene_comp.h"
@@ -64,6 +65,8 @@ namespace Bess::Pages {
         Canvas::NonSimSceneComponent::registerComponent<Canvas::TextComponent>(
             "Text Component");
         Canvas::NonSimSceneComponent::registerComponent<
+            Canvas::ImageSceneComponent>("Image Component");
+        Canvas::NonSimSceneComponent::registerComponent<
             Canvas::WidgetsTestComponent>("Widgets Test");
         Canvas::NonSimSceneComponent::registerComponent<
             Canvas::SlotProbeSceneComponent>("Probe");
@@ -74,6 +77,7 @@ namespace Bess::Pages {
         REG_TO_SER_REGISTRY(Canvas::ConnectionSceneComponent);
         REG_TO_SER_REGISTRY(Canvas::GroupSceneComponent);
         REG_TO_SER_REGISTRY(Canvas::InputSceneComponent);
+        REG_TO_SER_REGISTRY(Canvas::ImageSceneComponent);
         REG_TO_SER_REGISTRY(Canvas::NonSimSceneComponent);
         REG_TO_SER_REGISTRY(Canvas::SimulationSceneComponent);
         REG_TO_SER_REGISTRY(Canvas::SlotSceneComponent);

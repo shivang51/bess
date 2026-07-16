@@ -1,11 +1,12 @@
 #pragma once
 
 #include "bess_core/commands/command_system.h"
+#include "bess_core/scene/scene_events.h"
+#include "bess_core/scene_driver.h"
+#include "common/events.h"
+#include "events/sim_engine_events.h"
 #include "pages/main_page/services/hierarchical_scene_layout.h"
 #include "project_file.h"
-#include "bess_core/scene_driver.h"
-#include "events/sim_engine_events.h"
-#include "bess_core/scene/scene_events.h"
 #include <vector>
 
 namespace Bess {
@@ -78,6 +79,7 @@ namespace Bess::Pages {
         // contains the state of keyboard keys pressed
 
       private:
+        void onFileDropped(const Events::FileDropEvent &e);
         void onEntityMoved(const Canvas::Events::EntityMovedEvent &e);
         void onEntityReparented(const Canvas::Events::EntityReparentedEvent &e);
 

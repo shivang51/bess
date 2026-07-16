@@ -3,6 +3,7 @@
 #include "gtc/type_ptr.hpp"
 #include "json/json.h"
 #include <chrono>
+#include <cstdint>
 #include <string>
 #include <unordered_set>
 
@@ -10,6 +11,9 @@ namespace Bess::JsonConvert {
     // Primitives
     inline void toJsonValue(const char &v, Json::Value &j) {
         j = static_cast<int>(v);
+    }
+    inline void toJsonValue(const uint8_t &v, Json::Value &j) {
+        j = Json::UInt(v);
     }
     inline void toJsonValue(const int &v, Json::Value &j) {
         j = v;
@@ -68,6 +72,13 @@ namespace Bess::JsonConvert {
     inline void fromJsonValue(const Json::Value &j, char &v) {
         if (j.isInt())
             v = static_cast<char>(j.asInt());
+    }
+
+    inline void fromJsonValue(const Json::Value &j, uint8_t &v) {
+        if (j.isUInt())
+            v = static_cast<uint8_t>(j.asUInt());
+        else if (j.isInt())
+            v = static_cast<uint8_t>(j.asInt());
     }
 
     inline void fromJsonValue(const Json::Value &j, int &v) {

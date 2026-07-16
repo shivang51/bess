@@ -1,5 +1,6 @@
 #include "window.h"
 #include "bess_core/g_app_context.h"
+#include "bess_core/sub_systems/input_sub_system.h"
 #include "bess_wgpu/wgpu_renderer_2d.h"
 #include "common/bess_assert.h"
 #include "common/events.h"
@@ -8,7 +9,6 @@
 #include "ext/vector_float2.hpp"
 #include "imgui_impl_wgpu.h"
 #include "stb_image.h"
-#include "bess_core/sub_systems/input_sub_system.h"
 #include "sub_systems/renderer_context.h"
 #include <GLFW/glfw3.h>
 #include <cassert>
@@ -121,6 +121,23 @@ namespace Bess {
 
         glfwSetWindowSizeLimits(
             window, 600, 500, GLFW_DONT_CARE, GLFW_DONT_CARE);
+
+        glfwSetDropCallback(
+            window, [](GLFWwindow *window, int count, const char **paths) {
+                const auto this_ = (Window *)glfwGetWindowUserPointer(window);
+                std::vector<std::string> files;
+                files.reserve(count);
+                for (int i = 0; i < count; ++i) {
+                    BESS_DEBUG("[Window] File dropped: {}", paths[i]);
+                    files.emplace_back(paths[i]);
+                }
+                Events::FileDropEvent evt{this_, files};
+
+                auto &ctx = GAppContext::getInstance();
+                auto eventDispatcher =
+                    ctx.getSubSystem<EventSystem::EventDispatcher>();
+                eventDispatcher->queue(evt);
+            });
 
         glfwSetFramebufferSizeCallback(
             window, [](GLFWwindow *window, int w, int h) {

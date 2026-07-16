@@ -3,21 +3,30 @@
 #include "bess_core/commands/update_value_command.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/project_context.h"
+#include "bess_core/scene/scene.h"
 #include "bess_core/scene_driver.h"
 #include "bverilog/sim_engine_importer.h"
 #include "common/bess_uuid.h"
+#include "common/events.h"
 #include "common/logger.h"
 #include "event_dispatcher.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_command_hooks.h"
+#include "pages/main_page/scene_components/image_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_probe_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "pages/main_page/verilog_scene_import.h"
 #include "simulation_engine.h"
+#include "stb_image.h"
+#include <algorithm>
+#include <array>
+#include <cctype>
 #include <cstdint>
 #include <filesystem>
+#include <limits>
+#include <memory>
 #include <optional>
 
 namespace Bess::Pages {
@@ -176,6 +185,159 @@ namespace Bess::Pages {
                 return {};
             }
             return paths.front();
+        }
+
+        struct StbiImageDeleter {
+            void operator()(stbi_uc *pixels) const {
+                stbi_image_free(pixels);
+            }
+        };
+
+        struct DecodedImage {
+            std::vector<uint8_t> rgba8;
+            uint32_t width = 0;
+            uint32_t height = 0;
+        };
+
+        struct FileDropContext {
+            std::shared_ptr<Canvas::Scene> scene;
+            Canvas::SceneState *sceneState = nullptr;
+            glm::vec2 basePos{0.f};
+            std::vector<UUID> addedComponentIds;
+
+            void addComponent(
+                const std::shared_ptr<Canvas::SceneComponent> &component) {
+                if (!scene || component == nullptr) {
+                    return;
+                }
+
+                const auto offset =
+                    static_cast<float>(addedComponentIds.size()) * 24.f;
+                component->setPosition(
+                    {basePos.x + offset, basePos.y + offset, 0.f});
+                scene->addComponent(component);
+                addedComponentIds.push_back(component->getUuid());
+            }
+        };
+
+        std::string normalizedExtension(const std::string &path) {
+            auto ext = std::filesystem::path(path).extension().string();
+            std::ranges::transform(ext, ext.begin(), [](unsigned char ch) {
+                return static_cast<char>(std::tolower(ch));
+            });
+            return ext;
+        }
+
+        bool isSupportedImageFile(const std::string &path) {
+            const auto ext = normalizedExtension(path);
+            return ext == ".png" || ext == ".jpg" || ext == ".jpeg" ||
+                   ext == ".bmp" || ext == ".tga";
+        }
+
+        std::optional<size_t> rgbaByteCount(uint32_t width, uint32_t height) {
+            if (width == 0u || height == 0u) {
+                return std::nullopt;
+            }
+
+            const auto w = static_cast<size_t>(width);
+            const auto h = static_cast<size_t>(height);
+            if (w > std::numeric_limits<size_t>::max() / h) {
+                return std::nullopt;
+            }
+
+            const auto pixels = w * h;
+            if (pixels > std::numeric_limits<size_t>::max() /
+                             static_cast<size_t>(4u)) {
+                return std::nullopt;
+            }
+
+            return pixels * 4u;
+        }
+
+        std::optional<DecodedImage> decodeImageFile(const std::string &path) {
+            int width = 0;
+            int height = 0;
+            int channels = 0;
+            std::unique_ptr<stbi_uc, StbiImageDeleter> pixels(
+                stbi_load(path.c_str(), &width, &height, &channels, 4));
+            (void)channels;
+
+            if (!pixels || width <= 0 || height <= 0) {
+                BESS_ERROR("[MainPageState] Failed to load image {}: {}",
+                           path,
+                           stbi_failure_reason());
+                return std::nullopt;
+            }
+
+            DecodedImage image;
+            image.width = static_cast<uint32_t>(width);
+            image.height = static_cast<uint32_t>(height);
+            const auto byteCount = rgbaByteCount(image.width, image.height);
+            if (!byteCount.has_value()) {
+                BESS_ERROR("[MainPageState] Dropped image {} has invalid "
+                           "dimensions {}x{}",
+                           path,
+                           width,
+                           height);
+                return std::nullopt;
+            }
+
+            image.rgba8.assign(pixels.get(), pixels.get() + *byteCount);
+            return image;
+        }
+
+        glm::vec2 initialImageSceneScale(uint32_t width, uint32_t height) {
+            constexpr float maxInitialSide = 360.f;
+            glm::vec2 scale{static_cast<float>(width),
+                            static_cast<float>(height)};
+            const float largestSide = std::max(scale.x, scale.y);
+            if (largestSide > maxInitialSide) {
+                scale *= maxInitialSide / largestSide;
+            }
+            scale.x = std::max(16.f, scale.x);
+            scale.y = std::max(16.f, scale.y);
+            return scale;
+        }
+
+        bool handleDroppedImageFile(const std::string &path,
+                                    FileDropContext &ctx) {
+            if (!isSupportedImageFile(path)) {
+                return false;
+            }
+
+            auto decodedImage = decodeImageFile(path);
+            if (!decodedImage.has_value()) {
+                return true;
+            }
+
+            auto imageComponent =
+                std::make_shared<Canvas::ImageSceneComponent>();
+            const auto fileName =
+                std::filesystem::path(path).filename().string();
+            imageComponent->setName(fileName.empty() ? "Image" : fileName);
+            imageComponent->setImageWidth(decodedImage->width);
+            imageComponent->setImageHeight(decodedImage->height);
+            imageComponent->setData(decodedImage->rgba8);
+            imageComponent->setMaintainAspectRatio(true);
+            imageComponent->setScale(initialImageSceneScale(
+                decodedImage->width, decodedImage->height));
+            ctx.addComponent(imageComponent);
+            return true;
+        }
+
+        bool handleDroppedFile(const std::string &path, FileDropContext &ctx) {
+            using DropHandler = bool (*)(const std::string &, FileDropContext &);
+            static constexpr std::array<DropHandler, 1> handlers{
+                handleDroppedImageFile,
+            };
+
+            for (const auto handler : handlers) {
+                if (handler(path, ctx)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
     } // namespace
 
@@ -426,6 +588,9 @@ namespace Bess::Pages {
 
         auto &appCtx = GAppContext::getInstance();
         auto dispatcher = appCtx.getSubSystem<EventSystem::EventDispatcher>();
+
+        dispatcher->sink<Events::FileDropEvent>()
+            .connect<&MainPageState::onFileDropped>(this);
         dispatcher->sink<Canvas::Events::EntityMovedEvent>()
             .connect<&MainPageState::onEntityMoved>(this);
         dispatcher->sink<Canvas::Events::EntityReparentedEvent>()
@@ -438,6 +603,52 @@ namespace Bess::Pages {
             .connect<&MainPageState::onCompDefOutputsResized>(this);
         dispatcher->sink<SimEngine::Events::CompDefInputsResizedEvent>()
             .connect<&MainPageState::onCompDefInputsResized>(this);
+    }
+
+    void MainPageState::onFileDropped(const Events::FileDropEvent &e) {
+        if (e.files.empty()) {
+            return;
+        }
+
+        auto sceneDriver = getSceneDriver();
+        if (!sceneDriver) {
+            BESS_ERROR("SceneDriver subsystem is not available");
+            return;
+        }
+
+        auto activeScene = sceneDriver->getActiveScene();
+        if (!activeScene) {
+            BESS_ERROR("No active scene available for dropped image");
+            return;
+        }
+
+        auto &sceneState = activeScene->getState();
+        FileDropContext dropCtx{
+            .scene = activeScene,
+            .sceneState = &sceneState,
+            .basePos = sceneState.getMousePos(),
+        };
+        size_t handledCount = 0;
+
+        for (const auto &filePath : e.files) {
+            if (handleDroppedFile(filePath, dropCtx)) {
+                ++handledCount;
+                continue;
+            }
+
+            BESS_DEBUG("[MainPageState] Ignored dropped file with unsupported "
+                       "type: {}",
+                       filePath);
+        }
+
+        if (!dropCtx.addedComponentIds.empty()) {
+            sceneState.clearSelectedComponents();
+            for (const auto &componentId : dropCtx.addedComponentIds) {
+                sceneState.addSelectedComponent(componentId);
+            }
+        } else if (handledCount == 0) {
+            BESS_DEBUG("[MainPageState] No supported files found in drop");
+        }
     }
 
     void
