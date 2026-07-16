@@ -14,6 +14,7 @@
 #include "services/window_drop_service/window_drop_service.h"
 #include "sub_systems/renderer_context.h"
 #include <chrono>
+#include <ratio>
 
 #include "bess_core/settings/settings.h"
 
@@ -60,7 +61,7 @@ namespace Bess {
 
             appCtx.endFrame();
 
-            accumulatedTime = std::chrono::duration<double>(0.0);
+            accumulatedTime = std::chrono::duration<double, std::milli>(0.0);
         }
     }
 
