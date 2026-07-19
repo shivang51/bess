@@ -315,7 +315,8 @@ void bind_renderer(py::module_ &m) {
                bool renderFill,
                const glm::vec4 &fillColor,
                bool renderStroke,
-               bool roundedJoints) {
+               bool roundedJoints,
+               float jointRadius) {
                 PathProps props;
                 props.strokeColor =
                     renderStroke ? Color(color) : Color(0.f, 0.f, 0.f, 0.f);
@@ -325,8 +326,10 @@ void bind_renderer(py::module_ &m) {
                 props.closePath = closePath;
                 props.zIndex = startPos.z;
                 props.id = toPickingId(id);
-                props.lineJoin =
-                    roundedJoints ? PathLineJoin::Round : PathLineJoin::Miter;
+                props.jointRadius = std::max(jointRadius, 0.f);
+                props.lineJoin = (roundedJoints || props.jointRadius > 0.f)
+                                     ? PathLineJoin::Round
+                                     : PathLineJoin::Miter;
                 renderer.beginPath(props);
                 renderer.pathMoveTo({startPos.x, startPos.y});
             },
@@ -338,7 +341,8 @@ void bind_renderer(py::module_ &m) {
             py::arg("render_fill") = false,
             py::arg("fill_color") = glm::vec4(1.f),
             py::arg("render_stroke") = true,
-            py::arg("rounded_joints") = false)
+            py::arg("rounded_joints") = false,
+            py::arg("joint_radius") = 0.f)
         .def(
             "path_line_to",
             [](IRenderer2D &renderer, const glm::vec3 &pos, float weight) {

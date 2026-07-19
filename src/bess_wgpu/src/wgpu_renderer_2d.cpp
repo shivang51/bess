@@ -105,6 +105,7 @@ namespace Bess::Wgpu {
                    sameColor(a.strokeColor, b.strokeColor) &&
                    a.strokeSize == b.strokeSize &&
                    a.miterLimit == b.miterLimit &&
+                   a.jointRadius == b.jointRadius &&
                    a.curveTolerance == b.curveTolerance &&
                    a.renderFill == b.renderFill && samePickingId(a.id, b.id) &&
                    a.renderPass == b.renderPass && a.fillRule == b.fillRule &&
@@ -319,6 +320,7 @@ namespace Bess::Wgpu {
                                   props.strokeColor.a,
                                   props.strokeSize,
                                   props.miterLimit,
+                                  props.jointRadius,
                                   props.curveTolerance,
                                   props.renderFill,
                                   props.id.runtimeId,

@@ -78,7 +78,7 @@ namespace Bess::Canvas {
                              weight, //
                              color,  //
                              PickingId{m_runtimeId, 0},
-                             {.roundedJoints = true});
+                             {.roundedJoints = true, .jointRadius = 8.f});
 
         for (uint32_t i = 1; i < segCache.size(); i++) {
             const auto &segPos = segCache[i];

@@ -35,6 +35,7 @@ namespace Bess::Canvas::SceneDraw {
         glm::vec4 fillColor = glm::vec4(1.f);
         bool renderStroke = true;
         bool roundedJoints = false;
+        float jointRadius = 0.f;
         Core::Renderer::QuadRenderPass renderPass =
             Core::Renderer::QuadRenderPass::Auto;
     };
@@ -168,7 +169,8 @@ namespace Bess::Canvas::SceneDraw {
         props.zIndex = startPos.z;
         props.id = id;
         props.renderPass = style.renderPass;
-        props.lineJoin = style.roundedJoints
+        props.jointRadius = std::max(style.jointRadius, 0.f);
+        props.lineJoin = (style.roundedJoints || props.jointRadius > 0.f)
                              ? Core::Renderer::PathLineJoin::Round
                              : Core::Renderer::PathLineJoin::Miter;
         props.closePath = style.closePath;

@@ -52,6 +52,7 @@ namespace Bess::Wgpu {
         float fromHalfWidth = 0.5f;
         float toHalfWidth = 0.5f;
         PickingId id = PickingId::invalid();
+        bool roundJoinAfter = true;
     };
 
     struct BESS_API BakedPathSubmission {

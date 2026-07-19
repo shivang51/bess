@@ -257,6 +257,7 @@ namespace Bess::Core::Renderer {
         Color strokeColor{1.f, 1.f, 1.f, 1.f};
         float strokeSize = 4.f;
         float miterLimit = 4.f;
+        float jointRadius = 0.f;
         float curveTolerance = 0.25f;
         bool renderFill = false;
         float zIndex = 0.f;
