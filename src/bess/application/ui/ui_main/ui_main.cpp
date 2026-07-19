@@ -310,6 +310,8 @@ namespace Bess::UI {
     void UIMain::drawMenubar() {
         bool newFileClicked = false, aboutClicked = false;
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.f);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.f, 6.f));
         ImGui::BeginMainMenuBar();
         const float menuBarHeight = ImGui::GetFrameHeight();
@@ -339,23 +341,22 @@ namespace Bess::UI {
 
         if (ImGui::BeginMenu("File")) {
             // New File
-            std::string temp_name = Icons::FontAwesomeIcons::FA_FILE;
-            temp_name += "   New";
-            if (ImGui::MenuItem(temp_name.c_str(), "Ctrl+N")) {
+            if (ImGui::MenuItemEx(
+                    "New", Icons::FontAwesomeIcons::FA_FILE, "Ctrl+N")) {
                 newFileClicked = true;
             };
 
             // Open File
-            temp_name = Icons::FontAwesomeIcons::FA_FOLDER_OPEN;
-            temp_name += "  Open";
-            if (ImGui::MenuItem(temp_name.c_str(), "Ctrl+O")) {
+            if (ImGui::MenuItemEx("Open",
+                                  Icons::FontAwesomeIcons::FA_FOLDER_OPEN,
+                                  "Ctrl+O")) {
                 pageState.actionFlags.openProject = true;
             };
 
             // Save File
-            temp_name = Icons::FontAwesomeIcons::FA_FLOPPY_DISK;
-            temp_name += "   Save";
-            if (ImGui::MenuItem(temp_name.c_str(), "Ctrl+S")) {
+            if (ImGui::MenuItemEx("Save",
+                                  Icons::FontAwesomeIcons::FA_FLOPPY_DISK,
+                                  "Ctrl+S")) {
                 pageState.actionFlags.saveProject = true;
             };
 
@@ -363,24 +364,25 @@ namespace Bess::UI {
             ImGui::Separator();
             ImGui::Spacing();
 
-            temp_name = Icons::FontAwesomeIcons::FA_FILE_EXPORT;
-            temp_name += "  Export";
-            if (ImGui::BeginMenu(temp_name.c_str())) {
-                temp_name = Icons::FontAwesomeIcons::FA_FILE_IMAGE;
-                temp_name += "  Scene View PNG";
-                if (ImGui::MenuItem(temp_name.c_str())) {
+            if (ImGui::BeginMenuEx("Export",
+                                   Icons::FontAwesomeIcons::FA_FILE_EXPORT)) {
+                if (ImGui::MenuItemEx("Scene View PNG",
+                                      Icons::FontAwesomeIcons::FA_FILE_IMAGE)) {
                     getPanel<SceneExportWindow>()->show();
                 }
                 ImGui::EndMenu();
             }
 
-            temp_name = Icons::FontAwesomeIcons::FA_FILE_IMPORT;
-            temp_name += "   Import";
-            if (ImGui::BeginMenu(temp_name.c_str())) {
+            if (ImGui::BeginMenuEx("Import",
+                                   Icons::FontAwesomeIcons::FA_FILE_IMPORT)) {
                 const std::string verilogLabel =
                     std::string(Icons::FontAwesomeIcons::FA_V) +
                     Icons::FontAwesomeIcons::FA_S + "  Verilog Script";
-                if (ImGui::MenuItem(verilogLabel.c_str())) {
+                if (ImGui::MenuItemEx(
+                        "Verilog Script",
+                        (std::string(Icons::FontAwesomeIcons::FA_V) +
+                         Icons::FontAwesomeIcons::FA_S)
+                            .c_str())) {
                     auto &wizard = getVerilogImportWizardState();
                     wizard.requestOpenPopup = true;
                 }
@@ -404,29 +406,29 @@ namespace Bess::UI {
             auto &mainPageState = Pages::MainPage::getInstance()->getState();
             auto &cmdSystem = mainPageState.getCommandSystem();
 
-            std::string icon = Icons::CodIcons::DISCARD;
-            if (ImGui::MenuItem((icon + "  Undo").c_str(),
-                                "Ctrl+Z",
-                                false,
-                                cmdSystem.canUndo())) {
+            if (ImGui::MenuItemEx("Undo",
+                                  Icons::CodIcons::DISCARD,
+                                  "Ctrl+Z",
+                                  false,
+                                  cmdSystem.canUndo())) {
                 cmdSystem.undo();
             }
 
-            icon = Icons::CodIcons::REDO;
-            if (ImGui::MenuItem((icon + "  Redo").c_str(),
-                                "Ctrl+Shift+Z",
-                                false,
-                                cmdSystem.canRedo())) {
+            if (ImGui::MenuItemEx("Redo",
+                                  Icons::CodIcons::REDO,
+                                  "Ctrl+Shift+Z",
+                                  false,
+                                  cmdSystem.canRedo())) {
                 cmdSystem.redo();
             }
 
             ImGui::Spacing();
             ImGui::Separator();
             ImGui::Spacing();
-            icon = Icons::FontAwesomeIcons::FA_ALIGN_LEFT;
-            if (ImGui::BeginMenu((icon + "  Layout").c_str())) {
-                icon = Icons::CodIcons::LAYOUT;
-                if (ImGui::MenuItem((icon + "  Hierarchical Layout").c_str())) {
+            if (ImGui::BeginMenuEx("Layout",
+                                   Icons::FontAwesomeIcons::FA_ALIGN_LEFT)) {
+                if (ImGui::MenuItemEx("Hierarchical Layout",
+                                      Icons::CodIcons::LAYOUT)) {
                     applyHierarchicalLayout();
                 }
                 ImGui::EndMenu();
@@ -435,14 +437,15 @@ namespace Bess::UI {
             ImGui::Separator();
             ImGui::Spacing();
 
-            icon = Icons::FontAwesomeIcons::FA_PENCIL;
-            if (ImGui::MenuItem((icon + "  Project Settings").c_str(),
-                                "Ctrl+P")) {
+            if (ImGui::MenuItemEx("Project Settings",
+                                  Icons::FontAwesomeIcons::FA_PENCIL,
+                                  "Ctrl+P")) {
                 getPanel<ProjectSettingsWindow>()->show();
             }
 
-            icon = Icons::FontAwesomeIcons::FA_GEAR;
-            if (ImGui::MenuItem((icon + "  Preferences").c_str(), "")) {
+            if (ImGui::MenuItemEx("Preferences",
+                                  Icons::FontAwesomeIcons::FA_GEAR,
+                                  "Ctrl+S")) {
                 getPanel<SettingsWindow>()->show();
             }
 
@@ -631,7 +634,7 @@ namespace Bess::UI {
         ImGui::PopStyleVar(2);
 
         ImGui::EndMainMenuBar();
-        ImGui::PopStyleVar(2);
+        ImGui::PopStyleVar(4);
 
         if (newFileClicked) {
             onNewProject();
