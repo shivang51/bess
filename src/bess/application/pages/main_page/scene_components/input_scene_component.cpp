@@ -99,6 +99,13 @@ namespace Bess::Canvas {
 
     void InputSceneComponent::update(TimeMs ts, SceneState &state) {
         SimulationSceneComponent::update(ts, state);
+
+        for (auto &ctrl : m_inputCtrls) {
+            if (ctrl) {
+                ctrl->update(ts, state);
+            }
+        }
+
         if (makeAllLow) {
             makeAllLow = false;
             auto &appCtx = Bess::GAppContext::getInstance();

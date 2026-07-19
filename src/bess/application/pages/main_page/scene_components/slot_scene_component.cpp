@@ -241,6 +241,16 @@ namespace Bess::Canvas {
     void SlotSceneComponent::update(TimeMs frameTime, SceneState &state) {
         BESS_ASSERT(m_parentComponent != UUID::null,
                     "SlotSceneComponent must have a parent component");
+
+        if (m_container) {
+            m_container->update(frameTime, state);
+        }
+        if (m_label) {
+            m_label->update(frameTime, state);
+        }
+        if (m_scalarValueTextBox) {
+            m_scalarValueTextBox->update(frameTime, state);
+        }
     }
 
     void SlotSceneComponent::draw(SceneDrawContext &drawContext) {
