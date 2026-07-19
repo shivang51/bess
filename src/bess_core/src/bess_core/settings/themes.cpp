@@ -111,7 +111,7 @@ namespace Bess::Config {
         colors[ImGuiCol_WindowBg] = ImVec4(0.10f, 0.10f, 0.11f, 1.00f);
         colors[ImGuiCol_ChildBg] =
             ImVec4(0.11f, 0.11f, 0.12f, 1.00f); // slightly lighter for panels
-        colors[ImGuiCol_PopupBg] = ImVec4(0.14f, 0.14f, 0.15f, 0.96f);
+        colors[ImGuiCol_PopupBg] = ImVec4(0.14f, 0.14f, 0.15f, 1.00f);
 
         // Borders & Separators - subtle contrast
         colors[ImGuiCol_Border] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
@@ -994,7 +994,7 @@ namespace Bess::Config {
         setGeometry();
 
         const auto colorScheme = Bess::Core::Style::ColorScheme::fromSeed(
-            Core::Renderer::Colors::pastelBlue, brightness);
+            Core::Renderer::Colors::blue, brightness);
 
         auto theme = Core::Style::BessTheme::fromColorScheme(
             "Material Pasatel Blue", colorScheme);

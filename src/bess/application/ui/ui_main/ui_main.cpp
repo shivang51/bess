@@ -310,8 +310,6 @@ namespace Bess::UI {
     void UIMain::drawMenubar() {
         bool newFileClicked = false, aboutClicked = false;
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.f);
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.f);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.f, 6.f));
         ImGui::BeginMainMenuBar();
         const float menuBarHeight = ImGui::GetFrameHeight();
@@ -634,7 +632,7 @@ namespace Bess::UI {
         ImGui::PopStyleVar(2);
 
         ImGui::EndMainMenuBar();
-        ImGui::PopStyleVar(4);
+        ImGui::PopStyleVar(2);
 
         if (newFileClicked) {
             onNewProject();
