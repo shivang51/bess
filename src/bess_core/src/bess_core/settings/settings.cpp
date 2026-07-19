@@ -1,12 +1,12 @@
 #include "bess_core/settings/settings.h"
-#include "common/bess_assert.h"
 #include "bess_core/settings/viewport_theme.h"
+#include "common/bess_assert.h"
 
 namespace Bess::Config {
 
     void Settings::onInit() {
         m_themes = Themes();
-        m_currentTheme = "Bess Minimal Dark";
+        m_currentTheme = "Material Dark";
         m_scale = 1.0f;
         m_fontSize = 18.0f;
         m_fontRebuild = true;

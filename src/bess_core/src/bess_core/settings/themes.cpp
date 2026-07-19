@@ -12,7 +12,7 @@ namespace Bess::Config {
     Themes::Themes() {
         m_themes["Dark"] = [this]() {
             setDarkThemeColors();
-            // Because there is no bess theme
+            // Because there is no BessTheme, its all raw colors
             getCurrentThemeRef() = nullptr;
             return true;
         };
@@ -46,7 +46,7 @@ namespace Bess::Config {
             getCurrentThemeRef() = nullptr;
             return false;
         };
-        m_themes["Material"] = [this]() {
+        m_themes["Material Dark"] = [this]() {
             setMaterialColors(Core::Style::Brightness::dark);
             return true;
         };
