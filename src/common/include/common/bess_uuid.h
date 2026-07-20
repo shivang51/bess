@@ -3,6 +3,7 @@
 #include "common/bess_api.h"
 
 #include "bess_json/bess_json.h"
+#include "spdlog/fmt/bundled/base.h"
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -56,6 +57,13 @@ namespace std {
         }
     };
 } // namespace std
+
+template <> struct std::formatter<Bess::UUID> : std::formatter<std::string> {
+    auto format(Bess::UUID uuid, std::format_context &ctx) const
+        -> decltype(ctx.out()) {
+        return std::format_to(ctx.out(), "{}", (uint64_t)uuid);
+    }
+};
 
 REFLECT_VECTOR(Bess::UUID)
 REFLECT_UNORDERED_SET(Bess::UUID)

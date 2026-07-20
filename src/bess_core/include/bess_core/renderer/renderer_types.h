@@ -293,11 +293,11 @@ namespace Bess::Core::Renderer {
 } // namespace Bess::Core::Renderer
 
 template <>
-struct BESS_API fmt::formatter<Bess::Core::Renderer::Color>
-    : fmt::formatter<std::string> {
-    auto format(Bess::Core::Renderer::Color color, format_context &ctx) const
-        -> decltype(ctx.out()) {
-        return fmt::format_to(ctx.out(),
+struct BESS_API std::formatter<Bess::Core::Renderer::Color>
+    : std::formatter<std::string> {
+    auto format(Bess::Core::Renderer::Color color,
+                std::format_context &ctx) const -> decltype(ctx.out()) {
+        return std::format_to(ctx.out(),
                               "Color({}, {}, {}, {})",
                               color.r,
                               color.g,
