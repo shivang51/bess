@@ -3,7 +3,6 @@
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "common/class_helpers.h"
-#include "common/logger.h"
 #include "common/types.h"
 
 #include <cstdint>
@@ -55,7 +54,7 @@ namespace Bess::UI {
       protected:
         bool m_allowsDocking = false;
         DockNodeType m_nodeType = DockNodeType::leaf;
-        UUID m_id = UUID::null;
+        UUID m_id;
         glm::vec2 m_pos = glm::vec2(0.0f, 0.0f);
         glm::vec2 m_size = glm::vec2(0.0f, 0.0f);
     };
@@ -63,6 +62,12 @@ namespace Bess::UI {
     class DockSplitter : public IDockNode {
       public:
         DockSplitter() {
+            m_nodeType = DockNodeType::split;
+        }
+
+        DockSplitter(SplitDirection dir, float ratio)
+            : m_splitDir(dir),
+              m_splitRatio(ratio) {
             m_nodeType = DockNodeType::split;
         }
 
@@ -119,158 +124,48 @@ namespace Bess::UI {
       public:
         DockManager() = default;
 
-        UUID getHitRect(const glm::vec2 &point) {
-            for (const auto &rect : m_rects) {
-                if (rect.contains(point)) {
-                    return rect.id;
-                }
-            }
-            return UUID::null;
-        }
+        UUID getHitRect(const glm::vec2 &point);
 
-        void layout() {
-            if (!m_layoutDirty) {
-                return;
-            }
+        void layout();
 
-            if (m_rootNode == UUID::null) {
-                BESS_ERROR("Root node is null, cannot layout");
-                return;
-            }
+        bool dockNode(const UUID &nodeId, const UUID &targetId, DockZone zone);
 
-            auto rootNode = getNode(m_rootNode);
-            BESS_ASSERT(rootNode, "Root node not found");
+        std::shared_ptr<IDockNode> getNode(const UUID &nodeId);
 
-            layoutNode(rootNode);
-            m_layoutDirty = false;
-
-            m_rects.clear();
-            m_rects.reserve(m_nodes.size());
-
-            for (const auto &[id, node] : m_nodes) {
-                DockRect rect;
-                rect.id = id;
-                rect.pos = node->getPos();
-                rect.size = node->getSize();
-                m_rects.push_back(rect);
-            }
-        }
-
-        bool dockNode(const UUID &nodeId, const UUID &targetId, DockZone zone) {
+        template <typename T, typename... Args>
+            requires(std::is_base_of_v<IDockNode, T>)
+        std::shared_ptr<T> getNode(const UUID &nodeId) {
             auto node = getNode(nodeId);
-            auto target = getNode(targetId);
-
-            bool res = false;
-            const auto &targetType = node->getNodeType();
-
-            switch (targetType) {
-            case DockNodeType::leaf:
-                res = dockToLeaf(node, target, zone);
-                break;
-            case DockNodeType::tab:
-                res = dockToTab(node, target, zone);
-                break;
-            case DockNodeType::split:
-                res = dockToSplitter(node, target, zone);
-                break;
-            default:
-                BESS_ERROR("Unknown target node type {} for target {}",
-                           static_cast<int>(targetType),
-                           targetId);
-                return false;
+            if (!node) {
+                return nullptr;
             }
-
-            m_layoutDirty = res;
-
-            return res;
+            return std::dynamic_pointer_cast<T>(node);
         }
 
-        std::shared_ptr<IDockNode> getNode(const UUID &nodeId) {
-            auto it = m_nodes.find(nodeId);
-            if (it != m_nodes.end()) {
-                return it->second;
-            }
-            return nullptr;
+        void init() {
+            auto rootNode = std::make_shared<DockLeaf>();
+            m_rootNode = rootNode->getId();
+            m_nodes.clear();
+            m_rects.clear();
+            m_nodes[m_rootNode] = rootNode;
         }
+
+        template <typename T, typename... Args>
+            requires(std::is_base_of_v<IDockNode, T>)
+        std::shared_ptr<T> createNode(Args &&...args) {
+            auto node = std::make_shared<T>(std::forward<Args>(args)...);
+            m_nodes[node->getId()] = node;
+            return node;
+        }
+
+        MAKE_GETTER(UUID, RootNode, m_rootNode)
 
       private:
-        void layoutNode(const std::shared_ptr<IDockNode> &node) {
-            BESS_ASSERT(node, "Invalid node");
+        void layoutNode(const std::shared_ptr<IDockNode> &node);
 
-            switch (node->getNodeType()) {
-            case DockNodeType::leaf:
-                return;
-            case DockNodeType::tab:
-                layoutTabNode(node);
-                break;
-            case DockNodeType::split:
-                layoutSplitNode(node);
-                break;
-            default:
-                BESS_ERROR("Unknown node type {} for node {}",
-                           static_cast<int>(node->getNodeType()),
-                           node->getId());
-                break;
-            }
-        }
+        void layoutTabNode(const std::shared_ptr<IDockNode> &node);
 
-        void layoutTabNode(const std::shared_ptr<IDockNode> &node) {
-            BESS_ASSERT(node && node->getNodeType() == DockNodeType::tab,
-                        "Invalid node");
-
-            auto tabNode = std::dynamic_pointer_cast<DockTab>(node);
-            BESS_ASSERT(tabNode, "Failed to cast node to DockTab");
-
-            for (const auto &dockedNodeId : tabNode->getDockedNodes()) {
-                auto dockedNode = getNode(dockedNodeId);
-                node->setPos(tabNode->getPos());
-                node->setSize(tabNode->getSize());
-                layoutNode(dockedNode);
-            }
-        }
-
-        void layoutSplitNode(const std::shared_ptr<IDockNode> &node) {
-            BESS_ASSERT(node && node->getNodeType() == DockNodeType::split,
-                        "Invalid node");
-            auto splitterNode = std::dynamic_pointer_cast<DockSplitter>(node);
-            BESS_ASSERT(splitterNode, "Failed to cast node to DockSplitter");
-
-            auto splitNodes = splitterNode->getSplitNodes();
-            BESS_ASSERT(splitNodes.first != UUID::null &&
-                            splitNodes.second != UUID::null,
-                        "Invalid split nodes");
-
-            auto firstNode = getNode(splitNodes.first);
-            auto secondNode = getNode(splitNodes.second);
-
-            BESS_ASSERT(firstNode && secondNode, "Invalid split nodes");
-
-            glm::vec2 pos = splitterNode->getPos();
-            glm::vec2 size = splitterNode->getSize();
-
-            if (splitterNode->getSplitDir() == SplitDirection::horizontal) {
-                float firstHeight = size.y * splitterNode->getSplitRatio();
-                float secondHeight = size.y - firstHeight;
-
-                firstNode->setPos(pos);
-                firstNode->setSize(glm::vec2(size.x, firstHeight));
-
-                secondNode->setPos(glm::vec2(pos.x, pos.y + firstHeight));
-                secondNode->setSize(glm::vec2(size.x, secondHeight));
-            } else {
-                float firstWidth = size.x * splitterNode->getSplitRatio();
-                float secondWidth = size.x - firstWidth;
-
-                firstNode->setPos(pos);
-                firstNode->setSize(glm::vec2(firstWidth, size.y));
-
-                secondNode->setPos(glm::vec2(pos.x + firstWidth, pos.y));
-                secondNode->setSize(glm::vec2(secondWidth, size.y));
-            }
-
-            layoutNode(firstNode);
-            layoutNode(secondNode);
-        }
+        void layoutSplitNode(const std::shared_ptr<IDockNode> &node);
 
         template <typename T>
             requires(std::is_base_of_v<IDockNode, T>)
@@ -313,81 +208,25 @@ namespace Bess::UI {
         // HORIZONTAL splitter is for top and bottom zones
         bool replaceWithSplitter(const std::shared_ptr<IDockNode> &node,
                                  const std::shared_ptr<IDockNode> &target,
-                                 DockZone zone) {
-            BESS_ASSERT(node && target, "Invalid node or target");
-            BESS_ASSERT(target->isLeaf(), "Target must be a leaf node");
-            BESS_ASSERT(
-                zone != DockZone::main,
-                "Cannot dock to main zone when replacing with splitter");
-
-            auto splitterNode = replaceNode<DockSplitter>(target);
-            if (zone == DockZone::left || zone == DockZone::right) {
-                splitterNode->setSplitDir(SplitDirection::vertical);
-            } else {
-                splitterNode->setSplitDir(SplitDirection::horizontal);
-            }
-
-            if (zone == DockZone::left || zone == DockZone::top) {
-                splitterNode->setSplitNodes({node->getId(), target->getId()});
-            } else {
-                splitterNode->setSplitNodes({target->getId(), node->getId()});
-            }
-
-            return true;
-        }
+                                 DockZone zone);
 
         // If zone is MAIN then the node will be changed to tab node and the
         // target will be added to the tab node Otherwise, a splitter will be
         // created
         bool dockToLeaf(const std::shared_ptr<IDockNode> &node,
                         const std::shared_ptr<IDockNode> &target,
-                        DockZone zone) {
-            BESS_ASSERT(node && target, "Invalid node or target");
-            BESS_ASSERT(target->isLeaf(), "Target must be a leaf node");
-
-            if (zone == DockZone::main) {
-                // Change the target node to a tab node
-                auto tabNode = replaceNode<DockTab>(target);
-                tabNode->setDockedNodes({target->getId(), node->getId()});
-            } else {
-                // Change the target node to a splitter node
-                return replaceWithSplitter(node, target, zone);
-            }
-
-            return true;
-        }
+                        DockZone zone);
 
         // If zone is MAIN then the node will be added to the children
         // Otherwise, split will be created
         bool dockToTab(const std::shared_ptr<IDockNode> &node,
                        const std::shared_ptr<IDockNode> &target,
-                       DockZone zone) {
-            BESS_ASSERT(node && target, "Invalid node or target");
-            BESS_ASSERT(target->isTab(), "Target must be a tab node");
-
-            if (zone == DockZone::main) {
-                auto tabNode = std::dynamic_pointer_cast<DockTab>(target);
-                BESS_ASSERT(tabNode, "Failed to cast target to DockTab");
-                auto &dockedNodes = tabNode->getDockedNodes();
-                dockedNodes.push_back(node->getId());
-            } else {
-                return replaceWithSplitter(node, target, zone);
-            }
-
-            return true;
-        }
+                       DockZone zone);
 
         // Splitter will not allow docking to main zone
         bool dockToSplitter(const std::shared_ptr<IDockNode> &node,
                             const std::shared_ptr<IDockNode> &target,
-                            DockZone zone) {
-            BESS_ASSERT(node && target, "Invalid node or target");
-            BESS_ASSERT(target->isSplitter(), "Target must be a splitter node");
-            BESS_ASSERT(zone != DockZone::main,
-                        "Cannot dock to main zone when docking to splitter");
-
-            return replaceWithSplitter(node, target, zone);
-        }
+                            DockZone zone);
 
       private:
         UUID m_rootNode = UUID::null;

@@ -2,11 +2,15 @@ set(PROJECT_NAME UICore)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(Header_Files
+	include/dock.h
+	
+	include/ui_core/ui_core.h
 )
 
 source_group("include/ui_core" FILES ${Header_Files})
 
 set(Source_Files
+	src/dock.cpp
 )
 
 source_group("src" FILES ${Source_Files})
@@ -23,7 +27,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}"
 target_link_libraries(${PROJECT_NAME} PUBLIC common BessJson BessExtDeps EventSystem BessCore)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
-	"${CMAKE_CURRENT_SOURCE_DIR}/include/bess_core"
+	"${CMAKE_CURRENT_SOURCE_DIR}/include/ui_core"
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE

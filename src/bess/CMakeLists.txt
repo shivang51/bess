@@ -23,6 +23,7 @@ set(BESS_RUNTIME_COMPONENT_TARGETS
     BessWgpu
     BessApp
     BessExtDeps
+		UICore
 )
 
 set(BESS_RUNTIME_GENERATED_INCLUDE_DIR
