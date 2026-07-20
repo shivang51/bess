@@ -45,13 +45,19 @@ namespace Bess::UI {
             return m_nodeType == DockNodeType::leaf;
         }
 
+        bool isFloating() const {
+            return m_dockedTo == UUID::null;
+        }
+
         MAKE_GETTER_SETTER(DockNodeType, NodeType, m_nodeType)
         MAKE_GETTER_SETTER(bool, AllowsDocking, m_allowsDocking)
         MAKE_GETTER_SETTER(UUID, Id, m_id)
         MAKE_GETTER_SETTER(glm::vec2, Pos, m_pos)
         MAKE_GETTER_SETTER(glm::vec2, Size, m_size)
+        MAKE_GETTER_SETTER(UUID, DockedTo, m_dockedTo)
 
       protected:
+        UUID m_dockedTo = UUID::null;
         bool m_allowsDocking = false;
         DockNodeType m_nodeType = DockNodeType::leaf;
         UUID m_id;
@@ -101,11 +107,6 @@ namespace Bess::UI {
         DockLeaf() {
             m_nodeType = DockNodeType::leaf;
         }
-
-        MAKE_GETTER_SETTER(bool, IsDocked, m_isDocked)
-
-      private:
-        bool m_isDocked = false;
     };
 
     struct DockRect {
@@ -131,6 +132,8 @@ namespace Bess::UI {
         bool dockNode(const UUID &nodeId, const UUID &targetId, DockZone zone);
 
         std::shared_ptr<IDockNode> getNode(const UUID &nodeId);
+
+        bool undockNode(const UUID &nodeId);
 
         template <typename T, typename... Args>
             requires(std::is_base_of_v<IDockNode, T>)
@@ -188,7 +191,8 @@ namespace Bess::UI {
 
         template <typename T>
             requires(std::is_base_of_v<IDockNode, T>)
-        std::shared_ptr<T> replaceNode(const std::shared_ptr<IDockNode> &node) {
+        std::shared_ptr<T>
+        replaceWithNew(const std::shared_ptr<IDockNode> &node) {
             BESS_ASSERT(node, "Invalid node");
 
             auto newNode = changeNodeType<T>(node); // Change nodes type
@@ -197,6 +201,9 @@ namespace Bess::UI {
 
             return newNode;
         }
+
+        bool replaceNode(const std::shared_ptr<IDockNode> &newNode,
+                         const std::shared_ptr<IDockNode> &oldNode);
 
         // Replaces the target node with a splitter node and docks the given
         // node to the splitter in the specified zone.
@@ -227,6 +234,19 @@ namespace Bess::UI {
         bool dockToSplitter(const std::shared_ptr<IDockNode> &node,
                             const std::shared_ptr<IDockNode> &target,
                             DockZone zone);
+
+        // Removes from the list of tabs
+        // If the tab node has only two children it will be replaced with
+        // the remaining child node
+        bool undockFromTab(const UUID &nodeId,
+                           const std::shared_ptr<IDockNode> &target);
+
+        // Removes from the splitter node
+        // And replaces the splitter node with the remaining child node
+        bool undockFromSplitter(const UUID &nodeId,
+                                const std::shared_ptr<IDockNode> &target);
+
+        void eraseNode(const UUID &nodeId);
 
       private:
         UUID m_rootNode = UUID::null;

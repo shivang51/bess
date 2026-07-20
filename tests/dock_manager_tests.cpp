@@ -434,3 +434,118 @@ TEST_F(DockManagerTests, DockingToSplitterBottomZone) {
     ASSERT_EQ(splitNodes.first, splitterNode->getId());
     ASSERT_EQ(splitNodes.second, leaf1->getId());
 }
+
+TEST_F(DockManagerTests, UndockingFromTab) {
+    Bess::UI::DockManager dockManager;
+    dockManager.init();
+
+    auto tabNode = dockManager.createNode<Bess::UI::DockTab>();
+    auto leaf1 = dockManager.createNode<Bess::UI::DockLeaf>();
+    auto leaf2 = dockManager.createNode<Bess::UI::DockLeaf>();
+    auto leaf3 = dockManager.createNode<Bess::UI::DockLeaf>();
+
+    // Dock leaf1 and leaf2 to the tab node in the main zone
+    dockManager.dockNode(
+        leaf1->getId(), tabNode->getId(), Bess::UI::DockZone::main);
+    dockManager.dockNode(
+        leaf2->getId(), tabNode->getId(), Bess::UI::DockZone::main);
+    dockManager.dockNode(
+        leaf3->getId(), tabNode->getId(), Bess::UI::DockZone::main);
+
+    const auto &dockedNodesBefore = tabNode->getDockedNodes();
+    ASSERT_EQ(dockedNodesBefore.size(), 3);
+
+    const auto tabNodeId = tabNode->getId(); // Store the original tab node ID
+
+    // Undock leaf1 from the tab node
+    bool res = dockManager.undockNode(leaf1->getId());
+    ASSERT_TRUE(res);
+
+    const auto &dockedNodesAfter = tabNode->getDockedNodes();
+    ASSERT_EQ(dockedNodesAfter.size(), 2);
+
+    ASSERT_EQ(tabNodeId,
+              tabNode->getId()); // Ensure the tab node ID remains the same
+
+    ASSERT_EQ(dockedNodesAfter[0], leaf2->getId());
+    ASSERT_EQ(dockedNodesAfter[1], leaf3->getId());
+}
+
+TEST_F(DockManagerTests, UndockingFromTabToLeaf) {
+
+    Bess::UI::DockManager dockManager;
+    dockManager.init();
+
+    auto tabNode = dockManager.createNode<Bess::UI::DockTab>();
+    auto leaf1 = dockManager.createNode<Bess::UI::DockLeaf>();
+    auto leaf2 = dockManager.createNode<Bess::UI::DockLeaf>();
+
+    // Dock leaf1 and leaf2 to the tab node in the main zone
+    dockManager.dockNode(
+        leaf1->getId(), tabNode->getId(), Bess::UI::DockZone::main);
+    dockManager.dockNode(
+        leaf2->getId(), tabNode->getId(), Bess::UI::DockZone::main);
+
+    const auto &dockedNodesBefore = tabNode->getDockedNodes();
+    ASSERT_EQ(dockedNodesBefore.size(), 2);
+
+    const auto tabNodeId = tabNode->getId(); // Store the original tab node ID
+
+    // Undock leaf1 from the tab node
+    bool res = dockManager.undockNode(leaf1->getId());
+    ASSERT_TRUE(res);
+
+    const auto &dockedNodesAfter = tabNode->getDockedNodes();
+    ASSERT_EQ(dockedNodesAfter.size(), 1);
+
+    ASSERT_EQ(tabNodeId, leaf2->getId());
+
+    // Check if tabnode is removed
+    auto node = dockManager.getNode(tabNode->getId());
+    ASSERT_TRUE(node == nullptr);
+}
+
+TEST_F(DockManagerTests, UndockingFromSplitter) {
+    Bess::UI::DockManager dockManager;
+    dockManager.init();
+
+    auto splitterNode = dockManager.createNode<Bess::UI::DockSplitter>();
+
+    auto leaf1 = dockManager.createNode<Bess::UI::DockLeaf>();
+    leaf1->setDockedTo(splitterNode->getId());
+
+    auto leaf2 = dockManager.createNode<Bess::UI::DockLeaf>();
+    leaf2->setDockedTo(splitterNode->getId());
+
+    auto &splitNodes = splitterNode->getSplitNodes();
+    splitNodes.first = leaf1->getId();
+    splitNodes.second = leaf2->getId();
+
+    const auto splitterNodeId =
+        splitterNode->getId(); // Store the original splitter node ID
+
+    // Undock leaf1 from the splitter node
+    bool res = dockManager.undockNode(leaf1->getId());
+    ASSERT_TRUE(res);
+
+    // The splitter node should now only have leaf2 as its child
+    auto newNode = dockManager.getNode(splitterNodeId);
+    ASSERT_TRUE(newNode->isLeaf()); // Checking if the splitter node has been
+                                    // replaced by leaf2
+
+    // Check if the splitter node is removed
+    auto node = dockManager.getNode(splitterNode->getId());
+    ASSERT_TRUE(node == nullptr);
+}
+
+TEST_F(DockManagerTests, UndockingFloatingNode) {
+    Bess::UI::DockManager dockManager;
+    dockManager.init();
+
+    auto leaf1 = dockManager.createNode<Bess::UI::DockLeaf>();
+
+    // Undock a floating node (which is already floating)
+    bool res = dockManager.undockNode(leaf1->getId());
+
+    ASSERT_FALSE(res);
+}

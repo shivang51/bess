@@ -1,6 +1,8 @@
 #include "dock.h"
+
 #include "common/bess_assert.h"
 #include "common/logger.h"
+#include <algorithm>
 
 namespace Bess::UI {
     UUID DockManager::getHitRect(const glm::vec2 &point) {
@@ -66,8 +68,11 @@ namespace Bess::UI {
             return false;
         }
 
-        m_layoutDirty = res;
+        if (res) {
+            node->setDockedTo(targetId);
+        }
 
+        m_layoutDirty = res;
         return res;
     }
 
@@ -77,6 +82,58 @@ namespace Bess::UI {
             return it->second;
         }
         return nullptr;
+    }
+
+    bool DockManager::undockNode(const UUID &nodeId) {
+        auto node = getNode(nodeId);
+        if (!node) {
+            BESS_ERROR("Node {} not found for undocking", nodeId);
+            return false;
+        }
+
+        if (node->isFloating()) {
+            return false;
+        }
+
+        if (!node->isLeaf()) {
+            BESS_ERROR("Node {} is not a leaf node, cannot undock", nodeId);
+            return false;
+        }
+
+        const auto dockedToId = node->getDockedTo();
+        auto dockedToNode = getNode(dockedToId);
+
+        if (!dockedToNode) {
+            BESS_ERROR("Docked to node {} not found for undocking node {}",
+                       dockedToId,
+                       nodeId);
+            return false;
+        }
+
+        bool res = false;
+        switch (dockedToNode->getNodeType()) {
+        case DockNodeType::leaf:
+            BESS_ERROR("Cannot undock from a leaf node");
+            return false;
+        case DockNodeType::tab:
+            res = undockFromTab(nodeId, dockedToNode);
+            break;
+        case DockNodeType::split:
+            res = undockFromSplitter(nodeId, dockedToNode);
+            break;
+        default:
+            BESS_ERROR("Unknown docked to node type {} for node {}",
+                       static_cast<int>(dockedToNode->getNodeType()),
+                       nodeId);
+            return false;
+        }
+
+        if (res) {
+            node->setDockedTo(UUID::null);
+            m_layoutDirty = true;
+        }
+
+        return res;
     }
 
     void DockManager::layoutNode(const std::shared_ptr<IDockNode> &node) {
@@ -165,7 +222,7 @@ namespace Bess::UI {
         BESS_ASSERT(zone != DockZone::main,
                     "Cannot dock to main zone when replacing with splitter");
 
-        auto splitterNode = replaceNode<DockSplitter>(target);
+        auto splitterNode = replaceWithNew<DockSplitter>(target);
         if (zone == DockZone::left || zone == DockZone::right) {
             splitterNode->setSplitDir(SplitDirection::vertical);
         } else {
@@ -189,7 +246,7 @@ namespace Bess::UI {
 
         if (zone == DockZone::main) {
             // Change the target node to a tab node
-            auto tabNode = replaceNode<DockTab>(target);
+            auto tabNode = replaceWithNew<DockTab>(target);
             tabNode->setDockedNodes({target->getId(), node->getId()});
         } else {
             // Change the target node to a splitter node
@@ -226,6 +283,83 @@ namespace Bess::UI {
                     "Cannot dock to main zone when docking to splitter");
 
         return replaceWithSplitter(node, target, zone);
+    }
+
+    bool DockManager::undockFromTab(const UUID &node,
+                                    const std::shared_ptr<IDockNode> &target) {
+        BESS_ASSERT(target && target->isTab(), "Target must be a tab node");
+        auto tabNode = std::dynamic_pointer_cast<DockTab>(target);
+        BESS_ASSERT(tabNode, "Failed to cast target to DockTab");
+
+        auto &dockedNodes = tabNode->getDockedNodes();
+        dockedNodes.erase(std::ranges::remove(dockedNodes, node).begin(),
+                          dockedNodes.end());
+
+        if (dockedNodes.size() == 1) {
+            // If only one node remains, change the tab node back to a leaf node
+            auto remainingNodeId = dockedNodes.front();
+            auto remainingNode = getNode(remainingNodeId);
+            BESS_ASSERT(remainingNode, "Remaining node not found");
+            replaceNode(remainingNode, tabNode);
+            eraseNode(tabNode->getId());
+        }
+
+        return true;
+    }
+
+    bool
+    DockManager::undockFromSplitter(const UUID &node,
+                                    const std::shared_ptr<IDockNode> &target) {
+        BESS_ASSERT(target && target->isSplitter(),
+                    "Target must be a splitter node");
+        auto splitterNode = std::dynamic_pointer_cast<DockSplitter>(target);
+        BESS_ASSERT(splitterNode, "Failed to cast target to DockSplitter");
+
+        auto splitNodes = splitterNode->getSplitNodes();
+        if (splitNodes.first == node) {
+            // If the first node is being undocked, replace the splitter with
+            // the second node
+            auto secondNode = getNode(splitNodes.second);
+            BESS_ASSERT(secondNode, "Second node not found");
+            replaceNode(secondNode, splitterNode);
+            eraseNode(splitterNode->getId());
+        } else if (splitNodes.second == node) {
+            // If the second node is being undocked, replace the splitter with
+            // the first node
+            auto firstNode = getNode(splitNodes.first);
+            BESS_ASSERT(firstNode, "First node not found");
+            replaceNode(firstNode, splitterNode);
+            eraseNode(splitterNode->getId());
+        } else {
+            BESS_ERROR("Node {} is not a child of splitter {}",
+                       node,
+                       splitterNode->getId());
+            return false;
+        }
+
+        return true;
+    }
+
+    void DockManager::eraseNode(const UUID &nodeId) {
+        auto it = m_nodes.find(nodeId);
+        if (it != m_nodes.end()) {
+            m_nodes.erase(it);
+        }
+    }
+
+    bool DockManager::replaceNode(const std::shared_ptr<IDockNode> &newNode,
+                                  const std::shared_ptr<IDockNode> &oldNode) {
+        BESS_ASSERT(newNode && oldNode, "Invalid new or old node");
+        newNode->setId(oldNode->getId());
+        newNode->setDockedTo(oldNode->getDockedTo());
+        newNode->setPos(oldNode->getPos());
+        newNode->setSize(oldNode->getSize());
+
+        m_nodes[oldNode->getId()] = newNode;
+
+        oldNode->setId(UUID()); // Assign a new ID to the old node
+        m_nodes[oldNode->getId()] = oldNode;
+        return true;
     }
 
 } // namespace Bess::UI
