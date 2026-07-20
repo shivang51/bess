@@ -103,10 +103,30 @@ namespace Bess::UI {
         bool m_isDocked = false;
     };
 
+    struct DockRect {
+        UUID id;
+        glm::vec2 pos;
+        glm::vec2 size;
+
+        bool contains(const glm::vec2 &point) const {
+            return point.x >= pos.x && point.x <= pos.x + size.x &&
+                   point.y >= pos.y && point.y <= pos.y + size.y;
+        }
+    };
+
     class DockManager {
 
       public:
         DockManager() = default;
+
+        UUID getHitRect(const glm::vec2 &point) {
+            for (const auto &rect : m_rects) {
+                if (rect.contains(point)) {
+                    return rect.id;
+                }
+            }
+            return UUID::null;
+        }
 
         void layout() {
             if (!m_layoutDirty) {
@@ -123,6 +143,17 @@ namespace Bess::UI {
 
             layoutNode(rootNode);
             m_layoutDirty = false;
+
+            m_rects.clear();
+            m_rects.reserve(m_nodes.size());
+
+            for (const auto &[id, node] : m_nodes) {
+                DockRect rect;
+                rect.id = id;
+                rect.pos = node->getPos();
+                rect.size = node->getSize();
+                m_rects.push_back(rect);
+            }
         }
 
         bool dockNode(const UUID &nodeId, const UUID &targetId, DockZone zone) {
@@ -362,5 +393,7 @@ namespace Bess::UI {
         UUID m_rootNode = UUID::null;
         HashMap<UUID, std::shared_ptr<IDockNode>> m_nodes;
         bool m_layoutDirty = false;
+
+        std::vector<DockRect> m_rects;
     };
 } // namespace Bess::UI
