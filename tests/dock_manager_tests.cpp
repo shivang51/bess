@@ -13,7 +13,7 @@ class DockManagerTests : public testing::Test {
 TEST_F(DockManagerTests, Init) {
     Bess::UI::DockManager dockManager;
     dockManager.init();
-    ASSERT_TRUE(dockManager.getRootNode() != Bess::UUID::null);
+    ASSERT_TRUE(dockManager.getRootNode() == Bess::UUID::null);
 }
 
 TEST_F(DockManagerTests, CreatingNodes) {
@@ -548,4 +548,148 @@ TEST_F(DockManagerTests, UndockingFloatingNode) {
     bool res = dockManager.undockNode(leaf1->getId());
 
     ASSERT_FALSE(res);
+}
+
+TEST_F(DockManagerTests, SetSize) {
+    Bess::UI::DockManager dockManager;
+    dockManager.init();
+
+    auto leaf1 = dockManager.createNode<Bess::UI::DockLeaf>();
+    dockManager.setRootNode(leaf1);
+
+    auto rootNode = dockManager.getNode(dockManager.getRootNode());
+    ASSERT_TRUE(rootNode != nullptr);
+
+    glm::vec2 newSize(800.0f, 600.0f);
+    dockManager.setSize(newSize);
+
+    ASSERT_EQ(rootNode->getSize(), newSize);
+}
+
+TEST_F(DockManagerTests, LayoutAfterDocking) {
+    Bess::UI::DockManager dockManager;
+    dockManager.init();
+
+    auto leaf1 = dockManager.createNode<Bess::UI::DockLeaf>();
+    auto leaf2 = dockManager.createNode<Bess::UI::DockLeaf>();
+
+    const auto leaf1Id = leaf1->getId(); // Store the original leaf1 node ID
+
+    // Set initial size for the root node
+    glm::vec2 initialSize(800.0f, 600.0f);
+    dockManager.setSize(initialSize);
+
+    // Dock leaf2 to leaf1 in the main zone
+    dockManager.dockNode(
+        leaf2->getId(), leaf1->getId(), Bess::UI::DockZone::main);
+
+    // After docking, the layout should be updated
+    auto node1 = dockManager.getNode(leaf1Id);
+    ASSERT_TRUE(node1->isTab());
+
+    auto tabNode = std::dynamic_pointer_cast<Bess::UI::DockTab>(node1);
+    ASSERT_TRUE(tabNode != nullptr);
+
+    // Check if the positions and sizes of the docked nodes are correct
+    for (const auto &dockedNodeId : tabNode->getDockedNodes()) {
+        auto dockedNode = dockManager.getNode(dockedNodeId);
+        ASSERT_EQ(dockedNode->getPos(), tabNode->getPos());
+        ASSERT_EQ(dockedNode->getSize(), tabNode->getSize());
+    }
+}
+
+TEST_F(DockManagerTests, LayoutSplitNode) {
+    Bess::UI::DockManager dockManager;
+    dockManager.init();
+
+    // Set initial size for the root node
+    glm::vec2 initialSize(800.0f, 600.0f);
+    dockManager.setSize(initialSize);
+
+    auto splitterNode = dockManager.createNode<Bess::UI::DockSplitter>();
+    splitterNode->setSplitDir(Bess::UI::SplitDirection::vertical);
+
+    auto leaf1 = dockManager.createNode<Bess::UI::DockLeaf>();
+    leaf1->setDockedTo(splitterNode->getId());
+    auto leaf2 = dockManager.createNode<Bess::UI::DockLeaf>();
+    leaf2->setDockedTo(splitterNode->getId());
+
+    auto &splitNodes = splitterNode->getSplitNodes();
+    splitNodes.first = leaf1->getId();
+    splitNodes.second = leaf2->getId();
+
+    dockManager.layout();
+
+    // After docking, the layout should be updated
+    auto newSplitterNode = dockManager.getNode(splitterNode->getId());
+    ASSERT_TRUE(newSplitterNode->isSplitter());
+
+    auto splitNode =
+        std::dynamic_pointer_cast<Bess::UI::DockSplitter>(newSplitterNode);
+    ASSERT_TRUE(splitNode != nullptr);
+
+    auto firstNode = dockManager.getNode(splitNodes.first);
+    auto secondNode = dockManager.getNode(splitNodes.second);
+
+    ASSERT_EQ(firstNode->getPos().x, splitNode->getPos().x);
+    ASSERT_EQ(secondNode->getPos().x,
+              splitNode->getPos().x + firstNode->getSize().x);
+}
+
+TEST_F(DockManagerTests, GetHitRect) {
+    Bess::UI::DockManager dockManager;
+    dockManager.init();
+
+    auto leaf1 = dockManager.createNode<Bess::UI::DockLeaf>();
+    leaf1->setPos(glm::vec2(100.0f, 100.0f));
+    leaf1->setSize(glm::vec2(200.0f, 150.0f));
+
+    dockManager.layout(true);
+
+    auto hitId = dockManager.getHitRect(glm::vec2(150.0f, 120.0f));
+    ASSERT_EQ(hitId, leaf1->getId());
+
+    hitId = dockManager.getHitRect(glm::vec2(50.0f, 50.0f));
+    ASSERT_EQ(hitId, Bess::UUID::null);
+}
+
+TEST_F(DockManagerTests, FourHSplits) {
+    Bess::UI::DockManager dockManager;
+    dockManager.init();
+
+    // Splits = [[[1, 2], 3], 4]
+
+    std::vector<std::shared_ptr<Bess::UI::DockLeaf>> leaves;
+    for (int i = 0; i < 4; ++i) {
+        auto leaf = dockManager.createNode<Bess::UI::DockLeaf>();
+        leaves.push_back(leaf);
+        if (i == 0) {
+            leaf->setSize(glm::vec2(800.0f, 600.0f));
+            dockManager.dockNode(leaf->getId(),
+                                 dockManager.getRootNode(),
+                                 Bess::UI::DockZone::main);
+        } else {
+            dockManager.dockNode(leaf->getId(),
+                                 dockManager.getRootNode(),
+                                 Bess::UI::DockZone::right);
+        }
+    }
+
+    dockManager.layout();
+
+    // ExpectedSizes = [100, 100, 200, 400]
+    // Expcted positions = [0, 100, 200, 400]
+
+    const float xSizes[] = {100.0f, 100.0f, 200.0f, 400.0f};
+    const float xPos[] = {0.0f, 100.0f, 200.0f, 400.0f};
+
+    // Check that the positions and sizes of the leaves are correct
+    const float expectedWidth = 800.0f / 4;
+    for (int i = 0; i < 4; ++i) {
+        const auto &leaf = leaves[i];
+        ASSERT_FLOAT_EQ(leaf->getSize().x, xSizes[i]);
+        ASSERT_FLOAT_EQ(leaf->getSize().y, 600.0f);
+        ASSERT_FLOAT_EQ(leaf->getPos().x, xPos[i]);
+        ASSERT_FLOAT_EQ(leaf->getPos().y, 0.0f);
+    }
 }

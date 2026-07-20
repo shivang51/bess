@@ -49,6 +49,10 @@ namespace Bess::UI {
             return m_dockedTo == UUID::null;
         }
 
+        bool isRoot() const {
+            return m_id == m_dockedTo;
+        }
+
         MAKE_GETTER_SETTER(DockNodeType, NodeType, m_nodeType)
         MAKE_GETTER_SETTER(bool, AllowsDocking, m_allowsDocking)
         MAKE_GETTER_SETTER(UUID, Id, m_id)
@@ -121,13 +125,14 @@ namespace Bess::UI {
     };
 
     class DockManager {
-
       public:
         DockManager() = default;
 
+        void setRootNode(const std::shared_ptr<IDockNode> &node);
+
         UUID getHitRect(const glm::vec2 &point);
 
-        void layout();
+        void layout(bool force = false);
 
         bool dockNode(const UUID &nodeId, const UUID &targetId, DockZone zone);
 
@@ -145,13 +150,12 @@ namespace Bess::UI {
             return std::dynamic_pointer_cast<T>(node);
         }
 
-        void init() {
-            auto rootNode = std::make_shared<DockLeaf>();
-            m_rootNode = rootNode->getId();
-            m_nodes.clear();
-            m_rects.clear();
-            m_nodes[m_rootNode] = rootNode;
-        }
+        // Call this before any op
+        // Clears the list of nodes and rects
+        void init();
+
+        // Make sure init was called before calling this function
+        void setSize(const glm::vec2 &size);
 
         template <typename T, typename... Args>
             requires(std::is_base_of_v<IDockNode, T>)
@@ -252,7 +256,6 @@ namespace Bess::UI {
         UUID m_rootNode = UUID::null;
         HashMap<UUID, std::shared_ptr<IDockNode>> m_nodes;
         bool m_layoutDirty = false;
-
         std::vector<DockRect> m_rects;
     };
 } // namespace Bess::UI

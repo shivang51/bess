@@ -14,26 +14,33 @@ namespace Bess::UI {
         return UUID::null;
     }
 
-    void DockManager::layout() {
-        if (!m_layoutDirty) {
+    void DockManager::layout(const bool force) {
+        if (!m_layoutDirty && !force) {
             return;
         }
 
-        if (m_rootNode == UUID::null) {
-            BESS_ERROR("Root node is null, cannot layout");
-            return;
+        // Laying out root nodes
+        if (m_rootNode != UUID::null) {
+            auto rootNode = getNode(m_rootNode);
+            BESS_ASSERT(rootNode, "Root node not found");
+            layoutNode(rootNode);
         }
 
-        auto rootNode = getNode(m_rootNode);
-        BESS_ASSERT(rootNode, "Root node not found");
+        // Laying out floating nodes
+        for (const auto &[id, node] : m_nodes) {
+            if (node->isFloating()) {
+                layoutNode(node);
+            }
+        }
 
-        layoutNode(rootNode);
         m_layoutDirty = false;
 
         m_rects.clear();
         m_rects.reserve(m_nodes.size());
 
         for (const auto &[id, node] : m_nodes) {
+            const bool shouldAddRect = node->isFloating() || node->isLeaf();
+
             DockRect rect;
             rect.id = id;
             rect.pos = node->getPos();
@@ -46,26 +53,32 @@ namespace Bess::UI {
                                const UUID &targetId,
                                DockZone zone) {
         auto node = getNode(nodeId);
-        auto target = getNode(targetId);
 
         bool res = false;
-        const auto &targetType = target->getNodeType();
 
-        switch (targetType) {
-        case DockNodeType::leaf:
-            res = dockToLeaf(node, target, zone);
-            break;
-        case DockNodeType::tab:
-            res = dockToTab(node, target, zone);
-            break;
-        case DockNodeType::split:
-            res = dockToSplitter(node, target, zone);
-            break;
-        default:
-            BESS_ERROR("Unknown target node type {} for target {}",
-                       static_cast<int>(targetType),
-                       targetId);
-            return false;
+        if (targetId == m_rootNode && m_rootNode == UUID::null) {
+            setRootNode(node);
+            res = true;
+        } else {
+            auto target = getNode(targetId);
+            const auto &targetType = target->getNodeType();
+
+            switch (targetType) {
+            case DockNodeType::leaf:
+                res = dockToLeaf(node, target, zone);
+                break;
+            case DockNodeType::tab:
+                res = dockToTab(node, target, zone);
+                break;
+            case DockNodeType::split:
+                res = dockToSplitter(node, target, zone);
+                break;
+            default:
+                BESS_ERROR("Unknown target node type {} for target {}",
+                           static_cast<int>(targetType),
+                           targetId);
+                return false;
+            }
         }
 
         if (res) {
@@ -134,6 +147,20 @@ namespace Bess::UI {
         }
 
         return res;
+    }
+
+    void DockManager::init() {
+        m_rootNode = UUID::null;
+        m_nodes.clear();
+        m_rects.clear();
+    }
+
+    void DockManager::setSize(const glm::vec2 &size) {
+        auto rootNode = getNode(m_rootNode);
+        if (rootNode) {
+            rootNode->setSize(size);
+            m_layoutDirty = true;
+        }
     }
 
     void DockManager::layoutNode(const std::shared_ptr<IDockNode> &node) {
@@ -345,6 +372,13 @@ namespace Bess::UI {
         if (it != m_nodes.end()) {
             m_nodes.erase(it);
         }
+    }
+
+    void DockManager::setRootNode(const std::shared_ptr<IDockNode> &node) {
+        m_nodes.erase(m_rootNode);
+
+        m_rootNode = node->getId();
+        m_nodes[m_rootNode] = node;
     }
 
     bool DockManager::replaceNode(const std::shared_ptr<IDockNode> &newNode,
