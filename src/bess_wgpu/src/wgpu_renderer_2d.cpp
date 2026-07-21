@@ -530,6 +530,8 @@ namespace Bess::Wgpu {
         void createDepthTarget();
         void createWindowSurface();
         void configureWindowSurface(uint32_t width, uint32_t height);
+        [[nodiscard]] wgpu::TextureView
+        createSurfaceTargetView(const wgpu::Texture &texture) const;
         void createDefaultTexture();
         void recreateTextureBindGroups();
         [[nodiscard]] uint64_t nextSubmitOrder() noexcept;
@@ -1357,6 +1359,18 @@ namespace Bess::Wgpu {
         surfaceConfigured = true;
     }
 
+    wgpu::TextureView WgpuRenderer2D::Impl::createSurfaceTargetView(
+        const wgpu::Texture &texture) const {
+        if (surfaceViewFormat == surfaceFormat) {
+            return texture.CreateView();
+        }
+
+        wgpu::TextureViewDescriptor viewDescriptor{};
+        viewDescriptor.format = surfaceViewFormat;
+        viewDescriptor.label = "SurfaceRenderTargetView";
+        return texture.CreateView(&viewDescriptor);
+    }
+
     void WgpuRenderer2D::resize(const Renderer2DExtent &extent) {
         m_impl->extent = extent;
         if (m_impl->device != nullptr) {
@@ -1449,15 +1463,8 @@ namespace Bess::Wgpu {
                 return;
             }
 
-            if (m_impl->surfaceViewFormat != m_impl->surfaceFormat) {
-                wgpu::TextureViewDescriptor viewDescriptor{};
-                viewDescriptor.format = m_impl->surfaceViewFormat;
-                viewDescriptor.label = "SurfaceRenderTargetView";
-                targetView = surfaceTexture.texture.CreateView(
-                    &viewDescriptor);
-            } else {
-                targetView = surfaceTexture.texture.CreateView();
-            }
+            targetView =
+                m_impl->createSurfaceTargetView(surfaceTexture.texture);
         } else if (m_impl->frameTargetTexture != 0) {
             targetView = m_impl->getTexture(m_impl->frameTargetTexture).view;
         } else {
@@ -3168,7 +3175,8 @@ namespace Bess::Wgpu {
             return;
         }
 
-        wgpu::TextureView targetView = surfaceTexture.texture.CreateView();
+        wgpu::TextureView targetView =
+            m_impl->createSurfaceTargetView(surfaceTexture.texture);
 
         m_impl->commandEncoder = m_impl->device.CreateCommandEncoder();
 
@@ -3216,7 +3224,7 @@ namespace Bess::Wgpu {
     }
 
     [[nodiscard]] wgpu::TextureFormat WgpuRenderer2D::getSurfaceFormat() const {
-        return m_impl->surfaceFormat;
+        return m_impl->surfaceViewFormat;
     }
 
 } // namespace Bess::Wgpu

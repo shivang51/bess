@@ -270,20 +270,20 @@ namespace Bess {
                                    .getSubSystem<RendererContext>()
                                    ->getRenderer<Wgpu::WgpuRenderer2D>();
 
-        // renderer->beginFrame({
-        //     .extent = {static_cast<uint32_t>(m_width),
-        //                static_cast<uint32_t>(m_height)},
-        //     .clearColor = {1.F, 0.1F, 0.1F, 1.0F},
-        //     .shouldClear = true,
-        //     .pickingTexture = m_pickingTexture->getHandle(),
-        // });
-        // renderer->drawQuad({
-        //     .position = {100, 100},
-        //     .size = {100, 100},
-        //     .color = {0, 1, 0, 1},
-        //     .transformMode = Core::Renderer::RenderTransformMode::Screen,
-        // });
-        // renderer->endFrame();
+        renderer->beginFrame({
+            .extent = {static_cast<uint32_t>(m_width),
+                       static_cast<uint32_t>(m_height)},
+            .clearColor = {1.F, 0.1F, 0.1F, 1.0F},
+            .shouldClear = true,
+            .pickingTexture = m_pickingTexture->getHandle(),
+        });
+        renderer->drawQuad({
+            .position = {100, 100},
+            .size = {100, 100},
+            .color = {0, 1, 0, 1},
+            .transformMode = Core::Renderer::RenderTransformMode::Screen,
+        });
+        renderer->endFrame();
 
         renderer->drawToWindow(shared_from_this(), // FIXME: temp
                                [&](void *renderPass) {
