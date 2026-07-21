@@ -8,6 +8,7 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string_view>
@@ -465,7 +466,11 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         const uint32_t width = static_cast<uint32_t>(bitmap.width);
         const uint32_t height = static_cast<uint32_t>(bitmap.rows);
         if (width == 0 || height == 0) {
-            return cacheEmptyGlyph(key, codepoint, bucket, advance);
+            return cacheEmptyGlyph(key,
+                                   codepoint,
+                                   bucket,
+                                   advance,
+                                   static_cast<uint32_t>(faceIndex));
         }
 
         uint32_t atlasX = 0;
@@ -487,6 +492,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         BitmapGlyph glyph{};
         glyph.codepoint = codepoint;
         glyph.pixelSize = bucket;
+        glyph.faceIndex = static_cast<uint32_t>(faceIndex);
         glyph.advance = advance;
         glyph.offsetX = static_cast<float>(face->glyph->bitmap_left);
         glyph.offsetY = static_cast<float>(face->glyph->bitmap_top);
@@ -617,10 +623,12 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
     const BitmapGlyph *BitmapFontAtlas::cacheEmptyGlyph(uint64_t key,
                                                         uint32_t codepoint,
                                                         uint32_t pixelSize,
-                                                        float advance) {
+                                                        float advance,
+                                                        uint32_t faceIndex) {
         BitmapGlyph glyph{};
         glyph.codepoint = codepoint;
         glyph.pixelSize = pixelSize;
+        glyph.faceIndex = faceIndex;
         glyph.advance = advance;
         glyph.drawable = false;
         auto [it, _] = m_glyphs.emplace(key, glyph);
@@ -1172,6 +1180,84 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         return {maxWidth, totalHeight};
     }
 
+    float bitmapCenterOffsetX(std::string_view text,
+                              const Core::Renderer::FontProps &props,
+                              BitmapFontAtlas &atlas) {
+        if (!atlas.valid() || text.empty() || props.fontSize <= 0.f) {
+            return 0.f;
+        }
+
+        const uint32_t pixelSize = atlas.quantizePixelSize(props.fontSize);
+        const float scale = props.fontSize / static_cast<float>(pixelSize);
+        const BitmapGlyph *spaceGlyph = atlas.ensureGlyph(' ', pixelSize);
+        const float spaceAdvance =
+            spaceGlyph != nullptr && spaceGlyph->advance > 0.f
+                ? spaceGlyph->advance * scale
+                : props.fontSize * 0.25f;
+
+        float lineAdvance = 0.f;
+        float inkLeft = std::numeric_limits<float>::infinity();
+        float inkRight = -std::numeric_limits<float>::infinity();
+        bool hasFallbackInk = false;
+        bool hasPrimaryInk = false;
+
+        size_t offset = 0;
+        while (offset < text.size()) {
+            const uint32_t codepoint = decodeUtf8(text, offset);
+            if (codepoint == 0) {
+                break;
+            }
+            if (codepoint == '\r') {
+                if (offset < text.size() && text[offset] == '\n') {
+                    ++offset;
+                }
+                lineAdvance = 0.f;
+                continue;
+            }
+            if (codepoint == '\n') {
+                lineAdvance = 0.f;
+                continue;
+            }
+            if (codepoint == '\t') {
+                lineAdvance += (spaceAdvance * std::max(props.tabSize, 1.f)) +
+                               props.letterSpacing;
+                continue;
+            }
+
+            const BitmapGlyph *glyph = atlas.ensureGlyph(codepoint, pixelSize);
+            if (glyph == nullptr) {
+                return 0.f;
+            }
+
+            if (glyph->drawable) {
+                if (glyph->faceIndex == 0) {
+                    hasPrimaryInk = true;
+                } else {
+                    hasFallbackInk = true;
+                }
+                const float left = lineAdvance + glyph->offsetX * scale;
+                inkLeft = std::min(inkLeft, left);
+                inkRight = std::max(inkRight, left + glyph->width * scale);
+            }
+
+            const float advance = glyph->advance > 0.f ? glyph->advance * scale
+                                                       : props.fontSize * 0.5f;
+            lineAdvance += advance + props.letterSpacing;
+        }
+
+        // Text retains its typographic advance alignment. Remapped icon-only
+        // runs are centered by visible raster ink because hinting can give a
+        // small icon a negative bearing that is not represented by the draw
+        // origin (Font Awesome's 10 px xmark is one concrete example).
+        if (!hasFallbackInk || hasPrimaryInk || !std::isfinite(inkLeft) ||
+            !std::isfinite(inkRight) || inkRight < inkLeft) {
+            return 0.f;
+        }
+
+        const glm::vec2 measured = measureBitmapText(text, props, atlas);
+        return centeredInkOriginOffsetX(measured.x, inkLeft, inkRight);
+    }
+
     float bitmapCenterOffsetY(std::string_view text,
                               const Core::Renderer::FontProps &props,
                               BitmapFontAtlas &atlas) {
@@ -1182,6 +1268,64 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         const uint32_t pixelSize = atlas.quantizePixelSize(props.fontSize);
         const float scale = props.fontSize / static_cast<float>(pixelSize);
         const BitmapTextLineMetrics metrics = atlas.metricsForSize(pixelSize);
+
+        // Normal labels use primary-font line metrics so descenders never
+        // shift neighboring baselines. An icon-only run is different: its
+        // glyph comes from a fallback face with unrelated ascender/descender
+        // metrics. Center its raster ink instead, otherwise small icons can
+        // sit a full pixel away from the center of their button background.
+        const float lineHeight =
+            props.lineHeight > 0.f
+                ? props.lineHeight
+                : std::max(metrics.lineHeight * scale, props.fontSize);
+        float lineBaseline = 0.f;
+        float inkTop = std::numeric_limits<float>::infinity();
+        float inkBottom = -std::numeric_limits<float>::infinity();
+        bool hasFallbackInk = false;
+        bool hasPrimaryInk = false;
+
+        size_t offset = 0;
+        while (offset < text.size()) {
+            const uint32_t codepoint = decodeUtf8(text, offset);
+            if (codepoint == 0) {
+                break;
+            }
+            if (codepoint == '\r') {
+                if (offset < text.size() && text[offset] == '\n') {
+                    ++offset;
+                }
+                lineBaseline += lineHeight;
+                continue;
+            }
+            if (codepoint == '\n') {
+                lineBaseline += lineHeight;
+                continue;
+            }
+            if (codepoint == '\t') {
+                continue;
+            }
+
+            const BitmapGlyph *glyph = atlas.ensureGlyph(codepoint, pixelSize);
+            if (glyph == nullptr || !glyph->drawable) {
+                continue;
+            }
+            if (glyph->faceIndex == 0) {
+                hasPrimaryInk = true;
+                continue;
+            }
+
+            hasFallbackInk = true;
+            const float top = lineBaseline - glyph->offsetY * scale;
+            const float bottom = top + glyph->height * scale;
+            inkTop = std::min(inkTop, top);
+            inkBottom = std::max(inkBottom, bottom);
+        }
+
+        if (hasFallbackInk && !hasPrimaryInk && std::isfinite(inkTop) &&
+            std::isfinite(inkBottom) && inkBottom >= inkTop) {
+            return centeredInkBaselineOffsetY(inkTop, inkBottom);
+        }
+
         return centeredBaselineOffsetY(
             text,
             props,

@@ -300,30 +300,34 @@ namespace Bess::UI {
                     if (item.closable && !region.trailingActionBounds.empty()) {
                         const bool closePressed = tab == m_pressedClose;
                         const bool closeHovered = tab == m_hoveredClose;
-                        if (closePressed || closeHovered) {
-                            const auto closeStyle =
-                                circularStyle(closePressed ? tabs.closePressed
-                                                           : tabs.closeHovered,
-                                              region.trailingActionBounds);
-                            context.painter.drawBox(
-                                makeBox(region.trailingActionBounds,
-                                        closeStyle,
-                                        id,
-                                        layer + 0.0035f));
-                        }
-                        context.painter.drawText(
-                            Icons::FontAwesomeIcons::FA_XMARK,
-                            {
+                        IconPaint closePaint{
+                            .glyph = {
                                 .bounds = region.trailingActionBounds,
                                 .fontSize = std::max(1.f, tabs.closeIconSize),
                                 .color = closePressed || closeHovered
                                              ? tabs.closeIconHovered
                                              : tabs.closeIcon,
-                                .horizontal = HorizontalTextAlignment::center,
+                                .horizontal =
+                                    HorizontalTextAlignment::center,
                                 .vertical = VerticalTextAlignment::center,
                                 .zIndex = layer + 0.004f,
                                 .pickingId = id,
-                            });
+                            },
+                        };
+                        if (closePressed || closeHovered) {
+                            const auto closeStyle =
+                                circularStyle(closePressed ? tabs.closePressed
+                                                           : tabs.closeHovered,
+                                              region.trailingActionBounds);
+                            closePaint.background =
+                                makeBox(region.trailingActionBounds,
+                                        closeStyle,
+                                        id,
+                                        layer + 0.0035f);
+                        }
+                        context.painter.drawIcon(
+                            Icons::FontAwesomeIcons::FA_XMARK,
+                            closePaint);
                     }
                 }
             }
@@ -436,19 +440,8 @@ namespace Bess::UI {
             if (closable && !headerRegion.trailingActionBounds.empty()) {
                 const bool closePressed = titleTab == m_pressedClose;
                 const bool closeHovered = titleTab == m_hoveredClose;
-                if (closePressed || closeHovered) {
-                    const auto closeStyle = circularStyle(
-                        closePressed ? tabs.closePressed : tabs.closeHovered,
-                        headerRegion.trailingActionBounds);
-                    context.painter.drawBox(
-                        makeBox(headerRegion.trailingActionBounds,
-                                closeStyle,
-                                context.pickingId,
-                                layer + 0.012f));
-                }
-                context.painter.drawText(
-                    Icons::FontAwesomeIcons::FA_XMARK,
-                    {
+                IconPaint closePaint{
+                    .glyph = {
                         .bounds = headerRegion.trailingActionBounds,
                         .fontSize = std::max(1.f, tabs.closeIconSize),
                         .color = closePressed || closeHovered
@@ -458,7 +451,21 @@ namespace Bess::UI {
                         .vertical = VerticalTextAlignment::center,
                         .zIndex = layer + 0.013f,
                         .pickingId = context.pickingId,
-                    });
+                    },
+                };
+                if (closePressed || closeHovered) {
+                    const auto closeStyle = circularStyle(
+                        closePressed ? tabs.closePressed : tabs.closeHovered,
+                        headerRegion.trailingActionBounds);
+                    closePaint.background =
+                        makeBox(headerRegion.trailingActionBounds,
+                                closeStyle,
+                                context.pickingId,
+                                layer + 0.012f);
+                }
+                context.painter.drawIcon(
+                    Icons::FontAwesomeIcons::FA_XMARK,
+                    closePaint);
             }
         }
 

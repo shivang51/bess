@@ -2947,6 +2947,24 @@ namespace Bess::Wgpu {
         return {maxLineWidth, totalHeight};
     }
 
+    float WgpuRenderer2D::textCenterOffsetX(std::string_view text,
+                                            const FontProps &props) {
+        if (text.empty() || props.fontSize <= 0.f) {
+            return 0.f;
+        }
+
+        if (m_impl->bitmapFontAtlas != nullptr &&
+            m_impl->bitmapFontAtlas->valid() &&
+            shouldUseBitmapText(props.fontSize) &&
+            Text::ensureBitmapTextGlyphs(
+                text, props.fontSize, *m_impl->bitmapFontAtlas)) {
+            return Text::bitmapCenterOffsetX(
+                text, props, *m_impl->bitmapFontAtlas);
+        }
+
+        return 0.f;
+    }
+
     float WgpuRenderer2D::textCenterOffsetY(std::string_view text,
                                             const FontProps &props) {
         if (text.empty() || props.fontSize <= 0.f) {

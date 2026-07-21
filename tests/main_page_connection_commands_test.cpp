@@ -147,6 +147,11 @@ namespace {
             const Bess::Core::Renderer::FontProps &props = {}) override {
             return getTextRenderSize(text, props);
         }
+        [[nodiscard]] float textCenterOffsetX(
+            std::string_view,
+            const Bess::Core::Renderer::FontProps & = {}) override {
+            return 0.f;
+        }
         [[nodiscard]] float textCenterOffsetY(
             std::string_view,
             const Bess::Core::Renderer::FontProps &props = {}) override {

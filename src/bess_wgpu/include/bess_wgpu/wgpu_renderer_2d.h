@@ -102,6 +102,9 @@ namespace Bess::Wgpu {
         measureText(std::string_view text,
                     const Core::Renderer::FontProps &props = {}) override;
         [[nodiscard]] float
+        textCenterOffsetX(std::string_view text,
+                          const Core::Renderer::FontProps &props = {}) override;
+        [[nodiscard]] float
         textCenterOffsetY(std::string_view text,
                           const Core::Renderer::FontProps &props = {}) override;
 

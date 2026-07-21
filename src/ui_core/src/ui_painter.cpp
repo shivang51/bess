@@ -4,7 +4,76 @@
 #include <cmath>
 
 namespace Bess::UI {
+    namespace {
+        [[nodiscard]] Core::Renderer::FontProps
+        prepareText(Core::Renderer::IRenderer2D &renderer,
+                    std::string_view text,
+                    const TextPaint &paint,
+                    float layerOffset) {
+            Core::Renderer::FontProps props{
+                .fontSize = paint.fontSize,
+                .color = paint.color,
+                .zIndex = paint.zIndex + layerOffset,
+                .letterSpacing = paint.letterSpacing,
+                .id = paint.pickingId,
+                .transformMode = Core::Renderer::RenderTransformMode::Screen,
+            };
+            const auto textSize = renderer.measureText(text, props);
+            auto position = paint.bounds.topLeft();
+
+            switch (paint.horizontal) {
+            case HorizontalTextAlignment::start:
+                break;
+            case HorizontalTextAlignment::center:
+                position.x += (paint.bounds.size.x - textSize.x) * 0.5f;
+                position.x += renderer.textCenterOffsetX(text, props);
+                break;
+            case HorizontalTextAlignment::end:
+                position.x += paint.bounds.size.x - textSize.x;
+                break;
+            }
+
+            const float centerOffset = renderer.textCenterOffsetY(text, props);
+            switch (paint.vertical) {
+            case VerticalTextAlignment::start:
+                position.y += centerOffset;
+                break;
+            case VerticalTextAlignment::center:
+                position.y = paint.bounds.center.y + centerOffset;
+                break;
+            case VerticalTextAlignment::end:
+                position.y +=
+                    paint.bounds.size.y - textSize.y + centerOffset;
+                break;
+            }
+
+            props.position = position;
+            return props;
+        }
+
+        [[nodiscard]] glm::vec2
+        pixelSnapDelta(glm::vec2 screenSpaceOrigin,
+                       glm::vec2 viewportSize) noexcept {
+            if (!std::isfinite(screenSpaceOrigin.x) ||
+                !std::isfinite(screenSpaceOrigin.y)) {
+                return {0.f, 0.f};
+            }
+            const glm::vec2 viewport =
+                glm::max(viewportSize, glm::vec2{0.f});
+            const glm::vec2 pixel = screenSpaceOrigin + viewport * 0.5f;
+            return {std::round(pixel.x) - pixel.x,
+                    std::round(pixel.y) - pixel.y};
+        }
+    } // namespace
+
     UIPainter::~UIPainter() = default;
+
+    void UIPainter::drawIcon(std::string_view icon, const IconPaint &paint) {
+        if (paint.background) {
+            drawBox(*paint.background);
+        }
+        drawText(icon, paint.glyph);
+    }
 
     void UIPainter::pushLayer(float) {
     }
@@ -49,43 +118,33 @@ namespace Bess::UI {
             return;
         }
 
-        Core::Renderer::FontProps props{
-            .fontSize = paint.fontSize,
-            .color = paint.color,
-            .zIndex = paint.zIndex + m_layerOffset,
-            .letterSpacing = paint.letterSpacing,
-            .id = paint.pickingId,
-            .transformMode = Core::Renderer::RenderTransformMode::Screen,
-        };
-        const auto textSize = m_renderer.measureText(text, props);
-        auto position = paint.bounds.topLeft();
-
-        switch (paint.horizontal) {
-        case HorizontalTextAlignment::start:
-            break;
-        case HorizontalTextAlignment::center:
-            position.x += (paint.bounds.size.x - textSize.x) * 0.5f;
-            break;
-        case HorizontalTextAlignment::end:
-            position.x += paint.bounds.size.x - textSize.x;
-            break;
-        }
-
-        const float centerOffset = m_renderer.textCenterOffsetY(text, props);
-        switch (paint.vertical) {
-        case VerticalTextAlignment::start:
-            position.y += centerOffset;
-            break;
-        case VerticalTextAlignment::center:
-            position.y = paint.bounds.center.y + centerOffset;
-            break;
-        case VerticalTextAlignment::end:
-            position.y += paint.bounds.size.y - textSize.y + centerOffset;
-            break;
-        }
-
-        props.position = position;
+        const auto props =
+            prepareText(m_renderer, text, paint, m_layerOffset);
         m_renderer.drawFont(text, props);
+    }
+
+    void RendererUIPainter::drawIcon(std::string_view icon,
+                                     const IconPaint &paint) {
+        const auto &glyph = paint.glyph;
+        if (icon.empty() || glyph.bounds.empty() || glyph.fontSize <= 0.f ||
+            glyph.color.a <= 0.f) {
+            if (paint.background) {
+                drawBox(*paint.background);
+            }
+            return;
+        }
+
+        auto props = prepareText(m_renderer, icon, glyph, m_layerOffset);
+        const glm::vec2 delta =
+            pixelSnapDelta(props.position, m_viewportSize);
+        props.position += delta;
+
+        if (paint.background) {
+            auto background = *paint.background;
+            background.bounds.center += delta;
+            drawBox(background);
+        }
+        m_renderer.drawFont(icon, props);
     }
 
     glm::vec2 RendererUIPainter::measureText(std::string_view text,

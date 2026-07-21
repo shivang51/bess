@@ -30,6 +30,9 @@ namespace Bess::Wgpu::Text {
     struct BESS_API BitmapGlyph {
         uint32_t codepoint = 0;
         uint32_t pixelSize = 0;
+        // Zero is the primary text face. Non-zero values identify bundled
+        // fallback faces, which are currently the remapped icon catalogs.
+        uint32_t faceIndex = 0;
         float advance = 0.f;
         float offsetX = 0.f;
         float offsetY = 0.f;
@@ -82,7 +85,8 @@ namespace Bess::Wgpu::Text {
         [[nodiscard]] const BitmapGlyph *cacheEmptyGlyph(uint64_t key,
                                                          uint32_t codepoint,
                                                          uint32_t pixelSize,
-                                                         float advance);
+                                                         float advance,
+                                                         uint32_t faceIndex);
         [[nodiscard]] bool reserveRegion(uint32_t width,
                                          uint32_t height,
                                          uint32_t &x,
@@ -320,6 +324,10 @@ namespace Bess::Wgpu::Text {
     glm::vec2 measureBitmapText(std::string_view text,
                                 const Core::Renderer::FontProps &props,
                                 BitmapFontAtlas &atlas);
+
+    float bitmapCenterOffsetX(std::string_view text,
+                              const Core::Renderer::FontProps &props,
+                              BitmapFontAtlas &atlas);
 
     float bitmapCenterOffsetY(std::string_view text,
                               const Core::Renderer::FontProps &props,

@@ -11,12 +11,15 @@
 
 #include <array>
 #include <cstdint>
+#include <limits>
 #include <string>
 #include <string_view>
 
 namespace {
     using Bess::Core::Renderer::FontProps;
     using Bess::Wgpu::Text::centeredBaselineOffsetY;
+    using Bess::Wgpu::Text::centeredInkBaselineOffsetY;
+    using Bess::Wgpu::Text::centeredInkOriginOffsetX;
     using Bess::Wgpu::Text::textLineCount;
     using Bess::Wgpu::Text::TextLineMetrics;
 
@@ -85,6 +88,21 @@ namespace {
         EXPECT_FLOAT_EQ(centeredBaselineOffsetY("CAPS", props, metrics),
                         reference);
         EXPECT_FLOAT_EQ(reference, 3.5f);
+    }
+
+    TEST(TextMetricsTests, IconInkCenterUsesItsVisualBounds) {
+        // Font Awesome's 10 px xmark has a 9 px raster spanning [-1, 8]
+        // even though its hinted advance is only 8 px.
+        EXPECT_FLOAT_EQ(centeredInkOriginOffsetX(9.f, -1.f, 8.f), 1.f);
+        EXPECT_FLOAT_EQ(centeredInkOriginOffsetX(8.f, 0.f, 8.f), 0.f);
+        EXPECT_FLOAT_EQ(centeredInkOriginOffsetX(9.f, 2.f, -2.f), 0.f);
+
+        EXPECT_FLOAT_EQ(centeredInkBaselineOffsetY(-8.f, 0.f), 4.f);
+        EXPECT_FLOAT_EQ(centeredInkBaselineOffsetY(-7.f, 1.f), 3.f);
+        EXPECT_FLOAT_EQ(centeredInkBaselineOffsetY(
+                            std::numeric_limits<float>::quiet_NaN(), 1.f),
+                        0.f);
+        EXPECT_FLOAT_EQ(centeredInkBaselineOffsetY(2.f, -2.f), 0.f);
     }
 
     TEST(TextMetricsTests, CountsMixedLineEndingsAndCentersTheLineBox) {

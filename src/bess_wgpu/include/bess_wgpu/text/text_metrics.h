@@ -17,6 +17,32 @@ namespace Bess::Wgpu::Text {
         float lineHeight = 0.f;
     };
 
+    // Converts an ink center expressed relative to the text origin into the
+    // origin adjustment needed to center that visible ink inside the measured
+    // text width. This matters for small hinted glyphs whose raster bounds can
+    // extend beyond their typographic advance.
+    [[nodiscard]] inline float centeredInkOriginOffsetX(
+        float measuredWidth, float inkLeft, float inkRight) noexcept {
+        if (!std::isfinite(measuredWidth) || measuredWidth <= 0.f ||
+            !std::isfinite(inkLeft) || !std::isfinite(inkRight) ||
+            inkRight < inkLeft) {
+            return 0.f;
+        }
+        return measuredWidth * 0.5f - (inkLeft + inkRight) * 0.5f;
+    }
+
+    // Returns the baseline displacement that places raster ink bounds around
+    // the requested center. `inkTop` and `inkBottom` are y-down coordinates
+    // relative to the unshifted baseline.
+    [[nodiscard]] inline float
+    centeredInkBaselineOffsetY(float inkTop, float inkBottom) noexcept {
+        if (!std::isfinite(inkTop) || !std::isfinite(inkBottom) ||
+            inkBottom < inkTop) {
+            return 0.f;
+        }
+        return -(inkTop + inkBottom) * 0.5f;
+    }
+
     [[nodiscard]] constexpr std::size_t
     textLineCount(std::string_view text) noexcept {
         if (text.empty()) {

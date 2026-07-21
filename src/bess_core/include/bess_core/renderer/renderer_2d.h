@@ -272,6 +272,9 @@ namespace Bess::Core::Renderer {
         [[nodiscard]] virtual glm::vec2
         measureText(std::string_view text, const FontProps &props = {}) = 0;
         [[nodiscard]] virtual float
+        textCenterOffsetX(std::string_view text,
+                          const FontProps &props = {}) = 0;
+        [[nodiscard]] virtual float
         textCenterOffsetY(std::string_view text,
                           const FontProps &props = {}) = 0;
 

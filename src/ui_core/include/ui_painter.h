@@ -4,6 +4,7 @@
 #include "common/bess_api.h"
 #include "ui_types.h"
 
+#include <optional>
 #include <string_view>
 #include <vector>
 
@@ -34,6 +35,14 @@ namespace Bess::UI {
         PickingId pickingId = PickingId::invalid();
     };
 
+    // A font-backed icon and its optional background are one visual unit.
+    // Renderer-backed painters align both from the same prepared glyph origin
+    // so bitmap pixel snapping cannot move the icon inside its affordance.
+    struct IconPaint {
+        TextPaint glyph;
+        std::optional<BoxPaint> background;
+    };
+
     class BESS_API UIPainter {
       public:
         virtual ~UIPainter();
@@ -42,6 +51,7 @@ namespace Bess::UI {
         virtual void drawBox(const BoxPaint &paint) = 0;
         virtual void drawText(std::string_view text,
                               const TextPaint &paint) = 0;
+        virtual void drawIcon(std::string_view icon, const IconPaint &paint);
         [[nodiscard]] virtual glm::vec2
         measureText(std::string_view text,
                     float fontSize,
@@ -65,6 +75,7 @@ namespace Bess::UI {
         [[nodiscard]] glm::vec2 viewportSize() const noexcept override;
         void drawBox(const BoxPaint &paint) override;
         void drawText(std::string_view text, const TextPaint &paint) override;
+        void drawIcon(std::string_view icon, const IconPaint &paint) override;
         [[nodiscard]] glm::vec2
         measureText(std::string_view text,
                     float fontSize,

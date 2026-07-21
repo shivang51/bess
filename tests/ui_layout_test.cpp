@@ -16,6 +16,8 @@
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "event_dispatcher.h"
+#include "ui_painter.h"
+#include <cmath>
 #include <gtest/gtest.h>
 #include <memory>
 #include <vector>
@@ -143,6 +145,11 @@ namespace {
             const Bess::Core::Renderer::FontProps &props = {}) override {
             return getTextRenderSize(text, props);
         }
+        [[nodiscard]] float textCenterOffsetX(
+            std::string_view,
+            const Bess::Core::Renderer::FontProps & = {}) override {
+            return 0.f;
+        }
         [[nodiscard]] float textCenterOffsetY(
             std::string_view,
             const Bess::Core::Renderer::FontProps &props = {}) override {
@@ -179,6 +186,69 @@ namespace {
         std::vector<Bess::Core::Renderer::QuadProps> quads;
         std::vector<Bess::Core::Renderer::FontProps> fonts;
     };
+
+    TEST(RendererUIPainterTests,
+         IconAndBackgroundShareThePreparedGlyphPixelTranslation) {
+        LayoutTestRenderer2D renderer;
+        Bess::UI::RendererUIPainter painter(renderer, {101.f, 99.f});
+
+        for (const glm::vec2 center :
+             {glm::vec2{0.2f, 0.3f},
+              glm::vec2{17.7f, -12.1f},
+              glm::vec2{-50.2f, -49.7f}}) {
+            renderer.quads.clear();
+            renderer.fonts.clear();
+
+            const Bess::UI::WidgetBounds bounds{
+                .center = center,
+                .size = {18.f, 18.f},
+            };
+            painter.drawIcon(
+                "x",
+                {
+                    .glyph = {
+                        .bounds = bounds,
+                        .fontSize = 10.f,
+                        .horizontal =
+                            Bess::UI::HorizontalTextAlignment::center,
+                        .vertical = Bess::UI::VerticalTextAlignment::center,
+                    },
+                    .background = Bess::UI::BoxPaint{
+                        .bounds = bounds,
+                        .color = {1.f, 1.f, 1.f, 1.f},
+                    },
+                });
+
+            ASSERT_EQ(renderer.quads.size(), 1u);
+            ASSERT_EQ(renderer.fonts.size(), 1u);
+
+            // The fake renderer measures "x" as 6x10 and places its baseline
+            // 3.5 px below center. Both visuals must receive the correction
+            // that makes that baseline land on a physical pixel.
+            const glm::vec2 unalignedOrigin = center + glm::vec2{-3.f, 3.5f};
+            const glm::vec2 screenOrigin =
+                unalignedOrigin + glm::vec2{50.5f, 49.5f};
+            const glm::vec2 delta{
+                std::round(screenOrigin.x) - screenOrigin.x,
+                std::round(screenOrigin.y) - screenOrigin.y,
+            };
+
+            expectVec2(renderer.quads.front().position,
+                       center.x + delta.x,
+                       center.y + delta.y);
+            expectVec2(renderer.fonts.front().position,
+                       unalignedOrigin.x + delta.x,
+                       unalignedOrigin.y + delta.y);
+            EXPECT_NEAR(
+                renderer.quads.front().position.x - center.x,
+                renderer.fonts.front().position.x - unalignedOrigin.x,
+                1e-5f);
+            EXPECT_NEAR(
+                renderer.quads.front().position.y - center.y,
+                renderer.fonts.front().position.y - unalignedOrigin.y,
+                1e-5f);
+        }
+    }
 
     Bess::Canvas::SceneEvent
     keyEvent(Bess::KeyCode key, bool ctrl = false, bool shift = false) {
