@@ -2,11 +2,141 @@
 #include "bess_core/renderer/colors.h"
 #include "bess_core/style/color_scheme.h"
 #include "common/bess_assert.h"
+#include "dock.h"
 
 #include <cstdint>
 #include <format>
 
 namespace Bess::UI {
+
+    namespace {
+        void createTestDock(DockManager &dockManager) {
+            // auto dock = dockManager.createNode<DockLeaf>();
+            // dockManager.setRootNode(dock);
+
+            std::vector<std::shared_ptr<Bess::UI::DockLeaf>> leaves;
+            for (int i = 0; i < 4; ++i) {
+                auto leaf = dockManager.createNode<Bess::UI::DockLeaf>();
+                leaves.push_back(leaf);
+                if (i == 0) {
+                    leaf->setSize(glm::vec2(800.0f, 600.0f));
+                    dockManager.dockNode(leaf->getId(),
+                                         dockManager.getRootNode(),
+                                         Bess::UI::DockZone::main);
+                } else {
+                    dockManager.dockNode(leaf->getId(),
+                                         dockManager.getRootNode(),
+                                         Bess::UI::DockZone::right);
+                }
+            }
+        }
+
+        uint32_t dockRuntimeId = 0;
+
+        void drawDockNode(
+            const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer,
+            DockManager &dockManager,
+            const UUID &nodeId) {
+            auto node = dockManager.getNode(nodeId);
+            if (!node) {
+                return;
+            }
+
+            if (node->isLeaf()) {
+                auto topLeft = node->getPos();
+                auto size = node->getSize();
+                auto center = topLeft + size * 0.5f;
+                renderer->drawQuad({
+                    .position = center,
+                    .size = size,
+                    .color = Core::Renderer::Colors::pastelRed,
+                    .id = {.runtimeId = dockRuntimeId++},
+                    .transformMode =
+                        Core::Renderer::RenderTransformMode::Screen,
+                });
+            } else if (node->isTab()) {
+                auto topLeft = node->getPos();
+                auto size = node->getSize();
+                auto center = topLeft + size * 0.5f;
+                renderer->drawQuad({
+                    .position = center,
+                    .size = size,
+                    .color = Core::Renderer::Colors::blue,
+                    .id = {.runtimeId = dockRuntimeId++},
+                    .transformMode =
+                        Core::Renderer::RenderTransformMode::Screen,
+                });
+
+                auto tabNode = std::dynamic_pointer_cast<DockTab>(node);
+                renderer->drawFont(
+                    std::format("Tab Node with {} children",
+                                tabNode->getDockedNodes().size()),
+                    {
+                        .position = center,
+                        .fontSize = 14,
+                        .color = Core::Renderer::Colors::white,
+                        .transformMode =
+                            Core::Renderer::RenderTransformMode::Screen,
+                    });
+
+                for (const auto &childId : tabNode->getDockedNodes()) {
+                    drawDockNode(renderer, dockManager, childId);
+                }
+            } else if (node->isSplitter()) {
+                auto topLeft = node->getPos();
+                auto size = node->getSize();
+                auto center = topLeft + size * 0.5f;
+
+                auto splitNode = std::dynamic_pointer_cast<DockSplitter>(node);
+                const auto &splitNodes = splitNode->getSplitNodes();
+                drawDockNode(renderer, dockManager, splitNodes.first);
+                if (splitNode->getSplitDir() == SplitDirection::horizontal) {
+                    renderer->drawLine({
+                        .p0 = {topLeft.x +
+                                   (size.x * splitNode->getSplitRatio()),
+                               topLeft.y},
+                        .p1 = {topLeft.x +
+                                   (size.x * splitNode->getSplitRatio()),
+                               topLeft.y + size.y},
+                        .thickness = 2.0f,
+                        .color = Core::Renderer::Colors::white,
+                        .id = {.runtimeId = dockRuntimeId++},
+                        .transformMode =
+                            Core::Renderer::RenderTransformMode::Screen,
+                    });
+                } else {
+                    renderer->drawLine({
+                        .p0 = {topLeft.x,
+                               topLeft.y +
+                                   (size.y * splitNode->getSplitRatio())},
+                        .p1 = {topLeft.x + size.x,
+                               topLeft.y +
+                                   (size.y * splitNode->getSplitRatio())},
+                        .thickness = 2.0f,
+                        .color = Core::Renderer::Colors::white,
+                        .id = {.runtimeId = dockRuntimeId++},
+                        .transformMode =
+                            Core::Renderer::RenderTransformMode::Screen,
+                    });
+                }
+                drawDockNode(renderer, dockManager, splitNodes.second);
+            }
+        }
+
+        void
+        drawDock(DockManager &dockManager,
+                 const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer) {
+            dockRuntimeId = 0;
+            auto rootNode = dockManager.getNode(dockManager.getRootNode());
+            if (!rootNode) {
+                return;
+            }
+
+            drawDockNode(renderer, dockManager, rootNode->getId());
+        }
+
+    } // namespace
+
     UITarget::~UITarget() {
         destroy();
     }
@@ -32,6 +162,9 @@ namespace Bess::UI {
         });
         BESS_ASSERT(m_renderTarget != nullptr,
                     "Renderer failed to create a UITarget render target");
+
+        m_dockManager.init();
+        createTestDock(m_dockManager);
     }
 
     void UITarget::destroy() {
@@ -66,6 +199,9 @@ namespace Bess::UI {
                 .height = static_cast<uint32_t>(size.y),
             });
         }
+
+        m_dockManager.setSize(size);
+        m_dockManager.setPos(size * -0.5f);
     }
 
     void UITarget::draw() {
@@ -73,31 +209,36 @@ namespace Bess::UI {
 
         beginFrame(Core::Renderer::Colors::darkGray);
 
-        renderer->drawQuad({
-            .position = {0, 0},
-            .size = {100, 100},
-            .color = Core::Renderer::Colors::teal,
-            .id = {1},
-            .transformMode = Core::Renderer::RenderTransformMode::Screen,
-        });
+        drawDock(m_dockManager, renderer);
 
-        renderer->drawFont(
-            std::format("({}, {}) | {}",
-                        m_inputCtx.mousePos.x,
-                        m_inputCtx.mousePos.y,
-                        static_cast<uint64_t>(m_inputCtx.pickingId)),
-            {
-                .position = {0, 130},
-                .fontSize = 20,
-                .color = Core::Renderer::Colors::white,
-                .transformMode = Core::Renderer::RenderTransformMode::Screen,
-            });
-
+        // renderer->drawQuad({
+        //     .position = {0, 0},
+        //     .size = {100, 100},
+        //     .color = Core::Renderer::Colors::teal,
+        //     .id = {1},
+        //     .transformMode = Core::Renderer::RenderTransformMode::Screen,
+        // });
+        //
+        // renderer->drawFont(
+        //     std::format("({}, {}) | {}",
+        //                 m_inputCtx.mousePos.x,
+        //                 m_inputCtx.mousePos.y,
+        //                 static_cast<uint64_t>(m_inputCtx.pickingId)),
+        //     {
+        //         .position = {0, 130},
+        //         .fontSize = 20,
+        //         .color = Core::Renderer::Colors::white,
+        //         .transformMode = Core::Renderer::RenderTransformMode::Screen,
+        //     });
+        //
         m_renderTarget->endFrame();
     }
 
     void UITarget::update(TimeMs dt) {
         static_cast<void>(dt);
+
+        m_dockManager.layout();
+
         if (m_renderTarget == nullptr || m_inputCtx.mousePos.x < 0.f ||
             m_inputCtx.mousePos.y < 0.f ||
             m_inputCtx.mousePos.x >= m_rect.size.x ||

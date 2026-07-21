@@ -157,6 +157,9 @@ namespace Bess::UI {
         // Make sure init was called before calling this function
         void setSize(const glm::vec2 &size);
 
+        // Top left position in the window
+        void setPos(const glm::vec2 &pos);
+
         template <typename T, typename... Args>
             requires(std::is_base_of_v<IDockNode, T>)
         std::shared_ptr<T> createNode(Args &&...args) {

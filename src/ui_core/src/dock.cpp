@@ -163,6 +163,14 @@ namespace Bess::UI {
         }
     }
 
+    void DockManager::setPos(const glm::vec2 &pos) {
+        auto rootNode = getNode(m_rootNode);
+        if (rootNode) {
+            rootNode->setPos(pos);
+            m_layoutDirty = true;
+        }
+    }
+
     void DockManager::layoutNode(const std::shared_ptr<IDockNode> &node) {
         BESS_ASSERT(node, "Invalid node");
 
