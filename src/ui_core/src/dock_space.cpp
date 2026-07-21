@@ -1,5 +1,6 @@
 #include "controls/dock_space.h"
 
+#include "bess_core/ui/icons/font_awesome_icons.h"
 #include "controls/tab_bar.h"
 #include "ui_painter.h"
 #include "widget_tree.h"
@@ -36,6 +37,23 @@ namespace Bess::UI {
                 .stripPadding = style.stripPadding,
                 .gap = style.gap,
             };
+        }
+
+        TabStripRegion withCloseButton(TabStripRegion region,
+                                       const UITabStyle &style,
+                                       float trailingPadding) noexcept {
+            return TabStripLayout::withTrailingAction(std::move(region),
+                                                      style.closeButtonSize,
+                                                      style.closeButtonGap,
+                                                      trailingPadding);
+        }
+
+        UIBoxStyle circularStyle(const UIBoxStyle &source,
+                                 WidgetBounds bounds) {
+            auto result = source;
+            result.cornerRadius =
+                glm::vec4{std::min(bounds.size.x, bounds.size.y) * 0.5f};
+            return result;
         }
 
         bool finiteVec(glm::vec2 value) noexcept {
@@ -129,6 +147,7 @@ namespace Bess::UI {
         m_mountedState = nullptr;
         m_mountedId = {};
         clearTabInteraction();
+        clearCloseInteraction();
     }
 
     void DockSpace::arrange(WidgetArrangeContext &context) {
@@ -238,6 +257,18 @@ namespace Bess::UI {
                 for (size_t i = 0; i < regions.size() && i < items.size();
                      ++i) {
                     const auto &item = items[i];
+                    auto region = regions[i];
+                    if (item.closable) {
+                        region =
+                            withCloseButton(std::move(region),
+                                            tabs,
+                                            tabs.closeButtonTrailingPadding);
+                    }
+                    const HitTab tab{
+                        .host = host,
+                        .stack = stackLayout.node,
+                        .item = item.id,
+                    };
                     const UIBoxStyle *style = &tabs.normal;
                     if (m_pressedItem == item.id &&
                         m_tabPressable.isPressed()) {
@@ -250,14 +281,14 @@ namespace Bess::UI {
                     PickingId id = context.pickingId;
                     id.info = pickingInfo++;
                     context.painter.drawBox(
-                        makeBox(regions[i].bounds, *style, id, layer + 0.002f));
+                        makeBox(region.bounds, *style, id, layer + 0.002f));
                     const auto textColor = stack->tabs.active() == item.id
                                                ? tabs.text.color
                                                : tabs.inactiveText;
                     context.painter.drawText(
                         item.title,
                         {
-                            .bounds = regions[i].labelBounds,
+                            .bounds = region.labelBounds,
                             .fontSize = tabs.text.fontSize,
                             .color = textColor,
                             .horizontal = HorizontalTextAlignment::start,
@@ -266,6 +297,34 @@ namespace Bess::UI {
                             .letterSpacing = tabs.text.letterSpacing,
                             .pickingId = id,
                         });
+                    if (item.closable && !region.trailingActionBounds.empty()) {
+                        const bool closePressed = tab == m_pressedClose;
+                        const bool closeHovered = tab == m_hoveredClose;
+                        if (closePressed || closeHovered) {
+                            const auto closeStyle =
+                                circularStyle(closePressed ? tabs.closePressed
+                                                           : tabs.closeHovered,
+                                              region.trailingActionBounds);
+                            context.painter.drawBox(
+                                makeBox(region.trailingActionBounds,
+                                        closeStyle,
+                                        id,
+                                        layer + 0.0035f));
+                        }
+                        context.painter.drawText(
+                            Icons::FontAwesomeIcons::FA_XMARK,
+                            {
+                                .bounds = region.trailingActionBounds,
+                                .fontSize = std::max(1.f, tabs.closeIconSize),
+                                .color = closePressed || closeHovered
+                                             ? tabs.closeIconHovered
+                                             : tabs.closeIcon,
+                                .horizontal = HorizontalTextAlignment::center,
+                                .vertical = VerticalTextAlignment::center,
+                                .zIndex = layer + 0.004f,
+                                .pickingId = id,
+                            });
+                    }
                 }
             }
 
@@ -352,23 +411,55 @@ namespace Bess::UI {
             const auto header = floatingHeaderBounds(host, context.state);
             context.painter.drawBox(makeBox(
                 header, headerStyle, context.pickingId, layer + 0.011f));
-            const float padding =
-                std::max(0.f, dock.floatingTitleHorizontalPadding);
+            const bool closable = titleItem->closable &&
+                                  host.model.itemCount() == 1 &&
+                                  host.model.stackCount() == 1;
+            const auto headerRegion =
+                floatingHeaderRegion(host, context.state, closable);
+            const HitTab titleTab{
+                .host = host.id,
+                .stack = host.model.stackForItem(titleItem->id),
+                .item = titleItem->id,
+            };
             context.painter.drawText(
                 titleItem->title,
                 {
-                    .bounds = {.center = header.center,
-                               .size = {std::max(0.f,
-                                                 header.size.x - padding * 2.f),
-                                        header.size.y}},
+                    .bounds = headerRegion.labelBounds,
                     .fontSize = tabs.text.fontSize,
                     .color = tabs.text.color,
                     .horizontal = HorizontalTextAlignment::start,
                     .vertical = VerticalTextAlignment::center,
-                    .zIndex = layer + 0.012f,
+                    .zIndex = layer + 0.013f,
                     .letterSpacing = tabs.text.letterSpacing,
                     .pickingId = context.pickingId,
                 });
+            if (closable && !headerRegion.trailingActionBounds.empty()) {
+                const bool closePressed = titleTab == m_pressedClose;
+                const bool closeHovered = titleTab == m_hoveredClose;
+                if (closePressed || closeHovered) {
+                    const auto closeStyle = circularStyle(
+                        closePressed ? tabs.closePressed : tabs.closeHovered,
+                        headerRegion.trailingActionBounds);
+                    context.painter.drawBox(
+                        makeBox(headerRegion.trailingActionBounds,
+                                closeStyle,
+                                context.pickingId,
+                                layer + 0.012f));
+                }
+                context.painter.drawText(
+                    Icons::FontAwesomeIcons::FA_XMARK,
+                    {
+                        .bounds = headerRegion.trailingActionBounds,
+                        .fontSize = std::max(1.f, tabs.closeIconSize),
+                        .color = closePressed || closeHovered
+                                     ? tabs.closeIconHovered
+                                     : tabs.closeIcon,
+                        .horizontal = HorizontalTextAlignment::center,
+                        .vertical = VerticalTextAlignment::center,
+                        .zIndex = layer + 0.013f,
+                        .pickingId = context.pickingId,
+                    });
+            }
         }
 
         if (m_dropGuides.empty()) {
@@ -412,6 +503,18 @@ namespace Bess::UI {
                 button != nullptr && button->button == MouseButton::left &&
                 button->action == MouseButtonAction::press &&
                 context.hasPointerPosition) {
+                if (const auto close = hitClose(
+                        context.bounds, context.state, context.pointerPosition);
+                    close.item) {
+                    clearTabInteraction();
+                    m_pressedClose = close;
+                    m_hoveredClose = close;
+                    return {.handled = true,
+                            .stopPropagation = true,
+                            .requestFocus = true,
+                            .capturePointer = true,
+                            .invalidate = WidgetInvalidation::paint};
+                }
                 if (const DockHostId host = floatingHeaderAt(
                         context.pointerPosition, context.state);
                     host) {
@@ -420,14 +523,20 @@ namespace Bess::UI {
             }
             if (event.is<Input::MouseMoveEvent>() && !m_tabDrag &&
                 context.hasPointerPosition) {
+                const auto close = hitClose(
+                    context.bounds, context.state, context.pointerPosition);
                 const DockHostId host =
                     floatingHeaderAt(context.pointerPosition, context.state);
                 const auto *floating = findFloatingHost(host);
                 const DockItemId item = floating != nullptr
                                             ? floatingTitleItem(*floating)
                                             : DockItemId{};
-                if (item != m_hoveredItem &&
-                    (item || isItemFloating(m_hoveredItem))) {
+                const bool closeChanged = close != m_hoveredClose;
+                const bool itemChanged =
+                    item != m_hoveredItem &&
+                    (item || isItemFloating(m_hoveredItem));
+                if (closeChanged || itemChanged) {
+                    m_hoveredClose = close;
                     m_hoveredItem = item;
                     return {.invalidate = WidgetInvalidation::paint};
                 }
@@ -455,7 +564,13 @@ namespace Bess::UI {
         if (const auto *crossing = event.getIf<UIPointerCrossingEvent>();
             crossing != nullptr && !crossing->entered) {
             m_hoveredItem = {};
+            m_hoveredClose = {};
             m_hoveredSplit = {};
+            if (m_pressedClose.item) {
+                return {.handled = true,
+                        .stopPropagation = true,
+                        .invalidate = WidgetInvalidation::paint};
+            }
             if (m_tabDrag) {
                 m_dropGuides.clear();
                 m_hoveredDrop.reset();
@@ -469,6 +584,17 @@ namespace Bess::UI {
         }
 
         if (event.is<Input::MouseMoveEvent>()) {
+            if (m_pressedClose.item) {
+                m_hoveredClose = context.hasPointerPosition
+                                     ? hitClose(context.bounds,
+                                                context.state,
+                                                context.pointerPosition)
+                                     : HitTab{};
+                return {.handled = true,
+                        .stopPropagation = true,
+                        .capturePointer = true,
+                        .invalidate = WidgetInvalidation::paint};
+            }
             if (m_draggedSplit.node) {
                 auto *model = modelForHost(m_draggedSplit.host);
                 const FloatingHost *host =
@@ -531,6 +657,11 @@ namespace Bess::UI {
                                       WidgetInvalidation::paint};
             }
 
+            m_hoveredClose = context.hasPointerPosition
+                                 ? hitClose(context.bounds,
+                                            context.state,
+                                            context.pointerPosition)
+                                 : HitTab{};
             m_hoveredSplit = splitAt(context.pointerPosition);
             const DockHostId headerHost =
                 floatingHeaderAt(context.pointerPosition, context.state);
@@ -550,6 +681,28 @@ namespace Bess::UI {
 
         if (const auto *button = event.getIf<Input::MouseButtonEvent>();
             button != nullptr && button->button == MouseButton::left) {
+            if (button->action == MouseButtonAction::release &&
+                m_pressedClose.item) {
+                const HitTab pressed = m_pressedClose;
+                const HitTab releasedOver =
+                    context.hasPointerPosition
+                        ? hitClose(context.bounds,
+                                   context.state,
+                                   context.pointerPosition)
+                        : HitTab{};
+                const bool activated = releasedOver == pressed;
+                m_pressedClose = {};
+                m_hoveredClose = releasedOver;
+                if (activated) {
+                    static_cast<void>(hidePanel(pressed.item));
+                }
+                return {.handled = true,
+                        .stopPropagation = true,
+                        .releasePointer = true,
+                        .invalidate = WidgetInvalidation::layout |
+                                      WidgetInvalidation::paint};
+            }
+
             if (button->action == MouseButtonAction::release && m_tabDrag) {
                 if (m_tabDrag->window) {
                     if (m_tabDrag->started && context.hasPointerPosition) {
@@ -589,6 +742,18 @@ namespace Bess::UI {
 
             if (button->action == MouseButtonAction::press &&
                 context.hasPointerPosition) {
+                if (const auto close = hitClose(
+                        context.bounds, context.state, context.pointerPosition);
+                    close.item) {
+                    clearTabInteraction();
+                    m_pressedClose = close;
+                    m_hoveredClose = close;
+                    return {.handled = true,
+                            .stopPropagation = true,
+                            .requestFocus = true,
+                            .capturePointer = true,
+                            .invalidate = WidgetInvalidation::paint};
+                }
                 if (const DockHostId host = floatingHeaderAt(
                         context.pointerPosition, context.state);
                     host) {
@@ -664,6 +829,14 @@ namespace Bess::UI {
                 m_pressedItem = {};
             }
             return result.reply;
+        }
+
+        if (const auto *focus = event.getIf<UIFocusChangedEvent>();
+            focus != nullptr && !focus->focused && m_pressedClose.item) {
+            clearCloseInteraction();
+            return {.handled = true,
+                    .releasePointer = true,
+                    .invalidate = WidgetInvalidation::paint};
         }
 
         if (const auto *key = event.getIf<Input::KeyEvent>();
@@ -750,19 +923,48 @@ namespace Bess::UI {
             state.removeWidget(panelId);
             return {};
         }
-        return {.item = inserted, .panel = panelId};
+        return DockPanelHandle{state, dockSpace, inserted, panelId};
     }
 
     bool DockSpace::removePanel(WidgetTree &state, DockItemId item) {
         if (state.getWidget<DockSpace>(m_mountedId) != this) {
             return false;
         }
+        if (const auto hidden = m_hiddenPanels.find(item);
+            hidden != m_hiddenPanels.end()) {
+            const auto *entry = hidden->second.item.get();
+            if (entry == nullptr || !entry->content) {
+                return false;
+            }
+            const WidgetId panel = entry->content;
+            if (state.getWidget<DockPanel>(panel) == nullptr) {
+                m_hiddenPanels.erase(hidden);
+                return false;
+            }
+            // Remove visibility metadata before widget callbacks can run so a
+            // child cannot resurrect a panel during its own teardown.
+            m_hiddenPanels.erase(hidden);
+            const bool removed = state.removeWidget(panel);
+            if (removed) {
+                state.invalidate(m_mountedId,
+                                 WidgetInvalidation::layout |
+                                     WidgetInvalidation::paint);
+            }
+            return removed;
+        }
         if (m_tabDrag && m_tabDrag->item == item) {
             clearTabInteraction();
             state.releasePointer(m_mountedId);
         }
+        if (m_pressedClose.item == item) {
+            clearCloseInteraction();
+            state.releasePointer(m_mountedId);
+        }
         if (m_hoveredItem == item) {
             m_hoveredItem = {};
+        }
+        if (m_hoveredClose.item == item) {
+            m_hoveredClose = {};
         }
         DockHostId hostId;
         DockSpaceModel *owner = &m_model;
@@ -796,6 +998,22 @@ namespace Bess::UI {
         if (state.getWidget<DockSpace>(m_mountedId) != this) {
             return false;
         }
+        if (auto hidden = m_hiddenPanels.find(item);
+            hidden != m_hiddenPanels.end()) {
+            auto *dockItem = hidden->second.item.m_item
+                                 ? &*hidden->second.item.m_item
+                                 : nullptr;
+            auto *panel = dockItem != nullptr
+                              ? state.getWidget<DockPanel>(dockItem->content)
+                              : nullptr;
+            if (dockItem == nullptr || panel == nullptr) {
+                return false;
+            }
+            dockItem->title = title;
+            panel->setTitle(std::move(title));
+            state.invalidate(m_mountedId, WidgetInvalidation::paint);
+            return true;
+        }
         DockSpaceModel *owner = &m_model;
         if (m_model.getItem(item) == nullptr) {
             auto *host = findFloating(item);
@@ -815,6 +1033,137 @@ namespace Bess::UI {
             state.invalidate(m_mountedId, WidgetInvalidation::paint);
         }
         return updated;
+    }
+
+    bool DockSpace::hidePanel(DockItemId item) {
+        if (!item || m_mountedState == nullptr || !m_mountedId) {
+            return false;
+        }
+        if (m_hiddenPanels.contains(item)) {
+            return true;
+        }
+
+        FloatingHost *floatingHost = findFloating(item);
+        DockSpaceModel *owner =
+            floatingHost != nullptr ? &floatingHost->model : &m_model;
+        const auto *entry = owner->getItem(item);
+        const DockNodeId stackId = owner->stackForItem(item);
+        const auto *stack = owner->getStack(stackId);
+        if (entry == nullptr || stack == nullptr || !entry->content ||
+            m_mountedState->getWidget<DockPanel>(entry->content) == nullptr) {
+            return false;
+        }
+
+        auto [hiddenIt, inserted] = m_hiddenPanels.try_emplace(item);
+        if (!inserted) {
+            return true;
+        }
+        auto &hidden = hiddenIt->second;
+        hidden.originHost =
+            floatingHost != nullptr ? floatingHost->id : DockHostId{};
+        hidden.stack = stackId;
+        hidden.tabIndex = stack->tabs.indexOf(item);
+        hidden.fallbackBounds =
+            floatingHost != nullptr
+                ? floatingHost->bounds
+                : dockedFallbackBounds(stackId, *m_mountedState);
+
+        auto detached = owner->detachItem(item);
+        if (!detached) {
+            m_hiddenPanels.erase(hiddenIt);
+            return false;
+        }
+        hidden.item = std::move(detached);
+
+        bool releasePointer = false;
+        if ((m_tabDrag && m_tabDrag->item == item) || m_pressedItem == item) {
+            clearTabInteraction();
+            releasePointer = true;
+        }
+        if (m_pressedClose.item == item) {
+            clearCloseInteraction();
+            releasePointer = true;
+        }
+        if (m_hoveredItem == item) {
+            m_hoveredItem = {};
+        }
+        if (m_hoveredClose.item == item) {
+            m_hoveredClose = {};
+        }
+        if (releasePointer) {
+            m_mountedState->releasePointer(m_mountedId);
+        }
+
+        const DockHostId previousHost = hidden.originHost;
+        if (m_focusedHost == previousHost && m_focusedStack == stackId) {
+            m_focusedStack = owner->firstStack();
+            if (!m_focusedStack) {
+                m_focusedHost = {};
+            }
+        }
+        removeFloatingHostIfEmpty(previousHost);
+        m_mountedState->invalidate(m_mountedId,
+                                   WidgetInvalidation::layout |
+                                       WidgetInvalidation::paint);
+        return true;
+    }
+
+    bool DockSpace::showPanel(DockItemId item) {
+        if (!item || m_mountedState == nullptr || !m_mountedId) {
+            return false;
+        }
+        if (isPanelVisible(item)) {
+            return true;
+        }
+        const auto hiddenIt = m_hiddenPanels.find(item);
+        if (hiddenIt == m_hiddenPanels.end() || !hiddenIt->second.item) {
+            return false;
+        }
+
+        auto &hidden = hiddenIt->second;
+        const auto *entry = hidden.item.get();
+        if (entry == nullptr || !entry->content ||
+            m_mountedState->getWidget<DockPanel>(entry->content) == nullptr) {
+            return false;
+        }
+
+        const auto destination = findStackOwner(hidden.stack);
+        bool restored = false;
+        if (destination.model != nullptr) {
+            restored = destination.model->attachItem(std::move(hidden.item),
+                                                     hidden.stack,
+                                                     DockZone::main,
+                                                     hidden.tabIndex);
+            if (restored) {
+                m_focusedHost = destination.host;
+                m_focusedStack = destination.model->stackForItem(item);
+            }
+        }
+        if (!restored) {
+            restored = restoreHiddenAsFloating(hidden);
+        }
+        if (!restored) {
+            return false;
+        }
+
+        m_hiddenPanels.erase(hiddenIt);
+        m_mountedState->invalidate(m_mountedId,
+                                   WidgetInvalidation::layout |
+                                       WidgetInvalidation::paint);
+        return true;
+    }
+
+    bool DockSpace::isPanelVisible(DockItemId item) const noexcept {
+        return item && (m_model.getItem(item) != nullptr ||
+                        findFloating(item) != nullptr);
+    }
+
+    bool DockSpace::isPanelHidden(DockItemId item) const noexcept {
+        return item && m_hiddenPanels.contains(item);
+    }
+
+    size_t DockSpace::hiddenPanelCount() const noexcept {
+        return m_hiddenPanels.size();
     }
 
     bool DockSpace::floatItem(DockItemId item, WidgetBounds bounds) {
@@ -955,6 +1304,97 @@ namespace Bess::UI {
         return {};
     }
 
+    DockSpace::HitTab DockSpace::hitClose(WidgetBounds bounds,
+                                          const WidgetTree &state,
+                                          glm::vec2 position) const {
+        for (auto it = m_floatingHosts.rbegin(); it != m_floatingHosts.rend();
+             ++it) {
+            const auto &host = **it;
+            if (host.model.itemCount() == 1 && host.model.stackCount() == 1) {
+                const DockItemId itemId = floatingTitleItem(host);
+                const auto *item = host.model.getItem(itemId);
+                if (item != nullptr && item->enabled && item->closable) {
+                    const auto region = floatingHeaderRegion(host, state, true);
+                    if (region.trailingActionBounds.contains(position)) {
+                        return {
+                            .host = host.id,
+                            .stack = host.model.stackForItem(itemId),
+                            .item = itemId,
+                        };
+                    }
+                }
+            }
+
+            const auto layout = calculateFloatingLayout(host, state);
+            if (auto hit =
+                    hitClose(host.model, host.id, layout, state, position);
+                hit.item) {
+                return hit;
+            }
+        }
+        return hitClose(
+            m_model, {}, calculateLayout(bounds, state), state, position);
+    }
+
+    DockSpace::HitTab DockSpace::hitClose(const DockSpaceModel &model,
+                                          DockHostId host,
+                                          const DockLayoutResult &layout,
+                                          const WidgetTree &state,
+                                          glm::vec2 position) const {
+        const auto &tabs = tabStyle(state);
+        for (const auto &stackLayout : layout.stacks) {
+            if (stackLayout.tabBarBounds.size.y <= 0.f ||
+                !stackLayout.tabBarBounds.contains(position)) {
+                continue;
+            }
+            const auto *stack = model.getStack(stackLayout.node);
+            if (stack == nullptr) {
+                continue;
+            }
+            const auto regions = TabStripLayout::calculate(
+                stackLayout.tabBarBounds, stack->tabs.size(), metrics(tabs));
+            const auto items = stack->tabs.items();
+            for (size_t i = 0; i < regions.size() && i < items.size(); ++i) {
+                const auto &item = items[i];
+                if (!item.enabled || !item.closable) {
+                    continue;
+                }
+                const auto region = withCloseButton(
+                    regions[i], tabs, tabs.closeButtonTrailingPadding);
+                if (region.trailingActionBounds.contains(position)) {
+                    return {
+                        .host = host,
+                        .stack = stackLayout.node,
+                        .item = item.id,
+                    };
+                }
+            }
+        }
+        return {};
+    }
+
+    TabStripRegion
+    DockSpace::floatingHeaderRegion(const FloatingHost &host,
+                                    const WidgetTree &state,
+                                    bool reserveClose) const noexcept {
+        const auto header = floatingHeaderBounds(host, state);
+        const float padding = std::min(
+            std::max(0.f, dockStyle(state).floatingTitleHorizontalPadding),
+            header.size.x * 0.5f);
+        TabStripRegion region{
+            .bounds = header,
+            .labelBounds =
+                {
+                    .center = header.center,
+                    .size = {std::max(0.f, header.size.x - padding * 2.f),
+                             header.size.y},
+                },
+        };
+        return reserveClose ? withCloseButton(
+                                  std::move(region), tabStyle(state), padding)
+                            : region;
+    }
+
     DockSpace::FloatingHost *DockSpace::findFloating(DockItemId item) noexcept {
         const auto it =
             std::find_if(m_floatingHosts.begin(),
@@ -1009,6 +1449,21 @@ namespace Bess::UI {
         }
         const auto *floating = findFloatingHost(host);
         return floating != nullptr ? &floating->model : nullptr;
+    }
+
+    DockSpace::StackOwner DockSpace::findStackOwner(DockNodeId stack) noexcept {
+        if (!stack) {
+            return {};
+        }
+        if (m_model.getStack(stack) != nullptr) {
+            return {.model = &m_model};
+        }
+        for (const auto &host : m_floatingHosts) {
+            if (host->model.getStack(stack) != nullptr) {
+                return {.model = &host->model, .host = host->id};
+            }
+        }
+        return {};
     }
 
     DockHostId
@@ -1468,6 +1923,53 @@ namespace Bess::UI {
             std::move(item), drop.node, drop.zone, drop.tabIndex);
     }
 
+    bool DockSpace::restoreHiddenAsFloating(HiddenPanel &hidden) {
+        if (m_mountedState == nullptr || !m_mountedId || !hidden.item) {
+            return false;
+        }
+        const WidgetBounds dockBounds = m_mountedState->getBounds(m_mountedId);
+        WidgetBounds requested = hidden.fallbackBounds;
+        if (requested.empty() || !finiteVec(requested.center) ||
+            !finiteVec(requested.size)) {
+            requested = {
+                .center = dockBounds.center,
+                .size = glm::max(dockStyle(*m_mountedState).floatingMinimumSize,
+                                 glm::vec2{1.f}),
+            };
+        }
+
+        auto host = std::make_unique<FloatingHost>();
+        host->bounds = dockBounds.empty()
+                           ? requested
+                           : normalizedFloatingBounds(
+                                 requested, dockBounds, *m_mountedState);
+        m_floatingHosts.push_back(std::move(host));
+        auto &created = *m_floatingHosts.back();
+        if (!created.model.attachItem(std::move(hidden.item))) {
+            m_floatingHosts.pop_back();
+            return false;
+        }
+        m_focusedHost = created.id;
+        m_focusedStack = created.model.firstStack();
+        return true;
+    }
+
+    WidgetBounds
+    DockSpace::dockedFallbackBounds(DockNodeId stack,
+                                    const WidgetTree &state) const {
+        const WidgetBounds dockBounds = state.getBounds(m_mountedId);
+        const auto layout = calculateLayout(dockBounds, state);
+        if (const auto *stackLayout = layout.findStack(stack);
+            stackLayout != nullptr && !stackLayout->bounds.empty()) {
+            return stackLayout->bounds;
+        }
+        return {
+            .center = dockBounds.center,
+            .size =
+                glm::max(dockStyle(state).floatingMinimumSize, glm::vec2{1.f}),
+        };
+    }
+
     void DockSpace::removeFloatingHostIfEmpty(DockHostId host) {
         if (!host) {
             return;
@@ -1487,6 +1989,11 @@ namespace Bess::UI {
         m_hoveredDrop.reset();
         m_pressedItem = {};
         m_tabPressable.reset();
+    }
+
+    void DockSpace::clearCloseInteraction() noexcept {
+        m_hoveredClose = {};
+        m_pressedClose = {};
     }
 
     void DockSpace::bringFloatingToFront(WidgetEventContext &context,
@@ -1550,5 +2057,46 @@ namespace Bess::UI {
             .indicatorGap = style.dropGuideGap,
             .previewInset = style.dropPreviewInset,
         };
+    }
+
+    DockPanelHandle::DockPanelHandle(WidgetTree &state,
+                                     WidgetId dockSpace,
+                                     DockItemId itemId,
+                                     WidgetId panelId) noexcept
+        : item(itemId),
+          panel(panelId),
+          m_dockSpace(state, dockSpace) {
+    }
+
+    DockPanelHandle::operator bool() const noexcept {
+        const auto *state = m_dockSpace.tree();
+        return item && panel && m_dockSpace && state != nullptr &&
+               state->getWidget<DockPanel>(panel) != nullptr;
+    }
+
+    WidgetRef<DockPanel> DockPanelHandle::widget() const noexcept {
+        auto *state = m_dockSpace.tree();
+        return state != nullptr ? WidgetRef<DockPanel>{*state, panel}
+                                : WidgetRef<DockPanel>{};
+    }
+
+    bool DockPanelHandle::hide() const {
+        auto *dockSpace = m_dockSpace.get();
+        return dockSpace != nullptr && dockSpace->hidePanel(item);
+    }
+
+    bool DockPanelHandle::show() const {
+        auto *dockSpace = m_dockSpace.get();
+        return dockSpace != nullptr && dockSpace->showPanel(item);
+    }
+
+    bool DockPanelHandle::isVisible() const noexcept {
+        const auto *dockSpace = m_dockSpace.get();
+        return dockSpace != nullptr && dockSpace->isPanelVisible(item);
+    }
+
+    bool DockPanelHandle::isHidden() const noexcept {
+        const auto *dockSpace = m_dockSpace.get();
+        return dockSpace != nullptr && dockSpace->isPanelHidden(item);
     }
 } // namespace Bess::UI

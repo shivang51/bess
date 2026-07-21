@@ -35,6 +35,11 @@ namespace Bess::UI {
         WidgetRef<Button> m_counterButton;
         WidgetRef<TabBar> m_tabBar;
         WidgetRef<DockSpace> m_dockSpace;
+        DockPanelHandle m_explorerPanel;
+        DockPanelHandle m_inspectorPanel;
+        DockPanelHandle m_previewPanel;
+        DockPanelHandle m_consolePanel;
+        DockPanelHandle m_assetsPanel;
     };
 
 } // namespace Bess::UI

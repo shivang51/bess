@@ -1,6 +1,7 @@
 #include "ui_core.h"
 
 #include "bess_core/style/bess_theme.h"
+#include "bess_core/ui/icons/font_awesome_icons.h"
 
 #include <gtest/gtest.h>
 
@@ -36,7 +37,8 @@ namespace {
             boxes.push_back(paint);
         }
 
-        void drawText(std::string_view, const TextPaint &) override {
+        void drawText(std::string_view text, const TextPaint &paint) override {
+            texts.emplace_back(std::string{text}, paint);
         }
 
         glm::vec2 measureText(std::string_view text,
@@ -54,6 +56,7 @@ namespace {
         }
 
         std::vector<BoxPaint> boxes;
+        std::vector<std::pair<std::string, TextPaint>> texts;
     };
 
     TEST(TabModelTests, MaintainsSelectionAndEmitsAtomicChanges) {
@@ -114,6 +117,14 @@ namespace {
             TabStripLayout::hitTest(regions, regions[1].bounds.center);
         ASSERT_TRUE(hit.has_value());
         EXPECT_EQ(*hit, 1);
+
+        const auto withAction =
+            TabStripLayout::withTrailingAction(regions.front(), 18.f, 4.f, 5.f);
+        EXPECT_EQ(withAction.trailingActionBounds.size, glm::vec2(18.f));
+        EXPECT_FLOAT_EQ(withAction.trailingActionBounds.bottomRight().x,
+                        regions.front().bounds.bottomRight().x - 5.f);
+        EXPECT_LE(withAction.labelBounds.bottomRight().x,
+                  withAction.trailingActionBounds.topLeft().x - 4.f);
     }
 
     TEST(TabStripLayoutTests, DarkThemeUsesSlimDockTabs) {
@@ -229,10 +240,22 @@ namespace {
         expectColor(theme.tabs.pressed.background,
                     colors.surfaceContainer,
                     "tab pressed");
+        expectColor(theme.tabs.closeHovered.background,
+                    colors.onSurface.withAlpha(0.10f),
+                    "tab close hovered");
+        expectColor(theme.tabs.closePressed.background,
+                    colors.onSurface.withAlpha(0.18f),
+                    "tab close pressed");
         expectColor(theme.tabs.text.color, colors.onSurface, "tab text");
         expectColor(theme.tabs.inactiveText,
                     colors.onSurfaceVariant,
                     "tab inactive text");
+        expectColor(
+            theme.tabs.closeIcon, colors.onSurfaceVariant, "tab close icon");
+        expectColor(theme.tabs.closeIconHovered,
+                    colors.onSurface,
+                    "tab close icon hovered");
+        EXPECT_GT(theme.tabs.closeButtonSize, theme.tabs.closeIconSize);
 
         expectColor(theme.menus.bar.background,
                     colors.surfaceContainerLowest,
@@ -547,6 +570,294 @@ namespace {
         EXPECT_TRUE(dock->removePanel(state, second.item));
         EXPECT_FALSE(state.contains(second.panel));
         EXPECT_EQ(dock->model().itemCount(), 1);
+        EXPECT_TRUE(dock->model().validate());
+    }
+
+    TEST(DockSpaceWidgetTests,
+         PanelHandleHideShowRetainsWidgetAndRestoresSurvivingStack) {
+        WidgetTree state;
+        state.setViewportSize({800.f, 600.f});
+        const WidgetId dockId = state.emplaceWidget<DockSpace>();
+        auto *dock = state.getWidget<DockSpace>(dockId);
+        ASSERT_NE(dock, nullptr);
+        const auto first = dock->createPanel(
+            state, dockId, "First", std::make_unique<DockContent>());
+        const auto second = dock->createPanel(
+            state, dockId, "Second", std::make_unique<DockContent>());
+        ASSERT_TRUE(first && second);
+        const DockNodeId originalStack = dock->model().stackForItem(first.item);
+        ASSERT_EQ(originalStack, dock->model().stackForItem(second.item));
+        const WidgetId retainedContent = state.getChildren(first.panel).front();
+
+        EXPECT_TRUE(first.isVisible());
+        EXPECT_FALSE(first.isHidden());
+        EXPECT_TRUE(first.hide());
+        EXPECT_TRUE(first.hide()) << "hide must be idempotent";
+        EXPECT_FALSE(first.isVisible());
+        EXPECT_TRUE(first.isHidden());
+        EXPECT_EQ(dock->hiddenPanelCount(), 1);
+        EXPECT_TRUE(state.contains(first.panel));
+        EXPECT_TRUE(state.contains(retainedContent));
+        EXPECT_EQ(dock->model().getItem(first.item), nullptr);
+        EXPECT_NE(dock->model().getStack(originalStack), nullptr);
+
+        EXPECT_TRUE(dock->setPanelTitle(state, first.item, "Restored First"));
+        EXPECT_TRUE(first.show());
+        EXPECT_TRUE(first.show()) << "show must be idempotent";
+        EXPECT_TRUE(first.isVisible());
+        EXPECT_FALSE(first.isHidden());
+        EXPECT_EQ(dock->hiddenPanelCount(), 0);
+        EXPECT_EQ(dock->model().stackForItem(first.item), originalStack);
+        ASSERT_NE(dock->model().getItem(first.item), nullptr);
+        EXPECT_EQ(dock->model().getItem(first.item)->title, "Restored First");
+        const auto restoredItems =
+            dock->model().getStack(originalStack)->tabs.items();
+        ASSERT_EQ(restoredItems.size(), 2);
+        EXPECT_EQ(restoredItems.front().id, first.item);
+        EXPECT_EQ(restoredItems.back().id, second.item);
+        EXPECT_TRUE(state.contains(retainedContent));
+        EXPECT_TRUE(dock->model().validate());
+    }
+
+    TEST(DockSpaceWidgetTests,
+         ShowFallsBackToFloatingAfterOriginalDockStackCollapses) {
+        WidgetTree state;
+        state.setViewportSize({800.f, 600.f});
+        const WidgetId dockId = state.emplaceWidget<DockSpace>();
+        auto *dock = state.getWidget<DockSpace>(dockId);
+        ASSERT_NE(dock, nullptr);
+        const auto left = dock->createPanel(
+            state, dockId, "Left", std::make_unique<DockContent>());
+        const auto right =
+            dock->createPanel(state,
+                              dockId,
+                              "Right",
+                              std::make_unique<DockContent>(),
+                              dock->model().stackForItem(left.item),
+                              DockZone::right);
+        ASSERT_TRUE(left && right);
+        state.performLayout();
+        const DockNodeId previousStack = dock->model().stackForItem(left.item);
+        const WidgetId retainedContent = state.getChildren(left.panel).front();
+
+        ASSERT_TRUE(left.hide());
+        EXPECT_EQ(dock->model().getStack(previousStack), nullptr);
+        EXPECT_TRUE(dock->model().validate());
+        ASSERT_TRUE(left.show());
+        EXPECT_TRUE(dock->isItemFloating(left.item));
+        EXPECT_EQ(dock->floatingWindowCount(), 1);
+        EXPECT_TRUE(state.contains(left.panel));
+        EXPECT_TRUE(state.contains(retainedContent));
+        EXPECT_TRUE(dock->model().validate());
+    }
+
+    TEST(DockSpaceWidgetTests,
+         FloatingPanelCloseAndShowPreserveFloatingPlacement) {
+        WidgetTree state;
+        state.setViewportSize({800.f, 600.f});
+        const WidgetId dockId = state.emplaceWidget<DockSpace>();
+        auto *dock = state.getWidget<DockSpace>(dockId);
+        ASSERT_NE(dock, nullptr);
+        const auto panel = dock->createPanel(
+            state, dockId, "Floating", std::make_unique<DockContent>());
+        ASSERT_TRUE(panel);
+        state.performLayout();
+        const WidgetBounds dockBounds = state.getBounds(dockId);
+        ASSERT_TRUE(dock->floatItem(
+            panel.item,
+            {.center = dockBounds.center + glm::vec2{70.f, 30.f},
+             .size = {360.f, 250.f}}));
+        state.performLayout();
+        const auto before = dock->floatingItemBounds(panel.item);
+        ASSERT_TRUE(before);
+
+        const auto &tabs = state.theme().tabs;
+        const auto &dockStyle = state.theme().dock;
+        const float closeSize = std::min({tabs.closeButtonSize,
+                                          dockStyle.floatingTitleBarHeight,
+                                          before->size.x});
+        const glm::vec2 close =
+            glm::vec2{
+                before->bottomRight().x -
+                    dockStyle.floatingTitleHorizontalPadding - closeSize * 0.5f,
+                before->topLeft().y + dockStyle.floatingTitleBarHeight * 0.5f} +
+            state.getViewportSize() * 0.5f;
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::press,
+            .pos = close,
+        }));
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::release,
+            .pos = close,
+        }));
+
+        EXPECT_TRUE(panel.isHidden());
+        EXPECT_EQ(dock->floatingWindowCount(), 0);
+        ASSERT_TRUE(panel.show());
+        EXPECT_TRUE(panel.isVisible());
+        EXPECT_TRUE(dock->isItemFloating(panel.item));
+        const auto restored = dock->floatingItemBounds(panel.item);
+        ASSERT_TRUE(restored);
+        EXPECT_EQ(restored->center, before->center);
+        EXPECT_EQ(restored->size, before->size);
+    }
+
+    TEST(DockSpaceWidgetTests,
+         DockTabCloseButtonShowsCircularHoverAndHidesOnRelease) {
+        WidgetTree state;
+        state.setViewportSize({800.f, 600.f});
+        const WidgetId dockId = state.emplaceWidget<DockSpace>();
+        auto *dock = state.getWidget<DockSpace>(dockId);
+        ASSERT_NE(dock, nullptr);
+        const auto first = dock->createPanel(
+            state, dockId, "First", std::make_unique<DockContent>());
+        const auto second = dock->createPanel(
+            state, dockId, "Second", std::make_unique<DockContent>());
+        ASSERT_TRUE(first && second);
+        state.performLayout();
+
+        const DockNodeId stack = dock->model().stackForItem(first.item);
+        const auto layout =
+            dock->model().layout(state.getBounds(dockId),
+                                 state.theme().tabs.height,
+                                 state.theme().dock.splitterThickness);
+        const auto *stackLayout = layout.findStack(stack);
+        ASSERT_NE(stackLayout, nullptr);
+        const auto regions = TabStripLayout::calculate(
+            stackLayout->tabBarBounds,
+            2,
+            {.height = state.theme().tabs.height,
+             .minimumWidth = state.theme().tabs.minimumWidth,
+             .maximumWidth = state.theme().tabs.maximumWidth,
+             .horizontalPadding = state.theme().tabs.horizontalPadding,
+             .stripPadding = state.theme().tabs.stripPadding,
+             .gap = state.theme().tabs.gap});
+        ASSERT_EQ(regions.size(), 2);
+        const auto firstRegion = TabStripLayout::withTrailingAction(
+            regions.front(),
+            state.theme().tabs.closeButtonSize,
+            state.theme().tabs.closeButtonGap,
+            state.theme().tabs.closeButtonTrailingPadding);
+        const glm::vec2 close = firstRegion.trailingActionBounds.center +
+                                state.getViewportSize() * 0.5f;
+
+        static_cast<void>(
+            state.dispatchEvent(Input::MouseMoveEvent{.pos = close}));
+        DockRecordingPainter painter;
+        state.paint(painter);
+        const auto hoverBox = std::find_if(
+            painter.boxes.begin(),
+            painter.boxes.end(),
+            [&](const BoxPaint &box) {
+                return box.bounds.center ==
+                           firstRegion.trailingActionBounds.center &&
+                       box.bounds.size ==
+                           firstRegion.trailingActionBounds.size &&
+                       box.color.toHex() ==
+                           state.theme().tabs.closeHovered.background.toHex();
+            });
+        ASSERT_NE(hoverBox, painter.boxes.end());
+        EXPECT_EQ(hoverBox->cornerRadius,
+                  glm::vec4(firstRegion.trailingActionBounds.size.x * 0.5f));
+        EXPECT_NE(std::find_if(painter.texts.begin(),
+                               painter.texts.end(),
+                               [](const auto &text) {
+                                   return text.first ==
+                                          Icons::FontAwesomeIcons::FA_XMARK;
+                               }),
+                  painter.texts.end());
+
+        // Close activation follows normal button semantics: releasing away
+        // from the pressed affordance cancels the operation.
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::press,
+            .pos = close,
+        }));
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::release,
+            .pos = stackLayout->contentBounds.center +
+                   state.getViewportSize() * 0.5f,
+        }));
+        EXPECT_TRUE(first.isVisible());
+        EXPECT_FALSE(state.getPointerCapture());
+
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::press,
+            .pos = close,
+        }));
+        EXPECT_EQ(state.getPointerCapture(), dockId);
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::release,
+            .pos = close,
+        }));
+        EXPECT_FALSE(state.getPointerCapture());
+        EXPECT_TRUE(first.isHidden());
+        EXPECT_TRUE(state.contains(first.panel));
+        EXPECT_EQ(dock->model().itemCount(), 1);
+        EXPECT_TRUE(dock->model().validate());
+    }
+
+    TEST(DockSpaceWidgetTests,
+         NonClosablePanelHasNoCloseAffordanceButSupportsVisibilityApi) {
+        WidgetTree state;
+        state.setViewportSize({800.f, 600.f});
+        const WidgetId dockId = state.emplaceWidget<DockSpace>();
+        auto *dock = state.getWidget<DockSpace>(dockId);
+        ASSERT_NE(dock, nullptr);
+        const auto panel = dock->createPanel(state,
+                                             dockId,
+                                             "Permanent",
+                                             std::make_unique<DockContent>(),
+                                             {},
+                                             DockZone::main,
+                                             false);
+        ASSERT_TRUE(panel);
+        state.performLayout();
+
+        DockRecordingPainter painter;
+        state.paint(painter);
+        EXPECT_EQ(std::find_if(painter.texts.begin(),
+                               painter.texts.end(),
+                               [](const auto &text) {
+                                   return text.first ==
+                                          Icons::FontAwesomeIcons::FA_XMARK;
+                               }),
+                  painter.texts.end());
+
+        EXPECT_TRUE(panel.hide());
+        EXPECT_TRUE(panel.isHidden());
+        EXPECT_TRUE(panel.show());
+        EXPECT_TRUE(panel.isVisible());
+        EXPECT_TRUE(dock->model().validate());
+    }
+
+    TEST(DockSpaceWidgetTests, RemovingHiddenPanelPermanentlyExpiresItsHandle) {
+        WidgetTree state;
+        state.setViewportSize({800.f, 600.f});
+        const WidgetId dockId = state.emplaceWidget<DockSpace>();
+        auto *dock = state.getWidget<DockSpace>(dockId);
+        ASSERT_NE(dock, nullptr);
+        const auto panel = dock->createPanel(
+            state, dockId, "Disposable", std::make_unique<DockContent>());
+        ASSERT_TRUE(panel);
+        const WidgetId content = state.getChildren(panel.panel).front();
+
+        ASSERT_TRUE(panel.hide());
+        ASSERT_TRUE(dock->removePanel(state, panel.item));
+        EXPECT_FALSE(panel);
+        EXPECT_FALSE(panel.isVisible());
+        EXPECT_FALSE(panel.isHidden());
+        EXPECT_FALSE(panel.hide());
+        EXPECT_FALSE(panel.show());
+        EXPECT_FALSE(state.contains(panel.panel));
+        EXPECT_FALSE(state.contains(content));
+        EXPECT_EQ(dock->hiddenPanelCount(), 0);
         EXPECT_TRUE(dock->model().validate());
     }
 

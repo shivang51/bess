@@ -183,8 +183,9 @@ Views normally create dockable content with `DockComposer`. Each call produces
 a `DockPanel`, a stable `DockItemId`, and an ordinary composer for its content:
 
 ```cpp
-ui.dockSpace([](Bess::UI::DockComposer &dock) {
-    const auto explorer = dock.panel(
+Bess::UI::DockPanelHandle explorer;
+ui.dockSpace([&explorer](Bess::UI::DockComposer &dock) {
+    explorer = dock.panel(
         "Explorer", [](Bess::UI::UIComposer &panel) {
             panel.label("Files");
         });
@@ -199,7 +200,18 @@ ui.dockSpace([](Bess::UI::DockComposer &dock) {
             panel.label("Properties");
         });
 });
+
+explorer.hide(); // Retains the panel widget and its complete child subtree.
+explorer.show(); // Restores its previous stack, or floats if it no longer exists.
 ```
+
+Keep the returned `DockPanelHandle` when application code needs to control a
+panel later. The tab and floating-title-bar close buttons perform the same
+non-destructive hide operation. `hide()` and `show()` are idempotent, and the
+handle becomes empty when either the panel or its owning `DockSpace` is
+destroyed. Use `DockSpace::removePanel()` only for permanent removal.
+Set `DockPanelPlacement::closable` to `false` to suppress the close affordance;
+application code may still control that panel through its handle.
 
 The lower-level equivalent remains available:
 

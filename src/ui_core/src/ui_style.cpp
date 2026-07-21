@@ -75,14 +75,28 @@ namespace Bess::UI {
         };
         theme.tabs.pressed = theme.tabs.hovered;
         theme.tabs.pressed.background = colors.surfaceContainer;
+        theme.tabs.closeHovered = {
+            .background = colors.onSurface.withAlpha(0.10f),
+            .border = transparent,
+            .cornerRadius = glm::vec4{9.f},
+            .shadow = noShadow,
+        };
+        theme.tabs.closePressed = theme.tabs.closeHovered;
+        theme.tabs.closePressed.background = colors.onSurface.withAlpha(0.18f);
         theme.tabs.text = theme.label;
         theme.tabs.text.fontSize = 13.f;
         theme.tabs.inactiveText = colors.onSurfaceVariant;
+        theme.tabs.closeIcon = colors.onSurfaceVariant;
+        theme.tabs.closeIconHovered = colors.onSurface;
         theme.tabs.height = 28.f;
         theme.tabs.minimumWidth = 78.f;
         theme.tabs.horizontalPadding = 10.f;
         theme.tabs.stripPadding = {3.f, 2.f};
         theme.tabs.gap = 2.f;
+        theme.tabs.closeButtonSize = 18.f;
+        theme.tabs.closeIconSize = 10.f;
+        theme.tabs.closeButtonGap = 4.f;
+        theme.tabs.closeButtonTrailingPadding = 5.f;
 
         theme.menus.bar = {
             .background = colors.surfaceContainerLowest,

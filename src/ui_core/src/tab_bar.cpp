@@ -105,6 +105,44 @@ namespace Bess::UI {
         return std::nullopt;
     }
 
+    TabStripRegion
+    TabStripLayout::withTrailingAction(TabStripRegion region,
+                                       float actionSize,
+                                       float gap,
+                                       float trailingPadding) noexcept {
+        const auto nonNegativeFinite = [](float value) {
+            return std::isfinite(value) ? std::max(0.f, value) : 0.f;
+        };
+        const float size = std::min({nonNegativeFinite(actionSize),
+                                     region.bounds.size.x,
+                                     region.bounds.size.y});
+        if (size <= 0.f) {
+            return region;
+        }
+
+        const auto tabTopLeft = region.bounds.topLeft();
+        const auto tabBottomRight = region.bounds.bottomRight();
+        const float padding =
+            std::min(nonNegativeFinite(trailingPadding),
+                     std::max(0.f, region.bounds.size.x - size));
+        const float right = tabBottomRight.x - padding;
+        region.trailingActionBounds = {
+            .center = {right - size * 0.5f, region.bounds.center.y},
+            .size = {size, size},
+        };
+
+        const float labelLeft =
+            std::max(tabTopLeft.x, region.labelBounds.topLeft().x);
+        const float labelRight =
+            std::max(labelLeft,
+                     std::min(region.labelBounds.bottomRight().x,
+                              region.trailingActionBounds.topLeft().x -
+                                  nonNegativeFinite(gap)));
+        region.labelBounds.center.x = (labelLeft + labelRight) * 0.5f;
+        region.labelBounds.size.x = labelRight - labelLeft;
+        return region;
+    }
+
     TabBar::TabBar(std::shared_ptr<TabModel> model, TabBarOptions options)
         : m_model(model != nullptr ? std::move(model)
                                    : std::make_shared<TabModel>()),

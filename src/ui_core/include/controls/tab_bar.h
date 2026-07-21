@@ -25,6 +25,7 @@ namespace Bess::UI {
         size_t index = 0;
         WidgetBounds bounds;
         WidgetBounds labelBounds;
+        WidgetBounds trailingActionBounds;
     };
 
     // Pure layout solver shared by standalone TabBar and DockSpace stacks.
@@ -35,6 +36,16 @@ namespace Bess::UI {
                   size_t tabCount,
                   const TabStripMetrics &metrics,
                   float scrollOffset = 0.f);
+
+        // Reserves a square action at the trailing edge and returns a copy
+        // with a shortened label. This is shared by dock-tab close buttons
+        // and future tab actions without coupling the pure strip solver to a
+        // particular tab model.
+        [[nodiscard]] static TabStripRegion
+        withTrailingAction(TabStripRegion region,
+                           float actionSize,
+                           float gap,
+                           float trailingPadding) noexcept;
 
         [[nodiscard]] static std::optional<size_t>
         hitTest(std::span<const TabStripRegion> regions,

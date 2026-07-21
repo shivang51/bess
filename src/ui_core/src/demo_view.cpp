@@ -153,19 +153,41 @@ namespace Bess::UI {
                                      "Explorer",
                                      "Ctrl+1",
                                      [this] {
-                                         setStatus("View > Panels > Explorer");
+                                         if (m_explorerPanel.show()) {
+                                             setStatus("Explorer shown");
+                                         }
                                      }),
                              command("",
                                      "Inspector",
                                      "Ctrl+2",
                                      [this] {
-                                         setStatus("View > Panels > Inspector");
+                                         if (m_inspectorPanel.show()) {
+                                             setStatus("Inspector shown");
+                                         }
                                      }),
                              command("",
                                      "Console",
                                      "Ctrl+3",
                                      [this] {
-                                         setStatus("View > Panels > Console");
+                                         if (m_consolePanel.show()) {
+                                             setStatus("Console shown");
+                                         }
+                                     }),
+                             command("",
+                                     "Preview",
+                                     "",
+                                     [this] {
+                                         if (m_previewPanel.show()) {
+                                             setStatus("Preview shown");
+                                         }
+                                     }),
+                             command("",
+                                     "Assets",
+                                     "",
+                                     [this] {
+                                         if (m_assetsPanel.show()) {
+                                             setStatus("Assets shown");
+                                         }
                                      })}),
                     command("",
                             "Command Palette",
@@ -248,7 +270,7 @@ namespace Bess::UI {
                         [](LayoutNode &layout) { layout.setFlexShrink(0.f); });
 
                     m_dockSpace = page.dockSpace([this](DockComposer &dock) {
-                        const auto explorer =
+                        m_explorerPanel =
                             dock.panel("Explorer", [this](UIComposer &panel) {
                                 panel.label("Project Explorer", headingLabel());
                                 panel.label("assets/");
@@ -271,10 +293,10 @@ namespace Bess::UI {
                         //         });
                         //     });
 
-                        const auto inspector = dock.panel(
+                        m_inspectorPanel = dock.panel(
                             "Inspector",
                             DockPanelPlacement{
-                                .target = dock.stackFor(explorer.item),
+                                .target = dock.stackFor(m_explorerPanel.item),
                                 .zone = DockZone::right,
                             },
                             [this](UIComposer &panel) {
@@ -287,10 +309,10 @@ namespace Bess::UI {
                                 });
                             });
 
-                        static_cast<void>(dock.panel(
+                        m_previewPanel = dock.panel(
                             "Preview",
                             DockPanelPlacement{
-                                .target = dock.stackFor(inspector.item),
+                                .target = dock.stackFor(m_inspectorPanel.item),
                                 .zone = DockZone::main,
                             },
                             [](UIComposer &panel) {
@@ -299,12 +321,12 @@ namespace Bess::UI {
                                     "This shares a tab stack with Inspector.");
                                 panel.spacer();
                                 panel.button("Refresh preview");
-                            }));
+                            });
 
-                        const auto console = dock.panel(
+                        m_consolePanel = dock.panel(
                             "Console",
                             DockPanelPlacement{
-                                .target = dock.stackFor(explorer.item),
+                                .target = dock.stackFor(m_explorerPanel.item),
                                 .zone = DockZone::bottom,
                             },
                             [this](UIComposer &panel) {
@@ -319,10 +341,10 @@ namespace Bess::UI {
                                 });
                             });
 
-                        static_cast<void>(dock.panel(
+                        m_assetsPanel = dock.panel(
                             "Assets",
                             DockPanelPlacement{
-                                .target = dock.stackFor(console.item),
+                                .target = dock.stackFor(m_consolePanel.item),
                                 .zone = DockZone::left,
                             },
                             [](UIComposer &panel) {
@@ -331,7 +353,7 @@ namespace Bess::UI {
                                 panel.label("Icons");
                                 panel.label("Textures");
                                 panel.spacer();
-                            }));
+                            });
                     });
                     m_dockSpace.updateLayout([](LayoutNode &layout) {
                         layout.setHeightAuto();

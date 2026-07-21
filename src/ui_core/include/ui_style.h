@@ -43,8 +43,12 @@ namespace Bess::UI {
         UIBoxStyle hovered;
         UIBoxStyle active;
         UIBoxStyle pressed;
+        UIBoxStyle closeHovered;
+        UIBoxStyle closePressed;
         UITextStyle text;
         Core::Renderer::Color inactiveText{};
+        Core::Renderer::Color closeIcon{};
+        Core::Renderer::Color closeIconHovered{};
         float height = 28.f;
         float minimumWidth = 72.f;
         float maximumWidth = 220.f;
@@ -54,6 +58,10 @@ namespace Bess::UI {
         // geometry as well as paint.
         glm::vec2 stripPadding{0.f};
         float gap = 0.f;
+        float closeButtonSize = 18.f;
+        float closeIconSize = 10.f;
+        float closeButtonGap = 4.f;
+        float closeButtonTrailingPadding = 5.f;
     };
 
     struct UIMenuStyle {

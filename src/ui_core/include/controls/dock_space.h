@@ -5,6 +5,7 @@
 #include "models/dock_model.h"
 #include "ui_style.h"
 #include "widget.h"
+#include "widget_ref.h"
 
 #include <memory>
 #include <optional>
@@ -13,6 +14,9 @@
 #include <vector>
 
 namespace Bess::UI {
+
+    class DockPanelHandle;
+    struct TabStripRegion;
 
     struct DockPanelOptions {
         std::optional<UIBoxStyle> background;
@@ -40,15 +44,6 @@ namespace Bess::UI {
         DockItemId m_itemId = DockItemId::generate();
         std::string m_title;
         DockPanelOptions m_options;
-    };
-
-    struct DockPanelHandle {
-        DockItemId item;
-        WidgetId panel;
-
-        [[nodiscard]] explicit operator bool() const noexcept {
-            return item && panel;
-        }
     };
 
     struct DockSpaceOptions {
@@ -83,6 +78,11 @@ namespace Bess::UI {
         bool removePanel(WidgetTree &state, DockItemId item);
         bool
         setPanelTitle(WidgetTree &state, DockItemId item, std::string title);
+        bool hidePanel(DockItemId item);
+        bool showPanel(DockItemId item);
+        [[nodiscard]] bool isPanelVisible(DockItemId item) const noexcept;
+        [[nodiscard]] bool isPanelHidden(DockItemId item) const noexcept;
+        [[nodiscard]] size_t hiddenPanelCount() const noexcept;
 
         // Floating panels remain owned by this DockSpace and its WidgetTree.
         // Each floating window is another dock host, so it can receive tabs
@@ -103,6 +103,21 @@ namespace Bess::UI {
             DockHostId host;
             DockNodeId stack;
             DockItemId item;
+
+            bool operator==(const HitTab &) const noexcept = default;
+        };
+
+        struct HiddenPanel {
+            DetachedDockItem item;
+            DockHostId originHost;
+            DockNodeId stack;
+            size_t tabIndex = DockTabModel::npos;
+            WidgetBounds fallbackBounds;
+        };
+
+        struct StackOwner {
+            DockSpaceModel *model = nullptr;
+            DockHostId host;
         };
 
         struct FloatingHost {
@@ -164,6 +179,18 @@ namespace Bess::UI {
                                     const DockLayoutResult &layout,
                                     const WidgetTree &state,
                                     glm::vec2 position) const;
+        [[nodiscard]] HitTab hitClose(WidgetBounds bounds,
+                                      const WidgetTree &state,
+                                      glm::vec2 position) const;
+        [[nodiscard]] HitTab hitClose(const DockSpaceModel &model,
+                                      DockHostId host,
+                                      const DockLayoutResult &layout,
+                                      const WidgetTree &state,
+                                      glm::vec2 position) const;
+        [[nodiscard]] TabStripRegion
+        floatingHeaderRegion(const FloatingHost &host,
+                             const WidgetTree &state,
+                             bool reserveClose) const noexcept;
         [[nodiscard]] FloatingHost *findFloating(DockItemId item) noexcept;
         [[nodiscard]] const FloatingHost *
         findFloating(DockItemId item) const noexcept;
@@ -173,6 +200,7 @@ namespace Bess::UI {
         [[nodiscard]] DockSpaceModel *modelForHost(DockHostId host) noexcept;
         [[nodiscard]] const DockSpaceModel *
         modelForHost(DockHostId host) const noexcept;
+        [[nodiscard]] StackOwner findStackOwner(DockNodeId stack) noexcept;
         [[nodiscard]] DockHostId
         floatingHeaderAt(glm::vec2 position,
                          const WidgetTree &state) const noexcept;
@@ -203,8 +231,12 @@ namespace Bess::UI {
                             DetachedDockItem &&item,
                             const DropDestination &drop,
                             DockNodeId overrideTarget = {});
+        bool restoreHiddenAsFloating(HiddenPanel &hidden);
+        [[nodiscard]] WidgetBounds
+        dockedFallbackBounds(DockNodeId stack, const WidgetTree &state) const;
         void removeFloatingHostIfEmpty(DockHostId host);
         void clearTabInteraction() noexcept;
+        void clearCloseInteraction() noexcept;
         void bringFloatingToFront(WidgetEventContext &context, DockHostId host);
         UIEventReply beginFloatingHeaderPress(WidgetEventContext &context,
                                               DockHostId host);
@@ -216,17 +248,47 @@ namespace Bess::UI {
         WidgetTree *m_mountedState = nullptr;
         WidgetId m_mountedId;
         std::vector<std::unique_ptr<FloatingHost>> m_floatingHosts;
+        HashMap<DockItemId, HiddenPanel> m_hiddenPanels;
         std::optional<TabDrag> m_tabDrag;
         std::vector<DropGuide> m_dropGuides;
         std::optional<DropDestination> m_hoveredDrop;
         Pressable m_tabPressable;
         DockItemId m_hoveredItem;
         DockItemId m_pressedItem;
+        HitTab m_hoveredClose;
+        HitTab m_pressedClose;
         DockHostId m_focusedHost;
         DockNodeId m_focusedStack;
         SplitHit m_hoveredSplit;
         SplitHit m_draggedSplit;
         DockSpaceModel::ChangedSignal::Connection m_modelConnection;
+    };
+
+    // Copyable, lifetime-safe reference to a retained dock panel. Hiding only
+    // detaches its DockItem; the panel widget and all composed child state stay
+    // alive until removePanel() or WidgetTree teardown.
+    class BESS_API DockPanelHandle {
+      public:
+        DockPanelHandle() = default;
+
+        DockItemId item;
+        WidgetId panel;
+
+        [[nodiscard]] explicit operator bool() const noexcept;
+        [[nodiscard]] WidgetRef<DockPanel> widget() const noexcept;
+        bool hide() const;
+        bool show() const;
+        [[nodiscard]] bool isVisible() const noexcept;
+        [[nodiscard]] bool isHidden() const noexcept;
+
+      private:
+        friend class DockSpace;
+        DockPanelHandle(WidgetTree &state,
+                        WidgetId dockSpace,
+                        DockItemId item,
+                        WidgetId panel) noexcept;
+
+        WidgetRef<DockSpace> m_dockSpace;
     };
 
 } // namespace Bess::UI
