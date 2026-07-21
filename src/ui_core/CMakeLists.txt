@@ -3,6 +3,8 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(Header_Files
 	include/dock.h
+	include/ui_event.h
+	include/ui_target.h
 	
 	include/ui_core/ui_core.h
 )

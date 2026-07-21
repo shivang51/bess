@@ -18,8 +18,10 @@
 #endif
 #include <algorithm>
 #include <cassert>
+#include <concepts>
 #include <cstdint>
 #include <memory>
+#include <type_traits>
 
 #ifdef _WIN32
     #ifndef WIN32_LEAN_AND_MEAN
@@ -37,6 +39,42 @@ namespace Bess {
 
     namespace {
         constexpr char const *instanceClass = "com.shivang.bess";
+
+        MouseButton mouseButtonFromGLFW(const int button) {
+            switch (button) {
+            case GLFW_MOUSE_BUTTON_LEFT:
+                return MouseButton::left;
+            case GLFW_MOUSE_BUTTON_RIGHT:
+                return MouseButton::right;
+            case GLFW_MOUSE_BUTTON_MIDDLE:
+                return MouseButton::middle;
+            case GLFW_MOUSE_BUTTON_4:
+                return MouseButton::button4;
+            case GLFW_MOUSE_BUTTON_5:
+                return MouseButton::button5;
+            case GLFW_MOUSE_BUTTON_6:
+                return MouseButton::button6;
+            case GLFW_MOUSE_BUTTON_7:
+                return MouseButton::button7;
+            case GLFW_MOUSE_BUTTON_8:
+                return MouseButton::button8;
+            default:
+                return MouseButton::unknown;
+            }
+        }
+
+        KeyAction keyActionFromGLFW(const int action) {
+            switch (action) {
+            case GLFW_PRESS:
+                return KeyAction::press;
+            case GLFW_RELEASE:
+                return KeyAction::release;
+            case GLFW_REPEAT:
+                return KeyAction::hold;
+            default:
+                return KeyAction::unknown;
+            }
+        }
     } // namespace
 
     Window::Window(int width, int height, const std::string &title)
@@ -51,7 +89,6 @@ namespace Bess {
 
     void Window::onUpdate(TimeMs dt) {
         m_ui.update(dt);
-        m_uiTarget.setMousePos(getMousePos());
         m_uiTarget.update(dt);
     }
 
@@ -142,6 +179,7 @@ namespace Bess {
 
         glfwSetWindowSizeLimits(
             window, 600, 500, GLFW_DONT_CARE, GLFW_DONT_CARE);
+        glfwSetInputMode(window, GLFW_LOCK_KEY_MODS, GLFW_TRUE);
 
         glfwSetFramebufferSizeCallback(
             window, [](GLFWwindow *window, int w, int h) {
@@ -151,10 +189,18 @@ namespace Bess {
         glfwSetScrollCallback(
             window, [](GLFWwindow *window, double x, double y) {
                 const auto this_ = (Window *)glfwGetWindowUserPointer(window);
-                auto inputSubSystem =
-                    GAppContext::getInstance().getSubSystem<InputSubSystem>();
-
-                inputSubSystem->onMouseWheelEvent({x, y});
+                double mouseX = 0.0;
+                double mouseY = 0.0;
+                glfwGetCursorPos(window, &mouseX, &mouseY);
+                this_->dispatchInputEvent(Input::Event{
+                    Input::MouseWheelEvent{
+                        .pos = {static_cast<float>(mouseX),
+                                static_cast<float>(mouseY)},
+                        .offset = {static_cast<float>(x),
+                                   static_cast<float>(y)},
+                    },
+                    this_->currentInputModifiers(),
+                });
             });
 
         glfwSetKeyCallback(
@@ -165,66 +211,63 @@ namespace Bess {
                int action,
                int mods) {
                 const auto this_ = (Window *)glfwGetWindowUserPointer(window);
-                KeyAction keyAction =
-                    action == GLFW_PRESS
-                        ? KeyAction::press
-                        : (action == GLFW_RELEASE
-                               ? KeyAction::release
-                               : (action == GLFW_REPEAT ? KeyAction::hold
-                                                        : KeyAction::unknown));
-
-                auto inputSubSystem =
-                    GAppContext::getInstance().getSubSystem<InputSubSystem>();
-                inputSubSystem->onKeyEvent(this_->glfwKeyToKeyCode(key),
-                                           keyAction);
+                static_cast<void>(scancode);
+                const KeyAction keyAction = keyActionFromGLFW(action);
+                this_->m_inputModifiers =
+                    this_->glfwModifiersToInput(mods);
+                const auto keyCode = this_->glfwKeyToKeyCode(key);
+                this_->dispatchInputEvent(Input::Event{
+                    Input::KeyEvent{.key = keyCode, .action = keyAction},
+                    this_->m_inputModifiers,
+                });
             });
 
         glfwSetCharCallback(
             window, [](GLFWwindow *window, unsigned int codepoint) {
-                auto inputSubSystem =
-                    GAppContext::getInstance().getSubSystem<InputSubSystem>();
-                inputSubSystem->onTextInputEvent(
-                    static_cast<char32_t>(codepoint));
+                const auto this_ = (Window *)glfwGetWindowUserPointer(window);
+                this_->dispatchInputEvent(Input::Event{
+                    Input::TextInputEvent{
+                        .codepoint = static_cast<char32_t>(codepoint),
+                    },
+                    this_->currentInputModifiers(),
+                });
             });
 
         glfwSetMouseButtonCallback(
             window, [](GLFWwindow *window, int button, int action, int mods) {
                 const auto this_ = (Window *)glfwGetWindowUserPointer(window);
-                MouseButton btn = MouseButton::unknown;
-
-                switch (button) {
-                case GLFW_MOUSE_BUTTON_LEFT: {
-                    btn = MouseButton::left;
-                } break;
-                case GLFW_MOUSE_BUTTON_RIGHT: {
-                    btn = MouseButton::right;
-                } break;
-                case GLFW_MOUSE_BUTTON_MIDDLE: {
-                    btn = MouseButton::middle;
-                } break;
-                default:
+                const MouseButton btn = mouseButtonFromGLFW(button);
+                if (btn == MouseButton::unknown) {
                     BESS_WARN("[Window] Unhandled mouse button type {}",
                               button);
-                    break;
                 }
-
-                const auto btnAction = action == GLFW_PRESS
-                                           ? MouseButtonAction::press
-                                           : MouseButtonAction::release;
-
-                auto inputSubSystem =
-                    GAppContext::getInstance().getSubSystem<InputSubSystem>();
+                const auto btnAction =
+                    action == GLFW_PRESS ? MouseButtonAction::press
+                                         : MouseButtonAction::release;
+                this_->m_inputModifiers =
+                    this_->glfwModifiersToInput(mods);
 
                 double x = 0.0, y = 0.0;
                 glfwGetCursorPos(window, &x, &y);
-                inputSubSystem->onMouseButtonEvent(btn, btnAction, {x, y});
+                this_->dispatchInputEvent(Input::Event{
+                    Input::MouseButtonEvent{
+                        .button = btn,
+                        .action = btnAction,
+                        .pos = {static_cast<float>(x), static_cast<float>(y)},
+                    },
+                    this_->m_inputModifiers,
+                });
             });
 
         glfwSetCursorPosCallback(
             window, [](GLFWwindow *window, double x, double y) {
-                auto inputSubSystem =
-                    GAppContext::getInstance().getSubSystem<InputSubSystem>();
-                inputSubSystem->onMouseMoveEvent({x, y});
+                const auto this_ = (Window *)glfwGetWindowUserPointer(window);
+                this_->dispatchInputEvent(Input::Event{
+                    Input::MouseMoveEvent{
+                        .pos = {static_cast<float>(x), static_cast<float>(y)},
+                    },
+                    this_->currentInputModifiers(),
+                });
             });
 
         BESS_INFO("[Window] Created GLFW window {}", m_title);
@@ -249,6 +292,15 @@ namespace Bess {
         };
 
         m_uiTarget.init(renderer, desc);
+        m_uiTarget.enqueueEvent(UI::UITargetResizeEvent{
+            .width = static_cast<uint32_t>(m_width),
+            .height = static_cast<uint32_t>(m_height),
+        });
+
+        const auto mousePos = getMousePos();
+        dispatchInputEvent(
+            Input::Event{Input::MouseMoveEvent{.pos = mousePos},
+                         currentInputModifiers()});
     }
 
     void Window::onShutdown() {
@@ -372,6 +424,10 @@ namespace Bess {
 
         m_uiTarget.resize({static_cast<float>(framebufferWidth),
                            static_cast<float>(framebufferHeight)});
+        m_uiTarget.enqueueEvent(UI::UITargetResizeEvent{
+            .width = static_cast<uint32_t>(framebufferWidth),
+            .height = static_cast<uint32_t>(framebufferHeight),
+        });
 
         m_framebufferResized = true;
         if (!notifyResizeEvent) {
@@ -407,6 +463,83 @@ namespace Bess {
             glfwSetInputMode(
                 mp_window.get(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         }
+    }
+
+    void Window::dispatchInputEvent(Input::Event event) {
+        auto inputSubSystem =
+            GAppContext::getInstance().getSubSystem<InputSubSystem>();
+        event = inputSubSystem->processEvent(std::move(event));
+
+        std::visit(
+            [this](auto &inputEvent) {
+                using EventType = std::remove_cvref_t<decltype(inputEvent)>;
+                if constexpr (std::same_as<EventType, Input::MouseMoveEvent> ||
+                              std::same_as<EventType,
+                                           Input::MouseWheelEvent> ||
+                              std::same_as<EventType,
+                                           Input::MouseButtonEvent>) {
+                    inputEvent.pos = windowToUITargetPos(inputEvent.pos.x,
+                                                         inputEvent.pos.y);
+                }
+            },
+            event.data);
+
+        m_uiTarget.enqueueEvent(std::move(event));
+    }
+
+    Input::Modifiers
+    Window::glfwModifiersToInput(const int glfwModifiers) const {
+        return {
+            .control = (glfwModifiers & GLFW_MOD_CONTROL) != 0,
+            .shift = (glfwModifiers & GLFW_MOD_SHIFT) != 0,
+            .alt = (glfwModifiers & GLFW_MOD_ALT) != 0,
+            .super = (glfwModifiers & GLFW_MOD_SUPER) != 0,
+            .capsLock = (glfwModifiers & GLFW_MOD_CAPS_LOCK) != 0,
+            .numLock = (glfwModifiers & GLFW_MOD_NUM_LOCK) != 0,
+        };
+    }
+
+    Input::Modifiers Window::currentInputModifiers() const {
+        auto modifiers = m_inputModifiers;
+        const auto isPressed = [this](const int key) {
+            return glfwGetKey(mp_window.get(), key) == GLFW_PRESS;
+        };
+
+        modifiers.control =
+            isPressed(GLFW_KEY_LEFT_CONTROL) ||
+            isPressed(GLFW_KEY_RIGHT_CONTROL);
+        modifiers.shift =
+            isPressed(GLFW_KEY_LEFT_SHIFT) || isPressed(GLFW_KEY_RIGHT_SHIFT);
+        modifiers.alt =
+            isPressed(GLFW_KEY_LEFT_ALT) || isPressed(GLFW_KEY_RIGHT_ALT);
+        modifiers.super =
+            isPressed(GLFW_KEY_LEFT_SUPER) || isPressed(GLFW_KEY_RIGHT_SUPER);
+        return modifiers;
+    }
+
+    glm::vec2 Window::windowToUITargetPos(const double x,
+                                          const double y) const {
+        int windowWidth = 0;
+        int windowHeight = 0;
+        int framebufferWidth = 0;
+        int framebufferHeight = 0;
+        glfwGetWindowSize(mp_window.get(), &windowWidth, &windowHeight);
+        glfwGetFramebufferSize(
+            mp_window.get(), &framebufferWidth, &framebufferHeight);
+
+        const float scaleX = windowWidth > 0
+                                 ? static_cast<float>(framebufferWidth) /
+                                       static_cast<float>(windowWidth)
+                                 : 1.f;
+        const float scaleY = windowHeight > 0
+                                 ? static_cast<float>(framebufferHeight) /
+                                       static_cast<float>(windowHeight)
+                                 : 1.f;
+        const auto framebufferPos = glm::vec2{
+            static_cast<float>(x) * scaleX,
+            static_cast<float>(y) * scaleY,
+        };
+        return framebufferPos - m_uiTarget.getRect().pos;
     }
 
     KeyCode Window::glfwKeyToKeyCode(int glfwKey) const {

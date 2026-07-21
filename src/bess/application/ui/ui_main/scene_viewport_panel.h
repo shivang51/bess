@@ -4,16 +4,13 @@
 #include "bess_core/renderer/texture.h"
 #include "bess_core/scene/scene.h"
 #include "bess_core/viewport.h"
+#include "bess_core/input/input_event.h"
 #include "common/bess_uuid.h"
 #include "common/class_helpers.h"
 #include "common/types.h"
 #include "imgui.h"
 #include "string"
 #include "ui/ui_panel.h"
-
-namespace Bess {
-    struct MouseButtonState;
-} // namespace Bess
 
 namespace Bess::UI {
     class BESS_API SceneViewportPanel : public Panel {
@@ -64,7 +61,7 @@ namespace Bess::UI {
 
         void handleMouseMove(const glm::vec2 &mousePos);
         void releaseMouseButtonOutsideViewport(
-            const MouseButtonState &mouseBtnState);
+            const Input::MouseButtonEvent &mouseBtnState);
         void applySceneCursor();
 
         bool isInsideViewport(const glm::vec2 &pos) const;

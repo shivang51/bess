@@ -1,7 +1,7 @@
 #pragma once
 
 #include "GLFW/glfw3.h"
-#include "bess_core/sub_systems/input_sub_system_types.h"
+#include "bess_core/input/input_event.h"
 #include "common/bess_api.h"
 #include "common/sub_system.h"
 #include "fwd.hpp"
@@ -93,6 +93,12 @@ namespace Bess {
 
       private:
         KeyCode glfwKeyToKeyCode(int glfwKey) const;
+        [[nodiscard]] Input::Modifiers
+        glfwModifiersToInput(int glfwModifiers) const;
+        [[nodiscard]] Input::Modifiers currentInputModifiers() const;
+        void dispatchInputEvent(Input::Event event);
+        [[nodiscard]] glm::vec2
+        windowToUITargetPos(double x, double y) const;
 
       private:
         std::unique_ptr<GLFWwindow, GLFWwindowDeleter> mp_window;
@@ -109,6 +115,7 @@ namespace Bess {
 
         WindowSurface m_surface;
         UI::UITarget m_uiTarget;
+        Input::Modifiers m_inputModifiers;
         UIHandle m_ui;
     };
 } // namespace Bess

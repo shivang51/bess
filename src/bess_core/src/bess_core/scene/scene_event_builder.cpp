@@ -82,10 +82,11 @@ namespace Bess::Canvas {
 
         for (const auto &keyboardEvent : frameInputState.keyboardEvents) {
             SceneEvent::Data data;
-            if (keyboardEvent.type == KeyboardInputEvent::Type::key) {
+            if (const auto *keyEvent =
+                    std::get_if<Input::KeyEvent>(&keyboardEvent)) {
                 data.keyPress = {
-                    .keycode = keyboardEvent.key.key,
-                    .action = keyboardEvent.key.action,
+                    .keycode = keyEvent->key,
+                    .action = keyEvent->action,
                 };
 
                 events.emplace_back(SceneEvent{
@@ -95,9 +96,11 @@ namespace Bess::Canvas {
                     .isShiftPressed = isShiftPressed,
                     .isAltPressed = isAltPressed,
                 });
-            } else {
+            } else if (const auto *textEvent =
+                           std::get_if<Input::TextInputEvent>(
+                               &keyboardEvent)) {
                 data.textInput = {
-                    .codepoint = keyboardEvent.text.codepoint,
+                    .codepoint = textEvent->codepoint,
                 };
 
                 events.emplace_back(SceneEvent{

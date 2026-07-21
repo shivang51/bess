@@ -5,13 +5,19 @@
 #include "common/types.h"
 #include "dock.h"
 #include "layout.h"
+#include "ui_event.h"
 #include <memory>
+#include <span>
+#include <vector>
 
 namespace Bess::UI {
 
     struct UITargetInpCtx {
         PickingId pickingId = PickingId::invalid();
         glm::vec2 mousePos = {0, 0};
+        glm::vec2 mouseDelta = {0, 0};
+        glm::vec2 mouseWheelDelta = {0, 0};
+        Input::Modifiers modifiers;
     };
 
     struct Rect {
@@ -52,7 +58,20 @@ namespace Bess::UI {
 
         MAKE_GETTER_SETTER(Rect, Rect, m_rect);
 
-        void setMousePos(const glm::vec2 &pos);
+        // Events enqueued before update() are exposed, in order, for that
+        // frame. Events enqueued while a frame is being processed are held for
+        // the following frame.
+        void enqueueEvent(UIEvent event);
+        void enqueueEvent(Input::Event event);
+        template <typename T>
+            requires(!std::same_as<std::remove_cvref_t<T>, UIEvent> &&
+                     std::constructible_from<UIEventData, T>)
+        void enqueueEvent(T &&event,
+                          Input::Modifiers eventModifiers = {}) {
+            enqueueEvent(UIEvent{std::forward<T>(event), eventModifiers});
+        }
+        [[nodiscard]] std::span<const UIEvent> getFrameEvents() const noexcept;
+        [[nodiscard]] const UITargetInpCtx &getInputContext() const noexcept;
 
         void resize(const glm::vec2 &size);
 
@@ -62,6 +81,7 @@ namespace Bess::UI {
 
       private:
         void beginFrame(const Core::Style::Color &background);
+        void processInputEvents();
 
       private:
         DockManager m_dockManager;
@@ -71,5 +91,8 @@ namespace Bess::UI {
             nullptr;
         Rect m_rect{};
         UITargetInpCtx m_inputCtx;
+        bool m_hasMousePos = false;
+        std::vector<UIEvent> m_pendingEvents;
+        std::vector<UIEvent> m_frameEvents;
     };
 } // namespace Bess::UI

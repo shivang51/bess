@@ -8,7 +8,7 @@
 #include "bess_core/scene/scene_ser_reg.h"
 #include "bess_core/scene/widgets/scene_widgets.h"
 #include "bess_core/sub_systems/input_sub_system.h"
-#include "bess_core/sub_systems/input_sub_system_types.h"
+#include "bess_core/input/input_types.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"

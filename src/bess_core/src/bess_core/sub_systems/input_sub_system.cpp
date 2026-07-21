@@ -1,5 +1,4 @@
 #include "bess_core/sub_systems/input_sub_system.h"
-#include "bess_core/sub_systems/input_sub_system_types.h"
 
 namespace Bess {
     void InputSubSystem::onInit() {
@@ -20,63 +19,61 @@ namespace Bess {
         }
     }
 
-    void InputSubSystem::onKeyEvent(KeyCode key, KeyAction action) {
-        m_keyStates[key] = {key, action};
+    Input::Event InputSubSystem::processEvent(Input::Event event) {
+        std::visit([this](auto &inputEvent) { processEvent(inputEvent); },
+                   event.data);
+        return event;
+    }
+
+    void InputSubSystem::processEvent(Input::KeyEvent &event) {
+        m_keyStates[event.key] = event;
         m_frameInputState.hasKeyEvent = true;
-        m_frameInputState.keyState = m_keyStates[key];
-        m_frameInputState.keyboardEvents.push_back({
-            .type = KeyboardInputEvent::Type::key,
-            .key = m_keyStates[key],
-        });
+        m_frameInputState.keyState = event;
+        m_frameInputState.keyboardEvents.emplace_back(event);
     }
 
-    void InputSubSystem::onTextInputEvent(char32_t codepoint) {
+    void InputSubSystem::processEvent(Input::TextInputEvent &event) {
         m_frameInputState.hasTextInputEvent = true;
-        m_frameInputState.keyboardEvents.push_back({
-            .type = KeyboardInputEvent::Type::text,
-            .text = {.codepoint = codepoint},
-        });
+        m_frameInputState.keyboardEvents.emplace_back(event);
     }
 
-    void InputSubSystem::onMouseButtonEvent(MouseButton button,
-                                            MouseButtonAction action,
-                                            const glm::vec2 &pos) {
+    void InputSubSystem::processEvent(Input::MouseButtonEvent &event) {
+        const auto now = std::chrono::steady_clock::now();
 
-        if (action == MouseButtonAction::press && !isMouseBtnPressed(button)) {
-            const auto &state = m_mouseBtnStates[button];
-            const float dis = glm::distance(pos, state.pos);
-            const auto timeDif =
-                std::chrono::steady_clock::now() - state.timestamp;
+        if (event.action == MouseButtonAction::press &&
+            !isMouseBtnPressed(event.button)) {
+            const auto &state = m_mouseBtnStates[event.button];
+            const float dis = glm::distance(event.pos, state.pos);
+            const auto timeDif = now - state.timestamp;
 
             if (dis <= 5.f && timeDif < TimeMs(500)) {
-                action = MouseButtonAction::doubleClick;
+                event.action = MouseButtonAction::doubleClick;
             }
         }
 
-        m_mouseBtnStates[button] = {
-            button, action, pos, std::chrono::steady_clock::now()};
+        event.timestamp = now;
+        m_mouseBtnStates[event.button] = event;
 
         m_frameInputState.hasMouseBtnEvent = true;
-        m_frameInputState.mouseBtnState = m_mouseBtnStates[button];
+        m_frameInputState.mouseBtnState = event;
     }
 
-    void InputSubSystem::onMouseMoveEvent(const glm::vec2 &pos) {
+    void InputSubSystem::processEvent(Input::MouseMoveEvent &event) {
         if (m_isFirstMouseMove) {
-            m_mouseMoveState.pos = pos;
-            m_mouseMoveState.delta = glm::vec2(0.0f);
+            event.delta = glm::vec2(0.0f);
+            m_mouseMoveState = event;
             m_isFirstMouseMove = false;
             return;
         }
 
-        m_mouseMoveState.delta = pos - m_mouseMoveState.pos;
-        m_mouseMoveState.pos = pos;
+        event.delta = event.pos - m_mouseMoveState.pos;
+        m_mouseMoveState = event;
 
         m_frameInputState.hasMouseMoved = true;
     }
 
-    void InputSubSystem::onMouseWheelEvent(const glm::vec2 &offset) {
-        m_mouseWheelState.offset = offset;
-        m_mouseWheelState.pos = m_mouseMoveState.pos;
+    void InputSubSystem::processEvent(Input::MouseWheelEvent &event) {
+        m_mouseWheelState = event;
         m_frameInputState.hasMouseWheelScrolled = true;
     }
 

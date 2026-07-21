@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <format>
+#include <utility>
 
 namespace Bess::UI {
 
@@ -85,26 +86,13 @@ namespace Bess::UI {
             } else if (node->isSplitter()) {
                 auto topLeft = node->getPos();
                 auto size = node->getSize();
-                auto center = topLeft + size * 0.5f;
 
                 auto splitNode = std::dynamic_pointer_cast<DockSplitter>(node);
                 const auto &splitNodes = splitNode->getSplitNodes();
                 drawDockNode(renderer, dockManager, splitNodes.first);
+                drawDockNode(renderer, dockManager, splitNodes.second);
+
                 if (splitNode->getSplitDir() == SplitDirection::horizontal) {
-                    renderer->drawLine({
-                        .p0 = {topLeft.x +
-                                   (size.x * splitNode->getSplitRatio()),
-                               topLeft.y},
-                        .p1 = {topLeft.x +
-                                   (size.x * splitNode->getSplitRatio()),
-                               topLeft.y + size.y},
-                        .thickness = 2.0f,
-                        .color = Core::Renderer::Colors::white,
-                        .id = {.runtimeId = dockRuntimeId++},
-                        .transformMode =
-                            Core::Renderer::RenderTransformMode::Screen,
-                    });
-                } else {
                     renderer->drawLine({
                         .p0 = {topLeft.x,
                                topLeft.y +
@@ -113,13 +101,28 @@ namespace Bess::UI {
                                topLeft.y +
                                    (size.y * splitNode->getSplitRatio())},
                         .thickness = 2.0f,
+                        .zIndex = 2,
+                        .color = Core::Renderer::Colors::white,
+                        .id = {.runtimeId = dockRuntimeId++},
+                        .transformMode =
+                            Core::Renderer::RenderTransformMode::Screen,
+                    });
+                } else {
+                    renderer->drawLine({
+                        .p0 = {topLeft.x +
+                                   (size.x * splitNode->getSplitRatio()),
+                               topLeft.y},
+                        .p1 = {topLeft.x +
+                                   (size.x * splitNode->getSplitRatio()),
+                               topLeft.y + size.y},
+                        .thickness = 2.0f,
+                        .zIndex = 2,
                         .color = Core::Renderer::Colors::white,
                         .id = {.runtimeId = dockRuntimeId++},
                         .transformMode =
                             Core::Renderer::RenderTransformMode::Screen,
                     });
                 }
-                drawDockNode(renderer, dockManager, splitNodes.second);
             }
         }
 
@@ -165,6 +168,8 @@ namespace Bess::UI {
 
         m_dockManager.init();
         createTestDock(m_dockManager);
+        m_dockManager.setSize(m_rect.size);
+        m_dockManager.setPos(m_rect.size * -0.5f);
     }
 
     void UITarget::destroy() {
@@ -173,6 +178,10 @@ namespace Bess::UI {
             m_renderTarget.reset();
         }
         m_renderer.reset();
+        m_pendingEvents.clear();
+        m_frameEvents.clear();
+        m_inputCtx = {};
+        m_hasMousePos = false;
     }
 
     std::shared_ptr<Core::Renderer::ITexture>
@@ -187,8 +196,25 @@ namespace Bess::UI {
                                          : nullptr;
     }
 
-    void UITarget::setMousePos(const glm::vec2 &pos) {
-        m_inputCtx.mousePos = pos;
+    void UITarget::enqueueEvent(UIEvent event) {
+        m_pendingEvents.emplace_back(std::move(event));
+    }
+
+    void UITarget::enqueueEvent(Input::Event event) {
+        const auto modifiers = event.modifiers;
+        std::visit(
+            [this, modifiers](auto &&inputEvent) {
+                enqueueEvent(UIEvent{std::move(inputEvent), modifiers});
+            },
+            std::move(event.data));
+    }
+
+    std::span<const UIEvent> UITarget::getFrameEvents() const noexcept {
+        return m_frameEvents;
+    }
+
+    const UITargetInpCtx &UITarget::getInputContext() const noexcept {
+        return m_inputCtx;
     }
 
     void UITarget::resize(const glm::vec2 &size) {
@@ -237,6 +263,7 @@ namespace Bess::UI {
     void UITarget::update(TimeMs dt) {
         static_cast<void>(dt);
 
+        processInputEvents();
         m_dockManager.layout();
 
         if (m_renderTarget == nullptr || m_inputCtx.mousePos.x < 0.f ||
@@ -250,6 +277,44 @@ namespace Bess::UI {
         m_inputCtx.pickingId = m_renderTarget->readPickingId(
             static_cast<uint32_t>(m_inputCtx.mousePos.x),
             static_cast<uint32_t>(m_inputCtx.mousePos.y));
+    }
+
+    void UITarget::processInputEvents() {
+        m_frameEvents.clear();
+        m_frameEvents.swap(m_pendingEvents);
+
+        m_inputCtx.mouseDelta = {0.f, 0.f};
+        m_inputCtx.mouseWheelDelta = {0.f, 0.f};
+
+        for (auto &event : m_frameEvents) {
+            if (!event.is<UITargetResizeEvent>()) {
+                m_inputCtx.modifiers = event.modifiers;
+            }
+
+            if (auto *mouseMove = event.getIf<Input::MouseMoveEvent>()) {
+                mouseMove->delta = m_hasMousePos
+                                       ? mouseMove->pos - m_inputCtx.mousePos
+                                       : glm::vec2{0.f, 0.f};
+                m_inputCtx.mouseDelta += mouseMove->delta;
+                m_inputCtx.mousePos = mouseMove->pos;
+                m_hasMousePos = true;
+                continue;
+            }
+
+            if (const auto *mouseWheel =
+                    event.getIf<Input::MouseWheelEvent>()) {
+                m_inputCtx.mousePos = mouseWheel->pos;
+                m_inputCtx.mouseWheelDelta += mouseWheel->offset;
+                m_hasMousePos = true;
+                continue;
+            }
+
+            if (const auto *mouseButton =
+                    event.getIf<Input::MouseButtonEvent>()) {
+                m_inputCtx.mousePos = mouseButton->pos;
+                m_hasMousePos = true;
+            }
+        }
     }
 
     void UITarget::beginFrame(const Core::Style::Color &background) {

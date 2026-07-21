@@ -4,49 +4,18 @@
 
 #include "common/class_helpers.h"
 #include "common/sub_system.h"
-#include "ext/vector_float2.hpp"
-#include "input_sub_system_types.h"
+#include "bess_core/input/input_event.h"
 #include <unordered_map>
 #include <vector>
 
 namespace Bess {
 
-    struct BESS_API KeyState {
-        KeyCode key = KeyCode::unknown;
-        KeyAction action = KeyAction::release;
-    };
-
-    struct BESS_API TextInputState {
-        char32_t codepoint = 0;
-    };
-
-    struct BESS_API KeyboardInputEvent {
-        enum class Type : uint8_t {
-            key,
-            text,
-        };
-
-        Type type = Type::key;
-        KeyState key;
-        TextInputState text;
-    };
-
-    struct BESS_API MouseWheelState {
-        glm::vec2 pos;
-        glm::vec2 offset;
-    };
-
-    struct BESS_API MouseMoveState {
-        glm::vec2 pos;
-        glm::vec2 delta;
-    };
-
-    struct BESS_API MouseButtonState {
-        MouseButton button = MouseButton::unknown;
-        MouseButtonAction action = MouseButtonAction::press;
-        glm::vec2 pos = {0.f, 0.f};
-        std::chrono::time_point<std::chrono::steady_clock> timestamp;
-    };
+    using KeyState = Input::KeyEvent;
+    using TextInputState = Input::TextInputEvent;
+    using KeyboardInputEvent = Input::KeyboardEvent;
+    using MouseWheelState = Input::MouseWheelEvent;
+    using MouseMoveState = Input::MouseMoveEvent;
+    using MouseButtonState = Input::MouseButtonEvent;
 
     struct BESS_API FrameInputState {
         bool hasMouseMoved = false;
@@ -68,13 +37,10 @@ namespace Bess {
 
         void onBeginFrame() override;
 
-        void onKeyEvent(KeyCode key, KeyAction action);
-        void onTextInputEvent(char32_t codepoint);
-        void onMouseButtonEvent(MouseButton button,
-                                MouseButtonAction action,
-                                const glm::vec2 &pos);
-        void onMouseMoveEvent(const glm::vec2 &pos);
-        void onMouseWheelEvent(const glm::vec2 &offset);
+        // Updates the persistent and per-frame input state. The returned event
+        // contains normalized data, such as mouse deltas and double-click
+        // actions, and can be forwarded to other input consumers.
+        [[nodiscard]] Input::Event processEvent(Input::Event event);
 
         bool isKeyPressed(KeyCode key) const;
 
@@ -93,6 +59,13 @@ namespace Bess {
         MAKE_GETTER(FrameInputState, FrameInpState, m_frameInputState);
         MAKE_GETTER(MouseWheelState, MouseWheelState, m_mouseWheelState);
         MAKE_GETTER(MouseMoveState, MouseMoveState, m_mouseMoveState);
+
+      private:
+        void processEvent(Input::KeyEvent &event);
+        void processEvent(Input::TextInputEvent &event);
+        void processEvent(Input::MouseButtonEvent &event);
+        void processEvent(Input::MouseMoveEvent &event);
+        void processEvent(Input::MouseWheelEvent &event);
 
       private:
         std::unordered_map<KeyCode, KeyState> m_keyStates;

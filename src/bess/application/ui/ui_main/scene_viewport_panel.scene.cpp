@@ -160,7 +160,7 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::releaseMouseButtonOutsideViewport(
-        const MouseButtonState &mouseBtnState) {
+        const Input::MouseButtonEvent &mouseBtnState) {
         if (mouseBtnState.action != MouseButtonAction::release ||
             isInsideViewport(mouseBtnState.pos)) {
             return;

@@ -4,6 +4,8 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(Header_Files
 	"include/bess_core/g_app_context.h"
 	"include/bess_core/viewport.h"
+	"include/bess_core/input/input_event.h"
+	"include/bess_core/input/input_types.h"
 
 	"include/bess_core/commands/add_component_command.h"
 	"include/bess_core/commands/command.h"

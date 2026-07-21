@@ -19,6 +19,8 @@ add_executable(BessTests
 	    math_sim_driver_test.cpp
 	    ui_layout_test.cpp
 	    dock_manager_tests.cpp
+	    input_event_tests.cpp
+	    ui_target_event_tests.cpp
     # scene_component_clone_test.cpp
     # sim_driver_test.cpp
     # scene_state_test.cpp
