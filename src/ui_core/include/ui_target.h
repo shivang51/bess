@@ -3,9 +3,8 @@
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/style/color_scheme.h"
 #include "common/types.h"
-#include "dock.h"
-#include "layout.h"
 #include "ui_event.h"
+#include "widget_tree.h"
 #include <memory>
 #include <span>
 #include <vector>
@@ -34,14 +33,9 @@ namespace Bess::UI {
             Core::Renderer::Renderer2DTargetFormat::RG32Uint;
     };
 
-    // This will be a root UIContainer
-    // and ideally it will draw directly to the window surface.
-    // The surface is optional so the target can also draw offscreen.
-    // It will have:
-    // - its own picking texture
-    // - a UINodes (layout engine nodes) container
-    // - a dock manager
-    // - and ui widgets
+    // Rendering/input boundary for one UI surface. The surface may be native or
+    // offscreen. WidgetTree owns retained UI state; optional features such as a
+    // DockSpace live in that tree rather than being built into every target.
     class UITarget {
       public:
         UITarget() = default;
@@ -71,6 +65,8 @@ namespace Bess::UI {
         }
         [[nodiscard]] std::span<const UIEvent> getFrameEvents() const noexcept;
         [[nodiscard]] const UITargetInpCtx &getInputContext() const noexcept;
+        [[nodiscard]] WidgetTree &getWidgetTree() noexcept;
+        [[nodiscard]] const WidgetTree &getWidgetTree() const noexcept;
 
         void resize(const glm::vec2 &size);
 
@@ -83,8 +79,7 @@ namespace Bess::UI {
         void processInputEvents();
 
       private:
-        DockManager m_dockManager;
-        LayoutNodeRegistry m_layoutNodesReg;
+        WidgetTree m_widgetTree;
         std::shared_ptr<Core::Renderer::IRenderer2D> m_renderer = nullptr;
         std::shared_ptr<Core::Renderer::IRenderTarget2D> m_renderTarget =
             nullptr;

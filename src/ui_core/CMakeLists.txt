@@ -2,9 +2,22 @@ set(PROJECT_NAME UICore)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(Header_Files
+	include/behaviors/pressable.h
+	include/controls/basic_widgets.h
+	include/controls/dock_space.h
+	include/controls/tab_bar.h
 	include/dock.h
+	include/layout.h
+	include/models/signal.h
+	include/models/dock_model.h
+	include/models/tab_model.h
 	include/ui_event.h
+	include/ui_painter.h
+	include/widget_tree.h
+	include/ui_style.h
 	include/ui_target.h
+	include/ui_types.h
+	include/widget.h
 	
 	include/ui_core/ui_core.h
 )
@@ -12,9 +25,18 @@ set(Header_Files
 source_group("include/ui_core" FILES ${Header_Files})
 
 set(Source_Files
+	src/basic_widgets.cpp
 	src/dock.cpp
-	src/ui_target.cpp
+	src/dock_model.cpp
+	src/dock_space.cpp
 	src/layout.cpp
+	src/pressable.cpp
+	src/tab_bar.cpp
+	src/ui_painter.cpp
+	src/widget_tree.cpp
+	src/ui_style.cpp
+	src/ui_target.cpp
+	src/widget.cpp
 )
 
 source_group("src" FILES ${Source_Files})
@@ -32,10 +54,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC common BessJson BessExtDeps EventSy
 
 target_include_directories(${PROJECT_NAME} PUBLIC
 	"${CMAKE_CURRENT_SOURCE_DIR}/include/ui_core"
-)
-
-target_include_directories(${PROJECT_NAME} PRIVATE
-	"${CMAKE_CURRENT_SOURCE_DIR}/include/"
+	"${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
 
 if(MSVC)

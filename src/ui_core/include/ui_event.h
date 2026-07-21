@@ -15,13 +15,25 @@ namespace Bess::UI {
         uint32_t height = 0;
     };
 
-    using UIEventData =
-        std::variant<UITargetResizeEvent,
-                     Input::MouseMoveEvent,
-                     Input::MouseWheelEvent,
-                     Input::MouseButtonEvent,
-                     Input::KeyEvent,
-                     Input::TextInputEvent>;
+    // These events are synthesized by WidgetTree. They use the same routing
+    // machinery as platform input without leaking widget state into the
+    // platform-facing input module.
+    struct UIPointerCrossingEvent {
+        bool entered = false;
+    };
+
+    struct UIFocusChangedEvent {
+        bool focused = false;
+    };
+
+    using UIEventData = std::variant<UITargetResizeEvent,
+                                     UIPointerCrossingEvent,
+                                     UIFocusChangedEvent,
+                                     Input::MouseMoveEvent,
+                                     Input::MouseWheelEvent,
+                                     Input::MouseButtonEvent,
+                                     Input::KeyEvent,
+                                     Input::TextInputEvent>;
 
     struct UIEvent {
         UIEventData data;

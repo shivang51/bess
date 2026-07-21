@@ -2,156 +2,12 @@
 #include "bess_core/renderer/colors.h"
 #include "bess_core/style/color_scheme.h"
 #include "common/bess_assert.h"
-#include "common/bess_uuid.h"
-#include "common/logger.h"
-#include "dock.h"
+#include "ui_painter.h"
 
 #include <cstdint>
-#include <format>
 #include <utility>
 
 namespace Bess::UI {
-
-    namespace {
-        void createTestDock(DockManager &dockManager) {
-            // auto dock = dockManager.createNode<DockLeaf>();
-            // dockManager.setRootNode(dock);
-
-            std::vector<std::shared_ptr<Bess::UI::DockLeaf>> leaves;
-            for (int i = 0; i < 4; ++i) {
-                auto leaf = dockManager.createNode<Bess::UI::DockLeaf>();
-                leaves.push_back(leaf);
-                if (i == 0) {
-                    leaf->setSize(glm::vec2(800.0f, 600.0f));
-                    dockManager.dockNode(leaf->getId(),
-                                         dockManager.getRootNode(),
-                                         Bess::UI::DockZone::main);
-                } else {
-                    dockManager.dockNode(leaf->getId(),
-                                         dockManager.getRootNode(),
-                                         Bess::UI::DockZone::right);
-                }
-            }
-
-            auto leaf = dockManager.createNode<Bess::UI::DockLeaf>();
-            dockManager.dockNode(leaf->getId(),
-                                 dockManager.getRootNode(),
-                                 Bess::UI::DockZone::bottom);
-        }
-
-        uint32_t dockRuntimeId = 0;
-
-        UUID hitDock = UUID::null;
-
-        void drawDockNode(
-            const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer,
-            DockManager &dockManager,
-            const UUID &nodeId) {
-            auto node = dockManager.getNode(nodeId);
-            if (!node) {
-                return;
-            }
-
-            const bool isHit = nodeId == hitDock;
-
-            if (node->isLeaf()) {
-                auto topLeft = node->getPos();
-                auto size = node->getSize();
-                auto center = topLeft + size * 0.5f;
-                renderer->drawQuad({
-                    .position = center,
-                    .size = size,
-                    .color = isHit ? Core::Renderer::Colors::limeGreen
-                                   : Core::Renderer::Colors::pastelRed,
-                    .id = {.runtimeId = dockRuntimeId++},
-                    .transformMode =
-                        Core::Renderer::RenderTransformMode::Screen,
-                });
-            } else if (node->isTab()) {
-                auto topLeft = node->getPos();
-                auto size = node->getSize();
-                auto center = topLeft + size * 0.5f;
-                renderer->drawQuad({
-                    .position = center,
-                    .size = size,
-                    .color = isHit ? Core::Renderer::Colors::limeGreen
-                                   : Core::Renderer::Colors::blue,
-                    .id = {.runtimeId = dockRuntimeId++},
-                    .transformMode =
-                        Core::Renderer::RenderTransformMode::Screen,
-                });
-
-                auto tabNode = std::dynamic_pointer_cast<DockTab>(node);
-                renderer->drawFont(
-                    std::format("Tab Node with {} children",
-                                tabNode->getDockedNodes().size()),
-                    {
-                        .position = center,
-                        .fontSize = 14,
-                        .color = Core::Renderer::Colors::white,
-                        .transformMode =
-                            Core::Renderer::RenderTransformMode::Screen,
-                    });
-
-                for (const auto &childId : tabNode->getDockedNodes()) {
-                    drawDockNode(renderer, dockManager, childId);
-                }
-            } else if (node->isSplitter()) {
-                auto topLeft = node->getPos();
-                auto size = node->getSize();
-
-                auto splitNode = std::dynamic_pointer_cast<DockSplitter>(node);
-                const auto &splitNodes = splitNode->getSplitNodes();
-                drawDockNode(renderer, dockManager, splitNodes.first);
-                drawDockNode(renderer, dockManager, splitNodes.second);
-
-                if (splitNode->getSplitDir() == SplitDirection::horizontal) {
-                    renderer->drawLine({
-                        .p0 = {topLeft.x,
-                               topLeft.y +
-                                   (size.y * splitNode->getSplitRatio())},
-                        .p1 = {topLeft.x + size.x,
-                               topLeft.y +
-                                   (size.y * splitNode->getSplitRatio())},
-                        .thickness = 2.0f,
-                        .zIndex = 2,
-                        .color = Core::Renderer::Colors::white,
-                        .id = {.runtimeId = dockRuntimeId++},
-                        .transformMode =
-                            Core::Renderer::RenderTransformMode::Screen,
-                    });
-                } else {
-                    renderer->drawLine({
-                        .p0 = {topLeft.x +
-                                   (size.x * splitNode->getSplitRatio()),
-                               topLeft.y},
-                        .p1 = {topLeft.x +
-                                   (size.x * splitNode->getSplitRatio()),
-                               topLeft.y + size.y},
-                        .thickness = 2.0f,
-                        .zIndex = 2,
-                        .color = Core::Renderer::Colors::white,
-                        .id = {.runtimeId = dockRuntimeId++},
-                        .transformMode =
-                            Core::Renderer::RenderTransformMode::Screen,
-                    });
-                }
-            }
-        }
-
-        void
-        drawDock(DockManager &dockManager,
-                 const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer) {
-            dockRuntimeId = 0;
-            auto rootNode = dockManager.getNode(dockManager.getRootNode());
-            if (!rootNode) {
-                return;
-            }
-
-            drawDockNode(renderer, dockManager, rootNode->getId());
-        }
-
-    } // namespace
 
     UITarget::~UITarget() {
         destroy();
@@ -179,10 +35,7 @@ namespace Bess::UI {
         BESS_ASSERT(m_renderTarget != nullptr,
                     "Renderer failed to create a UITarget render target");
 
-        m_dockManager.init();
-        createTestDock(m_dockManager);
-        m_dockManager.setSize(m_rect.size);
-        m_dockManager.setPos(m_rect.size * -0.5f);
+        m_widgetTree.setViewportSize(m_rect.size);
     }
 
     void UITarget::destroy() {
@@ -195,6 +48,8 @@ namespace Bess::UI {
         m_frameEvents.clear();
         m_inputCtx = {};
         m_hasMousePos = false;
+        m_widgetTree.clear();
+        m_widgetTree.setViewportSize({0.f, 0.f});
     }
 
     std::shared_ptr<Core::Renderer::ITexture>
@@ -230,6 +85,14 @@ namespace Bess::UI {
         return m_inputCtx;
     }
 
+    WidgetTree &UITarget::getWidgetTree() noexcept {
+        return m_widgetTree;
+    }
+
+    const WidgetTree &UITarget::getWidgetTree() const noexcept {
+        return m_widgetTree;
+    }
+
     void UITarget::resize(const glm::vec2 &size) {
         m_rect.size = size;
         if (m_renderTarget != nullptr && size.x > 0.f && size.y > 0.f) {
@@ -239,8 +102,7 @@ namespace Bess::UI {
             });
         }
 
-        m_dockManager.setSize(size);
-        m_dockManager.setPos(size * -0.5f);
+        m_widgetTree.setViewportSize(size);
     }
 
     void UITarget::draw() {
@@ -248,36 +110,25 @@ namespace Bess::UI {
 
         beginFrame(Core::Renderer::Colors::darkGray);
 
-        drawDock(m_dockManager, renderer);
-
-        // renderer->drawQuad({
-        //     .position = {0, 0},
-        //     .size = {100, 100},
-        //     .color = Core::Renderer::Colors::teal,
-        //     .id = {1},
-        //     .transformMode = Core::Renderer::RenderTransformMode::Screen,
-        // });
-        //
-        // renderer->drawFont(
-        //     std::format("({}, {}) | {}",
-        //                 m_inputCtx.mousePos.x,
-        //                 m_inputCtx.mousePos.y,
-        //                 static_cast<uint64_t>(m_inputCtx.pickingId)),
-        //     {
-        //         .position = {0, 130},
-        //         .fontSize = 20,
-        //         .color = Core::Renderer::Colors::white,
-        //         .transformMode = Core::Renderer::RenderTransformMode::Screen,
-        //     });
-        //
+        RendererUIPainter painter{*renderer, m_rect.size};
+        m_widgetTree.paint(painter);
         m_renderTarget->endFrame();
     }
 
     void UITarget::update(TimeMs dt) {
-        static_cast<void>(dt);
-
         processInputEvents();
-        m_dockManager.layout();
+        // Hit testing always uses a complete geometry snapshot, including on
+        // the first frame after widgets are mounted or the target is resized.
+        m_widgetTree.performLayout();
+        for (const auto &event : m_frameEvents) {
+            static_cast<void>(m_widgetTree.dispatchEvent(event));
+            if (hasInvalidation(m_widgetTree.pendingInvalidation(),
+                                WidgetInvalidation::layout)) {
+                m_widgetTree.performLayout();
+            }
+        }
+        m_widgetTree.update(dt);
+        m_widgetTree.performLayout();
 
         if (m_renderTarget == nullptr || m_inputCtx.mousePos.x < 0.f ||
             m_inputCtx.mousePos.y < 0.f ||
@@ -286,10 +137,6 @@ namespace Bess::UI {
             m_inputCtx.pickingId = PickingId::invalid();
             return;
         }
-
-        const auto pos = m_inputCtx.mousePos - (m_rect.size * 0.5f);
-        hitDock = m_dockManager.getHitRect(pos);
-        BESS_TRACE("Hit dock: {} | mousePos = {}", hitDock, pos);
 
         m_inputCtx.pickingId = m_renderTarget->readPickingId(
             static_cast<uint32_t>(m_inputCtx.mousePos.x),

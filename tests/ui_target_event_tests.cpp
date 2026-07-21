@@ -13,8 +13,8 @@ namespace {
             .shift = true,
         };
 
-        target.enqueueEvent(UI::UITargetResizeEvent{.width = 1280,
-                                                     .height = 720});
+        target.enqueueEvent(
+            UI::UITargetResizeEvent{.width = 1280, .height = 720});
         target.enqueueEvent(Input::MouseButtonEvent{
             .button = MouseButton::left,
             .action = MouseButtonAction::press,
@@ -37,8 +37,7 @@ namespace {
         EXPECT_EQ(resize->width, 1280);
         EXPECT_EQ(resize->height, 720);
 
-        const auto *mouseButton =
-            events[1].getIf<Input::MouseButtonEvent>();
+        const auto *mouseButton = events[1].getIf<Input::MouseButtonEvent>();
         ASSERT_NE(mouseButton, nullptr);
         EXPECT_EQ(mouseButton->button, MouseButton::left);
         EXPECT_EQ(mouseButton->action, MouseButtonAction::press);
@@ -97,6 +96,30 @@ namespace {
         EXPECT_TRUE(target.getFrameEvents().empty());
         EXPECT_EQ(target.getInputContext().mouseDelta, glm::vec2(0.f));
         EXPECT_EQ(target.getInputContext().mouseWheelDelta, glm::vec2(0.f));
+    }
+
+    TEST(UITargetEvents, LaysOutNewWidgetTreeBeforeFirstInputBatch) {
+        UI::UITarget target;
+        target.resize({200.f, 100.f});
+        size_t activations = 0;
+        const auto button = target.getWidgetTree().emplaceWidget<UI::Button>(
+            "Open", [&activations] { ++activations; });
+        ASSERT_TRUE(button);
+
+        target.enqueueEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::press,
+            .pos = {100.f, 50.f},
+        });
+        target.enqueueEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::release,
+            .pos = {100.f, 50.f},
+        });
+        target.update(TimeMs{0});
+
+        EXPECT_EQ(activations, 1);
+        EXPECT_EQ(target.getWidgetTree().getFocusedWidget(), button);
     }
 
 } // namespace

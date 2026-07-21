@@ -21,6 +21,8 @@ add_executable(BessTests
 	    dock_manager_tests.cpp
 	    input_event_tests.cpp
 	    ui_target_event_tests.cpp
+	    ui_widget_tests.cpp
+	    ui_tab_dock_tests.cpp
     # scene_component_clone_test.cpp
     # sim_driver_test.cpp
     # scene_state_test.cpp
