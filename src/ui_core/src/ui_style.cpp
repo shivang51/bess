@@ -70,6 +70,45 @@ namespace Bess::UI {
         theme.tabs.stripPadding = {4.f, 3.f};
         theme.tabs.gap = 2.f;
 
+        theme.menus.bar = {
+            .background = Color::fromRGBA8(31, 34, 38),
+            .border = Color::fromRGBA8(48, 52, 58),
+            .borderThickness = {0.f, 0.f, 1.f, 0.f},
+        };
+        theme.menus.barItem = {.background = transparent,
+                               .border = transparent,
+                               .cornerRadius = glm::vec4{4.f}};
+        theme.menus.barItemHovered = theme.menus.barItem;
+        theme.menus.barItemHovered.background = hover;
+        theme.menus.barItemActive = theme.menus.barItem;
+        theme.menus.barItemActive.background = raised;
+        theme.menus.popup = {
+            .background = Color::fromRGBA8(38, 41, 46, 250),
+            .border = Color::fromRGBA8(74, 79, 88),
+            .cornerRadius = glm::vec4{7.f},
+            .borderThickness = glm::vec4{1.f},
+            .shadow =
+                Core::Renderer::ShadowProps{
+                    .enabled = true,
+                    .offset = {0.f, 5.f},
+                    .blur = 14.f,
+                    .spread = -1.f,
+                    .color = Color::fromRGBA8(0, 0, 0, 115),
+                },
+        };
+        theme.menus.itemHovered = {
+            .background = Color::fromRGBA8(65, 75, 89),
+            .border = transparent,
+            .cornerRadius = glm::vec4{4.f},
+        };
+        theme.menus.itemPressed = theme.menus.itemHovered;
+        theme.menus.itemPressed.background = pressed;
+        theme.menus.text = theme.label;
+        theme.menus.iconColor = Color::fromRGBA8(202, 207, 217);
+        theme.menus.shortcutColor = Color::fromRGBA8(158, 164, 176);
+        theme.menus.disabledText = Color::fromRGBA8(105, 110, 120);
+        theme.menus.separator = Color::fromRGBA8(70, 74, 82);
+
         theme.dock.background = {
             .background = Color::fromRGBA8(24, 27, 29),
             .border = transparent,
@@ -91,7 +130,10 @@ namespace Bess::UI {
                 },
         };
         theme.dock.floatingHeader = theme.tabs.active;
-        theme.dock.floatingHeader.cornerRadius = glm::vec4{8.f};
+        // top-left, top-right, bottom-right, bottom-left
+        theme.dock.floatingHeader.cornerRadius = {8.f, 8.f, 0.f, 0.f};
+        theme.dock.floatingTitleBarHeight = 24.f;
+        theme.dock.floatingTitleHorizontalPadding = 8.f;
         theme.dock.dropGuide = {
             .background = Color::fromRGBA8(43, 49, 56, 235),
             .border = Color::fromRGBA8(112, 158, 244, 220),

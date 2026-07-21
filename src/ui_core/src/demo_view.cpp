@@ -4,7 +4,9 @@
 #include "bess_core/style/bess_theme.h"
 
 #include <format>
+#include <functional>
 #include <utility>
+#include <vector>
 
 namespace Bess::UI {
     namespace {
@@ -49,6 +51,18 @@ namespace Bess::UI {
                     },
             };
         }
+
+        MenuItem command(std::string icon,
+                         std::string name,
+                         std::string shortcut,
+                         std::function<void()> activated = {},
+                         std::vector<MenuItem> children = {}) {
+            return {.icon = std::move(icon),
+                    .name = std::move(name),
+                    .shortcut = std::move(shortcut),
+                    .activated = std::move(activated),
+                    .children = std::move(children)};
+        }
     } // namespace
 
     void UIDemoView::compose(UIComposer &ui) {
@@ -57,9 +71,112 @@ namespace Bess::UI {
         static_cast<void>(m_tabs->add("Components", {}, false));
         static_cast<void>(m_tabs->add("Diagnostics", {}, false));
 
+        m_menus = std::make_shared<MenuModel>();
+        static_cast<void>(m_menus->addMenu({
+            .name = "File",
+            .items =
+                {
+                    command("+",
+                            "New",
+                            "Ctrl+N",
+                            [this] { setStatus("File > New activated"); }),
+                    command("O",
+                            "Open...",
+                            "Ctrl+O",
+                            [this] { setStatus("File > Open activated"); }),
+                    MenuItem::separator(),
+                    command("",
+                            "Open Recent",
+                            "",
+                            {},
+                            {command("",
+                                     "demo.bess",
+                                     "",
+                                     [this] {
+                                         setStatus("Opened recent demo.bess");
+                                     }),
+                             command("",
+                                     "architecture.bess",
+                                     "",
+                                     [this] {
+                                         setStatus(
+                                             "Opened recent architecture.bess");
+                                     })}),
+                    MenuItem::separator(),
+                    command(
+                        "",
+                        "Exit",
+                        "Alt+F4",
+                        [this] {
+                            setStatus(
+                                "Exit command exercised (demo does not quit)");
+                        }),
+                },
+        }));
+        static_cast<void>(m_menus->addMenu({
+            .name = "Edit",
+            .items =
+                {
+                    command("",
+                            "Undo",
+                            "Ctrl+Z",
+                            [this] { setStatus("Undo activated"); }),
+                    command("",
+                            "Redo",
+                            "Ctrl+Shift+Z",
+                            [this] { setStatus("Redo activated"); }),
+                    MenuItem::separator(),
+                    command("",
+                            "Preferences",
+                            "Ctrl+,",
+                            [this] { setStatus("Preferences activated"); }),
+                },
+        }));
+        static_cast<void>(m_menus->addMenu({
+            .name = "View",
+            .items =
+                {
+                    command("",
+                            "Panels",
+                            "",
+                            {},
+                            {command("",
+                                     "Explorer",
+                                     "Ctrl+1",
+                                     [this] {
+                                         setStatus("View > Panels > Explorer");
+                                     }),
+                             command("",
+                                     "Inspector",
+                                     "Ctrl+2",
+                                     [this] {
+                                         setStatus("View > Panels > Inspector");
+                                     }),
+                             command("",
+                                     "Console",
+                                     "Ctrl+3",
+                                     [this] {
+                                         setStatus("View > Panels > Console");
+                                     })}),
+                    command("",
+                            "Command Palette",
+                            "Ctrl+Shift+P",
+                            [this] { setStatus("Command Palette activated"); }),
+                },
+        }));
+        static_cast<void>(m_menus->addMenu({
+            .name = "Help",
+            .items = {command(
+                "?",
+                "About Bess UI",
+                "",
+                [this] { setStatus("Bess UI Core retained-mode demo"); })},
+        }));
+
         auto shell = ui.surface([this](UIComposer &surface) {
             auto page =
                 surface.column(columnOptions(), [this](UIComposer &page) {
+                    m_menuBar = page.menuBar(m_menus);
                     auto header =
                         page.row(headerOptions(), [this](UIComposer &header) {
                             header.label("Bess UI Core", headingLabel());
@@ -194,6 +311,10 @@ namespace Bess::UI {
 
     std::shared_ptr<TabModel> UIDemoView::tabs() const noexcept {
         return m_tabs;
+    }
+
+    std::shared_ptr<MenuModel> UIDemoView::menus() const noexcept {
+        return m_menus;
     }
 
     WidgetRef<DockSpace> UIDemoView::dockSpace() const noexcept {

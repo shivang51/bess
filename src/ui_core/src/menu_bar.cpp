@@ -1,0 +1,876 @@
+#include "controls/menu_bar.h"
+
+#include "ui_painter.h"
+#include "widget_tree.h"
+
+#include <algorithm>
+#include <cmath>
+#include <utility>
+
+namespace Bess::UI {
+    namespace {
+        float textWidth(std::string_view text, const UITextStyle &style) {
+            return std::max(
+                0.f,
+                static_cast<float>(text.size()) * style.fontSize * 0.6f +
+                    style.letterSpacing * static_cast<float>(text.size()));
+        }
+
+        BoxPaint makeBox(WidgetBounds bounds,
+                         const UIBoxStyle &style,
+                         PickingId id = PickingId::invalid(),
+                         float z = 0.f) {
+            return {
+                .bounds = bounds,
+                .color = style.background,
+                .borderColor = style.border,
+                .cornerRadius = style.cornerRadius,
+                .borderThickness = style.borderThickness,
+                .shadow = style.shadow,
+                .zIndex = z,
+                .pickingId = id,
+            };
+        }
+
+        WidgetBounds fromTopLeft(glm::vec2 topLeft, glm::vec2 size) {
+            return {.center = topLeft + size * 0.5f, .size = size};
+        }
+
+        glm::vec2 constrainedPopupTopLeft(glm::vec2 desired,
+                                          glm::vec2 size,
+                                          WidgetBounds viewport) {
+            constexpr float margin = 4.f;
+            const glm::vec2 minimum = viewport.topLeft() + glm::vec2{margin};
+            const glm::vec2 maximum =
+                viewport.bottomRight() - glm::vec2{margin} - size;
+            if (maximum.x >= minimum.x) {
+                desired.x = std::clamp(desired.x, minimum.x, maximum.x);
+            } else {
+                desired.x = minimum.x;
+            }
+            if (maximum.y >= minimum.y) {
+                desired.y = std::clamp(desired.y, minimum.y, maximum.y);
+            } else {
+                desired.y = minimum.y;
+            }
+            return desired;
+        }
+
+        const MenuItem *findDirect(const std::vector<MenuItem> &items,
+                                   MenuItemId id) {
+            const auto it = std::find_if(
+                items.begin(), items.end(), [id](const MenuItem &item) {
+                    return item.id == id;
+                });
+            return it != items.end() ? &*it : nullptr;
+        }
+
+        const MenuHeadingLayout *findHeading(const MenuBarLayout &layout,
+                                             MenuId id) {
+            const auto it =
+                std::find_if(layout.headings.begin(),
+                             layout.headings.end(),
+                             [id](const MenuHeadingLayout &heading) {
+                                 return heading.menu == id;
+                             });
+            return it != layout.headings.end() ? &*it : nullptr;
+        }
+    } // namespace
+
+    const MenuPopupItemLayout *
+    MenuPopupLayout::itemAt(glm::vec2 position) const noexcept {
+        const auto it = std::find_if(
+            items.begin(), items.end(), [position](const auto &item) {
+                return item.bounds.contains(position);
+            });
+        return it != items.end() ? &*it : nullptr;
+    }
+
+    const MenuHeadingLayout *
+    MenuBarLayout::headingAt(glm::vec2 position) const noexcept {
+        const auto it = std::find_if(
+            headings.begin(), headings.end(), [position](const auto &heading) {
+                return heading.bounds.contains(position);
+            });
+        return it != headings.end() ? &*it : nullptr;
+    }
+
+    const MenuPopupItemLayout *
+    MenuBarLayout::itemAt(glm::vec2 position, size_t *depth) const noexcept {
+        for (auto it = popups.rbegin(); it != popups.rend(); ++it) {
+            if (const auto *item = it->itemAt(position)) {
+                if (depth != nullptr) {
+                    *depth = it->depth;
+                }
+                return item;
+            }
+        }
+        return nullptr;
+    }
+
+    bool MenuBarLayout::contains(glm::vec2 position) const noexcept {
+        if (barBounds.contains(position)) {
+            return true;
+        }
+        return std::any_of(
+            popups.begin(), popups.end(), [position](const auto &popup) {
+                return popup.bounds.contains(position);
+            });
+    }
+
+    MenuBarLayout
+    MenuBarLayoutSolver::calculate(WidgetBounds barBounds,
+                                   WidgetBounds viewportBounds,
+                                   const MenuModel &model,
+                                   MenuId activeMenu,
+                                   std::span<const MenuItemId> openSubmenus,
+                                   const UIMenuStyle &style) {
+        MenuBarLayout result{.barBounds = barBounds};
+        float headingLeft = barBounds.topLeft().x;
+        for (const auto &menu : model.menus()) {
+            const float width = textWidth(menu.name, style.text) +
+                                std::max(0.f, style.barHorizontalPadding) * 2.f;
+            const WidgetBounds bounds =
+                fromTopLeft({headingLeft, barBounds.topLeft().y},
+                            {width, barBounds.size.y});
+            result.headings.push_back({.menu = menu.id, .bounds = bounds});
+            headingLeft += width;
+        }
+
+        const auto *active = model.findMenu(activeMenu);
+        const auto *heading = findHeading(result, activeMenu);
+        if (active == nullptr || heading == nullptr || !active->enabled) {
+            return result;
+        }
+
+        const std::vector<MenuItem> *items = &active->items;
+        glm::vec2 desired = {heading->bounds.topLeft().x,
+                             barBounds.bottomRight().y -
+                                 std::max(0.f, style.popupOverlap)};
+        const MenuPopupItemLayout *parentItemLayout = nullptr;
+        for (size_t depth = 0; items != nullptr; ++depth) {
+            float nameWidth = 0.f;
+            float shortcutWidth = 0.f;
+            bool hasShortcut = false;
+            bool hasSubmenu = false;
+            float height = std::max(0.f, style.popupPadding) * 2.f;
+            for (const auto &item : *items) {
+                if (item.kind == MenuItemKind::separator) {
+                    height += std::max(1.f, style.separatorHeight);
+                    continue;
+                }
+                nameWidth =
+                    std::max(nameWidth, textWidth(item.name, style.text));
+                shortcutWidth = std::max(shortcutWidth,
+                                         textWidth(item.shortcut, style.text));
+                hasShortcut = hasShortcut || !item.shortcut.empty();
+                hasSubmenu = hasSubmenu || item.isSubmenu();
+                height += std::max(1.f, style.itemHeight);
+            }
+            float width = std::max(0.f, style.itemHorizontalPadding) * 2.f +
+                          std::max(0.f, style.iconColumnWidth) + nameWidth;
+            if (hasShortcut) {
+                width += std::max(0.f, style.shortcutGap) + shortcutWidth;
+            }
+            if (hasSubmenu) {
+                width += std::max(0.f, style.submenuIndicatorWidth);
+            }
+            width = std::clamp(width,
+                               std::max(1.f, style.popupMinimumWidth),
+                               std::max(std::max(1.f, style.popupMinimumWidth),
+                                        style.popupMaximumWidth));
+
+            if (parentItemLayout != nullptr) {
+                const float overlap = std::max(0.f, style.popupOverlap);
+                const float right =
+                    result.popups.back().bounds.bottomRight().x - overlap;
+                const float left =
+                    result.popups.back().bounds.topLeft().x - width + overlap;
+                desired.x = right + width <= viewportBounds.bottomRight().x
+                                ? right
+                                : left;
+                desired.y = parentItemLayout->bounds.topLeft().y -
+                            std::max(0.f, style.popupPadding);
+            }
+            desired = constrainedPopupTopLeft(
+                desired, {width, height}, viewportBounds);
+            MenuPopupLayout popup{
+                .depth = depth,
+                .bounds = fromTopLeft(desired, {width, height}),
+            };
+
+            const float padding = std::max(0.f, style.popupPadding);
+            const float horizontal = std::max(0.f, style.itemHorizontalPadding);
+            const float contentLeft = desired.x + padding;
+            const float contentWidth = std::max(0.f, width - padding * 2.f);
+            float top = desired.y + padding;
+            for (const auto &item : *items) {
+                const float rowHeight =
+                    item.kind == MenuItemKind::separator
+                        ? std::max(1.f, style.separatorHeight)
+                        : std::max(1.f, style.itemHeight);
+                MenuPopupItemLayout row{
+                    .item = item.id,
+                    .bounds = fromTopLeft({contentLeft, top},
+                                          {contentWidth, rowHeight}),
+                    .separator = item.kind == MenuItemKind::separator,
+                };
+                if (!row.separator) {
+                    float left = contentLeft + horizontal;
+                    const float right = contentLeft + contentWidth - horizontal;
+                    const float iconWidth =
+                        std::max(0.f, style.iconColumnWidth);
+                    row.iconBounds =
+                        fromTopLeft({left, top}, {iconWidth, rowHeight});
+                    left += iconWidth;
+
+                    float indicatorWidth =
+                        item.isSubmenu()
+                            ? std::max(0.f, style.submenuIndicatorWidth)
+                            : 0.f;
+                    row.submenuIndicatorBounds =
+                        fromTopLeft({right - indicatorWidth, top},
+                                    {indicatorWidth, rowHeight});
+                    float textRight = right - indicatorWidth;
+                    const float shortcut =
+                        !item.shortcut.empty()
+                            ? std::min(shortcutWidth,
+                                       std::max(0.f, textRight - left))
+                            : 0.f;
+                    if (shortcut > 0.f) {
+                        row.shortcutBounds = fromTopLeft(
+                            {textRight - shortcut, top}, {shortcut, rowHeight});
+                        textRight -=
+                            shortcut + std::max(0.f, style.shortcutGap);
+                    }
+                    row.labelBounds = fromTopLeft(
+                        {left, top},
+                        {std::max(0.f, textRight - left), rowHeight});
+                }
+                popup.items.push_back(row);
+                top += rowHeight;
+            }
+            result.popups.push_back(std::move(popup));
+
+            if (depth >= openSubmenus.size()) {
+                break;
+            }
+            const auto *open = findDirect(*items, openSubmenus[depth]);
+            if (open == nullptr || !open->enabled || !open->isSubmenu()) {
+                break;
+            }
+            const auto &currentPopup = result.popups.back();
+            const auto row =
+                std::find_if(currentPopup.items.begin(),
+                             currentPopup.items.end(),
+                             [open](const MenuPopupItemLayout &item) {
+                                 return item.item == open->id;
+                             });
+            if (row == currentPopup.items.end()) {
+                break;
+            }
+            parentItemLayout = &*row;
+            items = &open->children;
+        }
+        return result;
+    }
+
+    MenuBar::MenuBar(std::shared_ptr<MenuModel> model, MenuBarOptions options)
+        : m_model(model ? std::move(model) : std::make_shared<MenuModel>()),
+          m_options(std::move(options)) {
+    }
+
+    std::string_view MenuBar::typeName() const noexcept {
+        return "MenuBar";
+    }
+
+    WidgetTraits MenuBar::traits() const noexcept {
+        return {
+            .focusable = true, .hitTestVisible = true, .clipChildren = false};
+    }
+
+    void MenuBar::onMount(WidgetMountContext &context) {
+        m_state = &context.state;
+        m_id = context.id;
+        context.layout.setWidthPercent(1.f);
+        context.layout.setHeight(style(context.state).barHeight);
+        context.layout.setFlexShrink(0.f);
+        context.layout.setZVal(10.f);
+        reconnectModel();
+    }
+
+    void MenuBar::onUnmount(WidgetTree &, WidgetId) {
+        m_modelConnection.disconnect();
+        m_state = nullptr;
+        m_id = {};
+        m_layout = {};
+    }
+
+    void MenuBar::updateLayout(WidgetLayoutContext &context) {
+        if (context.themeChanged || m_options.style) {
+            context.layout.setHeight(style(context.state).barHeight);
+        }
+    }
+
+    void MenuBar::arrange(WidgetArrangeContext &context) {
+        rebuildLayout(context.bounds, context.state);
+    }
+
+    void MenuBar::paint(WidgetPaintContext &context) const {
+        rebuildLayout(context.bounds, context.state);
+        const auto &menuStyle = style(context.state);
+        context.painter.drawBox(
+            makeBox(context.bounds, menuStyle.bar, context.pickingId));
+        for (const auto &heading : m_layout.headings) {
+            const auto *menu = m_model->findMenu(heading.menu);
+            if (menu == nullptr) {
+                continue;
+            }
+            const UIBoxStyle *box = &menuStyle.barItem;
+            if (heading.menu == m_activeMenu) {
+                box = &menuStyle.barItemActive;
+            } else if (heading.menu == m_hotHeading) {
+                box = &menuStyle.barItemHovered;
+            }
+            context.painter.drawBox(
+                makeBox(heading.bounds, *box, context.pickingId, 0.001f));
+            context.painter.drawText(
+                menu->name,
+                {.bounds = heading.bounds,
+                 .fontSize = menuStyle.text.fontSize,
+                 .color = menu->enabled ? menuStyle.text.color
+                                        : menuStyle.disabledText,
+                 .horizontal = HorizontalTextAlignment::center,
+                 .vertical = VerticalTextAlignment::center,
+                 .zIndex = 0.002f,
+                 .letterSpacing = menuStyle.text.letterSpacing,
+                 .pickingId = context.pickingId});
+        }
+    }
+
+    void MenuBar::paintOverlay(WidgetPaintContext &context) const {
+        rebuildLayout(context.bounds, context.state);
+        const auto &menuStyle = style(context.state);
+        float layer = 0.10f;
+        for (const auto &popup : m_layout.popups) {
+            context.painter.drawBox(makeBox(
+                popup.bounds, menuStyle.popup, context.pickingId, layer));
+            const ScopedUIClip popupClip{context.painter, popup.bounds};
+            for (const auto &row : popup.items) {
+                const auto *item = m_model->findItem(row.item);
+                if (item == nullptr) {
+                    continue;
+                }
+                if (row.separator) {
+                    context.painter.drawBox({
+                        .bounds = {.center = row.bounds.center,
+                                   .size = {std::max(0.f,
+                                                     row.bounds.size.x - 12.f),
+                                            1.f}},
+                        .color = menuStyle.separator,
+                        .zIndex = layer + 0.001f,
+                        .pickingId = context.pickingId,
+                    });
+                    continue;
+                }
+                if (m_hotItem == item->id) {
+                    const auto &box = m_pressedItem == item->id
+                                          ? menuStyle.itemPressed
+                                          : menuStyle.itemHovered;
+                    context.painter.drawBox(makeBox(
+                        row.bounds, box, context.pickingId, layer + 0.001f));
+                }
+                const auto textColor = item->enabled ? menuStyle.text.color
+                                                     : menuStyle.disabledText;
+                const std::string icon = !item->icon.empty() ? item->icon
+                                         : item->checked     ? "*"
+                                                             : "";
+                if (!icon.empty()) {
+                    context.painter.drawText(
+                        icon,
+                        {.bounds = row.iconBounds,
+                         .fontSize = menuStyle.text.fontSize,
+                         .color = item->enabled ? menuStyle.iconColor
+                                                : menuStyle.disabledText,
+                         .horizontal = HorizontalTextAlignment::center,
+                         .vertical = VerticalTextAlignment::center,
+                         .zIndex = layer + 0.002f,
+                         .letterSpacing = menuStyle.text.letterSpacing,
+                         .pickingId = context.pickingId});
+                }
+                context.painter.drawText(
+                    item->name,
+                    {.bounds = row.labelBounds,
+                     .fontSize = menuStyle.text.fontSize,
+                     .color = textColor,
+                     .horizontal = HorizontalTextAlignment::start,
+                     .vertical = VerticalTextAlignment::center,
+                     .zIndex = layer + 0.002f,
+                     .letterSpacing = menuStyle.text.letterSpacing,
+                     .pickingId = context.pickingId});
+                if (!item->shortcut.empty()) {
+                    context.painter.drawText(
+                        item->shortcut,
+                        {.bounds = row.shortcutBounds,
+                         .fontSize = menuStyle.text.fontSize,
+                         .color = item->enabled ? menuStyle.shortcutColor
+                                                : menuStyle.disabledText,
+                         .horizontal = HorizontalTextAlignment::end,
+                         .vertical = VerticalTextAlignment::center,
+                         .zIndex = layer + 0.002f,
+                         .letterSpacing = menuStyle.text.letterSpacing,
+                         .pickingId = context.pickingId});
+                }
+                if (item->isSubmenu()) {
+                    context.painter.drawText(
+                        ">",
+                        {.bounds = row.submenuIndicatorBounds,
+                         .fontSize = menuStyle.text.fontSize,
+                         .color = textColor,
+                         .horizontal = HorizontalTextAlignment::center,
+                         .vertical = VerticalTextAlignment::center,
+                         .zIndex = layer + 0.002f,
+                         .letterSpacing = menuStyle.text.letterSpacing,
+                         .pickingId = context.pickingId});
+                }
+            }
+            layer += 0.01f;
+        }
+    }
+
+    bool MenuBar::hitTest(WidgetBounds bounds,
+                          glm::vec2 position) const noexcept {
+        // An open menu is a lightweight modal popup layer: the first outside
+        // click dismisses it and is intentionally not delivered through to
+        // the obscured control.
+        return m_activeMenu || bounds.contains(position) ||
+               m_layout.contains(position);
+    }
+
+    UIEventReply MenuBar::onEvent(WidgetEventContext &context,
+                                  const UIEvent &event) {
+        if (context.phase != UIEventPhase::target) {
+            return {};
+        }
+        rebuildLayout(context.bounds, context.state);
+
+        if (const auto *focus = event.getIf<UIFocusChangedEvent>()) {
+            if (!focus->focused) {
+                close();
+                rebuildLayout(context.bounds, context.state);
+                return {.invalidate = WidgetInvalidation::paint};
+            }
+            return {};
+        }
+        if (const auto *crossing = event.getIf<UIPointerCrossingEvent>()) {
+            if (!crossing->entered) {
+                m_hotHeading = {};
+                m_hotItem = {};
+                return {.invalidate = WidgetInvalidation::paint};
+            }
+            return {};
+        }
+
+        if (event.is<Input::MouseMoveEvent>() && context.hasPointerPosition) {
+            if (const auto *heading =
+                    m_layout.headingAt(context.pointerPosition)) {
+                m_hotHeading = heading->menu;
+                m_hotItem = {};
+                const auto *menu = m_model->findMenu(heading->menu);
+                if (m_activeMenu && heading->menu != m_activeMenu &&
+                    menu != nullptr && menu->enabled) {
+                    openMenu(heading->menu);
+                    rebuildLayout(context.bounds, context.state);
+                }
+            } else {
+                m_hotHeading = {};
+                size_t depth = 0;
+                const auto *row =
+                    m_layout.itemAt(context.pointerPosition, &depth);
+                const auto *item =
+                    row != nullptr ? m_model->findItem(row->item) : nullptr;
+                if (item != nullptr && item->kind != MenuItemKind::separator) {
+                    m_hotItem = item->id;
+                    m_hotDepth = depth;
+                    if (item->enabled && item->isSubmenu()) {
+                        openSubmenu(item->id, depth, false);
+                    } else {
+                        closeFromDepth(depth);
+                    }
+                    rebuildLayout(context.bounds, context.state);
+                } else {
+                    m_hotItem = {};
+                }
+            }
+            return {.handled = true, .invalidate = WidgetInvalidation::paint};
+        }
+
+        if (const auto *button = event.getIf<Input::MouseButtonEvent>();
+            button != nullptr && button->button == MouseButton::left &&
+            context.hasPointerPosition) {
+            const auto *heading = m_layout.headingAt(context.pointerPosition);
+            size_t depth = 0;
+            const auto *row = m_layout.itemAt(context.pointerPosition, &depth);
+            const auto *item =
+                row != nullptr ? m_model->findItem(row->item) : nullptr;
+            if (button->action == MouseButtonAction::press) {
+                if (heading != nullptr) {
+                    const auto *menu = m_model->findMenu(heading->menu);
+                    if (menu != nullptr && menu->enabled) {
+                        if (m_activeMenu == heading->menu) {
+                            close();
+                        } else {
+                            openMenu(heading->menu);
+                        }
+                    }
+                    rebuildLayout(context.bounds, context.state);
+                    return {.handled = true,
+                            .stopPropagation = true,
+                            .requestFocus = true,
+                            .capturePointer = true,
+                            .invalidate = WidgetInvalidation::paint};
+                }
+                if (item != nullptr) {
+                    if (item->enabled &&
+                        item->kind != MenuItemKind::separator) {
+                        m_hotItem = item->id;
+                        m_hotDepth = depth;
+                        m_pressedItem = item->id;
+                        if (item->isSubmenu()) {
+                            openSubmenu(item->id, depth, false);
+                        }
+                    }
+                    rebuildLayout(context.bounds, context.state);
+                    return {.handled = true,
+                            .stopPropagation = true,
+                            .requestFocus = true,
+                            .capturePointer = true,
+                            .invalidate = WidgetInvalidation::paint};
+                }
+                close();
+                rebuildLayout(context.bounds, context.state);
+                return {.clearFocus = true,
+                        .invalidate = WidgetInvalidation::paint};
+            }
+            if (button->action == MouseButtonAction::release) {
+                const MenuItemId pressed = m_pressedItem;
+                m_pressedItem = {};
+                const bool activate = pressed && item != nullptr &&
+                                      item->id == pressed && item->enabled &&
+                                      !item->isSubmenu() &&
+                                      item->kind == MenuItemKind::command;
+                if (activate) {
+                    close();
+                    rebuildLayout(context.bounds, context.state);
+                    static_cast<void>(m_model->activate(pressed));
+                }
+                return {.handled = static_cast<bool>(pressed),
+                        .stopPropagation = static_cast<bool>(pressed),
+                        .releasePointer = true,
+                        .invalidate = WidgetInvalidation::paint};
+            }
+        }
+
+        if (const auto *key = event.getIf<Input::KeyEvent>();
+            key != nullptr && context.focused &&
+            (key->action == KeyAction::press ||
+             key->action == KeyAction::hold)) {
+            bool handled = false;
+            if (!m_activeMenu) {
+                if (key->key == KeyCode::arrowDown ||
+                    key->key == KeyCode::enter || key->key == KeyCode::space ||
+                    key->key == KeyCode::arrowRight ||
+                    key->key == KeyCode::arrowLeft) {
+                    const int direction =
+                        key->key == KeyCode::arrowLeft ? -1 : 1;
+                    handled = moveHeading(direction);
+                    if (handled) {
+                        static_cast<void>(moveSelection(1));
+                    }
+                }
+            } else if (key->key == KeyCode::arrowDown) {
+                handled = moveSelection(1);
+            } else if (key->key == KeyCode::arrowUp) {
+                handled = moveSelection(-1);
+            } else if (key->key == KeyCode::arrowRight) {
+                const auto *selected = selectedItem();
+                if (selected != nullptr && selected->enabled &&
+                    selected->isSubmenu()) {
+                    openSubmenu(selected->id, selectedDepth(), true);
+                    handled = true;
+                } else {
+                    handled = moveHeading(1);
+                    if (handled) {
+                        static_cast<void>(moveSelection(1));
+                    }
+                }
+            } else if (key->key == KeyCode::arrowLeft) {
+                if (m_hotDepth > 0 && !m_openSubmenus.empty()) {
+                    m_hotItem = m_openSubmenus[m_hotDepth - 1];
+                    --m_hotDepth;
+                    m_openSubmenus.resize(m_hotDepth);
+                    handled = true;
+                } else {
+                    handled = moveHeading(-1);
+                    if (handled) {
+                        static_cast<void>(moveSelection(1));
+                    }
+                }
+            } else if (key->key == KeyCode::enter ||
+                       key->key == KeyCode::space) {
+                handled = activateSelection();
+            } else if (key->key == KeyCode::escape) {
+                if (!m_openSubmenus.empty()) {
+                    m_hotItem = m_openSubmenus.back();
+                    m_hotDepth = m_openSubmenus.size() - 1;
+                    m_openSubmenus.pop_back();
+                } else {
+                    close();
+                }
+                handled = true;
+            }
+            if (handled) {
+                rebuildLayout(context.bounds, context.state);
+                return {.handled = true,
+                        .stopPropagation = true,
+                        .invalidate = WidgetInvalidation::paint};
+            }
+        }
+        return {};
+    }
+
+    std::shared_ptr<MenuModel> MenuBar::model() const noexcept {
+        return m_model;
+    }
+
+    void MenuBar::setModel(std::shared_ptr<MenuModel> model) {
+        m_model = model ? std::move(model) : std::make_shared<MenuModel>();
+        close();
+        reconnectModel();
+        if (m_state != nullptr && m_id) {
+            m_state->invalidate(
+                m_id, WidgetInvalidation::layout | WidgetInvalidation::paint);
+        }
+    }
+
+    bool MenuBar::isOpen() const noexcept {
+        return static_cast<bool>(m_activeMenu);
+    }
+
+    MenuId MenuBar::activeMenu() const noexcept {
+        return m_activeMenu;
+    }
+
+    void MenuBar::close() {
+        const bool wasOpen = static_cast<bool>(m_activeMenu);
+        m_activeMenu = {};
+        m_openSubmenus.clear();
+        m_hotItem = {};
+        m_hotHeading = {};
+        m_pressedItem = {};
+        m_hotDepth = 0;
+        m_layout.popups.clear();
+        if (wasOpen && m_state != nullptr && m_id) {
+            m_state->invalidate(m_id, WidgetInvalidation::paint);
+        }
+    }
+
+    const UIMenuStyle &MenuBar::style(const WidgetTree &state) const {
+        return m_options.style ? *m_options.style : state.theme().menus;
+    }
+
+    void MenuBar::rebuildLayout(WidgetBounds bounds,
+                                const WidgetTree &state) const {
+        const glm::vec2 viewportSize = state.getViewportSize();
+        m_layout = MenuBarLayoutSolver::calculate(
+            bounds,
+            {.center = {0.f, 0.f}, .size = viewportSize},
+            *m_model,
+            m_activeMenu,
+            m_openSubmenus,
+            style(state));
+    }
+
+    void MenuBar::reconnectModel() {
+        m_modelConnection.disconnect();
+        if (!m_model) {
+            return;
+        }
+        m_modelConnection =
+            m_model->changed().connect([this](const MenuModelChange &) {
+                normalizeOpenPath();
+                if (m_state != nullptr && m_id) {
+                    rebuildLayout(m_state->getBounds(m_id), *m_state);
+                    m_state->invalidate(m_id,
+                                        WidgetInvalidation::layout |
+                                            WidgetInvalidation::paint);
+                }
+            });
+    }
+
+    void MenuBar::normalizeOpenPath() {
+        const auto *menu = m_model->findMenu(m_activeMenu);
+        if (menu == nullptr || !menu->enabled) {
+            close();
+            return;
+        }
+        const std::vector<MenuItem> *items = &menu->items;
+        size_t valid = 0;
+        for (const auto id : m_openSubmenus) {
+            const auto *item = findDirect(*items, id);
+            if (item == nullptr || !item->enabled || !item->isSubmenu()) {
+                break;
+            }
+            ++valid;
+            items = &item->children;
+        }
+        m_openSubmenus.resize(valid);
+        if (m_hotItem && m_model->findItem(m_hotItem) == nullptr) {
+            m_hotItem = {};
+            m_hotDepth = 0;
+        }
+    }
+
+    void MenuBar::openMenu(MenuId menu) {
+        const auto *entry = m_model->findMenu(menu);
+        if (entry == nullptr || !entry->enabled) {
+            return;
+        }
+        m_activeMenu = menu;
+        m_openSubmenus.clear();
+        m_hotItem = {};
+        m_hotHeading = menu;
+        m_pressedItem = {};
+        m_hotDepth = 0;
+    }
+
+    void MenuBar::openSubmenu(MenuItemId item, size_t depth, bool selectChild) {
+        const auto *entry = m_model->findItem(item);
+        if (entry == nullptr || !entry->enabled || !entry->isSubmenu()) {
+            return;
+        }
+        m_openSubmenus.resize(std::min(depth, m_openSubmenus.size()));
+        m_openSubmenus.push_back(item);
+        if (!selectChild) {
+            return;
+        }
+        m_hotDepth = depth + 1;
+        m_hotItem = {};
+        static_cast<void>(moveSelection(1));
+    }
+
+    void MenuBar::closeFromDepth(size_t depth) {
+        if (m_openSubmenus.size() > depth) {
+            m_openSubmenus.resize(depth);
+        }
+    }
+
+    bool MenuBar::moveHeading(int direction) {
+        const auto &menus = m_model->menus();
+        if (menus.empty()) {
+            return false;
+        }
+        size_t start = 0;
+        const auto current =
+            std::find_if(menus.begin(), menus.end(), [this](const auto &menu) {
+                return menu.id == m_activeMenu;
+            });
+        if (current != menus.end()) {
+            start = static_cast<size_t>(std::distance(menus.begin(), current));
+        } else if (direction < 0) {
+            start = 0;
+        } else {
+            start = menus.size() - 1;
+        }
+        for (size_t step = 1; step <= menus.size(); ++step) {
+            const auto raw = static_cast<long long>(start) +
+                             static_cast<long long>(direction) *
+                                 static_cast<long long>(step);
+            const size_t index = static_cast<size_t>(
+                (raw % static_cast<long long>(menus.size()) +
+                 static_cast<long long>(menus.size())) %
+                static_cast<long long>(menus.size()));
+            if (menus[index].enabled) {
+                openMenu(menus[index].id);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool MenuBar::moveSelection(int direction) {
+        size_t depth = m_hotItem ? m_hotDepth : m_openSubmenus.size();
+        const auto *items = itemsAtDepth(depth);
+        if (items == nullptr || items->empty()) {
+            return false;
+        }
+        long long current = direction > 0 ? -1 : 0;
+        const auto selected = std::find_if(
+            items->begin(), items->end(), [this](const MenuItem &item) {
+                return item.id == m_hotItem;
+            });
+        if (selected != items->end()) {
+            current = std::distance(items->begin(), selected);
+        }
+        for (size_t step = 1; step <= items->size(); ++step) {
+            const auto raw = current + static_cast<long long>(direction) *
+                                           static_cast<long long>(step);
+            const size_t index = static_cast<size_t>(
+                (raw % static_cast<long long>(items->size()) +
+                 static_cast<long long>(items->size())) %
+                static_cast<long long>(items->size()));
+            const auto &item = (*items)[index];
+            if (item.enabled && item.kind != MenuItemKind::separator) {
+                m_hotItem = item.id;
+                m_hotDepth = depth;
+                closeFromDepth(depth);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool MenuBar::activateSelection() {
+        const auto *item = selectedItem();
+        if (item == nullptr || !item->enabled ||
+            item->kind == MenuItemKind::separator) {
+            return false;
+        }
+        if (item->isSubmenu()) {
+            openSubmenu(item->id, selectedDepth(), true);
+            return true;
+        }
+        const MenuItemId id = item->id;
+        close();
+        return m_model->activate(id);
+    }
+
+    const std::vector<MenuItem> *
+    MenuBar::itemsAtDepth(size_t depth) const noexcept {
+        const auto *menu = m_model->findMenu(m_activeMenu);
+        if (menu == nullptr) {
+            return nullptr;
+        }
+        const std::vector<MenuItem> *items = &menu->items;
+        for (size_t current = 0; current < depth; ++current) {
+            if (current >= m_openSubmenus.size()) {
+                return nullptr;
+            }
+            const auto *parent = findDirect(*items, m_openSubmenus[current]);
+            if (parent == nullptr || !parent->isSubmenu()) {
+                return nullptr;
+            }
+            items = &parent->children;
+        }
+        return items;
+    }
+
+    const MenuItem *MenuBar::selectedItem() const noexcept {
+        const auto *items = itemsAtDepth(m_hotDepth);
+        return items != nullptr ? findDirect(*items, m_hotItem) : nullptr;
+    }
+
+    size_t MenuBar::selectedDepth() const noexcept {
+        return m_hotDepth;
+    }
+} // namespace Bess::UI

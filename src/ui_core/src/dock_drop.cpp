@@ -105,4 +105,43 @@ namespace Bess::UI {
         return result;
     }
 
+    DockDropGuideLayout DockDropGuideLayoutSolver::calculateRootEdges(
+        WidgetBounds hostBounds,
+        DockNodeId root,
+        const DockDropGuideMetrics &metrics) {
+        DockDropGuideLayout result{
+            .target = root,
+            .targetBounds = hostBounds,
+        };
+        if (hostBounds.empty() || !finiteVec(hostBounds.center) ||
+            !finiteVec(hostBounds.size)) {
+            return result;
+        }
+
+        const float shortest = std::min(hostBounds.size.x, hostBounds.size.y);
+        const float size = std::min(std::max(0.f, metrics.indicatorSize),
+                                    std::max(0.f, shortest * 0.25f));
+        if (size < 8.f) {
+            return result;
+        }
+        const float edgeInset = std::min(
+            size * 0.5f + std::max(0.f, metrics.indicatorGap), shortest * 0.5f);
+        const auto min = hostBounds.topLeft();
+        const auto max = hostBounds.bottomRight();
+        const auto add = [&](DockZone zone, glm::vec2 center) {
+            result.regions.push_back({
+                .zone = zone,
+                .indicatorBounds = {.center = center, .size = {size, size}},
+                .previewBounds =
+                    regionBounds(hostBounds, zone, metrics.previewInset),
+            });
+        };
+
+        add(DockZone::left, {min.x + edgeInset, hostBounds.center.y});
+        add(DockZone::right, {max.x - edgeInset, hostBounds.center.y});
+        add(DockZone::top, {hostBounds.center.x, min.y + edgeInset});
+        add(DockZone::bottom, {hostBounds.center.x, max.y - edgeInset});
+        return result;
+    }
+
 } // namespace Bess::UI

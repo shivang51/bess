@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <utility>
@@ -119,6 +120,24 @@ namespace {
                         main->previewBounds.size.y * 0.5f);
     }
 
+    TEST(DockDropGuideLayoutTests, RootGuideHasOnlyWholeHostEdgeDestinations) {
+        const DockNodeId root = DockNodeId::generate();
+        const WidgetBounds bounds{.center = {0.f, 0.f}, .size = {800.f, 500.f}};
+        const auto guide =
+            DockDropGuideLayoutSolver::calculateRootEdges(bounds, root);
+        ASSERT_EQ(guide.regions.size(), 4);
+        EXPECT_EQ(guide.target, root);
+        EXPECT_EQ(guide.region(DockZone::main), nullptr);
+        ASSERT_NE(guide.region(DockZone::left), nullptr);
+        ASSERT_NE(guide.region(DockZone::right), nullptr);
+        ASSERT_NE(guide.region(DockZone::top), nullptr);
+        ASSERT_NE(guide.region(DockZone::bottom), nullptr);
+        EXPECT_LT(guide.region(DockZone::left)->indicatorBounds.center.x,
+                  bounds.center.x);
+        EXPECT_FLOAT_EQ(guide.region(DockZone::bottom)->previewBounds.size.y,
+                        (bounds.size.y - 10.f) * 0.5f);
+    }
+
     TEST(DockSpaceModelTests, FourSideDockedItemsProduceFourTerminalStacks) {
         DockSpaceModel model;
         const auto a = model.addItem(dockItem("A"));
@@ -183,6 +202,58 @@ namespace {
 
         EXPECT_TRUE(destination.attachItem(std::move(detached)));
         EXPECT_NE(destination.getItem(item), nullptr);
+        EXPECT_TRUE(destination.validate());
+    }
+
+    TEST(DockSpaceModelTests, RootAttachmentWrapsTheCompleteExistingTree) {
+        DockSpaceModel destination;
+        const auto a = destination.addItem(dockItem("A"));
+        const auto b = destination.addItem(
+            dockItem("B"), destination.stackForItem(a), DockZone::right);
+        const DockNodeId previousRoot = destination.root();
+        ASSERT_NE(destination.getSplit(previousRoot), nullptr);
+
+        DockSpaceModel source;
+        const auto c = source.addItem(dockItem("C"));
+        auto detached = source.detachItem(c);
+        ASSERT_TRUE(destination.attachItemAtRoot(std::move(detached),
+                                                 DockZone::bottom));
+
+        const auto *newRoot = destination.getSplit(destination.root());
+        ASSERT_NE(newRoot, nullptr);
+        EXPECT_EQ(newRoot->first, previousRoot);
+        EXPECT_EQ(newRoot->second, destination.stackForItem(c));
+        EXPECT_EQ(destination.parentOf(previousRoot), destination.root());
+        EXPECT_EQ(destination.itemCount(), 3);
+        EXPECT_TRUE(destination.validate());
+        EXPECT_TRUE(source.empty());
+        EXPECT_TRUE(a && b && c);
+    }
+
+    TEST(DockSpaceModelTests, WholeTreeAttachmentPreservesNestedTopology) {
+        DockSpaceModel destination;
+        const auto destinationItem = destination.addItem(dockItem("Target"));
+        const auto destinationStack = destination.stackForItem(destinationItem);
+
+        DockSpaceModel source;
+        const auto a = source.addItem(dockItem("A"));
+        const auto b = source.addItem(
+            dockItem("B"), source.stackForItem(a), DockZone::right);
+        const auto c = source.addItem(
+            dockItem("C"), source.stackForItem(a), DockZone::bottom);
+        const DockNodeId sourceRoot = source.root();
+        ASSERT_EQ(source.stackCount(), 3);
+
+        ASSERT_TRUE(destination.attachTree(
+            std::move(source), destinationStack, DockZone::left));
+        EXPECT_TRUE(source.empty());
+        EXPECT_EQ(destination.itemCount(), 4);
+        EXPECT_EQ(destination.stackCount(), 4);
+        EXPECT_EQ(destination.nodeCount(), 7);
+        EXPECT_EQ(destination.parentOf(sourceRoot), destination.root());
+        EXPECT_NE(destination.getItem(a), nullptr);
+        EXPECT_NE(destination.getItem(b), nullptr);
+        EXPECT_NE(destination.getItem(c), nullptr);
         EXPECT_TRUE(destination.validate());
     }
 
@@ -272,6 +343,54 @@ namespace {
         EXPECT_TRUE(dock->model().validate());
     }
 
+    TEST(DockSpaceWidgetTests, CompletedTabClickActivatesThePressedTab) {
+        WidgetTree state;
+        state.setViewportSize({800.f, 600.f});
+        const WidgetId dockId = state.emplaceWidget<DockSpace>();
+        auto *dock = state.getWidget<DockSpace>(dockId);
+        ASSERT_NE(dock, nullptr);
+        const auto first = dock->createPanel(
+            state, dockId, "First", std::make_unique<DockContent>());
+        const auto second = dock->createPanel(
+            state, dockId, "Second", std::make_unique<DockContent>());
+        ASSERT_TRUE(first && second);
+        state.performLayout();
+
+        const auto stackId = dock->model().stackForItem(first.item);
+        const auto layout =
+            dock->model().layout(state.getBounds(dockId),
+                                 state.theme().tabs.height,
+                                 state.theme().dock.splitterThickness);
+        const auto *stackLayout = layout.findStack(stackId);
+        ASSERT_NE(stackLayout, nullptr);
+        const auto regions = TabStripLayout::calculate(
+            stackLayout->tabBarBounds,
+            2,
+            {.height = state.theme().tabs.height,
+             .minimumWidth = state.theme().tabs.minimumWidth,
+             .maximumWidth = state.theme().tabs.maximumWidth,
+             .horizontalPadding = state.theme().tabs.horizontalPadding,
+             .stripPadding = state.theme().tabs.stripPadding,
+             .gap = state.theme().tabs.gap});
+        ASSERT_EQ(regions.size(), 2);
+        const glm::vec2 position =
+            regions.front().bounds.center + state.getViewportSize() * 0.5f;
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::press,
+            .pos = position,
+        }));
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::release,
+            .pos = position,
+        }));
+
+        ASSERT_NE(dock->model().getStack(stackId), nullptr);
+        EXPECT_EQ(dock->model().getStack(stackId)->tabs.active(), first.item);
+        EXPECT_FALSE(state.getPointerCapture());
+    }
+
     TEST(DockSpaceWidgetTests,
          TabDragFloatsWithoutAZoneAndRedocksThroughNodeGuide) {
         WidgetTree state;
@@ -334,7 +453,7 @@ namespace {
         const glm::vec2 floatingHeader =
             glm::vec2{floatingBounds->center.x,
                       floatingBounds->topLeft().y +
-                          state.theme().tabs.height * 0.5f} +
+                          state.theme().dock.floatingTitleBarHeight * 0.5f} +
             viewportOffset;
         static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
             .button = MouseButton::left,
@@ -366,10 +485,16 @@ namespace {
         state.performLayout();
         const auto redockBounds = dock->floatingItemBounds(first.item);
         ASSERT_TRUE(redockBounds.has_value());
+        const auto dockBounds = state.getBounds(dockId);
         const glm::vec2 redockHeader =
-            glm::vec2{redockBounds->center.x,
-                      redockBounds->topLeft().y +
-                          state.theme().tabs.height * 0.5f} +
+            glm::vec2{
+                std::clamp(redockBounds->center.x,
+                           dockBounds.topLeft().x + 1.f,
+                           dockBounds.bottomRight().x - 1.f),
+                std::clamp(redockBounds->topLeft().y +
+                               state.theme().dock.floatingTitleBarHeight * 0.5f,
+                           dockBounds.topLeft().y + 1.f,
+                           dockBounds.bottomRight().y - 1.f)} +
             viewportOffset;
         static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
             .button = MouseButton::left,
@@ -392,5 +517,118 @@ namespace {
         EXPECT_EQ(dock->model().stackForItem(first.item),
                   dock->model().stackForItem(second.item));
         EXPECT_TRUE(dock->model().validate());
+    }
+
+    TEST(DockSpaceWidgetTests, FloatingHostsReceiveTabsFromOtherHosts) {
+        WidgetTree state;
+        state.setViewportSize({1000.f, 700.f});
+        const WidgetId dockId = state.emplaceWidget<DockSpace>();
+        auto *dock = state.getWidget<DockSpace>(dockId);
+        ASSERT_NE(dock, nullptr);
+        const auto first = dock->createPanel(
+            state, dockId, "First", std::make_unique<DockContent>());
+        const auto second = dock->createPanel(
+            state, dockId, "Second", std::make_unique<DockContent>());
+        ASSERT_TRUE(first && second);
+        state.performLayout();
+
+        const WidgetBounds dockBounds = state.getBounds(dockId);
+        ASSERT_TRUE(dock->floatItem(
+            first.item,
+            {.center = dockBounds.center + glm::vec2{-170.f, 20.f},
+             .size = {320.f, 260.f}}));
+        ASSERT_TRUE(dock->floatItem(
+            second.item,
+            {.center = dockBounds.center + glm::vec2{190.f, 30.f},
+             .size = {320.f, 260.f}}));
+        state.performLayout();
+        ASSERT_EQ(dock->floatingWindowCount(), 2);
+        ASSERT_TRUE(dock->model().empty());
+
+        const auto sourceBounds = dock->floatingItemBounds(second.item);
+        const auto targetBounds = dock->floatingItemBounds(first.item);
+        ASSERT_TRUE(sourceBounds && targetBounds);
+        const glm::vec2 viewportOffset = state.getViewportSize() * 0.5f;
+        const glm::vec2 sourceHeader =
+            glm::vec2{sourceBounds->center.x,
+                      sourceBounds->topLeft().y +
+                          state.theme().dock.floatingTitleBarHeight * 0.5f} +
+            viewportOffset;
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::press,
+            .pos = sourceHeader,
+        }));
+        ASSERT_EQ(state.getPointerCapture(), dockId);
+
+        const float title = state.theme().dock.floatingTitleBarHeight;
+        const glm::vec2 targetClientCenter = targetBounds->center +
+                                             glm::vec2{0.f, title * 0.5f} +
+                                             viewportOffset;
+        static_cast<void>(state.dispatchEvent(
+            Input::MouseMoveEvent{.pos = targetClientCenter}));
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::release,
+            .pos = targetClientCenter,
+        }));
+
+        EXPECT_EQ(dock->floatingWindowCount(), 1);
+        EXPECT_EQ(dock->floatingItemCount(), 2);
+        EXPECT_TRUE(dock->isItemFloating(first.item));
+        EXPECT_TRUE(dock->isItemFloating(second.item));
+        const auto mergedFirst = dock->floatingItemBounds(first.item);
+        const auto mergedSecond = dock->floatingItemBounds(second.item);
+        ASSERT_TRUE(mergedFirst && mergedSecond);
+        EXPECT_EQ(mergedFirst->center, mergedSecond->center);
+        EXPECT_EQ(mergedFirst->size, mergedSecond->size);
+        EXPECT_TRUE(dock->model().empty());
+    }
+
+    TEST(DockSpaceWidgetTests,
+         FloatingWindowKeepsMovingPastBoundsWhileRetainingATitleGrip) {
+        WidgetTree state;
+        state.setViewportSize({800.f, 600.f});
+        const WidgetId dockId = state.emplaceWidget<DockSpace>();
+        auto *dock = state.getWidget<DockSpace>(dockId);
+        ASSERT_NE(dock, nullptr);
+        const auto panel = dock->createPanel(
+            state, dockId, "Floating", std::make_unique<DockContent>());
+        ASSERT_TRUE(panel);
+        state.performLayout();
+        const auto dockBounds = state.getBounds(dockId);
+        ASSERT_TRUE(dock->floatItem(
+            panel.item, {.center = dockBounds.center, .size = {320.f, 240.f}}));
+        state.performLayout();
+
+        const auto before = dock->floatingItemBounds(panel.item);
+        ASSERT_TRUE(before);
+        const glm::vec2 viewportOffset = state.getViewportSize() * 0.5f;
+        const glm::vec2 header =
+            glm::vec2{before->center.x,
+                      before->topLeft().y +
+                          state.theme().dock.floatingTitleBarHeight * 0.5f} +
+            viewportOffset;
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::press,
+            .pos = header,
+        }));
+        static_cast<void>(state.dispatchEvent(Input::MouseMoveEvent{
+            .pos = header + glm::vec2{-600.f, 0.f},
+        }));
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::release,
+            .pos = header + glm::vec2{-600.f, 0.f},
+        }));
+
+        const auto after = dock->floatingItemBounds(panel.item);
+        ASSERT_TRUE(after);
+        EXPECT_LT(after->topLeft().x, dockBounds.topLeft().x);
+        const float visible = after->bottomRight().x - dockBounds.topLeft().x;
+        EXPECT_GE(visible,
+                  state.theme().dock.floatingVisibleTitleWidth - 0.01f);
+        EXPECT_LT(after->center.x, before->center.x);
     }
 } // namespace

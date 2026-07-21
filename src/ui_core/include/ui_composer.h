@@ -2,6 +2,7 @@
 
 #include "controls/basic_widgets.h"
 #include "controls/dock_space.h"
+#include "controls/menu_bar.h"
 #include "controls/tab_bar.h"
 #include "widget_ref.h"
 
@@ -112,6 +113,8 @@ namespace Bess::UI {
         WidgetRef<TabBar> tabBar(std::shared_ptr<TabModel> model,
                                  TabBarOptions options = {});
         WidgetRef<DockSpace> dockSpace(DockSpaceOptions options = {});
+        WidgetRef<MenuBar> menuBar(std::shared_ptr<MenuModel> model,
+                                   MenuBarOptions options = {});
 
         template <typename Build>
             requires std::invocable<Build, UIComposer &>

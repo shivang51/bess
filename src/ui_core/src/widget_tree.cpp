@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iterator>
 #include <limits>
 #include <stdexcept>
 
@@ -504,8 +505,34 @@ namespace Bess::UI {
         return result;
     }
 
-    WidgetId WidgetTree::hitTest(glm::vec2 uiPosition) const noexcept {
-        for (auto it = m_roots.rbegin(); it != m_roots.rend(); ++it) {
+    WidgetId WidgetTree::hitTest(glm::vec2 uiPosition) const {
+        const auto zOf = [this](WidgetId id) {
+            const auto *layout = getLayout(id);
+            const float z = layout != nullptr ? layout->getZVal() : 0.f;
+            return std::isfinite(z) ? z : 0.f;
+        };
+        const bool needsOrdering =
+            m_roots.size() > 1 &&
+            std::any_of(
+                std::next(m_roots.begin()), m_roots.end(), [&](WidgetId id) {
+                    return zOf(id) != zOf(m_roots[0]);
+                });
+        if (!needsOrdering) {
+            for (auto it = m_roots.rbegin(); it != m_roots.rend(); ++it) {
+                if (const auto hit = hitTestSubtree(*it, uiPosition, true);
+                    hit) {
+                    return hit;
+                }
+            }
+            return {};
+        }
+
+        auto ordered = m_roots;
+        std::stable_sort(
+            ordered.begin(), ordered.end(), [&](WidgetId lhs, WidgetId rhs) {
+                return zOf(lhs) < zOf(rhs);
+            });
+        for (auto it = ordered.rbegin(); it != ordered.rend(); ++it) {
             if (const auto hit = hitTestSubtree(*it, uiPosition, true); hit) {
                 return hit;
             }
@@ -935,18 +962,47 @@ namespace Bess::UI {
         }
 
         const auto bounds = getBounds(id);
-        const bool inside = bounds.contains(position);
-        if (inside || !node->widget->traits().clipChildren) {
-            for (auto it = node->children.rbegin(); it != node->children.rend();
-                 ++it) {
-                if (const auto hit = hitTestSubtree(*it, position, enabled);
-                    hit) {
-                    return hit;
+        const bool insideLayout = bounds.contains(position);
+        if (insideLayout || !node->widget->traits().clipChildren) {
+            const auto zOf = [this](WidgetId child) {
+                const auto *layout = getLayout(child);
+                const float z = layout != nullptr ? layout->getZVal() : 0.f;
+                return std::isfinite(z) ? z : 0.f;
+            };
+            const bool needsOrdering =
+                node->children.size() > 1 &&
+                std::any_of(std::next(node->children.begin()),
+                            node->children.end(),
+                            [&](WidgetId child) {
+                                return zOf(child) != zOf(node->children[0]);
+                            });
+            if (!needsOrdering) {
+                for (auto it = node->children.rbegin();
+                     it != node->children.rend();
+                     ++it) {
+                    if (const auto hit = hitTestSubtree(*it, position, enabled);
+                        hit) {
+                        return hit;
+                    }
+                }
+            } else {
+                auto ordered = node->children;
+                std::stable_sort(ordered.begin(),
+                                 ordered.end(),
+                                 [&](WidgetId lhs, WidgetId rhs) {
+                                     return zOf(lhs) < zOf(rhs);
+                                 });
+                for (auto it = ordered.rbegin(); it != ordered.rend(); ++it) {
+                    if (const auto hit = hitTestSubtree(*it, position, enabled);
+                        hit) {
+                        return hit;
+                    }
                 }
             }
         }
 
-        if (inside && node->properties.hitTestVisible &&
+        if (node->widget->hitTest(bounds, position) &&
+            node->properties.hitTestVisible &&
             node->widget->traits().hitTestVisible) {
             return id;
         }

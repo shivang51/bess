@@ -321,11 +321,15 @@ namespace {
         EXPECT_GE(countWidgetType(tree, "Button"), 1);
         EXPECT_GE(countWidgetType(tree, "Spacer"), 1);
         EXPECT_EQ(countWidgetType(tree, "TabBar"), 1);
+        EXPECT_EQ(countWidgetType(tree, "MenuBar"), 1);
         EXPECT_EQ(countWidgetType(tree, "DockSpace"), 1);
         EXPECT_EQ(countWidgetType(tree, "DockPanel"), 5);
 
         ASSERT_NE(demo.get()->tabs(), nullptr);
         EXPECT_EQ(demo.get()->tabs()->size(), 3);
+        ASSERT_NE(demo.get()->menus(), nullptr);
+        EXPECT_EQ(demo.get()->menus()->menus().size(), 4);
+        EXPECT_TRUE(demo.get()->menus()->validate());
         auto dockRef = demo.get()->dockSpace();
         ASSERT_TRUE(dockRef);
         EXPECT_EQ(dockRef.get()->model().itemCount(), 5);

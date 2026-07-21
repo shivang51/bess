@@ -1,5 +1,6 @@
 #pragma once
 
+#include "models/menu_model.h"
 #include "models/tab_model.h"
 #include "ui_view.h"
 
@@ -18,6 +19,7 @@ namespace Bess::UI {
 
         [[nodiscard]] size_t activationCount() const noexcept;
         [[nodiscard]] std::shared_ptr<TabModel> tabs() const noexcept;
+        [[nodiscard]] std::shared_ptr<MenuModel> menus() const noexcept;
         [[nodiscard]] WidgetRef<DockSpace> dockSpace() const noexcept;
 
       private:
@@ -27,6 +29,8 @@ namespace Bess::UI {
 
         size_t m_activationCount = 0;
         std::shared_ptr<TabModel> m_tabs;
+        std::shared_ptr<MenuModel> m_menus;
+        WidgetRef<MenuBar> m_menuBar;
         WidgetRef<Label> m_status;
         WidgetRef<Button> m_counterButton;
         WidgetRef<TabBar> m_tabBar;

@@ -119,6 +119,39 @@ namespace Bess::UI {
         return true;
     }
 
+    bool DockSpaceModel::attachItemAtRoot(DetachedDockItem &&detached,
+                                          DockZone zone) {
+        const bool validZone =
+            m_root ? isSideZone(zone) : zone == DockZone::main;
+        if (!detached.m_item || m_itemLocations.contains(detached.m_item->id) ||
+            !validZone) {
+            return false;
+        }
+
+        DockItem item = *detached.m_item;
+        const DockItemId id = item.id;
+        const DockNodeId previousRoot = m_root;
+        if (dockItemAtRootInternal(std::move(item), zone) != id) {
+            return false;
+        }
+        detached.m_item.reset();
+        m_changed.emit({.kind = DockModelChangeKind::itemAdded,
+                        .item = id,
+                        .target = previousRoot});
+        return true;
+    }
+
+    bool DockSpaceModel::attachTree(DockSpaceModel &&source,
+                                    DockNodeId target,
+                                    DockZone zone) {
+        return attachTreeInternal(source, target, zone, false);
+    }
+
+    bool DockSpaceModel::attachTreeAtRoot(DockSpaceModel &&source,
+                                          DockZone zone) {
+        return attachTreeInternal(source, m_root, zone, true);
+    }
+
     DetachedDockItem DockSpaceModel::detachItem(DockItemId item) {
         DockNodeId source;
         auto detached = detachItemInternal(item, &source, true);
@@ -334,6 +367,29 @@ namespace Bess::UI {
         return count;
     }
 
+    std::vector<DockItemId> DockSpaceModel::itemIds() const {
+        std::vector<DockItemId> result;
+        result.reserve(m_itemLocations.size());
+        if (!m_root) {
+            return result;
+        }
+
+        std::function<void(DockNodeId)> append = [&](DockNodeId node) {
+            if (const auto *stack = getStack(node)) {
+                for (const auto &item : stack->tabs.items()) {
+                    result.push_back(item.id);
+                }
+                return;
+            }
+            if (const auto *split = getSplit(node)) {
+                append(split->first);
+                append(split->second);
+            }
+        };
+        append(m_root);
+        return result;
+    }
+
     bool DockSpaceModel::empty() const noexcept {
         return !m_root;
     }
@@ -505,6 +561,177 @@ namespace Bess::UI {
             m_root = splitId;
         }
         return itemId;
+    }
+
+    DockItemId DockSpaceModel::dockItemAtRootInternal(DockItem item,
+                                                      DockZone zone) {
+        if (!item.id || m_itemLocations.contains(item.id)) {
+            return {};
+        }
+        if (!m_root) {
+            return zone == DockZone::main ? dockItemInternal(std::move(item),
+                                                             {},
+                                                             DockZone::main,
+                                                             DockTabModel::npos)
+                                          : DockItemId{};
+        }
+        if (!isSideZone(zone)) {
+            return {};
+        }
+
+        const DockItemId itemId = item.id;
+        const DockNodeId previousRoot = m_root;
+        const DockNodeId newStack = createStack(std::move(item));
+        if (!newStack) {
+            return {};
+        }
+
+        DockNodeId splitId;
+        do {
+            splitId = DockNodeId::generate();
+        } while (m_nodes.contains(splitId));
+
+        m_nodes.emplace(
+            splitId,
+            DockSplitNode{
+                .id = splitId,
+                .axis = axisFor(zone),
+                .ratio = 0.5f,
+                .first = insertedFirst(zone) ? newStack : previousRoot,
+                .second = insertedFirst(zone) ? previousRoot : newStack,
+            });
+        if (auto *rootStack =
+                const_cast<DockStackNode *>(getStack(previousRoot))) {
+            rootStack->parent = splitId;
+        } else if (auto *rootSplit =
+                       const_cast<DockSplitNode *>(getSplit(previousRoot))) {
+            rootSplit->parent = splitId;
+        }
+        const_cast<DockStackNode *>(getStack(newStack))->parent = splitId;
+        m_root = splitId;
+        return itemId;
+    }
+
+    bool DockSpaceModel::attachTreeInternal(DockSpaceModel &source,
+                                            DockNodeId target,
+                                            DockZone zone,
+                                            bool atRoot) {
+        if (&source == this || source.empty() || !source.validate() ||
+            !validate()) {
+            return false;
+        }
+        if (empty()) {
+            if (target || zone != DockZone::main) {
+                return false;
+            }
+        } else {
+            if (!isSideZone(zone)) {
+                return false;
+            }
+            if (atRoot) {
+                target = m_root;
+            } else if (getStack(target) == nullptr) {
+                return false;
+            }
+        }
+
+        for (const auto &[node, value] : source.m_nodes) {
+            (void)value;
+            if (m_nodes.contains(node)) {
+                return false;
+            }
+        }
+        for (const auto &[item, node] : source.m_itemLocations) {
+            (void)node;
+            if (m_itemLocations.contains(item)) {
+                return false;
+            }
+        }
+
+        const DockNodeId sourceRoot = source.m_root;
+        const DockNodeId previousRoot = m_root;
+        if (empty()) {
+            m_nodes.reserve(source.m_nodes.size());
+            m_itemLocations.reserve(source.m_itemLocations.size());
+            for (auto &[id, node] : source.m_nodes) {
+                m_nodes.emplace(id, std::move(node));
+            }
+            for (const auto &[item, node] : source.m_itemLocations) {
+                m_itemLocations.emplace(item, node);
+            }
+            m_root = sourceRoot;
+            source.m_nodes.clear();
+            source.m_itemLocations.clear();
+            source.m_root = {};
+            m_changed.emit({.kind = DockModelChangeKind::topologyAttached,
+                            .target = m_root});
+            source.m_changed.emit(
+                {.kind = DockModelChangeKind::topologyDetached,
+                 .source = sourceRoot});
+            return true;
+        }
+
+        const DockNodeId previousParent =
+            atRoot ? DockNodeId{} : parentOf(target);
+        if (previousParent) {
+            const auto *parent = getSplit(previousParent);
+            if (parent == nullptr ||
+                (parent->first != target && parent->second != target)) {
+                return false;
+            }
+        } else if (target != m_root) {
+            return false;
+        }
+
+        DockNodeId splitId;
+        do {
+            splitId = DockNodeId::generate();
+        } while (m_nodes.contains(splitId) || source.m_nodes.contains(splitId));
+        m_nodes.reserve(m_nodes.size() + source.m_nodes.size() + 1);
+        m_itemLocations.reserve(m_itemLocations.size() +
+                                source.m_itemLocations.size());
+        for (auto &[id, node] : source.m_nodes) {
+            m_nodes.emplace(id, std::move(node));
+        }
+        for (const auto &[item, node] : source.m_itemLocations) {
+            m_itemLocations.emplace(item, node);
+        }
+        m_nodes.emplace(splitId,
+                        DockSplitNode{
+                            .id = splitId,
+                            .parent = previousParent,
+                            .axis = axisFor(zone),
+                            .ratio = 0.5f,
+                            .first = insertedFirst(zone) ? sourceRoot : target,
+                            .second = insertedFirst(zone) ? target : sourceRoot,
+                        });
+
+        if (auto *sourceStack =
+                const_cast<DockStackNode *>(getStack(sourceRoot))) {
+            sourceStack->parent = splitId;
+        } else {
+            const_cast<DockSplitNode *>(getSplit(sourceRoot))->parent = splitId;
+        }
+        if (auto *targetStack = const_cast<DockStackNode *>(getStack(target))) {
+            targetStack->parent = splitId;
+        } else {
+            const_cast<DockSplitNode *>(getSplit(target))->parent = splitId;
+        }
+        if (previousParent) {
+            static_cast<void>(replaceChild(previousParent, target, splitId));
+        } else {
+            m_root = splitId;
+        }
+
+        source.m_nodes.clear();
+        source.m_itemLocations.clear();
+        source.m_root = {};
+        m_changed.emit({.kind = DockModelChangeKind::topologyAttached,
+                        .source = previousRoot,
+                        .target = splitId});
+        source.m_changed.emit({.kind = DockModelChangeKind::topologyDetached,
+                               .source = sourceRoot});
+        return true;
     }
 
     std::optional<DockItem> DockSpaceModel::detachItemInternal(

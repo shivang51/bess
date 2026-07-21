@@ -43,6 +43,8 @@ namespace Bess::UI {
         itemActivated,
         itemUpdated,
         splitResized,
+        topologyAttached,
+        topologyDetached,
     };
 
     struct DockModelChange {
@@ -116,6 +118,17 @@ namespace Bess::UI {
                         DockNodeId target = {},
                         DockZone zone = DockZone::main,
                         size_t tabIndex = DockTabModel::npos);
+        // Attaches beside the complete topology rather than beside one leaf.
+        // This is the semantic operation used by a DockSpace's outer-edge
+        // guides. `main` is accepted only while the model is empty.
+        bool attachItemAtRoot(DetachedDockItem &&item, DockZone zone);
+        // Moves a complete source topology beside one terminal stack. A tree
+        // can also become an empty destination's main topology. Source is
+        // consumed only after all structural preconditions are validated.
+        bool attachTree(DockSpaceModel &&source,
+                        DockNodeId target = {},
+                        DockZone zone = DockZone::main);
+        bool attachTreeAtRoot(DockSpaceModel &&source, DockZone zone);
         [[nodiscard]] DetachedDockItem detachItem(DockItemId item);
         bool removeItem(DockItemId item);
         bool moveItem(DockItemId item,
@@ -141,6 +154,7 @@ namespace Bess::UI {
         [[nodiscard]] size_t nodeCount() const noexcept;
         [[nodiscard]] size_t itemCount() const noexcept;
         [[nodiscard]] size_t stackCount() const noexcept;
+        [[nodiscard]] std::vector<DockItemId> itemIds() const;
         [[nodiscard]] bool empty() const noexcept;
 
         [[nodiscard]] DockLayoutResult layout(WidgetBounds bounds,
@@ -160,6 +174,11 @@ namespace Bess::UI {
                                     DockNodeId target,
                                     DockZone zone,
                                     size_t tabIndex);
+        DockItemId dockItemAtRootInternal(DockItem item, DockZone zone);
+        bool attachTreeInternal(DockSpaceModel &source,
+                                DockNodeId target,
+                                DockZone zone,
+                                bool atRoot);
         [[nodiscard]] std::optional<DockItem>
         detachItemInternal(DockItemId item, DockNodeId *source, bool collapse);
         void collapseEmptyStack(DockNodeId stack);

@@ -84,8 +84,9 @@ namespace Bess::UI {
         bool
         setPanelTitle(WidgetTree &state, DockItemId item, std::string title);
 
-        // Floating panels remain owned by this DockSpace and its WidgetTree;
-        // only their DockItem metadata is detached from the dock topology.
+        // Floating panels remain owned by this DockSpace and its WidgetTree.
+        // Each floating window is another dock host, so it can receive tabs
+        // and side splits through the same model operations as the main host.
         bool floatItem(DockItemId item, WidgetBounds bounds);
         bool dockFloatingItem(DockItemId item,
                               DockNodeId target = {},
@@ -93,26 +94,53 @@ namespace Bess::UI {
                               size_t tabIndex = DockTabModel::npos);
         [[nodiscard]] bool isItemFloating(DockItemId item) const noexcept;
         [[nodiscard]] size_t floatingItemCount() const noexcept;
+        [[nodiscard]] size_t floatingWindowCount() const noexcept;
         [[nodiscard]] std::optional<WidgetBounds>
         floatingItemBounds(DockItemId item) const noexcept;
 
       private:
         struct HitTab {
+            DockHostId host;
             DockNodeId stack;
             DockItemId item;
         };
 
-        struct FloatingItem {
-            DetachedDockItem detached;
+        struct FloatingHost {
+            DockHostId id = DockHostId::generate();
+            DockSpaceModel model;
             WidgetBounds bounds;
         };
 
         struct TabDrag {
             DockItemId item;
+            DockHostId host;
             glm::vec2 pressPosition{0.f};
             glm::vec2 grabOffset{0.f};
-            bool floating = false;
+            bool window = false;
             bool started = false;
+        };
+
+        struct SplitHit {
+            DockHostId host;
+            DockNodeId node;
+
+            bool operator==(const SplitHit &) const noexcept = default;
+        };
+
+        struct DropGuide {
+            DockHostId host;
+            bool root = false;
+            DockDropGuideLayout layout;
+        };
+
+        struct DropDestination {
+            DockHostId host;
+            DockNodeId node;
+            DockZone zone = DockZone::main;
+            bool root = false;
+            size_t tabIndex = DockTabModel::npos;
+
+            bool operator==(const DropDestination &) const noexcept = default;
         };
 
         [[nodiscard]] const UIDockStyle &
@@ -120,36 +148,66 @@ namespace Bess::UI {
         [[nodiscard]] const UITabStyle &tabStyle(const WidgetTree &state) const;
         [[nodiscard]] DockLayoutResult
         calculateLayout(WidgetBounds bounds, const WidgetTree &state) const;
+        [[nodiscard]] DockLayoutResult
+        calculateLayout(const DockSpaceModel &model,
+                        WidgetBounds bounds,
+                        const WidgetTree &state,
+                        bool hideSingleTab = false) const;
+        [[nodiscard]] DockLayoutResult
+        calculateFloatingLayout(const FloatingHost &host,
+                                const WidgetTree &state) const;
         [[nodiscard]] HitTab hitTab(WidgetBounds bounds,
                                     const WidgetTree &state,
                                     glm::vec2 position) const;
-        [[nodiscard]] FloatingItem *findFloating(DockItemId item) noexcept;
-        [[nodiscard]] const FloatingItem *
+        [[nodiscard]] HitTab hitTab(const DockSpaceModel &model,
+                                    DockHostId host,
+                                    const DockLayoutResult &layout,
+                                    const WidgetTree &state,
+                                    glm::vec2 position) const;
+        [[nodiscard]] FloatingHost *findFloating(DockItemId item) noexcept;
+        [[nodiscard]] const FloatingHost *
         findFloating(DockItemId item) const noexcept;
-        [[nodiscard]] DockItemId
+        [[nodiscard]] FloatingHost *findFloatingHost(DockHostId host) noexcept;
+        [[nodiscard]] const FloatingHost *
+        findFloatingHost(DockHostId host) const noexcept;
+        [[nodiscard]] DockSpaceModel *modelForHost(DockHostId host) noexcept;
+        [[nodiscard]] const DockSpaceModel *
+        modelForHost(DockHostId host) const noexcept;
+        [[nodiscard]] DockHostId
         floatingHeaderAt(glm::vec2 position,
                          const WidgetTree &state) const noexcept;
+        [[nodiscard]] DockItemId
+        floatingTitleItem(const FloatingHost &host) const noexcept;
         [[nodiscard]] WidgetBounds
-        floatingHeaderBounds(const FloatingItem &item,
+        floatingHeaderBounds(const FloatingHost &host,
                              const WidgetTree &state) const noexcept;
         [[nodiscard]] WidgetBounds
-        floatingContentBounds(const FloatingItem &item,
-                              const WidgetTree &state) const noexcept;
+        floatingClientBounds(const FloatingHost &host,
+                             const WidgetTree &state) const noexcept;
         [[nodiscard]] WidgetBounds
         normalizedFloatingBounds(WidgetBounds requested,
                                  WidgetBounds dockBounds,
                                  const WidgetTree &state) const noexcept;
-        bool beginTabDrag(WidgetEventContext &context,
-                          const DockLayoutResult &layout);
+        bool beginTabDrag(WidgetEventContext &context, WidgetBounds dockBounds);
         void updateFloatingDrag(WidgetEventContext &context);
         bool finishFloatingDrag();
-        void refreshDropGuide(WidgetBounds bounds,
-                              const WidgetTree &state,
-                              glm::vec2 position);
+        void refreshDropGuides(WidgetBounds bounds,
+                               const WidgetTree &state,
+                               glm::vec2 position);
+        bool transferItem(DockItemId item,
+                          DockHostId source,
+                          const DropDestination &destination);
+        bool transferHost(DockHostId source,
+                          const DropDestination &destination);
+        bool attachDetached(DockSpaceModel &destination,
+                            DetachedDockItem &&item,
+                            const DropDestination &drop,
+                            DockNodeId overrideTarget = {});
+        void removeFloatingHostIfEmpty(DockHostId host);
         void clearTabInteraction() noexcept;
-        void bringFloatingToFront(WidgetEventContext &context, DockItemId item);
+        void bringFloatingToFront(WidgetEventContext &context, DockHostId host);
         UIEventReply beginFloatingHeaderPress(WidgetEventContext &context,
-                                              DockItemId item);
+                                              DockHostId host);
         [[nodiscard]] DockDropGuideMetrics
         dropGuideMetrics(const WidgetTree &state) const noexcept;
 
@@ -157,16 +215,17 @@ namespace Bess::UI {
         DockSpaceOptions m_options;
         WidgetTree *m_mountedState = nullptr;
         WidgetId m_mountedId;
-        std::vector<FloatingItem> m_floatingItems;
+        std::vector<std::unique_ptr<FloatingHost>> m_floatingHosts;
         std::optional<TabDrag> m_tabDrag;
-        std::optional<DockDropGuideLayout> m_dropGuide;
-        std::optional<DockZone> m_hoveredDropZone;
+        std::vector<DropGuide> m_dropGuides;
+        std::optional<DropDestination> m_hoveredDrop;
         Pressable m_tabPressable;
         DockItemId m_hoveredItem;
         DockItemId m_pressedItem;
+        DockHostId m_focusedHost;
         DockNodeId m_focusedStack;
-        DockNodeId m_hoveredSplit;
-        DockNodeId m_draggedSplit;
+        SplitHit m_hoveredSplit;
+        SplitHit m_draggedSplit;
         DockSpaceModel::ChangedSignal::Connection m_modelConnection;
     };
 

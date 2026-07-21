@@ -111,12 +111,47 @@ Derive from `Widget` and override only the required hooks:
 - emit renderer-neutral commands in `paint`;
 - use `paintOverlay` for adorners that must appear above descendants, such as
   focus rings, selection handles, and docking previews;
+- override `hitTest` when a retained popup intentionally extends outside the
+  widget's layout box; hit testing honors subtree Z just like painting does;
 - return a `UIEventReply` from `onEvent` to request focus, pointer capture,
   invalidation, handling, or propagation changes.
 
 Events follow capture, target, and bubble phases. `Pressable` contains the
 shared mouse/keyboard activation state machine used by buttons and tabs; new
 clickable controls should compose it instead of duplicating input logic.
+
+## Menus
+
+`MenuModel` is a renderer-neutral command hierarchy with stable `MenuId` and
+`MenuItemId` values. A command can provide an icon glyph, name, displayed
+shortcut, enabled/checked state, callback, and arbitrary nested children;
+separators are explicit items.
+
+```cpp
+auto menus = std::make_shared<Bess::UI::MenuModel>();
+menus->addMenu({
+    .name = "File",
+    .items = {
+        {.icon = "+",
+         .name = "New",
+         .shortcut = "Ctrl+N",
+         .activated = [] { /* create document */ }},
+        {.name = "Recent",
+         .children = {
+             {.name = "project.bess",
+              .activated = [] { /* open document */ }},
+         }},
+        Bess::UI::MenuItem::separator(),
+    },
+});
+
+ui.menuBar(menus);
+```
+
+The shortcut string is presentation metadata; application command routing
+remains the authority for global accelerators. Menu placement, painting, and
+input use `MenuBarLayoutSolver`, including viewport-edge flipping and submenu
+overlap. Pointer and keyboard navigation share the same retained open path.
 
 ## Tabs and docking
 
@@ -183,12 +218,20 @@ and items. `DockSpaceModel::validate` is available for tests, deserialization,
 and debug assertions at topology boundaries.
 
 Dock tabs have a small drag threshold. Dragging beyond it transfers the item
-into a floating panel without recreating its widget subtree; releasing away
-from a guide leaves it floating. While dragging over a terminal stack,
-`DockSpace` presents node-local center/side guides and an exact destination
-preview. Releasing on a guide attaches the same item and content back into the
-model. `DockDropGuideLayoutSolver` is renderer-free so custom themes and tests
-consume the same hit regions used by the preview.
+into a floating dock host without recreating its widget subtree; releasing
+away from a guide leaves it floating. A floating host owns another
+`DockSpaceModel`, so tabs can dock into floating windows and form tab stacks or
+side splits there using the same transfer path as the main host. Docking a
+multi-stack floating host through a side guide grafts its complete topology;
+it does not flatten the source splits into one tab stack.
+
+During a drag, terminal stacks expose node-local center/side guides. Every host
+also exposes four outer-edge guides that wrap the complete existing topology;
+the root guide intentionally has no center target. The preview is the exact
+destination region. Floating windows may move beyond the `DockSpace` and are
+clipped by it, while a small themed title-bar grip remains recoverable.
+`DockDropGuideLayoutSolver` is renderer-free so custom themes and tests consume
+the same hit regions used by the preview.
 
 The older `DockManager` remains temporarily for compatibility. New retained UI
 code should use `DockSpaceModel` and `DockSpace`; once its remaining call sites

@@ -52,6 +52,33 @@ namespace Bess::UI {
         float gap = 0.f;
     };
 
+    struct UIMenuStyle {
+        UIBoxStyle bar;
+        UIBoxStyle barItem;
+        UIBoxStyle barItemHovered;
+        UIBoxStyle barItemActive;
+        UIBoxStyle popup;
+        UIBoxStyle itemHovered;
+        UIBoxStyle itemPressed;
+        UITextStyle text;
+        Core::Renderer::Color iconColor{0.82f, 0.84f, 0.88f, 1.f};
+        Core::Renderer::Color shortcutColor{0.62f, 0.65f, 0.70f, 1.f};
+        Core::Renderer::Color disabledText{0.42f, 0.44f, 0.48f, 1.f};
+        Core::Renderer::Color separator{0.25f, 0.27f, 0.31f, 1.f};
+        float barHeight = 27.f;
+        float barHorizontalPadding = 9.f;
+        float popupMinimumWidth = 190.f;
+        float popupMaximumWidth = 420.f;
+        float popupPadding = 4.f;
+        float popupOverlap = 2.f;
+        float itemHeight = 26.f;
+        float separatorHeight = 9.f;
+        float itemHorizontalPadding = 8.f;
+        float iconColumnWidth = 20.f;
+        float shortcutGap = 24.f;
+        float submenuIndicatorWidth = 16.f;
+    };
+
     struct UIDockStyle {
         UIBoxStyle background;
         UIBoxStyle stack;
@@ -66,6 +93,10 @@ namespace Bess::UI {
         glm::vec2 floatingMinimumSize{260.f, 180.f};
         glm::vec2 floatingMaximumSize{640.f, 480.f};
         float floatingMargin = 8.f;
+        float floatingTitleBarHeight = 24.f;
+        float floatingTitleHorizontalPadding = 8.f;
+        float floatingVisibleTitleWidth = 48.f;
+        float floatingVisibleTitleHeight = 8.f;
         float dragThreshold = 6.f;
         float dropGuideSize = 38.f;
         float dropGuideGap = 7.f;
@@ -77,6 +108,7 @@ namespace Bess::UI {
         UITextStyle label;
         UIInteractiveStyle button;
         UITabStyle tabs;
+        UIMenuStyle menus;
         UIDockStyle dock;
 
         [[nodiscard]] static UITheme dark();

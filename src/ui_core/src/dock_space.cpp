@@ -43,13 +43,14 @@ namespace Bess::UI {
         }
 
         constexpr float floatingLayer(size_t index) noexcept {
-            return 0.10f + static_cast<float>(index) * 0.025f;
+            return 0.10f + static_cast<float>(index) * 0.05f;
         }
 
         WidgetBounds zoneGlyph(WidgetBounds bounds, DockZone zone) noexcept {
             const float inset = std::max(4.f, bounds.size.x * 0.24f);
             return DockDropGuideLayoutSolver::regionBounds(bounds, zone, inset);
         }
+
     } // namespace
 
     DockPanel::DockPanel(std::string title, DockPanelOptions options)
@@ -68,10 +69,6 @@ namespace Bess::UI {
     }
 
     void DockPanel::onMount(WidgetMountContext &context) {
-        // DockSpace is the sole geometry authority for panels. Removing them
-        // from normal flex flow prevents hidden/inactive panels from imposing
-        // a combined intrinsic minimum width on the dock space during a
-        // viewport shrink; arrange() supplies the real bounds afterward.
         context.layout.setPosMode(PosMode::absolute);
         context.layout.setWidth(0.f);
         context.layout.setHeight(0.f);
@@ -136,40 +133,42 @@ namespace Bess::UI {
 
     void DockSpace::arrange(WidgetArrangeContext &context) {
         for (const auto child : context.children()) {
-            if (context.state.getWidget<DockPanel>(child) != nullptr) {
-                context.setChildVisible(child, false);
-                if (m_model.itemForContent(child)) {
-                    if (auto *layout = context.state.getLayout(child)) {
-                        layout->setZVal(0.f);
-                    }
+            if (context.state.getWidget<DockPanel>(child) == nullptr) {
+                continue;
+            }
+            context.setChildVisible(child, false);
+            if (auto *layout = context.state.getLayout(child)) {
+                layout->setZVal(0.f);
+            }
+        }
+
+        const auto arrangeModel = [&](const DockSpaceModel &model,
+                                      const DockLayoutResult &layout,
+                                      float z) {
+            for (const auto &stackLayout : layout.stacks) {
+                const auto *item = model.getItem(stackLayout.activeItem);
+                if (item == nullptr || !context.isDirectChild(item->content)) {
+                    continue;
+                }
+                context.setChildBounds(item->content,
+                                       stackLayout.contentBounds);
+                context.setChildVisible(item->content, true);
+                if (auto *childLayout =
+                        context.state.getLayout(item->content)) {
+                    childLayout->setZVal(z);
                 }
             }
-        }
+        };
 
-        const auto layout = calculateLayout(context.bounds, context.state);
-        for (const auto &stackLayout : layout.stacks) {
-            const auto *item = m_model.getItem(stackLayout.activeItem);
-            if (item == nullptr || !context.isDirectChild(item->content)) {
-                continue;
-            }
-            context.setChildBounds(item->content, stackLayout.contentBounds);
-            context.setChildVisible(item->content, true);
-        }
-
-        for (size_t i = 0; i < m_floatingItems.size(); ++i) {
-            auto &floating = m_floatingItems[i];
-            floating.bounds = normalizedFloatingBounds(
-                floating.bounds, context.bounds, context.state);
-            const auto *item = floating.detached.get();
-            if (item == nullptr || !context.isDirectChild(item->content)) {
-                continue;
-            }
-            context.setChildBounds(
-                item->content, floatingContentBounds(floating, context.state));
-            context.setChildVisible(item->content, true);
-            if (auto *layout = context.state.getLayout(item->content)) {
-                layout->setZVal(floatingLayer(i));
-            }
+        arrangeModel(
+            m_model, calculateLayout(context.bounds, context.state), 0.f);
+        for (size_t i = 0; i < m_floatingHosts.size(); ++i) {
+            auto &host = *m_floatingHosts[i];
+            host.bounds = normalizedFloatingBounds(
+                host.bounds, context.bounds, context.state);
+            arrangeModel(host.model,
+                         calculateFloatingLayout(host, context.state),
+                         floatingLayer(i));
         }
     }
 
@@ -179,88 +178,103 @@ namespace Bess::UI {
         context.painter.drawBox(
             makeBox(context.bounds, dock.background, context.pickingId));
 
-        const auto layout = calculateLayout(context.bounds, context.state);
-        uint32_t pickingInfo = 1;
-        for (const auto &stackLayout : layout.stacks) {
-            context.painter.drawBox(
-                makeBox(stackLayout.bounds, dock.stack, context.pickingId));
-            context.painter.drawBox(makeBox(stackLayout.tabBarBounds,
-                                            tabs.strip,
-                                            context.pickingId,
-                                            0.001f));
-
-            const auto *stack = m_model.getStack(stackLayout.node);
-            if (stack == nullptr) {
-                continue;
-            }
-            const auto regions = TabStripLayout::calculate(
-                stackLayout.tabBarBounds, stack->tabs.size(), metrics(tabs));
-            const auto items = stack->tabs.items();
-            for (size_t i = 0; i < regions.size() && i < items.size(); ++i) {
-                const auto &item = items[i];
-                const UIBoxStyle *style = &tabs.normal;
-                if (m_pressedItem == item.id && m_tabPressable.isPressed()) {
-                    style = &tabs.pressed;
-                } else if (stack->tabs.active() == item.id) {
-                    style = &tabs.active;
-                } else if (m_hoveredItem == item.id) {
-                    style = &tabs.hovered;
+        const auto paintTopology = [&](const DockSpaceModel &model,
+                                       const DockLayoutResult &layout,
+                                       float layer,
+                                       DockHostId host) {
+            uint32_t pickingInfo = 1;
+            for (const auto &stackLayout : layout.stacks) {
+                context.painter.drawBox(makeBox(
+                    stackLayout.bounds, dock.stack, context.pickingId, layer));
+                if (stackLayout.tabBarBounds.size.y <= 0.f) {
+                    continue;
                 }
-                PickingId id = context.pickingId;
-                id.info = pickingInfo++;
-                context.painter.drawBox(
-                    makeBox(regions[i].bounds, *style, id, 0.002f));
-                const auto textColor = stack->tabs.active() == item.id
-                                           ? tabs.text.color
-                                           : tabs.inactiveText;
-                context.painter.drawText(
-                    item.title,
-                    {
-                        .bounds = regions[i].labelBounds,
-                        .fontSize = tabs.text.fontSize,
-                        .color = textColor,
-                        .horizontal = HorizontalTextAlignment::start,
-                        .vertical = VerticalTextAlignment::center,
-                        .zIndex = 0.003f,
-                        .letterSpacing = tabs.text.letterSpacing,
-                        .pickingId = id,
-                    });
+                context.painter.drawBox(makeBox(stackLayout.tabBarBounds,
+                                                tabs.strip,
+                                                context.pickingId,
+                                                layer + 0.001f));
+                const auto *stack = model.getStack(stackLayout.node);
+                if (stack == nullptr) {
+                    continue;
+                }
+                const auto regions =
+                    TabStripLayout::calculate(stackLayout.tabBarBounds,
+                                              stack->tabs.size(),
+                                              metrics(tabs));
+                const auto items = stack->tabs.items();
+                for (size_t i = 0; i < regions.size() && i < items.size();
+                     ++i) {
+                    const auto &item = items[i];
+                    const UIBoxStyle *style = &tabs.normal;
+                    if (m_pressedItem == item.id &&
+                        m_tabPressable.isPressed()) {
+                        style = &tabs.pressed;
+                    } else if (stack->tabs.active() == item.id) {
+                        style = &tabs.active;
+                    } else if (m_hoveredItem == item.id) {
+                        style = &tabs.hovered;
+                    }
+                    PickingId id = context.pickingId;
+                    id.info = pickingInfo++;
+                    context.painter.drawBox(
+                        makeBox(regions[i].bounds, *style, id, layer + 0.002f));
+                    const auto textColor = stack->tabs.active() == item.id
+                                               ? tabs.text.color
+                                               : tabs.inactiveText;
+                    context.painter.drawText(
+                        item.title,
+                        {
+                            .bounds = regions[i].labelBounds,
+                            .fontSize = tabs.text.fontSize,
+                            .color = textColor,
+                            .horizontal = HorizontalTextAlignment::start,
+                            .vertical = VerticalTextAlignment::center,
+                            .zIndex = layer + 0.003f,
+                            .letterSpacing = tabs.text.letterSpacing,
+                            .pickingId = id,
+                        });
+                }
             }
-        }
 
-        for (const auto &splitLayout : layout.splits) {
-            const auto color = splitLayout.node == m_hoveredSplit ||
-                                       splitLayout.node == m_draggedSplit
-                                   ? dock.splitterHovered
-                                   : dock.splitter;
-            context.painter.drawBox({
-                .bounds = splitLayout.dividerBounds,
-                .color = color,
-                .zIndex = 0.004f,
-                .pickingId = context.pickingId,
-            });
-        }
+            for (const auto &splitLayout : layout.splits) {
+                const SplitHit split{.host = host, .node = splitLayout.node};
+                const auto color =
+                    split == m_hoveredSplit || split == m_draggedSplit
+                        ? dock.splitterHovered
+                        : dock.splitter;
+                context.painter.drawBox({
+                    .bounds = splitLayout.dividerBounds,
+                    .color = color,
+                    .zIndex = layer + 0.004f,
+                    .pickingId = context.pickingId,
+                });
+            }
+        };
 
-        // Floating panels are painted after dock chrome, and their content
-        // widgets are kept at the end of the child order. Header chrome and
-        // outlines are repeated in paintOverlay so docked content can never
-        // obscure them.
-        for (size_t i = 0; i < m_floatingItems.size(); ++i) {
-            const auto &floating = m_floatingItems[i];
-            context.painter.drawBox(makeBox(floating.bounds,
+        paintTopology(
+            m_model, calculateLayout(context.bounds, context.state), 0.f, {});
+        const ScopedUIClip floatingClip{context.painter, context.bounds};
+        for (size_t i = 0; i < m_floatingHosts.size(); ++i) {
+            const auto &host = *m_floatingHosts[i];
+            const float layer = floatingLayer(i);
+            context.painter.drawBox(makeBox(host.bounds,
                                             dock.floatingWindow,
                                             context.pickingId,
-                                            floatingLayer(i) - 0.005f));
+                                            layer - 0.005f));
+            paintTopology(host.model,
+                          calculateFloatingLayout(host, context.state),
+                          layer,
+                          host.id);
         }
     }
 
     void DockSpace::paintOverlay(WidgetPaintContext &context) const {
         const auto &dock = dockStyle(context.state);
         const auto &tabs = tabStyle(context.state);
-        for (size_t i = 0; i < m_floatingItems.size(); ++i) {
-            const auto &floating = m_floatingItems[i];
-            const auto *item = floating.detached.get();
-            if (item == nullptr) {
+        for (size_t i = 0; i < m_floatingHosts.size(); ++i) {
+            const auto &host = *m_floatingHosts[i];
+            const auto *titleItem = host.model.getItem(floatingTitleItem(host));
+            if (titleItem == nullptr) {
                 continue;
             }
 
@@ -269,30 +283,28 @@ namespace Bess::UI {
             outline.shadow.enabled = false;
             const float layer = floatingLayer(i);
             context.painter.drawBox(makeBox(
-                floating.bounds, outline, context.pickingId, layer + 0.010f));
+                host.bounds, outline, context.pickingId, layer + 0.010f));
 
             auto headerStyle = dock.floatingHeader;
-            if (m_pressedItem == item->id && m_tabDrag.has_value()) {
+            if (m_tabDrag && m_tabDrag->host == host.id && m_tabDrag->window) {
                 headerStyle.background = tabs.pressed.background;
                 headerStyle.border = tabs.pressed.border;
-            } else if (m_hoveredItem == item->id) {
+            } else if (m_hoveredItem == titleItem->id) {
                 headerStyle.background = tabs.hovered.background;
                 headerStyle.border = tabs.hovered.border;
             }
-            const auto header = floatingHeaderBounds(floating, context.state);
+            const auto header = floatingHeaderBounds(host, context.state);
             context.painter.drawBox(makeBox(
                 header, headerStyle, context.pickingId, layer + 0.011f));
+            const float padding =
+                std::max(0.f, dock.floatingTitleHorizontalPadding);
             context.painter.drawText(
-                item->title,
+                titleItem->title,
                 {
-                    .bounds =
-                        {
-                            .center = header.center,
-                            .size = {std::max(0.f,
-                                              header.size.x -
-                                                  tabs.horizontalPadding * 2.f),
-                                     header.size.y},
-                        },
+                    .bounds = {.center = header.center,
+                               .size = {std::max(0.f,
+                                                 header.size.x - padding * 2.f),
+                                        header.size.y}},
                     .fontSize = tabs.text.fontSize,
                     .color = tabs.text.color,
                     .horizontal = HorizontalTextAlignment::start,
@@ -303,38 +315,37 @@ namespace Bess::UI {
                 });
         }
 
-        if (!m_dropGuide.has_value()) {
+        if (m_dropGuides.empty()) {
             return;
         }
-
-        const float guideLayer = floatingLayer(m_floatingItems.size()) + 1.f;
-
-        if (m_hoveredDropZone.has_value()) {
-            if (const auto *hovered = m_dropGuide->region(*m_hoveredDropZone)) {
-                context.painter.drawBox(makeBox(hovered->previewBounds,
-                                                dock.dropPreview,
+        const float guideLayer = floatingLayer(m_floatingHosts.size()) + 1.f;
+        for (const auto &guide : m_dropGuides) {
+            for (const auto &region : guide.layout.regions) {
+                const bool hovered = m_hoveredDrop &&
+                                     m_hoveredDrop->host == guide.host &&
+                                     m_hoveredDrop->root == guide.root &&
+                                     m_hoveredDrop->zone == region.zone;
+                if (hovered) {
+                    context.painter.drawBox(makeBox(region.previewBounds,
+                                                    dock.dropPreview,
+                                                    context.pickingId,
+                                                    guideLayer));
+                }
+                const auto &style =
+                    hovered ? dock.dropGuideHovered : dock.dropGuide;
+                context.painter.drawBox(makeBox(region.indicatorBounds,
+                                                style,
                                                 context.pickingId,
-                                                guideLayer));
+                                                guideLayer + 0.001f));
+                auto glyphStyle = dock.dropPreview;
+                glyphStyle.borderThickness = glm::vec4{1.f};
+                glyphStyle.cornerRadius = glm::vec4{3.f};
+                context.painter.drawBox(
+                    makeBox(zoneGlyph(region.indicatorBounds, region.zone),
+                            glyphStyle,
+                            context.pickingId,
+                            guideLayer + 0.002f));
             }
-        }
-
-        for (const auto &region : m_dropGuide->regions) {
-            const bool hovered = m_hoveredDropZone == region.zone;
-            const auto &style =
-                hovered ? dock.dropGuideHovered : dock.dropGuide;
-            context.painter.drawBox(makeBox(region.indicatorBounds,
-                                            style,
-                                            context.pickingId,
-                                            guideLayer + 0.001f));
-
-            auto glyphStyle = dock.dropPreview;
-            glyphStyle.borderThickness = glm::vec4{1.f};
-            glyphStyle.cornerRadius = glm::vec4{3.f};
-            context.painter.drawBox(
-                makeBox(zoneGlyph(region.indicatorBounds, region.zone),
-                        glyphStyle,
-                        context.pickingId,
-                        guideLayer + 0.002f));
         }
     }
 
@@ -345,19 +356,23 @@ namespace Bess::UI {
                 button != nullptr && button->button == MouseButton::left &&
                 button->action == MouseButtonAction::press &&
                 context.hasPointerPosition) {
-                const DockItemId floating =
-                    floatingHeaderAt(context.pointerPosition, context.state);
-                if (floating) {
-                    return beginFloatingHeaderPress(context, floating);
+                if (const DockHostId host = floatingHeaderAt(
+                        context.pointerPosition, context.state);
+                    host) {
+                    return beginFloatingHeaderPress(context, host);
                 }
             }
-            if (event.is<Input::MouseMoveEvent>() && !m_tabDrag.has_value() &&
+            if (event.is<Input::MouseMoveEvent>() && !m_tabDrag &&
                 context.hasPointerPosition) {
-                const DockItemId floating =
+                const DockHostId host =
                     floatingHeaderAt(context.pointerPosition, context.state);
-                if ((floating || isItemFloating(m_hoveredItem)) &&
-                    m_hoveredItem != floating) {
-                    m_hoveredItem = floating;
+                const auto *floating = findFloatingHost(host);
+                const DockItemId item = floating != nullptr
+                                            ? floatingTitleItem(*floating)
+                                            : DockItemId{};
+                if (item != m_hoveredItem &&
+                    (item || isItemFloating(m_hoveredItem))) {
+                    m_hoveredItem = item;
                     return {.invalidate = WidgetInvalidation::paint};
                 }
             }
@@ -367,14 +382,27 @@ namespace Bess::UI {
             return {};
         }
 
-        const auto layout = calculateLayout(context.bounds, context.state);
+        const auto mainLayout = calculateLayout(context.bounds, context.state);
+        const auto splitAt = [&](glm::vec2 position) -> SplitHit {
+            for (auto it = m_floatingHosts.rbegin();
+                 it != m_floatingHosts.rend();
+                 ++it) {
+                const auto layout =
+                    calculateFloatingLayout(**it, context.state);
+                if (const auto split = layout.dividerAt(position); split) {
+                    return {.host = (*it)->id, .node = split};
+                }
+            }
+            return {.node = mainLayout.dividerAt(position)};
+        };
+
         if (const auto *crossing = event.getIf<UIPointerCrossingEvent>();
             crossing != nullptr && !crossing->entered) {
             m_hoveredItem = {};
             m_hoveredSplit = {};
-            if (m_tabDrag.has_value()) {
-                m_dropGuide.reset();
-                m_hoveredDropZone.reset();
+            if (m_tabDrag) {
+                m_dropGuides.clear();
+                m_hoveredDrop.reset();
                 return {.handled = true,
                         .stopPropagation = true,
                         .invalidate = WidgetInvalidation::paint};
@@ -385,9 +413,18 @@ namespace Bess::UI {
         }
 
         if (event.is<Input::MouseMoveEvent>()) {
-            if (m_draggedSplit) {
-                const auto *split = m_model.getSplit(m_draggedSplit);
-                const auto *splitLayout = layout.findSplit(m_draggedSplit);
+            if (m_draggedSplit.node) {
+                auto *model = modelForHost(m_draggedSplit.host);
+                const FloatingHost *host =
+                    findFloatingHost(m_draggedSplit.host);
+                const auto layout =
+                    host != nullptr
+                        ? calculateFloatingLayout(*host, context.state)
+                        : mainLayout;
+                const auto *split = model != nullptr
+                                        ? model->getSplit(m_draggedSplit.node)
+                                        : nullptr;
+                const auto *splitLayout = layout.findSplit(m_draggedSplit.node);
                 if (split != nullptr && splitLayout != nullptr) {
                     const float thickness =
                         dockStyle(context.state).splitterThickness;
@@ -401,9 +438,9 @@ namespace Bess::UI {
                         split->axis == DockSplitAxis::horizontal
                             ? context.pointerPosition.x - topLeft.x
                             : context.pointerPosition.y - topLeft.y;
-                    m_model.setSplitRatio(m_draggedSplit,
-                                          (coordinate - thickness * 0.5f) /
-                                              available);
+                    model->setSplitRatio(m_draggedSplit.node,
+                                         (coordinate - thickness * 0.5f) /
+                                             available);
                 }
                 return {.handled = true,
                         .stopPropagation = true,
@@ -412,7 +449,7 @@ namespace Bess::UI {
                                       WidgetInvalidation::paint};
             }
 
-            if (m_tabDrag.has_value()) {
+            if (m_tabDrag) {
                 if (!m_tabDrag->started) {
                     const auto distance =
                         context.pointerPosition - m_tabDrag->pressPosition;
@@ -420,15 +457,15 @@ namespace Bess::UI {
                         std::max(0.f, dockStyle(context.state).dragThreshold);
                     if (distance.x * distance.x + distance.y * distance.y >=
                         threshold * threshold) {
-                        if (m_tabDrag->floating) {
+                        if (m_tabDrag->window) {
                             m_tabDrag->started = true;
                         } else {
-                            static_cast<void>(beginTabDrag(context, layout));
+                            static_cast<void>(
+                                beginTabDrag(context, context.bounds));
                         }
                     }
                 }
-                if (m_tabDrag.has_value() && m_tabDrag->floating &&
-                    m_tabDrag->started) {
+                if (m_tabDrag && m_tabDrag->window && m_tabDrag->started) {
                     updateFloatingDrag(context);
                 }
                 return {.handled = true,
@@ -438,13 +475,17 @@ namespace Bess::UI {
                                       WidgetInvalidation::paint};
             }
 
-            m_hoveredSplit = layout.dividerAt(context.pointerPosition);
-            m_hoveredItem =
+            m_hoveredSplit = splitAt(context.pointerPosition);
+            const DockHostId headerHost =
                 floatingHeaderAt(context.pointerPosition, context.state);
+            const auto *header = findFloatingHost(headerHost);
+            m_hoveredItem =
+                header != nullptr ? floatingTitleItem(*header) : DockItemId{};
             if (!m_hoveredItem) {
-                const auto hit = hitTab(
-                    context.bounds, context.state, context.pointerPosition);
-                m_hoveredItem = hit.item;
+                m_hoveredItem = hitTab(context.bounds,
+                                       context.state,
+                                       context.pointerPosition)
+                                    .item;
             }
             auto result = m_tabPressable.handle(context, event);
             result.reply.invalidate |= WidgetInvalidation::paint;
@@ -453,20 +494,10 @@ namespace Bess::UI {
 
         if (const auto *button = event.getIf<Input::MouseButtonEvent>();
             button != nullptr && button->button == MouseButton::left) {
-            if (button->action == MouseButtonAction::release &&
-                m_tabDrag.has_value()) {
-                if (m_tabDrag->floating) {
-                    if (m_tabDrag->started) {
-                        if (context.hasPointerPosition) {
-                            // The release coordinate is authoritative. It may
-                            // arrive without a preceding move (for example
-                            // after crossing the target boundary), so refresh
-                            // both the floating bounds and drop hit here.
-                            updateFloatingDrag(context);
-                        } else {
-                            m_dropGuide.reset();
-                            m_hoveredDropZone.reset();
-                        }
+            if (button->action == MouseButtonAction::release && m_tabDrag) {
+                if (m_tabDrag->window) {
+                    if (m_tabDrag->started && context.hasPointerPosition) {
+                        updateFloatingDrag(context);
                         static_cast<void>(finishFloatingDrag());
                     }
                     clearTabInteraction();
@@ -483,34 +514,43 @@ namespace Bess::UI {
                                               context.pointerPosition)
                                      : HitTab{};
                 const DockItemId pressed = m_tabDrag->item;
+                const DockHostId sourceHost = m_tabDrag->host;
                 auto result = m_tabPressable.handle(context, event);
-                if (result.activated && hit.item == pressed) {
-                    static_cast<void>(m_model.activateItem(pressed));
+                if (result.activated && hit.item == pressed &&
+                    hit.host == sourceHost) {
+                    if (auto *owner = modelForHost(sourceHost)) {
+                        static_cast<void>(owner->activateItem(pressed));
+                    }
                 }
                 m_tabDrag.reset();
                 m_pressedItem = {};
-                result.reply.invalidate |= WidgetInvalidation::paint;
+                m_dropGuides.clear();
+                m_hoveredDrop.reset();
+                result.reply.invalidate |=
+                    WidgetInvalidation::layout | WidgetInvalidation::paint;
                 return result.reply;
             }
 
             if (button->action == MouseButtonAction::press &&
                 context.hasPointerPosition) {
-                const DockItemId floating =
-                    floatingHeaderAt(context.pointerPosition, context.state);
-                if (floating) {
-                    return beginFloatingHeaderPress(context, floating);
+                if (const DockHostId host = floatingHeaderAt(
+                        context.pointerPosition, context.state);
+                    host) {
+                    return beginFloatingHeaderPress(context, host);
                 }
             }
 
-            const DockNodeId divider =
-                context.hasPointerPosition
-                    ? layout.dividerAt(context.pointerPosition)
-                    : DockNodeId{};
+            const SplitHit divider = context.hasPointerPosition
+                                         ? splitAt(context.pointerPosition)
+                                         : SplitHit{};
             if ((button->action == MouseButtonAction::press ||
                  button->action == MouseButtonAction::doubleClick) &&
-                divider) {
+                divider.node) {
+                auto *model = modelForHost(divider.host);
                 if (button->action == MouseButtonAction::doubleClick) {
-                    m_model.setSplitRatio(divider, 0.5f);
+                    if (model != nullptr) {
+                        model->setSplitRatio(divider.node, 0.5f);
+                    }
                     return {.handled = true,
                             .stopPropagation = true,
                             .requestFocus = true,
@@ -526,7 +566,7 @@ namespace Bess::UI {
                         .invalidate = WidgetInvalidation::paint};
             }
             if (button->action == MouseButtonAction::release &&
-                m_draggedSplit) {
+                m_draggedSplit.node) {
                 m_draggedSplit = {};
                 m_hoveredSplit = divider;
                 return {.handled = true,
@@ -545,22 +585,26 @@ namespace Bess::UI {
                 !hit.item) {
                 return {};
             }
+            auto *hitModel = modelForHost(hit.host);
             if (button->action == MouseButtonAction::press) {
                 m_pressedItem = hit.item;
+                m_focusedHost = hit.host;
                 m_focusedStack = hit.stack;
                 m_tabDrag = TabDrag{
                     .item = hit.item,
+                    .host = hit.host,
                     .pressPosition = context.pointerPosition,
                 };
             } else if (button->action == MouseButtonAction::doubleClick) {
                 m_pressedItem = hit.item;
+                m_focusedHost = hit.host;
                 m_focusedStack = hit.stack;
             }
             auto result = m_tabPressable.handle(context, event);
             if (button->action == MouseButtonAction::doubleClick &&
                 result.activated && m_pressedItem &&
-                hit.item == m_pressedItem) {
-                m_model.activateItem(m_pressedItem);
+                hit.item == m_pressedItem && hitModel != nullptr) {
+                hitModel->activateItem(m_pressedItem);
                 m_pressedItem = {};
             }
             return result.reply;
@@ -569,7 +613,9 @@ namespace Bess::UI {
         if (const auto *key = event.getIf<Input::KeyEvent>();
             key != nullptr && context.focused &&
             key->action == KeyAction::press && m_focusedStack) {
-            const auto *stack = m_model.getStack(m_focusedStack);
+            auto *model = modelForHost(m_focusedHost);
+            const auto *stack =
+                model != nullptr ? model->getStack(m_focusedStack) : nullptr;
             if (stack != nullptr) {
                 DockItemId next;
                 if (key->key == KeyCode::arrowRight) {
@@ -593,7 +639,7 @@ namespace Bess::UI {
                     }
                 }
                 if (next) {
-                    m_model.activateItem(next);
+                    model->activateItem(next);
                     return {.handled = true,
                             .stopPropagation = true,
                             .invalidate = WidgetInvalidation::layout |
@@ -638,15 +684,12 @@ namespace Bess::UI {
             return {};
         }
 
-        const DockItemId inserted = m_model.addItem(
-            {
-                .id = itemId,
-                .title = std::move(title),
-                .content = panelId,
-                .closable = closable,
-            },
-            target,
-            zone);
+        const DockItemId inserted = m_model.addItem({.id = itemId,
+                                                     .title = std::move(title),
+                                                     .content = panelId,
+                                                     .closable = closable},
+                                                    target,
+                                                    zone);
         if (!inserted) {
             state.removeWidget(panelId);
             return {};
@@ -658,35 +701,32 @@ namespace Bess::UI {
         if (state.getWidget<DockSpace>(m_mountedId) != this) {
             return false;
         }
-        if (m_tabDrag.has_value() && m_tabDrag->item == item) {
+        if (m_tabDrag && m_tabDrag->item == item) {
             clearTabInteraction();
             state.releasePointer(m_mountedId);
         }
         if (m_hoveredItem == item) {
             m_hoveredItem = {};
         }
-        const auto *dockItem = m_model.getItem(item);
-        if (dockItem != nullptr) {
-            const WidgetId panel = dockItem->content;
-            if (!m_model.removeItem(item)) {
+        DockHostId hostId;
+        DockSpaceModel *owner = &m_model;
+        if (m_model.getItem(item) == nullptr) {
+            auto *host = findFloating(item);
+            if (host == nullptr) {
                 return false;
             }
-            state.removeWidget(panel);
-            return true;
+            hostId = host->id;
+            owner = &host->model;
         }
-
-        const auto floating =
-            std::find_if(m_floatingItems.begin(),
-                         m_floatingItems.end(),
-                         [item](const FloatingItem &entry) {
-                             const auto *value = entry.detached.get();
-                             return value != nullptr && value->id == item;
-                         });
-        if (floating == m_floatingItems.end()) {
+        const auto *dockItem = owner->getItem(item);
+        if (dockItem == nullptr) {
             return false;
         }
-        const WidgetId panel = floating->detached.get()->content;
-        m_floatingItems.erase(floating);
+        const WidgetId panel = dockItem->content;
+        if (!owner->removeItem(item)) {
+            return false;
+        }
+        removeFloatingHostIfEmpty(hostId);
         state.removeWidget(panel);
         state.invalidate(m_mountedId,
                          WidgetInvalidation::layout |
@@ -700,24 +740,25 @@ namespace Bess::UI {
         if (state.getWidget<DockSpace>(m_mountedId) != this) {
             return false;
         }
-        const auto *dockItem = m_model.getItem(item);
-        auto *floating = findFloating(item);
-        const WidgetId content =
-            dockItem != nullptr ? dockItem->content
-            : floating != nullptr && floating->detached.get() != nullptr
-                ? floating->detached.get()->content
-                : WidgetId{};
-        auto *panel = state.getWidget<DockPanel>(content);
+        DockSpaceModel *owner = &m_model;
+        if (m_model.getItem(item) == nullptr) {
+            auto *host = findFloating(item);
+            owner = host != nullptr ? &host->model : nullptr;
+        }
+        const auto *dockItem =
+            owner != nullptr ? owner->getItem(item) : nullptr;
+        auto *panel = dockItem != nullptr
+                          ? state.getWidget<DockPanel>(dockItem->content)
+                          : nullptr;
         if (panel == nullptr) {
             return false;
         }
         panel->setTitle(title);
-        if (dockItem != nullptr) {
-            return m_model.setItemTitle(item, std::move(title));
+        const bool updated = owner->setItemTitle(item, std::move(title));
+        if (updated) {
+            state.invalidate(m_mountedId, WidgetInvalidation::paint);
         }
-        floating->detached.m_item->title = std::move(title);
-        state.invalidate(m_mountedId, WidgetInvalidation::paint);
-        return true;
+        return updated;
     }
 
     bool DockSpace::floatItem(DockItemId item, WidgetBounds bounds) {
@@ -729,13 +770,14 @@ namespace Bess::UI {
         if (!detached) {
             return false;
         }
-        const WidgetId content = detached.get()->content;
-        m_floatingItems.push_back(
-            {.detached = std::move(detached), .bounds = bounds});
-        if (m_mountedState != nullptr && m_mountedId && content) {
-            static_cast<void>(m_mountedState->reparentWidget(
-                content, m_mountedId, WidgetTree::append));
+        auto host = std::make_unique<FloatingHost>();
+        host->bounds = bounds;
+        if (!host->model.attachItem(std::move(detached))) {
+            static_cast<void>(m_model.attachItem(
+                std::move(detached), m_model.firstStack(), DockZone::main));
+            return false;
         }
+        m_floatingHosts.push_back(std::move(host));
         return true;
     }
 
@@ -743,26 +785,19 @@ namespace Bess::UI {
                                      DockNodeId target,
                                      DockZone zone,
                                      size_t tabIndex) {
-        const auto floating =
-            std::find_if(m_floatingItems.begin(),
-                         m_floatingItems.end(),
-                         [item](const FloatingItem &entry) {
-                             const auto *value = entry.detached.get();
-                             return value != nullptr && value->id == item;
-                         });
-        if (floating == m_floatingItems.end()) {
+        const auto *source = findFloating(item);
+        if (source == nullptr) {
             return false;
         }
         if (!target && !m_model.empty()) {
             target = m_model.firstStack();
         }
-        if (!m_model.attachItem(
-                std::move(floating->detached), target, zone, tabIndex)) {
-            return false;
-        }
-        m_floatingItems.erase(floating);
-        m_focusedStack = m_model.stackForItem(item);
-        return true;
+        return transferItem(item,
+                            source->id,
+                            {.node = target,
+                             .zone = zone,
+                             .root = false,
+                             .tabIndex = tabIndex});
     }
 
     bool DockSpace::isItemFloating(DockItemId item) const noexcept {
@@ -770,14 +805,21 @@ namespace Bess::UI {
     }
 
     size_t DockSpace::floatingItemCount() const noexcept {
-        return m_floatingItems.size();
+        size_t count = 0;
+        for (const auto &host : m_floatingHosts) {
+            count += host->model.itemCount();
+        }
+        return count;
+    }
+
+    size_t DockSpace::floatingWindowCount() const noexcept {
+        return m_floatingHosts.size();
     }
 
     std::optional<WidgetBounds>
     DockSpace::floatingItemBounds(DockItemId item) const noexcept {
-        const auto *floating = findFloating(item);
-        return floating != nullptr ? std::optional{floating->bounds}
-                                   : std::nullopt;
+        const auto *host = findFloating(item);
+        return host != nullptr ? std::optional{host->bounds} : std::nullopt;
     }
 
     const UIDockStyle &DockSpace::dockStyle(const WidgetTree &state) const {
@@ -790,21 +832,57 @@ namespace Bess::UI {
 
     DockLayoutResult DockSpace::calculateLayout(WidgetBounds bounds,
                                                 const WidgetTree &state) const {
+        return calculateLayout(m_model, bounds, state, false);
+    }
+
+    DockLayoutResult DockSpace::calculateLayout(const DockSpaceModel &model,
+                                                WidgetBounds bounds,
+                                                const WidgetTree &state,
+                                                bool hideSingleTab) const {
         const auto &dock = dockStyle(state);
         const auto &tabs = tabStyle(state);
-        return m_model.layout(bounds, tabs.height, dock.splitterThickness);
+        const float tabHeight =
+            hideSingleTab && model.itemCount() == 1 && model.stackCount() == 1
+                ? 0.f
+                : tabs.height;
+        return model.layout(bounds, tabHeight, dock.splitterThickness);
+    }
+
+    DockLayoutResult
+    DockSpace::calculateFloatingLayout(const FloatingHost &host,
+                                       const WidgetTree &state) const {
+        return calculateLayout(
+            host.model, floatingClientBounds(host, state), state, true);
     }
 
     DockSpace::HitTab DockSpace::hitTab(WidgetBounds bounds,
                                         const WidgetTree &state,
                                         glm::vec2 position) const {
-        const auto layout = calculateLayout(bounds, state);
+        for (auto it = m_floatingHosts.rbegin(); it != m_floatingHosts.rend();
+             ++it) {
+            const auto layout = calculateFloatingLayout(**it, state);
+            if (auto hit =
+                    hitTab((*it)->model, (*it)->id, layout, state, position);
+                hit.item) {
+                return hit;
+            }
+        }
+        return hitTab(
+            m_model, {}, calculateLayout(bounds, state), state, position);
+    }
+
+    DockSpace::HitTab DockSpace::hitTab(const DockSpaceModel &model,
+                                        DockHostId host,
+                                        const DockLayoutResult &layout,
+                                        const WidgetTree &state,
+                                        glm::vec2 position) const {
         const auto &tabs = tabStyle(state);
         for (const auto &stackLayout : layout.stacks) {
-            if (!stackLayout.tabBarBounds.contains(position)) {
+            if (stackLayout.tabBarBounds.size.y <= 0.f ||
+                !stackLayout.tabBarBounds.contains(position)) {
                 continue;
             }
-            const auto *stack = m_model.getStack(stackLayout.node);
+            const auto *stack = model.getStack(stackLayout.node);
             if (stack == nullptr) {
                 continue;
             }
@@ -813,74 +891,118 @@ namespace Bess::UI {
             const auto index = TabStripLayout::hitTest(regions, position);
             const auto items = stack->tabs.items();
             if (index && *index < items.size() && items[*index].enabled) {
-                return {.stack = stackLayout.node, .item = items[*index].id};
+                return {.host = host,
+                        .stack = stackLayout.node,
+                        .item = items[*index].id};
             }
         }
         return {};
     }
 
-    DockSpace::FloatingItem *DockSpace::findFloating(DockItemId item) noexcept {
+    DockSpace::FloatingHost *DockSpace::findFloating(DockItemId item) noexcept {
         const auto it =
-            std::find_if(m_floatingItems.begin(),
-                         m_floatingItems.end(),
-                         [item](const FloatingItem &entry) {
-                             const auto *value = entry.detached.get();
-                             return value != nullptr && value->id == item;
+            std::find_if(m_floatingHosts.begin(),
+                         m_floatingHosts.end(),
+                         [item](const auto &host) {
+                             return host->model.getItem(item) != nullptr;
                          });
-        return it != m_floatingItems.end() ? &*it : nullptr;
+        return it != m_floatingHosts.end() ? it->get() : nullptr;
     }
 
-    const DockSpace::FloatingItem *
+    const DockSpace::FloatingHost *
     DockSpace::findFloating(DockItemId item) const noexcept {
         const auto it =
-            std::find_if(m_floatingItems.begin(),
-                         m_floatingItems.end(),
-                         [item](const FloatingItem &entry) {
-                             const auto *value = entry.detached.get();
-                             return value != nullptr && value->id == item;
+            std::find_if(m_floatingHosts.begin(),
+                         m_floatingHosts.end(),
+                         [item](const auto &host) {
+                             return host->model.getItem(item) != nullptr;
                          });
-        return it != m_floatingItems.end() ? &*it : nullptr;
+        return it != m_floatingHosts.end() ? it->get() : nullptr;
+    }
+
+    DockSpace::FloatingHost *
+    DockSpace::findFloatingHost(DockHostId host) noexcept {
+        const auto it = std::find_if(
+            m_floatingHosts.begin(),
+            m_floatingHosts.end(),
+            [host](const auto &entry) { return entry->id == host; });
+        return it != m_floatingHosts.end() ? it->get() : nullptr;
+    }
+
+    const DockSpace::FloatingHost *
+    DockSpace::findFloatingHost(DockHostId host) const noexcept {
+        const auto it = std::find_if(
+            m_floatingHosts.begin(),
+            m_floatingHosts.end(),
+            [host](const auto &entry) { return entry->id == host; });
+        return it != m_floatingHosts.end() ? it->get() : nullptr;
+    }
+
+    DockSpaceModel *DockSpace::modelForHost(DockHostId host) noexcept {
+        if (!host) {
+            return &m_model;
+        }
+        auto *floating = findFloatingHost(host);
+        return floating != nullptr ? &floating->model : nullptr;
+    }
+
+    const DockSpaceModel *
+    DockSpace::modelForHost(DockHostId host) const noexcept {
+        if (!host) {
+            return &m_model;
+        }
+        const auto *floating = findFloatingHost(host);
+        return floating != nullptr ? &floating->model : nullptr;
+    }
+
+    DockHostId
+    DockSpace::floatingHeaderAt(glm::vec2 position,
+                                const WidgetTree &state) const noexcept {
+        for (auto it = m_floatingHosts.rbegin(); it != m_floatingHosts.rend();
+             ++it) {
+            if (floatingHeaderBounds(**it, state).contains(position)) {
+                return (*it)->id;
+            }
+        }
+        return {};
     }
 
     DockItemId
-    DockSpace::floatingHeaderAt(glm::vec2 position,
-                                const WidgetTree &state) const noexcept {
-        for (auto it = m_floatingItems.rbegin(); it != m_floatingItems.rend();
-             ++it) {
-            const auto *item = it->detached.get();
-            if (item != nullptr &&
-                floatingHeaderBounds(*it, state).contains(position)) {
-                return item->id;
-            }
-        }
-        return {};
+    DockSpace::floatingTitleItem(const FloatingHost &host) const noexcept {
+        const auto *stack = host.model.getStack(host.model.firstStack());
+        return stack != nullptr ? stack->tabs.active() : DockItemId{};
     }
 
     WidgetBounds
-    DockSpace::floatingHeaderBounds(const FloatingItem &item,
+    DockSpace::floatingHeaderBounds(const FloatingHost &host,
                                     const WidgetTree &state) const noexcept {
         const float height =
-            std::min(std::max(0.f, tabStyle(state).height), item.bounds.size.y);
+            std::min(std::max(0.f, dockStyle(state).floatingTitleBarHeight),
+                     host.bounds.size.y);
         return {
-            .center = {item.bounds.center.x,
-                       item.bounds.topLeft().y + height * 0.5f},
-            .size = {item.bounds.size.x, height},
+            .center = {host.bounds.center.x,
+                       host.bounds.topLeft().y + height * 0.5f},
+            .size = {host.bounds.size.x, height},
         };
     }
 
     WidgetBounds
-    DockSpace::floatingContentBounds(const FloatingItem &item,
-                                     const WidgetTree &state) const noexcept {
-        const float border =
-            std::max(0.f, dockStyle(state).floatingWindow.borderThickness.x);
-        const auto header = floatingHeaderBounds(item, state);
+    DockSpace::floatingClientBounds(const FloatingHost &host,
+                                    const WidgetTree &state) const noexcept {
+        const auto &style = dockStyle(state);
+        const float border = std::max({0.f,
+                                       style.floatingWindow.borderThickness.x,
+                                       style.floatingWindow.borderThickness.y,
+                                       style.floatingWindow.borderThickness.z,
+                                       style.floatingWindow.borderThickness.w});
+        const auto header = floatingHeaderBounds(host, state);
         const float height =
-            std::max(0.f, item.bounds.size.y - header.size.y - border * 2.f);
+            std::max(0.f, host.bounds.size.y - header.size.y - border * 2.f);
         return {
-            .center = {item.bounds.center.x,
-                       item.bounds.topLeft().y + header.size.y + border +
+            .center = {host.bounds.center.x,
+                       host.bounds.topLeft().y + header.size.y + border +
                            height * 0.5f},
-            .size = {std::max(0.f, item.bounds.size.x - border * 2.f), height},
+            .size = {std::max(0.f, host.bounds.size.x - border * 2.f), height},
         };
     }
 
@@ -892,13 +1014,7 @@ namespace Bess::UI {
             return {.center = dockBounds.center, .size = {0.f, 0.f}};
         }
         const auto &style = dockStyle(state);
-        const float margin = std::max(0.f, style.floatingMargin);
-        const glm::vec2 effectiveMargin =
-            glm::min(glm::vec2{margin},
-                     glm::max((dockBounds.size - glm::vec2{1.f}) * 0.5f,
-                              glm::vec2{0.f}));
-        const glm::vec2 available =
-            glm::max(dockBounds.size - effectiveMargin * 2.f, glm::vec2{1.f});
+        const glm::vec2 available = glm::max(dockBounds.size, glm::vec2{1.f});
         const glm::vec2 minimum = glm::min(
             glm::max(style.floatingMinimumSize, glm::vec2{1.f}), available);
         const glm::vec2 maximum = glm::max(
@@ -908,156 +1024,460 @@ namespace Bess::UI {
         requested.size = glm::clamp(
             glm::max(requested.size, glm::vec2{1.f}), minimum, maximum);
 
-        const auto dockMin = dockBounds.topLeft() + effectiveMargin;
-        const auto dockMax = dockBounds.bottomRight() - effectiveMargin;
+        // Windows may leave the DockSpace and are clipped by its child clip.
+        // Retaining a small title-bar grip prevents an unrecoverable window
+        // without destroying the out-of-bounds movement illusion.
+        const float margin = std::max(0.f, style.floatingMargin);
+        const glm::vec2 effectiveMargin =
+            glm::min(glm::vec2{margin},
+                     glm::max((dockBounds.size - glm::vec2{1.f}) * 0.5f,
+                              glm::vec2{0.f}));
+        const auto min = dockBounds.topLeft() + effectiveMargin;
+        const auto max = dockBounds.bottomRight() - effectiveMargin;
         const auto half = requested.size * 0.5f;
-        requested.center =
-            glm::clamp(requested.center, dockMin + half, dockMax - half);
+        const float visibleWidth =
+            std::min({std::max(1.f, style.floatingVisibleTitleWidth),
+                      requested.size.x,
+                      std::max(1.f, max.x - min.x)});
+        const float titleHeight = std::min(
+            std::max(1.f, style.floatingTitleBarHeight), requested.size.y);
+        const float visibleHeight =
+            std::min({std::max(1.f, style.floatingVisibleTitleHeight),
+                      titleHeight,
+                      std::max(1.f, max.y - min.y)});
+        requested.center.x = std::clamp(requested.center.x,
+                                        min.x - half.x + visibleWidth,
+                                        max.x + half.x - visibleWidth);
+        requested.center.y =
+            std::clamp(requested.center.y,
+                       min.y + half.y - titleHeight + visibleHeight,
+                       max.y + half.y - visibleHeight);
         return requested;
     }
 
     bool DockSpace::beginTabDrag(WidgetEventContext &context,
-                                 const DockLayoutResult &layout) {
-        if (!m_tabDrag.has_value() || m_tabDrag->floating) {
+                                 WidgetBounds dockBounds) {
+        if (!m_tabDrag || m_tabDrag->window) {
             return false;
         }
-        const DockNodeId stack = m_model.stackForItem(m_tabDrag->item);
-        const auto *source = layout.findStack(stack);
+        DockSpaceModel *sourceModel = modelForHost(m_tabDrag->host);
+        if (sourceModel == nullptr) {
+            return false;
+        }
+        if (m_tabDrag->host && sourceModel->itemCount() == 1) {
+            auto *sourceHost = findFloatingHost(m_tabDrag->host);
+            if (sourceHost == nullptr) {
+                return false;
+            }
+            m_tabDrag->grabOffset =
+                m_tabDrag->pressPosition - sourceHost->bounds.center;
+            m_tabDrag->window = true;
+            m_tabDrag->started = true;
+            updateFloatingDrag(context);
+            return true;
+        }
+
+        const DockNodeId sourceStack =
+            sourceModel->stackForItem(m_tabDrag->item);
+        const FloatingHost *sourceHost = findFloatingHost(m_tabDrag->host);
+        const auto sourceLayout =
+            sourceHost != nullptr
+                ? calculateFloatingLayout(*sourceHost, context.state)
+                : calculateLayout(dockBounds, context.state);
+        const auto *source = sourceLayout.findStack(sourceStack);
         if (source == nullptr) {
             return false;
         }
 
-        const auto &style = dockStyle(context.state);
         WidgetBounds floatingBounds = source->bounds;
+        const auto &style = dockStyle(context.state);
         floatingBounds.size = glm::clamp(
             floatingBounds.size,
-            glm::min(style.floatingMinimumSize, context.bounds.size),
-            glm::max(glm::min(style.floatingMinimumSize, context.bounds.size),
-                     glm::min(style.floatingMaximumSize, context.bounds.size)));
-        // Preserve the tab's top-left anchoring when the source leaf is larger
-        // than a practical floating panel, avoiding a jump at drag start.
+            glm::min(style.floatingMinimumSize, dockBounds.size),
+            glm::max(glm::min(style.floatingMinimumSize, dockBounds.size),
+                     glm::min(style.floatingMaximumSize, dockBounds.size)));
         floatingBounds.center =
             source->bounds.topLeft() + floatingBounds.size * 0.5f;
-        floatingBounds = normalizedFloatingBounds(
-            floatingBounds, context.bounds, context.state);
-        if (!floatItem(m_tabDrag->item, floatingBounds)) {
-            return false;
-        }
+        floatingBounds =
+            normalizedFloatingBounds(floatingBounds, dockBounds, context.state);
 
-        const auto *floating = findFloating(m_tabDrag->item);
-        if (floating == nullptr) {
+        auto detached = sourceModel->detachItem(m_tabDrag->item);
+        if (!detached) {
             return false;
         }
-        m_tabDrag->grabOffset =
-            m_tabDrag->pressPosition - floating->bounds.center;
-        m_tabDrag->floating = true;
+        auto host = std::make_unique<FloatingHost>();
+        host->bounds = floatingBounds;
+        if (!host->model.attachItem(std::move(detached))) {
+            static_cast<void>(sourceModel->attachItem(std::move(detached),
+                                                      sourceModel->firstStack(),
+                                                      DockZone::main));
+            return false;
+        }
+        const DockHostId previousHost = m_tabDrag->host;
+        m_tabDrag->host = host->id;
+        m_tabDrag->grabOffset = m_tabDrag->pressPosition - host->bounds.center;
+        m_tabDrag->window = true;
         m_tabDrag->started = true;
+        m_floatingHosts.push_back(std::move(host));
+        removeFloatingHostIfEmpty(previousHost);
         m_tabPressable.reset();
         updateFloatingDrag(context);
         return true;
     }
 
     void DockSpace::updateFloatingDrag(WidgetEventContext &context) {
-        if (!m_tabDrag.has_value() || !m_tabDrag->floating) {
+        if (!m_tabDrag || !m_tabDrag->window) {
             return;
         }
-        auto *floating = findFloating(m_tabDrag->item);
-        if (floating == nullptr) {
+        auto *host = findFloatingHost(m_tabDrag->host);
+        if (host == nullptr) {
             clearTabInteraction();
             return;
         }
-        floating->bounds.center =
-            context.pointerPosition - m_tabDrag->grabOffset;
-        floating->bounds = normalizedFloatingBounds(
-            floating->bounds, context.bounds, context.state);
-        refreshDropGuide(
+        host->bounds.center = context.pointerPosition - m_tabDrag->grabOffset;
+        host->bounds = normalizedFloatingBounds(
+            host->bounds, context.bounds, context.state);
+        refreshDropGuides(
             context.bounds, context.state, context.pointerPosition);
     }
 
     bool DockSpace::finishFloatingDrag() {
-        if (!m_tabDrag.has_value() || !m_tabDrag->floating ||
-            !m_dropGuide.has_value() || !m_hoveredDropZone.has_value()) {
+        if (!m_tabDrag || !m_tabDrag->window || !m_hoveredDrop) {
             return false;
         }
-        return dockFloatingItem(
-            m_tabDrag->item, m_dropGuide->target, *m_hoveredDropZone);
+        const auto *source = findFloatingHost(m_tabDrag->host);
+        if (source == nullptr || source->id == m_hoveredDrop->host) {
+            return false;
+        }
+        return source->model.itemCount() == 1
+                   ? transferItem(m_tabDrag->item, source->id, *m_hoveredDrop)
+                   : transferHost(source->id, *m_hoveredDrop);
     }
 
-    void DockSpace::refreshDropGuide(WidgetBounds bounds,
-                                     const WidgetTree &state,
-                                     glm::vec2 position) {
-        m_dropGuide.reset();
-        m_hoveredDropZone.reset();
-        if (!bounds.contains(position)) {
+    void DockSpace::refreshDropGuides(WidgetBounds bounds,
+                                      const WidgetTree &state,
+                                      glm::vec2 position) {
+        m_dropGuides.clear();
+        m_hoveredDrop.reset();
+        if (!bounds.contains(position) || !m_tabDrag) {
             return;
         }
 
-        WidgetBounds targetBounds = bounds;
-        DockNodeId target;
-        if (!m_model.empty()) {
-            const auto layout = calculateLayout(bounds, state);
-            target = layout.stackAt(position);
-            const auto *stack = layout.findStack(target);
-            if (stack == nullptr) {
-                return;
-            }
-            targetBounds = stack->bounds;
+        const DockHostId source = m_tabDrag->host;
+        const auto guideMetrics = dropGuideMetrics(state);
+        if (m_model.empty()) {
+            auto emptyGuide =
+                DockDropGuideLayoutSolver::calculate(bounds, {}, guideMetrics);
+            std::erase_if(emptyGuide.regions, [](const DockDropRegion &region) {
+                return region.zone != DockZone::main;
+            });
+            m_dropGuides.push_back({.layout = std::move(emptyGuide)});
+        } else {
+            m_dropGuides.push_back({
+                .root = true,
+                .layout = DockDropGuideLayoutSolver::calculateRootEdges(
+                    bounds, m_model.root(), guideMetrics),
+            });
         }
 
-        m_dropGuide = DockDropGuideLayoutSolver::calculate(
-            targetBounds, target, dropGuideMetrics(state));
-        if (const auto *region = m_dropGuide->regionAt(position)) {
-            m_hoveredDropZone = region->zone;
+        for (const auto &host : m_floatingHosts) {
+            if (host->id == source) {
+                continue;
+            }
+            const auto client = floatingClientBounds(*host, state);
+            m_dropGuides.push_back({
+                .host = host->id,
+                .root = true,
+                .layout = DockDropGuideLayoutSolver::calculateRootEdges(
+                    client, host->model.root(), guideMetrics),
+            });
+        }
+
+        // Root edges have priority: their preview always means "beside the
+        // whole host", even when a small leaf's local guide overlaps it.
+        for (auto it = m_dropGuides.rbegin(); it != m_dropGuides.rend(); ++it) {
+            if (!it->root) {
+                continue;
+            }
+            if (const auto *region = it->layout.regionAt(position)) {
+                m_hoveredDrop = DropDestination{.host = it->host,
+                                                .node = it->layout.target,
+                                                .zone = region->zone,
+                                                .root = true};
+                break;
+            }
+        }
+
+        DockHostId candidateHost;
+        WidgetBounds candidateBounds = bounds;
+        const DockSpaceModel *candidateModel = &m_model;
+        DockLayoutResult candidateLayout = calculateLayout(bounds, state);
+        for (auto it = m_floatingHosts.rbegin(); it != m_floatingHosts.rend();
+             ++it) {
+            if ((*it)->id == source || !(*it)->bounds.contains(position)) {
+                continue;
+            }
+            candidateHost = (*it)->id;
+            candidateBounds = floatingClientBounds(**it, state);
+            candidateModel = &(*it)->model;
+            candidateLayout = calculateFloatingLayout(**it, state);
+            break;
+        }
+
+        DockNodeId target = candidateLayout.stackAt(position);
+        const DockStackLayout *stack = candidateLayout.findStack(target);
+        if (stack == nullptr && candidateModel != nullptr &&
+            !candidateModel->empty() && candidateBounds.contains(position)) {
+            target = candidateModel->firstStack();
+            stack = candidateLayout.findStack(target);
+        }
+        if (stack != nullptr) {
+            auto nodeGuide = DockDropGuideLayoutSolver::calculate(
+                stack->bounds, target, guideMetrics);
+            const auto *sourceHost = findFloatingHost(source);
+            if (sourceHost != nullptr && sourceHost->model.stackCount() > 1) {
+                std::erase_if(nodeGuide.regions,
+                              [](const DockDropRegion &region) {
+                                  return region.zone == DockZone::main;
+                              });
+            }
+            m_dropGuides.push_back({
+                .host = candidateHost,
+                .layout = std::move(nodeGuide),
+            });
+            if (!m_hoveredDrop) {
+                if (const auto *region =
+                        m_dropGuides.back().layout.regionAt(position)) {
+                    m_hoveredDrop = DropDestination{.host = candidateHost,
+                                                    .node = target,
+                                                    .zone = region->zone};
+                }
+            }
+        } else if (candidateModel != nullptr && candidateModel->empty()) {
+            const auto &guide = m_dropGuides.front();
+            if (const auto *region = guide.layout.regionAt(position)) {
+                m_hoveredDrop = DropDestination{.zone = region->zone};
+            }
+        }
+    }
+
+    bool DockSpace::transferItem(DockItemId item,
+                                 DockHostId source,
+                                 const DropDestination &destination) {
+        if (source == destination.host) {
+            return false;
+        }
+        auto *sourceModel = modelForHost(source);
+        auto *destinationModel = modelForHost(destination.host);
+        if (sourceModel == nullptr || destinationModel == nullptr ||
+            sourceModel->getItem(item) == nullptr) {
+            return false;
+        }
+
+        auto detached = sourceModel->detachItem(item);
+        if (!detached) {
+            return false;
+        }
+        if (!attachDetached(
+                *destinationModel, std::move(detached), destination)) {
+            static_cast<void>(sourceModel->attachItem(std::move(detached),
+                                                      sourceModel->firstStack(),
+                                                      DockZone::main));
+            return false;
+        }
+        removeFloatingHostIfEmpty(source);
+        m_focusedHost = destination.host;
+        m_focusedStack = destinationModel->stackForItem(item);
+        if (m_mountedState != nullptr) {
+            m_mountedState->invalidate(m_mountedId,
+                                       WidgetInvalidation::layout |
+                                           WidgetInvalidation::paint);
+        }
+        return true;
+    }
+
+    bool DockSpace::transferHost(DockHostId source,
+                                 const DropDestination &destination) {
+        if (!source || source == destination.host) {
+            return false;
+        }
+        auto *sourceHost = findFloatingHost(source);
+        auto *destinationModel = modelForHost(destination.host);
+        if (sourceHost == nullptr || destinationModel == nullptr) {
+            return false;
+        }
+        const auto items = sourceHost->model.itemIds();
+        if (items.empty()) {
+            return false;
+        }
+
+        if (sourceHost->model.stackCount() > 1) {
+            bool attached = false;
+            if (destinationModel->empty()) {
+                attached =
+                    destinationModel->attachTree(std::move(sourceHost->model));
+            } else if (destination.root) {
+                attached = destinationModel->attachTreeAtRoot(
+                    std::move(sourceHost->model), destination.zone);
+            } else {
+                attached =
+                    destinationModel->attachTree(std::move(sourceHost->model),
+                                                 destination.node,
+                                                 destination.zone);
+            }
+            if (!attached) {
+                return false;
+            }
+            removeFloatingHostIfEmpty(source);
+            m_focusedHost = destination.host;
+            m_focusedStack = destinationModel->stackForItem(items.front());
+            if (m_mountedState != nullptr) {
+                m_mountedState->invalidate(m_mountedId,
+                                           WidgetInvalidation::layout |
+                                               WidgetInvalidation::paint);
+            }
+            return true;
+        }
+
+        DockNodeId mergedStack;
+        std::vector<DockItemId> transferred;
+        for (const auto item : items) {
+            auto detached = sourceHost->model.detachItem(item);
+            if (!detached) {
+                break;
+            }
+            const bool attached = transferred.empty()
+                                      ? attachDetached(*destinationModel,
+                                                       std::move(detached),
+                                                       destination)
+                                      : attachDetached(*destinationModel,
+                                                       std::move(detached),
+                                                       destination,
+                                                       mergedStack);
+            if (!attached) {
+                static_cast<void>(
+                    sourceHost->model.attachItem(std::move(detached),
+                                                 sourceHost->model.firstStack(),
+                                                 DockZone::main));
+                break;
+            }
+            if (transferred.empty()) {
+                mergedStack = destinationModel->stackForItem(item);
+            }
+            transferred.push_back(item);
+        }
+
+        if (transferred.size() != items.size()) {
+            // Defensive rollback. The original split shape cannot be
+            // reconstructed without a serialized tree token, but ownership
+            // and every DockItem identity remain intact.
+            for (const auto item : transferred) {
+                auto detached = destinationModel->detachItem(item);
+                if (detached) {
+                    static_cast<void>(sourceHost->model.attachItem(
+                        std::move(detached),
+                        sourceHost->model.firstStack(),
+                        DockZone::main));
+                }
+            }
+            return false;
+        }
+
+        removeFloatingHostIfEmpty(source);
+        m_focusedHost = destination.host;
+        m_focusedStack = mergedStack;
+        if (m_mountedState != nullptr) {
+            m_mountedState->invalidate(m_mountedId,
+                                       WidgetInvalidation::layout |
+                                           WidgetInvalidation::paint);
+        }
+        return true;
+    }
+
+    bool DockSpace::attachDetached(DockSpaceModel &destination,
+                                   DetachedDockItem &&item,
+                                   const DropDestination &drop,
+                                   DockNodeId overrideTarget) {
+        if (destination.empty()) {
+            return destination.attachItem(std::move(item));
+        }
+        if (overrideTarget) {
+            return destination.attachItem(
+                std::move(item), overrideTarget, DockZone::main);
+        }
+        if (drop.root) {
+            return destination.attachItemAtRoot(std::move(item), drop.zone);
+        }
+        return destination.attachItem(
+            std::move(item), drop.node, drop.zone, drop.tabIndex);
+    }
+
+    void DockSpace::removeFloatingHostIfEmpty(DockHostId host) {
+        if (!host) {
+            return;
+        }
+        const auto it = std::find_if(
+            m_floatingHosts.begin(),
+            m_floatingHosts.end(),
+            [host](const auto &entry) { return entry->id == host; });
+        if (it != m_floatingHosts.end() && (*it)->model.empty()) {
+            m_floatingHosts.erase(it);
         }
     }
 
     void DockSpace::clearTabInteraction() noexcept {
         m_tabDrag.reset();
-        m_dropGuide.reset();
-        m_hoveredDropZone.reset();
+        m_dropGuides.clear();
+        m_hoveredDrop.reset();
         m_pressedItem = {};
         m_tabPressable.reset();
     }
 
     void DockSpace::bringFloatingToFront(WidgetEventContext &context,
-                                         DockItemId item) {
-        const auto it =
-            std::find_if(m_floatingItems.begin(),
-                         m_floatingItems.end(),
-                         [item](const FloatingItem &entry) {
-                             const auto *value = entry.detached.get();
-                             return value != nullptr && value->id == item;
-                         });
-        if (it == m_floatingItems.end()) {
+                                         DockHostId host) {
+        const auto it = std::find_if(
+            m_floatingHosts.begin(),
+            m_floatingHosts.end(),
+            [host](const auto &entry) { return entry->id == host; });
+        if (it == m_floatingHosts.end()) {
             return;
         }
-        const WidgetId content = it->detached.get()->content;
-        if (std::next(it) != m_floatingItems.end()) {
-            FloatingItem moved = std::move(*it);
-            m_floatingItems.erase(it);
-            m_floatingItems.push_back(std::move(moved));
+        if (std::next(it) != m_floatingHosts.end()) {
+            auto moved = std::move(*it);
+            m_floatingHosts.erase(it);
+            m_floatingHosts.push_back(std::move(moved));
         }
-        if (content) {
-            static_cast<void>(context.state.reparentWidget(
-                content, context.id, WidgetTree::append));
+        const auto *front = findFloatingHost(host);
+        if (front == nullptr) {
+            return;
+        }
+        for (const auto item : front->model.itemIds()) {
+            const auto *entry = front->model.getItem(item);
+            if (entry != nullptr && entry->content) {
+                static_cast<void>(context.state.reparentWidget(
+                    entry->content, context.id, WidgetTree::append));
+            }
         }
     }
 
     UIEventReply
     DockSpace::beginFloatingHeaderPress(WidgetEventContext &context,
-                                        DockItemId item) {
-        bringFloatingToFront(context, item);
-        const auto *entry = findFloating(item);
+                                        DockHostId host) {
+        bringFloatingToFront(context, host);
+        const auto *entry = findFloatingHost(host);
         if (entry == nullptr) {
             return {};
         }
         m_tabPressable.reset();
-        m_pressedItem = item;
+        m_pressedItem = floatingTitleItem(*entry);
+        m_focusedHost = host;
+        m_focusedStack = entry->model.stackForItem(m_pressedItem);
         m_tabDrag = TabDrag{
-            .item = item,
+            .item = m_pressedItem,
+            .host = host,
             .pressPosition = context.pointerPosition,
             .grabOffset = context.pointerPosition - entry->bounds.center,
-            .floating = true,
+            .window = true,
         };
         return {.handled = true,
                 .stopPropagation = true,

@@ -45,6 +45,14 @@ namespace Bess::UI {
                   DockNodeId target,
                   const DockDropGuideMetrics &metrics = {});
 
+        // Four outer-edge targets for docking beside the complete host tree.
+        // Intentionally omits `main`: the center belongs to the terminal node
+        // guide and must not replace the whole viewport.
+        [[nodiscard]] static DockDropGuideLayout
+        calculateRootEdges(WidgetBounds hostBounds,
+                           DockNodeId root,
+                           const DockDropGuideMetrics &metrics = {});
+
         [[nodiscard]] static WidgetBounds regionBounds(
             WidgetBounds bounds, DockZone zone, float inset = 0.f) noexcept;
     };

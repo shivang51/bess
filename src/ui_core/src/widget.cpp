@@ -51,6 +51,11 @@ namespace Bess::UI {
     void Widget::paintOverlay(WidgetPaintContext &) const {
     }
 
+    bool Widget::hitTest(WidgetBounds bounds,
+                         glm::vec2 position) const noexcept {
+        return bounds.contains(position);
+    }
+
     UIEventReply Widget::onEvent(WidgetEventContext &, const UIEvent &) {
         return {};
     }

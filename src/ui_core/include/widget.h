@@ -110,6 +110,11 @@ namespace Bess::UI {
         // active. This is intended for adorners such as selection outlines,
         // drag previews, focus rings, and docking guides.
         virtual void paintOverlay(WidgetPaintContext &context) const;
+        // Controls with retained overflow (menus, popovers, color pickers)
+        // can extend their interactive shape beyond their layout box. Parent
+        // clipping still governs whether descendants are considered.
+        [[nodiscard]] virtual bool hitTest(WidgetBounds bounds,
+                                           glm::vec2 position) const noexcept;
         virtual UIEventReply onEvent(WidgetEventContext &context,
                                      const UIEvent &event);
     };

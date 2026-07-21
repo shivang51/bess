@@ -51,12 +51,18 @@ namespace Bess::UI {
     struct TabIdTag;
     struct DockItemIdTag;
     struct DockNodeIdTag;
+    struct DockHostIdTag;
+    struct MenuIdTag;
+    struct MenuItemIdTag;
 
     using WidgetId = StableId<WidgetIdTag>;
     using ViewId = StableId<ViewIdTag>;
     using TabId = StableId<TabIdTag>;
     using DockItemId = StableId<DockItemIdTag>;
     using DockNodeId = StableId<DockNodeIdTag>;
+    using DockHostId = StableId<DockHostIdTag>;
+    using MenuId = StableId<MenuIdTag>;
+    using MenuItemId = StableId<MenuItemIdTag>;
 
     enum class WidgetVisibility : uint8_t {
         visible,

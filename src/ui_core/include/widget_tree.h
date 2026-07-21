@@ -151,7 +151,7 @@ namespace Bess::UI {
         void paint(UIPainter &painter);
         [[nodiscard]] UIDispatchResult dispatchEvent(const UIEvent &event);
 
-        [[nodiscard]] WidgetId hitTest(glm::vec2 uiPosition) const noexcept;
+        [[nodiscard]] WidgetId hitTest(glm::vec2 uiPosition) const;
         [[nodiscard]] WidgetId getFocusedWidget() const noexcept;
         bool setFocus(WidgetId id);
         void clearFocus();

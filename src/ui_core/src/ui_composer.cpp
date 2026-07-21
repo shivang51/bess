@@ -127,4 +127,9 @@ namespace Bess::UI {
         return emplace<DockSpace>(std::move(options));
     }
 
+    WidgetRef<MenuBar> UIComposer::menuBar(std::shared_ptr<MenuModel> model,
+                                           MenuBarOptions options) {
+        return emplace<MenuBar>(std::move(model), std::move(options));
+    }
+
 } // namespace Bess::UI

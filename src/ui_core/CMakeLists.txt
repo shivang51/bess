@@ -6,12 +6,14 @@ set(Header_Files
 	include/controls/basic_widgets.h
 	include/controls/dock_drop.h
 	include/controls/dock_space.h
+	include/controls/menu_bar.h
 	include/controls/tab_bar.h
 	include/demo_view.h
 	include/dock.h
 	include/layout.h
 	include/models/signal.h
 	include/models/dock_model.h
+	include/models/menu_model.h
 	include/models/tab_model.h
 	include/ui_event.h
 	include/ui_composer.h
@@ -36,6 +38,8 @@ set(Source_Files
 	src/dock_drop.cpp
 	src/dock_model.cpp
 	src/dock_space.cpp
+	src/menu_model.cpp
+	src/menu_bar.cpp
 	src/layout.cpp
 	src/pressable.cpp
 	src/tab_bar.cpp
