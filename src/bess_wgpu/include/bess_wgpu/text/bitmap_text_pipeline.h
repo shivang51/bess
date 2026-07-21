@@ -7,6 +7,7 @@
 #include "bess_wgpu/wgpu_shader.h"
 #include "common/types.h"
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -93,10 +94,13 @@ namespace Bess::Wgpu::Text {
 
     struct BESS_API BitmapTextInstance {
         float position[3] = {0.f, 0.f, 0.f};
-        float padding0 = 0.f;
+        // Screen-space glyphs on the same line share this snap anchor. Keeping
+        // it separate from the glyph quad prevents bearing-dependent baseline
+        // shifts while retaining the storage-buffer alignment padding.
+        float snapAnchorX = 0.f;
         float size[2] = {0.f, 0.f};
         float rotation = 0.f;
-        float padding1 = 0.f;
+        float snapAnchorY = 0.f;
         float color[4] = {1.f, 1.f, 1.f, 1.f};
         float uvRect[4] = {0.f, 0.f, 1.f, 1.f};
         uint32_t id[2] = {Bess::PickingId::invalidRuntimeId, 0};
@@ -105,6 +109,8 @@ namespace Bess::Wgpu::Text {
 
     static_assert(sizeof(BitmapTextInstance) == 80,
                   "BitmapTextInstance must match WGSL layout");
+    static_assert(offsetof(BitmapTextInstance, snapAnchorX) == 12);
+    static_assert(offsetof(BitmapTextInstance, snapAnchorY) == 28);
 
     struct BESS_API BitmapTextDrawRun {
         uint32_t firstGlyph = 0;

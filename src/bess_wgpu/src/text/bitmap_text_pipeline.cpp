@@ -20,6 +20,15 @@ namespace Bess::Wgpu::Text {
     namespace {
         constexpr uint32_t kReplacementCodepoint = 0xFFFD;
         constexpr uint32_t kAtlasPadding = 1;
+        // Keep the load target paired with FT_RENDER_MODE_NORMAL. LIGHT
+        // hinting can add nearly transparent leading rows to some glyphs
+        // (notably Roboto's lowercase 'r'), giving otherwise equal x-height
+        // glyphs different bitmap extents before they reach the GPU.
+        constexpr FT_Int32 kBitmapGlyphLoadFlags =
+            FT_LOAD_DEFAULT | FT_LOAD_TARGET_NORMAL;
+        constexpr FT_Render_Mode kBitmapGlyphRenderMode = FT_RENDER_MODE_NORMAL;
+        static_assert(FT_LOAD_TARGET_MODE(kBitmapGlyphLoadFlags) ==
+                      kBitmapGlyphRenderMode);
 
         uint64_t glyphKey(uint32_t codepoint, uint32_t pixelSize) {
             return (static_cast<uint64_t>(pixelSize) << 32u) |
@@ -97,10 +106,10 @@ struct Frame {
 
 struct TextGlyph {
     position: vec3f,
-    padding0: f32,
+    snap_anchor_x: f32,
     size: vec2f,
     rotation: f32,
-    padding1: f32,
+    snap_anchor_y: f32,
     color: vec4f,
     uv_rect: vec4f,
     id: vec2u,
@@ -148,19 +157,10 @@ fn text_camera_clip_position(world: vec2f, z_index: f32) -> vec4f {
     return clip;
 }
 
-fn snap_clip_position_to_pixel(clip: vec4f) -> vec4f {
+fn snap_screen_world_to_pixel(world: vec2f) -> vec2f {
     let safe_viewport = max(frame.viewport, vec2f(1.0, 1.0));
-    let ndc = clip.xy / max(clip.w, 0.000001);
-    let pixel = vec2f(
-        (ndc.x * 0.5 + 0.5) * safe_viewport.x,
-        (-ndc.y * 0.5 + 0.5) * safe_viewport.y);
-    let snapped = round(pixel);
-    let snapped_ndc = vec2f(
-        (snapped.x / safe_viewport.x) * 2.0 - 1.0,
-        -((snapped.y / safe_viewport.y) * 2.0 - 1.0));
-
-    let snapped_clip_xy = snapped_ndc * clip.w;
-    return vec4f(snapped_clip_xy.x, snapped_clip_xy.y, clip.z, clip.w);
+    let pixel = world + safe_viewport * 0.5;
+    return round(pixel) - safe_viewport * 0.5;
 }
 
 @vertex
@@ -178,15 +178,20 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32,
     let rotated = vec2f(
         centered.x * c - centered.y * s,
         centered.x * s + centered.y * c);
-    let world = glyph.position.xy + rotated;
-
     var out: VertexOut;
     if ((glyph.flags.x & TEXT_FLAG_APPLY_CAMERA_TRANSFORM) != 0u) {
+        let world = glyph.position.xy + rotated;
         out.position = text_camera_clip_position(world, glyph.position.z);
     } else {
+        // Every glyph on a logical line receives the same translation from
+        // its shared baseline anchor. Snapping per-glyph top-left positions
+        // lets different bearings round in opposite directions, causing
+        // lowercase and capital glyphs to land on different baselines.
+        let snap_anchor = vec2f(glyph.snap_anchor_x, glyph.snap_anchor_y);
+        let snap_delta = snap_screen_world_to_pixel(snap_anchor) - snap_anchor;
+        let world = glyph.position.xy + snap_delta + rotated;
         out.position = text_screen_clip_position(world, glyph.position.z);
     }
-    out.position = snap_clip_position_to_pixel(out.position);
     out.uv = glyph.uv_rect.xy + local * glyph.uv_rect.zw;
     out.color = glyph.color;
     out.id = glyph.id;
@@ -398,14 +403,13 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             return nullptr;
         }
 
-        constexpr FT_Int32 loadFlags = FT_LOAD_DEFAULT | FT_LOAD_TARGET_LIGHT;
-        if (FT_Load_Glyph(face, glyphIndex, loadFlags) != 0) {
+        if (FT_Load_Glyph(face, glyphIndex, kBitmapGlyphLoadFlags) != 0) {
             return nullptr;
         }
 
         const float advance =
             static_cast<float>(face->glyph->advance.x) / 64.f;
-        if (FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL) != 0) {
+        if (FT_Render_Glyph(face->glyph, kBitmapGlyphRenderMode) != 0) {
             return nullptr;
         }
 
@@ -992,9 +996,11 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                     instance.position[0] = left + (size.x * 0.5f);
                     instance.position[1] = top + (size.y * 0.5f);
                     instance.position[2] = props.zIndex;
+                    instance.snapAnchorX = lineStartX;
                     instance.size[0] = size.x;
                     instance.size[1] = size.y;
                     instance.rotation = 0.f;
+                    instance.snapAnchorY = baseline.y;
                     instance.color[0] = props.color.r;
                     instance.color[1] = props.color.g;
                     instance.color[2] = props.color.b;
