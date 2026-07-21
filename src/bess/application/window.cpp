@@ -140,15 +140,7 @@ namespace Bess {
 
         glfwSetFramebufferSizeCallback(
             window, [](GLFWwindow *window, int w, int h) {
-                const auto this_ = (Window *)glfwGetWindowUserPointer(window);
-                this_->m_framebufferResized = true;
-
-                Events::WindowResizeEvent evt{(uint32_t)w, (uint32_t)h};
-
-                auto &ctx = GAppContext::getInstance();
-                auto eventDispatcher =
-                    ctx.getSubSystem<EventSystem::EventDispatcher>();
-                eventDispatcher->queue(evt);
+                framebufferResizeCallback(window, w, h);
             });
 
         glfwSetScrollCallback(
@@ -327,7 +319,18 @@ namespace Bess {
                                            int height) {
         const auto this_ =
             static_cast<Window *>(glfwGetWindowUserPointer(window));
+        this_->m_width = width;
+        this_->m_height = height;
         this_->m_framebufferResized = true;
+
+        Events::WindowResizeEvent evt{
+            (uint32_t)width,
+            (uint32_t)height,
+        };
+
+        auto &ctx = GAppContext::getInstance();
+        auto eventDispatcher = ctx.getSubSystem<EventSystem::EventDispatcher>();
+        eventDispatcher->queue(evt);
     }
 
     void Window::setMousePos(const glm::vec2 &pos) const {
