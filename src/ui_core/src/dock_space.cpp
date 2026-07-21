@@ -271,12 +271,33 @@ namespace Bess::UI {
 
             for (const auto &splitLayout : layout.splits) {
                 const SplitHit split{.host = host, .node = splitLayout.node};
+                const bool active =
+                    split == m_hoveredSplit || split == m_draggedSplit;
                 const auto color =
-                    split == m_hoveredSplit || split == m_draggedSplit
-                        ? dock.splitterHovered
-                        : dock.splitter;
+                    active ? dock.splitterHovered : dock.splitter;
+                auto visualBounds = splitLayout.dividerBounds;
+                const auto *splitNode = model.getSplit(splitLayout.node);
+                if (splitNode == nullptr) {
+                    continue;
+                }
+                const bool horizontal =
+                    splitNode->axis == DockSplitAxis::horizontal;
+                const float maximumThickness =
+                    horizontal ? visualBounds.size.x : visualBounds.size.y;
+                const float requestedThickness =
+                    active ? maximumThickness : dock.splitterIdleThickness;
+                const float visualThickness = std::clamp(
+                    std::isfinite(requestedThickness) ? requestedThickness
+                                                      : 0.f,
+                    0.f,
+                    maximumThickness);
+                if (horizontal) {
+                    visualBounds.size.x = visualThickness;
+                } else {
+                    visualBounds.size.y = visualThickness;
+                }
                 context.painter.drawBox({
-                    .bounds = splitLayout.dividerBounds,
+                    .bounds = visualBounds,
                     .color = color,
                     .zIndex = layer + 0.004f,
                     .pickingId = context.pickingId,

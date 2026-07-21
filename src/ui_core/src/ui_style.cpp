@@ -102,9 +102,9 @@ namespace Bess::UI {
         theme.menus.barItemActive.background = colors.surfaceContainerHighest;
         theme.menus.popup = {
             .background = colors.surfaceContainerLow.withAlpha(0.98f),
-            .border = colors.outline,
+            .border = transparent,
             .cornerRadius = glm::vec4{7.f},
-            .borderThickness = glm::vec4{1.f},
+            .borderThickness = glm::vec4{0.f},
             .shadow =
                 Core::Renderer::ShadowProps{
                     .enabled = true,
@@ -122,9 +122,11 @@ namespace Bess::UI {
         };
         theme.menus.itemPressed = theme.menus.itemHovered;
         theme.menus.itemPressed.background = colors.surfaceContainer;
-        theme.menus.barText = theme.label;
-        theme.menus.barText.fontSize = 12.f;
-        theme.menus.text = theme.label;
+        // Tabs, menu-bar entries, and popup menu items share one compact
+        // typography scale. Deriving the menu styles from the tab style keeps
+        // them synchronized when that scale changes.
+        theme.menus.barText = theme.tabs.text;
+        theme.menus.text = theme.tabs.text;
         theme.menus.iconColor = colors.onSurfaceVariant;
         theme.menus.shortcutColor = colors.onSurfaceVariant.withAlpha(0.78f);
         theme.menus.disabledText = colors.onSurface.withAlpha(0.38f);

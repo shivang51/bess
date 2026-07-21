@@ -99,7 +99,11 @@ namespace Bess::UI {
         UIBoxStyle dropPreview;
         Core::Renderer::Color splitter{};
         Core::Renderer::Color splitterHovered{};
+        // The full divider remains available for hit testing and becomes the
+        // active visual while hovered or dragged. At rest, only a centered
+        // line of splitterIdleThickness is painted.
         float splitterThickness = 4.f;
+        float splitterIdleThickness = 1.f;
         glm::vec2 floatingMinimumSize{260.f, 180.f};
         glm::vec2 floatingMaximumSize{640.f, 480.f};
         float floatingMargin = 8.f;

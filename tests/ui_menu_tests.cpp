@@ -529,7 +529,10 @@ namespace {
         EXPECT_GT(actionBounds.center.x, menuBounds.center.x);
         EXPECT_FLOAT_EQ(menuStyle.barHeight, 22.f);
         EXPECT_GE(menuStyle.barVerticalMargin, 2.f);
-        EXPECT_FLOAT_EQ(menuStyle.barText.fontSize, 12.f);
+        EXPECT_FLOAT_EQ(menuStyle.barText.fontSize,
+                        state.theme().tabs.text.fontSize);
+        EXPECT_FLOAT_EQ(menuStyle.text.fontSize,
+                        state.theme().tabs.text.fontSize);
 
         const WidgetBounds viewport{.center = {0.f, 0.f},
                                     .size = state.getViewportSize()};

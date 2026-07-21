@@ -26,6 +26,36 @@ namespace {
         }
     };
 
+    class DockRecordingPainter final : public UIPainter {
+      public:
+        glm::vec2 viewportSize() const noexcept override {
+            return {800.f, 600.f};
+        }
+
+        void drawBox(const BoxPaint &paint) override {
+            boxes.push_back(paint);
+        }
+
+        void drawText(std::string_view, const TextPaint &) override {
+        }
+
+        glm::vec2 measureText(std::string_view text,
+                              float fontSize,
+                              float letterSpacing) const override {
+            return {static_cast<float>(text.size()) *
+                        (fontSize * 0.6f + letterSpacing),
+                    fontSize};
+        }
+
+        void pushClip(WidgetBounds) override {
+        }
+
+        void popClip() override {
+        }
+
+        std::vector<BoxPaint> boxes;
+    };
+
     TEST(TabModelTests, MaintainsSelectionAndEmitsAtomicChanges) {
         TabModel model;
         std::vector<TabChange> changes;
@@ -220,7 +250,9 @@ namespace {
         expectColor(theme.menus.popup.background,
                     colors.surfaceContainerLow.withAlpha(0.98f),
                     "menu popup");
-        expectColor(theme.menus.popup.border, colors.outline, "menu border");
+        expectColor(
+            theme.menus.popup.border, transparent, "menu borderless popup");
+        EXPECT_EQ(theme.menus.popup.borderThickness, glm::vec4(0.f));
         expectColor(theme.menus.popup.shadow.color,
                     colors.shadow.withAlpha(0.45f),
                     "menu shadow");
@@ -233,6 +265,8 @@ namespace {
         expectColor(theme.menus.text.color, colors.onSurface, "menu text");
         expectColor(
             theme.menus.barText.color, colors.onSurface, "menu bar text");
+        EXPECT_FLOAT_EQ(theme.menus.text.fontSize, theme.tabs.text.fontSize);
+        EXPECT_FLOAT_EQ(theme.menus.barText.fontSize, theme.tabs.text.fontSize);
         expectColor(
             theme.menus.iconColor, colors.onSurfaceVariant, "menu icon");
         expectColor(theme.menus.shortcutColor,
@@ -267,6 +301,9 @@ namespace {
         expectColor(theme.dock.splitterHovered,
                     colors.primary,
                     "dock splitter hovered");
+        EXPECT_GT(theme.dock.splitterThickness,
+                  theme.dock.splitterIdleThickness);
+        EXPECT_GT(theme.dock.splitterIdleThickness, 0.f);
         expectColor(theme.dock.dropGuide.background,
                     colors.primaryContainer.withAlpha(0.92f),
                     "dock guide");
@@ -560,6 +597,69 @@ namespace {
         }));
         EXPECT_FALSE(state.getPointerCapture());
         EXPECT_TRUE(dock->model().validate());
+    }
+
+    TEST(DockSpaceWidgetTests,
+         SplitterKeepsHitTargetButOnlyExpandsVisualWhenHovered) {
+        WidgetTree state;
+        state.setViewportSize({800.f, 600.f});
+        const WidgetId dockId = state.emplaceWidget<DockSpace>();
+        auto *dock = state.getWidget<DockSpace>(dockId);
+        ASSERT_NE(dock, nullptr);
+        const auto left = dock->createPanel(
+            state, dockId, "Left", std::make_unique<DockContent>());
+        const auto right =
+            dock->createPanel(state,
+                              dockId,
+                              "Right",
+                              std::make_unique<DockContent>(),
+                              dock->model().stackForItem(left.item),
+                              DockZone::right);
+        ASSERT_TRUE(left && right);
+        state.performLayout();
+
+        const auto layout =
+            dock->model().layout(state.getBounds(dockId),
+                                 state.theme().tabs.height,
+                                 state.theme().dock.splitterThickness);
+        const auto *splitLayout = layout.findSplit(dock->model().root());
+        ASSERT_NE(splitLayout, nullptr);
+        EXPECT_FLOAT_EQ(splitLayout->dividerBounds.size.x,
+                        state.theme().dock.splitterThickness);
+
+        const auto findBoxWithColor =
+            [](const DockRecordingPainter &painter,
+               Core::Renderer::Color color) -> const BoxPaint * {
+            const auto found =
+                std::find_if(painter.boxes.begin(),
+                             painter.boxes.end(),
+                             [color](const BoxPaint &box) {
+                                 return box.color.toHex() == color.toHex();
+                             });
+            return found != painter.boxes.end() ? &*found : nullptr;
+        };
+
+        DockRecordingPainter painter;
+        state.paint(painter);
+        const auto *idle =
+            findBoxWithColor(painter, state.theme().dock.splitter);
+        ASSERT_NE(idle, nullptr);
+        EXPECT_FLOAT_EQ(idle->bounds.size.x,
+                        state.theme().dock.splitterIdleThickness);
+        EXPECT_EQ(idle->bounds.center, splitLayout->dividerBounds.center);
+
+        const glm::vec2 pointer =
+            splitLayout->dividerBounds.center + state.getViewportSize() * 0.5f;
+        static_cast<void>(
+            state.dispatchEvent(Input::MouseMoveEvent{.pos = pointer}));
+        painter.boxes.clear();
+        state.paint(painter);
+        const auto *hovered =
+            findBoxWithColor(painter, state.theme().dock.splitterHovered);
+        ASSERT_NE(hovered, nullptr);
+        EXPECT_FLOAT_EQ(hovered->bounds.size.x,
+                        state.theme().dock.splitterThickness);
+        EXPECT_EQ(hovered->bounds.center, splitLayout->dividerBounds.center);
     }
 
     TEST(DockSpaceWidgetTests, CompletedTabClickActivatesThePressedTab) {
