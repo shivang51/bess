@@ -97,7 +97,6 @@ set(Header_Files
 	"include/bess_core/settings/viewport_theme.h"
 	
 	"include/bess_core/sub_systems/input_sub_system.h"
-	"include/bess_core/sub_systems/input_sub_system_types.h"
 )
 
 source_group("include/bess_core" FILES ${Header_Files})

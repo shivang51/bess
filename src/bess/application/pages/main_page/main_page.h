@@ -2,7 +2,6 @@
 
 #include "common/bess_api.h"
 
-#include "events/application_event.h"
 #include "pages/main_page/main_page_state.h"
 #include "pages/page.h"
 #include "window.h"
@@ -18,11 +17,6 @@ namespace Bess::Pages {
         std::shared_ptr<SimEngine::Drivers::CompDef> def;
         std::type_index nsComp = typeid(void);
         glm::vec2 pos = {0.f, 0.f};
-    };
-
-    struct BESS_API LastMouseButtonEvent {
-        std::chrono::time_point<std::chrono::steady_clock> timestamp;
-        ApplicationEvent::MouseButtonData data;
     };
 
     class BESS_API MainPage : public Page {
@@ -60,8 +54,6 @@ namespace Bess::Pages {
         bool m_middleMousePressed = false;
 
         std::chrono::time_point<std::chrono::steady_clock> m_lastUpdateTime;
-
-        LastMouseButtonEvent m_lastMouseButtonEvent;
 
         MainPageState m_state;
 

@@ -63,7 +63,6 @@ set(Header_Files
 	"ui/ui_main/dialogs.h"
 	"ui/ui_main/project_explorer.h"
 	
-	"events/application_event.h"
 	"window.h"
 	"sub_systems/renderer_context.h"
 )
@@ -125,7 +124,6 @@ set(Source_Files
 	"ui/ui_main/graph_view_window.cpp"
 	
 	"project_file.cpp"
-	"events/application_event.cpp"
 	"sub_systems/renderer_context.cpp"
 )
 

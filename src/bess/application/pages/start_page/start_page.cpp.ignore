@@ -68,7 +68,7 @@ namespace Bess::Pages {
         ImGui::End();
     }
 
-    void StartPage::update(TFrameTime ts, const std::vector<ApplicationEvent> &events) {
+    void StartPage::update(TimeMs ts) {
     }
 
     void StartPage::drawTitle() {
