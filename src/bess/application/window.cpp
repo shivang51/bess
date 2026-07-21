@@ -1,5 +1,7 @@
 #include "window.h"
 #include "bess_core/g_app_context.h"
+#include "bess_core/renderer/renderer_types.h"
+#include "bess_core/scene/scene_state/components/scene_component_types.h"
 #include "bess_core/sub_systems/input_sub_system.h"
 #include "bess_wgpu/wgpu_renderer_2d.h"
 #include "common/bess_assert.h"
@@ -27,8 +29,8 @@
     #ifndef NOMINMAX
         #define NOMINMAX
     #endif
-    #include <windows.h>
     #include <shobjidl.h>
+    #include <windows.h>
 #endif
 
 namespace Bess {
@@ -227,6 +229,12 @@ namespace Bess {
 
     void Window::onPostInit() {
         m_ui.init(shared_from_this());
+
+        m_pickingTexture = std::make_shared<Wgpu::WgpuTexture>(
+            Core::Renderer::TextureCreateInfo{
+                .format = Core::Renderer::Renderer2DTargetFormat::RG32Uint});
+        m_pickingTexture->setSize({800.f, 600.f});
+        m_pickingTexture->init();
     }
 
     void Window::onShutdown() {
@@ -261,6 +269,21 @@ namespace Bess {
         const auto &renderer = GAppContext::getInstance()
                                    .getSubSystem<RendererContext>()
                                    ->getRenderer<Wgpu::WgpuRenderer2D>();
+
+        // renderer->beginFrame({
+        //     .extent = {static_cast<uint32_t>(m_width),
+        //                static_cast<uint32_t>(m_height)},
+        //     .clearColor = {1.F, 0.1F, 0.1F, 1.0F},
+        //     .shouldClear = true,
+        //     .pickingTexture = m_pickingTexture->getHandle(),
+        // });
+        // renderer->drawQuad({
+        //     .position = {100, 100},
+        //     .size = {100, 100},
+        //     .color = {0, 1, 0, 1},
+        //     .transformMode = Core::Renderer::RenderTransformMode::Screen,
+        // });
+        // renderer->endFrame();
 
         renderer->drawToWindow(shared_from_this(), // FIXME: temp
                                [&](void *renderPass) {
@@ -322,6 +345,13 @@ namespace Bess {
         this_->m_width = width;
         this_->m_height = height;
         this_->m_framebufferResized = true;
+
+        this_->m_pickingTexture->setSize({
+            static_cast<float>(width),
+            static_cast<float>(height),
+        });
+        this_->m_pickingTexture->destroy();
+        this_->m_pickingTexture->init();
 
         Events::WindowResizeEvent evt{
             (uint32_t)width,

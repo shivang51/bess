@@ -293,6 +293,86 @@ namespace Bess::Wgpu {
             return capabilities.presentModes[0];
         }
 
+        bool supportsSurfaceFormat(
+            const wgpu::SurfaceCapabilities &capabilities,
+            wgpu::TextureFormat format) noexcept {
+            for (size_t i = 0; i < capabilities.formatCount; ++i) {
+                if (capabilities.formats[i] == format) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        wgpu::TextureFormat
+        srgbSurfaceTwin(wgpu::TextureFormat format) noexcept {
+            switch (format) {
+            case wgpu::TextureFormat::BGRA8Unorm:
+                return wgpu::TextureFormat::BGRA8UnormSrgb;
+            case wgpu::TextureFormat::RGBA8Unorm:
+                return wgpu::TextureFormat::RGBA8UnormSrgb;
+            default:
+                return wgpu::TextureFormat::Undefined;
+            }
+        }
+
+        wgpu::TextureFormat
+        nonSrgbSurfaceTwin(wgpu::TextureFormat format) noexcept {
+            switch (format) {
+            case wgpu::TextureFormat::BGRA8UnormSrgb:
+                return wgpu::TextureFormat::BGRA8Unorm;
+            case wgpu::TextureFormat::RGBA8UnormSrgb:
+                return wgpu::TextureFormat::RGBA8Unorm;
+            default:
+                return wgpu::TextureFormat::Undefined;
+            }
+        }
+
+        wgpu::TextureFormat chooseSurfaceFormat(
+            const wgpu::SurfaceCapabilities &capabilities,
+            wgpu::TextureFormat preferredFormat) noexcept {
+            if (supportsSurfaceFormat(capabilities, preferredFormat)) {
+                return preferredFormat;
+            }
+
+            const wgpu::TextureFormat preferredSrgb =
+                srgbSurfaceTwin(preferredFormat);
+            if (preferredSrgb != wgpu::TextureFormat::Undefined &&
+                supportsSurfaceFormat(capabilities, preferredSrgb)) {
+                return preferredSrgb;
+            }
+
+            constexpr std::array fallbackFormats{
+                wgpu::TextureFormat::BGRA8Unorm,
+                wgpu::TextureFormat::BGRA8UnormSrgb,
+                wgpu::TextureFormat::RGBA8Unorm,
+                wgpu::TextureFormat::RGBA8UnormSrgb,
+            };
+            for (wgpu::TextureFormat format : fallbackFormats) {
+                if (supportsSurfaceFormat(capabilities, format)) {
+                    return format;
+                }
+            }
+
+            return capabilities.formats[0];
+        }
+
+        wgpu::TextureFormat chooseSurfaceViewFormat(
+            wgpu::TextureFormat surfaceFormat,
+            wgpu::TextureFormat targetFormat) noexcept {
+            if (surfaceFormat == targetFormat) {
+                return surfaceFormat;
+            }
+
+            const wgpu::TextureFormat nonSrgb =
+                nonSrgbSurfaceTwin(surfaceFormat);
+            if (nonSrgb == targetFormat) {
+                return targetFormat;
+            }
+
+            return surfaceFormat;
+        }
+
         struct PathCacheVariantKey {
             PathProps props{};
             PathBakeMetrics metrics{};
@@ -377,6 +457,9 @@ namespace Bess::Wgpu {
         wgpu::Surface surface;
         wgpu::SurfaceConfiguration surfaceConfiguration;
         wgpu::TextureFormat surfaceFormat = wgpu::TextureFormat::BGRA8Unorm;
+        wgpu::TextureFormat surfaceViewFormat =
+            wgpu::TextureFormat::BGRA8Unorm;
+        std::array<wgpu::TextureFormat, 1> surfaceViewFormats{};
         wgpu::PresentMode surfacePresentMode = wgpu::PresentMode::Immediate;
         wgpu::CompositeAlphaMode surfaceAlphaMode =
             wgpu::CompositeAlphaMode::Opaque;
@@ -1241,7 +1324,9 @@ namespace Bess::Wgpu {
                 "WebGPU surface reports no supported configuration");
         }
 
-        surfaceFormat = capabilities.formats[0];
+        surfaceFormat = chooseSurfaceFormat(capabilities, targetFormat);
+        surfaceViewFormat = chooseSurfaceViewFormat(surfaceFormat,
+                                                    targetFormat);
         surfacePresentMode = chooseSurfacePresentMode(capabilities);
         surfaceAlphaMode = capabilities.alphaModes[0];
     }
@@ -1259,8 +1344,14 @@ namespace Bess::Wgpu {
         surfaceConfiguration.alphaMode = surfaceAlphaMode;
         surfaceConfiguration.width = std::max(1u, width);
         surfaceConfiguration.height = std::max(1u, height);
-        surfaceConfiguration.viewFormatCount = 0;
-        surfaceConfiguration.viewFormats = nullptr;
+        if (surfaceViewFormat != surfaceFormat) {
+            surfaceViewFormats[0] = surfaceViewFormat;
+            surfaceConfiguration.viewFormatCount = surfaceViewFormats.size();
+            surfaceConfiguration.viewFormats = surfaceViewFormats.data();
+        } else {
+            surfaceConfiguration.viewFormatCount = 0;
+            surfaceConfiguration.viewFormats = nullptr;
+        }
 
         surface.Configure(&surfaceConfiguration);
         surfaceConfigured = true;
@@ -1358,7 +1449,15 @@ namespace Bess::Wgpu {
                 return;
             }
 
-            targetView = surfaceTexture.texture.CreateView();
+            if (m_impl->surfaceViewFormat != m_impl->surfaceFormat) {
+                wgpu::TextureViewDescriptor viewDescriptor{};
+                viewDescriptor.format = m_impl->surfaceViewFormat;
+                viewDescriptor.label = "SurfaceRenderTargetView";
+                targetView = surfaceTexture.texture.CreateView(
+                    &viewDescriptor);
+            } else {
+                targetView = surfaceTexture.texture.CreateView();
+            }
         } else if (m_impl->frameTargetTexture != 0) {
             targetView = m_impl->getTexture(m_impl->frameTargetTexture).view;
         } else {
