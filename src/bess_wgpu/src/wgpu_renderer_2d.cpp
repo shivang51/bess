@@ -1,15 +1,14 @@
 #include "bess_wgpu/wgpu_renderer_2d.h"
 #include "bess_core/renderer/font.h"
 #include "bess_core/renderer/msdf_font.h"
-#include "bess_core/renderer/subtexture.h"
 #include "bess_wgpu/path_baker.h"
+#include "bess_wgpu/wgpu_render_target_2d.h"
 #include "bess_wgpu/piplines/custom_quad_pipeline.h"
 #include "bess_wgpu/piplines/path_pipeline.h"
 #include "bess_wgpu/piplines/primitive_pipeline.h"
 #include "bess_wgpu/piplines/shadow_pipeline.h"
 #include "bess_wgpu/text/bitmap_text_pipeline.h"
 #include "bess_wgpu/text/msdf_text_pipeline.h"
-#include "bess_wgpu/wgpu_shader.h"
 #include "bess_wgpu/wgpu_texture.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
@@ -241,8 +240,8 @@ namespace Bess::Wgpu {
         glm::vec2 rotatePathPoint(const glm::vec2 &point, float rotation) {
             const float sinAngle = std::sin(rotation);
             const float cosAngle = std::cos(rotation);
-            return {point.x * cosAngle - point.y * sinAngle,
-                    point.x * sinAngle + point.y * cosAngle};
+            return {(point.x * cosAngle) - (point.y * sinAngle),
+                    (point.x * sinAngle) + (point.y * cosAngle)};
         }
 
         PathProps
@@ -293,9 +292,9 @@ namespace Bess::Wgpu {
             return capabilities.presentModes[0];
         }
 
-        bool supportsSurfaceFormat(
-            const wgpu::SurfaceCapabilities &capabilities,
-            wgpu::TextureFormat format) noexcept {
+        bool
+        supportsSurfaceFormat(const wgpu::SurfaceCapabilities &capabilities,
+                              wgpu::TextureFormat format) noexcept {
             for (size_t i = 0; i < capabilities.formatCount; ++i) {
                 if (capabilities.formats[i] == format) {
                     return true;
@@ -328,9 +327,9 @@ namespace Bess::Wgpu {
             }
         }
 
-        wgpu::TextureFormat chooseSurfaceFormat(
-            const wgpu::SurfaceCapabilities &capabilities,
-            wgpu::TextureFormat preferredFormat) noexcept {
+        wgpu::TextureFormat
+        chooseSurfaceFormat(const wgpu::SurfaceCapabilities &capabilities,
+                            wgpu::TextureFormat preferredFormat) noexcept {
             if (supportsSurfaceFormat(capabilities, preferredFormat)) {
                 return preferredFormat;
             }
@@ -357,9 +356,9 @@ namespace Bess::Wgpu {
             return capabilities.formats[0];
         }
 
-        wgpu::TextureFormat chooseSurfaceViewFormat(
-            wgpu::TextureFormat surfaceFormat,
-            wgpu::TextureFormat targetFormat) noexcept {
+        wgpu::TextureFormat
+        chooseSurfaceViewFormat(wgpu::TextureFormat surfaceFormat,
+                                wgpu::TextureFormat targetFormat) noexcept {
             if (surfaceFormat == targetFormat) {
                 return surfaceFormat;
             }
@@ -457,8 +456,7 @@ namespace Bess::Wgpu {
         wgpu::Surface surface;
         wgpu::SurfaceConfiguration surfaceConfiguration;
         wgpu::TextureFormat surfaceFormat = wgpu::TextureFormat::BGRA8Unorm;
-        wgpu::TextureFormat surfaceViewFormat =
-            wgpu::TextureFormat::BGRA8Unorm;
+        wgpu::TextureFormat surfaceViewFormat = wgpu::TextureFormat::BGRA8Unorm;
         std::array<wgpu::TextureFormat, 1> surfaceViewFormats{};
         wgpu::PresentMode surfacePresentMode = wgpu::PresentMode::Immediate;
         wgpu::CompositeAlphaMode surfaceAlphaMode =
@@ -825,7 +823,7 @@ namespace Bess::Wgpu {
             bakePathSubmission(path.commands(), props, metrics);
         variant.lastUsedFrame = frameSequence;
         auto [insertedIt, inserted] =
-            entry.variants.emplace(std::move(key), std::move(variant));
+            entry.variants.emplace(key, std::move(variant));
         if (inserted) {
             ++cachedPathVariantCount;
         }
@@ -1327,8 +1325,8 @@ namespace Bess::Wgpu {
         }
 
         surfaceFormat = chooseSurfaceFormat(capabilities, targetFormat);
-        surfaceViewFormat = chooseSurfaceViewFormat(surfaceFormat,
-                                                    targetFormat);
+        surfaceViewFormat =
+            chooseSurfaceViewFormat(surfaceFormat, targetFormat);
         surfacePresentMode = chooseSurfacePresentMode(capabilities);
         surfaceAlphaMode = capabilities.alphaModes[0];
     }
@@ -1369,6 +1367,39 @@ namespace Bess::Wgpu {
         viewDescriptor.format = surfaceViewFormat;
         viewDescriptor.label = "SurfaceRenderTargetView";
         return texture.CreateView(&viewDescriptor);
+    }
+
+    std::shared_ptr<Core::Renderer::IRenderTarget2D>
+    WgpuRenderer2D::createTarget(
+        const Core::Renderer::RenderTarget2DCreateInfo &createInfo) {
+        if (m_impl == nullptr || m_impl->device == nullptr) {
+            throw std::runtime_error(
+                "Cannot create a render target before renderer initialization");
+        }
+        if (createInfo.targetFormat != m_impl->targetFormatType ||
+            createInfo.pickingFormat != m_impl->createInfo.pickingFormat) {
+            throw std::runtime_error(
+                "Render target formats must match the renderer formats");
+        }
+
+        if (createInfo.surface.type !=
+            Core::Renderer::Renderer2DNativeSurfaceType::None) {
+            const bool matchingPlatformSurface =
+                createInfo.surface.type ==
+                    Core::Renderer::Renderer2DNativeSurfaceType::
+                        PlatformHandle &&
+                m_impl->createInfo.surface.type ==
+                    Core::Renderer::Renderer2DNativeSurfaceType::
+                        PlatformHandle &&
+                createInfo.surface.handle == m_impl->createInfo.surface.handle;
+            if (!matchingPlatformSurface) {
+                throw std::runtime_error(
+                    "Render target surface must match the renderer surface");
+            }
+        }
+
+        return std::make_shared<WgpuRenderTarget2D>(shared_from_this(),
+                                                     createInfo);
     }
 
     void WgpuRenderer2D::resize(const Renderer2DExtent &extent) {

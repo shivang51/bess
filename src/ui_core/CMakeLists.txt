@@ -11,6 +11,8 @@ source_group("include/ui_core" FILES ${Header_Files})
 
 set(Source_Files
 	src/dock.cpp
+	src/ui_target.cpp
+	src/layout.cpp
 )
 
 source_group("src" FILES ${Source_Files})

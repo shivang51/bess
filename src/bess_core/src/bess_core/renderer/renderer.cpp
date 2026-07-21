@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 namespace Bess::Core::Renderer {
+    IRenderTarget2D::~IRenderTarget2D() = default;
     IRenderer2D::~IRenderer2D() = default;
 
     TextureReadbackResult IRenderer2D::readTexture(TextureHandle texture,

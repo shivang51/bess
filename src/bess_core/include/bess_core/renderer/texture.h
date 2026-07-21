@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/bess_api.h"
 #include "bess_core/renderer/renderer_types.h"
+#include "common/bess_api.h"
 #include "common/class_helpers.h"
 #include "ext/vector_float2.hpp"
 #include <cstdint>
@@ -10,6 +10,7 @@ namespace Bess::Core::Renderer {
 
     enum class Renderer2DTargetFormat : uint8_t;
 
+    class IRenderer2D;
     struct BESS_API TextureCreateInfo {
         std::string path;
         // None means use the renderer's color target format for render targets.
@@ -27,6 +28,8 @@ namespace Bess::Core::Renderer {
         virtual void destroy() = 0;
         virtual void *getView() const = 0;
         virtual void saveToFile(const std::string &path) const;
+        virtual void setRenderer(const std::shared_ptr<IRenderer2D> &renderer) {
+        }
 
         MAKE_GETTER_SETTER(std::string, Path, m_path);
         MAKE_GETTER_SETTER(glm::vec2, Size, m_size);

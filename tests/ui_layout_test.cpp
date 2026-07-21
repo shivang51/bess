@@ -73,6 +73,12 @@ namespace {
         }
         void destroy() override {
         }
+        [[nodiscard]]
+        std::shared_ptr<Bess::Core::Renderer::IRenderTarget2D>
+        createTarget(const Bess::Core::Renderer::RenderTarget2DCreateInfo &)
+            override {
+            return nullptr;
+        }
         void resize(const Bess::Core::Renderer::Renderer2DExtent &) override {
         }
         void

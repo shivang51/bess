@@ -31,7 +31,7 @@ namespace Bess::Wgpu {
 
     std::shared_ptr<WgpuRenderer2D> WgpuTexture::s_renderer = nullptr;
 
-    void WgpuTexture::setRenderer(
+    void WgpuTexture::setStaticRenderer(
         const std::shared_ptr<WgpuRenderer2D> &renderer) noexcept {
         s_renderer = renderer;
     }
@@ -63,7 +63,8 @@ namespace Bess::Wgpu {
     }
 
     void WgpuTexture::init() {
-        if (s_renderer == nullptr) {
+        auto renderer = getRenderer();
+        if (renderer == nullptr) {
             throw std::runtime_error("WgpuTexture has no renderer");
         }
 
@@ -80,11 +81,12 @@ namespace Bess::Wgpu {
 
         m_handle = getNextTextureHandle();
         m_textureView = m_wgpuHandle.CreateView();
-        s_renderer->registerTexture(getResource());
+        renderer->registerTexture(getResource());
     }
 
     void WgpuTexture::destroy() {
-        if (s_renderer == nullptr || m_handle == 0) {
+        auto renderer = getRenderer();
+        if (renderer == nullptr || m_handle == 0) {
             m_handle = 0;
             m_wgpuHandle = nullptr;
             return;
@@ -92,7 +94,7 @@ namespace Bess::Wgpu {
 
         m_wgpuHandle = nullptr;
         m_textureView = nullptr;
-        s_renderer->unregisterTexture(m_handle);
+        renderer->unregisterTexture(m_handle);
         m_handle = 0;
     }
     void *WgpuTexture::getView() const {
@@ -100,13 +102,14 @@ namespace Bess::Wgpu {
     }
 
     void WgpuTexture::saveToFile(const std::string &path) const {
-        if (s_renderer == nullptr) {
+        auto renderer = getRenderer();
+        if (renderer == nullptr) {
             throw std::runtime_error("WgpuTexture has no renderer");
         }
         if (m_handle == 0) {
             throw std::runtime_error("Cannot save an uninitialized texture");
         }
-        s_renderer->saveTextureToFile(m_handle, path);
+        renderer->saveTextureToFile(m_handle, path);
     }
 
     wgpu::TextureView WgpuTexture::getTextureView() const {
@@ -127,6 +130,11 @@ namespace Bess::Wgpu {
         return resource;
     }
 
+    void WgpuTexture::setRenderer(
+        const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer) {
+        m_renderer = std::dynamic_pointer_cast<WgpuRenderer2D>(renderer);
+    }
+
     struct StbiImageDeleter {
         void operator()(stbi_uc *pixels) const {
             stbi_image_free(pixels);
@@ -134,9 +142,10 @@ namespace Bess::Wgpu {
     };
 
     void WgpuTexture::initTexture() {
-        BESS_ASSERT(s_renderer != nullptr, "WgpuTexture has no renderer");
+        auto renderer = getRenderer();
+        BESS_ASSERT(renderer != nullptr, "WgpuTexture has no renderer");
 
-        auto device = s_renderer->getDevice();
+        auto device = renderer->getDevice();
 
         int width = 0;
         int height = 0;
@@ -157,9 +166,11 @@ namespace Bess::Wgpu {
 
     void WgpuTexture::initRenderTarget() {
         m_wgpuFormat = toWgpuFormat(m_format);
+        auto renderer = getRenderer();
+
         if (m_wgpuFormat == wgpu::TextureFormat::Undefined) {
-            m_wgpuFormat = s_renderer->getTargetFormat();
-            m_format = s_renderer->getTargetFormatType();
+            m_wgpuFormat = renderer->getTargetFormat();
+            m_format = renderer->getTargetFormatType();
         }
 
         wgpu::TextureDescriptor descriptor{};
@@ -175,7 +186,7 @@ namespace Bess::Wgpu {
                            wgpu::TextureUsage::CopySrc;
         descriptor.label = "RenderTargetTexture";
 
-        m_wgpuHandle = s_renderer->getDevice().CreateTexture(&descriptor);
+        m_wgpuHandle = renderer->getDevice().CreateTexture(&descriptor);
         m_isRenderTarget = true;
     }
 
@@ -196,7 +207,8 @@ namespace Bess::Wgpu {
                            wgpu::TextureUsage::CopyDst |
                            wgpu::TextureUsage::CopySrc;
 
-        auto device = s_renderer->getDevice();
+        auto renderer = getRenderer();
+        auto device = renderer->getDevice();
         m_wgpuHandle = device.CreateTexture(&descriptor);
         m_wgpuFormat = wgpu::TextureFormat::RGBA8Unorm;
         m_format = Core::Renderer::Renderer2DTargetFormat::RGBA8Unorm;
@@ -213,13 +225,18 @@ namespace Bess::Wgpu {
         layout.rowsPerImage = height;
 
         wgpu::Extent3D writeSize{width, height, 1};
-        s_renderer->getQueue().WriteTexture(&destination,
-                                            pixels,
-                                            static_cast<size_t>(width) *
-                                                height * 4,
-                                            &layout,
-                                            &writeSize);
+        renderer->getQueue().WriteTexture(&destination,
+                                          pixels,
+                                          static_cast<size_t>(width) * height *
+                                              4,
+                                          &layout,
+                                          &writeSize);
         m_isRenderTarget = false;
+    }
+
+    const std::shared_ptr<WgpuRenderer2D> &
+    WgpuTexture::getRenderer() const noexcept {
+        return m_renderer ? m_renderer : s_renderer;
     }
 
 } // namespace Bess::Wgpu

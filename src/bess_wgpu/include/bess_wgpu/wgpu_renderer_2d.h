@@ -25,7 +25,9 @@ namespace Bess::Wgpu {
         wgpu::TextureFormat format = wgpu::TextureFormat::RGBA8Unorm;
     };
 
-    class BESS_API WgpuRenderer2D final : public Core::Renderer::IRenderer2D {
+    class BESS_API WgpuRenderer2D final
+        : public Core::Renderer::IRenderer2D,
+          public std::enable_shared_from_this<WgpuRenderer2D> {
       public:
         WgpuRenderer2D();
         ~WgpuRenderer2D() override;
@@ -38,6 +40,10 @@ namespace Bess::Wgpu {
         void
         init(const Core::Renderer::Renderer2DCreateInfo &createInfo) override;
         void destroy() override;
+
+        [[nodiscard]] std::shared_ptr<Core::Renderer::IRenderTarget2D>
+        createTarget(const Core::Renderer::RenderTarget2DCreateInfo &createInfo)
+            override;
 
         void resize(const Core::Renderer::Renderer2DExtent &extent) override;
 

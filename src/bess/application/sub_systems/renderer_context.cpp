@@ -1,17 +1,17 @@
 #include "sub_systems/renderer_context.h"
-#include "window.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/scene/scene_ui/controls/image_comp.h"
 #include "bess_wgpu/wgpu_renderer_2d.h"
 #include "bess_wgpu/wgpu_texture.h"
 #include "common/events.h"
 #include "event_dispatcher.h"
+#include "window.h"
 
 namespace Bess {
 
     void RendererContext::onPreInit() {
         m_renderer = std::make_shared<Wgpu::WgpuRenderer2D>();
-        Wgpu::WgpuTexture::setRenderer(
+        Wgpu::WgpuTexture::setStaticRenderer(
             std::dynamic_pointer_cast<Wgpu::WgpuRenderer2D>(m_renderer));
     }
 
@@ -64,7 +64,7 @@ namespace Bess {
 
     void RendererContext::onDestroy() {
         Canvas::UI::ImageComp::setDefaultTextureLoader(nullptr);
-        Wgpu::WgpuTexture::setRenderer(nullptr);
+        Wgpu::WgpuTexture::setStaticRenderer(nullptr);
         m_renderer->destroy();
         m_renderer.reset();
     }

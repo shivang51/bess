@@ -1,9 +1,7 @@
 #include "window.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/renderer/renderer_types.h"
 #include "bess_core/scene/scene_state/components/scene_component_types.h"
 #include "bess_core/sub_systems/input_sub_system.h"
-#include "bess_wgpu/wgpu_renderer_2d.h"
 #include "common/bess_assert.h"
 #include "common/events.h"
 #include "common/logger.h"
@@ -37,7 +35,9 @@
 namespace Bess {
     bool Window::isGLFWInitialized = false;
 
-    constexpr char const *instanceClass = "com.shivang.bess";
+    namespace {
+        constexpr char const *instanceClass = "com.shivang.bess";
+    } // namespace
 
     Window::Window(int width, int height, const std::string &title)
         : m_width(width),
@@ -51,6 +51,8 @@ namespace Bess {
 
     void Window::onUpdate(TimeMs dt) {
         m_ui.update(dt);
+        m_uiTarget.setMousePos(getMousePos());
+        m_uiTarget.update(dt);
     }
 
     void Window::onPreInit() {
@@ -230,14 +232,27 @@ namespace Bess {
 
     void Window::onPostInit() {
         m_ui.init(shared_from_this());
-
-        m_pickingTexture = std::make_shared<Wgpu::WgpuTexture>(
-            Core::Renderer::TextureCreateInfo{
-                .format = Core::Renderer::Renderer2DTargetFormat::RG32Uint});
         syncFramebufferSize(true);
+
+        const auto renderer = GAppContext::getInstance()
+                                  .getSubSystem<RendererContext>()
+                                  ->getRenderer();
+
+        UI::UITargetDesc desc{
+            .rect = {.size = {static_cast<float>(m_width),
+                              static_cast<float>(m_height)}},
+            .surface = {
+                .type = Core::Renderer::Renderer2DNativeSurfaceType::
+                    PlatformHandle,
+                .handle = mp_window.get(),
+            },
+        };
+
+        m_uiTarget.init(renderer, desc);
     }
 
     void Window::onShutdown() {
+        m_uiTarget.destroy();
         m_ui.shutdown();
     }
 
@@ -270,24 +285,7 @@ namespace Bess {
             return;
         }
 
-        const auto &renderer = GAppContext::getInstance()
-                                   .getSubSystem<RendererContext>()
-                                   ->getRenderer<Wgpu::WgpuRenderer2D>();
-
-        renderer->beginFrame({
-            .extent = {static_cast<uint32_t>(m_width),
-                       static_cast<uint32_t>(m_height)},
-            .clearColor = {1.F, 0.1F, 0.1F, 1.0F},
-            .shouldClear = true,
-            .pickingTexture = m_pickingTexture->getHandle(),
-        });
-        renderer->drawQuad({
-            .position = {100, 100},
-            .size = {100, 100},
-            .color = {0, 1, 0, 1},
-            .transformMode = Core::Renderer::RenderTransformMode::Screen,
-        });
-        renderer->endFrame();
+        m_uiTarget.draw();
 
         // renderer->drawToWindow(shared_from_this(), // FIXME: temp
         //                        [&](void *renderPass) {
@@ -365,15 +363,15 @@ namespace Bess {
         const bool changed =
             m_width != framebufferWidth || m_height != framebufferHeight;
 
-        m_width = framebufferWidth;
-        m_height = framebufferHeight;
-
-        resizePickingTexture(static_cast<uint32_t>(framebufferWidth),
-                             static_cast<uint32_t>(framebufferHeight));
-
         if (!changed) {
             return;
         }
+
+        m_width = framebufferWidth;
+        m_height = framebufferHeight;
+
+        m_uiTarget.resize({static_cast<float>(framebufferWidth),
+                           static_cast<float>(framebufferHeight)});
 
         m_framebufferResized = true;
         if (!notifyResizeEvent) {
@@ -388,24 +386,6 @@ namespace Bess {
         auto &ctx = GAppContext::getInstance();
         auto eventDispatcher = ctx.getSubSystem<EventSystem::EventDispatcher>();
         eventDispatcher->queue(evt);
-    }
-
-    void Window::resizePickingTexture(uint32_t width, uint32_t height) {
-        if (!m_pickingTexture || width == 0 || height == 0) {
-            return;
-        }
-
-        const glm::vec2 currentSize = m_pickingTexture->getSize();
-        if (m_pickingTexture->getHandle() != 0 &&
-            currentSize.x == static_cast<float>(width) &&
-            currentSize.y == static_cast<float>(height)) {
-            return;
-        }
-
-        m_pickingTexture->setSize(
-            {static_cast<float>(width), static_cast<float>(height)});
-        m_pickingTexture->destroy();
-        m_pickingTexture->init();
     }
 
     void Window::framebufferResizeCallback(GLFWwindow *window,

@@ -12,8 +12,8 @@ namespace Bess::Wgpu {
 
     class BESS_API WgpuTexture final : public Core::Renderer::ITexture {
       public:
-        static void
-        setRenderer(const std::shared_ptr<WgpuRenderer2D> &renderer) noexcept;
+        static void setStaticRenderer(
+            const std::shared_ptr<WgpuRenderer2D> &renderer) noexcept;
 
         static std::shared_ptr<WgpuTexture>
         fromPixels(const uint8_t *pixels, uint32_t width, uint32_t height);
@@ -37,6 +37,9 @@ namespace Bess::Wgpu {
 
         TextureResource getResource() const;
 
+        void setRenderer(const std::shared_ptr<Core::Renderer::IRenderer2D>
+                             &renderer) override;
+
       private:
         void initTexture();
         // If path is empty, creates a render target
@@ -46,8 +49,11 @@ namespace Bess::Wgpu {
                                      uint32_t width,
                                      uint32_t height);
 
+        const std::shared_ptr<WgpuRenderer2D> &getRenderer() const noexcept;
+
       private:
         static std::shared_ptr<WgpuRenderer2D> s_renderer;
+        std::shared_ptr<WgpuRenderer2D> m_renderer = nullptr;
         wgpu::Texture m_wgpuHandle = nullptr;
         wgpu::TextureView m_textureView = nullptr;
         wgpu::TextureFormat m_wgpuFormat = wgpu::TextureFormat::RGBA8Unorm;

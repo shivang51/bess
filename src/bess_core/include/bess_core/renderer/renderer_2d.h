@@ -1,8 +1,8 @@
 #pragma once
 
-#include "common/bess_api.h"
 #include "bess_core/renderer/renderer_path.h"
 #include "bess_core/renderer/renderer_types.h"
+#include "common/bess_api.h"
 #include <array>
 #include <cstdint>
 #include <functional>
@@ -17,6 +17,8 @@ namespace Bess {
 }
 
 namespace Bess::Core::Renderer {
+    class ITexture;
+
     enum class Renderer2DTargetFormat : uint8_t {
         None,
         RGBA8Unorm,
@@ -73,6 +75,40 @@ namespace Bess::Core::Renderer {
         TextureHandle targetTexture = 0;
         TextureHandle pickingTexture = 0;
         float *cameraTransform = nullptr;
+    };
+
+    struct BESS_API RenderTarget2DCreateInfo {
+        Renderer2DExtent extent;
+        Renderer2DTargetFormat targetFormat =
+            Renderer2DTargetFormat::BGRA8Unorm;
+        Renderer2DTargetFormat pickingFormat = Renderer2DTargetFormat::RG32Uint;
+        // None creates an offscreen color target. PlatformHandle renders to a
+        // native surface owned by the application.
+        Renderer2DNativeSurface surface;
+    };
+
+    struct BESS_API RenderTarget2DFrameInfo {
+        Color clearColor{0.f, 0.f, 0.f, 1.f};
+        bool shouldClear = true;
+        float *cameraTransform = nullptr;
+    };
+
+    class BESS_API IRenderTarget2D {
+      public:
+        virtual ~IRenderTarget2D();
+
+        virtual void destroy() = 0;
+        virtual void resize(const Renderer2DExtent &extent) = 0;
+        virtual void beginFrame(const RenderTarget2DFrameInfo &frameInfo) = 0;
+        virtual void endFrame() = 0;
+
+        [[nodiscard]] virtual Renderer2DExtent getExtent() const noexcept = 0;
+        [[nodiscard]] virtual std::shared_ptr<ITexture>
+        getColorTexture() const = 0;
+        [[nodiscard]] virtual std::shared_ptr<ITexture>
+        getPickingTexture() const = 0;
+        [[nodiscard]] virtual PickingId readPickingId(uint32_t x,
+                                                      uint32_t y) = 0;
     };
 
     struct BESS_API TextureReadbackRegion {
@@ -171,6 +207,9 @@ namespace Bess::Core::Renderer {
 
         virtual void init(const Renderer2DCreateInfo &createInfo) = 0;
         virtual void destroy() = 0;
+
+        [[nodiscard]] virtual std::shared_ptr<IRenderTarget2D>
+        createTarget(const RenderTarget2DCreateInfo &createInfo) = 0;
 
         virtual void resize(const Renderer2DExtent &extent) = 0;
 

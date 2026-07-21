@@ -1,12 +1,12 @@
 #pragma once
 
 #include "GLFW/glfw3.h"
-#include "bess_core/renderer/texture.h"
 #include "bess_core/sub_systems/input_sub_system_types.h"
 #include "common/bess_api.h"
 #include "common/sub_system.h"
 #include "fwd.hpp"
 #include "ui/ui.h"
+#include "ui_core.h"
 
 #include <cstdint>
 #include <memory>
@@ -104,12 +104,11 @@ namespace Bess {
         bool syncFramebufferSize(bool notifyResizeEvent);
         void
         applyFramebufferSize(int width, int height, bool notifyResizeEvent);
-        void resizePickingTexture(uint32_t width, uint32_t height);
         static void
         framebufferResizeCallback(GLFWwindow *window, int width, int height);
 
         WindowSurface m_surface;
+        UI::UITarget m_uiTarget;
         UIHandle m_ui;
-        std::shared_ptr<Core::Renderer::ITexture> m_pickingTexture;
     };
 } // namespace Bess
