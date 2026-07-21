@@ -9,6 +9,7 @@ set(Header_Files
     "include/bess_wgpu/piplines/custom_quad_pipeline.h"
     "include/bess_wgpu/text/bitmap_text_pipeline.h"
     "include/bess_wgpu/text/msdf_text_pipeline.h"
+    "include/bess_wgpu/text/text_metrics.h"
     "include/bess_wgpu/wgpu_renderer_2d.h"
     "include/bess_wgpu/wgpu_render_target_2d.h"
     "include/bess_wgpu/wgpu_shader.h"

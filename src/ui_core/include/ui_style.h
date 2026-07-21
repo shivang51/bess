@@ -41,7 +41,7 @@ namespace Bess::UI {
         UIBoxStyle pressed;
         UITextStyle text;
         Core::Renderer::Color inactiveText{0.72f, 0.74f, 0.78f, 1.f};
-        float height = 34.f;
+        float height = 28.f;
         float minimumWidth = 72.f;
         float maximumWidth = 220.f;
         float horizontalPadding = 12.f;
@@ -60,13 +60,15 @@ namespace Bess::UI {
         UIBoxStyle popup;
         UIBoxStyle itemHovered;
         UIBoxStyle itemPressed;
+        UITextStyle barText;
         UITextStyle text;
         Core::Renderer::Color iconColor{0.82f, 0.84f, 0.88f, 1.f};
         Core::Renderer::Color shortcutColor{0.62f, 0.65f, 0.70f, 1.f};
         Core::Renderer::Color disabledText{0.42f, 0.44f, 0.48f, 1.f};
         Core::Renderer::Color separator{0.25f, 0.27f, 0.31f, 1.f};
-        float barHeight = 27.f;
-        float barHorizontalPadding = 9.f;
+        float barHeight = 22.f;
+        float barVerticalMargin = 2.f;
+        float barHorizontalPadding = 6.f;
         float popupMinimumWidth = 190.f;
         float popupMaximumWidth = 420.f;
         float popupPadding = 4.f;
@@ -77,11 +79,15 @@ namespace Bess::UI {
         float iconColumnWidth = 20.f;
         float shortcutGap = 24.f;
         float submenuIndicatorWidth = 16.f;
+        float submenuChevronSize = 11.f;
     };
 
     struct UIDockStyle {
         UIBoxStyle background;
         UIBoxStyle stack;
+        // Stack chrome used inside an already-framed floating host. It should
+        // not draw a second rounded panel beneath the host title bar.
+        UIBoxStyle floatingStack;
         UIBoxStyle floatingWindow;
         UIBoxStyle floatingHeader;
         UIBoxStyle dropGuide;

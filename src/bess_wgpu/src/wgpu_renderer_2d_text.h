@@ -1,11 +1,12 @@
 #pragma once
 
+#include "bess_wgpu/text/text_metrics.h"
+
 #include "bess_core/renderer/font.h"
 #include "bess_core/renderer/renderer_path.h"
 #include "bess_core/renderer/renderer_types.h"
 #include <algorithm>
 #include <cstdint>
-#include <limits>
 #include <string_view>
 
 namespace Bess::Wgpu::Renderer2DDetail {
@@ -174,55 +175,12 @@ namespace Bess::Wgpu::Renderer2DDetail {
         }
 
         const float scale = props.fontSize / font.getSize();
-        const float defaultLineHeight = font.lineHeight() * scale;
-        const float lineHeight =
-            props.lineHeight > 0.f
-                ? props.lineHeight
-                : (0.f < defaultLineHeight ? defaultLineHeight
-                                           : props.fontSize);
-
-        float baselineY = 0.f;
-        float inkTop = std::numeric_limits<float>::max();
-        float inkBottom = std::numeric_limits<float>::lowest();
-        bool hasInk = false;
-
-        size_t offset = 0;
-        while (offset < text.size()) {
-            const uint32_t codepoint = decodeUtf8(text, offset);
-            if (codepoint == 0) {
-                break;
-            }
-
-            if (codepoint == '\r') {
-                if (offset < text.size() && text[offset] == '\n') {
-                    ++offset;
-                }
-                baselineY += lineHeight;
-                continue;
-            }
-
-            if (codepoint == '\n') {
-                baselineY += lineHeight;
-                continue;
-            }
-
-            if (codepoint == '\t') {
-                continue;
-            }
-
-            const Core::Renderer::Glyph &glyph =
-                font.getGlyph(static_cast<char32_t>(codepoint));
-            const auto bounds = glyph.path.bounds();
-            if (!bounds.valid) {
-                continue;
-            }
-
-            inkTop = std::min(inkTop, baselineY + (bounds.min.y * scale));
-            inkBottom = std::max(inkBottom, baselineY + (bounds.max.y * scale));
-            hasInk = true;
-        }
-
-        return hasInk ? -((inkTop + inkBottom) * 0.5f) : props.fontSize * 0.35f;
+        return Text::centeredBaselineOffsetY(
+            text,
+            props,
+            {.ascender = font.ascent() * scale,
+             .descender = font.descent() * scale,
+             .lineHeight = font.lineHeight() * scale});
     }
 
 } // namespace Bess::Wgpu::Renderer2DDetail

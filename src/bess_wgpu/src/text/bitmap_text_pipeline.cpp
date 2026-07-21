@@ -1,4 +1,5 @@
 #include "bess_wgpu/text/bitmap_text_pipeline.h"
+#include "bess_wgpu/text/text_metrics.h"
 
 #include "bess_wgpu/wgpu_shader.h"
 #include "common/logger.h"
@@ -7,7 +8,6 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
-#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string_view>
@@ -245,13 +245,12 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                         ? static_cast<uint8_t>(255 / (bitmap.num_grays - 1))
                         : 1;
                 for (uint32_t y = 0; y < height; ++y) {
-                    const uint32_t srcY =
-                        pitch < 0 ? (height - 1u - y) : y;
-                    const auto *src =
-                        bitmap.buffer + static_cast<int64_t>(srcY) *
-                                            static_cast<int64_t>(std::abs(pitch));
-                    uint8_t *dst = outPixels.data() +
-                                   static_cast<size_t>(y) * width;
+                    const uint32_t srcY = pitch < 0 ? (height - 1u - y) : y;
+                    const auto *src = bitmap.buffer +
+                                      static_cast<int64_t>(srcY) *
+                                          static_cast<int64_t>(std::abs(pitch));
+                    uint8_t *dst =
+                        outPixels.data() + static_cast<size_t>(y) * width;
                     for (uint32_t x = 0; x < width; ++x) {
                         dst[x] = static_cast<uint8_t>(src[x] * scale);
                     }
@@ -261,13 +260,12 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
 
             if (bitmap.pixel_mode == FT_PIXEL_MODE_MONO) {
                 for (uint32_t y = 0; y < height; ++y) {
-                    const uint32_t srcY =
-                        pitch < 0 ? (height - 1u - y) : y;
-                    const auto *src =
-                        bitmap.buffer + static_cast<int64_t>(srcY) *
-                                            static_cast<int64_t>(std::abs(pitch));
-                    uint8_t *dst = outPixels.data() +
-                                   static_cast<size_t>(y) * width;
+                    const uint32_t srcY = pitch < 0 ? (height - 1u - y) : y;
+                    const auto *src = bitmap.buffer +
+                                      static_cast<int64_t>(srcY) *
+                                          static_cast<int64_t>(std::abs(pitch));
+                    uint8_t *dst =
+                        outPixels.data() + static_cast<size_t>(y) * width;
                     for (uint32_t x = 0; x < width; ++x) {
                         const uint8_t byte = src[x >> 3u];
                         const uint8_t bit =
@@ -288,6 +286,18 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                                uint32_t atlasSize,
                                uint32_t minPixelSize,
                                uint32_t maxPixelSize) {
+        return init(
+            device, queue, fontPath, {}, atlasSize, minPixelSize, maxPixelSize);
+    }
+
+    bool
+    BitmapFontAtlas::init(const wgpu::Device &device,
+                          const wgpu::Queue &queue,
+                          const std::string &primaryFontPath,
+                          std::span<const std::string_view> fallbackFontPaths,
+                          uint32_t atlasSize,
+                          uint32_t minPixelSize,
+                          uint32_t maxPixelSize) {
         destroy();
 
         m_device = device;
@@ -302,21 +312,15 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         }
         m_library = library;
 
-        FT_Face face = nullptr;
-        if (FT_New_Face(library, fontPath.c_str(), 0, &face) != 0) {
-            BESS_WARN("[BitmapFontAtlas] Failed to load font: {}", fontPath);
+        if (!loadFace(primaryFontPath, true)) {
             destroy();
             return false;
         }
-        m_face = face;
-
-        if (FT_Select_Charmap(face, FT_ENCODING_UNICODE) != 0) {
-            BESS_WARN("[BitmapFontAtlas] Font has no Unicode charmap: {}",
-                      fontPath);
+        for (const auto &fontPath : fallbackFontPaths) {
+            static_cast<void>(loadFace(fontPath, false));
         }
 
-        const uint32_t safeAtlasSize =
-            std::clamp(atlasSize, 256u, 4096u);
+        const uint32_t safeAtlasSize = std::clamp(atlasSize, 256u, 4096u);
         if (!createTexture(safeAtlasSize)) {
             destroy();
             return false;
@@ -325,11 +329,44 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         return true;
     }
 
-    void BitmapFontAtlas::destroy() {
-        if (m_face != nullptr) {
-            FT_Done_Face(static_cast<FT_Face>(m_face));
-            m_face = nullptr;
+    bool BitmapFontAtlas::loadFace(std::string_view fontPath, bool required) {
+        if (m_library == nullptr || fontPath.empty()) {
+            if (required) {
+                BESS_WARN("[BitmapFontAtlas] Primary font path is empty");
+            }
+            return false;
         }
+
+        FT_Face face = nullptr;
+        const std::string nullTerminatedPath{fontPath};
+        if (FT_New_Face(static_cast<FT_Library>(m_library),
+                        nullTerminatedPath.c_str(),
+                        0,
+                        &face) != 0) {
+            BESS_WARN("[BitmapFontAtlas] Failed to load {}font: {}",
+                      required ? "primary " : "fallback ",
+                      fontPath);
+            return false;
+        }
+
+        if (FT_Select_Charmap(face, FT_ENCODING_UNICODE) != 0) {
+            BESS_WARN("[BitmapFontAtlas] Font has no Unicode charmap: {}",
+                      fontPath);
+        }
+
+        m_faces.push_back(face);
+        m_currentPixelSizes.push_back(0);
+        return true;
+    }
+
+    void BitmapFontAtlas::destroy() {
+        for (void *face : m_faces) {
+            if (face != nullptr) {
+                FT_Done_Face(static_cast<FT_Face>(face));
+            }
+        }
+        m_faces.clear();
+        m_currentPixelSizes.clear();
         if (m_library != nullptr) {
             FT_Done_FreeType(static_cast<FT_Library>(m_library));
             m_library = nullptr;
@@ -341,41 +378,43 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         m_glyphs.clear();
         m_metrics.clear();
         m_atlasSize = 0;
-        m_currentPixelSize = 0;
         m_cursorX = kAtlasPadding;
         m_cursorY = kAtlasPadding;
         m_rowHeight = 0;
     }
 
     bool BitmapFontAtlas::valid() const noexcept {
-        return m_device != nullptr && m_queue != nullptr && m_texture != nullptr &&
-               m_textureView != nullptr && m_face != nullptr;
+        return m_device != nullptr && m_queue != nullptr &&
+               m_texture != nullptr && m_textureView != nullptr &&
+               !m_faces.empty();
     }
 
-    uint32_t BitmapFontAtlas::quantizePixelSize(float projectedPixelSize) const {
+    uint32_t
+    BitmapFontAtlas::quantizePixelSize(float projectedPixelSize) const {
         if (!std::isfinite(projectedPixelSize)) {
             return m_minPixelSize;
         }
-        const auto rounded = static_cast<int32_t>(std::lround(projectedPixelSize));
+        const auto rounded =
+            static_cast<int32_t>(std::lround(projectedPixelSize));
         return std::clamp<uint32_t>(static_cast<uint32_t>(std::max(1, rounded)),
                                     m_minPixelSize,
                                     m_maxPixelSize);
     }
 
-    BitmapTextLineMetrics
-    BitmapFontAtlas::metricsForSize(uint32_t pixelSize) {
-        const uint32_t bucket = quantizePixelSize(static_cast<float>(pixelSize));
+    BitmapTextLineMetrics BitmapFontAtlas::metricsForSize(uint32_t pixelSize) {
+        const uint32_t bucket =
+            quantizePixelSize(static_cast<float>(pixelSize));
         if (auto it = m_metrics.find(bucket); it != m_metrics.end()) {
             return it->second;
         }
 
-        if (!selectPixelSize(bucket)) {
+        if (!selectPixelSize(0, bucket)) {
             return {.lineHeight = static_cast<float>(bucket),
                     .ascender = static_cast<float>(bucket),
                     .descender = 0.f};
         }
 
-        auto metrics = readCurrentMetrics();
+        auto metrics = readCurrentMetrics(0);
         m_metrics[bucket] = metrics;
         return metrics;
     }
@@ -386,29 +425,38 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             return nullptr;
         }
 
-        const uint32_t bucket = quantizePixelSize(static_cast<float>(pixelSize));
+        const uint32_t bucket =
+            quantizePixelSize(static_cast<float>(pixelSize));
         const uint64_t key = glyphKey(codepoint, bucket);
         if (auto it = m_glyphs.find(key); it != m_glyphs.end()) {
             return &it->second;
         }
 
-        if (!selectPixelSize(bucket)) {
-            return nullptr;
+        std::size_t faceIndex = m_faces.size();
+        FT_UInt glyphIndex = 0;
+        for (std::size_t i = 0; i < m_faces.size(); ++i) {
+            const auto candidate = static_cast<FT_Face>(m_faces[i]);
+            glyphIndex =
+                FT_Get_Char_Index(candidate, static_cast<FT_ULong>(codepoint));
+            if (glyphIndex != 0) {
+                faceIndex = i;
+                break;
+            }
         }
-
-        FT_Face face = static_cast<FT_Face>(m_face);
-        const FT_UInt glyphIndex =
-            FT_Get_Char_Index(face, static_cast<FT_ULong>(codepoint));
         if (glyphIndex == 0) {
             return nullptr;
         }
+        if (!selectPixelSize(faceIndex, bucket)) {
+            return nullptr;
+        }
+
+        const auto face = static_cast<FT_Face>(m_faces[faceIndex]);
 
         if (FT_Load_Glyph(face, glyphIndex, kBitmapGlyphLoadFlags) != 0) {
             return nullptr;
         }
 
-        const float advance =
-            static_cast<float>(face->glyph->advance.x) / 64.f;
+        const float advance = static_cast<float>(face->glyph->advance.x) / 64.f;
         if (FT_Render_Glyph(face->glyph, kBitmapGlyphRenderMode) != 0) {
             return nullptr;
         }
@@ -423,7 +471,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         uint32_t atlasX = 0;
         uint32_t atlasY = 0;
         if (!reserveRegion(width, height, atlasX, atlasY)) {
-            BESS_WARN("[BitmapFontAtlas] Glyph atlas full; falling back to MSDF");
+            BESS_WARN(
+                "[BitmapFontAtlas] Glyph atlas full; falling back to MSDF");
             return nullptr;
         }
 
@@ -503,8 +552,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         m_rowHeight = 0;
 
         const uint32_t bytesPerRow = ((atlasSize + 255u) / 256u) * 256u;
-        std::vector<uint8_t> zeros(static_cast<size_t>(bytesPerRow) *
-                                       atlasSize,
+        std::vector<uint8_t> zeros(static_cast<size_t>(bytesPerRow) * atlasSize,
                                    0);
         wgpu::TexelCopyTextureInfo destination{};
         destination.texture = m_texture;
@@ -518,31 +566,37 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         layout.rowsPerImage = atlasSize;
 
         wgpu::Extent3D writeSize{atlasSize, atlasSize, 1};
-        m_queue.WriteTexture(&destination,
-                             zeros.data(),
-                             zeros.size(),
-                             &layout,
-                             &writeSize);
+        m_queue.WriteTexture(
+            &destination, zeros.data(), zeros.size(), &layout, &writeSize);
         return true;
     }
 
-    bool BitmapFontAtlas::selectPixelSize(uint32_t pixelSize) {
-        if (m_face == nullptr) {
+    bool BitmapFontAtlas::selectPixelSize(std::size_t faceIndex,
+                                          uint32_t pixelSize) {
+        if (faceIndex >= m_faces.size() ||
+            faceIndex >= m_currentPixelSizes.size() ||
+            m_faces[faceIndex] == nullptr) {
             return false;
         }
-        const uint32_t bucket = quantizePixelSize(static_cast<float>(pixelSize));
-        if (m_currentPixelSize == bucket) {
+        const uint32_t bucket =
+            quantizePixelSize(static_cast<float>(pixelSize));
+        if (m_currentPixelSizes[faceIndex] == bucket) {
             return true;
         }
-        if (FT_Set_Pixel_Sizes(static_cast<FT_Face>(m_face), 0, bucket) != 0) {
+        if (FT_Set_Pixel_Sizes(
+                static_cast<FT_Face>(m_faces[faceIndex]), 0, bucket) != 0) {
             return false;
         }
-        m_currentPixelSize = bucket;
+        m_currentPixelSizes[faceIndex] = bucket;
         return true;
     }
 
-    BitmapTextLineMetrics BitmapFontAtlas::readCurrentMetrics() const {
-        const auto face = static_cast<FT_Face>(m_face);
+    BitmapTextLineMetrics
+    BitmapFontAtlas::readCurrentMetrics(std::size_t faceIndex) const {
+        if (faceIndex >= m_faces.size()) {
+            return {};
+        }
+        const auto face = static_cast<FT_Face>(m_faces[faceIndex]);
         if (face == nullptr || face->size == nullptr) {
             return {};
         }
@@ -630,8 +684,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             uploadSize = static_cast<size_t>(bytesPerRow) * height;
             uploadRows.assign(uploadSize, 0);
             for (uint32_t row = 0; row < height; ++row) {
-                const uint8_t *src =
-                    pixels + static_cast<size_t>(row) * width;
+                const uint8_t *src = pixels + static_cast<size_t>(row) * width;
                 uint8_t *dst =
                     uploadRows.data() + static_cast<size_t>(row) * bytesPerRow;
                 std::copy(src, src + width, dst);
@@ -643,11 +696,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         layout.rowsPerImage = height;
 
         wgpu::Extent3D writeSize{width, height, 1};
-        m_queue.WriteTexture(&destination,
-                             uploadPixels,
-                             uploadSize,
-                             &layout,
-                             &writeSize);
+        m_queue.WriteTexture(
+            &destination, uploadPixels, uploadSize, &layout, &writeSize);
         return true;
     }
 
@@ -686,8 +736,9 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
     }
 
     bool BitmapTextPipeline::ensureInstanceBufferSize(std::size_t glyphCount) {
-        const auto requiredSize = std::max<std::size_t>(
-            sizeof(BitmapTextInstance), glyphCount * sizeof(BitmapTextInstance));
+        const auto requiredSize =
+            std::max<std::size_t>(sizeof(BitmapTextInstance),
+                                  glyphCount * sizeof(BitmapTextInstance));
         if (m_instanceBuffer != nullptr &&
             m_instanceBufferSize >= requiredSize) {
             return false;
@@ -703,10 +754,10 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         return true;
     }
 
-    void BitmapTextPipeline::uploadInstances(
-        const wgpu::Queue &queue,
-        const BitmapTextInstance *instances,
-        uint64_t byteSize) const {
+    void
+    BitmapTextPipeline::uploadInstances(const wgpu::Queue &queue,
+                                        const BitmapTextInstance *instances,
+                                        uint64_t byteSize) const {
         if (m_instanceBuffer == nullptr || instances == nullptr ||
             byteSize == 0) {
             return;
@@ -730,10 +781,9 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         return m_bindGroup;
     }
 
-    void BitmapTextPipeline::drawInstances(
-        wgpu::RenderPassEncoder &renderPass,
-        uint32_t firstGlyph,
-        uint32_t glyphCount) const {
+    void BitmapTextPipeline::drawInstances(wgpu::RenderPassEncoder &renderPass,
+                                           uint32_t firstGlyph,
+                                           uint32_t glyphCount) const {
         if (glyphCount == 0) {
             return;
         }
@@ -910,8 +960,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             if (codepoint == 0) {
                 break;
             }
-            if (codepoint == '\r' || codepoint == '\n' ||
-                codepoint == '\t') {
+            if (codepoint == '\r' || codepoint == '\n' || codepoint == '\t') {
                 continue;
             }
             if (atlas.ensureGlyph(codepoint, pixelSize) == nullptr) {
@@ -1020,9 +1069,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 }
             }
 
-            const float advance = glyph->advance > 0.f
-                                      ? glyph->advance * scale
-                                      : props.fontSize * 0.5f;
+            const float advance = glyph->advance > 0.f ? glyph->advance * scale
+                                                       : props.fontSize * 0.5f;
             baseline.x += advance + props.letterSpacing;
         }
 
@@ -1115,9 +1163,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 }
             }
 
-            const float advance = glyph->advance > 0.f
-                                      ? glyph->advance * scale
-                                      : props.fontSize * 0.5f;
+            const float advance = glyph->advance > 0.f ? glyph->advance * scale
+                                                       : props.fontSize * 0.5f;
             lineAdvance += advance + props.letterSpacing;
         }
 
@@ -1135,52 +1182,12 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         const uint32_t pixelSize = atlas.quantizePixelSize(props.fontSize);
         const float scale = props.fontSize / static_cast<float>(pixelSize);
         const BitmapTextLineMetrics metrics = atlas.metricsForSize(pixelSize);
-        const float lineHeight =
-            props.lineHeight > 0.f
-                ? props.lineHeight
-                : std::max(metrics.lineHeight * scale, props.fontSize);
-
-        float baselineY = 0.f;
-        float inkTop = std::numeric_limits<float>::max();
-        float inkBottom = std::numeric_limits<float>::lowest();
-        bool hasInk = false;
-
-        size_t offset = 0;
-        while (offset < text.size()) {
-            const uint32_t codepoint = decodeUtf8(text, offset);
-            if (codepoint == 0) {
-                break;
-            }
-
-            if (codepoint == '\r') {
-                if (offset < text.size() && text[offset] == '\n') {
-                    ++offset;
-                }
-                baselineY += lineHeight;
-                continue;
-            }
-            if (codepoint == '\n') {
-                baselineY += lineHeight;
-                continue;
-            }
-            if (codepoint == '\t') {
-                continue;
-            }
-
-            const BitmapGlyph *glyph = atlas.ensureGlyph(codepoint, pixelSize);
-            if (glyph == nullptr || !glyph->drawable) {
-                continue;
-            }
-
-            const float top = baselineY - (glyph->offsetY * scale);
-            const float bottom = top + (glyph->height * scale);
-            inkTop = std::min(inkTop, top);
-            inkBottom = std::max(inkBottom, bottom);
-            hasInk = true;
-        }
-
-        return hasInk ? -((inkTop + inkBottom) * 0.5f)
-                      : props.fontSize * 0.35f;
+        return centeredBaselineOffsetY(
+            text,
+            props,
+            {.ascender = metrics.ascender * scale,
+             .descender = metrics.descender * scale,
+             .lineHeight = metrics.lineHeight * scale});
     }
 
 } // namespace Bess::Wgpu::Text

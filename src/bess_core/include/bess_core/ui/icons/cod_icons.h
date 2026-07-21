@@ -1,5 +1,9 @@
 #pragma once
 
+// Stable codepoint identifiers for the Codicons glyphs packed into Bess's
+// shared font atlas. This header owns identifiers only and has no UI-runtime
+// dependency.
+
 namespace Bess::UI::Icons::CodIcons {
     constexpr auto ICON_MIN_CI = 0x3ea60;
     constexpr auto ICON_MAX_CI = 0x3f101;

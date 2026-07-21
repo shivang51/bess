@@ -13,7 +13,7 @@
 namespace Bess::UI {
 
     struct TabStripMetrics {
-        float height = 34.f;
+        float height = 28.f;
         float minimumWidth = 72.f;
         float maximumWidth = 220.f;
         float horizontalPadding = 12.f;

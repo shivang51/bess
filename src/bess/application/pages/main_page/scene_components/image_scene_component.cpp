@@ -7,7 +7,7 @@
 #include "common/logger.h"
 #include "gtc/type_ptr.hpp"
 #include "imgui.h"
-#include "ui/icons/FontAwesomeIcons_Remapped.h"
+#include "bess_core/ui/icons/font_awesome_icons.h"
 #include "ui/widgets/m_widgets.h"
 #include <algorithm>
 #include <cmath>

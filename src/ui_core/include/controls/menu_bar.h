@@ -14,6 +14,13 @@ namespace Bess::UI {
 
     struct MenuBarOptions {
         std::optional<UIMenuStyle> style;
+        // MenuBar is content-sized and background-neutral by default so it
+        // composes naturally inside application bars alongside icons,
+        // spacers, and arbitrary actions. These switches retain convenient
+        // standalone/full-width use without coupling the control to a
+        // particular piece of window chrome.
+        bool stretchWidth = false;
+        bool drawBackground = false;
     };
 
     struct MenuHeadingLayout {
@@ -52,13 +59,14 @@ namespace Bess::UI {
         [[nodiscard]] bool contains(glm::vec2 position) const noexcept;
     };
 
-    // Pure placement shared by painting, input, and tests. Popups flip at the
-    // viewport edges and submenus overlap their parent by a small themed
-    // amount, avoiding dead pointer gaps.
+    // Pure placement shared by painting, input, and tests. `controlBounds`
+    // includes the themed vertical margin; `MenuBarLayout::barBounds` is the
+    // inset, interactive strip. Popups flip at viewport edges and submenus
+    // overlap their parent by a small themed amount, avoiding dead gaps.
     class BESS_API MenuBarLayoutSolver {
       public:
         [[nodiscard]] static MenuBarLayout
-        calculate(WidgetBounds barBounds,
+        calculate(WidgetBounds controlBounds,
                   WidgetBounds viewportBounds,
                   const MenuModel &model,
                   MenuId activeMenu,

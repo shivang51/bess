@@ -1,7 +1,7 @@
 #include "ui/widgets/m_widgets.h"
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "ui/icons/FontAwesomeIcons_Remapped.h"
+#include "bess_core/ui/icons/font_awesome_icons.h"
 
 namespace Bess::UI::Widgets {
     static int InputTextCallback(ImGuiInputTextCallbackData *data) {

@@ -145,8 +145,17 @@ menus->addMenu({
     },
 });
 
-ui.menuBar(menus);
+ui.row([&](Bess::UI::UIComposer &applicationBar) {
+    applicationBar.label("B");                 // app icon/branding
+    applicationBar.menuBar(menus);              // intrinsic-width control
+    applicationBar.spacer();                    // flexible middle region
+    applicationBar.button("Account", onAccount); // arbitrary actions
+});
 ```
+
+`MenuBar` is content-sized and background-neutral by default, leaving the
+surrounding row or surface in charge of application-bar chrome. Set
+`MenuBarOptions::stretchWidth` or `drawBackground` for standalone use.
 
 The shortcut string is presentation metadata; application command routing
 remains the authority for global accelerators. Menu placement, painting, and

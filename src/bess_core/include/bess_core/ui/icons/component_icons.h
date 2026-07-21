@@ -1,5 +1,9 @@
 #pragma once
 
+// Stable codepoint identifiers for Bess component glyphs packed into the
+// shared font atlas. This header owns identifiers only and has no UI-runtime
+// dependency.
+
 namespace Bess::UI::Icons::ComponentIcons {
     constexpr auto SIZE_MIN_CI = 0x4f900;
     constexpr auto SIZE_MAX_CI = 0x4f907;

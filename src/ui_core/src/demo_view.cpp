@@ -41,6 +41,29 @@ namespace Bess::UI {
             };
         }
 
+        FlexContainerOptions menuHeaderOptions() {
+            return {
+                .direction = LayoutDirection::horizontal,
+                .mainAxisAlignment = LayoutAlignment::start,
+                .crossAxisAlignment = LayoutAlignment::center,
+                .padding = Core::Style::Padding::fromHorizontal(4.f),
+                .stretchWidth = true,
+                .stretchHeight = false,
+                .clipChildren = false,
+                .hitTestVisible = false,
+            };
+        }
+
+        LabelOptions applicationIconLabel() {
+            return {
+                .style =
+                    UITextStyle{
+                        .color = Core::Renderer::Color::fromRGBA8(85, 199, 210),
+                        .fontSize = 13.f,
+                    },
+            };
+        }
+
         LabelOptions headingLabel() {
             return {
                 .style =
@@ -176,7 +199,21 @@ namespace Bess::UI {
         auto shell = ui.surface([this](UIComposer &surface) {
             auto page =
                 surface.column(columnOptions(), [this](UIComposer &page) {
-                    m_menuBar = page.menuBar(m_menus);
+                    auto menuHeader = page.row(
+                        menuHeaderOptions(), [this](UIComposer &header) {
+                            header.label("B", applicationIconLabel());
+                            m_menuBar = header.menuBar(m_menus);
+                            header.spacer();
+                            auto action = header.button(
+                                "?", [this] { setStatus("Toolbar action"); });
+                            action.updateLayout([](LayoutNode &layout) {
+                                layout.setMinSize({20.f, 20.f});
+                                layout.setWidth(20.f);
+                                layout.setHeight(20.f);
+                            });
+                        });
+                    menuHeader.updateLayout(
+                        [](LayoutNode &layout) { layout.setFlexShrink(0.f); });
                     auto header =
                         page.row(headerOptions(), [this](UIComposer &header) {
                             header.label("Bess UI Core", headingLabel());

@@ -38,11 +38,7 @@ set(Header_Files
 	
 	"ui/ui_hook.h"
 	"ui/icons/ComponentIcons.h"
-	"ui/icons/FontAwesomeIcons_Remapped.h"
 	"ui/icons/CodIcons.h"
-	"ui/icons/ComponentIcons_Remapped.h"
-	"ui/icons/CodIcons_Remapped.h"
-	"ui/icons/MaterialIcons_Remapped.h"
 	"ui/icons/FontAwesomeIcons.h"
 	"ui/icons/MaterialIcons.h"
 	"ui/widgets/m_widgets.h"

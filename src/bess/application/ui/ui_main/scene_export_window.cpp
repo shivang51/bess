@@ -12,7 +12,7 @@
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
 #include "sub_systems/renderer_context.h"
-#include "ui/icons/FontAwesomeIcons_Remapped.h"
+#include "bess_core/ui/icons/font_awesome_icons.h"
 #include "ui/ui_main/dialogs.h"
 #include "ui/widgets/m_widgets.h"
 

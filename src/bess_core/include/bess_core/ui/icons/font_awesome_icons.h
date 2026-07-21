@@ -1,5 +1,9 @@
 #pragma once
 
+// Stable codepoint identifiers for Font Awesome glyphs packed into Bess's
+// shared font atlas. This header owns identifiers only and has no UI-runtime
+// dependency.
+
 namespace Bess::UI::Icons::FontAwesomeIcons {
     constexpr auto SIZE_MIN_FA = 0x10021;
     constexpr auto SIZE_MAX_FA = 0x1f8ff;

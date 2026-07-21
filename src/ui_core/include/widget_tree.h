@@ -188,6 +188,11 @@ namespace Bess::UI {
 
         using Nodes = NodeHashMap<WidgetId, Node>;
 
+        struct HitTestResult {
+            WidgetId id;
+            float zIndex = 0.f;
+        };
+
         [[nodiscard]] Node *findNode(WidgetId id) noexcept;
         [[nodiscard]] const Node *findNode(WidgetId id) const noexcept;
         [[nodiscard]] bool isDescendantOf(WidgetId id,
@@ -204,9 +209,10 @@ namespace Bess::UI {
         void updateLayoutSubtree(WidgetId id, bool themeChanged);
         void updateSubtree(WidgetId id, TimeMs deltaTime);
         void paintSubtree(WidgetId id, UIPainter &painter);
-        [[nodiscard]] WidgetId hitTestSubtree(WidgetId id,
-                                              glm::vec2 position,
-                                              bool ancestorsEnabled) const;
+        [[nodiscard]] HitTestResult hitTestSubtree(WidgetId id,
+                                                   glm::vec2 position,
+                                                   bool ancestorsEnabled,
+                                                   float ancestorZ) const;
 
         [[nodiscard]] std::optional<glm::vec2>
         pointerPosition(const UIEvent &event) const noexcept;

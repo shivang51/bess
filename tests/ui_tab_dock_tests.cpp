@@ -83,6 +83,28 @@ namespace {
         EXPECT_EQ(*hit, 1);
     }
 
+    TEST(TabStripLayoutTests, DarkThemeUsesSlimDockTabs) {
+        const auto &style = UITheme::dark().tabs;
+        const WidgetBounds bounds{.center = {0.f, 0.f},
+                                  .size = {320.f, style.height}};
+        const auto regions = TabStripLayout::calculate(
+            bounds,
+            2,
+            {.height = style.height,
+             .minimumWidth = style.minimumWidth,
+             .maximumWidth = style.maximumWidth,
+             .horizontalPadding = style.horizontalPadding,
+             .stripPadding = style.stripPadding,
+             .gap = style.gap});
+
+        ASSERT_EQ(regions.size(), 2);
+        EXPECT_FLOAT_EQ(style.height, 28.f);
+        EXPECT_FLOAT_EQ(regions.front().bounds.size.y,
+                        style.height - style.stripPadding.y * 2.f);
+        EXPECT_EQ(style.text.fontSize, 13.f);
+        EXPECT_EQ(style.active.cornerRadius, glm::vec4(6.f));
+    }
+
     TEST(DockDropGuideLayoutTests, ProducesNodeLocalZonesWithMatchingPreviews) {
         const DockNodeId target = DockNodeId::generate();
         const WidgetBounds bounds{.center = {50.f, -20.f},
@@ -136,6 +158,16 @@ namespace {
                   bounds.center.x);
         EXPECT_FLOAT_EQ(guide.region(DockZone::bottom)->previewBounds.size.y,
                         (bounds.size.y - 10.f) * 0.5f);
+    }
+
+    TEST(DockStyleTests, FloatingContentDoesNotDrawASecondRoundedFrame) {
+        const auto &style = UITheme::dark().dock.floatingStack;
+        EXPECT_FLOAT_EQ(style.cornerRadius.x, 0.f);
+        EXPECT_FLOAT_EQ(style.cornerRadius.y, 0.f);
+        EXPECT_GT(style.cornerRadius.z, 0.f);
+        EXPECT_GT(style.cornerRadius.w, 0.f);
+        EXPECT_EQ(style.borderThickness, glm::vec4(0.f));
+        EXPECT_FALSE(style.shadow.enabled);
     }
 
     TEST(DockSpaceModelTests, FourSideDockedItemsProduceFourTerminalStacks) {

@@ -23,7 +23,7 @@
 #include "simulation_engine.h"
 #include "slot_scene_component.h"
 #include "sub_systems/renderer_context.h"
-#include "ui/icons/FontAwesomeIcons_Remapped.h"
+#include "bess_core/ui/icons/font_awesome_icons.h"
 #include "ui/ui_main/ui_main.h"
 #include "ui/widgets/m_widgets.h"
 

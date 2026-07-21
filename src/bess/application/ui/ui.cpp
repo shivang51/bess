@@ -5,14 +5,14 @@
 #include "imgui_impl_wgpu.h"
 #include "pages/main_page/main_page.h"
 #include "sub_systems/renderer_context.h"
-#include "ui/icons/CodIcons_Remapped.h"
-#include "ui/icons/ComponentIcons_Remapped.h"
-#include "ui/icons/FontAwesomeIcons_Remapped.h"
+#include "bess_core/ui/icons/cod_icons.h"
+#include "bess_core/ui/icons/component_icons.h"
+#include "bess_core/ui/icons/font_awesome_icons.h"
 #include "window.h"
 
 #include "assets.h"
 #include "bess_core/settings/settings.h"
-#include "ui/icons/MaterialIcons_Remapped.h"
+#include "bess_core/ui/icons/material_icons.h"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"

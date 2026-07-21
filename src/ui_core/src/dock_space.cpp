@@ -181,11 +181,44 @@ namespace Bess::UI {
         const auto paintTopology = [&](const DockSpaceModel &model,
                                        const DockLayoutResult &layout,
                                        float layer,
-                                       DockHostId host) {
+                                       DockHostId host,
+                                       const WidgetBounds *floatingClient =
+                                           nullptr) {
             uint32_t pickingInfo = 1;
             for (const auto &stackLayout : layout.stacks) {
+                auto stackStyle = host ? dock.floatingStack : dock.stack;
+                if (floatingClient != nullptr) {
+                    constexpr float edgeTolerance = 0.5f;
+                    const auto stackTopLeft = stackLayout.bounds.topLeft();
+                    const auto stackBottomRight =
+                        stackLayout.bounds.bottomRight();
+                    const auto clientTopLeft = floatingClient->topLeft();
+                    const auto clientBottomRight =
+                        floatingClient->bottomRight();
+                    const bool touchesBottom =
+                        std::abs(stackBottomRight.y - clientBottomRight.y) <=
+                        edgeTolerance;
+                    const bool touchesLeft =
+                        std::abs(stackTopLeft.x - clientTopLeft.x) <=
+                        edgeTolerance;
+                    const bool touchesRight =
+                        std::abs(stackBottomRight.x - clientBottomRight.x) <=
+                        edgeTolerance;
+                    // Floating content is one continuous window surface, not
+                    // a rounded panel nested below the title bar. Preserve
+                    // only the corners that coincide with the outer bottom
+                    // silhouette when the host contains multiple stacks.
+                    stackStyle.cornerRadius.x = 0.f;
+                    stackStyle.cornerRadius.y = 0.f;
+                    if (!touchesBottom || !touchesRight) {
+                        stackStyle.cornerRadius.z = 0.f;
+                    }
+                    if (!touchesBottom || !touchesLeft) {
+                        stackStyle.cornerRadius.w = 0.f;
+                    }
+                }
                 context.painter.drawBox(makeBox(
-                    stackLayout.bounds, dock.stack, context.pickingId, layer));
+                    stackLayout.bounds, stackStyle, context.pickingId, layer));
                 if (stackLayout.tabBarBounds.size.y <= 0.f) {
                     continue;
                 }
@@ -261,10 +294,12 @@ namespace Bess::UI {
                                             dock.floatingWindow,
                                             context.pickingId,
                                             layer - 0.005f));
+            const auto client = floatingClientBounds(host, context.state);
             paintTopology(host.model,
                           calculateFloatingLayout(host, context.state),
                           layer,
-                          host.id);
+                          host.id,
+                          &client);
         }
     }
 

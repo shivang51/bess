@@ -7,9 +7,11 @@
 #include "bess_wgpu/wgpu_shader.h"
 #include "common/types.h"
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -17,6 +19,13 @@
 
 namespace Bess::Wgpu::Text {
     constexpr uint32_t kBitmapTextFlagApplyCameraTransform = 1u << 0u;
+    inline constexpr std::array<std::string_view, 4>
+        kBundledBitmapFallbackFontPaths = {
+            "assets/bess_fonts/FontAwesomeIcons_remapped.ttf",
+            "assets/bess_fonts/CodIcons_remapped.ttf",
+            "assets/bess_fonts/ComponentIcons_remapped.ttf",
+            "assets/bess_fonts/MaterialIcons_remapped.ttf",
+    };
 
     struct BESS_API BitmapGlyph {
         uint32_t codepoint = 0;
@@ -44,12 +53,19 @@ namespace Bess::Wgpu::Text {
                   uint32_t atlasSize = 2048,
                   uint32_t minPixelSize = 8,
                   uint32_t maxPixelSize = 24);
+        bool init(const wgpu::Device &device,
+                  const wgpu::Queue &queue,
+                  const std::string &primaryFontPath,
+                  std::span<const std::string_view> fallbackFontPaths,
+                  uint32_t atlasSize = 2048,
+                  uint32_t minPixelSize = 8,
+                  uint32_t maxPixelSize = 24);
         void destroy();
 
         [[nodiscard]] bool valid() const noexcept;
-        [[nodiscard]] uint32_t quantizePixelSize(float projectedPixelSize) const;
-        [[nodiscard]] BitmapTextLineMetrics
-        metricsForSize(uint32_t pixelSize);
+        [[nodiscard]] uint32_t
+        quantizePixelSize(float projectedPixelSize) const;
+        [[nodiscard]] BitmapTextLineMetrics metricsForSize(uint32_t pixelSize);
         [[nodiscard]] const BitmapGlyph *ensureGlyph(uint32_t codepoint,
                                                      uint32_t pixelSize);
         [[nodiscard]] const wgpu::TextureView &getTextureView() const;
@@ -59,32 +75,37 @@ namespace Bess::Wgpu::Text {
 
       private:
         bool createTexture(uint32_t atlasSize);
-        bool selectPixelSize(uint32_t pixelSize);
-        [[nodiscard]] BitmapTextLineMetrics readCurrentMetrics() const;
+        bool loadFace(std::string_view fontPath, bool required);
+        bool selectPixelSize(std::size_t faceIndex, uint32_t pixelSize);
+        [[nodiscard]] BitmapTextLineMetrics
+        readCurrentMetrics(std::size_t faceIndex) const;
         [[nodiscard]] const BitmapGlyph *cacheEmptyGlyph(uint64_t key,
                                                          uint32_t codepoint,
                                                          uint32_t pixelSize,
                                                          float advance);
         [[nodiscard]] bool reserveRegion(uint32_t width,
-                                          uint32_t height,
-                                          uint32_t &x,
-                                          uint32_t &y);
+                                         uint32_t height,
+                                         uint32_t &x,
+                                         uint32_t &y);
         [[nodiscard]] bool uploadGlyph(uint32_t x,
-                                        uint32_t y,
-                                        uint32_t width,
-                                        uint32_t height,
-                                        const uint8_t *pixels);
+                                       uint32_t y,
+                                       uint32_t width,
+                                       uint32_t height,
+                                       const uint8_t *pixels);
 
         wgpu::Device m_device;
         wgpu::Queue m_queue;
         wgpu::Texture m_texture;
         wgpu::TextureView m_textureView;
         void *m_library = nullptr;
-        void *m_face = nullptr;
+        // The primary text face is first. Remaining faces are ordered
+        // fallbacks (for example remapped icon fonts); FreeType faces remain
+        // opaque in this public header.
+        std::vector<void *> m_faces;
+        std::vector<uint32_t> m_currentPixelSizes;
         uint32_t m_atlasSize = 0;
         uint32_t m_minPixelSize = 8;
         uint32_t m_maxPixelSize = 24;
-        uint32_t m_currentPixelSize = 0;
         uint32_t m_cursorX = 1;
         uint32_t m_cursorY = 1;
         uint32_t m_rowHeight = 0;
@@ -183,8 +204,7 @@ namespace Bess::Wgpu::Text {
                 const float zIndex = m_instances[i].position[2];
                 const uint64_t submitOrder = m_submitOrders[i];
                 const auto scissor = m_scissors[i];
-                if (m_drawRuns.empty() ||
-                    m_drawRuns.back().zIndex != zIndex ||
+                if (m_drawRuns.empty() || m_drawRuns.back().zIndex != zIndex ||
                     m_drawRuns.back().scissor != scissor) {
                     m_drawRuns.push_back({
                         .firstGlyph = i,
@@ -271,8 +291,7 @@ namespace Bess::Wgpu::Text {
 
         wgpu::Device m_device;
         wgpu::TextureFormat m_targetFormat = wgpu::TextureFormat::BGRA8Unorm;
-        wgpu::TextureFormat m_pickingFormat =
-            wgpu::TextureFormat::Undefined;
+        wgpu::TextureFormat m_pickingFormat = wgpu::TextureFormat::Undefined;
         wgpu::Buffer m_frameBuffer;
         uint64_t m_frameBufferSize = 0;
         wgpu::Buffer m_instanceBuffer;

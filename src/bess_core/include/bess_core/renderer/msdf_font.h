@@ -151,6 +151,9 @@ namespace Bess::Core::Renderer {
         [[nodiscard]] float ascender() const noexcept {
             return m_ascender;
         }
+        [[nodiscard]] float descender() const noexcept {
+            return m_descender;
+        }
         [[nodiscard]] float fontSize() const noexcept {
             return m_fontSize;
         }

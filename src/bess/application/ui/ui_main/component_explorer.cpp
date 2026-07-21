@@ -14,7 +14,7 @@
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "services/plugin_service/plugin_service.h"
 #include "sim_driver/sim_driver.h"
-#include "ui/icons/CodIcons_Remapped.h"
+#include "bess_core/ui/icons/cod_icons.h"
 #include "ui/ui_main/ui_main.h"
 #include "ui/widgets/m_widgets.h"
 #include <utility>

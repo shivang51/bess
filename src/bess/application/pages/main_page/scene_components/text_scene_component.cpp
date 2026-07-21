@@ -6,7 +6,7 @@
 #include "bess_core/scene/widgets/scene_widgets.h"
 #include "bess_core/settings/viewport_theme.h"
 #include "imgui.h"
-#include "ui/icons/FontAwesomeIcons_Remapped.h"
+#include "bess_core/ui/icons/font_awesome_icons.h"
 #include "ui/widgets/m_widgets.h"
 
 namespace Icons = Bess::UI::Icons;

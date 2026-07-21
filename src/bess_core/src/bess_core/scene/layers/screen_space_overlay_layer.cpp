@@ -8,13 +8,13 @@
 #include "bess_core/scene/widgets/scene_widgets.h"
 #include "bess_core/scene_driver.h"
 #include "bess_core/settings/viewport_theme.h"
+#include "bess_core/ui/icons/font_awesome_icons.h"
+#include "bess_core/ui/icons/cod_icons.h"
+#include "bess_core/ui/icons/material_icons.h"
 #include "common/types.h"
 #include "ext/vector_float2.hpp"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
-#include "ui/icons/CodIcons_Remapped.h"
-#include "ui/icons/FontAwesomeIcons_Remapped.h"
-#include "ui/icons/MaterialIcons_Remapped.h"
 
 #include <cstdint>
 #include <utility>

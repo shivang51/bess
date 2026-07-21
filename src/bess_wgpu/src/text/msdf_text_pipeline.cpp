@@ -1,4 +1,5 @@
 #include "bess_wgpu/text/msdf_text_pipeline.h"
+#include "bess_wgpu/text/text_metrics.h"
 
 #include "bess_core/renderer/msdf_font.h"
 #include "bess_core/renderer/renderer_types.h"
@@ -9,7 +10,6 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
-#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string_view>
@@ -699,54 +699,12 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         }
 
         const float fontSize = props.fontSize;
-        const float lineHeight =
-            props.lineHeight > 0.f
-                ? props.lineHeight
-                : std::max(atlas.lineHeight() * fontSize, fontSize);
-
-        float baselineY = 0.f;
-        float inkTop = std::numeric_limits<float>::max();
-        float inkBottom = std::numeric_limits<float>::lowest();
-        bool hasInk = false;
-
-        size_t offset = 0;
-        while (offset < text.size()) {
-            const uint32_t codepoint = decodeUtf8(text, offset);
-            if (codepoint == 0) {
-                break;
-            }
-
-            if (codepoint == '\r') {
-                if (offset < text.size() && text[offset] == '\n') {
-                    ++offset;
-                }
-                baselineY += lineHeight;
-                continue;
-            }
-
-            if (codepoint == '\n') {
-                baselineY += lineHeight;
-                continue;
-            }
-
-            if (codepoint == '\t') {
-                continue;
-            }
-
-            const Core::Renderer::MsdfGlyph *glyph = atlas.findGlyph(codepoint);
-            if (glyph == nullptr || !glyph->drawable) {
-                continue;
-            }
-
-            const glm::vec4 &bounds = glyph->planeBounds;
-            const float top = baselineY - (bounds.w * fontSize);
-            const float bottom = baselineY - (bounds.y * fontSize);
-            inkTop = std::min(inkTop, top);
-            inkBottom = std::max(inkBottom, bottom);
-            hasInk = true;
-        }
-
-        return hasInk ? -((inkTop + inkBottom) * 0.5f) : fontSize * 0.35f;
+        return centeredBaselineOffsetY(
+            text,
+            props,
+            {.ascender = atlas.ascender() * fontSize,
+             .descender = atlas.descender() * fontSize,
+             .lineHeight = atlas.lineHeight() * fontSize});
     }
 
     template bool appendMsdfText<Core::Renderer::MsdfFontAtlas<WgpuTexture>>(

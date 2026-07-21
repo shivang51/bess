@@ -1,5 +1,6 @@
 #include "controls/menu_bar.h"
 
+#include "bess_core/ui/icons/font_awesome_icons.h"
 #include "ui_painter.h"
 #include "widget_tree.h"
 
@@ -14,6 +15,31 @@ namespace Bess::UI {
                 0.f,
                 static_cast<float>(text.size()) * style.fontSize * 0.6f +
                     style.letterSpacing * static_cast<float>(text.size()));
+        }
+
+        float preferredBarWidth(const MenuModel &model,
+                                const UIMenuStyle &style) {
+            float width = 0.f;
+            for (const auto &menu : model.menus()) {
+                width += textWidth(menu.name, style.barText) +
+                         std::max(0.f, style.barHorizontalPadding) * 2.f;
+            }
+            return width;
+        }
+
+        float menuBarControlHeight(const UIMenuStyle &style) {
+            return std::max(1.f, style.barHeight) +
+                   std::max(0.f, style.barVerticalMargin) * 2.f;
+        }
+
+        WidgetBounds menuBarContentBounds(WidgetBounds controlBounds,
+                                          const UIMenuStyle &style) {
+            const float margin =
+                std::min(std::max(0.f, style.barVerticalMargin),
+                         std::max(0.f, controlBounds.size.y) * 0.5f);
+            controlBounds.size.y =
+                std::max(0.f, controlBounds.size.y - margin * 2.f);
+            return controlBounds;
         }
 
         BoxPaint makeBox(WidgetBounds bounds,
@@ -119,16 +145,18 @@ namespace Bess::UI {
     }
 
     MenuBarLayout
-    MenuBarLayoutSolver::calculate(WidgetBounds barBounds,
+    MenuBarLayoutSolver::calculate(WidgetBounds controlBounds,
                                    WidgetBounds viewportBounds,
                                    const MenuModel &model,
                                    MenuId activeMenu,
                                    std::span<const MenuItemId> openSubmenus,
                                    const UIMenuStyle &style) {
+        const WidgetBounds barBounds =
+            menuBarContentBounds(controlBounds, style);
         MenuBarLayout result{.barBounds = barBounds};
         float headingLeft = barBounds.topLeft().x;
         for (const auto &menu : model.menus()) {
-            const float width = textWidth(menu.name, style.text) +
+            const float width = textWidth(menu.name, style.barText) +
                                 std::max(0.f, style.barHorizontalPadding) * 2.f;
             const WidgetBounds bounds =
                 fromTopLeft({headingLeft, barBounds.topLeft().y},
@@ -224,19 +252,21 @@ namespace Bess::UI {
                         fromTopLeft({left, top}, {iconWidth, rowHeight});
                     left += iconWidth;
 
-                    float indicatorWidth =
-                        item.isSubmenu()
-                            ? std::max(0.f, style.submenuIndicatorWidth)
-                            : 0.f;
+                    // Shortcut and submenu affordance columns belong to the
+                    // popup, not individual rows. Reserving them on every row
+                    // keeps shortcut ends aligned and leaves the rightmost
+                    // column exclusively for submenu arrows.
+                    const float indicatorWidth =
+                        hasSubmenu ? std::max(0.f, style.submenuIndicatorWidth)
+                                   : 0.f;
                     row.submenuIndicatorBounds =
                         fromTopLeft({right - indicatorWidth, top},
                                     {indicatorWidth, rowHeight});
                     float textRight = right - indicatorWidth;
                     const float shortcut =
-                        !item.shortcut.empty()
-                            ? std::min(shortcutWidth,
-                                       std::max(0.f, textRight - left))
-                            : 0.f;
+                        hasShortcut ? std::min(shortcutWidth,
+                                               std::max(0.f, textRight - left))
+                                    : 0.f;
                     if (shortcut > 0.f) {
                         row.shortcutBounds = fromTopLeft(
                             {textRight - shortcut, top}, {shortcut, rowHeight});
@@ -292,8 +322,13 @@ namespace Bess::UI {
     void MenuBar::onMount(WidgetMountContext &context) {
         m_state = &context.state;
         m_id = context.id;
-        context.layout.setWidthPercent(1.f);
-        context.layout.setHeight(style(context.state).barHeight);
+        const auto &menuStyle = style(context.state);
+        if (m_options.stretchWidth) {
+            context.layout.setWidthPercent(1.f);
+        } else {
+            context.layout.setWidth(preferredBarWidth(*m_model, menuStyle));
+        }
+        context.layout.setHeight(menuBarControlHeight(menuStyle));
         context.layout.setFlexShrink(0.f);
         context.layout.setZVal(10.f);
         reconnectModel();
@@ -307,9 +342,13 @@ namespace Bess::UI {
     }
 
     void MenuBar::updateLayout(WidgetLayoutContext &context) {
-        if (context.themeChanged || m_options.style) {
-            context.layout.setHeight(style(context.state).barHeight);
+        const auto &menuStyle = style(context.state);
+        if (m_options.stretchWidth) {
+            context.layout.setWidthPercent(1.f);
+        } else {
+            context.layout.setWidth(preferredBarWidth(*m_model, menuStyle));
         }
+        context.layout.setHeight(menuBarControlHeight(menuStyle));
     }
 
     void MenuBar::arrange(WidgetArrangeContext &context) {
@@ -319,8 +358,10 @@ namespace Bess::UI {
     void MenuBar::paint(WidgetPaintContext &context) const {
         rebuildLayout(context.bounds, context.state);
         const auto &menuStyle = style(context.state);
-        context.painter.drawBox(
-            makeBox(context.bounds, menuStyle.bar, context.pickingId));
+        if (m_options.drawBackground) {
+            context.painter.drawBox(
+                makeBox(m_layout.barBounds, menuStyle.bar, context.pickingId));
+        }
         for (const auto &heading : m_layout.headings) {
             const auto *menu = m_model->findMenu(heading.menu);
             if (menu == nullptr) {
@@ -337,13 +378,13 @@ namespace Bess::UI {
             context.painter.drawText(
                 menu->name,
                 {.bounds = heading.bounds,
-                 .fontSize = menuStyle.text.fontSize,
-                 .color = menu->enabled ? menuStyle.text.color
+                 .fontSize = menuStyle.barText.fontSize,
+                 .color = menu->enabled ? menuStyle.barText.color
                                         : menuStyle.disabledText,
                  .horizontal = HorizontalTextAlignment::center,
                  .vertical = VerticalTextAlignment::center,
                  .zIndex = 0.002f,
-                 .letterSpacing = menuStyle.text.letterSpacing,
+                 .letterSpacing = menuStyle.barText.letterSpacing,
                  .pickingId = context.pickingId});
         }
     }
@@ -392,7 +433,7 @@ namespace Bess::UI {
                          .fontSize = menuStyle.text.fontSize,
                          .color = item->enabled ? menuStyle.iconColor
                                                 : menuStyle.disabledText,
-                         .horizontal = HorizontalTextAlignment::center,
+                         .horizontal = HorizontalTextAlignment::start,
                          .vertical = VerticalTextAlignment::center,
                          .zIndex = layer + 0.002f,
                          .letterSpacing = menuStyle.text.letterSpacing,
@@ -423,14 +464,14 @@ namespace Bess::UI {
                 }
                 if (item->isSubmenu()) {
                     context.painter.drawText(
-                        ">",
+                        Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT,
                         {.bounds = row.submenuIndicatorBounds,
-                         .fontSize = menuStyle.text.fontSize,
+                         .fontSize =
+                             std::max(1.f, menuStyle.submenuChevronSize),
                          .color = textColor,
                          .horizontal = HorizontalTextAlignment::center,
                          .vertical = VerticalTextAlignment::center,
                          .zIndex = layer + 0.002f,
-                         .letterSpacing = menuStyle.text.letterSpacing,
                          .pickingId = context.pickingId});
                 }
             }

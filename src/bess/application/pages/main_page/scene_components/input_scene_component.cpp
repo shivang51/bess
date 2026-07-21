@@ -13,7 +13,7 @@
 #include "common/types.h"
 #include "sim_scene_component.h"
 #include "simulation_engine.h"
-#include "ui/icons/FontAwesomeIcons_Remapped.h"
+#include "bess_core/ui/icons/font_awesome_icons.h"
 #include <algorithm>
 #include <stdexcept>
 #include <string>

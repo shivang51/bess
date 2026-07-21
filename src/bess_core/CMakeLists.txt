@@ -6,6 +6,10 @@ set(Header_Files
 	"include/bess_core/viewport.h"
 	"include/bess_core/input/input_event.h"
 	"include/bess_core/input/input_types.h"
+	"include/bess_core/ui/icons/cod_icons.h"
+	"include/bess_core/ui/icons/component_icons.h"
+	"include/bess_core/ui/icons/font_awesome_icons.h"
+	"include/bess_core/ui/icons/material_icons.h"
 
 	"include/bess_core/commands/add_component_command.h"
 	"include/bess_core/commands/command.h"

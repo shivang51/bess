@@ -1,5 +1,9 @@
 #pragma once
 
+// Stable codepoint identifiers for Material glyphs packed into Bess's shared
+// font atlas. This header owns identifiers only and has no UI-runtime
+// dependency.
+
 namespace Bess::UI::Icons::MaterialIcons {
     constexpr auto ICON_MIN_MD = 0xe000;
     constexpr auto ICON_MAX_MD = 0xeb4c;

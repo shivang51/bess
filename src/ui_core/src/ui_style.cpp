@@ -53,21 +53,22 @@ namespace Bess::UI {
         };
         theme.tabs.hovered = theme.tabs.normal;
         theme.tabs.hovered.background = Color::fromRGBA8(48, 54, 57);
-        theme.tabs.hovered.cornerRadius = glm::vec4{9.f};
+        theme.tabs.hovered.cornerRadius = glm::vec4{6.f};
         theme.tabs.active = {
             .background = Color::fromRGBA8(64, 78, 80),
             .border = Color::fromRGBA8(82, 96, 99),
-            .cornerRadius = glm::vec4{9.f},
+            .cornerRadius = glm::vec4{6.f},
             .borderThickness = glm::vec4{1.f},
         };
         theme.tabs.pressed = theme.tabs.hovered;
         theme.tabs.pressed.background = pressed;
-        theme.tabs.pressed.cornerRadius = glm::vec4{9.f};
+        theme.tabs.pressed.cornerRadius = glm::vec4{6.f};
         theme.tabs.text = theme.label;
-        theme.tabs.height = 36.f;
+        theme.tabs.text.fontSize = 13.f;
+        theme.tabs.height = 28.f;
         theme.tabs.minimumWidth = 78.f;
-        theme.tabs.horizontalPadding = 12.f;
-        theme.tabs.stripPadding = {4.f, 3.f};
+        theme.tabs.horizontalPadding = 10.f;
+        theme.tabs.stripPadding = {3.f, 2.f};
         theme.tabs.gap = 2.f;
 
         theme.menus.bar = {
@@ -77,7 +78,7 @@ namespace Bess::UI {
         };
         theme.menus.barItem = {.background = transparent,
                                .border = transparent,
-                               .cornerRadius = glm::vec4{4.f}};
+                               .cornerRadius = glm::vec4{5.f}};
         theme.menus.barItemHovered = theme.menus.barItem;
         theme.menus.barItemHovered.background = hover;
         theme.menus.barItemActive = theme.menus.barItem;
@@ -103,7 +104,13 @@ namespace Bess::UI {
         };
         theme.menus.itemPressed = theme.menus.itemHovered;
         theme.menus.itemPressed.background = pressed;
+        theme.menus.barText = theme.label;
+        theme.menus.barText.fontSize = 12.f;
         theme.menus.text = theme.label;
+        theme.menus.barHeight = 22.f;
+        theme.menus.barVerticalMargin = 2.f;
+        theme.menus.barHorizontalPadding = 6.f;
+        theme.menus.submenuChevronSize = 11.f;
         theme.menus.iconColor = Color::fromRGBA8(202, 207, 217);
         theme.menus.shortcutColor = Color::fromRGBA8(158, 164, 176);
         theme.menus.disabledText = Color::fromRGBA8(105, 110, 120);
@@ -129,6 +136,16 @@ namespace Bess::UI {
                     .color = Color::fromRGBA8(0, 0, 0, 120),
                 },
         };
+        theme.dock.floatingStack = theme.dock.stack;
+        theme.dock.floatingStack.background =
+            theme.dock.floatingWindow.background;
+        theme.dock.floatingStack.border = transparent;
+        theme.dock.floatingStack.borderThickness = glm::vec4{0.f};
+        // The content joins the square lower edge of the title bar. Bottom
+        // radii are retained only for stacks that touch the corresponding
+        // outer window corners (see DockSpace::paint).
+        theme.dock.floatingStack.cornerRadius = {0.f, 0.f, 8.f, 8.f};
+        theme.dock.floatingStack.shadow.enabled = false;
         theme.dock.floatingHeader = theme.tabs.active;
         // top-left, top-right, bottom-right, bottom-left
         theme.dock.floatingHeader.cornerRadius = {8.f, 8.f, 0.f, 0.f};

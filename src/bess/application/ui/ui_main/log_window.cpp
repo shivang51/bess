@@ -3,7 +3,7 @@
 #include "common/logger.h"
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "ui/icons/CodIcons_Remapped.h"
+#include "bess_core/ui/icons/cod_icons.h"
 #include "ui/widgets/m_widgets.h"
 
 namespace Bess::UI {

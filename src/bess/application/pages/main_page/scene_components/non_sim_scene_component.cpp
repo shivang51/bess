@@ -5,7 +5,7 @@
 #include "bess_core/scene/scene_state/components/styles/comp_style.h"
 #include "bess_core/scene/widgets/scene_widgets.h"
 #include "bess_core/settings/viewport_theme.h"
-#include "ui/icons/FontAwesomeIcons_Remapped.h"
+#include "bess_core/ui/icons/font_awesome_icons.h"
 #include <array>
 #include <string>
 #include <string_view>

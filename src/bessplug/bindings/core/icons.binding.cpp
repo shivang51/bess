@@ -1,4 +1,4 @@
-#include "ui/icons/ComponentIcons_Remapped.h"
+#include "bess_core/ui/icons/component_icons.h"
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>

@@ -6,8 +6,8 @@
 #include "bess_core/scene/scene_state/components/scene_component_types.h"
 #include "bess_core/scene/scene_state/components/styles/comp_style.h"
 #include "bess_core/scene/scene_state/scene_state.h"
+#include "bess_core/ui/icons/font_awesome_icons.h"
 #include "ext/matrix_transform.hpp"
-#include "ui/icons/FontAwesomeIcons_Remapped.h"
 
 namespace Icons = Bess::UI::Icons;
 

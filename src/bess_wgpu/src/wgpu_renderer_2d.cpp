@@ -2,13 +2,13 @@
 #include "bess_core/renderer/font.h"
 #include "bess_core/renderer/msdf_font.h"
 #include "bess_wgpu/path_baker.h"
-#include "bess_wgpu/wgpu_render_target_2d.h"
 #include "bess_wgpu/piplines/custom_quad_pipeline.h"
 #include "bess_wgpu/piplines/path_pipeline.h"
 #include "bess_wgpu/piplines/primitive_pipeline.h"
 #include "bess_wgpu/piplines/shadow_pipeline.h"
 #include "bess_wgpu/text/bitmap_text_pipeline.h"
 #include "bess_wgpu/text/msdf_text_pipeline.h"
+#include "bess_wgpu/wgpu_render_target_2d.h"
 #include "bess_wgpu/wgpu_texture.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
@@ -1183,6 +1183,7 @@ namespace Bess::Wgpu {
                 m_impl->device,
                 m_impl->queue,
                 fontPath,
+                Text::kBundledBitmapFallbackFontPaths,
                 kBitmapTextAtlasSize,
                 static_cast<uint32_t>(kBitmapTextMinProjectedPixelSize),
                 static_cast<uint32_t>(kBitmapTextMaxProjectedPixelSize))) {
@@ -1399,7 +1400,7 @@ namespace Bess::Wgpu {
         }
 
         return std::make_shared<WgpuRenderTarget2D>(shared_from_this(),
-                                                     createInfo);
+                                                    createInfo);
     }
 
     void WgpuRenderer2D::resize(const Renderer2DExtent &extent) {
