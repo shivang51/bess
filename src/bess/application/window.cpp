@@ -18,6 +18,7 @@
     #define GLFW_EXPOSE_NATIVE_X11
     #include <GLFW/glfw3native.h>
 #endif
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <memory>
@@ -233,8 +234,7 @@ namespace Bess {
         m_pickingTexture = std::make_shared<Wgpu::WgpuTexture>(
             Core::Renderer::TextureCreateInfo{
                 .format = Core::Renderer::Renderer2DTargetFormat::RG32Uint});
-        m_pickingTexture->setSize({800.f, 600.f});
-        m_pickingTexture->init();
+        syncFramebufferSize(true);
     }
 
     void Window::onShutdown() {
@@ -266,6 +266,10 @@ namespace Bess {
     void Window::onPostDraw() {
         m_ui.end();
 
+        if (!syncFramebufferSize(true)) {
+            return;
+        }
+
         const auto &renderer = GAppContext::getInstance()
                                    .getSubSystem<RendererContext>()
                                    ->getRenderer<Wgpu::WgpuRenderer2D>();
@@ -285,12 +289,12 @@ namespace Bess {
         });
         renderer->endFrame();
 
-        renderer->drawToWindow(shared_from_this(), // FIXME: temp
-                               [&](void *renderPass) {
-                                   ImGui_ImplWGPU_RenderDrawData(
-                                       ImGui::GetDrawData(),
-                                       (WGPURenderPassEncoder)renderPass);
-                               });
+        // renderer->drawToWindow(shared_from_this(), // FIXME: temp
+        //                        [&](void *renderPass) {
+        //                            ImGui_ImplWGPU_RenderDrawData(
+        //                                ImGui::GetDrawData(),
+        //                                (WGPURenderPassEncoder)renderPass);
+        //                        });
     }
 
     void Window::onBeginFrame() {
@@ -337,30 +341,79 @@ namespace Bess {
         return {x, y};
     }
 
-    void Window::framebufferResizeCallback(GLFWwindow *window,
-                                           int width,
-                                           int height) {
-        const auto this_ =
-            static_cast<Window *>(glfwGetWindowUserPointer(window));
-        this_->m_width = width;
-        this_->m_height = height;
-        this_->m_framebufferResized = true;
+    bool Window::syncFramebufferSize(bool notifyResizeEvent) {
+        if (!mp_window) {
+            return false;
+        }
 
-        this_->m_pickingTexture->setSize({
-            static_cast<float>(width),
-            static_cast<float>(height),
-        });
-        this_->m_pickingTexture->destroy();
-        this_->m_pickingTexture->init();
+        int width = 0;
+        int height = 0;
+        glfwGetFramebufferSize(mp_window.get(), &width, &height);
+        applyFramebufferSize(width, height, notifyResizeEvent);
+        return width > 0 && height > 0;
+    }
+
+    void Window::applyFramebufferSize(int width,
+                                      int height,
+                                      bool notifyResizeEvent) {
+        if (width <= 0 || height <= 0) {
+            return;
+        }
+
+        const auto framebufferWidth = static_cast<size_t>(width);
+        const auto framebufferHeight = static_cast<size_t>(height);
+        const bool changed =
+            m_width != framebufferWidth || m_height != framebufferHeight;
+
+        m_width = framebufferWidth;
+        m_height = framebufferHeight;
+
+        resizePickingTexture(static_cast<uint32_t>(framebufferWidth),
+                             static_cast<uint32_t>(framebufferHeight));
+
+        if (!changed) {
+            return;
+        }
+
+        m_framebufferResized = true;
+        if (!notifyResizeEvent) {
+            return;
+        }
 
         Events::WindowResizeEvent evt{
-            (uint32_t)width,
-            (uint32_t)height,
+            static_cast<uint32_t>(framebufferWidth),
+            static_cast<uint32_t>(framebufferHeight),
         };
 
         auto &ctx = GAppContext::getInstance();
         auto eventDispatcher = ctx.getSubSystem<EventSystem::EventDispatcher>();
         eventDispatcher->queue(evt);
+    }
+
+    void Window::resizePickingTexture(uint32_t width, uint32_t height) {
+        if (!m_pickingTexture || width == 0 || height == 0) {
+            return;
+        }
+
+        const glm::vec2 currentSize = m_pickingTexture->getSize();
+        if (m_pickingTexture->getHandle() != 0 &&
+            currentSize.x == static_cast<float>(width) &&
+            currentSize.y == static_cast<float>(height)) {
+            return;
+        }
+
+        m_pickingTexture->setSize(
+            {static_cast<float>(width), static_cast<float>(height)});
+        m_pickingTexture->destroy();
+        m_pickingTexture->init();
+    }
+
+    void Window::framebufferResizeCallback(GLFWwindow *window,
+                                           int width,
+                                           int height) {
+        const auto this_ =
+            static_cast<Window *>(glfwGetWindowUserPointer(window));
+        this_->applyFramebufferSize(width, height, true);
     }
 
     void Window::setMousePos(const glm::vec2 &pos) const {

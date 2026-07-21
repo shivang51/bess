@@ -8,6 +8,7 @@
 #include "fwd.hpp"
 #include "ui/ui.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -100,6 +101,10 @@ namespace Bess {
         std::string m_title;
 
         void initGLFW() const;
+        bool syncFramebufferSize(bool notifyResizeEvent);
+        void
+        applyFramebufferSize(int width, int height, bool notifyResizeEvent);
+        void resizePickingTexture(uint32_t width, uint32_t height);
         static void
         framebufferResizeCallback(GLFWwindow *window, int width, int height);
 
