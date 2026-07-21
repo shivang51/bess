@@ -261,6 +261,16 @@ namespace Bess::UI {
                                 });
                             });
 
+                        // const auto explorer2 = dock.panel(
+                        //     "Component Explorer", [this](UIComposer &panel) {
+                        //         panel.label("Component Explorer",
+                        //                     headingLabel());
+                        //         panel.spacer();
+                        //         panel.button("Select item", [this] {
+                        //             setStatus("Comp selected");
+                        //         });
+                        //     });
+
                         const auto inspector = dock.panel(
                             "Inspector",
                             DockPanelPlacement{
