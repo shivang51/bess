@@ -50,7 +50,12 @@ namespace Bess::UI {
             rect.pos = node->getPos();
             rect.size = node->getSize();
             m_rects.push_back(rect);
+
+            BESS_TRACE(
+                "Dock rect: {} | pos: {} | size: {}", id, rect.pos, rect.size);
         }
+
+        BESS_TRACE("Dock layout complete. Total rects: {}\n", m_rects.size());
     }
 
     bool DockManager::dockNode(const UUID &nodeId,

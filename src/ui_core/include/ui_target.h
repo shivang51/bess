@@ -66,8 +66,7 @@ namespace Bess::UI {
         template <typename T>
             requires(!std::same_as<std::remove_cvref_t<T>, UIEvent> &&
                      std::constructible_from<UIEventData, T>)
-        void enqueueEvent(T &&event,
-                          Input::Modifiers eventModifiers = {}) {
+        void enqueueEvent(T &&event, Input::Modifiers eventModifiers = {}) {
             enqueueEvent(UIEvent{std::forward<T>(event), eventModifiers});
         }
         [[nodiscard]] std::span<const UIEvent> getFrameEvents() const noexcept;

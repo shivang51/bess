@@ -2,6 +2,8 @@
 #include "bess_core/renderer/colors.h"
 #include "bess_core/style/color_scheme.h"
 #include "common/bess_assert.h"
+#include "common/bess_uuid.h"
+#include "common/logger.h"
 #include "dock.h"
 
 #include <cstdint>
@@ -30,9 +32,16 @@ namespace Bess::UI {
                                          Bess::UI::DockZone::right);
                 }
             }
+
+            auto leaf = dockManager.createNode<Bess::UI::DockLeaf>();
+            dockManager.dockNode(leaf->getId(),
+                                 dockManager.getRootNode(),
+                                 Bess::UI::DockZone::bottom);
         }
 
         uint32_t dockRuntimeId = 0;
+
+        UUID hitDock = UUID::null;
 
         void drawDockNode(
             const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer,
@@ -43,6 +52,8 @@ namespace Bess::UI {
                 return;
             }
 
+            const bool isHit = nodeId == hitDock;
+
             if (node->isLeaf()) {
                 auto topLeft = node->getPos();
                 auto size = node->getSize();
@@ -50,7 +61,8 @@ namespace Bess::UI {
                 renderer->drawQuad({
                     .position = center,
                     .size = size,
-                    .color = Core::Renderer::Colors::pastelRed,
+                    .color = isHit ? Core::Renderer::Colors::limeGreen
+                                   : Core::Renderer::Colors::pastelRed,
                     .id = {.runtimeId = dockRuntimeId++},
                     .transformMode =
                         Core::Renderer::RenderTransformMode::Screen,
@@ -62,7 +74,8 @@ namespace Bess::UI {
                 renderer->drawQuad({
                     .position = center,
                     .size = size,
-                    .color = Core::Renderer::Colors::blue,
+                    .color = isHit ? Core::Renderer::Colors::limeGreen
+                                   : Core::Renderer::Colors::blue,
                     .id = {.runtimeId = dockRuntimeId++},
                     .transformMode =
                         Core::Renderer::RenderTransformMode::Screen,
@@ -273,6 +286,10 @@ namespace Bess::UI {
             m_inputCtx.pickingId = PickingId::invalid();
             return;
         }
+
+        const auto pos = m_inputCtx.mousePos - (m_rect.size * 0.5f);
+        hitDock = m_dockManager.getHitRect(pos);
+        BESS_TRACE("Hit dock: {} | mousePos = {}", hitDock, pos);
 
         m_inputCtx.pickingId = m_renderTarget->readPickingId(
             static_cast<uint32_t>(m_inputCtx.mousePos.x),
