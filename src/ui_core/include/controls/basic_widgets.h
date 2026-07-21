@@ -55,6 +55,10 @@ namespace Bess::UI {
 
     struct LabelOptions {
         std::optional<UITextStyle> style;
+        // Typography can be adjusted without replacing the theme-owned text
+        // color. An explicit style still remains available for intentional
+        // fully custom rendering.
+        std::optional<float> fontSize;
         HorizontalTextAlignment horizontal = HorizontalTextAlignment::start;
         VerticalTextAlignment vertical = VerticalTextAlignment::center;
         bool autoSize = true;

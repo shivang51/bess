@@ -13,6 +13,10 @@
 #include <utility>
 #include <vector>
 
+namespace Bess::Core::Style {
+    class BessTheme;
+}
+
 namespace Bess::UI {
 
     struct UITargetInpCtx {
@@ -31,6 +35,9 @@ namespace Bess::UI {
     struct UITargetDesc {
         Rect rect;
         Core::Renderer::Renderer2DNativeSurface surface;
+        // A target receives a BessTheme rather than an independent UI
+        // palette. UICore maps its component roles from this source theme.
+        std::shared_ptr<const Core::Style::BessTheme> theme;
         Core::Renderer::Renderer2DTargetFormat targetFormat =
             Core::Renderer::Renderer2DTargetFormat::BGRA8Unorm;
         Core::Renderer::Renderer2DTargetFormat pickingFormat =
@@ -48,6 +55,7 @@ namespace Bess::UI {
         void init(const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer,
                   const UITargetDesc &desc);
         void destroy();
+        void setTheme(const Core::Style::BessTheme &theme);
 
         [[nodiscard]] std::shared_ptr<Core::Renderer::ITexture>
         getColorTexture() const;
@@ -108,7 +116,7 @@ namespace Bess::UI {
         void update(TimeMs dt);
 
       private:
-        void beginFrame(const Core::Style::Color &background);
+        void beginFrame(const Core::Renderer::Color &background);
         void processInputEvents();
 
       private:

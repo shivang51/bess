@@ -5,6 +5,10 @@
 #include "ext/vector_float2.hpp"
 #include "ext/vector_float4.hpp"
 
+namespace Bess::Core::Style {
+    class BessTheme;
+}
+
 namespace Bess::UI {
 
     struct UIBoxStyle {
@@ -16,7 +20,7 @@ namespace Bess::UI {
     };
 
     struct UITextStyle {
-        Core::Renderer::Color color{1.f, 1.f, 1.f, 1.f};
+        Core::Renderer::Color color{};
         float fontSize = 14.f;
         float letterSpacing = 0.f;
     };
@@ -28,7 +32,7 @@ namespace Bess::UI {
         UIBoxStyle focused;
         UIBoxStyle disabled;
         UITextStyle text;
-        Core::Renderer::Color disabledText{0.55f, 0.57f, 0.62f, 1.f};
+        Core::Renderer::Color disabledText{};
         glm::vec2 minimumSize{72.f, 32.f};
         glm::vec2 contentPadding{12.f, 7.f};
     };
@@ -40,7 +44,7 @@ namespace Bess::UI {
         UIBoxStyle active;
         UIBoxStyle pressed;
         UITextStyle text;
-        Core::Renderer::Color inactiveText{0.72f, 0.74f, 0.78f, 1.f};
+        Core::Renderer::Color inactiveText{};
         float height = 28.f;
         float minimumWidth = 72.f;
         float maximumWidth = 220.f;
@@ -62,10 +66,10 @@ namespace Bess::UI {
         UIBoxStyle itemPressed;
         UITextStyle barText;
         UITextStyle text;
-        Core::Renderer::Color iconColor{0.82f, 0.84f, 0.88f, 1.f};
-        Core::Renderer::Color shortcutColor{0.62f, 0.65f, 0.70f, 1.f};
-        Core::Renderer::Color disabledText{0.42f, 0.44f, 0.48f, 1.f};
-        Core::Renderer::Color separator{0.25f, 0.27f, 0.31f, 1.f};
+        Core::Renderer::Color iconColor{};
+        Core::Renderer::Color shortcutColor{};
+        Core::Renderer::Color disabledText{};
+        Core::Renderer::Color separator{};
         float barHeight = 22.f;
         float barVerticalMargin = 2.f;
         float barHorizontalPadding = 6.f;
@@ -93,8 +97,8 @@ namespace Bess::UI {
         UIBoxStyle dropGuide;
         UIBoxStyle dropGuideHovered;
         UIBoxStyle dropPreview;
-        Core::Renderer::Color splitter{0.18f, 0.19f, 0.23f, 1.f};
-        Core::Renderer::Color splitterHovered{0.32f, 0.55f, 0.95f, 1.f};
+        Core::Renderer::Color splitter{};
+        Core::Renderer::Color splitterHovered{};
         float splitterThickness = 4.f;
         glm::vec2 floatingMinimumSize{260.f, 180.f};
         glm::vec2 floatingMaximumSize{640.f, 480.f};
@@ -110,6 +114,7 @@ namespace Bess::UI {
     };
 
     struct BESS_API UITheme {
+        Core::Renderer::Color canvas;
         UIBoxStyle panel;
         UITextStyle label;
         UIInteractiveStyle button;
@@ -117,6 +122,8 @@ namespace Bess::UI {
         UIMenuStyle menus;
         UIDockStyle dock;
 
+        [[nodiscard]] static UITheme
+        fromBessTheme(const Core::Style::BessTheme &theme);
         [[nodiscard]] static UITheme dark();
     };
 

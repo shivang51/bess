@@ -1,10 +1,13 @@
 #include "ui_core.h"
 
+#include "bess_core/style/bess_theme.h"
+
 #include <gtest/gtest.h>
 
 #include <algorithm>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -84,7 +87,8 @@ namespace {
     }
 
     TEST(TabStripLayoutTests, DarkThemeUsesSlimDockTabs) {
-        const auto &style = UITheme::dark().tabs;
+        const auto theme = UITheme::dark();
+        const auto &style = theme.tabs;
         const WidgetBounds bounds{.center = {0.f, 0.f},
                                   .size = {320.f, style.height}};
         const auto regions = TabStripLayout::calculate(
@@ -102,7 +106,185 @@ namespace {
         EXPECT_FLOAT_EQ(regions.front().bounds.size.y,
                         style.height - style.stripPadding.y * 2.f);
         EXPECT_EQ(style.text.fontSize, 13.f);
-        EXPECT_EQ(style.active.cornerRadius, glm::vec4(6.f));
+        EXPECT_EQ(style.active.cornerRadius,
+                  theme.menus.itemHovered.cornerRadius);
+        EXPECT_EQ(style.active.cornerRadius,
+                  theme.menus.barItemHovered.cornerRadius);
+    }
+
+    TEST(UIThemeTests, DerivesEveryComponentPaletteFromBessThemeRoles) {
+        using Color = Core::Renderer::Color;
+        using Core::Style::BessTheme;
+        using Core::Style::Brightness;
+        using Core::Style::ColorScheme;
+
+        auto colors =
+            BessTheme::defaultDarkTheme()->getColorScheme().getColors();
+        colors.primary = Color::fromRGBA8(11, 12, 13);
+        colors.onPrimary = Color::fromRGBA8(21, 22, 23);
+        colors.primaryContainer = Color::fromRGBA8(31, 32, 33);
+        colors.outline = Color::fromRGBA8(41, 42, 43);
+        colors.outlineVariant = Color::fromRGBA8(51, 52, 53);
+        colors.surface = Color::fromRGBA8(61, 62, 63);
+        colors.onSurface = Color::fromRGBA8(71, 72, 73);
+        colors.surfaceContainerLowest = Color::fromRGBA8(81, 82, 83);
+        colors.surfaceContainerLow = Color::fromRGBA8(91, 92, 93);
+        colors.surfaceContainer = Color::fromRGBA8(101, 102, 103);
+        colors.surfaceContainerHigh = Color::fromRGBA8(111, 112, 113);
+        colors.surfaceContainerHighest = Color::fromRGBA8(121, 122, 123);
+        colors.onSurfaceVariant = Color::fromRGBA8(131, 132, 133);
+        colors.shadow = Color::fromRGBA8(141, 142, 143);
+
+        const ColorScheme scheme{colors, Brightness::dark};
+        const BessTheme source{std::string_view{"UICore sentinel"}, scheme};
+        const auto theme = UITheme::fromBessTheme(source);
+
+        const auto expectColor = [](const Color &actual,
+                                    const Color &expected,
+                                    std::string_view role) {
+            EXPECT_EQ(actual.toHex(), expected.toHex()) << role;
+        };
+        const auto transparent = colors.surface.withAlpha(0.f);
+
+        expectColor(theme.canvas, colors.surface, "canvas");
+        expectColor(theme.panel.background,
+                    colors.surfaceContainerLow,
+                    "panel background");
+        expectColor(theme.panel.border, colors.outlineVariant, "panel border");
+        expectColor(theme.panel.shadow.color,
+                    colors.shadow.withAlpha(0.f),
+                    "panel disabled shadow");
+        expectColor(theme.label.color, colors.onSurface, "label");
+
+        expectColor(theme.button.normal.background,
+                    colors.surfaceContainerHigh,
+                    "button normal");
+        expectColor(theme.button.hovered.background,
+                    colors.surfaceContainerHighest,
+                    "button hovered");
+        expectColor(theme.button.pressed.background,
+                    colors.surfaceContainer,
+                    "button pressed");
+        expectColor(
+            theme.button.focused.border, colors.primary, "button focus border");
+        expectColor(theme.button.disabled.background,
+                    colors.surfaceContainerLow,
+                    "button disabled");
+        expectColor(theme.button.disabled.border,
+                    colors.outlineVariant.withAlpha(0.45f),
+                    "button disabled border");
+        expectColor(theme.button.text.color, colors.onSurface, "button text");
+        expectColor(theme.button.disabledText,
+                    colors.onSurface.withAlpha(0.38f),
+                    "button disabled text");
+
+        expectColor(theme.tabs.strip.background,
+                    colors.surfaceContainerLowest,
+                    "tab strip");
+        expectColor(theme.tabs.normal.background, transparent, "tab normal");
+        expectColor(theme.tabs.hovered.background,
+                    colors.surfaceContainerHigh,
+                    "tab hovered");
+        expectColor(theme.tabs.active.background,
+                    colors.surfaceContainerHighest,
+                    "tab active");
+        expectColor(theme.tabs.active.border,
+                    colors.outlineVariant,
+                    "tab active border");
+        expectColor(theme.tabs.pressed.background,
+                    colors.surfaceContainer,
+                    "tab pressed");
+        expectColor(theme.tabs.text.color, colors.onSurface, "tab text");
+        expectColor(theme.tabs.inactiveText,
+                    colors.onSurfaceVariant,
+                    "tab inactive text");
+
+        expectColor(theme.menus.bar.background,
+                    colors.surfaceContainerLowest,
+                    "menu bar");
+        expectColor(
+            theme.menus.bar.border, colors.outlineVariant, "menu bar border");
+        expectColor(
+            theme.menus.barItem.background, transparent, "menu bar item");
+        expectColor(theme.menus.barItemHovered.background,
+                    colors.surfaceContainerHigh,
+                    "menu bar item hovered");
+        expectColor(theme.menus.barItemActive.background,
+                    colors.surfaceContainerHighest,
+                    "menu bar item active");
+        expectColor(theme.menus.popup.background,
+                    colors.surfaceContainerLow.withAlpha(0.98f),
+                    "menu popup");
+        expectColor(theme.menus.popup.border, colors.outline, "menu border");
+        expectColor(theme.menus.popup.shadow.color,
+                    colors.shadow.withAlpha(0.45f),
+                    "menu shadow");
+        expectColor(theme.menus.itemHovered.background,
+                    colors.surfaceContainerHighest,
+                    "menu item hovered");
+        expectColor(theme.menus.itemPressed.background,
+                    colors.surfaceContainer,
+                    "menu item pressed");
+        expectColor(theme.menus.text.color, colors.onSurface, "menu text");
+        expectColor(
+            theme.menus.barText.color, colors.onSurface, "menu bar text");
+        expectColor(
+            theme.menus.iconColor, colors.onSurfaceVariant, "menu icon");
+        expectColor(theme.menus.shortcutColor,
+                    colors.onSurfaceVariant.withAlpha(0.78f),
+                    "menu shortcut");
+        expectColor(theme.menus.disabledText,
+                    colors.onSurface.withAlpha(0.38f),
+                    "menu disabled text");
+        expectColor(
+            theme.menus.separator, colors.outlineVariant, "menu separator");
+
+        expectColor(theme.dock.background.background,
+                    colors.surface,
+                    "dock background");
+        expectColor(theme.dock.stack.background,
+                    colors.surfaceContainerLow,
+                    "dock stack");
+        expectColor(theme.dock.floatingWindow.background,
+                    colors.surfaceContainerLow,
+                    "floating window");
+        expectColor(theme.dock.floatingWindow.border,
+                    colors.outline,
+                    "floating border");
+        expectColor(theme.dock.floatingWindow.shadow.color,
+                    colors.shadow.withAlpha(0.47f),
+                    "floating shadow");
+        expectColor(theme.dock.floatingHeader.background,
+                    colors.surfaceContainerHighest,
+                    "floating header");
+        expectColor(
+            theme.dock.splitter, colors.outlineVariant, "dock splitter");
+        expectColor(theme.dock.splitterHovered,
+                    colors.primary,
+                    "dock splitter hovered");
+        expectColor(theme.dock.dropGuide.background,
+                    colors.primaryContainer.withAlpha(0.92f),
+                    "dock guide");
+        expectColor(theme.dock.dropGuide.border,
+                    colors.primary.withAlpha(0.86f),
+                    "dock guide border");
+        expectColor(theme.dock.dropGuideHovered.background,
+                    colors.primary.withAlpha(0.96f),
+                    "dock guide hovered");
+        expectColor(theme.dock.dropGuideHovered.border,
+                    colors.onPrimary,
+                    "dock guide hovered border");
+        expectColor(theme.dock.dropPreview.background,
+                    colors.primary.withAlpha(0.30f),
+                    "dock preview");
+        expectColor(theme.dock.dropPreview.border,
+                    colors.primary.withAlpha(0.86f),
+                    "dock preview border");
+
+        EXPECT_EQ(theme.tabs.active.cornerRadius,
+                  theme.menus.itemHovered.cornerRadius);
+        EXPECT_EQ(theme.tabs.active.cornerRadius,
+                  theme.menus.barItemHovered.cornerRadius);
     }
 
     TEST(DockDropGuideLayoutTests, ProducesNodeLocalZonesWithMatchingPreviews) {

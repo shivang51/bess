@@ -33,6 +33,15 @@ namespace Bess::UI {
                 std::max(1.f, style.fontSize * 1.25f),
             };
         }
+
+        UITextStyle resolvedLabelStyle(const LabelOptions &options,
+                                       const UITheme &theme) {
+            auto style = options.style.value_or(theme.label);
+            if (options.fontSize.has_value()) {
+                style.fontSize = std::max(1.f, *options.fontSize);
+            }
+            return style;
+        }
     } // namespace
 
     FlexContainer::FlexContainer(FlexContainerOptions options)
@@ -103,8 +112,7 @@ namespace Bess::UI {
         if (!m_options.autoSize) {
             return;
         }
-        const auto &style =
-            m_options.style.value_or(context.state.theme().label);
+        const auto style = resolvedLabelStyle(m_options, context.state.theme());
         const auto size = estimatedTextSize(m_text, style);
         context.layout.setWidth(size.x);
         context.layout.setHeight(size.y);
@@ -116,8 +124,7 @@ namespace Bess::UI {
             (!m_intrinsicSizeDirty && !context.themeChanged)) {
             return;
         }
-        const auto &style =
-            m_options.style.value_or(context.state.theme().label);
+        const auto style = resolvedLabelStyle(m_options, context.state.theme());
         const auto size = estimatedTextSize(m_text, style);
         context.layout.setWidth(size.x);
         context.layout.setHeight(size.y);
@@ -125,8 +132,7 @@ namespace Bess::UI {
     }
 
     void Label::paint(WidgetPaintContext &context) const {
-        const auto &style =
-            m_options.style.value_or(context.state.theme().label);
+        const auto style = resolvedLabelStyle(m_options, context.state.theme());
         context.painter.drawText(m_text,
                                  {
                                      .bounds = context.bounds,

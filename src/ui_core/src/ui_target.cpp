@@ -1,6 +1,5 @@
 #include "ui_target.h"
-#include "bess_core/renderer/colors.h"
-#include "bess_core/style/color_scheme.h"
+#include "bess_core/style/bess_theme.h"
 #include "common/bess_assert.h"
 #include "ui_painter.h"
 
@@ -27,6 +26,9 @@ namespace Bess::UI {
         destroy();
         m_renderer = renderer;
         m_rect = desc.rect;
+        m_widgetTree.setTheme(desc.theme != nullptr
+                                  ? UITheme::fromBessTheme(*desc.theme)
+                                  : UITheme::dark());
         m_renderTarget = renderer->createTarget({
             .extent =
                 {
@@ -41,6 +43,10 @@ namespace Bess::UI {
                     "Renderer failed to create a UITarget render target");
 
         m_widgetTree.setViewportSize(m_rect.size);
+    }
+
+    void UITarget::setTheme(const Core::Style::BessTheme &theme) {
+        m_widgetTree.setTheme(UITheme::fromBessTheme(theme));
     }
 
     void UITarget::destroy() {
@@ -144,7 +150,7 @@ namespace Bess::UI {
     void UITarget::draw() {
         const auto &renderer = m_renderer;
 
-        beginFrame(Core::Renderer::Colors::darkGray);
+        beginFrame(m_widgetTree.theme().canvas);
 
         RendererUIPainter painter{*renderer, m_rect.size};
         m_widgetTree.paint(painter);
@@ -227,7 +233,7 @@ namespace Bess::UI {
         }
     }
 
-    void UITarget::beginFrame(const Core::Style::Color &background) {
+    void UITarget::beginFrame(const Core::Renderer::Color &background) {
         BESS_ASSERT(m_renderer != nullptr, "Renderer is not initialized");
         BESS_ASSERT(m_renderTarget != nullptr,
                     "Render target is not initialized");

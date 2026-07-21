@@ -1,70 +1,80 @@
 #include "ui_style.h"
 
-namespace Bess::UI {
-    UITheme UITheme::dark() {
-        using Color = Core::Renderer::Color;
+#include "bess_core/style/bess_theme.h"
 
-        const auto transparent = Color::fromRGBA8(0, 0, 0, 0);
-        const auto surface = Color::fromRGBA8(40, 43, 48);
-        const auto raised = Color::fromRGBA8(52, 56, 63);
-        const auto hover = Color::fromRGBA8(65, 70, 78);
-        const auto pressed = Color::fromRGBA8(43, 47, 53);
-        const auto border = Color::fromRGBA8(72, 77, 86);
-        const auto accent = Color::fromRGBA8(106, 153, 244);
-        const auto text = Color::fromRGBA8(238, 240, 245);
-        const glm::vec4 radius{6.f};
+namespace Bess::UI {
+    UITheme UITheme::fromBessTheme(const Core::Style::BessTheme &bessTheme) {
+        const auto &colors = bessTheme.getColorScheme().getColors();
+
+        // UICore owns component geometry, while BessTheme is the single
+        // source of truth for color. Alpha variants deliberately retain the
+        // RGB channels of their semantic BessTheme role.
+        const auto transparent = colors.surface.withAlpha(0.f);
+        const Core::Renderer::ShadowProps noShadow{
+            .enabled = false,
+            .color = colors.shadow.withAlpha(0.f),
+        };
+        const glm::vec4 controlRadius{6.f};
+        const glm::vec4 compactItemRadius{5.f};
 
         UITheme theme;
+        theme.canvas = colors.surface;
         theme.panel = {
-            .background = surface,
-            .border = border,
-            .cornerRadius = radius,
+            .background = colors.surfaceContainerLow,
+            .border = colors.outlineVariant,
+            .cornerRadius = controlRadius,
             .borderThickness = glm::vec4{1.f},
+            .shadow = noShadow,
         };
-        theme.label = {.color = text, .fontSize = 14.f};
+        theme.label = {.color = colors.onSurface, .fontSize = 14.f};
 
         theme.button.normal = {
-            .background = raised,
-            .border = border,
-            .cornerRadius = radius,
+            .background = colors.surfaceContainerHigh,
+            .border = colors.outlineVariant,
+            .cornerRadius = controlRadius,
             .borderThickness = glm::vec4{1.f},
+            .shadow = noShadow,
         };
         theme.button.hovered = theme.button.normal;
-        theme.button.hovered.background = hover;
+        theme.button.hovered.background = colors.surfaceContainerHighest;
         theme.button.pressed = theme.button.normal;
-        theme.button.pressed.background = pressed;
+        theme.button.pressed.background = colors.surfaceContainer;
         theme.button.focused = theme.button.hovered;
-        theme.button.focused.border = accent;
+        theme.button.focused.border = colors.primary;
         theme.button.focused.borderThickness = glm::vec4{2.f};
         theme.button.disabled = theme.button.normal;
-        theme.button.disabled.background = Color::fromRGBA8(43, 45, 52);
-        theme.button.disabled.border = Color::fromRGBA8(57, 59, 67);
+        theme.button.disabled.background = colors.surfaceContainerLow;
+        theme.button.disabled.border = colors.outlineVariant.withAlpha(0.45f);
         theme.button.text = theme.label;
+        theme.button.disabledText = colors.onSurface.withAlpha(0.38f);
         theme.button.minimumSize = {0.f, 26.f};
         theme.button.contentPadding = {8.f, 4.f};
 
         theme.tabs.strip = {
-            .background = Color::fromRGBA8(28, 32, 34),
+            .background = colors.surfaceContainerLowest,
             .border = transparent,
+            .shadow = noShadow,
         };
         theme.tabs.normal = {
             .background = transparent,
             .border = transparent,
+            .shadow = noShadow,
         };
         theme.tabs.hovered = theme.tabs.normal;
-        theme.tabs.hovered.background = Color::fromRGBA8(48, 54, 57);
-        theme.tabs.hovered.cornerRadius = glm::vec4{6.f};
+        theme.tabs.hovered.background = colors.surfaceContainerHigh;
+        theme.tabs.hovered.cornerRadius = compactItemRadius;
         theme.tabs.active = {
-            .background = Color::fromRGBA8(64, 78, 80),
-            .border = Color::fromRGBA8(82, 96, 99),
-            .cornerRadius = glm::vec4{6.f},
+            .background = colors.surfaceContainerHighest,
+            .border = colors.outlineVariant,
+            .cornerRadius = compactItemRadius,
             .borderThickness = glm::vec4{1.f},
+            .shadow = noShadow,
         };
         theme.tabs.pressed = theme.tabs.hovered;
-        theme.tabs.pressed.background = pressed;
-        theme.tabs.pressed.cornerRadius = glm::vec4{6.f};
+        theme.tabs.pressed.background = colors.surfaceContainer;
         theme.tabs.text = theme.label;
         theme.tabs.text.fontSize = 13.f;
+        theme.tabs.inactiveText = colors.onSurfaceVariant;
         theme.tabs.height = 28.f;
         theme.tabs.minimumWidth = 78.f;
         theme.tabs.horizontalPadding = 10.f;
@@ -72,20 +82,24 @@ namespace Bess::UI {
         theme.tabs.gap = 2.f;
 
         theme.menus.bar = {
-            .background = Color::fromRGBA8(31, 34, 38),
-            .border = Color::fromRGBA8(48, 52, 58),
+            .background = colors.surfaceContainerLowest,
+            .border = colors.outlineVariant,
             .borderThickness = {0.f, 0.f, 1.f, 0.f},
+            .shadow = noShadow,
         };
-        theme.menus.barItem = {.background = transparent,
-                               .border = transparent,
-                               .cornerRadius = glm::vec4{5.f}};
+        theme.menus.barItem = {
+            .background = transparent,
+            .border = transparent,
+            .cornerRadius = compactItemRadius,
+            .shadow = noShadow,
+        };
         theme.menus.barItemHovered = theme.menus.barItem;
-        theme.menus.barItemHovered.background = hover;
+        theme.menus.barItemHovered.background = colors.surfaceContainerHigh;
         theme.menus.barItemActive = theme.menus.barItem;
-        theme.menus.barItemActive.background = raised;
+        theme.menus.barItemActive.background = colors.surfaceContainerHighest;
         theme.menus.popup = {
-            .background = Color::fromRGBA8(38, 41, 46, 250),
-            .border = Color::fromRGBA8(74, 79, 88),
+            .background = colors.surfaceContainerLow.withAlpha(0.98f),
+            .border = colors.outline,
             .cornerRadius = glm::vec4{7.f},
             .borderThickness = glm::vec4{1.f},
             .shadow =
@@ -94,37 +108,39 @@ namespace Bess::UI {
                     .offset = {0.f, 5.f},
                     .blur = 14.f,
                     .spread = -1.f,
-                    .color = Color::fromRGBA8(0, 0, 0, 115),
+                    .color = colors.shadow.withAlpha(0.45f),
                 },
         };
         theme.menus.itemHovered = {
-            .background = Color::fromRGBA8(65, 75, 89),
+            .background = colors.surfaceContainerHighest,
             .border = transparent,
-            .cornerRadius = glm::vec4{4.f},
+            .cornerRadius = compactItemRadius,
+            .shadow = noShadow,
         };
         theme.menus.itemPressed = theme.menus.itemHovered;
-        theme.menus.itemPressed.background = pressed;
+        theme.menus.itemPressed.background = colors.surfaceContainer;
         theme.menus.barText = theme.label;
         theme.menus.barText.fontSize = 12.f;
         theme.menus.text = theme.label;
+        theme.menus.iconColor = colors.onSurfaceVariant;
+        theme.menus.shortcutColor = colors.onSurfaceVariant.withAlpha(0.78f);
+        theme.menus.disabledText = colors.onSurface.withAlpha(0.38f);
+        theme.menus.separator = colors.outlineVariant;
         theme.menus.barHeight = 22.f;
         theme.menus.barVerticalMargin = 2.f;
         theme.menus.barHorizontalPadding = 6.f;
         theme.menus.submenuChevronSize = 11.f;
-        theme.menus.iconColor = Color::fromRGBA8(202, 207, 217);
-        theme.menus.shortcutColor = Color::fromRGBA8(158, 164, 176);
-        theme.menus.disabledText = Color::fromRGBA8(105, 110, 120);
-        theme.menus.separator = Color::fromRGBA8(70, 74, 82);
 
         theme.dock.background = {
-            .background = Color::fromRGBA8(24, 27, 29),
+            .background = colors.surface,
             .border = transparent,
+            .shadow = noShadow,
         };
         theme.dock.stack = theme.panel;
         theme.dock.stack.cornerRadius = glm::vec4{7.f};
         theme.dock.floatingWindow = {
-            .background = Color::fromRGBA8(34, 38, 42),
-            .border = Color::fromRGBA8(83, 90, 101),
+            .background = colors.surfaceContainerLow,
+            .border = colors.outline,
             .cornerRadius = glm::vec4{9.f},
             .borderThickness = glm::vec4{1.f},
             .shadow =
@@ -133,7 +149,7 @@ namespace Bess::UI {
                     .offset = {0.f, 7.f},
                     .blur = 16.f,
                     .spread = -1.f,
-                    .color = Color::fromRGBA8(0, 0, 0, 120),
+                    .color = colors.shadow.withAlpha(0.47f),
                 },
         };
         theme.dock.floatingStack = theme.dock.stack;
@@ -151,23 +167,30 @@ namespace Bess::UI {
         theme.dock.floatingHeader.cornerRadius = {8.f, 8.f, 0.f, 0.f};
         theme.dock.floatingTitleBarHeight = 24.f;
         theme.dock.floatingTitleHorizontalPadding = 8.f;
+        theme.dock.splitter = colors.outlineVariant;
+        theme.dock.splitterHovered = colors.primary;
         theme.dock.dropGuide = {
-            .background = Color::fromRGBA8(43, 49, 56, 235),
-            .border = Color::fromRGBA8(112, 158, 244, 220),
+            .background = colors.primaryContainer.withAlpha(0.92f),
+            .border = colors.primary.withAlpha(0.86f),
             .cornerRadius = glm::vec4{8.f},
             .borderThickness = glm::vec4{1.f},
+            .shadow = noShadow,
         };
         theme.dock.dropGuideHovered = theme.dock.dropGuide;
         theme.dock.dropGuideHovered.background =
-            Color::fromRGBA8(82, 128, 218, 245);
-        theme.dock.dropGuideHovered.border =
-            Color::fromRGBA8(170, 202, 255, 255);
+            colors.primary.withAlpha(0.96f);
+        theme.dock.dropGuideHovered.border = colors.onPrimary;
         theme.dock.dropPreview = {
-            .background = Color::fromRGBA8(75, 126, 220, 78),
-            .border = Color::fromRGBA8(126, 174, 255, 220),
+            .background = colors.primary.withAlpha(0.30f),
+            .border = colors.primary.withAlpha(0.86f),
             .cornerRadius = glm::vec4{7.f},
             .borderThickness = glm::vec4{2.f},
+            .shadow = noShadow,
         };
         return theme;
+    }
+
+    UITheme UITheme::dark() {
+        return fromBessTheme(*Core::Style::BessTheme::defaultDarkTheme());
     }
 } // namespace Bess::UI

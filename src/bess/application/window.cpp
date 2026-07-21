@@ -1,6 +1,7 @@
 #include "window.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/scene/scene_state/components/scene_component_types.h"
+#include "bess_core/settings/themes.h"
 #include "bess_core/sub_systems/input_sub_system.h"
 #include "common/bess_assert.h"
 #include "common/events.h"
@@ -289,9 +290,20 @@ namespace Bess {
                     PlatformHandle,
                 .handle = mp_window.get(),
             },
+            .theme = Config::Themes::getCurrentTheme(),
         };
 
         m_uiTarget.init(renderer, desc);
+        const std::weak_ptr<Window> weakWindow = weak_from_this();
+        GAppContext::getInstance()
+            .getSubSystem<EventSystem::EventDispatcher>()
+            ->sink<Events::ThemeChangeEvent>()
+            .connect([weakWindow](const Events::ThemeChangeEvent &event) {
+                if (const auto window = weakWindow.lock();
+                    window != nullptr && event.theme != nullptr) {
+                    window->m_uiTarget.setTheme(*event.theme);
+                }
+            });
         // Temporary retained-UI integration showcase. The application can
         // replace this with its real root view through the same API.
         static_cast<void>(m_uiTarget.setContent<UI::UIDemoView>());

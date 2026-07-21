@@ -314,7 +314,7 @@ namespace Bess::UI {
             }
 
             auto outline = dock.floatingWindow;
-            outline.background = Core::Renderer::Color{0.f, 0.f, 0.f, 0.f};
+            outline.background = outline.background.withAlpha(0.f);
             outline.shadow.enabled = false;
             const float layer = floatingLayer(i);
             context.painter.drawBox(makeBox(

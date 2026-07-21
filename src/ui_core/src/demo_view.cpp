@@ -1,8 +1,5 @@
 #include "demo_view.h"
 
-#include "bess_core/renderer/renderer_types.h"
-#include "bess_core/style/bess_theme.h"
-
 #include <format>
 #include <functional>
 #include <utility>
@@ -55,24 +52,11 @@ namespace Bess::UI {
         }
 
         LabelOptions applicationIconLabel() {
-            return {
-                .style =
-                    UITextStyle{
-                        .color = Core::Renderer::Color::fromRGBA8(85, 199, 210),
-                        .fontSize = 13.f,
-                    },
-            };
+            return {.fontSize = 13.f};
         }
 
         LabelOptions headingLabel() {
-            return {
-                .style =
-                    UITextStyle{
-                        .color =
-                            Core::Renderer::Color::fromRGBA8(238, 240, 245),
-                        .fontSize = 18.f,
-                    },
-            };
+            return {.fontSize = 18.f};
         }
 
         MenuItem command(std::string icon,
