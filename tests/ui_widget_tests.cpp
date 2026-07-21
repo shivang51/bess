@@ -101,10 +101,12 @@ namespace {
 
         void drawBox(const BoxPaint &paint) override {
             boxes.push_back(paint);
+            boxLayers.push_back(layer);
         }
 
         void drawText(std::string_view text, const TextPaint &paint) override {
             texts.emplace_back(std::string{text}, paint);
+            textLayers.push_back(layer);
         }
 
         glm::vec2 measureText(std::string_view text,
@@ -123,9 +125,23 @@ namespace {
             ++clipPops;
         }
 
+        void pushLayer(float zOffset) override {
+            layerStack.push_back(layer);
+            layer += zOffset;
+        }
+
+        void popLayer() override {
+            layer = layerStack.back();
+            layerStack.pop_back();
+        }
+
         std::vector<BoxPaint> boxes;
         std::vector<std::pair<std::string, TextPaint>> texts;
+        std::vector<float> boxLayers;
+        std::vector<float> textLayers;
         std::vector<WidgetBounds> clips;
+        std::vector<float> layerStack;
+        float layer = 0.f;
         size_t clipPops = 0;
     };
 
@@ -275,7 +291,9 @@ namespace {
         WidgetTree state;
         state.setViewportSize({400.f, 300.f});
         const WidgetId panel = state.emplaceWidget<Surface>();
-        state.emplaceChild<Label>(panel, "Properties");
+        const WidgetId label = state.emplaceChild<Label>(panel, "Properties");
+        state.getLayout(panel)->setZVal(0.25f);
+        state.getLayout(label)->setZVal(0.10f);
 
         RecordingPainter painter;
         state.paint(painter);
@@ -285,5 +303,11 @@ namespace {
         EXPECT_EQ(painter.texts[0].first, "Properties");
         EXPECT_EQ(painter.clips.size(), 1);
         EXPECT_EQ(painter.clipPops, 1);
+        ASSERT_EQ(painter.boxLayers.size(), 1);
+        ASSERT_EQ(painter.textLayers.size(), 1);
+        EXPECT_FLOAT_EQ(painter.boxLayers[0], 0.25f);
+        EXPECT_FLOAT_EQ(painter.textLayers[0], 0.35f);
+        EXPECT_TRUE(painter.layerStack.empty());
+        EXPECT_FLOAT_EQ(painter.layer, 0.f);
     }
 } // namespace

@@ -48,6 +48,9 @@ namespace Bess::UI {
     void Widget::paint(WidgetPaintContext &) const {
     }
 
+    void Widget::paintOverlay(WidgetPaintContext &) const {
+    }
+
     UIEventReply Widget::onEvent(WidgetEventContext &, const UIEvent &) {
         return {};
     }

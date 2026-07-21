@@ -384,4 +384,30 @@ namespace {
         EXPECT_TRUE(findButton(tree, demo.root().id(), "Count: 1"));
     }
 
+    TEST(UIDemoViewTests, ReflowsToQueuedTargetResize) {
+        UITarget target;
+        target.resize({1280.f, 800.f});
+        auto demo = target.setContent<UIDemoView>();
+        ASSERT_TRUE(demo);
+        target.update(TimeMs{0});
+
+        target.enqueueEvent(UITargetResizeEvent{.width = 760, .height = 540});
+        target.update(TimeMs{0});
+
+        const auto &tree = target.getWidgetTree();
+        EXPECT_EQ(target.getRect().size, glm::vec2(760.f, 540.f));
+        EXPECT_EQ(tree.getViewportSize(), glm::vec2(760.f, 540.f));
+        EXPECT_EQ(tree.getBounds(demo.root().id()).size,
+                  glm::vec2(760.f, 540.f));
+        const auto dock = demo.get()->dockSpace();
+        ASSERT_TRUE(dock);
+        EXPECT_FLOAT_EQ(tree.getBounds(dock.id()).size.x, 760.f)
+            << " root=" << tree.getBounds(demo.root().id()).size.x
+            << " parent=" << tree.getBounds(tree.getParent(dock.id())).size.x
+            << " grandparent="
+            << tree.getBounds(tree.getParent(tree.getParent(dock.id()))).size.x;
+        EXPECT_LT(tree.getBounds(dock.id()).size.y, 540.f);
+        EXPECT_GT(tree.getBounds(dock.id()).size.y, 180.f);
+    }
+
 } // namespace

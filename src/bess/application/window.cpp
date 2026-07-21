@@ -417,23 +417,30 @@ namespace Bess {
         const auto framebufferHeight = static_cast<size_t>(height);
         const bool changed =
             m_width != framebufferWidth || m_height != framebufferHeight;
+        const glm::vec2 targetSize{static_cast<float>(framebufferWidth),
+                                   static_cast<float>(framebufferHeight)};
+        const bool targetChanged = m_uiTarget.getRect().size != targetSize;
 
-        if (!changed) {
+        if (!changed && !targetChanged) {
             return;
         }
 
         m_width = framebufferWidth;
         m_height = framebufferHeight;
 
-        m_uiTarget.resize({static_cast<float>(framebufferWidth),
-                           static_cast<float>(framebufferHeight)});
+        if (targetChanged) {
+            m_uiTarget.resize(targetSize);
+        }
+        // Keep the routed resize notification independent from the immediate
+        // target repair above. Consumers still receive the event if either
+        // side was already synchronized by another integration path.
         m_uiTarget.enqueueEvent(UI::UITargetResizeEvent{
             .width = static_cast<uint32_t>(framebufferWidth),
             .height = static_cast<uint32_t>(framebufferHeight),
         });
 
         m_framebufferResized = true;
-        if (!notifyResizeEvent) {
+        if (!notifyResizeEvent || !changed) {
             return;
         }
 

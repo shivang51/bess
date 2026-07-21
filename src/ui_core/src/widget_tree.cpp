@@ -438,8 +438,13 @@ namespace Bess::UI {
         m_invalidation = withoutFlag(m_invalidation, WidgetInvalidation::paint);
         const auto roots = m_roots;
         beginCallback();
-        for (const auto root : roots) {
-            paintSubtree(root, painter);
+        try {
+            for (const auto root : roots) {
+                paintSubtree(root, painter);
+            }
+        } catch (...) {
+            endCallback();
+            throw;
         }
         endCallback();
     }
@@ -880,17 +885,38 @@ namespace Bess::UI {
             .hovered = m_hovered == id,
             .focused = m_focused == id,
         };
-        node->widget->paint(context);
-
+        const auto *layout = getLayout(id);
+        painter.pushLayer(layout != nullptr ? layout->getZVal() : 0.f);
+        bool layerPushed = true;
         const bool clip = node->widget->traits().clipChildren;
-        if (clip) {
-            painter.pushClip(bounds);
-        }
-        for (const auto child : children) {
-            paintSubtree(child, painter);
-        }
-        if (clip) {
-            painter.popClip();
+        bool clipPushed = false;
+        try {
+            node->widget->paint(context);
+            if (clip) {
+                painter.pushClip(bounds);
+                clipPushed = true;
+            }
+            for (const auto child : children) {
+                paintSubtree(child, painter);
+            }
+            node = findNode(id);
+            if (node != nullptr && isEffectivelyVisible(id)) {
+                node->widget->paintOverlay(context);
+            }
+            if (clipPushed) {
+                clipPushed = false;
+                painter.popClip();
+            }
+            layerPushed = false;
+            painter.popLayer();
+        } catch (...) {
+            if (clipPushed) {
+                painter.popClip();
+            }
+            if (layerPushed) {
+                painter.popLayer();
+            }
+            throw;
         }
     }
 

@@ -45,14 +45,31 @@ namespace Bess::UI {
         float minimumWidth = 72.f;
         float maximumWidth = 220.f;
         float horizontalPadding = 12.f;
+        // Space around the strip and between neighboring tabs. Keeping these
+        // in the theme lets standalone and docked tab bars share identical
+        // geometry as well as paint.
+        glm::vec2 stripPadding{0.f};
+        float gap = 0.f;
     };
 
     struct UIDockStyle {
         UIBoxStyle background;
         UIBoxStyle stack;
+        UIBoxStyle floatingWindow;
+        UIBoxStyle floatingHeader;
+        UIBoxStyle dropGuide;
+        UIBoxStyle dropGuideHovered;
+        UIBoxStyle dropPreview;
         Core::Renderer::Color splitter{0.18f, 0.19f, 0.23f, 1.f};
         Core::Renderer::Color splitterHovered{0.32f, 0.55f, 0.95f, 1.f};
         float splitterThickness = 4.f;
+        glm::vec2 floatingMinimumSize{260.f, 180.f};
+        glm::vec2 floatingMaximumSize{640.f, 480.f};
+        float floatingMargin = 8.f;
+        float dragThreshold = 6.f;
+        float dropGuideSize = 38.f;
+        float dropGuideGap = 7.f;
+        float dropPreviewInset = 5.f;
     };
 
     struct BESS_API UITheme {

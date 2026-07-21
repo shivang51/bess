@@ -6,6 +6,12 @@
 namespace Bess::UI {
     UIPainter::~UIPainter() = default;
 
+    void UIPainter::pushLayer(float) {
+    }
+
+    void UIPainter::popLayer() {
+    }
+
     RendererUIPainter::RendererUIPainter(Core::Renderer::IRenderer2D &renderer,
                                          glm::vec2 viewportSize) noexcept
         : m_renderer(renderer),
@@ -25,7 +31,7 @@ namespace Bess::UI {
         m_renderer.drawQuad({
             .position = paint.bounds.center,
             .size = paint.bounds.size,
-            .zIndex = paint.zIndex,
+            .zIndex = paint.zIndex + m_layerOffset,
             .color = paint.color,
             .id = paint.pickingId,
             .transformMode = Core::Renderer::RenderTransformMode::Screen,
@@ -46,7 +52,7 @@ namespace Bess::UI {
         Core::Renderer::FontProps props{
             .fontSize = paint.fontSize,
             .color = paint.color,
-            .zIndex = paint.zIndex,
+            .zIndex = paint.zIndex + m_layerOffset,
             .letterSpacing = paint.letterSpacing,
             .id = paint.pickingId,
             .transformMode = Core::Renderer::RenderTransformMode::Screen,
@@ -116,5 +122,21 @@ namespace Bess::UI {
 
     void RendererUIPainter::popClip() {
         m_renderer.popScissorRect();
+    }
+
+    void RendererUIPainter::pushLayer(float zOffset) {
+        m_layerStack.push_back(m_layerOffset);
+        if (std::isfinite(zOffset)) {
+            m_layerOffset += zOffset;
+        }
+    }
+
+    void RendererUIPainter::popLayer() {
+        if (m_layerStack.empty()) {
+            m_layerOffset = 0.f;
+            return;
+        }
+        m_layerOffset = m_layerStack.back();
+        m_layerStack.pop_back();
     }
 } // namespace Bess::UI

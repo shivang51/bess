@@ -82,6 +82,43 @@ namespace {
         EXPECT_EQ(*hit, 1);
     }
 
+    TEST(DockDropGuideLayoutTests, ProducesNodeLocalZonesWithMatchingPreviews) {
+        const DockNodeId target = DockNodeId::generate();
+        const WidgetBounds bounds{.center = {50.f, -20.f},
+                                  .size = {600.f, 400.f}};
+        const auto guides = DockDropGuideLayoutSolver::calculate(
+            bounds,
+            target,
+            {.indicatorSize = 40.f, .indicatorGap = 8.f, .previewInset = 6.f});
+
+        ASSERT_FALSE(guides.empty());
+        EXPECT_EQ(guides.target, target);
+        ASSERT_EQ(guides.regions.size(), 5);
+        const auto *main = guides.region(DockZone::main);
+        const auto *left = guides.region(DockZone::left);
+        const auto *right = guides.region(DockZone::right);
+        const auto *top = guides.region(DockZone::top);
+        const auto *bottom = guides.region(DockZone::bottom);
+        ASSERT_NE(main, nullptr);
+        ASSERT_NE(left, nullptr);
+        ASSERT_NE(right, nullptr);
+        ASSERT_NE(top, nullptr);
+        ASSERT_NE(bottom, nullptr);
+        EXPECT_EQ(guides.regionAt(main->indicatorBounds.center), main);
+        EXPECT_LT(left->indicatorBounds.center.x,
+                  main->indicatorBounds.center.x);
+        EXPECT_GT(right->indicatorBounds.center.x,
+                  main->indicatorBounds.center.x);
+        EXPECT_LT(top->indicatorBounds.center.y,
+                  main->indicatorBounds.center.y);
+        EXPECT_GT(bottom->indicatorBounds.center.y,
+                  main->indicatorBounds.center.y);
+        EXPECT_FLOAT_EQ(left->previewBounds.size.x,
+                        main->previewBounds.size.x * 0.5f);
+        EXPECT_FLOAT_EQ(top->previewBounds.size.y,
+                        main->previewBounds.size.y * 0.5f);
+    }
+
     TEST(DockSpaceModelTests, FourSideDockedItemsProduceFourTerminalStacks) {
         DockSpaceModel model;
         const auto a = model.addItem(dockItem("A"));
@@ -232,6 +269,128 @@ namespace {
             .pos = surfaceCenter + glm::vec2{100.f, 0.f},
         }));
         EXPECT_FALSE(state.getPointerCapture());
+        EXPECT_TRUE(dock->model().validate());
+    }
+
+    TEST(DockSpaceWidgetTests,
+         TabDragFloatsWithoutAZoneAndRedocksThroughNodeGuide) {
+        WidgetTree state;
+        state.setViewportSize({900.f, 600.f});
+        const WidgetId dockId = state.emplaceWidget<DockSpace>();
+        auto *dock = state.getWidget<DockSpace>(dockId);
+        ASSERT_NE(dock, nullptr);
+        const auto first = dock->createPanel(
+            state, dockId, "First", std::make_unique<DockContent>());
+        const auto second = dock->createPanel(
+            state, dockId, "Second", std::make_unique<DockContent>());
+        ASSERT_TRUE(first);
+        ASSERT_TRUE(second);
+        state.performLayout();
+
+        const auto stackId = dock->model().stackForItem(first.item);
+        const auto initialLayout =
+            dock->model().layout(state.getBounds(dockId),
+                                 state.theme().tabs.height,
+                                 state.theme().dock.splitterThickness);
+        const auto *stack = initialLayout.findStack(stackId);
+        ASSERT_NE(stack, nullptr);
+        const auto regions = TabStripLayout::calculate(
+            stack->tabBarBounds,
+            2,
+            {.height = state.theme().tabs.height,
+             .minimumWidth = state.theme().tabs.minimumWidth,
+             .maximumWidth = state.theme().tabs.maximumWidth,
+             .horizontalPadding = state.theme().tabs.horizontalPadding,
+             .stripPadding = state.theme().tabs.stripPadding,
+             .gap = state.theme().tabs.gap});
+        ASSERT_EQ(regions.size(), 2);
+        const glm::vec2 viewportOffset = state.getViewportSize() * 0.5f;
+        const glm::vec2 press = regions[0].bounds.center + viewportOffset;
+        const glm::vec2 floatAt = press + glm::vec2{0.f, 100.f};
+
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::press,
+            .pos = press,
+        }));
+        EXPECT_EQ(state.getPointerCapture(), dockId);
+        static_cast<void>(
+            state.dispatchEvent(Input::MouseMoveEvent{.pos = floatAt}));
+        EXPECT_TRUE(dock->isItemFloating(first.item));
+        EXPECT_EQ(dock->floatingItemCount(), 1);
+        EXPECT_EQ(dock->model().itemCount(), 1);
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::release,
+            .pos = floatAt,
+        }));
+        EXPECT_FALSE(state.getPointerCapture());
+        EXPECT_TRUE(dock->isItemFloating(first.item));
+        EXPECT_TRUE(dock->model().validate());
+
+        state.performLayout();
+        const auto floatingBounds = dock->floatingItemBounds(first.item);
+        ASSERT_TRUE(floatingBounds.has_value());
+        const glm::vec2 floatingHeader =
+            glm::vec2{floatingBounds->center.x,
+                      floatingBounds->topLeft().y +
+                          state.theme().tabs.height * 0.5f} +
+            viewportOffset;
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::press,
+            .pos = floatingHeader,
+        }));
+        ASSERT_EQ(state.getPointerCapture(), dockId);
+
+        const auto dockedLayout =
+            dock->model().layout(state.getBounds(dockId),
+                                 state.theme().tabs.height,
+                                 state.theme().dock.splitterThickness);
+        ASSERT_EQ(dockedLayout.stacks.size(), 1);
+        const glm::vec2 mainGuide =
+            dockedLayout.stacks.front().bounds.center + viewportOffset;
+        static_cast<void>(
+            state.dispatchEvent(Input::MouseMoveEvent{.pos = mainGuide}));
+        ASSERT_TRUE(dock->isItemFloating(first.item));
+        // A release can carry a newer coordinate without a preceding move.
+        // It must not reuse the previously hovered guide.
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::release,
+            .pos = {-20.f, -20.f},
+        }));
+        EXPECT_FALSE(state.getPointerCapture());
+        EXPECT_TRUE(dock->isItemFloating(first.item));
+
+        state.performLayout();
+        const auto redockBounds = dock->floatingItemBounds(first.item);
+        ASSERT_TRUE(redockBounds.has_value());
+        const glm::vec2 redockHeader =
+            glm::vec2{redockBounds->center.x,
+                      redockBounds->topLeft().y +
+                          state.theme().tabs.height * 0.5f} +
+            viewportOffset;
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::press,
+            .pos = redockHeader,
+        }));
+        ASSERT_EQ(state.getPointerCapture(), dockId);
+        static_cast<void>(
+            state.dispatchEvent(Input::MouseMoveEvent{.pos = mainGuide}));
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::release,
+            .pos = mainGuide,
+        }));
+
+        EXPECT_FALSE(dock->isItemFloating(first.item));
+        EXPECT_EQ(dock->floatingItemCount(), 0);
+        EXPECT_EQ(dock->model().itemCount(), 2);
+        EXPECT_EQ(dock->model().stackCount(), 1);
+        EXPECT_EQ(dock->model().stackForItem(first.item),
+                  dock->model().stackForItem(second.item));
         EXPECT_TRUE(dock->model().validate());
     }
 } // namespace

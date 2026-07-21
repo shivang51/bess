@@ -4,6 +4,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(Header_Files
 	include/behaviors/pressable.h
 	include/controls/basic_widgets.h
+	include/controls/dock_drop.h
 	include/controls/dock_space.h
 	include/controls/tab_bar.h
 	include/demo_view.h
@@ -32,6 +33,7 @@ set(Source_Files
 	src/basic_widgets.cpp
 	src/demo_view.cpp
 	src/dock.cpp
+	src/dock_drop.cpp
 	src/dock_model.cpp
 	src/dock_space.cpp
 	src/layout.cpp

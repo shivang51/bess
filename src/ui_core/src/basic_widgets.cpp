@@ -57,10 +57,10 @@ namespace Bess::UI {
         context.layout.setCrossAxisAlignment(m_options.crossAxisAlignment);
         context.layout.setPadding(m_options.padding);
         if (m_options.stretchWidth) {
-            context.layout.setWidthStretch();
+            context.layout.setWidthPercent(1.f);
         }
         if (m_options.stretchHeight) {
-            context.layout.setHeightStretch();
+            context.layout.setHeightPercent(1.f);
         }
     }
 

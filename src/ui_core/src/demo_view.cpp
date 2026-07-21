@@ -63,17 +63,17 @@ namespace Bess::UI {
                     auto header =
                         page.row(headerOptions(), [this](UIComposer &header) {
                             header.label("Bess UI Core", headingLabel());
-                            header.spacer();
-
                             m_status = header.label(
-                                "Ready — buttons, tabs, panels and splitters "
-                                "are live",
+                                "Drag a dock tab to float it; use the node "
+                                "guides to dock it again",
                                 LabelOptions{.horizontal =
                                                  HorizontalTextAlignment::end,
                                              .autoSize = false});
                             m_status.updateLayout([](LayoutNode &layout) {
-                                layout.setWidth(360.f);
+                                layout.setWidthAuto();
                                 layout.setHeight(24.f);
+                                layout.setMinSize({80.f, 24.f});
+                                layout.setFlex(1.f, 1.f, 0.f);
                             });
 
                             header.button("Next tab",
@@ -84,8 +84,8 @@ namespace Bess::UI {
                                 ButtonOptions{.autoSize = false});
                             m_counterButton.updateLayout(
                                 [](LayoutNode &layout) {
-                                    layout.setWidth(96.f);
-                                    layout.setHeight(32.f);
+                                    layout.setWidth(78.f);
+                                    layout.setHeight(26.f);
                                 });
 
                             auto disabled = header.button("Disabled");
@@ -152,6 +152,8 @@ namespace Bess::UI {
                                 panel.label("Console", headingLabel());
                                 panel.label("[info] UI demo mounted");
                                 panel.label("[info] Drag a splitter to resize");
+                                panel.label(
+                                    "[info] Drag a tab out to float it");
                                 panel.spacer();
                                 panel.button("Clear", [this] {
                                     setStatus("Console cleared");

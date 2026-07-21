@@ -64,6 +64,7 @@ namespace Bess::UI {
         [[nodiscard]] const DockItem *get() const noexcept;
 
       private:
+        friend class DockSpace;
         friend class DockSpaceModel;
         explicit DetachedDockItem(DockItem item);
         std::optional<DockItem> m_item;

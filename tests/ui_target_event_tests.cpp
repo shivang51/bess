@@ -36,6 +36,9 @@ namespace {
         ASSERT_NE(resize, nullptr);
         EXPECT_EQ(resize->width, 1280);
         EXPECT_EQ(resize->height, 720);
+        EXPECT_EQ(target.getRect().size, glm::vec2(1280.f, 720.f));
+        EXPECT_EQ(target.getWidgetTree().getViewportSize(),
+                  glm::vec2(1280.f, 720.f));
 
         const auto *mouseButton = events[1].getIf<Input::MouseButtonEvent>();
         ASSERT_NE(mouseButton, nullptr);
@@ -58,6 +61,7 @@ namespace {
             UI::UITargetResizeEvent{.width = 1920, .height = 1080});
         target.update(TimeMs{0});
         EXPECT_EQ(target.getInputContext().modifiers, keyModifiers);
+        EXPECT_EQ(target.getRect().size, glm::vec2(1920.f, 1080.f));
     }
 
     TEST(UITargetEvents, BuildsFramePointerStateFromEveryQueuedEvent) {

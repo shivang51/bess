@@ -30,6 +30,8 @@ namespace Bess::UI {
                 .minimumWidth = style.minimumWidth,
                 .maximumWidth = style.maximumWidth,
                 .horizontalPadding = style.horizontalPadding,
+                .stripPadding = style.stripPadding,
+                .gap = style.gap,
             };
         }
     } // namespace
@@ -44,7 +46,16 @@ namespace Bess::UI {
             return result;
         }
 
-        const float available = std::max(0.f, bounds.size.x);
+        const glm::vec2 stripPadding = glm::min(
+            glm::max(metrics.stripPadding, glm::vec2{0.f}), bounds.size * 0.5f);
+        const float innerWidth =
+            std::max(0.f, bounds.size.x - stripPadding.x * 2.f);
+        const float maximumGap =
+            tabCount > 1 ? innerWidth / (static_cast<float>(tabCount - 1) * 2.f)
+                         : 0.f;
+        const float gap = std::min(std::max(0.f, metrics.gap), maximumGap);
+        const float totalGap = gap * static_cast<float>(tabCount - 1);
+        const float available = std::max(0.f, innerWidth - totalGap);
         const float equalWidth = available / static_cast<float>(tabCount);
         const float minWidth = std::max(0.f, metrics.minimumWidth);
         const float maxWidth = std::max(minWidth, metrics.maximumWidth);
@@ -54,14 +65,17 @@ namespace Bess::UI {
         const float width =
             equalWidth < minWidth ? equalWidth : std::min(equalWidth, maxWidth);
         const float height =
-            std::min(bounds.size.y, std::max(0.f, metrics.height));
-        const float left = bounds.topLeft().x - std::max(0.f, scrollOffset);
-        const float top = bounds.topLeft().y;
+            std::min(std::max(0.f, bounds.size.y - stripPadding.y * 2.f),
+                     std::max(0.f, metrics.height - stripPadding.y * 2.f));
+        const float left =
+            bounds.topLeft().x + stripPadding.x - std::max(0.f, scrollOffset);
+        const float top = bounds.topLeft().y + stripPadding.y;
 
         result.reserve(tabCount);
         for (size_t i = 0; i < tabCount; ++i) {
             WidgetBounds tab{
-                .center = {left + width * (static_cast<float>(i) + 0.5f),
+                .center = {left + width * (static_cast<float>(i) + 0.5f) +
+                               gap * static_cast<float>(i),
                            top + height * 0.5f},
                 .size = {width, height},
             };
@@ -108,7 +122,7 @@ namespace Bess::UI {
 
     void TabBar::onMount(WidgetMountContext &context) {
         const auto &resolved = style(context.state);
-        context.layout.setWidthStretch();
+        context.layout.setWidthPercent(1.f);
         context.layout.setHeight(resolved.height);
         m_modelConnection = m_model->changed().connect(
             [state = &context.state, id = context.id](const TabChange &) {
@@ -139,10 +153,10 @@ namespace Bess::UI {
             const UIBoxStyle *box = &resolved.normal;
             if (m_pressedTab == item.id && m_pressable.isPressed()) {
                 box = &resolved.pressed;
-            } else if (m_hoveredTab == item.id) {
-                box = &resolved.hovered;
             } else if (m_model->active() == item.id) {
                 box = &resolved.active;
+            } else if (m_hoveredTab == item.id) {
+                box = &resolved.hovered;
             }
 
             PickingId pickingId = context.pickingId;

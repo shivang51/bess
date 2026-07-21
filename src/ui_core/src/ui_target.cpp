@@ -4,6 +4,8 @@
 #include "common/bess_assert.h"
 #include "ui_painter.h"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <utility>
 
@@ -122,15 +124,21 @@ namespace Bess::UI {
     }
 
     void UITarget::resize(const glm::vec2 &size) {
-        m_rect.size = size;
-        if (m_renderTarget != nullptr && size.x > 0.f && size.y > 0.f) {
+        const glm::vec2 safeSize{
+            std::isfinite(size.x) ? std::max(0.f, size.x) : 0.f,
+            std::isfinite(size.y) ? std::max(0.f, size.y) : 0.f,
+        };
+        const bool changed = m_rect.size != safeSize;
+        m_rect.size = safeSize;
+        if (changed && m_renderTarget != nullptr && safeSize.x > 0.f &&
+            safeSize.y > 0.f) {
             m_renderTarget->resize({
-                .width = static_cast<uint32_t>(size.x),
-                .height = static_cast<uint32_t>(size.y),
+                .width = static_cast<uint32_t>(safeSize.x),
+                .height = static_cast<uint32_t>(safeSize.y),
             });
         }
 
-        m_widgetTree.setViewportSize(size);
+        m_widgetTree.setViewportSize(safeSize);
     }
 
     void UITarget::draw() {
@@ -182,6 +190,13 @@ namespace Bess::UI {
         m_inputCtx.mouseWheelDelta = {0.f, 0.f};
 
         for (auto &event : m_frameEvents) {
+            if (const auto *resizeEvent = event.getIf<UITargetResizeEvent>()) {
+                // A resize event is a complete target contract, not merely a
+                // widget notification. This keeps offscreen/custom target
+                // integrations correct even when they only enqueue events.
+                resize({static_cast<float>(resizeEvent->width),
+                        static_cast<float>(resizeEvent->height)});
+            }
             if (!event.is<UITargetResizeEvent>()) {
                 m_inputCtx.modifiers = event.modifiers;
             }

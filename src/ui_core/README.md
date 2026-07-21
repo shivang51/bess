@@ -15,6 +15,8 @@ and high-level composition.
   node, a runtime picking ID, or its children.
 - `UIPainter` is the renderer-neutral drawing contract.
   `RendererUIPainter` is the adapter for `IRenderer2D`.
+- Widget subtree Z values are inherited through painter layers, so overlays
+  and floating content keep their internal draw order as one unit.
 - `DockSpace` is an optional widget. A target has docking only when a
   `DockSpace` is inserted into its tree.
 
@@ -107,6 +109,8 @@ Derive from `Widget` and override only the required hooks:
   theme changes);
 - arrange direct children in `arrange`;
 - emit renderer-neutral commands in `paint`;
+- use `paintOverlay` for adorners that must appear above descendants, such as
+  focus rings, selection handles, and docking previews;
 - return a `UIEventReply` from `onEvent` to request focus, pointer capture,
   invalidation, handling, or propagation changes.
 
@@ -177,6 +181,14 @@ Only the active panel in each stack is arranged, painted, and hit-tested.
 Empty stacks collapse transactionally, preserving the IDs of surviving nodes
 and items. `DockSpaceModel::validate` is available for tests, deserialization,
 and debug assertions at topology boundaries.
+
+Dock tabs have a small drag threshold. Dragging beyond it transfers the item
+into a floating panel without recreating its widget subtree; releasing away
+from a guide leaves it floating. While dragging over a terminal stack,
+`DockSpace` presents node-local center/side guides and an exact destination
+preview. Releasing on a guide attaches the same item and content back into the
+model. `DockDropGuideLayoutSolver` is renderer-free so custom themes and tests
+consume the same hit regions used by the preview.
 
 The older `DockManager` remains temporarily for compatibility. New retained UI
 code should use `DockSpaceModel` and `DockSpace`; once its remaining call sites

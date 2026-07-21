@@ -17,6 +17,8 @@ namespace Bess::UI {
         float minimumWidth = 72.f;
         float maximumWidth = 220.f;
         float horizontalPadding = 12.f;
+        glm::vec2 stripPadding{0.f};
+        float gap = 0.f;
     };
 
     struct TabStripRegion {

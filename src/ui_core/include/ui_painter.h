@@ -5,6 +5,7 @@
 #include "ui_types.h"
 
 #include <string_view>
+#include <vector>
 
 namespace Bess::UI {
 
@@ -47,6 +48,10 @@ namespace Bess::UI {
                     float letterSpacing = 0.f) const = 0;
         virtual void pushClip(WidgetBounds bounds) = 0;
         virtual void popClip() = 0;
+        // Adds a local Z offset for a widget subtree. Base implementations are
+        // no-ops so lightweight test painters need not model depth.
+        virtual void pushLayer(float zOffset);
+        virtual void popLayer();
     };
 
     // Adapter from renderer-neutral widget painting to the shared renderer.
@@ -66,10 +71,14 @@ namespace Bess::UI {
                     float letterSpacing = 0.f) const override;
         void pushClip(WidgetBounds bounds) override;
         void popClip() override;
+        void pushLayer(float zOffset) override;
+        void popLayer() override;
 
       private:
         Core::Renderer::IRenderer2D &m_renderer;
         glm::vec2 m_viewportSize{0.f};
+        std::vector<float> m_layerStack;
+        float m_layerOffset = 0.f;
     };
 
     class ScopedUIClip {

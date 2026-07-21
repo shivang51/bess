@@ -1,6 +1,7 @@
 
 #include "../behaviors/pressable.h"
 #include "../controls/basic_widgets.h"
+#include "../controls/dock_drop.h"
 #include "../controls/dock_space.h"
 #include "../controls/tab_bar.h"
 #include "../demo_view.h"

@@ -106,6 +106,10 @@ namespace Bess::UI {
         virtual void update(WidgetUpdateContext &context);
         virtual void arrange(WidgetArrangeContext &context);
         virtual void paint(WidgetPaintContext &context) const;
+        // Painted after descendants while the widget's child clip is still
+        // active. This is intended for adorners such as selection outlines,
+        // drag previews, focus rings, and docking guides.
+        virtual void paintOverlay(WidgetPaintContext &context) const;
         virtual UIEventReply onEvent(WidgetEventContext &context,
                                      const UIEvent &event);
     };
