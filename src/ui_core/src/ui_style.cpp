@@ -19,13 +19,16 @@ namespace Bess::UI {
 
         UITheme theme;
         theme.canvas = colors.surface;
-        theme.panel = {
+        theme.surface = {
             .background = colors.surfaceContainerLow,
-            .border = colors.outlineVariant,
+            .border = transparent,
             .cornerRadius = controlRadius,
-            .borderThickness = glm::vec4{1.f},
+            .borderThickness = glm::vec4{0.f},
             .shadow = noShadow,
         };
+        theme.panel = theme.surface;
+        theme.panel.border = colors.outlineVariant;
+        theme.panel.borderThickness = glm::vec4{1.f};
         theme.label = {.color = colors.onSurface, .fontSize = 14.f};
 
         theme.button.normal = {

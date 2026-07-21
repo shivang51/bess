@@ -4,9 +4,17 @@
 #include "widget_tree.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace Bess::UI {
     namespace {
+        // Interactive chrome must sit above its containing surface. Leaving
+        // both at the same depth makes overlapping opaque primitives compete
+        // for the same depth value, so the container can obscure the control
+        // depending on how the GPU schedules the batch.
+        constexpr float kInteractiveChromeZ = 0.001f;
+        constexpr float kInteractiveContentZ = 0.002f;
+
         BoxPaint boxPaint(WidgetBounds bounds,
                           const UIBoxStyle &style,
                           PickingId pickingId,
@@ -42,6 +50,22 @@ namespace Bess::UI {
             }
             return style;
         }
+
+        float nonNegativeFinite(float value) noexcept {
+            return std::isfinite(value) ? std::max(0.f, value) : 0.f;
+        }
+
+        glm::vec2 nonNegativeFinite(glm::vec2 value) noexcept {
+            return {
+                nonNegativeFinite(value.x),
+                nonNegativeFinite(value.y),
+            };
+        }
+
+        bool isHorizontal(LayoutDirection direction) noexcept {
+            return direction == LayoutDirection::horizontal ||
+                   direction == LayoutDirection::horizontalReverse;
+        }
     } // namespace
 
     FlexContainer::FlexContainer(FlexContainerOptions options)
@@ -65,6 +89,7 @@ namespace Bess::UI {
         context.layout.setMainAxisAlignment(m_options.mainAxisAlignment);
         context.layout.setCrossAxisAlignment(m_options.crossAxisAlignment);
         context.layout.setPadding(m_options.padding);
+        context.layout.setGap(m_options.gap);
         if (m_options.stretchWidth) {
             context.layout.setWidthPercent(1.f);
         }
@@ -90,7 +115,7 @@ namespace Bess::UI {
 
     void Surface::paint(WidgetPaintContext &context) const {
         const auto &style =
-            m_options.style.value_or(context.state.theme().panel);
+            m_options.style.value_or(context.state.theme().surface);
         context.painter.drawBox(
             boxPaint(context.bounds, style, context.pickingId));
     }
@@ -216,8 +241,8 @@ namespace Bess::UI {
             box = &style.focused;
         }
 
-        context.painter.drawBox(
-            boxPaint(context.bounds, *box, context.pickingId));
+        context.painter.drawBox(boxPaint(
+            context.bounds, *box, context.pickingId, kInteractiveChromeZ));
         const auto textColor =
             context.enabled ? style.text.color : style.disabledText;
         context.painter.drawText(
@@ -228,7 +253,7 @@ namespace Bess::UI {
                 .color = textColor,
                 .horizontal = HorizontalTextAlignment::center,
                 .vertical = VerticalTextAlignment::center,
-                .zIndex = 0.001f,
+                .zIndex = kInteractiveContentZ,
                 .letterSpacing = style.text.letterSpacing,
                 .pickingId = context.pickingId,
             });
@@ -263,6 +288,9 @@ namespace Bess::UI {
         return m_pressable.isPressed();
     }
 
+    Spacer::Spacer(SpacerOptions options) : m_options(std::move(options)) {
+    }
+
     std::string_view Spacer::typeName() const noexcept {
         return "Spacer";
     }
@@ -272,8 +300,43 @@ namespace Bess::UI {
     }
 
     void Spacer::onMount(WidgetMountContext &context) {
-        context.layout.setFlexGrow(1.f);
+        context.layout.setFlexGrow(nonNegativeFinite(m_options.flex));
         context.layout.setFlexShrink(1.f);
         context.layout.setFlexBasis(0.f);
+        context.layout.setMinSize(nonNegativeFinite(m_options.minimumSize));
+    }
+
+    Gap::Gap(float extent) : m_extent(nonNegativeFinite(extent)) {
+    }
+
+    std::string_view Gap::typeName() const noexcept {
+        return "Gap";
+    }
+
+    WidgetTraits Gap::traits() const noexcept {
+        return {.focusable = false, .hitTestVisible = false};
+    }
+
+    void Gap::onMount(WidgetMountContext &context) {
+        applyLayout(context.state, context.id, context.layout);
+    }
+
+    void Gap::updateLayout(WidgetLayoutContext &context) {
+        applyLayout(context.state, context.id, context.layout);
+    }
+
+    void Gap::applyLayout(WidgetTree &state, WidgetId id, LayoutNode &layout) {
+        const auto parent = state.getParent(id);
+        const auto *parentLayout = state.getLayout(parent);
+        const bool horizontal = parentLayout == nullptr ||
+                                isHorizontal(parentLayout->getDirection());
+        if (m_horizontal == horizontal) {
+            return;
+        }
+        m_horizontal = horizontal;
+
+        layout.setFlex(0.f, 0.f, m_extent);
+        layout.setWidth(horizontal ? m_extent : 0.f);
+        layout.setHeight(horizontal ? 0.f : m_extent);
     }
 } // namespace Bess::UI

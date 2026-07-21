@@ -161,6 +161,9 @@ namespace Bess::UI {
         // top, right, bottom, left
         Core::Style::Margin &getMargin();
 
+        [[nodiscard]] float getGap() const noexcept;
+        void setGap(float gap);
+
         const glm::vec2 &getMinSize() const;
         void setMinSize(const glm::vec2 &minSize);
         glm::vec2 &getMinSize();
@@ -317,6 +320,7 @@ namespace Bess::UI {
 
         Core::Style::Padding m_padding;
         Core::Style::Margin m_margin;
+        float m_gap = 0.f;
 
         LayoutDirection m_direction = LayoutDirection::horizontal;
         LayoutAlignment m_mainAxisAlignment = LayoutAlignment::start;

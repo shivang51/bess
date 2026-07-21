@@ -287,6 +287,31 @@ namespace {
     }
 
     TEST(BasicWidgetTests,
+         ButtonPaintsOpaqueThemeBackgroundAboveContainingSurface) {
+        WidgetTree state;
+        state.setViewportSize({200.f, 100.f});
+        const WidgetId surface = state.emplaceWidget<Surface>();
+        const WidgetId button = state.emplaceChild<Button>(surface, "Create");
+        ASSERT_TRUE(surface && button);
+
+        RecordingPainter painter;
+        state.paint(painter);
+
+        ASSERT_EQ(painter.boxes.size(), 2);
+        ASSERT_EQ(painter.texts.size(), 1);
+        const auto &surfacePaint = painter.boxes[0];
+        const auto &buttonPaint = painter.boxes[1];
+        EXPECT_EQ(surfacePaint.color.toHex(),
+                  state.theme().surface.background.toHex());
+        EXPECT_EQ(buttonPaint.color.toHex(),
+                  state.theme().button.normal.background.toHex());
+        EXPECT_NE(buttonPaint.color.toHex(), surfacePaint.color.toHex());
+        EXPECT_GT(buttonPaint.color.a, 0.f);
+        EXPECT_GT(buttonPaint.zIndex, surfacePaint.zIndex);
+        EXPECT_GT(painter.texts[0].second.zIndex, buttonPaint.zIndex);
+    }
+
+    TEST(BasicWidgetTests,
          PaintsThroughRendererNeutralPainterAndClipsChildren) {
         WidgetTree state;
         state.setViewportSize({400.f, 300.f});
@@ -300,6 +325,7 @@ namespace {
 
         ASSERT_EQ(painter.boxes.size(), 1);
         ASSERT_EQ(painter.texts.size(), 1);
+        EXPECT_EQ(painter.boxes[0].borderThickness, glm::vec4(0.f));
         EXPECT_EQ(painter.texts[0].first, "Properties");
         EXPECT_EQ(painter.clips.size(), 1);
         EXPECT_EQ(painter.clipPops, 1);

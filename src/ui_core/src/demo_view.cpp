@@ -1,4 +1,5 @@
 #include "demo_view.h"
+#include "bess_core/style/bess_theme.h"
 
 #include <format>
 #include <functional>
@@ -31,6 +32,7 @@ namespace Bess::UI {
                 .mainAxisAlignment = LayoutAlignment::start,
                 .crossAxisAlignment = LayoutAlignment::center,
                 .padding = Core::Style::Padding::fromSymmetric(8.f, 7.f),
+                .gap = 6.f,
                 .stretchWidth = true,
                 .stretchHeight = false,
                 .clipChildren = false,
@@ -186,8 +188,10 @@ namespace Bess::UI {
                     auto menuHeader = page.row(
                         menuHeaderOptions(), [this](UIComposer &header) {
                             header.label("B", applicationIconLabel());
+                            header.gap(4.f);
                             m_menuBar = header.menuBar(m_menus);
-                            header.spacer();
+                            header.spacer(
+                                SpacerOptions{.minimumSize = {0.f, 26.f}});
                             auto action = header.button(
                                 "?", [this] { setStatus("Toolbar action"); });
                             action.updateLayout([](LayoutNode &layout) {
@@ -212,6 +216,13 @@ namespace Bess::UI {
                                 layout.setHeight(24.f);
                                 layout.setMinSize({80.f, 24.f});
                                 layout.setFlex(1.f, 1.f, 0.f);
+                            });
+
+                            header.button("Add tab", [this] {
+                                m_tabs->add(
+                                    std::format("New tab {}", m_tabs->size()),
+                                    {},
+                                    false);
                             });
 
                             header.button("Next tab",
@@ -316,6 +327,22 @@ namespace Bess::UI {
                         layout.setHeightAuto();
                         layout.setFlex(1.f, 1.f, 0.f);
                         layout.setMinSize({0.f, 180.f});
+                    });
+
+                    auto fotter = page.row({}, [this](UIComposer &footer) {
+                        footer
+                            .label("© 2024 Bess UI Core Demo",
+                                   LabelOptions{.fontSize = 12.f})
+                            .updateLayout([](LayoutNode &layout) {
+                                layout.setMargin(
+                                    Core::Style::Margin::fromSymmetric(4.f,
+                                                                       2.f));
+                            });
+                        footer.spacer({.minimumSize = {0.f, 24}});
+                    });
+
+                    fotter.updateLayout([](LayoutNode &layout) {
+                        layout.setHeightFitContent();
                     });
                 });
             static_cast<void>(surface.layout(page, [](LayoutNode &layout) {

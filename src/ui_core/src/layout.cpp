@@ -419,6 +419,20 @@ namespace Bess::UI {
         return m_margin;
     }
 
+    float LayoutNode::getGap() const noexcept {
+        return m_gap;
+    }
+
+    void LayoutNode::setGap(float gap) {
+        gap = nonNegative(gap);
+        if (m_gap == gap) {
+            return;
+        }
+        m_gap = gap;
+        YGNodeStyleSetGap(m_ygNode, YGGutterAll, gap);
+        setSizeDirty();
+    }
+
     const glm::vec2 &LayoutNode::getMinSize() const {
         return m_minSize;
     }
@@ -985,6 +999,7 @@ namespace Bess::UI {
         m_maxSize = other.m_maxSize;
         m_padding = other.m_padding;
         m_margin = other.m_margin;
+        m_gap = other.m_gap;
         m_direction = other.m_direction;
         m_mainAxisAlignment = other.m_mainAxisAlignment;
         m_crossAxisAlignment = other.m_crossAxisAlignment;
@@ -1027,6 +1042,7 @@ namespace Bess::UI {
         m_maxSize = other.m_maxSize;
         m_padding = other.m_padding;
         m_margin = other.m_margin;
+        m_gap = other.m_gap;
         m_direction = other.m_direction;
         m_mainAxisAlignment = other.m_mainAxisAlignment;
         m_crossAxisAlignment = other.m_crossAxisAlignment;
@@ -1092,6 +1108,7 @@ namespace Bess::UI {
         YGNodeStyleSetMargin(m_ygNode, YGEdgeRight, m_margin.right);
         YGNodeStyleSetMargin(m_ygNode, YGEdgeBottom, m_margin.bottom);
         YGNodeStyleSetMargin(m_ygNode, YGEdgeLeft, m_margin.left);
+        YGNodeStyleSetGap(m_ygNode, YGGutterAll, m_gap);
     }
 
     void LayoutNode::applyWidthStyle() {

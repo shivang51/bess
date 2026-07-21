@@ -15,8 +15,9 @@ namespace Bess::UI {
     struct FlexContainerOptions {
         LayoutDirection direction = LayoutDirection::horizontal;
         LayoutAlignment mainAxisAlignment = LayoutAlignment::start;
-        LayoutAlignment crossAxisAlignment = LayoutAlignment::start;
+        LayoutAlignment crossAxisAlignment = LayoutAlignment::center;
         Core::Style::Padding padding{};
+        float gap = 0.f;
         bool stretchWidth = true;
         bool stretchHeight = true;
         bool clipChildren = false;
@@ -117,11 +118,43 @@ namespace Bess::UI {
         bool m_intrinsicSizeDirty = true;
     };
 
+    struct SpacerOptions {
+        // Remaining main-axis space is distributed according to this factor.
+        float flex = 1.f;
+        // A flexible spacer can also establish a cross-axis minimum, e.g. a
+        // minimum row height, without becoming a fixed main-axis gap.
+        glm::vec2 minimumSize{0.f};
+    };
+
     class BESS_API Spacer : public Widget {
       public:
+        explicit Spacer(SpacerOptions options = {});
+
         [[nodiscard]] std::string_view typeName() const noexcept override;
         [[nodiscard]] WidgetTraits traits() const noexcept override;
         void onMount(WidgetMountContext &context) override;
+
+      private:
+        SpacerOptions m_options;
+    };
+
+    // Fixed empty space along the current flex parent's main axis. A Gap in a
+    // row has width; a Gap in a column has height. It follows the parent when
+    // reparented or when the parent's direction changes.
+    class BESS_API Gap : public Widget {
+      public:
+        explicit Gap(float extent);
+
+        [[nodiscard]] std::string_view typeName() const noexcept override;
+        [[nodiscard]] WidgetTraits traits() const noexcept override;
+        void onMount(WidgetMountContext &context) override;
+        void updateLayout(WidgetLayoutContext &context) override;
+
+      private:
+        void applyLayout(WidgetTree &state, WidgetId id, LayoutNode &layout);
+
+        float m_extent = 0.f;
+        std::optional<bool> m_horizontal;
     };
 
 } // namespace Bess::UI

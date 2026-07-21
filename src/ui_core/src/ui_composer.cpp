@@ -114,8 +114,12 @@ namespace Bess::UI {
             std::move(label), std::move(activated), std::move(options));
     }
 
-    WidgetRef<Spacer> UIComposer::spacer() {
-        return emplace<Spacer>();
+    WidgetRef<Spacer> UIComposer::spacer(SpacerOptions options) {
+        return emplace<Spacer>(std::move(options));
+    }
+
+    WidgetRef<Gap> UIComposer::gap(float pixels) {
+        return emplace<Gap>(pixels);
     }
 
     WidgetRef<TabBar> UIComposer::tabBar(std::shared_ptr<TabModel> model,

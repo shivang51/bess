@@ -115,6 +115,7 @@ namespace Bess::UI {
 
     struct BESS_API UITheme {
         Core::Renderer::Color canvas;
+        UIBoxStyle surface;
         UIBoxStyle panel;
         UITextStyle label;
         UIInteractiveStyle button;

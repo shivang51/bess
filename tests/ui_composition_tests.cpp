@@ -193,6 +193,8 @@ namespace {
             children.button("Save");
         });
         ASSERT_TRUE(row);
+        EXPECT_EQ(tree.getLayout(row.id())->getCrossAxisAlignment(),
+                  LayoutAlignment::center);
         EXPECT_EQ(tree.getChildren(row.id()).size(), 3);
 
         EXPECT_THROW(ui.column([](UIComposer &children) {
@@ -202,6 +204,99 @@ namespace {
                      std::runtime_error);
         ASSERT_EQ(tree.getChildren(root).size(), 1);
         EXPECT_EQ(tree.getChildren(root).front(), row.id());
+    }
+
+    TEST(UIComposerTests, FixedGapFollowsItsFlexParentMainAxis) {
+        WidgetTree tree;
+        tree.setViewportSize({400.f, 300.f});
+        const auto root =
+            tree.emplaceWidget<FlexContainer>(FlexContainerOptions{
+                .stretchWidth = false, .stretchHeight = false});
+        UIComposer ui{tree, root};
+
+        const auto first = ui.surface();
+        const auto gap = ui.gap(12.f);
+        const auto second = ui.surface();
+        ASSERT_TRUE(first && gap && second);
+        ASSERT_TRUE(first.updateLayout([](LayoutNode &layout) {
+            layout.setWidth(20.f);
+            layout.setHeight(10.f);
+        }));
+        ASSERT_TRUE(second.updateLayout([](LayoutNode &layout) {
+            layout.setWidth(20.f);
+            layout.setHeight(10.f);
+        }));
+
+        tree.performLayout();
+        EXPECT_EQ(gap.get()->typeName(), "Gap");
+        EXPECT_EQ(tree.getBounds(gap.id()).size, glm::vec2(12.f, 0.f));
+        EXPECT_FLOAT_EQ(tree.getBounds(second.id()).topLeft().x -
+                            tree.getBounds(first.id()).bottomRight().x,
+                        12.f);
+
+        tree.getLayout(root)->setDirection(LayoutDirection::vertical);
+        tree.performLayout();
+        EXPECT_EQ(tree.getBounds(gap.id()).size, glm::vec2(0.f, 12.f));
+        EXPECT_FLOAT_EQ(tree.getBounds(second.id()).topLeft().y -
+                            tree.getBounds(first.id()).bottomRight().y,
+                        12.f);
+    }
+
+    TEST(UIComposerTests, ContainerGapSpacesEveryAdjacentChild) {
+        WidgetTree tree;
+        tree.setViewportSize({400.f, 300.f});
+        const auto root =
+            tree.emplaceWidget<FlexContainer>(FlexContainerOptions{
+                .gap = 7.f, .stretchWidth = false, .stretchHeight = false});
+        UIComposer ui{tree, root};
+
+        const auto first = ui.surface();
+        const auto second = ui.surface();
+        ASSERT_TRUE(first.updateLayout([](LayoutNode &layout) {
+            layout.setWidth(20.f);
+            layout.setHeight(10.f);
+        }));
+        ASSERT_TRUE(second.updateLayout([](LayoutNode &layout) {
+            layout.setWidth(20.f);
+            layout.setHeight(10.f);
+        }));
+
+        tree.performLayout();
+        EXPECT_FLOAT_EQ(tree.getLayout(root)->getGap(), 7.f);
+        EXPECT_FLOAT_EQ(tree.getBounds(second.id()).topLeft().x -
+                            tree.getBounds(first.id()).bottomRight().x,
+                        7.f);
+    }
+
+    TEST(UIComposerTests, FlexibleSpacerCanEstablishRowHeight) {
+        WidgetTree tree;
+        tree.setViewportSize({400.f, 300.f});
+        const auto root = tree.emplaceWidget<FlexContainer>();
+        UIComposer rootComposer{tree, root};
+        const auto row = rootComposer.row(FlexContainerOptions{
+            .stretchWidth = false, .stretchHeight = false});
+        ASSERT_TRUE(row.updateLayout(
+            [](LayoutNode &layout) { layout.setWidth(120.f); }));
+        UIComposer ui{tree, row.id()};
+
+        const auto first = ui.surface();
+        const auto spacer =
+            ui.spacer(SpacerOptions{.flex = 2.f, .minimumSize = {0.f, 36.f}});
+        const auto second = ui.surface();
+        for (const auto surface : {first, second}) {
+            ASSERT_TRUE(surface.updateLayout([](LayoutNode &layout) {
+                layout.setWidth(20.f);
+                layout.setHeight(10.f);
+            }));
+        }
+
+        tree.performLayout();
+        EXPECT_FLOAT_EQ(tree.getLayout(spacer.id())->getFlexGrow(), 2.f);
+        EXPECT_EQ(tree.getLayout(spacer.id())->getMinSize(),
+                  glm::vec2(0.f, 36.f));
+        EXPECT_FLOAT_EQ(tree.getBounds(row.id()).size.y, 36.f);
+        EXPECT_GE(tree.getBounds(spacer.id()).size.y, 36.f);
+        EXPECT_FLOAT_EQ(tree.getBounds(spacer.id()).size.x, 80.f);
     }
 
     TEST(DockComposerTests, BuildsTopologyAndRollsBackFailedPanels) {
@@ -320,6 +415,7 @@ namespace {
         EXPECT_GE(countWidgetType(tree, "Label"), 1);
         EXPECT_GE(countWidgetType(tree, "Button"), 1);
         EXPECT_GE(countWidgetType(tree, "Spacer"), 1);
+        EXPECT_GE(countWidgetType(tree, "Gap"), 1);
         EXPECT_EQ(countWidgetType(tree, "TabBar"), 1);
         EXPECT_EQ(countWidgetType(tree, "MenuBar"), 1);
         EXPECT_EQ(countWidgetType(tree, "DockSpace"), 1);

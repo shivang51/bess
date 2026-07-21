@@ -147,6 +147,11 @@ namespace {
         const auto transparent = colors.surface.withAlpha(0.f);
 
         expectColor(theme.canvas, colors.surface, "canvas");
+        expectColor(theme.surface.background,
+                    colors.surfaceContainerLow,
+                    "surface background");
+        expectColor(theme.surface.border, transparent, "surface border");
+        EXPECT_EQ(theme.surface.borderThickness, glm::vec4(0.f));
         expectColor(theme.panel.background,
                     colors.surfaceContainerLow,
                     "panel background");

@@ -109,7 +109,8 @@ namespace Bess::UI {
         WidgetRef<Button> button(std::string label,
                                  Button::Activated activated = {},
                                  ButtonOptions options = {});
-        WidgetRef<Spacer> spacer();
+        WidgetRef<Spacer> spacer(SpacerOptions options = {});
+        WidgetRef<Gap> gap(float pixels);
         WidgetRef<TabBar> tabBar(std::shared_ptr<TabModel> model,
                                  TabBarOptions options = {});
         WidgetRef<DockSpace> dockSpace(DockSpaceOptions options = {});
