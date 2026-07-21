@@ -4,6 +4,59 @@
 #include "ui_core.h"
 #include <gtest/gtest.h>
 
+namespace {
+    struct DockTreeCounts {
+        size_t leaves = 0;
+        size_t splitters = 0;
+        size_t tabs = 0;
+
+        size_t total() const {
+            return leaves + splitters + tabs;
+        }
+    };
+
+    void expectDockTreeOwnership(Bess::UI::DockManager &dockManager,
+                                 const Bess::UUID &nodeId,
+                                 const Bess::UUID &expectedParent,
+                                 DockTreeCounts &counts,
+                                 const size_t depth = 0) {
+        ASSERT_LT(depth, 16);
+
+        const auto node = dockManager.getNode(nodeId);
+        ASSERT_NE(node, nullptr);
+        EXPECT_EQ(node->getDockedTo(), expectedParent);
+        EXPECT_FALSE(node->isFloating());
+        EXPECT_EQ(node->isRoot(), nodeId == dockManager.getRootNode());
+
+        if (node->isLeaf()) {
+            ++counts.leaves;
+            return;
+        }
+
+        if (node->isSplitter()) {
+            ++counts.splitters;
+            const auto splitter =
+                std::dynamic_pointer_cast<Bess::UI::DockSplitter>(node);
+            ASSERT_NE(splitter, nullptr);
+            const auto &children = splitter->getSplitNodes();
+            expectDockTreeOwnership(
+                dockManager, children.first, nodeId, counts, depth + 1);
+            expectDockTreeOwnership(
+                dockManager, children.second, nodeId, counts, depth + 1);
+            return;
+        }
+
+        ASSERT_TRUE(node->isTab());
+        ++counts.tabs;
+        const auto tab = std::dynamic_pointer_cast<Bess::UI::DockTab>(node);
+        ASSERT_NE(tab, nullptr);
+        for (const auto &childId : tab->getDockedNodes()) {
+            expectDockTreeOwnership(
+                dockManager, childId, nodeId, counts, depth + 1);
+        }
+    }
+} // namespace
+
 class DockManagerTests : public testing::Test {
   protected:
     void SetUp() override {
@@ -684,12 +737,79 @@ TEST_F(DockManagerTests, FourHSplits) {
     const float xPos[] = {0.0f, 100.0f, 200.0f, 400.0f};
 
     // Check that the positions and sizes of the leaves are correct
-    const float expectedWidth = 800.0f / 4;
     for (int i = 0; i < 4; ++i) {
         const auto &leaf = leaves[i];
         ASSERT_FLOAT_EQ(leaf->getSize().x, xSizes[i]);
         ASSERT_FLOAT_EQ(leaf->getSize().y, 600.0f);
         ASSERT_FLOAT_EQ(leaf->getPos().x, xPos[i]);
         ASSERT_FLOAT_EQ(leaf->getPos().y, 0.0f);
+
+        const auto leafCenter = leaf->getPos() + leaf->getSize() * 0.5f;
+        EXPECT_EQ(dockManager.getHitRect(leafCenter), leaf->getId());
     }
+
+    const auto rootId = dockManager.getRootNode();
+    DockTreeCounts counts;
+    expectDockTreeOwnership(dockManager, rootId, rootId, counts);
+    EXPECT_EQ(counts.leaves, 4);
+    EXPECT_EQ(counts.splitters, 3);
+    EXPECT_EQ(counts.tabs, 0);
+    EXPECT_EQ(counts.total(), 7);
+}
+
+TEST_F(DockManagerTests, NestedTabAndSplitterPreserveParentOwnership) {
+    Bess::UI::DockManager dockManager;
+    dockManager.init();
+
+    auto leaf1 = dockManager.createNode<Bess::UI::DockLeaf>();
+    auto leaf2 = dockManager.createNode<Bess::UI::DockLeaf>();
+    auto leaf3 = dockManager.createNode<Bess::UI::DockLeaf>();
+
+    leaf1->setSize({800.f, 600.f});
+    ASSERT_TRUE(dockManager.dockNode(leaf1->getId(),
+                                     dockManager.getRootNode(),
+                                     Bess::UI::DockZone::main));
+    ASSERT_TRUE(dockManager.dockNode(leaf2->getId(),
+                                     dockManager.getRootNode(),
+                                     Bess::UI::DockZone::main));
+    ASSERT_TRUE(dockManager.dockNode(leaf3->getId(),
+                                     dockManager.getRootNode(),
+                                     Bess::UI::DockZone::right));
+
+    dockManager.layout();
+
+    const auto rootId = dockManager.getRootNode();
+    DockTreeCounts counts;
+    expectDockTreeOwnership(dockManager, rootId, rootId, counts);
+    EXPECT_EQ(counts.leaves, 3);
+    EXPECT_EQ(counts.splitters, 1);
+    EXPECT_EQ(counts.tabs, 1);
+    EXPECT_EQ(counts.total(), 5);
+}
+
+TEST_F(DockManagerTests, UndockingFromRootMakesOnlyDetachedNodeFloating) {
+    Bess::UI::DockManager dockManager;
+    dockManager.init();
+
+    auto leaf1 = dockManager.createNode<Bess::UI::DockLeaf>();
+    auto leaf2 = dockManager.createNode<Bess::UI::DockLeaf>();
+
+    ASSERT_TRUE(dockManager.dockNode(leaf1->getId(),
+                                     dockManager.getRootNode(),
+                                     Bess::UI::DockZone::main));
+    ASSERT_TRUE(dockManager.dockNode(leaf2->getId(),
+                                     dockManager.getRootNode(),
+                                     Bess::UI::DockZone::right));
+    ASSERT_FALSE(leaf1->isFloating());
+    ASSERT_FALSE(leaf2->isFloating());
+
+    ASSERT_TRUE(dockManager.undockNode(leaf2->getId()));
+
+    const auto rootId = dockManager.getRootNode();
+    const auto root = dockManager.getNode(rootId);
+    ASSERT_NE(root, nullptr);
+    EXPECT_TRUE(root->isRoot());
+    EXPECT_FALSE(root->isFloating());
+    EXPECT_TRUE(leaf2->isFloating());
+    EXPECT_EQ(leaf2->getDockedTo(), Bess::UUID::null);
 }

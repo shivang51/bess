@@ -41,6 +41,10 @@ namespace Bess::UI {
         for (const auto &[id, node] : m_nodes) {
             const bool shouldAddRect = node->isFloating() || node->isLeaf();
 
+            if (!shouldAddRect) {
+                continue;
+            }
+
             DockRect rect;
             rect.id = id;
             rect.pos = node->getPos();
@@ -58,7 +62,8 @@ namespace Bess::UI {
 
         if (targetId == m_rootNode && m_rootNode == UUID::null) {
             setRootNode(node);
-            res = true;
+            m_layoutDirty = true;
+            return true;
         } else {
             auto target = getNode(targetId);
             const auto &targetType = target->getNodeType();
@@ -200,8 +205,9 @@ namespace Bess::UI {
 
         for (const auto &dockedNodeId : tabNode->getDockedNodes()) {
             auto dockedNode = getNode(dockedNodeId);
-            node->setPos(tabNode->getPos());
-            node->setSize(tabNode->getSize());
+            BESS_ASSERT(dockedNode, "Docked tab node not found");
+            dockedNode->setPos(tabNode->getPos());
+            dockedNode->setSize(tabNode->getSize());
             layoutNode(dockedNode);
         }
     }
@@ -383,25 +389,76 @@ namespace Bess::UI {
     }
 
     void DockManager::setRootNode(const std::shared_ptr<IDockNode> &node) {
-        m_nodes.erase(m_rootNode);
+        BESS_ASSERT(node, "Cannot set a null dock root");
+
+        if (m_rootNode != UUID::null && m_rootNode != node->getId()) {
+            auto previousRoot = getNode(m_rootNode);
+            if (previousRoot && previousRoot->isRoot()) {
+                previousRoot->setDockedTo(UUID::null);
+            }
+        }
 
         m_rootNode = node->getId();
+        node->setDockedTo(m_rootNode);
         m_nodes[m_rootNode] = node;
+        m_layoutDirty = true;
     }
 
     bool DockManager::replaceNode(const std::shared_ptr<IDockNode> &newNode,
                                   const std::shared_ptr<IDockNode> &oldNode) {
         BESS_ASSERT(newNode && oldNode, "Invalid new or old node");
-        newNode->setId(oldNode->getId());
-        newNode->setDockedTo(oldNode->getDockedTo());
+        const auto newNodeOldId = newNode->getId();
+        const auto replacementId = oldNode->getId();
+        const auto replacementParent = oldNode->isRoot()
+                                           ? replacementId
+                                           : oldNode->getDockedTo();
+
+        m_nodes.erase(newNodeOldId);
+        newNode->setId(replacementId);
+        newNode->setDockedTo(replacementParent);
         newNode->setPos(oldNode->getPos());
         newNode->setSize(oldNode->getSize());
+        reparentChildren(newNode);
 
-        m_nodes[oldNode->getId()] = newNode;
+        m_nodes[replacementId] = newNode;
 
         oldNode->setId(UUID()); // Assign a new ID to the old node
+        oldNode->setDockedTo(UUID::null);
         m_nodes[oldNode->getId()] = oldNode;
         return true;
+    }
+
+    void
+    DockManager::reparentChildren(const std::shared_ptr<IDockNode> &node) {
+        BESS_ASSERT(node, "Cannot reparent children of a null dock node");
+
+        const auto reparent = [this, &node](const UUID &childId) {
+            if (childId == UUID::null) {
+                return;
+            }
+
+            auto child = getNode(childId);
+            BESS_ASSERT(child,
+                        "Dock child {} not found while reparenting {}",
+                        childId,
+                        node->getId());
+            child->setDockedTo(node->getId());
+        };
+
+        if (node->isSplitter()) {
+            const auto splitter =
+                std::dynamic_pointer_cast<DockSplitter>(node);
+            BESS_ASSERT(splitter, "Failed to cast dock splitter");
+            const auto &children = splitter->getSplitNodes();
+            reparent(children.first);
+            reparent(children.second);
+        } else if (node->isTab()) {
+            const auto tab = std::dynamic_pointer_cast<DockTab>(node);
+            BESS_ASSERT(tab, "Failed to cast dock tab");
+            for (const auto &childId : tab->getDockedNodes()) {
+                reparent(childId);
+            }
+        }
     }
 
 } // namespace Bess::UI

@@ -91,7 +91,7 @@ namespace Bess::UI {
       private:
         SplitDirection m_splitDir = SplitDirection::horizontal;
         float m_splitRatio = 0.5f; // Ratio for split nodes
-        SplitNodesType m_splitNodes;
+        SplitNodesType m_splitNodes{UUID::null, UUID::null};
     };
 
     class DockTab : public IDockNode {
@@ -191,6 +191,7 @@ namespace Bess::UI {
             newNode->setId(node->getId());
             newNode->setPos(node->getPos());
             newNode->setSize(node->getSize());
+            newNode->setDockedTo(node->getDockedTo());
             m_nodes[node->getId()] = newNode;
 
             return newNode;
@@ -203,8 +204,11 @@ namespace Bess::UI {
             BESS_ASSERT(node, "Invalid node");
 
             auto newNode = changeNodeType<T>(node); // Change nodes type
+            const auto replacementId = newNode->getId();
             node->setId(UUID());                    // assign new id
+            node->setDockedTo(replacementId);
             m_nodes[node->getId()] = node; // store old node with new id
+            reparentChildren(node);
 
             return newNode;
         }
@@ -254,6 +258,7 @@ namespace Bess::UI {
                                 const std::shared_ptr<IDockNode> &target);
 
         void eraseNode(const UUID &nodeId);
+        void reparentChildren(const std::shared_ptr<IDockNode> &node);
 
       private:
         UUID m_rootNode = UUID::null;
