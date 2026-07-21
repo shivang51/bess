@@ -6,18 +6,22 @@ set(Header_Files
 	include/controls/basic_widgets.h
 	include/controls/dock_space.h
 	include/controls/tab_bar.h
+	include/demo_view.h
 	include/dock.h
 	include/layout.h
 	include/models/signal.h
 	include/models/dock_model.h
 	include/models/tab_model.h
 	include/ui_event.h
+	include/ui_composer.h
 	include/ui_painter.h
 	include/widget_tree.h
 	include/ui_style.h
 	include/ui_target.h
 	include/ui_types.h
+	include/ui_view.h
 	include/widget.h
+	include/widget_ref.h
 	
 	include/ui_core/ui_core.h
 )
@@ -26,6 +30,7 @@ source_group("include/ui_core" FILES ${Header_Files})
 
 set(Source_Files
 	src/basic_widgets.cpp
+	src/demo_view.cpp
 	src/dock.cpp
 	src/dock_model.cpp
 	src/dock_space.cpp
@@ -33,9 +38,11 @@ set(Source_Files
 	src/pressable.cpp
 	src/tab_bar.cpp
 	src/ui_painter.cpp
+	src/ui_composer.cpp
 	src/widget_tree.cpp
 	src/ui_style.cpp
 	src/ui_target.cpp
+	src/ui_view.cpp
 	src/widget.cpp
 )
 

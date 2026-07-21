@@ -9,6 +9,9 @@
 
 namespace Bess::UI {
 
+    UITarget::UITarget() : m_viewHost(m_widgetTree) {
+    }
+
     UITarget::~UITarget() {
         destroy();
     }
@@ -39,6 +42,7 @@ namespace Bess::UI {
     }
 
     void UITarget::destroy() {
+        m_viewHost.clear();
         if (m_renderTarget != nullptr) {
             m_renderTarget->destroy();
             m_renderTarget.reset();
@@ -93,6 +97,30 @@ namespace Bess::UI {
         return m_widgetTree;
     }
 
+    UIViewHost &UITarget::getViewHost() noexcept {
+        return m_viewHost;
+    }
+
+    const UIViewHost &UITarget::getViewHost() const noexcept {
+        return m_viewHost;
+    }
+
+    UIViewRef<UIView> UITarget::setContent(std::unique_ptr<UIView> view) {
+        return m_viewHost.setContent(std::move(view));
+    }
+
+    UIViewRef<UIView> UITarget::mountOverlay(std::unique_ptr<UIView> view) {
+        return m_viewHost.mountOverlay(std::move(view));
+    }
+
+    UIViewRef<UIView> UITarget::mountModal(std::unique_ptr<UIView> view) {
+        return m_viewHost.mountModal(std::move(view));
+    }
+
+    bool UITarget::unmountView(ViewId id) {
+        return m_viewHost.unmount(id);
+    }
+
     void UITarget::resize(const glm::vec2 &size) {
         m_rect.size = size;
         if (m_renderTarget != nullptr && size.x > 0.f && size.y > 0.f) {
@@ -112,6 +140,7 @@ namespace Bess::UI {
 
         RendererUIPainter painter{*renderer, m_rect.size};
         m_widgetTree.paint(painter);
+        m_viewHost.flushPendingUnmounts();
         m_renderTarget->endFrame();
     }
 
@@ -122,12 +151,14 @@ namespace Bess::UI {
         m_widgetTree.performLayout();
         for (const auto &event : m_frameEvents) {
             static_cast<void>(m_widgetTree.dispatchEvent(event));
+            m_viewHost.flushPendingUnmounts();
             if (hasInvalidation(m_widgetTree.pendingInvalidation(),
                                 WidgetInvalidation::layout)) {
                 m_widgetTree.performLayout();
             }
         }
         m_widgetTree.update(dt);
+        m_viewHost.flushPendingUnmounts();
         m_widgetTree.performLayout();
 
         if (m_renderTarget == nullptr || m_inputCtx.mousePos.x < 0.f ||

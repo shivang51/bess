@@ -241,6 +241,14 @@ namespace Bess::UI {
 
         glm::vec2 measure(LayoutNodeRegistry &registry, const UUID &parentId);
 
+        // Reflows this node's descendants inside a rectangle assigned by a
+        // custom parent arranger (dock stacks, overlays, virtualized cells,
+        // etc.). The node's own rendered bounds are still authoritative in
+        // WidgetTree; this updates descendant Yoga geometry to that boundary.
+        void measureWithin(LayoutNodeRegistry &registry,
+                           glm::vec2 center,
+                           glm::vec2 size);
+
         glm::vec3 getDrawPos() const;
 
         YGNodeRef getYogaNode();

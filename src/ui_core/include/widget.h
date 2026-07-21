@@ -25,6 +25,13 @@ namespace Bess::UI {
         TimeMs deltaTime;
     };
 
+    struct WidgetLayoutContext {
+        WidgetTree &state;
+        WidgetId id;
+        LayoutNode &layout;
+        bool themeChanged = false;
+    };
+
     struct WidgetArrangeContext {
         WidgetTree &state;
         WidgetId id;
@@ -95,6 +102,7 @@ namespace Bess::UI {
 
         virtual void onMount(WidgetMountContext &context);
         virtual void onUnmount(WidgetTree &state, WidgetId id);
+        virtual void updateLayout(WidgetLayoutContext &context);
         virtual void update(WidgetUpdateContext &context);
         virtual void arrange(WidgetArrangeContext &context);
         virtual void paint(WidgetPaintContext &context) const;

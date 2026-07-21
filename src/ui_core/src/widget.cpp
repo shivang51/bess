@@ -36,6 +36,9 @@ namespace Bess::UI {
     void Widget::onUnmount(WidgetTree &, WidgetId) {
     }
 
+    void Widget::updateLayout(WidgetLayoutContext &) {
+    }
+
     void Widget::update(WidgetUpdateContext &) {
     }
 

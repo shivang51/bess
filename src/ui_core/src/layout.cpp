@@ -790,6 +790,50 @@ namespace Bess::UI {
         return m_cachedSize;
     }
 
+    void LayoutNode::measureWithin(LayoutNodeRegistry &registry,
+                                   glm::vec2 center,
+                                   glm::vec2 size) {
+        center = finiteVec(center);
+        size = nonNegativeVec(size);
+
+        // A custom arranger owns the outer box, regardless of the child's
+        // intrinsic width/height policy. Temporarily make that box definite so
+        // Yoga can correctly reflow the descendants, then restore the style
+        // used by the parent's next normal layout pass.
+        YGNodeStyleSetWidth(m_ygNode, size.x);
+        YGNodeStyleSetHeight(m_ygNode, size.y);
+        YGNodeCalculateLayout(m_ygNode, size.x, size.y, YGDirectionLTR);
+
+        m_drawSize = size;
+        m_cachedSize = nonNegativeVec(size + marginSize());
+        m_topLeftPos = center - size * 0.5f;
+        m_cachedPos = center;
+        m_posDirty = true;
+        m_sizeDirty = true;
+
+        HashSet<UUID> activeNodes;
+        if (m_id != UUID::null) {
+            activeNodes.insert(m_id);
+        }
+        for (const auto &childId : m_children) {
+            auto *childNode = registry.getNode(childId);
+            BESS_ASSERT(childNode,
+                        "Child node {} not found while arranging UI subtree.",
+                        static_cast<uint64_t>(childId));
+            if (childNode != nullptr) {
+                childNode->syncLayoutFromYoga(registry, this, activeNodes);
+            }
+        }
+        m_posDirty = false;
+        m_sizeDirty = false;
+
+        applyWidthStyle();
+        applyHeightStyle();
+        // Restoring the parent-managed style dirties Yoga. Mirror that in the
+        // cached layout flags so a later normal measure synchronizes it.
+        setSizeDirty();
+    }
+
     glm::vec3 LayoutNode::getDrawPos() const {
         return {m_cachedPos, m_cachedZVal};
     }

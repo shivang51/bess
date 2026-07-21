@@ -67,6 +67,7 @@ namespace Bess::UI {
         [[nodiscard]] std::string_view typeName() const noexcept override;
         [[nodiscard]] WidgetTraits traits() const noexcept override;
         void onMount(WidgetMountContext &context) override;
+        void updateLayout(WidgetLayoutContext &context) override;
         void paint(WidgetPaintContext &context) const override;
 
         [[nodiscard]] const std::string &text() const noexcept;
@@ -75,6 +76,7 @@ namespace Bess::UI {
       private:
         std::string m_text;
         LabelOptions m_options;
+        bool m_intrinsicSizeDirty = true;
     };
 
     struct ButtonOptions {
@@ -93,6 +95,7 @@ namespace Bess::UI {
         [[nodiscard]] std::string_view typeName() const noexcept override;
         [[nodiscard]] WidgetTraits traits() const noexcept override;
         void onMount(WidgetMountContext &context) override;
+        void updateLayout(WidgetLayoutContext &context) override;
         void paint(WidgetPaintContext &context) const override;
         UIEventReply onEvent(WidgetEventContext &context,
                              const UIEvent &event) override;
@@ -107,6 +110,7 @@ namespace Bess::UI {
         Activated m_activated;
         ButtonOptions m_options;
         Pressable m_pressable;
+        bool m_intrinsicSizeDirty = true;
     };
 
     class BESS_API Spacer : public Widget {

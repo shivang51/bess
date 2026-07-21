@@ -292,6 +292,9 @@ namespace Bess {
         };
 
         m_uiTarget.init(renderer, desc);
+        // Temporary retained-UI integration showcase. The application can
+        // replace this with its real root view through the same API.
+        static_cast<void>(m_uiTarget.setContent<UI::UIDemoView>());
         m_uiTarget.enqueueEvent(UI::UITargetResizeEvent{
             .width = static_cast<uint32_t>(m_width),
             .height = static_cast<uint32_t>(m_height),

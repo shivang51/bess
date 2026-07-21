@@ -47,11 +47,13 @@ namespace Bess::UI {
     };
 
     struct WidgetIdTag;
+    struct ViewIdTag;
     struct TabIdTag;
     struct DockItemIdTag;
     struct DockNodeIdTag;
 
     using WidgetId = StableId<WidgetIdTag>;
+    using ViewId = StableId<ViewIdTag>;
     using TabId = StableId<TabIdTag>;
     using DockItemId = StableId<DockItemIdTag>;
     using DockNodeId = StableId<DockNodeIdTag>;

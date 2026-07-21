@@ -108,6 +108,20 @@ namespace Bess::UI {
         const auto size = estimatedTextSize(m_text, style);
         context.layout.setWidth(size.x);
         context.layout.setHeight(size.y);
+        m_intrinsicSizeDirty = false;
+    }
+
+    void Label::updateLayout(WidgetLayoutContext &context) {
+        if (!m_options.autoSize ||
+            (!m_intrinsicSizeDirty && !context.themeChanged)) {
+            return;
+        }
+        const auto &style =
+            m_options.style.value_or(context.state.theme().label);
+        const auto size = estimatedTextSize(m_text, style);
+        context.layout.setWidth(size.x);
+        context.layout.setHeight(size.y);
+        m_intrinsicSizeDirty = false;
     }
 
     void Label::paint(WidgetPaintContext &context) const {
@@ -130,7 +144,11 @@ namespace Bess::UI {
     }
 
     void Label::setText(std::string text) {
+        if (m_text == text) {
+            return;
+        }
         m_text = std::move(text);
+        m_intrinsicSizeDirty = true;
     }
 
     Button::Button(std::string label,
@@ -160,6 +178,22 @@ namespace Bess::UI {
             glm::max(style.minimumSize, textSize + style.contentPadding * 2.f);
         context.layout.setWidth(size.x);
         context.layout.setHeight(size.y);
+        m_intrinsicSizeDirty = false;
+    }
+
+    void Button::updateLayout(WidgetLayoutContext &context) {
+        if (!m_options.autoSize ||
+            (!m_intrinsicSizeDirty && !context.themeChanged)) {
+            return;
+        }
+        const auto &style =
+            m_options.style.value_or(context.state.theme().button);
+        const auto textSize = estimatedTextSize(m_label, style.text);
+        const glm::vec2 size =
+            glm::max(style.minimumSize, textSize + style.contentPadding * 2.f);
+        context.layout.setWidth(size.x);
+        context.layout.setHeight(size.y);
+        m_intrinsicSizeDirty = false;
     }
 
     void Button::paint(WidgetPaintContext &context) const {
@@ -208,7 +242,11 @@ namespace Bess::UI {
     }
 
     void Button::setLabel(std::string label) {
+        if (m_label == label) {
+            return;
+        }
         m_label = std::move(label);
+        m_intrinsicSizeDirty = true;
     }
 
     void Button::setActivated(Activated activated) {

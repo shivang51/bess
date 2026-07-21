@@ -52,6 +52,7 @@ namespace Bess::UI {
         [[nodiscard]] WidgetTraits traits() const noexcept override;
         void onMount(WidgetMountContext &context) override;
         void onUnmount(WidgetTree &state, WidgetId id) override;
+        void updateLayout(WidgetLayoutContext &context) override;
         void paint(WidgetPaintContext &context) const override;
         UIEventReply onEvent(WidgetEventContext &context,
                              const UIEvent &event) override;

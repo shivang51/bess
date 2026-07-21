@@ -20,10 +20,17 @@ namespace Bess::UI {
         }
     } // namespace
 
-    WidgetTree::WidgetTree() = default;
+    WidgetTree::WidgetTree()
+        : m_control(std::make_shared<Detail::WidgetTreeControl>(
+              Detail::WidgetTreeControl{.tree = this})) {
+    }
 
     WidgetTree::~WidgetTree() {
+        // Expire external handles before invoking any widget unmount hooks.
+        // Those hooks may own WidgetRefs back into this tree.
+        m_control->tree = nullptr;
         clear();
+        m_control.reset();
     }
 
     WidgetId WidgetTree::addWidget(std::unique_ptr<Widget> widget,
@@ -343,7 +350,9 @@ namespace Bess::UI {
 
     void WidgetTree::setTheme(UITheme theme) {
         m_theme = std::move(theme);
-        m_invalidation |= WidgetInvalidation::paint;
+        ++m_themeRevision;
+        m_invalidation |=
+            WidgetInvalidation::layout | WidgetInvalidation::paint;
     }
 
     void WidgetTree::performLayout() {
@@ -351,6 +360,22 @@ namespace Bess::UI {
         // remains pending for the next pass.
         m_invalidation =
             withoutFlag(m_invalidation, WidgetInvalidation::layout);
+
+        const uint64_t themeRevision = m_themeRevision;
+        const bool themeChanged = m_layoutThemeRevision != themeRevision;
+        const auto layoutRoots = m_roots;
+        beginCallback();
+        try {
+            for (const auto root : layoutRoots) {
+                updateLayoutSubtree(root, themeChanged);
+            }
+        } catch (...) {
+            endCallback();
+            throw;
+        }
+        endCallback();
+        m_layoutThemeRevision = themeRevision;
+
         for (auto &[id, node] : m_nodes) {
             (void)id;
             node.arrangedBounds.reset();
@@ -608,6 +633,9 @@ namespace Bess::UI {
         }
         bounds.size = glm::max(bounds.size, glm::vec2{0.f});
         node->arrangedBounds = bounds;
+        if (auto *layout = getLayout(child)) {
+            layout->measureWithin(m_layoutRegistry, bounds.center, bounds.size);
+        }
         return true;
     }
 
@@ -794,6 +822,27 @@ namespace Bess::UI {
         endCallback();
         for (const auto child : children) {
             arrangeSubtree(child);
+        }
+    }
+
+    void WidgetTree::updateLayoutSubtree(WidgetId id, bool themeChanged) {
+        auto *node = findNode(id);
+        if (node == nullptr) {
+            return;
+        }
+        const auto children = node->children;
+        auto *layout = getLayout(id);
+        if (layout != nullptr) {
+            WidgetLayoutContext context{
+                .state = *this,
+                .id = id,
+                .layout = *layout,
+                .themeChanged = themeChanged,
+            };
+            node->widget->updateLayout(context);
+        }
+        for (const auto child : children) {
+            updateLayoutSubtree(child, themeChanged);
         }
     }
 

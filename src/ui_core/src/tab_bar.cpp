@@ -120,6 +120,13 @@ namespace Bess::UI {
         m_modelConnection.disconnect();
     }
 
+    void TabBar::updateLayout(WidgetLayoutContext &context) {
+        if (!context.themeChanged || m_options.style.has_value()) {
+            return;
+        }
+        context.layout.setHeight(context.state.theme().tabs.height);
+    }
+
     void TabBar::paint(WidgetPaintContext &context) const {
         const auto &resolved = style(context.state);
         context.painter.drawBox(

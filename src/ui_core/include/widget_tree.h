@@ -18,6 +18,17 @@
 
 namespace Bess::UI {
     class UIPainter;
+    class WidgetTree;
+    template <typename T> class WidgetRef;
+
+    namespace Detail {
+        // Shared only as a lifetime sentinel. WidgetTree and WidgetRef remain
+        // single-threaded; the indirection prevents a retained handle from
+        // dereferencing a tree that has already been destroyed.
+        struct WidgetTreeControl {
+            WidgetTree *tree = nullptr;
+        };
+    } // namespace Detail
 
     struct WidgetProperties {
         WidgetVisibility visibility = WidgetVisibility::visible;
@@ -33,6 +44,8 @@ namespace Bess::UI {
     // WidgetTree is the retained tree and interaction authority for one target.
     // It owns widgets and layout nodes, while callers retain only stable IDs.
     class BESS_API WidgetTree {
+        template <typename T> friend class WidgetRef;
+
       public:
         static constexpr size_t append = static_cast<size_t>(-1);
 
@@ -188,6 +201,7 @@ namespace Bess::UI {
         void flushPendingRemovals();
 
         void arrangeSubtree(WidgetId id);
+        void updateLayoutSubtree(WidgetId id, bool themeChanged);
         void updateSubtree(WidgetId id, TimeMs deltaTime);
         void paintSubtree(WidgetId id, UIPainter &painter);
         [[nodiscard]] WidgetId hitTestSubtree(WidgetId id,
@@ -224,6 +238,8 @@ namespace Bess::UI {
         bool m_clearPending = false;
         glm::vec2 m_viewportSize{0.f, 0.f};
         UITheme m_theme = UITheme::dark();
+        uint64_t m_themeRevision = 1;
+        uint64_t m_layoutThemeRevision = 0;
         std::optional<glm::vec2> m_lastPointerPosition;
         WidgetId m_focused;
         WidgetId m_pointerCapture;
@@ -232,6 +248,7 @@ namespace Bess::UI {
         std::optional<WidgetId> m_deferredFocus;
         WidgetInvalidation m_invalidation =
             WidgetInvalidation::layout | WidgetInvalidation::paint;
+        std::shared_ptr<Detail::WidgetTreeControl> m_control;
     };
 
 } // namespace Bess::UI

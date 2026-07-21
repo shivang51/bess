@@ -4,9 +4,13 @@
 #include "bess_core/style/color_scheme.h"
 #include "common/types.h"
 #include "ui_event.h"
+#include "ui_view.h"
 #include "widget_tree.h"
+#include <concepts>
 #include <memory>
 #include <span>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace Bess::UI {
@@ -38,7 +42,7 @@ namespace Bess::UI {
     // DockSpace live in that tree rather than being built into every target.
     class UITarget {
       public:
-        UITarget() = default;
+        UITarget();
         ~UITarget();
 
         void init(const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer,
@@ -67,6 +71,35 @@ namespace Bess::UI {
         [[nodiscard]] const UITargetInpCtx &getInputContext() const noexcept;
         [[nodiscard]] WidgetTree &getWidgetTree() noexcept;
         [[nodiscard]] const WidgetTree &getWidgetTree() const noexcept;
+        [[nodiscard]] UIViewHost &getViewHost() noexcept;
+        [[nodiscard]] const UIViewHost &getViewHost() const noexcept;
+
+        UIViewRef<UIView> setContent(std::unique_ptr<UIView> view);
+        UIViewRef<UIView> mountOverlay(std::unique_ptr<UIView> view);
+        UIViewRef<UIView> mountModal(std::unique_ptr<UIView> view);
+
+        template <typename T, typename... Args>
+            requires std::derived_from<T, UIView> &&
+                     std::constructible_from<T, Args...>
+        UIViewRef<T> setContent(Args &&...args) {
+            return m_viewHost.setContent<T>(std::forward<Args>(args)...);
+        }
+
+        template <typename T, typename... Args>
+            requires std::derived_from<T, UIView> &&
+                     std::constructible_from<T, Args...>
+        UIViewRef<T> mountOverlay(Args &&...args) {
+            return m_viewHost.mountOverlay<T>(std::forward<Args>(args)...);
+        }
+
+        template <typename T, typename... Args>
+            requires std::derived_from<T, UIView> &&
+                     std::constructible_from<T, Args...>
+        UIViewRef<T> mountModal(Args &&...args) {
+            return m_viewHost.mountModal<T>(std::forward<Args>(args)...);
+        }
+
+        bool unmountView(ViewId id);
 
         void resize(const glm::vec2 &size);
 
@@ -80,6 +113,7 @@ namespace Bess::UI {
 
       private:
         WidgetTree m_widgetTree;
+        UIViewHost m_viewHost;
         std::shared_ptr<Core::Renderer::IRenderer2D> m_renderer = nullptr;
         std::shared_ptr<Core::Renderer::IRenderTarget2D> m_renderTarget =
             nullptr;

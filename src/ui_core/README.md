@@ -7,6 +7,8 @@ and high-level composition.
 ## Ownership
 
 - `UITarget` owns one render target and one `WidgetTree`.
+- `UIViewHost`, owned by `UITarget`, mounts application views into content,
+  overlay, and modal layers.
 - `WidgetTree` exclusively owns widgets, layout nodes, stable widget IDs,
   focus, pointer capture, hit testing, and picking-ID lookup.
 - `Widget` is a small behavior object. It does not own a renderer, a layout
@@ -17,11 +19,58 @@ and high-level composition.
   `DockSpace` is inserted into its tree.
 
 The tree owns `std::unique_ptr<Widget>` objects and callers retain `WidgetId`
-handles. IDs are never reused, and lookups of stale handles fail safely.
+or typed `WidgetRef<T>` handles. IDs are never reused. A `WidgetRef` becomes
+empty when its widget is removed or its tree is destroyed.
 Destruction requested from a widget callback is deferred until the active
 dispatch/update/layout/paint traversal has completed.
 
 ## Creating a UI
+
+Application UI should normally be expressed as a `UIView` and mounted directly
+on its target:
+
+```cpp
+class ProjectView final : public Bess::UI::UIView {
+  public:
+    void compose(Bess::UI::UIComposer &ui) override {
+        ui.column([this](Bess::UI::UIComposer &column) {
+            m_title = column.label("Project");
+            column.button("Create", [this] {
+                m_title.update([](Bess::UI::Label &label) {
+                    label.setText("Created");
+                });
+            });
+        });
+    }
+
+  private:
+    Bess::UI::WidgetRef<Bess::UI::Label> m_title;
+};
+
+auto project = uiTarget.setContent<ProjectView>();
+auto tooltip = uiTarget.mountOverlay<MyTooltipView>();
+auto dialog = uiTarget.mountModal<MyDialogView>();
+```
+
+`setContent` replaces the previous content transactionally. Failed composition
+leaves the old content mounted. Nested builders also roll back the subtree they
+started. Views and their callback captures remain alive through callback-time
+unmount, then are released after event dispatch completes.
+
+Reusable controls are ordinary functions that receive a composer:
+
+```cpp
+void composeToolbar(Bess::UI::UIComposer &ui) {
+    ui.row([](Bess::UI::UIComposer &row) {
+        row.button("Open");
+        row.spacer();
+        row.button("Save");
+    });
+}
+```
+
+The low-level tree remains available as an escape hatch for control internals,
+tests, and incremental migration:
 
 ```cpp
 auto &tree = uiTarget.getWidgetTree();
@@ -37,8 +86,9 @@ tree.emplaceChild<Bess::UI::Button>(root, "Create", [] {
 });
 ```
 
-Use `WidgetTree::mutateWidget` when changing a retained control after mounting,
-so invalidation remains explicit and callback-time deletion remains safe:
+Use `WidgetRef::update` (or `WidgetTree::mutateWidget` at the low level) when
+changing a retained control, so invalidation remains explicit and
+callback-time deletion remains safe:
 
 ```cpp
 tree.mutateWidget<Bess::UI::Label>(
@@ -53,6 +103,8 @@ tree.mutateWidget<Bess::UI::Label>(
 Derive from `Widget` and override only the required hooks:
 
 - configure the associated `LayoutNode` in `onMount`;
+- refresh mutable intrinsic dimensions in `updateLayout` (the context reports
+  theme changes);
 - arrange direct children in `arrange`;
 - emit renderer-neutral commands in `paint`;
 - return a `UIEventReply` from `onEvent` to request focus, pointer capture,
@@ -79,7 +131,29 @@ and adding another item to its main zone naturally makes it a tab stack.
 `DockItemId`, `DockNodeId`, and `WidgetId` are distinct types, so model identity
 does not change when the topology changes.
 
-Create dockable arbitrary content through the high-level widget:
+Views normally create dockable content with `DockComposer`. Each call produces
+a `DockPanel`, a stable `DockItemId`, and an ordinary composer for its content:
+
+```cpp
+ui.dockSpace([](Bess::UI::DockComposer &dock) {
+    const auto explorer = dock.panel(
+        "Explorer", [](Bess::UI::UIComposer &panel) {
+            panel.label("Files");
+        });
+
+    dock.panel(
+        "Inspector",
+        Bess::UI::DockPanelPlacement{
+            .target = dock.stackFor(explorer.item),
+            .zone = Bess::UI::DockZone::right,
+        },
+        [](Bess::UI::UIComposer &panel) {
+            panel.label("Properties");
+        });
+});
+```
+
+The lower-level equivalent remains available:
 
 ```cpp
 const auto dockId = tree.emplaceWidget<Bess::UI::DockSpace>();
