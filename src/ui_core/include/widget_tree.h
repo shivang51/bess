@@ -3,6 +3,7 @@
 #include "common/bess_api.h"
 #include "common/types.h"
 #include "layout.h"
+#include "ui_platform_services.h"
 #include "ui_style.h"
 #include "widget.h"
 
@@ -18,6 +19,7 @@
 
 namespace Bess::UI {
     class UIPainter;
+    class PopupHost;
     class WidgetTree;
     template <typename T> class WidgetRef;
 
@@ -143,6 +145,9 @@ namespace Bess::UI {
         [[nodiscard]] UITheme &theme() noexcept;
         [[nodiscard]] const UITheme &theme() const noexcept;
         void setTheme(UITheme theme);
+        void setPlatformServices(std::shared_ptr<UIPlatformServices> services);
+        [[nodiscard]] UIPlatformServices &platformServices() noexcept;
+        [[nodiscard]] UIPlatformServices &platformServices() const noexcept;
 
         void performLayout();
         [[nodiscard]] WidgetBounds getBounds(WidgetId id) const noexcept;
@@ -155,11 +160,23 @@ namespace Bess::UI {
         [[nodiscard]] WidgetId getFocusedWidget() const noexcept;
         bool setFocus(WidgetId id);
         void clearFocus();
+        bool moveFocus(FocusTraversalDirection direction =
+                           FocusTraversalDirection::forward);
+        bool activateFocusScope(WidgetId scope, FocusScopePolicy policy = {});
+        bool deactivateFocusScope(WidgetId scope);
+        bool setDefaultFocus(WidgetId scope, WidgetId widget);
+        bool focusDefault(WidgetId scope);
+        [[nodiscard]] WidgetId activeFocusScope() const noexcept;
         [[nodiscard]] WidgetId getPointerCapture() const noexcept;
         bool capturePointer(WidgetId id);
         void releasePointer(WidgetId id = {});
         [[nodiscard]] WidgetId getHoveredWidget() const noexcept;
+        [[nodiscard]] std::optional<glm::vec2>
+        getPointerPosition() const noexcept;
         [[nodiscard]] CursorIcon getCursorShape() const noexcept;
+        void setPopupHost(PopupHost *host) noexcept;
+        [[nodiscard]] PopupHost *popupHost() noexcept;
+        [[nodiscard]] const PopupHost *popupHost() const noexcept;
 
         [[nodiscard]] PickingId getPickingId(WidgetId id,
                                              uint32_t info = 0) const noexcept;
@@ -202,6 +219,12 @@ namespace Bess::UI {
                                           WidgetId ancestor) const noexcept;
         [[nodiscard]] bool isEffectivelyEnabled(WidgetId id) const noexcept;
         [[nodiscard]] bool isEffectivelyVisible(WidgetId id) const noexcept;
+        [[nodiscard]] bool isFocusable(WidgetId id) const noexcept;
+        [[nodiscard]] bool
+        focusAllowedByActiveScope(WidgetId id) const noexcept;
+        void collectFocusable(WidgetId root,
+                              std::vector<WidgetId> &result) const;
+        void resolvePendingAutoFocus();
         void syncLayoutChildren(WidgetId parent);
 
         bool removeWidgetNow(WidgetId id);
@@ -247,17 +270,28 @@ namespace Bess::UI {
         bool m_clearPending = false;
         glm::vec2 m_viewportSize{0.f, 0.f};
         UITheme m_theme = UITheme::dark();
+        std::shared_ptr<UIPlatformServices> m_platformServices =
+            nullUIPlatformServices();
         uint64_t m_themeRevision = 1;
         uint64_t m_layoutThemeRevision = 0;
         std::optional<glm::vec2> m_lastPointerPosition;
         WidgetId m_focused;
         WidgetId m_pointerCapture;
         WidgetId m_hovered;
+        struct FocusScopeEntry {
+            WidgetId scope;
+            WidgetId defaultFocus;
+            WidgetId previousFocus;
+            FocusScopePolicy policy;
+            bool pendingAutoFocus = false;
+        };
+        std::vector<FocusScopeEntry> m_focusScopes;
         bool m_changingFocus = false;
         std::optional<WidgetId> m_deferredFocus;
         WidgetInvalidation m_invalidation =
             WidgetInvalidation::layout | WidgetInvalidation::paint;
         std::shared_ptr<Detail::WidgetTreeControl> m_control;
+        PopupHost *m_popupHost = nullptr;
     };
 
 } // namespace Bess::UI

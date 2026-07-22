@@ -5,6 +5,8 @@
 
 #include <chrono>
 #include <concepts>
+#include <cstddef>
+#include <string>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -50,12 +52,31 @@ namespace Bess::Input {
         char32_t codepoint = 0;
     };
 
-    using KeyboardEvent = std::variant<KeyEvent, TextInputEvent>;
+    enum class TextCompositionPhase : uint8_t {
+        begin,
+        update,
+        commit,
+        cancel,
+    };
+
+    // Platform IME pre-edit data. Offsets are UTF-8 byte offsets within
+    // `text`, which keeps the platform boundary allocation-free for clients
+    // that already store UTF-8 and avoids conflating bytes with graphemes.
+    struct TextCompositionEvent {
+        TextCompositionPhase phase = TextCompositionPhase::update;
+        std::string text;
+        size_t selectionStart = 0;
+        size_t selectionLength = 0;
+    };
+
+    using KeyboardEvent =
+        std::variant<KeyEvent, TextInputEvent, TextCompositionEvent>;
     using EventData = std::variant<MouseMoveEvent,
                                    MouseWheelEvent,
                                    MouseButtonEvent,
                                    KeyEvent,
-                                   TextInputEvent>;
+                                   TextInputEvent,
+                                   TextCompositionEvent>;
 
     struct Event {
         EventData data;

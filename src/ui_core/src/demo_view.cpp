@@ -1,6 +1,8 @@
 #include "demo_view.h"
 #include "bess_core/style/bess_theme.h"
 
+#include <algorithm>
+#include <cctype>
 #include <format>
 #include <functional>
 #include <utility>
@@ -188,6 +190,14 @@ namespace Bess::UI {
                                          if (m_assetsPanel.show()) {
                                              setStatus("Assets shown");
                                          }
+                                     }),
+                             command("",
+                                     "Controls",
+                                     "",
+                                     [this] {
+                                         if (m_controlsPanel.show()) {
+                                             setStatus("Controls shown");
+                                         }
                                      })}),
                     command("",
                             "Command Palette",
@@ -205,180 +215,431 @@ namespace Bess::UI {
         }));
 
         auto shell = ui.surface([this](UIComposer &surface) {
-            auto page =
-                surface.column(columnOptions(), [this](UIComposer &page) {
-                    auto menuHeader = page.row(
-                        menuHeaderOptions(), [this](UIComposer &header) {
-                            header.label("B", applicationIconLabel());
-                            header.gap(4.f);
-                            m_menuBar = header.menuBar(m_menus);
-                            header.spacer(
-                                SpacerOptions{.minimumSize = {0.f, 26.f}});
-                            auto action = header.button(
-                                "?", [this] { setStatus("Toolbar action"); });
-                            action.updateLayout([](LayoutNode &layout) {
-                                layout.setMinSize({20.f, 20.f});
-                                layout.setWidth(20.f);
-                                layout.setHeight(20.f);
+            auto page = surface.column(columnOptions(), [this](UIComposer &page) {
+                auto menuHeader =
+                    page.row(menuHeaderOptions(), [this](UIComposer &header) {
+                        header.label("B", applicationIconLabel());
+                        header.gap(4.f);
+                        m_menuBar = header.menuBar(m_menus);
+                        header.spacer(
+                            SpacerOptions{.minimumSize = {0.f, 26.f}});
+                        auto action = header.button(
+                            "?", [this] { setStatus("Toolbar action"); });
+                        action.updateLayout([](LayoutNode &layout) {
+                            layout.setMinSize({20.f, 20.f});
+                            layout.setWidth(20.f);
+                            layout.setHeight(20.f);
+                        });
+                    });
+                menuHeader.updateLayout(
+                    [](LayoutNode &layout) { layout.setFlexShrink(0.f); });
+                auto header =
+                    page.row(headerOptions(), [this](UIComposer &header) {
+                        header.label("Bess UI Core", headingLabel());
+                        m_status = header.label(
+                            "Drag a dock tab to float it; use the node "
+                            "guides to dock it again",
+                            LabelOptions{.horizontal =
+                                             HorizontalTextAlignment::end,
+                                         .autoSize = false});
+                        m_status.updateLayout([](LayoutNode &layout) {
+                            layout.setWidthAuto();
+                            layout.setHeight(24.f);
+                            layout.setMinSize({80.f, 24.f});
+                            layout.setFlex(1.f, 1.f, 0.f);
+                        });
+
+                        header.button("Add tab", [this] {
+                            m_tabs->add(
+                                std::format("New tab {}", m_tabs->size()));
+                        });
+
+                        header.button("Next tab", [this] { selectNextTab(); });
+                        m_counterButton = header.button(
+                            "Count: 0",
+                            [this] { incrementCounter(); },
+                            ButtonOptions{.autoSize = false});
+                        m_counterButton.updateLayout([](LayoutNode &layout) {
+                            layout.setWidth(78.f);
+                            layout.setHeight(26.f);
+                        });
+
+                        auto disabled = header.button("Disabled");
+                        static_cast<void>(header.enabled(disabled, false));
+                    });
+                header.updateLayout(
+                    [](LayoutNode &layout) { layout.setFlexShrink(0.f); });
+
+                auto tabLayer =
+                    page.stack(StackContainerOptions{.stretchHeight = false},
+                               [this](UIComposer &tabs) {
+                                   m_tabBar = tabs.tabBar(m_tabs);
+                               });
+                tabLayer.updateLayout(
+                    [](LayoutNode &layout) { layout.setFlexShrink(0.f); });
+
+                m_dockSpace = page.dockSpace([this](DockComposer &dock) {
+                    m_explorerPanel =
+                        dock.panel("Explorer", [this](UIComposer &panel) {
+                            panel.label("Project Explorer", headingLabel());
+                            panel.label("assets/");
+                            panel.label("plugins/");
+                            panel.label("src/");
+                            panel.spacer();
+                            panel.button("Create item", [this] {
+                                setStatus("Explorer: create item activated");
                             });
                         });
-                    menuHeader.updateLayout(
-                        [](LayoutNode &layout) { layout.setFlexShrink(0.f); });
-                    auto header =
-                        page.row(headerOptions(), [this](UIComposer &header) {
-                            header.label("Bess UI Core", headingLabel());
-                            m_status = header.label(
-                                "Drag a dock tab to float it; use the node "
-                                "guides to dock it again",
-                                LabelOptions{.horizontal =
-                                                 HorizontalTextAlignment::end,
-                                             .autoSize = false});
-                            m_status.updateLayout([](LayoutNode &layout) {
-                                layout.setWidthAuto();
-                                layout.setHeight(24.f);
-                                layout.setMinSize({80.f, 24.f});
-                                layout.setFlex(1.f, 1.f, 0.f);
+
+                    // const auto explorer2 = dock.panel(
+                    //     "Component Explorer", [this](UIComposer &panel) {
+                    //         panel.label("Component Explorer",
+                    //                     headingLabel());
+                    //         panel.spacer();
+                    //         panel.button("Select item", [this] {
+                    //             setStatus("Comp selected");
+                    //         });
+                    //     });
+
+                    m_inspectorPanel = dock.panel(
+                        "Inspector",
+                        DockPanelPlacement{
+                            .target = dock.stackFor(m_explorerPanel.item),
+                            .zone = DockZone::right,
+                        },
+                        [this](UIComposer &panel) {
+                            panel.label("Inspector", headingLabel());
+                            panel.label("Transform");
+                            panel.label("Layout");
+                            panel.spacer();
+                            panel.button("Apply", [this] {
+                                setStatus("Inspector changes applied");
                             });
-
-                            header.button("Add tab", [this] {
-                                m_tabs->add(
-                                    std::format("New tab {}", m_tabs->size()));
-                            });
-
-                            header.button("Next tab",
-                                          [this] { selectNextTab(); });
-                            m_counterButton = header.button(
-                                "Count: 0",
-                                [this] { incrementCounter(); },
-                                ButtonOptions{.autoSize = false});
-                            m_counterButton.updateLayout(
-                                [](LayoutNode &layout) {
-                                    layout.setWidth(78.f);
-                                    layout.setHeight(26.f);
-                                });
-
-                            auto disabled = header.button("Disabled");
-                            static_cast<void>(header.enabled(disabled, false));
                         });
-                    header.updateLayout(
-                        [](LayoutNode &layout) { layout.setFlexShrink(0.f); });
 
-                    auto tabLayer = page.stack(
-                        StackContainerOptions{.stretchHeight = false},
-                        [this](UIComposer &tabs) {
-                            m_tabBar = tabs.tabBar(m_tabs);
+                    m_previewPanel = dock.panel(
+                        "Preview",
+                        DockPanelPlacement{
+                            .target = dock.stackFor(m_inspectorPanel.item),
+                            .zone = DockZone::main,
+                        },
+                        [](UIComposer &panel) {
+                            panel.label("Preview", headingLabel());
+                            panel.label(
+                                "This shares a tab stack with Inspector.");
+                            panel.spacer();
+                            panel.button("Refresh preview");
                         });
-                    tabLayer.updateLayout(
-                        [](LayoutNode &layout) { layout.setFlexShrink(0.f); });
 
-                    m_dockSpace = page.dockSpace([this](DockComposer &dock) {
-                        m_explorerPanel =
-                            dock.panel("Explorer", [this](UIComposer &panel) {
-                                panel.label("Project Explorer", headingLabel());
-                                panel.label("assets/");
-                                panel.label("plugins/");
-                                panel.label("src/");
-                                panel.spacer();
-                                panel.button("Create item", [this] {
-                                    setStatus(
-                                        "Explorer: create item activated");
+                    m_controlsPanel = dock.panel(
+                        "Controls",
+                        DockPanelPlacement{
+                            .target = dock.stackFor(m_inspectorPanel.item),
+                            .zone = DockZone::main,
+                        },
+                        [this](UIComposer &panel) {
+                            panel.scrollView(
+                                {.horizontal = false,
+                                 .vertical = true,
+                                 .clipContent = true},
+                                [this](UIComposer &viewport) {
+                                    FlexContainerOptions controlsOptions{
+                                        .direction = LayoutDirection::vertical,
+                                        .mainAxisAlignment =
+                                            LayoutAlignment::start,
+                                        .crossAxisAlignment =
+                                            LayoutAlignment::start,
+                                        .padding = Core::Style::Padding{8.f},
+                                        .gap = 8.f,
+                                        .stretchWidth = true,
+                                        .stretchHeight = false,
+                                        .clipChildren = false,
+                                        .hitTestVisible = false,
+                                    };
+                                    viewport.column(
+                                        controlsOptions,
+                                        [this](UIComposer &controls) {
+                                            controls.label("Input controls",
+                                                           headingLabel());
+
+                                            auto text = controls.textBox(
+                                                std::make_shared<TextEditModel>(
+                                                    "Editable text"),
+                                                [this](const auto &value) {
+                                                    setStatus("Text: " + value);
+                                                },
+                                                [this](const auto &value) {
+                                                    setStatus("Submitted: " +
+                                                              value);
+                                                },
+                                                {.placeholder = "Type here"});
+                                            text.updateLayout(
+                                                [](LayoutNode &layout) {
+                                                    layout.setWidthPercent(1.f);
+                                                });
+
+                                            auto autocomplete = controls.autocomplete(
+                                                std::make_shared<
+                                                    TextEditModel>(),
+                                                [](std::string_view query) {
+                                                    const std::vector<
+                                                        std::string>
+                                                        values{
+                                                            "Explorer",
+                                                            "Inspector",
+                                                            "Console",
+                                                            "Components",
+                                                            "Diagnostics",
+                                                        };
+                                                    std::string needle{query};
+                                                    std::ranges::transform(
+                                                        needle,
+                                                        needle.begin(),
+                                                        [](unsigned char
+                                                               value) {
+                                                            return static_cast<
+                                                                char>(
+                                                                std::tolower(
+                                                                    value));
+                                                        });
+                                                    std::vector<
+                                                        AutocompleteItem>
+                                                        result;
+                                                    for (const auto &value :
+                                                         values) {
+                                                        std::string candidate =
+                                                            value;
+                                                        std::ranges::transform(
+                                                            candidate,
+                                                            candidate.begin(),
+                                                            [](unsigned char
+                                                                   ch) {
+                                                                return static_cast<
+                                                                    char>(
+                                                                    std::tolower(
+                                                                        ch));
+                                                            });
+                                                        if (candidate.contains(
+                                                                needle)) {
+                                                            result.push_back(
+                                                                {.label = value,
+                                                                 .replacement =
+                                                                     value,
+                                                                 .detail =
+                                                                     "panel"});
+                                                        }
+                                                    }
+                                                    return result;
+                                                },
+                                                {},
+                                                {},
+                                                [this](const auto &item) {
+                                                    setStatus("Completed: " +
+                                                              item.label);
+                                                },
+                                                {.textBox = {
+                                                     .placeholder =
+                                                         "Find a panel"}});
+                                            autocomplete.updateLayout(
+                                                [](LayoutNode &layout) {
+                                                    layout.setWidthPercent(1.f);
+                                                });
+
+                                            const auto checkModel =
+                                                std::make_shared<
+                                                    CheckStateModel>();
+                                            controls.checkBox(
+                                                "Tri-state checkbox",
+                                                checkModel,
+                                                [this](CheckState) {
+                                                    setStatus(
+                                                        "Checkbox changed");
+                                                },
+                                                {.cycleMixed = true});
+                                            controls.toggle(
+                                                "Toggle switch",
+                                                {},
+                                                [this](bool enabled) {
+                                                    setStatus(
+                                                        enabled ? "Toggle on"
+                                                                : "Toggle off");
+                                                });
+
+                                            const auto radioGroup =
+                                                std::make_shared<
+                                                    RadioGroupModel>();
+                                            controls.focusScope(
+                                                FocusScopeOptions{
+                                                    .focus =
+                                                        {.trapFocus = false,
+                                                         .autoFocus = false,
+                                                         .restoreFocus = true},
+                                                    .container =
+                                                        {.direction =
+                                                             LayoutDirection::
+                                                                 horizontal,
+                                                         .mainAxisAlignment =
+                                                             LayoutAlignment::
+                                                                 start,
+                                                         .crossAxisAlignment =
+                                                             LayoutAlignment::
+                                                                 center,
+                                                         .gap = 12.f,
+                                                         .stretchWidth = true,
+                                                         .stretchHeight =
+                                                             false}},
+                                                [radioGroup](
+                                                    UIComposer &radios) {
+                                                    radios.radio("Alpha",
+                                                                 radioGroup);
+                                                    radios.radio("Beta",
+                                                                 radioGroup);
+                                                });
+
+                                            auto sliderModel =
+                                                std::make_shared<RangeModel>(
+                                                    0.0, 100.0, 35.0, 1.0);
+                                            auto slider = controls.slider(
+                                                sliderModel,
+                                                [this](double value) {
+                                                    setStatus(std::format(
+                                                        "Slider: {:.0f}",
+                                                        value));
+                                                });
+                                            slider.updateLayout(
+                                                [](LayoutNode &layout) {
+                                                    layout.setWidthPercent(1.f);
+                                                });
+
+                                            auto dropdownModel =
+                                                std::make_shared<
+                                                    DropdownModel>();
+                                            static_cast<void>(
+                                                dropdownModel->add("Compact"));
+                                            static_cast<void>(
+                                                dropdownModel->add(
+                                                    "Comfortable"));
+                                            static_cast<void>(
+                                                dropdownModel->add("Spacious"));
+                                            controls.dropdown(
+                                                dropdownModel,
+                                                [this](DropdownItemId) {
+                                                    setStatus(
+                                                        "Dropdown changed");
+                                                });
+
+                                            controls.tooltip(
+                                                "Tooltips use PopupHost",
+                                                [this](UIComposer &tip) {
+                                                    tip.button(
+                                                        "Hover for tooltip",
+                                                        [this] {
+                                                            setStatus("Tooltip "
+                                                                      "button");
+                                                        });
+                                                });
+
+                                            auto contextModel =
+                                                std::make_shared<MenuModel>();
+                                            const MenuId contextMenu =
+                                                contextModel->addMenu(
+                                                    {.name = "Context",
+                                                     .items = {
+                                                         command(
+                                                             "",
+                                                             "Rename",
+                                                             "F2",
+                                                             [this] {
+                                                                 setStatus(
+                                                                     "Rename "
+                                                                     "from "
+                                                                     "context "
+                                                                     "menu");
+                                                             }),
+                                                         command(
+                                                             "",
+                                                             "More",
+                                                             "",
+                                                             {},
+                                                             {command(
+                                                                 "",
+                                                                 "Details",
+                                                                 "",
+                                                                 [this] {
+                                                                     setStatus(
+                                                                         "Conte"
+                                                                         "xt "
+                                                                         "subme"
+                                                                         "nu");
+                                                                 })})}});
+                                            controls.contextMenu(
+                                                contextModel,
+                                                contextMenu,
+                                                [this](UIComposer &region) {
+                                                    region.button(
+                                                        "Right-click me",
+                                                        [this] {
+                                                            setStatus(
+                                                                "Context "
+                                                                "region "
+                                                                "clicked");
+                                                        });
+                                                });
+                                        });
                                 });
+                        });
+
+                    m_consolePanel = dock.panel(
+                        "Console",
+                        DockPanelPlacement{
+                            .target = dock.stackFor(m_explorerPanel.item),
+                            .zone = DockZone::bottom,
+                        },
+                        [this](UIComposer &panel) {
+                            panel.label("Console", headingLabel());
+                            panel.label("[info] UI demo mounted");
+                            panel.label("[info] Drag a splitter to resize");
+                            panel.label("[info] Drag a tab out to float it");
+                            panel.spacer();
+                            panel.button("Clear", [this] {
+                                setStatus("Console cleared");
                             });
+                        });
 
-                        // const auto explorer2 = dock.panel(
-                        //     "Component Explorer", [this](UIComposer &panel) {
-                        //         panel.label("Component Explorer",
-                        //                     headingLabel());
-                        //         panel.spacer();
-                        //         panel.button("Select item", [this] {
-                        //             setStatus("Comp selected");
-                        //         });
-                        //     });
-
-                        m_inspectorPanel = dock.panel(
-                            "Inspector",
-                            DockPanelPlacement{
-                                .target = dock.stackFor(m_explorerPanel.item),
-                                .zone = DockZone::right,
-                            },
-                            [this](UIComposer &panel) {
-                                panel.label("Inspector", headingLabel());
-                                panel.label("Transform");
-                                panel.label("Layout");
-                                panel.spacer();
-                                panel.button("Apply", [this] {
-                                    setStatus("Inspector changes applied");
-                                });
-                            });
-
-                        m_previewPanel = dock.panel(
-                            "Preview",
-                            DockPanelPlacement{
-                                .target = dock.stackFor(m_inspectorPanel.item),
-                                .zone = DockZone::main,
-                            },
-                            [](UIComposer &panel) {
-                                panel.label("Preview", headingLabel());
-                                panel.label(
-                                    "This shares a tab stack with Inspector.");
-                                panel.spacer();
-                                panel.button("Refresh preview");
-                            });
-
-                        m_consolePanel = dock.panel(
-                            "Console",
-                            DockPanelPlacement{
-                                .target = dock.stackFor(m_explorerPanel.item),
-                                .zone = DockZone::bottom,
-                            },
-                            [this](UIComposer &panel) {
-                                panel.label("Console", headingLabel());
-                                panel.label("[info] UI demo mounted");
-                                panel.label("[info] Drag a splitter to resize");
-                                panel.label(
-                                    "[info] Drag a tab out to float it");
-                                panel.spacer();
-                                panel.button("Clear", [this] {
-                                    setStatus("Console cleared");
-                                });
-                            });
-
-                        m_assetsPanel = dock.panel(
-                            "Assets",
-                            DockPanelPlacement{
-                                .target = dock.stackFor(m_consolePanel.item),
-                                .zone = DockZone::left,
-                            },
-                            [](UIComposer &panel) {
-                                panel.label("Assets", headingLabel());
-                                panel.label("Fonts");
-                                panel.label("Icons");
-                                panel.label("Textures");
-                                panel.spacer();
-                            });
-                    });
-                    m_dockSpace.updateLayout([](LayoutNode &layout) {
-                        layout.setHeightAuto();
-                        layout.setFlex(1.f, 1.f, 0.f);
-                        layout.setMinSize({0.f, 180.f});
-                    });
-
-                    auto fotter = page.row({}, [this](UIComposer &footer) {
-                        footer
-                            .label("© 2024 Bess UI Core Demo",
-                                   LabelOptions{.fontSize = 12.f})
-                            .updateLayout([](LayoutNode &layout) {
-                                layout.setMargin(
-                                    Core::Style::Margin::fromSymmetric(4.f,
-                                                                       2.f));
-                            });
-                        footer.spacer({.minimumSize = {0.f, 24}});
-                    });
-
-                    fotter.updateLayout([](LayoutNode &layout) {
-                        layout.setHeightFitContent();
-                    });
+                    m_assetsPanel = dock.panel(
+                        "Assets",
+                        DockPanelPlacement{
+                            .target = dock.stackFor(m_consolePanel.item),
+                            .zone = DockZone::left,
+                        },
+                        [](UIComposer &panel) {
+                            panel.label("Assets", headingLabel());
+                            panel.label("Fonts");
+                            panel.label("Icons");
+                            panel.label("Textures");
+                            panel.spacer();
+                        });
                 });
+                m_dockSpace.updateLayout([](LayoutNode &layout) {
+                    layout.setHeightAuto();
+                    layout.setFlex(1.f, 1.f, 0.f);
+                    layout.setMinSize({0.f, 180.f});
+                });
+
+                auto fotter = page.row({}, [this](UIComposer &footer) {
+                    footer
+                        .label("© 2024 Bess UI Core Demo",
+                               LabelOptions{.fontSize = 12.f})
+                        .updateLayout([](LayoutNode &layout) {
+                            layout.setMargin(
+                                Core::Style::Margin::fromSymmetric(4.f, 2.f));
+                        });
+                    footer.spacer({.minimumSize = {0.f, 24}});
+                });
+
+                fotter.updateLayout(
+                    [](LayoutNode &layout) { layout.setHeightFitContent(); });
+            });
             static_cast<void>(surface.layout(page, [](LayoutNode &layout) {
                 layout.setWidthPercent(1.f);
                 layout.setHeightPercent(1.f);

@@ -27,6 +27,8 @@ add_executable(BessTests
 	    ui_scroll_view_tests.cpp
 	    wgpu_text_metrics_tests.cpp
 	    ui_composition_tests.cpp
+	    ui_focus_popup_controls_tests.cpp
+	    ui_text_edit_tests.cpp
     # scene_component_clone_test.cpp
     # sim_driver_test.cpp
     # scene_state_test.cpp

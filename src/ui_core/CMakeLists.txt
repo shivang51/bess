@@ -4,21 +4,30 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(Header_Files
 	include/behaviors/pressable.h
 	include/controls/basic_widgets.h
+	include/controls/focus_scope.h
 	include/controls/dock_drop.h
 	include/controls/dock_space.h
 	include/controls/menu_bar.h
+	include/controls/popup_controls.h
 	include/controls/scroll_view.h
 	include/controls/tab_bar.h
+	include/controls/text_box.h
+	include/controls/value_controls.h
 	include/demo_view.h
 	include/dock.h
 	include/layout.h
 	include/models/signal.h
 	include/models/dock_model.h
+	include/models/dropdown_model.h
 	include/models/menu_model.h
 	include/models/tab_model.h
+	include/models/text_edit_model.h
+	include/models/value_models.h
+	include/popup.h
 	include/ui_event.h
 	include/ui_composer.h
 	include/ui_painter.h
+	include/ui_platform_services.h
 	include/widget_tree.h
 	include/ui_style.h
 	include/ui_target.h
@@ -34,23 +43,31 @@ source_group("include/ui_core" FILES ${Header_Files})
 
 set(Source_Files
 	src/basic_widgets.cpp
+	src/focus_scope.cpp
 	src/demo_view.cpp
 	src/dock.cpp
 	src/dock_drop.cpp
 	src/dock_model.cpp
 	src/dock_space.cpp
+	src/dropdown_model.cpp
 	src/menu_model.cpp
 	src/menu_bar.cpp
 	src/layout.cpp
 	src/pressable.cpp
+	src/popup.cpp
+	src/popup_controls.cpp
 	src/scroll_view.cpp
 	src/tab_bar.cpp
+	src/text_box.cpp
+	src/text_edit_model.cpp
 	src/ui_painter.cpp
+	src/ui_platform_services.cpp
 	src/ui_composer.cpp
 	src/widget_tree.cpp
 	src/ui_style.cpp
 	src/ui_target.cpp
 	src/ui_view.cpp
+	src/value_controls.cpp
 	src/widget.cpp
 )
 

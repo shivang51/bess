@@ -10,7 +10,7 @@
 
 namespace Bess::UI {
 
-    UITarget::UITarget() : m_viewHost(m_widgetTree) {
+    UITarget::UITarget() : m_viewHost(m_widgetTree), m_popupHost(m_viewHost) {
     }
 
     UITarget::~UITarget() {
@@ -29,6 +29,7 @@ namespace Bess::UI {
         m_widgetTree.setTheme(desc.theme != nullptr
                                   ? UITheme::fromBessTheme(*desc.theme)
                                   : UITheme::dark());
+        m_widgetTree.setPlatformServices(desc.platformServices);
         m_renderTarget = renderer->createTarget({
             .extent =
                 {
@@ -50,6 +51,7 @@ namespace Bess::UI {
     }
 
     void UITarget::destroy() {
+        m_popupHost.clear();
         m_viewHost.clear();
         if (m_renderTarget != nullptr) {
             m_renderTarget->destroy();
@@ -61,6 +63,7 @@ namespace Bess::UI {
         m_inputCtx = {};
         m_hasMousePos = false;
         m_widgetTree.clear();
+        m_widgetTree.setPlatformServices({});
         m_widgetTree.setViewportSize({0.f, 0.f});
     }
 
@@ -117,6 +120,14 @@ namespace Bess::UI {
         return m_viewHost;
     }
 
+    PopupHost &UITarget::getPopupHost() noexcept {
+        return m_popupHost;
+    }
+
+    const PopupHost &UITarget::getPopupHost() const noexcept {
+        return m_popupHost;
+    }
+
     UIViewRef<UIView> UITarget::setContent(std::unique_ptr<UIView> view) {
         return m_viewHost.setContent(std::move(view));
     }
@@ -163,6 +174,7 @@ namespace Bess::UI {
     }
 
     void UITarget::update(TimeMs dt) {
+        m_popupHost.update();
         processInputEvents();
         // Hit testing always uses a complete geometry snapshot, including on
         // the first frame after widgets are mounted or the target is resized.

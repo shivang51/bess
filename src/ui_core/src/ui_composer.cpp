@@ -103,6 +103,10 @@ namespace Bess::UI {
         return emplace<StackContainer>(std::move(options));
     }
 
+    WidgetRef<FocusScope> UIComposer::focusScope(FocusScopeOptions options) {
+        return emplace<FocusScope>(std::move(options));
+    }
+
     WidgetRef<Surface> UIComposer::surface(SurfaceOptions options) {
         return emplace<Surface>(std::move(options));
     }
@@ -116,6 +120,93 @@ namespace Bess::UI {
                                          ButtonOptions options) {
         return emplace<Button>(
             std::move(label), std::move(activated), std::move(options));
+    }
+
+    WidgetRef<CheckBox>
+    UIComposer::checkBox(std::string label,
+                         std::shared_ptr<CheckStateModel> model,
+                         CheckBox::Changed changed,
+                         CheckBoxOptions options) {
+        return emplace<CheckBox>(std::move(label),
+                                 std::move(model),
+                                 std::move(changed),
+                                 std::move(options));
+    }
+
+    WidgetRef<ToggleSwitch> UIComposer::toggle(std::string label,
+                                               std::shared_ptr<BoolModel> model,
+                                               ToggleSwitch::Changed changed,
+                                               ToggleSwitchOptions options) {
+        return emplace<ToggleSwitch>(std::move(label),
+                                     std::move(model),
+                                     std::move(changed),
+                                     std::move(options));
+    }
+
+    WidgetRef<RadioButton>
+    UIComposer::radio(std::string label,
+                      std::shared_ptr<RadioGroupModel> group,
+                      RadioId id,
+                      RadioButton::Selected selected,
+                      RadioButtonOptions options) {
+        return emplace<RadioButton>(std::move(label),
+                                    std::move(group),
+                                    id,
+                                    std::move(selected),
+                                    std::move(options));
+    }
+
+    WidgetRef<Slider> UIComposer::slider(std::shared_ptr<RangeModel> model,
+                                         Slider::Changed changed,
+                                         SliderOptions options) {
+        return emplace<Slider>(
+            std::move(model), std::move(changed), std::move(options));
+    }
+
+    WidgetRef<Dropdown>
+    UIComposer::dropdown(std::shared_ptr<DropdownModel> model,
+                         Dropdown::Changed changed,
+                         DropdownOptions options) {
+        return emplace<Dropdown>(
+            std::move(model), std::move(changed), std::move(options));
+    }
+
+    WidgetRef<TextBox> UIComposer::textBox(std::shared_ptr<TextEditModel> model,
+                                           TextBox::Changed changed,
+                                           TextBox::Submitted submitted,
+                                           TextBoxOptions options) {
+        return emplace<TextBox>(std::move(model),
+                                std::move(changed),
+                                std::move(submitted),
+                                std::move(options));
+    }
+
+    WidgetRef<Autocomplete>
+    UIComposer::autocomplete(std::shared_ptr<TextEditModel> model,
+                             AutocompleteProvider provider,
+                             Autocomplete::Changed changed,
+                             Autocomplete::Submitted submitted,
+                             Autocomplete::Completed completed,
+                             AutocompleteOptions options) {
+        return emplace<Autocomplete>(std::move(model),
+                                     std::move(provider),
+                                     std::move(changed),
+                                     std::move(submitted),
+                                     std::move(completed),
+                                     std::move(options));
+    }
+
+    WidgetRef<Tooltip> UIComposer::tooltip(std::string text,
+                                           TooltipOptions options) {
+        return emplace<Tooltip>(std::move(text), std::move(options));
+    }
+
+    WidgetRef<ContextMenuRegion>
+    UIComposer::contextMenu(std::shared_ptr<MenuModel> model,
+                            MenuId menu,
+                            ContextMenuOptions options) {
+        return emplace<ContextMenuRegion>(
+            std::move(model), menu, std::move(options));
     }
 
     WidgetRef<Spacer> UIComposer::spacer(SpacerOptions options) {

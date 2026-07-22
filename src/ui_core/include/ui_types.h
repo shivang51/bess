@@ -54,6 +54,10 @@ namespace Bess::UI {
     struct DockHostIdTag;
     struct MenuIdTag;
     struct MenuItemIdTag;
+    struct PopupIdTag;
+    struct DropdownItemIdTag;
+    struct RadioIdTag;
+    struct AutocompleteItemIdTag;
 
     using WidgetId = StableId<WidgetIdTag>;
     using ViewId = StableId<ViewIdTag>;
@@ -63,6 +67,10 @@ namespace Bess::UI {
     using DockHostId = StableId<DockHostIdTag>;
     using MenuId = StableId<MenuIdTag>;
     using MenuItemId = StableId<MenuItemIdTag>;
+    using PopupId = StableId<PopupIdTag>;
+    using DropdownItemId = StableId<DropdownItemIdTag>;
+    using RadioId = StableId<RadioIdTag>;
+    using AutocompleteItemId = StableId<AutocompleteItemIdTag>;
 
     enum class WidgetVisibility : uint8_t {
         visible,
@@ -73,6 +81,22 @@ namespace Bess::UI {
     };
 
     enum class UIEventPhase : uint8_t { capture, target, bubble };
+
+    enum class FocusTraversalDirection : uint8_t { forward, backward };
+
+    struct FocusScopePolicy {
+        // When true, keyboard traversal and direct focus requests cannot leave
+        // this scope while it is the active trapping scope. Scopes opened
+        // later (for example, a popup owned by a dialog) remain reachable.
+        bool trapFocus = false;
+        // Select the explicit default, or the first eligible descendant, once
+        // the scope has children. This is deferred so declarative composition
+        // can finish before focus is assigned.
+        bool autoFocus = false;
+        // Restore the widget focused immediately before activation when the
+        // scope closes, provided that widget still exists and is eligible.
+        bool restoreFocus = true;
+    };
 
     enum class WidgetInvalidation : uint8_t {
         none = 0,

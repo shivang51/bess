@@ -150,6 +150,147 @@ namespace Bess::UI {
         theme.menus.barHorizontalPadding = 6.f;
         theme.menus.submenuChevronSize = 11.f;
 
+        theme.popup = {
+            .panel = theme.menus.popup,
+            .viewportMargin = 8.f,
+        };
+
+        theme.checkbox.indicator = {
+            .background = colors.surfaceContainerHigh,
+            .border = colors.outline,
+            .cornerRadius = glm::vec4{4.f},
+            .borderThickness = glm::vec4{1.f},
+            .shadow = noShadow,
+        };
+        theme.checkbox.indicatorHovered = theme.checkbox.indicator;
+        theme.checkbox.indicatorHovered.background =
+            colors.surfaceContainerHighest;
+        theme.checkbox.indicatorPressed = theme.checkbox.indicatorHovered;
+        theme.checkbox.indicatorPressed.background = colors.surfaceContainer;
+        theme.checkbox.indicatorFocused = theme.checkbox.indicatorHovered;
+        theme.checkbox.indicatorFocused.border = colors.primary;
+        theme.checkbox.indicatorFocused.borderThickness = glm::vec4{2.f};
+        theme.checkbox.indicatorSelected = theme.checkbox.indicator;
+        theme.checkbox.indicatorSelected.background = colors.primary;
+        theme.checkbox.indicatorSelected.border = colors.primary;
+        theme.checkbox.indicatorDisabled = theme.checkbox.indicator;
+        theme.checkbox.indicatorDisabled.background =
+            colors.surfaceContainerLow;
+        theme.checkbox.indicatorDisabled.border =
+            colors.outlineVariant.withAlpha(0.45f);
+        theme.checkbox.text = theme.label;
+        theme.checkbox.text.fontSize = theme.tabs.text.fontSize;
+        theme.checkbox.disabledText = colors.onSurface.withAlpha(0.38f);
+        theme.checkbox.mark = colors.onPrimary;
+        theme.checkbox.disabledMark = colors.onSurface.withAlpha(0.38f);
+
+        theme.radio = theme.checkbox;
+        theme.radio.indicator.cornerRadius = glm::vec4{8.f};
+        theme.radio.indicatorHovered.cornerRadius = glm::vec4{8.f};
+        theme.radio.indicatorPressed.cornerRadius = glm::vec4{8.f};
+        theme.radio.indicatorFocused.cornerRadius = glm::vec4{8.f};
+        theme.radio.indicatorSelected.cornerRadius = glm::vec4{8.f};
+        theme.radio.indicatorDisabled.cornerRadius = glm::vec4{8.f};
+        theme.radio.mark = colors.onPrimary;
+
+        theme.toggle.track = {
+            .background = colors.surfaceContainerHighest,
+            .border = colors.outline,
+            .cornerRadius = glm::vec4{9.f},
+            .borderThickness = glm::vec4{1.f},
+            .shadow = noShadow,
+        };
+        theme.toggle.trackHovered = theme.toggle.track;
+        theme.toggle.trackHovered.border = colors.onSurfaceVariant;
+        theme.toggle.trackPressed = theme.toggle.trackHovered;
+        theme.toggle.trackPressed.background = colors.surfaceContainer;
+        theme.toggle.trackSelected = theme.toggle.track;
+        theme.toggle.trackSelected.background = colors.primary;
+        theme.toggle.trackSelected.border = colors.primary;
+        theme.toggle.trackDisabled = theme.toggle.track;
+        theme.toggle.trackDisabled.background = colors.surfaceContainerLow;
+        theme.toggle.trackDisabled.border =
+            colors.outlineVariant.withAlpha(0.45f);
+        theme.toggle.thumb = {
+            .background = colors.onSurfaceVariant,
+            .border = transparent,
+            .cornerRadius = glm::vec4{7.f},
+            .shadow = noShadow,
+        };
+        theme.toggle.thumbSelected = theme.toggle.thumb;
+        theme.toggle.thumbSelected.background = colors.onPrimary;
+
+        theme.slider.track = {
+            .background = colors.surfaceContainerHighest,
+            .border = transparent,
+            .cornerRadius = glm::vec4{2.f},
+            .shadow = noShadow,
+        };
+        theme.slider.fill = theme.slider.track;
+        theme.slider.fill.background = colors.primary;
+        theme.slider.thumb = {
+            .background = colors.primary,
+            .border = transparent,
+            .cornerRadius = glm::vec4{7.f},
+            .shadow = noShadow,
+        };
+        theme.slider.thumbHovered = theme.slider.thumb;
+        theme.slider.thumbHovered.border = colors.onSurface;
+        theme.slider.thumbHovered.borderThickness = glm::vec4{1.f};
+        theme.slider.thumbPressed = theme.slider.thumb;
+        theme.slider.thumbPressed.background = colors.primaryContainer;
+        theme.slider.thumbFocused = theme.slider.thumbHovered;
+        theme.slider.thumbFocused.border = colors.primary;
+        theme.slider.thumbFocused.borderThickness = glm::vec4{2.f};
+        theme.slider.disabledTrack = theme.slider.track;
+        theme.slider.disabledTrack.background =
+            colors.onSurface.withAlpha(0.12f);
+        theme.slider.disabledThumb = theme.slider.thumb;
+        theme.slider.disabledThumb.background =
+            colors.onSurface.withAlpha(0.38f);
+
+        theme.dropdown.field = theme.button;
+        theme.dropdown.field.minimumSize = {140.f, 26.f};
+        theme.dropdown.field.contentPadding = {8.f, 4.f};
+        theme.dropdown.placeholder = theme.tabs.text;
+        theme.dropdown.placeholder.color = colors.onSurfaceVariant;
+        theme.dropdown.chevron = colors.onSurfaceVariant;
+        theme.dropdown.minimumWidth = 140.f;
+        theme.dropdown.popupMaximumHeight = 280.f;
+        theme.dropdown.itemHeight = theme.menus.itemHeight;
+        theme.dropdown.itemHorizontalPadding =
+            theme.menus.itemHorizontalPadding;
+        theme.dropdown.iconColumnWidth = theme.menus.iconColumnWidth;
+        theme.dropdown.chevronSize = theme.menus.submenuChevronSize;
+
+        theme.tooltip.panel = theme.menus.popup;
+        theme.tooltip.panel.background = colors.inverseSurface.withAlpha(0.98f);
+        theme.tooltip.panel.cornerRadius = glm::vec4{5.f};
+        theme.tooltip.text = theme.tabs.text;
+        theme.tooltip.text.color = colors.onInverseSurface;
+
+        theme.textBox.normal = {
+            .background = colors.surfaceContainerLow,
+            .border = colors.outlineVariant,
+            .cornerRadius = controlRadius,
+            .borderThickness = glm::vec4{1.f},
+            .shadow = noShadow,
+        };
+        theme.textBox.hovered = theme.textBox.normal;
+        theme.textBox.hovered.background = colors.surfaceContainerHigh;
+        theme.textBox.focused = theme.textBox.normal;
+        theme.textBox.focused.border = colors.primary;
+        theme.textBox.focused.borderThickness = glm::vec4{2.f};
+        theme.textBox.disabled = theme.textBox.normal;
+        theme.textBox.disabled.background = colors.surfaceContainerLowest;
+        theme.textBox.disabled.border = colors.outlineVariant.withAlpha(0.45f);
+        theme.textBox.text = theme.tabs.text;
+        theme.textBox.placeholder = theme.tabs.text;
+        theme.textBox.placeholder.color = colors.onSurfaceVariant;
+        theme.textBox.selection = colors.primary.withAlpha(0.38f);
+        theme.textBox.caret = colors.primary;
+        theme.textBox.compositionUnderline = colors.primary;
+
         theme.scroll.track = {
             .background = colors.surfaceContainerHigh.withAlpha(0.36f),
             .border = transparent,

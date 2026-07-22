@@ -40,6 +40,7 @@ namespace Bess::UI {
         DockPanelHandle m_previewPanel;
         DockPanelHandle m_consolePanel;
         DockPanelHandle m_assetsPanel;
+        DockPanelHandle m_controlsPanel;
     };
 
 } // namespace Bess::UI

@@ -1,5 +1,6 @@
 #include "widget_tree.h"
 
+#include "popup.h"
 #include "ui_painter.h"
 
 #include <algorithm>
@@ -162,6 +163,7 @@ namespace Bess::UI {
         m_focused = {};
         m_pointerCapture = {};
         m_hovered = {};
+        m_focusScopes.clear();
         m_lastPointerPosition.reset();
         m_clearPending = false;
         m_destroying = false;
@@ -369,6 +371,20 @@ namespace Bess::UI {
             WidgetInvalidation::layout | WidgetInvalidation::paint;
     }
 
+    void WidgetTree::setPlatformServices(
+        std::shared_ptr<UIPlatformServices> services) {
+        m_platformServices = services != nullptr ? std::move(services)
+                                                 : nullUIPlatformServices();
+    }
+
+    UIPlatformServices &WidgetTree::platformServices() noexcept {
+        return *m_platformServices;
+    }
+
+    UIPlatformServices &WidgetTree::platformServices() const noexcept {
+        return *m_platformServices;
+    }
+
     void WidgetTree::performLayout() {
         // Clear before callbacks so a layout invalidation raised by arrange()
         // remains pending for the next pass.
@@ -414,6 +430,7 @@ namespace Bess::UI {
             layout->measure(m_layoutRegistry, UUID::null);
             arrangeSubtree(root);
         }
+        resolvePendingAutoFocus();
     }
 
     WidgetBounds WidgetTree::getBounds(WidgetId id) const noexcept {
@@ -481,6 +498,13 @@ namespace Bess::UI {
             return result;
         }
 
+        if (const auto *key = event.getIf<Input::KeyEvent>();
+            key != nullptr && key->key == KeyCode::escape &&
+            key->action == KeyAction::press && m_popupHost != nullptr &&
+            m_popupHost->dismissTopmostOnEscape()) {
+            return {.target = getFocusedWidget(), .handled = true};
+        }
+
         const auto pointer = pointerPosition(event);
         WidgetId pointed;
         if (pointer.has_value()) {
@@ -497,11 +521,22 @@ namespace Bess::UI {
         } else if (event.is<Input::MouseWheelEvent>()) {
             target = pointed;
         } else if (event.is<Input::KeyEvent>() ||
-                   event.is<Input::TextInputEvent>()) {
+                   event.is<Input::TextInputEvent>() ||
+                   event.is<Input::TextCompositionEvent>()) {
             target = contains(m_focused) ? m_focused : WidgetId{};
         }
 
         if (!target) {
+            if (const auto *key = event.getIf<Input::KeyEvent>();
+                key != nullptr && key->key == KeyCode::tab &&
+                (key->action == KeyAction::press ||
+                 key->action == KeyAction::hold)) {
+                return {.target = getFocusedWidget(),
+                        .handled =
+                            moveFocus(event.modifiers.shift
+                                          ? FocusTraversalDirection::backward
+                                          : FocusTraversalDirection::forward)};
+            }
             if (const auto *button = event.getIf<Input::MouseButtonEvent>();
                 button != nullptr && button->button == MouseButton::left &&
                 button->action == MouseButtonAction::press) {
@@ -511,6 +546,17 @@ namespace Bess::UI {
         }
 
         auto result = dispatchToTarget(target, event, pointer);
+        if (!result.handled) {
+            if (const auto *key = event.getIf<Input::KeyEvent>();
+                key != nullptr && key->key == KeyCode::tab &&
+                (key->action == KeyAction::press ||
+                 key->action == KeyAction::hold)) {
+                result.handled = moveFocus(
+                    event.modifiers.shift ? FocusTraversalDirection::backward
+                                          : FocusTraversalDirection::forward);
+                result.target = getFocusedWidget();
+            }
+        }
         if (const auto *button = event.getIf<Input::MouseButtonEvent>();
             button != nullptr && button->action == MouseButtonAction::release &&
             m_pointerCapture) {
@@ -540,9 +586,7 @@ namespace Bess::UI {
 
     bool WidgetTree::setFocus(WidgetId id) {
         if (id) {
-            const auto *node = findNode(id);
-            if (node == nullptr || !node->widget->traits().focusable ||
-                !isEffectivelyEnabled(id) || !isEffectivelyVisible(id)) {
+            if (!isFocusable(id) || !focusAllowedByActiveScope(id)) {
                 return false;
             }
         }
@@ -569,7 +613,8 @@ namespace Bess::UI {
             if (requested && contains(requested) &&
                 isEffectivelyEnabled(requested) &&
                 isEffectivelyVisible(requested) &&
-                getWidget(requested)->traits().focusable) {
+                getWidget(requested)->traits().focusable &&
+                focusAllowedByActiveScope(requested)) {
                 m_focused = requested;
                 dispatchDirect(requested, UIFocusChangedEvent{.focused = true});
             }
@@ -586,6 +631,150 @@ namespace Bess::UI {
 
     void WidgetTree::clearFocus() {
         setFocus({});
+    }
+
+    bool WidgetTree::moveFocus(FocusTraversalDirection direction) {
+        WidgetId traversalRoot;
+        for (auto it = m_focusScopes.rbegin(); it != m_focusScopes.rend();
+             ++it) {
+            if (it->policy.trapFocus && contains(it->scope) &&
+                isEffectivelyVisible(it->scope) &&
+                isEffectivelyEnabled(it->scope)) {
+                traversalRoot = it->scope;
+                break;
+            }
+        }
+
+        std::vector<WidgetId> candidates;
+        if (traversalRoot) {
+            collectFocusable(traversalRoot, candidates);
+        } else {
+            for (const auto root : m_roots) {
+                collectFocusable(root, candidates);
+            }
+        }
+        if (candidates.empty()) {
+            return false;
+        }
+
+        const auto current =
+            std::find(candidates.begin(), candidates.end(), m_focused);
+        size_t index = 0;
+        if (direction == FocusTraversalDirection::forward) {
+            index =
+                current == candidates.end()
+                    ? 0
+                    : (static_cast<size_t>(current - candidates.begin()) + 1) %
+                          candidates.size();
+        } else {
+            index = current == candidates.end() || current == candidates.begin()
+                        ? candidates.size() - 1
+                        : static_cast<size_t>(current - candidates.begin() - 1);
+        }
+        return setFocus(candidates[index]);
+    }
+
+    bool WidgetTree::activateFocusScope(WidgetId scope,
+                                        FocusScopePolicy policy) {
+        if (!contains(scope)) {
+            return false;
+        }
+        const auto existing = std::find_if(
+            m_focusScopes.begin(),
+            m_focusScopes.end(),
+            [scope](const auto &entry) { return entry.scope == scope; });
+        if (existing != m_focusScopes.end()) {
+            existing->policy = policy;
+            existing->pendingAutoFocus = policy.autoFocus;
+            if (policy.trapFocus && m_focused &&
+                !isDescendantOf(m_focused, scope)) {
+                clearFocus();
+            }
+            return true;
+        }
+        m_focusScopes.push_back({.scope = scope,
+                                 .previousFocus = m_focused,
+                                 .policy = policy,
+                                 .pendingAutoFocus = policy.autoFocus});
+        if (policy.trapFocus && m_focused &&
+            !isDescendantOf(m_focused, scope)) {
+            clearFocus();
+        }
+        if (policy.autoFocus) {
+            m_invalidation |= WidgetInvalidation::paint;
+        }
+        return true;
+    }
+
+    bool WidgetTree::deactivateFocusScope(WidgetId scope) {
+        const auto it = std::find_if(
+            m_focusScopes.begin(),
+            m_focusScopes.end(),
+            [scope](const auto &entry) { return entry.scope == scope; });
+        if (it == m_focusScopes.end()) {
+            return false;
+        }
+
+        const WidgetId restore = it->previousFocus;
+        const bool shouldRestore = it->policy.restoreFocus;
+        const bool focusWasOwned =
+            m_focused && contains(scope) && isDescendantOf(m_focused, scope);
+        const bool focusNeedsRestore = focusWasOwned || !m_focused;
+        m_focusScopes.erase(it);
+        if (focusNeedsRestore) {
+            if (shouldRestore && restore && isFocusable(restore) &&
+                focusAllowedByActiveScope(restore)) {
+                static_cast<void>(setFocus(restore));
+            } else {
+                clearFocus();
+            }
+        }
+        return true;
+    }
+
+    bool WidgetTree::setDefaultFocus(WidgetId scope, WidgetId widget) {
+        const auto it = std::find_if(
+            m_focusScopes.begin(),
+            m_focusScopes.end(),
+            [scope](const auto &entry) { return entry.scope == scope; });
+        if (it == m_focusScopes.end() ||
+            (widget && (!contains(widget) || !isDescendantOf(widget, scope)))) {
+            return false;
+        }
+        it->defaultFocus = widget;
+        if (it->policy.autoFocus) {
+            it->pendingAutoFocus = true;
+            resolvePendingAutoFocus();
+        }
+        return true;
+    }
+
+    bool WidgetTree::focusDefault(WidgetId scope) {
+        const auto it = std::find_if(
+            m_focusScopes.begin(),
+            m_focusScopes.end(),
+            [scope](const auto &entry) { return entry.scope == scope; });
+        if (it == m_focusScopes.end() || !contains(scope)) {
+            return false;
+        }
+        if (isFocusable(it->defaultFocus) &&
+            isDescendantOf(it->defaultFocus, scope)) {
+            return setFocus(it->defaultFocus);
+        }
+        std::vector<WidgetId> candidates;
+        collectFocusable(scope, candidates);
+        return !candidates.empty() && setFocus(candidates.front());
+    }
+
+    WidgetId WidgetTree::activeFocusScope() const noexcept {
+        for (auto it = m_focusScopes.rbegin(); it != m_focusScopes.rend();
+             ++it) {
+            if (contains(it->scope) && isEffectivelyVisible(it->scope) &&
+                isEffectivelyEnabled(it->scope)) {
+                return it->scope;
+            }
+        }
+        return {};
     }
 
     WidgetId WidgetTree::getPointerCapture() const noexcept {
@@ -611,13 +800,17 @@ namespace Bess::UI {
         return m_hovered;
     }
 
+    std::optional<glm::vec2> WidgetTree::getPointerPosition() const noexcept {
+        return m_lastPointerPosition;
+    }
+
     CursorIcon WidgetTree::getCursorShape() const noexcept {
         if (!m_lastPointerPosition.has_value()) {
             return CursorIcon::arrow;
         }
 
-        WidgetId current = contains(m_pointerCapture) ? m_pointerCapture
-                                                      : m_hovered;
+        WidgetId current =
+            contains(m_pointerCapture) ? m_pointerCapture : m_hovered;
         size_t remaining = m_nodes.size() + 1;
         while (current && remaining-- > 0) {
             const auto *node = findNode(current);
@@ -637,6 +830,18 @@ namespace Bess::UI {
             current = node->parent;
         }
         return CursorIcon::arrow;
+    }
+
+    void WidgetTree::setPopupHost(PopupHost *host) noexcept {
+        m_popupHost = host;
+    }
+
+    PopupHost *WidgetTree::popupHost() noexcept {
+        return m_popupHost;
+    }
+
+    const PopupHost *WidgetTree::popupHost() const noexcept {
+        return m_popupHost;
     }
 
     PickingId WidgetTree::getPickingId(WidgetId id,
@@ -767,6 +972,69 @@ namespace Bess::UI {
         return !current;
     }
 
+    bool WidgetTree::isFocusable(WidgetId id) const noexcept {
+        const auto *node = findNode(id);
+        return node != nullptr && node->widget->traits().focusable &&
+               isEffectivelyEnabled(id) && isEffectivelyVisible(id);
+    }
+
+    bool WidgetTree::focusAllowedByActiveScope(WidgetId id) const noexcept {
+        size_t trappingIndex = m_focusScopes.size();
+        for (size_t index = m_focusScopes.size(); index > 0; --index) {
+            const auto &entry = m_focusScopes[index - 1];
+            if (entry.policy.trapFocus && contains(entry.scope) &&
+                isEffectivelyVisible(entry.scope) &&
+                isEffectivelyEnabled(entry.scope)) {
+                trappingIndex = index - 1;
+                break;
+            }
+        }
+        if (trappingIndex == m_focusScopes.size()) {
+            return true;
+        }
+        if (isDescendantOf(id, m_focusScopes[trappingIndex].scope)) {
+            return true;
+        }
+        // A later scope is considered owned by the trapping scope. This lets
+        // an anchored popup opened by a modal dialog receive focus without
+        // allowing arbitrary background widgets to escape the dialog trap.
+        for (size_t index = trappingIndex + 1; index < m_focusScopes.size();
+             ++index) {
+            if (contains(m_focusScopes[index].scope) &&
+                isDescendantOf(id, m_focusScopes[index].scope)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void WidgetTree::collectFocusable(WidgetId root,
+                                      std::vector<WidgetId> &result) const {
+        const auto *node = findNode(root);
+        if (node == nullptr || !isEffectivelyVisible(root) ||
+            !isEffectivelyEnabled(root)) {
+            return;
+        }
+        if (isFocusable(root) && focusAllowedByActiveScope(root)) {
+            result.push_back(root);
+        }
+        for (const auto child : node->children) {
+            collectFocusable(child, result);
+        }
+    }
+
+    void WidgetTree::resolvePendingAutoFocus() {
+        for (auto &entry : m_focusScopes) {
+            if (!entry.pendingAutoFocus || !contains(entry.scope) ||
+                !isEffectivelyVisible(entry.scope) ||
+                !isEffectivelyEnabled(entry.scope)) {
+                continue;
+            }
+            entry.pendingAutoFocus = false;
+            static_cast<void>(focusDefault(entry.scope));
+        }
+    }
+
     void WidgetTree::syncLayoutChildren(WidgetId parent) {
         auto *parentNode = findNode(parent);
         auto *parentLayout = getLayout(parent);
@@ -783,6 +1051,13 @@ namespace Bess::UI {
     }
 
     bool WidgetTree::removeWidgetNow(WidgetId id) {
+        if (!contains(id)) {
+            return false;
+        }
+
+        if (m_popupHost != nullptr) {
+            static_cast<void>(m_popupHost->closeAnchoredInSubtree(id));
+        }
         auto *rootNode = findNode(id);
         if (rootNode == nullptr) {
             return false;
@@ -794,6 +1069,17 @@ namespace Bess::UI {
         // Hold deferred destruction across focus/hover notifications as those
         // callbacks are allowed to request removal of this same subtree.
         beginCallback();
+
+        std::vector<WidgetId> removedScopes;
+        for (const auto &entry : m_focusScopes) {
+            if (isDescendantOf(entry.scope, id)) {
+                removedScopes.push_back(entry.scope);
+            }
+        }
+        for (auto it = removedScopes.rbegin(); it != removedScopes.rend();
+             ++it) {
+            static_cast<void>(deactivateFocusScope(*it));
+        }
 
         if (m_focused && isDescendantOf(m_focused, id)) {
             clearFocus();

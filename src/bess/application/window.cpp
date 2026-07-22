@@ -21,6 +21,8 @@
 #include <concepts>
 #include <cstdint>
 #include <memory>
+#include <optional>
+#include <string_view>
 #include <type_traits>
 
 #ifdef _WIN32
@@ -115,6 +117,35 @@ namespace Bess {
             }
             return GLFW_ARROW_CURSOR;
         }
+
+        class GLFWUIPlatformServices final : public UI::UIPlatformServices {
+          public:
+            explicit GLFWUIPlatformServices(GLFWwindow *window) noexcept
+                : m_window(window) {
+            }
+
+            std::optional<std::string> readClipboardText() const override {
+                if (m_window == nullptr) {
+                    return std::nullopt;
+                }
+                const char *text = glfwGetClipboardString(m_window);
+                return text != nullptr
+                           ? std::optional<std::string>{std::string{text}}
+                           : std::nullopt;
+            }
+
+            bool writeClipboardText(std::string_view text) override {
+                if (m_window == nullptr) {
+                    return false;
+                }
+                // GLFW requires a null-terminated buffer.
+                glfwSetClipboardString(m_window, std::string{text}.c_str());
+                return true;
+            }
+
+          private:
+            GLFWwindow *m_window = nullptr;
+        };
     } // namespace
 
     Window::Window(int width, int height, const std::string &title)
@@ -253,8 +284,7 @@ namespace Bess {
                 const auto this_ = (Window *)glfwGetWindowUserPointer(window);
                 static_cast<void>(scancode);
                 const KeyAction keyAction = keyActionFromGLFW(action);
-                this_->m_inputModifiers =
-                    this_->glfwModifiersToInput(mods);
+                this_->m_inputModifiers = this_->glfwModifiersToInput(mods);
                 const auto keyCode = this_->glfwKeyToKeyCode(key);
                 this_->dispatchInputEvent(Input::Event{
                     Input::KeyEvent{.key = keyCode, .action = keyAction},
@@ -281,11 +311,10 @@ namespace Bess {
                     BESS_WARN("[Window] Unhandled mouse button type {}",
                               button);
                 }
-                const auto btnAction =
-                    action == GLFW_PRESS ? MouseButtonAction::press
-                                         : MouseButtonAction::release;
-                this_->m_inputModifiers =
-                    this_->glfwModifiersToInput(mods);
+                const auto btnAction = action == GLFW_PRESS
+                                           ? MouseButtonAction::press
+                                           : MouseButtonAction::release;
+                this_->m_inputModifiers = this_->glfwModifiersToInput(mods);
 
                 double x = 0.0, y = 0.0;
                 glfwGetCursorPos(window, &x, &y);
@@ -323,12 +352,16 @@ namespace Bess {
         UI::UITargetDesc desc{
             .rect = {.size = {static_cast<float>(m_width),
                               static_cast<float>(m_height)}},
-            .surface = {
-                .type = Core::Renderer::Renderer2DNativeSurfaceType::
-                    PlatformHandle,
-                .handle = mp_window.get(),
-            },
+            .surface =
+                {
+                    .type = Core::Renderer::Renderer2DNativeSurfaceType::
+                        PlatformHandle,
+                    .handle = mp_window.get(),
+                },
             .theme = Config::Themes::getCurrentTheme(),
+            .platformServices =
+                (m_uiPlatformServices =
+                     std::make_shared<GLFWUIPlatformServices>(mp_window.get())),
         };
 
         m_uiTarget.init(renderer, desc);
@@ -351,16 +384,22 @@ namespace Bess {
         });
 
         const auto mousePos = getMousePos();
-        dispatchInputEvent(
-            Input::Event{Input::MouseMoveEvent{.pos = mousePos},
-                         currentInputModifiers()});
+        dispatchInputEvent(Input::Event{Input::MouseMoveEvent{.pos = mousePos},
+                                        currentInputModifiers()});
     }
 
     void Window::onShutdown() {
         m_uiTarget.destroy();
+        m_uiPlatformServices.reset();
     }
 
     void Window::onDestroy() {
+        // Keep this path independently safe if a host skips onShutdown(). The
+        // target releases its platform bridge before the GLFW handle becomes
+        // invalid; destroy() is intentionally idempotent.
+        m_uiTarget.destroy();
+        m_uiPlatformServices.reset();
+
         if (!isGLFWInitialized)
             return;
 
@@ -560,12 +599,11 @@ namespace Bess {
             [this](auto &inputEvent) {
                 using EventType = std::remove_cvref_t<decltype(inputEvent)>;
                 if constexpr (std::same_as<EventType, Input::MouseMoveEvent> ||
-                              std::same_as<EventType,
-                                           Input::MouseWheelEvent> ||
+                              std::same_as<EventType, Input::MouseWheelEvent> ||
                               std::same_as<EventType,
                                            Input::MouseButtonEvent>) {
-                    inputEvent.pos = windowToUITargetPos(inputEvent.pos.x,
-                                                         inputEvent.pos.y);
+                    inputEvent.pos =
+                        windowToUITargetPos(inputEvent.pos.x, inputEvent.pos.y);
                 }
             },
             event.data);
@@ -591,9 +629,8 @@ namespace Bess {
             return glfwGetKey(mp_window.get(), key) == GLFW_PRESS;
         };
 
-        modifiers.control =
-            isPressed(GLFW_KEY_LEFT_CONTROL) ||
-            isPressed(GLFW_KEY_RIGHT_CONTROL);
+        modifiers.control = isPressed(GLFW_KEY_LEFT_CONTROL) ||
+                            isPressed(GLFW_KEY_RIGHT_CONTROL);
         modifiers.shift =
             isPressed(GLFW_KEY_LEFT_SHIFT) || isPressed(GLFW_KEY_RIGHT_SHIFT);
         modifiers.alt =

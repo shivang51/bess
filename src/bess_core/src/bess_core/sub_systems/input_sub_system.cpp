@@ -37,6 +37,11 @@ namespace Bess {
         m_frameInputState.keyboardEvents.emplace_back(event);
     }
 
+    void InputSubSystem::processEvent(Input::TextCompositionEvent &event) {
+        m_frameInputState.hasTextCompositionEvent = true;
+        m_frameInputState.keyboardEvents.emplace_back(event);
+    }
+
     void InputSubSystem::processEvent(Input::MouseButtonEvent &event) {
         const auto now = std::chrono::steady_clock::now();
 

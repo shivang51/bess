@@ -11,14 +11,14 @@ namespace {
         InputSubSystem input;
         input.onInit();
 
-        auto firstMove = input.processEvent(
-            Input::MouseMoveEvent{.pos = {10.f, 20.f}});
+        auto firstMove =
+            input.processEvent(Input::MouseMoveEvent{.pos = {10.f, 20.f}});
         ASSERT_NE(firstMove.getIf<Input::MouseMoveEvent>(), nullptr);
         EXPECT_EQ(firstMove.getIf<Input::MouseMoveEvent>()->delta,
                   glm::vec2(0.f));
 
-        auto secondMove = input.processEvent(
-            Input::MouseMoveEvent{.pos = {13.f, 25.f}});
+        auto secondMove =
+            input.processEvent(Input::MouseMoveEvent{.pos = {13.f, 25.f}});
         ASSERT_NE(secondMove.getIf<Input::MouseMoveEvent>(), nullptr);
         EXPECT_EQ(secondMove.getIf<Input::MouseMoveEvent>()->delta,
                   glm::vec2(3.f, 5.f));
@@ -60,16 +60,33 @@ namespace {
             Input::TextInputEvent{.codepoint = U'A'},
             modifiers,
         });
+        const auto composition = input.processEvent(Input::Event{
+            Input::TextCompositionEvent{
+                .phase = Input::TextCompositionPhase::update,
+                .text = "preedit",
+                .selectionStart = 2,
+                .selectionLength = 3,
+            },
+            modifiers,
+        });
 
         EXPECT_EQ(key.modifiers, modifiers);
         EXPECT_EQ(text.modifiers, modifiers);
+        EXPECT_EQ(composition.modifiers, modifiers);
 
         const auto &frame = input.getFrameInpState();
-        ASSERT_EQ(frame.keyboardEvents.size(), 2);
+        ASSERT_EQ(frame.keyboardEvents.size(), 3);
+        EXPECT_TRUE(frame.hasTextCompositionEvent);
         EXPECT_TRUE(
             std::holds_alternative<Input::KeyEvent>(frame.keyboardEvents[0]));
         EXPECT_TRUE(std::holds_alternative<Input::TextInputEvent>(
             frame.keyboardEvents[1]));
+        const auto *preedit =
+            std::get_if<Input::TextCompositionEvent>(&frame.keyboardEvents[2]);
+        ASSERT_NE(preedit, nullptr);
+        EXPECT_EQ(preedit->text, "preedit");
+        EXPECT_EQ(preedit->selectionStart, 2u);
+        EXPECT_EQ(preedit->selectionLength, 3u);
     }
 
 } // namespace

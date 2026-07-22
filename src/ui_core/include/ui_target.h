@@ -3,7 +3,9 @@
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/style/color_scheme.h"
 #include "common/types.h"
+#include "popup.h"
 #include "ui_event.h"
+#include "ui_platform_services.h"
 #include "ui_view.h"
 #include "widget_tree.h"
 #include <concepts>
@@ -38,6 +40,7 @@ namespace Bess::UI {
         // A target receives a BessTheme rather than an independent UI
         // palette. UICore maps its component roles from this source theme.
         std::shared_ptr<const Core::Style::BessTheme> theme;
+        std::shared_ptr<UIPlatformServices> platformServices;
         Core::Renderer::Renderer2DTargetFormat targetFormat =
             Core::Renderer::Renderer2DTargetFormat::BGRA8Unorm;
         Core::Renderer::Renderer2DTargetFormat pickingFormat =
@@ -82,6 +85,8 @@ namespace Bess::UI {
         [[nodiscard]] const WidgetTree &getWidgetTree() const noexcept;
         [[nodiscard]] UIViewHost &getViewHost() noexcept;
         [[nodiscard]] const UIViewHost &getViewHost() const noexcept;
+        [[nodiscard]] PopupHost &getPopupHost() noexcept;
+        [[nodiscard]] const PopupHost &getPopupHost() const noexcept;
 
         UIViewRef<UIView> setContent(std::unique_ptr<UIView> view);
         UIViewRef<UIView> mountOverlay(std::unique_ptr<UIView> view);
@@ -123,6 +128,7 @@ namespace Bess::UI {
       private:
         WidgetTree m_widgetTree;
         UIViewHost m_viewHost;
+        PopupHost m_popupHost;
         std::shared_ptr<Core::Renderer::IRenderer2D> m_renderer = nullptr;
         std::shared_ptr<Core::Renderer::IRenderTarget2D> m_renderTarget =
             nullptr;

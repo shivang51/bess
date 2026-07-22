@@ -103,8 +103,7 @@ namespace Bess {
         glfwModifiersToInput(int glfwModifiers) const;
         [[nodiscard]] Input::Modifiers currentInputModifiers() const;
         void dispatchInputEvent(Input::Event event);
-        [[nodiscard]] glm::vec2
-        windowToUITargetPos(double x, double y) const;
+        [[nodiscard]] glm::vec2 windowToUITargetPos(double x, double y) const;
 
         static constexpr std::size_t cursorShapeCount =
             static_cast<std::size_t>(CursorIcon::resizeDiagonalNESW) + 1;
@@ -124,6 +123,7 @@ namespace Bess {
 
         WindowSurface m_surface;
         UI::UITarget m_uiTarget;
+        std::shared_ptr<UI::UIPlatformServices> m_uiPlatformServices;
         Input::Modifiers m_inputModifiers;
         std::array<std::unique_ptr<GLFWcursor, GLFWcursorDeleter>,
                    cursorShapeCount>

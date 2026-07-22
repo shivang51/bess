@@ -2,9 +2,9 @@
 
 #include "common/bess_api.h"
 
+#include "bess_core/input/input_event.h"
 #include "common/class_helpers.h"
 #include "common/sub_system.h"
-#include "bess_core/input/input_event.h"
 #include <unordered_map>
 #include <vector>
 
@@ -12,6 +12,7 @@ namespace Bess {
 
     using KeyState = Input::KeyEvent;
     using TextInputState = Input::TextInputEvent;
+    using TextCompositionState = Input::TextCompositionEvent;
     using KeyboardInputEvent = Input::KeyboardEvent;
     using MouseWheelState = Input::MouseWheelEvent;
     using MouseMoveState = Input::MouseMoveEvent;
@@ -23,6 +24,7 @@ namespace Bess {
         bool hasMouseBtnEvent = false;
         bool hasKeyEvent = false;
         bool hasTextInputEvent = false;
+        bool hasTextCompositionEvent = false;
 
         MouseButtonState mouseBtnState =
             {}; // state of mouse button updated in current frame
@@ -63,6 +65,7 @@ namespace Bess {
       private:
         void processEvent(Input::KeyEvent &event);
         void processEvent(Input::TextInputEvent &event);
+        void processEvent(Input::TextCompositionEvent &event);
         void processEvent(Input::MouseButtonEvent &event);
         void processEvent(Input::MouseMoveEvent &event);
         void processEvent(Input::MouseWheelEvent &event);

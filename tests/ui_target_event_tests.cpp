@@ -26,11 +26,19 @@ namespace {
         });
         target.enqueueEvent(Input::TextInputEvent{.codepoint = U'a'},
                             keyModifiers);
+        target.enqueueEvent(
+            Input::TextCompositionEvent{
+                .phase = Input::TextCompositionPhase::update,
+                .text = "candidate",
+                .selectionStart = 4,
+                .selectionLength = 2,
+            },
+            keyModifiers);
 
         target.update(TimeMs{0});
 
         const auto events = target.getFrameEvents();
-        ASSERT_EQ(events.size(), 4);
+        ASSERT_EQ(events.size(), 5);
 
         const auto *resize = events[0].getIf<UI::UITargetResizeEvent>();
         ASSERT_NE(resize, nullptr);
@@ -56,6 +64,15 @@ namespace {
         ASSERT_NE(text, nullptr);
         EXPECT_EQ(text->codepoint, U'a');
         EXPECT_EQ(events[3].modifiers, keyModifiers);
+
+        const auto *composition =
+            events[4].getIf<Input::TextCompositionEvent>();
+        ASSERT_NE(composition, nullptr);
+        EXPECT_EQ(composition->phase, Input::TextCompositionPhase::update);
+        EXPECT_EQ(composition->text, "candidate");
+        EXPECT_EQ(composition->selectionStart, 4u);
+        EXPECT_EQ(composition->selectionLength, 2u);
+        EXPECT_EQ(events[4].modifiers, keyModifiers);
 
         target.enqueueEvent(
             UI::UITargetResizeEvent{.width = 1920, .height = 1080});

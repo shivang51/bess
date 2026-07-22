@@ -9,13 +9,16 @@ namespace Bess::UI {
     namespace {
         class UIViewRoot final : public Widget {
           public:
+            explicit UIViewRoot(UIViewLayer layer) : m_layer(layer) {
+            }
+
             std::string_view typeName() const noexcept override {
                 return "UIViewRoot";
             }
 
             WidgetTraits traits() const noexcept override {
                 return {.focusable = false,
-                        .hitTestVisible = false,
+                        .hitTestVisible = m_layer == UIViewLayer::modal,
                         .clipChildren = true};
             }
 
@@ -36,6 +39,9 @@ namespace Bess::UI {
                         context.setChildBounds(child, context.bounds));
                 }
             }
+
+          private:
+            UIViewLayer m_layer;
         };
 
         constexpr uint8_t layerRank(UIViewLayer layer) noexcept {
@@ -85,6 +91,10 @@ namespace Bess::UI {
         return mountOwned(std::move(view), UIViewLayer::modal);
     }
 
+    UIViewRef<UIView> UIViewHost::mountPopup(std::unique_ptr<UIView> view) {
+        return mountOwned(std::move(view), UIViewLayer::popup);
+    }
+
     UIViewRef<UIView> UIViewHost::mountOwned(std::unique_ptr<UIView> view,
                                              UIViewLayer layer) {
         if (view == nullptr) {
@@ -98,8 +108,8 @@ namespace Bess::UI {
 
         const size_t orderIndex = orderIndexFor(layer);
         const size_t rootIndex = rootIndexFor(orderIndex);
-        const WidgetId root =
-            m_tree.addWidget(std::make_unique<UIViewRoot>(), {}, rootIndex);
+        const WidgetId root = m_tree.addWidget(
+            std::make_unique<UIViewRoot>(layer), {}, rootIndex);
         if (!root) {
             return {};
         }
@@ -126,6 +136,12 @@ namespace Bess::UI {
         }
         m_order.insert(m_order.begin() + static_cast<ptrdiff_t>(orderIndex),
                        id);
+
+        if (layer == UIViewLayer::modal) {
+            static_cast<void>(m_tree.activateFocusScope(
+                root,
+                {.trapFocus = true, .autoFocus = true, .restoreFocus = true}));
+        }
 
         try {
             UIViewContext context{

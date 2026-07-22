@@ -2,9 +2,13 @@
 
 #include "controls/basic_widgets.h"
 #include "controls/dock_space.h"
+#include "controls/focus_scope.h"
 #include "controls/menu_bar.h"
+#include "controls/popup_controls.h"
 #include "controls/scroll_view.h"
 #include "controls/tab_bar.h"
+#include "controls/text_box.h"
+#include "controls/value_controls.h"
 #include "widget_ref.h"
 
 #include <concepts>
@@ -106,11 +110,49 @@ namespace Bess::UI {
         WidgetRef<FlexContainer> row(FlexContainerOptions options = {});
         WidgetRef<FlexContainer> column(FlexContainerOptions options = {});
         WidgetRef<StackContainer> stack(StackContainerOptions options = {});
+        WidgetRef<FocusScope> focusScope(FocusScopeOptions options = {});
         WidgetRef<Surface> surface(SurfaceOptions options = {});
         WidgetRef<Label> label(std::string text, LabelOptions options = {});
         WidgetRef<Button> button(std::string label,
                                  Button::Activated activated = {},
                                  ButtonOptions options = {});
+        WidgetRef<CheckBox>
+        checkBox(std::string label,
+                 std::shared_ptr<CheckStateModel> model = {},
+                 CheckBox::Changed changed = {},
+                 CheckBoxOptions options = {});
+        WidgetRef<ToggleSwitch> toggle(std::string label = {},
+                                       std::shared_ptr<BoolModel> model = {},
+                                       ToggleSwitch::Changed changed = {},
+                                       ToggleSwitchOptions options = {});
+        WidgetRef<RadioButton> radio(std::string label,
+                                     std::shared_ptr<RadioGroupModel> group,
+                                     RadioId id = {},
+                                     RadioButton::Selected selected = {},
+                                     RadioButtonOptions options = {});
+        WidgetRef<Slider> slider(std::shared_ptr<RangeModel> model = {},
+                                 Slider::Changed changed = {},
+                                 SliderOptions options = {});
+        WidgetRef<Dropdown> dropdown(std::shared_ptr<DropdownModel> model,
+                                     Dropdown::Changed changed = {},
+                                     DropdownOptions options = {});
+        WidgetRef<TextBox> textBox(std::shared_ptr<TextEditModel> model = {},
+                                   TextBox::Changed changed = {},
+                                   TextBox::Submitted submitted = {},
+                                   TextBoxOptions options = {});
+        WidgetRef<Autocomplete>
+        autocomplete(std::shared_ptr<TextEditModel> model,
+                     AutocompleteProvider provider,
+                     Autocomplete::Changed changed = {},
+                     Autocomplete::Submitted submitted = {},
+                     Autocomplete::Completed completed = {},
+                     AutocompleteOptions options = {});
+        WidgetRef<Tooltip> tooltip(std::string text,
+                                   TooltipOptions options = {});
+        WidgetRef<ContextMenuRegion>
+        contextMenu(std::shared_ptr<MenuModel> model,
+                    MenuId menu,
+                    ContextMenuOptions options = {});
         WidgetRef<Spacer> spacer(SpacerOptions options = {});
         WidgetRef<Gap> gap(float pixels);
         WidgetRef<ScrollView> scrollView(ScrollViewOptions options = {});
@@ -164,6 +206,20 @@ namespace Bess::UI {
 
         template <typename Build>
             requires std::invocable<Build, UIComposer &>
+        WidgetRef<FocusScope> focusScope(FocusScopeOptions options,
+                                         Build &&build) {
+            return composeChildren(focusScope(std::move(options)),
+                                   std::forward<Build>(build));
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, UIComposer &>
+        WidgetRef<FocusScope> focusScope(Build &&build) {
+            return focusScope(FocusScopeOptions{}, std::forward<Build>(build));
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, UIComposer &>
         WidgetRef<Surface> surface(SurfaceOptions options, Build &&build) {
             return composeChildren(surface(std::move(options)),
                                    std::forward<Build>(build));
@@ -188,6 +244,46 @@ namespace Bess::UI {
             requires std::invocable<Build, UIComposer &>
         WidgetRef<ScrollView> scrollView(Build &&build) {
             return scrollView(ScrollViewOptions{}, std::forward<Build>(build));
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, UIComposer &>
+        WidgetRef<Tooltip>
+        tooltip(std::string text, TooltipOptions options, Build &&build) {
+            return composeSingleChild(
+                tooltip(std::move(text), std::move(options)),
+                std::forward<Build>(build),
+                "Tooltip");
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, UIComposer &>
+        WidgetRef<Tooltip> tooltip(std::string text, Build &&build) {
+            return tooltip(
+                std::move(text), TooltipOptions{}, std::forward<Build>(build));
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, UIComposer &>
+        WidgetRef<ContextMenuRegion>
+        contextMenu(std::shared_ptr<MenuModel> model,
+                    MenuId menu,
+                    ContextMenuOptions options,
+                    Build &&build) {
+            return composeSingleChild(
+                contextMenu(std::move(model), menu, std::move(options)),
+                std::forward<Build>(build),
+                "ContextMenuRegion");
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, UIComposer &>
+        WidgetRef<ContextMenuRegion> contextMenu(
+            std::shared_ptr<MenuModel> model, MenuId menu, Build &&build) {
+            return contextMenu(std::move(model),
+                               menu,
+                               ContextMenuOptions{},
+                               std::forward<Build>(build));
         }
 
         template <typename Build>

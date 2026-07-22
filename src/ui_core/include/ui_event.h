@@ -33,7 +33,8 @@ namespace Bess::UI {
                                      Input::MouseWheelEvent,
                                      Input::MouseButtonEvent,
                                      Input::KeyEvent,
-                                     Input::TextInputEvent>;
+                                     Input::TextInputEvent,
+                                     Input::TextCompositionEvent>;
 
     struct UIEvent {
         UIEventData data;

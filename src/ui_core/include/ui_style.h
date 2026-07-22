@@ -105,6 +105,93 @@ namespace Bess::UI {
         float wheelStep = 36.f;
     };
 
+    struct UIPopupStyle {
+        UIBoxStyle panel;
+        float viewportMargin = 8.f;
+    };
+
+    struct UISelectionControlStyle {
+        UIBoxStyle indicator;
+        UIBoxStyle indicatorHovered;
+        UIBoxStyle indicatorPressed;
+        UIBoxStyle indicatorFocused;
+        UIBoxStyle indicatorSelected;
+        UIBoxStyle indicatorDisabled;
+        UITextStyle text;
+        Core::Renderer::Color disabledText{};
+        Core::Renderer::Color mark{};
+        Core::Renderer::Color disabledMark{};
+        float indicatorSize = 16.f;
+        float markSize = 10.f;
+        float gap = 8.f;
+        float minimumHeight = 24.f;
+    };
+
+    struct UIToggleStyle {
+        UIBoxStyle track;
+        UIBoxStyle trackHovered;
+        UIBoxStyle trackPressed;
+        UIBoxStyle trackSelected;
+        UIBoxStyle trackDisabled;
+        UIBoxStyle thumb;
+        UIBoxStyle thumbSelected;
+        glm::vec2 size{34.f, 18.f};
+        float inset = 2.f;
+    };
+
+    struct UISliderStyle {
+        UIBoxStyle track;
+        UIBoxStyle fill;
+        UIBoxStyle thumb;
+        UIBoxStyle thumbHovered;
+        UIBoxStyle thumbPressed;
+        UIBoxStyle thumbFocused;
+        UIBoxStyle disabledTrack;
+        UIBoxStyle disabledThumb;
+        float trackThickness = 4.f;
+        float thumbSize = 14.f;
+        float minimumLength = 96.f;
+        float crossAxisSize = 24.f;
+        double pageStepFactor = 10.0;
+    };
+
+    struct UIDropdownStyle {
+        UIInteractiveStyle field;
+        UITextStyle placeholder;
+        Core::Renderer::Color chevron{};
+        float minimumWidth = 140.f;
+        float popupMaximumHeight = 280.f;
+        float itemHeight = 26.f;
+        float itemHorizontalPadding = 8.f;
+        float iconColumnWidth = 20.f;
+        float chevronSize = 11.f;
+    };
+
+    struct UITooltipStyle {
+        UIBoxStyle panel;
+        UITextStyle text;
+        glm::vec2 padding{8.f, 5.f};
+        float maximumWidth = 360.f;
+        float delayMs = 450.f;
+    };
+
+    struct UITextInputStyle {
+        UIBoxStyle normal;
+        UIBoxStyle hovered;
+        UIBoxStyle focused;
+        UIBoxStyle disabled;
+        UITextStyle text;
+        UITextStyle placeholder;
+        Core::Renderer::Color selection{};
+        Core::Renderer::Color caret{};
+        Core::Renderer::Color compositionUnderline{};
+        glm::vec2 minimumSize{160.f, 28.f};
+        glm::vec2 padding{8.f, 4.f};
+        float caretWidth = 1.f;
+        float compositionUnderlineThickness = 1.f;
+        float blinkIntervalMs = 530.f;
+    };
+
     struct UIDockStyle {
         UIBoxStyle background;
         UIBoxStyle stack;
@@ -151,6 +238,14 @@ namespace Bess::UI {
         UIInteractiveStyle button;
         UITabStyle tabs;
         UIMenuStyle menus;
+        UIPopupStyle popup;
+        UISelectionControlStyle checkbox;
+        UISelectionControlStyle radio;
+        UIToggleStyle toggle;
+        UISliderStyle slider;
+        UIDropdownStyle dropdown;
+        UITooltipStyle tooltip;
+        UITextInputStyle textBox;
         UIScrollStyle scroll;
         UIDockStyle dock;
 

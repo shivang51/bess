@@ -168,6 +168,120 @@ reserved from layout; descendant painting and hit testing are clipped to the
 remaining viewport. `DockPanel` uses this control internally, so docked and
 floating panel content gains the same overflow behavior automatically.
 
+## Focus and modal interaction
+
+`WidgetTree` owns keyboard focus. `Tab` and `Shift+Tab` traverse enabled,
+visible, focusable widgets in retained tree order. `FocusScope` adds an
+optional default target, autofocus, traversal trapping, and restoration of the
+previously focused widget:
+
+```cpp
+Bess::UI::WidgetRef<Bess::UI::Button> primary;
+auto scope = ui.focusScope(
+    {.focus = {.trapFocus = true,
+               .autoFocus = true,
+               .restoreFocus = true}},
+    [&primary](Bess::UI::UIComposer &dialog) {
+        dialog.textBox({}, {}, {}, {.placeholder = "Name"});
+        primary = dialog.button("Create");
+        dialog.button("Cancel");
+    });
+
+scope.update([primary](Bess::UI::FocusScope &value) {
+    value.setDefaultFocus(primary.id());
+});
+```
+
+`UIViewHost::mountModal` supplies the trapping/autofocus/restoration policy at
+the view boundary automatically. Modal view roots also block pointer input to
+lower layers. Popups opened from a modal form a nested focus scope, so their
+controls can receive focus without exposing background controls.
+
+## Value controls
+
+`CheckBox`, `ToggleSwitch`, `RadioButton`, and `Slider` use renderer-neutral,
+shareable models. They all use the same `Pressable` state machine as buttons;
+sliders additionally retain pointer capture for dragging. Keyboard activation,
+arrow navigation, Home/End, and Page Up/Page Down are handled by the controls.
+
+```cpp
+auto enabled = std::make_shared<Bess::UI::BoolModel>(true);
+auto mode = std::make_shared<Bess::UI::RadioGroupModel>();
+auto opacity =
+    std::make_shared<Bess::UI::RangeModel>(0.0, 1.0, 0.75, 0.05);
+
+ui.toggle("Enabled", enabled);
+ui.radio("Fast", mode);
+ui.radio("Accurate", mode);
+ui.slider(opacity);
+```
+
+Models emit a scoped `Signal` connection and may be shared by multiple views.
+`RangeModel` separately reports value, range, and step changes, including a
+range change that leaves the current value unchanged.
+
+## Popups and anchored controls
+
+Every `UITarget` owns one `PopupHost`. `AnchoredPopupOptions` can anchor to a
+widget, explicit bounds, or a point; choose a preferred side and alignment,
+minimum/maximum size, viewport margin, anchor-width matching, flipping,
+outside-click behavior, and focus policy. Placement is calculated by the pure
+`PopupPlacementSolver`, then clamped to the target viewport.
+
+```cpp
+auto popup = target.getPopupHost().open(
+    {.anchor = Bess::UI::PopupAnchor::forWidget(anchor.id()),
+     .preferredSide = Bess::UI::PopupSide::bottom,
+     .allowFlip = true,
+     .focus = {.trapFocus = true,
+               .autoFocus = true,
+               .restoreFocus = true}},
+    [](Bess::UI::UIComposer &content) {
+        content.button("Popup action");
+    });
+
+popup.close();
+```
+
+Outside presses and Escape dismiss the topmost eligible popup. Dismissal is
+safe during event dispatch, and focus returns to the opener when it still
+exists. `Dropdown`, `ContextMenu`, nested submenus, `Tooltip`, and
+`Autocomplete` all build on this host instead of maintaining independent
+overlay or dismissal systems. Long dropdown, autocomplete, and context-menu
+lists scroll within their viewport.
+
+## Text editing
+
+`TextEditModel` is independent of widgets and renderers. It owns UTF-8 text,
+grapheme-aligned selection and caret offsets, grapheme/word navigation,
+bounded undo/redo, maximum-length enforcement, and an IME composition range.
+`TextBox` adds single-line painting, selection, pointer dragging, shortcuts,
+horizontal scrolling, placeholder text, submission, and caret blinking.
+
+```cpp
+auto text = std::make_shared<Bess::UI::TextEditModel>("initial value");
+ui.textBox(
+    text,
+    [](const std::string &value) { /* value changed */ },
+    [](const std::string &value) { /* Enter pressed */ },
+    {.placeholder = "Name"});
+
+ui.autocomplete(
+    text,
+    [](std::string_view query) {
+        return std::vector<Bess::UI::AutocompleteItem>{
+            {.label = "Result", .replacement = "Result"},
+        };
+    });
+```
+
+Clipboard access and native text-input lifecycle are provided per target by
+`UIPlatformServices`; `TextBox` contains no GLFW, Win32, Cocoa, X11, or Wayland
+code. Hosts deliver committed scalar input as `TextInputEvent` and pre-edit
+state as `TextCompositionEvent`. Native IME adapters use
+`beginTextInput`/`updateTextInputArea`/`endTextInput` to position and control
+their candidate UI. Offscreen targets receive an inert service by default.
+
 ## Menus
 
 `MenuModel` is a renderer-neutral command hierarchy with stable `MenuId` and

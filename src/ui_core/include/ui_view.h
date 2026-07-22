@@ -24,7 +24,7 @@ namespace Bess::UI {
         };
     } // namespace Detail
 
-    enum class UIViewLayer : uint8_t { content, overlay, modal };
+    enum class UIViewLayer : uint8_t { content, overlay, modal, popup };
 
     struct UIViewContext {
         UIViewHost &host;
@@ -58,6 +58,7 @@ namespace Bess::UI {
         UIViewRef<UIView> setContent(std::unique_ptr<UIView> view);
         UIViewRef<UIView> mountOverlay(std::unique_ptr<UIView> view);
         UIViewRef<UIView> mountModal(std::unique_ptr<UIView> view);
+        UIViewRef<UIView> mountPopup(std::unique_ptr<UIView> view);
 
         template <typename T, typename... Args>
             requires std::derived_from<T, UIView> &&

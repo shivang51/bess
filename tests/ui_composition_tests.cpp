@@ -543,7 +543,17 @@ namespace {
         EXPECT_EQ(countWidgetType(tree, "TabBar"), 1);
         EXPECT_EQ(countWidgetType(tree, "MenuBar"), 1);
         EXPECT_EQ(countWidgetType(tree, "DockSpace"), 1);
-        EXPECT_EQ(countWidgetType(tree, "DockPanel"), 5);
+        EXPECT_EQ(countWidgetType(tree, "DockPanel"), 6);
+        EXPECT_EQ(countWidgetType(tree, "FocusScope"), 1);
+        EXPECT_EQ(countWidgetType(tree, "CheckBox"), 1);
+        EXPECT_EQ(countWidgetType(tree, "ToggleSwitch"), 1);
+        EXPECT_EQ(countWidgetType(tree, "RadioButton"), 2);
+        EXPECT_EQ(countWidgetType(tree, "Slider"), 1);
+        EXPECT_EQ(countWidgetType(tree, "Dropdown"), 1);
+        EXPECT_GE(countWidgetType(tree, "TextBox"), 2);
+        EXPECT_EQ(countWidgetType(tree, "Autocomplete"), 1);
+        EXPECT_EQ(countWidgetType(tree, "Tooltip"), 1);
+        EXPECT_EQ(countWidgetType(tree, "ContextMenuRegion"), 1);
 
         ASSERT_NE(demo.get()->tabs(), nullptr);
         EXPECT_EQ(demo.get()->tabs()->size(), 3);
@@ -552,7 +562,7 @@ namespace {
         EXPECT_TRUE(demo.get()->menus()->validate());
         auto dockRef = demo.get()->dockSpace();
         ASSERT_TRUE(dockRef);
-        EXPECT_EQ(dockRef.get()->model().itemCount(), 5);
+        EXPECT_EQ(dockRef.get()->model().itemCount(), 6);
         EXPECT_EQ(dockRef.get()->model().stackCount(), 4);
         EXPECT_EQ(dockRef.get()->model().nodeCount(), 7);
         EXPECT_TRUE(dockRef.get()->model().validate());
