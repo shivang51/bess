@@ -1,5 +1,6 @@
 #include "controls/image.h"
 #include "controls/render_view.h"
+#include "controls/scene_view.h"
 #include "controls/tree_node.h"
 #include "widget_tree.h"
 
@@ -252,6 +253,341 @@ namespace {
             std::shared_ptr<IRenderViewDelegate>{},
             RenderViewOptions{},
             surface));
+    }
+
+    class TestSceneDelegate final : public ISceneViewDelegate {
+      public:
+        void onAttach(SceneView &) override {
+            ++attaches;
+        }
+        void onDetach(SceneView &) noexcept override {
+            ++detaches;
+        }
+        void render(SceneViewFrameContext &frame) override {
+            ++renders;
+            lastColor = frame.colorTarget;
+            lastPicking = frame.pickingTarget;
+            lastExtent = frame.extent;
+            lastResized = frame.resized;
+        }
+        UIEventReply onEvent(SceneView &,
+                             WidgetEventContext &,
+                             const UIEvent &) override {
+            ++events;
+            return UIEventReply::handledEvent();
+        }
+        [[nodiscard]] CursorIcon
+        cursor(const SceneView &,
+               const WidgetCursorContext &) const noexcept override {
+            return CursorIcon::move;
+        }
+
+        size_t attaches = 0;
+        size_t detaches = 0;
+        size_t renders = 0;
+        size_t events = 0;
+        Core::Renderer::TextureHandle lastColor = 0;
+        Core::Renderer::TextureHandle lastPicking = 0;
+        Core::Renderer::Renderer2DExtent lastExtent{};
+        bool lastResized = false;
+    };
+
+    class SceneViewTestTexture final : public Core::Renderer::ITexture {
+      public:
+        SceneViewTestTexture(glm::vec2 size,
+                             Core::Renderer::TextureHandle handle) {
+            setSize(size);
+            setHandle(handle);
+        }
+        void init() override {
+        }
+        void destroy() override {
+        }
+        void *getView() const override {
+            return nullptr;
+        }
+    };
+
+    class SceneViewTestTarget final : public Core::Renderer::IRenderTarget2D {
+      public:
+        explicit SceneViewTestTarget(Core::Renderer::Renderer2DExtent extent)
+            : m_extent(extent),
+              m_color(std::make_shared<SceneViewTestTexture>(
+                  glm::vec2{static_cast<float>(extent.width),
+                            static_cast<float>(extent.height)},
+                  42)),
+              m_picking(std::make_shared<SceneViewTestTexture>(
+                  glm::vec2{static_cast<float>(extent.width),
+                            static_cast<float>(extent.height)},
+                  43)) {
+        }
+
+        void destroy() override {
+            destroyed = true;
+        }
+        void
+        resize(const Core::Renderer::Renderer2DExtent &extent) override {
+            m_extent = extent;
+            m_color->setSize({static_cast<float>(extent.width),
+                              static_cast<float>(extent.height)});
+            m_picking->setSize({static_cast<float>(extent.width),
+                                static_cast<float>(extent.height)});
+            ++resizes;
+        }
+        void
+        beginFrame(const Core::Renderer::RenderTarget2DFrameInfo &) override {
+            ++begins;
+        }
+        void endFrame() override {
+            ++ends;
+        }
+        [[nodiscard]] Core::Renderer::Renderer2DExtent
+        getExtent() const noexcept override {
+            return m_extent;
+        }
+        [[nodiscard]] std::shared_ptr<Core::Renderer::ITexture>
+        getColorTexture() const override {
+            return m_color;
+        }
+        [[nodiscard]] std::shared_ptr<Core::Renderer::ITexture>
+        getPickingTexture() const override {
+            return m_picking;
+        }
+        [[nodiscard]] PickingId readPickingId(uint32_t, uint32_t) override {
+            return PickingId::invalid();
+        }
+
+        Core::Renderer::Renderer2DExtent m_extent;
+        std::shared_ptr<SceneViewTestTexture> m_color;
+        std::shared_ptr<SceneViewTestTexture> m_picking;
+        size_t begins = 0;
+        size_t ends = 0;
+        size_t resizes = 0;
+        bool destroyed = false;
+    };
+
+    class SceneViewTestRenderer final : public Core::Renderer::IRenderer2D {
+      public:
+        void init(const Core::Renderer::Renderer2DCreateInfo &) override {
+        }
+        void destroy() override {
+        }
+        [[nodiscard]] Core::Renderer::Renderer2DTargetFormat
+        getTargetFormatType() const noexcept override {
+            return Core::Renderer::Renderer2DTargetFormat::BGRA8Unorm;
+        }
+        [[nodiscard]] Core::Renderer::Renderer2DTargetFormat
+        getPickingFormatType() const noexcept override {
+            return Core::Renderer::Renderer2DTargetFormat::RG32Uint;
+        }
+        [[nodiscard]] std::shared_ptr<Core::Renderer::IRenderTarget2D>
+        createTarget(const Core::Renderer::RenderTarget2DCreateInfo &info)
+            override {
+            lastTarget = std::make_shared<SceneViewTestTarget>(info.extent);
+            return lastTarget;
+        }
+        void resize(const Core::Renderer::Renderer2DExtent &) override {
+        }
+        void beginFrame(const Core::Renderer::Renderer2DFrameInfo &) override {
+            ++begins;
+        }
+        void endFrame() override {
+            ++ends;
+        }
+        void clear(const Core::Renderer::Color &) override {
+        }
+        void saveTargetToFile(const std::string &) override {
+        }
+        [[nodiscard]] Core::Renderer::Renderer2DStats
+        getStats() const noexcept override {
+            return {};
+        }
+        [[nodiscard]] Core::Renderer::TextureReadbackResult
+        readTexture(const Core::Renderer::TextureReadbackRegion &) override {
+            return {};
+        }
+        void requestPickingIds(
+            const Core::Renderer::TextureReadbackRegion &region) override {
+            lastPickingRegion = region;
+            ++pickingRequests;
+        }
+        [[nodiscard]] bool tryGetPickingIds(
+            Core::Renderer::PickingReadbackResult &) override {
+            return false;
+        }
+        [[nodiscard]] bool isPickingReadbackPending() const noexcept override {
+            return false;
+        }
+        void
+        pushScissorRect(const Core::Renderer::RendererScissorRect &) override {
+        }
+        void popScissorRect() override {
+        }
+        void clearScissorRects() override {
+        }
+        void drawQuad(const Core::Renderer::QuadProps &) override {
+        }
+        [[nodiscard]] Core::Renderer::CustomQuadShaderHandle
+        createCustomQuadShader(
+            const Core::Renderer::CustomQuadShaderDesc &) override {
+            return 1;
+        }
+        void destroyCustomQuadShader(
+            Core::Renderer::CustomQuadShaderHandle) override {
+        }
+        void
+        drawCustomQuad(const Core::Renderer::CustomQuadProps &) override {
+        }
+        void drawCircle(const Core::Renderer::CircleProps &) override {
+        }
+        void drawLine(const Core::Renderer::LineProps &) override {
+        }
+        void drawFont(std::string_view,
+                      const Core::Renderer::FontProps &) override {
+        }
+        [[nodiscard]] glm::vec2
+        measureText(std::string_view,
+                    const Core::Renderer::FontProps &) override {
+            return {};
+        }
+        [[nodiscard]] float
+        textCenterOffsetX(std::string_view,
+                          const Core::Renderer::FontProps &) override {
+            return 0.f;
+        }
+        [[nodiscard]] float
+        textCenterOffsetY(std::string_view,
+                          const Core::Renderer::FontProps &) override {
+            return 0.f;
+        }
+        void drawPath(std::span<const Core::Renderer::PathCommand>,
+                      const Core::Renderer::PathProps &) override {
+        }
+        void beginPath(const Core::Renderer::PathProps &) override {
+        }
+        void pathMoveTo(const glm::vec2 &) override {
+        }
+        void pathLineTo(const glm::vec2 &,
+                        const Core::Renderer::PathCommandStroke &) override {
+        }
+        void pathQuadTo(const glm::vec2 &,
+                        const glm::vec2 &,
+                        const Core::Renderer::PathCommandStroke &) override {
+        }
+        void pathCubicTo(const glm::vec2 &,
+                         const glm::vec2 &,
+                         const glm::vec2 &,
+                         const Core::Renderer::PathCommandStroke &) override {
+        }
+        void pathClose(const Core::Renderer::PathCommandStroke &) override {
+        }
+        void endPath() override {
+        }
+
+        std::shared_ptr<SceneViewTestTarget> lastTarget;
+        Core::Renderer::TextureReadbackRegion lastPickingRegion{};
+        size_t begins = 0;
+        size_t ends = 0;
+        size_t pickingRequests = 0;
+    };
+
+    TEST(SceneViewTests, MountDetachAndDoesNotBeginTargetFrame) {
+        WidgetTree tree;
+        tree.setViewportSize({200.f, 100.f});
+        auto delegate = std::make_shared<TestSceneDelegate>();
+        const auto id = tree.emplaceWidget<SceneView>(delegate);
+        auto *view = tree.getWidget<SceneView>(id);
+        ASSERT_NE(view, nullptr);
+        EXPECT_EQ(delegate->attaches, 1U);
+        EXPECT_EQ(view->typeName(), "SceneView");
+        EXPECT_TRUE(view->traits().preparesRender);
+        EXPECT_TRUE(view->traits().focusable);
+
+        auto renderer = std::make_shared<SceneViewTestRenderer>();
+        tree.prepareRender(renderer, TimeMs{16.0}, 1.f);
+
+        ASSERT_NE(renderer->lastTarget, nullptr);
+        EXPECT_EQ(renderer->lastTarget->begins, 0U);
+        EXPECT_EQ(renderer->lastTarget->ends, 0U);
+        EXPECT_EQ(delegate->renders, 1U);
+        EXPECT_EQ(delegate->lastColor, 42U);
+        EXPECT_EQ(delegate->lastPicking, 43U);
+        EXPECT_EQ(delegate->lastExtent.width, 200U);
+        EXPECT_EQ(delegate->lastExtent.height, 100U);
+
+        EXPECT_TRUE(view->requestPickingId(1, 2));
+        EXPECT_EQ(renderer->pickingRequests, 1U);
+        EXPECT_EQ(renderer->lastPickingRegion.texture, 43U);
+        EXPECT_EQ(renderer->lastPickingRegion.x, 1U);
+        EXPECT_EQ(renderer->lastPickingRegion.y, 2U);
+
+        EXPECT_TRUE(tree.removeWidget(id));
+        EXPECT_EQ(delegate->detaches, 1U);
+        EXPECT_TRUE(renderer->lastTarget->destroyed);
+    }
+
+    TEST(SceneViewTests, ResizeTriggersRenderAndPaintsColorTexture) {
+        WidgetTree tree;
+        tree.setViewportSize({120.f, 80.f});
+        auto delegate = std::make_shared<TestSceneDelegate>();
+        const auto id = tree.emplaceWidget<SceneView>(
+            delegate, SceneViewOptions{.policy = RenderPolicy::onDemand});
+        auto *view = tree.getWidget<SceneView>(id);
+        ASSERT_NE(view, nullptr);
+
+        auto renderer = std::make_shared<SceneViewTestRenderer>();
+        tree.prepareRender(renderer, TimeMs{16.0}, 1.f);
+        EXPECT_EQ(delegate->renders, 1U);
+        EXPECT_TRUE(delegate->lastResized);
+
+        // onDemand with no request and no resize should skip.
+        tree.prepareRender(renderer, TimeMs{16.0}, 1.f);
+        EXPECT_EQ(delegate->renders, 1U);
+
+        view->requestRender();
+        tree.prepareRender(renderer, TimeMs{16.0}, 1.f);
+        EXPECT_EQ(delegate->renders, 2U);
+
+        tree.setViewportSize({160.f, 90.f});
+        tree.prepareRender(renderer, TimeMs{16.0}, 1.f);
+        EXPECT_EQ(delegate->renders, 3U);
+        EXPECT_EQ(delegate->lastExtent.width, 160U);
+        EXPECT_EQ(delegate->lastExtent.height, 90U);
+
+        ImageRecordingPainter painter;
+        tree.paint(painter);
+        ASSERT_EQ(painter.images.size(), 1U);
+        EXPECT_EQ(painter.images.front().texture->getHandle(), 42U);
+    }
+
+    TEST(SceneViewTests, RoutesEventsAndCursorThroughDelegate) {
+        WidgetTree tree;
+        auto delegate = std::make_shared<TestSceneDelegate>();
+        const auto id = tree.emplaceWidget<SceneView>(delegate);
+        auto *view = tree.getWidget<SceneView>(id);
+        ASSERT_NE(view, nullptr);
+
+        WidgetEventContext eventContext{
+            .state = tree,
+            .id = id,
+            .target = id,
+            .phase = UIEventPhase::target,
+            .bounds = {.center = {50.f, 50.f}, .size = {100.f, 100.f}},
+            .pointerPosition = {50.f, 50.f},
+            .hasPointerPosition = true,
+        };
+        const auto reply =
+            view->onEvent(eventContext, UIEvent{Input::MouseMoveEvent{}});
+        EXPECT_TRUE(reply.handled);
+        EXPECT_EQ(delegate->events, 1U);
+
+        WidgetCursorContext cursorContext{
+            .state = tree,
+            .id = id,
+            .bounds = eventContext.bounds,
+            .pointerPosition = {50.f, 50.f},
+        };
+        EXPECT_EQ(view->cursor(cursorContext), CursorIcon::move);
     }
 
     TEST(TreeNodeTests, CollapsesPrivateHostWithoutOverwritingDescendants) {

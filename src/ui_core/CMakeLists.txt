@@ -10,6 +10,7 @@ set(Header_Files
 	include/controls/focus_scope.h
 	include/controls/image.h
 	include/controls/render_view.h
+	include/controls/scene_view.h
 	include/controls/dock_drop.h
 	include/controls/dock_space.h
 	include/controls/menu_bar.h
@@ -60,6 +61,7 @@ set(Source_Files
 	src/image.cpp
 	src/render_surface.cpp
 	src/render_view.cpp
+	src/scene_view.cpp
 	src/demo_view.cpp
 	src/dock.cpp
 	src/drag_drop.cpp

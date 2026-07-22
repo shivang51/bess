@@ -10,6 +10,7 @@
 #include "controls/popup_controls.h"
 #include "controls/render_view.h"
 #include "controls/reorderable_list.h"
+#include "controls/scene_view.h"
 #include "controls/scroll_view.h"
 #include "controls/tab_bar.h"
 #include "controls/text_box.h"
@@ -214,6 +215,9 @@ namespace Bess::UI {
         renderView(std::shared_ptr<IRenderViewDelegate> delegate,
                    RenderViewOptions options = {},
                    std::shared_ptr<RenderSurface> surface = {});
+        WidgetRef<SceneView>
+        sceneView(std::shared_ptr<ISceneViewDelegate> delegate,
+                  SceneViewOptions options = {});
         WidgetRef<TreeNode>
         treeNode(std::string label,
                  TreeNodeOptions options = {},

@@ -216,6 +216,59 @@ is prohibited. Use a separate input surface or ping-pong attachments for
 post-processing. Delegate attach/detach callbacks follow the mounted view, and
 `setDelegate()` safely reconciles replacements made from lifecycle callbacks.
 
+## Scene viewports that own their own frame
+
+Some producers — notably `Scene::draw` today — already call
+`IRenderer2D::beginFrame` / `endFrame` against color and picking
+`TextureHandle`s. Nesting that path inside `RenderView` is incorrect.
+
+Use `SceneView` for those producers. It still:
+
+- creates and resizes offscreen color/picking attachments;
+- runs `ISceneViewDelegate::render` during `prepareRender`;
+- composites the color texture in `paint`;
+- routes input, pointer capture, and cursor through the delegate.
+
+It deliberately **does not** begin or end the renderer frame. The frame
+context supplies handles for the application path:
+
+```cpp
+class SceneViewportDelegate final : public Bess::UI::ISceneViewDelegate {
+  public:
+    void render(Bess::UI::SceneViewFrameContext &frame) override {
+        // Keep the same shared_ptr the rest of the app already owns; the
+        // frame only needs the handles + a non-owning renderer reference.
+        Canvas::View2D view{
+            .camera = m_camera,
+            .renderer = m_renderer,
+            .drawRenderTarget = frame.colorTarget,
+            .pickingRenderTarget = frame.pickingTarget,
+            .viewportCtx = m_viewportCtx,
+        };
+        // Scene::draw owns beginFrame/endFrame against those handles.
+        m_scene->draw(view);
+    }
+
+    Bess::UI::UIEventReply
+    onEvent(Bess::UI::SceneView &,
+            Bess::UI::WidgetEventContext &context,
+            const Bess::UI::UIEvent &event) override {
+        // Map context.localPointerPosition() into ViewportInputContext and
+        // forward to the scene. Use capturePointer while dragging.
+        return {};
+    }
+};
+
+ui.sceneView(std::make_shared<SceneViewportDelegate>(),
+             {.policy = Bess::UI::RenderPolicy::whileVisible});
+```
+
+Async hover and marquee picking use the same renderer APIs as the ImGui
+panel: `SceneView::requestPickingId` / `requestPickingIds` /
+`tryGetPickingIds`, or the renderer methods directly with
+`frame.pickingTarget`. Prefer those over the synchronous
+`readPickingId` helper for interactive use.
+
 ## Writing a control
 
 Derive from `Widget` and override only the required hooks:

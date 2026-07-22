@@ -226,6 +226,12 @@ namespace Bess::UI {
             std::move(delegate), std::move(options), std::move(surface));
     }
 
+    WidgetRef<SceneView>
+    UIComposer::sceneView(std::shared_ptr<ISceneViewDelegate> delegate,
+                          SceneViewOptions options) {
+        return emplace<SceneView>(std::move(delegate), std::move(options));
+    }
+
     WidgetRef<TreeNode>
     UIComposer::treeNode(std::string label,
                          TreeNodeOptions options,

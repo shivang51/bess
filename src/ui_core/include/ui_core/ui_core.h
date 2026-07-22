@@ -11,6 +11,7 @@
 #include "../controls/menu_bar.h"
 #include "../controls/popup_controls.h"
 #include "../controls/render_view.h"
+#include "../controls/scene_view.h"
 #include "../controls/scroll_view.h"
 #include "../controls/tab_bar.h"
 #include "../controls/text_box.h"
