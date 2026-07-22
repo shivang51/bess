@@ -191,6 +191,11 @@ move-only detach/attach transfers, and one notification per completed
 mutation. `TabStripLayout` is a pure layout/hit-test solver shared by `TabBar`
 and `DockSpace`.
 
+`BasicTabItem::closable` controls the shared trailing close affordance. A
+standalone `TabBar` removes the item from its model after a confirmed
+press-and-release on that affordance; dock tabs use the same geometry and
+chrome while preserving their panel recovery state through `hide()`/`show()`.
+
 `DockSpaceModel` has two node kinds:
 
 - a terminal `DockStackNode`, which contains one or more dock items;

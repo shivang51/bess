@@ -164,6 +164,173 @@ namespace {
                   theme.menus.barItemHovered.cornerRadius);
     }
 
+    TEST(TabBarWidgetTests,
+         CloseButtonUsesSharedChromeAndRemovesOnlyOnReleaseOverIt) {
+        WidgetTree state;
+        state.setViewportSize({360.f, 80.f});
+        auto model = std::make_shared<TabModel>();
+        const TabId first = model->add("First");
+        const TabId permanent = model->add("Permanent", {}, false);
+        ASSERT_TRUE(first && permanent);
+
+        const WidgetId tabBarId = state.emplaceWidget<TabBar>(model);
+        state.performLayout();
+        const auto &style = state.theme().tabs;
+        const auto regions = TabStripLayout::calculate(
+            state.getBounds(tabBarId),
+            model->size(),
+            {.height = style.height,
+             .minimumWidth = style.minimumWidth,
+             .maximumWidth = style.maximumWidth,
+             .horizontalPadding = style.horizontalPadding,
+             .stripPadding = style.stripPadding,
+             .gap = style.gap});
+        ASSERT_EQ(regions.size(), 2);
+        const auto firstRegion = TabStripLayout::withTrailingAction(
+            regions.front(),
+            style.closeButtonSize,
+            style.closeButtonGap,
+            style.closeButtonTrailingPadding);
+        const glm::vec2 close = firstRegion.trailingActionBounds.center +
+                                state.getViewportSize() * 0.5f;
+
+        static_cast<void>(
+            state.dispatchEvent(Input::MouseMoveEvent{.pos = close}));
+        DockRecordingPainter painter;
+        state.paint(painter);
+        EXPECT_EQ(std::count_if(painter.texts.begin(),
+                                painter.texts.end(),
+                                [](const auto &text) {
+                                    return text.first ==
+                                           Icons::FontAwesomeIcons::FA_XMARK;
+                                }),
+                  1);
+        const auto hoverBox = std::find_if(
+            painter.boxes.begin(),
+            painter.boxes.end(),
+            [&](const BoxPaint &box) {
+                return box.bounds.center ==
+                           firstRegion.trailingActionBounds.center &&
+                       box.bounds.size ==
+                           firstRegion.trailingActionBounds.size &&
+                       box.color.toHex() ==
+                           style.closeHovered.background.toHex();
+            });
+        ASSERT_NE(hoverBox, painter.boxes.end());
+        EXPECT_EQ(hoverBox->cornerRadius,
+                  glm::vec4(firstRegion.trailingActionBounds.size.x * 0.5f));
+
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::press,
+            .pos = close,
+        }));
+        EXPECT_EQ(state.getPointerCapture(), tabBarId);
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::release,
+            .pos =
+                regions.back().bounds.center + state.getViewportSize() * 0.5f,
+        }));
+        EXPECT_FALSE(state.getPointerCapture());
+        EXPECT_NE(model->find(first), nullptr);
+
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::press,
+            .pos = close,
+        }));
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::release,
+            .pos = close,
+        }));
+        EXPECT_EQ(model->find(first), nullptr);
+        EXPECT_EQ(model->active(), permanent);
+        EXPECT_TRUE(model->validate());
+    }
+
+    TEST(TabBarWidgetTests, DisabledClosableTabCannotBeClosed) {
+        WidgetTree state;
+        state.setViewportSize({240.f, 80.f});
+        auto model = std::make_shared<TabModel>();
+        const TabId enabled = model->add("Enabled", {}, false);
+        const TabId disabled = model->add("Disabled");
+        ASSERT_TRUE(enabled && disabled);
+        ASSERT_TRUE(model->setEnabled(disabled, false));
+
+        const WidgetId tabBarId = state.emplaceWidget<TabBar>(model);
+        state.performLayout();
+        const auto &style = state.theme().tabs;
+        const auto regions = TabStripLayout::calculate(
+            state.getBounds(tabBarId),
+            model->size(),
+            {.height = style.height,
+             .minimumWidth = style.minimumWidth,
+             .maximumWidth = style.maximumWidth,
+             .horizontalPadding = style.horizontalPadding,
+             .stripPadding = style.stripPadding,
+             .gap = style.gap});
+        ASSERT_EQ(regions.size(), 2);
+        const auto disabledRegion = TabStripLayout::withTrailingAction(
+            regions.back(),
+            style.closeButtonSize,
+            style.closeButtonGap,
+            style.closeButtonTrailingPadding);
+        const glm::vec2 close = disabledRegion.trailingActionBounds.center +
+                                state.getViewportSize() * 0.5f;
+
+        const auto press = state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::press,
+            .pos = close,
+        });
+        EXPECT_FALSE(press.handled);
+        EXPECT_FALSE(state.getPointerCapture());
+        EXPECT_NE(model->find(disabled), nullptr);
+        EXPECT_TRUE(model->validate());
+    }
+
+    TEST(TabBarWidgetTests, ExternalRemovalDuringClosePressReleasesCapture) {
+        WidgetTree state;
+        state.setViewportSize({240.f, 80.f});
+        auto model = std::make_shared<TabModel>();
+        const TabId tab = model->add("Closable");
+        ASSERT_TRUE(tab);
+
+        const WidgetId tabBarId = state.emplaceWidget<TabBar>(model);
+        state.performLayout();
+        const auto &style = state.theme().tabs;
+        const auto regions = TabStripLayout::calculate(
+            state.getBounds(tabBarId),
+            model->size(),
+            {.height = style.height,
+             .minimumWidth = style.minimumWidth,
+             .maximumWidth = style.maximumWidth,
+             .horizontalPadding = style.horizontalPadding,
+             .stripPadding = style.stripPadding,
+             .gap = style.gap});
+        ASSERT_EQ(regions.size(), 1);
+        const auto region = TabStripLayout::withTrailingAction(
+            regions.front(),
+            style.closeButtonSize,
+            style.closeButtonGap,
+            style.closeButtonTrailingPadding);
+        const glm::vec2 close =
+            region.trailingActionBounds.center + state.getViewportSize() * 0.5f;
+
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::press,
+            .pos = close,
+        }));
+        ASSERT_EQ(state.getPointerCapture(), tabBarId);
+        ASSERT_TRUE(model->remove(tab));
+        EXPECT_FALSE(state.getPointerCapture());
+        EXPECT_TRUE(model->empty());
+        EXPECT_TRUE(model->validate());
+    }
+
     TEST(UIThemeTests, DerivesEveryComponentPaletteFromBessThemeRoles) {
         using Color = Core::Renderer::Color;
         using Core::Style::BessTheme;

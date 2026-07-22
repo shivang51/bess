@@ -80,12 +80,17 @@ namespace Bess::UI {
         [[nodiscard]] TabId tabAt(WidgetBounds bounds,
                                   const WidgetTree &state,
                                   glm::vec2 position) const;
+        [[nodiscard]] TabId closeAt(WidgetBounds bounds,
+                                    const WidgetTree &state,
+                                    glm::vec2 position) const;
 
         std::shared_ptr<TabModel> m_model;
         TabBarOptions m_options;
         Pressable m_pressable;
         TabId m_hoveredTab;
         TabId m_pressedTab;
+        TabId m_hoveredClose;
+        TabId m_pressedClose;
         TabModel::ChangedSignal::Connection m_modelConnection;
     };
 

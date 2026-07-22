@@ -76,9 +76,9 @@ namespace Bess::UI {
 
     void UIDemoView::compose(UIComposer &ui) {
         m_tabs = std::make_shared<TabModel>();
-        static_cast<void>(m_tabs->add("Workspace", {}, false));
-        static_cast<void>(m_tabs->add("Components", {}, false));
-        static_cast<void>(m_tabs->add("Diagnostics", {}, false));
+        static_cast<void>(m_tabs->add("Workspace"));
+        static_cast<void>(m_tabs->add("Components"));
+        static_cast<void>(m_tabs->add("Diagnostics"));
 
         m_menus = std::make_shared<MenuModel>();
         static_cast<void>(m_menus->addMenu({
@@ -242,9 +242,7 @@ namespace Bess::UI {
 
                             header.button("Add tab", [this] {
                                 m_tabs->add(
-                                    std::format("New tab {}", m_tabs->size()),
-                                    {},
-                                    false);
+                                    std::format("New tab {}", m_tabs->size()));
                             });
 
                             header.button("Next tab",

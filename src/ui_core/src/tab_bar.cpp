@@ -1,5 +1,6 @@
 #include "controls/tab_bar.h"
 
+#include "bess_core/ui/icons/font_awesome_icons.h"
 #include "ui_painter.h"
 #include "widget_tree.h"
 
@@ -33,6 +34,14 @@ namespace Bess::UI {
                 .stripPadding = style.stripPadding,
                 .gap = style.gap,
             };
+        }
+
+        UIBoxStyle circularStyle(const UIBoxStyle &source,
+                                 WidgetBounds bounds) {
+            auto result = source;
+            result.cornerRadius =
+                glm::vec4{std::min(bounds.size.x, bounds.size.y) * 0.5f};
+            return result;
         }
     } // namespace
 
@@ -163,7 +172,25 @@ namespace Bess::UI {
         context.layout.setWidthPercent(1.f);
         context.layout.setHeight(resolved.height);
         m_modelConnection = m_model->changed().connect(
-            [state = &context.state, id = context.id](const TabChange &) {
+            [this, state = &context.state, id = context.id](
+                const TabChange &change) {
+                if (change.kind == TabChangeKind::removed) {
+                    if (m_hoveredTab == change.item) {
+                        m_hoveredTab = {};
+                    }
+                    if (m_pressedTab == change.item) {
+                        m_pressedTab = {};
+                        m_pressable.reset();
+                        state->releasePointer(id);
+                    }
+                    if (m_hoveredClose == change.item) {
+                        m_hoveredClose = {};
+                    }
+                    if (m_pressedClose == change.item) {
+                        m_pressedClose = {};
+                        state->releasePointer(id);
+                    }
+                }
                 state->invalidate(id, WidgetInvalidation::paint);
             });
     }
@@ -219,6 +246,42 @@ namespace Bess::UI {
                     .letterSpacing = resolved.text.letterSpacing,
                     .pickingId = pickingId,
                 });
+
+            if (item.closable && !tabRegions[i].trailingActionBounds.empty()) {
+                const bool closePressed = m_pressedClose == item.id;
+                const bool closeHovered = m_hoveredClose == item.id;
+                auto iconColor = closePressed || closeHovered
+                                     ? resolved.closeIconHovered
+                                     : resolved.closeIcon;
+                if (!item.enabled) {
+                    iconColor.a *= 0.45f;
+                }
+                IconPaint closePaint{
+                    .glyph =
+                        {
+                            .bounds = tabRegions[i].trailingActionBounds,
+                            .fontSize = std::max(1.f, resolved.closeIconSize),
+                            .color = iconColor,
+                            .horizontal = HorizontalTextAlignment::center,
+                            .vertical = VerticalTextAlignment::center,
+                            .zIndex = 0.004f,
+                            .pickingId = pickingId,
+                        },
+                };
+                if (closePressed || closeHovered) {
+                    const auto closeStyle =
+                        circularStyle(closePressed ? resolved.closePressed
+                                                   : resolved.closeHovered,
+                                      tabRegions[i].trailingActionBounds);
+                    closePaint.background =
+                        makeBox(tabRegions[i].trailingActionBounds,
+                                closeStyle,
+                                pickingId,
+                                0.003f);
+                }
+                context.painter.drawIcon(Icons::FontAwesomeIcons::FA_XMARK,
+                                         closePaint);
+            }
         }
     }
 
@@ -260,6 +323,15 @@ namespace Bess::UI {
             }
         }
 
+        if (const auto *focus = event.getIf<UIFocusChangedEvent>();
+            focus != nullptr && !focus->focused && m_pressedClose) {
+            m_pressedClose = {};
+            m_hoveredClose = {};
+            return {.handled = true,
+                    .releasePointer = true,
+                    .invalidate = WidgetInvalidation::paint};
+        }
+
         const bool pointerEvent = event.is<Input::MouseMoveEvent>() ||
                                   event.is<Input::MouseButtonEvent>() ||
                                   event.is<UIPointerCrossingEvent>();
@@ -269,9 +341,83 @@ namespace Bess::UI {
                                           context.state,
                                           context.pointerPosition)
                                   : TabId{};
+            const TabId close = context.hasPointerPosition
+                                    ? closeAt(context.bounds,
+                                              context.state,
+                                              context.pointerPosition)
+                                    : TabId{};
+
+            if (const auto *crossing = event.getIf<UIPointerCrossingEvent>();
+                crossing != nullptr && !crossing->entered) {
+                const bool changed = m_hoveredTab || m_hoveredClose;
+                m_hoveredTab = {};
+                m_hoveredClose = {};
+                if (m_pressedClose) {
+                    return {.handled = true,
+                            .stopPropagation = true,
+                            .invalidate = WidgetInvalidation::paint};
+                }
+                auto result = m_pressable.handle(context, event);
+                if (changed) {
+                    result.reply.invalidate |= WidgetInvalidation::paint;
+                }
+                return result.reply;
+            }
+
+            if (event.is<Input::MouseMoveEvent>() && m_pressedClose) {
+                const bool changed = m_hoveredClose != close;
+                m_hoveredClose = close;
+                if (changed) {
+                    return {.handled = true,
+                            .stopPropagation = true,
+                            .capturePointer = true,
+                            .invalidate = WidgetInvalidation::paint};
+                }
+                return {.handled = true,
+                        .stopPropagation = true,
+                        .capturePointer = true};
+            }
+
+            if (const auto *button = event.getIf<Input::MouseButtonEvent>();
+                button != nullptr && button->button == MouseButton::left) {
+                if (button->action == MouseButtonAction::release &&
+                    m_pressedClose) {
+                    const TabId pressed = m_pressedClose;
+                    const bool activated = close == pressed;
+                    m_pressedClose = {};
+                    m_hoveredClose = close;
+                    if (activated) {
+                        static_cast<void>(m_model->remove(pressed));
+                    }
+                    return {.handled = true,
+                            .stopPropagation = true,
+                            .releasePointer = true,
+                            .invalidate = WidgetInvalidation::paint};
+                }
+                if (button->action == MouseButtonAction::press && close) {
+                    m_pressable.reset();
+                    m_pressedTab = {};
+                    m_pressedClose = close;
+                    m_hoveredClose = close;
+                    return {.handled = true,
+                            .stopPropagation = true,
+                            .requestFocus = true,
+                            .capturePointer = true,
+                            .invalidate = WidgetInvalidation::paint};
+                }
+            }
+
             if (event.is<Input::MouseMoveEvent>() ||
                 event.is<UIPointerCrossingEvent>()) {
+                const bool changed =
+                    m_hoveredTab != hit || m_hoveredClose != close;
                 m_hoveredTab = hit;
+                m_hoveredClose = close;
+                auto result = m_pressable.handle(context, event);
+                if (changed) {
+                    result.reply.invalidate |= WidgetInvalidation::paint;
+                }
+                return result.reply;
             }
             if (const auto *button = event.getIf<Input::MouseButtonEvent>();
                 button != nullptr && button->button == MouseButton::left &&
@@ -322,8 +468,19 @@ namespace Bess::UI {
     std::vector<TabStripRegion> TabBar::regions(WidgetBounds bounds,
                                                 const WidgetTree &state) const {
         const auto &resolved = style(state);
-        return TabStripLayout::calculate(
+        auto result = TabStripLayout::calculate(
             bounds, m_model->size(), metrics(resolved));
+        const auto items = m_model->items();
+        for (size_t i = 0; i < result.size() && i < items.size(); ++i) {
+            if (items[i].closable) {
+                result[i] = TabStripLayout::withTrailingAction(
+                    std::move(result[i]),
+                    resolved.closeButtonSize,
+                    resolved.closeButtonGap,
+                    resolved.closeButtonTrailingPadding);
+            }
+        }
+        return result;
     }
 
     TabId TabBar::tabAt(WidgetBounds bounds,
@@ -337,5 +494,19 @@ namespace Bess::UI {
             return {};
         }
         return items[*index].id;
+    }
+
+    TabId TabBar::closeAt(WidgetBounds bounds,
+                          const WidgetTree &state,
+                          glm::vec2 position) const {
+        const auto tabRegions = regions(bounds, state);
+        const auto items = m_model->items();
+        for (size_t i = 0; i < tabRegions.size() && i < items.size(); ++i) {
+            if (items[i].enabled && items[i].closable &&
+                tabRegions[i].trailingActionBounds.contains(position)) {
+                return items[i].id;
+            }
+        }
+        return {};
     }
 } // namespace Bess::UI
