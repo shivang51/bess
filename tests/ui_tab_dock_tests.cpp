@@ -989,6 +989,60 @@ namespace {
     }
 
     TEST(DockSpaceWidgetTests,
+         FloatingWindowOutlineIsCompositedAboveItsHeader) {
+        WidgetTree state;
+        state.setViewportSize({800.f, 600.f});
+        const WidgetId dockId = state.emplaceWidget<DockSpace>();
+        auto *dock = state.getWidget<DockSpace>(dockId);
+        ASSERT_NE(dock, nullptr);
+        const auto panel = dock->createPanel(
+            state, dockId, "Floating", std::make_unique<DockContent>());
+        ASSERT_TRUE(panel);
+        state.performLayout();
+
+        const WidgetBounds requested{
+            .center = {40.f, 20.f},
+            .size = {360.f, 250.f},
+        };
+        ASSERT_TRUE(dock->floatItem(panel.item, requested));
+        state.performLayout();
+        const auto bounds = dock->floatingItemBounds(panel.item);
+        ASSERT_TRUE(bounds);
+
+        DockRecordingPainter painter;
+        state.paint(painter);
+        const auto &style = state.theme().dock;
+        const auto outline =
+            std::find_if(painter.boxes.begin(),
+                         painter.boxes.end(),
+                         [&](const BoxPaint &box) {
+                             return box.bounds.center == bounds->center &&
+                                    box.bounds.size == bounds->size &&
+                                    box.color.a == 0.f &&
+                                    box.borderColor.toHex() ==
+                                        style.floatingWindow.border.toHex() &&
+                                    box.borderThickness ==
+                                        style.floatingWindow.borderThickness;
+                         });
+        const auto header = std::find_if(
+            painter.boxes.begin(),
+            painter.boxes.end(),
+            [&](const BoxPaint &box) {
+                return box.bounds.topLeft() == bounds->topLeft() &&
+                       box.bounds.size.x == bounds->size.x &&
+                       box.bounds.size.y == style.floatingTitleBarHeight &&
+                       box.color.toHex() ==
+                           style.floatingHeader.background.toHex();
+            });
+
+        ASSERT_NE(outline, painter.boxes.end());
+        ASSERT_NE(header, painter.boxes.end());
+        EXPECT_GT(outline->zIndex, header->zIndex);
+        EXPECT_GT(std::distance(painter.boxes.begin(), outline),
+                  std::distance(painter.boxes.begin(), header));
+    }
+
+    TEST(DockSpaceWidgetTests,
          DockTabCloseButtonShowsCircularHoverAndHidesOnRelease) {
         WidgetTree state;
         state.setViewportSize({800.f, 600.f});

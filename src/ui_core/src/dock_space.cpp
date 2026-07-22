@@ -101,6 +101,14 @@ namespace Bess::UI {
             return 0.10f + static_cast<float>(index) * 0.05f;
         }
 
+        // Floating chrome is composited in this order. In particular, the
+        // outline must be the final chrome layer: the title-bar quad shares
+        // the host's top and side edges and would otherwise cover its border.
+        constexpr float kFloatingHeaderLayerOffset = 0.011f;
+        constexpr float kFloatingCloseLayerOffset = 0.012f;
+        constexpr float kFloatingForegroundLayerOffset = 0.013f;
+        constexpr float kFloatingOutlineLayerOffset = 0.014f;
+
         WidgetBounds zoneGlyph(WidgetBounds bounds, DockZone zone) noexcept {
             const float inset = std::max(4.f, bounds.size.x * 0.24f);
             return DockDropGuideLayoutSolver::regionBounds(bounds, zone, inset);
@@ -428,13 +436,7 @@ namespace Bess::UI {
                 continue;
             }
 
-            auto outline = dock.floatingWindow;
-            outline.background = outline.background.withAlpha(0.f);
-            outline.shadow.enabled = false;
             const float layer = floatingLayer(i);
-            context.painter.drawBox(makeBox(
-                host.bounds, outline, context.pickingId, layer + 0.010f));
-
             auto headerStyle = dock.floatingHeader;
             if (m_tabDrag && m_tabDrag->host == host.id && m_tabDrag->window) {
                 headerStyle.background = tabs.pressed.background;
@@ -444,8 +446,11 @@ namespace Bess::UI {
                 headerStyle.border = tabs.hovered.border;
             }
             const auto header = floatingHeaderBounds(host, context.state);
-            context.painter.drawBox(makeBox(
-                header, headerStyle, context.pickingId, layer + 0.011f));
+            context.painter.drawBox(
+                makeBox(header,
+                        headerStyle,
+                        context.pickingId,
+                        layer + kFloatingHeaderLayerOffset));
             const bool closable = titleItem->closable &&
                                   host.model.itemCount() == 1 &&
                                   host.model.stackCount() == 1;
@@ -464,7 +469,7 @@ namespace Bess::UI {
                     .color = tabs.text.color,
                     .horizontal = HorizontalTextAlignment::start,
                     .vertical = VerticalTextAlignment::center,
-                    .zIndex = layer + 0.013f,
+                    .zIndex = layer + kFloatingForegroundLayerOffset,
                     .letterSpacing = tabs.text.letterSpacing,
                     .pickingId = context.pickingId,
                 });
@@ -472,17 +477,18 @@ namespace Bess::UI {
                 const bool closePressed = titleTab == m_pressedClose;
                 const bool closeHovered = titleTab == m_hoveredClose;
                 IconPaint closePaint{
-                    .glyph = {
-                        .bounds = headerRegion.trailingActionBounds,
-                        .fontSize = std::max(1.f, tabs.closeIconSize),
-                        .color = closePressed || closeHovered
-                                     ? tabs.closeIconHovered
-                                     : tabs.closeIcon,
-                        .horizontal = HorizontalTextAlignment::center,
-                        .vertical = VerticalTextAlignment::center,
-                        .zIndex = layer + 0.013f,
-                        .pickingId = context.pickingId,
-                    },
+                    .glyph =
+                        {
+                            .bounds = headerRegion.trailingActionBounds,
+                            .fontSize = std::max(1.f, tabs.closeIconSize),
+                            .color = closePressed || closeHovered
+                                         ? tabs.closeIconHovered
+                                         : tabs.closeIcon,
+                            .horizontal = HorizontalTextAlignment::center,
+                            .vertical = VerticalTextAlignment::center,
+                            .zIndex = layer + kFloatingForegroundLayerOffset,
+                            .pickingId = context.pickingId,
+                        },
                 };
                 if (closePressed || closeHovered) {
                     const auto closeStyle = circularStyle(
@@ -492,12 +498,20 @@ namespace Bess::UI {
                         makeBox(headerRegion.trailingActionBounds,
                                 closeStyle,
                                 context.pickingId,
-                                layer + 0.012f);
+                                layer + kFloatingCloseLayerOffset);
                 }
-                context.painter.drawIcon(
-                    Icons::FontAwesomeIcons::FA_XMARK,
-                    closePaint);
+                context.painter.drawIcon(Icons::FontAwesomeIcons::FA_XMARK,
+                                         closePaint);
             }
+
+            auto outline = dock.floatingWindow;
+            outline.background = outline.background.withAlpha(0.f);
+            outline.shadow.enabled = false;
+            context.painter.drawBox(
+                makeBox(host.bounds,
+                        outline,
+                        context.pickingId,
+                        layer + kFloatingOutlineLayerOffset));
         }
 
         if (m_dropGuides.empty()) {
