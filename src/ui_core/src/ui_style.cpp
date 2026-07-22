@@ -264,10 +264,8 @@ namespace Bess::UI {
         theme.dropdown.chevronSize = theme.menus.submenuChevronSize;
 
         theme.tooltip.panel = theme.menus.popup;
-        theme.tooltip.panel.background = colors.inverseSurface.withAlpha(0.98f);
         theme.tooltip.panel.cornerRadius = glm::vec4{5.f};
         theme.tooltip.text = theme.tabs.text;
-        theme.tooltip.text.color = colors.onInverseSurface;
 
         theme.textBox.normal = {
             .background = colors.surfaceContainerLow,

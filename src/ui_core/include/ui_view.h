@@ -129,6 +129,7 @@ namespace Bess::UI {
                                      UIViewLayer layer);
         [[nodiscard]] size_t orderIndexFor(UIViewLayer layer) const noexcept;
         [[nodiscard]] size_t rootIndexFor(size_t orderIndex) const noexcept;
+        void refreshRootDepths() noexcept;
         void eraseOrder(ViewId id) noexcept;
         void rollbackMount(ViewId id, WidgetId root) noexcept;
 

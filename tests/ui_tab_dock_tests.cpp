@@ -567,6 +567,10 @@ namespace {
                     "menu disabled text");
         expectColor(
             theme.menus.separator, colors.outlineVariant, "menu separator");
+        expectColor(theme.tooltip.panel.background,
+                    colors.surfaceContainerLow.withAlpha(0.98f),
+                    "tooltip background");
+        expectColor(theme.tooltip.text.color, colors.onSurface, "tooltip text");
 
         expectColor(theme.scroll.track.background,
                     colors.surfaceContainerHigh.withAlpha(0.36f),

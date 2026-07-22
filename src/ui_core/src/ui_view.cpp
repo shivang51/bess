@@ -7,6 +7,12 @@
 
 namespace Bess::UI {
     namespace {
+        // Each mounted view owns a complete local depth interval. Widgets use
+        // small positive Z offsets for their chrome, text and overlays; giving
+        // every view a separate interval prevents content from a lower view
+        // leaking through the background of a later overlay or popup.
+        constexpr float kViewRootDepthStride = 16.f;
+
         class UIViewRoot final : public Widget {
           public:
             explicit UIViewRoot(UIViewLayer layer) : m_layer(layer) {
@@ -136,6 +142,7 @@ namespace Bess::UI {
         }
         m_order.insert(m_order.begin() + static_cast<ptrdiff_t>(orderIndex),
                        id);
+        refreshRootDepths();
 
         if (layer == UIViewLayer::modal) {
             static_cast<void>(m_tree.activateFocusScope(
@@ -180,6 +187,7 @@ namespace Bess::UI {
         Entry entry = std::move(it->second);
         m_entries.erase(it);
         eraseOrder(id);
+        refreshRootDepths();
         if (m_content == id) {
             m_content = {};
         }
@@ -280,6 +288,28 @@ namespace Bess::UI {
                                  : WidgetTree::append;
     }
 
+    void UIViewHost::refreshRootDepths() noexcept {
+        for (size_t index = 0; index < m_order.size(); ++index) {
+            const auto entry = m_entries.find(m_order[index]);
+            if (entry == m_entries.end()) {
+                continue;
+            }
+            auto *layout = m_tree.getLayout(entry->second.root);
+            if (layout == nullptr) {
+                continue;
+            }
+
+            // The layer rank leaves the corresponding empty intervals in
+            // front of unmanaged/content roots even when this host currently
+            // contains only a popup. The ordered index then makes every view
+            // in the same layer strictly front-to-back deterministic.
+            const float depth =
+                static_cast<float>(index + layerRank(entry->second.layer)) *
+                kViewRootDepthStride;
+            layout->setZVal(depth);
+        }
+    }
+
     void UIViewHost::eraseOrder(ViewId id) noexcept {
         const auto it = std::find(m_order.begin(), m_order.end(), id);
         if (it != m_order.end()) {
@@ -296,6 +326,7 @@ namespace Bess::UI {
         }
         Entry entry = std::move(it->second);
         m_entries.erase(it);
+        refreshRootDepths();
         static_cast<void>(m_tree.removeWidget(root));
         if (m_tree.contains(root)) {
             m_pendingUnmounts.push_back(std::move(entry));

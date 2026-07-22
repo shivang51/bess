@@ -9,6 +9,8 @@
 
 namespace Bess::UI {
     namespace {
+        constexpr float kPopupContentDepth = 0.01f;
+
         float safeNonNegative(float value) noexcept {
             return std::isfinite(value) ? std::max(0.f, value) : 0.f;
         }
@@ -292,6 +294,10 @@ namespace Bess::UI {
         m_popupBounds = placement.bounds;
         m_resolvedSide = placement.side;
         static_cast<void>(context.setChildBounds(content, m_popupBounds));
+        // The popup frame is painted by this full-viewport parent. Reserve a
+        // local depth interval for all content, including plain Labels whose
+        // own paint depth is zero, so the frame can never cover its children.
+        static_cast<void>(context.setChildZOffset(content, kPopupContentDepth));
         static_cast<void>(
             context.setChildVisible(content, !m_popupBounds.empty()));
         for (size_t index = 1; index < children.size(); ++index) {

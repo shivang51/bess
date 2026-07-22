@@ -4,6 +4,7 @@
 
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace {
     using namespace Bess;
@@ -44,7 +45,8 @@ namespace {
             return {400.f, 100.f};
         }
 
-        void drawBox(const BoxPaint &) override {
+        void drawBox(const BoxPaint &paint) override {
+            boxes.push_back(paint);
         }
 
         void drawText(std::string_view, const TextPaint &) override {
@@ -63,6 +65,8 @@ namespace {
 
         void popClip() override {
         }
+
+        std::vector<BoxPaint> boxes;
     };
 
     UIEvent key(KeyCode code, bool shift = false, bool control = false) {
@@ -213,6 +217,26 @@ namespace {
         EXPECT_EQ(model->text(), "immutable");
         EXPECT_EQ(services->clipboard, "immutable");
         EXPECT_FALSE(model->hasComposition());
+    }
+
+    TEST(TextBoxTests, CaretAtStartRemainsFullyInsideTheContentClip) {
+        WidgetTree tree;
+        tree.setViewportSize({240.f, 80.f});
+        const auto model = std::make_shared<TextEditModel>();
+        const auto textBox = tree.emplaceWidget<TextBox>(model);
+        tree.performLayout();
+        ASSERT_TRUE(tree.setFocus(textBox));
+
+        TextPainter painter;
+        tree.paint(painter);
+        ASSERT_GE(painter.boxes.size(), 2u);
+        const auto &caret = painter.boxes.back().bounds;
+        const auto bounds = tree.getBounds(textBox);
+        const auto &padding = tree.theme().textBox.padding;
+        const float contentLeft = bounds.topLeft().x + padding.x;
+        EXPECT_FLOAT_EQ(caret.topLeft().x, contentLeft);
+        EXPECT_GT(caret.size.x, 0.f);
+        EXPECT_LE(caret.bottomRight().x, bounds.bottomRight().x - padding.x);
     }
 
 } // namespace

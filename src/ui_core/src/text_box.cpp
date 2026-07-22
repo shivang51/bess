@@ -227,10 +227,20 @@ namespace Bess::UI {
             });
         }
 
-        const float drawnCaretX = xFor(selection.caret);
+        const float caretWidth =
+            std::min(content.size.x, std::max(1.f, style.caretWidth));
+        const float halfCaretWidth = caretWidth * 0.5f;
+        // xFor() is the insertion edge. Treating that edge as the rectangle's
+        // center puts half the caret outside the scissor at byte position zero
+        // and can remove it entirely after rasterization. Keep the complete
+        // caret inside the editable viewport instead.
+        const float drawnCaretCenterX =
+            std::clamp(xFor(selection.caret) + halfCaretWidth,
+                       content.topLeft().x + halfCaretWidth,
+                       content.bottomRight().x - halfCaretWidth);
         const WidgetBounds caretBounds{
-            .center = {drawnCaretX, content.center.y},
-            .size = {std::max(1.f, style.caretWidth), lineHeight},
+            .center = {drawnCaretCenterX, content.center.y},
+            .size = {caretWidth, lineHeight},
         };
         if (context.focused && selection.collapsed() && m_caretVisible) {
             context.painter.drawBox({.bounds = caretBounds,

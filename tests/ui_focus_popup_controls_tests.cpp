@@ -2,7 +2,9 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -27,6 +29,62 @@ namespace {
         PopupFixture() {
             tree.setViewportSize({400.f, 300.f});
         }
+    };
+
+    class LayerRecordingPainter final : public UIPainter {
+      public:
+        struct BoxRecord {
+            BoxPaint paint;
+            float depth = 0.f;
+        };
+
+        struct TextRecord {
+            std::string text;
+            float depth = 0.f;
+        };
+
+        glm::vec2 viewportSize() const noexcept override {
+            return {400.f, 300.f};
+        }
+
+        void drawBox(const BoxPaint &paint) override {
+            boxes.push_back({paint, m_depth + paint.zIndex});
+        }
+
+        void drawText(std::string_view text, const TextPaint &paint) override {
+            texts.push_back({std::string{text}, m_depth + paint.zIndex});
+        }
+
+        glm::vec2 measureText(std::string_view text,
+                              float fontSize,
+                              float letterSpacing) const override {
+            return {static_cast<float>(text.size()) *
+                        (fontSize * 0.6f + letterSpacing),
+                    fontSize};
+        }
+
+        void pushClip(WidgetBounds) override {
+        }
+
+        void popClip() override {
+        }
+
+        void pushLayer(float offset) override {
+            m_stack.push_back(m_depth);
+            m_depth += offset;
+        }
+
+        void popLayer() override {
+            m_depth = m_stack.back();
+            m_stack.pop_back();
+        }
+
+        std::vector<BoxRecord> boxes;
+        std::vector<TextRecord> texts;
+
+      private:
+        std::vector<float> m_stack;
+        float m_depth = 0.f;
     };
 
     class ButtonView final : public UIView {
@@ -242,6 +300,70 @@ namespace {
         }));
         fixture.views.flushPendingUnmounts();
         EXPECT_FALSE(popup.isOpen());
+    }
+
+    TEST(PopupHostTests,
+         PopupPanelsOccludeLowerViewsAndContentOccludesItsPanel) {
+        PopupFixture fixture;
+        const auto underneath = fixture.tree.emplaceWidget<Button>("Below");
+        auto first = fixture.popups.open(
+            {.anchor = PopupAnchor::forWidget(underneath),
+             .minimumSize = {120.f, 28.f}},
+            [](UIComposer &content) { content.label("First popup"); });
+        auto second = fixture.popups.open(
+            {.anchor = PopupAnchor::forWidget(underneath),
+             .minimumSize = {120.f, 28.f}},
+            [](UIComposer &content) { content.label("Second popup"); });
+        ASSERT_TRUE(first && second);
+        fixture.tree.performLayout();
+        const auto *firstLayer =
+            fixture.tree.getWidget<AnchoredPopup>(first.layer().id());
+        const auto *secondLayer =
+            fixture.tree.getWidget<AnchoredPopup>(second.layer().id());
+        ASSERT_NE(firstLayer, nullptr);
+        ASSERT_NE(secondLayer, nullptr);
+        ASSERT_FALSE(firstLayer->popupBounds().empty());
+        ASSERT_FALSE(secondLayer->popupBounds().empty());
+
+        LayerRecordingPainter painter;
+        fixture.tree.paint(painter);
+        const auto textDepth = [&painter](std::string_view value) {
+            const auto found = std::find_if(
+                painter.texts.begin(),
+                painter.texts.end(),
+                [value](const auto &record) { return record.text == value; });
+            return found != painter.texts.end()
+                       ? std::optional<float>{found->depth}
+                       : std::nullopt;
+        };
+        const auto panelDepth = [&fixture, &painter](const PopupHandle &popup) {
+            const WidgetId layer = popup.layer().id();
+            const auto found =
+                std::find_if(painter.boxes.begin(),
+                             painter.boxes.end(),
+                             [&fixture, layer](const auto &record) {
+                                 return fixture.tree.resolvePickingId(
+                                            record.paint.pickingId) == layer;
+                             });
+            return found != painter.boxes.end()
+                       ? std::optional<float>{found->depth}
+                       : std::nullopt;
+        };
+
+        const auto below = textDepth("Below");
+        const auto firstPanel = panelDepth(first);
+        const auto firstText = textDepth("First popup");
+        const auto secondPanel = panelDepth(second);
+        const auto secondText = textDepth("Second popup");
+        ASSERT_TRUE(below);
+        ASSERT_TRUE(firstPanel);
+        ASSERT_TRUE(firstText);
+        ASSERT_TRUE(secondPanel);
+        ASSERT_TRUE(secondText);
+        EXPECT_GT(*firstPanel, *below);
+        EXPECT_GT(*firstText, *firstPanel);
+        EXPECT_GT(*secondPanel, *firstText);
+        EXPECT_GT(*secondText, *secondPanel);
     }
 
     TEST(ValueControlTests, KeyboardAndPointerInteractionsUpdateModels) {
