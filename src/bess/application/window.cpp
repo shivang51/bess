@@ -8,7 +8,6 @@
 #include "common/logger.h"
 #include "event_dispatcher.h"
 #include "ext/vector_float2.hpp"
-#include "imgui_impl_wgpu.h"
 #include "stb_image.h"
 #include "sub_systems/renderer_context.h"
 
@@ -76,6 +75,46 @@ namespace Bess {
                 return KeyAction::unknown;
             }
         }
+
+        CursorIcon normalizedCursorShape(const CursorIcon shape) noexcept {
+            switch (shape) {
+            case CursorIcon::inherit:
+            case CursorIcon::arrow:
+                return CursorIcon::arrow;
+            case CursorIcon::pointer:
+            case CursorIcon::move:
+            case CursorIcon::text:
+            case CursorIcon::resizeHorizontal:
+            case CursorIcon::resizeVertical:
+            case CursorIcon::resizeDiagonalNWSE:
+            case CursorIcon::resizeDiagonalNESW:
+                return shape;
+            }
+            return CursorIcon::arrow;
+        }
+
+        int glfwCursorShape(const CursorIcon shape) noexcept {
+            switch (shape) {
+            case CursorIcon::pointer:
+                return GLFW_POINTING_HAND_CURSOR;
+            case CursorIcon::move:
+                return GLFW_RESIZE_ALL_CURSOR;
+            case CursorIcon::text:
+                return GLFW_IBEAM_CURSOR;
+            case CursorIcon::resizeHorizontal:
+                return GLFW_RESIZE_EW_CURSOR;
+            case CursorIcon::resizeVertical:
+                return GLFW_RESIZE_NS_CURSOR;
+            case CursorIcon::resizeDiagonalNWSE:
+                return GLFW_RESIZE_NWSE_CURSOR;
+            case CursorIcon::resizeDiagonalNESW:
+                return GLFW_RESIZE_NESW_CURSOR;
+            case CursorIcon::inherit:
+            case CursorIcon::arrow:
+                return GLFW_ARROW_CURSOR;
+            }
+            return GLFW_ARROW_CURSOR;
+        }
     } // namespace
 
     Window::Window(int width, int height, const std::string &title)
@@ -89,8 +128,8 @@ namespace Bess {
     }
 
     void Window::onUpdate(TimeMs dt) {
-        m_ui.update(dt);
         m_uiTarget.update(dt);
+        setCursor(m_uiTarget.getCursorShape());
     }
 
     void Window::onPreInit() {
@@ -275,7 +314,6 @@ namespace Bess {
     }
 
     void Window::onPostInit() {
-        m_ui.init(shared_from_this());
         syncFramebufferSize(true);
 
         const auto renderer = GAppContext::getInstance()
@@ -320,7 +358,6 @@ namespace Bess {
 
     void Window::onShutdown() {
         m_uiTarget.destroy();
-        m_ui.shutdown();
     }
 
     void Window::onDestroy() {
@@ -332,34 +369,23 @@ namespace Bess {
             mp_window.reset();
         }
 
+        for (auto &cursor : m_standardCursors) {
+            cursor.reset();
+        }
+        m_cursorCreationFailed.fill(false);
+        m_cursorShape = CursorIcon::arrow;
+
         BESS_INFO("[Window] Terminating GLFW");
         glfwTerminate();
         isGLFWInitialized = false;
     }
 
-    void Window::onPreDraw() {
-        m_ui.begin();
-    }
-
-    void Window::onDraw() {
-        m_ui.draw();
-    }
-
     void Window::onPostDraw() {
-        m_ui.end();
-
         if (!syncFramebufferSize(true)) {
             return;
         }
 
         m_uiTarget.draw();
-
-        // renderer->drawToWindow(shared_from_this(), // FIXME: temp
-        //                        [&](void *renderPass) {
-        //                            ImGui_ImplWGPU_RenderDrawData(
-        //                                ImGui::GetDrawData(),
-        //                                (WGPURenderPassEncoder)renderPass);
-        //                        });
     }
 
     void Window::onBeginFrame() {
@@ -485,6 +511,44 @@ namespace Bess {
             glfwSetInputMode(
                 mp_window.get(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         }
+    }
+
+    void Window::setCursor(const CursorIcon shape) noexcept {
+        if (!mp_window) {
+            return;
+        }
+
+        CursorIcon resolvedShape = normalizedCursorShape(shape);
+        if (resolvedShape == m_cursorShape) {
+            return;
+        }
+
+        GLFWcursor *cursor = nullptr;
+        if (resolvedShape != CursorIcon::arrow) {
+            const auto index = static_cast<std::size_t>(resolvedShape);
+            auto &cachedCursor = m_standardCursors[index];
+            if (!cachedCursor && !m_cursorCreationFailed[index]) {
+                cachedCursor.reset(
+                    glfwCreateStandardCursor(glfwCursorShape(resolvedShape)));
+                m_cursorCreationFailed[index] = !cachedCursor;
+            }
+
+            if (cachedCursor) {
+                cursor = cachedCursor.get();
+            } else {
+                // A null GLFW cursor is the platform's default arrow. Cache
+                // the failure so an unsupported shape does not trigger an
+                // allocation attempt on every frame.
+                resolvedShape = CursorIcon::arrow;
+            }
+        }
+
+        if (resolvedShape == m_cursorShape) {
+            return;
+        }
+
+        glfwSetCursor(mp_window.get(), cursor);
+        m_cursorShape = resolvedShape;
     }
 
     void Window::dispatchInputEvent(Input::Event event) {

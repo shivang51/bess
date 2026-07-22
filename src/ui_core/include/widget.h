@@ -54,6 +54,14 @@ namespace Bess::UI {
         bool focused = false;
     };
 
+    struct WidgetCursorContext {
+        const WidgetTree &state;
+        WidgetId id;
+        WidgetBounds bounds;
+        glm::vec2 pointerPosition{0.f, 0.f};
+        bool captured = false;
+    };
+
     struct UIEventReply {
         bool handled = false;
         bool stopPropagation = false;
@@ -110,6 +118,11 @@ namespace Bess::UI {
         // active. This is intended for adorners such as selection outlines,
         // drag previews, focus rings, and docking guides.
         virtual void paintOverlay(WidgetPaintContext &context) const;
+        // Cursor requests inherit through the widget ancestry, mirroring
+        // retained UI style resolution. Pointer capture is exposed so active
+        // interactions can retain their cursor outside the original hit area.
+        [[nodiscard]] virtual CursorIcon
+        cursor(const WidgetCursorContext &context) const noexcept;
         // Controls with retained overflow (menus, popovers, color pickers)
         // can extend their interactive shape beyond their layout box. Parent
         // clipping still governs whether descendants are considered.

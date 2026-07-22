@@ -4,6 +4,21 @@
 
 namespace Bess {
 
+    // Platform-neutral system cursor shapes. `inherit` lets retained widgets
+    // defer to their nearest ancestor; a surface resolves an unhandled request
+    // to `arrow` before handing it to the windowing backend.
+    enum class CursorIcon : uint8_t {
+        inherit = 0,
+        arrow,
+        pointer,
+        move,
+        text,
+        resizeHorizontal,
+        resizeVertical,
+        resizeDiagonalNWSE,
+        resizeDiagonalNESW,
+    };
+
     enum class MouseButton : uint8_t {
         unknown = 0,
         left = 1,

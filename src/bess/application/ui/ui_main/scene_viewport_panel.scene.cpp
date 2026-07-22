@@ -209,28 +209,28 @@ namespace Bess::UI {
         case Core::Viewport::SceneCursor::inherit:
             break;
         case Core::Viewport::SceneCursor::pointer:
-            window->getui().setCursorPointer();
+            window->setCursor(CursorIcon::pointer);
             break;
         case Core::Viewport::SceneCursor::move:
-            window->getui().setCursorMove();
+            window->setCursor(CursorIcon::move);
             break;
         case Core::Viewport::SceneCursor::text:
-            window->getui().setCursorText();
+            window->setCursor(CursorIcon::text);
             break;
         case Core::Viewport::SceneCursor::resizeHorizontal:
-            window->getui().setCursorResizeHorizontal();
+            window->setCursor(CursorIcon::resizeHorizontal);
             break;
         case Core::Viewport::SceneCursor::resizeVertical:
-            window->getui().setCursorResizeVertical();
+            window->setCursor(CursorIcon::resizeVertical);
             break;
         case Core::Viewport::SceneCursor::resizeDiagonalNWSE:
-            window->getui().setCursorResizeDiagonalNWSE();
+            window->setCursor(CursorIcon::resizeDiagonalNWSE);
             break;
         case Core::Viewport::SceneCursor::resizeDiagonalNESW:
-            window->getui().setCursorResizeDiagonalNESW();
+            window->setCursor(CursorIcon::resizeDiagonalNESW);
             break;
         case Core::Viewport::SceneCursor::normal:
-            window->getui().setCursorNormal();
+            window->setCursor(CursorIcon::arrow);
             break;
         }
 

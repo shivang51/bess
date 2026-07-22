@@ -891,23 +891,92 @@ namespace {
         const glm::vec2 surfaceCenter =
             splitLayout->dividerBounds.center + state.getViewportSize() * 0.5f;
 
+        EXPECT_EQ(state.getCursorShape(), CursorIcon::arrow);
+        static_cast<void>(state.dispatchEvent(
+            Input::MouseMoveEvent{.pos = surfaceCenter}));
+        EXPECT_EQ(state.getCursorShape(), CursorIcon::resizeHorizontal);
         static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
             .button = MouseButton::left,
             .action = MouseButtonAction::press,
             .pos = surfaceCenter,
         }));
         EXPECT_EQ(state.getPointerCapture(), dockId);
+        EXPECT_EQ(state.getCursorShape(), CursorIcon::resizeHorizontal);
         static_cast<void>(state.dispatchEvent(Input::MouseMoveEvent{
             .pos = surfaceCenter + glm::vec2{100.f, 0.f},
         }));
         EXPECT_GT(dock->model().getSplit(splitId)->ratio, 0.5f);
+        EXPECT_EQ(state.getCursorShape(), CursorIcon::resizeHorizontal);
+
+        const glm::vec2 outside{state.getViewportSize().x + 50.f,
+                                surfaceCenter.y};
+        static_cast<void>(
+            state.dispatchEvent(Input::MouseMoveEvent{.pos = outside}));
+        EXPECT_EQ(state.getCursorShape(), CursorIcon::resizeHorizontal);
         static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
             .button = MouseButton::left,
             .action = MouseButtonAction::release,
-            .pos = surfaceCenter + glm::vec2{100.f, 0.f},
+            .pos = outside,
         }));
         EXPECT_FALSE(state.getPointerCapture());
+        EXPECT_EQ(state.getCursorShape(), CursorIcon::arrow);
         EXPECT_TRUE(dock->model().validate());
+    }
+
+    TEST(DockSpaceWidgetTests,
+         VerticalSplitterUsesVerticalResizeCursorDuringHoverAndCapture) {
+        WidgetTree state;
+        state.setViewportSize({800.f, 600.f});
+        const WidgetId dockId = state.emplaceWidget<DockSpace>();
+        auto *dock = state.getWidget<DockSpace>(dockId);
+        ASSERT_NE(dock, nullptr);
+        const auto top = dock->createPanel(
+            state, dockId, "Top", std::make_unique<DockContent>());
+        const auto bottom =
+            dock->createPanel(state,
+                              dockId,
+                              "Bottom",
+                              std::make_unique<DockContent>(),
+                              dock->model().stackForItem(top.item),
+                              DockZone::bottom);
+        ASSERT_TRUE(top && bottom);
+        state.performLayout();
+
+        const DockNodeId splitId = dock->model().root();
+        const auto *split = dock->model().getSplit(splitId);
+        ASSERT_NE(split, nullptr);
+        ASSERT_EQ(split->axis, DockSplitAxis::vertical);
+        const auto layout =
+            dock->model().layout(state.getBounds(dockId),
+                                 state.theme().tabs.height,
+                                 state.theme().dock.splitterThickness);
+        const auto *splitLayout = layout.findSplit(splitId);
+        ASSERT_NE(splitLayout, nullptr);
+        const glm::vec2 divider =
+            splitLayout->dividerBounds.center + state.getViewportSize() * 0.5f;
+
+        static_cast<void>(
+            state.dispatchEvent(Input::MouseMoveEvent{.pos = divider}));
+        EXPECT_EQ(state.getCursorShape(), CursorIcon::resizeVertical);
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::press,
+            .pos = divider,
+        }));
+        ASSERT_EQ(state.getPointerCapture(), dockId);
+
+        const glm::vec2 outside{divider.x,
+                                state.getViewportSize().y + 50.f};
+        static_cast<void>(
+            state.dispatchEvent(Input::MouseMoveEvent{.pos = outside}));
+        EXPECT_EQ(state.getCursorShape(), CursorIcon::resizeVertical);
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::release,
+            .pos = outside,
+        }));
+        EXPECT_FALSE(state.getPointerCapture());
+        EXPECT_EQ(state.getCursorShape(), CursorIcon::arrow);
     }
 
     TEST(DockSpaceWidgetTests,

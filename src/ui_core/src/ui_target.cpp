@@ -97,6 +97,10 @@ namespace Bess::UI {
         return m_inputCtx;
     }
 
+    CursorIcon UITarget::getCursorShape() const noexcept {
+        return m_widgetTree.getCursorShape();
+    }
+
     WidgetTree &UITarget::getWidgetTree() noexcept {
         return m_widgetTree;
     }

@@ -77,6 +77,7 @@ namespace Bess::UI {
         }
         [[nodiscard]] std::span<const UIEvent> getFrameEvents() const noexcept;
         [[nodiscard]] const UITargetInpCtx &getInputContext() const noexcept;
+        [[nodiscard]] CursorIcon getCursorShape() const noexcept;
         [[nodiscard]] WidgetTree &getWidgetTree() noexcept;
         [[nodiscard]] const WidgetTree &getWidgetTree() const noexcept;
         [[nodiscard]] UIViewHost &getViewHost() noexcept;

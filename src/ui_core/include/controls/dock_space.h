@@ -62,6 +62,8 @@ namespace Bess::UI {
         void arrange(WidgetArrangeContext &context) override;
         void paint(WidgetPaintContext &context) const override;
         void paintOverlay(WidgetPaintContext &context) const override;
+        [[nodiscard]] CursorIcon
+        cursor(const WidgetCursorContext &context) const noexcept override;
         UIEventReply onEvent(WidgetEventContext &context,
                              const UIEvent &event) override;
 

@@ -503,6 +503,24 @@ namespace Bess::UI {
         }
     }
 
+    CursorIcon
+    DockSpace::cursor(const WidgetCursorContext &) const noexcept {
+        const SplitHit split =
+            m_draggedSplit.node ? m_draggedSplit : m_hoveredSplit;
+        if (!split.node) {
+            return CursorIcon::inherit;
+        }
+        const auto *model = modelForHost(split.host);
+        const auto *node = model != nullptr ? model->getSplit(split.node)
+                                            : nullptr;
+        if (node == nullptr) {
+            return CursorIcon::inherit;
+        }
+        return node->axis == DockSplitAxis::horizontal
+                   ? CursorIcon::resizeHorizontal
+                   : CursorIcon::resizeVertical;
+    }
+
     UIEventReply DockSpace::onEvent(WidgetEventContext &context,
                                     const UIEvent &event) {
         if (context.phase == UIEventPhase::capture) {

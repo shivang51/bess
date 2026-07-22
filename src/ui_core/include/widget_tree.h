@@ -159,6 +159,7 @@ namespace Bess::UI {
         bool capturePointer(WidgetId id);
         void releasePointer(WidgetId id = {});
         [[nodiscard]] WidgetId getHoveredWidget() const noexcept;
+        [[nodiscard]] CursorIcon getCursorShape() const noexcept;
 
         [[nodiscard]] PickingId getPickingId(WidgetId id,
                                              uint32_t info = 0) const noexcept;

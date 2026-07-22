@@ -51,6 +51,10 @@ namespace Bess::UI {
     void Widget::paintOverlay(WidgetPaintContext &) const {
     }
 
+    CursorIcon Widget::cursor(const WidgetCursorContext &) const noexcept {
+        return CursorIcon::inherit;
+    }
+
     bool Widget::hitTest(WidgetBounds bounds,
                          glm::vec2 position) const noexcept {
         return bounds.contains(position);

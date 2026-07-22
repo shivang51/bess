@@ -5,9 +5,10 @@
 #include "common/bess_api.h"
 #include "common/sub_system.h"
 #include "fwd.hpp"
-#include "ui/ui.h"
 #include "ui_core.h"
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -22,8 +23,14 @@ namespace Bess {
                             public std::enable_shared_from_this<Window> {
       public:
         struct GLFWwindowDeleter {
-            void operator()(GLFWwindow *window) {
+            void operator()(GLFWwindow *window) const noexcept {
                 glfwDestroyWindow(window);
+            }
+        };
+
+        struct GLFWcursorDeleter {
+            void operator()(GLFWcursor *cursor) const noexcept {
+                glfwDestroyCursor(cursor);
             }
         };
 
@@ -42,8 +49,6 @@ namespace Bess {
         void onShutdown() override;
         void onDestroy() override;
 
-        void onPreDraw() override;
-        void onDraw() override;
         void onPostDraw() override;
 
         void onBeginFrame() override;
@@ -71,6 +76,8 @@ namespace Bess {
 
         void setEnableCursor(bool enable) const;
 
+        void setCursor(CursorIcon shape) noexcept;
+
         GLFWwindow *getGLFWHandle() const {
             return mp_window.get();
         }
@@ -89,7 +96,6 @@ namespace Bess {
         }
 
         MAKE_GETTER_SETTER(WindowSurface, surface, m_surface)
-        MAKE_GETTER(UIHandle, ui, m_ui)
 
       private:
         KeyCode glfwKeyToKeyCode(int glfwKey) const;
@@ -99,6 +105,9 @@ namespace Bess {
         void dispatchInputEvent(Input::Event event);
         [[nodiscard]] glm::vec2
         windowToUITargetPos(double x, double y) const;
+
+        static constexpr std::size_t cursorShapeCount =
+            static_cast<std::size_t>(CursorIcon::resizeDiagonalNESW) + 1;
 
       private:
         std::unique_ptr<GLFWwindow, GLFWwindowDeleter> mp_window;
@@ -116,6 +125,10 @@ namespace Bess {
         WindowSurface m_surface;
         UI::UITarget m_uiTarget;
         Input::Modifiers m_inputModifiers;
-        UIHandle m_ui;
+        std::array<std::unique_ptr<GLFWcursor, GLFWcursorDeleter>,
+                   cursorShapeCount>
+            m_standardCursors;
+        std::array<bool, cursorShapeCount> m_cursorCreationFailed{};
+        CursorIcon m_cursorShape = CursorIcon::arrow;
     };
 } // namespace Bess

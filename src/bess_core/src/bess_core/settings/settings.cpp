@@ -10,7 +10,7 @@ namespace Bess::Config {
         m_scale = 1.0f;
         m_fontSize = 18.0f;
         m_fontRebuild = true;
-        m_fps = 60;
+        m_fps = 240;
         m_frameTimeStep = TimeMs(1000.0 / m_fps);
     }
 

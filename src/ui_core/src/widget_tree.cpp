@@ -597,6 +597,34 @@ namespace Bess::UI {
         return m_hovered;
     }
 
+    CursorIcon WidgetTree::getCursorShape() const noexcept {
+        if (!m_lastPointerPosition.has_value()) {
+            return CursorIcon::arrow;
+        }
+
+        WidgetId current = contains(m_pointerCapture) ? m_pointerCapture
+                                                      : m_hovered;
+        size_t remaining = m_nodes.size() + 1;
+        while (current && remaining-- > 0) {
+            const auto *node = findNode(current);
+            if (node == nullptr) {
+                break;
+            }
+            const CursorIcon requested = node->widget->cursor({
+                .state = *this,
+                .id = current,
+                .bounds = getBounds(current),
+                .pointerPosition = *m_lastPointerPosition,
+                .captured = current == m_pointerCapture,
+            });
+            if (requested != CursorIcon::inherit) {
+                return requested;
+            }
+            current = node->parent;
+        }
+        return CursorIcon::arrow;
+    }
+
     PickingId WidgetTree::getPickingId(WidgetId id,
                                        uint32_t info) const noexcept {
         const auto *node = findNode(id);
