@@ -41,6 +41,7 @@ namespace Bess::UI {
         [[nodiscard]] bool isDirectChild(WidgetId child) const noexcept;
         bool setChildBounds(WidgetId child, WidgetBounds childBounds);
         bool setChildVisible(WidgetId child, bool visible);
+        bool setChildZOffset(WidgetId child, float offset);
     };
 
     struct WidgetPaintContext {

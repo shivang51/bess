@@ -105,6 +105,7 @@ namespace Bess::UI {
 
         WidgetRef<FlexContainer> row(FlexContainerOptions options = {});
         WidgetRef<FlexContainer> column(FlexContainerOptions options = {});
+        WidgetRef<StackContainer> stack(StackContainerOptions options = {});
         WidgetRef<Surface> surface(SurfaceOptions options = {});
         WidgetRef<Label> label(std::string text, LabelOptions options = {});
         WidgetRef<Button> button(std::string label,
@@ -145,6 +146,20 @@ namespace Bess::UI {
             requires std::invocable<Build, UIComposer &>
         WidgetRef<FlexContainer> column(Build &&build) {
             return column(FlexContainerOptions{}, std::forward<Build>(build));
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, UIComposer &>
+        WidgetRef<StackContainer> stack(StackContainerOptions options,
+                                        Build &&build) {
+            return composeChildren(stack(std::move(options)),
+                                   std::forward<Build>(build));
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, UIComposer &>
+        WidgetRef<StackContainer> stack(Build &&build) {
+            return stack(StackContainerOptions{}, std::forward<Build>(build));
         }
 
         template <typename Build>

@@ -802,8 +802,23 @@ namespace Bess::UI {
                 const bool activated = releasedOver == pressed;
                 m_pressedClose = {};
                 m_hoveredClose = releasedOver;
-                if (activated) {
-                    static_cast<void>(hidePanel(pressed.item));
+                const bool hidden = activated && hidePanel(pressed.item);
+                if (hidden && context.hasPointerPosition) {
+                    // The next tab can slide under a pointer which has not
+                    // moved. Refresh the composite hit regions now rather
+                    // than waiting for a future mouse-move event.
+                    m_hoveredClose = hitClose(
+                        context.bounds, context.state, context.pointerPosition);
+                    m_hoveredItem = m_hoveredClose.item;
+                    if (!m_hoveredItem) {
+                        m_hoveredItem = hitTab(context.bounds,
+                                               context.state,
+                                               context.pointerPosition)
+                                            .item;
+                    }
+                } else if (hidden) {
+                    m_hoveredClose = {};
+                    m_hoveredItem = {};
                 }
                 return {.handled = true,
                         .stopPropagation = true,

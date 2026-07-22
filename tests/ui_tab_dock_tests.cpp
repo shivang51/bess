@@ -331,6 +331,95 @@ namespace {
         EXPECT_TRUE(model->validate());
     }
 
+    TEST(TabBarWidgetTests,
+         StationaryPointerRetargetsCloseButtonAfterTabRemoval) {
+        WidgetTree state;
+        state.setViewportSize({660.f, 80.f});
+        auto model = std::make_shared<TabModel>();
+        const TabId first = model->add("First");
+        const TabId second = model->add("Second");
+        const TabId third = model->add("Third");
+        ASSERT_TRUE(first && second && third);
+
+        const WidgetId tabBarId = state.emplaceWidget<TabBar>(model);
+        state.performLayout();
+        const auto &style = state.theme().tabs;
+        const TabStripMetrics metrics{
+            .height = style.height,
+            .minimumWidth = style.minimumWidth,
+            .maximumWidth = style.maximumWidth,
+            .horizontalPadding = style.horizontalPadding,
+            .stripPadding = style.stripPadding,
+            .gap = style.gap,
+        };
+        const auto before = TabStripLayout::calculate(
+            state.getBounds(tabBarId), model->size(), metrics);
+        ASSERT_EQ(before.size(), 3);
+        const auto firstClose = TabStripLayout::withTrailingAction(
+            before.front(),
+            style.closeButtonSize,
+            style.closeButtonGap,
+            style.closeButtonTrailingPadding);
+        const glm::vec2 pointer = firstClose.trailingActionBounds.center +
+                                  state.getViewportSize() * 0.5f;
+
+        static_cast<void>(
+            state.dispatchEvent(Input::MouseMoveEvent{.pos = pointer}));
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::press,
+            .pos = pointer,
+        }));
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::release,
+            .pos = pointer,
+        }));
+        ASSERT_EQ(model->find(first), nullptr);
+        ASSERT_NE(model->find(second), nullptr);
+
+        const auto after = TabStripLayout::calculate(
+            state.getBounds(tabBarId), model->size(), metrics);
+        ASSERT_EQ(after.size(), 2);
+        const auto secondClose = TabStripLayout::withTrailingAction(
+            after.front(),
+            style.closeButtonSize,
+            style.closeButtonGap,
+            style.closeButtonTrailingPadding);
+        ASSERT_TRUE(secondClose.trailingActionBounds.contains(
+            firstClose.trailingActionBounds.center));
+
+        DockRecordingPainter painter;
+        state.paint(painter);
+        EXPECT_NE(std::find_if(
+                      painter.boxes.begin(),
+                      painter.boxes.end(),
+                      [&](const BoxPaint &box) {
+                          return box.bounds.center ==
+                                     secondClose.trailingActionBounds.center &&
+                                 box.bounds.size ==
+                                     secondClose.trailingActionBounds.size &&
+                                 box.color.toHex() ==
+                                     style.closeHovered.background.toHex();
+                      }),
+                  painter.boxes.end());
+
+        // The replacement affordance is live at the unchanged pointer, too.
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::press,
+            .pos = pointer,
+        }));
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::release,
+            .pos = pointer,
+        }));
+        EXPECT_EQ(model->find(second), nullptr);
+        EXPECT_NE(model->find(third), nullptr);
+        EXPECT_TRUE(model->validate());
+    }
+
     TEST(UIThemeTests, DerivesEveryComponentPaletteFromBessThemeRoles) {
         using Color = Core::Renderer::Color;
         using Core::Style::BessTheme;
@@ -992,6 +1081,50 @@ namespace {
         EXPECT_TRUE(state.contains(first.panel));
         EXPECT_EQ(dock->model().itemCount(), 1);
         EXPECT_TRUE(dock->model().validate());
+
+        const auto remainingLayout =
+            dock->model().layout(state.getBounds(dockId),
+                                 state.theme().tabs.height,
+                                 state.theme().dock.splitterThickness);
+        const DockNodeId remainingStack =
+            dock->model().stackForItem(second.item);
+        const auto *remainingStackLayout =
+            remainingLayout.findStack(remainingStack);
+        ASSERT_NE(remainingStackLayout, nullptr);
+        const auto remainingRegions = TabStripLayout::calculate(
+            remainingStackLayout->tabBarBounds,
+            1,
+            {.height = state.theme().tabs.height,
+             .minimumWidth = state.theme().tabs.minimumWidth,
+             .maximumWidth = state.theme().tabs.maximumWidth,
+             .horizontalPadding = state.theme().tabs.horizontalPadding,
+             .stripPadding = state.theme().tabs.stripPadding,
+             .gap = state.theme().tabs.gap});
+        ASSERT_EQ(remainingRegions.size(), 1);
+        const auto remainingClose = TabStripLayout::withTrailingAction(
+            remainingRegions.front(),
+            state.theme().tabs.closeButtonSize,
+            state.theme().tabs.closeButtonGap,
+            state.theme().tabs.closeButtonTrailingPadding);
+        ASSERT_TRUE(remainingClose.trailingActionBounds.contains(
+            close - state.getViewportSize() * 0.5f));
+
+        DockRecordingPainter retargetedPainter;
+        state.paint(retargetedPainter);
+        EXPECT_NE(
+            std::find_if(
+                retargetedPainter.boxes.begin(),
+                retargetedPainter.boxes.end(),
+                [&](const BoxPaint &box) {
+                    return box.bounds.center ==
+                               remainingClose.trailingActionBounds.center &&
+                           box.bounds.size ==
+                               remainingClose.trailingActionBounds.size &&
+                           box.color.toHex() ==
+                               state.theme()
+                                   .tabs.closeHovered.background.toHex();
+                }),
+            retargetedPainter.boxes.end());
     }
 
     TEST(DockSpaceWidgetTests,

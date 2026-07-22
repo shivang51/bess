@@ -100,6 +100,32 @@ tree.mutateWidget<Bess::UI::Label>(
     [](Bess::UI::Label &label) { label.setText("Updated"); });
 ```
 
+## Containers
+
+`row` and `column` create sequential flex layouts. `stack` creates an overlay:
+all children share one padded content slot and later children paint and hit-test
+above earlier children at the same Z value. Horizontal and vertical alignment
+can independently use `start`, `center`, `end`, or `stretch`; child margins are
+applied inside the slot.
+
+```cpp
+ui.stack(
+    {.horizontalAlignment = Bess::UI::StackAlignment::center,
+     .verticalAlignment = Bess::UI::StackAlignment::center},
+    [](Bess::UI::UIComposer &overlay) {
+        auto background = overlay.surface();
+        background.updateLayout([](Bess::UI::LayoutNode &layout) {
+            layout.setWidth(180.f);
+            layout.setHeight(60.f);
+        });
+        overlay.label("Drawn above the surface");
+    });
+```
+
+The stack clips children by default. Set `clipChildren = false` for intentional
+overflow such as badges or effects. An explicit child layout Z value overrides
+declaration order for both painting depth and hit testing.
+
 ## Writing a control
 
 Derive from `Widget` and override only the required hooks:

@@ -394,6 +394,7 @@ namespace Bess::UI {
             (void)id;
             node.arrangedBounds.reset();
             node.arrangedVisible = true;
+            node.arrangedZOffset = 0.f;
         }
 
         const auto roots = m_roots;
@@ -703,6 +704,18 @@ namespace Bess::UI {
         return true;
     }
 
+    bool WidgetTree::setArrangedZOffset(WidgetId owner,
+                                        WidgetId child,
+                                        float offset) {
+        auto *node = findNode(child);
+        if (node == nullptr || node->parent != owner ||
+            !std::isfinite(offset)) {
+            return false;
+        }
+        node->arrangedZOffset = offset;
+        return true;
+    }
+
     WidgetTree::Node *WidgetTree::findNode(WidgetId id) noexcept {
         const auto it = m_nodes.find(id);
         return it != m_nodes.end() ? &it->second : nullptr;
@@ -934,7 +947,12 @@ namespace Bess::UI {
             .focused = m_focused == id,
         };
         const auto *layout = getLayout(id);
-        painter.pushLayer(layout != nullptr ? layout->getZVal() : 0.f);
+        const float layoutZ =
+            layout != nullptr && std::isfinite(layout->getZVal())
+                ? layout->getZVal()
+                : 0.f;
+        const float combinedZ = layoutZ + node->arrangedZOffset;
+        painter.pushLayer(std::isfinite(combinedZ) ? combinedZ : layoutZ);
         bool layerPushed = true;
         const bool clip = node->widget->traits().clipChildren;
         const WidgetBounds childClip =
@@ -991,10 +1009,12 @@ namespace Bess::UI {
         }
 
         const auto *layout = getLayout(id);
-        const float localZ =
+        const float layoutZ =
             layout != nullptr && std::isfinite(layout->getZVal())
                 ? layout->getZVal()
                 : 0.f;
+        const float combinedZ = layoutZ + node->arrangedZOffset;
+        const float localZ = std::isfinite(combinedZ) ? combinedZ : layoutZ;
         const float summedZ = ancestorZ + localZ;
         const float zIndex = std::isfinite(summedZ) ? summedZ : ancestorZ;
         const auto bounds = getBounds(id);

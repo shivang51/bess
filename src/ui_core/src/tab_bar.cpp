@@ -385,9 +385,24 @@ namespace Bess::UI {
                     const TabId pressed = m_pressedClose;
                     const bool activated = close == pressed;
                     m_pressedClose = {};
-                    m_hoveredClose = close;
-                    if (activated) {
-                        static_cast<void>(m_model->remove(pressed));
+                    const bool removed = activated && m_model->remove(pressed);
+                    if (removed && context.hasPointerPosition) {
+                        // Removing a tab changes every following trailing
+                        // action immediately. Re-evaluate at the stationary
+                        // pointer so the newly exposed close button becomes
+                        // hot without waiting for another mouse-move event.
+                        m_hoveredTab = tabAt(context.bounds,
+                                             context.state,
+                                             context.pointerPosition);
+                        m_hoveredClose = closeAt(context.bounds,
+                                                 context.state,
+                                                 context.pointerPosition);
+                    } else if (removed) {
+                        m_hoveredTab = {};
+                        m_hoveredClose = {};
+                    } else {
+                        m_hoveredTab = hit;
+                        m_hoveredClose = close;
                     }
                     return {.handled = true,
                             .stopPropagation = true,

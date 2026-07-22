@@ -36,6 +36,41 @@ namespace Bess::UI {
         FlexContainerOptions m_options;
     };
 
+    enum class StackAlignment : uint8_t { start, center, end, stretch };
+
+    struct StackContainerOptions {
+        StackAlignment horizontalAlignment = StackAlignment::stretch;
+        StackAlignment verticalAlignment = StackAlignment::stretch;
+        Core::Style::Padding padding{};
+        bool stretchWidth = true;
+        bool stretchHeight = true;
+        bool clipChildren = true;
+        bool hitTestVisible = false;
+    };
+
+    // Overlay container: every child occupies the same padded content slot.
+    // Children paint in declaration order, so later siblings are naturally
+    // above earlier siblings unless an explicit layout Z value says otherwise.
+    class BESS_API StackContainer : public Widget {
+      public:
+        explicit StackContainer(StackContainerOptions options = {});
+
+        [[nodiscard]] std::string_view typeName() const noexcept override;
+        [[nodiscard]] WidgetTraits traits() const noexcept override;
+        void onMount(WidgetMountContext &context) override;
+        void arrange(WidgetArrangeContext &context) override;
+
+        [[nodiscard]] StackAlignment horizontalAlignment() const noexcept;
+        [[nodiscard]] StackAlignment verticalAlignment() const noexcept;
+        void setHorizontalAlignment(StackAlignment alignment) noexcept;
+        void setVerticalAlignment(StackAlignment alignment) noexcept;
+        void setAlignment(StackAlignment horizontal,
+                          StackAlignment vertical) noexcept;
+
+      private:
+        StackContainerOptions m_options;
+    };
+
     struct SurfaceOptions {
         std::optional<UIBoxStyle> style;
         bool clipChildren = true;

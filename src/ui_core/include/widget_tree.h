@@ -175,6 +175,7 @@ namespace Bess::UI {
         bool
         setArrangedBounds(WidgetId owner, WidgetId child, WidgetBounds bounds);
         bool setArrangedVisible(WidgetId owner, WidgetId child, bool visible);
+        bool setArrangedZOffset(WidgetId owner, WidgetId child, float offset);
 
       private:
         struct Node {
@@ -184,6 +185,7 @@ namespace Bess::UI {
             WidgetProperties properties;
             std::optional<WidgetBounds> arrangedBounds;
             bool arrangedVisible = true;
+            float arrangedZOffset = 0.f;
             uint32_t runtimeId = PickingId::invalidRuntimeId;
         };
 

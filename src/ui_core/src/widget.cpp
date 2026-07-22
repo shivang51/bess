@@ -20,6 +20,10 @@ namespace Bess::UI {
         return state.setArrangedVisible(id, child, visible);
     }
 
+    bool WidgetArrangeContext::setChildZOffset(WidgetId child, float offset) {
+        return state.setArrangedZOffset(id, child, offset);
+    }
+
     Widget::~Widget() = default;
 
     std::string_view Widget::typeName() const noexcept {

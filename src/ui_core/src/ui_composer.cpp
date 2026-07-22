@@ -99,6 +99,10 @@ namespace Bess::UI {
         return emplace<FlexContainer>(std::move(options));
     }
 
+    WidgetRef<StackContainer> UIComposer::stack(StackContainerOptions options) {
+        return emplace<StackContainer>(std::move(options));
+    }
+
     WidgetRef<Surface> UIComposer::surface(SurfaceOptions options) {
         return emplace<Surface>(std::move(options));
     }

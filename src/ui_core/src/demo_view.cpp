@@ -263,8 +263,12 @@ namespace Bess::UI {
                     header.updateLayout(
                         [](LayoutNode &layout) { layout.setFlexShrink(0.f); });
 
-                    m_tabBar = page.tabBar(m_tabs);
-                    m_tabBar.updateLayout(
+                    auto tabLayer = page.stack(
+                        StackContainerOptions{.stretchHeight = false},
+                        [this](UIComposer &tabs) {
+                            m_tabBar = tabs.tabBar(m_tabs);
+                        });
+                    tabLayer.updateLayout(
                         [](LayoutNode &layout) { layout.setFlexShrink(0.f); });
 
                     m_dockSpace = page.dockSpace([this](DockComposer &dock) {

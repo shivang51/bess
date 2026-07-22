@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -204,6 +205,128 @@ namespace {
                      std::runtime_error);
         ASSERT_EQ(tree.getChildren(root).size(), 1);
         EXPECT_EQ(tree.getChildren(root).front(), row.id());
+    }
+
+    TEST(UIComposerTests, BuildsAndRollsBackStackSubtreesTransactionally) {
+        WidgetTree tree;
+        const auto root = tree.emplaceWidget<FlexContainer>();
+        UIComposer ui{tree, root};
+
+        const auto stack = ui.stack([](UIComposer &overlay) {
+            overlay.surface();
+            overlay.label("Foreground");
+        });
+        ASSERT_TRUE(stack);
+        EXPECT_EQ(stack.get()->typeName(), "StackContainer");
+        EXPECT_EQ(tree.getChildren(stack.id()).size(), 2);
+
+        EXPECT_THROW(ui.stack([](UIComposer &overlay) {
+            overlay.label("Temporary");
+            throw std::runtime_error("stop");
+        }),
+                     std::runtime_error);
+        ASSERT_EQ(tree.getChildren(root).size(), 1);
+        EXPECT_EQ(tree.getChildren(root).front(), stack.id());
+    }
+
+    TEST(StackContainerTests, AlignsChildrenInsidePaddingAndMargins) {
+        WidgetTree tree;
+        tree.setViewportSize({300.f, 200.f});
+        const auto stackId =
+            tree.emplaceWidget<StackContainer>(StackContainerOptions{
+                .horizontalAlignment = StackAlignment::center,
+                .verticalAlignment = StackAlignment::end,
+                .padding = {10.f, 20.f, 30.f, 40.f},
+            });
+        const auto childId = tree.emplaceChild<Surface>(stackId);
+        auto *childLayout = tree.getLayout(childId);
+        ASSERT_NE(childLayout, nullptr);
+        childLayout->setWidth(80.f);
+        childLayout->setHeight(40.f);
+        childLayout->setMargin({5.f, 7.f, 11.f, 13.f});
+
+        tree.performLayout();
+        EXPECT_EQ(tree.getBounds(childId).center, glm::vec2(13.f, 39.f));
+        EXPECT_EQ(tree.getBounds(childId).size, glm::vec2(80.f, 40.f));
+        const auto *stack = tree.getWidget<StackContainer>(stackId);
+        ASSERT_NE(stack, nullptr);
+        EXPECT_TRUE(stack->traits().clipChildren);
+        EXPECT_FALSE(stack->traits().hitTestVisible);
+
+        WidgetRef<StackContainer> stackRef{tree, stackId};
+        ASSERT_TRUE(stackRef.update([](StackContainer &value) {
+            value.setAlignment(StackAlignment::start, StackAlignment::center);
+        }));
+        tree.performLayout();
+        EXPECT_EQ(tree.getBounds(childId).center, glm::vec2(-57.f, -13.f));
+        EXPECT_EQ(tree.getBounds(childId).size, glm::vec2(80.f, 40.f));
+    }
+
+    TEST(StackContainerTests,
+         LaterChildrenAreTopmostUnlessExplicitZOverridesThem) {
+        WidgetTree tree;
+        tree.setViewportSize({240.f, 120.f});
+        size_t backActivations = 0;
+        size_t frontActivations = 0;
+        const auto stackId = tree.emplaceWidget<StackContainer>();
+        const auto backId = tree.emplaceChild<Button>(
+            stackId, "Back", [&backActivations] { ++backActivations; });
+        const auto frontId = tree.emplaceChild<Button>(
+            stackId, "Front", [&frontActivations] { ++frontActivations; });
+        tree.performLayout();
+        EXPECT_EQ(tree.getBounds(backId).center,
+                  tree.getBounds(stackId).center);
+        EXPECT_EQ(tree.getBounds(backId).size, tree.getBounds(stackId).size);
+        EXPECT_EQ(tree.getBounds(frontId).center,
+                  tree.getBounds(stackId).center);
+        EXPECT_EQ(tree.getBounds(frontId).size, tree.getBounds(stackId).size);
+
+        const glm::vec2 pointer = tree.getViewportSize() * 0.5f;
+        static_cast<void>(tree.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::press,
+            .pos = pointer,
+        }));
+        static_cast<void>(tree.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::release,
+            .pos = pointer,
+        }));
+        EXPECT_EQ(backActivations, 0);
+        EXPECT_EQ(frontActivations, 1);
+
+        tree.getLayout(backId)->setZVal(1.f);
+        tree.performLayout();
+        static_cast<void>(tree.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::press,
+            .pos = pointer,
+        }));
+        static_cast<void>(tree.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::release,
+            .pos = pointer,
+        }));
+        EXPECT_EQ(backActivations, 1);
+        EXPECT_EQ(frontActivations, 1);
+    }
+
+    TEST(StackContainerTests, NormalizesInsetsAndHonorsChildMaximumSize) {
+        WidgetTree tree;
+        tree.setViewportSize({200.f, 100.f});
+        const auto stackId =
+            tree.emplaceWidget<StackContainer>(StackContainerOptions{
+                .padding = {std::numeric_limits<float>::quiet_NaN(),
+                            std::numeric_limits<float>::infinity(),
+                            -5.f,
+                            20.f},
+            });
+        const auto childId = tree.emplaceChild<Surface>(stackId);
+        tree.getLayout(childId)->setMaxSize({80.f, 40.f});
+
+        tree.performLayout();
+        EXPECT_EQ(tree.getBounds(childId).center, glm::vec2(10.f, 0.f));
+        EXPECT_EQ(tree.getBounds(childId).size, glm::vec2(80.f, 40.f));
     }
 
     TEST(UIComposerTests, FixedGapFollowsItsFlexParentMainAxis) {
@@ -416,6 +539,7 @@ namespace {
         EXPECT_GE(countWidgetType(tree, "Button"), 1);
         EXPECT_GE(countWidgetType(tree, "Spacer"), 1);
         EXPECT_GE(countWidgetType(tree, "Gap"), 1);
+        EXPECT_EQ(countWidgetType(tree, "StackContainer"), 1);
         EXPECT_EQ(countWidgetType(tree, "TabBar"), 1);
         EXPECT_EQ(countWidgetType(tree, "MenuBar"), 1);
         EXPECT_EQ(countWidgetType(tree, "DockSpace"), 1);
