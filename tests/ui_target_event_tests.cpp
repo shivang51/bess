@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <stdexcept>
+
 namespace {
 
     using namespace Bess;
@@ -222,6 +224,13 @@ namespace {
         const auto pickingId = target.getInputContext().pickingId;
         EXPECT_TRUE(pickingId.isValid());
         EXPECT_EQ(target.getWidgetTree().resolvePickingId(pickingId), button);
+    }
+
+    TEST(UITargetEvents, RejectsUninitializedRenderingBoundaries) {
+        UI::UITarget target;
+
+        EXPECT_THROW(target.init({}, {}), std::invalid_argument);
+        EXPECT_THROW(target.draw(), std::logic_error);
     }
 
 } // namespace

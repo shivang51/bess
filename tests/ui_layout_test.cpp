@@ -1,5 +1,6 @@
 #include "bess_core/g_app_context.h"
 #include "bess_core/renderer/renderer_2d.h"
+#include "bess_core/renderer/texture.h"
 #include "bess_core/scene/layers/ui_components_layer.h"
 #include "bess_core/scene/scene_event.h"
 #include "bess_core/scene/scene_state/scene_state.h"
@@ -16,10 +17,13 @@
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "event_dispatcher.h"
+#include "render_surface.h"
 #include "ui_painter.h"
 #include <cmath>
 #include <gtest/gtest.h>
 #include <memory>
+#include <optional>
+#include <stdexcept>
 #include <vector>
 
 namespace {
@@ -68,6 +72,51 @@ namespace {
         return style;
     }
 
+    class LayoutTestRenderTarget final
+        : public Bess::Core::Renderer::IRenderTarget2D {
+      public:
+        explicit LayoutTestRenderTarget(
+            Bess::Core::Renderer::Renderer2DExtent extent)
+            : m_extent(extent) {
+        }
+
+        void destroy() override {
+            destroyed = true;
+        }
+        void
+        resize(const Bess::Core::Renderer::Renderer2DExtent &extent) override {
+            m_extent = extent;
+        }
+        void beginFrame(
+            const Bess::Core::Renderer::RenderTarget2DFrameInfo &) override {
+            ++begins;
+        }
+        void endFrame() override {
+            ++ends;
+        }
+        [[nodiscard]] Bess::Core::Renderer::Renderer2DExtent
+        getExtent() const noexcept override {
+            return m_extent;
+        }
+        [[nodiscard]] std::shared_ptr<Bess::Core::Renderer::ITexture>
+        getColorTexture() const override {
+            return {};
+        }
+        [[nodiscard]] std::shared_ptr<Bess::Core::Renderer::ITexture>
+        getPickingTexture() const override {
+            return {};
+        }
+        [[nodiscard]] Bess::PickingId readPickingId(uint32_t,
+                                                    uint32_t) override {
+            return Bess::PickingId::invalid();
+        }
+
+        Bess::Core::Renderer::Renderer2DExtent m_extent;
+        size_t begins = 0;
+        size_t ends = 0;
+        bool destroyed = false;
+    };
+
     class LayoutTestRenderer2D final
         : public Bess::Core::Renderer::IRenderer2D {
       public:
@@ -75,10 +124,21 @@ namespace {
         }
         void destroy() override {
         }
+        [[nodiscard]] Bess::Core::Renderer::Renderer2DTargetFormat
+        getTargetFormatType() const noexcept override {
+            return Bess::Core::Renderer::Renderer2DTargetFormat::BGRA8Unorm;
+        }
+        [[nodiscard]] Bess::Core::Renderer::Renderer2DTargetFormat
+        getPickingFormatType() const noexcept override {
+            return Bess::Core::Renderer::Renderer2DTargetFormat::None;
+        }
         [[nodiscard]]
-        std::shared_ptr<Bess::Core::Renderer::IRenderTarget2D> createTarget(
-            const Bess::Core::Renderer::RenderTarget2DCreateInfo &) override {
-            return nullptr;
+        std::shared_ptr<Bess::Core::Renderer::IRenderTarget2D>
+        createTarget(const Bess::Core::Renderer::RenderTarget2DCreateInfo &info)
+            override {
+            lastTargetInfo = info;
+            lastTarget = std::make_shared<LayoutTestRenderTarget>(info.extent);
+            return lastTarget;
         }
         void resize(const Bess::Core::Renderer::Renderer2DExtent &) override {
         }
@@ -185,8 +245,65 @@ namespace {
 
         std::vector<Bess::Core::Renderer::QuadProps> quads;
         std::vector<Bess::Core::Renderer::FontProps> fonts;
+        std::optional<Bess::Core::Renderer::RenderTarget2DCreateInfo>
+            lastTargetInfo;
+        std::shared_ptr<LayoutTestRenderTarget> lastTarget;
         size_t measureCalls = 0;
     };
+
+    class LayoutTestTexture final : public Bess::Core::Renderer::ITexture {
+      public:
+        explicit LayoutTestTexture(Bess::Core::Renderer::TextureHandle handle) {
+            setHandle(handle);
+            setSize({16.f, 16.f});
+        }
+
+        void init() override {
+        }
+        void destroy() override {
+        }
+        void *getView() const override {
+            return nullptr;
+        }
+    };
+
+    TEST(RendererUIPainterTests, RejectsSamplingAnActiveAttachment) {
+        LayoutTestRenderer2D renderer;
+        Bess::UI::RendererUIPainter painter(renderer, {100.f, 100.f}, 41, 42);
+        const auto active = std::make_shared<LayoutTestTexture>(41);
+        const auto independent = std::make_shared<LayoutTestTexture>(43);
+        const Bess::UI::WidgetBounds bounds{.center = {}, .size = {20.f, 20.f}};
+
+        EXPECT_THROW(painter.drawImage({.bounds = bounds, .texture = active}),
+                     std::logic_error);
+        EXPECT_NO_THROW(
+            painter.drawImage({.bounds = bounds, .texture = independent}));
+        ASSERT_EQ(renderer.quads.size(), 1U);
+        EXPECT_EQ(renderer.quads.front().texture, 43U);
+    }
+
+    TEST(RenderSurfaceTests,
+         InheritsRendererFormatsAndBalancesFramesWhenRenderingThrows) {
+        auto renderer = std::make_shared<LayoutTestRenderer2D>();
+        Bess::UI::RenderSurface surface({.initialExtent = {32, 24}});
+        surface.initialize(renderer);
+        ASSERT_TRUE(renderer->lastTargetInfo.has_value());
+        EXPECT_EQ(renderer->lastTargetInfo->targetFormat,
+                  renderer->getTargetFormatType());
+        EXPECT_EQ(renderer->lastTargetInfo->pickingFormat,
+                  renderer->getPickingFormatType());
+        ASSERT_NE(renderer->lastTarget, nullptr);
+
+        EXPECT_THROW(surface.render({},
+                                    [](auto &, auto &) {
+                                        throw std::runtime_error(
+                                            "delegate failure");
+                                    }),
+                     std::runtime_error);
+        EXPECT_EQ(renderer->lastTarget->begins, 1U);
+        EXPECT_EQ(renderer->lastTarget->ends, 1U);
+        EXPECT_FALSE(surface.isRendering());
+    }
 
     TEST(RendererUIPainterTests,
          MeasuresTextOnlyWhenTheRequestedAlignmentNeedsItsExtent) {

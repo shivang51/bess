@@ -4,6 +4,7 @@
 #include "bess_wgpu/wgpu_texture.h"
 #include "common/bess_assert.h"
 
+#include <exception>
 #include <stdexcept>
 
 namespace Bess::Wgpu {
@@ -18,11 +19,16 @@ namespace Bess::Wgpu {
                         Core::Renderer::Renderer2DNativeSurfaceType::None) {
         BESS_ASSERT(renderer != nullptr,
                     "A render target requires an initialized renderer");
-        recreateAttachments();
+        replaceAttachments(createInfo.extent);
     }
 
     WgpuRenderTarget2D::~WgpuRenderTarget2D() {
-        destroy();
+        // Destructors are a last-resort cleanup path and must never terminate
+        // the process because a pending GPU frame failed to encode.
+        try {
+            destroy();
+        } catch (...) {
+        }
     }
 
     void WgpuRenderTarget2D::destroy() {
@@ -30,11 +36,16 @@ namespace Bess::Wgpu {
             return;
         }
 
+        std::exception_ptr frameFailure;
         if (m_frameStarted) {
-            if (const auto renderer = m_renderer.lock()) {
-                renderer->endFrame();
-            }
             m_frameStarted = false;
+            if (const auto renderer = m_renderer.lock()) {
+                try {
+                    renderer->endFrame();
+                } catch (...) {
+                    frameFailure = std::current_exception();
+                }
+            }
         }
 
         if (m_pickingTexture != nullptr) {
@@ -48,6 +59,12 @@ namespace Bess::Wgpu {
 
         m_renderer.reset();
         m_destroyed = true;
+
+        // Explicit destroy() callers still receive the backend failure, but
+        // only after the target has reached a fully destroyed state.
+        if (frameFailure) {
+            std::rethrow_exception(frameFailure);
+        }
     }
 
     void
@@ -64,8 +81,7 @@ namespace Bess::Wgpu {
             return;
         }
 
-        m_extent = extent;
-        recreateAttachments();
+        replaceAttachments(extent);
     }
 
     void WgpuRenderTarget2D::beginFrame(
@@ -111,8 +127,11 @@ namespace Bess::Wgpu {
             throw std::runtime_error("Render target renderer was destroyed");
         }
 
-        renderer->endFrame();
+        // Release the wrapper state before invoking backend work. The renderer
+        // abandons its own transient frame state if encoding fails, and this
+        // target must remain immediately reusable after the exception.
         m_frameStarted = false;
+        renderer->endFrame();
     }
 
     Core::Renderer::Renderer2DExtent
@@ -143,42 +162,45 @@ namespace Bess::Wgpu {
         return renderer->readPickingId(m_pickingTexture->getHandle(), x, y);
     }
 
-    void WgpuRenderTarget2D::recreateAttachments() {
+    void WgpuRenderTarget2D::replaceAttachments(
+        const Core::Renderer::Renderer2DExtent &extent) {
         const auto renderer = m_renderer.lock();
         if (renderer == nullptr) {
             throw std::runtime_error("Render target renderer was destroyed");
         }
 
-        if (m_colorTexture != nullptr) {
-            m_colorTexture->destroy();
-            m_colorTexture.reset();
-        }
-        if (m_pickingTexture != nullptr) {
-            m_pickingTexture->destroy();
-            m_pickingTexture.reset();
+        std::shared_ptr<WgpuTexture> colorTexture;
+        std::shared_ptr<WgpuTexture> pickingTexture;
+
+        if (extent.width != 0 && extent.height != 0) {
+            const glm::vec2 size{static_cast<float>(extent.width),
+                                 static_cast<float>(extent.height)};
+
+            if (!m_usesSurface) {
+                colorTexture = std::make_shared<WgpuTexture>(
+                    Core::Renderer::TextureCreateInfo{.format =
+                                                          m_targetFormat});
+                colorTexture->setRenderer(renderer);
+                colorTexture->setSize(size);
+                colorTexture->init();
+            }
+
+            if (m_pickingFormat !=
+                Core::Renderer::Renderer2DTargetFormat::None) {
+                pickingTexture = std::make_shared<WgpuTexture>(
+                    Core::Renderer::TextureCreateInfo{.format =
+                                                          m_pickingFormat});
+                pickingTexture->setRenderer(renderer);
+                pickingTexture->setSize(size);
+                pickingTexture->init();
+            }
         }
 
-        if (m_extent.width == 0 || m_extent.height == 0) {
-            return;
-        }
-
-        const glm::vec2 size{static_cast<float>(m_extent.width),
-                             static_cast<float>(m_extent.height)};
-
-        if (!m_usesSurface) {
-            m_colorTexture = std::make_shared<WgpuTexture>(
-                Core::Renderer::TextureCreateInfo{.format = m_targetFormat});
-            m_colorTexture->setRenderer(renderer);
-            m_colorTexture->setSize(size);
-            m_colorTexture->init();
-        }
-
-        if (m_pickingFormat != Core::Renderer::Renderer2DTargetFormat::None) {
-            m_pickingTexture = std::make_shared<WgpuTexture>(
-                Core::Renderer::TextureCreateInfo{.format = m_pickingFormat});
-            m_pickingTexture->setRenderer(renderer);
-            m_pickingTexture->setSize(size);
-            m_pickingTexture->init();
-        }
+        // Commit only after every required attachment has been initialized and
+        // registered. Swaps are noexcept, so allocation/initialization failure
+        // leaves the old extent and both old attachments intact.
+        m_colorTexture.swap(colorTexture);
+        m_pickingTexture.swap(pickingTexture);
+        m_extent = extent;
     }
 } // namespace Bess::Wgpu

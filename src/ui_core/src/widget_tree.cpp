@@ -34,10 +34,26 @@ namespace Bess::UI {
             return static_cast<WidgetInvalidation>(static_cast<uint8_t>(value) &
                                                    ~static_cast<uint8_t>(flag));
         }
+
+        DragOperation
+        requestedDragOperation(const Input::Modifiers &modifiers) noexcept {
+            if (modifiers.alt) {
+                return DragOperation::link;
+            }
+            if (modifiers.control || modifiers.super) {
+                return DragOperation::copy;
+            }
+            if (modifiers.shift) {
+                return DragOperation::move;
+            }
+            return DragOperation::none;
+        }
     } // namespace
 
     WidgetTree::WidgetTree()
-        : m_control(std::make_shared<Detail::WidgetTreeControl>(
+        : m_actionRegistry(std::make_shared<ActionRegistry>()),
+          m_dragDropService(std::make_shared<DragDropService>()),
+          m_control(std::make_shared<Detail::WidgetTreeControl>(
               Detail::WidgetTreeControl{.tree = this})) {
     }
 
@@ -137,6 +153,11 @@ namespace Bess::UI {
             return {};
         }
 
+        const auto *mounted = findNode(id);
+        if (mounted != nullptr && mounted->widget->traits().preparesRender) {
+            m_renderPrepareWidgets.push_back(id);
+        }
+
         m_invalidation |=
             WidgetInvalidation::layout | WidgetInvalidation::paint;
         return id;
@@ -172,6 +193,17 @@ namespace Bess::UI {
 
         m_destroying = true;
         std::exception_ptr failure;
+        if (m_dragDropService != nullptr && m_dragDropService->hasSession()) {
+            try {
+                static_cast<void>(m_dragDropService->cancel(
+                    DragCompletionReason::sourceUnavailable));
+            } catch (...) {
+                // The drag service clears its session before invoking
+                // completion callbacks. Preserve the first callback failure,
+                // but always finish structural teardown below.
+                failure = std::current_exception();
+            }
+        }
         const auto removeAndRemember = [this, &failure](WidgetId id) {
             try {
                 static_cast<void>(removeWidgetNow(id));
@@ -190,6 +222,7 @@ namespace Bess::UI {
             removeAndRemember(m_nodes.begin()->first);
         }
         m_pendingRemovals.clear();
+        m_renderPrepareWidgets.clear();
         m_removing.clear();
         m_runtimeToWidget.clear();
         m_layoutRegistry.clear();
@@ -404,6 +437,57 @@ namespace Bess::UI {
         return *m_platformServices;
     }
 
+    void
+    WidgetTree::setActionRegistry(std::shared_ptr<ActionRegistry> registry) {
+        auto next = registry != nullptr ? std::move(registry)
+                                        : std::make_shared<ActionRegistry>();
+        if (!m_roots.empty() && m_actionRegistry != next) {
+            throw std::logic_error(
+                "ActionRegistry must be injected before widgets are mounted");
+        }
+        m_actionRegistry = std::move(next);
+    }
+
+    std::shared_ptr<ActionRegistry>
+    WidgetTree::actionRegistry() const noexcept {
+        return m_actionRegistry;
+    }
+
+    ActionRegistry &WidgetTree::actions() noexcept {
+        return *m_actionRegistry;
+    }
+
+    const ActionRegistry &WidgetTree::actions() const noexcept {
+        return *m_actionRegistry;
+    }
+
+    void
+    WidgetTree::setDragDropService(std::shared_ptr<DragDropService> service) {
+        auto next = service != nullptr ? std::move(service)
+                                       : std::make_shared<DragDropService>();
+        if (!m_roots.empty() && m_dragDropService != next) {
+            throw std::logic_error(
+                "DragDropService must be injected before widgets are mounted");
+        }
+        if (m_dragDropService != next && m_dragDropService != nullptr) {
+            static_cast<void>(m_dragDropService->cancel());
+        }
+        m_dragDropService = std::move(next);
+    }
+
+    std::shared_ptr<DragDropService>
+    WidgetTree::dragDropService() const noexcept {
+        return m_dragDropService;
+    }
+
+    DragDropService &WidgetTree::dragDrop() noexcept {
+        return *m_dragDropService;
+    }
+
+    const DragDropService &WidgetTree::dragDrop() const noexcept {
+        return *m_dragDropService;
+    }
+
     void WidgetTree::performLayout() {
         // Clear before callbacks so a layout invalidation raised by arrange()
         // remains pending for the next pass.
@@ -497,6 +581,55 @@ namespace Bess::UI {
         endCallback();
     }
 
+    void WidgetTree::prepareRender(
+        const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer,
+        TimeMs deltaTime,
+        float contentScale) {
+        if (renderer == nullptr) {
+            throw std::invalid_argument(
+                "WidgetTree render preparation requires a renderer");
+        }
+        if (!std::isfinite(contentScale) || contentScale <= 0.f) {
+            contentScale = 1.f;
+        }
+
+        // prepareRender is a public frame boundary and must not rely on an
+        // earlier update() call for geometry correctness.
+        if (hasInvalidation(m_invalidation, WidgetInvalidation::layout)) {
+            performLayout();
+        }
+
+        // Snapshot only the count. Widget removal is deferred while callbacks
+        // are active, and newly mounted producers intentionally begin on the
+        // next frame. Reading each ID by index remains valid even if an
+        // application callback grows and reallocates the registry vector.
+        const size_t producerCount = m_renderPrepareWidgets.size();
+        beginCallback();
+        try {
+            for (size_t index = 0; index < producerCount; ++index) {
+                const WidgetId id = m_renderPrepareWidgets[index];
+                auto *node = findNode(id);
+                if (node == nullptr) {
+                    continue;
+                }
+                WidgetRenderPrepareContext context{
+                    .state = *this,
+                    .id = id,
+                    .bounds = getBounds(id),
+                    .deltaTime = deltaTime,
+                    .renderer = renderer,
+                    .effectivelyVisible = isEffectivelyVisible(id),
+                    .contentScale = contentScale,
+                };
+                node->widget->prepareRender(context);
+            }
+        } catch (...) {
+            endCallback();
+            throw;
+        }
+        endCallback();
+    }
+
     void WidgetTree::paint(UIPainter &painter) {
         if (hasInvalidation(m_invalidation, WidgetInvalidation::layout)) {
             performLayout();
@@ -536,6 +669,49 @@ namespace Bess::UI {
             return result;
         }
 
+        if (const auto *external = event.getIf<ExternalDragEvent>()) {
+            return dispatchExternalDrag(*external, event.modifiers);
+        }
+
+        if (const auto *key = event.getIf<Input::KeyEvent>();
+            key != nullptr && key->key == KeyCode::escape &&
+            key->action == KeyAction::press && m_dragDropService != nullptr &&
+            m_dragDropService->hasSession()) {
+            const WidgetId captured = m_pointerCapture;
+            std::exception_ptr failure;
+            beginCallback();
+            try {
+                static_cast<void>(
+                    m_dragDropService->cancel(DragCompletionReason::escape));
+            } catch (...) {
+                failure = std::current_exception();
+            }
+            try {
+                endCallback();
+            } catch (...) {
+                if (failure == nullptr) {
+                    failure = std::current_exception();
+                }
+            }
+            // Cancel the pressed widget that owned this gesture. A drag
+            // callback may have captured another widget; never release that
+            // newer capture by using an unqualified releasePointer().
+            releasePointer(captured);
+            if (contains(captured)) {
+                try {
+                    dispatchDirect(captured, UIPointerCancelEvent{});
+                } catch (...) {
+                    if (failure == nullptr) {
+                        failure = std::current_exception();
+                    }
+                }
+            }
+            if (failure != nullptr) {
+                std::rethrow_exception(failure);
+            }
+            return {.target = getFocusedWidget(), .handled = true};
+        }
+
         if (const auto *key = event.getIf<Input::KeyEvent>();
             key != nullptr && key->key == KeyCode::escape &&
             key->action == KeyAction::press && m_popupHost != nullptr &&
@@ -543,12 +719,128 @@ namespace Bess::UI {
             return {.target = getFocusedWidget(), .handled = true};
         }
 
+        const auto dispatchActionShortcut = [this, &event]() {
+            const auto *key = event.getIf<Input::KeyEvent>();
+            if (key == nullptr || m_actionRegistry == nullptr) {
+                return false;
+            }
+            return m_actionRegistry
+                ->dispatchShortcut(*key, event.modifiers, m_focused)
+                .handled();
+        };
+
         const auto pointer = pointerPosition(event);
         WidgetId pointed;
         if (pointer.has_value()) {
             m_lastPointerPosition = *pointer;
             pointed = hitTest(*pointer);
             updateHover(pointed);
+        }
+
+        if (pointer.has_value() && event.is<Input::MouseMoveEvent>() &&
+            m_dragDropService != nullptr && m_dragDropService->hasSession()) {
+            const auto snapshot = m_dragDropService->session();
+            if (snapshot.has_value() && !snapshot->external) {
+                const auto candidates = collectDropTargets(pointed, *pointer);
+                const WidgetId captured = m_pointerCapture;
+                DragUpdateResult dragUpdate;
+                beginCallback();
+                try {
+                    dragUpdate = m_dragDropService->updatePointer({
+                        .position = *pointer,
+                        .modifiers = event.modifiers,
+                        .requestedOperation =
+                            requestedDragOperation(event.modifiers),
+                        .candidates = candidates,
+                    });
+                } catch (...) {
+                    endCallback();
+                    // An armed session invokes application code only after
+                    // claiming the pointer gesture. Clear the original
+                    // Pressable even when that callback fails.
+                    if (snapshot->phase == DragSessionPhase::armed) {
+                        releasePointer(captured);
+                        if (contains(captured)) {
+                            try {
+                                dispatchDirect(captured,
+                                               UIPointerCancelEvent{});
+                            } catch (...) {
+                                // Preserve the original drag failure.
+                            }
+                        }
+                    }
+                    throw;
+                }
+                endCallback();
+
+                if (dragUpdate.thresholdCrossed) {
+                    releasePointer(captured);
+                    if (contains(captured)) {
+                        dispatchDirect(captured, UIPointerCancelEvent{});
+                    }
+                }
+                // A drag callback may have changed the tree. Keep ordinary
+                // hover/move routing on the current geometry snapshot.
+                pointed = hitTest(*pointer);
+                updateHover(pointed);
+            }
+        }
+
+        if (const auto *button = event.getIf<Input::MouseButtonEvent>();
+            button != nullptr && button->button == MouseButton::left &&
+            button->action == MouseButtonAction::release &&
+            pointer.has_value() && m_dragDropService != nullptr &&
+            m_dragDropService->hasSession()) {
+            const auto snapshot = m_dragDropService->session();
+            if (snapshot.has_value() && !snapshot->external) {
+                const bool wasDragging = m_dragDropService->isDragging();
+                const WidgetId captured = m_pointerCapture;
+                const auto candidates = collectDropTargets(pointed, *pointer);
+                DragCompletedEvent completion;
+                beginCallback();
+                try {
+                    completion = m_dragDropService->drop({
+                        .position = *pointer,
+                        .modifiers = event.modifiers,
+                        .requestedOperation =
+                            requestedDragOperation(event.modifiers),
+                        .candidates = candidates,
+                    });
+                } catch (...) {
+                    endCallback();
+                    // An armed gesture can cross its threshold on this release
+                    // when the platform coalesces mouse movement. In that case
+                    // drag callbacks have claimed the gesture even though the
+                    // ordinary move path never canceled the original press.
+                    if (!wasDragging && captured) {
+                        releasePointer(captured);
+                        if (contains(captured)) {
+                            try {
+                                dispatchDirect(captured,
+                                               UIPointerCancelEvent{});
+                            } catch (...) {
+                                // Preserve the drag callback failure.
+                            }
+                        }
+                    }
+                    throw;
+                }
+                endCallback();
+                if (!wasDragging && completion.started && captured) {
+                    // Release only the capture observed before application
+                    // callbacks. A drop handler may have established a new,
+                    // unrelated capture which must survive this cleanup.
+                    releasePointer(captured);
+                    if (contains(captured)) {
+                        dispatchDirect(captured, UIPointerCancelEvent{});
+                    }
+                }
+                if (wasDragging || completion.started) {
+                    return {.target = pointed, .handled = true};
+                }
+                pointed = hitTest(*pointer);
+                updateHover(pointed);
+            }
         }
 
         WidgetId target;
@@ -574,6 +866,9 @@ namespace Bess::UI {
                             moveFocus(event.modifiers.shift
                                           ? FocusTraversalDirection::backward
                                           : FocusTraversalDirection::forward)};
+            }
+            if (dispatchActionShortcut()) {
+                return {.target = getFocusedWidget(), .handled = true};
             }
             if (const auto *button = event.getIf<Input::MouseButtonEvent>();
                 button != nullptr && button->button == MouseButton::left &&
@@ -605,6 +900,10 @@ namespace Bess::UI {
                                           : FocusTraversalDirection::forward);
                 result.target = getFocusedWidget();
             }
+        }
+        if (!result.handled && dispatchActionShortcut()) {
+            result.handled = true;
+            result.target = getFocusedWidget();
         }
         if (const auto *button = event.getIf<Input::MouseButtonEvent>();
             button != nullptr && button->action == MouseButtonAction::release &&
@@ -865,6 +1164,15 @@ namespace Bess::UI {
     CursorIcon WidgetTree::getCursorShape() const noexcept {
         if (!m_lastPointerPosition.has_value()) {
             return CursorIcon::arrow;
+        }
+
+        if (m_dragDropService != nullptr) {
+            const auto drag = m_dragDropService->session();
+            if (drag.has_value() && !drag->external &&
+                drag->phase == DragSessionPhase::dragging) {
+                return drag->cursor != CursorIcon::inherit ? drag->cursor
+                                                           : CursorIcon::move;
+            }
         }
 
         WidgetId current =
@@ -1243,6 +1551,9 @@ namespace Bess::UI {
             m_nodes.erase(nodeIt);
         }
         for (const auto widget : subtree) {
+            std::erase(m_renderPrepareWidgets, widget);
+        }
+        for (const auto widget : subtree) {
             m_removing.erase(widget);
         }
         m_invalidation |=
@@ -1489,10 +1800,120 @@ namespace Bess::UI {
         } else if (const auto *button =
                        event.getIf<Input::MouseButtonEvent>()) {
             position = button->pos;
+        } else if (const auto *external = event.getIf<ExternalDragEvent>()) {
+            position = external->pos;
         } else {
             return std::nullopt;
         }
         return position - m_viewportSize * 0.5f;
+    }
+
+    std::vector<DropTargetCandidate>
+    WidgetTree::collectDropTargets(WidgetId pointed, glm::vec2 position) const {
+        std::vector<DropTargetCandidate> candidates;
+        WidgetId current = pointed;
+        size_t remaining = m_nodes.size() + 1;
+        while (current && remaining-- > 0) {
+            const auto *widget = getWidget(current);
+            const auto *provider =
+                dynamic_cast<const DropTargetProvider *>(widget);
+            if (provider != nullptr) {
+                const auto target = provider->dropTargetId();
+                if (target && m_dragDropService != nullptr &&
+                    m_dragDropService->containsTarget(target)) {
+                    candidates.push_back({
+                        .target = target,
+                        .localPosition =
+                            position - getBounds(current).topLeft(),
+                    });
+                }
+            }
+            current = getParent(current);
+        }
+        return candidates;
+    }
+
+    UIDispatchResult
+    WidgetTree::dispatchExternalDrag(const ExternalDragEvent &event,
+                                     const Input::Modifiers &modifiers) {
+        if (m_dragDropService == nullptr) {
+            return {};
+        }
+
+        if (event.phase == ExternalDragEventPhase::leave) {
+            const auto active = m_dragDropService->session();
+            bool handled = false;
+            if (active.has_value() && active->external) {
+                beginCallback();
+                try {
+                    handled = m_dragDropService->cancel();
+                } catch (...) {
+                    endCallback();
+                    throw;
+                }
+                endCallback();
+            }
+            m_lastPointerPosition.reset();
+            updateHover({});
+            return {.handled = handled};
+        }
+
+        if (event.phase == ExternalDragEventPhase::enter &&
+            event.payload.empty()) {
+            return {};
+        }
+
+        const glm::vec2 position = event.pos - m_viewportSize * 0.5f;
+        m_lastPointerPosition = position;
+        WidgetId pointed = hitTest(position);
+        updateHover(pointed);
+
+        auto active = m_dragDropService->session();
+        if (active.has_value() && !active->external) {
+            // A native offer cannot steal an in-process drag session.
+            return {};
+        }
+
+        UIDispatchResult result;
+        beginCallback();
+        try {
+            if (!active.has_value() && !event.payload.empty()) {
+                static_cast<void>(m_dragDropService->beginExternal({
+                    .position = position,
+                    .payload = event.payload,
+                    .allowedOperations = event.allowedOperations,
+                    .preferredOperation = event.preferredOperation,
+                }));
+                active = m_dragDropService->session();
+            }
+
+            if (active.has_value() && active->external) {
+                const auto candidates = collectDropTargets(pointed, position);
+                if (event.phase == ExternalDragEventPhase::drop) {
+                    const auto completion = m_dragDropService->drop({
+                        .position = position,
+                        .modifiers = modifiers,
+                        .requestedOperation = requestedDragOperation(modifiers),
+                        .candidates = candidates,
+                    });
+                    result = {.target = pointed,
+                              .handled = completion.accepted};
+                } else {
+                    const auto update = m_dragDropService->updatePointer({
+                        .position = position,
+                        .modifiers = modifiers,
+                        .requestedOperation = requestedDragOperation(modifiers),
+                        .candidates = candidates,
+                    });
+                    result = {.target = pointed, .handled = update.accepted};
+                }
+            }
+        } catch (...) {
+            endCallback();
+            throw;
+        }
+        endCallback();
+        return result;
     }
 
     void WidgetTree::updateHover(WidgetId hovered) {

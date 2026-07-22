@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/bess_api.h"
 #include "bess_core/style/bess_theme.h"
+#include "common/bess_api.h"
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -30,6 +30,26 @@ namespace Bess::Events {
         std::shared_ptr<const WindowDropPayload> payload;
         int x = 0;
         int y = 0;
+    };
+
+    // Full native drag lifecycle. WindowDropEvent remains the compatibility
+    // event for consumers interested only in committed drops; retained UI and
+    // other interactive clients use this event to provide enter/move/leave
+    // feedback before the payload is released.
+    enum class WindowDragDropEventType : uint8_t {
+        enter,
+        move,
+        leave,
+        drop,
+    };
+
+    struct BESS_API WindowDragDropEvent {
+        Window *window = nullptr;
+        WindowDragDropEventType type = WindowDragDropEventType::enter;
+        std::shared_ptr<const WindowDropPayload> payload;
+        int x = 0;
+        int y = 0;
+        bool acceptedByPlatform = false;
     };
 
     struct BESS_API ThemeChangeEvent {

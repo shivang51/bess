@@ -92,15 +92,19 @@ namespace Bess::UI {
         }
 
         void emit(const Event &event) const {
+            // Keep the callback state alive for the complete emission. A
+            // callback is allowed to release the last owner of the model (and
+            // therefore this Signal) without invalidating the current walk.
+            const auto state = m_state;
             std::vector<uint64_t> snapshot;
-            snapshot.reserve(m_state->callbacks.size());
-            for (const auto &[id, callback] : m_state->callbacks) {
+            snapshot.reserve(state->callbacks.size());
+            for (const auto &[id, callback] : state->callbacks) {
                 (void)callback;
                 snapshot.push_back(id);
             }
             for (const auto id : snapshot) {
-                const auto it = m_state->callbacks.find(id);
-                if (it != m_state->callbacks.end()) {
+                const auto it = state->callbacks.find(id);
+                if (it != state->callbacks.end()) {
                     // Copy before invocation: the callback may disconnect and
                     // destroy its own storage.
                     auto callback = it->second;

@@ -33,6 +33,10 @@ namespace Bess::Platform::X11 {
       public:
         using SubscriptionId = std::size_t;
         using Callback = std::function<void(const WindowDropEvent &)>;
+        // Synchronous acceptance is required by XDND status/finished replies.
+        // One owner (normally WindowDropService) decides whether the retained
+        // UI or compatibility drop route can actually consume the payload.
+        using AcceptanceCallback = std::function<bool(const WindowDropEvent &)>;
 
         WindowDropHandler(_XDisplay *display, X11WindowHandle targetWindow);
         ~WindowDropHandler();
@@ -47,6 +51,7 @@ namespace Bess::Platform::X11 {
 
         SubscriptionId subscribe(Callback callback);
         void unsubscribe(SubscriptionId subscriptionId);
+        void setAcceptanceCallback(AcceptanceCallback callback);
 
       private:
         struct Impl;

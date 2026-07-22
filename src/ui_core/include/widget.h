@@ -5,8 +5,13 @@
 #include "ui_event.h"
 #include "ui_types.h"
 
+#include <memory>
 #include <span>
 #include <string_view>
+
+namespace Bess::Core::Renderer {
+    class IRenderer2D;
+}
 
 namespace Bess::UI {
     class LayoutNode;
@@ -23,6 +28,19 @@ namespace Bess::UI {
         WidgetTree &state;
         WidgetId id;
         TimeMs deltaTime;
+    };
+
+    // Render-resource work runs before UITarget begins its own frame. Widgets
+    // may prepare offscreen targets here; paint() must remain a pure
+    // compositor and must never nest renderer frames.
+    struct WidgetRenderPrepareContext {
+        WidgetTree &state;
+        WidgetId id;
+        WidgetBounds bounds;
+        TimeMs deltaTime;
+        const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer;
+        bool effectivelyVisible = false;
+        float contentScale = 1.f;
     };
 
     struct WidgetLayoutContext {
@@ -113,6 +131,7 @@ namespace Bess::UI {
         virtual void onUnmount(WidgetTree &state, WidgetId id);
         virtual void updateLayout(WidgetLayoutContext &context);
         virtual void update(WidgetUpdateContext &context);
+        virtual void prepareRender(WidgetRenderPrepareContext &context);
         virtual void arrange(WidgetArrangeContext &context);
         virtual void paint(WidgetPaintContext &context) const;
         // When clipChildren is enabled, controls may reserve part of their

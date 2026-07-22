@@ -208,6 +208,15 @@ namespace Bess::Core::Renderer {
         virtual void init(const Renderer2DCreateInfo &createInfo) = 0;
         virtual void destroy() = 0;
 
+        // Render targets share the pipelines owned by their renderer, so
+        // their attachment formats must be compatible with the renderer's
+        // initialized formats. Renderer-independent target owners use these
+        // queries instead of hard-coding a backend/application format.
+        [[nodiscard]] virtual Renderer2DTargetFormat
+        getTargetFormatType() const noexcept = 0;
+        [[nodiscard]] virtual Renderer2DTargetFormat
+        getPickingFormatType() const noexcept = 0;
+
         [[nodiscard]] virtual std::shared_ptr<IRenderTarget2D>
         createTarget(const RenderTarget2DCreateInfo &createInfo) = 0;
 

@@ -1,14 +1,31 @@
 #include "demo_view.h"
 #include "bess_core/style/bess_theme.h"
+#include "controls/drag_drop_widgets.h"
+#include "controls/reorderable_list.h"
 
 #include <algorithm>
 #include <cctype>
+#include <cstdint>
 #include <format>
 #include <functional>
+#include <span>
+#include <string_view>
 #include <utility>
 #include <vector>
 
 namespace Bess::UI {
+    struct UIDemoReorderState {
+        struct Item {
+            ReorderItemId id;
+            std::string label;
+            WidgetRef<DraggableListItem> widget;
+        };
+
+        ReorderListId list;
+        WidgetRef<ReorderableList> widget;
+        std::vector<Item> items;
+    };
+
     namespace {
         LayoutSpec stretch() {
             return {.width = LayoutLength::stretch(),
@@ -74,9 +91,205 @@ namespace Bess::UI {
                     .activated = std::move(activated),
                     .children = std::move(children)};
         }
+
+        [[nodiscard]] DragPayload demoTextPayload() {
+            DragPayloadBuilder builder;
+            static_cast<void>(builder.set(DragFormats::plainText,
+                                          std::string{"Bess demo payload"}));
+            return std::move(builder).build();
+        }
+
+        [[nodiscard]] DragOperation
+        supportedDropOperation(const DragTargetEvent &event) noexcept {
+            if (event.payload.get(DragFormats::plainText) == nullptr &&
+                event.payload.get(DragFormats::files) == nullptr) {
+                return DragOperation::none;
+            }
+            if (isSingleDragOperation(event.requestedOperation) &&
+                hasDragOperation(event.allowedOperations,
+                                 event.requestedOperation)) {
+                return event.requestedOperation;
+            }
+            if (hasDragOperation(event.allowedOperations,
+                                 DragOperation::copy)) {
+                return DragOperation::copy;
+            }
+            if (hasDragOperation(event.allowedOperations,
+                                 DragOperation::move)) {
+                return DragOperation::move;
+            }
+            return DragOperation::none;
+        }
+
+        [[nodiscard]] bool containsItem(std::span<const ReorderItemId> items,
+                                        ReorderItemId candidate) {
+            return std::ranges::find(items, candidate) != items.end();
+        }
+
+        [[nodiscard]] bool
+        reorderDemoModel(const std::shared_ptr<UIDemoReorderState> &state,
+                         const ReorderRequest &request) {
+            if (state == nullptr || !state->widget ||
+                request.operation != DragOperation::move ||
+                request.source != state->list ||
+                request.target != state->list || request.items.empty()) {
+                return false;
+            }
+
+            std::vector<UIDemoReorderState::Item> moving;
+            std::vector<UIDemoReorderState::Item> remaining;
+            moving.reserve(request.items.size());
+            remaining.reserve(state->items.size());
+            for (const auto &item : state->items) {
+                (containsItem(request.items, item.id) ? moving : remaining)
+                    .push_back(item);
+            }
+            if (moving.size() != request.items.size()) {
+                return false;
+            }
+
+            auto insertion = remaining.end();
+            if (request.before) {
+                insertion = std::ranges::find(
+                    remaining, request.before, &UIDemoReorderState::Item::id);
+                if (insertion == remaining.end()) {
+                    return false;
+                }
+            }
+            remaining.insert(insertion, moving.begin(), moving.end());
+
+            auto *tree = state->widget.tree();
+            if (tree == nullptr) {
+                return false;
+            }
+            for (const auto &item : remaining) {
+                if (!item.widget ||
+                    tree->getParent(item.widget.id()) != state->widget.id()) {
+                    return false;
+                }
+            }
+            for (size_t index = 0; index < remaining.size(); ++index) {
+                if (!tree->reparentWidget(remaining[index].widget.id(),
+                                          state->widget.id(),
+                                          index)) {
+                    return false;
+                }
+            }
+            state->items = std::move(remaining);
+            return true;
+        }
+
+        void composeDemoCard(UIComposer &owner,
+                             std::string label,
+                             UIBoxStyle style) {
+            auto card = owner.surface(
+                SurfaceOptions{.style = std::move(style)},
+                [label = std::move(label)](UIComposer &surface) mutable {
+                    surface.row(
+                        FlexContainerOptions{
+                            .direction = LayoutDirection::horizontal,
+                            .mainAxisAlignment = LayoutAlignment::start,
+                            .crossAxisAlignment = LayoutAlignment::center,
+                            .padding =
+                                Core::Style::Padding::fromHorizontal(8.f),
+                            .stretchWidth = true,
+                            .stretchHeight = true,
+                            .clipChildren = true,
+                            .hitTestVisible = false,
+                        },
+                        [&label](UIComposer &row) { row.label(label); });
+                });
+            card.setLayout({
+                .width = LayoutLength::percent(100.f),
+                .height = LayoutLength::percent(100.f),
+            });
+        }
+
+        class DemoRenderDelegate final : public IRenderViewDelegate {
+          public:
+            explicit DemoRenderDelegate(const UITheme &theme)
+                : m_background(theme.panel.background),
+                  m_primary(theme.slider.fill.background),
+                  m_secondary(theme.button.hovered.background),
+                  m_detail(theme.label.color) {
+            }
+
+            void render(RenderViewFrameContext &context) override {
+                using namespace Core::Renderer;
+                const glm::vec2 extent{
+                    static_cast<float>(context.extent.width),
+                    static_cast<float>(context.extent.height),
+                };
+                if (extent.x <= 0.f || extent.y <= 0.f) {
+                    return;
+                }
+
+                context.renderer.drawQuad({
+                    .position = {0.f, 0.f},
+                    .size = extent,
+                    .color = m_background,
+                    .transformMode = RenderTransformMode::Screen,
+                });
+                context.renderer.drawQuad({
+                    .position = {-extent.x * 0.16f, 0.f},
+                    .size = {extent.x * 0.52f, extent.y * 0.5f},
+                    .rotation = -0.08f,
+                    .color = m_primary,
+                    .transformMode = RenderTransformMode::Screen,
+                    .radius = glm::vec4{10.f},
+                });
+                context.renderer.drawCircle({
+                    .position = {extent.x * 0.24f, 0.f},
+                    .radius = std::min(extent.x, extent.y) * 0.19f,
+                    .color = m_secondary,
+                    .transformMode = RenderTransformMode::Screen,
+                });
+                context.renderer.drawLine({
+                    .p0 = {-extent.x * 0.4f, extent.y * 0.34f},
+                    .p1 = {extent.x * 0.4f, extent.y * 0.34f},
+                    .thickness = 1.f,
+                    .color = m_detail,
+                    .transformMode = RenderTransformMode::Screen,
+                });
+            }
+
+          private:
+            Core::Renderer::Color m_background;
+            Core::Renderer::Color m_primary;
+            Core::Renderer::Color m_secondary;
+            Core::Renderer::Color m_detail;
+        };
     } // namespace
 
+    UIDemoView::~UIDemoView() {
+        unregisterShowcaseAction();
+    }
+
     void UIDemoView::compose(UIComposer &ui) {
+        unregisterShowcaseAction();
+        m_actionRegistry = ui.tree().actionRegistry();
+        m_showcaseAction =
+            ActionId{std::format("ui.demo.showcase.{}",
+                                 static_cast<unsigned long long>(
+                                     reinterpret_cast<std::uintptr_t>(this)))};
+        if (m_actionRegistry != nullptr) {
+            const auto registered = m_actionRegistry->registerAction({
+                .id = m_showcaseAction,
+                .state = {.label = "Run registered action",
+                          .description =
+                              "Exercises shared action state and dispatch"},
+                .shortcuts = {{.key = KeyCode::f12,
+                               .modifiers = KeyChordModifier::control |
+                                            KeyChordModifier::shift}},
+                .invoked =
+                    [this](const ActionInvocation &) {
+                        incrementCounter();
+                        setStatus("Registered action invoked (Ctrl+Shift+F12)");
+                    },
+            });
+            m_showcaseActionRegistered = static_cast<bool>(registered);
+        }
+
         m_tabs = std::make_shared<TabModel>();
         static_cast<void>(m_tabs->add("Workspace"));
         static_cast<void>(m_tabs->add("Components"));
@@ -580,6 +793,8 @@ namespace Bess::UI {
                                                                 "clicked");
                                                         });
                                                 });
+
+                                            composeGenericShowcase(controls);
                                         });
                                 });
                         });
@@ -644,6 +859,188 @@ namespace Bess::UI {
         static_cast<void>(shell.setLayout(stretch()));
     }
 
+    void UIDemoView::composeGenericShowcase(UIComposer &controls) {
+        controls.label("Generic retained controls", headingLabel());
+
+        FlexContainerOptions horizontalGroup{
+            .direction = LayoutDirection::horizontal,
+            .mainAxisAlignment = LayoutAlignment::start,
+            .crossAxisAlignment = LayoutAlignment::center,
+            .gap = 8.f,
+            .stretchWidth = true,
+            .stretchHeight = false,
+            .clipChildren = false,
+            .hitTestVisible = false,
+        };
+        controls.row(horizontalGroup, [this](UIComposer &actions) {
+            actions.actionButton(m_showcaseAction);
+            actions.label("Ctrl+Shift+F12", LabelOptions{.fontSize = 12.f});
+        });
+
+        controls.treeNode(
+            "Retained tree node",
+            TreeNodeOptions{.expanded = true, .contentGap = 3.f},
+            [this](bool expanded) {
+                setStatus(expanded ? "Tree node expanded"
+                                   : "Tree node collapsed");
+            },
+            [this](UIComposer &branch) {
+                branch.label("Leaf content remains ordinary widgets");
+                branch.treeNode(
+                    "Nested branch",
+                    TreeNodeOptions{.expanded = false},
+                    [this](bool expanded) {
+                        setStatus(expanded ? "Nested branch expanded"
+                                           : "Nested branch collapsed");
+                    },
+                    [](UIComposer &nested) { nested.label("Nested leaf"); });
+            });
+
+        const auto &theme = controls.tree().theme();
+        controls.label("Texture image placeholder");
+        auto image = controls.image(std::shared_ptr<Core::Renderer::ITexture>{},
+                                    ImageOptions{
+                                        .fit = ImageFit::contain,
+                                        .cornerRadius = glm::vec4{5.f},
+                                        .autoSize = false,
+                                        .fallbackSize = {180.f, 54.f},
+                                        .placeholder = theme.button.normal,
+                                    });
+        image.setLayout({
+            .width = 180.f,
+            .height = 54.f,
+            .minSize = glm::vec2{80.f, 40.f},
+        });
+
+        controls.label("Renderer-independent offscreen view");
+        RenderViewOptions renderOptions;
+        renderOptions.policy = RenderPolicy::onDemand;
+        renderOptions.frame.clearColor = theme.panel.background;
+        renderOptions.cornerRadius = glm::vec4{6.f};
+        renderOptions.focusable = false;
+        renderOptions.hitTestVisible = false;
+        auto renderView = controls.renderView(
+            std::make_shared<DemoRenderDelegate>(theme), renderOptions);
+        renderView.setLayout({
+            .width = LayoutLength::percent(100.f),
+            .height = 92.f,
+            .minSize = glm::vec2{160.f, 64.f},
+        });
+
+        controls.label("Typed drag and drop");
+        controls.row(horizontalGroup, [this](UIComposer &dragRow) {
+            const auto &dragTheme = dragRow.tree().theme();
+
+            DraggableOptions source;
+            source.payload = demoTextPayload();
+            source.allowedOperations = DragOperation::copy;
+            source.preferredOperation = DragOperation::copy;
+            source.callbacks.onStarted = [this](const auto &) {
+                setStatus("Dragging typed text payload");
+            };
+            source.callbacks.onCompleted = [this](const auto &completed) {
+                if (!completed.accepted) {
+                    setStatus("Drag canceled or rejected");
+                }
+            };
+            auto draggable = dragRow.emplace<Draggable>(
+                dragRow.tree().dragDrop(), std::move(source));
+            draggable.setLayout({
+                .width = 150.f,
+                .height = 30.f,
+                .minSize = glm::vec2{110.f, 30.f},
+            });
+            UIComposer dragContent{dragRow.tree(), draggable.id()};
+            composeDemoCard(
+                dragContent, "Drag payload", dragTheme.button.normal);
+
+            DropZoneOptions target;
+            target.callbacks.propose = [](const auto &event) {
+                return DragProposal{supportedDropOperation(event)};
+            };
+            target.callbacks.onDrop = [this](const auto &event) {
+                if (const auto *files = event.payload.get(DragFormats::files);
+                    files != nullptr) {
+                    setStatus(std::format("Dropped {} file{}",
+                                          files->paths.size(),
+                                          files->paths.size() == 1 ? "" : "s"));
+                    return true;
+                }
+                if (const auto *text =
+                        event.payload.get(DragFormats::plainText);
+                    text != nullptr) {
+                    setStatus("Dropped: " + *text);
+                    return true;
+                }
+                return false;
+            };
+            target.dragOverStyle = dragTheme.dock.dropPreview;
+            auto dropZone = dragRow.emplace<DropZone>(dragRow.tree().dragDrop(),
+                                                      std::move(target));
+            dropZone.setLayout({
+                .width = 190.f,
+                .height = 30.f,
+                .minSize = glm::vec2{130.f, 30.f},
+                .flexShrink = 1.f,
+            });
+            UIComposer dropContent{dragRow.tree(), dropZone.id()};
+            composeDemoCard(
+                dropContent, "Drop text/files here", dragTheme.panel);
+        });
+
+        controls.label("Model-driven reorderable list");
+        m_reorderState = std::make_shared<UIDemoReorderState>();
+        m_reorderState->list = ReorderListId::generate();
+
+        ReorderableListOptions listOptions;
+        listOptions.gap = 4.f;
+        listOptions.allowCrossList = false;
+        listOptions.onReorder = [this, state = std::weak_ptr{m_reorderState}](
+                                    const ReorderRequest &request) {
+            const bool reordered = reorderDemoModel(state.lock(), request);
+            if (reordered) {
+                setStatus("Reordered list model");
+            }
+            return reordered;
+        };
+        m_reorderState->widget =
+            controls.emplace<ReorderableList>(controls.tree().dragDrop(),
+                                              std::move(listOptions),
+                                              m_reorderState->list);
+        m_reorderState->widget.setLayout({
+            .width = LayoutLength::percent(100.f),
+            .height = 92.f,
+            .minSize = glm::vec2{140.f, 92.f},
+        });
+
+        UIComposer list{controls.tree(), m_reorderState->widget.id()};
+        for (std::string label : {
+                 "First model item",
+                 "Second model item",
+                 "Third model item",
+             }) {
+            UIDemoReorderState::Item item{
+                .id = ReorderItemId::generate(),
+                .label = std::move(label),
+            };
+            item.widget = list.emplace<DraggableListItem>(
+                list.tree().dragDrop(), m_reorderState->list, item.id);
+            item.widget.setLayout({
+                .width = LayoutLength::percent(100.f),
+                .height = 28.f,
+                .minSize = glm::vec2{120.f, 28.f},
+            });
+            UIComposer itemContent{list.tree(), item.widget.id()};
+            composeDemoCard(itemContent, item.label, theme.tabs.normal);
+            m_reorderState->items.push_back(std::move(item));
+        }
+    }
+
+    void UIDemoView::onUnmounting(UIViewContext &context) noexcept {
+        unregisterShowcaseAction();
+        UIView::onUnmounting(context);
+    }
+
     size_t UIDemoView::activationCount() const noexcept {
         return m_activationCount;
     }
@@ -690,6 +1087,21 @@ namespace Bess::UI {
                 setStatus(std::format("Selected {} tab", item->title));
             }
         }
+    }
+
+    void UIDemoView::unregisterShowcaseAction() noexcept {
+        if (m_actionRegistry != nullptr && m_showcaseActionRegistered &&
+            m_showcaseAction) {
+            try {
+                static_cast<void>(
+                    m_actionRegistry->unregisterAction(m_showcaseAction));
+            } catch (...) {
+                // UIView teardown is noexcept and may run during host teardown.
+            }
+        }
+        m_showcaseActionRegistered = false;
+        m_showcaseAction = {};
+        m_actionRegistry.reset();
     }
 
 } // namespace Bess::UI

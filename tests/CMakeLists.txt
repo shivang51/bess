@@ -21,6 +21,10 @@ add_executable(BessTests
 	    dock_manager_tests.cpp
 	    input_event_tests.cpp
 	    ui_target_event_tests.cpp
+	    ui_action_tests.cpp
+	    ui_drag_drop_tests.cpp
+	    ui_visual_controls_tests.cpp
+	    window_drop_service_test.cpp
 	    ui_widget_tests.cpp
 	    ui_tab_dock_tests.cpp
 	    ui_menu_tests.cpp

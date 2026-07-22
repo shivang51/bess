@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bess_core/input/input_event.h"
+#include "drag_drop.h"
 
 #include <concepts>
 #include <cstdint>
@@ -26,9 +27,16 @@ namespace Bess::UI {
         bool focused = false;
     };
 
+    // Synthesized when another gesture (notably drag-and-drop) takes ownership
+    // after a press. Pressable controls use it to clear pressed state without
+    // accidentally activating on the eventual pointer release.
+    struct UIPointerCancelEvent {};
+
     using UIEventData = std::variant<UITargetResizeEvent,
                                      UIPointerCrossingEvent,
                                      UIFocusChangedEvent,
+                                     UIPointerCancelEvent,
+                                     ExternalDragEvent,
                                      Input::MouseMoveEvent,
                                      Input::MouseWheelEvent,
                                      Input::MouseButtonEvent,

@@ -158,6 +158,10 @@ namespace Bess::UI {
         bool focusable = false;
         bool hitTestVisible = true;
         bool clipChildren = false;
+        // Opts into WidgetTree's render-preparation registry. This keeps the
+        // normal frame path proportional to active offscreen producers rather
+        // than walking every widget before every paint.
+        bool preparesRender = false;
     };
 
 } // namespace Bess::UI

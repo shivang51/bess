@@ -26,6 +26,17 @@ namespace Bess::UI {
             return result;
         }
 
+        if (event.is<UIPointerCancelEvent>()) {
+            const bool hadState = m_pointerPressed || m_keyboardPressed;
+            m_pointerPressed = false;
+            m_keyboardPressed = false;
+            result.stateChanged = hadState;
+            if (hadState) {
+                result.reply.invalidate = WidgetInvalidation::paint;
+            }
+            return result;
+        }
+
         if (const auto *crossing = event.getIf<UIPointerCrossingEvent>()) {
             changed(m_hovered, crossing->entered);
         } else if (event.is<Input::MouseMoveEvent>()) {

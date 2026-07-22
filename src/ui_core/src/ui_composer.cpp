@@ -4,6 +4,76 @@
 
 namespace Bess::UI {
 
+    ReorderListComposer::ReorderListComposer(WidgetTree &tree,
+                                             WidgetRef<ReorderableList> list)
+        : m_tree(tree),
+          m_list(std::move(list)) {
+        if (m_list.tree() != &m_tree || !m_list) {
+            throw std::invalid_argument(
+                "ReorderListComposer requires a live ReorderableList in its "
+                "WidgetTree");
+        }
+    }
+
+    WidgetRef<ReorderableList> ReorderListComposer::widget() const noexcept {
+        return m_list;
+    }
+
+    ReorderListId ReorderListComposer::listId() const noexcept {
+        const auto *list = m_list.get();
+        return list != nullptr ? list->listId() : ReorderListId{};
+    }
+
+    ReorderListItemHandle
+    ReorderListComposer::item(ReorderItemId id,
+                              DraggableListItemOptions options) {
+        if (!m_list ||
+            m_tree.getWidget<ReorderableList>(m_list.id()) == nullptr) {
+            throw std::logic_error(
+                "Cannot add an item to an unmounted ReorderableList");
+        }
+        if (id && containsItem(id)) {
+            throw std::invalid_argument(
+                "ReorderableList item IDs must be unique within the list");
+        }
+        if (!id) {
+            do {
+                id = ReorderItemId::generate();
+            } while (containsItem(id));
+        }
+
+        const WidgetId widget = m_tree.addWidget(
+            std::make_unique<DraggableListItem>(
+                m_tree.dragDrop(), listId(), id, std::move(options)),
+            m_list.id());
+        if (!widget) {
+            throw std::runtime_error(
+                "Failed to compose a ReorderableList item");
+        }
+        return {
+            .id = id,
+            .widget = WidgetRef<DraggableListItem>{m_tree, widget},
+        };
+    }
+
+    ReorderListItemHandle
+    ReorderListComposer::item(DraggableListItemOptions options) {
+        return item({}, std::move(options));
+    }
+
+    bool ReorderListComposer::containsItem(ReorderItemId id) const noexcept {
+        if (!id || !m_list) {
+            return false;
+        }
+        for (const auto child : m_tree.getChildren(m_list.id())) {
+            const auto *item = m_tree.getWidget<DraggableListItem>(child);
+            if (item != nullptr && item->itemId() == id) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     DockComposer::DockComposer(WidgetTree &tree, WidgetRef<DockSpace> dockSpace)
         : m_tree(tree),
           m_dockSpace(std::move(dockSpace)) {
@@ -65,10 +135,16 @@ namespace Bess::UI {
     }
 
     void DockComposer::rollback(const DockPanelHandle &panel) noexcept {
-        if (auto *dock = m_dockSpace.get(); dock != nullptr) {
-            static_cast<void>(dock->removePanel(m_tree, panel.item));
-        } else if (panel.panel) {
-            static_cast<void>(m_tree.removeWidget(panel.panel));
+        try {
+            if (auto *dock = m_dockSpace.get(); dock != nullptr) {
+                static_cast<void>(dock->removePanel(m_tree, panel.item));
+            } else if (panel.panel) {
+                static_cast<void>(m_tree.removeWidget(panel.panel));
+            }
+        } catch (...) {
+            // Rollback is cleanup for an already-failing composition. Widget
+            // removal is structurally total even when an unmount callback
+            // throws, so preserve the builder's primary exception.
         }
     }
 
@@ -111,6 +187,53 @@ namespace Bess::UI {
         return emplace<Surface>(std::move(options));
     }
 
+    WidgetRef<DropZone> UIComposer::dropZone(DropZoneOptions options) {
+        return emplace<DropZone>(m_tree.dragDrop(), std::move(options));
+    }
+
+    WidgetRef<Draggable> UIComposer::draggable(DraggableOptions options) {
+        return emplace<Draggable>(m_tree.dragDrop(), std::move(options));
+    }
+
+    WidgetRef<ReorderableList>
+    UIComposer::reorderableList(ReorderableListOptions options,
+                                ReorderListId id) {
+        return emplace<ReorderableList>(
+            m_tree.dragDrop(), std::move(options), id);
+    }
+
+    WidgetRef<ReorderableList> UIComposer::reorderableList(ReorderListId id) {
+        return reorderableList(ReorderableListOptions{}, id);
+    }
+
+    WidgetRef<Image>
+    UIComposer::image(std::shared_ptr<Core::Renderer::ITexture> texture,
+                      ImageOptions options) {
+        return emplace<Image>(std::move(texture), std::move(options));
+    }
+
+    WidgetRef<Image>
+    UIComposer::dynamicImage(ImageTextureProvider textureProvider,
+                             ImageOptions options) {
+        return emplace<Image>(std::move(textureProvider), std::move(options));
+    }
+
+    WidgetRef<RenderView>
+    UIComposer::renderView(std::shared_ptr<IRenderViewDelegate> delegate,
+                           RenderViewOptions options,
+                           std::shared_ptr<RenderSurface> surface) {
+        return emplace<RenderView>(
+            std::move(delegate), std::move(options), std::move(surface));
+    }
+
+    WidgetRef<TreeNode>
+    UIComposer::treeNode(std::string label,
+                         TreeNodeOptions options,
+                         TreeNode::ExpandedChanged expandedChanged) {
+        return emplace<TreeNode>(
+            std::move(label), std::move(options), std::move(expandedChanged));
+    }
+
     WidgetRef<Label> UIComposer::label(std::string text, LabelOptions options) {
         return emplace<Label>(std::move(text), std::move(options));
     }
@@ -120,6 +243,12 @@ namespace Bess::UI {
                                          ButtonOptions options) {
         return emplace<Button>(
             std::move(label), std::move(activated), std::move(options));
+    }
+
+    WidgetRef<ActionButton>
+    UIComposer::actionButton(ActionId action, ActionButtonOptions options) {
+        return emplace<ActionButton>(
+            m_tree.actionRegistry(), std::move(action), std::move(options));
     }
 
     WidgetRef<CheckBox>

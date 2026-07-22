@@ -1,8 +1,11 @@
 #include "ui_painter.h"
 
+#include "bess_core/renderer/texture.h"
+
 #include <algorithm>
 #include <cmath>
 #include <optional>
+#include <stdexcept>
 
 namespace Bess::UI {
     namespace {
@@ -81,16 +84,24 @@ namespace Bess::UI {
         drawText(icon, paint.glyph);
     }
 
+    void UIPainter::drawImage(const ImagePaint &) {
+    }
+
     void UIPainter::pushLayer(float) {
     }
 
     void UIPainter::popLayer() {
     }
 
-    RendererUIPainter::RendererUIPainter(Core::Renderer::IRenderer2D &renderer,
-                                         glm::vec2 viewportSize) noexcept
+    RendererUIPainter::RendererUIPainter(
+        Core::Renderer::IRenderer2D &renderer,
+        glm::vec2 viewportSize,
+        Core::Renderer::TextureHandle activeColorAttachment,
+        Core::Renderer::TextureHandle activePickingAttachment) noexcept
         : m_renderer(renderer),
-          m_viewportSize(glm::max(viewportSize, glm::vec2{0.f})) {
+          m_viewportSize(glm::max(viewportSize, glm::vec2{0.f})),
+          m_activeColorAttachment(activeColorAttachment),
+          m_activePickingAttachment(activePickingAttachment) {
     }
 
     glm::vec2 RendererUIPainter::viewportSize() const noexcept {
@@ -149,6 +160,35 @@ namespace Bess::UI {
             drawBox(background);
         }
         m_renderer.drawFont(icon, props);
+    }
+
+    void RendererUIPainter::drawImage(const ImagePaint &paint) {
+        if (paint.texture == nullptr || paint.texture->getHandle() == 0 ||
+            paint.bounds.empty() || paint.tint.a <= 0.f) {
+            return;
+        }
+
+        const auto handle = paint.texture->getHandle();
+        if (handle == m_activeColorAttachment ||
+            handle == m_activePickingAttachment) {
+            throw std::logic_error(
+                "Cannot sample a texture while it is an active render "
+                "attachment; use a separate or ping-pong surface");
+        }
+
+        m_retainedTextures.push_back(paint.texture);
+
+        m_renderer.drawQuad({
+            .position = paint.bounds.center,
+            .size = paint.bounds.size,
+            .zIndex = paint.zIndex + m_layerOffset,
+            .color = paint.tint,
+            .texture = handle,
+            .uvRect = paint.uvRect,
+            .id = paint.pickingId,
+            .transformMode = Core::Renderer::RenderTransformMode::Screen,
+            .radius = paint.cornerRadius,
+        });
     }
 
     glm::vec2 RendererUIPainter::measureText(std::string_view text,

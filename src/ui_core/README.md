@@ -154,6 +154,68 @@ The stack clips children by default. Set `clipChildren = false` for intentional
 overflow such as badges or effects. An explicit child layout Z value overrides
 declaration order for both painting depth and hit testing.
 
+## Trees, images, and renderer-backed views
+
+`TreeNode` is a lightweight disclosure control for small retained hierarchies.
+Its builder composes into a private content host, so collapsing a branch never
+overwrites visibility chosen by descendants. Large data sets should build a
+virtualized model-backed tree on the same interaction vocabulary.
+
+```cpp
+ui.treeNode("Assets", [](Bess::UI::UIComposer &branch) {
+    branch.treeNode("Textures", [](Bess::UI::UIComposer &textures) {
+        textures.label("logo.png");
+    });
+});
+```
+
+`Image` passively presents any shared renderer texture with fill, contain,
+cover, intrinsic, or scale-down fitting. It owns no renderer or device state.
+Use `dynamicImage` with a provider when presenting a render-target attachment:
+`RenderSurface::resize()` may replace its texture objects, so a texture returned
+by `colorTexture()` or `pickingTexture()` is only a snapshot. The provider
+should reacquire the current attachment instead of retaining that snapshot.
+
+`RenderView` is the active counterpart for scene previews and viewports: its
+`IRenderViewDelegate` updates application state, records offscreen draw calls,
+and handles input while `RenderSurface` owns only target attachments. Exactly
+one mounted `RenderView` may produce a given surface; additional passive
+presentations may consume its color texture through `dynamicImage`.
+Offscreen work runs in `WidgetTree::prepareRender`, before the target's main
+frame begins; `paint` only composites the completed color texture.
+
+```cpp
+class PreviewRenderer final : public Bess::UI::IRenderViewDelegate {
+  public:
+    void render(Bess::UI::RenderViewFrameContext &frame) override {
+        frame.renderer.drawQuad({
+            .position = {},
+            .size = {float(frame.extent.width), float(frame.extent.height)},
+            .color = {0.1f, 0.2f, 0.4f, 1.f},
+            .transformMode =
+                Bess::Core::Renderer::RenderTransformMode::Screen,
+        });
+    }
+};
+
+ui.renderView(std::make_shared<PreviewRenderer>(),
+              {.policy = Bess::UI::RenderPolicy::whileVisible});
+```
+
+Use `onDemand` for expensive previews and call `requestRender()` after model
+changes. `whileVisible` is appropriate for ordinary scene viewports;
+`continuous` deliberately keeps rendering while the widget is hidden.
+
+`RenderView` and `RenderSurface` exclusively own frame begin/end and target
+resize. A delegate may adjust the supplied frame description in
+`configureFrame()` and issue draw commands in `render()`; it must not begin or
+end a renderer frame, recursively render the same surface, or mutate that
+surface's attachments from those callbacks. Sampling a color or picking
+texture while it is attached to the active frame is a render feedback loop and
+is prohibited. Use a separate input surface or ping-pong attachments for
+post-processing. Delegate attach/detach callbacks follow the mounted view, and
+`setDelegate()` safely reconciles replacements made from lifecycle callbacks.
+
 ## Writing a control
 
 Derive from `Widget` and override only the required hooks:
@@ -225,6 +287,50 @@ the view boundary automatically. Modal view roots also block pointer input to
 lower layers. Popups opened from a modal form a nested focus scope, so their
 controls can receive focus without exposing background controls.
 
+## Actions and shortcuts
+
+`ActionRegistry` is the shared command authority for action-bound controls,
+keyboard shortcuts, programmatic dispatch, command palettes, and plugins.
+Actions use semantic namespaced IDs, cached presentation and availability
+state, and ordered global, window, panel, editor, popup, and modal scopes. A
+shortcut is dispatched only after the focused widget declines it; Tab
+traversal and popup/drag Escape handling retain precedence.
+
+```cpp
+const Bess::UI::ActionId save{"project.save"};
+ui.tree().actions().registerAction({
+    .id = save,
+    .state = {.label = "Save", .description = "Save the project"},
+    .shortcuts = {{.key = Bess::KeyCode::s,
+                   .modifiers = Bess::UI::KeyChordModifier::control}},
+    .invoked = [](const Bess::UI::ActionInvocation &) { /* save */ },
+});
+ui.actionButton(save);
+```
+
+An `ActionButton` tracks label, enabled state, scope availability, and
+visibility through registry notifications without polling during paint. Views
+that register callbacks capturing themselves must unregister those actions (or
+remove their private scope) from `onUnmounting`. `UITargetDesc::actionRegistry`
+can inject one application registry across several targets; injection must
+happen before widgets are mounted.
+
+`MenuModel` remains a standalone presentation hierarchy for now: its item
+labels, enabled/check state, shortcut text, and activation callbacks are not
+implicitly synchronized with `ActionRegistry`. A menu may invoke a registry
+action explicitly from its callback, but applications that need live
+action-backed menus should add that adapter before treating the menu as another
+view of action state. Keeping this boundary explicit avoids two competing
+sources of truth masquerading as one.
+
+Scope activation belongs to the registry, not to a `UITarget`. Consequently,
+all active window, panel, editor, popup, and modal scopes in a shared registry
+participate in shortcut dispatch from every attached target. Share a registry
+directly for application-global actions and state. For target-local contextual
+shortcuts, either use one registry per target or have the host activate and
+deactivate scopes on target focus so only the intended context is active. The
+registry does not infer that coordination from widget focus.
+
 ## Value controls
 
 `CheckBox`, `ToggleSwitch`, `RadioButton`, and `Slider` use renderer-neutral,
@@ -277,6 +383,67 @@ exists. `Dropdown`, `ContextMenu`, nested submenus, `Tooltip`, and
 `Autocomplete` all build on this host instead of maintaining independent
 overlay or dismissal systems. Long dropdown, autocomplete, and context-menu
 lists scroll within their viewport.
+
+## Drag and drop
+
+`DragDropService` owns one active drag session. A target uses a private service
+by default. Payloads are immutable, cheaply copied, and may expose several
+typed representations at once. MIME-like names make file/text formats
+interoperable; namespaced custom formats keep application data strongly typed.
+
+```cpp
+Bess::UI::DragPayloadBuilder payload;
+payload.set(Bess::UI::DragFormats::plainText, std::string{"Asset 42"});
+
+ui.dropZone(
+    {.callbacks = {
+         .propose = [](const Bess::UI::DragTargetEvent &event) {
+             return event.payload.has(Bess::UI::DragFormats::plainText.id())
+                        ? Bess::UI::DragProposal{Bess::UI::DragOperation::copy}
+                        : Bess::UI::DragProposal{};
+         },
+         .onDrop = [](const Bess::UI::DropEvent &event) {
+             return event.payload.get(Bess::UI::DragFormats::plainText) !=
+                    nullptr;
+         },
+     }},
+    [&](Bess::UI::UIComposer &target) {
+        target.draggable(
+            {.payload = std::move(payload).build(),
+             .allowedOperations = Bess::UI::DragOperation::copy},
+            [](Bess::UI::UIComposer &source) {
+                source.label("Drag this asset");
+            });
+    });
+```
+
+The service delays expensive payload creation until the pointer crosses the
+drag threshold, negotiates copy/move/link operations, searches nested targets
+from deepest to ancestor, and guarantees enter/over/leave/completion cleanup.
+Pointer capture is canceled when dragging takes ownership, so a pressed child
+cannot activate on release. Escape cancels the active drag before dismissing a
+popup.
+
+`ReorderableList` builds on the same service. Its callback receives stable item
+IDs plus a `before` boundary and mutates the application model; the control
+does not secretly reorder model state. `ReorderListComposer` enforces direct
+item structure and supplies generated or explicit IDs.
+
+Native window drags use the same lifecycle through `ExternalDragEvent`; file
+lists, URI lists, plain text, and raw native MIME representations are available
+to ordinary `DropZone`s. Native adapters must ask the retained target
+synchronously whether each offer is accepted. The application X11 bridge uses
+that answer for XDND status/completion and suppresses the legacy
+`WindowDropEvent` when a retained `DropZone` has already committed the drop, so
+one offer is not imported twice. Unhandled offers can still use the legacy
+compatibility route.
+
+Inject `UITargetDesc::dragDropService` before mounting widgets when several
+targets need one drag authority. Sharing the service does not route pointer or
+native protocol events, identify the window under the pointer, or convert
+coordinates. The host must dispatch each update once to the appropriate
+`WidgetTree` in that target's top-left coordinate space and deliver terminal
+leave/drop/cancel transitions.
 
 ## Text editing
 

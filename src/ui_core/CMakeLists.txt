@@ -2,9 +2,14 @@ set(PROJECT_NAME UICore)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(Header_Files
+	include/controls/drag_drop_widgets.h
+	include/controls/reorderable_list.h
 	include/behaviors/pressable.h
+	include/controls/action_button.h
 	include/controls/basic_widgets.h
 	include/controls/focus_scope.h
+	include/controls/image.h
+	include/controls/render_view.h
 	include/controls/dock_drop.h
 	include/controls/dock_space.h
 	include/controls/menu_bar.h
@@ -12,11 +17,14 @@ set(Header_Files
 	include/controls/scroll_view.h
 	include/controls/tab_bar.h
 	include/controls/text_box.h
+	include/controls/tree_node.h
 	include/controls/value_controls.h
 	include/demo_view.h
+	include/drag_drop.h
 	include/dock.h
 	include/layout.h
 	include/models/signal.h
+	include/models/action_registry.h
 	include/models/dock_model.h
 	include/models/dropdown_model.h
 	include/models/menu_model.h
@@ -24,6 +32,7 @@ set(Header_Files
 	include/models/text_edit_model.h
 	include/models/value_models.h
 	include/popup.h
+	include/render_surface.h
 	include/ui_event.h
 	include/ui_composer.h
 	include/ui_painter.h
@@ -42,10 +51,18 @@ set(Header_Files
 source_group("include/ui_core" FILES ${Header_Files})
 
 set(Source_Files
+	src/drag_drop_widgets.cpp
+	src/reorderable_list.cpp
+	src/action_button.cpp
 	src/basic_widgets.cpp
+	src/action_registry.cpp
 	src/focus_scope.cpp
+	src/image.cpp
+	src/render_surface.cpp
+	src/render_view.cpp
 	src/demo_view.cpp
 	src/dock.cpp
+	src/drag_drop.cpp
 	src/dock_drop.cpp
 	src/dock_model.cpp
 	src/dock_space.cpp
@@ -60,6 +77,7 @@ set(Source_Files
 	src/tab_bar.cpp
 	src/text_box.cpp
 	src/text_edit_model.cpp
+	src/tree_node.cpp
 	src/ui_painter.cpp
 	src/ui_platform_services.cpp
 	src/ui_composer.cpp

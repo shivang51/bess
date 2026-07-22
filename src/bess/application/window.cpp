@@ -8,6 +8,7 @@
 #include "common/logger.h"
 #include "event_dispatcher.h"
 #include "ext/vector_float2.hpp"
+#include "services/window_drop_service/window_drop_service.h"
 #include "stb_image.h"
 #include "sub_systems/renderer_context.h"
 
@@ -18,12 +19,15 @@
 #endif
 #include <algorithm>
 #include <cassert>
+#include <cctype>
 #include <concepts>
 #include <cstdint>
+#include <exception>
 #include <memory>
 #include <optional>
 #include <string_view>
 #include <type_traits>
+#include <utility>
 
 #ifdef _WIN32
     #ifndef WIN32_LEAN_AND_MEAN
@@ -146,6 +150,58 @@ namespace Bess {
           private:
             GLFWwindow *m_window = nullptr;
         };
+
+        [[nodiscard]] std::string_view
+        trimmedMimeBase(std::string_view value) noexcept {
+            if (const auto separator = value.find(';');
+                separator != std::string_view::npos) {
+                value = value.substr(0, separator);
+            }
+            const auto isSpace = [](const char character) {
+                return std::isspace(static_cast<unsigned char>(character)) != 0;
+            };
+            while (!value.empty() && isSpace(value.front())) {
+                value.remove_prefix(1);
+            }
+            while (!value.empty() && isSpace(value.back())) {
+                value.remove_suffix(1);
+            }
+            return value;
+        }
+
+        [[nodiscard]] bool asciiEqualsIgnoreCase(std::string_view lhs,
+                                                 std::string_view rhs) {
+            if (lhs.size() != rhs.size()) {
+                return false;
+            }
+            for (size_t index = 0; index < lhs.size(); ++index) {
+                const auto left = static_cast<unsigned char>(lhs[index]);
+                const auto right = static_cast<unsigned char>(rhs[index]);
+                if (std::tolower(left) != std::tolower(right)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        [[nodiscard]] bool isPlainTextFormat(std::string_view format) {
+            const auto base = trimmedMimeBase(format);
+            return asciiEqualsIgnoreCase(base, "text/plain") ||
+                   asciiEqualsIgnoreCase(base, "UTF8_STRING") ||
+                   asciiEqualsIgnoreCase(base, "STRING") ||
+                   asciiEqualsIgnoreCase(base, "TEXT") ||
+                   asciiEqualsIgnoreCase(base, "COMPOUND_TEXT");
+        }
+
+        [[nodiscard]] bool isUriListFormat(std::string_view format) {
+            return asciiEqualsIgnoreCase(trimmedMimeBase(format),
+                                         "text/uri-list");
+        }
+
+        [[nodiscard]] bool isUsableNativeFormat(std::string_view format) {
+            return !format.empty() &&
+                   !asciiEqualsIgnoreCase(trimmedMimeBase(format), "None");
+        }
     } // namespace
 
     Window::Window(int width, int height, const std::string &title)
@@ -386,9 +442,13 @@ namespace Bess {
         const auto mousePos = getMousePos();
         dispatchInputEvent(Input::Event{Input::MouseMoveEvent{.pos = mousePos},
                                         currentInputModifiers()});
+        subscribeWindowDragDrop();
     }
 
     void Window::onShutdown() {
+        unsubscribeWindowDragDrop();
+        m_nativeDragActive = false;
+        clearExternalDragPayload();
         m_uiTarget.destroy();
         m_uiPlatformServices.reset();
     }
@@ -397,6 +457,9 @@ namespace Bess {
         // Keep this path independently safe if a host skips onShutdown(). The
         // target releases its platform bridge before the GLFW handle becomes
         // invalid; destroy() is intentionally idempotent.
+        unsubscribeWindowDragDrop();
+        m_nativeDragActive = false;
+        clearExternalDragPayload();
         m_uiTarget.destroy();
         m_uiPlatformServices.reset();
 
@@ -663,6 +726,210 @@ namespace Bess {
             static_cast<float>(y) * scaleY,
         };
         return framebufferPos - m_uiTarget.getRect().pos;
+    }
+
+    void Window::subscribeWindowDragDrop() {
+        unsubscribeWindowDragDrop();
+
+        auto &appContext = GAppContext::getInstance();
+        if (!appContext.hasSubSystem<Svc::WindowDropService>()) {
+            return;
+        }
+        const auto service = appContext.getSubSystem<Svc::WindowDropService>();
+        if (service == nullptr) {
+            return;
+        }
+
+        const std::weak_ptr<Window> weakWindow = weak_from_this();
+        const auto subscription = service->subscribeDragDecision(
+            [weakWindow](const Events::WindowDragDropEvent &event) {
+                const auto window = weakWindow.lock();
+                if (window == nullptr || event.window != window.get()) {
+                    return false;
+                }
+                try {
+                    return window->handleWindowDragDrop(event);
+                } catch (const std::exception &exception) {
+                    BESS_ERROR("[WindowDrop] Failed to route native drag: {}",
+                               exception.what());
+                } catch (...) {
+                    BESS_ERROR("[WindowDrop] Failed to route native drag");
+                }
+                return false;
+            });
+        if (subscription == 0) {
+            BESS_WARN("[WindowDrop] Could not subscribe retained UI to native "
+                      "drag events");
+            return;
+        }
+
+        m_windowDropService = service;
+        m_windowDragDropSubscription = subscription;
+    }
+
+    void Window::unsubscribeWindowDragDrop() noexcept {
+        const auto subscription =
+            std::exchange(m_windowDragDropSubscription, 0);
+        if (subscription != 0) {
+            if (const auto service = m_windowDropService.lock()) {
+                service->unsubscribeDragDecision(subscription);
+            }
+        }
+        m_windowDropService.reset();
+    }
+
+    UI::DragPayload Window::externalDragPayload(
+        const std::shared_ptr<const Events::WindowDropPayload> &payload) {
+        if (payload == nullptr) {
+            return {};
+        }
+        if (const auto cached = m_cachedNativeDragPayload.lock();
+            cached != nullptr && cached == payload) {
+            return m_cachedExternalDragPayload;
+        }
+
+        UI::DragPayloadBuilder builder;
+        if (!payload->paths.empty()) {
+            static_cast<void>(
+                builder.set(UI::DragFormats::files,
+                            UI::DragFileList{.paths = payload->paths}));
+        }
+
+        if (!payload->data.empty()) {
+            // Aliasing the immutable native payload avoids duplicating a large
+            // text/URI body for each compatible representation.
+            const auto data = std::shared_ptr<const std::string>(
+                payload, std::addressof(payload->data));
+            const auto addNativeRepresentation =
+                [&builder, &data](std::string_view format) {
+                    if (!isUsableNativeFormat(format)) {
+                        return;
+                    }
+                    const UI::DragFormat<std::string> nativeFormat{format};
+                    static_cast<void>(builder.setShared(nativeFormat, data));
+                };
+            addNativeRepresentation(payload->requestedMimeType);
+            addNativeRepresentation(payload->mimeType);
+
+            if (isPlainTextFormat(payload->requestedMimeType) ||
+                isPlainTextFormat(payload->mimeType)) {
+                static_cast<void>(
+                    builder.setShared(UI::DragFormats::plainText, data));
+            }
+            if (isUriListFormat(payload->requestedMimeType) ||
+                isUriListFormat(payload->mimeType)) {
+                static_cast<void>(
+                    builder.setShared(UI::DragFormats::uriList, data));
+            }
+        }
+
+        m_cachedNativeDragPayload = payload;
+        m_cachedExternalDragPayload = std::move(builder).build();
+        return m_cachedExternalDragPayload;
+    }
+
+    void Window::clearExternalDragPayload() noexcept {
+        m_cachedNativeDragPayload.reset();
+        m_cachedExternalDragPayload = {};
+    }
+
+    bool
+    Window::handleWindowDragDrop(const Events::WindowDragDropEvent &event) {
+        if (event.window != this) {
+            return false;
+        }
+
+        auto &tree = m_uiTarget.getWidgetTree();
+        const auto dispatchExternal = [this,
+                                       &tree](UI::ExternalDragEvent drag) {
+            if (UI::hasInvalidation(tree.pendingInvalidation(),
+                                    UI::WidgetInvalidation::layout)) {
+                tree.performLayout();
+            }
+            const auto result = tree.dispatchEvent(
+                UI::UIEvent{std::move(drag), currentInputModifiers()});
+            m_uiTarget.getViewHost().flushPendingUnmounts();
+            if (UI::hasInvalidation(tree.pendingInvalidation(),
+                                    UI::WidgetInvalidation::layout)) {
+                tree.performLayout();
+            }
+            return result.handled;
+        };
+
+        if (event.type == Events::WindowDragDropEventType::enter) {
+            if (m_nativeDragActive) {
+                // A backend can begin a replacement native session without a
+                // reliable leave from the previous source. Explicitly close
+                // the retained session before publishing the new offer.
+                static_cast<void>(dispatchExternal(UI::ExternalDragEvent{
+                    .phase = UI::ExternalDragEventPhase::leave,
+                }));
+            }
+            m_nativeDragActive = true;
+            // Native backends may recycle payload storage between sessions;
+            // an enter event establishes a fresh cache generation.
+            clearExternalDragPayload();
+        } else if (event.type == Events::WindowDragDropEventType::move) {
+            // Some platform adapters can first observe a drag at its initial
+            // position rather than receiving a distinct enter notification.
+            m_nativeDragActive = true;
+        }
+
+        auto phase = [&] {
+            switch (event.type) {
+            case Events::WindowDragDropEventType::enter:
+                return UI::ExternalDragEventPhase::enter;
+            case Events::WindowDragDropEventType::move:
+                return UI::ExternalDragEventPhase::move;
+            case Events::WindowDragDropEventType::leave:
+                return UI::ExternalDragEventPhase::leave;
+            case Events::WindowDragDropEventType::drop:
+                return UI::ExternalDragEventPhase::drop;
+            }
+            return UI::ExternalDragEventPhase::leave;
+        }();
+
+        UI::DragPayload payload;
+        if (event.acceptedByPlatform &&
+            event.type != Events::WindowDragDropEventType::leave) {
+            payload = externalDragPayload(event.payload);
+        }
+
+        // A platform rejection is authoritative. Converting it to leave also
+        // cancels any retained external session that was accepted on an
+        // earlier move, rather than allowing stale data to be dropped.
+        if (!event.acceptedByPlatform &&
+            event.type != Events::WindowDragDropEventType::enter) {
+            phase = UI::ExternalDragEventPhase::leave;
+            payload = {};
+        } else if ((event.type == Events::WindowDragDropEventType::move ||
+                    event.type == Events::WindowDragDropEventType::drop) &&
+                   payload.empty()) {
+            phase = UI::ExternalDragEventPhase::leave;
+        }
+
+        glm::vec2 position{0.f, 0.f};
+        if (phase != UI::ExternalDragEventPhase::leave) {
+            // Service coordinates are native client-area/window units. Route
+            // them through the same logical-window to framebuffer-target
+            // transform used by GLFW pointer callbacks.
+            position = windowToUITargetPos(event.x, event.y);
+        }
+        const bool accepted = dispatchExternal(UI::ExternalDragEvent{
+            .phase = phase,
+            .payload = std::move(payload),
+            .pos = position,
+            .allowedOperations = UI::DragOperation::copy,
+            .preferredOperation = UI::DragOperation::copy,
+        });
+
+        if (event.type == Events::WindowDragDropEventType::leave ||
+            event.type == Events::WindowDragDropEventType::drop ||
+            phase == UI::ExternalDragEventPhase::leave) {
+            m_nativeDragActive = false;
+            clearExternalDragPayload();
+        }
+        return accepted;
     }
 
     KeyCode Window::glfwKeyToKeyCode(int glfwKey) const {

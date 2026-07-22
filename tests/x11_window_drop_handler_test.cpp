@@ -70,13 +70,14 @@ namespace {
                            ::Window destination,
                            ::Window logicalTarget,
                            Atom messageType,
-                           const std::array<long, 5> &data) {
+                           const std::array<long, 5> &data,
+                           int format = 32) {
         XEvent event{};
         event.xclient.type = ClientMessage;
         event.xclient.display = display;
         event.xclient.window = logicalTarget;
         event.xclient.message_type = messageType;
-        event.xclient.format = 32;
+        event.xclient.format = format;
         std::copy(data.begin(), data.end(), event.xclient.data.l);
         ASSERT_NE(XSendEvent(display, destination, False, NoEventMask, &event),
                   0);
@@ -157,6 +158,40 @@ TEST(X11WindowDropHandlerTest,
         EXPECT_EQ(readWindowProperty(targetDisplay, proxyWindow, xdndProxy),
                   proxyWindow);
 
+        // Malformed ClientMessages are consumed but must never mutate protocol
+        // state. An invalid source XID must likewise be rejected without
+        // allowing Xlib's default BadWindow handler to terminate the process.
+        sendClientMessage(sourceDisplay,
+                          proxyWindow,
+                          targetWindow,
+                          xdndEnter,
+                          {static_cast<long>(sourceWindow), 5L << 24, 0, 0, 0},
+                          8);
+        ASSERT_TRUE(waitUntil([&] { return handler.poll(); }));
+        EXPECT_TRUE(receivedEvents.empty());
+
+        const ::Window destroyedSource =
+            XCreateSimpleWindow(sourceDisplay,
+                                DefaultRootWindow(sourceDisplay),
+                                0,
+                                0,
+                                1,
+                                1,
+                                0,
+                                0,
+                                0);
+        ASSERT_NE(destroyedSource, None);
+        XDestroyWindow(sourceDisplay, destroyedSource);
+        XSync(sourceDisplay, False);
+        sendClientMessage(
+            sourceDisplay,
+            proxyWindow,
+            targetWindow,
+            xdndEnter,
+            {static_cast<long>(destroyedSource), 5L << 24, 0, 0, 0});
+        ASSERT_TRUE(waitUntil([&] { return handler.poll(); }));
+        EXPECT_TRUE(receivedEvents.empty());
+
         Atom actualType = None;
         int actualFormat = 0;
         unsigned long itemCount = 0;
@@ -212,7 +247,6 @@ TEST(X11WindowDropHandlerTest,
                 return event.type == WindowDropEventType::enter;
             });
         }));
-
         sendClientMessage(sourceDisplay,
                           proxyWindow,
                           targetWindow,
@@ -258,6 +292,22 @@ TEST(X11WindowDropHandlerTest,
         selectionNotify.xselection.property =
             selectionRequest.xselectionrequest.property;
         selectionNotify.xselection.time = CurrentTime;
+
+        XEvent staleSelectionNotify = selectionNotify;
+        staleSelectionNotify.xselection.property = None;
+        staleSelectionNotify.xselection.time = 1;
+        ASSERT_NE(XSendEvent(sourceDisplay,
+                             proxyWindow,
+                             False,
+                             NoEventMask,
+                             &staleSelectionNotify),
+                  0);
+        XSync(sourceDisplay, False);
+        handler.poll();
+        EXPECT_FALSE(std::ranges::any_of(receivedEvents, [](const auto &event) {
+            return event.type == WindowDropEventType::position;
+        }));
+
         ASSERT_NE(XSendEvent(sourceDisplay,
                              proxyWindow,
                              False,
@@ -273,6 +323,18 @@ TEST(X11WindowDropHandlerTest,
                        event.accepted;
             });
         }));
+        const auto filePositionEvent =
+            std::ranges::find_if(receivedEvents, [](const auto &event) {
+                return event.type == WindowDropEventType::position &&
+                       event.accepted;
+            });
+        ASSERT_NE(filePositionEvent, receivedEvents.end());
+        ASSERT_NE(filePositionEvent->payload, nullptr);
+        const auto filePositionPayload = filePositionEvent->payload;
+        ASSERT_EQ(filePositionEvent->payload->paths.size(), 1U);
+        EXPECT_EQ(filePositionEvent->payload->paths.front(),
+                  "/tmp/dragged-image.png");
+        EXPECT_EQ(filePositionEvent->payload->data, draggedFile);
 
         XEvent statusEvent{};
         ASSERT_TRUE(waitUntil([&] {
@@ -286,6 +348,7 @@ TEST(X11WindowDropHandlerTest,
         }));
         EXPECT_EQ(statusEvent.xclient.data.l[0], targetWindow);
         EXPECT_EQ(statusEvent.xclient.data.l[1] & 3L, 3L);
+        EXPECT_EQ(statusEvent.xclient.data.l[4], xdndActionCopy);
 
         // Replacing the XDND owner here models the observed XWayland fallback
         // to clipboard contents after button release. No conversion request
@@ -318,6 +381,7 @@ TEST(X11WindowDropHandlerTest,
         ASSERT_NE(dropEvent, receivedEvents.end());
         ASSERT_TRUE(dropEvent->accepted);
         ASSERT_NE(dropEvent->payload, nullptr);
+        EXPECT_EQ(dropEvent->payload, filePositionPayload);
         ASSERT_EQ(dropEvent->payload->paths.size(), 1U);
         EXPECT_EQ(dropEvent->payload->paths.front(), "/tmp/dragged-image.png");
         EXPECT_EQ(dropEvent->payload->requestedMimeType, "text/uri-list");
@@ -327,18 +391,25 @@ TEST(X11WindowDropHandlerTest,
 
         bool sawPostDropSelectionRequest = false;
         bool sawFinished = false;
+        XEvent finishedEvent{};
         ASSERT_TRUE(waitUntil([&] {
             XSync(sourceDisplay, False);
             while (XPending(sourceDisplay) > 0) {
                 XEvent event{};
                 XNextEvent(sourceDisplay, &event);
                 sawPostDropSelectionRequest |= event.type == SelectionRequest;
-                sawFinished |= event.type == ClientMessage &&
-                               event.xclient.message_type == xdndFinished;
+                if (event.type == ClientMessage &&
+                    event.xclient.message_type == xdndFinished) {
+                    sawFinished = true;
+                    finishedEvent = event;
+                }
             }
             return sawFinished;
         }));
         EXPECT_FALSE(sawPostDropSelectionRequest);
+        EXPECT_EQ(finishedEvent.xclient.data.l[0], targetWindow);
+        EXPECT_EQ(finishedEvent.xclient.data.l[1], 1L);
+        EXPECT_EQ(finishedEvent.xclient.data.l[2], xdndActionCopy);
 
         const auto positionCountAfterDrop =
             std::ranges::count_if(receivedEvents, [](const auto &event) {
@@ -384,7 +455,7 @@ TEST(X11WindowDropHandlerTest,
                           targetWindow,
                           xdndEnter,
                           {static_cast<long>(sourceWindow),
-                           5L << 24,
+                           4L << 24,
                            static_cast<long>(textPlain),
                            0,
                            0});
@@ -453,6 +524,19 @@ TEST(X11WindowDropHandlerTest,
                               event.accepted;
                    }) > positionCountBeforeTextDrop;
         }));
+        const auto textPositionEvent = std::ranges::find_if(
+            receivedEvents.rbegin(),
+            receivedEvents.rend(),
+            [](const auto &event) {
+                return event.type == WindowDropEventType::position &&
+                       event.accepted;
+            });
+        ASSERT_NE(textPositionEvent, receivedEvents.rend());
+        ASSERT_NE(textPositionEvent->payload, nullptr);
+        const auto textPositionPayload = textPositionEvent->payload;
+        EXPECT_TRUE(textPositionEvent->payload->paths.empty());
+        EXPECT_EQ(textPositionEvent->payload->mimeType, "text/plain");
+        EXPECT_EQ(textPositionEvent->payload->data, plainText);
 
         sendClientMessage(
             sourceDisplay,
@@ -476,11 +560,26 @@ TEST(X11WindowDropHandlerTest,
         ASSERT_NE(textDropEvent, receivedEvents.rend());
         ASSERT_TRUE(textDropEvent->accepted);
         ASSERT_NE(textDropEvent->payload, nullptr);
+        EXPECT_EQ(textDropEvent->payload, textPositionPayload);
         EXPECT_TRUE(textDropEvent->payload->paths.empty());
         EXPECT_EQ(textDropEvent->payload->requestedMimeType, "text/plain");
         EXPECT_EQ(textDropEvent->payload->mimeType, "text/plain");
         EXPECT_EQ(textDropEvent->payload->formatBits, 8);
         EXPECT_EQ(textDropEvent->payload->data, plainText);
+
+        XEvent legacyFinishedEvent{};
+        ASSERT_TRUE(waitUntil([&] {
+            return takeEvent(
+                sourceDisplay,
+                ClientMessage,
+                [&](const XEvent &event) {
+                    return event.xclient.message_type == xdndFinished;
+                },
+                legacyFinishedEvent);
+        }));
+        EXPECT_EQ(legacyFinishedEvent.xclient.data.l[0], targetWindow);
+        EXPECT_EQ(legacyFinishedEvent.xclient.data.l[1], 0L);
+        EXPECT_EQ(legacyFinishedEvent.xclient.data.l[2], None);
 
         handler.unsubscribe(subscription);
     }

@@ -444,7 +444,11 @@ namespace Bess::Wgpu {
 
     struct WgpuRenderer2D::Impl {
         Core::Renderer::Renderer2DCreateInfo createInfo;
+        // `extent` describes the frame currently being recorded. The default
+        // attachments have an independent lifetime: temporarily rendering to
+        // an explicit texture must not resize the window/default target.
         Renderer2DExtent extent;
+        Renderer2DExtent defaultTargetExtent;
         Core::Renderer::Renderer2DTargetFormat targetFormatType =
             Core::Renderer::Renderer2DTargetFormat::BGRA8Unorm;
         wgpu::TextureFormat targetFormat = wgpu::TextureFormat::BGRA8Unorm;
@@ -471,6 +475,14 @@ namespace Bess::Wgpu {
         wgpu::TextureView offscreenTargetView;
         wgpu::Texture depthTarget;
         wgpu::TextureView depthTargetView;
+        struct TextureDepthTarget {
+            Renderer2DExtent extent;
+            wgpu::Texture texture;
+            wgpu::TextureView view;
+        };
+        HashMap<Core::Renderer::TextureHandle, TextureDepthTarget>
+            textureDepthTargets;
+        wgpu::TextureView frameDepthTargetView;
         float *cameraTransform = nullptr;
         Piplines::SharedFrameBuffer sharedFrameBuffer;
         std::unique_ptr<Piplines::PrimitivePipeline> primitivePipeline;
@@ -526,6 +538,9 @@ namespace Bess::Wgpu {
         void createDevice();
         void createOffscreenTarget();
         void createDepthTarget();
+        [[nodiscard]] wgpu::TextureView
+        depthTargetForTexture(Core::Renderer::TextureHandle texture,
+                              const Renderer2DExtent &targetExtent);
         void createWindowSurface();
         void configureWindowSurface(uint32_t width, uint32_t height);
         [[nodiscard]] wgpu::TextureView
@@ -661,8 +676,9 @@ namespace Bess::Wgpu {
     void WgpuRenderer2D::Impl::createOffscreenTarget() {
         wgpu::TextureDescriptor descriptor{};
         descriptor.dimension = wgpu::TextureDimension::e2D;
-        descriptor.size = {
-            std::max(1u, extent.width), std::max(1u, extent.height), 1};
+        descriptor.size = {std::max(1u, defaultTargetExtent.width),
+                           std::max(1u, defaultTargetExtent.height),
+                           1};
         descriptor.format = targetFormat;
         descriptor.mipLevelCount = 1;
         descriptor.sampleCount = 1;
@@ -678,8 +694,9 @@ namespace Bess::Wgpu {
     void WgpuRenderer2D::Impl::createDepthTarget() {
         wgpu::TextureDescriptor descriptor{};
         descriptor.dimension = wgpu::TextureDimension::e2D;
-        descriptor.size = {
-            std::max(1u, extent.width), std::max(1u, extent.height), 1};
+        descriptor.size = {std::max(1u, defaultTargetExtent.width),
+                           std::max(1u, defaultTargetExtent.height),
+                           1};
         descriptor.format = kDepthStencilFormat;
         descriptor.mipLevelCount = 1;
         descriptor.sampleCount = 1;
@@ -688,6 +705,34 @@ namespace Bess::Wgpu {
 
         depthTarget = device.CreateTexture(&descriptor);
         depthTargetView = depthTarget.CreateView();
+    }
+
+    wgpu::TextureView WgpuRenderer2D::Impl::depthTargetForTexture(
+        Core::Renderer::TextureHandle texture,
+        const Renderer2DExtent &targetExtent) {
+        auto [it, inserted] = textureDepthTargets.try_emplace(texture);
+        TextureDepthTarget &target = it->second;
+        if (!inserted && target.texture != nullptr &&
+            target.extent.width == targetExtent.width &&
+            target.extent.height == targetExtent.height) {
+            return target.view;
+        }
+
+        wgpu::TextureDescriptor descriptor{};
+        descriptor.dimension = wgpu::TextureDimension::e2D;
+        descriptor.size = {std::max(1u, targetExtent.width),
+                           std::max(1u, targetExtent.height),
+                           1};
+        descriptor.format = kDepthStencilFormat;
+        descriptor.mipLevelCount = 1;
+        descriptor.sampleCount = 1;
+        descriptor.usage = wgpu::TextureUsage::RenderAttachment;
+        descriptor.label = "TextureDepthRenderTarget";
+
+        target.extent = targetExtent;
+        target.texture = device.CreateTexture(&descriptor);
+        target.view = target.texture.CreateView();
+        return target.view;
     }
 
     void WgpuRenderer2D::Impl::createDefaultTexture() {
@@ -1113,6 +1158,7 @@ namespace Bess::Wgpu {
         m_impl = std::make_unique<Impl>();
         m_impl->createInfo = createInfo;
         m_impl->extent = createInfo.extent;
+        m_impl->defaultTargetExtent = createInfo.extent;
         m_impl->targetFormatType = createInfo.targetFormat;
         m_impl->targetFormat = toWgpuFormat(createInfo.targetFormat);
         if (createInfo.surface.type ==
@@ -1272,6 +1318,8 @@ namespace Bess::Wgpu {
         m_impl->frameUsesSurface = false;
         m_impl->frameTargetTexture = 0;
         m_impl->lastCompletedTargetTexture = 0;
+        m_impl->frameDepthTargetView = nullptr;
+        m_impl->textureDepthTargets.clear();
         m_impl->depthTargetView = nullptr;
         m_impl->depthTarget = nullptr;
         m_impl->offscreenTargetView = nullptr;
@@ -1404,8 +1452,17 @@ namespace Bess::Wgpu {
     }
 
     void WgpuRenderer2D::resize(const Renderer2DExtent &extent) {
+        if (m_impl->frameStarted) {
+            throw std::logic_error(
+                "Cannot resize the renderer during an active frame");
+        }
+
+        const bool extentChanged =
+            m_impl->defaultTargetExtent.width != extent.width ||
+            m_impl->defaultTargetExtent.height != extent.height;
+        m_impl->defaultTargetExtent = extent;
         m_impl->extent = extent;
-        if (m_impl->device != nullptr) {
+        if (m_impl->device != nullptr && extentChanged) {
             m_impl->flushPendingCommandBuffers();
             m_impl->createOffscreenTarget();
             m_impl->createDepthTarget();
@@ -1417,6 +1474,10 @@ namespace Bess::Wgpu {
         if (m_impl->device == nullptr) {
             throw std::runtime_error("WgpuRenderer2D is not initialized");
         }
+        if (m_impl->frameStarted) {
+            throw std::logic_error(
+                "Cannot begin a renderer frame while another frame is active");
+        }
         m_impl->flushPendingCommandBuffers();
         m_impl->processAsyncEvents();
         ++m_impl->frameSequence;
@@ -1426,10 +1487,62 @@ namespace Bess::Wgpu {
         m_impl->nextDrawSubmitOrder = 1;
         m_impl->prunePathCache();
 
-        if (frameInfo.extent.width != 0 && frameInfo.extent.height != 0 &&
-            (frameInfo.extent.width != m_impl->extent.width ||
-             frameInfo.extent.height != m_impl->extent.height)) {
-            resize(frameInfo.extent);
+        const bool widthSpecified = frameInfo.extent.width != 0;
+        const bool heightSpecified = frameInfo.extent.height != 0;
+        if (widthSpecified != heightSpecified) {
+            throw std::invalid_argument(
+                "A renderer frame extent must specify both dimensions or "
+                "neither dimension");
+        }
+
+        Renderer2DExtent frameExtent = frameInfo.extent;
+        const TextureResource *targetResource = nullptr;
+        if (frameInfo.targetTexture != 0) {
+            targetResource = &m_impl->getTexture(frameInfo.targetTexture);
+            if (!widthSpecified) {
+                frameExtent = {targetResource->width, targetResource->height};
+            }
+            if (targetResource->width != frameExtent.width ||
+                targetResource->height != frameExtent.height) {
+                throw std::invalid_argument(
+                    "Renderer frame extent must match its target texture");
+            }
+            if (targetResource->format != m_impl->targetFormat) {
+                throw std::invalid_argument(
+                    "Renderer frame target format must match the renderer "
+                    "format");
+            }
+
+            m_impl->extent = frameExtent;
+            m_impl->frameDepthTargetView = m_impl->depthTargetForTexture(
+                frameInfo.targetTexture, frameExtent);
+        } else {
+            if (!widthSpecified) {
+                frameExtent = m_impl->defaultTargetExtent;
+            }
+            if (frameExtent.width != m_impl->defaultTargetExtent.width ||
+                frameExtent.height != m_impl->defaultTargetExtent.height) {
+                resize(frameExtent);
+            } else {
+                m_impl->extent = frameExtent;
+            }
+            m_impl->frameDepthTargetView = m_impl->depthTargetView;
+        }
+
+        if (frameInfo.pickingTexture != 0) {
+            const TextureResource &pickingResource =
+                m_impl->getTexture(frameInfo.pickingTexture);
+            if (pickingResource.width != frameExtent.width ||
+                pickingResource.height != frameExtent.height) {
+                throw std::invalid_argument(
+                    "Renderer picking attachment extent must match the frame "
+                    "extent");
+            }
+            if (pickingResource.format != m_impl->pickingFormat) {
+                throw std::invalid_argument(
+                    "Renderer picking attachment format must match the "
+                    "renderer format");
+            }
         }
 
         m_impl->clearColor = frameInfo.clearColor;
@@ -1455,7 +1568,8 @@ namespace Bess::Wgpu {
 
         m_impl->frameTargetTexture = frameInfo.targetTexture;
         m_impl->pickingTextureHandle = frameInfo.pickingTexture;
-        m_impl->frameUsesSurface = frameInfo.targetTexture == 0;
+        m_impl->frameUsesSurface =
+            frameInfo.targetTexture == 0 && m_impl->surface != nullptr;
         m_impl->frameStarted = true;
         m_impl->cameraTransform = frameInfo.cameraTransform;
     }
@@ -1464,6 +1578,37 @@ namespace Bess::Wgpu {
         if (!m_impl->frameStarted) {
             return;
         }
+
+        // Every path out of endFrame, including allocation/encoding errors and
+        // surface-acquisition failures, must release the logical frame. A
+        // failed frame is abandoned; already queued command buffers remain
+        // valid and are handled by the normal submission path.
+        bool frameCompleted = false;
+        struct FrameStateCleanup final {
+            Impl *impl;
+            const bool *completed;
+
+            ~FrameStateCleanup() noexcept {
+                if (!*completed) {
+                    for (const auto &slot : impl->pickingReadbackSlots) {
+                        if (slot != nullptr &&
+                            slot->state ==
+                                AsyncPickingReadbackSlot::State::CopyRecorded) {
+                            slot->state =
+                                AsyncPickingReadbackSlot::State::Failed;
+                        }
+                    }
+                }
+                impl->commandEncoder = nullptr;
+                impl->frameStarted = false;
+                impl->frameDepthTargetView = nullptr;
+                impl->frameTargetTexture = 0;
+                impl->pickingTextureHandle = 0;
+                impl->frameUsesSurface = false;
+                impl->cameraTransform = nullptr;
+                impl->pathStarted = false;
+            }
+        } cleanup{m_impl.get(), &frameCompleted};
 
         if (m_impl->pathStarted) {
             endPath();
@@ -1490,8 +1635,6 @@ namespace Bess::Wgpu {
             m_impl->surface.GetCurrentTexture(&surfaceTexture);
             if (surfaceTexture.status !=
                 wgpu::SurfaceGetCurrentTextureStatus::SuccessOptimal) {
-                m_impl->commandEncoder = nullptr;
-                m_impl->frameStarted = false;
                 return;
             }
 
@@ -1528,7 +1671,7 @@ namespace Bess::Wgpu {
         }
 
         wgpu::RenderPassDepthStencilAttachment depthAttachment{};
-        depthAttachment.view = m_impl->depthTargetView;
+        depthAttachment.view = m_impl->frameDepthTargetView;
         depthAttachment.depthLoadOp =
             m_impl->shouldClear ? wgpu::LoadOp::Clear : wgpu::LoadOp::Load;
         depthAttachment.depthStoreOp = wgpu::StoreOp::Store;
@@ -2381,11 +2524,8 @@ namespace Bess::Wgpu {
             m_impl->surface.Present();
         }
 
-        m_impl->commandEncoder = nullptr;
-        m_impl->frameStarted = false;
         m_impl->lastCompletedTargetTexture = m_impl->frameTargetTexture;
-        m_impl->frameTargetTexture = 0;
-        m_impl->frameUsesSurface = false;
+        frameCompleted = true;
     }
 
     void WgpuRenderer2D::clear(const Color &color) {
@@ -2542,8 +2682,10 @@ namespace Bess::Wgpu {
                                           .width = resource.width,
                                           .height = resource.height});
         } else {
-            const uint32_t width = std::max(1u, m_impl->extent.width);
-            const uint32_t height = std::max(1u, m_impl->extent.height);
+            const uint32_t width =
+                std::max(1u, m_impl->defaultTargetExtent.width);
+            const uint32_t height =
+                std::max(1u, m_impl->defaultTargetExtent.height);
             readback = readTextureRegion(m_impl->instance,
                                          m_impl->device,
                                          m_impl->queue,
@@ -2571,11 +2713,15 @@ namespace Bess::Wgpu {
             m_impl->queuedPickingReadback.resource.handle == texture) {
             m_impl->queuedPickingReadback = {};
         }
+        m_impl->textureDepthTargets.erase(texture);
         m_impl->textures.erase(texture);
         m_impl->recreateTextureBindGroups();
     }
 
     void WgpuRenderer2D::registerTexture(const TextureResource &texture) {
+        // A backend can recycle handles. Never retain a depth attachment made
+        // for an older color texture with the same handle.
+        m_impl->textureDepthTargets.erase(texture.handle);
         m_impl->textures[texture.handle] = texture;
         m_impl->recreateTextureBindGroups();
     }
@@ -3269,8 +3415,15 @@ namespace Bess::Wgpu {
     }
 
     [[nodiscard]] Core::Renderer::Renderer2DTargetFormat
-    WgpuRenderer2D::getTargetFormatType() const {
-        return m_impl->targetFormatType;
+    WgpuRenderer2D::getTargetFormatType() const noexcept {
+        return m_impl != nullptr ? m_impl->targetFormatType
+                                 : Core::Renderer::Renderer2DTargetFormat::None;
+    }
+
+    Core::Renderer::Renderer2DTargetFormat
+    WgpuRenderer2D::getPickingFormatType() const noexcept {
+        return m_impl != nullptr ? m_impl->createInfo.pickingFormat
+                                 : Core::Renderer::Renderer2DTargetFormat::None;
     }
 
     [[nodiscard]] wgpu::TextureFormat WgpuRenderer2D::getSurfaceFormat() const {

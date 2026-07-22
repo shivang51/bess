@@ -182,7 +182,9 @@ namespace Bess::Wgpu {
         [[nodiscard]] wgpu::Queue getQueue() const;
         [[nodiscard]] wgpu::TextureView getCurrentTargetView() const;
         [[nodiscard]] Core::Renderer::Renderer2DTargetFormat
-        getTargetFormatType() const;
+        getTargetFormatType() const noexcept override;
+        [[nodiscard]] Core::Renderer::Renderer2DTargetFormat
+        getPickingFormatType() const noexcept override;
         [[nodiscard]] wgpu::TextureFormat getTargetFormat() const;
         [[nodiscard]] wgpu::TextureFormat getSurfaceFormat() const;
 

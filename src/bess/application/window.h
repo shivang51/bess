@@ -15,6 +15,15 @@
 
 namespace Bess {
 
+    namespace Events {
+        struct WindowDragDropEvent;
+        struct WindowDropPayload;
+    } // namespace Events
+
+    namespace Svc {
+        class WindowDropService;
+    } // namespace Svc
+
     struct BESS_API WindowSurface {
         void *rendereHwd = nullptr;
     };
@@ -104,6 +113,13 @@ namespace Bess {
         [[nodiscard]] Input::Modifiers currentInputModifiers() const;
         void dispatchInputEvent(Input::Event event);
         [[nodiscard]] glm::vec2 windowToUITargetPos(double x, double y) const;
+        void subscribeWindowDragDrop();
+        void unsubscribeWindowDragDrop() noexcept;
+        [[nodiscard]] bool
+        handleWindowDragDrop(const Events::WindowDragDropEvent &event);
+        [[nodiscard]] UI::DragPayload externalDragPayload(
+            const std::shared_ptr<const Events::WindowDropPayload> &payload);
+        void clearExternalDragPayload() noexcept;
 
         static constexpr std::size_t cursorShapeCount =
             static_cast<std::size_t>(CursorIcon::resizeDiagonalNESW) + 1;
@@ -124,6 +140,12 @@ namespace Bess {
         WindowSurface m_surface;
         UI::UITarget m_uiTarget;
         std::shared_ptr<UI::UIPlatformServices> m_uiPlatformServices;
+        std::weak_ptr<Svc::WindowDropService> m_windowDropService;
+        std::size_t m_windowDragDropSubscription = 0;
+        std::weak_ptr<const Events::WindowDropPayload>
+            m_cachedNativeDragPayload;
+        UI::DragPayload m_cachedExternalDragPayload;
+        bool m_nativeDragActive = false;
         Input::Modifiers m_inputModifiers;
         std::array<std::unique_ptr<GLFWcursor, GLFWcursorDeleter>,
                    cursorShapeCount>

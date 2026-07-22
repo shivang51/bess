@@ -4,6 +4,7 @@
 #include "common/bess_api.h"
 #include "ui_types.h"
 
+#include <memory>
 #include <optional>
 #include <string_view>
 #include <vector>
@@ -43,6 +44,22 @@ namespace Bess::UI {
         std::optional<BoxPaint> background;
     };
 
+    // A sampled texture quad. Keeping a strong texture reference in the paint
+    // command prevents a render-target resize or application-side handle swap
+    // from invalidating the resource while a painter is consuming it.
+    struct ImagePaint {
+        WidgetBounds bounds;
+        std::shared_ptr<Core::Renderer::ITexture> texture;
+        // UV coordinates use a top-left origin and may be reversed to mirror
+        // either axis. Values outside 0..1 retain the renderer's sampler
+        // address-mode semantics.
+        glm::vec4 uvRect{0.f, 0.f, 1.f, 1.f};
+        Core::Renderer::Color tint{1.f, 1.f, 1.f, 1.f};
+        glm::vec4 cornerRadius{0.f};
+        float zIndex = 0.f;
+        PickingId pickingId = PickingId::invalid();
+    };
+
     class BESS_API UIPainter {
       public:
         virtual ~UIPainter();
@@ -52,6 +69,9 @@ namespace Bess::UI {
         virtual void drawText(std::string_view text,
                               const TextPaint &paint) = 0;
         virtual void drawIcon(std::string_view icon, const IconPaint &paint);
+        // Defaulting to a no-op preserves lightweight measurement/test
+        // painters. Rendering painters should override this operation.
+        virtual void drawImage(const ImagePaint &paint);
         [[nodiscard]] virtual glm::vec2
         measureText(std::string_view text,
                     float fontSize,
@@ -69,13 +89,17 @@ namespace Bess::UI {
     // renderer context boundary.
     class BESS_API RendererUIPainter final : public UIPainter {
       public:
-        RendererUIPainter(Core::Renderer::IRenderer2D &renderer,
-                          glm::vec2 viewportSize) noexcept;
+        RendererUIPainter(
+            Core::Renderer::IRenderer2D &renderer,
+            glm::vec2 viewportSize,
+            Core::Renderer::TextureHandle activeColorAttachment = 0,
+            Core::Renderer::TextureHandle activePickingAttachment = 0) noexcept;
 
         [[nodiscard]] glm::vec2 viewportSize() const noexcept override;
         void drawBox(const BoxPaint &paint) override;
         void drawText(std::string_view text, const TextPaint &paint) override;
         void drawIcon(std::string_view icon, const IconPaint &paint) override;
+        void drawImage(const ImagePaint &paint) override;
         [[nodiscard]] glm::vec2
         measureText(std::string_view text,
                     float fontSize,
@@ -88,6 +112,12 @@ namespace Bess::UI {
       private:
         Core::Renderer::IRenderer2D &m_renderer;
         glm::vec2 m_viewportSize{0.f};
+        // Draw commands carry backend handles, so retain their owning texture
+        // objects until the painter (and therefore the renderer frame) ends.
+        std::vector<std::shared_ptr<Core::Renderer::ITexture>>
+            m_retainedTextures;
+        Core::Renderer::TextureHandle m_activeColorAttachment = 0;
+        Core::Renderer::TextureHandle m_activePickingAttachment = 0;
         std::vector<float> m_layerStack;
         float m_layerOffset = 0.f;
     };

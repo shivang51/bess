@@ -6,6 +6,8 @@
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/scene/scene.h"
 #include "bess_core/scene/scene_event.h"
+#include "bess_core/scene/scene_ui/controls/text_box_comp.h"
+#include "bess_core/scene/scene_ui/controls/toggle_btn_comp.h"
 #include "bess_core/scene_driver.h"
 #include "dig_sim_driver.h"
 #include "event_dispatcher.h"
@@ -17,8 +19,6 @@
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
-#include "bess_core/scene/scene_ui/controls/text_box_comp.h"
-#include "bess_core/scene/scene_ui/controls/toggle_btn_comp.h"
 #include "simulation_engine.h"
 #include <algorithm>
 #include <gtest/gtest.h>
@@ -79,10 +79,17 @@ namespace {
         }
         void destroy() override {
         }
+        [[nodiscard]] Bess::Core::Renderer::Renderer2DTargetFormat
+        getTargetFormatType() const noexcept override {
+            return Bess::Core::Renderer::Renderer2DTargetFormat::BGRA8Unorm;
+        }
+        [[nodiscard]] Bess::Core::Renderer::Renderer2DTargetFormat
+        getPickingFormatType() const noexcept override {
+            return Bess::Core::Renderer::Renderer2DTargetFormat::None;
+        }
         [[nodiscard]]
-        std::shared_ptr<Bess::Core::Renderer::IRenderTarget2D>
-        createTarget(const Bess::Core::Renderer::RenderTarget2DCreateInfo &)
-            override {
+        std::shared_ptr<Bess::Core::Renderer::IRenderTarget2D> createTarget(
+            const Bess::Core::Renderer::RenderTarget2DCreateInfo &) override {
             return nullptr;
         }
         void resize(const Bess::Core::Renderer::Renderer2DExtent &) override {
@@ -100,16 +107,15 @@ namespace {
         getStats() const noexcept override {
             return {};
         }
-        [[nodiscard]] Bess::Core::Renderer::TextureReadbackResult
-        readTexture(
+        [[nodiscard]] Bess::Core::Renderer::TextureReadbackResult readTexture(
             const Bess::Core::Renderer::TextureReadbackRegion &) override {
             return {};
         }
         void requestPickingIds(
             const Bess::Core::Renderer::TextureReadbackRegion &) override {
         }
-        [[nodiscard]] bool
-        tryGetPickingIds(Bess::Core::Renderer::PickingReadbackResult &) override {
+        [[nodiscard]] bool tryGetPickingIds(
+            Bess::Core::Renderer::PickingReadbackResult &) override {
             return false;
         }
         [[nodiscard]] bool isPickingReadbackPending() const noexcept override {
@@ -132,8 +138,8 @@ namespace {
         void destroyCustomQuadShader(
             Bess::Core::Renderer::CustomQuadShaderHandle) override {
         }
-        void drawCustomQuad(
-            const Bess::Core::Renderer::CustomQuadProps &) override {
+        void
+        drawCustomQuad(const Bess::Core::Renderer::CustomQuadProps &) override {
         }
         void drawCircle(const Bess::Core::Renderer::CircleProps &) override {
         }
@@ -157,9 +163,8 @@ namespace {
             const Bess::Core::Renderer::FontProps &props = {}) override {
             return props.fontSize * 0.35f;
         }
-        void drawPath(
-            std::span<const Bess::Core::Renderer::PathCommand>,
-            const Bess::Core::Renderer::PathProps & = {}) override {
+        void drawPath(std::span<const Bess::Core::Renderer::PathCommand>,
+                      const Bess::Core::Renderer::PathProps & = {}) override {
         }
         void beginPath(const Bess::Core::Renderer::PathProps & = {}) override {
         }
@@ -547,14 +552,12 @@ TEST_F(MainPageConnectionCommandsTest,
 
 TEST_F(MainPageConnectionCommandsTest,
        InputResizeSlotCreatesControlForNewSlotSignalKind) {
-    auto definition =
-        Bess::SimEngine::Drivers::Math::MathCompDef::makeFunction(
-            "Scalar Input",
-            "Math",
-            [](Bess::TimeMs, const std::vector<double> &) { return 0.0; },
-            false);
-    definition->setBehaviorType(
-        Bess::SimEngine::ComponentBehaviorType::input);
+    auto definition = Bess::SimEngine::Drivers::Math::MathCompDef::makeFunction(
+        "Scalar Input",
+        "Math",
+        [](Bess::TimeMs, const std::vector<double> &) { return 0.0; },
+        false);
+    definition->setBehaviorType(Bess::SimEngine::ComponentBehaviorType::input);
     definition->setInputPortDescriptor({
         .direction = Bess::SimEngine::PortDirection::input,
         .signalKind = Bess::SimEngine::SignalKind::scalar,
@@ -584,8 +587,7 @@ TEST_F(MainPageConnectionCommandsTest,
         }
     }
     ASSERT_NE(resizeSlot, nullptr);
-    ASSERT_EQ(resizeSlot->getSignalKind(),
-              Bess::SimEngine::SignalKind::scalar);
+    ASSERT_EQ(resizeSlot->getSignalKind(), Bess::SimEngine::SignalKind::scalar);
 
     auto firstScalarSlot = std::shared_ptr<SlotSceneComponent>{};
     for (const auto &slot : fixture.outputs) {
@@ -651,8 +653,7 @@ TEST_F(MainPageConnectionCommandsTest,
     }
     ASSERT_NE(newSlot, nullptr);
     EXPECT_FALSE(newSlot->isResizeSlot());
-    EXPECT_EQ(newSlot->getSignalKind(),
-              Bess::SimEngine::SignalKind::scalar);
+    EXPECT_EQ(newSlot->getSignalKind(), Bess::SimEngine::SignalKind::scalar);
     EXPECT_TRUE(newSlot->getSlotState(scene->getState()).isScalar());
 
     inputComp->prepareUI(prepareCtx);
@@ -665,8 +666,7 @@ TEST_F(MainPageConnectionCommandsTest,
             ++textBoxCount;
         }
         if (scene->getState()
-                .getComponentByUuidSP<Bess::Canvas::UI::ToggleBtnComp>(
-                    depId)) {
+                .getComponentByUuidSP<Bess::Canvas::UI::ToggleBtnComp>(depId)) {
             ++toggleCount;
         }
     }

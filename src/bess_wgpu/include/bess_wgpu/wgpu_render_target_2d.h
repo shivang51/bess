@@ -37,7 +37,7 @@ namespace Bess::Wgpu {
         [[nodiscard]] PickingId readPickingId(uint32_t x, uint32_t y) override;
 
       private:
-        void recreateAttachments();
+        void replaceAttachments(const Core::Renderer::Renderer2DExtent &extent);
 
         std::weak_ptr<WgpuRenderer2D> m_renderer;
         std::shared_ptr<WgpuTexture> m_colorTexture;

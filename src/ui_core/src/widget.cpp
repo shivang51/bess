@@ -46,6 +46,9 @@ namespace Bess::UI {
     void Widget::update(WidgetUpdateContext &) {
     }
 
+    void Widget::prepareRender(WidgetRenderPrepareContext &) {
+    }
+
     void Widget::arrange(WidgetArrangeContext &) {
     }
 

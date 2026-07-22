@@ -52,6 +52,15 @@ namespace Bess::UI {
         // palette. UICore maps its component roles from this source theme.
         std::shared_ptr<const Core::Style::BessTheme> theme;
         std::shared_ptr<UIPlatformServices> platformServices;
+        // May be shared for application-global action state. Active scopes are
+        // registry-wide, not target-local; contextual shortcuts require a
+        // registry per target or explicit host focus/scope coordination.
+        std::shared_ptr<ActionRegistry> actionRegistry;
+        // May be shared to give several targets one drag-session authority.
+        // Sharing does not route events or convert coordinates: the host must
+        // dispatch each update to the appropriate target in target-local
+        // top-left coordinates and deliver terminal transitions.
+        std::shared_ptr<DragDropService> dragDropService;
         Core::Renderer::Renderer2DTargetFormat targetFormat =
             Core::Renderer::Renderer2DTargetFormat::BGRA8Unorm;
         Core::Renderer::Renderer2DTargetFormat pickingFormat =
@@ -61,6 +70,9 @@ namespace Bess::UI {
         // external consumer needs per-fragment picking metadata.
         UITargetPickingStrategy pickingStrategy =
             UITargetPickingStrategy::cpuHitTest;
+        // Logical-to-attachment scaling for offscreen RenderView children.
+        // Window targets whose layout already uses framebuffer pixels keep 1.
+        float contentScale = 1.f;
     };
 
     // Rendering/input boundary for one UI surface. The surface may be native or
@@ -155,5 +167,7 @@ namespace Bess::UI {
             UITargetPickingStrategy::cpuHitTest;
         std::vector<UIEvent> m_pendingEvents;
         std::vector<UIEvent> m_frameEvents;
+        TimeMs m_lastDeltaTime{0};
+        float m_contentScale = 1.f;
     };
 } // namespace Bess::UI

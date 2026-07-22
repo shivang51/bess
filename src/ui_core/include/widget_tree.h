@@ -2,7 +2,9 @@
 
 #include "common/bess_api.h"
 #include "common/types.h"
+#include "drag_drop.h"
 #include "layout.h"
+#include "models/action_registry.h"
 #include "ui_platform_services.h"
 #include "ui_style.h"
 #include "widget.h"
@@ -195,11 +197,29 @@ namespace Bess::UI {
         void setPlatformServices(std::shared_ptr<UIPlatformServices> services);
         [[nodiscard]] UIPlatformServices &platformServices() noexcept;
         [[nodiscard]] UIPlatformServices &platformServices() const noexcept;
+        // Registry replacement is allowed only while the tree is empty;
+        // mounted action bindings retain signal connections to their registry.
+        void setActionRegistry(std::shared_ptr<ActionRegistry> registry);
+        [[nodiscard]] std::shared_ptr<ActionRegistry>
+        actionRegistry() const noexcept;
+        [[nodiscard]] ActionRegistry &actions() noexcept;
+        [[nodiscard]] const ActionRegistry &actions() const noexcept;
+        // Like ActionRegistry, replacement is allowed only before mounting
+        // widgets because drag source/target registrations retain the service.
+        void setDragDropService(std::shared_ptr<DragDropService> service);
+        [[nodiscard]] std::shared_ptr<DragDropService>
+        dragDropService() const noexcept;
+        [[nodiscard]] DragDropService &dragDrop() noexcept;
+        [[nodiscard]] const DragDropService &dragDrop() const noexcept;
 
         void performLayout();
         [[nodiscard]] WidgetBounds getBounds(WidgetId id) const noexcept;
 
         void update(TimeMs deltaTime);
+        void prepareRender(
+            const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer,
+            TimeMs deltaTime,
+            float contentScale = 1.f);
         void paint(UIPainter &painter);
         [[nodiscard]] UIDispatchResult dispatchEvent(const UIEvent &event);
 
@@ -290,6 +310,11 @@ namespace Bess::UI {
 
         [[nodiscard]] std::optional<glm::vec2>
         pointerPosition(const UIEvent &event) const noexcept;
+        [[nodiscard]] std::vector<DropTargetCandidate>
+        collectDropTargets(WidgetId pointed, glm::vec2 position) const;
+        UIDispatchResult
+        dispatchExternalDrag(const ExternalDragEvent &event,
+                             const Input::Modifiers &modifiers);
         void updateHover(WidgetId hovered);
         UIDispatchResult dispatchToTarget(WidgetId target,
                                           const UIEvent &event,
@@ -312,6 +337,9 @@ namespace Bess::UI {
         LayoutNodeRegistry m_layoutRegistry;
         HashMap<uint32_t, WidgetId> m_runtimeToWidget;
         std::vector<WidgetId> m_pendingRemovals;
+        // Stable insertion order gives offscreen producers deterministic
+        // sequencing without a full-tree traversal on every frame.
+        std::vector<WidgetId> m_renderPrepareWidgets;
         HashSet<WidgetId> m_removing;
         uint32_t m_nextRuntimeId = 1;
         uint32_t m_callbackDepth = 0;
@@ -321,6 +349,8 @@ namespace Bess::UI {
         UITheme m_theme = UITheme::dark();
         std::shared_ptr<UIPlatformServices> m_platformServices =
             nullUIPlatformServices();
+        std::shared_ptr<ActionRegistry> m_actionRegistry;
+        std::shared_ptr<DragDropService> m_dragDropService;
         uint64_t m_themeRevision = 1;
         uint64_t m_layoutThemeRevision = 0;
         std::optional<glm::vec2> m_lastPointerPosition;

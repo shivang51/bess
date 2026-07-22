@@ -451,8 +451,13 @@ namespace Bess::UI {
     UIEventReply Button::onEvent(WidgetEventContext &context,
                                  const UIEvent &event) {
         auto result = m_pressable.handle(context, event);
-        if (result.activated && m_activated) {
-            m_activated();
+        if (result.activated) {
+            if (m_activated) {
+                m_activated();
+            }
+            if (m_activatedWithEvent) {
+                m_activatedWithEvent(event);
+            }
         }
         return result.reply;
     }
@@ -471,6 +476,10 @@ namespace Bess::UI {
 
     void Button::setActivated(Activated activated) {
         m_activated = std::move(activated);
+    }
+
+    void Button::setActivatedWithEvent(ActivatedWithEvent activated) {
+        m_activatedWithEvent = std::move(activated);
     }
 
     bool Button::isPressed() const noexcept {

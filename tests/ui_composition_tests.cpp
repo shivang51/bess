@@ -324,6 +324,55 @@ namespace {
         EXPECT_EQ(tree.getChildren(root).front(), stack.id());
     }
 
+    TEST(UIComposerTests,
+         BuildsDragWrappersAndReorderListsWithTransactionalCardinality) {
+        WidgetTree tree;
+        const auto root = tree.emplaceWidget<FlexContainer>();
+        UIComposer ui{tree, root};
+
+        const auto zone = ui.dropZone(
+            [](UIComposer &content) { content.label("Drop content"); });
+        ASSERT_TRUE(zone);
+        ASSERT_EQ(tree.getChildren(zone.id()).size(), 1U);
+
+        EXPECT_THROW(ui.draggable([](UIComposer &content) {
+            content.label("First");
+            content.label("Second");
+        }),
+                     std::logic_error);
+        ASSERT_EQ(tree.getChildren(root).size(), 1U);
+        EXPECT_EQ(tree.getChildren(root).front(), zone.id());
+
+        const ReorderListId listId = ReorderListId::generate();
+        const ReorderItemId firstId = ReorderItemId::generate();
+        ReorderListItemHandle first;
+        ReorderListItemHandle second;
+        const auto list = ui.reorderableList(
+            ReorderableListOptions{}, listId, [&](ReorderListComposer &items) {
+                EXPECT_EQ(items.listId(), listId);
+                first = items.item(firstId, [](UIComposer &content) {
+                    content.label("First item");
+                });
+                second = items.item(
+                    [](UIComposer &content) { content.label("Second item"); });
+            });
+        ASSERT_TRUE(list && first && second);
+        EXPECT_EQ(list.get()->listId(), listId);
+        EXPECT_EQ(first.id, firstId);
+        EXPECT_NE(first.id, second.id);
+        ASSERT_EQ(tree.getChildren(list.id()).size(), 2U);
+        EXPECT_EQ(tree.getChildren(first.widget.id()).size(), 1U);
+        EXPECT_EQ(tree.getChildren(second.widget.id()).size(), 1U);
+
+        const auto rootCount = tree.getChildren(root).size();
+        EXPECT_THROW(ui.reorderableList([&](ReorderListComposer &items) {
+            static_cast<void>(items.item(firstId));
+            static_cast<void>(items.item(firstId));
+        }),
+                     std::invalid_argument);
+        EXPECT_EQ(tree.getChildren(root).size(), rootCount);
+    }
+
     TEST(StackContainerTests, AlignsChildrenInsidePaddingAndMargins) {
         WidgetTree tree;
         tree.setViewportSize({300.f, 200.f});
@@ -649,6 +698,14 @@ namespace {
         EXPECT_EQ(countWidgetType(tree, "Autocomplete"), 1);
         EXPECT_EQ(countWidgetType(tree, "Tooltip"), 1);
         EXPECT_EQ(countWidgetType(tree, "ContextMenuRegion"), 1);
+        EXPECT_EQ(countWidgetType(tree, "ActionButton"), 1);
+        EXPECT_EQ(countWidgetType(tree, "TreeNode"), 2);
+        EXPECT_EQ(countWidgetType(tree, "Image"), 1);
+        EXPECT_EQ(countWidgetType(tree, "RenderView"), 1);
+        EXPECT_EQ(countWidgetType(tree, "Draggable"), 1);
+        EXPECT_EQ(countWidgetType(tree, "DropZone"), 1);
+        EXPECT_EQ(countWidgetType(tree, "ReorderableList"), 1);
+        EXPECT_EQ(countWidgetType(tree, "DraggableListItem"), 3);
 
         ASSERT_NE(demo.get()->tabs(), nullptr);
         EXPECT_EQ(demo.get()->tabs()->size(), 3);
@@ -676,11 +733,15 @@ namespace {
         for (const auto &stack : dockLayout.stacks) {
             const auto *item = dockRef.get()->model().getItem(stack.activeItem);
             ASSERT_NE(item, nullptr);
+            const auto panelBounds = tree.getBounds(item->content);
+            EXPECT_EQ(panelBounds.center, stack.contentBounds.center);
+            EXPECT_EQ(panelBounds.size, stack.contentBounds.size);
             const auto panelChildren = tree.getChildren(item->content);
             ASSERT_EQ(panelChildren.size(), 1);
             const auto contentBounds = tree.getBounds(panelChildren.front());
-            EXPECT_EQ(contentBounds.center, stack.contentBounds.center);
-            EXPECT_EQ(contentBounds.size, stack.contentBounds.size);
+            // A panel's authored content may intentionally exceed its dock
+            // viewport; DockPanel clips/scrolls that content while its own
+            // viewport remains exactly the stack content rectangle.
             for (const auto control : tree.getChildren(panelChildren.front())) {
                 const auto controlBounds = tree.getBounds(control);
                 EXPECT_TRUE(contentBounds.contains(controlBounds.center))

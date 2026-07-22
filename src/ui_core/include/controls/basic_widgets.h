@@ -127,6 +127,7 @@ namespace Bess::UI {
     class BESS_API Button : public Widget {
       public:
         using Activated = std::function<void()>;
+        using ActivatedWithEvent = std::function<void(const UIEvent &)>;
 
         explicit Button(std::string label,
                         Activated activated = {},
@@ -143,11 +144,16 @@ namespace Bess::UI {
         [[nodiscard]] const std::string &label() const noexcept;
         void setLabel(std::string label);
         void setActivated(Activated activated);
+        // Event-aware activation is useful for command bindings which need
+        // modifier state. It coexists with the simple callback so ordinary
+        // buttons keep their compact API.
+        void setActivatedWithEvent(ActivatedWithEvent activated);
         [[nodiscard]] bool isPressed() const noexcept;
 
       private:
         std::string m_label;
         Activated m_activated;
+        ActivatedWithEvent m_activatedWithEvent;
         ButtonOptions m_options;
         Pressable m_pressable;
         bool m_intrinsicSizeDirty = true;

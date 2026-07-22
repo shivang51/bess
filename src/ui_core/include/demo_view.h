@@ -10,12 +10,17 @@
 
 namespace Bess::UI {
 
+    struct UIDemoReorderState;
+
     // Temporary integration showcase for the retained UI stack. It lives in
     // ui_core so the application only mounts a view; remove the mount from
     // Window when the real application view is ready.
     class BESS_API UIDemoView final : public UIView {
       public:
+        ~UIDemoView() override;
+
         void compose(UIComposer &ui) override;
+        void onUnmounting(UIViewContext &context) noexcept override;
 
         [[nodiscard]] size_t activationCount() const noexcept;
         [[nodiscard]] std::shared_ptr<TabModel> tabs() const noexcept;
@@ -26,10 +31,16 @@ namespace Bess::UI {
         void setStatus(std::string text);
         void incrementCounter();
         void selectNextTab();
+        void composeGenericShowcase(UIComposer &ui);
+        void unregisterShowcaseAction() noexcept;
 
         size_t m_activationCount = 0;
         std::shared_ptr<TabModel> m_tabs;
         std::shared_ptr<MenuModel> m_menus;
+        std::shared_ptr<ActionRegistry> m_actionRegistry;
+        std::shared_ptr<UIDemoReorderState> m_reorderState;
+        ActionId m_showcaseAction;
+        bool m_showcaseActionRegistered = false;
         WidgetRef<MenuBar> m_menuBar;
         WidgetRef<Label> m_status;
         WidgetRef<Button> m_counterButton;

@@ -1,17 +1,24 @@
 #pragma once
 
+#include "controls/action_button.h"
 #include "controls/basic_widgets.h"
 #include "controls/dock_space.h"
+#include "controls/drag_drop_widgets.h"
 #include "controls/focus_scope.h"
+#include "controls/image.h"
 #include "controls/menu_bar.h"
 #include "controls/popup_controls.h"
+#include "controls/render_view.h"
+#include "controls/reorderable_list.h"
 #include "controls/scroll_view.h"
 #include "controls/tab_bar.h"
 #include "controls/text_box.h"
+#include "controls/tree_node.h"
 #include "controls/value_controls.h"
 #include "widget_ref.h"
 
 #include <concepts>
+#include <exception>
 #include <functional>
 #include <memory>
 #include <stdexcept>
@@ -21,7 +28,87 @@
 
 namespace Bess::UI {
 
+    namespace Detail {
+        template <typename T>
+        void removeComposedWidgetNoexcept(const WidgetRef<T> &widget) noexcept {
+            try {
+                static_cast<void>(widget.remove());
+            } catch (...) {
+            }
+        }
+
+        template <typename T>
+        [[noreturn]] void
+        rollbackComposedWidget(const WidgetRef<T> &widget,
+                               std::exception_ptr primaryFailure) {
+            removeComposedWidgetNoexcept(widget);
+            std::rethrow_exception(primaryFailure);
+        }
+    } // namespace Detail
+
     class UIComposer;
+
+    struct ReorderListItemHandle {
+        ReorderItemId id;
+        WidgetRef<DraggableListItem> widget;
+
+        [[nodiscard]] explicit operator bool() const noexcept {
+            return id && static_cast<bool>(widget);
+        }
+    };
+
+    // Short-lived authoring facade for one ReorderableList. It preserves the
+    // control's model-driven contract: items receive stable IDs, remain direct
+    // list children, and contain at most one ordinary content root.
+    class BESS_API ReorderListComposer {
+      public:
+        ReorderListComposer(const ReorderListComposer &) = delete;
+        ReorderListComposer &operator=(const ReorderListComposer &) = delete;
+        ReorderListComposer(ReorderListComposer &&) = delete;
+        ReorderListComposer &operator=(ReorderListComposer &&) = delete;
+
+        [[nodiscard]] WidgetRef<ReorderableList> widget() const noexcept;
+        [[nodiscard]] ReorderListId listId() const noexcept;
+
+        ReorderListItemHandle item(ReorderItemId id = {},
+                                   DraggableListItemOptions options = {});
+        ReorderListItemHandle item(DraggableListItemOptions options);
+
+        template <typename Build>
+            requires std::invocable<Build, UIComposer &>
+        ReorderListItemHandle
+        item(ReorderItemId id, DraggableListItemOptions options, Build &&build);
+
+        template <typename Build>
+            requires std::invocable<Build, UIComposer &>
+        ReorderListItemHandle item(ReorderItemId id, Build &&build) {
+            return item(
+                id, DraggableListItemOptions{}, std::forward<Build>(build));
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, UIComposer &>
+        ReorderListItemHandle item(DraggableListItemOptions options,
+                                   Build &&build) {
+            return item({}, std::move(options), std::forward<Build>(build));
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, UIComposer &>
+        ReorderListItemHandle item(Build &&build) {
+            return item(
+                {}, DraggableListItemOptions{}, std::forward<Build>(build));
+        }
+
+      private:
+        friend class UIComposer;
+        ReorderListComposer(WidgetTree &tree, WidgetRef<ReorderableList> list);
+
+        [[nodiscard]] bool containsItem(ReorderItemId id) const noexcept;
+
+        WidgetTree &m_tree;
+        WidgetRef<ReorderableList> m_list;
+    };
 
     struct DockPanelPlacement {
         DockNodeId target;
@@ -112,10 +199,31 @@ namespace Bess::UI {
         WidgetRef<StackContainer> stack(StackContainerOptions options = {});
         WidgetRef<FocusScope> focusScope(FocusScopeOptions options = {});
         WidgetRef<Surface> surface(SurfaceOptions options = {});
+        WidgetRef<DropZone> dropZone(DropZoneOptions options = {});
+        WidgetRef<Draggable> draggable(DraggableOptions options = {});
+        WidgetRef<ReorderableList>
+        reorderableList(ReorderableListOptions options = {},
+                        ReorderListId id = {});
+        WidgetRef<ReorderableList> reorderableList(ReorderListId id);
+        WidgetRef<Image>
+        image(std::shared_ptr<Core::Renderer::ITexture> texture,
+              ImageOptions options = {});
+        WidgetRef<Image> dynamicImage(ImageTextureProvider textureProvider,
+                                      ImageOptions options = {});
+        WidgetRef<RenderView>
+        renderView(std::shared_ptr<IRenderViewDelegate> delegate,
+                   RenderViewOptions options = {},
+                   std::shared_ptr<RenderSurface> surface = {});
+        WidgetRef<TreeNode>
+        treeNode(std::string label,
+                 TreeNodeOptions options = {},
+                 TreeNode::ExpandedChanged expandedChanged = {});
         WidgetRef<Label> label(std::string text, LabelOptions options = {});
         WidgetRef<Button> button(std::string label,
                                  Button::Activated activated = {},
                                  ButtonOptions options = {});
+        WidgetRef<ActionButton> actionButton(ActionId action,
+                                             ActionButtonOptions options = {});
         WidgetRef<CheckBox>
         checkBox(std::string label,
                  std::shared_ptr<CheckStateModel> model = {},
@@ -233,6 +341,126 @@ namespace Bess::UI {
 
         template <typename Build>
             requires std::invocable<Build, UIComposer &>
+        WidgetRef<DropZone> dropZone(DropZoneOptions options, Build &&build) {
+            return composeSingleChild(dropZone(std::move(options)),
+                                      std::forward<Build>(build),
+                                      "DropZone");
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, UIComposer &>
+        WidgetRef<DropZone> dropZone(Build &&build) {
+            return dropZone(DropZoneOptions{}, std::forward<Build>(build));
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, UIComposer &>
+        WidgetRef<Draggable> draggable(DraggableOptions options,
+                                       Build &&build) {
+            return composeSingleChild(draggable(std::move(options)),
+                                      std::forward<Build>(build),
+                                      "Draggable");
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, UIComposer &>
+        WidgetRef<Draggable> draggable(Build &&build) {
+            return draggable(DraggableOptions{}, std::forward<Build>(build));
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, ReorderListComposer &>
+        WidgetRef<ReorderableList> reorderableList(
+            ReorderableListOptions options, ReorderListId id, Build &&build) {
+            auto result = reorderableList(std::move(options), id);
+            try {
+                ReorderListComposer list{m_tree, result};
+                std::invoke(std::forward<Build>(build), list);
+            } catch (...) {
+                Detail::rollbackComposedWidget(result,
+                                               std::current_exception());
+            }
+            if (!result) {
+                throw std::logic_error(
+                    "ReorderableList was removed during composition");
+            }
+            return result;
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, ReorderListComposer &>
+        WidgetRef<ReorderableList>
+        reorderableList(ReorderableListOptions options, Build &&build) {
+            return reorderableList(std::move(options),
+                                   ReorderListId{},
+                                   std::forward<Build>(build));
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, ReorderListComposer &>
+        WidgetRef<ReorderableList> reorderableList(ReorderListId id,
+                                                   Build &&build) {
+            return reorderableList(
+                ReorderableListOptions{}, id, std::forward<Build>(build));
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, ReorderListComposer &>
+        WidgetRef<ReorderableList> reorderableList(Build &&build) {
+            return reorderableList(ReorderableListOptions{},
+                                   ReorderListId{},
+                                   std::forward<Build>(build));
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, UIComposer &>
+        WidgetRef<TreeNode> treeNode(std::string label,
+                                     TreeNodeOptions options,
+                                     TreeNode::ExpandedChanged expandedChanged,
+                                     Build &&build) {
+            auto result = treeNode(std::move(label),
+                                   std::move(options),
+                                   std::move(expandedChanged));
+            try {
+                auto *node = result.get();
+                if (node == nullptr || !node->contentRoot()) {
+                    throw std::runtime_error(
+                        "TreeNode has no content composition root");
+                }
+                UIComposer content{m_tree, node->contentRoot()};
+                std::invoke(std::forward<Build>(build), content);
+            } catch (...) {
+                Detail::rollbackComposedWidget(result,
+                                               std::current_exception());
+            }
+            if (!result) {
+                throw std::logic_error(
+                    "TreeNode was removed during composition");
+            }
+            return result;
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, UIComposer &>
+        WidgetRef<TreeNode>
+        treeNode(std::string label, TreeNodeOptions options, Build &&build) {
+            return treeNode(std::move(label),
+                            std::move(options),
+                            TreeNode::ExpandedChanged{},
+                            std::forward<Build>(build));
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, UIComposer &>
+        WidgetRef<TreeNode> treeNode(std::string label, Build &&build) {
+            return treeNode(std::move(label),
+                            TreeNodeOptions{},
+                            TreeNode::ExpandedChanged{},
+                            std::forward<Build>(build));
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, UIComposer &>
         WidgetRef<ScrollView> scrollView(ScrollViewOptions options,
                                          Build &&build) {
             return composeSingleChild(scrollView(std::move(options)),
@@ -295,8 +523,12 @@ namespace Bess::UI {
                 DockComposer dock{m_tree, result};
                 std::invoke(std::forward<Build>(build), dock);
             } catch (...) {
-                result.remove();
-                throw;
+                Detail::rollbackComposedWidget(result,
+                                               std::current_exception());
+            }
+            if (!result) {
+                throw std::logic_error(
+                    "DockSpace was removed during composition");
             }
             return result;
         }
@@ -345,8 +577,11 @@ namespace Bess::UI {
                 UIComposer children{m_tree, owner.id()};
                 std::invoke(std::forward<Build>(build), children);
             } catch (...) {
-                owner.remove();
-                throw;
+                Detail::rollbackComposedWidget(owner, std::current_exception());
+            }
+            if (!owner) {
+                throw std::logic_error(
+                    "Composed widget was removed by its builder");
             }
             return owner;
         }
@@ -362,9 +597,11 @@ namespace Bess::UI {
             if (m_tree.getChildren(owner.id()).size() <= 1) {
                 return owner;
             }
-            owner.remove();
-            throw std::logic_error(std::string{ownerName} +
-                                   " accepts at most one content root");
+            Detail::rollbackComposedWidget(
+                owner,
+                std::make_exception_ptr(
+                    std::logic_error(std::string{ownerName} +
+                                     " accepts at most one content root")));
         }
 
         WidgetTree &m_tree;
@@ -391,6 +628,32 @@ namespace Bess::UI {
         } catch (...) {
             rollback(result);
             throw;
+        }
+        if (!result) {
+            throw std::logic_error("Dock panel was removed during composition");
+        }
+        return result;
+    }
+
+    template <typename Build>
+        requires std::invocable<Build, UIComposer &>
+    ReorderListItemHandle ReorderListComposer::item(
+        ReorderItemId id, DraggableListItemOptions options, Build &&build) {
+        auto result = item(id, std::move(options));
+        try {
+            UIComposer content{m_tree, result.widget.id()};
+            std::invoke(std::forward<Build>(build), content);
+            if (m_tree.getChildren(result.widget.id()).size() > 1U) {
+                throw std::logic_error(
+                    "DraggableListItem accepts at most one content root");
+            }
+        } catch (...) {
+            Detail::rollbackComposedWidget(result.widget,
+                                           std::current_exception());
+        }
+        if (!result) {
+            throw std::logic_error(
+                "ReorderableList item was removed during composition");
         }
         return result;
     }
