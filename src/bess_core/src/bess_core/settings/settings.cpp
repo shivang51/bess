@@ -1,6 +1,7 @@
 #include "bess_core/settings/settings.h"
 #include "bess_core/settings/viewport_theme.h"
 #include "common/bess_assert.h"
+#include "common/logger.h"
 
 namespace Bess::Config {
 
@@ -12,6 +13,8 @@ namespace Bess::Config {
         m_fontRebuild = true;
         m_fps = 240;
         m_frameTimeStep = TimeMs(1000.0 / m_fps);
+
+        m_themes.applyTheme(m_currentTheme);
     }
 
     void Settings::onDestroy() {
@@ -33,6 +36,7 @@ namespace Bess::Config {
     void Settings::applyTheme(const std::string &theme) {
         if (m_currentTheme == theme)
             return;
+        BESS_INFO("[Settings] Applying theme: {}", theme);
         m_currentTheme = theme;
         m_themes.applyTheme(theme);
     }

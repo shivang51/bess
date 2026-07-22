@@ -14,6 +14,7 @@
 #include "bess_core/scene/scene_layer.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_types.h"
+#include "bess_core/scene/scene_ui/ui_view.h"
 #include "bess_core/scene/widgets/scene_widgets.h"
 #include "bess_core/settings/viewport_theme.h"
 #include "bess_core/sub_systems/input_sub_system.h"
@@ -107,19 +108,20 @@ namespace Bess::Canvas {
         }
 
         m_sceneLayers.push_back(std::make_unique<GridLayer>());
-        m_sceneLayers.push_back(std::make_unique<ComponentsLayer>());
-        m_sceneLayers.push_back(std::make_unique<HoverLayer>());
-        m_sceneLayers.push_back(std::make_unique<OverlayLayer>());
-        m_sceneLayers.push_back(std::make_unique<InteractionLayer>());
-        m_sceneLayers.push_back(std::make_unique<UIComponentsLayer>());
-        m_sceneLayers.push_back(std::make_unique<SceneWidgetsLayer>());
-        m_sceneLayers.push_back(std::make_unique<ScratchLayer>());
-        auto screenOverlayLayer = std::make_unique<ScreenSpaceOverlayLayer>();
-        m_screenSpaceOverlayLayer = screenOverlayLayer.get();
-
-#ifdef BESS_DEBUG
-        m_sceneLayers.push_back(std::move(screenOverlayLayer));
-#endif
+        //         m_sceneLayers.push_back(std::make_unique<ComponentsLayer>());
+        //         m_sceneLayers.push_back(std::make_unique<HoverLayer>());
+        //         m_sceneLayers.push_back(std::make_unique<OverlayLayer>());
+        //         m_sceneLayers.push_back(std::make_unique<InteractionLayer>());
+        //         m_sceneLayers.push_back(std::make_unique<UIComponentsLayer>());
+        //         m_sceneLayers.push_back(std::make_unique<SceneWidgetsLayer>());
+        //         m_sceneLayers.push_back(std::make_unique<ScratchLayer>());
+        //         auto screenOverlayLayer =
+        //         std::make_unique<ScreenSpaceOverlayLayer>();
+        //         m_screenSpaceOverlayLayer = screenOverlayLayer.get();
+        //
+        // #ifdef BESS_DEBUG
+        //         m_sceneLayers.push_back(std::move(screenOverlayLayer));
+        // #endif
 
         reset();
     }
@@ -238,6 +240,7 @@ namespace Bess::Canvas {
         });
 
         SceneWidgets::beginFrame(ctx.sceneWidgetsState);
+
         for (auto &layer : m_sceneLayers) {
             layer->draw(ctx);
         }

@@ -3,9 +3,12 @@
 #include "common/bess_api.h"
 
 #include "common/bess_assert.h"
+#include "ui/ui_main/scene_viewport_controller.h"
 #include "ui/ui_main/scene_viewport_panel.h"
 #include "ui/ui_panel.h"
+#include <memory>
 #include <typeindex>
+#include <vector>
 
 namespace Bess::UI {
 
@@ -78,6 +81,21 @@ namespace Bess::UI {
         static std::shared_ptr<Canvas::Scene> getFocusedViewportScene();
         static std::shared_ptr<Canvas::Scene> getActiveViewportScene();
         static std::shared_ptr<Canvas::Scene> getTargetViewportScene();
+        static std::shared_ptr<Core::Viewport::ViewportContext>
+        getActiveViewportContext();
+
+        // Retained SceneView controllers (MainUIView). Preferred over the
+        // legacy ImGui SceneViewportPanel path when both are present.
+        static void registerSceneViewportController(
+            const std::shared_ptr<SceneViewportController> &controller);
+        static void
+        unregisterSceneViewportController(const SceneViewportController *controller);
+        static std::shared_ptr<SceneViewportController>
+        getHoveredSceneViewportController();
+        static std::shared_ptr<SceneViewportController>
+        getFocusedSceneViewportController();
+        static std::shared_ptr<SceneViewportController>
+        getActiveSceneViewportController();
 
         static void regExtPanelDock(const std::string &panelName,
                                     const Dock &dock);
@@ -101,7 +119,12 @@ namespace Bess::UI {
         getPanelMap();
         static std::vector<PreInitCallback> &getPreInitCallbacks();
         static std::unordered_map<std::string, Dock> &getExtPanelsDockMap();
+        static std::vector<std::weak_ptr<SceneViewportController>> &
+        getSceneViewportControllers();
 
         static bool m_isDockSpaceDirty;
+        // When true, ImGui SceneViewportPanels stay hidden so the retained
+        // SceneView owns interaction/render without double-driving the scene.
+        static bool m_preferRetainedViewports;
     };
 } // namespace Bess::UI

@@ -135,15 +135,12 @@ namespace Bess::Pages {
     void MainPage::update(TimeMs ts) {
         m_state.update();
 
-        const auto activePanel = UI::UIMain::getActiveSceneViewportPanel();
+        auto attachedScene = UI::UIMain::getActiveViewportScene();
+        auto activeViewportCtx = UI::UIMain::getActiveViewportContext();
 
-        auto attachedScene =
-            activePanel ? activePanel->getAttachedScene() : nullptr;
-
-        if (attachedScene) {
+        if (attachedScene && activeViewportCtx) {
             const auto sceneWidgetsState = Canvas::SceneWidgets::findState(
-                activePanel->getViewportContext().get(),
-                &attachedScene->getState());
+                activeViewportCtx.get(), &attachedScene->getState());
             const bool sceneWantsKeyboard =
                 Canvas::SceneWidgets::wantsKeyboard(sceneWidgetsState);
             const auto focusedUIComponent =

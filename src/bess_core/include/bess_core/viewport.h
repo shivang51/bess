@@ -12,8 +12,17 @@ namespace Bess::Canvas::SceneWidgets {
 
 namespace Bess::Core::Viewport {
     struct BESS_API ViewportTransform {
+        // Origin of the viewport in the coordinate space used by
+        // InputSubSystem pointer events (typically window content coords).
         glm::vec2 pos{0.f};
+        // Pixel size of the render target / camera viewport. Scene drawing,
+        // picking, and camera projection all use this space.
         glm::vec2 size{0.f};
+        // Maps InputSubSystem deltas/positions into pixel space:
+        // localPixels = (pointer - pos) * inputScale.
+        // Defaults to 1 so existing call sites remain correct when window and
+        // framebuffer coordinates already agree.
+        glm::vec2 inputScale{1.f, 1.f};
     };
 
     enum class ViewportMode : uint8_t { normal, schematic };

@@ -11,6 +11,7 @@
 #include "services/window_drop_service/window_drop_service.h"
 #include "stb_image.h"
 #include "sub_systems/renderer_context.h"
+#include "ui/ui_main/main_ui_view.h"
 
 #include <GLFW/glfw3.h>
 #ifdef __linux__
@@ -431,9 +432,8 @@ namespace Bess {
                     window->m_uiTarget.setTheme(*event.theme);
                 }
             });
-        // Temporary retained-UI integration showcase. The application can
-        // replace this with its real root view through the same API.
-        static_cast<void>(m_uiTarget.setContent<UI::UIDemoView>());
+        // Application retained root: dock shell + SceneView viewport.
+        static_cast<void>(m_uiTarget.setContent<UI::MainUIView>());
         m_uiTarget.enqueueEvent(UI::UITargetResizeEvent{
             .width = static_cast<uint32_t>(m_width),
             .height = static_cast<uint32_t>(m_height),

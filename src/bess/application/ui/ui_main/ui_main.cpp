@@ -165,6 +165,7 @@ namespace Bess::UI {
     } // namespace
 
     bool UIMain::m_isDockSpaceDirty = true;
+    bool UIMain::m_preferRetainedViewports = true;
 
     void UIMain::draw() {
         if (m_isDockSpaceDirty) {
@@ -910,8 +911,18 @@ namespace Bess::UI {
         registerPanel<ProjectSettingsWindow>();
         registerPanel<SceneExportWindow>();
         registerPanel<SettingsWindow>();
+        // Legacy ImGui viewports remain registered for API compatibility, but
+        // stay hidden while the retained MainUIView SceneView owns the scene.
         registerPanel<SceneViewportPanel>("Scene Viewport");
         registerPanel<SceneViewportPanel>("Scene Viewport 2");
+        if (m_preferRetainedViewports) {
+            for (const auto &panel : getScenePanels()) {
+                if (panel) {
+                    panel->hide();
+                    panel->setShowInMenuBar(false);
+                }
+            }
+        }
     }
 
     std::vector<std::shared_ptr<Panel>> &UIMain::getPanels() {
@@ -984,6 +995,20 @@ namespace Bess::UI {
             return;
         }
 
+        // Retained controllers own the live viewport while ImGui panels are
+        // suppressed. Keep their scene attachment synchronized with project
+        // open/new flows.
+        for (const auto &weak : getSceneViewportControllers()) {
+            auto controller = weak.lock();
+            if (!controller) {
+                continue;
+            }
+            if (!sceneBelongsToDriver(sceneDriver,
+                                      controller->getAttachedScene())) {
+                controller->setAttachedScene(activeScene);
+            }
+        }
+
         auto preferredPanel = activeSceneViewportPanelRef().lock();
         if (!preferredPanel || !preferredPanel->getVisible()) {
             preferredPanel = targetSceneViewportPanelRef().lock();
@@ -1016,7 +1041,7 @@ namespace Bess::UI {
         if (preferredPanel) {
             activeSceneViewportPanelRef() = preferredPanel;
             targetSceneViewportPanelRef() = preferredPanel;
-        } else {
+        } else if (!getActiveSceneViewportController()) {
             clearSceneViewportTargets();
         }
     }
@@ -1031,20 +1056,113 @@ namespace Bess::UI {
         activeSceneViewportPanelRef() = panel;
     }
 
+    std::vector<std::weak_ptr<SceneViewportController>> &
+    UIMain::getSceneViewportControllers() {
+        static std::vector<std::weak_ptr<SceneViewportController>> controllers;
+        return controllers;
+    }
+
+    void UIMain::registerSceneViewportController(
+        const std::shared_ptr<SceneViewportController> &controller) {
+        if (!controller) {
+            return;
+        }
+        auto &controllers = getSceneViewportControllers();
+        for (const auto &weak : controllers) {
+            if (weak.lock() == controller) {
+                return;
+            }
+        }
+        controllers.push_back(controller);
+    }
+
+    void UIMain::unregisterSceneViewportController(
+        const SceneViewportController *controller) {
+        auto &controllers = getSceneViewportControllers();
+        std::erase_if(controllers, [controller](const auto &weak) {
+            const auto locked = weak.lock();
+            return !locked || locked.get() == controller;
+        });
+    }
+
+    std::shared_ptr<SceneViewportController>
+    UIMain::getHoveredSceneViewportController() {
+        for (const auto &weak : getSceneViewportControllers()) {
+            auto controller = weak.lock();
+            if (controller && controller->isHovered()) {
+                return controller;
+            }
+        }
+        return nullptr;
+    }
+
+    std::shared_ptr<SceneViewportController>
+    UIMain::getFocusedSceneViewportController() {
+        for (const auto &weak : getSceneViewportControllers()) {
+            auto controller = weak.lock();
+            if (controller && controller->isFocused()) {
+                return controller;
+            }
+        }
+        return getHoveredSceneViewportController();
+    }
+
+    std::shared_ptr<SceneViewportController>
+    UIMain::getActiveSceneViewportController() {
+        if (auto controller = getFocusedSceneViewportController()) {
+            return controller;
+        }
+        for (const auto &weak : getSceneViewportControllers()) {
+            auto controller = weak.lock();
+            if (controller && controller->isUsable()) {
+                return controller;
+            }
+        }
+        for (const auto &weak : getSceneViewportControllers()) {
+            if (auto controller = weak.lock()) {
+                return controller;
+            }
+        }
+        return nullptr;
+    }
+
     std::shared_ptr<Canvas::Scene> UIMain::getHoveredViewportScene() {
+        if (const auto controller = getHoveredSceneViewportController()) {
+            return controller->getAttachedScene();
+        }
         return attachedSceneForPanel(getHoveredSceneViewportPanel());
     }
 
     std::shared_ptr<Canvas::Scene> UIMain::getFocusedViewportScene() {
+        if (const auto controller = getFocusedSceneViewportController()) {
+            return controller->getAttachedScene();
+        }
         return attachedSceneForPanel(getFocusedSceneViewportPanel());
     }
 
     std::shared_ptr<Canvas::Scene> UIMain::getActiveViewportScene() {
+        if (const auto controller = getActiveSceneViewportController()) {
+            return controller->getAttachedScene();
+        }
         return attachedSceneForPanel(getActiveSceneViewportPanel());
     }
 
     std::shared_ptr<Canvas::Scene> UIMain::getTargetViewportScene() {
+        if (const auto controller = getActiveSceneViewportController()) {
+            return controller->getAttachedScene();
+        }
         return attachedSceneForPanel(getTargetSceneViewportPanel());
+    }
+
+    std::shared_ptr<Core::Viewport::ViewportContext>
+    UIMain::getActiveViewportContext() {
+        if (const auto controller = getActiveSceneViewportController()) {
+            return controller->getViewportContext();
+        }
+        if (const auto panel = getActiveSceneViewportPanel()) {
+            return panel->getViewportContext();
+        }
+        return nullptr;
     }
 
     void UIMain::updateSceneViewportTargets() {

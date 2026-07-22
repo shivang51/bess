@@ -1,6 +1,8 @@
 #include "bess_core/scene/scene_event_builder.h"
 #include "bess_core/sub_systems/input_sub_system.h"
 
+#include <cmath>
+
 namespace Bess::Canvas {
     std::vector<SceneEvent> SceneEventBuilder::buildFrameEvents(
         const InputSubSystem &inputSystem,
@@ -17,8 +19,20 @@ namespace Bess::Canvas {
         const auto &frameInputState = inputSystem.getFrameInpState();
 
         auto toVpPos = [&viewportTransform](const glm::vec2 &pos) -> glm::vec2 {
-            return {pos.x - viewportTransform.pos.x,
-                    pos.y - viewportTransform.pos.y};
+            // Convert platform pointer coords into render-target pixels so DPI
+            // and framebuffer scaling do not desync camera projection/picking.
+            const glm::vec2 scale{
+                std::isfinite(viewportTransform.inputScale.x) &&
+                        viewportTransform.inputScale.x > 0.f
+                    ? viewportTransform.inputScale.x
+                    : 1.f,
+                std::isfinite(viewportTransform.inputScale.y) &&
+                        viewportTransform.inputScale.y > 0.f
+                    ? viewportTransform.inputScale.y
+                    : 1.f,
+            };
+            return {(pos.x - viewportTransform.pos.x) * scale.x,
+                    (pos.y - viewportTransform.pos.y) * scale.y};
         };
 
         if (frameInputState.hasMouseMoved) {

@@ -1,7 +1,8 @@
 #pragma once
 
-#include "common/bess_api.h"
 #include "bess_core/renderer/renderer_types.h"
+#include "bess_core/style/bess_theme.h"
+#include "common/bess_api.h"
 #include <string>
 
 namespace Bess {
@@ -87,6 +88,8 @@ namespace Bess {
         BESS_DATA_API static SceneWidgetsColors sceneWidgetsColors;
         BESS_DATA_API static NodeHeaderColors headerColors;
         static void updateColorsFromImGuiStyle(bool isDark);
+        static void updateFromBessTheme(
+            const std::shared_ptr<Core::Style::BessTheme> &theme);
 
         static Color getCompHeaderColor(const std::string &group);
 

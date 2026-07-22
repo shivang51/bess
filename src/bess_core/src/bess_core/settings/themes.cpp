@@ -61,7 +61,6 @@ namespace Bess::Config {
             return;
 
         const bool isDark = m_themes[themeName]();
-        ViewportTheme::updateColorsFromImGuiStyle(isDark);
 
         auto theme = getCurrentTheme();
 
@@ -70,6 +69,7 @@ namespace Bess::Config {
                            : Core::Style::BessTheme::defaultTheme();
         }
 
+        ViewportTheme::updateFromBessTheme(theme);
         getCurrentThemeRef() = theme;
 
         GAppContext::getInstance()
@@ -1007,7 +1007,7 @@ namespace Bess::Config {
     } // namespace
 
     void Themes::setMaterialColors(Core::Style::Brightness brightness) {
-        setGeometry();
+        // setGeometry();
 
         const auto colorScheme = Bess::Core::Style::ColorScheme::fromSeed(
             Core::Renderer::Colors::blue, brightness);
@@ -1017,7 +1017,7 @@ namespace Bess::Config {
 
         getCurrentThemeRef() = theme;
 
-        setImGuiColors(colorScheme, ImGui::GetStyle());
+        // setImGuiColors(colorScheme, ImGui::GetStyle());
     }
 
     void Themes::setGeometry() {
