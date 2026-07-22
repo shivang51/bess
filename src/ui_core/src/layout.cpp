@@ -134,6 +134,133 @@ namespace Bess::UI {
         }
     } // namespace
 
+    void LayoutSpec::apply(LayoutNode &layout) const {
+        const auto applyWidth = [&layout](const LayoutLength &length) {
+            switch (length.mode) {
+            case LayoutSizeMode::auto_:
+                layout.setWidthAuto();
+                break;
+            case LayoutSizeMode::point:
+                layout.setWidth(length.value);
+                break;
+            case LayoutSizeMode::percent:
+                layout.setWidthPercent(length.value);
+                break;
+            case LayoutSizeMode::fitContent:
+                layout.setWidthFitContent();
+                break;
+            case LayoutSizeMode::maxContent:
+                layout.setWidthMaxContent();
+                break;
+            case LayoutSizeMode::stretch:
+                layout.setWidthStretch();
+                break;
+            }
+        };
+        const auto applyHeight = [&layout](const LayoutLength &length) {
+            switch (length.mode) {
+            case LayoutSizeMode::auto_:
+                layout.setHeightAuto();
+                break;
+            case LayoutSizeMode::point:
+                layout.setHeight(length.value);
+                break;
+            case LayoutSizeMode::percent:
+                layout.setHeightPercent(length.value);
+                break;
+            case LayoutSizeMode::fitContent:
+                layout.setHeightFitContent();
+                break;
+            case LayoutSizeMode::maxContent:
+                layout.setHeightMaxContent();
+                break;
+            case LayoutSizeMode::stretch:
+                layout.setHeightStretch();
+                break;
+            }
+        };
+        const auto applyBasis = [&layout](const LayoutLength &length) {
+            switch (length.mode) {
+            case LayoutSizeMode::auto_:
+                layout.setFlexBasisAuto();
+                break;
+            case LayoutSizeMode::point:
+                layout.setFlexBasis(length.value);
+                break;
+            case LayoutSizeMode::percent:
+                layout.setFlexBasis(length.value, Unit::relative);
+                break;
+            case LayoutSizeMode::fitContent:
+                layout.setFlexBasisFitContent();
+                break;
+            case LayoutSizeMode::maxContent:
+                layout.setFlexBasisMaxContent();
+                break;
+            case LayoutSizeMode::stretch:
+                layout.setFlexBasisStretch();
+                break;
+            }
+        };
+
+        if (width.has_value()) {
+            applyWidth(*width);
+        }
+        if (height.has_value()) {
+            applyHeight(*height);
+        }
+        if (minSize.has_value()) {
+            layout.setMinSize(*minSize);
+        }
+        if (maxSize.has_value()) {
+            layout.setMaxSize(*maxSize);
+        }
+        if (padding.has_value()) {
+            layout.setPadding(*padding);
+        }
+        if (margin.has_value()) {
+            layout.setMargin(*margin);
+        }
+        if (gap.has_value()) {
+            layout.setGap(*gap);
+        }
+        if (direction.has_value()) {
+            layout.setDirection(*direction);
+        }
+        if (mainAxisAlignment.has_value()) {
+            layout.setMainAxisAlignment(*mainAxisAlignment);
+        }
+        if (crossAxisAlignment.has_value()) {
+            layout.setCrossAxisAlignment(*crossAxisAlignment);
+        }
+        if (alignSelf.has_value()) {
+            layout.setAlignSelf(*alignSelf);
+        }
+        if (flexGrow.has_value()) {
+            layout.setFlexGrow(*flexGrow);
+        }
+        if (flexShrink.has_value()) {
+            layout.setFlexShrink(*flexShrink);
+        }
+        if (flexBasis.has_value()) {
+            applyBasis(*flexBasis);
+        }
+        if (positionUnit.has_value()) {
+            layout.setPosUnit(*positionUnit);
+        }
+        if (positionMode.has_value()) {
+            layout.setPosMode(*positionMode);
+        }
+        if (position.has_value()) {
+            layout.setPos(*position);
+        }
+        if (drawPivot.has_value()) {
+            layout.setDrawPivot(*drawPivot);
+        }
+        if (zIndex.has_value()) {
+            layout.setZVal(*zIndex);
+        }
+    }
+
     LayoutNodeRegistry::LayoutNodeRegistry() : m_ygConfig(YGConfigNew()) {
     }
 

@@ -166,6 +166,11 @@ namespace Bess::UI {
         MenuItemId m_pressedItem;
         size_t m_hotDepth = 0;
         mutable MenuBarLayout m_layout;
+        mutable WidgetBounds m_layoutBounds;
+        mutable glm::vec2 m_layoutViewportSize{0.f};
+        mutable MenuId m_layoutActiveMenu;
+        mutable std::vector<MenuItemId> m_layoutOpenSubmenus;
+        mutable bool m_layoutDirty = true;
     };
 
 } // namespace Bess::UI

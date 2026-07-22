@@ -6,6 +6,45 @@ namespace {
 
     using namespace Bess;
 
+    class LayoutCountingWidget final : public UI::Widget {
+      public:
+        LayoutCountingWidget(size_t &layoutCalls, size_t &arrangeCalls)
+            : m_layoutCalls(layoutCalls),
+              m_arrangeCalls(arrangeCalls) {
+        }
+
+        void onMount(UI::WidgetMountContext &context) override {
+            context.layout.setWidth(40.f);
+            context.layout.setHeight(20.f);
+        }
+
+        void updateLayout(UI::WidgetLayoutContext &) override {
+            ++m_layoutCalls;
+        }
+
+        void update(UI::WidgetUpdateContext &context) override {
+            if (!m_invalidateOnUpdate) {
+                return;
+            }
+            m_invalidateOnUpdate = false;
+            context.state.invalidate(context.id,
+                                     UI::WidgetInvalidation::layout);
+        }
+
+        void arrange(UI::WidgetArrangeContext &) override {
+            ++m_arrangeCalls;
+        }
+
+        void invalidateOnNextUpdate() noexcept {
+            m_invalidateOnUpdate = true;
+        }
+
+      private:
+        size_t &m_layoutCalls;
+        size_t &m_arrangeCalls;
+        bool m_invalidateOnUpdate = false;
+    };
+
     TEST(UITargetEvents, PreservesEventOrderAndTypedPayloads) {
         UI::UITarget target;
         const Input::Modifiers keyModifiers{
@@ -141,6 +180,48 @@ namespace {
 
         EXPECT_EQ(activations, 1);
         EXPECT_EQ(target.getWidgetTree().getFocusedWidget(), button);
+    }
+
+    TEST(UITargetEvents, SkipsLayoutForStableFramesAndHonorsInvalidation) {
+        UI::UITarget target;
+        target.resize({200.f, 100.f});
+        size_t layoutCalls = 0;
+        size_t arrangeCalls = 0;
+        const auto widget =
+            target.getWidgetTree().emplaceWidget<LayoutCountingWidget>(
+                layoutCalls, arrangeCalls);
+        ASSERT_TRUE(widget);
+
+        target.update(TimeMs{0});
+        EXPECT_EQ(layoutCalls, 1u);
+        EXPECT_EQ(arrangeCalls, 1u);
+
+        target.update(TimeMs{0});
+        EXPECT_EQ(layoutCalls, 1u);
+        EXPECT_EQ(arrangeCalls, 1u);
+
+        auto *probe =
+            target.getWidgetTree().getWidget<LayoutCountingWidget>(widget);
+        ASSERT_NE(probe, nullptr);
+        probe->invalidateOnNextUpdate();
+        target.update(TimeMs{0});
+        EXPECT_EQ(layoutCalls, 2u);
+        EXPECT_EQ(arrangeCalls, 2u);
+    }
+
+    TEST(UITargetEvents, UsesCpuHitTestingForInputPickingByDefault) {
+        UI::UITarget target;
+        target.resize({200.f, 100.f});
+        const auto button = target.getWidgetTree().emplaceWidget<UI::Button>(
+            "CPU picked", [] {});
+        ASSERT_TRUE(button);
+
+        target.enqueueEvent(Input::MouseMoveEvent{.pos = {100.f, 50.f}});
+        target.update(TimeMs{0});
+
+        const auto pickingId = target.getInputContext().pickingId;
+        EXPECT_TRUE(pickingId.isValid());
+        EXPECT_EQ(target.getWidgetTree().resolvePickingId(pickingId), button);
     }
 
 } // namespace

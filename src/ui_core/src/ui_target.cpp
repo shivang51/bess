@@ -26,6 +26,7 @@ namespace Bess::UI {
         destroy();
         m_renderer = renderer;
         m_rect = desc.rect;
+        m_pickingStrategy = desc.pickingStrategy;
         m_widgetTree.setTheme(desc.theme != nullptr
                                   ? UITheme::fromBessTheme(*desc.theme)
                                   : UITheme::dark());
@@ -62,6 +63,7 @@ namespace Bess::UI {
         m_frameEvents.clear();
         m_inputCtx = {};
         m_hasMousePos = false;
+        m_pickingStrategy = UITargetPickingStrategy::cpuHitTest;
         m_widgetTree.clear();
         m_widgetTree.setPlatformServices({});
         m_widgetTree.setViewportSize({0.f, 0.f});
@@ -176,22 +178,28 @@ namespace Bess::UI {
     void UITarget::update(TimeMs dt) {
         m_popupHost.update();
         processInputEvents();
-        // Hit testing always uses a complete geometry snapshot, including on
-        // the first frame after widgets are mounted or the target is resized.
-        m_widgetTree.performLayout();
-        for (const auto &event : m_frameEvents) {
-            static_cast<void>(m_widgetTree.dispatchEvent(event));
-            m_viewHost.flushPendingUnmounts();
+        const auto ensureLayout = [this] {
             if (hasInvalidation(m_widgetTree.pendingInvalidation(),
                                 WidgetInvalidation::layout)) {
                 m_widgetTree.performLayout();
             }
+        };
+
+        // Hit testing uses a complete geometry snapshot, including on the
+        // first frame after widgets are mounted or the target is resized. A
+        // stable retained tree does not need to pay for another full Yoga and
+        // arrange pass every frame.
+        ensureLayout();
+        for (const auto &event : m_frameEvents) {
+            static_cast<void>(m_widgetTree.dispatchEvent(event));
+            m_viewHost.flushPendingUnmounts();
+            ensureLayout();
         }
         m_widgetTree.update(dt);
         m_viewHost.flushPendingUnmounts();
-        m_widgetTree.performLayout();
+        ensureLayout();
 
-        if (m_renderTarget == nullptr || m_inputCtx.mousePos.x < 0.f ||
+        if (!m_hasMousePos || m_inputCtx.mousePos.x < 0.f ||
             m_inputCtx.mousePos.y < 0.f ||
             m_inputCtx.mousePos.x >= m_rect.size.x ||
             m_inputCtx.mousePos.y >= m_rect.size.y) {
@@ -199,9 +207,20 @@ namespace Bess::UI {
             return;
         }
 
-        m_inputCtx.pickingId = m_renderTarget->readPickingId(
-            static_cast<uint32_t>(m_inputCtx.mousePos.x),
-            static_cast<uint32_t>(m_inputCtx.mousePos.y));
+        if (m_pickingStrategy == UITargetPickingStrategy::cpuHitTest) {
+            const glm::vec2 uiPosition =
+                m_inputCtx.mousePos - m_rect.size * 0.5f;
+            m_inputCtx.pickingId =
+                m_widgetTree.getPickingId(m_widgetTree.hitTest(uiPosition));
+            return;
+        }
+
+        m_inputCtx.pickingId =
+            m_renderTarget != nullptr
+                ? m_renderTarget->readPickingId(
+                      static_cast<uint32_t>(m_inputCtx.mousePos.x),
+                      static_cast<uint32_t>(m_inputCtx.mousePos.y))
+                : PickingId::invalid();
     }
 
     void UITarget::processInputEvents() {

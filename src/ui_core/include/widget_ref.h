@@ -68,21 +68,105 @@ namespace Bess::UI {
                           std::forward<Mutation>(mutation));
         }
 
+        // "mutate" is the explicit form for application code; "update" is
+        // retained as a compatibility alias.
+        template <typename Mutation>
+            requires std::invocable<Mutation, T &>
+        bool mutate(WidgetInvalidation invalidation,
+                    Mutation &&mutation) const {
+            return update(invalidation, std::forward<Mutation>(mutation));
+        }
+
+        template <typename Mutation>
+            requires std::invocable<Mutation, T &>
+        bool mutate(Mutation &&mutation) const {
+            return update(std::forward<Mutation>(mutation));
+        }
+
         template <typename Mutation>
             requires std::invocable<Mutation, LayoutNode &>
         bool updateLayout(Mutation &&mutation) const {
             auto *owner = tree();
-            if (owner == nullptr ||
-                owner->template getWidget<T>(m_id) == nullptr) {
+            return owner != nullptr &&
+                   owner->template getWidget<T>(m_id) != nullptr &&
+                   owner->mutateLayout(m_id, std::forward<Mutation>(mutation));
+        }
+
+        bool setLayout(const LayoutSpec &spec) const {
+            return updateLayout(
+                [&spec](LayoutNode &layout) { spec.apply(layout); });
+        }
+
+        // Fluent composition helper. A failed/dead handle stays visibly empty
+        // rather than silently returning the original stale reference.
+        [[nodiscard]] WidgetRef withLayout(const LayoutSpec &spec) const {
+            return setLayout(spec) ? *this : WidgetRef{};
+        }
+
+        bool setEnabled(bool enabled) const {
+            auto *owner = tree();
+            return owner != nullptr && owner->setEnabled(m_id, enabled);
+        }
+
+        [[nodiscard]] bool isEnabled() const noexcept {
+            const auto *owner = tree();
+            return owner != nullptr && owner->isEnabled(m_id);
+        }
+
+        bool setVisibility(WidgetVisibility visibility) const {
+            auto *owner = tree();
+            return owner != nullptr && owner->setVisibility(m_id, visibility);
+        }
+
+        [[nodiscard]] WidgetVisibility visibility() const noexcept {
+            const auto *owner = tree();
+            return owner != nullptr ? owner->getVisibility(m_id)
+                                    : WidgetVisibility::collapsed;
+        }
+
+        // Hidden widgets retain their layout slot; collapsed widgets do not.
+        bool show() const {
+            return setVisibility(WidgetVisibility::visible);
+        }
+
+        bool hide() const {
+            return setVisibility(WidgetVisibility::hidden);
+        }
+
+        bool collapse() const {
+            return setVisibility(WidgetVisibility::collapsed);
+        }
+
+        bool setHitTestVisible(bool visible) const {
+            auto *owner = tree();
+            return owner != nullptr && owner->setHitTestVisible(m_id, visible);
+        }
+
+        bool focus() const {
+            auto *owner = tree();
+            return owner != nullptr && owner->setFocus(m_id);
+        }
+
+        bool blur() const {
+            auto *owner = tree();
+            if (owner == nullptr || owner->getFocusedWidget() != m_id) {
                 return false;
             }
-            auto *layout = owner->getLayout(m_id);
-            if (layout == nullptr) {
+            owner->clearFocus();
+            return !owner->getFocusedWidget();
+        }
+
+        [[nodiscard]] bool isFocused() const noexcept {
+            const auto *owner = tree();
+            return owner != nullptr && owner->getFocusedWidget() == m_id;
+        }
+
+        bool invalidate(WidgetInvalidation invalidation) const {
+            auto *owner = tree();
+            if (owner == nullptr || !owner->contains(m_id)) {
                 return false;
             }
-            std::invoke(std::forward<Mutation>(mutation), *layout);
-            owner->invalidate(
-                m_id, WidgetInvalidation::layout | WidgetInvalidation::paint);
+            owner->invalidate(m_id, invalidation);
             return true;
         }
 

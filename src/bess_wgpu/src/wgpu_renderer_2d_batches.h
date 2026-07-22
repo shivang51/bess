@@ -57,16 +57,8 @@ namespace Bess::Wgpu::Renderer2DDetail {
     class PrimitiveBatch {
       public:
         void configure(uint32_t initialCapacity, uint32_t maxCapacity) {
-            (void)initialCapacity;
             m_maxCapacity = std::max(1u, maxCapacity);
-            m_gpuInstances.resize(m_maxCapacity);
-            m_submitOrders.resize(m_maxCapacity);
-            m_scissors.resize(m_maxCapacity);
-            m_drawRuns.resize(m_maxCapacity);
-            m_gpuInstancesPtr = m_gpuInstances.data();
-            m_submitOrdersPtr = m_submitOrders.data();
-            m_scissorsPtr = m_scissors.data();
-            m_drawRunsPtr = m_drawRuns.data();
+            resizeStorage(std::clamp(initialCapacity, 1u, m_maxCapacity));
             m_instanceCount = 0;
             m_drawRunsCount = 0;
         }
@@ -76,13 +68,14 @@ namespace Bess::Wgpu::Renderer2DDetail {
             m_drawRunsCount = 0;
         }
 
-        Piplines::PrimitiveInstance &push(Core::Renderer::TextureHandle texture,
-                                          uint64_t submitOrder,
-                                          Core::Renderer::RendererScissorState
-                                              scissor = {}) {
+        Piplines::PrimitiveInstance &
+        push(Core::Renderer::TextureHandle texture,
+             uint64_t submitOrder,
+             Core::Renderer::RendererScissorState scissor = {}) {
             if (m_instanceCount >= m_maxCapacity) {
                 throw std::runtime_error("WGPU quad batch capacity exceeded");
             }
+            ensureCapacity(m_instanceCount + 1);
             const uint32_t instanceIndex = m_instanceCount;
             if (m_drawRunsCount == 0 ||
                 m_drawRunsPtr[m_drawRunsCount - 1].texture != texture ||
@@ -196,6 +189,10 @@ namespace Bess::Wgpu::Renderer2DDetail {
             return m_instanceCount;
         }
 
+        [[nodiscard]] uint32_t capacity() const noexcept {
+            return static_cast<uint32_t>(m_gpuInstances.size());
+        }
+
         [[nodiscard]] uint64_t byteSize() const noexcept {
             return static_cast<uint64_t>(m_instanceCount) *
                    sizeof(Piplines::PrimitiveInstance);
@@ -214,6 +211,28 @@ namespace Bess::Wgpu::Renderer2DDetail {
         }
 
       private:
+        void ensureCapacity(uint32_t required) {
+            if (required <= m_gpuInstances.size()) {
+                return;
+            }
+            const uint32_t current =
+                static_cast<uint32_t>(m_gpuInstances.size());
+            const uint32_t grown =
+                current > m_maxCapacity / 2u ? m_maxCapacity : current * 2u;
+            resizeStorage(std::min(m_maxCapacity, std::max(required, grown)));
+        }
+
+        void resizeStorage(uint32_t capacity) {
+            m_gpuInstances.resize(capacity);
+            m_submitOrders.resize(capacity);
+            m_scissors.resize(capacity);
+            m_drawRuns.resize(capacity);
+            m_gpuInstancesPtr = m_gpuInstances.data();
+            m_submitOrdersPtr = m_submitOrders.data();
+            m_scissorsPtr = m_scissors.data();
+            m_drawRunsPtr = m_drawRuns.data();
+        }
+
         std::vector<Piplines::PrimitiveInstance> m_gpuInstances;
         std::vector<uint64_t> m_submitOrders;
         std::vector<Core::Renderer::RendererScissorState> m_scissors;
@@ -235,16 +254,8 @@ namespace Bess::Wgpu::Renderer2DDetail {
     class CustomQuadBatch {
       public:
         void configure(uint32_t initialCapacity, uint32_t maxCapacity) {
-            (void)initialCapacity;
             m_maxCapacity = std::max(1u, maxCapacity);
-            m_gpuInstances.resize(m_maxCapacity);
-            m_submitOrders.resize(m_maxCapacity);
-            m_scissors.resize(m_maxCapacity);
-            m_drawRuns.resize(m_maxCapacity);
-            m_gpuInstancesPtr = m_gpuInstances.data();
-            m_submitOrdersPtr = m_submitOrders.data();
-            m_scissorsPtr = m_scissors.data();
-            m_drawRunsPtr = m_drawRuns.data();
+            resizeStorage(std::clamp(initialCapacity, 1u, m_maxCapacity));
             m_instanceCount = 0;
             m_drawRunsCount = 0;
         }
@@ -254,10 +265,10 @@ namespace Bess::Wgpu::Renderer2DDetail {
             m_drawRunsCount = 0;
         }
 
-        CustomQuadInstance &push(CustomQuadShaderHandle shader,
-                                 uint64_t submitOrder,
-                                 Core::Renderer::RendererScissorState
-                                     scissor = {}) {
+        CustomQuadInstance &
+        push(CustomQuadShaderHandle shader,
+             uint64_t submitOrder,
+             Core::Renderer::RendererScissorState scissor = {}) {
             if (shader == 0) {
                 throw std::runtime_error(
                     "Custom quad shader handle must be non-zero");
@@ -266,6 +277,7 @@ namespace Bess::Wgpu::Renderer2DDetail {
                 throw std::runtime_error(
                     "WGPU custom quad batch capacity exceeded");
             }
+            ensureCapacity(m_instanceCount + 1);
 
             const uint32_t instanceIndex = m_instanceCount;
             if (m_drawRunsCount == 0 ||
@@ -380,6 +392,10 @@ namespace Bess::Wgpu::Renderer2DDetail {
             return m_instanceCount;
         }
 
+        [[nodiscard]] uint32_t capacity() const noexcept {
+            return static_cast<uint32_t>(m_gpuInstances.size());
+        }
+
         [[nodiscard]] uint64_t byteSize() const noexcept {
             return static_cast<uint64_t>(m_instanceCount) *
                    sizeof(CustomQuadInstance);
@@ -398,6 +414,28 @@ namespace Bess::Wgpu::Renderer2DDetail {
         }
 
       private:
+        void ensureCapacity(uint32_t required) {
+            if (required <= m_gpuInstances.size()) {
+                return;
+            }
+            const uint32_t current =
+                static_cast<uint32_t>(m_gpuInstances.size());
+            const uint32_t grown =
+                current > m_maxCapacity / 2u ? m_maxCapacity : current * 2u;
+            resizeStorage(std::min(m_maxCapacity, std::max(required, grown)));
+        }
+
+        void resizeStorage(uint32_t capacity) {
+            m_gpuInstances.resize(capacity);
+            m_submitOrders.resize(capacity);
+            m_scissors.resize(capacity);
+            m_drawRuns.resize(capacity);
+            m_gpuInstancesPtr = m_gpuInstances.data();
+            m_submitOrdersPtr = m_submitOrders.data();
+            m_scissorsPtr = m_scissors.data();
+            m_drawRunsPtr = m_drawRuns.data();
+        }
+
         std::vector<CustomQuadInstance> m_gpuInstances;
         std::vector<uint64_t> m_submitOrders;
         std::vector<Core::Renderer::RendererScissorState> m_scissors;
@@ -419,16 +457,8 @@ namespace Bess::Wgpu::Renderer2DDetail {
     class ShadowBatch {
       public:
         void configure(uint32_t initialCapacity, uint32_t maxCapacity) {
-            (void)initialCapacity;
             m_maxCapacity = std::max(1u, maxCapacity);
-            m_instances.resize(m_maxCapacity);
-            m_submitOrders.resize(m_maxCapacity);
-            m_scissors.resize(m_maxCapacity);
-            m_drawRuns.resize(m_maxCapacity);
-            m_instancesPtr = m_instances.data();
-            m_submitOrdersPtr = m_submitOrders.data();
-            m_scissorsPtr = m_scissors.data();
-            m_drawRunsPtr = m_drawRuns.data();
+            resizeStorage(std::clamp(initialCapacity, 1u, m_maxCapacity));
             m_instanceCount = 0;
             m_drawRunsCount = 0;
         }
@@ -438,12 +468,13 @@ namespace Bess::Wgpu::Renderer2DDetail {
             m_drawRunsCount = 0;
         }
 
-        Piplines::ShadowInstance &push(
-            uint64_t submitOrder,
-            Core::Renderer::RendererScissorState scissor = {}) {
+        Piplines::ShadowInstance &
+        push(uint64_t submitOrder,
+             Core::Renderer::RendererScissorState scissor = {}) {
             if (m_instanceCount >= m_maxCapacity) {
                 throw std::runtime_error("WGPU shadow batch capacity exceeded");
             }
+            ensureCapacity(m_instanceCount + 1);
             m_submitOrdersPtr[m_instanceCount] = submitOrder;
             m_scissorsPtr[m_instanceCount] = scissor;
             return m_instancesPtr[m_instanceCount++];
@@ -520,6 +551,10 @@ namespace Bess::Wgpu::Renderer2DDetail {
             return m_instanceCount;
         }
 
+        [[nodiscard]] uint32_t capacity() const noexcept {
+            return static_cast<uint32_t>(m_instances.size());
+        }
+
         [[nodiscard]] uint64_t byteSize() const noexcept {
             return static_cast<uint64_t>(m_instanceCount) *
                    sizeof(Piplines::ShadowInstance);
@@ -538,6 +573,27 @@ namespace Bess::Wgpu::Renderer2DDetail {
         }
 
       private:
+        void ensureCapacity(uint32_t required) {
+            if (required <= m_instances.size()) {
+                return;
+            }
+            const uint32_t current = static_cast<uint32_t>(m_instances.size());
+            const uint32_t grown =
+                current > m_maxCapacity / 2u ? m_maxCapacity : current * 2u;
+            resizeStorage(std::min(m_maxCapacity, std::max(required, grown)));
+        }
+
+        void resizeStorage(uint32_t capacity) {
+            m_instances.resize(capacity);
+            m_submitOrders.resize(capacity);
+            m_scissors.resize(capacity);
+            m_drawRuns.resize(capacity);
+            m_instancesPtr = m_instances.data();
+            m_submitOrdersPtr = m_submitOrders.data();
+            m_scissorsPtr = m_scissors.data();
+            m_drawRunsPtr = m_drawRuns.data();
+        }
+
         std::vector<Piplines::ShadowInstance> m_instances;
         std::vector<uint64_t> m_submitOrders;
         std::vector<Core::Renderer::RendererScissorState> m_scissors;

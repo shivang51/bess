@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <exception>
 #include <iterator>
 #include <limits>
 #include <stdexcept>
@@ -44,7 +45,12 @@ namespace Bess::UI {
         // Expire external handles before invoking any widget unmount hooks.
         // Those hooks may own WidgetRefs back into this tree.
         m_control->tree = nullptr;
-        clear();
+        try {
+            clear();
+        } catch (...) {
+            // Destructors must not propagate application callback failures.
+            // clear() still completes structural teardown before rethrowing.
+        }
         m_control.reset();
     }
 
@@ -52,7 +58,7 @@ namespace Bess::UI {
                                    WidgetId parent,
                                    size_t index) {
         if (widget == nullptr || m_destroying ||
-            (parent && !contains(parent))) {
+            (parent && (!contains(parent) || m_removing.contains(parent)))) {
             return {};
         }
 
@@ -92,13 +98,26 @@ namespace Bess::UI {
                                         : std::min(index, siblings.size());
             siblings.insert(siblings.begin() + static_cast<ptrdiff_t>(insertAt),
                             child);
+            return insertAt;
         };
 
         if (parent) {
-            attach(m_nodes.find(parent)->second.children, id);
-            syncLayoutChildren(parent);
+            auto &siblings = m_nodes.find(parent)->second.children;
+            const size_t insertAt = attach(siblings, id);
+            // Declarative composition overwhelmingly appends. Updating Yoga
+            // incrementally keeps a row/column with N children O(N) to build;
+            // indexed insertion retains the authoritative full-order sync.
+            if (insertAt + 1 == siblings.size()) {
+                if (auto *parentLayout = getLayout(parent)) {
+                    parentLayout->addChild(layout);
+                } else {
+                    syncLayoutChildren(parent);
+                }
+            } else {
+                syncLayoutChildren(parent);
+            }
         } else {
-            attach(m_roots, id);
+            static_cast<void>(attach(m_roots, id));
         }
 
         beginCallback();
@@ -127,6 +146,9 @@ namespace Bess::UI {
         if (!contains(id)) {
             return false;
         }
+        if (m_removing.contains(id)) {
+            return true;
+        }
 
         if (m_callbackDepth > 0) {
             if (std::find(m_pendingRemovals.begin(),
@@ -149,15 +171,26 @@ namespace Bess::UI {
         }
 
         m_destroying = true;
+        std::exception_ptr failure;
+        const auto removeAndRemember = [this, &failure](WidgetId id) {
+            try {
+                static_cast<void>(removeWidgetNow(id));
+            } catch (...) {
+                if (failure == nullptr) {
+                    failure = std::current_exception();
+                }
+            }
+        };
         while (!m_roots.empty()) {
-            removeWidgetNow(m_roots.back());
+            removeAndRemember(m_roots.back());
         }
         // Defensive cleanup for an inconsistent tree. Public operations never
         // create orphans, but destruction should still be total.
         while (!m_nodes.empty()) {
-            removeWidgetNow(m_nodes.begin()->first);
+            removeAndRemember(m_nodes.begin()->first);
         }
         m_pendingRemovals.clear();
+        m_removing.clear();
         m_runtimeToWidget.clear();
         m_layoutRegistry.clear();
         m_focused = {};
@@ -167,13 +200,18 @@ namespace Bess::UI {
         m_lastPointerPosition.reset();
         m_clearPending = false;
         m_destroying = false;
+        if (failure != nullptr) {
+            std::rethrow_exception(failure);
+        }
     }
 
     bool
     WidgetTree::reparentWidget(WidgetId id, WidgetId newParent, size_t index) {
         auto *node = findNode(id);
         if (node == nullptr || (newParent && !contains(newParent)) ||
-            id == newParent || (newParent && isDescendantOf(newParent, id))) {
+            m_removing.contains(id) ||
+            (newParent && m_removing.contains(newParent)) || id == newParent ||
+            (newParent && isDescendantOf(newParent, id))) {
             return false;
         }
 
@@ -218,6 +256,7 @@ namespace Bess::UI {
 
         m_invalidation |=
             WidgetInvalidation::layout | WidgetInvalidation::paint;
+        reconcileInteractionState();
         return true;
     }
 
@@ -282,19 +321,9 @@ namespace Bess::UI {
             layout->setSizeDirty();
         }
 
-        if (visibility != WidgetVisibility::visible) {
-            if (m_focused && isDescendantOf(m_focused, id)) {
-                clearFocus();
-            }
-            if (m_pointerCapture && isDescendantOf(m_pointerCapture, id)) {
-                releasePointer();
-            }
-            if (m_hovered && isDescendantOf(m_hovered, id)) {
-                updateHover({});
-            }
-        }
         m_invalidation |=
             WidgetInvalidation::layout | WidgetInvalidation::paint;
+        reconcileInteractionState();
         return true;
     }
 
@@ -310,15 +339,8 @@ namespace Bess::UI {
             return node != nullptr;
         }
         node->properties.enabled = enabled;
-        if (!enabled) {
-            if (m_focused && isDescendantOf(m_focused, id)) {
-                clearFocus();
-            }
-            if (m_pointerCapture && isDescendantOf(m_pointerCapture, id)) {
-                releasePointer();
-            }
-        }
         m_invalidation |= WidgetInvalidation::paint;
+        reconcileInteractionState();
         return true;
     }
 
@@ -329,13 +351,14 @@ namespace Bess::UI {
 
     bool WidgetTree::setHitTestVisible(WidgetId id, bool visible) {
         auto *node = findNode(id);
-        if (node == nullptr) {
-            return false;
+        if (node == nullptr || node->properties.hitTestVisible == visible) {
+            return node != nullptr;
         }
         node->properties.hitTestVisible = visible;
         if (!visible && m_pointerCapture == id) {
             releasePointer(id);
         }
+        reconcileInteractionState();
         return true;
     }
 
@@ -354,10 +377,6 @@ namespace Bess::UI {
 
     glm::vec2 WidgetTree::getViewportSize() const noexcept {
         return m_viewportSize;
-    }
-
-    UITheme &WidgetTree::theme() noexcept {
-        return m_theme;
     }
 
     const UITheme &WidgetTree::theme() const noexcept {
@@ -401,36 +420,48 @@ namespace Bess::UI {
             }
         } catch (...) {
             endCallback();
+            m_invalidation |=
+                WidgetInvalidation::layout | WidgetInvalidation::paint;
             throw;
         }
         endCallback();
         m_layoutThemeRevision = themeRevision;
 
-        for (auto &[id, node] : m_nodes) {
-            (void)id;
-            node.arrangedBounds.reset();
-            node.arrangedVisible = true;
-            node.arrangedZOffset = 0.f;
-        }
+        try {
+            for (auto &[id, node] : m_nodes) {
+                (void)id;
+                node.arrangedBounds.reset();
+                node.arrangedVisible = true;
+                node.arrangedZOffset = 0.f;
+            }
 
-        const auto roots = m_roots;
-        for (const auto root : roots) {
-            if (!contains(root)) {
-                continue;
+            const auto roots = m_roots;
+            for (const auto root : roots) {
+                if (!contains(root)) {
+                    continue;
+                }
+                auto *layout = getLayout(root);
+                if (layout == nullptr) {
+                    continue;
+                }
+                layout->setPos({0.f, 0.f});
+                layout->setPosUnit(Unit::pixel);
+                layout->setDrawPivot(DrawPivot::center);
+                layout->setWidth(m_viewportSize.x);
+                layout->setHeight(m_viewportSize.y);
+                layout->measure(m_layoutRegistry, UUID::null);
+                arrangeSubtree(root);
             }
-            auto *layout = getLayout(root);
-            if (layout == nullptr) {
-                continue;
-            }
-            layout->setPos({0.f, 0.f});
-            layout->setPosUnit(Unit::pixel);
-            layout->setDrawPivot(DrawPivot::center);
-            layout->setWidth(m_viewportSize.x);
-            layout->setHeight(m_viewportSize.y);
-            layout->measure(m_layoutRegistry, UUID::null);
-            arrangeSubtree(root);
+            resolvePendingAutoFocus();
+            reconcileInteractionState();
+        } catch (...) {
+            // A later pass must recompute the whole arranged state; retaining
+            // partially arranged geometry after an application callback
+            // throws would make painting and hit testing disagree.
+            m_invalidation |=
+                WidgetInvalidation::layout | WidgetInvalidation::paint;
+            throw;
         }
-        resolvePendingAutoFocus();
     }
 
     WidgetBounds WidgetTree::getBounds(WidgetId id) const noexcept {
@@ -454,8 +485,14 @@ namespace Bess::UI {
     void WidgetTree::update(TimeMs deltaTime) {
         const auto roots = m_roots;
         beginCallback();
-        for (const auto root : roots) {
-            updateSubtree(root, deltaTime);
+        try {
+            for (const auto root : roots) {
+                updateSubtree(root, deltaTime);
+            }
+        } catch (...) {
+            endCallback();
+            m_invalidation |= WidgetInvalidation::paint;
+            throw;
         }
         endCallback();
     }
@@ -476,6 +513,7 @@ namespace Bess::UI {
             }
         } catch (...) {
             endCallback();
+            m_invalidation |= WidgetInvalidation::paint;
             throw;
         }
         endCallback();
@@ -545,7 +583,18 @@ namespace Bess::UI {
             return {};
         }
 
-        auto result = dispatchToTarget(target, event, pointer);
+        UIDispatchResult result;
+        try {
+            result = dispatchToTarget(target, event, pointer);
+        } catch (...) {
+            if (const auto *button = event.getIf<Input::MouseButtonEvent>();
+                button != nullptr &&
+                button->action == MouseButtonAction::release &&
+                m_pointerCapture) {
+                releasePointer();
+            }
+            throw;
+        }
         if (!result.handled) {
             if (const auto *key = event.getIf<Input::KeyEvent>();
                 key != nullptr && key->key == KeyCode::tab &&
@@ -600,29 +649,38 @@ namespace Bess::UI {
         }
 
         m_changingFocus = true;
-        WidgetId requested = id;
-        size_t remainingChanges = m_nodes.size() + 8;
-        do {
-            m_deferredFocus.reset();
-            const WidgetId previous = m_focused;
-            m_focused = {};
-            if (previous && contains(previous)) {
-                dispatchDirect(previous, UIFocusChangedEvent{.focused = false});
-            }
+        try {
+            WidgetId requested = id;
+            size_t remainingChanges = m_nodes.size() + 8;
+            do {
+                m_deferredFocus.reset();
+                const WidgetId previous = m_focused;
+                m_focused = {};
+                if (previous && contains(previous)) {
+                    dispatchDirect(previous,
+                                   UIFocusChangedEvent{.focused = false});
+                }
 
-            if (requested && contains(requested) &&
-                isEffectivelyEnabled(requested) &&
-                isEffectivelyVisible(requested) &&
-                getWidget(requested)->traits().focusable &&
-                focusAllowedByActiveScope(requested)) {
-                m_focused = requested;
-                dispatchDirect(requested, UIFocusChangedEvent{.focused = true});
-            }
-            if (m_deferredFocus.has_value()) {
-                requested = *m_deferredFocus;
-            }
-        } while (m_deferredFocus.has_value() && requested != m_focused &&
-                 remainingChanges-- > 0);
+                if (requested && contains(requested) &&
+                    isEffectivelyEnabled(requested) &&
+                    isEffectivelyVisible(requested) &&
+                    getWidget(requested)->traits().focusable &&
+                    focusAllowedByActiveScope(requested)) {
+                    m_focused = requested;
+                    dispatchDirect(requested,
+                                   UIFocusChangedEvent{.focused = true});
+                }
+                if (m_deferredFocus.has_value()) {
+                    requested = *m_deferredFocus;
+                }
+            } while (m_deferredFocus.has_value() && requested != m_focused &&
+                     remainingChanges-- > 0);
+        } catch (...) {
+            m_deferredFocus.reset();
+            m_changingFocus = false;
+            m_invalidation |= WidgetInvalidation::paint;
+            throw;
+        }
         m_deferredFocus.reset();
         m_changingFocus = false;
         m_invalidation |= WidgetInvalidation::paint;
@@ -1035,6 +1093,50 @@ namespace Bess::UI {
         }
     }
 
+    void WidgetTree::reconcileInteractionState() {
+        if (m_reconcilingInteraction || m_destroying) {
+            return;
+        }
+
+        m_reconcilingInteraction = true;
+        try {
+            // Crossing and focus callbacks may mutate visibility again. Walk
+            // to a fixed point with a bounded iteration count so interaction
+            // state always refers to a currently eligible widget without
+            // permitting a hostile callback to spin forever.
+            size_t remaining = m_nodes.size() + 4;
+            while (remaining-- > 0) {
+                bool changed = false;
+                if (m_focused && (!isFocusable(m_focused) ||
+                                  !focusAllowedByActiveScope(m_focused))) {
+                    clearFocus();
+                    changed = true;
+                }
+                if (m_pointerCapture &&
+                    (!isEffectivelyEnabled(m_pointerCapture) ||
+                     !isEffectivelyVisible(m_pointerCapture))) {
+                    releasePointer();
+                    changed = true;
+                }
+
+                const WidgetId pointed = m_lastPointerPosition.has_value()
+                                             ? hitTest(*m_lastPointerPosition)
+                                             : WidgetId{};
+                if (pointed != m_hovered) {
+                    updateHover(pointed);
+                    changed = true;
+                }
+                if (!changed) {
+                    break;
+                }
+            }
+        } catch (...) {
+            m_reconcilingInteraction = false;
+            throw;
+        }
+        m_reconcilingInteraction = false;
+    }
+
     void WidgetTree::syncLayoutChildren(WidgetId parent) {
         auto *parentNode = findNode(parent);
         auto *parentLayout = getLayout(parent);
@@ -1051,13 +1153,10 @@ namespace Bess::UI {
     }
 
     bool WidgetTree::removeWidgetNow(WidgetId id) {
-        if (!contains(id)) {
+        if (!contains(id) || m_removing.contains(id)) {
             return false;
         }
 
-        if (m_popupHost != nullptr) {
-            static_cast<void>(m_popupHost->closeAnchoredInSubtree(id));
-        }
         auto *rootNode = findNode(id);
         if (rootNode == nullptr) {
             return false;
@@ -1065,10 +1164,32 @@ namespace Bess::UI {
 
         std::vector<WidgetId> subtree;
         collectSubtree(id, subtree);
+        for (const auto widget : subtree) {
+            m_removing.insert(widget);
+        }
+
+        std::exception_ptr failure;
+        if (m_popupHost != nullptr) {
+            try {
+                static_cast<void>(m_popupHost->closeAnchoredInSubtree(id));
+            } catch (...) {
+                failure = std::current_exception();
+            }
+        }
 
         // Hold deferred destruction across focus/hover notifications as those
         // callbacks are allowed to request removal of this same subtree.
         beginCallback();
+
+        const auto invokeAndRemember = [&failure](auto &&callback) {
+            try {
+                std::invoke(std::forward<decltype(callback)>(callback));
+            } catch (...) {
+                if (failure == nullptr) {
+                    failure = std::current_exception();
+                }
+            }
+        };
 
         std::vector<WidgetId> removedScopes;
         for (const auto &entry : m_focusScopes) {
@@ -1078,17 +1199,19 @@ namespace Bess::UI {
         }
         for (auto it = removedScopes.rbegin(); it != removedScopes.rend();
              ++it) {
-            static_cast<void>(deactivateFocusScope(*it));
+            invokeAndRemember([this, scope = *it] {
+                static_cast<void>(deactivateFocusScope(scope));
+            });
         }
 
         if (m_focused && isDescendantOf(m_focused, id)) {
-            clearFocus();
+            invokeAndRemember([this] { clearFocus(); });
         }
         if (m_pointerCapture && isDescendantOf(m_pointerCapture, id)) {
             releasePointer();
         }
         if (m_hovered && isDescendantOf(m_hovered, id)) {
-            updateHover({});
+            invokeAndRemember([this] { updateHover({}); });
         }
 
         const WidgetId parent = rootNode->parent;
@@ -1104,7 +1227,9 @@ namespace Bess::UI {
 
         for (auto it = subtree.rbegin(); it != subtree.rend(); ++it) {
             if (auto *node = findNode(*it); node != nullptr) {
-                node->widget->onUnmount(*this, *it);
+                invokeAndRemember([this, node, widget = *it] {
+                    node->widget->onUnmount(*this, widget);
+                });
             }
         }
 
@@ -1117,9 +1242,16 @@ namespace Bess::UI {
             m_layoutRegistry.removeNode(it->value());
             m_nodes.erase(nodeIt);
         }
+        for (const auto widget : subtree) {
+            m_removing.erase(widget);
+        }
         m_invalidation |=
             WidgetInvalidation::layout | WidgetInvalidation::paint;
-        endCallback();
+        invokeAndRemember([this] { endCallback(); });
+        invokeAndRemember([this] { reconcileInteractionState(); });
+        if (failure != nullptr) {
+            std::rethrow_exception(failure);
+        }
         return true;
     }
 
@@ -1150,10 +1282,20 @@ namespace Bess::UI {
         }
         auto pending = std::move(m_pendingRemovals);
         m_pendingRemovals.clear();
+        std::exception_ptr failure;
         for (const auto id : pending) {
             if (contains(id)) {
-                removeWidgetNow(id);
+                try {
+                    static_cast<void>(removeWidgetNow(id));
+                } catch (...) {
+                    if (failure == nullptr) {
+                        failure = std::current_exception();
+                    }
+                }
             }
+        }
+        if (failure != nullptr) {
+            std::rethrow_exception(failure);
         }
     }
 
@@ -1170,7 +1312,12 @@ namespace Bess::UI {
             .id = id,
             .bounds = getBounds(id),
         };
-        node->widget->arrange(context);
+        try {
+            node->widget->arrange(context);
+        } catch (...) {
+            endCallback();
+            throw;
+        }
         endCallback();
         for (const auto child : children) {
             arrangeSubtree(child);
@@ -1354,6 +1501,7 @@ namespace Bess::UI {
         }
         const WidgetId previous = m_hovered;
         m_hovered = {};
+        m_invalidation |= WidgetInvalidation::paint;
         if (previous && contains(previous)) {
             dispatchDirect(previous, UIPointerCrossingEvent{.entered = false});
         }
@@ -1361,7 +1509,6 @@ namespace Bess::UI {
             m_hovered = hovered;
             dispatchDirect(hovered, UIPointerCrossingEvent{.entered = true});
         }
-        m_invalidation |= WidgetInvalidation::paint;
     }
 
     UIDispatchResult
@@ -1385,30 +1532,36 @@ namespace Bess::UI {
 
         UIDispatchResult result{.target = target};
         beginCallback();
-        bool stopped = false;
-        for (auto it = route.rbegin(); it != route.rend() && !stopped; ++it) {
-            if (*it == target) {
-                continue;
+        try {
+            bool stopped = false;
+            for (auto it = route.rbegin(); it != route.rend() && !stopped;
+                 ++it) {
+                if (*it == target) {
+                    continue;
+                }
+                const auto reply = invokeEvent(
+                    *it, target, UIEventPhase::capture, event, pointer);
+                result.handled = result.handled || reply.handled;
+                stopped = reply.stopPropagation;
             }
-            const auto reply =
-                invokeEvent(*it, target, UIEventPhase::capture, event, pointer);
-            result.handled = result.handled || reply.handled;
-            stopped = reply.stopPropagation;
-        }
-        if (!stopped && contains(target)) {
-            const auto reply = invokeEvent(
-                target, target, UIEventPhase::target, event, pointer);
-            result.handled = result.handled || reply.handled;
-            stopped = reply.stopPropagation;
-        }
-        for (size_t i = 1; i < route.size() && !stopped; ++i) {
-            if (!contains(route[i])) {
-                continue;
+            if (!stopped && contains(target)) {
+                const auto reply = invokeEvent(
+                    target, target, UIEventPhase::target, event, pointer);
+                result.handled = result.handled || reply.handled;
+                stopped = reply.stopPropagation;
             }
-            const auto reply = invokeEvent(
-                route[i], target, UIEventPhase::bubble, event, pointer);
-            result.handled = result.handled || reply.handled;
-            stopped = reply.stopPropagation;
+            for (size_t i = 1; i < route.size() && !stopped; ++i) {
+                if (!contains(route[i])) {
+                    continue;
+                }
+                const auto reply = invokeEvent(
+                    route[i], target, UIEventPhase::bubble, event, pointer);
+                result.handled = result.handled || reply.handled;
+                stopped = reply.stopPropagation;
+            }
+        } catch (...) {
+            endCallback();
+            throw;
         }
         endCallback();
         return result;
@@ -1464,8 +1617,16 @@ namespace Bess::UI {
             return;
         }
         beginCallback();
-        invokeEvent(
-            target, target, UIEventPhase::target, event, m_lastPointerPosition);
+        try {
+            invokeEvent(target,
+                        target,
+                        UIEventPhase::target,
+                        event,
+                        m_lastPointerPosition);
+        } catch (...) {
+            endCallback();
+            throw;
+        }
         endCallback();
     }
 

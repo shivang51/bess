@@ -9,6 +9,7 @@
 #include "ui_view.h"
 #include "widget_tree.h"
 #include <concepts>
+#include <cstdint>
 #include <memory>
 #include <span>
 #include <type_traits>
@@ -20,6 +21,16 @@ namespace Bess::Core::Style {
 }
 
 namespace Bess::UI {
+
+    enum class UITargetPickingStrategy : uint8_t {
+        // WidgetTree is the interaction authority. This avoids a GPU/CPU
+        // synchronization point and returns the topmost widget's picking ID.
+        cpuHitTest,
+        // Compatibility path for consumers that require per-fragment `info`
+        // values emitted by custom painting. This readback is synchronous and
+        // should not be used in a latency-sensitive frame loop.
+        synchronousGpuReadback,
+    };
 
     struct UITargetInpCtx {
         PickingId pickingId = PickingId::invalid();
@@ -45,6 +56,11 @@ namespace Bess::UI {
             Core::Renderer::Renderer2DTargetFormat::BGRA8Unorm;
         Core::Renderer::Renderer2DTargetFormat pickingFormat =
             Core::Renderer::Renderer2DTargetFormat::RG32Uint;
+        // Retained controls use rectangle hit testing for deterministic,
+        // zero-latency routing. Select synchronous GPU readback only when an
+        // external consumer needs per-fragment picking metadata.
+        UITargetPickingStrategy pickingStrategy =
+            UITargetPickingStrategy::cpuHitTest;
     };
 
     // Rendering/input boundary for one UI surface. The surface may be native or
@@ -135,6 +151,8 @@ namespace Bess::UI {
         Rect m_rect{};
         UITargetInpCtx m_inputCtx;
         bool m_hasMousePos = false;
+        UITargetPickingStrategy m_pickingStrategy =
+            UITargetPickingStrategy::cpuHitTest;
         std::vector<UIEvent> m_pendingEvents;
         std::vector<UIEvent> m_frameEvents;
     };

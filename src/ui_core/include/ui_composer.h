@@ -317,6 +317,12 @@ namespace Bess::UI {
 
         template <typename T>
             requires std::derived_from<T, Widget>
+        bool layout(const WidgetRef<T> &widget, const LayoutSpec &spec) const {
+            return widget.tree() == &m_tree && widget.setLayout(spec);
+        }
+
+        template <typename T>
+            requires std::derived_from<T, Widget>
         bool enabled(const WidgetRef<T> &widget, bool value) const {
             return widget.tree() == &m_tree &&
                    m_tree.setEnabled(widget.id(), value);

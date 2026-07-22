@@ -76,9 +76,8 @@ namespace {
         void destroy() override {
         }
         [[nodiscard]]
-        std::shared_ptr<Bess::Core::Renderer::IRenderTarget2D>
-        createTarget(const Bess::Core::Renderer::RenderTarget2DCreateInfo &)
-            override {
+        std::shared_ptr<Bess::Core::Renderer::IRenderTarget2D> createTarget(
+            const Bess::Core::Renderer::RenderTarget2DCreateInfo &) override {
             return nullptr;
         }
         void resize(const Bess::Core::Renderer::Renderer2DExtent &) override {
@@ -143,6 +142,7 @@ namespace {
         [[nodiscard]] glm::vec2 measureText(
             std::string_view text,
             const Bess::Core::Renderer::FontProps &props = {}) override {
+            ++measureCalls;
             return getTextRenderSize(text, props);
         }
         [[nodiscard]] float textCenterOffsetX(
@@ -185,17 +185,42 @@ namespace {
 
         std::vector<Bess::Core::Renderer::QuadProps> quads;
         std::vector<Bess::Core::Renderer::FontProps> fonts;
+        size_t measureCalls = 0;
     };
+
+    TEST(RendererUIPainterTests,
+         MeasuresTextOnlyWhenTheRequestedAlignmentNeedsItsExtent) {
+        LayoutTestRenderer2D renderer;
+        Bess::UI::RendererUIPainter painter(renderer, {200.f, 100.f});
+        const Bess::UI::WidgetBounds bounds{.center = {},
+                                            .size = {100.f, 30.f}};
+
+        painter.drawText("left", {.bounds = bounds, .fontSize = 12.f});
+        EXPECT_EQ(renderer.measureCalls, 0u);
+
+        painter.drawText(
+            "center",
+            {.bounds = bounds,
+             .fontSize = 12.f,
+             .horizontal = Bess::UI::HorizontalTextAlignment::center});
+        EXPECT_EQ(renderer.measureCalls, 1u);
+
+        painter.drawText(
+            "right",
+            {.bounds = bounds,
+             .fontSize = 12.f,
+             .horizontal = Bess::UI::HorizontalTextAlignment::end});
+        EXPECT_EQ(renderer.measureCalls, 2u);
+    }
 
     TEST(RendererUIPainterTests,
          IconAndBackgroundShareThePreparedGlyphPixelTranslation) {
         LayoutTestRenderer2D renderer;
         Bess::UI::RendererUIPainter painter(renderer, {101.f, 99.f});
 
-        for (const glm::vec2 center :
-             {glm::vec2{0.2f, 0.3f},
-              glm::vec2{17.7f, -12.1f},
-              glm::vec2{-50.2f, -49.7f}}) {
+        for (const glm::vec2 center : {glm::vec2{0.2f, 0.3f},
+                                       glm::vec2{17.7f, -12.1f},
+                                       glm::vec2{-50.2f, -49.7f}}) {
             renderer.quads.clear();
             renderer.fonts.clear();
 
@@ -206,17 +231,19 @@ namespace {
             painter.drawIcon(
                 "x",
                 {
-                    .glyph = {
-                        .bounds = bounds,
-                        .fontSize = 10.f,
-                        .horizontal =
-                            Bess::UI::HorizontalTextAlignment::center,
-                        .vertical = Bess::UI::VerticalTextAlignment::center,
-                    },
-                    .background = Bess::UI::BoxPaint{
-                        .bounds = bounds,
-                        .color = {1.f, 1.f, 1.f, 1.f},
-                    },
+                    .glyph =
+                        {
+                            .bounds = bounds,
+                            .fontSize = 10.f,
+                            .horizontal =
+                                Bess::UI::HorizontalTextAlignment::center,
+                            .vertical = Bess::UI::VerticalTextAlignment::center,
+                        },
+                    .background =
+                        Bess::UI::BoxPaint{
+                            .bounds = bounds,
+                            .color = {1.f, 1.f, 1.f, 1.f},
+                        },
                 });
 
             ASSERT_EQ(renderer.quads.size(), 1u);
@@ -239,14 +266,12 @@ namespace {
             expectVec2(renderer.fonts.front().position,
                        unalignedOrigin.x + delta.x,
                        unalignedOrigin.y + delta.y);
-            EXPECT_NEAR(
-                renderer.quads.front().position.x - center.x,
-                renderer.fonts.front().position.x - unalignedOrigin.x,
-                1e-5f);
-            EXPECT_NEAR(
-                renderer.quads.front().position.y - center.y,
-                renderer.fonts.front().position.y - unalignedOrigin.y,
-                1e-5f);
+            EXPECT_NEAR(renderer.quads.front().position.x - center.x,
+                        renderer.fonts.front().position.x - unalignedOrigin.x,
+                        1e-5f);
+            EXPECT_NEAR(renderer.quads.front().position.y - center.y,
+                        renderer.fonts.front().position.y - unalignedOrigin.y,
+                        1e-5f);
         }
     }
 
@@ -786,14 +811,13 @@ TEST_F(UiLayoutTests, UIStyleShadowAppliesToBaseAndCustomFrameControls) {
                             Bess::Canvas::UI::UIElementStyle{
                                 .shadow = shadow,
                             });
-    auto progress =
-        ui.progressBar("load",
-                       0.5f,
-                       0.f,
-                       1.f,
-                       Bess::Canvas::UI::UIElementStyle{
-                           .shadow = shadow,
-                       });
+    auto progress = ui.progressBar("load",
+                                   0.5f,
+                                   0.f,
+                                   1.f,
+                                   Bess::Canvas::UI::UIElementStyle{
+                                       .shadow = shadow,
+                                   });
     progress->setShowLabel(false);
     progress->setShowValue(false);
     auto tree = ui.treeNode("tree",
@@ -845,12 +869,12 @@ TEST_F(UiLayoutTests, ToggleButtonRespectsConfiguredBorderAndShadowStyle) {
     const auto renderer = std::make_shared<LayoutTestRenderer2D>();
     const auto shadow = testShadow();
 
-    auto toggle = ui.toggleButton("toggle",
-                                  Bess::Canvas::UI::UIElementStyle{
-                                      .shadow = shadow,
-                                      .borderSize =
-                                          Bess::Core::Style::BorderSize(2.f),
-                                  });
+    auto toggle =
+        ui.toggleButton("toggle",
+                        Bess::Canvas::UI::UIElementStyle{
+                            .shadow = shadow,
+                            .borderSize = Bess::Core::Style::BorderSize(2.f),
+                        });
     toggle->setShowLabel(false);
 
     auto prepareCtx = uiPrepareContext(sceneState, renderer);
@@ -909,8 +933,7 @@ TEST_F(UiLayoutTests, ToggleButtonTrackStaysAboveTransparentParentRow) {
 
     size_t toggleQuadCount = 0;
     for (const auto &quad : renderer->quads) {
-        if (quad.id.runtimeId != toggle->getRuntimeId() ||
-            quad.id.info != 1u) {
+        if (quad.id.runtimeId != toggle->getRuntimeId() || quad.id.info != 1u) {
             continue;
         }
         ++toggleQuadCount;

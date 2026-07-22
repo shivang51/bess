@@ -480,6 +480,7 @@ namespace Bess::UI {
     void MenuBar::onMount(WidgetMountContext &context) {
         m_state = &context.state;
         m_id = context.id;
+        m_layoutDirty = true;
         const auto &menuStyle = style(context.state);
         if (m_options.stretchWidth) {
             context.layout.setWidthPercent(1.f);
@@ -497,9 +498,12 @@ namespace Bess::UI {
         m_state = nullptr;
         m_id = {};
         m_layout = {};
+        m_layoutOpenSubmenus.clear();
+        m_layoutDirty = true;
     }
 
     void MenuBar::updateLayout(WidgetLayoutContext &context) {
+        m_layoutDirty = m_layoutDirty || context.themeChanged;
         const auto &menuStyle = style(context.state);
         if (m_options.stretchWidth) {
             context.layout.setWidthPercent(1.f);
@@ -774,6 +778,7 @@ namespace Bess::UI {
 
     void MenuBar::setModel(std::shared_ptr<MenuModel> model) {
         m_model = model ? std::move(model) : std::make_shared<MenuModel>();
+        m_layoutDirty = true;
         close();
         reconnectModel();
         if (m_state != nullptr && m_id) {
@@ -811,6 +816,14 @@ namespace Bess::UI {
     void MenuBar::rebuildLayout(WidgetBounds bounds,
                                 const WidgetTree &state) const {
         const glm::vec2 viewportSize = state.getViewportSize();
+        const bool sameBounds = m_layoutBounds.center == bounds.center &&
+                                m_layoutBounds.size == bounds.size;
+        if (!m_layoutDirty && sameBounds &&
+            m_layoutViewportSize == viewportSize &&
+            m_layoutActiveMenu == m_activeMenu &&
+            m_layoutOpenSubmenus == m_openSubmenus) {
+            return;
+        }
         m_layout = MenuBarLayoutSolver::calculate(
             bounds,
             {.center = {0.f, 0.f}, .size = viewportSize},
@@ -818,6 +831,11 @@ namespace Bess::UI {
             m_activeMenu,
             m_openSubmenus,
             style(state));
+        m_layoutBounds = bounds;
+        m_layoutViewportSize = viewportSize;
+        m_layoutActiveMenu = m_activeMenu;
+        m_layoutOpenSubmenus = m_openSubmenus;
+        m_layoutDirty = false;
     }
 
     void MenuBar::reconnectModel() {
@@ -828,6 +846,7 @@ namespace Bess::UI {
         m_modelConnection =
             m_model->changed().connect([this](const MenuModelChange &) {
                 normalizeOpenPath();
+                m_layoutDirty = true;
                 if (m_state != nullptr && m_id) {
                     rebuildLayout(m_state->getBounds(m_id), *m_state);
                     m_state->invalidate(m_id,

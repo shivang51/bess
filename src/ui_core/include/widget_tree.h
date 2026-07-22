@@ -9,6 +9,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <exception>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -110,15 +111,62 @@ namespace Bess::UI {
                 return false;
             }
             beginCallback();
+            std::exception_ptr failure;
             try {
                 std::invoke(std::forward<Mutation>(mutation), *widget);
             } catch (...) {
-                endCallback();
-                throw;
+                failure = std::current_exception();
             }
-            endCallback();
+            try {
+                endCallback();
+            } catch (...) {
+                if (failure == nullptr) {
+                    failure = std::current_exception();
+                }
+            }
             if (contains(id)) {
                 invalidate(id, invalidation);
+            }
+            if (failure != nullptr) {
+                std::rethrow_exception(failure);
+            }
+            return true;
+        }
+
+        // Layout mutations use the same callback lifetime contract as widget
+        // mutations. In particular, removing the widget from inside the
+        // mutation is deferred until the borrowed LayoutNode is no longer in
+        // use.
+        template <typename Mutation>
+            requires std::invocable<Mutation, LayoutNode &>
+        bool mutateLayout(WidgetId id, Mutation &&mutation) {
+            if (!contains(id)) {
+                return false;
+            }
+            auto *layout = getLayout(id);
+            if (layout == nullptr) {
+                return false;
+            }
+            beginCallback();
+            std::exception_ptr failure;
+            try {
+                std::invoke(std::forward<Mutation>(mutation), *layout);
+            } catch (...) {
+                failure = std::current_exception();
+            }
+            try {
+                endCallback();
+            } catch (...) {
+                if (failure == nullptr) {
+                    failure = std::current_exception();
+                }
+            }
+            if (contains(id)) {
+                invalidate(
+                    id, WidgetInvalidation::layout | WidgetInvalidation::paint);
+            }
+            if (failure != nullptr) {
+                std::rethrow_exception(failure);
             }
             return true;
         }
@@ -142,7 +190,6 @@ namespace Bess::UI {
 
         void setViewportSize(glm::vec2 size);
         [[nodiscard]] glm::vec2 getViewportSize() const noexcept;
-        [[nodiscard]] UITheme &theme() noexcept;
         [[nodiscard]] const UITheme &theme() const noexcept;
         void setTheme(UITheme theme);
         void setPlatformServices(std::shared_ptr<UIPlatformServices> services);
@@ -225,6 +272,7 @@ namespace Bess::UI {
         void collectFocusable(WidgetId root,
                               std::vector<WidgetId> &result) const;
         void resolvePendingAutoFocus();
+        void reconcileInteractionState();
         void syncLayoutChildren(WidgetId parent);
 
         bool removeWidgetNow(WidgetId id);
@@ -264,6 +312,7 @@ namespace Bess::UI {
         LayoutNodeRegistry m_layoutRegistry;
         HashMap<uint32_t, WidgetId> m_runtimeToWidget;
         std::vector<WidgetId> m_pendingRemovals;
+        HashSet<WidgetId> m_removing;
         uint32_t m_nextRuntimeId = 1;
         uint32_t m_callbackDepth = 0;
         bool m_destroying = false;
@@ -288,6 +337,7 @@ namespace Bess::UI {
         std::vector<FocusScopeEntry> m_focusScopes;
         bool m_changingFocus = false;
         std::optional<WidgetId> m_deferredFocus;
+        bool m_reconcilingInteraction = false;
         WidgetInvalidation m_invalidation =
             WidgetInvalidation::layout | WidgetInvalidation::paint;
         std::shared_ptr<Detail::WidgetTreeControl> m_control;

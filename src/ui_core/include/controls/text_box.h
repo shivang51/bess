@@ -73,6 +73,13 @@ namespace Bess::UI {
         mutable float m_scrollX = 0.f;
         mutable float m_contentLeft = 0.f;
         mutable std::vector<std::pair<size_t, float>> m_caretPositions;
+        // Prefix measurement is exact but potentially quadratic in the text
+        // length. Retain it across frames and rebuild only when the text or
+        // the metric-affecting style changes.
+        mutable std::string m_caretMetricsText;
+        mutable float m_caretMetricsFontSize = 0.f;
+        mutable float m_caretMetricsLetterSpacing = 0.f;
+        mutable bool m_caretMetricsValid = false;
         double m_blinkElapsedMs = 0.0;
         bool m_caretVisible = true;
     };

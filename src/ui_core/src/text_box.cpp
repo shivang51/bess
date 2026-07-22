@@ -125,16 +125,24 @@ namespace Bess::UI {
             return;
         const auto &text = m_model->text();
         const auto selection = m_model->selection();
-        m_caretPositions.clear();
-        m_caretPositions.emplace_back(0, 0.f);
-        for (size_t offset = 0; offset < text.size();) {
-            offset = TextEditModel::nextGraphemeBoundary(text, offset);
-            const float x = context.painter
-                                .measureText(text.substr(0, offset),
-                                             style.text.fontSize,
-                                             style.text.letterSpacing)
-                                .x;
-            m_caretPositions.emplace_back(offset, x);
+        if (!m_caretMetricsValid || m_caretMetricsText != text ||
+            m_caretMetricsFontSize != style.text.fontSize ||
+            m_caretMetricsLetterSpacing != style.text.letterSpacing) {
+            m_caretPositions.clear();
+            m_caretPositions.emplace_back(0, 0.f);
+            for (size_t offset = 0; offset < text.size();) {
+                offset = TextEditModel::nextGraphemeBoundary(text, offset);
+                const float x = context.painter
+                                    .measureText(text.substr(0, offset),
+                                                 style.text.fontSize,
+                                                 style.text.letterSpacing)
+                                    .x;
+                m_caretPositions.emplace_back(offset, x);
+            }
+            m_caretMetricsText = text;
+            m_caretMetricsFontSize = style.text.fontSize;
+            m_caretMetricsLetterSpacing = style.text.letterSpacing;
+            m_caretMetricsValid = true;
         }
         const float fullWidth = m_caretPositions.back().second;
         const auto caretIt =

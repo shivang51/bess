@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <optional>
 
 namespace Bess::UI {
     namespace {
@@ -18,18 +19,24 @@ namespace Bess::UI {
                 .id = paint.pickingId,
                 .transformMode = Core::Renderer::RenderTransformMode::Screen,
             };
-            const auto textSize = renderer.measureText(text, props);
+            std::optional<glm::vec2> textSize;
+            const auto measuredSize = [&]() -> const glm::vec2 & {
+                if (!textSize.has_value()) {
+                    textSize = renderer.measureText(text, props);
+                }
+                return *textSize;
+            };
             auto position = paint.bounds.topLeft();
 
             switch (paint.horizontal) {
             case HorizontalTextAlignment::start:
                 break;
             case HorizontalTextAlignment::center:
-                position.x += (paint.bounds.size.x - textSize.x) * 0.5f;
+                position.x += (paint.bounds.size.x - measuredSize().x) * 0.5f;
                 position.x += renderer.textCenterOffsetX(text, props);
                 break;
             case HorizontalTextAlignment::end:
-                position.x += paint.bounds.size.x - textSize.x;
+                position.x += paint.bounds.size.x - measuredSize().x;
                 break;
             }
 
@@ -43,7 +50,7 @@ namespace Bess::UI {
                 break;
             case VerticalTextAlignment::end:
                 position.y +=
-                    paint.bounds.size.y - textSize.y + centerOffset;
+                    paint.bounds.size.y - measuredSize().y + centerOffset;
                 break;
             }
 
@@ -58,8 +65,7 @@ namespace Bess::UI {
                 !std::isfinite(screenSpaceOrigin.y)) {
                 return {0.f, 0.f};
             }
-            const glm::vec2 viewport =
-                glm::max(viewportSize, glm::vec2{0.f});
+            const glm::vec2 viewport = glm::max(viewportSize, glm::vec2{0.f});
             const glm::vec2 pixel = screenSpaceOrigin + viewport * 0.5f;
             return {std::round(pixel.x) - pixel.x,
                     std::round(pixel.y) - pixel.y};
@@ -118,8 +124,7 @@ namespace Bess::UI {
             return;
         }
 
-        const auto props =
-            prepareText(m_renderer, text, paint, m_layerOffset);
+        const auto props = prepareText(m_renderer, text, paint, m_layerOffset);
         m_renderer.drawFont(text, props);
     }
 
@@ -135,8 +140,7 @@ namespace Bess::UI {
         }
 
         auto props = prepareText(m_renderer, icon, glyph, m_layerOffset);
-        const glm::vec2 delta =
-            pixelSnapDelta(props.position, m_viewportSize);
+        const glm::vec2 delta = pixelSnapDelta(props.position, m_viewportSize);
         props.position += delta;
 
         if (paint.background) {

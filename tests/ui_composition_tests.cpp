@@ -87,6 +87,13 @@ namespace {
         }
     };
 
+    class ThrowingUnmountWidget final : public Widget {
+      public:
+        void onUnmount(WidgetTree &, WidgetId) override {
+            throw std::runtime_error("unmount callback failed");
+        }
+    };
+
     struct SelfUnmountProbe {
         bool returnedFromUnmount = false;
         bool destroyed = false;
@@ -150,6 +157,94 @@ namespace {
         }
         EXPECT_FALSE(retained);
         EXPECT_EQ(retained.tree(), nullptr);
+    }
+
+    TEST(WidgetRefTests, ProvidesDeclarativeLayoutAndInteractionHelpers) {
+        WidgetTree tree;
+        tree.setViewportSize({400.f, 200.f});
+        UIComposer ui{tree};
+        auto button = ui.button("Action");
+
+        const auto configured = button.withLayout({
+            .width = LayoutLength::percent(25.f),
+            .height = 28.f,
+            .minSize = glm::vec2{40.f, 20.f},
+            .margin = Core::Style::Margin::fromHorizontal(3.f),
+            .alignSelf = LayoutSelfAlignment::center,
+            .flexGrow = 1.f,
+            .flexShrink = 0.f,
+            .flexBasis = LayoutLength::fitContent(),
+            .zIndex = 2.f,
+        });
+        ASSERT_TRUE(configured);
+        const auto *layout = tree.getLayout(button.id());
+        ASSERT_NE(layout, nullptr);
+        EXPECT_EQ(layout->getWidthMode(), LayoutSizeMode::percent);
+        EXPECT_FLOAT_EQ(layout->getWidthValue(), 25.f);
+        EXPECT_EQ(layout->getHeightMode(), LayoutSizeMode::point);
+        EXPECT_FLOAT_EQ(layout->getHeightValue(), 28.f);
+        EXPECT_EQ(layout->getMinSize(), glm::vec2(40.f, 20.f));
+        EXPECT_EQ(layout->getMargin(),
+                  Core::Style::Margin::fromHorizontal(3.f));
+        EXPECT_EQ(layout->getAlignSelf(), LayoutSelfAlignment::center);
+        EXPECT_FLOAT_EQ(layout->getFlexGrow(), 1.f);
+        EXPECT_FLOAT_EQ(layout->getFlexShrink(), 0.f);
+        EXPECT_FLOAT_EQ(layout->getZVal(), 2.f);
+
+        tree.performLayout();
+        EXPECT_TRUE(button.focus());
+        EXPECT_TRUE(button.isFocused());
+        EXPECT_TRUE(button.blur());
+        EXPECT_FALSE(button.isFocused());
+        EXPECT_TRUE(button.hide());
+        EXPECT_EQ(button.visibility(), WidgetVisibility::hidden);
+        EXPECT_TRUE(button.show());
+        EXPECT_TRUE(button.setEnabled(false));
+        EXPECT_FALSE(button.isEnabled());
+        EXPECT_TRUE(button.setEnabled(true));
+        EXPECT_TRUE(button.collapse());
+        EXPECT_EQ(button.visibility(), WidgetVisibility::collapsed);
+    }
+
+    TEST(WidgetRefTests, KeepsLayoutBorrowAliveThroughDeferredRemoval) {
+        WidgetTree tree;
+        const auto id = tree.emplaceWidget<Label>("Temporary");
+        WidgetRef<Label> label{tree, id};
+        ASSERT_TRUE(label);
+
+        EXPECT_TRUE(label.updateLayout([&label](LayoutNode &layout) {
+            EXPECT_TRUE(label.remove());
+            // This remains valid until the mutation returns.
+            layout.setWidth(42.f);
+        }));
+        EXPECT_FALSE(label);
+
+        const auto throwingId = tree.emplaceWidget<Label>("Throwing");
+        WidgetRef<Label> throwing{tree, throwingId};
+        EXPECT_THROW(throwing.updateLayout([&throwing](LayoutNode &) {
+            EXPECT_TRUE(throwing.remove());
+            throw std::runtime_error("layout mutation failed");
+        }),
+                     std::runtime_error);
+        EXPECT_FALSE(throwing);
+    }
+
+    TEST(WidgetRefTests, FlushesEveryDeferredRemovalAfterUnmountFailure) {
+        WidgetTree tree;
+        auto owner =
+            WidgetRef<Label>{tree, tree.emplaceWidget<Label>("Mutation owner")};
+        const WidgetId throwing = tree.emplaceWidget<ThrowingUnmountWidget>();
+        const WidgetId ordinary = tree.emplaceWidget<Label>("Ordinary");
+        ASSERT_TRUE(owner && throwing && ordinary);
+
+        EXPECT_THROW(owner.mutate([&tree, throwing, ordinary](Label &) {
+            EXPECT_TRUE(tree.removeWidget(throwing));
+            EXPECT_TRUE(tree.removeWidget(ordinary));
+        }),
+                     std::runtime_error);
+        EXPECT_FALSE(tree.contains(throwing));
+        EXPECT_FALSE(tree.contains(ordinary));
+        EXPECT_TRUE(owner);
     }
 
     TEST(WidgetRefTests, RefreshesIntrinsicLayoutAfterContentAndThemeChanges) {

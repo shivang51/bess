@@ -55,6 +55,7 @@ namespace {
         glm::vec2 measureText(std::string_view text,
                               float fontSize,
                               float letterSpacing) const override {
+            ++measureCalls;
             return {static_cast<float>(text.size()) *
                         (fontSize * 0.6f + letterSpacing),
                     fontSize};
@@ -67,6 +68,7 @@ namespace {
         }
 
         std::vector<BoxPaint> boxes;
+        mutable size_t measureCalls = 0;
     };
 
     UIEvent key(KeyCode code, bool shift = false, bool control = false) {
@@ -237,6 +239,26 @@ namespace {
         EXPECT_FLOAT_EQ(caret.topLeft().x, contentLeft);
         EXPECT_GT(caret.size.x, 0.f);
         EXPECT_LE(caret.bottomRight().x, bounds.bottomRight().x - padding.x);
+    }
+
+    TEST(TextBoxTests, ReusesCaretMetricsUntilTextOrStyleChanges) {
+        WidgetTree tree;
+        tree.setViewportSize({300.f, 80.f});
+        const auto model = std::make_shared<TextEditModel>("retained");
+        const auto textBox = tree.emplaceWidget<TextBox>(model);
+        tree.performLayout();
+
+        TextPainter painter;
+        tree.paint(painter);
+        const size_t initialMeasurements = painter.measureCalls;
+        EXPECT_GT(initialMeasurements, 0u);
+
+        tree.paint(painter);
+        EXPECT_EQ(painter.measureCalls, initialMeasurements);
+
+        ASSERT_TRUE(model->insertText(" UI"));
+        tree.paint(painter);
+        EXPECT_GT(painter.measureCalls, initialMeasurements);
     }
 
 } // namespace

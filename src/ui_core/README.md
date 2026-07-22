@@ -20,6 +20,13 @@ and high-level composition.
 - `DockSpace` is an optional widget. A target has docking only when a
   `DockSpace` is inserted into its tree.
 
+`UITarget` uses `WidgetTree` CPU hit testing for input picking by default. This
+matches event routing and avoids synchronously stalling the frame on a GPU
+texture readback. Integrations that genuinely need per-fragment
+`PickingId::info` values can explicitly select
+`UITargetPickingStrategy::synchronousGpuReadback`; it is a compatibility path,
+not the recommended interactive path.
+
 The tree owns `std::unique_ptr<Widget>` objects and callers retain `WidgetId`
 or typed `WidgetRef<T>` handles. IDs are never reused. A `WidgetRef` becomes
 empty when its widget is removed or its tree is destroyed.
@@ -38,7 +45,7 @@ class ProjectView final : public Bess::UI::UIView {
         ui.column([this](Bess::UI::UIComposer &column) {
             m_title = column.label("Project");
             column.button("Create", [this] {
-                m_title.update([](Bess::UI::Label &label) {
+                m_title.mutate([](Bess::UI::Label &label) {
                     label.setText("Created");
                 });
             });
@@ -88,9 +95,9 @@ tree.emplaceChild<Bess::UI::Button>(root, "Create", [] {
 });
 ```
 
-Use `WidgetRef::update` (or `WidgetTree::mutateWidget` at the low level) when
-changing a retained control, so invalidation remains explicit and
-callback-time deletion remains safe:
+Use `WidgetRef::mutate` (the clearer alias of the existing `update` API), or
+`WidgetTree::mutateWidget` at the low level, when changing a retained control.
+Both keep invalidation explicit and callback-time deletion safe:
 
 ```cpp
 tree.mutateWidget<Bess::UI::Label>(
@@ -99,6 +106,30 @@ tree.mutateWidget<Bess::UI::Label>(
         Bess::UI::WidgetInvalidation::paint,
     [](Bess::UI::Label &label) { label.setText("Updated"); });
 ```
+
+Common retained-state and layout changes do not require mutation lambdas:
+
+```cpp
+auto save = ui.button("Save");
+save.setLayout({
+    .width = 84.f, // plain dimensions are pixels
+    .height = 24.f,
+    .margin = Bess::Core::Style::Margin::fromHorizontal(4.f),
+    .flexShrink = 0.f,
+});
+
+save.setEnabled(canSave);
+save.focus();
+save.hide();     // keeps its layout slot
+save.collapse(); // removes its layout slot
+save.show();
+```
+
+`LayoutSpec` is a patch: omitted fields remain unchanged. Use
+`LayoutLength::percent(50.f)`, `fraction(0.5f)`, `autoSize()`, `fitContent()`,
+`maxContent()`, or `stretch()` when pixel sizing is not appropriate.
+`WidgetRef::updateLayout` remains the escape hatch for uncommon `LayoutNode`
+operations and has the same deferred-removal safety as widget mutations.
 
 ## Containers
 
@@ -114,10 +145,7 @@ ui.stack(
      .verticalAlignment = Bess::UI::StackAlignment::center},
     [](Bess::UI::UIComposer &overlay) {
         auto background = overlay.surface();
-        background.updateLayout([](Bess::UI::LayoutNode &layout) {
-            layout.setWidth(180.f);
-            layout.setHeight(60.f);
-        });
+        background.setLayout({.width = 180.f, .height = 60.f});
         overlay.label("Drawn above the surface");
     });
 ```
@@ -187,7 +215,7 @@ auto scope = ui.focusScope(
         dialog.button("Cancel");
     });
 
-scope.update([primary](Bess::UI::FocusScope &value) {
+scope.mutate([primary](Bess::UI::FocusScope &value) {
     value.setDefaultFocus(primary.id());
 });
 ```

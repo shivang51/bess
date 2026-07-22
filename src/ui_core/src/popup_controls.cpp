@@ -70,6 +70,49 @@ namespace Bess::UI {
             return bounds.inset(std::max(0.f, amount));
         }
 
+        WidgetBounds uniformListRow(WidgetBounds bounds,
+                                    float padding,
+                                    float rowHeight,
+                                    float scrollOffset,
+                                    size_t index) {
+            padding = std::max(0.f, padding);
+            rowHeight = std::max(1.f, rowHeight);
+            const float top = bounds.topLeft().y + padding - scrollOffset +
+                              static_cast<float>(index) * rowHeight;
+            return {
+                .center = {bounds.center.x, top + rowHeight * 0.5f},
+                .size = {std::max(0.f, bounds.size.x - padding * 2.f),
+                         rowHeight},
+            };
+        }
+
+        size_t uniformListItemAt(WidgetBounds bounds,
+                                 glm::vec2 position,
+                                 float padding,
+                                 float rowHeight,
+                                 float scrollOffset,
+                                 size_t itemCount,
+                                 size_t notFound) {
+            if (itemCount == 0 || !bounds.contains(position)) {
+                return notFound;
+            }
+            padding = std::max(0.f, padding);
+            rowHeight = std::max(1.f, rowHeight);
+            const float relativeY =
+                position.y - bounds.topLeft().y - padding + scrollOffset;
+            if (!std::isfinite(relativeY) || relativeY < 0.f) {
+                return notFound;
+            }
+            const size_t index =
+                static_cast<size_t>(std::floor(relativeY / rowHeight));
+            if (index >= itemCount ||
+                !uniformListRow(bounds, padding, rowHeight, scrollOffset, index)
+                     .contains(position)) {
+                return notFound;
+            }
+            return index;
+        }
+
         class AutocompleteList final : public Widget {
           public:
             using Completed = std::function<void(size_t)>;
@@ -109,10 +152,11 @@ namespace Bess::UI {
                 const auto &style = resolvedStyle(context.state);
                 const auto &menu = context.state.theme().menus;
                 ensureSelectionVisible(context.bounds, style, menu);
-                const auto rows = rowBounds(context.bounds, style, menu);
                 const ScopedUIClip clip{context.painter, context.bounds};
-                for (size_t index = 0; index < rows.size(); ++index) {
-                    const auto &row = rows[index];
+                for (size_t index = 0; index < m_session->items.size();
+                     ++index) {
+                    const auto row =
+                        rowBoundsAt(context.bounds, index, style, menu);
                     if (row.bottomRight().y < context.bounds.topLeft().y ||
                         row.topLeft().y > context.bounds.bottomRight().y)
                         continue;
@@ -273,23 +317,13 @@ namespace Bess::UI {
                 return std::max(0.f, totalHeight(style, menu) - bounds.size.y);
             }
 
-            std::vector<WidgetBounds> rowBounds(WidgetBounds bounds,
-                                                const UIDropdownStyle &style,
-                                                const UIMenuStyle &menu) const {
-                std::vector<WidgetBounds> result;
-                result.reserve(m_session->items.size());
+            WidgetBounds rowBoundsAt(WidgetBounds bounds,
+                                     size_t index,
+                                     const UIDropdownStyle &style,
+                                     const UIMenuStyle &menu) const {
                 const float padding = std::max(0.f, menu.popupPadding);
-                const float height = std::max(1.f, style.itemHeight);
-                float top = bounds.topLeft().y + padding - m_scrollOffset;
-                for (size_t index = 0; index < m_session->items.size();
-                     ++index) {
-                    result.push_back(
-                        {.center = {bounds.center.x, top + height * 0.5f},
-                         .size = {std::max(0.f, bounds.size.x - padding * 2.f),
-                                  height}});
-                    top += height;
-                }
-                return result;
+                return uniformListRow(
+                    bounds, padding, style.itemHeight, m_scrollOffset, index);
             }
 
             size_t itemAt(WidgetBounds bounds,
@@ -298,12 +332,13 @@ namespace Bess::UI {
                           const UIMenuStyle &menu) const {
                 if (!bounds.contains(position))
                     return Detail::AutocompleteSession::npos;
-                const auto rows = rowBounds(bounds, style, menu);
-                for (size_t index = 0; index < rows.size(); ++index) {
-                    if (rows[index].contains(position))
-                        return index;
-                }
-                return Detail::AutocompleteSession::npos;
+                return uniformListItemAt(bounds,
+                                         position,
+                                         menu.popupPadding,
+                                         style.itemHeight,
+                                         m_scrollOffset,
+                                         m_session->items.size(),
+                                         Detail::AutocompleteSession::npos);
             }
 
             void ensureSelectionVisible(WidgetBounds bounds,
@@ -398,11 +433,15 @@ namespace Bess::UI {
                 const auto &dropdown = resolvedStyle(context.state);
                 const auto &menu = context.state.theme().menus;
                 const float padding = std::max(0.f, menu.popupPadding);
-                const auto rows = rowBounds(context.bounds, dropdown, padding);
                 const ScopedUIClip clip{context.painter, context.bounds};
-                for (size_t index = 0; index < rows.size(); ++index) {
+                for (size_t index = 0; index < m_model->items().size();
+                     ++index) {
                     const auto &item = m_model->items()[index];
-                    const auto &row = rows[index];
+                    const auto row = uniformListRow(context.bounds,
+                                                    padding,
+                                                    dropdown.itemHeight,
+                                                    m_scrollOffset,
+                                                    index);
                     if (row.bottomRight().y < context.bounds.topLeft().y ||
                         row.topLeft().y > context.bounds.bottomRight().y) {
                         continue;
@@ -608,35 +647,19 @@ namespace Bess::UI {
                            std::max(1.f, style.itemHeight);
             }
 
-            std::vector<WidgetBounds> rowBounds(WidgetBounds bounds,
-                                                const UIDropdownStyle &style,
-                                                float padding) const {
-                std::vector<WidgetBounds> result;
-                result.reserve(m_model->items().size());
-                const float height = std::max(1.f, style.itemHeight);
-                float top = bounds.topLeft().y + padding - m_scrollOffset;
-                for (size_t index = 0; index < m_model->items().size();
-                     ++index) {
-                    result.push_back(
-                        {.center = {bounds.center.x, top + height * 0.5f},
-                         .size = {std::max(0.f, bounds.size.x - padding * 2.f),
-                                  height}});
-                    top += height;
-                }
-                return result;
-            }
-
             DropdownItemId itemAt(WidgetBounds bounds,
                                   glm::vec2 point,
                                   const UIDropdownStyle &style,
                                   float padding) const {
-                const auto rows = rowBounds(bounds, style, padding);
-                for (size_t index = 0; index < rows.size(); ++index) {
-                    if (rows[index].contains(point) && bounds.contains(point)) {
-                        return m_model->items()[index].id;
-                    }
-                }
-                return {};
+                const size_t index = uniformListItemAt(bounds,
+                                                       point,
+                                                       padding,
+                                                       style.itemHeight,
+                                                       m_scrollOffset,
+                                                       m_model->items().size(),
+                                                       DropdownModel::npos);
+                return index != DropdownModel::npos ? m_model->items()[index].id
+                                                    : DropdownItemId{};
             }
 
             void ensureVisible(WidgetBounds bounds,
@@ -748,6 +771,7 @@ namespace Bess::UI {
             }
 
             void updateLayout(WidgetLayoutContext &context) override {
+                m_panelsDirty = m_panelsDirty || context.themeChanged;
                 if (m_layoutDirty || context.themeChanged) {
                     updateLayoutImpl(context.state, context.layout);
                 }
@@ -982,14 +1006,28 @@ namespace Bess::UI {
 
             void rebuild(WidgetBounds rootBounds,
                          const WidgetTree &state) const {
+                const glm::vec2 viewportSize = state.getViewportSize();
+                const bool sameBounds =
+                    m_panelRootBounds.center == rootBounds.center &&
+                    m_panelRootBounds.size == rootBounds.size;
+                if (!m_panelsDirty && sameBounds &&
+                    m_panelViewportSize == viewportSize &&
+                    m_panelOpenPath == m_openPath &&
+                    m_panelScrollSnapshot == m_panelScroll) {
+                    return;
+                }
                 const auto &style = resolvedStyle(state);
                 const auto *rootItems = itemsAtDepth(0);
                 m_panels.clear();
                 if (rootItems == nullptr) {
+                    m_panelRootBounds = rootBounds;
+                    m_panelViewportSize = viewportSize;
+                    m_panelOpenPath = m_openPath;
+                    m_panelScrollSnapshot = m_panelScroll;
+                    m_panelsDirty = false;
                     return;
                 }
-                WidgetBounds viewport{.center = {},
-                                      .size = state.getViewportSize()};
+                WidgetBounds viewport{.center = {}, .size = viewportSize};
                 appendPanel(rootBounds, *rootItems, style, 0);
                 for (size_t depth = 0; depth < m_openPath.size(); ++depth) {
                     if (depth >= m_panels.size()) {
@@ -1028,6 +1066,11 @@ namespace Bess::UI {
                         style,
                         depth + 1);
                 }
+                m_panelRootBounds = rootBounds;
+                m_panelViewportSize = viewportSize;
+                m_panelOpenPath = m_openPath;
+                m_panelScrollSnapshot = m_panelScroll;
+                m_panelsDirty = false;
             }
 
             void appendPanel(WidgetBounds bounds,
@@ -1199,6 +1242,7 @@ namespace Bess::UI {
                 }
                 m_connection = m_model->changed().connect([this](const auto &) {
                     m_layoutDirty = true;
+                    m_panelsDirty = true;
                     if (m_state != nullptr && m_state->contains(m_id)) {
                         m_state->invalidate(m_id,
                                             WidgetInvalidation::layout |
@@ -1221,6 +1265,11 @@ namespace Bess::UI {
             std::vector<MenuItemId> m_openPath;
             mutable std::vector<MenuPopupLayout> m_panels;
             mutable std::vector<float> m_panelScroll;
+            mutable WidgetBounds m_panelRootBounds;
+            mutable glm::vec2 m_panelViewportSize{0.f};
+            mutable std::vector<MenuItemId> m_panelOpenPath;
+            mutable std::vector<float> m_panelScrollSnapshot;
+            mutable bool m_panelsDirty = true;
             bool m_layoutDirty = true;
         };
     } // namespace

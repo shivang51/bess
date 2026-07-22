@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -91,6 +92,109 @@ namespace {
         bool m_interactive = true;
         bool m_removeOnPress = false;
         bool m_clearOnPress = false;
+    };
+
+    enum class ThrowingCallback { event, update, arrange };
+
+    class ThrowingCallbackWidget final : public Widget {
+      public:
+        explicit ThrowingCallbackWidget(ThrowingCallback callback)
+            : m_callback(callback) {
+        }
+
+        std::string_view typeName() const noexcept override {
+            return "ThrowingCallbackWidget";
+        }
+
+        WidgetTraits traits() const noexcept override {
+            return {.focusable = true, .hitTestVisible = true};
+        }
+
+        void onMount(WidgetMountContext &context) override {
+            context.layout.setWidth(100.f);
+            context.layout.setHeight(60.f);
+        }
+
+        UIEventReply onEvent(WidgetEventContext &context,
+                             const UIEvent &event) override {
+            if (m_callback == ThrowingCallback::event &&
+                context.phase == UIEventPhase::target &&
+                event.is<Input::MouseButtonEvent>()) {
+                static_cast<void>(context.state.removeWidget(context.id));
+                throw std::runtime_error("event callback failed");
+            }
+            return {};
+        }
+
+        void update(WidgetUpdateContext &context) override {
+            if (m_callback == ThrowingCallback::update) {
+                static_cast<void>(context.state.removeWidget(context.id));
+                throw std::runtime_error("update callback failed");
+            }
+        }
+
+        void arrange(WidgetArrangeContext &context) override {
+            if (m_callback == ThrowingCallback::arrange) {
+                static_cast<void>(context.state.removeWidget(context.id));
+                throw std::runtime_error("arrange callback failed");
+            }
+        }
+
+      private:
+        ThrowingCallback m_callback;
+    };
+
+    class ChildVisibilityContainer final : public Widget {
+      public:
+        std::string_view typeName() const noexcept override {
+            return "ChildVisibilityContainer";
+        }
+
+        WidgetTraits traits() const noexcept override {
+            return {.hitTestVisible = false};
+        }
+
+        void arrange(WidgetArrangeContext &context) override {
+            for (const auto child : context.children()) {
+                static_cast<void>(context.setChildVisible(child, false));
+            }
+        }
+    };
+
+    class ThrowingUnmountWidget final : public Widget {
+      public:
+        std::string_view typeName() const noexcept override {
+            return "ThrowingUnmountWidget";
+        }
+
+        void onUnmount(WidgetTree &, WidgetId) override {
+            throw std::runtime_error("unmount callback failed");
+        }
+    };
+
+    struct UnmountMutationProbe {
+        WidgetId destination;
+        bool childInsertionRejected = false;
+        bool reparentRejected = false;
+        bool duplicateRemovalAccepted = false;
+    };
+
+    class UnmountMutationWidget final : public Widget {
+      public:
+        explicit UnmountMutationWidget(UnmountMutationProbe &probe)
+            : m_probe(probe) {
+        }
+
+        void onUnmount(WidgetTree &state, WidgetId id) override {
+            m_probe.childInsertionRejected =
+                !state.addWidget(std::make_unique<Label>("Late child"), id);
+            m_probe.reparentRejected =
+                !state.reparentWidget(id, m_probe.destination);
+            m_probe.duplicateRemovalAccepted = state.removeWidget(id);
+        }
+
+      private:
+        UnmountMutationProbe &m_probe;
     };
 
     class RecordingPainter final : public UIPainter {
@@ -260,6 +364,142 @@ namespace {
         EXPECT_TRUE(state.getRoots().empty());
         EXPECT_FALSE(state.contains(root));
         EXPECT_FALSE(state.contains(child));
+    }
+
+    TEST(WidgetTreeTests,
+         RetargetsHoverAndClearsInteractionWhenEligibilityChanges) {
+        WidgetTree state;
+        state.setViewportSize({240.f, 120.f});
+        const WidgetId stack = state.emplaceWidget<StackContainer>();
+        const WidgetId back = state.emplaceChild<Button>(stack, "Back");
+        const WidgetId front = state.emplaceChild<Button>(stack, "Front");
+        ASSERT_TRUE(stack && back && front);
+        state.performLayout();
+
+        static_cast<void>(
+            state.dispatchEvent(Input::MouseMoveEvent{.pos = {120.f, 60.f}}));
+        ASSERT_EQ(state.getHoveredWidget(), front);
+        ASSERT_TRUE(state.setFocus(front));
+        ASSERT_TRUE(state.capturePointer(front));
+
+        WidgetRef<Button> frontRef{state, front};
+        EXPECT_TRUE(frontRef.hide());
+        EXPECT_EQ(state.getHoveredWidget(), back);
+        EXPECT_FALSE(state.getFocusedWidget());
+        EXPECT_FALSE(state.getPointerCapture());
+
+        EXPECT_TRUE(frontRef.show());
+        EXPECT_EQ(state.getHoveredWidget(), front);
+        EXPECT_TRUE(frontRef.setEnabled(false));
+        EXPECT_EQ(state.getHoveredWidget(), back);
+        EXPECT_TRUE(frontRef.setEnabled(true));
+        EXPECT_EQ(state.getHoveredWidget(), front);
+        EXPECT_TRUE(frontRef.setHitTestVisible(false));
+        EXPECT_EQ(state.getHoveredWidget(), back);
+        EXPECT_TRUE(frontRef.setHitTestVisible(true));
+        EXPECT_EQ(state.getHoveredWidget(), front);
+    }
+
+    TEST(WidgetTreeTests, ReconcilesFocusAndCaptureAfterCustomArrangement) {
+        WidgetTree state;
+        state.setViewportSize({200.f, 100.f});
+        const WidgetId root = state.emplaceWidget<ChildVisibilityContainer>();
+        const WidgetId child = state.emplaceChild<Button>(root, "Hidden");
+        ASSERT_TRUE(root && child);
+        ASSERT_TRUE(state.setFocus(child));
+        ASSERT_TRUE(state.capturePointer(child));
+
+        state.performLayout();
+        EXPECT_FALSE(state.getFocusedWidget());
+        EXPECT_FALSE(state.getPointerCapture());
+        EXPECT_FALSE(state.hitTest({0.f, 0.f}));
+    }
+
+    TEST(WidgetTreeTests, ReconcilesInteractionAfterReparenting) {
+        WidgetTree state;
+        const WidgetId enabledParent = state.emplaceWidget<FlexContainer>();
+        const WidgetId disabledParent = state.emplaceWidget<FlexContainer>();
+        const WidgetId child =
+            state.emplaceChild<Button>(enabledParent, "Focusable");
+        ASSERT_TRUE(enabledParent && disabledParent && child);
+        ASSERT_TRUE(state.setEnabled(disabledParent, false));
+        ASSERT_TRUE(state.setFocus(child));
+        ASSERT_TRUE(state.capturePointer(child));
+
+        EXPECT_TRUE(state.reparentWidget(child, disabledParent));
+        EXPECT_FALSE(state.getFocusedWidget());
+        EXPECT_FALSE(state.getPointerCapture());
+    }
+
+    TEST(WidgetTreeTests, FlushesDeferredRemovalWhenCallbacksThrow) {
+        WidgetTree state;
+        state.setViewportSize({200.f, 100.f});
+        const WidgetId eventWidget =
+            state.emplaceWidget<ThrowingCallbackWidget>(
+                ThrowingCallback::event);
+        state.performLayout();
+        EXPECT_THROW(static_cast<void>(state.dispatchEvent(
+                         mouseButton({100.f, 50.f}, MouseButtonAction::press))),
+                     std::runtime_error);
+        EXPECT_FALSE(state.contains(eventWidget));
+
+        const WidgetId updateWidget =
+            state.emplaceWidget<ThrowingCallbackWidget>(
+                ThrowingCallback::update);
+        EXPECT_THROW(state.update(TimeMs{1.0}), std::runtime_error);
+        EXPECT_FALSE(state.contains(updateWidget));
+
+        const WidgetId arrangeWidget =
+            state.emplaceWidget<ThrowingCallbackWidget>(
+                ThrowingCallback::arrange);
+        EXPECT_THROW(state.performLayout(), std::runtime_error);
+        EXPECT_FALSE(state.contains(arrangeWidget));
+
+        // A leaked callback depth would defer this ordinary removal forever.
+        const WidgetId replacement =
+            state.emplaceWidget<ProbeWidget>("replacement");
+        ASSERT_TRUE(replacement);
+        EXPECT_TRUE(state.removeWidget(replacement));
+        EXPECT_FALSE(state.contains(replacement));
+    }
+
+    TEST(WidgetTreeTests, CompletesStructuralRemovalWhenUnmountThrows) {
+        WidgetTree state;
+        const WidgetId throwing = state.emplaceWidget<ThrowingUnmountWidget>();
+        const WidgetId ordinary = state.emplaceWidget<ProbeWidget>("ordinary");
+        ASSERT_TRUE(throwing && ordinary);
+
+        EXPECT_THROW(state.removeWidget(throwing), std::runtime_error);
+        EXPECT_FALSE(state.contains(throwing));
+        EXPECT_TRUE(state.contains(ordinary));
+
+        const WidgetId anotherThrowing =
+            state.emplaceWidget<ThrowingUnmountWidget>();
+        ASSERT_TRUE(anotherThrowing);
+        EXPECT_THROW(state.clear(), std::runtime_error);
+        EXPECT_TRUE(state.getRoots().empty());
+        EXPECT_FALSE(state.contains(ordinary));
+        EXPECT_FALSE(state.contains(anotherThrowing));
+    }
+
+    TEST(WidgetTreeTests, RejectsHierarchyMutationOfUnmountingWidgets) {
+        WidgetTree state;
+        const WidgetId destination =
+            state.emplaceWidget<ProbeWidget>("destination");
+        const WidgetId removingRoot =
+            state.emplaceWidget<ProbeWidget>("removing root");
+        UnmountMutationProbe probe{.destination = destination};
+        const WidgetId child = state.addWidget(
+            std::make_unique<UnmountMutationWidget>(probe), removingRoot);
+        ASSERT_TRUE(destination && removingRoot && child);
+
+        EXPECT_TRUE(state.removeWidget(removingRoot));
+        EXPECT_TRUE(probe.childInsertionRejected);
+        EXPECT_TRUE(probe.reparentRejected);
+        EXPECT_TRUE(probe.duplicateRemovalAccepted);
+        EXPECT_FALSE(state.contains(removingRoot));
+        EXPECT_FALSE(state.contains(child));
+        EXPECT_TRUE(state.getChildren(destination).empty());
     }
 
     TEST(BasicWidgetTests, ButtonActivatesOnlyOnACompletedInsidePress) {

@@ -29,6 +29,7 @@ add_executable(BessTests
 	    ui_composition_tests.cpp
 	    ui_focus_popup_controls_tests.cpp
 	    ui_text_edit_tests.cpp
+	    wgpu_renderer_batch_tests.cpp
     # scene_component_clone_test.cpp
     # sim_driver_test.cpp
     # scene_state_test.cpp
@@ -53,6 +54,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 	"${CMAKE_SOURCE_DIR}/src/event_system/include"
 	"${CMAKE_SOURCE_DIR}/src/common/include"
 	"${CMAKE_SOURCE_DIR}/src/bess_core/include"
+	"${CMAKE_SOURCE_DIR}/src/bess_wgpu/src"
 	"${CMAKE_SOURCE_DIR}/src/math_sim_driver/include"
 )
 

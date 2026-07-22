@@ -10,6 +10,7 @@
 #include "ext/vector_float2.hpp"
 #include "yoga/Yoga.h"
 #include <cstdint>
+#include <optional>
 
 namespace Bess::UI {
     enum class Unit : uint8_t {
@@ -62,6 +63,85 @@ namespace Bess::UI {
     enum class PosMode : uint8_t { absolute, relative };
 
     class LayoutNode;
+
+    // A dimension used by LayoutSpec. Plain floating-point values convert to
+    // pixels, keeping the common case terse while named constructors make
+    // relative and content-driven sizing unambiguous.
+    struct BESS_API LayoutLength {
+        LayoutSizeMode mode = LayoutSizeMode::point;
+        float value = 0.f;
+
+        constexpr LayoutLength() noexcept = default;
+        constexpr LayoutLength(float pixels) noexcept
+            : mode(LayoutSizeMode::point),
+              value(pixels) {
+        }
+
+        constexpr LayoutLength(LayoutSizeMode mode, float value = 0.f) noexcept
+            : mode(mode),
+              value(value) {
+        }
+
+        [[nodiscard]] static constexpr LayoutLength
+        pixels(float value) noexcept {
+            return {LayoutSizeMode::point, value};
+        }
+
+        // A ratio in the 0..1 range (0.5 is half of the parent).
+        [[nodiscard]] static constexpr LayoutLength
+        fraction(float value) noexcept {
+            return {LayoutSizeMode::percent, value};
+        }
+
+        // A conventional percentage in the 0..100 range.
+        [[nodiscard]] static constexpr LayoutLength
+        percent(float value) noexcept {
+            return fraction(value / 100.f);
+        }
+
+        [[nodiscard]] static constexpr LayoutLength autoSize() noexcept {
+            return {LayoutSizeMode::auto_};
+        }
+
+        [[nodiscard]] static constexpr LayoutLength fitContent() noexcept {
+            return {LayoutSizeMode::fitContent};
+        }
+
+        [[nodiscard]] static constexpr LayoutLength maxContent() noexcept {
+            return {LayoutSizeMode::maxContent};
+        }
+
+        [[nodiscard]] static constexpr LayoutLength stretch() noexcept {
+            return {LayoutSizeMode::stretch};
+        }
+    };
+
+    // Declarative patch for a LayoutNode. Unset fields leave the corresponding
+    // property unchanged, so the same type works for initial composition and
+    // focused runtime updates without resetting control-owned layout values.
+    struct BESS_API LayoutSpec {
+        std::optional<LayoutLength> width;
+        std::optional<LayoutLength> height;
+        std::optional<glm::vec2> minSize;
+        std::optional<glm::vec2> maxSize;
+        std::optional<Core::Style::Padding> padding;
+        std::optional<Core::Style::Margin> margin;
+        std::optional<float> gap;
+        std::optional<LayoutDirection> direction;
+        std::optional<LayoutAlignment> mainAxisAlignment;
+        std::optional<LayoutAlignment> crossAxisAlignment;
+        std::optional<LayoutSelfAlignment> alignSelf;
+        std::optional<float> flexGrow;
+        std::optional<float> flexShrink;
+        std::optional<LayoutLength> flexBasis;
+        std::optional<glm::vec2> position;
+        std::optional<Unit> positionUnit;
+        std::optional<PosMode> positionMode;
+        std::optional<DrawPivot> drawPivot;
+        std::optional<float> zIndex;
+
+        void apply(LayoutNode &layout) const;
+    };
 
     class BESS_API LayoutNodeRegistry {
       public:

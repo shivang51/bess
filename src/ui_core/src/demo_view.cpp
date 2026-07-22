@@ -10,9 +10,9 @@
 
 namespace Bess::UI {
     namespace {
-        void stretch(LayoutNode &layout) {
-            layout.setWidthStretch();
-            layout.setHeightStretch();
+        LayoutSpec stretch() {
+            return {.width = LayoutLength::stretch(),
+                    .height = LayoutLength::stretch()};
         }
 
         FlexContainerOptions columnOptions(float padding = 0.f) {
@@ -225,14 +225,11 @@ namespace Bess::UI {
                             SpacerOptions{.minimumSize = {0.f, 26.f}});
                         auto action = header.button(
                             "?", [this] { setStatus("Toolbar action"); });
-                        action.updateLayout([](LayoutNode &layout) {
-                            layout.setMinSize({20.f, 20.f});
-                            layout.setWidth(20.f);
-                            layout.setHeight(20.f);
-                        });
+                        action.setLayout({.width = 20.f,
+                                          .height = 20.f,
+                                          .minSize = glm::vec2{20.f, 20.f}});
                     });
-                menuHeader.updateLayout(
-                    [](LayoutNode &layout) { layout.setFlexShrink(0.f); });
+                menuHeader.setLayout({.flexShrink = 0.f});
                 auto header =
                     page.row(headerOptions(), [this](UIComposer &header) {
                         header.label("Bess UI Core", headingLabel());
@@ -242,11 +239,13 @@ namespace Bess::UI {
                             LabelOptions{.horizontal =
                                              HorizontalTextAlignment::end,
                                          .autoSize = false});
-                        m_status.updateLayout([](LayoutNode &layout) {
-                            layout.setWidthAuto();
-                            layout.setHeight(24.f);
-                            layout.setMinSize({80.f, 24.f});
-                            layout.setFlex(1.f, 1.f, 0.f);
+                        m_status.setLayout({
+                            .width = LayoutLength::autoSize(),
+                            .height = 24.f,
+                            .minSize = glm::vec2{80.f, 24.f},
+                            .flexGrow = 1.f,
+                            .flexShrink = 1.f,
+                            .flexBasis = 0.f,
                         });
 
                         header.button("Add tab", [this] {
@@ -259,24 +258,20 @@ namespace Bess::UI {
                             "Count: 0",
                             [this] { incrementCounter(); },
                             ButtonOptions{.autoSize = false});
-                        m_counterButton.updateLayout([](LayoutNode &layout) {
-                            layout.setWidth(78.f);
-                            layout.setHeight(26.f);
-                        });
+                        m_counterButton.setLayout(
+                            {.width = 78.f, .height = 26.f});
 
                         auto disabled = header.button("Disabled");
-                        static_cast<void>(header.enabled(disabled, false));
+                        static_cast<void>(disabled.setEnabled(false));
                     });
-                header.updateLayout(
-                    [](LayoutNode &layout) { layout.setFlexShrink(0.f); });
+                header.setLayout({.flexShrink = 0.f});
 
                 auto tabLayer =
                     page.stack(StackContainerOptions{.stretchHeight = false},
                                [this](UIComposer &tabs) {
                                    m_tabBar = tabs.tabBar(m_tabs);
                                });
-                tabLayer.updateLayout(
-                    [](LayoutNode &layout) { layout.setFlexShrink(0.f); });
+                tabLayer.setLayout({.flexShrink = 0.f});
 
                 m_dockSpace = page.dockSpace([this](DockComposer &dock) {
                     m_explorerPanel =
@@ -373,10 +368,10 @@ namespace Bess::UI {
                                                               value);
                                                 },
                                                 {.placeholder = "Type here"});
-                                            text.updateLayout(
-                                                [](LayoutNode &layout) {
-                                                    layout.setWidthPercent(1.f);
-                                                });
+                                            text.setLayout({
+                                                .width = LayoutLength::percent(
+                                                    100.f),
+                                            });
 
                                             auto autocomplete = controls.autocomplete(
                                                 std::make_shared<
@@ -440,10 +435,10 @@ namespace Bess::UI {
                                                 {.textBox = {
                                                      .placeholder =
                                                          "Find a panel"}});
-                                            autocomplete.updateLayout(
-                                                [](LayoutNode &layout) {
-                                                    layout.setWidthPercent(1.f);
-                                                });
+                                            autocomplete.setLayout({
+                                                .width = LayoutLength::percent(
+                                                    100.f),
+                                            });
 
                                             const auto checkModel =
                                                 std::make_shared<
@@ -506,10 +501,10 @@ namespace Bess::UI {
                                                         "Slider: {:.0f}",
                                                         value));
                                                 });
-                                            slider.updateLayout(
-                                                [](LayoutNode &layout) {
-                                                    layout.setWidthPercent(1.f);
-                                                });
+                                            slider.setLayout({
+                                                .width = LayoutLength::percent(
+                                                    100.f),
+                                            });
 
                                             auto dropdownModel =
                                                 std::make_shared<
@@ -620,32 +615,33 @@ namespace Bess::UI {
                             panel.spacer();
                         });
                 });
-                m_dockSpace.updateLayout([](LayoutNode &layout) {
-                    layout.setHeightAuto();
-                    layout.setFlex(1.f, 1.f, 0.f);
-                    layout.setMinSize({0.f, 180.f});
+                m_dockSpace.setLayout({
+                    .height = LayoutLength::autoSize(),
+                    .minSize = glm::vec2{0.f, 180.f},
+                    .flexGrow = 1.f,
+                    .flexShrink = 1.f,
+                    .flexBasis = 0.f,
                 });
 
-                auto fotter = page.row({}, [this](UIComposer &footer) {
+                auto footerRow = page.row({}, [this](UIComposer &footer) {
                     footer
                         .label("© 2024 Bess UI Core Demo",
                                LabelOptions{.fontSize = 12.f})
-                        .updateLayout([](LayoutNode &layout) {
-                            layout.setMargin(
-                                Core::Style::Margin::fromSymmetric(4.f, 2.f));
+                        .setLayout({
+                            .margin =
+                                Core::Style::Margin::fromSymmetric(4.f, 2.f),
                         });
                     footer.spacer({.minimumSize = {0.f, 24}});
                 });
 
-                fotter.updateLayout(
-                    [](LayoutNode &layout) { layout.setHeightFitContent(); });
+                footerRow.setLayout({.height = LayoutLength::fitContent()});
             });
-            static_cast<void>(surface.layout(page, [](LayoutNode &layout) {
-                layout.setWidthPercent(1.f);
-                layout.setHeightPercent(1.f);
-            }));
+            static_cast<void>(
+                surface.layout(page,
+                               {.width = LayoutLength::percent(100.f),
+                                .height = LayoutLength::percent(100.f)}));
         });
-        static_cast<void>(ui.layout(shell, stretch));
+        static_cast<void>(shell.setLayout(stretch()));
     }
 
     size_t UIDemoView::activationCount() const noexcept {
