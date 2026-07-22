@@ -2,6 +2,7 @@
 
 #include "behaviors/pressable.h"
 #include "controls/dock_drop.h"
+#include "controls/scroll_view.h"
 #include "models/dock_model.h"
 #include "ui_style.h"
 #include "widget.h"
@@ -26,14 +27,12 @@ namespace Bess::UI {
     // Semantic wrapper for arbitrary dockable content. The DockSpace model
     // refers to this widget by WidgetId; its actual content remains an ordinary
     // child in WidgetTree and has no dependency on docking.
-    class BESS_API DockPanel : public Widget {
+    class BESS_API DockPanel : public ScrollView {
       public:
         explicit DockPanel(std::string title, DockPanelOptions options = {});
 
         [[nodiscard]] std::string_view typeName() const noexcept override;
-        [[nodiscard]] WidgetTraits traits() const noexcept override;
         void onMount(WidgetMountContext &context) override;
-        void arrange(WidgetArrangeContext &context) override;
         void paint(WidgetPaintContext &context) const override;
 
         [[nodiscard]] DockItemId itemId() const noexcept;
@@ -144,6 +143,37 @@ namespace Bess::UI {
             bool operator==(const SplitHit &) const noexcept = default;
         };
 
+        struct FloatingResizeEdges {
+            bool left = false;
+            bool right = false;
+            bool top = false;
+            bool bottom = false;
+
+            [[nodiscard]] bool any() const noexcept {
+                return left || right || top || bottom;
+            }
+
+            bool
+            operator==(const FloatingResizeEdges &) const noexcept = default;
+        };
+
+        struct FloatingResizeHit {
+            DockHostId host;
+            FloatingResizeEdges edges;
+
+            [[nodiscard]] explicit operator bool() const noexcept {
+                return host && edges.any();
+            }
+
+            bool operator==(const FloatingResizeHit &) const noexcept = default;
+        };
+
+        struct FloatingResizeDrag {
+            FloatingResizeHit hit;
+            WidgetBounds initialBounds;
+            glm::vec2 pressPosition{0.f, 0.f};
+        };
+
         struct DropGuide {
             DockHostId host;
             bool root = false;
@@ -206,6 +236,9 @@ namespace Bess::UI {
         [[nodiscard]] DockHostId
         floatingHeaderAt(glm::vec2 position,
                          const WidgetTree &state) const noexcept;
+        [[nodiscard]] FloatingResizeHit
+        floatingResizeAt(glm::vec2 position,
+                         const WidgetTree &state) const noexcept;
         [[nodiscard]] DockItemId
         floatingTitleItem(const FloatingHost &host) const noexcept;
         [[nodiscard]] WidgetBounds
@@ -220,6 +253,7 @@ namespace Bess::UI {
                                  const WidgetTree &state) const noexcept;
         bool beginTabDrag(WidgetEventContext &context, WidgetBounds dockBounds);
         void updateFloatingDrag(WidgetEventContext &context);
+        void updateFloatingResize(WidgetEventContext &context);
         bool finishFloatingDrag();
         void refreshDropGuides(WidgetBounds bounds,
                                const WidgetTree &state,
@@ -239,7 +273,10 @@ namespace Bess::UI {
         void removeFloatingHostIfEmpty(DockHostId host);
         void clearTabInteraction() noexcept;
         void clearCloseInteraction() noexcept;
+        void clearResizeInteraction() noexcept;
         void bringFloatingToFront(WidgetEventContext &context, DockHostId host);
+        UIEventReply beginFloatingResize(WidgetEventContext &context,
+                                         FloatingResizeHit hit);
         UIEventReply beginFloatingHeaderPress(WidgetEventContext &context,
                                               DockHostId host);
         [[nodiscard]] DockDropGuideMetrics
@@ -263,6 +300,8 @@ namespace Bess::UI {
         DockNodeId m_focusedStack;
         SplitHit m_hoveredSplit;
         SplitHit m_draggedSplit;
+        FloatingResizeHit m_hoveredResize;
+        std::optional<FloatingResizeDrag> m_resizeDrag;
         DockSpaceModel::ChangedSignal::Connection m_modelConnection;
     };
 

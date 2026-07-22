@@ -150,6 +150,24 @@ namespace Bess::UI {
         theme.menus.barHorizontalPadding = 6.f;
         theme.menus.submenuChevronSize = 11.f;
 
+        theme.scroll.track = {
+            .background = colors.surfaceContainerHigh.withAlpha(0.36f),
+            .border = transparent,
+            .cornerRadius = compactItemRadius,
+            .shadow = noShadow,
+        };
+        theme.scroll.thumb = {
+            .background = colors.onSurfaceVariant.withAlpha(0.56f),
+            .border = transparent,
+            .cornerRadius = compactItemRadius,
+            .shadow = noShadow,
+        };
+        theme.scroll.thumbHovered = theme.scroll.thumb;
+        theme.scroll.thumbHovered.background =
+            colors.onSurfaceVariant.withAlpha(0.78f);
+        theme.scroll.thumbPressed = theme.scroll.thumb;
+        theme.scroll.thumbPressed.background = colors.primary.withAlpha(0.90f);
+
         theme.dock.background = {
             .background = colors.surface,
             .border = transparent,

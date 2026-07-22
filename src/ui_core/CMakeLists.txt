@@ -7,6 +7,7 @@ set(Header_Files
 	include/controls/dock_drop.h
 	include/controls/dock_space.h
 	include/controls/menu_bar.h
+	include/controls/scroll_view.h
 	include/controls/tab_bar.h
 	include/demo_view.h
 	include/dock.h
@@ -42,6 +43,7 @@ set(Source_Files
 	src/menu_bar.cpp
 	src/layout.cpp
 	src/pressable.cpp
+	src/scroll_view.cpp
 	src/tab_bar.cpp
 	src/ui_painter.cpp
 	src/ui_composer.cpp

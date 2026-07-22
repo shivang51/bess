@@ -60,6 +60,43 @@ namespace Bess::UI {
             return std::isfinite(value.x) && std::isfinite(value.y);
         }
 
+        struct FloatingSizeLimits {
+            glm::vec2 minimum{1.f, 1.f};
+            glm::vec2 maximum{1.f, 1.f};
+        };
+
+        FloatingSizeLimits floatingSizeLimits(const UIDockStyle &style,
+                                              glm::vec2 available) noexcept {
+            available = {
+                std::isfinite(available.x) ? std::max(1.f, available.x) : 1.f,
+                std::isfinite(available.y) ? std::max(1.f, available.y) : 1.f,
+            };
+            const auto configuredMinimum = glm::vec2{
+                std::isfinite(style.floatingMinimumSize.x)
+                    ? std::max(1.f, style.floatingMinimumSize.x)
+                    : 1.f,
+                std::isfinite(style.floatingMinimumSize.y)
+                    ? std::max(1.f, style.floatingMinimumSize.y)
+                    : 1.f,
+            };
+            const glm::vec2 minimum = glm::min(configuredMinimum, available);
+            const auto configuredMaximum = glm::vec2{
+                std::isfinite(style.floatingMaximumSize.x) &&
+                        style.floatingMaximumSize.x > 0.f
+                    ? style.floatingMaximumSize.x
+                    : available.x,
+                std::isfinite(style.floatingMaximumSize.y) &&
+                        style.floatingMaximumSize.y > 0.f
+                    ? style.floatingMaximumSize.y
+                    : available.y,
+            };
+            return {
+                .minimum = minimum,
+                .maximum =
+                    glm::max(minimum, glm::min(configuredMaximum, available)),
+            };
+        }
+
         constexpr float floatingLayer(size_t index) noexcept {
             return 0.10f + static_cast<float>(index) * 0.05f;
         }
@@ -72,7 +109,10 @@ namespace Bess::UI {
     } // namespace
 
     DockPanel::DockPanel(std::string title, DockPanelOptions options)
-        : m_title(std::move(title)),
+        : ScrollView({.horizontal = true,
+                      .vertical = true,
+                      .clipContent = options.clipContent}),
+          m_title(std::move(title)),
           m_options(std::move(options)) {
     }
 
@@ -80,22 +120,11 @@ namespace Bess::UI {
         return "DockPanel";
     }
 
-    WidgetTraits DockPanel::traits() const noexcept {
-        return {.focusable = false,
-                .hitTestVisible = false,
-                .clipChildren = m_options.clipContent};
-    }
-
     void DockPanel::onMount(WidgetMountContext &context) {
+        ScrollView::onMount(context);
         context.layout.setPosMode(PosMode::absolute);
         context.layout.setWidth(0.f);
         context.layout.setHeight(0.f);
-    }
-
-    void DockPanel::arrange(WidgetArrangeContext &context) {
-        for (const auto child : context.children()) {
-            context.setChildBounds(child, context.bounds);
-        }
     }
 
     void DockPanel::paint(WidgetPaintContext &context) const {
@@ -103,6 +132,7 @@ namespace Bess::UI {
             context.painter.drawBox(makeBox(
                 context.bounds, *m_options.background, context.pickingId));
         }
+        ScrollView::paint(context);
     }
 
     DockItemId DockPanel::itemId() const noexcept {
@@ -148,6 +178,7 @@ namespace Bess::UI {
         m_mountedId = {};
         clearTabInteraction();
         clearCloseInteraction();
+        clearResizeInteraction();
     }
 
     void DockSpace::arrange(WidgetArrangeContext &context) {
@@ -503,16 +534,33 @@ namespace Bess::UI {
         }
     }
 
-    CursorIcon
-    DockSpace::cursor(const WidgetCursorContext &) const noexcept {
+    CursorIcon DockSpace::cursor(const WidgetCursorContext &) const noexcept {
+        const FloatingResizeHit resize =
+            m_resizeDrag ? m_resizeDrag->hit : m_hoveredResize;
+        if (resize) {
+            const auto &edges = resize.edges;
+            if ((edges.left && edges.top) || (edges.right && edges.bottom)) {
+                return CursorIcon::resizeDiagonalNWSE;
+            }
+            if ((edges.right && edges.top) || (edges.left && edges.bottom)) {
+                return CursorIcon::resizeDiagonalNESW;
+            }
+            if (edges.left || edges.right) {
+                return CursorIcon::resizeHorizontal;
+            }
+            if (edges.top || edges.bottom) {
+                return CursorIcon::resizeVertical;
+            }
+        }
+
         const SplitHit split =
             m_draggedSplit.node ? m_draggedSplit : m_hoveredSplit;
         if (!split.node) {
             return CursorIcon::inherit;
         }
         const auto *model = modelForHost(split.host);
-        const auto *node = model != nullptr ? model->getSplit(split.node)
-                                            : nullptr;
+        const auto *node =
+            model != nullptr ? model->getSplit(split.node) : nullptr;
         if (node == nullptr) {
             return CursorIcon::inherit;
         }
@@ -532,6 +580,7 @@ namespace Bess::UI {
                         context.bounds, context.state, context.pointerPosition);
                     close.item) {
                     clearTabInteraction();
+                    clearResizeInteraction();
                     m_pressedClose = close;
                     m_hoveredClose = close;
                     return {.handled = true,
@@ -540,6 +589,11 @@ namespace Bess::UI {
                             .capturePointer = true,
                             .invalidate = WidgetInvalidation::paint};
                 }
+                if (const auto resize = floatingResizeAt(
+                        context.pointerPosition, context.state);
+                    resize) {
+                    return beginFloatingResize(context, resize);
+                }
                 if (const DockHostId host = floatingHeaderAt(
                         context.pointerPosition, context.state);
                     host) {
@@ -547,21 +601,27 @@ namespace Bess::UI {
                 }
             }
             if (event.is<Input::MouseMoveEvent>() && !m_tabDrag &&
-                context.hasPointerPosition) {
+                !m_resizeDrag && context.hasPointerPosition) {
                 const auto close = hitClose(
                     context.bounds, context.state, context.pointerPosition);
+                const auto resize =
+                    floatingResizeAt(context.pointerPosition, context.state);
                 const DockHostId host =
-                    floatingHeaderAt(context.pointerPosition, context.state);
+                    resize ? DockHostId{}
+                           : floatingHeaderAt(context.pointerPosition,
+                                              context.state);
                 const auto *floating = findFloatingHost(host);
                 const DockItemId item = floating != nullptr
                                             ? floatingTitleItem(*floating)
                                             : DockItemId{};
                 const bool closeChanged = close != m_hoveredClose;
+                const bool resizeChanged = resize != m_hoveredResize;
                 const bool itemChanged =
                     item != m_hoveredItem &&
                     (item || isItemFloating(m_hoveredItem));
-                if (closeChanged || itemChanged) {
+                if (closeChanged || resizeChanged || itemChanged) {
                     m_hoveredClose = close;
+                    m_hoveredResize = resize;
                     m_hoveredItem = item;
                     return {.invalidate = WidgetInvalidation::paint};
                 }
@@ -582,6 +642,9 @@ namespace Bess::UI {
                 if (const auto split = layout.dividerAt(position); split) {
                     return {.host = (*it)->id, .node = split};
                 }
+                if ((*it)->bounds.contains(position)) {
+                    return {};
+                }
             }
             return {.node = mainLayout.dividerAt(position)};
         };
@@ -591,6 +654,7 @@ namespace Bess::UI {
             m_hoveredItem = {};
             m_hoveredClose = {};
             m_hoveredSplit = {};
+            m_hoveredResize = {};
             if (m_pressedClose.item) {
                 return {.handled = true,
                         .stopPropagation = true,
@@ -599,6 +663,11 @@ namespace Bess::UI {
             if (m_tabDrag) {
                 m_dropGuides.clear();
                 m_hoveredDrop.reset();
+                return {.handled = true,
+                        .stopPropagation = true,
+                        .invalidate = WidgetInvalidation::paint};
+            }
+            if (m_resizeDrag) {
                 return {.handled = true,
                         .stopPropagation = true,
                         .invalidate = WidgetInvalidation::paint};
@@ -619,6 +688,14 @@ namespace Bess::UI {
                         .stopPropagation = true,
                         .capturePointer = true,
                         .invalidate = WidgetInvalidation::paint};
+            }
+            if (m_resizeDrag) {
+                updateFloatingResize(context);
+                return {.handled = true,
+                        .stopPropagation = true,
+                        .capturePointer = true,
+                        .invalidate = WidgetInvalidation::layout |
+                                      WidgetInvalidation::paint};
             }
             if (m_draggedSplit.node) {
                 auto *model = modelForHost(m_draggedSplit.host);
@@ -687,13 +764,20 @@ namespace Bess::UI {
                                             context.state,
                                             context.pointerPosition)
                                  : HitTab{};
-            m_hoveredSplit = splitAt(context.pointerPosition);
+            m_hoveredResize =
+                context.hasPointerPosition
+                    ? floatingResizeAt(context.pointerPosition, context.state)
+                    : FloatingResizeHit{};
+            m_hoveredSplit =
+                m_hoveredResize ? SplitHit{} : splitAt(context.pointerPosition);
             const DockHostId headerHost =
-                floatingHeaderAt(context.pointerPosition, context.state);
+                m_hoveredResize
+                    ? DockHostId{}
+                    : floatingHeaderAt(context.pointerPosition, context.state);
             const auto *header = findFloatingHost(headerHost);
             m_hoveredItem =
                 header != nullptr ? floatingTitleItem(*header) : DockItemId{};
-            if (!m_hoveredItem) {
+            if (!m_hoveredItem && !m_hoveredResize) {
                 m_hoveredItem = hitTab(context.bounds,
                                        context.state,
                                        context.pointerPosition)
@@ -721,6 +805,23 @@ namespace Bess::UI {
                 if (activated) {
                     static_cast<void>(hidePanel(pressed.item));
                 }
+                return {.handled = true,
+                        .stopPropagation = true,
+                        .releasePointer = true,
+                        .invalidate = WidgetInvalidation::layout |
+                                      WidgetInvalidation::paint};
+            }
+
+            if (button->action == MouseButtonAction::release && m_resizeDrag) {
+                if (context.hasPointerPosition) {
+                    updateFloatingResize(context);
+                }
+                m_resizeDrag.reset();
+                m_hoveredResize =
+                    context.hasPointerPosition
+                        ? floatingResizeAt(context.pointerPosition,
+                                           context.state)
+                        : FloatingResizeHit{};
                 return {.handled = true,
                         .stopPropagation = true,
                         .releasePointer = true,
@@ -771,6 +872,7 @@ namespace Bess::UI {
                         context.bounds, context.state, context.pointerPosition);
                     close.item) {
                     clearTabInteraction();
+                    clearResizeInteraction();
                     m_pressedClose = close;
                     m_hoveredClose = close;
                     return {.handled = true,
@@ -778,6 +880,11 @@ namespace Bess::UI {
                             .requestFocus = true,
                             .capturePointer = true,
                             .invalidate = WidgetInvalidation::paint};
+                }
+                if (const auto resize = floatingResizeAt(
+                        context.pointerPosition, context.state);
+                    resize) {
+                    return beginFloatingResize(context, resize);
                 }
                 if (const DockHostId host = floatingHeaderAt(
                         context.pointerPosition, context.state);
@@ -857,8 +964,10 @@ namespace Bess::UI {
         }
 
         if (const auto *focus = event.getIf<UIFocusChangedEvent>();
-            focus != nullptr && !focus->focused && m_pressedClose.item) {
+            focus != nullptr && !focus->focused &&
+            (m_pressedClose.item || m_resizeDrag)) {
             clearCloseInteraction();
+            clearResizeInteraction();
             return {.handled = true,
                     .releasePointer = true,
                     .invalidate = WidgetInvalidation::paint};
@@ -1296,6 +1405,9 @@ namespace Bess::UI {
                 hit.item) {
                 return hit;
             }
+            if ((*it)->bounds.contains(position)) {
+                return {};
+            }
         }
         return hitTab(
             m_model, {}, calculateLayout(bounds, state), state, position);
@@ -1355,6 +1467,9 @@ namespace Bess::UI {
                     hitClose(host.model, host.id, layout, state, position);
                 hit.item) {
                 return hit;
+            }
+            if (host.bounds.contains(position)) {
+                return {};
             }
         }
         return hitClose(
@@ -1499,6 +1614,87 @@ namespace Bess::UI {
             if (floatingHeaderBounds(**it, state).contains(position)) {
                 return (*it)->id;
             }
+            if ((*it)->bounds.contains(position)) {
+                return {};
+            }
+        }
+        return {};
+    }
+
+    DockSpace::FloatingResizeHit
+    DockSpace::floatingResizeAt(glm::vec2 position,
+                                const WidgetTree &state) const noexcept {
+        const auto &style = dockStyle(state);
+        const float requestedThickness =
+            std::isfinite(style.floatingResizeHandleThickness)
+                ? style.floatingResizeHandleThickness
+                : 0.f;
+        const float thickness = std::clamp(requestedThickness, 1.f, 24.f);
+        const float requestedCorner =
+            std::isfinite(style.floatingResizeCornerSize)
+                ? style.floatingResizeCornerSize
+                : thickness;
+        const float corner = std::clamp(requestedCorner, thickness, 64.f);
+
+        for (auto it = m_floatingHosts.rbegin(); it != m_floatingHosts.rend();
+             ++it) {
+            const auto &host = **it;
+            const auto expanded = host.bounds.inset(-thickness);
+            if (!expanded.contains(position)) {
+                continue;
+            }
+
+            const auto topLeft = host.bounds.topLeft();
+            const auto bottomRight = host.bounds.bottomRight();
+            const bool nearLeft = std::abs(position.x - topLeft.x) <= thickness;
+            const bool nearRight =
+                std::abs(position.x - bottomRight.x) <= thickness;
+            const bool nearTop = std::abs(position.y - topLeft.y) <= thickness;
+            const bool nearBottom =
+                std::abs(position.y - bottomRight.y) <= thickness;
+
+            FloatingResizeEdges edges{
+                .left = nearLeft,
+                .right = nearRight,
+                .top = nearTop,
+                .bottom = nearBottom,
+            };
+            // Extend diagonal targets along each adjoining edge. This mirrors
+            // native desktop windows: corners are easier to acquire than the
+            // thin edge itself, without consuming header/content hit space.
+            if (nearTop && position.x <= topLeft.x + corner) {
+                edges.left = true;
+            }
+            if (nearTop && position.x >= bottomRight.x - corner) {
+                edges.right = true;
+            }
+            if (nearBottom && position.x <= topLeft.x + corner) {
+                edges.left = true;
+            }
+            if (nearBottom && position.x >= bottomRight.x - corner) {
+                edges.right = true;
+            }
+            if (nearLeft && position.y <= topLeft.y + corner) {
+                edges.top = true;
+            }
+            if (nearLeft && position.y >= bottomRight.y - corner) {
+                edges.bottom = true;
+            }
+            if (nearRight && position.y <= topLeft.y + corner) {
+                edges.top = true;
+            }
+            if (nearRight && position.y >= bottomRight.y - corner) {
+                edges.bottom = true;
+            }
+
+            if (edges.any()) {
+                return {.host = host.id, .edges = edges};
+            }
+            // A front floating host occludes resize chrome belonging to hosts
+            // below it, even though all hosts are owned by one DockSpace.
+            if (host.bounds.contains(position)) {
+                return {};
+            }
         }
         return {};
     }
@@ -1551,14 +1747,10 @@ namespace Bess::UI {
         }
         const auto &style = dockStyle(state);
         const glm::vec2 available = glm::max(dockBounds.size, glm::vec2{1.f});
-        const glm::vec2 minimum = glm::min(
-            glm::max(style.floatingMinimumSize, glm::vec2{1.f}), available);
-        const glm::vec2 maximum = glm::max(
-            minimum,
-            glm::min(glm::max(style.floatingMaximumSize, glm::vec2{1.f}),
-                     available));
-        requested.size = glm::clamp(
-            glm::max(requested.size, glm::vec2{1.f}), minimum, maximum);
+        const auto limits = floatingSizeLimits(style, available);
+        requested.size = glm::clamp(glm::max(requested.size, glm::vec2{1.f}),
+                                    limits.minimum,
+                                    limits.maximum);
 
         // Windows may leave the DockSpace and are clipped by its child clip.
         // Retaining a small title-bar grip prevents an unrecoverable window
@@ -1627,11 +1819,11 @@ namespace Bess::UI {
 
         WidgetBounds floatingBounds = source->bounds;
         const auto &style = dockStyle(context.state);
-        floatingBounds.size = glm::clamp(
-            floatingBounds.size,
-            glm::min(style.floatingMinimumSize, dockBounds.size),
-            glm::max(glm::min(style.floatingMinimumSize, dockBounds.size),
-                     glm::min(style.floatingMaximumSize, dockBounds.size)));
+        const auto limits = floatingSizeLimits(style, dockBounds.size);
+        floatingBounds.size =
+            glm::clamp(glm::max(floatingBounds.size, glm::vec2{1.f}),
+                       limits.minimum,
+                       limits.maximum);
         floatingBounds.center =
             source->bounds.topLeft() + floatingBounds.size * 0.5f;
         floatingBounds =
@@ -1675,6 +1867,59 @@ namespace Bess::UI {
             host->bounds, context.bounds, context.state);
         refreshDropGuides(
             context.bounds, context.state, context.pointerPosition);
+    }
+
+    void DockSpace::updateFloatingResize(WidgetEventContext &context) {
+        if (!m_resizeDrag || !context.hasPointerPosition) {
+            return;
+        }
+        auto *host = findFloatingHost(m_resizeDrag->hit.host);
+        if (host == nullptr) {
+            clearResizeInteraction();
+            return;
+        }
+
+        const auto &style = dockStyle(context.state);
+        const glm::vec2 available =
+            glm::max(context.bounds.size, glm::vec2{1.f});
+        const auto limits = floatingSizeLimits(style, available);
+
+        const auto &initial = m_resizeDrag->initialBounds;
+        const glm::vec2 delta =
+            context.pointerPosition - m_resizeDrag->pressPosition;
+        float left = initial.topLeft().x;
+        float right = initial.bottomRight().x;
+        float top = initial.topLeft().y;
+        float bottom = initial.bottomRight().y;
+        const auto &edges = m_resizeDrag->hit.edges;
+
+        if (edges.left) {
+            left = std::clamp(left + delta.x,
+                              right - limits.maximum.x,
+                              right - limits.minimum.x);
+        } else if (edges.right) {
+            right = std::clamp(right + delta.x,
+                               left + limits.minimum.x,
+                               left + limits.maximum.x);
+        }
+        if (edges.top) {
+            top = std::clamp(top + delta.y,
+                             bottom - limits.maximum.y,
+                             bottom - limits.minimum.y);
+        } else if (edges.bottom) {
+            bottom = std::clamp(bottom + delta.y,
+                                top + limits.minimum.y,
+                                top + limits.maximum.y);
+        }
+
+        host->bounds = normalizedFloatingBounds(
+            {
+                .center = {(left + right) * 0.5f, (top + bottom) * 0.5f},
+                .size = {right - left, bottom - top},
+            },
+            context.bounds,
+            context.state);
+        m_hoveredResize = m_resizeDrag->hit;
     }
 
     bool DockSpace::finishFloatingDrag() {
@@ -2005,6 +2250,14 @@ namespace Bess::UI {
             [host](const auto &entry) { return entry->id == host; });
         if (it != m_floatingHosts.end() && (*it)->model.empty()) {
             m_floatingHosts.erase(it);
+            const bool wasResizing =
+                m_resizeDrag && m_resizeDrag->hit.host == host;
+            if (wasResizing || m_hoveredResize.host == host) {
+                clearResizeInteraction();
+                if (wasResizing && m_mountedState != nullptr) {
+                    m_mountedState->releasePointer(m_mountedId);
+                }
+            }
         }
     }
 
@@ -2019,6 +2272,11 @@ namespace Bess::UI {
     void DockSpace::clearCloseInteraction() noexcept {
         m_hoveredClose = {};
         m_pressedClose = {};
+    }
+
+    void DockSpace::clearResizeInteraction() noexcept {
+        m_hoveredResize = {};
+        m_resizeDrag.reset();
     }
 
     void DockSpace::bringFloatingToFront(WidgetEventContext &context,
@@ -2048,6 +2306,36 @@ namespace Bess::UI {
         }
     }
 
+    UIEventReply DockSpace::beginFloatingResize(WidgetEventContext &context,
+                                                FloatingResizeHit hit) {
+        if (!hit) {
+            return {};
+        }
+        bringFloatingToFront(context, hit.host);
+        const auto *entry = findFloatingHost(hit.host);
+        if (entry == nullptr) {
+            return {};
+        }
+
+        clearTabInteraction();
+        clearCloseInteraction();
+        m_draggedSplit = {};
+        m_hoveredSplit = {};
+        m_focusedHost = hit.host;
+        m_focusedStack = entry->model.firstStack();
+        m_hoveredResize = hit;
+        m_resizeDrag = FloatingResizeDrag{
+            .hit = hit,
+            .initialBounds = entry->bounds,
+            .pressPosition = context.pointerPosition,
+        };
+        return {.handled = true,
+                .stopPropagation = true,
+                .requestFocus = true,
+                .capturePointer = true,
+                .invalidate = WidgetInvalidation::paint};
+    }
+
     UIEventReply
     DockSpace::beginFloatingHeaderPress(WidgetEventContext &context,
                                         DockHostId host) {
@@ -2056,6 +2344,7 @@ namespace Bess::UI {
         if (entry == nullptr) {
             return {};
         }
+        clearResizeInteraction();
         m_tabPressable.reset();
         m_pressedItem = floatingTitleItem(*entry);
         m_focusedHost = host;

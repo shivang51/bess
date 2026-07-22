@@ -94,6 +94,17 @@ namespace Bess::UI {
         float submenuChevronSize = 11.f;
     };
 
+    struct UIScrollStyle {
+        UIBoxStyle track;
+        UIBoxStyle thumb;
+        UIBoxStyle thumbHovered;
+        UIBoxStyle thumbPressed;
+        float thickness = 10.f;
+        float margin = 2.f;
+        float minimumThumbLength = 24.f;
+        float wheelStep = 36.f;
+    };
+
     struct UIDockStyle {
         UIBoxStyle background;
         UIBoxStyle stack;
@@ -113,12 +124,19 @@ namespace Bess::UI {
         float splitterThickness = 4.f;
         float splitterIdleThickness = 1.f;
         glm::vec2 floatingMinimumSize{260.f, 180.f};
-        glm::vec2 floatingMaximumSize{640.f, 480.f};
+        // Non-positive components mean no theme-imposed maximum. The
+        // DockSpace extent still provides a safe effective upper bound.
+        glm::vec2 floatingMaximumSize{0.f, 0.f};
         float floatingMargin = 8.f;
         float floatingTitleBarHeight = 24.f;
         float floatingTitleHorizontalPadding = 8.f;
         float floatingVisibleTitleWidth = 48.f;
         float floatingVisibleTitleHeight = 8.f;
+        // Resize targets are deliberately wider than the painted border.
+        // Corners extend farther along both adjoining edges so diagonal
+        // resizing remains easy without adding visible handles.
+        float floatingResizeHandleThickness = 6.f;
+        float floatingResizeCornerSize = 18.f;
         float dragThreshold = 6.f;
         float dropGuideSize = 38.f;
         float dropGuideGap = 7.f;
@@ -133,6 +151,7 @@ namespace Bess::UI {
         UIInteractiveStyle button;
         UITabStyle tabs;
         UIMenuStyle menus;
+        UIScrollStyle scroll;
         UIDockStyle dock;
 
         [[nodiscard]] static UITheme

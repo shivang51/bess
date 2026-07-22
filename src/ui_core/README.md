@@ -120,6 +120,28 @@ Events follow capture, target, and bubble phases. `Pressable` contains the
 shared mouse/keyboard activation state machine used by buttons and tabs; new
 clickable controls should compose it instead of duplicating input logic.
 
+## Scrolling
+
+`ScrollView` owns one content root and adds horizontal or vertical scrollbars
+only when that root's descendant constraints cannot fit the viewport. Use a
+`FlexContainer` as the content root when a viewport contains multiple controls:
+
+```cpp
+ui.scrollView([](Bess::UI::UIComposer &viewport) {
+    viewport.column([](Bess::UI::UIComposer &content) {
+        content.label("First row");
+        content.label("Second row");
+    });
+});
+```
+
+The composer overload validates the single-root contract transactionally.
+Wheel input supports nested scroll chaining, Shift+wheel scrolls horizontally,
+and scrollbar-thumb drags retain pointer capture. Scrollbar gutters are
+reserved from layout; descendant painting and hit testing are clipped to the
+remaining viewport. `DockPanel` uses this control internally, so docked and
+floating panel content gains the same overflow behavior automatically.
+
 ## Menus
 
 `MenuModel` is a renderer-neutral command hierarchy with stable `MenuId` and
@@ -245,6 +267,10 @@ away from a guide leaves it floating. A floating host owns another
 side splits there using the same transfer path as the main host. Docking a
 multi-stack floating host through a side guide grafts its complete topology;
 it does not flatten the source splits into one tab stack.
+
+Floating hosts can be resized from each edge and corner. Resizing retains
+pointer capture, uses platform resize cursors, preserves the opposite edge,
+and respects the theme's minimum and optional maximum dimensions.
 
 During a drag, terminal stacks expose node-local center/side guides. Every host
 also exposes four outer-edge guides that wrap the complete existing topology;

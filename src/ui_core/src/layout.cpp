@@ -377,6 +377,22 @@ namespace Bess::UI {
         setHeightDimension({DimensionMode::stretch, 0.f});
     }
 
+    LayoutSizeMode LayoutNode::getWidthMode() const noexcept {
+        return publicSizeMode(m_width.mode);
+    }
+
+    LayoutSizeMode LayoutNode::getHeightMode() const noexcept {
+        return publicSizeMode(m_height.mode);
+    }
+
+    float LayoutNode::getWidthValue() const noexcept {
+        return m_width.value;
+    }
+
+    float LayoutNode::getHeightValue() const noexcept {
+        return m_height.value;
+    }
+
     const Core::Style::Padding &LayoutNode::getPadding() const {
         return m_padding;
     }
@@ -1228,6 +1244,24 @@ namespace Bess::UI {
         m_width = dimension;
         applyWidthStyle();
         setSizeDirty();
+    }
+
+    LayoutSizeMode LayoutNode::publicSizeMode(DimensionMode mode) noexcept {
+        switch (mode) {
+        case DimensionMode::auto_:
+            return LayoutSizeMode::auto_;
+        case DimensionMode::point:
+            return LayoutSizeMode::point;
+        case DimensionMode::percent:
+            return LayoutSizeMode::percent;
+        case DimensionMode::fitContent:
+            return LayoutSizeMode::fitContent;
+        case DimensionMode::maxContent:
+            return LayoutSizeMode::maxContent;
+        case DimensionMode::stretch:
+            return LayoutSizeMode::stretch;
+        }
+        return LayoutSizeMode::fitContent;
     }
 
     void LayoutNode::setHeightDimension(const Dimension &dimension) {

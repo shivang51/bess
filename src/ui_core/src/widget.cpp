@@ -48,6 +48,10 @@ namespace Bess::UI {
     void Widget::paint(WidgetPaintContext &) const {
     }
 
+    WidgetBounds Widget::childClipBounds(WidgetBounds bounds) const noexcept {
+        return bounds;
+    }
+
     void Widget::paintOverlay(WidgetPaintContext &) const {
     }
 

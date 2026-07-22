@@ -122,6 +122,10 @@ namespace Bess::UI {
         return emplace<Gap>(pixels);
     }
 
+    WidgetRef<ScrollView> UIComposer::scrollView(ScrollViewOptions options) {
+        return emplace<ScrollView>(std::move(options));
+    }
+
     WidgetRef<TabBar> UIComposer::tabBar(std::shared_ptr<TabModel> model,
                                          TabBarOptions options) {
         return emplace<TabBar>(std::move(model), std::move(options));

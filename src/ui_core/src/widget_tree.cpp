@@ -14,6 +14,19 @@ namespace Bess::UI {
             return std::isfinite(value.x) && std::isfinite(value.y);
         }
 
+        WidgetBounds intersectBounds(WidgetBounds lhs,
+                                     WidgetBounds rhs) noexcept {
+            if (!finiteVec(rhs.center) || !finiteVec(rhs.size)) {
+                return {.center = lhs.center, .size = {0.f, 0.f}};
+            }
+            const glm::vec2 topLeft = glm::max(lhs.topLeft(), rhs.topLeft());
+            const glm::vec2 bottomRight =
+                glm::min(lhs.bottomRight(), rhs.bottomRight());
+            const glm::vec2 size =
+                glm::max(bottomRight - topLeft, glm::vec2{0.f});
+            return {.center = topLeft + size * 0.5f, .size = size};
+        }
+
         WidgetInvalidation withoutFlag(WidgetInvalidation value,
                                        WidgetInvalidation flag) noexcept {
             return static_cast<WidgetInvalidation>(static_cast<uint8_t>(value) &
@@ -924,15 +937,21 @@ namespace Bess::UI {
         painter.pushLayer(layout != nullptr ? layout->getZVal() : 0.f);
         bool layerPushed = true;
         const bool clip = node->widget->traits().clipChildren;
+        const WidgetBounds childClip =
+            clip
+                ? intersectBounds(bounds, node->widget->childClipBounds(bounds))
+                : bounds;
         bool clipPushed = false;
         try {
             node->widget->paint(context);
             if (clip) {
-                painter.pushClip(bounds);
+                painter.pushClip(childClip);
                 clipPushed = true;
             }
-            for (const auto child : children) {
-                paintSubtree(child, painter);
+            if (!clip || !childClip.empty()) {
+                for (const auto child : children) {
+                    paintSubtree(child, painter);
+                }
             }
             node = findNode(id);
             if (node != nullptr && isEffectivelyVisible(id)) {
@@ -986,8 +1005,15 @@ namespace Bess::UI {
             frontmost = {.id = id, .zIndex = zIndex};
         }
 
-        const bool insideLayout = bounds.contains(position);
-        if (insideLayout || !node->widget->traits().clipChildren) {
+        const bool clipChildren = node->widget->traits().clipChildren;
+        const WidgetBounds childClip =
+            clipChildren
+                ? intersectBounds(bounds, node->widget->childClipBounds(bounds))
+                : bounds;
+        const bool insideChildClip =
+            !clipChildren ||
+            (!childClip.empty() && childClip.contains(position));
+        if (insideChildClip) {
             for (const auto child : node->children) {
                 const auto candidate =
                     hitTestSubtree(child, position, enabled, zIndex);

@@ -4,6 +4,7 @@
 #include "../controls/dock_drop.h"
 #include "../controls/dock_space.h"
 #include "../controls/menu_bar.h"
+#include "../controls/scroll_view.h"
 #include "../controls/tab_bar.h"
 #include "../demo_view.h"
 #include "../dock.h"

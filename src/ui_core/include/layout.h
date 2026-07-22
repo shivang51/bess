@@ -141,6 +141,12 @@ namespace Bess::UI {
         void setHeightMaxContent();
         void setWidthStretch();
         void setHeightStretch();
+        [[nodiscard]] LayoutSizeMode getWidthMode() const noexcept;
+        [[nodiscard]] LayoutSizeMode getHeightMode() const noexcept;
+        // Point values are pixels and percent values use Yoga's 0..100
+        // representation. Keyword modes have a zero value.
+        [[nodiscard]] float getWidthValue() const noexcept;
+        [[nodiscard]] float getHeightValue() const noexcept;
 
         bool getPosDirty() const;
         bool getSizeDirty() const;
@@ -280,6 +286,9 @@ namespace Bess::UI {
             DimensionMode mode = DimensionMode::fitContent;
             float value = 0.f;
         };
+
+        [[nodiscard]] static LayoutSizeMode
+        publicSizeMode(DimensionMode mode) noexcept;
 
         void attachRegistry(LayoutNodeRegistry *registry);
         void propagateSizeDirtyToAncestors();

@@ -27,6 +27,17 @@ namespace {
         }
     };
 
+    class OversizedDockContent final : public Widget {
+      public:
+        WidgetTraits traits() const noexcept override {
+            return {.hitTestVisible = true};
+        }
+
+        void onMount(WidgetMountContext &context) override {
+            context.layout.setMinSize({700.f, 500.f});
+        }
+    };
+
     class DockRecordingPainter final : public UIPainter {
       public:
         glm::vec2 viewportSize() const noexcept override {
@@ -300,6 +311,19 @@ namespace {
                     "menu disabled text");
         expectColor(
             theme.menus.separator, colors.outlineVariant, "menu separator");
+
+        expectColor(theme.scroll.track.background,
+                    colors.surfaceContainerHigh.withAlpha(0.36f),
+                    "scroll track");
+        expectColor(theme.scroll.thumb.background,
+                    colors.onSurfaceVariant.withAlpha(0.56f),
+                    "scroll thumb");
+        expectColor(theme.scroll.thumbHovered.background,
+                    colors.onSurfaceVariant.withAlpha(0.78f),
+                    "scroll thumb hovered");
+        expectColor(theme.scroll.thumbPressed.background,
+                    colors.primary.withAlpha(0.90f),
+                    "scroll thumb pressed");
 
         expectColor(theme.dock.background.background,
                     colors.surface,
@@ -1329,5 +1353,187 @@ namespace {
         EXPECT_GE(visible,
                   state.theme().dock.floatingVisibleTitleWidth - 0.01f);
         EXPECT_LT(after->center.x, before->center.x);
+    }
+
+    TEST(DockSpaceWidgetTests,
+         FloatingWindowResizesFromEdgesWithCaptureAndDirectionalCursors) {
+        WidgetTree state;
+        state.setViewportSize({800.f, 600.f});
+        const WidgetId dockId = state.emplaceWidget<DockSpace>();
+        auto *dock = state.getWidget<DockSpace>(dockId);
+        ASSERT_NE(dock, nullptr);
+        const auto panel = dock->createPanel(
+            state, dockId, "Resizable", std::make_unique<DockContent>());
+        ASSERT_TRUE(panel);
+        state.performLayout();
+        ASSERT_TRUE(dock->floatItem(
+            panel.item, {.center = {0.f, 0.f}, .size = {320.f, 240.f}}));
+        state.performLayout();
+
+        const auto before = dock->floatingItemBounds(panel.item);
+        ASSERT_TRUE(before);
+        const glm::vec2 surfaceOffset = state.getViewportSize() * 0.5f;
+        const glm::vec2 rightEdge =
+            glm::vec2{before->bottomRight().x, before->center.y} +
+            surfaceOffset;
+        static_cast<void>(
+            state.dispatchEvent(Input::MouseMoveEvent{.pos = rightEdge}));
+        EXPECT_EQ(state.getCursorShape(), CursorIcon::resizeHorizontal);
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::press,
+            .pos = rightEdge,
+        }));
+        EXPECT_EQ(state.getPointerCapture(), dockId);
+
+        const glm::vec2 wider = rightEdge + glm::vec2{80.f, 0.f};
+        static_cast<void>(
+            state.dispatchEvent(Input::MouseMoveEvent{.pos = wider}));
+        EXPECT_EQ(state.getCursorShape(), CursorIcon::resizeHorizontal);
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::release,
+            .pos = wider,
+        }));
+        EXPECT_FALSE(state.getPointerCapture());
+
+        const auto afterWidth = dock->floatingItemBounds(panel.item);
+        ASSERT_TRUE(afterWidth);
+        EXPECT_NEAR(afterWidth->size.x, before->size.x + 80.f, 0.01f);
+        EXPECT_NEAR(afterWidth->topLeft().x, before->topLeft().x, 0.01f);
+        EXPECT_NEAR(afterWidth->size.y, before->size.y, 0.01f);
+
+        const glm::vec2 topEdge =
+            glm::vec2{afterWidth->center.x, afterWidth->topLeft().y} +
+            surfaceOffset;
+        static_cast<void>(
+            state.dispatchEvent(Input::MouseMoveEvent{.pos = topEdge}));
+        EXPECT_EQ(state.getCursorShape(), CursorIcon::resizeVertical);
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::press,
+            .pos = topEdge,
+        }));
+        const glm::vec2 taller = topEdge - glm::vec2{0.f, 40.f};
+        static_cast<void>(
+            state.dispatchEvent(Input::MouseMoveEvent{.pos = taller}));
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::release,
+            .pos = taller,
+        }));
+
+        const auto afterHeight = dock->floatingItemBounds(panel.item);
+        ASSERT_TRUE(afterHeight);
+        EXPECT_NEAR(afterHeight->size.y, afterWidth->size.y + 40.f, 0.01f);
+        EXPECT_NEAR(
+            afterHeight->bottomRight().y, afterWidth->bottomRight().y, 0.01f);
+    }
+
+    TEST(DockSpaceWidgetTests,
+         FloatingResizeCornersUseDiagonalCursorsAndRespectMinimumSize) {
+        WidgetTree state;
+        state.setViewportSize({800.f, 600.f});
+        const WidgetId dockId = state.emplaceWidget<DockSpace>();
+        auto *dock = state.getWidget<DockSpace>(dockId);
+        ASSERT_NE(dock, nullptr);
+        const auto panel = dock->createPanel(
+            state, dockId, "Resizable", std::make_unique<DockContent>());
+        ASSERT_TRUE(panel);
+        state.performLayout();
+        ASSERT_TRUE(dock->floatItem(
+            panel.item, {.center = {0.f, 0.f}, .size = {360.f, 260.f}}));
+        state.performLayout();
+
+        const glm::vec2 surfaceOffset = state.getViewportSize() * 0.5f;
+        auto bounds = dock->floatingItemBounds(panel.item);
+        ASSERT_TRUE(bounds);
+        const glm::vec2 topLeft = bounds->topLeft() + surfaceOffset;
+        static_cast<void>(
+            state.dispatchEvent(Input::MouseMoveEvent{.pos = topLeft}));
+        EXPECT_EQ(state.getCursorShape(), CursorIcon::resizeDiagonalNWSE);
+
+        const glm::vec2 topRight =
+            glm::vec2{bounds->bottomRight().x, bounds->topLeft().y} +
+            surfaceOffset;
+        static_cast<void>(
+            state.dispatchEvent(Input::MouseMoveEvent{.pos = topRight}));
+        EXPECT_EQ(state.getCursorShape(), CursorIcon::resizeDiagonalNESW);
+
+        const glm::vec2 bottomRight = bounds->bottomRight() + surfaceOffset;
+        static_cast<void>(
+            state.dispatchEvent(Input::MouseMoveEvent{.pos = bottomRight}));
+        EXPECT_EQ(state.getCursorShape(), CursorIcon::resizeDiagonalNWSE);
+
+        const glm::vec2 bottomLeft =
+            glm::vec2{bounds->topLeft().x, bounds->bottomRight().y} +
+            surfaceOffset;
+        static_cast<void>(
+            state.dispatchEvent(Input::MouseMoveEvent{.pos = bottomLeft}));
+        EXPECT_EQ(state.getCursorShape(), CursorIcon::resizeDiagonalNESW);
+
+        const glm::vec2 leftEdge =
+            glm::vec2{bounds->topLeft().x, bounds->center.y} + surfaceOffset;
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::press,
+            .pos = leftEdge,
+        }));
+        ASSERT_EQ(state.getPointerCapture(), dockId);
+        const glm::vec2 beyondMinimum = leftEdge + glm::vec2{1000.f, 0.f};
+        static_cast<void>(
+            state.dispatchEvent(Input::MouseMoveEvent{.pos = beyondMinimum}));
+        EXPECT_EQ(state.getCursorShape(), CursorIcon::resizeHorizontal);
+        static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::release,
+            .pos = beyondMinimum,
+        }));
+
+        const auto minimum = dock->floatingItemBounds(panel.item);
+        ASSERT_TRUE(minimum);
+        EXPECT_NEAR(
+            minimum->size.x, state.theme().dock.floatingMinimumSize.x, 0.01f);
+        EXPECT_NEAR(minimum->bottomRight().x, bounds->bottomRight().x, 0.01f);
+        EXPECT_FALSE(state.getPointerCapture());
+    }
+
+    TEST(DockSpaceWidgetTests,
+         DockPanelsAutomaticallyScrollContentThatCannotFit) {
+        WidgetTree state;
+        state.setViewportSize({500.f, 360.f});
+        const WidgetId dockId = state.emplaceWidget<DockSpace>();
+        auto *dock = state.getWidget<DockSpace>(dockId);
+        ASSERT_NE(dock, nullptr);
+        const auto panel =
+            dock->createPanel(state,
+                              dockId,
+                              "Overflow",
+                              std::make_unique<OversizedDockContent>());
+        ASSERT_TRUE(panel);
+        state.performLayout();
+
+        const auto *dockPanel = state.getWidget<DockPanel>(panel.panel);
+        ASSERT_NE(dockPanel, nullptr);
+        EXPECT_TRUE(dockPanel->hasHorizontalScrollbar());
+        EXPECT_TRUE(dockPanel->hasVerticalScrollbar());
+        EXPECT_GE(dockPanel->contentExtent().x, 700.f);
+        EXPECT_GE(dockPanel->contentExtent().y, 500.f);
+
+        DockRecordingPainter painter;
+        state.paint(painter);
+        const auto thumbColor = state.theme().scroll.thumb.background.toHex();
+        EXPECT_TRUE(std::any_of(painter.boxes.begin(),
+                                painter.boxes.end(),
+                                [thumbColor](const BoxPaint &box) {
+                                    return box.color.toHex() == thumbColor;
+                                }));
+
+        const auto result = state.dispatchEvent(Input::MouseWheelEvent{
+            .pos = state.getViewportSize() * 0.5f,
+            .offset = {0.f, -1.f},
+        });
+        EXPECT_TRUE(result.handled);
+        EXPECT_GT(dockPanel->scrollOffset().y, 0.f);
     }
 } // namespace

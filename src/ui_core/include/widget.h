@@ -114,6 +114,12 @@ namespace Bess::UI {
         virtual void update(WidgetUpdateContext &context);
         virtual void arrange(WidgetArrangeContext &context);
         virtual void paint(WidgetPaintContext &context) const;
+        // When clipChildren is enabled, controls may reserve part of their
+        // bounds for chrome (for example, ScrollView scrollbar gutters). The
+        // returned rectangle is intersected with the widget's own bounds and
+        // governs both descendant painting and hit testing.
+        [[nodiscard]] virtual WidgetBounds
+        childClipBounds(WidgetBounds bounds) const noexcept;
         // Painted after descendants while the widget's child clip is still
         // active. This is intended for adorners such as selection outlines,
         // drag previews, focus rings, and docking guides.

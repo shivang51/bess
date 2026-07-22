@@ -3,6 +3,7 @@
 #include "controls/basic_widgets.h"
 #include "controls/dock_space.h"
 #include "controls/menu_bar.h"
+#include "controls/scroll_view.h"
 #include "controls/tab_bar.h"
 #include "widget_ref.h"
 
@@ -111,6 +112,7 @@ namespace Bess::UI {
                                  ButtonOptions options = {});
         WidgetRef<Spacer> spacer(SpacerOptions options = {});
         WidgetRef<Gap> gap(float pixels);
+        WidgetRef<ScrollView> scrollView(ScrollViewOptions options = {});
         WidgetRef<TabBar> tabBar(std::shared_ptr<TabModel> model,
                                  TabBarOptions options = {});
         WidgetRef<DockSpace> dockSpace(DockSpaceOptions options = {});
@@ -156,6 +158,21 @@ namespace Bess::UI {
             requires std::invocable<Build, UIComposer &>
         WidgetRef<Surface> surface(Build &&build) {
             return surface(SurfaceOptions{}, std::forward<Build>(build));
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, UIComposer &>
+        WidgetRef<ScrollView> scrollView(ScrollViewOptions options,
+                                         Build &&build) {
+            return composeSingleChild(scrollView(std::move(options)),
+                                      std::forward<Build>(build),
+                                      "ScrollView");
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, UIComposer &>
+        WidgetRef<ScrollView> scrollView(Build &&build) {
+            return scrollView(ScrollViewOptions{}, std::forward<Build>(build));
         }
 
         template <typename Build>
@@ -215,6 +232,22 @@ namespace Bess::UI {
                 throw;
             }
             return owner;
+        }
+
+        template <typename T, typename Build>
+            requires std::derived_from<T, Widget> &&
+                     std::invocable<Build, UIComposer &>
+        WidgetRef<T> composeSingleChild(WidgetRef<T> owner,
+                                        Build &&build,
+                                        std::string_view ownerName) {
+            owner =
+                composeChildren(std::move(owner), std::forward<Build>(build));
+            if (m_tree.getChildren(owner.id()).size() <= 1) {
+                return owner;
+            }
+            owner.remove();
+            throw std::logic_error(std::string{ownerName} +
+                                   " accepts at most one content root");
         }
 
         WidgetTree &m_tree;
