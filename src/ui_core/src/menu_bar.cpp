@@ -101,6 +101,50 @@ namespace Bess::UI {
                              });
             return it != layout.headings.end() ? &*it : nullptr;
         }
+
+        struct MenuPopupMetrics {
+            float width = 0.f;
+            float contentHeight = 0.f;
+            float shortcutWidth = 0.f;
+            bool hasShortcut = false;
+            bool hasSubmenu = false;
+        };
+
+        MenuPopupMetrics measureMenuPopup(std::span<const MenuItem> items,
+                                          const UIMenuStyle &style) {
+            MenuPopupMetrics result;
+            float nameWidth = 0.f;
+            result.contentHeight = std::max(0.f, style.popupPadding) * 2.f;
+            for (const auto &item : items) {
+                if (item.kind == MenuItemKind::separator) {
+                    result.contentHeight +=
+                        std::max(1.f, style.separatorHeight);
+                    continue;
+                }
+                nameWidth =
+                    std::max(nameWidth, textWidth(item.name, style.text));
+                result.shortcutWidth = std::max(
+                    result.shortcutWidth, textWidth(item.shortcut, style.text));
+                result.hasShortcut =
+                    result.hasShortcut || !item.shortcut.empty();
+                result.hasSubmenu = result.hasSubmenu || item.isSubmenu();
+                result.contentHeight += std::max(1.f, style.itemHeight);
+            }
+
+            result.width = std::max(0.f, style.itemHorizontalPadding) * 2.f +
+                           std::max(0.f, style.iconColumnWidth) + nameWidth;
+            if (result.hasShortcut) {
+                result.width +=
+                    std::max(0.f, style.shortcutGap) + result.shortcutWidth;
+            }
+            if (result.hasSubmenu) {
+                result.width += std::max(0.f, style.submenuIndicatorWidth);
+            }
+            const float minimum = std::max(1.f, style.popupMinimumWidth);
+            const float maximum = std::max(minimum, style.popupMaximumWidth);
+            result.width = std::clamp(result.width, minimum, maximum);
+            return result;
+        }
     } // namespace
 
     const MenuPopupItemLayout *
@@ -110,6 +154,206 @@ namespace Bess::UI {
                 return item.bounds.contains(position);
             });
         return it != items.end() ? &*it : nullptr;
+    }
+
+    glm::vec2
+    MenuPopupLayoutSolver::preferredSize(std::span<const MenuItem> items,
+                                         const UIMenuStyle &style) {
+        const auto metrics = measureMenuPopup(items, style);
+        return {metrics.width, metrics.contentHeight};
+    }
+
+    MenuPopupLayout
+    MenuPopupLayoutSolver::calculate(WidgetBounds bounds,
+                                     std::span<const MenuItem> items,
+                                     const UIMenuStyle &style,
+                                     size_t depth,
+                                     float scrollOffset) {
+        const auto metrics = measureMenuPopup(items, style);
+        bounds.size = glm::max(bounds.size, glm::vec2{0.f});
+        const float maximumScroll =
+            std::max(0.f, metrics.contentHeight - bounds.size.y);
+        scrollOffset =
+            std::clamp(std::isfinite(scrollOffset) ? scrollOffset : 0.f,
+                       0.f,
+                       maximumScroll);
+
+        MenuPopupLayout result{
+            .depth = depth,
+            .bounds = bounds,
+            .contentHeight = metrics.contentHeight,
+        };
+        result.items.reserve(items.size());
+
+        const float popupPadding = std::max(0.f, style.popupPadding);
+        const float horizontalPadding =
+            std::max(0.f, style.itemHorizontalPadding);
+        const float contentLeft = bounds.topLeft().x + popupPadding;
+        const float contentWidth =
+            std::max(0.f, bounds.size.x - popupPadding * 2.f);
+        float top = bounds.topLeft().y + popupPadding - scrollOffset;
+        for (const auto &item : items) {
+            const float rowHeight = item.kind == MenuItemKind::separator
+                                        ? std::max(1.f, style.separatorHeight)
+                                        : std::max(1.f, style.itemHeight);
+            MenuPopupItemLayout row{
+                .item = item.id,
+                .bounds =
+                    fromTopLeft({contentLeft, top}, {contentWidth, rowHeight}),
+                .separator = item.kind == MenuItemKind::separator,
+            };
+            if (!row.separator) {
+                float left = contentLeft + horizontalPadding;
+                const float right =
+                    contentLeft + contentWidth - horizontalPadding;
+                const float iconWidth =
+                    std::min(std::max(0.f, style.iconColumnWidth),
+                             std::max(0.f, right - left));
+                row.iconBounds =
+                    fromTopLeft({left, top}, {iconWidth, rowHeight});
+                left += iconWidth;
+
+                // These are panel columns, not per-item columns. Even an item
+                // without a shortcut/child receives the same reserved boxes,
+                // so every visible trailing affordance shares an exact edge.
+                const float indicatorWidth =
+                    metrics.hasSubmenu
+                        ? std::min(std::max(0.f, style.submenuIndicatorWidth),
+                                   std::max(0.f, right - left))
+                        : 0.f;
+                row.submenuIndicatorBounds = fromTopLeft(
+                    {right - indicatorWidth, top}, {indicatorWidth, rowHeight});
+                float textRight = right - indicatorWidth;
+                const float shortcutWidth =
+                    metrics.hasShortcut
+                        ? std::min(metrics.shortcutWidth,
+                                   std::max(0.f, textRight - left))
+                        : 0.f;
+                row.shortcutBounds =
+                    fromTopLeft({textRight - shortcutWidth, top},
+                                {shortcutWidth, rowHeight});
+                if (shortcutWidth > 0.f) {
+                    textRight = std::max(left,
+                                         textRight - shortcutWidth -
+                                             std::max(0.f, style.shortcutGap));
+                }
+                row.labelBounds = fromTopLeft(
+                    {left, top}, {std::max(0.f, textRight - left), rowHeight});
+            }
+            result.items.push_back(row);
+            top += rowHeight;
+        }
+        return result;
+    }
+
+    void MenuPopupPresenter::paint(UIPainter &painter,
+                                   const MenuPopupLayout &layout,
+                                   const MenuModel &model,
+                                   const UIMenuStyle &style,
+                                   PickingId pickingId,
+                                   MenuPopupPaintOptions options) {
+        painter.drawBox(
+            makeBox(layout.bounds, style.popup, pickingId, options.panelDepth));
+        const ScopedUIClip popupClip{painter, layout.bounds};
+        for (const auto &row : layout.items) {
+            if (row.bounds.bottomRight().y < layout.bounds.topLeft().y ||
+                row.bounds.topLeft().y > layout.bounds.bottomRight().y) {
+                continue;
+            }
+            const auto *item = model.findItem(row.item);
+            if (item == nullptr) {
+                continue;
+            }
+            if (row.separator) {
+                painter.drawBox({
+                    .bounds =
+                        {
+                            .center = row.bounds.center,
+                            .size = {std::max(
+                                         0.f,
+                                         row.bounds.size.x -
+                                             std::max(
+                                                 0.f,
+                                                 style.itemHorizontalPadding) *
+                                                 2.f),
+                                     1.f},
+                        },
+                    .color = style.separator,
+                    .zIndex = options.contentDepth,
+                    .pickingId = pickingId,
+                });
+                continue;
+            }
+
+            const bool activeBranch =
+                std::find(options.activePath.begin(),
+                          options.activePath.end(),
+                          item->id) != options.activePath.end();
+            if (options.hotItem == item->id ||
+                options.pressedItem == item->id || activeBranch) {
+                const auto &box = options.pressedItem == item->id
+                                      ? style.itemPressed
+                                      : style.itemHovered;
+                painter.drawBox(makeBox(
+                    row.bounds, box, pickingId, options.rowChromeDepth));
+            }
+
+            const auto textColor =
+                item->enabled ? style.text.color : style.disabledText;
+            const std::string_view icon =
+                !item->icon.empty()
+                    ? std::string_view{item->icon}
+                    : (item->checked
+                           ? std::string_view{Icons::FontAwesomeIcons::FA_CHECK}
+                           : std::string_view{});
+            if (!icon.empty()) {
+                painter.drawIcon(
+                    icon,
+                    {.glyph = {.bounds = row.iconBounds,
+                               .fontSize = style.text.fontSize,
+                               .color = item->enabled ? style.iconColor
+                                                      : style.disabledText,
+                               .horizontal = HorizontalTextAlignment::center,
+                               .vertical = VerticalTextAlignment::center,
+                               .zIndex = options.contentDepth,
+                               .letterSpacing = style.text.letterSpacing,
+                               .pickingId = pickingId}});
+            }
+            painter.drawText(item->name,
+                             {.bounds = row.labelBounds,
+                              .fontSize = style.text.fontSize,
+                              .color = textColor,
+                              .horizontal = HorizontalTextAlignment::start,
+                              .vertical = VerticalTextAlignment::center,
+                              .zIndex = options.contentDepth,
+                              .letterSpacing = style.text.letterSpacing,
+                              .pickingId = pickingId});
+            if (!item->shortcut.empty()) {
+                painter.drawText(item->shortcut,
+                                 {.bounds = row.shortcutBounds,
+                                  .fontSize = style.text.fontSize,
+                                  .color = item->enabled ? style.shortcutColor
+                                                         : style.disabledText,
+                                  .horizontal = HorizontalTextAlignment::end,
+                                  .vertical = VerticalTextAlignment::center,
+                                  .zIndex = options.contentDepth,
+                                  .letterSpacing = style.text.letterSpacing,
+                                  .pickingId = pickingId});
+            }
+            if (item->isSubmenu()) {
+                painter.drawIcon(
+                    Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT,
+                    {.glyph = {.bounds = row.submenuIndicatorBounds,
+                               .fontSize =
+                                   std::max(1.f, style.submenuChevronSize),
+                               .color = item->enabled ? style.iconColor
+                                                      : style.disabledText,
+                               .horizontal = HorizontalTextAlignment::center,
+                               .vertical = VerticalTextAlignment::center,
+                               .zIndex = options.contentDepth,
+                               .pickingId = pickingId}});
+            }
+        }
     }
 
     const MenuHeadingLayout *
@@ -177,110 +421,24 @@ namespace Bess::UI {
                                  std::max(0.f, style.popupOverlap)};
         const MenuPopupItemLayout *parentItemLayout = nullptr;
         for (size_t depth = 0; items != nullptr; ++depth) {
-            float nameWidth = 0.f;
-            float shortcutWidth = 0.f;
-            bool hasShortcut = false;
-            bool hasSubmenu = false;
-            float height = std::max(0.f, style.popupPadding) * 2.f;
-            for (const auto &item : *items) {
-                if (item.kind == MenuItemKind::separator) {
-                    height += std::max(1.f, style.separatorHeight);
-                    continue;
-                }
-                nameWidth =
-                    std::max(nameWidth, textWidth(item.name, style.text));
-                shortcutWidth = std::max(shortcutWidth,
-                                         textWidth(item.shortcut, style.text));
-                hasShortcut = hasShortcut || !item.shortcut.empty();
-                hasSubmenu = hasSubmenu || item.isSubmenu();
-                height += std::max(1.f, style.itemHeight);
-            }
-            float width = std::max(0.f, style.itemHorizontalPadding) * 2.f +
-                          std::max(0.f, style.iconColumnWidth) + nameWidth;
-            if (hasShortcut) {
-                width += std::max(0.f, style.shortcutGap) + shortcutWidth;
-            }
-            if (hasSubmenu) {
-                width += std::max(0.f, style.submenuIndicatorWidth);
-            }
-            width = std::clamp(width,
-                               std::max(1.f, style.popupMinimumWidth),
-                               std::max(std::max(1.f, style.popupMinimumWidth),
-                                        style.popupMaximumWidth));
+            const glm::vec2 size =
+                MenuPopupLayoutSolver::preferredSize(*items, style);
 
             if (parentItemLayout != nullptr) {
                 const float overlap = std::max(0.f, style.popupOverlap);
                 const float right =
                     result.popups.back().bounds.bottomRight().x - overlap;
                 const float left =
-                    result.popups.back().bounds.topLeft().x - width + overlap;
-                desired.x = right + width <= viewportBounds.bottomRight().x
+                    result.popups.back().bounds.topLeft().x - size.x + overlap;
+                desired.x = right + size.x <= viewportBounds.bottomRight().x
                                 ? right
                                 : left;
                 desired.y = parentItemLayout->bounds.topLeft().y -
                             std::max(0.f, style.popupPadding);
             }
-            desired = constrainedPopupTopLeft(
-                desired, {width, height}, viewportBounds);
-            MenuPopupLayout popup{
-                .depth = depth,
-                .bounds = fromTopLeft(desired, {width, height}),
-            };
-
-            const float padding = std::max(0.f, style.popupPadding);
-            const float horizontal = std::max(0.f, style.itemHorizontalPadding);
-            const float contentLeft = desired.x + padding;
-            const float contentWidth = std::max(0.f, width - padding * 2.f);
-            float top = desired.y + padding;
-            for (const auto &item : *items) {
-                const float rowHeight =
-                    item.kind == MenuItemKind::separator
-                        ? std::max(1.f, style.separatorHeight)
-                        : std::max(1.f, style.itemHeight);
-                MenuPopupItemLayout row{
-                    .item = item.id,
-                    .bounds = fromTopLeft({contentLeft, top},
-                                          {contentWidth, rowHeight}),
-                    .separator = item.kind == MenuItemKind::separator,
-                };
-                if (!row.separator) {
-                    float left = contentLeft + horizontal;
-                    const float right = contentLeft + contentWidth - horizontal;
-                    const float iconWidth =
-                        std::max(0.f, style.iconColumnWidth);
-                    row.iconBounds =
-                        fromTopLeft({left, top}, {iconWidth, rowHeight});
-                    left += iconWidth;
-
-                    // Shortcut and submenu affordance columns belong to the
-                    // popup, not individual rows. Reserving them on every row
-                    // keeps shortcut ends aligned and leaves the rightmost
-                    // column exclusively for submenu arrows.
-                    const float indicatorWidth =
-                        hasSubmenu ? std::max(0.f, style.submenuIndicatorWidth)
-                                   : 0.f;
-                    row.submenuIndicatorBounds =
-                        fromTopLeft({right - indicatorWidth, top},
-                                    {indicatorWidth, rowHeight});
-                    float textRight = right - indicatorWidth;
-                    const float shortcut =
-                        hasShortcut ? std::min(shortcutWidth,
-                                               std::max(0.f, textRight - left))
-                                    : 0.f;
-                    if (shortcut > 0.f) {
-                        row.shortcutBounds = fromTopLeft(
-                            {textRight - shortcut, top}, {shortcut, rowHeight});
-                        textRight -=
-                            shortcut + std::max(0.f, style.shortcutGap);
-                    }
-                    row.labelBounds = fromTopLeft(
-                        {left, top},
-                        {std::max(0.f, textRight - left), rowHeight});
-                }
-                popup.items.push_back(row);
-                top += rowHeight;
-            }
-            result.popups.push_back(std::move(popup));
+            desired = constrainedPopupTopLeft(desired, size, viewportBounds);
+            result.popups.push_back(MenuPopupLayoutSolver::calculate(
+                fromTopLeft(desired, size), *items, style, depth));
 
             if (depth >= openSubmenus.size()) {
                 break;
@@ -394,87 +552,17 @@ namespace Bess::UI {
         const auto &menuStyle = style(context.state);
         float layer = 0.10f;
         for (const auto &popup : m_layout.popups) {
-            context.painter.drawBox(makeBox(
-                popup.bounds, menuStyle.popup, context.pickingId, layer));
-            const ScopedUIClip popupClip{context.painter, popup.bounds};
-            for (const auto &row : popup.items) {
-                const auto *item = m_model->findItem(row.item);
-                if (item == nullptr) {
-                    continue;
-                }
-                if (row.separator) {
-                    context.painter.drawBox({
-                        .bounds = {.center = row.bounds.center,
-                                   .size = {std::max(0.f,
-                                                     row.bounds.size.x - 12.f),
-                                            1.f}},
-                        .color = menuStyle.separator,
-                        .zIndex = layer + 0.001f,
-                        .pickingId = context.pickingId,
-                    });
-                    continue;
-                }
-                if (m_hotItem == item->id) {
-                    const auto &box = m_pressedItem == item->id
-                                          ? menuStyle.itemPressed
-                                          : menuStyle.itemHovered;
-                    context.painter.drawBox(makeBox(
-                        row.bounds, box, context.pickingId, layer + 0.001f));
-                }
-                const auto textColor = item->enabled ? menuStyle.text.color
-                                                     : menuStyle.disabledText;
-                const std::string icon = !item->icon.empty() ? item->icon
-                                         : item->checked     ? "*"
-                                                             : "";
-                if (!icon.empty()) {
-                    context.painter.drawText(
-                        icon,
-                        {.bounds = row.iconBounds,
-                         .fontSize = menuStyle.text.fontSize,
-                         .color = item->enabled ? menuStyle.iconColor
-                                                : menuStyle.disabledText,
-                         .horizontal = HorizontalTextAlignment::start,
-                         .vertical = VerticalTextAlignment::center,
-                         .zIndex = layer + 0.002f,
-                         .letterSpacing = menuStyle.text.letterSpacing,
-                         .pickingId = context.pickingId});
-                }
-                context.painter.drawText(
-                    item->name,
-                    {.bounds = row.labelBounds,
-                     .fontSize = menuStyle.text.fontSize,
-                     .color = textColor,
-                     .horizontal = HorizontalTextAlignment::start,
-                     .vertical = VerticalTextAlignment::center,
-                     .zIndex = layer + 0.002f,
-                     .letterSpacing = menuStyle.text.letterSpacing,
-                     .pickingId = context.pickingId});
-                if (!item->shortcut.empty()) {
-                    context.painter.drawText(
-                        item->shortcut,
-                        {.bounds = row.shortcutBounds,
-                         .fontSize = menuStyle.text.fontSize,
-                         .color = item->enabled ? menuStyle.shortcutColor
-                                                : menuStyle.disabledText,
-                         .horizontal = HorizontalTextAlignment::end,
-                         .vertical = VerticalTextAlignment::center,
-                         .zIndex = layer + 0.002f,
-                         .letterSpacing = menuStyle.text.letterSpacing,
-                         .pickingId = context.pickingId});
-                }
-                if (item->isSubmenu()) {
-                    context.painter.drawText(
-                        Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT,
-                        {.bounds = row.submenuIndicatorBounds,
-                         .fontSize =
-                             std::max(1.f, menuStyle.submenuChevronSize),
-                         .color = textColor,
-                         .horizontal = HorizontalTextAlignment::center,
-                         .vertical = VerticalTextAlignment::center,
-                         .zIndex = layer + 0.002f,
-                         .pickingId = context.pickingId});
-                }
-            }
+            MenuPopupPresenter::paint(context.painter,
+                                      popup,
+                                      *m_model,
+                                      menuStyle,
+                                      context.pickingId,
+                                      {.hotItem = m_hotItem,
+                                       .pressedItem = m_pressedItem,
+                                       .activePath = m_openSubmenus,
+                                       .panelDepth = layer,
+                                       .rowChromeDepth = layer + 0.001f,
+                                       .contentDepth = layer + 0.002f});
             layer += 0.01f;
         }
     }

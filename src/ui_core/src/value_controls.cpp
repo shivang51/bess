@@ -18,11 +18,63 @@ namespace Bess::UI {
         }
 
         glm::vec2 estimatedTextSize(std::string_view text,
-                                    const UITextStyle &style) {
+                                    const UITextStyle &style) noexcept {
+            const float glyphCount = static_cast<float>(text.size());
             return {std::max(0.f,
-                             static_cast<float>(text.size()) * style.fontSize *
-                                 0.6f),
+                             glyphCount * style.fontSize * 0.6f +
+                                 glyphCount * style.letterSpacing),
                     std::max(1.f, style.fontSize * 1.25f)};
+        }
+
+        bool
+        measurementMatches(const Detail::ControlTextMeasurement &measurement,
+                           const UITextStyle &style) noexcept {
+            return measurement.valid &&
+                   measurement.fontSize == style.fontSize &&
+                   measurement.letterSpacing == style.letterSpacing;
+        }
+
+        glm::vec2 resolvedTextSize(
+            std::string_view text,
+            const UITextStyle &style,
+            const Detail::ControlTextMeasurement &measurement) noexcept {
+            return measurementMatches(measurement, style)
+                       ? measurement.size
+                       : estimatedTextSize(text, style);
+        }
+
+        bool
+        updateTextMeasurement(UIPainter &painter,
+                              std::string_view text,
+                              const UITextStyle &style,
+                              Detail::ControlTextMeasurement &measurement) {
+            if (measurementMatches(measurement, style)) {
+                return false;
+            }
+            glm::vec2 size =
+                painter.measureText(text, style.fontSize, style.letterSpacing);
+            if (!std::isfinite(size.x) || !std::isfinite(size.y) ||
+                size.x < 0.f || size.y < 0.f) {
+                size = estimatedTextSize(text, style);
+            }
+            measurement = {
+                .size = size,
+                .fontSize = style.fontSize,
+                .letterSpacing = style.letterSpacing,
+                .valid = true,
+            };
+            return true;
+        }
+
+        WidgetBounds
+        leadingInteractionBounds(WidgetBounds bounds,
+                                 glm::vec2 intrinsicSize) noexcept {
+            const glm::vec2 size =
+                glm::min(glm::max(intrinsicSize, glm::vec2{0.f}), bounds.size);
+            return {
+                .center = {bounds.topLeft().x + size.x * 0.5f, bounds.center.y},
+                .size = size,
+            };
         }
 
         BoxPaint makeBox(WidgetBounds bounds,
@@ -170,7 +222,8 @@ namespace Bess::UI {
         }
         const auto &style =
             m_options.style.value_or(context.state.theme().checkbox);
-        const auto text = estimatedTextSize(m_label, style.text);
+        const auto text =
+            resolvedTextSize(m_label, style.text, m_labelMeasurement);
         context.layout.setWidth(style.indicatorSize +
                                 (m_label.empty() ? 0.f : style.gap + text.x));
         context.layout.setHeight(
@@ -181,6 +234,13 @@ namespace Bess::UI {
     void CheckBox::paint(WidgetPaintContext &context) const {
         const auto &style =
             m_options.style.value_or(context.state.theme().checkbox);
+        if (updateTextMeasurement(
+                context.painter, m_label, style.text, m_labelMeasurement) &&
+            m_options.autoSize && m_state != nullptr &&
+            m_state->contains(m_id)) {
+            m_intrinsicSizeDirty = true;
+            m_state->invalidate(m_id, WidgetInvalidation::layout);
+        }
         const WidgetBounds indicator =
             leadingSquare(context.bounds, style.indicatorSize);
         const bool selected = value() != CheckState::unchecked;
@@ -211,13 +271,38 @@ namespace Bess::UI {
         paintSelectionLabel(context, m_label, style, style.indicatorSize);
     }
 
+    WidgetBounds
+    CheckBox::interactionBounds(WidgetBounds bounds) const noexcept {
+        const UISelectionControlStyle *style =
+            m_options.style.has_value()
+                ? &*m_options.style
+                : (m_state != nullptr ? &m_state->theme().checkbox : nullptr);
+        if (style == nullptr) {
+            return bounds;
+        }
+        const auto text =
+            resolvedTextSize(m_label, style->text, m_labelMeasurement);
+        return leadingInteractionBounds(
+            bounds,
+            {style->indicatorSize +
+                 (m_label.empty() ? 0.f : style->gap + text.x),
+             std::max({style->minimumHeight, style->indicatorSize, text.y})});
+    }
+
+    bool CheckBox::hitTest(WidgetBounds bounds,
+                           glm::vec2 position) const noexcept {
+        return interactionBounds(bounds).contains(position);
+    }
+
     CursorIcon CheckBox::cursor(const WidgetCursorContext &) const noexcept {
         return CursorIcon::pointer;
     }
 
     UIEventReply CheckBox::onEvent(WidgetEventContext &context,
                                    const UIEvent &event) {
-        auto result = m_pressable.handle(context, event);
+        WidgetEventContext pressContext = context;
+        pressContext.bounds = interactionBounds(context.bounds);
+        auto result = m_pressable.handle(pressContext, event);
         if (result.activated && context.enabled) {
             const bool changed = m_model->toggle(m_options.cycleMixed);
             if (changed && m_changed) {
@@ -243,6 +328,12 @@ namespace Bess::UI {
         if (m_label != label) {
             m_label = std::move(label);
             m_intrinsicSizeDirty = true;
+            m_labelMeasurement.valid = false;
+            if (m_state != nullptr && m_state->contains(m_id)) {
+                m_state->invalidate(m_id,
+                                    WidgetInvalidation::layout |
+                                        WidgetInvalidation::paint);
+            }
         }
     }
 
@@ -306,7 +397,8 @@ namespace Bess::UI {
         const auto &style =
             m_options.style.value_or(context.state.theme().toggle);
         const auto &labelStyle = context.state.theme().checkbox;
-        const auto text = estimatedTextSize(m_label, labelStyle.text);
+        const auto text =
+            resolvedTextSize(m_label, labelStyle.text, m_labelMeasurement);
         context.layout.setWidth(
             style.size.x + (m_label.empty() ? 0.f : labelStyle.gap + text.x));
         context.layout.setHeight(
@@ -318,6 +410,15 @@ namespace Bess::UI {
         const auto &style =
             m_options.style.value_or(context.state.theme().toggle);
         const auto &labelStyle = context.state.theme().checkbox;
+        if (updateTextMeasurement(context.painter,
+                                  m_label,
+                                  labelStyle.text,
+                                  m_labelMeasurement) &&
+            m_options.autoSize && m_state != nullptr &&
+            m_state->contains(m_id)) {
+            m_intrinsicSizeDirty = true;
+            m_state->invalidate(m_id, WidgetInvalidation::layout);
+        }
         WidgetBounds track{
             .center = {context.bounds.topLeft().x + style.size.x * 0.5f,
                        context.bounds.center.y},
@@ -359,6 +460,30 @@ namespace Bess::UI {
         paintSelectionLabel(context, m_label, labelStyle, style.size.x);
     }
 
+    WidgetBounds
+    ToggleSwitch::interactionBounds(WidgetBounds bounds) const noexcept {
+        const UIToggleStyle *style =
+            m_options.style.has_value()
+                ? &*m_options.style
+                : (m_state != nullptr ? &m_state->theme().toggle : nullptr);
+        const UISelectionControlStyle *labelStyle =
+            m_state != nullptr ? &m_state->theme().checkbox : nullptr;
+        if (style == nullptr || labelStyle == nullptr) {
+            return bounds;
+        }
+        const auto text =
+            resolvedTextSize(m_label, labelStyle->text, m_labelMeasurement);
+        return leadingInteractionBounds(
+            bounds,
+            {style->size.x + (m_label.empty() ? 0.f : labelStyle->gap + text.x),
+             std::max({style->size.y, labelStyle->minimumHeight, text.y})});
+    }
+
+    bool ToggleSwitch::hitTest(WidgetBounds bounds,
+                               glm::vec2 position) const noexcept {
+        return interactionBounds(bounds).contains(position);
+    }
+
     CursorIcon
     ToggleSwitch::cursor(const WidgetCursorContext &) const noexcept {
         return CursorIcon::pointer;
@@ -366,7 +491,9 @@ namespace Bess::UI {
 
     UIEventReply ToggleSwitch::onEvent(WidgetEventContext &context,
                                        const UIEvent &event) {
-        auto result = m_pressable.handle(context, event);
+        WidgetEventContext pressContext = context;
+        pressContext.bounds = interactionBounds(context.bounds);
+        auto result = m_pressable.handle(pressContext, event);
         if (result.activated && context.enabled) {
             const bool changed = m_model->toggle();
             if (changed && m_changed) {
@@ -392,6 +519,12 @@ namespace Bess::UI {
         if (m_label != label) {
             m_label = std::move(label);
             m_intrinsicSizeDirty = true;
+            m_labelMeasurement.valid = false;
+            if (m_state != nullptr && m_state->contains(m_id)) {
+                m_state->invalidate(m_id,
+                                    WidgetInvalidation::layout |
+                                        WidgetInvalidation::paint);
+            }
         }
     }
 
@@ -460,7 +593,8 @@ namespace Bess::UI {
         }
         const auto &style =
             m_options.style.value_or(context.state.theme().radio);
-        const auto text = estimatedTextSize(m_label, style.text);
+        const auto text =
+            resolvedTextSize(m_label, style.text, m_labelMeasurement);
         context.layout.setWidth(style.indicatorSize +
                                 (m_label.empty() ? 0.f : style.gap + text.x));
         context.layout.setHeight(
@@ -471,6 +605,13 @@ namespace Bess::UI {
     void RadioButton::paint(WidgetPaintContext &context) const {
         const auto &style =
             m_options.style.value_or(context.state.theme().radio);
+        if (updateTextMeasurement(
+                context.painter, m_label, style.text, m_labelMeasurement) &&
+            m_options.autoSize && m_state != nullptr &&
+            m_state->contains(m_id)) {
+            m_intrinsicSizeDirty = true;
+            m_state->invalidate(m_id, WidgetInvalidation::layout);
+        }
         const WidgetBounds indicator =
             leadingSquare(context.bounds, style.indicatorSize);
         UIBoxStyle resolvedIndicator = selectionBox(
@@ -498,13 +639,38 @@ namespace Bess::UI {
         paintSelectionLabel(context, m_label, style, style.indicatorSize);
     }
 
+    WidgetBounds
+    RadioButton::interactionBounds(WidgetBounds bounds) const noexcept {
+        const UISelectionControlStyle *style =
+            m_options.style.has_value()
+                ? &*m_options.style
+                : (m_state != nullptr ? &m_state->theme().radio : nullptr);
+        if (style == nullptr) {
+            return bounds;
+        }
+        const auto text =
+            resolvedTextSize(m_label, style->text, m_labelMeasurement);
+        return leadingInteractionBounds(
+            bounds,
+            {style->indicatorSize +
+                 (m_label.empty() ? 0.f : style->gap + text.x),
+             std::max({style->minimumHeight, style->indicatorSize, text.y})});
+    }
+
+    bool RadioButton::hitTest(WidgetBounds bounds,
+                              glm::vec2 position) const noexcept {
+        return interactionBounds(bounds).contains(position);
+    }
+
     CursorIcon RadioButton::cursor(const WidgetCursorContext &) const noexcept {
         return CursorIcon::pointer;
     }
 
     UIEventReply RadioButton::onEvent(WidgetEventContext &context,
                                       const UIEvent &event) {
-        auto result = m_pressable.handle(context, event);
+        WidgetEventContext pressContext = context;
+        pressContext.bounds = interactionBounds(context.bounds);
+        auto result = m_pressable.handle(pressContext, event);
         if (result.activated && context.enabled && select() && m_selected) {
             m_selected(m_radioId);
         }
@@ -555,6 +721,12 @@ namespace Bess::UI {
         if (m_label != label) {
             m_label = std::move(label);
             m_intrinsicSizeDirty = true;
+            m_labelMeasurement.valid = false;
+            if (m_state != nullptr && m_state->contains(m_id)) {
+                m_state->invalidate(m_id,
+                                    WidgetInvalidation::layout |
+                                        WidgetInvalidation::paint);
+            }
         }
     }
 

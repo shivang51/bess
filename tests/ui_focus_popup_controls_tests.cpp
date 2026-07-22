@@ -1,8 +1,11 @@
 #include "ui_core.h"
 
+#include "bess_core/ui/icons/font_awesome_icons.h"
+
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <cmath>
 #include <memory>
 #include <optional>
 #include <string>
@@ -33,6 +36,10 @@ namespace {
 
     class LayerRecordingPainter final : public UIPainter {
       public:
+        explicit LayerRecordingPainter(float glyphAdvance = 0.6f)
+            : m_glyphAdvance(glyphAdvance) {
+        }
+
         struct BoxRecord {
             BoxPaint paint;
             float depth = 0.f;
@@ -40,6 +47,7 @@ namespace {
 
         struct TextRecord {
             std::string text;
+            TextPaint paint;
             float depth = 0.f;
         };
 
@@ -52,14 +60,14 @@ namespace {
         }
 
         void drawText(std::string_view text, const TextPaint &paint) override {
-            texts.push_back({std::string{text}, m_depth + paint.zIndex});
+            texts.push_back({std::string{text}, paint, m_depth + paint.zIndex});
         }
 
         glm::vec2 measureText(std::string_view text,
                               float fontSize,
                               float letterSpacing) const override {
             return {static_cast<float>(text.size()) *
-                        (fontSize * 0.6f + letterSpacing),
+                        (fontSize * m_glyphAdvance + letterSpacing),
                     fontSize};
         }
 
@@ -85,6 +93,7 @@ namespace {
       private:
         std::vector<float> m_stack;
         float m_depth = 0.f;
+        float m_glyphAdvance = 0.6f;
     };
 
     class ButtonView final : public UIView {
@@ -444,6 +453,124 @@ namespace {
         EXPECT_DOUBLE_EQ(changes.back().value, 4.0);
     }
 
+    TEST(ValueControlTests,
+         SelectionControlsUseTheirVisibleContentAsThePointerTarget) {
+        const auto checkModel = std::make_shared<CheckStateModel>();
+        WidgetTree checkboxTree;
+        checkboxTree.setViewportSize({400.f, 120.f});
+        const auto checkbox =
+            checkboxTree.emplaceWidget<CheckBox>("Tight checkbox", checkModel);
+        checkboxTree.performLayout();
+        LayerRecordingPainter narrowTextPainter{0.35f};
+        checkboxTree.paint(narrowTextPainter);
+        const auto checkboxBounds = checkboxTree.getBounds(checkbox);
+        const auto &checkboxStyle = checkboxTree.theme().checkbox;
+        const float checkboxTextEnd =
+            checkboxBounds.topLeft().x + checkboxStyle.indicatorSize +
+            checkboxStyle.gap +
+            narrowTextPainter
+                .measureText("Tight checkbox",
+                             checkboxStyle.text.fontSize,
+                             checkboxStyle.text.letterSpacing)
+                .x;
+        const glm::vec2 checkboxInside{checkboxBounds.topLeft().x + 4.f,
+                                       checkboxBounds.center.y};
+        const glm::vec2 checkboxOutside{checkboxBounds.bottomRight().x - 4.f,
+                                        checkboxBounds.center.y};
+        EXPECT_EQ(checkboxTree.hitTest(checkboxInside), checkbox);
+        EXPECT_EQ(checkboxTree.hitTest(
+                      {checkboxTextEnd - 0.5f, checkboxBounds.center.y}),
+                  checkbox);
+        EXPECT_NE(checkboxTree.hitTest(
+                      {checkboxTextEnd + 0.5f, checkboxBounds.center.y}),
+                  checkbox);
+        EXPECT_NE(checkboxTree.hitTest(checkboxOutside), checkbox);
+
+        const auto toCheckboxSurface = [&checkboxTree](glm::vec2 point) {
+            return point + checkboxTree.getViewportSize() * 0.5f;
+        };
+        static_cast<void>(checkboxTree.dispatchEvent(
+            Input::MouseButtonEvent{.button = MouseButton::left,
+                                    .action = MouseButtonAction::press,
+                                    .pos = toCheckboxSurface(checkboxInside)}));
+        ASSERT_EQ(checkboxTree.getPointerCapture(), checkbox);
+        static_cast<void>(checkboxTree.dispatchEvent(Input::MouseButtonEvent{
+            .button = MouseButton::left,
+            .action = MouseButtonAction::release,
+            .pos = toCheckboxSurface(checkboxOutside),
+        }));
+        EXPECT_EQ(checkModel->value(), CheckState::unchecked);
+
+        static_cast<void>(checkboxTree.dispatchEvent(
+            Input::MouseButtonEvent{.button = MouseButton::left,
+                                    .action = MouseButtonAction::press,
+                                    .pos = toCheckboxSurface(checkboxInside)}));
+        static_cast<void>(checkboxTree.dispatchEvent(
+            Input::MouseButtonEvent{.button = MouseButton::left,
+                                    .action = MouseButtonAction::release,
+                                    .pos = toCheckboxSurface(checkboxInside)}));
+        EXPECT_EQ(checkModel->value(), CheckState::checked);
+
+        WidgetTree toggleTree;
+        toggleTree.setViewportSize({400.f, 120.f});
+        const auto toggle =
+            toggleTree.emplaceWidget<ToggleSwitch>("Tight toggle");
+        toggleTree.performLayout();
+        toggleTree.paint(narrowTextPainter);
+        const auto toggleBounds = toggleTree.getBounds(toggle);
+        const auto &toggleStyle = toggleTree.theme().toggle;
+        const auto &toggleLabelStyle = toggleTree.theme().checkbox;
+        const float toggleTextEnd =
+            toggleBounds.topLeft().x + toggleStyle.size.x +
+            toggleLabelStyle.gap +
+            narrowTextPainter
+                .measureText("Tight toggle",
+                             toggleLabelStyle.text.fontSize,
+                             toggleLabelStyle.text.letterSpacing)
+                .x;
+        EXPECT_EQ(toggleTree.hitTest(
+                      {toggleBounds.topLeft().x + 4.f, toggleBounds.center.y}),
+                  toggle);
+        EXPECT_EQ(
+            toggleTree.hitTest({toggleTextEnd - 0.5f, toggleBounds.center.y}),
+            toggle);
+        EXPECT_NE(
+            toggleTree.hitTest({toggleTextEnd + 0.5f, toggleBounds.center.y}),
+            toggle);
+        EXPECT_NE(toggleTree.hitTest({toggleBounds.bottomRight().x - 4.f,
+                                      toggleBounds.center.y}),
+                  toggle);
+
+        WidgetTree radioTree;
+        radioTree.setViewportSize({400.f, 120.f});
+        const auto radio = radioTree.emplaceWidget<RadioButton>(
+            "Tight radio", std::make_shared<RadioGroupModel>());
+        radioTree.performLayout();
+        radioTree.paint(narrowTextPainter);
+        const auto radioBounds = radioTree.getBounds(radio);
+        const auto &radioStyle = radioTree.theme().radio;
+        const float radioTextEnd =
+            radioBounds.topLeft().x + radioStyle.indicatorSize +
+            radioStyle.gap +
+            narrowTextPainter
+                .measureText("Tight radio",
+                             radioStyle.text.fontSize,
+                             radioStyle.text.letterSpacing)
+                .x;
+        EXPECT_EQ(radioTree.hitTest(
+                      {radioBounds.topLeft().x + 4.f, radioBounds.center.y}),
+                  radio);
+        EXPECT_EQ(
+            radioTree.hitTest({radioTextEnd - 0.5f, radioBounds.center.y}),
+            radio);
+        EXPECT_NE(
+            radioTree.hitTest({radioTextEnd + 0.5f, radioBounds.center.y}),
+            radio);
+        EXPECT_NE(radioTree.hitTest({radioBounds.bottomRight().x - 4.f,
+                                     radioBounds.center.y}),
+                  radio);
+    }
+
     TEST(PopupControlTests,
          DropdownTooltipContextMenuAndAutocompleteUseSharedPopupHost) {
         PopupFixture fixture;
@@ -556,6 +683,119 @@ namespace {
         });
         EXPECT_TRUE(result.handled);
         EXPECT_EQ(result.target, children.front());
+    }
+
+    TEST(PopupControlTests,
+         ContextMenuTrailingColumnsStayInsideAndHoverPaintsBelowText) {
+        PopupFixture fixture;
+        auto model = std::make_shared<MenuModel>();
+        const MenuId menu = model->addMenu(
+            {.name = "Context",
+             .items = {{.name = "Rename", .shortcut = "F2"},
+                       {.name = "More", .children = {{.name = "Details"}}}}});
+        auto context = ContextMenu::open(
+            fixture.popups, model, menu, PopupAnchor::forPoint({0.f, 0.f}));
+        ASSERT_TRUE(context);
+        fixture.tree.performLayout();
+        const auto children = fixture.tree.getChildren(context.content().id());
+        ASSERT_EQ(children.size(), 1u);
+        const WidgetId contextWidget = children.front();
+        const WidgetBounds rootBounds = fixture.tree.getBounds(contextWidget);
+
+        LayerRecordingPainter painter;
+        fixture.tree.paint(painter);
+        const auto shortcut = std::find_if(
+            painter.texts.begin(), painter.texts.end(), [](const auto &record) {
+                return record.text == "F2";
+            });
+        ASSERT_NE(shortcut, painter.texts.end());
+        const auto chevron = std::find_if(
+            painter.texts.begin(), painter.texts.end(), [](const auto &record) {
+                return record.text == Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT;
+            });
+        ASSERT_NE(chevron, painter.texts.end());
+
+        std::vector<const LayerRecordingPainter::BoxRecord *> contextBoxes;
+        for (const auto &record : painter.boxes) {
+            if (fixture.tree.resolvePickingId(record.paint.pickingId) ==
+                contextWidget) {
+                contextBoxes.push_back(&record);
+            }
+        }
+        ASSERT_FALSE(contextBoxes.empty());
+        const auto rootPanel =
+            *std::min_element(contextBoxes.begin(),
+                              contextBoxes.end(),
+                              [](const auto *left, const auto *right) {
+                                  return left->depth < right->depth;
+                              });
+        EXPECT_GE(shortcut->paint.bounds.topLeft().x,
+                  rootPanel->paint.bounds.topLeft().x);
+        EXPECT_LE(shortcut->paint.bounds.bottomRight().x,
+                  rootPanel->paint.bounds.bottomRight().x);
+        EXPECT_FLOAT_EQ(shortcut->paint.bounds.bottomRight().x,
+                        chevron->paint.bounds.topLeft().x);
+        EXPECT_FLOAT_EQ(rootPanel->paint.bounds.bottomRight().x -
+                            chevron->paint.bounds.bottomRight().x,
+                        fixture.tree.theme().menus.popupPadding +
+                            fixture.tree.theme().menus.itemHorizontalPadding);
+
+        const auto &style = fixture.tree.theme().menus;
+        const glm::vec2 morePoint{rootBounds.topLeft().x + style.popupPadding +
+                                      2.f,
+                                  rootBounds.topLeft().y + style.popupPadding +
+                                      style.itemHeight * 1.5f};
+        static_cast<void>(fixture.tree.dispatchEvent(Input::MouseMoveEvent{
+            .pos = morePoint + fixture.tree.getViewportSize() * 0.5f,
+        }));
+
+        painter.boxes.clear();
+        painter.texts.clear();
+        fixture.tree.paint(painter);
+        const auto moreText = std::find_if(
+            painter.texts.begin(), painter.texts.end(), [](const auto &record) {
+                return record.text == "More";
+            });
+        ASSERT_NE(moreText, painter.texts.end());
+        const auto detailsText = std::find_if(
+            painter.texts.begin(), painter.texts.end(), [](const auto &record) {
+                return record.text == "Details";
+            });
+        ASSERT_NE(detailsText, painter.texts.end());
+
+        const auto hoveredRow = std::find_if(
+            painter.boxes.begin(),
+            painter.boxes.end(),
+            [&](const auto &record) {
+                return fixture.tree.resolvePickingId(record.paint.pickingId) ==
+                           contextWidget &&
+                       std::abs(record.paint.bounds.size.y - style.itemHeight) <
+                           0.01f &&
+                       record.paint.bounds.contains(morePoint);
+            });
+        ASSERT_NE(hoveredRow, painter.boxes.end());
+        EXPECT_GT(moreText->depth, hoveredRow->depth);
+
+        static_cast<void>(fixture.tree.dispatchEvent(Input::MouseMoveEvent{
+            .pos = detailsText->paint.bounds.center +
+                   fixture.tree.getViewportSize() * 0.5f,
+        }));
+        painter.boxes.clear();
+        painter.texts.clear();
+        fixture.tree.paint(painter);
+        const auto hoveredColor = style.itemHovered.background.toHex();
+        const auto highlightedRows = std::count_if(
+            painter.boxes.begin(),
+            painter.boxes.end(),
+            [&](const auto &record) {
+                return fixture.tree.resolvePickingId(record.paint.pickingId) ==
+                           contextWidget &&
+                       record.paint.color.toHex() == hoveredColor &&
+                       std::abs(record.paint.bounds.size.y - style.itemHeight) <
+                           0.01f;
+            });
+        EXPECT_EQ(highlightedRows, 2)
+            << "the open parent and hovered submenu child stay highlighted";
     }
 
 } // namespace

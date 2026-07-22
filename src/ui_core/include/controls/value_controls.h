@@ -12,6 +12,15 @@
 
 namespace Bess::UI {
 
+    namespace Detail {
+        struct ControlTextMeasurement {
+            glm::vec2 size{0.f};
+            float fontSize = 0.f;
+            float letterSpacing = 0.f;
+            bool valid = false;
+        };
+    } // namespace Detail
+
     struct CheckBoxOptions {
         std::optional<UISelectionControlStyle> style;
         bool cycleMixed = false;
@@ -33,6 +42,8 @@ namespace Bess::UI {
         void onUnmount(WidgetTree &state, WidgetId id) override;
         void updateLayout(WidgetLayoutContext &context) override;
         void paint(WidgetPaintContext &context) const override;
+        [[nodiscard]] bool hitTest(WidgetBounds bounds,
+                                   glm::vec2 position) const noexcept override;
         [[nodiscard]] CursorIcon
         cursor(const WidgetCursorContext &context) const noexcept override;
         UIEventReply onEvent(WidgetEventContext &context,
@@ -46,6 +57,8 @@ namespace Bess::UI {
 
       private:
         void reconnectModel();
+        [[nodiscard]] WidgetBounds
+        interactionBounds(WidgetBounds bounds) const noexcept;
 
         std::string m_label;
         std::shared_ptr<CheckStateModel> m_model;
@@ -55,7 +68,8 @@ namespace Bess::UI {
         Pressable m_pressable;
         WidgetTree *m_state = nullptr;
         WidgetId m_id;
-        bool m_intrinsicSizeDirty = true;
+        mutable Detail::ControlTextMeasurement m_labelMeasurement;
+        mutable bool m_intrinsicSizeDirty = true;
     };
 
     struct ToggleSwitchOptions {
@@ -78,6 +92,8 @@ namespace Bess::UI {
         void onUnmount(WidgetTree &state, WidgetId id) override;
         void updateLayout(WidgetLayoutContext &context) override;
         void paint(WidgetPaintContext &context) const override;
+        [[nodiscard]] bool hitTest(WidgetBounds bounds,
+                                   glm::vec2 position) const noexcept override;
         [[nodiscard]] CursorIcon
         cursor(const WidgetCursorContext &context) const noexcept override;
         UIEventReply onEvent(WidgetEventContext &context,
@@ -91,6 +107,8 @@ namespace Bess::UI {
 
       private:
         void reconnectModel();
+        [[nodiscard]] WidgetBounds
+        interactionBounds(WidgetBounds bounds) const noexcept;
 
         std::string m_label;
         std::shared_ptr<BoolModel> m_model;
@@ -100,7 +118,8 @@ namespace Bess::UI {
         Pressable m_pressable;
         WidgetTree *m_state = nullptr;
         WidgetId m_id;
-        bool m_intrinsicSizeDirty = true;
+        mutable Detail::ControlTextMeasurement m_labelMeasurement;
+        mutable bool m_intrinsicSizeDirty = true;
     };
 
     struct RadioButtonOptions {
@@ -124,6 +143,8 @@ namespace Bess::UI {
         void onUnmount(WidgetTree &state, WidgetId id) override;
         void updateLayout(WidgetLayoutContext &context) override;
         void paint(WidgetPaintContext &context) const override;
+        [[nodiscard]] bool hitTest(WidgetBounds bounds,
+                                   glm::vec2 position) const noexcept override;
         [[nodiscard]] CursorIcon
         cursor(const WidgetCursorContext &context) const noexcept override;
         UIEventReply onEvent(WidgetEventContext &context,
@@ -138,6 +159,8 @@ namespace Bess::UI {
 
       private:
         void reconnectGroup();
+        [[nodiscard]] WidgetBounds
+        interactionBounds(WidgetBounds bounds) const noexcept;
 
         std::string m_label;
         std::shared_ptr<RadioGroupModel> m_group;
@@ -148,7 +171,8 @@ namespace Bess::UI {
         Pressable m_pressable;
         WidgetTree *m_state = nullptr;
         WidgetId m_id;
-        bool m_intrinsicSizeDirty = true;
+        mutable Detail::ControlTextMeasurement m_labelMeasurement;
+        mutable bool m_intrinsicSizeDirty = true;
     };
 
     enum class SliderOrientation : uint8_t { horizontal, vertical };

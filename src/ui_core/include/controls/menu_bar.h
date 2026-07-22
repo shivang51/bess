@@ -42,9 +42,49 @@ namespace Bess::UI {
         size_t depth = 0;
         WidgetBounds bounds;
         std::vector<MenuPopupItemLayout> items;
+        float contentHeight = 0.f;
 
         [[nodiscard]] const MenuPopupItemLayout *
         itemAt(glm::vec2 position) const noexcept;
+    };
+
+    // Shared popup-row geometry for menu bars and standalone context menus.
+    // Columns are measured once per panel and reserved uniformly for every
+    // row, keeping labels, shortcuts, and submenu indicators aligned.
+    class BESS_API MenuPopupLayoutSolver {
+      public:
+        [[nodiscard]] static glm::vec2
+        preferredSize(std::span<const MenuItem> items,
+                      const UIMenuStyle &style);
+
+        [[nodiscard]] static MenuPopupLayout
+        calculate(WidgetBounds bounds,
+                  std::span<const MenuItem> items,
+                  const UIMenuStyle &style,
+                  size_t depth = 0,
+                  float scrollOffset = 0.f);
+    };
+
+    struct MenuPopupPaintOptions {
+        MenuItemId hotItem;
+        MenuItemId pressedItem;
+        std::span<const MenuItemId> activePath;
+        float panelDepth = 0.f;
+        float rowChromeDepth = 0.001f;
+        float contentDepth = 0.002f;
+    };
+
+    // Shared renderer-neutral popup presentation. Hosts retain ownership of
+    // focus, dismissal, scrolling, and placement while row visuals remain
+    // identical across menu-bar popups and context menus.
+    class BESS_API MenuPopupPresenter {
+      public:
+        static void paint(UIPainter &painter,
+                          const MenuPopupLayout &layout,
+                          const MenuModel &model,
+                          const UIMenuStyle &style,
+                          PickingId pickingId,
+                          MenuPopupPaintOptions options = {});
     };
 
     struct MenuBarLayout {

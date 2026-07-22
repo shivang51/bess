@@ -1,6 +1,7 @@
 #include "controls/popup_controls.h"
 
 #include "bess_core/ui/icons/font_awesome_icons.h"
+#include "controls/menu_bar.h"
 #include "ui_composer.h"
 #include "ui_painter.h"
 #include "widget_tree.h"
@@ -24,6 +25,15 @@ namespace Bess::UI {
     namespace {
         constexpr float kChromeZ = 0.001f;
         constexpr float kContentZ = 0.002f;
+        constexpr float kContextPanelDepthStride = 0.01f;
+        constexpr float kContextRowChromeZ = 0.002f;
+        constexpr float kContextRowContentZ = 0.003f;
+        constexpr float kContextScrollbarZ = 0.004f;
+
+        float contextMenuDepth(size_t panel, float localDepth) noexcept {
+            return static_cast<float>(panel) * kContextPanelDepthStride +
+                   localDepth;
+        }
 
         glm::vec2 estimatedTextSize(std::string_view text,
                                     const UITextStyle &style) {
@@ -700,18 +710,6 @@ namespace Bess::UI {
             bool m_layoutDirty = true;
         };
 
-        struct ContextRow {
-            MenuItemId item;
-            WidgetBounds bounds;
-            bool separator = false;
-        };
-
-        struct ContextPanel {
-            WidgetBounds bounds;
-            std::vector<ContextRow> rows;
-            float contentHeight = 0.f;
-        };
-
         class ContextMenuWidget final : public Widget {
           public:
             ContextMenuWidget(std::shared_ptr<MenuModel> model,
@@ -760,48 +758,20 @@ namespace Bess::UI {
                 const auto &style = resolvedStyle(context.state);
                 for (size_t depth = 0; depth < m_panels.size(); ++depth) {
                     const auto &panel = m_panels[depth];
-                    context.painter.drawBox(
-                        makeBox(panel.bounds,
-                                style.popup,
-                                context.pickingId,
-                                kChromeZ + static_cast<float>(depth) * 0.01f));
-                    const ScopedUIClip clip{context.painter, panel.bounds};
-                    for (const auto &row : panel.rows) {
-                        if (row.bounds.bottomRight().y <
-                                panel.bounds.topLeft().y ||
-                            row.bounds.topLeft().y >
-                                panel.bounds.bottomRight().y) {
-                            continue;
-                        }
-                        if (row.separator) {
-                            WidgetBounds line{
-                                .center = row.bounds.center,
-                                .size = {std::max(
-                                             0.f,
-                                             row.bounds.size.x -
-                                                 style.itemHorizontalPadding *
-                                                     2.f),
-                                         1.f},
-                            };
-                            UIBoxStyle separator{.background = style.separator};
-                            context.painter.drawBox(makeBox(
-                                line, separator, context.pickingId, kContentZ));
-                            continue;
-                        }
-                        const auto *item = m_model->findItem(row.item);
-                        if (item == nullptr) {
-                            continue;
-                        }
-                        if (row.item == m_hot || row.item == m_pressed) {
-                            context.painter.drawBox(makeBox(
-                                row.bounds,
-                                row.item == m_pressed ? style.itemPressed
-                                                      : style.itemHovered,
-                                context.pickingId,
-                                kContentZ));
-                        }
-                        paintRow(context, row.bounds, *item, style, depth);
-                    }
+                    MenuPopupPresenter::paint(
+                        context.painter,
+                        panel,
+                        *m_model,
+                        style,
+                        context.pickingId,
+                        {.hotItem = m_hot,
+                         .pressedItem = m_pressed,
+                         .activePath = m_openPath,
+                         .panelDepth = contextMenuDepth(depth, kChromeZ),
+                         .rowChromeDepth =
+                             contextMenuDepth(depth, kContextRowChromeZ),
+                         .contentDepth =
+                             contextMenuDepth(depth, kContextRowContentZ)});
                     if (panel.contentHeight > panel.bounds.size.y) {
                         const float viewport = panel.bounds.size.y;
                         const float thumbHeight = std::max(
@@ -819,12 +789,11 @@ namespace Bess::UI {
                                            thumbHeight * 0.5f + travel * ratio},
                             .size = {3.f, thumbHeight},
                         };
-                        context.painter.drawBox(
-                            makeBox(thumb,
-                                    context.state.theme().scroll.thumb,
-                                    context.pickingId,
-                                    kContentZ + 0.001f +
-                                        static_cast<float>(depth) * 0.01f));
+                        context.painter.drawBox(makeBox(
+                            thumb,
+                            context.state.theme().scroll.thumb,
+                            context.pickingId,
+                            contextMenuDepth(depth, kContextScrollbarZ)));
                     }
                 }
             }
@@ -1005,31 +974,10 @@ namespace Bess::UI {
 
             glm::vec2 panelSize(const std::vector<MenuItem> &items,
                                 const UIMenuStyle &style) const {
-                float width = style.popupMinimumWidth;
-                float height = std::max(0.f, style.popupPadding) * 2.f;
-                for (const auto &item : items) {
-                    if (item.kind == MenuItemKind::separator) {
-                        height += style.separatorHeight;
-                        continue;
-                    }
-                    const float text =
-                        estimatedTextSize(item.name, style.text).x;
-                    const float shortcut =
-                        estimatedTextSize(item.shortcut, style.text).x;
-                    width = std::max(width,
-                                     style.itemHorizontalPadding * 2.f +
-                                         style.iconColumnWidth + text +
-                                         (item.shortcut.empty()
-                                              ? 0.f
-                                              : style.shortcutGap + shortcut) +
-                                         (item.isSubmenu()
-                                              ? style.submenuIndicatorWidth
-                                              : 0.f));
-                    height += style.itemHeight;
-                }
-                width = std::clamp(
-                    width, style.popupMinimumWidth, style.popupMaximumWidth);
-                return {width, std::min(height, m_maximumHeight)};
+                glm::vec2 size =
+                    MenuPopupLayoutSolver::preferredSize(items, style);
+                size.y = std::min(size.y, m_maximumHeight);
+                return size;
             }
 
             void rebuild(WidgetBounds rootBounds,
@@ -1048,13 +996,14 @@ namespace Bess::UI {
                         break;
                     }
                     const auto row = std::find_if(
-                        m_panels[depth].rows.begin(),
-                        m_panels[depth].rows.end(),
-                        [this, depth](const ContextRow &candidate) {
+                        m_panels[depth].items.begin(),
+                        m_panels[depth].items.end(),
+                        [this, depth](const MenuPopupItemLayout &candidate) {
                             return candidate.item == m_openPath[depth];
                         });
                     const auto *items = itemsAtDepth(depth + 1);
-                    if (row == m_panels[depth].rows.end() || items == nullptr) {
+                    if (row == m_panels[depth].items.end() ||
+                        items == nullptr) {
                         break;
                     }
                     const glm::vec2 size = panelSize(*items, style);
@@ -1085,38 +1034,17 @@ namespace Bess::UI {
                              const std::vector<MenuItem> &items,
                              const UIMenuStyle &style,
                              size_t depth) const {
-                const float padding = std::max(0.f, style.popupPadding);
-                float contentHeight = padding * 2.f;
-                for (const auto &item : items) {
-                    contentHeight += item.kind == MenuItemKind::separator
-                                         ? style.separatorHeight
-                                         : style.itemHeight;
-                }
+                const float contentHeight =
+                    MenuPopupLayoutSolver::preferredSize(items, style).y;
                 if (m_panelScroll.size() <= depth)
                     m_panelScroll.resize(depth + 1, 0.f);
                 m_panelScroll[depth] =
                     std::clamp(m_panelScroll[depth],
                                0.f,
                                std::max(0.f, contentHeight - bounds.size.y));
-                ContextPanel panel{.bounds = bounds,
-                                   .contentHeight = contentHeight};
-                float top = bounds.topLeft().y + padding - m_panelScroll[depth];
-                for (const auto &item : items) {
-                    const float height = item.kind == MenuItemKind::separator
-                                             ? style.separatorHeight
-                                             : style.itemHeight;
-                    panel.rows.push_back(
-                        {.item = item.id,
-                         .bounds =
-                             {.center = {bounds.center.x, top + height * 0.5f},
-                              .size = {std::max(0.f,
-                                                bounds.size.x - padding * 2.f),
-                                       height}},
-                         .separator = item.kind == MenuItemKind::separator});
-                    top += height;
-                }
                 if (m_panels.size() == depth) {
-                    m_panels.push_back(std::move(panel));
+                    m_panels.push_back(MenuPopupLayoutSolver::calculate(
+                        bounds, items, style, depth, m_panelScroll[depth]));
                 }
             }
 
@@ -1126,7 +1054,7 @@ namespace Bess::UI {
                         continue;
                     }
                     depth = index;
-                    for (const auto &row : m_panels[index].rows) {
+                    for (const auto &row : m_panels[index].items) {
                         if (!row.separator && row.bounds.contains(point)) {
                             return row.item;
                         }
@@ -1134,102 +1062,6 @@ namespace Bess::UI {
                     return {};
                 }
                 return {};
-            }
-
-            void paintRow(WidgetPaintContext &context,
-                          WidgetBounds row,
-                          const MenuItem &item,
-                          const UIMenuStyle &style,
-                          size_t depth) const {
-                const float left =
-                    row.topLeft().x + style.itemHorizontalPadding;
-                const WidgetBounds iconBounds{
-                    .center = {left + style.iconColumnWidth * 0.5f,
-                               row.center.y},
-                    .size = {style.iconColumnWidth, row.size.y},
-                };
-                if (!item.icon.empty()) {
-                    context.painter.drawIcon(
-                        item.icon,
-                        {.glyph = {.bounds = iconBounds,
-                                   .fontSize = style.text.fontSize,
-                                   .color = item.enabled ? style.iconColor
-                                                         : style.disabledText,
-                                   .horizontal =
-                                       HorizontalTextAlignment::center,
-                                   .vertical = VerticalTextAlignment::center,
-                                   .zIndex = kContentZ +
-                                             static_cast<float>(depth) * 0.01f,
-                                   .pickingId = context.pickingId}});
-                }
-                const float rightReserve =
-                    style.itemHorizontalPadding +
-                    (item.isSubmenu() ? style.submenuIndicatorWidth : 0.f) +
-                    (item.shortcut.empty()
-                         ? 0.f
-                         : estimatedTextSize(item.shortcut, style.text).x +
-                               style.shortcutGap);
-                const float labelLeft = left + style.iconColumnWidth;
-                const float labelWidth = std::max(
-                    0.f, row.bottomRight().x - rightReserve - labelLeft);
-                context.painter.drawText(
-                    item.name,
-                    {.bounds = {.center = {labelLeft + labelWidth * 0.5f,
-                                           row.center.y},
-                                .size = {labelWidth, row.size.y}},
-                     .fontSize = style.text.fontSize,
-                     .color =
-                         item.enabled ? style.text.color : style.disabledText,
-                     .horizontal = HorizontalTextAlignment::start,
-                     .vertical = VerticalTextAlignment::center,
-                     .zIndex = kContentZ + static_cast<float>(depth) * 0.01f,
-                     .letterSpacing = style.text.letterSpacing,
-                     .pickingId = context.pickingId});
-                if (!item.shortcut.empty()) {
-                    WidgetBounds shortcutBounds{
-                        .center = {row.bottomRight().x -
-                                       style.itemHorizontalPadding -
-                                       (item.isSubmenu()
-                                            ? style.submenuIndicatorWidth
-                                            : 0.f) -
-                                       style.shortcutGap * 0.5f,
-                                   row.center.y},
-                        .size = {rightReserve, row.size.y},
-                    };
-                    context.painter.drawText(
-                        item.shortcut,
-                        {.bounds = shortcutBounds,
-                         .fontSize = style.text.fontSize,
-                         .color = item.enabled ? style.shortcutColor
-                                               : style.disabledText,
-                         .horizontal = HorizontalTextAlignment::end,
-                         .vertical = VerticalTextAlignment::center,
-                         .zIndex =
-                             kContentZ + static_cast<float>(depth) * 0.01f,
-                         .letterSpacing = style.text.letterSpacing,
-                         .pickingId = context.pickingId});
-                }
-                if (item.isSubmenu()) {
-                    WidgetBounds chevron{
-                        .center = {row.bottomRight().x -
-                                       style.itemHorizontalPadding -
-                                       style.submenuIndicatorWidth * 0.5f,
-                                   row.center.y},
-                        .size = {style.submenuIndicatorWidth, row.size.y},
-                    };
-                    context.painter.drawIcon(
-                        Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT,
-                        {.glyph = {.bounds = chevron,
-                                   .fontSize = style.submenuChevronSize,
-                                   .color = item.enabled ? style.iconColor
-                                                         : style.disabledText,
-                                   .horizontal =
-                                       HorizontalTextAlignment::center,
-                                   .vertical = VerticalTextAlignment::center,
-                                   .zIndex = kContentZ +
-                                             static_cast<float>(depth) * 0.01f,
-                                   .pickingId = context.pickingId}});
-                }
             }
 
             void updateOpenPathForHot() {
@@ -1316,12 +1148,12 @@ namespace Bess::UI {
                 }
                 const auto &panel = m_panels[m_hotDepth];
                 const auto row =
-                    std::find_if(panel.rows.begin(),
-                                 panel.rows.end(),
-                                 [this](const ContextRow &candidate) {
+                    std::find_if(panel.items.begin(),
+                                 panel.items.end(),
+                                 [this](const MenuPopupItemLayout &candidate) {
                                      return candidate.item == m_hot;
                                  });
-                if (row == panel.rows.end())
+                if (row == panel.items.end())
                     return;
                 const float top = panel.bounds.topLeft().y;
                 const float bottom = panel.bounds.bottomRight().y;
@@ -1387,7 +1219,7 @@ namespace Bess::UI {
             size_t m_hotDepth = 0;
             MenuItemId m_pressed;
             std::vector<MenuItemId> m_openPath;
-            mutable std::vector<ContextPanel> m_panels;
+            mutable std::vector<MenuPopupLayout> m_panels;
             mutable std::vector<float> m_panelScroll;
             bool m_layoutDirty = true;
         };

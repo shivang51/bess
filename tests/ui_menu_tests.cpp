@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <iterator>
 #include <memory>
 #include <string>
@@ -58,7 +59,8 @@ namespace {
             return {640.f, 420.f};
         }
 
-        void drawBox(const BoxPaint &) override {
+        void drawBox(const BoxPaint &paint) override {
+            boxes.push_back(paint);
         }
 
         void drawText(std::string_view text, const TextPaint &paint) override {
@@ -82,6 +84,7 @@ namespace {
 
         std::vector<std::string> texts;
         std::vector<TextPaint> textPaints;
+        std::vector<BoxPaint> boxes;
     };
 
     TEST(MenuModelTests, PreservesStableNestedCommandsAndState) {
@@ -374,6 +377,23 @@ namespace {
         ASSERT_EQ(nested.popups.size(), 2);
         const glm::vec2 command =
             nested.popups.back().items.front().bounds.center + surfaceOffset;
+        static_cast<void>(
+            state.dispatchEvent(Input::MouseMoveEvent{.pos = command}));
+        painter.boxes.clear();
+        state.paint(painter);
+        const auto hoveredColor =
+            state.theme().menus.itemHovered.background.toHex();
+        EXPECT_EQ(std::count_if(painter.boxes.begin(),
+                                painter.boxes.end(),
+                                [&state, hoveredColor](const BoxPaint &box) {
+                                    return box.color.toHex() == hoveredColor &&
+                                           std::abs(
+                                               box.bounds.size.y -
+                                               state.theme().menus.itemHeight) <
+                                               0.01f;
+                                }),
+                  2)
+            << "the submenu ancestry remains visually active";
         static_cast<void>(state.dispatchEvent(Input::MouseButtonEvent{
             .button = MouseButton::left,
             .action = MouseButtonAction::press,
