@@ -15,9 +15,6 @@
 
 namespace Bess::UI {
 
-    // Application root view for the retained UI stack. Hosts the dock shell
-    // and the primary scene viewport. Additional panels can be composed into
-    // the same DockSpace as they migrate off ImGui.
     class BESS_API MainUIView final : public UIView {
       public:
         void compose(UIComposer &ui) override;

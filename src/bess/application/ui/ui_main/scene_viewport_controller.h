@@ -14,10 +14,6 @@
 
 namespace Bess::UI {
 
-    // Retained-mode scene viewport controller for SceneView.
-    // Owns camera + ViewportContext, drives Scene::draw through texture
-    // handles, and bridges InputSubSystem + UI events into the existing
-    // scene interaction pipeline without nested renderer frames.
     class BESS_API SceneViewportController final
         : public ISceneViewDelegate,
           public std::enable_shared_from_this<SceneViewportController> {

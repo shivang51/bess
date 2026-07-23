@@ -40,7 +40,7 @@ namespace Bess::Canvas {
 
             auto col = stack.column(shellColumn(), [](UIComposer &col) {
                 col.spacer();
-                // col.label("Scene Viewport", LabelOptions{.fontSize = 12.f});
+                col.label("Scene Viewport", LabelOptions{.fontSize = 12.f});
             });
 
             col.setLayout(stretchFill());

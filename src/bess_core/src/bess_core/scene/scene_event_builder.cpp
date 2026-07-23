@@ -19,8 +19,6 @@ namespace Bess::Canvas {
         const auto &frameInputState = inputSystem.getFrameInpState();
 
         auto toVpPos = [&viewportTransform](const glm::vec2 &pos) -> glm::vec2 {
-            // Convert platform pointer coords into render-target pixels so DPI
-            // and framebuffer scaling do not desync camera projection/picking.
             const glm::vec2 scale{
                 std::isfinite(viewportTransform.inputScale.x) &&
                         viewportTransform.inputScale.x > 0.f

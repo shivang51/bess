@@ -84,8 +84,6 @@ namespace Bess::UI {
         static std::shared_ptr<Core::Viewport::ViewportContext>
         getActiveViewportContext();
 
-        // Retained SceneView controllers (MainUIView). Preferred over the
-        // legacy ImGui SceneViewportPanel path when both are present.
         static void registerSceneViewportController(
             const std::shared_ptr<SceneViewportController> &controller);
         static void
@@ -123,8 +121,6 @@ namespace Bess::UI {
         getSceneViewportControllers();
 
         static bool m_isDockSpaceDirty;
-        // When true, ImGui SceneViewportPanels stay hidden so the retained
-        // SceneView owns interaction/render without double-driving the scene.
         static bool m_preferRetainedViewports;
     };
 } // namespace Bess::UI

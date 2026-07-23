@@ -15,8 +15,6 @@ namespace Bess::UI {
 
     struct SceneViewTargetOptions {
         Core::Renderer::Renderer2DExtent initialExtent{1, 1};
-        // Empty formats inherit the initialized renderer's formats so the
-        // attachments remain compatible with renderer-owned pipelines.
         std::optional<Core::Renderer::Renderer2DTargetFormat> colorFormat;
         std::optional<Core::Renderer::Renderer2DTargetFormat> pickingFormat;
     };
@@ -29,10 +27,6 @@ namespace Bess::UI {
         bool hasTargets = false;
     };
 
-    // Context for an application-owned offscreen frame. Unlike RenderView, the
-    // widget never begins or ends a renderer frame: the delegate is expected to
-    // call APIs such as Scene::draw that already own beginFrame/endFrame and
-    // accept color/picking TextureHandles.
     struct SceneViewFrameContext {
         SceneView &view;
         Core::Renderer::IRenderer2D &renderer;
@@ -47,9 +41,6 @@ namespace Bess::UI {
         bool resized = false;
     };
 
-    // Scene-oriented controller for SceneView. Camera, picking, edge pan, and
-    // SceneDriver policy belong here; the widget only owns targets, resize,
-    // composition, and event/cursor routing.
     class BESS_API ISceneViewDelegate {
       public:
         virtual ~ISceneViewDelegate();
@@ -67,8 +58,6 @@ namespace Bess::UI {
     };
 
     struct SceneViewOptions {
-        // Reuse RenderPolicy so scene viewports share the same scheduling
-        // vocabulary as generic RenderView producers.
         RenderPolicy policy = RenderPolicy::whileVisible;
         SceneViewTargetOptions target;
         float renderScale = 1.f;
@@ -76,15 +65,9 @@ namespace Bess::UI {
         glm::vec4 cornerRadius{0.f};
         bool focusable = true;
         bool hitTestVisible = true;
-        // Optional visual when no color attachment is available yet.
         std::optional<UIBoxStyle> placeholder;
     };
 
-    // Interactive viewport host for Scene::draw-style producers. Offscreen
-    // targets are created through the renderer, resized from layout bounds,
-    // and presented by paint(). prepareRender supplies texture handles; the
-    // application owns the renderer frame via those handles. Prefer RenderView
-    // when the producer only issues draw commands into an already-open frame.
     class BESS_API SceneView final : public Widget {
       public:
         explicit SceneView(std::shared_ptr<ISceneViewDelegate> delegate,
@@ -115,10 +98,6 @@ namespace Bess::UI {
         [[nodiscard]] Core::Renderer::TextureHandle colorHandle() const;
         [[nodiscard]] Core::Renderer::TextureHandle pickingHandle() const;
 
-        // Convenience wrappers for the async picking path used by the scene
-        // editor. They require a live target and a renderer that was bound
-        // during prepareRender/update. Prefer calling the renderer APIs
-        // directly from SceneViewFrameContext when available.
         bool requestPickingId(uint32_t x, uint32_t y);
         bool requestPickingIds(uint32_t x,
                                uint32_t y,
@@ -126,8 +105,6 @@ namespace Bess::UI {
                                uint32_t height);
         [[nodiscard]] bool
         tryGetPickingIds(Core::Renderer::PickingReadbackResult &result) const;
-        // Synchronous single-texel readback. Prefer the async APIs above for
-        // interactive hover/selection; this path can stall the GPU.
         [[nodiscard]] PickingId readPickingId(uint32_t x, uint32_t y) const;
 
         [[nodiscard]] const std::shared_ptr<ISceneViewDelegate> &

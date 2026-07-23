@@ -178,6 +178,18 @@ namespace Bess::UI {
         }
     }
 
+    void StackContainer::updateLayout(WidgetLayoutContext &context) {
+        for (const WidgetId child : context.state.getChildren(context.id)) {
+            auto *childLayout = context.state.getLayout(child);
+            if (childLayout == nullptr) {
+                continue;
+            }
+            childLayout->setPosMode(PosMode::absolute);
+            childLayout->setPos({0.f, 0.f});
+            childLayout->setPosUnit(Unit::pixel);
+        }
+    }
+
     void StackContainer::arrange(WidgetArrangeContext &context) {
         const auto *containerLayout = context.state.getLayout(context.id);
         const WidgetBounds content = insetBounds(

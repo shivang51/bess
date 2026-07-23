@@ -31,9 +31,6 @@ namespace Bess::UI {
             return value > 1.f ? static_cast<uint32_t>(value) : 1u;
         }
 
-        // Prefer the application Window subsystem. Never touch MainPage here:
-        // SceneView can update during Window::onPostInit before MainPage
-        // exists, and MainPage::getInstance(nullptr) is a hard init failure.
         [[nodiscard]] std::shared_ptr<Window> appWindow() noexcept {
             try {
                 return GAppContext::getInstance().getSubSystem<Window>();
@@ -48,9 +45,6 @@ namespace Bess::UI {
                 return {1.f, 1.f};
             }
 
-            // Window stores framebuffer dimensions as width/height. GLFW
-            // pointer events are in content coordinates, so recover the
-            // content→framebuffer scale used by Window::windowToUITargetPos.
             int contentW = 0;
             int contentH = 0;
             int fbW = 0;
@@ -91,8 +85,6 @@ namespace Bess::UI {
         try {
             UIMain::registerSceneViewportController(shared_from_this());
         } catch (const std::bad_weak_ptr &) {
-            BESS_WARN("[SceneViewportController] Controller must be owned by "
-                      "shared_ptr before SceneView attach");
         }
         m_geometryDirty = true;
         view.requestRender();
@@ -141,9 +133,6 @@ namespace Bess::UI {
             return;
         }
 
-        // Prefer the shared application renderer so Scene keeps the same
-        // device/pipeline path it always used. Frame still supplies handles
-        // from SceneView's attachments.
         Canvas::View2D view{
             .camera = m_camera,
             .renderer = renderer,
@@ -198,9 +187,6 @@ namespace Bess::UI {
         }
 
         if (const auto *button = event.getIf<Input::MouseButtonEvent>()) {
-            // Scene interaction is still driven by InputSubSystem inside
-            // Scene::viewportUpdate. Capture keeps the viewport active while
-            // dragging past the widget bounds (edge pan, selection box).
             if (button->action == MouseButtonAction::press &&
                 (button->button == MouseButton::left ||
                  button->button == MouseButton::middle)) {
@@ -226,8 +212,6 @@ namespace Bess::UI {
 
         if (event.getIf<Input::KeyEvent>() != nullptr ||
             event.getIf<Input::TextInputEvent>() != nullptr) {
-            // Keyboard/text is consumed while the viewport is the focused
-            // interaction surface so shortcuts do not leak to chrome.
             if (isFocused() || context.focused) {
                 reply.handled = true;
                 reply.stopPropagation = true;
@@ -378,9 +362,6 @@ namespace Bess::UI {
         const glm::vec2 scale = windowToFramebufferScale(window);
         const glm::vec2 topLeftUi = bounds.topLeft();
 
-        // InputSubSystem pointer space is window content coords. Recover the
-        // matching origin so SceneEventBuilder can convert into pixel space:
-        // localPixels = (pointer - pos) * inputScale.
         const glm::vec2 topLeftWindow{topLeftUi.x / scale.x,
                                       topLeftUi.y / scale.y};
 

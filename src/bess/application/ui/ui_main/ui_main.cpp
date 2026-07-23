@@ -911,8 +911,6 @@ namespace Bess::UI {
         registerPanel<ProjectSettingsWindow>();
         registerPanel<SceneExportWindow>();
         registerPanel<SettingsWindow>();
-        // Legacy ImGui viewports remain registered for API compatibility, but
-        // stay hidden while the retained MainUIView SceneView owns the scene.
         registerPanel<SceneViewportPanel>("Scene Viewport");
         registerPanel<SceneViewportPanel>("Scene Viewport 2");
         if (m_preferRetainedViewports) {
@@ -995,9 +993,6 @@ namespace Bess::UI {
             return;
         }
 
-        // Retained controllers own the live viewport while ImGui panels are
-        // suppressed. Keep their scene attachment synchronized with project
-        // open/new flows.
         for (const auto &weak : getSceneViewportControllers()) {
             auto controller = weak.lock();
             if (!controller) {

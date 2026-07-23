@@ -1,4 +1,5 @@
 #include "ui_core.h"
+#include "ui_composer.h"
 
 #include <gtest/gtest.h>
 
@@ -177,6 +178,29 @@ namespace {
         EXPECT_FALSE(scroll->hasHorizontalScrollbar());
         EXPECT_FALSE(scroll->hasVerticalScrollbar());
         EXPECT_EQ(scroll->viewportBounds().size, state.getViewportSize());
+    }
+
+    TEST(ScrollViewTests,
+         StackWithColumnAndLabelDoesNotCreateSpuriousHorizontalScrollbar) {
+        WidgetTree state;
+        state.setViewportSize({320.f, 240.f});
+        const WidgetId scrollId = state.emplaceWidget<ScrollView>();
+        UIComposer ui{state, scrollId};
+        ui.stack([](UIComposer &overlay) {
+            overlay.column([](UIComposer &column) {
+                column.label("Project Explorer");
+                column.label("Migrating from ImGui — placeholder");
+            });
+        });
+        state.performLayout();
+
+        const auto *scroll = state.getWidget<ScrollView>(scrollId);
+        ASSERT_NE(scroll, nullptr);
+        EXPECT_FALSE(scroll->hasHorizontalScrollbar())
+            << "contentExtent.x=" << scroll->contentExtent().x
+            << " viewport.x=" << scroll->viewportBounds().size.x;
+        EXPECT_LE(scroll->contentExtent().x,
+                  scroll->viewportBounds().size.x + 0.5f);
         EXPECT_EQ(scroll->scrollOffset(), glm::vec2(0.f));
     }
 

@@ -182,8 +182,6 @@ namespace Bess::UI {
             .resized = resized,
         };
 
-        // Clear before application callbacks so a render request raised during
-        // render() remains pending for the next frame; failures restore it.
         m_renderRequested = false;
         try {
             if (m_delegate != nullptr) {
@@ -345,7 +343,6 @@ namespace Bess::UI {
         try {
             m_target->destroy();
         } catch (...) {
-            // Best-effort cleanup on unmount / renderer teardown.
         }
         m_target.reset();
     }

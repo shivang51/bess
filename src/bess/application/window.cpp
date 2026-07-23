@@ -432,7 +432,6 @@ namespace Bess {
                     window->m_uiTarget.setTheme(*event.theme);
                 }
             });
-        // Application retained root: dock shell + SceneView viewport.
         static_cast<void>(m_uiTarget.setContent<UI::MainUIView>());
         m_uiTarget.enqueueEvent(UI::UITargetResizeEvent{
             .width = static_cast<uint32_t>(m_width),

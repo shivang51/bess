@@ -58,6 +58,7 @@ namespace Bess::UI {
         [[nodiscard]] std::string_view typeName() const noexcept override;
         [[nodiscard]] WidgetTraits traits() const noexcept override;
         void onMount(WidgetMountContext &context) override;
+        void updateLayout(WidgetLayoutContext &context) override;
         void arrange(WidgetArrangeContext &context) override;
 
         [[nodiscard]] StackAlignment horizontalAlignment() const noexcept;
