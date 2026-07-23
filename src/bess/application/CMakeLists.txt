@@ -61,6 +61,7 @@ set(Header_Files
 	
 	"ui/ui_main/main_ui_view.h"
 	"ui/ui_main/scene_viewport_controller.h"
+	"ui/ui_main/scene_viewport.h"
 	"window.h"
 	"sub_systems/renderer_context.h"
 )
@@ -123,6 +124,7 @@ set(Source_Files
 	
 	"ui/ui_main/scene_viewport_controller.cpp"
 	"ui/ui_main/main_ui_view.cpp"
+	"ui/ui_main/scene_viewport.cpp"
 	"project_file.cpp"
 	"sub_systems/renderer_context.cpp"
 )

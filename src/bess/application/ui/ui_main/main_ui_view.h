@@ -6,6 +6,7 @@
 #include "controls/menu_bar.h"
 #include "controls/scene_view.h"
 #include "models/menu_model.h"
+#include "ui/ui_main/scene_viewport.h"
 #include "ui/ui_main/scene_viewport_controller.h"
 #include "ui_view.h"
 
@@ -30,10 +31,9 @@ namespace Bess::UI {
         void composeMenus();
         void setStatus(std::string text);
 
+        std::unique_ptr<Canvas::SceneViewport> m_sceneViewport;
         std::shared_ptr<MenuModel> m_menus;
-        std::shared_ptr<SceneViewportController> m_primaryViewport;
         WidgetRef<DockSpace> m_dockSpace;
-        WidgetRef<SceneView> m_sceneView;
         WidgetRef<Label> m_status;
         DockPanelHandle m_viewportPanel;
         DockPanelHandle m_explorerPanel;

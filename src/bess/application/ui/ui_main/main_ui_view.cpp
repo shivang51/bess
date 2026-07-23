@@ -2,7 +2,6 @@
 
 #include "controls/basic_widgets.h"
 #include "layout.h"
-#include "ui_style.h"
 
 #include <functional>
 #include <utility>
@@ -75,8 +74,8 @@ namespace Bess::UI {
             };
         }
 
-        [[nodiscard]] DockPanelPlacement
-        sidePlacement(DockNodeId target, DockZone zone) {
+        [[nodiscard]] DockPanelPlacement sidePlacement(DockNodeId target,
+                                                       DockZone zone) {
             return {
                 .target = target,
                 .zone = zone,
@@ -113,165 +112,166 @@ namespace Bess::UI {
             .name = "File",
             .items =
                 {
-                    command("New", "Ctrl+N", [this] {
-                        setStatus("File > New (retained shell)");
-                    }),
-                    command("Open...", "Ctrl+O", [this] {
-                        setStatus("File > Open (retained shell)");
-                    }),
-                    command("Save", "Ctrl+S", [this] {
-                        setStatus("File > Save (retained shell)");
-                    }),
+                    command(
+                        "New",
+                        "Ctrl+N",
+                        [this] { setStatus("File > New (retained shell)"); }),
+                    command(
+                        "Open...",
+                        "Ctrl+O",
+                        [this] { setStatus("File > Open (retained shell)"); }),
+                    command(
+                        "Save",
+                        "Ctrl+S",
+                        [this] { setStatus("File > Save (retained shell)"); }),
                     MenuItem::separator(),
-                    command("Quit", "Alt+F4", [this] {
-                        setStatus("Quit is still handled by the app host");
-                    }),
+                    command("Quit",
+                            "Alt+F4",
+                            [this] {
+                                setStatus(
+                                    "Quit is still handled by the app host");
+                            }),
                 },
         }));
         static_cast<void>(m_menus->addMenu({
             .name = "View",
             .items =
                 {
-                    command("Scene Viewport", "", [this] {
-                        if (m_viewportPanel.show()) {
-                            setStatus("Scene Viewport shown");
-                        }
-                    }),
-                    command("Explorer", "", [this] {
-                        if (m_explorerPanel.show()) {
-                            setStatus("Explorer shown");
-                        }
-                    }),
-                    command("Properties", "", [this] {
-                        if (m_propertiesPanel.show()) {
-                            setStatus("Properties shown");
-                        }
-                    }),
-                    command("Console", "", [this] {
-                        if (m_consolePanel.show()) {
-                            setStatus("Console shown");
-                        }
-                    }),
+                    command("Scene Viewport",
+                            "",
+                            [this] {
+                                if (m_viewportPanel.show()) {
+                                    setStatus("Scene Viewport shown");
+                                }
+                            }),
+                    command("Explorer",
+                            "",
+                            [this] {
+                                if (m_explorerPanel.show()) {
+                                    setStatus("Explorer shown");
+                                }
+                            }),
+                    command("Properties",
+                            "",
+                            [this] {
+                                if (m_propertiesPanel.show()) {
+                                    setStatus("Properties shown");
+                                }
+                            }),
+                    command("Console",
+                            "",
+                            [this] {
+                                if (m_consolePanel.show()) {
+                                    setStatus("Console shown");
+                                }
+                            }),
                 },
         }));
         static_cast<void>(m_menus->addMenu({
             .name = "Help",
             .items =
                 {
-                    command("About", "", [this] {
-                        setStatus("BESS retained UI shell + SceneView viewport");
-                    }),
+                    command(
+                        "About",
+                        "",
+                        [this] {
+                            setStatus(
+                                "BESS retained UI shell + SceneView viewport");
+                        }),
                 },
         }));
     }
 
     void MainUIView::compose(UIComposer &ui) {
         composeMenus();
-        m_primaryViewport =
-            std::make_shared<SceneViewportController>("Scene Viewport");
+        m_sceneViewport = std::make_unique<Canvas::SceneViewport>();
 
         auto shell = ui.surface([this](UIComposer &surface) {
-            auto page =
-                surface.column(shellColumn(), [this](UIComposer &page) {
-                    auto header =
-                        page.row(menuHeaderOptions(), [this](UIComposer &row) {
-                            row.label("BESS", LabelOptions{.fontSize = 13.f});
-                            row.gap(6.f);
-                            row.menuBar(m_menus);
-                            row.spacer(
-                                SpacerOptions{.minimumSize = {0.f, 26.f}});
-                        });
-                    header.setLayout({.flexShrink = 0.f});
-
-                    m_dockSpace = page.dockSpace([this](DockComposer &dock) {
-                        m_viewportPanel = dock.panel(
-                            "Scene Viewport",
-                            viewportPlacement(),
-                            [this](UIComposer &panel) {
-                                SceneViewOptions options;
-                                options.policy = RenderPolicy::whileVisible;
-                                options.focusable = true;
-                                options.hitTestVisible = true;
-                                options.cornerRadius = {};
-                                m_sceneView = panel.sceneView(m_primaryViewport,
-                                                              options);
-                                m_sceneView.setLayout(stretchFill());
-                            });
-
-                        m_explorerPanel = dock.panel(
-                            "Explorer",
-                            sidePlacement(
-                                dock.stackFor(m_viewportPanel.item),
-                                DockZone::left),
-                            [](UIComposer &panel) {
-                                panel.label("Project Explorer");
-                                panel.label(
-                                    "Migrating from ImGui — placeholder");
-                                panel.spacer();
-                            });
-
-                        m_propertiesPanel = dock.panel(
-                            "Properties",
-                            sidePlacement(
-                                dock.stackFor(m_viewportPanel.item),
-                                DockZone::right),
-                            [](UIComposer &panel) {
-                                panel.label("Properties");
-                                panel.label(
-                                    "Migrating from ImGui — placeholder");
-                                panel.spacer();
-                            });
-
-                        m_consolePanel = dock.panel(
-                            "Console",
-                            sidePlacement(
-                                dock.stackFor(m_viewportPanel.item),
-                                DockZone::bottom),
-                            [](UIComposer &panel) {
-                                panel.label("Console");
-                                panel.label(
-                                    "Migrating from ImGui — placeholder");
-                                panel.spacer();
-                            });
+            auto page = surface.column(shellColumn(), [this](UIComposer &page) {
+                auto header =
+                    page.row(menuHeaderOptions(), [this](UIComposer &row) {
+                        row.label("BESS", LabelOptions{.fontSize = 13.f});
+                        row.gap(6.f);
+                        row.menuBar(m_menus);
+                        row.spacer(SpacerOptions{.minimumSize = {0.f, 26.f}});
                     });
-                    m_dockSpace.setLayout({
-                        .height = LayoutLength::autoSize(),
-                        .minSize = glm::vec2{0.f, 200.f},
-                        .flexGrow = 1.f,
-                        .flexShrink = 1.f,
-                        .flexBasis = 0.f,
-                    });
+                header.setLayout({.flexShrink = 0.f});
 
-                    auto status =
-                        page.row(statusBarOptions(), [this](UIComposer &row) {
-                            row.label("Ready");
-                            row.spacer();
-                            m_status = row.label(
-                                "Retained SceneView viewport active",
-                                LabelOptions{
-                                    .fontSize = 12.f,
-                                    .horizontal = HorizontalTextAlignment::end,
-                                    .autoSize = false,
-                                });
-                            m_status.setLayout({
-                                .width = LayoutLength::autoSize(),
-                                .height = 18.f,
-                                .minSize = glm::vec2{120.f, 18.f},
-                                .flexGrow = 1.f,
-                                .flexShrink = 1.f,
-                                .flexBasis = 0.f,
-                            });
+                m_dockSpace = page.dockSpace([this](DockComposer &dock) {
+                    m_viewportPanel =
+                        dock.panel("Scene Viewport",
+                                   viewportPlacement(),
+                                   [this](UIComposer &panel) {
+                                       m_sceneViewport->compose(panel);
+                                   });
+
+                    m_explorerPanel = dock.panel(
+                        "Explorer",
+                        sidePlacement(dock.stackFor(m_viewportPanel.item),
+                                      DockZone::left),
+                        [](UIComposer &panel) {
+                            panel.label("Project Explorer");
+                            panel.label("Migrating from ImGui — placeholder");
+                            panel.spacer();
                         });
-                    status.setLayout({.flexShrink = 0.f});
+
+                    m_propertiesPanel = dock.panel(
+                        "Properties",
+                        sidePlacement(dock.stackFor(m_viewportPanel.item),
+                                      DockZone::right),
+                        [](UIComposer &panel) {
+                            panel.label("Properties");
+                            panel.label("Migrating from ImGui — placeholder");
+                            panel.spacer();
+                        });
+
+                    m_consolePanel = dock.panel(
+                        "Console",
+                        sidePlacement(dock.stackFor(m_viewportPanel.item),
+                                      DockZone::bottom),
+                        [](UIComposer &panel) {
+                            panel.label("Console");
+                            panel.label("Migrating from ImGui — placeholder");
+                            panel.spacer();
+                        });
                 });
+                m_dockSpace.setLayout({
+                    .height = LayoutLength::autoSize(),
+                    .minSize = glm::vec2{0.f, 200.f},
+                    .flexGrow = 1.f,
+                    .flexShrink = 1.f,
+                    .flexBasis = 0.f,
+                });
+
+                auto status =
+                    page.row(statusBarOptions(), [this](UIComposer &row) {
+                        row.label("Ready");
+                        row.spacer();
+                        m_status = row.label(
+                            "Retained SceneView viewport active",
+                            LabelOptions{
+                                .fontSize = 12.f,
+                                .horizontal = HorizontalTextAlignment::end,
+                                .autoSize = false,
+                            });
+                        m_status.setLayout({
+                            .width = LayoutLength::autoSize(),
+                            .height = 18.f,
+                            .minSize = glm::vec2{120.f, 18.f},
+                            .flexGrow = 1.f,
+                            .flexShrink = 1.f,
+                            .flexBasis = 0.f,
+                        });
+                    });
+                status.setLayout({.flexShrink = 0.f});
+            });
             static_cast<void>(surface.layout(page, stretchFill()));
         });
         static_cast<void>(shell.setLayout(stretchFill()));
     }
 
     void MainUIView::onUnmounting(UIViewContext &context) noexcept {
-        m_primaryViewport.reset();
-        m_sceneView = {};
+        m_sceneViewport.reset();
         m_dockSpace = {};
         m_status = {};
         m_viewportPanel = {};
@@ -280,11 +280,6 @@ namespace Bess::UI {
         m_consolePanel = {};
         m_menus.reset();
         UIView::onUnmounting(context);
-    }
-
-    std::shared_ptr<SceneViewportController>
-    MainUIView::primaryViewport() const noexcept {
-        return m_primaryViewport;
     }
 
     WidgetRef<DockSpace> MainUIView::dockSpace() const noexcept {
