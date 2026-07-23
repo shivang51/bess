@@ -2,8 +2,9 @@
 
 #include "controls/basic_widgets.h"
 #include "layout.h"
+#include "ui_composer.h"
+#include "widget_tree.h"
 
-#include <functional>
 #include <utility>
 
 namespace Bess::UI {
@@ -59,6 +60,7 @@ namespace Bess::UI {
             return {
                 .target = target,
                 .zone = zone,
+                .closable = false,
                 .content =
                     {
                         .direction = LayoutDirection::vertical,
@@ -94,95 +96,152 @@ namespace Bess::UI {
             };
         }
 
-        [[nodiscard]] MenuItem command(std::string name,
-                                       std::string shortcut,
-                                       std::function<void()> activated) {
+        [[nodiscard]] ActionDefinition
+        shellAction(ActionId id,
+                    std::string label,
+                    std::vector<KeyChord> shortcuts,
+                    ActionHandler invoked) {
             return {
-                .name = std::move(name),
-                .shortcut = std::move(shortcut),
-                .activated = std::move(activated),
+                .id = std::move(id),
+                .state = {.label = std::move(label)},
+                .shortcuts = std::move(shortcuts),
+                .invoked = std::move(invoked),
             };
         }
     } // namespace
 
-    void MainUIView::composeMenus() {
+    void MainUIView::registerShellActions(ActionRegistry &actions) {
+        unregisterShellActions();
+
+        const auto add = [this, &actions](ActionDefinition definition) {
+            const ActionId id = definition.id;
+            if (actions.registerAction(std::move(definition))) {
+                m_shellActions.push_back(id);
+            }
+        };
+
+        add(shellAction(
+            ActionId{"shell.file.new"},
+            "New",
+            {{.key = KeyCode::n, .modifiers = KeyChordModifier::control}},
+            [this](const ActionInvocation &) {
+                setStatus("File > New (retained shell)");
+            }));
+        add(shellAction(
+            ActionId{"shell.file.open"},
+            "Open...",
+            {{.key = KeyCode::o, .modifiers = KeyChordModifier::control}},
+            [this](const ActionInvocation &) {
+                setStatus("File > Open (retained shell)");
+            }));
+        add(shellAction(
+            ActionId{"shell.file.save"},
+            "Save",
+            {{.key = KeyCode::s, .modifiers = KeyChordModifier::control}},
+            [this](const ActionInvocation &) {
+                setStatus("File > Save (retained shell)");
+            }));
+        add(shellAction(
+            ActionId{"shell.file.quit"},
+            "Quit",
+            {{.key = KeyCode::f4, .modifiers = KeyChordModifier::alt}},
+            [this](const ActionInvocation &) {
+                setStatus("Quit is still handled by the app host");
+            }));
+        add(shellAction(ActionId{"shell.view.viewport"},
+                        "Scene Viewport",
+                        {},
+                        [this](const ActionInvocation &) {
+                            if (m_viewportPanel.show()) {
+                                setStatus("Scene Viewport shown");
+                            }
+                        }));
+        add(shellAction(ActionId{"shell.view.explorer"},
+                        "Explorer",
+                        {},
+                        [this](const ActionInvocation &) {
+                            if (m_explorerPanel.show()) {
+                                setStatus("Explorer shown");
+                            }
+                        }));
+        add(shellAction(ActionId{"shell.view.properties"},
+                        "Properties",
+                        {},
+                        [this](const ActionInvocation &) {
+                            if (m_propertiesPanel.show()) {
+                                setStatus("Properties shown");
+                            }
+                        }));
+        add(shellAction(ActionId{"shell.view.console"},
+                        "Console",
+                        {},
+                        [this](const ActionInvocation &) {
+                            if (m_consolePanel.show()) {
+                                setStatus("Console shown");
+                            }
+                        }));
+        add(shellAction(
+            ActionId{"shell.help.about"},
+            "About",
+            {},
+            [this](const ActionInvocation &) {
+                setStatus("BESS retained UI shell + SceneView viewport");
+            }));
+    }
+
+    void MainUIView::unregisterShellActions() noexcept {
+        if (m_actions != nullptr) {
+            for (const auto &id : m_shellActions) {
+                static_cast<void>(m_actions->unregisterAction(id));
+            }
+        }
+        m_shellActions.clear();
+    }
+
+    void MainUIView::composeMenus(const std::shared_ptr<ActionRegistry> &actions) {
+        m_actions = actions;
+        registerShellActions(*actions);
+
         m_menus = std::make_shared<MenuModel>();
         static_cast<void>(m_menus->addMenu({
             .name = "File",
             .items =
                 {
-                    command(
-                        "New",
-                        "Ctrl+N",
-                        [this] { setStatus("File > New (retained shell)"); }),
-                    command(
-                        "Open...",
-                        "Ctrl+O",
-                        [this] { setStatus("File > Open (retained shell)"); }),
-                    command(
-                        "Save",
-                        "Ctrl+S",
-                        [this] { setStatus("File > Save (retained shell)"); }),
+                    MenuItem::fromAction(ActionId{"shell.file.new"}),
+                    MenuItem::fromAction(ActionId{"shell.file.open"}),
+                    MenuItem::fromAction(ActionId{"shell.file.save"}),
                     MenuItem::separator(),
-                    command("Quit",
-                            "Alt+F4",
-                            [this] {
-                                setStatus(
-                                    "Quit is still handled by the app host");
-                            }),
+                    MenuItem::fromAction(ActionId{"shell.file.quit"}),
                 },
         }));
         static_cast<void>(m_menus->addMenu({
             .name = "View",
             .items =
                 {
-                    command("Scene Viewport",
-                            "",
-                            [this] {
-                                if (m_viewportPanel.show()) {
-                                    setStatus("Scene Viewport shown");
-                                }
-                            }),
-                    command("Explorer",
-                            "",
-                            [this] {
-                                if (m_explorerPanel.show()) {
-                                    setStatus("Explorer shown");
-                                }
-                            }),
-                    command("Properties",
-                            "",
-                            [this] {
-                                if (m_propertiesPanel.show()) {
-                                    setStatus("Properties shown");
-                                }
-                            }),
-                    command("Console",
-                            "",
-                            [this] {
-                                if (m_consolePanel.show()) {
-                                    setStatus("Console shown");
-                                }
-                            }),
+                    MenuItem::fromAction(ActionId{"shell.view.viewport"}),
+                    MenuItem::fromAction(ActionId{"shell.view.explorer"}),
+                    MenuItem::fromAction(ActionId{"shell.view.properties"}),
+                    MenuItem::fromAction(ActionId{"shell.view.console"}),
                 },
         }));
         static_cast<void>(m_menus->addMenu({
             .name = "Help",
             .items =
                 {
-                    command(
-                        "About",
-                        "",
-                        [this] {
-                            setStatus(
-                                "BESS retained UI shell + SceneView viewport");
-                        }),
+                    MenuItem::fromAction(ActionId{"shell.help.about"}),
                 },
         }));
+        m_menus->setActionRegistry(actions);
     }
 
     void MainUIView::compose(UIComposer &ui) {
-        composeMenus();
+        auto registry = ui.tree().actionRegistry();
+        if (registry == nullptr) {
+            registry = std::make_shared<ActionRegistry>();
+            ui.tree().setActionRegistry(registry);
+        }
+        composeMenus(registry);
+
         m_sceneViewport = std::make_unique<Canvas::SceneViewport>();
 
         auto shell = ui.surface([this](UIComposer &surface) {
@@ -270,6 +329,11 @@ namespace Bess::UI {
     }
 
     void MainUIView::onUnmounting(UIViewContext &context) noexcept {
+        unregisterShellActions();
+        if (m_menus != nullptr) {
+            m_menus->setActionRegistry(nullptr);
+        }
+        m_actions.reset();
         m_sceneViewport.reset();
         m_dockSpace = {};
         m_status = {};
@@ -279,6 +343,12 @@ namespace Bess::UI {
         m_consolePanel = {};
         m_menus.reset();
         UIView::onUnmounting(context);
+    }
+
+    std::shared_ptr<SceneViewportController>
+    MainUIView::primaryViewport() const noexcept {
+        return m_sceneViewport != nullptr ? m_sceneViewport->primaryViewport()
+                                          : nullptr;
     }
 
     WidgetRef<DockSpace> MainUIView::dockSpace() const noexcept {

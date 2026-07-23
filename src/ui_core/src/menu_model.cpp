@@ -48,9 +48,11 @@ namespace Bess::UI {
                     item.icon.clear();
                     item.name.clear();
                     item.shortcut.clear();
+                    item.action = {};
                     item.activated = {};
                     item.enabled = false;
                     item.checked = false;
+                    item.visible = true;
                     item.children.clear();
                 } else if (!prepareItems(item.children, ids)) {
                     return false;
@@ -75,14 +77,45 @@ namespace Bess::UI {
             }
             return false;
         }
+
+        void collectActionItems(
+            const std::vector<MenuItem> &items,
+            std::unordered_map<ActionId, std::vector<MenuItemId>> &index) {
+            for (const auto &item : items) {
+                if (item.kind == MenuItemKind::command && item.action) {
+                    index[item.action].push_back(item.id);
+                }
+                collectActionItems(item.children, index);
+            }
+        }
+
+        [[nodiscard]] std::string
+        primaryShortcutLabel(const ActionDefinition &definition) {
+            if (definition.shortcuts.empty()) {
+                return {};
+            }
+            return formatKeyChord(definition.shortcuts.front());
+        }
     } // namespace
+
+    MenuModel::~MenuModel() {
+        m_actionConnection.disconnect();
+    }
 
     MenuItem MenuItem::separator() {
         return {.kind = MenuItemKind::separator};
     }
 
+    MenuItem MenuItem::fromAction(ActionId action) {
+        return {.action = std::move(action)};
+    }
+
     bool MenuItem::isSubmenu() const noexcept {
         return kind == MenuItemKind::command && !children.empty();
+    }
+
+    bool MenuItem::isActionBound() const noexcept {
+        return kind == MenuItemKind::command && static_cast<bool>(action);
     }
 
     MenuId MenuModel::addMenu(MenuDefinition menu) {
@@ -110,6 +143,8 @@ namespace Bess::UI {
         }
         const MenuId id = menu.id;
         m_menus.push_back(std::move(menu));
+        reindexActions();
+        syncAllActionItems();
         m_changed.emit({.kind = MenuModelChangeKind::structure, .menu = id});
         return id;
     }
@@ -123,6 +158,7 @@ namespace Bess::UI {
             return false;
         }
         m_menus.erase(it);
+        reindexActions();
         m_changed.emit({.kind = MenuModelChangeKind::structure, .menu = menu});
         return true;
     }
@@ -160,6 +196,16 @@ namespace Bess::UI {
         } else {
             menu->items.push_back(std::move(prepared.front()));
         }
+        reindexActions();
+        if (auto *added = findItemMutable(id); added != nullptr &&
+                                               added->isActionBound() &&
+                                               m_actions != nullptr) {
+            const auto *definition = m_actions->find(added->action);
+            static_cast<void>(syncItemFromAction(
+                *added,
+                definition,
+                definition != nullptr && m_actions->isAvailable(added->action)));
+        }
         m_changed.emit({.kind = MenuModelChangeKind::structure,
                         .menu = menuId,
                         .item = id});
@@ -169,6 +215,7 @@ namespace Bess::UI {
     bool MenuModel::removeItem(MenuItemId item) {
         for (auto &menu : m_menus) {
             if (eraseItem(menu.items, item)) {
+                reindexActions();
                 m_changed.emit({.kind = MenuModelChangeKind::structure,
                                 .menu = menu.id,
                                 .item = item});
@@ -197,6 +244,9 @@ namespace Bess::UI {
         if (entry == nullptr || entry->kind == MenuItemKind::separator) {
             return false;
         }
+        if (entry->isActionBound()) {
+            return false;
+        }
         if (entry->enabled == enabled) {
             return true;
         }
@@ -209,6 +259,9 @@ namespace Bess::UI {
     bool MenuModel::setItemChecked(MenuItemId item, bool checked) {
         auto *entry = findItemMutable(item);
         if (entry == nullptr || entry->kind == MenuItemKind::separator) {
+            return false;
+        }
+        if (entry->isActionBound()) {
             return false;
         }
         if (entry->checked == checked) {
@@ -225,6 +278,9 @@ namespace Bess::UI {
         if (entry == nullptr || entry->kind == MenuItemKind::separator) {
             return false;
         }
+        if (entry->isActionBound()) {
+            return false;
+        }
         if (entry->name == name) {
             return true;
         }
@@ -234,16 +290,94 @@ namespace Bess::UI {
         return true;
     }
 
+    bool MenuModel::setItemVisible(MenuItemId item, bool visible) {
+        auto *entry = findItemMutable(item);
+        if (entry == nullptr || entry->kind == MenuItemKind::separator) {
+            return false;
+        }
+        if (entry->isActionBound()) {
+            return false;
+        }
+        if (entry->visible == visible) {
+            return true;
+        }
+        entry->visible = visible;
+        m_changed.emit(
+            {.kind = MenuModelChangeKind::itemUpdated, .item = item});
+        return true;
+    }
+
+    bool MenuModel::setItemAction(MenuItemId item, ActionId action) {
+        auto *entry = findItemMutable(item);
+        if (entry == nullptr || entry->kind == MenuItemKind::separator ||
+            entry->isSubmenu()) {
+            return false;
+        }
+        if (entry->action == action) {
+            return true;
+        }
+        entry->action = std::move(action);
+        if (entry->action) {
+            entry->activated = {};
+        }
+        reindexActions();
+        if (entry->action && m_actions != nullptr) {
+            const auto *definition = m_actions->find(entry->action);
+            static_cast<void>(syncItemFromAction(
+                *entry,
+                definition,
+                definition != nullptr &&
+                    m_actions->isAvailable(entry->action)));
+        }
+        m_changed.emit(
+            {.kind = MenuModelChangeKind::itemUpdated, .item = item});
+        return true;
+    }
+
     bool MenuModel::activate(MenuItemId item) const {
         const auto *entry = findItem(item);
-        if (entry == nullptr || !entry->enabled || entry->isSubmenu() ||
-            entry->kind == MenuItemKind::separator || !entry->activated) {
+        if (entry == nullptr || !entry->enabled || !entry->visible ||
+            entry->isSubmenu() || entry->kind == MenuItemKind::separator) {
+            return false;
+        }
+
+        if (entry->isActionBound()) {
+            if (m_actions == nullptr ||
+                !m_actions->isAvailable(entry->action)) {
+                return false;
+            }
+            const ActionId action = entry->action;
+            return m_actions
+                ->invoke(action, {.source = ActionInvocationSource::menu})
+                .wasInvoked();
+        }
+
+        if (!entry->activated) {
             return false;
         }
         // The command may mutate this model and erase its own MenuItem.
         auto activated = entry->activated;
         activated();
         return true;
+    }
+
+    void MenuModel::setActionRegistry(std::shared_ptr<ActionRegistry> registry) {
+        if (m_actions == registry) {
+            return;
+        }
+        m_actionConnection.disconnect();
+        m_actions = std::move(registry);
+        reindexActions();
+        if (m_actions != nullptr) {
+            m_actionConnection = m_actions->changed().connect(
+                [this](const ActionChange &change) { onActionChanged(change); });
+            syncAllActionItems();
+        }
+    }
+
+    const std::shared_ptr<ActionRegistry> &
+    MenuModel::actionRegistry() const noexcept {
+        return m_actions;
     }
 
     const std::vector<MenuDefinition> &MenuModel::menus() const noexcept {
@@ -292,8 +426,13 @@ namespace Bess::UI {
                     }
                     if (item.kind == MenuItemKind::separator &&
                         (!item.name.empty() || !item.icon.empty() ||
-                         !item.shortcut.empty() || !item.children.empty() ||
-                         item.enabled || item.checked)) {
+                         !item.shortcut.empty() || item.action ||
+                         !item.children.empty() || item.enabled ||
+                         item.checked)) {
+                        return false;
+                    }
+                    if (item.kind == MenuItemKind::command && item.action &&
+                        !item.children.empty()) {
                         return false;
                     }
                     if (!validateItems(item.children)) {
@@ -315,5 +454,119 @@ namespace Bess::UI {
 
     MenuModel::ChangedSignal &MenuModel::changed() noexcept {
         return m_changed;
+    }
+
+    void MenuModel::reindexActions() {
+        m_actionItems.clear();
+        for (const auto &menu : m_menus) {
+            collectActionItems(menu.items, m_actionItems);
+        }
+    }
+
+    void MenuModel::syncAllActionItems() {
+        if (m_actions == nullptr) {
+            return;
+        }
+        for (const auto &[action, _] : m_actionItems) {
+            (void)_;
+            syncAction(action);
+        }
+    }
+
+    void MenuModel::syncAction(const ActionId &action) {
+        if (!action) {
+            return;
+        }
+        const auto it = m_actionItems.find(action);
+        if (it == m_actionItems.end()) {
+            return;
+        }
+        const ActionDefinition *definition =
+            m_actions != nullptr ? m_actions->find(action) : nullptr;
+        const bool available =
+            definition != nullptr && m_actions != nullptr &&
+            m_actions->isAvailable(action);
+
+        for (const MenuItemId itemId : it->second) {
+            auto *item = findItemMutable(itemId);
+            if (item == nullptr || !item->isActionBound()) {
+                continue;
+            }
+            if (syncItemFromAction(*item, definition, available)) {
+                m_changed.emit(
+                    {.kind = MenuModelChangeKind::itemUpdated, .item = itemId});
+            }
+        }
+    }
+
+    bool MenuModel::syncItemFromAction(MenuItem &item,
+                                       const ActionDefinition *definition,
+                                       bool available) const {
+        if (definition == nullptr) {
+            bool changed = false;
+            if (item.enabled) {
+                item.enabled = false;
+                changed = true;
+            }
+            if (item.checked) {
+                item.checked = false;
+                changed = true;
+            }
+            if (item.visible) {
+                item.visible = false;
+                changed = true;
+            }
+            return changed;
+        }
+
+        const auto &state = definition->state;
+        const std::string shortcut = primaryShortcutLabel(*definition);
+        bool changed = false;
+        if (item.name != state.label) {
+            item.name = state.label;
+            changed = true;
+        }
+        if (item.icon != state.icon) {
+            item.icon = state.icon;
+            changed = true;
+        }
+        if (item.shortcut != shortcut) {
+            item.shortcut = shortcut;
+            changed = true;
+        }
+        if (item.enabled != available) {
+            item.enabled = available;
+            changed = true;
+        }
+        const bool checked = state.checkable && state.checked;
+        if (item.checked != checked) {
+            item.checked = checked;
+            changed = true;
+        }
+        if (item.visible != state.visible) {
+            item.visible = state.visible;
+            changed = true;
+        }
+        return changed;
+    }
+
+    void MenuModel::onActionChanged(const ActionChange &change) {
+        if (m_actions == nullptr) {
+            return;
+        }
+
+        if (change.action) {
+            syncAction(change.action);
+            return;
+        }
+
+        if (change.kind == ActionChangeKind::scopeChanged ||
+            change.kind == ActionChangeKind::unregistered ||
+            change.kind == ActionChangeKind::registered ||
+            change.kind == ActionChangeKind::stateChanged ||
+            change.kind == ActionChangeKind::shortcutsChanged ||
+            change.kind == ActionChangeKind::handlerChanged) {
+            syncAllActionItems();
+        }
     }
 } // namespace Bess::UI

@@ -1128,7 +1128,7 @@ namespace Bess::UI {
                 const auto it = std::find_if(
                     items->begin(), items->end(), [](const MenuItem &item) {
                         return item.kind == MenuItemKind::command &&
-                               item.enabled;
+                               item.visible && item.enabled;
                     });
                 m_hot = it != items->end() ? it->id : MenuItemId{};
                 m_hotDepth = depth;
@@ -1155,7 +1155,7 @@ namespace Bess::UI {
                                 : (index + items->size() - 1) % items->size();
                     const auto &candidate = (*items)[index];
                     if (candidate.kind == MenuItemKind::command &&
-                        candidate.enabled) {
+                        candidate.visible && candidate.enabled) {
                         m_hot = candidate.id;
                         updateOpenPathForHot();
                         return;
@@ -1214,6 +1214,7 @@ namespace Bess::UI {
             void activate(MenuItemId item) {
                 const auto *definition = m_model->findItem(item);
                 if (definition == nullptr || !definition->enabled ||
+                    !definition->visible ||
                     definition->kind != MenuItemKind::command ||
                     definition->isSubmenu()) {
                     return;

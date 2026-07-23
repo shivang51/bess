@@ -5,6 +5,7 @@
 #include "controls/dock_space.h"
 #include "controls/menu_bar.h"
 #include "controls/scene_view.h"
+#include "models/action_registry.h"
 #include "models/menu_model.h"
 #include "ui/ui_main/scene_viewport.h"
 #include "ui/ui_main/scene_viewport_controller.h"
@@ -12,6 +13,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace Bess::UI {
 
@@ -25,11 +27,15 @@ namespace Bess::UI {
         [[nodiscard]] WidgetRef<DockSpace> dockSpace() const noexcept;
 
       private:
-        void composeMenus();
+        void composeMenus(const std::shared_ptr<ActionRegistry> &actions);
+        void registerShellActions(ActionRegistry &actions);
+        void unregisterShellActions() noexcept;
         void setStatus(std::string text);
 
         std::unique_ptr<Canvas::SceneViewport> m_sceneViewport;
         std::shared_ptr<MenuModel> m_menus;
+        std::shared_ptr<ActionRegistry> m_actions;
+        std::vector<ActionId> m_shellActions;
         WidgetRef<DockSpace> m_dockSpace;
         WidgetRef<Label> m_status;
         DockPanelHandle m_viewportPanel;

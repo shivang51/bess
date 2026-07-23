@@ -22,6 +22,11 @@ namespace Bess::Canvas {
         SceneViewport(const SceneViewport &) = delete;
         SceneViewport &operator=(const SceneViewport &) = delete;
 
+        [[nodiscard]] std::shared_ptr<Bess::UI::SceneViewportController>
+        primaryViewport() const noexcept {
+            return m_primaryViewport;
+        }
+
       private:
         std::shared_ptr<Bess::UI::SceneViewportController> m_primaryViewport;
         Bess::UI::WidgetRef<Bess::UI::SceneView> m_sceneView;

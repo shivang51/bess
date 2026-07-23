@@ -116,6 +116,9 @@ namespace Bess::UI {
             float nameWidth = 0.f;
             result.contentHeight = std::max(0.f, style.popupPadding) * 2.f;
             for (const auto &item : items) {
+                if (!item.visible) {
+                    continue;
+                }
                 if (item.kind == MenuItemKind::separator) {
                     result.contentHeight +=
                         std::max(1.f, style.separatorHeight);
@@ -193,6 +196,9 @@ namespace Bess::UI {
             std::max(0.f, bounds.size.x - popupPadding * 2.f);
         float top = bounds.topLeft().y + popupPadding - scrollOffset;
         for (const auto &item : items) {
+            if (!item.visible) {
+                continue;
+            }
             const float rowHeight = item.kind == MenuItemKind::separator
                                         ? std::max(1.f, style.separatorHeight)
                                         : std::max(1.f, style.itemHeight);
@@ -690,7 +696,7 @@ namespace Bess::UI {
                 m_pressedItem = {};
                 const bool activate = pressed && item != nullptr &&
                                       item->id == pressed && item->enabled &&
-                                      !item->isSubmenu() &&
+                                      item->visible && !item->isSubmenu() &&
                                       item->kind == MenuItemKind::command;
                 if (activate) {
                     close();
@@ -968,7 +974,8 @@ namespace Bess::UI {
                  static_cast<long long>(items->size())) %
                 static_cast<long long>(items->size()));
             const auto &item = (*items)[index];
-            if (item.enabled && item.kind != MenuItemKind::separator) {
+            if (item.visible && item.enabled &&
+                item.kind != MenuItemKind::separator) {
                 m_hotItem = item.id;
                 m_hotDepth = depth;
                 closeFromDepth(depth);
@@ -980,7 +987,7 @@ namespace Bess::UI {
 
     bool MenuBar::activateSelection() {
         const auto *item = selectedItem();
-        if (item == nullptr || !item->enabled ||
+        if (item == nullptr || !item->enabled || !item->visible ||
             item->kind == MenuItemKind::separator) {
             return false;
         }

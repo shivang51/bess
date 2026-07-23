@@ -565,4 +565,102 @@ namespace {
                             layout.barBounds.bottomRight().y,
                         menuStyle.barVerticalMargin);
     }
+
+    TEST(MenuActionBindingTests, SyncsPresentationAndInvokesRegistryActions) {
+        auto registry = std::make_shared<ActionRegistry>();
+        int invocations = 0;
+        ASSERT_TRUE(registry->registerAction({
+            .id = ActionId{"shell.file.save"},
+            .state = {.label = "Save", .icon = "S"},
+            .shortcuts = {{.key = KeyCode::s,
+                           .modifiers = KeyChordModifier::control}},
+            .invoked = [&invocations](const ActionInvocation &invocation) {
+                ++invocations;
+                EXPECT_EQ(invocation.source, ActionInvocationSource::menu);
+                EXPECT_EQ(invocation.action, ActionId{"shell.file.save"});
+            },
+        }));
+
+        MenuModel model;
+        model.setActionRegistry(registry);
+        const MenuItemId save = MenuItemId::generate();
+        const MenuItemId unbound = MenuItemId::generate();
+        int legacyActivations = 0;
+        ASSERT_TRUE(model.addMenu({
+            .name = "File",
+            .items =
+                {
+                    {.id = save, .action = ActionId{"shell.file.save"}},
+                    MenuItem::separator(),
+                    {.id = unbound,
+                     .name = "Legacy",
+                     .activated = [&legacyActivations] { ++legacyActivations; }},
+                },
+        }));
+
+        const auto *bound = model.findItem(save);
+        ASSERT_NE(bound, nullptr);
+        EXPECT_EQ(bound->name, "Save");
+        EXPECT_EQ(bound->icon, "S");
+        EXPECT_FALSE(bound->shortcut.empty());
+        EXPECT_TRUE(bound->enabled);
+        EXPECT_TRUE(bound->visible);
+        EXPECT_TRUE(model.activate(save));
+        EXPECT_EQ(invocations, 1);
+
+        ASSERT_TRUE(registry->updateState(
+            ActionId{"shell.file.save"}, [](ActionState &state) {
+                state.enabled = false;
+                state.label = "Save Project";
+            }));
+        bound = model.findItem(save);
+        ASSERT_NE(bound, nullptr);
+        EXPECT_EQ(bound->name, "Save Project");
+        EXPECT_FALSE(bound->enabled);
+        EXPECT_FALSE(model.activate(save));
+        EXPECT_EQ(invocations, 1);
+
+        EXPECT_FALSE(model.setItemEnabled(save, true));
+        EXPECT_TRUE(model.activate(unbound));
+        EXPECT_EQ(legacyActivations, 1);
+        EXPECT_TRUE(model.validate());
+    }
+
+    TEST(MenuActionBindingTests, HidesUnavailableActionsAndSupportsManyToOne) {
+        auto registry = std::make_shared<ActionRegistry>();
+        ASSERT_TRUE(registry->registerAction({
+            .id = ActionId{"shell.view.console"},
+            .state = {.label = "Console", .visible = true},
+        }));
+
+        MenuModel model;
+        model.setActionRegistry(registry);
+        const MenuItemId viewConsole = MenuItemId::generate();
+        const MenuItemId windowConsole = MenuItemId::generate();
+        ASSERT_TRUE(model.addMenu({
+            .name = "View",
+            .items = {{.id = viewConsole,
+                       .action = ActionId{"shell.view.console"}}},
+        }));
+        ASSERT_TRUE(model.addMenu({
+            .name = "Window",
+            .items = {{.id = windowConsole,
+                       .action = ActionId{"shell.view.console"}}},
+        }));
+
+        ASSERT_TRUE(registry->updateState(
+            ActionId{"shell.view.console"},
+            [](ActionState &state) { state.visible = false; }));
+
+        ASSERT_NE(model.findItem(viewConsole), nullptr);
+        ASSERT_NE(model.findItem(windowConsole), nullptr);
+        EXPECT_FALSE(model.findItem(viewConsole)->visible);
+        EXPECT_FALSE(model.findItem(windowConsole)->visible);
+
+        const auto preferred = MenuPopupLayoutSolver::preferredSize(
+            model.findMenu(model.menus().front().id)->items,
+            UITheme::dark().menus);
+        EXPECT_FLOAT_EQ(preferred.y,
+                        UITheme::dark().menus.popupPadding * 2.f);
+    }
 } // namespace
