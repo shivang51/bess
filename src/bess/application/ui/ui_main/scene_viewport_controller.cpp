@@ -106,6 +106,21 @@ namespace Bess::UI {
         m_bounds = context.bounds;
         applyGeometry(context.bounds, context.view.extent());
         processInteraction(context.deltaTime, !context.bounds.empty());
+        if (m_onPostUpdate) {
+            m_onPostUpdate(PostUpdateContext{
+                .controller = *this,
+                .update = context,
+            });
+        }
+    }
+
+    void SceneViewportController::setOnPostUpdate(PostUpdateCallback callback) {
+        m_onPostUpdate = std::move(callback);
+    }
+
+    const SceneViewportController::PostUpdateCallback &
+    SceneViewportController::onPostUpdate() const noexcept {
+        return m_onPostUpdate;
     }
 
     void SceneViewportController::render(SceneViewFrameContext &frame) {

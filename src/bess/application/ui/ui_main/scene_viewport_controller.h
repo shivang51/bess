@@ -9,6 +9,7 @@
 #include "bess_core/scene/scene.h"
 #include "bess_core/viewport.h"
 
+#include <functional>
 #include <memory>
 #include <string>
 
@@ -18,6 +19,14 @@ namespace Bess::UI {
         : public ISceneViewDelegate,
           public std::enable_shared_from_this<SceneViewportController> {
       public:
+        struct PostUpdateContext {
+            SceneViewportController &controller;
+            const SceneViewUpdateContext &update;
+        };
+
+        using PostUpdateCallback =
+            std::function<void(const PostUpdateContext &)>;
+
         explicit SceneViewportController(std::string name = "Scene Viewport");
         ~SceneViewportController() override;
 
@@ -35,6 +44,9 @@ namespace Bess::UI {
         [[nodiscard]] CursorIcon
         cursor(const SceneView &view,
                const WidgetCursorContext &context) const noexcept override;
+
+        void setOnPostUpdate(PostUpdateCallback callback);
+        [[nodiscard]] const PostUpdateCallback &onPostUpdate() const noexcept;
 
         [[nodiscard]] const std::string &name() const noexcept;
         [[nodiscard]] bool isHovered() const noexcept;
@@ -114,6 +126,7 @@ namespace Bess::UI {
         std::shared_ptr<Camera> m_camera;
         std::shared_ptr<Canvas::Scene> m_attachedScene;
         PendingPickingReadback m_pendingSelectionReadback;
+        PostUpdateCallback m_onPostUpdate;
         WidgetBounds m_bounds{};
         bool m_hovered = false;
         bool m_pointerInside = false;
