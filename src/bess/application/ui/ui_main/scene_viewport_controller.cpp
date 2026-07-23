@@ -104,7 +104,8 @@ namespace Bess::UI {
 
     void SceneViewportController::update(SceneViewUpdateContext &context) {
         m_bounds = context.bounds;
-        applyGeometry(context.bounds, context.view.extent());
+        applyGeometry(
+            context.bounds, context.extent, context.treeViewportSize);
         processInteraction(context.deltaTime, !context.bounds.empty());
         if (m_onPostUpdate) {
             m_onPostUpdate(PostUpdateContext{
@@ -124,7 +125,7 @@ namespace Bess::UI {
     }
 
     void SceneViewportController::render(SceneViewFrameContext &frame) {
-        applyGeometry(frame.bounds, frame.extent);
+        applyGeometry(frame.bounds, frame.extent, frame.treeViewportSize);
 
         auto sceneDriver = GAppContext::getInstance()
                                .getSubSystem<Bess::ProjectContext>()
@@ -363,7 +364,9 @@ namespace Bess::UI {
     }
 
     void SceneViewportController::applyGeometry(
-        const WidgetBounds &bounds, Core::Renderer::Renderer2DExtent extent) {
+        const WidgetBounds &bounds,
+        Core::Renderer::Renderer2DExtent extent,
+        glm::vec2 treeViewportSize) {
         if (!m_viewportCtx) {
             return;
         }
@@ -375,10 +378,14 @@ namespace Bess::UI {
 
         const auto window = appWindow();
         const glm::vec2 scale = windowToFramebufferScale(window);
-        const glm::vec2 topLeftUi = bounds.topLeft();
-
-        const glm::vec2 topLeftWindow{topLeftUi.x / scale.x,
-                                      topLeftUi.y / scale.y};
+        const glm::vec2 safeTreeViewport{
+            std::max(treeViewportSize.x, 1.f),
+            std::max(treeViewportSize.y, 1.f),
+        };
+        const glm::vec2 topLeftUiTarget =
+            bounds.topLeft() + safeTreeViewport * 0.5f;
+        const glm::vec2 topLeftWindow{topLeftUiTarget.x / scale.x,
+                                      topLeftUiTarget.y / scale.y};
 
         const bool sizeChanged =
             m_viewportCtx->transform.size != pixelSize ||

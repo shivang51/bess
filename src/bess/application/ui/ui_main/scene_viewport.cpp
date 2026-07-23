@@ -1,8 +1,11 @@
 #include "scene_viewport.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/sub_systems/input_sub_system.h"
 #include "ui/ui_main/scene_viewport_controller.h"
 #include "ui_composer.h"
 #include "widget_ref.h"
 
+#include <cmath>
 #include <format>
 #include <memory>
 #include <string>
@@ -30,6 +33,23 @@ namespace Bess::Canvas {
         [[nodiscard]] std::string formatCamPos(const glm::vec2 &pos) {
             return std::format("X: {:.1f}  Y: {:.1f}", pos.x, pos.y);
         }
+
+        [[nodiscard]] glm::vec2 toViewportPos(
+            const glm::vec2 &windowPos,
+            const Bess::Core::Viewport::ViewportTransform &transform) {
+            const glm::vec2 scale{
+                std::isfinite(transform.inputScale.x) &&
+                        transform.inputScale.x > 0.f
+                    ? transform.inputScale.x
+                    : 1.f,
+                std::isfinite(transform.inputScale.y) &&
+                        transform.inputScale.y > 0.f
+                    ? transform.inputScale.y
+                    : 1.f,
+            };
+            return {(windowPos.x - transform.pos.x) * scale.x,
+                    (windowPos.y - transform.pos.y) * scale.y};
+        }
     } // namespace
 
     void SceneViewport::compose(Bess::UI::UIComposer &ui) {
@@ -40,19 +60,21 @@ namespace Bess::Canvas {
             [this](const Bess::UI::SceneViewportController::PostUpdateContext
                        &ctx) {
                 const auto camera = ctx.controller.getCamera();
-                if (!camera) {
+                const auto viewportCtx = ctx.controller.getViewportContext();
+                if (!camera || !viewportCtx || !m_camPosLabel) {
                     return;
                 }
 
-                if (!m_camPosLabel) {
-                    return;
+                glm::vec2 viewportMouse = viewportCtx->inputCtx.mousePos;
+                if (auto inputSystem =
+                        Bess::GAppContext::getInstance()
+                            .getSubSystem<Bess::InputSubSystem>()) {
+                    viewportMouse = toViewportPos(
+                        inputSystem->getMouseMoveState().pos,
+                        viewportCtx->transform);
                 }
 
-                const auto &mPos =
-                    ctx.controller.getViewportContext()->inputCtx.mousePos;
-                const glm::vec2 mouseWorldPos = camera->toWorldPos(mPos);
-
-                const auto text = formatCamPos(mouseWorldPos);
+                const auto text = formatCamPos(camera->toWorldPos(viewportMouse));
                 if (text == m_lastCamPosText) {
                     return;
                 }

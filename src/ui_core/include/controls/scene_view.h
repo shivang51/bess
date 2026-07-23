@@ -24,6 +24,7 @@ namespace Bess::UI {
         WidgetBounds bounds;
         TimeMs deltaTime;
         Core::Renderer::Renderer2DExtent extent{0, 0};
+        glm::vec2 treeViewportSize{0.f, 0.f};
         bool hasTargets = false;
     };
 
@@ -37,6 +38,7 @@ namespace Bess::UI {
         std::shared_ptr<Core::Renderer::ITexture> colorTexture;
         std::shared_ptr<Core::Renderer::ITexture> pickingTexture;
         TimeMs deltaTime;
+        glm::vec2 treeViewportSize{0.f, 0.f};
         bool effectivelyVisible = false;
         bool resized = false;
     };

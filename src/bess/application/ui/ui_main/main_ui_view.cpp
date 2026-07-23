@@ -59,7 +59,6 @@ namespace Bess::UI {
             return {
                 .target = target,
                 .zone = zone,
-                .closable = false,
                 .content =
                     {
                         .direction = LayoutDirection::vertical,

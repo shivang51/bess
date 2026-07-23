@@ -106,7 +106,8 @@ namespace Bess::UI {
         void ensureCamera(const glm::vec2 &size);
         void syncAttachedScene();
         void applyGeometry(const WidgetBounds &bounds,
-                           Core::Renderer::Renderer2DExtent extent);
+                           Core::Renderer::Renderer2DExtent extent,
+                           glm::vec2 treeViewportSize);
         [[nodiscard]] bool hasRenderableViewport() const noexcept;
         [[nodiscard]] bool hasMouseCapture() const noexcept;
         void processInteraction(TimeMs ts, bool effectivelyVisible);

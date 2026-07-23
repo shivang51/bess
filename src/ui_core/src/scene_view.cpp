@@ -123,11 +123,17 @@ namespace Bess::UI {
         if (delegate == nullptr) {
             return;
         }
+        const auto bounds = context.state.getBounds(context.id);
+        auto layoutExtent = desiredExtent(bounds, 1.f);
+        if (layoutExtent.width == 0 || layoutExtent.height == 0) {
+            layoutExtent = extent();
+        }
         SceneViewUpdateContext update{
             .view = *this,
-            .bounds = context.state.getBounds(context.id),
+            .bounds = bounds,
             .deltaTime = context.deltaTime,
-            .extent = extent(),
+            .extent = layoutExtent,
+            .treeViewportSize = context.state.getViewportSize(),
             .hasTargets = m_target != nullptr,
         };
         delegate->update(update);
@@ -178,6 +184,7 @@ namespace Bess::UI {
             .colorTexture = std::move(color),
             .pickingTexture = std::move(picking),
             .deltaTime = context.deltaTime,
+            .treeViewportSize = context.state.getViewportSize(),
             .effectivelyVisible = context.effectivelyVisible,
             .resized = resized,
         };
