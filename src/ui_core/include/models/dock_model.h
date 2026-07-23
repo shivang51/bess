@@ -27,11 +27,13 @@ namespace Bess::UI {
         DockTabModel tabs;
     };
 
+    inline constexpr float kDefaultSideSplitRatio = 0.25f;
+
     struct DockSplitNode {
         DockNodeId id;
         DockNodeId parent;
         DockSplitAxis axis = DockSplitAxis::horizontal;
-        float ratio = 0.5f;
+        float ratio = kDefaultSideSplitRatio;
         DockNodeId first;
         DockNodeId second;
     };

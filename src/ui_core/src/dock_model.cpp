@@ -23,6 +23,11 @@ namespace Bess::UI {
         bool insertedFirst(DockZone zone) noexcept {
             return zone == DockZone::left || zone == DockZone::top;
         }
+
+        float splitRatioForZone(DockZone zone) noexcept {
+            return insertedFirst(zone) ? kDefaultSideSplitRatio
+                                       : 1.f - kDefaultSideSplitRatio;
+        }
     } // namespace
 
     DetachedDockItem::DetachedDockItem(DockItem item)
@@ -544,7 +549,7 @@ namespace Bess::UI {
             .id = splitId,
             .parent = previousParent,
             .axis = axisFor(zone),
-            .ratio = 0.5f,
+            .ratio = splitRatioForZone(zone),
             .first = insertedFirst(zone) ? newStack : target,
             .second = insertedFirst(zone) ? target : newStack,
         };
@@ -596,7 +601,7 @@ namespace Bess::UI {
             DockSplitNode{
                 .id = splitId,
                 .axis = axisFor(zone),
-                .ratio = 0.5f,
+                .ratio = splitRatioForZone(zone),
                 .first = insertedFirst(zone) ? newStack : previousRoot,
                 .second = insertedFirst(zone) ? previousRoot : newStack,
             });
@@ -701,7 +706,7 @@ namespace Bess::UI {
                             .id = splitId,
                             .parent = previousParent,
                             .axis = axisFor(zone),
-                            .ratio = 0.5f,
+                            .ratio = splitRatioForZone(zone),
                             .first = insertedFirst(zone) ? sourceRoot : target,
                             .second = insertedFirst(zone) ? target : sourceRoot,
                         });

@@ -90,7 +90,7 @@ namespace Bess::UI {
 
       private:
         SplitDirection m_splitDir = SplitDirection::horizontal;
-        float m_splitRatio = 0.5f; // Ratio for split nodes
+        float m_splitRatio = 0.25f; // Ratio for split nodes
         SplitNodesType m_splitNodes{UUID::null, UUID::null};
     };
 
@@ -205,7 +205,7 @@ namespace Bess::UI {
 
             auto newNode = changeNodeType<T>(node); // Change nodes type
             const auto replacementId = newNode->getId();
-            node->setId(UUID());                    // assign new id
+            node->setId(UUID()); // assign new id
             node->setDockedTo(replacementId);
             m_nodes[node->getId()] = node; // store old node with new id
             reparentChildren(node);
