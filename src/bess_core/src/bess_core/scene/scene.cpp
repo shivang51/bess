@@ -108,10 +108,10 @@ namespace Bess::Canvas {
         }
 
         m_sceneLayers.push_back(std::make_unique<GridLayer>());
-        //         m_sceneLayers.push_back(std::make_unique<ComponentsLayer>());
-        //         m_sceneLayers.push_back(std::make_unique<HoverLayer>());
-        //         m_sceneLayers.push_back(std::make_unique<OverlayLayer>());
-        //         m_sceneLayers.push_back(std::make_unique<InteractionLayer>());
+        m_sceneLayers.push_back(std::make_unique<ComponentsLayer>());
+        m_sceneLayers.push_back(std::make_unique<HoverLayer>());
+        m_sceneLayers.push_back(std::make_unique<OverlayLayer>());
+        m_sceneLayers.push_back(std::make_unique<InteractionLayer>());
         //         m_sceneLayers.push_back(std::make_unique<UIComponentsLayer>());
         //         m_sceneLayers.push_back(std::make_unique<SceneWidgetsLayer>());
         //         m_sceneLayers.push_back(std::make_unique<ScratchLayer>());
