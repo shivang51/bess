@@ -14,6 +14,7 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(BessTests
     main_test.cpp
+    project_session_test.cpp
     core_scene_commands_test.cpp
 	    main_page_connection_commands_test.cpp
 	    math_sim_driver_test.cpp

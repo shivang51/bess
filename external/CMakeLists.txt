@@ -15,6 +15,12 @@ source_group("external/others" FILES ${EXT_OTHERS_SRC})
 
 add_library(${PROJECT_NAME} OBJECT)
 
+add_library(EnTT INTERFACE)
+add_library(EnTT::EnTT ALIAS EnTT)
+target_include_directories(EnTT SYSTEM INTERFACE
+    "${CMAKE_SOURCE_DIR}/external/entt/include"
+)
+
 include(FetchContent)
 
 find_package(Freetype REQUIRED)

@@ -19,6 +19,7 @@ set(BESS_RUNTIME_COMPONENT_TARGETS
     BessSimDriver
     DigitalSimDriver
     MathSimDriver
+    ProjectSession
     BessCore
     BessWgpu
     BessApp
