@@ -99,6 +99,11 @@ namespace Bess {
             Connections outputs;
         };
 
+        struct BESS_API CompDefRef {
+            std::string name;
+            std::string pluginName;
+        };
+
         enum class SimulationState : uint8_t { running, paused, stopped };
 
         enum class LogicState : uint8_t { low, high, unknown, high_z };
@@ -532,6 +537,7 @@ REFLECT_VECTOR(Bess::SimEngine::ComponentPin)
 REFLECT_VECTOR(std::vector<Bess::SimEngine::ComponentPin>)
 
 REFLECT(SimEngine::OperatorInfo, op, shouldNegateOutput)
+REFLECT(SimEngine::CompDefRef, name, pluginName)
 
 typedef std::pair<int, Bess::SimEngine::SlotCatergory> SlotCategoryPair;
 REFLECT(SlotCategoryPair, first, second)
