@@ -108,6 +108,7 @@ namespace Bess::UI {
         [[nodiscard]] std::string_view typeName() const noexcept override;
         [[nodiscard]] WidgetTraits traits() const noexcept override;
         void onMount(WidgetMountContext &context) override;
+        void onUnmount(WidgetTree &state, WidgetId id) override;
         void updateLayout(WidgetLayoutContext &context) override;
         void paint(WidgetPaintContext &context) const override;
 
@@ -117,7 +118,17 @@ namespace Bess::UI {
       private:
         std::string m_text;
         LabelOptions m_options;
-        bool m_intrinsicSizeDirty = true;
+        WidgetTree *m_state = nullptr;
+        WidgetId m_id;
+        // Paint may remeasure glyphs and request a layout pass; keep dirty /
+        // metric caches mutable so paint stays const on the widget contract.
+        mutable bool m_intrinsicSizeDirty = true;
+        // Exact glyph metrics from the painter; estimate is only used before
+        // the first paint so layout can proceed without a renderer.
+        mutable glm::vec2 m_measuredSize{0.f};
+        mutable float m_measuredFontSize = 0.f;
+        mutable float m_measuredLetterSpacing = 0.f;
+        mutable bool m_measurementValid = false;
     };
 
     struct ButtonOptions {

@@ -681,6 +681,71 @@ namespace {
         EXPECT_FLOAT_EQ(layout->getPadding().left, 40.f);
     }
 
+    TEST(LabelTests, AutoSizeMatchesMeasuredTextWidth) {
+        class NarrowTextPainter final : public UIPainter {
+          public:
+            explicit NarrowTextPainter(float widthScale = 0.35f)
+                : m_widthScale(widthScale) {
+            }
+
+            [[nodiscard]] glm::vec2 viewportSize() const noexcept override {
+                return {400.f, 200.f};
+            }
+            void drawBox(const BoxPaint &) override {
+            }
+            void drawText(std::string_view, const TextPaint &) override {
+            }
+            [[nodiscard]] glm::vec2
+            measureText(std::string_view text,
+                        float fontSize,
+                        float letterSpacing) const override {
+                return {static_cast<float>(text.size()) *
+                            (fontSize * m_widthScale + letterSpacing),
+                        fontSize};
+            }
+            void pushClip(WidgetBounds) override {
+            }
+            void popClip() override {
+            }
+
+          private:
+            float m_widthScale = 0.35f;
+        };
+
+        // Roots always fill the viewport; measure the label as a child so its
+        // intrinsic width is the arranged size under test.
+        WidgetTree tree;
+        tree.setViewportSize({400.f, 200.f});
+        const auto root = tree.emplaceWidget<FlexContainer>(FlexContainerOptions{
+            .direction = LayoutDirection::vertical,
+            .mainAxisAlignment = LayoutAlignment::start,
+            .crossAxisAlignment = LayoutAlignment::start,
+            .stretchWidth = true,
+            .stretchHeight = true,
+        });
+        const auto id = tree.emplaceChild<Label>(root, "Properties");
+        tree.performLayout();
+
+        NarrowTextPainter painter{0.35f};
+        tree.paint(painter);
+        tree.performLayout();
+
+        const auto style = tree.theme().label;
+        const auto expected =
+            painter.measureText("Properties", style.fontSize, style.letterSpacing);
+        const auto bounds = tree.getBounds(id);
+        EXPECT_NEAR(bounds.size.x, expected.x, 0.01f);
+        EXPECT_NEAR(bounds.size.y, expected.y, 0.01f);
+
+        // Empty labels collapse to zero width instead of reserving a stub.
+        EXPECT_TRUE(tree.mutateWidget<Label>(
+            id, WidgetInvalidation::layout | WidgetInvalidation::paint,
+            [](Label &label) { label.setText(""); }));
+        tree.paint(painter);
+        tree.performLayout();
+        EXPECT_NEAR(tree.getBounds(id).size.x, 0.f, 0.01f);
+    }
+
     TEST(CardTests, ComposesChildrenUnderPrivateContentHost) {
         WidgetTree tree;
         UIComposer ui{tree};

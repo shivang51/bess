@@ -37,11 +37,18 @@ namespace Bess::UI {
 
         glm::vec2 estimatedTextSize(std::string_view text,
                                     const UITextStyle &style) {
+            if (text.empty()) {
+                return {0.f, std::max(0.f, style.fontSize * 1.25f)};
+            }
+            // Fallback only used before the first painter measurement. Prefer
+            // a slight underestimate so auto-sized labels do not reserve a
+            // wide empty strip; paint remeasures and reflows when needed.
+            const float glyphCount = static_cast<float>(text.size());
+            const float gaps = std::max(0.f, glyphCount - 1.f);
             return {
-                std::max(
-                    1.f,
-                    static_cast<float>(text.size()) * style.fontSize * 0.6f +
-                        style.letterSpacing * static_cast<float>(text.size())),
+                std::max(0.f,
+                         glyphCount * style.fontSize * 0.5f +
+                             gaps * style.letterSpacing),
                 std::max(1.f, style.fontSize * 1.25f),
             };
         }
@@ -53,6 +60,64 @@ namespace Bess::UI {
                 style.fontSize = std::max(1.f, *options.fontSize);
             }
             return style;
+        }
+
+        struct LabelTextMeasurement {
+            glm::vec2 size{0.f};
+            float fontSize = 0.f;
+            float letterSpacing = 0.f;
+            bool valid = false;
+        };
+
+        bool measurementMatches(const LabelTextMeasurement &measurement,
+                                const UITextStyle &style) noexcept {
+            return measurement.valid && measurement.fontSize == style.fontSize &&
+                   measurement.letterSpacing == style.letterSpacing;
+        }
+
+        glm::vec2 resolvedLabelSize(std::string_view text,
+                                    const UITextStyle &style,
+                                    const LabelTextMeasurement &measurement) {
+            return measurementMatches(measurement, style)
+                       ? measurement.size
+                       : estimatedTextSize(text, style);
+        }
+
+        bool updateLabelMeasurement(UIPainter &painter,
+                                    std::string_view text,
+                                    const UITextStyle &style,
+                                    LabelTextMeasurement &measurement) {
+            if (measurementMatches(measurement, style)) {
+                return false;
+            }
+            glm::vec2 size =
+                painter.measureText(text, style.fontSize, style.letterSpacing);
+            if (!std::isfinite(size.x) || !std::isfinite(size.y) ||
+                size.x < 0.f || size.y < 0.f) {
+                size = estimatedTextSize(text, style);
+            } else {
+                size = glm::max(size, glm::vec2{0.f});
+            }
+            measurement = {
+                .size = size,
+                .fontSize = style.fontSize,
+                .letterSpacing = style.letterSpacing,
+                .valid = true,
+            };
+            return true;
+        }
+
+        LabelTextMeasurement
+        labelMeasurementSnapshot(const glm::vec2 &size,
+                                 float fontSize,
+                                 float letterSpacing,
+                                 bool valid) noexcept {
+            return {
+                .size = size,
+                .fontSize = fontSize,
+                .letterSpacing = letterSpacing,
+                .valid = valid,
+            };
         }
 
         float nonNegativeFinite(float value) noexcept {
@@ -335,14 +400,29 @@ namespace Bess::UI {
     }
 
     void Label::onMount(WidgetMountContext &context) {
+        m_state = &context.state;
+        m_id = context.id;
         if (!m_options.autoSize) {
             return;
         }
         const auto style = resolvedLabelStyle(m_options, context.state.theme());
-        const auto size = estimatedTextSize(m_text, style);
+        const auto size = resolvedLabelSize(
+            m_text,
+            style,
+            labelMeasurementSnapshot(m_measuredSize,
+                                     m_measuredFontSize,
+                                     m_measuredLetterSpacing,
+                                     m_measurementValid));
         context.layout.setWidth(size.x);
         context.layout.setHeight(size.y);
         m_intrinsicSizeDirty = false;
+    }
+
+    void Label::onUnmount(WidgetTree &, WidgetId) {
+        m_state = nullptr;
+        m_id = {};
+        m_measurementValid = false;
+        m_intrinsicSizeDirty = true;
     }
 
     void Label::updateLayout(WidgetLayoutContext &context) {
@@ -350,8 +430,17 @@ namespace Bess::UI {
             (!m_intrinsicSizeDirty && !context.themeChanged)) {
             return;
         }
+        if (context.themeChanged) {
+            m_measurementValid = false;
+        }
         const auto style = resolvedLabelStyle(m_options, context.state.theme());
-        const auto size = estimatedTextSize(m_text, style);
+        const auto size = resolvedLabelSize(
+            m_text,
+            style,
+            labelMeasurementSnapshot(m_measuredSize,
+                                     m_measuredFontSize,
+                                     m_measuredLetterSpacing,
+                                     m_measurementValid));
         context.layout.setWidth(size.x);
         context.layout.setHeight(size.y);
         m_intrinsicSizeDirty = false;
@@ -359,6 +448,28 @@ namespace Bess::UI {
 
     void Label::paint(WidgetPaintContext &context) const {
         const auto style = resolvedLabelStyle(m_options, context.state.theme());
+        LabelTextMeasurement measurement = labelMeasurementSnapshot(
+            m_measuredSize,
+            m_measuredFontSize,
+            m_measuredLetterSpacing,
+            m_measurementValid);
+        if (updateLabelMeasurement(
+                context.painter, m_text, style, measurement) &&
+            m_options.autoSize && m_state != nullptr &&
+            m_state->contains(m_id)) {
+            m_measuredSize = measurement.size;
+            m_measuredFontSize = measurement.fontSize;
+            m_measuredLetterSpacing = measurement.letterSpacing;
+            m_measurementValid = measurement.valid;
+            m_intrinsicSizeDirty = true;
+            m_state->invalidate(m_id, WidgetInvalidation::layout);
+        } else if (measurement.valid) {
+            m_measuredSize = measurement.size;
+            m_measuredFontSize = measurement.fontSize;
+            m_measuredLetterSpacing = measurement.letterSpacing;
+            m_measurementValid = true;
+        }
+
         context.painter.drawText(m_text,
                                  {
                                      .bounds = context.bounds,
@@ -380,6 +491,7 @@ namespace Bess::UI {
             return;
         }
         m_text = std::move(text);
+        m_measurementValid = false;
         m_intrinsicSizeDirty = true;
     }
 

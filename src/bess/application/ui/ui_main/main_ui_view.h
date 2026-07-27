@@ -3,10 +3,9 @@
 #include "common/bess_api.h"
 #include "controls/basic_widgets.h"
 #include "controls/dock_space.h"
-#include "controls/menu_bar.h"
-#include "controls/scene_view.h"
 #include "models/action_registry.h"
 #include "models/menu_model.h"
+#include "ui/ui_main/panels/comp_catalog_view.h"
 #include "ui/ui_main/scene_viewport.h"
 #include "ui/ui_main/scene_viewport_controller.h"
 #include "ui_view.h"
@@ -16,6 +15,7 @@
 #include <vector>
 
 namespace Bess::UI {
+    class CompCatalogView;
 
     class BESS_API MainUIView final : public UIView {
       public:
@@ -42,6 +42,7 @@ namespace Bess::UI {
         DockPanelHandle m_explorerPanel;
         DockPanelHandle m_propertiesPanel;
         DockPanelHandle m_consolePanel;
+        CompCatalogView m_compCatalogView;
     };
 
 } // namespace Bess::UI

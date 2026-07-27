@@ -180,13 +180,13 @@ namespace Bess::UI {
                                 setStatus("Console shown");
                             }
                         }));
-        add(shellAction(
-            ActionId{"shell.help.about"},
-            "About",
-            {},
-            [this](const ActionInvocation &) {
-                setStatus("BESS retained UI shell + SceneView viewport");
-            }));
+        add(shellAction(ActionId{"shell.help.about"},
+                        "About",
+                        {},
+                        [this](const ActionInvocation &) {
+                            setStatus(
+                                "BESS retained UI shell + SceneView viewport");
+                        }));
     }
 
     void MainUIView::unregisterShellActions() noexcept {
@@ -198,7 +198,8 @@ namespace Bess::UI {
         m_shellActions.clear();
     }
 
-    void MainUIView::composeMenus(const std::shared_ptr<ActionRegistry> &actions) {
+    void
+    MainUIView::composeMenus(const std::shared_ptr<ActionRegistry> &actions) {
         m_actions = actions;
         registerShellActions(*actions);
 
@@ -284,13 +285,11 @@ namespace Bess::UI {
                         });
 
                     m_consolePanel = dock.panel(
-                        "Console",
+                        "Component Explorer",
                         sidePlacement(dock.stackFor(m_viewportPanel.item),
                                       DockZone::bottom),
-                        [](UIComposer &panel) {
-                            panel.label("Console");
-                            panel.label("Migrating from ImGui — placeholder");
-                            panel.spacer();
+                        [this](UIComposer &panel) {
+                            m_compCatalogView.compose(panel);
                         });
                 });
                 m_dockSpace.setLayout({
