@@ -57,6 +57,9 @@ namespace Bess::UI {
             finiteNonNegative(m_options.disclosureSlotWidth);
         m_options.iconSlotWidth = finiteNonNegative(m_options.iconSlotWidth);
         m_options.contentGap = finiteNonNegative(m_options.contentGap);
+        if (m_options.fontSize.has_value()) {
+            m_options.fontSize = std::max(1.f, *m_options.fontSize);
+        }
     }
 
     std::string_view TreeNode::typeName() const noexcept {
@@ -138,8 +141,10 @@ namespace Bess::UI {
         const float right = std::max(
             left, bounds.bottomRight().x - m_options.horizontalPadding);
         float cursor = left;
+        const float fontSize = resolvedFontSize(theme);
+        const float letterSpacing = resolvedLetterSpacing(theme);
         const auto textColor =
-            context.enabled ? theme.tabs.text.color : theme.button.disabledText;
+            context.enabled ? theme.button.text.color : theme.button.disabledText;
         const auto iconColor =
             context.enabled ? theme.menus.iconColor : theme.button.disabledText;
 
@@ -151,7 +156,7 @@ namespace Bess::UI {
                                    : Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT,
                 {.glyph = {
                      .bounds = fromEdges(cursor, disclosureRight, bounds),
-                     .fontSize = std::max(8.f, theme.tabs.text.fontSize - 2.f),
+                     .fontSize = std::max(8.f, fontSize - 2.f),
                      .color = iconColor,
                      .horizontal = HorizontalTextAlignment::center,
                      .vertical = VerticalTextAlignment::center,
@@ -168,7 +173,7 @@ namespace Bess::UI {
                 m_options.icon,
                 {.glyph = {
                      .bounds = fromEdges(cursor, iconRight, bounds),
-                     .fontSize = theme.tabs.text.fontSize,
+                     .fontSize = fontSize,
                      .color = iconColor,
                      .horizontal = HorizontalTextAlignment::center,
                      .vertical = VerticalTextAlignment::center,
@@ -182,12 +187,12 @@ namespace Bess::UI {
             m_label,
             {
                 .bounds = fromEdges(cursor, right, bounds),
-                .fontSize = theme.tabs.text.fontSize,
+                .fontSize = fontSize,
                 .color = textColor,
                 .horizontal = HorizontalTextAlignment::start,
                 .vertical = VerticalTextAlignment::center,
                 .zIndex = kHeaderContentZ,
-                .letterSpacing = theme.tabs.text.letterSpacing,
+                .letterSpacing = letterSpacing,
                 .pickingId = context.pickingId,
             });
     }
@@ -253,6 +258,17 @@ namespace Bess::UI {
         m_options.icon = std::move(icon);
     }
 
+    float TreeNode::fontSize(const UITheme &theme) const noexcept {
+        return resolvedFontSize(theme);
+    }
+
+    void TreeNode::setFontSize(std::optional<float> fontSize) {
+        if (fontSize.has_value()) {
+            fontSize = std::max(1.f, *fontSize);
+        }
+        m_options.fontSize = fontSize;
+    }
+
     bool TreeNode::isExpanded() const noexcept {
         return m_options.expanded;
     }
@@ -305,6 +321,23 @@ namespace Bess::UI {
             0.f,
             left,
         };
+    }
+
+    float TreeNode::resolvedFontSize(const UITheme &theme) const noexcept {
+        // Match Button / TextButton label size unless the caller overrides.
+        const float fallback = std::max(1.f, theme.button.text.fontSize);
+        if (!m_options.fontSize.has_value()) {
+            return fallback;
+        }
+        return std::max(1.f, *m_options.fontSize);
+    }
+
+    float
+    TreeNode::resolvedLetterSpacing(const UITheme &theme) const noexcept {
+        if (m_options.letterSpacing.has_value()) {
+            return *m_options.letterSpacing;
+        }
+        return theme.button.text.letterSpacing;
     }
 
     bool TreeNode::changeExpanded(bool expanded, bool notify) {

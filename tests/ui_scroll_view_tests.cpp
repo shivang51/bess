@@ -180,6 +180,98 @@ namespace {
         EXPECT_EQ(scroll->viewportBounds().size, state.getViewportSize());
     }
 
+    TEST(ScrollViewTests, NestedScrollViewDoesNotInflateOuterOverflow) {
+        // DockPanel is a ScrollView; catalog content nests another ScrollView
+        // for the tree. Outer must treat the inner host as an opaque box.
+        WidgetTree state;
+        state.setViewportSize({300.f, 200.f});
+        const WidgetId outerId = state.emplaceWidget<ScrollView>(
+            ScrollViewOptions{.horizontal = false, .vertical = true});
+        const WidgetId shellId = state.addWidget(
+            std::make_unique<FlexContainer>(FlexContainerOptions{
+                .direction = LayoutDirection::vertical,
+                .crossAxisAlignment = LayoutAlignment::start,
+                .stretchWidth = true,
+                .stretchHeight = true,
+            }),
+            outerId);
+        ASSERT_TRUE(shellId);
+        ASSERT_TRUE(state.emplaceChild<Label>(shellId, "Title"));
+        const WidgetId innerId = state.addWidget(
+            std::make_unique<ScrollView>(
+                ScrollViewOptions{.horizontal = false, .vertical = true}),
+            shellId);
+        ASSERT_TRUE(innerId);
+        auto *innerLayout = state.getLayout(innerId);
+        ASSERT_NE(innerLayout, nullptr);
+        innerLayout->setWidthPercent(1.f);
+        innerLayout->setFlexGrow(1.f);
+        innerLayout->setFlexShrink(1.f);
+        innerLayout->setFlexBasis(0.f);
+        innerLayout->setMinSize({0.f, 0.f});
+
+        const WidgetId listId = state.addWidget(
+            std::make_unique<FlexContainer>(FlexContainerOptions{
+                .direction = LayoutDirection::vertical,
+                .crossAxisAlignment = LayoutAlignment::start,
+                .stretchWidth = true,
+                .stretchHeight = false,
+            }),
+            innerId);
+        ASSERT_TRUE(listId);
+        for (int i = 0; i < 40; ++i) {
+            ASSERT_TRUE(state.emplaceChild<Label>(
+                listId, "Item " + std::to_string(i)));
+        }
+        if (auto *listLayout = state.getLayout(listId)) {
+            listLayout->setHeightFitContent();
+            listLayout->setWidthPercent(1.f);
+        }
+
+        state.performLayout();
+        state.performLayout();
+
+        auto *outer = state.getWidget<ScrollView>(outerId);
+        auto *inner = state.getWidget<ScrollView>(innerId);
+        ASSERT_NE(outer, nullptr);
+        ASSERT_NE(inner, nullptr);
+        EXPECT_FALSE(outer->hasVerticalScrollbar())
+            << "outer maxY=" << outer->maximumScrollOffset().y
+            << " contentY=" << outer->contentExtent().y
+            << " viewportY=" << outer->viewportBounds().size.y;
+        EXPECT_FLOAT_EQ(outer->maximumScrollOffset().y, 0.f);
+        EXPECT_TRUE(inner->hasVerticalScrollbar());
+        EXPECT_GT(inner->maximumScrollOffset().y, 0.f);
+    }
+
+    TEST(ScrollViewTests, EmptyStretchContentDoesNotShowStickyScrollbars) {
+        WidgetTree state;
+        state.setViewportSize({300.f, 200.f});
+        const WidgetId scrollId = state.emplaceWidget<ScrollView>();
+        // Matches typical catalog usage: a stretch-width / non-stretch-height
+        // column that is empty, or a stretch-height column filling the view.
+        ASSERT_TRUE(state.addWidget(
+            std::make_unique<FlexContainer>(FlexContainerOptions{
+                .direction = LayoutDirection::vertical,
+                .crossAxisAlignment = LayoutAlignment::start,
+                .stretchWidth = true,
+                .stretchHeight = true,
+            }),
+            scrollId));
+        state.performLayout();
+        // Second layout pass: ScrollView previously wrote contentExtent back
+        // onto the content root; that size must not be re-read as overflow.
+        state.performLayout();
+
+        const auto *scroll = state.getWidget<ScrollView>(scrollId);
+        ASSERT_NE(scroll, nullptr);
+        EXPECT_FALSE(scroll->hasHorizontalScrollbar());
+        EXPECT_FALSE(scroll->hasVerticalScrollbar());
+        EXPECT_FLOAT_EQ(scroll->maximumScrollOffset().x, 0.f);
+        EXPECT_FLOAT_EQ(scroll->maximumScrollOffset().y, 0.f);
+        EXPECT_EQ(scroll->viewportBounds().size, state.getViewportSize());
+    }
+
     TEST(ScrollViewTests,
          StackWithColumnAndLabelDoesNotCreateSpuriousHorizontalScrollbar) {
         WidgetTree state;

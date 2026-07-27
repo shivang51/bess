@@ -57,8 +57,7 @@ namespace Bess::UI {
         [[nodiscard]] glm::vec2
         requiredContentExtent(const WidgetTree &state,
                               WidgetId content,
-                              WidgetBounds viewport,
-                              bool includeRootOverflow) const noexcept;
+                              WidgetBounds viewport) const noexcept;
         void resolveGeometry(WidgetBounds bounds,
                              glm::vec2 requiredExtent,
                              const UIScrollStyle &style,

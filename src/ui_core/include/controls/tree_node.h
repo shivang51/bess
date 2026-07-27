@@ -3,9 +3,11 @@
 #include "behaviors/pressable.h"
 #include "common/bess_api.h"
 #include "controls/basic_widgets.h"
+#include "ui_style.h"
 #include "widget.h"
 
 #include <functional>
+#include <optional>
 #include <string>
 
 namespace Bess::UI {
@@ -23,6 +25,10 @@ namespace Bess::UI {
         float disclosureSlotWidth = 17.f;
         float iconSlotWidth = 18.f;
         float contentGap = 0.f;
+        // Label typography. When unset, matches theme.button.text (same default
+        // size as Button / TextButton labels).
+        std::optional<float> fontSize;
+        std::optional<float> letterSpacing;
         // Optional font-atlas icon rendered between the disclosure indicator
         // and label. An empty value omits the slot entirely.
         std::string icon;
@@ -58,6 +64,8 @@ namespace Bess::UI {
         void setLabel(std::string label);
         [[nodiscard]] const std::string &icon() const noexcept;
         void setIcon(std::string icon);
+        [[nodiscard]] float fontSize(const UITheme &theme) const noexcept;
+        void setFontSize(std::optional<float> fontSize);
         [[nodiscard]] bool isExpanded() const noexcept;
         bool setExpanded(bool expanded);
         bool toggle();
@@ -74,6 +82,9 @@ namespace Bess::UI {
         // Children indent to this origin so nested rows align with the title.
         [[nodiscard]] float labelTextStart() const noexcept;
         [[nodiscard]] Core::Style::Padding contentPadding() const noexcept;
+        [[nodiscard]] float resolvedFontSize(const UITheme &theme) const noexcept;
+        [[nodiscard]] float
+        resolvedLetterSpacing(const UITheme &theme) const noexcept;
         bool changeExpanded(bool expanded, bool notify);
         void syncContentVisibility();
 

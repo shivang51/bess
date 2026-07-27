@@ -231,6 +231,10 @@ namespace Bess::UI {
         WidgetRef<Button> button(std::string label,
                                  Button::Activated activated = {},
                                  ButtonOptions options = {});
+        // Label-only button: same Pressable activation as button(), no fill.
+        WidgetRef<Button> textButton(std::string label,
+                                     Button::Activated activated = {},
+                                     ButtonOptions options = {});
         WidgetRef<ActionButton> actionButton(ActionId action,
                                              ActionButtonOptions options = {});
         WidgetRef<CheckBox>
@@ -536,7 +540,9 @@ namespace Bess::UI {
             requires std::invocable<Build, UIComposer &>
         WidgetRef<TreeNode> treeNode(std::string label, Build &&build) {
             return treeNode(std::move(label),
-                            TreeNodeOptions{},
+                            TreeNodeOptions{
+                                .fontSize = 14.f,
+                            },
                             TreeNode::ExpandedChanged{},
                             std::forward<Build>(build));
         }

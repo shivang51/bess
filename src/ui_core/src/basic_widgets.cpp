@@ -504,25 +504,38 @@ namespace Bess::UI {
     }
 
     std::string_view Button::typeName() const noexcept {
-        return "Button";
+        return m_options.variant == ButtonVariant::text ? "TextButton"
+                                                        : "Button";
     }
 
     WidgetTraits Button::traits() const noexcept {
         return {.focusable = true, .hitTestVisible = true};
     }
 
+    const UIInteractiveStyle &
+    Button::resolvedStyle(const UITheme &theme) const noexcept {
+        if (m_options.style.has_value()) {
+            return *m_options.style;
+        }
+        return m_options.variant == ButtonVariant::text ? theme.textButton
+                                                        : theme.button;
+    }
+
+    void Button::applyIntrinsicSize(LayoutNode &layout, const UITheme &theme) {
+        const auto &style = resolvedStyle(theme);
+        const auto textSize = estimatedTextSize(m_label, style.text);
+        const glm::vec2 size =
+            glm::max(style.minimumSize, textSize + style.contentPadding * 2.f);
+        layout.setWidth(size.x);
+        layout.setHeight(size.y);
+        m_intrinsicSizeDirty = false;
+    }
+
     void Button::onMount(WidgetMountContext &context) {
         if (!m_options.autoSize) {
             return;
         }
-        const auto &style =
-            m_options.style.value_or(context.state.theme().button);
-        const auto textSize = estimatedTextSize(m_label, style.text);
-        const glm::vec2 size =
-            glm::max(style.minimumSize, textSize + style.contentPadding * 2.f);
-        context.layout.setWidth(size.x);
-        context.layout.setHeight(size.y);
-        m_intrinsicSizeDirty = false;
+        applyIntrinsicSize(context.layout, context.state.theme());
     }
 
     void Button::updateLayout(WidgetLayoutContext &context) {
@@ -530,32 +543,41 @@ namespace Bess::UI {
             (!m_intrinsicSizeDirty && !context.themeChanged)) {
             return;
         }
-        const auto &style =
-            m_options.style.value_or(context.state.theme().button);
-        const auto textSize = estimatedTextSize(m_label, style.text);
-        const glm::vec2 size =
-            glm::max(style.minimumSize, textSize + style.contentPadding * 2.f);
-        context.layout.setWidth(size.x);
-        context.layout.setHeight(size.y);
-        m_intrinsicSizeDirty = false;
+        applyIntrinsicSize(context.layout, context.state.theme());
     }
 
     void Button::paint(WidgetPaintContext &context) const {
-        const auto &style =
-            m_options.style.value_or(context.state.theme().button);
-        const UIBoxStyle *box = &style.normal;
-        if (!context.enabled) {
-            box = &style.disabled;
-        } else if (m_pressable.isPressed()) {
-            box = &style.pressed;
-        } else if (m_pressable.isHovered() || context.hovered) {
-            box = &style.hovered;
-        } else if (context.focused) {
-            box = &style.focused;
+        const auto &style = resolvedStyle(context.state.theme());
+        const bool textVariant = m_options.variant == ButtonVariant::text;
+
+        const UIBoxStyle *box = nullptr;
+        if (!textVariant) {
+            box = &style.normal;
+            if (!context.enabled) {
+                box = &style.disabled;
+            } else if (m_pressable.isPressed()) {
+                box = &style.pressed;
+            } else if (m_pressable.isHovered() || context.hovered) {
+                box = &style.hovered;
+            } else if (context.focused) {
+                box = &style.focused;
+            }
+        } else if (context.enabled) {
+            // Idle stays chrome-free; hover/press/focus draw a soft state layer.
+            if (m_pressable.isPressed()) {
+                box = &style.pressed;
+            } else if (m_pressable.isHovered() || context.hovered) {
+                box = &style.hovered;
+            } else if (context.focused) {
+                box = &style.focused;
+            }
         }
 
-        context.painter.drawBox(boxPaint(
-            context.bounds, *box, context.pickingId, kInteractiveChromeZ));
+        if (box != nullptr) {
+            context.painter.drawBox(boxPaint(
+                context.bounds, *box, context.pickingId, kInteractiveChromeZ));
+        }
+
         const auto textColor =
             context.enabled ? style.text.color : style.disabledText;
         context.painter.drawText(
@@ -608,6 +630,18 @@ namespace Bess::UI {
 
     bool Button::isPressed() const noexcept {
         return m_pressable.isPressed();
+    }
+
+    ButtonVariant Button::variant() const noexcept {
+        return m_options.variant;
+    }
+
+    void Button::setVariant(ButtonVariant variant) noexcept {
+        if (m_options.variant == variant) {
+            return;
+        }
+        m_options.variant = variant;
+        m_intrinsicSizeDirty = true;
     }
 
     Spacer::Spacer(SpacerOptions options) : m_options(std::move(options)) {

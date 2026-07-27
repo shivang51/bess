@@ -286,8 +286,18 @@ namespace Bess::UI {
 
                     m_consolePanel = dock.panel(
                         "Component Explorer",
-                        sidePlacement(dock.stackFor(m_viewportPanel.item),
-                                      DockZone::bottom),
+                        [&] {
+                            auto placement = sidePlacement(
+                                dock.stackFor(m_viewportPanel.item),
+                                DockZone::bottom);
+                            // Catalog owns its own ScrollView for the tree.
+                            // Zero padding so the card can fill the dock
+                            // content slot; outer DockPanel then has nothing
+                            // to scroll once nested overflow is opaque.
+                            placement.content.padding = {};
+                            placement.content.clipChildren = true;
+                            return placement;
+                        }(),
                         [this](UIComposer &panel) {
                             m_compCatalogView.compose(panel);
                         });

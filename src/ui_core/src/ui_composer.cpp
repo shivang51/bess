@@ -260,6 +260,14 @@ namespace Bess::UI {
             std::move(label), std::move(activated), std::move(options));
     }
 
+    WidgetRef<Button> UIComposer::textButton(std::string label,
+                                             Button::Activated activated,
+                                             ButtonOptions options) {
+        options.variant = ButtonVariant::text;
+        return emplace<Button>(
+            std::move(label), std::move(activated), std::move(options));
+    }
+
     WidgetRef<ActionButton>
     UIComposer::actionButton(ActionId action, ActionButtonOptions options) {
         return emplace<ActionButton>(

@@ -76,6 +76,31 @@ namespace Bess::UI {
         theme.button.minimumSize = {0.f, 26.f};
         theme.button.contentPadding = {8.f, 4.f};
 
+        // Text button: idle is chrome-free; hover/press use a soft state layer
+        // (Material text-button style). Label size matches filled buttons.
+        const auto transparentBox = UIBoxStyle{
+            .background = transparent,
+            .border = transparent,
+            .cornerRadius = controlRadius,
+            .borderThickness = glm::vec4{0.f},
+            .shadow = noShadow,
+        };
+        theme.textButton.normal = transparentBox;
+        theme.textButton.hovered = transparentBox;
+        theme.textButton.hovered.background = colors.onSurface.withAlpha(0.08f);
+        theme.textButton.pressed = transparentBox;
+        theme.textButton.pressed.background = colors.onSurface.withAlpha(0.12f);
+        theme.textButton.focused = transparentBox;
+        theme.textButton.focused.background = colors.onSurface.withAlpha(0.06f);
+        theme.textButton.focused.border = colors.primary.withAlpha(0.65f);
+        theme.textButton.focused.borderThickness = glm::vec4{1.f};
+        theme.textButton.disabled = transparentBox;
+        theme.textButton.text = theme.button.text;
+        theme.textButton.text.color = colors.primary;
+        theme.textButton.disabledText = colors.onSurface.withAlpha(0.38f);
+        theme.textButton.minimumSize = {0.f, 22.f};
+        theme.textButton.contentPadding = {4.f, 2.f};
+
         theme.tabs.strip = {
             .background = colors.surfaceContainerLowest,
             .border = transparent,

@@ -1,6 +1,8 @@
 #pragma once
 
+#include "component_catalog.h"
 #include "ui_composer.h"
+
 namespace Bess::UI {
 
     class CompCatalogView {
@@ -9,18 +11,28 @@ namespace Bess::UI {
         }
 
         void compose(UIComposer &ui) {
-            auto card = ui.card([this](UIComposer &card) {
-                auto col = card.column([this](UIComposer &col) {
-                    col.label("Component Explorer",
-                              LabelOptions{.fontSize = 14.f});
-                    col.spacer();
-                    col.label("Migrating from ImGui — placeholder");
-                    col.spacer();
-                });
+            auto col = ui.column([this](UIComposer &col) {
+                auto &catalog = SimEngine::ComponentCatalog::instance();
+                const auto &tree = catalog.getComponentsTree();
 
-                col.setLayout({
-                    .crossAxisAlignment = LayoutAlignment::start,
-                });
+                for (auto &itr : *tree) {
+                    const auto &category = itr.first;
+                    const auto &components = itr.second;
+
+                    col.treeNode(category,
+                                 [this, &components](UIComposer &node) {
+                                     for (const auto &compDef : components) {
+                                         node.textButton(
+                                             compDef->getName(), []() {}, {});
+                                     }
+                                 });
+                }
+            });
+
+            col.setLayout({
+                .width = LayoutLength::percent(100.f),
+                .height = LayoutLength::fitContent(),
+                .crossAxisAlignment = LayoutAlignment::start,
             });
         }
 

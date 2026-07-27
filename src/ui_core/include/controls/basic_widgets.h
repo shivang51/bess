@@ -131,8 +131,14 @@ namespace Bess::UI {
         mutable bool m_measurementValid = false;
     };
 
+    // filled: Material-style solid control chrome.
+    // text: same interaction (hover/press/focus/keyboard) with no background
+    // fill — label-only affordance for toolbars, tree actions, links.
+    enum class ButtonVariant : uint8_t { filled, text };
+
     struct ButtonOptions {
         std::optional<UIInteractiveStyle> style;
+        ButtonVariant variant = ButtonVariant::filled;
         bool autoSize = true;
     };
 
@@ -161,8 +167,14 @@ namespace Bess::UI {
         // buttons keep their compact API.
         void setActivatedWithEvent(ActivatedWithEvent activated);
         [[nodiscard]] bool isPressed() const noexcept;
+        [[nodiscard]] ButtonVariant variant() const noexcept;
+        void setVariant(ButtonVariant variant) noexcept;
 
       private:
+        [[nodiscard]] const UIInteractiveStyle &
+        resolvedStyle(const UITheme &theme) const noexcept;
+        void applyIntrinsicSize(LayoutNode &layout, const UITheme &theme);
+
         std::string m_label;
         Activated m_activated;
         ActivatedWithEvent m_activatedWithEvent;

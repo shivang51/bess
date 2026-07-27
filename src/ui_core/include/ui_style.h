@@ -241,6 +241,8 @@ namespace Bess::UI {
         UIBoxStyle listView;
         UITextStyle label;
         UIInteractiveStyle button;
+        // Text/link button: transparent chrome, label-driven affordance.
+        UIInteractiveStyle textButton;
         UITabStyle tabs;
         UIMenuStyle menus;
         UIPopupStyle popup;

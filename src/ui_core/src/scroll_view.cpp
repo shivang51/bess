@@ -97,8 +97,12 @@ namespace Bess::UI {
         }
 
         const auto &style = resolvedStyle(context.state);
-        glm::vec2 required = requiredContentExtent(
-            context.state, m_content, context.bounds, true);
+        // Measure intrinsic content only (mins, explicit point sizes, and
+        // descendant extents). Never use the content root's previous arranged
+        // size: ScrollView itself writes that size each frame, so reading it
+        // back as "overflow" creates sticky scrollbars on empty/fit content.
+        glm::vec2 required =
+            requiredContentExtent(context.state, m_content, context.bounds);
         const glm::vec2 available = nonNegative(context.bounds.size);
         bool horizontal = m_options.horizontal &&
                           required.x > available.x + kOverflowTolerance;
@@ -120,20 +124,17 @@ namespace Bess::UI {
             };
             context.setChildBounds(m_content, contentBounds);
 
-            const glm::vec2 reflowed = requiredContentExtent(
-                context.state, m_content, m_viewport, false);
-            required = {
-                horizontal ? std::max(required.x, reflowed.x) : reflowed.x,
-                vertical ? std::max(required.y, reflowed.y) : reflowed.y,
-            };
+            const glm::vec2 reflowed =
+                requiredContentExtent(context.state, m_content, m_viewport);
+            // Never let a previous overflow latch keep an overstated extent
+            // after content shrank (e.g. empty list). Re-measure each pass.
+            required = reflowed;
             const bool nextHorizontal =
-                horizontal ||
-                (m_options.horizontal &&
-                 required.x > m_viewport.size.x + kOverflowTolerance);
+                m_options.horizontal &&
+                required.x > m_viewport.size.x + kOverflowTolerance;
             const bool nextVertical =
-                vertical ||
-                (m_options.vertical &&
-                 required.y > m_viewport.size.y + kOverflowTolerance);
+                m_options.vertical &&
+                required.y > m_viewport.size.y + kOverflowTolerance;
             if (nextHorizontal == horizontal && nextVertical == vertical) {
                 break;
             }
@@ -142,6 +143,22 @@ namespace Bess::UI {
         }
 
         resolveGeometry(context.bounds, required, style, horizontal, vertical);
+
+        // Drop gutters when the solved range is empty so a zero-travel bar
+        // cannot reserve space or paint a stuck thumb.
+        const bool hadHorizontal = horizontal;
+        const bool hadVertical = vertical;
+        if (horizontal && m_maximumScrollOffset.x <= kOverflowTolerance) {
+            horizontal = false;
+        }
+        if (vertical && m_maximumScrollOffset.y <= kOverflowTolerance) {
+            vertical = false;
+        }
+        if (hadHorizontal != horizontal || hadVertical != vertical) {
+            resolveGeometry(
+                context.bounds, required, style, horizontal, vertical);
+        }
+
         context.setChildBounds(m_content,
                                {
                                    .center = m_viewport.topLeft() -
@@ -340,8 +357,8 @@ namespace Bess::UI {
     glm::vec2
     ScrollView::requiredContentExtent(const WidgetTree &state,
                                       WidgetId content,
-                                      WidgetBounds viewport,
-                                      bool includeRootOverflow) const noexcept {
+                                      WidgetBounds viewport) const noexcept {
+        (void)viewport;
         const auto *rootLayout = state.getLayout(content);
         const WidgetBounds rootBounds = state.getBounds(content);
         glm::vec2 required{0.f, 0.f};
@@ -363,18 +380,41 @@ namespace Bess::UI {
                     nonNegative(padding.left) + nonNegative(padding.right),
                     nonNegative(padding.top) + nonNegative(padding.bottom)});
         }
-        if (includeRootOverflow) {
-            if (rootBounds.size.x > viewport.size.x + kOverflowTolerance) {
-                required.x = std::max(required.x, rootBounds.size.x);
-            }
-            if (rootBounds.size.y > viewport.size.y + kOverflowTolerance) {
-                required.y = std::max(required.y, rootBounds.size.y);
-            }
-        }
 
+        // Intrinsic scroll size comes from descendants, not the root's
+        // arranged box. Stretch-to-fill content roots (and the size ScrollView
+        // assigned last frame) must not be mistaken for overflow.
+        //
+        // Nested ScrollViews (including DockPanel, which derives from
+        // ScrollView) are opaque: their own scroll content must not inflate
+        // this parent's required extent, or the outer panel scrolls the whole
+        // chrome while the inner bar is irrelevant.
         glm::vec2 extentMin{0.f, 0.f};
         glm::vec2 extentMax{0.f, 0.f};
+        bool hasLeaf = false;
         const glm::vec2 origin = rootBounds.topLeft();
+        const auto accumulateLeaf = [&](glm::vec2 topLeft, glm::vec2 size) {
+            extentMin = hasLeaf ? glm::min(extentMin, topLeft) : topLeft;
+            extentMax =
+                hasLeaf ? glm::max(extentMax, topLeft + size) : topLeft + size;
+            hasLeaf = true;
+        };
+        const auto leafSize = [](const LayoutNode *layout,
+                                 WidgetBounds bounds,
+                                 glm::vec2 minimum) {
+            glm::vec2 size = glm::max(bounds.size, minimum);
+            if (layout != nullptr) {
+                if (layout->getWidthMode() == LayoutSizeMode::point) {
+                    size.x =
+                        std::max(size.x, nonNegative(layout->getWidthValue()));
+                }
+                if (layout->getHeightMode() == LayoutSizeMode::point) {
+                    size.y =
+                        std::max(size.y, nonNegative(layout->getHeightValue()));
+                }
+            }
+            return size;
+        };
         const auto accumulate = [&](auto &&self, WidgetId id) -> void {
             if (state.getVisibility(id) == WidgetVisibility::collapsed) {
                 return;
@@ -386,11 +426,19 @@ namespace Bess::UI {
                                           ? nonNegative(layout->getMinSize())
                                           : glm::vec2{};
             const bool constrained = minimum.x > 0.f || minimum.y > 0.f;
-            if (children.empty() || constrained) {
-                const glm::vec2 size = glm::max(bounds.size, minimum);
-                const glm::vec2 topLeft = bounds.topLeft() - origin;
-                extentMin = glm::min(extentMin, topLeft);
-                extentMax = glm::max(extentMax, topLeft + size);
+            const bool explicitPoint =
+                layout != nullptr &&
+                (layout->getWidthMode() == LayoutSizeMode::point ||
+                 layout->getHeightMode() == LayoutSizeMode::point);
+            // Nested scroll hosts own their descendants' overflow.
+            if (state.getWidget<ScrollView>(id) != nullptr) {
+                accumulateLeaf(bounds.topLeft() - origin,
+                               leafSize(layout, bounds, minimum));
+                return;
+            }
+            if (children.empty() || constrained || explicitPoint) {
+                accumulateLeaf(bounds.topLeft() - origin,
+                               leafSize(layout, bounds, minimum));
             }
             for (const WidgetId child : children) {
                 self(self, child);
@@ -399,7 +447,9 @@ namespace Bess::UI {
         for (const WidgetId child : state.getChildren(content)) {
             accumulate(accumulate, child);
         }
-        required = glm::max(required, extentMax - extentMin);
+        if (hasLeaf) {
+            required = glm::max(required, extentMax - extentMin);
+        }
         return nonNegative(required);
     }
 
@@ -437,9 +487,16 @@ namespace Bess::UI {
         m_verticalBar = {};
         const float minimumThumb =
             finiteMetric(style.minimumThumbLength, 24.f, thickness, 256.f);
-        if (horizontal) {
+        // Only paint a bar when the axis actually scrolls. Visible chrome with
+        // zero travel leaves a thumb glued to the track start.
+        const bool showHorizontal =
+            horizontal && m_maximumScrollOffset.x > kOverflowTolerance;
+        const bool showVertical =
+            vertical && m_maximumScrollOffset.y > kOverflowTolerance;
+        if (showHorizontal) {
             const float trackLength = std::max(
-                0.f, available.x - (vertical ? gutter : 0.f) - margin * 2.f);
+                0.f,
+                available.x - (showVertical ? gutter : 0.f) - margin * 2.f);
             m_horizontalBar.visible = trackLength > 0.f;
             m_horizontalBar.track = {
                 .center = {bounds.topLeft().x + margin + trackLength * 0.5f,
@@ -465,9 +522,10 @@ namespace Bess::UI {
                 .size = {thumbLength, thickness},
             };
         }
-        if (vertical) {
+        if (showVertical) {
             const float trackLength = std::max(
-                0.f, available.y - (horizontal ? gutter : 0.f) - margin * 2.f);
+                0.f,
+                available.y - (showHorizontal ? gutter : 0.f) - margin * 2.f);
             m_verticalBar.visible = trackLength > 0.f;
             m_verticalBar.track = {
                 .center = {bounds.bottomRight().x - margin - thickness * 0.5f,
