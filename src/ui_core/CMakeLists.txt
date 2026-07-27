@@ -7,8 +7,11 @@ set(Header_Files
 	include/behaviors/pressable.h
 	include/controls/action_button.h
 	include/controls/basic_widgets.h
+	include/controls/card.h
 	include/controls/focus_scope.h
 	include/controls/image.h
+	include/controls/list_view.h
+	include/controls/numeric_input.h
 	include/controls/render_view.h
 	include/controls/scene_view.h
 	include/controls/dock_drop.h
@@ -56,9 +59,12 @@ set(Source_Files
 	src/reorderable_list.cpp
 	src/action_button.cpp
 	src/basic_widgets.cpp
+	src/card.cpp
 	src/action_registry.cpp
 	src/focus_scope.cpp
 	src/image.cpp
+	src/list_view.cpp
+	src/numeric_input.cpp
 	src/render_surface.cpp
 	src/render_view.cpp
 	src/scene_view.cpp

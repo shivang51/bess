@@ -29,6 +29,29 @@ namespace Bess::UI {
         theme.panel = theme.surface;
         theme.panel.border = colors.outlineVariant;
         theme.panel.borderThickness = glm::vec4{1.f};
+        // Flutter Card: slightly lifted surface with soft ambient shadow and
+        // a subtle outline so cards separate cleanly from the canvas.
+        theme.card = {
+            .background = colors.surfaceContainer,
+            .border = colors.outlineVariant.withAlpha(0.55f),
+            .cornerRadius = glm::vec4{10.f},
+            .borderThickness = glm::vec4{1.f},
+            .shadow =
+                Core::Renderer::ShadowProps{
+                    .enabled = true,
+                    .offset = {0.f, 2.f},
+                    .blur = 8.f,
+                    .spread = 0.f,
+                    .color = colors.shadow.withAlpha(0.28f),
+                },
+        };
+        theme.listView = {
+            .background = transparent,
+            .border = transparent,
+            .cornerRadius = controlRadius,
+            .borderThickness = glm::vec4{0.f},
+            .shadow = noShadow,
+        };
         theme.label = {.color = colors.onSurface, .fontSize = 14.f};
 
         theme.button.normal = {

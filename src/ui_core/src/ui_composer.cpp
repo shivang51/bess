@@ -1,5 +1,6 @@
 #include "ui_composer.h"
 
+#include <cmath>
 #include <utility>
 
 namespace Bess::UI {
@@ -187,6 +188,14 @@ namespace Bess::UI {
         return emplace<Surface>(std::move(options));
     }
 
+    WidgetRef<Card> UIComposer::card(CardOptions options) {
+        return emplace<Card>(std::move(options));
+    }
+
+    WidgetRef<ListView> UIComposer::listView(ListViewOptions options) {
+        return emplace<ListView>(std::move(options));
+    }
+
     WidgetRef<DropZone> UIComposer::dropZone(DropZoneOptions options) {
         return emplace<DropZone>(m_tree.dragDrop(), std::move(options));
     }
@@ -314,6 +323,50 @@ namespace Bess::UI {
                                 std::move(changed),
                                 std::move(submitted),
                                 std::move(options));
+    }
+
+    WidgetRef<NumericInput>
+    UIComposer::numericInput(NumericInputKind kind,
+                             std::shared_ptr<NumericModel> model,
+                             NumericInput::Changed changed,
+                             NumericInput::Submitted submitted,
+                             NumericInputOptions options) {
+        return emplace<NumericInput>(kind,
+                                     std::move(model),
+                                     std::move(changed),
+                                     std::move(submitted),
+                                     std::move(options));
+    }
+
+    WidgetRef<NumericInput>
+    UIComposer::intInput(std::shared_ptr<NumericModel> model,
+                         NumericInput::Changed changed,
+                         NumericInput::Submitted submitted,
+                         NumericInputOptions options) {
+        options.precision = 0;
+        if (!std::isfinite(options.step) || options.step <= 0.0) {
+            options.step = 1.0;
+        }
+        return numericInput(NumericInputKind::integer,
+                            std::move(model),
+                            std::move(changed),
+                            std::move(submitted),
+                            std::move(options));
+    }
+
+    WidgetRef<NumericInput>
+    UIComposer::floatInput(std::shared_ptr<NumericModel> model,
+                           NumericInput::Changed changed,
+                           NumericInput::Submitted submitted,
+                           NumericInputOptions options) {
+        if (!std::isfinite(options.step) || options.step < 0.0) {
+            options.step = 0.1;
+        }
+        return numericInput(NumericInputKind::floatingPoint,
+                            std::move(model),
+                            std::move(changed),
+                            std::move(submitted),
+                            std::move(options));
     }
 
     WidgetRef<Autocomplete>

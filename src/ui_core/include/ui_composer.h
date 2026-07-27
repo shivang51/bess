@@ -2,11 +2,14 @@
 
 #include "controls/action_button.h"
 #include "controls/basic_widgets.h"
+#include "controls/card.h"
 #include "controls/dock_space.h"
 #include "controls/drag_drop_widgets.h"
 #include "controls/focus_scope.h"
 #include "controls/image.h"
+#include "controls/list_view.h"
 #include "controls/menu_bar.h"
+#include "controls/numeric_input.h"
 #include "controls/popup_controls.h"
 #include "controls/render_view.h"
 #include "controls/reorderable_list.h"
@@ -200,6 +203,8 @@ namespace Bess::UI {
         WidgetRef<StackContainer> stack(StackContainerOptions options = {});
         WidgetRef<FocusScope> focusScope(FocusScopeOptions options = {});
         WidgetRef<Surface> surface(SurfaceOptions options = {});
+        WidgetRef<Card> card(CardOptions options = {});
+        WidgetRef<ListView> listView(ListViewOptions options = {});
         WidgetRef<DropZone> dropZone(DropZoneOptions options = {});
         WidgetRef<Draggable> draggable(DraggableOptions options = {});
         WidgetRef<ReorderableList>
@@ -252,6 +257,22 @@ namespace Bess::UI {
                                    TextBox::Changed changed = {},
                                    TextBox::Submitted submitted = {},
                                    TextBoxOptions options = {});
+        WidgetRef<NumericInput>
+        numericInput(NumericInputKind kind,
+                     std::shared_ptr<NumericModel> model = {},
+                     NumericInput::Changed changed = {},
+                     NumericInput::Submitted submitted = {},
+                     NumericInputOptions options = {});
+        WidgetRef<NumericInput>
+        intInput(std::shared_ptr<NumericModel> model = {},
+                 NumericInput::Changed changed = {},
+                 NumericInput::Submitted submitted = {},
+                 NumericInputOptions options = {});
+        WidgetRef<NumericInput>
+        floatInput(std::shared_ptr<NumericModel> model = {},
+                   NumericInput::Changed changed = {},
+                   NumericInput::Submitted submitted = {},
+                   NumericInputOptions options = {});
         WidgetRef<Autocomplete>
         autocomplete(std::shared_ptr<TextEditModel> model,
                      AutocompleteProvider provider,
@@ -341,6 +362,63 @@ namespace Bess::UI {
             requires std::invocable<Build, UIComposer &>
         WidgetRef<Surface> surface(Build &&build) {
             return surface(SurfaceOptions{}, std::forward<Build>(build));
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, UIComposer &>
+        WidgetRef<Card> card(CardOptions options, Build &&build) {
+            auto result = card(std::move(options));
+            try {
+                auto *widget = result.get();
+                if (widget == nullptr || !widget->contentRoot()) {
+                    throw std::runtime_error(
+                        "Card has no content composition root");
+                }
+                UIComposer content{m_tree, widget->contentRoot()};
+                std::invoke(std::forward<Build>(build), content);
+            } catch (...) {
+                Detail::rollbackComposedWidget(result,
+                                               std::current_exception());
+            }
+            if (!result) {
+                throw std::logic_error("Card was removed during composition");
+            }
+            return result;
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, UIComposer &>
+        WidgetRef<Card> card(Build &&build) {
+            return card(CardOptions{}, std::forward<Build>(build));
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, UIComposer &>
+        WidgetRef<ListView> listView(ListViewOptions options, Build &&build) {
+            auto result = listView(std::move(options));
+            try {
+                auto *widget = result.get();
+                if (widget == nullptr || !widget->contentRoot()) {
+                    throw std::runtime_error(
+                        "ListView has no content composition root");
+                }
+                UIComposer content{m_tree, widget->contentRoot()};
+                std::invoke(std::forward<Build>(build), content);
+            } catch (...) {
+                Detail::rollbackComposedWidget(result,
+                                               std::current_exception());
+            }
+            if (!result) {
+                throw std::logic_error(
+                    "ListView was removed during composition");
+            }
+            return result;
+        }
+
+        template <typename Build>
+            requires std::invocable<Build, UIComposer &>
+        WidgetRef<ListView> listView(Build &&build) {
+            return listView(ListViewOptions{}, std::forward<Build>(build));
         }
 
         template <typename Build>

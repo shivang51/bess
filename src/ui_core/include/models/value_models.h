@@ -331,4 +331,42 @@ namespace Bess::UI {
         ChangedSignal m_changed;
     };
 
+    // Shareable numeric value for int/float inputs. Unlike RangeModel it does
+    // not force a closed interval; clamping is optional and controlled by the
+    // owning control or explicit setClamp/setRange calls.
+    class NumericModel {
+      public:
+        using ChangedSignal = Signal<ValueChange<double>>;
+
+        explicit NumericModel(double value = 0.0) : m_value(sanitize(value)) {
+        }
+
+        [[nodiscard]] double value() const noexcept {
+            return m_value;
+        }
+
+        bool setValue(double value) {
+            const double next = sanitize(value);
+            if (next == m_value) {
+                return false;
+            }
+            const double previous = m_value;
+            m_value = next;
+            m_changed.emit({.previous = previous, .value = m_value});
+            return true;
+        }
+
+        [[nodiscard]] ChangedSignal &changed() noexcept {
+            return m_changed;
+        }
+
+      private:
+        [[nodiscard]] static double sanitize(double value) noexcept {
+            return std::isfinite(value) ? value : 0.0;
+        }
+
+        double m_value = 0.0;
+        ChangedSignal m_changed;
+    };
+
 } // namespace Bess::UI

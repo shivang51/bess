@@ -78,11 +78,7 @@ namespace Bess::UI {
         context.layout.setDirection(LayoutDirection::vertical);
         context.layout.setMainAxisAlignment(LayoutAlignment::start);
         context.layout.setCrossAxisAlignment(LayoutAlignment::start);
-        context.layout.setPadding(
-            {m_options.headerHeight, 0.f, 0.f, m_options.indentation});
-        auto padding = context.layout.getPadding();
-        padding.top += m_options.contentGap;
-        context.layout.setPadding(padding);
+        context.layout.setPadding(contentPadding());
         if (m_options.stretchWidth) {
             context.layout.setWidthPercent(1.f);
         }
@@ -114,11 +110,7 @@ namespace Bess::UI {
     }
 
     void TreeNode::updateLayout(WidgetLayoutContext &context) {
-        context.layout.setPadding(
-            {m_options.headerHeight, 0.f, 0.f, m_options.indentation});
-        auto padding = context.layout.getPadding();
-        padding.top += m_options.contentGap;
-        context.layout.setPadding(padding);
+        context.layout.setPadding(contentPadding());
         syncContentVisibility();
     }
 
@@ -287,6 +279,31 @@ namespace Bess::UI {
         return {
             .center = {bounds.center.x, bounds.topLeft().y + height * 0.5f},
             .size = {finiteNonNegative(bounds.size.x), height},
+        };
+    }
+
+    float TreeNode::labelTextStart() const noexcept {
+        float cursor = finiteNonNegative(m_options.horizontalPadding);
+        if (m_options.collapsible && m_options.disclosureSlotWidth > 0.f) {
+            cursor += finiteNonNegative(m_options.disclosureSlotWidth);
+        }
+        if (!m_options.icon.empty() && m_options.iconSlotWidth > 0.f) {
+            cursor += finiteNonNegative(m_options.iconSlotWidth);
+        }
+        return cursor;
+    }
+
+    Core::Style::Padding TreeNode::contentPadding() const noexcept {
+        // Children start under the label text so nested disclosure glyphs and
+        // titles form a clean vertical column (common tree/file-browser UX).
+        const float left = labelTextStart() +
+                           finiteNonNegative(m_options.indentation);
+        return {
+            finiteNonNegative(m_options.headerHeight) +
+                finiteNonNegative(m_options.contentGap),
+            0.f,
+            0.f,
+            left,
         };
     }
 

@@ -15,7 +15,10 @@ namespace Bess::UI {
         bool collapsible = true;
         bool stretchWidth = true;
         float headerHeight = 24.f;
-        float indentation = 16.f;
+        // Extra left inset for children beyond the label text start. Content is
+        // always aligned with the label (after disclosure/icon slots); this
+        // value only adds further indent when nesting needs more separation.
+        float indentation = 0.f;
         float horizontalPadding = 5.f;
         float disclosureSlotWidth = 17.f;
         float iconSlotWidth = 18.f;
@@ -67,6 +70,10 @@ namespace Bess::UI {
       private:
         [[nodiscard]] WidgetBounds
         headerBounds(WidgetBounds bounds) const noexcept;
+        // Left edge of the painted label, measured from the node content box.
+        // Children indent to this origin so nested rows align with the title.
+        [[nodiscard]] float labelTextStart() const noexcept;
+        [[nodiscard]] Core::Style::Padding contentPadding() const noexcept;
         bool changeExpanded(bool expanded, bool notify);
         void syncContentVisibility();
 

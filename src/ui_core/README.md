@@ -158,8 +158,10 @@ declaration order for both painting depth and hit testing.
 
 `TreeNode` is a lightweight disclosure control for small retained hierarchies.
 Its builder composes into a private content host, so collapsing a branch never
-overwrites visibility chosen by descendants. Large data sets should build a
-virtualized model-backed tree on the same interaction vocabulary.
+overwrites visibility chosen by descendants. Nested children indent so their
+leading edge lines up with the parent label text (after the disclosure and
+optional icon slots). Large data sets should build a virtualized model-backed
+tree on the same interaction vocabulary.
 
 ```cpp
 ui.treeNode("Assets", [](Bess::UI::UIComposer &branch) {
@@ -168,6 +170,30 @@ ui.treeNode("Assets", [](Bess::UI::UIComposer &branch) {
     });
 });
 ```
+
+`Card` is a Flutter-style elevated surface with padding and a private flex
+content host. `ListView` is a scrollable retained list; compose initial items
+declaratively, then mutate them later through `WidgetRef::mutate` helpers such
+as `emplaceItem`, `removeItem`, and `clearItems`.
+
+```cpp
+auto list = ui.listView([](Bess::UI::UIComposer &items) {
+    items.label("First");
+});
+list.mutate([](Bess::UI::ListView &view) {
+    view.emplaceItem<Bess::UI::Label>("Second");
+});
+
+ui.card([](Bess::UI::UIComposer &card) {
+    card.label("Title");
+    card.label("Supporting text");
+});
+```
+
+`intInput` and `floatInput` are single-line numeric text boxes (shared
+`NumericModel`, partial-edit filtering, Enter/blur commit, optional range
+clamp, and arrow-key stepping). They follow the same interaction model as the
+scene-layer scalar input.
 
 `Image` passively presents any shared renderer texture with fill, contain,
 cover, intrinsic, or scale-down fitting. It owns no renderer or device state.
@@ -513,6 +539,13 @@ ui.textBox(
     [](const std::string &value) { /* value changed */ },
     [](const std::string &value) { /* Enter pressed */ },
     {.placeholder = "Name"});
+
+auto count = std::make_shared<Bess::UI::NumericModel>(0.0);
+ui.intInput(count, [](double value) { /* committed integer */ });
+ui.floatInput(std::make_shared<Bess::UI::NumericModel>(0.5),
+              {},
+              {},
+              {.precision = 3, .step = 0.05, .minimum = 0.0, .maximum = 1.0});
 
 ui.autocomplete(
     text,

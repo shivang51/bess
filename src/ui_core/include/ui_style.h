@@ -234,6 +234,11 @@ namespace Bess::UI {
         Core::Renderer::Color canvas;
         UIBoxStyle surface;
         UIBoxStyle panel;
+        // Elevated content container (Material / Flutter Card semantics).
+        UIBoxStyle card;
+        // Optional chrome behind ListView; fully transparent by default so
+        // surrounding surfaces own the frame when desired.
+        UIBoxStyle listView;
         UITextStyle label;
         UIInteractiveStyle button;
         UITabStyle tabs;

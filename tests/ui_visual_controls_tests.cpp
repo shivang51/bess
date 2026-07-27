@@ -1,7 +1,12 @@
+#include "controls/card.h"
 #include "controls/image.h"
+#include "controls/list_view.h"
+#include "controls/numeric_input.h"
 #include "controls/render_view.h"
 #include "controls/scene_view.h"
 #include "controls/tree_node.h"
+#include "ui_composer.h"
+#include "ui_event.h"
 #include "widget_tree.h"
 
 #include <gtest/gtest.h>
@@ -647,6 +652,143 @@ namespace {
         ASSERT_NE(mounted, nullptr);
         EXPECT_TRUE(mounted->setExpanded(false));
         EXPECT_FALSE(tree.contains(id));
+    }
+
+    TEST(TreeNodeTests, ContentIndentAlignsWithLabelTextStart) {
+        WidgetTree tree;
+        tree.setViewportSize({400.f, 300.f});
+        const auto id = tree.emplaceWidget<TreeNode>(
+            "Root",
+            TreeNodeOptions{
+                .expanded = true,
+                .indentation = 0.f,
+                .horizontalPadding = 5.f,
+                .disclosureSlotWidth = 17.f,
+            });
+        tree.performLayout();
+        auto *layout = tree.getLayout(id);
+        ASSERT_NE(layout, nullptr);
+        // Label starts after horizontal padding + disclosure slot.
+        EXPECT_FLOAT_EQ(layout->getPadding().left, 22.f);
+        EXPECT_FLOAT_EQ(layout->getPadding().top, 24.f);
+
+        EXPECT_TRUE(tree.mutateWidget<TreeNode>(
+            id, WidgetInvalidation::layout, [](TreeNode &value) {
+                value.setIcon("X");
+            }));
+        tree.performLayout();
+        // With an icon slot the label (and children) shift further right.
+        EXPECT_FLOAT_EQ(layout->getPadding().left, 40.f);
+    }
+
+    TEST(CardTests, ComposesChildrenUnderPrivateContentHost) {
+        WidgetTree tree;
+        UIComposer ui{tree};
+        auto card = ui.card(CardOptions{.padding = {8.f}}, [](UIComposer &c) {
+            c.label("Title");
+            c.label("Body");
+        });
+        ASSERT_TRUE(card);
+        auto *widget = card.get();
+        ASSERT_NE(widget, nullptr);
+        ASSERT_TRUE(widget->contentRoot());
+        EXPECT_EQ(tree.getChildren(widget->contentRoot()).size(), 2u);
+        EXPECT_EQ(tree.getParent(widget->contentRoot()), card.id());
+    }
+
+    TEST(ListViewTests, MutateApiAddsRemovesAndClearsItems) {
+        WidgetTree tree;
+        UIComposer ui{tree};
+        auto list = ui.listView(ListViewOptions{.gap = 2.f}, [](UIComposer &c) {
+            c.label("A");
+            c.label("B");
+        });
+        ASSERT_TRUE(list);
+        auto *view = list.get();
+        ASSERT_NE(view, nullptr);
+        EXPECT_EQ(view->itemCount(), 2u);
+
+        WidgetId added;
+        EXPECT_TRUE(list.mutate([&](ListView &value) {
+            added = value.emplaceItem<Label>("C");
+            EXPECT_TRUE(added);
+        }));
+        EXPECT_EQ(view->itemCount(), 3u);
+
+        // Removals requested inside mutate are deferred until the callback
+        // ends, matching WidgetTree's callback lifetime contract.
+        EXPECT_TRUE(list.mutate([&](ListView &value) {
+            EXPECT_TRUE(value.removeItem(added));
+        }));
+        EXPECT_EQ(view->itemCount(), 2u);
+
+        EXPECT_TRUE(list.mutate([](ListView &value) {
+            EXPECT_TRUE(value.clearItems());
+        }));
+        EXPECT_EQ(view->itemCount(), 0u);
+
+        EXPECT_TRUE(list.mutate([](ListView &value) {
+            EXPECT_TRUE(value.emplaceItem<Label>("Only"));
+        }));
+        EXPECT_EQ(view->itemCount(), 1u);
+        EXPECT_EQ(tree.getChildren(view->contentRoot()).size(), 1u);
+    }
+
+    TEST(NumericInputTests, IntegerAndFloatModesFilterAndCommit) {
+        WidgetTree tree;
+        const auto intId = tree.emplaceWidget<NumericInput>(
+            NumericInputKind::integer,
+            std::make_shared<NumericModel>(3.0),
+            NumericInput::Changed{},
+            NumericInput::Submitted{},
+            NumericInputOptions{.step = 1.0});
+        auto *integer = tree.getWidget<NumericInput>(intId);
+        ASSERT_NE(integer, nullptr);
+        EXPECT_DOUBLE_EQ(integer->value(), 3.0);
+        EXPECT_EQ(integer->text(), "3");
+        EXPECT_EQ(integer->typeName(), "IntInput");
+
+        const auto floatId = tree.emplaceWidget<NumericInput>(
+            NumericInputKind::floatingPoint,
+            std::make_shared<NumericModel>(1.5),
+            NumericInput::Changed{},
+            NumericInput::Submitted{},
+            NumericInputOptions{.step = 0.1, .precision = 2});
+        auto *floating = tree.getWidget<NumericInput>(floatId);
+        ASSERT_NE(floating, nullptr);
+        EXPECT_DOUBLE_EQ(floating->value(), 1.5);
+        EXPECT_EQ(floating->typeName(), "FloatInput");
+
+        EXPECT_TRUE(tree.mutateWidget<NumericInput>(
+            intId, WidgetInvalidation::paint, [](NumericInput &input) {
+                EXPECT_TRUE(input.setValue(10.0));
+            }));
+        EXPECT_EQ(integer->text(), "10");
+
+        EXPECT_TRUE(tree.mutateWidget<NumericInput>(
+            floatId, WidgetInvalidation::paint, [](NumericInput &input) {
+                input.setRange(0.0, 2.0, true);
+                EXPECT_TRUE(input.setValue(5.0));
+                EXPECT_DOUBLE_EQ(input.value(), 2.0);
+            }));
+    }
+
+    TEST(NumericInputTests, ComposerIntAndFloatHelpers) {
+        WidgetTree tree;
+        UIComposer ui{tree};
+        auto integer = ui.intInput(std::make_shared<NumericModel>(0),
+                                   {},
+                                   {},
+                                   {.placeholder = "int"});
+        auto floating = ui.floatInput(std::make_shared<NumericModel>(0.25),
+                                      {},
+                                      {},
+                                      {.placeholder = "float", .precision = 3});
+        ASSERT_TRUE(integer);
+        ASSERT_TRUE(floating);
+        EXPECT_EQ(integer.get()->kind(), NumericInputKind::integer);
+        EXPECT_EQ(floating.get()->kind(), NumericInputKind::floatingPoint);
+        EXPECT_DOUBLE_EQ(floating.get()->value(), 0.25);
     }
 
 } // namespace
