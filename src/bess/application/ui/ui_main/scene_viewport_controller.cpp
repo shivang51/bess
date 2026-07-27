@@ -94,6 +94,7 @@ namespace Bess::UI {
         m_view = nullptr;
         m_hovered = false;
         m_pointerInside = false;
+        m_keyboardFocused = false;
         m_pendingSelectionReadback.clear();
         if (m_viewportCtx) {
             m_viewportCtx->isFocused = false;
@@ -170,19 +171,21 @@ namespace Bess::UI {
 
         if (const auto *crossing = event.getIf<UIPointerCrossingEvent>()) {
             m_pointerInside = crossing->entered;
+            // Capture keeps interaction alive while dragging outside the view;
+            // otherwise hover tracks the retained tree's hover target exactly.
             m_hovered = crossing->entered || hasMouseCapture();
-            if (!m_hovered && m_viewportCtx) {
-                m_viewportCtx->inputCtx.pickingId = PickingId::invalid();
-                m_viewportCtx->inputCtx.resetCursorRequest();
+            if (!isInputActive()) {
+                clearHoverInteractionState();
             }
             reply.handled = true;
             return reply;
         }
 
         if (const auto *focus = event.getIf<UIFocusChangedEvent>()) {
-            if (m_viewportCtx) {
-                m_viewportCtx->isFocused = focus->focused || m_hovered;
-            }
+            // Keyboard focus is independent of scene input routing. Scene
+            // events still require hover/capture so overlays above the
+            // viewport do not leak into the scene.
+            m_keyboardFocused = focus->focused;
             reply.handled = true;
             return reply;
         }
@@ -197,20 +200,34 @@ namespace Bess::UI {
                         false, m_camera, m_viewportCtx);
                 }
             }
+            m_hovered = m_pointerInside;
+            if (!isInputActive()) {
+                clearHoverInteractionState();
+            }
             reply.releasePointer = true;
             reply.handled = true;
             return reply;
         }
 
         if (const auto *button = event.getIf<Input::MouseButtonEvent>()) {
+            // Presses only reach this widget when it is the hit target. Still
+            // refuse presses that arrive without hover (e.g. stale routing).
             if (button->action == MouseButtonAction::press &&
                 (button->button == MouseButton::left ||
                  button->button == MouseButton::middle)) {
+                if (!context.hovered && !m_pointerInside &&
+                    !context.pointerInside()) {
+                    return {};
+                }
                 reply.capturePointer = true;
                 reply.requestFocus = true;
                 m_hovered = true;
+                m_pointerInside = true;
             } else if (button->action == MouseButtonAction::release) {
                 reply.releasePointer = !hasMouseCapture();
+                if (!m_pointerInside && !context.hovered) {
+                    m_hovered = hasMouseCapture();
+                }
             }
             reply.handled = true;
             reply.stopPropagation = true;
@@ -220,7 +237,17 @@ namespace Bess::UI {
 
         if (event.getIf<Input::MouseMoveEvent>() != nullptr ||
             event.getIf<Input::MouseWheelEvent>() != nullptr) {
-            m_hovered = m_pointerInside || context.hovered || hasMouseCapture();
+            // Only claim pointer motion while this SceneView is the active
+            // hover target or has pointer capture for a drag.
+            const bool treeCaptured =
+                context.state.getPointerCapture() == context.id;
+            if (!context.hovered && !treeCaptured && !m_pointerInside &&
+                !hasMouseCapture()) {
+                return {};
+            }
+            m_hovered =
+                context.hovered || m_pointerInside || hasMouseCapture() ||
+                treeCaptured;
             reply.handled = true;
             reply.stopPropagation = true;
             return reply;
@@ -228,7 +255,10 @@ namespace Bess::UI {
 
         if (event.getIf<Input::KeyEvent>() != nullptr ||
             event.getIf<Input::TextInputEvent>() != nullptr) {
-            if (isFocused() || context.focused) {
+            // Keyboard follows hover-active input (panel parity) or explicit
+            // keyboard focus while the pointer is still over the view.
+            if (isInputActive() || (m_keyboardFocused && m_pointerInside) ||
+                context.focused) {
                 reply.handled = true;
                 reply.stopPropagation = true;
             }
@@ -241,7 +271,8 @@ namespace Bess::UI {
     CursorIcon SceneViewportController::cursor(
         const SceneView &,
         const WidgetCursorContext &context) const noexcept {
-        if ((!m_hovered && !context.captured) || m_viewportCtx == nullptr) {
+        if ((!isInputActive() && !context.captured) ||
+            m_viewportCtx == nullptr) {
             return CursorIcon::inherit;
         }
 
@@ -261,8 +292,11 @@ namespace Bess::UI {
     }
 
     bool SceneViewportController::isFocused() const noexcept {
-        return m_hovered || (m_viewportCtx && m_viewportCtx->isFocused) ||
-               hasMouseCapture();
+        // Match SceneViewportPanel: "focused" for viewport targeting means
+        // hover-active (or actively capturing a drag), not sticky keyboard
+        // focus. Sticky focus previously kept the scene on the global input
+        // bus after the pointer moved onto an overlay panel.
+        return isInputActive();
     }
 
     bool SceneViewportController::isUsable() const noexcept {
@@ -421,6 +455,87 @@ namespace Bess::UI {
                inputCtx.isDragging || m_viewportCtx->selBoxCtx.draw;
     }
 
+    bool SceneViewportController::uiBlocksSceneInput() const noexcept {
+        if (m_view == nullptr) {
+            return false;
+        }
+        auto *tree = m_view->tree();
+        const WidgetId viewId = m_view->widgetId();
+        if (tree == nullptr || !viewId) {
+            return false;
+        }
+
+        // Dock tab/window drag, splitter drag, and similar chrome gestures
+        // capture the pointer on DockSpace (or another non-SceneView widget).
+        // Scene must not keep reading the global InputSubSystem in parallel.
+        const WidgetId capture = tree->getPointerCapture();
+        if (capture && capture != viewId) {
+            return true;
+        }
+
+        if (tree->dragDrop().isDragging()) {
+            return true;
+        }
+
+        // Prefer the tree's live hover target over local m_hovered, which can
+        // lag a frame when a floating panel is dragged over the viewport.
+        const WidgetId hovered = tree->getHoveredWidget();
+        if (hovered && hovered != viewId && capture != viewId) {
+            return true;
+        }
+
+        return false;
+    }
+
+    bool SceneViewportController::isInputActive() const noexcept {
+        if (uiBlocksSceneInput()) {
+            return false;
+        }
+        return m_hovered || hasMouseCapture();
+    }
+
+    void SceneViewportController::clearHoverInteractionState() noexcept {
+        if (m_viewportCtx == nullptr) {
+            return;
+        }
+        m_viewportCtx->isFocused = false;
+        m_viewportCtx->inputCtx.pickingId = PickingId::invalid();
+        m_viewportCtx->inputCtx.resetCursorRequest();
+    }
+
+    void SceneViewportController::cancelScenePointerState() {
+        if (m_attachedScene && m_camera && m_viewportCtx) {
+            if (m_viewportCtx->inputCtx.isLeftMousePressed) {
+                m_attachedScene->onLeftMouse(false, m_camera, m_viewportCtx);
+            }
+            if (m_viewportCtx->inputCtx.isMiddleMousePressed) {
+                m_attachedScene->onMiddleMouse(false, m_camera, m_viewportCtx);
+            }
+            m_viewportCtx->inputCtx.isDragging = false;
+            m_viewportCtx->selBoxCtx.reset();
+        }
+        m_hovered = false;
+        m_pointerInside = false;
+        clearHoverInteractionState();
+    }
+
+    void SceneViewportController::syncHoverFromTree() noexcept {
+        if (m_view == nullptr) {
+            return;
+        }
+        auto *tree = m_view->tree();
+        const WidgetId viewId = m_view->widgetId();
+        if (tree == nullptr || !viewId) {
+            return;
+        }
+        const WidgetId hovered = tree->getHoveredWidget();
+        const WidgetId capture = tree->getPointerCapture();
+        m_pointerInside = hovered == viewId;
+        // Scene-owned capture keeps interaction while dragging outside the
+        // view; otherwise hover is whatever the tree currently points at.
+        m_hovered = m_pointerInside || capture == viewId || hasMouseCapture();
+    }
+
     void SceneViewportController::processInteraction(TimeMs ts,
                                                      bool effectivelyVisible) {
         syncAttachedScene();
@@ -438,10 +553,22 @@ namespace Bess::UI {
         ensureCamera(m_viewportCtx->transform.size);
         m_camera->update(ts);
 
-        const bool focused = effectivelyVisible && isFocused();
-        m_viewportCtx->isFocused = focused;
+        // UI chrome (dock panel drag, other captures) wins over the scene's
+        // parallel InputSubSystem polling path.
+        if (uiBlocksSceneInput()) {
+            if (hasMouseCapture() || m_hovered || m_viewportCtx->isFocused) {
+                cancelScenePointerState();
+            } else {
+                clearHoverInteractionState();
+            }
+        } else {
+            syncHoverFromTree();
+        }
 
-        if (focused && m_attachedScene != sceneDriver->getActiveScene()) {
+        const bool inputActive = effectivelyVisible && isInputActive();
+        m_viewportCtx->isFocused = inputActive;
+
+        if (inputActive && m_attachedScene != sceneDriver->getActiveScene()) {
             sceneDriver->setActiveScene(m_attachedScene->getSceneId());
             m_viewportCtx->inputCtx.pickingId = PickingId::invalid();
         }
@@ -451,14 +578,24 @@ namespace Bess::UI {
                             ->getRenderer();
 
         Canvas::ViewportUpdateContext ctx{
-            .isFocused = focused,
+            .isFocused = inputActive,
             .camera = m_camera,
             .viewportCtx = m_viewportCtx,
             .renderer = renderer,
         };
 
+        // Always tick viewport layers so deferred selection readbacks finish,
+        // but only feed InputSubSystem frame events while inputActive.
         if (!sceneDriver->getIsPaused()) {
             m_attachedScene->viewportUpdate(ts, ctx);
+        }
+
+        if (!inputActive) {
+            clearHoverInteractionState();
+            if (m_viewportCtx->isResized) {
+                m_viewportCtx->isResized = false;
+            }
+            return;
         }
 
         auto inputSystem =
@@ -471,25 +608,33 @@ namespace Bess::UI {
         bool mouseMoved = false;
         if (frameInputState.hasMouseMoved) {
             mouseMoved = true;
-            handleEdgePan(inputSystem->getMouseMoveState().pos);
+            // Edge pan only while a scene drag is captured — never during a
+            // dock panel drag that also moves the pointer.
+            if (hasMouseCapture() && !uiBlocksSceneInput()) {
+                handleEdgePan(inputSystem->getMouseMoveState().pos);
+            }
         }
 
-        if (frameInputState.hasMouseBtnEvent) {
+        if (frameInputState.hasMouseBtnEvent && hasMouseCapture() &&
+            !uiBlocksSceneInput()) {
             releaseMouseButtonOutsideViewport(frameInputState.mouseBtnState);
+            if (!m_pointerInside && !hasMouseCapture()) {
+                m_hovered = false;
+                clearHoverInteractionState();
+            }
         }
 
         const bool shouldProcessPicking =
-            m_hovered || m_viewportCtx->pickingReadbackRequest.active ||
+            inputActive || m_viewportCtx->pickingReadbackRequest.active ||
             m_pendingSelectionReadback.active;
 
         if (shouldProcessPicking && !m_attachedScene->getIsFirstFrame() &&
             !m_viewportCtx->inputCtx.isDragging) {
-            updatePickingIds(mouseMoved && m_hovered);
+            updatePickingIds(mouseMoved && inputActive && m_hovered);
         }
 
-        if (!m_hovered && !hasMouseCapture()) {
-            m_viewportCtx->inputCtx.pickingId = PickingId::invalid();
-            m_viewportCtx->inputCtx.resetCursorRequest();
+        if (!inputActive) {
+            clearHoverInteractionState();
         }
 
         if (m_viewportCtx->isResized) {

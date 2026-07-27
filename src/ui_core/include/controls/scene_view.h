@@ -113,6 +113,14 @@ namespace Bess::UI {
         delegate() const noexcept;
         void setDelegate(std::shared_ptr<ISceneViewDelegate> delegate);
 
+        // Stable identity for input arbitration (e.g. scene vs dock chrome).
+        [[nodiscard]] WidgetId widgetId() const noexcept {
+            return m_id;
+        }
+        [[nodiscard]] WidgetTree *tree() const noexcept {
+            return m_state;
+        }
+
       private:
         void destroyTarget() noexcept;
         void ensureTarget(const std::shared_ptr<Core::Renderer::IRenderer2D>

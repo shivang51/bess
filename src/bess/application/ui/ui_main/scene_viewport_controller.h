@@ -110,11 +110,21 @@ namespace Bess::UI {
                            glm::vec2 treeViewportSize);
         [[nodiscard]] bool hasRenderableViewport() const noexcept;
         [[nodiscard]] bool hasMouseCapture() const noexcept;
+        // True when retained UI chrome owns the gesture (dock tab/window drag,
+        // pointer capture on another widget, active drag-drop). The scene still
+        // polls InputSubSystem when "focused", so this must hard-block that path.
+        [[nodiscard]] bool uiBlocksSceneInput() const noexcept;
+        // True only while the SceneView is the hover target or an active
+        // pointer capture (drag / selection), and UI is not blocking.
+        [[nodiscard]] bool isInputActive() const noexcept;
         void processInteraction(TimeMs ts, bool effectivelyVisible);
         void updatePickingIds(bool mouseMoved);
         void handleEdgePan(const glm::vec2 &windowMouse);
         void releaseMouseButtonOutsideViewport(
             const Input::MouseButtonEvent &mouseBtnState);
+        void clearHoverInteractionState() noexcept;
+        void cancelScenePointerState();
+        void syncHoverFromTree() noexcept;
         [[nodiscard]] bool isInsideViewportWindow(const glm::vec2 &windowPos)
             const noexcept;
         [[nodiscard]] glm::vec2 windowSpaceSize() const noexcept;
@@ -131,6 +141,7 @@ namespace Bess::UI {
         WidgetBounds m_bounds{};
         bool m_hovered = false;
         bool m_pointerInside = false;
+        bool m_keyboardFocused = false;
         UUID m_nextSceneId = UUID::null;
         bool m_geometryDirty = true;
     };
