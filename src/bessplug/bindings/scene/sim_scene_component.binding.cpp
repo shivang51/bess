@@ -1,7 +1,7 @@
 
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
+#include "project_session/project_session.h"
 #include "bess_core/scene_driver.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
@@ -237,7 +237,7 @@ void bind_sim_scene_component(py::module_ &m) {
         }
 
         auto scene = Bess::GAppContext::getInstance()
-                         .getSubSystem<Bess::ProjectContext>()
+                         .getSubSystem<Bess::ProjectSession>()
                          ->getSubSystem<Bess::SceneDriver>();
         auto &sceneState = scene->getActiveScene()->getState();
         for (const auto &slot : createdSlots) {

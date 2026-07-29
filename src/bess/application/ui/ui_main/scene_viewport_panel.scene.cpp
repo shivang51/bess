@@ -1,6 +1,6 @@
 #include "scene_viewport_panel.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
+#include "project_session/project_session.h"
 #include "bess_core/scene/scene.h"
 #include "bess_core/scene_driver.h"
 #include "bess_core/sub_systems/input_sub_system.h"
@@ -240,7 +240,7 @@ namespace Bess::UI {
 
     void SceneViewportPanel::renderAttachedScene() {
         const auto sceneDriver = GAppContext::getInstance()
-                                     .getSubSystem<Bess::ProjectContext>()
+                                     .getSubSystem<Bess::ProjectSession>()
                                      ->getSubSystem<SceneDriver>();
         if (!m_attachedScene ||
             sceneDriver->getSceneWithId(m_attachedScene->getSceneId()) !=

@@ -1,6 +1,6 @@
 #include "group_scene_component.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
+#include "project_session/project_session.h"
 #include "bess_core/scene_driver.h"
 #include "common/bess_uuid.h"
 #include "pages/main_page/main_page.h"
@@ -58,7 +58,7 @@ namespace Bess::Canvas {
             return;
 
         auto sceneDriver = GAppContext::getInstance()
-                               .getSubSystem<Bess::ProjectContext>()
+                               .getSubSystem<Bess::ProjectSession>()
                                ->getSubSystem<SceneDriver>();
         auto &sceneState = sceneDriver->getActiveScene()->getState();
         for (const auto &childId : m_childComponents) {

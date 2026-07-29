@@ -1,24 +1,24 @@
-#include "bess_core/commands/add_component_command.h"
-#include "bess_core/commands/command_system.h"
-#include "bess_core/commands/delete_component_command.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/scene/scene.h"
 #include "bess_core/scene/scene_event.h"
+#include "bess_core/scene/scene_ui/controls/text_box_comp.h"
+#include "bess_core/scene/scene_ui/controls/toggle_btn_comp.h"
 #include "bess_core/scene_driver.h"
+#include "dig_module_def.h"
 #include "dig_sim_driver.h"
 #include "event_dispatcher.h"
 #include "math_sim_driver.h"
-#include "pages/main_page/main_page_command_hooks.h"
+#include "pages/main_page/main_page_edit_hooks.h"
 #include "pages/main_page/main_page_state.h"
+#include "pages/main_page/module_edit.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/input_scene_component.h"
+#include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
-#include "bess_core/scene/scene_ui/controls/text_box_comp.h"
-#include "bess_core/scene/scene_ui/controls/toggle_btn_comp.h"
+#include "project_session/project_session.h"
 #include "simulation_engine.h"
 #include <algorithm>
 #include <gtest/gtest.h>
@@ -94,16 +94,15 @@ namespace {
         getStats() const noexcept override {
             return {};
         }
-        [[nodiscard]] Bess::Core::Renderer::TextureReadbackResult
-        readTexture(
+        [[nodiscard]] Bess::Core::Renderer::TextureReadbackResult readTexture(
             const Bess::Core::Renderer::TextureReadbackRegion &) override {
             return {};
         }
         void requestPickingIds(
             const Bess::Core::Renderer::TextureReadbackRegion &) override {
         }
-        [[nodiscard]] bool
-        tryGetPickingIds(Bess::Core::Renderer::PickingReadbackResult &) override {
+        [[nodiscard]] bool tryGetPickingIds(
+            Bess::Core::Renderer::PickingReadbackResult &) override {
             return false;
         }
         [[nodiscard]] bool isPickingReadbackPending() const noexcept override {
@@ -126,8 +125,8 @@ namespace {
         void destroyCustomQuadShader(
             Bess::Core::Renderer::CustomQuadShaderHandle) override {
         }
-        void drawCustomQuad(
-            const Bess::Core::Renderer::CustomQuadProps &) override {
+        void
+        drawCustomQuad(const Bess::Core::Renderer::CustomQuadProps &) override {
         }
         void drawCircle(const Bess::Core::Renderer::CircleProps &) override {
         }
@@ -146,9 +145,8 @@ namespace {
             const Bess::Core::Renderer::FontProps &props = {}) override {
             return props.fontSize * 0.35f;
         }
-        void drawPath(
-            std::span<const Bess::Core::Renderer::PathCommand>,
-            const Bess::Core::Renderer::PathProps & = {}) override {
+        void drawPath(std::span<const Bess::Core::Renderer::PathCommand>,
+                      const Bess::Core::Renderer::PathProps & = {}) override {
         }
         void beginPath(const Bess::Core::Renderer::PathProps & = {}) override {
         }
@@ -290,25 +288,21 @@ class MainPageConnectionCommandsTest : public testing::Test {
                 ->dispatchAll();
         }
 
-        if (!appCtx.hasSubSystem<Bess::ProjectContext>()) {
-            projectContext = appCtx.addSubSystem<Bess::ProjectContext>();
-            projectContext->addSubSystem<Bess::Svc::SvcConnection>();
-            projectContext->onInit();
+        if (!appCtx.hasSubSystem<Bess::ProjectSession>()) {
+            session = appCtx.addSubSystem<Bess::ProjectSession>();
+            session->addSubSystem<Bess::Svc::SvcConnection>();
+            session->onInit();
         } else {
-            projectContext = appCtx.getSubSystem<Bess::ProjectContext>();
-            projectContext->addSubSystem<Bess::Svc::SvcConnection>();
-            if (!projectContext->hasSubSystem<Bess::SceneDriver>()) {
-                projectContext->onInit();
+            session = appCtx.getSubSystem<Bess::ProjectSession>();
+            session->addSubSystem<Bess::Svc::SvcConnection>();
+            if (!session->hasSubSystem<Bess::SceneDriver>()) {
+                session->onInit();
             }
         }
 
-        sceneDriver = projectContext->getSubSystem<Bess::SceneDriver>();
-        simEngine =
-            projectContext->getSubSystem<Bess::SimEngine::SimulationEngine>();
-        connectionService =
-            projectContext->getSubSystem<Bess::Svc::SvcConnection>();
-        commandSystem =
-            projectContext->getSubSystem<Bess::Cmd::CommandSystem>();
+        sceneDriver = session->getSubSystem<Bess::SceneDriver>();
+        simEngine = session->getSubSystem<Bess::SimEngine::SimulationEngine>();
+        connectionService = session->getSubSystem<Bess::Svc::SvcConnection>();
 
         connectionService->onDestroy();
         connectionService->onInit();
@@ -323,21 +317,14 @@ class MainPageConnectionCommandsTest : public testing::Test {
         sceneDriver->setRootSceneId(scene->getSceneId());
         sceneDriver->setActiveScene(scene->getSceneId());
 
-        commandSystem->reset();
-        commandSystem->setScene(scene);
-        commandSystem->setSceneComponentHooks(
-            Bess::Pages::createMainPageCommandHooks());
+        session->clearHist();
+        session->setHooks(Bess::Pages::makeEditHooks());
 
         sourceDef = makeDefinition("Source", 0, 1);
         sinkDef = makeDefinition("Sink", 1, 0);
     }
 
     void TearDown() override {
-        if (commandSystem) {
-            commandSystem->reset();
-            commandSystem->setScene(nullptr);
-        }
-
         if (scene) {
             scene->clear();
             scene.reset();
@@ -359,12 +346,12 @@ class MainPageConnectionCommandsTest : public testing::Test {
         }
 
         auto &appCtx = Bess::GAppContext::getInstance();
-        if (projectContext) {
-            projectContext->onDestroy();
-            projectContext.reset();
+        if (session) {
+            session->onDestroy();
+            session.reset();
         }
-        if (appCtx.hasSubSystem<Bess::ProjectContext>()) {
-            appCtx.removeSubSystem<Bess::ProjectContext>();
+        if (appCtx.hasSubSystem<Bess::ProjectSession>()) {
+            appCtx.removeSubSystem<Bess::ProjectSession>();
         }
 
         if (appCtx.hasSubSystem<Bess::EventSystem::EventDispatcher>()) {
@@ -380,9 +367,9 @@ class MainPageConnectionCommandsTest : public testing::Test {
             return fixture;
         }
 
-        commandSystem->execute(
-            std::make_unique<Bess::Cmd::AddCompCmd<SimulationSceneComponent>>(
-                fixture.comp, fixture.children));
+        const auto result = session->addComp(
+            fixture.comp, fixture.children, scene->getSceneId());
+        EXPECT_TRUE(result) << result.status.msg();
         EXPECT_NE(scene->getState().getComponentByUuid(fixture.comp->getUuid()),
                   nullptr);
         EXPECT_NE(fixture.comp->getSimEngineId(), UUID::null);
@@ -449,11 +436,10 @@ class MainPageConnectionCommandsTest : public testing::Test {
         return count;
     }
 
-    std::shared_ptr<Bess::ProjectContext> projectContext;
+    std::shared_ptr<Bess::ProjectSession> session;
     std::shared_ptr<Bess::SceneDriver> sceneDriver;
     std::shared_ptr<Bess::SimEngine::SimulationEngine> simEngine;
     std::shared_ptr<Bess::Svc::SvcConnection> connectionService;
-    std::shared_ptr<Bess::Cmd::CommandSystem> commandSystem;
     std::shared_ptr<Scene> scene;
     std::shared_ptr<DigCompDef> sourceDef;
     std::shared_ptr<DigCompDef> sinkDef;
@@ -522,11 +508,11 @@ TEST_F(MainPageConnectionCommandsTest,
 
     fixture.comp->prepareUI(prepareCtx);
 
-    commandSystem->undo();
+    ASSERT_TRUE(session->undo());
     ASSERT_EQ(scene->getState().getComponentByUuid(fixture.comp->getUuid()),
               nullptr);
 
-    commandSystem->redo();
+    ASSERT_TRUE(session->redo());
     ASSERT_NE(scene->getState().getComponentByUuid(fixture.comp->getUuid()),
               nullptr);
 
@@ -535,15 +521,97 @@ TEST_F(MainPageConnectionCommandsTest,
 }
 
 TEST_F(MainPageConnectionCommandsTest,
+       DeleteModuleUndoRedoKeepsSceneAndSimulationInSync) {
+    UUID inputId = UUID::null;
+    UUID outputId = UUID::null;
+    auto made =
+        Bess::Canvas::ModuleSceneComponent::createNew(inputId, outputId);
+    ASSERT_FALSE(made.empty());
+
+    auto mod = std::dynamic_pointer_cast<Bess::Canvas::ModuleSceneComponent>(
+        made.front());
+    ASSERT_NE(mod, nullptr);
+    made.erase(made.begin());
+
+    auto modScene = sceneDriver->getSceneWithId(mod->getSceneId());
+    ASSERT_NE(modScene, nullptr);
+    ASSERT_TRUE(session->addComp(mod, std::move(made), scene->getSceneId()));
+
+    const auto oldModSim = mod->getSimEngineId();
+    const auto oldInput =
+        modScene->getState()
+            .getComponentByUuid<Bess::Canvas::SimulationSceneComponent>(
+                mod->getAssociatedInp());
+    const auto oldOutput =
+        modScene->getState()
+            .getComponentByUuid<Bess::Canvas::SimulationSceneComponent>(
+                mod->getAssociatedOut());
+    ASSERT_NE(oldInput, nullptr);
+    ASSERT_NE(oldOutput, nullptr);
+    const auto oldInputSim = oldInput->getSimEngineId();
+    const auto oldOutputSim = oldOutput->getSimEngineId();
+    ASSERT_NE(simEngine->getComponentDefinition(oldModSim), nullptr);
+    ASSERT_NE(simEngine->getComponentDefinition(oldInputSim), nullptr);
+    ASSERT_NE(simEngine->getComponentDefinition(oldOutputSim), nullptr);
+
+    session->clearHist();
+    auto tx = session->tx("Delete module");
+    ASSERT_TRUE(Bess::Edit::rmModule(tx, scene, mod->getUuid()));
+    ASSERT_TRUE(tx.commit());
+
+    EXPECT_EQ(scene->getState().getComponentByUuid(mod->getUuid()), nullptr);
+    EXPECT_EQ(sceneDriver->getSceneWithId(modScene->getSceneId()), nullptr);
+    EXPECT_EQ(simEngine->getComponentDefinition(oldModSim), nullptr);
+    EXPECT_EQ(simEngine->getComponentDefinition(oldInputSim), nullptr);
+    EXPECT_EQ(simEngine->getComponentDefinition(oldOutputSim), nullptr);
+
+    ASSERT_TRUE(session->undo());
+    EXPECT_NE(scene->getState().getComponentByUuid(mod->getUuid()), nullptr);
+    EXPECT_EQ(sceneDriver->getSceneWithId(modScene->getSceneId()), modScene);
+
+    const auto input =
+        modScene->getState()
+            .getComponentByUuid<Bess::Canvas::SimulationSceneComponent>(
+                mod->getAssociatedInp());
+    const auto output =
+        modScene->getState()
+            .getComponentByUuid<Bess::Canvas::SimulationSceneComponent>(
+                mod->getAssociatedOut());
+    ASSERT_NE(input, nullptr);
+    ASSERT_NE(output, nullptr);
+    EXPECT_NE(simEngine->getComponentDefinition(mod->getSimEngineId()),
+              nullptr);
+    EXPECT_NE(simEngine->getComponentDefinition(input->getSimEngineId()),
+              nullptr);
+    EXPECT_NE(simEngine->getComponentDefinition(output->getSimEngineId()),
+              nullptr);
+
+    const auto def =
+        std::dynamic_pointer_cast<Bess::SimEngine::ModuleDefinition>(
+            mod->getCompDef());
+    ASSERT_NE(def, nullptr);
+    EXPECT_EQ(def->getInputId(), input->getSimEngineId());
+    EXPECT_EQ(def->getOutputId(), output->getSimEngineId());
+
+    const auto restoredModSim = mod->getSimEngineId();
+    const auto restoredInputSim = input->getSimEngineId();
+    const auto restoredOutputSim = output->getSimEngineId();
+    ASSERT_TRUE(session->redo());
+    EXPECT_EQ(scene->getState().getComponentByUuid(mod->getUuid()), nullptr);
+    EXPECT_EQ(sceneDriver->getSceneWithId(modScene->getSceneId()), nullptr);
+    EXPECT_EQ(simEngine->getComponentDefinition(restoredModSim), nullptr);
+    EXPECT_EQ(simEngine->getComponentDefinition(restoredInputSim), nullptr);
+    EXPECT_EQ(simEngine->getComponentDefinition(restoredOutputSim), nullptr);
+}
+
+TEST_F(MainPageConnectionCommandsTest,
        InputResizeSlotCreatesControlForNewSlotSignalKind) {
-    auto definition =
-        Bess::SimEngine::Drivers::Math::MathCompDef::makeFunction(
-            "Scalar Input",
-            "Math",
-            [](Bess::TimeMs, const std::vector<double> &) { return 0.0; },
-            false);
-    definition->setBehaviorType(
-        Bess::SimEngine::ComponentBehaviorType::input);
+    auto definition = Bess::SimEngine::Drivers::Math::MathCompDef::makeFunction(
+        "Scalar Input",
+        "Math",
+        [](Bess::TimeMs, const std::vector<double> &) { return 0.0; },
+        false);
+    definition->setBehaviorType(Bess::SimEngine::ComponentBehaviorType::input);
     definition->setInputPortDescriptor({
         .direction = Bess::SimEngine::PortDirection::input,
         .signalKind = Bess::SimEngine::SignalKind::scalar,
@@ -573,8 +641,7 @@ TEST_F(MainPageConnectionCommandsTest,
         }
     }
     ASSERT_NE(resizeSlot, nullptr);
-    ASSERT_EQ(resizeSlot->getSignalKind(),
-              Bess::SimEngine::SignalKind::scalar);
+    ASSERT_EQ(resizeSlot->getSignalKind(), Bess::SimEngine::SignalKind::scalar);
 
     auto firstScalarSlot = std::shared_ptr<SlotSceneComponent>{};
     for (const auto &slot : fixture.outputs) {
@@ -640,8 +707,7 @@ TEST_F(MainPageConnectionCommandsTest,
     }
     ASSERT_NE(newSlot, nullptr);
     EXPECT_FALSE(newSlot->isResizeSlot());
-    EXPECT_EQ(newSlot->getSignalKind(),
-              Bess::SimEngine::SignalKind::scalar);
+    EXPECT_EQ(newSlot->getSignalKind(), Bess::SimEngine::SignalKind::scalar);
     EXPECT_TRUE(newSlot->getSlotState(scene->getState()).isScalar());
 
     inputComp->prepareUI(prepareCtx);
@@ -654,8 +720,7 @@ TEST_F(MainPageConnectionCommandsTest,
             ++textBoxCount;
         }
         if (scene->getState()
-                .getComponentByUuidSP<Bess::Canvas::UI::ToggleBtnComp>(
-                    depId)) {
+                .getComponentByUuidSP<Bess::Canvas::UI::ToggleBtnComp>(depId)) {
             ++toggleCount;
         }
     }
@@ -773,10 +838,9 @@ TEST_F(MainPageConnectionCommandsTest,
     ASSERT_NE(connection, nullptr);
     expectConnectionRestored(source, sink, connection);
 
-    commandSystem->execute(std::make_unique<Bess::Cmd::DeleteCompCmd>(
-        std::vector<UUID>{source.comp->getUuid()}));
+    ASSERT_TRUE(session->rmComp(source.comp->getUuid(), scene->getSceneId()));
 
-    EXPECT_TRUE(commandSystem->canUndo());
+    EXPECT_TRUE(session->canUndo());
     EXPECT_EQ(scene->getState().getComponentByUuid(source.comp->getUuid()),
               nullptr);
     EXPECT_EQ(
@@ -787,11 +851,11 @@ TEST_F(MainPageConnectionCommandsTest,
     EXPECT_FALSE(containsUuid(sink.inputs.front()->getConnectedConnections(),
                               connection->getUuid()));
 
-    commandSystem->undo();
+    ASSERT_TRUE(session->undo());
     expectConnectionRestored(source, sink, connection);
 
-    ASSERT_TRUE(commandSystem->canRedo());
-    commandSystem->redo();
+    ASSERT_TRUE(session->canRedo());
+    ASSERT_TRUE(session->redo());
     EXPECT_EQ(scene->getState().getComponentByUuid(source.comp->getUuid()),
               nullptr);
     EXPECT_EQ(scene->getState().getComponentByUuid(connection->getUuid()),
@@ -799,8 +863,8 @@ TEST_F(MainPageConnectionCommandsTest,
     EXPECT_FALSE(containsUuid(sink.inputs.front()->getConnectedConnections(),
                               connection->getUuid()));
 
-    ASSERT_TRUE(commandSystem->canUndo());
-    commandSystem->undo();
+    ASSERT_TRUE(session->canUndo());
+    ASSERT_TRUE(session->undo());
     expectConnectionRestored(source, sink, connection);
 }
 
@@ -827,10 +891,9 @@ TEST_F(MainPageConnectionCommandsTest,
     EXPECT_TRUE(containsUuid(sourceSlot->getConnectedConnections(),
                              connection->getUuid()));
 
-    commandSystem->execute(std::make_unique<Bess::Cmd::DeleteCompCmd>(
-        std::vector<UUID>{connection->getUuid()}));
+    ASSERT_TRUE(session->rmComp(connection->getUuid(), scene->getSceneId()));
 
-    EXPECT_TRUE(commandSystem->canUndo());
+    EXPECT_TRUE(session->canUndo());
     EXPECT_EQ(scene->getState().getComponentByUuid(connection->getUuid()),
               nullptr);
     EXPECT_EQ(scene->getState().getComponentByUuid(sourceSlot->getUuid()),
@@ -839,7 +902,7 @@ TEST_F(MainPageConnectionCommandsTest,
     EXPECT_FALSE(containsUuid(sink.inputs.front()->getConnectedConnections(),
                               connection->getUuid()));
 
-    commandSystem->undo();
+    ASSERT_TRUE(session->undo());
 
     EXPECT_NE(scene->getState().getComponentByUuid(sourceSlot->getUuid()),
               nullptr);
@@ -899,8 +962,7 @@ TEST_F(MainPageConnectionCommandsTest,
                   pairedOutputId),
               nullptr);
 
-    commandSystem->execute(std::make_unique<Bess::Cmd::DeleteCompCmd>(
-        std::vector<UUID>{connection->getUuid()}));
+    ASSERT_TRUE(session->rmComp(connection->getUuid(), scene->getSceneId()));
     dispatcher->dispatchAll();
 
     EXPECT_EQ(scene->getState().getComponentByUuid(connection->getUuid()),
@@ -912,8 +974,8 @@ TEST_F(MainPageConnectionCommandsTest,
     EXPECT_EQ(sceneRealSlotCount(notGate, true), 1u);
     EXPECT_EQ(sceneRealSlotCount(notGate, false), 1u);
 
-    ASSERT_TRUE(commandSystem->canUndo());
-    commandSystem->undo();
+    ASSERT_TRUE(session->canUndo());
+    ASSERT_TRUE(session->undo());
     dispatcher->dispatchAll();
 
     EXPECT_NE(scene->getState().getComponentByUuid(restoredInputId), nullptr);

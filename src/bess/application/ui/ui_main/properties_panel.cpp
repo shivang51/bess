@@ -1,7 +1,7 @@
 #include "ui/ui_main/properties_panel.h"
 #include "pages/main_page/main_page.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
+#include "project_session/project_session.h"
 #include "common/helpers.h"
 #include "dig_sim_driver.h"
 #include "gtc/type_ptr.hpp"
@@ -34,7 +34,7 @@ namespace Bess::UI {
 
     void PropertiesPanel::onDraw() {
         auto sceneDriver = GAppContext::getInstance()
-                               .getSubSystem<Bess::ProjectContext>()
+                               .getSubSystem<Bess::ProjectSession>()
                                ->getSubSystem<SceneDriver>();
         auto &sceneState = sceneDriver->getActiveScene()->getState();
         if (sceneState.getSelectedComponents().empty()) {
@@ -56,8 +56,8 @@ namespace Bess::UI {
         if (compType == Canvas::SceneComponentType::simulation) {
             auto simComp = comp->cast<Canvas::SimulationSceneComponent>();
             auto &appCtx = Bess::GAppContext::getInstance();
-            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-            auto &simEngine = projectCtx->getSimEngine();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+            auto &simEngine = projectCtx->sim();
             auto &def =
                 simEngine.getComponentDefinition(simComp->getSimEngineId());
         } else if (compType == Canvas::SceneComponentType::connection) {

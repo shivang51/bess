@@ -10,6 +10,7 @@
 #include <cmath>
 #include <memory>
 #include <ranges>
+#include <stdexcept>
 #include <string>
 
 namespace Bess::SimEngine::Drivers::Math {
@@ -70,8 +71,12 @@ namespace Bess::SimEngine::Drivers::Math {
                     .isResizeable = isResizeable};
         }
 
-        std::shared_ptr<MathCompDef>
-        loadMathCompDef(const Json::Value &defJson) {
+        std::shared_ptr<MathCompDef> loadDef(const Json::Value &defJson) {
+            if (!defJson.isObject()) {
+                throw std::runtime_error(
+                    "math component definition must be an object");
+            }
+
             const auto defName = defJson.get("name", "").asString();
             const auto defTypeName = defJson.get("typeName", "").asString();
 
@@ -90,14 +95,10 @@ namespace Bess::SimEngine::Drivers::Math {
                 def = std::make_shared<MathCompDef>();
             }
 
-            BESS_ASSERT(
-                def,
-                "Failed to load math component definition from JSON. No "
-                "definition found for name '{}' and type '{}'",
-                defName,
-                defTypeName);
             if (!def) {
-                def = std::make_shared<MathCompDef>();
+                throw std::runtime_error("unknown math component definition '" +
+                                         defName + "' (type '" + defTypeName +
+                                         "')");
             }
 
             def->loadJson(defJson);
@@ -1039,7 +1040,7 @@ namespace Bess::SimEngine::Drivers::Math {
                     continue;
                 }
 
-                const auto def = loadMathCompDef(compJson["def"]);
+                const auto def = loadDef(compJson["def"]);
                 const auto comp = std::dynamic_pointer_cast<MathSimComp>(
                     createComp(def, false));
                 if (!comp) {

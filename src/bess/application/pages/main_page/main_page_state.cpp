@@ -1,8 +1,6 @@
 #include "pages/main_page/main_page_state.h"
 
-#include "bess_core/commands/update_value_command.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
 #include "bess_core/scene/scene.h"
 #include "bess_core/scene_driver.h"
 #include "bverilog/sim_engine_importer.h"
@@ -11,13 +9,14 @@
 #include "common/logger.h"
 #include "event_dispatcher.h"
 #include "pages/main_page/main_page.h"
-#include "pages/main_page/main_page_command_hooks.h"
+#include "pages/main_page/main_page_edit_hooks.h"
 #include "pages/main_page/scene_components/image_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_probe_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "pages/main_page/verilog_scene_import.h"
+#include "project_session/project_session.h"
 #include "simulation_engine.h"
 #include "stb_image.h"
 #include <algorithm>
@@ -246,8 +245,8 @@ namespace Bess::Pages {
             }
 
             const auto pixels = w * h;
-            if (pixels > std::numeric_limits<size_t>::max() /
-                             static_cast<size_t>(4u)) {
+            if (pixels >
+                std::numeric_limits<size_t>::max() / static_cast<size_t>(4u)) {
                 return std::nullopt;
             }
 
@@ -326,7 +325,8 @@ namespace Bess::Pages {
         }
 
         bool handleDroppedFile(const std::string &path, FileDropContext &ctx) {
-            using DropHandler = bool (*)(const std::string &, FileDropContext &);
+            using DropHandler =
+                bool (*)(const std::string &, FileDropContext &);
             static constexpr std::array<DropHandler, 1> handlers{
                 handleDroppedImageFile,
             };
@@ -364,42 +364,46 @@ namespace Bess::Pages {
     MainPageState::MainPageState() = default;
     MainPageState::~MainPageState() = default;
 
-    void MainPageState::resetProjectState(bool updateWindowName) {
-        getSceneDriver()->reset();
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        projectCtx->getSimEngine().clear();
+    Status MainPageState::resetProj(bool updateWindowName) {
+        const auto status = newProj(updateWindowName);
+        if (!status) {
+            BESS_ERROR("Could not reset project: {}", status.msg());
+        }
+        return status;
     }
 
-    void MainPageState::createNewProject(bool updateWindowName) {
-        resetProjectState(updateWindowName);
-
+    Status MainPageState::newProj(bool updateWindowName) {
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        projectCtx->createNewProject();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        const auto status = projectCtx->newProj();
+        if (!status) {
+            return status;
+        }
 
-        if (!updateWindowName)
-            return;
+        if (updateWindowName) {
+            const auto win = MainPage::getInstance()->getParentWindow();
+            win->setName("Unnamed - BESS");
+        }
+        return status;
+    }
+
+    Status MainPageState::load(const std::string &path) {
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        const auto status = projectCtx->load(path);
+        if (!status) {
+            return status;
+        }
+
         const auto win = MainPage::getInstance()->getParentWindow();
-        win->setName("FIXME");
+        win->setName(projectCtx->doc().name() + " - BESS");
+        return status;
     }
 
-    void MainPageState::loadProject(const std::string &path) {
-        resetProjectState();
-
+    Status MainPageState::save() {
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        projectCtx->loadProject(path);
-        const auto &project = projectCtx->getProjectFile();
-
-        const auto win = MainPage::getInstance()->getParentWindow();
-        win->setName(project->getName() + " - BESS");
-    }
-
-    void MainPageState::saveCurrentProject() const {
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        projectCtx->saveProject();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        return projectCtx->save();
     }
 
     bool MainPageState::importVerilogFile(const std::string &path,
@@ -418,7 +422,13 @@ namespace Bess::Pages {
                 return false;
             }
 
-            resetProjectState();
+            const auto reset = resetProj();
+            if (!reset) {
+                if (errorMessage) {
+                    *errorMessage = reset.msg();
+                }
+                return false;
+            }
             auto scene = getSceneDriver()->getActiveScene();
             if (!scene) {
                 if (errorMessage) {
@@ -428,8 +438,8 @@ namespace Bess::Pages {
             }
 
             auto &appCtx = Bess::GAppContext::getInstance();
-            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-            auto &simEngine = projectCtx->getSimEngine();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+            auto &simEngine = projectCtx->sim();
             const auto result = Verilog::importVerilogFilesIntoSimulationEngine(
                 toFilesystemPaths(paths), simEngine);
             populateSceneFromVerilogImportResult(result, simEngine, *scene);
@@ -457,9 +467,8 @@ namespace Bess::Pages {
         }
 
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        return applyHierarchicalSceneLayout(*activeScene,
-                                            projectCtx->getSimEngine());
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        return applyHierarchicalSceneLayout(*activeScene, projectCtx->sim());
     }
 
     void MainPageState::startVerilogImport(const std::string &path) {
@@ -500,13 +509,15 @@ namespace Bess::Pages {
 
         try {
             auto &appCtx = Bess::GAppContext::getInstance();
-            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-            auto &simEngine = projectCtx->getSimEngine();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+            auto &simEngine = projectCtx->sim();
             auto scene = getSceneDriver()->getActiveScene();
 
             switch (session.phase) {
             case VerilogImportSession::Phase::resetProject:
-                resetProjectState();
+                if (const auto reset = resetProj(); !reset) {
+                    throw std::runtime_error(reset.msg());
+                }
                 session.progress = 0.2f;
                 session.stageMessage = "Converting Verilog to simulation graph";
                 session.phase = VerilogImportSession::Phase::importSimulation;
@@ -577,14 +588,20 @@ namespace Bess::Pages {
         m_verilogImportSession.reset();
     }
 
-    std::shared_ptr<ProjectFile> MainPageState::getCurrentProjectFile() const {
+    ProjectDoc &MainPageState::doc() {
         const auto &appCtx = GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        return projectCtx->getProjectFile();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        return projectCtx->doc();
+    }
+
+    const ProjectDoc &MainPageState::doc() const {
+        const auto &appCtx = GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        return projectCtx->doc();
     }
 
     void MainPageState::init() {
-        getCommandSystem().setSceneComponentHooks(createMainPageCommandHooks());
+        session().setHooks(makeEditHooks());
 
         auto &appCtx = GAppContext::getInstance();
         auto dispatcher = appCtx.getSubSystem<EventSystem::EventDispatcher>();
@@ -653,17 +670,20 @@ namespace Bess::Pages {
 
     void
     MainPageState::onEntityMoved(const Canvas::Events::EntityMovedEvent &e) {
-        auto entity =
-            getSceneDriver()->getActiveScene()->getState().getComponentByUuid(
-                e.entityUuid);
+        if (!e.state) {
+            return;
+        }
+        auto entity = e.state->getComponentByUuid(e.entityUuid);
         if (!entity) {
             return;
         }
 
-        glm::vec3 *posPtr = &entity->getTransform().position;
-        auto cmd = std::make_unique<Cmd::UpdateValCommand<glm::vec3>>(
-            posPtr, e.newPos, e.oldPos);
-        m_commandSystem.push(std::move(cmd));
+        const auto result = session().trackMove(
+            e.entityUuid, e.oldPos, e.newPos, e.state->getSceneId());
+        if (!result) {
+            BESS_WARN("Could not track component move: {}",
+                      result.status.msg());
+        }
     }
 
     void MainPageState::onEntityReparented(
@@ -682,8 +702,6 @@ namespace Bess::Pages {
         if (entity->getType() == Canvas::SceneComponentType::slot) {
             return;
         }
-
-        UUID *parentPtr = &entity->getParentComponent();
 
         bool parentIsWasGroup = false;
 
@@ -714,51 +732,36 @@ namespace Bess::Pages {
             return;
         }
 
-        /// undo redo callback
-        const auto callback =
-            [this, entityUuid = e.entityUuid, sceneId = e.sceneId](
-                bool isUndo, const UUID &newParent) {
-                (void)isUndo;
-                if (newParent == UUID::null)
-                    return;
-
-                const auto scene = getTrackedScene(getSceneDriver(), sceneId);
-                if (!scene) {
-                    return;
-                }
-
-                const auto &parent =
-                    scene->getState().getComponentByUuid(newParent);
-                if (!parent) {
-                    return;
-                }
-                parent->addChildComponent(entityUuid);
-            };
-
         if (entity) {
-            auto cmd = std::make_unique<Cmd::UpdateValCommand<UUID>>(
-                parentPtr, e.newParentUuid, e.prevParent, callback);
-            m_commandSystem.push(std::move(cmd));
+            const auto result = session().trackParent(
+                e.entityUuid, e.prevParent, e.newParentUuid, e.sceneId);
+            if (!result) {
+                BESS_WARN("Could not track component reparent: {}",
+                          result.status.msg());
+            }
         }
     }
 
     std::shared_ptr<SceneDriver> MainPageState::getSceneDriver() const {
         const auto &appCtx = GAppContext::getInstance();
-        return appCtx.getSubSystem<Bess::ProjectContext>()
+        return appCtx.getSubSystem<Bess::ProjectSession>()
             ->getSubSystem<SceneDriver>();
     }
 
     std::shared_ptr<SceneDriver> MainPageState::getSceneDriver() {
         const auto &appCtx = GAppContext::getInstance();
-        return appCtx.getSubSystem<Bess::ProjectContext>()
+        return appCtx.getSubSystem<Bess::ProjectSession>()
             ->getSubSystem<SceneDriver>();
     }
 
-    Cmd::CommandSystem &MainPageState::getCommandSystem() {
+    ProjectSession &MainPageState::session() {
         const auto &appCtx = GAppContext::getInstance();
-        auto cmdSystem = appCtx.getSubSystem<ProjectContext>()
-                             ->getSubSystem<Cmd::CommandSystem>();
-        return *(cmdSystem.get());
+        return *appCtx.getSubSystem<ProjectSession>();
+    }
+
+    const ProjectSession &MainPageState::session() const {
+        const auto &appCtx = GAppContext::getInstance();
+        return *appCtx.getSubSystem<ProjectSession>();
     }
 
     void MainPageState::update() {
@@ -792,9 +795,9 @@ namespace Bess::Pages {
                     // this event
 
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
         const auto &def =
-            projectCtx->getSimEngine().getComponentDefinition(e.componentId);
+            projectCtx->sim().getComponentDefinition(e.componentId);
         if (!def) {
             return;
         }
@@ -829,9 +832,9 @@ namespace Bess::Pages {
                     // this event
 
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
         const auto &def =
-            projectCtx->getSimEngine().getComponentDefinition(e.componentId);
+            projectCtx->sim().getComponentDefinition(e.componentId);
         if (!def) {
             return;
         }
@@ -895,8 +898,8 @@ namespace Bess::Pages {
     void
     MainPageState::updateNets(const std::shared_ptr<Canvas::Scene> &scene) {
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        auto &simEngine = projectCtx->getSimEngine();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        auto &simEngine = projectCtx->sim();
         if (!simEngine.isNetUpdated())
             return;
 

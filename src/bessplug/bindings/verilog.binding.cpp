@@ -1,5 +1,5 @@
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
+#include "project_session/project_session.h"
 #include "bverilog/sim_engine_importer.h"
 #include "bverilog/yosys_runner.h"
 
@@ -196,8 +196,8 @@ void bind_verilog(py::module_ &m) {
             return importDesignIntoSimulationEngine(
                 design,
                 Bess::GAppContext::getInstance()
-                    .getSubSystem<Bess::ProjectContext>()
-                    ->getSimEngine(),
+                    .getSubSystem<Bess::ProjectSession>()
+                    ->sim(),
                 top_module_name);
         },
         py::arg("design"),
@@ -209,8 +209,8 @@ void bind_verilog(py::module_ &m) {
             return importVerilogFileIntoSimulationEngine(
                 verilog_file,
                 Bess::GAppContext::getInstance()
-                    .getSubSystem<Bess::ProjectContext>()
-                    ->getSimEngine(),
+                    .getSubSystem<Bess::ProjectSession>()
+                    ->sim(),
                 YosysRunnerConfig{});
         },
         py::arg("verilog_file"));
@@ -221,8 +221,8 @@ void bind_verilog(py::module_ &m) {
             return importVerilogFileIntoSimulationEngine(
                 verilog_file,
                 Bess::GAppContext::getInstance()
-                    .getSubSystem<Bess::ProjectContext>()
-                    ->getSimEngine(),
+                    .getSubSystem<Bess::ProjectSession>()
+                    ->sim(),
                 config);
         },
         py::arg("verilog_file"),
@@ -234,8 +234,8 @@ void bind_verilog(py::module_ &m) {
             return importVerilogFilesIntoSimulationEngine(
                 verilog_files,
                 Bess::GAppContext::getInstance()
-                    .getSubSystem<Bess::ProjectContext>()
-                    ->getSimEngine(),
+                    .getSubSystem<Bess::ProjectSession>()
+                    ->sim(),
                 YosysRunnerConfig{});
         },
         py::arg("verilog_files"));
@@ -246,8 +246,8 @@ void bind_verilog(py::module_ &m) {
             return importVerilogFilesIntoSimulationEngine(
                 verilog_files,
                 Bess::GAppContext::getInstance()
-                    .getSubSystem<Bess::ProjectContext>()
-                    ->getSimEngine(),
+                    .getSubSystem<Bess::ProjectSession>()
+                    ->sim(),
                 config);
         },
         py::arg("verilog_files"),

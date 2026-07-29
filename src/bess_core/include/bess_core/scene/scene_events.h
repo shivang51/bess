@@ -117,5 +117,6 @@ namespace Bess::Canvas::Events {
         UUID entityUuid;
         glm::vec3 oldPos;
         glm::vec3 newPos;
+        Canvas::SceneState *state;
     };
 } // namespace Bess::Canvas::Events

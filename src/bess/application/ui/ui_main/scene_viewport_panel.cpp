@@ -1,6 +1,6 @@
 #include "scene_viewport_panel.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
+#include "project_session/project_session.h"
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/scene/camera.h"
 #include "bess_core/scene/scene.h"
@@ -46,7 +46,7 @@ namespace Bess::UI {
 
     void SceneViewportPanel::update(TimeMs ts) {
         auto sceneDriver = GAppContext::getInstance()
-                               .getSubSystem<Bess::ProjectContext>()
+                               .getSubSystem<Bess::ProjectSession>()
                                ->getSubSystem<SceneDriver>();
         const auto activeScene = sceneDriver->getActiveScene();
         if (!m_attachedScene ||
@@ -117,7 +117,7 @@ namespace Bess::UI {
 
         if (m_nextSceneId != UUID::null) {
             GAppContext::getInstance()
-                .getSubSystem<Bess::ProjectContext>()
+                .getSubSystem<Bess::ProjectSession>()
                 ->getSubSystem<SceneDriver>()
                 ->setActiveScene(m_nextSceneId);
             m_nextSceneId = UUID::null;
@@ -151,7 +151,7 @@ namespace Bess::UI {
     void SceneViewportPanel::onBeforeDraw() {
 
         auto sceneDriver = GAppContext::getInstance()
-                               .getSubSystem<Bess::ProjectContext>()
+                               .getSubSystem<Bess::ProjectSession>()
                                ->getSubSystem<SceneDriver>();
         if (!sceneDriver->getIsPaused()) {
             renderAttachedScene();
@@ -163,7 +163,7 @@ namespace Bess::UI {
 
     void SceneViewportPanel::onDraw() {
         auto sceneDriver = GAppContext::getInstance()
-                               .getSubSystem<Bess::ProjectContext>()
+                               .getSubSystem<Bess::ProjectSession>()
                                ->getSubSystem<SceneDriver>();
 
         const auto scene = sceneDriver->getActiveScene();

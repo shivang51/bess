@@ -1,6 +1,6 @@
 #include "input_scene_component.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
+#include "project_session/project_session.h"
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_draw_helpers.h"
 #include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
@@ -52,12 +52,12 @@ namespace Bess::Canvas {
             }
 
             auto &appCtx = Bess::GAppContext::getInstance();
-            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
             if (!projectCtx) {
                 return false;
             }
 
-            auto &simEngine = projectCtx->getSimEngine();
+            auto &simEngine = projectCtx->sim();
             simEngine.setOutputPortState(slotParentComp->getSimEngineId(),
                                          slotComp->getIndex(),
                                          isHigh ? SimEngine::LogicState::high
@@ -79,13 +79,13 @@ namespace Bess::Canvas {
             }
 
             auto &appCtx = Bess::GAppContext::getInstance();
-            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
             if (!projectCtx) {
-                BESS_WARN("ProjectContext not found in AppContext");
+                BESS_WARN("ProjectSession not found in AppContext");
                 return false;
             }
 
-            auto &simEngine = projectCtx->getSimEngine();
+            auto &simEngine = projectCtx->sim();
             simEngine.setOutputPortState(slotParentComp->getSimEngineId(),
                                          slotComp->getIndex(),
                                          SimEngine::PortState::scalar(value));
@@ -109,10 +109,10 @@ namespace Bess::Canvas {
         if (makeAllLow) {
             makeAllLow = false;
             auto &appCtx = Bess::GAppContext::getInstance();
-            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-            BESS_ASSERT(projectCtx, "ProjectContext not found in AppContext");
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+            BESS_ASSERT(projectCtx, "ProjectSession not found in AppContext");
 
-            auto &simEngine = projectCtx->getSimEngine();
+            auto &simEngine = projectCtx->sim();
 
             for (const auto &slotUuid : m_outputSlots) {
                 const auto slotComp =

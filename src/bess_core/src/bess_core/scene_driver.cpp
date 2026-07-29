@@ -204,6 +204,7 @@ namespace Bess {
         for (const auto &scene : m_scenes) {
             scene->destroy();
         }
+        m_scenes.clear();
         m_sceneIdToSceneMap.clear();
         m_rootSceneId = UUID::null;
         m_activeScene = nullptr;

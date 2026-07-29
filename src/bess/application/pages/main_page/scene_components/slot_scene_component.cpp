@@ -1,7 +1,6 @@
 #include "slot_scene_component.h"
-#include "bess_core/commands/add_component_command.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
+#include "project_session/project_session.h"
 #include "bess_core/scene/scene_draw_helpers.h"
 #include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
 #include "bess_core/scene/scene_state/scene_state.h"
@@ -63,12 +62,12 @@ namespace Bess::Canvas {
             }
 
             auto &appCtx = Bess::GAppContext::getInstance();
-            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
             if (!projectCtx) {
                 return false;
             }
 
-            auto &simEngine = projectCtx->getSimEngine();
+            auto &simEngine = projectCtx->sim();
             if (!port.isInput()) {
                 return false;
             }
@@ -394,8 +393,8 @@ namespace Bess::Canvas {
         }
 
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        auto &simEngine = projectCtx->getSimEngine();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        auto &simEngine = projectCtx->sim();
         return simEngine.getPortState(port);
     }
 
@@ -416,8 +415,8 @@ namespace Bess::Canvas {
         }
 
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        auto &simEngine = projectCtx->getSimEngine();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        auto &simEngine = projectCtx->sim();
         const auto stateSnapshot =
             simEngine.getComponentState(port.componentId);
 
@@ -538,7 +537,7 @@ namespace Bess::Canvas {
             e.sceneState->getComponentByUuid<SlotSceneComponent>(m_uuid);
 
         auto projCtx =
-            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>();
+            GAppContext::getInstance().getSubSystem<Bess::ProjectSession>();
         auto sceneDriver = projCtx->getSubSystem<SceneDriver>();
         auto connectionsSvc = projCtx->getSubSystem<Svc::SvcConnection>();
         const auto [canConnect, reason] = connectionsSvc->canConnect(
@@ -572,10 +571,15 @@ namespace Bess::Canvas {
             return false;
         }
 
-        auto &cmdManager =
-            Pages::MainPage::getInstance()->getState().getCommandSystem();
-        cmdManager.push(
-            std::make_unique<Cmd::AddCompCmd<ConnectionSceneComponent>>(conn));
+        auto &session =
+            Pages::MainPage::getInstance()->getState().session();
+        const auto result =
+            session.trackConn(conn, e.sceneState->getSceneId());
+        if (!result) {
+            BESS_WARN("Could not track connection: {}",
+                      result.status.msg());
+            return false;
+        }
 
         BESS_INFO("[Scene] Created connection {} between slots {} and {}",
                   (uint64_t)conn->getUuid(),

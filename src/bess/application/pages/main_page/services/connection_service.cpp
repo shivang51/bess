@@ -1,6 +1,6 @@
 #include "pages/main_page/services/connection_service.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
+#include "project_session/project_session.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
@@ -908,8 +908,8 @@ namespace Bess::Svc {
 
     SimEngine::SimulationEngine &SvcConnection::getSimEngine() {
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        return projectCtx->getSimEngine();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        return projectCtx->sim();
     }
 
     std::pair<std::shared_ptr<Canvas::SlotSceneComponent>, bool>

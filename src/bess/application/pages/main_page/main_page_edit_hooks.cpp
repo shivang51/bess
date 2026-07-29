@@ -1,19 +1,19 @@
-#include "pages/main_page/main_page_command_hooks.h"
+#include "pages/main_page/main_page_edit_hooks.h"
 
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
 #include "bess_core/scene/scene.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_state/components/scene_component_types.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
+#include "project_session/project_session.h"
 #include <algorithm>
 
 namespace Bess::Pages {
     namespace {
         std::shared_ptr<Svc::SvcConnection> getConnectionService() {
             const auto projectCtx =
-                GAppContext::getInstance().getSubSystem<ProjectContext>();
+                GAppContext::getInstance().getSubSystem<ProjectSession>();
             return projectCtx ? projectCtx->getSubSystem<Svc::SvcConnection>()
                               : nullptr;
         }
@@ -21,7 +21,7 @@ namespace Bess::Pages {
         bool
         addComponent(const std::shared_ptr<Canvas::Scene> &scene,
                      const std::shared_ptr<Canvas::SceneComponent> &component,
-                     const Cmd::SceneComponentAddOptions &options) {
+                     const Edit::AddOpts &options) {
             if (!scene || !component) {
                 return false;
             }
@@ -40,8 +40,7 @@ namespace Bess::Pages {
                        service->addConnection(connection, scene);
             }
 
-            return Cmd::defaultSceneComponentCommandHooks()->addComponent(
-                scene, component, options);
+            return Edit::baseHooks()->add(scene, component, options);
         }
 
         std::vector<UUID> removeComponent(
@@ -64,15 +63,13 @@ namespace Bess::Pages {
                 }
             }
 
-            return Cmd::defaultSceneComponentCommandHooks()->removeComponent(
-                scene, component, callerId);
+            return Edit::baseHooks()->rm(scene, component, callerId);
         }
 
         std::vector<UUID> getDependants(
             const std::shared_ptr<Canvas::Scene> &scene,
             const std::shared_ptr<Canvas::SceneComponent> &component) {
-            return Cmd::defaultSceneComponentCommandHooks()->getDependants(
-                scene, component);
+            return Edit::baseHooks()->deps(scene, component);
         }
 
         void sortDeletionOrder(const std::shared_ptr<Canvas::Scene> &scene,
@@ -102,13 +99,12 @@ namespace Bess::Pages {
         }
     } // namespace
 
-    std::shared_ptr<const Cmd::SceneComponentCommandHooks>
-    createMainPageCommandHooks() {
-        auto hooks = std::make_shared<Cmd::SceneComponentCommandHooks>();
-        hooks->addComponent = addComponent;
-        hooks->removeComponent = removeComponent;
-        hooks->getDependants = getDependants;
-        hooks->sortDeletionOrder = sortDeletionOrder;
+    std::shared_ptr<const Edit::Hooks> makeEditHooks() {
+        auto hooks = std::make_shared<Edit::Hooks>();
+        hooks->add = addComponent;
+        hooks->rm = removeComponent;
+        hooks->deps = getDependants;
+        hooks->sort = sortDeletionOrder;
         return hooks;
     }
 } // namespace Bess::Pages

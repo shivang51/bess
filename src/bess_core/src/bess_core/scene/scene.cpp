@@ -1,4 +1,5 @@
 #include "bess_core/scene/scene.h"
+#include "bess_core/g_app_context.h"
 #include "bess_core/scene/layers/components_layer.h"
 #include "bess_core/scene/layers/grid_layer.h"
 #include "bess_core/scene/layers/hover_layer.h"
@@ -99,7 +100,11 @@ namespace Bess::Canvas {
     }
 
     Scene::Scene(bool initializeLayers) {
-        if (!initializeLayers) {
+        const auto &appCtx = GAppContext::getInstance();
+        const bool rendererReady =
+            appCtx.hasSubSystem<RendererContext>() &&
+            appCtx.getSubSystem<RendererContext>()->getRenderer();
+        if (!initializeLayers || !rendererReady) {
             clear();
             m_size = glm::vec2(800.f, 600.f);
             m_camera = std::make_shared<Camera>(m_size.x, m_size.y);
@@ -156,11 +161,16 @@ namespace Bess::Canvas {
         inputState.mousePos = {0.f, 0.f};
 
         const auto &appCtx = Bess::GAppContext::getInstance();
-
-        const auto &rendererCtx = appCtx.getSubSystem<RendererContext>();
+        const auto rendererCtx =
+            appCtx.hasSubSystem<RendererContext>()
+                ? appCtx.getSubSystem<RendererContext>()
+                : nullptr;
 
         auto ctx = makeLifecycleContext(
-            m_state, m_camera, rendererCtx->getRenderer(), nullptr);
+            m_state,
+            m_camera,
+            rendererCtx ? rendererCtx->getRenderer() : nullptr,
+            nullptr);
 
         for (auto &layer : m_sceneLayers) {
             layer->reset(ctx);

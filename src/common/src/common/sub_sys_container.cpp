@@ -79,6 +79,7 @@ namespace Bess {
         }
 
         m_subSystems.clear();
+        m_subSystemsInOrder.clear();
         m_destroyed = true;
     }
 

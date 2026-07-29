@@ -1,7 +1,6 @@
 #include "ui/ui_main/component_explorer.h"
-#include "bess_core/commands/add_component_command.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
+#include "project_session/project_session.h"
 #include "bess_core/scene_driver.h"
 #include "common/bess_uuid.h"
 #include "common/helpers.h"
@@ -109,7 +108,7 @@ namespace Bess::UI {
                                 name, name + "OptionsMenu", false)) {
                             auto sceneDriver =
                                 GAppContext::getInstance()
-                                    .getSubSystem<Bess::ProjectContext>()
+                                    .getSubSystem<Bess::ProjectSession>()
                                     ->getSubSystem<SceneDriver>();
                             auto cam = UI::UIMain::getTargetSceneViewportPanel()
                                            ->getCamera();
@@ -159,10 +158,10 @@ namespace Bess::UI {
 
         auto &appCtx = Bess::GAppContext::getInstance();
 
-        auto &cmdSystem =
-            Pages::MainPage::getInstance()->getState().getCommandSystem();
+        auto &session =
+            Pages::MainPage::getInstance()->getState().session();
         auto scene = GAppContext::getInstance()
-                         .getSubSystem<Bess::ProjectContext>()
+                         .getSubSystem<Bess::ProjectSession>()
                          ->getSubSystem<SceneDriver>();
 
         auto activeScene = UI::UIMain::getTargetViewportScene();
@@ -200,9 +199,13 @@ namespace Bess::UI {
                 sceneState.attachChild(simComp->getUuid(), childId);
             }
 
-            cmdSystem.push(std::make_unique<
-                           Cmd::AddCompCmd<Canvas::SimulationSceneComponent>>(
-                simComp, children));
+            const auto result = session.trackAdd(
+                simComp, std::move(children), activeScene->getSceneId());
+            if (!result) {
+                BESS_ERROR("Could not track plugin component: {}",
+                           result.status.msg());
+                return UUID::null;
+            }
 
             return simComp->getUuid();
         } else {
@@ -215,10 +218,15 @@ namespace Bess::UI {
             sceneComp->getTransform().position.x = pos.x;
             sceneComp->getTransform().position.y = pos.y;
 
-            cmdSystem.execute(
-                std::make_unique<
-                    Cmd::AddCompCmd<Canvas::SimulationSceneComponent>>(
-                    sceneComp, components));
+            const auto result = session.addComp(
+                sceneComp,
+                std::move(components),
+                activeScene->getSceneId());
+            if (!result) {
+                BESS_ERROR("Could not add component: {}",
+                           result.status.msg());
+                return UUID::null;
+            }
 
             return sceneComp->getUuid();
         }
@@ -226,14 +234,16 @@ namespace Bess::UI {
 
     UUID ComponentExplorer::createComponent(std::type_index tIdx,
                                             const glm::vec2 &pos) {
-        auto &cmdSystem =
-            Pages::MainPage::getInstance()->getState().getCommandSystem();
+        auto &session =
+            Pages::MainPage::getInstance()->getState().session();
         auto inst = Canvas::NonSimSceneComponent::getInstance(tIdx);
         inst->getTransform().position.x = pos.x;
         inst->getTransform().position.y = pos.y;
-        cmdSystem.execute(
-            std::make_unique<Cmd::AddCompCmd<Canvas::NonSimSceneComponent>>(
-                inst));
+        const auto result = session.addComp(inst);
+        if (!result) {
+            BESS_ERROR("Could not add component: {}", result.status.msg());
+            return UUID::null;
+        }
         return inst->getUuid();
     }
 

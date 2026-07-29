@@ -1,6 +1,6 @@
 #include "sim_scene_component.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
+#include "project_session/project_session.h"
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/renderer/renderer_types.h"
 #include "bess_core/scene/scene_draw_context.h"
@@ -816,8 +816,8 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
             return;
 
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        auto &simEngine = projectCtx->getSimEngine();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        auto &simEngine = projectCtx->sim();
         m_simEngineId = simEngine.addComponent(m_compDef, false);
     }
 
@@ -841,8 +841,8 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         m_outSlotsContainer = nullptr;
 
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        auto &simEngine = projectCtx->getSimEngine();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        auto &simEngine = projectCtx->sim();
         simEngine.deleteComponent(m_simEngineId);
         m_isUIDirty = true;
         m_simEngineId = UUID::null;

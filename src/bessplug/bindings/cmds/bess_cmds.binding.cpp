@@ -1,5 +1,4 @@
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
 #include "bess_core/scene_driver.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
@@ -10,6 +9,7 @@
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
+#include "project_session/project_session.h"
 #include "simulation_engine.h"
 #include "ui/ui_main/component_explorer.h"
 #include <pybind11/eval.h>
@@ -195,8 +195,8 @@ void bind_cmds(py::module &m) {
         }
 
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        auto &simEngine = projectCtx->getSimEngine();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        auto &simEngine = projectCtx->sim();
         simEngine.setOutputPortState(comp->getUuid(), slotIdx, state);
         return {py::cast(true), ""};
     };
@@ -230,8 +230,8 @@ void bind_cmds(py::module &m) {
         }
 
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        auto &simEngine = projectCtx->getSimEngine();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        auto &simEngine = projectCtx->sim();
         simEngine.setOutputPortState(comp->getUuid(), slotIdx, state);
         return {py::cast(true), ""};
     };
@@ -245,7 +245,7 @@ void bind_cmds(py::module &m) {
                              Bess::SimEngine::PortDirection toDirection,
                              int toPortIdx) -> CmdResult {
         auto projectCtx = Bess::GAppContext::getInstance()
-                              .getSubSystem<Bess::ProjectContext>();
+                              .getSubSystem<Bess::ProjectSession>();
 
         auto sceneDriver = projectCtx->getSubSystem<Bess::SceneDriver>();
         auto connSvc = projectCtx->getSubSystem<Bess::Svc::SvcConnection>();
@@ -330,10 +330,12 @@ void bind_cmds(py::module &m) {
 
     m.def(
         "clear",
-        []() {
-            Bess::Pages::MainPage::getInstance()
-                ->getState()
-                .resetProjectState();
+        []() -> CmdResult {
+            const auto status =
+                Bess::Pages::MainPage::getInstance()->getState().newProj();
+            if (!status) {
+                return {py::none(), status.msg()};
+            }
             return CmdResult{py::cast(true), ""};
         },
         "Clears the current circuit, removing all components and connections.");
@@ -389,7 +391,7 @@ void bind_cmds(py::module &m) {
 
         std::thread([execScriptFn, script]() {
             auto driver = Bess::GAppContext::getInstance()
-                              .getSubSystem<Bess::ProjectContext>()
+                              .getSubSystem<Bess::ProjectSession>()
                               ->getSubSystem<Bess::SceneDriver>();
             driver->setIsPaused(true);
             py::gil_scoped_acquire lock{};
@@ -481,8 +483,8 @@ void bind_script_logger(py::module &m) {
 std::shared_ptr<Bess::SimEngine::Drivers::Digital::DigSimComp>
 findUniqueDigCompByName(const std::string &compName) {
     auto &appCtx = Bess::GAppContext::getInstance();
-    auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-    auto &simEngine = projectCtx->getSimEngine();
+    auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+    auto &simEngine = projectCtx->sim();
 
     std::shared_ptr<Bess::SimEngine::Drivers::Digital::DigSimComp> found;
     for (const auto &driver : simEngine.getDrivers()) {
@@ -518,7 +520,7 @@ findUniqueDigCompByName(const std::string &compName) {
 std::shared_ptr<Bess::SimEngine::Drivers::Digital::DigSimComp>
 findDigCompBySceneId(uint64_t compId) {
     auto sceneDriver = Bess::GAppContext::getInstance()
-                           .getSubSystem<Bess::ProjectContext>()
+                           .getSubSystem<Bess::ProjectSession>()
                            ->getSubSystem<Bess::SceneDriver>();
     const auto &simComp =
         sceneDriver->getActiveScene()
@@ -532,8 +534,8 @@ findDigCompBySceneId(uint64_t compId) {
     const auto &simEngineId = simComp->getSimEngineId();
 
     auto &appCtx = Bess::GAppContext::getInstance();
-    auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-    auto &simEngine = projectCtx->getSimEngine();
+    auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+    auto &simEngine = projectCtx->sim();
     const auto &comp =
         simEngine.getComponent<Bess::SimEngine::Drivers::Digital::DigSimComp>(
             simEngineId);

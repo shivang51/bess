@@ -1,8 +1,6 @@
 #include "ui/ui_main/project_explorer.h"
-#include "bess_core/commands/add_component_command.h"
-#include "bess_core/commands/delete_component_command.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
+#include "project_session/project_session.h"
 #include "bess_core/settings/viewport_theme.h"
 #include "common/bess_uuid.h"
 #include "common/helpers.h"
@@ -54,8 +52,8 @@ namespace Bess::UI {
             }
 
             auto &appCtx = Bess::GAppContext::getInstance();
-            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-            auto &simEngine = projectCtx->getSimEngine();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+            auto &simEngine = projectCtx->sim();
             if (!simEngine.getComponent<SimEngine::Drivers::SimComponent>(
                     simId)) {
                 return false;
@@ -79,7 +77,7 @@ namespace Bess::UI {
     bool ProjectExplorer::shouldDisplayEntity(const UUID &entityId) const {
 
         auto driver = GAppContext::getInstance()
-                          .getSubSystem<Bess::ProjectContext>()
+                          .getSubSystem<Bess::ProjectSession>()
                           ->getSubSystem<SceneDriver>();
 
         if (driver->getIsPaused()) {
@@ -145,7 +143,7 @@ namespace Bess::UI {
         const auto &style = ImGui::GetStyle();
 
         auto driver = GAppContext::getInstance()
-                          .getSubSystem<Bess::ProjectContext>()
+                          .getSubSystem<Bess::ProjectSession>()
                           ->getSubSystem<SceneDriver>();
         auto &sceneState = driver->getActiveScene()->getState();
 
@@ -255,12 +253,14 @@ namespace Bess::UI {
                 if (ImGui::MenuItem("Create Empty Group", "Ctrl-G")) {
                     const auto group =
                         Canvas::GroupSceneComponent::create("New Group");
-                    auto cmd = std::make_unique<
-                        Cmd::AddCompCmd<Canvas::GroupSceneComponent>>(group);
-                    Pages::MainPage::getInstance()
-                        ->getState()
-                        .getCommandSystem()
-                        .execute(std::move(cmd));
+                    auto &session = Pages::MainPage::getInstance()
+                                        ->getState()
+                                        .session();
+                    const auto result = session.addComp(group);
+                    if (!result) {
+                        BESS_WARN("Could not add group: {}",
+                                  result.status.msg());
+                    }
                 }
             }
 
@@ -350,7 +350,7 @@ namespace Bess::UI {
     void ProjectExplorer::groupSelectedNodes() {
         auto &mainPageState = Pages::MainPage::getInstance()->getState();
         auto scene = GAppContext::getInstance()
-                         .getSubSystem<Bess::ProjectContext>()
+                         .getSubSystem<Bess::ProjectSession>()
                          ->getSubSystem<SceneDriver>();
         auto &sceneState = scene->getActiveScene()->getState();
 
@@ -373,10 +373,12 @@ namespace Bess::UI {
             groupComp->addChildComponent(compId);
         }
 
-        auto &cmdSystem = mainPageState.getCommandSystem();
-        cmdSystem.execute(
-            std::make_unique<Cmd::AddCompCmd<Canvas::GroupSceneComponent>>(
-                groupComp));
+        const auto result = mainPageState.session().addComp(
+            groupComp, {}, sceneState.getSceneId());
+        if (!result) {
+            BESS_WARN("Could not add group: {}", result.status.msg());
+            return;
+        }
 
         BESS_INFO(
             "[ProjectExplorer] Grouped {} selected components into new group.",
@@ -386,14 +388,14 @@ namespace Bess::UI {
     void ProjectExplorer::groupOnNets() {
 
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        auto &simEngine = projectCtx->getSimEngine();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        auto &simEngine = projectCtx->sim();
         if (!simEngine.isNetUpdated())
             return;
 
         auto &mainPageState = Pages::MainPage::getInstance()->getState();
         const auto scene = GAppContext::getInstance()
-                               .getSubSystem<Bess::ProjectContext>()
+                               .getSubSystem<Bess::ProjectSession>()
                                ->getSubSystem<SceneDriver>()
                                ->getActiveScene();
 
@@ -434,8 +436,9 @@ namespace Bess::UI {
         // Use groups which get empty instead of creating new ones
         std::vector<UUID> emptyGroups;
 
-        auto &cmdSystem =
-            Pages::MainPage::getInstance()->getState().getCommandSystem();
+        auto &session =
+            Pages::MainPage::getInstance()->getState().session();
+        auto tx = session.tx("Group components by net");
 
         int i = 1;
         // move nodes to new groups and ones which get empty
@@ -472,15 +475,36 @@ namespace Bess::UI {
             netIdToNameMap[netId] = &group->getName();
 
             if (newGroup) {
-                cmdSystem.execute(
-                    std::make_unique<
-                        Cmd::AddCompCmd<Canvas::GroupSceneComponent>>(group));
+                const auto status =
+                    tx.addComp(group, {}, scene->getSceneId());
+                if (!status) {
+                    tx.cancel();
+                    BESS_WARN("Could not prepare net groups: {}",
+                              status.msg());
+                    return;
+                }
             }
         }
 
         if (!emptyGroups.empty()) {
-            cmdSystem.execute(
-                std::make_unique<Cmd::DeleteCompCmd>(emptyGroups));
+            const auto status =
+                tx.rmComp(emptyGroups, scene->getSceneId());
+            if (!status) {
+                tx.cancel();
+                BESS_WARN("Could not prepare empty group removal: {}",
+                          status.msg());
+                return;
+            }
+        }
+        if (!tx.isEmpty()) {
+            const auto result = tx.commit();
+            if (!result) {
+                BESS_WARN("Could not group components by net: {}",
+                          result.status.msg());
+                return;
+            }
+        } else {
+            tx.cancel();
         }
         BESS_INFO(
             "[ProjectExplorer] Grouped components on nets: created {} groups.",
@@ -495,7 +519,7 @@ namespace Bess::UI {
             ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_DrawLinesFull;
 
         auto sceneDriver = GAppContext::getInstance()
-                               .getSubSystem<Bess::ProjectContext>()
+                               .getSubSystem<Bess::ProjectSession>()
                                ->getSubSystem<SceneDriver>();
         auto &sceneState = sceneDriver->getActiveScene()->getState();
         const auto selSize = sceneState.getSelectedComponents().size();

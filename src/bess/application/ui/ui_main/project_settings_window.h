@@ -1,11 +1,9 @@
 #pragma once
 
 #include "common/bess_api.h"
-#include <memory>
-#include <string>
-
-#include "project_file.h"
 #include "ui/ui_panel.h"
+
+#include <string>
 
 namespace Bess::UI {
     class BESS_API ProjectSettingsWindow : public Panel {
@@ -19,6 +17,5 @@ namespace Bess::UI {
 
       private:
         std::string m_projectName;
-        std::shared_ptr<ProjectFile> m_projectFile;
     };
 } // namespace Bess::UI

@@ -1,15 +1,12 @@
 #include "bess_core/copy_paste_service.h"
-#include "bess_core/commands/add_component_command.h"
-#include "bess_core/commands/command_system.h"
-#include "bess_core/commands/macro_command.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene_driver.h"
 #include "common/bess_uuid.h"
 #include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
+#include "project_session/project_session.h"
 #include "simulation_engine.h"
 #include <unordered_map>
 
@@ -26,11 +23,10 @@ namespace Bess::Svc::CopyPaste {
                 return;
             }
 
-            auto sceneDriver = GAppContext::getInstance()
-                                   .getSubSystem<Bess::ProjectContext>()
-                                   ->getSubSystem<SceneDriver>();
+            const auto session = GAppContext::getInstance()
+                                     .getSubSystem<ProjectSession>();
             const auto moduleScene =
-                sceneDriver->getSceneWithId(module->getSceneId());
+                session->scenes().getSceneWithId(module->getSceneId());
 
             BESS_ASSERT(moduleScene,
                         "[CopyPaste] Cloned module scene was not registered");
@@ -117,7 +113,27 @@ namespace Bess::Svc::CopyPaste {
 
         calcCenter();
 
-        auto macroCmd = std::make_unique<Cmd::MacroCommand>();
+        const auto session =
+            GAppContext::getInstance().getSubSystem<ProjectSession>();
+        if (!session) {
+            BESS_ERROR("[CopyPaste] Project session is unavailable");
+            return {};
+        }
+
+        auto tx = session->tx(
+            "Paste", {.empty = true, .hist = recordHistory});
+        const auto add = [&](const std::shared_ptr<Canvas::SceneComponent> &comp,
+                             std::vector<
+                                 std::shared_ptr<Canvas::SceneComponent>> kids =
+                                 {}) {
+            const auto status = tx.addComp(
+                comp, std::move(kids), targetScene->getSceneId());
+            if (!status) {
+                BESS_ERROR("[CopyPaste] Could not stage paste: {}",
+                           status.msg());
+            }
+            return status.isOk();
+        };
 
         std::vector<Svc::CopyPaste::CopiedEntity> connEntites;
 
@@ -226,10 +242,10 @@ namespace Bess::Svc::CopyPaste {
                     idx++;
                 }
 
-                auto addCmd = std::make_unique<
-                    Cmd::AddCompCmd<Canvas::SimulationSceneComponent>>(
-                    clonedComp, clonedComponents);
-                macroCmd->addCommand(std::move(addCmd));
+                if (!add(clonedComp, std::move(clonedComponents))) {
+                    tx.cancel();
+                    return {};
+                }
             } else if (entity.type ==
                        Canvas::SceneComponentType::nonSimulation) {
                 const auto &entityData =
@@ -282,10 +298,10 @@ namespace Bess::Svc::CopyPaste {
                     idx++;
                 }
 
-                auto addCmd = std::make_unique<
-                    Cmd::AddCompCmd<Canvas::NonSimSceneComponent>>(
-                    inst, clonedComponents);
-                macroCmd->addCommand(std::move(addCmd));
+                if (!add(inst, std::move(clonedComponents))) {
+                    tx.cancel();
+                    return {};
+                }
             } else if (entity.type == Canvas::SceneComponentType::connection) {
                 connEntites.push_back(entity);
             } else {
@@ -316,9 +332,10 @@ namespace Bess::Svc::CopyPaste {
 
                 for (const auto &comp : clonedComps) {
                     // either it can be a joint or a conn
-                    auto addCmd = std::make_unique<
-                        Cmd::AddCompCmd<Canvas::SceneComponent>>(comp);
-                    macroCmd->addCommand(std::move(addCmd));
+                    if (!add(comp)) {
+                        tx.cancel();
+                        return {};
+                    }
                 }
             }
 
@@ -332,26 +349,11 @@ namespace Bess::Svc::CopyPaste {
             }
         } while (!connEntites.empty() && connEntites.size() < prevSize);
 
-        if (recordHistory) {
-            const auto &appCtx = Bess::GAppContext::getInstance();
-            auto cmdSystem = appCtx.getSubSystem<ProjectContext>()
-                                 ->getSubSystem<Cmd::CommandSystem>();
-            const auto currentCmdSystemScene = cmdSystem->getInternalScene();
-            cmdSystem->setScene(targetScene);
-            cmdSystem->execute(std::move(macroCmd));
-            cmdSystem->setScene(currentCmdSystemScene);
-        } else {
-            auto &appCtx = Bess::GAppContext::getInstance();
-            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-            const auto cmdSystem =
-                projectCtx ? projectCtx->getSubSystem<Cmd::CommandSystem>()
-                           : nullptr;
-            macroCmd->execute({
-                .scene = targetScene,
-                .componentHooks =
-                    cmdSystem ? cmdSystem->getSceneComponentHooks()
-                              : Cmd::defaultSceneComponentCommandHooks(),
-            });
+        const auto result = tx.commit();
+        if (!result) {
+            BESS_ERROR("[CopyPaste] Paste failed: {}",
+                       result.status.msg());
+            return {};
         }
 
         BESS_DEBUG("Pasted {} entities into scene {}",

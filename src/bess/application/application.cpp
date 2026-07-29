@@ -1,8 +1,8 @@
 #include "application.h"
 #include "bess_core/animator/animator.h"
 #include "bess_core/asset_manager/asset_manager.h"
+#include "bess_core/copy_paste_service.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
 #include "bess_core/sub_systems/input_sub_system.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
@@ -10,6 +10,7 @@
 #include "event_dispatcher.h"
 #include "math_sim_driver.h"
 #include "pages/main_page/services/connection_service.h"
+#include "project_session/project_session.h"
 #include "services/plugin_service/plugin_service.h"
 #include "services/window_drop_service/window_drop_service.h"
 #include "sub_systems/renderer_context.h"
@@ -96,15 +97,24 @@ namespace Bess {
             appCtx.addSubSystem<Svc::PluginService>();
         }
 
-        auto projCtx = appCtx.addSubSystem<ProjectContext>();
-        projCtx->addSubSystem<Svc::SvcConnection>();
+        auto session = appCtx.addSubSystem<ProjectSession>();
+        session->addSubSystem<Svc::CopyPaste::Context>();
+        session->addSubSystem<Svc::SvcConnection>();
 
         appCtx.init();
 
         if (!path.empty()) {
-            projCtx->loadProject(path);
+            const auto status = session->load(path);
+            if (!status) {
+                BESS_ERROR("Could not open startup project: {}",
+                           status.msg());
+            }
         } else {
-            projCtx->createNewProject();
+            const auto status = session->newProj();
+            if (!status) {
+                BESS_ERROR("Could not create startup project: {}",
+                           status.msg());
+            }
         }
 
         BESS_INFO("[Application] Application initialized successfully\n");

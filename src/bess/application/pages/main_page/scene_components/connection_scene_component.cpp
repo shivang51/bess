@@ -1,7 +1,6 @@
 #include "connection_scene_component.h"
-#include "bess_core/commands/add_component_command.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
+#include "project_session/project_session.h"
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_draw_helpers.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
@@ -466,11 +465,15 @@ namespace Bess::Canvas {
             jointComp->setSegOffset(t);
 
             // add to scene
-            auto &cmdManager =
-                Pages::MainPage::getInstance()->getState().getCommandSystem();
-            cmdManager.execute(
-                std::make_unique<Cmd::AddCompCmd<ConnJointSceneComp>>(
-                    jointComp));
+            auto &session =
+                Pages::MainPage::getInstance()->getState().session();
+            const auto result = session.addComp(
+                jointComp, {}, e.sceneState->getSceneId());
+            if (!result) {
+                BESS_WARN("Could not add connection joint: {}",
+                          result.status.msg());
+                return false;
+            }
 
             // connect with start slot
             jointComp->connectWith(*e.sceneState,
@@ -597,7 +600,7 @@ namespace Bess::Canvas {
         }
 
         auto projCtx =
-            GAppContext::getInstance().getSubSystem<Bess::ProjectContext>();
+            GAppContext::getInstance().getSubSystem<Bess::ProjectSession>();
 
         // get its depents from ConnectionService
         auto sceneDriver = projCtx->getSubSystem<SceneDriver>();

@@ -1,8 +1,8 @@
 #include "dig_module_def.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
 #include "common/bess_assert.h"
 #include "component_catalog.h"
+#include "project_session/project_session.h"
 #include "sim_driver/sim_driver.h"
 #include "simulation_engine.h"
 #include <memory>
@@ -18,8 +18,8 @@ namespace Bess::SimEngine {
         const auto &catalog = ComponentCatalog::instance();
 
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        auto &simEngine = projectCtx->getSimEngine();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        auto &simEngine = projectCtx->sim();
 
         const auto &inpDef = simEngine.getComponentDefinition(m_input);
         clone->m_input = simEngine.addComponent(inpDef);
@@ -32,8 +32,8 @@ namespace Bess::SimEngine {
 
     std::shared_ptr<ModuleDefinition> ModuleDefinition::createNew() {
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        auto &simEngine = projectCtx->getSimEngine();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        auto &simEngine = projectCtx->sim();
 
         auto moduleDef = std::make_shared<ModuleDefinition>();
 
@@ -58,13 +58,35 @@ namespace Bess::SimEngine {
         const auto &catalog = ComponentCatalog::instance();
 
         // create a input and output component for the module
-        const auto &inpDef = catalog.getComponentDefinition("Input");
-        BESS_ASSERT(inpDef, "Input component definition not found in catalog");
+        auto inpDef = catalog.getComponentDefinition("Input");
+        if (!inpDef) {
+            inpDef = catalog.getComponentDefinition("Digital Input");
+        }
+        if (!inpDef) {
+            BESS_ERROR("Input component definition not found in catalog");
+            return nullptr;
+        }
         moduleDef->m_input = simEngine.addComponent(inpDef);
+        if (moduleDef->m_input == UUID::null) {
+            BESS_ERROR("Could not create module input component");
+            return nullptr;
+        }
 
-        const auto &outDef = catalog.getComponentDefinition("Output");
-        BESS_ASSERT(outDef, "Output component definition not found in catalog");
+        auto outDef = catalog.getComponentDefinition("Output");
+        if (!outDef) {
+            outDef = catalog.getComponentDefinition("Digital Output");
+        }
+        if (!outDef) {
+            simEngine.deleteComponent(moduleDef->m_input);
+            BESS_ERROR("Output component definition not found in catalog");
+            return nullptr;
+        }
         moduleDef->m_output = simEngine.addComponent(outDef);
+        if (moduleDef->m_output == UUID::null) {
+            simEngine.deleteComponent(moduleDef->m_input);
+            BESS_ERROR("Could not create module output component");
+            return nullptr;
+        }
 
         return moduleDef;
     }
@@ -76,8 +98,8 @@ namespace Bess::SimEngine {
         const auto &prevState = data->prevState;
 
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        auto &simEngine = projectCtx->getSimEngine();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        auto &simEngine = projectCtx->sim();
 
         const auto &outputState = simEngine.getComponentState(m_output);
 

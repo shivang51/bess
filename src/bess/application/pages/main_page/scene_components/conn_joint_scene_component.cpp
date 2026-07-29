@@ -1,5 +1,4 @@
 #include "conn_joint_scene_component.h"
-#include "bess_core/commands/add_component_command.h"
 #include "bess_core/scene/scene_draw_helpers.h"
 #include "bess_core/scene/scene_state/components/scene_component_types.h"
 #include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
@@ -308,10 +307,15 @@ namespace Bess::Canvas {
         conn->setInitialSegmentCount(2);
         conn->setStartEndSlots(startSlot->getUuid(), endComp->getUuid());
 
-        auto &cmdManager =
-            Pages::MainPage::getInstance()->getState().getCommandSystem();
-        cmdManager.execute(
-            std::make_unique<Cmd::AddCompCmd<ConnectionSceneComponent>>(conn));
+        auto &session =
+            Pages::MainPage::getInstance()->getState().session();
+        const auto result =
+            session.addConn(conn, sceneState.getSceneId());
+        if (!result) {
+            BESS_WARN("Could not add connection: {}",
+                      result.status.msg());
+            return false;
+        }
 
         BESS_INFO("[Scene] Created connection {} between slots {} and {}",
                   (uint64_t)conn->getUuid(),

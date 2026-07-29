@@ -1,7 +1,7 @@
 #include "pages/main_page/verilog_scene_import.h"
 
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
+#include "project_session/project_session.h"
 #include "bess_core/scene/scene.h"
 #include "bess_core/scene_driver.h"
 #include "common/bess_assert.h"
@@ -641,7 +641,7 @@ namespace Bess::Pages {
             }
 
             auto sceneDriver = GAppContext::getInstance()
-                                   .getSubSystem<Bess::ProjectContext>()
+                                   .getSubSystem<Bess::ProjectSession>()
                                    ->getSubSystem<SceneDriver>();
             const auto moduleScene =
                 sceneDriver->getSceneWithId(moduleComp->getSceneId());
@@ -997,7 +997,7 @@ namespace Bess::Pages {
                                      std::shared_ptr<ModuleSceneComponent>>
                 &moduleByPath) {
             auto sceneDriver = GAppContext::getInstance()
-                                   .getSubSystem<Bess::ProjectContext>()
+                                   .getSubSystem<Bess::ProjectSession>()
                                    ->getSubSystem<SceneDriver>();
             const auto moduleScene =
                 sceneDriver->getSceneWithId(moduleComp->getSceneId());
@@ -1140,7 +1140,7 @@ namespace Bess::Pages {
                 moduleByPath;
             std::unordered_map<std::string, UUID> ownerSceneIdByPath;
             auto sceneDriver = GAppContext::getInstance()
-                                   .getSubSystem<Bess::ProjectContext>()
+                                   .getSubSystem<Bess::ProjectSession>()
                                    ->getSubSystem<SceneDriver>();
 
             for (const auto &[path, instance] : modulePaths) {

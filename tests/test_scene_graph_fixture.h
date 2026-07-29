@@ -1,10 +1,8 @@
 #pragma once
 
-#include "bess_core/commands/command_system.h"
 #include "component_catalog.h"
 #include "dig_sim_driver.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/commands/add_component_command.h"
 #include "pages/main_page/scene_components/conn_joint_scene_component.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/group_scene_component.h"
@@ -17,7 +15,7 @@
 #include "plugin_manager.h"
 #include "scene/scene.h"
 #include "scene/scene_ser_reg.h"
-#include "bess_core/project_context.h"
+#include "project_session/project_session.h"
 #include "simulation_engine.h"
 #include <chrono>
 #include <functional>
@@ -165,26 +163,23 @@ namespace Bess::Tests {
 
         void SetUp() override {
             auto &appCtx = Bess::GAppContext::getInstance();
-            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-            if (!projectCtx) {
-                projectCtx = appCtx.addSubSystem<Bess::ProjectContext>();
+            if (appCtx.hasSubSystem<Bess::ProjectSession>()) {
+                appCtx.getSubSystem<Bess::ProjectSession>()->onDestroy();
+                appCtx.removeSubSystem<Bess::ProjectSession>();
             }
-            if (!projectCtx->getSubSystem<Bess::SimEngine::SimulationEngine>()) {
-                projectCtx->addSubSystem<Bess::SimEngine::SimulationEngine>();
-            }
-
-            auto &simEngine = projectCtx->getSimEngine();
+            session = appCtx.addSubSystem<Bess::ProjectSession>();
+            session->addSubSystem<Bess::Svc::SvcConnection>();
+            session->addSubSystem<Bess::Svc::CopyPaste::Context>();
+            session->onInit();
+            auto &simEngine = session->sim();
             simEngine.clear();
 
             ensurePrimitiveGateDefinitions();
 
-            service = &Bess::Svc::SvcConnection::instance();
-            service->destroy();
-            service->init();
-
-            copyPaste = &Bess::Svc::CopyPaste::Context::instance();
-            copyPaste->destroy();
-            copyPaste->init();
+            service =
+                session->getSubSystem<Bess::Svc::SvcConnection>().get();
+            copyPaste =
+                session->getSubSystem<Bess::Svc::CopyPaste::Context>().get();
 
             inputDef = findDefinitionByName("Input");
             outputDef = findDefinitionByName("Output");
@@ -199,22 +194,25 @@ namespace Bess::Tests {
             ASSERT_NE(orDef, nullptr);
 
             scene = std::make_shared<Scene>();
-
-            cmdSystem.init();
-            cmdSystem.setScene(scene);
+            scene->getState().setIsRootScene(true);
+            session->scenes().addScene(scene);
+            session->scenes().setRootSceneId(scene->getSceneId());
+            session->scenes().setActiveScene(scene->getSceneId());
+            session->clearHist();
         }
 
         void TearDown() override {
-            copyPaste->destroy();
-            service->destroy();
             if (scene) {
                 scene->clear();
                 scene.reset();
             }
             auto &appCtx = Bess::GAppContext::getInstance();
-            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-            if (projectCtx) {
-                projectCtx->getSimEngine().clear();
+            if (session) {
+                session->onDestroy();
+                session.reset();
+            }
+            if (appCtx.hasSubSystem<Bess::ProjectSession>()) {
+                appCtx.removeSubSystem<Bess::ProjectSession>();
             }
         }
 
@@ -262,7 +260,9 @@ namespace Bess::Tests {
                 }
             }
 
-            cmdSystem.execute(std::make_unique<Bess::Cmd::AddCompCmd<SimulationSceneComponent>>(fixture.comp, children));
+            const auto result = session->addComp(
+                fixture.comp, std::move(children), scene->getSceneId());
+            EXPECT_TRUE(result) << result.status.msg();
             return fixture;
         }
 
@@ -292,6 +292,6 @@ namespace Bess::Tests {
         std::shared_ptr<Drivers::CompDef> andDef;
         std::shared_ptr<Drivers::CompDef> orDef;
         std::shared_ptr<Scene> scene;
-        Bess::Cmd::CommandSystem cmdSystem;
+        std::shared_ptr<Bess::ProjectSession> session;
     };
 } // namespace Bess::Tests

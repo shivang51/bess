@@ -11,6 +11,7 @@ include(GenerateExportHeader)
 
 set(BESS_RUNTIME_COMPONENT_TARGETS
     common
+    project_session
     BessJson
     bverilog
     BessPluginManager

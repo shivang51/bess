@@ -1,6 +1,6 @@
 #include "debug_panel.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
+#include "project_session/project_session.h"
 #include "bess_core/scene_driver.h"
 #include "common/bess_uuid.h"
 #include "dig_sim_driver.h"
@@ -28,7 +28,7 @@ namespace Bess::UI {
         auto &mainPageState = Pages::MainPage::getInstance()->getState();
 
         auto sceneDriver = GAppContext::getInstance()
-                               .getSubSystem<Bess::ProjectContext>()
+                               .getSubSystem<Bess::ProjectSession>()
                                ->getSubSystem<SceneDriver>();
         const auto &sceneState = sceneDriver->getActiveScene()->getState();
 
@@ -162,8 +162,8 @@ namespace Bess::UI {
                                             "[DEBUGPANEL] def not set");
                                 const auto &digComp =
                                     Bess::GAppContext::getInstance()
-                                        .getSubSystem<Bess::ProjectContext>()
-                                        ->getSimEngine()
+                                        .getSubSystem<Bess::ProjectSession>()
+                                        ->sim()
                                         .getComponent<SimEngine::Drivers::
                                                           Digital::DigSimComp>(
                                             simComp->getSimEngineId());
@@ -182,9 +182,10 @@ namespace Bess::UI {
             }
 
             if (ImGui::BeginTabItem("Project File Ser")) {
-                const auto &projectFile = mainPageState.getCurrentProjectFile();
                 Widgets::SelectableText("Sim-Engine",
-                                        projectFile->toJson().toStyledString());
+                                        mainPageState.doc()
+                                            .json()
+                                            .toStyledString());
                 ImGui::EndTabItem();
             }
 
@@ -195,7 +196,7 @@ namespace Bess::UI {
     void DebugPanel::drawDependencyGraph(const UUID &compId) {
         const auto &mainPageState = Pages::MainPage::getInstance()->getState();
         auto sceneDriver = GAppContext::getInstance()
-                               .getSubSystem<Bess::ProjectContext>()
+                               .getSubSystem<Bess::ProjectSession>()
                                ->getSubSystem<SceneDriver>();
         const auto &sceneState = sceneDriver->getActiveScene()->getState();
 

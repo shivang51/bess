@@ -14,7 +14,7 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(BessTests
     main_test.cpp
-    core_scene_commands_test.cpp
+    project_session_test.cpp
 	    main_page_connection_commands_test.cpp
 	    math_sim_driver_test.cpp
 	    ui_layout_test.cpp
@@ -27,7 +27,6 @@ add_executable(BessTests
     # verilog_import_test.cpp
     # connection_service_test.cpp
     # copy_paste_test.cpp
-    # command_system_test.cpp
 )
 
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
@@ -42,6 +41,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 	"${CMAKE_SOURCE_DIR}/src/event_system/include"
 	"${CMAKE_SOURCE_DIR}/src/common/include"
 	"${CMAKE_SOURCE_DIR}/src/bess_core/include"
+	"${CMAKE_SOURCE_DIR}/src/project_session/include"
 	"${CMAKE_SOURCE_DIR}/src/math_sim_driver/include"
 )
 

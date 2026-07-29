@@ -5,7 +5,7 @@
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
+#include "project_session/project_session.h"
 #include "plugin_manager.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
@@ -22,8 +22,8 @@ namespace {
 
     inline SimulationEngine &testSimEngine() {
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        return projectCtx->getSimEngine();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        return projectCtx->sim();
     }
 
     PortRef digitalPort(const UUID &uuid, PortDirection direction, int index) {

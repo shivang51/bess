@@ -1,6 +1,5 @@
 #include "ui/ui_main/ui_main.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
 #include "bess_core/scene_driver.h"
 #include "bess_core/settings/viewport_theme.h"
 #include "common/logger.h"
@@ -8,6 +7,7 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/main_page.h"
+#include "project_session/project_session.h"
 #include "simulation_engine.h"
 #include "stb_image_write.h"
 #include "ui/icons/CodIcons_Remapped.h"
@@ -119,7 +119,7 @@ namespace Bess::UI {
 
         std::shared_ptr<SceneDriver> currentSceneDriver() {
             auto &appCtx = Bess::GAppContext::getInstance();
-            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
             return projectCtx ? projectCtx->getSubSystem<SceneDriver>()
                               : nullptr;
         }
@@ -196,8 +196,8 @@ namespace Bess::UI {
         Popups::PopupRes res = Popups::handleUnsavedProjectWarning();
         if (res != Popups::PopupRes::none) {
             if (res == Popups::PopupRes::yes) {
-                pageState.saveCurrentProject();
-                if (!pageState.getCurrentProjectFile()->isSaved()) {
+                onSaveProject();
+                if (pageState.session().dirty()) {
                     getState()._internalData.newFileClicked = false;
                     getState()._internalData.openFileClicked = false;
                     return;
@@ -206,17 +206,28 @@ namespace Bess::UI {
 
             if (res != Popups::PopupRes::cancel) {
                 if (getState()._internalData.newFileClicked) {
-                    pageState.createNewProject();
-                    refreshSceneViewportAttachments();
+                    const auto status = pageState.newProj();
+                    if (status) {
+                        refreshSceneViewportAttachments();
+                        getState()._internalData.statusMessage =
+                            "New project created";
+                    } else {
+                        getState()._internalData.statusMessage = std::format(
+                            "Could not create project: {}", status.msg());
+                    }
                     getState()._internalData.newFileClicked = false;
                 } else if (getState()._internalData.openFileClicked) {
-                    pageState.loadProject(getState()._internalData.path);
-                    refreshSceneViewportAttachments();
-                    getState()._internalData.statusMessage = std::format(
-                        "Opened project: {}",
-                        std::filesystem::path(getState()._internalData.path)
-                            .filename()
-                            .string());
+                    const auto path = getState()._internalData.path;
+                    const auto status = pageState.load(path);
+                    if (status) {
+                        refreshSceneViewportAttachments();
+                        getState()._internalData.statusMessage = std::format(
+                            "Opened project: {}",
+                            std::filesystem::path(path).filename().string());
+                    } else {
+                        getState()._internalData.statusMessage = std::format(
+                            "Could not open project: {}", status.msg());
+                    }
                     getState()._internalData.path = "";
                     getState()._internalData.openFileClicked = false;
                 }
@@ -254,8 +265,8 @@ namespace Bess::UI {
                                               ImGuiWindowFlags_NoSavedSettings |
                                               ImGuiWindowFlags_MenuBar;
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        auto &simEngine = projectCtx->getSimEngine();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        auto &simEngine = projectCtx->sim();
         const float height = ImGui::GetFrameHeight();
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
@@ -402,22 +413,22 @@ namespace Bess::UI {
 
         if (ImGui::BeginMenu("Edit")) {
             auto &mainPageState = Pages::MainPage::getInstance()->getState();
-            auto &cmdSystem = mainPageState.getCommandSystem();
+            auto &session = mainPageState.session();
 
             if (ImGui::MenuItemEx("Undo",
                                   Icons::CodIcons::DISCARD,
                                   "Ctrl+Z",
                                   false,
-                                  cmdSystem.canUndo())) {
-                cmdSystem.undo();
+                                  session.canUndo())) {
+                (void)session.undo();
             }
 
             if (ImGui::MenuItemEx("Redo",
                                   Icons::CodIcons::REDO,
                                   "Ctrl+Shift+Z",
                                   false,
-                                  cmdSystem.canRedo())) {
-                cmdSystem.redo();
+                                  session.canRedo())) {
+                (void)session.redo();
             }
 
             ImGui::Spacing();
@@ -475,10 +486,7 @@ namespace Bess::UI {
         // project name textbox - begin
 
         const auto &style = ImGui::GetStyle();
-        auto &name = Pages::MainPage::getInstance()
-                         ->getState()
-                         .getCurrentProjectFile()
-                         ->getNameRef();
+        auto name = pageState.doc().name();
         const auto fontSize = ImGui::CalcTextSize(name.c_str());
         auto width = fontSize.x + (style.FramePadding.x * 2);
         if (width < 150)
@@ -494,7 +502,9 @@ namespace Bess::UI {
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.f, 2.f));
         ImGui::PushStyleColor(ImGuiCol_FrameBg,
                               style.Colors[ImGuiCol_WindowBg]);
-        Widgets::TextBox("", name, "Project Name");
+        if (Widgets::TextBox("", name, "Project Name")) {
+            (void)pageState.session().setName(std::move(name));
+        }
         ImGui::PopStyleVar();
         ImGui::PopStyleColor();
         ImGui::PopItemWidth();
@@ -502,8 +512,8 @@ namespace Bess::UI {
         getState()._internalData.isTbFocused = ImGui::IsItemFocused();
 
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        auto &simEngine = projectCtx->getSimEngine();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        auto &simEngine = projectCtx->sim();
         const auto &simCtx = simEngine.getRunCtx();
         // project name textbox - end
 
@@ -823,12 +833,18 @@ namespace Bess::UI {
 
     void UIMain::onNewProject() {
         auto &pageState = Pages::MainPage::getInstance()->getState();
-        if (!pageState.getCurrentProjectFile()->isSaved()) {
+        if (pageState.session().dirty()) {
             getState()._internalData.newFileClicked = true;
             ImGui::OpenPopup(Popups::PopupIds::unsavedProjectWarning);
         } else {
-            pageState.createNewProject();
+            const auto status = pageState.newProj();
+            if (!status) {
+                getState()._internalData.statusMessage =
+                    std::format("Could not create project: {}", status.msg());
+                return;
+            }
             refreshSceneViewportAttachments();
+            getState()._internalData.statusMessage = "New project created";
         }
     }
 
@@ -845,12 +861,17 @@ namespace Bess::UI {
         }
 
         auto &pageState = Pages::MainPage::getInstance()->getState();
-        if (false && !pageState.getCurrentProjectFile()->isSaved()) {
+        if (pageState.session().dirty()) {
             getState()._internalData.openFileClicked = true;
             getState()._internalData.path = filepath;
             ImGui::OpenPopup(Popups::PopupIds::unsavedProjectWarning);
         } else {
-            pageState.loadProject(filepath);
+            const auto status = pageState.load(filepath);
+            if (!status) {
+                getState()._internalData.statusMessage =
+                    std::format("Could not open project: {}", status.msg());
+                return;
+            }
             refreshSceneViewportAttachments();
             getState()._internalData.statusMessage =
                 std::format("Project loaded from {}", filepath);
@@ -859,15 +880,34 @@ namespace Bess::UI {
 
     void UIMain::onSaveProject() {
         auto &pageState = Pages::MainPage::getInstance()->getState();
-        pageState.getCurrentProjectFile()->save();
-        const auto &path = pageState.getCurrentProjectFile()->getPath();
+        auto &session = pageState.session();
+        auto path = pageState.doc().path();
+
+        Status status;
         if (path.empty()) {
-            getState()._internalData.statusMessage = "No save path selected.";
-            return;
+            const auto selected = Dialogs::showSaveFileDialog(
+                "Save To", {"Bess Project", "*.bproj"});
+            if (selected.empty()) {
+                getState()._internalData.statusMessage =
+                    "No save path selected.";
+                return;
+            }
+            path = selected;
+            if (path.extension() != ".bproj") {
+                path += ".bproj";
+            }
+            status = session.saveAs(path);
         } else {
-            getState()._internalData.statusMessage =
-                std::format("Project saved to {}", path);
+            status = session.save();
         }
+
+        if (!status) {
+            getState()._internalData.statusMessage =
+                std::format("Could not save project: {}", status.msg());
+            return;
+        }
+        getState()._internalData.statusMessage =
+            std::format("Project saved to {}", path.string());
     }
 
     void UIMain::destroy() {

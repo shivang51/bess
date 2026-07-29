@@ -8,7 +8,7 @@
 #include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
+#include "project_session/project_session.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
 #include "gtest/gtest.h"
@@ -75,8 +75,8 @@ class VerilogImportTest : public testing::Test {
   protected:
     void SetUp() override {
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        engine = &projectCtx->getSimEngine();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        engine = &projectCtx->sim();
         engine->setSimulationState(SimulationState::running);
         engine->clear();
     }
@@ -599,7 +599,7 @@ endmodule
         });
 
     auto scene = Bess::GAppContext::getInstance()
-                     .getSubSystem<Bess::ProjectContext>()
+                     .getSubSystem<Bess::ProjectSession>()
                      ->getSubSystem<Bess::SceneDriver>()
                      ->getActiveScene();
     ASSERT_NE(scene, nullptr);
@@ -687,7 +687,7 @@ endmodule :half_add
         });
 
     auto scene = Bess::GAppContext::getInstance()
-                     .getSubSystem<Bess::ProjectContext>()
+                     .getSubSystem<Bess::ProjectSession>()
                      ->getSubSystem<Bess::SceneDriver>()
                      ->getActiveScene();
     ASSERT_NE(scene, nullptr);
@@ -757,7 +757,7 @@ endmodule :half_add
     EXPECT_LT(topModuleX, minOutputX);
 
     auto sceneDriver =
-        Bess::GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<Bess::SceneDriver>();
+        Bess::GAppContext::getInstance().getSubSystem<Bess::ProjectSession>()->getSubSystem<Bess::SceneDriver>();
     const auto topModuleScene =
         sceneDriver->getSceneWithId(topModule->getSceneId());
     ASSERT_NE(topModuleScene, nullptr);
@@ -860,7 +860,7 @@ endmodule :half_add
         });
 
     auto sceneDriver =
-        Bess::GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<Bess::SceneDriver>();
+        Bess::GAppContext::getInstance().getSubSystem<Bess::ProjectSession>()->getSubSystem<Bess::SceneDriver>();
     auto rootScene = sceneDriver->getActiveScene();
     ASSERT_NE(rootScene, nullptr);
     rootScene->clear();
@@ -974,7 +974,7 @@ endmodule :half_add
         });
 
     auto sceneDriver =
-        Bess::GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<Bess::SceneDriver>();
+        Bess::GAppContext::getInstance().getSubSystem<Bess::ProjectSession>()->getSubSystem<Bess::SceneDriver>();
     auto rootScene = sceneDriver->getActiveScene();
     ASSERT_NE(rootScene, nullptr);
     rootScene->clear();
@@ -1353,7 +1353,7 @@ endmodule
         });
 
     auto scene = Bess::GAppContext::getInstance()
-                     .getSubSystem<Bess::ProjectContext>()
+                     .getSubSystem<Bess::ProjectSession>()
                      ->getSubSystem<Bess::SceneDriver>()
                      ->getActiveScene();
     ASSERT_NE(scene, nullptr);
@@ -1435,7 +1435,7 @@ endmodule
     const auto addressOut = result.topOutputComponents.at("address");
 
     auto sceneDriver =
-        Bess::GAppContext::getInstance().getSubSystem<Bess::ProjectContext>()->getSubSystem<Bess::SceneDriver>();
+        Bess::GAppContext::getInstance().getSubSystem<Bess::ProjectSession>()->getSubSystem<Bess::SceneDriver>();
     auto rootScene = sceneDriver->getActiveScene();
     ASSERT_NE(rootScene, nullptr);
     rootScene->clear();

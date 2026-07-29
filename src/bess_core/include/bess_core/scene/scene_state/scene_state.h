@@ -148,7 +148,7 @@ namespace Bess::Canvas {
         void attachChild(const UUID &parentId,
                          const UUID &childId,
                          bool emitEvent = true);
-        void detachChild(const UUID &childId);
+        void detachChild(const UUID &childId, bool emitEvent = true);
 
         void assignRuntimeId(const UUID &uuid);
 

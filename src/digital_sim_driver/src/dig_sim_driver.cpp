@@ -1,6 +1,5 @@
 #include "dig_sim_driver.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
@@ -9,6 +8,7 @@
 #include "dig_module_def.h"
 #include "driver_registry.h"
 #include "expression_evalutator/expr_evaluator.h"
+#include "project_session/project_session.h"
 #include "sim_driver/event_based_sim_driver.h"
 #include "sim_driver/sim_driver.h"
 #include "simulation_engine.h"
@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <memory>
+#include <stdexcept>
 
 namespace Bess::SimEngine::Drivers::Digital {
 
@@ -70,7 +71,12 @@ namespace Bess::SimEngine::Drivers::Digital {
     }
 
     namespace {
-        std::shared_ptr<DigCompDef> loadDigCompDef(const Json::Value &defJson) {
+        std::shared_ptr<DigCompDef> loadDef(const Json::Value &defJson) {
+            if (!defJson.isObject()) {
+                throw std::runtime_error(
+                    "digital component definition must be an object");
+            }
+
             const auto defName = defJson.get("name", "").asString();
             const auto defTypeName = defJson.get("typeName", "").asString();
 
@@ -88,24 +94,16 @@ namespace Bess::SimEngine::Drivers::Digital {
             } else if (!defName.empty()) {
                 const auto baseDef = SimEngine::ComponentCatalog::instance()
                                          .getComponentDefinition(defName);
-                BESS_ASSERT(
-                    baseDef,
-                    "Component definition with name '{}' not found in catalog",
-                    defName);
                 if (baseDef) {
                     def =
                         std::dynamic_pointer_cast<DigCompDef>(baseDef->clone());
                 }
             }
 
-            BESS_ASSERT(def,
-                        "Failed to load component definition from JSON. No "
-                        "definition found for name '{}' and type '{}'",
-                        defName,
-                        defTypeName);
-
-            if (!def) { // Fallback
-                def = std::make_shared<DigCompDef>();
+            if (!def) {
+                throw std::runtime_error(
+                    "unknown digital component definition '" + defName +
+                    "' (type '" + defTypeName + "')");
             }
 
             def->loadJson(defJson);
@@ -115,10 +113,11 @@ namespace Bess::SimEngine::Drivers::Digital {
                 def->setSimFn(exprEvalSimFunc);
             }
 
-            BESS_ASSERT(
-                def->getSimFn(),
-                "Failed to set sim function for component definition '{}'",
-                def->getName());
+            if (!def->getSimFn()) {
+                throw std::runtime_error("digital component definition '" +
+                                         def->getName() +
+                                         "' has no simulation function");
+            }
 
             return def;
         }
@@ -1157,8 +1156,8 @@ namespace Bess::SimEngine::Drivers::Digital {
         const auto &inpId = def->getInputId();
 
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        auto &simEngine = projectCtx->getSimEngine();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        auto &simEngine = projectCtx->sim();
         auto driver = simEngine.getDriverWithName(DigitalSimDriver::NAME);
         BESS_ASSERT(driver, "DigitalSimDriver not found in simulation engine");
         auto digitalDriver =
@@ -1273,10 +1272,7 @@ namespace Bess::SimEngine::Drivers::Digital {
                     continue;
                 }
 
-                const auto def = loadDigCompDef(compJson["def"]);
-                if (!def) {
-                    continue;
-                }
+                const auto def = loadDef(compJson["def"]);
 
                 const auto comp = std::dynamic_pointer_cast<DigSimComp>(
                     createComp(def, false));

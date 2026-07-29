@@ -5,14 +5,6 @@ set(Header_Files
 	"include/bess_core/g_app_context.h"
 	"include/bess_core/viewport.h"
 
-	"include/bess_core/commands/add_component_command.h"
-	"include/bess_core/commands/command.h"
-	"include/bess_core/commands/command_system.h"
-	"include/bess_core/commands/delete_component_command.h"
-	"include/bess_core/commands/macro_command.h"
-	"include/bess_core/commands/scene_component_command_hooks.h"
-	"include/bess_core/commands/update_value_command.h"
-
 	"include/bess_core/style/bess_theme.h"
 	"include/bess_core/style/color_scheme.h"
 	"include/bess_core/style/color_utils.h"
@@ -72,7 +64,6 @@ set(Header_Files
 	"include/bess_core/scene/layers/interaction_layer.h"
 
 	"include/bess_core/scene_driver.h"
-	"include/bess_core/project_context.h"
 	"include/bess_core/copy_paste_service.h"
 
 	"include/bess_core/asset_manager/asset_loader.h"
@@ -102,17 +93,9 @@ source_group("include/bess_core" FILES ${Header_Files})
 
 set(Source_Files
 	"src/bess_core/asset_manager.cpp"
-	"src/bess_core/project_context.cpp"
 	"src/bess_core/copy_paste_service.cpp"
 	"src/bess_core/viewport.cpp"
 
-	"src/bess_core/commands/add_component_command.cpp"
-	"src/bess_core/commands/command.cpp"
-	"src/bess_core/commands/command_system.cpp"
-	"src/bess_core/commands/delete_component_command.cpp"
-	"src/bess_core/commands/macro_command.cpp"
-	"src/bess_core/commands/scene_component_command_hooks.cpp"
-	
 	"src/bess_core/style/bess_theme.cpp"
 	"src/bess_core/style/color_scheme.cpp"
 	"src/bess_core/style/color_utils.cpp"
@@ -194,7 +177,13 @@ add_library(${PROJECT_NAME} OBJECT ${ALL_FILES})
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}")
 
-target_link_libraries(${PROJECT_NAME} PUBLIC common BessJson BessExtDeps EventSystem)
+target_link_libraries(${PROJECT_NAME} PUBLIC
+	common
+	BessJson
+	BessExtDeps
+	EventSystem
+	project_session
+)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
 	"${CMAKE_CURRENT_SOURCE_DIR}/include"

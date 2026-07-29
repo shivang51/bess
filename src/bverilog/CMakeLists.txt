@@ -35,6 +35,9 @@ add_dependencies(${PROJECT_NAME} BessJson common BessExtDeps BessSimEngine BessS
 target_include_directories(${PROJECT_NAME} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
+target_include_directories(${PROJECT_NAME} PRIVATE
+    "${CMAKE_SOURCE_DIR}/src/project_session/include"
+)
 
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8")

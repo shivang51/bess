@@ -1,7 +1,7 @@
 #include "pages/main_page/scene_components/monitor_scene_comp.h"
 
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
+#include "project_session/project_session.h"
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/renderer/renderer_types.h"
 #include "bess_core/scene/scene_state/components/styles/comp_style.h"
@@ -1648,8 +1648,8 @@ namespace Bess::Canvas {
         const auto &simId = simComp->getSimEngineId();
 
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        const auto &simEngine = projectCtx->getSimEngine();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        const auto &simEngine = projectCtx->sim();
         const auto &digComp =
             simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
                 simId);
@@ -1741,8 +1741,8 @@ namespace Bess::Canvas {
         const auto &simId = simComp->getSimEngineId();
 
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        const auto &simEngine = projectCtx->getSimEngine();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        const auto &simEngine = projectCtx->sim();
         const auto &digComp =
             simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
                 simId);

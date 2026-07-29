@@ -7,8 +7,8 @@ set(Header_Files
 	"pages/page.h"
 	"pages/main_page/main_page.h"
 	"pages/main_page/main_page_state.h"
-	"pages/main_page/cmds/module_comp_cmd.h"
-	"pages/main_page/main_page_command_hooks.h"
+	"pages/main_page/main_page_edit_hooks.h"
+	"pages/main_page/module_edit.h"
 	"pages/main_page/scene_components/conn_joint_scene_component.h"
 	"pages/main_page/scene_components/group_scene_component.h"
 	"pages/main_page/scene_components/slot_scene_component.h"
@@ -32,7 +32,6 @@ set(Header_Files
 	"crash_detail_helper.h"
 	"application.h"
 	"assets.h"
-	"project_file.h"
 	"services/window_drop_service/window_drop_service.h"
 	"services/plugin_service/plugin_service.h"
 	
@@ -83,7 +82,8 @@ set(Source_Files
 	"pages/main_page/verilog_scene_import.cpp"
 	"pages/main_page/main_page_state.cpp"
 	"pages/main_page/main_page.cpp"
-	"pages/main_page/main_page_command_hooks.cpp"
+	"pages/main_page/main_page_edit_hooks.cpp"
+	"pages/main_page/module_edit.cpp"
 	"pages/main_page/scene_components/slot_scene_component.cpp"
 	"pages/main_page/scene_components/sim_scene_component.cpp"
 	"pages/main_page/scene_components/monitor_scene_comp.cpp"
@@ -124,7 +124,6 @@ set(Source_Files
 	"ui/ui_main/popups.cpp"
 	"ui/ui_main/graph_view_window.cpp"
 	
-	"project_file.cpp"
 	"events/application_event.cpp"
 	"sub_systems/renderer_context.cpp"
 )
@@ -144,7 +143,7 @@ set(ALL_FILES
 
 add_library(${PROJECT_NAME} OBJECT ${ALL_FILES})
 
-target_link_libraries(${PROJECT_NAME} PUBLIC common BessCore BessExtDeps BessJson BessSimEngine  BessPluginManager EventSystem BessSimDriver DigitalSimDriver MathSimDriver bverilog BessWgpu)
+target_link_libraries(${PROJECT_NAME} PUBLIC common project_session BessCore BessExtDeps BessJson BessSimEngine  BessPluginManager EventSystem BessSimDriver DigitalSimDriver MathSimDriver bverilog BessWgpu)
 
 if(WIN32)
 	target_link_libraries(${PROJECT_NAME} PUBLIC

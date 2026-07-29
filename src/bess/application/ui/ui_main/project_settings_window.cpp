@@ -2,6 +2,7 @@
 #include "imgui.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
+#include "ui/ui_main/ui_main.h"
 #include "ui/widgets/m_widgets.h"
 
 namespace Bess::UI {
@@ -15,6 +16,8 @@ namespace Bess::UI {
     }
 
     void ProjectSettingsWindow::onDraw() {
+        auto &state = Pages::MainPage::getInstance()->getState();
+        const auto path = state.doc().path().string();
         const float buttonHeight = ImGui::GetFrameHeight();
         const float textHeight = ImGui::CalcTextSize("ajP").y;
         const float verticalOffset = (buttonHeight - textHeight) / 2.0f;
@@ -30,24 +33,35 @@ namespace Bess::UI {
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + verticalOffset);
         ImGui::Text("Project Path");
         ImGui::SameLine();
-        ImGui::TextDisabled("%s", m_projectFile->getPath().c_str());
+        ImGui::TextDisabled("%s", path.empty() ? "Not saved" : path.c_str());
         ImGui::SameLine();
         ImGui::Spacing();
         ImGui::SameLine();
 
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() - verticalOffset);
-        if (m_projectFile->getPath() == "" && ImGui::Button("Browse")) {
+        bool save = false;
+        if (path.empty() && ImGui::Button("Browse")) {
+            save = true;
         }
 
         if (ImGui::Button("Save")) {
-            m_projectFile->getNameRef() = m_projectName;
-            m_projectFile->save();
+            save = true;
+        }
+
+        if (save) {
+            const auto result = state.session().setName(m_projectName);
+            if (!result) {
+                UIMain::getState()._internalData.statusMessage =
+                    "Could not rename project: " +
+                    result.status.msg();
+                return;
+            }
+            state.actionFlags.saveProject = true;
         }
     }
 
     void ProjectSettingsWindow::onShow() {
-        m_projectFile =
-            Pages::MainPage::getInstance()->getState().getCurrentProjectFile();
-        m_projectName = m_projectFile->getName();
+        m_projectName =
+            Pages::MainPage::getInstance()->getState().doc().name();
     }
 } // namespace Bess::UI

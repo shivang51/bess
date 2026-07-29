@@ -1,6 +1,6 @@
 #include "slot_probe_scene_component.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
+#include "project_session/project_session.h"
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_draw_helpers.h"
 #include "bess_core/scene/scene_state/scene_state.h"
@@ -210,8 +210,8 @@ namespace Bess::Canvas {
                                 ->getSimEngineId();
 
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        const auto &simEngine = projectCtx->getSimEngine();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        const auto &simEngine = projectCtx->sim();
         const auto &digComp =
             simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
                 simId);
@@ -258,8 +258,8 @@ namespace Bess::Canvas {
                                 ->getSimEngineId();
 
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        const auto &simEngine = projectCtx->getSimEngine();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        const auto &simEngine = projectCtx->sim();
         const auto &digComp =
             simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
                 simId);

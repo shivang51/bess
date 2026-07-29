@@ -1,7 +1,7 @@
 #include "application/pages/main_page/services/hierarchical_scene_layout.h"
 #include "dig_sim_driver.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
+#include "project_session/project_session.h"
 #include "event_dispatcher.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
@@ -93,8 +93,8 @@ namespace {
       protected:
         void SetUp() override {
             auto &appCtx = Bess::GAppContext::getInstance();
-            auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-            engine = &projectCtx->getSimEngine();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+            engine = &projectCtx->sim();
             engine->clear();
         }
 

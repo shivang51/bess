@@ -41,7 +41,9 @@ namespace Bess::Canvas {
                 .entityUuid = static_cast<const Derived &>(*this).getUuid(),
                 .oldPos = m_dragStartPos,
                 .newPos = self.getTransform().position,
+                .state = m_sceneState,
             });
+            m_sceneState = nullptr;
         }
 
       protected:
@@ -56,10 +58,12 @@ namespace Bess::Canvas {
                                *e.sceneState, e.isSchematicMode)) -
                            e.mousePos;
             m_dragStartPos = self.getTransform().position;
+            m_sceneState = e.sceneState;
             m_isDragging = true;
         }
 
         bool m_isDragging = false;
+        Canvas::SceneState *m_sceneState = nullptr;
         glm::vec2 m_dragOffset = {0.f, 0.f};
         glm::vec3 m_dragStartPos = {0.f, 0.f, 0.f};
         friend Derived;

@@ -2,7 +2,7 @@
 #include "component_catalog.h"
 #include "dig_sim_driver.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
+#include "project_session/project_session.h"
 #include "sim_driver/sim_driver.h"
 #include "simulation_engine.h"
 #include "gtest/gtest.h"
@@ -178,8 +178,8 @@ namespace {
 
     TEST(SimDriverTest, AddingCompViaSimEngine) {
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        auto &engine = projectCtx->getSimEngine();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        auto &engine = projectCtx->sim();
         auto def = std::make_shared<DigCompDef>();
         def->setName("NAND Gate");
         def->setInputSlotsInfo(

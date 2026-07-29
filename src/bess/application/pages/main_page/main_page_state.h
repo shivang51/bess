@@ -2,13 +2,12 @@
 
 #include "common/bess_api.h"
 
-#include "bess_core/commands/command_system.h"
 #include "bess_core/scene/scene_events.h"
 #include "bess_core/scene_driver.h"
 #include "common/events.h"
 #include "events/sim_engine_events.h"
 #include "pages/main_page/services/hierarchical_scene_layout.h"
-#include "project_file.h"
+#include "project_session/project_session.h"
 #include <vector>
 
 namespace Bess {
@@ -42,7 +41,8 @@ namespace Bess::Pages {
         MainPageState(const MainPageState &) = delete;
         MainPageState &operator=(const MainPageState &) = delete;
 
-        Cmd::CommandSystem &getCommandSystem();
+        [[nodiscard]] ProjectSession &session();
+        [[nodiscard]] const ProjectSession &session() const;
 
         void update();
 
@@ -53,12 +53,10 @@ namespace Bess::Pages {
         typedef std::unordered_map<UUID, std::vector<UUID>> TNetIdToCompMap;
         TNetIdToCompMap &getNetIdToCompMap(UUID sceneId);
 
-        void resetProjectState(bool updateWindowName = true);
-        // creates default scenes in scene driver as well
-        // and clears simulation engine and sets up new project file
-        void createNewProject(bool updateWindowName = true);
-        void saveCurrentProject() const;
-        void loadProject(const std::string &path);
+        [[nodiscard]] Status resetProj(bool updateWindowName = true);
+        [[nodiscard]] Status newProj(bool updateWindowName = true);
+        [[nodiscard]] Status save();
+        [[nodiscard]] Status load(const std::string &path);
         bool importVerilogFile(const std::string &path,
                                std::string *errorMessage = nullptr);
         bool importVerilogFiles(const std::vector<std::string> &paths,
@@ -74,7 +72,8 @@ namespace Bess::Pages {
 
         std::shared_ptr<SceneDriver> getSceneDriver() const;
         std::shared_ptr<SceneDriver> getSceneDriver();
-        std::shared_ptr<ProjectFile> getCurrentProjectFile() const;
+        [[nodiscard]] ProjectDoc &doc();
+        [[nodiscard]] const ProjectDoc &doc() const;
 
         PageActionFlags actionFlags = {};
 
@@ -97,7 +96,6 @@ namespace Bess::Pages {
             const SimEngine::Events::CompDefInputsResizedEvent &e);
 
       private:
-        Cmd::CommandSystem m_commandSystem;
         std::unordered_map<int, bool> m_releasedKeysFrame;
         std::unordered_map<int, bool> m_pressedKeysFrame;
         std::unordered_map<int, bool> m_downKeys;

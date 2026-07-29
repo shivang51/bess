@@ -1,6 +1,6 @@
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/g_app_context.h"
-#include "bess_core/project_context.h"
+#include "project_session/project_session.h"
 #include "bess_core/scene/scene_ser_reg.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "common/bess_uuid.h"
@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <stdexcept>
 #include <vector>
 
 namespace Bess::Canvas {
@@ -225,7 +226,7 @@ namespace Bess::Canvas {
         m_rootComponents.erase(childId);
     }
 
-    void SceneState::detachChild(const UUID &childId) {
+    void SceneState::detachChild(const UUID &childId, bool emitEvent) {
         const auto &child = getComponentByUuid(childId);
         BESS_ASSERT(child, "(Detach Child) Child not found");
 
@@ -243,15 +244,17 @@ namespace Bess::Canvas {
                   (uint64_t)childId,
                   (uint64_t)parentId);
 
-        auto &appCtx = GAppContext::getInstance();
-        auto eventDispatcher =
-            appCtx.getSubSystem<Bess::EventSystem::EventDispatcher>();
-        eventDispatcher->queue(
-            Events::EntityReparentedEvent{.entityUuid = childId,
-                                          .newParentUuid = UUID::null,
-                                          .prevParent = parentId,
-                                          .sceneId = m_sceneId,
-                                          .state = this});
+        if (emitEvent) {
+            auto &appCtx = GAppContext::getInstance();
+            auto eventDispatcher =
+                appCtx.getSubSystem<Bess::EventSystem::EventDispatcher>();
+            eventDispatcher->queue(
+                Events::EntityReparentedEvent{.entityUuid = childId,
+                                              .newParentUuid = UUID::null,
+                                              .prevParent = parentId,
+                                              .sceneId = m_sceneId,
+                                              .state = this});
+        }
 
         m_rootComponents.insert(childId);
     }
@@ -459,13 +462,20 @@ namespace Bess::JsonConvert {
         state.setIsRootScene(j["isRootScene"].asBool());
 
         auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectContext>();
-        const auto &simEngine = projectCtx->getSimEngine();
+        if (!appCtx.hasSubSystem<Bess::ProjectSession>()) {
+            throw std::runtime_error(
+                "ProjectSession is unavailable while loading a scene");
+        }
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        const auto &simEngine = projectCtx->sim();
         std::vector<std::shared_ptr<Canvas::SceneComponent>>
             deserializedComponents;
         deserializedComponents.reserve(j["components"].size());
 
-        const auto &pluginService = appCtx.getSubSystem<Svc::PluginService>();
+        const auto pluginService =
+            appCtx.hasSubSystem<Svc::PluginService>()
+                ? appCtx.getSubSystem<Svc::PluginService>()
+                : nullptr;
 
         for (const auto &compJson : j["components"]) {
             if (!compJson.isMember("typeName")) {
@@ -480,7 +490,8 @@ namespace Bess::JsonConvert {
 
             if (Canvas::SceneSerReg::hasComponent(typeName)) {
                 comp = Canvas::SceneSerReg::createComponentFromJson(compJson);
-            } else if (pluginService->canDerserialize(typeName)) {
+            } else if (pluginService &&
+                       pluginService->canDerserialize(typeName)) {
                 comp = pluginService->derserialize(typeName, compJson);
             } else {
                 BESS_WARN("No derserializer found for {}. Skipping component.",
@@ -497,12 +508,19 @@ namespace Bess::JsonConvert {
 
             if (comp->getType() == Canvas::SceneComponentType::module ||
                 comp->getType() == Canvas::SceneComponentType::simulation) {
-                const auto &simComp =
-                    comp->cast<Canvas::SimulationSceneComponent>();
-                BESS_ASSERT(simComp, "Simulation component cast failed");
+                const auto simComp =
+                    std::dynamic_pointer_cast<
+                        Canvas::SimulationSceneComponent>(comp);
+                if (!simComp) {
+                    throw std::runtime_error(
+                        "simulation component has an invalid type");
+                }
                 const auto &def =
                     simEngine.getComponentDefinition(simComp->getSimEngineId());
-                BESS_ASSERT(def, "Definition not found in sim engine");
+                if (!def) {
+                    throw std::runtime_error(
+                        "simulation component definition was not found");
+                }
                 simComp->setCompDef(def);
                 simComp->setScaleDirty(false);
             }
