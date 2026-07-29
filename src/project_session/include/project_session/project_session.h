@@ -130,6 +130,8 @@ namespace Bess {
         parentComp(UUID id, UUID parent, UUID scene = UUID::null);
         [[nodiscard]] TxResult
         trackParent(UUID id, UUID from, UUID to, UUID scene = UUID::null);
+        [[nodiscard]] TxResult
+        nameComp(UUID id, std::string name, UUID scene = UUID::null);
         [[nodiscard]] TxResult setName(std::string name);
 
         [[nodiscard]] TxResult undo();

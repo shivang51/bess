@@ -1,13 +1,13 @@
 #include "ui/ui_main/properties_panel.h"
-#include "pages/main_page/main_page.h"
 #include "bess_core/g_app_context.h"
-#include "project_session/project_session.h"
 #include "common/helpers.h"
 #include "dig_sim_driver.h"
 #include "gtc/type_ptr.hpp"
+#include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
+#include "project_session/project_session.h"
 #include "simulation_engine.h"
 #include "ui/icons/CodIcons_Remapped.h"
 #include "ui/widgets/m_widgets.h"
@@ -33,9 +33,9 @@ namespace Bess::UI {
     }
 
     void PropertiesPanel::onDraw() {
-        auto sceneDriver = GAppContext::getInstance()
-                               .getSubSystem<Bess::ProjectSession>()
-                               ->getSubSystem<SceneDriver>();
+        auto &session =
+            *GAppContext::getInstance().getSubSystem<ProjectSession>();
+        auto sceneDriver = session.getSubSystem<SceneDriver>();
         auto &sceneState = sceneDriver->getActiveScene()->getState();
         if (sceneState.getSelectedComponents().empty()) {
             ImGui::TextUnformatted("No component selected.");
@@ -47,8 +47,16 @@ namespace Bess::UI {
         auto comp = sceneState.getComponentByUuid(compId);
         const auto compType = comp->getType();
 
+        const auto oldName = comp->getName();
         if (Widgets::TextBox("Name", comp->getName())) {
-            comp->setName(comp->getName());
+            auto name = comp->getName();
+            comp->setName(oldName);
+            const auto result = session.nameComp(
+                compId, std::move(name), sceneState.getSceneId());
+            if (!result) {
+                BESS_WARN("Could not rename component: {}",
+                          result.status.msg());
+            }
         }
 
         comp->drawPropertiesUI(sceneState);

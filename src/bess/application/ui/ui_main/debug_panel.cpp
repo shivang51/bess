@@ -1,18 +1,18 @@
 #include "debug_panel.h"
 #include "bess_core/g_app_context.h"
-#include "project_session/project_session.h"
+#include "bess_core/scene/scene_ser_reg.h"
 #include "bess_core/scene_driver.h"
 #include "common/bess_uuid.h"
 #include "dig_sim_driver.h"
-#include "ui/icons/CodIcons_Remapped.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
-#include "bess_core/scene/scene_ser_reg.h"
+#include "project_session/project_session.h"
 #include "services/plugin_service/plugin_service.h"
 #include "simulation_engine.h"
+#include "ui/icons/CodIcons_Remapped.h"
 #include "ui/ui_main/ui_main.h"
 #include "ui/widgets/m_widgets.h"
 
@@ -25,11 +25,9 @@ namespace Bess::UI {
     }
 
     void DebugPanel::onDraw() {
-        auto &mainPageState = Pages::MainPage::getInstance()->getState();
-
-        auto sceneDriver = GAppContext::getInstance()
-                               .getSubSystem<Bess::ProjectSession>()
-                               ->getSubSystem<SceneDriver>();
+        const auto session =
+            GAppContext::getInstance().getSubSystem<ProjectSession>();
+        auto sceneDriver = session->getSubSystem<SceneDriver>();
         const auto &sceneState = sceneDriver->getActiveScene()->getState();
 
         if (!sceneDriver->getIsPaused()) {
@@ -183,9 +181,7 @@ namespace Bess::UI {
 
             if (ImGui::BeginTabItem("Project File Ser")) {
                 Widgets::SelectableText("Sim-Engine",
-                                        mainPageState.doc()
-                                            .json()
-                                            .toStyledString());
+                                        session->doc().json().toStyledString());
                 ImGui::EndTabItem();
             }
 
@@ -194,7 +190,6 @@ namespace Bess::UI {
     }
 
     void DebugPanel::drawDependencyGraph(const UUID &compId) {
-        const auto &mainPageState = Pages::MainPage::getInstance()->getState();
         auto sceneDriver = GAppContext::getInstance()
                                .getSubSystem<Bess::ProjectSession>()
                                ->getSubSystem<SceneDriver>();

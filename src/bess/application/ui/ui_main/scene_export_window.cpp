@@ -1,6 +1,5 @@
 #include "ui/ui_main/scene_export_window.h"
 #include "bess_core/g_app_context.h"
-#include "project_session/project_session.h"
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_draw_helpers.h"
 #include "bess_core/scene_driver.h"
@@ -9,8 +8,7 @@
 #include "common/logger.h"
 #include "gtc/type_ptr.hpp"
 #include "imgui.h"
-#include "pages/main_page/main_page.h"
-#include "pages/main_page/main_page_state.h"
+#include "project_session/project_session.h"
 #include "sub_systems/renderer_context.h"
 #include "ui/icons/FontAwesomeIcons_Remapped.h"
 #include "ui/ui_main/dialogs.h"
@@ -271,15 +269,15 @@ namespace Bess::UI {
 
         exportPath = absPath.string();
 
-        const auto &mainPage = Pages::MainPage::getInstance()->getState();
+        const auto session =
+            GAppContext::getInstance().getSubSystem<ProjectSession>();
 
         const auto now = std::chrono::system_clock::now();
         const std::chrono::zoned_time localTime{std::chrono::current_zone(),
                                                 now};
 
-        fileName = std::format("{}_{:%Y-%m-%d_%H:%M:%S}",
-                               mainPage.doc().name(),
-                               localTime);
+        fileName = std::format(
+            "{}_{:%Y-%m-%d_%H:%M:%S}", session->doc().name(), localTime);
 
         refreshSelectedScene();
         if (const auto scene = getSelectedScene()) {

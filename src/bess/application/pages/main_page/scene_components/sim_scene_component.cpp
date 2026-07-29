@@ -1,6 +1,5 @@
 #include "sim_scene_component.h"
 #include "bess_core/g_app_context.h"
-#include "project_session/project_session.h"
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/renderer/renderer_types.h"
 #include "bess_core/scene/scene_draw_context.h"
@@ -20,6 +19,7 @@
 #include "imgui.h"
 #include "input_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
+#include "project_session/project_session.h"
 #include "simulation_engine.h"
 #include "slot_scene_component.h"
 #include "sub_systems/renderer_context.h"
@@ -471,8 +471,17 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
                     Styles::simCompStyles.paddingX,
                     Styles::simCompStyles.paddingY);
 
+            const auto sceneId = ctx.sceneState->getSceneId();
             m_labelComp = UI::EditableLabelComp::create(
-                m_name, [this](const std::string &val) { setName(val); });
+                m_name, [id = m_uuid, sceneId](const std::string &val) {
+                    const auto session = GAppContext::getInstance()
+                                             .getSubSystem<ProjectSession>();
+                    const auto result = session->nameComp(id, val, sceneId);
+                    if (!result) {
+                        BESS_WARN("Could not rename component: {}",
+                                  result.status.msg());
+                    }
+                });
             m_labelComp->setSelectTextOnEdit(true);
             m_labelComp->setName(std::format("{} {}", m_icon, m_name));
 
@@ -1184,8 +1193,19 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
                     continue;
                 }
                 std::string label = "Input Slot " + std::to_string(i);
+                const auto oldName = slotComp->getName();
                 if (Widgets::TextBox(label, slotComp->getName())) {
-                    slotComp->onNameChanged();
+                    auto name = slotComp->getName();
+                    slotComp->setName(oldName);
+                    const auto result = GAppContext::getInstance()
+                                            .getSubSystem<ProjectSession>()
+                                            ->nameComp(slotComp->getUuid(),
+                                                       std::move(name),
+                                                       state.getSceneId());
+                    if (!result) {
+                        BESS_WARN("Could not rename input slot: {}",
+                                  result.status.msg());
+                    }
                 }
             }
             ImGui::TreePop();
@@ -1201,8 +1221,19 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
                     continue;
                 }
                 std::string label = "Output Slot " + std::to_string(i);
+                const auto oldName = slotComp->getName();
                 if (Widgets::TextBox(label, slotComp->getName())) {
-                    slotComp->onNameChanged();
+                    auto name = slotComp->getName();
+                    slotComp->setName(oldName);
+                    const auto result = GAppContext::getInstance()
+                                            .getSubSystem<ProjectSession>()
+                                            ->nameComp(slotComp->getUuid(),
+                                                       std::move(name),
+                                                       state.getSceneId());
+                    if (!result) {
+                        BESS_WARN("Could not rename output slot: {}",
+                                  result.status.msg());
+                    }
                 }
             }
             ImGui::TreePop();

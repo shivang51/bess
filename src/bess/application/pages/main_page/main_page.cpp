@@ -2,7 +2,6 @@
 #include "bess_core/asset_manager/asset_manager.h"
 #include "bess_core/copy_paste_service.h"
 #include "bess_core/g_app_context.h"
-#include "project_session/project_session.h"
 #include "bess_core/scene/scene_ser_reg.h"
 #include "bess_core/scene/widgets/scene_widgets.h"
 #include "bess_core/sub_systems/input_sub_system.h"
@@ -28,6 +27,7 @@
 #include "pages/main_page/scene_components/text_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
 #include "plugin_manager.h"
+#include "project_session/project_session.h"
 #include "ui/ui.h"
 #include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/project_explorer.h"
@@ -175,6 +175,7 @@ namespace Bess::Pages {
 
         auto &appCtx = GAppContext::getInstance();
         auto inpSystem = appCtx.getSubSystem<Bess::InputSubSystem>();
+        auto sess = appCtx.getSubSystem<ProjectSession>();
 
         const bool isCtrlPressed = inpSystem->isCtrlPressed();
         const bool isShiftPressed = inpSystem->isShiftPressed();
@@ -186,9 +187,15 @@ namespace Bess::Pages {
                 m_state.actionFlags.openProject = true;
             } else if (inpSystem->isKeyPressed(KeyCode::z)) {
                 if (isShiftPressed) {
-                    (void)m_state.session().redo();
+                    const auto result = sess->redo();
+                    if (!result) {
+                        BESS_WARN("Could not redo: {}", result.status.msg());
+                    }
                 } else {
-                    (void)m_state.session().undo();
+                    const auto result = sess->undo();
+                    if (!result) {
+                        BESS_WARN("Could not undo: {}", result.status.msg());
+                    }
                 }
             } else if (inpSystem->isKeyPressed(KeyCode::g)) {
                 UI::UIMain::getPanel<UI::ProjectExplorer>()
@@ -272,7 +279,7 @@ namespace Bess::Pages {
                     return;
                 }
 
-                auto tx = m_state.session().tx("Delete selection");
+                auto tx = sess->tx("Delete selection");
                 Status status = Status::ok();
                 for (const auto &moduleId : moduleIds) {
                     status = Edit::rmModule(tx, targetScene, moduleId);
@@ -282,8 +289,7 @@ namespace Bess::Pages {
                 }
 
                 if (status && !regularIds.empty()) {
-                    status =
-                        tx.rmComp(regularIds, targetScene->getSceneId());
+                    status = tx.rmComp(regularIds, targetScene->getSceneId());
                 }
 
                 if (status) {

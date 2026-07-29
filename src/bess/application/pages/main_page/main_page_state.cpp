@@ -30,6 +30,10 @@
 
 namespace Bess::Pages {
     namespace {
+        ProjectSession &sess() {
+            return *GAppContext::getInstance().getSubSystem<ProjectSession>();
+        }
+
         std::string fallbackSlotName(size_t index, bool isInput) {
             const char base = isInput ? 'A' : 'a';
             return {static_cast<char>(base + (index % 26))};
@@ -199,14 +203,15 @@ namespace Bess::Pages {
         };
 
         struct FileDropContext {
-            std::shared_ptr<Canvas::Scene> scene;
-            Canvas::SceneState *sceneState = nullptr;
+            ProjectTx *tx = nullptr;
+            UUID scene = UUID::null;
             glm::vec2 basePos{0.f};
             std::vector<UUID> addedComponentIds;
+            Status status;
 
             void addComponent(
                 const std::shared_ptr<Canvas::SceneComponent> &component) {
-                if (!scene || component == nullptr) {
+                if (!tx || !status || component == nullptr) {
                     return;
                 }
 
@@ -214,7 +219,10 @@ namespace Bess::Pages {
                     static_cast<float>(addedComponentIds.size()) * 24.f;
                 component->setPosition(
                     {basePos.x + offset, basePos.y + offset, 0.f});
-                scene->addComponent(component);
+                status = tx->addComp(component, {}, scene);
+                if (!status) {
+                    return;
+                }
                 addedComponentIds.push_back(component->getUuid());
             }
         };
@@ -468,7 +476,61 @@ namespace Bess::Pages {
 
         auto &appCtx = Bess::GAppContext::getInstance();
         auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-        return applyHierarchicalSceneLayout(*activeScene, projectCtx->sim());
+        auto &state = activeScene->getState();
+        std::unordered_map<UUID, glm::vec3> before;
+        before.reserve(state.getAllComponents().size());
+        for (const auto &[id, comp] : state.getAllComponents()) {
+            if (comp) {
+                before.emplace(id, comp->getTransform().position);
+            }
+        }
+
+        result = applyHierarchicalSceneLayout(*activeScene, projectCtx->sim());
+        if (!result.applied) {
+            return result;
+        }
+
+        auto tx = projectCtx->tx("Apply hierarchical layout");
+        for (const auto &[id, pos] : before) {
+            const auto comp = state.getComponentByUuid(id);
+            if (!comp || comp->getTransform().position == pos) {
+                continue;
+            }
+            const auto status = tx.trackMove(id,
+                                             pos,
+                                             comp->getTransform().position,
+                                             activeScene->getSceneId());
+            if (!status) {
+                tx.cancel();
+                for (const auto &[restoreId, restorePos] : before) {
+                    if (const auto restore =
+                            state.getComponentByUuid(restoreId)) {
+                        restore->setPosition(restorePos);
+                    }
+                }
+                result.applied = false;
+                BESS_WARN("Could not prepare layout transaction: {}",
+                          status.msg());
+                return result;
+            }
+        }
+
+        if (tx.isEmpty()) {
+            tx.cancel();
+            return result;
+        }
+        const auto commit = tx.commit();
+        if (!commit) {
+            for (const auto &[id, pos] : before) {
+                if (const auto comp = state.getComponentByUuid(id)) {
+                    comp->setPosition(pos);
+                }
+            }
+            result.applied = false;
+            BESS_WARN("Could not record layout transaction: {}",
+                      commit.status.msg());
+        }
+        return result;
     }
 
     void MainPageState::startVerilogImport(const std::string &path) {
@@ -588,20 +650,8 @@ namespace Bess::Pages {
         m_verilogImportSession.reset();
     }
 
-    ProjectDoc &MainPageState::doc() {
-        const auto &appCtx = GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-        return projectCtx->doc();
-    }
-
-    const ProjectDoc &MainPageState::doc() const {
-        const auto &appCtx = GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-        return projectCtx->doc();
-    }
-
     void MainPageState::init() {
-        session().setHooks(makeEditHooks());
+        sess().setHooks(makeEditHooks());
 
         auto &appCtx = GAppContext::getInstance();
         auto dispatcher = appCtx.getSubSystem<EventSystem::EventDispatcher>();
@@ -610,8 +660,6 @@ namespace Bess::Pages {
             .connect<&MainPageState::onWindowDropped>(this);
         dispatcher->sink<Canvas::Events::EntityMovedEvent>()
             .connect<&MainPageState::onEntityMoved>(this);
-        dispatcher->sink<Canvas::Events::EntityReparentedEvent>()
-            .connect<&MainPageState::onEntityReparented>(this);
         dispatcher->sink<Canvas::Events::ComponentAddedEvent>()
             .connect<&MainPageState::onEntityAdded>(this);
         dispatcher->sink<Canvas::Events::ComponentRemovedEvent>()
@@ -640,9 +688,10 @@ namespace Bess::Pages {
         }
 
         auto &sceneState = activeScene->getState();
+        auto tx = sess().tx("Add dropped files");
         FileDropContext dropCtx{
-            .scene = activeScene,
-            .sceneState = &sceneState,
+            .tx = &tx,
+            .scene = activeScene->getSceneId(),
             .basePos = sceneState.getMousePos(),
         };
         size_t handledCount = 0;
@@ -658,13 +707,29 @@ namespace Bess::Pages {
                        filePath);
         }
 
-        if (!dropCtx.addedComponentIds.empty()) {
-            sceneState.clearSelectedComponents();
-            for (const auto &componentId : dropCtx.addedComponentIds) {
-                sceneState.addSelectedComponent(componentId);
-            }
-        } else if (handledCount == 0) {
+        if (handledCount == 0) {
             BESS_DEBUG("[MainPageState] No supported files found in drop");
+        }
+
+        if (!dropCtx.status) {
+            tx.cancel();
+            BESS_ERROR("Could not add dropped files: {}", dropCtx.status.msg());
+            return;
+        }
+        if (dropCtx.addedComponentIds.empty()) {
+            tx.cancel();
+            return;
+        }
+
+        const auto result = tx.commit();
+        if (!result) {
+            BESS_ERROR("Could not add dropped files: {}", result.status.msg());
+            return;
+        }
+
+        sceneState.clearSelectedComponents();
+        for (const auto &componentId : dropCtx.addedComponentIds) {
+            sceneState.addSelectedComponent(componentId);
         }
     }
 
@@ -678,67 +743,11 @@ namespace Bess::Pages {
             return;
         }
 
-        const auto result = session().trackMove(
+        const auto result = sess().trackMove(
             e.entityUuid, e.oldPos, e.newPos, e.state->getSceneId());
         if (!result) {
             BESS_WARN("Could not track component move: {}",
                       result.status.msg());
-        }
-    }
-
-    void MainPageState::onEntityReparented(
-        const Canvas::Events::EntityReparentedEvent &e) {
-        const auto scene = getTrackedScene(getSceneDriver(), e.sceneId);
-        if (!scene) {
-            return;
-        }
-
-        auto &sceneState = scene->getState();
-        auto entity = sceneState.getComponentByUuid(e.entityUuid);
-        if (!entity) {
-            return;
-        }
-
-        if (entity->getType() == Canvas::SceneComponentType::slot) {
-            return;
-        }
-
-        bool parentIsWasGroup = false;
-
-        if (e.newParentUuid != UUID::null) {
-            const auto &parentComp =
-                sceneState.getComponentByUuid(e.newParentUuid);
-            if (!parentComp) {
-                return;
-            }
-            parentIsWasGroup =
-                parentComp->getType() == Canvas::SceneComponentType::group;
-        }
-
-        if (!parentIsWasGroup && e.prevParent != UUID::null) {
-            const auto &prevParentComp =
-                sceneState.getComponentByUuid(e.prevParent);
-            if (!prevParentComp)
-                return;
-            if (prevParentComp->getType() ==
-                Canvas::SceneComponentType::group) {
-                parentIsWasGroup = true;
-            }
-        }
-
-        // ignore if parent is/was a group
-        // group handels this shit it self
-        if (parentIsWasGroup) {
-            return;
-        }
-
-        if (entity) {
-            const auto result = session().trackParent(
-                e.entityUuid, e.prevParent, e.newParentUuid, e.sceneId);
-            if (!result) {
-                BESS_WARN("Could not track component reparent: {}",
-                          result.status.msg());
-            }
         }
     }
 
@@ -752,16 +761,6 @@ namespace Bess::Pages {
         const auto &appCtx = GAppContext::getInstance();
         return appCtx.getSubSystem<Bess::ProjectSession>()
             ->getSubSystem<SceneDriver>();
-    }
-
-    ProjectSession &MainPageState::session() {
-        const auto &appCtx = GAppContext::getInstance();
-        return *appCtx.getSubSystem<ProjectSession>();
-    }
-
-    const ProjectSession &MainPageState::session() const {
-        const auto &appCtx = GAppContext::getInstance();
-        return *appCtx.getSubSystem<ProjectSession>();
     }
 
     void MainPageState::update() {

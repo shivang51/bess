@@ -1,4 +1,5 @@
 #include "conn_joint_scene_component.h"
+#include "bess_core/g_app_context.h"
 #include "bess_core/scene/scene_draw_helpers.h"
 #include "bess_core/scene/scene_state/components/scene_component_types.h"
 #include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
@@ -7,7 +8,7 @@
 #include "common/bess_uuid.h"
 #include "connection_scene_component.h"
 #include "geometric.hpp"
-#include "pages/main_page/main_page.h"
+#include "project_session/project_session.h"
 #include "sim_scene_component.h"
 #include "slot_scene_component.h"
 
@@ -308,12 +309,10 @@ namespace Bess::Canvas {
         conn->setStartEndSlots(startSlot->getUuid(), endComp->getUuid());
 
         auto &session =
-            Pages::MainPage::getInstance()->getState().session();
-        const auto result =
-            session.addConn(conn, sceneState.getSceneId());
+            *GAppContext::getInstance().getSubSystem<ProjectSession>();
+        const auto result = session.addConn(conn, sceneState.getSceneId());
         if (!result) {
-            BESS_WARN("Could not add connection: {}",
-                      result.status.msg());
+            BESS_WARN("Could not add connection: {}", result.status.msg());
             return false;
         }
 

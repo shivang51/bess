@@ -8,7 +8,6 @@
 #include "pages/main_page/scene_components/connection_scene_component.h" // IWYU pragma: keep
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
-#include "pages/main_page/services/connection_service.h"
 #include "project_session/project_session.h"
 #include "simulation_engine.h"
 #include "ui/ui_main/component_explorer.h"
@@ -248,23 +247,51 @@ void bind_cmds(py::module &m) {
                               .getSubSystem<Bess::ProjectSession>();
 
         auto sceneDriver = projectCtx->getSubSystem<Bess::SceneDriver>();
-        auto connSvc = projectCtx->getSubSystem<Bess::Svc::SvcConnection>();
-
-        auto conn = connSvc->createConnection(fromCompId,
-                                              fromDirection,
-                                              fromPortIdx,
-                                              toCompId,
-                                              toDirection,
-                                              toPortIdx,
-                                              sceneDriver->getActiveScene());
-
-        if (conn) {
-            return {py::cast(conn->getUuid()), ""};
-        } else {
-            return {py::none(),
-                    "Failed to connect slots. Check if component "
-                    "and slot indices are correct."};
+        const auto scene = sceneDriver->getActiveScene();
+        if (!scene) {
+            return {py::none(), "No active scene"};
         }
+        const auto fromComp =
+            scene->getState()
+                .getComponentByUuid<Bess::Canvas::SimulationSceneComponent>(
+                    fromCompId);
+        const auto toComp =
+            scene->getState()
+                .getComponentByUuid<Bess::Canvas::SimulationSceneComponent>(
+                    toCompId);
+        if (!fromComp || !toComp || fromPortIdx < 0 || toPortIdx < 0) {
+            return {py::none(), "Component or port index is invalid"};
+        }
+        const auto validDir = [](Bess::SimEngine::PortDirection direction) {
+            return direction == Bess::SimEngine::PortDirection::input ||
+                   direction == Bess::SimEngine::PortDirection::output;
+        };
+        if (!validDir(fromDirection) || !validDir(toDirection)) {
+            return {py::none(), "Port direction is invalid"};
+        }
+
+        const auto slotAt = [](const auto *comp,
+                               Bess::SimEngine::PortDirection direction,
+                               int index) {
+            const auto &slots =
+                direction == Bess::SimEngine::PortDirection::input
+                    ? comp->getInputSlots()
+                    : comp->getOutputSlots();
+            return static_cast<std::size_t>(index) < slots.size()
+                       ? slots[static_cast<std::size_t>(index)]
+                       : Bess::UUID::null;
+        };
+        const auto fromSlot = slotAt(fromComp, fromDirection, fromPortIdx);
+        const auto toSlot = slotAt(toComp, toDirection, toPortIdx);
+        if (fromSlot == Bess::UUID::null || toSlot == Bess::UUID::null) {
+            return {py::none(), "Port index is out of range"};
+        }
+
+        auto conn = std::make_shared<Bess::Canvas::ConnectionSceneComponent>();
+        conn->setStartEndSlots(fromSlot, toSlot);
+        const auto result = projectCtx->addConn(conn, scene->getSceneId());
+        return result ? CmdResult{py::cast(conn->getUuid()), ""}
+                      : CmdResult{py::none(), result.status.msg()};
     };
 
     m.def("connect",

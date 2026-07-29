@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace Bess {
@@ -45,6 +46,7 @@ namespace Bess {
         TxOpts opts;
         StateId base = 0;
         std::vector<std::unique_ptr<ProjectSessionStep>> ops;
+        std::unordered_set<UUID> adds;
         Status err;
         bool done = false;
     };

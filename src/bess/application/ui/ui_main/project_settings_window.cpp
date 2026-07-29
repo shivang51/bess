@@ -1,7 +1,9 @@
 #include "ui/ui_main/project_settings_window.h"
+#include "bess_core/g_app_context.h"
 #include "imgui.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
+#include "project_session/project_session.h"
 #include "ui/ui_main/ui_main.h"
 #include "ui/widgets/m_widgets.h"
 
@@ -17,7 +19,9 @@ namespace Bess::UI {
 
     void ProjectSettingsWindow::onDraw() {
         auto &state = Pages::MainPage::getInstance()->getState();
-        const auto path = state.doc().path().string();
+        auto &session =
+            *GAppContext::getInstance().getSubSystem<ProjectSession>();
+        const auto path = session.doc().path().string();
         const float buttonHeight = ImGui::GetFrameHeight();
         const float textHeight = ImGui::CalcTextSize("ajP").y;
         const float verticalOffset = (buttonHeight - textHeight) / 2.0f;
@@ -49,11 +53,10 @@ namespace Bess::UI {
         }
 
         if (save) {
-            const auto result = state.session().setName(m_projectName);
+            const auto result = session.setName(m_projectName);
             if (!result) {
                 UIMain::getState()._internalData.statusMessage =
-                    "Could not rename project: " +
-                    result.status.msg();
+                    "Could not rename project: " + result.status.msg();
                 return;
             }
             state.actionFlags.saveProject = true;
@@ -61,7 +64,9 @@ namespace Bess::UI {
     }
 
     void ProjectSettingsWindow::onShow() {
-        m_projectName =
-            Pages::MainPage::getInstance()->getState().doc().name();
+        m_projectName = GAppContext::getInstance()
+                            .getSubSystem<ProjectSession>()
+                            ->doc()
+                            .name();
     }
 } // namespace Bess::UI

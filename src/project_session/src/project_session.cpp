@@ -630,6 +630,16 @@ namespace Bess {
         return edit.commit();
     }
 
+    TxResult ProjectSession::nameComp(UUID id, std::string name, UUID scene) {
+        auto edit = tx("Rename component", {.empty = true});
+        const auto status = edit.nameComp(id, std::move(name), scene);
+        if (!status) {
+            edit.cancel();
+            return {.status = status};
+        }
+        return edit.commit();
+    }
+
     TxResult ProjectSession::setName(std::string name) {
         if (!m_doc) {
             return {.status = Status::fail(

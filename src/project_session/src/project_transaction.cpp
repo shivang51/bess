@@ -37,6 +37,39 @@ namespace Bess {
                                           " was not found");
         }
 
+        Status
+        checkParent(const Canvas::SceneState &state, UUID id, UUID parent) {
+            if (parent == UUID::null) {
+                return Status::ok();
+            }
+            if (parent == id) {
+                return Status::fail(Err::badArg,
+                                    "component cannot parent itself");
+            }
+
+            std::unordered_set<UUID> seen;
+            auto next = parent;
+            while (next != UUID::null) {
+                if (next == id) {
+                    return Status::fail(
+                        Err::invalid,
+                        "component reparent would create a cycle");
+                }
+                if (!seen.insert(next).second) {
+                    return Status::fail(
+                        Err::invalid,
+                        "component hierarchy already contains a cycle");
+                }
+                const auto comp = state.getComponentByUuid(next);
+                if (!comp) {
+                    return Status::fail(Err::invalid,
+                                        "parent component was not found");
+                }
+                next = comp->getParentComponent();
+            }
+            return Status::ok();
+        }
+
         Status addGraph(
             ProjectSession &session,
             UUID sceneId,
@@ -600,6 +633,10 @@ namespace Bess {
                     return Status::fail(Err::invalid,
                                         "component or parent was not found");
                 }
+                if (const auto status = checkParent(state, m_id, parent);
+                    !status) {
+                    return status;
+                }
                 if (parent == UUID::null) {
                     state.detachChild(m_id, false);
                 } else {
@@ -614,6 +651,60 @@ namespace Bess {
             UUID m_to;
             bool m_tracked = false;
             bool m_first = true;
+        };
+
+        class CompNameStep final : public ProjectSessionStep {
+          public:
+            CompNameStep(UUID scene, UUID id, std::string from, std::string to)
+                : m_scene(scene),
+                  m_id(id),
+                  m_from(std::move(from)),
+                  m_to(std::move(to)) {
+            }
+
+            Status apply(ProjectSession &session) override {
+                return put(session, m_to);
+            }
+
+            Status undo(ProjectSession &session) override {
+                return put(session, m_from);
+            }
+
+            Status redo(ProjectSession &session) override {
+                return put(session, m_to);
+            }
+
+            bool merge(const ProjectSessionStep &next) override {
+                const auto *name = dynamic_cast<const CompNameStep *>(&next);
+                if (!name || name->m_scene != m_scene || name->m_id != m_id) {
+                    return false;
+                }
+                m_to = name->m_to;
+                return true;
+            }
+
+            std::size_t bytes() const noexcept override {
+                return sizeof(*this) + m_from.size() + m_to.size();
+            }
+
+          private:
+            Status put(ProjectSession &session, const std::string &name) {
+                const auto scene = getScene(session, m_scene);
+                const auto comp =
+                    scene ? scene->getState().getComponentByUuid(m_id)
+                          : nullptr;
+                if (!comp) {
+                    return Status::fail(Err::invalid,
+                                        "component was not found");
+                }
+                comp->setName(name);
+                return Status::ok();
+            }
+
+            UUID m_scene;
+            UUID m_id;
+            std::string m_from;
+            std::string m_to;
         };
     } // namespace
 
@@ -651,8 +742,24 @@ namespace Bess {
             return bad(Status::fail(Err::badArg, "component is null"));
         }
         scene = m->session->sceneId(scene);
-        if (!getScene(*m->session, scene)) {
+        const auto target = getScene(*m->session, scene);
+        if (!target) {
             return bad(noScene(scene));
+        }
+        auto &state = target->getState();
+        if (state.isComponentValid(comp->getUuid()) ||
+            !m->adds.insert(comp->getUuid()).second) {
+            return bad(Status::fail(
+                Err::invalid,
+                "component is duplicated or already in the scene"));
+        }
+        for (const auto &kid : kids) {
+            if (!kid || state.isComponentValid(kid->getUuid()) ||
+                !m->adds.insert(kid->getUuid()).second) {
+                return bad(Status::fail(
+                    Err::invalid,
+                    "child is null, duplicated, or already in the scene"));
+            }
         }
         m->ops.push_back(std::make_unique<AddStep>(
             scene, std::move(comp), std::move(kids), UUID::null, false));
@@ -794,10 +901,20 @@ namespace Bess {
         if (!comp) {
             return bad(Status::fail(Err::invalid, "component was not found"));
         }
-        if (parent != UUID::null &&
-            !target->getState().isComponentValid(parent)) {
+        const bool parentExists =
+            parent == UUID::null || target->getState().isComponentValid(parent);
+        if (!parentExists && !m->adds.contains(parent)) {
             return bad(
                 Status::fail(Err::invalid, "parent component was not found"));
+        }
+        if (parentExists) {
+            if (const auto status = checkParent(target->getState(), id, parent);
+                !status) {
+                return bad(status);
+            }
+        } else if (parent == id) {
+            return bad(
+                Status::fail(Err::badArg, "component cannot parent itself"));
         }
         m->ops.push_back(std::make_unique<ParentStep>(
             scene, id, comp->getParentComponent(), parent, false));
@@ -816,8 +933,32 @@ namespace Bess {
             return bad(Status::fail(
                 Err::invalid, "reparented component or parent was not found"));
         }
+        if (const auto status = checkParent(target->getState(), id, to);
+            !status) {
+            return bad(status);
+        }
         m->ops.push_back(
             std::make_unique<ParentStep>(scene, id, from, to, true));
+        return Status::ok();
+    }
+
+    Status ProjectTx::nameComp(UUID id, std::string name, UUID scene) {
+        if (!m || m->done || !m->session) {
+            return bad(
+                Status::fail(Err::invalid, "transaction is already finished"));
+        }
+        scene = m->session->sceneId(scene);
+        const auto target = getScene(*m->session, scene);
+        const auto comp =
+            target ? target->getState().getComponentByUuid(id) : nullptr;
+        if (!comp) {
+            return bad(Status::fail(Err::invalid, "component was not found"));
+        }
+        if (comp->getName() == name) {
+            return Status::ok();
+        }
+        m->ops.push_back(std::make_unique<CompNameStep>(
+            scene, id, comp->getName(), std::move(name)));
         return Status::ok();
     }
 

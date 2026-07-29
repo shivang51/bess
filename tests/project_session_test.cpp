@@ -182,6 +182,67 @@ TEST_F(ProjectSessionTest, MoveEditsMergeIntoOneUndoEntry) {
     EXPECT_EQ(comp->getTransform().position, glm::vec3(20.f, 4.f, 0.f));
 }
 
+TEST_F(ProjectSessionTest, TransactionCanParentIntoNewComponentAtomically) {
+    auto oldParent = std::make_shared<Bess::Canvas::SceneComponent>();
+    auto child = std::make_shared<Bess::Canvas::SceneComponent>();
+    ASSERT_TRUE(session->addComp(oldParent, {child}, scene->getSceneId()));
+    session->clearHist();
+
+    auto newParent = std::make_shared<Bess::Canvas::SceneComponent>();
+    auto tx = session->tx("Regroup");
+    ASSERT_TRUE(tx.addComp(newParent, {}, scene->getSceneId()));
+    ASSERT_TRUE(tx.parentComp(
+        child->getUuid(), newParent->getUuid(), scene->getSceneId()));
+    ASSERT_TRUE(tx.commit());
+
+    EXPECT_EQ(child->getParentComponent(), newParent->getUuid());
+    EXPECT_TRUE(newParent->getChildComponents().contains(child->getUuid()));
+    EXPECT_FALSE(oldParent->getChildComponents().contains(child->getUuid()));
+
+    ASSERT_TRUE(session->undo());
+    EXPECT_EQ(scene->getState().getComponentByUuid(newParent->getUuid()),
+              nullptr);
+    EXPECT_EQ(child->getParentComponent(), oldParent->getUuid());
+    EXPECT_TRUE(oldParent->getChildComponents().contains(child->getUuid()));
+
+    ASSERT_TRUE(session->redo());
+    EXPECT_NE(scene->getState().getComponentByUuid(newParent->getUuid()),
+              nullptr);
+    EXPECT_EQ(child->getParentComponent(), newParent->getUuid());
+}
+
+TEST_F(ProjectSessionTest, ComponentRenameIsUndoable) {
+    auto comp = std::make_shared<Bess::Canvas::SceneComponent>();
+    comp->setName("Before");
+    ASSERT_TRUE(session->addComp(comp, {}, scene->getSceneId()));
+    session->clearHist();
+
+    ASSERT_TRUE(
+        session->nameComp(comp->getUuid(), "After", scene->getSceneId()));
+    EXPECT_EQ(comp->getName(), "After");
+
+    ASSERT_TRUE(session->undo());
+    EXPECT_EQ(comp->getName(), "Before");
+
+    ASSERT_TRUE(session->redo());
+    EXPECT_EQ(comp->getName(), "After");
+}
+
+TEST_F(ProjectSessionTest, ReparentRejectsHierarchyCycles) {
+    auto parent = std::make_shared<Bess::Canvas::SceneComponent>();
+    auto child = std::make_shared<Bess::Canvas::SceneComponent>();
+    ASSERT_TRUE(session->addComp(parent, {child}, scene->getSceneId()));
+    session->clearHist();
+
+    const auto result = session->parentComp(
+        parent->getUuid(), child->getUuid(), scene->getSceneId());
+    EXPECT_FALSE(result);
+    EXPECT_EQ(result.status.err(), Bess::Err::invalid);
+    EXPECT_EQ(parent->getParentComponent(), Bess::UUID::null);
+    EXPECT_EQ(child->getParentComponent(), parent->getUuid());
+    EXPECT_FALSE(session->canUndo());
+}
+
 TEST_F(ProjectSessionTest, EditMergeDoesNotCrossSavePoint) {
     TmpDir tmp;
     auto comp = std::make_shared<Bess::Canvas::SceneComponent>();

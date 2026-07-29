@@ -1,10 +1,10 @@
 #include "group_scene_component.h"
 #include "bess_core/g_app_context.h"
-#include "project_session/project_session.h"
+#include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene_driver.h"
 #include "common/bess_uuid.h"
 #include "pages/main_page/main_page.h"
-#include "bess_core/scene/scene_state/scene_state.h"
+#include "project_session/project_session.h"
 
 namespace Bess::Canvas {
     GroupSceneComponent::GroupSceneComponent() = default;
@@ -38,7 +38,7 @@ namespace Bess::Canvas {
     void GroupSceneComponent::onAttach(SceneState &state) {
         m_transform.position = glm::vec3(0.0);
         for (const auto &childId : m_childComponents) {
-            state.attachChild(m_uuid, childId);
+            state.attachChild(m_uuid, childId, false);
         }
     }
 

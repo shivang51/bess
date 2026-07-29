@@ -1,19 +1,18 @@
 #include "slot_scene_component.h"
 #include "bess_core/g_app_context.h"
-#include "project_session/project_session.h"
 #include "bess_core/scene/scene_draw_helpers.h"
 #include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene/scene_ui/controls/container_comp.h"
+#include "bess_core/scene_driver.h"
 #include "bess_core/settings/viewport_theme.h"
 #include "bess_core/style/bess_theme.h"
 #include "conn_joint_scene_component.h"
 #include "connection_scene_component.h"
 #include "dig_sim_driver.h"
 #include "expression_evalutator/expr_evaluator.h"
-#include "pages/main_page/main_page.h"
-#include "pages/main_page/main_page_state.h"
 #include "pages/main_page/services/connection_service.h"
+#include "project_session/project_session.h"
 #include "sim_scene_component.h"
 #include "simulation_engine.h"
 #include <algorithm>
@@ -139,8 +138,17 @@ namespace Bess::Canvas {
 
             ctx.sceneState->addComponent(m_container);
 
+            const auto sceneId = ctx.sceneState->getSceneId();
             m_label = UI::EditableLabelComp::create(
-                m_name, [this](const std::string &val) { setName(val); });
+                m_name, [id = m_uuid, sceneId](const std::string &val) {
+                    const auto session = GAppContext::getInstance()
+                                             .getSubSystem<ProjectSession>();
+                    const auto result = session->nameComp(id, val, sceneId);
+                    if (!result) {
+                        BESS_WARN("Could not rename slot: {}",
+                                  result.status.msg());
+                    }
+                });
             m_label->setSelectTextOnEdit(true);
             auto &labelStyle = m_label->getStyle();
             labelStyle.fontSize = Styles::simCompStyles.slotLabelSize;
@@ -557,27 +565,16 @@ namespace Bess::Canvas {
 
         UUID starSlotUuid =
             jointComp ? jointComp->getUuid() : startSlot->getUuid();
-        auto conn = connectionsSvc->createConnection(
-            starSlotUuid,
-            m_uuid,
-            sceneDriver->getSceneWithId(e.sceneState->getSceneId()));
-
-        if (!conn) {
-            BESS_ERROR("Failed to create connection between component {} and "
-                       "component {}",
-                       (uint64_t)connStartSlot,
-                       (uint64_t)m_uuid);
-            e.sceneState->setConnectionStartSlot(UUID::null);
-            return false;
-        }
-
-        auto &session =
-            Pages::MainPage::getInstance()->getState().session();
-        const auto result =
-            session.trackConn(conn, e.sceneState->getSceneId());
+        auto conn = std::make_shared<ConnectionSceneComponent>();
+        conn->setStartEndSlots(starSlotUuid, m_uuid);
+        const auto result = projCtx->addConn(conn, e.sceneState->getSceneId());
         if (!result) {
-            BESS_WARN("Could not track connection: {}",
-                      result.status.msg());
+            BESS_ERROR("Failed to create connection between component {} and "
+                       "component {}: {}",
+                       (uint64_t)connStartSlot,
+                       (uint64_t)m_uuid,
+                       result.status.msg());
+            e.sceneState->setConnectionStartSlot(UUID::null);
             return false;
         }
 

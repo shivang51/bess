@@ -1,16 +1,15 @@
 #include "ui/ui_main/component_explorer.h"
 #include "bess_core/g_app_context.h"
-#include "project_session/project_session.h"
 #include "bess_core/scene_driver.h"
 #include "common/bess_uuid.h"
 #include "common/helpers.h"
 #include "component_catalog.h"
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/non_sim_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
+#include "project_session/project_session.h"
 #include "services/plugin_service/plugin_service.h"
 #include "sim_driver/sim_driver.h"
 #include "ui/icons/CodIcons_Remapped.h"
@@ -158,11 +157,7 @@ namespace Bess::UI {
 
         auto &appCtx = Bess::GAppContext::getInstance();
 
-        auto &session =
-            Pages::MainPage::getInstance()->getState().session();
-        auto scene = GAppContext::getInstance()
-                         .getSubSystem<Bess::ProjectSession>()
-                         ->getSubSystem<SceneDriver>();
+        auto &session = *appCtx.getSubSystem<ProjectSession>();
 
         auto activeScene = UI::UIMain::getTargetViewportScene();
         auto &sceneState = activeScene->getState();
@@ -187,7 +182,7 @@ namespace Bess::UI {
                         childId);
                 BESS_ASSERT(child, "Child component not found in scene state");
                 children.push_back(child);
-                sceneState.attachChild(simComp->getUuid(), childId);
+                sceneState.attachChild(simComp->getUuid(), childId, false);
             }
 
             for (const auto &childId : simComp->getOutputSlots()) {
@@ -196,7 +191,7 @@ namespace Bess::UI {
                         childId);
                 BESS_ASSERT(child, "Child component not found in scene state");
                 children.push_back(child);
-                sceneState.attachChild(simComp->getUuid(), childId);
+                sceneState.attachChild(simComp->getUuid(), childId, false);
             }
 
             const auto result = session.trackAdd(
@@ -219,12 +214,9 @@ namespace Bess::UI {
             sceneComp->getTransform().position.y = pos.y;
 
             const auto result = session.addComp(
-                sceneComp,
-                std::move(components),
-                activeScene->getSceneId());
+                sceneComp, std::move(components), activeScene->getSceneId());
             if (!result) {
-                BESS_ERROR("Could not add component: {}",
-                           result.status.msg());
+                BESS_ERROR("Could not add component: {}", result.status.msg());
                 return UUID::null;
             }
 
@@ -235,7 +227,7 @@ namespace Bess::UI {
     UUID ComponentExplorer::createComponent(std::type_index tIdx,
                                             const glm::vec2 &pos) {
         auto &session =
-            Pages::MainPage::getInstance()->getState().session();
+            *GAppContext::getInstance().getSubSystem<ProjectSession>();
         auto inst = Canvas::NonSimSceneComponent::getInstance(tIdx);
         inst->getTransform().position.x = pos.x;
         inst->getTransform().position.y = pos.y;

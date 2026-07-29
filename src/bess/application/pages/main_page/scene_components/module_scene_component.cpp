@@ -7,7 +7,6 @@
 #include "common/bess_uuid.h"
 #include "dig_module_def.h"
 #include "dig_sim_driver.h"
-#include "pages/main_page/main_page.h"
 #include "pages/main_page/module_edit.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
@@ -469,10 +468,9 @@ namespace Bess::Canvas {
 
     std::shared_ptr<ModuleSceneComponent>
     ModuleSceneComponent::fromNet(const UUID &netId, const std::string &name) {
-        auto &mainPageState = Pages::MainPage::getInstance()->getState();
+        auto &sess = *GAppContext::getInstance().getSubSystem<ProjectSession>();
         auto activeScene = Bess::UI::UIMain::getTargetViewportScene();
-        const auto result =
-            Edit::makeModule(mainPageState.session(), activeScene, netId, name);
+        const auto result = Edit::makeModule(sess, activeScene, netId, name);
         if (!result) {
             BESS_ERROR("Could not create module: {}", result.status.msg());
             return nullptr;

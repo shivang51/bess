@@ -197,7 +197,9 @@ namespace Bess::UI {
         if (res != Popups::PopupRes::none) {
             if (res == Popups::PopupRes::yes) {
                 onSaveProject();
-                if (pageState.session().dirty()) {
+                const auto sess =
+                    GAppContext::getInstance().getSubSystem<ProjectSession>();
+                if (sess->dirty()) {
                     getState()._internalData.newFileClicked = false;
                     getState()._internalData.openFileClicked = false;
                     return;
@@ -412,15 +414,19 @@ namespace Bess::UI {
         }
 
         if (ImGui::BeginMenu("Edit")) {
-            auto &mainPageState = Pages::MainPage::getInstance()->getState();
-            auto &session = mainPageState.session();
+            auto &session =
+                *GAppContext::getInstance().getSubSystem<ProjectSession>();
 
             if (ImGui::MenuItemEx("Undo",
                                   Icons::CodIcons::DISCARD,
                                   "Ctrl+Z",
                                   false,
                                   session.canUndo())) {
-                (void)session.undo();
+                const auto result = session.undo();
+                if (!result) {
+                    getState()._internalData.statusMessage =
+                        std::format("Could not undo: {}", result.status.msg());
+                }
             }
 
             if (ImGui::MenuItemEx("Redo",
@@ -428,7 +434,11 @@ namespace Bess::UI {
                                   "Ctrl+Shift+Z",
                                   false,
                                   session.canRedo())) {
-                (void)session.redo();
+                const auto result = session.redo();
+                if (!result) {
+                    getState()._internalData.statusMessage =
+                        std::format("Could not redo: {}", result.status.msg());
+                }
             }
 
             ImGui::Spacing();
@@ -486,7 +496,9 @@ namespace Bess::UI {
         // project name textbox - begin
 
         const auto &style = ImGui::GetStyle();
-        auto name = pageState.doc().name();
+        auto &session =
+            *GAppContext::getInstance().getSubSystem<ProjectSession>();
+        auto name = session.doc().name();
         const auto fontSize = ImGui::CalcTextSize(name.c_str());
         auto width = fontSize.x + (style.FramePadding.x * 2);
         if (width < 150)
@@ -503,7 +515,7 @@ namespace Bess::UI {
         ImGui::PushStyleColor(ImGuiCol_FrameBg,
                               style.Colors[ImGuiCol_WindowBg]);
         if (Widgets::TextBox("", name, "Project Name")) {
-            (void)pageState.session().setName(std::move(name));
+            (void)session.setName(std::move(name));
         }
         ImGui::PopStyleVar();
         ImGui::PopStyleColor();
@@ -833,7 +845,9 @@ namespace Bess::UI {
 
     void UIMain::onNewProject() {
         auto &pageState = Pages::MainPage::getInstance()->getState();
-        if (pageState.session().dirty()) {
+        const auto sess =
+            GAppContext::getInstance().getSubSystem<ProjectSession>();
+        if (sess->dirty()) {
             getState()._internalData.newFileClicked = true;
             ImGui::OpenPopup(Popups::PopupIds::unsavedProjectWarning);
         } else {
@@ -861,7 +875,9 @@ namespace Bess::UI {
         }
 
         auto &pageState = Pages::MainPage::getInstance()->getState();
-        if (pageState.session().dirty()) {
+        const auto sess =
+            GAppContext::getInstance().getSubSystem<ProjectSession>();
+        if (sess->dirty()) {
             getState()._internalData.openFileClicked = true;
             getState()._internalData.path = filepath;
             ImGui::OpenPopup(Popups::PopupIds::unsavedProjectWarning);
@@ -879,9 +895,9 @@ namespace Bess::UI {
     }
 
     void UIMain::onSaveProject() {
-        auto &pageState = Pages::MainPage::getInstance()->getState();
-        auto &session = pageState.session();
-        auto path = pageState.doc().path();
+        auto &session =
+            *GAppContext::getInstance().getSubSystem<ProjectSession>();
+        auto path = session.doc().path();
 
         Status status;
         if (path.empty()) {

@@ -7,7 +7,7 @@
 #include "common/events.h"
 #include "events/sim_engine_events.h"
 #include "pages/main_page/services/hierarchical_scene_layout.h"
-#include "project_session/project_session.h"
+#include "project_session/status.h"
 #include <vector>
 
 namespace Bess {
@@ -41,9 +41,6 @@ namespace Bess::Pages {
         MainPageState(const MainPageState &) = delete;
         MainPageState &operator=(const MainPageState &) = delete;
 
-        [[nodiscard]] ProjectSession &session();
-        [[nodiscard]] const ProjectSession &session() const;
-
         void update();
 
         typedef std::unordered_map<UUID, std::string *> TNetIdToNameMap;
@@ -72,8 +69,6 @@ namespace Bess::Pages {
 
         std::shared_ptr<SceneDriver> getSceneDriver() const;
         std::shared_ptr<SceneDriver> getSceneDriver();
-        [[nodiscard]] ProjectDoc &doc();
-        [[nodiscard]] const ProjectDoc &doc() const;
 
         PageActionFlags actionFlags = {};
 
@@ -85,7 +80,6 @@ namespace Bess::Pages {
       private:
         void onWindowDropped(const Events::WindowDropEvent &event);
         void onEntityMoved(const Canvas::Events::EntityMovedEvent &e);
-        void onEntityReparented(const Canvas::Events::EntityReparentedEvent &e);
 
         void onEntityAdded(const Canvas::Events::ComponentAddedEvent &e);
         void onEntityRemoved(const Canvas::Events::ComponentRemovedEvent &e);

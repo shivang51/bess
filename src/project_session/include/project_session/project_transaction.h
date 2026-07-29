@@ -81,6 +81,9 @@ namespace Bess {
         [[nodiscard]] Status
         trackParent(UUID id, UUID from, UUID to, UUID scene = UUID::null);
 
+        [[nodiscard]] Status
+        nameComp(UUID id, std::string name, UUID scene = UUID::null);
+
         // Escape hatch for Bess features whose state spans several domains.
         [[nodiscard]] Status step(std::string name,
                                   Act apply,

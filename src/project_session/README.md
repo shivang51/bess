@@ -43,6 +43,7 @@ auto removed = session->rmComp(compId, sceneId);
 auto moved = session->moveComp(compId, nextPos, sceneId);
 auto slot = session->addSlot(newSlot, parentId, sceneId);
 auto conn = session->addConn(newConn, sceneId);
+auto renamed = session->nameComp(compId, "Clock", sceneId);
 
 auto undo = session->undo();
 auto redo = session->redo();
@@ -71,10 +72,16 @@ order. A failed compensation faults the session and blocks further edits until
 Bess interaction must perform before its event reaches the session. Prefer the
 non-`track` methods when the session can perform the mutation itself.
 
+Create history at the mutation source. Scene lifecycle events are notifications,
+not commands, and must not be converted into transactions. In particular,
+attaching retained-mode UI helpers to a component must never create project
+history. This keeps one user action as one undo entry and prevents undo/redo
+from feeding its own scene events back into the history.
+
 The history has entry and byte limits. Each committed state has a stable ID,
 so undoing back to the saved state clears `dirty()` correctly. New edits after
 undo discard the redo branch. Repeated moves, reparents, and project renames
-merge into one undo entry when possible.
+merge into one undo entry when possible. Component renames merge as well.
 
 ## Documents
 

@@ -494,6 +494,64 @@ TEST(SimulationSceneComponentSlotDirtyTest, SlotMutatorsMarkUIDirty) {
 }
 
 TEST_F(MainPageConnectionCommandsTest,
+       AddedComponentUndoIsNotShadowedByInternalUiEvents) {
+    Bess::Pages::MainPageState mainPageState;
+    mainPageState.init();
+
+    const auto fixture = addSimComponent(makeDefinition("UI component", 1, 1));
+    ASSERT_NE(fixture.comp, nullptr);
+    const auto renderer = std::make_shared<TestRenderer2D>();
+    Bess::SceneUIPrepareCtx prepareCtx{
+        .sceneState = &scene->getState(),
+        .renderer = renderer,
+        .parentNode = nullptr,
+        .theme = Bess::Core::Style::BessTheme::defaultTheme(),
+    };
+    fixture.comp->prepareUI(prepareCtx);
+
+    auto dispatcher = Bess::GAppContext::getInstance()
+                          .getSubSystem<Bess::EventSystem::EventDispatcher>();
+    dispatcher->dispatchAll();
+
+    ASSERT_EQ(session->view().undoCount, 1u);
+    ASSERT_TRUE(session->undo());
+    EXPECT_EQ(scene->getState().getComponentByUuid(fixture.comp->getUuid()),
+              nullptr);
+}
+
+TEST_F(MainPageConnectionCommandsTest, AddConnectionIsUndoableAndRedoable) {
+    const auto source = addSimComponent(sourceDef);
+    const auto sink = addSimComponent(sinkDef);
+    ASSERT_NE(source.comp, nullptr);
+    ASSERT_NE(sink.comp, nullptr);
+    ASSERT_FALSE(source.outputs.empty());
+    ASSERT_FALSE(sink.inputs.empty());
+
+    session->clearHist();
+    auto connection = std::make_shared<ConnectionSceneComponent>();
+    connection->setStartEndSlots(source.outputs.front()->getUuid(),
+                                 sink.inputs.front()->getUuid());
+
+    const auto added = session->addConn(connection, scene->getSceneId());
+    ASSERT_TRUE(added) << added.status.msg();
+    ASSERT_EQ(session->view().undoCount, 1u);
+    expectConnectionRestored(source, sink, connection);
+
+    const auto undone = session->undo();
+    ASSERT_TRUE(undone) << undone.status.msg();
+    EXPECT_EQ(scene->getState().getComponentByUuid(connection->getUuid()),
+              nullptr);
+    EXPECT_FALSE(containsUuid(source.outputs.front()->getConnectedConnections(),
+                              connection->getUuid()));
+    EXPECT_FALSE(containsUuid(sink.inputs.front()->getConnectedConnections(),
+                              connection->getUuid()));
+
+    const auto redone = session->redo();
+    ASSERT_TRUE(redone) << redone.status.msg();
+    expectConnectionRestored(source, sink, connection);
+}
+
+TEST_F(MainPageConnectionCommandsTest,
        AddComponentRedoRecreatesPreparedUiHelpers) {
     const auto fixture = addSimComponent(makeDefinition("JK Flip Flop", 4, 2));
     ASSERT_NE(fixture.comp, nullptr);

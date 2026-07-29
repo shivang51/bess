@@ -1,6 +1,5 @@
 #include "ui/ui_main/project_explorer.h"
 #include "bess_core/g_app_context.h"
-#include "project_session/project_session.h"
 #include "bess_core/settings/viewport_theme.h"
 #include "common/bess_uuid.h"
 #include "common/helpers.h"
@@ -13,6 +12,7 @@
 #include "pages/main_page/scene_components/group_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
+#include "project_session/project_session.h"
 #include "simulation_engine.h"
 #include "ui/icons/CodIcons_Remapped.h"
 #include "ui/icons/FontAwesomeIcons_Remapped.h"
@@ -113,19 +113,54 @@ namespace Bess::UI {
         return false;
     }
 
-    template <typename Func> void HandleNodeDropTarget(Func op) {
+    std::vector<UUID> takeDropIds() {
+        std::vector<UUID> ids;
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload *payload =
                     ImGui::AcceptDragDropPayload("TREE_NODE_PAYLOAD")) {
-                const auto dataPtr = (uint64_t *)payload->Data;
+                const auto dataPtr =
+                    static_cast<const std::uint64_t *>(payload->Data);
                 const auto size = (payload->DataSize / sizeof(uint64_t));
-                const auto draggedNodeIDs =
-                    std::vector<uint64_t>(dataPtr, dataPtr + size);
-                for (const auto &id : draggedNodeIDs) {
-                    op(id);
+                ids.reserve(static_cast<std::size_t>(size));
+                for (int i = 0; i < size; ++i) {
+                    ids.emplace_back(dataPtr[i]);
                 }
             }
             ImGui::EndDragDropTarget();
+        }
+        return ids;
+    }
+
+    void parentComps(Canvas::SceneState &state,
+                     const std::vector<std::pair<UUID, UUID>> &moves) {
+        if (moves.empty()) {
+            return;
+        }
+
+        auto &session =
+            *GAppContext::getInstance().getSubSystem<ProjectSession>();
+        auto tx = session.tx("Reparent components");
+        for (const auto &[id, parent] : moves) {
+            const auto comp = state.getComponentByUuid(id);
+            if (!comp || comp->getParentComponent() == parent) {
+                continue;
+            }
+            const auto status = tx.parentComp(id, parent, state.getSceneId());
+            if (!status) {
+                tx.cancel();
+                BESS_WARN("Could not prepare component reparent: {}",
+                          status.msg());
+                return;
+            }
+        }
+
+        if (tx.isEmpty()) {
+            tx.cancel();
+            return;
+        }
+        const auto result = tx.commit();
+        if (!result) {
+            BESS_WARN("Could not reparent components: {}", result.status.msg());
         }
     }
 
@@ -218,8 +253,11 @@ namespace Bess::UI {
                     sceneState.clearSelectedComponents();
                 }
 
-                HandleNodeDropTarget(
-                    [&](uint64_t id) { sceneState.detachChild(id); });
+                std::vector<std::pair<UUID, UUID>> moves;
+                for (const auto id : takeDropIds()) {
+                    moves.emplace_back(id, UUID::null);
+                }
+                parentComps(sceneState, moves);
             }
             drawContextMenu();
         }
@@ -253,9 +291,8 @@ namespace Bess::UI {
                 if (ImGui::MenuItem("Create Empty Group", "Ctrl-G")) {
                     const auto group =
                         Canvas::GroupSceneComponent::create("New Group");
-                    auto &session = Pages::MainPage::getInstance()
-                                        ->getState()
-                                        .session();
+                    auto &session = *GAppContext::getInstance()
+                                         .getSubSystem<ProjectSession>();
                     const auto result = session.addComp(group);
                     if (!result) {
                         BESS_WARN("Could not add group: {}",
@@ -348,10 +385,9 @@ namespace Bess::UI {
     }
 
     void ProjectExplorer::groupSelectedNodes() {
-        auto &mainPageState = Pages::MainPage::getInstance()->getState();
-        auto scene = GAppContext::getInstance()
-                         .getSubSystem<Bess::ProjectSession>()
-                         ->getSubSystem<SceneDriver>();
+        auto &session =
+            *GAppContext::getInstance().getSubSystem<ProjectSession>();
+        auto scene = session.getSubSystem<SceneDriver>();
         auto &sceneState = scene->getActiveScene()->getState();
 
         const auto &selComponents = sceneState.getSelectedComponents() |
@@ -362,19 +398,21 @@ namespace Bess::UI {
             return;
 
         auto groupComp = Canvas::GroupSceneComponent::create("New Group");
-
-        for (const auto &compId : selComponents) {
-            auto comp =
-                scene->getActiveScene()->getState().getComponentByUuid(compId);
-
-            if (!comp)
-                continue;
-
-            groupComp->addChildComponent(compId);
+        auto tx = session.tx("Group components");
+        auto status = tx.addComp(groupComp, {}, sceneState.getSceneId());
+        for (const auto compId : selComponents) {
+            if (status) {
+                status = tx.parentComp(
+                    compId, groupComp->getUuid(), sceneState.getSceneId());
+            }
+        }
+        if (!status) {
+            tx.cancel();
+            BESS_WARN("Could not prepare group: {}", status.msg());
+            return;
         }
 
-        const auto result = mainPageState.session().addComp(
-            groupComp, {}, sceneState.getSceneId());
+        const auto result = tx.commit();
         if (!result) {
             BESS_WARN("Could not add group: {}", result.status.msg());
             return;
@@ -433,62 +471,81 @@ namespace Bess::UI {
             }
         }
 
-        // Use groups which get empty instead of creating new ones
-        std::vector<UUID> emptyGroups;
+        std::unordered_map<UUID, std::size_t> movedByParent;
+        for (const auto &[_, components] : netIdCompMap) {
+            for (const auto id : components) {
+                const auto comp = sceneState.getComponentByUuid(id);
+                if (comp && comp->getParentComponent() != UUID::null) {
+                    ++movedByParent[comp->getParentComponent()];
+                }
+            }
+        }
 
-        auto &session =
-            Pages::MainPage::getInstance()->getState().session();
+        std::vector<UUID> emptyGroups;
+        for (const auto &[parent, count] : movedByParent) {
+            const auto group =
+                sceneState.getComponentByUuid<Canvas::GroupSceneComponent>(
+                    parent);
+            if (group && group->getChildComponents().size() == count) {
+                emptyGroups.push_back(parent);
+            }
+        }
+
+        auto &session = *projectCtx;
         auto tx = session.tx("Group components by net");
+        std::vector<
+            std::pair<UUID, std::shared_ptr<Canvas::GroupSceneComponent>>>
+            grouped;
+        grouped.reserve(netIdCompMap.size());
 
         int i = 1;
-        // move nodes to new groups and ones which get empty
         for (const auto &[netId, components] : netIdCompMap) {
             std::shared_ptr<Canvas::GroupSceneComponent> group = nullptr;
-            const bool newGroup = emptyGroups.empty();
-
             if (emptyGroups.empty()) {
                 group = Canvas::GroupSceneComponent::create(
                     "Net " + std::to_string(i++));
+                const auto status = tx.addComp(group, {}, scene->getSceneId());
+                if (!status) {
+                    tx.cancel();
+                    BESS_WARN("Could not prepare net group: {}", status.msg());
+                    return;
+                }
             } else {
                 group = sceneState
                             .getComponentByUuidSP<Canvas::GroupSceneComponent>(
                                 emptyGroups.back());
                 emptyGroups.pop_back();
-                group->setName("Net " + std::to_string(i++));
-            }
-
-            for (const auto &compId : components) {
-                group->addChildComponent(compId);
-                auto prevParent =
-                    sceneState.getComponentByUuid(compId)->getParentComponent();
-                if (prevParent != UUID::null &&
-                    sceneState.isComponentValid(prevParent)) {
-                    auto prevParentComp =
-                        sceneState.getComponentByUuid(prevParent);
-                    prevParentComp->removeChildComponent(compId);
-                    if (prevParentComp->getChildComponents().empty()) {
-                        emptyGroups.emplace_back(prevParent);
-                    }
-                }
-            }
-
-            netIdToNameMap[netId] = &group->getName();
-
-            if (newGroup) {
-                const auto status =
-                    tx.addComp(group, {}, scene->getSceneId());
+                const auto status = tx.nameComp(group->getUuid(),
+                                                "Net " + std::to_string(i++),
+                                                scene->getSceneId());
                 if (!status) {
                     tx.cancel();
-                    BESS_WARN("Could not prepare net groups: {}",
+                    BESS_WARN("Could not prepare net group rename: {}",
                               status.msg());
                     return;
                 }
             }
+
+            for (const auto &compId : components) {
+                const auto comp = sceneState.getComponentByUuid(compId);
+                if (!comp || comp->getParentComponent() == group->getUuid()) {
+                    continue;
+                }
+                const auto status = tx.parentComp(
+                    compId, group->getUuid(), scene->getSceneId());
+                if (!status) {
+                    tx.cancel();
+                    BESS_WARN("Could not prepare net grouping: {}",
+                              status.msg());
+                    return;
+                }
+            }
+
+            grouped.emplace_back(netId, group);
         }
 
         if (!emptyGroups.empty()) {
-            const auto status =
-                tx.rmComp(emptyGroups, scene->getSceneId());
+            const auto status = tx.rmComp(emptyGroups, scene->getSceneId());
             if (!status) {
                 tx.cancel();
                 BESS_WARN("Could not prepare empty group removal: {}",
@@ -505,6 +562,9 @@ namespace Bess::UI {
             }
         } else {
             tx.cancel();
+        }
+        for (const auto &[netId, group] : grouped) {
+            netIdToNameMap[netId] = &group->getName();
         }
         BESS_INFO(
             "[ProjectExplorer] Grouped components on nets: created {} groups.",
@@ -559,6 +619,7 @@ namespace Bess::UI {
 
                 const auto icon = opened ? groupOpenIcon : groupIcon;
 
+                const auto oldName = comp->getName();
                 const auto ret =
                     Widgets::EditableTreeNode(key,
                                               comp->getName(),
@@ -568,17 +629,27 @@ namespace Bess::UI {
                                               ViewportTheme::colors.groupColor,
                                               nodePopupName,
                                               comp->getUuid());
+                if (comp->getName() != oldName) {
+                    auto name = comp->getName();
+                    comp->setName(oldName);
+                    const auto result = GAppContext::getInstance()
+                                            .getSubSystem<ProjectSession>()
+                                            ->nameComp(compId,
+                                                       std::move(name),
+                                                       sceneState.getSceneId());
+                    if (!result) {
+                        BESS_WARN("Could not rename group: {}",
+                                  result.status.msg());
+                    }
+                }
 
                 count++;
                 opened = ret.first;
                 clicked = ret.second;
 
-                HandleNodeDropTarget(
-                    [&](uint64_t id) { //\n (just for formatting)
-                        pendingMoves.emplace_back(id,
-                                                  compId //\n
-                        );
-                    });
+                for (const auto id : takeDropIds()) {
+                    pendingMoves.emplace_back(id, compId);
+                }
 
                 if (opened) {
                     count += drawEntites(comp->getChildComponents());
@@ -667,9 +738,7 @@ namespace Bess::UI {
             }
         }
 
-        for (const auto &[draggedNodeID, newParentID] : pendingMoves) {
-            sceneState.attachChild(newParentID, draggedNodeID);
-        }
+        parentComps(sceneState, pendingMoves);
 
         return count;
     }

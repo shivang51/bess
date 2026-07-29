@@ -1,6 +1,5 @@
 #include "connection_scene_component.h"
 #include "bess_core/g_app_context.h"
-#include "project_session/project_session.h"
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_draw_helpers.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
@@ -16,9 +15,8 @@
 #include "conn_joint_scene_component.h"
 #include "event_dispatcher.h"
 #include "fwd.hpp"
-#include "pages/main_page/main_page.h"
-#include "pages/main_page/main_page_state.h"
 #include "pages/main_page/services/connection_service.h"
+#include "project_session/project_session.h"
 #include "slot_scene_component.h"
 #include "ui/ui_main/ui_main.h"
 
@@ -466,9 +464,9 @@ namespace Bess::Canvas {
 
             // add to scene
             auto &session =
-                Pages::MainPage::getInstance()->getState().session();
-            const auto result = session.addComp(
-                jointComp, {}, e.sceneState->getSceneId());
+                *GAppContext::getInstance().getSubSystem<ProjectSession>();
+            const auto result =
+                session.addComp(jointComp, {}, e.sceneState->getSceneId());
             if (!result) {
                 BESS_WARN("Could not add connection joint: {}",
                           result.status.msg());
