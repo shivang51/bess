@@ -735,7 +735,7 @@ namespace Bess::Pages {
 
     void
     MainPageState::onEntityMoved(const Canvas::Events::EntityMovedEvent &e) {
-        if (!e.state) {
+        if (!e.state || e.oldPos == e.newPos) {
             return;
         }
         auto entity = e.state->getComponentByUuid(e.entityUuid);
@@ -743,8 +743,11 @@ namespace Bess::Pages {
             return;
         }
 
-        const auto result = sess().trackMove(
-            e.entityUuid, e.oldPos, e.newPos, e.state->getSceneId());
+        const auto result = sess().trackMove(e.entityUuid,
+                                             e.oldPos,
+                                             e.newPos,
+                                             e.state->getSceneId(),
+                                             e.schematic);
         if (!result) {
             BESS_WARN("Could not track component move: {}",
                       result.status.msg());

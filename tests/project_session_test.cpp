@@ -42,6 +42,21 @@ namespace {
         }
     };
 
+    class MoveAwareComp final : public Bess::Canvas::SceneComponent {
+      public:
+        const glm::vec3 &seenPos() const {
+            return m_seenPos;
+        }
+
+      protected:
+        void onTransformChanged() override {
+            m_seenPos = getTransform().position;
+        }
+
+      private:
+        glm::vec3 m_seenPos{};
+    };
+
     class TmpDir {
       public:
         TmpDir() {
@@ -180,6 +195,26 @@ TEST_F(ProjectSessionTest, MoveEditsMergeIntoOneUndoEntry) {
     EXPECT_EQ(comp->getTransform().position, start);
     ASSERT_TRUE(session->redo());
     EXPECT_EQ(comp->getTransform().position, glm::vec3(20.f, 4.f, 0.f));
+}
+
+TEST_F(ProjectSessionTest, MoveUndoUsesComponentTransformHooks) {
+    auto comp = std::make_shared<MoveAwareComp>();
+    const glm::vec3 start{2.f, 4.f, 0.f};
+    comp->setPosition(start);
+    ASSERT_TRUE(session->addComp(comp, {}, scene->getSceneId()));
+    const auto addedPos = comp->getTransform().position;
+    session->clearHist();
+
+    const glm::vec3 moved{20.f, 40.f, 0.f};
+    ASSERT_TRUE(session->moveComp(comp->getUuid(), moved, scene->getSceneId()));
+    EXPECT_EQ(comp->seenPos(), moved);
+
+    ASSERT_TRUE(session->undo());
+    EXPECT_EQ(comp->getTransform().position, addedPos);
+    EXPECT_EQ(comp->seenPos(), addedPos);
+
+    ASSERT_TRUE(session->redo());
+    EXPECT_EQ(comp->seenPos(), moved);
 }
 
 TEST_F(ProjectSessionTest, TransactionCanParentIntoNewComponentAtomically) {

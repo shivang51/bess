@@ -7,6 +7,7 @@
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene_driver.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
+#include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 
 #include <algorithm>
@@ -35,6 +36,18 @@ namespace Bess {
                                     : "scene " +
                                           std::to_string((std::uint64_t)id) +
                                           " was not found");
+        }
+
+        glm::vec3 compPos(const Canvas::SceneComponent &comp, bool schematic) {
+            if (schematic) {
+                const auto sim =
+                    dynamic_cast<const Canvas::SimulationSceneComponent *>(
+                        &comp);
+                if (sim) {
+                    return sim->getSchematicTransform().position;
+                }
+            }
+            return comp.getTransform().position;
         }
 
         Status
@@ -511,12 +524,17 @@ namespace Bess {
 
         class MoveStep final : public ProjectSessionStep {
           public:
-            MoveStep(
-                UUID scene, UUID id, glm::vec3 from, glm::vec3 to, bool tracked)
+            MoveStep(UUID scene,
+                     UUID id,
+                     glm::vec3 from,
+                     glm::vec3 to,
+                     bool schematic,
+                     bool tracked)
                 : m_scene(scene),
                   m_id(id),
                   m_from(from),
                   m_to(to),
+                  m_schematic(schematic),
                   m_tracked(tracked) {
             }
 
@@ -539,7 +557,8 @@ namespace Bess {
 
             bool merge(const ProjectSessionStep &next) override {
                 const auto *move = dynamic_cast<const MoveStep *>(&next);
-                if (!move || move->m_scene != m_scene || move->m_id != m_id) {
+                if (!move || move->m_scene != m_scene || move->m_id != m_id ||
+                    move->m_schematic != m_schematic) {
                     return false;
                 }
                 m_to = move->m_to;
@@ -564,7 +583,17 @@ namespace Bess {
                     return Status::fail(Err::invalid,
                                         "moved component was not found");
                 }
-                comp->getTransform().position = pos;
+                if (m_schematic) {
+                    const auto sim =
+                        dynamic_cast<Canvas::SimulationSceneComponent *>(comp);
+                    if (sim) {
+                        auto transform = sim->getSchematicTransform();
+                        transform.position = pos;
+                        sim->setSchematicTransform(transform);
+                        return Status::ok();
+                    }
+                }
+                comp->setPosition(pos);
                 return Status::ok();
             }
 
@@ -572,6 +601,7 @@ namespace Bess {
             UUID m_id;
             glm::vec3 m_from;
             glm::vec3 m_to;
+            bool m_schematic = false;
             bool m_tracked = false;
             bool m_first = true;
         };
@@ -856,7 +886,8 @@ namespace Bess {
         return trackAdd(std::move(conn), {}, scene);
     }
 
-    Status ProjectTx::moveComp(UUID id, glm::vec3 pos, UUID scene) {
+    Status
+    ProjectTx::moveComp(UUID id, glm::vec3 pos, UUID scene, bool schematic) {
         if (!m || m->done || !m->session) {
             return bad(
                 Status::fail(Err::invalid, "transaction is already finished"));
@@ -869,12 +900,12 @@ namespace Bess {
             return bad(Status::fail(Err::invalid, "component was not found"));
         }
         m->ops.push_back(std::make_unique<MoveStep>(
-            scene, id, comp->getTransform().position, pos, false));
+            scene, id, compPos(*comp, schematic), pos, schematic, false));
         return Status::ok();
     }
 
-    Status
-    ProjectTx::trackMove(UUID id, glm::vec3 from, glm::vec3 to, UUID scene) {
+    Status ProjectTx::trackMove(
+        UUID id, glm::vec3 from, glm::vec3 to, UUID scene, bool schematic) {
         if (!m || m->done || !m->session) {
             return bad(
                 Status::fail(Err::invalid, "transaction is already finished"));
@@ -885,7 +916,8 @@ namespace Bess {
             return bad(
                 Status::fail(Err::invalid, "moved component was not found"));
         }
-        m->ops.push_back(std::make_unique<MoveStep>(scene, id, from, to, true));
+        m->ops.push_back(
+            std::make_unique<MoveStep>(scene, id, from, to, schematic, true));
         return Status::ok();
     }
 

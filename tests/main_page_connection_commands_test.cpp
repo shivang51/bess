@@ -15,6 +15,7 @@
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/input_scene_component.h"
 #include "pages/main_page/scene_components/module_scene_component.h"
+#include "pages/main_page/scene_components/non_sim_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
@@ -244,6 +245,14 @@ namespace {
             }
         }
         return count;
+    }
+
+    size_t countUiComps(const Bess::Canvas::SceneState &state) {
+        return std::ranges::count_if(
+            state.getAllComponents(), [](const auto &entry) {
+                return entry.second && entry.second->getType() ==
+                                           Bess::Canvas::SceneComponentType::ui;
+            });
     }
 
     std::shared_ptr<Bess::Canvas::UI::TextBoxComp>
@@ -549,6 +558,137 @@ TEST_F(MainPageConnectionCommandsTest, AddConnectionIsUndoableAndRedoable) {
     const auto redone = session->redo();
     ASSERT_TRUE(redone) << redone.status.msg();
     expectConnectionRestored(source, sink, connection);
+}
+
+TEST_F(MainPageConnectionCommandsTest, SchematicMoveEventIsUndoable) {
+    Bess::Pages::MainPageState mainPageState;
+    mainPageState.init();
+
+    const auto fixture = addSimComponent(sourceDef);
+    ASSERT_NE(fixture.comp, nullptr);
+    session->clearHist();
+
+    auto transform = fixture.comp->getSchematicTransform();
+    const auto start = transform.position;
+    transform.position = {64.f, 32.f, 0.f};
+    fixture.comp->setSchematicTransform(transform);
+
+    auto dispatcher = Bess::GAppContext::getInstance()
+                          .getSubSystem<Bess::EventSystem::EventDispatcher>();
+    dispatcher->queue(Bess::Canvas::Events::EntityMovedEvent{
+        .entityUuid = fixture.comp->getUuid(),
+        .oldPos = start,
+        .newPos = transform.position,
+        .state = &scene->getState(),
+        .schematic = true,
+    });
+    dispatcher->dispatchAll();
+
+    ASSERT_EQ(session->view().undoCount, 1u);
+    ASSERT_TRUE(session->undo());
+    EXPECT_EQ(fixture.comp->getSchematicTransform().position, start);
+
+    ASSERT_TRUE(session->redo());
+    EXPECT_EQ(fixture.comp->getSchematicTransform().position,
+              transform.position);
+}
+
+TEST_F(MainPageConnectionCommandsTest, ComponentDragIsUndoable) {
+    Bess::Pages::MainPageState mainPageState;
+    mainPageState.init();
+
+    auto comp = std::make_shared<Bess::Canvas::NonSimSceneComponent>();
+    ASSERT_TRUE(session->addComp(comp, {}, scene->getSceneId()));
+    const auto start = comp->getTransform().position;
+    session->clearHist();
+
+    const Bess::Canvas::Events::MouseDraggedEvent begin{
+        .mousePos = {0.f, 0.f},
+        .delta = {},
+        .details = 0,
+        .isMultiDrag = false,
+        .sceneState = &scene->getState(),
+        .isSchematicMode = false,
+    };
+    comp->onMouseDragged(begin);
+    auto moved = begin;
+    moved.mousePos = {40.f, 24.f};
+    comp->onMouseDragged(moved);
+    comp->onMouseDragEnd();
+
+    auto dispatcher = Bess::GAppContext::getInstance()
+                          .getSubSystem<Bess::EventSystem::EventDispatcher>();
+    dispatcher->dispatchAll();
+    ASSERT_EQ(session->view().undoCount, 1u);
+    ASSERT_NE(comp->getTransform().position, start);
+
+    ASSERT_TRUE(session->undo());
+    EXPECT_EQ(comp->getTransform().position, start);
+
+    ASSERT_TRUE(session->redo());
+    EXPECT_NE(comp->getTransform().position, start);
+}
+
+TEST_F(MainPageConnectionCommandsTest,
+       ModuleCreationMovesComponentUiToModuleScene) {
+    const auto fixture = addSimComponent(sourceDef);
+    ASSERT_NE(fixture.comp, nullptr);
+    ASSERT_FALSE(fixture.outputs.empty());
+
+    const UUID net;
+    fixture.comp->setNetId(net);
+
+    const auto renderer = std::make_shared<TestRenderer2D>();
+    Bess::SceneUIPrepareCtx sourceCtx{
+        .sceneState = &scene->getState(),
+        .renderer = renderer,
+        .parentNode = nullptr,
+        .theme = Bess::Core::Style::BessTheme::defaultTheme(),
+    };
+    fixture.comp->prepareUI(sourceCtx);
+    ASSERT_GT(countUiComps(scene->getState()), 0u);
+
+    session->clearHist();
+    const auto made =
+        Bess::Edit::makeModule(*session, scene, net, "Extracted module");
+    ASSERT_TRUE(made) << made.status.msg();
+    ASSERT_NE(made.val, nullptr);
+
+    const auto moduleScene =
+        sceneDriver->getSceneWithId(made.val->getSceneId());
+    ASSERT_NE(moduleScene, nullptr);
+    EXPECT_EQ(scene->getState().getComponentByUuid(fixture.comp->getUuid()),
+              nullptr);
+    EXPECT_NE(
+        moduleScene->getState().getComponentByUuid(fixture.comp->getUuid()),
+        nullptr);
+    EXPECT_EQ(countUiComps(scene->getState()), 0u);
+    EXPECT_TRUE(fixture.comp->getUIDirty());
+
+    Bess::SceneUIPrepareCtx moduleCtx{
+        .sceneState = &moduleScene->getState(),
+        .renderer = renderer,
+        .parentNode = nullptr,
+        .theme = Bess::Core::Style::BessTheme::defaultTheme(),
+    };
+    fixture.comp->prepareUI(moduleCtx);
+    EXPECT_GT(countUiComps(moduleScene->getState()), 0u);
+    EXPECT_EQ(countUiComps(scene->getState()), 0u);
+
+    ASSERT_TRUE(session->undo());
+    EXPECT_NE(scene->getState().getComponentByUuid(fixture.comp->getUuid()),
+              nullptr);
+    EXPECT_EQ(sceneDriver->getSceneWithId(moduleScene->getSceneId()), nullptr);
+    EXPECT_EQ(countUiComps(moduleScene->getState()), 0u);
+    EXPECT_TRUE(fixture.comp->getUIDirty());
+
+    ASSERT_TRUE(session->redo());
+    EXPECT_EQ(scene->getState().getComponentByUuid(fixture.comp->getUuid()),
+              nullptr);
+    EXPECT_NE(sceneDriver->getSceneWithId(moduleScene->getSceneId()), nullptr);
+    EXPECT_NE(
+        moduleScene->getState().getComponentByUuid(fixture.comp->getUuid()),
+        nullptr);
 }
 
 TEST_F(MainPageConnectionCommandsTest,

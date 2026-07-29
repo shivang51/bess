@@ -650,17 +650,28 @@ namespace Bess::Canvas {
                                                   UUID caller) {
         auto removedIds = SceneComponent::cleanup(state, caller);
 
+        const auto uiIds = clearUI(state);
+        removedIds.insert(removedIds.end(), uiIds.begin(), uiIds.end());
+        return removedIds;
+    }
+
+    std::vector<UUID> SlotSceneComponent::clearUI(SceneState &state) {
+        std::vector<UUID> removed;
+        if (m_slotNode) {
+            state.getUINodeRegistry()->removeNode(m_slotNode->getId());
+        }
         if (m_container && state.isComponentValid(m_container->getUuid())) {
-            const auto ids =
+            removed =
                 state.removeComponent(m_container->getUuid(), UUID::master);
-            removedIds.insert(removedIds.end(), ids.begin(), ids.end());
         }
 
         m_container = nullptr;
         m_label = nullptr;
         m_slotNode = nullptr;
+        m_scalarValueTextBox = nullptr;
         m_isUIDirty = true;
-        return removedIds;
+        m_invalidateCache = true;
+        return removed;
     }
 
     void SlotSceneComponent::onNameChanged() {

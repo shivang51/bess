@@ -586,9 +586,12 @@ namespace Bess {
         return edit.commit();
     }
 
-    TxResult ProjectSession::moveComp(UUID id, glm::vec3 pos, UUID scene) {
+    TxResult ProjectSession::moveComp(UUID id,
+                                      glm::vec3 pos,
+                                      UUID scene,
+                                      bool schematic) {
         auto edit = tx("Move component");
-        const auto status = edit.moveComp(id, pos, scene);
+        const auto status = edit.moveComp(id, pos, scene, schematic);
         if (!status) {
             edit.cancel();
             return {.status = status};
@@ -596,12 +599,10 @@ namespace Bess {
         return edit.commit();
     }
 
-    TxResult ProjectSession::trackMove(UUID id,
-                                       glm::vec3 from,
-                                       glm::vec3 to,
-                                       UUID scene) {
+    TxResult ProjectSession::trackMove(
+        UUID id, glm::vec3 from, glm::vec3 to, UUID scene, bool schematic) {
         auto edit = tx("Move component");
-        const auto status = edit.trackMove(id, from, to, scene);
+        const auto status = edit.trackMove(id, from, to, scene, schematic);
         if (!status) {
             edit.cancel();
             return {.status = status};

@@ -120,12 +120,15 @@ namespace Bess {
         [[nodiscard]] TxResult
         trackConn(std::shared_ptr<Canvas::ConnectionSceneComponent> conn,
                   UUID scene = UUID::null);
-        [[nodiscard]] TxResult
-        moveComp(UUID id, glm::vec3 pos, UUID scene = UUID::null);
+        [[nodiscard]] TxResult moveComp(UUID id,
+                                        glm::vec3 pos,
+                                        UUID scene = UUID::null,
+                                        bool schematic = false);
         [[nodiscard]] TxResult trackMove(UUID id,
                                          glm::vec3 from,
                                          glm::vec3 to,
-                                         UUID scene = UUID::null);
+                                         UUID scene = UUID::null,
+                                         bool schematic = false);
         [[nodiscard]] TxResult
         parentComp(UUID id, UUID parent, UUID scene = UUID::null);
         [[nodiscard]] TxResult

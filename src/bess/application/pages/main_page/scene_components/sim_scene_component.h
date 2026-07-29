@@ -197,6 +197,7 @@ namespace Bess::Canvas {
         float getSlotStartY() const;
 
         void prepareUI(SceneUIPrepareCtx &ctx) override;
+        std::vector<UUID> clearUI(SceneState &state);
 
         std::shared_ptr<UI::ContainerComp> getInputSlotsContainer() const {
             return m_inpSlotsContainer;
@@ -207,6 +208,8 @@ namespace Bess::Canvas {
         }
 
       protected:
+        glm::vec3 dragPos() const override;
+
         /**
          * Resets the schematic pin positions based on the current schematic
          * scale and number of slots in the component. Will ignore slots that

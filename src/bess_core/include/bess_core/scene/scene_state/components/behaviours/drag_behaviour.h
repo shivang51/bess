@@ -33,15 +33,15 @@ namespace Bess::Canvas {
 
         void onMouseDragEnd() override {
             m_isDragging = false;
-            auto &self = static_cast<Derived &>(*this);
             auto &appCtx = GAppContext::getInstance();
             auto eventDispatcher =
                 appCtx.getSubSystem<Bess::EventSystem::EventDispatcher>();
             eventDispatcher->queue(Events::EntityMovedEvent{
                 .entityUuid = static_cast<const Derived &>(*this).getUuid(),
                 .oldPos = m_dragStartPos,
-                .newPos = self.getTransform().position,
+                .newPos = dragPos(),
                 .state = m_sceneState,
+                .schematic = m_schematic,
             });
             m_sceneState = nullptr;
         }
@@ -54,15 +54,21 @@ namespace Bess::Canvas {
 
         virtual void onMouseDragBegin(const Events::MouseDraggedEvent &e) {
             const auto &self = static_cast<const Derived &>(*this);
+            m_schematic = e.isSchematicMode;
             m_dragOffset = glm::vec2(self.getAbsolutePosition(
                                *e.sceneState, e.isSchematicMode)) -
                            e.mousePos;
-            m_dragStartPos = self.getTransform().position;
+            m_dragStartPos = dragPos();
             m_sceneState = e.sceneState;
             m_isDragging = true;
         }
 
+        virtual glm::vec3 dragPos() const {
+            return static_cast<const Derived &>(*this).getTransform().position;
+        }
+
         bool m_isDragging = false;
+        bool m_schematic = false;
         Canvas::SceneState *m_sceneState = nullptr;
         glm::vec2 m_dragOffset = {0.f, 0.f};
         glm::vec3 m_dragStartPos = {0.f, 0.f, 0.f};

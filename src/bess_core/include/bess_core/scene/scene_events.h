@@ -118,5 +118,6 @@ namespace Bess::Canvas::Events {
         glm::vec3 oldPos;
         glm::vec3 newPos;
         Canvas::SceneState *state;
+        bool schematic = false;
     };
 } // namespace Bess::Canvas::Events

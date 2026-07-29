@@ -4,12 +4,12 @@
 #include "bess_core/scene/scene.h"
 #include "bess_core/scene_driver.h"
 #include "dig_module_def.h"
-#include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "project_session/project_session.h"
+#include "simulation_engine.h"
 
 #include <functional>
 #include <unordered_set>
@@ -27,6 +27,14 @@ namespace Bess::Edit {
             for (const auto &comp : comps) {
                 if (!comp) {
                     continue;
+                }
+                if (const auto slot =
+                        std::dynamic_pointer_cast<Canvas::SlotSceneComponent>(
+                            comp)) {
+                    slot->clearUI(fromState);
+                } else if (const auto sim = std::dynamic_pointer_cast<
+                               Canvas::SimulationSceneComponent>(comp)) {
+                    sim->clearUI(fromState);
                 }
                 fromState.removeFromMap(comp->getUuid());
                 toState.addComponent(comp, false, false);
@@ -63,6 +71,30 @@ namespace Bess::Edit {
         std::vector<UUID> roots(const std::shared_ptr<Canvas::Scene> &scene) {
             const auto &ids = scene->getState().getRootComponents();
             return {ids.begin(), ids.end()};
+        }
+
+        std::vector<UUID> netComps(const std::shared_ptr<Canvas::Scene> &scene,
+                                   ProjectSession &session,
+                                   UUID net) {
+            std::vector<UUID> ids;
+            std::unordered_set<UUID> simIds;
+            const auto &nets = session.sim().getNetsMap();
+            if (const auto it = nets.find(net); it != nets.end()) {
+                simIds.insert(it->second.getComponents().begin(),
+                              it->second.getComponents().end());
+            }
+
+            for (const auto &[id, comp] :
+                 scene->getState().getAllComponents()) {
+                const auto sim =
+                    std::dynamic_pointer_cast<Canvas::SimulationSceneComponent>(
+                        comp);
+                if (sim && (sim->getNetId() == net ||
+                            simIds.contains(sim->getSimEngineId()))) {
+                    ids.push_back(id);
+                }
+            }
+            return ids;
         }
 
         std::vector<std::shared_ptr<Canvas::SceneComponent>>
@@ -223,9 +255,8 @@ namespace Bess::Edit {
                                            "source scene or net is invalid")};
         }
 
-        auto &page = Pages::MainPage::getInstance()->getState();
-        auto &map = page.getNetIdToCompMap(source->getSceneId());
-        if (!map.contains(net) || map.at(net).empty()) {
+        const auto ids = netComps(source, session, net);
+        if (ids.empty()) {
             return {.status = Status::fail(Err::invalid,
                                            "net has no scene components")};
         }
@@ -250,7 +281,7 @@ namespace Bess::Edit {
 
         std::vector<UUID> boundaryConns;
         const auto skip = boundarySkip(source, session, net, boundaryConns);
-        const auto found = collect(source, map.at(net));
+        const auto found = collect(source, ids);
         std::vector<std::shared_ptr<Canvas::SceneComponent>> moved;
         for (const auto &comp : found) {
             if (comp && !skip.contains(comp->getUuid())) {

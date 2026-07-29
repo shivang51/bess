@@ -837,26 +837,32 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         const auto ids = SceneComponent::cleanup(state, caller);
         removedIds.insert(removedIds.end(), ids.begin(), ids.end());
 
+        const auto uiIds = clearUI(state);
+        removedIds.insert(removedIds.end(), uiIds.begin(), uiIds.end());
+
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        auto &simEngine = projectCtx->sim();
+        simEngine.deleteComponent(m_simEngineId);
+        m_simEngineId = UUID::null;
+
+        return removedIds;
+    }
+
+    std::vector<UUID> SimulationSceneComponent::clearUI(SceneState &state) {
+        std::vector<UUID> removed;
         if (m_nodeContainer &&
             state.isComponentValid(m_nodeContainer->getUuid())) {
-            const auto uiIds =
+            removed =
                 state.removeComponent(m_nodeContainer->getUuid(), UUID::master);
-            removedIds.insert(removedIds.end(), uiIds.begin(), uiIds.end());
         }
         m_nodeContainer = nullptr;
         m_slotsContainer = nullptr;
         m_labelComp = nullptr;
         m_inpSlotsContainer = nullptr;
         m_outSlotsContainer = nullptr;
-
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-        auto &simEngine = projectCtx->sim();
-        simEngine.deleteComponent(m_simEngineId);
         m_isUIDirty = true;
-        m_simEngineId = UUID::null;
-
-        return removedIds;
+        return removed;
     }
 
     void
@@ -956,6 +962,11 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
                     glm::vec3(newPos, m_schematicTransform.position.z);
             }
         }
+    }
+
+    glm::vec3 SimulationSceneComponent::dragPos() const {
+        return m_schematic ? m_schematicTransform.position
+                           : m_transform.position;
     }
 
     glm::vec3
