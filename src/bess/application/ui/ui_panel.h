@@ -4,8 +4,8 @@
 
 #include "common/class_helpers.h"
 #include "common/types.h"
-#include "ui/dock_ids.h"
 #include "imgui.h"
+#include "ui/dock_ids.h"
 #include <string>
 
 namespace Bess::UI {
@@ -46,5 +46,6 @@ namespace Bess::UI {
         ImGuiWindowFlags m_flags = ImGuiWindowFlags_NoFocusOnAppearing;
         bool m_isFocused = false;
         bool m_isHovered = false;
+        bool m_wasRendered = false;
     };
 } // namespace Bess::UI

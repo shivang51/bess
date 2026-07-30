@@ -1,9 +1,10 @@
 #pragma once
 
-#include "common/bess_api.h"
 #include "bess_core/renderer/texture.h"
 #include "bess_core/scene/scene.h"
+#include "bess_core/scene/scene_ui/layout.h"
 #include "bess_core/viewport.h"
+#include "common/bess_api.h"
 #include "common/bess_uuid.h"
 #include "common/class_helpers.h"
 #include "common/types.h"
@@ -24,6 +25,7 @@ namespace Bess::UI {
 
         void onBeforeDraw() override;
         void onDraw() override;
+        void onAfterDraw() override;
 
         void init() override;
         void destroy() override;
@@ -71,6 +73,8 @@ namespace Bess::UI {
         bool hasRenderableViewport() const;
         bool hasMouseCapture() const;
 
+        void drawTopLeftControls();
+
       private:
         struct PendingPickingReadback {
             uint32_t x = 0;
@@ -114,5 +118,6 @@ namespace Bess::UI {
         uint32_t m_gridShader = 0;
         std::shared_ptr<Core::Viewport::ViewportContext> m_viewportCtx;
         PendingPickingReadback m_pendingSelectionReadback;
+        std::vector<const Canvas::SceneState *> m_rootToSceneStatePtrs;
     };
 } // namespace Bess::UI

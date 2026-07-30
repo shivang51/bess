@@ -117,12 +117,14 @@ namespace Bess::Canvas {
         m_sceneLayers.push_back(std::make_unique<InteractionLayer>());
         m_sceneLayers.push_back(std::make_unique<UIComponentsLayer>());
         m_sceneLayers.push_back(std::make_unique<SceneWidgetsLayer>());
-        m_sceneLayers.push_back(std::make_unique<ScratchLayer>());
-        auto screenOverlayLayer = std::make_unique<ScreenSpaceOverlayLayer>();
-        m_screenSpaceOverlayLayer = screenOverlayLayer.get();
+
+        // auto screenOverlayLayer =
+        // std::make_unique<ScreenSpaceOverlayLayer>();
+        // m_screenSpaceOverlayLayer = screenOverlayLayer.get();
+        // m_sceneLayers.push_back(std::move(screenOverlayLayer));
 
 #ifdef BESS_DEBUG
-        m_sceneLayers.push_back(std::move(screenOverlayLayer));
+        m_sceneLayers.push_back(std::make_unique<ScratchLayer>());
 #endif
 
         reset();

@@ -1,4 +1,5 @@
 #include "ui/ui_panel.h"
+#include "imgui.h"
 
 namespace Bess::UI {
     Panel::Panel(const std::string &name) : m_name(name) {
@@ -28,12 +29,10 @@ namespace Bess::UI {
 
     void Panel::render() {
         onBeforeDraw();
-        ImGui::Begin(m_name.c_str(), &m_visible, m_flags);
+        m_wasRendered = ImGui::Begin(m_name.c_str(), &m_visible, m_flags);
         onDraw();
-        m_isFocused =
-            ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
-        m_isHovered =
-            ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows);
+        m_isFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootWindow);
+        m_isHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_RootWindow);
         ImGui::End();
         onAfterDraw();
     }

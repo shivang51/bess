@@ -1,6 +1,5 @@
 #include "scene_viewport_panel.h"
 #include "bess_core/g_app_context.h"
-#include "project_session/project_session.h"
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/scene/camera.h"
 #include "bess_core/scene/scene.h"
@@ -8,13 +7,17 @@
 #include "bess_core/scene_driver.h"
 #include "bess_wgpu/wgpu_texture.h"
 #include "common/bess_uuid.h"
+#include "common/helpers.h"
 #include "imgui.h"
+#include "imgui_internal.h"
+#include "project_session/project_session.h"
 #include "sub_systems/renderer_context.h"
+#include "ui/icons/CodIcons_Remapped.h"
+#include "ui/icons/FontAwesomeIcons_Remapped.h"
+#include "ui/project_api.h"
 #include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/ui_main.h"
 #include "ui/ui_panel.h"
-#include <stack>
-#include <stacktrace>
 
 namespace Bess::UI {
     SceneViewportPanel::SceneViewportPanel(const std::string &viewportName)
@@ -102,7 +105,7 @@ namespace Bess::UI {
         }
 
         Canvas::ViewportUpdateContext ctx{
-            .isFocused = m_isHovered,
+            .isFocused = m_isHovered && m_wasRendered,
             .camera = m_camera,
             .viewportCtx = m_viewportCtx,
             .renderer = GAppContext::getInstance()
@@ -162,6 +165,9 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::onDraw() {
+        if (!m_wasRendered)
+            return;
+
         auto sceneDriver = GAppContext::getInstance()
                                .getSubSystem<Bess::ProjectSession>()
                                ->getSubSystem<SceneDriver>();
@@ -193,8 +199,6 @@ namespace Bess::UI {
         m_viewportCtx->transform.pos = {m_localPos.x + gPos.x + offset.x,
                                         m_localPos.y + gPos.y + offset.y};
 
-        ImGui::PopStyleVar();
-
         const auto &pickingId = m_viewportCtx->inputCtx.pickingId;
         if (!pickingId.isValid() && ImGui::BeginPopupContextWindow()) {
             if (ImGui::MenuItem("Add Component", "Shift-A")) {
@@ -203,6 +207,132 @@ namespace Bess::UI {
 
             ImGui::EndPopup();
         }
+
+        drawTopLeftControls();
+    }
+
+    void SceneViewportPanel::onAfterDraw() {
+        ImGui::PopStyleVar();
+    }
+
+    void SceneViewportPanel::drawTopLeftControls() {
+        constexpr float windowR = 8.f;
+
+        const auto *g = ImGui::GetCurrentContext();
+
+        static float checkboxWidth =
+            ImGui::CalcTextSize("W").x + g->Style.FramePadding.x + 2.f;
+        static const auto textSize = ImGui::CalcTextSize("   Schematic Mode");
+        static float size = textSize.x + checkboxWidth + (windowR * 2) +
+                            (g->Style.FramePadding.x);
+
+        const auto colors = g->Style.Colors;
+
+        const ImVec2 windowPos = {
+            m_viewportCtx->transform.pos.x + g->Style.FramePadding.x,
+            m_viewportCtx->transform.pos.y + g->Style.FramePadding.y,
+        };
+
+        // Is schematic mode
+        ImGui::SetNextWindowPos(windowPos);
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(windowR, 2));
+        ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 0);
+        ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, windowR);
+
+        auto col = colors[ImGuiCol_ButtonActive];
+        col.w = 0.2f;
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, col);
+        ImGui::BeginChild(
+            std::format("TopLeftViewportActions{}", m_viewportCtx->viewportId)
+                .c_str(),
+            ImVec2(size, 0),
+            ImGuiChildFlags_AlwaysUseWindowPadding,
+            NO_MOVE_FLAGS | ImGuiWindowFlags_NoDocking);
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("%s Schematic Mode",
+                    Icons::FontAwesomeIcons::FA_WAVE_SQUARE);
+        ImGui::SameLine();
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+
+        const auto &sceneDriver = Proj::scenes();
+
+        const auto &rootScene =
+            sceneDriver.getSceneWithId(sceneDriver.getRootSceneId());
+
+        bool isSchematicMode = m_viewportCtx->isSchematicMode();
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 4.f);
+        if (ImGui::Checkbox("##CheckBoxSchematicMode", &isSchematicMode)) {
+            m_viewportCtx->mode = isSchematicMode
+                                      ? Core::Viewport::ViewportMode::schematic
+                                      : Core::Viewport::ViewportMode::normal;
+        }
+
+        ImGui::PopStyleVar();
+        ImGui::EndChild();
+        ImGui::PopStyleColor(1);
+
+        // Scene path (root > module ...)
+        ImGui::SetNextWindowPos({windowPos.x + size + 8.f, windowPos.y});
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0, 0, 0, 0));
+        ImGui::BeginChild(
+            std::format("TopLeftViewportActions{}1", m_viewportCtx->viewportId)
+                .c_str(),
+            ImVec2(0, 0),
+            ImGuiChildFlags_AlwaysUseWindowPadding |
+                ImGuiChildFlags_AlwaysAutoResize | ImGuiChildFlags_AutoResizeY,
+            NO_MOVE_FLAGS | ImGuiWindowFlags_NoDocking);
+
+        constexpr auto rootIcon =
+            Common::Helpers::concat(Icons::CodIcons::RECORD, " Root");
+
+        if (m_attachedScene->getState().getIsRootScene()) {
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextDisabled("%s", rootIcon.data());
+        } else {
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+
+            for (int i = 0; i < m_rootToSceneStatePtrs.size(); i++) {
+                if (i == 0) {
+                    if (ImGui::Button(rootIcon.data())) {
+                        m_nextSceneId = sceneDriver.getRootSceneId();
+                    }
+                    continue;
+                }
+
+                const auto &sceneStatePtr = m_rootToSceneStatePtrs[i];
+                const auto &parentStatePtr = m_rootToSceneStatePtrs[i - 1];
+                const auto &module = parentStatePtr->getComponentByUuid(
+                    sceneStatePtr->getModuleId());
+
+                ImGui::SameLine();
+                ImGui::AlignTextToFramePadding();
+                ImGui::TextDisabled(Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT);
+                ImGui::SameLine();
+
+                if (i == m_rootToSceneStatePtrs.size() - 1) {
+                    ImGui::AlignTextToFramePadding();
+                    if (module) {
+                        ImGui::TextDisabled(" %s", module->getName().c_str());
+                    } else {
+                        ImGui::TextDisabled(" Unknown Module");
+                    }
+                } else {
+                    ImGui::PushID(i);
+                    if (ImGui::Button(module ? module->getName().c_str()
+                                             : " Unknown Module")) {
+                        m_nextSceneId = sceneStatePtr->getSceneId();
+                    }
+                    ImGui::PopID();
+                }
+            }
+            ImGui::PopStyleColor(1);
+        }
+        ImGui::EndChild();
+        ImGui::PopStyleColor(1);
+
+        ImGui::PopStyleVar(3);
     }
 
     bool SceneViewportPanel::isHovered() const {

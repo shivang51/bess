@@ -1,12 +1,17 @@
 #include "scene_viewport_panel.h"
 #include "bess_core/g_app_context.h"
-#include "project_session/project_session.h"
 #include "bess_core/scene/scene.h"
 #include "bess_core/scene_driver.h"
 #include "bess_core/sub_systems/input_sub_system.h"
+#include "common/helpers.h"
 #include "common/types.h"
+#include "imgui_internal.h"
 #include "pages/main_page/main_page.h"
+#include "project_session/project_session.h"
 #include "sub_systems/renderer_context.h"
+#include "ui/icons/CodIcons_Remapped.h"
+#include "ui/icons/FontAwesomeIcons_Remapped.h"
+#include "ui/project_api.h"
 #include <algorithm>
 #include <cstdint>
 
@@ -274,9 +279,8 @@ namespace Bess::UI {
             .drawRenderTarget = sceneHandle,
             .pickingRenderTarget = pickingHandle,
             .viewportCtx = m_viewportCtx,
-            .simEngine =
-                appCtx.getSubSystem<ProjectSession>()
-                    ->getSubSystem<SimEngine::SimulationEngine>(),
+            .simEngine = appCtx.getSubSystem<ProjectSession>()
+                             ->getSubSystem<SimEngine::SimulationEngine>(),
         };
 
         m_attachedScene->draw(view);
