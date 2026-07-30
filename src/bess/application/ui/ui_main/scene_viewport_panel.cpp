@@ -209,6 +209,7 @@ namespace Bess::UI {
         }
 
         drawTopLeftControls();
+        drawBottomControls();
     }
 
     void SceneViewportPanel::onAfterDraw() {
@@ -347,9 +348,163 @@ namespace Bess::UI {
         return m_viewportCtx->transform.size;
     }
 
+    namespace {
+        std::string fmtPosX(float x) {
+            return std::format(
+                "{} {:>12.2f} ", Icons::FontAwesomeIcons::FA_X, x);
+        }
+
+        std::string fmtPosY(float x) {
+            return std::format(
+                "{} {:>12.2f} ", Icons::FontAwesomeIcons::FA_Y, x);
+        }
+
+        std::string fmtPos(float x, float y) {
+            return std::format("{} {:>12.2f}   {} {:>12.2f}",
+                               Icons::FontAwesomeIcons::FA_X,
+                               x,
+                               Icons::FontAwesomeIcons::FA_Y,
+                               y);
+        }
+    } // namespace
+
+    void SceneViewportPanel::drawBottomControls() const {
+        const auto &vpMousePos = m_viewportCtx->inputCtx.mousePos;
+        const auto mousePos = m_camera->toWorldPos(vpMousePos);
+
+        static const auto fixedPosLabelSize =
+            ImGui::CalcTextSize(fmtPos(99999.f, 99999.f).c_str());
+        static const float fixedWinWidth = fixedPosLabelSize.x +
+                                           ImGui::GetStyle().ItemSpacing.x +
+                                           150.0f + 50.f;
+
+        const ImVec2 windowPos = {
+            m_viewportCtx->transform.pos.x + m_viewportCtx->transform.size.x -
+                fixedWinWidth - 10.f,
+            m_viewportCtx->transform.pos.y + m_viewportCtx->transform.size.y -
+                44.f,
+        };
+
+        ImGui::SetNextWindowPos(windowPos);
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 0));
+        ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 0);
+        ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8);
+
+        // Force height 34
+        ImGui::BeginChild("SceneBottomRightControls",
+                          ImVec2(0, 34),
+                          ImGuiChildFlags_AlwaysUseWindowPadding |
+                              ImGuiChildFlags_AlwaysAutoResize |
+                              ImGuiChildFlags_AutoResizeX,
+                          NO_MOVE_FLAGS | ImGuiWindowFlags_NoScrollbar);
+
+        const float windowHeight = 34.0f;
+        const float sliderHeight = ImGui::GetFrameHeight();
+
+        ImGui::SetCursorPosY((windowHeight - sliderHeight) * 0.5f);
+
+        // Camera Icon
+        {
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text(" %s", Icons::FontAwesomeIcons::FA_CAMERA);
+            ImGui::SameLine();
+        }
+
+        ImGui::SameLine();
+
+        const auto zoomSliderX = ImGui::GetCursorPosX() + fixedPosLabelSize.x +
+                                 ImGui::GetStyle().ItemSpacing.x;
+
+        // Mouse Pos Text
+        {
+            ImGui::AlignTextToFramePadding();
+            const auto posLabelX = fmtPosX(mousePos.x);
+            ImGui::Text(" %s", posLabelX.c_str());
+            // Recenter on click
+            if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+                m_camera->focusAtPoint({0.f, 0.f}, false);
+            }
+
+            ImGui::SameLine();
+
+            ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+            // Recenter on click
+            if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+                m_camera->focusAtPoint({0.f, 0.f}, false);
+            }
+
+            ImGui::SameLine();
+
+            ImGui::AlignTextToFramePadding();
+            const auto posLabelY = fmtPosY(mousePos.y);
+            ImGui::Text(" %s", posLabelY.c_str());
+
+            // Recenter on click
+            if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+                m_camera->focusAtPoint({0.f, 0.f}, false);
+            }
+        }
+
+        ImGui::SameLine();
+
+        ImGui::SetCursorPosX(zoomSliderX);
+
+        // Zoom Slider
+        {
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8);
+            ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 8);
+
+            ImGui::SetNextItemWidth(150.0f);
+            if (ImGui::SliderFloat("##Zoom",
+                                   &m_camera->getZoomRef(),
+                                   Camera::zoomMin,
+                                   Camera::zoomMax,
+                                   "%.1fx",
+                                   ImGuiSliderFlags_AlwaysClamp)) {
+                const float stepSize = 0.1f;
+                const float val =
+                    roundf(m_camera->getZoom() / stepSize) * stepSize;
+                m_camera->setZoom(val);
+            }
+            ImGui::PopStyleVar(2);
+        }
+
+        ImGui::EndChild();
+        ImGui::PopStyleVar(3);
+    }
+
     void SceneViewportPanel::onSceneAttached() {
         m_viewportCtx->reset();
         m_pendingSelectionReadback.clear();
+
+        const auto &sceneDriver = Proj::scenes();
+
+        UUID sceneId = m_attachedScene->getSceneId();
+
+        while (sceneId != UUID::null) {
+            const auto &scene = sceneDriver.getSceneWithId(sceneId);
+            if (!scene) {
+                BESS_ERROR(
+                    "[SceneVewportPanel] Scene with id {} not found while "
+                    "traversing parent scenes during scene attach.",
+                    (uint64_t)sceneId);
+                break;
+            }
+            m_rootToSceneStatePtrs.push_back(&scene->getState());
+            sceneId = scene->getState().getParentSceneId();
+            if (sceneDriver.getRootSceneId() != scene->getSceneId()) {
+                BESS_ASSERT(sceneId != UUID::null,
+                            "Non-root scene has null parent scene id.");
+            }
+        }
+
+        std::ranges::reverse(m_rootToSceneStatePtrs);
+
+        BESS_DEBUG(
+            "[SceneVewportPanel] Scene {} attached to viewport panel '{}'",
+            (uint64_t)m_attachedScene->getState().getSceneId(),
+            m_viewportName);
     }
 
     glm::vec2 SceneViewportPanel::getSceneMousePos() {

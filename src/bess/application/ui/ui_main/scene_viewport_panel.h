@@ -74,6 +74,7 @@ namespace Bess::UI {
         bool hasMouseCapture() const;
 
         void drawTopLeftControls();
+        void drawBottomControls() const;
 
       private:
         struct PendingPickingReadback {
