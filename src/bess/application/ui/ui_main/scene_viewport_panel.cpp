@@ -119,10 +119,11 @@ namespace Bess::UI {
         }
 
         if (m_nextSceneId != UUID::null) {
-            GAppContext::getInstance()
-                .getSubSystem<Bess::ProjectSession>()
-                ->getSubSystem<SceneDriver>()
-                ->setActiveScene(m_nextSceneId);
+            auto scene = GAppContext::getInstance()
+                             .getSubSystem<Bess::ProjectSession>()
+                             ->getSubSystem<SceneDriver>()
+                             ->setActiveScene(m_nextSceneId);
+            setAttachedScene(scene);
             m_nextSceneId = UUID::null;
         }
     }
@@ -477,6 +478,7 @@ namespace Bess::UI {
     void SceneViewportPanel::onSceneAttached() {
         m_viewportCtx->reset();
         m_pendingSelectionReadback.clear();
+        m_rootToSceneStatePtrs.clear();
 
         const auto &sceneDriver = Proj::scenes();
 
