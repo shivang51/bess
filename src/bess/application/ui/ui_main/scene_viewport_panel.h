@@ -108,6 +108,7 @@ namespace Bess::UI {
 
       private:
         bool m_isfirstTimeDraw;
+        bool m_isViewportHovered = false;
         ImVec2 m_localPos;
         std::string m_viewportName;
         bool m_isResized = false;

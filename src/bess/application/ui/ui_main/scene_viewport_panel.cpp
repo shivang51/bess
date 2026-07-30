@@ -96,7 +96,7 @@ namespace Bess::UI {
         }
 
         m_camera->update(ts);
-        m_viewportCtx->isFocused = m_isHovered;
+        m_viewportCtx->isFocused = m_isViewportHovered;
 
         if (m_viewportCtx->isFocused && m_attachedScene &&
             m_attachedScene != sceneDriver->getActiveScene()) {
@@ -105,7 +105,7 @@ namespace Bess::UI {
         }
 
         Canvas::ViewportUpdateContext ctx{
-            .isFocused = m_isHovered && m_wasRendered,
+            .isFocused = m_isViewportHovered && m_wasRendered && !m_isResized,
             .camera = m_camera,
             .viewportCtx = m_viewportCtx,
             .renderer = GAppContext::getInstance()
@@ -188,6 +188,7 @@ namespace Bess::UI {
         if (m_sceneTexture) {
             ImGui::Image((ImTextureRef)m_sceneTexture->getView(),
                          ImVec2(viewportPanelSize.x, viewportPanelSize.y));
+            m_isViewportHovered = ImGui::IsItemHovered();
         } else {
             ImGui::SetCursorPos({100, 100});
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.f, 0.f, 1.f));
@@ -338,7 +339,7 @@ namespace Bess::UI {
     }
 
     bool SceneViewportPanel::isHovered() const {
-        return m_isHovered;
+        return m_isViewportHovered;
     }
 
     const glm::vec2 &SceneViewportPanel::getViewportPos() const {
@@ -514,7 +515,7 @@ namespace Bess::UI {
     }
 
     bool SceneViewportPanel::isFocused() const {
-        return m_isHovered;
+        return m_isViewportHovered;
     }
 
     bool SceneViewportPanel::isAttachedToScene(

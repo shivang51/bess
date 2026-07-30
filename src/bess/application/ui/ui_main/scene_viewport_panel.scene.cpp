@@ -70,15 +70,15 @@ namespace Bess::UI {
 
         auto &inpCtx = m_viewportCtx->inputCtx;
         const bool shouldProcessPicking =
-            m_isHovered || m_viewportCtx->pickingReadbackRequest.active ||
+            m_isViewportHovered || m_viewportCtx->pickingReadbackRequest.active ||
             m_pendingSelectionReadback.active;
 
         if (m_pickingTexture && shouldProcessPicking &&
             !m_attachedScene->getIsFirstFrame() && !inpCtx.isDragging) {
-            updatePickingIds(mouseMoved && m_isHovered);
+            updatePickingIds(mouseMoved && m_isViewportHovered);
         }
 
-        if (m_isHovered) {
+        if (m_isViewportHovered) {
             applySceneCursor();
         } else if (!hasMouseCapture()) {
             inpCtx.pickingId = PickingId::invalid();
