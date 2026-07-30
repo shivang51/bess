@@ -1,18 +1,14 @@
 #include "slot_scene_component.h"
-#include "bess_core/g_app_context.h"
 #include "bess_core/scene/scene_draw_helpers.h"
 #include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene/scene_ui/controls/container_comp.h"
-#include "bess_core/scene_driver.h"
 #include "bess_core/settings/viewport_theme.h"
 #include "bess_core/style/bess_theme.h"
 #include "conn_joint_scene_component.h"
 #include "connection_scene_component.h"
 #include "dig_sim_driver.h"
 #include "expression_evalutator/expr_evaluator.h"
-#include "pages/main_page/services/connection_service.h"
-#include "project_session/project_session.h"
 #include "sim_scene_component.h"
 #include "simulation_engine.h"
 #include <algorithm>
@@ -60,20 +56,19 @@ namespace Bess::Canvas {
                 return false;
             }
 
-            auto &appCtx = Bess::GAppContext::getInstance();
-            auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-            if (!projectCtx) {
+            auto *simEngine = state.runtime().sim;
+            if (!simEngine) {
                 return false;
             }
 
-            auto &simEngine = projectCtx->sim();
             if (!port.isInput()) {
                 return false;
             }
 
-            simEngine.setInputPortState(port.componentId,
-                                        port.index,
-                                        SimEngine::PortState::scalar(value));
+            simEngine->setInputPortState(
+                port.componentId,
+                port.index,
+                SimEngine::PortState::scalar(value));
             return true;
         }
     } // namespace
@@ -138,15 +133,11 @@ namespace Bess::Canvas {
 
             ctx.sceneState->addComponent(m_container);
 
-            const auto sceneId = ctx.sceneState->getSceneId();
+            auto *state = ctx.sceneState;
             m_label = UI::EditableLabelComp::create(
-                m_name, [id = m_uuid, sceneId](const std::string &val) {
-                    const auto session = GAppContext::getInstance()
-                                             .getSubSystem<ProjectSession>();
-                    const auto result = session->nameComp(id, val, sceneId);
-                    if (!result) {
-                        BESS_WARN("Could not rename slot: {}",
-                                  result.status.msg());
+                m_name, [id = m_uuid, state](const std::string &val) {
+                    if (!state->nameTx(id, val)) {
+                        BESS_WARN("Could not rename slot");
                     }
                 });
             m_label->setSelectTextOnEdit(true);
@@ -400,10 +391,11 @@ namespace Bess::Canvas {
             return {SimEngine::LogicState::unknown, SimEngine::SimTime(0)};
         }
 
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-        auto &simEngine = projectCtx->sim();
-        return simEngine.getPortState(port);
+        auto *simEngine = state.runtime().sim;
+        return simEngine
+                   ? simEngine->getPortState(port)
+                   : SimEngine::PortState{SimEngine::LogicState::unknown,
+                                          SimEngine::SimTime(0)};
     }
 
     SimEngine::PortState
@@ -422,11 +414,12 @@ namespace Bess::Canvas {
             return false;
         }
 
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-        auto &simEngine = projectCtx->sim();
+        auto *simEngine = state.runtime().sim;
+        if (!simEngine) {
+            return false;
+        }
         const auto stateSnapshot =
-            simEngine.getComponentState(port.componentId);
+            simEngine->getComponentState(port.componentId);
 
         if (port.isInput()) {
             if (static_cast<size_t>(port.index) >=
@@ -544,36 +537,15 @@ namespace Bess::Canvas {
         auto endSlot =
             e.sceneState->getComponentByUuid<SlotSceneComponent>(m_uuid);
 
-        auto projCtx =
-            GAppContext::getInstance().getSubSystem<Bess::ProjectSession>();
-        auto sceneDriver = projCtx->getSubSystem<SceneDriver>();
-        auto connectionsSvc = projCtx->getSubSystem<Svc::SvcConnection>();
-        const auto [canConnect, reason] = connectionsSvc->canConnect(
-            connStartSlot,
-            m_uuid,
-            sceneDriver->getSceneWithId(e.sceneState->getSceneId()));
-
-        if (!canConnect) {
-            BESS_WARN("Cannot create connection between component {} and "
-                      "component {}: {}",
-                      (uint64_t)connStartSlot,
-                      (uint64_t)m_uuid,
-                      reason);
-            e.sceneState->setConnectionStartSlot(UUID::null);
-            return true;
-        }
-
         UUID starSlotUuid =
             jointComp ? jointComp->getUuid() : startSlot->getUuid();
         auto conn = std::make_shared<ConnectionSceneComponent>();
         conn->setStartEndSlots(starSlotUuid, m_uuid);
-        const auto result = projCtx->addConn(conn, e.sceneState->getSceneId());
-        if (!result) {
+        if (!e.sceneState->addConnTx(conn)) {
             BESS_ERROR("Failed to create connection between component {} and "
-                       "component {}: {}",
+                       "component {}",
                        (uint64_t)connStartSlot,
-                       (uint64_t)m_uuid,
-                       result.status.msg());
+                       (uint64_t)m_uuid);
             e.sceneState->setConnectionStartSlot(UUID::null);
             return false;
         }

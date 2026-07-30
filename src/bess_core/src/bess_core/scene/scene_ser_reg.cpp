@@ -16,6 +16,9 @@ namespace Bess::Canvas {
         if (m_registry.contains(typeName)) {
             return m_registry.at(typeName)(j);
         }
+        if (const auto &fallback = getFallback()) {
+            return fallback(j);
+        }
         BESS_WARN("[SceneSerReg] No registered deserialization function for "
                   "component type {}",
                   typeName);
@@ -25,12 +28,22 @@ namespace Bess::Canvas {
     void SceneSerReg::clearRegistry() {
         auto &m_registry = getRegistry();
         m_registry.clear();
+        getFallback() = {};
+    }
+
+    void SceneSerReg::setFallback(DeSerFunc func) {
+        getFallback() = std::move(func);
     }
 
     std::unordered_map<std::string, SceneSerReg::DeSerFunc> &
     SceneSerReg::getRegistry() {
         static std::unordered_map<std::string, DeSerFunc> registry;
         return registry;
+    }
+
+    SceneSerReg::DeSerFunc &SceneSerReg::getFallback() {
+        static DeSerFunc fallback;
+        return fallback;
     }
 
     bool SceneSerReg::hasComponent(const std::string &typeName) {

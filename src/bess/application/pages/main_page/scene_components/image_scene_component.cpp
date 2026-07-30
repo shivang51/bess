@@ -156,7 +156,6 @@ namespace Bess::Canvas {
     void ImageSceneComponent::onMouseDragEnd() {
         if (m_isResizing) {
             (void)Edit::trackComp(*this,
-                                  m_resizeScene,
                                   std::move(m_resizeBefore),
                                   "image-resize");
             m_isResizing = false;

@@ -11,7 +11,6 @@ include(GenerateExportHeader)
 
 set(BESS_RUNTIME_COMPONENT_TARGETS
     common
-    project_session
     BessJson
     bverilog
     BessPluginManager
@@ -24,6 +23,10 @@ set(BESS_RUNTIME_COMPONENT_TARGETS
     BessWgpu
     BessApp
     BessExtDeps
+)
+
+set(BESS_RUNTIME_PRIVATE_COMPONENT_TARGETS
+    project_session
 )
 
 set(BESS_RUNTIME_GENERATED_INCLUDE_DIR
@@ -46,6 +49,9 @@ target_include_directories(BessRuntime PUBLIC
 )
 
 target_link_libraries(BessRuntime PUBLIC ${BESS_RUNTIME_COMPONENT_TARGETS})
+target_link_libraries(
+    BessRuntime PRIVATE ${BESS_RUNTIME_PRIVATE_COMPONENT_TARGETS}
+)
 
 		
 add_custom_command(TARGET BessRuntime POST_BUILD
@@ -54,7 +60,13 @@ add_custom_command(TARGET BessRuntime POST_BUILD
 				$<TARGET_FILE_DIR:BessRuntime>
 )
 
-foreach(component_target IN LISTS BESS_RUNTIME_COMPONENT_TARGETS)
+set(
+    BESS_RUNTIME_ALL_COMPONENT_TARGETS
+    ${BESS_RUNTIME_COMPONENT_TARGETS}
+    ${BESS_RUNTIME_PRIVATE_COMPONENT_TARGETS}
+)
+
+foreach(component_target IN LISTS BESS_RUNTIME_ALL_COMPONENT_TARGETS)
     if(NOT component_target STREQUAL "BessExtDeps")
         target_compile_definitions(
             ${component_target} PRIVATE BessRuntime_EXPORTS

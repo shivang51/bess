@@ -1,5 +1,4 @@
 #include "bess_core/scene/layers/components_layer.h"
-#include "project_session/project_session.h"
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_event.h"
 #include "bess_core/scene/scene_layer.h"
@@ -57,12 +56,8 @@ namespace Bess::Canvas {
         const auto &span = (cam->getSpan() / 2.f) + 200.f;
         const auto &camPos = cam->getPos();
 
-        const auto &projectCtx =
-            GAppContext::getInstance().getSubSystem<ProjectSession>();
-
         SimDrawCache simDrawCache;
-        simDrawCache.setSimEngine(
-            projectCtx->getSubSystem<SimEngine::SimulationEngine>());
+        simDrawCache.setSimEngine(ctx.simEngine);
 
         SceneDrawContext drawCtx{
             .sceneState = ctx.sceneState,

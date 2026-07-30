@@ -19,7 +19,6 @@
 #include "imgui.h"
 #include "input_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
-#include "project_session/project_session.h"
 #include "simulation_engine.h"
 #include "slot_scene_component.h"
 #include "sub_systems/renderer_context.h"
@@ -308,6 +307,25 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         }
     }
 
+    void
+    SimulationSceneComponent::beforeSerialize(const SceneState &state) {
+        updateScales(state);
+    }
+
+    void SimulationSceneComponent::onLoaded(const SceneLoadCtx &ctx) {
+        if (!ctx.sim) {
+            throw std::runtime_error(
+                "simulation runtime is unavailable while loading a component");
+        }
+        const auto def = ctx.sim->getComponentDefinition(m_simEngineId);
+        if (!def) {
+            throw std::runtime_error(
+                "simulation component definition was not found");
+        }
+        setCompDef(def);
+        setScaleDirty(false);
+    }
+
     void SimulationSceneComponent::draw(SceneDrawContext &context) {
         if (!m_nodeContainer)
             return;
@@ -471,15 +489,11 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
                     Styles::simCompStyles.paddingX,
                     Styles::simCompStyles.paddingY);
 
-            const auto sceneId = ctx.sceneState->getSceneId();
+            auto *state = ctx.sceneState;
             m_labelComp = UI::EditableLabelComp::create(
-                m_name, [id = m_uuid, sceneId](const std::string &val) {
-                    const auto session = GAppContext::getInstance()
-                                             .getSubSystem<ProjectSession>();
-                    const auto result = session->nameComp(id, val, sceneId);
-                    if (!result) {
-                        BESS_WARN("Could not rename component: {}",
-                                  result.status.msg());
+                m_name, [id = m_uuid, state](const std::string &val) {
+                    if (!state->nameTx(id, val)) {
+                        BESS_WARN("Could not rename component");
                     }
                 });
             m_labelComp->setSelectTextOnEdit(true);
@@ -824,10 +838,9 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         if (m_simEngineId != UUID::null)
             return;
 
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-        auto &simEngine = projectCtx->sim();
-        m_simEngineId = simEngine.addComponent(m_compDef, false);
+        auto *simEngine = state.runtime().sim;
+        BESS_ASSERT(simEngine, "Simulation engine is unavailable");
+        m_simEngineId = simEngine->addComponent(m_compDef, false);
     }
 
     std::vector<UUID> SimulationSceneComponent::cleanup(SceneState &state,
@@ -840,10 +853,9 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         const auto uiIds = clearUI(state);
         removedIds.insert(removedIds.end(), uiIds.begin(), uiIds.end());
 
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-        auto &simEngine = projectCtx->sim();
-        simEngine.deleteComponent(m_simEngineId);
+        auto *simEngine = state.runtime().sim;
+        BESS_ASSERT(simEngine, "Simulation engine is unavailable");
+        simEngine->deleteComponent(m_simEngineId);
         m_simEngineId = UUID::null;
 
         return removedIds;
@@ -1222,14 +1234,8 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
                 if (Widgets::TextBox(label, slotComp->getName())) {
                     auto name = slotComp->getName();
                     slotComp->setName(oldName);
-                    const auto result = GAppContext::getInstance()
-                                            .getSubSystem<ProjectSession>()
-                                            ->nameComp(slotComp->getUuid(),
-                                                       std::move(name),
-                                                       state.getSceneId());
-                    if (!result) {
-                        BESS_WARN("Could not rename input slot: {}",
-                                  result.status.msg());
+                    if (!state.nameTx(slotComp->getUuid(), std::move(name))) {
+                        BESS_WARN("Could not rename input slot");
                     }
                 }
             }
@@ -1250,14 +1256,8 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
                 if (Widgets::TextBox(label, slotComp->getName())) {
                     auto name = slotComp->getName();
                     slotComp->setName(oldName);
-                    const auto result = GAppContext::getInstance()
-                                            .getSubSystem<ProjectSession>()
-                                            ->nameComp(slotComp->getUuid(),
-                                                       std::move(name),
-                                                       state.getSceneId());
-                    if (!result) {
-                        BESS_WARN("Could not rename output slot: {}",
-                                  result.status.msg());
+                    if (!state.nameTx(slotComp->getUuid(), std::move(name))) {
+                        BESS_WARN("Could not rename output slot");
                     }
                 }
             }

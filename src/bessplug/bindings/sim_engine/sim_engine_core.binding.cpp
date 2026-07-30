@@ -1,10 +1,9 @@
-#include "bess_core/g_app_context.h"
-#include "project_session/project_session.h"
 #include "common/bess_uuid.h"
 #include "common/types.h"
 #include "net/net.h"
 #include "sim_driver/sim_driver.h"
 #include "simulation_engine.h"
+#include "ui/project_api.h"
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -13,45 +12,33 @@ namespace py = pybind11;
 
 std::unordered_map<Bess::UUID, Bess::SimEngine::Net>
 getNetsMap(bool update = true) {
-    auto &appCtx = Bess::GAppContext::getInstance();
-    auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-    return projectCtx->sim().getNetsMap(update);
+    return Bess::UI::Proj::sim().getNetsMap(update);
 }
 
 void pauseSimEngine() {
-    auto &appCtx = Bess::GAppContext::getInstance();
-    auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-    projectCtx->sim().setSimulationState(
+    Bess::UI::Proj::sim().setSimulationState(
         Bess::SimEngine::SimulationState::paused);
 }
 
 void resumeSimEngine() {
-    auto &appCtx = Bess::GAppContext::getInstance();
-    auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-    projectCtx->sim().setSimulationState(
+    Bess::UI::Proj::sim().setSimulationState(
         Bess::SimEngine::SimulationState::running);
 }
 
 std::shared_ptr<Bess::SimEngine::Drivers::SimComponent>
 getComp(const Bess::UUID &id) {
-    auto &appCtx = Bess::GAppContext::getInstance();
-    auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-    return projectCtx->sim()
+    return Bess::UI::Proj::sim()
         .getComponentSP<Bess::SimEngine::Drivers::SimComponent>(id);
 }
 
 bool isSimStable() {
-    auto &appCtx = Bess::GAppContext::getInstance();
-    auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-    return projectCtx->sim().isSimStable();
+    return Bess::UI::Proj::sim().isSimStable();
 }
 
 void setOutPortState(const Bess::UUID &compId,
                      const int portIdx,
                      const Bess::SimEngine::PortState &state) {
-    auto &appCtx = Bess::GAppContext::getInstance();
-    auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-    auto &simEngine = projectCtx->sim();
+    auto &simEngine = Bess::UI::Proj::sim();
     simEngine.setOutputPortState(compId, portIdx, state);
 }
 
@@ -65,9 +52,7 @@ void setOutPortLogicState(const Bess::UUID &compId,
 
 std::vector<Bess::SimEngine::PortState>
 getInputPortStates(const Bess::UUID &compId) {
-    auto &appCtx = Bess::GAppContext::getInstance();
-    auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-    auto &simEngine = projectCtx->sim();
+    auto &simEngine = Bess::UI::Proj::sim();
     return simEngine.getInputPortStates(compId);
 }
 

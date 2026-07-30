@@ -18,11 +18,11 @@ namespace Bess::Canvas {
         ModuleSceneComponent();
         ModuleSceneComponent(const ModuleSceneComponent &other) = default;
 
-        static std::shared_ptr<ModuleSceneComponent>
-        fromNet(const UUID &netId, const std::string &name = "New Module");
-
         static std::vector<std::shared_ptr<SceneComponent>>
-        createNew(UUID &moduleInpId, UUID &moduleOutId);
+        createNew(SceneDriver &scenes,
+                  SimEngine::SimulationEngine &sim,
+                  UUID &moduleInpId,
+                  UUID &moduleOutId);
 
         REG_SCENE_COMP_TYPE("ModuleSceneComponent", SceneComponentType::module)
         SCENE_COMP_SER(Bess::Canvas::ModuleSceneComponent,
@@ -35,6 +35,7 @@ namespace Bess::Canvas {
         bool onMouseButton(const Events::MouseButtonEvent &e) override;
 
         void onAttach(SceneState &state) override;
+        void onRuntimeReady(SceneState &state) override;
         std::vector<UUID> cleanup(SceneState &state,
                                   UUID caller = UUID::null) override;
 

@@ -562,6 +562,7 @@ namespace Bess::SimEngine {
         for (const auto &[name, loader] : DriverRegistry::getRegistry()) {
             auto driver = loader();
             if (driver) {
+                driver->setEngine(this);
                 m_simDrivers.push_back(driver);
                 BESS_INFO("Loaded driver {}", driver->getName());
             } else {

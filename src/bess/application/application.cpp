@@ -1,7 +1,7 @@
 #include "application.h"
 #include "bess_core/animator/animator.h"
 #include "bess_core/asset_manager/asset_manager.h"
-#include "bess_core/copy_paste_service.h"
+#include "pages/main_page/services/copy_paste_service.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/sub_systems/input_sub_system.h"
 #include "common/bess_assert.h"

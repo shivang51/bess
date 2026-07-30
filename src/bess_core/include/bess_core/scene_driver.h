@@ -4,9 +4,14 @@
 #include "common/sub_system.h"
 #include "bess_core/scene/scene.h"
 
+#include <functional>
 #include <memory>
 
 namespace Bess {
+    namespace SimEngine {
+        class SimulationEngine;
+    }
+
     class BESS_API SceneDriver : public ISubSystem {
       public:
         SceneDriver() = default;
@@ -36,6 +41,13 @@ namespace Bess {
         void removeScenes();
 
         void reset();
+        void setSimEngine(SimEngine::SimulationEngine *sim);
+        void setCompEditFn(Canvas::SceneRuntimeCtx::CompEditFn fn);
+        void setAddFn(Canvas::SceneRuntimeCtx::AddFn fn);
+        void setConnFn(Canvas::SceneRuntimeCtx::ConnFn fn);
+        void setNameFn(Canvas::SceneRuntimeCtx::NameFn fn);
+        void setConnDepsFn(Canvas::SceneRuntimeCtx::ConnDepsFn fn);
+        void setAddBatchFn(Canvas::SceneRuntimeCtx::AddBatchFn fn);
 
         size_t getActiveSceneIdx() const;
 
@@ -68,5 +80,14 @@ namespace Bess {
 
         bool m_isPaused = false;
         mutable std::mutex m_scenesMutex;
+        SimEngine::SimulationEngine *m_sim = nullptr;
+        Canvas::SceneRuntimeCtx::CompEditFn m_compEdit;
+        Canvas::SceneRuntimeCtx::AddFn m_add;
+        Canvas::SceneRuntimeCtx::ConnFn m_addConn;
+        Canvas::SceneRuntimeCtx::NameFn m_name;
+        Canvas::SceneRuntimeCtx::ConnDepsFn m_connDeps;
+        Canvas::SceneRuntimeCtx::AddBatchFn m_addBatch;
+
+        void bindRuntime(const std::shared_ptr<Canvas::Scene> &scene);
     };
 } // namespace Bess

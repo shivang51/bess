@@ -128,6 +128,51 @@ namespace Bess {
         : m(std::make_unique<Impl>(std::move(opts))) {
         m_scenes = addSubSystem<SceneDriver>();
         m_sim = addSubSystem<SimEngine::SimulationEngine>();
+        m_scenes->setSimEngine(m_sim.get());
+        m_scenes->setCompEditFn(
+            [this](UUID scene,
+                   UUID comp,
+                   Json::Value from,
+                   Json::Value to,
+                   std::string key) {
+                return static_cast<bool>(trackComp(comp,
+                                                   std::move(from),
+                                                   std::move(to),
+                                                   scene,
+                                                   std::move(key)));
+            });
+        m_scenes->setAddFn(
+            [this](UUID scene,
+                   std::shared_ptr<Canvas::SceneComponent> comp,
+                   std::vector<std::shared_ptr<Canvas::SceneComponent>> kids) {
+                return static_cast<bool>(
+                    addComp(std::move(comp), std::move(kids), scene));
+            });
+        m_scenes->setConnFn(
+            [this](UUID scene,
+                   std::shared_ptr<Canvas::SceneComponent> conn) {
+                return static_cast<bool>(addConn(std::move(conn), scene));
+            });
+        m_scenes->setNameFn(
+            [this](UUID scene, UUID comp, std::string name) {
+                return static_cast<bool>(
+                    nameComp(comp, std::move(name), scene));
+            });
+        m_scenes->setAddBatchFn(
+            [this](UUID scene,
+                   std::vector<Canvas::SceneAddOp> ops,
+                   bool hist) {
+                auto edit = tx("Paste", {.empty = true, .hist = hist});
+                for (auto &op : ops) {
+                    const auto status = edit.addComp(
+                        std::move(op.comp), std::move(op.kids), scene);
+                    if (!status) {
+                        edit.cancel();
+                        return false;
+                    }
+                }
+                return static_cast<bool>(edit.commit());
+            });
     }
 
     ProjectSession::~ProjectSession() = default;
@@ -177,6 +222,14 @@ namespace Bess {
             m->busy = false;
         }
         m_doc.reset();
+        if (m_scenes) {
+            m_scenes->setCompEditFn({});
+            m_scenes->setAddFn({});
+            m_scenes->setConnFn({});
+            m_scenes->setNameFn({});
+            m_scenes->setConnDepsFn({});
+            m_scenes->setAddBatchFn({});
+        }
         ISubSysContainer::destroy();
         m_sim.reset();
         m_scenes.reset();

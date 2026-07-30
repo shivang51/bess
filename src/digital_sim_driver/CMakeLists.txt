@@ -23,10 +23,6 @@ add_library(${PROJECT_NAME} OBJECT ${ALL_FILES})
 target_include_directories(${PROJECT_NAME} PUBLIC
 		"${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
-target_include_directories(${PROJECT_NAME} PRIVATE
-		"${CMAKE_SOURCE_DIR}/src/project_session/include"
-)
-
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}")
 

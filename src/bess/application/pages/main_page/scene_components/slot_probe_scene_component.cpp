@@ -1,6 +1,4 @@
 #include "slot_probe_scene_component.h"
-#include "bess_core/g_app_context.h"
-#include "project_session/project_session.h"
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_draw_helpers.h"
 #include "bess_core/scene/scene_state/scene_state.h"
@@ -138,7 +136,6 @@ namespace Bess::Canvas {
                     setProbedSlotUuid(e.sceneState->getConnectionStartSlot());
                     e.sceneState->setConnectionStartSlot(UUID::null);
                     (void)Edit::trackComp(*this,
-                                          e.sceneState->getSceneId(),
                                           std::move(before),
                                           "probe-slot");
                     return true;
@@ -212,12 +209,16 @@ namespace Bess::Canvas {
                                     comp->getParentComponent())
                                 ->getSimEngineId();
 
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-        const auto &simEngine = projectCtx->sim();
+        auto *simEngine = sceneState.runtime().sim;
+        if (!simEngine) {
+            return;
+        }
         const auto &digComp =
-            simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
+            simEngine->getComponent<SimEngine::Drivers::Digital::DigSimComp>(
                 simId);
+        if (!digComp) {
+            return;
+        }
 
         digComp->addOnStateChangeCB(
             m_uuid,
@@ -260,13 +261,16 @@ namespace Bess::Canvas {
                                     comp->getParentComponent())
                                 ->getSimEngineId();
 
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-        const auto &simEngine = projectCtx->sim();
+        auto *simEngine = sceneState.runtime().sim;
+        if (!simEngine) {
+            return;
+        }
         const auto &digComp =
-            simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
+            simEngine->getComponent<SimEngine::Drivers::Digital::DigSimComp>(
                 simId);
-        digComp->removeOnStateChangeCB(m_uuid);
+        if (digComp) {
+            digComp->removeOnStateChangeCB(m_uuid);
+        }
     }
 
     void SlotProbeSceneComponent::onBeforeProbedSlotChanged(

@@ -263,7 +263,8 @@ namespace Bess::Edit {
 
         UUID in = UUID::null;
         UUID out = UUID::null;
-        auto made = Canvas::ModuleSceneComponent::createNew(in, out);
+        auto made = Canvas::ModuleSceneComponent::createNew(
+            session.scenes(), session.sim(), in, out);
         if (made.empty()) {
             return {.status = Status::fail(Err::apply,
                                            "module factory returned no data")};

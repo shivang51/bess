@@ -1,16 +1,13 @@
 #include "module_scene_component.h"
-#include "bess_core/copy_paste_service.h"
-#include "bess_core/g_app_context.h"
+#include "pages/main_page/services/copy_paste_service.h"
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene_driver.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "dig_module_def.h"
 #include "dig_sim_driver.h"
-#include "pages/main_page/module_edit.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
-#include "project_session/project_session.h"
 #include "simulation_engine.h"
 #include "ui/icons/FontAwesomeIcons_Remapped.h"
 #include "ui/ui_main/ui_main.h"
@@ -54,9 +51,13 @@ namespace Bess::Canvas {
             std::dynamic_pointer_cast<SimEngine::ModuleDefinition>(
                 moduleClone->getCompDef());
 
-        auto sceneDriver = GAppContext::getInstance()
-                               .getSubSystem<Bess::ProjectSession>()
-                               ->getSubSystem<SceneDriver>();
+        auto *sceneDriver = sceneState.runtime().scenes;
+        auto *simEngine = sceneState.runtime().sim;
+        BESS_ASSERT(sceneDriver && simEngine,
+                    "[CloneModule] Scene runtime is unavailable");
+        if (!sceneDriver || !simEngine) {
+            return {};
+        }
 
         auto newScene = sceneDriver->createNewScene();
         auto &newSceneState = newScene->getState();
@@ -99,10 +100,6 @@ namespace Bess::Canvas {
         moduleClone->setAssociatedInp(clonedInpId);
         moduleClone->setAssociatedOut(clonedOutId);
 
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-        auto &simEngine = projectCtx->sim();
-
         // becuase onAttach simulation scene component creates its own dig comp
         // in simulation engine
         auto clonedInp =
@@ -111,7 +108,7 @@ namespace Bess::Canvas {
         BESS_ASSERT(clonedInp,
                     "[CloneModule] Cloned associated input "
                     "component not found in new scene");
-        simEngine.deleteComponent(clonedModDef->getInputId());
+        simEngine->deleteComponent(clonedModDef->getInputId());
         clonedModDef->setInputId(clonedInp->getSimEngineId());
         auto clonedOut =
             newSceneState.getComponentByUuid<SimulationSceneComponent>(
@@ -119,16 +116,20 @@ namespace Bess::Canvas {
         BESS_ASSERT(clonedOut,
                     "[CloneModule] Cloned associated output "
                     "component not found in new scene");
-        simEngine.deleteComponent(clonedModDef->getOutputId());
+        simEngine->deleteComponent(clonedModDef->getOutputId());
         clonedModDef->setOutputId(clonedOut->getSimEngineId());
 
         return clonedComps;
     }
 
     void ModuleSceneComponent::setCallbacks(const SceneState &state) {
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-        auto &simEngine = projectCtx->sim();
+        auto *simEngine = state.runtime().sim;
+        auto *sceneDriver = state.runtime().scenes;
+        BESS_ASSERT(simEngine && sceneDriver,
+                    "[ModuleSceneComponent] Scene runtime is unavailable");
+        if (!simEngine || !sceneDriver) {
+            return;
+        }
         auto moduleDef =
             std::dynamic_pointer_cast<SimEngine::ModuleDefinition>(m_compDef);
         BESS_ASSERT(moduleDef,
@@ -137,13 +138,13 @@ namespace Bess::Canvas {
         const auto ownerSceneId = state.getSceneId();
 
         const auto &outputDigitalComp =
-            simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
+            simEngine->getComponent<SimEngine::Drivers::Digital::DigSimComp>(
                 moduleDef->getOutputId());
         const auto &inputDigitalComp =
-            simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
+            simEngine->getComponent<SimEngine::Drivers::Digital::DigSimComp>(
                 moduleDef->getInputId());
         auto moduleDigComp =
-            simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
+            simEngine->getComponent<SimEngine::Drivers::Digital::DigSimComp>(
                 m_simEngineId);
 
         BESS_ASSERT(outputDigitalComp,
@@ -178,15 +179,13 @@ namespace Bess::Canvas {
         outputDigitalComp->removeOnStateChangeCB(m_uuid);
         outputDigitalComp->addOnStateChangeCB(
             m_uuid,
-            [this](const std::vector<SimEngine::PortState> &inputStates,
-                   const std::vector<SimEngine::PortState> &outputStates) {
-                auto &appCtx = Bess::GAppContext::getInstance();
-                auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-                auto &simEngine = projectCtx->sim();
+            [this, simEngine](
+                const std::vector<SimEngine::PortState> &inputStates,
+                const std::vector<SimEngine::PortState> &outputStates) {
                 auto moduleDigComp =
-                    simEngine
-                        .getComponent<SimEngine::Drivers::Digital::DigSimComp>(
-                            this->m_simEngineId);
+                    simEngine->getComponent<
+                        SimEngine::Drivers::Digital::DigSimComp>(
+                        this->m_simEngineId);
                 if (!moduleDigComp) {
                     return;
                 }
@@ -200,12 +199,15 @@ namespace Bess::Canvas {
                 }
 
                 if (!outputs.empty()) { // to schedule sim event
-                    simEngine.setOutputPortState(
+                    simEngine->setOutputPortState(
                         this->m_simEngineId, 0, outputs[0].getLogicState());
                 }
             });
 
-        auto onOutputSlotChange = [this, ownerSceneId](
+        auto onOutputSlotChange = [this,
+                                   ownerSceneId,
+                                   simEngine,
+                                   sceneDriver](
                                       const UUID &id,
                                       SimEngine::PortDirection direction,
                                       SimEngine::SignalKind signalKind,
@@ -216,11 +218,9 @@ namespace Bess::Canvas {
                 return;
             }
 
-            auto &appCtx = Bess::GAppContext::getInstance();
-            auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-            auto &simEngine = projectCtx->sim();
             auto moduleDigComp =
-                simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
+                simEngine->getComponent<
+                    SimEngine::Drivers::Digital::DigSimComp>(
                     this->m_simEngineId);
             if (!moduleDigComp) {
                 return;
@@ -231,9 +231,6 @@ namespace Bess::Canvas {
                     ->getDefinition<SimEngine::Drivers::Digital::DigCompDef>();
             const auto currCount = moduleDef->getOutputSlotsInfo().count;
 
-            auto sceneDriver = GAppContext::getInstance()
-                                   .getSubSystem<Bess::ProjectSession>()
-                                   ->getSubSystem<SceneDriver>();
             const auto ownerScene = sceneDriver->getSceneWithId(ownerSceneId);
             if (!ownerScene) {
                 return;
@@ -242,7 +239,7 @@ namespace Bess::Canvas {
 
             if (newCount > currCount) {
                 for (size_t i = currCount; i < newCount; ++i) {
-                    simEngine.addPort(
+                    simEngine->addPort(
                         {.componentId = this->m_simEngineId,
                          .direction = SimEngine::PortDirection::output,
                          .signalKind = SimEngine::SignalKind::digital,
@@ -259,7 +256,7 @@ namespace Bess::Canvas {
                 }
             } else if (newCount < currCount) {
                 for (size_t i = newCount; i < currCount; ++i) {
-                    simEngine.removePort(
+                    simEngine->removePort(
                         {.componentId = this->m_simEngineId,
                          .direction = SimEngine::PortDirection::output,
                          .signalKind = SimEngine::SignalKind::digital,
@@ -280,7 +277,10 @@ namespace Bess::Canvas {
                         "Failed to sync module inputs");
         };
 
-        auto onInputSlotChange = [this, ownerSceneId](
+        auto onInputSlotChange = [this,
+                                  ownerSceneId,
+                                  simEngine,
+                                  sceneDriver](
                                      const UUID &id,
                                      SimEngine::PortDirection direction,
                                      SimEngine::SignalKind signalKind,
@@ -291,11 +291,9 @@ namespace Bess::Canvas {
                 return;
             }
 
-            auto &appCtx = Bess::GAppContext::getInstance();
-            auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-            auto &simEngine = projectCtx->sim();
             auto moduleDigComp =
-                simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
+                simEngine->getComponent<
+                    SimEngine::Drivers::Digital::DigSimComp>(
                     this->m_simEngineId);
             if (!moduleDigComp) {
                 return;
@@ -306,9 +304,6 @@ namespace Bess::Canvas {
                     ->getDefinition<SimEngine::Drivers::Digital::DigCompDef>();
             const auto currCount = moduleDef->getInputSlotsInfo().count;
 
-            auto sceneDriver = GAppContext::getInstance()
-                                   .getSubSystem<Bess::ProjectSession>()
-                                   ->getSubSystem<SceneDriver>();
             const auto ownerScene = sceneDriver->getSceneWithId(ownerSceneId);
             if (!ownerScene) {
                 return;
@@ -317,7 +312,7 @@ namespace Bess::Canvas {
 
             if (newCount > currCount) {
                 for (size_t i = currCount; i < newCount; ++i) {
-                    simEngine.addPort(
+                    simEngine->addPort(
                         {.componentId = this->m_simEngineId,
                          .direction = SimEngine::PortDirection::input,
                          .signalKind = SimEngine::SignalKind::digital,
@@ -334,7 +329,7 @@ namespace Bess::Canvas {
                 }
             } else if (newCount < currCount) {
                 for (size_t i = newCount; i < currCount; ++i) {
-                    simEngine.removePort(
+                    simEngine->removePort(
                         {.componentId = this->m_simEngineId,
                          .direction = SimEngine::PortDirection::input,
                          .signalKind = SimEngine::SignalKind::digital,
@@ -358,8 +353,8 @@ namespace Bess::Canvas {
 
         // slot count: to sync module io slots and associated inp and output
         // comp slots
-        simEngine.removeOnPortCountChangeCB(m_simEngineId);
-        simEngine.addOnPortCountChangeCB(
+        simEngine->removeOnPortCountChangeCB(m_simEngineId);
+        simEngine->addOnPortCountChangeCB(
             m_simEngineId,
             [inputDigitalComp,
              outputDigitalComp,
@@ -378,6 +373,12 @@ namespace Bess::Canvas {
 
     void ModuleSceneComponent::onAttach(SceneState &state) {
         SimulationSceneComponent::onAttach(state);
+        if (state.runtime().scenes && state.runtime().sim) {
+            setCallbacks(state);
+        }
+    }
+
+    void ModuleSceneComponent::onRuntimeReady(SceneState &state) {
         setCallbacks(state);
     }
 
@@ -387,18 +388,17 @@ namespace Bess::Canvas {
     }
 
     std::vector<std::shared_ptr<SceneComponent>>
-    ModuleSceneComponent::createNew(UUID &moduleInpId, UUID &moduleOutId) {
-        auto sceneDriver = GAppContext::getInstance()
-                               .getSubSystem<Bess::ProjectSession>()
-                               ->getSubSystem<SceneDriver>();
-
-        auto newScene = sceneDriver->createNewScene();
+    ModuleSceneComponent::createNew(SceneDriver &scenes,
+                                    SimEngine::SimulationEngine &sim,
+                                    UUID &moduleInpId,
+                                    UUID &moduleOutId) {
+        auto newScene = scenes.createNewScene();
         auto &newSceneState = newScene->getState();
         newSceneState.setIsRootScene(false);
 
-        auto moduleDef = SimEngine::ModuleDefinition::createNew();
+        auto moduleDef = SimEngine::ModuleDefinition::createNew(sim);
         if (!moduleDef) {
-            sceneDriver->removeScene(newSceneState.getSceneId());
+            scenes.removeScene(newSceneState.getSceneId());
             return {};
         }
         auto comps = SimulationSceneComponent::createNew<ModuleSceneComponent>(
@@ -408,17 +408,13 @@ namespace Bess::Canvas {
             std::dynamic_pointer_cast<ModuleSceneComponent>(comps.front());
         moduleComp->setSceneId(newSceneState.getSceneId());
         moduleComp->m_transform.position.z =
-            sceneDriver->getActiveScene()->getNextZCoord();
+            scenes.getActiveScene()->getNextZCoord();
         moduleComp->getStyle().headerColor = ViewportTheme::colors.moduleColor;
         newSceneState.setModuleId(moduleComp->getUuid());
 
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-        const auto &simEngine = projectCtx->sim();
-
         // adding module input
         const auto inpDef =
-            simEngine.getComponentDefinition(moduleDef->getInputId());
+            sim.getComponentDefinition(moduleDef->getInputId());
         auto inpComps =
             SimulationSceneComponent::createNew<SimulationSceneComponent>(
                 inpDef);
@@ -443,7 +439,7 @@ namespace Bess::Canvas {
 
         // adding module output
         auto outDef =
-            simEngine.getComponentDefinition(moduleDef->getOutputId());
+            sim.getComponentDefinition(moduleDef->getOutputId());
         auto outComps = SimulationSceneComponent::createNew(outDef);
         auto outSceneComp = std::dynamic_pointer_cast<SimulationSceneComponent>(
             outComps.front());
@@ -464,18 +460,6 @@ namespace Bess::Canvas {
         }
 
         return comps;
-    }
-
-    std::shared_ptr<ModuleSceneComponent>
-    ModuleSceneComponent::fromNet(const UUID &netId, const std::string &name) {
-        auto &sess = *GAppContext::getInstance().getSubSystem<ProjectSession>();
-        auto activeScene = Bess::UI::UIMain::getTargetViewportScene();
-        const auto result = Edit::makeModule(sess, activeScene, netId, name);
-        if (!result) {
-            BESS_ERROR("Could not create module: {}", result.status.msg());
-            return nullptr;
-        }
-        return result.val;
     }
 
     bool

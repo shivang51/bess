@@ -23,11 +23,18 @@ namespace Bess {
     void
     SceneSerializer::deserialize(Json::Value &json,
                                  const std::shared_ptr<Canvas::Scene> &scene) {
+        deserialize(json, scene, {});
+    }
+
+    void
+    SceneSerializer::deserialize(Json::Value &json,
+                                 const std::shared_ptr<Canvas::Scene> &scene,
+                                 const Canvas::SceneLoadCtx &ctx) {
         m_maxZ = 0;
 
         scene->clear();
         auto &state = scene->getState();
-        JsonConvert::fromJsonValue(json["scene_state"], state);
+        JsonConvert::fromJsonValue(json["scene_state"], state, ctx);
     }
 
     void SceneSerializer::deserializeEntity(const Json::Value &json) {

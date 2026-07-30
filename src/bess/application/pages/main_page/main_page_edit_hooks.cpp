@@ -1,28 +1,20 @@
 #include "pages/main_page/main_page_edit_hooks.h"
 
-#include "bess_core/g_app_context.h"
 #include "bess_core/scene/scene.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_state/components/scene_component_types.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
-#include "project_session/project_session.h"
 #include <algorithm>
 
 namespace Bess::Pages {
     namespace {
-        std::shared_ptr<Svc::SvcConnection> getConnectionService() {
-            const auto projectCtx =
-                GAppContext::getInstance().getSubSystem<ProjectSession>();
-            return projectCtx ? projectCtx->getSubSystem<Svc::SvcConnection>()
-                              : nullptr;
-        }
-
         bool
         addComponent(const std::shared_ptr<Canvas::Scene> &scene,
                      const std::shared_ptr<Canvas::SceneComponent> &component,
-                     const Edit::AddOpts &options) {
+                     const Edit::AddOpts &options,
+                     const std::shared_ptr<Svc::SvcConnection> &service) {
             if (!scene || !component) {
                 return false;
             }
@@ -33,7 +25,6 @@ namespace Bess::Pages {
                     return true;
                 }
 
-                const auto service = getConnectionService();
                 const auto connection =
                     std::dynamic_pointer_cast<Canvas::ConnectionSceneComponent>(
                         component);
@@ -47,7 +38,8 @@ namespace Bess::Pages {
         std::vector<UUID> removeComponent(
             const std::shared_ptr<Canvas::Scene> &scene,
             const std::shared_ptr<Canvas::SceneComponent> &component,
-            const UUID &callerId) {
+            const UUID &callerId,
+            const std::shared_ptr<Svc::SvcConnection> &service) {
             if (!scene || !component ||
                 !scene->getState().isComponentValid(component->getUuid())) {
                 return {};
@@ -55,7 +47,6 @@ namespace Bess::Pages {
 
             if (component->getType() ==
                 Canvas::SceneComponentType::connection) {
-                const auto service = getConnectionService();
                 const auto connection =
                     std::dynamic_pointer_cast<Canvas::ConnectionSceneComponent>(
                         component);
@@ -119,10 +110,19 @@ namespace Bess::Pages {
         }
     } // namespace
 
-    std::shared_ptr<const Edit::Hooks> makeEditHooks() {
+    std::shared_ptr<const Edit::Hooks>
+    makeEditHooks(std::shared_ptr<Svc::SvcConnection> conn) {
         auto hooks = std::make_shared<Edit::Hooks>();
-        hooks->add = addComponent;
-        hooks->rm = removeComponent;
+        hooks->add = [conn](const auto &scene,
+                            const auto &comp,
+                            const auto &opts) {
+            return addComponent(scene, comp, opts, conn);
+        };
+        hooks->rm = [conn](const auto &scene,
+                           const auto &comp,
+                           UUID caller) {
+            return removeComponent(scene, comp, caller, conn);
+        };
         hooks->deps = getDependants;
         hooks->sort = sortDeletionOrder;
         hooks->makeComp = makeComponent;

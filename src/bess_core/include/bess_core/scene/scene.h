@@ -23,6 +23,7 @@ namespace Bess::Canvas {
         Core::Renderer::TextureHandle drawRenderTarget;
         Core::Renderer::TextureHandle pickingRenderTarget;
         std::shared_ptr<Core::Viewport::ViewportContext> viewportCtx;
+        std::shared_ptr<SimEngine::SimulationEngine> simEngine;
     };
 
     struct BESS_API ViewportUpdateContext {
@@ -106,6 +107,8 @@ namespace Bess::Canvas {
                              &viewportCtx);
 
       private:
+        void initLayers(const View2D &view);
+
         glm::vec2 getViewportMousePos(const glm::vec2 &mousePos,
                                       const glm::vec2 &viewportPos) const;
 
@@ -124,6 +127,7 @@ namespace Bess::Canvas {
 
         bool m_isDestroyed = false;
         bool m_isFirstFrame = true;
+        bool m_layersInited = false;
 
         std::vector<std::unique_ptr<ISceneLayer>> m_sceneLayers;
         ScreenSpaceOverlayLayer *m_screenSpaceOverlayLayer = nullptr;

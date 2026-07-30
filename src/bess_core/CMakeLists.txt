@@ -1,6 +1,21 @@
 set(PROJECT_NAME BessCore)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+add_library(BessCoreApi INTERFACE)
+add_library(BessCore::Api ALIAS BessCoreApi)
+
+target_compile_features(BessCoreApi INTERFACE cxx_std_23)
+target_include_directories(BessCoreApi INTERFACE
+	"$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+)
+target_link_libraries(BessCoreApi INTERFACE
+	common
+	BessJson
+	BessExtDeps
+	EventSystem
+	BessSimEngine
+)
+
 set(Header_Files
 	"include/bess_core/g_app_context.h"
 	"include/bess_core/viewport.h"
@@ -65,7 +80,6 @@ set(Header_Files
 	"include/bess_core/scene/layers/interaction_layer.h"
 
 	"include/bess_core/scene_driver.h"
-	"include/bess_core/copy_paste_service.h"
 
 	"include/bess_core/asset_manager/asset_loader.h"
 	"include/bess_core/asset_manager/asset_manager.h"
@@ -94,7 +108,6 @@ source_group("include/bess_core" FILES ${Header_Files})
 
 set(Source_Files
 	"src/bess_core/asset_manager.cpp"
-	"src/bess_core/copy_paste_service.cpp"
 	"src/bess_core/viewport.cpp"
 
 	"src/bess_core/style/bess_theme.cpp"
@@ -178,23 +191,9 @@ add_library(${PROJECT_NAME} OBJECT ${ALL_FILES})
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}")
 
-target_link_libraries(${PROJECT_NAME} PUBLIC
-	common
-	BessJson
-	BessExtDeps
-	EventSystem
-	project_session
-)
-
-target_include_directories(${PROJECT_NAME} PUBLIC
-	"${CMAKE_CURRENT_SOURCE_DIR}/include"
-)
+target_link_libraries(${PROJECT_NAME} PUBLIC BessCoreApi)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
-	"${CMAKE_SOURCE_DIR}/src/bess/application"
-	"${CMAKE_SOURCE_DIR}/src/bess/ui"
-	"${CMAKE_SOURCE_DIR}/src/bess"
-	"${CMAKE_SOURCE_DIR}/src/bess/scene"
 	"${CMAKE_SOURCE_DIR}/src/event_system/include"
 	"${CMAKE_SOURCE_DIR}/external/freetype/include"
 	"${CMAKE_SOURCE_DIR}/external/imgui"

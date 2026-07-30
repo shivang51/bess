@@ -1,12 +1,10 @@
 #include "connection_scene_component.h"
-#include "bess_core/g_app_context.h"
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_draw_helpers.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_state/components/scene_component_types.h"
 #include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
 #include "bess_core/scene/scene_state/scene_state.h"
-#include "bess_core/scene_driver.h"
 #include "bess_core/settings/viewport_theme.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
@@ -17,7 +15,6 @@
 #include "fwd.hpp"
 #include "pages/main_page/comp_edit.h"
 #include "pages/main_page/services/connection_service.h"
-#include "project_session/project_session.h"
 #include "slot_scene_component.h"
 #include "ui/ui_main/ui_main.h"
 
@@ -319,7 +316,7 @@ namespace Bess::Canvas {
     void ConnectionSceneComponent::onMouseDragEnd() {
         m_isDragging = false;
         (void)Edit::trackComp(
-            *this, m_dragScene, std::move(m_dragBefore), "connection-route");
+            *this, std::move(m_dragBefore), "connection-route");
         m_dragBefore = {};
         m_dragScene = UUID::null;
     }
@@ -479,13 +476,8 @@ namespace Bess::Canvas {
             jointComp->setSegOffset(t);
 
             // add to scene
-            auto &session =
-                *GAppContext::getInstance().getSubSystem<ProjectSession>();
-            const auto result =
-                session.addComp(jointComp, {}, e.sceneState->getSceneId());
-            if (!result) {
-                BESS_WARN("Could not add connection joint: {}",
-                          result.status.msg());
+            if (!e.sceneState->addTx(jointComp)) {
+                BESS_WARN("Could not add connection joint");
                 return false;
             }
 
@@ -613,14 +605,7 @@ namespace Bess::Canvas {
             dependants.push_back(jointId);
         }
 
-        auto projCtx =
-            GAppContext::getInstance().getSubSystem<Bess::ProjectSession>();
-
-        // get its depents from ConnectionService
-        auto sceneDriver = projCtx->getSubSystem<SceneDriver>();
-        auto connectionsSvc = projCtx->getSubSystem<Svc::SvcConnection>();
-        const auto &connDependants = connectionsSvc->getDependants(
-            getUuid(), sceneDriver->getSceneWithId(state.getSceneId()));
+        const auto connDependants = state.connDeps(getUuid());
         dependants.insert(
             dependants.end(), connDependants.begin(), connDependants.end());
 

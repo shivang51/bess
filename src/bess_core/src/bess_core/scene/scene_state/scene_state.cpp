@@ -1,15 +1,11 @@
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/g_app_context.h"
-#include "project_session/project_session.h"
 #include "bess_core/scene/scene_ser_reg.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "event_dispatcher.h"
 #include "bess_core/scene/scene_component_types.h"
-#include "pages/main_page/scene_components/sim_scene_component.h"
-#include "services/plugin_service/plugin_service.h"
-#include "simulation_engine.h"
 #include <cstdint>
 #include <memory>
 #include <mutex>
@@ -17,8 +13,81 @@
 #include <vector>
 
 namespace Bess::Canvas {
+    void SceneState::setRuntime(SceneRuntimeCtx runtime) {
+        const bool wasReady = m_runtime.scenes && m_runtime.sim;
+        m_runtime = runtime;
+        if (!wasReady && m_runtime.scenes && m_runtime.sim) {
+            for (const auto &[id, comp] : m_componentsMap) {
+                (void)id;
+                if (comp) {
+                    comp->onRuntimeReady(*this);
+                }
+            }
+        }
+    }
+
+    const SceneRuntimeCtx &SceneState::runtime() const {
+        return m_runtime;
+    }
+
+    SceneRuntimeCtx &SceneState::runtime() {
+        return m_runtime;
+    }
+
+    bool SceneState::trackComp(SceneComponent &comp,
+                               Json::Value before,
+                               std::string key) {
+        const auto after = comp.toJson();
+        if (before == after) {
+            return true;
+        }
+        if (comp.sceneState() != this || !m_runtime.compEdit ||
+            !m_runtime.compEdit(m_sceneId,
+                                comp.getUuid(),
+                                before,
+                                after,
+                                std::move(key))) {
+            comp.applyJson(before);
+            return false;
+        }
+        return true;
+    }
+
+    bool SceneState::addTx(
+        std::shared_ptr<SceneComponent> comp,
+        std::vector<std::shared_ptr<SceneComponent>> kids) {
+        return m_runtime.add &&
+               m_runtime.add(m_sceneId, std::move(comp), std::move(kids));
+    }
+
+    bool SceneState::addConnTx(std::shared_ptr<SceneComponent> conn) {
+        return m_runtime.addConn &&
+               m_runtime.addConn(m_sceneId, std::move(conn));
+    }
+
+    bool SceneState::nameTx(UUID comp, std::string name) {
+        return m_runtime.name &&
+               m_runtime.name(m_sceneId, comp, std::move(name));
+    }
+
+    std::vector<UUID> SceneState::connDeps(UUID conn) const {
+        return m_runtime.connDeps ? m_runtime.connDeps(m_sceneId, conn)
+                                  : std::vector<UUID>{};
+    }
+
+    bool SceneState::addBatchTx(std::vector<SceneAddOp> ops, bool hist) {
+        return m_runtime.addBatch &&
+               m_runtime.addBatch(m_sceneId, std::move(ops), hist);
+    }
+
     void SceneState::clear() {
         std::lock_guard lock(m_componentsMutex);
+        for (const auto &[id, comp] : m_componentsMap) {
+            (void)id;
+            if (comp) {
+                comp->bindState(nullptr);
+            }
+        }
         m_runtimeIdMap.clear();
         m_componentsMap.clear();
         m_rootComponents.clear();
@@ -335,6 +404,7 @@ namespace Bess::Canvas {
         std::unique_lock lock(m_componentsMutex);
         m_componentsMap.erase(uuid);
         lock.unlock();
+        component->bindState(nullptr);
 
         if (callerId == UUID::master &&
             component->getParentComponent() != UUID::null) {
@@ -414,6 +484,7 @@ namespace Bess::Canvas {
                 .sceneState = this,
             });
         }
+        component->bindState(nullptr);
         m_componentsMap.erase(uuid);
     }
 
@@ -434,11 +505,7 @@ namespace Bess::JsonConvert {
         j["components"] = Json::Value(Json::arrayValue);
 
         for (const auto &[uuid, component] : state.getAllComponents()) {
-            if (component->getType() ==
-                Canvas::SceneComponentType::simulation) {
-                component->cast<Canvas::SimulationSceneComponent>()
-                    ->updateScales(state);
-            }
+            component->beforeSerialize(state);
             j["components"].append(component->toJson());
         }
 
@@ -449,6 +516,12 @@ namespace Bess::JsonConvert {
     }
 
     void fromJsonValue(const Json::Value &j, Bess::Canvas::SceneState &state) {
+        fromJsonValue(j, state, {});
+    }
+
+    void fromJsonValue(const Json::Value &j,
+                       Bess::Canvas::SceneState &state,
+                       const Bess::Canvas::SceneLoadCtx &ctx) {
         state.clear();
 
         if (!j.isMember("components") || !j["components"].isArray()) {
@@ -461,21 +534,9 @@ namespace Bess::JsonConvert {
                                    state.getParentSceneId());
         state.setIsRootScene(j["isRootScene"].asBool());
 
-        auto &appCtx = Bess::GAppContext::getInstance();
-        if (!appCtx.hasSubSystem<Bess::ProjectSession>()) {
-            throw std::runtime_error(
-                "ProjectSession is unavailable while loading a scene");
-        }
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-        const auto &simEngine = projectCtx->sim();
         std::vector<std::shared_ptr<Canvas::SceneComponent>>
             deserializedComponents;
         deserializedComponents.reserve(j["components"].size());
-
-        const auto pluginService =
-            appCtx.hasSubSystem<Svc::PluginService>()
-                ? appCtx.getSubSystem<Svc::PluginService>()
-                : nullptr;
 
         for (const auto &compJson : j["components"]) {
             if (!compJson.isMember("typeName")) {
@@ -488,42 +549,14 @@ namespace Bess::JsonConvert {
 
             const auto typeName = compJson["typeName"].asString();
 
-            if (Canvas::SceneSerReg::hasComponent(typeName)) {
-                comp = Canvas::SceneSerReg::createComponentFromJson(compJson);
-            } else if (pluginService &&
-                       pluginService->canDerserialize(typeName)) {
-                comp = pluginService->derserialize(typeName, compJson);
-            } else {
-                BESS_WARN("No derserializer found for {}. Skipping component.",
-                          typeName);
-                continue;
-            }
-
+            comp = Canvas::SceneSerReg::createComponentFromJson(compJson);
             if (!comp) {
-                BESS_WARN("Failed to create component from JSON for {}. "
-                          "Skipping component.",
+                BESS_WARN("No deserializer found for {}. Skipping component.",
                           typeName);
                 continue;
             }
 
-            if (comp->getType() == Canvas::SceneComponentType::module ||
-                comp->getType() == Canvas::SceneComponentType::simulation) {
-                const auto simComp =
-                    std::dynamic_pointer_cast<
-                        Canvas::SimulationSceneComponent>(comp);
-                if (!simComp) {
-                    throw std::runtime_error(
-                        "simulation component has an invalid type");
-                }
-                const auto &def =
-                    simEngine.getComponentDefinition(simComp->getSimEngineId());
-                if (!def) {
-                    throw std::runtime_error(
-                        "simulation component definition was not found");
-                }
-                simComp->setCompDef(def);
-                simComp->setScaleDirty(false);
-            }
+            comp->onLoaded(ctx);
 
             state.addComponent(comp, false, false);
             deserializedComponents.push_back(comp);

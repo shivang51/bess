@@ -1,7 +1,6 @@
 #include "pages/main_page/verilog_scene_import.h"
 
 #include "bess_core/g_app_context.h"
-#include "project_session/project_session.h"
 #include "bess_core/scene/scene.h"
 #include "bess_core/scene_driver.h"
 #include "common/bess_assert.h"
@@ -82,11 +81,13 @@ namespace Bess::Pages {
 
         ImportedModuleSceneComponent
         createModuleSceneComponentForImportedInstance(
-            const std::string &instancePath) {
+            const std::string &instancePath,
+            SceneDriver &scenes,
+            SimulationEngine &simEngine) {
             UUID moduleInputId = UUID::null;
             UUID moduleOutputId = UUID::null;
-            auto created =
-                ModuleSceneComponent::createNew(moduleInputId, moduleOutputId);
+            auto created = ModuleSceneComponent::createNew(
+                scenes, simEngine, moduleInputId, moduleOutputId);
             BESS_ASSERT(!created.empty(),
                         "Failed to create module scene "
                         "component for imported instance");
@@ -640,9 +641,12 @@ namespace Bess::Pages {
                 moduleSimDef->setOutputSlotsInfo(moduleOutputSlots);
             }
 
-            auto sceneDriver = GAppContext::getInstance()
-                                   .getSubSystem<Bess::ProjectSession>()
-                                   ->getSubSystem<SceneDriver>();
+            auto *sceneDriver = ownerSceneState.runtime().scenes;
+            BESS_ASSERT(sceneDriver,
+                        "Scene driver is unavailable during Verilog import");
+            if (!sceneDriver) {
+                return;
+            }
             const auto moduleScene =
                 sceneDriver->getSceneWithId(moduleComp->getSceneId());
             if (!moduleScene) {
@@ -992,15 +996,13 @@ namespace Bess::Pages {
             const SimEngineImportResult &result,
             const ImportedModuleInstance &instance,
             SimulationEngine &simEngine,
+            SceneDriver &sceneDriver,
             const std::shared_ptr<ModuleSceneComponent> &moduleComp,
             const std::unordered_map<std::string,
                                      std::shared_ptr<ModuleSceneComponent>>
                 &moduleByPath) {
-            auto sceneDriver = GAppContext::getInstance()
-                                   .getSubSystem<Bess::ProjectSession>()
-                                   ->getSubSystem<SceneDriver>();
             const auto moduleScene =
-                sceneDriver->getSceneWithId(moduleComp->getSceneId());
+                sceneDriver.getSceneWithId(moduleComp->getSceneId());
             if (!moduleScene) {
                 return;
             }
@@ -1139,13 +1141,17 @@ namespace Bess::Pages {
                                std::shared_ptr<ModuleSceneComponent>>
                 moduleByPath;
             std::unordered_map<std::string, UUID> ownerSceneIdByPath;
-            auto sceneDriver = GAppContext::getInstance()
-                                   .getSubSystem<Bess::ProjectSession>()
-                                   ->getSubSystem<SceneDriver>();
+            auto *sceneDriver = sceneState.runtime().scenes;
+            BESS_ASSERT(sceneDriver,
+                        "Scene driver is unavailable during Verilog import");
+            if (!sceneDriver) {
+                return {};
+            }
 
             for (const auto &[path, instance] : modulePaths) {
                 ImportedModuleSceneComponent created =
-                    createModuleSceneComponentForImportedInstance(path);
+                    createModuleSceneComponentForImportedInstance(
+                        path, *sceneDriver, simEngine);
                 const auto wrapper = created.component;
 
                 SceneState *ownerSceneState = &sceneState;
@@ -1195,7 +1201,12 @@ namespace Bess::Pages {
                 bridgeImportedModuleBoundary(
                     result, instance, wrapper, simEngine, moduleByPath);
                 populateImportedModuleScene(
-                    result, instance, simEngine, wrapper, moduleByPath);
+                    result,
+                    instance,
+                    simEngine,
+                    *sceneDriver,
+                    wrapper,
+                    moduleByPath);
 
                 std::vector<std::shared_ptr<SceneComponent>> layoutChildren;
                 for (const auto &[simId, ownerPath] :

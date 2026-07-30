@@ -9,7 +9,7 @@
 #include "dig_sim_driver.h"
 #include "event_dispatcher.h"
 #include "math_sim_driver.h"
-#include "pages/main_page/main_page_edit_hooks.h"
+#include "pages/main_page/project_model.h"
 #include "pages/main_page/main_page_state.h"
 #include "pages/main_page/module_edit.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
@@ -327,7 +327,7 @@ class MainPageConnectionCommandsTest : public testing::Test {
         sceneDriver->setActiveScene(scene->getSceneId());
 
         session->clearHist();
-        session->setHooks(Bess::Pages::makeEditHooks());
+        Bess::Pages::initProjectModel(*session);
 
         sourceDef = makeDefinition("Source", 0, 1);
         sinkDef = makeDefinition("Sink", 1, 0);
@@ -722,8 +722,8 @@ TEST_F(MainPageConnectionCommandsTest,
        DeleteModuleUndoRedoKeepsSceneAndSimulationInSync) {
     UUID inputId = UUID::null;
     UUID outputId = UUID::null;
-    auto made =
-        Bess::Canvas::ModuleSceneComponent::createNew(inputId, outputId);
+    auto made = Bess::Canvas::ModuleSceneComponent::createNew(
+        *sceneDriver, *simEngine, inputId, outputId);
     ASSERT_FALSE(made.empty());
 
     auto mod = std::dynamic_pointer_cast<Bess::Canvas::ModuleSceneComponent>(

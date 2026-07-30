@@ -9,6 +9,7 @@
 namespace Bess {
     namespace Canvas {
         class Scene;
+        struct SceneLoadCtx;
     }
 
     class BESS_API SceneSerializer {
@@ -23,6 +24,9 @@ namespace Bess {
         void deserializeFromPath(const std::string &path);
         void deserialize(Json::Value &json,
                          const std::shared_ptr<Canvas::Scene> &scene);
+        void deserialize(Json::Value &json,
+                         const std::shared_ptr<Canvas::Scene> &scene,
+                         const Canvas::SceneLoadCtx &ctx);
         void deserializeEntity(const Json::Value &json);
 
       private:

@@ -1,6 +1,4 @@
 #include "input_scene_component.h"
-#include "bess_core/g_app_context.h"
-#include "project_session/project_session.h"
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_draw_helpers.h"
 #include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
@@ -51,17 +49,16 @@ namespace Bess::Canvas {
                 return false;
             }
 
-            auto &appCtx = Bess::GAppContext::getInstance();
-            auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-            if (!projectCtx) {
+            auto *simEngine = state.runtime().sim;
+            if (!simEngine) {
                 return false;
             }
 
-            auto &simEngine = projectCtx->sim();
-            simEngine.setOutputPortState(slotParentComp->getSimEngineId(),
-                                         slotComp->getIndex(),
-                                         isHigh ? SimEngine::LogicState::high
-                                                : SimEngine::LogicState::low);
+            simEngine->setOutputPortState(
+                slotParentComp->getSimEngineId(),
+                slotComp->getIndex(),
+                isHigh ? SimEngine::LogicState::high
+                       : SimEngine::LogicState::low);
             return true;
         }
 
@@ -78,17 +75,16 @@ namespace Bess::Canvas {
                 return false;
             }
 
-            auto &appCtx = Bess::GAppContext::getInstance();
-            auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-            if (!projectCtx) {
-                BESS_WARN("ProjectSession not found in AppContext");
+            auto *simEngine = state.runtime().sim;
+            if (!simEngine) {
+                BESS_WARN("Simulation engine is unavailable");
                 return false;
             }
 
-            auto &simEngine = projectCtx->sim();
-            simEngine.setOutputPortState(slotParentComp->getSimEngineId(),
-                                         slotComp->getIndex(),
-                                         SimEngine::PortState::scalar(value));
+            simEngine->setOutputPortState(
+                slotParentComp->getSimEngineId(),
+                slotComp->getIndex(),
+                SimEngine::PortState::scalar(value));
             return true;
         }
     } // namespace
@@ -108,11 +104,8 @@ namespace Bess::Canvas {
 
         if (makeAllLow) {
             makeAllLow = false;
-            auto &appCtx = Bess::GAppContext::getInstance();
-            auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-            BESS_ASSERT(projectCtx, "ProjectSession not found in AppContext");
-
-            auto &simEngine = projectCtx->sim();
+            auto *simEngine = state.runtime().sim;
+            BESS_ASSERT(simEngine, "Simulation engine is unavailable");
 
             for (const auto &slotUuid : m_outputSlots) {
                 const auto slotComp =
@@ -132,12 +125,12 @@ namespace Bess::Canvas {
                     const auto signalKind = slotComp->getSignalKind();
 
                     if (signalKind == SimEngine::SignalKind::digital) {
-                        simEngine.setOutputPortState(
+                        simEngine->setOutputPortState(
                             slotParentComp->getSimEngineId(),
                             slotComp->getIndex(),
                             SimEngine::LogicState::low);
                     } else if (signalKind == SimEngine::SignalKind::scalar) {
-                        simEngine.setOutputPortState(
+                        simEngine->setOutputPortState(
                             slotParentComp->getSimEngineId(),
                             slotComp->getIndex(),
                             SimEngine::PortState::scalar(0.0));

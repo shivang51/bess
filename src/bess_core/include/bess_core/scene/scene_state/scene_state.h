@@ -10,9 +10,56 @@
 #include "event_dispatcher.h"
 
 #include <cstdint>
+#include <functional>
 #include <mutex>
+#include <string>
 
 namespace Bess::Canvas {
+    class SceneComponent;
+}
+
+namespace Bess {
+    class SceneDriver;
+    namespace SimEngine {
+        class SimulationEngine;
+    }
+}
+
+namespace Bess::Canvas {
+    struct SceneAddOp {
+        std::shared_ptr<SceneComponent> comp;
+        std::vector<std::shared_ptr<SceneComponent>> kids;
+    };
+
+    struct SceneRuntimeCtx {
+        using CompEditFn = std::function<bool(UUID,
+                                              UUID,
+                                              Json::Value,
+                                              Json::Value,
+                                              std::string)>;
+        using AddFn = std::function<bool(
+            UUID,
+            std::shared_ptr<SceneComponent>,
+            std::vector<std::shared_ptr<SceneComponent>>)>;
+        using ConnFn =
+            std::function<bool(UUID, std::shared_ptr<SceneComponent>)>;
+        using NameFn =
+            std::function<bool(UUID, UUID, std::string)>;
+        using ConnDepsFn =
+            std::function<std::vector<UUID>(UUID, UUID)>;
+        using AddBatchFn =
+            std::function<bool(UUID, std::vector<SceneAddOp>, bool)>;
+
+        SceneDriver *scenes = nullptr;
+        SimEngine::SimulationEngine *sim = nullptr;
+        CompEditFn compEdit;
+        AddFn add;
+        ConnFn addConn;
+        NameFn name;
+        ConnDepsFn connDeps;
+        AddBatchFn addBatch;
+    };
+
     class BESS_API SceneState {
       public:
         SceneState();
@@ -41,6 +88,7 @@ namespace Bess::Canvas {
             }
 
             const auto id = component->getUuid();
+            component->bindState(this);
             m_componentsMap[id] = component;
 
             if (component->getParentComponent() == UUID::null) {
@@ -145,6 +193,21 @@ namespace Bess::Canvas {
                               const Events::FocusEvent &event = {});
         void clearUIFocus(const Events::FocusEvent &event = {});
 
+        void setRuntime(SceneRuntimeCtx runtime);
+        [[nodiscard]] const SceneRuntimeCtx &runtime() const;
+        [[nodiscard]] SceneRuntimeCtx &runtime();
+        [[nodiscard]] bool trackComp(SceneComponent &comp,
+                                     Json::Value before,
+                                     std::string key = {});
+        [[nodiscard]] bool addTx(
+            std::shared_ptr<SceneComponent> comp,
+            std::vector<std::shared_ptr<SceneComponent>> kids = {});
+        [[nodiscard]] bool addConnTx(std::shared_ptr<SceneComponent> conn);
+        [[nodiscard]] bool nameTx(UUID comp, std::string name);
+        [[nodiscard]] std::vector<UUID> connDeps(UUID conn) const;
+        [[nodiscard]] bool addBatchTx(std::vector<SceneAddOp> ops,
+                                      bool hist = true);
+
         void attachChild(const UUID &parentId,
                          const UUID &childId,
                          bool emitEvent = true);
@@ -178,6 +241,7 @@ namespace Bess::Canvas {
                                       // module it belongs to
         UUID m_sceneId, m_parentSceneId = UUID::null;
         glm::vec2 m_mousePos;
+        SceneRuntimeCtx m_runtime;
 
         mutable std::mutex m_componentsMutex;
 
@@ -190,4 +254,7 @@ namespace Bess::JsonConvert {
                               Json::Value &j);
     BESS_API void fromJsonValue(const Json::Value &j,
                                 Bess::Canvas::SceneState &state);
+    BESS_API void fromJsonValue(const Json::Value &j,
+                                Bess::Canvas::SceneState &state,
+                                const Bess::Canvas::SceneLoadCtx &ctx);
 } // namespace Bess::JsonConvert

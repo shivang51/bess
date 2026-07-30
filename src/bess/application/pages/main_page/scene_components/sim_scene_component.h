@@ -123,6 +123,8 @@ namespace Bess::Canvas {
         void drawSchematic(SceneDrawContext &context) override;
 
         void updateScales(const SceneState &state);
+        void beforeSerialize(const SceneState &state) override;
+        void onLoaded(const SceneLoadCtx &ctx) override;
 
         std::vector<std::shared_ptr<SceneComponent>>
         clone(const SceneState &sceneState) const override;

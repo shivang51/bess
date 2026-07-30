@@ -72,7 +72,7 @@ namespace Bess::Canvas {
                                       bool isSchematicMode) const override;
 
         glm::vec3 getConnectionPos(const SceneState &state,
-                                   bool isSchematicMode) const;
+                                   bool isSchematicMode) const override;
 
         SimEngine::PortRef getPortRef(const SceneState &state) const;
 

@@ -23,10 +23,12 @@ namespace Bess::Canvas {
         static std::shared_ptr<SceneComponent>
         createComponentFromJson(const Json::Value &j);
 
+        static void setFallback(DeSerFunc func);
         static void clearRegistry();
 
       private:
         static std::unordered_map<std::string, SceneSerReg::DeSerFunc> &
         getRegistry();
+        static DeSerFunc &getFallback();
     };
 } // namespace Bess::Canvas

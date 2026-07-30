@@ -1,25 +1,17 @@
 #include "bess_core/scene/layers/screen_space_overlay_layer.h"
 #include "bess_core/g_app_context.h"
-#include "project_session/project_session.h"
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/renderer/renderer_types.h"
+#include "bess_core/scene/scene_component_types.h"
 #include "bess_core/scene/scene_ui/ui_scene_component.h"
 #include "bess_core/scene/scene_ui/ui_view.h"
 #include "bess_core/scene/widgets/scene_widgets.h"
-#include "bess_core/scene_driver.h"
 #include "bess_core/settings/viewport_theme.h"
 #include "common/types.h"
 #include "ext/vector_float2.hpp"
-#include "bess_core/scene/scene_component_types.h"
-#include "pages/main_page/scene_components/sim_scene_component.h"
-#include "ui/icons/CodIcons_Remapped.h"
-#include "ui/icons/FontAwesomeIcons_Remapped.h"
-#include "ui/icons/MaterialIcons_Remapped.h"
 
 #include <cstdint>
 #include <utility>
-
-namespace Icons = Bess::UI::Icons;
 
 namespace Bess::Canvas {
     namespace {
@@ -175,9 +167,6 @@ namespace Bess::Canvas {
     bool ScreenSpaceOverlayLayer::updateTransform(
         const std::shared_ptr<Core::Viewport::ViewportContext> &ctx) {
 
-        BESS_ASSERT(m_topContainer, "Top container is null");
-        BESS_ASSERT(m_bottomContainer, "Bottom container is null");
-
         if (ctx == nullptr || !m_topContainer || !m_bottomContainer ||
             !m_topContainer->getUINode() || !m_bottomContainer->getUINode()) {
             m_updateTransforms = true;
@@ -206,10 +195,8 @@ namespace Bess::Canvas {
     }
 
     void ScreenSpaceOverlayLayer::fmtCamPos(const glm::vec2 &pos) {
-        m_camPosXLabel->setName(
-            std::format("{} {:>12.2f}", Icons::FontAwesomeIcons::FA_X, pos.x));
-        m_camPosYLabel->setName(
-            std::format("{} {:>12.2f}", Icons::FontAwesomeIcons::FA_Y, pos.y));
+        m_camPosXLabel->setName(std::format("X {:>12.2f}", pos.x));
+        m_camPosYLabel->setName(std::format("Y {:>12.2f}", pos.y));
     }
 
     void ScreenSpaceOverlayLayer::fmtCamZoom(const float zoom) {

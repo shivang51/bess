@@ -1,5 +1,4 @@
 #include "dig_sim_driver.h"
-#include "bess_core/g_app_context.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
@@ -8,7 +7,6 @@
 #include "dig_module_def.h"
 #include "driver_registry.h"
 #include "expression_evalutator/expr_evaluator.h"
-#include "project_session/project_session.h"
 #include "sim_driver/event_based_sim_driver.h"
 #include "sim_driver/sim_driver.h"
 #include "simulation_engine.h"
@@ -306,6 +304,10 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         bool isModule =
             std::dynamic_pointer_cast<ModuleDefinition>(def) != nullptr;
+        if (isModule) {
+            std::dynamic_pointer_cast<ModuleDefinition>(def)->setEngine(
+                getEngine());
+        }
 
         const auto comp =
             isModule ? DigSimComp::fromDef<DigModuleSimComp>(def, cloneDef)
@@ -1155,10 +1157,12 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         const auto &inpId = def->getInputId();
 
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-        auto &simEngine = projectCtx->sim();
-        auto driver = simEngine.getDriverWithName(DigitalSimDriver::NAME);
+        auto *simEngine = getDefinition<ModuleDefinition>()->getEngine();
+        BESS_ASSERT(simEngine, "Simulation engine is not set");
+        if (!simEngine) {
+            return;
+        }
+        auto driver = simEngine->getDriverWithName(DigitalSimDriver::NAME);
         BESS_ASSERT(driver, "DigitalSimDriver not found in simulation engine");
         auto digitalDriver =
             std::dynamic_pointer_cast<DigitalSimDriver>(driver);

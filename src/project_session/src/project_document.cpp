@@ -352,7 +352,8 @@ namespace Bess {
             for (const auto &src : sceneData["scenes"]) {
                 auto data = src;
                 auto scene = std::make_shared<Canvas::Scene>();
-                ser.deserialize(data, scene);
+                ser.deserialize(
+                    data, scene, Canvas::SceneLoadCtx{.sim = m_sim.get()});
 
                 float maxZ = 0.f;
                 for (const auto &[id, comp] :

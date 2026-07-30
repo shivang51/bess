@@ -1,6 +1,4 @@
 #include "bverilog/sim_engine_importer.h"
-#include "bess_core/g_app_context.h"
-#include "project_session/project_session.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
 #include "common/types.h"
@@ -337,10 +335,8 @@ namespace Bess::Verilog {
         std::vector<std::string> makeIndexedSlotNames(const std::string &prefix,
                                                       size_t count);
 
-        void initIO() {
-            auto &appCtx = Bess::GAppContext::getInstance();
-            auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-            auto driver = projectCtx->sim().getDriverWithName(
+        void initIO(SimulationEngine &engine) {
+            auto driver = engine.getDriverWithName(
                 Drivers::Digital::DigitalSimDriver::NAME);
             auto digitalDriver =
                 std::dynamic_pointer_cast<Drivers::Digital::DigitalSimDriver>(
@@ -351,12 +347,13 @@ namespace Bess::Verilog {
         }
 
         std::shared_ptr<Drivers::CompDef>
-        ensureBuiltinIoDefinition(const std::string &name) {
+        ensureBuiltinIoDefinition(const std::string &name,
+                                  SimulationEngine &engine) {
             auto definition = findDefinitionByName(name);
             if (definition) {
                 return definition;
             }
-            initIO();
+            initIO(engine);
             definition = findDefinitionByName(name);
             if (!definition) {
                 throw std::runtime_error(
@@ -2114,7 +2111,8 @@ namespace Bess::Verilog {
                     return it->second;
                 }
 
-                auto inputDefinition = ensureBuiltinIoDefinition("Input");
+                auto inputDefinition =
+                    ensureBuiltinIoDefinition("Input", m_engine);
                 const auto id = m_engine.addComponent(inputDefinition);
                 auto component = m_engine.getComponentSP<
                     SimEngine::Drivers::Digital::DigSimComp>(id);
@@ -2162,8 +2160,10 @@ namespace Bess::Verilog {
 
             void initializeTopBoundary(const Module &topModule,
                                        PortBindings &bindings) {
-                auto inputDefinition = ensureBuiltinIoDefinition("Input");
-                auto outputDefinition = ensureBuiltinIoDefinition("Output");
+                auto inputDefinition =
+                    ensureBuiltinIoDefinition("Input", m_engine);
+                auto outputDefinition =
+                    ensureBuiltinIoDefinition("Output", m_engine);
 
                 for (const auto &port : topModule.ports) {
                     std::vector<std::string> slotNames;

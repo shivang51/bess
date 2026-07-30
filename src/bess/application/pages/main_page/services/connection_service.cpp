@@ -1,6 +1,4 @@
 #include "pages/main_page/services/connection_service.h"
-#include "bess_core/g_app_context.h"
-#include "project_session/project_session.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
@@ -123,7 +121,12 @@ namespace Bess::Svc {
 
     void SvcConnection::onDestroy() {
         m_slotsBin.clear();
+        m_sim = nullptr;
         BESS_DEBUG("Destroyed Connection Service");
+    }
+
+    void SvcConnection::setSimEngine(SimEngine::SimulationEngine *sim) {
+        m_sim = sim;
     }
 
     std::shared_ptr<Canvas::ConnectionSceneComponent>
@@ -907,9 +910,8 @@ namespace Bess::Svc {
     }
 
     SimEngine::SimulationEngine &SvcConnection::getSimEngine() {
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-        return projectCtx->sim();
+        BESS_ASSERT(m_sim, "Connection service has no simulation engine");
+        return *m_sim;
     }
 
     std::pair<std::shared_ptr<Canvas::SlotSceneComponent>, bool>

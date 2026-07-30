@@ -7,14 +7,10 @@
 #include "bess_core/scene/scene_state/components/styles/comp_style.h"
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "ext/matrix_transform.hpp"
-#include "ui/icons/FontAwesomeIcons_Remapped.h"
-
-namespace Icons = Bess::UI::Icons;
-
 namespace Bess::Canvas {
     SceneComponent::SceneComponent()
         : m_uuid{UUID()},
-          m_icon(Icons::FontAwesomeIcons::FA_CUBE) {
+          m_icon("\xf0\x9f\x86\xb2") {
     }
 
     bool SceneComponent::isDraggable() const {
@@ -39,6 +35,32 @@ namespace Bess::Canvas {
     void SceneComponent::setEditPos(const glm::vec3 &pos, bool schematic) {
         (void)schematic;
         setPosition(pos);
+    }
+
+    SceneState *SceneComponent::sceneState() const noexcept {
+        return m_sceneState;
+    }
+
+    void SceneComponent::bindState(SceneState *state) noexcept {
+        m_sceneState = state;
+    }
+
+    glm::vec3
+    SceneComponent::getConnectionPos(const SceneState &state,
+                                     bool isSchematicMode) const {
+        return getAbsolutePosition(state, isSchematicMode);
+    }
+
+    void SceneComponent::beforeSerialize(const SceneState &state) {
+        (void)state;
+    }
+
+    void SceneComponent::onLoaded(const SceneLoadCtx &ctx) {
+        (void)ctx;
+    }
+
+    void SceneComponent::onRuntimeReady(SceneState &state) {
+        (void)state;
     }
 
     void SceneComponent::setIsDraggable(bool draggable) {
@@ -214,6 +236,7 @@ namespace Bess::Canvas {
         clonedComponent.setUIDirty(true);
         clonedComponent.m_isFirstDraw = true;
         clonedComponent.m_isFirstSchematicDraw = true;
+        clonedComponent.m_sceneState = nullptr;
         clonedComponent.resetCloneRuntimeState();
     }
 

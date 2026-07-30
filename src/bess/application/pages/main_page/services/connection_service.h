@@ -36,6 +36,7 @@ namespace Bess::Svc {
         SvcConnection() = default;
         SvcConnection(const SvcConnection &) = delete;
         SvcConnection &operator=(const SvcConnection &) = delete;
+        void setSimEngine(SimEngine::SimulationEngine *sim);
 
         // Connects two slots/proxy slots together by creating a connection
         // between them, and also handles the sim engine connection and slot
@@ -239,5 +240,6 @@ namespace Bess::Svc {
         // Key is the slot id and value is the slot component.
         std::unordered_map<UUID, std::shared_ptr<Canvas::SlotSceneComponent>>
             m_slotsBin;
+        SimEngine::SimulationEngine *m_sim = nullptr;
     };
 } // namespace Bess::Svc

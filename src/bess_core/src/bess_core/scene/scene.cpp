@@ -21,7 +21,6 @@
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "common/types.h"
-#include "sub_systems/renderer_context.h"
 #include <cstdint>
 #include <gtc/type_ptr.hpp>
 #include <memory>
@@ -33,11 +32,13 @@ namespace Bess::Canvas {
         SceneState &state,
         const std::shared_ptr<Camera> &camera,
         const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer,
-        const std::shared_ptr<Core::Viewport::ViewportContext> &viewportCtx) {
+        const std::shared_ptr<Core::Viewport::ViewportContext> &viewportCtx,
+        const std::shared_ptr<SimEngine::SimulationEngine> &simEngine) {
         SceneLifecycleContext ctx;
         ctx.sceneState = &state;
         ctx.camera = camera;
         ctx.renderer = renderer;
+        ctx.simEngine = simEngine;
         ctx.viewportCtx = viewportCtx;
         ctx.sceneWidgetsState =
             SceneWidgets::getState(viewportCtx.get(), &state);
@@ -85,12 +86,14 @@ namespace Bess::Canvas {
         SceneState &state,
         const std::shared_ptr<Camera> &camera,
         const std::shared_ptr<Core::Renderer::IRenderer2D> &renderer,
-        const std::shared_ptr<Core::Viewport::ViewportContext> &viewportCtx) {
+        const std::shared_ptr<Core::Viewport::ViewportContext> &viewportCtx,
+        const std::shared_ptr<SimEngine::SimulationEngine> &simEngine) {
         SceneRenderContext ctx;
         ctx.sceneState = &state;
         ctx.camera = camera;
         ctx.viewportCtx = viewportCtx;
         ctx.renderer = renderer;
+        ctx.simEngine = simEngine;
         ctx.sceneWidgetsState =
             SceneWidgets::getState(viewportCtx.get(), &state);
         return ctx;
@@ -100,11 +103,7 @@ namespace Bess::Canvas {
     }
 
     Scene::Scene(bool initializeLayers) {
-        const auto &appCtx = GAppContext::getInstance();
-        const bool rendererReady =
-            appCtx.hasSubSystem<RendererContext>() &&
-            appCtx.getSubSystem<RendererContext>()->getRenderer();
-        if (!initializeLayers || !rendererReady) {
+        if (!initializeLayers) {
             clear();
             m_size = glm::vec2(800.f, 600.f);
             m_camera = std::make_shared<Camera>(m_size.x, m_size.y);
@@ -137,7 +136,8 @@ namespace Bess::Canvas {
         if (m_isDestroyed)
             return;
 
-        auto ctx = makeLifecycleContext(m_state, m_camera, nullptr, nullptr);
+        auto ctx =
+            makeLifecycleContext(m_state, m_camera, nullptr, nullptr, nullptr);
 
         BESS_INFO("[Scene] Destroying {}", (uint64_t)m_state.getSceneId());
 
@@ -160,24 +160,11 @@ namespace Bess::Canvas {
         SceneInputState inputState;
         inputState.mousePos = {0.f, 0.f};
 
-        const auto &appCtx = Bess::GAppContext::getInstance();
-        const auto rendererCtx =
-            appCtx.hasSubSystem<RendererContext>()
-                ? appCtx.getSubSystem<RendererContext>()
-                : nullptr;
-
-        auto ctx = makeLifecycleContext(
-            m_state,
-            m_camera,
-            rendererCtx ? rendererCtx->getRenderer() : nullptr,
-            nullptr);
+        auto ctx =
+            makeLifecycleContext(m_state, m_camera, nullptr, nullptr, nullptr);
 
         for (auto &layer : m_sceneLayers) {
             layer->reset(ctx);
-        }
-
-        for (auto &layer : m_sceneLayers) {
-            layer->init(ctx);
         }
     }
 
@@ -234,8 +221,13 @@ namespace Bess::Canvas {
         BESS_ASSERT(view.pickingRenderTarget,
                     "Picking render target is required to draw the scene");
 
-        auto ctx = makeRenderContext(
-            m_state, view.camera, view.renderer, view.viewportCtx);
+        initLayers(view);
+
+        auto ctx = makeRenderContext(m_state,
+                                     view.camera,
+                                     view.renderer,
+                                     view.viewportCtx,
+                                     view.simEngine);
 
         const auto &extent = view.viewportCtx->transform.size;
         view.renderer->beginFrame({
@@ -254,6 +246,23 @@ namespace Bess::Canvas {
         SceneWidgets::endFrame(ctx.sceneWidgetsState);
 
         ctx.renderer->endFrame();
+    }
+
+    void Scene::initLayers(const View2D &view) {
+        if (m_layersInited) {
+            return;
+        }
+
+        auto ctx = makeLifecycleContext(m_state,
+                                        view.camera,
+                                        view.renderer,
+                                        view.viewportCtx,
+                                        view.simEngine);
+
+        for (auto &layer : m_sceneLayers) {
+            layer->init(ctx);
+        }
+        m_layersInited = true;
     }
 
     void

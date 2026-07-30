@@ -1,8 +1,6 @@
 #include "dig_module_def.h"
-#include "bess_core/g_app_context.h"
 #include "common/bess_assert.h"
 #include "component_catalog.h"
-#include "project_session/project_session.h"
 #include "sim_driver/sim_driver.h"
 #include "simulation_engine.h"
 #include <memory>
@@ -17,25 +15,25 @@ namespace Bess::SimEngine {
 
         const auto &catalog = ComponentCatalog::instance();
 
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-        auto &simEngine = projectCtx->sim();
+        if (!m_engine) {
+            BESS_ERROR("Cannot clone module definition without a simulation "
+                       "engine");
+            return nullptr;
+        }
 
-        const auto &inpDef = simEngine.getComponentDefinition(m_input);
-        clone->m_input = simEngine.addComponent(inpDef);
+        const auto &inpDef = m_engine->getComponentDefinition(m_input);
+        clone->m_input = m_engine->addComponent(inpDef);
 
-        const auto &outDef = simEngine.getComponentDefinition(m_output);
-        clone->m_output = simEngine.addComponent(outDef);
+        const auto &outDef = m_engine->getComponentDefinition(m_output);
+        clone->m_output = m_engine->addComponent(outDef);
 
         return clone;
     }
 
-    std::shared_ptr<ModuleDefinition> ModuleDefinition::createNew() {
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-        auto &simEngine = projectCtx->sim();
-
+    std::shared_ptr<ModuleDefinition>
+    ModuleDefinition::createNew(SimulationEngine &simEngine) {
         auto moduleDef = std::make_shared<ModuleDefinition>();
+        moduleDef->setEngine(&simEngine);
 
         moduleDef->setName("New Module");
         moduleDef->setGroupName("Modules");
@@ -97,11 +95,13 @@ namespace Bess::SimEngine {
         const auto &inputs = data->inputStates;
         const auto &prevState = data->prevState;
 
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-        auto &simEngine = projectCtx->sim();
+        if (!m_engine) {
+            BESS_ERROR("Cannot simulate module definition without a "
+                       "simulation engine");
+            return data;
+        }
 
-        const auto &outputState = simEngine.getComponentState(m_output);
+        const auto &outputState = m_engine->getComponentState(m_output);
 
         bool isChanged = false;
 

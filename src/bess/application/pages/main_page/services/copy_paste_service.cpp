@@ -1,12 +1,10 @@
-#include "bess_core/copy_paste_service.h"
-#include "bess_core/g_app_context.h"
+#include "pages/main_page/services/copy_paste_service.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene_driver.h"
 #include "common/bess_uuid.h"
 #include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
-#include "project_session/project_session.h"
 #include "simulation_engine.h"
 #include <unordered_map>
 
@@ -23,10 +21,10 @@ namespace Bess::Svc::CopyPaste {
                 return;
             }
 
-            const auto session = GAppContext::getInstance()
-                                     .getSubSystem<ProjectSession>();
+            auto *scenes = parentScene->getState().runtime().scenes;
             const auto moduleScene =
-                session->scenes().getSceneWithId(module->getSceneId());
+                scenes ? scenes->getSceneWithId(module->getSceneId())
+                       : nullptr;
 
             BESS_ASSERT(moduleScene,
                         "[CopyPaste] Cloned module scene was not registered");
@@ -113,26 +111,19 @@ namespace Bess::Svc::CopyPaste {
 
         calcCenter();
 
-        const auto session =
-            GAppContext::getInstance().getSubSystem<ProjectSession>();
-        if (!session) {
-            BESS_ERROR("[CopyPaste] Project session is unavailable");
+        auto &targetState = targetScene->getState();
+        if (!targetState.runtime().addBatch) {
+            BESS_ERROR("[CopyPaste] Scene edit port is unavailable");
             return {};
         }
 
-        auto tx = session->tx(
-            "Paste", {.empty = true, .hist = recordHistory});
+        std::vector<Canvas::SceneAddOp> ops;
         const auto add = [&](const std::shared_ptr<Canvas::SceneComponent> &comp,
                              std::vector<
                                  std::shared_ptr<Canvas::SceneComponent>> kids =
                                  {}) {
-            const auto status = tx.addComp(
-                comp, std::move(kids), targetScene->getSceneId());
-            if (!status) {
-                BESS_ERROR("[CopyPaste] Could not stage paste: {}",
-                           status.msg());
-            }
-            return status.isOk();
+            ops.push_back({.comp = comp, .kids = std::move(kids)});
+            return true;
         };
 
         std::vector<Svc::CopyPaste::CopiedEntity> connEntites;
@@ -243,7 +234,6 @@ namespace Bess::Svc::CopyPaste {
                 }
 
                 if (!add(clonedComp, std::move(clonedComponents))) {
-                    tx.cancel();
                     return {};
                 }
             } else if (entity.type ==
@@ -299,7 +289,6 @@ namespace Bess::Svc::CopyPaste {
                 }
 
                 if (!add(inst, std::move(clonedComponents))) {
-                    tx.cancel();
                     return {};
                 }
             } else if (entity.type == Canvas::SceneComponentType::connection) {
@@ -333,7 +322,6 @@ namespace Bess::Svc::CopyPaste {
                 for (const auto &comp : clonedComps) {
                     // either it can be a joint or a conn
                     if (!add(comp)) {
-                        tx.cancel();
                         return {};
                     }
                 }
@@ -349,10 +337,8 @@ namespace Bess::Svc::CopyPaste {
             }
         } while (!connEntites.empty() && connEntites.size() < prevSize);
 
-        const auto result = tx.commit();
-        if (!result) {
-            BESS_ERROR("[CopyPaste] Paste failed: {}",
-                       result.status.msg());
+        if (!targetState.addBatchTx(std::move(ops), recordHistory)) {
+            BESS_ERROR("[CopyPaste] Paste transaction failed");
             return {};
         }
 

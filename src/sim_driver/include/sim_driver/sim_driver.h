@@ -10,6 +10,10 @@
 #include <mutex>
 #include <unordered_map>
 
+namespace Bess::SimEngine {
+    class SimulationEngine;
+}
+
 namespace Bess::SimEngine::Drivers {
 
     class BESS_API SimFnDataBase {
@@ -290,6 +294,14 @@ namespace Bess::SimEngine::Drivers {
 
         void step();
 
+        void setEngine(Bess::SimEngine::SimulationEngine *engine) {
+            m_engine = engine;
+        }
+
+        [[nodiscard]] Bess::SimEngine::SimulationEngine *getEngine() const {
+            return m_engine;
+        }
+
       protected:
         ComponentsMap m_components;
         SimDriverState m_state = SimDriverState::uninitialized;
@@ -298,5 +310,6 @@ namespace Bess::SimEngine::Drivers {
 
         CompStampData m_compStampData;
         std::unordered_map<UUID, PortCountChangeCB> m_onPortCountChangeCBs;
+        Bess::SimEngine::SimulationEngine *m_engine = nullptr;
     };
 } // namespace Bess::SimEngine::Drivers

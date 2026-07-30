@@ -1,5 +1,4 @@
 #include "conn_joint_scene_component.h"
-#include "bess_core/g_app_context.h"
 #include "bess_core/scene/scene_draw_helpers.h"
 #include "bess_core/scene/scene_state/components/scene_component_types.h"
 #include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
@@ -9,7 +8,6 @@
 #include "connection_scene_component.h"
 #include "geometric.hpp"
 #include "pages/main_page/comp_edit.h"
-#include "project_session/project_session.h"
 #include "sim_scene_component.h"
 #include "slot_scene_component.h"
 
@@ -253,7 +251,7 @@ namespace Bess::Canvas {
     void ConnJointSceneComp::onMouseDragEnd() {
         m_isDragging = false;
         (void)Edit::trackComp(
-            *this, m_dragScene, std::move(m_dragBefore), "joint-position");
+            *this, std::move(m_dragBefore), "joint-position");
         m_dragBefore = {};
         m_dragScene = UUID::null;
     }
@@ -320,11 +318,8 @@ namespace Bess::Canvas {
         conn->setInitialSegmentCount(2);
         conn->setStartEndSlots(startSlot->getUuid(), endComp->getUuid());
 
-        auto &session =
-            *GAppContext::getInstance().getSubSystem<ProjectSession>();
-        const auto result = session.addConn(conn, sceneState.getSceneId());
-        if (!result) {
-            BESS_WARN("Could not add connection: {}", result.status.msg());
+        if (!sceneState.addConnTx(conn)) {
+            BESS_WARN("Could not add connection");
             return false;
         }
 

@@ -15,6 +15,10 @@
 #include "json/value.h"
 
 namespace Bess::Canvas {
+    struct SceneLoadCtx {
+        SimEngine::SimulationEngine *sim = nullptr;
+    };
+
 #define REG_SCENE_COMP_TYPE(TypeName, type)                                    \
     SceneComponentType getType() const override {                              \
         return type;                                                           \
@@ -202,6 +206,8 @@ namespace Bess::Canvas {
 
         virtual glm::vec3 getAbsolutePosition(const SceneState &state,
                                               bool isSchematicMode) const;
+        virtual glm::vec3 getConnectionPos(const SceneState &state,
+                                           bool isSchematicMode) const;
 
         // Cleanup function
         // Default implementation removes all child components recursively
@@ -215,9 +221,13 @@ namespace Bess::Canvas {
         // Serialize the component to JSON for saving
         virtual Json::Value toJson() const;
         virtual void applyJson(const Json::Value &json);
+        virtual void beforeSerialize(const SceneState &state);
+        virtual void onLoaded(const SceneLoadCtx &ctx);
+        virtual void onRuntimeReady(SceneState &state);
 
         [[nodiscard]] virtual glm::vec3 editPos(bool schematic) const;
         virtual void setEditPos(const glm::vec3 &pos, bool schematic);
+        [[nodiscard]] SceneState *sceneState() const noexcept;
 
         virtual std::vector<UUID> getDependants(const SceneState &state) const;
 
@@ -255,6 +265,11 @@ namespace Bess::Canvas {
         // Called when children count changes (added / removed)
         virtual void onChildrenChanged();
 
+      private:
+        friend class SceneState;
+        void bindState(SceneState *state) noexcept;
+
+      protected:
         UUID m_uuid = UUID::null;
         uint32_t m_runtimeId =
             PickingId::invalidRuntimeId; // assigned during rendering for
@@ -269,6 +284,7 @@ namespace Bess::Canvas {
         bool m_isSelected = false;
         bool m_isFirstDraw = true;
         bool m_isFirstSchematicDraw = true;
+        SceneState *m_sceneState = nullptr;
 
         UUID m_parentComponent = UUID::null;
         OrderedSet<UUID> m_childComponents;

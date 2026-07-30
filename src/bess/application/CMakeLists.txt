@@ -27,6 +27,7 @@ set(Header_Files
 	"pages/main_page/scene_components/module_scene_component.h"
 	"pages/main_page/scene_components/scene_comp_types.h"
 	"pages/main_page/services/connection_service.h"
+	"pages/main_page/services/copy_paste_service.h"
 	"pages/main_page/services/hierarchical_scene_layout.h"
 	"pages/main_page/verilog_scene_import.h"
 	"pages/start_page/start_page.h"
@@ -50,6 +51,7 @@ set(Header_Files
 	"ui/dock_ids.h"
 	"ui/ui_panel.h"
 	"ui/ui.h"
+	"ui/project_api.h"
 	"ui/ui_main/properties_panel.h"
 	"ui/ui_main/graph_view_window.h"
 	"ui/ui_main/project_settings_window.h"
@@ -101,6 +103,7 @@ set(Source_Files
 	"pages/main_page/scene_components/input_scene_component.cpp"
 	"pages/main_page/scene_components/slot_probe_scene_component.cpp"
 	"pages/main_page/services/connection_service.cpp"
+	"pages/main_page/services/copy_paste_service.cpp"
 	"pages/main_page/services/hierarchical_scene_layout.cpp"
 	
 	"window.cpp"
@@ -109,6 +112,7 @@ set(Source_Files
 	"services/plugin_service/plugin_service.cpp"
 	
 	"ui/ui.cpp"
+	"ui/project_api.cpp"
 	"ui/widgets/m_widgets.cpp"
 	"ui/ui_panel.cpp"
 	"ui/ui_hook.cpp"
@@ -146,7 +150,8 @@ set(ALL_FILES
 
 add_library(${PROJECT_NAME} OBJECT ${ALL_FILES})
 
-target_link_libraries(${PROJECT_NAME} PUBLIC common project_session BessCore BessExtDeps BessJson BessSimEngine  BessPluginManager EventSystem BessSimDriver DigitalSimDriver MathSimDriver bverilog BessWgpu)
+target_link_libraries(${PROJECT_NAME} PUBLIC common BessCore BessExtDeps BessJson BessSimEngine  BessPluginManager EventSystem BessSimDriver DigitalSimDriver MathSimDriver bverilog BessWgpu)
+target_link_libraries(${PROJECT_NAME} PRIVATE project_session)
 
 if(WIN32)
 	target_link_libraries(${PROJECT_NAME} PUBLIC

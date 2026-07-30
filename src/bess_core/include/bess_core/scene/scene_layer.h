@@ -39,6 +39,7 @@ namespace Bess::Canvas {
 
     struct BESS_API SceneRenderContext : SceneLayerContext {
         std::shared_ptr<Core::Renderer::IRenderer2D> renderer = nullptr;
+        std::shared_ptr<SimEngine::SimulationEngine> simEngine = nullptr;
     };
 
     struct BESS_API SceneLifecycleContext : SceneRenderContext {};

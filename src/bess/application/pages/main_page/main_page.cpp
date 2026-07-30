@@ -1,6 +1,6 @@
 #include "pages/main_page/main_page.h"
 #include "bess_core/asset_manager/asset_manager.h"
-#include "bess_core/copy_paste_service.h"
+#include "pages/main_page/services/copy_paste_service.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/scene/scene_ser_reg.h"
 #include "bess_core/scene/widgets/scene_widgets.h"
@@ -322,9 +322,13 @@ namespace Bess::Pages {
                     }
 
                     for (const auto &netId : netIdsToModule) {
-                        auto module =
-                            Canvas::ModuleSceneComponent::fromNet(netId);
-                        BESS_ASSERT(module, "Failed to create module");
+                        const auto result = Edit::makeModule(
+                            *session, scene, netId, "New Module");
+                        BESS_ASSERT(result, "Failed to create module");
+                        if (!result) {
+                            BESS_ERROR("Could not create module: {}",
+                                       result.status.msg());
+                        }
                     }
                 }
             }

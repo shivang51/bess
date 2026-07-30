@@ -274,6 +274,9 @@ namespace Bess::UI {
             .drawRenderTarget = sceneHandle,
             .pickingRenderTarget = pickingHandle,
             .viewportCtx = m_viewportCtx,
+            .simEngine =
+                appCtx.getSubSystem<ProjectSession>()
+                    ->getSubSystem<SimEngine::SimulationEngine>(),
         };
 
         m_attachedScene->draw(view);

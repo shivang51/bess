@@ -207,7 +207,6 @@ namespace Bess::Canvas {
                                context,
                                dropdownOptions);
         (void)Edit::trackComp(*this,
-                              context.sceneState->getSceneId(),
                               std::move(before),
                               "widget-value");
     }

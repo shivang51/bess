@@ -74,7 +74,6 @@ namespace Bess::UI {
             auto connComp = comp->cast<Canvas::ConnectionSceneComponent>();
             drawConnectionComponent(connComp);
         }
-        (void)Edit::trackComp(
-            *comp, sceneState.getSceneId(), std::move(before), "properties");
+        (void)Edit::trackComp(*comp, std::move(before), "properties");
     }
 } // namespace Bess::UI

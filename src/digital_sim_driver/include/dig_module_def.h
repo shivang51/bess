@@ -10,7 +10,8 @@ namespace Bess::SimEngine {
       public:
         static constexpr const char *TypeName = "dig_mod_compdef";
 
-        static std::shared_ptr<ModuleDefinition> createNew();
+        static std::shared_ptr<ModuleDefinition>
+        createNew(SimulationEngine &engine);
 
         std::string getTypeName() const override;
 
@@ -27,7 +28,16 @@ namespace Bess::SimEngine {
 
         void loadJson(const Json::Value &json) override;
 
+        void setEngine(SimulationEngine *engine) {
+            m_engine = engine;
+        }
+
+        [[nodiscard]] SimulationEngine *getEngine() const {
+            return m_engine;
+        }
+
       private:
         UUID m_input = UUID::null, m_output = UUID::null;
+        SimulationEngine *m_engine = nullptr;
     };
 } // namespace Bess::SimEngine

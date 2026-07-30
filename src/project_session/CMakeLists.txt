@@ -28,7 +28,6 @@ target_include_directories(project_session
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
     PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
-        "${CMAKE_SOURCE_DIR}/src/bess_core/include"
         "${CMAKE_SOURCE_DIR}/src/event_system/include"
         "${CMAKE_SOURCE_DIR}/src/sim_driver/include"
         "${CMAKE_SOURCE_DIR}/src/sim_engine/include"
@@ -42,6 +41,8 @@ target_link_libraries(project_session PUBLIC
     BessSimEngine
     BessExtDeps
 )
+target_link_libraries(project_session PRIVATE BessCore::Api)
+target_link_libraries(project_session INTERFACE BessCore)
 
 target_compile_definitions(project_session PRIVATE
     LOGGER_NAME="project_session"

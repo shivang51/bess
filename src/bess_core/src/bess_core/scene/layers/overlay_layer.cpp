@@ -3,7 +3,6 @@
 #include "bess_core/settings/viewport_theme.h"
 #include "common/bess_uuid.h"
 #include "bess_core/scene/scene_component_types.h"
-#include "pages/main_page/scene_components/slot_scene_component.h"
 
 namespace Bess::Canvas {
     void OverlayLayer::update(TimeMs ts, SceneUpdateContext &ctx) {
@@ -43,15 +42,8 @@ namespace Bess::Canvas {
             return;
         }
 
-        glm::vec3 startPos;
-        if (comp->getType() == Canvas::SceneComponentType::slot) {
-            startPos =
-                comp->cast<Canvas::SlotSceneComponent>()->getConnectionPos(
-                    *ctx.sceneState, drawCtx.isSchematicMode);
-        } else {
-            startPos = comp->getAbsolutePosition(*drawCtx.sceneState,
-                                                 drawCtx.isSchematicMode);
-        }
+        const auto startPos = comp->getConnectionPos(
+            *ctx.sceneState, drawCtx.isSchematicMode);
 
         const auto endPos =
             ctx.camera->toWorldPos(ctx.viewportCtx->inputCtx.mousePos);

@@ -1,7 +1,6 @@
 #include "pages/main_page/scene_components/monitor_scene_comp.h"
 
 #include "bess_core/g_app_context.h"
-#include "project_session/project_session.h"
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/renderer/renderer_types.h"
 #include "bess_core/scene/scene_state/components/styles/comp_style.h"
@@ -1059,7 +1058,6 @@ namespace Bess::Canvas {
                 auto before = toJson();
                 toggleProbeVisibilityByLegendIndex(traceIndex);
                 (void)Edit::trackComp(*this,
-                                      context.sceneState->getSceneId(),
                                       std::move(before),
                                       "monitor-legend");
             }
@@ -1135,7 +1133,6 @@ namespace Bess::Canvas {
             auto before = toJson();
             resetPlotPan();
             (void)Edit::trackComp(*this,
-                                  context.sceneState->getSceneId(),
                                   std::move(before),
                                   "monitor-view");
         }
@@ -1466,7 +1463,6 @@ namespace Bess::Canvas {
                                  e.sceneState->getConnectionStartSlot());
                     e.sceneState->setConnectionStartSlot(UUID::null);
                     (void)Edit::trackComp(*this,
-                                          e.sceneState->getSceneId(),
                                           std::move(before),
                                           "monitor-probe");
                     return true;
@@ -1499,7 +1495,6 @@ namespace Bess::Canvas {
         m_timeScale =
             sanitizedScale(m_timeScale, 1.f, kMinTimeScale, kMaxTimeScale);
         (void)Edit::trackComp(*this,
-                              e.sceneState->getSceneId(),
                               std::move(before),
                               "monitor-view");
         return true;
@@ -1548,7 +1543,6 @@ namespace Bess::Canvas {
         if (m_isPlotDragging) {
             m_isPlotDragging = false;
             (void)Edit::trackComp(*this,
-                                  m_plotDragScene,
                                   std::move(m_plotDragBefore),
                                   "monitor-view");
             m_plotDragBefore = {};
@@ -1690,11 +1684,12 @@ namespace Bess::Canvas {
 
         const auto &simId = simComp->getSimEngineId();
 
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-        const auto &simEngine = projectCtx->sim();
+        auto *simEngine = sceneState.runtime().sim;
+        if (!simEngine) {
+            return;
+        }
         const auto &digComp =
-            simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
+            simEngine->getComponent<SimEngine::Drivers::Digital::DigSimComp>(
                 simId);
         if (!digComp) {
             return;
@@ -1783,11 +1778,12 @@ namespace Bess::Canvas {
 
         const auto &simId = simComp->getSimEngineId();
 
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-        const auto &simEngine = projectCtx->sim();
+        auto *simEngine = sceneState.runtime().sim;
+        if (!simEngine) {
+            return;
+        }
         const auto &digComp =
-            simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
+            simEngine->getComponent<SimEngine::Drivers::Digital::DigSimComp>(
                 simId);
         if (digComp) {
             digComp->removeOnStateChangeCB(callbackIdForSlot(m_uuid, slotUuid));
