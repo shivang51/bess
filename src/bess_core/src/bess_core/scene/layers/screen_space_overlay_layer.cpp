@@ -10,7 +10,7 @@
 #include "bess_core/settings/viewport_theme.h"
 #include "common/types.h"
 #include "ext/vector_float2.hpp"
-#include "pages/main_page/scene_components/scene_comp_types.h"
+#include "bess_core/scene/scene_component_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "ui/icons/CodIcons_Remapped.h"
 #include "ui/icons/FontAwesomeIcons_Remapped.h"

@@ -4,6 +4,7 @@
 #include "dig_sim_driver.h"
 #include "gtc/type_ptr.hpp"
 #include "pages/main_page/main_page.h"
+#include "pages/main_page/comp_edit.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
@@ -59,6 +60,7 @@ namespace Bess::UI {
             }
         }
 
+        auto before = comp->toJson();
         comp->drawPropertiesUI(sceneState);
 
         if (compType == Canvas::SceneComponentType::simulation) {
@@ -72,5 +74,7 @@ namespace Bess::UI {
             auto connComp = comp->cast<Canvas::ConnectionSceneComponent>();
             drawConnectionComponent(connComp);
         }
+        (void)Edit::trackComp(
+            *comp, sceneState.getSceneId(), std::move(before), "properties");
     }
 } // namespace Bess::UI

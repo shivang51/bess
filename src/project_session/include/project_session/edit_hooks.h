@@ -11,6 +11,10 @@ namespace Bess::Canvas {
     class SceneComponent;
 } // namespace Bess::Canvas
 
+namespace Bess::SimEngine::Drivers {
+    class CompDef;
+}
+
 namespace Bess::Edit {
     struct AddOpts {
         bool setZ = false;
@@ -32,11 +36,15 @@ namespace Bess::Edit {
             const std::shared_ptr<Canvas::SceneComponent> &)>;
         using SortFn = std::function<void(
             const std::shared_ptr<Canvas::Scene> &, std::vector<UUID> &)>;
+        using MakeCompFn = std::function<
+            std::vector<std::shared_ptr<Canvas::SceneComponent>>(
+                const std::shared_ptr<SimEngine::Drivers::CompDef> &)>;
 
         AddFn add;
         RmFn rm;
         DepsFn deps;
         SortFn sort;
+        MakeCompFn makeComp;
     };
 
     [[nodiscard]] const std::shared_ptr<const Hooks> &baseHooks();

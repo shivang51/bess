@@ -5,6 +5,7 @@
 #include "bess_core/scene/scene_state/components/styles/comp_style.h"
 #include "bess_core/scene/widgets/scene_widgets.h"
 #include "bess_core/settings/viewport_theme.h"
+#include "pages/main_page/comp_edit.h"
 #include "ui/icons/FontAwesomeIcons_Remapped.h"
 #include <array>
 #include <string>
@@ -71,6 +72,7 @@ namespace Bess::Canvas {
         if (m_isFirstDraw) {
             onFirstDraw(context);
         }
+        auto before = toJson();
 
         const auto backgroundId = PickingId{m_runtimeId, 0};
         const auto pos =
@@ -204,5 +206,9 @@ namespace Bess::Canvas {
                                {168.f, 20.f},
                                context,
                                dropdownOptions);
+        (void)Edit::trackComp(*this,
+                              context.sceneState->getSceneId(),
+                              std::move(before),
+                              "widget-value");
     }
 } // namespace Bess::Canvas

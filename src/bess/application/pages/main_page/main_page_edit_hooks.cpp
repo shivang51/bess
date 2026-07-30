@@ -5,6 +5,7 @@
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_state/components/scene_component_types.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
+#include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
 #include "project_session/project_session.h"
 #include <algorithm>
@@ -97,6 +98,25 @@ namespace Bess::Pages {
                                  return priority(lhs) < priority(rhs);
                              });
         }
+
+        std::vector<std::shared_ptr<Canvas::SceneComponent>>
+        makeComponent(
+            const std::shared_ptr<SimEngine::Drivers::CompDef> &def) {
+            if (!def) {
+                return {};
+            }
+            auto comps = Canvas::SimulationSceneComponent::createNew(def);
+            if (comps.empty()) {
+                return {};
+            }
+            const auto main = std::dynamic_pointer_cast<
+                Canvas::SimulationSceneComponent>(comps.front());
+            if (!main) {
+                return {};
+            }
+            main->setCompDef(def->clone());
+            return comps;
+        }
     } // namespace
 
     std::shared_ptr<const Edit::Hooks> makeEditHooks() {
@@ -105,6 +125,7 @@ namespace Bess::Pages {
         hooks->rm = removeComponent;
         hooks->deps = getDependants;
         hooks->sort = sortDeletionOrder;
+        hooks->makeComp = makeComponent;
         return hooks;
     }
 } // namespace Bess::Pages

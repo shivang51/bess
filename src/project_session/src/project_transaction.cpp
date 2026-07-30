@@ -6,13 +6,11 @@
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene_driver.h"
-#include "pages/main_page/scene_components/connection_scene_component.h"
-#include "pages/main_page/scene_components/sim_scene_component.h"
-#include "pages/main_page/scene_components/slot_scene_component.h"
 
 #include <algorithm>
 #include <set>
 #include <stdexcept>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -38,16 +36,47 @@ namespace Bess {
                                           " was not found");
         }
 
-        glm::vec3 compPos(const Canvas::SceneComponent &comp, bool schematic) {
-            if (schematic) {
-                const auto sim =
-                    dynamic_cast<const Canvas::SimulationSceneComponent *>(
-                        &comp);
-                if (sim) {
-                    return sim->getSchematicTransform().position;
+        std::size_t jsonBytes(const Json::Value &value) {
+            switch (value.type()) {
+            case Json::stringValue:
+                return sizeof(value) + value.asString().size();
+            case Json::arrayValue: {
+                std::size_t bytes = sizeof(value);
+                for (const auto &item : value) {
+                    bytes += jsonBytes(item);
                 }
+                return bytes;
             }
-            return comp.getTransform().position;
+            case Json::objectValue: {
+                std::size_t bytes = sizeof(value);
+                for (const auto &name : value.getMemberNames()) {
+                    bytes += name.size() + jsonBytes(value[name]);
+                }
+                return bytes;
+            }
+            default:
+                return sizeof(value);
+            }
+        }
+
+        std::size_t compBytes(
+            const std::shared_ptr<Canvas::SceneComponent> &comp) {
+            return sizeof(comp) +
+                   (comp ? jsonBytes(comp->toJson()) : std::size_t{0});
+        }
+
+        bool sameIdentity(const Json::Value &lhs, const Json::Value &rhs) {
+            static constexpr std::string_view Keys[] = {
+                "uuid", "typeName", "parentComponent", "childComponents"};
+            return std::ranges::all_of(Keys, [&](std::string_view key) {
+                const auto name = std::string(key);
+                return lhs.isMember(name) == rhs.isMember(name) &&
+                       (!lhs.isMember(name) || lhs[name] == rhs[name]);
+            });
+        }
+
+        glm::vec3 compPos(const Canvas::SceneComponent &comp, bool schematic) {
+            return comp.editPos(schematic);
         }
 
         Status
@@ -308,9 +337,18 @@ namespace Bess {
             }
 
             std::size_t bytes() const noexcept override {
-                return sizeof(*this) +
-                       m_kids.size() *
-                           sizeof(std::shared_ptr<Canvas::SceneComponent>);
+                try {
+                    std::size_t total = sizeof(*this) + compBytes(m_comp);
+                    for (const auto &kid : m_kids) {
+                        total += compBytes(kid);
+                    }
+                    return total;
+                } catch (...) {
+                    return sizeof(*this) +
+                           (m_kids.size() + 1U) *
+                               sizeof(std::shared_ptr<
+                                      Canvas::SceneComponent>);
+                }
             }
 
           private:
@@ -369,9 +407,21 @@ namespace Bess {
             }
 
             std::size_t bytes() const noexcept override {
-                return sizeof(*this) +
-                       m_data->comps.size() *
-                           sizeof(std::shared_ptr<Canvas::SceneComponent>);
+                try {
+                    std::size_t total = sizeof(*this);
+                    for (const auto &comp : m_data->comps) {
+                        total += compBytes(comp);
+                    }
+                    for (const auto &[_, kids] : m_data->kids) {
+                        total += sizeof(UUID) + kids.size() * sizeof(UUID);
+                    }
+                    return total;
+                } catch (...) {
+                    return sizeof(*this) +
+                           m_data->comps.size() *
+                               sizeof(std::shared_ptr<
+                                      Canvas::SceneComponent>);
+                }
             }
 
           private:
@@ -583,17 +633,7 @@ namespace Bess {
                     return Status::fail(Err::invalid,
                                         "moved component was not found");
                 }
-                if (m_schematic) {
-                    const auto sim =
-                        dynamic_cast<Canvas::SimulationSceneComponent *>(comp);
-                    if (sim) {
-                        auto transform = sim->getSchematicTransform();
-                        transform.position = pos;
-                        sim->setSchematicTransform(transform);
-                        return Status::ok();
-                    }
-                }
-                comp->setPosition(pos);
+                comp->setEditPos(pos, m_schematic);
                 return Status::ok();
             }
 
@@ -736,6 +776,105 @@ namespace Bess {
             std::string m_from;
             std::string m_to;
         };
+
+        class CompStep final : public ProjectSessionStep {
+          public:
+            CompStep(UUID scene,
+                     UUID id,
+                     Json::Value from,
+                     Json::Value to,
+                     std::string key,
+                     bool tracked)
+                : m_scene(scene),
+                  m_id(id),
+                  m_from(std::move(from)),
+                  m_to(std::move(to)),
+                  m_key(std::move(key)),
+                  m_tracked(tracked) {
+            }
+
+            Status apply(ProjectSession &session) override {
+                if (m_tracked && m_first) {
+                    m_first = false;
+                    return check(session, m_to);
+                }
+                m_first = false;
+                return put(session, m_to);
+            }
+
+            Status undo(ProjectSession &session) override {
+                return put(session, m_from);
+            }
+
+            Status redo(ProjectSession &session) override {
+                return put(session, m_to);
+            }
+
+            bool merge(const ProjectSessionStep &next) override {
+                const auto *state = dynamic_cast<const CompStep *>(&next);
+                if (!state || m_key.empty() || state->m_key != m_key ||
+                    state->m_scene != m_scene || state->m_id != m_id) {
+                    return false;
+                }
+                m_to = state->m_to;
+                return true;
+            }
+
+            std::size_t bytes() const noexcept override {
+                try {
+                    return sizeof(*this) + m_key.size() + jsonBytes(m_from) +
+                           jsonBytes(m_to);
+                } catch (...) {
+                    return sizeof(*this) + m_key.size();
+                }
+            }
+
+          private:
+            Canvas::SceneComponent *
+            comp(ProjectSession &session) const {
+                const auto scene = getScene(session, m_scene);
+                return scene ? scene->getState().getComponentByUuid(m_id)
+                             : nullptr;
+            }
+
+            Status check(ProjectSession &session,
+                         const Json::Value &expected) const {
+                const auto *item = comp(session);
+                if (!item) {
+                    return Status::fail(Err::invalid,
+                                        "component was not found");
+                }
+                return item->toJson() == expected
+                           ? Status::ok()
+                           : Status::fail(
+                                 Err::conflict,
+                                 "component changed before it was tracked");
+            }
+
+            Status put(ProjectSession &session, const Json::Value &data) {
+                auto *item = comp(session);
+                if (!item) {
+                    return Status::fail(Err::invalid,
+                                        "component was not found");
+                }
+                const auto current = item->toJson();
+                if (!sameIdentity(current, data)) {
+                    return Status::fail(
+                        Err::invalid,
+                        "component state cannot change identity or hierarchy");
+                }
+                item->applyJson(data);
+                return Status::ok();
+            }
+
+            UUID m_scene;
+            UUID m_id;
+            Json::Value m_from;
+            Json::Value m_to;
+            std::string m_key;
+            bool m_tracked = false;
+            bool m_first = true;
+        };
     } // namespace
 
     ProjectTx::ProjectTx(ProjectSession &session,
@@ -847,7 +986,7 @@ namespace Bess {
         return rmComp(std::vector<UUID>{id}, scene);
     }
 
-    Status ProjectTx::addSlot(std::shared_ptr<Canvas::SlotSceneComponent> slot,
+    Status ProjectTx::addSlot(std::shared_ptr<Canvas::SceneComponent> slot,
                               UUID parent,
                               UUID scene) {
         if (!m || m->done || !m->session) {
@@ -875,13 +1014,13 @@ namespace Bess {
     }
 
     Status
-    ProjectTx::addConn(std::shared_ptr<Canvas::ConnectionSceneComponent> conn,
+    ProjectTx::addConn(std::shared_ptr<Canvas::SceneComponent> conn,
                        UUID scene) {
         return addComp(std::move(conn), {}, scene);
     }
 
     Status
-    ProjectTx::trackConn(std::shared_ptr<Canvas::ConnectionSceneComponent> conn,
+    ProjectTx::trackConn(std::shared_ptr<Canvas::SceneComponent> conn,
                          UUID scene) {
         return trackAdd(std::move(conn), {}, scene);
     }
@@ -991,6 +1130,62 @@ namespace Bess {
         }
         m->ops.push_back(std::make_unique<CompNameStep>(
             scene, id, comp->getName(), std::move(name)));
+        return Status::ok();
+    }
+
+    Status ProjectTx::setComp(UUID id,
+                              Json::Value data,
+                              UUID scene,
+                              std::string key) {
+        if (!m || m->done || !m->session) {
+            return bad(
+                Status::fail(Err::invalid, "transaction is already finished"));
+        }
+        scene = m->session->sceneId(scene);
+        const auto target = getScene(*m->session, scene);
+        const auto comp =
+            target ? target->getState().getComponentByUuid(id) : nullptr;
+        if (!comp) {
+            return bad(Status::fail(Err::invalid, "component was not found"));
+        }
+        auto from = comp->toJson();
+        if (!sameIdentity(from, data)) {
+            return bad(Status::fail(
+                Err::badArg,
+                "component state cannot change identity or hierarchy"));
+        }
+        if (from == data) {
+            return Status::ok();
+        }
+        m->ops.push_back(std::make_unique<CompStep>(
+            scene, id, std::move(from), std::move(data), std::move(key), false));
+        return Status::ok();
+    }
+
+    Status ProjectTx::trackComp(UUID id,
+                                Json::Value from,
+                                Json::Value to,
+                                UUID scene,
+                                std::string key) {
+        if (!m || m->done || !m->session) {
+            return bad(
+                Status::fail(Err::invalid, "transaction is already finished"));
+        }
+        scene = m->session->sceneId(scene);
+        const auto target = getScene(*m->session, scene);
+        if (!target || !target->getState().isComponentValid(id)) {
+            return bad(Status::fail(Err::invalid, "component was not found"));
+        }
+        if (!sameIdentity(from, to)) {
+            return bad(Status::fail(
+                Err::badArg,
+                "component state cannot change identity or hierarchy"));
+        }
+        if (from == to) {
+            return Status::ok();
+        }
+        m->ops.push_back(std::make_unique<CompStep>(
+            scene, id, std::move(from), std::move(to), std::move(key), true));
         return Status::ok();
     }
 

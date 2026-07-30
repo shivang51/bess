@@ -5,7 +5,6 @@
 #include "bess_core/scene/scene.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene_driver.h"
-#include "pages/main_page/scene_components/sim_scene_component.h"
 #include "simulation_engine.h"
 
 #include <algorithm>
@@ -515,21 +514,23 @@ namespace Bess {
             return {.status = Status::fail(Err::badArg,
                                            "component definition is null")};
         }
-        auto comps = Canvas::SimulationSceneComponent::createNew(def);
+        const auto activeHooks = hooks();
+        auto comps =
+            activeHooks && activeHooks->makeComp
+                ? activeHooks->makeComp(def)
+                : std::vector<std::shared_ptr<Canvas::SceneComponent>>{};
         if (comps.empty()) {
             return {.status = Status::fail(
-                        Err::apply, "component factory returned no data")};
+                        Err::invalid,
+                        "Bess component factory is not installed")};
         }
 
-        const auto main =
-            std::dynamic_pointer_cast<Canvas::SimulationSceneComponent>(
-                comps.front());
+        const auto main = comps.front();
         if (!main) {
             return {.status = Status::fail(
                         Err::apply, "component factory returned wrong type")};
         }
         comps.erase(comps.begin());
-        main->setCompDef(def->clone());
         main->getTransform().position.x = pos.x;
         main->getTransform().position.y = pos.y;
         const auto id = main->getUuid();
@@ -552,7 +553,7 @@ namespace Bess {
     }
 
     TxResult
-    ProjectSession::addSlot(std::shared_ptr<Canvas::SlotSceneComponent> slot,
+    ProjectSession::addSlot(std::shared_ptr<Canvas::SceneComponent> slot,
                             UUID parent,
                             UUID scene) {
         auto edit = tx("Add slot");
@@ -565,7 +566,7 @@ namespace Bess {
     }
 
     TxResult ProjectSession::addConn(
-        std::shared_ptr<Canvas::ConnectionSceneComponent> conn, UUID scene) {
+        std::shared_ptr<Canvas::SceneComponent> conn, UUID scene) {
         auto edit = tx("Add connection");
         const auto status = edit.addConn(std::move(conn), scene);
         if (!status) {
@@ -576,7 +577,7 @@ namespace Bess {
     }
 
     TxResult ProjectSession::trackConn(
-        std::shared_ptr<Canvas::ConnectionSceneComponent> conn, UUID scene) {
+        std::shared_ptr<Canvas::SceneComponent> conn, UUID scene) {
         auto edit = tx("Add connection");
         const auto status = edit.trackConn(std::move(conn), scene);
         if (!status) {
@@ -634,6 +635,38 @@ namespace Bess {
     TxResult ProjectSession::nameComp(UUID id, std::string name, UUID scene) {
         auto edit = tx("Rename component", {.empty = true});
         const auto status = edit.nameComp(id, std::move(name), scene);
+        if (!status) {
+            edit.cancel();
+            return {.status = status};
+        }
+        return edit.commit();
+    }
+
+    TxResult ProjectSession::setComp(UUID id,
+                                     Json::Value data,
+                                     UUID scene,
+                                     std::string key) {
+        auto edit = tx("Edit component", {.empty = true});
+        const auto status =
+            edit.setComp(id, std::move(data), scene, std::move(key));
+        if (!status) {
+            edit.cancel();
+            return {.status = status};
+        }
+        return edit.commit();
+    }
+
+    TxResult ProjectSession::trackComp(UUID id,
+                                       Json::Value from,
+                                       Json::Value to,
+                                       UUID scene,
+                                       std::string key) {
+        auto edit = tx("Edit component", {.empty = true});
+        const auto status = edit.trackComp(id,
+                                           std::move(from),
+                                           std::move(to),
+                                           scene,
+                                           std::move(key));
         if (!status) {
             edit.cancel();
             return {.status = status};

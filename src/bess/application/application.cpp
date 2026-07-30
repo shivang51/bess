@@ -10,6 +10,7 @@
 #include "event_dispatcher.h"
 #include "math_sim_driver.h"
 #include "pages/main_page/services/connection_service.h"
+#include "pages/main_page/project_model.h"
 #include "project_session/project_session.h"
 #include "services/plugin_service/plugin_service.h"
 #include "services/window_drop_service/window_drop_service.h"
@@ -100,6 +101,7 @@ namespace Bess {
         auto session = appCtx.addSubSystem<ProjectSession>();
         session->addSubSystem<Svc::CopyPaste::Context>();
         session->addSubSystem<Svc::SvcConnection>();
+        Pages::initProjectModel(*session);
 
         appCtx.init();
 

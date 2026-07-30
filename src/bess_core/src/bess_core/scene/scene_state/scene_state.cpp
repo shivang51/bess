@@ -6,7 +6,7 @@
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "event_dispatcher.h"
-#include "pages/main_page/scene_components/scene_comp_types.h"
+#include "bess_core/scene/scene_component_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "services/plugin_service/plugin_service.h"
 #include "simulation_engine.h"

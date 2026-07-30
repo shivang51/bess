@@ -431,15 +431,12 @@ namespace Bess::UI {
         if (!simEngine.isNetUpdated())
             return;
 
-        auto &mainPageState = Pages::MainPage::getInstance()->getState();
         const auto scene = GAppContext::getInstance()
                                .getSubSystem<Bess::ProjectSession>()
                                ->getSubSystem<SceneDriver>()
                                ->getActiveScene();
 
-        auto &netIdToNameMap = mainPageState.getNetIdToNameMap();
-        auto &netIdCompMap =
-            mainPageState.getNetIdToCompMap(scene->getState().getSceneId());
+        std::unordered_map<UUID, std::vector<UUID>> netIdCompMap;
 
         auto &sceneState = scene->getState();
         std::unordered_map<UUID,
@@ -493,11 +490,6 @@ namespace Bess::UI {
 
         auto &session = *projectCtx;
         auto tx = session.tx("Group components by net");
-        std::vector<
-            std::pair<UUID, std::shared_ptr<Canvas::GroupSceneComponent>>>
-            grouped;
-        grouped.reserve(netIdCompMap.size());
-
         int i = 1;
         for (const auto &[netId, components] : netIdCompMap) {
             std::shared_ptr<Canvas::GroupSceneComponent> group = nullptr;
@@ -541,7 +533,6 @@ namespace Bess::UI {
                 }
             }
 
-            grouped.emplace_back(netId, group);
         }
 
         if (!emptyGroups.empty()) {
@@ -562,9 +553,6 @@ namespace Bess::UI {
             }
         } else {
             tx.cancel();
-        }
-        for (const auto &[netId, group] : grouped) {
-            netIdToNameMap[netId] = &group->getName();
         }
         BESS_INFO(
             "[ProjectExplorer] Grouped components on nets: created {} groups.",

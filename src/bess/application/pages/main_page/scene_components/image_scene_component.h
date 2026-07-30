@@ -108,6 +108,8 @@ namespace Bess::Canvas {
         glm::vec2 m_resizeParentOffset{0.f};
         glm::vec3 m_resizeStartPosition{0.f};
         glm::vec2 m_resizeStartScale{0.f};
+        Json::Value m_resizeBefore;
+        UUID m_resizeScene = UUID::null;
     };
 } // namespace Bess::Canvas
 

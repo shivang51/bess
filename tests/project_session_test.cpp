@@ -263,6 +263,63 @@ TEST_F(ProjectSessionTest, ComponentRenameIsUndoable) {
     EXPECT_EQ(comp->getName(), "After");
 }
 
+TEST_F(ProjectSessionTest, SerializedComponentEditIsUndoable) {
+    auto comp = std::make_shared<Bess::Canvas::SceneComponent>();
+    ASSERT_TRUE(session->addComp(comp, {}, scene->getSceneId()));
+    session->clearHist();
+
+    const auto before = comp->toJson();
+    auto style = comp->getStyle();
+    style.schematicStyle.showName = false;
+    comp->setStyle(style);
+    const auto after = comp->toJson();
+
+    ASSERT_TRUE(session->trackComp(comp->getUuid(),
+                                   before,
+                                   after,
+                                   scene->getSceneId(),
+                                   "properties"));
+    EXPECT_FALSE(comp->getStyle().schematicStyle.showName);
+    EXPECT_TRUE(session->dirty());
+
+    ASSERT_TRUE(session->undo());
+    EXPECT_EQ(comp->toJson(), before);
+
+    ASSERT_TRUE(session->redo());
+    EXPECT_EQ(comp->toJson(), after);
+}
+
+TEST_F(ProjectSessionTest, SerializedEditsWithSameKeyMerge) {
+    auto comp = std::make_shared<Bess::Canvas::SceneComponent>();
+    ASSERT_TRUE(session->addComp(comp, {}, scene->getSceneId()));
+    session->clearHist();
+
+    auto before = comp->toJson();
+    const auto start = comp->getTransform().scale;
+    comp->setScale({2.f, 2.f});
+    auto after = comp->toJson();
+    ASSERT_TRUE(session->trackComp(comp->getUuid(),
+                                   before,
+                                   after,
+                                   scene->getSceneId(),
+                                   "properties"));
+
+    before = comp->toJson();
+    comp->setScale({3.f, 4.f});
+    after = comp->toJson();
+    ASSERT_TRUE(session->trackComp(comp->getUuid(),
+                                   before,
+                                   after,
+                                   scene->getSceneId(),
+                                   "properties"));
+    EXPECT_EQ(session->view().undoCount, 1u);
+
+    ASSERT_TRUE(session->undo());
+    EXPECT_EQ(comp->getTransform().scale, start);
+    ASSERT_TRUE(session->redo());
+    EXPECT_EQ(comp->getTransform().scale, glm::vec2(3.f, 4.f));
+}
+
 TEST_F(ProjectSessionTest, ReparentRejectsHierarchyCycles) {
     auto parent = std::make_shared<Bess::Canvas::SceneComponent>();
     auto child = std::make_shared<Bess::Canvas::SceneComponent>();

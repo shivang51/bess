@@ -8,6 +8,7 @@
 #include "common/bess_uuid.h"
 #include "dig_sim_driver.h"
 #include "imgui.h"
+#include "pages/main_page/comp_edit.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
@@ -133,8 +134,13 @@ namespace Bess::Canvas {
                         connStartSlot);
                 if (comp && comp->getType() == SceneComponentType::slot &&
                     !comp->isResizeSlot()) {
+                    auto before = toJson();
                     setProbedSlotUuid(e.sceneState->getConnectionStartSlot());
                     e.sceneState->setConnectionStartSlot(UUID::null);
+                    (void)Edit::trackComp(*this,
+                                          e.sceneState->getSceneId(),
+                                          std::move(before),
+                                          "probe-slot");
                     return true;
                 }
             }
@@ -148,14 +154,11 @@ namespace Bess::Canvas {
     }
 
     void SlotProbeSceneComponent::onAttach(SceneState &state) {
-        auto &mainPageState = Pages::MainPage::getInstance()->getState();
-        mainPageState.getProbes().insert(getUuid());
+        (void)state;
     }
 
     std::vector<UUID> SlotProbeSceneComponent::cleanup(SceneState &state,
                                                        UUID caller) {
-        auto &mainPageState = Pages::MainPage::getInstance()->getState();
-        mainPageState.getProbes().erase(getUuid());
         return NonSimSceneComponent::cleanup(state, caller);
     }
 

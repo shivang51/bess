@@ -12,6 +12,7 @@
 #include "ext/vector_float2.hpp"
 #include "ext/vector_float3.hpp"
 #include "imgui.h"
+#include "pages/main_page/comp_edit.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "simulation_engine.h"
@@ -498,6 +499,8 @@ namespace Bess::Canvas {
         clonedComponent->m_probeData.clear();
         clonedComponent->m_isPlotHovered = false;
         clonedComponent->m_isPlotDragging = false;
+        clonedComponent->m_plotDragBefore = {};
+        clonedComponent->m_plotDragScene = UUID::null;
         return {clonedComponent};
     }
 
@@ -931,6 +934,15 @@ namespace Bess::Canvas {
 
     void MonitorSceneComp::update(TimeMs frameTime, SceneState &state) {
         (void)frameTime;
+        std::vector<UUID> stale;
+        for (const auto &slotUuid : m_subscribedSlots) {
+            if (!m_probedSlots.contains(slotUuid)) {
+                stale.push_back(slotUuid);
+            }
+        }
+        for (const auto &slotUuid : stale) {
+            unsubscribeFromSlot(state, slotUuid);
+        }
         for (const auto &slotUuid : m_probedSlots) {
             if (!m_subscribedSlots.contains(slotUuid)) {
                 subscribeToSlot(state, slotUuid);
@@ -1044,7 +1056,12 @@ namespace Bess::Canvas {
                     {chipRect.center().x, chipRect.center().y, z},
                     context,
                     chipOptions)) {
+                auto before = toJson();
                 toggleProbeVisibilityByLegendIndex(traceIndex);
+                (void)Edit::trackComp(*this,
+                                      context.sceneState->getSceneId(),
+                                      std::move(before),
+                                      "monitor-legend");
             }
 
             const float swatchStartX = chipRect.left + chipPadX;
@@ -1115,7 +1132,12 @@ namespace Bess::Canvas {
                 {buttonRect.center().x, buttonRect.center().y, z},
                 context,
                 buttonOptions)) {
+            auto before = toJson();
             resetPlotPan();
+            (void)Edit::trackComp(*this,
+                                  context.sceneState->getSceneId(),
+                                  std::move(before),
+                                  "monitor-view");
         }
     }
 
@@ -1439,9 +1461,14 @@ namespace Bess::Canvas {
                         connStartSlot);
                 if (comp && comp->getType() == SceneComponentType::slot &&
                     !comp->isResizeSlot()) {
+                    auto before = toJson();
                     addSlotProbe(*e.sceneState,
                                  e.sceneState->getConnectionStartSlot());
                     e.sceneState->setConnectionStartSlot(UUID::null);
+                    (void)Edit::trackComp(*this,
+                                          e.sceneState->getSceneId(),
+                                          std::move(before),
+                                          "monitor-probe");
                     return true;
                 }
             }
@@ -1455,6 +1482,7 @@ namespace Bess::Canvas {
             return false;
         }
 
+        auto before = toJson();
         m_timeScale =
             sanitizedScale(m_timeScale, 1.f, kMinTimeScale, kMaxTimeScale);
         const float zoomFactor = std::pow(1.15f, e.delta.y);
@@ -1470,6 +1498,10 @@ namespace Bess::Canvas {
         m_timeScale *= zoomFactor;
         m_timeScale =
             sanitizedScale(m_timeScale, 1.f, kMinTimeScale, kMaxTimeScale);
+        (void)Edit::trackComp(*this,
+                              e.sceneState->getSceneId(),
+                              std::move(before),
+                              "monitor-view");
         return true;
     }
 
@@ -1480,7 +1512,12 @@ namespace Bess::Canvas {
             return;
         }
 
-        m_isPlotDragging = true;
+        if (!m_isPlotDragging) {
+            m_plotDragBefore = toJson();
+            m_plotDragScene =
+                e.sceneState ? e.sceneState->getSceneId() : UUID::null;
+            m_isPlotDragging = true;
+        }
 
         SceneDrawContext context;
         context.sceneState = e.sceneState;
@@ -1510,6 +1547,12 @@ namespace Bess::Canvas {
     void MonitorSceneComp::onMouseDragEnd() {
         if (m_isPlotDragging) {
             m_isPlotDragging = false;
+            (void)Edit::trackComp(*this,
+                                  m_plotDragScene,
+                                  std::move(m_plotDragBefore),
+                                  "monitor-view");
+            m_plotDragBefore = {};
+            m_plotDragScene = UUID::null;
             return;
         }
 

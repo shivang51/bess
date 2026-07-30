@@ -208,8 +208,14 @@ namespace Bess::UI {
 
             if (res != Popups::PopupRes::cancel) {
                 if (getState()._internalData.newFileClicked) {
-                    const auto status = pageState.newProj();
+                    const auto session =
+                        GAppContext::getInstance()
+                            .getSubSystem<ProjectSession>();
+                    const auto status = session->newProj();
                     if (status) {
+                        Pages::MainPage::getInstance()
+                            ->getParentWindow()
+                            ->setName("Unnamed - BESS");
                         refreshSceneViewportAttachments();
                         getState()._internalData.statusMessage =
                             "New project created";
@@ -220,8 +226,14 @@ namespace Bess::UI {
                     getState()._internalData.newFileClicked = false;
                 } else if (getState()._internalData.openFileClicked) {
                     const auto path = getState()._internalData.path;
-                    const auto status = pageState.load(path);
+                    const auto session =
+                        GAppContext::getInstance()
+                            .getSubSystem<ProjectSession>();
+                    const auto status = session->load(path);
                     if (status) {
+                        Pages::MainPage::getInstance()
+                            ->getParentWindow()
+                            ->setName(session->doc().name() + " - BESS");
                         refreshSceneViewportAttachments();
                         getState()._internalData.statusMessage = std::format(
                             "Opened project: {}",
@@ -851,12 +863,15 @@ namespace Bess::UI {
             getState()._internalData.newFileClicked = true;
             ImGui::OpenPopup(Popups::PopupIds::unsavedProjectWarning);
         } else {
-            const auto status = pageState.newProj();
+            const auto status = sess->newProj();
             if (!status) {
                 getState()._internalData.statusMessage =
                     std::format("Could not create project: {}", status.msg());
                 return;
             }
+            Pages::MainPage::getInstance()
+                ->getParentWindow()
+                ->setName("Unnamed - BESS");
             refreshSceneViewportAttachments();
             getState()._internalData.statusMessage = "New project created";
         }
@@ -882,12 +897,15 @@ namespace Bess::UI {
             getState()._internalData.path = filepath;
             ImGui::OpenPopup(Popups::PopupIds::unsavedProjectWarning);
         } else {
-            const auto status = pageState.load(filepath);
+            const auto status = sess->load(filepath);
             if (!status) {
                 getState()._internalData.statusMessage =
                     std::format("Could not open project: {}", status.msg());
                 return;
             }
+            Pages::MainPage::getInstance()
+                ->getParentWindow()
+                ->setName(sess->doc().name() + " - BESS");
             refreshSceneViewportAttachments();
             getState()._internalData.statusMessage =
                 std::format("Project loaded from {}", filepath);

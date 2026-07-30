@@ -4,6 +4,7 @@
 
 #include "common/bess_uuid.h"
 #include "fwd.hpp"
+#include "json/value.h"
 
 #include <cstddef>
 #include <functional>
@@ -16,9 +17,7 @@ namespace Bess {
     class ProjectSession;
 
     namespace Canvas {
-        class ConnectionSceneComponent;
         class SceneComponent;
-        class SlotSceneComponent;
     } // namespace Canvas
 
     namespace SimEngine::Drivers {
@@ -57,16 +56,16 @@ namespace Bess {
         [[nodiscard]] Status rmComp(UUID id, UUID scene = UUID::null);
 
         [[nodiscard]] Status
-        addSlot(std::shared_ptr<Canvas::SlotSceneComponent> slot,
+        addSlot(std::shared_ptr<Canvas::SceneComponent> slot,
                 UUID parent,
                 UUID scene = UUID::null);
 
         [[nodiscard]] Status
-        addConn(std::shared_ptr<Canvas::ConnectionSceneComponent> conn,
+        addConn(std::shared_ptr<Canvas::SceneComponent> conn,
                 UUID scene = UUID::null);
 
         [[nodiscard]] Status
-        trackConn(std::shared_ptr<Canvas::ConnectionSceneComponent> conn,
+        trackConn(std::shared_ptr<Canvas::SceneComponent> conn,
                   UUID scene = UUID::null);
 
         [[nodiscard]] Status moveComp(UUID id,
@@ -86,6 +85,16 @@ namespace Bess {
 
         [[nodiscard]] Status
         nameComp(UUID id, std::string name, UUID scene = UUID::null);
+
+        [[nodiscard]] Status setComp(UUID id,
+                                     Json::Value data,
+                                     UUID scene = UUID::null,
+                                     std::string key = {});
+        [[nodiscard]] Status trackComp(UUID id,
+                                       Json::Value from,
+                                       Json::Value to,
+                                       UUID scene = UUID::null,
+                                       std::string key = {});
 
         // Escape hatch for Bess features whose state spans several domains.
         [[nodiscard]] Status step(std::string name,

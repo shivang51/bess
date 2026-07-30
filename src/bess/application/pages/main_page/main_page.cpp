@@ -59,31 +59,6 @@ namespace Bess::Pages {
         }
         m_parentWindow = parentWindow;
 
-        // TODO(shivang): Think about a better way and scalabilty for plugins
-        Canvas::NonSimSceneComponent::registerComponent<Canvas::TextComponent>(
-            "Text Component");
-        Canvas::NonSimSceneComponent::registerComponent<
-            Canvas::ImageSceneComponent>("Image Component");
-        Canvas::NonSimSceneComponent::registerComponent<
-            Canvas::WidgetsTestComponent>("Widgets Test");
-        Canvas::NonSimSceneComponent::registerComponent<
-            Canvas::SlotProbeSceneComponent>("Probe");
-        Canvas::NonSimSceneComponent::registerComponent<
-            Canvas::MonitorSceneComp>("Monitor Node");
-
-        REG_TO_SER_REGISTRY(Canvas::ConnJointSceneComp);
-        REG_TO_SER_REGISTRY(Canvas::ConnectionSceneComponent);
-        REG_TO_SER_REGISTRY(Canvas::GroupSceneComponent);
-        REG_TO_SER_REGISTRY(Canvas::InputSceneComponent);
-        REG_TO_SER_REGISTRY(Canvas::ImageSceneComponent);
-        REG_TO_SER_REGISTRY(Canvas::NonSimSceneComponent);
-        REG_TO_SER_REGISTRY(Canvas::SimulationSceneComponent);
-        REG_TO_SER_REGISTRY(Canvas::SlotSceneComponent);
-        REG_TO_SER_REGISTRY(Canvas::TextComponent);
-        REG_TO_SER_REGISTRY(Canvas::WidgetsTestComponent);
-        REG_TO_SER_REGISTRY(Canvas::SlotProbeSceneComponent);
-        REG_TO_SER_REGISTRY(Canvas::ModuleSceneComponent);
-
         if (!s_headless) {
             UI::UIMain::init();
         }
@@ -103,15 +78,11 @@ namespace Bess::Pages {
             return;
         BESS_INFO("[MainPage] Destroying");
 
-        Canvas::NonSimSceneComponent::clearRegistry();
-        Canvas::SceneSerReg::clearRegistry();
-
         auto &appCtx = Bess::GAppContext::getInstance();
         if (!s_headless) {
             UI::UIMain::destroy();
         }
 
-        m_state.getSceneDriver()->reset();
         appCtx.getSubSystem<Assets::AssetManager>()->clear();
 
         BESS_INFO("[MainPage] Destroyed");
@@ -203,7 +174,7 @@ namespace Bess::Pages {
             } else if (inpSystem->isKeyPressed(KeyCode::a)) {
                 auto targetScene = UI::UIMain::getTargetViewportScene();
                 if (!targetScene) {
-                    targetScene = m_state.getSceneDriver()->getActiveScene();
+                    targetScene = sess->scenes().getActiveScene();
                 }
                 if (targetScene) {
                     targetScene->selectAllEntities();
@@ -222,7 +193,7 @@ namespace Bess::Pages {
             if (inpSystem->isKeyPressed(KeyCode::del)) {
                 auto targetScene = UI::UIMain::getTargetViewportScene();
                 if (!targetScene) {
-                    targetScene = m_state.getSceneDriver()->getActiveScene();
+                    targetScene = sess->scenes().getActiveScene();
                 }
                 if (!targetScene) {
                     return;
@@ -317,15 +288,16 @@ namespace Bess::Pages {
             } else if (inpSystem->isKeyPressed(KeyCode::escape)) {
                 UI::UIMain::getPanel<UI::ComponentExplorer>()->hide();
             } else if (inpSystem->isKeyPressed(KeyCode::c)) {
-                auto &mainPageState =
-                    Pages::MainPage::getInstance()->getState();
-                auto sceneDriver = mainPageState.getSceneDriver();
-                auto &sceneState = sceneDriver->getActiveScene()->getState();
+                const auto session =
+                    GAppContext::getInstance()
+                        .getSubSystem<Bess::ProjectSession>();
+                auto scene = session->scenes().getActiveScene();
+                auto &sceneState = scene->getState();
                 const auto selectedIds = sceneState.getSelectedComponents() |
                                          std::views::keys |
                                          std::ranges::to<std::vector<UUID>>();
                 if (!selectedIds.empty()) {
-                    m_state.updateNets(sceneDriver->getActiveScene());
+                    m_state.updateNets(scene);
                     std::unordered_set<UUID> processedNetIds;
                     std::vector<UUID> netIdsToModule;
                     netIdsToModule.reserve(selectedIds.size());
@@ -369,7 +341,7 @@ namespace Bess::Pages {
         auto ctx = projCtx->getSubSystem<Svc::CopyPaste::Context>();
         auto targetScene = UI::UIMain::getTargetViewportScene();
         if (!targetScene) {
-            targetScene = m_state.getSceneDriver()->getActiveScene();
+            targetScene = projCtx->scenes().getActiveScene();
         }
         if (targetScene) {
             ctx->copy(targetScene);
@@ -382,7 +354,7 @@ namespace Bess::Pages {
         auto ctx = projCtx->getSubSystem<Svc::CopyPaste::Context>();
         auto targetScene = UI::UIMain::getTargetViewportScene();
         if (!targetScene) {
-            targetScene = m_state.getSceneDriver()->getActiveScene();
+            targetScene = projCtx->scenes().getActiveScene();
         }
         if (targetScene) {
             ctx->paste(targetScene, targetScene->getState().getMousePos());

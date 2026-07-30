@@ -45,8 +45,6 @@ namespace Bess::UI {
     }
 
     void GraphViewWindow::onDraw() {
-        const auto &mainPage = Pages::MainPage::getInstance();
-        const auto &mainPageState = mainPage->getState();
         auto sceneDriver = GAppContext::getInstance()
                                .getSubSystem<Bess::ProjectSession>()
                                ->getSubSystem<SceneDriver>();
@@ -62,10 +60,10 @@ namespace Bess::UI {
         std::vector<UUID> compIds = {};
         std::unordered_map<std::string, UUID> nameToIdMap;
 
-        for (const auto &id : mainPageState.getProbes()) {
-            const auto &comp =
-                sceneState.getComponentByUuid<Canvas::SlotProbeSceneComponent>(
-                    id);
+        for (const auto &[id, base] : sceneState.getAllComponents()) {
+            const auto comp =
+                std::dynamic_pointer_cast<Canvas::SlotProbeSceneComponent>(
+                    base);
             if (!comp) {
                 continue;
             }

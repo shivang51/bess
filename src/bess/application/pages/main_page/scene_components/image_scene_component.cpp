@@ -1,4 +1,6 @@
 #include "pages/main_page/scene_components/image_scene_component.h"
+
+#include "pages/main_page/comp_edit.h"
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/scene/camera.h"
 #include "bess_core/scene/scene_draw_helpers.h"
@@ -153,12 +155,18 @@ namespace Bess::Canvas {
 
     void ImageSceneComponent::onMouseDragEnd() {
         if (m_isResizing) {
+            (void)Edit::trackComp(*this,
+                                  m_resizeScene,
+                                  std::move(m_resizeBefore),
+                                  "image-resize");
             m_isResizing = false;
             m_activeResizeHandle = 0;
             m_resizeAnchor = {0.f, 0.f};
             m_resizeParentOffset = {0.f, 0.f};
             m_resizeStartPosition = {0.f, 0.f, 0.f};
             m_resizeStartScale = {0.f, 0.f};
+            m_resizeBefore = {};
+            m_resizeScene = UUID::null;
             return;
         }
 
@@ -222,6 +230,8 @@ namespace Bess::Canvas {
         m_isResizing = false;
         m_activeResizeHandle = 0;
         m_hoveredHandle = 0;
+        m_resizeBefore = {};
+        m_resizeScene = UUID::null;
     }
 
     glm::vec2 ImageSceneComponent::calculateScale(const SceneState &state) {
@@ -467,6 +477,8 @@ namespace Bess::Canvas {
         m_activeResizeHandle = e.details;
         m_resizeStartPosition = m_transform.position;
         m_resizeStartScale = sanitizedScale(m_transform.scale);
+        m_resizeBefore = toJson();
+        m_resizeScene = e.sceneState->getSceneId();
 
         const auto absPos =
             getAbsolutePosition(*e.sceneState, e.isSchematicMode);

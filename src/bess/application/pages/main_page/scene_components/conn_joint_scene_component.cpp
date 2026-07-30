@@ -8,6 +8,7 @@
 #include "common/bess_uuid.h"
 #include "connection_scene_component.h"
 #include "geometric.hpp"
+#include "pages/main_page/comp_edit.h"
 #include "project_session/project_session.h"
 #include "sim_scene_component.h"
 #include "slot_scene_component.h"
@@ -201,6 +202,9 @@ namespace Bess::Canvas {
             return;
 
         if (!m_isDragging) {
+            m_dragBefore = toJson();
+            m_dragScene =
+                e.sceneState ? e.sceneState->getSceneId() : UUID::null;
             onMouseDragBegin(e);
         }
 
@@ -244,6 +248,14 @@ namespace Bess::Canvas {
             m_offset += delta;
             m_offset = glm::clamp(m_offset, 0.0f, 1.0f);
         }
+    }
+
+    void ConnJointSceneComp::onMouseDragEnd() {
+        m_isDragging = false;
+        (void)Edit::trackComp(
+            *this, m_dragScene, std::move(m_dragBefore), "joint-position");
+        m_dragBefore = {};
+        m_dragScene = UUID::null;
     }
 
     bool ConnJointSceneComp::onMouseButton(const Events::MouseButtonEvent &e) {

@@ -64,6 +64,7 @@ namespace Bess::Canvas {
         getSlotState(const SceneDrawContext &context) const;
 
         void onMouseDragged(const Events::MouseDraggedEvent &e) override;
+        void onMouseDragEnd() override;
         bool onMouseEnter(const Events::MouseEnterEvent &e) override;
         bool onMouseLeave(const Events::MouseLeaveEvent &e) override;
         Core::Viewport::SceneCursor getCursor() const override;
@@ -91,6 +92,8 @@ namespace Bess::Canvas {
               m_schematicOffset =
                   -1.f; // normalized 0-1 offset, signifying pos on segment
         ConnSegOrientaion m_segOrientation = ConnSegOrientaion::horizontal;
+        Json::Value m_dragBefore;
+        UUID m_dragScene = UUID::null;
     };
 } // namespace Bess::Canvas
 

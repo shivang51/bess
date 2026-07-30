@@ -8,7 +8,7 @@
 #include "bess_core/scene/scene_ui/layout.h"
 #include "bess_core/style/bess_theme.h"
 #include "bess_core/viewport.h"
-#include "pages/main_page/scene_components/scene_comp_types.h"
+#include "bess_core/scene/scene_component_types.h"
 #include <cstdint>
 #include <memory>
 #include <optional>

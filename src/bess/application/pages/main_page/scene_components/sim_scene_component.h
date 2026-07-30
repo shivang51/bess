@@ -167,6 +167,8 @@ namespace Bess::Canvas {
 
         glm::vec3 getAbsolutePosition(const SceneState &state,
                                       bool isSchematicMode) const override;
+        [[nodiscard]] glm::vec3 editPos(bool schematic) const override;
+        void setEditPos(const glm::vec3 &pos, bool schematic) override;
 
         REG_SCENE_COMP_TYPE("SimulationSceneComponent",
                             SceneComponentType::simulation)

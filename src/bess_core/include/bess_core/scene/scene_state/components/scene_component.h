@@ -52,6 +52,11 @@ namespace Bess::Canvas {
         TBase::fromJson(j, comp);                                              \
         TClass::fromJson(j, comp);                                             \
         return comp;                                                           \
+    }                                                                          \
+    void applyJson(const Json::Value &j) override {                            \
+        auto self = std::dynamic_pointer_cast<TClass>(shared_from_this());      \
+        TClass::fromJson(j, self);                                             \
+        onJsonApplied();                                                       \
     }
 
 #define SCENE_COMP_SER_NP(TClass, TBase)                                       \
@@ -71,6 +76,11 @@ namespace Bess::Canvas {
         auto castedComp = std::dynamic_pointer_cast<TBase>(comp);              \
         TBase::fromJson(j, castedComp);                                        \
         return comp;                                                           \
+    }                                                                          \
+    void applyJson(const Json::Value &j) override {                            \
+        auto self = std::dynamic_pointer_cast<TClass>(shared_from_this());      \
+        TClass::fromJson(j, self);                                             \
+        onJsonApplied();                                                       \
     }
 
 #define REG_TO_SER_REGISTRY(TClass)                                            \
@@ -204,6 +214,10 @@ namespace Bess::Canvas {
 
         // Serialize the component to JSON for saving
         virtual Json::Value toJson() const;
+        virtual void applyJson(const Json::Value &json);
+
+        [[nodiscard]] virtual glm::vec3 editPos(bool schematic) const;
+        virtual void setEditPos(const glm::vec3 &pos, bool schematic);
 
         virtual std::vector<UUID> getDependants(const SceneState &state) const;
 
@@ -229,6 +243,8 @@ namespace Bess::Canvas {
 
         virtual void onBeforeToJson() const {
         }
+
+        virtual void onJsonApplied();
 
         virtual glm::vec2 calculateScale(const SceneState &);
 

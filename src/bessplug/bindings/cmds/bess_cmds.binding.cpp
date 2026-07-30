@@ -358,8 +358,9 @@ void bind_cmds(py::module &m) {
     m.def(
         "clear",
         []() -> CmdResult {
-            const auto status =
-                Bess::Pages::MainPage::getInstance()->getState().newProj();
+            const auto status = Bess::GAppContext::getInstance()
+                                    .getSubSystem<Bess::ProjectSession>()
+                                    ->newProj();
             if (!status) {
                 return {py::none(), status.msg()};
             }

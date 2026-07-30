@@ -2,7 +2,7 @@
 #include "bess_core/scene/scene_draw_helpers.h"
 #include "bess_core/settings/viewport_theme.h"
 #include "common/bess_uuid.h"
-#include "pages/main_page/scene_components/scene_comp_types.h"
+#include "bess_core/scene/scene_component_types.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 
 namespace Bess::Canvas {

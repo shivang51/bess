@@ -29,8 +29,6 @@ target_include_directories(project_session
     PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
         "${CMAKE_SOURCE_DIR}/src/bess_core/include"
-        "${CMAKE_SOURCE_DIR}/src/bess/application"
-        "${CMAKE_SOURCE_DIR}/src/bess"
         "${CMAKE_SOURCE_DIR}/src/event_system/include"
         "${CMAKE_SOURCE_DIR}/src/sim_driver/include"
         "${CMAKE_SOURCE_DIR}/src/sim_engine/include"

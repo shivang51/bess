@@ -43,17 +43,6 @@ namespace Bess::Pages {
 
         void update();
 
-        typedef std::unordered_map<UUID, std::string *> TNetIdToNameMap;
-        MAKE_GETTER_SETTER(TNetIdToNameMap, NetIdToNameMap, m_netIdToNameMap)
-        MAKE_GETTER_SETTER(std::unordered_set<UUID>, Probes, m_probes)
-
-        typedef std::unordered_map<UUID, std::vector<UUID>> TNetIdToCompMap;
-        TNetIdToCompMap &getNetIdToCompMap(UUID sceneId);
-
-        [[nodiscard]] Status resetProj(bool updateWindowName = true);
-        [[nodiscard]] Status newProj(bool updateWindowName = true);
-        [[nodiscard]] Status save();
-        [[nodiscard]] Status load(const std::string &path);
         bool importVerilogFile(const std::string &path,
                                std::string *errorMessage = nullptr);
         bool importVerilogFiles(const std::vector<std::string> &paths,
@@ -67,9 +56,6 @@ namespace Bess::Pages {
 
         void init();
 
-        std::shared_ptr<SceneDriver> getSceneDriver() const;
-        std::shared_ptr<SceneDriver> getSceneDriver();
-
         PageActionFlags actionFlags = {};
 
         bool m_simulationPaused = false;
@@ -78,11 +64,9 @@ namespace Bess::Pages {
         // contains the state of keyboard keys pressed
 
       private:
+        [[nodiscard]] Status resetProj();
         void onWindowDropped(const Events::WindowDropEvent &event);
         void onEntityMoved(const Canvas::Events::EntityMovedEvent &e);
-
-        void onEntityAdded(const Canvas::Events::ComponentAddedEvent &e);
-        void onEntityRemoved(const Canvas::Events::ComponentRemovedEvent &e);
 
         void onCompDefOutputsResized(
             const SimEngine::Events::CompDefOutputsResizedEvent &e);
@@ -93,14 +77,6 @@ namespace Bess::Pages {
         std::unordered_map<int, bool> m_releasedKeysFrame;
         std::unordered_map<int, bool> m_pressedKeysFrame;
         std::unordered_map<int, bool> m_downKeys;
-        struct SceneCompInfo {
-            UUID sceneCompId;
-            UUID sceneId;
-        };
-        std::unordered_map<UUID, SceneCompInfo> m_simIdToSceneCompId;
-        std::unordered_set<UUID> m_probes;
-        TNetIdToNameMap m_netIdToNameMap;
-        std::unordered_map<UUID, TNetIdToCompMap> m_netIdToCompMap;
         struct VerilogImportSession;
         std::unique_ptr<VerilogImportSession> m_verilogImportSession;
     };

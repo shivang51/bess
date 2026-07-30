@@ -37,6 +37,7 @@ namespace Bess::Canvas {
 
       private:
         glm::vec2 calculateScale(const SceneState &state) override;
+        void onJsonApplied() override;
 
       private:
         std::string m_data = "New Text";

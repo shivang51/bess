@@ -110,6 +110,8 @@ namespace Bess::Canvas {
         bool m_isPlotDragging = false;
         bool m_showGrid = true;
         bool m_showLegend = true;
+        Json::Value m_plotDragBefore;
+        UUID m_plotDragScene = UUID::null;
     };
 
 } // namespace Bess::Canvas

@@ -31,6 +31,16 @@ namespace Bess::Canvas {
         onScaleChanged();
     }
 
+    glm::vec3 SceneComponent::editPos(bool schematic) const {
+        (void)schematic;
+        return m_transform.position;
+    }
+
+    void SceneComponent::setEditPos(const glm::vec3 &pos, bool schematic) {
+        (void)schematic;
+        setPosition(pos);
+    }
+
     void SceneComponent::setIsDraggable(bool draggable) {
         m_isDraggable = draggable;
     }
@@ -150,6 +160,20 @@ namespace Bess::Canvas {
             ("name", getName, setName),
             ("parentComponent", getParentComponent, setParentComponent),
             ("childComponents", getChildComponents, setChildComponents));
+    }
+
+    void SceneComponent::applyJson(const Json::Value &json) {
+        fromJson(json, shared_from_this());
+        onJsonApplied();
+    }
+
+    void SceneComponent::onJsonApplied() {
+        onTransformChanged();
+        onScaleChanged();
+        onStyleChanged();
+        onNameChanged();
+        onChildrenChanged();
+        m_isUIDirty = true;
     }
 
     std::vector<UUID>

@@ -50,6 +50,7 @@ namespace Bess::Canvas {
 
         void onMouseDragged(const Events::MouseDraggedEvent &e) override;
         void onMouseDragBegin(const Events::MouseDraggedEvent &e) override;
+        void onMouseDragEnd() override;
         bool onMouseEnter(const Events::MouseEnterEvent &e) override;
         bool onMouseLeave(const Events::MouseLeaveEvent &e) override;
         Core::Viewport::SceneCursor getCursor() const override;
@@ -93,6 +94,7 @@ namespace Bess::Canvas {
         std::vector<UUID> getDependants(const SceneState &state) const override;
 
       private:
+        void onJsonApplied() override;
         void onFirstDraw(SceneDrawContext &context) override;
 
         void drawSegments(const SceneState &state,
@@ -115,6 +117,8 @@ namespace Bess::Canvas {
         bool m_useCustomColor = false;
         int m_initialSegmentCount = 3;
         bool m_shouldReconstructSegments = true;
+        Json::Value m_dragBefore;
+        UUID m_dragScene = UUID::null;
     };
 } // namespace Bess::Canvas
 

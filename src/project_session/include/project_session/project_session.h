@@ -22,9 +22,7 @@ namespace Bess {
     class SceneDriver;
 
     namespace Canvas {
-        class ConnectionSceneComponent;
         class SceneComponent;
-        class SlotSceneComponent;
     } // namespace Canvas
 
     namespace SimEngine {
@@ -111,14 +109,14 @@ namespace Bess {
                                       UUID scene = UUID::null);
         [[nodiscard]] TxResult rmComp(UUID id, UUID scene = UUID::null);
         [[nodiscard]] TxResult
-        addSlot(std::shared_ptr<Canvas::SlotSceneComponent> slot,
+        addSlot(std::shared_ptr<Canvas::SceneComponent> slot,
                 UUID parent,
                 UUID scene = UUID::null);
         [[nodiscard]] TxResult
-        addConn(std::shared_ptr<Canvas::ConnectionSceneComponent> conn,
+        addConn(std::shared_ptr<Canvas::SceneComponent> conn,
                 UUID scene = UUID::null);
         [[nodiscard]] TxResult
-        trackConn(std::shared_ptr<Canvas::ConnectionSceneComponent> conn,
+        trackConn(std::shared_ptr<Canvas::SceneComponent> conn,
                   UUID scene = UUID::null);
         [[nodiscard]] TxResult moveComp(UUID id,
                                         glm::vec3 pos,
@@ -135,6 +133,15 @@ namespace Bess {
         trackParent(UUID id, UUID from, UUID to, UUID scene = UUID::null);
         [[nodiscard]] TxResult
         nameComp(UUID id, std::string name, UUID scene = UUID::null);
+        [[nodiscard]] TxResult setComp(UUID id,
+                                      Json::Value data,
+                                      UUID scene = UUID::null,
+                                      std::string key = {});
+        [[nodiscard]] TxResult trackComp(UUID id,
+                                        Json::Value from,
+                                        Json::Value to,
+                                        UUID scene = UUID::null,
+                                        std::string key = {});
         [[nodiscard]] TxResult setName(std::string name);
 
         [[nodiscard]] TxResult undo();

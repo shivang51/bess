@@ -1,7 +1,7 @@
 #include "bess_core/scene/layers/hover_layer.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/widgets/scene_widgets.h"
-#include "pages/main_page/scene_components/scene_comp_types.h"
+#include "bess_core/scene/scene_component_types.h"
 
 namespace Bess::Canvas {
     namespace {

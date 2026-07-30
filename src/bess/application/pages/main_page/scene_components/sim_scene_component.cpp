@@ -965,8 +965,22 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
     }
 
     glm::vec3 SimulationSceneComponent::dragPos() const {
-        return m_schematic ? m_schematicTransform.position
-                           : m_transform.position;
+        return editPos(m_schematic);
+    }
+
+    glm::vec3 SimulationSceneComponent::editPos(bool schematic) const {
+        return schematic ? m_schematicTransform.position : m_transform.position;
+    }
+
+    void SimulationSceneComponent::setEditPos(const glm::vec3 &pos,
+                                              bool schematic) {
+        if (!schematic) {
+            setPosition(pos);
+            return;
+        }
+        auto transform = m_schematicTransform;
+        transform.position = pos;
+        setSchematicTransform(transform);
     }
 
     glm::vec3

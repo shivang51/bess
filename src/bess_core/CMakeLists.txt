@@ -15,6 +15,7 @@ set(Header_Files
 	"include/bess_core/scene/widgets/scene_widgets_internal.h"
 	"include/bess_core/scene/widgets/scene_widgets.h"
 	"include/bess_core/scene/scene_types.h"
+	"include/bess_core/scene/scene_component_types.h"
 	"include/bess_core/scene/scene_events.h"
 	"include/bess_core/scene/camera.h"
 	"include/bess_core/scene/scene_event_builder.h"

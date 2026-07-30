@@ -45,6 +45,11 @@ namespace Bess::Canvas {
         }
     }
 
+    void TextComponent::onJsonApplied() {
+        NonSimSceneComponent::onJsonApplied();
+        m_isScaleDirty = true;
+    }
+
     void TextComponent::drawSchematic(SceneDrawContext &context) {
         draw(context);
     }

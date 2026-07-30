@@ -15,6 +15,7 @@
 #include "conn_joint_scene_component.h"
 #include "event_dispatcher.h"
 #include "fwd.hpp"
+#include "pages/main_page/comp_edit.h"
 #include "pages/main_page/services/connection_service.h"
 #include "project_session/project_session.h"
 #include "slot_scene_component.h"
@@ -309,8 +310,23 @@ namespace Bess::Canvas {
 
     void ConnectionSceneComponent::onMouseDragBegin(
         const Events::MouseDraggedEvent &e) {
+        m_dragBefore = toJson();
+        m_dragScene = e.sceneState ? e.sceneState->getSceneId() : UUID::null;
         m_draggedSegIdx = (int)e.details;
         m_isDragging = true;
+    }
+
+    void ConnectionSceneComponent::onMouseDragEnd() {
+        m_isDragging = false;
+        (void)Edit::trackComp(
+            *this, m_dragScene, std::move(m_dragBefore), "connection-route");
+        m_dragBefore = {};
+        m_dragScene = UUID::null;
+    }
+
+    void ConnectionSceneComponent::onJsonApplied() {
+        SceneComponent::onJsonApplied();
+        m_segmentPosCacheDirty = true;
     }
 
     void ConnectionSceneComponent::setStartEndSlots(const UUID &startSlot,
