@@ -842,167 +842,149 @@ namespace Bess::Config {
     }
 
     namespace {
-        // Thank LLM for these mappings
         void setImGuiColors(const Bess::Core::Style::ColorScheme &colorScheme,
                             ImGuiStyle &style) {
             auto &colors = style.Colors;
-            const bool isDark = colorScheme.isDark();
-            auto themeColors = colorScheme.getColors();
-            auto withAlpha = [](Color color, float alpha) {
-                ImVec4 v = getImVec4(color);
-                v.w = alpha;
-                return v;
+            const auto &scheme = colorScheme.getColors();
+
+            const auto alpha = [](const Color &color, float opacity) {
+                auto result = getImVec4(color);
+                result.w = opacity;
+                return result;
             };
 
-            // Blend two colors: result = base * (1-t) + overlay * t
-            auto blend = [&](Color base, Color overlay, float t) {
-                ImVec4 b = getImVec4(base);
-                ImVec4 o = getImVec4(overlay);
-                return ImVec4(b.x * (1.f - t) + o.x * t,
-                              b.y * (1.f - t) + o.y * t,
-                              b.z * (1.f - t) + o.z * t,
-                              b.w * (1.f - t) + o.w * t);
+            // Material state layers composite the foreground role over the
+            // component container. Precompositing keeps the result stable
+            // regardless of the ImGui window beneath it.
+            const auto stateLayer = [](const Color &container,
+                                       const Color &content,
+                                       float opacity) {
+                const auto base = getImVec4(container);
+                const auto state = getImVec4(content);
+                return ImVec4{
+                    base.x + (state.x - base.x) * opacity,
+                    base.y + (state.y - base.y) * opacity,
+                    base.z + (state.z - base.z) * opacity,
+                    base.w,
+                };
             };
 
-            // ── Overall background ───────────────────────────────────
-            colors[ImGuiCol_WindowBg] = getImVec4(themeColors.surface);
-            colors[ImGuiCol_ChildBg] =
-                getImVec4(themeColors.surfaceContainerLow);
-            colors[ImGuiCol_PopupBg] =
-                getImVec4(themeColors.surfaceContainerHigh);
+            constexpr float hover = 0.08f;
+            constexpr float focus = 0.10f;
+            constexpr float pressed = 0.10f;
+            constexpr float dragged = 0.16f;
 
-            // ── Borders & separators ─────────────────────────────────
-            colors[ImGuiCol_Border] = getImVec4(themeColors.outlineVariant);
-            colors[ImGuiCol_BorderShadow] = withAlpha(themeColors.shadow, 0.0f);
+            // Surface elevation follows the Material container hierarchy.
+            colors[ImGuiCol_WindowBg] = getImVec4(scheme.surface);
+            colors[ImGuiCol_ChildBg] = getImVec4(scheme.surfaceContainerLow);
+            colors[ImGuiCol_PopupBg] = getImVec4(scheme.surfaceContainerHigh);
 
-            colors[ImGuiCol_Separator] = getImVec4(themeColors.outlineVariant);
-            colors[ImGuiCol_SeparatorHovered] = getImVec4(themeColors.outline);
-            colors[ImGuiCol_SeparatorActive] = getImVec4(themeColors.primary);
+            colors[ImGuiCol_Border] = getImVec4(scheme.outlineVariant);
+            colors[ImGuiCol_BorderShadow] = alpha(scheme.shadow, 0.0f);
 
-            // ── Text ─────────────────────────────────────────────────
-            colors[ImGuiCol_Text] = getImVec4(themeColors.onSurface);
-            // M3: onSurfaceVariant is the proper role for de-emphasized text
-            colors[ImGuiCol_TextDisabled] =
-                getImVec4(themeColors.onSurfaceVariant);
+            colors[ImGuiCol_Text] = getImVec4(scheme.onSurface);
+            // M3 disabled content uses on-surface at 38% opacity.
+            colors[ImGuiCol_TextDisabled] = alpha(scheme.onSurface, 0.38f);
 
-            // ── Headers / tree nodes / collapsing bars ───────────────
-            // Use surface container hierarchy for consistent text contrast,
-            // with primaryContainer for active state to give clear feedback
-            colors[ImGuiCol_Header] =
-                getImVec4(themeColors.surfaceContainerHigh);
-            colors[ImGuiCol_HeaderHovered] =
-                getImVec4(themeColors.surfaceContainerHighest);
-            colors[ImGuiCol_HeaderActive] =
-                blend(themeColors.surfaceContainerHighest,
-                      themeColors.primary,
-                      isDark ? 0.15f : 0.12f);
-
-            // ── Frames: inputs, checkboxes bg, combo bg, sliders bg ─
-            // Use opaque surface containers for a solid background that's
-            // always visible, with primary tinting on interaction
+            // Filled fields use surface-container-highest and neutral
+            // on-surface state layers.
             colors[ImGuiCol_FrameBg] =
-                getImVec4(themeColors.surfaceContainerHighest);
-            colors[ImGuiCol_FrameBgHovered] =
-                blend(themeColors.surfaceContainerHighest,
-                      themeColors.primary,
-                      isDark ? 0.08f : 0.12f);
-            colors[ImGuiCol_FrameBgActive] =
-                blend(themeColors.surfaceContainerHighest,
-                      themeColors.primary,
-                      isDark ? 0.16f : 0.22f);
+                getImVec4(scheme.surfaceContainerHighest);
+            colors[ImGuiCol_FrameBgHovered] = stateLayer(
+                scheme.surfaceContainerHighest, scheme.onSurface, hover);
+            colors[ImGuiCol_FrameBgActive] = stateLayer(
+                scheme.surfaceContainerHighest, scheme.onSurface, focus);
 
-            // ── Buttons ──────────────────────────────────────────────
-            colors[ImGuiCol_Button] =
-                getImVec4(themeColors.surfaceContainerHigh);
+            // Header is also ImGui's selected-row role. A tonal container
+            // separates selection from neutral alternating table rows.
+            colors[ImGuiCol_Header] = getImVec4(scheme.secondaryContainer);
+            colors[ImGuiCol_HeaderHovered] = stateLayer(
+                scheme.secondaryContainer, scheme.onSecondaryContainer, hover);
+            colors[ImGuiCol_HeaderActive] =
+                stateLayer(scheme.secondaryContainer,
+                           scheme.onSecondaryContainer,
+                           pressed);
+
+            // Neutral elevated buttons avoid changing the global text role.
+            colors[ImGuiCol_Button] = getImVec4(scheme.surfaceContainerHigh);
             colors[ImGuiCol_ButtonHovered] =
-                getImVec4(themeColors.surfaceContainerHighest);
-            colors[ImGuiCol_ButtonActive] =
-                getImVec4(themeColors.surfaceContainer);
+                stateLayer(scheme.surfaceContainerHigh, scheme.primary, hover);
+            colors[ImGuiCol_ButtonActive] = stateLayer(
+                scheme.surfaceContainerHigh, scheme.primary, pressed);
 
-            // ── Accent controls (Checkboxes, sliders) ────────────────
-            colors[ImGuiCol_CheckMark] = getImVec4(themeColors.primary);
-            colors[ImGuiCol_SliderGrab] = getImVec4(themeColors.primary);
+            colors[ImGuiCol_CheckMark] = getImVec4(scheme.primary);
+            colors[ImGuiCol_SliderGrab] = getImVec4(scheme.primary);
             colors[ImGuiCol_SliderGrabActive] =
-                getImVec4(themeColors.inversePrimary);
+                stateLayer(scheme.primary, scheme.onPrimary, pressed);
+            colors[ImGuiCol_InputTextCursor] = getImVec4(scheme.primary);
 
-            // ── Tabs ─────────────────────────────────────────────────
-            // Hierarchy: unfocused < inactive < active < hovered
-            colors[ImGuiCol_Tab] = getImVec4(themeColors.surfaceContainer);
-            colors[ImGuiCol_TabHovered] =
-                blend(themeColors.surfaceContainerHighest,
-                      themeColors.primary,
-                      isDark ? 0.08f : 0.10f);
-            colors[ImGuiCol_TabActive] =
-                getImVec4(themeColors.surfaceContainerHigh);
-            colors[ImGuiCol_TabUnfocused] =
-                getImVec4(themeColors.surfaceContainerLow);
-            colors[ImGuiCol_TabUnfocusedActive] =
-                getImVec4(themeColors.surfaceContainer);
-
-            // ── Title bar ────────────────────────────────────────────
-            colors[ImGuiCol_TitleBg] =
-                getImVec4(themeColors.surfaceContainerLow);
-            colors[ImGuiCol_TitleBgActive] =
-                getImVec4(themeColors.surfaceContainerLow);
+            colors[ImGuiCol_TitleBg] = getImVec4(scheme.surfaceContainerLow);
+            colors[ImGuiCol_TitleBgActive] = getImVec4(scheme.surfaceContainer);
             colors[ImGuiCol_TitleBgCollapsed] =
-                getImVec4(themeColors.surfaceDim);
+                getImVec4(scheme.surfaceContainerLowest);
+            colors[ImGuiCol_MenuBarBg] = getImVec4(scheme.surfaceContainerLow);
 
-            // ── Menu bar ─────────────────────────────────────────────
-            colors[ImGuiCol_MenuBarBg] =
-                getImVec4(themeColors.surfaceContainerLow);
-
-            // ── Scrollbars ───────────────────────────────────────────
-            // Transparent background so it doesn't fight with parent
-            colors[ImGuiCol_ScrollbarBg] = withAlpha(themeColors.surface, 0.0f);
+            colors[ImGuiCol_ScrollbarBg] = alpha(scheme.surface, 0.0f);
             colors[ImGuiCol_ScrollbarGrab] =
-                getImVec4(themeColors.surfaceContainerHighest);
+                alpha(scheme.onSurfaceVariant, 0.38f);
             colors[ImGuiCol_ScrollbarGrabHovered] =
-                getImVec4(themeColors.outlineVariant);
+                alpha(scheme.onSurfaceVariant, 0.55f);
             colors[ImGuiCol_ScrollbarGrabActive] =
-                getImVec4(themeColors.outline);
+                alpha(scheme.onSurfaceVariant, 0.70f);
 
-            // ── Resize grips ─────────────────────────────────────────
-            colors[ImGuiCol_ResizeGrip] = withAlpha(themeColors.outline, 0.40f);
-            colors[ImGuiCol_ResizeGripHovered] =
-                withAlpha(themeColors.primary, 0.70f);
-            colors[ImGuiCol_ResizeGripActive] = getImVec4(themeColors.primary);
+            colors[ImGuiCol_Separator] = getImVec4(scheme.outlineVariant);
+            colors[ImGuiCol_SeparatorHovered] = getImVec4(scheme.primary);
+            colors[ImGuiCol_SeparatorActive] =
+                stateLayer(scheme.primary, scheme.onPrimary, pressed);
 
-            // ── Docking ──────────────────────────────────────────────
-            colors[ImGuiCol_DockingPreview] =
-                withAlpha(themeColors.primary, 0.45f);
-            colors[ImGuiCol_DockingEmptyBg] = getImVec4(themeColors.surfaceDim);
+            colors[ImGuiCol_ResizeGrip] = alpha(scheme.primary, 0.24f);
+            colors[ImGuiCol_ResizeGripHovered] = alpha(scheme.primary, 0.60f);
+            colors[ImGuiCol_ResizeGripActive] = getImVec4(scheme.primary);
 
-            // ── Plots ────────────────────────────────────────────────
-            colors[ImGuiCol_PlotLines] = getImVec4(themeColors.primary);
-            colors[ImGuiCol_PlotLinesHovered] = getImVec4(themeColors.tertiary);
-            colors[ImGuiCol_PlotHistogram] = getImVec4(themeColors.secondary);
-            colors[ImGuiCol_PlotHistogramHovered] =
-                getImVec4(themeColors.tertiary);
+            // Material tabs share a surface; the primary indicator carries
+            // selected state instead of a large background contrast.
+            colors[ImGuiCol_Tab] = getImVec4(scheme.surfaceContainerLow);
+            colors[ImGuiCol_TabHovered] =
+                stateLayer(scheme.surfaceContainerLow, scheme.onSurface, hover);
+            colors[ImGuiCol_TabSelected] =
+                getImVec4(scheme.surfaceContainerLow);
+            colors[ImGuiCol_TabSelectedOverline] = getImVec4(scheme.primary);
+            colors[ImGuiCol_TabDimmed] =
+                getImVec4(scheme.surfaceContainerLowest);
+            colors[ImGuiCol_TabDimmedSelected] =
+                getImVec4(scheme.surfaceContainerLowest);
+            colors[ImGuiCol_TabDimmedSelectedOverline] =
+                alpha(scheme.primary, 0.60f);
 
-            // ── Tables ───────────────────────────────────────────────
+            colors[ImGuiCol_DockingPreview] = alpha(scheme.primary, dragged);
+            colors[ImGuiCol_DockingEmptyBg] = getImVec4(scheme.surfaceDim);
+
+            colors[ImGuiCol_PlotLines] = getImVec4(scheme.primary);
+            colors[ImGuiCol_PlotLinesHovered] = getImVec4(scheme.tertiary);
+            colors[ImGuiCol_PlotHistogram] = getImVec4(scheme.secondary);
+            colors[ImGuiCol_PlotHistogramHovered] = getImVec4(scheme.tertiary);
+
             colors[ImGuiCol_TableHeaderBg] =
-                getImVec4(themeColors.surfaceContainerHigh);
-            colors[ImGuiCol_TableBorderStrong] = getImVec4(themeColors.outline);
+                getImVec4(scheme.surfaceContainerHigh);
+            colors[ImGuiCol_TableBorderStrong] =
+                getImVec4(scheme.outlineVariant);
             colors[ImGuiCol_TableBorderLight] =
-                getImVec4(themeColors.outlineVariant);
-            colors[ImGuiCol_TableRowBg] = withAlpha(themeColors.surface, 0.0f);
-            colors[ImGuiCol_TableRowBgAlt] =
-                withAlpha(themeColors.onSurface, 0.04f);
+                alpha(scheme.outlineVariant, 0.65f);
+            colors[ImGuiCol_TableRowBg] = alpha(scheme.surface, 0.0f);
+            // Material has no strong zebra stripe. Keep only a 2% neutral
+            // state layer for row tracking in dense data tables.
+            colors[ImGuiCol_TableRowBgAlt] = alpha(scheme.onSurface, 0.02f);
 
-            // ── Selection & drag-drop ────────────────────────────────
-            colors[ImGuiCol_TextSelectedBg] =
-                withAlpha(themeColors.primary, 0.30f);
-            colors[ImGuiCol_DragDropTarget] =
-                withAlpha(themeColors.primary, 0.90f);
+            colors[ImGuiCol_TextLink] = getImVec4(scheme.primary);
+            colors[ImGuiCol_TextSelectedBg] = alpha(scheme.primary, 0.24f);
+            colors[ImGuiCol_TreeLines] = getImVec4(scheme.outlineVariant);
+            colors[ImGuiCol_DragDropTarget] = getImVec4(scheme.primary);
 
-            // ── Navigation & modal ───────────────────────────────────
-            colors[ImGuiCol_NavHighlight] = getImVec4(themeColors.primary);
+            colors[ImGuiCol_NavCursor] = getImVec4(scheme.primary);
             colors[ImGuiCol_NavWindowingHighlight] =
-                withAlpha(themeColors.inverseSurface, 0.70f);
-            colors[ImGuiCol_NavWindowingDimBg] =
-                withAlpha(themeColors.scrim, 0.20f);
-            colors[ImGuiCol_ModalWindowDimBg] =
-                withAlpha(themeColors.scrim, 0.50f);
+                alpha(scheme.primary, 0.24f);
+            colors[ImGuiCol_NavWindowingDimBg] = alpha(scheme.scrim, 0.20f);
+            colors[ImGuiCol_ModalWindowDimBg] = alpha(scheme.scrim, 0.32f);
         }
     } // namespace
 
