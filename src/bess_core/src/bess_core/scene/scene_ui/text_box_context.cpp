@@ -432,6 +432,7 @@ namespace Bess::Canvas::UI {
                                   : previousCharBoundary(m_text, m_cursorPos);
             m_text.erase(eraseBegin, m_cursorPos - eraseBegin);
             m_cursorPos = eraseBegin;
+            clearSelection();
             markChanged(result);
             return result;
         }
