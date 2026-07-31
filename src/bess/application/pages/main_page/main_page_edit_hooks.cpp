@@ -91,8 +91,7 @@ namespace Bess::Pages {
         }
 
         std::vector<std::shared_ptr<Canvas::SceneComponent>>
-        makeComponent(
-            const std::shared_ptr<SimEngine::Drivers::CompDef> &def) {
+        makeComponent(const std::shared_ptr<SimEngine::Drivers::CompDef> &def) {
             if (!def) {
                 return {};
             }
@@ -100,8 +99,9 @@ namespace Bess::Pages {
             if (comps.empty()) {
                 return {};
             }
-            const auto main = std::dynamic_pointer_cast<
-                Canvas::SimulationSceneComponent>(comps.front());
+            const auto main =
+                std::dynamic_pointer_cast<Canvas::SimulationSceneComponent>(
+                    comps.front());
             if (!main) {
                 return {};
             }
@@ -113,14 +113,11 @@ namespace Bess::Pages {
     std::shared_ptr<const Edit::Hooks>
     makeEditHooks(std::shared_ptr<Svc::SvcConnection> conn) {
         auto hooks = std::make_shared<Edit::Hooks>();
-        hooks->add = [conn](const auto &scene,
-                            const auto &comp,
-                            const auto &opts) {
-            return addComponent(scene, comp, opts, conn);
-        };
-        hooks->rm = [conn](const auto &scene,
-                           const auto &comp,
-                           UUID caller) {
+        hooks->add =
+            [conn](const auto &scene, const auto &comp, const auto &opts) {
+                return addComponent(scene, comp, opts, conn);
+            };
+        hooks->rm = [conn](const auto &scene, const auto &comp, UUID caller) {
             return removeComponent(scene, comp, caller, conn);
         };
         hooks->deps = getDependants;

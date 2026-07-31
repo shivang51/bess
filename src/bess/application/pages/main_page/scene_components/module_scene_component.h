@@ -1,8 +1,8 @@
 #pragma once
 
-#include "common/bess_api.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_state/scene_state.h"
+#include "common/bess_api.h"
 #include "common/bess_uuid.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "scene_comp_types.h"

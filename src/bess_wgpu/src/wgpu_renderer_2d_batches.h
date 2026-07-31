@@ -76,10 +76,10 @@ namespace Bess::Wgpu::Renderer2DDetail {
             m_drawRunsCount = 0;
         }
 
-        Piplines::PrimitiveInstance &push(Core::Renderer::TextureHandle texture,
-                                          uint64_t submitOrder,
-                                          Core::Renderer::RendererScissorState
-                                              scissor = {}) {
+        Piplines::PrimitiveInstance &
+        push(Core::Renderer::TextureHandle texture,
+             uint64_t submitOrder,
+             Core::Renderer::RendererScissorState scissor = {}) {
             if (m_instanceCount >= m_maxCapacity) {
                 throw std::runtime_error("WGPU quad batch capacity exceeded");
             }
@@ -254,10 +254,10 @@ namespace Bess::Wgpu::Renderer2DDetail {
             m_drawRunsCount = 0;
         }
 
-        CustomQuadInstance &push(CustomQuadShaderHandle shader,
-                                 uint64_t submitOrder,
-                                 Core::Renderer::RendererScissorState
-                                     scissor = {}) {
+        CustomQuadInstance &
+        push(CustomQuadShaderHandle shader,
+             uint64_t submitOrder,
+             Core::Renderer::RendererScissorState scissor = {}) {
             if (shader == 0) {
                 throw std::runtime_error(
                     "Custom quad shader handle must be non-zero");
@@ -438,9 +438,9 @@ namespace Bess::Wgpu::Renderer2DDetail {
             m_drawRunsCount = 0;
         }
 
-        Piplines::ShadowInstance &push(
-            uint64_t submitOrder,
-            Core::Renderer::RendererScissorState scissor = {}) {
+        Piplines::ShadowInstance &
+        push(uint64_t submitOrder,
+             Core::Renderer::RendererScissorState scissor = {}) {
             if (m_instanceCount >= m_maxCapacity) {
                 throw std::runtime_error("WGPU shadow batch capacity exceeded");
             }

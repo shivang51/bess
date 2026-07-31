@@ -10,7 +10,7 @@ namespace Bess {
     namespace Canvas {
         class Scene;
         struct SceneLoadCtx;
-    }
+    } // namespace Canvas
 
     class BESS_API SceneSerializer {
       public:

@@ -253,11 +253,11 @@ namespace Bess::Wgpu::Piplines {
                                        sizeof(PathStencilVertex),
                                    static_cast<uint64_t>(stencilVertexCount) *
                                        sizeof(PathStencilVertex));
-        renderPass.SetVertexBuffer(
-            1,
-            m_instanceBuffer,
-            static_cast<uint64_t>(firstInstance) * sizeof(PathInstance),
-            sizeof(PathInstance));
+        renderPass.SetVertexBuffer(1,
+                                   m_instanceBuffer,
+                                   static_cast<uint64_t>(firstInstance) *
+                                       sizeof(PathInstance),
+                                   sizeof(PathInstance));
         renderPass.Draw(stencilVertexCount, 1, 0, 0);
 
         renderPass.SetPipeline(transparent ? m_transparentCoverPipeline
@@ -267,11 +267,11 @@ namespace Bess::Wgpu::Piplines {
             m_coverVertexBuffer,
             static_cast<uint64_t>(firstCoverVertex) * sizeof(PathCoverVertex),
             static_cast<uint64_t>(coverVertexCount) * sizeof(PathCoverVertex));
-        renderPass.SetVertexBuffer(
-            1,
-            m_instanceBuffer,
-            static_cast<uint64_t>(firstInstance) * sizeof(PathInstance),
-            sizeof(PathInstance));
+        renderPass.SetVertexBuffer(1,
+                                   m_instanceBuffer,
+                                   static_cast<uint64_t>(firstInstance) *
+                                       sizeof(PathInstance),
+                                   sizeof(PathInstance));
         renderPass.Draw(coverVertexCount, 1, 0, 0);
     }
 
@@ -292,11 +292,11 @@ namespace Bess::Wgpu::Piplines {
             m_strokeVertexBuffer,
             static_cast<uint64_t>(firstVertex) * sizeof(PathCoverVertex),
             static_cast<uint64_t>(vertexCount) * sizeof(PathCoverVertex));
-        renderPass.SetVertexBuffer(
-            1,
-            m_instanceBuffer,
-            static_cast<uint64_t>(firstInstance) * sizeof(PathInstance),
-            sizeof(PathInstance));
+        renderPass.SetVertexBuffer(1,
+                                   m_instanceBuffer,
+                                   static_cast<uint64_t>(firstInstance) *
+                                       sizeof(PathInstance),
+                                   sizeof(PathInstance));
         renderPass.Draw(vertexCount, 1, 0, 0);
     }
 

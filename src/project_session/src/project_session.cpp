@@ -129,18 +129,14 @@ namespace Bess {
         m_scenes = addSubSystem<SceneDriver>();
         m_sim = addSubSystem<SimEngine::SimulationEngine>();
         m_scenes->setSimEngine(m_sim.get());
-        m_scenes->setCompEditFn(
-            [this](UUID scene,
-                   UUID comp,
-                   Json::Value from,
-                   Json::Value to,
-                   std::string key) {
-                return static_cast<bool>(trackComp(comp,
-                                                   std::move(from),
-                                                   std::move(to),
-                                                   scene,
-                                                   std::move(key)));
-            });
+        m_scenes->setCompEditFn([this](UUID scene,
+                                       UUID comp,
+                                       Json::Value from,
+                                       Json::Value to,
+                                       std::string key) {
+            return static_cast<bool>(trackComp(
+                comp, std::move(from), std::move(to), scene, std::move(key)));
+        });
         m_scenes->setAddFn(
             [this](UUID scene,
                    std::shared_ptr<Canvas::SceneComponent> comp,
@@ -149,19 +145,14 @@ namespace Bess {
                     addComp(std::move(comp), std::move(kids), scene));
             });
         m_scenes->setConnFn(
-            [this](UUID scene,
-                   std::shared_ptr<Canvas::SceneComponent> conn) {
+            [this](UUID scene, std::shared_ptr<Canvas::SceneComponent> conn) {
                 return static_cast<bool>(addConn(std::move(conn), scene));
             });
-        m_scenes->setNameFn(
-            [this](UUID scene, UUID comp, std::string name) {
-                return static_cast<bool>(
-                    nameComp(comp, std::move(name), scene));
-            });
+        m_scenes->setNameFn([this](UUID scene, UUID comp, std::string name) {
+            return static_cast<bool>(nameComp(comp, std::move(name), scene));
+        });
         m_scenes->setAddBatchFn(
-            [this](UUID scene,
-                   std::vector<Canvas::SceneAddOp> ops,
-                   bool hist) {
+            [this](UUID scene, std::vector<Canvas::SceneAddOp> ops, bool hist) {
                 auto edit = tx("Paste", {.empty = true, .hist = hist});
                 for (auto &op : ops) {
                     const auto status = edit.addComp(
@@ -573,9 +564,9 @@ namespace Bess {
                 ? activeHooks->makeComp(def)
                 : std::vector<std::shared_ptr<Canvas::SceneComponent>>{};
         if (comps.empty()) {
-            return {.status = Status::fail(
-                        Err::invalid,
-                        "Bess component factory is not installed")};
+            return {
+                .status = Status::fail(
+                    Err::invalid, "Bess component factory is not installed")};
         }
 
         const auto main = comps.front();
@@ -605,10 +596,8 @@ namespace Bess {
         return rmComp(std::vector<UUID>{id}, scene);
     }
 
-    TxResult
-    ProjectSession::addSlot(std::shared_ptr<Canvas::SceneComponent> slot,
-                            UUID parent,
-                            UUID scene) {
+    TxResult ProjectSession::addSlot(
+        std::shared_ptr<Canvas::SceneComponent> slot, UUID parent, UUID scene) {
         auto edit = tx("Add slot");
         const auto status = edit.addSlot(std::move(slot), parent, scene);
         if (!status) {
@@ -618,8 +607,9 @@ namespace Bess {
         return edit.commit();
     }
 
-    TxResult ProjectSession::addConn(
-        std::shared_ptr<Canvas::SceneComponent> conn, UUID scene) {
+    TxResult
+    ProjectSession::addConn(std::shared_ptr<Canvas::SceneComponent> conn,
+                            UUID scene) {
         auto edit = tx("Add connection");
         const auto status = edit.addConn(std::move(conn), scene);
         if (!status) {
@@ -629,8 +619,9 @@ namespace Bess {
         return edit.commit();
     }
 
-    TxResult ProjectSession::trackConn(
-        std::shared_ptr<Canvas::SceneComponent> conn, UUID scene) {
+    TxResult
+    ProjectSession::trackConn(std::shared_ptr<Canvas::SceneComponent> conn,
+                              UUID scene) {
         auto edit = tx("Add connection");
         const auto status = edit.trackConn(std::move(conn), scene);
         if (!status) {
@@ -715,11 +706,8 @@ namespace Bess {
                                        UUID scene,
                                        std::string key) {
         auto edit = tx("Edit component", {.empty = true});
-        const auto status = edit.trackComp(id,
-                                           std::move(from),
-                                           std::move(to),
-                                           scene,
-                                           std::move(key));
+        const auto status = edit.trackComp(
+            id, std::move(from), std::move(to), scene, std::move(key));
         if (!status) {
             edit.cancel();
             return {.status = status};

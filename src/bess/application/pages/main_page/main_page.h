@@ -2,12 +2,12 @@
 
 #include "common/bess_api.h"
 
+#include "common/types.h"
 #include "events/application_event.h"
 #include "pages/main_page/main_page_state.h"
 #include "pages/page.h"
-#include "window.h"
-#include "common/types.h"
 #include "sim_driver/sim_driver.h"
+#include "window.h"
 
 #include <chrono>
 #include <memory>

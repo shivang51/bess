@@ -193,9 +193,7 @@ void bind_verilog(py::module_ &m) {
         [](const Design &design,
            const std::optional<std::string> &top_module_name) {
             return importDesignIntoSimulationEngine(
-                design,
-                Bess::UI::Proj::sim(),
-                top_module_name);
+                design, Bess::UI::Proj::sim(), top_module_name);
         },
         py::arg("design"),
         py::arg("top_module_name") = std::nullopt);
@@ -204,9 +202,7 @@ void bind_verilog(py::module_ &m) {
         "import_verilog_file_into_simulation_engine",
         [](const std::filesystem::path &verilog_file) {
             return importVerilogFileIntoSimulationEngine(
-                verilog_file,
-                Bess::UI::Proj::sim(),
-                YosysRunnerConfig{});
+                verilog_file, Bess::UI::Proj::sim(), YosysRunnerConfig{});
         },
         py::arg("verilog_file"));
     m.def(
@@ -214,9 +210,7 @@ void bind_verilog(py::module_ &m) {
         [](const std::filesystem::path &verilog_file,
            const YosysRunnerConfig &config) {
             return importVerilogFileIntoSimulationEngine(
-                verilog_file,
-                Bess::UI::Proj::sim(),
-                config);
+                verilog_file, Bess::UI::Proj::sim(), config);
         },
         py::arg("verilog_file"),
         py::arg("config"));
@@ -225,9 +219,7 @@ void bind_verilog(py::module_ &m) {
         "import_verilog_files_into_simulation_engine",
         [](const std::vector<std::filesystem::path> &verilog_files) {
             return importVerilogFilesIntoSimulationEngine(
-                verilog_files,
-                Bess::UI::Proj::sim(),
-                YosysRunnerConfig{});
+                verilog_files, Bess::UI::Proj::sim(), YosysRunnerConfig{});
         },
         py::arg("verilog_files"));
     m.def(
@@ -235,9 +227,7 @@ void bind_verilog(py::module_ &m) {
         [](const std::vector<std::filesystem::path> &verilog_files,
            const YosysRunnerConfig &config) {
             return importVerilogFilesIntoSimulationEngine(
-                verilog_files,
-                Bess::UI::Proj::sim(),
-                config);
+                verilog_files, Bess::UI::Proj::sim(), config);
         },
         py::arg("verilog_files"),
         py::arg("config"));

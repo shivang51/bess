@@ -6,18 +6,16 @@
 #include <mutex>
 
 namespace Bess {
-    void SceneDriver::bindRuntime(
-        const std::shared_ptr<Canvas::Scene> &scene) {
+    void SceneDriver::bindRuntime(const std::shared_ptr<Canvas::Scene> &scene) {
         if (scene) {
-            scene->getState().setRuntime(
-                {.scenes = this,
-                 .sim = m_sim,
-                 .compEdit = m_compEdit,
-                 .add = m_add,
-                 .addConn = m_addConn,
-                 .name = m_name,
-                 .connDeps = m_connDeps,
-                 .addBatch = m_addBatch});
+            scene->getState().setRuntime({.scenes = this,
+                                          .sim = m_sim,
+                                          .compEdit = m_compEdit,
+                                          .add = m_add,
+                                          .addConn = m_addConn,
+                                          .name = m_name,
+                                          .connDeps = m_connDeps,
+                                          .addBatch = m_addBatch});
         }
     }
 
@@ -61,8 +59,7 @@ namespace Bess {
         }
     }
 
-    void SceneDriver::setConnDepsFn(
-        Canvas::SceneRuntimeCtx::ConnDepsFn fn) {
+    void SceneDriver::setConnDepsFn(Canvas::SceneRuntimeCtx::ConnDepsFn fn) {
         std::lock_guard lock(m_scenesMutex);
         m_connDeps = std::move(fn);
         for (const auto &scene : m_scenes) {
@@ -70,8 +67,7 @@ namespace Bess {
         }
     }
 
-    void SceneDriver::setAddBatchFn(
-        Canvas::SceneRuntimeCtx::AddBatchFn fn) {
+    void SceneDriver::setAddBatchFn(Canvas::SceneRuntimeCtx::AddBatchFn fn) {
         std::lock_guard lock(m_scenesMutex);
         m_addBatch = std::move(fn);
         for (const auto &scene : m_scenes) {

@@ -2,9 +2,9 @@
 
 #include "common/bess_api.h"
 
-#include "common/types.h"
 #include "bess_core/scene/scene_event.h"
 #include "bess_core/scene/scene_layer.h"
+#include "common/types.h"
 
 namespace Bess::Canvas {
     class BESS_API SceneWidgetsLayer : public ISceneLayer {

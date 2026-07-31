@@ -9,8 +9,8 @@
 #include "bess_core/scene/scene_state/scene_state.h" // included for pybind11
 #include "bess_core/settings/viewport_theme.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
-#include "json/value.h"
 #include "ui/project_api.h"
+#include "json/value.h"
 #include <memory>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>

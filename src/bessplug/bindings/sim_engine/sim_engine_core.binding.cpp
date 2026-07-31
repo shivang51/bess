@@ -45,9 +45,8 @@ void setOutPortState(const Bess::UUID &compId,
 void setOutPortLogicState(const Bess::UUID &compId,
                           const int portIdx,
                           const Bess::SimEngine::LogicState &state) {
-    setOutPortState(compId,
-                    portIdx,
-                    Bess::SimEngine::PortState::digital(state));
+    setOutPortState(
+        compId, portIdx, Bess::SimEngine::PortState::digital(state));
 }
 
 std::vector<Bess::SimEngine::PortState>
@@ -80,12 +79,13 @@ void bind_sim_engine_core(py::module_ &m) {
                 py::arg("port_idx"),
                 py::arg("state"),
                 "Set the state of an output port for a component");
-    coreMod.def("set_output_port_state",
-                &setOutPortLogicState,
-                py::arg("comp_id"),
-                py::arg("port_idx"),
-                py::arg("state"),
-                "Set the digital logic state of an output port for a component");
+    coreMod.def(
+        "set_output_port_state",
+        &setOutPortLogicState,
+        py::arg("comp_id"),
+        py::arg("port_idx"),
+        py::arg("state"),
+        "Set the digital logic state of an output port for a component");
 
     coreMod.def("get_input_port_states",
                 &getInputPortStates,

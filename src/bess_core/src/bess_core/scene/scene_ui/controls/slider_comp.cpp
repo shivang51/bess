@@ -73,8 +73,7 @@ namespace Bess::Canvas::UI {
         }
     } // namespace
 
-    std::shared_ptr<SliderComp>
-    SliderComp::create(const CompConfig &config) {
+    std::shared_ptr<SliderComp> SliderComp::create(const CompConfig &config) {
         return create("", 0.f, 0.f, 1.f, nullptr, config);
     }
 

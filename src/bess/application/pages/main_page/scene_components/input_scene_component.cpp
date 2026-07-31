@@ -54,11 +54,10 @@ namespace Bess::Canvas {
                 return false;
             }
 
-            simEngine->setOutputPortState(
-                slotParentComp->getSimEngineId(),
-                slotComp->getIndex(),
-                isHigh ? SimEngine::LogicState::high
-                       : SimEngine::LogicState::low);
+            simEngine->setOutputPortState(slotParentComp->getSimEngineId(),
+                                          slotComp->getIndex(),
+                                          isHigh ? SimEngine::LogicState::high
+                                                 : SimEngine::LogicState::low);
             return true;
         }
 
@@ -81,10 +80,9 @@ namespace Bess::Canvas {
                 return false;
             }
 
-            simEngine->setOutputPortState(
-                slotParentComp->getSimEngineId(),
-                slotComp->getIndex(),
-                SimEngine::PortState::scalar(value));
+            simEngine->setOutputPortState(slotParentComp->getSimEngineId(),
+                                          slotComp->getIndex(),
+                                          SimEngine::PortState::scalar(value));
             return true;
         }
     } // namespace

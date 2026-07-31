@@ -338,30 +338,28 @@ namespace Bess::Canvas::SceneWidgets {
             std::max(4.f, size.y - (options.padding.y * 2.f));
         if (focused && Detail::hasTextSelection(*widget)) {
             const auto [selStart, selEnd] = Detail::textSelectionRange(*widget);
-            const size_t visibleSelStart =
-                std::max(selStart, visibleStart);
-            const size_t visibleSelEnd =
-                std::min(selEnd, visibleEnd);
+            const size_t visibleSelStart = std::max(selStart, visibleStart);
+            const size_t visibleSelEnd = std::min(selEnd, visibleEnd);
 
             if (visibleSelStart < visibleSelEnd) {
                 const auto text = std::string_view(widget->text);
-                const auto prefix = text.substr(
-                    visibleStart, visibleSelStart - visibleStart);
+                const auto prefix =
+                    text.substr(visibleStart, visibleSelStart - visibleStart);
                 const auto selected = text.substr(
                     visibleSelStart, visibleSelEnd - visibleSelStart);
                 const float selectionX =
                     left + context.renderer->measureText(prefix, fontProps).x;
                 const float selectionWidth = std::max(
                     1.f, context.renderer->measureText(selected, fontProps).x);
-                SceneDraw::drawQuad(context,
-                                    {selectionX + (selectionWidth * 0.5f),
-                                     boxPos.y,
-                                     boxPos.z + 0.00015f},
-                                    {selectionWidth, cursorHeight},
-                                    Detail::colorOr(
-                                        options.selectionColor,
-                                        palette.accent.withAlpha(0.45f)),
-                                    id);
+                SceneDraw::drawQuad(
+                    context,
+                    {selectionX + (selectionWidth * 0.5f),
+                     boxPos.y,
+                     boxPos.z + 0.00015f},
+                    {selectionWidth, cursorHeight},
+                    Detail::colorOr(options.selectionColor,
+                                    palette.accent.withAlpha(0.45f)),
+                    id);
             }
         }
 

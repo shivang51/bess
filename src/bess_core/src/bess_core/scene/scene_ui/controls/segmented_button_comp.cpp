@@ -19,8 +19,7 @@ namespace Bess::Canvas::UI {
         return create({}, 0, nullptr, config);
     }
 
-    std::shared_ptr<SegmentedButtonComp>
-    SegmentedButtonComp::create(
+    std::shared_ptr<SegmentedButtonComp> SegmentedButtonComp::create(
         const std::vector<UISegmentedButtonOption> &options,
         size_t selectedIndex,
         const UISegmentedButtonCallback &callback,
@@ -88,12 +87,11 @@ namespace Bess::Canvas::UI {
             props.position.x += (leftInset - rightInset) * 0.5f;
             props.size = {
                 std::max(1.f,
-                         segmentNode->getDrawSize().x - leftInset -
-                             rightInset),
+                         segmentNode->getDrawSize().x - leftInset - rightInset),
                 std::max(1.f, segmentNode->getDrawSize().y - (border * 2.f)),
             };
             props.zIndex = segmentNode->getDrawPos().z + 0.0001f;
-            props.color = selected ? m_style.activeColor
+            props.color = selected  ? m_style.activeColor
                           : hovered ? m_style.hoverColor
                                     : m_style.backgroundColor;
             props.thickness = glm::vec4(0.f);
@@ -114,10 +112,9 @@ namespace Bess::Canvas::UI {
             const bool enabled = m_options[index].enabled;
             const bool selected = index == m_selectedIndex && enabled;
             const auto textColor =
-                !enabled ? disabledTextColor(m_style.textStyle.textColor)
-                : selected
-                    ? m_selectedTextColor
-                    : m_style.textStyle.textColor;
+                !enabled   ? disabledTextColor(m_style.textStyle.textColor)
+                : selected ? m_selectedTextColor
+                           : m_style.textStyle.textColor;
             drawSegmentText(state, index, id, textColor);
         }
     }
@@ -230,8 +227,7 @@ namespace Bess::Canvas::UI {
         return true;
     }
 
-    bool SegmentedButtonComp::onMouseButton(
-        const Events::MouseButtonEvent &e) {
+    bool SegmentedButtonComp::onMouseButton(const Events::MouseButtonEvent &e) {
         if (e.button != Events::MouseButton::left) {
             return false;
         }
@@ -259,8 +255,7 @@ namespace Bess::Canvas::UI {
 
     bool SegmentedButtonComp::onKeyEvent(const SceneEvent &evt) {
         if (evt.type != SceneEvent::Type::key ||
-            evt.data.keyPress.action != KeyAction::press ||
-            m_options.empty()) {
+            evt.data.keyPress.action != KeyAction::press || m_options.empty()) {
             return false;
         }
 
@@ -344,11 +339,10 @@ namespace Bess::Canvas::UI {
     glm::vec4 SegmentedButtonComp::segmentRadius(size_t index) const {
         const auto radius = m_style.metrics.borderRadius;
         const float border = borderThickness();
-        const auto innerRadius =
-            glm::vec4{std::max(0.f, radius.x - border),
-                      std::max(0.f, radius.y - border),
-                      std::max(0.f, radius.z - border),
-                      std::max(0.f, radius.w - border)};
+        const auto innerRadius = glm::vec4{std::max(0.f, radius.x - border),
+                                           std::max(0.f, radius.y - border),
+                                           std::max(0.f, radius.z - border),
+                                           std::max(0.f, radius.w - border)};
         if (m_options.size() <= 1) {
             return innerRadius;
         }
@@ -404,8 +398,8 @@ namespace Bess::Canvas::UI {
         props.size = m_node->getDrawSize();
         props.zIndex = m_node->getDrawPos().z;
         props.color = m_style.backgroundColor;
-        props.borderColor = m_focused ? m_style.activeColor
-                                      : m_style.borderColor;
+        props.borderColor =
+            m_focused ? m_style.activeColor : m_style.borderColor;
         props.thickness = m_style.metrics.borderSize.toVec4();
         props.radius = m_style.metrics.borderRadius;
         props.shadow = m_style.shadowProps;
@@ -471,9 +465,8 @@ namespace Bess::Canvas::UI {
                 .fontSize = m_style.textStyle.fontSize,
             });
         const auto pos = labelNode->getDrawPos();
-        const auto drawPos =
-            glm::vec2{pos.x - (labelNode->getDrawSize().x * 0.5f),
-                      pos.y + offsetY};
+        const auto drawPos = glm::vec2{
+            pos.x - (labelNode->getDrawSize().x * 0.5f), pos.y + offsetY};
 
         state.renderer->drawFont(label,
                                  {

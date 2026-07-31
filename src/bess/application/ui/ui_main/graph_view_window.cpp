@@ -1,13 +1,13 @@
 #include "ui/ui_main/graph_view_window.h"
 
 #include "bess_core/g_app_context.h"
-#include "project_session/project_session.h"
 #include "bess_core/scene_driver.h"
 #include "common/bess_uuid.h"
 #include "common/helpers.h"
 #include "implot.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/slot_probe_scene_component.h"
+#include "project_session/project_session.h"
 
 #include "ui/icons/CodIcons_Remapped.h"
 #include "ui/widgets/m_widgets.h"

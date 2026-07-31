@@ -29,9 +29,7 @@ namespace Bess::Canvas::UI {
 
         MAKE_GETTER_SETTER_WC(glm::vec2, ButtonSize, m_buttonSize, makeUIDirty)
         MAKE_GETTER_SETTER(bool, ToggleOnClick, m_toggleOnClick)
-        MAKE_GETTER_SETTER(UISelectableButtonCallback,
-                           Callback,
-                           m_callback)
+        MAKE_GETTER_SETTER(UISelectableButtonCallback, Callback, m_callback)
 
         void onDraw(SceneDrawContext &state) override;
         void prepareUI(SceneUIPrepareCtx &state) override;

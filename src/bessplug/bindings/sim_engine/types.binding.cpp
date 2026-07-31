@@ -98,46 +98,48 @@ void bind_sim_engine_types(py::module_ &m) {
                 self.lastChangeTime = SimTime(ns);
             })
         .def("copy", [](const PortState &self) { return PortState(self); })
-        .def_static("scalar",
-                    [](double value, long long last_change_time_ns) {
-                        return PortState::scalar(
-                            value, SimTime(last_change_time_ns));
-                    },
-                    py::arg("value"),
-                    py::arg("last_change_time_ns") = 0)
-        .def_static("digital",
-                    [](LogicState value, long long last_change_time_ns) {
-                        return PortState::digital(
-                            value, SimTime(last_change_time_ns));
-                    },
-                    py::arg("value"),
-                    py::arg("last_change_time_ns") = 0)
-        .def_static("vector",
-                    [](std::vector<double> value,
-                       long long last_change_time_ns) {
-                        return PortState::vector(
-                            std::move(value), SimTime(last_change_time_ns));
-                    },
-                    py::arg("value"),
-                    py::arg("last_change_time_ns") = 0)
+        .def_static(
+            "scalar",
+            [](double value, long long last_change_time_ns) {
+                return PortState::scalar(value, SimTime(last_change_time_ns));
+            },
+            py::arg("value"),
+            py::arg("last_change_time_ns") = 0)
+        .def_static(
+            "digital",
+            [](LogicState value, long long last_change_time_ns) {
+                return PortState::digital(value, SimTime(last_change_time_ns));
+            },
+            py::arg("value"),
+            py::arg("last_change_time_ns") = 0)
+        .def_static(
+            "vector",
+            [](std::vector<double> value, long long last_change_time_ns) {
+                return PortState::vector(std::move(value),
+                                         SimTime(last_change_time_ns));
+            },
+            py::arg("value"),
+            py::arg("last_change_time_ns") = 0)
         .def("is_digital", &PortState::isDigital)
         .def("is_scalar", &PortState::isScalar)
         .def("is_vector", &PortState::isVector)
-        .def("set_scalar_value",
-             [](PortState &self, double value, long long last_change_time_ns) {
-                 self.setScalarValue(value, SimTime(last_change_time_ns));
-             },
-             py::arg("value"),
-             py::arg("last_change_time_ns") = 0)
-        .def("set_vector_value",
-             [](PortState &self,
-                std::vector<double> value,
-                long long last_change_time_ns) {
-                 self.setVectorValue(std::move(value),
-                                     SimTime(last_change_time_ns));
-             },
-             py::arg("value"),
-             py::arg("last_change_time_ns") = 0)
+        .def(
+            "set_scalar_value",
+            [](PortState &self, double value, long long last_change_time_ns) {
+                self.setScalarValue(value, SimTime(last_change_time_ns));
+            },
+            py::arg("value"),
+            py::arg("last_change_time_ns") = 0)
+        .def(
+            "set_vector_value",
+            [](PortState &self,
+               std::vector<double> value,
+               long long last_change_time_ns) {
+                self.setVectorValue(std::move(value),
+                                    SimTime(last_change_time_ns));
+            },
+            py::arg("value"),
+            py::arg("last_change_time_ns") = 0)
         .def("get_digital_voltage_value", &PortState::getDigitalVoltageValue)
         .def("get_numeric_value", &PortState::getNumericValue)
         .def("invert",
@@ -159,15 +161,15 @@ void bind_sim_engine_types(py::module_ &m) {
             if (self.signalKind == SignalKind::scalar) {
                 return std::string("<PortState scalar=") +
                        std::to_string(self.scalarValue) +
-                       ", t_ns=" +
-                       std::to_string(self.lastChangeTime.count()) + ">";
+                       ", t_ns=" + std::to_string(self.lastChangeTime.count()) +
+                       ">";
             }
 
             if (self.signalKind == SignalKind::vector) {
                 return std::string("<PortState vector_size=") +
                        std::to_string(self.vectorValue.size()) +
-                       ", t_ns=" +
-                       std::to_string(self.lastChangeTime.count()) + ">";
+                       ", t_ns=" + std::to_string(self.lastChangeTime.count()) +
+                       ">";
             }
 
             const char *s = "UNKNOWN";

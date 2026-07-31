@@ -111,11 +111,10 @@ namespace Bess::Canvas::UI {
         bool hovered = false;
     };
 
-    void drawTextBoxContext(
-        const PickingId &id,
-        TextBoxContext &input,
-        const glm::vec3 &boxPos,
-        const glm::vec2 &boxSize,
-        SceneDrawContext &context,
-        const TextBoxContextDrawOptions &options = {});
+    void drawTextBoxContext(const PickingId &id,
+                            TextBoxContext &input,
+                            const glm::vec3 &boxPos,
+                            const glm::vec2 &boxSize,
+                            SceneDrawContext &context,
+                            const TextBoxContextDrawOptions &options = {});
 } // namespace Bess::Canvas::UI

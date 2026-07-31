@@ -384,13 +384,14 @@ void bind_scene_ui(py::module_ &m) {
     py::class_<UI::ContainerComp, UI::UISceneComponent, py::smart_holder>(
         m, "ContainerComp")
         .def(py::init<>())
-        .def_static("create",
-                    [](const UI::LayoutDirection &direction) {
-                        return UI::ContainerComp::create(direction);
-                    },
-                    py::arg_v("direction",
-                              UI::LayoutDirection::horizontal,
-                              "UILayoutDirection.horizontal"))
+        .def_static(
+            "create",
+            [](const UI::LayoutDirection &direction) {
+                return UI::ContainerComp::create(direction);
+            },
+            py::arg_v("direction",
+                      UI::LayoutDirection::horizontal,
+                      "UILayoutDirection.horizontal"))
         .def_property(
             "direction",
             [](const UI::ContainerComp &self) { return self.getDirection(); },
@@ -418,22 +419,21 @@ void bind_scene_ui(py::module_ &m) {
         m, "SpacerComp")
         .def(py::init<>())
         .def_static("create", []() { return UI::SpacerComp::create(); })
-        .def_static("create",
-                    [](float grow) { return UI::SpacerComp::create(grow); },
-                    py::arg("grow"))
-        .def_static("create_fixed",
-                    [](float size) {
-                        return UI::SpacerComp::createFixed(size);
-                    },
-                    py::arg("size"))
+        .def_static(
+            "create",
+            [](float grow) { return UI::SpacerComp::create(grow); },
+            py::arg("grow"))
+        .def_static(
+            "create_fixed",
+            [](float size) { return UI::SpacerComp::createFixed(size); },
+            py::arg("size"))
         .def_property("flex_grow",
                       &UI::SpacerComp::getFlexGrow,
                       &UI::SpacerComp::setFlexGrow)
         .def_property("flex_shrink",
                       &UI::SpacerComp::getFlexShrink,
                       &UI::SpacerComp::setFlexShrink)
-        .def_property_readonly("flex_basis",
-                               &UI::SpacerComp::getFlexBasis)
+        .def_property_readonly("flex_basis", &UI::SpacerComp::getFlexBasis)
         .def_property_readonly("flex_basis_unit",
                                &UI::SpacerComp::getFlexBasisUnit)
         .def("set_flex",
@@ -446,7 +446,5 @@ void bind_scene_ui(py::module_ &m) {
              &UI::SpacerComp::setFlexBasis,
              py::arg("basis"),
              py::arg_v("unit", UI::Unit::pixel, "UIUnit.pixel"))
-        .def("set_fixed_size",
-             &UI::SpacerComp::setFixedSize,
-             py::arg("size"));
+        .def("set_fixed_size", &UI::SpacerComp::setFixedSize, py::arg("size"));
 }

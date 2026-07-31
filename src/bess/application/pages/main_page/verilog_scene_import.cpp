@@ -442,11 +442,11 @@ namespace Bess::Pages {
             }
         }
 
-        std::string endpointKey(UUID componentId,
-                                SimEngine::PortDirection direction,
-                                int portIndex,
-                                SimEngine::SignalKind signalKind =
-                                    SimEngine::SignalKind::digital) {
+        std::string endpointKey(
+            UUID componentId,
+            SimEngine::PortDirection direction,
+            int portIndex,
+            SimEngine::SignalKind signalKind = SimEngine::SignalKind::digital) {
             return std::to_string(static_cast<uint64_t>(componentId)) + ":" +
                    std::to_string(static_cast<int>(direction)) + ":" +
                    std::to_string(static_cast<int>(signalKind)) + ":" +
@@ -454,11 +454,10 @@ namespace Bess::Pages {
         }
 
         std::string endpointKey(const ImportedSlotEndpoint &endpoint) {
-            return endpointKey(
-                endpoint.componentId,
-                endpoint.direction,
-                endpoint.portIndex,
-                endpoint.signalKind);
+            return endpointKey(endpoint.componentId,
+                               endpoint.direction,
+                               endpoint.portIndex,
+                               endpoint.signalKind);
         }
 
         bool isInstancePathOrDescendant(std::string_view path,
@@ -717,11 +716,11 @@ namespace Bess::Pages {
             const auto digitalPort = [](UUID componentId,
                                         SimEngine::PortDirection direction,
                                         int index) {
-                return SimEngine::PortRef{
-                    .componentId = componentId,
-                    .direction = direction,
-                    .signalKind = SimEngine::SignalKind::digital,
-                    .index = index};
+                return SimEngine::PortRef{.componentId = componentId,
+                                          .direction = direction,
+                                          .signalKind =
+                                              SimEngine::SignalKind::digital,
+                                          .index = index};
             };
 
             auto inputBoundarySinks = instance.internalInputSinks;
@@ -1200,13 +1199,12 @@ namespace Bess::Pages {
                 eventDispatcher->dispatchAll();
                 bridgeImportedModuleBoundary(
                     result, instance, wrapper, simEngine, moduleByPath);
-                populateImportedModuleScene(
-                    result,
-                    instance,
-                    simEngine,
-                    *sceneDriver,
-                    wrapper,
-                    moduleByPath);
+                populateImportedModuleScene(result,
+                                            instance,
+                                            simEngine,
+                                            *sceneDriver,
+                                            wrapper,
+                                            moduleByPath);
 
                 std::vector<std::shared_ptr<SceneComponent>> layoutChildren;
                 for (const auto &[simId, ownerPath] :

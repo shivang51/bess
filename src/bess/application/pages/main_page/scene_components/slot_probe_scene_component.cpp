@@ -135,9 +135,8 @@ namespace Bess::Canvas {
                     auto before = toJson();
                     setProbedSlotUuid(e.sceneState->getConnectionStartSlot());
                     e.sceneState->setConnectionStartSlot(UUID::null);
-                    (void)Edit::trackComp(*this,
-                                          std::move(before),
-                                          "probe-slot");
+                    (void)Edit::trackComp(
+                        *this, std::move(before), "probe-slot");
                     return true;
                 }
             }

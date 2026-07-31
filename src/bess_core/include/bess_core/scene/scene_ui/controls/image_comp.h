@@ -40,8 +40,9 @@ namespace Bess::Canvas::UI {
         UIImagePixelData pixels;
     };
 
-    using UIImageTextureLoader = std::function<std::shared_ptr<
-        Core::Renderer::ITexture>(const UIImageSourceRequest &)>;
+    using UIImageTextureLoader =
+        std::function<std::shared_ptr<Core::Renderer::ITexture>(
+            const UIImageSourceRequest &)>;
     using UIImageClickCallback =
         std::function<void(const Events::MouseButtonEvent &)>;
 
@@ -67,8 +68,7 @@ namespace Bess::Canvas::UI {
         static std::shared_ptr<ImageComp>
         createFromFile(const std::string &path,
                        const glm::vec2 &imageSize = {0.f, 0.f}) {
-            static_assert(std::is_base_of_v<Core::Renderer::ITexture,
-                                            TTexture>,
+            static_assert(std::is_base_of_v<Core::Renderer::ITexture, TTexture>,
                           "TTexture must derive from ITexture");
             auto texture = std::make_shared<TTexture>(path);
             texture->init();
@@ -85,8 +85,7 @@ namespace Bess::Canvas::UI {
                          uint32_t width,
                          uint32_t height,
                          const glm::vec2 &imageSize = {0.f, 0.f}) {
-            static_assert(std::is_base_of_v<Core::Renderer::ITexture,
-                                            TTexture>,
+            static_assert(std::is_base_of_v<Core::Renderer::ITexture, TTexture>,
                           "TTexture must derive from ITexture");
             auto image = create(imageSize);
             const auto expected =
@@ -109,13 +108,13 @@ namespace Bess::Canvas::UI {
         getDefaultTextureLoader();
 
         void clearImage();
-        void setTexture(
-            const std::shared_ptr<Core::Renderer::ITexture> &texture);
+        void
+        setTexture(const std::shared_ptr<Core::Renderer::ITexture> &texture);
         void setTextureHandle(Core::Renderer::TextureHandle texture,
                               const glm::vec2 &sourceSize);
-        void setSubTexture(
-            const std::shared_ptr<Core::Renderer::ITexture> &texture,
-            const Core::Renderer::SubTexture &subTexture);
+        void
+        setSubTexture(const std::shared_ptr<Core::Renderer::ITexture> &texture,
+                      const Core::Renderer::SubTexture &subTexture);
         void setSubTexture(Core::Renderer::TextureHandle texture,
                            const Core::Renderer::SubTexture &subTexture);
         void setSourceFile(const std::string &path);
@@ -148,9 +147,7 @@ namespace Bess::Canvas::UI {
         MAKE_GETTER_SETTER(bool, DrawBorder, m_drawBorder)
         MAKE_GETTER_SETTER(bool, DrawPlaceholder, m_drawPlaceholder)
         MAKE_GETTER_SETTER(bool, Interactive, m_interactive)
-        MAKE_GETTER_SETTER(UIImageClickCallback,
-                           ClickCallback,
-                           m_clickCallback)
+        MAKE_GETTER_SETTER(UIImageClickCallback, ClickCallback, m_clickCallback)
 
         void onDraw(SceneDrawContext &state) override;
         void prepareUI(SceneUIPrepareCtx &state) override;
@@ -170,14 +167,15 @@ namespace Bess::Canvas::UI {
         [[nodiscard]] PickingId imagePickingId() const;
         [[nodiscard]] bool hasDrawableTexture() const;
 
-        void assignTexture(
-            const std::shared_ptr<Core::Renderer::ITexture> &texture,
-            const glm::vec4 &uvRect,
-            const glm::vec2 &sourceSize);
+        void
+        assignTexture(const std::shared_ptr<Core::Renderer::ITexture> &texture,
+                      const glm::vec4 &uvRect,
+                      const glm::vec2 &sourceSize);
         void drawBackground(SceneDrawContext &state,
                             const PickingId &id,
                             bool forcePlaceholderBackground) const;
-        void drawPlaceholder(SceneDrawContext &state, const PickingId &id) const;
+        void drawPlaceholder(SceneDrawContext &state,
+                             const PickingId &id) const;
         void markSourcePending();
 
         std::shared_ptr<Core::Renderer::ITexture> m_texture = nullptr;

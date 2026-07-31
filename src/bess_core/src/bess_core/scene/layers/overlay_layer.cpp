@@ -1,8 +1,8 @@
 #include "bess_core/scene/layers/overlay_layer.h"
+#include "bess_core/scene/scene_component_types.h"
 #include "bess_core/scene/scene_draw_helpers.h"
 #include "bess_core/settings/viewport_theme.h"
 #include "common/bess_uuid.h"
-#include "bess_core/scene/scene_component_types.h"
 
 namespace Bess::Canvas {
     void OverlayLayer::update(TimeMs ts, SceneUpdateContext &ctx) {
@@ -42,8 +42,8 @@ namespace Bess::Canvas {
             return;
         }
 
-        const auto startPos = comp->getConnectionPos(
-            *ctx.sceneState, drawCtx.isSchematicMode);
+        const auto startPos =
+            comp->getConnectionPos(*ctx.sceneState, drawCtx.isSchematicMode);
 
         const auto endPos =
             ctx.camera->toWorldPos(ctx.viewportCtx->inputCtx.mousePos);

@@ -250,8 +250,7 @@ namespace Bess::Canvas {
 
     void ConnJointSceneComp::onMouseDragEnd() {
         m_isDragging = false;
-        (void)Edit::trackComp(
-            *this, std::move(m_dragBefore), "joint-position");
+        (void)Edit::trackComp(*this, std::move(m_dragBefore), "joint-position");
         m_dragBefore = {};
         m_dragScene = UUID::null;
     }

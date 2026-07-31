@@ -23,8 +23,7 @@ namespace Bess::Svc::CopyPaste {
 
             auto *scenes = parentScene->getState().runtime().scenes;
             const auto moduleScene =
-                scenes ? scenes->getSceneWithId(module->getSceneId())
-                       : nullptr;
+                scenes ? scenes->getSceneWithId(module->getSceneId()) : nullptr;
 
             BESS_ASSERT(moduleScene,
                         "[CopyPaste] Cloned module scene was not registered");
@@ -118,13 +117,13 @@ namespace Bess::Svc::CopyPaste {
         }
 
         std::vector<Canvas::SceneAddOp> ops;
-        const auto add = [&](const std::shared_ptr<Canvas::SceneComponent> &comp,
-                             std::vector<
-                                 std::shared_ptr<Canvas::SceneComponent>> kids =
-                                 {}) {
-            ops.push_back({.comp = comp, .kids = std::move(kids)});
-            return true;
-        };
+        const auto add =
+            [&](const std::shared_ptr<Canvas::SceneComponent> &comp,
+                std::vector<std::shared_ptr<Canvas::SceneComponent>> kids =
+                    {}) {
+                ops.push_back({.comp = comp, .kids = std::move(kids)});
+                return true;
+            };
 
         std::vector<Svc::CopyPaste::CopiedEntity> connEntites;
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/bess_api.h"
 #include "bess_core/style/bess_theme.h"
+#include "common/bess_api.h"
 #include <cstdint>
 #include <memory>
 #include <string>

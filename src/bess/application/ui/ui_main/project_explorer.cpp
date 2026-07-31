@@ -532,7 +532,6 @@ namespace Bess::UI {
                     return;
                 }
             }
-
         }
 
         if (!emptyGroups.empty()) {

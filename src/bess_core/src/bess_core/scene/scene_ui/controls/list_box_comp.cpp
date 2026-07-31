@@ -34,18 +34,16 @@ namespace Bess::Canvas::UI {
         }
 
         [[nodiscard]] uint32_t itemInfo(size_t index) {
-            const size_t maxIndex =
-                static_cast<size_t>(std::numeric_limits<uint32_t>::max() -
-                                    kItemInfoBase);
+            const size_t maxIndex = static_cast<size_t>(
+                std::numeric_limits<uint32_t>::max() - kItemInfoBase);
             if (index > maxIndex) {
                 return 0u;
             }
             return kItemInfoBase + static_cast<uint32_t>(index);
         }
 
-        [[nodiscard]] glm::vec2 clipToPixels(const glm::vec4 &clip,
-                                             float width,
-                                             float height) {
+        [[nodiscard]] glm::vec2
+        clipToPixels(const glm::vec4 &clip, float width, float height) {
             const float invW = clip.w != 0.f ? 1.f / clip.w : 1.f;
             const float ndcX = clip.x * invW;
             const float ndcY = clip.y * invW;
@@ -56,8 +54,7 @@ namespace Bess::Canvas::UI {
         }
     } // namespace
 
-    std::shared_ptr<ListBoxComp>
-    ListBoxComp::create(const CompConfig &config) {
+    std::shared_ptr<ListBoxComp> ListBoxComp::create(const CompConfig &config) {
         return create({}, noSelection, nullptr, config);
     }
 
@@ -141,10 +138,11 @@ namespace Bess::Canvas::UI {
 
         Rect content = scrollableContentRect();
         const Rect viewport = contentRect();
-        const bool scrollable = m_showScrollbar && hasScrollableContent(viewport);
+        const bool scrollable =
+            m_showScrollbar && hasScrollableContent(viewport);
         if (scrollable) {
-            content.right =
-                std::max(content.left, scrollbarRect(viewport).left - kScrollbarGap);
+            content.right = std::max(
+                content.left, scrollbarRect(viewport).left - kScrollbarGap);
         }
 
         if (hasWidgetChildren()) {
@@ -260,9 +258,8 @@ namespace Bess::Canvas::UI {
             const float thumbTravel = std::max(0.f, trackHeight - thumbHeight);
             const float thumbTop =
                 scroll.top +
-                ((maxScrollOffset() > 0.f
-                      ? m_scrollOffset / maxScrollOffset()
-                      : 0.f) *
+                ((maxScrollOffset() > 0.f ? m_scrollOffset / maxScrollOffset()
+                                          : 0.f) *
                  thumbTravel);
             const float page = std::max(itemHeight(), rectHeight(content));
             scrollBy(e.mousePos.y < thumbTop ? -page : page);
@@ -325,8 +322,9 @@ namespace Bess::Canvas::UI {
 
         switch (evt.data.keyPress.keycode) {
         case KeyCode::arrowDown: {
-            const size_t start =
-                current == noSelection ? 0 : std::min(current + 1, m_items.size());
+            const size_t start = current == noSelection
+                                     ? 0
+                                     : std::min(current + 1, m_items.size());
             const size_t next = nextEnabledIndex(start);
             if (next != noSelection) {
                 selectFromUser(next);
@@ -366,7 +364,8 @@ namespace Bess::Canvas::UI {
                     selectFromUser(next);
                 }
             } else {
-                const size_t target = current > pageItems ? current - pageItems : 0;
+                const size_t target =
+                    current > pageItems ? current - pageItems : 0;
                 const size_t next = nextEnabledIndex(target);
                 if (next != noSelection) {
                     selectFromUser(next);
@@ -412,10 +411,8 @@ namespace Bess::Canvas::UI {
     }
 
     void ListBoxComp::setScrollOffset(float offset) {
-        m_scrollOffset =
-            std::clamp(std::isfinite(offset) ? offset : 0.f,
-                       0.f,
-                       maxScrollOffset());
+        m_scrollOffset = std::clamp(
+            std::isfinite(offset) ? offset : 0.f, 0.f, maxScrollOffset());
         configureContentNode();
     }
 
@@ -452,7 +449,8 @@ namespace Bess::Canvas::UI {
         const Rect scroll = scrollbarRect(contentRect());
         const float trackHeight = std::max(1.f, rectHeight(scroll));
         const float viewportHeight = std::max(1.f, rectHeight(contentRect()));
-        const float totalHeight = std::max(viewportHeight, totalContentHeight());
+        const float totalHeight =
+            std::max(viewportHeight, totalContentHeight());
         const float thumbHeight =
             std::clamp((viewportHeight / totalHeight) * trackHeight,
                        std::max(1.f, m_minThumbHeight),
@@ -514,10 +512,10 @@ namespace Bess::Canvas::UI {
             const auto &item = m_items[index];
             const uint32_t info = itemInfo(index);
             const bool interactive = item.enabled && info != 0u;
-            const PickingId id = interactive
-                                     ? PickingId{.runtimeId = resolveRuntimeId(),
-                                                 .info = info}
-                                     : PickingId::invalid();
+            const PickingId id =
+                interactive
+                    ? PickingId{.runtimeId = resolveRuntimeId(), .info = info}
+                    : PickingId::invalid();
             const float rowTop =
                 range.firstTop + (static_cast<float>(i) * height);
             const glm::vec2 rowCenter{
@@ -532,32 +530,31 @@ namespace Bess::Canvas::UI {
             rowProps.size = {rowWidth, height};
             rowProps.zIndex = listZ + 0.0001f;
             rowProps.color = selected ? m_selectedRowColor
-                             : hovered ? m_style.hoverColor
-                                       : Core::Renderer::Color{0.f, 0.f, 0.f, 0.f};
+                             : hovered
+                                 ? m_style.hoverColor
+                                 : Core::Renderer::Color{0.f, 0.f, 0.f, 0.f};
             rowProps.id = id;
             rowProps.transformMode = state.transformMode;
             state.renderer->drawQuad(rowProps);
 
-            const auto textColor =
-                !item.enabled ? m_disabledTextColor
-                : selected     ? m_selectedTextColor
-                               : m_style.textStyle.textColor;
+            const auto textColor = !item.enabled ? m_disabledTextColor
+                                   : selected    ? m_selectedTextColor
+                                                 : m_style.textStyle.textColor;
             const float offsetY = state.renderer->textCenterOffsetY(
                 item.label, {.fontSize = m_style.textStyle.fontSize});
             const glm::vec2 textPos{
                 contentRect.left + kTextInset,
                 rowCenter.y + offsetY,
             };
-            state.renderer->drawFont(
-                item.label,
-                {
-                    .position = textPos,
-                    .fontSize = m_style.textStyle.fontSize,
-                    .color = textColor,
-                    .zIndex = listZ + 0.0002f,
-                    .id = id,
-                    .transformMode = state.transformMode,
-                });
+            state.renderer->drawFont(item.label,
+                                     {
+                                         .position = textPos,
+                                         .fontSize = m_style.textStyle.fontSize,
+                                         .color = textColor,
+                                         .zIndex = listZ + 0.0002f,
+                                         .id = id,
+                                         .transformMode = state.transformMode,
+                                     });
         }
 
         if (clipped) {
@@ -605,7 +602,8 @@ namespace Bess::Canvas::UI {
 
         const float maxScroll = maxScrollOffset();
         const float viewportHeight = std::max(1.f, rectHeight(contentRect));
-        const float totalHeight = std::max(viewportHeight, totalContentHeight());
+        const float totalHeight =
+            std::max(viewportHeight, totalContentHeight());
         const float trackHeight = rectHeight(scrollbarRect);
         const float thumbHeight =
             std::clamp((viewportHeight / totalHeight) * trackHeight,
@@ -614,7 +612,8 @@ namespace Bess::Canvas::UI {
         const float thumbTravel = std::max(0.f, trackHeight - thumbHeight);
         const float thumbTop =
             scrollbarRect.top +
-            (maxScroll > 0.f ? (m_scrollOffset / maxScroll) * thumbTravel : 0.f);
+            (maxScroll > 0.f ? (m_scrollOffset / maxScroll) * thumbTravel
+                             : 0.f);
         const float centerX =
             scrollbarRect.left + (rectWidth(scrollbarRect) * 0.5f);
         const float radius = std::max(1.f, rectWidth(scrollbarRect) * 0.5f);
@@ -764,8 +763,10 @@ namespace Bess::Canvas::UI {
             };
         }
 
-        rect.left += m_style.metrics.borderSize.left + m_style.metrics.padding.left;
-        rect.top += m_style.metrics.borderSize.top + m_style.metrics.padding.top;
+        rect.left +=
+            m_style.metrics.borderSize.left + m_style.metrics.padding.left;
+        rect.top +=
+            m_style.metrics.borderSize.top + m_style.metrics.padding.top;
         rect.right -=
             m_style.metrics.borderSize.right + m_style.metrics.padding.right;
         rect.bottom -=
@@ -783,8 +784,8 @@ namespace Bess::Canvas::UI {
         const float width = std::max(0.f, m_cachedListSize.x);
         const float height = std::max(0.f, m_cachedListSize.y);
         Rect rect{
-            .left = m_style.metrics.borderSize.left +
-                    m_style.metrics.padding.left,
+            .left =
+                m_style.metrics.borderSize.left + m_style.metrics.padding.left,
             .top = m_style.metrics.borderSize.top + m_style.metrics.padding.top,
             .right = width - m_style.metrics.borderSize.right -
                      m_style.metrics.padding.right,
@@ -809,7 +810,8 @@ namespace Bess::Canvas::UI {
         return content;
     }
 
-    ListBoxComp::Rect ListBoxComp::scrollbarRect(const Rect &contentRect) const {
+    ListBoxComp::Rect
+    ListBoxComp::scrollbarRect(const Rect &contentRect) const {
         const float width = std::clamp(m_scrollbarWidth, 4.f, 18.f);
         const float right =
             contentRect.right + std::max(0.f, m_style.metrics.padding.right);
@@ -883,7 +885,8 @@ namespace Bess::Canvas::UI {
     }
 
     bool ListBoxComp::isItemInfo(uint32_t info) const {
-        return info >= kItemInfoBase && itemIndexFromInfo(info) < m_items.size();
+        return info >= kItemInfoBase &&
+               itemIndexFromInfo(info) < m_items.size();
     }
 
     size_t ListBoxComp::itemIndexFromInfo(uint32_t info) const {
@@ -917,7 +920,8 @@ namespace Bess::Canvas::UI {
         return noSelection;
     }
 
-    bool ListBoxComp::pushClip(SceneDrawContext &state, const Rect &rect) const {
+    bool ListBoxComp::pushClip(SceneDrawContext &state,
+                               const Rect &rect) const {
         if (state.renderer == nullptr || rectEmpty(rect) ||
             state.camera == nullptr) {
             return false;
@@ -934,11 +938,11 @@ namespace Bess::Canvas::UI {
             maxPixel = glm::max(maxPixel, pixel);
         };
 
-        if (state.transformMode == Core::Renderer::RenderTransformMode::Screen) {
-            addPixel({rect.left + (width * 0.5f),
-                      rect.top + (height * 0.5f)});
-            addPixel({rect.right + (width * 0.5f),
-                      rect.bottom + (height * 0.5f)});
+        if (state.transformMode ==
+            Core::Renderer::RenderTransformMode::Screen) {
+            addPixel({rect.left + (width * 0.5f), rect.top + (height * 0.5f)});
+            addPixel(
+                {rect.right + (width * 0.5f), rect.bottom + (height * 0.5f)});
         } else {
             const glm::mat4 transform = state.camera->getTransform();
             addPixel(clipToPixels(transform *
@@ -949,14 +953,14 @@ namespace Bess::Canvas::UI {
                                       glm::vec4(rect.right, rect.top, 0.f, 1.f),
                                   width,
                                   height));
-            addPixel(clipToPixels(transform *
-                                      glm::vec4(rect.left, rect.bottom, 0.f, 1.f),
-                                  width,
-                                  height));
-            addPixel(clipToPixels(transform *
-                                      glm::vec4(rect.right, rect.bottom, 0.f, 1.f),
-                                  width,
-                                  height));
+            addPixel(clipToPixels(
+                transform * glm::vec4(rect.left, rect.bottom, 0.f, 1.f),
+                width,
+                height));
+            addPixel(clipToPixels(
+                transform * glm::vec4(rect.right, rect.bottom, 0.f, 1.f),
+                width,
+                height));
         }
 
         const float left = std::clamp(std::floor(minPixel.x), 0.f, width);

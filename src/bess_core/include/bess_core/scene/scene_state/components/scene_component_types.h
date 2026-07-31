@@ -1,9 +1,9 @@
 #pragma once
 
-#include "common/bess_api.h"
 #include "bess_core/renderer/colors.h"
 #include "bess_core/renderer/renderer_types.h"
 #include "bess_json/bess_json.h"
+#include "common/bess_api.h"
 #include "fwd.hpp"
 #include <cstdint>
 

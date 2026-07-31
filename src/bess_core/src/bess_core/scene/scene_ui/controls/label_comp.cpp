@@ -6,8 +6,8 @@ namespace Bess::Canvas::UI {
         return create("", config);
     }
 
-    std::shared_ptr<LabelComp>
-    LabelComp::create(const std::string &label, const CompConfig &config) {
+    std::shared_ptr<LabelComp> LabelComp::create(const std::string &label,
+                                                 const CompConfig &config) {
         auto labelComp = std::make_shared<LabelComp>();
         labelComp->setName(label);
         applyCompConfig(labelComp, config);
@@ -34,7 +34,8 @@ namespace Bess::Canvas::UI {
 
         uint32_t runtimeId = parent->getRuntimeId();
         if (parent->getType() == SceneComponentType::ui) {
-            const auto *uiParent = static_cast<const UISceneComponent *>(parent);
+            const auto *uiParent =
+                static_cast<const UISceneComponent *>(parent);
             runtimeId = uiParent->getDrawRuntimeId().value_or(runtimeId);
         }
 

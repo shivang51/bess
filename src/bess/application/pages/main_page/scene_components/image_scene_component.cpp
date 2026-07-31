@@ -1,6 +1,5 @@
 #include "pages/main_page/scene_components/image_scene_component.h"
 
-#include "pages/main_page/comp_edit.h"
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/scene/camera.h"
 #include "bess_core/scene/scene_draw_helpers.h"
@@ -9,6 +8,7 @@
 #include "common/logger.h"
 #include "gtc/type_ptr.hpp"
 #include "imgui.h"
+#include "pages/main_page/comp_edit.h"
 #include "ui/icons/FontAwesomeIcons_Remapped.h"
 #include "ui/widgets/m_widgets.h"
 #include <algorithm>
@@ -37,8 +37,8 @@ namespace Bess::Canvas {
             return camera ? std::max(0.01f, camera->getZoom()) : 1.f;
         }
 
-        [[nodiscard]] float screenToWorld(float value,
-                                          const std::shared_ptr<Camera> &camera) {
+        [[nodiscard]] float
+        screenToWorld(float value, const std::shared_ptr<Camera> &camera) {
             return value / safeZoom(camera);
         }
 
@@ -143,8 +143,8 @@ namespace Bess::Canvas {
         }
     }
 
-    void ImageSceneComponent::onMouseDragged(
-        const Events::MouseDraggedEvent &e) {
+    void
+    ImageSceneComponent::onMouseDragged(const Events::MouseDraggedEvent &e) {
         if (isResizeHandle(e.details)) {
             updateResize(e);
             return;
@@ -155,9 +155,8 @@ namespace Bess::Canvas {
 
     void ImageSceneComponent::onMouseDragEnd() {
         if (m_isResizing) {
-            (void)Edit::trackComp(*this,
-                                  std::move(m_resizeBefore),
-                                  "image-resize");
+            (void)Edit::trackComp(
+                *this, std::move(m_resizeBefore), "image-resize");
             m_isResizing = false;
             m_activeResizeHandle = 0;
             m_resizeAnchor = {0.f, 0.f};
@@ -172,8 +171,7 @@ namespace Bess::Canvas {
         NonSimSceneComponent::onMouseDragEnd();
     }
 
-    bool ImageSceneComponent::onMouseButton(
-        const Events::MouseButtonEvent &e) {
+    bool ImageSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
         if (e.button == Events::MouseButton::left &&
             e.action == Events::MouseClickAction::press &&
             isResizeHandle(e.details)) {
@@ -249,8 +247,7 @@ namespace Bess::Canvas {
     }
 
     bool ImageSceneComponent::hasValidImagePayload() const {
-        if (m_imageWidth == 0u || m_imageHeight == 0u ||
-            m_imageData.empty()) {
+        if (m_imageWidth == 0u || m_imageHeight == 0u || m_imageData.empty()) {
             return false;
         }
 
@@ -279,9 +276,9 @@ namespace Bess::Canvas {
                static_cast<float>(m_imageHeight);
     }
 
-    glm::vec2 ImageSceneComponent::scaleMaintainingAspect(
-        glm::vec2 scale,
-        bool preferWidth) const {
+    glm::vec2
+    ImageSceneComponent::scaleMaintainingAspect(glm::vec2 scale,
+                                                bool preferWidth) const {
         scale = sanitizedScale(scale);
         if (!hasValidSourceAspectRatio()) {
             return scale;
@@ -305,9 +302,9 @@ namespace Bess::Canvas {
         return sanitizedScale(scale);
     }
 
-    glm::vec2 ImageSceneComponent::scaleFromPropertiesEdit(
-        glm::vec2 prevScale,
-        glm::vec2 nextScale) const {
+    glm::vec2
+    ImageSceneComponent::scaleFromPropertiesEdit(glm::vec2 prevScale,
+                                                 glm::vec2 nextScale) const {
         nextScale = sanitizedScale(nextScale);
         if (!m_maintainAspectRatio || !hasValidSourceAspectRatio()) {
             return nextScale;
@@ -384,10 +381,10 @@ namespace Bess::Canvas {
         context.renderer->drawQuad(props);
     }
 
-    void ImageSceneComponent::drawPlaceholder(
-        SceneDrawContext &context,
-        const glm::vec3 &pos,
-        const PickingId &pickingId) const {
+    void
+    ImageSceneComponent::drawPlaceholder(SceneDrawContext &context,
+                                         const glm::vec3 &pos,
+                                         const PickingId &pickingId) const {
         SceneDraw::QuadStyle backgroundStyle;
         backgroundStyle.borderColor =
             m_isSelected ? ViewportTheme::colors.selectedComp
@@ -406,32 +403,26 @@ namespace Bess::Canvas {
         const auto inset = glm::vec2(std::min(half.x, half.y) * 0.30f);
         const auto color = ViewportTheme::colors.componentBorder;
         const float z = pos.z + 0.001f;
-        SceneDraw::drawLine(context,
-                            {pos.x - half.x + inset.x,
-                             pos.y - half.y + inset.y,
-                             z},
-                            {pos.x + half.x - inset.x,
-                             pos.y + half.y - inset.y,
-                             z},
-                            1.5f,
-                            color,
-                            pickingId);
-        SceneDraw::drawLine(context,
-                            {pos.x - half.x + inset.x,
-                             pos.y + half.y - inset.y,
-                             z},
-                            {pos.x + half.x - inset.x,
-                             pos.y - half.y + inset.y,
-                             z},
-                            1.5f,
-                            color,
-                            pickingId);
+        SceneDraw::drawLine(
+            context,
+            {pos.x - half.x + inset.x, pos.y - half.y + inset.y, z},
+            {pos.x + half.x - inset.x, pos.y + half.y - inset.y, z},
+            1.5f,
+            color,
+            pickingId);
+        SceneDraw::drawLine(
+            context,
+            {pos.x - half.x + inset.x, pos.y + half.y - inset.y, z},
+            {pos.x + half.x - inset.x, pos.y - half.y + inset.y, z},
+            1.5f,
+            color,
+            pickingId);
     }
 
     void ImageSceneComponent::drawSelectionControls(SceneDrawContext &context,
-                                                   const glm::vec3 &pos) {
-        const float border = screenToWorld(kHandleBorderScreenSize,
-                                           context.camera);
+                                                    const glm::vec3 &pos) {
+        const float border =
+            screenToWorld(kHandleBorderScreenSize, context.camera);
         SceneDraw::QuadStyle outlineStyle;
         outlineStyle.borderColor = ViewportTheme::colors.selectedComp;
         outlineStyle.borderSize = glm::vec4(border);
@@ -442,10 +433,10 @@ namespace Bess::Canvas {
                             PickingId{m_runtimeId, kBodyInfo},
                             outlineStyle);
 
-        const float handleSize = screenToWorld(kHandleScreenSize,
-                                               context.camera);
-        const float handleBorder = screenToWorld(kHandleBorderScreenSize,
-                                                 context.camera);
+        const float handleSize =
+            screenToWorld(kHandleScreenSize, context.camera);
+        const float handleBorder =
+            screenToWorld(kHandleBorderScreenSize, context.camera);
 
         SceneDraw::QuadStyle handleStyle;
         handleStyle.borderColor = ViewportTheme::colors.selectedComp;
@@ -466,8 +457,7 @@ namespace Bess::Canvas {
         }
     }
 
-    void ImageSceneComponent::beginResize(
-        const Events::MouseDraggedEvent &e) {
+    void ImageSceneComponent::beginResize(const Events::MouseDraggedEvent &e) {
         if (e.sceneState == nullptr) {
             return;
         }
@@ -504,8 +494,7 @@ namespace Bess::Canvas {
         }
     }
 
-    void ImageSceneComponent::updateResize(
-        const Events::MouseDraggedEvent &e) {
+    void ImageSceneComponent::updateResize(const Events::MouseDraggedEvent &e) {
         if (e.sceneState == nullptr) {
             return;
         }
@@ -533,15 +522,13 @@ namespace Bess::Canvas {
         const auto newLocalCenter = newAbsCenter - m_resizeParentOffset;
 
         setScale(newScale);
-        setPosition({newLocalCenter.x,
-                     newLocalCenter.y,
-                     m_resizeStartPosition.z});
+        setPosition(
+            {newLocalCenter.x, newLocalCenter.y, m_resizeStartPosition.z});
     }
 
     bool ImageSceneComponent::isResizeHandle(uint32_t info) const {
         return info == kResizeTopLeftInfo || info == kResizeTopRightInfo ||
-               info == kResizeBottomRightInfo ||
-               info == kResizeBottomLeftInfo;
+               info == kResizeBottomRightInfo || info == kResizeBottomLeftInfo;
     }
 
     glm::vec2 ImageSceneComponent::handlePosition(const glm::vec3 &pos,

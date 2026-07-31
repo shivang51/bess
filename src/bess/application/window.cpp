@@ -27,8 +27,8 @@
     #ifndef NOMINMAX
         #define NOMINMAX
     #endif
-    #include <windows.h>
     #include <shobjidl.h>
+    #include <windows.h>
 #endif
 
 namespace Bess {

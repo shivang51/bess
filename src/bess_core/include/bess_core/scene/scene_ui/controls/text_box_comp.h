@@ -38,8 +38,7 @@ namespace Bess::Canvas::UI {
                            CanceledCallback,
                            m_canceledCallback)
 
-        static std::shared_ptr<TextBoxComp>
-        create(const CompConfig &config);
+        static std::shared_ptr<TextBoxComp> create(const CompConfig &config);
         static std::shared_ptr<TextBoxComp>
         create(const std::string &value = "",
                const UITextBoxCallback &changedCallback = nullptr,

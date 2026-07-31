@@ -4,9 +4,9 @@
 
 #include <algorithm>
 
+#include "bess_core/settings/settings.h"
 #include "common/types.h"
 #include "glm.hpp"
-#include "bess_core/settings/settings.h"
 
 namespace Bess {
     struct BESS_API CameraPositionAnimation {

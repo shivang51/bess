@@ -44,8 +44,7 @@ namespace Bess::Canvas::UI {
                               onValueFormatChanged)
         MAKE_GETTER_SETTER(UISliderCallback, ChangedCallback, m_changedCallback)
 
-        static std::shared_ptr<SliderComp>
-        create(const CompConfig &config);
+        static std::shared_ptr<SliderComp> create(const CompConfig &config);
         static std::shared_ptr<SliderComp>
         create(const std::string &label,
                float value,

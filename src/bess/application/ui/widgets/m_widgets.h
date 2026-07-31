@@ -78,13 +78,14 @@ namespace Bess::UI::Widgets {
                                   const std::string &popupName,
                                   bool showMenuButton = true);
 
-    BESS_API std::pair<bool, bool> EditableTreeNode(uint64_t key,
-                                                    std::string &name,
-                                                    bool selected,
-                                                    ImGuiTreeNodeFlags treeFlags,
-                                                    const std::string &icon,
-                                                    glm::vec4 iconColor,
-                                                    const std::string &popupName,
-                                                    uint64_t payloadId);
+    BESS_API std::pair<bool, bool>
+    EditableTreeNode(uint64_t key,
+                     std::string &name,
+                     bool selected,
+                     ImGuiTreeNodeFlags treeFlags,
+                     const std::string &icon,
+                     glm::vec4 iconColor,
+                     const std::string &popupName,
+                     uint64_t payloadId);
 
 } // namespace Bess::UI::Widgets

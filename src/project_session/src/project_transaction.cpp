@@ -59,8 +59,8 @@ namespace Bess {
             }
         }
 
-        std::size_t compBytes(
-            const std::shared_ptr<Canvas::SceneComponent> &comp) {
+        std::size_t
+        compBytes(const std::shared_ptr<Canvas::SceneComponent> &comp) {
             return sizeof(comp) +
                    (comp ? jsonBytes(comp->toJson()) : std::size_t{0});
         }
@@ -346,8 +346,7 @@ namespace Bess {
                 } catch (...) {
                     return sizeof(*this) +
                            (m_kids.size() + 1U) *
-                               sizeof(std::shared_ptr<
-                                      Canvas::SceneComponent>);
+                               sizeof(std::shared_ptr<Canvas::SceneComponent>);
                 }
             }
 
@@ -419,8 +418,7 @@ namespace Bess {
                 } catch (...) {
                     return sizeof(*this) +
                            m_data->comps.size() *
-                               sizeof(std::shared_ptr<
-                                      Canvas::SceneComponent>);
+                               sizeof(std::shared_ptr<Canvas::SceneComponent>);
                 }
             }
 
@@ -830,8 +828,7 @@ namespace Bess {
             }
 
           private:
-            Canvas::SceneComponent *
-            comp(ProjectSession &session) const {
+            Canvas::SceneComponent *comp(ProjectSession &session) const {
                 const auto scene = getScene(session, m_scene);
                 return scene ? scene->getState().getComponentByUuid(m_id)
                              : nullptr;
@@ -1013,15 +1010,13 @@ namespace Bess {
         return Status::ok();
     }
 
-    Status
-    ProjectTx::addConn(std::shared_ptr<Canvas::SceneComponent> conn,
-                       UUID scene) {
+    Status ProjectTx::addConn(std::shared_ptr<Canvas::SceneComponent> conn,
+                              UUID scene) {
         return addComp(std::move(conn), {}, scene);
     }
 
-    Status
-    ProjectTx::trackConn(std::shared_ptr<Canvas::SceneComponent> conn,
-                         UUID scene) {
+    Status ProjectTx::trackConn(std::shared_ptr<Canvas::SceneComponent> conn,
+                                UUID scene) {
         return trackAdd(std::move(conn), {}, scene);
     }
 
@@ -1133,10 +1128,8 @@ namespace Bess {
         return Status::ok();
     }
 
-    Status ProjectTx::setComp(UUID id,
-                              Json::Value data,
-                              UUID scene,
-                              std::string key) {
+    Status
+    ProjectTx::setComp(UUID id, Json::Value data, UUID scene, std::string key) {
         if (!m || m->done || !m->session) {
             return bad(
                 Status::fail(Err::invalid, "transaction is already finished"));
@@ -1157,8 +1150,12 @@ namespace Bess {
         if (from == data) {
             return Status::ok();
         }
-        m->ops.push_back(std::make_unique<CompStep>(
-            scene, id, std::move(from), std::move(data), std::move(key), false));
+        m->ops.push_back(std::make_unique<CompStep>(scene,
+                                                    id,
+                                                    std::move(from),
+                                                    std::move(data),
+                                                    std::move(key),
+                                                    false));
         return Status::ok();
     }
 

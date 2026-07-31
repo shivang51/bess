@@ -178,8 +178,7 @@ namespace Bess::UI {
         const auto viewportPanelSizeRaw = ImGui::GetContentRegionAvail();
         const glm::vec2 viewportPanelSize = {
             std::max(1.0f, viewportPanelSizeRaw.x),
-            std::max(1.0f, viewportPanelSizeRaw.y)
-        };
+            std::max(1.0f, viewportPanelSizeRaw.y)};
         if (viewportPanelSize.x != m_viewportCtx->transform.size.x ||
             viewportPanelSize.y != m_viewportCtx->transform.size.y) {
             m_isResized = true;

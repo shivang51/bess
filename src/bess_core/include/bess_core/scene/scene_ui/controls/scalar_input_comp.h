@@ -43,10 +43,7 @@ namespace Bess::Canvas::UI {
                               Placeholder,
                               m_placeholder,
                               makeUIDirty)
-        MAKE_GETTER_SETTER_WC(glm::vec2,
-                              InputSize,
-                              m_inputSize,
-                              makeUIDirty)
+        MAKE_GETTER_SETTER_WC(glm::vec2, InputSize, m_inputSize, makeUIDirty)
         MAKE_GETTER_SETTER_WC(size_t, MaxLength, m_maxLength, makeUIDirty)
         MAKE_GETTER_SETTER(UIScalarInputCallback,
                            ChangedCallback,
@@ -69,7 +66,8 @@ namespace Bess::Canvas::UI {
         [[nodiscard]] double sanitizeValue(double value, double fallback) const;
         [[nodiscard]] double sanitizeStep(double step) const;
         [[nodiscard]] double normalizedValue(double value) const;
-        [[nodiscard]] glm::vec2 resolveInputSize(SceneUIPrepareCtx &state) const;
+        [[nodiscard]] glm::vec2
+        resolveInputSize(SceneUIPrepareCtx &state) const;
         [[nodiscard]] glm::vec2 stylePadding() const;
 
         void normalizeRange();

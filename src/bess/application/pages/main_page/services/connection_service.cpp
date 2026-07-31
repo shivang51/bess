@@ -66,10 +66,10 @@ namespace Bess::Svc {
             return std::min(static_cast<size_t>(savedIndex), concreteEnd);
         }
 
-        std::optional<SimEngine::PortDescriptor> portDescriptorFor(
-            SimEngine::SimulationEngine &simEngine,
-            const Canvas::SimulationSceneComponent &parent,
-            bool isInput) {
+        std::optional<SimEngine::PortDescriptor>
+        portDescriptorFor(SimEngine::SimulationEngine &simEngine,
+                          const Canvas::SimulationSceneComponent &parent,
+                          bool isInput) {
             const auto &def =
                 simEngine.getComponentDefinition(parent.getSimEngineId());
             if (!def) {
@@ -263,38 +263,41 @@ namespace Bess::Svc {
         auto [slotA, foundAInScene] = tryFindSlot(scene, slotAId);
         auto [slotB, foundBInScene] = tryFindSlot(scene, slotBId);
 
-        const auto isSlotRegistered = [&](const std::shared_ptr<
-                                          Canvas::SlotSceneComponent> &slot) {
-            if (!slot || slot->isResizeSlot()) {
-                return true;
-            }
+        const auto isSlotRegistered =
+            [&](const std::shared_ptr<Canvas::SlotSceneComponent> &slot) {
+                if (!slot || slot->isResizeSlot()) {
+                    return true;
+                }
 
-            const auto parent =
-                sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(
-                    slot->getParentComponent());
-            if (!parent || parent->getSimEngineId() == UUID::null) {
-                return false;
-            }
+                const auto parent =
+                    sceneState
+                        .getComponentByUuid<Canvas::SimulationSceneComponent>(
+                            slot->getParentComponent());
+                if (!parent || parent->getSimEngineId() == UUID::null) {
+                    return false;
+                }
 
-            const auto &slots = slot->isInputSlot() ? parent->getInputSlots()
-                                                    : parent->getOutputSlots();
-            if (!std::ranges::contains(slots, slot->getUuid())) {
-                return false;
-            }
+                const auto &slots = slot->isInputSlot()
+                                        ? parent->getInputSlots()
+                                        : parent->getOutputSlots();
+                if (!std::ranges::contains(slots, slot->getUuid())) {
+                    return false;
+                }
 
-            if (slot->getIndex() < 0) {
-                return false;
-            }
+                if (slot->getIndex() < 0) {
+                    return false;
+                }
 
-            const auto descriptor =
-                portDescriptorFor(getSimEngine(), *parent, slot->isInputSlot());
-            if (!descriptor) {
-                return false;
-            }
+                const auto descriptor = portDescriptorFor(
+                    getSimEngine(), *parent, slot->isInputSlot());
+                if (!descriptor) {
+                    return false;
+                }
 
-            return descriptor->signalKind == slot->getSignalKind() &&
-                   static_cast<size_t>(slot->getIndex()) < descriptor->count;
-        };
+                return descriptor->signalKind == slot->getSignalKind() &&
+                       static_cast<size_t>(slot->getIndex()) <
+                           descriptor->count;
+            };
 
         const auto endpointA = sceneState.getComponentByUuid(slotAId);
         const auto endpointB = sceneState.getComponentByUuid(slotBId);
@@ -578,7 +581,8 @@ namespace Bess::Svc {
         }
 
         const bool isInput = slot->isInputSlot();
-        const auto slotsInfo = portDescriptorFor(getSimEngine(), *parent, isInput);
+        const auto slotsInfo =
+            portDescriptorFor(getSimEngine(), *parent, isInput);
         if (!slotsInfo) {
             return false;
         }
@@ -664,11 +668,10 @@ namespace Bess::Svc {
             reindexRealSlots(sceneState, pairedSlots);
         }
 
-        getSimEngine().removePort(
-            {.componentId = parent->getSimEngineId(),
-             .direction = realPortDirectionFor(isInput),
-             .signalKind = slot->getSignalKind(),
-             .index = removedIndex});
+        getSimEngine().removePort({.componentId = parent->getSimEngineId(),
+                                   .direction = realPortDirectionFor(isInput),
+                                   .signalKind = slot->getSignalKind(),
+                                   .index = removedIndex});
 
         reindexRealSlots(sceneState, slots);
 
@@ -805,10 +808,8 @@ namespace Bess::Svc {
 
             auto created = std::make_shared<Canvas::SlotSceneComponent>();
             created->setParentComponent(parent->getUuid());
-            configureSlotPort(created,
-                              pairedIsInput,
-                              false,
-                              slot->getSignalKind());
+            configureSlotPort(
+                created, pairedIsInput, false, slot->getSignalKind());
             created->setIndex(targetIndex);
             return created;
         };
@@ -816,10 +817,8 @@ namespace Bess::Svc {
         pairedSlot = findOrCreatePairedSlot();
         if (pairedSlot && pairedSlots) {
             pairedSlot->setParentComponent(parent->getUuid());
-            configureSlotPort(pairedSlot,
-                              pairedIsInput,
-                              false,
-                              slot->getSignalKind());
+            configureSlotPort(
+                pairedSlot, pairedIsInput, false, slot->getSignalKind());
 
             pairedWasInScene =
                 sceneState.isComponentValid(pairedSlot->getUuid());

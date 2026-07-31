@@ -23,7 +23,7 @@ namespace Bess {
     namespace SimEngine {
         class SimulationEngine;
     }
-}
+} // namespace Bess
 
 namespace Bess::Canvas {
     struct SceneAddOp {
@@ -32,21 +32,16 @@ namespace Bess::Canvas {
     };
 
     struct SceneRuntimeCtx {
-        using CompEditFn = std::function<bool(UUID,
-                                              UUID,
-                                              Json::Value,
-                                              Json::Value,
-                                              std::string)>;
-        using AddFn = std::function<bool(
-            UUID,
-            std::shared_ptr<SceneComponent>,
-            std::vector<std::shared_ptr<SceneComponent>>)>;
+        using CompEditFn = std::function<bool(
+            UUID, UUID, Json::Value, Json::Value, std::string)>;
+        using AddFn =
+            std::function<bool(UUID,
+                               std::shared_ptr<SceneComponent>,
+                               std::vector<std::shared_ptr<SceneComponent>>)>;
         using ConnFn =
             std::function<bool(UUID, std::shared_ptr<SceneComponent>)>;
-        using NameFn =
-            std::function<bool(UUID, UUID, std::string)>;
-        using ConnDepsFn =
-            std::function<std::vector<UUID>(UUID, UUID)>;
+        using NameFn = std::function<bool(UUID, UUID, std::string)>;
+        using ConnDepsFn = std::function<std::vector<UUID>(UUID, UUID)>;
         using AddBatchFn =
             std::function<bool(UUID, std::vector<SceneAddOp>, bool)>;
 
@@ -199,9 +194,9 @@ namespace Bess::Canvas {
         [[nodiscard]] bool trackComp(SceneComponent &comp,
                                      Json::Value before,
                                      std::string key = {});
-        [[nodiscard]] bool addTx(
-            std::shared_ptr<SceneComponent> comp,
-            std::vector<std::shared_ptr<SceneComponent>> kids = {});
+        [[nodiscard]] bool
+        addTx(std::shared_ptr<SceneComponent> comp,
+              std::vector<std::shared_ptr<SceneComponent>> kids = {});
         [[nodiscard]] bool addConnTx(std::shared_ptr<SceneComponent> conn);
         [[nodiscard]] bool nameTx(UUID comp, std::string name);
         [[nodiscard]] std::vector<UUID> connDeps(UUID conn) const;

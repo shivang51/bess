@@ -36,8 +36,8 @@ namespace Bess::Edit {
             const std::shared_ptr<Canvas::SceneComponent> &)>;
         using SortFn = std::function<void(
             const std::shared_ptr<Canvas::Scene> &, std::vector<UUID> &)>;
-        using MakeCompFn = std::function<
-            std::vector<std::shared_ptr<Canvas::SceneComponent>>(
+        using MakeCompFn =
+            std::function<std::vector<std::shared_ptr<Canvas::SceneComponent>>(
                 const std::shared_ptr<SimEngine::Drivers::CompDef> &)>;
 
         AddFn add;

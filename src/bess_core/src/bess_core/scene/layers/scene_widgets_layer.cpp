@@ -55,13 +55,12 @@ namespace Bess::Canvas {
                 m_hoveredWidget = evt.pickingId;
             }
             if (ctx.viewportCtx) {
-                const auto cursor =
-                    SceneWidgets::isTextInput(ctx.sceneWidgetsState,
-                                              evt.pickingId)
-                        ? Core::Viewport::SceneCursor::text
-                        : Core::Viewport::SceneCursor::pointer;
-                ctx.viewportCtx->inputCtx.requestCursor(
-                    cursor, kCursorPriorityHover);
+                const auto cursor = SceneWidgets::isTextInput(
+                                        ctx.sceneWidgetsState, evt.pickingId)
+                                        ? Core::Viewport::SceneCursor::text
+                                        : Core::Viewport::SceneCursor::pointer;
+                ctx.viewportCtx->inputCtx.requestCursor(cursor,
+                                                        kCursorPriorityHover);
             }
             SceneWidgets::setHoverId(ctx.sceneWidgetsState, evt.pickingId);
             return EventResult::Consumed;
@@ -71,8 +70,7 @@ namespace Bess::Canvas {
             m_hoveredWidget = PickingId::invalid();
             if (ctx.viewportCtx) {
                 ctx.viewportCtx->inputCtx.requestCursor(
-                    Core::Viewport::SceneCursor::normal,
-                    kCursorPriorityReset);
+                    Core::Viewport::SceneCursor::normal, kCursorPriorityReset);
             }
             SceneWidgets::setHoverId(ctx.sceneWidgetsState,
                                      PickingId::invalid());

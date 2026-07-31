@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/bess_api.h"
 #include "bess_core/sub_systems/input_sub_system_types.h"
+#include "common/bess_api.h"
 #include "common/types.h"
 #include <cstdint>
 #include <glm.hpp>

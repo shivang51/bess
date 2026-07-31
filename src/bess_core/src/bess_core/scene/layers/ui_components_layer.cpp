@@ -1,10 +1,10 @@
 #include "bess_core/scene/layers/ui_components_layer.h"
+#include "bess_core/scene/scene_component_types.h"
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_events.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_ui/ui_scene_component.h"
 #include "bess_core/viewport.h"
-#include "bess_core/scene/scene_component_types.h"
 
 namespace Bess::Canvas {
     namespace {

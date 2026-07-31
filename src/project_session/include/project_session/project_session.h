@@ -134,14 +134,14 @@ namespace Bess {
         [[nodiscard]] TxResult
         nameComp(UUID id, std::string name, UUID scene = UUID::null);
         [[nodiscard]] TxResult setComp(UUID id,
-                                      Json::Value data,
-                                      UUID scene = UUID::null,
-                                      std::string key = {});
+                                       Json::Value data,
+                                       UUID scene = UUID::null,
+                                       std::string key = {});
         [[nodiscard]] TxResult trackComp(UUID id,
-                                        Json::Value from,
-                                        Json::Value to,
-                                        UUID scene = UUID::null,
-                                        std::string key = {});
+                                         Json::Value from,
+                                         Json::Value to,
+                                         UUID scene = UUID::null,
+                                         std::string key = {});
         [[nodiscard]] TxResult setName(std::string name);
 
         [[nodiscard]] TxResult undo();

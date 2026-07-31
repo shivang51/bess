@@ -191,12 +191,11 @@ namespace Bess::Canvas::SceneWidgets {
                                     SceneDrawContext &context,
                                     const SliderOptions &options = {});
 
-    BESS_API DropdownResult
-    dropdown(const PickingId &id,
-             int *selectedIndex,
-             std::span<const std::string_view> items,
-             const glm::vec3 &boxPos,
-             const glm::vec2 &boxSize,
-             SceneDrawContext &context,
-             const DropdownOptions &options = {});
+    BESS_API DropdownResult dropdown(const PickingId &id,
+                                     int *selectedIndex,
+                                     std::span<const std::string_view> items,
+                                     const glm::vec3 &boxPos,
+                                     const glm::vec2 &boxSize,
+                                     SceneDrawContext &context,
+                                     const DropdownOptions &options = {});
 } // namespace Bess::Canvas::SceneWidgets

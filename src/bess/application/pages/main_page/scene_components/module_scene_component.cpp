@@ -1,5 +1,4 @@
 #include "module_scene_component.h"
-#include "pages/main_page/services/copy_paste_service.h"
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene_driver.h"
 #include "common/bess_assert.h"
@@ -8,6 +7,7 @@
 #include "dig_sim_driver.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
+#include "pages/main_page/services/copy_paste_service.h"
 #include "simulation_engine.h"
 #include "ui/icons/FontAwesomeIcons_Remapped.h"
 #include "ui/ui_main/ui_main.h"
@@ -179,13 +179,13 @@ namespace Bess::Canvas {
         outputDigitalComp->removeOnStateChangeCB(m_uuid);
         outputDigitalComp->addOnStateChangeCB(
             m_uuid,
-            [this, simEngine](
-                const std::vector<SimEngine::PortState> &inputStates,
-                const std::vector<SimEngine::PortState> &outputStates) {
+            [this,
+             simEngine](const std::vector<SimEngine::PortState> &inputStates,
+                        const std::vector<SimEngine::PortState> &outputStates) {
                 auto moduleDigComp =
-                    simEngine->getComponent<
-                        SimEngine::Drivers::Digital::DigSimComp>(
-                        this->m_simEngineId);
+                    simEngine
+                        ->getComponent<SimEngine::Drivers::Digital::DigSimComp>(
+                            this->m_simEngineId);
                 if (!moduleDigComp) {
                     return;
                 }
@@ -204,10 +204,7 @@ namespace Bess::Canvas {
                 }
             });
 
-        auto onOutputSlotChange = [this,
-                                   ownerSceneId,
-                                   simEngine,
-                                   sceneDriver](
+        auto onOutputSlotChange = [this, ownerSceneId, simEngine, sceneDriver](
                                       const UUID &id,
                                       SimEngine::PortDirection direction,
                                       SimEngine::SignalKind signalKind,
@@ -219,9 +216,9 @@ namespace Bess::Canvas {
             }
 
             auto moduleDigComp =
-                simEngine->getComponent<
-                    SimEngine::Drivers::Digital::DigSimComp>(
-                    this->m_simEngineId);
+                simEngine
+                    ->getComponent<SimEngine::Drivers::Digital::DigSimComp>(
+                        this->m_simEngineId);
             if (!moduleDigComp) {
                 return;
             }
@@ -277,10 +274,7 @@ namespace Bess::Canvas {
                         "Failed to sync module inputs");
         };
 
-        auto onInputSlotChange = [this,
-                                  ownerSceneId,
-                                  simEngine,
-                                  sceneDriver](
+        auto onInputSlotChange = [this, ownerSceneId, simEngine, sceneDriver](
                                      const UUID &id,
                                      SimEngine::PortDirection direction,
                                      SimEngine::SignalKind signalKind,
@@ -292,9 +286,9 @@ namespace Bess::Canvas {
             }
 
             auto moduleDigComp =
-                simEngine->getComponent<
-                    SimEngine::Drivers::Digital::DigSimComp>(
-                    this->m_simEngineId);
+                simEngine
+                    ->getComponent<SimEngine::Drivers::Digital::DigSimComp>(
+                        this->m_simEngineId);
             if (!moduleDigComp) {
                 return;
             }
@@ -413,8 +407,7 @@ namespace Bess::Canvas {
         newSceneState.setModuleId(moduleComp->getUuid());
 
         // adding module input
-        const auto inpDef =
-            sim.getComponentDefinition(moduleDef->getInputId());
+        const auto inpDef = sim.getComponentDefinition(moduleDef->getInputId());
         auto inpComps =
             SimulationSceneComponent::createNew<SimulationSceneComponent>(
                 inpDef);
@@ -438,8 +431,7 @@ namespace Bess::Canvas {
         }
 
         // adding module output
-        auto outDef =
-            sim.getComponentDefinition(moduleDef->getOutputId());
+        auto outDef = sim.getComponentDefinition(moduleDef->getOutputId());
         auto outComps = SimulationSceneComponent::createNew(outDef);
         auto outSceneComp = std::dynamic_pointer_cast<SimulationSceneComponent>(
             outComps.front());

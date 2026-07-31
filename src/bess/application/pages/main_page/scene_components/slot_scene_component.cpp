@@ -65,10 +65,9 @@ namespace Bess::Canvas {
                 return false;
             }
 
-            simEngine->setInputPortState(
-                port.componentId,
-                port.index,
-                SimEngine::PortState::scalar(value));
+            simEngine->setInputPortState(port.componentId,
+                                         port.index,
+                                         SimEngine::PortState::scalar(value));
             return true;
         }
     } // namespace
@@ -392,10 +391,9 @@ namespace Bess::Canvas {
         }
 
         auto *simEngine = state.runtime().sim;
-        return simEngine
-                   ? simEngine->getPortState(port)
-                   : SimEngine::PortState{SimEngine::LogicState::unknown,
-                                          SimEngine::SimTime(0)};
+        return simEngine ? simEngine->getPortState(port)
+                         : SimEngine::PortState{SimEngine::LogicState::unknown,
+                                                SimEngine::SimTime(0)};
     }
 
     SimEngine::PortState

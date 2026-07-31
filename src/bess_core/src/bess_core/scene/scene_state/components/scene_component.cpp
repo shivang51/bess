@@ -45,9 +45,8 @@ namespace Bess::Canvas {
         m_sceneState = state;
     }
 
-    glm::vec3
-    SceneComponent::getConnectionPos(const SceneState &state,
-                                     bool isSchematicMode) const {
+    glm::vec3 SceneComponent::getConnectionPos(const SceneState &state,
+                                               bool isSchematicMode) const {
         return getAbsolutePosition(state, isSchematicMode);
     }
 

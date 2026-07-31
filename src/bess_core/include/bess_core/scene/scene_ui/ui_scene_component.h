@@ -3,12 +3,12 @@
 #include "common/bess_api.h"
 
 #include "bess_core/renderer/renderer_types.h"
+#include "bess_core/scene/scene_component_types.h"
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_core/scene/scene_ui/layout.h"
 #include "bess_core/style/bess_theme.h"
 #include "bess_core/viewport.h"
-#include "bess_core/scene/scene_component_types.h"
 #include <cstdint>
 #include <memory>
 #include <optional>

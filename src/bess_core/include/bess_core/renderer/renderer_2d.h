@@ -1,8 +1,8 @@
 #pragma once
 
-#include "common/bess_api.h"
 #include "bess_core/renderer/renderer_path.h"
 #include "bess_core/renderer/renderer_types.h"
+#include "common/bess_api.h"
 #include <array>
 #include <cstdint>
 #include <functional>

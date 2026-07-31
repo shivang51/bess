@@ -1,10 +1,10 @@
 #include "bess_core/scene/layers/components_layer.h"
+#include "bess_core/scene/scene_component_types.h"
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_event.h"
 #include "bess_core/scene/scene_layer.h"
 #include "bess_core/settings/themes.h"
 #include "common/types.h"
-#include "bess_core/scene/scene_component_types.h"
 
 namespace Bess::Canvas {
     void ComponentsLayer::viewportUpdate(TimeMs dt, SceneVpUpdateContext &ctx) {

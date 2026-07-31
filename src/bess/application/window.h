@@ -1,11 +1,11 @@
 #pragma once
 
-#include "common/bess_api.h"
 #include "GLFW/glfw3.h"
 #include "bess_core/renderer/texture.h"
+#include "bess_core/sub_systems/input_sub_system_types.h"
+#include "common/bess_api.h"
 #include "common/sub_system.h"
 #include "fwd.hpp"
-#include "bess_core/sub_systems/input_sub_system_types.h"
 #include "ui/ui.h"
 
 #include <memory>
@@ -18,7 +18,7 @@ namespace Bess {
     };
 
     class BESS_API Window : public ISubSystem,
-                   public std::enable_shared_from_this<Window> {
+                            public std::enable_shared_from_this<Window> {
       public:
         struct GLFWwindowDeleter {
             void operator()(GLFWwindow *window) {

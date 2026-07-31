@@ -70,11 +70,10 @@ namespace Bess::Wgpu {
                   const PathProps &props,
                   uint64_t submitOrder,
                   Core::Renderer::RendererScissorState scissor = {});
-        void
-        push(BakedPath &&path,
-             const PathProps &props,
-             uint64_t submitOrder,
-             Core::Renderer::RendererScissorState scissor = {});
+        void push(BakedPath &&path,
+                  const PathProps &props,
+                  uint64_t submitOrder,
+                  Core::Renderer::RendererScissorState scissor = {});
 
         void prepareForRendering(bool sortBackToFront);
 
@@ -153,16 +152,15 @@ namespace Bess::Wgpu {
                        const PathProps &props,
                        const PathBakeMetrics &metrics);
 
-    void BESS_API
-    submitBakedPathSubmission(const BakedPathSubmission &submission,
-                              const PathProps &props,
-                              uint64_t submitOrder,
-                              PathBatch &opaquePathBatch,
-                              PathBatch &transparentPathBatch,
-                              PathStrokeBatch &opaquePathStrokeBatch,
-                              PathStrokeBatch &transparentPathStrokeBatch,
-                              Core::Renderer::RendererScissorState scissor =
-                                  {});
+    void BESS_API submitBakedPathSubmission(
+        const BakedPathSubmission &submission,
+        const PathProps &props,
+        uint64_t submitOrder,
+        PathBatch &opaquePathBatch,
+        PathBatch &transparentPathBatch,
+        PathStrokeBatch &opaquePathStrokeBatch,
+        PathStrokeBatch &transparentPathStrokeBatch,
+        Core::Renderer::RendererScissorState scissor = {});
 
     void BESS_API
     submitPathCommands(std::span<const PathCommand> commands,

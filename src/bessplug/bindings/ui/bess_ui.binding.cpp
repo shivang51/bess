@@ -1,9 +1,9 @@
-#include "ui/dock_ids.h"
 #include "gtc/type_ptr.hpp"
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "ui/widgets/m_widgets.h"
+#include "ui/dock_ids.h"
 #include "ui/ui_main/ui_main.h"
+#include "ui/widgets/m_widgets.h"
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>

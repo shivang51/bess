@@ -10,11 +10,11 @@
 #include <typeindex>
 #include <vector>
 
-#define IMAGE_SER_PROPS                                                       \
-    ("imageData", getData, setData),                                          \
-        ("imageWidth", getImageWidth, setImageWidth),                         \
-        ("imageHeight", getImageHeight, setImageHeight),                      \
-        ("maintainAspectRatio",                                               \
+#define IMAGE_SER_PROPS                                                        \
+    ("imageData", getData, setData),                                           \
+        ("imageWidth", getImageWidth, setImageWidth),                          \
+        ("imageHeight", getImageHeight, setImageHeight),                       \
+        ("maintainAspectRatio",                                                \
          getMaintainAspectRatio,                                               \
          setMaintainAspectRatio)
 
@@ -42,9 +42,7 @@ namespace Bess::Canvas {
                               ImageHeight,
                               m_imageHeight,
                               onImageSizeChange)
-        MAKE_GETTER_SETTER(bool,
-                           MaintainAspectRatio,
-                           m_maintainAspectRatio)
+        MAKE_GETTER_SETTER(bool, MaintainAspectRatio, m_maintainAspectRatio)
 
         std::vector<std::shared_ptr<SceneComponent>>
         clone(const SceneState &sceneState) const override;

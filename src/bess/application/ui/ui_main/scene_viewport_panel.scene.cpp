@@ -70,7 +70,8 @@ namespace Bess::UI {
 
         auto &inpCtx = m_viewportCtx->inputCtx;
         const bool shouldProcessPicking =
-            m_isViewportHovered || m_viewportCtx->pickingReadbackRequest.active ||
+            m_isViewportHovered ||
+            m_viewportCtx->pickingReadbackRequest.active ||
             m_pendingSelectionReadback.active;
 
         if (m_pickingTexture && shouldProcessPicking &&

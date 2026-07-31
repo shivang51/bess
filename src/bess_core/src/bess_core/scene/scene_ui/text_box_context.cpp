@@ -759,13 +759,12 @@ namespace Bess::Canvas::UI {
                     .substr(visibleStart, visibleCursor - visibleStart);
             const float cursorX =
                 left + context.renderer->measureText(cursorText, fontProps).x;
-            SceneDraw::drawQuad(context,
-                                {cursorX + (cursorWidth * 0.5f),
-                                 boxPos.y,
-                                 boxPos.z + 0.0002f},
-                                {cursorWidth, cursorHeight},
-                                colorOr(options.cursorColor, palette.text),
-                                id);
+            SceneDraw::drawQuad(
+                context,
+                {cursorX + (cursorWidth * 0.5f), boxPos.y, boxPos.z + 0.0002f},
+                {cursorWidth, cursorHeight},
+                colorOr(options.cursorColor, palette.text),
+                id);
         }
     }
 } // namespace Bess::Canvas::UI

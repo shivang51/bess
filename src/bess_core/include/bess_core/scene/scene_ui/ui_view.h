@@ -118,8 +118,7 @@ namespace Bess::Canvas::UI {
 
         [[nodiscard]] std::shared_ptr<SpacerComp>
         fixedSpacer(float size, CompConfig config = CompConfig{}) const {
-            return SpacerComp::createFixed(size,
-                                           bindConfig(std::move(config)));
+            return SpacerComp::createFixed(size, bindConfig(std::move(config)));
         }
 
         [[nodiscard]] std::shared_ptr<SpacerComp>

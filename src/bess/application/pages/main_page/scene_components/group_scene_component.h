@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/bess_api.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
+#include "common/bess_api.h"
 #include "scene_comp_types.h"
 
 namespace Bess::Canvas {

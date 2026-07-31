@@ -58,7 +58,7 @@ namespace Bess::Canvas {
         return comp;                                                           \
     }                                                                          \
     void applyJson(const Json::Value &j) override {                            \
-        auto self = std::dynamic_pointer_cast<TClass>(shared_from_this());      \
+        auto self = std::dynamic_pointer_cast<TClass>(shared_from_this());     \
         TClass::fromJson(j, self);                                             \
         onJsonApplied();                                                       \
     }
@@ -82,7 +82,7 @@ namespace Bess::Canvas {
         return comp;                                                           \
     }                                                                          \
     void applyJson(const Json::Value &j) override {                            \
-        auto self = std::dynamic_pointer_cast<TClass>(shared_from_this());      \
+        auto self = std::dynamic_pointer_cast<TClass>(shared_from_this());     \
         TClass::fromJson(j, self);                                             \
         onJsonApplied();                                                       \
     }
@@ -102,8 +102,9 @@ namespace Bess::Canvas {
 
     class SceneState;
 
-    class BESS_API SceneComponent : public std::enable_shared_from_this<SceneComponent>,
-                           public MouseBehaviour<SceneComponent> {
+    class BESS_API SceneComponent
+        : public std::enable_shared_from_this<SceneComponent>,
+          public MouseBehaviour<SceneComponent> {
       public:
         SceneComponent();
         SceneComponent(const SceneComponent &other) = default;

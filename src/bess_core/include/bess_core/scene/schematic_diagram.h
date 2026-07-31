@@ -4,8 +4,8 @@
 
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/renderer/renderer_path.h"
-#include "common/types.h"
 #include "bess_core/scene/scene_state/components/scene_component_types.h"
+#include "common/types.h"
 #include <vector>
 
 namespace Bess::Canvas {

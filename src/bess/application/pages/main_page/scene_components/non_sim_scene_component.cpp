@@ -206,8 +206,6 @@ namespace Bess::Canvas {
                                {168.f, 20.f},
                                context,
                                dropdownOptions);
-        (void)Edit::trackComp(*this,
-                              std::move(before),
-                              "widget-value");
+        (void)Edit::trackComp(*this, std::move(before), "widget-value");
     }
 } // namespace Bess::Canvas

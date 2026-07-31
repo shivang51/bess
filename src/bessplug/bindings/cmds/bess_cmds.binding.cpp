@@ -280,8 +280,7 @@ void bind_cmds(py::module &m) {
 
         auto conn = std::make_shared<Bess::Canvas::ConnectionSceneComponent>();
         conn->setStartEndSlots(fromSlot, toSlot);
-        const auto result =
-            Bess::UI::Proj::addConn(conn, scene->getSceneId());
+        const auto result = Bess::UI::Proj::addConn(conn, scene->getSceneId());
         return result ? CmdResult{py::cast(conn->getUuid()), ""}
                       : CmdResult{py::none(), result.msg};
     };

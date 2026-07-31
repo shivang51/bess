@@ -18,8 +18,9 @@
         ("dropdownIndex", getDropdownIndex, setDropdownIndex)
 
 namespace Bess::Canvas {
-    class BESS_API NonSimSceneComponent : public SceneComponent,
-                                 public DragBehaviour<NonSimSceneComponent> {
+    class BESS_API NonSimSceneComponent
+        : public SceneComponent,
+          public DragBehaviour<NonSimSceneComponent> {
       public:
         NonSimSceneComponent() = default;
 

@@ -1,8 +1,8 @@
 #pragma once
 
+#include "bess_core/scene/scene.h"
 #include "common/bess_uuid.h"
 #include "common/sub_system.h"
-#include "bess_core/scene/scene.h"
 
 #include <functional>
 #include <memory>

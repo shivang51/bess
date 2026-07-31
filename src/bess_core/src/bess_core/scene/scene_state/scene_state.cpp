@@ -1,11 +1,11 @@
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/g_app_context.h"
+#include "bess_core/scene/scene_component_types.h"
 #include "bess_core/scene/scene_ser_reg.h"
 #include "bess_core/scene/scene_state/components/scene_component.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "event_dispatcher.h"
-#include "bess_core/scene/scene_component_types.h"
 #include <cstdint>
 #include <memory>
 #include <mutex>
@@ -42,20 +42,16 @@ namespace Bess::Canvas {
             return true;
         }
         if (comp.sceneState() != this || !m_runtime.compEdit ||
-            !m_runtime.compEdit(m_sceneId,
-                                comp.getUuid(),
-                                before,
-                                after,
-                                std::move(key))) {
+            !m_runtime.compEdit(
+                m_sceneId, comp.getUuid(), before, after, std::move(key))) {
             comp.applyJson(before);
             return false;
         }
         return true;
     }
 
-    bool SceneState::addTx(
-        std::shared_ptr<SceneComponent> comp,
-        std::vector<std::shared_ptr<SceneComponent>> kids) {
+    bool SceneState::addTx(std::shared_ptr<SceneComponent> comp,
+                           std::vector<std::shared_ptr<SceneComponent>> kids) {
         return m_runtime.add &&
                m_runtime.add(m_sceneId, std::move(comp), std::move(kids));
     }

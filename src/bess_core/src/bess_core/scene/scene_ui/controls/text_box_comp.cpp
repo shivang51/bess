@@ -5,8 +5,7 @@
 #include <algorithm>
 
 namespace Bess::Canvas::UI {
-    std::shared_ptr<TextBoxComp>
-    TextBoxComp::create(const CompConfig &config) {
+    std::shared_ptr<TextBoxComp> TextBoxComp::create(const CompConfig &config) {
         return create("", nullptr, config);
     }
 

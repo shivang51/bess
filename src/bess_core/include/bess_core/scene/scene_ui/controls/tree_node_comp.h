@@ -35,8 +35,7 @@ namespace Bess::Canvas::UI {
                            ToggledCallback,
                            m_toggledCallback)
 
-        static std::shared_ptr<TreeNodeComp>
-        create(const CompConfig &config);
+        static std::shared_ptr<TreeNodeComp> create(const CompConfig &config);
         static std::shared_ptr<TreeNodeComp>
         create(const std::string &label,
                bool expanded = true,

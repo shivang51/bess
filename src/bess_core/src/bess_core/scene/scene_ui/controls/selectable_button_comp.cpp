@@ -17,11 +17,10 @@ namespace Bess::Canvas::UI {
     }
 
     std::shared_ptr<SelectableButtonComp>
-    SelectableButtonComp::create(
-        const std::string &label,
-        const UISelectableButtonCallback &callback,
-        bool selected,
-        const CompConfig &config) {
+    SelectableButtonComp::create(const std::string &label,
+                                 const UISelectableButtonCallback &callback,
+                                 bool selected,
+                                 const CompConfig &config) {
         auto button = std::make_shared<SelectableButtonComp>();
         button->setName(label);
         button->setCallback(callback);
@@ -56,12 +55,11 @@ namespace Bess::Canvas::UI {
         props.position = m_node->getDrawPos();
         props.size = m_node->getDrawSize();
         props.zIndex = m_node->getDrawPos().z;
-        props.color = m_selected ? m_style.activeColor
+        props.color = m_selected  ? m_style.activeColor
                       : m_hovered ? m_style.hoverColor
                                   : m_style.backgroundColor;
-        props.borderColor =
-            (m_focused || m_selected) ? m_style.activeColor
-                                      : m_style.borderColor;
+        props.borderColor = (m_focused || m_selected) ? m_style.activeColor
+                                                      : m_style.borderColor;
         props.thickness = m_style.metrics.borderSize.toVec4();
         props.radius = m_style.metrics.borderRadius;
         props.id = id;
@@ -117,8 +115,8 @@ namespace Bess::Canvas::UI {
         m_selectedTextColor = theme->getColorScheme().getColors().onPrimary;
     }
 
-    bool SelectableButtonComp::onMouseButton(
-        const Events::MouseButtonEvent &e) {
+    bool
+    SelectableButtonComp::onMouseButton(const Events::MouseButtonEvent &e) {
         if (e.button != Events::MouseButton::left) {
             return false;
         }
@@ -194,10 +192,11 @@ namespace Bess::Canvas::UI {
                                      .fontSize = m_style.textStyle.fontSize,
                                      .color = textColor,
                                      .zIndex = pos.z,
-                                     .id = PickingId{
-                                         .runtimeId = resolveRuntimeId(),
-                                         .info = kButtonInfo,
-                                     },
+                                     .id =
+                                         PickingId{
+                                             .runtimeId = resolveRuntimeId(),
+                                             .info = kButtonInfo,
+                                         },
                                      .transformMode = state.transformMode,
                                  });
     }

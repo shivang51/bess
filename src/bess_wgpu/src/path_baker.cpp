@@ -88,8 +88,8 @@ namespace Bess::Wgpu {
                    std::abs(props.rotation) > 0.0001f;
         }
 
-        PathBakeMetrics scalePathBakeMetrics(
-            const PathBakeMetrics &metrics, const PathProps &props) {
+        PathBakeMetrics scalePathBakeMetrics(const PathBakeMetrics &metrics,
+                                             const PathProps &props) {
             PathBakeMetrics scaled = metrics;
             const float objectScale = pathObjectScale(props);
             if (objectScale > 0.0001f) {
@@ -579,8 +579,8 @@ namespace Bess::Wgpu {
 
             const float maxTangentDistance =
                 std::min(prevLength, nextLength) * 0.5f;
-            const float tangentDistance = std::min(
-                requestedRadius / tanHalfTheta, maxTangentDistance);
+            const float tangentDistance =
+                std::min(requestedRadius / tanHalfTheta, maxTangentDistance);
             if (tangentDistance <= epsilon) {
                 return false;
             }
@@ -633,15 +633,13 @@ namespace Bess::Wgpu {
             const int segments =
                 roundArcSegmentCount(arc.deltaAngle, arc.radius, mesh, 1, 48);
             for (int i = 1; i <= segments; ++i) {
-                const float t = static_cast<float>(i) /
-                                static_cast<float>(segments);
-                const float angle =
-                    arc.startAngle + (arc.deltaAngle * t);
+                const float t =
+                    static_cast<float>(i) / static_cast<float>(segments);
+                const float angle = arc.startAngle + (arc.deltaAngle * t);
                 appendPointIfDistinct(
                     points,
-                    arc.center +
-                        (glm::vec2(std::cos(angle), std::sin(angle)) *
-                         arc.radius));
+                    arc.center + (glm::vec2(std::cos(angle), std::sin(angle)) *
+                                  arc.radius));
             }
         }
 
@@ -676,12 +674,11 @@ namespace Bess::Wgpu {
                 const size_t next = (i + 1u) % count;
 
                 FilletArc arc;
-                if (points[i].roundable &&
-                    makeFilletArc(points[prev].pos,
-                                  points[i].pos,
-                                  points[next].pos,
-                                  radius,
-                                  arc)) {
+                if (points[i].roundable && makeFilletArc(points[prev].pos,
+                                                         points[i].pos,
+                                                         points[next].pos,
+                                                         radius,
+                                                         arc)) {
                     appendPointIfDistinct(rounded, arc.in);
                     appendArcPoints(rounded, arc, mesh);
                     continue;
@@ -1231,11 +1228,11 @@ namespace Bess::Wgpu {
             return estimate;
         }
 
-        std::vector<StyledStrokeSegment> roundedStyledSegments(
-            const std::vector<StyledStrokeSegment> &segments,
-            bool closed,
-            const PathProps &props,
-            const StrokeMeshParams &mesh);
+        std::vector<StyledStrokeSegment>
+        roundedStyledSegments(const std::vector<StyledStrokeSegment> &segments,
+                              bool closed,
+                              const PathProps &props,
+                              const StrokeMeshParams &mesh);
 
         void appendStrokeContour(std::vector<PathCoverVertex> &vertices,
                                  std::vector<StrokeContourPoint> points,
@@ -1297,9 +1294,10 @@ namespace Bess::Wgpu {
 
             glm::vec2 startCapCenter = strokePoints.front();
             glm::vec2 endCapCenter = strokePoints.back();
-            glm::vec2 startDir = safeNormalize(strokePoints[1] - strokePoints[0]);
-            glm::vec2 endDir =
-                safeNormalize(strokePoints[count - 1] - strokePoints[count - 2]);
+            glm::vec2 startDir =
+                safeNormalize(strokePoints[1] - strokePoints[0]);
+            glm::vec2 endDir = safeNormalize(strokePoints[count - 1] -
+                                             strokePoints[count - 2]);
 
             if (!closed &&
                 props.lineCap == Core::Renderer::PathLineCap::Square) {
@@ -1518,20 +1516,19 @@ namespace Bess::Wgpu {
                                    .fromHalfWidth = halfWidth,
                                    .toHalfWidth = halfWidth,
                                    .id = id,
-                                   .roundJoinAfter =
-                                       roundInternalJoints ||
-                                       i + 1u == points.size()});
+                                   .roundJoinAfter = roundInternalJoints ||
+                                                     i + 1u == points.size()});
             }
         }
 
-        void appendStyledSegmentIfValid(
-            std::vector<StyledStrokeSegment> &segments,
-            const glm::vec2 &from,
-            const glm::vec2 &to,
-            float fromHalfWidth,
-            float toHalfWidth,
-            const PickingId &id,
-            bool roundJoinAfter) {
+        void
+        appendStyledSegmentIfValid(std::vector<StyledStrokeSegment> &segments,
+                                   const glm::vec2 &from,
+                                   const glm::vec2 &to,
+                                   float fromHalfWidth,
+                                   float toHalfWidth,
+                                   const PickingId &id,
+                                   bool roundJoinAfter) {
             constexpr float epsilon = 0.0001f;
             if (glm::distance(from, to) <= epsilon || fromHalfWidth <= 0.f ||
                 toHalfWidth <= 0.f) {
@@ -1546,13 +1543,12 @@ namespace Bess::Wgpu {
                                 .roundJoinAfter = roundJoinAfter});
         }
 
-        void appendStyledArcSegments(
-            std::vector<StyledStrokeSegment> &segments,
-            const FilletArc &arc,
-            float fromHalfWidth,
-            float toHalfWidth,
-            const PickingId &id,
-            const StrokeMeshParams &mesh) {
+        void appendStyledArcSegments(std::vector<StyledStrokeSegment> &segments,
+                                     const FilletArc &arc,
+                                     float fromHalfWidth,
+                                     float toHalfWidth,
+                                     const PickingId &id,
+                                     const StrokeMeshParams &mesh) {
             if (!arc.enabled) {
                 return;
             }
@@ -1562,14 +1558,12 @@ namespace Bess::Wgpu {
             glm::vec2 prev = arc.in;
             float prevHalfWidth = fromHalfWidth;
             for (int i = 1; i <= segmentCount; ++i) {
-                const float t = static_cast<float>(i) /
-                                static_cast<float>(segmentCount);
-                const float angle =
-                    arc.startAngle + (arc.deltaAngle * t);
+                const float t =
+                    static_cast<float>(i) / static_cast<float>(segmentCount);
+                const float angle = arc.startAngle + (arc.deltaAngle * t);
                 const glm::vec2 next =
                     arc.center +
-                    (glm::vec2(std::cos(angle), std::sin(angle)) *
-                     arc.radius);
+                    (glm::vec2(std::cos(angle), std::sin(angle)) * arc.radius);
                 const float nextHalfWidth =
                     fromHalfWidth + ((toHalfWidth - fromHalfWidth) * t);
                 appendStyledSegmentIfValid(segments,
@@ -1584,11 +1578,11 @@ namespace Bess::Wgpu {
             }
         }
 
-        std::vector<StyledStrokeSegment> roundedStyledSegments(
-            const std::vector<StyledStrokeSegment> &segments,
-            bool closed,
-            const PathProps &props,
-            const StrokeMeshParams &mesh) {
+        std::vector<StyledStrokeSegment>
+        roundedStyledSegments(const std::vector<StyledStrokeSegment> &segments,
+                              bool closed,
+                              const PathProps &props,
+                              const StrokeMeshParams &mesh) {
             const float radius = effectiveJointRadius(props);
             if (radius <= 0.f || segments.size() < 2) {
                 return segments;
@@ -1607,31 +1601,22 @@ namespace Bess::Wgpu {
                     continue;
                 }
 
-                makeFilletArc(prev.from,
-                              prev.to,
-                              next.to,
-                              radius,
-                              arcs[joint]);
+                makeFilletArc(prev.from, prev.to, next.to, radius, arcs[joint]);
             }
 
             std::vector<StyledStrokeSegment> rounded;
             rounded.reserve(segments.size() + (jointCount * 2u));
             for (size_t i = 0; i < count; ++i) {
-                const bool hasBeforeArc = closed ? arcs[(i + count - 1u) %
-                                                        count]
-                                                       .enabled
-                                                 : i > 0u &&
-                                                       arcs[i - 1u].enabled;
-                const bool hasAfterArc =
-                    i < jointCount && arcs[i].enabled;
+                const bool hasBeforeArc =
+                    closed ? arcs[(i + count - 1u) % count].enabled
+                           : i > 0u && arcs[i - 1u].enabled;
+                const bool hasAfterArc = i < jointCount && arcs[i].enabled;
 
                 const StyledStrokeSegment &segment = segments[i];
-                const glm::vec2 from =
-                    hasBeforeArc
-                        ? arcs[(i + count - 1u) % count].out
-                        : segment.from;
-                const glm::vec2 to =
-                    hasAfterArc ? arcs[i].in : segment.to;
+                const glm::vec2 from = hasBeforeArc
+                                           ? arcs[(i + count - 1u) % count].out
+                                           : segment.from;
+                const glm::vec2 to = hasAfterArc ? arcs[i].in : segment.to;
 
                 appendStyledSegmentIfValid(rounded,
                                            from,
@@ -1678,11 +1663,8 @@ namespace Bess::Wgpu {
             if (dashLength <= epsilon || gapLength <= epsilon ||
                 patternLength <= epsilon) {
                 std::vector<StyledStrokeSegment> solidContour;
-                appendSolidStyledPolyline(solidContour,
-                                          points,
-                                          halfWidth,
-                                          id,
-                                          roundInternalJoints);
+                appendSolidStyledPolyline(
+                    solidContour, points, halfWidth, id, roundInternalJoints);
                 appendStyledStrokeContour(
                     vertices, std::move(solidContour), false, props, mesh);
                 return;
@@ -1727,13 +1709,13 @@ namespace Bess::Wgpu {
                     const float step = std::min(remaining, length - consumed);
                     const glm::vec2 next = cursor + (dir * step);
                     if (drawing && step > epsilon) {
-                        dashContour.push_back({.from = cursor,
-                                               .to = next,
-                                               .fromHalfWidth = halfWidth,
-                                               .toHalfWidth = halfWidth,
-                                               .id = id,
-                                               .roundJoinAfter =
-                                                   roundInternalJoints});
+                        dashContour.push_back(
+                            {.from = cursor,
+                             .to = next,
+                             .fromHalfWidth = halfWidth,
+                             .toHalfWidth = halfWidth,
+                             .id = id,
+                             .roundJoinAfter = roundInternalJoints});
                     }
 
                     consumed += step;
@@ -1801,23 +1783,19 @@ namespace Bess::Wgpu {
                         command.stroke,
                         props,
                         mesh,
-                        command.kind ==
-                            Core::Renderer::PathCommandKind::Line ||
+                        command.kind == Core::Renderer::PathCommandKind::Line ||
                             command.kind ==
                                 Core::Renderer::PathCommandKind::Close);
                     return;
                 }
 
-                appendSolidStyledPolyline(contour,
-                                          points,
-                                          halfWidth,
-                                          pickingIdForCommand(command, props),
-                                          command.kind ==
-                                              Core::Renderer::
-                                                  PathCommandKind::Line ||
-                                              command.kind ==
-                                                  Core::Renderer::
-                                                      PathCommandKind::Close);
+                appendSolidStyledPolyline(
+                    contour,
+                    points,
+                    halfWidth,
+                    pickingIdForCommand(command, props),
+                    command.kind == Core::Renderer::PathCommandKind::Line ||
+                        command.kind == Core::Renderer::PathCommandKind::Close);
                 if (command.stroke.breakAfter) {
                     flushContour(false);
                 }
@@ -1943,16 +1921,14 @@ namespace Bess::Wgpu {
                     break;
                 case Core::Renderer::PathCommandKind::Line:
                     if (contour.empty()) {
-                        contour.push_back(
-                            {.pos = current, .roundable = true});
+                        contour.push_back({.pos = current, .roundable = true});
                     }
                     contour.push_back({.pos = cmd.p, .roundable = true});
                     current = cmd.p;
                     break;
                 case Core::Renderer::PathCommandKind::Quad:
                     if (contour.empty()) {
-                        contour.push_back(
-                            {.pos = current, .roundable = true});
+                        contour.push_back({.pos = current, .roundable = true});
                     }
                     if (nearlyDegenerateTriangle(current, cmd.control, cmd.p)) {
                         contour.push_back({.pos = cmd.p, .roundable = true});
@@ -1973,8 +1949,7 @@ namespace Bess::Wgpu {
                     break;
                 case Core::Renderer::PathCommandKind::Cubic:
                     if (contour.empty()) {
-                        contour.push_back(
-                            {.pos = current, .roundable = true});
+                        contour.push_back({.pos = current, .roundable = true});
                     }
                     {
                         const int segments = cubicSegmentCount(current,
@@ -2521,9 +2496,7 @@ namespace Bess::Wgpu {
                 const std::vector<PathCommand> transformedCommands =
                     transformPathCommandsLinear(commands, props);
                 submission.strokeVertices =
-                    bakePathStroke(transformedCommands,
-                                   strokeProps,
-                                   metrics);
+                    bakePathStroke(transformedCommands, strokeProps, metrics);
             } else {
                 submission.strokeVertices =
                     bakePathStroke(commands, strokeProps, metrics);

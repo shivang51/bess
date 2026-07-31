@@ -79,8 +79,7 @@ class PySimDriver : public Bess::SimEngine::Drivers::SimDriver {
     }
 
     Bess::SimEngine::Drivers::PortCountChangeRes
-    addPort(const Bess::SimEngine::PortRef &port,
-            bool force = false) override {
+    addPort(const Bess::SimEngine::PortRef &port, bool force = false) override {
         PYBIND11_OVERRIDE_PURE_NAME(
             Bess::SimEngine::Drivers::PortCountChangeRes,
             Bess::SimEngine::Drivers::SimDriver,

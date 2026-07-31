@@ -1,11 +1,11 @@
 #include "sub_systems/renderer_context.h"
-#include "window.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/scene/scene_ui/controls/image_comp.h"
 #include "bess_wgpu/wgpu_renderer_2d.h"
 #include "bess_wgpu/wgpu_texture.h"
 #include "common/events.h"
 #include "event_dispatcher.h"
+#include "window.h"
 
 namespace Bess {
 

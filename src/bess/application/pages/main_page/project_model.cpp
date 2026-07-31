@@ -1,7 +1,7 @@
 #include "pages/main_page/project_model.h"
 
-#include "bess_core/scene/scene_ser_reg.h"
 #include "bess_core/g_app_context.h"
+#include "bess_core/scene/scene_ser_reg.h"
 #include "bess_core/scene_driver.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"

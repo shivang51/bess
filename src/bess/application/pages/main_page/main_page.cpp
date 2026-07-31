@@ -1,6 +1,5 @@
 #include "pages/main_page/main_page.h"
 #include "bess_core/asset_manager/asset_manager.h"
-#include "pages/main_page/services/copy_paste_service.h"
 #include "bess_core/g_app_context.h"
 #include "bess_core/scene/scene_ser_reg.h"
 #include "bess_core/scene/widgets/scene_widgets.h"
@@ -26,6 +25,7 @@
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "pages/main_page/scene_components/text_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
+#include "pages/main_page/services/copy_paste_service.h"
 #include "plugin_manager.h"
 #include "project_session/project_session.h"
 #include "ui/ui.h"
@@ -288,9 +288,8 @@ namespace Bess::Pages {
             } else if (inpSystem->isKeyPressed(KeyCode::escape)) {
                 UI::UIMain::getPanel<UI::ComponentExplorer>()->hide();
             } else if (inpSystem->isKeyPressed(KeyCode::c)) {
-                const auto session =
-                    GAppContext::getInstance()
-                        .getSubSystem<Bess::ProjectSession>();
+                const auto session = GAppContext::getInstance()
+                                         .getSubSystem<Bess::ProjectSession>();
                 auto scene = session->scenes().getActiveScene();
                 auto &sceneState = scene->getState();
                 const auto selectedIds = sceneState.getSelectedComponents() |

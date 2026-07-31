@@ -17,7 +17,7 @@ namespace Bess {
     namespace SimEngine {
         class SimulationEngine;
     }
-}
+} // namespace Bess
 
 namespace Bess::UI::Proj {
     struct Res {

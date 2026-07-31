@@ -35,8 +35,8 @@ namespace Bess::Canvas::UI {
             return result;
         }
 
-        [[nodiscard]] glm::vec4 subTextureToUvRect(
-            const Core::Renderer::SubTexture &subTexture) {
+        [[nodiscard]] glm::vec4
+        subTextureToUvRect(const Core::Renderer::SubTexture &subTexture) {
             const auto &startWH = subTexture.getStartWH();
             return {startWH.x,
                     startWH.y,
@@ -84,18 +84,18 @@ namespace Bess::Canvas::UI {
         return create({64.f, 64.f}, config);
     }
 
-    std::shared_ptr<ImageComp>
-    ImageComp::create(const glm::vec2 &imageSize, const CompConfig &config) {
+    std::shared_ptr<ImageComp> ImageComp::create(const glm::vec2 &imageSize,
+                                                 const CompConfig &config) {
         auto image = std::make_shared<ImageComp>();
         image->setImageSize(imageSize);
         applyCompConfig(image, config);
         return image;
     }
 
-    std::shared_ptr<ImageComp> ImageComp::create(
-        const std::shared_ptr<Core::Renderer::ITexture> &texture,
-        const glm::vec2 &imageSize,
-        const CompConfig &config) {
+    std::shared_ptr<ImageComp>
+    ImageComp::create(const std::shared_ptr<Core::Renderer::ITexture> &texture,
+                      const glm::vec2 &imageSize,
+                      const CompConfig &config) {
         auto image = std::make_shared<ImageComp>();
         image->setImageSize(imageSize);
         image->setTexture(texture);
@@ -142,9 +142,8 @@ namespace Bess::Canvas::UI {
         m_pendingResolve = false;
     }
 
-    void
-    ImageComp::setTextureHandle(Core::Renderer::TextureHandle texture,
-                                const glm::vec2 &sourceSize) {
+    void ImageComp::setTextureHandle(Core::Renderer::TextureHandle texture,
+                                     const glm::vec2 &sourceSize) {
         m_texture = nullptr;
         m_textureHandle = texture;
         m_sourceSize = sourceSize;
@@ -157,15 +156,15 @@ namespace Bess::Canvas::UI {
     void ImageComp::setSubTexture(
         const std::shared_ptr<Core::Renderer::ITexture> &texture,
         const Core::Renderer::SubTexture &subTexture) {
-        assignTexture(texture,
-                      subTextureToUvRect(subTexture),
-                      subTexture.getPixelSize());
+        assignTexture(
+            texture, subTextureToUvRect(subTexture), subTexture.getPixelSize());
         m_sourceRequest = {};
         m_pendingResolve = false;
     }
 
-    void ImageComp::setSubTexture(Core::Renderer::TextureHandle texture,
-                                  const Core::Renderer::SubTexture &subTexture) {
+    void
+    ImageComp::setSubTexture(Core::Renderer::TextureHandle texture,
+                             const Core::Renderer::SubTexture &subTexture) {
         m_texture = nullptr;
         m_textureHandle = texture;
         m_sourceSize = subTexture.getPixelSize();
@@ -240,9 +239,7 @@ namespace Bess::Canvas::UI {
                 return false;
             }
 
-            assignTexture(texture,
-                          {0.f, 0.f, 1.f, 1.f},
-                          texture->getSize());
+            assignTexture(texture, {0.f, 0.f, 1.f, 1.f}, texture->getSize());
             m_pendingResolve = false;
             return true;
         } catch (const std::exception &) {
@@ -452,12 +449,11 @@ namespace Bess::Canvas::UI {
         props.color = forcePlaceholderBackground
                           ? m_style.backgroundColor.withAlpha(0.36f)
                           : m_style.backgroundColor;
-        props.borderColor =
-            m_drawBorder ? m_style.borderColor
-                         : Core::Renderer::Color{0.f, 0.f, 0.f, 0.f};
+        props.borderColor = m_drawBorder
+                                ? m_style.borderColor
+                                : Core::Renderer::Color{0.f, 0.f, 0.f, 0.f};
         props.thickness =
-            m_drawBorder ? m_style.metrics.borderSize.toVec4()
-                         : glm::vec4{0.f};
+            m_drawBorder ? m_style.metrics.borderSize.toVec4() : glm::vec4{0.f};
         props.radius = m_cornerRadius;
         props.id = id;
         props.transformMode = state.transformMode;

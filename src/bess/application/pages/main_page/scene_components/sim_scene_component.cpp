@@ -307,8 +307,7 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         }
     }
 
-    void
-    SimulationSceneComponent::beforeSerialize(const SceneState &state) {
+    void SimulationSceneComponent::beforeSerialize(const SceneState &state) {
         updateScales(state);
     }
 

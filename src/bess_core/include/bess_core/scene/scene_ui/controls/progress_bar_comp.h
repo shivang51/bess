@@ -36,7 +36,8 @@ namespace Bess::Canvas::UI {
                               m_valuePrecision,
                               onValueFormatChanged)
 
-        static std::shared_ptr<ProgressBarComp> create(const CompConfig &config);
+        static std::shared_ptr<ProgressBarComp>
+        create(const CompConfig &config);
         static std::shared_ptr<ProgressBarComp>
         create(const std::string &label,
                float value,

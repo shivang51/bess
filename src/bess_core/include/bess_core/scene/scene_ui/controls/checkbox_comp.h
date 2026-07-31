@@ -24,8 +24,7 @@ namespace Bess::Canvas::UI {
         MAKE_GETTER_SETTER_WC(glm::vec2, BoxSize, m_boxSize, makeUIDirty)
         MAKE_GETTER_SETTER(UICheckboxCallback, Callback, m_callback)
 
-        static std::shared_ptr<CheckboxComp>
-        create(const CompConfig &config);
+        static std::shared_ptr<CheckboxComp> create(const CompConfig &config);
         static std::shared_ptr<CheckboxComp>
         create(const std::string &label,
                const UICheckboxCallback &callback = nullptr,

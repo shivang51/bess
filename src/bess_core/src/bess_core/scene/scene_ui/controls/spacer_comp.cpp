@@ -10,15 +10,14 @@ namespace Bess::Canvas::UI {
         }
     } // namespace
 
-    std::shared_ptr<SpacerComp>
-    SpacerComp::create(const CompConfig &config) {
+    std::shared_ptr<SpacerComp> SpacerComp::create(const CompConfig &config) {
         auto spacer = std::make_shared<SpacerComp>();
         applyCompConfig(spacer, config);
         return spacer;
     }
 
-    std::shared_ptr<SpacerComp>
-    SpacerComp::create(float grow, const CompConfig &config) {
+    std::shared_ptr<SpacerComp> SpacerComp::create(float grow,
+                                                   const CompConfig &config) {
         auto spacer = create(config);
         spacer->setFlexGrow(grow);
         return spacer;
@@ -75,16 +74,13 @@ namespace Bess::Canvas::UI {
         makeUIDirty();
     }
 
-    void SpacerComp::setFlex(float grow,
-                             float shrink,
-                             float basis,
-                             Unit basisUnit) {
+    void
+    SpacerComp::setFlex(float grow, float shrink, float basis, Unit basisUnit) {
         const auto sanitizedGrow = nonNegativeFinite(grow);
         const auto sanitizedShrink = nonNegativeFinite(shrink);
         const auto sanitizedBasis = nonNegativeFinite(basis);
 
-        if (m_flexGrow == sanitizedGrow &&
-            m_flexShrink == sanitizedShrink &&
+        if (m_flexGrow == sanitizedGrow && m_flexShrink == sanitizedShrink &&
             m_flexBasis == sanitizedBasis && m_flexBasisUnit == basisUnit) {
             return;
         }

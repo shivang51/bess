@@ -1,10 +1,10 @@
 #pragma once
 
+#include "bess_core/scene/scene_state/components/scene_component.h"
 #include "common/bess_api.h"
 #include "common/bess_uuid.h"
 #include "pages/main_page/scene_components/non_sim_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
-#include "bess_core/scene/scene_state/components/scene_component.h"
 
 #define SLOT_PROBE_SER_PROPS                                                   \
     ("probedSlot", getProbedSlotUuid, setProbedSlotUuid)

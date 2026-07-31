@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/bess_api.h"
 #include "bess_json/bess_json.h"
+#include "common/bess_api.h"
 #include <functional>
 #include <memory>
 #include <string>

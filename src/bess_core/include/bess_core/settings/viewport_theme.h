@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/bess_api.h"
 #include "bess_core/renderer/renderer_types.h"
+#include "common/bess_api.h"
 #include <string>
 
 namespace Bess {
