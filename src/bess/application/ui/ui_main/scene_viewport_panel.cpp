@@ -45,6 +45,9 @@ namespace Bess::UI {
         m_pickingTexture->init();
 
         m_camera = std::make_shared<Camera>(800.f, 600.f);
+
+        m_flags |=
+            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
     }
 
     void SceneViewportPanel::update(TimeMs ts) {
