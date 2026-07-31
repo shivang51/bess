@@ -243,7 +243,11 @@ namespace Bess::SimEngine::Drivers::Math {
         fnDef->setInputPortDescriptor(
             scalarPortDescriptor(PortDirection::input, 0));
         fnDef->setOutputPortDescriptor(
-            scalarPortDescriptor(PortDirection::output, 1));
+            scalarPortDescriptor(PortDirection::output,
+                                 1,
+                                 std::vector<std::string>{
+                                     "Y",
+                                 }));
 
         fnDef->setScalarFn(scalarFn);
 
@@ -1079,7 +1083,7 @@ namespace Bess::SimEngine::Drivers::Math {
             "Multiply", "Maths", MathOpKind::multiply));
 
         catalog.registerComponent(
-            MathCompDef::makeBinaryOp("Power", "Maths", MathOpKind::pow));
+            MathCompDef::makeBinaryOp("Power (a^b)", "Maths", MathOpKind::pow));
 
         const auto inpDef = std::make_shared<MathCompDef>();
         inpDef->setName("Scalar Input");
@@ -1125,40 +1129,52 @@ namespace Bess::SimEngine::Drivers::Math {
         catalog.registerComponent(outDef);
 
         auto fnDef = MathCompDef::makeFunction(
-            "Sine (sin(F*t))",
+            "Sine (sin((f*t) + p) * a)",
             "Maths",
             [](TimeMs time, const std::vector<double> &values) {
-                const auto freq = values.empty() ? 1.0 : values[0];
+                BESS_ASSERT(values.size() == 3,
+                            "Expected 3 values for sine function: frequency, "
+                            "phase, amplitude");
+                const auto freq = values[0];
+                const auto phase = values[1];
+                const auto amp = values[2];
                 const auto t = time.count() / 1000.0;
-                return std::sin(t * freq);
+                return std::sin((t * freq) + phase) * amp;
             });
 
         fnDef->setInputPortDescriptor(
             scalarPortDescriptor(PortDirection::input,
-                                 1,
+                                 3,
                                  std::vector<std::string>{
-                                     "F",
-                                 },
-                                 false));
+                                     "Frequency (f)",
+                                     "Phase (p)",
+                                     "Amplitude (a)",
+                                 }));
 
         catalog.registerComponent(fnDef);
 
         fnDef = MathCompDef::makeFunction(
-            "Cosine (cos(F*t))",
+            "Cosine (cos((f*t) + p) * a)",
             "Maths",
             [](TimeMs time, const std::vector<double> &values) {
-                const auto freq = values.empty() ? 1.0 : values[0];
+                BESS_ASSERT(values.size() == 3,
+                            "Expected 3 values for sine function: frequency, "
+                            "phase, amplitude");
+                const auto freq = values[0];
+                const auto phase = values[1];
+                const auto amp = values[2];
                 const auto t = time.count() / 1000.0;
-                return std::cos(t * freq);
+                return std::cos((t * freq) + phase) * amp;
             });
 
         fnDef->setInputPortDescriptor(
             scalarPortDescriptor(PortDirection::input,
-                                 1,
+                                 3,
                                  std::vector<std::string>{
-                                     "F",
-                                 },
-                                 false));
+                                     "Frequency (f)",
+                                     "Phase (p)",
+                                     "Amplitude (a)",
+                                 }));
 
         catalog.registerComponent(fnDef);
 
@@ -1176,8 +1192,114 @@ namespace Bess::SimEngine::Drivers::Math {
                                  1,
                                  std::vector<std::string>{
                                      "X",
-                                 },
-                                 false));
+                                 }));
+
+        catalog.registerComponent(fnDef);
+
+        // auto schedule is FALSE for nodes "out of time"
+        // p.s. Proud of quote out of time
+
+        fnDef = MathCompDef::makeFunction(
+            "Logarithm (log(x))",
+            "Maths",
+            [](TimeMs, const std::vector<double> &values) {
+                auto x = values.empty() ? 1.0 : values[0];
+                return std::log(x);
+            });
+
+        fnDef->setInputPortDescriptor(
+            scalarPortDescriptor(PortDirection::input,
+                                 1,
+                                 std::vector<std::string>{
+                                     "X",
+                                 }));
+        fnDef->setAutoReschedule(false);
+
+        catalog.registerComponent(fnDef);
+
+        fnDef = MathCompDef::makeFunction(
+            "Square Root (sqrt(x))",
+            "Maths",
+            [](TimeMs, const std::vector<double> &values) {
+                auto x = values.empty() ? 1.0 : values[0];
+                return std::sqrt(x);
+            });
+
+        fnDef->setInputPortDescriptor(
+            scalarPortDescriptor(PortDirection::input,
+                                 1,
+                                 std::vector<std::string>{
+                                     "X",
+                                 }));
+        fnDef->setAutoReschedule(false);
+
+        catalog.registerComponent(fnDef);
+
+        fnDef = MathCompDef::makeFunction(
+            "Absolute Value (abs(x))",
+            "Maths",
+            [](TimeMs, const std::vector<double> &values) {
+                auto x = values.empty() ? 0.0 : values[0];
+                return std::abs(x);
+            });
+
+        fnDef->setInputPortDescriptor(
+            scalarPortDescriptor(PortDirection::input,
+                                 1,
+                                 std::vector<std::string>{
+                                     "X",
+                                 }));
+
+        fnDef->setAutoReschedule(false);
+
+        catalog.registerComponent(fnDef);
+
+        fnDef = MathCompDef::makeFunction(
+            "Clamp (clamp(x, min, max))",
+            "Maths",
+            [](TimeMs, const std::vector<double> &values) {
+                BESS_ASSERT(
+                    values.size() == 3,
+                    "Expected 3 values for clamp function: x, min, max");
+                const auto x = values[0];
+                const auto min = values[1];
+                const auto max = values[2];
+                return std::clamp(x, min, max);
+            });
+
+        fnDef->setInputPortDescriptor(
+            scalarPortDescriptor(PortDirection::input,
+                                 3,
+                                 std::vector<std::string>{
+                                     "X",
+                                     "Min",
+                                     "Max",
+                                 }));
+
+        fnDef->setAutoReschedule(false);
+
+        catalog.registerComponent(fnDef);
+
+        fnDef = MathCompDef::makeFunction(
+            "Modulo (mod(x, y))",
+            "Maths",
+            [](TimeMs, const std::vector<double> &values) {
+                BESS_ASSERT(values.size() == 2,
+                            "Expected 2 values for modulo function: x, y");
+                const auto x = values[0];
+                const auto y = values[1];
+                return std::fmod(x, y);
+            });
+
+        fnDef->setInputPortDescriptor(
+            scalarPortDescriptor(PortDirection::input,
+                                 2,
+                                 std::vector<std::string>{
+                                     "X",
+                                     "Y",
+                                 }));
+
+        fnDef->setAutoReschedule(false);
 
         catalog.registerComponent(fnDef);
     }
