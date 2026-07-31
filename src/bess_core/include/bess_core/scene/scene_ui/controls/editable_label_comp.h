@@ -72,7 +72,7 @@ namespace Bess::Canvas::UI {
         void beginEditAt(std::optional<glm::vec2> focusPos);
         void finishEdit(bool commit);
 
-        std::string m_placeholder = "Label";
+        std::string m_placeholder;
         glm::vec2 m_textBoxSize{0.f, 0.f};
         size_t m_maxLength = 256;
         bool m_selectTextOnEdit = false;

@@ -58,8 +58,9 @@ namespace Bess::Canvas::UI {
             .runtimeId = m_runtimeId,
             .info = 0,
         };
-        props.borderColor =
-            m_textInput.isFocused() ? m_style.activeColor : m_style.borderColor;
+        props.borderColor = m_textInput.isFocused()
+                                ? m_style.activeColor.withAlpha(0.6)
+                                : m_style.borderColor;
         props.radius = m_style.metrics.borderRadius;
         props.thickness = m_style.metrics.borderSize.toVec4();
 
