@@ -943,6 +943,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             baseline.y += lineHeight;
         };
 
+        float width = 0.f;
         size_t offset = 0;
         while (offset < text.size()) {
             const uint32_t codepoint = decodeUtf8(text, offset);
@@ -1010,19 +1011,29 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             const float advance = glyph->advance > 0.f ? glyph->advance * scale
                                                        : props.fontSize * 0.5f;
             baseline.x += advance + props.letterSpacing;
+            width += advance + props.letterSpacing;
+
+            BESS_TRACE("Appended Glyph {} ->  advance {}, scale -> {}",
+                       codepoint,
+                       advance,
+                       scale);
         }
+
+        BESS_TRACE("Appended {} -> w {} -> size {}px", text, width, pixelSize);
 
         return true;
     }
 
     glm::vec2 measureBitmapText(std::string_view text,
                                 const Core::Renderer::FontProps &props,
+                                float projectedPixelSize,
                                 BitmapFontAtlas &atlas) {
-        if (!atlas.valid() || text.empty() || props.fontSize <= 0.f) {
+        if (!atlas.valid() || text.empty() || props.fontSize <= 0.f ||
+            !ensureBitmapTextGlyphs(text, projectedPixelSize, atlas)) {
             return {0.f, 0.f};
         }
 
-        const uint32_t pixelSize = atlas.quantizePixelSize(props.fontSize);
+        const uint32_t pixelSize = atlas.quantizePixelSize(projectedPixelSize);
         const float scale = props.fontSize / static_cast<float>(pixelSize);
         const BitmapGlyph *spaceGlyph = atlas.ensureGlyph(' ', pixelSize);
         const float spaceAdvance =
@@ -1050,6 +1061,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 const float inkMax = std::max(lineAdvance, lineInkMax);
                 lineWidth = std::max(lineWidth, inkMax - inkMin);
             }
+            BESS_TRACE(
+                "Line width: {} ,size = {}px", lineWidth, props.fontSize);
             maxWidth = std::max(maxWidth, lineWidth);
             lineAdvance = 0.f;
             lineInkMin = 0.f;
@@ -1089,8 +1102,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             }
 
             if (glyph->drawable) {
-                const float glyphLeft = lineAdvance + glyph->offsetX * scale;
-                const float glyphRight = glyphLeft + glyph->width * scale;
+                const float glyphLeft = lineAdvance + (glyph->offsetX * scale);
+                const float glyphRight = glyphLeft + (glyph->width * scale);
                 if (hasLineInk) {
                     lineInkMin = std::min(lineInkMin, glyphLeft);
                     lineInkMax = std::max(lineInkMax, glyphRight);
@@ -1104,6 +1117,8 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             const float advance = glyph->advance > 0.f ? glyph->advance * scale
                                                        : props.fontSize * 0.5f;
             lineAdvance += advance + props.letterSpacing;
+            BESS_TRACE(
+                "{} -> advance {}, scale -> {}", codepoint, advance, scale);
         }
 
         finishLine();
@@ -1119,52 +1134,18 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
 
         const uint32_t pixelSize = atlas.quantizePixelSize(props.fontSize);
         const float scale = props.fontSize / static_cast<float>(pixelSize);
+
         const BitmapTextLineMetrics metrics = atlas.metricsForSize(pixelSize);
+
+        const float ascent = metrics.ascender * scale;
+        const float descent = metrics.descender * scale;
+
         const float lineHeight =
             props.lineHeight > 0.f
                 ? props.lineHeight
                 : std::max(metrics.lineHeight * scale, props.fontSize);
 
-        float baselineY = 0.f;
-        float inkTop = std::numeric_limits<float>::max();
-        float inkBottom = std::numeric_limits<float>::lowest();
-        bool hasInk = false;
-
-        size_t offset = 0;
-        while (offset < text.size()) {
-            const uint32_t codepoint = decodeUtf8(text, offset);
-            if (codepoint == 0) {
-                break;
-            }
-
-            if (codepoint == '\r') {
-                if (offset < text.size() && text[offset] == '\n') {
-                    ++offset;
-                }
-                baselineY += lineHeight;
-                continue;
-            }
-            if (codepoint == '\n') {
-                baselineY += lineHeight;
-                continue;
-            }
-            if (codepoint == '\t') {
-                continue;
-            }
-
-            const BitmapGlyph *glyph = atlas.ensureGlyph(codepoint, pixelSize);
-            if (glyph == nullptr || !glyph->drawable) {
-                continue;
-            }
-
-            const float top = baselineY - (glyph->offsetY * scale);
-            const float bottom = top + (glyph->height * scale);
-            inkTop = std::min(inkTop, top);
-            inkBottom = std::max(inkBottom, bottom);
-            hasInk = true;
-        }
-
-        return hasInk ? -((inkTop + inkBottom) * 0.5f) : props.fontSize * 0.35f;
+        return 0.5f * (ascent + descent);
     }
 
 } // namespace Bess::Wgpu::Text

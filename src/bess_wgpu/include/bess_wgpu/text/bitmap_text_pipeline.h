@@ -292,6 +292,7 @@ namespace Bess::Wgpu::Text {
 
     glm::vec2 measureBitmapText(std::string_view text,
                                 const Core::Renderer::FontProps &props,
+                                float projectedPixelSize,
                                 BitmapFontAtlas &atlas);
 
     float bitmapCenterOffsetY(std::string_view text,

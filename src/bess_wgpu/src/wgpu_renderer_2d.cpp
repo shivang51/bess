@@ -2757,13 +2757,16 @@ namespace Bess::Wgpu {
             return {0.f, 0.f};
         }
 
+        const float projectedPixelSize = projectedFontPixelSize(
+            props, m_impl->cameraTransform, m_impl->extent);
+
         if (m_impl->bitmapFontAtlas != nullptr &&
             m_impl->bitmapFontAtlas->valid() &&
-            shouldUseBitmapText(props.fontSize) &&
+            shouldUseBitmapText(projectedPixelSize) &&
             Text::ensureBitmapTextGlyphs(
-                text, props.fontSize, *m_impl->bitmapFontAtlas)) {
-            const glm::vec2 measured =
-                Text::measureBitmapText(text, props, *m_impl->bitmapFontAtlas);
+                text, projectedPixelSize, *m_impl->bitmapFontAtlas)) {
+            const glm::vec2 measured = Text::measureBitmapText(
+                text, props, projectedPixelSize, *m_impl->bitmapFontAtlas);
             if (measured.x > 0.f || measured.y > 0.f) {
                 return measured;
             }
