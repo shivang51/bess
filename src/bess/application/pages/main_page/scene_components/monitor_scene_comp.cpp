@@ -39,7 +39,7 @@ namespace {
     constexpr float kMinVoltageScale = 0.1f;
     constexpr float kMaxVoltageScale = 100.f;
     constexpr double kMinTimeSpanSec = 1e-9;
-    constexpr std::size_t kMaxProbeSamples = 2000;
+    constexpr std::size_t kMaxProbeSamples = 4e4;
     constexpr uint32_t kPlotPickingInfo = 2;
     constexpr uint32_t kTracePickingInfoStart = 3;
     constexpr uint32_t kTracePickingInfoEnd = kTracePickingInfoStart + 65;
@@ -1057,9 +1057,8 @@ namespace Bess::Canvas {
                     chipOptions)) {
                 auto before = toJson();
                 toggleProbeVisibilityByLegendIndex(traceIndex);
-                (void)Edit::trackComp(*this,
-                                      std::move(before),
-                                      "monitor-legend");
+                (void)Edit::trackComp(
+                    *this, std::move(before), "monitor-legend");
             }
 
             const float swatchStartX = chipRect.left + chipPadX;
@@ -1132,9 +1131,7 @@ namespace Bess::Canvas {
                 buttonOptions)) {
             auto before = toJson();
             resetPlotPan();
-            (void)Edit::trackComp(*this,
-                                  std::move(before),
-                                  "monitor-view");
+            (void)Edit::trackComp(*this, std::move(before), "monitor-view");
         }
     }
 
@@ -1462,9 +1459,8 @@ namespace Bess::Canvas {
                     addSlotProbe(*e.sceneState,
                                  e.sceneState->getConnectionStartSlot());
                     e.sceneState->setConnectionStartSlot(UUID::null);
-                    (void)Edit::trackComp(*this,
-                                          std::move(before),
-                                          "monitor-probe");
+                    (void)Edit::trackComp(
+                        *this, std::move(before), "monitor-probe");
                     return true;
                 }
             }
@@ -1494,9 +1490,7 @@ namespace Bess::Canvas {
         m_timeScale *= zoomFactor;
         m_timeScale =
             sanitizedScale(m_timeScale, 1.f, kMinTimeScale, kMaxTimeScale);
-        (void)Edit::trackComp(*this,
-                              std::move(before),
-                              "monitor-view");
+        (void)Edit::trackComp(*this, std::move(before), "monitor-view");
         return true;
     }
 
@@ -1542,9 +1536,8 @@ namespace Bess::Canvas {
     void MonitorSceneComp::onMouseDragEnd() {
         if (m_isPlotDragging) {
             m_isPlotDragging = false;
-            (void)Edit::trackComp(*this,
-                                  std::move(m_plotDragBefore),
-                                  "monitor-view");
+            (void)Edit::trackComp(
+                *this, std::move(m_plotDragBefore), "monitor-view");
             m_plotDragBefore = {};
             m_plotDragScene = UUID::null;
             return;
