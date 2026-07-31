@@ -1302,6 +1302,37 @@ namespace Bess::SimEngine::Drivers::Math {
         fnDef->setAutoReschedule(false);
 
         catalog.registerComponent(fnDef);
+
+        // TimeNode - Just passes time out in seconds and ms
+
+        auto timeNode = std::make_shared<MathCompDef>();
+        timeNode->setName("Time Node");
+        timeNode->setGroupName("Maths");
+        timeNode->setBehaviorType(ComponentBehaviorType::input);
+        timeNode->setInputPortDescriptor(
+            scalarPortDescriptor(PortDirection::input, 0));
+        timeNode->setOutputPortDescriptor(
+            scalarPortDescriptor(PortDirection::output,
+                                 2,
+                                 std::vector<std::string>{
+                                     "Seconds",
+                                     "Milliseconds",
+                                 }));
+        timeNode->setSimFn([](const std::shared_ptr<MathCompSimData> &data) {
+            const auto timeMs =
+                std::chrono::duration<double, std::milli>(data->simTime);
+            const auto t = timeMs.count();
+            data->outputStates[0] =
+                PortState::scalar(t / 1000.0, data->simTime);
+            data->outputStates[1] = PortState::scalar(t, data->simTime);
+            data->simDependants = true;
+            return data;
+        });
+
+        timeNode->setAutoReschedule(true);
+        timeNode->setAutoRescheduleDelay(TimeNs(2e6));
+
+        catalog.registerComponent(timeNode);
     }
 
 } // namespace Bess::SimEngine::Drivers::Math
