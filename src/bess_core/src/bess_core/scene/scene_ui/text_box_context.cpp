@@ -701,7 +701,7 @@ namespace Bess::Canvas::UI {
             textColor = colorOr(options.placeholderColor, palette.textMuted);
         }
 
-        const float maxCursorHeight = std::max(4.f, size.y - 4.f);
+        const float maxCursorHeight = std::max(4.f, size.y);
         const float defaultCursorHeight =
             std::max(referenceTextSize.y, size.y - (options.padding.y * 2.f));
         const float cursorHeight =

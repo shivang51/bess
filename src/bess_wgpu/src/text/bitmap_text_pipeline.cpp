@@ -943,7 +943,6 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             baseline.y += lineHeight;
         };
 
-        float width = 0.f;
         size_t offset = 0;
         while (offset < text.size()) {
             const uint32_t codepoint = decodeUtf8(text, offset);
@@ -1011,15 +1010,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             const float advance = glyph->advance > 0.f ? glyph->advance * scale
                                                        : props.fontSize * 0.5f;
             baseline.x += advance + props.letterSpacing;
-            width += advance + props.letterSpacing;
-
-            BESS_TRACE("Appended Glyph {} ->  advance {}, scale -> {}",
-                       codepoint,
-                       advance,
-                       scale);
         }
-
-        BESS_TRACE("Appended {} -> w {} -> size {}px", text, width, pixelSize);
 
         return true;
     }
@@ -1061,8 +1052,6 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 const float inkMax = std::max(lineAdvance, lineInkMax);
                 lineWidth = std::max(lineWidth, inkMax - inkMin);
             }
-            BESS_TRACE(
-                "Line width: {} ,size = {}px", lineWidth, props.fontSize);
             maxWidth = std::max(maxWidth, lineWidth);
             lineAdvance = 0.f;
             lineInkMin = 0.f;
@@ -1117,8 +1106,6 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
             const float advance = glyph->advance > 0.f ? glyph->advance * scale
                                                        : props.fontSize * 0.5f;
             lineAdvance += advance + props.letterSpacing;
-            BESS_TRACE(
-                "{} -> advance {}, scale -> {}", codepoint, advance, scale);
         }
 
         finishLine();

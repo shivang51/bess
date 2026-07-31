@@ -62,6 +62,11 @@ namespace Bess::Canvas::UI {
         glm::vec2 stylePadding() const;
         void applyTextInputResult(const TextBoxContextResult &result);
 
+        void drawBackground(SceneDrawContext &state);
+        void drawText(SceneDrawContext &state);
+        void drawCursor(SceneDrawContext &state);
+        void drawSel(SceneDrawContext &state);
+
         std::string m_value;
         std::string m_placeholder;
         glm::vec2 m_textBoxSize{64.f, 0.f};

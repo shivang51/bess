@@ -163,6 +163,8 @@ namespace Bess::UI {
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
         ImGui::SetNextWindowSizeConstraints({400.f, 400.f}, {-1.f, -1.f});
+        ImGui::PushItemFlag(ImGuiItemFlags_NoTabStop, true);
+        ImGui::PushItemFlag(ImGuiItemFlags_NoNav, true);
     }
 
     void SceneViewportPanel::onDraw() {
@@ -219,6 +221,8 @@ namespace Bess::UI {
 
     void SceneViewportPanel::onAfterDraw() {
         ImGui::PopStyleVar();
+        ImGui::PopItemFlag();
+        ImGui::PopItemFlag();
     }
 
     void SceneViewportPanel::drawTopLeftControls() {
@@ -254,7 +258,8 @@ namespace Bess::UI {
                 .c_str(),
             ImVec2(size, 0),
             ImGuiChildFlags_AlwaysUseWindowPadding,
-            NO_MOVE_FLAGS | ImGuiWindowFlags_NoDocking);
+            NO_MOVE_FLAGS | ImGuiWindowFlags_NoDocking |
+                ImGuiWindowFlags_NoNav);
 
         ImGui::AlignTextToFramePadding();
         ImGui::Text("%s Schematic Mode",
@@ -288,7 +293,8 @@ namespace Bess::UI {
             ImVec2(0, 0),
             ImGuiChildFlags_AlwaysUseWindowPadding |
                 ImGuiChildFlags_AlwaysAutoResize | ImGuiChildFlags_AutoResizeY,
-            NO_MOVE_FLAGS | ImGuiWindowFlags_NoDocking);
+            NO_MOVE_FLAGS | ImGuiWindowFlags_NoDocking |
+                ImGuiWindowFlags_NoNav);
 
         constexpr auto rootIcon =
             Common::Helpers::concat(Icons::CodIcons::RECORD, " Root");
@@ -402,7 +408,8 @@ namespace Bess::UI {
                           ImGuiChildFlags_AlwaysUseWindowPadding |
                               ImGuiChildFlags_AlwaysAutoResize |
                               ImGuiChildFlags_AutoResizeX,
-                          NO_MOVE_FLAGS | ImGuiWindowFlags_NoScrollbar);
+                          NO_MOVE_FLAGS | ImGuiWindowFlags_NoScrollbar |
+                              ImGuiWindowFlags_NoNav);
 
         const float windowHeight = 34.0f;
         const float sliderHeight = ImGui::GetFrameHeight();
