@@ -15,6 +15,7 @@
 #include <cmath>
 #include <exception>
 #include <limits>
+#include <utility>
 
 namespace Icons = Bess::UI::Icons;
 namespace Widgets = Bess::UI::Widgets;
@@ -76,6 +77,24 @@ namespace Bess::Canvas {
         m_name = "Image";
         m_icon = Icons::FontAwesomeIcons::FA_IMAGE;
         m_style.color = ViewportTheme::colors.componentBG;
+    }
+
+    void ImageSceneComponent::setData(std::vector<uint8_t> &&value) {
+        m_imageData = std::move(value);
+        onDataChange();
+    }
+
+    Json::Value ImageSceneComponent::toEditJson() const {
+        auto json = NonSimSceneComponent::toJson();
+        json["maintainAspectRatio"] = m_maintainAspectRatio;
+        json["typeName"] = getTypeName();
+        return json;
+    }
+
+    std::size_t ImageSceneComponent::estimatedMemoryUsage() const noexcept {
+        return SceneComponent::estimatedMemoryUsage() +
+               (sizeof(*this) - sizeof(SceneComponent)) +
+               m_imageData.capacity() * sizeof(m_imageData.front());
     }
 
     std::vector<std::shared_ptr<SceneComponent>>
@@ -466,7 +485,7 @@ namespace Bess::Canvas {
         m_activeResizeHandle = e.details;
         m_resizeStartPosition = m_transform.position;
         m_resizeStartScale = sanitizedScale(m_transform.scale);
-        m_resizeBefore = toJson();
+        m_resizeBefore = toEditJson();
         m_resizeScene = e.sceneState->getSceneId();
 
         const auto absPos =

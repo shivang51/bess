@@ -14,6 +14,8 @@
 #include "common/types.h"
 #include "json/value.h"
 
+#include <cstddef>
+
 namespace Bess::Canvas {
     struct SceneLoadCtx {
         SimEngine::SimulationEngine *sim = nullptr;
@@ -222,6 +224,19 @@ namespace Bess::Canvas {
         // Serialize the component to JSON for saving
         virtual Json::Value toJson() const;
         virtual void applyJson(const Json::Value &json);
+
+        // Capture state used by interactive edit tracking. The default is the
+        // complete serialized state. Components with large immutable payloads
+        // may return a partial object as long as it contains identity and
+        // hierarchy fields and can be passed to applyJson().
+        [[nodiscard]] virtual Json::Value toEditJson() const;
+
+        // Approximate the host memory retained by this component. This must
+        // stay cheap: transaction history uses it while updating its budget.
+        // Components that own sizeable dynamic buffers should override it.
+        [[nodiscard]] virtual std::size_t
+        estimatedMemoryUsage() const noexcept;
+
         virtual void beforeSerialize(const SceneState &state);
         virtual void onLoaded(const SceneLoadCtx &ctx);
         virtual void onRuntimeReady(SceneState &state);

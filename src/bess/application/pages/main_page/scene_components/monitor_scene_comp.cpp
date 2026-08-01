@@ -1055,7 +1055,7 @@ namespace Bess::Canvas {
                     {chipRect.center().x, chipRect.center().y, z},
                     context,
                     chipOptions)) {
-                auto before = toJson();
+                auto before = toEditJson();
                 toggleProbeVisibilityByLegendIndex(traceIndex);
                 (void)Edit::trackComp(
                     *this, std::move(before), "monitor-legend");
@@ -1129,7 +1129,7 @@ namespace Bess::Canvas {
                 {buttonRect.center().x, buttonRect.center().y, z},
                 context,
                 buttonOptions)) {
-            auto before = toJson();
+            auto before = toEditJson();
             resetPlotPan();
             (void)Edit::trackComp(*this, std::move(before), "monitor-view");
         }
@@ -1455,7 +1455,7 @@ namespace Bess::Canvas {
                         connStartSlot);
                 if (comp && comp->getType() == SceneComponentType::slot &&
                     !comp->isResizeSlot()) {
-                    auto before = toJson();
+                    auto before = toEditJson();
                     addSlotProbe(*e.sceneState,
                                  e.sceneState->getConnectionStartSlot());
                     e.sceneState->setConnectionStartSlot(UUID::null);
@@ -1474,7 +1474,7 @@ namespace Bess::Canvas {
             return false;
         }
 
-        auto before = toJson();
+        auto before = toEditJson();
         m_timeScale =
             sanitizedScale(m_timeScale, 1.f, kMinTimeScale, kMaxTimeScale);
         const float zoomFactor = std::pow(1.15f, e.delta.y);
@@ -1502,7 +1502,7 @@ namespace Bess::Canvas {
         }
 
         if (!m_isPlotDragging) {
-            m_plotDragBefore = toJson();
+            m_plotDragBefore = toEditJson();
             m_plotDragScene =
                 e.sceneState ? e.sceneState->getSceneId() : UUID::null;
             m_isPlotDragging = true;

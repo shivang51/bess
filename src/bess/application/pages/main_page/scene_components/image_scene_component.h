@@ -34,6 +34,7 @@ namespace Bess::Canvas {
                               Data,
                               m_imageData,
                               onDataChange)
+        void setData(std::vector<uint8_t> &&value);
         MAKE_GETTER_SETTER_WC(uint32_t,
                               ImageWidth,
                               m_imageWidth,
@@ -51,6 +52,10 @@ namespace Bess::Canvas {
         void drawSchematic(SceneDrawContext &context) override;
 
         std::type_index getTypeIndex() override;
+
+        [[nodiscard]] Json::Value toEditJson() const override;
+        [[nodiscard]] std::size_t
+        estimatedMemoryUsage() const noexcept override;
 
         void drawPropertiesUI(SceneState &sceneState) override;
         void onMouseDragged(const Events::MouseDraggedEvent &e) override;

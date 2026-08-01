@@ -62,7 +62,7 @@ namespace Bess {
         std::size_t
         compBytes(const std::shared_ptr<Canvas::SceneComponent> &comp) {
             return sizeof(comp) +
-                   (comp ? jsonBytes(comp->toJson()) : std::size_t{0});
+                   (comp ? comp->estimatedMemoryUsage() : std::size_t{0});
         }
 
         bool sameIdentity(const Json::Value &lhs, const Json::Value &rhs) {
@@ -337,17 +337,11 @@ namespace Bess {
             }
 
             std::size_t bytes() const noexcept override {
-                try {
-                    std::size_t total = sizeof(*this) + compBytes(m_comp);
-                    for (const auto &kid : m_kids) {
-                        total += compBytes(kid);
-                    }
-                    return total;
-                } catch (...) {
-                    return sizeof(*this) +
-                           (m_kids.size() + 1U) *
-                               sizeof(std::shared_ptr<Canvas::SceneComponent>);
+                std::size_t total = sizeof(*this) + compBytes(m_comp);
+                for (const auto &kid : m_kids) {
+                    total += compBytes(kid);
                 }
+                return total;
             }
 
           private:
@@ -406,20 +400,14 @@ namespace Bess {
             }
 
             std::size_t bytes() const noexcept override {
-                try {
-                    std::size_t total = sizeof(*this);
-                    for (const auto &comp : m_data->comps) {
-                        total += compBytes(comp);
-                    }
-                    for (const auto &[_, kids] : m_data->kids) {
-                        total += sizeof(UUID) + kids.size() * sizeof(UUID);
-                    }
-                    return total;
-                } catch (...) {
-                    return sizeof(*this) +
-                           m_data->comps.size() *
-                               sizeof(std::shared_ptr<Canvas::SceneComponent>);
+                std::size_t total = sizeof(*this);
+                for (const auto &comp : m_data->comps) {
+                    total += compBytes(comp);
                 }
+                for (const auto &[_, kids] : m_data->kids) {
+                    total += sizeof(UUID) + kids.size() * sizeof(UUID);
+                }
+                return total;
             }
 
           private:
@@ -841,11 +829,15 @@ namespace Bess {
                     return Status::fail(Err::invalid,
                                         "component was not found");
                 }
-                return item->toJson() == expected
-                           ? Status::ok()
-                           : Status::fail(
-                                 Err::conflict,
-                                 "component changed before it was tracked");
+                const auto current =
+                    m_tracked ? item->toEditJson() : item->toJson();
+                if (current == expected ||
+                    (m_tracked && item->toJson() == expected)) {
+                    return Status::ok();
+                }
+                return Status::fail(
+                    Err::conflict,
+                    "component changed before it was tracked");
             }
 
             Status put(ProjectSession &session, const Json::Value &data) {
@@ -854,7 +846,8 @@ namespace Bess {
                     return Status::fail(Err::invalid,
                                         "component was not found");
                 }
-                const auto current = item->toJson();
+                const auto current =
+                    m_tracked ? item->toEditJson() : item->toJson();
                 if (!sameIdentity(current, data)) {
                     return Status::fail(
                         Err::invalid,

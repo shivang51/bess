@@ -307,7 +307,7 @@ namespace Bess::Canvas {
 
     void ConnectionSceneComponent::onMouseDragBegin(
         const Events::MouseDraggedEvent &e) {
-        m_dragBefore = toJson();
+        m_dragBefore = toEditJson();
         m_dragScene = e.sceneState ? e.sceneState->getSceneId() : UUID::null;
         m_draggedSegIdx = (int)e.details;
         m_isDragging = true;

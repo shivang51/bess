@@ -5,6 +5,7 @@
 #include "bess_core/scene/scene_ui/controls/label_comp.h"
 #include "bess_core/scene_driver.h"
 #include "event_dispatcher.h"
+#include "pages/main_page/scene_components/image_scene_component.h"
 #include "project_session/project_session.h"
 
 #include <gtest/gtest.h>
@@ -55,6 +56,31 @@ namespace {
 
       private:
         glm::vec3 m_seenPos{};
+    };
+
+    class HistorySizedComp final : public Bess::Canvas::SceneComponent {
+      public:
+        explicit HistorySizedComp(std::size_t estimatedBytes)
+            : m_estimatedBytes(estimatedBytes) {
+        }
+
+        Json::Value toJson() const override {
+            ++m_serializationCount;
+            return SceneComponent::toJson();
+        }
+
+        [[nodiscard]] std::size_t
+        estimatedMemoryUsage() const noexcept override {
+            return m_estimatedBytes;
+        }
+
+        [[nodiscard]] std::size_t serializationCount() const noexcept {
+            return m_serializationCount;
+        }
+
+      private:
+        std::size_t m_estimatedBytes = 0;
+        mutable std::size_t m_serializationCount = 0;
     };
 
     class TmpDir {
@@ -142,6 +168,63 @@ TEST_F(ProjectSessionTest, AddUndoRedoRestoresComponentTree) {
     EXPECT_NE(scene->getState().getComponentByUuid(child->getUuid()), nullptr);
     EXPECT_EQ(child->getParentComponent(), root->getUuid());
     EXPECT_TRUE(root->getChildComponents().contains(child->getUuid()));
+}
+
+TEST_F(ProjectSessionTest, HistorySizingDoesNotSerializeComponents) {
+    constexpr std::size_t largerThanDefaultHistoryBudget =
+        std::size_t{65} * 1024U * 1024U;
+    auto comp =
+        std::make_shared<HistorySizedComp>(largerThanDefaultHistoryBudget);
+
+    const auto add = session->addComp(comp, {}, scene->getSceneId());
+
+    ASSERT_TRUE(add) << add.status.msg();
+    EXPECT_EQ(comp->serializationCount(), 0U);
+    EXPECT_FALSE(session->canUndo());
+    EXPECT_NE(scene->getState().getComponentByUuid(comp->getUuid()), nullptr);
+
+    const auto remove =
+        session->rmComp(comp->getUuid(), scene->getSceneId());
+
+    ASSERT_TRUE(remove) << remove.status.msg();
+    EXPECT_EQ(comp->serializationCount(), 0U);
+    EXPECT_FALSE(session->canUndo());
+    EXPECT_EQ(scene->getState().getComponentByUuid(comp->getUuid()), nullptr);
+}
+
+TEST_F(ProjectSessionTest, ImageEditSnapshotsExcludePixelsAndRemainUndoable) {
+    auto image = std::make_shared<Bess::Canvas::ImageSceneComponent>();
+    image->setImageWidth(2U);
+    image->setImageHeight(2U);
+    const std::vector<std::uint8_t> pixels{
+        1U,  2U,  3U,  4U,  5U,  6U,  7U,  8U,
+        9U,  10U, 11U, 12U, 13U, 14U, 15U, 16U,
+    };
+    image->setData(pixels);
+    image->setScale({100.f, 100.f});
+
+    ASSERT_TRUE(session->addComp(image, {}, scene->getSceneId()));
+    session->clearHist();
+
+    const auto before = image->toEditJson();
+    EXPECT_FALSE(before.isMember("imageData"));
+    EXPECT_FALSE(before.isMember("imageWidth"));
+    EXPECT_FALSE(before.isMember("imageHeight"));
+    EXPECT_EQ(before["typeName"].asString(), "ImageSceneComponent");
+
+    image->setScale({240.f, 120.f});
+    ASSERT_TRUE(scene->getState().trackComp(*image, before, "properties"));
+    ASSERT_TRUE(session->canUndo());
+
+    ASSERT_TRUE(session->undo());
+    EXPECT_EQ(image->getTransform().scale, glm::vec2(100.f, 100.f));
+    EXPECT_EQ(image->getData(), pixels);
+    EXPECT_EQ(image->getImageWidth(), 2U);
+    EXPECT_EQ(image->getImageHeight(), 2U);
+
+    ASSERT_TRUE(session->redo());
+    EXPECT_EQ(image->getTransform().scale, glm::vec2(240.f, 120.f));
+    EXPECT_EQ(image->getData(), pixels);
 }
 
 TEST_F(ProjectSessionTest, RemoveUndoRedoRestoresDependantsAndOrder) {

@@ -60,7 +60,7 @@ namespace Bess::UI {
             }
         }
 
-        auto before = comp->toJson();
+        auto before = comp->toEditJson();
         comp->drawPropertiesUI(sceneState);
 
         if (compType == Canvas::SceneComponentType::simulation) {

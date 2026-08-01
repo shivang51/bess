@@ -72,7 +72,7 @@ namespace Bess::Canvas {
         if (m_isFirstDraw) {
             onFirstDraw(context);
         }
-        auto before = toJson();
+        auto before = toEditJson();
 
         const auto backgroundId = PickingId{m_runtimeId, 0};
         const auto pos =

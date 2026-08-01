@@ -7,7 +7,17 @@
 #include "bess_core/scene/scene_state/components/styles/comp_style.h"
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "ext/matrix_transform.hpp"
+
+#include <limits>
 namespace Bess::Canvas {
+    namespace {
+        std::size_t saturatedAdd(std::size_t lhs,
+                                 std::size_t rhs) noexcept {
+            constexpr auto max = std::numeric_limits<std::size_t>::max();
+            return rhs > max - lhs ? max : lhs + rhs;
+        }
+    } // namespace
+
     SceneComponent::SceneComponent()
         : m_uuid{UUID()},
           m_icon("\xf0\x9f\x86\xb2") {
@@ -169,6 +179,19 @@ namespace Bess::Canvas {
             ("typeName", getTypeName));
 
         return json;
+    }
+
+    Json::Value SceneComponent::toEditJson() const {
+        return toJson();
+    }
+
+    std::size_t SceneComponent::estimatedMemoryUsage() const noexcept {
+        auto bytes = sizeof(*this);
+        bytes = saturatedAdd(bytes, m_name.capacity());
+        bytes = saturatedAdd(bytes, m_icon.capacity());
+        bytes = saturatedAdd(
+            bytes, m_childComponents.size() * sizeof(UUID));
+        return bytes;
     }
 
     void SceneComponent::fromJson(const Json::Value &j,

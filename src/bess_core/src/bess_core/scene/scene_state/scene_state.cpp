@@ -37,7 +37,7 @@ namespace Bess::Canvas {
     bool SceneState::trackComp(SceneComponent &comp,
                                Json::Value before,
                                std::string key) {
-        const auto after = comp.toJson();
+        const auto after = comp.toEditJson();
         if (before == after) {
             return true;
         }

@@ -16,7 +16,28 @@
 #include "ui/ui_main/ui_main.h"
 #include "ui/widgets/m_widgets.h"
 
+#include <cstddef>
+
 namespace Bess::UI {
+    namespace {
+        constexpr std::size_t kMaxInlineSerializedComponentBytes =
+            std::size_t{1} * 1024U * 1024U;
+
+        Json::Value debugComponentJson(
+            const Canvas::SceneComponent &component) {
+            const auto estimatedBytes = component.estimatedMemoryUsage();
+            if (estimatedBytes <= kMaxInlineSerializedComponentBytes) {
+                return component.toJson();
+            }
+
+            auto json = component.toEditJson();
+            json["_debug"]["largePayloadOmitted"] = true;
+            json["_debug"]["estimatedComponentBytes"] =
+                static_cast<Json::UInt64>(estimatedBytes);
+            return json;
+        }
+    } // namespace
+
     DebugPanel::DebugPanel() : Panel("Debug Panel") {
         m_name = Icons::CodIcons::COPILOT + std::string(" Debug Panel");
 #ifdef DEBUG
@@ -143,10 +164,10 @@ namespace Bess::UI {
                     }
 
                     if (Widgets::TreeNode(2,
-                                          "First Sel Component Serilaized")) {
+                                          "First Selected Component State")) {
                         if (!selComps.empty()) {
 
-                            const auto &j = comp->toJson();
+                            const auto j = debugComponentJson(*comp);
                             Widgets::SelectableText(compId.toString(),
                                                     j.toStyledString());
 

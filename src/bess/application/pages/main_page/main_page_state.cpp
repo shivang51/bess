@@ -26,6 +26,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <utility>
 
 namespace Bess::Pages {
     namespace {
@@ -332,7 +333,7 @@ namespace Bess::Pages {
             imageComponent->setName(fileName.empty() ? "Image" : fileName);
             imageComponent->setImageWidth(decodedImage->width);
             imageComponent->setImageHeight(decodedImage->height);
-            imageComponent->setData(decodedImage->rgba8);
+            imageComponent->setData(std::move(decodedImage->rgba8));
             imageComponent->setMaintainAspectRatio(true);
             imageComponent->setScale(initialImageSceneScale(
                 decodedImage->width, decodedImage->height));

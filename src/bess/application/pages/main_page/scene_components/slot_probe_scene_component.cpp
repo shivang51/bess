@@ -132,7 +132,7 @@ namespace Bess::Canvas {
                         connStartSlot);
                 if (comp && comp->getType() == SceneComponentType::slot &&
                     !comp->isResizeSlot()) {
-                    auto before = toJson();
+                    auto before = toEditJson();
                     setProbedSlotUuid(e.sceneState->getConnectionStartSlot());
                     e.sceneState->setConnectionStartSlot(UUID::null);
                     (void)Edit::trackComp(
