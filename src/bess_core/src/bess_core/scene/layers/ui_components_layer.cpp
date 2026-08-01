@@ -344,9 +344,8 @@ namespace Bess::Canvas {
             return;
         }
 
-        for (const auto &compId : ctx.sceneState->getRootComponents()) {
-            auto comp = ctx.sceneState->getComponentByUuid(compId);
-            if (comp != nullptr && comp->getType() == SceneComponentType::ui) {
+        for (const auto &[compId, comp] : ctx.sceneState->getAllComponents()) {
+            if (comp->getType() == SceneComponentType::ui) {
                 comp->update(ts, *ctx.sceneState);
             }
         }
