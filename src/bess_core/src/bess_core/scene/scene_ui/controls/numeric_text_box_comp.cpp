@@ -14,6 +14,7 @@
 namespace Bess::Canvas::UI {
     namespace {
         constexpr int kMaximumFloatPrecision = 32;
+        constexpr size_t kMaximumExpressionDepth = 64;
 
         [[nodiscard]] bool sameSize(const glm::vec2 &lhs,
                                     const glm::vec2 &rhs) noexcept {
@@ -90,6 +91,27 @@ namespace Bess::Canvas::UI {
             return true;
         }
 
+        [[nodiscard]] bool isExpressionEdit(std::string_view text,
+                                            bool floatingPoint,
+                                            bool allowExponent) noexcept {
+            for (const char ch : text) {
+                if ((ch >= '0' && ch <= '9') || ch == '+' || ch == '-' ||
+                    ch == '*' || ch == '/' || ch == '%' || ch == '(' ||
+                    ch == ')' || ch == ' ' || ch == '\t') {
+                    continue;
+                }
+                if (floatingPoint && ch == '.') {
+                    continue;
+                }
+                if (floatingPoint && allowExponent &&
+                    (ch == 'e' || ch == 'E')) {
+                    continue;
+                }
+                return false;
+            }
+            return true;
+        }
+
         [[nodiscard]] bool parseInteger(std::string_view text,
                                         int &value) noexcept {
             if (text.empty() || text == "+" || text == "-") {
@@ -145,6 +167,187 @@ namespace Bess::Canvas::UI {
             return true;
         }
 
+        [[nodiscard]] bool parseDouble(std::string_view text,
+                                       double &value) noexcept {
+            if (text.empty() || text == "+" || text == "-" || text == "." ||
+                text == "+." || text == "-.") {
+                return false;
+            }
+
+            if (text.front() == '+') {
+                text.remove_prefix(1);
+            }
+            if (text.empty()) {
+                return false;
+            }
+
+            double parsed = 0.0;
+            const auto result = std::from_chars(text.data(),
+                                                text.data() + text.size(),
+                                                parsed,
+                                                std::chars_format::general);
+            if (result.ec != std::errc{} ||
+                result.ptr != text.data() + text.size() ||
+                !std::isfinite(parsed)) {
+                return false;
+            }
+
+            value = parsed;
+            return true;
+        }
+
+        class ArithmeticParser {
+          public:
+            explicit ArithmeticParser(std::string_view text) : m_text(text) {
+            }
+
+            [[nodiscard]] bool parse(double &value) noexcept {
+                if (!parseExpression(value)) {
+                    return false;
+                }
+                skipSpaces();
+                return m_pos == m_text.size() && std::isfinite(value);
+            }
+
+          private:
+            [[nodiscard]] bool parseExpression(double &value) noexcept {
+                if (!parseTerm(value)) {
+                    return false;
+                }
+
+                while (true) {
+                    skipSpaces();
+                    if (m_pos >= m_text.size() ||
+                        (m_text[m_pos] != '+' && m_text[m_pos] != '-')) {
+                        return true;
+                    }
+
+                    const char operation = m_text[m_pos++];
+                    double rhs = 0.0;
+                    if (!parseTerm(rhs)) {
+                        return false;
+                    }
+                    value = operation == '+' ? value + rhs : value - rhs;
+                    if (!std::isfinite(value)) {
+                        return false;
+                    }
+                }
+            }
+
+            [[nodiscard]] bool parseTerm(double &value) noexcept {
+                if (!parseUnary(value)) {
+                    return false;
+                }
+
+                while (true) {
+                    skipSpaces();
+                    if (m_pos >= m_text.size() ||
+                        (m_text[m_pos] != '*' && m_text[m_pos] != '/' &&
+                         m_text[m_pos] != '%')) {
+                        return true;
+                    }
+
+                    const char operation = m_text[m_pos++];
+                    double rhs = 0.0;
+                    if (!parseUnary(rhs)) {
+                        return false;
+                    }
+
+                    if ((operation == '/' || operation == '%') && rhs == 0.0) {
+                        return false;
+                    }
+                    if (operation == '*') {
+                        value *= rhs;
+                    } else if (operation == '/') {
+                        value /= rhs;
+                    } else {
+                        value = std::fmod(value, rhs);
+                    }
+                    if (!std::isfinite(value)) {
+                        return false;
+                    }
+                }
+            }
+
+            [[nodiscard]] bool parseUnary(double &value) noexcept {
+                skipSpaces();
+                bool negate = false;
+                size_t signs = 0;
+                while (m_pos < m_text.size() &&
+                       (m_text[m_pos] == '+' || m_text[m_pos] == '-')) {
+                    negate = m_text[m_pos] == '-' ? !negate : negate;
+                    ++m_pos;
+                    skipSpaces();
+                    if (++signs > kMaximumExpressionDepth) {
+                        return false;
+                    }
+                }
+
+                if (!parsePrimary(value)) {
+                    return false;
+                }
+                if (negate) {
+                    value = -value;
+                }
+                return std::isfinite(value);
+            }
+
+            [[nodiscard]] bool parsePrimary(double &value) noexcept {
+                skipSpaces();
+                if (m_pos >= m_text.size()) {
+                    return false;
+                }
+
+                if (m_text[m_pos] != '(') {
+                    return parseNumber(value);
+                }
+                if (++m_depth > kMaximumExpressionDepth) {
+                    return false;
+                }
+
+                ++m_pos;
+                const bool parsed = parseExpression(value);
+                skipSpaces();
+                const bool closed =
+                    m_pos < m_text.size() && m_text[m_pos] == ')';
+                if (closed) {
+                    ++m_pos;
+                }
+                --m_depth;
+                return parsed && closed;
+            }
+
+            [[nodiscard]] bool parseNumber(double &value) noexcept {
+                const char *begin = m_text.data() + m_pos;
+                const char *end = m_text.data() + m_text.size();
+                const auto result = std::from_chars(
+                    begin, end, value, std::chars_format::general);
+                if (result.ec != std::errc{} || result.ptr == begin ||
+                    !std::isfinite(value)) {
+                    return false;
+                }
+                m_pos = static_cast<size_t>(result.ptr - m_text.data());
+                return true;
+            }
+
+            void skipSpaces() noexcept {
+                while (m_pos < m_text.size() &&
+                       (m_text[m_pos] == ' ' || m_text[m_pos] == '\t')) {
+                    ++m_pos;
+                }
+            }
+
+            std::string_view m_text;
+            size_t m_pos = 0;
+            size_t m_depth = 0;
+        };
+
+        [[nodiscard]] bool
+        evaluateArithmeticExpression(std::string_view text,
+                                     double &value) noexcept {
+            return ArithmeticParser(text).parse(value);
+        }
+
         [[nodiscard]] std::string formatInteger(int value) {
             std::array<char, 16> buffer{};
             const auto result = std::to_chars(
@@ -155,9 +358,32 @@ namespace Bess::Canvas::UI {
             return {buffer.data(), result.ptr};
         }
 
-        [[nodiscard]] std::string
-        formatFloat(float value, UIFloatTextBoxFormat format, int precision) {
-            std::array<char, 160> buffer{};
+        void trimFractionZeros(std::string &text) {
+            const size_t exponent = text.find_first_of("eE");
+            const size_t mantissaEnd =
+                exponent == std::string::npos ? text.size() : exponent;
+            const size_t decimalPoint = text.find('.');
+            if (decimalPoint == std::string::npos ||
+                decimalPoint >= mantissaEnd) {
+                return;
+            }
+
+            size_t keepEnd = mantissaEnd;
+            while (keepEnd > decimalPoint + 1 && text[keepEnd - 1] == '0') {
+                --keepEnd;
+            }
+            if (keepEnd == decimalPoint + 1) {
+                --keepEnd;
+            }
+            text.erase(keepEnd, mantissaEnd - keepEnd);
+        }
+
+        template <typename Value>
+        [[nodiscard]] std::string formatFloating(Value value,
+                                                 UIFloatTextBoxFormat format,
+                                                 int precision,
+                                                 bool trimTrailingZeros) {
+            std::array<char, 768> buffer{};
             std::to_chars_result result{};
             switch (format) {
             case UIFloatTextBoxFormat::shortest:
@@ -190,11 +416,16 @@ namespace Bess::Canvas::UI {
             if (result.ec != std::errc{}) {
                 return "0";
             }
-            return {buffer.data(), result.ptr};
+            std::string text{buffer.data(), result.ptr};
+            if (trimTrailingZeros && format != UIFloatTextBoxFormat::shortest) {
+                trimFractionZeros(text);
+            }
+            return text.empty() ? "0" : text;
         }
 
-        [[nodiscard]] std::string formatFloatWithoutExponent(float value) {
-            std::array<char, 160> buffer{};
+        template <typename Value>
+        [[nodiscard]] std::string formatWithoutExponent(Value value) {
+            std::array<char, 768> buffer{};
             const auto result = std::to_chars(buffer.data(),
                                               buffer.data() + buffer.size(),
                                               value,
@@ -211,10 +442,16 @@ namespace Bess::Canvas::UI {
             m_minValue = std::numeric_limits<int>::lowest();
             m_maxValue = std::numeric_limits<int>::max();
             m_maxLength = 32;
-        } else {
+        } else if (m_kind == ValueKind::floatingPoint) {
             m_minValue = std::numeric_limits<float>::lowest();
             m_maxValue = std::numeric_limits<float>::max();
             m_maxLength = 128;
+        } else {
+            m_minValue = 0.0;
+            m_maxValue = 1.0;
+            m_maxLength = 128;
+            m_precision = 2;
+            m_trimTrailingZeros = true;
         }
     }
 
@@ -231,6 +468,10 @@ namespace Bess::Canvas::UI {
     }
 
     const glm::vec2 &NumericTextBoxComp::getTextBoxSize() const noexcept {
+        return m_textBoxSize;
+    }
+
+    glm::vec2 &NumericTextBoxComp::getTextBoxSize() noexcept {
         return m_textBoxSize;
     }
 
@@ -290,14 +531,23 @@ namespace Bess::Canvas::UI {
         m_stepOnMouseWheel = stepOnMouseWheel;
     }
 
-    float NumericTextBoxComp::getLargeStepMultiplier() const noexcept {
+    double NumericTextBoxComp::getLargeStepMultiplier() const noexcept {
         return m_largeStepMultiplier;
     }
 
-    void NumericTextBoxComp::setLargeStepMultiplier(float multiplier) {
-        if (std::isfinite(multiplier) && multiplier > 0.f) {
+    void NumericTextBoxComp::setLargeStepMultiplier(double multiplier) {
+        if (std::isfinite(multiplier) && multiplier > 0.0) {
             m_largeStepMultiplier = multiplier;
         }
+    }
+
+    bool NumericTextBoxComp::getAllowExpressions() const noexcept {
+        return m_allowExpressions;
+    }
+
+    void
+    NumericTextBoxComp::setAllowExpressions(bool allowExpressions) noexcept {
+        m_allowExpressions = allowExpressions;
     }
 
     bool NumericTextBoxComp::getInputValid() const noexcept {
@@ -467,6 +717,103 @@ namespace Bess::Canvas::UI {
         invalidateTextLayout();
     }
 
+    double NumericTextBoxComp::scalarValue() const noexcept {
+        return static_cast<double>(m_value);
+    }
+
+    void NumericTextBoxComp::setScalarValue(double value) {
+        if (!std::isfinite(value)) {
+            return;
+        }
+        const long double next = quantizedValue(normalizedValue(value));
+        if (sameNumericValue(m_value, next, true)) {
+            return;
+        }
+        m_value = next;
+        syncTextFromValue(m_textInput.isFocused());
+        invalidateTextLayout();
+    }
+
+    double NumericTextBoxComp::scalarMinValue() const noexcept {
+        return static_cast<double>(m_minValue);
+    }
+
+    double NumericTextBoxComp::scalarMaxValue() const noexcept {
+        return static_cast<double>(m_maxValue);
+    }
+
+    void NumericTextBoxComp::setScalarValueRange(double minValue,
+                                                 double maxValue) {
+        if (!std::isfinite(minValue) || !std::isfinite(maxValue)) {
+            return;
+        }
+        if (maxValue < minValue) {
+            std::swap(minValue, maxValue);
+        }
+        if (m_minValue == minValue && m_maxValue == maxValue &&
+            m_clampToRange) {
+            return;
+        }
+
+        m_minValue = minValue;
+        m_maxValue = maxValue;
+        m_clampToRange = true;
+        m_value = quantizedValue(normalizedValue(m_value));
+        syncTextFromValue(m_textInput.isFocused());
+        invalidateTextLayout();
+    }
+
+    double NumericTextBoxComp::scalarStep() const noexcept {
+        return static_cast<double>(m_step);
+    }
+
+    void NumericTextBoxComp::setScalarStep(double step) {
+        if (std::isfinite(step) && step > 0.0 && m_step != step) {
+            m_step = step;
+        }
+    }
+
+    int NumericTextBoxComp::scalarPrecision() const noexcept {
+        return m_precision;
+    }
+
+    void NumericTextBoxComp::setScalarPrecision(int precision) {
+        const int next = std::clamp(precision, 0, kMaximumFloatPrecision);
+        const bool formatChanged =
+            m_floatFormat == UIFloatTextBoxFormat::shortest;
+        if (m_precision == next && !formatChanged) {
+            return;
+        }
+
+        m_precision = next;
+        if (formatChanged) {
+            m_floatFormat = UIFloatTextBoxFormat::fixed;
+        }
+        syncTextFromValue(m_textInput.isFocused());
+        invalidateTextLayout();
+    }
+
+    UIFloatTextBoxFormat NumericTextBoxComp::scalarFormat() const noexcept {
+        return m_floatFormat;
+    }
+
+    void NumericTextBoxComp::setScalarFormat(UIFloatTextBoxFormat format) {
+        setFloatFormat(format);
+    }
+
+    bool NumericTextBoxComp::trimsTrailingZeros() const noexcept {
+        return m_trimTrailingZeros;
+    }
+
+    void NumericTextBoxComp::setTrimsTrailingZeros(bool trimTrailingZeros) {
+        if (m_trimTrailingZeros == trimTrailingZeros) {
+            return;
+        }
+        m_trimTrailingZeros = trimTrailingZeros;
+        syncTextFromValue(m_textInput.isFocused());
+        invalidateTextLayout();
+    }
+
     void NumericTextBoxComp::update(TimeMs ts, SceneState &state) {
         (void)ts;
         if (!m_clearFocus) {
@@ -502,7 +849,7 @@ namespace Bess::Canvas::UI {
             .selectionColor = m_style.activeColor.withAlpha(0.45f),
             .cursorColor =
                 m_showValidationError ? m_invalidColor : m_style.activeColor,
-            .cursorWidth = 1.f,
+            .cursorWidth = kTextBoxCursorWidth,
             .cursorHeight = std::max(10.f, m_node->getDrawSize().y - 6.f),
             .hovered = m_hovered,
         };
@@ -619,7 +966,7 @@ namespace Bess::Canvas::UI {
             }
 
             if (direction != 0.L) {
-                if (m_kind == ValueKind::floatingPoint && evt.isAltPressed) {
+                if (m_kind != ValueKind::integer && evt.isAltPressed) {
                     multiplier *= 0.1L;
                 }
                 prepareForStep();
@@ -650,15 +997,15 @@ namespace Bess::Canvas::UI {
     }
 
     long double NumericTextBoxComp::normalizedValue(long double value) const {
-        const long double typeMin =
-            m_kind == ValueKind::integer
-                ? static_cast<long double>(std::numeric_limits<int>::lowest())
-                : static_cast<long double>(
-                      std::numeric_limits<float>::lowest());
-        const long double typeMax =
-            m_kind == ValueKind::integer
-                ? static_cast<long double>(std::numeric_limits<int>::max())
-                : static_cast<long double>(std::numeric_limits<float>::max());
+        long double typeMin = std::numeric_limits<double>::lowest();
+        long double typeMax = std::numeric_limits<double>::max();
+        if (m_kind == ValueKind::integer) {
+            typeMin = std::numeric_limits<int>::lowest();
+            typeMax = std::numeric_limits<int>::max();
+        } else if (m_kind == ValueKind::floatingPoint) {
+            typeMin = std::numeric_limits<float>::lowest();
+            typeMax = std::numeric_limits<float>::max();
+        }
 
         value = std::clamp(value, typeMin, typeMax);
         if (m_clampToRange) {
@@ -671,11 +1018,18 @@ namespace Bess::Canvas::UI {
         if (m_kind == ValueKind::integer) {
             return static_cast<int>(std::round(value));
         }
-        return static_cast<float>(value);
+        if (m_kind == ValueKind::floatingPoint) {
+            return static_cast<float>(value);
+        }
+        return static_cast<double>(value);
     }
 
     bool
     NumericTextBoxComp::isSyntacticallyValidEdit(std::string_view text) const {
+        if (m_allowExpressions) {
+            return isExpressionEdit(
+                text, m_kind != ValueKind::integer, m_allowScientificNotation);
+        }
         return m_kind == ValueKind::integer
                    ? isIntegerEdit(text)
                    : isFloatEdit(text, m_allowScientificNotation);
@@ -683,7 +1037,7 @@ namespace Bess::Canvas::UI {
 
     bool NumericTextBoxComp::parseCompleteValue(std::string_view text,
                                                 long double &value) const {
-        if (m_kind == ValueKind::integer) {
+        if (!m_allowExpressions && m_kind == ValueKind::integer) {
             int parsed = 0;
             if (!parseInteger(text, parsed)) {
                 return false;
@@ -692,11 +1046,49 @@ namespace Bess::Canvas::UI {
             return true;
         }
 
-        float parsed = 0.f;
-        if (!parseFloat(text, parsed)) {
+        if (!m_allowExpressions && m_kind == ValueKind::floatingPoint) {
+            float parsed = 0.f;
+            if (!parseFloat(text, parsed)) {
+                return false;
+            }
+            value = parsed;
+            return true;
+        }
+
+        if (!m_allowExpressions) {
+            double parsed = 0.0;
+            if (!parseDouble(text, parsed)) {
+                return false;
+            }
+            value = parsed;
+            return true;
+        }
+
+        double evaluated = 0.0;
+        if (!evaluateArithmeticExpression(text, evaluated)) {
             return false;
         }
-        value = parsed;
+
+        if (m_kind == ValueKind::integer) {
+            if (evaluated < std::numeric_limits<int>::lowest() ||
+                evaluated > std::numeric_limits<int>::max() ||
+                std::trunc(evaluated) != evaluated) {
+                return false;
+            }
+            value = static_cast<int>(evaluated);
+            return true;
+        }
+        if (m_kind == ValueKind::floatingPoint) {
+            const float narrowed = static_cast<float>(evaluated);
+            if (!std::isfinite(narrowed) ||
+                (evaluated != 0.0 && narrowed == 0.f)) {
+                return false;
+            }
+            value = narrowed;
+            return true;
+        }
+
+        value = evaluated;
         return true;
     }
 
@@ -704,12 +1096,24 @@ namespace Bess::Canvas::UI {
         if (m_kind == ValueKind::integer) {
             return formatInteger(static_cast<int>(m_value));
         }
-        auto text = formatFloat(
-            static_cast<float>(m_value), m_floatFormat, m_precision);
+        std::string text;
+        if (m_kind == ValueKind::floatingPoint) {
+            text = formatFloating(static_cast<float>(m_value),
+                                  m_floatFormat,
+                                  m_precision,
+                                  m_trimTrailingZeros);
+        } else {
+            text = formatFloating(static_cast<double>(m_value),
+                                  m_floatFormat,
+                                  m_precision,
+                                  m_trimTrailingZeros);
+        }
         if (!m_allowScientificNotation &&
             (text.find('e') != std::string::npos ||
              text.find('E') != std::string::npos)) {
-            text = formatFloatWithoutExponent(static_cast<float>(m_value));
+            text = m_kind == ValueKind::floatingPoint
+                       ? formatWithoutExponent(static_cast<float>(m_value))
+                       : formatWithoutExponent(static_cast<double>(m_value));
         }
         return text;
     }
@@ -769,7 +1173,7 @@ namespace Bess::Canvas::UI {
             syncTextFromValue(m_textInput.isFocused());
         }
         if (!sameNumericValue(
-                previous, m_value, m_kind == ValueKind::floatingPoint)) {
+                previous, m_value, m_kind != ValueKind::integer)) {
             notifyValueChanged();
         }
         invalidateTextLayout();
@@ -852,7 +1256,19 @@ namespace Bess::Canvas::UI {
     void NumericTextBoxComp::applyStep(long double direction,
                                        long double multiplier) {
         const long double delta = m_step * multiplier * direction;
-        setValueFromUser(m_value + delta, true);
+        long double next = m_value + delta;
+        if (!isFinite(next)) {
+            const long double limit =
+                m_kind == ValueKind::integer
+                    ? static_cast<long double>(std::numeric_limits<int>::max())
+                : m_kind == ValueKind::floatingPoint
+                    ? static_cast<long double>(
+                          std::numeric_limits<float>::max())
+                    : static_cast<long double>(
+                          std::numeric_limits<double>::max());
+            next = direction > 0.L ? limit : -limit;
+        }
+        setValueFromUser(next, true);
     }
 
     void NumericTextBoxComp::prepareForStep() {

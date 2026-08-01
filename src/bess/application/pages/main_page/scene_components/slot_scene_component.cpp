@@ -3,6 +3,7 @@
 #include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene/scene_ui/controls/container_comp.h"
+#include "bess_core/scene/scene_ui/controls/scalar_input_comp.h"
 #include "bess_core/settings/viewport_theme.h"
 #include "bess_core/style/bess_theme.h"
 #include "conn_joint_scene_component.h"
@@ -170,7 +171,7 @@ namespace Bess::Canvas {
             !isSlotConnected(*ctx.sceneState);
 
         if (showScalarValueTextBox && m_scalarValueTextBox == nullptr) {
-            m_scalarValueTextBox = std::make_shared<UI::TextBoxComp>();
+            m_scalarValueTextBox = std::make_shared<UI::ScalarInputComp>();
             m_scalarValueTextBox->setPlaceholder("0");
             m_scalarValueTextBox->setTextBoxSize(kScalarSlotTextBoxSize);
             m_scalarValueTextBox->setMaxLength(32);
@@ -197,18 +198,16 @@ namespace Bess::Canvas {
             if (!m_scalarValueTextBox->getFocused()) {
                 const auto slotState = getSlotState(*ctx.sceneState);
                 if (slotState.isScalar()) {
-                    const auto valueText =
-                        formatScalarSlotValue(slotState.scalarValue);
-                    if (m_scalarValueTextBox->getValue() != valueText) {
-                        m_scalarValueTextBox->setValue(valueText);
+                    if (m_scalarValueTextBox->getValue() !=
+                        slotState.scalarValue) {
+                        m_scalarValueTextBox->setValue(slotState.scalarValue);
                     }
                 }
             }
 
             const auto slotUuid = m_uuid;
             m_scalarValueTextBox->setChangedCallback(
-                [sceneState = ctx.sceneState,
-                 slotUuid](const std::string &text) {
+                [sceneState = ctx.sceneState, slotUuid](double value) {
                     if (sceneState == nullptr) {
                         return;
                     }
@@ -220,10 +219,7 @@ namespace Bess::Canvas {
                         return;
                     }
 
-                    double value = 0.0;
-                    if (parseScalarSlotValue(text, value)) {
-                        setScalarSlotPortState(*sceneState, *slot, value);
-                    }
+                    setScalarSlotPortState(*sceneState, *slot, value);
                 });
         }
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "bess_core/scene/scene_ui/controls/float_text_box_comp.h"
+#include "bess_core/scene/scene_ui/controls/scalar_input_comp.h"
 #include "common/bess_api.h"
 
 #include "bess_core/scene/scene_draw_context.h"
@@ -120,7 +122,7 @@ namespace Bess::Canvas {
 
         std::shared_ptr<UI::ContainerComp> m_container = nullptr;
         std::shared_ptr<UI::EditableLabelComp> m_label = nullptr;
-        std::shared_ptr<UI::TextBoxComp> m_scalarValueTextBox = nullptr;
+        std::shared_ptr<UI::ScalarInputComp> m_scalarValueTextBox = nullptr;
 
         UI::UINode *m_slotNode = nullptr;
     };

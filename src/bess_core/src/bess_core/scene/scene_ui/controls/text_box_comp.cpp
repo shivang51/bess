@@ -33,7 +33,6 @@ namespace Bess::Canvas::UI {
     }
 
     namespace {
-        constexpr float kCursorWeight = 1;
         constexpr float kPlaceHolderTextOpacity = 0.7f;
 
         glm::vec2 xy(const glm::vec3 &value) {
@@ -142,7 +141,7 @@ namespace Bess::Canvas::UI {
 
         Core::Renderer::QuadProps props;
         props.position = {left + textSize.x, boxPos.y};
-        props.size = {kCursorWeight, boxSize.y};
+        props.size = {kTextBoxCursorWidth, boxSize.y};
         props.zIndex = boxPos.z + 0.0005f;
         props.color = m_style.activeColor;
 

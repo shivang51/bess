@@ -9,6 +9,7 @@
 #include "bess_core/scene/scene_ui/controls/float_text_box_comp.h"
 #include "bess_core/scene/scene_ui/controls/int_text_box_comp.h"
 #include "bess_core/scene/scene_ui/controls/label_comp.h"
+#include "bess_core/scene/scene_ui/controls/scalar_input_comp.h"
 #include "bess_core/scene/scene_ui/controls/spacer_comp.h"
 #include "bess_core/scene/scene_ui/controls/text_box_comp.h"
 #include "bess_core/scene/scene_ui/layout.h"
@@ -22,6 +23,7 @@
 #include <gtest/gtest.h>
 #include <limits>
 #include <memory>
+#include <type_traits>
 #include <vector>
 
 namespace {
@@ -683,6 +685,230 @@ TEST_F(UiLayoutTests, FloatTextBoxCancelRestoresExactPreEditValue) {
     EXPECT_FLOAT_EQ(input.getValue(), original);
     input.setValue(std::numeric_limits<float>::infinity());
     EXPECT_FLOAT_EQ(input.getValue(), original);
+}
+
+TEST_F(UiLayoutTests, ScalarInputTextBoxSizeAliasesInputSize) {
+    Bess::Canvas::SceneState sceneState;
+    const auto renderer = std::make_shared<LayoutTestRenderer2D>();
+    auto prepareCtx = uiPrepareContext(sceneState, renderer);
+
+    Bess::Canvas::UI::ScalarInputComp input;
+    input.setTextBoxSize({96.f, 24.f});
+    expectVec2(input.getTextBoxSize(), 96.f, 24.f);
+    expectVec2(input.getInputSize(), 96.f, 24.f);
+
+    input.prepareUI(prepareCtx);
+    auto *node = input.getUINode();
+    ASSERT_NE(node, nullptr);
+    node->measure(*sceneState.getUINodeRegistry(), Bess::UUID::null);
+    expectVec2(node->getDrawSize(), 96.f, 24.f);
+
+    input.setInputSize({-10.f, 18.f});
+    expectVec2(input.getTextBoxSize(), 0.f, 18.f);
+}
+
+TEST_F(UiLayoutTests, ScalarInputPreservesExactValueAndCancelState) {
+    Bess::Canvas::UI::ScalarInputComp input;
+    constexpr double original = 1.2345678901234567;
+    input.setValue(original);
+    EXPECT_EQ(input.getFormat(),
+              Bess::Canvas::UI::UIScalarInputFormat::shortest);
+
+    int changedCount = 0;
+    double canceledValue = 0.0;
+    input.setChangedCallback([&](double) { ++changedCount; });
+    input.setCanceledCallback([&](double value) { canceledValue = value; });
+
+    input.onFocusGained({});
+    EXPECT_TRUE(input.onKeyEvent(textInputEvent(U'-')));
+    input.setValue(original);
+    EXPECT_EQ(input.getEditText(), "-");
+    EXPECT_TRUE(input.onKeyEvent(keyEvent(Bess::KeyCode::escape)));
+    EXPECT_DOUBLE_EQ(input.getValue(), original);
+
+    input.onFocusGained({});
+    EXPECT_TRUE(input.onKeyEvent(textInputEvent(U'9')));
+    EXPECT_DOUBLE_EQ(input.getValue(), 9.0);
+    EXPECT_TRUE(input.onKeyEvent(keyEvent(Bess::KeyCode::escape)));
+    EXPECT_DOUBLE_EQ(input.getValue(), original);
+    EXPECT_DOUBLE_EQ(canceledValue, original);
+    EXPECT_EQ(changedCount, 2);
+
+    input.setValue(std::numeric_limits<double>::quiet_NaN());
+    EXPECT_DOUBLE_EQ(input.getValue(), original);
+    input.setValue(std::numeric_limits<double>::infinity());
+    EXPECT_DOUBLE_EQ(input.getValue(), original);
+}
+
+TEST_F(UiLayoutTests, ScalarInputHandlesScientificAndInvalidEdits) {
+    Bess::Canvas::UI::ScalarInputComp input;
+    input.setValue(8.0);
+
+    double submittedValue = 0.0;
+    int invalidCount = 0;
+    std::string invalidText;
+    input.setSubmittedCallback([&](double value) { submittedValue = value; });
+    input.setInvalidCallback([&](const std::string &text) {
+        ++invalidCount;
+        invalidText = text;
+    });
+
+    input.onFocusGained({});
+    for (const char32_t codepoint : std::u32string_view(U"1e-12")) {
+        EXPECT_TRUE(input.onKeyEvent(textInputEvent(codepoint)));
+    }
+    EXPECT_TRUE(input.getInputValid());
+    EXPECT_DOUBLE_EQ(input.getValue(), 1e-12);
+    EXPECT_TRUE(input.onKeyEvent(keyEvent(Bess::KeyCode::enter)));
+    EXPECT_DOUBLE_EQ(submittedValue, 1e-12);
+
+    input.onFocusGained({});
+    EXPECT_TRUE(input.onKeyEvent(textInputEvent(U'1')));
+    EXPECT_TRUE(input.onKeyEvent(textInputEvent(U'e')));
+    EXPECT_FALSE(input.getInputValid());
+    EXPECT_TRUE(input.onKeyEvent(keyEvent(Bess::KeyCode::enter)));
+    EXPECT_EQ(invalidCount, 1);
+    EXPECT_EQ(invalidText, "1e");
+    EXPECT_EQ(input.getEditText(), "1e");
+
+    EXPECT_TRUE(input.onKeyEvent(textInputEvent(U'2')));
+    EXPECT_TRUE(input.getInputValid());
+    EXPECT_DOUBLE_EQ(input.getValue(), 100.0);
+}
+
+TEST_F(UiLayoutTests, ScalarInputClampsAndStepsWithoutOverflow) {
+    Bess::Canvas::UI::ScalarInputComp input;
+    input.setValueRange(10.0, -10.0);
+    EXPECT_DOUBLE_EQ(input.getMinValue(), -10.0);
+    EXPECT_DOUBLE_EQ(input.getMaxValue(), 10.0);
+
+    input.setValue(9.0);
+    input.setStep(3.0);
+    input.onFocusGained({});
+    EXPECT_TRUE(input.onKeyEvent(keyEvent(Bess::KeyCode::arrowUp)));
+    EXPECT_DOUBLE_EQ(input.getValue(), 10.0);
+    EXPECT_TRUE(input.onMouseWheel({.delta = {0.f, -1.f}}));
+    EXPECT_DOUBLE_EQ(input.getValue(), 7.0);
+
+    input.setClampToRange(false);
+    input.setValue(std::numeric_limits<double>::max());
+    input.setStep(std::numeric_limits<double>::max());
+    input.onFocusGained({});
+    EXPECT_TRUE(input.onKeyEvent(keyEvent(Bess::KeyCode::arrowUp)));
+    EXPECT_DOUBLE_EQ(input.getValue(), std::numeric_limits<double>::max());
+
+    input.setValue(12.0);
+    input.setPrecision(2);
+    EXPECT_EQ(input.getFormat(), Bess::Canvas::UI::UIScalarInputFormat::fixed);
+    EXPECT_EQ(input.getEditText(), "12");
+    input.setTrimTrailingZeros(false);
+    EXPECT_EQ(input.getEditText(), "12.00");
+}
+
+TEST_F(UiLayoutTests, ScalarInputIsADoublePrecisionNumericTextBox) {
+    static_assert(std::is_base_of_v<Bess::Canvas::UI::NumericTextBoxComp,
+                                    Bess::Canvas::UI::ScalarInputComp>);
+
+    Bess::Canvas::UI::ScalarInputComp input;
+    EXPECT_TRUE(input.getAllowExpressions());
+    EXPECT_DOUBLE_EQ(input.getValue(), 0.0);
+    EXPECT_DOUBLE_EQ(input.getMinValue(), 0.0);
+    EXPECT_DOUBLE_EQ(input.getMaxValue(), 1.0);
+}
+
+TEST_F(UiLayoutTests, NumericTextBoxesEvaluateBasicExpressions) {
+    Bess::Canvas::UI::ScalarInputComp scalar;
+    double submitted = 0.0;
+    scalar.setSubmittedCallback([&](double value) { submitted = value; });
+    scalar.onFocusGained({});
+    for (const char32_t codepoint :
+         std::u32string_view(U"(2 + 3.5) * -4 / 2")) {
+        EXPECT_TRUE(scalar.onKeyEvent(textInputEvent(codepoint)));
+    }
+    EXPECT_TRUE(scalar.getInputValid());
+    EXPECT_DOUBLE_EQ(scalar.getValue(), -11.0);
+    EXPECT_TRUE(scalar.onKeyEvent(keyEvent(Bess::KeyCode::enter)));
+    EXPECT_DOUBLE_EQ(submitted, -11.0);
+    EXPECT_EQ(scalar.getEditText(), "-11");
+
+    Bess::Canvas::UI::IntTextBoxComp integer;
+    integer.onFocusGained({});
+    for (const char32_t codepoint : std::u32string_view(U"6 * (2 + 1)")) {
+        EXPECT_TRUE(integer.onKeyEvent(textInputEvent(codepoint)));
+    }
+    EXPECT_TRUE(integer.getInputValid());
+    EXPECT_EQ(integer.getValue(), 18);
+
+    Bess::Canvas::UI::FloatTextBoxComp floatingPoint;
+    floatingPoint.onFocusGained({});
+    for (const char32_t codepoint : std::u32string_view(U"1.5 * 4")) {
+        EXPECT_TRUE(floatingPoint.onKeyEvent(textInputEvent(codepoint)));
+    }
+    EXPECT_TRUE(floatingPoint.getInputValid());
+    EXPECT_FLOAT_EQ(floatingPoint.getValue(), 6.f);
+}
+
+TEST_F(UiLayoutTests, ScalarInputRejectsUnsafeOrMalformedExpressions) {
+    Bess::Canvas::UI::ScalarInputComp input;
+    input.setValue(8.0);
+
+    int invalidCount = 0;
+    std::string invalidText;
+    input.setInvalidCallback([&](const std::string &text) {
+        ++invalidCount;
+        invalidText = text;
+    });
+
+    input.onFocusGained({});
+    for (const char32_t codepoint : std::u32string_view(U"1 / 0")) {
+        EXPECT_TRUE(input.onKeyEvent(textInputEvent(codepoint)));
+    }
+    EXPECT_FALSE(input.getInputValid());
+    EXPECT_TRUE(input.onKeyEvent(keyEvent(Bess::KeyCode::enter)));
+    EXPECT_EQ(invalidCount, 1);
+    EXPECT_EQ(invalidText, "1 / 0");
+    EXPECT_EQ(input.getEditText(), "1 / 0");
+
+    EXPECT_TRUE(input.onKeyEvent(keyEvent(Bess::KeyCode::escape)));
+    EXPECT_DOUBLE_EQ(input.getValue(), 8.0);
+
+    input.setAllowExpressions(false);
+    input.onFocusGained({});
+    EXPECT_TRUE(input.onKeyEvent(textInputEvent(U'2')));
+    EXPECT_TRUE(input.onKeyEvent(textInputEvent(U'+')));
+    EXPECT_EQ(input.getEditText(), "2");
+    EXPECT_DOUBLE_EQ(input.getValue(), 2.0);
+}
+
+TEST_F(UiLayoutTests, ScalarAndTextBoxUseTheSameCursorThickness) {
+    Bess::Canvas::SceneState sceneState;
+    const auto renderer = std::make_shared<LayoutTestRenderer2D>();
+    auto prepareCtx = uiPrepareContext(sceneState, renderer);
+    auto drawCtx = uiDrawContext(sceneState, renderer);
+
+    Bess::Canvas::UI::ScalarInputComp scalar;
+    scalar.setTextBoxSize({96.f, 24.f});
+    scalar.prepareUI(prepareCtx);
+    scalar.getUINode()->measure(*sceneState.getUINodeRegistry(),
+                                Bess::UUID::null);
+    scalar.onFocusGained({});
+    scalar.onDraw(drawCtx);
+    ASSERT_FALSE(renderer->quads.empty());
+    const float scalarCursorWidth = renderer->quads.back().size.x;
+
+    renderer->quads.clear();
+    Bess::Canvas::UI::TextBoxComp textBox;
+    textBox.setTextBoxSize({96.f, 24.f});
+    textBox.prepareUI(prepareCtx);
+    textBox.getUINode()->measure(*sceneState.getUINodeRegistry(),
+                                 Bess::UUID::null);
+    textBox.onFocusGained({});
+    textBox.onDraw(drawCtx);
+    ASSERT_FALSE(renderer->quads.empty());
+
+    EXPECT_FLOAT_EQ(scalarCursorWidth,
+                    Bess::Canvas::UI::kTextBoxCursorWidth);
+    EXPECT_FLOAT_EQ(scalarCursorWidth, renderer->quads.back().size.x);
 }
 
 TEST_F(UiLayoutTests, DropdownChevronRespectsCustomWidth) {

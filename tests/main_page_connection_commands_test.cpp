@@ -2,6 +2,7 @@
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/scene/scene.h"
 #include "bess_core/scene/scene_event.h"
+#include "bess_core/scene/scene_ui/controls/scalar_input_comp.h"
 #include "bess_core/scene/scene_ui/controls/text_box_comp.h"
 #include "bess_core/scene/scene_ui/controls/toggle_btn_comp.h"
 #include "bess_core/scene_driver.h"
@@ -236,10 +237,10 @@ namespace {
         return definition;
     }
 
-    size_t countTextBoxes(const Bess::Canvas::SceneState &state) {
+    size_t countScalarInputs(const Bess::Canvas::SceneState &state) {
         size_t count = 0;
         for (const auto &[_, component] : state.getAllComponents()) {
-            if (std::dynamic_pointer_cast<Bess::Canvas::UI::TextBoxComp>(
+            if (std::dynamic_pointer_cast<Bess::Canvas::UI::ScalarInputComp>(
                     component)) {
                 ++count;
             }
@@ -255,13 +256,13 @@ namespace {
             });
     }
 
-    std::shared_ptr<Bess::Canvas::UI::TextBoxComp>
-    firstTextBox(const Bess::Canvas::SceneState &state) {
+    std::shared_ptr<Bess::Canvas::UI::ScalarInputComp>
+    firstScalarInput(const Bess::Canvas::SceneState &state) {
         for (const auto &[_, component] : state.getAllComponents()) {
-            if (auto textBox =
-                    std::dynamic_pointer_cast<Bess::Canvas::UI::TextBoxComp>(
+            if (auto input =
+                    std::dynamic_pointer_cast<Bess::Canvas::UI::ScalarInputComp>(
                         component)) {
-                return textBox;
+                return input;
             }
         }
         return nullptr;
@@ -942,14 +943,14 @@ TEST_F(MainPageConnectionCommandsTest,
     };
 
     sinkFixture.comp->prepareUI(prepareCtx);
-    EXPECT_EQ(countTextBoxes(scene->getState()), 1u);
+    EXPECT_EQ(countScalarInputs(scene->getState()), 1u);
 
     const auto sourceFixture =
         addSimComponent(makeScalarDefinition("Scalar Source", 0, 1));
     ASSERT_FALSE(sourceFixture.outputs.empty());
 
     sourceFixture.comp->prepareUI(prepareCtx);
-    EXPECT_EQ(countTextBoxes(scene->getState()), 1u);
+    EXPECT_EQ(countScalarInputs(scene->getState()), 1u);
 
     const auto connection = connectionService->createConnection(
         sourceFixture.outputs.front()->getUuid(),
@@ -958,7 +959,7 @@ TEST_F(MainPageConnectionCommandsTest,
     ASSERT_NE(connection, nullptr);
 
     sinkFixture.comp->prepareUI(prepareCtx);
-    EXPECT_EQ(countTextBoxes(scene->getState()), 0u);
+    EXPECT_EQ(countScalarInputs(scene->getState()), 0u);
 }
 
 TEST_F(MainPageConnectionCommandsTest,
@@ -979,41 +980,25 @@ TEST_F(MainPageConnectionCommandsTest,
     sinkFixture.comp->prepareUI(prepareCtx);
     measureSceneUi(scene->getState());
 
-    const auto textBox = firstTextBox(scene->getState());
-    ASSERT_NE(textBox, nullptr);
-    textBox->setValue("");
+    const auto scalarInput = firstScalarInput(scene->getState());
+    ASSERT_NE(scalarInput, nullptr);
 
     Bess::SceneDrawContext drawCtx{
         .sceneState = &scene->getState(),
         .renderer = renderer,
     };
 
-    textBox->draw(drawCtx);
-    const auto pointerPos = glm::vec2(textBox->getUINode()->getDrawPos());
-    textBox->onFocusGained({
-        .entityUuid = textBox->getUuid(),
+    scalarInput->draw(drawCtx);
+    const auto pointerPos = glm::vec2(scalarInput->getUINode()->getDrawPos());
+    scalarInput->onFocusGained({
+        .entityUuid = scalarInput->getUuid(),
         .mousePos = pointerPos,
         .sceneState = &scene->getState(),
     });
-    textBox->onMouseButton({
-        .mousePos = pointerPos,
-        .button = Bess::Canvas::Events::MouseButton::left,
-        .action = Bess::Canvas::Events::MouseClickAction::press,
-        .details = 0,
-        .sceneState = &scene->getState(),
-    });
-    textBox->onMouseButton({
-        .mousePos = pointerPos,
-        .button = Bess::Canvas::Events::MouseButton::left,
-        .action = Bess::Canvas::Events::MouseClickAction::release,
-        .details = 0,
-        .sceneState = &scene->getState(),
-    });
-    textBox->draw(drawCtx);
 
     const auto evt = textInputEvent(U'4');
-    EXPECT_TRUE(textBox->onKeyEvent(evt));
-    textBox->draw(drawCtx);
+    EXPECT_TRUE(scalarInput->onKeyEvent(evt));
+    scalarInput->draw(drawCtx);
 
     const auto slotState = slot->getSlotState(scene->getState());
     ASSERT_TRUE(slotState.isScalar());

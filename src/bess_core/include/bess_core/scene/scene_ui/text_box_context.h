@@ -17,6 +17,9 @@ namespace Bess::Core::Renderer {
 } // namespace Bess::Core::Renderer
 
 namespace Bess::Canvas::UI {
+    /** Shared carret thickness for scene UI text controls. */
+    inline constexpr float kTextBoxCursorWidth = 1.f;
+
     struct BESS_API TextBoxContextResult {
         bool handled = false;
         bool changed = false;

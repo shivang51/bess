@@ -14,7 +14,8 @@
 
 namespace Bess::Canvas::UI {
 
-    /** Controls how a floating-point text box formats committed values. */
+    /** Controls how a floating-point numeric text box formats committed values.
+     */
     enum class UIFloatTextBoxFormat : uint8_t {
         /** The shortest decimal representation that round-trips exactly. */
         shortest,
@@ -32,8 +33,8 @@ namespace Bess::Canvas::UI {
     /**
      * Shared text editing and presentation for typed numeric text boxes.
      *
-     * This is an implementation base for IntTextBoxComp and
-     * FloatTextBoxComp. Programmatic value changes never invoke callbacks;
+     * This is the implementation base for IntTextBoxComp, FloatTextBoxComp,
+     * and ScalarInputComp. Programmatic value changes never invoke callbacks;
      * valid user edits do. Enter commits, Escape restores the value present
      * when focus was gained, and an invalid Enter keeps focus for correction.
      */
@@ -48,6 +49,7 @@ namespace Bess::Canvas::UI {
         [[nodiscard]] const std::string &getPlaceholder() const noexcept;
         void setPlaceholder(std::string placeholder);
         [[nodiscard]] const glm::vec2 &getTextBoxSize() const noexcept;
+        [[nodiscard]] glm::vec2 &getTextBoxSize() noexcept;
         void setTextBoxSize(const glm::vec2 &size);
         [[nodiscard]] size_t getMaxLength() const noexcept;
         void setMaxLength(size_t maxLength);
@@ -57,8 +59,11 @@ namespace Bess::Canvas::UI {
         void setSelectAllOnFocus(bool selectAllOnFocus) noexcept;
         [[nodiscard]] bool getStepOnMouseWheel() const noexcept;
         void setStepOnMouseWheel(bool stepOnMouseWheel) noexcept;
-        [[nodiscard]] float getLargeStepMultiplier() const noexcept;
-        void setLargeStepMultiplier(float multiplier);
+        [[nodiscard]] double getLargeStepMultiplier() const noexcept;
+        void setLargeStepMultiplier(double multiplier);
+        /** Enables +, -, *, /, %, unary signs, and parentheses. */
+        [[nodiscard]] bool getAllowExpressions() const noexcept;
+        void setAllowExpressions(bool allowExpressions) noexcept;
 
         /** True when the current edit is a complete, representable number. */
         [[nodiscard]] bool getInputValid() const noexcept;
@@ -84,7 +89,11 @@ namespace Bess::Canvas::UI {
         Core::Viewport::SceneCursor getCursor() const override;
 
       protected:
-        enum class ValueKind : uint8_t { integer, floatingPoint };
+        enum class ValueKind : uint8_t {
+            integer,
+            floatingPoint,
+            doublePrecision,
+        };
 
         explicit NumericTextBoxComp(ValueKind kind);
 
@@ -109,6 +118,20 @@ namespace Bess::Canvas::UI {
         void setFloatFormat(UIFloatTextBoxFormat format);
         [[nodiscard]] bool allowsScientificNotation() const noexcept;
         void setAllowsScientificNotation(bool allow);
+
+        [[nodiscard]] double scalarValue() const noexcept;
+        void setScalarValue(double value);
+        [[nodiscard]] double scalarMinValue() const noexcept;
+        [[nodiscard]] double scalarMaxValue() const noexcept;
+        void setScalarValueRange(double minValue, double maxValue);
+        [[nodiscard]] double scalarStep() const noexcept;
+        void setScalarStep(double step);
+        [[nodiscard]] int scalarPrecision() const noexcept;
+        void setScalarPrecision(int precision);
+        [[nodiscard]] UIFloatTextBoxFormat scalarFormat() const noexcept;
+        void setScalarFormat(UIFloatTextBoxFormat format);
+        [[nodiscard]] bool trimsTrailingZeros() const noexcept;
+        void setTrimsTrailingZeros(bool trimTrailingZeros);
 
         virtual void notifyValueChanged() = 0;
         virtual void notifySubmitted() = 0;
@@ -158,7 +181,9 @@ namespace Bess::Canvas::UI {
         size_t m_maxLength = 128;
         bool m_selectAllOnFocus = true;
         bool m_stepOnMouseWheel = true;
-        float m_largeStepMultiplier = 10.f;
+        double m_largeStepMultiplier = 10.0;
+        bool m_allowExpressions = true;
+        bool m_trimTrailingZeros = false;
         bool m_inputValid = true;
         bool m_showValidationError = false;
         UINumericTextBoxInvalidCallback m_invalidCallback;
