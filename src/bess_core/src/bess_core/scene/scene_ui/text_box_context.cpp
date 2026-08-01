@@ -309,6 +309,17 @@ namespace Bess::Canvas::UI {
         clampCursor();
     }
 
+    void TextBoxContext::restoreEditState(std::string_view value,
+                                          size_t maxLength,
+                                          size_t cursorPos,
+                                          size_t selectionAnchorPos) {
+        m_maxLength = maxLength;
+        m_text = boundedText(value, maxLength);
+        m_cursorPos = cursorPos;
+        m_selectionAnchorPos = selectionAnchorPos;
+        clampCursor();
+    }
+
     void TextBoxContext::focus(std::string_view value,
                                size_t maxLength,
                                bool selectAllOnFocus) {

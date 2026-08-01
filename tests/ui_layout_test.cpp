@@ -6,6 +6,8 @@
 #include "bess_core/scene/scene_ui/controls/container_comp.h"
 #include "bess_core/scene/scene_ui/controls/dropdown_comp.h"
 #include "bess_core/scene/scene_ui/controls/editable_label_comp.h"
+#include "bess_core/scene/scene_ui/controls/float_text_box_comp.h"
+#include "bess_core/scene/scene_ui/controls/int_text_box_comp.h"
 #include "bess_core/scene/scene_ui/controls/label_comp.h"
 #include "bess_core/scene/scene_ui/controls/spacer_comp.h"
 #include "bess_core/scene/scene_ui/controls/text_box_comp.h"
@@ -18,6 +20,7 @@
 #include "common/logger.h"
 #include "event_dispatcher.h"
 #include <gtest/gtest.h>
+#include <limits>
 #include <memory>
 #include <vector>
 
@@ -522,6 +525,164 @@ TEST_F(UiLayoutTests, TextBoxPrepareUIRespectsSizeAndPadding) {
 
     expectVec2(autoNode->getDrawSize(), 70.f, 16.f);
     EXPECT_EQ(autoNode->getPadding(), Bess::Core::Style::Padding::zero());
+}
+
+TEST_F(UiLayoutTests, IntTextBoxAcceptsOnlyRepresentableDecimalEdits) {
+    Bess::Canvas::UI::IntTextBoxComp input;
+    input.setValue(42);
+    input.setValueRange(-100, 100);
+
+    std::vector<int> changedValues;
+    int submittedValue = 0;
+    input.setChangedCallback(
+        [&](int value) { changedValues.push_back(value); });
+    input.setSubmittedCallback([&](int value) { submittedValue = value; });
+
+    input.onFocusGained({});
+    EXPECT_TRUE(input.onKeyEvent(textInputEvent(U'-')));
+    EXPECT_FALSE(input.getInputValid());
+    EXPECT_EQ(input.getValue(), 42);
+    input.setValue(42);
+    EXPECT_EQ(input.getEditText(), "-");
+
+    EXPECT_TRUE(input.onKeyEvent(textInputEvent(U'1')));
+    EXPECT_TRUE(input.onKeyEvent(textInputEvent(U'2')));
+    EXPECT_TRUE(input.getInputValid());
+    EXPECT_EQ(input.getValue(), -12);
+    EXPECT_EQ(input.getEditText(), "-12");
+
+    EXPECT_TRUE(input.onKeyEvent(textInputEvent(U'x')));
+    EXPECT_EQ(input.getEditText(), "-12");
+
+    EXPECT_TRUE(input.onKeyEvent(keyEvent(Bess::KeyCode::enter)));
+    ASSERT_EQ(changedValues.size(), 2u);
+    EXPECT_EQ(changedValues[0], -1);
+    EXPECT_EQ(changedValues[1], -12);
+    EXPECT_EQ(submittedValue, -12);
+}
+
+TEST_F(UiLayoutTests, IntTextBoxRejectsOverflowingEdits) {
+    Bess::Canvas::UI::IntTextBoxComp input;
+    input.setValue(5);
+
+    int invalidCount = 0;
+    input.setInvalidCallback(
+        [&](const std::string &) { ++invalidCount; });
+    input.onFocusGained({});
+    for (const char32_t codepoint : std::u32string_view(U"2147483648")) {
+        EXPECT_TRUE(input.onKeyEvent(textInputEvent(codepoint)));
+    }
+
+    EXPECT_FALSE(input.getInputValid());
+    EXPECT_EQ(input.getValue(), 214748364);
+    EXPECT_TRUE(input.onKeyEvent(keyEvent(Bess::KeyCode::enter)));
+    EXPECT_EQ(invalidCount, 1);
+    EXPECT_EQ(input.getEditText(), "2147483648");
+}
+
+TEST_F(UiLayoutTests, IntTextBoxClampsAndStepsWithoutOverflow) {
+    Bess::Canvas::UI::IntTextBoxComp input;
+    input.setValueRange(10, -10);
+    EXPECT_EQ(input.getMinValue(), -10);
+    EXPECT_EQ(input.getMaxValue(), 10);
+
+    input.setValue(9);
+    input.setStep(3);
+    input.onFocusGained({});
+    EXPECT_TRUE(input.onKeyEvent(keyEvent(Bess::KeyCode::arrowUp)));
+    EXPECT_EQ(input.getValue(), 10);
+    EXPECT_EQ(input.getEditText(), "10");
+
+    EXPECT_TRUE(input.onMouseWheel({.delta = {0.f, -1.f}}));
+    EXPECT_EQ(input.getValue(), 7);
+
+    input.setClampToRange(false);
+    input.setValue(std::numeric_limits<int>::max());
+    input.onFocusGained({});
+    EXPECT_TRUE(input.onKeyEvent(keyEvent(Bess::KeyCode::arrowUp)));
+    EXPECT_EQ(input.getValue(), std::numeric_limits<int>::max());
+}
+
+TEST_F(UiLayoutTests, FloatTextBoxSupportsScientificEditsAndFormatting) {
+    Bess::Canvas::UI::FloatTextBoxComp input;
+    input.setValue(2.5f);
+
+    float submittedValue = 0.f;
+    input.setSubmittedCallback([&](float value) { submittedValue = value; });
+
+    input.onFocusGained({});
+    for (const char32_t codepoint : std::u32string_view(U"1e-3")) {
+        EXPECT_TRUE(input.onKeyEvent(textInputEvent(codepoint)));
+    }
+    EXPECT_TRUE(input.getInputValid());
+    EXPECT_FLOAT_EQ(input.getValue(), 0.001f);
+
+    EXPECT_TRUE(input.onKeyEvent(keyEvent(Bess::KeyCode::enter)));
+    EXPECT_FLOAT_EQ(submittedValue, 0.001f);
+    EXPECT_EQ(input.getEditText(), "0.001");
+
+    input.setValue(1.25f);
+    input.setFormat(Bess::Canvas::UI::UIFloatTextBoxFormat::fixed);
+    input.setPrecision(3);
+    EXPECT_EQ(input.getEditText(), "1.250");
+
+    input.setFormat(Bess::Canvas::UI::UIFloatTextBoxFormat::shortest);
+    input.setAllowScientificNotation(false);
+    input.setValue(1e-20f);
+    EXPECT_EQ(input.getEditText().find_first_of("eE"), std::string::npos);
+}
+
+TEST_F(UiLayoutTests, FloatTextBoxRetainsInvalidEditForCorrection) {
+    Bess::Canvas::UI::FloatTextBoxComp input;
+    input.setValue(8.f);
+
+    int invalidCount = 0;
+    std::string invalidText;
+    input.setInvalidCallback([&](const std::string &text) {
+        ++invalidCount;
+        invalidText = text;
+    });
+
+    input.onFocusGained({});
+    EXPECT_TRUE(input.onKeyEvent(textInputEvent(U'1')));
+    EXPECT_TRUE(input.onKeyEvent(textInputEvent(U'e')));
+    EXPECT_FALSE(input.getInputValid());
+    EXPECT_TRUE(input.onKeyEvent(keyEvent(Bess::KeyCode::enter)));
+    EXPECT_EQ(invalidCount, 1);
+    EXPECT_EQ(invalidText, "1e");
+    EXPECT_EQ(input.getEditText(), "1e");
+
+    EXPECT_TRUE(input.onKeyEvent(textInputEvent(U'2')));
+    EXPECT_TRUE(input.getInputValid());
+    EXPECT_FLOAT_EQ(input.getValue(), 100.f);
+}
+
+TEST_F(UiLayoutTests, FloatTextBoxCancelRestoresExactPreEditValue) {
+    Bess::Canvas::UI::FloatTextBoxComp input;
+    constexpr float original = 1.2345f;
+    input.setValue(original);
+    input.setFormat(Bess::Canvas::UI::UIFloatTextBoxFormat::fixed);
+    input.setPrecision(2);
+
+    int changedCount = 0;
+    float canceledValue = 0.f;
+    input.setChangedCallback([&](float) { ++changedCount; });
+    input.setCanceledCallback([&](float value) { canceledValue = value; });
+
+    input.onFocusGained({});
+    EXPECT_TRUE(input.onKeyEvent(textInputEvent(U'9')));
+    EXPECT_FLOAT_EQ(input.getValue(), 9.f);
+    EXPECT_TRUE(input.onKeyEvent(keyEvent(Bess::KeyCode::escape)));
+
+    EXPECT_FLOAT_EQ(input.getValue(), original);
+    EXPECT_FLOAT_EQ(canceledValue, original);
+    EXPECT_EQ(changedCount, 2);
+    EXPECT_EQ(input.getEditText(), "1.23");
+
+    input.setValue(std::numeric_limits<float>::quiet_NaN());
+    EXPECT_FLOAT_EQ(input.getValue(), original);
+    input.setValue(std::numeric_limits<float>::infinity());
+    EXPECT_FLOAT_EQ(input.getValue(), original);
 }
 
 TEST_F(UiLayoutTests, DropdownChevronRespectsCustomWidth) {

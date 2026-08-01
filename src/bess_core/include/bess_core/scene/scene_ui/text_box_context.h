@@ -30,6 +30,10 @@ namespace Bess::Canvas::UI {
         void replaceText(std::string_view value,
                          size_t maxLength,
                          bool preserveCursor = true);
+        void restoreEditState(std::string_view value,
+                              size_t maxLength,
+                              size_t cursorPos,
+                              size_t selectionAnchorPos);
         void focus(std::string_view value,
                    size_t maxLength,
                    bool selectAllOnFocus = false);
@@ -63,6 +67,10 @@ namespace Bess::Canvas::UI {
 
         size_t cursorPos() const {
             return m_cursorPos;
+        }
+
+        size_t selectionAnchorPos() const {
+            return m_selectionAnchorPos;
         }
 
         bool isFocused() const {

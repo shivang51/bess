@@ -9,7 +9,9 @@
 #include "bess_core/scene/scene_ui/controls/context_menu_comp.h"
 #include "bess_core/scene/scene_ui/controls/dropdown_comp.h"
 #include "bess_core/scene/scene_ui/controls/editable_label_comp.h"
+#include "bess_core/scene/scene_ui/controls/float_text_box_comp.h"
 #include "bess_core/scene/scene_ui/controls/image_comp.h"
+#include "bess_core/scene/scene_ui/controls/int_text_box_comp.h"
 #include "bess_core/scene/scene_ui/controls/label_comp.h"
 #include "bess_core/scene/scene_ui/controls/list_box_comp.h"
 #include "bess_core/scene/scene_ui/controls/panel_comp.h"
@@ -423,6 +425,58 @@ namespace Bess::Canvas::UI {
                                minValue,
                                maxValue,
                                styleConfig(std::move(style)));
+        }
+
+        [[nodiscard]] std::shared_ptr<FloatTextBoxComp>
+        floatTextBox(CompConfig config) const {
+            return FloatTextBoxComp::create(bindConfig(std::move(config)));
+        }
+
+        [[nodiscard]] std::shared_ptr<FloatTextBoxComp>
+        floatTextBox(float value = 0.f,
+                     const UIFloatTextBoxCallback &changedCallback = nullptr,
+                     CompConfig config = CompConfig{}) const {
+            return FloatTextBoxComp::create(
+                value, changedCallback, bindConfig(std::move(config)));
+        }
+
+        [[nodiscard]] std::shared_ptr<FloatTextBoxComp>
+        floatTextBox(float value, UIElementStyle style) const {
+            return floatTextBox(value, nullptr, styleConfig(std::move(style)));
+        }
+
+        [[nodiscard]] std::shared_ptr<FloatTextBoxComp>
+        floatTextBox(float value,
+                     const UIFloatTextBoxCallback &changedCallback,
+                     UIElementStyle style) const {
+            return floatTextBox(
+                value, changedCallback, styleConfig(std::move(style)));
+        }
+
+        [[nodiscard]] std::shared_ptr<IntTextBoxComp>
+        intTextBox(CompConfig config) const {
+            return IntTextBoxComp::create(bindConfig(std::move(config)));
+        }
+
+        [[nodiscard]] std::shared_ptr<IntTextBoxComp>
+        intTextBox(int value = 0,
+                   const UIIntTextBoxCallback &changedCallback = nullptr,
+                   CompConfig config = CompConfig{}) const {
+            return IntTextBoxComp::create(
+                value, changedCallback, bindConfig(std::move(config)));
+        }
+
+        [[nodiscard]] std::shared_ptr<IntTextBoxComp>
+        intTextBox(int value, UIElementStyle style) const {
+            return intTextBox(value, nullptr, styleConfig(std::move(style)));
+        }
+
+        [[nodiscard]] std::shared_ptr<IntTextBoxComp>
+        intTextBox(int value,
+                   const UIIntTextBoxCallback &changedCallback,
+                   UIElementStyle style) const {
+            return intTextBox(
+                value, changedCallback, styleConfig(std::move(style)));
         }
 
         [[nodiscard]] std::shared_ptr<ScalarInputComp>
