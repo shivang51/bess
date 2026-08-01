@@ -133,8 +133,10 @@ namespace Bess::Canvas::UI {
             std::string_view(m_textInput.text())
                 .substr(visibleStart, visibleEnd - visibleStart);
 
+        const size_t visibleCursor =
+            std::clamp(m_textInput.cursorPos(), visibleStart, visibleEnd);
         const auto preCursorText =
-            visibleText.substr(0, m_textInput.cursorPos());
+            visibleText.substr(0, visibleCursor - visibleStart);
 
         const auto textSize =
             state.renderer->measureText(preCursorText, fontProps);

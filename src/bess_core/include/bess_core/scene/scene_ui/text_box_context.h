@@ -95,6 +95,7 @@ namespace Bess::Canvas::UI {
         std::string m_focusStartText;
         size_t m_cursorPos = 0;
         size_t m_selectionAnchorPos = 0;
+        mutable size_t m_visibleStart = 0;
         size_t m_maxLength = 256;
         bool m_focused = false;
         bool m_pointerSelecting = false;

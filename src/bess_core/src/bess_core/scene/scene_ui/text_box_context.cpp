@@ -292,6 +292,7 @@ namespace Bess::Canvas::UI {
 
         m_text = next;
         m_cursorPos = m_text.size();
+        m_visibleStart = 0;
         clearSelection();
     }
 
@@ -305,6 +306,7 @@ namespace Bess::Canvas::UI {
         m_text = next;
         m_cursorPos = preserveCursor ? std::min(previousCursor, m_text.size())
                                      : m_text.size();
+        m_visibleStart = 0;
         clearSelection();
         clampCursor();
     }
@@ -328,6 +330,7 @@ namespace Bess::Canvas::UI {
         m_focusStartText = m_text;
         m_cursorPos = m_text.size();
         m_selectionAnchorPos = selectAllOnFocus ? 0 : m_cursorPos;
+        m_visibleStart = 0;
         m_focused = true;
         m_pointerSelecting = false;
         m_pointerInputQueued = false;
@@ -493,6 +496,7 @@ namespace Bess::Canvas::UI {
             if (m_text != m_focusStartText) {
                 m_text = m_focusStartText;
                 m_cursorPos = m_text.size();
+                m_visibleStart = 0;
                 clearSelection();
                 markChanged(result);
             }
@@ -568,18 +572,48 @@ namespace Bess::Canvas::UI {
         float maxWidth,
         const Core::Renderer::FontProps &fontProps) const {
         if (renderer == nullptr || m_text.empty() || maxWidth <= 1.f) {
+            m_visibleStart = 0;
             return {0, 0};
         }
 
         if (renderer->measureText(m_text, fontProps).x <= maxWidth) {
+            m_visibleStart = 0;
             return {0, m_text.size()};
         }
 
-        const size_t visibleStart = findVisibleStart(
-            renderer, m_text, m_cursorPos, maxWidth, fontProps);
-        const size_t visibleEnd = findVisibleEnd(
-            renderer, m_text, visibleStart, m_cursorPos, maxWidth, fontProps);
-        return {visibleStart, visibleEnd};
+        const size_t cursor = std::min(m_cursorPos, m_text.size());
+        m_visibleStart =
+            nextStartBoundary(m_text, std::min(m_visibleStart, m_text.size()));
+
+        if (cursor < m_visibleStart) {
+            // Keep the caret at the left edge, and scroll only after it tries
+            // to move beyond that edge.
+            m_visibleStart = cursor;
+        } else if (renderer
+                       ->measureText(m_text.substr(m_visibleStart,
+                                                   cursor - m_visibleStart),
+                                     fontProps)
+                       .x > maxWidth) {
+            // Keep the caret at the right edge while scrolling toward the end.
+            m_visibleStart =
+                findVisibleStart(renderer, m_text, cursor, maxWidth, fontProps);
+        }
+
+        size_t visibleEnd = findVisibleEnd(
+            renderer, m_text, m_visibleStart, cursor, maxWidth, fontProps);
+
+        if (visibleEnd == m_text.size()) {
+            // Backfill newly available room after deletion or a resize without
+            // disturbing the caret while it moves inside the current viewport.
+            m_visibleStart = std::min(
+                m_visibleStart,
+                findVisibleStart(
+                    renderer, m_text, m_text.size(), maxWidth, fontProps));
+            visibleEnd = findVisibleEnd(
+                renderer, m_text, m_visibleStart, cursor, maxWidth, fontProps);
+        }
+
+        return {m_visibleStart, visibleEnd};
     }
 
     bool TextBoxContext::hasSelection() const {

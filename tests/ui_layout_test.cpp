@@ -911,6 +911,72 @@ TEST_F(UiLayoutTests, ScalarAndTextBoxUseTheSameCursorThickness) {
     EXPECT_FLOAT_EQ(scalarCursorWidth, renderer->quads.back().size.x);
 }
 
+TEST_F(UiLayoutTests, TextBoxCursorMovesBeforeHorizontalViewportScrolls) {
+    const auto renderer = std::make_shared<LayoutTestRenderer2D>();
+    const Bess::Core::Renderer::FontProps fontProps{.fontSize = 8.f};
+    const float viewportWidth =
+        renderer->measureText("6789", fontProps).x;
+
+    Bess::Canvas::UI::TextBoxContext input;
+    input.focus("0123456789", 64);
+
+    const auto initialRange = input.visibleRangeForCursor(
+        renderer, viewportWidth, fontProps);
+    ASSERT_GT(initialRange.first, 0u);
+    ASSERT_EQ(input.cursorPos(), 10u);
+
+    while (input.cursorPos() > initialRange.first) {
+        input.handleEvent(keyEvent(Bess::KeyCode::arrowLeft));
+        const auto range = input.visibleRangeForCursor(
+            renderer, viewportWidth, fontProps);
+        EXPECT_EQ(range.first, initialRange.first);
+    }
+
+    ASSERT_EQ(input.cursorPos(), initialRange.first);
+    input.handleEvent(keyEvent(Bess::KeyCode::arrowLeft));
+    const auto scrolledRange = input.visibleRangeForCursor(
+        renderer, viewportWidth, fontProps);
+    EXPECT_LT(scrolledRange.first, initialRange.first);
+    EXPECT_EQ(scrolledRange.first, input.cursorPos());
+
+    input.handleEvent(keyEvent(Bess::KeyCode::arrowRight));
+    const auto movedRightRange = input.visibleRangeForCursor(
+        renderer, viewportWidth, fontProps);
+    EXPECT_EQ(movedRightRange.first, scrolledRange.first);
+}
+
+TEST_F(UiLayoutTests, TextBoxDrawsCaretRelativeToVisibleText) {
+    Bess::Canvas::SceneState sceneState;
+    const auto renderer = std::make_shared<LayoutTestRenderer2D>();
+    const Bess::Core::Renderer::FontProps fontProps{.fontSize = 8.f};
+    const float viewportWidth =
+        renderer->measureText("6789", fontProps).x;
+
+    Bess::Canvas::UI::TextBoxComp input;
+    input.setValue("0123456789");
+    input.setTextBoxSize({viewportWidth + 8.f, 24.f});
+    input.getStyle().fontSize = 8.f;
+    input.getStyle().padding =
+        Bess::Core::Style::Padding::fromSymmetric(4.f, 2.f);
+
+    auto prepareCtx = uiPrepareContext(sceneState, renderer);
+    input.prepareUI(prepareCtx);
+    input.getUINode()->measure(*sceneState.getUINodeRegistry(),
+                               Bess::UUID::null);
+    input.onFocusGained({});
+
+    auto drawCtx = uiDrawContext(sceneState, renderer);
+    input.onDraw(drawCtx);
+    ASSERT_FALSE(renderer->quads.empty());
+    const float initialCursorX = renderer->quads.back().position.x;
+
+    EXPECT_TRUE(input.onKeyEvent(keyEvent(Bess::KeyCode::arrowLeft)));
+    renderer->quads.clear();
+    input.onDraw(drawCtx);
+    ASSERT_FALSE(renderer->quads.empty());
+    EXPECT_LT(renderer->quads.back().position.x, initialCursorX);
+}
+
 TEST_F(UiLayoutTests, DropdownChevronRespectsCustomWidth) {
     Bess::Canvas::SceneState sceneState;
     const auto renderer = std::make_shared<LayoutTestRenderer2D>();
