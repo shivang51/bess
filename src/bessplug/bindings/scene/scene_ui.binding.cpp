@@ -1,6 +1,11 @@
 #include "bess_core/scene/scene_state/scene_state.h"
+#include "bess_core/scene/scene_ui/controls/button_comp.h"
 #include "bess_core/scene/scene_ui/controls/container_comp.h"
+#include "bess_core/scene/scene_ui/controls/dropdown_comp.h"
+#include "bess_core/scene/scene_ui/controls/label_comp.h"
+#include "bess_core/scene/scene_ui/controls/slider_comp.h"
 #include "bess_core/scene/scene_ui/controls/spacer_comp.h"
+#include "bess_core/scene/scene_ui/controls/text_box_comp.h"
 #include "bess_core/scene/scene_ui/layout.h"
 #include "bess_core/scene/scene_ui/ui_scene_component.h"
 #include "bess_core/style/bess_theme.h"
@@ -447,4 +452,117 @@ void bind_scene_ui(py::module_ &m) {
              py::arg("basis"),
              py::arg_v("unit", UI::Unit::pixel, "UIUnit.pixel"))
         .def("set_fixed_size", &UI::SpacerComp::setFixedSize, py::arg("size"));
+
+    py::class_<UI::CompConfig>(m, "CompConfig")
+        .def(py::init<>())
+        .def_readwrite("style", &UI::CompConfig::style)
+        .def_readwrite("children", &UI::CompConfig::children);
+
+    py::class_<UI::ButtonComp, UI::UISceneComponent, py::smart_holder>(m,
+                                                                       "Button")
+        .def(py::init<>())
+        .def_static(
+            "create",
+            [](const std::string &label,
+               const Bess::Canvas::UI::UIButtonCallback &callback,
+               const Bess::Canvas::UI::CompConfig &config = {}) {
+                return Bess::Canvas::UI::ButtonComp::create(
+                    label, callback, config);
+            },
+            py::arg("label"),
+            py::arg("callback"),
+            py::arg("config") = Bess::Canvas::UI::CompConfig{});
+
+    py::class_<UI::TextBoxComp, UI::UISceneComponent, py::smart_holder>(
+        m, "TextBox")
+        .def(py::init<>())
+        .def_static(
+            "create",
+            [](const std::string &value = "",
+               const Bess::Canvas::UI::UITextBoxCallback &changedCallback =
+                   nullptr,
+               const Bess::Canvas::UI::CompConfig &config = {}) {
+                return Bess::Canvas::UI::TextBoxComp::create(
+                    value, changedCallback, config);
+            },
+            py::arg("value") = "",
+            py::arg("changed_callback") = nullptr,
+            py::arg("config") = Bess::Canvas::UI::CompConfig{})
+        .def("set_tb_size", &UI::TextBoxComp::setTextBoxSize)
+        .def("set_max_length", &UI::TextBoxComp::setMaxLength)
+        .def("set_placeholder", &UI::TextBoxComp::setPlaceholder)
+        .def("set_submit_cb", &UI::TextBoxComp::setSubmittedCallback)
+        .def("set_cancel_cb", &UI::TextBoxComp::setCanceledCallback);
+
+    py::class_<UI::SliderComp, UI::UISceneComponent, py::smart_holder>(m,
+                                                                       "Slider")
+        .def(py::init<>())
+        .def_static(
+            "create",
+            [](const std::string &label,
+               float initialValue,
+               float minValue,
+               float maxValue,
+               const Bess::Canvas::UI::UISliderCallback &callback,
+               const Bess::Canvas::UI::CompConfig &config = {}) {
+                return Bess::Canvas::UI::SliderComp::create(
+                    label, initialValue, minValue, maxValue, callback, config);
+            },
+            py::arg("label"),
+            py::arg("initial_value"),
+            py::arg("min_value"),
+            py::arg("max_value"),
+            py::arg("callback") = nullptr,
+            py::arg("config") = Bess::Canvas::UI::CompConfig{})
+        .def("set_slider_size", &UI::SliderComp::setSliderSize)
+        .def("set_change_cb", &UI::SliderComp::setChangedCallback)
+        .def("set_value", &UI::SliderComp::setValue)
+        .def("get_value", &UI::SliderComp::getValue)
+        .def_property("thumb_radius",
+                      py::overload_cast<>(&UI::SliderComp::getThumbRadius),
+                      &UI::SliderComp::setThumbRadius);
+
+    py::class_<UI::UIDropdownOption>(m, "DropdownOption")
+        .def(py::init<>())
+        .def(py::init<const std::string &, bool>(),
+             py::arg("label"),
+             py::arg("enabled") = true)
+        .def_readwrite("label", &UI::UIDropdownOption::label)
+        .def_readwrite("enabled", &UI::UIDropdownOption::enabled);
+
+    py::class_<UI::DropdownComp, UI::UISceneComponent, py::smart_holder>(
+        m, "Dropdown")
+        .def(py::init<>())
+        .def_static(
+            "create",
+            [](const std::vector<Bess::Canvas::UI::UIDropdownOption> &options =
+                   {},
+               size_t selectedIndex = 0,
+               const Bess::Canvas::UI::UIDropdownCallback &changedCallback =
+                   nullptr,
+               const Bess::Canvas::UI::CompConfig &config = {}) {
+                return Bess::Canvas::UI::DropdownComp::create(
+                    options, selectedIndex, changedCallback, config);
+            },
+            py::arg("options") =
+                std::vector<Bess::Canvas::UI::UIDropdownOption>{},
+            py::arg("selected_index") = 0,
+            py::arg("changed_callback") = nullptr,
+            py::arg("config") = Bess::Canvas::UI::CompConfig{})
+        .def("set_options", &UI::DropdownComp::setOptions)
+        .def("set_selected_index", &UI::DropdownComp::setSelectedIndex)
+        .def("get_selected_index", &UI::DropdownComp::getSelectedIndex)
+        .def("set_changed_cb", &UI::DropdownComp::setChangedCallback);
+
+    py::class_<UI::LabelComp, UI::UISceneComponent, py::smart_holder>(m,
+                                                                      "Label")
+        .def(py::init<>())
+        .def_static(
+            "create",
+            [](const std::string &text,
+               const Bess::Canvas::UI::CompConfig &config = {}) {
+                return Bess::Canvas::UI::LabelComp::create(text, config);
+            },
+            py::arg("text"),
+            py::arg("config") = Bess::Canvas::UI::CompConfig{});
 }

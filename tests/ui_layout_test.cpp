@@ -4,6 +4,7 @@
 #include "bess_core/scene/scene_event.h"
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene/scene_ui/controls/container_comp.h"
+#include "bess_core/scene/scene_ui/controls/dropdown_comp.h"
 #include "bess_core/scene/scene_ui/controls/editable_label_comp.h"
 #include "bess_core/scene/scene_ui/controls/label_comp.h"
 #include "bess_core/scene/scene_ui/controls/spacer_comp.h"
@@ -521,6 +522,51 @@ TEST_F(UiLayoutTests, TextBoxPrepareUIRespectsSizeAndPadding) {
 
     expectVec2(autoNode->getDrawSize(), 70.f, 16.f);
     EXPECT_EQ(autoNode->getPadding(), Bess::Core::Style::Padding::zero());
+}
+
+TEST_F(UiLayoutTests, DropdownChevronRespectsCustomWidth) {
+    Bess::Canvas::SceneState sceneState;
+    const auto renderer = std::make_shared<LayoutTestRenderer2D>();
+    auto prepareCtx = uiPrepareContext(sceneState, renderer);
+
+    Bess::Canvas::UI::DropdownComp dropdown;
+    dropdown.setOptions({{"Hz", true}});
+
+    auto &style = dropdown.getStyle();
+    style.width = 44.f;
+    style.padding = Bess::Core::Style::Padding::fromSymmetric(4.f, 0.f);
+    style.margin = Bess::Core::Style::Margin::zero();
+
+    dropdown.prepareUI(prepareCtx);
+    auto *dropdownNode = dropdown.getUINode();
+    ASSERT_NE(dropdownNode, nullptr);
+    dropdownNode->measure(*sceneState.getUINodeRegistry(), Bess::UUID::null);
+
+    expectVec2(dropdownNode->getDrawSize(), 44.f, 8.f);
+    ASSERT_EQ(dropdownNode->getChildren().size(), 2u);
+
+    const auto chevronId = *dropdownNode->getChildren().rbegin();
+    const auto *chevronNode =
+        sceneState.getUINodeRegistry()->getNode(chevronId);
+    ASSERT_NE(chevronNode, nullptr);
+
+    const float dropdownRight =
+        dropdownNode->getDrawPos().x + (dropdownNode->getDrawSize().x * 0.5f);
+    const float chevronRight =
+        chevronNode->getDrawPos().x + (chevronNode->getDrawSize().x * 0.5f);
+    EXPECT_LE(chevronRight, dropdownRight - dropdownNode->getPadding().right);
+
+    const float dropdownTop = dropdownNode->getDrawPos().y -
+                              (dropdownNode->getDrawSize().y * 0.5f);
+    const float dropdownBottom = dropdownNode->getDrawPos().y +
+                                 (dropdownNode->getDrawSize().y * 0.5f);
+    const float chevronTop = chevronNode->getDrawPos().y -
+                             (chevronNode->getDrawSize().y * 0.5f);
+    const float chevronBottom = chevronNode->getDrawPos().y +
+                                (chevronNode->getDrawSize().y * 0.5f);
+    EXPECT_GE(chevronTop, dropdownTop + dropdownNode->getPadding().top);
+    EXPECT_LE(chevronBottom,
+              dropdownBottom - dropdownNode->getPadding().bottom);
 }
 
 TEST_F(UiLayoutTests, UIElementStyleAppliesLayoutPropertiesToNode) {

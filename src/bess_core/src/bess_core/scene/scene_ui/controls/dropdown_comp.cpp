@@ -148,20 +148,25 @@ namespace Bess::Canvas::UI {
         m_node->setPadding(m_style.metrics.padding);
         m_node->setMargin(m_style.metrics.margin);
 
+        const auto contentHeight = std::max(
+            1.f,
+            m_cachedHeaderSize.y - m_style.metrics.padding.vertical());
+        const auto chevronSize = std::min(kChevronWidth, contentHeight);
         const auto labelWidth = std::max(
             1.f,
             m_cachedHeaderSize.x - m_style.metrics.padding.horizontal() -
-                kChevronWidth - 6.f);
+                chevronSize - 6.f);
         m_labelNode->setWidth(labelWidth);
-        m_labelNode->setHeight(std::max(
-            1.f, m_cachedHeaderSize.y - m_style.metrics.padding.vertical()));
+        m_labelNode->setHeight(contentHeight);
         m_labelNode->setPosMode(PosMode::relative);
         m_labelNode->setPadding(0.f);
         m_labelNode->setMargin(Core::Style::Margin::onlyRight(6.f));
+        m_labelNode->setFlexGrow(1.f);
+        m_labelNode->setFlexShrink(1.f);
         m_node->addChild(m_labelNode);
 
-        m_chevronNode->setWidth(kChevronWidth);
-        m_chevronNode->setHeight(kChevronWidth);
+        m_chevronNode->setWidth(chevronSize);
+        m_chevronNode->setHeight(chevronSize);
         m_chevronNode->setPosMode(PosMode::relative);
         m_chevronNode->setPadding(0.f);
         m_chevronNode->setMargin(0.f);
@@ -342,7 +347,20 @@ namespace Bess::Canvas::UI {
         }
 
         size.x = std::max(kMinHeaderWidth, size.x);
-        size.y = std::max(kMinItemHeight, size.y);
+
+        // A point-sized layout style overrides the control's intrinsic header
+        // size. Resolve it before sizing the label and chevron so their layout
+        // uses the same dimensions as the outer dropdown node.
+        if (m_customStyle.width.has_value() &&
+            m_customStyle.widthMode.value_or(LayoutSizeMode::point) ==
+                LayoutSizeMode::point) {
+            size.x = std::max(0.f, *m_customStyle.width);
+        }
+        if (m_customStyle.height.has_value() &&
+            m_customStyle.heightMode.value_or(LayoutSizeMode::point) ==
+                LayoutSizeMode::point) {
+            size.y = std::max(0.f, *m_customStyle.height);
+        }
         return size;
     }
 

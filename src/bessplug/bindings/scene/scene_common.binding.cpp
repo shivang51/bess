@@ -66,4 +66,9 @@ void bind_scene_common_binding(py::module &m) {
         .def_readwrite("schem_style", &Bess::Canvas::Style::schematicStyle)
         .def_readwrite("header_color", &Bess::Canvas::Style::headerColor)
         .def_readwrite("color", &Bess::Canvas::Style::color);
+
+    py::class_<Bess::SceneUIPrepareCtx>(m, "SceneUIPrepareCtx")
+        .def(py::init<>())
+        .def_readwrite("scene_state", &Bess::SceneUIPrepareCtx::sceneState)
+        .def_readwrite("parent_node", &Bess::SceneUIPrepareCtx::parentNode);
 }

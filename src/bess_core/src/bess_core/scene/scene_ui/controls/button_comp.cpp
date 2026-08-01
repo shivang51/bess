@@ -58,6 +58,7 @@ namespace Bess::Canvas::UI {
 
     void ButtonComp::onDraw(SceneDrawContext &state) {
         drawBgQuad(state);
+
         if (m_childComponents.empty()) {
             drawText(state, m_name, m_labelNode);
         } else {

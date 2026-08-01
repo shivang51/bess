@@ -107,6 +107,19 @@ class PySimSceneComponent : public Bess::Canvas::SimulationSceneComponent,
         Bess::Canvas::SimulationSceneComponent::update(timeStep, state);
     }
 
+    void prepareUI(Bess::SceneUIPrepareCtx &ctx) override {
+        try {
+            PYBIND11_OVERRIDE_NAME(void,
+                                   Bess::Canvas::SimulationSceneComponent,
+                                   "prepare_ui",
+                                   prepareUI,
+                                   std::ref(ctx));
+        } catch (const py::error_already_set &error) {
+            logPythonOverrideError("prepare_ui", error);
+        }
+        Bess::Canvas::SimulationSceneComponent::prepareUI(ctx);
+    }
+
     void onScaleChanged() override {
         try {
             PYBIND11_OVERRIDE_NAME(void,
@@ -380,26 +393,20 @@ void bind_sim_scene_component(py::module_ &m) {
                 [](const Bess::Canvas::SimulationSceneComponent &self) {
                     return self.getRuntimeId();
                 })
+
             .def_property_readonly(
                 "inp_slots_container",
                 [](const Bess::Canvas::SimulationSceneComponent &self) {
                     return self.getInputSlotsContainer();
-                })
+                },
+                py::return_value_policy::reference_internal)
             .def_property_readonly(
                 "out_slots_container",
                 [](const Bess::Canvas::SimulationSceneComponent &self) {
                     return self.getOutputSlotsContainer();
-                })
-            .def_property_readonly(
-                "input_slots_container",
-                [](const Bess::Canvas::SimulationSceneComponent &self) {
-                    return self.getInputSlotsContainer();
-                })
-            .def_property_readonly(
-                "output_slots_container",
-                [](const Bess::Canvas::SimulationSceneComponent &self) {
-                    return self.getOutputSlotsContainer();
-                })
+                },
+                py::return_value_policy::reference_internal)
+
             .def("copy",
                  [&](const Bess::Canvas::SimulationSceneComponent &self) {
                      auto c = std::make_shared<
@@ -415,6 +422,10 @@ void bind_sim_scene_component(py::module_ &m) {
             .def("draw_properties_ui",
                  &Bess::Canvas::SimulationSceneComponent::drawPropertiesUI,
                  py::arg("scene_state"))
+            .def("prepare_ui",
+                 &Bess::Canvas::SimulationSceneComponent::prepareUI,
+                 py::arg("ctx"))
+
             .def_property("icon",
                           py::overload_cast<>(
                               &Bess::Canvas::SimulationSceneComponent::getIcon),

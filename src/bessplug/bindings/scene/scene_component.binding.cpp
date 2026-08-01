@@ -43,6 +43,14 @@ class PySceneComponent : public Bess::Canvas::SceneComponent,
                                "get_type_name",
                                getTypeName);
     }
+
+    void prepareUI(Bess::SceneUIPrepareCtx &ctx) override {
+        PYBIND11_OVERRIDE_NAME(void,
+                               Bess::Canvas::SceneComponent,
+                               "prepare_ui",
+                               prepareUI,
+                               std::ref(ctx));
+    }
 };
 
 void bind_scene_component(py::module_ &m) {
@@ -71,6 +79,9 @@ void bind_scene_component(py::module_ &m) {
              py::arg("time_step"),
              py::arg("scene_state"))
         .def("get_type_name", &Bess::Canvas::SceneComponent::getTypeName)
+        .def("prepare_ui",
+             &Bess::Canvas::SceneComponent::prepareUI,
+             py::arg("ctx"))
         .def_property(
             "style",
             py::overload_cast<>(&Bess::Canvas::SceneComponent::getStyle),
