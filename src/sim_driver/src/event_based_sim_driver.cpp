@@ -16,6 +16,7 @@ namespace Bess::SimEngine::Drivers {
     Json::Value EvtBasedCompDef::toJson() const {
         Json::Value json = CompDef::toJson();
         json["shouldAutoReschedule"] = m_autoReschedule;
+        json["autoRescheduleDelay"] = m_autoRescheduleDelay.count();
         json["propDelay"] = m_propDelay.count();
         return json;
     }
@@ -501,6 +502,11 @@ namespace Bess::SimEngine::Drivers {
         CompDef::loadJson(json);
         if (json.isMember("shouldAutoReschedule")) {
             m_autoReschedule = json["shouldAutoReschedule"].asBool();
+        }
+
+        if (json.isMember("autoRescheduleDelay")) {
+            JsonConvert::fromJsonValue(json["autoRescheduleDelay"],
+                                       m_autoRescheduleDelay);
         }
 
         if (json.isMember("propDelay")) {

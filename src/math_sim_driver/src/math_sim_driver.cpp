@@ -42,6 +42,10 @@ namespace Bess::SimEngine::Drivers::Math {
                 return "add";
             case MathOpKind::subtract:
                 return "subtract";
+            case MathOpKind::multiply:
+                return "multiply";
+            case MathOpKind::pow:
+                return "pow";
             case MathOpKind::none:
                 return "none";
             }
@@ -54,6 +58,12 @@ namespace Bess::SimEngine::Drivers::Math {
             }
             if (value == "subtract") {
                 return MathOpKind::subtract;
+            }
+            if (value == "multiply") {
+                return MathOpKind::multiply;
+            }
+            if (value == "pow") {
+                return MathOpKind::pow;
             }
             return MathOpKind::none;
         }

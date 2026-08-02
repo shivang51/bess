@@ -5,7 +5,9 @@
 #include <chrono>
 #include <gtest/gtest.h>
 #include <memory>
+#include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -119,6 +121,62 @@ TEST(MathSimDriverTest, BuiltInBinaryOpsProduceScalarOutputs) {
         driver.getPortState(scalarPort(subId, PortDirection::output, 0));
     EXPECT_TRUE(subOutput.isScalar());
     EXPECT_DOUBLE_EQ(subOutput.scalarValue, 4.75);
+}
+
+TEST(MathSimDriverTest, DefinitionSerializationPreservesEveryOperationKind) {
+    const std::vector<std::pair<MathOpKind, std::string>> cases = {
+        {MathOpKind::none, "none"},
+        {MathOpKind::add, "add"},
+        {MathOpKind::subtract, "subtract"},
+        {MathOpKind::multiply, "multiply"},
+        {MathOpKind::pow, "pow"},
+    };
+
+    for (const auto &[kind, serializedKind] : cases) {
+        SCOPED_TRACE(serializedKind);
+        auto definition = MathCompDef::makeBinaryOp(
+            "Serialization Test", "Math", kind);
+
+        const auto json = definition->toJson();
+        ASSERT_TRUE(json["opKind"].isString());
+        EXPECT_EQ(json["opKind"].asString(), serializedKind);
+
+        MathCompDef restored;
+        restored.loadJson(json);
+        EXPECT_EQ(restored.getOpKind(), kind);
+    }
+}
+
+TEST(MathSimDriverTest, DefinitionSerializationPreservesEventDelays) {
+    constexpr double autoRescheduleDelayNs = 1234567.5;
+    constexpr double propagationDelayNs = 7654321.25;
+
+    MathCompDef definition;
+    definition.setAutoReschedule(true);
+    definition.setAutoRescheduleDelay(TimeNs(autoRescheduleDelayNs));
+    definition.setPropDelay(TimeNs(propagationDelayNs));
+
+    const auto json = definition.toJson();
+    ASSERT_TRUE(json["autoRescheduleDelay"].isNumeric());
+    EXPECT_DOUBLE_EQ(json["autoRescheduleDelay"].asDouble(),
+                     autoRescheduleDelayNs);
+
+    MathCompDef restored;
+    restored.loadJson(json);
+    EXPECT_TRUE(restored.getAutoReschedule());
+    EXPECT_DOUBLE_EQ(restored.getAutoRescheduleDelay().count(),
+                     autoRescheduleDelayNs);
+    EXPECT_DOUBLE_EQ(restored.getPropDelay().count(), propagationDelayNs);
+}
+
+TEST(MathSimDriverTest, MissingAutoRescheduleDelayUsesDefinitionDefault) {
+    MathCompDef definition;
+    auto json = definition.toJson();
+    json.removeMember("autoRescheduleDelay");
+
+    MathCompDef restored;
+    restored.loadJson(json);
+    EXPECT_DOUBLE_EQ(restored.getAutoRescheduleDelay().count(), 0.0);
 }
 
 TEST(MathSimDriverTest, ConnectionsCollapseScalarInputsForEventSimulation) {
