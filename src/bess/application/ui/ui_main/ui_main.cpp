@@ -270,8 +270,8 @@ namespace Bess::UI {
     }
 
     void UIMain::drawStatusbar() {
-        const ImGuiContext &g = *ImGui::GetCurrentContext();
-        auto style = g.Style;
+        auto &style = ImGui::GetStyle();
+
         ImGuiViewportP *viewport = (ImGuiViewportP *)ImGui::GetMainViewport();
         const ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar |
                                               ImGuiWindowFlags_NoSavedSettings |
