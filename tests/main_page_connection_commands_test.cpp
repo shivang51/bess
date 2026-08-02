@@ -804,6 +804,73 @@ TEST_F(MainPageConnectionCommandsTest,
 }
 
 TEST_F(MainPageConnectionCommandsTest,
+       ModuleBoundarySlotGrowthSyncsEnclosingModuleSlots) {
+    UUID inputId = UUID::null;
+    UUID outputId = UUID::null;
+    auto made = Bess::Canvas::ModuleSceneComponent::createNew(
+        *sceneDriver, *simEngine, inputId, outputId);
+    ASSERT_FALSE(made.empty());
+
+    auto module = std::dynamic_pointer_cast<Bess::Canvas::ModuleSceneComponent>(
+        made.front());
+    ASSERT_NE(module, nullptr);
+    made.erase(made.begin());
+    ASSERT_TRUE(session->addComp(module, std::move(made), scene->getSceneId()));
+
+    const auto moduleScene = sceneDriver->getSceneWithId(module->getSceneId());
+    ASSERT_NE(moduleScene, nullptr);
+    const auto moduleInput =
+        moduleScene->getState()
+            .getComponentByUuid<Bess::Canvas::SimulationSceneComponent>(
+                module->getAssociatedInp());
+    const auto moduleOutput =
+        moduleScene->getState()
+            .getComponentByUuid<Bess::Canvas::SimulationSceneComponent>(
+                module->getAssociatedOut());
+    ASSERT_NE(moduleInput, nullptr);
+    ASSERT_NE(moduleOutput, nullptr);
+
+    const auto moduleSim =
+        simEngine->getComponent<Bess::SimEngine::Drivers::Digital::DigSimComp>(
+            module->getSimEngineId());
+    ASSERT_NE(moduleSim, nullptr);
+    const auto moduleDef = moduleSim->getDefinition<DigCompDef>();
+    ASSERT_NE(moduleDef, nullptr);
+    ASSERT_EQ(moduleDef->getInputSlotsInfo().count, 1u);
+    ASSERT_EQ(moduleDef->getOutputSlotsInfo().count, 1u);
+    ASSERT_EQ(module->getInputSlots().size(), 1u);
+    ASSERT_EQ(module->getOutputSlots().size(), 1u);
+
+    ASSERT_TRUE(
+        simEngine->addPort({.componentId = moduleInput->getSimEngineId(),
+                            .direction = Bess::SimEngine::PortDirection::output,
+                            .signalKind = Bess::SimEngine::SignalKind::digital,
+                            .index = 1}));
+    EXPECT_EQ(moduleDef->getInputSlotsInfo().count, 2u);
+    ASSERT_EQ(module->getInputSlots().size(), 2u);
+    const auto newModuleInputSlot =
+        scene->getState().getComponentByUuid<SlotSceneComponent>(
+            module->getInputSlots().back());
+    ASSERT_NE(newModuleInputSlot, nullptr);
+    EXPECT_TRUE(newModuleInputSlot->isInputSlot());
+    EXPECT_EQ(newModuleInputSlot->getIndex(), 1);
+
+    ASSERT_TRUE(
+        simEngine->addPort({.componentId = moduleOutput->getSimEngineId(),
+                            .direction = Bess::SimEngine::PortDirection::input,
+                            .signalKind = Bess::SimEngine::SignalKind::digital,
+                            .index = 1}));
+    EXPECT_EQ(moduleDef->getOutputSlotsInfo().count, 2u);
+    ASSERT_EQ(module->getOutputSlots().size(), 2u);
+    const auto newModuleOutputSlot =
+        scene->getState().getComponentByUuid<SlotSceneComponent>(
+            module->getOutputSlots().back());
+    ASSERT_NE(newModuleOutputSlot, nullptr);
+    EXPECT_FALSE(newModuleOutputSlot->isInputSlot());
+    EXPECT_EQ(newModuleOutputSlot->getIndex(), 1);
+}
+
+TEST_F(MainPageConnectionCommandsTest,
        InputResizeSlotCreatesControlForNewSlotSignalKind) {
     auto definition = Bess::SimEngine::Drivers::Math::MathCompDef::makeFunction(
         "Scalar Input",

@@ -210,7 +210,10 @@ namespace Bess::Canvas {
                                       SimEngine::SignalKind signalKind,
                                       int newCount) {
             (void)id;
-            if (direction != SimEngine::PortDirection::output ||
+            // The internal Module Output component receives signals through
+            // input ports. Each of those ports is exposed as an output on the
+            // enclosing module.
+            if (direction != SimEngine::PortDirection::input ||
                 signalKind != SimEngine::SignalKind::digital) {
                 return;
             }
@@ -247,7 +250,7 @@ namespace Bess::Canvas {
                     slot->setPortDirection(SimEngine::PortDirection::output);
                     slot->setSignalKind(SimEngine::SignalKind::digital);
                     slot->setResizeTrigger(false);
-                    m_outputSlots.push_back(slot->getUuid());
+                    addOutputSlot(slot->getUuid(), false);
                     ownerSceneState.addComponent(slot, false, false);
                     ownerSceneState.attachChild(m_uuid, slot->getUuid(), false);
                 }
@@ -259,10 +262,10 @@ namespace Bess::Canvas {
                          .signalKind = SimEngine::SignalKind::digital,
                          .index = (int)i},
                         true);
-                    ownerSceneState.removeComponent(m_outputSlots.back(),
-                                                    m_uuid);
-                    removeChildComponent(m_outputSlots.back());
-                    m_outputSlots.pop_back();
+                    const auto slotId = m_outputSlots.back();
+                    ownerSceneState.removeComponent(slotId, m_uuid);
+                    removeChildComponent(slotId);
+                    removeOutputSlot(slotId);
                 }
             }
 
@@ -271,7 +274,7 @@ namespace Bess::Canvas {
 
             const auto modOutCount = moduleDef->getOutputSlotsInfo().count;
             BESS_ASSERT(modOutCount == newCount,
-                        "Failed to sync module inputs");
+                        "Failed to sync module outputs");
         };
 
         auto onInputSlotChange = [this, ownerSceneId, simEngine, sceneDriver](
@@ -280,7 +283,10 @@ namespace Bess::Canvas {
                                      SimEngine::SignalKind signalKind,
                                      int newCount) {
             (void)id;
-            if (direction != SimEngine::PortDirection::input ||
+            // The internal Module Input component drives signals through
+            // output ports. Each of those ports is exposed as an input on the
+            // enclosing module.
+            if (direction != SimEngine::PortDirection::output ||
                 signalKind != SimEngine::SignalKind::digital) {
                 return;
             }
@@ -317,7 +323,7 @@ namespace Bess::Canvas {
                     slot->setPortDirection(SimEngine::PortDirection::input);
                     slot->setSignalKind(SimEngine::SignalKind::digital);
                     slot->setResizeTrigger(false);
-                    m_inputSlots.push_back(slot->getUuid());
+                    addInputSlot(slot->getUuid(), false);
                     ownerSceneState.addComponent(slot, false, false);
                     ownerSceneState.attachChild(m_uuid, slot->getUuid(), false);
                 }
@@ -329,10 +335,10 @@ namespace Bess::Canvas {
                          .signalKind = SimEngine::SignalKind::digital,
                          .index = (int)i},
                         true);
-                    ownerSceneState.removeComponent(m_inputSlots.back(),
-                                                    m_uuid);
-                    removeChildComponent(m_inputSlots.back());
-                    m_inputSlots.pop_back();
+                    const auto slotId = m_inputSlots.back();
+                    ownerSceneState.removeComponent(slotId, m_uuid);
+                    removeChildComponent(slotId);
+                    removeInputSlot(slotId);
                 }
             }
 
