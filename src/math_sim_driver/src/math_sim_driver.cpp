@@ -477,7 +477,7 @@ namespace Bess::SimEngine::Drivers::Math {
         }
 
         auto simData = std::make_shared<MathCompSimData>();
-        simData->simTime = m_currentSimTime;
+        simData->simTime = getCurrentSimTime();
         simData->prevState.inputStates = comp->getInputStates();
         simData->prevState.outputStates = comp->getOutputStates();
         simData->inputStates = inputs;
@@ -512,10 +512,6 @@ namespace Bess::SimEngine::Drivers::Math {
 
         EvtBasedSimDriver::addComponent(comp, scheduleSim);
         return comp->getUuid();
-    }
-
-    bool MathSimDriver::isSimStable() const {
-        return m_events.empty();
     }
 
     std::shared_ptr<SimComponent>
@@ -738,7 +734,7 @@ namespace Bess::SimEngine::Drivers::Math {
         }
 
         scheduleEvt(inputPort.componentId,
-                    m_currentSimTime,
+                    getCurrentSimTime(),
                     outputPort.componentId,
                     true);
 
@@ -914,7 +910,7 @@ namespace Bess::SimEngine::Drivers::Math {
             if (pinConns.empty()) {
                 if (!collapsed[pinIdx].isScalar()) {
                     collapsed[pinIdx] =
-                        PortState::scalar(0.0, m_currentSimTime);
+                        PortState::scalar(0.0, getCurrentSimTime());
                 }
                 collapsed[pinIdx].connState = ConnectionState::high_z;
                 continue;
@@ -925,7 +921,7 @@ namespace Bess::SimEngine::Drivers::Math {
             if (!srcComp || srcSlotIdx < 0 ||
                 static_cast<size_t>(srcSlotIdx) >=
                     srcComp->getOutputStates().size()) {
-                collapsed[pinIdx] = PortState::scalar(0.0, m_currentSimTime);
+                collapsed[pinIdx] = PortState::scalar(0.0, getCurrentSimTime());
                 collapsed[pinIdx].connState = ConnectionState::unknown;
                 continue;
             }
@@ -972,14 +968,14 @@ namespace Bess::SimEngine::Drivers::Math {
 
         const auto prev = inputs[pinIdx];
         inputs[pinIdx] = state;
-        inputs[pinIdx].lastChangeTime = m_currentSimTime;
+        inputs[pinIdx].lastChangeTime = getCurrentSimTime();
         if (static_cast<size_t>(pinIdx) < comp->getIsInputConnected().size() &&
             !comp->getIsInputConnected()[pinIdx]) {
             inputs[pinIdx].connState = ConnectionState::high_z;
         }
 
         if (prev != inputs[pinIdx]) {
-            scheduleEvt(uuid, m_currentSimTime, uuid);
+            scheduleEvt(uuid, getCurrentSimTime(), uuid);
         }
         return true;
     }
@@ -998,7 +994,7 @@ namespace Bess::SimEngine::Drivers::Math {
         }
 
         outputs[pinIdx] = state;
-        outputs[pinIdx].lastChangeTime = m_currentSimTime;
+        outputs[pinIdx].lastChangeTime = getCurrentSimTime();
         propagateFromComponent(uuid);
         return true;
     }

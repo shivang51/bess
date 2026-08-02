@@ -203,8 +203,6 @@ namespace Bess::SimEngine::Drivers::Math {
         UUID addComponent(const std::shared_ptr<SimComponent> &comp,
                           bool scheduleSim = true) override;
 
-        bool isSimStable() const override;
-
         std::pair<bool, std::string>
         canConnectPorts(const PortRef &src, const PortRef &dst) const override;
 

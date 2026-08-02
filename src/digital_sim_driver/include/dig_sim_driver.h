@@ -215,8 +215,6 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         void onBeforeRun() override;
 
-        bool isSimStable() const override;
-
         std::pair<bool, std::string>
         canConnectPorts(const PortRef &src, const PortRef &dst) const override;
 

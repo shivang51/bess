@@ -200,6 +200,11 @@ void bind_event_based_sim_driver(py::module_ &m) {
                       py::overload_cast<>(&EvtBasedCompDef::getPropDelay),
                       py::overload_cast<const Bess::TimeNs &>(
                           &EvtBasedCompDef::setPropDelay))
+        .def_property(
+            "auto_reschedule_delay",
+            py::overload_cast<>(&EvtBasedCompDef::getAutoRescheduleDelay),
+            py::overload_cast<const Bess::TimeNs &>(
+                &EvtBasedCompDef::setAutoRescheduleDelay))
         .def("get_self_sim_delay", &EvtBasedCompDef::getSelfSimDelay);
 
     py::class_<EvtBasedSimComp, SimComponent, std::shared_ptr<EvtBasedSimComp>>(

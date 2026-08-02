@@ -4,11 +4,15 @@
 #include "common/class_helpers.h"
 #include "common/types.h"
 #include "net/net.h"
+#include "simulation_clock.h"
 #include <common/bess_uuid.h>
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <unordered_map>
+#include <vector>
 
 namespace Bess::SimEngine {
     class SimulationEngine;
@@ -122,7 +126,19 @@ namespace Bess::SimEngine::Drivers {
 
     class BESS_API SimDriver {
       public:
-        SimDriver() = default;
+        struct ComponentStamp {
+            TimeNs simTime{0};
+            std::vector<PortState> inputStates;
+            std::vector<PortState> outputStates;
+        };
+
+        // Transition-compressed during a normal run and uniformly sampled
+        // during a timed run.
+        using CompStampData = NodeHashMap<UUID, std::vector<ComponentStamp>>;
+        using SchedulerNotifyFn = std::function<void()>;
+        static constexpr std::size_t MaxStampSamplesPerComponent = 40000;
+
+        SimDriver();
         virtual ~SimDriver() = default;
 
         // will be ran in seperate thread
@@ -140,22 +156,37 @@ namespace Bess::SimEngine::Drivers {
         virtual UUID addComponent(const std::shared_ptr<SimComponent> &comp,
                                   bool scheduleSim);
 
-        // For each component, store the port states at stamp times.
-        // PortState vector contains first all inputs and then all outputs.
-        // I am using nodeshashmap here hopping it will reduce the overhead of
-        // reallocating memory for continous blocks which the flat_hash_map
-        // does.
-        typedef NodeHashMap<UUID, std::pair<TimeMs, std::vector<PortState>>>
-            CompStampData;
-
         virtual void deleteComponent(const UUID &uuid);
 
         virtual void clearComponents();
 
-        // Stamps state of each component in the driver
-        // at this time.
-        virtual void stampSim(TimeMs elapsedTime) {
+        // Compatibility hook for existing drivers. New drivers get complete
+        // stamping from the TimeNs overload without implementing anything.
+        virtual void stampSim(TimeMs /*elapsedTime*/) {
         }
+
+        // Capture a stable state snapshot. When includeUnchanged is false the
+        // history is transition-compressed.
+        virtual void stampSim(TimeNs simTime, bool includeUnchanged = false);
+
+        [[nodiscard]] CompStampData getStampData() const;
+        void clearStampData();
+
+        // Engine-coordinated scheduling contract. New scheduled drivers
+        // should opt in and implement the next/process pair; deriving from
+        // EvtBasedSimDriver provides that implementation. These defaults keep
+        // older independent run-loop drivers source-compatible.
+        virtual bool usesGlobalClockScheduling() const {
+            return false;
+        }
+        virtual std::optional<TimeNs> getNextEventTime() const {
+            return std::nullopt;
+        }
+        virtual size_t processEventsAt(TimeNs /*simTime*/) {
+            return 0;
+        }
+
+        bool beginRun(TimeNs startTime = TimeNs(0));
 
         virtual bool isSimStable() const;
 
@@ -213,7 +244,7 @@ namespace Bess::SimEngine::Drivers {
 
       protected:
         virtual void
-        onComponentAdded(const std::shared_ptr<SimComponent> &comp) {
+        onComponentAdded(const std::shared_ptr<SimComponent> & /*comp*/) {
         }
 
         virtual void onInit() {};
@@ -302,13 +333,33 @@ namespace Bess::SimEngine::Drivers {
             return m_engine;
         }
 
+        void setSimulationClock(
+            const std::shared_ptr<Bess::SimEngine::SimulationClock> &clock);
+
+        [[nodiscard]] std::shared_ptr<Bess::SimEngine::SimulationClock>
+        getSimulationClock() const;
+
+        [[nodiscard]] TimeNs getCurrentSimTime() const;
+
+        void setSchedulerNotifyFn(SchedulerNotifyFn notifyFn);
+
       protected:
+        virtual void onRunStart(TimeNs /*startTime*/) {
+        }
+
+        void notifyScheduler();
+
         ComponentsMap m_components;
         SimDriverState m_state = SimDriverState::uninitialized;
         mutable std::mutex m_compMapMutex;
         mutable std::mutex m_stateMutex;
 
         CompStampData m_compStampData;
+        HashSet<UUID> m_truncatedStampComponents;
+        mutable std::mutex m_stampMutex;
+        std::shared_ptr<Bess::SimEngine::SimulationClock> m_simulationClock;
+        SchedulerNotifyFn m_schedulerNotifyFn;
+        mutable std::mutex m_schedulerNotifyMutex;
         std::unordered_map<UUID, PortCountChangeCB> m_onPortCountChangeCBs;
         Bess::SimEngine::SimulationEngine *m_engine = nullptr;
     };

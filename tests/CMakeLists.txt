@@ -17,6 +17,7 @@ add_executable(BessTests
     project_session_test.cpp
 	    main_page_connection_commands_test.cpp
 	    math_sim_driver_test.cpp
+	    simulation_timing_test.cpp
 	    ui_layout_test.cpp
     # scene_component_clone_test.cpp
     # sim_driver_test.cpp

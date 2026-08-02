@@ -16,18 +16,27 @@
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/input_scene_component.h"
 #include "pages/main_page/scene_components/module_scene_component.h"
+#include "pages/main_page/scene_components/monitor_scene_comp.h"
 #include "pages/main_page/scene_components/non_sim_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
+#include "plugin_manager.h"
 #include "project_session/project_session.h"
 #include "simulation_engine.h"
 #include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <cmath>
 #include <gtest/gtest.h>
 #include <memory>
+#include <pybind11/embed.h>
 #include <string>
+#include <thread>
 #include <unordered_set>
 #include <vector>
+
+namespace py = pybind11;
 
 namespace {
     using Bess::UUID;
@@ -77,6 +86,8 @@ namespace {
 
     class TestRenderer2D final : public Bess::Core::Renderer::IRenderer2D {
       public:
+        std::vector<Bess::Core::Renderer::LineProps> lines;
+
         void init(const Bess::Core::Renderer::Renderer2DCreateInfo &) override {
         }
         void destroy() override {
@@ -132,7 +143,9 @@ namespace {
         }
         void drawCircle(const Bess::Core::Renderer::CircleProps &) override {
         }
-        void drawLine(const Bess::Core::Renderer::LineProps &) override {
+        void drawLine(
+            const Bess::Core::Renderer::LineProps &props) override {
+            lines.push_back(props);
         }
         void drawFont(std::string_view,
                       const Bess::Core::Renderer::FontProps & = {}) override {
@@ -1070,6 +1083,243 @@ TEST_F(MainPageConnectionCommandsTest,
     const auto slotState = slot->getSlotState(scene->getState());
     ASSERT_TRUE(slotState.isScalar());
     EXPECT_DOUBLE_EQ(slotState.scalarValue, 4.0);
+}
+
+TEST_F(MainPageConnectionCommandsTest,
+       MonitorSubscribesToMathComponentsAndPlotsTheirSamples) {
+    const auto definition =
+        Bess::SimEngine::Drivers::Math::MathCompDef::makeFunction(
+            "Monitored Sine",
+            "Test",
+            [](Bess::TimeMs time, const std::vector<double> &) {
+                return std::sin(time.count());
+            },
+            true,
+            Bess::TimeNs(1e6));
+    const auto source = addSimComponent(definition);
+    ASSERT_NE(source.comp, nullptr);
+    ASSERT_FALSE(source.outputs.empty());
+
+    auto monitor = std::make_shared<Bess::Canvas::MonitorSceneComp>();
+    ASSERT_TRUE(session->addComp(monitor, {}, scene->getSceneId()));
+    const auto slotId = source.outputs.front()->getUuid();
+    monitor->addSlotProbe(scene->getState(), slotId);
+
+    const auto eventComp = simEngine->getComponentSP<
+        Bess::SimEngine::Drivers::EvtBasedSimComp>(
+        source.comp->getSimEngineId());
+    ASSERT_NE(eventComp, nullptr);
+    EXPECT_EQ(eventComp->getOnStateChangeCbs().size(), 1U);
+
+    simEngine->runFor(Bess::TimeMs(4), Bess::TimeMs(1));
+    const auto deadline =
+        std::chrono::steady_clock::now() + std::chrono::milliseconds(250);
+    while (simEngine->getSimulationState() !=
+               Bess::SimEngine::SimulationState::stopped &&
+           std::chrono::steady_clock::now() < deadline) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    ASSERT_EQ(simEngine->getSimulationState(),
+              Bess::SimEngine::SimulationState::stopped);
+    simEngine->stop();
+
+    const auto renderer = std::make_shared<TestRenderer2D>();
+    Bess::SceneDrawContext drawContext{
+        .sceneState = &scene->getState(),
+        .renderer = renderer,
+    };
+    monitor->draw(drawContext);
+
+    const auto traceLineCount = std::ranges::count_if(
+        renderer->lines,
+        [runtimeId = monitor->getRuntimeId()](const auto &line) {
+            return line.id.runtimeId == runtimeId && line.id.info >= 3U &&
+                   line.id.info < 68U;
+        });
+    EXPECT_GT(traceLineCount, 1);
+
+    monitor->removeSlotProbe(scene->getState(), slotId);
+    EXPECT_TRUE(eventComp->getOnStateChangeCbs().empty());
+}
+
+TEST_F(MainPageConnectionCommandsTest,
+       PythonSceneDrawDoesNotDeadlockWithSimulationCallback) {
+    simEngine->clear(false);
+
+    std::atomic<bool> callbackEntered{false};
+    std::atomic<bool> callbackCompleted{false};
+    auto definition = makeDefinition("Python GIL Lock Ordering", 0, 1);
+    definition->setAutoReschedule(true);
+    definition->setAutoRescheduleDelay(Bess::TimeNs(1e9));
+    definition->setSimFn(
+        [&](const std::shared_ptr<
+            Bess::SimEngine::Drivers::Digital::DigCompSimData> &data) {
+            callbackEntered.store(true, std::memory_order_release);
+
+            // Python-defined clocks enter Python here while the scheduler
+            // owns the engine execution barrier.
+            py::gil_scoped_acquire gil;
+            callbackCompleted.store(true, std::memory_order_release);
+            data->outputStates[0] = Bess::SimEngine::PortState::digital(
+                Bess::SimEngine::LogicState::high, data->simTime);
+            return data;
+        });
+
+    const auto fixture = addSimComponent(definition);
+    ASSERT_NE(fixture.comp, nullptr);
+    ASSERT_NE(fixture.comp->getSimEngineId(), UUID::null);
+
+    const auto renderer = std::make_shared<TestRenderer2D>();
+    Bess::SceneUIPrepareCtx prepareContext{
+        .sceneState = &scene->getState(),
+        .renderer = renderer,
+        .theme = Bess::Core::Style::BessTheme::defaultTheme(),
+    };
+    fixture.comp->prepareUI(prepareContext);
+    measureSceneUi(scene->getState());
+
+    Bess::SimDrawCache simDrawCache;
+    simDrawCache.setSimEngine(simEngine);
+    Bess::SceneDrawContext drawContext{
+        .sceneState = &scene->getState(),
+        .renderer = renderer,
+        .simDrawCache = &simDrawCache,
+    };
+
+    {
+        py::gil_scoped_acquire gil;
+        (void)py::module_::import("bessplug.api.scene");
+        auto pythonComponent = py::cast(fixture.comp);
+        auto pythonDrawContext = py::cast(
+            &drawContext, py::return_value_policy::reference);
+        simEngine->run();
+
+        const auto deadline =
+            std::chrono::steady_clock::now() + std::chrono::milliseconds(250);
+        while (!callbackEntered.load(std::memory_order_acquire) &&
+               std::chrono::steady_clock::now() < deadline) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        ASSERT_TRUE(callbackEntered.load(std::memory_order_acquire));
+
+        // This is the application's exact draw path: the Python Clock scene
+        // component owns the GIL, then its C++ draw_slots implementation
+        // queries simulation state while the scheduler callback waits for
+        // that GIL.
+        pythonComponent.attr("draw_slots")(pythonDrawContext);
+    }
+
+    EXPECT_TRUE(callbackCompleted.load(std::memory_order_acquire));
+    simEngine->stop();
+}
+
+TEST_F(MainPageConnectionCommandsTest,
+       PythonClockAndMathSineRemainResponsiveAcrossRunModes) {
+    simEngine->clear(false);
+    auto &pluginManager = Bess::Plugins::PluginManager::getInstance();
+    ASSERT_TRUE(pluginManager.loadPluginsFromDirectory("plugins"));
+
+    std::shared_ptr<Bess::SimEngine::Drivers::CompDef> clockDefinition;
+    {
+        py::gil_scoped_acquire gil;
+        auto clockModule = py::module_::import("components.clock");
+        auto pythonClockDefinition = clockModule.attr("ClockDefinition")();
+        pythonClockDefinition.attr("frequency") = 2000.0;
+        pythonClockDefinition.attr("duty_cycle") = 0.5;
+        clockDefinition = pythonClockDefinition.cast<std::shared_ptr<
+            Bess::SimEngine::Drivers::CompDef>>();
+    }
+    ASSERT_NE(clockDefinition, nullptr);
+
+    const auto clock = addSimComponent(clockDefinition);
+    ASSERT_NE(clock.comp, nullptr);
+
+    const auto sineDefinition =
+        Bess::SimEngine::Drivers::Math::MathCompDef::makeFunction(
+            "Normal Run Sine",
+            "Timing Test",
+            [](Bess::TimeMs time, const std::vector<double> &) {
+                return std::sin(time.count() * 0.01);
+            },
+            true,
+            Bess::TimeNs(5e5));
+    const auto sine = addSimComponent(sineDefinition);
+    ASSERT_NE(sine.comp, nullptr);
+
+    const auto renderer = std::make_shared<TestRenderer2D>();
+    Bess::SceneUIPrepareCtx prepareContext{
+        .sceneState = &scene->getState(),
+        .renderer = renderer,
+        .theme = Bess::Core::Style::BessTheme::defaultTheme(),
+    };
+    clock.comp->prepareUI(prepareContext);
+    sine.comp->prepareUI(prepareContext);
+    measureSceneUi(scene->getState());
+
+    Bess::SimDrawCache simDrawCache;
+    simDrawCache.setSimEngine(simEngine);
+    Bess::SceneDrawContext drawContext{
+        .sceneState = &scene->getState(),
+        .renderer = renderer,
+        .simDrawCache = &simDrawCache,
+    };
+
+    py::object pythonClockComponent;
+    py::object pythonDrawContext;
+    {
+        py::gil_scoped_acquire gil;
+        (void)py::module_::import("bessplug.api.scene");
+        pythonClockComponent = py::cast(clock.comp);
+        pythonDrawContext =
+            py::cast(&drawContext, py::return_value_policy::reference);
+    }
+
+    for (int restart = 0; restart < 5; ++restart) {
+        simEngine->run();
+        const auto runDeadline = std::chrono::steady_clock::now() +
+                                 std::chrono::milliseconds(300);
+        while (std::chrono::steady_clock::now() < runDeadline) {
+            simDrawCache.clear();
+            {
+                py::gil_scoped_acquire gil;
+                pythonClockComponent.attr("draw_slots")(pythonDrawContext);
+            }
+            std::this_thread::sleep_for(std::chrono::microseconds(100));
+        }
+
+        EXPECT_EQ(simEngine->getSimulationState(),
+                  Bess::SimEngine::SimulationState::running);
+        EXPECT_GE(simEngine->getCurrentSimTime(), Bess::TimeNs(5e7));
+
+        const auto stopStarted = std::chrono::steady_clock::now();
+        simEngine->stop();
+        EXPECT_LT(std::chrono::steady_clock::now() - stopStarted,
+                  std::chrono::milliseconds(250));
+    }
+
+    simEngine->runFor(Bess::TimeMs(1000), Bess::TimeMs(1));
+    const auto timedDeadline =
+        std::chrono::steady_clock::now() + std::chrono::seconds(5);
+    while (simEngine->getSimulationState() !=
+               Bess::SimEngine::SimulationState::stopped &&
+           std::chrono::steady_clock::now() < timedDeadline) {
+        simDrawCache.clear();
+        {
+            py::gil_scoped_acquire gil;
+            pythonClockComponent.attr("draw_slots")(pythonDrawContext);
+        }
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
+    }
+    ASSERT_EQ(simEngine->getSimulationState(),
+              Bess::SimEngine::SimulationState::stopped);
+    simEngine->stop();
+    EXPECT_DOUBLE_EQ(simEngine->getCurrentSimTime().count(), 1e9);
+
+    {
+        py::gil_scoped_acquire gil;
+        pythonDrawContext = py::object();
+        pythonClockComponent = py::object();
+    }
 }
 
 TEST_F(MainPageConnectionCommandsTest,

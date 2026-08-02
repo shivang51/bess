@@ -301,30 +301,40 @@ void bind_sim_scene_component(py::module_ &m) {
                         json, sharedComp);
                     return newComp;
                 }))
+            // Python scene components render on the UI thread. Release the
+            // GIL around base operations that can wait for the scheduler so a
+            // Python simulation callback can finish and release that barrier.
             .def("cleanup",
                  &Bess::Canvas::SimulationSceneComponent::cleanup,
                  py::arg("state"),
-                 py::arg("caller") = 0)
+                 py::arg("caller") = 0,
+                 py::call_guard<py::gil_scoped_release>())
             .def("draw",
                  &Bess::Canvas::SimulationSceneComponent::draw,
-                 py::arg("context"))
+                 py::arg("context"),
+                 py::call_guard<py::gil_scoped_release>())
             .def("draw_schematic",
                  &Bess::Canvas::SimulationSceneComponent::drawSchematic,
-                 py::arg("context"))
+                 py::arg("context"),
+                 py::call_guard<py::gil_scoped_release>())
             .def("update",
                  &Bess::Canvas::SimulationSceneComponent::update,
                  py::arg("time_step"),
-                 py::arg("scene_state"))
+                 py::arg("scene_state"),
+                 py::call_guard<py::gil_scoped_release>())
             .def("setup", setup, py::arg("comp_def"))
             .def("get_input_states",
                  &Bess::Canvas::SimulationSceneComponent::getInputStates,
-                 py::arg("scene_state"))
+                 py::arg("scene_state"),
+                 py::call_guard<py::gil_scoped_release>())
             .def("get_output_states",
                  &Bess::Canvas::SimulationSceneComponent::getOutputStates,
-                 py::arg("scene_state"))
+                 py::arg("scene_state"),
+                 py::call_guard<py::gil_scoped_release>())
             .def("draw_slots",
                  &Bess::Canvas::SimulationSceneComponent::drawSlots,
-                 py::arg("context"))
+                 py::arg("context"),
+                 py::call_guard<py::gil_scoped_release>())
             .def("draw_background",
                  &Bess::Canvas::SimulationSceneComponent::drawBackground,
                  py::arg("context"))
@@ -421,10 +431,12 @@ void bind_sim_scene_component(py::module_ &m) {
                  &Bess::Canvas::SimulationSceneComponent::getSlotStartY)
             .def("draw_properties_ui",
                  &Bess::Canvas::SimulationSceneComponent::drawPropertiesUI,
-                 py::arg("scene_state"))
+                 py::arg("scene_state"),
+                 py::call_guard<py::gil_scoped_release>())
             .def("prepare_ui",
                  &Bess::Canvas::SimulationSceneComponent::prepareUI,
-                 py::arg("ctx"))
+                 py::arg("ctx"),
+                 py::call_guard<py::gil_scoped_release>())
 
             .def_property("icon",
                           py::overload_cast<>(

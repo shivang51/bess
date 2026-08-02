@@ -3,7 +3,47 @@
 #include "common/logger.h"
 #include "common/types.h"
 
+#include <algorithm>
+#include <cmath>
+#include <exception>
+#include <utility>
+
 namespace Bess::SimEngine::Drivers {
+    namespace {
+        bool sameWaveformValue(const PortState &lhs, const PortState &rhs) {
+            if (lhs.signalKind != rhs.signalKind ||
+                lhs.connState != rhs.connState) {
+                return false;
+            }
+
+            const auto sameScalar = [](double a, double b) {
+                return a == b || (std::isnan(a) && std::isnan(b));
+            };
+
+            switch (lhs.signalKind) {
+            case SignalKind::scalar:
+                return sameScalar(lhs.scalarValue, rhs.scalarValue);
+            case SignalKind::vector:
+                return lhs.vectorValue.size() == rhs.vectorValue.size() &&
+                       std::ranges::equal(
+                           lhs.vectorValue, rhs.vectorValue, sameScalar);
+            case SignalKind::digital:
+            case SignalKind::none:
+                return lhs.getLogicState() == rhs.getLogicState();
+            }
+            return false;
+        }
+
+        bool sameWaveformState(const std::vector<PortState> &lhs,
+                               const std::vector<PortState> &rhs) {
+            return lhs.size() == rhs.size() &&
+                   std::ranges::equal(lhs, rhs, sameWaveformValue);
+        }
+    } // namespace
+
+    SimDriver::SimDriver()
+        : m_simulationClock(std::make_shared<SimulationClock>()) {
+    }
 
     Json::Value CompDef::toJson() const {
         Json::Value json;
@@ -86,6 +126,107 @@ namespace Bess::SimEngine::Drivers {
         m_components.clear();
     }
 
+    void SimDriver::stampSim(TimeNs simTime, bool includeUnchanged) {
+        std::vector<UUID> componentIds;
+        {
+            std::lock_guard lk(m_compMapMutex);
+            componentIds.reserve(m_components.size());
+            for (const auto &[componentId, _] : m_components) {
+                componentIds.push_back(componentId);
+            }
+        }
+
+        std::ranges::sort(componentIds, [](const UUID &a, const UUID &b) {
+            return static_cast<uint64_t>(a) < static_cast<uint64_t>(b);
+        });
+
+        std::vector<std::pair<UUID, ComponentStamp>> stamps;
+        stamps.reserve(componentIds.size());
+        for (const auto &componentId : componentIds) {
+            ComponentState state;
+            try {
+                state = getComponentState(componentId);
+            } catch (const std::exception &error) {
+                BESS_ERROR("Could not stamp component {} in driver {}: {}",
+                           static_cast<uint64_t>(componentId),
+                           getName(),
+                           error.what());
+                continue;
+            } catch (...) {
+                BESS_ERROR("Could not stamp component {} in driver {}",
+                           static_cast<uint64_t>(componentId),
+                           getName());
+                continue;
+            }
+            stamps.emplace_back(
+                componentId,
+                ComponentStamp{simTime, state.inputStates, state.outputStates});
+        }
+
+        // Publish a complete driver-wide timestamp atomically. Readers can
+        // never observe only a prefix of the components for a sample.
+        std::vector<UUID> newlyTruncatedComponents;
+        {
+            std::lock_guard stampLock(m_stampMutex);
+            for (auto &[componentId, stamp] : stamps) {
+                auto &history = m_compStampData[componentId];
+
+                if (!history.empty() && history.back().simTime == simTime) {
+                    history.back() = std::move(stamp);
+                    continue;
+                }
+
+                if (!includeUnchanged && !history.empty() &&
+                    sameWaveformState(history.back().inputStates,
+                                      stamp.inputStates) &&
+                    sameWaveformState(history.back().outputStates,
+                                      stamp.outputStates)) {
+                    continue;
+                }
+
+                if (history.size() >= MaxStampSamplesPerComponent) {
+                    constexpr std::size_t retainedAfterTrim =
+                        (MaxStampSamplesPerComponent * 3U) / 4U;
+                    static_assert(retainedAfterTrim > 0);
+                    history.erase(
+                        history.begin(),
+                        history.begin() + static_cast<std::ptrdiff_t>(
+                                              history.size() -
+                                              retainedAfterTrim));
+                    if (m_truncatedStampComponents.insert(componentId).second) {
+                        newlyTruncatedComponents.push_back(componentId);
+                    }
+                }
+
+                history.emplace_back(std::move(stamp));
+            }
+        }
+
+        for (const auto &componentId : newlyTruncatedComponents) {
+            BESS_WARN("Stamp history for component {} in driver {} reached "
+                      "the {}-sample retention limit; oldest samples will be "
+                      "discarded",
+                      static_cast<uint64_t>(componentId),
+                      getName(),
+                      MaxStampSamplesPerComponent);
+        }
+
+        // Preserve the old extension point while keeping all storage and
+        // sampling semantics centralized in the base driver.
+        stampSim(std::chrono::duration_cast<TimeMs>(simTime));
+    }
+
+    SimDriver::CompStampData SimDriver::getStampData() const {
+        std::lock_guard lk(m_stampMutex);
+        return m_compStampData;
+    }
+
+    void SimDriver::clearStampData() {
+        std::lock_guard lk(m_stampMutex);
+        m_compStampData.clear();
+        m_truncatedStampComponents.clear();
+    }
+
     bool SimDriver::isSimStable() const {
         return true;
     }
@@ -139,6 +280,30 @@ namespace Bess::SimEngine::Drivers {
         m_state = SimDriverState::stopped;
     }
 
+    bool SimDriver::beginRun(TimeNs startTime) {
+        {
+            std::lock_guard lk(m_stateMutex);
+            if (m_state == SimDriverState::uninitialized ||
+                m_state == SimDriverState::destroyed ||
+                m_state == SimDriverState::running) {
+                return false;
+            }
+            m_state = SimDriverState::running;
+        }
+
+        if (m_simulationClock) {
+            m_simulationClock->reset(startTime);
+        }
+        try {
+            onRunStart(startTime);
+        } catch (...) {
+            std::lock_guard lk(m_stateMutex);
+            m_state = SimDriverState::stopped;
+            throw;
+        }
+        return true;
+    }
+
     bool SimDriver::isInitialized() const {
         std::lock_guard lk(m_stateMutex);
         return m_state != SimDriverState::uninitialized;
@@ -165,31 +330,44 @@ namespace Bess::SimEngine::Drivers {
     }
 
     void SimDriver::pause() {
-        if (isRunning()) {
-            {
-                std::lock_guard lk(m_stateMutex);
+        bool changed = false;
+        {
+            std::lock_guard lk(m_stateMutex);
+            if (m_state == SimDriverState::running) {
                 m_state = SimDriverState::paused;
+                changed = true;
             }
+        }
+        if (changed) {
             onPause();
         }
     }
 
     void SimDriver::resume() {
-        if (isPaused()) {
-            {
-                std::lock_guard lk(m_stateMutex);
+        bool changed = false;
+        {
+            std::lock_guard lk(m_stateMutex);
+            if (m_state == SimDriverState::paused) {
                 m_state = SimDriverState::running;
+                changed = true;
             }
+        }
+        if (changed) {
             onResume();
         }
     }
 
     void SimDriver::stop() {
-        if (isRunning() || isPaused()) {
-            {
-                std::lock_guard lk(m_stateMutex);
+        bool changed = false;
+        {
+            std::lock_guard lk(m_stateMutex);
+            if (m_state == SimDriverState::running ||
+                m_state == SimDriverState::paused) {
                 m_state = SimDriverState::stopped;
+                changed = true;
             }
+        }
+        if (changed) {
             onStop();
         }
     }
@@ -233,6 +411,37 @@ namespace Bess::SimEngine::Drivers {
                                               int newCount) {
         for (const auto &[id, cb] : m_onPortCountChangeCBs) {
             cb(compId, direction, signalKind, newCount);
+        }
+    }
+
+    void SimDriver::setSimulationClock(
+        const std::shared_ptr<SimulationClock> &clock) {
+        if (clock) {
+            m_simulationClock = clock;
+        }
+    }
+
+    std::shared_ptr<SimulationClock> SimDriver::getSimulationClock() const {
+        return m_simulationClock;
+    }
+
+    TimeNs SimDriver::getCurrentSimTime() const {
+        return m_simulationClock ? m_simulationClock->now() : TimeNs(0);
+    }
+
+    void SimDriver::setSchedulerNotifyFn(SchedulerNotifyFn notifyFn) {
+        std::lock_guard lk(m_schedulerNotifyMutex);
+        m_schedulerNotifyFn = std::move(notifyFn);
+    }
+
+    void SimDriver::notifyScheduler() {
+        SchedulerNotifyFn notifyFn;
+        {
+            std::lock_guard lk(m_schedulerNotifyMutex);
+            notifyFn = m_schedulerNotifyFn;
+        }
+        if (notifyFn) {
+            notifyFn();
         }
     }
 

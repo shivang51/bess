@@ -5,9 +5,13 @@
 #include "common/sub_system.h"
 #include "common/types.h"
 #include "sim_driver/sim_driver.h"
+#include "sim_driver/simulation_clock.h"
+#include <atomic>
 #include <condition_variable>
+#include <cstdint>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <set>
 #include <thread>
 
@@ -46,7 +50,13 @@ namespace Bess::SimEngine {
         void onDestroy() override;
         void onPostInit() override;
 
-        MAKE_GETTER_SETTER(SimRunCtx, RunCtx, m_runCtx);
+        [[nodiscard]] SimRunCtx getRunCtx() const;
+        void setRunCtx(const SimRunCtx &runCtx);
+
+        [[nodiscard]] TimeNs getCurrentSimTime() const;
+
+        [[nodiscard]] Drivers::SimDriver::CompStampData getStampData() const;
+        void clearStampData();
 
         void destroy();
 
@@ -56,6 +66,7 @@ namespace Bess::SimEngine {
 
         template <typename T>
         std::shared_ptr<T> getComponentSP(const UUID &uuid) const {
+            std::lock_guard executionLock(m_schedulerExecutionMutex);
             for (const auto &driver : m_simDrivers) {
                 auto comp = driver->template getComponentSP<T>(uuid);
                 if (comp) {
@@ -67,10 +78,11 @@ namespace Bess::SimEngine {
         }
 
         template <typename T> T *getComponent(const UUID &uuid) const {
+            std::lock_guard executionLock(m_schedulerExecutionMutex);
             for (const auto &driver : m_simDrivers) {
-                auto comp = driver->template getComponent<T>(uuid);
+                auto comp = driver->template getComponentSP<T>(uuid);
                 if (comp) {
-                    return comp;
+                    return comp.get();
                 }
             }
 
@@ -151,42 +163,80 @@ namespace Bess::SimEngine {
         Json::Value toJson() const;
         void loadJson(const Json::Value &json);
 
+        // Run continuously with virtual time paced against steady wall time.
         void run();
+
+        // Run an unpaced, deterministic transient simulation. stepInterval
+        // controls waveform sampling; zero records only the settled initial
+        // and final states.
         void runFor(TimeMs duration, TimeMs stepInterval = TimeMs(0));
         void stop();
 
       private:
+        struct SchedulerAction {
+            TimeNs time{0};
+            bool sample = false;
+            bool final = false;
+        };
+
         void loadDrivers();
         void unloadDrivers();
 
         void initDrivers();
         void destroyDrivers();
 
-        void runDrivers();
+        [[nodiscard]] bool runDrivers();
+        void requestDriverStops();
         void stopDrivers();
         void pauseDrivers();
         void resumeDrivers();
 
-        // Stamps state of each component at this time
-        void stampSim(TimeMs elapsedTime);
+        void startRun(bool timedRun, TimeNs duration, TimeNs sampleInterval);
+        void requestStop();
+        void stopLocked();
+        void schedulerLoop(uint64_t generation, bool realTimePaced);
+        [[nodiscard]] std::optional<TimeNs> getNextGlobalEventTime();
+        [[nodiscard]] std::optional<SchedulerAction> getNextSchedulerAction();
+        [[nodiscard]] bool
+        executeSchedulerAction(const SchedulerAction &action);
+        [[nodiscard]] bool settleDriversAt(TimeNs simTime);
+        void completeRun(uint64_t generation);
+        void notifyScheduler();
+        void updateElapsedTime(TimeNs simTime);
+        void advanceSampleTime(TimeNs processedTime);
+
+        // Capture a stable snapshot from every driver at this global time.
+        void stampSim(TimeNs simTime, bool includeUnchanged);
 
       private:
         void propagateFromComponent(const UUID &sourceId);
         void processPendingPropagation();
 
         mutable std::mutex m_stateMutex;
+        mutable std::mutex m_lifecycleMutex;
+        mutable std::recursive_mutex m_schedulerExecutionMutex;
+        mutable std::mutex m_driverThreadMutex;
         mutable std::mutex m_driversMutex;
         mutable std::mutex m_pendingSignalSourcesMutex;
 
         std::atomic<bool> m_stepFlag{false};
         std::atomic<SimulationState> m_simState{SimulationState::stopped};
         std::condition_variable m_stateCV;
+        uint64_t m_schedulerRevision{0};
+        std::atomic<uint64_t> m_runGeneration{0};
 
         std::set<UUID> m_pendingSignalSources;
 
         std::vector<std::shared_ptr<Drivers::SimDriver>> m_simDrivers;
-        std::vector<std::thread> m_driverThreads;
-        std::thread m_timedRunThread;
+        std::vector<std::thread> m_legacyDriverThreads;
+        std::thread m_schedulerThread;
+
+        std::shared_ptr<SimulationClock> m_simulationClock;
+
+        TimeNs m_runEndTime{0};
+        TimeNs m_sampleInterval{0};
+        TimeNs m_nextSampleTime{0};
+        bool m_initialSamplePending{false};
 
         SimRunCtx m_runCtx;
 

@@ -229,7 +229,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         }
 
         auto simData = std::make_shared<DigCompSimData>();
-        simData->simTime = m_currentSimTime;
+        simData->simTime = getCurrentSimTime();
         simData->prevState.inputStates = comp->getInputStates();
         simData->prevState.outputStates = comp->getOutputStates();
         simData->inputStates = inputs;
@@ -274,22 +274,7 @@ namespace Bess::SimEngine::Drivers::Digital {
 
     void DigitalSimDriver::onBeforeRun() {
         EvtBasedSimDriver::onBeforeRun();
-        BESS_DEBUG("Starting DigitalSimDriver run loop");
-    }
-
-    bool DigitalSimDriver::isSimStable() const {
-        if (m_events.empty()) {
-            return true;
-        }
-
-        if (m_events.size() == 1) {
-            const auto &evt = *m_events.begin();
-            auto comp = getComponent<DigSimComp>(evt.compId);
-            return comp &&
-                   comp->getDefinition<DigCompDef>()->getAutoReschedule();
-        }
-
-        return false;
+        BESS_DEBUG("Preparing DigitalSimDriver coordinated run");
     }
 
     std::shared_ptr<SimComponent>
@@ -520,7 +505,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         const auto &inputPort = src.isInput() ? src : dst;
         const auto &outputPort = src.isOutput() ? src : dst;
         scheduleEvt(inputPort.componentId,
-                    m_currentSimTime,
+                    getCurrentSimTime(),
                     outputPort.componentId,
                     true);
 
@@ -562,7 +547,8 @@ namespace Bess::SimEngine::Drivers::Digital {
             *compBRef, portB.direction, portB.index, stillBConnected);
 
         const auto &inputPort = portA.isInput() ? portA : portB;
-        scheduleEvt(inputPort.componentId, m_currentSimTime, UUID::null, true);
+        scheduleEvt(
+            inputPort.componentId, getCurrentSimTime(), UUID::null, true);
 
         m_isNetUpdated = true;
         BESS_INFO("Deleted connection in DigitalSimDriver");
@@ -978,7 +964,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         }
 
         inputs[pinIdx] = state;
-        inputs[pinIdx].lastChangeTime = m_currentSimTime;
+        inputs[pinIdx].lastChangeTime = getCurrentSimTime();
         return true;
     }
 
@@ -1009,7 +995,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         }
 
         outputs[pinIdx] = state;
-        outputs[pinIdx].lastChangeTime = m_currentSimTime;
+        outputs[pinIdx].lastChangeTime = getCurrentSimTime();
 
         propagateFromComponent(uuid);
 
@@ -1317,7 +1303,7 @@ namespace Bess::SimEngine::Drivers::Digital {
 
             // notify after scheduling last comp
             scheduleEvt(compId,
-                        m_currentSimTime,
+                        getCurrentSimTime(),
                         UUID::null,
                         i == reSchedComps.size() - 1);
         }

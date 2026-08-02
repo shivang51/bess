@@ -6,7 +6,9 @@
 #include "common/types.h"
 #include "sim_driver.h"
 #include <condition_variable>
+#include <cstdint>
 #include <mutex>
+#include <optional>
 #include <set>
 #include <vector>
 
@@ -87,6 +89,16 @@ namespace Bess::SimEngine::Drivers {
 
         void run() override;
 
+        bool usesGlobalClockScheduling() const override {
+            return true;
+        }
+
+        std::optional<TimeNs> getNextEventTime() const override;
+
+        size_t processEventsAt(TimeNs simTime) override;
+
+        bool isSimStable() const override;
+
         // true if the dependants should be simulated, false otherwise
         virtual bool simulate(const SimEvt &evt,
                               const std::vector<PortState> &inputs) = 0;
@@ -121,36 +133,34 @@ namespace Bess::SimEngine::Drivers {
 
         void clearPendingEvents() override;
 
-        TimeNs getCurrentSimTime() const;
-
       private:
-        void prepareRunStartLocked();
+        void prepareRunStartLocked(TimeNs startTime);
 
         void scheduleDeferredRunStartEvents();
 
-        void simulateEvts(const std::vector<SimEvt> &evts);
+        void simulateEvts(const std::vector<SimEvt> &evts, TimeNs simTime);
 
         void scheduleEvtLocked(const UUID &compId,
                                TimeNs simTime,
                                const UUID &schedulerId);
 
-        void scheduleDependantsOfLocked(const UUID &compId);
+        void scheduleDependantsOfAt(const UUID &compId, TimeNs simTime);
 
-        // returns the next evt baesd on sim time
-        SimEvt getNextEvt() const;
-
-        std::vector<SimEvt> collectEvts();
+        std::vector<SimEvt> collectEvtsAt(TimeNs simTime);
 
       protected:
+        void onRunStart(TimeNs startTime) override;
+
         void scheduleDependantsOf(const UUID &compId);
 
-        TimeNs m_currentSimTime{0};
         std::condition_variable m_runIterCv;
-        mutable std::mutex m_runIterMutex;
-        mutable std::mutex m_eventsMutex;
+        mutable std::mutex m_eventMutex;
+        mutable std::mutex m_processMutex;
         std::set<SimEvt> m_events;
         HashSet<UUID> m_runStartScheduledCompIds;
         std::vector<UUID> m_deferredRunStartCompIds;
+        uint64_t m_nextEventId{1};
+        size_t m_eventsInFlight{0};
     };
 
 } // namespace Bess::SimEngine::Drivers

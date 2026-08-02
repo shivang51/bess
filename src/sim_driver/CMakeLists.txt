@@ -5,6 +5,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(Header_Files
 	"include/sim_driver/comp_def.h"
 	"include/sim_driver/event_based_sim_driver.h"
+	"include/sim_driver/simulation_clock.h"
 	"include/sim_driver/sim_driver.h"
 	"include/net/net.h" 
 )

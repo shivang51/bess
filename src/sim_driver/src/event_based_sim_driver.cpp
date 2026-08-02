@@ -3,6 +3,11 @@
 #include "common/logger.h"
 #include "sim_driver/sim_driver.h"
 
+#include <algorithm>
+#include <cmath>
+#include <exception>
+#include <unordered_map>
+
 // #define BESS_ENABLE_LOG_EVENTS
 
 #ifdef BESS_ENABLE_LOG_EVENTS
@@ -54,49 +59,54 @@ namespace Bess::SimEngine::Drivers {
                     "SimDriver must be initialized before running");
         BESS_ASSERT(!isDestroyed(), "SimDriver was destroyed, cannot run");
 
-        {
-            std::lock_guard lk(m_runIterMutex);
-            {
-                std::lock_guard stateLock(m_stateMutex);
-                m_state = SimDriverState::running;
-            }
-            prepareRunStartLocked();
+        // A driver has exactly one event consumer. Starting run() while the
+        // engine already coordinates this driver would otherwise create a
+        // second consumer racing the global scheduler.
+        if (!beginRun(TimeNs(0))) {
+            return;
         }
 
-        onBeforeRun();
-        m_runIterCv.notify_all();
-
         while (!isStopped()) {
+            std::optional<TimeNs> nextTime;
             {
-                std::unique_lock lk(m_runIterMutex);
-                // BESS_DEBUG("Sim waiting for events");
-
+                std::unique_lock lk(m_eventMutex);
                 m_runIterCv.wait(lk, [&] {
                     return isStopped() || (!isPaused() && !m_events.empty());
                 });
+                if (isStopped()) {
+                    break;
+                }
+                if (!isPaused() && !m_events.empty()) {
+                    nextTime = m_events.begin()->simTime;
+                }
             }
 
-            if (isStopped()) {
-                break;
-            }
-
-            if (isPaused()) {
+            if (!nextTime) {
                 continue;
             }
 
-            const auto evtsToSim = collectEvts();
-            // BESS_DEBUG("Simulating {}", evtsToSim.size());
-
-            if (evtsToSim.empty()) {
-                const auto &nextEvt = getNextEvt();
-                std::this_thread::sleep_for(nextEvt.simTime - m_currentSimTime);
-                m_currentSimTime = nextEvt.simTime;
-                continue;
+            (void)getSimulationClock()->advanceTo(*nextTime);
+            try {
+                processEventsAt(getCurrentSimTime());
+            } catch (const std::exception &error) {
+                BESS_ERROR("Driver event processing failed: {}", error.what());
+                stop();
+            } catch (...) {
+                BESS_ERROR("Driver event processing failed with an unknown "
+                           "exception");
+                stop();
             }
-
-            simulateEvts(evtsToSim);
-            scheduleDeferredRunStartEvents();
         }
+    }
+
+    void EvtBasedSimDriver::onRunStart(TimeNs startTime) {
+        {
+            std::lock_guard lk(m_eventMutex);
+            prepareRunStartLocked(startTime);
+        }
+        onBeforeRun();
+        m_runIterCv.notify_all();
+        notifyScheduler();
     }
 
     UUID
@@ -108,10 +118,8 @@ namespace Bess::SimEngine::Drivers {
                     "EvtBasedSimDriver only supports components of "
                     "type EvtBasedSimComp");
 
-        bool notify = false;
-
         {
-            std::lock_guard lk(m_runIterMutex);
+            std::lock_guard lk(m_eventMutex);
             SimDriver::addComponent(comp, scheduleSim);
 
             if (scheduleSim) {
@@ -129,53 +137,47 @@ namespace Bess::SimEngine::Drivers {
 
             const bool shouldScheduleNow = scheduleSim && driverActive;
             if (shouldScheduleNow) {
-                std::lock_guard evtsLock(m_eventsMutex);
                 BESS_DEBUG(
                     "Scheduling initial event for component {} at time {}ns",
                     (uint64_t)comp->getUuid(),
-                    (m_currentSimTime + compCasted->getSelfSimDelay()).count());
-                scheduleEvtLocked(comp->getUuid(),
-                                  m_currentSimTime +
-                                      compCasted->getSelfSimDelay(),
-                                  UUID::null);
-                notify = true;
+                    getCurrentSimTime().count());
+                scheduleEvtLocked(
+                    comp->getUuid(), getCurrentSimTime(), UUID::null);
             }
         }
 
-        if (notify) {
-            m_runIterCv.notify_all();
-        }
+        m_runIterCv.notify_all();
+        notifyScheduler();
 
         return comp->getUuid();
     }
 
     void EvtBasedSimDriver::deleteComponent(const UUID &uuid) {
         {
-            std::lock_guard lk(m_runIterMutex);
+            std::lock_guard lk(m_eventMutex);
             m_runStartScheduledCompIds.erase(uuid);
             std::erase(m_deferredRunStartCompIds, uuid);
 
-            std::lock_guard evtsLock(m_eventsMutex);
             std::erase_if(m_events, [&](const SimEvt &evt) {
                 return evt.compId == uuid || evt.schedulerId == uuid;
             });
         }
 
         SimDriver::deleteComponent(uuid);
+        notifyScheduler();
     }
 
     void EvtBasedSimDriver::clearComponents() {
         {
-            std::lock_guard lk(m_runIterMutex);
+            std::lock_guard lk(m_eventMutex);
             m_runStartScheduledCompIds.clear();
             m_deferredRunStartCompIds.clear();
-
-            std::lock_guard evtsLock(m_eventsMutex);
             m_events.clear();
         }
 
         SimDriver::clearComponents();
         m_runIterCv.notify_all();
+        notifyScheduler();
     }
 
     std::vector<UUID> EvtBasedSimDriver::getDependants(const UUID &id) {
@@ -195,72 +197,79 @@ namespace Bess::SimEngine::Drivers {
 
     void EvtBasedSimDriver::onPause() {
         m_runIterCv.notify_all();
+        notifyScheduler();
     }
 
     void EvtBasedSimDriver::onResume() {
         m_runIterCv.notify_all();
+        notifyScheduler();
     }
 
     void EvtBasedSimDriver::onStop() {
         SimDriver::onStop();
         m_runIterCv.notify_all();
+        notifyScheduler();
     }
 
     void EvtBasedSimDriver::onStep() {
-        std::lock_guard lk(m_runIterMutex);
-        if (m_events.empty()) {
+        const auto nextTime = getNextEventTime();
+        if (!nextTime) {
             return;
         }
 
-        const auto nextEvt = getNextEvt();
-        if (nextEvt.simTime > m_currentSimTime) {
-            m_currentSimTime = nextEvt.simTime;
-        }
-
-        const auto evtsToSim = collectEvts();
-        if (!evtsToSim.empty()) {
-            simulateEvts(evtsToSim);
-        }
+        (void)getSimulationClock()->advanceTo(*nextTime);
+        processEventsAt(getCurrentSimTime());
     }
 
     void EvtBasedSimDriver::scheduleEvt(const UUID &compId,
                                         TimeNs simTime,
                                         const UUID &schedulerId,
                                         bool notify) {
+        const auto count = simTime.count();
+        if (!std::isfinite(count)) {
+            BESS_ERROR("Ignoring event with a non-finite simulation time");
+            return;
+        }
+
+        if (simTime < getCurrentSimTime()) {
+            simTime = getCurrentSimTime();
+        }
+
         {
-            std::lock_guard lk(m_runIterMutex);
-            std::lock_guard evtsLock(m_eventsMutex);
+            std::lock_guard lk(m_eventMutex);
             scheduleEvtLocked(compId, simTime, schedulerId);
         }
 
         if (notify) {
             m_runIterCv.notify_all();
+            notifyScheduler();
         }
     }
 
     void EvtBasedSimDriver::scheduleEvtLocked(const UUID &compId,
                                               TimeNs simTime,
                                               const UUID &schedulerId) {
-        static uint64_t evtId = 0;
         BESS_LOG_EVENT("(EvtBasedSimDriver.scheduleEvtLocked) Scheduling event "
                        "{} for component {} at time {}ns (scheduled by {})",
-                       evtId,
+                       m_nextEventId,
                        (uint64_t)compId,
                        simTime.count(),
                        (uint64_t)schedulerId);
-        SimEvt ev{UUID(evtId++), compId, schedulerId, simTime};
+        SimEvt ev{UUID(m_nextEventId++), compId, schedulerId, simTime};
         m_events.insert(ev);
     }
 
     void EvtBasedSimDriver::clearPendingEvents() {
-        std::lock_guard lk(m_runIterMutex);
-        m_deferredRunStartCompIds.clear();
-        std::lock_guard evtsLock(m_eventsMutex);
-        m_events.clear();
+        {
+            std::lock_guard lk(m_eventMutex);
+            m_deferredRunStartCompIds.clear();
+            m_events.clear();
+        }
         m_runIterCv.notify_all();
+        notifyScheduler();
     }
 
-    void EvtBasedSimDriver::prepareRunStartLocked() {
+    void EvtBasedSimDriver::prepareRunStartLocked(TimeNs startTime) {
         std::vector<UUID> selfScheduledCompIds;
         std::vector<UUID> initiallyScheduledCompIds;
         m_deferredRunStartCompIds.clear();
@@ -290,13 +299,11 @@ namespace Bess::SimEngine::Drivers {
         sortByUuid(selfScheduledCompIds);
         sortByUuid(initiallyScheduledCompIds);
 
-        m_currentSimTime = TimeNs(0);
-
-        std::lock_guard evtsLock(m_eventsMutex);
         m_events.clear();
+        m_nextEventId = 1;
 
         for (const auto &compId : selfScheduledCompIds) {
-            scheduleEvtLocked(compId, m_currentSimTime, UUID::null);
+            scheduleEvtLocked(compId, startTime, UUID::null);
         }
 
         if (!selfScheduledCompIds.empty()) {
@@ -305,7 +312,7 @@ namespace Bess::SimEngine::Drivers {
         }
 
         for (const auto &compId : initiallyScheduledCompIds) {
-            scheduleEvtLocked(compId, m_currentSimTime, UUID::null);
+            scheduleEvtLocked(compId, startTime, UUID::null);
         }
     }
 
@@ -313,7 +320,7 @@ namespace Bess::SimEngine::Drivers {
         std::vector<UUID> deferredCompIds;
 
         {
-            std::lock_guard lk(m_runIterMutex);
+            std::lock_guard lk(m_eventMutex);
             if (m_deferredRunStartCompIds.empty()) {
                 return;
             }
@@ -333,7 +340,6 @@ namespace Bess::SimEngine::Drivers {
             }
 
             HashSet<UUID> pendingCompIds;
-            std::lock_guard evtsLock(m_eventsMutex);
             for (const auto &evt : m_events) {
                 pendingCompIds.insert(evt.compId);
             }
@@ -343,17 +349,55 @@ namespace Bess::SimEngine::Drivers {
                     continue;
                 }
 
-                scheduleEvtLocked(compId, m_currentSimTime, UUID::null);
+                scheduleEvtLocked(compId, getCurrentSimTime(), UUID::null);
             }
         }
 
         m_runIterCv.notify_all();
+        notifyScheduler();
     }
 
-    void EvtBasedSimDriver::simulateEvts(const std::vector<SimEvt> &evts) {
+    size_t EvtBasedSimDriver::processEventsAt(TimeNs simTime) {
+        std::lock_guard processLock(m_processMutex);
+
+        if (!std::isfinite(simTime.count()) || simTime.count() < 0.0) {
+            BESS_ERROR("Ignoring request to process an invalid simulation "
+                       "time of {}ns",
+                       simTime.count());
+            return 0;
+        }
+
+        if (simTime < getCurrentSimTime()) {
+            simTime = getCurrentSimTime();
+        }
+        (void)getSimulationClock()->advanceTo(simTime);
+        const auto evts = collectEvtsAt(simTime);
+        if (evts.empty()) {
+            return 0;
+        }
+
+        const auto finishBatch = [this, count = evts.size()]() {
+            std::lock_guard lk(m_eventMutex);
+            m_eventsInFlight -= std::min(m_eventsInFlight, count);
+        };
+
+        try {
+            simulateEvts(evts, simTime);
+            scheduleDeferredRunStartEvents();
+        } catch (...) {
+            finishBatch();
+            throw;
+        }
+        finishBatch();
+        return evts.size();
+    }
+
+    void EvtBasedSimDriver::simulateEvts(const std::vector<SimEvt> &evts,
+                                         TimeNs simTime) {
         using EvtComp = EvtBasedSimComp;
 
         std::unordered_map<UUID, std::vector<PortState>> inputsMap = {};
+        bool scheduledSelf = false;
 
         for (auto &ev : evts) {
             inputsMap[ev.compId] = collapseInputs(ev.compId);
@@ -362,10 +406,10 @@ namespace Bess::SimEngine::Drivers {
         BESS_LOG_EVENT("(EvtBasedSimDriver.simulateEvts) Simulating {} events "
                        "at time {}ns",
                        evts.size(),
-                       m_currentSimTime.count());
+                       simTime.count());
 
         for (const auto &evt : evts) {
-            const auto &comp = getComponent<EvtComp>(evt.compId);
+            const auto comp = getComponentSP<EvtComp>(evt.compId);
 
             if (!comp) {
                 BESS_WARN(
@@ -392,35 +436,39 @@ namespace Bess::SimEngine::Drivers {
             const bool simDependants = simulate(evt, inputsMap[evt.compId]);
 
             if (simDependants) {
-                scheduleDependantsOfLocked(evt.compId);
+                scheduleDependantsOfAt(evt.compId, simTime);
             }
 
             if (comp->getSimSelf()) {
-                scheduleEvtLocked(evt.compId,
-                                  m_currentSimTime + comp->getSelfSimDelay(),
-                                  UUID::null);
+                const auto delay = comp->getSelfSimDelay();
+                if (!std::isfinite(delay.count()) || delay.count() <= 0.0) {
+                    BESS_ERROR("Component {} requested auto-rescheduling with "
+                               "an invalid delay of {}ns; self scheduling was "
+                               "disabled",
+                               (uint64_t)evt.compId,
+                               delay.count());
+                } else {
+                    scheduleEvt(evt.compId, simTime + delay, UUID::null, false);
+                    scheduledSelf = true;
+                }
             }
         }
 
-        std::lock_guard evtsLock(m_eventsMutex);
-        for (const auto &evt : evts) {
-            m_events.erase(evt);
+        if (scheduledSelf) {
+            m_runIterCv.notify_all();
+            notifyScheduler();
         }
     }
 
     void EvtBasedSimDriver::scheduleDependantsOf(const UUID &compId) {
-        {
-            std::lock_guard lk(m_runIterMutex);
-            scheduleDependantsOfLocked(compId);
-        }
-
-        m_runIterCv.notify_all();
+        scheduleDependantsOfAt(compId, getCurrentSimTime());
     }
 
-    void EvtBasedSimDriver::scheduleDependantsOfLocked(const UUID &compId) {
+    void EvtBasedSimDriver::scheduleDependantsOfAt(const UUID &compId,
+                                                   TimeNs simTime) {
         using EvtComp = EvtBasedSimComp;
 
-        const auto &comp = getComponent<EvtComp>(compId);
+        const auto comp = getComponentSP<EvtComp>(compId);
 
         if (!comp) {
             BESS_WARN("(EvtBasedSimDriver.scheduleDependantsOf) Component with "
@@ -430,63 +478,67 @@ namespace Bess::SimEngine::Drivers {
         }
 
         const auto dependants = getDependants(compId);
+        auto delay = comp->getPropDelay();
+        if (!std::isfinite(delay.count())) {
+            BESS_ERROR("Component {} has a non-finite propagation delay; "
+                       "dependants were not scheduled",
+                       (uint64_t)compId);
+            return;
+        }
+        if (delay.count() < 0.0) {
+            BESS_WARN("Component {} has a negative propagation delay of {}ns; "
+                      "it was clamped to zero",
+                      (uint64_t)compId,
+                      delay.count());
+            delay = TimeNs(0);
+        }
 
         for (const auto &id : dependants) {
-            scheduleEvtLocked(
-                id, m_currentSimTime + comp->getPropDelay(), compId);
+            scheduleEvt(id, simTime + delay, compId, false);
+        }
+        if (!dependants.empty()) {
+            m_runIterCv.notify_all();
+            notifyScheduler();
         }
     }
 
-    SimEvt EvtBasedSimDriver::getNextEvt() const {
-        SimEvt ev;
-        std::lock_guard lk(m_eventsMutex);
+    std::optional<TimeNs> EvtBasedSimDriver::getNextEventTime() const {
+        std::lock_guard lk(m_eventMutex);
         if (m_events.empty()) {
-            ev.simTime = m_currentSimTime;
-            return ev;
+            return std::nullopt;
         }
-
-        ev.simTime = TimeNs::max();
-
-        for (const auto &evt : m_events) {
-            if (evt.simTime < ev.simTime) {
-                ev = evt;
-            }
-        }
-
-        return ev;
+        return m_events.begin()->simTime;
     }
 
-    std::vector<SimEvt> EvtBasedSimDriver::collectEvts() {
-        std::set<UUID> collectedCompIds = {};
-        std::vector<SimEvt> evtsToSim = {};
-
-        std::unique_lock lk(m_eventsMutex);
-        for (const auto &evt : m_events) {
-            if (evt.simTime > m_currentSimTime) {
-                continue;
-            }
-
-            if (collectedCompIds.contains(evt.compId)) {
-                continue;
-            }
-
-            collectedCompIds.insert(evt.compId);
-            evtsToSim.push_back(evt);
+    bool EvtBasedSimDriver::isSimStable() const {
+        std::lock_guard lk(m_eventMutex);
+        if (m_eventsInFlight != 0) {
+            return false;
         }
-        lk.unlock();
-
-        std::ranges::sort(evtsToSim, [](const SimEvt &a, const SimEvt &b) {
-            if (a.simTime != b.simTime) {
-                return a.simTime < b.simTime;
+        for (const auto &evt : m_events) {
+            const auto comp = getComponentSP<EvtBasedSimComp>(evt.compId);
+            if (!comp || !comp->getSimSelf()) {
+                return false;
             }
-            return a.evtId < b.evtId;
-        });
+        }
+        return true;
+    }
+
+    std::vector<SimEvt> EvtBasedSimDriver::collectEvtsAt(TimeNs simTime) {
+        HashSet<UUID> collectedCompIds;
+        std::vector<SimEvt> evtsToSim;
+
+        std::lock_guard lk(m_eventMutex);
+        auto it = m_events.begin();
+        while (it != m_events.end() && it->simTime <= simTime) {
+            if (collectedCompIds.insert(it->compId).second) {
+                evtsToSim.push_back(*it);
+            }
+            it = m_events.erase(it);
+        }
+        m_eventsInFlight += evtsToSim.size();
 
         return evtsToSim;
-    }
-
-    TimeNs EvtBasedSimDriver::getCurrentSimTime() const {
-        return m_currentSimTime;
     }
 
     void EvtBasedSimComp::addOnStateChangeCB(const UUID &id,

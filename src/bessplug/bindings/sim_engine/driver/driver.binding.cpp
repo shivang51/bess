@@ -242,6 +242,9 @@ void bind_sim_engine_driver(py::module_ &m) {
         .def("is_paused", &SimDriver::isPaused)
         .def("is_stopped", &SimDriver::isStopped)
         .def("is_destroyed", &SimDriver::isDestroyed)
+        .def_property_readonly("current_sim_time",
+                               &SimDriver::getCurrentSimTime)
+        .def("get_current_sim_time", &SimDriver::getCurrentSimTime)
         .def("has_component", &SimDriver::hasComponent)
         .def("can_connect_ports",
              &SimDriver::canConnectPorts,

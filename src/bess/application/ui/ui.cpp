@@ -45,7 +45,7 @@ namespace Bess {
         ImGui_ImplGlfw_InitForOther(window->getGLFWHandle(), true);
         ImGui_ImplWGPU_InitInfo initInfo{};
         initInfo.Device = renderer2D->getDevice().Get();
-        initInfo.NumFramesInFlight = 1;
+        initInfo.NumFramesInFlight = 2;
         initInfo.RenderTargetFormat =
             static_cast<WGPUTextureFormat>(renderer2D->getSurfaceFormat());
         ImGui_ImplWGPU_Init(&initInfo);

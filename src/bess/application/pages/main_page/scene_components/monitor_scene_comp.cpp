@@ -7,13 +7,13 @@
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene/widgets/scene_widgets.h"
 #include "bess_core/settings/viewport_theme.h"
-#include "dig_sim_driver.h"
 #include "ext/vector_float2.hpp"
 #include "ext/vector_float3.hpp"
 #include "imgui.h"
 #include "pages/main_page/comp_edit.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
+#include "sim_driver/event_based_sim_driver.h"
 #include "simulation_engine.h"
 #include "ui/icons/FontAwesomeIcons_Remapped.h"
 #include <algorithm>
@@ -1681,10 +1681,10 @@ namespace Bess::Canvas {
         if (!simEngine) {
             return;
         }
-        const auto &digComp =
-            simEngine->getComponent<SimEngine::Drivers::Digital::DigSimComp>(
+        const auto eventComp =
+            simEngine->getComponentSP<SimEngine::Drivers::EvtBasedSimComp>(
                 simId);
-        if (!digComp) {
+        if (!eventComp) {
             return;
         }
 
@@ -1696,7 +1696,7 @@ namespace Bess::Canvas {
                 static_cast<float>(slotState.getNumericValue()));
         }
 
-        digComp->addOnStateChangeCB(
+        eventComp->addOnStateChangeCB(
             callbackIdForSlot(m_uuid, slotUuid),
             [this, slotUuid, slotComp = comp](
                 const std::vector<SimEngine::PortState> &inputStates,
@@ -1775,11 +1775,12 @@ namespace Bess::Canvas {
         if (!simEngine) {
             return;
         }
-        const auto &digComp =
-            simEngine->getComponent<SimEngine::Drivers::Digital::DigSimComp>(
+        const auto eventComp =
+            simEngine->getComponentSP<SimEngine::Drivers::EvtBasedSimComp>(
                 simId);
-        if (digComp) {
-            digComp->removeOnStateChangeCB(callbackIdForSlot(m_uuid, slotUuid));
+        if (eventComp) {
+            eventComp->removeOnStateChangeCB(
+                callbackIdForSlot(m_uuid, slotUuid));
         }
 
         m_subscribedSlots.erase(slotUuid);
