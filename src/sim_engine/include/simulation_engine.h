@@ -166,9 +166,9 @@ namespace Bess::SimEngine {
         // Run continuously with virtual time paced against steady wall time.
         void run();
 
-        // Run an unpaced, deterministic transient simulation. stepInterval
-        // controls waveform sampling; zero records only the settled initial
-        // and final states.
+        // Run a timed simulation paced against steady wall time.
+        // stepInterval controls waveform sampling; zero records only the
+        // settled initial and final states.
         void runFor(TimeMs duration, TimeMs stepInterval = TimeMs(0));
         void stop();
 
