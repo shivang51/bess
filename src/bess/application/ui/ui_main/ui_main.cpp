@@ -3,6 +3,7 @@
 #include "bess_core/scene_driver.h"
 #include "bess_core/settings/viewport_theme.h"
 #include "common/logger.h"
+#include "common/types.h"
 #include "debug_panel.h"
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -11,6 +12,7 @@
 #include "simulation_engine.h"
 #include "stb_image_write.h"
 #include "ui/icons/CodIcons_Remapped.h"
+#include "ui/project_api.h"
 #include "ui/ui_main/log_window.h"
 #include "ui/ui_main/scene_export_window.h"
 #include "ui/widgets/m_widgets.h"
@@ -54,6 +56,9 @@ namespace Bess::UI {
             static VerilogImportWizardState state;
             return state;
         }
+
+        std::string runDuration = "10";
+        std::string stampInterval = "10";
 
         void resetVerilogImportWizard(VerilogImportWizardState &state) {
             state.filePath.clear();
@@ -179,6 +184,7 @@ namespace Bess::UI {
         updateSceneViewportTargets();
 
         drawMenubar();
+        drawControlsBar();
         drawStatusbar();
         drawVerilogImportWizard();
 
@@ -675,6 +681,62 @@ namespace Bess::UI {
         }
     }
 
+    void UIMain::drawControlsBar() {
+        auto &style = ImGui::GetStyle();
+
+        ImGuiViewportP *viewport = (ImGuiViewportP *)ImGui::GetMainViewport();
+        const ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar |
+                                              ImGuiWindowFlags_NoSavedSettings |
+                                              ImGuiWindowFlags_MenuBar;
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        auto &simEngine = projectCtx->sim();
+        const float height = ImGui::GetFrameHeight();
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        if (ImGui::BeginViewportSideBar("##TopControlsBar",
+                                        viewport,
+                                        ImGuiDir_Up,
+                                        height,
+                                        window_flags)) {
+            if (ImGui::BeginMenuBar()) {
+
+                // Timed Run Controls
+                {
+                    ImGui::BeginGroup();
+
+                    ImGui::SetNextItemWidth(32);
+                    if (Widgets::TextBox("##Run Duration", runDuration)) {
+                    }
+
+                    ImGui::SetNextItemWidth(32);
+                    if (Widgets::TextBox("##Step Time", stampInterval)) {
+                    }
+
+                    if (ImGui::Button("Time Run")) {
+                        auto &simEngine = Bess::UI::Proj::sim();
+                        simEngine.runFor(TimeMs(1e4), TimeMs(10));
+                    }
+
+                    ImGui::EndGroup();
+                }
+
+                ImGui::Button("Run");
+
+                ImGui::EndMenuBar();
+            }
+
+            // TextBox - time
+            // TextBox - step time
+            // Button - Time Run
+            // Button -  Run
+
+            ImGui::End();
+        }
+
+        ImGui::PopStyleVar();
+    }
+
     void UIMain::drawVerilogImportWizard() {
         auto &wizard = getVerilogImportWizardState();
         auto &pageState = Pages::MainPage::getInstance()->getState();
@@ -773,8 +835,8 @@ namespace Bess::UI {
                 wizard.finished = true;
                 wizard.failed = true;
                 wizard.progress = 1.f;
-                wizard.stageMessage =
-                    "Import failed: choose only .v, .sv, .vh, or .svh files";
+                wizard.stageMessage = "Import failed: choose only .v, .sv, "
+                                      ".vh, or .svh files";
                 getState()._internalData.statusMessage = wizard.stageMessage;
             } else {
                 pageState.startVerilogImport(selectedPaths);
