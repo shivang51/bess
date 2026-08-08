@@ -13,7 +13,6 @@
 #include "pages/main_page/comp_edit.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
-#include "sim_driver/event_based_sim_driver.h"
 #include "simulation_engine.h"
 #include "ui/icons/FontAwesomeIcons_Remapped.h"
 #include <algorithm>
@@ -277,18 +276,6 @@ namespace {
         return plot.top + insetY + usableHeight * lane;
     }
 
-    [[nodiscard]] Bess::UUID callbackIdForSlot(Bess::UUID monitorUuid,
-                                               Bess::UUID slotUuid) {
-        const uint64_t monitor = static_cast<uint64_t>(monitorUuid);
-        const uint64_t slot = static_cast<uint64_t>(slotUuid);
-        uint64_t mixed = monitor ^ (slot + 0x9e3779b97f4a7c15ULL +
-                                    (monitor << 6) + (monitor >> 2));
-        if (mixed == 0) {
-            mixed = 0x9e3779b97f4a7c15ULL;
-        }
-        return Bess::UUID(mixed);
-    }
-
     void drawQuad(Bess::SceneDrawContext &context,
                   const Rect &rect,
                   float z,
@@ -494,7 +481,6 @@ namespace Bess::Canvas {
         prepareClone(*clonedComponent);
         clonedComponent->m_probedSlots.clear();
         clonedComponent->m_hiddenProbedSlots.clear();
-        clonedComponent->m_subscribedSlots.clear();
         clonedComponent->m_probeData.clear();
         clonedComponent->m_isPlotHovered = false;
         clonedComponent->m_isPlotDragging = false;
@@ -933,18 +919,62 @@ namespace Bess::Canvas {
 
     void MonitorSceneComp::update(TimeMs frameTime, SceneState &state) {
         (void)frameTime;
-        std::vector<UUID> stale;
-        for (const auto &slotUuid : m_subscribedSlots) {
-            if (!m_probedSlots.contains(slotUuid)) {
-                stale.push_back(slotUuid);
+
+        auto *simEngine = state.runtime().sim;
+        if (!simEngine) {
+            m_probeData.clear();
+            return;
+        }
+
+        const auto stampData = simEngine->getStampData();
+        for (auto it = m_probeData.begin(); it != m_probeData.end();) {
+            if (!m_probedSlots.contains(it->first)) {
+                m_probeData.erase(it++);
+            } else {
+                ++it;
             }
         }
-        for (const auto &slotUuid : stale) {
-            unsubscribeFromSlot(state, slotUuid);
-        }
+
         for (const auto &slotUuid : m_probedSlots) {
-            if (!m_subscribedSlots.contains(slotUuid)) {
-                subscribeToSlot(state, slotUuid);
+            auto &probeData = m_probeData[slotUuid];
+            probeData.clear();
+
+            const auto slot =
+                state.getComponentByUuid<SlotSceneComponent>(slotUuid);
+            if (!slot || slot->getIndex() < 0) {
+                continue;
+            }
+
+            const auto simComp =
+                state.getComponentByUuid<SimulationSceneComponent>(
+                    slot->getParentComponent());
+            if (!simComp) {
+                continue;
+            }
+
+            const auto stampIt = stampData.find(simComp->getSimEngineId());
+            if (stampIt == stampData.end()) {
+                continue;
+            }
+
+            const auto slotIndex = static_cast<std::size_t>(slot->getIndex());
+            probeData.reserve(
+                std::min(stampIt->second.size(), kMaxProbeSamples));
+            const std::size_t firstSample =
+                stampIt->second.size() > kMaxProbeSamples
+                    ? stampIt->second.size() - kMaxProbeSamples
+                    : 0;
+            for (std::size_t i = firstSample; i < stampIt->second.size(); ++i) {
+                const auto &stamp = stampIt->second[i];
+                const auto &states = slot->isInputSlot() ? stamp.inputStates
+                                                         : stamp.outputStates;
+                if (slotIndex >= states.size()) {
+                    continue;
+                }
+
+                probeData.emplace_back(
+                    stamp.simTime,
+                    static_cast<float>(states[slotIndex].getNumericValue()));
             }
         }
     }
@@ -1292,7 +1322,7 @@ namespace Bess::Canvas {
             m_probedSlots.empty()
                 ? "No traces"
                 : (visibleProbeCount() == 0 ? "All traces hidden"
-                                            : "Waiting for signal changes");
+                                            : "Waiting for samples");
         const auto textSize = context.renderer->measureText(
             label, {.fontSize = layout.labelFontSize});
         const float yOffset = context.renderer->textCenterOffsetY(
@@ -1627,163 +1657,30 @@ namespace Bess::Canvas {
 
     std::vector<UUID> MonitorSceneComp::cleanup(SceneState &state,
                                                 UUID caller) {
-        const std::vector<UUID> subscribedSlots(m_subscribedSlots.begin(),
-                                                m_subscribedSlots.end());
-        for (const auto &slotUuid : subscribedSlots) {
-            unsubscribeFromSlot(state, slotUuid);
-        }
+        m_probeData.clear();
         return NonSimSceneComponent::cleanup(state, caller);
     }
 
     void MonitorSceneComp::addSlotProbe(const SceneState &sceneState,
                                         const UUID &slotUuid) {
+        (void)sceneState;
         if (m_probedSlots.contains(slotUuid)) {
             return;
         }
 
         m_probedSlots.insert(slotUuid);
         m_hiddenProbedSlots.erase(slotUuid);
-        subscribeToSlot(sceneState, slotUuid);
     }
 
     void MonitorSceneComp::removeSlotProbe(const SceneState &sceneState,
                                            const UUID &slotUuid) {
+        (void)sceneState;
         if (!m_probedSlots.contains(slotUuid)) {
             return;
         }
 
         m_probedSlots.erase(slotUuid);
         m_hiddenProbedSlots.erase(slotUuid);
-        unsubscribeFromSlot(sceneState, slotUuid);
-    }
-
-    void MonitorSceneComp::subscribeToSlot(const SceneState &sceneState,
-                                           const UUID &slotUuid) {
-        const auto &comp =
-            sceneState.getComponentByUuid<SlotSceneComponent>(slotUuid);
-        if (!comp)
-            return;
-
-        if (m_subscribedSlots.contains(slotUuid)) {
-            return;
-        }
-
-        const auto &simComp =
-            sceneState.getComponentByUuid<SimulationSceneComponent>(
-                comp->getParentComponent());
-        if (!simComp) {
-            return;
-        }
-
-        const auto &simId = simComp->getSimEngineId();
-
-        auto *simEngine = sceneState.runtime().sim;
-        if (!simEngine) {
-            return;
-        }
-        const auto eventComp =
-            simEngine->getComponentSP<SimEngine::Drivers::EvtBasedSimComp>(
-                simId);
-        if (!eventComp) {
-            return;
-        }
-
-        auto &initialProbeData = m_probeData[slotUuid];
-        if (initialProbeData.empty()) {
-            const auto slotState = comp->getSlotState(sceneState);
-            initialProbeData.emplace_back(
-                slotState.lastChangeTime,
-                static_cast<float>(slotState.getNumericValue()));
-        }
-
-        eventComp->addOnStateChangeCB(
-            callbackIdForSlot(m_uuid, slotUuid),
-            [this, slotUuid, slotComp = comp](
-                const std::vector<SimEngine::PortState> &inputStates,
-                const std::vector<SimEngine::PortState> &outputStates) {
-                SimEngine::PortState slotState;
-
-                if (slotComp->isInputSlot()) {
-                    if (slotComp->getIndex() < 0 ||
-                        static_cast<std::size_t>(slotComp->getIndex()) >=
-                            inputStates.size()) {
-                        return;
-                    }
-                    slotState = inputStates[slotComp->getIndex()];
-                } else {
-                    if (slotComp->getIndex() < 0 ||
-                        static_cast<std::size_t>(slotComp->getIndex()) >=
-                            outputStates.size()) {
-                        return;
-                    }
-                    slotState = outputStates[slotComp->getIndex()];
-                }
-
-                auto &probeData = m_probeData[slotUuid];
-
-                if (!probeData.empty() &&
-                    probeData.back().first > slotState.lastChangeTime) {
-                    // If the last recorded time is greater than the new time,
-                    // clear all the probe data
-                    m_probeData.clear();
-                    m_viewEndTimeSeconds = 0.0;
-                    m_viewTimeSpanSeconds = 0.0;
-                }
-
-                const float numericValue =
-                    static_cast<float>(slotState.getNumericValue());
-                if (!probeData.empty() &&
-                    probeData.back().first == slotState.lastChangeTime &&
-                    probeData.back().second == numericValue) {
-                    return;
-                }
-
-                probeData.emplace_back(slotState.lastChangeTime, numericValue);
-
-                while (probeData.size() > kMaxProbeSamples) {
-                    probeData.erase(probeData.begin());
-                }
-            });
-        m_subscribedSlots.insert(slotUuid);
-    }
-
-    void MonitorSceneComp::unsubscribeFromSlot(const SceneState &sceneState,
-                                               const UUID &slotUuid) {
-        if (slotUuid == UUID::null)
-            return;
-
-        const auto &comp =
-            sceneState.getComponentByUuid<SlotSceneComponent>(slotUuid);
-        if (!comp) {
-            m_subscribedSlots.erase(slotUuid);
-            m_probeData.erase(slotUuid);
-            return;
-        }
-
-        const auto &simComp =
-            sceneState.getComponentByUuid<SimulationSceneComponent>(
-                comp->getParentComponent());
-        if (!simComp) {
-            m_subscribedSlots.erase(slotUuid);
-            m_probeData.erase(slotUuid);
-            return;
-        }
-
-        const auto &simId = simComp->getSimEngineId();
-
-        auto *simEngine = sceneState.runtime().sim;
-        if (!simEngine) {
-            return;
-        }
-        const auto eventComp =
-            simEngine->getComponentSP<SimEngine::Drivers::EvtBasedSimComp>(
-                simId);
-        if (eventComp) {
-            eventComp->removeOnStateChangeCB(
-                callbackIdForSlot(m_uuid, slotUuid));
-        }
-
-        m_subscribedSlots.erase(slotUuid);
         m_probeData.erase(slotUuid);
     }
 

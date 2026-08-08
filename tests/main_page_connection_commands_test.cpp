@@ -1086,7 +1086,7 @@ TEST_F(MainPageConnectionCommandsTest,
 }
 
 TEST_F(MainPageConnectionCommandsTest,
-       MonitorSubscribesToMathComponentsAndPlotsTheirSamples) {
+       MonitorPlotsStampedSamplesFromMathComponents) {
     const auto definition =
         Bess::SimEngine::Drivers::Math::MathCompDef::makeFunction(
             "Monitored Sine",
@@ -1105,13 +1105,7 @@ TEST_F(MainPageConnectionCommandsTest,
     const auto slotId = source.outputs.front()->getUuid();
     monitor->addSlotProbe(scene->getState(), slotId);
 
-    const auto eventComp = simEngine->getComponentSP<
-        Bess::SimEngine::Drivers::EvtBasedSimComp>(
-        source.comp->getSimEngineId());
-    ASSERT_NE(eventComp, nullptr);
-    EXPECT_EQ(eventComp->getOnStateChangeCbs().size(), 1U);
-
-    simEngine->runFor(Bess::TimeMs(4), Bess::TimeMs(1));
+    simEngine->runFor(Bess::TimeMs(4), Bess::TimeMs(2));
     const auto deadline =
         std::chrono::steady_clock::now() + std::chrono::milliseconds(250);
     while (simEngine->getSimulationState() !=
@@ -1123,6 +1117,12 @@ TEST_F(MainPageConnectionCommandsTest,
               Bess::SimEngine::SimulationState::stopped);
     simEngine->stop();
 
+    const auto stampData = simEngine->getStampData();
+    const auto stampIt = stampData.find(source.comp->getSimEngineId());
+    ASSERT_NE(stampIt, stampData.end());
+    ASSERT_EQ(stampIt->second.size(), 3U);
+
+    monitor->update(Bess::TimeMs(0), scene->getState());
     const auto renderer = std::make_shared<TestRenderer2D>();
     Bess::SceneDrawContext drawContext{
         .sceneState = &scene->getState(),
@@ -1136,10 +1136,9 @@ TEST_F(MainPageConnectionCommandsTest,
             return line.id.runtimeId == runtimeId && line.id.info >= 3U &&
                    line.id.info < 68U;
         });
-    EXPECT_GT(traceLineCount, 1);
+    EXPECT_EQ(traceLineCount, 3);
 
     monitor->removeSlotProbe(scene->getState(), slotId);
-    EXPECT_TRUE(eventComp->getOnStateChangeCbs().empty());
 }
 
 TEST_F(MainPageConnectionCommandsTest,

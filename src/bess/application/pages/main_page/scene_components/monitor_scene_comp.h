@@ -72,11 +72,6 @@ namespace Bess::Canvas {
       private:
         struct PlotLayout;
 
-        void subscribeToSlot(const SceneState &sceneState,
-                             const UUID &slotUuid);
-        void unsubscribeFromSlot(const SceneState &sceneState,
-                                 const UUID &slotUuid);
-
         PlotLayout makePlotLayout(SceneDrawContext &context) const;
         void drawPlotFrame(SceneDrawContext &context,
                            const PlotLayout &layout) const;
@@ -99,7 +94,6 @@ namespace Bess::Canvas {
       private:
         OrderedSet<UUID> m_probedSlots;
         OrderedSet<UUID> m_hiddenProbedSlots;
-        HashSet<UUID> m_subscribedSlots;
         HashMap<UUID, std::vector<std::pair<TimeNs, float>>> m_probeData;
         float m_timeScale = 1.f;
         float m_voltageScale = 1.f;
