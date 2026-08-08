@@ -72,6 +72,22 @@ namespace Bess::Canvas {
       private:
         struct PlotLayout;
 
+        struct ProbeSourceCursor {
+            UUID componentId = UUID::null;
+            TimeNs firstSourceTime{0};
+            std::size_t sourceSampleCount = 0;
+            uint64_t generation = 0;
+            uint64_t revision = 0;
+            int slotIndex = -1;
+            bool isInput = false;
+        };
+
+        struct ProbeBounds {
+            float minVoltage = 0.f;
+            float maxVoltage = 0.f;
+            bool hasFiniteVoltage = false;
+        };
+
         PlotLayout makePlotLayout(SceneDrawContext &context) const;
         void drawPlotFrame(SceneDrawContext &context,
                            const PlotLayout &layout) const;
@@ -95,6 +111,8 @@ namespace Bess::Canvas {
         OrderedSet<UUID> m_probedSlots;
         OrderedSet<UUID> m_hiddenProbedSlots;
         HashMap<UUID, std::vector<std::pair<TimeNs, float>>> m_probeData;
+        HashMap<UUID, ProbeSourceCursor> m_probeSourceCursors;
+        HashMap<UUID, ProbeBounds> m_probeBounds;
         float m_timeScale = 1.f;
         float m_voltageScale = 1.f;
         bool m_followLatest = true;

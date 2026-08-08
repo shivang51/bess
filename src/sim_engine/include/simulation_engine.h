@@ -55,7 +55,29 @@ namespace Bess::SimEngine {
 
         [[nodiscard]] TimeNs getCurrentSimTime() const;
 
-        [[nodiscard]] Drivers::SimDriver::CompStampData getStampData() const;
+        class BESS_API StampDataView {
+          public:
+            StampDataView(StampDataView &&) noexcept = default;
+            StampDataView &operator=(StampDataView &&) noexcept = default;
+            StampDataView(const StampDataView &) = delete;
+            StampDataView &operator=(const StampDataView &) = delete;
+
+            [[nodiscard]] std::optional<
+                Drivers::SimDriver::ComponentStampHistoryView>
+            find(const UUID &componentId) const;
+
+          private:
+            friend class SimulationEngine;
+            explicit StampDataView(const SimulationEngine &engine);
+
+            std::unique_lock<std::recursive_mutex> m_executionLock;
+            std::vector<Drivers::SimDriver::StampDataView> m_driverViews;
+        };
+
+        // References driver-owned histories while retaining the locks needed
+        // to keep those references stable. Keep the view short-lived and do
+        // not call mutating simulation APIs while it is alive.
+        [[nodiscard]] StampDataView getStampData() const;
         void clearStampData();
 
         void destroy();

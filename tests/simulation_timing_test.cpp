@@ -109,16 +109,16 @@ TEST_F(SimulationTimingTest, TimedRunUsesExactGlobalTimeAndSampleBoundaries) {
     }
 
     const auto stampData = engine->getStampData();
-    const auto stampIt = stampData.find(componentId);
-    ASSERT_NE(stampIt, stampData.end());
-    ASSERT_EQ(stampIt->second.size(), 4u);
+    const auto stampHistory = stampData.find(componentId);
+    ASSERT_TRUE(stampHistory.has_value());
+    ASSERT_EQ(stampHistory->samples.size(), 4u);
 
     const std::vector<double> expectedSampleTimes = {0.0, 2e6, 4e6, 5e6};
     for (size_t i = 0; i < expectedSampleTimes.size(); ++i) {
-        EXPECT_DOUBLE_EQ(stampIt->second[i].simTime.count(),
+        EXPECT_DOUBLE_EQ(stampHistory->samples[i].simTime.count(),
                          expectedSampleTimes[i]);
-        ASSERT_EQ(stampIt->second[i].outputStates.size(), 1u);
-        EXPECT_DOUBLE_EQ(stampIt->second[i].outputStates[0].scalarValue,
+        ASSERT_EQ(stampHistory->samples[i].outputStates.size(), 1u);
+        EXPECT_DOUBLE_EQ(stampHistory->samples[i].outputStates[0].scalarValue,
                          expectedSampleTimes[i]);
     }
 }
@@ -293,13 +293,13 @@ TEST_F(SimulationTimingTest, PausedTimedRunStepsThroughSamplesAndFinalTime) {
     EXPECT_DOUBLE_EQ(engine->getCurrentSimTime().count(), 5e6);
 
     const auto stamps = engine->getStampData();
-    const auto stampIt = stamps.find(componentId);
-    ASSERT_NE(stampIt, stamps.end());
-    ASSERT_EQ(stampIt->second.size(), 4u);
-    EXPECT_DOUBLE_EQ(stampIt->second[0].simTime.count(), 0.0);
-    EXPECT_DOUBLE_EQ(stampIt->second[1].simTime.count(), 2e6);
-    EXPECT_DOUBLE_EQ(stampIt->second[2].simTime.count(), 4e6);
-    EXPECT_DOUBLE_EQ(stampIt->second[3].simTime.count(), 5e6);
+    const auto stampHistory = stamps.find(componentId);
+    ASSERT_TRUE(stampHistory.has_value());
+    ASSERT_EQ(stampHistory->samples.size(), 4u);
+    EXPECT_DOUBLE_EQ(stampHistory->samples[0].simTime.count(), 0.0);
+    EXPECT_DOUBLE_EQ(stampHistory->samples[1].simTime.count(), 2e6);
+    EXPECT_DOUBLE_EQ(stampHistory->samples[2].simTime.count(), 4e6);
+    EXPECT_DOUBLE_EQ(stampHistory->samples[3].simTime.count(), 5e6);
 }
 
 TEST_F(SimulationTimingTest, DriverCallbackCanStopAPausedStepWithoutDeadlock) {
@@ -382,12 +382,47 @@ TEST_F(SimulationTimingTest,
     driver->stampSim(TimeNs(4), false);
 
     const auto history = driver->getStampData();
-    const auto it = history.find(componentId);
-    ASSERT_NE(it, history.end());
-    ASSERT_EQ(it->second.size(), 3u);
-    EXPECT_EQ(it->second[0].outputStates[0].connState, ConnectionState::driven);
-    EXPECT_EQ(it->second[1].outputStates[0].connState, ConnectionState::high_z);
-    EXPECT_TRUE(std::isnan(it->second[2].outputStates[0].scalarValue));
+    const auto stampHistory = history.find(componentId);
+    ASSERT_TRUE(stampHistory.has_value());
+    ASSERT_EQ(stampHistory->samples.size(), 3u);
+    EXPECT_EQ(stampHistory->samples[0].outputStates[0].connState,
+              ConnectionState::driven);
+    EXPECT_EQ(stampHistory->samples[1].outputStates[0].connState,
+              ConnectionState::high_z);
+    EXPECT_TRUE(
+        std::isnan(stampHistory->samples[2].outputStates[0].scalarValue));
+}
+
+TEST_F(SimulationTimingTest, EngineStampViewReferencesDriverOwnedHistory) {
+    const auto definition = makeClockedDefinition(
+        "Referenced Stamp History",
+        TimeNs(1e6),
+        [](const std::shared_ptr<MathCompSimData> &data) { return data; });
+    definition->setAutoReschedule(false);
+
+    const auto componentId = engine->addComponent(definition, false);
+    ASSERT_NE(componentId, Bess::UUID::null);
+
+    const auto driver = engine->getDriverWithName(MathSimDriver::NAME);
+    ASSERT_NE(driver, nullptr);
+    driver->clearStampData();
+    driver->stampSim(TimeNs(0), true);
+
+    const SimDriver::ComponentStamp *driverHistoryAddress = nullptr;
+    {
+        const auto driverData = driver->getStampData();
+        const auto driverHistory = driverData.find(componentId);
+        ASSERT_TRUE(driverHistory.has_value());
+        ASSERT_FALSE(driverHistory->samples.empty());
+        driverHistoryAddress = driverHistory->samples.data();
+    }
+
+    {
+        const auto engineData = engine->getStampData();
+        const auto engineHistory = engineData.find(componentId);
+        ASSERT_TRUE(engineHistory.has_value());
+        EXPECT_EQ(engineHistory->samples.data(), driverHistoryAddress);
+    }
 }
 
 TEST_F(SimulationTimingTest, StampHistoryIsBoundedForContinuousRuns) {
@@ -417,10 +452,11 @@ TEST_F(SimulationTimingTest, StampHistoryIsBoundedForContinuousRuns) {
     }
 
     const auto stampData = driver->getStampData();
-    const auto it = stampData.find(componentId);
-    ASSERT_NE(it, stampData.end());
-    EXPECT_LE(it->second.size(), SimDriver::MaxStampSamplesPerComponent);
-    EXPECT_GT(it->second.front().simTime, TimeNs(0));
-    EXPECT_DOUBLE_EQ(it->second.back().simTime.count(),
+    const auto stampHistory = stampData.find(componentId);
+    ASSERT_TRUE(stampHistory.has_value());
+    EXPECT_LE(stampHistory->samples.size(),
+              SimDriver::MaxStampSamplesPerComponent);
+    EXPECT_GT(stampHistory->samples.front().simTime, TimeNs(0));
+    EXPECT_DOUBLE_EQ(stampHistory->samples.back().simTime.count(),
                      static_cast<double>(totalSamples - 1U));
 }

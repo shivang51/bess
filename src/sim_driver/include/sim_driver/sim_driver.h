@@ -11,6 +11,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <span>
 #include <unordered_map>
 #include <vector>
 
@@ -135,6 +136,34 @@ namespace Bess::SimEngine::Drivers {
         // Transition-compressed during a normal run and uniformly sampled
         // during a timed run.
         using CompStampData = NodeHashMap<UUID, std::vector<ComponentStamp>>;
+
+        struct ComponentStampHistoryView {
+            std::span<const ComponentStamp> samples;
+            uint64_t generation = 0;
+            uint64_t revision = 0;
+        };
+
+        class BESS_API StampDataView {
+          public:
+            StampDataView(StampDataView &&) noexcept = default;
+            StampDataView &operator=(StampDataView &&) noexcept = default;
+            StampDataView(const StampDataView &) = delete;
+            StampDataView &operator=(const StampDataView &) = delete;
+
+            [[nodiscard]] const CompStampData &data() const noexcept;
+            [[nodiscard]] std::optional<ComponentStampHistoryView>
+            find(const UUID &componentId) const;
+
+          private:
+            friend class SimDriver;
+            explicit StampDataView(const SimDriver &driver);
+
+            std::unique_lock<std::mutex> m_lock;
+            const CompStampData *m_data = nullptr;
+            const NodeHashMap<UUID, uint64_t> *m_revisions = nullptr;
+            uint64_t m_generation = 0;
+        };
+
         using SchedulerNotifyFn = std::function<void()>;
         static constexpr std::size_t MaxStampSamplesPerComponent = 40000;
 
@@ -169,7 +198,11 @@ namespace Bess::SimEngine::Drivers {
         // history is transition-compressed.
         virtual void stampSim(TimeNs simTime, bool includeUnchanged = false);
 
-        [[nodiscard]] CompStampData getStampData() const;
+        // The returned view holds the stamp lock and references driver-owned
+        // histories. Keep it short-lived so simulation stamping is not
+        // blocked longer than necessary, and do not call mutating driver APIs
+        // while it is alive.
+        [[nodiscard]] StampDataView getStampData() const;
         void clearStampData();
 
         // Engine-coordinated scheduling contract. New scheduled drivers
@@ -355,7 +388,10 @@ namespace Bess::SimEngine::Drivers {
         mutable std::mutex m_stateMutex;
 
         CompStampData m_compStampData;
+        NodeHashMap<UUID, uint64_t> m_componentStampRevisions;
         HashSet<UUID> m_truncatedStampComponents;
+        uint64_t m_stampGeneration = 0;
+        uint64_t m_nextStampRevision = 0;
         mutable std::mutex m_stampMutex;
         std::shared_ptr<Bess::SimEngine::SimulationClock> m_simulationClock;
         SchedulerNotifyFn m_schedulerNotifyFn;

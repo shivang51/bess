@@ -173,6 +173,8 @@ namespace Bess::SimEngine::Drivers {
 
                 if (!history.empty() && history.back().simTime == simTime) {
                     history.back() = std::move(stamp);
+                    m_componentStampRevisions[componentId] =
+                        ++m_nextStampRevision;
                     continue;
                 }
 
@@ -199,6 +201,7 @@ namespace Bess::SimEngine::Drivers {
                 }
 
                 history.emplace_back(std::move(stamp));
+                m_componentStampRevisions[componentId] = ++m_nextStampRevision;
             }
         }
 
@@ -216,15 +219,44 @@ namespace Bess::SimEngine::Drivers {
         stampSim(std::chrono::duration_cast<TimeMs>(simTime));
     }
 
-    SimDriver::CompStampData SimDriver::getStampData() const {
-        std::lock_guard lk(m_stampMutex);
-        return m_compStampData;
+    SimDriver::StampDataView::StampDataView(const SimDriver &driver)
+        : m_lock(driver.m_stampMutex),
+          m_data(&driver.m_compStampData),
+          m_revisions(&driver.m_componentStampRevisions),
+          m_generation(driver.m_stampGeneration) {
+    }
+
+    const SimDriver::CompStampData &
+    SimDriver::StampDataView::data() const noexcept {
+        return *m_data;
+    }
+
+    std::optional<SimDriver::ComponentStampHistoryView>
+    SimDriver::StampDataView::find(const UUID &componentId) const {
+        const auto dataIt = m_data->find(componentId);
+        if (dataIt == m_data->end()) {
+            return std::nullopt;
+        }
+
+        const auto revisionIt = m_revisions->find(componentId);
+        return ComponentStampHistoryView{
+            .samples = dataIt->second,
+            .generation = m_generation,
+            .revision =
+                revisionIt == m_revisions->end() ? 0 : revisionIt->second,
+        };
+    }
+
+    SimDriver::StampDataView SimDriver::getStampData() const {
+        return StampDataView(*this);
     }
 
     void SimDriver::clearStampData() {
         std::lock_guard lk(m_stampMutex);
         m_compStampData.clear();
+        m_componentStampRevisions.clear();
         m_truncatedStampComponents.clear();
+        ++m_stampGeneration;
     }
 
     bool SimDriver::isSimStable() const {

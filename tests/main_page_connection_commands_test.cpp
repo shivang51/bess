@@ -87,6 +87,8 @@ namespace {
     class TestRenderer2D final : public Bess::Core::Renderer::IRenderer2D {
       public:
         std::vector<Bess::Core::Renderer::LineProps> lines;
+        std::vector<Bess::Core::Renderer::PathProps> paths;
+        std::size_t pathLineCount = 0;
 
         void init(const Bess::Core::Renderer::Renderer2DCreateInfo &) override {
         }
@@ -163,13 +165,16 @@ namespace {
         void drawPath(std::span<const Bess::Core::Renderer::PathCommand>,
                       const Bess::Core::Renderer::PathProps & = {}) override {
         }
-        void beginPath(const Bess::Core::Renderer::PathProps & = {}) override {
+        void
+        beginPath(const Bess::Core::Renderer::PathProps &props = {}) override {
+            paths.push_back(props);
         }
         void pathMoveTo(const glm::vec2 &) override {
         }
         void pathLineTo(
             const glm::vec2 &,
             const Bess::Core::Renderer::PathCommandStroke & = {}) override {
+            ++pathLineCount;
         }
         void pathQuadTo(
             const glm::vec2 &,
@@ -1117,10 +1122,13 @@ TEST_F(MainPageConnectionCommandsTest,
               Bess::SimEngine::SimulationState::stopped);
     simEngine->stop();
 
-    const auto stampData = simEngine->getStampData();
-    const auto stampIt = stampData.find(source.comp->getSimEngineId());
-    ASSERT_NE(stampIt, stampData.end());
-    ASSERT_EQ(stampIt->second.size(), 3U);
+    {
+        const auto stampData = simEngine->getStampData();
+        const auto stampHistory =
+            stampData.find(source.comp->getSimEngineId());
+        ASSERT_TRUE(stampHistory.has_value());
+        ASSERT_EQ(stampHistory->samples.size(), 3U);
+    }
 
     monitor->update(Bess::TimeMs(0), scene->getState());
     const auto renderer = std::make_shared<TestRenderer2D>();
@@ -1130,15 +1138,66 @@ TEST_F(MainPageConnectionCommandsTest,
     };
     monitor->draw(drawContext);
 
-    const auto traceLineCount = std::ranges::count_if(
-        renderer->lines,
-        [runtimeId = monitor->getRuntimeId()](const auto &line) {
-            return line.id.runtimeId == runtimeId && line.id.info >= 3U &&
-                   line.id.info < 68U;
+    const auto tracePathCount = std::ranges::count_if(
+        renderer->paths,
+        [runtimeId = monitor->getRuntimeId()](const auto &path) {
+            return path.id.runtimeId == runtimeId && path.id.info >= 3U &&
+                   path.id.info < 68U;
         });
-    EXPECT_EQ(traceLineCount, 3);
+    EXPECT_EQ(tracePathCount, 1);
 
     monitor->removeSlotProbe(scene->getState(), slotId);
+}
+
+TEST_F(MainPageConnectionCommandsTest,
+       MonitorDecimatesAndBatchesLargeStampHistories) {
+    const auto definition =
+        Bess::SimEngine::Drivers::Math::MathCompDef::makeFunction(
+            "Dense Monitor Source",
+            "Test",
+            [](Bess::TimeMs, const std::vector<double> &) { return 0.0; },
+            false);
+    const auto source = addSimComponent(definition);
+    ASSERT_NE(source.comp, nullptr);
+    ASSERT_FALSE(source.outputs.empty());
+
+    auto monitor = std::make_shared<Bess::Canvas::MonitorSceneComp>();
+    ASSERT_TRUE(session->addComp(monitor, {}, scene->getSceneId()));
+    monitor->addSlotProbe(scene->getState(), source.outputs.front()->getUuid());
+
+    const auto driver = simEngine->getDriverWithName(
+        Bess::SimEngine::Drivers::Math::MathSimDriver::NAME);
+    ASSERT_NE(driver, nullptr);
+    driver->clearStampData();
+
+    constexpr std::size_t sampleCount = 5000;
+    for (std::size_t i = 0; i < sampleCount; ++i) {
+        const auto simTime = Bess::TimeNs(static_cast<double>(i));
+        simEngine->setOutputPortState(
+            source.comp->getSimEngineId(),
+            0,
+            Bess::SimEngine::PortState::scalar(
+                static_cast<double>(i % 17U), simTime));
+        driver->stampSim(simTime, true);
+    }
+
+    monitor->update(Bess::TimeMs(0), scene->getState());
+    const auto renderer = std::make_shared<TestRenderer2D>();
+    Bess::SceneDrawContext drawContext{
+        .sceneState = &scene->getState(),
+        .renderer = renderer,
+    };
+    monitor->draw(drawContext);
+
+    const auto tracePathCount = std::ranges::count_if(
+        renderer->paths,
+        [runtimeId = monitor->getRuntimeId()](const auto &path) {
+            return path.id.runtimeId == runtimeId && path.id.info >= 3U &&
+                   path.id.info < 68U;
+        });
+    EXPECT_EQ(tracePathCount, 1);
+    EXPECT_GT(renderer->pathLineCount, 0U);
+    EXPECT_LT(renderer->pathLineCount, sampleCount);
 }
 
 TEST_F(MainPageConnectionCommandsTest,

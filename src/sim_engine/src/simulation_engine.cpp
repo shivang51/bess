@@ -83,16 +83,28 @@ namespace Bess::SimEngine {
         return m_simulationClock ? m_simulationClock->now() : TimeNs(0);
     }
 
-    Drivers::SimDriver::CompStampData SimulationEngine::getStampData() const {
-        std::lock_guard executionLock(m_schedulerExecutionMutex);
-        Drivers::SimDriver::CompStampData result;
-        for (const auto &driver : m_simDrivers) {
-            const auto driverData = driver->getStampData();
-            for (const auto &[componentId, samples] : driverData) {
-                result[componentId] = samples;
+    SimulationEngine::StampDataView::StampDataView(
+        const SimulationEngine &engine)
+        : m_executionLock(engine.m_schedulerExecutionMutex) {
+        m_driverViews.reserve(engine.m_simDrivers.size());
+        for (const auto &driver : engine.m_simDrivers) {
+            m_driverViews.emplace_back(driver->getStampData());
+        }
+    }
+
+    std::optional<Drivers::SimDriver::ComponentStampHistoryView>
+    SimulationEngine::StampDataView::find(const UUID &componentId) const {
+        for (const auto &driverView : m_driverViews) {
+            if (const auto history = driverView.find(componentId)) {
+                return history;
             }
         }
-        return result;
+
+        return std::nullopt;
+    }
+
+    SimulationEngine::StampDataView SimulationEngine::getStampData() const {
+        return StampDataView(*this);
     }
 
     void SimulationEngine::clearStampData() {

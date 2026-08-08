@@ -3,6 +3,7 @@
 #include "bess_core/g_app_context.h"
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/renderer/renderer_types.h"
+#include "bess_core/scene/camera.h"
 #include "bess_core/scene/scene_state/components/styles/comp_style.h"
 #include "bess_core/scene/scene_state/scene_state.h"
 #include "bess_core/scene/widgets/scene_widgets.h"
@@ -482,6 +483,8 @@ namespace Bess::Canvas {
         clonedComponent->m_probedSlots.clear();
         clonedComponent->m_hiddenProbedSlots.clear();
         clonedComponent->m_probeData.clear();
+        clonedComponent->m_probeSourceCursors.clear();
+        clonedComponent->m_probeBounds.clear();
         clonedComponent->m_isPlotHovered = false;
         clonedComponent->m_isPlotDragging = false;
         clonedComponent->m_plotDragBefore = {};
@@ -647,8 +650,8 @@ namespace Bess::Canvas {
                                 kTraceStroke,
                                 kTraceStroke);
 
-        double minTimeSec = std::numeric_limits<double>::max();
-        double maxTimeSec = std::numeric_limits<double>::lowest();
+        TimeNs minTime = TimeNs::max();
+        TimeNs maxTime = TimeNs::min();
         float minVoltage = std::numeric_limits<float>::max();
         float maxVoltage = std::numeric_limits<float>::lowest();
         bool hasVoltage = false;
@@ -659,30 +662,28 @@ namespace Bess::Canvas {
             }
 
             const auto dataIt = m_probeData.find(slotUuid);
-            if (dataIt == m_probeData.end()) {
+            if (dataIt == m_probeData.end() || dataIt->second.empty()) {
                 continue;
             }
 
-            for (const auto &[time, voltage] : dataIt->second) {
-                const double timeSec =
-                    std::chrono::duration<double>(time).count();
-                if (!std::isfinite(timeSec)) {
-                    continue;
-                }
+            minTime = std::min(minTime, dataIt->second.front().first);
+            maxTime = std::max(maxTime, dataIt->second.back().first);
 
-                minTimeSec = std::min(minTimeSec, timeSec);
-                maxTimeSec = std::max(maxTimeSec, timeSec);
-
-                if (std::isfinite(voltage)) {
-                    minVoltage = std::min(minVoltage, voltage);
-                    maxVoltage = std::max(maxVoltage, voltage);
-                    hasVoltage = true;
-                }
+            const auto boundsIt = m_probeBounds.find(slotUuid);
+            if (boundsIt != m_probeBounds.end() &&
+                boundsIt->second.hasFiniteVoltage) {
+                minVoltage = std::min(minVoltage, boundsIt->second.minVoltage);
+                maxVoltage = std::max(maxVoltage, boundsIt->second.maxVoltage);
+                hasVoltage = true;
             }
         }
 
-        layout.hasData = minTimeSec <= maxTimeSec;
+        layout.hasData = minTime <= maxTime;
         if (layout.hasData) {
+            const double minTimeSec =
+                std::chrono::duration<double>(minTime).count();
+            const double maxTimeSec =
+                std::chrono::duration<double>(maxTime).count();
             layout.minTimeSec = minTimeSec;
             layout.maxTimeSec = maxTimeSec;
             const double dataSpan = std::max(0.0, maxTimeSec - minTimeSec);
@@ -920,28 +921,50 @@ namespace Bess::Canvas {
     void MonitorSceneComp::update(TimeMs frameTime, SceneState &state) {
         (void)frameTime;
 
+        if (m_probedSlots.empty()) {
+            m_probeData.clear();
+            m_probeSourceCursors.clear();
+            m_probeBounds.clear();
+            return;
+        }
+
+        const auto removeStale = [this](auto &values) {
+            for (auto it = values.begin(); it != values.end();) {
+                if (!m_probedSlots.contains(it->first)) {
+                    values.erase(it++);
+                } else {
+                    ++it;
+                }
+            }
+        };
+        removeStale(m_probeData);
+        removeStale(m_probeSourceCursors);
+        removeStale(m_probeBounds);
+
+        if (visibleProbeCount() == 0) {
+            return;
+        }
+
         auto *simEngine = state.runtime().sim;
         if (!simEngine) {
             m_probeData.clear();
+            m_probeSourceCursors.clear();
+            m_probeBounds.clear();
             return;
         }
 
         const auto stampData = simEngine->getStampData();
-        for (auto it = m_probeData.begin(); it != m_probeData.end();) {
-            if (!m_probedSlots.contains(it->first)) {
-                m_probeData.erase(it++);
-            } else {
-                ++it;
-            }
-        }
-
         for (const auto &slotUuid : m_probedSlots) {
-            auto &probeData = m_probeData[slotUuid];
-            probeData.clear();
+            if (isProbeHidden(slotUuid)) {
+                continue;
+            }
 
             const auto slot =
                 state.getComponentByUuid<SlotSceneComponent>(slotUuid);
             if (!slot || slot->getIndex() < 0) {
+                m_probeData.erase(slotUuid);
+                m_probeSourceCursors.erase(slotUuid);
+                m_probeBounds.erase(slotUuid);
                 continue;
             }
 
@@ -949,33 +972,86 @@ namespace Bess::Canvas {
                 state.getComponentByUuid<SimulationSceneComponent>(
                     slot->getParentComponent());
             if (!simComp) {
+                m_probeData.erase(slotUuid);
+                m_probeSourceCursors.erase(slotUuid);
+                m_probeBounds.erase(slotUuid);
                 continue;
             }
 
-            const auto stampIt = stampData.find(simComp->getSimEngineId());
-            if (stampIt == stampData.end()) {
+            const UUID componentId = simComp->getSimEngineId();
+            const auto history = stampData.find(componentId);
+            if (!history || history->samples.empty()) {
+                m_probeData.erase(slotUuid);
+                m_probeSourceCursors.erase(slotUuid);
+                m_probeBounds.erase(slotUuid);
                 continue;
             }
 
-            const auto slotIndex = static_cast<std::size_t>(slot->getIndex());
-            probeData.reserve(
-                std::min(stampIt->second.size(), kMaxProbeSamples));
-            const std::size_t firstSample =
-                stampIt->second.size() > kMaxProbeSamples
-                    ? stampIt->second.size() - kMaxProbeSamples
-                    : 0;
-            for (std::size_t i = firstSample; i < stampIt->second.size(); ++i) {
-                const auto &stamp = stampIt->second[i];
+            const auto &samples = history->samples;
+            const int slotIndexValue = slot->getIndex();
+            const auto slotIndex = static_cast<std::size_t>(slotIndexValue);
+            const bool isInput = slot->isInputSlot();
+            auto &cursor = m_probeSourceCursors[slotUuid];
+            const bool sourceChanged =
+                cursor.componentId != componentId ||
+                cursor.slotIndex != slotIndexValue ||
+                cursor.isInput != isInput ||
+                cursor.generation != history->generation ||
+                cursor.sourceSampleCount > samples.size() ||
+                (cursor.sourceSampleCount > 0 &&
+                 cursor.firstSourceTime != samples.front().simTime);
+            if (!sourceChanged && cursor.revision == history->revision) {
+                continue;
+            }
+
+            // An equal-sized revision means the latest timestamp was
+            // replaced. Rebuild so cached values and bounds stay exact.
+            const bool rebuild =
+                sourceChanged || cursor.sourceSampleCount == samples.size();
+            auto &probeData = m_probeData[slotUuid];
+            auto &bounds = m_probeBounds[slotUuid];
+            std::size_t firstSample = cursor.sourceSampleCount;
+            if (rebuild) {
+                probeData.clear();
+                bounds = {};
+                firstSample = samples.size() > kMaxProbeSamples
+                                  ? samples.size() - kMaxProbeSamples
+                                  : 0;
+                probeData.reserve(samples.size() - firstSample);
+            }
+
+            for (std::size_t i = firstSample; i < samples.size(); ++i) {
+                const auto &stamp = samples[i];
                 const auto &states = slot->isInputSlot() ? stamp.inputStates
                                                          : stamp.outputStates;
                 if (slotIndex >= states.size()) {
                     continue;
                 }
 
-                probeData.emplace_back(
-                    stamp.simTime,
-                    static_cast<float>(states[slotIndex].getNumericValue()));
+                const float value =
+                    static_cast<float>(states[slotIndex].getNumericValue());
+                probeData.emplace_back(stamp.simTime, value);
+                if (std::isfinite(value)) {
+                    if (!bounds.hasFiniteVoltage) {
+                        bounds.minVoltage = value;
+                        bounds.maxVoltage = value;
+                        bounds.hasFiniteVoltage = true;
+                    } else {
+                        bounds.minVoltage = std::min(bounds.minVoltage, value);
+                        bounds.maxVoltage = std::max(bounds.maxVoltage, value);
+                    }
+                }
             }
+
+            cursor = {
+                .componentId = componentId,
+                .firstSourceTime = samples.front().simTime,
+                .sourceSampleCount = samples.size(),
+                .generation = history->generation,
+                .revision = history->revision,
+                .slotIndex = slotIndexValue,
+                .isInput = isInput,
+            };
         }
     }
 
@@ -1348,6 +1424,18 @@ namespace Bess::Canvas {
         const double timeSpan = layout.timeEndSec - layout.timeStartSec;
         const float voltageSpan = layout.voltageMax - layout.voltageMin;
         const float z = m_transform.position.z + 0.00035f;
+        float plotPixelWidth = layout.plot.width();
+        if (context.transformMode ==
+                Core::Renderer::RenderTransformMode::Camera &&
+            context.camera) {
+            plotPixelWidth *= context.camera->getZoom();
+        }
+        plotPixelWidth = std::max(plotPixelWidth, 1.f);
+
+        const TimeNs viewStart = std::chrono::duration_cast<TimeNs>(
+            std::chrono::duration<double>(layout.timeStartSec));
+        const TimeNs viewEnd = std::chrono::duration_cast<TimeNs>(
+            std::chrono::duration<double>(layout.timeEndSec));
 
         const auto pointFor = [&](double timeSec, float voltage) {
             const float xNorm =
@@ -1357,26 +1445,6 @@ namespace Bess::Canvas {
                 layout.plot.left + (layout.plot.width() * xNorm),
                 layout.plot.bottom - (layout.plot.height() * yNorm),
             };
-        };
-
-        const auto drawClippedSegment = [&](double timeA,
-                                            float voltageA,
-                                            double timeB,
-                                            float voltageB,
-                                            const Color &color,
-                                            const PickingId &id) {
-            if (!std::isfinite(timeA) || !std::isfinite(timeB) ||
-                !std::isfinite(voltageA) || !std::isfinite(voltageB)) {
-                return;
-            }
-
-            glm::vec2 start = pointFor(timeA, voltageA);
-            glm::vec2 end = pointFor(timeB, voltageB);
-            if (!clipLineToRect(start, end, layout.lineClip)) {
-                return;
-            }
-
-            drawLine(context, start, end, z, kTraceStroke, color, id);
         };
 
         std::size_t traceIndex = 0;
@@ -1401,57 +1469,178 @@ namespace Bess::Canvas {
                         std::min<std::size_t>(traceIndex, 64)),
             };
 
-            for (std::size_t i = 0; i < data.size(); ++i) {
-                const auto &[time, voltage] = data[i];
-                const double timeSec =
-                    std::chrono::duration<double>(time).count();
-                if (!std::isfinite(timeSec) || timeSec > layout.timeEndSec) {
-                    continue;
-                }
+            auto firstVisible =
+                std::lower_bound(data.begin(),
+                                 data.end(),
+                                 viewStart,
+                                 [](const auto &sample, TimeNs time) {
+                                     return sample.first < time;
+                                 });
+            if (firstVisible != data.begin()) {
+                --firstVisible;
+            }
+            const auto pastVisible =
+                std::upper_bound(firstVisible,
+                                 data.end(),
+                                 viewEnd,
+                                 [](TimeNs time, const auto &sample) {
+                                     return time < sample.first;
+                                 });
+            if (firstVisible == pastVisible) {
+                ++traceIndex;
+                continue;
+            }
 
-                if (i + 1 < data.size()) {
-                    const auto &[nextTime, nextVoltage] = data[i + 1];
-                    const double nextTimeSec =
-                        std::chrono::duration<double>(nextTime).count();
-                    if (nextTimeSec < layout.timeStartSec) {
+            const std::size_t firstIndex = static_cast<std::size_t>(
+                std::distance(data.begin(), firstVisible));
+            const std::size_t pastIndex = static_cast<std::size_t>(
+                std::distance(data.begin(), pastVisible));
+            const std::size_t visibleSampleCount = pastIndex - firstIndex;
+
+            std::vector<std::size_t> sampleIndices;
+            const std::size_t directSampleLimit = static_cast<std::size_t>(
+                std::max(2.f, std::ceil(plotPixelWidth * 2.f)));
+            if (visibleSampleCount <= directSampleLimit) {
+                sampleIndices.reserve(visibleSampleCount);
+                for (std::size_t i = firstIndex; i < pastIndex; ++i) {
+                    sampleIndices.push_back(i);
+                }
+            } else {
+                const std::size_t bucketCount =
+                    std::min(visibleSampleCount,
+                             static_cast<std::size_t>(std::max(
+                                 1.f, std::ceil(plotPixelWidth * 0.5f))));
+                sampleIndices.reserve((bucketCount * 4U) + 2U);
+
+                for (std::size_t bucket = 0; bucket < bucketCount; ++bucket) {
+                    const std::size_t bucketBegin =
+                        firstIndex +
+                        ((visibleSampleCount * bucket) / bucketCount);
+                    const std::size_t bucketEnd =
+                        firstIndex +
+                        ((visibleSampleCount * (bucket + 1U)) / bucketCount);
+                    if (bucketBegin >= bucketEnd) {
                         continue;
                     }
 
-                    drawClippedSegment(
-                        timeSec, voltage, nextTimeSec, voltage, color, traceId);
-                    drawClippedSegment(nextTimeSec,
-                                       voltage,
-                                       nextTimeSec,
-                                       nextVoltage,
-                                       color,
-                                       traceId);
-                } else {
-                    drawClippedSegment(timeSec,
-                                       voltage,
-                                       layout.timeEndSec,
-                                       voltage,
-                                       color,
-                                       traceId);
+                    std::size_t minIndex = bucketBegin;
+                    std::size_t maxIndex = bucketBegin;
+                    bool hasFiniteValue = false;
+                    for (std::size_t i = bucketBegin; i < bucketEnd; ++i) {
+                        const float value = data[i].second;
+                        if (!std::isfinite(value)) {
+                            continue;
+                        }
+                        if (!hasFiniteValue || value < data[minIndex].second) {
+                            minIndex = i;
+                        }
+                        if (!hasFiniteValue || value > data[maxIndex].second) {
+                            maxIndex = i;
+                        }
+                        hasFiniteValue = true;
+                    }
 
-                    constexpr float markerRadius = 2.3f;
-                    const glm::vec2 lastPoint =
-                        pointFor(layout.timeEndSec, voltage);
-                    const Rect markerClip = inset(layout.plot,
-                                                  markerRadius,
-                                                  markerRadius,
-                                                  markerRadius,
-                                                  markerRadius);
-                    if (pointInside(markerClip, lastPoint)) {
-                        Bess::Core::Renderer::CircleProps marker;
-                        marker.position = lastPoint;
-                        marker.radius = markerRadius;
-                        marker.zIndex = z + 0.0001f;
-                        marker.color = color;
-                        marker.id = traceId;
-                        marker.transformMode = context.transformMode;
-                        context.renderer->drawCircle(marker);
+                    std::array<std::size_t, 4> candidates{
+                        bucketBegin,
+                        hasFiniteValue ? minIndex : bucketBegin,
+                        hasFiniteValue ? maxIndex : bucketBegin,
+                        bucketEnd - 1U,
+                    };
+                    std::ranges::sort(candidates);
+                    for (const std::size_t index : candidates) {
+                        if (sampleIndices.empty() ||
+                            sampleIndices.back() != index) {
+                            sampleIndices.push_back(index);
+                        }
                     }
                 }
+            }
+
+            bool pathBegun = false;
+            bool hasPathEnd = false;
+            glm::vec2 pathEnd{0.f};
+            const auto appendClippedSegment = [&](double timeA,
+                                                  float voltageA,
+                                                  double timeB,
+                                                  float voltageB) {
+                if (!std::isfinite(timeA) || !std::isfinite(timeB) ||
+                    !std::isfinite(voltageA) || !std::isfinite(voltageB)) {
+                    hasPathEnd = false;
+                    return;
+                }
+
+                glm::vec2 start = pointFor(timeA, voltageA);
+                glm::vec2 end = pointFor(timeB, voltageB);
+                if (!clipLineToRect(start, end, layout.lineClip)) {
+                    hasPathEnd = false;
+                    return;
+                }
+
+                if (!pathBegun) {
+                    context.renderer->beginPath({
+                        .strokeColor = color,
+                        .strokeSize = kTraceStroke,
+                        .renderFill = false,
+                        .zIndex = z,
+                        .id = traceId,
+                        .closePath = false,
+                        .transformMode = context.transformMode,
+                    });
+                    pathBegun = true;
+                }
+
+                constexpr float samePointEpsilon = 1e-4f;
+                if (!hasPathEnd ||
+                    glm::length(pathEnd - start) > samePointEpsilon) {
+                    context.renderer->pathMoveTo(start);
+                }
+                context.renderer->pathLineTo(end, kTraceStroke);
+                pathEnd = end;
+                hasPathEnd = true;
+            };
+
+            for (std::size_t i = 0; i + 1U < sampleIndices.size(); ++i) {
+                const auto &[time, voltage] = data[sampleIndices[i]];
+                const auto &[nextTime, nextVoltage] =
+                    data[sampleIndices[i + 1U]];
+                const double timeSec =
+                    std::chrono::duration<double>(time).count();
+                const double nextTimeSec =
+                    std::chrono::duration<double>(nextTime).count();
+
+                appendClippedSegment(timeSec, voltage, nextTimeSec, voltage);
+                appendClippedSegment(
+                    nextTimeSec, voltage, nextTimeSec, nextVoltage);
+            }
+
+            const auto &[lastTime, lastVoltage] = data[sampleIndices.back()];
+            appendClippedSegment(
+                std::chrono::duration<double>(lastTime).count(),
+                lastVoltage,
+                layout.timeEndSec,
+                lastVoltage);
+            if (pathBegun) {
+                context.renderer->endPath();
+            }
+
+            constexpr float markerRadius = 2.3f;
+            const glm::vec2 lastPoint =
+                pointFor(layout.timeEndSec, lastVoltage);
+            const Rect markerClip = inset(layout.plot,
+                                          markerRadius,
+                                          markerRadius,
+                                          markerRadius,
+                                          markerRadius);
+            if (std::isfinite(lastVoltage) &&
+                pointInside(markerClip, lastPoint)) {
+                Bess::Core::Renderer::CircleProps marker;
+                marker.position = lastPoint;
+                marker.radius = markerRadius;
+                marker.zIndex = z + 0.0001f;
+                marker.color = color;
+                marker.id = traceId;
+                marker.transformMode = context.transformMode;
+                context.renderer->drawCircle(marker);
             }
             ++traceIndex;
         }
@@ -1658,6 +1847,8 @@ namespace Bess::Canvas {
     std::vector<UUID> MonitorSceneComp::cleanup(SceneState &state,
                                                 UUID caller) {
         m_probeData.clear();
+        m_probeSourceCursors.clear();
+        m_probeBounds.clear();
         return NonSimSceneComponent::cleanup(state, caller);
     }
 
@@ -1682,6 +1873,8 @@ namespace Bess::Canvas {
         m_probedSlots.erase(slotUuid);
         m_hiddenProbedSlots.erase(slotUuid);
         m_probeData.erase(slotUuid);
+        m_probeSourceCursors.erase(slotUuid);
+        m_probeBounds.erase(slotUuid);
     }
 
 } // namespace Bess::Canvas
