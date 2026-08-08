@@ -1,4 +1,5 @@
 #include "common/types.h"
+#include "component_catalog.h"
 #include "math_sim_driver.h"
 
 #include <atomic>
@@ -123,6 +124,69 @@ TEST(MathSimDriverTest, BuiltInBinaryOpsProduceScalarOutputs) {
     EXPECT_DOUBLE_EQ(subOutput.scalarValue, 4.75);
 }
 
+TEST(MathSimDriverTest, DefinitionDefaultsInitializeComponentInputStates) {
+    const auto definition = makeMathTestDef(
+        "Default Input Test",
+        3,
+        1,
+        [](const std::shared_ptr<MathCompSimData> &data) { return data; });
+    auto inputDescriptor = definition->getInputPortDescriptor();
+    inputDescriptor.defaultStates = {PortState::scalar(2.5),
+                                     PortState::scalar(-4.0)};
+    definition->setInputPortDescriptor(inputDescriptor);
+
+    const auto component = std::dynamic_pointer_cast<MathSimComp>(
+        MathSimComp::fromDef(definition));
+    ASSERT_NE(component, nullptr);
+
+    const auto &states = component->getInputStates();
+    ASSERT_EQ(states.size(), 3);
+    EXPECT_DOUBLE_EQ(states[0].scalarValue, 2.5);
+    EXPECT_DOUBLE_EQ(states[1].scalarValue, -4.0);
+    EXPECT_DOUBLE_EQ(states[2].scalarValue, 0.0);
+}
+
+TEST(MathSimDriverTest, DefinitionSerializationPreservesPortDefaults) {
+    MathCompDef definition;
+    definition.setInputPortDescriptor({
+        .direction = PortDirection::input,
+        .signalKind = SignalKind::scalar,
+        .quantityKind = QuantityKind::dimensionless,
+        .count = 2,
+        .defaultStates = {PortState::scalar(1.25), PortState::scalar(3.5)},
+    });
+
+    const auto json = definition.toJson();
+    ASSERT_TRUE(json["inputPorts"]["defaultStates"].isArray());
+
+    MathCompDef restored;
+    restored.loadJson(json);
+    const auto descriptor = restored.getInputPortDescriptor();
+    ASSERT_EQ(descriptor.defaultStates.size(), 2);
+    EXPECT_DOUBLE_EQ(descriptor.defaultStates[0].scalarValue, 1.25);
+    EXPECT_DOUBLE_EQ(descriptor.defaultStates[1].scalarValue, 3.5);
+}
+
+TEST(MathSimDriverTest, BuiltInSineStartsWithUnitFrequencyAndAmplitude) {
+    MathSimDriver driver;
+    driver.init();
+
+    const auto definition =
+        ComponentCatalog::instance().getComponentDefinition<MathCompDef>(
+            "Sine (sin((f*t) + p) * a)");
+    ASSERT_NE(definition, nullptr);
+
+    const auto component =
+        std::dynamic_pointer_cast<MathSimComp>(driver.createComp(definition));
+    ASSERT_NE(component, nullptr);
+
+    const auto &states = component->getInputStates();
+    ASSERT_EQ(states.size(), 3);
+    EXPECT_DOUBLE_EQ(states[0].scalarValue, 1.0);
+    EXPECT_DOUBLE_EQ(states[1].scalarValue, 0.0);
+    EXPECT_DOUBLE_EQ(states[2].scalarValue, 1.0);
+}
+
 TEST(MathSimDriverTest, DefinitionSerializationPreservesEveryOperationKind) {
     const std::vector<std::pair<MathOpKind, std::string>> cases = {
         {MathOpKind::none, "none"},
@@ -134,8 +198,8 @@ TEST(MathSimDriverTest, DefinitionSerializationPreservesEveryOperationKind) {
 
     for (const auto &[kind, serializedKind] : cases) {
         SCOPED_TRACE(serializedKind);
-        auto definition = MathCompDef::makeBinaryOp(
-            "Serialization Test", "Math", kind);
+        auto definition =
+            MathCompDef::makeBinaryOp("Serialization Test", "Math", kind);
 
         const auto json = definition->toJson();
         ASSERT_TRUE(json["opKind"].isString());

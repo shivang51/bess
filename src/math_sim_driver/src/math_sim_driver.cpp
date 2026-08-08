@@ -68,17 +68,20 @@ namespace Bess::SimEngine::Drivers::Math {
             return MathOpKind::none;
         }
 
-        PortDescriptor scalarPortDescriptor(PortDirection direction,
-                                            size_t count,
-                                            std::vector<std::string> names = {},
-                                            bool isResizeable = false) {
+        PortDescriptor
+        scalarPortDescriptor(PortDirection direction,
+                             size_t count,
+                             std::vector<std::string> names = {},
+                             bool isResizeable = false,
+                             std::vector<PortState> defaultStates = {}) {
             return {.direction = direction,
                     .signalKind = SignalKind::scalar,
                     .quantityKind = QuantityKind::dimensionless,
                     .unit = "",
                     .count = count,
                     .names = std::move(names),
-                    .isResizeable = isResizeable};
+                    .isResizeable = isResizeable,
+                    .defaultStates = std::move(defaultStates)};
         }
 
         std::shared_ptr<MathCompDef> loadDef(const Json::Value &defJson) {
@@ -800,6 +803,13 @@ namespace Bess::SimEngine::Drivers::Math {
         const auto insertIdx =
             std::clamp(port.index, 0, static_cast<int>(states.size()));
 
+        if (!descriptor.defaultStates.empty()) {
+            descriptor.defaultStates.resize(states.size(),
+                                            PortState::scalar(0.0));
+            descriptor.defaultStates.insert(descriptor.defaultStates.begin() +
+                                                insertIdx,
+                                            PortState::scalar(0.0));
+        }
         states.insert(states.begin() + insertIdx, PortState::scalar(0.0));
         connections.insert(connections.begin() + insertIdx,
                            Connections::value_type{});
@@ -848,6 +858,10 @@ namespace Bess::SimEngine::Drivers::Math {
         connected.erase(connected.begin() + port.index);
 
         auto descriptor = descriptorFor(*def, port.direction);
+        if (static_cast<size_t>(port.index) < descriptor.defaultStates.size()) {
+            descriptor.defaultStates.erase(descriptor.defaultStates.begin() +
+                                           port.index);
+        }
         descriptor.count = states.size();
         if (port.direction == PortDirection::input) {
             def->setInputPortDescriptor(descriptor);
@@ -1155,7 +1169,11 @@ namespace Bess::SimEngine::Drivers::Math {
                                      "Frequency (f)",
                                      "Phase (p)",
                                      "Amplitude (a)",
-                                 }));
+                                 },
+                                 false,
+                                 {PortState::scalar(1.0),
+                                  PortState::scalar(0.0),
+                                  PortState::scalar(1.0)}));
 
         catalog.registerComponent(fnDef);
 
@@ -1180,7 +1198,11 @@ namespace Bess::SimEngine::Drivers::Math {
                                      "Frequency (f)",
                                      "Phase (p)",
                                      "Amplitude (a)",
-                                 }));
+                                 },
+                                 false,
+                                 {PortState::scalar(1.0),
+                                  PortState::scalar(0.0),
+                                  PortState::scalar(1.0)}));
 
         catalog.registerComponent(fnDef);
 
@@ -1198,7 +1220,9 @@ namespace Bess::SimEngine::Drivers::Math {
                                  1,
                                  std::vector<std::string>{
                                      "X",
-                                 }));
+                                 },
+                                 false,
+                                 {PortState::scalar(1.0)}));
 
         catalog.registerComponent(fnDef);
 
@@ -1218,7 +1242,9 @@ namespace Bess::SimEngine::Drivers::Math {
                                  1,
                                  std::vector<std::string>{
                                      "X",
-                                 }));
+                                 },
+                                 false,
+                                 {PortState::scalar(1.0)}));
         fnDef->setAutoReschedule(false);
 
         catalog.registerComponent(fnDef);
@@ -1236,7 +1262,9 @@ namespace Bess::SimEngine::Drivers::Math {
                                  1,
                                  std::vector<std::string>{
                                      "X",
-                                 }));
+                                 },
+                                 false,
+                                 {PortState::scalar(1.0)}));
         fnDef->setAutoReschedule(false);
 
         catalog.registerComponent(fnDef);
@@ -1297,13 +1325,15 @@ namespace Bess::SimEngine::Drivers::Math {
                 return std::fmod(x, y);
             });
 
-        fnDef->setInputPortDescriptor(
-            scalarPortDescriptor(PortDirection::input,
-                                 2,
-                                 std::vector<std::string>{
-                                     "X",
-                                     "Y",
-                                 }));
+        fnDef->setInputPortDescriptor(scalarPortDescriptor(
+            PortDirection::input,
+            2,
+            std::vector<std::string>{
+                "X",
+                "Y",
+            },
+            false,
+            {PortState::scalar(0.0), PortState::scalar(1.0)}));
 
         fnDef->setAutoReschedule(false);
 

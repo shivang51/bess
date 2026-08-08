@@ -154,16 +154,6 @@ namespace Bess {
             }
         };
 
-        struct BESS_API PortDescriptor {
-            PortDirection direction = PortDirection::none;
-            SignalKind signalKind = SignalKind::none;
-            QuantityKind quantityKind = QuantityKind::none;
-            std::string unit;
-            size_t count = 0;
-            std::vector<std::string> names;
-            bool isResizeable = false;
-        };
-
         enum class ConnectionState : uint8_t { unknown = 0, driven, high_z };
 
         struct BESS_API LogicThresholds {
@@ -369,6 +359,48 @@ namespace Bess {
             }
         };
 
+        struct BESS_API PortDescriptor {
+            PortDirection direction = PortDirection::none;
+            SignalKind signalKind = SignalKind::none;
+            QuantityKind quantityKind = QuantityKind::none;
+            std::string unit;
+            size_t count = 0;
+            std::vector<std::string> names;
+            bool isResizeable = false;
+            std::vector<PortState> defaultStates;
+
+            [[nodiscard]] std::vector<PortState> makeInitialStates() const {
+                const auto fallbackState = [this]() {
+                    switch (signalKind) {
+                    case SignalKind::digital:
+                        return PortState::digital(LogicState::low);
+                    case SignalKind::scalar:
+                        return PortState::scalar(0.0);
+                    case SignalKind::vector:
+                        return PortState::vector({});
+                    case SignalKind::none:
+                        break;
+                    }
+
+                    auto state = PortState{};
+                    state.signalKind = SignalKind::none;
+                    state.state = LogicState::unknown;
+                    state.connState = ConnectionState::unknown;
+                    return state;
+                }();
+
+                std::vector<PortState> states(count, fallbackState);
+                for (size_t i = 0;
+                     i < states.size() && i < defaultStates.size();
+                     ++i) {
+                    if (defaultStates[i].signalKind == signalKind) {
+                        states[i] = defaultStates[i];
+                    }
+                }
+                return states;
+            }
+        };
+
         struct BESS_API SimulationEvent {
             SimTime simTime;
             UUID compId;
@@ -497,15 +529,6 @@ REFLECT_ENUM(Bess::SimEngine::SignalKind)
 REFLECT_ENUM(Bess::SimEngine::QuantityKind)
 
 REFLECT(Bess::SimEngine::PortRef, componentId, direction, signalKind, index)
-REFLECT(Bess::SimEngine::PortDescriptor,
-        direction,
-        signalKind,
-        quantityKind,
-        unit,
-        count,
-        names,
-        isResizeable)
-
 REFLECT(Bess::SimEngine::PortState,
         signalKind,
         state,
@@ -514,6 +537,17 @@ REFLECT(Bess::SimEngine::PortState,
         lastChangeTime,
         connState)
 REFLECT_VECTOR(Bess::SimEngine::PortState)
+
+REFLECT(Bess::SimEngine::PortDescriptor,
+        direction,
+        signalKind,
+        quantityKind,
+        unit,
+        count,
+        names,
+        isResizeable,
+        defaultStates)
+
 REFLECT_VECTOR(bool)
 
 REFLECT(Bess::SimEngine::ComponentState,

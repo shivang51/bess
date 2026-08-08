@@ -210,7 +210,8 @@ void bind_sim_engine_types(py::module_ &m) {
         .def_readwrite("unit", &PortDescriptor::unit)
         .def_readwrite("count", &PortDescriptor::count)
         .def_readwrite("names", &PortDescriptor::names)
-        .def_readwrite("is_resizeable", &PortDescriptor::isResizeable);
+        .def_readwrite("is_resizeable", &PortDescriptor::isResizeable)
+        .def_readwrite("default_states", &PortDescriptor::defaultStates);
 
     py::enum_<SlotsGroupType>(m, "SlotsGroupType")
         .value("NONE", SlotsGroupType::none)

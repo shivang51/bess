@@ -127,11 +127,13 @@ namespace Bess::SimEngine::Drivers::Digital {
             comp->setDefinition(clone);
 
             auto digDef = std::dynamic_pointer_cast<DigCompDef>(clone);
-            const auto inpCount = digDef->getInputSlotsInfo().count;
-            const auto outCount = digDef->getOutputSlotsInfo().count;
+            const auto inputDescriptor = digDef->getInputPortDescriptor();
+            const auto outputDescriptor = digDef->getOutputPortDescriptor();
+            const auto inpCount = inputDescriptor.count;
+            const auto outCount = outputDescriptor.count;
 
-            comp->m_inputStates.resize(inpCount);
-            comp->m_outputStates.resize(outCount);
+            comp->m_inputStates = inputDescriptor.makeInitialStates();
+            comp->m_outputStates = outputDescriptor.makeInitialStates();
 
             comp->m_isInputConnected.resize(inpCount, false);
             comp->m_isOutputConnected.resize(outCount, false);
