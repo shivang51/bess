@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bess_core/renderer/renderer_types.h"
 #include "common/bess_api.h"
 
 #include "common/types.h"
@@ -25,6 +26,17 @@ namespace Bess::UI::Widgets {
 
     BESS_API bool InputTimeS(const std::string &label, size_t &seconds);
     BESS_API bool InputTimeMS(const std::string &label, size_t &millisec);
+
+    BESS_API bool IconButton(const std::string &icon,
+                             const std::string &label = "",
+                             const std::string &tooltip = "",
+                             bool disabled = false);
+
+    BESS_API bool IconButton(const std::string &icon,
+                             const Core::Renderer::Color &iconColor,
+                             const std::string &label = "",
+                             const std::string &tooltip = "",
+                             bool disabled = false);
 
     template <typename T> auto UnpackValue(const T &item) {
         if constexpr (std::is_pointer_v<T>) {

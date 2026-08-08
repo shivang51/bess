@@ -1,4 +1,5 @@
 #include "ui/widgets/m_widgets.h"
+#include "common/bess_api.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "ui/icons/FontAwesomeIcons_Remapped.h"
@@ -113,6 +114,104 @@ namespace Bess::UI::Widgets {
         ImGui::TextDisabled("ms");
 
         return changed;
+    }
+
+    BESS_API bool IconButton(const std::string &icon,
+                             const std::string &label,
+                             const std::string &tooltip,
+                             bool disabled) {
+        return IconButton(icon,
+                          Core::Renderer::Color{-1.f, -1.f, -1.f, -1.f},
+                          label,
+                          tooltip,
+                          disabled);
+    }
+
+    BESS_API bool IconButton(const std::string &icon,
+                             const Core::Renderer::Color &iconColor,
+                             const std::string &label,
+                             const std::string &tooltip,
+                             bool disabled) {
+        bool clicked = false;
+
+        if (disabled) {
+            ImGui::BeginDisabled();
+        }
+
+        ImGui::PushID(icon.c_str());
+        if (!label.empty()) {
+            ImGui::PushID(label.c_str());
+        }
+
+        const bool hasLabel = !label.empty();
+
+        const auto &style = ImGui::GetStyle();
+        const ImVec2 iconSize = ImGui::CalcTextSize(icon.c_str());
+        const ImVec2 labelSize =
+            hasLabel ? ImGui::CalcTextSize(label.c_str()) : ImVec2(0.f, 0.f);
+        const float spacing = hasLabel ? style.ItemInnerSpacing.x : 0.f;
+        const ImVec2 totalSize(
+            iconSize.x + spacing + labelSize.x + (style.FramePadding.x * 2.f),
+            std::max(iconSize.y, labelSize.y) + (style.FramePadding.y * 2.f));
+
+        const ImVec2 cursor = ImGui::GetCursorScreenPos();
+
+        clicked = ImGui::InvisibleButton("##btn", totalSize);
+
+        const bool hovered = ImGui::IsItemHovered();
+        const bool held = ImGui::IsItemActive();
+
+        // button background
+        ImU32 bgCol;
+        if (held)
+            bgCol = ImGui::GetColorU32(ImGuiCol_ButtonActive);
+        else if (hovered)
+            bgCol = ImGui::GetColorU32(ImGuiCol_ButtonHovered);
+        else
+            bgCol = ImGui::GetColorU32(ImGuiCol_Button);
+
+        ImGui::GetWindowDrawList()->AddRectFilled(
+            cursor,
+            ImVec2(cursor.x + totalSize.x, cursor.y + totalSize.y),
+            bgCol,
+            style.FrameRounding);
+
+        const bool applyIconColor = iconColor.a >= 0.f;
+        if (applyIconColor) {
+            ImGui::PushStyleColor(
+                ImGuiCol_Text,
+                ImGui::GetColorU32(ImVec4(
+                    iconColor.r, iconColor.g, iconColor.b, iconColor.a)));
+        }
+        ImGui::RenderText(ImVec2(cursor.x + style.FramePadding.x,
+                                 cursor.y + style.FramePadding.y),
+                          icon.c_str());
+        if (applyIconColor) {
+            ImGui::PopStyleColor();
+        }
+
+        // Draw label text (always default text color).
+        if (hasLabel) {
+            ImGui::RenderText(
+                ImVec2(cursor.x + style.FramePadding.x + iconSize.x + spacing,
+                       cursor.y + style.FramePadding.y),
+                label.c_str());
+        }
+
+        if (!tooltip.empty() && hovered) {
+            ImGui::SetTooltip("%s", tooltip.c_str());
+        }
+
+        if (!label.empty()) {
+            ImGui::PopID();
+        }
+        ImGui::PopID();
+
+        if (disabled) {
+            ImGui::EndDisabled();
+        }
+
+        return clicked;
     }
 
     bool CheckboxWithLabel(const char *label,

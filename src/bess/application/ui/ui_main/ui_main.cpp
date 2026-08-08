@@ -60,6 +60,8 @@ namespace Bess::UI {
         size_t runDuration = 5;
         size_t stampInterval = 100;
 
+        ImVec2 menubarSize = ImVec2(0.f, 0.f);
+
         void resetVerilogImportWizard(VerilogImportWizardState &state) {
             state.filePath.clear();
             state.filePaths.clear();
@@ -402,9 +404,6 @@ namespace Bess::UI {
 
             if (ImGui::BeginMenuEx("Import",
                                    Icons::FontAwesomeIcons::FA_FILE_IMPORT)) {
-                const std::string verilogLabel =
-                    std::string(Icons::FontAwesomeIcons::FA_V) +
-                    Icons::FontAwesomeIcons::FA_S + "  Verilog Script";
                 if (ImGui::MenuItemEx(
                         "Verilog Script",
                         (std::string(Icons::FontAwesomeIcons::FA_V) +
@@ -507,7 +506,7 @@ namespace Bess::UI {
             ImGui::EndMenu();
         }
 
-        const auto menubar_size = ImGui::GetWindowSize();
+        menubarSize = ImGui::GetWindowSize();
 
         // project name textbox - begin
 
@@ -523,9 +522,9 @@ namespace Bess::UI {
             width = 200;
 
         ImGui::PushItemWidth(width);
-        ImGui::SameLine((menubar_size.x / 2.f) -
+        ImGui::SameLine((menubarSize.x / 2.f) -
                         (width / 2.f)); // Align to the right side
-        ImGui::SetCursorPosY(((menubar_size.y - ImGui::GetFontSize()) / 2.f) -
+        ImGui::SetCursorPosY(((menubarSize.y - ImGui::GetFontSize()) / 2.f) -
                              2.f);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.f, 2.f));
         ImGui::PushStyleColor(ImGuiCol_FrameBg,
@@ -546,7 +545,7 @@ namespace Bess::UI {
         // project name textbox - end
 
         // right aligned controls
-        size_t buttonCount = 2; // Layout + Start/Stop
+        int buttonCount = 2; // Layout + Start/Stop
 
         if (!simCtx.isStopped()) {
             buttonCount += 1; // Pause/Resume
@@ -559,16 +558,16 @@ namespace Bess::UI {
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
         ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.5f, 0.5f));
 
-        const float targetHeight = menubar_size.y - 4.0f;
+        const float targetHeight = menubarSize.y - 4.0f;
         const ImVec2 buttonSize =
             ImVec2(targetHeight - 2.f, targetHeight - 2.f);
         const float winSizeX =
-            (buttonCount * (buttonSize.x + style.ItemSpacing.x));
-        const float winX = menubar_size.x - winSizeX - 4.f;
+            ((buttonSize.x + style.ItemSpacing.x) * (float)buttonCount);
+        const float winX = menubarSize.x - winSizeX - 4.f;
         auto window = ImGui::GetCurrentWindow();
         window->DrawList->AddRectFilled(
             ImVec2(winX, 2.f),
-            ImVec2(winX + winSizeX - 4.f, menubar_size.y - 2.f),
+            ImVec2(winX + winSizeX - 4.f, menubarSize.y - 2.f),
             ImGui::GetColorU32(ImGuiCol_WindowBg),
             4.f);
         ImGui::SameLine(winX - 8.f);
@@ -704,24 +703,95 @@ namespace Bess::UI {
                                         window_flags)) {
             if (ImGui::BeginMenuBar()) {
 
-                // Timed Run Controls
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0, 0, 0, 0});
+                const auto &simCtx = simEngine.getRunCtx();
+                // Play / Pause
                 {
 
-                    Widgets::InputTimeS("Stop Time", runDuration);
+                    if (simCtx.isStopped()) {
+                        ImGui::PushStyleColor(
+                            ImGuiCol_Text,
+                            ViewportTheme::colors.stateHigh.toHexRev());
+                    } else if (simCtx.isSimulating() || simCtx.isPaused()) {
+                        ImGui::PushStyleColor(
+                            ImGuiCol_Text,
+                            ViewportTheme::colors.error.toHexRev());
+                    }
 
-                    ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+                    auto icon = simCtx.isStopped()
+                                    ? Icons::FontAwesomeIcons::FA_PLAY
+                                    : Icons::FontAwesomeIcons::FA_STOP;
 
-                    Widgets::InputTimeMS("Stamp Interval", stampInterval);
+                    const float targetHeight = 32 - 4.0f;
+                    const ImVec2 buttonSize =
+                        ImVec2(targetHeight - 2.f, targetHeight - 2.f);
 
-                    if (ImGui::Button("Time Run")) {
-                        auto &simEngine = Bess::UI::Proj::sim();
-                        simEngine.runFor(TimeMs(runDuration * 1000),
-                                         TimeMs(stampInterval));
+                    if (ImGui::Button(icon, buttonSize)) {
+                        simEngine.toggleStartStop();
+                    }
+
+                    ImGui::PopStyleColor();
+
+                    if (ImGui::IsItemHovered(
+                            ImGuiHoveredFlags_AllowWhenDisabled)) {
+                        const auto msg = simCtx.isStopped() ? "Start Simulation"
+                                                            : "Stop Simulation";
+                        ImGui::SetTooltip("%s", msg);
+                    }
+
+                    if (!simCtx.isStopped()) {
+                        icon = simCtx.isPaused()
+                                   ? Icons::CodIcons::DEBUG_START
+                                   : Icons::FontAwesomeIcons::FA_PAUSE;
+
+                        ImGui::SameLine();
+
+                        ImGui::PushStyleColor(
+                            ImGuiCol_Text,
+                            ViewportTheme::colors.stateHighZ.toHexRev());
+                        if (ImGui::Button(icon, buttonSize)) {
+                            simEngine.togglePlayPause();
+                        }
+                        ImGui::PopStyleColor();
+
+                        if (ImGui::IsItemHovered(
+                                ImGuiHoveredFlags_AllowWhenDisabled)) {
+                            const auto msg = simCtx.isPaused()
+                                                 ? "Resume Simulation"
+                                                 : "Pause Simulation";
+                            ImGui::SetTooltip("%s", msg);
+                        }
                     }
                 }
 
-                ImGui::Button("Run");
+                ImGui::PopStyleColor();
+                ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
 
+                // Timed Run Controls
+                if (simCtx.isStopped() || simCtx.isTimedRun) {
+
+                    if (simCtx.isStopped()) {
+                        Widgets::InputTimeS("Stop Time", runDuration);
+
+                        ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+
+                        Widgets::InputTimeMS("Stamp Interval", stampInterval);
+
+                        if (Widgets::IconButton(
+                                Icons::FontAwesomeIcons::FA_PLAY,
+                                ViewportTheme::colors.stateHigh,
+                                "Time Run")) {
+                            auto &simEngine = Bess::UI::Proj::sim();
+                            simEngine.runFor(TimeMs(runDuration * 1000),
+                                             TimeMs(stampInterval));
+                        }
+                    } else {
+                        ImGui::TextDisabled("Stop Time: %lu s", runDuration);
+                        ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+                        ImGui::TextDisabled("Stamp Interval: %lu ms",
+                                            stampInterval);
+                    }
+                }
                 ImGui::EndMenuBar();
             }
 
