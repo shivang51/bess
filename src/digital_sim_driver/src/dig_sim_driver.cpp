@@ -606,8 +606,12 @@ namespace Bess::SimEngine::Drivers::Digital {
             if (static_cast<size_t>(index) > states.size()) {
                 return PortCountChangeRes::noChange();
             }
+            auto &initialStates = digComp->getInitialInputStates();
+            initialStates.resize(states.size(), PortState{});
             states.insert(states.begin() + static_cast<long>(index),
                           PortState{});
+            initialStates.insert(
+                initialStates.begin() + static_cast<long>(index), PortState{});
             connections.insert(connections.begin() + static_cast<long>(index),
                                std::vector<ComponentPin>{});
             connected.insert(connected.begin() + static_cast<long>(index),
@@ -617,10 +621,15 @@ namespace Bess::SimEngine::Drivers::Digital {
 
             if (digDef->getKeepIOCountEq()) {
                 auto &outStates = digComp->getOutputStates();
+                auto &initialOutStates = digComp->getInitialOutputStates();
                 auto &outConnections = digComp->getOutputConnections();
                 auto &outConnected = digComp->getIsOutputConnected();
+                initialOutStates.resize(outStates.size(), PortState{});
                 outStates.insert(outStates.begin() + static_cast<long>(index),
                                  PortState{});
+                initialOutStates.insert(initialOutStates.begin() +
+                                            static_cast<long>(index),
+                                        PortState{});
                 outConnections.insert(outConnections.begin() +
                                           static_cast<long>(index),
                                       std::vector<ComponentPin>{});
@@ -638,8 +647,12 @@ namespace Bess::SimEngine::Drivers::Digital {
             if (static_cast<size_t>(index) > states.size()) {
                 return PortCountChangeRes::noChange();
             }
+            auto &initialStates = digComp->getInitialOutputStates();
+            initialStates.resize(states.size(), PortState{});
             states.insert(states.begin() + static_cast<long>(index),
                           PortState{});
+            initialStates.insert(
+                initialStates.begin() + static_cast<long>(index), PortState{});
             connections.insert(connections.begin() + static_cast<long>(index),
                                std::vector<ComponentPin>{});
             connected.insert(connected.begin() + static_cast<long>(index),
@@ -649,10 +662,15 @@ namespace Bess::SimEngine::Drivers::Digital {
 
             if (digDef->getKeepIOCountEq()) {
                 auto &inStates = digComp->getInputStates();
+                auto &initialInStates = digComp->getInitialInputStates();
                 auto &inConnections = digComp->getInputConnections();
                 auto &inConnected = digComp->getIsInputConnected();
+                initialInStates.resize(inStates.size(), PortState{});
                 inStates.insert(inStates.begin() + static_cast<long>(index),
                                 PortState{});
+                initialInStates.insert(initialInStates.begin() +
+                                           static_cast<long>(index),
+                                       PortState{});
                 inConnections.insert(inConnections.begin() +
                                          static_cast<long>(index),
                                      std::vector<ComponentPin>{});
@@ -719,6 +737,9 @@ namespace Bess::SimEngine::Drivers::Digital {
             }
             if (static_cast<size_t>(index) < states.size())
                 states.erase(states.begin() + index);
+            auto &initialStates = digComp->getInitialInputStates();
+            if (static_cast<size_t>(index) < initialStates.size())
+                initialStates.erase(initialStates.begin() + index);
             if (static_cast<size_t>(index) < connections.size())
                 connections.erase(connections.begin() + index);
             if (static_cast<size_t>(index) < connected.size())
@@ -730,10 +751,13 @@ namespace Bess::SimEngine::Drivers::Digital {
 
             if (digDef->getKeepIOCountEq()) {
                 auto &outStates = digComp->getOutputStates();
+                auto &initialOutStates = digComp->getInitialOutputStates();
                 auto &outConnections = digComp->getOutputConnections();
                 auto &outConnected = digComp->getIsOutputConnected();
                 if (static_cast<size_t>(index) < outStates.size())
                     outStates.erase(outStates.begin() + index);
+                if (static_cast<size_t>(index) < initialOutStates.size())
+                    initialOutStates.erase(initialOutStates.begin() + index);
                 if (static_cast<size_t>(index) < outConnections.size())
                     outConnections.erase(outConnections.begin() + index);
                 if (static_cast<size_t>(index) < outConnected.size())
@@ -754,6 +778,9 @@ namespace Bess::SimEngine::Drivers::Digital {
             }
             if (static_cast<size_t>(index) < states.size())
                 states.erase(states.begin() + index);
+            auto &initialStates = digComp->getInitialOutputStates();
+            if (static_cast<size_t>(index) < initialStates.size())
+                initialStates.erase(initialStates.begin() + index);
             if (static_cast<size_t>(index) < connections.size())
                 connections.erase(connections.begin() + index);
             if (static_cast<size_t>(index) < connected.size())
@@ -765,10 +792,13 @@ namespace Bess::SimEngine::Drivers::Digital {
 
             if (digDef->getKeepIOCountEq()) {
                 auto &inStates = digComp->getInputStates();
+                auto &initialInStates = digComp->getInitialInputStates();
                 auto &inConnections = digComp->getInputConnections();
                 auto &inConnected = digComp->getIsInputConnected();
                 if (static_cast<size_t>(index) < inStates.size())
                     inStates.erase(inStates.begin() + index);
+                if (static_cast<size_t>(index) < initialInStates.size())
+                    initialInStates.erase(initialInStates.begin() + index);
                 if (static_cast<size_t>(index) < inConnections.size())
                     inConnections.erase(inConnections.begin() + index);
                 if (static_cast<size_t>(index) < inConnected.size())
@@ -965,6 +995,12 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         inputs[pinIdx] = state;
         inputs[pinIdx].lastChangeTime = getCurrentSimTime();
+        if (!isRunning() && !isPaused()) {
+            auto &initialInputs = comp->getInitialInputStates();
+            if (static_cast<size_t>(pinIdx) < initialInputs.size()) {
+                initialInputs[pinIdx] = inputs[pinIdx];
+            }
+        }
         return true;
     }
 
@@ -996,6 +1032,12 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         outputs[pinIdx] = state;
         outputs[pinIdx].lastChangeTime = getCurrentSimTime();
+        if (!isRunning() && !isPaused()) {
+            auto &initialOutputs = comp->getInitialOutputStates();
+            if (static_cast<size_t>(pinIdx) < initialOutputs.size()) {
+                initialOutputs[pinIdx] = outputs[pinIdx];
+            }
+        }
 
         propagateFromComponent(uuid);
 
@@ -1191,6 +1233,10 @@ namespace Bess::SimEngine::Drivers::Digital {
         Json::Value json = EvtBasedSimComp::toJson();
         JsonConvert::toJsonValue(m_inputStates, json["inputStates"]);
         JsonConvert::toJsonValue(m_outputStates, json["outputStates"]);
+        JsonConvert::toJsonValue(m_initialInputStates,
+                                 json["initialInputStates"]);
+        JsonConvert::toJsonValue(m_initialOutputStates,
+                                 json["initialOutputStates"]);
         JsonConvert::toJsonValue(m_inputConnections, json["inputConnections"]);
         JsonConvert::toJsonValue(m_outputConnections,
                                  json["outputConnections"]);
@@ -1210,6 +1256,23 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         if (json.isMember("outputStates")) {
             JsonConvert::fromJsonValue(json["outputStates"], m_outputStates);
+        }
+
+        if (json.isMember("initialInputStates")) {
+            JsonConvert::fromJsonValue(json["initialInputStates"],
+                                       m_initialInputStates);
+        } else {
+            // Older scene files only stored the live port state. Treat it as
+            // the configured restart state so user-edited values survive the
+            // migration to explicit runtime reset state.
+            m_initialInputStates = m_inputStates;
+        }
+
+        if (json.isMember("initialOutputStates")) {
+            JsonConvert::fromJsonValue(json["initialOutputStates"],
+                                       m_initialOutputStates);
+        } else {
+            m_initialOutputStates = m_outputStates;
         }
 
         if (json.isMember("inputConnections")) {
@@ -1234,6 +1297,18 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         if (json.isMember("netUuid")) {
             JsonConvert::fromJsonValue(json["netUuid"], m_netUuid);
+        }
+    }
+
+    void DigSimComp::resetRuntimeState(TimeNs startTime) {
+        EvtBasedSimComp::resetRuntimeState(startTime);
+        m_inputStates = m_initialInputStates;
+        m_outputStates = m_initialOutputStates;
+        for (auto &state : m_inputStates) {
+            state.lastChangeTime = startTime;
+        }
+        for (auto &state : m_outputStates) {
+            state.lastChangeTime = startTime;
         }
     }
 

@@ -134,6 +134,8 @@ namespace Bess::SimEngine::Drivers::Digital {
 
             comp->m_inputStates = inputDescriptor.makeInitialStates();
             comp->m_outputStates = outputDescriptor.makeInitialStates();
+            comp->m_initialInputStates = comp->m_inputStates;
+            comp->m_initialOutputStates = comp->m_outputStates;
 
             comp->m_isInputConnected.resize(inpCount, false);
             comp->m_isOutputConnected.resize(outCount, false);
@@ -149,6 +151,12 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         MAKE_GETTER_SETTER(std::vector<PortState>, InputStates, m_inputStates)
         MAKE_GETTER_SETTER(std::vector<PortState>, OutputStates, m_outputStates)
+        MAKE_GETTER(std::vector<PortState>,
+                    InitialInputStates,
+                    m_initialInputStates)
+        MAKE_GETTER(std::vector<PortState>,
+                    InitialOutputStates,
+                    m_initialOutputStates)
         MAKE_GETTER_SETTER(Connections, InputConnections, m_inputConnections)
         MAKE_GETTER_SETTER(Connections, OutputConnections, m_outputConnections)
         MAKE_GETTER_SETTER(std::vector<bool>,
@@ -161,6 +169,7 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         Json::Value toJson() const override;
         void loadJson(const Json::Value &json) override;
+        void resetRuntimeState(TimeNs startTime) override;
 
         static void fromJson(const std::shared_ptr<DigSimComp> &comp,
                              const Json::Value &json);
@@ -168,6 +177,8 @@ namespace Bess::SimEngine::Drivers::Digital {
       private:
         std::vector<PortState> m_inputStates;
         std::vector<PortState> m_outputStates;
+        std::vector<PortState> m_initialInputStates;
+        std::vector<PortState> m_initialOutputStates;
         Connections m_inputConnections;
         Connections m_outputConnections;
         std::vector<bool> m_isInputConnected;

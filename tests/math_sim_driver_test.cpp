@@ -146,6 +146,31 @@ TEST(MathSimDriverTest, DefinitionDefaultsInitializeComponentInputStates) {
     EXPECT_DOUBLE_EQ(states[2].scalarValue, 0.0);
 }
 
+TEST(MathSimDriverTest, AddingComponentImmediatelyStampsItsInitialState) {
+    MathSimDriver driver;
+    driver.init();
+
+    const auto definition = makeMathTestDef(
+        "Initially Stamped Component",
+        0,
+        1,
+        [](const std::shared_ptr<MathCompSimData> &data) { return data; });
+    auto outputDescriptor = definition->getOutputPortDescriptor();
+    outputDescriptor.defaultStates = {PortState::scalar(7.5)};
+    definition->setOutputPortDescriptor(outputDescriptor);
+
+    const auto componentId = addMathComponent(driver, definition);
+    ASSERT_NE(componentId, UUID::null);
+
+    const auto stampData = driver.getStampData();
+    const auto history = stampData.find(componentId);
+    ASSERT_TRUE(history.has_value());
+    ASSERT_EQ(history->samples.size(), 1);
+    EXPECT_EQ(history->samples[0].simTime, TimeNs(0));
+    ASSERT_EQ(history->samples[0].outputStates.size(), 1);
+    EXPECT_DOUBLE_EQ(history->samples[0].outputStates[0].scalarValue, 7.5);
+}
+
 TEST(MathSimDriverTest, DefinitionSerializationPreservesPortDefaults) {
     MathCompDef definition;
     definition.setInputPortDescriptor({

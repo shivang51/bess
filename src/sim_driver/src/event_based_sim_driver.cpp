@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <exception>
+#include <limits>
 #include <unordered_map>
 
 // #define BESS_ENABLE_LOG_EVENTS
@@ -30,6 +31,15 @@ namespace Bess::SimEngine::Drivers {
         return m_autoRescheduleDelay;
     }
 
+    TimeNs EvtBasedCompDef::getInitialSimDelay() {
+        return TimeNs(0);
+    }
+
+    TimeNs EvtBasedCompDef::getSelfSimDelayAfter(
+        uint64_t /*completedSelfSimulations*/) {
+        return getSelfSimDelay();
+    }
+
     TimeNs EvtBasedSimComp::getPropDelay() const {
         auto def = std::dynamic_pointer_cast<EvtBasedCompDef>(m_def);
         return def ? def->getPropDelay() : TimeNs(0);
@@ -42,7 +52,19 @@ namespace Bess::SimEngine::Drivers {
 
     TimeNs EvtBasedSimComp::getSelfSimDelay() const {
         auto def = std::dynamic_pointer_cast<EvtBasedCompDef>(m_def);
-        return def ? def->getSelfSimDelay() : TimeNs(0);
+        return def ? def->getSelfSimDelayAfter(m_completedSelfSimulations)
+                   : TimeNs(0);
+    }
+
+    TimeNs EvtBasedSimComp::getInitialSimDelay() const {
+        auto def = std::dynamic_pointer_cast<EvtBasedCompDef>(m_def);
+        return def ? def->getInitialSimDelay() : TimeNs(0);
+    }
+
+    void EvtBasedSimComp::recordSelfSimulation() {
+        if (m_completedSelfSimulations < std::numeric_limits<uint64_t>::max()) {
+            ++m_completedSelfSimulations;
+        }
     }
 
     Json::Value EvtBasedSimComp::toJson() const {
@@ -52,6 +74,11 @@ namespace Bess::SimEngine::Drivers {
 
     void EvtBasedSimComp::loadJson(const Json::Value &json) {
         SimComponent::loadJson(json);
+    }
+
+    void EvtBasedSimComp::resetRuntimeState(TimeNs startTime) {
+        SimComponent::resetRuntimeState(startTime);
+        m_completedSelfSimulations = 0;
     }
 
     void EvtBasedSimDriver::run() {
@@ -137,12 +164,15 @@ namespace Bess::SimEngine::Drivers {
 
             const bool shouldScheduleNow = scheduleSim && driverActive;
             if (shouldScheduleNow) {
+                const auto eventTime =
+                    compCasted->getSimSelf()
+                        ? initialEventTime(compCasted, getCurrentSimTime())
+                        : getCurrentSimTime();
                 BESS_DEBUG(
                     "Scheduling initial event for component {} at time {}ns",
                     (uint64_t)comp->getUuid(),
-                    getCurrentSimTime().count());
-                scheduleEvtLocked(
-                    comp->getUuid(), getCurrentSimTime(), UUID::null);
+                    eventTime.count());
+                scheduleEvtLocked(comp->getUuid(), eventTime, UUID::null);
             }
         }
 
@@ -269,8 +299,26 @@ namespace Bess::SimEngine::Drivers {
         notifyScheduler();
     }
 
+    TimeNs EvtBasedSimDriver::initialEventTime(
+        const std::shared_ptr<EvtBasedSimComp> &component,
+        TimeNs startTime) const {
+        const auto delay =
+            component ? component->getInitialSimDelay() : TimeNs(0);
+        const auto eventTime = startTime + delay;
+        if (!std::isfinite(delay.count()) || delay.count() < 0.0 ||
+            !std::isfinite(eventTime.count()) || eventTime < startTime) {
+            BESS_ERROR("Component {} requested an invalid initial simulation "
+                       "delay of {}ns; using zero delay",
+                       component ? static_cast<uint64_t>(component->getUuid())
+                                 : 0,
+                       delay.count());
+            return startTime;
+        }
+        return eventTime;
+    }
+
     void EvtBasedSimDriver::prepareRunStartLocked(TimeNs startTime) {
-        std::vector<UUID> selfScheduledCompIds;
+        std::vector<std::shared_ptr<EvtBasedSimComp>> selfScheduledComponents;
         std::vector<UUID> initiallyScheduledCompIds;
         m_deferredRunStartCompIds.clear();
 
@@ -284,7 +332,7 @@ namespace Bess::SimEngine::Drivers {
                 }
 
                 if (comp->getSimSelf()) {
-                    selfScheduledCompIds.emplace_back(compId);
+                    selfScheduledComponents.emplace_back(comp);
                 } else if (m_runStartScheduledCompIds.contains(compId)) {
                     initiallyScheduledCompIds.emplace_back(compId);
                 }
@@ -296,17 +344,27 @@ namespace Bess::SimEngine::Drivers {
                 return static_cast<uint64_t>(a) < static_cast<uint64_t>(b);
             });
         };
-        sortByUuid(selfScheduledCompIds);
+        std::ranges::sort(selfScheduledComponents,
+                          [](const auto &a, const auto &b) {
+                              return static_cast<uint64_t>(a->getUuid()) <
+                                     static_cast<uint64_t>(b->getUuid());
+                          });
         sortByUuid(initiallyScheduledCompIds);
 
         m_events.clear();
         m_nextEventId = 1;
 
-        for (const auto &compId : selfScheduledCompIds) {
-            scheduleEvtLocked(compId, startTime, UUID::null);
+        bool hasSelfSimulationAtStart = false;
+        for (const auto &component : selfScheduledComponents) {
+            const auto eventTime = initialEventTime(component, startTime);
+            scheduleEvtLocked(component->getUuid(),
+                              eventTime,
+                              UUID::null);
+            hasSelfSimulationAtStart =
+                hasSelfSimulationAtStart || eventTime == startTime;
         }
 
-        if (!selfScheduledCompIds.empty()) {
+        if (hasSelfSimulationAtStart) {
             m_deferredRunStartCompIds = std::move(initiallyScheduledCompIds);
             return;
         }
@@ -440,6 +498,7 @@ namespace Bess::SimEngine::Drivers {
             }
 
             if (comp->getSimSelf()) {
+                comp->recordSelfSimulation();
                 const auto delay = comp->getSelfSimDelay();
                 if (!std::isfinite(delay.count()) || delay.count() <= 0.0) {
                     BESS_ERROR("Component {} requested auto-rescheduling with "

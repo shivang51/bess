@@ -56,6 +56,23 @@ namespace {
         definition->setAutoRescheduleDelay(period);
         return definition;
     }
+
+    class PhasedMathDefinition final : public MathCompDef {
+      public:
+        TimeNs getInitialSimDelay() override {
+            return TimeNs(2e6);
+        }
+
+        TimeNs
+        getSelfSimDelayAfter(uint64_t completedSelfSimulations) override {
+            return completedSelfSimulations % 2 == 1 ? TimeNs(1e6)
+                                                     : TimeNs(2e6);
+        }
+
+        std::shared_ptr<CompDef> clone() const override {
+            return std::make_shared<PhasedMathDefinition>(*this);
+        }
+    };
 } // namespace
 
 class SimulationTimingTest : public testing::Test {
@@ -120,6 +137,82 @@ TEST_F(SimulationTimingTest, TimedRunUsesExactGlobalTimeAndSampleBoundaries) {
         ASSERT_EQ(stampHistory->samples[i].outputStates.size(), 1u);
         EXPECT_DOUBLE_EQ(stampHistory->samples[i].outputStates[0].scalarValue,
                          expectedSampleTimes[i]);
+    }
+}
+
+TEST_F(SimulationTimingTest,
+       InitialSelfDelayAndPhaseIntervalsResetForEveryRun) {
+    std::vector<double> simulatedAtNs;
+    std::vector<double> zeroDelayTimes;
+    auto definition = std::make_shared<PhasedMathDefinition>();
+    definition->setName("Phased Restart Source");
+    definition->setGroupName("Timing Test");
+    definition->setInputPortDescriptor({
+        .direction = PortDirection::input,
+        .signalKind = SignalKind::scalar,
+        .quantityKind = QuantityKind::dimensionless,
+        .count = 0,
+    });
+    definition->setOutputPortDescriptor({
+        .direction = PortDirection::output,
+        .signalKind = SignalKind::scalar,
+        .quantityKind = QuantityKind::dimensionless,
+        .count = 1,
+    });
+    definition->setAutoReschedule(true);
+    definition->setSimFn(
+        [&simulatedAtNs](const std::shared_ptr<MathCompSimData> &data) {
+            simulatedAtNs.push_back(data->simTime.count());
+            const double previous = data->prevState.outputStates[0].scalarValue;
+            data->outputStates[0] =
+                PortState::scalar(previous == 0.0 ? 1.0 : 0.0, data->simTime);
+            data->simDependants = true;
+            return data;
+        });
+
+    const auto componentId = engine->addComponent(definition, false);
+    ASSERT_NE(componentId, Bess::UUID::null);
+
+    auto zeroDelayDefinition = std::make_shared<MathCompDef>();
+    zeroDelayDefinition->setName("Zero Delay Initialization");
+    zeroDelayDefinition->setGroupName("Timing Test");
+    zeroDelayDefinition->setInputPortDescriptor({
+        .direction = PortDirection::input,
+        .signalKind = SignalKind::scalar,
+        .quantityKind = QuantityKind::dimensionless,
+        .count = 0,
+    });
+    zeroDelayDefinition->setOutputPortDescriptor({
+        .direction = PortDirection::output,
+        .signalKind = SignalKind::scalar,
+        .quantityKind = QuantityKind::dimensionless,
+        .count = 1,
+    });
+    zeroDelayDefinition->setSimFn(
+        [&zeroDelayTimes](const std::shared_ptr<MathCompSimData> &data) {
+            zeroDelayTimes.push_back(data->simTime.count());
+            return data;
+        });
+    ASSERT_NE(engine->addComponent(zeroDelayDefinition, false),
+              Bess::UUID::null);
+
+    const std::vector<double> expectedRunTimes = {2e6, 3e6, 5e6, 6e6};
+    for (int run = 0; run < 2; ++run) {
+        simulatedAtNs.clear();
+        zeroDelayTimes.clear();
+        engine->runFor(TimeMs(6), TimeMs(0));
+        ASSERT_TRUE(waitUntilStopped(*engine));
+        EXPECT_EQ(simulatedAtNs, expectedRunTimes);
+        EXPECT_EQ(zeroDelayTimes, (std::vector<double>{0.0}));
+
+        const auto stampData = engine->getStampData();
+        const auto history = stampData.find(componentId);
+        ASSERT_TRUE(history.has_value());
+        ASSERT_FALSE(history->samples.empty());
+        EXPECT_EQ(history->samples.front().simTime, TimeNs(0));
+        ASSERT_EQ(history->samples.front().outputStates.size(), 1);
+        EXPECT_DOUBLE_EQ(history->samples.front().outputStates[0].scalarValue,
+                         0.0);
     }
 }
 
@@ -256,6 +349,84 @@ TEST_F(SimulationTimingTest, TimedRunKeepsDigitalAndMathDriversInLockstep) {
     EXPECT_EQ(digitalTimes, (std::vector<double>{0.0, 1e6, 2e6, 3e6}));
     EXPECT_EQ(mathTimes, (std::vector<double>{0.0, 1.5e6, 3e6}));
     EXPECT_DOUBLE_EQ(engine->getCurrentSimTime().count(), 3e6);
+}
+
+TEST_F(SimulationTimingTest,
+       RestartRestoresInitialStateBeforeTimeZeroEventsAreStamped) {
+    auto definition = std::make_shared<DigCompDef>();
+    definition->setName("Restartable Digital Source");
+    definition->setGroupName("Timing Test");
+    definition->setInputSlotsInfo({SlotsGroupType::input, false, 0, {}, {}});
+    definition->setOutputSlotsInfo({SlotsGroupType::output, false, 1, {}, {}});
+    definition->setAutoReschedule(true);
+    definition->setAutoRescheduleDelay(TimeNs(1e6));
+    definition->setSimFn([](const std::shared_ptr<DigCompSimData> &data) {
+        const auto previous = data->prevState.outputStates[0].getLogicState();
+        data->outputStates[0] = PortState::digital(
+            previous == LogicState::high ? LogicState::low : LogicState::high,
+            data->simTime);
+        data->simDependants = true;
+        return data;
+    });
+
+    const auto componentId = engine->addComponent(definition, false);
+    ASSERT_NE(componentId, Bess::UUID::null);
+
+    const auto verifyRun = [&] {
+        engine->runFor(TimeMs(0));
+        ASSERT_TRUE(waitUntilStopped(*engine));
+
+        const auto stampData = engine->getStampData();
+        const auto history = stampData.find(componentId);
+        ASSERT_TRUE(history.has_value());
+        ASSERT_EQ(history->samples.size(), 2);
+        EXPECT_EQ(history->samples[0].simTime, TimeNs(0));
+        EXPECT_EQ(history->samples[1].simTime, TimeNs(0));
+        ASSERT_EQ(history->samples[0].outputStates.size(), 1);
+        ASSERT_EQ(history->samples[1].outputStates.size(), 1);
+        EXPECT_EQ(history->samples[0].outputStates[0].getLogicState(),
+                  LogicState::low);
+        EXPECT_EQ(history->samples[1].outputStates[0].getLogicState(),
+                  LogicState::high);
+    };
+
+    verifyRun();
+    verifyRun();
+}
+
+TEST_F(SimulationTimingTest, ConfiguredPortValuesRemainTheRestartBaseline) {
+    const auto definition = makeClockedDefinition(
+        "Configured Restart Source",
+        TimeNs(1e6),
+        [](const std::shared_ptr<MathCompSimData> &data) {
+            data->outputStates[0] = PortState::scalar(
+                data->inputStates[0].scalarValue, data->simTime);
+            data->simDependants = true;
+            return data;
+        });
+    definition->setInputPortDescriptor({
+        .direction = PortDirection::input,
+        .signalKind = SignalKind::scalar,
+        .quantityKind = QuantityKind::dimensionless,
+        .count = 1,
+    });
+
+    const auto componentId = engine->addComponent(definition, false);
+    ASSERT_NE(componentId, Bess::UUID::null);
+    engine->setInputPortState(componentId, 0, PortState::scalar(4.25));
+
+    for (int run = 0; run < 2; ++run) {
+        engine->runFor(TimeMs(0));
+        ASSERT_TRUE(waitUntilStopped(*engine));
+
+        const auto stampData = engine->getStampData();
+        const auto history = stampData.find(componentId);
+        ASSERT_TRUE(history.has_value());
+        ASSERT_FALSE(history->samples.empty());
+        ASSERT_EQ(history->samples.front().inputStates.size(), 1);
+        EXPECT_DOUBLE_EQ(history->samples.front().inputStates[0].scalarValue,
+                         4.25);
+    }
 }
 
 TEST_F(SimulationTimingTest, PausedTimedRunStepsThroughSamplesAndFinalTime) {

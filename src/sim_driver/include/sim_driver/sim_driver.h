@@ -79,6 +79,12 @@ namespace Bess::SimEngine::Drivers {
         virtual void onPostSimulate() {
         }
 
+        // Restore configuration-time state before a new simulation run.
+        // Stateful component implementations should override this; topology
+        // and user configuration must remain intact.
+        virtual void resetRuntimeState(TimeNs /*startTime*/) {
+        }
+
         virtual std::shared_ptr<SimFnDataBase>
         simulate(const std::shared_ptr<SimFnDataBase> &data);
 
@@ -280,6 +286,10 @@ namespace Bess::SimEngine::Drivers {
         onComponentAdded(const std::shared_ptr<SimComponent> & /*comp*/) {
         }
 
+        void stampComponent(const UUID &componentId,
+                            TimeNs simTime,
+                            bool includeUnchanged = false);
+
         virtual void onInit() {};
 
         virtual void onStop() {};
@@ -380,6 +390,8 @@ namespace Bess::SimEngine::Drivers {
         virtual void onRunStart(TimeNs /*startTime*/) {
         }
 
+        void publishStamps(std::vector<std::pair<UUID, ComponentStamp>> stamps,
+                           bool includeUnchanged);
         void notifyScheduler();
 
         ComponentsMap m_components;

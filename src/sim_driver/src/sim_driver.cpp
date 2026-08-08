@@ -113,6 +113,7 @@ namespace Bess::SimEngine::Drivers {
         }
 
         onComponentAdded(comp);
+        stampComponent(comp->getUuid(), getCurrentSimTime(), true);
         return comp->getUuid();
     }
 
@@ -124,6 +125,89 @@ namespace Bess::SimEngine::Drivers {
     void SimDriver::clearComponents() {
         std::lock_guard lk(m_compMapMutex);
         m_components.clear();
+    }
+
+    void SimDriver::publishStamps(
+        std::vector<std::pair<UUID, ComponentStamp>> stamps,
+        bool includeUnchanged) {
+        // Publish the provided stamp batch atomically. Readers can never
+        // observe only a prefix of a multi-component sample.
+        std::vector<UUID> newlyTruncatedComponents;
+        {
+            std::lock_guard stampLock(m_stampMutex);
+            for (auto &[componentId, stamp] : stamps) {
+                auto &history = m_compStampData[componentId];
+
+                const bool sameState =
+                    !history.empty() &&
+                    sameWaveformState(history.back().inputStates,
+                                      stamp.inputStates) &&
+                    sameWaveformState(history.back().outputStates,
+                                      stamp.outputStates);
+                if (!history.empty() &&
+                    history.back().simTime == stamp.simTime && sameState) {
+                    history.back() = std::move(stamp);
+                    m_componentStampRevisions[componentId] =
+                        ++m_nextStampRevision;
+                    continue;
+                }
+
+                if (!includeUnchanged && sameState) {
+                    continue;
+                }
+
+                if (history.size() >= MaxStampSamplesPerComponent) {
+                    constexpr std::size_t retainedAfterTrim =
+                        (MaxStampSamplesPerComponent * 3U) / 4U;
+                    static_assert(retainedAfterTrim > 0);
+                    history.erase(history.begin(),
+                                  history.begin() +
+                                      static_cast<std::ptrdiff_t>(
+                                          history.size() - retainedAfterTrim));
+                    if (m_truncatedStampComponents.insert(componentId).second) {
+                        newlyTruncatedComponents.push_back(componentId);
+                    }
+                }
+
+                history.emplace_back(std::move(stamp));
+                m_componentStampRevisions[componentId] = ++m_nextStampRevision;
+            }
+        }
+
+        for (const auto &componentId : newlyTruncatedComponents) {
+            BESS_WARN("Stamp history for component {} in driver {} reached "
+                      "the {}-sample retention limit; oldest samples will be "
+                      "discarded",
+                      static_cast<uint64_t>(componentId),
+                      getName(),
+                      MaxStampSamplesPerComponent);
+        }
+    }
+
+    void SimDriver::stampComponent(const UUID &componentId,
+                                   TimeNs simTime,
+                                   bool includeUnchanged) {
+        ComponentState state;
+        try {
+            state = getComponentState(componentId);
+        } catch (const std::exception &error) {
+            BESS_ERROR("Could not stamp component {} in driver {}: {}",
+                       static_cast<uint64_t>(componentId),
+                       getName(),
+                       error.what());
+            return;
+        } catch (...) {
+            BESS_ERROR("Could not stamp component {} in driver {}",
+                       static_cast<uint64_t>(componentId),
+                       getName());
+            return;
+        }
+
+        std::vector<std::pair<UUID, ComponentStamp>> stamps;
+        stamps.emplace_back(
+            componentId,
+            ComponentStamp{simTime, state.inputStates, state.outputStates});
+        publishStamps(std::move(stamps), includeUnchanged);
     }
 
     void SimDriver::stampSim(TimeNs simTime, bool includeUnchanged) {
@@ -163,56 +247,7 @@ namespace Bess::SimEngine::Drivers {
                 ComponentStamp{simTime, state.inputStates, state.outputStates});
         }
 
-        // Publish a complete driver-wide timestamp atomically. Readers can
-        // never observe only a prefix of the components for a sample.
-        std::vector<UUID> newlyTruncatedComponents;
-        {
-            std::lock_guard stampLock(m_stampMutex);
-            for (auto &[componentId, stamp] : stamps) {
-                auto &history = m_compStampData[componentId];
-
-                if (!history.empty() && history.back().simTime == simTime) {
-                    history.back() = std::move(stamp);
-                    m_componentStampRevisions[componentId] =
-                        ++m_nextStampRevision;
-                    continue;
-                }
-
-                if (!includeUnchanged && !history.empty() &&
-                    sameWaveformState(history.back().inputStates,
-                                      stamp.inputStates) &&
-                    sameWaveformState(history.back().outputStates,
-                                      stamp.outputStates)) {
-                    continue;
-                }
-
-                if (history.size() >= MaxStampSamplesPerComponent) {
-                    constexpr std::size_t retainedAfterTrim =
-                        (MaxStampSamplesPerComponent * 3U) / 4U;
-                    static_assert(retainedAfterTrim > 0);
-                    history.erase(
-                        history.begin(),
-                        history.begin() + static_cast<std::ptrdiff_t>(
-                                              history.size() -
-                                              retainedAfterTrim));
-                    if (m_truncatedStampComponents.insert(componentId).second) {
-                        newlyTruncatedComponents.push_back(componentId);
-                    }
-                }
-
-                history.emplace_back(std::move(stamp));
-                m_componentStampRevisions[componentId] = ++m_nextStampRevision;
-            }
-        }
-
-        for (const auto &componentId : newlyTruncatedComponents) {
-            BESS_WARN("Stamp history for component {} in driver {} reached "
-                      "the {}-sample retention limit; oldest samples will be "
-                      "discarded",
-                      static_cast<uint64_t>(componentId),
-                      getName(),
-                      MaxStampSamplesPerComponent);
-        }
+        publishStamps(std::move(stamps), includeUnchanged);
 
         // Preserve the old extension point while keeping all storage and
         // sampling semantics centralized in the base driver.
@@ -326,8 +361,25 @@ namespace Bess::SimEngine::Drivers {
         if (m_simulationClock) {
             m_simulationClock->reset(startTime);
         }
+
+        clearStampData();
         try {
+            std::vector<std::shared_ptr<SimComponent>> components;
+            {
+                std::lock_guard lk(m_compMapMutex);
+                components.reserve(m_components.size());
+                for (const auto &[_, component] : m_components) {
+                    components.push_back(component);
+                }
+            }
+            for (const auto &component : components) {
+                if (component) {
+                    component->resetRuntimeState(startTime);
+                }
+            }
+
             onRunStart(startTime);
+            stampSim(startTime, true);
         } catch (...) {
             std::lock_guard lk(m_stateMutex);
             m_state = SimDriverState::stopped;

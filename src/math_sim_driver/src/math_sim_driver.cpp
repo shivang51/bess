@@ -425,6 +425,10 @@ namespace Bess::SimEngine::Drivers::Math {
         Json::Value json = EvtBasedSimComp::toJson();
         JsonConvert::toJsonValue(m_inputStates, json["inputStates"]);
         JsonConvert::toJsonValue(m_outputStates, json["outputStates"]);
+        JsonConvert::toJsonValue(m_initialInputStates,
+                                 json["initialInputStates"]);
+        JsonConvert::toJsonValue(m_initialOutputStates,
+                                 json["initialOutputStates"]);
         JsonConvert::toJsonValue(m_inputConnections, json["inputConnections"]);
         JsonConvert::toJsonValue(m_outputConnections,
                                  json["outputConnections"]);
@@ -444,6 +448,21 @@ namespace Bess::SimEngine::Drivers::Math {
         if (json.isMember("outputStates")) {
             JsonConvert::fromJsonValue(json["outputStates"], m_outputStates);
         }
+        if (json.isMember("initialInputStates")) {
+            JsonConvert::fromJsonValue(json["initialInputStates"],
+                                       m_initialInputStates);
+        } else {
+            // Older scene files only stored the live port state. Treat it as
+            // the configured restart state so user-edited values survive the
+            // migration to explicit runtime reset state.
+            m_initialInputStates = m_inputStates;
+        }
+        if (json.isMember("initialOutputStates")) {
+            JsonConvert::fromJsonValue(json["initialOutputStates"],
+                                       m_initialOutputStates);
+        } else {
+            m_initialOutputStates = m_outputStates;
+        }
         if (json.isMember("inputConnections")) {
             JsonConvert::fromJsonValue(json["inputConnections"],
                                        m_inputConnections);
@@ -462,6 +481,18 @@ namespace Bess::SimEngine::Drivers::Math {
         }
         if (json.isMember("netUuid")) {
             JsonConvert::fromJsonValue(json["netUuid"], m_netUuid);
+        }
+    }
+
+    void MathSimComp::resetRuntimeState(TimeNs startTime) {
+        EvtBasedSimComp::resetRuntimeState(startTime);
+        m_inputStates = m_initialInputStates;
+        m_outputStates = m_initialOutputStates;
+        for (auto &state : m_inputStates) {
+            state.lastChangeTime = startTime;
+        }
+        for (auto &state : m_outputStates) {
+            state.lastChangeTime = startTime;
         }
     }
 
@@ -798,6 +829,9 @@ namespace Bess::SimEngine::Drivers::Math {
 
         auto descriptor = descriptorFor(*def, port.direction);
         auto &states = statesFor(*comp, port.direction);
+        auto &initialStates = port.direction == PortDirection::input
+                                  ? comp->getInitialInputStates()
+                                  : comp->getInitialOutputStates();
         auto &connections = connectionsFor(*comp, port.direction);
         auto &connected = connectedFor(*comp, port.direction);
         const auto insertIdx =
@@ -810,7 +844,10 @@ namespace Bess::SimEngine::Drivers::Math {
                                                 insertIdx,
                                             PortState::scalar(0.0));
         }
+        initialStates.resize(states.size(), PortState::scalar(0.0));
         states.insert(states.begin() + insertIdx, PortState::scalar(0.0));
+        initialStates.insert(initialStates.begin() + insertIdx,
+                             PortState::scalar(0.0));
         connections.insert(connections.begin() + insertIdx,
                            Connections::value_type{});
         connected.insert(connected.begin() + insertIdx, false);
@@ -846,6 +883,9 @@ namespace Bess::SimEngine::Drivers::Math {
         }
 
         auto &states = statesFor(*comp, port.direction);
+        auto &initialStates = port.direction == PortDirection::input
+                                  ? comp->getInitialInputStates()
+                                  : comp->getInitialOutputStates();
         auto &connections = connectionsFor(*comp, port.direction);
         auto &connected = connectedFor(*comp, port.direction);
         if (port.index < 0 ||
@@ -854,6 +894,9 @@ namespace Bess::SimEngine::Drivers::Math {
         }
 
         states.erase(states.begin() + port.index);
+        if (static_cast<size_t>(port.index) < initialStates.size()) {
+            initialStates.erase(initialStates.begin() + port.index);
+        }
         connections.erase(connections.begin() + port.index);
         connected.erase(connected.begin() + port.index);
 
@@ -988,6 +1031,13 @@ namespace Bess::SimEngine::Drivers::Math {
             inputs[pinIdx].connState = ConnectionState::high_z;
         }
 
+        if (!isRunning() && !isPaused()) {
+            auto &initialInputs = comp->getInitialInputStates();
+            if (static_cast<size_t>(pinIdx) < initialInputs.size()) {
+                initialInputs[pinIdx] = inputs[pinIdx];
+            }
+        }
+
         if (prev != inputs[pinIdx]) {
             scheduleEvt(uuid, getCurrentSimTime(), uuid);
         }
@@ -1009,6 +1059,12 @@ namespace Bess::SimEngine::Drivers::Math {
 
         outputs[pinIdx] = state;
         outputs[pinIdx].lastChangeTime = getCurrentSimTime();
+        if (!isRunning() && !isPaused()) {
+            auto &initialOutputs = comp->getInitialOutputStates();
+            if (static_cast<size_t>(pinIdx) < initialOutputs.size()) {
+                initialOutputs[pinIdx] = outputs[pinIdx];
+            }
+        }
         propagateFromComponent(uuid);
         return true;
     }

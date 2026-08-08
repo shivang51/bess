@@ -27,7 +27,19 @@ namespace Bess::SimEngine::Drivers {
 
         void loadJson(const Json::Value &json) override;
 
+        // Delay between run start and the component's first self-simulation.
+        // Most computed sources need to settle at time zero, so the default is
+        // zero. Periodic sources can override this to preserve their initial
+        // phase for a non-zero interval.
+        virtual TimeNs getInitialSimDelay();
+
         virtual TimeNs getSelfSimDelay();
+
+        // Called after a self-simulation has completed. The default preserves
+        // the fixed-delay behavior; phase-dependent sources may vary the next
+        // interval deterministically without storing runtime state in their
+        // reusable definition.
+        virtual TimeNs getSelfSimDelayAfter(uint64_t completedSelfSimulations);
 
       protected:
         bool m_autoReschedule = false;
@@ -51,9 +63,15 @@ namespace Bess::SimEngine::Drivers {
 
         TimeNs getSelfSimDelay() const;
 
+        TimeNs getInitialSimDelay() const;
+
+        void recordSelfSimulation();
+
         Json::Value toJson() const override;
 
         void loadJson(const Json::Value &json) override;
+
+        void resetRuntimeState(TimeNs startTime) override;
 
         void addOnStateChangeCB(const UUID &id, const TOnStateChangeFn &cb);
 
@@ -64,6 +82,7 @@ namespace Bess::SimEngine::Drivers {
 
       private:
         TOnStateChangeCbsMap m_onStateChangeCbs;
+        uint64_t m_completedSelfSimulations{0};
     };
 
     struct BESS_API SimEvt {
@@ -134,6 +153,10 @@ namespace Bess::SimEngine::Drivers {
         void clearPendingEvents() override;
 
       private:
+        TimeNs
+        initialEventTime(const std::shared_ptr<EvtBasedSimComp> &component,
+                         TimeNs startTime) const;
+
         void prepareRunStartLocked(TimeNs startTime);
 
         void scheduleDeferredRunStartEvents();

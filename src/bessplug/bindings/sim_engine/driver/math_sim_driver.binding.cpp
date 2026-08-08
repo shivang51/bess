@@ -32,6 +32,22 @@ class PyMathCompDef : public Bess::SimEngine::Drivers::Math::MathCompDef,
             Bess::TimeNs, MathCompDef, "get_self_sim_delay", getSelfSimDelay);
     }
 
+    Bess::TimeNs getInitialSimDelay() override {
+        PYBIND11_OVERRIDE_NAME(Bess::TimeNs,
+                               MathCompDef,
+                               "get_initial_sim_delay",
+                               getInitialSimDelay);
+    }
+
+    Bess::TimeNs
+    getSelfSimDelayAfter(uint64_t completedSelfSimulations) override {
+        PYBIND11_OVERRIDE_NAME(Bess::TimeNs,
+                               MathCompDef,
+                               "get_self_sim_delay_after",
+                               getSelfSimDelayAfter,
+                               completedSelfSimulations);
+    }
+
     Json::Value toJson() const override {
         PYBIND11_OVERRIDE_NAME(Json::Value, MathCompDef, "to_json", toJson);
     }

@@ -1283,9 +1283,19 @@ TEST_F(MainPageConnectionCommandsTest,
         auto clockModule = py::module_::import("components.clock");
         auto pythonClockDefinition = clockModule.attr("ClockDefinition")();
         pythonClockDefinition.attr("frequency") = 2000.0;
-        pythonClockDefinition.attr("duty_cycle") = 0.5;
-        clockDefinition = pythonClockDefinition.cast<std::shared_ptr<
-            Bess::SimEngine::Drivers::CompDef>>();
+        pythonClockDefinition.attr("duty_cycle") = 0.25;
+        clockDefinition =
+            pythonClockDefinition
+                .cast<std::shared_ptr<Bess::SimEngine::Drivers::CompDef>>();
+
+        const auto eventDefinition = std::dynamic_pointer_cast<
+            Bess::SimEngine::Drivers::EvtBasedCompDef>(clockDefinition);
+        ASSERT_NE(eventDefinition, nullptr);
+        EXPECT_EQ(eventDefinition->getInitialSimDelay(), Bess::TimeNs(375000));
+        EXPECT_EQ(eventDefinition->getSelfSimDelayAfter(1),
+                  Bess::TimeNs(125000));
+        EXPECT_EQ(eventDefinition->getSelfSimDelayAfter(2),
+                  Bess::TimeNs(375000));
     }
     ASSERT_NE(clockDefinition, nullptr);
 
@@ -1303,6 +1313,36 @@ TEST_F(MainPageConnectionCommandsTest,
             Bess::TimeNs(5e5));
     const auto sine = addSimComponent(sineDefinition);
     ASSERT_NE(sine.comp, nullptr);
+
+    simEngine->runFor(Bess::TimeMs(1), Bess::TimeMs(0.125));
+    const auto phaseDeadline =
+        std::chrono::steady_clock::now() + std::chrono::seconds(2);
+    while (simEngine->getSimulationState() !=
+               Bess::SimEngine::SimulationState::stopped &&
+           std::chrono::steady_clock::now() < phaseDeadline) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    ASSERT_EQ(simEngine->getSimulationState(),
+              Bess::SimEngine::SimulationState::stopped);
+    {
+        const auto stampData = simEngine->getStampData();
+        const auto history = stampData.find(clock.comp->getSimEngineId());
+        ASSERT_TRUE(history.has_value());
+        ASSERT_FALSE(history->samples.empty());
+        ASSERT_EQ(history->samples.front().simTime, Bess::TimeNs(0));
+        ASSERT_EQ(history->samples.front().outputStates.size(), 1);
+        EXPECT_EQ(history->samples.front().outputStates[0].getLogicState(),
+                  Bess::SimEngine::LogicState::low);
+
+        const auto firstHigh = std::ranges::find_if(
+            history->samples, [](const auto &sample) {
+                return !sample.outputStates.empty() &&
+                       sample.outputStates[0].getLogicState() ==
+                           Bess::SimEngine::LogicState::high;
+            });
+        ASSERT_NE(firstHigh, history->samples.end());
+        EXPECT_EQ(firstHigh->simTime, Bess::TimeNs(375000));
+    }
 
     const auto renderer = std::make_shared<TestRenderer2D>();
     Bess::SceneUIPrepareCtx prepareContext{

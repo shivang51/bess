@@ -179,6 +179,22 @@ class PyEvtBasedCompDef : public Bess::SimEngine::Drivers::EvtBasedCompDef,
                                getSelfSimDelay);
     }
 
+    Bess::TimeNs getInitialSimDelay() override {
+        PYBIND11_OVERRIDE_NAME(Bess::TimeNs,
+                               Bess::SimEngine::Drivers::EvtBasedCompDef,
+                               "get_initial_sim_delay",
+                               getInitialSimDelay);
+    }
+
+    Bess::TimeNs
+    getSelfSimDelayAfter(uint64_t completedSelfSimulations) override {
+        PYBIND11_OVERRIDE_NAME(Bess::TimeNs,
+                               Bess::SimEngine::Drivers::EvtBasedCompDef,
+                               "get_self_sim_delay_after",
+                               getSelfSimDelayAfter,
+                               completedSelfSimulations);
+    }
+
     Json::Value toJson() const override {
         PYBIND11_OVERRIDE_NAME(Json::Value,
                                Bess::SimEngine::Drivers::EvtBasedCompDef,
@@ -205,13 +221,18 @@ void bind_event_based_sim_driver(py::module_ &m) {
             py::overload_cast<>(&EvtBasedCompDef::getAutoRescheduleDelay),
             py::overload_cast<const Bess::TimeNs &>(
                 &EvtBasedCompDef::setAutoRescheduleDelay))
-        .def("get_self_sim_delay", &EvtBasedCompDef::getSelfSimDelay);
+        .def("get_initial_sim_delay", &EvtBasedCompDef::getInitialSimDelay)
+        .def("get_self_sim_delay", &EvtBasedCompDef::getSelfSimDelay)
+        .def("get_self_sim_delay_after",
+             &EvtBasedCompDef::getSelfSimDelayAfter,
+             py::arg("completed_self_simulations"));
 
     py::class_<EvtBasedSimComp, SimComponent, std::shared_ptr<EvtBasedSimComp>>(
         m, "EvtBasedSimComp")
         .def(py::init<>())
         .def("get_prop_delay", &EvtBasedSimComp::getPropDelay)
         .def("get_sim_self", &EvtBasedSimComp::getSimSelf)
+        .def("get_initial_sim_delay", &EvtBasedSimComp::getInitialSimDelay)
         .def("get_self_sim_delay", &EvtBasedSimComp::getSelfSimDelay);
 
     py::class_<EvtBasedSimDriver,

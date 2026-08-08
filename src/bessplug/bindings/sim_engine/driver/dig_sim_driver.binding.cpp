@@ -30,6 +30,22 @@ class PyDigCompDef : public Bess::SimEngine::Drivers::Digital::DigCompDef,
             Bess::TimeNs, DigCompDef, "get_self_sim_delay", getSelfSimDelay);
     }
 
+    Bess::TimeNs getInitialSimDelay() override {
+        PYBIND11_OVERRIDE_NAME(Bess::TimeNs,
+                               DigCompDef,
+                               "get_initial_sim_delay",
+                               getInitialSimDelay);
+    }
+
+    Bess::TimeNs
+    getSelfSimDelayAfter(uint64_t completedSelfSimulations) override {
+        PYBIND11_OVERRIDE_NAME(Bess::TimeNs,
+                               DigCompDef,
+                               "get_self_sim_delay_after",
+                               getSelfSimDelayAfter,
+                               completedSelfSimulations);
+    }
+
     Json::Value toJson() const override {
         PYBIND11_OVERRIDE_NAME(Json::Value, DigCompDef, "to_json", toJson);
     }
