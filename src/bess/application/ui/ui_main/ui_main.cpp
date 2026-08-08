@@ -691,9 +691,12 @@ namespace Bess::UI {
         auto &appCtx = Bess::GAppContext::getInstance();
         auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
         auto &simEngine = projectCtx->sim();
-        const float height = ImGui::GetFrameHeight();
+        const float padding = style.FramePadding.y;
+        const float height = ImGui::GetFrameHeight() + (padding * 2.0f);
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        ImGui::PushStyleColor(ImGuiCol_WindowBg,
+                              style.Colors[ImGuiCol_MenuBarBg]);
         if (ImGui::BeginViewportSideBar("##TopControlsBar",
                                         viewport,
                                         ImGuiDir_Up,
@@ -725,6 +728,7 @@ namespace Bess::UI {
             ImGui::End();
         }
 
+        ImGui::PopStyleColor();
         ImGui::PopStyleVar();
     }
 
