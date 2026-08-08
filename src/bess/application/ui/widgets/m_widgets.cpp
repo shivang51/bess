@@ -83,40 +83,10 @@ namespace Bess::UI::Widgets {
         }
 
         bool changed = false;
-        auto timeParts = getTimeParts(seconds);
 
-        ImGui::SetNextItemWidth(40.0f);
-        if (ImGui::InputInt(("##TimeInputHH" + label).c_str(),
-                            (int *)timeParts.data(),
-                            0,
-                            0)) {
-            seconds = partsToSec(timeParts);
-            changed = true;
-        }
-
-        ImGui::SameLine();
-        ImGui::TextDisabled("h");
-
-        ImGui::SameLine();
-        ImGui::SetNextItemWidth(40.0f);
-        if (ImGui::InputInt(("##TimeInputMM" + label).c_str(),
-                            (int *)(timeParts.data() + 1),
-                            0,
-                            0)) {
-            seconds = partsToSec(timeParts);
-            changed = true;
-        }
-
-        ImGui::SameLine();
-        ImGui::TextDisabled("m");
-
-        ImGui::SameLine();
-        ImGui::SetNextItemWidth(40.0f);
-        if (ImGui::InputInt(("##TimeInputSS" + label).c_str(),
-                            (int *)(timeParts.data() + 2),
-                            0,
-                            0)) {
-            seconds = partsToSec(timeParts);
+        ImGui::SetNextItemWidth(80.0f);
+        if (ImGui::InputInt(
+                ("##TimeInputSS" + label).c_str(), (int *)(&seconds), 0, 0)) {
             changed = true;
         }
 

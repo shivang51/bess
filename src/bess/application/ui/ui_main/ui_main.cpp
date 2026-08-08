@@ -707,7 +707,7 @@ namespace Bess::UI {
                 // Timed Run Controls
                 {
 
-                    Widgets::InputTimeS("Run Time", runDuration);
+                    Widgets::InputTimeS("Stop Time", runDuration);
 
                     ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
 
