@@ -51,6 +51,9 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::update(TimeMs ts) {
+        if (!m_wasRendered)
+            return;
+
         auto sceneDriver = GAppContext::getInstance()
                                .getSubSystem<Bess::ProjectSession>()
                                ->getSubSystem<SceneDriver>();
