@@ -2,6 +2,7 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "ui/icons/FontAwesomeIcons_Remapped.h"
+#include <array>
 
 namespace Bess::UI::Widgets {
     static int InputTextCallback(ImGuiInputTextCallbackData *data) {
@@ -52,6 +53,94 @@ namespace Bess::UI::Widgets {
                                           ImGuiInputTextFlags_AllowTabInput,
                                       InputTextCallback,
                                       (void *)&value);
+
+        return changed;
+    }
+
+    namespace {
+
+        std::array<size_t, 3> getTimeParts(size_t seconds) {
+            const auto hours = seconds / 3600;
+            const auto minutes = (seconds % 3600) / 60;
+            const auto secs = seconds % 60;
+            return {hours, minutes, secs};
+        }
+
+        size_t partsToSec(const std::array<size_t, 3> &parts) {
+            size_t secs = parts[0] * 3600;
+            secs += std::clamp(parts[1], 0UL, 59UL) * 60;
+            secs += std::clamp(parts[2], 0UL, 59UL);
+            return secs;
+        }
+    } // namespace
+
+    BESS_API bool InputTimeS(const std::string &label, size_t &seconds) {
+        ImGui::BeginGroup();
+        ImGui::AlignTextToFramePadding();
+        if (!label.empty() && label[0] != '#' && label[1] != '#') {
+            ImGui::Text("%s", label.c_str());
+            ImGui::SameLine();
+        }
+
+        bool changed = false;
+        auto timeParts = getTimeParts(seconds);
+
+        ImGui::SetNextItemWidth(40.0f);
+        if (ImGui::InputInt(("##TimeInputHH" + label).c_str(),
+                            (int *)timeParts.data(),
+                            0,
+                            0)) {
+            seconds = partsToSec(timeParts);
+            changed = true;
+        }
+
+        ImGui::SameLine();
+        ImGui::TextDisabled("h");
+
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(40.0f);
+        if (ImGui::InputInt(("##TimeInputMM" + label).c_str(),
+                            (int *)(timeParts.data() + 1),
+                            0,
+                            0)) {
+            seconds = partsToSec(timeParts);
+            changed = true;
+        }
+
+        ImGui::SameLine();
+        ImGui::TextDisabled("m");
+
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(40.0f);
+        if (ImGui::InputInt(("##TimeInputSS" + label).c_str(),
+                            (int *)(timeParts.data() + 2),
+                            0,
+                            0)) {
+            seconds = partsToSec(timeParts);
+            changed = true;
+        }
+
+        ImGui::SameLine();
+        ImGui::TextDisabled("s");
+
+        ImGui::EndGroup();
+
+        return changed;
+    }
+
+    BESS_API bool InputTimeMS(const std::string &label, size_t &millisec) {
+        ImGui::AlignTextToFramePadding();
+        if (!label.empty() && label[0] != '#' && label[1] != '#') {
+            ImGui::Text("%s", label.c_str());
+            ImGui::SameLine();
+        }
+
+        ImGui::SetNextItemWidth(80.0f);
+        bool changed = ImGui::InputInt(
+            ("##TimeInputMS" + label).c_str(), (int *)(&millisec), 0, 0);
+
+        ImGui::SameLine();
+        ImGui::TextDisabled("ms");
 
         return changed;
     }

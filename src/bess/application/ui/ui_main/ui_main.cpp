@@ -57,8 +57,8 @@ namespace Bess::UI {
             return state;
         }
 
-        std::string runDuration = "10";
-        std::string stampInterval = "10";
+        size_t runDuration = 5;
+        size_t stampInterval = 100;
 
         void resetVerilogImportWizard(VerilogImportWizardState &state) {
             state.filePath.clear();
@@ -703,33 +703,24 @@ namespace Bess::UI {
 
                 // Timed Run Controls
                 {
-                    ImGui::BeginGroup();
 
-                    ImGui::SetNextItemWidth(32);
-                    if (Widgets::TextBox("##Run Duration", runDuration)) {
-                    }
+                    Widgets::InputTimeS("Run Time", runDuration);
 
-                    ImGui::SetNextItemWidth(32);
-                    if (Widgets::TextBox("##Step Time", stampInterval)) {
-                    }
+                    ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+
+                    Widgets::InputTimeMS("Stamp Interval", stampInterval);
 
                     if (ImGui::Button("Time Run")) {
                         auto &simEngine = Bess::UI::Proj::sim();
-                        simEngine.runFor(TimeMs(1e4), TimeMs(10));
+                        simEngine.runFor(TimeMs(runDuration * 1000),
+                                         TimeMs(stampInterval));
                     }
-
-                    ImGui::EndGroup();
                 }
 
                 ImGui::Button("Run");
 
                 ImGui::EndMenuBar();
             }
-
-            // TextBox - time
-            // TextBox - step time
-            // Button - Time Run
-            // Button -  Run
 
             ImGui::End();
         }

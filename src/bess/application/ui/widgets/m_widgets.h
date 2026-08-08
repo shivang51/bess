@@ -2,6 +2,7 @@
 
 #include "common/bess_api.h"
 
+#include "common/types.h"
 #include "glm.hpp"
 #include "imgui.h"
 #include <format>
@@ -21,6 +22,9 @@ namespace Bess::UI::Widgets {
     BESS_API bool TextBoxMultiline(const std::string &label,
                                    std::string &value,
                                    const glm::vec2 &size = glm::vec2(0, 800));
+
+    BESS_API bool InputTimeS(const std::string &label, size_t &seconds);
+    BESS_API bool InputTimeMS(const std::string &label, size_t &millisec);
 
     template <typename T> auto UnpackValue(const T &item) {
         if constexpr (std::is_pointer_v<T>) {
