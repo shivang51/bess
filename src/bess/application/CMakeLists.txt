@@ -151,7 +151,13 @@ set(ALL_FILES
 add_library(${PROJECT_NAME} OBJECT ${ALL_FILES})
 
 target_link_libraries(${PROJECT_NAME} PUBLIC common BessCore BessExtDeps BessJson BessSimEngine  BessPluginManager EventSystem BessSimDriver DigitalSimDriver MathSimDriver bverilog BessWgpu)
-target_link_libraries(${PROJECT_NAME} PRIVATE project_session)
+# BessApp is an object library, so normal PRIVATE link dependencies are
+# forwarded to targets that consume its objects. project_session is already
+# linked into BessRuntime; forwarding its static archive to runtime consumers
+# makes MSVC link the same exported definitions into the executable again.
+target_link_libraries(${PROJECT_NAME} PRIVATE
+	$<COMPILE_ONLY:project_session>
+)
 
 if(WIN32)
 	target_link_libraries(${PROJECT_NAME} PUBLIC
