@@ -20,7 +20,7 @@ The project began as an attempt to remove the barriers students often face when 
 5. Cross platform support for windows and linux.
 
 
-## Screenshots
+## Screenshots - [More](screenshots/README.md)
 
 <div align="center" height="100px">
   <img src="screenshots/ss1.png" alt="BESS SS1" width="45%"/>
@@ -56,7 +56,7 @@ All build scripts live in the **scripts/** folder inside the CMake source direct
        ./Bess
        ```
 ## TODO
-- [x] Architecture Overhaul and Usability Improvements - (Details)[https://github.com/shivang51/bess/pull/25]
+- [x] Architecture Overhaul and Usability Improvements - [Details](https://github.com/shivang51/bess/pull/25)
 - [ ] Web Support
 - [ ] LLM Integration
 - [ ] Analog Component Support
