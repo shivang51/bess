@@ -58,23 +58,6 @@ namespace Bess::UI::Widgets {
         return changed;
     }
 
-    namespace {
-
-        std::array<size_t, 3> getTimeParts(size_t seconds) {
-            const auto hours = seconds / 3600;
-            const auto minutes = (seconds % 3600) / 60;
-            const auto secs = seconds % 60;
-            return {hours, minutes, secs};
-        }
-
-        size_t partsToSec(const std::array<size_t, 3> &parts) {
-            size_t secs = parts[0] * 3600;
-            secs += std::clamp(parts[1], 0UL, 59UL) * 60;
-            secs += std::clamp(parts[2], 0UL, 59UL);
-            return secs;
-        }
-    } // namespace
-
     BESS_API bool InputTimeS(const std::string &label, size_t &seconds) {
         ImGui::BeginGroup();
         ImGui::AlignTextToFramePadding();
