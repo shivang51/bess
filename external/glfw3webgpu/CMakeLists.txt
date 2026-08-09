@@ -17,6 +17,10 @@ if(GLFW_BUILD_WAYLAND)
 endif()
 
 # Copy compile definitions that are PRIVATE in glfw
+if(WIN32)
+    target_compile_definitions(glfw3webgpu PRIVATE _GLFW_WIN32)
+endif()
+
 if (GLFW_BUILD_COCOA)
     target_compile_definitions(glfw3webgpu PRIVATE _GLFW_COCOA)
     target_compile_options(glfw3webgpu PRIVATE -x objective-c)

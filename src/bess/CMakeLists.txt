@@ -60,6 +60,16 @@ add_custom_command(TARGET BessRuntime POST_BUILD
 				$<TARGET_FILE_DIR:BessRuntime>
 )
 
+if(WIN32)
+    add_custom_command(TARGET BessRuntime POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:dawn_dxcompiler>
+            $<TARGET_FILE:dawn_dxil>
+            $<TARGET_FILE_DIR:BessRuntime>
+        COMMENT "Copying Dawn DXC runtime libraries"
+    )
+endif()
+
 set(
     BESS_RUNTIME_ALL_COMPONENT_TARGETS
     ${BESS_RUNTIME_COMPONENT_TARGETS}
