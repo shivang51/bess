@@ -50,12 +50,38 @@ namespace Bess::Canvas {
         const auto &clonedModDef =
             std::dynamic_pointer_cast<SimEngine::ModuleDefinition>(
                 moduleClone->getCompDef());
+        if (!clonedModDef) {
+            BESS_ERROR("[CloneModule] Failed to clone module definition");
+            return {};
+        }
 
         auto *sceneDriver = sceneState.runtime().scenes;
         auto *simEngine = sceneState.runtime().sim;
         BESS_ASSERT(sceneDriver && simEngine,
                     "[CloneModule] Scene runtime is unavailable");
         if (!sceneDriver || !simEngine) {
+            return {};
+        }
+
+        const auto discardTemporaryDefinition = [&] {
+            simEngine->deleteComponent(clonedModDef->getInputId());
+            simEngine->deleteComponent(clonedModDef->getOutputId());
+        };
+
+        auto ogScene = sceneDriver->getSceneWithId(m_sceneId);
+        if (!ogScene) {
+            BESS_ERROR("[CloneModule] Source module scene {} not found",
+                       (uint64_t)m_sceneId);
+            discardTemporaryDefinition();
+            return {};
+        }
+
+        const auto &ogSceneState = ogScene->getState();
+        if (!ogSceneState.isComponentValid(m_associatedInp) ||
+            !ogSceneState.isComponentValid(m_associatedOut)) {
+            BESS_ERROR(
+                "[CloneModule] Source module input or output is missing");
+            discardTemporaryDefinition();
             return {};
         }
 
@@ -71,15 +97,6 @@ namespace Bess::Canvas {
 
         // Copying comps from old scene to new
         {
-            auto ogScene = sceneDriver->getSceneWithId(m_sceneId);
-            BESS_ASSERT(ogScene, "[CloneModule] Source module scene not found");
-            if (!ogScene) {
-                BESS_ERROR("[CloneModule] Source module scene {} not found",
-                           (uint64_t)m_sceneId);
-                sceneDriver->removeScene(newSceneState.getSceneId());
-                return {};
-            }
-
             Svc::CopyPaste::Context cpCtx;
             cpCtx.copyScene(ogScene);
             ogToCloneId =
@@ -88,11 +105,13 @@ namespace Bess::Canvas {
                             false);
         }
 
-        BESS_ASSERT(ogToCloneId.contains(m_associatedInp),
-                    "[CloneModule] Associated input cloned mapping not found");
-
-        BESS_ASSERT(ogToCloneId.contains(m_associatedOut),
-                    "[CloneModule] Associated output cloned mapping not found");
+        if (!ogToCloneId.contains(m_associatedInp) ||
+            !ogToCloneId.contains(m_associatedOut)) {
+            BESS_ERROR("[CloneModule] Failed to clone module input or output");
+            sceneDriver->removeScene(newSceneState.getSceneId());
+            discardTemporaryDefinition();
+            return {};
+        }
 
         const auto &clonedInpId = ogToCloneId.at(m_associatedInp);
         const auto &clonedOutId = ogToCloneId.at(m_associatedOut);
@@ -105,18 +124,19 @@ namespace Bess::Canvas {
         auto clonedInp =
             newSceneState.getComponentByUuid<SimulationSceneComponent>(
                 clonedInpId);
-        BESS_ASSERT(clonedInp,
-                    "[CloneModule] Cloned associated input "
-                    "component not found in new scene");
-        simEngine->deleteComponent(clonedModDef->getInputId());
-        clonedModDef->setInputId(clonedInp->getSimEngineId());
         auto clonedOut =
             newSceneState.getComponentByUuid<SimulationSceneComponent>(
                 clonedOutId);
-        BESS_ASSERT(clonedOut,
-                    "[CloneModule] Cloned associated output "
-                    "component not found in new scene");
-        simEngine->deleteComponent(clonedModDef->getOutputId());
+        if (!clonedInp || !clonedOut) {
+            BESS_ERROR("[CloneModule] Cloned module input or output is missing "
+                       "from the new scene");
+            sceneDriver->removeScene(newSceneState.getSceneId());
+            discardTemporaryDefinition();
+            return {};
+        }
+
+        discardTemporaryDefinition();
+        clonedModDef->setInputId(clonedInp->getSimEngineId());
         clonedModDef->setOutputId(clonedOut->getSimEngineId());
 
         return clonedComps;

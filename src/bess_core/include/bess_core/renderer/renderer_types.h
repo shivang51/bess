@@ -5,9 +5,9 @@
 #include "common/types.h"
 #include "ext/vector_float2.hpp"
 #include "ext/vector_float4.hpp"
-#include "spdlog/fmt/bundled/format.h"
 #include "json/value.h"
 #include <cstdint>
+#include <format>
 
 namespace Bess::Core::Renderer {
 

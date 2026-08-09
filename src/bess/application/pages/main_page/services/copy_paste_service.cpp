@@ -137,8 +137,6 @@ namespace Bess::Svc::CopyPaste {
                     std::get<Svc::CopyPaste::ETSimComp>(entity.data);
                 auto clonedComponents =
                     entityData.comp->clone(m_copiedScene->getState());
-                BESS_ASSERT(!clonedComponents.empty(),
-                            "Simulation clone returned no components");
                 if (clonedComponents.empty()) {
                     BESS_ERROR("[CopyPaste] Skipping component {} because "
                                "clone returned no components",
@@ -308,6 +306,13 @@ namespace Bess::Svc::CopyPaste {
                     std::get<Svc::CopyPaste::ETConnection>(connEntity.data);
                 const auto &ogConn =
                     entityData.conn->cast<Canvas::ConnectionSceneComponent>();
+
+                // A connection reachable through a cloned joint is cloned
+                // recursively by cloneConn(). Do not clone it again when its
+                // root entity is encountered later in this pass.
+                if (ogToClonedIdMap.contains(ogConn->getUuid())) {
+                    continue;
+                }
 
                 if (!ogToClonedIdMap.contains(ogConn->getStartSlot()) ||
                     !ogToClonedIdMap.contains(ogConn->getEndSlot())) {

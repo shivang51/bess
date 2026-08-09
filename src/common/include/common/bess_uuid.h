@@ -3,8 +3,8 @@
 #include "common/bess_api.h"
 
 #include "bess_json/bess_json.h"
-#include "spdlog/fmt/bundled/base.h"
 #include <cstdint>
+#include <format>
 #include <functional>
 #include <string>
 

@@ -2,10 +2,6 @@ set(PROJECT_NAME bverilog)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# IDK why for this target, fmt needs this, 
-# but it won't link without
-add_compile_definitions(FMT_HEADER_ONLY)
-
 set(Header_Files
     "include/bess_api.h"
     "include/bverilog/types.h"

@@ -72,7 +72,15 @@ namespace Bess::Canvas {
         for (const auto &id : m_connections) {
             const auto &conn =
                 sceneState.getComponentByUuid<ConnectionSceneComponent>(id);
-            if (!conn || !ogToClonedIdMap.contains(conn->getStartSlot()) ||
+            if (!conn) {
+                continue;
+            }
+            if (ogToClonedIdMap.contains(conn->getUuid())) {
+                clone->m_connections.push_back(
+                    ogToClonedIdMap.at(conn->getUuid()));
+                continue;
+            }
+            if (!ogToClonedIdMap.contains(conn->getStartSlot()) ||
                 !ogToClonedIdMap.contains(conn->getEndSlot())) {
                 continue;
             }

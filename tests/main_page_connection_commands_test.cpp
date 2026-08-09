@@ -2,10 +2,12 @@
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/scene/scene.h"
 #include "bess_core/scene/scene_event.h"
+#include "bess_core/scene/scene_serializer.h"
 #include "bess_core/scene/scene_ui/controls/scalar_input_comp.h"
 #include "bess_core/scene/scene_ui/controls/text_box_comp.h"
 #include "bess_core/scene/scene_ui/controls/toggle_btn_comp.h"
 #include "bess_core/scene_driver.h"
+#include "component_catalog.h"
 #include "dig_module_def.h"
 #include "dig_sim_driver.h"
 #include "event_dispatcher.h"
@@ -21,6 +23,7 @@
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
+#include "pages/main_page/services/copy_paste_service.h"
 #include "plugin_manager.h"
 #include "project_session/project_session.h"
 #include "simulation_engine.h"
@@ -28,7 +31,9 @@
 #include <atomic>
 #include <chrono>
 #include <cmath>
+#include <fstream>
 #include <gtest/gtest.h>
+#include <json/reader.h>
 #include <memory>
 #include <pybind11/embed.h>
 #include <string>
@@ -912,6 +917,128 @@ TEST_F(MainPageConnectionCommandsTest,
     EXPECT_EQ(simEngine->getComponentDefinition(restoredModSim), nullptr);
     EXPECT_EQ(simEngine->getComponentDefinition(restoredInputSim), nullptr);
     EXPECT_EQ(simEngine->getComponentDefinition(restoredOutputSim), nullptr);
+}
+
+TEST_F(MainPageConnectionCommandsTest, CopyPasteModulesFromSampleProject) {
+    auto &pluginManager = Bess::Plugins::PluginManager::getInstance();
+    ASSERT_TRUE(pluginManager.loadPluginsFromDirectory("plugins"));
+    for (const auto &[name, plugin] : pluginManager.getLoadedPlugins()) {
+        (void)name;
+        for (const auto &definition : plugin->onCompCatalogLoad()) {
+            Bess::SimEngine::ComponentCatalog::instance().registerComponent(
+                definition);
+        }
+    }
+
+    std::ifstream project("sample_projects/digital-clock.bproj");
+    ASSERT_TRUE(project.is_open());
+    Json::Value projectJson;
+    Json::CharReaderBuilder reader;
+    std::string parseErrors;
+    ASSERT_TRUE(
+        Json::parseFromStream(reader, project, &projectJson, &parseErrors))
+        << parseErrors;
+
+    simEngine->loadJson(projectJson["sim_engine_data"]);
+    sceneDriver->removeScenes();
+
+    const auto rootSceneId =
+        projectJson["scene_data"]["root_scene_id"].asUInt64();
+    Json::UInt64 moduleId = 0;
+    Json::UInt64 moduleSceneId = 0;
+    for (const auto &serializedScene : projectJson["scene_data"]["scenes"]) {
+        const auto &stateJson = serializedScene["scene_state"];
+        if (stateJson["sceneId"].asUInt64() != rootSceneId) {
+            continue;
+        }
+        for (const auto &component : stateJson["components"]) {
+            if (component["typeName"].asString() == "ModuleSceneComponent") {
+                moduleId = component["uuid"].asUInt64();
+                moduleSceneId = component["sceneId"].asUInt64();
+                break;
+            }
+        }
+    }
+    ASSERT_NE(moduleId, 0u);
+    ASSERT_NE(moduleSceneId, 0u);
+
+    Bess::SceneSerializer serializer;
+    for (const auto &serializedScene : projectJson["scene_data"]["scenes"]) {
+        auto data = serializedScene;
+        auto &stateJson = data["scene_state"];
+        const auto sceneId = stateJson["sceneId"].asUInt64();
+        if (sceneId != rootSceneId && sceneId != moduleSceneId) {
+            continue;
+        }
+
+        if (sceneId == rootSceneId) {
+            Json::Value filtered(Json::arrayValue);
+            for (const auto &component : stateJson["components"]) {
+                if (component["uuid"].asUInt64() == moduleId ||
+                    component["parentComponent"].asUInt64() == moduleId) {
+                    filtered.append(component);
+                }
+            }
+            stateJson["components"] = std::move(filtered);
+        }
+
+        auto loadedScene = std::make_shared<Scene>(false);
+        serializer.deserialize(
+            data,
+            loadedScene,
+            Bess::Canvas::SceneLoadCtx{.sim = simEngine.get()});
+        sceneDriver->addScene(loadedScene);
+    }
+    sceneDriver->setRootSceneId(rootSceneId);
+    sceneDriver->setActiveScene(Bess::UUID(rootSceneId));
+    scene = sceneDriver->getActiveScene();
+    ASSERT_NE(scene, nullptr);
+
+    std::vector<std::shared_ptr<Bess::Canvas::ModuleSceneComponent>> modules;
+    for (const auto &[id, component] : scene->getState().getAllComponents()) {
+        (void)id;
+        if (const auto module =
+                std::dynamic_pointer_cast<Bess::Canvas::ModuleSceneComponent>(
+                    component)) {
+            modules.push_back(module);
+        }
+    }
+    ASSERT_FALSE(modules.empty());
+
+    for (const auto &module : modules) {
+        scene->getState().clearSelectedComponents();
+        scene->getState().addSelectedComponent(module->getUuid());
+        Bess::Svc::CopyPaste::Context copyPaste;
+        copyPaste.copy(scene);
+        const auto clonedIds = copyPaste.paste(scene, {200.f, 100.f}, false);
+        EXPECT_TRUE(clonedIds.contains(module->getUuid()));
+    }
+}
+
+TEST_F(MainPageConnectionCommandsTest,
+       CopyPasteInvalidModuleFailsWithoutCreatingScene) {
+    const auto fixture = addSimComponent(sourceDef);
+    ASSERT_NE(fixture.comp, nullptr);
+    const UUID net;
+    fixture.comp->setNetId(net);
+
+    const auto made =
+        Bess::Edit::makeModule(*session, scene, net, "Invalid module");
+    ASSERT_TRUE(made) << made.status.msg();
+    ASSERT_NE(made.val, nullptr);
+
+    const auto associatedInput = made.val->getAssociatedInp();
+    made.val->setAssociatedInp(UUID::null);
+    const auto sceneCount = sceneDriver->getSceneCount();
+
+    scene->getState().addSelectedComponent(made.val->getUuid());
+    Bess::Svc::CopyPaste::Context copyPaste;
+    copyPaste.copy(scene);
+    const auto clonedIds = copyPaste.paste(scene, {200.f, 100.f}, false);
+
+    EXPECT_FALSE(clonedIds.contains(made.val->getUuid()));
+    EXPECT_EQ(sceneDriver->getSceneCount(), sceneCount);
+    made.val->setAssociatedInp(associatedInput);
 }
 
 TEST_F(MainPageConnectionCommandsTest,
