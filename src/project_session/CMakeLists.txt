@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.27 FATAL_ERROR)
 
 project(project_session LANGUAGES CXX)
 
-add_library(project_session STATIC
+add_library(project_session OBJECT
     include/project_session/edit_hooks.h
     include/project_session/project_document.h
     include/project_session/project_session.h
