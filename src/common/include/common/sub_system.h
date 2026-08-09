@@ -30,7 +30,7 @@ namespace Bess {
 
         virtual void onPreUpdate() {
         }
-        virtual void onUpdate(TimeMs dt) {
+        virtual void onUpdate(TimeMs /*dt*/) {
         }
 
         virtual void onPreDraw() {

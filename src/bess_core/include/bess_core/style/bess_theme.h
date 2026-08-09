@@ -121,8 +121,8 @@ namespace Bess::Core::Style {
 
         constexpr BessTheme(const std::string_view &name,
                             const ColorScheme &colorScheme)
-            : m_name(name),
-              m_colorScheme(colorScheme) {
+            : m_colorScheme(colorScheme),
+              m_name(name) {
             const auto &colors = m_colorScheme.getColors();
             m_generalElementStyle = {
                 .backgroundColor = colors.surfaceContainerLow,

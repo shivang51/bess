@@ -48,12 +48,13 @@ namespace Bess::Canvas {
       public:
         virtual ~ISceneLayer() = default;
 
-        virtual EventResult handleEvent(SceneEvent &evt,
-                                        SceneEventContext &ctx) {
+        virtual EventResult handleEvent(SceneEvent & /*evt*/,
+                                        SceneEventContext & /*ctx*/) {
             return EventResult::Ignored;
         }
 
-        virtual bool shouldReceiveConsumedEvent(const SceneEvent &evt) const {
+        virtual bool
+        shouldReceiveConsumedEvent(const SceneEvent & /*evt*/) const {
             return false;
         }
 
@@ -61,16 +62,17 @@ namespace Bess::Canvas {
 
         virtual void draw(SceneRenderContext &ctx) = 0;
 
-        virtual void viewportUpdate(TimeMs ts, SceneVpUpdateContext &ctx) {
+        virtual void viewportUpdate(TimeMs /*ts*/,
+                                    SceneVpUpdateContext & /*ctx*/) {
         }
 
-        virtual void init(SceneLifecycleContext &ctx) {
+        virtual void init(SceneLifecycleContext & /*ctx*/) {
         }
 
-        virtual void reset(SceneLifecycleContext &ctx) {
+        virtual void reset(SceneLifecycleContext & /*ctx*/) {
         }
 
-        virtual void destroy(SceneLifecycleContext &ctx) {
+        virtual void destroy(SceneLifecycleContext & /*ctx*/) {
         }
 
         virtual std::string getName() const {

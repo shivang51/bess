@@ -333,11 +333,12 @@ namespace Bess::Core::Renderer {
         virtual void endPath() = 0;
 
         virtual void
-        drawImGui(const std::function<void(void *)> &imguiRenderFn) {
+        drawImGui(const std::function<void(void *)> & /*imguiRenderFn*/) {
         }
 
-        virtual void drawToWindow(const std::shared_ptr<Window> &window,
-                                  const std::function<void(void *)> &renderFn) {
+        virtual void
+        drawToWindow(const std::shared_ptr<Window> & /*window*/,
+                     const std::function<void(void *)> & /*renderFn*/) {
         }
     };
 

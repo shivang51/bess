@@ -122,7 +122,7 @@ namespace Bess::Canvas {
 
         virtual void prepareUI(SceneUIPrepareCtx &ctx);
 
-        virtual void update(TimeMs frameTime, SceneState & /*state*/) {
+        virtual void update(TimeMs /*frameTime*/, SceneState & /*state*/) {
         }
 
         virtual void draw(SceneDrawContext &);
