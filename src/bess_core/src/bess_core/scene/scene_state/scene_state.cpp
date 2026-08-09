@@ -358,7 +358,7 @@ namespace Bess::Canvas {
                                                   const UUID &callerId) {
 
         BESS_INFO("[SceneState] Removing component {}", (uint64_t)uuid);
-        auto component = getComponentByUuid(uuid);
+        auto component = getComponentByUuidSP(uuid);
         BESS_ASSERT(component, "Component was not found");
 
         /// For now, Preventing removing child components directly

@@ -711,6 +711,99 @@ TEST_F(MainPageConnectionCommandsTest,
 }
 
 TEST_F(MainPageConnectionCommandsTest,
+       ModuleCreationDoesNotRetainClockUiInSourceScene) {
+    auto &pluginManager = Bess::Plugins::PluginManager::getInstance();
+    ASSERT_TRUE(pluginManager.loadPluginsFromDirectory("plugins"));
+
+    std::shared_ptr<Bess::SimEngine::Drivers::CompDef> clockDefinition;
+    std::shared_ptr<SimulationSceneComponent> clock;
+    {
+        py::gil_scoped_acquire gil;
+        auto clockDefinitionModule = py::module_::import("components.clock");
+        auto pythonClockDefinition =
+            clockDefinitionModule.attr("ClockDefinition")();
+        clockDefinition =
+            pythonClockDefinition
+                .cast<std::shared_ptr<Bess::SimEngine::Drivers::CompDef>>();
+
+        auto clockSceneModule = py::module_::import("scene.clock_comp");
+        auto pythonClock = clockSceneModule.attr("ClockComp")();
+        pythonClock.attr("setup")(pythonClockDefinition);
+        clock = pythonClock.cast<
+            std::shared_ptr<Bess::Canvas::SimulationSceneComponent>>();
+        clock->setCompDef(clockDefinition->clone());
+    }
+    ASSERT_NE(clockDefinition, nullptr);
+    ASSERT_NE(clock, nullptr);
+
+    scene->addComponent(clock);
+    std::vector<std::shared_ptr<SceneComponent>> slots;
+    for (const auto slotId : clock->getOutputSlots()) {
+        const auto slot =
+            scene->getState().getComponentByUuidSP<SlotSceneComponent>(slotId);
+        ASSERT_NE(slot, nullptr);
+        scene->getState().attachChild(clock->getUuid(), slotId, false);
+        slots.push_back(slot);
+    }
+    ASSERT_FALSE(slots.empty());
+    ASSERT_TRUE(session->trackAdd(clock, slots, scene->getSceneId()));
+
+    const UUID net;
+    clock->setNetId(net);
+    const auto renderer = std::make_shared<TestRenderer2D>();
+    Bess::SceneUIPrepareCtx sourceCtx{
+        .sceneState = &scene->getState(),
+        .renderer = renderer,
+        .parentNode = nullptr,
+        .theme = Bess::Core::Style::BessTheme::defaultTheme(),
+    };
+    clock->prepareUI(sourceCtx);
+    ASSERT_EQ(countUiComps(scene->getState()), 12u);
+
+    session->clearHist();
+    const auto made =
+        Bess::Edit::makeModule(*session, scene, net, "Clock module");
+    ASSERT_TRUE(made) << made.status.msg();
+    ASSERT_NE(made.val, nullptr);
+
+    const auto moduleScene =
+        sceneDriver->getSceneWithId(made.val->getSceneId());
+    ASSERT_NE(moduleScene, nullptr);
+    EXPECT_EQ(countUiComps(scene->getState()), 0u);
+    EXPECT_EQ(scene->getState().getComponentByUuid(clock->getUuid()), nullptr);
+    EXPECT_NE(moduleScene->getState().getComponentByUuid(clock->getUuid()),
+              nullptr);
+    for (const auto &slot : slots) {
+        EXPECT_EQ(scene->getState().getComponentByUuid(slot->getUuid()),
+                  nullptr);
+        EXPECT_NE(moduleScene->getState().getComponentByUuid(slot->getUuid()),
+                  nullptr);
+    }
+
+    Bess::SceneUIPrepareCtx moduleCtx{
+        .sceneState = &moduleScene->getState(),
+        .renderer = renderer,
+        .parentNode = nullptr,
+        .theme = Bess::Core::Style::BessTheme::defaultTheme(),
+    };
+    clock->prepareUI(moduleCtx);
+    EXPECT_EQ(countUiComps(moduleScene->getState()), 12u);
+    EXPECT_EQ(countUiComps(scene->getState()), 0u);
+
+    ASSERT_TRUE(session->undo());
+    EXPECT_EQ(countUiComps(moduleScene->getState()), 0u);
+    EXPECT_NE(scene->getState().getComponentByUuid(clock->getUuid()), nullptr);
+
+    session->clearHist();
+    scene->clear();
+    {
+        py::gil_scoped_acquire gil;
+        clock.reset();
+        clockDefinition.reset();
+    }
+}
+
+TEST_F(MainPageConnectionCommandsTest,
        AddComponentRedoRecreatesPreparedUiHelpers) {
     const auto fixture = addSimComponent(makeDefinition("JK Flip Flop", 4, 2));
     ASSERT_NE(fixture.comp, nullptr);

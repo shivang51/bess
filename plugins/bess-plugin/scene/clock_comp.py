@@ -102,9 +102,19 @@ class ClockComp(SimulationSceneComponent):
     def prepare_ui(self, ctx: SceneUIPrepareCtx):
         super().prepare_ui(ctx)
 
+        controls_parent = self.inp_slots_container
+        if controls_parent is None:
+            return
+        if (
+            self._controls_parent_id is not None
+            and self._controls_parent_id == controls_parent.uuid
+        ):
+            return
+        self._controls_parent_id = controls_parent.uuid
+
         prev_parent = ctx.parent_node
 
-        ctx.parent_node = self.inp_slots_container.ui_node
+        ctx.parent_node = controls_parent.ui_node
 
         # FREQUENCY TB
 
@@ -116,6 +126,9 @@ class ClockComp(SimulationSceneComponent):
         freq_row.custom_style.padding = Padding.zero()
         freq_row.custom_style.margin = Padding.only_top(4)
         ctx.scene_state.add_ui_comp(freq_row)
+        ctx.scene_state.attach_child(
+            controls_parent.uuid, freq_row.uuid, False
+        )
         freq_row.prepare_ui(ctx)
 
         ctx.parent_node = freq_row.ui_node
@@ -125,6 +138,7 @@ class ClockComp(SimulationSceneComponent):
         freq_label.custom_style.padding = Padding.symmetric(3, 1)
         freq_label.custom_style.margin = Padding.zero()
         ctx.scene_state.add_ui_comp(freq_label)
+        ctx.scene_state.attach_child(freq_row.uuid, freq_label.uuid, False)
         freq_label.prepare_ui(ctx)
 
         freq = getattr(self.comp_def, "frequency", 1.0)
@@ -140,9 +154,10 @@ class ClockComp(SimulationSceneComponent):
         freq_tb.set_tb_size(vec2(44, 0))
 
         ctx.scene_state.add_ui_comp(freq_tb)
+        ctx.scene_state.attach_child(freq_row.uuid, freq_tb.uuid, False)
         freq_tb.prepare_ui(ctx)
 
-        ctx.parent_node = self.inp_slots_container.ui_node
+        ctx.parent_node = controls_parent.ui_node
 
         # DUTY CYCLE SLIDER
         duty_cycle = getattr(self.comp_def, "duty_cycle", 0.5)
@@ -158,6 +173,7 @@ class ClockComp(SimulationSceneComponent):
         slider.set_slider_size(vec2(32, 0))
 
         ctx.scene_state.add_ui_comp(slider)
+        ctx.scene_state.attach_child(controls_parent.uuid, slider.uuid, False)
 
         slider.prepare_ui(ctx)
 
@@ -181,6 +197,7 @@ class ClockComp(SimulationSceneComponent):
         dropdown.custom_style.width = 44
 
         ctx.scene_state.add_ui_comp(dropdown)
+        ctx.scene_state.attach_child(controls_parent.uuid, dropdown.uuid, False)
         dropdown.prepare_ui(ctx)
 
         ctx.parent_node = prev_parent
