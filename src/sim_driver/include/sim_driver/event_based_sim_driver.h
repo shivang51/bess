@@ -174,6 +174,8 @@ namespace Bess::SimEngine::Drivers {
       protected:
         void onRunStart(TimeNs startTime) override;
 
+        void registerLoadedComponentsForRunStart();
+
         void scheduleDependantsOf(const UUID &compId);
 
         std::condition_variable m_runIterCv;

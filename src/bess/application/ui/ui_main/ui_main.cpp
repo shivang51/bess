@@ -174,6 +174,12 @@ namespace Bess::UI {
     bool UIMain::m_isDockSpaceDirty = true;
 
     void UIMain::draw() {
+        auto &internalData = getState()._internalData;
+        if (internalData.unsavedProjectWarningRequested) {
+            internalData.unsavedProjectWarningRequested = false;
+            ImGui::OpenPopup(Popups::PopupIds::unsavedProjectWarning);
+        }
+
         if (m_isDockSpaceDirty) {
             resetDockspace();
         }
@@ -817,6 +823,7 @@ namespace Bess::UI {
             return;
         }
 
+        Popups::centerNextPopup();
         ImGui::SetNextWindowSize(ImVec2(520.f, 0.f), ImGuiCond_FirstUseEver);
         if (!ImGui::BeginPopupModal(
                 "Import Verilog", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
@@ -986,7 +993,7 @@ namespace Bess::UI {
             GAppContext::getInstance().getSubSystem<ProjectSession>();
         if (sess->dirty()) {
             getState()._internalData.newFileClicked = true;
-            ImGui::OpenPopup(Popups::PopupIds::unsavedProjectWarning);
+            getState()._internalData.unsavedProjectWarningRequested = true;
         } else {
             const auto status = sess->newProj();
             if (!status) {
@@ -1019,7 +1026,7 @@ namespace Bess::UI {
         if (sess->dirty()) {
             getState()._internalData.openFileClicked = true;
             getState()._internalData.path = filepath;
-            ImGui::OpenPopup(Popups::PopupIds::unsavedProjectWarning);
+            getState()._internalData.unsavedProjectWarningRequested = true;
         } else {
             const auto status = sess->load(filepath);
             if (!status) {

@@ -384,7 +384,7 @@ namespace Bess {
 
             m_info.name = json.get("name", "Unnamed").asString();
             m_info.schema = json.get("schema", Schema).asUInt();
-            m_sim->setSimulationState(SimEngine::SimulationState::running);
+            m_sim->setSimulationState(SimEngine::SimulationState::stopped);
             return Status::ok();
         } catch (const std::exception &ex) {
             return Status::fail(Err::apply,

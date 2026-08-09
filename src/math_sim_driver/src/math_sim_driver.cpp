@@ -1132,6 +1132,8 @@ namespace Bess::SimEngine::Drivers::Math {
             }
         }
 
+        registerLoadedComponentsForRunStart();
+
         m_nets.clear();
         for (const auto &[compId, compBase] : m_components) {
             const auto comp = std::dynamic_pointer_cast<MathSimComp>(compBase);

@@ -1,4 +1,5 @@
 #include "common/types.h"
+#include "component_catalog.h"
 #include "dig_sim_driver.h"
 #include "math_sim_driver.h"
 #include "simulation_engine.h"
@@ -630,4 +631,68 @@ TEST_F(SimulationTimingTest, StampHistoryIsBoundedForContinuousRuns) {
     EXPECT_GT(stampHistory->samples.front().simTime, TimeNs(0));
     EXPECT_DOUBLE_EQ(stampHistory->samples.back().simTime.count(),
                      static_cast<double>(totalSamples - 1U));
+}
+
+TEST(SimulationLoadTest, LoadedDigitalCircuitSettlesFromSavedInputStateOnRun) {
+    DigitalSimDriver driver;
+    driver.init();
+
+    const auto sourceDefinition =
+        ComponentCatalog::instance().getComponentDefinitionCopy(
+            "Digital Input");
+    const auto targetDefinition =
+        ComponentCatalog::instance().getComponentDefinitionCopy(
+            "Digital Output");
+    ASSERT_NE(sourceDefinition, nullptr);
+    ASSERT_NE(targetDefinition, nullptr);
+
+    const auto source = driver.createComp(sourceDefinition, false);
+    const auto target = driver.createComp(targetDefinition, false);
+    ASSERT_NE(source, nullptr);
+    ASSERT_NE(target, nullptr);
+    const auto sourceId = driver.addComponent(source, false);
+    const auto targetId = driver.addComponent(target, false);
+
+    const PortRef sourcePort{.componentId = sourceId,
+                             .direction = PortDirection::output,
+                             .signalKind = SignalKind::digital,
+                             .index = 0};
+    const PortRef targetPort{.componentId = targetId,
+                             .direction = PortDirection::input,
+                             .signalKind = SignalKind::digital,
+                             .index = 0};
+
+    ASSERT_TRUE(driver.setOutputPortState(
+        sourceId, 0, PortState::digital(LogicState::high)));
+    ASSERT_TRUE(driver.connectPorts(sourcePort, targetPort, false));
+
+    DigitalSimDriver restored;
+    restored.init();
+    restored.loadJson(driver.toJson());
+
+    const auto loadedSource = restored.getComponent<DigSimComp>(sourceId);
+    const auto loadedTarget = restored.getComponent<DigSimComp>(targetId);
+    ASSERT_NE(loadedSource, nullptr);
+    ASSERT_NE(loadedTarget, nullptr);
+    ASSERT_EQ(loadedSource->getInitialOutputStates().size(), 1U);
+    ASSERT_EQ(loadedTarget->getInitialInputStates().size(), 1U);
+    EXPECT_EQ(loadedSource->getInitialOutputStates()[0].getLogicState(),
+              LogicState::high);
+    EXPECT_EQ(loadedTarget->getInitialInputStates()[0].getLogicState(),
+              LogicState::low);
+
+    std::thread runLoop([&restored]() { restored.run(); });
+    const auto settled = [&]() {
+        return restored.getPortState(targetPort).getLogicState() ==
+               LogicState::high;
+    };
+    const auto deadline =
+        std::chrono::steady_clock::now() + std::chrono::milliseconds(250);
+    while (!settled() && std::chrono::steady_clock::now() < deadline) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    restored.stop();
+    runLoop.join();
+    EXPECT_TRUE(settled());
 }

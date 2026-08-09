@@ -1350,6 +1350,8 @@ namespace Bess::SimEngine::Drivers::Digital {
             }
         }
 
+        registerLoadedComponentsForRunStart();
+
         std::vector<UUID> reSchedComps;
 
         m_nets.clear();

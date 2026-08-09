@@ -24,5 +24,7 @@ namespace Bess::UI {
         static PopupRes handleUnsavedProjectWarning();
 
         static void showAboutPopup();
+
+        static void centerNextPopup();
     };
 } // namespace Bess::UI

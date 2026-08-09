@@ -1336,15 +1336,19 @@ namespace Bess::Wgpu {
 
         wgpu::SurfaceTexture surfaceTexture{};
         wgpu::TextureView targetView;
+        bool surfaceNeedsReconfigure = false;
 
         if (m_impl->frameUsesSurface) {
             m_impl->surface.GetCurrentTexture(&surfaceTexture);
-            if (surfaceTexture.status !=
-                wgpu::SurfaceGetCurrentTextureStatus::SuccessOptimal) {
+            if (!Detail::isPresentableSurfaceTextureStatus(
+                    surfaceTexture.status)) {
                 m_impl->commandEncoder = nullptr;
                 m_impl->frameStarted = false;
                 return;
             }
+            surfaceNeedsReconfigure =
+                surfaceTexture.status ==
+                wgpu::SurfaceGetCurrentTextureStatus::SuccessSuboptimal;
             targetView = surfaceTexture.texture.CreateView();
         } else if (m_impl->frameTargetTexture != 0) {
             targetView = m_impl->getTexture(m_impl->frameTargetTexture).view;
@@ -2228,6 +2232,9 @@ namespace Bess::Wgpu {
         if (m_impl->frameUsesSurface) {
             m_impl->flushPendingCommandBuffers();
             m_impl->surface.Present();
+            if (surfaceNeedsReconfigure) {
+                m_impl->surfaceConfigured = false;
+            }
         }
 
         m_impl->commandEncoder = nullptr;
@@ -3053,11 +3060,13 @@ namespace Bess::Wgpu {
 
         wgpu::SurfaceTexture surfaceTexture;
         m_impl->surface.GetCurrentTexture(&surfaceTexture);
-        if (surfaceTexture.status !=
-            wgpu::SurfaceGetCurrentTextureStatus::SuccessOptimal) {
+        if (!Detail::isPresentableSurfaceTextureStatus(surfaceTexture.status)) {
             m_impl->flushPendingCommandBuffers();
             return;
         }
+        const bool surfaceNeedsReconfigure =
+            surfaceTexture.status ==
+            wgpu::SurfaceGetCurrentTextureStatus::SuccessSuboptimal;
 
         wgpu::TextureView targetView = surfaceTexture.texture.CreateView();
 
@@ -3082,6 +3091,9 @@ namespace Bess::Wgpu {
         m_impl->queueCommandBuffer(std::move(commandBuffer));
         m_impl->flushPendingCommandBuffers();
         m_impl->surface.Present();
+        if (surfaceNeedsReconfigure) {
+            m_impl->surfaceConfigured = false;
+        }
 
         m_impl->commandEncoder = nullptr;
     }

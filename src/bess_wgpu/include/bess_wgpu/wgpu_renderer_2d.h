@@ -15,6 +15,16 @@
 
 namespace Bess::Wgpu {
 
+    namespace Detail {
+        [[nodiscard]] constexpr bool isPresentableSurfaceTextureStatus(
+            wgpu::SurfaceGetCurrentTextureStatus status) noexcept {
+            return status ==
+                       wgpu::SurfaceGetCurrentTextureStatus::SuccessOptimal ||
+                   status ==
+                       wgpu::SurfaceGetCurrentTextureStatus::SuccessSuboptimal;
+        }
+    } // namespace Detail
+
     struct BESS_API TextureResource {
         wgpu::Texture texture;
         wgpu::TextureView view;

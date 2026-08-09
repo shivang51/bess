@@ -210,6 +210,18 @@ namespace Bess::SimEngine::Drivers {
         notifyScheduler();
     }
 
+    void EvtBasedSimDriver::registerLoadedComponentsForRunStart() {
+        std::lock_guard eventLock(m_eventMutex);
+        std::lock_guard compLock(m_compMapMutex);
+
+        m_runStartScheduledCompIds.clear();
+        for (const auto &[compId, comp] : m_components) {
+            if (std::dynamic_pointer_cast<EvtBasedSimComp>(comp)) {
+                m_runStartScheduledCompIds.insert(compId);
+            }
+        }
+    }
+
     std::vector<UUID> EvtBasedSimDriver::getDependants(const UUID &id) {
         return {};
     }

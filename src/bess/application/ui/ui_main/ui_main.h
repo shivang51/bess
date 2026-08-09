@@ -13,6 +13,7 @@ namespace Bess::UI {
         std::string path;
         std::string statusMessage;
         bool newFileClicked = false, openFileClicked = false;
+        bool unsavedProjectWarningRequested = false;
         bool exportSchematicClicked = false;
         bool isTbFocused = false;
     };

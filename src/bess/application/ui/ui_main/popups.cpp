@@ -5,10 +5,19 @@
 
 namespace Bess::UI {
 
-    Popups::PopupRes Popups::handleUnsavedProjectWarning() {
-        const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    void Popups::centerNextPopup() {
+        const ImGuiViewport *viewport = ImGui::GetWindowViewport();
+        if (!viewport) {
+            viewport = ImGui::GetMainViewport();
+        }
+
+        ImGui::SetNextWindowViewport(viewport->ID);
         ImGui::SetNextWindowPos(
-            center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+            viewport->GetWorkCenter(), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+    }
+
+    Popups::PopupRes Popups::handleUnsavedProjectWarning() {
+        centerNextPopup();
 
         PopupRes val = PopupRes::none;
 
@@ -41,9 +50,7 @@ namespace Bess::UI {
     }
 
     void Popups::showAboutPopup() {
-        const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-        ImGui::SetNextWindowPos(
-            center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+        centerNextPopup();
 
         if (ImGui::BeginPopupModal(
                 PopupIds::about, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {

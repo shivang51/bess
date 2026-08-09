@@ -7,6 +7,7 @@
 #include "event_dispatcher.h"
 #include "pages/main_page/scene_components/image_scene_component.h"
 #include "project_session/project_session.h"
+#include "simulation_engine.h"
 
 #include <gtest/gtest.h>
 #include <json/writer.h>
@@ -486,6 +487,8 @@ TEST_F(ProjectSessionTest, SaveLoadRestoresDocAndSavePoint) {
 
     ASSERT_TRUE(session->load(path));
     EXPECT_EQ(session->doc().name(), "Alpha");
+    EXPECT_EQ(session->sim().getSimulationState(),
+              Bess::SimEngine::SimulationState::stopped);
     EXPECT_FALSE(session->dirty());
     EXPECT_FALSE(session->canUndo());
     EXPECT_FALSE(session->canRedo());
