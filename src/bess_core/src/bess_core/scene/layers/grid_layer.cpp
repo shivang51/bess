@@ -3,6 +3,9 @@
 #include "bess_core/settings/viewport_theme.h"
 
 namespace Bess::Canvas {
+    namespace {
+        constexpr float kGridZIndex = -100.f;
+    }
 
     void GridLayer::destroy(SceneLifecycleContext &ctx) {
     }
@@ -14,7 +17,7 @@ namespace Bess::Canvas {
         ctx.renderer->drawCustomQuad(
             {.position = {0.f, 0.f},
              .size = ctx.camera->getSize(),
-             .zIndex = -10000.f,
+             .zIndex = kGridZIndex,
              .color = {1.f, 1.f, 1.f, 1.f},
              .id = PickingId::invalid(),
              .renderPass = Core::Renderer::QuadRenderPass::Opaque},
