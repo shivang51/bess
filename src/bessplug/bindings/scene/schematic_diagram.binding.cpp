@@ -1,4 +1,5 @@
-#include "scene/schematic_diagram.h"
+#include "bess_core/scene/schematic_diagram.h"
+#include "bess_core/scene/scene_draw_context.h"
 
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
@@ -10,16 +11,42 @@ namespace py = pybind11;
 void bind_scene_schematic_diagram(py::module_ &m) {
     py::class_<Bess::Canvas::SchematicDiagram>(m, "SchematicDiagram")
         .def(py::init<>())
-        .def_property("paths", &Bess::Canvas::SchematicDiagram::getPathsMut,
+        .def("copy",
+             [](const Bess::Canvas::SchematicDiagram &diagram) {
+                 return Bess::Canvas::SchematicDiagram(diagram);
+             })
+        .def("__copy__",
+             [](const Bess::Canvas::SchematicDiagram &diagram) {
+                 return Bess::Canvas::SchematicDiagram(diagram);
+             })
+        .def("__deepcopy__",
+             [](const Bess::Canvas::SchematicDiagram &diagram, py::dict) {
+                 return Bess::Canvas::SchematicDiagram(diagram);
+             })
+        .def_property("paths",
+                      &Bess::Canvas::SchematicDiagram::getPathsMut,
                       &Bess::Canvas::SchematicDiagram::setPaths)
-        .def_property("size", &Bess::Canvas::SchematicDiagram::getSize,
+        .def_property("size",
+                      &Bess::Canvas::SchematicDiagram::getSize,
                       &Bess::Canvas::SchematicDiagram::setSize)
         .def("add_path", &Bess::Canvas::SchematicDiagram::addPath)
         .def("normalize_paths", &Bess::Canvas::SchematicDiagram::normalizePaths)
-        .def_property("show_name", &Bess::Canvas::SchematicDiagram::getShowName,
+        .def_property("show_name",
+                      &Bess::Canvas::SchematicDiagram::getShowName,
                       &Bess::Canvas::SchematicDiagram::setShowName)
         .def_property("stroke_size",
                       &Bess::Canvas::SchematicDiagram::getStrokeSize,
                       &Bess::Canvas::SchematicDiagram::setStrokeSize)
-        .def("draw", &Bess::Canvas::SchematicDiagram::draw);
+        .def("draw", &Bess::Canvas::SchematicDiagram::draw)
+        .def(
+            "draw",
+            [](Bess::Canvas::SchematicDiagram &diagram,
+               const Bess::Canvas::Transform &transform,
+               const Bess::PickingId &pickingId,
+               const Bess::SceneDrawContext &context) {
+                return diagram.draw(transform, pickingId, context.renderer);
+            },
+            py::arg("transform"),
+            py::arg("picking_id"),
+            py::arg("context"));
 }

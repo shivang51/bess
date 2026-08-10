@@ -1,14 +1,14 @@
+#include "bess_core/scene_driver.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "component_catalog.h"
 #include "dig_sim_driver.h"
-#include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/connection_scene_component.h" // IWYU pragma: keep
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
-#include "pages/main_page/services/connection_service.h"
 #include "simulation_engine.h"
-#include "ui_main/component_explorer.h"
+#include "ui/project_api.h"
+#include "ui/ui_main/component_explorer.h"
 #include <pybind11/eval.h>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
@@ -34,7 +34,8 @@ class ScriptLogger {
         m_output += text;
     }
 
-    void flush() {}
+    void flush() {
+    }
 
     std::string popLogs() {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -85,7 +86,8 @@ void bind_cmds(py::module &m) {
         return {py::cast(compId), ""};
     };
 
-    m.def("add", addCompFn,
+    m.def("add",
+          addCompFn,
           "Adds a component to the current circuit by definition name.",
           py::arg("comp_name"));
 
@@ -99,12 +101,13 @@ void bind_cmds(py::module &m) {
         std::vector<Bess::SimEngine::LogicState> states;
         states.reserve(comp->getInputStates().size());
         for (const auto &state : comp->getInputStates()) {
-            states.push_back(state.state);
+            states.push_back(state.getLogicState());
         }
         return {py::cast(states), ""};
     };
 
-    m.def("get_inp_states_n", getInpStatesN,
+    m.def("get_inp_states_n",
+          getInpStatesN,
           "Gets the states of any components input slots. \
 					For it work make sure component name is unique in your circuit",
           py::arg("comp_name"));
@@ -118,13 +121,15 @@ void bind_cmds(py::module &m) {
         std::vector<Bess::SimEngine::LogicState> states;
         states.reserve(comp->getInputStates().size());
         for (const auto &state : comp->getInputStates()) {
-            states.push_back(state.state);
+            states.push_back(state.getLogicState());
         }
         return {py::cast(states), ""};
     };
 
-    m.def("get_inp_states", getInpStates,
-          "Gets the states of any components input slots.", py::arg("comp_id"));
+    m.def("get_inp_states",
+          getInpStates,
+          "Gets the states of any components input slots.",
+          py::arg("comp_id"));
 
     auto getOutStatesN = [](const std::string &compName) -> CmdResult {
         const auto &comp = findUniqueDigCompByName(compName);
@@ -135,12 +140,13 @@ void bind_cmds(py::module &m) {
         std::vector<Bess::SimEngine::LogicState> states;
         states.reserve(comp->getOutputStates().size());
         for (const auto &state : comp->getOutputStates()) {
-            states.push_back(state.state);
+            states.push_back(state.getLogicState());
         }
         return {py::cast(states), ""};
     };
 
-    m.def("get_out_states_n", getOutStatesN,
+    m.def("get_out_states_n",
+          getOutStatesN,
           "Gets the states of any components output slots. \
 					For it work make sure component name is unique in your circuit",
           py::arg("comp_name"));
@@ -155,17 +161,19 @@ void bind_cmds(py::module &m) {
         std::vector<Bess::SimEngine::LogicState> states;
         states.reserve(comp->getOutputStates().size());
         for (const auto &state : comp->getOutputStates()) {
-            states.push_back(state.state);
+            states.push_back(state.getLogicState());
         }
         return {py::cast(states), ""};
     };
 
-    m.def("get_out_states", getOutStates,
+    m.def("get_out_states",
+          getOutStates,
           "Gets the states of any components output slots.",
           py::arg("comp_id"));
 
     auto setInpStateNFn =
-        [](const std::string &compName, int slotIdx,
+        [](const std::string &compName,
+           int slotIdx,
            const Bess::SimEngine::LogicState &state) -> CmdResult {
         const auto &comp = findUniqueDigCompByName(compName);
 
@@ -183,19 +191,23 @@ void bind_cmds(py::module &m) {
             return {py::none(), "Component is not an input component"};
         }
 
-        auto &simEngine = Bess::SimEngine::SimulationEngine::instance();
-        simEngine.setOutputSlotState(comp->getUuid(), slotIdx, state);
+        auto &simEngine = Bess::UI::Proj::sim();
+        simEngine.setOutputPortState(comp->getUuid(), slotIdx, state);
         return {py::cast(true), ""};
     };
 
     // id is of scene component
-    m.def("set_inp_comp_state_n", setInpStateNFn,
+    m.def("set_inp_comp_state_n",
+          setInpStateNFn,
           "Sets the state of input coponent slot. \
 					For it work make sure input names are unique in your circuit",
-          py::arg("comp_name"), py::arg("slot_idx"), py::arg("state"));
+          py::arg("comp_name"),
+          py::arg("slot_idx"),
+          py::arg("state"));
 
     auto setInpStateFn =
-        [](uint64_t compId, int slotIdx,
+        [](uint64_t compId,
+           int slotIdx,
            const Bess::SimEngine::LogicState &state) -> CmdResult {
         const auto &comp = findDigCompBySceneId(compId);
         if (!comp) {
@@ -212,46 +224,83 @@ void bind_cmds(py::module &m) {
             return {py::none(), "Component is not an input component"};
         }
 
-        auto &simEngine = Bess::SimEngine::SimulationEngine::instance();
-        simEngine.setOutputSlotState(comp->getUuid(), slotIdx, state);
+        auto &simEngine = Bess::UI::Proj::sim();
+        simEngine.setOutputPortState(comp->getUuid(), slotIdx, state);
         return {py::cast(true), ""};
     };
 
     // connect slots
 
-    auto connectSlotsFn =
-        [](const Bess::UUID &fromCompId, Bess::Canvas::SlotType fromSlotType,
-           int fromSlotIdx, const Bess::UUID &toCompId,
-           Bess::Canvas::SlotType toSlotType, int toSlotIdx) -> CmdResult {
-        const auto &sceneDriver =
-            Bess::Pages::MainPage::getInstance()->getState().getSceneDriver();
-
-        auto &connSvc = Bess::Svc::SvcConnection::instance();
-        auto conn = connSvc.createConnection(
-            fromCompId, fromSlotType, fromSlotIdx, toCompId, toSlotType,
-            toSlotIdx, sceneDriver.getActiveScene().get());
-
-        if (conn) {
-            return {py::cast(conn->getUuid()), ""};
-        } else {
-            return {py::none(), "Failed to connect slots. Check if component "
-                                "and slot indices are correct."};
+    auto connectSlotsFn = [](const Bess::UUID &fromCompId,
+                             Bess::SimEngine::PortDirection fromDirection,
+                             int fromPortIdx,
+                             const Bess::UUID &toCompId,
+                             Bess::SimEngine::PortDirection toDirection,
+                             int toPortIdx) -> CmdResult {
+        auto &sceneDriver = Bess::UI::Proj::scenes();
+        const auto scene = sceneDriver.getActiveScene();
+        if (!scene) {
+            return {py::none(), "No active scene"};
         }
+        const auto fromComp =
+            scene->getState()
+                .getComponentByUuid<Bess::Canvas::SimulationSceneComponent>(
+                    fromCompId);
+        const auto toComp =
+            scene->getState()
+                .getComponentByUuid<Bess::Canvas::SimulationSceneComponent>(
+                    toCompId);
+        if (!fromComp || !toComp || fromPortIdx < 0 || toPortIdx < 0) {
+            return {py::none(), "Component or port index is invalid"};
+        }
+        const auto validDir = [](Bess::SimEngine::PortDirection direction) {
+            return direction == Bess::SimEngine::PortDirection::input ||
+                   direction == Bess::SimEngine::PortDirection::output;
+        };
+        if (!validDir(fromDirection) || !validDir(toDirection)) {
+            return {py::none(), "Port direction is invalid"};
+        }
+
+        const auto slotAt = [](const auto *comp,
+                               Bess::SimEngine::PortDirection direction,
+                               int index) {
+            const auto &slots =
+                direction == Bess::SimEngine::PortDirection::input
+                    ? comp->getInputSlots()
+                    : comp->getOutputSlots();
+            return static_cast<std::size_t>(index) < slots.size()
+                       ? slots[static_cast<std::size_t>(index)]
+                       : Bess::UUID::null;
+        };
+        const auto fromSlot = slotAt(fromComp, fromDirection, fromPortIdx);
+        const auto toSlot = slotAt(toComp, toDirection, toPortIdx);
+        if (fromSlot == Bess::UUID::null || toSlot == Bess::UUID::null) {
+            return {py::none(), "Port index is out of range"};
+        }
+
+        auto conn = std::make_shared<Bess::Canvas::ConnectionSceneComponent>();
+        conn->setStartEndSlots(fromSlot, toSlot);
+        const auto result = Bess::UI::Proj::addConn(conn, scene->getSceneId());
+        return result ? CmdResult{py::cast(conn->getUuid()), ""}
+                      : CmdResult{py::none(), result.msg};
     };
 
-    m.def("connect", connectSlotsFn, "Connects two slots together.\
-					Use slot types and indices to specify the slots to connect.\
-					Slot types can be 'input' or 'output'.",
-          py::arg("from_comp_id"), py::arg("from_slot_type"),
-          py::arg("from_slot_idx"), py::arg("to_comp_id"),
-          py::arg("to_slot_type"), py::arg("to_slot_idx"));
+    m.def("connect",
+          connectSlotsFn,
+          "Connects two slots together.\
+					Use port directions and indices to specify the ports to connect.",
+          py::arg("from_comp_id"),
+          py::arg("from_direction"),
+          py::arg("from_port_idx"),
+          py::arg("to_comp_id"),
+          py::arg("to_direction"),
+          py::arg("to_port_idx"));
 
     // organize components
     auto orgCompsFn = []() -> CmdResult {
-        auto &pageState = Bess::Pages::MainPage::getInstance()->getState();
-        const auto result = pageState.applyHierarchicalLayoutToActiveScene();
+        const auto result = Bess::UI::Proj::layout();
         if (!result.applied) {
-            if (result.laidOutNodes == 0) {
+            if (result.count == 0) {
                 return {py::cast(
                             "Hierarchical layout skipped: no scene components"),
                         ""};
@@ -261,17 +310,21 @@ void bind_cmds(py::module &m) {
         }
         return {
             py::cast(std::format("Applied hierarchical layout to {} components",
-                                 result.laidOutNodes)),
+                                 result.count)),
             ""};
     };
 
-    m.def("org_comps", orgCompsFn,
+    m.def("org_comps",
+          orgCompsFn,
           "Organizes components in the scene using a specified method.\
 					Currently only 'hierarchical' method is supported.");
 
-    m.def("set_inp_comp_state", setInpStateFn,
-          "Sets the state of input component slot.", py::arg("comp_id"),
-          py::arg("slot_idx"), py::arg("state"));
+    m.def("set_inp_comp_state",
+          setInpStateFn,
+          "Sets the state of input component slot.",
+          py::arg("comp_id"),
+          py::arg("slot_idx"),
+          py::arg("state"));
 
     auto execCmdFn = [](const std::string &cmd) -> CmdResult {
         if (!cmd.starts_with("bessplug.cmds")) {
@@ -286,23 +339,26 @@ void bind_cmds(py::module &m) {
             CmdResult result = py::eval(cmd).cast<CmdResult>();
             return {result.result, result.error};
         } catch (py::error_already_set &e) {
-            BESS_ERROR("Error executing Python command '{}': {}", cmd,
-                       e.what());
+            BESS_ERROR(
+                "Error executing Python command '{}': {}", cmd, e.what());
             return {py::none(), e.what()};
         }
     };
 
     m.def(
         "clear",
-        []() {
-            Bess::Pages::MainPage::getInstance()
-                ->getState()
-                .resetProjectState();
+        []() -> CmdResult {
+            const auto status = Bess::UI::Proj::newProj();
+            if (!status) {
+                return {py::none(), status.msg};
+            }
             return CmdResult{py::cast(true), ""};
         },
         "Clears the current circuit, removing all components and connections.");
 
-    m.def("exec", execCmdFn, "Executes a single bessplug command.",
+    m.def("exec",
+          execCmdFn,
+          "Executes a single bessplug command.",
           py::arg("cmd"));
 
     auto execScriptFn = [](const std::string &script) -> CmdResult {
@@ -333,7 +389,8 @@ void bind_cmds(py::module &m) {
         }
     };
 
-    m.def("exec_script", execScriptFn,
+    m.def("exec_script",
+          execScriptFn,
           "Executes a Python script containing multiple bessplug commands.",
           py::arg("script"));
 
@@ -349,9 +406,7 @@ void bind_cmds(py::module &m) {
         status->error = "";
 
         std::thread([execScriptFn, script]() {
-            auto &driver = Bess::Pages::MainPage::getInstance()
-                               ->getState()
-                               .getSceneDriver();
+            auto &driver = Bess::UI::Proj::scenes();
             driver.setIsPaused(true);
             py::gil_scoped_acquire lock{};
             status->error = execScriptFn(script).error;
@@ -364,7 +419,8 @@ void bind_cmds(py::module &m) {
     };
 
     m.def(
-        "exec_script_async", execAsyncScriptFn,
+        "exec_script_async",
+        execAsyncScriptFn,
         "Executes a Python script asynchronously. Returns immediately with success status.\
 					Use get_status() to check if the script is still running.",
         py::arg("script"));
@@ -373,7 +429,8 @@ void bind_cmds(py::module &m) {
         return status;
     };
 
-    m.def("get_async_script_status", getAsyncScriptStatusFn,
+    m.def("get_async_script_status",
+          getAsyncScriptStatusFn,
           "Gets the status of the currently running asynchronous script.");
 }
 
@@ -427,17 +484,19 @@ void bind_script_logger(py::module &m) {
     py::class_<ScriptLogger, std::shared_ptr<ScriptLogger>>(m, "ScriptLogger")
         .def("write", &ScriptLogger::write)
         .def("flush", &ScriptLogger::flush)
-        .def("pop_logs", &ScriptLogger::popLogs,
+        .def("pop_logs",
+             &ScriptLogger::popLogs,
              "Retrieves and clears the current logs captured from script "
              "execution.")
-        .def("get_logs", &ScriptLogger::getLogs,
+        .def("get_logs",
+             &ScriptLogger::getLogs,
              "Retrieves the current logs captured from script execution "
              "without clearing them.");
 }
 
 std::shared_ptr<Bess::SimEngine::Drivers::Digital::DigSimComp>
 findUniqueDigCompByName(const std::string &compName) {
-    auto &simEngine = Bess::SimEngine::SimulationEngine::instance();
+    auto &simEngine = Bess::UI::Proj::sim();
 
     std::shared_ptr<Bess::SimEngine::Drivers::Digital::DigSimComp> found;
     for (const auto &driver : simEngine.getDrivers()) {
@@ -472,10 +531,10 @@ findUniqueDigCompByName(const std::string &compName) {
 
 std::shared_ptr<Bess::SimEngine::Drivers::Digital::DigSimComp>
 findDigCompBySceneId(uint64_t compId) {
-    const auto &sceneDriver =
-        Bess::Pages::MainPage::getInstance()->getState().getSceneDriver();
+    auto &sceneDriver = Bess::UI::Proj::scenes();
     const auto &simComp =
-        sceneDriver->getState()
+        sceneDriver.getActiveScene()
+            ->getState()
             .getComponentByUuid<Bess::Canvas::SimulationSceneComponent>(compId);
 
     if (!simComp) {
@@ -484,7 +543,7 @@ findDigCompBySceneId(uint64_t compId) {
 
     const auto &simEngineId = simComp->getSimEngineId();
 
-    auto &simEngine = Bess::SimEngine::SimulationEngine::instance();
+    auto &simEngine = Bess::UI::Proj::sim();
     const auto &comp =
         simEngine.getComponent<Bess::SimEngine::Drivers::Digital::DigSimComp>(
             simEngineId);
@@ -494,7 +553,6 @@ findDigCompBySceneId(uint64_t compId) {
     }
 
     auto snapshot =
-        std::make_shared<Bess::SimEngine::Drivers::Digital::DigSimComp>(
-            *comp.get());
+        std::make_shared<Bess::SimEngine::Drivers::Digital::DigSimComp>(*comp);
     return snapshot;
 }

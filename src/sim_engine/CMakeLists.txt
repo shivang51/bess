@@ -28,7 +28,7 @@ set(ALL_FILES
     ${Source_Files}
 )
 
-add_library(${PROJECT_NAME} SHARED ${ALL_FILES} )
+add_library(${PROJECT_NAME} OBJECT ${ALL_FILES} )
 if(UNIX)
 if (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "14")
     target_link_libraries(${PROJECT_NAME} PRIVATE stdc++exp)
@@ -37,23 +37,22 @@ else()
 endif()
 endif()
 
-target_link_libraries(${PROJECT_NAME} PRIVATE BessPluginManager EventSystem BessJson common BessSimDriver)
+target_link_libraries(${PROJECT_NAME} PRIVATE BessPluginManager EventSystem BessJson common BessSimDriver BessExtDeps)
 add_dependencies(${PROJECT_NAME} BessPluginManager EventSystem BessJson common BessSimDriver)
-
-target_compile_definitions(${PROJECT_NAME} PRIVATE BESS_EXPORTS)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include;"
+)
+
+target_include_directories(${PROJECT_NAME} PRIVATE
 		"${CMAKE_SOURCE_DIR}/external/jsoncpp/include"
     "${CMAKE_SOURCE_DIR}/external/spdlog/include;"
     "${CMAKE_SOURCE_DIR}/src/bverilog/include;"
+    "${CMAKE_SOURCE_DIR}/src/bess_core/include;"
 )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}")
 
 if(MSVC)
 	target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8")
-	set_property(TARGET ${PROJECT_NAME} PROPERTY
-			MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-	)
 endif()

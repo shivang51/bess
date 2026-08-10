@@ -36,8 +36,8 @@ namespace Bess {
             logSinks.push_back(m_uiSink);
         }
 
-        auto logger = std::make_shared<spdlog::logger>(name, logSinks.begin(),
-                                                       logSinks.end());
+        auto logger = std::make_shared<spdlog::logger>(
+            name, logSinks.begin(), logSinks.end());
         spdlog::register_logger(logger);
 
 #ifdef DEBUG

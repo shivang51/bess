@@ -1,65 +1,68 @@
 #pragma once
-#include "events/application_event.h"
-#include "fwd.hpp"
-#include <cstdint>
-#define GLFW_INCLUDE_VULKAN
-#include "GLFW/glfw3.h"
 
-#include <any>
-#include <functional>
+#include "GLFW/glfw3.h"
+#include "bess_core/renderer/texture.h"
+#include "bess_core/sub_systems/input_sub_system_types.h"
+#include "common/bess_api.h"
+#include "common/sub_system.h"
+#include "fwd.hpp"
+#include "ui/ui.h"
+
 #include <memory>
 #include <string>
-#include <unordered_map>
-#include <vector>
 
 namespace Bess {
 
-    enum class Callback : uint8_t {
-        WindowResize,
-        MouseWheel,
-        KeyPress,
-        KeyRelease,
-        MouseButton,
-        MouseMove
+    struct BESS_API WindowSurface {
+        void *rendereHwd = nullptr;
     };
 
-    typedef std::function<void(int, int)> WindowResizeCallback;
-    typedef std::function<void(double, double)> MouseWheelCallback;
-    typedef std::function<void(int)> KeyReleaseCallback;
-    typedef std::function<void(int)> KeyPressCallback;
-    typedef std::function<void(MouseButton, MouseButtonAction, glm::vec2)>
-        MouseButtonCallback;
-    typedef std::function<void(double, double)> MouseMoveCallback;
-
-    class Window {
+    class BESS_API Window : public ISubSystem,
+                            public std::enable_shared_from_this<Window> {
       public:
         struct GLFWwindowDeleter {
-            void operator()(GLFWwindow *window) { glfwDestroyWindow(window); }
+            void operator()(GLFWwindow *window) {
+                glfwDestroyWindow(window);
+            }
         };
 
+        Window() = default;
+
+        Window(const Window &) = delete;
+        Window &operator=(const Window &) = delete;
+
         Window(int width, int height, const std::string &title);
-        ~Window();
+
+        void onPreUpdate() override;
+        void onUpdate(TimeMs dt) override;
+        void onPreInit() override;
+        void onInit() override;
+        void onPostInit() override;
+        void onShutdown() override;
+        void onDestroy() override;
+
+        void onPreDraw() override;
+        void onDraw() override;
+        void onPostDraw() override;
+
+        void onBeginFrame() override;
 
         bool isClosed() const;
         void close() const;
 
-        void destroy();
         void setName(const std::string &name) const;
 
-        static void pollEvents() { glfwPollEvents(); }
-        static void waitEvents() { glfwWaitEvents(); }
+        static void pollEvents() {
+            glfwPollEvents();
+        }
+        static void waitEvents() {
+            glfwWaitEvents();
+        }
         static void waitEventsTimeout(double seconds) {
             glfwWaitEventsTimeout(seconds);
         }
 
         static bool isGLFWInitialized;
-
-        void onWindowResize(WindowResizeCallback callback);
-        void onMouseWheel(MouseWheelCallback callback);
-        void onKeyPress(KeyPressCallback callback);
-        void onKeyRelease(KeyReleaseCallback callback);
-        void onMouseButton(MouseButtonCallback callback);
-        void onMouseMove(MouseMoveCallback callback);
 
         glm::vec2 getMousePos() const;
 
@@ -67,23 +70,40 @@ namespace Bess {
 
         void setEnableCursor(bool enable) const;
 
-        GLFWwindow *getGLFWHandle() const { return mp_window.get(); }
+        GLFWwindow *getGLFWHandle() const {
+            return mp_window.get();
+        }
 
-        // Vulkan-specific methods
-        void createWindowSurface(VkInstance instance,
-                                 VkSurfaceKHR &surface) const;
-        std::vector<const char *> getVulkanExtensions() const;
-        VkExtent2D getExtent() const;
-        bool wasWindowResized() const { return m_framebufferResized; }
-        void resetWindowResizedFlag() { m_framebufferResized = false; }
+#if defined(__linux__)
+        bool isNativeX11() const;
+        void *getNativeX11Display() const;
+        unsigned long getNativeX11Window() const;
+#endif
+
+        bool wasWindowResized() const {
+            return m_framebufferResized;
+        }
+        void resetWindowResizedFlag() {
+            m_framebufferResized = false;
+        }
+
+        MAKE_GETTER_SETTER(WindowSurface, surface, m_surface)
+        MAKE_GETTER(UIHandle, ui, m_ui)
+
+      private:
+        KeyCode glfwKeyToKeyCode(int glfwKey) const;
 
       private:
         std::unique_ptr<GLFWwindow, GLFWwindowDeleter> mp_window;
-        std::unordered_map<Callback, std::any> m_callbacks;
         bool m_framebufferResized = false;
+        size_t m_width, m_height;
+        std::string m_title;
 
         void initGLFW() const;
-        static void framebufferResizeCallback(GLFWwindow *window, int width,
-                                              int height);
+        static void
+        framebufferResizeCallback(GLFWwindow *window, int width, int height);
+
+        WindowSurface m_surface;
+        UIHandle m_ui;
     };
 } // namespace Bess

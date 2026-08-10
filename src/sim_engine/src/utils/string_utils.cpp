@@ -6,13 +6,13 @@
 
 namespace Bess::SimEngine::StringUtils {
 
-    SlotType toPinType(std::string str) {
+    PortDirection toPortDirection(std::string str) {
         std::ranges::transform(str, str.begin(), ::tolower);
 
         if (str == "output") {
-            return SlotType::digitalOutput;
+            return PortDirection::output;
         }
 
-        return SlotType::digitalInput;
+        return PortDirection::input;
     }
 } // namespace Bess::SimEngine::StringUtils

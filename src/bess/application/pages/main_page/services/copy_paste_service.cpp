@@ -1,116 +1,217 @@
-#include "copy_paste_service.h"
+#include "pages/main_page/services/copy_paste_service.h"
+#include "bess_core/scene/scene_state/components/scene_component.h"
+#include "bess_core/scene/scene_state/scene_state.h"
+#include "bess_core/scene_driver.h"
 #include "common/bess_uuid.h"
-#include "component_catalog.h"
-#include "macro_command.h"
-#include "pages/main_page/cmds/add_comp_cmd.h"
-#include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "simulation_engine.h"
 #include <unordered_map>
 
 namespace Bess::Svc::CopyPaste {
+    namespace {
+        void bindModuleSceneToParent(
+            const std::shared_ptr<Canvas::ModuleSceneComponent> &module,
+            const std::shared_ptr<Canvas::Scene> &parentScene) {
+            BESS_ASSERT(module, "[CopyPaste] Module clone must be valid");
+            BESS_ASSERT(parentScene,
+                        "[CopyPaste] Module parent scene must be valid");
+
+            if (!module || !parentScene) {
+                return;
+            }
+
+            auto *scenes = parentScene->getState().runtime().scenes;
+            const auto moduleScene =
+                scenes ? scenes->getSceneWithId(module->getSceneId()) : nullptr;
+
+            BESS_ASSERT(moduleScene,
+                        "[CopyPaste] Cloned module scene was not registered");
+            if (!moduleScene) {
+                return;
+            }
+
+            auto &moduleSceneState = moduleScene->getState();
+            moduleSceneState.setIsRootScene(false);
+            moduleSceneState.setParentSceneId(parentScene->getSceneId());
+            moduleSceneState.setModuleId(module->getUuid());
+        }
+    } // namespace
+
     void Context::copy(const std::shared_ptr<Canvas::Scene> &scene) {
         BESS_ASSERT(scene, "[CopyPaste] Pass valid scene to copy function");
+        if (!scene) {
+            BESS_ERROR("[CopyPaste] Cannot copy from a null scene");
+            return;
+        }
 
         clear();
 
-        auto &simEngine = SimEngine::SimulationEngine::instance();
-        const auto &catalogInstance = SimEngine::ComponentCatalog::instance();
-
         const auto &sceneState = scene->getState();
-        const auto &selComponents =
-            sceneState.getSelectedComponents() | std::views::keys;
 
         m_copiedScene = scene;
 
-        for (const auto &selId : selComponents) {
-            const auto comp = sceneState.getComponentByUuid(selId);
-            const auto type = comp->getType();
-
-            CopiedEntity entity{};
-            entity.type = type;
-
-            switch (type) {
-            case Canvas::SceneComponentType::simulation:
-            case Canvas::SceneComponentType::module: {
-                const auto casted =
-                    comp->cast<Canvas::SimulationSceneComponent>();
-                entity.data = Svc::CopyPaste::ETSimComp{casted};
-            } break;
-            case Canvas::SceneComponentType::nonSimulation: {
-                const auto casted = comp->cast<Canvas::NonSimSceneComponent>();
-                entity.data = Svc::CopyPaste::ETNonSimComp{
-                    casted->getTypeIndex(), casted};
-            } break;
-            case Canvas::SceneComponentType::connection: {
-                const auto casted =
-                    comp->cast<Canvas::ConnectionSceneComponent>();
-                entity.data = Svc::CopyPaste::ETConnection{casted};
-            } break;
-            default:
+        for (const auto &[selId, selected] :
+             sceneState.getSelectedComponents()) {
+            if (!selected) {
                 continue;
-                break;
             }
-
-            entity.pos = comp->getTransform().position;
-
-            addEntity(entity);
+            addEntityFromComponent(sceneState, selId);
         }
+
+        BESS_DEBUG("Copied {} entities from scene {}",
+                   m_entities.size(),
+                   (uint64_t)sceneState.getSceneId());
+    }
+
+    void Context::copyScene(const std::shared_ptr<Canvas::Scene> &scene) {
+        BESS_ASSERT(scene,
+                    "[CopyPaste] Pass valid scene to copyScene function");
+        if (!scene) {
+            BESS_ERROR("[CopyPaste] Cannot copy a null scene");
+            return;
+        }
+
+        clear();
+
+        const auto &sceneState = scene->getState();
+        m_copiedScene = scene;
+
+        for (const auto &componentId : sceneState.getRootComponents()) {
+            addEntityFromComponent(sceneState, componentId);
+        }
+
+        BESS_DEBUG("Copied full scene with {} root entities from scene {}",
+                   m_entities.size(),
+                   (uint64_t)sceneState.getSceneId());
     }
 
     std::unordered_map<UUID, UUID>
     Context::paste(const std::shared_ptr<Canvas::Scene> &targetScene,
+                   const glm::vec2 &targetPos,
                    bool recordHistory) {
         if (m_entities.empty())
             return {};
 
+        BESS_ASSERT(targetScene,
+                    "[CopyPaste] Pass valid scene to paste function");
+        if (!targetScene) {
+            BESS_ERROR("[CopyPaste] Cannot paste into a null scene");
+            return {};
+        }
+
         BESS_ASSERT(m_copiedScene,
                     "Copied Scene is invalid, although entities were copied");
+        if (!m_copiedScene) {
+            BESS_ERROR(
+                "[CopyPaste] Cannot paste without a copied source scene");
+            return {};
+        }
 
         calcCenter();
 
-        auto macroCmd = std::make_unique<Cmd::MacroCommand>();
+        auto &targetState = targetScene->getState();
+        if (!targetState.runtime().addBatch) {
+            BESS_ERROR("[CopyPaste] Scene edit port is unavailable");
+            return {};
+        }
 
-        const auto &newCenter = targetScene->getSceneMousePos();
+        std::vector<Canvas::SceneAddOp> ops;
+        const auto add =
+            [&](const std::shared_ptr<Canvas::SceneComponent> &comp,
+                std::vector<std::shared_ptr<Canvas::SceneComponent>> kids =
+                    {}) {
+                ops.push_back({.comp = comp, .kids = std::move(kids)});
+                return true;
+            };
+
         std::vector<Svc::CopyPaste::CopiedEntity> connEntites;
 
         std::unordered_map<UUID, UUID> ogToClonedIdMap;
 
         for (auto &entity : m_entities) {
-            const auto pos = newCenter + entity.pos - m_center;
+            const auto pos = targetPos + entity.pos - m_center;
             if (entity.type == Canvas::SceneComponentType::simulation ||
                 entity.type == Canvas::SceneComponentType::module) {
                 const auto &entityData =
                     std::get<Svc::CopyPaste::ETSimComp>(entity.data);
                 auto clonedComponents =
                     entityData.comp->clone(m_copiedScene->getState());
-                BESS_ASSERT(!clonedComponents.empty(),
-                            "Simulation clone returned no components");
+                if (clonedComponents.empty()) {
+                    BESS_ERROR("[CopyPaste] Skipping component {} because "
+                               "clone returned no components",
+                               (uint64_t)entityData.comp->getUuid());
+                    continue;
+                }
+
+                const auto clonedPrimary = clonedComponents.front();
+                const auto clonedModule =
+                    std::dynamic_pointer_cast<Canvas::ModuleSceneComponent>(
+                        clonedPrimary);
 
                 if (entity.type == Canvas::SceneComponentType::module) {
-                    BESS_ASSERT(
-                        std::dynamic_pointer_cast<Canvas::ModuleSceneComponent>(
-                            clonedComponents.front()),
-                        "Module clone did not return a module component first");
-                } else {
-                    BESS_ASSERT(std::dynamic_pointer_cast<
-                                    Canvas::SimulationSceneComponent>(
-                                    clonedComponents.front()),
-                                "Simulation clone did not return a simulation "
+                    BESS_ASSERT(clonedModule,
+                                "Module clone did not return a module "
                                 "component first");
+                    if (!clonedModule) {
+                        BESS_ERROR("[CopyPaste] Skipping module {} because "
+                                   "clone returned the wrong component type",
+                                   (uint64_t)entityData.comp->getUuid());
+                        continue;
+                    }
+                } else {
+                    BESS_ASSERT(
+                        std::dynamic_pointer_cast<
+                            Canvas::SimulationSceneComponent>(clonedPrimary),
+                        "Simulation clone did not return a simulation "
+                        "component first");
                 }
 
                 auto clonedComp =
-                    clonedComponents.front()
-                        ->cast<Canvas::SimulationSceneComponent>();
+                    std::dynamic_pointer_cast<Canvas::SimulationSceneComponent>(
+                        clonedPrimary);
+                if (!clonedComp) {
+                    BESS_ERROR("[CopyPaste] Skipping component {} because "
+                               "clone returned the wrong component type",
+                               (uint64_t)entityData.comp->getUuid());
+                    continue;
+                }
                 clonedComponents.erase(clonedComponents.begin());
                 BESS_ASSERT(clonedComponents.size() ==
                                 entityData.comp->getChildComponents().size(),
                             "[Paste] Not all child comps got cloned");
+                if (clonedComponents.size() !=
+                    entityData.comp->getChildComponents().size()) {
+                    BESS_ERROR("[CopyPaste] Skipping component {} because "
+                               "clone returned {} children, expected {}",
+                               (uint64_t)entityData.comp->getUuid(),
+                               clonedComponents.size(),
+                               entityData.comp->getChildComponents().size());
+                    continue;
+                }
+
+                BESS_ASSERT(clonedComp->getInputSlots().size() ==
+                                entityData.comp->getInputSlots().size(),
+                            "[Paste] Not all input slots got cloned");
+                BESS_ASSERT(clonedComp->getOutputSlots().size() ==
+                                entityData.comp->getOutputSlots().size(),
+                            "[Paste] Not all output slots got cloned");
+                if (clonedComp->getInputSlots().size() !=
+                        entityData.comp->getInputSlots().size() ||
+                    clonedComp->getOutputSlots().size() !=
+                        entityData.comp->getOutputSlots().size()) {
+                    BESS_ERROR("[CopyPaste] Skipping component {} because "
+                               "clone returned mismatched slot counts",
+                               (uint64_t)entityData.comp->getUuid());
+                    continue;
+                }
 
                 clonedComp->getTransform().position.x = pos.x;
                 clonedComp->getTransform().position.y = pos.y;
+
+                if (clonedModule) {
+                    bindModuleSceneToParent(clonedModule, targetScene);
+                }
 
                 ogToClonedIdMap[entityData.comp->getUuid()] =
                     clonedComp->getUuid();
@@ -129,10 +230,9 @@ namespace Bess::Svc::CopyPaste {
                     idx++;
                 }
 
-                auto addCmd = std::make_unique<
-                    Cmd::AddCompCmd<Canvas::SimulationSceneComponent>>(
-                    clonedComp, clonedComponents);
-                macroCmd->addCommand(std::move(addCmd));
+                if (!add(clonedComp, std::move(clonedComponents))) {
+                    return {};
+                }
             } else if (entity.type ==
                        Canvas::SceneComponentType::nonSimulation) {
                 const auto &entityData =
@@ -141,16 +241,38 @@ namespace Bess::Svc::CopyPaste {
                     entityData.comp->clone(m_copiedScene->getState());
                 BESS_ASSERT(!clonedComponents.empty(),
                             "Non-simulation clone returned no components");
+                if (clonedComponents.empty()) {
+                    BESS_ERROR("[CopyPaste] Skipping component {} because "
+                               "clone returned no components",
+                               (uint64_t)entityData.comp->getUuid());
+                    continue;
+                }
 
                 auto inst =
                     std::dynamic_pointer_cast<Canvas::NonSimSceneComponent>(
                         clonedComponents.front());
-                BESS_ASSERT(inst, "Non-simulation clone did not return a "
-                                  "non-simulation component first");
+                BESS_ASSERT(inst,
+                            "Non-simulation clone did not return a "
+                            "non-simulation component first");
+                if (!inst) {
+                    BESS_ERROR("[CopyPaste] Skipping component {} because "
+                               "clone returned the wrong component type",
+                               (uint64_t)entityData.comp->getUuid());
+                    continue;
+                }
                 clonedComponents.erase(clonedComponents.begin());
                 BESS_ASSERT(clonedComponents.size() ==
                                 entityData.comp->getChildComponents().size(),
                             "[Paste] Not all child comps got cloned");
+                if (clonedComponents.size() !=
+                    entityData.comp->getChildComponents().size()) {
+                    BESS_ERROR("[CopyPaste] Skipping component {} because "
+                               "clone returned {} children, expected {}",
+                               (uint64_t)entityData.comp->getUuid(),
+                               clonedComponents.size(),
+                               entityData.comp->getChildComponents().size());
+                    continue;
+                }
                 inst->getTransform().position.x = pos.x;
                 inst->getTransform().position.y = pos.y;
 
@@ -163,10 +285,9 @@ namespace Bess::Svc::CopyPaste {
                     idx++;
                 }
 
-                auto addCmd = std::make_unique<
-                    Cmd::AddCompCmd<Canvas::NonSimSceneComponent>>(
-                    inst, clonedComponents);
-                macroCmd->addCommand(std::move(addCmd));
+                if (!add(inst, std::move(clonedComponents))) {
+                    return {};
+                }
             } else if (entity.type == Canvas::SceneComponentType::connection) {
                 connEntites.push_back(entity);
             } else {
@@ -186,6 +307,13 @@ namespace Bess::Svc::CopyPaste {
                 const auto &ogConn =
                     entityData.conn->cast<Canvas::ConnectionSceneComponent>();
 
+                // A connection reachable through a cloned joint is cloned
+                // recursively by cloneConn(). Do not clone it again when its
+                // root entity is encountered later in this pass.
+                if (ogToClonedIdMap.contains(ogConn->getUuid())) {
+                    continue;
+                }
+
                 if (!ogToClonedIdMap.contains(ogConn->getStartSlot()) ||
                     !ogToClonedIdMap.contains(ogConn->getEndSlot())) {
                     delayedConnections.push_back(connEntity);
@@ -197,9 +325,9 @@ namespace Bess::Svc::CopyPaste {
 
                 for (const auto &comp : clonedComps) {
                     // either it can be a joint or a conn
-                    auto addCmd = std::make_unique<
-                        Cmd::AddCompCmd<Canvas::SceneComponent>>(comp);
-                    macroCmd->addCommand(std::move(addCmd));
+                    if (!add(comp)) {
+                        return {};
+                    }
                 }
             }
 
@@ -211,26 +339,80 @@ namespace Bess::Svc::CopyPaste {
                     connEntites.push_back(entity);
                 }
             }
-        } while (!connEntites.empty() && prevSize < connEntites.size());
+        } while (!connEntites.empty() && connEntites.size() < prevSize);
 
-        if (recordHistory) {
-            auto &cmdSystem =
-                Pages::MainPage::getInstance()->getState().getCommandSystem();
-            const auto currentCmdSystemScene = cmdSystem.getScene();
-            cmdSystem.setScene(targetScene.get());
-            cmdSystem.execute(std::move(macroCmd));
-            cmdSystem.setScene(currentCmdSystemScene);
-        } else {
-            macroCmd->execute(targetScene.get(),
-                              &SimEngine::SimulationEngine::instance());
+        if (!targetState.addBatchTx(std::move(ops), recordHistory)) {
+            BESS_ERROR("[CopyPaste] Paste transaction failed");
+            return {};
         }
+
+        BESS_DEBUG("Pasted {} entities into scene {}",
+                   m_entities.size(),
+                   (uint64_t)targetScene->getState().getSceneId());
 
         return ogToClonedIdMap;
     }
 
-    Context &Context::instance() {
-        static Context context;
-        return context;
+    bool Context::addEntityFromComponent(const Canvas::SceneState &sceneState,
+                                         const UUID &componentId) {
+        const auto comp = sceneState.getComponentByUuidSP(componentId);
+        if (!comp) {
+            BESS_WARN("[CopyPaste] Component {} was not found while copying",
+                      (uint64_t)componentId);
+            return false;
+        }
+
+        const auto type = comp->getType();
+
+        CopiedEntity entity{};
+        entity.type = type;
+
+        switch (type) {
+        case Canvas::SceneComponentType::simulation:
+        case Canvas::SceneComponentType::module: {
+            const auto casted =
+                std::dynamic_pointer_cast<Canvas::SimulationSceneComponent>(
+                    comp);
+            BESS_ASSERT(casted,
+                        "[CopyPaste] Expected simulation component while "
+                        "copying");
+            if (!casted) {
+                return false;
+            }
+            entity.data = Svc::CopyPaste::ETSimComp{casted};
+        } break;
+        case Canvas::SceneComponentType::nonSimulation: {
+            const auto casted =
+                std::dynamic_pointer_cast<Canvas::NonSimSceneComponent>(comp);
+            BESS_ASSERT(casted,
+                        "[CopyPaste] Expected non-simulation component while "
+                        "copying");
+            if (!casted) {
+                return false;
+            }
+            entity.data =
+                Svc::CopyPaste::ETNonSimComp{casted->getTypeIndex(), casted};
+        } break;
+        case Canvas::SceneComponentType::connection: {
+            const auto casted =
+                std::dynamic_pointer_cast<Canvas::ConnectionSceneComponent>(
+                    comp);
+            BESS_ASSERT(casted,
+                        "[CopyPaste] Expected connection component while "
+                        "copying");
+            if (!casted) {
+                return false;
+            }
+            entity.data = Svc::CopyPaste::ETConnection{casted};
+        } break;
+        default:
+            return false;
+        }
+
+        entity.pos = comp->getTransform().position;
+
+        addEntity(entity);
+        return true;
     }
 
     void Context::addEntity(const CopiedEntity &entity) {
@@ -257,8 +439,12 @@ namespace Bess::Svc::CopyPaste {
         m_center = sumPos / (float)m_entities.size();
     }
 
-    void Context::init() { clear(); }
+    void Context::onInit() {
+        clear();
+    }
 
-    void Context::destroy() { clear(); }
+    void Context::onDestroy() {
+        clear();
+    }
 
 } // namespace Bess::Svc::CopyPaste

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "common/types.h"
@@ -11,20 +13,20 @@
 
 namespace Bess::SimEngine::Drivers::Digital {
 
-    struct DigCompState {
-        std::vector<SlotState> inputStates;
-        std::vector<SlotState> outputStates;
+    struct BESS_API DigCompState {
+        std::vector<PortState> inputStates;
+        std::vector<PortState> outputStates;
     };
 
-    struct DigCompSimData : SimFnDataBase {
-        std::vector<SlotState> inputStates;
-        std::vector<SlotState> outputStates;
+    struct BESS_API DigCompSimData : SimFnDataBase {
+        std::vector<PortState> inputStates;
+        std::vector<PortState> outputStates;
         std::vector<std::string> *expressions = nullptr;
         TimeNs simTime;
         DigCompState prevState;
     };
 
-    class DigCompDef : public EvtBasedCompDef {
+    class BESS_API DigCompDef : public EvtBasedCompDef {
       public:
         static constexpr const char *TypeName = "digital_compdef";
 
@@ -42,9 +44,10 @@ namespace Bess::SimEngine::Drivers::Digital {
         MAKE_GETTER_SETTER(SlotsGroupInfo, InputSlotsInfo, m_inputSlotsInfo)
         MAKE_GETTER_SETTER(SlotsGroupInfo, OutputSlotsInfo, m_outputSlotsInfo)
         MAKE_GETTER_SETTER(OperatorInfo, OpInfo, m_opInfo)
-        MAKE_GETTER_SETTER(ComponentBehaviorType, BehaviorType, m_behaviorType)
-        MAKE_GETTER_SETTER_WC(std::vector<std::string>, OutputExpressions,
-                              m_outputExpressions, onExpressionsChange)
+        MAKE_GETTER_SETTER_WC(std::vector<std::string>,
+                              OutputExpressions,
+                              m_outputExpressions,
+                              onExpressionsChange)
         MAKE_GETTER_SETTER(bool, KeepIOCountEq, m_keepIOCountEq)
 
         void setSimFn(const TDigSimFn &simFn);
@@ -57,6 +60,10 @@ namespace Bess::SimEngine::Drivers::Digital {
         std::string getTypeName() const override;
 
         std::shared_ptr<CompDef> clone() const override;
+
+        PortDescriptor getInputPortDescriptor() const override;
+
+        PortDescriptor getOutputPortDescriptor() const override;
 
       public:
         /**
@@ -94,12 +101,11 @@ namespace Bess::SimEngine::Drivers::Digital {
       protected:
         SlotsGroupInfo m_inputSlotsInfo{}, m_outputSlotsInfo{};
         OperatorInfo m_opInfo{};
-        ComponentBehaviorType m_behaviorType = ComponentBehaviorType::none;
         std::vector<std::string> m_outputExpressions; // A+B or A.B etc.
         bool m_keepIOCountEq = false;
     };
 
-    class DigSimComp : public EvtBasedSimComp {
+    class BESS_API DigSimComp : public EvtBasedSimComp {
       public:
         DigSimComp() = default;
         ~DigSimComp() override = default;
@@ -121,11 +127,15 @@ namespace Bess::SimEngine::Drivers::Digital {
             comp->setDefinition(clone);
 
             auto digDef = std::dynamic_pointer_cast<DigCompDef>(clone);
-            const auto inpCount = digDef->getInputSlotsInfo().count;
-            const auto outCount = digDef->getOutputSlotsInfo().count;
+            const auto inputDescriptor = digDef->getInputPortDescriptor();
+            const auto outputDescriptor = digDef->getOutputPortDescriptor();
+            const auto inpCount = inputDescriptor.count;
+            const auto outCount = outputDescriptor.count;
 
-            comp->m_inputStates.resize(inpCount);
-            comp->m_outputStates.resize(outCount);
+            comp->m_inputStates = inputDescriptor.makeInitialStates();
+            comp->m_outputStates = outputDescriptor.makeInitialStates();
+            comp->m_initialInputStates = comp->m_inputStates;
+            comp->m_initialOutputStates = comp->m_outputStates;
 
             comp->m_isInputConnected.resize(inpCount, false);
             comp->m_isOutputConnected.resize(outCount, false);
@@ -139,25 +149,36 @@ namespace Bess::SimEngine::Drivers::Digital {
         static std::shared_ptr<DigSimComp>
         fromDef(const std::shared_ptr<CompDef> &compDef, bool cloneDef = true);
 
-        MAKE_GETTER_SETTER(std::vector<SlotState>, InputStates, m_inputStates)
-        MAKE_GETTER_SETTER(std::vector<SlotState>, OutputStates, m_outputStates)
+        MAKE_GETTER_SETTER(std::vector<PortState>, InputStates, m_inputStates)
+        MAKE_GETTER_SETTER(std::vector<PortState>, OutputStates, m_outputStates)
+        MAKE_GETTER(std::vector<PortState>,
+                    InitialInputStates,
+                    m_initialInputStates)
+        MAKE_GETTER(std::vector<PortState>,
+                    InitialOutputStates,
+                    m_initialOutputStates)
         MAKE_GETTER_SETTER(Connections, InputConnections, m_inputConnections)
         MAKE_GETTER_SETTER(Connections, OutputConnections, m_outputConnections)
-        MAKE_GETTER_SETTER(std::vector<bool>, IsInputConnected,
+        MAKE_GETTER_SETTER(std::vector<bool>,
+                           IsInputConnected,
                            m_isInputConnected)
-        MAKE_GETTER_SETTER(std::vector<bool>, IsOutputConnected,
+        MAKE_GETTER_SETTER(std::vector<bool>,
+                           IsOutputConnected,
                            m_isOutputConnected)
         MAKE_GETTER_SETTER(UUID, NetUuid, m_netUuid)
 
         Json::Value toJson() const override;
         void loadJson(const Json::Value &json) override;
+        void resetRuntimeState(TimeNs startTime) override;
 
         static void fromJson(const std::shared_ptr<DigSimComp> &comp,
                              const Json::Value &json);
 
       private:
-        std::vector<SlotState> m_inputStates;
-        std::vector<SlotState> m_outputStates;
+        std::vector<PortState> m_inputStates;
+        std::vector<PortState> m_outputStates;
+        std::vector<PortState> m_initialInputStates;
+        std::vector<PortState> m_initialOutputStates;
         Connections m_inputConnections;
         Connections m_outputConnections;
         std::vector<bool> m_isInputConnected;
@@ -165,7 +186,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         UUID m_netUuid = UUID::null;
     };
 
-    class DigModuleSimComp : public DigSimComp {
+    class BESS_API DigModuleSimComp : public DigSimComp {
       public:
         DigModuleSimComp() = default;
         ~DigModuleSimComp() override = default;
@@ -173,7 +194,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         void onPostSimulate() override;
     };
 
-    class DigitalSimDriver final : public EvtBasedSimDriver {
+    class BESS_API DigitalSimDriver final : public EvtBasedSimDriver {
       public:
         DigitalSimDriver() = default;
         ~DigitalSimDriver() override = default;
@@ -200,43 +221,39 @@ namespace Bess::SimEngine::Drivers::Digital {
         std::string getName() const override;
 
         bool simulate(const SimEvt &evt,
-                      const std::vector<SlotState> &inputs) override;
+                      const std::vector<PortState> &inputs) override;
 
         UUID addComponent(const std::shared_ptr<SimComponent> &comp,
                           bool scheduleSim = true) override;
 
         void onBeforeRun() override;
 
-        bool isSimStable() const override;
-
         std::pair<bool, std::string>
-        canConnectComponents(const UUID &src, int srcSlotIdx, SlotType srcType,
-                             const UUID &dst, int dstSlotIdx,
-                             SlotType dstType) const override;
+        canConnectPorts(const PortRef &src, const PortRef &dst) const override;
 
-        bool connectComponent(const UUID &src, int srcSlotIdx, SlotType srcType,
-                              const UUID &dst, int dstSlotIdx, SlotType dstType,
-                              bool overrideConn) override;
+        bool connectPorts(const PortRef &src,
+                          const PortRef &dst,
+                          bool overrideConn) override;
 
-        void deleteConnection(const UUID &compA, SlotType pinAType, int idxA,
-                              const UUID &compB, SlotType pinBType,
-                              int idxB) override;
+        void deleteConnection(const PortRef &portA,
+                              const PortRef &portB) override;
 
-        SlotsCountChangeRes addSlot(const UUID &compId, SlotType type,
-                                    int index, bool force = false) override;
-        SlotsCountChangeRes removeSlot(const UUID &compId, SlotType type,
-                                       int index, bool force = false) override;
+        PortCountChangeRes addPort(const PortRef &port,
+                                   bool force = false) override;
+        PortCountChangeRes removePort(const PortRef &port,
+                                      bool force = false) override;
 
         ConnectionBundle getConnections(const UUID &uuid) const override;
         std::vector<UUID> getDependants(const UUID &id) override;
-        std::vector<SlotState> collapseInputs(const UUID &id) override;
-        std::vector<SlotState> getInputSlotsState(const UUID &compId) override;
-        SlotState getSlotState(const UUID &uuid, SlotType type,
-                               int idx) const override;
-        bool setInputSlotState(const UUID &uuid, int pinIdx,
-                               LogicState state) override;
-        bool setOutputSlotState(const UUID &uuid, int pinIdx,
-                                LogicState state) override;
+        std::vector<PortState> collapseInputs(const UUID &id) override;
+        std::vector<PortState> getInputPortStates(const UUID &compId) override;
+        PortState getPortState(const PortRef &port) const override;
+        bool setInputPortState(const UUID &uuid,
+                               int pinIdx,
+                               const PortState &state) override;
+        bool setOutputPortState(const UUID &uuid,
+                                int pinIdx,
+                                const PortState &state) override;
         ComponentState getComponentState(const UUID &uuid) const override;
 
         const std::unordered_map<UUID, Net> &getNetsMap() const override;
@@ -257,6 +274,7 @@ namespace Bess::SimEngine::Drivers::Digital {
 
 namespace Bess::JsonConvert {
 
-    void toJsonValue(Json::Value &json,
-                     const Bess::SimEngine::Drivers::Digital::DigSimComp &data);
+    BESS_API void
+    toJsonValue(Json::Value &json,
+                const Bess::SimEngine::Drivers::Digital::DigSimComp &data);
 } // namespace Bess::JsonConvert

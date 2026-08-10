@@ -1,9 +1,10 @@
 #pragma once
+
+#include "bess_core/scene/scene_state/components/scene_component.h"
+#include "common/bess_api.h"
 #include "common/bess_uuid.h"
 #include "pages/main_page/scene_components/non_sim_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
-#include "scene_state/components/scene_component.h"
-
 
 #define SLOT_PROBE_SER_PROPS                                                   \
     ("probedSlot", getProbedSlotUuid, setProbedSlotUuid)
@@ -11,7 +12,7 @@
 namespace Bess::Canvas {
     class SceneState;
 
-    class SlotProbeSceneComponent : public NonSimSceneComponent {
+    class BESS_API SlotProbeSceneComponent : public NonSimSceneComponent {
       public:
         SlotProbeSceneComponent();
         ~SlotProbeSceneComponent() override = default;
@@ -19,14 +20,17 @@ namespace Bess::Canvas {
         REG_SCENE_COMP_TYPE("SlotProbeSceneComponent",
                             SceneComponentType::nonSimulation)
 
-        MAKE_GETTER_SETTER_BC_AC(UUID, ProbedSlotUuid, m_probedSlotUuid,
+        MAKE_GETTER_SETTER_BC_AC(UUID,
+                                 ProbedSlotUuid,
+                                 m_probedSlotUuid,
                                  onBeforeProbedSlotChanged,
                                  onProbedSlotChanged);
 
         typedef std::pair<TimeNs, SimEngine::LogicState> ProbeDataEntry;
         MAKE_GETTER_SETTER(std::vector<ProbeDataEntry>, ProbeData, m_probeData)
 
-        SCENE_COMP_SER(SlotProbeSceneComponent, NonSimSceneComponent,
+        SCENE_COMP_SER(SlotProbeSceneComponent,
+                       NonSimSceneComponent,
                        SLOT_PROBE_SER_PROPS)
 
         std::vector<std::shared_ptr<SceneComponent>>
@@ -40,7 +44,7 @@ namespace Bess::Canvas {
         std::vector<UUID> cleanup(SceneState &state,
                                   UUID caller = UUID::null) override;
 
-        void onMouseButton(const Events::MouseButtonEvent &e) override;
+        bool onMouseButton(const Events::MouseButtonEvent &e) override;
 
         std::type_index getTypeIndex() override;
 
@@ -48,7 +52,7 @@ namespace Bess::Canvas {
 
       private:
         void onProbedSlotChanged();
-        void onBeforeProbedSlotChanged();
+        void onBeforeProbedSlotChanged(const UUID &newSlotUuid);
 
         void subscribeToSlot(const SceneState &sceneState,
                              const UUID &slotUuid);
@@ -66,4 +70,5 @@ namespace Bess::Canvas {
 } // namespace Bess::Canvas
 
 REG_SCENE_COMP(Bess::Canvas::SlotProbeSceneComponent,
-               Bess::Canvas::SceneComponent, SLOT_PROBE_SER_PROPS)
+               Bess::Canvas::SceneComponent,
+               SLOT_PROBE_SER_PROPS)

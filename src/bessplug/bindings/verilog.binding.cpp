@@ -1,6 +1,6 @@
 #include "bverilog/sim_engine_importer.h"
 #include "bverilog/yosys_runner.h"
-#include "simulation_engine.h"
+#include "ui/project_api.h"
 
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
@@ -55,7 +55,9 @@ void bind_verilog(py::module_ &m) {
         .def_readwrite("ports", &Module::ports)
         .def_readwrite("cells", &Module::cells)
         .def_readwrite("attributes", &Module::attributes)
-        .def("find_port", &Module::findPort, py::arg("port_name"),
+        .def("find_port",
+             &Module::findPort,
+             py::arg("port_name"),
              py::return_value_policy::reference_internal);
 
     py::class_<Design>(m, "Design")
@@ -63,7 +65,9 @@ void bind_verilog(py::module_ &m) {
         .def(py::init<const Design &>())
         .def_readwrite("modules", &Design::modules)
         .def_readwrite("top_module_name", &Design::topModuleName)
-        .def("find_module", &Design::findModule, py::arg("module_name"),
+        .def("find_module",
+             &Design::findModule,
+             py::arg("module_name"),
              py::return_value_policy::reference_internal);
 
     py::class_<YosysRunnerConfig>(m, "YosysRunnerConfig")
@@ -81,8 +85,9 @@ void bind_verilog(py::module_ &m) {
         .def(py::init<>())
         .def(py::init<const ImportedSlotEndpoint &>())
         .def_readwrite("component_id", &ImportedSlotEndpoint::componentId)
-        .def_readwrite("slot_type", &ImportedSlotEndpoint::slotType)
-        .def_readwrite("slot_index", &ImportedSlotEndpoint::slotIndex);
+        .def_readwrite("direction", &ImportedSlotEndpoint::direction)
+        .def_readwrite("signal_kind", &ImportedSlotEndpoint::signalKind)
+        .def_readwrite("port_index", &ImportedSlotEndpoint::portIndex);
 
     py::class_<ImportedModuleInstance>(m, "ImportedModuleInstance")
         .def(py::init<>())
@@ -137,7 +142,8 @@ void bind_verilog(py::module_ &m) {
            const YosysRunnerConfig &config) {
             return runYosysForJson(verilog_files, config);
         },
-        py::arg("verilog_files"), py::arg("config"));
+        py::arg("verilog_files"),
+        py::arg("config"));
     m.def(
         "run_yosys_for_json",
         [](const std::filesystem::path &verilog_file) {
@@ -150,7 +156,8 @@ void bind_verilog(py::module_ &m) {
            const YosysRunnerConfig &config) {
             return runYosysForJson(verilog_file, config);
         },
-        py::arg("verilog_file"), py::arg("config"));
+        py::arg("verilog_file"),
+        py::arg("config"));
 
     m.def(
         "import_verilog_to_design",
@@ -164,7 +171,8 @@ void bind_verilog(py::module_ &m) {
            const YosysRunnerConfig &config) {
             return importVerilogToDesign(verilog_files, config);
         },
-        py::arg("verilog_files"), py::arg("config"));
+        py::arg("verilog_files"),
+        py::arg("config"));
     m.def(
         "import_verilog_to_design",
         [](const std::filesystem::path &verilog_file) {
@@ -177,24 +185,24 @@ void bind_verilog(py::module_ &m) {
            const YosysRunnerConfig &config) {
             return importVerilogToDesign(verilog_file, config);
         },
-        py::arg("verilog_file"), py::arg("config"));
+        py::arg("verilog_file"),
+        py::arg("config"));
 
     m.def(
         "import_design_into_simulation_engine",
         [](const Design &design,
            const std::optional<std::string> &top_module_name) {
             return importDesignIntoSimulationEngine(
-                design, Bess::SimEngine::SimulationEngine::instance(),
-                top_module_name);
+                design, Bess::UI::Proj::sim(), top_module_name);
         },
-        py::arg("design"), py::arg("top_module_name") = std::nullopt);
+        py::arg("design"),
+        py::arg("top_module_name") = std::nullopt);
 
     m.def(
         "import_verilog_file_into_simulation_engine",
         [](const std::filesystem::path &verilog_file) {
             return importVerilogFileIntoSimulationEngine(
-                verilog_file, Bess::SimEngine::SimulationEngine::instance(),
-                YosysRunnerConfig{});
+                verilog_file, Bess::UI::Proj::sim(), YosysRunnerConfig{});
         },
         py::arg("verilog_file"));
     m.def(
@@ -202,17 +210,16 @@ void bind_verilog(py::module_ &m) {
         [](const std::filesystem::path &verilog_file,
            const YosysRunnerConfig &config) {
             return importVerilogFileIntoSimulationEngine(
-                verilog_file, Bess::SimEngine::SimulationEngine::instance(),
-                config);
+                verilog_file, Bess::UI::Proj::sim(), config);
         },
-        py::arg("verilog_file"), py::arg("config"));
+        py::arg("verilog_file"),
+        py::arg("config"));
 
     m.def(
         "import_verilog_files_into_simulation_engine",
         [](const std::vector<std::filesystem::path> &verilog_files) {
             return importVerilogFilesIntoSimulationEngine(
-                verilog_files, Bess::SimEngine::SimulationEngine::instance(),
-                YosysRunnerConfig{});
+                verilog_files, Bess::UI::Proj::sim(), YosysRunnerConfig{});
         },
         py::arg("verilog_files"));
     m.def(
@@ -220,11 +227,12 @@ void bind_verilog(py::module_ &m) {
         [](const std::vector<std::filesystem::path> &verilog_files,
            const YosysRunnerConfig &config) {
             return importVerilogFilesIntoSimulationEngine(
-                verilog_files, Bess::SimEngine::SimulationEngine::instance(),
-                config);
+                verilog_files, Bess::UI::Proj::sim(), config);
         },
-        py::arg("verilog_files"), py::arg("config"));
+        py::arg("verilog_files"),
+        py::arg("config"));
 
-    m.def("get_from_aux_data_json", &getFromAuxDataJson,
+    m.def("get_from_aux_data_json",
+          &getFromAuxDataJson,
           py::arg("aux_data_json"));
 }

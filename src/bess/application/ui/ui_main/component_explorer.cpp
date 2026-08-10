@@ -1,0 +1,242 @@
+#include "ui/ui_main/component_explorer.h"
+#include "bess_core/g_app_context.h"
+#include "bess_core/scene_driver.h"
+#include "common/bess_uuid.h"
+#include "common/helpers.h"
+#include "component_catalog.h"
+#include "imgui.h"
+#include "imgui_internal.h"
+#include "pages/main_page/scene_components/non_sim_scene_component.h"
+#include "pages/main_page/scene_components/sim_scene_component.h"
+#include "pages/main_page/scene_components/slot_scene_component.h"
+#include "project_session/project_session.h"
+#include "services/plugin_service/plugin_service.h"
+#include "sim_driver/sim_driver.h"
+#include "ui/icons/CodIcons_Remapped.h"
+#include "ui/ui_main/ui_main.h"
+#include "ui/widgets/m_widgets.h"
+#include <utility>
+
+namespace Bess::UI {
+    constexpr auto flags = ImGuiWindowFlags_NoCollapse |
+                           ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                           ImGuiWindowFlags_AlwaysAutoResize |
+                           ImGuiWindowFlags_Modal;
+
+    ComponentExplorer::ComponentExplorer()
+        : Panel(Icons::CodIcons::LIST_TREE +
+                std::string("  Component Explorer")) {
+        m_showInMenuBar = false;
+        m_flags = flags;
+        m_defaultDock = Dock::none;
+    }
+
+    void ComponentExplorer::onBeforeDraw() {
+        const ImVec2 windowSize = ImVec2(400, 400);
+        ImGui::SetNextWindowSize(windowSize);
+
+        const auto *viewport = ImGui::GetMainViewport();
+        const auto *ctx = ImGui::GetCurrentContext();
+        const auto style = ctx->Style;
+        ImGui::SetNextWindowPos(ImVec2(
+            viewport->Pos.x + (viewport->Size.x / 2) - (windowSize.x / 2),
+            viewport->Pos.y + (viewport->Size.y / 2) - (windowSize.y / 2)));
+    }
+
+    void ComponentExplorer::onDraw() {
+        if (!ImGui::IsWindowFocused()) {
+            hide();
+        }
+
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4);
+
+        static bool focusRequested = false;
+        {
+            focusRequested = ImGui::IsWindowAppearing();
+
+            if (focusRequested) {
+                ImGui::SetKeyboardFocusHere();
+                focusRequested = false;
+            }
+
+            ImGui::PushItemWidth(-1);
+            if (UI::Widgets::TextBox("##Search", m_searchQuery, "Search")) {
+                m_searchQuery = Common::Helpers::toLowerCase(m_searchQuery);
+            }
+            ImGui::PopItemWidth();
+        }
+
+        ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.f, 0.5f));
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(
+            ImGuiCol_Header,
+            ImVec4(0, 0, 0, 0)); // for tree node to have no bg normally
+
+        const auto componentTree =
+            SimEngine::ComponentCatalog::instance().getComponentsTree();
+        int key = 0;
+        // simulation components
+        {
+            for (auto &ent : *componentTree) {
+                bool shouldCollectionShow = m_searchQuery.empty();
+
+                if (!shouldCollectionShow) {
+                    for (const auto &comp : ent.second) {
+                        if (Common::Helpers::toLowerCase(comp->getName())
+                                .contains(m_searchQuery)) {
+                            shouldCollectionShow = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!shouldCollectionShow)
+                    continue;
+
+                if (Widgets::TreeNode(
+                        key, ent.first, ImGuiTreeNodeFlags_DefaultOpen)) {
+                    for (const auto &comp : ent.second) {
+                        if (m_searchQuery != "" &&
+                            !Common::Helpers::toLowerCase(comp->getName())
+                                 .contains(m_searchQuery))
+                            continue;
+
+                        const std::string &name = comp->getName();
+
+                        if (Widgets::ButtonWithPopup(
+                                name, name + "OptionsMenu", false)) {
+                            auto sceneDriver =
+                                GAppContext::getInstance()
+                                    .getSubSystem<Bess::ProjectSession>()
+                                    ->getSubSystem<SceneDriver>();
+                            auto cam = UI::UIMain::getTargetSceneViewportPanel()
+                                           ->getCamera();
+
+                            createComponent(comp, cam->getPos());
+                            hide();
+                        }
+
+                        if (ImGui::BeginPopup((name + "OptionsMenu").c_str())) {
+                            ImGui::EndPopup();
+                        }
+                    }
+                    ImGui::TreePop();
+                }
+            }
+        }
+
+        // non simulation components
+        if (Widgets::TreeNode(
+                ++key, "Miscellaneous", ImGuiTreeNodeFlags_DefaultOpen)) {
+            static auto nonSimComponents =
+                Canvas::NonSimSceneComponent::getRegistry();
+            for (auto &comp : nonSimComponents) {
+                if (m_searchQuery != "" &&
+                    !Common::Helpers::toLowerCase(comp.second)
+                         .contains(m_searchQuery))
+                    continue;
+
+                if (Widgets::ButtonWithPopup(comp.second, "", false)) {
+                    auto cam =
+                        UI::UIMain::getTargetSceneViewportPanel()->getCamera();
+                    createComponent(comp.first, cam->getPos());
+                    hide();
+                }
+            }
+
+            ImGui::TreePop();
+        }
+
+        ImGui::PopStyleColor(2);
+        ImGui::PopStyleVar(2);
+    }
+
+    UUID ComponentExplorer::createComponent(
+        const std::shared_ptr<SimEngine::Drivers::CompDef> &def,
+        const glm::vec2 &pos) {
+
+        auto &appCtx = Bess::GAppContext::getInstance();
+
+        auto &session = *appCtx.getSubSystem<ProjectSession>();
+
+        auto activeScene = UI::UIMain::getTargetViewportScene();
+        auto &sceneState = activeScene->getState();
+
+        auto pluginSvc = appCtx.getSubSystem<Bess::Svc::PluginService>();
+
+        // Try finding in plugins first, if not found the use default.
+        if (pluginSvc && pluginSvc->hasSimSceneComp(def->getName())) {
+            auto simComp = pluginSvc->getSimSceneComp(def);
+
+            BESS_ASSERT(simComp, "PluginService returned invalid sim comp");
+
+            simComp->getTransform().position.x = pos.x;
+            simComp->getTransform().position.y = pos.y;
+            simComp->setCompDef(def->clone());
+            activeScene->addComponent(simComp);
+
+            std::vector<std::shared_ptr<Canvas::SceneComponent>> children;
+            for (const auto &childId : simComp->getInputSlots()) {
+                const auto &child =
+                    sceneState.getComponentByUuidSP<Canvas::SlotSceneComponent>(
+                        childId);
+                BESS_ASSERT(child, "Child component not found in scene state");
+                children.push_back(child);
+                sceneState.attachChild(simComp->getUuid(), childId, false);
+            }
+
+            for (const auto &childId : simComp->getOutputSlots()) {
+                const auto &child =
+                    sceneState.getComponentByUuidSP<Canvas::SlotSceneComponent>(
+                        childId);
+                BESS_ASSERT(child, "Child component not found in scene state");
+                children.push_back(child);
+                sceneState.attachChild(simComp->getUuid(), childId, false);
+            }
+
+            const auto result = session.trackAdd(
+                simComp, std::move(children), activeScene->getSceneId());
+            if (!result) {
+                BESS_ERROR("Could not track plugin component: {}",
+                           result.status.msg());
+                return UUID::null;
+            }
+
+            return simComp->getUuid();
+        } else {
+            auto components = Canvas::SimulationSceneComponent::createNew(def);
+            auto sceneComp =
+                components.front()
+                    ->template cast<Canvas::SimulationSceneComponent>();
+            components.erase(components.begin());
+            sceneComp->setCompDef(def->clone());
+            sceneComp->getTransform().position.x = pos.x;
+            sceneComp->getTransform().position.y = pos.y;
+
+            const auto result = session.addComp(
+                sceneComp, std::move(components), activeScene->getSceneId());
+            if (!result) {
+                BESS_ERROR("Could not add component: {}", result.status.msg());
+                return UUID::null;
+            }
+
+            return sceneComp->getUuid();
+        }
+    }
+
+    UUID ComponentExplorer::createComponent(std::type_index tIdx,
+                                            const glm::vec2 &pos) {
+        auto &session =
+            *GAppContext::getInstance().getSubSystem<ProjectSession>();
+        auto inst = Canvas::NonSimSceneComponent::getInstance(tIdx);
+        inst->getTransform().position.x = pos.x;
+        inst->getTransform().position.y = pos.y;
+        const auto result = session.addComp(inst);
+        if (!result) {
+            BESS_ERROR("Could not add component: {}", result.status.msg());
+            return UUID::null;
+        }
+        return inst->getUuid();
+    }
+
+} // namespace Bess::UI

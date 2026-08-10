@@ -1,60 +1,149 @@
-# This starter workflow is for a CMake project running on a single platform. There is a different starter workflow if you need cross-platform coverage.
-# See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-multi-platform.yml
-name: CMake-Windows 
+name: CMake-Windows
 
 on:
   workflow_dispatch:
 
 env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build:
-    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
-    # You can convert this to a matrix build if you need cross-platform coverage.
-    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
     runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup Vulkan SDK
-      uses: jakoch/install-vulkan-sdk-action@v1
+    # Ninja is the build scheduler; cl.exe and link.exe still come from MSVC.
+    - name: Set up MSVC
+      uses: ilammy/msvc-dev-cmd@v1
       with:
-        vulkan_version: 1.4.335.0
-        optional_components: com.lunarg.vulkan.vma
-        install_runtime: true
-        cache: true
-        stripdown: true
+        arch: amd64
+
+    - name: Restore compiler cache
+      uses: hendrikmuhs/ccache-action@v1.2.23
+      with:
+        key: windows-msvc-${{ env.BUILD_TYPE }}
+        max-size: 3G
+
+    - name: Validate tools and prepare cache directories
+      id: prepare
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+
+        $requiredTools = @(
+          'cmake.exe',
+          'ctest.exe',
+          'ninja.exe',
+          'cl.exe',
+          'link.exe',
+          'ccache.exe',
+          'git.exe',
+          'C:\vcpkg\vcpkg.exe'
+        )
+
+        foreach ($tool in $requiredTools) {
+          if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) {
+            throw "Required build tool was not found: $tool"
+          }
+        }
+
+        $vcpkgCache = Join-Path $env:LOCALAPPDATA 'vcpkg\archives'
+        New-Item -ItemType Directory -Force -Path $vcpkgCache | Out-Null
+
+        if (-not (Test-Path -Path $vcpkgCache -PathType Container)) {
+          throw 'Failed to create the vcpkg binary cache directory.'
+        }
+
+        $vcpkgRevision = (& git.exe -C C:\vcpkg rev-parse HEAD 2>$null)
+        if ($LASTEXITCODE -eq 0 -and $vcpkgRevision) {
+          $vcpkgRevision = $vcpkgRevision.Trim()
+        } else {
+          $vcpkgRevision = (Get-FileHash C:\vcpkg\vcpkg.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+        }
+
+        "vcpkg-cache-key=windows-vcpkg-x64-$vcpkgRevision-zlib-freetype-v1" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+    - name: Restore vcpkg binary cache
+      id: vcpkg-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: ~\AppData\Local\vcpkg\archives
+        key: ${{ steps.prepare.outputs.vcpkg-cache-key }}
 
     - name: Install dependencies
-      run: vcpkg install zlib:x64-windows
+      env:
+        VCPKG_ROOT: C:\vcpkg
+      run: C:\vcpkg\vcpkg.exe install zlib:x64-windows freetype:x64-windows
+
+    # Pin one interpreter for CMake, pip, pybind11, and stubgen. The runner image
+    # ships multiple Pythons; bare `python` and FindPython3 can disagree.
+    - name: Set up Python
+      id: python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install Python tools
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $python = "${{ steps.python.outputs.python-path }}"
+        & $python -m pip install --upgrade pip
+        & $python -m pip install pybind11-stubgen
+        & $python -c "import pybind11_stubgen, sys; print(sys.executable); print(pybind11_stubgen.__file__)"
+
+    # Save this before compiling so dependency packages survive a later compiler
+    # error and can still accelerate the next workflow run.
+    - name: Save vcpkg binary cache
+      if: steps.vcpkg-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: ~\AppData\Local\vcpkg\archives
+        key: ${{ steps.vcpkg-cache.outputs.cache-primary-key }}
 
     - name: Configure CMake
-      run: >
-        cmake -B ${{github.workspace}}/build 
-        -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} 
-        -DTESTS=ON 
-        -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
-        -DVCPKG_TARGET_TRIPLET=x64-windows
-        
-    - name: Build
-      # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $python = "${{ steps.python.outputs.python-path }}"
+        $pythonRoot = $env:pythonLocation
+        cmake -S "${{ github.workspace }}" `
+          -B "${{ github.workspace }}/build" `
+          -G Ninja `
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} `
+          -DCMAKE_C_COMPILER=cl.exe `
+          -DCMAKE_CXX_COMPILER=cl.exe `
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache `
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache `
+          -DTESTS=ON `
+          -DBESS_GENERATE_PY_STUBS=ON `
+          "-DPython3_EXECUTABLE=$python" `
+          "-DPython3_ROOT_DIR=$pythonRoot" `
+          -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake `
+          -DVCPKG_TARGET_TRIPLET=x64-windows
+
+    - name: Build application and tests
+      shell: pwsh
+      run: |
+        $jobs = [int]$env:NUMBER_OF_PROCESSORS
+        if ($jobs -lt 1) { $jobs = 2 }
+        Write-Host "Building with $jobs parallel jobs"
+        cmake --build "${{ github.workspace }}/build" --target Bess BessTests --parallel $jobs
 
     - name: Test
-      working-directory: ${{github.workspace}}/build
-      # Execute tests defined by the CMake configuration.
-      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: ctest -C ${{env.BUILD_TYPE}}
+      shell: pwsh
+      run: |
+        $jobs = [int]$env:NUMBER_OF_PROCESSORS
+        if ($jobs -lt 1) { $jobs = 2 }
+        Write-Host "Testing with $jobs parallel jobs"
+        ctest --test-dir "${{ github.workspace }}/build" --output-on-failure --parallel $jobs
 
     - name: Upload Build Artifacts
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: windows-binaries
-        path: ${{github.workspace}}/bin/
+        path: ${{ github.workspace }}/bin/
         if-no-files-found: warn
-

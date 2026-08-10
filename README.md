@@ -12,14 +12,17 @@ BESS (Basic Electrical Simulation Software) is an open-source circuit simulator 
 
 The project began as an attempt to remove the barriers students often face when working with existing tools. Many popular circuit simulators are proprietary, restricted to a single operating system, or rely on outdated interfaces. BESS was created to provide a free, user-friendly, and modern alternative that works consistently across platforms. Its goal is to make learning and experimenting with circuits simpler and more approachable for everyone.
 
-Check out [Bess Wiki](https://github.com/shivang51/bess/wiki) to see available components.
-> Only digital components are there for now, analog components are planned for future.
+### Some of the nice things:
+1. Very extensible:
+   - One can write own plugins in Python to add new components, ui elements, and more.
+   - One can write own simulation drivers to add more capablities. Currently I have digital components simulation driver and maths simulation driver.
+2. Python plugins support hot reloading, for now only while in debug build.
+3. Maintains good fps ~60fps for large components.
+4. Verilog script import also works when working with digital components.
+5. Cross platform support for windows and linux.
 
 
-https://github.com/user-attachments/assets/86f467ee-4160-4be6-a6de-626ed7a3e3a6
-
-
-## Screenshots
+## Screenshots - [More](screenshots/README.md)
 
 <div align="center" height="100px">
   <img src="screenshots/ss1.png" alt="BESS SS1" width="45%"/>
@@ -29,8 +32,8 @@ https://github.com/user-attachments/assets/86f467ee-4160-4be6-a6de-626ed7a3e3a6
 ## Build & Run
 Tested Build On:
 - [x] Linux (Arch Linux: Wayland)
-- [ ] Windows (Broken)
-- [ ] MacOS
+- [x] Windows (Running in Github Actions)
+- [ ] MacOS - Can't test and does need work
 
 Following commands are only valid for Linux.
 All build scripts live in the **scripts/** folder inside the CMake source directory.
@@ -55,7 +58,7 @@ All build scripts live in the **scripts/** folder inside the CMake source direct
        ./Bess
        ```
 ## TODO
-- [ ] Architecture Overhaul and Usability Improvements
+- [x] Architecture Overhaul and Usability Improvements - [Details](https://github.com/shivang51/bess/pull/25)
 - [ ] Web Support
 - [ ] LLM Integration
 - [ ] Analog Component Support

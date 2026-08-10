@@ -26,7 +26,7 @@ namespace Bess::Verilog {
                 id);
             Json::Value j;
             j["id"] = id;
-            j["type"] = type;
+            j["type"] = std::string(type);
             if (toJsonCb) {
                 j["data"] = toJsonCb();
             }
@@ -36,8 +36,9 @@ namespace Bess::Verilog {
 
     struct BESS_API ImportedSlotEndpoint {
         UUID componentId = UUID::null;
-        SimEngine::SlotType slotType = SimEngine::SlotType::digitalInput;
-        int slotIndex = 0;
+        SimEngine::PortDirection direction = SimEngine::PortDirection::input;
+        SimEngine::SignalKind signalKind = SimEngine::SignalKind::digital;
+        int portIndex = 0;
     };
 
     struct BESS_API ImportedModuleInstance {
@@ -65,7 +66,8 @@ namespace Bess::Verilog {
     };
 
     BESS_API SimEngineImportResult importDesignIntoSimulationEngine(
-        const Design &design, Bess::SimEngine::SimulationEngine &engine,
+        const Design &design,
+        Bess::SimEngine::SimulationEngine &engine,
         const std::optional<std::string> &topModuleName = std::nullopt);
 
     BESS_API SimEngineImportResult importVerilogFileIntoSimulationEngine(

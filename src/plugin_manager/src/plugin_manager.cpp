@@ -1,11 +1,12 @@
 #include "plugin_manager.h"
+#include "common/file_watcher.h"
 #include "common/logger.h"
 #include "plugin_handle.h"
+#include "plugin_hot_reload.h"
 #include <filesystem>
+#include <mutex>
 #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
-#include <pystate.h>
-#include <thread>
 
 namespace Bess::Plugins {
     PluginManager &PluginManager::getInstance() {
@@ -22,15 +23,18 @@ namespace Bess::Plugins {
             return;
         pybind11::initialize_interpreter(false);
 
-        pybind11::module_ sys = pybind11::module_::import("sys");
-        pybind11::list path_list = sys.attr("path");
+        {
+            pybind11::module_ sys = pybind11::module_::import("sys");
+            pybind11::list path_list = sys.attr("path");
 
 #ifdef DEBUG
-        path_list.append("src/bessplug/py");
+            path_list.append("src/bessplug/py");
 #else
-        path_list.append("bindings/bessplug");
+            path_list.append("bindings/bessplug");
 #endif
-        pybind11::gil_scoped_release gil;
+        }
+
+        m_gilRelease = std::make_unique<pybind11::gil_scoped_release>();
         BESS_INFO("PluginManager initialized with Python interpreter");
         isIntialized = true;
     }
@@ -38,58 +42,82 @@ namespace Bess::Plugins {
     void PluginManager::destroy() {
         if (!isIntialized)
             return;
-        {
-            unloadAllPlugins();
+
+#ifdef DEBUG
+        for (auto &watcher : m_pluginFileWatchers) {
+            watcher->stop();
         }
+        m_pluginFileWatchers.clear();
+#endif
+
+        unloadAllPlugins();
+        m_gilRelease.reset();
         pybind11::finalize_interpreter();
         BESS_INFO("PluginManager destroyed");
 
         isIntialized = false;
     }
 
-    PluginManager::~PluginManager() { destroy(); }
+    PluginManager::~PluginManager() {
+        destroy();
+    }
 
-    bool PluginManager::loadPlugin(const std::string &pluginPath) {
-        pybind11::gil_scoped_acquire gil;
+    bool PluginManager::loadPlugin(const std::string &pluginPath,
+                                   bool watchPlugin) {
         try {
-            namespace py = pybind11;
-
             if (!std::filesystem::exists(pluginPath)) {
                 BESS_ERROR("Plugin file not found: {}", pluginPath);
                 return false;
             }
 
-            std::filesystem::path path(pluginPath);
-            std::string pluginName = path.stem().string();
-
-            if (isPluginLoaded(pluginName)) {
-                BESS_WARN("Plugin already loaded: {}", pluginName);
-                return true;
-            }
-
-            py::module_ sys = py::module_::import("sys");
-            py::list path_list = sys.attr("path");
-            path_list.append(path.parent_path().string());
-
-            py::module_ pluginModule = py::module::import(pluginName.c_str());
-
-            if (py::hasattr(pluginModule, "plugin_hwd")) {
-                py::object pluginHwd = pluginModule.attr("plugin_hwd");
-                auto name = pluginHwd.attr("name").cast<std::string>();
-
-                m_plugins[name] = std::make_shared<PluginHandle>(pluginHwd);
-
-                BESS_INFO("Successfully loaded plugin: {} from {}", name,
-                          path.parent_path().string());
-
-                return true;
-            } else {
-                BESS_ERROR(
-                    "Plugin {} does not have required 'plug_hwd' variable",
-                    pluginName);
+            const std::filesystem::path path(pluginPath);
+            std::string pluginName;
+            std::shared_ptr<PluginHandle> pluginHandle;
+            if (!loadPluginHandle(path, false, pluginName, pluginHandle)) {
                 return false;
             }
 
+            {
+                std::scoped_lock<std::mutex> lock(m_pluginMutex);
+                if (m_plugins.contains(pluginName)) {
+                    BESS_WARN("Plugin already loaded: {}", pluginName);
+                    return true;
+                }
+                m_plugins[pluginName] = std::move(pluginHandle);
+            }
+
+            BESS_INFO("Successfully loaded plugin: {} from {}",
+                      pluginName,
+                      path.parent_path().string());
+
+#ifdef DEBUG
+            if (!watchPlugin) {
+                return true;
+            }
+
+            static constexpr std::array<const std::string_view, 1> extsToWatch =
+                {".py"};
+
+            Common::FileWatcherConfig watcherConfig;
+            watcherConfig.extToWatch = extsToWatch;
+
+            auto watcher = std::make_unique<Common::FileWatcher>(
+                path.parent_path().string(), watcherConfig);
+
+            watcher->start([this, pluginName, path](
+                               const std::string &changedFile,
+                               const std::string &watchPath) {
+                BESS_WARN("Detected change in plugin file: {}", changedFile);
+
+                if (!reloadPlugin(pluginName, path)) {
+                    BESS_ERROR("Failed to reload plugin: {}", pluginName);
+                }
+            });
+
+            m_pluginFileWatchers.emplace_back(std::move(watcher));
+#endif
+
+            return true;
         } catch (const std::exception &e) {
             BESS_ERROR("Failed to load plugin {}: {}", pluginPath, e.what());
             return false;
@@ -117,28 +145,97 @@ namespace Bess::Plugins {
                 }
             }
 
-            BESS_INFO("Loaded {} plugins from directory: {}", loadedCount,
+            BESS_INFO("Loaded {} plugins from directory: {}",
+                      loadedCount,
                       pluginsDir);
             return loadedCount > 0;
 
         } catch (const std::exception &e) {
             BESS_ERROR("Failed to load plugins from directory {}: {}",
-                       pluginsDir, e.what());
+                       pluginsDir,
+                       e.what());
             return false;
         }
     }
 
+    bool PluginManager::reloadPlugin(const std::string &pluginName,
+                                     const std::filesystem::path &mainPath) {
+        BESS_INFO("Reloading plugin: {}", pluginName);
+
+        std::string reloadedPluginName;
+        std::shared_ptr<PluginHandle> reloadedPlugin;
+        if (!loadPluginHandle(
+                mainPath, true, reloadedPluginName, reloadedPlugin)) {
+            BESS_ERROR("Failed to load plugin {} from {}",
+                       pluginName,
+                       mainPath.string());
+            return false;
+        }
+
+        std::shared_ptr<PluginHandle> oldPlugin;
+        {
+            std::scoped_lock<std::mutex> lock(m_pluginMutex);
+            auto it = m_plugins.find(pluginName);
+            if (it == m_plugins.end()) {
+                BESS_WARN("Plugin not found for reloading: {}", pluginName);
+                return false;
+            }
+
+            oldPlugin = std::move(it->second);
+            m_plugins.erase(it);
+            m_plugins[reloadedPluginName] = std::move(reloadedPlugin);
+        }
+
+        if (reloadedPluginName != pluginName) {
+            BESS_WARN("Plugin name changed during reload: {} -> {}",
+                      pluginName,
+                      reloadedPluginName);
+        }
+
+        {
+            pybind11::gil_scoped_acquire gil;
+            oldPlugin.reset();
+        }
+
+        BESS_INFO("Successfully reloaded plugin: {}", reloadedPluginName);
+        return true;
+    }
+
     bool PluginManager::unloadPlugin(const std::string &pluginName) {
-        BESS_WARN("Plugin not found for unloading: {}", pluginName);
-        return false;
+        std::shared_ptr<PluginHandle> plugin;
+        {
+            std::scoped_lock<std::mutex> lock(m_pluginMutex);
+            auto it = m_plugins.find(pluginName);
+            if (it == m_plugins.end()) {
+                BESS_WARN("Plugin not found for unloading: {}", pluginName);
+                return false;
+            }
+            plugin = std::move(it->second);
+            m_plugins.erase(it);
+        }
+
+        BESS_WARN("Unloading plugin: {}", pluginName);
+        {
+            pybind11::gil_scoped_acquire gil;
+            plugin.reset();
+        }
+        BESS_INFO("Successfully unloaded plugin: {}", pluginName);
+        return true;
     }
 
     void PluginManager::unloadAllPlugins() {
+        std::unordered_map<std::string, std::shared_ptr<PluginHandle>> plugins;
+        {
+            std::scoped_lock<std::mutex> lock(m_pluginMutex);
+            plugins.swap(m_plugins);
+        }
+
         pybind11::gil_scoped_acquire gil;
-        m_plugins.clear();
+        plugins.clear();
     }
 
     std::vector<std::string> PluginManager::getLoadedPluginsNames() const {
+        std::scoped_lock<std::mutex> lock(m_pluginMutex);
         std::vector<std::string> pluginNames;
         pluginNames.reserve(m_plugins.size());
         for (const auto &[name, plugin] : m_plugins) {
@@ -147,17 +244,20 @@ namespace Bess::Plugins {
         return pluginNames;
     }
 
-    const std::unordered_map<std::string, std::shared_ptr<PluginHandle>> &
+    std::unordered_map<std::string, std::shared_ptr<PluginHandle>>
     PluginManager::getLoadedPlugins() const {
+        std::scoped_lock<std::mutex> lock(m_pluginMutex);
         return m_plugins;
     }
 
     bool PluginManager::isPluginLoaded(const std::string &pluginName) const {
+        std::scoped_lock<std::mutex> lock(m_pluginMutex);
         return m_plugins.contains(pluginName);
     }
 
     std::shared_ptr<PluginHandle>
     PluginManager::getPlugin(const std::string &pluginName) const {
+        std::scoped_lock<std::mutex> lock(m_pluginMutex);
         auto it = m_plugins.find(pluginName);
         if (it != m_plugins.end()) {
             return it->second;
@@ -165,41 +265,66 @@ namespace Bess::Plugins {
         return nullptr;
     }
 
-    PyGILState_STATE capturePyThreadState() { return PyGILState_Ensure(); }
+    bool PluginManager::loadPluginHandle(
+        const std::filesystem::path &pluginPath,
+        bool reload,
+        std::string &pluginName,
+        std::shared_ptr<PluginHandle> &pluginHandle) {
+        try {
+            namespace py = pybind11;
 
-    void releasePyThreadState(PyGILState_STATE state) {
-        PyGILState_Release(state);
-    }
+            py::gil_scoped_acquire gil;
+            const auto absolutePluginPath =
+                std::filesystem::absolute(pluginPath).lexically_normal();
+            const auto pluginRoot = absolutePluginPath.parent_path();
+            const auto moduleName =
+                HotReload::makePluginModuleName(absolutePluginPath);
 
-    std::unordered_map<std::thread::id, PyThreadState *> savedThreadStates = {};
+            HotReload::putSysPathFirst(pluginRoot);
+            py::dict liveClasses;
+            py::dict removedModules;
+            if (reload) {
+                liveClasses = HotReload::collectLivePluginClasses(pluginRoot);
+                removedModules = HotReload::removeCachedModules(pluginRoot);
+            }
 
-    void savePyThreadState() {
-        auto idHash = std::hash<std::thread::id>{}(std::this_thread::get_id());
-        if (savedThreadStates.contains(std::this_thread::get_id()) &&
-            savedThreadStates.at(std::this_thread::get_id()) == nullptr) {
-            BESS_WARN("[PyThreadState] Thread state for thread {} is already "
-                      "saved and never restored",
-                      idHash);
-            return;
+            BESS_INFO("{} plugin from file: {}",
+                      reload ? "Reloading" : "Loading",
+                      absolutePluginPath.string());
+
+            py::module_ pluginModule;
+            try {
+                pluginModule = HotReload::importPluginModuleFromFile(
+                    absolutePluginPath, moduleName);
+            } catch (...) {
+                if (reload) {
+                    HotReload::restoreCachedModules(removedModules);
+                }
+                throw;
+            }
+
+            if (reload) {
+                const auto patchedClassCount =
+                    HotReload::patchLivePluginClasses(liveClasses, pluginRoot);
+                BESS_DEBUG("Patched {} live plugin classes after reload",
+                           patchedClassCount);
+            }
+
+            if (!py::hasattr(pluginModule, "plugin_hwd")) {
+                BESS_ERROR(
+                    "Plugin {} does not have required 'plugin_hwd' variable",
+                    absolutePluginPath.string());
+                return false;
+            }
+
+            py::object pluginHwd = pluginModule.attr("plugin_hwd");
+            pluginName = pluginHwd.attr("name").cast<std::string>();
+            pluginHandle = std::make_shared<PluginHandle>(pluginHwd);
+            return true;
+        } catch (const std::exception &e) {
+            BESS_ERROR(
+                "Failed to load plugin {}: {}", pluginPath.string(), e.what());
+            return false;
         }
-        savedThreadStates[std::this_thread::get_id()] = PyEval_SaveThread();
-    }
-
-    void restorePyThreadState() {
-        auto idHash = std::hash<std::thread::id>{}(std::this_thread::get_id());
-        if (!savedThreadStates.contains(std::this_thread::get_id())) {
-            BESS_WARN("[PyThreadState] Thread state for thread {}  was not "
-                      "saved before restore.",
-                      idHash);
-            return;
-        } else if (savedThreadStates.at(std::this_thread::get_id()) ==
-                   nullptr) {
-            BESS_WARN("[PyThreadState] Thread state for thread {} was alreay "
-                      "restored.",
-                      idHash);
-            return;
-        }
-        PyEval_RestoreThread(savedThreadStates[std::this_thread::get_id()]);
-        savedThreadStates[std::this_thread::get_id()] = nullptr;
     }
 } // namespace Bess::Plugins

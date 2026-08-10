@@ -15,21 +15,25 @@ namespace Bess::SimEngine {
 
         const auto &catalog = ComponentCatalog::instance();
 
-        auto &simEngine = SimulationEngine::instance();
+        if (!m_engine) {
+            BESS_ERROR("Cannot clone module definition without a simulation "
+                       "engine");
+            return nullptr;
+        }
 
-        const auto &inpDef = simEngine.getComponentDefinition(m_input);
-        clone->m_input = simEngine.addComponent(inpDef);
+        const auto &inpDef = m_engine->getComponentDefinition(m_input);
+        clone->m_input = m_engine->addComponent(inpDef);
 
-        const auto &outDef = simEngine.getComponentDefinition(m_output);
-        clone->m_output = simEngine.addComponent(outDef);
+        const auto &outDef = m_engine->getComponentDefinition(m_output);
+        clone->m_output = m_engine->addComponent(outDef);
 
         return clone;
     }
 
-    std::shared_ptr<ModuleDefinition> ModuleDefinition::createNew() {
-        auto &simEngine = SimulationEngine::instance();
-
+    std::shared_ptr<ModuleDefinition>
+    ModuleDefinition::createNew(SimulationEngine &simEngine) {
         auto moduleDef = std::make_shared<ModuleDefinition>();
+        moduleDef->setEngine(&simEngine);
 
         moduleDef->setName("New Module");
         moduleDef->setGroupName("Modules");
@@ -52,13 +56,35 @@ namespace Bess::SimEngine {
         const auto &catalog = ComponentCatalog::instance();
 
         // create a input and output component for the module
-        const auto &inpDef = catalog.getComponentDefinition("Input");
-        BESS_ASSERT(inpDef, "Input component definition not found in catalog");
+        auto inpDef = catalog.getComponentDefinition("Input");
+        if (!inpDef) {
+            inpDef = catalog.getComponentDefinition("Digital Input");
+        }
+        if (!inpDef) {
+            BESS_ERROR("Input component definition not found in catalog");
+            return nullptr;
+        }
         moduleDef->m_input = simEngine.addComponent(inpDef);
+        if (moduleDef->m_input == UUID::null) {
+            BESS_ERROR("Could not create module input component");
+            return nullptr;
+        }
 
-        const auto &outDef = catalog.getComponentDefinition("Output");
-        BESS_ASSERT(outDef, "Output component definition not found in catalog");
+        auto outDef = catalog.getComponentDefinition("Output");
+        if (!outDef) {
+            outDef = catalog.getComponentDefinition("Digital Output");
+        }
+        if (!outDef) {
+            simEngine.deleteComponent(moduleDef->m_input);
+            BESS_ERROR("Output component definition not found in catalog");
+            return nullptr;
+        }
         moduleDef->m_output = simEngine.addComponent(outDef);
+        if (moduleDef->m_output == UUID::null) {
+            simEngine.deleteComponent(moduleDef->m_input);
+            BESS_ERROR("Could not create module output component");
+            return nullptr;
+        }
 
         return moduleDef;
     }
@@ -69,16 +95,20 @@ namespace Bess::SimEngine {
         const auto &inputs = data->inputStates;
         const auto &prevState = data->prevState;
 
-        auto &simEngine = SimulationEngine::instance();
+        if (!m_engine) {
+            BESS_ERROR("Cannot simulate module definition without a "
+                       "simulation engine");
+            return data;
+        }
 
-        const auto &outputState = simEngine.getComponentState(m_output);
+        const auto &outputState = m_engine->getComponentState(m_output);
 
         bool isChanged = false;
 
         for (size_t i = 0; i < outputState.inputStates.size(); ++i) {
             data->outputStates[i] = outputState.inputStates[i];
-            if (data->outputStates[i].state !=
-                prevState.outputStates[i].state) {
+            if (data->outputStates[i].getLogicState() !=
+                prevState.outputStates[i].getLogicState()) {
                 isChanged = true;
             }
         }
@@ -86,7 +116,9 @@ namespace Bess::SimEngine {
         return data;
     }
 
-    std::string ModuleDefinition::getTypeName() const { return TypeName; }
+    std::string ModuleDefinition::getTypeName() const {
+        return TypeName;
+    }
 
     Json::Value ModuleDefinition::toJson() const {
         Json::Value json = Drivers::Digital::DigCompDef::toJson();

@@ -2,7 +2,7 @@ from typing import override
 from bessplug.api.asset_manager import AssetManager, TextureAssetID
 from bessplug.api.common import vec2, vec3, vec4
 from bessplug.api.scene import PickingId, SimulationSceneComponent
-from bessplug.api.scene.renderer import QuadRenderProperties, SubTexture
+from bessplug.api.scene.renderer import SubTexture
 from bessplug.api.sim_engine import LogicState
 import copy
 
@@ -44,13 +44,13 @@ class SevenSegDispComp(SimulationSceneComponent):
         pickingId.runtime_id = self.runtime_id
         pickingId.info = 0
 
-        context.material_renderer.draw_sub_textured_quad(
+        context.renderer.draw_quad(
             pos,
             SevenSegDispComp._tex_draw_size,
             vec4(1, 1, 1, 1),
             pickingId.asUint64(),
             SevenSegDispComp._sub_textures[0],
-            QuadRenderProperties(),
+            0,
         )
 
         pos.z += 0.0001
@@ -58,13 +58,13 @@ class SevenSegDispComp(SimulationSceneComponent):
         for idx, inp in enumerate(self.get_input_states(context.scene_state)):
             if inp == LogicState.HIGH:
                 seg_index = idx + 1
-                context.material_renderer.draw_sub_textured_quad(
+                context.renderer.draw_sub_textured_quad(
                     pos,
                     SevenSegDispComp._tex_draw_size,
                     vec4(1, 1, 1, 1),
                     pickingId.asUint64(),
                     SevenSegDispComp._sub_textures[seg_index],
-                    QuadRenderProperties(),
+                    0,
                 )
 
     # static members for managin shared texture and subtextures

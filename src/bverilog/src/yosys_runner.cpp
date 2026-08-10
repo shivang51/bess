@@ -107,8 +107,8 @@ namespace Bess::Verilog {
             std::unordered_set<std::string> seen;
 
             for (const auto &sourceFile : sourceFiles) {
-                appendUniquePath(sourceFile.parent_path(), includeDirectories,
-                                 seen);
+                appendUniquePath(
+                    sourceFile.parent_path(), includeDirectories, seen);
             }
 
             for (const auto &includeDirectory : config.includeDirectories) {

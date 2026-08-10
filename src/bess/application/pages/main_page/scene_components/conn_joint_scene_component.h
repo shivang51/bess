@@ -1,12 +1,13 @@
 #pragma once
+
+#include "bess_core/scene/scene_draw_context.h"
+#include "bess_core/scene/scene_state/components/behaviours/drag_behaviour.h"
+#include "bess_core/scene/scene_state/components/scene_component.h"
 #include "bess_json/bess_json.h"
+#include "common/bess_api.h"
 #include "common/bess_uuid.h"
 #include "pages/main_page/scene_components/proxy_slot_component.h"
-#include "scene/scene_state/components/behaviours/drag_behaviour.h"
-#include "scene/scene_state/components/scene_component.h"
 #include "scene_comp_types.h"
-#include "scene_draw_context.h"
-
 
 #define CONNJOINT_SC_SER_PROPS                                                 \
     ("connSegIdx", getConnSegIdx, setConnSegIdx),                              \
@@ -20,17 +21,20 @@
 
 namespace Bess::Canvas {
 
-    class ConnJointSceneComp : public SceneComponent,
-                               public DragBehaviour<ConnJointSceneComp>,
-                               public ProxySlotComponent {
+    class BESS_API ConnJointSceneComp
+        : public SceneComponent,
+          public DragBehaviour<ConnJointSceneComp>,
+          public ProxySlotComponent {
       public:
         ConnJointSceneComp() = default;
-        ConnJointSceneComp(UUID connectionId, int connSegIdx,
+        ConnJointSceneComp(UUID connectionId,
+                           int connSegIdx,
                            ConnSegOrientaion segOrientation);
 
         REG_SCENE_COMP_TYPE("ConnJointSceneComp", SceneComponentType::connJoint)
         SCENE_COMP_SER(Bess::Canvas::ConnJointSceneComp,
-                       Bess::Canvas::SceneComponent, CONNJOINT_SC_SER_PROPS)
+                       Bess::Canvas::SceneComponent,
+                       CONNJOINT_SC_SER_PROPS)
 
         std::vector<std::shared_ptr<SceneComponent>>
         clone(const SceneState &sceneState) const override;
@@ -54,14 +58,22 @@ namespace Bess::Canvas {
 
         void drawSchematic(SceneDrawContext &context) override;
 
-        SimEngine::SlotState getSlotState(const SceneState &state) const;
-        void onMouseDragged(const Events::MouseDraggedEvent &e) override;
-        void onMouseEnter(const Events::MouseEnterEvent &e) override;
-        void onMouseLeave(const Events::MouseLeaveEvent &e) override;
-        void onMouseButton(const Events::MouseButtonEvent &e) override;
+        SimEngine::PortState getSlotState(const SceneState &state) const;
 
-        glm::vec3 getAbsolutePosition(const SceneState &state) const override;
-        void onMouseLeftClick(const Events::MouseButtonEvent &e);
+        // Use for draw hot paths
+        SimEngine::PortState
+        getSlotState(const SceneDrawContext &context) const;
+
+        void onMouseDragged(const Events::MouseDraggedEvent &e) override;
+        void onMouseDragEnd() override;
+        bool onMouseEnter(const Events::MouseEnterEvent &e) override;
+        bool onMouseLeave(const Events::MouseLeaveEvent &e) override;
+        Core::Viewport::SceneCursor getCursor() const override;
+        bool onMouseButton(const Events::MouseButtonEvent &e) override;
+
+        glm::vec3 getAbsolutePosition(const SceneState &state,
+                                      bool isSchematicMode) const override;
+        bool onMouseLeftClick(const Events::MouseButtonEvent &e);
 
         void removeConnection(const UUID &connectionId);
         std::vector<UUID> cleanup(SceneState &state,
@@ -81,8 +93,11 @@ namespace Bess::Canvas {
               m_schematicOffset =
                   -1.f; // normalized 0-1 offset, signifying pos on segment
         ConnSegOrientaion m_segOrientation = ConnSegOrientaion::horizontal;
+        Json::Value m_dragBefore;
+        UUID m_dragScene = UUID::null;
     };
 } // namespace Bess::Canvas
 
-REG_SCENE_COMP(Bess::Canvas::ConnJointSceneComp, Bess::Canvas::SceneComponent,
+REG_SCENE_COMP(Bess::Canvas::ConnJointSceneComp,
+               Bess::Canvas::SceneComponent,
                CONNJOINT_SC_SER_PROPS)

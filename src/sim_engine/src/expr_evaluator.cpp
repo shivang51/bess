@@ -3,12 +3,13 @@
 
 #include "common/logger.h"
 
-
 #include <stack>
 #include <stdexcept>
 
 namespace Bess::SimEngine::ExprEval {
-    inline bool isUninaryOperator(char op) { return op == '!' || op == '$'; }
+    bool isUninaryOperator(char op) {
+        return op == '!' || op == '$';
+    }
 
     inline bool applyBinaryOperator(bool a, bool b, char op) {
         switch (op) {

@@ -1,7 +1,7 @@
 #include "group_scene_component.h"
+#include "bess_core/scene/scene_state/scene_state.h"
 #include "common/bess_uuid.h"
 #include "pages/main_page/main_page.h"
-#include "scene/scene_state/scene_state.h"
 
 namespace Bess::Canvas {
     GroupSceneComponent::GroupSceneComponent() = default;
@@ -25,8 +25,8 @@ namespace Bess::Canvas {
 
             clonedComponent->addChildComponent(childClones.front()->getUuid());
             childClones.front()->setParentComponent(clonedComponent->getUuid());
-            clonedComponents.insert(clonedComponents.end(), childClones.begin(),
-                                    childClones.end());
+            clonedComponents.insert(
+                clonedComponents.end(), childClones.begin(), childClones.end());
         }
 
         return clonedComponents;
@@ -35,7 +35,7 @@ namespace Bess::Canvas {
     void GroupSceneComponent::onAttach(SceneState &state) {
         m_transform.position = glm::vec3(0.0);
         for (const auto &childId : m_childComponents) {
-            state.attachChild(m_uuid, childId);
+            state.attachChild(m_uuid, childId, false);
         }
     }
 
@@ -54,12 +54,14 @@ namespace Bess::Canvas {
         if (!m_isSelected)
             return;
 
-        auto &mainPageState = Pages::MainPage::getInstance()->getState();
-        auto &sceneState = mainPageState.getSceneDriver()->getState();
+        auto *sceneState = this->sceneState();
+        if (!sceneState) {
+            return;
+        }
         for (const auto &childId : m_childComponents) {
-            auto childComp = sceneState.getComponentByUuid(childId);
+            auto childComp = sceneState->getComponentByUuid(childId);
             if (childComp) {
-                sceneState.addSelectedComponent(childId);
+                sceneState->addSelectedComponent(childId);
             }
         }
     }

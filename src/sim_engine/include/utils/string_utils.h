@@ -5,5 +5,5 @@
 
 namespace Bess::SimEngine::StringUtils {
 
-    SlotType toPinType(std::string str);
+    PortDirection toPortDirection(std::string str);
 } // namespace Bess::SimEngine::StringUtils

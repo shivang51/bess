@@ -23,19 +23,14 @@ set(ALL_FILES
     ${Source_Files}
 )
 
-add_library(${PROJECT_NAME} STATIC ${ALL_FILES})
+add_library(${PROJECT_NAME} OBJECT ${ALL_FILES})
 
-target_link_libraries(${PROJECT_NAME} PUBLIC BessJson common BessSimEngine BessSimDriver DigitalSimDriver)
-add_dependencies(${PROJECT_NAME} BessJson common BessSimEngine BessSimDriver DigitalSimDriver)
+target_link_libraries(${PROJECT_NAME} PRIVATE BessExtDeps BessJson common BessSimEngine BessSimDriver DigitalSimDriver)
+add_dependencies(${PROJECT_NAME} BessJson common BessExtDeps BessSimEngine BessSimDriver DigitalSimDriver)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    "${CMAKE_SOURCE_DIR}/external/jsoncpp/include"
-    "${CMAKE_SOURCE_DIR}/src/common/include"
-    "${CMAKE_SOURCE_DIR}/src/bess_json/include"
-    "${CMAKE_SOURCE_DIR}/src/sim_engine/include"
 )
-
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8")
 endif()

@@ -1,0 +1,39 @@
+#pragma once
+
+#include "common/bess_api.h"
+
+#include "bess_core/scene/scene_ui/ui_scene_component.h"
+#include <functional>
+#include <memory>
+#include <string>
+
+namespace Bess::Canvas::UI {
+
+    typedef std::function<void()> UIButtonCallback;
+
+    class BESS_API ButtonComp : public UISceneComponent {
+      public:
+        DEFAULT_CONTRS(ButtonComp)
+
+        static std::shared_ptr<ButtonComp> create(const CompConfig &config);
+        static std::shared_ptr<ButtonComp>
+        create(const std::string &label,
+               const UIButtonCallback &callback,
+               const CompConfig &config = CompConfig{});
+
+        bool onMouseButton(const Events::MouseButtonEvent &e) override;
+
+        MAKE_GETTER_SETTER(UIButtonCallback, Callback, m_callback)
+
+        void update(TimeMs ts, SceneState &state) override;
+        void onDraw(SceneDrawContext &state) override;
+        void prepareUI(SceneUIPrepareCtx &state) override;
+
+      private:
+        void prepChildren(SceneUIPrepareCtx &state);
+
+      private:
+        UINode *m_labelNode = nullptr;
+        UIButtonCallback m_callback;
+    };
+} // namespace Bess::Canvas::UI

@@ -12,7 +12,9 @@ namespace Bess::Canvas {
         m_outputSlotId = UUID::null;
     }
 
-    void ProxySlotComponent::clearConnections() { m_connections.clear(); }
+    void ProxySlotComponent::clearConnections() {
+        m_connections.clear();
+    }
 
     void ProxySlotComponent::clear() {
         clearSlots();

@@ -13,21 +13,29 @@ class PyUIHook : public Bess::UI::Hook::UIHook,
 
     void setPropertyDescriptors(
         const std::vector<Bess::UI::Hook::PropertyDesc> &descs) override {
-        PYBIND11_OVERLOAD_NAME(void, Bess::UI::Hook::UIHook, "set_properties",
-                               setPropertyDescriptors, descs);
+        PYBIND11_OVERLOAD_NAME(void,
+                               Bess::UI::Hook::UIHook,
+                               "set_properties",
+                               setPropertyDescriptors,
+                               descs);
     }
 
     const std::vector<Bess::UI::Hook::PropertyDesc> &
     getPropertyDescriptors() const override {
         PYBIND11_OVERLOAD_NAME(
             const std::vector<Bess::UI::Hook::PropertyDesc> &,
-            Bess::UI::Hook::UIHook, "get_properties", getPropertyDescriptors, );
+            Bess::UI::Hook::UIHook,
+            "get_properties",
+            getPropertyDescriptors, );
     }
 
     void
     addPropertyDescriptor(const Bess::UI::Hook::PropertyDesc &desc) override {
-        PYBIND11_OVERLOAD_NAME(void, Bess::UI::Hook::UIHook, "add_property",
-                               addPropertyDescriptor, desc);
+        PYBIND11_OVERLOAD_NAME(void,
+                               Bess::UI::Hook::UIHook,
+                               "add_property",
+                               addPropertyDescriptor,
+                               desc);
     }
 };
 
@@ -68,7 +76,8 @@ void bind_ui_hook(py::module &m) {
     py::class_<Bess::UI::Hook::UIHook, PyUIHook, py::smart_holder>(m, "UIHook")
         .def(py::init<>())
         .def("set_properties", &Bess::UI::Hook::UIHook::setPropertyDescriptors)
-        .def("get_properties", &Bess::UI::Hook::UIHook::getPropertyDescriptors,
+        .def("get_properties",
+             &Bess::UI::Hook::UIHook::getPropertyDescriptors,
              py::return_value_policy::reference)
         .def("add_property", &Bess::UI::Hook::UIHook::addPropertyDescriptor);
 }

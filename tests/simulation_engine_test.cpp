@@ -1,6 +1,8 @@
 #include "common/types.h"
 #include "component_catalog.h"
 #include "dig_sim_driver.h"
+#include "bess_core/g_app_context.h"
+#include "project_session/project_session.h"
 #include "plugin_manager.h"
 #include "simulation_engine.h"
 #include "gtest/gtest.h"
@@ -29,7 +31,7 @@ namespace {
     void ensurePrimitiveGateDefinitions() {
         auto ensureGate = [](const std::string &name, size_t inputCount,
                              const std::function<LogicState(
-                                 const std::vector<SlotState> &)> &eval) {
+                                 const std::vector<PortState> &)> &eval) {
             if (findDefinitionByName(name)) {
                 return;
             }
@@ -71,27 +73,27 @@ namespace {
             ComponentCatalog::instance().registerComponent(definition);
         };
 
-        ensureGate("NOT Gate", 1, [](const std::vector<SlotState> &inputs) {
+        ensureGate("NOT Gate", 1, [](const std::vector<PortState> &inputs) {
             const auto inState =
                 inputs.empty() ? LogicState::low : inputs[0].state;
             return inState == LogicState::high ? LogicState::low
                                                : LogicState::high;
         });
-        ensureGate("AND Gate", 2, [](const std::vector<SlotState> &inputs) {
+        ensureGate("AND Gate", 2, [](const std::vector<PortState> &inputs) {
             const bool a =
                 inputs.size() > 0 && inputs[0].state == LogicState::high;
             const bool b =
                 inputs.size() > 1 && inputs[1].state == LogicState::high;
             return (a && b) ? LogicState::high : LogicState::low;
         });
-        ensureGate("OR Gate", 2, [](const std::vector<SlotState> &inputs) {
+        ensureGate("OR Gate", 2, [](const std::vector<PortState> &inputs) {
             const bool a =
                 inputs.size() > 0 && inputs[0].state == LogicState::high;
             const bool b =
                 inputs.size() > 1 && inputs[1].state == LogicState::high;
             return (a || b) ? LogicState::high : LogicState::low;
         });
-        ensureGate("XOR Gate", 2, [](const std::vector<SlotState> &inputs) {
+        ensureGate("XOR Gate", 2, [](const std::vector<PortState> &inputs) {
             const bool a =
                 inputs.size() > 0 && inputs[0].state == LogicState::high;
             const bool b =
@@ -113,9 +115,18 @@ namespace {
         return predicate();
     }
 
+    PortRef digitalPort(const UUID &uuid, PortDirection direction, int index) {
+        return {.componentId = uuid,
+                .direction = direction,
+                .signalKind = SignalKind::digital,
+                .index = index};
+    }
+
     bool slotStateEquals(SimulationEngine &engine, const UUID &uuid,
-                         SlotType type, int idx, LogicState expected) {
-        return engine.getDigitalSlotState(uuid, type, idx).state == expected;
+                         PortDirection direction, int idx,
+                         LogicState expected) {
+        return engine.getPortState(digitalPort(uuid, direction, idx)).state ==
+               expected;
     }
 
     LogicState boolToState(bool value) {
@@ -137,7 +148,9 @@ class SimulationEngineTest : public testing::Test {
         orDef, xorDef;
 
     void SetUp() override {
-        engine = &SimulationEngine::instance();
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        engine = &projectCtx->sim();
         ensurePrimitiveGateDefinitions();
 
         inputDef = findDefinitionByName("Input");
@@ -174,14 +187,16 @@ class SimulationEngineTest : public testing::Test {
     }
 
     void driveInput(const UUID &inputId, bool value) {
-        engine->setOutputSlotState(inputId, 0, boolToState(value));
+        engine->setOutputPortState(inputId, 0, boolToState(value));
     }
 
-    void expectOutputEventually(const UUID &uuid, SlotType type, int idx,
+    void expectOutputEventually(const UUID &uuid, PortDirection direction, int idx,
                                 LogicState expected,
                                 std::chrono::milliseconds timeout = 250ms) {
         ASSERT_TRUE(waitUntil(
-            [&] { return slotStateEquals(*engine, uuid, type, idx, expected); },
+            [&] {
+                return slotStateEquals(*engine, uuid, direction, idx, expected);
+            },
             timeout))
             << "Timed out waiting for slot state "
             << static_cast<int>(expected);
@@ -193,10 +208,8 @@ class SimulationEngineTest : public testing::Test {
         const auto inputB = addComponent(inputDef);
         const auto gate = addComponent(gateDef);
 
-        ASSERT_TRUE(engine->connectComponent(inputA, 0, SlotType::digitalOutput,
-                                             gate, 0, SlotType::digitalInput));
-        ASSERT_TRUE(engine->connectComponent(inputB, 0, SlotType::digitalOutput,
-                                             gate, 1, SlotType::digitalInput));
+        ASSERT_TRUE(engine->connectPorts(digitalPort(inputA, Bess::SimEngine::PortDirection::output, 0), digitalPort(gate, Bess::SimEngine::PortDirection::input, 0)));
+        ASSERT_TRUE(engine->connectPorts(digitalPort(inputB, Bess::SimEngine::PortDirection::output, 0), digitalPort(gate, Bess::SimEngine::PortDirection::input, 1)));
 
         const std::array<std::pair<bool, bool>, 4> rows = {{
             {false, false},
@@ -208,7 +221,7 @@ class SimulationEngineTest : public testing::Test {
         for (size_t i = 0; i < rows.size(); ++i) {
             driveInput(inputA, rows[i].first);
             driveInput(inputB, rows[i].second);
-            expectOutputEventually(gate, SlotType::digitalOutput, 0,
+            expectOutputEventually(gate, PortDirection::output, 0,
                                    boolToState(expectedOutputs[i]));
         }
     }
@@ -226,20 +239,16 @@ TEST_F(SimulationEngineTest, CanConnectComponentsRejectsInvalidConfigurations) {
     const auto input = addComponent(inputDef);
     const auto gate = addComponent(andDef);
 
-    const auto [nullOk, nullError] = engine->canConnectComponents(
-        Bess::UUID::null, 0, SlotType::digitalOutput, gate, 0,
-        SlotType::digitalInput);
+    const auto [nullOk, nullError] = engine->canConnectPorts(digitalPort(Bess::UUID::null, Bess::SimEngine::PortDirection::output, 0), digitalPort(gate, Bess::SimEngine::PortDirection::input, 0));
     EXPECT_FALSE(nullOk);
     EXPECT_EQ(nullError, "Cannot connect to/from null component");
 
-    const auto [sameTypeOk, sameTypeError] = engine->canConnectComponents(
-        input, 0, SlotType::digitalOutput, gate, 0, SlotType::digitalOutput);
+    const auto [sameTypeOk, sameTypeError] = engine->canConnectPorts(digitalPort(input, Bess::SimEngine::PortDirection::output, 0), digitalPort(gate, Bess::SimEngine::PortDirection::output, 0));
     EXPECT_FALSE(sameTypeOk);
     EXPECT_EQ(sameTypeError, "Cannot connect pins of the same type i.e. input "
                              "-> input or output -> output");
 
-    const auto [badIndexOk, badIndexError] = engine->canConnectComponents(
-        input, 9, SlotType::digitalOutput, gate, 0, SlotType::digitalInput);
+    const auto [badIndexOk, badIndexError] = engine->canConnectPorts(digitalPort(input, Bess::SimEngine::PortDirection::output, 9), digitalPort(gate, Bess::SimEngine::PortDirection::input, 0));
     EXPECT_FALSE(badIndexOk);
     EXPECT_TRUE(badIndexError.starts_with("Invalid source pin index."));
 }
@@ -250,22 +259,17 @@ TEST_F(SimulationEngineTest,
     const auto inputB = addComponent(inputDef);
     const auto gate = addComponent(andDef);
 
-    const auto [canConnectFirst, firstError] = engine->canConnectComponents(
-        inputA, 0, SlotType::digitalOutput, gate, 0, SlotType::digitalInput);
+    const auto [canConnectFirst, firstError] = engine->canConnectPorts(digitalPort(inputA, Bess::SimEngine::PortDirection::output, 0), digitalPort(gate, Bess::SimEngine::PortDirection::input, 0));
     EXPECT_TRUE(canConnectFirst);
     EXPECT_TRUE(firstError.empty());
 
-    ASSERT_TRUE(engine->connectComponent(inputA, 0, SlotType::digitalOutput,
-                                         gate, 0, SlotType::digitalInput));
-    ASSERT_TRUE(engine->connectComponent(inputB, 0, SlotType::digitalOutput,
-                                         gate, 1, SlotType::digitalInput));
+    ASSERT_TRUE(engine->connectPorts(digitalPort(inputA, Bess::SimEngine::PortDirection::output, 0), digitalPort(gate, Bess::SimEngine::PortDirection::input, 0)));
+    ASSERT_TRUE(engine->connectPorts(digitalPort(inputB, Bess::SimEngine::PortDirection::output, 0), digitalPort(gate, Bess::SimEngine::PortDirection::input, 1)));
 
-    auto [canConnectDuplicate, duplicateError] = engine->canConnectComponents(
-        inputA, 0, SlotType::digitalOutput, gate, 0, SlotType::digitalInput);
+    auto [canConnectDuplicate, duplicateError] = engine->canConnectPorts(digitalPort(inputA, Bess::SimEngine::PortDirection::output, 0), digitalPort(gate, Bess::SimEngine::PortDirection::input, 0));
     EXPECT_FALSE(canConnectDuplicate);
     EXPECT_EQ(duplicateError, "Connection already exists");
-    EXPECT_FALSE(engine->connectComponent(inputA, 0, SlotType::digitalOutput,
-                                          gate, 0, SlotType::digitalInput));
+    EXPECT_FALSE(engine->connectPorts(digitalPort(inputA, Bess::SimEngine::PortDirection::output, 0), digitalPort(gate, Bess::SimEngine::PortDirection::input, 0)));
 
     auto connections = engine->getConnections(gate);
     ASSERT_EQ(connections.inputs.size(), 2u);
@@ -274,8 +278,7 @@ TEST_F(SimulationEngineTest,
     EXPECT_EQ(connections.inputs[0][0].first, inputA);
     EXPECT_EQ(connections.inputs[1][0].first, inputB);
 
-    engine->deleteConnection(inputA, SlotType::digitalOutput, 0, gate,
-                             SlotType::digitalInput, 0);
+    engine->deleteConnection(digitalPort(inputA, Bess::SimEngine::PortDirection::output, 0), digitalPort(gate, Bess::SimEngine::PortDirection::input, 0));
 
     connections = engine->getConnections(gate);
     EXPECT_TRUE(connections.inputs[0].empty());
@@ -295,67 +298,63 @@ TEST_F(SimulationEngineTest, BasicGateTruthTablesProduceExpectedOutputs) {
 
     const auto input = addComponent(inputDef);
     const auto gate = addComponent(notDef);
-    ASSERT_TRUE(engine->connectComponent(input, 0, SlotType::digitalOutput,
-                                         gate, 0, SlotType::digitalInput));
+    ASSERT_TRUE(engine->connectPorts(digitalPort(input, Bess::SimEngine::PortDirection::output, 0), digitalPort(gate, Bess::SimEngine::PortDirection::input, 0)));
 
     driveInput(input, false);
-    expectOutputEventually(gate, SlotType::digitalOutput, 0, LogicState::high);
+    expectOutputEventually(gate, PortDirection::output, 0, LogicState::high);
 
     driveInput(input, true);
-    expectOutputEventually(gate, SlotType::digitalOutput, 0, LogicState::low);
+    expectOutputEventually(gate, PortDirection::output, 0, LogicState::low);
 }
 
 TEST_F(SimulationEngineTest, OutputComponentReceivesDrivenSignal) {
     const auto input = addComponent(inputDef);
     const auto sink = addComponent(outputDef);
 
-    ASSERT_TRUE(engine->connectComponent(input, 0, SlotType::digitalOutput,
-                                         sink, 0, SlotType::digitalInput));
+    ASSERT_TRUE(engine->connectPorts(digitalPort(input, Bess::SimEngine::PortDirection::output, 0), digitalPort(sink, Bess::SimEngine::PortDirection::input, 0)));
 
     driveInput(input, true);
-    expectOutputEventually(sink, SlotType::digitalInput, 0, LogicState::high);
+    expectOutputEventually(sink, PortDirection::input, 0, LogicState::high);
 
     driveInput(input, false);
-    expectOutputEventually(sink, SlotType::digitalInput, 0, LogicState::low);
+    expectOutputEventually(sink, PortDirection::input, 0, LogicState::low);
 }
 
 TEST_F(SimulationEngineTest, PauseAndStepControlsWhenQueuedSimulationRuns) {
     const auto input = addComponent(inputDef);
     const auto gate = addComponent(notDef);
 
-    ASSERT_TRUE(engine->connectComponent(input, 0, SlotType::digitalOutput,
-                                         gate, 0, SlotType::digitalInput));
+    ASSERT_TRUE(engine->connectPorts(digitalPort(input, Bess::SimEngine::PortDirection::output, 0), digitalPort(gate, Bess::SimEngine::PortDirection::input, 0)));
 
     driveInput(input, false);
-    expectOutputEventually(gate, SlotType::digitalOutput, 0, LogicState::high);
+    expectOutputEventually(gate, PortDirection::output, 0, LogicState::high);
 
     engine->setSimulationState(SimulationState::paused);
 
     driveInput(input, true);
     std::this_thread::sleep_for(20ms);
     EXPECT_EQ(
-        engine->getDigitalSlotState(gate, SlotType::digitalOutput, 0).state,
+        engine->getPortState(digitalPort(gate, Bess::SimEngine::PortDirection::output, 0)).state,
         LogicState::high);
 
     engine->stepSimulation();
-    expectOutputEventually(gate, SlotType::digitalOutput, 0, LogicState::low);
+    expectOutputEventually(gate, PortDirection::output, 0, LogicState::low);
 
     driveInput(input, false);
     std::this_thread::sleep_for(20ms);
     EXPECT_EQ(
-        engine->getDigitalSlotState(gate, SlotType::digitalOutput, 0).state,
+        engine->getPortState(digitalPort(gate, Bess::SimEngine::PortDirection::output, 0)).state,
         LogicState::low);
 
     engine->stepSimulation();
-    expectOutputEventually(gate, SlotType::digitalOutput, 0, LogicState::high);
+    expectOutputEventually(gate, PortDirection::output, 0, LogicState::high);
 }
 
 TEST_F(SimulationEngineTest, DeleteComponentRemovesItFromStateAndConnections) {
     const auto input = addComponent(inputDef);
     const auto gate = addComponent(notDef);
 
-    ASSERT_TRUE(engine->connectComponent(input, 0, SlotType::digitalOutput,
-                                         gate, 0, SlotType::digitalInput));
+    ASSERT_TRUE(engine->connectPorts(digitalPort(input, Bess::SimEngine::PortDirection::output, 0), digitalPort(gate, Bess::SimEngine::PortDirection::input, 0)));
 
     engine->deleteComponent(input);
 
@@ -374,31 +373,27 @@ TEST_F(SimulationEngineTest,
     const auto notGate = addComponent(notDef);
     const auto sink = addComponent(outputDef);
 
-    ASSERT_TRUE(engine->connectComponent(inputA, 0, SlotType::digitalOutput,
-                                         andGate, 0, SlotType::digitalInput));
-    ASSERT_TRUE(engine->connectComponent(inputB, 0, SlotType::digitalOutput,
-                                         andGate, 1, SlotType::digitalInput));
-    ASSERT_TRUE(engine->connectComponent(andGate, 0, SlotType::digitalOutput,
-                                         notGate, 0, SlotType::digitalInput));
-    ASSERT_TRUE(engine->connectComponent(notGate, 0, SlotType::digitalOutput,
-                                         sink, 0, SlotType::digitalInput));
+    ASSERT_TRUE(engine->connectPorts(digitalPort(inputA, Bess::SimEngine::PortDirection::output, 0), digitalPort(andGate, Bess::SimEngine::PortDirection::input, 0)));
+    ASSERT_TRUE(engine->connectPorts(digitalPort(inputB, Bess::SimEngine::PortDirection::output, 0), digitalPort(andGate, Bess::SimEngine::PortDirection::input, 1)));
+    ASSERT_TRUE(engine->connectPorts(digitalPort(andGate, Bess::SimEngine::PortDirection::output, 0), digitalPort(notGate, Bess::SimEngine::PortDirection::input, 0)));
+    ASSERT_TRUE(engine->connectPorts(digitalPort(notGate, Bess::SimEngine::PortDirection::output, 0), digitalPort(sink, Bess::SimEngine::PortDirection::input, 0)));
 
     driveInput(inputA, false);
     driveInput(inputB, false);
-    expectOutputEventually(notGate, SlotType::digitalOutput, 0,
+    expectOutputEventually(notGate, PortDirection::output, 0,
                            LogicState::high);
-    expectOutputEventually(sink, SlotType::digitalInput, 0, LogicState::high);
+    expectOutputEventually(sink, PortDirection::input, 0, LogicState::high);
 
     driveInput(inputA, true);
     driveInput(inputB, true);
-    expectOutputEventually(notGate, SlotType::digitalOutput, 0,
+    expectOutputEventually(notGate, PortDirection::output, 0,
                            LogicState::low);
-    expectOutputEventually(sink, SlotType::digitalInput, 0, LogicState::low);
+    expectOutputEventually(sink, PortDirection::input, 0, LogicState::low);
 
     driveInput(inputB, false);
-    expectOutputEventually(andGate, SlotType::digitalOutput, 0,
+    expectOutputEventually(andGate, PortDirection::output, 0,
                            LogicState::low);
-    expectOutputEventually(sink, SlotType::digitalInput, 0, LogicState::high);
+    expectOutputEventually(sink, PortDirection::input, 0, LogicState::high);
 }
 
 TEST_F(SimulationEngineTest,
@@ -406,16 +401,14 @@ TEST_F(SimulationEngineTest,
     const auto input = addComponent(inputDef);
     const auto notGate = addComponent(notDef);
     const auto sink = addComponent(outputDef);
-    ASSERT_TRUE(engine->connectComponent(input, 0, SlotType::digitalOutput,
-                                         notGate, 0, SlotType::digitalInput));
-    ASSERT_TRUE(engine->connectComponent(notGate, 0, SlotType::digitalOutput,
-                                         sink, 0, SlotType::digitalInput));
+    ASSERT_TRUE(engine->connectPorts(digitalPort(input, Bess::SimEngine::PortDirection::output, 0), digitalPort(notGate, Bess::SimEngine::PortDirection::input, 0)));
+    ASSERT_TRUE(engine->connectPorts(digitalPort(notGate, Bess::SimEngine::PortDirection::output, 0), digitalPort(sink, Bess::SimEngine::PortDirection::input, 0)));
 
     for (const bool value : {false, true, false, true, true, false}) {
         driveInput(input, value);
-        expectOutputEventually(notGate, SlotType::digitalOutput, 0,
+        expectOutputEventually(notGate, PortDirection::output, 0,
                                boolToState(!value));
-        expectOutputEventually(sink, SlotType::digitalInput, 0,
+        expectOutputEventually(sink, PortDirection::input, 0,
                                boolToState(!value));
     }
 }

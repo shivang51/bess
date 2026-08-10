@@ -1,5 +1,7 @@
 #include "application/pages/main_page/services/hierarchical_scene_layout.h"
 #include "dig_sim_driver.h"
+#include "bess_core/g_app_context.h"
+#include "project_session/project_session.h"
 #include "event_dispatcher.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
@@ -12,6 +14,15 @@
 namespace {
     using namespace Bess::Canvas;
     using namespace Bess::SimEngine;
+
+    PortRef digitalPort(const Bess::UUID &uuid,
+                        PortDirection direction,
+                        int index) {
+        return {.componentId = uuid,
+                .direction = direction,
+                .signalKind = SignalKind::digital,
+                .index = index};
+    }
 
     std::shared_ptr<Drivers::CompDef> makeDefinition(const std::string &name,
                                                      ComponentBehaviorType behaviorType,
@@ -81,7 +92,9 @@ namespace {
     class HierarchicalLayoutTest : public testing::Test {
       protected:
         void SetUp() override {
-            engine = &SimulationEngine::instance();
+            auto &appCtx = Bess::GAppContext::getInstance();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+            engine = &projectCtx->sim();
             engine->clear();
         }
 
@@ -114,30 +127,10 @@ TEST_F(HierarchicalLayoutTest, PlacesConnectedComponentsInLeftToRightSignalOrder
     const auto andGate = addSimulationComponent(scene, andDef);
     const auto output = addSimulationComponent(scene, outputDef);
 
-    ASSERT_TRUE((engine->connectComponent(inputA.component->getSimEngineId(),
-                                          0,
-                                          Bess::SimEngine::SlotType::digitalOutput,
-                                          andGate.component->getSimEngineId(),
-                                          0,
-                                          Bess::SimEngine::SlotType::digitalInput)));
-    ASSERT_TRUE((engine->connectComponent(inputB.component->getSimEngineId(),
-                                          0,
-                                          Bess::SimEngine::SlotType::digitalOutput,
-                                          inverter.component->getSimEngineId(),
-                                          0,
-                                          Bess::SimEngine::SlotType::digitalInput)));
-    ASSERT_TRUE((engine->connectComponent(inverter.component->getSimEngineId(),
-                                          0,
-                                          Bess::SimEngine::SlotType::digitalOutput,
-                                          andGate.component->getSimEngineId(),
-                                          1,
-                                          Bess::SimEngine::SlotType::digitalInput)));
-    ASSERT_TRUE((engine->connectComponent(andGate.component->getSimEngineId(),
-                                          0,
-                                          Bess::SimEngine::SlotType::digitalOutput,
-                                          output.component->getSimEngineId(),
-                                          0,
-                                          Bess::SimEngine::SlotType::digitalInput)));
+    ASSERT_TRUE((engine->connectPorts(digitalPort(inputA.component->getSimEngineId(), Bess::SimEngine::PortDirection::output, 0), digitalPort(andGate.component->getSimEngineId(), Bess::SimEngine::PortDirection::input, 0))));
+    ASSERT_TRUE((engine->connectPorts(digitalPort(inputB.component->getSimEngineId(), Bess::SimEngine::PortDirection::output, 0), digitalPort(inverter.component->getSimEngineId(), Bess::SimEngine::PortDirection::input, 0))));
+    ASSERT_TRUE((engine->connectPorts(digitalPort(inverter.component->getSimEngineId(), Bess::SimEngine::PortDirection::output, 0), digitalPort(andGate.component->getSimEngineId(), Bess::SimEngine::PortDirection::input, 1))));
+    ASSERT_TRUE((engine->connectPorts(digitalPort(andGate.component->getSimEngineId(), Bess::SimEngine::PortDirection::output, 0), digitalPort(output.component->getSimEngineId(), Bess::SimEngine::PortDirection::input, 0))));
 
     const auto result =
         Bess::Pages::applyHierarchicalSceneLayout(scene, *engine);

@@ -1,8 +1,8 @@
-
-#include "scene/scene_state/components/scene_component.h"
-#include "camera.h"
-#include "scene/scene_state/scene_state.h" // included for pybind11
-#include "scene_draw_context.h"
+#include "bess_core/renderer/renderer_2d.h"
+#include "bess_core/scene/camera.h"
+#include "bess_core/scene/scene_draw_context.h"
+#include "bess_core/scene/scene_state/scene_state.h" // included for pybind11
+#include <pybind11/detail/common.h>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -16,25 +16,40 @@ class PySceneComponent : public Bess::Canvas::SceneComponent,
     PySceneComponent() = default;
 
     void draw(Bess::SceneDrawContext &context) override {
-        PYBIND11_OVERRIDE(void, Bess::Canvas::SceneComponent, draw,
-                          std::ref(context));
+        PYBIND11_OVERRIDE(
+            void, Bess::Canvas::SceneComponent, draw, std::ref(context));
     }
 
     void drawSchematic(Bess::SceneDrawContext &context) override {
-        PYBIND11_OVERRIDE_NAME(void, Bess::Canvas::SceneComponent,
-                               "draw_schematic", drawSchematic,
+        PYBIND11_OVERRIDE_NAME(void,
+                               Bess::Canvas::SceneComponent,
+                               "draw_schematic",
+                               drawSchematic,
                                std::ref(context));
     }
 
     void update(Bess::TimeMs timeStep,
                 Bess::Canvas::SceneState &state) override {
-        PYBIND11_OVERRIDE(void, Bess::Canvas::SceneComponent, update, timeStep,
+        PYBIND11_OVERRIDE(void,
+                          Bess::Canvas::SceneComponent,
+                          update,
+                          timeStep,
                           std::ref(state));
     }
 
     std::string getTypeName() const override {
-        PYBIND11_OVERRIDE_NAME(std::string, Bess::Canvas::SceneComponent,
-                               "get_type_name", getTypeName);
+        PYBIND11_OVERRIDE_NAME(std::string,
+                               Bess::Canvas::SceneComponent,
+                               "get_type_name",
+                               getTypeName);
+    }
+
+    void prepareUI(Bess::SceneUIPrepareCtx &ctx) override {
+        PYBIND11_OVERRIDE_NAME(void,
+                               Bess::Canvas::SceneComponent,
+                               "prepare_ui",
+                               prepareUI,
+                               std::ref(ctx));
     }
 };
 
@@ -44,18 +59,32 @@ void bind_scene_component(py::module_ &m) {
 
     py::class_<Bess::SceneDrawContext>(m, "SceneDrawContext")
         .def_readonly("scene_state", &Bess::SceneDrawContext::sceneState)
-        .def_readonly("material_renderer",
-                      &Bess::SceneDrawContext::materialRenderer)
-        .def_readonly("path_renderer", &Bess::SceneDrawContext::pathRenderer)
+        .def_readonly("renderer", &Bess::SceneDrawContext::renderer)
+        .def_property_readonly("material_renderer",
+                               [](const Bess::SceneDrawContext &context) {
+                                   return context.renderer;
+                               })
         .def_readonly("camera", &Bess::SceneDrawContext::camera);
 
-    py::class_<Bess::Canvas::SceneComponent, PySceneComponent,
+    py::class_<Bess::Canvas::SceneComponent,
+               PySceneComponent,
                py::smart_holder>(m, "SceneComponent")
         .def(py::init<>())
         .def("draw", &Bess::Canvas::SceneComponent::draw, py::arg("context"))
-        .def("draw_schematic", &Bess::Canvas::SceneComponent::drawSchematic,
+        .def("draw_schematic",
+             &Bess::Canvas::SceneComponent::drawSchematic,
              py::arg("context"))
-        .def("update", &Bess::Canvas::SceneComponent::update,
-             py::arg("time_step"), py::arg("scene_state"))
-        .def("get_type_name", &Bess::Canvas::SceneComponent::getTypeName);
+        .def("update",
+             &Bess::Canvas::SceneComponent::update,
+             py::arg("time_step"),
+             py::arg("scene_state"))
+        .def("get_type_name", &Bess::Canvas::SceneComponent::getTypeName)
+        .def("prepare_ui",
+             &Bess::Canvas::SceneComponent::prepareUI,
+             py::arg("ctx"))
+        .def_property(
+            "style",
+            py::overload_cast<>(&Bess::Canvas::SceneComponent::getStyle),
+            &Bess::Canvas::SceneComponent::setStyle,
+            py::return_value_policy::reference_internal);
 }

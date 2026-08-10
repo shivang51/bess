@@ -2,12 +2,16 @@
 
 #include "common/bess_api.h"
 #include "common/bess_uuid.h"
+#include "common/sub_system.h"
 #include "common/types.h"
-#include "net/net.h"
 #include "sim_driver/sim_driver.h"
+#include "sim_driver/simulation_clock.h"
+#include <atomic>
 #include <condition_variable>
+#include <cstdint>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <set>
 #include <thread>
 
@@ -17,9 +21,64 @@ namespace Bess::SimEngine {
         class DigSimComp;
     } // namespace Drivers::Digital
 
-    class BESS_API SimulationEngine {
+    struct BESS_API SimRunCtx {
+        TimeMs runDuration{0};
+        TimeMs stepInterval{0};
+        TimeMs elapsedTime{0};
+        bool isTimedRun{false};
+        SimulationState simState{SimulationState::stopped};
+
+        bool isSimulating() const {
+            return simState == SimulationState::running;
+        }
+
+        bool isPaused() const {
+            return simState == SimulationState::paused;
+        }
+
+        bool isStopped() const {
+            return simState == SimulationState::stopped;
+        }
+    };
+
+    class BESS_API SimulationEngine : public ISubSystem {
       public:
-        static SimulationEngine &instance();
+        SimulationEngine();
+        ~SimulationEngine() override;
+
+        void onInit() override;
+        void onDestroy() override;
+        void onPostInit() override;
+
+        [[nodiscard]] SimRunCtx getRunCtx() const;
+        void setRunCtx(const SimRunCtx &runCtx);
+
+        [[nodiscard]] TimeNs getCurrentSimTime() const;
+
+        class BESS_API StampDataView {
+          public:
+            StampDataView(StampDataView &&) noexcept = default;
+            StampDataView &operator=(StampDataView &&) noexcept = default;
+            StampDataView(const StampDataView &) = delete;
+            StampDataView &operator=(const StampDataView &) = delete;
+
+            [[nodiscard]] std::optional<
+                Drivers::SimDriver::ComponentStampHistoryView>
+            find(const UUID &componentId) const;
+
+          private:
+            friend class SimulationEngine;
+            explicit StampDataView(const SimulationEngine &engine);
+
+            std::unique_lock<std::recursive_mutex> m_executionLock;
+            std::vector<Drivers::SimDriver::StampDataView> m_driverViews;
+        };
+
+        // References driver-owned histories while retaining the locks needed
+        // to keep those references stable. Keep the view short-lived and do
+        // not call mutating simulation APIs while it is alive.
+        [[nodiscard]] StampDataView getStampData() const;
+        void clearStampData();
 
         void destroy();
 
@@ -28,9 +87,10 @@ namespace Bess::SimEngine {
                      bool cloneDef = true);
 
         template <typename T>
-        std::shared_ptr<T> getComponent(const UUID &uuid) const {
+        std::shared_ptr<T> getComponentSP(const UUID &uuid) const {
+            std::lock_guard executionLock(m_schedulerExecutionMutex);
             for (const auto &driver : m_simDrivers) {
-                auto comp = driver->template getComponent<T>(uuid);
+                auto comp = driver->template getComponentSP<T>(uuid);
                 if (comp) {
                     return comp;
                 }
@@ -39,30 +99,47 @@ namespace Bess::SimEngine {
             return nullptr;
         }
 
-        bool connectComponent(const UUID &src, int srcSlotIdx, SlotType srcType,
-                              const UUID &dst, int dstSlotIdx, SlotType dstType,
-                              bool overrideConn = false);
+        template <typename T> T *getComponent(const UUID &uuid) const {
+            std::lock_guard executionLock(m_schedulerExecutionMutex);
+            for (const auto &driver : m_simDrivers) {
+                auto comp = driver->template getComponentSP<T>(uuid);
+                if (comp) {
+                    return comp.get();
+                }
+            }
+
+            return nullptr;
+        }
+
+        bool connectPorts(const PortRef &src,
+                          const PortRef &dst,
+                          bool overrideConn = false);
 
         // returns {canConnect, errorMessage}
-        std::pair<bool, std::string>
-        canConnectComponents(const UUID &src, int srcSlotIdx, SlotType srcType,
-                             const UUID &dst, int dstSlotIdx,
-                             SlotType dstType) const;
+        std::pair<bool, std::string> canConnectPorts(const PortRef &src,
+                                                     const PortRef &dst) const;
 
         void deleteComponent(const UUID &uuid);
 
-        void deleteConnection(const UUID &compA, SlotType pinAType, int idxA,
-                              const UUID &compB, SlotType pinBType, int idxB);
+        void deleteConnection(const PortRef &portA, const PortRef &portB);
 
-        SlotState getDigitalSlotState(const UUID &uuid, SlotType type, int idx);
+        PortState getPortState(const PortRef &port);
 
         ConnectionBundle getConnections(const UUID &uuid);
-        std::vector<SlotState> getInputSlotsState(UUID compId) const;
+        std::vector<PortState> getInputPortStates(UUID compId) const;
 
-        void setInputSlotState(const UUID &uuid, int pinIdx, LogicState state);
-        void setOutputSlotState(const UUID &uuid, int pinIdx, LogicState state);
+        void
+        setInputPortState(const UUID &uuid, int pinIdx, const PortState &state);
+        void setOutputPortState(const UUID &uuid,
+                                int pinIdx,
+                                const PortState &state);
 
-        SimulationState toggleSimState();
+        void setInputPortState(const UUID &uuid, int pinIdx, LogicState state);
+
+        void setOutputPortState(const UUID &uuid, int pinIdx, LogicState state);
+
+        SimulationState toggleStartStop();
+        SimulationState togglePlayPause();
         SimulationState getSimulationState() const;
         void setSimulationState(SimulationState state);
         void clearPendingDriverEvents();
@@ -74,12 +151,13 @@ namespace Bess::SimEngine {
         const std::shared_ptr<Drivers::CompDef> &
         getComponentDefinition(const UUID &uuid) const;
 
-        void clear();
+        // Clears all components and connections from the simulation engine.
+        // If restoreState is true, the simulation engine will be restored to
+        // its initial sim state after clearing otherwise it will be stopped.
+        void clear(bool restoreState = true);
 
-        bool addSlot(const UUID &compId, SlotType type, int index,
-                     bool force = false);
-        bool removeSlot(const UUID &compId, SlotType type, int index,
-                        bool force = false);
+        bool addPort(const PortRef &port, bool force = false);
+        bool removePort(const PortRef &port, bool force = false);
 
         friend class SimEngineSerializer;
 
@@ -93,10 +171,10 @@ namespace Bess::SimEngine {
 
         bool isSimStable();
 
-        void addOnSlotCountChangeCB(const UUID &id,
-                                    const Drivers::SlotCountChangeCB &cb);
+        void addOnPortCountChangeCB(const UUID &id,
+                                    const Drivers::PortCountChangeCB &cb);
 
-        void removeOnSlotCountChangeCB(const UUID &id);
+        void removeOnPortCountChangeCB(const UUID &id);
 
         std::shared_ptr<Drivers::SimDriver>
         getDriverWithName(const std::string &name) const;
@@ -107,44 +185,83 @@ namespace Bess::SimEngine {
         Json::Value toJson() const;
         void loadJson(const Json::Value &json);
 
+        // Run continuously with virtual time paced against steady wall time.
+        void run();
+
+        // Run a timed simulation paced against steady wall time.
+        // stepInterval controls waveform sampling; zero records only the
+        // settled initial and final states.
+        void runFor(TimeMs duration, TimeMs stepInterval = TimeMs(0));
+        void stop();
+
       private:
+        struct SchedulerAction {
+            TimeNs time{0};
+            bool sample = false;
+            bool final = false;
+        };
+
         void loadDrivers();
         void unloadDrivers();
 
         void initDrivers();
         void destroyDrivers();
 
-        void runDrivers();
+        [[nodiscard]] bool runDrivers();
+        void requestDriverStops();
         void stopDrivers();
+        void pauseDrivers();
+        void resumeDrivers();
 
-      private:
-        SimulationEngine();
-        ~SimulationEngine();
+        void startRun(bool timedRun, TimeNs duration, TimeNs sampleInterval);
+        void requestStop();
+        void stopLocked();
+        void schedulerLoop(uint64_t generation, bool realTimePaced);
+        [[nodiscard]] std::optional<TimeNs> getNextGlobalEventTime();
+        [[nodiscard]] std::optional<SchedulerAction> getNextSchedulerAction();
+        [[nodiscard]] bool
+        executeSchedulerAction(const SchedulerAction &action);
+        [[nodiscard]] bool settleDriversAt(TimeNs simTime);
+        void completeRun(uint64_t generation);
+        void notifyScheduler();
+        void updateElapsedTime(TimeNs simTime);
+        void advanceSampleTime(TimeNs processedTime);
+
+        // Capture a stable snapshot from every driver at this global time.
+        void stampSim(TimeNs simTime, bool includeUnchanged);
 
       private:
         void propagateFromComponent(const UUID &sourceId);
         void processPendingPropagation();
 
-        void run();
-
-        std::thread m_simThread;
-
         mutable std::mutex m_stateMutex;
+        mutable std::mutex m_lifecycleMutex;
+        mutable std::recursive_mutex m_schedulerExecutionMutex;
+        mutable std::mutex m_driverThreadMutex;
         mutable std::mutex m_driversMutex;
         mutable std::mutex m_pendingSignalSourcesMutex;
 
-        std::atomic<bool> m_stopFlag{false};
         std::atomic<bool> m_stepFlag{false};
-        std::atomic<SimulationState> m_simState{SimulationState::running};
+        std::atomic<SimulationState> m_simState{SimulationState::stopped};
         std::condition_variable m_stateCV;
+        uint64_t m_schedulerRevision{0};
+        std::atomic<uint64_t> m_runGeneration{0};
 
         std::set<UUID> m_pendingSignalSources;
 
         std::vector<std::shared_ptr<Drivers::SimDriver>> m_simDrivers;
-        std::vector<std::thread> m_driverThreads;
+        std::vector<std::thread> m_legacyDriverThreads;
+        std::thread m_schedulerThread;
+
+        std::shared_ptr<SimulationClock> m_simulationClock;
+
+        TimeNs m_runEndTime{0};
+        TimeNs m_sampleInterval{0};
+        TimeNs m_nextSampleTime{0};
+        bool m_initialSamplePending{false};
+
+        SimRunCtx m_runCtx;
 
         bool m_destroyed{false};
-
-        bool m_isSimulating{false};
     };
 } // namespace Bess::SimEngine

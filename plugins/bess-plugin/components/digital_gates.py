@@ -4,7 +4,7 @@ from bessplug.api.sim_engine import SlotsGroupInfo, OperatorInfo
 from bessplug.api.scene.renderer import Path
 from bessplug.api.scene import SchematicDiagram
 import math
-
+from bessplug.api.icons import component_icons
 from bessplug.api.sim_engine.driver import CompDef, DigCompDef
 
 _gates = {
@@ -20,12 +20,14 @@ _gates = {
         "input_pins": ["A", "B"],
         "output_pins": ["Y"],
         "op": "*",
+        "icon": component_icons.AND_GATE,
     },
     "OR": {
         "name": "OR Gate",
         "input_pins": ["A", "B"],
         "output_pins": ["Y"],
         "op": "+",
+        "icon": component_icons.OR_GATE,
     },
     "NOT": {
         "name": "NOT Gate",
@@ -33,6 +35,7 @@ _gates = {
         "output_pins": ["Y"],
         "op": "!",
         "keep_io_count_eq": True,
+        "icon": component_icons.NOT_GATE,
     },
     "NAND": {
         "name": "NAND Gate",
@@ -40,6 +43,7 @@ _gates = {
         "output_pins": ["Y"],
         "op": "*",
         "negate_output": True,
+        "icon": component_icons.NAND_GATE,
     },
     "NOR": {
         "name": "NOR Gate",
@@ -47,12 +51,14 @@ _gates = {
         "output_pins": ["Y"],
         "op": "+",
         "negate_output": True,
+        "icon": component_icons.NOR_GATE,
     },
     "XOR": {
         "name": "XOR Gate",
         "input_pins": ["A", "B"],
         "output_pins": ["Y"],
         "op": "^",
+        "icon": component_icons.XOR_GATE,
     },
     "XNOR": {
         "name": "XNOR Gate",
@@ -60,6 +66,7 @@ _gates = {
         "output_pins": ["Y"],
         "op": "^",
         "negate_output": True,
+        "icon": component_icons.XNOR_GATE,
     },
 }
 
@@ -83,10 +90,7 @@ Q {cx + r},{cy - r * s} {cx + r},{cy}
 
 def _init_paths():
     circle = Path.from_svg_str(quadratic_circle_path(cx=4, cy=4, r=4))
-    circle.set_bounds(vec2(8, 8))
-    circle.set_lowest_pos(vec2(92, 46))
-    circle.properties.render_fill = True
-    circle.properties.is_closed = True
+    circle.set_pos(vec2(92, 46))
 
     # AND Gate
     andPath = Path()
@@ -94,10 +98,7 @@ def _init_paths():
     andPath.line_to(70, 0)
     andPath.quad_to(130, 50, 70, 100)
     andPath.line_to(0, 100)
-    andPath.properties.is_closed = True
-    andPath.properties.render_fill = True
-    andPath.set_bounds(vec2(130, 100))
-
+    andPath.close()
     andDiagram = SchematicDiagram()
     andDiagram.add_path(andPath)
     andDiagram.show_name = False
@@ -108,13 +109,10 @@ def _init_paths():
     nandDiagram.show_name = False
     nandPath = Path()
     nandPath.move_to(0, 0)
-    nandPath.line_to(62, 0)
-    nandPath.quad_to(122, 50, 62, 100)
+    nandPath.line_to(60, 0)
+    nandPath.quad_to(120, 50, 60, 100)
     nandPath.line_to(0, 100)
-    nandPath.set_bounds(vec2(92, 100))
-    nandPath.set_lowest_pos(vec2(0, 0))
-    nandPath.properties.is_closed = True
-    nandPath.properties.render_fill = True
+    nandPath.close()
     nandDiagram.add_path(nandPath)
     nandDiagram.add_path(circle.copy())
     nandDiagram.size = vec2(100, 100)
@@ -128,10 +126,7 @@ def _init_paths():
     orPath.quad_to(130, 50, 70, 100)
     orPath.line_to(0, 100)
     orPath.quad_to(30, 50, 0, 0)
-    orPath.set_bounds(vec2(100, 100))
-    orPath.set_lowest_pos(vec2(0, 0))
-    orPath.properties.is_closed = True
-    orPath.properties.render_fill = True
+    orPath.close()
     orDiagram.add_path(orPath)
     orDiagram.size = vec2(100, 100)
 
@@ -139,15 +134,12 @@ def _init_paths():
     norDiagram = SchematicDiagram()
     norDiagram.show_name = False
     norPath = Path()
-    norPath.move_to(0, 0)
-    norPath.line_to(62, 0)
-    norPath.quad_to(122, 50, 62, 100)
-    norPath.line_to(0, 100)
-    norPath.quad_to(30, 50, 0, 0)
-    norPath.set_bounds(vec2(92, 100))
-    norPath.set_lowest_pos(vec2(0, 0))
-    norPath.properties.is_closed = True
-    norPath.properties.render_fill = True
+    norPath.move_to(-2, 0)
+    norPath.line_to(60, 0)
+    norPath.quad_to(120, 50, 62, 100)
+    norPath.line_to(-2, 100)
+    norPath.quad_to(28, 50, -2, 0)
+    norPath.close()
     norDiagram.add_path(norPath)
     norDiagram.add_path(circle.copy())
     norDiagram.size = vec2(100, 100)
@@ -158,10 +150,9 @@ def _init_paths():
 
     # arc
     xorArcPath = Path()
-    xorArcPath.move_to(0, 0)
-    xorArcPath.quad_to(30, 50, 0, 100)
-    xorArcPath.set_bounds(vec2(20, 100))
-    xorArcPath.set_lowest_pos(vec2(0, 0))
+    xorArcPath.move_to(-2, 0)
+    xorArcPath.quad_to(28, 50, -2, 100)
+    xorArcPath.no_fill()
 
     # similar to or gate path. just shifted
     xorPath = Path()
@@ -170,11 +161,8 @@ def _init_paths():
     xorPath.quad_to(120, 50, 60, 100)
     xorPath.line_to(0, 100)
     xorPath.quad_to(30, 50, 0, 0)
-    xorPath.set_bounds(vec2(90, 100))
-    xorPath.set_lowest_pos(vec2(10, 0))
-    xorPath.properties.is_closed = True
-    xorPath.properties.render_fill = True
-
+    xorPath.close()
+    xorPath.set_pos(vec2(10, 0))
     xorDiagram.add_path(xorArcPath.copy())
     xorDiagram.add_path(xorPath)
     xorDiagram.size = vec2(100, 100)
@@ -190,10 +178,9 @@ def _init_paths():
     xnorPath.quad_to(112, 50, 52, 100)
     xnorPath.line_to(0, 100)
     xnorPath.quad_to(30, 50, 0, 0)
-    xnorPath.set_bounds(vec2(82, 100))
-    xnorPath.set_lowest_pos(vec2(10, 0))
-    xnorPath.properties.is_closed = True
-    xnorPath.properties.render_fill = True
+    xnorPath.close()
+
+    xnorPath.set_pos(vec2(8, 0))
 
     xnorDiagram.add_path(xorArcPath.copy())
     xnorDiagram.add_path(xnorPath)
@@ -207,10 +194,7 @@ def _init_paths():
     bufPath.move_to(0, 0)
     bufPath.line_to(100, 50)
     bufPath.line_to(0, 100)
-    bufPath.set_bounds(vec2(100, 100))
-    bufPath.set_lowest_pos(vec2(0, 0))
-    bufPath.properties.is_closed = True
-    bufPath.properties.render_fill = True
+    bufPath.close()
     bufDiagram.add_path(bufPath)
     bufDiagram.size = vec2(100, 100)
 
@@ -227,7 +211,7 @@ def _init_paths():
 
 _paths = _init_paths()
 
-
+icons: dict[str, str] = {}
 digital_gates: list[CompDef] = []
 schematic_diagrams: dict[str, SchematicDiagram] = {}
 
@@ -254,6 +238,8 @@ for gate_key, gate_data in _gates.items():
     def_gate.keep_io_count_eq = gate_data.get("keep_io_count_eq", False)
     digital_gates.append(def_gate)
 
+    icons[def_gate.name] = gate_data.get("icon", "")
+
     if _paths.get(gate_key) is None:
         continue
 
@@ -263,4 +249,4 @@ for gate_key, gate_data in _gates.items():
     schematic_diagrams[def_gate.name] = dig
 
 
-__all__ = ["digital_gates", "schematic_diagrams"]
+__all__ = ["digital_gates", "schematic_diagrams", "icons"]

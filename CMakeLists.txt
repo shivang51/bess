@@ -1,4 +1,9 @@
-cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.27 FATAL_ERROR)
+
+cmake_policy(SET CMP0091 NEW)
+set(CMAKE_MSVC_RUNTIME_LIBRARY
+    "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL"
+)
 
 set(CMAKE_SYSTEM_VERSION 10.0 CACHE STRING "" FORCE)
 
@@ -8,6 +13,10 @@ option(TESTS "Build the unit tests" OFF)
 option(DOCS  "Generate documentation with Doxygen" OFF)
 
 set(CMAKE_CXX_STANDARD 23)
+
+if(MSVC)
+	add_compile_options(/Zc:preprocessor /utf-8 /Zc:__cplusplus)
+endif()
 
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Debug)
@@ -46,6 +55,13 @@ endif()
 
 add_compile_definitions($<$<CONFIG:Debug>:DEBUG>)
 
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+    set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
+    set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
+    message(STATUS "Using ccache")
+endif()
+
 # add_compile_definitions(DISABLE_PLUGINS)
 
 add_subdirectory(external)
@@ -66,6 +82,4 @@ endif()
 
 if(MSVC)
 	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Bess)
-	add_compile_options(/Zc:preprocessor /utf-8)
-	set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 endif()

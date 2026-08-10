@@ -1,22 +1,78 @@
 #include "slot_scene_component.h"
+#include "bess_core/scene/scene_draw_helpers.h"
+#include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
+#include "bess_core/scene/scene_state/scene_state.h"
+#include "bess_core/scene/scene_ui/controls/container_comp.h"
+#include "bess_core/scene/scene_ui/controls/scalar_input_comp.h"
+#include "bess_core/settings/viewport_theme.h"
+#include "bess_core/style/bess_theme.h"
 #include "conn_joint_scene_component.h"
 #include "connection_scene_component.h"
 #include "dig_sim_driver.h"
 #include "expression_evalutator/expr_evaluator.h"
-#include "pages/main_page/cmds/add_comp_cmd.h"
-#include "pages/main_page/main_page.h"
-#include "pages/main_page/main_page_state.h"
-#include "pages/main_page/services/connection_service.h"
-#include "scene/scene_state/components/scene_component_types.h"
-#include "scene/scene_state/components/styles/sim_comp_style.h"
-#include "scene/scene_state/scene_state.h"
-#include "settings/viewport_theme.h"
 #include "sim_scene_component.h"
 #include "simulation_engine.h"
-#include "ui/ui.h"
+#include <algorithm>
+#include <cctype>
+#include <cmath>
 #include <format>
+#include <stdexcept>
+#include <string>
 
 namespace Bess::Canvas {
+    namespace {
+        constexpr glm::vec2 kScalarSlotTextBoxSize{44.f, 0.f};
+
+        std::string formatScalarSlotValue(double value) {
+            return std::format("{:.6g}", value);
+        }
+
+        bool parseScalarSlotValue(const std::string &text, double &value) {
+            try {
+                size_t parsed = 0;
+                const double next = std::stod(text, &parsed);
+                while (parsed < text.size() &&
+                       std::isspace(static_cast<unsigned char>(text[parsed]))) {
+                    ++parsed;
+                }
+                if (parsed != text.size() || !std::isfinite(next)) {
+                    return false;
+                }
+
+                value = next;
+                return true;
+            } catch (const std::invalid_argument &) {
+                return false;
+            } catch (const std::out_of_range &) {
+                return false;
+            }
+        }
+
+        bool setScalarSlotPortState(const SceneState &state,
+                                    const SlotSceneComponent &slot,
+                                    double value) {
+            const auto port = slot.getPortRef(state);
+            if (!port.isValid() ||
+                port.signalKind != SimEngine::SignalKind::scalar) {
+                return false;
+            }
+
+            auto *simEngine = state.runtime().sim;
+            if (!simEngine) {
+                return false;
+            }
+
+            if (!port.isInput()) {
+                return false;
+            }
+
+            simEngine->setInputPortState(port.componentId,
+                                         port.index,
+                                         SimEngine::PortState::scalar(value));
+            return true;
+        }
+    } // namespace
+
     std::vector<std::shared_ptr<SceneComponent>>
     SlotSceneComponent::clone(const SceneState &sceneState) const {
         (void)sceneState;
@@ -26,44 +82,196 @@ namespace Bess::Canvas {
         return {clonedComponent};
     }
 
-    void SlotSceneComponent::onMouseEnter(const Events::MouseEnterEvent &e) {
-        UI::setCursorPointer();
+    void SlotSceneComponent::resetCloneRuntimeState() {
+        SceneComponent::resetCloneRuntimeState();
+
+        m_label = nullptr;
+        m_slotNode = nullptr;
+        m_container = nullptr;
+        m_scalarValueTextBox = nullptr;
+
+        m_isHovered = false;
+        m_invalidateCache = true;
     }
 
-    void SlotSceneComponent::onMouseLeave(const Events::MouseLeaveEvent &e) {
-        UI::setCursorNormal();
+    bool SlotSceneComponent::onMouseEnter(const Events::MouseEnterEvent &e) {
+        (void)e;
+        m_isHovered = true;
+        return true;
     }
 
-    void SlotSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
+    bool SlotSceneComponent::onMouseLeave(const Events::MouseLeaveEvent &e) {
+        (void)e;
+        m_isHovered = false;
+        return true;
+    }
+
+    Core::Viewport::SceneCursor SlotSceneComponent::getCursor() const {
+        return Core::Viewport::SceneCursor::pointer;
+    }
+
+    bool SlotSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
         if (e.action == Events::MouseClickAction::press) {
             if (e.button == Events::MouseButton::left) {
                 onMouseLeftClick(e);
+                return true;
             }
+        }
+        return false;
+    }
+
+    void SlotSceneComponent::prepareUI(SceneUIPrepareCtx &ctx) {
+        auto uiNodeReg = ctx.sceneState->getUINodeRegistry();
+        if (m_container == nullptr) {
+            m_slotNode = uiNodeReg->addNode(UUID());
+
+            m_container = UI::ContainerComp::create();
+            auto &style = m_container->getStyle();
+            style.padding = Core::Style::Padding::zero();
+            style.margin = Core::Style::Margin::fromVertical(
+                Canvas::Styles::simCompStyles.rowMargin);
+
+            ctx.sceneState->addComponent(m_container);
+
+            auto *state = ctx.sceneState;
+            m_label = UI::EditableLabelComp::create(
+                m_name, [id = m_uuid, state](const std::string &val) {
+                    if (!state->nameTx(id, val)) {
+                        BESS_WARN("Could not rename slot");
+                    }
+                });
+            m_label->setSelectTextOnEdit(true);
+            auto &labelStyle = m_label->getStyle();
+            labelStyle.fontSize = Styles::simCompStyles.slotLabelSize;
+            labelStyle.padding = Core::Style::Padding::zero();
+            labelStyle.margin = Core::Style::Margin::zero();
+            ctx.sceneState->addComponent(m_label);
+
+            ctx.sceneState->attachChild(m_container->getUuid(),
+                                        m_label->getUuid());
+
+            if (isInputSlot()) {
+                m_slotNode->setMargin(Core::Style::Margin::onlyRight(4.f));
+                m_container->setDirection(
+                    Canvas::UI::LayoutDirection::horizontalReverse);
+            } else {
+                m_slotNode->setMargin(Core::Style::Margin::onlyLeft(4.f));
+                m_container->setDirection(
+                    Canvas::UI::LayoutDirection::horizontal);
+            }
+
+            const float slotSize = Styles::simCompStyles.slotRadius * 2.f;
+            m_slotNode->setWidth(slotSize);
+            m_slotNode->setHeight(slotSize);
+        }
+
+        const bool showScalarValueTextBox =
+            !isResizeSlot() && isInputSlot() &&
+            m_signalKind == SimEngine::SignalKind::scalar &&
+            !isSlotConnected(*ctx.sceneState);
+
+        if (showScalarValueTextBox && m_scalarValueTextBox == nullptr) {
+            m_scalarValueTextBox = std::make_shared<UI::ScalarInputComp>();
+            m_scalarValueTextBox->setPlaceholder("0");
+            m_scalarValueTextBox->setTextBoxSize(kScalarSlotTextBoxSize);
+            m_scalarValueTextBox->setMaxLength(32);
+            auto &textBoxStyle = m_scalarValueTextBox->getStyle();
+            textBoxStyle.margin = Core::Style::Margin::fromSymmetric(3.f, 0.f);
+            textBoxStyle.padding =
+                Core::Style::Padding::fromSymmetric(3.f, 1.f);
+            textBoxStyle.fontSize =
+                std::max(6.f, Styles::simCompStyles.slotLabelSize - 2.f);
+
+            ctx.sceneState->addComponent(m_scalarValueTextBox);
+            ctx.sceneState->attachChild(m_container->getUuid(),
+                                        m_scalarValueTextBox->getUuid());
+        } else if (!showScalarValueTextBox && m_scalarValueTextBox != nullptr) {
+            if (ctx.sceneState->isComponentValid(
+                    m_scalarValueTextBox->getUuid())) {
+                ctx.sceneState->removeComponent(m_scalarValueTextBox->getUuid(),
+                                                UUID::master);
+            }
+            m_scalarValueTextBox = nullptr;
+        }
+
+        if (m_scalarValueTextBox) {
+            if (!m_scalarValueTextBox->getFocused()) {
+                const auto slotState = getSlotState(*ctx.sceneState);
+                if (slotState.isScalar()) {
+                    if (m_scalarValueTextBox->getValue() !=
+                        slotState.scalarValue) {
+                        m_scalarValueTextBox->setValue(slotState.scalarValue);
+                    }
+                }
+            }
+
+            const auto slotUuid = m_uuid;
+            m_scalarValueTextBox->setChangedCallback(
+                [sceneState = ctx.sceneState, slotUuid](double value) {
+                    if (sceneState == nullptr) {
+                        return;
+                    }
+
+                    const auto slot =
+                        sceneState->getComponentByUuid<SlotSceneComponent>(
+                            slotUuid);
+                    if (!slot) {
+                        return;
+                    }
+
+                    setScalarSlotPortState(*sceneState, *slot, value);
+                });
+        }
+
+        m_container->prepareUI(ctx);
+
+        auto uiNode = m_container->getUINode();
+        uiNode->addChild(m_slotNode);
+
+        m_isUIDirty = false;
+    }
+
+    void SlotSceneComponent::update(TimeMs frameTime, SceneState &state) {
+        BESS_ASSERT(m_parentComponent != UUID::null,
+                    "SlotSceneComponent must have a parent component");
+
+        if (m_container) {
+            m_container->update(frameTime, state);
+        }
+        if (m_label) {
+            m_label->update(frameTime, state);
+        }
+        if (m_scalarValueTextBox) {
+            m_scalarValueTextBox->update(frameTime, state);
         }
     }
 
     void SlotSceneComponent::draw(SceneDrawContext &drawContext) {
+        if (!m_container)
+            return;
+
         const auto &state = *drawContext.sceneState;
-        const auto pos = getAbsolutePosition(state);
+        const auto pos =
+            getAbsolutePosition(state, drawContext.isSchematicMode);
         const auto pickingId =
             PickingId{m_runtimeId, PickingId::InfoFlags::unSelectable};
 
         auto bg = ViewportTheme::colors.stateLow;
         auto border = bg;
 
-        const bool isResizeSlot = m_slotType == SlotType::inputsResize ||
-                                  m_slotType == SlotType::outputsResize;
-        const bool isConnected = !isResizeSlot && isSlotConnected(state);
+        const bool isResizeTrigger = isResizeSlot();
+        const bool isConnected =
+            !isResizeTrigger && isSlotConnected(drawContext);
         float radiusGap = 1.f;
 
-        if (isResizeSlot) {
+        if (isResizeTrigger) {
             bg.a = 0.1f;
             radiusGap = 0.25f;
         } else {
-            const auto &slotState = getSlotState(state);
+            const auto &slotState = getSlotState(drawContext);
 
             // state color
-            switch (slotState.state) {
+            switch (slotState.getLogicState()) {
             case SimEngine::LogicState::low:
                 bg = ViewportTheme::colors.stateLow;
                 break;
@@ -89,37 +297,14 @@ namespace Bess::Canvas {
         const float ir = Styles::simCompStyles.slotRadius -
                          Styles::simCompStyles.slotBorderSize;
         const float r = Styles::simCompStyles.slotRadius;
-        drawContext.materialRenderer->drawCircle(pos, r, border, pickingId, ir);
-        drawContext.materialRenderer->drawCircle(pos, ir - radiusGap, bg,
-                                                 pickingId);
 
-        if (!m_name.empty()) {
-            const float labeldx = Styles::simCompStyles.slotMargin +
-                                  (Styles::simCompStyles.slotRadius * 2.f);
-            float labelX = pos.x;
-            if (m_slotType == SlotType::digitalInput) {
-                labelX += labeldx;
-            } else {
-                const auto labelSize =
-                    Renderer::MaterialRenderer::getTextRenderSize(
-                        m_name, Styles::simCompStyles.slotLabelSize);
-                labelX -= labeldx + labelSize.x;
-            }
-            float dY = Styles::componentStyles.slotRadius -
-                       (std::abs((Styles::componentStyles.slotRadius * 2.f) -
-                                 Styles::componentStyles.slotLabelSize) /
-                        2.f);
-
-            const auto parentComp =
-                state.getComponentByUuid<SimulationSceneComponent>(
-                    m_parentComponent);
-            drawContext.materialRenderer->drawText(
-                m_name, {labelX, pos.y + dY, pos.z},
-                Styles::componentStyles.slotLabelSize,
-                ViewportTheme::colors.text,
-                PickingId{parentComp->getRuntimeId(), 0},
-                parentComp->getTransform().angle);
-        }
+        SceneDraw::drawCircle(
+            drawContext, m_slotNode->getDrawPos(), r, border, pickingId, ir);
+        SceneDraw::drawCircle(drawContext,
+                              m_slotNode->getDrawPos(),
+                              ir - radiusGap,
+                              bg,
+                              pickingId);
     }
 
     void SlotSceneComponent::drawSchematic(SceneDrawContext &drawContext) {
@@ -128,152 +313,151 @@ namespace Bess::Canvas {
             return;
 
         const auto &state = *drawContext.sceneState;
-        const auto &pos = getSchematicPosAbsolute(state);
+        const auto &pos =
+            getSchematicPosAbsolute(state, drawContext.isSchematicMode);
         const auto pinId =
             PickingId{m_runtimeId, PickingId::InfoFlags::unSelectable};
         constexpr float nodeWeight = Styles::compSchematicStyles.strokeSize;
         const auto &pinColor = ViewportTheme::schematicViewColors.pin;
         glm::vec2 offset = {0.f, 0.f};
 
+        const bool isOnRight = m_schematicPos.x > 0.f;
+
         // will begin pin from little behind than the position
         // so that line joins nicely with the components like OR gate or xor
         // gate which have curved edges
         auto startPos = pos;
-        if (m_slotType == SlotType::digitalOutput) {
+        if (isOnRight) {
             offset.x = Styles::compSchematicStyles.pinSize;
         } else {
             offset.x = -Styles::compSchematicStyles.pinSize;
             startPos.x += 5.f;
         }
 
-        drawContext.pathRenderer->beginPathMode(startPos, nodeWeight, pinColor,
-                                                pinId);
-        drawContext.pathRenderer->pathLineTo(
-            {pos.x + offset.x, pos.y + offset.y, pos.z}, nodeWeight, pinColor,
-            pinId);
-        drawContext.pathRenderer->endPathMode(false, false, {}, true, false,
-                                              m_invalidateCache);
-        m_invalidateCache = true;
+        SceneDraw::drawLine(drawContext,
+                            startPos,
+                            {pos.x + offset.x, pos.y + offset.y, pos.z},
+                            m_isHovered ? nodeWeight + 2.f : nodeWeight,
+                            pinColor,
+                            pinId);
 
         if (!m_name.empty()) {
-            const auto textSize = Renderer::MaterialRenderer::getTextRenderSize(
-                m_name, Styles::componentStyles.slotLabelSize);
+            Core::Renderer::FontProps labelProps;
+            labelProps.fontSize = Styles::simCompStyles.slotLabelSize;
+            const auto textSize =
+                drawContext.renderer
+                    ? drawContext.renderer->measureText(m_name, labelProps)
+                    : glm::vec2(0.f);
 
             float textOffsetX = 4.f;
 
-            if (m_slotType == SlotType::digitalOutput)
+            if (isOnRight)
                 textOffsetX -= textSize.x + 6.f;
 
             const auto parentComp =
                 state.getComponentByUuid<SimulationSceneComponent>(
                     m_parentComponent);
             // not using schematic slot pos for text as in schematic view,
-            // slot is rendered behind the component but text should be in front
-            // of component so using z of node view
-            drawContext.materialRenderer->drawText(
+            // slot is rendered behind the component but text should be in
+            // front of component so using z of node view
+            SceneDraw::drawText(
+                drawContext,
                 m_name,
-                {pos.x + textOffsetX, pos.y + (textSize.y / 2.f) - 2.f,
-                 SceneComponent::getAbsolutePosition(state)
+                {pos.x + textOffsetX,
+                 pos.y + (textSize.y / 2.f) - 2.f,
+                 SceneComponent::getAbsolutePosition(
+                     state, drawContext.isSchematicMode)
                      .z}, // because we don't want schematic pos
-                Styles::componentStyles.slotLabelSize,
+                static_cast<std::size_t>(labelProps.fontSize),
                 ViewportTheme::schematicViewColors.componentStroke,
-                PickingId{parentComp->getRuntimeId(), 0}, 0.f);
+                PickingId{parentComp->getRuntimeId(), 0},
+                0.f);
         }
     }
 
-    SimEngine::SlotState
+    SimEngine::PortState
     SlotSceneComponent::getSlotState(const SceneState &state) const {
         BESS_ASSERT(m_parentComponent != UUID::null,
-                    "Parent component UUID is null, {}", (uint64_t)m_uuid);
-        BESS_ASSERT(m_index >= 0, "Slot index is negative");
+                    "Parent component UUID is null, {}",
+                    (uint64_t)m_uuid);
 
-        const auto parentComp =
-            state.getComponentByUuid<SimulationSceneComponent>(
-                m_parentComponent);
-        if (!parentComp || m_index < 0) {
+        const auto port = getPortRef(state);
+        if (!port.isValid()) {
             return {SimEngine::LogicState::unknown, SimEngine::SimTime(0)};
         }
 
-        auto &simEngine = SimEngine::SimulationEngine::instance();
-        const auto digitalComp =
-            simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
-                parentComp->getSimEngineId());
-        if (!digitalComp) {
+        auto *simEngine = state.runtime().sim;
+        return simEngine ? simEngine->getPortState(port)
+                         : SimEngine::PortState{SimEngine::LogicState::unknown,
+                                                SimEngine::SimTime(0)};
+    }
+
+    SimEngine::PortState
+    SlotSceneComponent::getSlotState(const SceneDrawContext &ctx) const {
+        const auto port = getPortRef(*ctx.sceneState);
+        if (!port.isValid()) {
             return {SimEngine::LogicState::unknown, SimEngine::SimTime(0)};
         }
 
-        if (isInputSlot()) {
-            const auto &inputs = digitalComp->getInputStates();
-            BESS_ASSERT(static_cast<size_t>(m_index) < inputs.size(),
-                        "Slot index greater than input states size");
-            if (static_cast<size_t>(m_index) >= inputs.size()) {
-                return {SimEngine::LogicState::unknown, SimEngine::SimTime(0)};
-            }
-            return inputs[m_index];
-        }
-
-        const auto &outputs = digitalComp->getOutputStates();
-
-        BESS_ASSERT(static_cast<size_t>(m_index) < outputs.size(),
-                    "Slot index greater than output states size");
-        if (static_cast<size_t>(m_index) >= outputs.size()) {
-            return {SimEngine::LogicState::unknown, SimEngine::SimTime(0)};
-        }
-
-        return outputs[m_index];
+        return ctx.simDrawCache->getPortState(port);
     }
 
     bool SlotSceneComponent::isSlotConnected(const SceneState &state) const {
-        const auto parentComp =
-            state.getComponentByUuid<SimulationSceneComponent>(
-                m_parentComponent);
-        if (!parentComp || m_index < 0) {
+        const auto port = getPortRef(state);
+        if (!port.isValid()) {
             return false;
         }
 
-        auto &simEngine = SimEngine::SimulationEngine::instance();
-        const auto digitalComp =
-            simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
-                parentComp->getSimEngineId());
-        if (!digitalComp) {
+        auto *simEngine = state.runtime().sim;
+        if (!simEngine) {
+            return false;
+        }
+        const auto stateSnapshot =
+            simEngine->getComponentState(port.componentId);
+
+        if (port.isInput()) {
+            if (static_cast<size_t>(port.index) >=
+                stateSnapshot.inputConnected.size()) {
+                return false;
+            }
+            return stateSnapshot.inputConnected[port.index];
+        }
+
+        if (static_cast<size_t>(port.index) >=
+            stateSnapshot.outputConnected.size()) {
+            return false;
+        }
+        return stateSnapshot.outputConnected[port.index];
+    }
+
+    bool
+    SlotSceneComponent::isSlotConnected(const SceneDrawContext &ctx) const {
+        const auto port = getPortRef(*ctx.sceneState);
+        if (!port.isValid()) {
             return false;
         }
 
-        if (isInputSlot()) {
-            const auto &connected = digitalComp->getIsInputConnected();
-            BESS_ASSERT(static_cast<size_t>(m_index) < connected.size(),
-                        "Slot index greater than inputs in sim engine");
-            if (static_cast<size_t>(m_index) >= connected.size()) {
-                return false;
-            }
-            return connected[m_index];
-        } else {
-            const auto &connected = digitalComp->getIsOutputConnected();
-            BESS_ASSERT(static_cast<size_t>(m_index) < connected.size(),
-                        "Slot index greater than outputs in sim engine");
-            if (static_cast<size_t>(m_index) >= connected.size()) {
-                return false;
-            }
-            return connected[m_index];
-        }
+        return ctx.simDrawCache->isPortConnected(port);
     }
 
     void SlotSceneComponent::addConnection(const UUID &connectionId) {
         m_connectedConnections.emplace_back(connectionId);
+        setSlotLayoutDirty();
     }
 
     void SlotSceneComponent::removeConnection(const UUID &connectionId) {
         m_connectedConnections.erase(
             std::ranges::remove(m_connectedConnections, connectionId).begin(),
             m_connectedConnections.end());
+        setSlotLayoutDirty();
     }
 
-    glm::vec3
-    SlotSceneComponent::getConnectionPos(const SceneState &state) const {
-        auto pos = getAbsolutePosition(state);
+    glm::vec3 SlotSceneComponent::getConnectionPos(const SceneState &state,
+                                                   bool isSchematicMode) const {
+        auto pos = getAbsolutePosition(state, isSchematicMode);
 
-        if (state.getIsSchematicView()) {
-            const float offsetX = (m_slotType == SlotType::digitalInput)
+        if (isSchematicMode) {
+            const float offsetX = isInputSlot()
                                       ? -Styles::compSchematicStyles.pinSize
                                       : Styles::compSchematicStyles.pinSize;
             pos.x += offsetX;
@@ -282,44 +466,62 @@ namespace Bess::Canvas {
         return pos;
     }
 
-    bool SlotSceneComponent::isResizeSlot() const {
-        return m_slotType == SlotType::inputsResize ||
-               m_slotType == SlotType::outputsResize;
-    }
-    bool SlotSceneComponent::isInputSlot() const {
-        return m_slotType == SlotType::digitalInput ||
-               m_slotType == SlotType::inputsResize;
-    }
-
-    glm::vec3
-    SlotSceneComponent::getAbsolutePosition(const SceneState &state) const {
-        if (state.getIsSchematicView()) {
-            return getSchematicPosAbsolute(state);
+    SimEngine::PortRef
+    SlotSceneComponent::getPortRef(const SceneState &state) const {
+        const auto parentComp =
+            state.getComponentByUuid<SimulationSceneComponent>(
+                m_parentComponent);
+        if (!parentComp) {
+            return {};
         }
 
-        return SceneComponent::getAbsolutePosition(state);
+        return {.componentId = parentComp->getSimEngineId(),
+                .direction = m_portDirection,
+                .signalKind = m_signalKind,
+                .index = m_index};
+    }
+
+    bool SlotSceneComponent::isResizeSlot() const {
+        return m_resizeTrigger;
+    }
+    bool SlotSceneComponent::isInputSlot() const {
+        return m_portDirection == SimEngine::PortDirection::input;
     }
 
     glm::vec3
-    SlotSceneComponent::getSchematicPosAbsolute(const SceneState &state) const {
+    SlotSceneComponent::getAbsolutePosition(const SceneState &state,
+                                            bool isSchematicMode) const {
+        if (isSchematicMode) {
+            return getSchematicPosAbsolute(state, isSchematicMode);
+        }
+
+        return m_slotNode ? m_slotNode->getDrawPos()
+                          : SceneComponent::getAbsolutePosition(
+                                state, isSchematicMode);
+    }
+
+    glm::vec3
+    SlotSceneComponent::getSchematicPosAbsolute(const SceneState &state,
+                                                bool isSchematicMode) const {
         return state.getComponentByUuid(m_parentComponent)
-                   ->getAbsolutePosition(state) +
+                   ->getAbsolutePosition(state, isSchematicMode) +
                m_schematicPos;
     }
 
-    void
+    bool
     SlotSceneComponent::onMouseLeftClick(const Events::MouseButtonEvent &e) {
         const auto &connStartSlot = e.sceneState->getConnectionStartSlot();
         if (connStartSlot == UUID::null) {
             e.sceneState->setConnectionStartSlot(m_uuid);
-            return;
+            return true;
         }
 
-        auto startComp = e.sceneState->getComponentByUuid(connStartSlot);
-        std::shared_ptr<ConnJointSceneComp> jointComp = nullptr;
-        std::shared_ptr<SlotSceneComponent> startSlot = nullptr;
+        SceneComponent *startComp =
+            e.sceneState->getComponentByUuid(connStartSlot);
+        ConnJointSceneComp *jointComp = nullptr;
+        SlotSceneComponent *startSlot = nullptr;
         if (startComp->getType() == SceneComponentType::connJoint) {
-            jointComp = startComp->cast<ConnJointSceneComp>();
+            jointComp = dynamic_cast<ConnJointSceneComp *>(startComp);
             startSlot = e.sceneState->getComponentByUuid<SlotSceneComponent>(
                 jointComp->getOutputSlotId());
         } else {
@@ -329,48 +531,38 @@ namespace Bess::Canvas {
         auto endSlot =
             e.sceneState->getComponentByUuid<SlotSceneComponent>(m_uuid);
 
-        const auto &sceneDriver =
-            Pages::MainPage::getInstance()->getState().getSceneDriver();
-        const auto [canConnect, reason] =
-            Svc::SvcConnection::instance().canConnect(
-                connStartSlot, m_uuid,
-                sceneDriver.getSceneWithId(e.sceneState->getSceneId()).get());
-
-        if (!canConnect) {
-            BESS_WARN("Cannot create connection between component {} and "
-                      "component {}: {}",
-                      (uint64_t)connStartSlot, (uint64_t)m_uuid, reason);
-            e.sceneState->setConnectionStartSlot(UUID::null);
-            return;
-        }
-
         UUID starSlotUuid =
             jointComp ? jointComp->getUuid() : startSlot->getUuid();
-        auto conn = Svc::SvcConnection::instance().createConnection(
-            starSlotUuid, m_uuid,
-            sceneDriver.getSceneWithId(e.sceneState->getSceneId()).get());
-
-        if (!conn) {
+        auto conn = std::make_shared<ConnectionSceneComponent>();
+        conn->setStartEndSlots(starSlotUuid, m_uuid);
+        if (!e.sceneState->addConnTx(conn)) {
             BESS_ERROR("Failed to create connection between component {} and "
                        "component {}",
-                       (uint64_t)connStartSlot, (uint64_t)m_uuid);
+                       (uint64_t)connStartSlot,
+                       (uint64_t)m_uuid);
             e.sceneState->setConnectionStartSlot(UUID::null);
-            return;
+            return false;
         }
 
-        auto &cmdManager =
-            Pages::MainPage::getInstance()->getState().getCommandSystem();
-        cmdManager.push(
-            std::make_unique<Cmd::AddCompCmd<ConnectionSceneComponent>>(conn));
-
         BESS_INFO("[Scene] Created connection {} between slots {} and {}",
-                  (uint64_t)conn->getUuid(), (uint64_t)starSlotUuid,
+                  (uint64_t)conn->getUuid(),
+                  (uint64_t)starSlotUuid,
                   (uint64_t)m_uuid);
 
         e.sceneState->setConnectionStartSlot(UUID::null);
+        return true;
     }
 
-    void SlotSceneComponent::onRuntimeIdChanged() { m_invalidateCache = true; }
+    void SlotSceneComponent::onRuntimeIdChanged() {
+        m_invalidateCache = true;
+    }
+
+    void SlotSceneComponent::setSlotLayoutDirty() {
+        m_isUIDirty = true;
+        if (m_container && m_container->getUINode()) {
+            m_container->getUINode()->setSizeDirty();
+        }
+    }
 
     std::vector<UUID>
     SlotSceneComponent::getDependants(const SceneState &state) const {
@@ -382,32 +574,75 @@ namespace Bess::Canvas {
         for (const auto &connUuid : m_connectedConnections) {
             const auto &connComp =
                 state.getComponentByUuid<ConnectionSceneComponent>(connUuid);
+            if (!connComp) {
+                continue;
+            }
+
             const auto &connDeps = connComp->getDependants(state);
-            dependants.insert(dependants.end(), connDeps.begin(),
-                              connDeps.end());
+            dependants.insert(
+                dependants.end(), connDeps.begin(), connDeps.end());
             dependants.push_back(connUuid);
         }
 
         const auto &simComp =
             state.getComponentByUuid<SimulationSceneComponent>(
                 m_parentComponent);
+        if (!simComp) {
+            return dependants;
+        }
 
         auto def =
             std::dynamic_pointer_cast<SimEngine::Drivers::Digital::DigCompDef>(
                 simComp->getCompDef());
-        const bool isUnirary =
-            SimEngine::ExprEval::isUninaryOperator(def->getOpInfo().op);
-
-        if (!isUnirary) {
+        if (!def) {
             return dependants;
         }
 
-        if (isInputSlot()) {
-            dependants.push_back(simComp->getOutputSlots()[m_index]);
-        } else {
-            dependants.push_back(simComp->getInputSlots()[m_index]);
+        const bool isUnirary =
+            SimEngine::ExprEval::isUninaryOperator(def->getOpInfo().op);
+
+        if (isUnirary) {
+            if (isInputSlot()) {
+                dependants.push_back(simComp->getOutputSlots()[m_index]);
+            } else {
+                dependants.push_back(simComp->getInputSlots()[m_index]);
+            }
         }
 
         return dependants;
+    }
+
+    std::vector<UUID> SlotSceneComponent::cleanup(SceneState &state,
+                                                  UUID caller) {
+        auto removedIds = SceneComponent::cleanup(state, caller);
+
+        const auto uiIds = clearUI(state);
+        removedIds.insert(removedIds.end(), uiIds.begin(), uiIds.end());
+        return removedIds;
+    }
+
+    std::vector<UUID> SlotSceneComponent::clearUI(SceneState &state) {
+        std::vector<UUID> removed;
+        if (m_slotNode) {
+            state.getUINodeRegistry()->removeNode(m_slotNode->getId());
+        }
+        if (m_container && state.isComponentValid(m_container->getUuid())) {
+            removed =
+                state.removeComponent(m_container->getUuid(), UUID::master);
+        }
+
+        m_container = nullptr;
+        m_label = nullptr;
+        m_slotNode = nullptr;
+        m_scalarValueTextBox = nullptr;
+        m_isUIDirty = true;
+        m_invalidateCache = true;
+        return removed;
+    }
+
+    void SlotSceneComponent::onNameChanged() {
+        if (m_label) {
+            m_label->setName(m_name);
+        }
     }
 } // namespace Bess::Canvas

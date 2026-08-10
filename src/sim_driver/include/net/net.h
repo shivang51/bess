@@ -1,9 +1,11 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "common/bess_uuid.h"
 
 namespace Bess::SimEngine {
-    class Net {
+    class BESS_API Net {
       public:
         Net() = default;
         ~Net() = default;
@@ -38,6 +40,7 @@ namespace Bess::SimEngine {
 } // namespace Bess::SimEngine
 
 namespace Bess::JsonConvert {
-    void toJsonValue(const Bess::SimEngine::Net &net, Json::Value &j);
-    void fromJsonValue(const Json::Value &j, Bess::SimEngine::Net &net);
+    BESS_API void toJsonValue(const Bess::SimEngine::Net &net, Json::Value &j);
+    BESS_API void fromJsonValue(const Json::Value &j,
+                                Bess::SimEngine::Net &net);
 } // namespace Bess::JsonConvert

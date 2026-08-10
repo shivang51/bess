@@ -1,14 +1,15 @@
+#include "bess_core/renderer/renderer_types.h"
+#include "bess_core/settings/viewport_theme.h"
 #include "common/bess_uuid.h"
 #include "common/types.h"
 #include "glm.hpp"
-#include "settings/viewport_theme.h"
-
 
 #include <format>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
+#include <pybind11_abseil/absl_casters.h>
 
 #include <chrono>
 
@@ -59,14 +60,19 @@ void bind_common_bindings(py::module_ &m) {
 void bind_vec4(py::module_ &m) {
     py::class_<glm::vec4>(m, "vec4")
         .def(py::init<>()) // default (0,0)
-        .def(py::init<float, float, float, float>(), py::arg("x"), py::arg("y"),
-             py::arg("z"), py::arg("w"))
+        .def(py::init<float, float, float, float>(),
+             py::arg("x"),
+             py::arg("y"),
+             py::arg("z"),
+             py::arg("w"))
         .def(py::init([](py::sequence seq) {
                  if (py::len(seq) != 4)
                      throw std::runtime_error(
                          "vec4 requires a sequence of length 4");
-                 return glm::vec4(seq[0].cast<float>(), seq[1].cast<float>(),
-                                  seq[2].cast<float>(), seq[3].cast<float>());
+                 return glm::vec4(seq[0].cast<float>(),
+                                  seq[1].cast<float>(),
+                                  seq[2].cast<float>(),
+                                  seq[3].cast<float>());
              }),
              py::arg("seq"))
         .def_readwrite("x", &glm::vec4::x)
@@ -84,13 +90,16 @@ void bind_vec3(py::module_ &m) {
     py::class_<glm::vec3>(m, "vec3")
         // Constructors
         .def(py::init<>()) // default (0,0)
-        .def(py::init<float, float, float>(), py::arg("x"), py::arg("y"),
+        .def(py::init<float, float, float>(),
+             py::arg("x"),
+             py::arg("y"),
              py::arg("z"))
         .def(py::init([](py::sequence seq) {
                  if (py::len(seq) != 2)
                      throw std::runtime_error(
                          "vec3 requires a sequence of length 2");
-                 return glm::vec3(seq[0].cast<float>(), seq[1].cast<float>(),
+                 return glm::vec3(seq[0].cast<float>(),
+                                  seq[1].cast<float>(),
                                   seq[2].cast<float>());
              }),
              py::arg("seq"))
@@ -284,6 +293,17 @@ void bind_bess_uuid(py::module_ &m) {
 void bind_theme(py::module_ &m) {
     auto themeModule = m.def_submodule("theme");
 
+    using Color = Bess::Core::Renderer::Color;
+    py::class_<Color>(m, "Color")
+        .def(py::init<>())
+        .def_readwrite("r", &Color::r)
+        .def_readwrite("g", &Color::g)
+        .def_readwrite("b", &Color::b)
+        .def_readwrite("a", &Color::a)
+        .def_static("from_hex",
+                    &Color::fromHex,
+                    "Create a Color from a hex value (e.g., 0xRRGGBBAA)");
+
     py::class_<Bess::SchematicViewColors>(themeModule, "SchematicThemeColors")
         .def(py::init<>())
         .def_readwrite("pin", &Bess::SchematicViewColors::pin)
@@ -296,7 +316,25 @@ void bind_theme(py::module_ &m) {
         .def_readwrite("activeSignal",
                        &Bess::SchematicViewColors::activeSignal);
 
+    py::class_<Bess::SceneWidgetsColors>(themeModule, "SceneWidgetsColors")
+        .def(py::init<>())
+        .def_readwrite("surface", &Bess::SceneWidgetsColors::surface)
+        .def_readwrite("surface_hover", &Bess::SceneWidgetsColors::surfaceHover)
+        .def_readwrite("surface_active",
+                       &Bess::SceneWidgetsColors::surfaceActive)
+        .def_readwrite("popup_surface", &Bess::SceneWidgetsColors::popupSurface)
+        .def_readwrite("border", &Bess::SceneWidgetsColors::border)
+        .def_readwrite("border_focus", &Bess::SceneWidgetsColors::borderFocus)
+        .def_readwrite("text", &Bess::SceneWidgetsColors::text)
+        .def_readwrite("text_muted", &Bess::SceneWidgetsColors::textMuted)
+        .def_readwrite("accent", &Bess::SceneWidgetsColors::accent)
+        .def_readwrite("accent_strong", &Bess::SceneWidgetsColors::accentStrong)
+        .def_readwrite("item_hover", &Bess::SceneWidgetsColors::itemHover)
+        .def_readwrite("track", &Bess::SceneWidgetsColors::track)
+        .def_readwrite("knob", &Bess::SceneWidgetsColors::knob);
+
     themeModule.attr("schematic") = Bess::ViewportTheme::schematicViewColors;
+    themeModule.attr("scene_widgets") = Bess::ViewportTheme::sceneWidgetsColors;
 }
 
 void bind_time(py::module_ &m) {
@@ -314,18 +352,23 @@ void bind_time(py::module_ &m) {
                  return std::format("<TimeNS {} ns>",
                                     static_cast<uint64_t>(self.count()));
              })
-        .def("__eq__", [](const Bess::TimeNs &a,
-                          const Bess::TimeNs &b) { return a == b; })
-        .def("__ne__", [](const Bess::TimeNs &a,
-                          const Bess::TimeNs &b) { return !(a == b); })
+        .def(
+            "__eq__",
+            [](const Bess::TimeNs &a, const Bess::TimeNs &b) { return a == b; })
+        .def("__ne__",
+             [](const Bess::TimeNs &a, const Bess::TimeNs &b) {
+                 return !(a == b);
+             })
         .def("__lt__",
              [](const Bess::TimeNs &a, const Bess::TimeNs &b) { return a < b; })
-        .def("__le__", [](const Bess::TimeNs &a,
-                          const Bess::TimeNs &b) { return a <= b; })
+        .def(
+            "__le__",
+            [](const Bess::TimeNs &a, const Bess::TimeNs &b) { return a <= b; })
         .def("__gt__",
              [](const Bess::TimeNs &a, const Bess::TimeNs &b) { return a > b; })
-        .def("__ge__", [](const Bess::TimeNs &a,
-                          const Bess::TimeNs &b) { return a >= b; })
+        .def(
+            "__ge__",
+            [](const Bess::TimeNs &a, const Bess::TimeNs &b) { return a >= b; })
         .def("__add__",
              [](const Bess::TimeNs &a, const Bess::TimeNs &b) {
                  return Bess::TimeNs(static_cast<uint64_t>(a.count()) +
@@ -385,12 +428,13 @@ void bind_time(py::module_ &m) {
                      static_cast<uint64_t>(a.count()) +
                      static_cast<uint64_t>(b.count()));
              })
-        .def("__sub__", [](const std::chrono::duration<double, std::milli> &a,
-                           const std::chrono::duration<double, std::milli> &b) {
-            return std::chrono::duration<double, std::milli>(
-                static_cast<uint64_t>(a.count()) -
-                static_cast<uint64_t>(b.count()));
-        });
+        .def("__sub__",
+             [](const std::chrono::duration<double, std::milli> &a,
+                const std::chrono::duration<double, std::milli> &b) {
+                 return std::chrono::duration<double, std::milli>(
+                     static_cast<uint64_t>(a.count()) -
+                     static_cast<uint64_t>(b.count()));
+             });
 
     // std::chrono::duration<double, std::ratio<1l, 1000l>> alias to TimeMs
 }
@@ -424,19 +468,31 @@ void bind_json_cpp(py::module_ &m) {
                      throw py::type_error("Not a JSON Array");
                  return v[index];
              })
-        .def("__setitem__", [](Json::Value &v, const std::string &key,
-                               const Json::Value &val) { v[key] = val; })
-        .def("__setitem__", [](Json::Value &v, int index,
-                               const Json::Value &val) { v[index] = val; })
+        .def("__setitem__",
+             [](Json::Value &v,
+                const std::string &key,
+                const Json::Value &val) { v[key] = val; })
+        .def("__setitem__",
+             [](Json::Value &v, int index, const Json::Value &val) {
+                 v[index] = val;
+             })
 
-        .def("__setitem__", [](Json::Value &v, const std::string &key,
-                               const int &val) { v[key] = val; })
-        .def("__setitem__", [](Json::Value &v, const std::string &key,
-                               const std::string &val) { v[key] = val; })
-        .def("__setitem__", [](Json::Value &v, const std::string &key,
-                               const double &val) { v[key] = val; })
-        .def("__setitem__", [](Json::Value &v, const std::string &key,
-                               const bool val) { v[key] = val; })
+        .def("__setitem__",
+             [](Json::Value &v, const std::string &key, const int &val) {
+                 v[key] = val;
+             })
+        .def("__setitem__",
+             [](Json::Value &v,
+                const std::string &key,
+                const std::string &val) { v[key] = val; })
+        .def("__setitem__",
+             [](Json::Value &v, const std::string &key, const double &val) {
+                 v[key] = val;
+             })
+        .def("__setitem__",
+             [](Json::Value &v, const std::string &key, const bool val) {
+                 v[key] = val;
+             })
 
         .def("__len__", &Json::Value::size)
         .def("is_object", &Json::Value::isObject)

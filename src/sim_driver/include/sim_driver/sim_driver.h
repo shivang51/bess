@@ -1,22 +1,33 @@
 #pragma once
+
+#include "common/bess_api.h"
 #include "common/class_helpers.h"
 #include "common/types.h"
 #include "net/net.h"
+#include "simulation_clock.h"
 #include <common/bess_uuid.h>
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <optional>
+#include <span>
 #include <unordered_map>
+#include <vector>
+
+namespace Bess::SimEngine {
+    class SimulationEngine;
+}
 
 namespace Bess::SimEngine::Drivers {
 
-    class SimFnDataBase {
+    class BESS_API SimFnDataBase {
       public:
         virtual ~SimFnDataBase() = default;
         bool simDependants = false;
     };
 
-    class CompDef {
+    class BESS_API CompDef {
       public:
         typedef std::shared_ptr<SimFnDataBase> SimFnDataPtr;
         typedef std::function<SimFnDataPtr(const SimFnDataPtr &)> SimFn;
@@ -27,6 +38,7 @@ namespace Bess::SimEngine::Drivers {
         MAKE_GETTER_SETTER(std::string, Name, m_name)
         MAKE_GETTER_SETTER(std::string, GroupName, m_groupName)
         MAKE_VGETTER_VSETTER(SimFn, SimFn, m_simFn)
+        MAKE_GETTER_SETTER(ComponentBehaviorType, BehaviorType, m_behaviorType)
 
         virtual Json::Value toJson() const;
 
@@ -36,13 +48,18 @@ namespace Bess::SimEngine::Drivers {
 
         virtual std::string getTypeName() const = 0;
 
+        virtual PortDescriptor getInputPortDescriptor() const;
+
+        virtual PortDescriptor getOutputPortDescriptor() const;
+
       protected:
         std::string m_name;
         std::string m_groupName;
         SimFn m_simFn = nullptr;
+        ComponentBehaviorType m_behaviorType = ComponentBehaviorType::none;
     };
 
-    class SimComponent {
+    class BESS_API SimComponent {
       public:
         SimComponent() = default;
         virtual ~SimComponent() = default;
@@ -59,7 +76,14 @@ namespace Bess::SimEngine::Drivers {
         virtual Json::Value toJson() const;
         virtual void loadJson(const Json::Value &json);
 
-        virtual void onPostSimulate() {}
+        virtual void onPostSimulate() {
+        }
+
+        // Restore configuration-time state before a new simulation run.
+        // Stateful component implementations should override this; topology
+        // and user configuration must remain intact.
+        virtual void resetRuntimeState(TimeNs /*startTime*/) {
+        }
 
         virtual std::shared_ptr<SimFnDataBase>
         simulate(const std::shared_ptr<SimFnDataBase> &data);
@@ -78,35 +102,78 @@ namespace Bess::SimEngine::Drivers {
         paused
     };
 
-    // comp id, slot type, new count
-    typedef std::function<void(const UUID &, SlotType, int)> SlotCountChangeCB;
+    // comp id, direction, signal kind, new count
+    typedef std::function<void(const UUID &, PortDirection, SignalKind, int)>
+        PortCountChangeCB;
 
-    struct SlotsCountChangeRes {
-        bool changedInp = false;
-        bool changedOut = false;
+    struct BESS_API PortCountChangeRes {
+        bool changedInputs = false;
+        bool changedOutputs = false;
 
-        static SlotsCountChangeRes noChange() {
-            return SlotsCountChangeRes{false, false};
+        static PortCountChangeRes noChange() {
+            return PortCountChangeRes{false, false};
         }
 
-        static SlotsCountChangeRes inpChanged() {
-            return SlotsCountChangeRes{true, false};
+        static PortCountChangeRes inputsChanged() {
+            return PortCountChangeRes{true, false};
         }
 
-        static SlotsCountChangeRes outChanged() {
-            return SlotsCountChangeRes{false, true};
+        static PortCountChangeRes outputsChanged() {
+            return PortCountChangeRes{false, true};
         }
 
-        static SlotsCountChangeRes bothChanged() {
-            return SlotsCountChangeRes{true, true};
+        static PortCountChangeRes bothChanged() {
+            return PortCountChangeRes{true, true};
         }
 
-        bool hasChange() const { return changedInp || changedOut; }
+        bool hasChange() const {
+            return changedInputs || changedOutputs;
+        }
     };
 
-    class SimDriver {
+    class BESS_API SimDriver {
       public:
-        SimDriver() = default;
+        struct ComponentStamp {
+            TimeNs simTime{0};
+            std::vector<PortState> inputStates;
+            std::vector<PortState> outputStates;
+        };
+
+        // Transition-compressed during a normal run and uniformly sampled
+        // during a timed run.
+        using CompStampData = NodeHashMap<UUID, std::vector<ComponentStamp>>;
+
+        struct ComponentStampHistoryView {
+            std::span<const ComponentStamp> samples;
+            uint64_t generation = 0;
+            uint64_t revision = 0;
+        };
+
+        class BESS_API StampDataView {
+          public:
+            StampDataView(StampDataView &&) noexcept = default;
+            StampDataView &operator=(StampDataView &&) noexcept = default;
+            StampDataView(const StampDataView &) = delete;
+            StampDataView &operator=(const StampDataView &) = delete;
+
+            [[nodiscard]] const CompStampData &data() const noexcept;
+            [[nodiscard]] std::optional<ComponentStampHistoryView>
+            find(const UUID &componentId) const;
+
+          private:
+            friend class SimDriver;
+            explicit StampDataView(const SimDriver &driver);
+
+            std::unique_lock<std::mutex> m_lock;
+            const CompStampData *m_data = nullptr;
+            const NodeHashMap<UUID, uint64_t> *m_revisions = nullptr;
+            uint64_t m_generation = 0;
+        };
+
+        using SchedulerNotifyFn = std::function<void()>;
+        static constexpr std::size_t MaxStampSamplesPerComponent = 40000;
+
+        SimDriver();
         virtual ~SimDriver() = default;
 
         // will be ran in seperate thread
@@ -128,44 +195,72 @@ namespace Bess::SimEngine::Drivers {
 
         virtual void clearComponents();
 
+        // Compatibility hook for existing drivers. New drivers get complete
+        // stamping from the TimeNs overload without implementing anything.
+        virtual void stampSim(TimeMs /*elapsedTime*/) {
+        }
+
+        // Capture a stable state snapshot. When includeUnchanged is false the
+        // history is transition-compressed.
+        virtual void stampSim(TimeNs simTime, bool includeUnchanged = false);
+
+        // The returned view holds the stamp lock and references driver-owned
+        // histories. Keep it short-lived so simulation stamping is not
+        // blocked longer than necessary, and do not call mutating driver APIs
+        // while it is alive.
+        [[nodiscard]] StampDataView getStampData() const;
+        void clearStampData();
+
+        // Engine-coordinated scheduling contract. New scheduled drivers
+        // should opt in and implement the next/process pair; deriving from
+        // EvtBasedSimDriver provides that implementation. These defaults keep
+        // older independent run-loop drivers source-compatible.
+        virtual bool usesGlobalClockScheduling() const {
+            return false;
+        }
+        virtual std::optional<TimeNs> getNextEventTime() const {
+            return std::nullopt;
+        }
+        virtual size_t processEventsAt(TimeNs /*simTime*/) {
+            return 0;
+        }
+
+        bool beginRun(TimeNs startTime = TimeNs(0));
+
         virtual bool isSimStable() const;
 
-        virtual void clearPendingEvents() {}
+        virtual void clearPendingEvents() {
+        }
 
         // Connection management
         virtual std::pair<bool, std::string>
-        canConnectComponents(const UUID &src, int srcSlotIdx, SlotType srcType,
-                             const UUID &dst, int dstSlotIdx,
-                             SlotType dstType) const = 0;
+        canConnectPorts(const PortRef &src, const PortRef &dst) const = 0;
 
-        virtual bool connectComponent(const UUID &src, int srcSlotIdx,
-                                      SlotType srcType, const UUID &dst,
-                                      int dstSlotIdx, SlotType dstType,
-                                      bool overrideConn) = 0;
+        virtual bool connectPorts(const PortRef &src,
+                                  const PortRef &dst,
+                                  bool overrideConn) = 0;
 
-        virtual void deleteConnection(const UUID &compA, SlotType pinAType,
-                                      int idxA, const UUID &compB,
-                                      SlotType pinBType, int idxB) = 0;
+        virtual void deleteConnection(const PortRef &portA,
+                                      const PortRef &portB) = 0;
 
-        virtual SlotsCountChangeRes addSlot(const UUID &compId, SlotType type,
-                                            int index, bool force = false) = 0;
+        virtual PortCountChangeRes addPort(const PortRef &port,
+                                           bool force = false) = 0;
 
-        virtual SlotsCountChangeRes removeSlot(const UUID &compId,
-                                               SlotType type, int index,
-                                               bool force = false) = 0;
+        virtual PortCountChangeRes removePort(const PortRef &port,
+                                              bool force = false) = 0;
 
         virtual ConnectionBundle getConnections(const UUID &uuid) const;
 
-        virtual std::vector<SlotState> getInputSlotsState(const UUID &compId);
+        virtual std::vector<PortState> getInputPortStates(const UUID &compId);
 
-        virtual SlotState getSlotState(const UUID &uuid, SlotType type,
-                                       int idx) const;
+        virtual PortState getPortState(const PortRef &port) const;
 
-        virtual bool setInputSlotState(const UUID &uuid, int pinIdx,
-                                       LogicState state);
+        virtual bool
+        setInputPortState(const UUID &uuid, int pinIdx, const PortState &state);
 
-        virtual bool setOutputSlotState(const UUID &uuid, int pinIdx,
-                                        LogicState state);
+        virtual bool setOutputPortState(const UUID &uuid,
+                                        int pinIdx,
+                                        const PortState &state);
 
         virtual ComponentState getComponentState(const UUID &uuid) const;
 
@@ -181,14 +276,19 @@ namespace Bess::SimEngine::Drivers {
 
         virtual void loadJson(const Json::Value &json) = 0;
 
-        void addOnSlotCountChangeCB(const UUID &id,
-                                    const SlotCountChangeCB &cb);
+        void addOnPortCountChangeCB(const UUID &id,
+                                    const PortCountChangeCB &cb);
 
-        void removeOnSlotCountChangeCB(const UUID &id);
+        void removeOnPortCountChangeCB(const UUID &id);
 
       protected:
         virtual void
-        onComponentAdded(const std::shared_ptr<SimComponent> &comp) {}
+        onComponentAdded(const std::shared_ptr<SimComponent> & /*comp*/) {
+        }
+
+        void stampComponent(const UUID &componentId,
+                            TimeNs simTime,
+                            bool includeUnchanged = false);
 
         virtual void onInit() {};
 
@@ -204,14 +304,18 @@ namespace Bess::SimEngine::Drivers {
 
         virtual void onDestroy() {};
 
-        void triggerSlotCountChangeCbs(const UUID &compId, SlotType type,
+        void triggerPortCountChangeCbs(const UUID &compId,
+                                       PortDirection direction,
+                                       SignalKind signalKind,
                                        int newCount);
 
       public:
         typedef std::shared_ptr<SimComponent> SimComponentPtr;
-        typedef std::unordered_map<UUID, SimComponentPtr> ComponentsMap;
+        typedef HashMap<UUID, SimComponentPtr> ComponentsMap;
 
-        MAKE_GETTER_SETTER_MT(ComponentsMap, ComponentsMap, m_components,
+        MAKE_GETTER_SETTER_MT(ComponentsMap,
+                              ComponentsMap,
+                              m_components,
                               m_compMapMutex)
 
         MAKE_GETTER_SETTER_MT(SimDriverState, State, m_state, m_stateMutex)
@@ -219,13 +323,25 @@ namespace Bess::SimEngine::Drivers {
         bool hasComponent(const UUID &id) const;
 
         template <typename TComp>
-        std::shared_ptr<TComp> getComponent(const UUID &id) const {
+        std::shared_ptr<TComp> getComponentSP(const UUID &id) const {
             std::lock_guard lk(m_compMapMutex);
 
-            if (!m_components.contains(id)) {
+            auto it = m_components.find(id);
+            if (it == m_components.end()) {
                 return nullptr;
             }
-            return std::dynamic_pointer_cast<TComp>(m_components.at(id));
+            return std::dynamic_pointer_cast<TComp>(it->second);
+        }
+
+        // For hotpaths
+        template <typename TComp> TComp *getComponent(const UUID &id) const {
+            std::lock_guard lk(m_compMapMutex);
+
+            auto it = m_components.find(id);
+            if (it == m_components.end()) {
+                return nullptr;
+            }
+            return static_cast<TComp *>(it->second.get());
         }
 
         void init();
@@ -252,12 +368,47 @@ namespace Bess::SimEngine::Drivers {
 
         void step();
 
+        void setEngine(Bess::SimEngine::SimulationEngine *engine) {
+            m_engine = engine;
+        }
+
+        [[nodiscard]] Bess::SimEngine::SimulationEngine *getEngine() const {
+            return m_engine;
+        }
+
+        void setSimulationClock(
+            const std::shared_ptr<Bess::SimEngine::SimulationClock> &clock);
+
+        [[nodiscard]] std::shared_ptr<Bess::SimEngine::SimulationClock>
+        getSimulationClock() const;
+
+        [[nodiscard]] TimeNs getCurrentSimTime() const;
+
+        void setSchedulerNotifyFn(SchedulerNotifyFn notifyFn);
+
       protected:
+        virtual void onRunStart(TimeNs /*startTime*/) {
+        }
+
+        void publishStamps(std::vector<std::pair<UUID, ComponentStamp>> stamps,
+                           bool includeUnchanged);
+        void notifyScheduler();
+
         ComponentsMap m_components;
         SimDriverState m_state = SimDriverState::uninitialized;
         mutable std::mutex m_compMapMutex;
         mutable std::mutex m_stateMutex;
 
-        std::unordered_map<UUID, SlotCountChangeCB> m_onSlotCountChnageCBs;
+        CompStampData m_compStampData;
+        NodeHashMap<UUID, uint64_t> m_componentStampRevisions;
+        HashSet<UUID> m_truncatedStampComponents;
+        uint64_t m_stampGeneration = 0;
+        uint64_t m_nextStampRevision = 0;
+        mutable std::mutex m_stampMutex;
+        std::shared_ptr<Bess::SimEngine::SimulationClock> m_simulationClock;
+        SchedulerNotifyFn m_schedulerNotifyFn;
+        mutable std::mutex m_schedulerNotifyMutex;
+        std::unordered_map<UUID, PortCountChangeCB> m_onPortCountChangeCBs;
+        Bess::SimEngine::SimulationEngine *m_engine = nullptr;
     };
 } // namespace Bess::SimEngine::Drivers

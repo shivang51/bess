@@ -1,9 +1,11 @@
 #pragma once
+
+#include "common/bess_api.h"
 #include <array>
 #include <string>
 
 namespace Bess::Common {
-    class Helpers {
+    class BESS_API Helpers {
       public:
         static std::string toLowerCase(const std::string &str);
         static std::string toUpperCase(const std::string &str);

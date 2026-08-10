@@ -1,22 +1,23 @@
 #include "conn_joint_scene_component.h"
+#include "bess_core/scene/scene_draw_helpers.h"
+#include "bess_core/scene/scene_state/components/scene_component_types.h"
+#include "bess_core/scene/scene_state/components/styles/sim_comp_style.h"
+#include "bess_core/scene/scene_state/scene_state.h"
+#include "bess_core/settings/viewport_theme.h"
 #include "common/bess_uuid.h"
 #include "connection_scene_component.h"
 #include "geometric.hpp"
-#include "pages/main_page/cmds/add_comp_cmd.h"
-#include "pages/main_page/main_page.h"
-#include "scene/scene_state/components/scene_component_types.h"
-#include "scene/scene_state/components/styles/sim_comp_style.h"
-#include "scene/scene_state/scene_state.h"
-#include "settings/viewport_theme.h"
+#include "pages/main_page/comp_edit.h"
 #include "sim_scene_component.h"
 #include "slot_scene_component.h"
 
-#include "ui/ui.h"
+#include "ui/ui_main/ui_main.h"
 #include <cstdint>
 #include <memory>
 
 namespace Bess::Canvas {
-    ConnJointSceneComp::ConnJointSceneComp(UUID connectionId, int connSegIdx,
+    ConnJointSceneComp::ConnJointSceneComp(UUID connectionId,
+                                           int connSegIdx,
                                            ConnSegOrientaion segOrientation)
         : m_connSegIdx(connSegIdx),
           m_connectionId(connectionId),
@@ -29,8 +30,10 @@ namespace Bess::Canvas {
     std::vector<std::shared_ptr<SceneComponent>>
     ConnJointSceneComp::clone(const SceneState &sceneState) const {
         (void)sceneState;
-        BESS_ASSERT(false, "Cloning ConnJointSceneComp is supported through "
-                           "cloneConnJoin function");
+        BESS_ASSERT(false,
+                    "Cloning ConnJointSceneComp is supported through "
+                    "cloneConnJoin function");
+        return {};
     }
 
     std::vector<std::shared_ptr<SceneComponent>>
@@ -69,15 +72,23 @@ namespace Bess::Canvas {
         for (const auto &id : m_connections) {
             const auto &conn =
                 sceneState.getComponentByUuid<ConnectionSceneComponent>(id);
-            if (!conn || !ogToClonedIdMap.contains(conn->getStartSlot()) ||
+            if (!conn) {
+                continue;
+            }
+            if (ogToClonedIdMap.contains(conn->getUuid())) {
+                clone->m_connections.push_back(
+                    ogToClonedIdMap.at(conn->getUuid()));
+                continue;
+            }
+            if (!ogToClonedIdMap.contains(conn->getStartSlot()) ||
                 !ogToClonedIdMap.contains(conn->getEndSlot())) {
                 continue;
             }
 
             auto clonedConn = conn->cloneConn(sceneState, ogToClonedIdMap);
 
-            clonedComps.insert(clonedComps.end(), clonedConn.begin(),
-                               clonedConn.end());
+            clonedComps.insert(
+                clonedComps.end(), clonedConn.begin(), clonedConn.end());
             clone->m_connections.push_back(clonedConn.front()->getUuid());
         }
 
@@ -107,7 +118,8 @@ namespace Bess::Canvas {
             borderColor = ViewportTheme::colors.selectedComp;
         }
 
-        if (slot->getSlotState(state).state == SimEngine::LogicState::high) {
+        if (slot->getSlotState(context).getLogicState() ==
+            SimEngine::LogicState::high) {
             color = ViewportTheme::colors.stateHigh;
         }
 
@@ -118,14 +130,16 @@ namespace Bess::Canvas {
         }
 
         const auto pickingId = PickingId{m_runtimeId, 0};
-        context.materialRenderer->drawQuad(getAbsolutePosition(state),
-                                           glm::vec2{sideLength, sideLength},
-                                           color, pickingId,
-                                           {
-                                               .angle = 45,
-                                               .borderColor = borderColor,
-                                               .borderSize = glm::vec4(1.f),
-                                           });
+        SceneDraw::drawQuad(context,
+                            getAbsolutePosition(state, context.isSchematicMode),
+                            glm::vec2{sideLength, sideLength},
+                            color,
+                            pickingId,
+                            {
+                                .angle = 45,
+                                .borderColor = borderColor,
+                                .borderSize = glm::vec4(1.f),
+                            });
     }
 
     void ConnJointSceneComp::drawSchematic(SceneDrawContext &context) {
@@ -146,33 +160,42 @@ namespace Bess::Canvas {
         }
 
         const auto &state = *context.sceneState;
-        context.materialRenderer->drawCircle(
-            getAbsolutePosition(state),
-            Styles::compSchematicStyles.connJointRadius, color, pickingId);
+        SceneDraw::drawCircle(
+            context,
+            getAbsolutePosition(state, context.isSchematicMode),
+            Styles::compSchematicStyles.connJointRadius,
+            color,
+            pickingId);
     }
 
-    void ConnJointSceneComp::onMouseEnter(const Events::MouseEnterEvent &e) {
-        UI::setCursorPointer();
+    bool ConnJointSceneComp::onMouseEnter(const Events::MouseEnterEvent &e) {
+        (void)e;
         m_isHovered = true;
+        return true;
     }
 
-    void ConnJointSceneComp::onMouseLeave(const Events::MouseLeaveEvent &e) {
-        UI::setCursorNormal();
+    bool ConnJointSceneComp::onMouseLeave(const Events::MouseLeaveEvent &e) {
+        (void)e;
         m_isHovered = false;
+        return true;
+    }
+
+    Core::Viewport::SceneCursor ConnJointSceneComp::getCursor() const {
+        return Core::Viewport::SceneCursor::pointer;
     }
 
     glm::vec3
-    ConnJointSceneComp::getAbsolutePosition(const SceneState &state) const {
+    ConnJointSceneComp::getAbsolutePosition(const SceneState &state,
+                                            bool isSchematicMode) const {
         const auto &conn =
             state.getComponentByUuid<ConnectionSceneComponent>(m_connectionId);
 
         const glm::vec3 &segStartPos =
-            conn->getSegVertexPos(state, m_connSegIdx);
+            conn->getSegVertexPos(state, m_connSegIdx, isSchematicMode);
         const glm::vec3 &segEndPos =
-            conn->getSegVertexPos(state, m_connSegIdx + 1);
+            conn->getSegVertexPos(state, m_connSegIdx + 1, isSchematicMode);
 
-        const float offset =
-            state.getIsSchematicView() ? m_schematicOffset : m_offset;
+        const float offset = isSchematicMode ? m_schematicOffset : m_offset;
         auto pos = glm::mix(segStartPos, segEndPos, offset);
         pos.z += 0.0001f;
 
@@ -185,6 +208,9 @@ namespace Bess::Canvas {
             return;
 
         if (!m_isDragging) {
+            m_dragBefore = toEditJson();
+            m_dragScene =
+                e.sceneState ? e.sceneState->getSceneId() : UUID::null;
             onMouseDragBegin(e);
         }
 
@@ -197,10 +223,15 @@ namespace Bess::Canvas {
                 m_connectionId);
         const auto &slot = e.sceneState->getComponentByUuid<SlotSceneComponent>(
             m_outputSlotId);
+
+        const bool isSchematic =
+            Bess::UI::UIMain::getTargetSceneViewportPanel()->isSchematicMode();
+
         const glm::vec3 &segStartPos =
-            conn->getSegVertexPos(*e.sceneState, m_connSegIdx);
+            conn->getSegVertexPos(*e.sceneState, m_connSegIdx, isSchematic);
+
         const glm::vec3 &segEndPos =
-            conn->getSegVertexPos(*e.sceneState, m_connSegIdx + 1);
+            conn->getSegVertexPos(*e.sceneState, m_connSegIdx + 1, isSchematic);
         const auto &segLen = glm::distance(segEndPos, segStartPos);
 
         float startCoord = (m_segOrientation == ConnSegOrientaion::horizontal)
@@ -216,7 +247,7 @@ namespace Bess::Canvas {
             delta = -delta / segLen;
         }
 
-        if (e.sceneState->getIsSchematicView()) {
+        if (isSchematic) {
             m_schematicOffset += delta;
             m_schematicOffset = glm::clamp(m_schematicOffset, 0.0f, 1.0f);
         } else {
@@ -225,36 +256,54 @@ namespace Bess::Canvas {
         }
     }
 
-    void ConnJointSceneComp::onMouseButton(const Events::MouseButtonEvent &e) {
+    void ConnJointSceneComp::onMouseDragEnd() {
+        m_isDragging = false;
+        (void)Edit::trackComp(*this, std::move(m_dragBefore), "joint-position");
+        m_dragBefore = {};
+        m_dragScene = UUID::null;
+    }
+
+    bool ConnJointSceneComp::onMouseButton(const Events::MouseButtonEvent &e) {
         if (e.action == Events::MouseClickAction::press) {
             if (e.button == Events::MouseButton::left) {
                 onMouseLeftClick(e);
+                return true;
             }
         }
+        return false;
     }
 
-    SimEngine::SlotState
+    SimEngine::PortState
     ConnJointSceneComp::getSlotState(const SceneState &state) const {
         const auto &slotComp =
             state.getComponentByUuid<SlotSceneComponent>(m_outputSlotId);
         return slotComp->getSlotState(state);
     }
 
+    SimEngine::PortState
+    ConnJointSceneComp::getSlotState(const SceneDrawContext &context) const {
+        const auto &slotComp =
+            context.sceneState->getComponentByUuid<SlotSceneComponent>(
+                m_outputSlotId);
+        return slotComp->getSlotState(context);
+    }
+
     void ConnJointSceneComp::addConnection(const UUID &connectionId) {
         m_connections.emplace_back(connectionId);
     }
 
-    void
+    bool
     ConnJointSceneComp::onMouseLeftClick(const Events::MouseButtonEvent &e) {
         auto &connStartSlot = e.sceneState->getConnectionStartSlot();
 
         if (connStartSlot == UUID::null) {
             connStartSlot = m_uuid;
-            return;
+            return true;
         }
 
         connectWith(*e.sceneState, connStartSlot);
         connStartSlot = UUID::null;
+        return true;
     }
 
     bool ConnJointSceneComp::connectWith(SceneState &sceneState,
@@ -272,33 +321,18 @@ namespace Bess::Canvas {
         auto endSlot = sceneState.getComponentByUuid<SlotSceneComponent>(
             endComp->getOutputSlotId());
 
-        const auto startParent =
-            sceneState.getComponentByUuid<SimulationSceneComponent>(
-                startSlot->getParentComponent());
-        const auto endParent =
-            sceneState.getComponentByUuid<SimulationSceneComponent>(
-                endSlot->getParentComponent());
-
-        const auto startPinType =
-            startSlot->getSlotType() == SlotType::digitalInput
-                ? SimEngine::SlotType::digitalInput
-                : SimEngine::SlotType::digitalOutput;
-
-        const auto endPinType = endSlot->getSlotType() == SlotType::digitalInput
-                                    ? SimEngine::SlotType::digitalInput
-                                    : SimEngine::SlotType::digitalOutput;
-
         auto conn = std::make_shared<ConnectionSceneComponent>();
         conn->setInitialSegmentCount(2);
         conn->setStartEndSlots(startSlot->getUuid(), endComp->getUuid());
 
-        auto &cmdManager =
-            Pages::MainPage::getInstance()->getState().getCommandSystem();
-        cmdManager.execute(
-            std::make_unique<Cmd::AddCompCmd<ConnectionSceneComponent>>(conn));
+        if (!sceneState.addConnTx(conn)) {
+            BESS_WARN("Could not add connection");
+            return false;
+        }
 
         BESS_INFO("[Scene] Created connection {} between slots {} and {}",
-                  (uint64_t)conn->getUuid(), (uint64_t)startSlot->getUuid(),
+                  (uint64_t)conn->getUuid(),
+                  (uint64_t)startSlot->getUuid(),
                   (uint64_t)endComp->getUuid());
 
         return true;
@@ -339,7 +373,8 @@ namespace Bess::Canvas {
                 state.getComponentByUuid<ConnectionSceneComponent>(connId);
             BESS_ASSERT(connComp,
                         "[ConnJointDeps] connComp not found {} in joint {}",
-                        (uint64_t)connId, (uint64_t)m_uuid);
+                        (uint64_t)connId,
+                        (uint64_t)m_uuid);
             if (!connComp)
                 continue;
             const auto &ids = connComp->getDependants(state);

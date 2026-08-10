@@ -1,9 +1,12 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 /// Responsible for managing plugins, including loading, unloading, and
 /// providing access to plugin functionalities. Simulation DOES NOT use this, it
 /// being an independent module handles plugins on its own.
 
+#include "common/sub_system.h"
 #include "sim_driver/sim_driver.h"
 
 #include "json/value.h"
@@ -15,12 +18,11 @@ namespace Bess::Canvas {
 
 namespace Bess::Svc {
 
-    class PluginService {
+    class BESS_API PluginService : public ISubSystem {
       public:
-        static PluginService &getInstance();
-
-        void init();
-        void destroy();
+        void onInit() override;
+        void onPreInit() override;
+        void onDestroy() override;
 
         bool hasSimSceneComp(const std::string &defName) const;
         bool hasSceneComp(const std::string &typeName) const;
@@ -35,10 +37,6 @@ namespace Bess::Svc {
             const std::shared_ptr<SimEngine::Drivers::CompDef> &def) const;
 
         MAKE_GETTER(bool, IsInitialized, m_initialized)
-
-      private:
-        PluginService() = default;
-        ~PluginService() = default;
 
       private:
         bool m_initialized = false;

@@ -1,0 +1,90 @@
+#pragma once
+
+#include "common/bess_api.h"
+
+#include "bess_core/scene/scene_ui/text_box_context.h"
+#include "bess_core/scene/scene_ui/ui_scene_component.h"
+#include <cstddef>
+#include <functional>
+#include <memory>
+#include <optional>
+#include <string>
+
+namespace Bess::Canvas::UI {
+
+    using UIEditableLabelCallback = std::function<void(const std::string &)>;
+
+    class BESS_API EditableLabelComp : public UISceneComponent {
+      public:
+        DEFAULT_CONTRS(EditableLabelComp)
+
+        MAKE_GETTER_SETTER_WC(std::string,
+                              Placeholder,
+                              m_placeholder,
+                              makeUIDirty)
+        MAKE_GETTER_SETTER_WC(glm::vec2,
+                              TextBoxSize,
+                              m_textBoxSize,
+                              makeUIDirty)
+        MAKE_GETTER_SETTER_WC(size_t, MaxLength, m_maxLength, makeUIDirty)
+        MAKE_GETTER_SETTER(bool, SelectTextOnEdit, m_selectTextOnEdit)
+        MAKE_GETTER_SETTER(UIEditableLabelCallback,
+                           ChangedCallback,
+                           m_changedCallback)
+        MAKE_GETTER_SETTER(UIEditableLabelCallback,
+                           SubmittedCallback,
+                           m_submittedCallback)
+        MAKE_GETTER_SETTER(UIEditableLabelCallback,
+                           CanceledCallback,
+                           m_canceledCallback)
+        MAKE_GETTER(bool, Editing, m_editing)
+
+        static std::shared_ptr<EditableLabelComp>
+        create(const CompConfig &config);
+        static std::shared_ptr<EditableLabelComp>
+        create(const std::string &value = "",
+               const UIEditableLabelCallback &changedCallback = nullptr,
+               const CompConfig &config = CompConfig{});
+
+        void onDraw(SceneDrawContext &state) override;
+        void prepareUI(SceneUIPrepareCtx &state) override;
+        bool onMouseButton(const Events::MouseButtonEvent &e) override;
+        bool isFocusable() const override;
+        bool wantsKeyboardInput() const override;
+        void onFocusGained(const Events::FocusEvent &e) override;
+        void onFocusLost(const Events::FocusEvent &e) override;
+        bool onPointerMove(const Events::MouseMoveEvent &e) override;
+        bool onKeyEvent(const SceneEvent &evt) override;
+        bool hasPointerCapture() const override;
+        Core::Viewport::SceneCursor getCursor() const override;
+
+        void beginEdit();
+        void commitEdit();
+        void cancelEdit();
+
+      private:
+        [[nodiscard]] std::string displayText() const;
+        [[nodiscard]] glm::vec2
+        resolveTextBoxSize(SceneUIPrepareCtx &state) const;
+        [[nodiscard]] glm::vec2 stylePadding() const;
+        [[nodiscard]] PickingId textBoxPickingId() const;
+
+        void beginEditAt(std::optional<glm::vec2> focusPos);
+        void finishEdit(bool commit);
+
+        std::string m_placeholder;
+        glm::vec2 m_textBoxSize{0.f, 0.f};
+        size_t m_maxLength = 256;
+        bool m_selectTextOnEdit = false;
+
+        UIEditableLabelCallback m_changedCallback;
+        UIEditableLabelCallback m_submittedCallback;
+        UIEditableLabelCallback m_canceledCallback;
+
+        bool m_editing = false;
+        std::optional<glm::vec2> m_pendingTextBoxFocusPos = std::nullopt;
+        TextBoxContext m_textInput;
+        std::string m_editValue;
+        std::string m_originalValue;
+    };
+} // namespace Bess::Canvas::UI

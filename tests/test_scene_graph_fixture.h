@@ -1,9 +1,8 @@
 #pragma once
 
-#include "command_system.h"
 #include "component_catalog.h"
 #include "dig_sim_driver.h"
-#include "pages/main_page/cmds/add_comp_cmd.h"
+#include "bess_core/g_app_context.h"
 #include "pages/main_page/scene_components/conn_joint_scene_component.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/group_scene_component.h"
@@ -16,6 +15,7 @@
 #include "plugin_manager.h"
 #include "scene/scene.h"
 #include "scene/scene_ser_reg.h"
+#include "project_session/project_session.h"
 #include "simulation_engine.h"
 #include <chrono>
 #include <functional>
@@ -40,7 +40,7 @@ namespace Bess::Tests {
     inline void ensurePrimitiveGateDefinitions() {
         auto ensureGate = [](const std::string &name,
                              size_t inputCount,
-                             const std::function<LogicState(const std::vector<SlotState> &)> &eval) {
+                             const std::function<LogicState(const std::vector<PortState> &)> &eval) {
             if (findDefinitionByName(name)) {
                 return;
             }
@@ -76,25 +76,25 @@ namespace Bess::Tests {
             ComponentCatalog::instance().registerComponent(definition);
         };
 
-        ensureGate("NOT Gate", 1, [](const std::vector<SlotState> &inputs) {
+        ensureGate("NOT Gate", 1, [](const std::vector<PortState> &inputs) {
             const auto inState = inputs.empty() ? LogicState::low : inputs[0].state;
             return inState == LogicState::high ? LogicState::low : LogicState::high;
         });
-        ensureGate("AND Gate", 2, [](const std::vector<SlotState> &inputs) {
+        ensureGate("AND Gate", 2, [](const std::vector<PortState> &inputs) {
             const bool a = inputs.size() > 0 && inputs[0].state == LogicState::high;
             const bool b = inputs.size() > 1 && inputs[1].state == LogicState::high;
             return (a && b)
                        ? LogicState::high
                        : LogicState::low;
         });
-        ensureGate("OR Gate", 2, [](const std::vector<SlotState> &inputs) {
+        ensureGate("OR Gate", 2, [](const std::vector<PortState> &inputs) {
             const bool a = inputs.size() > 0 && inputs[0].state == LogicState::high;
             const bool b = inputs.size() > 1 && inputs[1].state == LogicState::high;
             return (a || b)
                        ? LogicState::high
                        : LogicState::low;
         });
-        ensureGate("XOR Gate", 2, [](const std::vector<SlotState> &inputs) {
+        ensureGate("XOR Gate", 2, [](const std::vector<PortState> &inputs) {
             const bool a = inputs.size() > 0 && inputs[0].state == LogicState::high;
             const bool b = inputs.size() > 1 && inputs[1].state == LogicState::high;
             return (a != b) ? LogicState::high : LogicState::low;
@@ -162,18 +162,24 @@ namespace Bess::Tests {
         }
 
         void SetUp() override {
-            auto &simEngine = SimulationEngine::instance();
+            auto &appCtx = Bess::GAppContext::getInstance();
+            if (appCtx.hasSubSystem<Bess::ProjectSession>()) {
+                appCtx.getSubSystem<Bess::ProjectSession>()->onDestroy();
+                appCtx.removeSubSystem<Bess::ProjectSession>();
+            }
+            session = appCtx.addSubSystem<Bess::ProjectSession>();
+            session->addSubSystem<Bess::Svc::SvcConnection>();
+            session->addSubSystem<Bess::Svc::CopyPaste::Context>();
+            session->onInit();
+            auto &simEngine = session->sim();
             simEngine.clear();
 
             ensurePrimitiveGateDefinitions();
 
-            service = &Bess::Svc::SvcConnection::instance();
-            service->destroy();
-            service->init();
-
-            copyPaste = &Bess::Svc::CopyPaste::Context::instance();
-            copyPaste->destroy();
-            copyPaste->init();
+            service =
+                session->getSubSystem<Bess::Svc::SvcConnection>().get();
+            copyPaste =
+                session->getSubSystem<Bess::Svc::CopyPaste::Context>().get();
 
             inputDef = findDefinitionByName("Input");
             outputDef = findDefinitionByName("Output");
@@ -188,20 +194,26 @@ namespace Bess::Tests {
             ASSERT_NE(orDef, nullptr);
 
             scene = std::make_shared<Scene>();
-
-            cmdSystem.init();
-            cmdSystem.setScene(scene.get());
-            cmdSystem.setSimEngine(&SimulationEngine::instance());
+            scene->getState().setIsRootScene(true);
+            session->scenes().addScene(scene);
+            session->scenes().setRootSceneId(scene->getSceneId());
+            session->scenes().setActiveScene(scene->getSceneId());
+            session->clearHist();
         }
 
         void TearDown() override {
-            copyPaste->destroy();
-            service->destroy();
             if (scene) {
                 scene->clear();
                 scene.reset();
             }
-            SimulationEngine::instance().clear();
+            auto &appCtx = Bess::GAppContext::getInstance();
+            if (session) {
+                session->onDestroy();
+                session.reset();
+            }
+            if (appCtx.hasSubSystem<Bess::ProjectSession>()) {
+                appCtx.removeSubSystem<Bess::ProjectSession>();
+            }
         }
 
         SimCompFixture addSimComponentDirect(const std::shared_ptr<Scene> &targetScene,
@@ -248,7 +260,9 @@ namespace Bess::Tests {
                 }
             }
 
-            cmdSystem.execute(std::make_unique<Bess::Cmd::AddCompCmd<SimulationSceneComponent>>(fixture.comp, children));
+            const auto result = session->addComp(
+                fixture.comp, std::move(children), scene->getSceneId());
+            EXPECT_TRUE(result) << result.status.msg();
             return fixture;
         }
 
@@ -278,6 +292,6 @@ namespace Bess::Tests {
         std::shared_ptr<Drivers::CompDef> andDef;
         std::shared_ptr<Drivers::CompDef> orDef;
         std::shared_ptr<Scene> scene;
-        Bess::Cmd::CommandSystem cmdSystem;
+        std::shared_ptr<Bess::ProjectSession> session;
     };
 } // namespace Bess::Tests

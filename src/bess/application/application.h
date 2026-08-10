@@ -1,10 +1,9 @@
 #pragma once
 
-#include "application/window.h"
-#include "common/types.h"
-#include "events/application_event.h"
+#include "common/bess_api.h"
+
+#include "window.h"
 #include <memory>
-#include <vector>
 
 namespace Bess {
 
@@ -15,7 +14,7 @@ namespace Bess {
         disablePlugins = 1 << 0,
     };
 
-    class Application {
+    class BESS_API Application {
       public:
         Application();
         ~Application();
@@ -26,27 +25,7 @@ namespace Bess {
         void quit() const;
         void shutdown();
 
-        void update(TimeMs ts);
-
-        void loadProject(const std::string &path) const;
-        void saveProject() const;
-
       private:
         std::shared_ptr<Window> m_mainWindow;
-        std::vector<ApplicationEvent> m_events;
-
-      private:
-        void draw();
-
-      private: // callbacks
-        void onWindowResize(int w, int h);
-        void onMouseWheel(double x, double y);
-        void onKeyPress(int key);
-        void onKeyRelease(int key);
-        void onMouseButton(MouseButton button, MouseButtonAction action,
-                           const glm::vec2 &pos);
-        void onMouseMove(double x, double y);
-
-        int m_currentFps = 0;
     };
 } // namespace Bess

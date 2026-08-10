@@ -1,0 +1,43 @@
+#pragma once
+
+#include "common/bess_api.h"
+
+#include "common/bess_uuid.h"
+#include "ui/ui_panel.h"
+#include <cstdint>
+#include <string>
+
+namespace Bess::UI {
+    class BESS_API ProjectExplorer : public Panel {
+      public:
+        ProjectExplorer();
+
+        void onDraw() override;
+
+        void onBeforeDraw() override;
+
+        void onAfterDraw() override;
+
+        void groupSelectedNodes();
+        void groupOnNets();
+
+      private:
+        void drawContextMenu();
+
+        static bool drawLeafNode(size_t key,
+                                 uint64_t nodeId,
+                                 const char *label,
+                                 bool selected,
+                                 bool multiSelectMode);
+
+        bool shouldDisplayEntity(const UUID &entityId) const;
+        size_t drawEntites(const OrderedSet<UUID> &entities);
+
+        int32_t m_lastSelectedIndex;
+        size_t m_nodesKeyCounter;
+        std::string m_searchQuery;
+        bool m_filterInputs = false;
+        bool m_filterOutputs = false;
+        bool m_isMultiSelected = false;
+    };
+} // namespace Bess::UI

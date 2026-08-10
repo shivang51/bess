@@ -1,32 +1,62 @@
 #include "pages/main_page/scene_components/group_scene_component.h"
 #include "test_scene_graph_fixture.h"
+#include <unordered_map>
 #include <unordered_set>
 
 using namespace Bess::Tests;
 
 class SceneComponentCloneTest : public SceneGraphTestBase {};
 
-TEST_F(SceneComponentCloneTest, SimulationCloneProducesFreshDetachedComponentTree) {
+TEST_F(SceneComponentCloneTest,
+       SimulationCloneProducesFreshDetachedComponentTree) {
     const auto leftInput = addSimComponentDirect(scene, inputDef);
     const auto rightInput = addSimComponentDirect(scene, inputDef);
     const auto gate = addSimComponentDirect(scene, andDef);
 
-    ASSERT_NE(connectSlots(leftInput.firstOutput(), gate.firstInput()), nullptr);
-    ASSERT_NE(connectSlots(rightInput.firstOutput(), gate.inputs.at(1)), nullptr);
+    ASSERT_NE(connectSlots(leftInput.firstOutput(), gate.firstInput()),
+              nullptr);
+    ASSERT_NE(connectSlots(rightInput.firstOutput(), gate.inputs.at(1)),
+              nullptr);
+
+    Bess::Canvas::UI::UINodeRegistry uiRegistry;
+    auto *gateUINode = uiRegistry.addNode(gate.comp->getUuid());
+    ASSERT_NE(gateUINode, nullptr);
+    gate.comp->setUINode(gateUINode);
+
+    std::unordered_map<Bess::UUID, Bess::Canvas::UI::UINode *>
+        originalSlotNodes;
+    for (const auto &slot : gate.inputs) {
+        auto *slotUINode = uiRegistry.addNode(slot->getUuid());
+        ASSERT_NE(slotUINode, nullptr);
+        slot->setUINode(slotUINode);
+        originalSlotNodes.emplace(slot->getUuid(), slotUINode);
+    }
+    for (const auto &slot : gate.outputs) {
+        auto *slotUINode = uiRegistry.addNode(slot->getUuid());
+        ASSERT_NE(slotUINode, nullptr);
+        slot->setUINode(slotUINode);
+        originalSlotNodes.emplace(slot->getUuid(), slotUINode);
+    }
 
     const auto clones = gate.comp->clone(scene->getState());
     ASSERT_EQ(clones.size(), 1u + gate.inputs.size() + gate.outputs.size());
 
-    const auto clonedGate = std::dynamic_pointer_cast<Bess::Canvas::SimulationSceneComponent>(clones.front());
+    const auto clonedGate =
+        std::dynamic_pointer_cast<Bess::Canvas::SimulationSceneComponent>(
+            clones.front());
     ASSERT_NE(clonedGate, nullptr);
     EXPECT_NE(clonedGate->getUuid(), gate.comp->getUuid());
     EXPECT_EQ(clonedGate->getSimEngineId(), Bess::UUID::null);
     EXPECT_EQ(clonedGate->getNetId(), Bess::UUID::null);
     EXPECT_NE(clonedGate->getCompDef(), nullptr);
     EXPECT_NE(clonedGate->getCompDef(), gate.comp->getCompDef());
-    EXPECT_EQ(clonedGate->getCompDef()->getName(), gate.comp->getCompDef()->getName());
+    EXPECT_EQ(clonedGate->getCompDef()->getName(),
+              gate.comp->getCompDef()->getName());
     EXPECT_TRUE(clonedGate->getChildComponents().empty());
     EXPECT_FALSE(clonedGate->getIsSelected());
+    EXPECT_EQ(clonedGate->getUINode(), nullptr);
+    EXPECT_TRUE(clonedGate->getUIDirty());
+    EXPECT_EQ(gate.comp->getUINode(), gateUINode);
 
     std::unordered_set<Bess::UUID> originalSlotIds;
     for (const auto &slot : gate.inputs) {
@@ -38,13 +68,25 @@ TEST_F(SceneComponentCloneTest, SimulationCloneProducesFreshDetachedComponentTre
 
     std::unordered_set<Bess::UUID> clonedSlotIds;
     for (size_t i = 1; i < clones.size(); ++i) {
-        const auto clonedSlot = std::dynamic_pointer_cast<Bess::Canvas::SlotSceneComponent>(clones[i]);
+        const auto clonedSlot =
+            std::dynamic_pointer_cast<Bess::Canvas::SlotSceneComponent>(
+                clones[i]);
         ASSERT_NE(clonedSlot, nullptr);
         EXPECT_FALSE(originalSlotIds.contains(clonedSlot->getUuid()));
         EXPECT_EQ(clonedSlot->getParentComponent(), Bess::UUID::null);
         EXPECT_TRUE(clonedSlot->getConnectedConnections().empty());
-        EXPECT_EQ(clonedSlot->getRuntimeId(), Bess::Canvas::PickingId::invalidRuntimeId);
+        EXPECT_EQ(clonedSlot->getRuntimeId(),
+                  Bess::Canvas::PickingId::invalidRuntimeId);
+        EXPECT_EQ(clonedSlot->getUINode(), nullptr);
+        EXPECT_TRUE(clonedSlot->getUIDirty());
         clonedSlotIds.insert(clonedSlot->getUuid());
+    }
+
+    for (const auto &slot : gate.inputs) {
+        EXPECT_EQ(slot->getUINode(), originalSlotNodes.at(slot->getUuid()));
+    }
+    for (const auto &slot : gate.outputs) {
+        EXPECT_EQ(slot->getUINode(), originalSlotNodes.at(slot->getUuid()));
     }
 
     for (const auto &slotId : clonedGate->getInputSlots()) {
@@ -55,25 +97,32 @@ TEST_F(SceneComponentCloneTest, SimulationCloneProducesFreshDetachedComponentTre
     }
 }
 
-TEST_F(SceneComponentCloneTest, GroupClonePreservesChildContentWithNewHierarchyIds) {
+TEST_F(SceneComponentCloneTest,
+       GroupClonePreservesChildContentWithNewHierarchyIds) {
     auto group = Bess::Canvas::GroupSceneComponent::create("Documentation");
     scene->getState().addComponent(group);
 
-    auto firstLabel = addTextComponentDirect(scene, "Input Notes", {-20.f, 12.f, 0.2f});
+    auto firstLabel =
+        addTextComponentDirect(scene, "Input Notes", {-20.f, 12.f, 0.2f});
     firstLabel->setData("Input Notes");
     firstLabel->setSize(16);
 
-    auto secondLabel = addTextComponentDirect(scene, "Output Notes", {28.f, -8.f, 0.2f});
+    auto secondLabel =
+        addTextComponentDirect(scene, "Output Notes", {28.f, -8.f, 0.2f});
     secondLabel->setData("Output Notes");
     secondLabel->setSize(20);
 
-    scene->getState().attachChild(group->getUuid(), firstLabel->getUuid(), false);
-    scene->getState().attachChild(group->getUuid(), secondLabel->getUuid(), false);
+    scene->getState().attachChild(
+        group->getUuid(), firstLabel->getUuid(), false);
+    scene->getState().attachChild(
+        group->getUuid(), secondLabel->getUuid(), false);
 
     const auto clones = group->clone(scene->getState());
     ASSERT_EQ(clones.size(), 3u);
 
-    const auto clonedGroup = std::dynamic_pointer_cast<Bess::Canvas::GroupSceneComponent>(clones.front());
+    const auto clonedGroup =
+        std::dynamic_pointer_cast<Bess::Canvas::GroupSceneComponent>(
+            clones.front());
     ASSERT_NE(clonedGroup, nullptr);
     EXPECT_NE(clonedGroup->getUuid(), group->getUuid());
     EXPECT_EQ(clonedGroup->getName(), group->getName());
@@ -81,7 +130,8 @@ TEST_F(SceneComponentCloneTest, GroupClonePreservesChildContentWithNewHierarchyI
 
     std::unordered_set<Bess::UUID> clonedChildIds;
     for (size_t i = 1; i < clones.size(); ++i) {
-        const auto clonedText = std::dynamic_pointer_cast<Bess::Canvas::TextComponent>(clones[i]);
+        const auto clonedText =
+            std::dynamic_pointer_cast<Bess::Canvas::TextComponent>(clones[i]);
         ASSERT_NE(clonedText, nullptr);
         EXPECT_EQ(clonedText->getParentComponent(), clonedGroup->getUuid());
         EXPECT_NE(clonedText->getUuid(), firstLabel->getUuid());

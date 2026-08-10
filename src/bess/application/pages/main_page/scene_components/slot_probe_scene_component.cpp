@@ -1,18 +1,21 @@
 #include "slot_probe_scene_component.h"
+#include "bess_core/scene/scene_draw_context.h"
+#include "bess_core/scene/scene_draw_helpers.h"
+#include "bess_core/scene/scene_state/scene_state.h"
+#include "bess_core/settings/viewport_theme.h"
 #include "common/bess_uuid.h"
+#include "dig_sim_driver.h"
 #include "imgui.h"
+#include "pages/main_page/comp_edit.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
-#include "renderer/material_renderer.h"
-#include "scene_draw_context.h"
-#include "scene_state/scene_state.h"
-#include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 
 namespace Bess::Canvas {
     std::vector<std::shared_ptr<SceneComponent>>
     SlotProbeSceneComponent::clone(const SceneState &sceneState) const {
+
         (void)sceneState;
         auto clonedComponent = std::make_shared<SlotProbeSceneComponent>(*this);
         prepareClone(*clonedComponent);
@@ -22,9 +25,8 @@ namespace Bess::Canvas {
     }
 
     void SlotProbeSceneComponent::draw(SceneDrawContext &context) {
-
-        const auto &textSize =
-            Renderer::MaterialRenderer::getTextRenderSize(m_name, 9);
+        const auto textSize =
+            context.renderer->measureText(m_name, {.fontSize = 9.f});
         if (m_isFirstDraw) {
             m_scaleDirty = true;
             m_isFirstDraw = false;
@@ -35,33 +37,36 @@ namespace Bess::Canvas {
             m_scaleDirty = false;
         }
 
-        Renderer::QuadRenderProperties props;
+        SceneDraw::QuadStyle props;
         props.borderColor = m_isSelected
                                 ? ViewportTheme::colors.selectedComp
                                 : ViewportTheme::colors.componentBorder;
-        props.isMica = true;
         props.borderRadius = glm::vec4(4.f);
         props.borderSize = glm::vec4(1.f);
 
         const auto &sceneState = *context.sceneState;
         const auto &scale = m_transform.scale;
-        const auto &startPos = getAbsolutePosition(sceneState);
+        const auto &startPos =
+            getAbsolutePosition(sceneState, context.isSchematicMode);
         const bool isProbed = m_probedSlotUuid != UUID::null;
 
-        context.materialRenderer->drawQuad(
-            startPos, scale,
-            isProbed ? ViewportTheme::colors.clockConnectionLow
-                     : ViewportTheme::colors.componentBG,
-            PickingId{m_runtimeId, 0}, props);
+        SceneDraw::drawQuad(context,
+                            startPos,
+                            scale,
+                            isProbed ? ViewportTheme::colors.clockConnectionLow
+                                     : ViewportTheme::colors.componentBG,
+                            PickingId{m_runtimeId, 0},
+                            props);
 
-        context.materialRenderer->drawText(
-            m_name,
-            startPos +
-                glm::vec3(-textSize.x / 2.f, (textSize.y / 2.f) - 2.f, 0.0001f),
-            9,
-            isProbed ? ViewportTheme::colors.clockConnectionHigh
-                     : ViewportTheme::colors.text,
-            PickingId{m_runtimeId, 0});
+        SceneDraw::drawText(context,
+                            m_name,
+                            startPos + glm::vec3(-textSize.x / 2.f,
+                                                 (textSize.y / 2.f) - 2.f,
+                                                 0.0001f),
+                            9,
+                            isProbed ? ViewportTheme::colors.clockConnectionHigh
+                                     : ViewportTheme::colors.text,
+                            PickingId{m_runtimeId, 0});
 
         if (m_probedSlotUuid != UUID::null) {
             const auto &comp =
@@ -70,15 +75,16 @@ namespace Bess::Canvas {
             if (!comp) {
                 return;
             }
-            auto endPos = comp->getConnectionPos(sceneState);
+            auto endPos =
+                comp->getConnectionPos(sceneState, context.isSchematicMode);
 
             // This looks awesome, just hit and trial :)
-            const glm::vec2 ctrl1 =
-                glm::mix(glm::vec2(startPos.x, startPos.y),
-                         glm::vec2(endPos.x, startPos.y), 0.25f);
-            const glm::vec2 ctrl2 =
-                glm::mix(glm::vec2(endPos.x, startPos.y),
-                         glm::vec2(endPos.x, endPos.y), 0.75f);
+            const glm::vec2 ctrl1 = glm::mix(glm::vec2(startPos.x, startPos.y),
+                                             glm::vec2(endPos.x, startPos.y),
+                                             0.25f);
+            const glm::vec2 ctrl2 = glm::mix(glm::vec2(endPos.x, startPos.y),
+                                             glm::vec2(endPos.x, endPos.y),
+                                             0.75f);
 
             const auto &color =
                 !m_probeData.empty() &&
@@ -86,15 +92,17 @@ namespace Bess::Canvas {
                     ? ViewportTheme::colors.stateHigh
                     : ViewportTheme::colors.stateLow;
 
-            context.pathRenderer->beginPathMode(
-                {startPos.x - (textSize.x / 2.f), startPos.y, 0.51}, 1.f, color,
+            SceneDraw::beginPath(
+                context,
+                {startPos.x - (textSize.x / 2.f), startPos.y, 0.51},
+                1.f,
+                color,
                 PickingId{m_runtimeId, 1});
 
             endPos.z = 0.51f;
-            context.pathRenderer->pathCubicBeizerTo(
-                endPos, ctrl1, ctrl2, 1.f, color, PickingId{m_runtimeId, 1});
+            SceneDraw::pathCubicTo(context, endPos, ctrl1, ctrl2, 1.f);
 
-            context.pathRenderer->endPathMode();
+            SceneDraw::endPath(context);
         }
     }
 
@@ -113,7 +121,7 @@ namespace Bess::Canvas {
         }
     }
 
-    void
+    bool
     SlotProbeSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
         if (e.action == Events::MouseClickAction::press &&
             e.button == Events::MouseButton::left) {
@@ -123,13 +131,17 @@ namespace Bess::Canvas {
                     e.sceneState->getComponentByUuid<SlotSceneComponent>(
                         connStartSlot);
                 if (comp && comp->getType() == SceneComponentType::slot &&
-                    comp->getSlotType() != SlotType::inputsResize &&
-                    comp->getSlotType() != SlotType::outputsResize) {
+                    !comp->isResizeSlot()) {
+                    auto before = toEditJson();
                     setProbedSlotUuid(e.sceneState->getConnectionStartSlot());
                     e.sceneState->setConnectionStartSlot(UUID::null);
+                    (void)Edit::trackComp(
+                        *this, std::move(before), "probe-slot");
+                    return true;
                 }
             }
         }
+        return false;
     }
 
     void SlotProbeSceneComponent::onProbedSlotChanged() {
@@ -138,14 +150,11 @@ namespace Bess::Canvas {
     }
 
     void SlotProbeSceneComponent::onAttach(SceneState &state) {
-        auto &mainPageState = Pages::MainPage::getInstance()->getState();
-        mainPageState.getProbes().insert(getUuid());
+        (void)state;
     }
 
     std::vector<UUID> SlotProbeSceneComponent::cleanup(SceneState &state,
                                                        UUID caller) {
-        auto &mainPageState = Pages::MainPage::getInstance()->getState();
-        mainPageState.getProbes().erase(getUuid());
         return NonSimSceneComponent::cleanup(state, caller);
     }
 
@@ -156,13 +165,16 @@ namespace Bess::Canvas {
         return typeid(SlotProbeSceneComponent);
     }
 
-    void SlotProbeSceneComponent::onNameChanged() { m_scaleDirty = true; }
+    void SlotProbeSceneComponent::onNameChanged() {
+        m_scaleDirty = true;
+    }
 
     void SlotProbeSceneComponent::drawPropertiesUI(SceneState &sceneState) {
         // render 20 most recent probe data entries in imgui table
-        ImGui::Text("Probed Slot: %s", m_probedSlotUuid != UUID::null
-                                           ? m_probedSlotUuid.toString().c_str()
-                                           : "None");
+        ImGui::Text("Probed Slot: %s",
+                    m_probedSlotUuid != UUID::null
+                        ? m_probedSlotUuid.toString().c_str()
+                        : "None");
         if (ImGui::BeginTable("ProbeDataTable", 2, ImGuiTableFlags_Borders)) {
             ImGui::TableSetupColumn("Time");
             ImGui::TableSetupColumn("State");
@@ -176,9 +188,9 @@ namespace Bess::Canvas {
                 ImGui::Text("%.3f s",
                             std::chrono::duration<float>(it->first).count());
                 ImGui::TableSetColumnIndex(1);
-                ImGui::Text("%s", it->second == SimEngine::LogicState::high
-                                      ? "High"
-                                      : "Low");
+                ImGui::Text("%s",
+                            it->second == SimEngine::LogicState::high ? "High"
+                                                                      : "Low");
             }
             ImGui::EndTable();
         }
@@ -196,16 +208,23 @@ namespace Bess::Canvas {
                                     comp->getParentComponent())
                                 ->getSimEngineId();
 
-        const auto &simEngine = SimEngine::SimulationEngine::instance();
+        auto *simEngine = sceneState.runtime().sim;
+        if (!simEngine) {
+            return;
+        }
         const auto &digComp =
-            simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
+            simEngine->getComponent<SimEngine::Drivers::Digital::DigSimComp>(
                 simId);
+        if (!digComp) {
+            return;
+        }
 
         digComp->addOnStateChangeCB(
-            m_uuid, [this, slotComp = comp](
-                        const std::vector<SimEngine::SlotState> &inputStates,
-                        const std::vector<SimEngine::SlotState> &outputStates) {
-                SimEngine::SlotState slotState;
+            m_uuid,
+            [this, slotComp = comp](
+                const std::vector<SimEngine::PortState> &inputStates,
+                const std::vector<SimEngine::PortState> &outputStates) {
+                SimEngine::PortState slotState;
 
                 if (slotComp->isInputSlot()) {
                     slotState = inputStates[slotComp->getIndex()];
@@ -215,12 +234,12 @@ namespace Bess::Canvas {
 
                 if (m_probeData.empty()) {
                     m_probeData.emplace_back(slotState.lastChangeTime,
-                                             slotState.state);
+                                             slotState.getLogicState());
                 } else {
                     auto &lastEntry = m_probeData.back();
-                    if (slotState.state != lastEntry.second) {
+                    if (slotState.getLogicState() != lastEntry.second) {
                         m_probeData.emplace_back(slotState.lastChangeTime,
-                                                 slotState.state);
+                                                 slotState.getLogicState());
                     }
                 }
             });
@@ -241,14 +260,20 @@ namespace Bess::Canvas {
                                     comp->getParentComponent())
                                 ->getSimEngineId();
 
-        const auto &simEngine = SimEngine::SimulationEngine::instance();
+        auto *simEngine = sceneState.runtime().sim;
+        if (!simEngine) {
+            return;
+        }
         const auto &digComp =
-            simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
+            simEngine->getComponent<SimEngine::Drivers::Digital::DigSimComp>(
                 simId);
-        digComp->removeOnStateChangeCB(m_uuid);
+        if (digComp) {
+            digComp->removeOnStateChangeCB(m_uuid);
+        }
     }
 
-    void SlotProbeSceneComponent::onBeforeProbedSlotChanged() {
+    void SlotProbeSceneComponent::onBeforeProbedSlotChanged(
+        const UUID &newSlotUuid) {
         m_unsubscribeFlag = true;
         m_unsubscribeSlotUuid = m_probedSlotUuid;
     }

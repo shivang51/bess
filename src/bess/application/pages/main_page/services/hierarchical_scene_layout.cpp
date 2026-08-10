@@ -1,11 +1,9 @@
 #include "pages/main_page/services/hierarchical_scene_layout.h"
 
+#include "bess_core/scene/scene.h"
 #include "dig_sim_driver.h"
-#include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
-#include "scene/scene.h"
-#include "sim_driver/sim_driver.h"
 #include "simulation_engine.h"
 #include <algorithm>
 #include <cmath>
@@ -74,7 +72,7 @@ namespace Bess::Pages {
             size_t inputCount = 0;
             for (const auto &slotId : component->getInputSlots()) {
                 const auto slot =
-                    sceneState.getComponentByUuid<SlotSceneComponent>(slotId);
+                    sceneState.getComponentByUuidSP<SlotSceneComponent>(slotId);
                 if (slot && !slot->isResizeSlot()) {
                     ++inputCount;
                 }
@@ -83,7 +81,7 @@ namespace Bess::Pages {
             size_t outputCount = 0;
             for (const auto &slotId : component->getOutputSlots()) {
                 const auto slot =
-                    sceneState.getComponentByUuid<SlotSceneComponent>(slotId);
+                    sceneState.getComponentByUuidSP<SlotSceneComponent>(slotId);
                 if (slot && !slot->isResizeSlot()) {
                     ++outputCount;
                 }
@@ -92,10 +90,10 @@ namespace Bess::Pages {
             const auto longestSide = std::max(inputCount, outputCount);
             const auto estimatedWidth = std::max(
                 120.f,
-                28.f + static_cast<float>(component->getName().size()) * 9.f);
+                28.f + (static_cast<float>(component->getName().size()) * 9.f));
             const auto estimatedHeight =
                 52.f +
-                static_cast<float>(std::max<size_t>(1, longestSide)) * 32.f;
+                (static_cast<float>(std::max<size_t>(1, longestSide)) * 32.f);
             return {estimatedWidth, estimatedHeight};
         }
 
@@ -115,7 +113,7 @@ namespace Bess::Pages {
             nodes.reserve(sceneState.getRootComponents().size());
 
             for (const auto &rootId : sceneState.getRootComponents()) {
-                const auto component = sceneState.getComponentByUuid(rootId);
+                const auto component = sceneState.getComponentByUuidSP(rootId);
                 if (!component) {
                     continue;
                 }
@@ -147,10 +145,12 @@ namespace Bess::Pages {
                 if (componentDef) {
                     auto def = std::dynamic_pointer_cast<
                         SimEngine::Drivers::Digital::DigCompDef>(componentDef);
-                    node.boundaryInput =
-                        def->getBehaviorType() == ComponentBehaviorType::input;
-                    node.boundaryOutput =
-                        def->getBehaviorType() == ComponentBehaviorType::output;
+                    if (def) {
+                        node.boundaryInput = def->getBehaviorType() ==
+                                             ComponentBehaviorType::input;
+                        node.boundaryOutput = def->getBehaviorType() ==
+                                              ComponentBehaviorType::output;
+                    }
                 }
 
                 nodes.push_back(std::move(node));
@@ -432,9 +432,8 @@ namespace Bess::Pages {
                 uniqueRanks.push_back(metaNode.rank);
             }
             std::ranges::sort(uniqueRanks);
-            uniqueRanks.erase(
-                std::unique(uniqueRanks.begin(), uniqueRanks.end()),
-                uniqueRanks.end());
+            uniqueRanks.erase(std::ranges::unique(uniqueRanks).begin(),
+                              uniqueRanks.end());
 
             for (auto &metaNode : metaNodes) {
                 metaNode.rank = static_cast<int>(
@@ -501,7 +500,7 @@ namespace Bess::Pages {
             for (const auto nodeIndex : layer) {
                 cursorY += nodes[nodeIndex].height / 2.f;
                 nodes[nodeIndex].provisionalY = cursorY;
-                cursorY += nodes[nodeIndex].height / 2.f + rowSpacing;
+                cursorY += (nodes[nodeIndex].height / 2.f) + rowSpacing;
             }
         }
 
@@ -553,36 +552,34 @@ namespace Bess::Pages {
                     computeIdealY(nodes[layer[i]], nodes, useIncoming);
             }
 
-            std::stable_sort(
-                layer.begin(), layer.end(), [&](size_t lhs, size_t rhs) {
-                    const auto &lhsIdeal = idealYByNode.at(lhs);
-                    const auto &rhsIdeal = idealYByNode.at(rhs);
+            std::ranges::stable_sort(layer, [&](size_t lhs, size_t rhs) {
+                const auto &lhsIdeal = idealYByNode.at(lhs);
+                const auto &rhsIdeal = idealYByNode.at(rhs);
 
-                    if (lhsIdeal.has_value() && rhsIdeal.has_value()) {
-                        if (std::abs(*lhsIdeal - *rhsIdeal) > 0.5f) {
-                            return *lhsIdeal < *rhsIdeal;
-                        }
-                    } else if (lhsIdeal.has_value() != rhsIdeal.has_value()) {
-                        return lhsIdeal.has_value();
+                if (lhsIdeal.has_value() && rhsIdeal.has_value()) {
+                    if (std::abs(*lhsIdeal - *rhsIdeal) > 0.5f) {
+                        return *lhsIdeal < *rhsIdeal;
                     }
+                } else if (lhsIdeal.has_value() != rhsIdeal.has_value()) {
+                    return lhsIdeal.has_value();
+                }
 
-                    if (previousOrder.at(lhs) != previousOrder.at(rhs)) {
-                        return previousOrder.at(lhs) < previousOrder.at(rhs);
-                    }
+                if (previousOrder.at(lhs) != previousOrder.at(rhs)) {
+                    return previousOrder.at(lhs) < previousOrder.at(rhs);
+                }
 
-                    const auto lhsPriority = nodePriority(nodes[lhs]);
-                    const auto rhsPriority = nodePriority(nodes[rhs]);
-                    if (lhsPriority != rhsPriority) {
-                        return lhsPriority < rhsPriority;
-                    }
+                const auto lhsPriority = nodePriority(nodes[lhs]);
+                const auto rhsPriority = nodePriority(nodes[rhs]);
+                if (lhsPriority != rhsPriority) {
+                    return lhsPriority < rhsPriority;
+                }
 
-                    if (nodes[lhs].name != nodes[rhs].name) {
-                        return nodes[lhs].name < nodes[rhs].name;
-                    }
+                if (nodes[lhs].name != nodes[rhs].name) {
+                    return nodes[lhs].name < nodes[rhs].name;
+                }
 
-                    return uuidKey(nodes[lhs].simId) <
-                           uuidKey(nodes[rhs].simId);
-                });
+                return uuidKey(nodes[lhs].simId) < uuidKey(nodes[rhs].simId);
+            });
 
             assignLayerYPositions(layer, nodes, options.rowSpacing);
         }
@@ -624,7 +621,8 @@ namespace Bess::Pages {
     } // namespace
 
     HierarchicalSceneLayoutResult applyHierarchicalSceneLayout(
-        Canvas::Scene &scene, SimEngine::SimulationEngine &simEngine,
+        Canvas::Scene &scene,
+        SimEngine::SimulationEngine &simEngine,
         const HierarchicalSceneLayoutOptions &options) {
         HierarchicalSceneLayoutResult result;
 

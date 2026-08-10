@@ -7,6 +7,7 @@
  **/
 
 #pragma once
+#include "common/bess_api.h"
 
 #include <memory>
 #include <string>
@@ -18,10 +19,10 @@ namespace Bess::SimEngine::Drivers::Digital {
 
 namespace Bess::SimEngine::ExprEval {
 
-    bool isUninaryOperator(char op);
+    bool BESS_API isUninaryOperator(char op);
 
-    bool evaluateExpression(const std::string &expr,
-                            const std::vector<bool> &values);
+    bool BESS_API evaluateExpression(const std::string &expr,
+                                     const std::vector<bool> &values);
 
     // TSimFnDataPtr exprEvalSimFunc(const TSimFnDataPtr &simData);
 

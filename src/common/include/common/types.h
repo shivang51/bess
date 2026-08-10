@@ -1,13 +1,89 @@
 #pragma once
 
+#include "common/bess_api.h"
+
 #include "common/bess_uuid.h"
 #include <any>
 #include <chrono>
+#include <cmath>
+#include <cstdint>
+#include <limits>
 #include <ratio>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
+#include "absl/container/linked_hash_set.h"
+#include "absl/container/node_hash_map.h"
 
 namespace Bess {
     using TimeMs = std::chrono::duration<double, std::milli>;
     using TimeNs = std::chrono::duration<double, std::nano>;
+
+    template <typename K, typename V> using HashMap = absl::flat_hash_map<K, V>;
+    template <typename K, typename V>
+    using NodeHashMap = absl::node_hash_map<K, V>;
+    template <typename K> using HashSet = absl::flat_hash_set<K>;
+    template <typename K> using OrderedSet = absl::linked_hash_set<K>;
+
+    struct BESS_API PickingId {
+        uint32_t runtimeId;
+        uint32_t info;
+
+        struct InfoFlags {
+            static constexpr uint32_t unSelectable = 1 << 31;
+            static constexpr uint32_t passiveCursor = 1 << 29;
+        };
+
+        static constexpr uint32_t invalidRuntimeId =
+            std::numeric_limits<uint32_t>::max();
+
+        static constexpr PickingId invalid() noexcept {
+            return {invalidRuntimeId, 0};
+        }
+
+        constexpr bool
+        operator==(const PickingId &other) const noexcept = default;
+
+        constexpr bool isValid() const noexcept {
+            return runtimeId != invalidRuntimeId;
+        }
+
+        constexpr bool isSelectable() const noexcept {
+            return !(info & InfoFlags::unSelectable);
+        }
+
+        constexpr uint64_t toUint64() const noexcept {
+            return (static_cast<uint64_t>(runtimeId) << 32) |
+                   static_cast<uint64_t>(info);
+        }
+
+        constexpr operator uint64_t() const noexcept {
+            return toUint64();
+        }
+
+        static constexpr PickingId fromUint64(uint64_t value) noexcept {
+            return {static_cast<uint32_t>(value >> 32),
+                    static_cast<uint32_t>(value & 0xFFFFFFFF)};
+        }
+
+        // Only use it for widget without node or component parent,
+        // Or when runtime id is not available. This will create picking id with
+        // runtimeId = 0. As scene state makes sure runtime id 0 is not
+        // assigned to a scene component.
+        //
+        // NOTE: Make sure info is unique for each unique widget
+        static constexpr PickingId forWidget(uint32_t info) {
+            return {0, info};
+        }
+
+        void set(uint64_t value) {
+            runtimeId = static_cast<uint32_t>(value >> 32);
+            info = static_cast<uint32_t>(value & 0xFFFFFFFF);
+        }
+    };
 
     namespace SimEngine {
         typedef TimeNs SimTime;
@@ -18,12 +94,12 @@ namespace Bess {
 
         typedef std::vector<std::vector<ComponentPin>> Connections;
 
-        struct ConnectionBundle {
+        struct BESS_API ConnectionBundle {
             Connections inputs;
             Connections outputs;
         };
 
-        enum class SimulationState : uint8_t { running, paused };
+        enum class SimulationState : uint8_t { running, paused, stopped };
 
         enum class LogicState : uint8_t { low, high, unknown, high_z };
 
@@ -38,32 +114,294 @@ namespace Bess {
 
         enum class ComponentBehaviorType : uint8_t { none, input, output };
 
-        enum class SlotType : uint8_t { digitalInput, digitalOutput };
+        enum class PortDirection : uint8_t { none, input, output };
 
-        struct SlotState {
-            LogicState state = LogicState::low;
-            SimTime lastChangeTime{0};
+        enum class SignalKind : uint8_t { none, digital, scalar, vector };
 
-            SlotState() = default;
+        enum class QuantityKind : uint8_t {
+            none,
+            logic,
+            dimensionless,
+            voltage,
+            current,
+            resistance,
+            conductance,
+            power,
+            frequency,
+            angle,
+            time,
+            temperature
+        };
 
-            SlotState(LogicState state, SimTime time) {
-                this->state = state;
-                lastChangeTime = time;
+        struct BESS_API PortRef {
+            UUID componentId = UUID::null;
+            PortDirection direction = PortDirection::none;
+            SignalKind signalKind = SignalKind::none;
+            int index = -1;
+
+            bool isValid() const {
+                return componentId != UUID::null &&
+                       direction != PortDirection::none &&
+                       signalKind != SignalKind::none && index >= 0;
             }
 
-            SlotState(bool value) {
-                state = value ? LogicState::high : LogicState::low;
+            bool isInput() const {
+                return direction == PortDirection::input;
             }
 
-            explicit operator bool() const { return state == LogicState::high; }
-
-            SlotState &operator=(const bool &val) {
-                this->state = val ? LogicState::high : LogicState::low;
-                return *this;
+            bool isOutput() const {
+                return direction == PortDirection::output;
             }
         };
 
-        struct SimulationEvent {
+        enum class ConnectionState : uint8_t { unknown = 0, driven, high_z };
+
+        struct BESS_API LogicThresholds {
+            float highThreshold = 0.8f;
+            float lowThreshold = 2.0f;
+        };
+
+        struct BESS_API PortState {
+            SignalKind signalKind = SignalKind::digital;
+            LogicState state = LogicState::low;
+            double scalarValue = 0.0;
+            std::vector<double> vectorValue;
+            SimTime lastChangeTime{0};
+            ConnectionState connState = ConnectionState::driven;
+
+            PortState() noexcept = default;
+
+            explicit PortState(double value, SimTime time) noexcept
+                : signalKind(SignalKind::scalar),
+                  scalarValue(value),
+                  lastChangeTime(time) {
+            }
+
+            PortState(LogicState logicState,
+                      SimTime time,
+                      const LogicThresholds &thresholds = {}) noexcept
+                : signalKind(SignalKind::digital),
+                  lastChangeTime(time) {
+                fromLogicState(logicState, thresholds);
+            }
+
+            static PortState scalar(double value, SimTime time = SimTime{0}) {
+                PortState state;
+                state.signalKind = SignalKind::scalar;
+                state.scalarValue = value;
+                state.lastChangeTime = time;
+                return state;
+            }
+
+            static PortState digital(LogicState value,
+                                     SimTime time = SimTime{0}) {
+                return PortState{value, time};
+            }
+
+            static PortState vector(std::vector<double> value,
+                                    SimTime time = SimTime{0}) {
+                PortState state;
+                state.signalKind = SignalKind::vector;
+                state.vectorValue = std::move(value);
+                state.lastChangeTime = time;
+                return state;
+            }
+
+            bool isDigital() const noexcept {
+                return signalKind == SignalKind::digital;
+            }
+
+            bool isScalar() const noexcept {
+                return signalKind == SignalKind::scalar;
+            }
+
+            bool isVector() const noexcept {
+                return signalKind == SignalKind::vector;
+            }
+
+            PortState &setScalarValue(double value,
+                                      SimTime time = SimTime{0}) noexcept {
+                signalKind = SignalKind::scalar;
+                scalarValue = value;
+                lastChangeTime = time;
+                connState = ConnectionState::driven;
+                state = LogicState::unknown;
+                return *this;
+            }
+
+            PortState &setVectorValue(std::vector<double> value,
+                                      SimTime time = SimTime{0}) {
+                signalKind = SignalKind::vector;
+                vectorValue = std::move(value);
+                lastChangeTime = time;
+                connState = ConnectionState::driven;
+                state = LogicState::unknown;
+                return *this;
+            }
+
+            bool operator==(const PortState &other) const {
+                if (signalKind != other.signalKind) {
+                    return false;
+                }
+
+                switch (signalKind) {
+                case SignalKind::scalar:
+                    return scalarValue == other.scalarValue;
+                case SignalKind::vector:
+                    return vectorValue == other.vectorValue;
+                case SignalKind::digital:
+                case SignalKind::none:
+                    return getLogicState() == other.getLogicState() &&
+                           connState == other.connState;
+                }
+
+                return false;
+            }
+
+            bool operator!=(const PortState &other) const {
+                return !(*this == other);
+            }
+
+            LogicState getLogicState(
+                const LogicThresholds &thresholds = {}) const noexcept {
+                (void)thresholds;
+                if (signalKind != SignalKind::digital &&
+                    signalKind != SignalKind::none) {
+                    return LogicState::unknown;
+                }
+
+                if (connState == ConnectionState::high_z ||
+                    state == LogicState::high_z)
+                    return LogicState::high_z;
+
+                if (connState == ConnectionState::unknown ||
+                    state == LogicState::unknown)
+                    return LogicState::unknown;
+
+                return state;
+            }
+
+            PortState &operator=(const LogicState &logicState) noexcept {
+                signalKind = SignalKind::digital;
+                fromLogicState(logicState, {});
+                return *this;
+            }
+
+            bool isHighZ() const noexcept {
+                return getLogicState() == LogicState::high_z;
+            }
+
+            bool isUnknown() const noexcept {
+                return getLogicState() == LogicState::unknown;
+            }
+
+            bool isHigh(const LogicThresholds &thresholds = {}) const noexcept {
+                return getLogicState(thresholds) == LogicState::high;
+            }
+
+            bool isLow(const LogicThresholds &thresholds = {}) const noexcept {
+                return getLogicState(thresholds) == LogicState::low;
+            }
+
+            bool operator==(const LogicState &other) const noexcept {
+                return getLogicState({}) == other;
+            }
+
+            double getDigitalVoltageValue() const noexcept {
+                switch (getLogicState()) {
+                case LogicState::low:
+                    return 0.0;
+                case LogicState::high:
+                    return 5.0;
+                case LogicState::high_z:
+                case LogicState::unknown:
+                    return std::numeric_limits<double>::quiet_NaN();
+                }
+                return std::numeric_limits<double>::quiet_NaN();
+            }
+
+            double getNumericValue() const noexcept {
+                if (signalKind == SignalKind::scalar) {
+                    return scalarValue;
+                }
+                if (signalKind == SignalKind::digital) {
+                    return getDigitalVoltageValue();
+                }
+                return std::numeric_limits<double>::quiet_NaN();
+            }
+
+          private:
+            void fromLogicState(LogicState logicState,
+                                const LogicThresholds &thresholds) noexcept {
+                (void)thresholds;
+                state = logicState;
+                signalKind = SignalKind::digital;
+                scalarValue = 0.0;
+                vectorValue.clear();
+
+                switch (logicState) {
+                case LogicState::low:
+                    scalarValue = 0.0;
+                    connState = ConnectionState::driven;
+                    break;
+                case LogicState::high:
+                    connState = ConnectionState::driven;
+                    break;
+                case LogicState::high_z:
+                    scalarValue = 0.0;
+                    connState = ConnectionState::high_z;
+                    break;
+                case LogicState::unknown:
+                    scalarValue = 0.0;
+                    connState = ConnectionState::unknown;
+                    break;
+                }
+            }
+        };
+
+        struct BESS_API PortDescriptor {
+            PortDirection direction = PortDirection::none;
+            SignalKind signalKind = SignalKind::none;
+            QuantityKind quantityKind = QuantityKind::none;
+            std::string unit;
+            size_t count = 0;
+            std::vector<std::string> names;
+            bool isResizeable = false;
+            std::vector<PortState> defaultStates;
+
+            [[nodiscard]] std::vector<PortState> makeInitialStates() const {
+                const auto fallbackState = [this]() {
+                    switch (signalKind) {
+                    case SignalKind::digital:
+                        return PortState::digital(LogicState::low);
+                    case SignalKind::scalar:
+                        return PortState::scalar(0.0);
+                    case SignalKind::vector:
+                        return PortState::vector({});
+                    case SignalKind::none:
+                        break;
+                    }
+
+                    auto state = PortState{};
+                    state.signalKind = SignalKind::none;
+                    state.state = LogicState::unknown;
+                    state.connState = ConnectionState::unknown;
+                    return state;
+                }();
+
+                std::vector<PortState> states(count, fallbackState);
+                for (size_t i = 0;
+                     i < states.size() && i < defaultStates.size();
+                     ++i) {
+                    if (defaultStates[i].signalKind == signalKind) {
+                        states[i] = defaultStates[i];
+                    }
+                }
+                return states;
+            }
+        };
+
+        struct BESS_API SimulationEvent {
             SimTime simTime;
             UUID compId;
             UUID schedulerId; // enitity that triggered the change
@@ -75,7 +413,7 @@ namespace Bess {
             }
         };
 
-        struct SlotsGroupInfo {
+        struct BESS_API SlotsGroupInfo {
             SlotsGroupType type = SlotsGroupType::none;
             bool isResizeable = false;
             size_t count = 0;
@@ -84,15 +422,15 @@ namespace Bess {
                 categories; // slot_index, category
         };
 
-        struct OperatorInfo {
+        struct BESS_API OperatorInfo {
             char op = '0';
             bool shouldNegateOutput = false;
         };
 
-        struct ComponentState {
-            std::vector<SlotState> inputStates;
+        struct BESS_API ComponentState {
+            std::vector<PortState> inputStates;
             std::vector<bool> inputConnected;
-            std::vector<SlotState> outputStates;
+            std::vector<PortState> outputStates;
             std::vector<bool> outputConnected;
             bool isChanged = false;
             bool simError = false;
@@ -100,26 +438,126 @@ namespace Bess {
             std::string errorMessage;
         };
 
-        typedef std::function<ComponentState(const std::vector<SlotState> &,
-                                             SimTime, const ComponentState &)>
+        typedef std::function<ComponentState(
+            const std::vector<PortState> &, SimTime, const ComponentState &)>
             SimulationFunction;
 
     } // namespace SimEngine
 }; // namespace Bess
 
+namespace Bess::JsonConvert {
+
+    template <typename T>
+    void fromJsonValue(const Json::Value &j, Bess::HashSet<T> &vec) {
+        vec.clear();
+        if (j.isArray()) {
+            for (const auto &item : j) {
+                T val;
+                fromJsonValue(item, val);
+                vec.insert(val);
+            }
+        }
+    }
+
+    template <typename T>
+    void toJsonValue(const Bess::HashSet<T> &vec, Json::Value &j) {
+        j = Json::arrayValue;
+        for (const auto &item : vec) {
+            Json::Value val;
+            toJsonValue(item, val);
+            j.append(val);
+        }
+    }
+
+    template <typename T>
+    void fromJsonValue(const Json::Value &j, Bess::OrderedSet<T> &vec) {
+        vec.clear();
+        if (j.isArray()) {
+            for (const auto &item : j) {
+                T val;
+                fromJsonValue(item, val);
+                vec.insert(val);
+            }
+        }
+    }
+
+    template <typename T>
+    void toJsonValue(const Bess::OrderedSet<T> &vec, Json::Value &j) {
+        j = Json::arrayValue;
+        for (const auto &item : vec) {
+            Json::Value val;
+            toJsonValue(item, val);
+            j.append(val);
+        }
+    }
+
+    template <typename K, typename V>
+    void fromJsonValue(const Json::Value &j, Bess::HashMap<K, V> &map) {
+        map.clear();
+        if (j.isObject()) {
+            for (const auto &key : j.getMemberNames()) {
+                K k;
+                fromJsonValue(Json::Value(key), k);
+                V v;
+                fromJsonValue(j[key], v);
+                map[k] = v;
+            }
+        }
+    }
+
+    template <typename K, typename V>
+    void toJsonValue(const Bess::HashMap<K, V> &map, Json::Value &j) {
+        j = Json::objectValue;
+        for (const auto &[key, value] : map) {
+            Json::Value k;
+            toJsonValue(key, k);
+            Json::Value v;
+            toJsonValue(value, v);
+            j[k.asString()] = v;
+        }
+    }
+} // namespace Bess::JsonConvert
+
 REFLECT_ENUM(Bess::SimEngine::SimulationState)
 REFLECT_ENUM(Bess::SimEngine::LogicState)
+REFLECT_ENUM(Bess::SimEngine::ConnectionState)
 REFLECT_ENUM(Bess::SimEngine::SlotsGroupType)
 REFLECT_ENUM(Bess::SimEngine::SlotCatergory)
 REFLECT_ENUM(Bess::SimEngine::ComponentBehaviorType)
-REFLECT_ENUM(Bess::SimEngine::SlotType)
+REFLECT_ENUM(Bess::SimEngine::PortDirection)
+REFLECT_ENUM(Bess::SimEngine::SignalKind)
+REFLECT_ENUM(Bess::SimEngine::QuantityKind)
 
-REFLECT(Bess::SimEngine::SlotState, state, lastChangeTime)
-REFLECT_VECTOR(Bess::SimEngine::SlotState)
+REFLECT(Bess::SimEngine::PortRef, componentId, direction, signalKind, index)
+REFLECT(Bess::SimEngine::PortState,
+        signalKind,
+        state,
+        scalarValue,
+        vectorValue,
+        lastChangeTime,
+        connState)
+REFLECT_VECTOR(Bess::SimEngine::PortState)
+
+REFLECT(Bess::SimEngine::PortDescriptor,
+        direction,
+        signalKind,
+        quantityKind,
+        unit,
+        count,
+        names,
+        isResizeable,
+        defaultStates)
+
 REFLECT_VECTOR(bool)
 
-REFLECT(Bess::SimEngine::ComponentState, inputStates, inputConnected,
-        outputStates, outputConnected, isChanged, simError, errorMessage)
+REFLECT(Bess::SimEngine::ComponentState,
+        inputStates,
+        inputConnected,
+        outputStates,
+        outputConnected,
+        isChanged,
+        simError,
+        errorMessage)
 
 REFLECT_VECTOR(Bess::SimEngine::ComponentState)
 
@@ -132,5 +570,9 @@ REFLECT(SimEngine::OperatorInfo, op, shouldNegateOutput)
 typedef std::pair<int, Bess::SimEngine::SlotCatergory> SlotCategoryPair;
 REFLECT(SlotCategoryPair, first, second)
 REFLECT_VECTOR(SlotCategoryPair)
-REFLECT(Bess::SimEngine::SlotsGroupInfo, type, isResizeable, count, names,
+REFLECT(Bess::SimEngine::SlotsGroupInfo,
+        type,
+        isResizeable,
+        count,
+        names,
         categories)

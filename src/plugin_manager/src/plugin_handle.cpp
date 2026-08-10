@@ -1,5 +1,5 @@
 #include "plugin_handle.h"
-#include "application/pages/main_page/scene_components/sim_scene_component.h"
+#include "pages/main_page/scene_components/sim_scene_component.h"
 #include <memory>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -26,6 +26,20 @@ namespace Bess::Plugins {
                       "default version");
             m_pluginVersion = "Unknown";
         }
+    }
+
+    PluginHandle::~PluginHandle() {
+        if (!m_pluginObj.ptr()) {
+            return;
+        }
+
+        if (!Py_IsInitialized()) {
+            m_pluginObj.release();
+            return;
+        }
+
+        py::gil_scoped_acquire gil;
+        m_pluginObj = py::object();
     }
 
     std::vector<std::shared_ptr<SimEngine::Drivers::CompDef>>

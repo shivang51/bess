@@ -25,7 +25,7 @@ namespace Bess::Plugins {
       public:
         PluginHandle() = default;
         PluginHandle(const pybind11::object &pluginObj);
-        ~PluginHandle() = default;
+        ~PluginHandle();
 
         const pybind11::object &getPluginObject() const;
 

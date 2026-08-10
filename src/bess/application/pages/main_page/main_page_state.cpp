@@ -1,52 +1,77 @@
 #include "pages/main_page/main_page_state.h"
 
+#include "bess_core/g_app_context.h"
+#include "bess_core/scene/scene.h"
+#include "bess_core/scene_driver.h"
 #include "bverilog/sim_engine_importer.h"
 #include "common/bess_uuid.h"
+#include "common/events.h"
 #include "common/logger.h"
-#include "dig_sim_driver.h"
-#include "pages/main_page/cmds/update_value_cmd.h"
+#include "event_dispatcher.h"
 #include "pages/main_page/main_page.h"
+#include "pages/main_page/scene_components/image_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_probe_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "pages/main_page/verilog_scene_import.h"
+#include "project_session/project_session.h"
 #include "simulation_engine.h"
+#include "stb_image.h"
+#include <algorithm>
+#include <array>
+#include <cctype>
 #include <cstdint>
 #include <filesystem>
+#include <limits>
+#include <memory>
 #include <optional>
+#include <utility>
 
 namespace Bess::Pages {
     namespace {
-        std::string fallbackSlotName(size_t index, bool isInput) {
-            const char base = isInput ? 'A' : 'a';
-            return std::string(1, static_cast<char>(base + (index % 26)));
+        ProjectSession &sess() {
+            return *GAppContext::getInstance().getSubSystem<ProjectSession>();
         }
 
-        std::shared_ptr<Canvas::Scene> getTrackedScene(SceneDriver &sceneDriver,
-                                                       const UUID &sceneId) {
-            if (sceneId == UUID::null) {
-                return nullptr;
-            }
+        std::string fallbackSlotName(size_t index, bool isInput) {
+            const char base = isInput ? 'A' : 'a';
+            return {static_cast<char>(base + (index % 26))};
+        }
 
-            return sceneDriver.getSceneWithId(sceneId);
+        std::pair<std::shared_ptr<Canvas::Scene>,
+                  std::shared_ptr<Canvas::SimulationSceneComponent>>
+        findSimComp(UUID simId) {
+            for (const auto &scene : sess().scenes().getScenes()) {
+                if (!scene) {
+                    continue;
+                }
+                for (const auto &[_, comp] :
+                     scene->getState().getAllComponents()) {
+                    const auto sim = std::dynamic_pointer_cast<
+                        Canvas::SimulationSceneComponent>(comp);
+                    if (sim && sim->getSimEngineId() == simId) {
+                        return {scene, sim};
+                    }
+                }
+            }
+            return {};
         }
 
         void syncSceneComponentSlots(
             Canvas::SceneState &sceneState,
             const std::shared_ptr<Canvas::SimulationSceneComponent> &comp,
-            const SimEngine::SlotsGroupInfo &slotsInfo, bool isInput) {
+            const SimEngine::PortDescriptor &portDescriptor,
+            bool isInput) {
             if (!comp) {
                 return;
             }
 
-            auto &slotIds =
+            const auto &slotIds =
                 isInput ? comp->getInputSlots() : comp->getOutputSlots();
-            const auto slotType = isInput ? Canvas::SlotType::digitalInput
-                                          : Canvas::SlotType::digitalOutput;
-            const auto resizeSlotType = isInput
-                                            ? Canvas::SlotType::inputsResize
-                                            : Canvas::SlotType::outputsResize;
+            const auto direction = isInput ? SimEngine::PortDirection::input
+                                           : SimEngine::PortDirection::output;
+            const auto signalKind = portDescriptor.signalKind;
 
             std::vector<UUID> realSlots;
             realSlots.reserve(slotIds.size());
@@ -60,8 +85,7 @@ namespace Bess::Pages {
                     continue;
                 }
 
-                if (slot->getSlotType() == resizeSlotType ||
-                    slot->isResizeSlot()) {
+                if (slot->isResizeSlot()) {
                     resizeSlotId = slotId;
                     continue;
                 }
@@ -69,32 +93,36 @@ namespace Bess::Pages {
                 realSlots.push_back(slotId);
             }
 
-            while (realSlots.size() > slotsInfo.count) {
+            while (realSlots.size() > portDescriptor.count) {
                 const auto slotId = realSlots.back();
                 realSlots.pop_back();
                 comp->removeChildComponent(slotId);
                 sceneState.removeComponent(slotId, UUID::master);
             }
 
-            while (realSlots.size() < slotsInfo.count) {
+            while (realSlots.size() < portDescriptor.count) {
                 auto newSlot = std::make_shared<Canvas::SlotSceneComponent>();
-                newSlot->setSlotType(slotType);
+                newSlot->setPortDirection(direction);
+                newSlot->setSignalKind(signalKind);
+                newSlot->setResizeTrigger(false);
                 sceneState.addComponent<Canvas::SlotSceneComponent>(newSlot);
-                sceneState.attachChild(comp->getUuid(), newSlot->getUuid(),
-                                       false);
+                sceneState.attachChild(
+                    comp->getUuid(), newSlot->getUuid(), false);
                 realSlots.push_back(newSlot->getUuid());
             }
 
-            if (slotsInfo.isResizeable) {
+            if (portDescriptor.isResizeable) {
                 if (resizeSlotId == UUID::null) {
                     auto resizeSlot =
                         std::make_shared<Canvas::SlotSceneComponent>();
-                    resizeSlot->setSlotType(resizeSlotType);
+                    resizeSlot->setPortDirection(direction);
+                    resizeSlot->setSignalKind(signalKind);
+                    resizeSlot->setResizeTrigger(true);
                     resizeSlot->setIndex(-1);
                     sceneState.addComponent<Canvas::SlotSceneComponent>(
                         resizeSlot);
-                    sceneState.attachChild(comp->getUuid(),
-                                           resizeSlot->getUuid(), false);
+                    sceneState.attachChild(
+                        comp->getUuid(), resizeSlot->getUuid(), false);
                     resizeSlotId = resizeSlot->getUuid();
                 }
             } else if (resizeSlotId != UUID::null) {
@@ -103,10 +131,19 @@ namespace Bess::Pages {
                 resizeSlotId = UUID::null;
             }
 
-            slotIds.clear();
-            slotIds.insert(slotIds.end(), realSlots.begin(), realSlots.end());
+            std::vector<UUID> nextSlotIds;
+            nextSlotIds.reserve(realSlots.size() +
+                                (resizeSlotId != UUID::null ? 1 : 0));
+            nextSlotIds.insert(
+                nextSlotIds.end(), realSlots.begin(), realSlots.end());
             if (resizeSlotId != UUID::null) {
-                slotIds.push_back(resizeSlotId);
+                nextSlotIds.push_back(resizeSlotId);
+            }
+
+            if (isInput) {
+                comp->setInputSlots(nextSlotIds);
+            } else {
+                comp->setOutputSlots(nextSlotIds);
             }
 
             for (size_t i = 0; i < realSlots.size(); ++i) {
@@ -117,10 +154,12 @@ namespace Bess::Pages {
                     continue;
                 }
 
-                slot->setSlotType(slotType);
+                slot->setPortDirection(direction);
+                slot->setSignalKind(signalKind);
+                slot->setResizeTrigger(false);
                 slot->setIndex(static_cast<int>(i));
-                if (i < slotsInfo.names.size()) {
-                    slot->setName(slotsInfo.names[i]);
+                if (i < portDescriptor.names.size()) {
+                    slot->setName(portDescriptor.names[i]);
                 } else {
                     slot->setName(fallbackSlotName(i, isInput));
                 }
@@ -131,7 +170,9 @@ namespace Bess::Pages {
                     sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(
                         resizeSlotId);
                 if (resizeSlot) {
-                    resizeSlot->setSlotType(resizeSlotType);
+                    resizeSlot->setPortDirection(direction);
+                    resizeSlot->setSignalKind(signalKind);
+                    resizeSlot->setResizeTrigger(true);
                     resizeSlot->setIndex(-1);
                     resizeSlot->setName("");
                 }
@@ -156,6 +197,164 @@ namespace Bess::Pages {
                 return {};
             }
             return paths.front();
+        }
+
+        struct StbiImageDeleter {
+            void operator()(stbi_uc *pixels) const {
+                stbi_image_free(pixels);
+            }
+        };
+
+        struct DecodedImage {
+            std::vector<uint8_t> rgba8;
+            uint32_t width = 0;
+            uint32_t height = 0;
+        };
+
+        struct FileDropContext {
+            ProjectTx *tx = nullptr;
+            UUID scene = UUID::null;
+            glm::vec2 basePos{0.f};
+            std::vector<UUID> addedComponentIds;
+            Status status;
+
+            void addComponent(
+                const std::shared_ptr<Canvas::SceneComponent> &component) {
+                if (!tx || !status || component == nullptr) {
+                    return;
+                }
+
+                const auto offset =
+                    static_cast<float>(addedComponentIds.size()) * 24.f;
+                component->setPosition(
+                    {basePos.x + offset, basePos.y + offset, 0.f});
+                status = tx->addComp(component, {}, scene);
+                if (!status) {
+                    return;
+                }
+                addedComponentIds.push_back(component->getUuid());
+            }
+        };
+
+        std::string normalizedExtension(const std::string &path) {
+            auto ext = std::filesystem::path(path).extension().string();
+            std::ranges::transform(ext, ext.begin(), [](unsigned char ch) {
+                return static_cast<char>(std::tolower(ch));
+            });
+            return ext;
+        }
+
+        bool isSupportedImageFile(const std::string &path) {
+            const auto ext = normalizedExtension(path);
+            return ext == ".png" || ext == ".jpg" || ext == ".jpeg" ||
+                   ext == ".bmp" || ext == ".tga";
+        }
+
+        std::optional<size_t> rgbaByteCount(uint32_t width, uint32_t height) {
+            if (width == 0u || height == 0u) {
+                return std::nullopt;
+            }
+
+            const auto w = static_cast<size_t>(width);
+            const auto h = static_cast<size_t>(height);
+            if (w > std::numeric_limits<size_t>::max() / h) {
+                return std::nullopt;
+            }
+
+            const auto pixels = w * h;
+            if (pixels >
+                std::numeric_limits<size_t>::max() / static_cast<size_t>(4u)) {
+                return std::nullopt;
+            }
+
+            return pixels * 4u;
+        }
+
+        std::optional<DecodedImage> decodeImageFile(const std::string &path) {
+            int width = 0;
+            int height = 0;
+            int channels = 0;
+            std::unique_ptr<stbi_uc, StbiImageDeleter> pixels(
+                stbi_load(path.c_str(), &width, &height, &channels, 4));
+            (void)channels;
+
+            if (!pixels || width <= 0 || height <= 0) {
+                BESS_ERROR("[MainPageState] Failed to load image {}: {}",
+                           path,
+                           stbi_failure_reason());
+                return std::nullopt;
+            }
+
+            DecodedImage image;
+            image.width = static_cast<uint32_t>(width);
+            image.height = static_cast<uint32_t>(height);
+            const auto byteCount = rgbaByteCount(image.width, image.height);
+            if (!byteCount.has_value()) {
+                BESS_ERROR("[MainPageState] Dropped image {} has invalid "
+                           "dimensions {}x{}",
+                           path,
+                           width,
+                           height);
+                return std::nullopt;
+            }
+
+            image.rgba8.assign(pixels.get(), pixels.get() + *byteCount);
+            return image;
+        }
+
+        glm::vec2 initialImageSceneScale(uint32_t width, uint32_t height) {
+            constexpr float maxInitialSide = 360.f;
+            glm::vec2 scale{static_cast<float>(width),
+                            static_cast<float>(height)};
+            const float largestSide = std::max(scale.x, scale.y);
+            if (largestSide > maxInitialSide) {
+                scale *= maxInitialSide / largestSide;
+            }
+            scale.x = std::max(16.f, scale.x);
+            scale.y = std::max(16.f, scale.y);
+            return scale;
+        }
+
+        bool handleDroppedImageFile(const std::string &path,
+                                    FileDropContext &ctx) {
+            if (!isSupportedImageFile(path)) {
+                return false;
+            }
+
+            auto decodedImage = decodeImageFile(path);
+            if (!decodedImage.has_value()) {
+                return true;
+            }
+
+            auto imageComponent =
+                std::make_shared<Canvas::ImageSceneComponent>();
+            const auto fileName =
+                std::filesystem::path(path).filename().string();
+            imageComponent->setName(fileName.empty() ? "Image" : fileName);
+            imageComponent->setImageWidth(decodedImage->width);
+            imageComponent->setImageHeight(decodedImage->height);
+            imageComponent->setData(std::move(decodedImage->rgba8));
+            imageComponent->setMaintainAspectRatio(true);
+            imageComponent->setScale(initialImageSceneScale(
+                decodedImage->width, decodedImage->height));
+            ctx.addComponent(imageComponent);
+            return true;
+        }
+
+        bool handleDroppedFile(const std::string &path, FileDropContext &ctx) {
+            using DropHandler =
+                bool (*)(const std::string &, FileDropContext &);
+            static constexpr std::array<DropHandler, 1> handlers{
+                handleDroppedImageFile,
+            };
+
+            for (const auto handler : handlers) {
+                if (handler(path, ctx)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
     } // namespace
 
@@ -182,37 +381,12 @@ namespace Bess::Pages {
     MainPageState::MainPageState() = default;
     MainPageState::~MainPageState() = default;
 
-    void MainPageState::resetProjectState(bool updateWindowName) {
-        m_sceneDriver.reset(updateWindowName);
-        SimEngine::SimulationEngine::instance().clear();
-    }
-
-    void MainPageState::createNewProject(bool updateWindowName) {
-        resetProjectState(updateWindowName);
-        m_currentProjectFile = std::make_shared<ProjectFile>();
-        if (!updateWindowName)
-            return;
-        const auto win = MainPage::getInstance()->getParentWindow();
-        win->setName(m_currentProjectFile->getName());
-    }
-
-    void MainPageState::loadProject(const std::string &path) {
-        resetProjectState();
-        const auto project = std::make_shared<ProjectFile>(path);
-        updateCurrentProject(project);
-    }
-
-    void MainPageState::saveCurrentProject() const {
-        m_currentProjectFile->save();
-    }
-
-    void MainPageState::updateCurrentProject(
-        const std::shared_ptr<ProjectFile> &project) {
-        if (project == nullptr)
-            return;
-        m_currentProjectFile = project;
-        const auto win = MainPage::getInstance()->getParentWindow();
-        win->setName(m_currentProjectFile->getName() + " - BESS");
+    Status MainPageState::resetProj() {
+        const auto status = sess().newProj();
+        if (!status) {
+            BESS_ERROR("Could not reset project: {}", status.msg());
+        }
+        return status;
     }
 
     bool MainPageState::importVerilogFile(const std::string &path,
@@ -231,7 +405,14 @@ namespace Bess::Pages {
                 return false;
             }
 
-            auto scene = m_sceneDriver.getActiveScene();
+            const auto reset = resetProj();
+            if (!reset) {
+                if (errorMessage) {
+                    *errorMessage = reset.msg();
+                }
+                return false;
+            }
+            auto scene = sess().scenes().getActiveScene();
             if (!scene) {
                 if (errorMessage) {
                     *errorMessage = "No active scene available";
@@ -239,12 +420,14 @@ namespace Bess::Pages {
                 return false;
             }
 
-            resetProjectState();
-            auto &simEngine = SimEngine::SimulationEngine::instance();
-            // const auto result =
-            // Verilog::importVerilogFilesIntoSimulationEngine(toFilesystemPaths(paths),
-            // simEngine); populateSceneFromVerilogImportResult(result,
-            // simEngine, *scene); m_sceneDriver.updateNets(scene);
+            auto &appCtx = Bess::GAppContext::getInstance();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+            auto &simEngine = projectCtx->sim();
+            const auto result = Verilog::importVerilogFilesIntoSimulationEngine(
+                toFilesystemPaths(paths), simEngine);
+            populateSceneFromVerilogImportResult(result, simEngine, *scene);
+            updateNets(scene);
+
             return true;
         } catch (const std::exception &ex) {
             if (errorMessage) {
@@ -252,7 +435,8 @@ namespace Bess::Pages {
             }
             BESS_ERROR("[MainPageState] Failed to import Verilog files "
                        "(primary {}): {}",
-                       primaryImportPath(paths), ex.what());
+                       primaryImportPath(paths),
+                       ex.what());
             return false;
         }
     }
@@ -260,13 +444,68 @@ namespace Bess::Pages {
     HierarchicalSceneLayoutResult
     MainPageState::applyHierarchicalLayoutToActiveScene() {
         HierarchicalSceneLayoutResult result;
-        const auto activeScene = m_sceneDriver.getActiveScene();
+        const auto activeScene = sess().scenes().getActiveScene();
         if (!activeScene) {
             return result;
         }
 
-        return applyHierarchicalSceneLayout(
-            *activeScene, SimEngine::SimulationEngine::instance());
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        auto &state = activeScene->getState();
+        std::unordered_map<UUID, glm::vec3> before;
+        before.reserve(state.getAllComponents().size());
+        for (const auto &[id, comp] : state.getAllComponents()) {
+            if (comp) {
+                before.emplace(id, comp->getTransform().position);
+            }
+        }
+
+        result = applyHierarchicalSceneLayout(*activeScene, projectCtx->sim());
+        if (!result.applied) {
+            return result;
+        }
+
+        auto tx = projectCtx->tx("Apply hierarchical layout");
+        for (const auto &[id, pos] : before) {
+            const auto comp = state.getComponentByUuid(id);
+            if (!comp || comp->getTransform().position == pos) {
+                continue;
+            }
+            const auto status = tx.trackMove(id,
+                                             pos,
+                                             comp->getTransform().position,
+                                             activeScene->getSceneId());
+            if (!status) {
+                tx.cancel();
+                for (const auto &[restoreId, restorePos] : before) {
+                    if (const auto restore =
+                            state.getComponentByUuid(restoreId)) {
+                        restore->setPosition(restorePos);
+                    }
+                }
+                result.applied = false;
+                BESS_WARN("Could not prepare layout transaction: {}",
+                          status.msg());
+                return result;
+            }
+        }
+
+        if (tx.isEmpty()) {
+            tx.cancel();
+            return result;
+        }
+        const auto commit = tx.commit();
+        if (!commit) {
+            for (const auto &[id, pos] : before) {
+                if (const auto comp = state.getComponentByUuid(id)) {
+                    comp->setPosition(pos);
+                }
+            }
+            result.applied = false;
+            BESS_WARN("Could not record layout transaction: {}",
+                      commit.status.msg());
+        }
+        return result;
     }
 
     void MainPageState::startVerilogImport(const std::string &path) {
@@ -306,12 +545,16 @@ namespace Bess::Pages {
         }
 
         try {
-            auto &simEngine = SimEngine::SimulationEngine::instance();
-            auto scene = m_sceneDriver.getActiveScene();
+            auto &appCtx = Bess::GAppContext::getInstance();
+            auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+            auto &simEngine = projectCtx->sim();
+            auto scene = sess().scenes().getActiveScene();
 
             switch (session.phase) {
             case VerilogImportSession::Phase::resetProject:
-                resetProjectState();
+                if (const auto reset = resetProj(); !reset) {
+                    throw std::runtime_error(reset.msg());
+                }
                 session.progress = 0.2f;
                 session.stageMessage = "Converting Verilog to simulation graph";
                 session.phase = VerilogImportSession::Phase::importSimulation;
@@ -333,8 +576,8 @@ namespace Bess::Pages {
                     throw std::runtime_error(
                         "No staged result available for scene population");
                 }
-                populateSceneFromVerilogImportResult(res.value(), simEngine,
-                                                     *scene);
+                populateSceneFromVerilogImportResult(
+                    res.value(), simEngine, *scene);
                 session.progress = 0.92f;
                 session.stageMessage = "Updating nets";
                 session.phase = VerilogImportSession::Phase::updateNets;
@@ -344,7 +587,7 @@ namespace Bess::Pages {
                 if (!scene) {
                     throw std::runtime_error("No active scene available");
                 }
-                m_sceneDriver.updateNets(scene);
+                updateNets(scene);
                 session.progress = 1.f;
                 session.stageMessage = "Import complete";
                 session.phase = VerilogImportSession::Phase::completed;
@@ -382,149 +625,96 @@ namespace Bess::Pages {
         m_verilogImportSession.reset();
     }
 
-    std::shared_ptr<ProjectFile> MainPageState::getCurrentProjectFile() const {
-        return m_currentProjectFile;
-    }
+    void MainPageState::init() {
+        auto &appCtx = GAppContext::getInstance();
+        auto dispatcher = appCtx.getSubSystem<EventSystem::EventDispatcher>();
 
-    bool MainPageState::isKeyPressed(int key) const {
-        return m_pressedKeysFrame.contains(key) && m_pressedKeysFrame.at(key);
-    }
-
-    void MainPageState::setKeyPressed(int key) {
-        m_pressedKeysFrame[key] = true;
-    }
-
-    bool MainPageState::isKeyReleased(int key) const {
-        return m_releasedKeysFrame.contains(key) && m_releasedKeysFrame.at(key);
-    }
-
-    void MainPageState::setKeyReleased(int key) {
-        m_releasedKeysFrame[key] = true;
-    }
-
-    bool MainPageState::isKeyDown(int key) const {
-        return m_downKeys.contains(key) && m_downKeys.at(key);
-    }
-
-    void MainPageState::setKeyDown(int key, bool isDown) {
-        m_downKeys[key] = isDown;
-    }
-
-    void MainPageState::initCmdSystem() {
-        m_commandSystem.init();
-        auto &dispatcher = EventSystem::EventDispatcher::instance();
-        dispatcher.sink<Canvas::Events::EntityMovedEvent>()
+        dispatcher->sink<Events::WindowDropEvent>()
+            .connect<&MainPageState::onWindowDropped>(this);
+        dispatcher->sink<Canvas::Events::EntityMovedEvent>()
             .connect<&MainPageState::onEntityMoved>(this);
-        dispatcher.sink<Canvas::Events::EntityReparentedEvent>()
-            .connect<&MainPageState::onEntityReparented>(this);
-        dispatcher.sink<Canvas::Events::ComponentAddedEvent>()
-            .connect<&MainPageState::onEntityAdded>(this);
-        dispatcher.sink<Canvas::Events::ComponentRemovedEvent>()
-            .connect<&MainPageState::onEntityRemoved>(this);
-        dispatcher.sink<SimEngine::Events::CompDefOutputsResizedEvent>()
+        dispatcher->sink<SimEngine::Events::CompDefOutputsResizedEvent>()
             .connect<&MainPageState::onCompDefOutputsResized>(this);
-        dispatcher.sink<SimEngine::Events::CompDefInputsResizedEvent>()
+        dispatcher->sink<SimEngine::Events::CompDefInputsResizedEvent>()
             .connect<&MainPageState::onCompDefInputsResized>(this);
+    }
+
+    void MainPageState::onWindowDropped(const Events::WindowDropEvent &event) {
+        if (!event.payload || event.payload->paths.empty()) {
+            return;
+        }
+
+        auto activeScene = sess().scenes().getActiveScene();
+        if (!activeScene) {
+            BESS_ERROR("No active scene available for dropped files");
+            return;
+        }
+
+        auto &sceneState = activeScene->getState();
+        auto tx = sess().tx("Add dropped files");
+        FileDropContext dropCtx{
+            .tx = &tx,
+            .scene = activeScene->getSceneId(),
+            .basePos = sceneState.getMousePos(),
+        };
+        size_t handledCount = 0;
+
+        for (const auto &filePath : event.payload->paths) {
+            if (handleDroppedFile(filePath, dropCtx)) {
+                ++handledCount;
+                continue;
+            }
+
+            BESS_DEBUG("[MainPageState] Ignored dropped file with unsupported "
+                       "type: {}",
+                       filePath);
+        }
+
+        if (handledCount == 0) {
+            BESS_DEBUG("[MainPageState] No supported files found in drop");
+        }
+
+        if (!dropCtx.status) {
+            tx.cancel();
+            BESS_ERROR("Could not add dropped files: {}", dropCtx.status.msg());
+            return;
+        }
+        if (dropCtx.addedComponentIds.empty()) {
+            tx.cancel();
+            return;
+        }
+
+        const auto result = tx.commit();
+        if (!result) {
+            BESS_ERROR("Could not add dropped files: {}", result.status.msg());
+            return;
+        }
+
+        sceneState.clearSelectedComponents();
+        for (const auto &componentId : dropCtx.addedComponentIds) {
+            sceneState.addSelectedComponent(componentId);
+        }
     }
 
     void
     MainPageState::onEntityMoved(const Canvas::Events::EntityMovedEvent &e) {
-        auto entity =
-            m_sceneDriver->getState().getComponentByUuid(e.entityUuid);
+        if (!e.state || e.oldPos == e.newPos) {
+            return;
+        }
+        auto entity = e.state->getComponentByUuid(e.entityUuid);
         if (!entity) {
             return;
         }
 
-        glm::vec3 *posPtr = &entity->getTransform().position;
-        auto cmd = std::make_unique<Cmd::UpdateValCommand<glm::vec3>>(
-            posPtr, e.newPos, e.oldPos);
-        m_commandSystem.push(std::move(cmd));
-    }
-
-    void MainPageState::onEntityReparented(
-        const Canvas::Events::EntityReparentedEvent &e) {
-        const auto scene = getTrackedScene(m_sceneDriver, e.sceneId);
-        if (!scene) {
-            return;
+        const auto result = sess().trackMove(e.entityUuid,
+                                             e.oldPos,
+                                             e.newPos,
+                                             e.state->getSceneId(),
+                                             e.schematic);
+        if (!result) {
+            BESS_WARN("Could not track component move: {}",
+                      result.status.msg());
         }
-
-        auto &sceneState = scene->getState();
-        auto entity = sceneState.getComponentByUuid(e.entityUuid);
-        if (!entity) {
-            return;
-        }
-
-        if (entity->getType() == Canvas::SceneComponentType::slot) {
-            return;
-        }
-
-        UUID *parentPtr = &entity->getParentComponent();
-
-        bool parentIsWasGroup = false;
-
-        if (e.newParentUuid != UUID::null) {
-            const auto &parentComp =
-                sceneState.getComponentByUuid(e.newParentUuid);
-            if (!parentComp) {
-                return;
-            }
-            parentIsWasGroup =
-                parentComp->getType() == Canvas::SceneComponentType::group;
-        }
-
-        if (!parentIsWasGroup && e.prevParent != UUID::null) {
-            const auto &prevParentComp =
-                sceneState.getComponentByUuid(e.prevParent);
-            if (!prevParentComp)
-                return;
-            if (prevParentComp->getType() ==
-                Canvas::SceneComponentType::group) {
-                parentIsWasGroup = true;
-            }
-        }
-
-        // ignore if parent is/was a group
-        // group handels this shit it self
-        if (parentIsWasGroup) {
-            return;
-        }
-
-        /// undo redo callback
-        const auto callback = [this, entityUuid = e.entityUuid,
-                               sceneId = e.sceneId](bool isUndo,
-                                                    const UUID &newParent) {
-            (void)isUndo;
-            if (newParent == UUID::null)
-                return;
-
-            const auto scene = getTrackedScene(m_sceneDriver, sceneId);
-            if (!scene) {
-                return;
-            }
-
-            const auto &parent =
-                scene->getState().getComponentByUuid(newParent);
-            if (!parent) {
-                return;
-            }
-            parent->addChildComponent(entityUuid);
-        };
-
-        if (entity) {
-            auto cmd = std::make_unique<Cmd::UpdateValCommand<UUID>>(
-                parentPtr, e.newParentUuid, e.prevParent, callback);
-            m_commandSystem.push(std::move(cmd));
-        }
-    }
-
-    const SceneDriver &MainPageState::getSceneDriver() const {
-        return m_sceneDriver;
-    }
-
-    SceneDriver &MainPageState::getSceneDriver() { return m_sceneDriver; }
-
-    Cmd::CommandSystem &MainPageState::getCommandSystem() {
-        return m_commandSystem;
     }
 
     void MainPageState::update() {
@@ -534,131 +724,83 @@ namespace Bess::Pages {
 
     void MainPageState::onCompDefOutputsResized(
         const SimEngine::Events::CompDefOutputsResizedEvent &e) {
-        if (!m_simIdToSceneCompId.contains(e.componentId)) {
+        const auto [scene, comp] = findSimComp(e.componentId);
+        if (!scene || !comp) {
             BESS_WARN("Ignoring CompDefOutputsResizedEvent for unknown "
                       "componentId: {}",
                       (uint64_t)e.componentId);
             return;
         }
 
-        const auto &compData = m_simIdToSceneCompId[e.componentId];
+        auto &sceneState = scene->getState();
 
-        const auto scene = m_sceneDriver.getSceneWithId(compData.sceneId);
-        if (!scene) {
-            m_simIdToSceneCompId.erase(e.componentId);
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        const auto &def =
+            projectCtx->sim().getComponentDefinition(e.componentId);
+        if (!def) {
             return;
         }
 
-        auto &sceneState = scene->getState();
-        const auto &comp =
-            sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(
-                compData.sceneCompId);
-        if (!comp)
-            return; // most likely the component was deleted, so we can ignore
-                    // this event
-
-        const auto &digitalComp =
-            SimEngine::SimulationEngine::instance()
-                .getComponent<SimEngine::Drivers::Digital::DigSimComp>(
-                    e.componentId);
-
-        const auto &outSlotsInfo =
-            digitalComp
-                ->getDefinition<SimEngine::Drivers::Digital::DigCompDef>()
-                ->getOutputSlotsInfo();
-        syncSceneComponentSlots(sceneState, comp, outSlotsInfo, false);
+        syncSceneComponentSlots(
+            sceneState, comp, def->getOutputPortDescriptor(), false);
     }
 
     void MainPageState::onCompDefInputsResized(
         const SimEngine::Events::CompDefInputsResizedEvent &e) {
-        if (!m_simIdToSceneCompId.contains(e.componentId)) {
+        const auto [scene, comp] = findSimComp(e.componentId);
+        if (!scene || !comp) {
             BESS_WARN("Ignoring CompDefInputsResizedEvent for unknown "
                       "componentId: {}",
                       (uint64_t)e.componentId);
             return;
         }
 
-        const auto &compData = m_simIdToSceneCompId[e.componentId];
+        auto &sceneState = scene->getState();
 
-        const auto scene = m_sceneDriver.getSceneWithId(compData.sceneId);
-        if (!scene) {
-            m_simIdToSceneCompId.erase(e.componentId);
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        const auto &def =
+            projectCtx->sim().getComponentDefinition(e.componentId);
+        if (!def) {
             return;
         }
 
-        auto &sceneState = scene->getState();
-        const auto &comp =
-            sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(
-                compData.sceneCompId);
-        if (!comp)
-            return; // most likely the component was deleted, so we can ignore
-                    // this event
-
-        const auto &digitalComp =
-            SimEngine::SimulationEngine::instance()
-                .getComponent<SimEngine::Drivers::Digital::DigSimComp>(
-                    e.componentId);
-        const auto &outSlotsInfo =
-            digitalComp
-                ->getDefinition<SimEngine::Drivers::Digital::DigCompDef>()
-                ->getOutputSlotsInfo();
-
-        const auto &inSlotsInfo =
-            digitalComp
-                ->getDefinition<SimEngine::Drivers::Digital::DigCompDef>()
-                ->getInputSlotsInfo();
-        syncSceneComponentSlots(sceneState, comp, inSlotsInfo, true);
+        syncSceneComponentSlots(
+            sceneState, comp, def->getInputPortDescriptor(), true);
     }
 
     void
-    MainPageState::onEntityAdded(const Canvas::Events::ComponentAddedEvent &e) {
-        const auto scene = getTrackedScene(m_sceneDriver, e.sceneId);
-        if (!scene) {
+    MainPageState::updateNets(const std::shared_ptr<Canvas::Scene> &scene) {
+        auto &appCtx = Bess::GAppContext::getInstance();
+        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
+        auto &simEngine = projectCtx->sim();
+        if (!simEngine.isNetUpdated())
             return;
-        }
 
-        const auto &sceneState = scene->getState();
-        const auto &comp = sceneState.getComponentByUuid(e.uuid);
-        if (!comp) {
-            return;
-        }
+        auto &sceneState = scene->getState();
 
-        if (e.type == Canvas::SceneComponentType::simulation ||
-            e.type == Canvas::SceneComponentType::module) {
-            const auto simComp =
-                std::dynamic_pointer_cast<Canvas::SimulationSceneComponent>(
-                    comp);
-            if (!simComp) {
-                return;
+        std::unordered_map<UUID,
+                           std::shared_ptr<Canvas::SimulationSceneComponent>>
+            simIdToComp;
+
+        for (const auto &[compId, comp] : sceneState.getAllComponents()) {
+            if (comp->getType() == Canvas::SceneComponentType::group ||
+                comp->getType() == Canvas::SceneComponentType::simulation) {
+                const auto simComp =
+                    comp->cast<Canvas::SimulationSceneComponent>();
+                simIdToComp[simComp->getSimEngineId()] = simComp;
             }
-            const auto &simEngineId = simComp->getSimEngineId();
-            m_simIdToSceneCompId[simEngineId] = {e.uuid, e.sceneId};
-        }
-    }
-
-    void MainPageState::onEntityRemoved(
-        const Canvas::Events::ComponentRemovedEvent &e) {
-        if (e.type != Canvas::SceneComponentType::simulation &&
-            e.type != Canvas::SceneComponentType::module)
-            return;
-
-        auto it =
-            std::ranges::find_if(m_simIdToSceneCompId, [&e](const auto &pair) {
-                return pair.second.sceneCompId == e.uuid &&
-                       pair.second.sceneId == e.sceneId;
-            });
-
-        if (it != m_simIdToSceneCompId.end()) {
-            m_simIdToSceneCompId.erase(it);
-        }
-    }
-
-    MainPageState::TNetIdToCompMap &
-    MainPageState::getNetIdToCompMap(UUID sceneId) {
-        if (!m_netIdToCompMap.contains(sceneId)) {
-            m_netIdToCompMap[sceneId] = TNetIdToCompMap{};
         }
 
-        return m_netIdToCompMap.at(sceneId);
+        const auto &nets = simEngine.getNetsMap();
+        for (const auto &[netId, net] : nets) {
+            for (const auto &simId : net.getComponents()) {
+                if (simIdToComp.contains(simId)) {
+                    const auto &comp = simIdToComp[simId];
+                    comp->setNetId(netId);
+                }
+            }
+        }
     }
 } // namespace Bess::Pages
