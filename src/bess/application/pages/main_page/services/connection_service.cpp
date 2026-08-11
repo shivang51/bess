@@ -112,6 +112,41 @@ namespace Bess::Svc {
 
             return nullptr;
         }
+
+        std::shared_ptr<Canvas::SlotSceneComponent>
+        pairedSlotFor(const Canvas::SceneState &sceneState,
+                      SimEngine::SimulationEngine &simEngine,
+                      const std::shared_ptr<Canvas::SlotSceneComponent> &slot) {
+            if (!slot || slot->getIndex() < 0) {
+                return nullptr;
+            }
+
+            const auto parent =
+                sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(
+                    slot->getParentComponent());
+            if (!parent) {
+                return nullptr;
+            }
+
+            const auto digital =
+                simEngine.getComponent<SimEngine::Drivers::Digital::DigSimComp>(
+                    parent->getSimEngineId());
+            const auto definition =
+                digital ? digital->getDefinition<
+                              SimEngine::Drivers::Digital::DigCompDef>()
+                        : nullptr;
+            if (!definition || !definition->getKeepIOCountEq()) {
+                return nullptr;
+            }
+
+            const auto &pairedSlots = slot->isInputSlot()
+                                          ? parent->getOutputSlots()
+                                          : parent->getInputSlots();
+            return findRealSlotAtIndex(sceneState,
+                                       pairedSlots,
+                                       !slot->isInputSlot(),
+                                       slot->getIndex());
+        }
     } // namespace
 
     void SvcConnection::onInit() {
@@ -222,13 +257,18 @@ namespace Bess::Svc {
 
         std::vector<UUID> dependants;
 
-        if (slotA && isSlotRemovable(scene, slotA, 1)) {
-            dependants.push_back(slotA->getUuid());
-        }
-
-        if (slotB && isSlotRemovable(scene, slotB, 1)) {
-            dependants.push_back(slotB->getUuid());
-        }
+        const auto addRemovableSlots = [&](const auto &slot) {
+            if (!slot || !isSlotRemovable(scene, slot, 1)) {
+                return;
+            }
+            dependants.push_back(slot->getUuid());
+            const auto paired = pairedSlotFor(sceneState, getSimEngine(), slot);
+            if (paired) {
+                dependants.push_back(paired->getUuid());
+            }
+        };
+        addRemovableSlots(slotA);
+        addRemovableSlots(slotB);
 
         return dependants;
     }
@@ -436,92 +476,62 @@ namespace Bess::Svc {
         BESS_ASSERT(slotB,
                     "Failed to get resolved slot B for connection removal");
 
-        const auto &slotAId = slotA->getUuid();
-        const auto &slotBId = slotB->getUuid();
-
         disconnect(scene, startSlotId, endSlotId);
 
         auto removedIds = std::vector<UUID>{};
-        const auto findPairedSlotRemovedWith =
-            [&](const std::shared_ptr<Canvas::SlotSceneComponent> &slot)
-            -> std::shared_ptr<Canvas::SlotSceneComponent> {
-            if (!slot || slot->getIndex() < 0) {
-                return nullptr;
-            }
-
-            const auto parent =
-                sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(
-                    slot->getParentComponent());
-            if (!parent) {
-                return nullptr;
-            }
-
-            const auto digComp =
-                getSimEngine()
-                    .getComponent<SimEngine::Drivers::Digital::DigSimComp>(
-                        parent->getSimEngineId());
-            if (!digComp) {
-                return nullptr;
-            }
-
-            const auto digDef =
-                digComp
-                    ->getDefinition<SimEngine::Drivers::Digital::DigCompDef>();
-            if (!digDef || !digDef->getKeepIOCountEq()) {
-                return nullptr;
-            }
-
-            const auto &pairedSlots = slot->isInputSlot()
-                                          ? parent->getOutputSlots()
-                                          : parent->getInputSlots();
-            return findRealSlotAtIndex(sceneState,
-                                       pairedSlots,
-                                       !slot->isInputSlot(),
-                                       slot->getIndex());
-        };
-
-        // Processing Slot-A
-        {
-            slotA->removeConnection(conn->getUuid());
-            if (isSlotRemovable(scene, slotA)) {
-                const auto pairedSlot = findPairedSlotRemovedWith(slotA);
-                m_slotsBin[slotA->getUuid()] = slotA;
-                if (!removeSlot(scene, slotA)) {
-                    BESS_ERROR(
-                        "Failed to remove slot A with id {} for connection {}",
-                        (uint64_t)slotAId,
-                        (uint64_t)conn->getUuid());
-                    BESS_ASSERT(false,
-                                "Failed to remove slot A for connection");
-                    return {};
+        const auto findSlotToShrink =
+            [&](const std::shared_ptr<Canvas::SlotSceneComponent> &slot) {
+                if (!slot || !sceneState.isComponentValid(slot->getUuid())) {
+                    return std::shared_ptr<Canvas::SlotSceneComponent>{};
                 }
-                removedIds.push_back(slotA->getUuid());
-                if (pairedSlot) {
-                    removedIds.push_back(pairedSlot->getUuid());
-                }
-            }
-        }
 
-        // Processing Slot-B
-        {
-            slotB->removeConnection(conn->getUuid());
-            if (isSlotRemovable(scene, slotB)) {
-                const auto pairedSlot = findPairedSlotRemovedWith(slotB);
-                m_slotsBin[slotB->getUuid()] = slotB;
-                if (!removeSlot(scene, slotB)) {
-                    BESS_ERROR(
-                        "Failed to remove slot B with id {} for connection {}",
-                        (uint64_t)slotBId,
-                        (uint64_t)conn->getUuid());
-                    BESS_ASSERT(false,
-                                "Failed to remove slot B for connection");
-                    return {};
+                const auto paired =
+                    pairedSlotFor(sceneState, getSimEngine(), slot);
+                if (isSlotRemovable(scene, slot) &&
+                    (!paired || paired->getConnectedConnections().empty())) {
+                    return slot;
                 }
-                removedIds.push_back(slotB->getUuid());
-                if (pairedSlot) {
-                    removedIds.push_back(pairedSlot->getUuid());
+
+                if (paired && slot->getConnectedConnections().empty() &&
+                    isSlotRemovable(scene, paired)) {
+                    return paired;
                 }
-            }
+                return std::shared_ptr<Canvas::SlotSceneComponent>{};
+            };
+        const auto processSlot =
+            [&](const std::shared_ptr<Canvas::SlotSceneComponent> &slot,
+                const char *label) {
+                if (!slot || !sceneState.isComponentValid(slot->getUuid())) {
+                    return true;
+                }
+
+                slot->removeConnection(conn->getUuid());
+                const auto removable = findSlotToShrink(slot);
+                if (!removable) {
+                    return true;
+                }
+
+                const auto paired =
+                    pairedSlotFor(sceneState, getSimEngine(), removable);
+                m_slotsBin[removable->getUuid()] = removable;
+                if (!removeSlot(scene, removable)) {
+                    BESS_ERROR("Failed to remove slot {} with id {} for "
+                               "connection {}",
+                               label,
+                               (uint64_t)removable->getUuid(),
+                               (uint64_t)conn->getUuid());
+                    BESS_ASSERT(false, "Failed to remove slot for connection");
+                    return false;
+                }
+                removedIds.push_back(removable->getUuid());
+                if (paired) {
+                    removedIds.push_back(paired->getUuid());
+                }
+                return true;
+            };
+
+        if (!processSlot(slotA, "A") || !processSlot(slotB, "B")) {
+            return {};
         }
 
         sceneState.removeComponent(conn->getUuid());
@@ -630,19 +640,9 @@ namespace Bess::Svc {
         const auto &pairedSlots =
             isInput ? parent->getOutputSlots() : parent->getInputSlots();
 
-        std::shared_ptr<Canvas::SlotSceneComponent> pairedSlot;
-        const auto digComp =
-            getSimEngine()
-                .getComponent<SimEngine::Drivers::Digital::DigSimComp>(
-                    parent->getSimEngineId());
-        if (digComp) {
-            const auto digDef =
-                digComp
-                    ->getDefinition<SimEngine::Drivers::Digital::DigCompDef>();
-            if (digDef && digDef->getKeepIOCountEq()) {
-                pairedSlot = findRealSlotAtIndex(
-                    sceneState, pairedSlots, !isInput, removedIndex);
-            }
+        const auto pairedSlot = pairedSlotFor(sceneState, getSimEngine(), slot);
+        if (pairedSlot && !pairedSlot->getConnectedConnections().empty()) {
+            return false;
         }
 
         if (isInput) {

@@ -33,6 +33,7 @@
 #include "ui/ui_main/project_explorer.h"
 #include "ui/ui_main/ui_main.h"
 #include <GLFW/glfw3.h>
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <ranges>
@@ -200,9 +201,14 @@ namespace Bess::Pages {
                 }
 
                 const auto &sceneState = targetScene->getState();
-                const auto selectedIds = sceneState.getSelectedComponents() |
-                                         std::ranges::views::keys |
-                                         std::ranges::to<std::vector<UUID>>();
+                auto selectedIds = sceneState.getSelectedComponents() |
+                                   std::ranges::views::keys |
+                                   std::ranges::to<std::vector<UUID>>();
+                std::erase_if(selectedIds, [&](const UUID &id) {
+                    const auto component = sceneState.getComponentByUuid(id);
+                    return !component || component->getType() ==
+                                             Canvas::SceneComponentType::ui;
+                });
 
                 std::unordered_set<UUID> moduleCoveredIds;
                 std::vector<UUID> moduleIds;

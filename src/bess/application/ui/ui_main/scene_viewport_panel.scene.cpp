@@ -326,7 +326,8 @@ namespace Bess::UI {
                     }
 
                     const auto comp = sceneState.getComponentByPickingId(id);
-                    if (comp) {
+                    if (comp &&
+                        comp->getType() != Canvas::SceneComponentType::ui) {
                         sceneState.addSelectedComponent(comp->getUuid());
                     }
                 }

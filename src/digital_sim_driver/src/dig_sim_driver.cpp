@@ -7,6 +7,7 @@
 #include "dig_module_def.h"
 #include "driver_registry.h"
 #include "expression_evalutator/expr_evaluator.h"
+#include "net/net_rebuilder.h"
 #include "sim_driver/event_based_sim_driver.h"
 #include "sim_driver/sim_driver.h"
 #include "simulation_engine.h"
@@ -351,7 +352,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         }
 
         auto removeBackReferences = [&](Connections &pins,
-                                        bool removeFromInputs) {
+                                        PortDirection otherDirection) {
             for (const auto &pin : pins) {
                 for (const auto &[otherId, otherIdx] : pin) {
                     const auto other = getComponent<DigSimComp>(otherId);
@@ -359,9 +360,7 @@ namespace Bess::SimEngine::Drivers::Digital {
                         continue;
                     }
 
-                    auto &otherPins = removeFromInputs
-                                          ? other->getInputConnections()
-                                          : other->getOutputConnections();
+                    auto &otherPins = connectionsFor(*other, otherDirection);
                     if (otherIdx < 0 ||
                         static_cast<size_t>(otherIdx) >= otherPins.size()) {
                         continue;
@@ -371,23 +370,19 @@ namespace Bess::SimEngine::Drivers::Digital {
                     std::erase_if(targetPin, [&](const auto &conn) {
                         return conn.first == uuid;
                     });
+                    markPortConnection(
+                        *other, otherDirection, otherIdx, !targetPin.empty());
                 }
             }
         };
 
-        removeBackReferences(comp->getOutputConnections(), true);
-        removeBackReferences(comp->getInputConnections(), false);
-
-        const auto netId = comp->getNetUuid();
-        if (m_nets.contains(netId)) {
-            m_nets[netId].removeComponent(uuid);
-            if (m_nets[netId].size() == 0) {
-                m_nets.erase(netId);
-            }
-            m_isNetUpdated = true;
-        }
+        removeBackReferences(comp->getOutputConnections(),
+                             PortDirection::input);
+        removeBackReferences(comp->getInputConnections(),
+                             PortDirection::output);
 
         EvtBasedSimDriver::deleteComponent(uuid);
+        rebuildNets();
     }
 
     void DigitalSimDriver::clearComponents() {
@@ -530,13 +525,19 @@ namespace Bess::SimEngine::Drivers::Digital {
             return;
         }
 
-        std::erase_if(pinsA[portA.index], [&](const auto &c) {
-            return c.first == portB.componentId && c.second == portB.index;
-        });
+        const auto removedFromA =
+            std::erase_if(pinsA[portA.index], [&](const auto &c) {
+                return c.first == portB.componentId && c.second == portB.index;
+            });
 
-        std::erase_if(pinsB[portB.index], [&](const auto &c) {
-            return c.first == portA.componentId && c.second == portA.index;
-        });
+        const auto removedFromB =
+            std::erase_if(pinsB[portB.index], [&](const auto &c) {
+                return c.first == portA.componentId && c.second == portA.index;
+            });
+
+        if (removedFromA == 0 && removedFromB == 0) {
+            return;
+        }
 
         const bool stillAConnected = !pinsA[portA.index].empty();
         const bool stillBConnected = !pinsB[portB.index].empty();
@@ -550,7 +551,7 @@ namespace Bess::SimEngine::Drivers::Digital {
         scheduleEvt(
             inputPort.componentId, getCurrentSimTime(), UUID::null, true);
 
-        m_isNetUpdated = true;
+        rebuildNets();
         BESS_INFO("Deleted connection in DigitalSimDriver");
     }
 
@@ -682,6 +683,43 @@ namespace Bess::SimEngine::Drivers::Digital {
             }
         }
 
+        auto updateBackReferencesAfterInsert =
+            [&](PortDirection insertedDirection) {
+                auto &connections = connectionsFor(*digComp, insertedDirection);
+                for (size_t shiftedIndex = static_cast<size_t>(index) + 1;
+                     shiftedIndex < connections.size();
+                     ++shiftedIndex) {
+                    for (const auto &[otherId, otherPortIndex] :
+                         connections[shiftedIndex]) {
+                        const auto other = getComponent<DigSimComp>(otherId);
+                        if (!other || otherPortIndex < 0) {
+                            continue;
+                        }
+
+                        auto &otherPins = connectionsFor(
+                            *other, oppositeDirection(insertedDirection));
+                        if (static_cast<size_t>(otherPortIndex) >=
+                            otherPins.size()) {
+                            continue;
+                        }
+
+                        for (auto &backReference : otherPins[otherPortIndex]) {
+                            if (backReference.first == compId &&
+                                backReference.second ==
+                                    static_cast<int>(shiftedIndex) - 1) {
+                                backReference.second =
+                                    static_cast<int>(shiftedIndex);
+                            }
+                        }
+                    }
+                }
+            };
+
+        updateBackReferencesAfterInsert(direction);
+        if (digDef->getKeepIOCountEq()) {
+            updateBackReferencesAfterInsert(oppositeDirection(direction));
+        }
+
         digDef->computeExpressionsIfNeeded();
 
         triggerPortCountChangeCbs(
@@ -726,6 +764,59 @@ namespace Bess::SimEngine::Drivers::Digital {
         if (!force && !digDef->onSlotsResizeReq(slotsGroupTypeFor(direction),
                                                 info.count - 1)) {
             return PortCountChangeRes::noChange();
+        }
+
+        auto disconnectPort = [&](PortDirection removedDirection) {
+            auto &connections = connectionsFor(*digComp, removedDirection);
+            if (index < 0 || static_cast<size_t>(index) >= connections.size()) {
+                return;
+            }
+
+            const auto removedConnections = connections[index];
+            const PortRef removedPort{.componentId = compId,
+                                      .direction = removedDirection,
+                                      .signalKind = SignalKind::digital,
+                                      .index = index};
+            for (const auto &[otherId, otherPortIndex] : removedConnections) {
+                deleteConnection(
+                    removedPort,
+                    {.componentId = otherId,
+                     .direction = oppositeDirection(removedDirection),
+                     .signalKind = SignalKind::digital,
+                     .index = otherPortIndex});
+            }
+
+            for (size_t shiftedIndex = static_cast<size_t>(index) + 1;
+                 shiftedIndex < connections.size();
+                 ++shiftedIndex) {
+                for (const auto &[otherId, otherPortIndex] :
+                     connections[shiftedIndex]) {
+                    const auto other = getComponent<DigSimComp>(otherId);
+                    if (!other || otherPortIndex < 0) {
+                        continue;
+                    }
+
+                    auto &otherPins = connectionsFor(
+                        *other, oppositeDirection(removedDirection));
+                    if (static_cast<size_t>(otherPortIndex) >=
+                        otherPins.size()) {
+                        continue;
+                    }
+
+                    for (auto &backReference : otherPins[otherPortIndex]) {
+                        if (backReference.first == compId &&
+                            backReference.second ==
+                                static_cast<int>(shiftedIndex)) {
+                            --backReference.second;
+                        }
+                    }
+                }
+            }
+        };
+
+        disconnectPort(direction);
+        if (digDef->getKeepIOCountEq()) {
+            disconnectPort(oppositeDirection(direction));
         }
 
         if (isInput) {
@@ -1070,6 +1161,11 @@ namespace Bess::SimEngine::Drivers::Digital {
         m_isNetUpdated = false;
     }
 
+    void DigitalSimDriver::rebuildNets() {
+        rebuildComponentNets<DigSimComp>(m_components, m_nets);
+        m_isNetUpdated = true;
+    }
+
     Json::Value DigCompDef::toJson() const {
         Json::Value json = EvtBasedCompDef::toJson();
 
@@ -1354,7 +1450,6 @@ namespace Bess::SimEngine::Drivers::Digital {
 
         std::vector<UUID> reSchedComps;
 
-        m_nets.clear();
         for (const auto &[compId, compBase] : m_components) {
             const auto comp = std::dynamic_pointer_cast<DigSimComp>(compBase);
             if (!comp) {
@@ -1364,16 +1459,9 @@ namespace Bess::SimEngine::Drivers::Digital {
             if (comp->getDefinition<DigCompDef>()->getAutoReschedule()) {
                 reSchedComps.emplace_back(compId);
             }
-
-            const auto &netId = comp->getNetUuid();
-            if (netId == UUID::null) {
-                continue;
-            }
-
-            auto &net = m_nets[netId];
-            net.setUUID(netId);
-            net.addComponent(compId);
         }
+
+        rebuildNets();
 
         for (int i = 0; i < reSchedComps.size(); i++) {
             const auto &compId = reSchedComps.at(i);

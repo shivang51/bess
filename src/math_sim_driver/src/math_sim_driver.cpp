@@ -4,6 +4,7 @@
 #include "common/logger.h"
 #include "component_catalog.h"
 #include "driver_registry.h"
+#include "net/net_rebuilder.h"
 #include "json/value.h"
 
 #include <algorithm>
@@ -150,6 +151,16 @@ namespace Bess::SimEngine::Drivers::Math {
             return direction == PortDirection::input
                        ? comp.getIsInputConnected()
                        : comp.getIsOutputConnected();
+        }
+
+        PortDirection oppositeDirection(PortDirection direction) {
+            if (direction == PortDirection::input) {
+                return PortDirection::output;
+            }
+            if (direction == PortDirection::output) {
+                return PortDirection::input;
+            }
+            return PortDirection::none;
         }
 
         PortCountChangeRes changeResFor(PortDirection direction) {
@@ -604,7 +615,7 @@ namespace Bess::SimEngine::Drivers::Math {
         }
 
         auto removeBackReferences = [&](Connections &pins,
-                                        bool removeFromInputs) {
+                                        PortDirection otherDirection) {
             for (const auto &pin : pins) {
                 for (const auto &[otherId, otherIdx] : pin) {
                     const auto other = getComponent<MathSimComp>(otherId);
@@ -612,9 +623,7 @@ namespace Bess::SimEngine::Drivers::Math {
                         continue;
                     }
 
-                    auto &otherPins = removeFromInputs
-                                          ? other->getInputConnections()
-                                          : other->getOutputConnections();
+                    auto &otherPins = connectionsFor(*other, otherDirection);
                     if (otherIdx < 0 ||
                         static_cast<size_t>(otherIdx) >= otherPins.size()) {
                         continue;
@@ -624,23 +633,19 @@ namespace Bess::SimEngine::Drivers::Math {
                     std::erase_if(targetPin, [&](const auto &conn) {
                         return conn.first == uuid;
                     });
+                    markPortConnection(
+                        *other, otherDirection, otherIdx, !targetPin.empty());
                 }
             }
         };
 
-        removeBackReferences(comp->getOutputConnections(), true);
-        removeBackReferences(comp->getInputConnections(), false);
-
-        const auto netId = comp->getNetUuid();
-        if (m_nets.contains(netId)) {
-            m_nets[netId].removeComponent(uuid);
-            if (m_nets[netId].size() == 0) {
-                m_nets.erase(netId);
-            }
-            m_isNetUpdated = true;
-        }
+        removeBackReferences(comp->getOutputConnections(),
+                             PortDirection::input);
+        removeBackReferences(comp->getInputConnections(),
+                             PortDirection::output);
 
         EvtBasedSimDriver::deleteComponent(uuid);
+        rebuildNets();
     }
 
     void MathSimDriver::clearComponents() {
@@ -794,21 +799,27 @@ namespace Bess::SimEngine::Drivers::Math {
 
         auto &portAConnections = pinsA[portA.index];
         auto &portBConnections = pinsB[portB.index];
-        std::erase_if(portAConnections, [&](const auto &conn) {
-            return conn.first == portB.componentId &&
-                   conn.second == portB.index;
-        });
-        std::erase_if(portBConnections, [&](const auto &conn) {
-            return conn.first == portA.componentId &&
-                   conn.second == portA.index;
-        });
+        const auto removedFromA =
+            std::erase_if(portAConnections, [&](const auto &conn) {
+                return conn.first == portB.componentId &&
+                       conn.second == portB.index;
+            });
+        const auto removedFromB =
+            std::erase_if(portBConnections, [&](const auto &conn) {
+                return conn.first == portA.componentId &&
+                       conn.second == portA.index;
+            });
+
+        if (removedFromA == 0 && removedFromB == 0) {
+            return;
+        }
 
         markPortConnection(
             *compA, portA.direction, portA.index, !portAConnections.empty());
         markPortConnection(
             *compB, portB.direction, portB.index, !portBConnections.empty());
 
-        m_isNetUpdated = true;
+        rebuildNets();
         BESS_INFO("Deleted connection in MathSimDriver");
     }
 
@@ -851,6 +862,34 @@ namespace Bess::SimEngine::Drivers::Math {
         connections.insert(connections.begin() + insertIdx,
                            Connections::value_type{});
         connected.insert(connected.begin() + insertIdx, false);
+
+        // Inserting a port shifts every following local port index. Keep the
+        // reciprocal references stored by connected components in sync.
+        for (size_t shiftedIndex = static_cast<size_t>(insertIdx) + 1;
+             shiftedIndex < connections.size();
+             ++shiftedIndex) {
+            for (const auto &[otherId, otherPortIndex] :
+                 connections[shiftedIndex]) {
+                const auto other = getComponent<MathSimComp>(otherId);
+                if (!other || otherPortIndex < 0) {
+                    continue;
+                }
+
+                auto &otherPins =
+                    connectionsFor(*other, oppositeDirection(port.direction));
+                if (static_cast<size_t>(otherPortIndex) >= otherPins.size()) {
+                    continue;
+                }
+
+                for (auto &backReference : otherPins[otherPortIndex]) {
+                    if (backReference.first == port.componentId &&
+                        backReference.second ==
+                            static_cast<int>(shiftedIndex) - 1) {
+                        backReference.second = static_cast<int>(shiftedIndex);
+                    }
+                }
+            }
+        }
         descriptor.count = states.size();
 
         if (port.direction == PortDirection::input) {
@@ -891,6 +930,43 @@ namespace Bess::SimEngine::Drivers::Math {
         if (port.index < 0 ||
             static_cast<size_t>(port.index) >= states.size()) {
             return PortCountChangeRes::noChange();
+        }
+
+        const auto removedConnections = connections[port.index];
+        for (const auto &[otherId, otherPortIndex] : removedConnections) {
+            deleteConnection(port,
+                             {.componentId = otherId,
+                              .direction = oppositeDirection(port.direction),
+                              .signalKind = SignalKind::scalar,
+                              .index = otherPortIndex});
+        }
+
+        // The following local ports move down by one. Update their reciprocal
+        // references before erasing the local connection slot.
+        for (size_t shiftedIndex = static_cast<size_t>(port.index) + 1;
+             shiftedIndex < connections.size();
+             ++shiftedIndex) {
+            for (const auto &[otherId, otherPortIndex] :
+                 connections[shiftedIndex]) {
+                const auto other = getComponent<MathSimComp>(otherId);
+                if (!other || otherPortIndex < 0) {
+                    continue;
+                }
+
+                auto &otherPins =
+                    connectionsFor(*other, oppositeDirection(port.direction));
+                if (static_cast<size_t>(otherPortIndex) >= otherPins.size()) {
+                    continue;
+                }
+
+                for (auto &backReference : otherPins[otherPortIndex]) {
+                    if (backReference.first == port.componentId &&
+                        backReference.second ==
+                            static_cast<int>(shiftedIndex)) {
+                        --backReference.second;
+                    }
+                }
+            }
         }
 
         states.erase(states.begin() + port.index);
@@ -1095,6 +1171,11 @@ namespace Bess::SimEngine::Drivers::Math {
         m_isNetUpdated = false;
     }
 
+    void MathSimDriver::rebuildNets() {
+        rebuildComponentNets<MathSimComp>(m_components, m_nets);
+        m_isNetUpdated = true;
+    }
+
     Json::Value MathSimDriver::toJson() const {
         Json::Value json = Json::Value(Json::objectValue);
         for (const auto &[id, comp] : m_components) {
@@ -1134,17 +1215,7 @@ namespace Bess::SimEngine::Drivers::Math {
 
         registerLoadedComponentsForRunStart();
 
-        m_nets.clear();
-        for (const auto &[compId, compBase] : m_components) {
-            const auto comp = std::dynamic_pointer_cast<MathSimComp>(compBase);
-            if (!comp || comp->getNetUuid() == UUID::null) {
-                continue;
-            }
-
-            auto &net = m_nets[comp->getNetUuid()];
-            net.setUUID(comp->getNetUuid());
-            net.addComponent(compId);
-        }
+        rebuildNets();
 
         m_isNetUpdated = false;
     }

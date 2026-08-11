@@ -285,7 +285,10 @@ namespace Bess::Canvas {
         const auto &comps = m_state.getRootComponents();
 
         for (auto &id : comps) {
-            m_state.addSelectedComponent(id);
+            const auto component = m_state.getComponentByUuid(id);
+            if (component && component->getType() != SceneComponentType::ui) {
+                m_state.addSelectedComponent(id);
+            }
         }
     }
 

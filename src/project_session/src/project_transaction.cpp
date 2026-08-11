@@ -422,7 +422,8 @@ namespace Bess {
                     const auto comp =
                         scene->getState()
                             .getComponentByUuidSP<Canvas::SceneComponent>(id);
-                    if (!comp) {
+                    if (!comp ||
+                        comp->getType() == Canvas::SceneComponentType::ui) {
                         return;
                     }
                     seen.insert(id);

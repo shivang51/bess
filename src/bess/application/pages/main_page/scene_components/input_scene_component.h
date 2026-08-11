@@ -33,9 +33,14 @@ namespace Bess::Canvas {
 
         void prepareUI(SceneUIPrepareCtx &ctx) override;
 
-        std::vector<UUID> getDependants(const SceneState &state) const override;
+        std::vector<UUID> cleanup(SceneState &state,
+                                  UUID caller = UUID::null) override;
+
+        std::vector<UUID> clearUI(SceneState &state);
 
       private:
+        std::vector<UUID> clearInputControls(SceneState &state);
+
         std::vector<std::shared_ptr<Bess::Canvas::UI::UISceneComponent>>
             m_inputCtrls;
         std::vector<SimEngine::SignalKind> m_inpSignalKinds;

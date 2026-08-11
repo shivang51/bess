@@ -5,6 +5,7 @@
 #include "bess_core/scene_driver.h"
 #include "dig_module_def.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
+#include "pages/main_page/scene_components/input_scene_component.h"
 #include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
@@ -32,6 +33,9 @@ namespace Bess::Edit {
                         std::dynamic_pointer_cast<Canvas::SlotSceneComponent>(
                             comp)) {
                     slot->clearUI(fromState);
+                } else if (const auto input = std::dynamic_pointer_cast<
+                               Canvas::InputSceneComponent>(comp)) {
+                    input->clearUI(fromState);
                 } else if (const auto sim = std::dynamic_pointer_cast<
                                Canvas::SimulationSceneComponent>(comp)) {
                     sim->clearUI(fromState);

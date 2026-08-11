@@ -501,6 +501,13 @@ namespace Bess::JsonConvert {
         j["components"] = Json::Value(Json::arrayValue);
 
         for (const auto &[uuid, component] : state.getAllComponents()) {
+            // UI components are runtime presentation helpers owned by their
+            // scene component. Persisting them creates stale UI trees which
+            // are rebuilt again when the owning component is restored.
+            if (!component ||
+                component->getType() == Bess::Canvas::SceneComponentType::ui) {
+                continue;
+            }
             component->beforeSerialize(state);
             j["components"].append(component->toJson());
         }

@@ -2,6 +2,7 @@
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/scene/scene.h"
 #include "bess_core/scene/scene_event.h"
+#include "bess_core/scene/scene_ser_reg.h"
 #include "bess_core/scene/scene_serializer.h"
 #include "bess_core/scene/scene_ui/controls/scalar_input_comp.h"
 #include "bess_core/scene/scene_ui/controls/text_box_comp.h"
@@ -552,6 +553,109 @@ TEST_F(MainPageConnectionCommandsTest,
               nullptr);
 }
 
+TEST_F(MainPageConnectionCommandsTest,
+       SceneSerializationOmitsRuntimeUiComponents) {
+    const auto fixture = addSimComponent(makeDefinition("UI component", 1, 1));
+    ASSERT_NE(fixture.comp, nullptr);
+
+    const auto renderer = std::make_shared<TestRenderer2D>();
+    Bess::SceneUIPrepareCtx prepareCtx{
+        .sceneState = &scene->getState(),
+        .renderer = renderer,
+        .parentNode = nullptr,
+        .theme = Bess::Core::Style::BessTheme::defaultTheme(),
+    };
+    fixture.comp->prepareUI(prepareCtx);
+    ASSERT_GT(countUiComps(scene->getState()), 0u);
+
+    Json::Value serialized;
+    Bess::SceneSerializer{}.serialize(serialized, scene);
+    const auto &components = serialized["scene_state"]["components"];
+    ASSERT_TRUE(components.isArray());
+    EXPECT_TRUE(std::ranges::none_of(components, [](const auto &component) {
+        return component["typeName"].asString() == "UISceneComponent";
+    }));
+}
+
+TEST_F(MainPageConnectionCommandsTest,
+       DeleteInputUndoRebuildsRuntimeControlsWithoutRootGhost) {
+    const auto inputDefinition = makeDefinition("Digital Input", 0, 1);
+    inputDefinition->setBehaviorType(
+        Bess::SimEngine::ComponentBehaviorType::input);
+    const auto fixture = addSimComponent(inputDefinition);
+    const auto input =
+        std::dynamic_pointer_cast<Bess::Canvas::InputSceneComponent>(
+            fixture.comp);
+    ASSERT_NE(input, nullptr);
+
+    input->setPosition({240.f, 160.f, input->getTransform().position.z});
+    const auto renderer = std::make_shared<TestRenderer2D>();
+    Bess::SceneUIPrepareCtx prepareCtx{
+        .sceneState = &scene->getState(),
+        .renderer = renderer,
+        .parentNode = nullptr,
+        .theme = Bess::Core::Style::BessTheme::defaultTheme(),
+    };
+    input->prepareUI(prepareCtx);
+    const auto uiCount = countUiComps(scene->getState());
+    ASSERT_GT(uiCount, 0u);
+
+    session->clearHist();
+    ASSERT_TRUE(session->rmComp(input->getUuid(), scene->getSceneId()));
+    EXPECT_EQ(countUiComps(scene->getState()), 0u);
+
+    ASSERT_TRUE(session->undo());
+    EXPECT_EQ(countUiComps(scene->getState()), 0u);
+    ASSERT_EQ(scene->getState().getComponentByUuid(input->getUuid()),
+              input.get());
+
+    input->prepareUI(prepareCtx);
+    EXPECT_EQ(countUiComps(scene->getState()), uiCount);
+    EXPECT_EQ(input->getTransform().position.x, 240.f);
+    EXPECT_EQ(input->getTransform().position.y, 160.f);
+}
+
+TEST_F(MainPageConnectionCommandsTest,
+       MultiGateSelectionDeleteUndoDoesNotRestoreRuntimeUiRoots) {
+    const auto andDefinition = makeDefinition("AND Gate", 2, 1);
+    const auto first = addSimComponent(andDefinition);
+    const auto second = addSimComponent(andDefinition);
+    ASSERT_NE(first.comp, nullptr);
+    ASSERT_NE(second.comp, nullptr);
+
+    const auto renderer = std::make_shared<TestRenderer2D>();
+    Bess::SceneUIPrepareCtx prepareCtx{
+        .sceneState = &scene->getState(),
+        .renderer = renderer,
+        .parentNode = nullptr,
+        .theme = Bess::Core::Style::BessTheme::defaultTheme(),
+    };
+    first.comp->prepareUI(prepareCtx);
+    second.comp->prepareUI(prepareCtx);
+    const auto componentCount = scene->getState().getAllComponents().size();
+    const auto uiCount = countUiComps(scene->getState());
+    ASSERT_GT(uiCount, 0u);
+
+    const auto deletionIds = scene->getState().getRootComponents() |
+                             std::ranges::to<std::vector<UUID>>();
+    ASSERT_GT(deletionIds.size(), 2u);
+
+    scene->selectAllEntities();
+    const auto selected = scene->getState().getSelectedComponents() |
+                          std::views::keys |
+                          std::ranges::to<std::vector<UUID>>();
+    EXPECT_EQ(selected.size(), 2u);
+
+    session->clearHist();
+    ASSERT_TRUE(session->rmComp(deletionIds, scene->getSceneId()));
+    ASSERT_TRUE(session->undo());
+
+    first.comp->prepareUI(prepareCtx);
+    second.comp->prepareUI(prepareCtx);
+    EXPECT_EQ(countUiComps(scene->getState()), uiCount);
+    EXPECT_EQ(scene->getState().getAllComponents().size(), componentCount);
+}
+
 TEST_F(MainPageConnectionCommandsTest, AddConnectionIsUndoableAndRedoable) {
     const auto source = addSimComponent(sourceDef);
     const auto sink = addSimComponent(sinkDef);
@@ -713,6 +817,66 @@ TEST_F(MainPageConnectionCommandsTest,
     EXPECT_NE(
         moduleScene->getState().getComponentByUuid(fixture.comp->getUuid()),
         nullptr);
+}
+
+TEST_F(MainPageConnectionCommandsTest,
+       ModuleCreationMovesDigitalInputUiToModuleScene) {
+    const auto inputDefinition = makeDefinition("Digital Input", 0, 1);
+    inputDefinition->setBehaviorType(
+        Bess::SimEngine::ComponentBehaviorType::input);
+    const auto fixture = addSimComponent(inputDefinition);
+    const auto input =
+        std::dynamic_pointer_cast<Bess::Canvas::InputSceneComponent>(
+            fixture.comp);
+    ASSERT_NE(input, nullptr);
+
+    const UUID net;
+    input->setNetId(net);
+
+    const auto renderer = std::make_shared<TestRenderer2D>();
+    Bess::SceneUIPrepareCtx sourceCtx{
+        .sceneState = &scene->getState(),
+        .renderer = renderer,
+        .parentNode = nullptr,
+        .theme = Bess::Core::Style::BessTheme::defaultTheme(),
+    };
+    input->prepareUI(sourceCtx);
+    const auto inputUiCount = countUiComps(scene->getState());
+    ASSERT_GT(inputUiCount, 0u);
+
+    session->clearHist();
+    const auto made =
+        Bess::Edit::makeModule(*session, scene, net, "Input module");
+    ASSERT_TRUE(made) << made.status.msg();
+    ASSERT_NE(made.val, nullptr);
+
+    const auto moduleScene =
+        sceneDriver->getSceneWithId(made.val->getSceneId());
+    ASSERT_NE(moduleScene, nullptr);
+    EXPECT_EQ(countUiComps(scene->getState()), 0u);
+
+    Bess::SceneUIPrepareCtx moduleCtx{
+        .sceneState = &moduleScene->getState(),
+        .renderer = renderer,
+        .parentNode = nullptr,
+        .theme = Bess::Core::Style::BessTheme::defaultTheme(),
+    };
+    input->prepareUI(moduleCtx);
+    EXPECT_EQ(countUiComps(scene->getState()), 0u);
+    EXPECT_EQ(countUiComps(moduleScene->getState()), inputUiCount);
+    const auto moduleRegistry = moduleScene->getState().getUINodeRegistry();
+    for (auto &[_, node] : moduleRegistry->getAllNodes()) {
+        if (node.getParentId() == UUID::null) {
+            node.measure(*moduleRegistry, UUID::null);
+        }
+    }
+
+    ASSERT_TRUE(session->undo());
+    EXPECT_EQ(countUiComps(moduleScene->getState()), 0u);
+    EXPECT_TRUE(input->getUIDirty());
+
+    input->prepareUI(sourceCtx);
+    EXPECT_EQ(countUiComps(scene->getState()), inputUiCount);
 }
 
 TEST_F(MainPageConnectionCommandsTest,
@@ -1218,13 +1382,14 @@ TEST_F(MainPageConnectionCommandsTest,
 
     size_t textBoxCount = 0;
     size_t toggleCount = 0;
-    for (const auto &depId : inputComp->getDependants(scene->getState())) {
-        if (scene->getState()
-                .getComponentByUuidSP<Bess::Canvas::UI::TextBoxComp>(depId)) {
+    for (const auto &[_, component] :
+         scene->getState().getAllComponents()) {
+        if (std::dynamic_pointer_cast<Bess::Canvas::UI::TextBoxComp>(
+                component)) {
             ++textBoxCount;
         }
-        if (scene->getState()
-                .getComponentByUuidSP<Bess::Canvas::UI::ToggleBtnComp>(depId)) {
+        if (std::dynamic_pointer_cast<Bess::Canvas::UI::ToggleBtnComp>(
+                component)) {
             ++toggleCount;
         }
     }
@@ -1687,6 +1852,100 @@ TEST_F(MainPageConnectionCommandsTest,
 }
 
 TEST_F(MainPageConnectionCommandsTest,
+       LoadedDigitalClockSelectionCanBeDeletedAndUndoneWithoutGhosts) {
+    auto &pluginManager = Bess::Plugins::PluginManager::getInstance();
+    ASSERT_TRUE(pluginManager.loadPluginsFromDirectory("plugins"));
+    for (const auto &[_, plugin] : pluginManager.getLoadedPlugins()) {
+        for (const auto &definition : plugin->onCompCatalogLoad()) {
+            Bess::SimEngine::ComponentCatalog::instance().registerComponent(
+                definition);
+        }
+    }
+    Bess::Canvas::SceneSerReg::setFallback(
+        [](const Json::Value &json)
+            -> std::shared_ptr<Bess::Canvas::SceneComponent> {
+            const auto typeName = json["typeName"].asString();
+            if (typeName == "UISceneComponent") {
+                return nullptr;
+            }
+            auto component =
+                std::make_shared<Bess::Canvas::SimulationSceneComponent>();
+            Bess::Canvas::SimulationSceneComponent::fromJson(json, component);
+            return component;
+        });
+    const auto loadStatus =
+        session->load("sample_projects/digital-clock.bproj");
+    ASSERT_TRUE(loadStatus) << loadStatus.msg();
+
+    scene = sceneDriver->getActiveScene();
+    ASSERT_NE(scene, nullptr);
+
+    std::vector<UUID> selected;
+    std::vector<UUID> modules;
+    for (const auto componentId : scene->getState().getRootComponents()) {
+        const auto component =
+            scene->getState().getComponentByUuid(componentId);
+        if (!component) {
+            continue;
+        }
+        if (component->getType() == Bess::Canvas::SceneComponentType::module) {
+            modules.push_back(componentId);
+            selected.push_back(componentId);
+        } else if (component->getType() ==
+                   Bess::Canvas::SceneComponentType::simulation) {
+            selected.push_back(componentId);
+        }
+    }
+    ASSERT_GT(selected.size(), 2);
+    ASSERT_FALSE(modules.empty());
+
+    const auto allSelected = selected;
+    std::erase_if(selected, [&](UUID id) {
+        return std::ranges::find(modules, id) != modules.end();
+    });
+
+    const auto renderer = std::make_shared<TestRenderer2D>();
+    Bess::SceneUIPrepareCtx prepareCtx{
+        .sceneState = &scene->getState(),
+        .renderer = renderer,
+        .parentNode = nullptr,
+        .theme = Bess::Core::Style::BessTheme::defaultTheme(),
+    };
+    for (const auto componentId : selected) {
+        const auto component = scene->getState().getComponentByUuid<
+            Bess::Canvas::SimulationSceneComponent>(componentId);
+        ASSERT_NE(component, nullptr);
+        component->prepareUI(prepareCtx);
+    }
+    const auto componentCount = scene->getState().getAllComponents().size();
+
+    session->clearHist();
+    auto tx = session->tx("Delete selection");
+    for (const auto moduleId : modules) {
+        ASSERT_TRUE(Bess::Edit::rmModule(tx, scene, moduleId));
+    }
+    ASSERT_TRUE(tx.rmComp(selected, scene->getSceneId()));
+    const auto removed = tx.commit();
+    ASSERT_TRUE(removed) << removed.status.msg();
+    for (const auto componentId : allSelected) {
+        EXPECT_EQ(scene->getState().getComponentByUuid(componentId), nullptr);
+    }
+
+    const auto restored = session->undo();
+    ASSERT_TRUE(restored) << restored.status.msg();
+    for (const auto componentId : allSelected) {
+        EXPECT_NE(scene->getState().getComponentByUuid(componentId), nullptr);
+    }
+    for (const auto componentId : selected) {
+        const auto component = scene->getState().getComponentByUuid<
+            Bess::Canvas::SimulationSceneComponent>(componentId);
+        ASSERT_NE(component, nullptr);
+        component->prepareUI(prepareCtx);
+    }
+    EXPECT_EQ(scene->getState().getAllComponents().size(), componentCount);
+}
+
+TEST_F(MainPageConnectionCommandsTest,
        DeleteConnectionUndoRestoresRemovedResizableSlotInSimEngine) {
     const auto resizableSourceDef =
         makeDefinition("Resizable Source", 0, 2, false, true);
@@ -1811,4 +2070,62 @@ TEST_F(MainPageConnectionCommandsTest,
     const std::unordered_set<UUID> uniqueOutputIds(outputIds.begin(),
                                                    outputIds.end());
     EXPECT_EQ(uniqueOutputIds.size(), outputIds.size());
+}
+
+TEST_F(MainPageConnectionCommandsTest,
+       PairedResizableSlotsRemainUntilBothConnectionsAreRemoved) {
+    const auto notDef =
+        makeDefinition("NOT Gate", 1, 1, true, false, true, '!');
+    const auto source = addSimComponent(sourceDef);
+    const auto sink = addSimComponent(sinkDef);
+    const auto notGate = addSimComponent(notDef);
+
+    ASSERT_FALSE(source.outputs.empty());
+    ASSERT_FALSE(sink.inputs.empty());
+    ASSERT_GE(notGate.inputs.size(), 2u);
+
+    const auto resizeInput = notGate.inputs.back();
+    ASSERT_TRUE(resizeInput->isResizeSlot());
+    const auto inputConnection = connectionService->createConnection(
+        source.outputs.front()->getUuid(), resizeInput->getUuid(), scene);
+    ASSERT_NE(inputConnection, nullptr);
+
+    const auto grownInput =
+        scene->getState().getComponentByUuidSP<SlotSceneComponent>(
+            inputConnection->getEndSlot());
+    ASSERT_NE(grownInput, nullptr);
+    ASSERT_EQ(grownInput->getIndex(), 1);
+    ASSERT_GE(notGate.comp->getOutputSlots().size(), 2u);
+    const auto pairedOutput =
+        scene->getState().getComponentByUuidSP<SlotSceneComponent>(
+            notGate.comp->getOutputSlots()[1]);
+    ASSERT_NE(pairedOutput, nullptr);
+
+    const auto outputConnection = connectionService->createConnection(
+        pairedOutput->getUuid(), sink.inputs.front()->getUuid(), scene);
+    ASSERT_NE(outputConnection, nullptr);
+
+    const auto firstRemoved =
+        connectionService->removeConnection(inputConnection, scene);
+    EXPECT_TRUE(containsUuid(firstRemoved, inputConnection->getUuid()));
+    EXPECT_NE(scene->getState().getComponentByUuid(grownInput->getUuid()),
+              nullptr);
+    EXPECT_NE(scene->getState().getComponentByUuid(pairedOutput->getUuid()),
+              nullptr);
+    EXPECT_NE(scene->getState().getComponentByUuid(outputConnection->getUuid()),
+              nullptr);
+    EXPECT_EQ(simSlotCount(notGate, true), 2u);
+    EXPECT_EQ(simSlotCount(notGate, false), 2u);
+
+    const auto secondRemoved =
+        connectionService->removeConnection(outputConnection, scene);
+    EXPECT_TRUE(containsUuid(secondRemoved, outputConnection->getUuid()));
+    EXPECT_TRUE(containsUuid(secondRemoved, grownInput->getUuid()));
+    EXPECT_TRUE(containsUuid(secondRemoved, pairedOutput->getUuid()));
+    EXPECT_EQ(scene->getState().getComponentByUuid(grownInput->getUuid()),
+              nullptr);
+    EXPECT_EQ(scene->getState().getComponentByUuid(pairedOutput->getUuid()),
+              nullptr);
+    EXPECT_EQ(simSlotCount(notGate, true), 1u);
+    EXPECT_EQ(simSlotCount(notGate, false), 1u);
 }

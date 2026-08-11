@@ -17,6 +17,7 @@ add_executable(BessTests
     project_session_test.cpp
 	    main_page_connection_commands_test.cpp
 	    math_sim_driver_test.cpp
+	    net_maintenance_test.cpp
 	    wgpu_renderer_test.cpp
 	    simulation_timing_test.cpp
 	    ui_layout_test.cpp
@@ -45,6 +46,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 	"${CMAKE_SOURCE_DIR}/src/bess_core/include"
 	"${CMAKE_SOURCE_DIR}/src/project_session/include"
 	"${CMAKE_SOURCE_DIR}/src/math_sim_driver/include"
+	"${CMAKE_SOURCE_DIR}/src/digital_sim_driver/include"
 )
 
 target_link_libraries(BessTests PRIVATE GTest::gtest BessRuntime)

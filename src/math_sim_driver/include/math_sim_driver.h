@@ -231,6 +231,8 @@ namespace Bess::SimEngine::Drivers::Math {
         void onInit() override;
 
       private:
+        void rebuildNets();
+
         std::unordered_map<UUID, Net> m_nets;
         bool m_isNetUpdated{false};
     };

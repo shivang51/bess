@@ -281,18 +281,38 @@ namespace Bess::Canvas {
     }
 
     std::vector<UUID>
-    InputSceneComponent::getDependants(const SceneState &state) const {
-        auto deps = SimulationSceneComponent::getDependants(state);
-        for (auto &btn : m_inputCtrls) {
-            if (!btn) {
+    InputSceneComponent::clearInputControls(SceneState &state) {
+        std::vector<UUID> removedIds;
+        for (const auto &control : m_inputCtrls) {
+            if (!control || !state.isComponentValid(control->getUuid())) {
                 continue;
             }
-
-            const auto &childDeps = btn->getDependants(state);
-            deps.insert(deps.end(), childDeps.begin(), childDeps.end());
-            deps.push_back(btn->getUuid());
+            const auto ids =
+                state.removeComponent(control->getUuid(), UUID::master);
+            removedIds.insert(removedIds.end(), ids.begin(), ids.end());
         }
-        return deps;
+        m_inputCtrls.clear();
+        m_inpSignalKinds.clear();
+        m_setBtnCbs = false;
+
+        return removedIds;
+    }
+
+    std::vector<UUID> InputSceneComponent::cleanup(SceneState &state,
+                                                   UUID caller) {
+        auto removedIds = clearInputControls(state);
+
+        const auto ids = SimulationSceneComponent::cleanup(state, caller);
+        removedIds.insert(removedIds.end(), ids.begin(), ids.end());
+        return removedIds;
+    }
+
+    std::vector<UUID> InputSceneComponent::clearUI(SceneState &state) {
+        auto removedIds = clearInputControls(state);
+
+        const auto ids = SimulationSceneComponent::clearUI(state);
+        removedIds.insert(removedIds.end(), ids.begin(), ids.end());
+        return removedIds;
     }
 
     std::vector<std::shared_ptr<SceneComponent>>
