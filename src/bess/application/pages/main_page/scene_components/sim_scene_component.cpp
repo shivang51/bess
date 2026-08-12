@@ -1019,13 +1019,11 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
             conn->setStartEndSlots(a, b);
 
             if (!e.sceneState->addConnTx(conn)) {
-                BESS_ERROR(
+                BESS_WARN(
                     "Failed to create connection between component {} and "
                     "component {}",
                     a,
                     b);
-                e.sceneState->setConnectionStartSlot(UUID::null);
-                return false;
             }
         }
 
