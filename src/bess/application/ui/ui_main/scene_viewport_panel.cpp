@@ -5,11 +5,13 @@
 #include "bess_core/scene/scene.h"
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene_driver.h"
+#include "bess_core/sub_systems/input_sub_system.h"
 #include "bess_wgpu/wgpu_texture.h"
 #include "common/bess_uuid.h"
 #include "common/helpers.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "pages/main_page/module_edit.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "project_session/project_session.h"
 #include "sub_systems/renderer_context.h"
@@ -229,50 +231,24 @@ namespace Bess::UI {
                 m_attachedScene->getState().getSelectedComponents().size();
 
             if (ImGui::MenuItem("Select Net", "", false, selItems != 0)) {
-                auto &sceneState = m_attachedScene->getState();
-                const auto selectedIds = sceneState.getSelectedComponents() |
-                                         std::views::keys |
-                                         std::ranges::to<std::vector<UUID>>();
+                selectNets();
+            } // Select Net
 
-                std::unordered_set<UUID> processedNetIds;
+            if (ImGui::MenuItemEx("Delete",
+                                  Icons::FontAwesomeIcons::FA_TRASH,
+                                  "Del",
+                                  false,
+                                  selItems != 0)) {
+                deleteSelComps();
+            }
 
-                // Sync nets
-                updateNets();
-
-                // Collect the nets
-                for (const auto &compId : selectedIds) {
-                    const auto &comp = sceneState.getComponentByUuid(compId);
-                    if (!comp || comp->getType() !=
-                                     Canvas::SceneComponentType::simulation)
-                        continue;
-
-                    const auto netId =
-                        comp->cast<Canvas::SimulationSceneComponent>()
-                            ->getNetId();
-                    if (netId == UUID::null ||
-                        processedNetIds.contains(netId)) {
-                        continue;
-                    }
-
-                    processedNetIds.insert(netId);
-                }
-
-                // Select the components belonging to those nets
-                for (const auto &[id, comp] : sceneState.getAllComponents()) {
-                    if (!comp || comp->getType() !=
-                                     Canvas::SceneComponentType::simulation)
-                        continue;
-
-                    const auto netId =
-                        comp->cast<Canvas::SimulationSceneComponent>()
-                            ->getNetId();
-
-                    if (!processedNetIds.contains(netId)) {
-                        continue;
-                    }
-
-                    sceneState.addSelectedComponent(comp->getUuid());
-                }
+            if (ImGui::MenuItemEx("Delete Net",
+                                  Icons::FontAwesomeIcons::FA_TRASH,
+                                  "Ctrl-Del",
+                                  false,
+                                  selItems != 0)) {
+                selectNets();
+                deleteSelComps();
             }
 
             ImGui::EndPopup();
@@ -548,6 +524,134 @@ namespace Bess::UI {
 
         ImGui::EndChild();
         ImGui::PopStyleVar(3);
+    }
+
+    void SceneViewportPanel::deleteSelComps() {
+        const auto targetScene = m_attachedScene;
+        auto &appCtx = GAppContext::getInstance();
+        auto sess = appCtx.getSubSystem<ProjectSession>();
+
+        const auto &sceneState = targetScene->getState();
+        auto selectedIds = sceneState.getSelectedComponents() |
+                           std::ranges::views::keys |
+                           std::ranges::to<std::vector<UUID>>();
+        std::erase_if(selectedIds, [&](const UUID &id) {
+            const auto component = sceneState.getComponentByUuid(id);
+            return !component ||
+                   component->getType() == Canvas::SceneComponentType::ui;
+        });
+
+        std::unordered_set<UUID> moduleCoveredIds;
+        std::vector<UUID> moduleIds;
+        std::vector<UUID> regularIds;
+
+        std::function<void(const UUID &)> collectCoveredIds =
+            [&](const UUID &uuid) {
+                if (moduleCoveredIds.contains(uuid)) {
+                    return;
+                }
+
+                const auto component = sceneState.getComponentByUuid(uuid);
+                if (!component) {
+                    return;
+                }
+
+                moduleCoveredIds.insert(uuid);
+                for (const auto &dependantUuid :
+                     component->getDependants(sceneState)) {
+                    collectCoveredIds(dependantUuid);
+                }
+            };
+
+        for (const auto &id : selectedIds) {
+            const auto component = sceneState.getComponentByUuid(id);
+            if (!component) {
+                continue;
+            }
+
+            if (component->getType() == Canvas::SceneComponentType::module) {
+                moduleIds.push_back(id);
+                collectCoveredIds(id);
+            }
+        }
+
+        for (const auto &id : selectedIds) {
+            if (!moduleCoveredIds.contains(id)) {
+                regularIds.push_back(id);
+            }
+        }
+
+        if (moduleIds.empty() && regularIds.empty()) {
+            return;
+        }
+
+        auto tx = sess->tx("Delete selection");
+        Status status = Status::ok();
+        for (const auto &moduleId : moduleIds) {
+            status = Edit::rmModule(tx, targetScene, moduleId);
+            if (!status) {
+                break;
+            }
+        }
+
+        if (status && !regularIds.empty()) {
+            status = tx.rmComp(regularIds, targetScene->getSceneId());
+        }
+
+        if (status) {
+            const auto result = tx.commit();
+            if (!result) {
+                BESS_WARN("Could not delete selection: {}",
+                          result.status.msg());
+            }
+        } else {
+            tx.cancel();
+            BESS_WARN("Could not prepare selection delete: {}", status.msg());
+        }
+    }
+
+    void SceneViewportPanel::selectNets() {
+        auto &sceneState = m_attachedScene->getState();
+        const auto selectedIds = sceneState.getSelectedComponents() |
+                                 std::views::keys |
+                                 std::ranges::to<std::vector<UUID>>();
+
+        std::unordered_set<UUID> processedNetIds;
+
+        // Sync nets
+        updateNets();
+
+        // Collect the nets
+        for (const auto &compId : selectedIds) {
+            const auto &comp = sceneState.getComponentByUuid(compId);
+            if (!comp ||
+                comp->getType() != Canvas::SceneComponentType::simulation)
+                continue;
+
+            const auto netId =
+                comp->cast<Canvas::SimulationSceneComponent>()->getNetId();
+            if (netId == UUID::null || processedNetIds.contains(netId)) {
+                continue;
+            }
+
+            processedNetIds.insert(netId);
+        }
+
+        // Select the components belonging to those nets
+        for (const auto &[id, comp] : sceneState.getAllComponents()) {
+            if (!comp ||
+                comp->getType() != Canvas::SceneComponentType::simulation)
+                continue;
+
+            const auto netId =
+                comp->cast<Canvas::SimulationSceneComponent>()->getNetId();
+
+            if (!processedNetIds.contains(netId)) {
+                continue;
+            }
+
+            sceneState.addSelectedComponent(comp->getUuid());
+        }
     }
 
     void SceneViewportPanel::onSceneAttached() {

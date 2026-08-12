@@ -76,6 +76,9 @@ namespace Bess::UI {
         void drawTopLeftControls();
         void drawBottomControls() const;
 
+        void deleteSelComps();
+        void selectNets();
+
       private:
         struct PendingPickingReadback {
             uint32_t x = 0;
