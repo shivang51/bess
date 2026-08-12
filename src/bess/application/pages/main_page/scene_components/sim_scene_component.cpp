@@ -980,7 +980,6 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
 
     bool
     SimulationSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
-
         // Adding bulk connections
         // When user is in connection mode and sim component is clicked,
         // we make connection between relevant slots.
@@ -1003,46 +1002,30 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
 
         BESS_ASSERT(startComp, "Invalid slot parent");
 
-        if (startSlotComp->isInputSlot()) {
-            const int n = (int)std::min(startComp->m_inputSlots.size(),
-                                        m_outputSlots.size());
+        const auto &grpA = startSlotComp->isInputSlot()
+                               ? startComp->m_inputSlots
+                               : startComp->m_outputSlots;
 
-            for (int i = 0; i < n; i++) {
-                const auto &a = startComp->m_inputSlots[i];
-                const auto &b = m_outputSlots[i];
-                auto conn = std::make_shared<ConnectionSceneComponent>();
-                conn->setStartEndSlots(a, b);
+        const auto &grpB =
+            startSlotComp->isInputSlot() ? m_outputSlots : m_inputSlots;
 
-                if (!e.sceneState->addConnTx(conn)) {
-                    BESS_ERROR(
-                        "Failed to create connection between component {} and "
-                        "component {}",
-                        (uint64_t)a,
-                        (uint64_t)b);
-                    e.sceneState->setConnectionStartSlot(UUID::null);
-                    return false;
-                }
-            }
+        const int n = (int)std::min(grpA.size(), grpB.size());
 
-        } else {
-            const int n = (int)std::min(startComp->m_outputSlots.size(),
-                                        m_inputSlots.size());
+        for (int i = 0; i < n; i++) {
+            const auto &a = grpA[i];
+            const auto &b = grpB[i];
 
-            for (int i = 0; i < n; i++) {
-                const auto &a = startComp->m_outputSlots[i];
-                const auto &b = m_inputSlots[i];
-                auto conn = std::make_shared<ConnectionSceneComponent>();
-                conn->setStartEndSlots(a, b);
+            auto conn = std::make_shared<ConnectionSceneComponent>();
+            conn->setStartEndSlots(a, b);
 
-                if (!e.sceneState->addConnTx(conn)) {
-                    BESS_ERROR(
-                        "Failed to create connection between component {} and "
-                        "component {}",
-                        (uint64_t)a,
-                        (uint64_t)b);
-                    e.sceneState->setConnectionStartSlot(UUID::null);
-                    return false;
-                }
+            if (!e.sceneState->addConnTx(conn)) {
+                BESS_ERROR(
+                    "Failed to create connection between component {} and "
+                    "component {}",
+                    a,
+                    b);
+                e.sceneState->setConnectionStartSlot(UUID::null);
+                return false;
             }
         }
 
