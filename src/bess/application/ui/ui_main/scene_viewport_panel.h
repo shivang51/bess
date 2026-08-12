@@ -99,6 +99,8 @@ namespace Bess::UI {
 
         void onSceneAttached();
 
+        void updateNets();
+
         glm::vec2 getSceneMousePos();
 
         static constexpr ImGuiWindowFlags NO_MOVE_FLAGS =

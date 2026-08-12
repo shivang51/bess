@@ -11,19 +11,8 @@
 #include "common/types.h"
 #include "pages/main_page/main_page_state.h"
 #include "pages/main_page/module_edit.h"
-#include "pages/main_page/scene_components/conn_joint_scene_component.h"
-#include "pages/main_page/scene_components/connection_scene_component.h"
-#include "pages/main_page/scene_components/group_scene_component.h"
-#include "pages/main_page/scene_components/image_scene_component.h"
-#include "pages/main_page/scene_components/input_scene_component.h"
-#include "pages/main_page/scene_components/module_scene_component.h"
-#include "pages/main_page/scene_components/monitor_scene_comp.h"
-#include "pages/main_page/scene_components/non_sim_scene_component.h"
-#include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_probe_scene_component.h"
-#include "pages/main_page/scene_components/slot_scene_component.h"
-#include "pages/main_page/scene_components/text_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
 #include "pages/main_page/services/copy_paste_service.h"
 #include "plugin_manager.h"
@@ -33,7 +22,6 @@
 #include "ui/ui_main/project_explorer.h"
 #include "ui/ui_main/ui_main.h"
 #include <GLFW/glfw3.h>
-#include <algorithm>
 #include <functional>
 #include <memory>
 #include <ranges>

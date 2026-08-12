@@ -10,6 +10,7 @@
 #include "common/helpers.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "pages/main_page/scene_components/sim_scene_component.h"
 #include "project_session/project_session.h"
 #include "sub_systems/renderer_context.h"
 #include "ui/icons/CodIcons_Remapped.h"
@@ -213,13 +214,70 @@ namespace Bess::UI {
                                         m_localPos.y + gPos.y + offset.y};
 
         const auto &pickingId = m_viewportCtx->inputCtx.pickingId;
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
         if (!pickingId.isValid() && ImGui::BeginPopupContextWindow()) {
-            if (ImGui::MenuItem("Add Component", "Shift-A")) {
+            if (ImGui::MenuItemEx("Add Component",
+                                  Icons::FontAwesomeIcons::FA_PLUS,
+                                  "Shift-A")) {
                 UI::UIMain::getPanel<ComponentExplorer>()->show();
+            }
+
+            ImGui::Separator();
+
+            const auto selItems =
+                m_attachedScene->getState().getSelectedComponents().size();
+
+            if (ImGui::MenuItem("Select Net", "", false, selItems != 0)) {
+                auto &sceneState = m_attachedScene->getState();
+                const auto selectedIds = sceneState.getSelectedComponents() |
+                                         std::views::keys |
+                                         std::ranges::to<std::vector<UUID>>();
+
+                std::unordered_set<UUID> processedNetIds;
+
+                // Sync nets
+                updateNets();
+
+                // Collect the nets
+                for (const auto &compId : selectedIds) {
+                    const auto &comp = sceneState.getComponentByUuid(compId);
+                    if (!comp || comp->getType() !=
+                                     Canvas::SceneComponentType::simulation)
+                        continue;
+
+                    const auto netId =
+                        comp->cast<Canvas::SimulationSceneComponent>()
+                            ->getNetId();
+                    if (netId == UUID::null ||
+                        processedNetIds.contains(netId)) {
+                        continue;
+                    }
+
+                    processedNetIds.insert(netId);
+                }
+
+                // Select the components belonging to those nets
+                for (const auto &[id, comp] : sceneState.getAllComponents()) {
+                    if (!comp || comp->getType() !=
+                                     Canvas::SceneComponentType::simulation)
+                        continue;
+
+                    const auto netId =
+                        comp->cast<Canvas::SimulationSceneComponent>()
+                            ->getNetId();
+
+                    if (!processedNetIds.contains(netId)) {
+                        continue;
+                    }
+
+                    sceneState.addSelectedComponent(comp->getUuid());
+                }
             }
 
             ImGui::EndPopup();
         }
+        ImGui::PopStyleVar();
 
         drawTopLeftControls();
         drawBottomControls();
@@ -524,6 +582,38 @@ namespace Bess::UI {
             "[SceneVewportPanel] Scene {} attached to viewport panel '{}'",
             (uint64_t)m_attachedScene->getState().getSceneId(),
             m_viewportName);
+    }
+
+    void SceneViewportPanel::updateNets() {
+        auto &simEngine = Proj::sim();
+
+        if (!simEngine.isNetUpdated())
+            return;
+
+        auto &sceneState = m_attachedScene->getState();
+
+        std::unordered_map<UUID,
+                           std::shared_ptr<Canvas::SimulationSceneComponent>>
+            simIdToComp;
+
+        for (const auto &[compId, comp] : sceneState.getAllComponents()) {
+            if (comp->getType() == Canvas::SceneComponentType::group ||
+                comp->getType() == Canvas::SceneComponentType::simulation) {
+                const auto simComp =
+                    comp->cast<Canvas::SimulationSceneComponent>();
+                simIdToComp[simComp->getSimEngineId()] = simComp;
+            }
+        }
+
+        const auto &nets = simEngine.getNetsMap();
+        for (const auto &[netId, net] : nets) {
+            for (const auto &simId : net.getComponents()) {
+                if (simIdToComp.contains(simId)) {
+                    const auto &comp = simIdToComp[simId];
+                    comp->setNetId(netId);
+                }
+            }
+        }
     }
 
     glm::vec2 SceneViewportPanel::getSceneMousePos() {
