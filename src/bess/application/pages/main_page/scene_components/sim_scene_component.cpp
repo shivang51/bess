@@ -14,11 +14,14 @@
 #include "bess_core/scene/scene_ui/layout.h"
 #include "bess_core/settings/viewport_theme.h"
 #include "bess_core/style/bess_theme.h"
+#include "bess_core/sub_systems/input_sub_system.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "imgui.h"
 #include "input_scene_component.h"
+#include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
+#include "project_session/project_session.h"
 #include "simulation_engine.h"
 #include "slot_scene_component.h"
 #include "sub_systems/renderer_context.h"
@@ -973,6 +976,78 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
                     glm::vec3(newPos, m_schematicTransform.position.z);
             }
         }
+    }
+
+    bool
+    SimulationSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
+
+        // Adding bulk connections
+        // When user is in connection mode and sim component is clicked,
+        // we make connection between relevant slots.
+        // Its not atomic so, undo will remove one connection at a time.
+
+        const auto &connStartSlot = e.sceneState->getConnectionStartSlot();
+
+        if (connStartSlot == UUID::null) {
+            return false;
+        }
+
+        SlotSceneComponent *startSlotComp =
+            e.sceneState->getComponentByUuid<SlotSceneComponent>(connStartSlot);
+
+        BESS_ASSERT(startSlotComp, "Invalid start slot");
+
+        SimulationSceneComponent *startComp =
+            e.sceneState->getComponentByUuid<SimulationSceneComponent>(
+                startSlotComp->getParentComponent());
+
+        BESS_ASSERT(startComp, "Invalid slot parent");
+
+        if (startSlotComp->isInputSlot()) {
+            const int n = (int)std::min(startComp->m_inputSlots.size(),
+                                        m_outputSlots.size());
+
+            for (int i = 0; i < n; i++) {
+                const auto &a = startComp->m_inputSlots[i];
+                const auto &b = m_outputSlots[i];
+                auto conn = std::make_shared<ConnectionSceneComponent>();
+                conn->setStartEndSlots(a, b);
+
+                if (!e.sceneState->addConnTx(conn)) {
+                    BESS_ERROR(
+                        "Failed to create connection between component {} and "
+                        "component {}",
+                        (uint64_t)a,
+                        (uint64_t)b);
+                    e.sceneState->setConnectionStartSlot(UUID::null);
+                    return false;
+                }
+            }
+
+        } else {
+            const int n = (int)std::min(startComp->m_outputSlots.size(),
+                                        m_inputSlots.size());
+
+            for (int i = 0; i < n; i++) {
+                const auto &a = startComp->m_outputSlots[i];
+                const auto &b = m_inputSlots[i];
+                auto conn = std::make_shared<ConnectionSceneComponent>();
+                conn->setStartEndSlots(a, b);
+
+                if (!e.sceneState->addConnTx(conn)) {
+                    BESS_ERROR(
+                        "Failed to create connection between component {} and "
+                        "component {}",
+                        (uint64_t)a,
+                        (uint64_t)b);
+                    e.sceneState->setConnectionStartSlot(UUID::null);
+                    return false;
+                }
+            }
+        }
+
+        e.sceneState->setConnectionStartSlot(UUID::null);
+        return true;
     }
 
     glm::vec3 SimulationSceneComponent::dragPos() const {

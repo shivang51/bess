@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bess_core/scene/scene_events.h"
 #include "common/bess_api.h"
 
 #include "bess_core/scene/scene_draw_context.h"
@@ -166,6 +167,7 @@ namespace Bess::Canvas {
         void onNameChanged() override;
 
         void onMouseDragged(const Events::MouseDraggedEvent &e) override;
+        bool onMouseButton(const Events::MouseButtonEvent &e) override;
 
         glm::vec3 getAbsolutePosition(const SceneState &state,
                                       bool isSchematicMode) const override;
