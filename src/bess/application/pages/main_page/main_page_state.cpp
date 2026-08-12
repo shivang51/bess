@@ -18,6 +18,7 @@
 #include "project_session/project_session.h"
 #include "simulation_engine.h"
 #include "stb_image.h"
+#include "ui/project_api.h"
 #include <algorithm>
 #include <array>
 #include <cctype>
@@ -772,9 +773,8 @@ namespace Bess::Pages {
 
     void
     MainPageState::updateNets(const std::shared_ptr<Canvas::Scene> &scene) {
-        auto &appCtx = Bess::GAppContext::getInstance();
-        auto projectCtx = appCtx.getSubSystem<Bess::ProjectSession>();
-        auto &simEngine = projectCtx->sim();
+        auto &simEngine = UI::Proj::sim();
+
         if (!simEngine.isNetUpdated())
             return;
 
