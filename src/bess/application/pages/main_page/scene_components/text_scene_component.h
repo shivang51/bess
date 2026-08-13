@@ -35,15 +35,20 @@ namespace Bess::Canvas {
 
         void drawPropertiesUI(SceneState &sceneState) override;
 
+        bool onMouseButton(const Events::MouseButtonEvent &e) override;
+
       private:
         glm::vec2 calculateScale(const SceneState &state) override;
         void onJsonApplied() override;
 
       private:
         std::string m_data = "New Text";
+        std::string m_editBuffer;
         glm::vec4 m_foregroundColor = glm::vec4(1.f);
         size_t m_size = 12.f;
         bool m_isScaleDirty = true;
+        bool m_editMode = false;
+        bool m_justEnteredEdit = false;
     };
 } // namespace Bess::Canvas
 

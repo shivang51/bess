@@ -1,9 +1,12 @@
 #include "pages/main_page/scene_components/text_scene_component.h"
+#include "bess_core/renderer/colors.h"
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/scene/scene_draw_context.h"
 #include "bess_core/scene/scene_draw_helpers.h"
+#include "bess_core/scene/scene_events.h"
 #include "bess_core/scene/scene_state/components/styles/comp_style.h"
 #include "bess_core/scene/widgets/scene_widgets.h"
+#include "bess_core/scene/widgets/scene_widgets_internal.h"
 #include "bess_core/settings/viewport_theme.h"
 #include "imgui.h"
 #include "ui/icons/FontAwesomeIcons_Remapped.h"
@@ -45,6 +48,18 @@ namespace Bess::Canvas {
         }
     }
 
+    bool TextComponent::onMouseButton(const Events::MouseButtonEvent &e) {
+        if (e.action == Events::MouseClickAction::doubleClick &&
+            e.button == Events::MouseButton::left) {
+            m_editMode = true;
+            m_justEnteredEdit = true;
+            m_editBuffer = m_data;
+            return true;
+        }
+
+        return false;
+    }
+
     void TextComponent::onJsonApplied() {
         NonSimSceneComponent::onJsonApplied();
         m_isScaleDirty = true;
@@ -73,15 +88,59 @@ namespace Bess::Canvas {
         }
 
         const auto pickingId = PickingId{m_runtimeId, 0};
-        SceneDraw::drawText(context,
-                            m_data,
-                            m_transform.position,
-                            m_size,
-                            m_foregroundColor,
-                            pickingId);
+
+        if (m_editMode) { // draw textbox in edit mode
+
+            const auto textOffset = context.renderer->textCenterOffsetY(
+                m_data, {.fontSize = (float)m_size});
+
+            const auto offset = glm::vec3((m_transform.scale.x / 2.f) -
+                                              Styles::componentStyles.paddingX,
+                                          -textOffset,
+                                          -0.0001f);
+
+            const auto res = SceneWidgets::textBox(
+                pickingId,
+                &m_editBuffer,
+                m_transform.position + offset,
+                m_transform.scale,
+                context,
+                {
+                    .backgroundColor = Core::Renderer::Colors::transparent,
+                    .focusedBackgroundColor =
+                        Core::Renderer::Colors::transparent,
+
+                    .borderColor = Core::Renderer::Colors::transparent,
+                    .focusedBorderColor = Core::Renderer::Colors::transparent,
+                });
+
+            if (m_justEnteredEdit) {
+                m_justEnteredEdit = false;
+                SceneWidgets::Detail::focusWidget(*context.sceneWidgetsState,
+                                                  pickingId);
+            }
+
+            if (res.submitted) {
+                m_data = m_editBuffer;
+            }
+
+            if (res.canceled || res.submitted) {
+                m_editMode = false;
+                m_isScaleDirty = true;
+                m_editBuffer.clear();
+            }
+
+        } else {
+            SceneDraw::drawText(context,
+                                m_data,
+                                m_transform.position,
+                                m_size,
+                                m_foregroundColor,
+                                pickingId);
+        }
 
         // draw background if selected
-        if (m_isSelected) {
+        if (m_isSelected || m_editMode) {
             SceneDraw::QuadStyle props;
             props.angle = m_transform.angle;
             props.borderRadius = Styles::componentStyles.borderRadius;
