@@ -53,7 +53,7 @@ class BessPlugin(Plugin):
     @override
     def has_sim_scene_comp(self, def_name) -> bool:
         return (
-            def_name == "Output"
+            def_name == "Digital Output"
             or def_name == "Clock"
             or digital_gates_schematics.get(def_name, None) is not None
             or seven_segment_display.seven_seg_disp_def.name == def_name
@@ -65,7 +65,7 @@ class BessPlugin(Plugin):
         if not self.has_sim_scene_comp(name):
             return None
 
-        if name == "Output":
+        if name == "Digital Output":
             return OutputComp()
         elif seven_segment_display.seven_seg_disp_def.name == comp_def.name:
             return SevenSegDispComp()

@@ -471,8 +471,11 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
     }
 
     float SimulationSceneComponent::getSlotStartY() const {
-        return Styles::SIM_COMP_SLOT_START_Y +
-               (Styles::SIM_COMP_SLOT_ROW_SIZE / 2.f);
+        if (!m_inpSlotsContainer || !m_inpSlotsContainer->getUINode())
+            return 0;
+
+        return m_inpSlotsContainer->getUINode()->getDrawPos().y -
+               (m_inpSlotsContainer->getUINode()->getDrawSize().y / 2.f);
     }
 
     void SimulationSceneComponent::prepareUI(SceneUIPrepareCtx &ctx) {

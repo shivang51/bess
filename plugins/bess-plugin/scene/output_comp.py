@@ -52,14 +52,14 @@ class OutputComp(SimulationSceneComponent):
         id.info = 0
 
         posOffset = vec3(
-            4,
-            -self.transform.scale.y / 2 + self.get_slot_start_y() + 3.5,
-            0.0001,
+            self.position.x + 2,
+            self.get_slot_start_y() + 13,
+            self.position.z + 0.0001,
         )
 
         context.renderer.draw_text(
             f"Dec = {self.decimal_value}",
-            self.position + posOffset,
+            posOffset,
             id=id.asUint64(),
             size=9,
             color=theme.schematic.text,
@@ -69,7 +69,7 @@ class OutputComp(SimulationSceneComponent):
 
         context.renderer.draw_text(
             f"Hex = {self.hex_value}",
-            self.position + posOffset,
+            posOffset,
             id=id.asUint64(),
             size=9,
             color=theme.schematic.text,
