@@ -65,6 +65,10 @@ namespace Bess {
         [[nodiscard]] Status write(const std::filesystem::path &path,
                                    const Json::Value &json) const;
         [[nodiscard]] Status check(const Json::Value &json) const;
+
+        // Checks if all involved involved drivers are present
+        [[nodiscard]] Status validateDrivers(const Json::Value &json) const;
+
         [[nodiscard]] Status apply(const Json::Value &json);
 
         std::shared_ptr<SceneDriver> m_scenes;
