@@ -7,9 +7,11 @@
 /// being an independent module handles plugins on its own.
 
 #include "common/sub_system.h"
+#include "plugin_handle.h"
 #include "sim_driver/sim_driver.h"
 
 #include "json/value.h"
+#include <unordered_map>
 
 namespace Bess::Canvas {
     class SceneComponent;
@@ -37,6 +39,10 @@ namespace Bess::Svc {
             const std::shared_ptr<SimEngine::Drivers::CompDef> &def) const;
 
         MAKE_GETTER(bool, IsInitialized, m_initialized)
+
+        const std::unordered_map<std::string,
+                                 std::shared_ptr<Plugins::PluginHandle>> &
+        getPlugins();
 
       private:
         bool m_initialized = false;

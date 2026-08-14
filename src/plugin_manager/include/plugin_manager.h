@@ -47,6 +47,10 @@ namespace Bess::Plugins {
         // Returning copy intentionally to avoid map corrouption while reloading
         std::unordered_map<std::string, std::shared_ptr<PluginHandle>>
         getLoadedPlugins() const;
+
+        const std::unordered_map<std::string, std::shared_ptr<PluginHandle>> &
+        getLoadedPluginsRef() const;
+
         bool isPluginLoaded(const std::string &pluginName) const;
         std::shared_ptr<PluginHandle>
         getPlugin(const std::string &pluginName) const;

@@ -250,6 +250,12 @@ namespace Bess::Plugins {
         return m_plugins;
     }
 
+    const std::unordered_map<std::string, std::shared_ptr<PluginHandle>> &
+    PluginManager::getLoadedPluginsRef() const {
+        std::scoped_lock<std::mutex> lock(m_pluginMutex);
+        return m_plugins;
+    }
+
     bool PluginManager::isPluginLoaded(const std::string &pluginName) const {
         std::scoped_lock<std::mutex> lock(m_pluginMutex);
         return m_plugins.contains(pluginName);

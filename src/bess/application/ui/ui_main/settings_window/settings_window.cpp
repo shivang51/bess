@@ -4,6 +4,9 @@
 
 #include "bess_core/settings/settings.h"
 #include "bess_core/settings/viewport_theme.h"
+#include "plugin_handle.h"
+#include "plugin_manager.h"
+#include "services/plugin_service/plugin_service.h"
 #include "ui/widgets/m_widgets.h"
 
 namespace Bess::UI {
@@ -18,6 +21,8 @@ namespace Bess::UI {
         m_settingsCallbacks["Viewport Colors"] = [this]() {
             drawViewportColorsSettings();
         };
+
+        m_settingsCallbacks["Plugins"] = [this]() { drawPluginSettings(); };
     }
 
     void SettingsWindow::onBeforeDraw() {
@@ -243,6 +248,40 @@ namespace Bess::UI {
 
             ImGui::Unindent();
             ImGui::TreePop();
+        }
+    }
+
+    namespace {
+
+        void drawPluginSetting(
+            const std::shared_ptr<Plugins::PluginHandle> &plugin) {
+            if (Widgets::TreeNode(0, plugin->getName())) {
+                ImGui::Indent();
+
+                ImGui::TextDisabled("Version %s", plugin->getVersion().c_str());
+
+                ImGui::Unindent();
+                ImGui::TreePop();
+            }
+        }
+    } // namespace
+
+    void SettingsWindow::drawPluginSettings() {
+        const auto &appCtx = GAppContext::getInstance();
+
+        auto pluginService = appCtx.getSubSystem<Svc::PluginService>();
+
+        if (!pluginService) {
+            ImGui::Text("Plugin Service not found");
+            return;
+        }
+
+        auto &plugins = pluginService->getPlugins();
+
+        ImGui::Text("Found %lu plugin(s)", plugins.size());
+
+        for (const auto &[_, plugin] : plugins) {
+            drawPluginSetting(plugin);
         }
     }
 
