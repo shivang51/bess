@@ -47,6 +47,7 @@ namespace Bess {
         ProjectDoc &operator=(ProjectDoc &&) = delete;
 
         [[nodiscard]] const std::string &name() const noexcept;
+        [[nodiscard]] std::string &nameRef();
         [[nodiscard]] const std::filesystem::path &path() const noexcept;
         [[nodiscard]] bool hasPath() const noexcept;
         [[nodiscard]] DocInfo info() const;

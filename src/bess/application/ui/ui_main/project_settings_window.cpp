@@ -30,7 +30,7 @@ namespace Bess::UI {
         ImGui::Text("Project Name");
         ImGui::SameLine();
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() - verticalOffset);
-        Widgets::TextBox("##Project Name", m_projectName);
+        Widgets::TextBox("##Project Name", session.doc().nameRef());
 
         ImGui::Spacing();
 
@@ -53,7 +53,7 @@ namespace Bess::UI {
         }
 
         if (save) {
-            const auto result = session.setName(m_projectName);
+            const auto result = session.setName(session.doc().nameRef());
             if (!result) {
                 UIMain::getState()._internalData.statusMessage =
                     "Could not rename project: " + result.status.msg();
@@ -63,10 +63,4 @@ namespace Bess::UI {
         }
     }
 
-    void ProjectSettingsWindow::onShow() {
-        m_projectName = GAppContext::getInstance()
-                            .getSubSystem<ProjectSession>()
-                            ->doc()
-                            .name();
-    }
 } // namespace Bess::UI

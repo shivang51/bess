@@ -59,6 +59,10 @@ namespace Bess {
         return m_info.name;
     }
 
+    [[nodiscard]] std::string &ProjectDoc::nameRef() {
+        return m_info.name;
+    }
+
     const std::filesystem::path &ProjectDoc::path() const noexcept {
         return m_info.path;
     }
