@@ -55,6 +55,15 @@ getInputPortStates(const Bess::UUID &compId) {
     return simEngine.getInputPortStates(compId);
 }
 
+bool hasSimDriver(const std::string &name) {
+    auto &simEngine = Bess::UI::Proj::sim();
+    for (const auto &driver : simEngine.getDrivers()) {
+        if (driver->getName() == name)
+            return true;
+    }
+    return false;
+}
+
 void bind_sim_engine_core(py::module_ &m) {
     auto coreMod = m.def_submodule("core", "Core simulation engine bindings");
 
@@ -109,4 +118,10 @@ void bind_sim_engine_core(py::module_ &m) {
                 py::arg("comp_id"),
                 py::call_guard<py::gil_scoped_release>(),
                 "Get the states of all input ports for a component");
+
+    coreMod.def("has_sim_driver",
+                &hasSimDriver,
+                py::arg("name"),
+                py::call_guard<py::gil_scoped_release>(),
+                "Returns true if sim driver with name is present");
 }
