@@ -377,6 +377,11 @@ namespace Bess {
         return Status::ok();
     }
 
+    [[nodiscard]] Status
+    ProjectDoc::validatePlugins(const Json::Value &json) const {
+        return Status::ok();
+    }
+
     Status ProjectDoc::apply(const Json::Value &json) {
         auto valid = check(json);
         if (!valid) {
@@ -384,6 +389,11 @@ namespace Bess {
         }
 
         valid = validateDrivers(json);
+        if (!valid) {
+            return valid;
+        }
+
+        valid = validatePlugins(json);
         if (!valid) {
             return valid;
         }

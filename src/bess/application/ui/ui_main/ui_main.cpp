@@ -253,6 +253,9 @@ namespace Bess::UI {
                     } else {
                         getState()._internalData.statusMessage = std::format(
                             "Could not open project: {}", status.msg());
+
+                        getState()._internalData.statusMessage.type =
+                            StatusMessage::Type::error;
                     }
                     getState()._internalData.path = "";
                     getState()._internalData.openFileClicked = false;
@@ -329,12 +332,25 @@ namespace Bess::UI {
                 }
 
                 if (!getState()._internalData.statusMessage.empty()) {
-                    const auto msg = std::format(
-                        "{}\t", getState()._internalData.statusMessage);
+                    const auto &status = getState()._internalData.statusMessage;
+                    const auto msg = std::format("{}\t", status.message);
                     const auto size = ImGui::CalcTextSize(msg.c_str());
                     ImGui::SameLine(ImGui::GetWindowContentRegionMax().x -
                                     size.x);
+
+                    bool pushed = false;
+                    if (status.type == StatusMessage::Type::error) {
+                        pushed = true;
+                        ImGui::PushStyleColor(
+                            ImGuiCol_TextDisabled,
+                            ViewportTheme::colors.error.toHexRev());
+                    }
+
                     ImGui::TextDisabled("%s", msg.c_str());
+
+                    if (pushed) {
+                        ImGui::PopStyleColor();
+                    }
                 }
 
                 ImGui::EndMenuBar();
@@ -1032,6 +1048,9 @@ namespace Bess::UI {
             if (!status) {
                 getState()._internalData.statusMessage =
                     std::format("Could not open project: {}", status.msg());
+
+                getState()._internalData.statusMessage.type =
+                    StatusMessage::Type::error;
                 return;
             }
             Pages::MainPage::getInstance()->getParentWindow()->setName(
@@ -1068,6 +1087,8 @@ namespace Bess::UI {
         if (!status) {
             getState()._internalData.statusMessage =
                 std::format("Could not save project: {}", status.msg());
+            getState()._internalData.statusMessage.type =
+                StatusMessage::Type::error;
             return;
         }
         getState()._internalData.statusMessage =

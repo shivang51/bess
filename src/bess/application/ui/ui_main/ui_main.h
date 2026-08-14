@@ -9,9 +9,29 @@
 
 namespace Bess::UI {
 
+    struct StatusMessage {
+        std::string message;
+
+        enum class Type : uint8_t {
+            general,
+            warning,
+            error
+        } type = Type::general;
+
+        bool empty() const {
+            return message.empty();
+        }
+
+        StatusMessage &operator=(const std::string &val) {
+            message = val;
+            type = Type::general;
+            return *this;
+        }
+    };
+
     struct BESS_API InternalData {
         std::string path;
-        std::string statusMessage;
+        StatusMessage statusMessage;
         bool newFileClicked = false, openFileClicked = false;
         bool unsavedProjectWarningRequested = false;
         bool exportSchematicClicked = false;
