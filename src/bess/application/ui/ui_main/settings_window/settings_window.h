@@ -24,6 +24,7 @@ namespace Bess::UI {
 
         void drawGeneralSettings();
         void drawViewportColorsSettings();
+        void drawPluginSettings();
 
         template <std::ranges::input_range Range,
                   class TValue = std::ranges::range_value_t<Range>>

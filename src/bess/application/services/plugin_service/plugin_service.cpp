@@ -38,6 +38,13 @@ namespace Bess::Svc {
         return nullptr;
     }
 
+    const std::unordered_map<std::string,
+                             std::shared_ptr<Plugins::PluginHandle>> &
+    PluginService::getPlugins() {
+        const auto &pluginMangaer = Plugins::PluginManager::getInstance();
+        return pluginMangaer.getLoadedPluginsRef();
+    }
+
     bool PluginService::hasSimSceneComp(const std::string &defName) const {
         const auto &pluginMangaer = Plugins::PluginManager::getInstance();
 
