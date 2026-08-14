@@ -12,10 +12,5 @@ namespace Bess::UI {
 
         void onBeforeDraw() override;
         void onDraw() override;
-
-        void onShow() override;
-
-      private:
-        std::string m_projectName;
     };
 } // namespace Bess::UI
