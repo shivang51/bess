@@ -4,9 +4,11 @@
 #include "bess_core/scene/scene_serializer.h"
 #include "bess_core/scene_driver.h"
 #include "common/bess_uuid.h"
+#include "project_session/status.h"
 #include "simulation_engine.h"
 
 #include "json/reader.h"
+#include "json/value.h"
 #include "json/writer.h"
 
 #include <algorithm>
@@ -335,8 +337,53 @@ namespace Bess {
         return Status::ok();
     }
 
+    [[nodiscard]] Status
+    ProjectDoc::validateDrivers(const Json::Value &json) const {
+        if (json.isMember("sim_engine_data") &&
+            !json["sim_engine_data"].isObject()) {
+            return Status::fail(Err::schema,
+                                "sim_engine_data must be an object");
+        }
+
+        const auto &simData = json["sim_engine_data"];
+
+        if (simData.isMember("drivers") && !simData["drivers"].isObject()) {
+            return Status::fail(Err::schema,
+                                "drivers must be an object in sim_engine_data");
+        }
+
+        const auto &driversJson = simData["drivers"];
+
+        const auto &drivers = m_sim->getDrivers();
+
+        HashSet<std::string> driverNames = {};
+
+        for (const auto &driver : drivers) {
+            driverNames.insert(driver->getName());
+        }
+
+        for (auto &driverName : driversJson.getMemberNames()) {
+
+            const auto &driverJson = driversJson[driverName];
+
+            if (!driverJson.empty() && !driverNames.contains(driverName)) {
+                return Status::fail(
+                    Err::faulted,
+                    std::format("Required sim driver '{}' not found",
+                                driverName));
+            }
+        }
+
+        return Status::ok();
+    }
+
     Status ProjectDoc::apply(const Json::Value &json) {
-        const auto valid = check(json);
+        auto valid = check(json);
+        if (!valid) {
+            return valid;
+        }
+
+        valid = validateDrivers(json);
         if (!valid) {
             return valid;
         }
