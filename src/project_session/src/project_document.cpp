@@ -379,6 +379,7 @@ namespace Bess {
 
     [[nodiscard]] Status
     ProjectDoc::validatePlugins(const Json::Value &json) const {
+
         return Status::ok();
     }
 

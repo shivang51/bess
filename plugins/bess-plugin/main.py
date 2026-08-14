@@ -1,7 +1,7 @@
 from typing import override
 
 from bessplug import Plugin
-from bessplug.api import bess_ui
+from bessplug.api import bess_ui, sim_engine
 from bessplug.api.common import vec2
 from bessplug.api.sim_engine.driver import CompDef
 
@@ -39,6 +39,9 @@ class BessPlugin(Plugin):
 
     @override
     def on_comp_catalog_load(self) -> list[CompDef]:
+        if not sim_engine.core.has_sim_driver("digitalsimdriver"):
+            return []
+
         return [
             *combinational_circuits,
             *digital_gates,
