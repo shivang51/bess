@@ -1273,28 +1273,63 @@ namespace Bess::SimEngine::Drivers::Math {
 
     void MathSimDriver::onInit() {
         auto &catalog = ComponentCatalog::instance();
-        auto addDef =
-            MathCompDef::makeBinaryOp("Add", "Maths", MathOpKind::add);
-        addDef->setFnDefCollapse([](const std::vector<FnDef> &defs) {
+        auto opDef = MathCompDef::makeBinaryOp("Add", "Maths", MathOpKind::add);
+        opDef->setFnDefCollapse([](const std::vector<FnDef> &defs) {
             if (defs.empty())
                 return FnDef{};
 
-            std::string def = defs[0].str;
+            std::string def = std::format("({})", defs[0].str);
             for (int i = 1; i < defs.size(); i++) {
-                def += std::format("+ ({})", defs[i].str);
+                def += std::format("+({})", defs[i].str);
             }
             return FnDef{def};
         });
-        catalog.registerComponent(addDef);
+        catalog.registerComponent(opDef);
 
-        catalog.registerComponent(MathCompDef::makeBinaryOp(
-            "Subtract", "Maths", MathOpKind::subtract));
+        opDef = MathCompDef::makeBinaryOp(
+            "Subtract", "Maths", MathOpKind::subtract);
 
-        catalog.registerComponent(MathCompDef::makeBinaryOp(
-            "Multiply", "Maths", MathOpKind::multiply));
+        opDef->setFnDefCollapse([](const std::vector<FnDef> &defs) {
+            if (defs.empty())
+                return FnDef{};
 
-        catalog.registerComponent(
-            MathCompDef::makeBinaryOp("Power (a^b)", "Maths", MathOpKind::pow));
+            std::string def = std::format("({})", defs[0].str);
+            for (int i = 1; i < defs.size(); i++) {
+                def += std::format("-({})", defs[i].str);
+            }
+            return FnDef{def};
+        });
+
+        catalog.registerComponent(opDef);
+
+        opDef = MathCompDef::makeBinaryOp(
+            "Multiply", "Maths", MathOpKind::multiply);
+
+        opDef->setFnDefCollapse([](const std::vector<FnDef> &defs) {
+            if (defs.empty())
+                return FnDef{};
+
+            std::string def = std::format("({})", defs[0].str);
+            for (int i = 1; i < defs.size(); i++) {
+                def += std::format("*({})", defs[i].str);
+            }
+            return FnDef{def};
+        });
+
+        catalog.registerComponent(opDef);
+
+        opDef =
+            MathCompDef::makeBinaryOp("Power (a^b)", "Maths", MathOpKind::pow);
+
+        opDef->setFnDefCollapse([](const std::vector<FnDef> &defs) {
+            if (defs.size() < 2)
+                return FnDef{};
+
+            const auto def = std::format("{}^{}", defs[0].str, defs[1].str);
+            return FnDef{def};
+        });
+
+        catalog.registerComponent(opDef);
 
         const auto inpDef = std::make_shared<MathCompDef>();
         inpDef->setName("Scalar Input");
@@ -1408,6 +1443,19 @@ namespace Bess::SimEngine::Drivers::Math {
                                   PortState::scalar(0.0),
                                   PortState::scalar(1.0)}));
 
+        fnDef->setFnDefCollapse([](const std::vector<FnDef> &defs) {
+            if (defs.size() != 3)
+                return FnDef{};
+
+            const std::string_view f = defs[0].str;
+            const std::string_view p = defs[1].str;
+            const std::string_view a = defs[2].str;
+
+            const auto str = std::format("cos(({}*t) + {}) * {}", f, p, a);
+
+            return FnDef{str};
+        });
+
         catalog.registerComponent(fnDef);
 
         fnDef = MathCompDef::makeFunction(
@@ -1427,6 +1475,17 @@ namespace Bess::SimEngine::Drivers::Math {
                                  },
                                  false,
                                  {PortState::scalar(1.0)}));
+
+        fnDef->setFnDefCollapse([](const std::vector<FnDef> &defs) {
+            if (defs.size() != 1)
+                return FnDef{};
+
+            const std::string_view x = defs[0].str;
+
+            const auto str = std::format("e^(-{}*t)", x);
+
+            return FnDef{str};
+        });
 
         catalog.registerComponent(fnDef);
 
