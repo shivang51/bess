@@ -153,6 +153,8 @@ else()
     endif()
 endif()
 
+add_subdirectory(symcalc-cpp)
+
 target_link_libraries(${PROJECT_NAME} PUBLIC 
 	png_static
 	glfw
@@ -167,4 +169,5 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 	absl::raw_logging_internal
 	yogacore
 	Freetype::Freetype
+	symcalc-cpp
 )

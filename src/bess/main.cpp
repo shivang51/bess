@@ -9,6 +9,7 @@ bool validateStartDir(char **argv);
 Bess::AppStartupFlags prepareFlags(const AppArgs &args);
 
 int main(int argc, char **argv) {
+
     if (!validateStartDir(argv)) {
         std::cerr << "[-] Wrong working directory. Expected 'assets/' folder. "
                      "Exiting."

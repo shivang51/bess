@@ -1496,8 +1496,33 @@ namespace Bess::SimEngine::Drivers::Math {
 
         timeNode->setAutoReschedule(true);
         timeNode->setAutoRescheduleDelay(TimeNs(2e6));
-
         catalog.registerComponent(timeNode);
+
+        fnDef = MathCompDef::makeFunction(
+            "Diffrentiate x^2",
+            "Maths",
+            [](TimeMs, const std::vector<double> &values) {
+                const auto x = values[0];
+                return 2 * x;
+                // Equation x("x");
+                // Equation y = sin(x) + cos(x) + pow(x, 2);
+                // auto y1 = y.derivative(x);
+                //
+                // std::cout << "Derivative: " << y1 << std::endl;
+            });
+
+        fnDef->setInputPortDescriptor(
+            scalarPortDescriptor(PortDirection::input,
+                                 1,
+                                 std::vector<std::string>{
+                                     "X",
+                                 },
+                                 false,
+                                 {PortState::scalar(0.0)}));
+
+        fnDef->setAutoReschedule(false);
+
+        catalog.registerComponent(fnDef);
     }
 
 } // namespace Bess::SimEngine::Drivers::Math
