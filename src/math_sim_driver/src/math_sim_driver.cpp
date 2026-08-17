@@ -336,6 +336,10 @@ namespace Bess::SimEngine::Drivers::Math {
         });
     }
 
+    void MathCompDef::setFnDefCollapse(const TFnDefCollapse &fnDefCollapse) {
+        m_fnDefCollapse = fnDefCollapse;
+    }
+
     PortDescriptor MathCompDef::getInputPortDescriptor() const {
         return m_inputPorts;
     }
@@ -447,6 +451,7 @@ namespace Bess::SimEngine::Drivers::Math {
         JsonConvert::toJsonValue(m_isOutputConnected,
                                  json["isOutputConnected"]);
         JsonConvert::toJsonValue(m_netUuid, json["netUuid"]);
+        JsonConvert::toJsonValue(m_fnDef.str, json["fnDef"]);
         return json;
     }
 
@@ -527,6 +532,8 @@ namespace Bess::SimEngine::Drivers::Math {
         simData->prevState.outputStates = comp->getOutputStates();
         simData->inputStates = inputs;
         simData->outputStates = comp->getOutputStates();
+
+        comp->setFnDef(collapseDefs(evt.compId));
 
         auto newData =
             std::dynamic_pointer_cast<MathCompSimData>(comp->simulate(simData));
@@ -1067,6 +1074,50 @@ namespace Bess::SimEngine::Drivers::Math {
         return collapsed;
     }
 
+    FnDef MathSimDriver::collapseDefs(const UUID &id) {
+        const auto comp = getComponent<MathSimComp>(id);
+        if (!comp) {
+            return {};
+        }
+
+        auto collapsed = comp->getFnDef();
+        const auto &inputConns = comp->getInputConnections();
+        std::vector<FnDef> inpDefs;
+        inpDefs.reserve(inputConns.size());
+
+        const auto mathDef =
+            std::dynamic_pointer_cast<MathCompDef>(comp->getDefinition());
+
+        const auto &defaults = mathDef->getInputPortDescriptor().defaultStates;
+
+        for (size_t pinIdx = 0; pinIdx < inputConns.size(); ++pinIdx) {
+            const auto &pinConns = inputConns[pinIdx];
+            if (pinConns.empty()) {
+                if (defaults.size() > pinIdx) {
+                    inpDefs.emplace_back(
+                        std::to_string(defaults[pinIdx].scalarValue));
+                } else {
+                    inpDefs.emplace_back("0");
+                }
+                continue;
+            }
+
+            const auto &[srcId, srcSlotIdx] = pinConns.front();
+            const auto srcComp = getComponent<MathSimComp>(srcId);
+            if (!srcComp || srcSlotIdx < 0 ||
+                static_cast<size_t>(srcSlotIdx) >=
+                    srcComp->getOutputStates().size()) {
+                inpDefs.emplace_back("0");
+                continue;
+            }
+
+            const auto &srcDef = srcComp->getFnDef();
+            inpDefs.emplace_back(srcDef);
+        }
+
+        return mathDef->getFnDefCollapseFn()(inpDefs);
+    }
+
     std::vector<PortState>
     MathSimDriver::getInputPortStates(const UUID &compId) {
         return collapseInputs(compId);
@@ -1222,8 +1273,19 @@ namespace Bess::SimEngine::Drivers::Math {
 
     void MathSimDriver::onInit() {
         auto &catalog = ComponentCatalog::instance();
-        catalog.registerComponent(
-            MathCompDef::makeBinaryOp("Add", "Maths", MathOpKind::add));
+        auto addDef =
+            MathCompDef::makeBinaryOp("Add", "Maths", MathOpKind::add);
+        addDef->setFnDefCollapse([](const std::vector<FnDef> &defs) {
+            if (defs.empty())
+                return FnDef{};
+
+            std::string def = defs[0].str;
+            for (int i = 1; i < defs.size(); i++) {
+                def += std::format("+ ({})", defs[i].str);
+            }
+            return FnDef{def};
+        });
+        catalog.registerComponent(addDef);
 
         catalog.registerComponent(MathCompDef::makeBinaryOp(
             "Subtract", "Maths", MathOpKind::subtract));
@@ -1303,6 +1365,19 @@ namespace Bess::SimEngine::Drivers::Math {
                                  {PortState::scalar(1.0),
                                   PortState::scalar(0.0),
                                   PortState::scalar(1.0)}));
+
+        fnDef->setFnDefCollapse([](const std::vector<FnDef> &defs) {
+            if (defs.size() != 3)
+                return FnDef{};
+
+            const std::string_view f = defs[0].str;
+            const std::string_view p = defs[1].str;
+            const std::string_view a = defs[2].str;
+
+            const auto str = std::format("sin(({}*t) + {}) * {}", f, p, a);
+
+            return FnDef{str};
+        });
 
         catalog.registerComponent(fnDef);
 

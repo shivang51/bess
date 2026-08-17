@@ -25,9 +25,15 @@ namespace Bess::SimEngine::Drivers::Math {
         std::vector<PortState> outputStates;
     };
 
+    struct FnDef {
+        std::string str;
+    };
+
     struct BESS_API MathCompSimData : SimFnDataBase {
         std::vector<PortState> inputStates;
         std::vector<PortState> outputStates;
+        std::vector<FnDef> inpFnDefs;
+        FnDef fnDef;
         SimTime simTime;
         MathCompState prevState;
     };
@@ -39,6 +45,8 @@ namespace Bess::SimEngine::Drivers::Math {
         // First inp in vector will be time in seconds
         using TScalarFn =
             std::function<double(TimeMs time, const std::vector<double> &)>;
+
+        using TFnDefCollapse = std::function<FnDef(const std::vector<FnDef> &)>;
 
         using TMathSimFn = std::function<std::shared_ptr<MathCompSimData>(
             const std::shared_ptr<MathCompSimData> &)>;
@@ -62,11 +70,13 @@ namespace Bess::SimEngine::Drivers::Math {
 
         MAKE_GETTER_SETTER(MathOpKind, OpKind, m_opKind)
         MAKE_GETTER(TScalarFn, ScalarFn, m_scalarFn)
+        MAKE_GETTER(TFnDefCollapse, FnDefCollapseFn, m_fnDefCollapse)
 
         void setInputPortDescriptor(const PortDescriptor &descriptor);
         void setOutputPortDescriptor(const PortDescriptor &descriptor);
         void setSimFn(const TMathSimFn &simFn);
         void setScalarFn(const TScalarFn &scalarFn);
+        void setFnDefCollapse(const TFnDefCollapse &fnDefCollapse);
 
         PortDescriptor getInputPortDescriptor() const override;
         PortDescriptor getOutputPortDescriptor() const override;
@@ -84,6 +94,7 @@ namespace Bess::SimEngine::Drivers::Math {
         PortDescriptor m_outputPorts;
         MathOpKind m_opKind = MathOpKind::none;
         TScalarFn m_scalarFn = nullptr;
+        TFnDefCollapse m_fnDefCollapse = nullptr;
     };
 
     class BESS_API MathSimComp : public EvtBasedSimComp {
@@ -147,6 +158,7 @@ namespace Bess::SimEngine::Drivers::Math {
                            IsOutputConnected,
                            m_isOutputConnected)
         MAKE_GETTER_SETTER(UUID, NetUuid, m_netUuid)
+        MAKE_GETTER_SETTER(FnDef, FnDef, m_fnDef)
 
         Json::Value toJson() const override;
         void loadJson(const Json::Value &json) override;
@@ -162,6 +174,7 @@ namespace Bess::SimEngine::Drivers::Math {
         std::vector<bool> m_isInputConnected;
         std::vector<bool> m_isOutputConnected;
         UUID m_netUuid = UUID::null;
+        FnDef m_fnDef;
     };
 
     class BESS_API MathSimDriver final : public EvtBasedSimDriver {
@@ -210,7 +223,11 @@ namespace Bess::SimEngine::Drivers::Math {
 
         ConnectionBundle getConnections(const UUID &uuid) const override;
         std::vector<UUID> getDependants(const UUID &id) override;
+
         std::vector<PortState> collapseInputs(const UUID &id) override;
+
+        FnDef collapseDefs(const UUID &id);
+
         std::vector<PortState> getInputPortStates(const UUID &compId) override;
         PortState getPortState(const PortRef &port) const override;
         bool setInputPortState(const UUID &uuid,
