@@ -93,7 +93,8 @@ void bind_math_sim_driver(py::module_ &m) {
         compDef->setPropDelay(prop_delay);
         compDef->setScalarFn(
             [scalar_function](Bess::TimeMs time,
-                              const std::vector<double> &values) -> double {
+                              const std::vector<double> &values,
+                              const FnDef &def) -> double {
                 py::gil_scoped_acquire gil;
                 return scalar_function(time, values).cast<double>();
             });
@@ -144,11 +145,11 @@ void bind_math_sim_driver(py::module_ &m) {
         .def("set_scalar_fn",
              [](MathCompDef &self, const py::function &scalar_function) {
                  self.setScalarFn(
-                     [scalar_function](
-                         Bess::TimeMs time,
-                         const std::vector<double> &values) -> double {
+                     [scalar_function](Bess::TimeMs time,
+                                       const std::vector<double> &values,
+                                       const FnDef &def) -> double {
                          py::gil_scoped_acquire gil;
-                         return scalar_function(values).cast<double>();
+                         return scalar_function(values, def).cast<double>();
                      });
              })
         .def("compute_scalar_fn_if_needed",

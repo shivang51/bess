@@ -5,6 +5,7 @@
 #include "component_catalog.h"
 #include "driver_registry.h"
 #include "net/net_rebuilder.h"
+#include "symcalc/symcalc.hpp"
 #include "json/value.h"
 
 #include <algorithm>
@@ -325,11 +326,13 @@ namespace Bess::SimEngine::Drivers::Math {
             const auto timeMs =
                 std::chrono::duration<double, std::milli>(data->simTime);
 
-            const auto next =
-                PortState::scalar(fn ? fn(timeMs, values) : 0.0, data->simTime);
+            const auto next = PortState::scalar(
+                fn ? fn(timeMs, values, data->fnDef) : 0.0, data->simTime);
+
             const auto prev = data->prevState.outputStates.empty()
                                   ? PortState::scalar(0.0)
                                   : data->prevState.outputStates[0];
+
             data->simDependants = stateChanged(prev, next);
             data->outputStates[0] = next;
             return data;
@@ -381,7 +384,9 @@ namespace Bess::SimEngine::Drivers::Math {
     bool MathCompDef::computeScalarFnIfNeeded() {
         switch (m_opKind) {
         case MathOpKind::add:
-            setScalarFn([](TimeMs, const std::vector<double> &values) {
+            setScalarFn([](TimeMs,
+                           const std::vector<double> &values,
+                           const FnDef &def) {
                 double result = 0.0;
                 for (double value : values) {
                     result += value;
@@ -390,7 +395,9 @@ namespace Bess::SimEngine::Drivers::Math {
             });
             return true;
         case MathOpKind::subtract:
-            setScalarFn([](TimeMs, const std::vector<double> &values) {
+            setScalarFn([](TimeMs,
+                           const std::vector<double> &values,
+                           const FnDef &def) {
                 if (values.empty()) {
                     return 0.0;
                 }
@@ -403,7 +410,9 @@ namespace Bess::SimEngine::Drivers::Math {
             });
             return true;
         case MathOpKind::multiply:
-            setScalarFn([](TimeMs, const std::vector<double> &values) {
+            setScalarFn([](TimeMs,
+                           const std::vector<double> &values,
+                           const FnDef &def) {
                 if (values.empty()) {
                     return 1.0;
                 }
@@ -416,7 +425,9 @@ namespace Bess::SimEngine::Drivers::Math {
             });
             return true;
         case MathOpKind::pow:
-            setScalarFn([](TimeMs, const std::vector<double> &values) {
+            setScalarFn([](TimeMs,
+                           const std::vector<double> &values,
+                           const FnDef &def) {
                 if (values.size() < 2) {
                     return 1.0;
                 }
@@ -451,7 +462,7 @@ namespace Bess::SimEngine::Drivers::Math {
         JsonConvert::toJsonValue(m_isOutputConnected,
                                  json["isOutputConnected"]);
         JsonConvert::toJsonValue(m_netUuid, json["netUuid"]);
-        JsonConvert::toJsonValue(m_fnDef.str, json["fnDef"]);
+        JsonConvert::toJsonValue(m_fnDef.toString(), json["fnDef"]);
         return json;
     }
 
@@ -532,11 +543,13 @@ namespace Bess::SimEngine::Drivers::Math {
         simData->prevState.outputStates = comp->getOutputStates();
         simData->inputStates = inputs;
         simData->outputStates = comp->getOutputStates();
+        simData->fnDef = comp->getFnDef();
 
         comp->setFnDef(collapseDefs(evt.compId));
 
         auto newData =
             std::dynamic_pointer_cast<MathCompSimData>(comp->simulate(simData));
+
         if (!newData) {
             BESS_WARN("(MathSimDriver.simulate) Simulation function for "
                       "component with UUID {} did not return MathCompSimData",
@@ -908,7 +921,7 @@ namespace Bess::SimEngine::Drivers::Math {
         triggerPortCountChangeCbs(port.componentId,
                                   port.direction,
                                   SignalKind::scalar,
-                                  states.size());
+                                  (int)states.size());
         return changeResFor(port.direction);
     }
 
@@ -998,7 +1011,7 @@ namespace Bess::SimEngine::Drivers::Math {
         triggerPortCountChangeCbs(port.componentId,
                                   port.direction,
                                   SignalKind::scalar,
-                                  states.size());
+                                  (int)states.size());
         return changeResFor(port.direction);
     }
 
@@ -1077,7 +1090,7 @@ namespace Bess::SimEngine::Drivers::Math {
     FnDef MathSimDriver::collapseDefs(const UUID &id) {
         const auto comp = getComponent<MathSimComp>(id);
         if (!comp) {
-            return {};
+            return FnDef::empty();
         }
 
         auto collapsed = comp->getFnDef();
@@ -1097,7 +1110,7 @@ namespace Bess::SimEngine::Drivers::Math {
                     inpDefs.emplace_back(
                         std::to_string(defaults[pinIdx].scalarValue));
                 } else {
-                    inpDefs.emplace_back("0");
+                    return FnDef::empty();
                 }
                 continue;
             }
@@ -1107,7 +1120,7 @@ namespace Bess::SimEngine::Drivers::Math {
             if (!srcComp || srcSlotIdx < 0 ||
                 static_cast<size_t>(srcSlotIdx) >=
                     srcComp->getOutputStates().size()) {
-                inpDefs.emplace_back("0");
+                return FnDef::empty();
                 continue;
             }
 
@@ -1276,13 +1289,13 @@ namespace Bess::SimEngine::Drivers::Math {
         auto opDef = MathCompDef::makeBinaryOp("Add", "Maths", MathOpKind::add);
         opDef->setFnDefCollapse([](const std::vector<FnDef> &defs) {
             if (defs.empty())
-                return FnDef{};
+                return FnDef::empty();
 
-            std::string def = std::format("({})", defs[0].str);
+            auto eq = defs[0].equation;
             for (int i = 1; i < defs.size(); i++) {
-                def += std::format("+({})", defs[i].str);
+                eq = eq + defs[i].equation;
             }
-            return FnDef{def};
+            return FnDef{eq};
         });
         catalog.registerComponent(opDef);
 
@@ -1291,13 +1304,13 @@ namespace Bess::SimEngine::Drivers::Math {
 
         opDef->setFnDefCollapse([](const std::vector<FnDef> &defs) {
             if (defs.empty())
-                return FnDef{};
+                return FnDef::empty();
 
-            std::string def = std::format("({})", defs[0].str);
+            auto eq = defs[0].equation;
             for (int i = 1; i < defs.size(); i++) {
-                def += std::format("-({})", defs[i].str);
+                eq = eq - defs[i].equation;
             }
-            return FnDef{def};
+            return FnDef{eq};
         });
 
         catalog.registerComponent(opDef);
@@ -1307,13 +1320,14 @@ namespace Bess::SimEngine::Drivers::Math {
 
         opDef->setFnDefCollapse([](const std::vector<FnDef> &defs) {
             if (defs.empty())
-                return FnDef{};
+                return FnDef::empty();
 
-            std::string def = std::format("({})", defs[0].str);
+            auto eq = defs[0].equation;
             for (int i = 1; i < defs.size(); i++) {
-                def += std::format("*({})", defs[i].str);
+                eq = eq * defs[i].equation;
             }
-            return FnDef{def};
+
+            return FnDef{eq};
         });
 
         catalog.registerComponent(opDef);
@@ -1323,10 +1337,9 @@ namespace Bess::SimEngine::Drivers::Math {
 
         opDef->setFnDefCollapse([](const std::vector<FnDef> &defs) {
             if (defs.size() < 2)
-                return FnDef{};
+                return FnDef::empty();
 
-            const auto def = std::format("{}^{}", defs[0].str, defs[1].str);
-            return FnDef{def};
+            return FnDef{symcalc::pow(defs[0].equation, defs[1].equation)};
         });
 
         catalog.registerComponent(opDef);
@@ -1377,7 +1390,9 @@ namespace Bess::SimEngine::Drivers::Math {
         auto fnDef = MathCompDef::makeFunction(
             "Sine (sin((f*t) + p) * a)",
             "Maths",
-            [](TimeMs time, const std::vector<double> &values) {
+            [](TimeMs time,
+               const std::vector<double> &values,
+               const FnDef &def) {
                 BESS_ASSERT(values.size() == 3,
                             "Expected 3 values for sine function: frequency, "
                             "phase, amplitude");
@@ -1403,15 +1418,15 @@ namespace Bess::SimEngine::Drivers::Math {
 
         fnDef->setFnDefCollapse([](const std::vector<FnDef> &defs) {
             if (defs.size() != 3)
-                return FnDef{};
+                return FnDef::empty();
 
-            const std::string_view f = defs[0].str;
-            const std::string_view p = defs[1].str;
-            const std::string_view a = defs[2].str;
+            const auto &f = defs[0].equation;
+            const auto &p = defs[1].equation;
+            const auto &a = defs[2].equation;
 
-            const auto str = std::format("sin(({}*t) + {}) * {}", f, p, a);
+            auto eq = a * symcalc::sin(p + (f * symcalc::Equation("t")));
 
-            return FnDef{str};
+            return FnDef{eq};
         });
 
         catalog.registerComponent(fnDef);
@@ -1419,7 +1434,9 @@ namespace Bess::SimEngine::Drivers::Math {
         fnDef = MathCompDef::makeFunction(
             "Cosine (cos((f*t) + p) * a)",
             "Maths",
-            [](TimeMs time, const std::vector<double> &values) {
+            [](TimeMs time,
+               const std::vector<double> &values,
+               const FnDef &def) {
                 BESS_ASSERT(values.size() == 3,
                             "Expected 3 values for sine function: frequency, "
                             "phase, amplitude");
@@ -1445,27 +1462,30 @@ namespace Bess::SimEngine::Drivers::Math {
 
         fnDef->setFnDefCollapse([](const std::vector<FnDef> &defs) {
             if (defs.size() != 3)
-                return FnDef{};
+                return FnDef::empty();
 
-            const std::string_view f = defs[0].str;
-            const std::string_view p = defs[1].str;
-            const std::string_view a = defs[2].str;
+            const auto &f = defs[0].equation;
+            const auto &p = defs[1].equation;
+            const auto &a = defs[2].equation;
 
-            const auto str = std::format("cos(({}*t) + {}) * {}", f, p, a);
+            auto eq = a * symcalc::cos(p + (f * symcalc::Equation("t")));
 
-            return FnDef{str};
+            return FnDef{eq};
         });
 
         catalog.registerComponent(fnDef);
 
-        fnDef = MathCompDef::makeFunction(
-            "Exp Decay (e^-xt)",
-            "Maths",
-            [](TimeMs time, const std::vector<double> &values) {
-                auto x = values.empty() ? 1.0 : values[0];
-                const auto t = time.count() / 1000.0;
-                return std::exp(-x * t);
-            });
+        fnDef =
+            MathCompDef::makeFunction("Exp Decay (e^-xt)",
+                                      "Maths",
+                                      [](TimeMs time,
+                                         const std::vector<double> &values,
+                                         const FnDef &def) {
+                                          auto x =
+                                              values.empty() ? 1.0 : values[0];
+                                          const auto t = time.count() / 1000.0;
+                                          return std::exp(-x * t);
+                                      });
 
         fnDef->setInputPortDescriptor(
             scalarPortDescriptor(PortDirection::input,
@@ -1478,13 +1498,13 @@ namespace Bess::SimEngine::Drivers::Math {
 
         fnDef->setFnDefCollapse([](const std::vector<FnDef> &defs) {
             if (defs.size() != 1)
-                return FnDef{};
+                return FnDef::empty();
 
-            const std::string_view x = defs[0].str;
+            const auto &x = defs[0].equation;
 
-            const auto str = std::format("e^(-{}*t)", x);
+            const auto eq = symcalc::exp(-x * symcalc::Equation("t"));
 
-            return FnDef{str};
+            return FnDef{eq};
         });
 
         catalog.registerComponent(fnDef);
@@ -1495,7 +1515,7 @@ namespace Bess::SimEngine::Drivers::Math {
         fnDef = MathCompDef::makeFunction(
             "Logarithm (log(x))",
             "Maths",
-            [](TimeMs, const std::vector<double> &values) {
+            [](TimeMs, const std::vector<double> &values, const FnDef &def) {
                 auto x = values.empty() ? 1.0 : values[0];
                 return std::log(x);
             });
@@ -1515,7 +1535,7 @@ namespace Bess::SimEngine::Drivers::Math {
         fnDef = MathCompDef::makeFunction(
             "Square Root (sqrt(x))",
             "Maths",
-            [](TimeMs, const std::vector<double> &values) {
+            [](TimeMs, const std::vector<double> &values, const FnDef &def) {
                 auto x = values.empty() ? 1.0 : values[0];
                 return std::sqrt(x);
             });
@@ -1535,7 +1555,7 @@ namespace Bess::SimEngine::Drivers::Math {
         fnDef = MathCompDef::makeFunction(
             "Absolute Value (abs(x))",
             "Maths",
-            [](TimeMs, const std::vector<double> &values) {
+            [](TimeMs, const std::vector<double> &values, const FnDef &def) {
                 auto x = values.empty() ? 0.0 : values[0];
                 return std::abs(x);
             });
@@ -1554,7 +1574,7 @@ namespace Bess::SimEngine::Drivers::Math {
         fnDef = MathCompDef::makeFunction(
             "Clamp (clamp(x, min, max))",
             "Maths",
-            [](TimeMs, const std::vector<double> &values) {
+            [](TimeMs, const std::vector<double> &values, const FnDef &def) {
                 BESS_ASSERT(
                     values.size() == 3,
                     "Expected 3 values for clamp function: x, min, max");
@@ -1580,7 +1600,7 @@ namespace Bess::SimEngine::Drivers::Math {
         fnDef = MathCompDef::makeFunction(
             "Modulo (mod(x, y))",
             "Maths",
-            [](TimeMs, const std::vector<double> &values) {
+            [](TimeMs, const std::vector<double> &values, const FnDef &def) {
                 BESS_ASSERT(values.size() == 2,
                             "Expected 2 values for modulo function: x, y");
                 const auto x = values[0];
@@ -1632,18 +1652,11 @@ namespace Bess::SimEngine::Drivers::Math {
         timeNode->setAutoRescheduleDelay(TimeNs(2e6));
         catalog.registerComponent(timeNode);
 
-        fnDef = MathCompDef::makeFunction(
-            "Diffrentiate x^2",
-            "Maths",
-            [](TimeMs, const std::vector<double> &values) {
-                const auto x = values[0];
-                return 2 * x;
-                // Equation x("x");
-                // Equation y = sin(x) + cos(x) + pow(x, 2);
-                // auto y1 = y.derivative(x);
-                //
-                // std::cout << "Derivative: " << y1 << std::endl;
-            });
+        fnDef = MathCompDef::makeFunction("Diffrentiate",
+                                          "Maths",
+                                          [](TimeMs,
+                                             const std::vector<double> &values,
+                                             const FnDef &def) { return 0; });
 
         fnDef->setInputPortDescriptor(
             scalarPortDescriptor(PortDirection::input,
@@ -1653,6 +1666,12 @@ namespace Bess::SimEngine::Drivers::Math {
                                  },
                                  false,
                                  {PortState::scalar(0.0)}));
+
+        fnDef->setFnDefCollapse([](const std::vector<FnDef> &defs) {
+            const auto eq = defs[0].equation.derivative(symcalc::Equation("t"));
+            std::cout << eq << std::endl;
+            return FnDef{eq};
+        });
 
         fnDef->setAutoReschedule(false);
 

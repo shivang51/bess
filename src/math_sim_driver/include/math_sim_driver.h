@@ -7,6 +7,7 @@
 #include "net/net.h"
 #include "sim_driver/event_based_sim_driver.h"
 #include "sim_driver/sim_driver.h"
+#include "symcalc/symcalc.hpp"
 #include "json/value.h"
 
 #include <functional>
@@ -26,14 +27,22 @@ namespace Bess::SimEngine::Drivers::Math {
     };
 
     struct FnDef {
-        std::string str;
+        symcalc::Equation equation = symcalc::Equation("");
+
+        std::string toString() const {
+            return equation.copy_eq()->txt();
+        }
+
+        static FnDef empty() {
+            return {symcalc::Equation("")};
+        }
     };
 
     struct BESS_API MathCompSimData : SimFnDataBase {
         std::vector<PortState> inputStates;
         std::vector<PortState> outputStates;
         std::vector<FnDef> inpFnDefs;
-        FnDef fnDef;
+        FnDef fnDef = FnDef::empty();
         SimTime simTime;
         MathCompState prevState;
     };
@@ -43,8 +52,8 @@ namespace Bess::SimEngine::Drivers::Math {
         static constexpr const char *TypeName = "math_compdef";
 
         // First inp in vector will be time in seconds
-        using TScalarFn =
-            std::function<double(TimeMs time, const std::vector<double> &)>;
+        using TScalarFn = std::function<double(
+            TimeMs time, const std::vector<double> &, const FnDef &def)>;
 
         using TFnDefCollapse = std::function<FnDef(const std::vector<FnDef> &)>;
 

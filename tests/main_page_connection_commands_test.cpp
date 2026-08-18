@@ -13,9 +13,9 @@
 #include "dig_sim_driver.h"
 #include "event_dispatcher.h"
 #include "math_sim_driver.h"
-#include "pages/main_page/project_model.h"
 #include "pages/main_page/main_page_state.h"
 #include "pages/main_page/module_edit.h"
+#include "pages/main_page/project_model.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/input_scene_component.h"
 #include "pages/main_page/scene_components/module_scene_component.h"
@@ -151,8 +151,7 @@ namespace {
         }
         void drawCircle(const Bess::Core::Renderer::CircleProps &) override {
         }
-        void drawLine(
-            const Bess::Core::Renderer::LineProps &props) override {
+        void drawLine(const Bess::Core::Renderer::LineProps &props) override {
             lines.push_back(props);
         }
         void drawFont(std::string_view,
@@ -255,7 +254,9 @@ namespace {
             .count = outputCount,
         });
         definition->setScalarFn(
-            [](Bess::TimeMs, const std::vector<double> &values) {
+            [](Bess::TimeMs,
+               const std::vector<double> &values,
+               const Bess::SimEngine::Drivers::Math::FnDef &) {
                 return values.empty() ? 0.0 : values.front();
             });
         return definition;
@@ -283,9 +284,8 @@ namespace {
     std::shared_ptr<Bess::Canvas::UI::ScalarInputComp>
     firstScalarInput(const Bess::Canvas::SceneState &state) {
         for (const auto &[_, component] : state.getAllComponents()) {
-            if (auto input =
-                    std::dynamic_pointer_cast<Bess::Canvas::UI::ScalarInputComp>(
-                        component)) {
+            if (auto input = std::dynamic_pointer_cast<
+                    Bess::Canvas::UI::ScalarInputComp>(component)) {
                 return input;
             }
         }
@@ -1277,7 +1277,9 @@ TEST_F(MainPageConnectionCommandsTest,
     auto definition = Bess::SimEngine::Drivers::Math::MathCompDef::makeFunction(
         "Scalar Input",
         "Math",
-        [](Bess::TimeMs, const std::vector<double> &) { return 0.0; },
+        [](Bess::TimeMs,
+           const std::vector<double> &,
+           const Bess::SimEngine::Drivers::Math::FnDef &) { return 0.0; },
         false);
     definition->setBehaviorType(Bess::SimEngine::ComponentBehaviorType::input);
     definition->setInputPortDescriptor({
@@ -1382,8 +1384,7 @@ TEST_F(MainPageConnectionCommandsTest,
 
     size_t textBoxCount = 0;
     size_t toggleCount = 0;
-    for (const auto &[_, component] :
-         scene->getState().getAllComponents()) {
+    for (const auto &[_, component] : scene->getState().getAllComponents()) {
         if (std::dynamic_pointer_cast<Bess::Canvas::UI::TextBoxComp>(
                 component)) {
             ++textBoxCount;
@@ -1481,7 +1482,9 @@ TEST_F(MainPageConnectionCommandsTest,
         Bess::SimEngine::Drivers::Math::MathCompDef::makeFunction(
             "Monitored Sine",
             "Test",
-            [](Bess::TimeMs time, const std::vector<double> &) {
+            [](Bess::TimeMs time,
+               const std::vector<double> &,
+               const Bess::SimEngine::Drivers::Math::FnDef &) {
                 return std::sin(time.count());
             },
             true,
@@ -1509,8 +1512,7 @@ TEST_F(MainPageConnectionCommandsTest,
 
     {
         const auto stampData = simEngine->getStampData();
-        const auto stampHistory =
-            stampData.find(source.comp->getSimEngineId());
+        const auto stampHistory = stampData.find(source.comp->getSimEngineId());
         ASSERT_TRUE(stampHistory.has_value());
         ASSERT_EQ(stampHistory->samples.size(), 3U);
     }
@@ -1540,7 +1542,9 @@ TEST_F(MainPageConnectionCommandsTest,
         Bess::SimEngine::Drivers::Math::MathCompDef::makeFunction(
             "Dense Monitor Source",
             "Test",
-            [](Bess::TimeMs, const std::vector<double> &) { return 0.0; },
+            [](Bess::TimeMs,
+               const std::vector<double> &,
+               const Bess::SimEngine::Drivers::Math::FnDef &) { return 0.0; },
             false);
     const auto source = addSimComponent(definition);
     ASSERT_NE(source.comp, nullptr);
@@ -1561,8 +1565,8 @@ TEST_F(MainPageConnectionCommandsTest,
         simEngine->setOutputPortState(
             source.comp->getSimEngineId(),
             0,
-            Bess::SimEngine::PortState::scalar(
-                static_cast<double>(i % 17U), simTime));
+            Bess::SimEngine::PortState::scalar(static_cast<double>(i % 17U),
+                                               simTime));
         driver->stampSim(simTime, true);
     }
 
@@ -1633,8 +1637,8 @@ TEST_F(MainPageConnectionCommandsTest,
         py::gil_scoped_acquire gil;
         (void)py::module_::import("bessplug.api.scene");
         auto pythonComponent = py::cast(fixture.comp);
-        auto pythonDrawContext = py::cast(
-            &drawContext, py::return_value_policy::reference);
+        auto pythonDrawContext =
+            py::cast(&drawContext, py::return_value_policy::reference);
         simEngine->run();
 
         const auto deadline =
@@ -1691,7 +1695,9 @@ TEST_F(MainPageConnectionCommandsTest,
         Bess::SimEngine::Drivers::Math::MathCompDef::makeFunction(
             "Normal Run Sine",
             "Timing Test",
-            [](Bess::TimeMs time, const std::vector<double> &) {
+            [](Bess::TimeMs time,
+               const std::vector<double> &,
+               const Bess::SimEngine::Drivers::Math::FnDef &) {
                 return std::sin(time.count() * 0.01);
             },
             true,
@@ -1719,8 +1725,8 @@ TEST_F(MainPageConnectionCommandsTest,
         EXPECT_EQ(history->samples.front().outputStates[0].getLogicState(),
                   Bess::SimEngine::LogicState::low);
 
-        const auto firstHigh = std::ranges::find_if(
-            history->samples, [](const auto &sample) {
+        const auto firstHigh =
+            std::ranges::find_if(history->samples, [](const auto &sample) {
                 return !sample.outputStates.empty() &&
                        sample.outputStates[0].getLogicState() ==
                            Bess::SimEngine::LogicState::high;
@@ -1759,8 +1765,8 @@ TEST_F(MainPageConnectionCommandsTest,
 
     for (int restart = 0; restart < 5; ++restart) {
         simEngine->run();
-        const auto runDeadline = std::chrono::steady_clock::now() +
-                                 std::chrono::milliseconds(300);
+        const auto runDeadline =
+            std::chrono::steady_clock::now() + std::chrono::milliseconds(300);
         while (std::chrono::steady_clock::now() < runDeadline) {
             simDrawCache.clear();
             {
@@ -1912,8 +1918,10 @@ TEST_F(MainPageConnectionCommandsTest,
         .theme = Bess::Core::Style::BessTheme::defaultTheme(),
     };
     for (const auto componentId : selected) {
-        const auto component = scene->getState().getComponentByUuid<
-            Bess::Canvas::SimulationSceneComponent>(componentId);
+        const auto component =
+            scene->getState()
+                .getComponentByUuid<Bess::Canvas::SimulationSceneComponent>(
+                    componentId);
         ASSERT_NE(component, nullptr);
         component->prepareUI(prepareCtx);
     }
@@ -1937,8 +1945,10 @@ TEST_F(MainPageConnectionCommandsTest,
         EXPECT_NE(scene->getState().getComponentByUuid(componentId), nullptr);
     }
     for (const auto componentId : selected) {
-        const auto component = scene->getState().getComponentByUuid<
-            Bess::Canvas::SimulationSceneComponent>(componentId);
+        const auto component =
+            scene->getState()
+                .getComponentByUuid<Bess::Canvas::SimulationSceneComponent>(
+                    componentId);
         ASSERT_NE(component, nullptr);
         component->prepareUI(prepareCtx);
     }
