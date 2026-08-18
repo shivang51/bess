@@ -2,6 +2,7 @@
 #include "component_catalog.h"
 #include "math_sim_driver.h"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -714,6 +715,258 @@ TEST(MathSimDriverTest,
     EXPECT_DOUBLE_EQ(restoredPolynomial->getFnDef().evaluate(), 28.0);
     EXPECT_DOUBLE_EQ(restoredDerivative->getFnDef().evaluate(), 10.0);
     EXPECT_TRUE(restoredPolynomial->getFnDef().variableValues.contains("y"));
+}
+
+TEST(MathSimDriverTest,
+     IntegratorUsesElapsedTimeSupportsResetAndRestartsCleanly) {
+    MathSimDriver driver;
+    driver.init();
+
+    const auto definition =
+        ComponentCatalog::instance().getComponentDefinition<MathCompDef>(
+            "Integrator");
+    ASSERT_NE(definition, nullptr);
+
+    const auto inputs = definition->getInputPortDescriptor();
+    const auto outputs = definition->getOutputPortDescriptor();
+    ASSERT_EQ(inputs.portCount(), 3u);
+    EXPECT_EQ(inputs.nameAt(0), "X");
+    EXPECT_EQ(inputs.nameAt(1), "Initial Value");
+    EXPECT_EQ(inputs.nameAt(2), "Reset");
+    EXPECT_EQ(inputs.signalKindAt(0), SignalKind::scalar);
+    EXPECT_EQ(inputs.signalKindAt(1), SignalKind::scalar);
+    EXPECT_EQ(inputs.signalKindAt(2), SignalKind::scalar);
+    ASSERT_EQ(outputs.portCount(), 1u);
+    EXPECT_EQ(outputs.nameAt(0), "Y");
+
+    const auto integratorId = addMathComponent(driver, definition, true);
+    ASSERT_NE(integratorId, UUID::null);
+    ASSERT_TRUE(
+        driver.setInputPortState(integratorId, 0, PortState::scalar(2.0)));
+    ASSERT_TRUE(
+        driver.setInputPortState(integratorId, 1, PortState::scalar(1.0)));
+
+    ASSERT_TRUE(driver.beginRun(TimeNs(0)));
+    EXPECT_DOUBLE_EQ(
+        driver.getPortState(scalarPort(integratorId, PortDirection::output, 0))
+            .scalarValue,
+        1.0);
+
+    EXPECT_EQ(driver.processEventsAt(TimeNs(0)), 1u);
+    EXPECT_EQ(driver.processEventsAt(TimeNs(1e6)), 1u);
+    EXPECT_NEAR(
+        driver.getPortState(scalarPort(integratorId, PortDirection::output, 0))
+            .scalarValue,
+        1.002,
+        1e-12);
+
+    // An off-grid input event updates the integral once, but must not create
+    // another periodic timer chain alongside the existing 1 ms chain.
+    ASSERT_TRUE(
+        driver.setInputPortState(integratorId, 0, PortState::scalar(4.0)));
+    EXPECT_EQ(driver.processEventsAt(TimeNs(1.5e6)), 1u);
+    EXPECT_NEAR(
+        driver.getPortState(scalarPort(integratorId, PortDirection::output, 0))
+            .scalarValue,
+        1.0035,
+        1e-12);
+    ASSERT_TRUE(driver.getNextEventTime().has_value());
+    EXPECT_EQ(*driver.getNextEventTime(), TimeNs(2e6));
+
+    EXPECT_EQ(driver.processEventsAt(TimeNs(2e6)), 1u);
+    EXPECT_NEAR(
+        driver.getPortState(scalarPort(integratorId, PortDirection::output, 0))
+            .scalarValue,
+        1.0055,
+        1e-12);
+    ASSERT_TRUE(driver.getNextEventTime().has_value());
+    EXPECT_EQ(*driver.getNextEventTime(), TimeNs(3e6));
+
+    // Re-evaluating at an already-integrated timestamp must not add area.
+    ASSERT_TRUE(
+        driver.setInputPortState(integratorId, 0, PortState::scalar(6.0)));
+    EXPECT_EQ(driver.processEventsAt(TimeNs(2e6)), 1u);
+    EXPECT_NEAR(
+        driver.getPortState(scalarPort(integratorId, PortDirection::output, 0))
+            .scalarValue,
+        1.0055,
+        1e-12);
+    EXPECT_EQ(driver.processEventsAt(TimeNs(3e6)), 1u);
+    EXPECT_NEAR(
+        driver.getPortState(scalarPort(integratorId, PortDirection::output, 0))
+            .scalarValue,
+        1.0115,
+        1e-12);
+
+    ASSERT_TRUE(
+        driver.setInputPortState(integratorId, 1, PortState::scalar(5.0)));
+    ASSERT_TRUE(
+        driver.setInputPortState(integratorId, 2, PortState::scalar(1.0)));
+    EXPECT_EQ(driver.processEventsAt(TimeNs(3e6)), 1u);
+    EXPECT_DOUBLE_EQ(
+        driver.getPortState(scalarPort(integratorId, PortDirection::output, 0))
+            .scalarValue,
+        5.0);
+    EXPECT_EQ(driver.processEventsAt(TimeNs(4e6)), 1u);
+    EXPECT_DOUBLE_EQ(
+        driver.getPortState(scalarPort(integratorId, PortDirection::output, 0))
+            .scalarValue,
+        5.0);
+
+    ASSERT_TRUE(
+        driver.setInputPortState(integratorId, 2, PortState::scalar(0.0)));
+    EXPECT_EQ(driver.processEventsAt(TimeNs(4e6)), 1u);
+    EXPECT_EQ(driver.processEventsAt(TimeNs(5e6)), 1u);
+    EXPECT_NEAR(
+        driver.getPortState(scalarPort(integratorId, PortDirection::output, 0))
+            .scalarValue,
+        5.006,
+        1e-12);
+
+    driver.stop();
+    ASSERT_TRUE(
+        driver.setInputPortState(integratorId, 1, PortState::scalar(3.0)));
+    constexpr auto restartTime = TimeNs(10e9);
+    ASSERT_TRUE(driver.beginRun(restartTime));
+    EXPECT_DOUBLE_EQ(
+        driver.getPortState(scalarPort(integratorId, PortDirection::output, 0))
+            .scalarValue,
+        3.0);
+    EXPECT_EQ(driver.processEventsAt(restartTime), 1u);
+    EXPECT_EQ(driver.processEventsAt(restartTime + TimeNs(1e6)), 1u);
+    EXPECT_NEAR(
+        driver.getPortState(scalarPort(integratorId, PortDirection::output, 0))
+            .scalarValue,
+        3.002,
+        1e-12);
+    driver.stop();
+}
+
+TEST(MathSimDriverTest, IntegratorPreservesConfiguredInitialValueOnSaveLoad) {
+    MathSimDriver driver;
+    driver.init();
+
+    const auto definition =
+        ComponentCatalog::instance().getComponentDefinition<MathCompDef>(
+            "Integrator");
+    ASSERT_NE(definition, nullptr);
+    const auto integratorId = addMathComponent(driver, definition, true);
+    ASSERT_NE(integratorId, UUID::null);
+    ASSERT_TRUE(
+        driver.setInputPortState(integratorId, 1, PortState::scalar(-2.5)));
+
+    MathSimDriver restored;
+    restored.init();
+    restored.loadJson(driver.toJson());
+    ASSERT_TRUE(restored.beginRun(TimeNs(0)));
+
+    const auto restoredIntegrator =
+        restored.getComponent<MathSimComp>(integratorId);
+    ASSERT_NE(restoredIntegrator, nullptr);
+    EXPECT_DOUBLE_EQ(
+        restored
+            .getPortState(scalarPort(integratorId, PortDirection::output, 0))
+            .scalarValue,
+        -2.5);
+    EXPECT_FALSE(restoredIntegrator->getRuntimeState().initialized);
+    EXPECT_EQ(restored.processEventsAt(TimeNs(0)), 1u);
+    EXPECT_TRUE(restoredIntegrator->getRuntimeState().initialized);
+    EXPECT_DOUBLE_EQ(restoredIntegrator->getRuntimeState().values.at(0), -2.5);
+    restored.stop();
+}
+
+TEST(MathSimDriverTest, IntegratorsSimulateADampedSpringMassSystem) {
+    MathSimDriver driver;
+    driver.init();
+
+    const auto getDefinition = [](const std::string &name) {
+        return ComponentCatalog::instance().getComponentDefinition<MathCompDef>(
+            name);
+    };
+    const auto integratorDef = getDefinition("Integrator");
+    const auto multiplyDef = getDefinition("Multiply");
+    const auto addDef = getDefinition("Add");
+    ASSERT_NE(integratorDef, nullptr);
+    ASSERT_NE(multiplyDef, nullptr);
+    ASSERT_NE(addDef, nullptr);
+
+    const auto positionId = addMathComponent(driver, integratorDef, true);
+    const auto velocityId = addMathComponent(driver, integratorDef, true);
+    const auto springForceId = addMathComponent(driver, multiplyDef, true);
+    const auto dampingForceId = addMathComponent(driver, multiplyDef, true);
+    const auto accelerationId = addMathComponent(driver, addDef, true);
+    ASSERT_NE(positionId, UUID::null);
+    ASSERT_NE(velocityId, UUID::null);
+    ASSERT_NE(springForceId, UUID::null);
+    ASSERT_NE(dampingForceId, UUID::null);
+    ASSERT_NE(accelerationId, UUID::null);
+
+    // m = 1 kg, k = 100 N/m, c = 2 N*s/m, x(0) = 0.1 m.
+    ASSERT_TRUE(
+        driver.setInputPortState(positionId, 1, PortState::scalar(0.1)));
+    ASSERT_TRUE(
+        driver.setInputPortState(velocityId, 1, PortState::scalar(0.0)));
+    ASSERT_TRUE(
+        driver.setInputPortState(springForceId, 1, PortState::scalar(-100.0)));
+    ASSERT_TRUE(
+        driver.setInputPortState(dampingForceId, 1, PortState::scalar(-2.0)));
+
+    ASSERT_TRUE(
+        driver.connectPorts(scalarPort(positionId, PortDirection::output, 0),
+                            scalarPort(springForceId, PortDirection::input, 0),
+                            false));
+    ASSERT_TRUE(
+        driver.connectPorts(scalarPort(velocityId, PortDirection::output, 0),
+                            scalarPort(dampingForceId, PortDirection::input, 0),
+                            false));
+    ASSERT_TRUE(
+        driver.connectPorts(scalarPort(springForceId, PortDirection::output, 0),
+                            scalarPort(accelerationId, PortDirection::input, 0),
+                            false));
+    ASSERT_TRUE(driver.connectPorts(
+        scalarPort(dampingForceId, PortDirection::output, 0),
+        scalarPort(accelerationId, PortDirection::input, 1),
+        false));
+    ASSERT_TRUE(driver.connectPorts(
+        scalarPort(accelerationId, PortDirection::output, 0),
+        scalarPort(velocityId, PortDirection::input, 0),
+        false));
+    ASSERT_TRUE(
+        driver.connectPorts(scalarPort(velocityId, PortDirection::output, 0),
+                            scalarPort(positionId, PortDirection::input, 0),
+                            false));
+
+    ASSERT_TRUE(driver.beginRun(TimeNs(0)));
+    constexpr auto endTime = TimeNs(2e9);
+    size_t processedBatches = 0;
+    bool sawNegativeDisplacement = false;
+    double latePeakDisplacement = 0.0;
+
+    while (const auto nextTime = driver.getNextEventTime()) {
+        if (*nextTime > endTime) {
+            break;
+        }
+        ASSERT_LT(processedBatches++, 50000u);
+        ASSERT_GT(driver.processEventsAt(*nextTime), 0u);
+
+        const double displacement =
+            driver
+                .getPortState(scalarPort(positionId, PortDirection::output, 0))
+                .scalarValue;
+        ASSERT_TRUE(std::isfinite(displacement));
+        sawNegativeDisplacement =
+            sawNegativeDisplacement || displacement < -0.01;
+        if (*nextTime >= TimeNs(1.4e9)) {
+            latePeakDisplacement =
+                std::max(latePeakDisplacement, std::abs(displacement));
+        }
+    }
+
+    EXPECT_TRUE(sawNegativeDisplacement);
+    EXPECT_GT(latePeakDisplacement, 0.0);
+    EXPECT_LT(latePeakDisplacement, 0.04);
+    EXPECT_LT(processedBatches, 30000u);
+    driver.stop();
 }
 
 TEST(MathSimDriverTest, RejectsNonScalarPortsAndStates) {

@@ -433,6 +433,10 @@ namespace Bess::SimEngine::Drivers::Math {
         m_fnDefsCollapse = fnDefsCollapse;
     }
 
+    void MathCompDef::setRuntimeResetFn(const TRuntimeResetFn &runtimeResetFn) {
+        m_runtimeResetFn = runtimeResetFn;
+    }
+
     PortDescriptor MathCompDef::getInputPortDescriptor() const {
         return m_inputPorts;
     }
@@ -634,6 +638,15 @@ namespace Bess::SimEngine::Drivers::Math {
         for (auto &state : m_outputStates) {
             state.lastChangeTime = startTime;
         }
+
+        m_runtimeState = {};
+        const auto definition = getDefinition<MathCompDef>();
+        if (definition && definition->getRuntimeResetFn()) {
+            definition->getRuntimeResetFn()(
+                m_runtimeState, m_inputStates, m_outputStates, startTime);
+        } else {
+            m_runtimeState.lastUpdateTime = startTime;
+        }
     }
 
     std::string MathSimDriver::getName() const {
@@ -656,6 +669,7 @@ namespace Bess::SimEngine::Drivers::Math {
         simData->prevState.outputStates = comp->getOutputStates();
         simData->inputStates = inputs;
         simData->outputStates = comp->getOutputStates();
+        simData->runtimeState = comp->getRuntimeState();
         const auto previousFnDefs = comp->getFnDefs();
         simData->fnDefs = collapseDefs(evt.compId, &inputs);
         const bool symbolicDefinitionChanged =
@@ -676,6 +690,7 @@ namespace Bess::SimEngine::Drivers::Math {
 
         comp->setInputStates(newData->inputStates);
         comp->setOutputStates(newData->outputStates);
+        comp->setRuntimeState(newData->runtimeState);
         newData->simDependants =
             newData->simDependants || symbolicDefinitionChanged;
 
@@ -1737,6 +1752,119 @@ namespace Bess::SimEngine::Drivers::Math {
         });
         variableDef->setAutoReschedule(false);
         catalog.registerComponent(variableDef);
+
+        constexpr size_t integratorValueInput = 0;
+        constexpr size_t integratorInitialValueInput = 1;
+        constexpr size_t integratorResetInput = 2;
+        constexpr size_t integratorOutput = 0;
+
+        const auto resetIntegratorRuntime =
+            [](MathRuntimeState &runtimeState,
+               const std::vector<PortState> &inputs,
+               std::vector<PortState> &outputs,
+               SimTime startTime) {
+                const double initialValue =
+                    inputs.size() > integratorInitialValueInput &&
+                            inputs[integratorInitialValueInput].isScalar()
+                        ? inputs[integratorInitialValueInput].scalarValue
+                        : 0.0;
+
+                runtimeState.values.assign(1, initialValue);
+                runtimeState.previousInputs.clear();
+                runtimeState.lastUpdateTime = startTime;
+                runtimeState.initialized = false;
+
+                if (outputs.size() <= integratorOutput) {
+                    outputs.resize(integratorOutput + 1);
+                }
+                outputs[integratorOutput] =
+                    PortState::scalar(initialValue, startTime);
+            };
+
+        const auto integratorDef = std::make_shared<MathCompDef>();
+        integratorDef->setName("Integrator");
+        integratorDef->setGroupName("Calculus");
+        integratorDef->setInputPortDescriptor(
+            scalarPortDescriptor(PortDirection::input,
+                                 3,
+                                 {"X", "Initial Value", "Reset"},
+                                 false,
+                                 {PortState::scalar(0.0),
+                                  PortState::scalar(0.0),
+                                  PortState::scalar(0.0)}));
+        integratorDef->setOutputPortDescriptor(
+            scalarPortDescriptor(PortDirection::output, 1, {"Y"}));
+        integratorDef->setRuntimeResetFn(resetIntegratorRuntime);
+        integratorDef->setSimFn([resetIntegratorRuntime](
+                                    const std::shared_ptr<MathCompSimData>
+                                        &data) {
+            if (!data || data->inputStates.size() <= integratorResetInput) {
+                return data;
+            }
+
+            auto &runtimeState = data->runtimeState;
+            if (runtimeState.values.empty()) {
+                resetIntegratorRuntime(runtimeState,
+                                       data->inputStates,
+                                       data->outputStates,
+                                       data->simTime);
+            }
+
+            const double inputValue =
+                data->inputStates[integratorValueInput].isScalar()
+                    ? data->inputStates[integratorValueInput].scalarValue
+                    : 0.0;
+            const bool reset =
+                data->inputStates[integratorResetInput].isScalar() &&
+                data->inputStates[integratorResetInput].scalarValue > 0.5;
+
+            if (!runtimeState.initialized || reset) {
+                const double initialValue =
+                    data->inputStates[integratorInitialValueInput].isScalar()
+                        ? data->inputStates[integratorInitialValueInput]
+                              .scalarValue
+                        : 0.0;
+                runtimeState.values[0] = initialValue;
+                runtimeState.initialized = true;
+            } else if (data->simTime > runtimeState.lastUpdateTime) {
+                const double previousInput =
+                    runtimeState.previousInputs.empty() ||
+                            !runtimeState.previousInputs[0].isScalar()
+                        ? inputValue
+                        : runtimeState.previousInputs[0].scalarValue;
+                const auto elapsed = std::chrono::duration<double>(
+                    data->simTime - runtimeState.lastUpdateTime);
+                runtimeState.values[0] +=
+                    0.5 * (previousInput + inputValue) * elapsed.count();
+            }
+
+            runtimeState.previousInputs.assign(
+                1, data->inputStates[integratorValueInput]);
+            runtimeState.lastUpdateTime = data->simTime;
+
+            if (data->outputStates.size() <= integratorOutput) {
+                data->outputStates.resize(integratorOutput + 1);
+            }
+            const auto next =
+                PortState::scalar(runtimeState.values[0], data->simTime);
+            const auto previous = data->prevState.outputStates.empty()
+                                      ? PortState::scalar(0.0)
+                                      : data->prevState.outputStates[0];
+            data->outputStates[integratorOutput] = next;
+            data->simDependants = stateChanged(previous, next);
+            return data;
+        });
+        integratorDef->setFnDefsCollapse([](const std::vector<FnDef> &,
+                                            const std::vector<PortState> &,
+                                            const std::vector<PortState> &) {
+            // Runtime integration depends on history and an initial
+            // condition, so it cannot be represented by the driver's
+            // current stateless symbolic expression model.
+            return std::vector<FnDef>{FnDef::empty()};
+        });
+        integratorDef->setAutoReschedule(true);
+        integratorDef->setAutoRescheduleDelay(TimeNs(1e6));
+        catalog.registerComponent(integratorDef);
 
         const auto outDef = std::make_shared<MathCompDef>();
         outDef->setName("Scalar Output");

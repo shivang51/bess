@@ -509,7 +509,10 @@ namespace Bess::SimEngine::Drivers {
                 scheduleDependantsOfAt(evt.compId, simTime);
             }
 
-            if (comp->getSimSelf()) {
+            // Only the component's own timer event may advance its periodic
+            // schedule. Dependency and externally-triggered events can update
+            // it immediately, but must not create additional timer chains.
+            if (comp->getSimSelf() && evt.schedulerId == UUID::null) {
                 comp->recordSelfSimulation();
                 const auto delay = comp->getSelfSimDelay();
                 if (!std::isfinite(delay.count()) || delay.count() <= 0.0) {

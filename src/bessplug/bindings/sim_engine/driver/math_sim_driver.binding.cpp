@@ -69,6 +69,13 @@ void bind_math_sim_driver(py::module_ &m) {
         .def_readwrite("input_states", &MathCompState::inputStates)
         .def_readwrite("output_states", &MathCompState::outputStates);
 
+    py::class_<MathRuntimeState>(m, "MathRuntimeState")
+        .def(py::init<>())
+        .def_readwrite("values", &MathRuntimeState::values)
+        .def_readwrite("previous_inputs", &MathRuntimeState::previousInputs)
+        .def_readwrite("last_update_time", &MathRuntimeState::lastUpdateTime)
+        .def_readwrite("initialized", &MathRuntimeState::initialized);
+
     py::class_<MathCompSimData,
                SimFnDataBase,
                std::shared_ptr<MathCompSimData>>(m, "MathCompSimData")
@@ -76,7 +83,8 @@ void bind_math_sim_driver(py::module_ &m) {
         .def_readwrite("input_states", &MathCompSimData::inputStates)
         .def_readwrite("output_states", &MathCompSimData::outputStates)
         .def_readwrite("sim_time", &MathCompSimData::simTime)
-        .def_readwrite("prev_state", &MathCompSimData::prevState);
+        .def_readwrite("prev_state", &MathCompSimData::prevState)
+        .def_readwrite("runtime_state", &MathCompSimData::runtimeState);
 
     auto from_scalar_fn = [](const std::string &name,
                              const std::string &group_name,
@@ -191,7 +199,11 @@ void bind_math_sim_driver(py::module_ &m) {
         .def_property(
             "net_uuid",
             py::overload_cast<>(&MathSimComp::getNetUuid),
-            py::overload_cast<const Bess::UUID &>(&MathSimComp::setNetUuid));
+            py::overload_cast<const Bess::UUID &>(&MathSimComp::setNetUuid))
+        .def_property("runtime_state",
+                      py::overload_cast<>(&MathSimComp::getRuntimeState),
+                      py::overload_cast<const MathRuntimeState &>(
+                          &MathSimComp::setRuntimeState));
 
     py::class_<MathSimDriver,
                EvtBasedSimDriver,

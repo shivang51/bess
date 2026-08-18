@@ -118,6 +118,16 @@ namespace Bess::SimEngine::Drivers::Math {
         std::string m_expression;
     };
 
+    // Per-component memory for stateful math blocks. Definitions decide how
+    // to interpret the slots, while the driver owns copying and resetting the
+    // state consistently around every simulation event.
+    struct BESS_API MathRuntimeState {
+        std::vector<double> values;
+        std::vector<PortState> previousInputs;
+        SimTime lastUpdateTime{0};
+        bool initialized{false};
+    };
+
     struct BESS_API MathCompSimData : SimFnDataBase {
         std::vector<PortState> inputStates;
         std::vector<PortState> outputStates;
@@ -127,6 +137,7 @@ namespace Bess::SimEngine::Drivers::Math {
         FnDef fnDef = FnDef::empty();
         SimTime simTime;
         MathCompState prevState;
+        MathRuntimeState runtimeState;
     };
 
     class BESS_API MathCompDef : public EvtBasedCompDef {
@@ -146,6 +157,12 @@ namespace Bess::SimEngine::Drivers::Math {
 
         using TMathSimFn = std::function<std::shared_ptr<MathCompSimData>(
             const std::shared_ptr<MathCompSimData> &)>;
+
+        using TRuntimeResetFn =
+            std::function<void(MathRuntimeState &runtimeState,
+                               const std::vector<PortState> &inputStates,
+                               std::vector<PortState> &outputStates,
+                               SimTime startTime)>;
 
         MathCompDef();
         ~MathCompDef() override = default;
@@ -168,6 +185,7 @@ namespace Bess::SimEngine::Drivers::Math {
         MAKE_GETTER(TScalarFn, ScalarFn, m_scalarFn)
         MAKE_GETTER(TFnDefCollapse, FnDefCollapseFn, m_fnDefCollapse)
         MAKE_GETTER(TFnDefsCollapse, FnDefsCollapseFn, m_fnDefsCollapse)
+        MAKE_GETTER(TRuntimeResetFn, RuntimeResetFn, m_runtimeResetFn)
 
         void setInputPortDescriptor(const PortDescriptor &descriptor);
         void setOutputPortDescriptor(const PortDescriptor &descriptor);
@@ -175,6 +193,7 @@ namespace Bess::SimEngine::Drivers::Math {
         void setScalarFn(const TScalarFn &scalarFn);
         void setFnDefCollapse(const TFnDefCollapse &fnDefCollapse);
         void setFnDefsCollapse(const TFnDefsCollapse &fnDefsCollapse);
+        void setRuntimeResetFn(const TRuntimeResetFn &runtimeResetFn);
 
         PortDescriptor getInputPortDescriptor() const override;
         PortDescriptor getOutputPortDescriptor() const override;
@@ -194,6 +213,7 @@ namespace Bess::SimEngine::Drivers::Math {
         TScalarFn m_scalarFn = nullptr;
         TFnDefCollapse m_fnDefCollapse = nullptr;
         TFnDefsCollapse m_fnDefsCollapse = nullptr;
+        TRuntimeResetFn m_runtimeResetFn = nullptr;
     };
 
     class BESS_API MathSimComp : public EvtBasedSimComp {
@@ -227,6 +247,12 @@ namespace Bess::SimEngine::Drivers::Math {
 
             comp->m_inputStates = inputDescriptor.makeInitialStates();
             comp->m_outputStates = outputDescriptor.makeInitialStates();
+            if (mathDef->getRuntimeResetFn()) {
+                mathDef->getRuntimeResetFn()(comp->m_runtimeState,
+                                             comp->m_inputStates,
+                                             comp->m_outputStates,
+                                             SimTime{0});
+            }
             comp->m_initialInputStates = comp->m_inputStates;
             comp->m_initialOutputStates = comp->m_outputStates;
             comp->m_isInputConnected.resize(inputCount, false);
@@ -259,6 +285,7 @@ namespace Bess::SimEngine::Drivers::Math {
                            m_isOutputConnected)
         MAKE_GETTER_SETTER(UUID, NetUuid, m_netUuid)
         MAKE_GETTER_SETTER(std::vector<FnDef>, FnDefs, m_fnDefs)
+        MAKE_GETTER_SETTER(MathRuntimeState, RuntimeState, m_runtimeState)
 
         [[nodiscard]] FnDef getFnDef(size_t outputIndex = 0) const;
 
@@ -277,6 +304,7 @@ namespace Bess::SimEngine::Drivers::Math {
         std::vector<bool> m_isOutputConnected;
         UUID m_netUuid = UUID::null;
         std::vector<FnDef> m_fnDefs;
+        MathRuntimeState m_runtimeState;
     };
 
     class BESS_API MathSimDriver final : public EvtBasedSimDriver {
