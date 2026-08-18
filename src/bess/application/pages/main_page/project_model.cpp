@@ -53,6 +53,7 @@ namespace Bess::Pages {
         Canvas::NonSimSceneComponent::registerComponent<
             Canvas::MonitorSceneComp>("Monitor Node");
 
+        REG_TO_SER_REGISTRY(Canvas::MonitorSceneComp);
         REG_TO_SER_REGISTRY(Canvas::ConnJointSceneComp);
         REG_TO_SER_REGISTRY(Canvas::ConnectionSceneComponent);
         REG_TO_SER_REGISTRY(Canvas::GroupSceneComponent);
