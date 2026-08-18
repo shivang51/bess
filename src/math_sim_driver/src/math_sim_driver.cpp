@@ -2,6 +2,7 @@
 
 #include "common/bess_assert.h"
 #include "common/logger.h"
+#include "common/types.h"
 #include "component_catalog.h"
 #include "driver_registry.h"
 #include "net/net_rebuilder.h"
@@ -1101,17 +1102,18 @@ namespace Bess::SimEngine::Drivers::Math {
         const auto mathDef =
             std::dynamic_pointer_cast<MathCompDef>(comp->getDefinition());
 
-        const auto &defaults = mathDef->getInputPortDescriptor().defaultStates;
+        const auto &inputs = comp->getInputStates();
 
         for (size_t pinIdx = 0; pinIdx < inputConns.size(); ++pinIdx) {
             const auto &pinConns = inputConns[pinIdx];
             if (pinConns.empty()) {
-                if (defaults.size() > pinIdx) {
-                    inpDefs.emplace_back(
-                        std::to_string(defaults[pinIdx].scalarValue));
+                if (inputs.size() <= pinIdx) {
+                    inpDefs.emplace_back(FnDef::empty());
                 } else {
-                    return FnDef::empty();
+                    const PortState &state = inputs[pinIdx];
+                    inpDefs.emplace_back(symcalc::Equation(state.scalarValue));
                 }
+
                 continue;
             }
 
@@ -1120,7 +1122,7 @@ namespace Bess::SimEngine::Drivers::Math {
             if (!srcComp || srcSlotIdx < 0 ||
                 static_cast<size_t>(srcSlotIdx) >=
                     srcComp->getOutputStates().size()) {
-                return FnDef::empty();
+                inpDefs.emplace_back(FnDef::empty());
                 continue;
             }
 
@@ -1648,15 +1650,22 @@ namespace Bess::SimEngine::Drivers::Math {
             return data;
         });
 
+        timeNode->setFnDefCollapse([](const std::vector<FnDef> &defs) {
+            return FnDef(symcalc::Equation("t"));
+        });
+
         timeNode->setAutoReschedule(true);
         timeNode->setAutoRescheduleDelay(TimeNs(2e6));
         catalog.registerComponent(timeNode);
 
-        fnDef = MathCompDef::makeFunction("Diffrentiate",
-                                          "Maths",
-                                          [](TimeMs,
-                                             const std::vector<double> &values,
-                                             const FnDef &def) { return 0; });
+        fnDef = MathCompDef::makeFunction(
+            "Diffrentiate",
+            "Maths",
+            [](TimeMs t, const std::vector<double> &values, const FnDef &def) {
+                std::map<symcalc::Equation, double> vars = {};
+                vars[symcalc::Equation("t")] = t.count() / 1000.0;
+                return def.equation.eval(vars);
+            });
 
         fnDef->setInputPortDescriptor(
             scalarPortDescriptor(PortDirection::input,
@@ -1669,7 +1678,6 @@ namespace Bess::SimEngine::Drivers::Math {
 
         fnDef->setFnDefCollapse([](const std::vector<FnDef> &defs) {
             const auto eq = defs[0].equation.derivative(symcalc::Equation("t"));
-            std::cout << eq << std::endl;
             return FnDef{eq};
         });
 
