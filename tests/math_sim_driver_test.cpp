@@ -4,6 +4,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <gtest/gtest.h>
 #include <memory>
 #include <string>
@@ -393,6 +394,98 @@ TEST(MathSimDriverTest, ConnectionsValidateAndPropagateStringPorts) {
     EXPECT_EQ(collapsed[1].stringValue, "theta");
 }
 
+TEST(MathSimDriverTest, VariableNodeBridgesSymbolicNamesAndScalarValues) {
+    MathSimDriver driver;
+    driver.init();
+
+    const auto definition =
+        ComponentCatalog::instance().getComponentDefinition<MathCompDef>(
+            "Variable");
+    ASSERT_NE(definition, nullptr);
+
+    const auto inputs = definition->getInputPortDescriptor();
+    const auto outputs = definition->getOutputPortDescriptor();
+    ASSERT_EQ(inputs.portCount(), 2u);
+    EXPECT_EQ(inputs.nameAt(0), "Name");
+    EXPECT_EQ(inputs.signalKindAt(0), SignalKind::string);
+    EXPECT_EQ(inputs.nameAt(1), "Value");
+    EXPECT_EQ(inputs.signalKindAt(1), SignalKind::scalar);
+    EXPECT_EQ(inputs.makeInitialStates()[0].stringValue, "x");
+    ASSERT_EQ(outputs.portCount(), 1u);
+    EXPECT_EQ(outputs.signalKindAt(0), SignalKind::scalar);
+
+    const auto variableId = addMathComponent(driver, definition);
+    ASSERT_NE(variableId, UUID::null);
+    ASSERT_TRUE(
+        driver.setInputPortState(variableId, 1, PortState::scalar(3.5)));
+
+    auto collapsed = driver.collapseInputs(variableId);
+    EXPECT_TRUE(driver.simulate({UUID(20), variableId, UUID::null, TimeNs(0)},
+                                collapsed));
+
+    const auto output =
+        driver.getPortState(scalarPort(variableId, PortDirection::output, 0));
+    ASSERT_TRUE(output.isScalar());
+    EXPECT_DOUBLE_EQ(output.scalarValue, 3.5);
+
+    auto component = driver.getComponent<MathSimComp>(variableId);
+    ASSERT_NE(component, nullptr);
+    auto symbolicDefinition = component->getFnDef();
+    EXPECT_EQ(symbolicDefinition.toString(), "x");
+    ASSERT_TRUE(symbolicDefinition.variableValues.contains("x"));
+    EXPECT_DOUBLE_EQ(symbolicDefinition.variableValues.at("x"), 3.5);
+    EXPECT_DOUBLE_EQ(symbolicDefinition.evaluate(), 3.5);
+
+    ASSERT_TRUE(driver.setInputPortState(
+        variableId, 0, PortState::string("  theta  ")));
+    collapsed = driver.collapseInputs(variableId);
+    EXPECT_TRUE(driver.simulate({UUID(21), variableId, UUID::null, TimeNs(0)},
+                                collapsed));
+
+    symbolicDefinition = component->getFnDef();
+    EXPECT_EQ(symbolicDefinition.toString(), "theta");
+    EXPECT_TRUE(symbolicDefinition.variableValues.contains("theta"));
+    EXPECT_EQ(component->getInputStates()[0].stringValue, "theta");
+
+    ASSERT_TRUE(
+        driver.setInputPortState(variableId, 0, PortState::string("t")));
+    collapsed = driver.collapseInputs(variableId);
+    EXPECT_TRUE(driver.simulate({UUID(22), variableId, UUID::null, TimeNs(0)},
+                                collapsed));
+    EXPECT_EQ(component->getFnDef().toString(), "x");
+    EXPECT_EQ(component->getInputStates()[0].stringValue, "x");
+
+    ASSERT_TRUE(
+        driver.setInputPortState(variableId, 0, PortState::string("2invalid")));
+    collapsed = driver.collapseInputs(variableId);
+    EXPECT_FALSE(driver.simulate({UUID(23), variableId, UUID::null, TimeNs(0)},
+                                 collapsed));
+    EXPECT_EQ(component->getFnDef().toString(), "x");
+    EXPECT_EQ(component->getInputStates()[0].stringValue, "x");
+}
+
+TEST(MathSimDriverTest, SymbolicEvaluationRejectsAmbiguousVariableValues) {
+    const auto x = symcalc::Equation("x");
+
+    FnDef left{x};
+    left.variableValues["x"] = 2.0;
+    FnDef right{x};
+    right.variableValues["x"] = 3.0;
+
+    FnDef product{x * x};
+    product.mergeVariableValues(left);
+    product.mergeVariableValues(right);
+    EXPECT_TRUE(product.conflictingVariables.contains("x"));
+    EXPECT_TRUE(std::isnan(product.evaluate()));
+
+    FnDef consistentProduct{x * x};
+    right.variableValues["x"] = 2.0;
+    consistentProduct.mergeVariableValues(left);
+    consistentProduct.mergeVariableValues(right);
+    EXPECT_TRUE(consistentProduct.conflictingVariables.empty());
+    EXPECT_DOUBLE_EQ(consistentProduct.evaluate(), 4.0);
+}
+
 TEST(MathSimDriverTest,
      DifferentiateUsesTypedVariableInputAndCurrentSymbolicDefinition) {
     MathSimDriver driver;
@@ -471,6 +564,156 @@ TEST(MathSimDriverTest,
         stringPort(secondsDerivativeId, PortDirection::input, 1));
     ASSERT_TRUE(variableState.isString());
     EXPECT_EQ(variableState.stringValue, "t");
+}
+
+TEST(MathSimDriverTest,
+     VariableExpressionsEvaluateAndDifferentiateAtCurrentValues) {
+    MathSimDriver driver;
+    driver.init();
+
+    auto definition = [&](const std::string &name) {
+        return ComponentCatalog::instance().getComponentDefinition<MathCompDef>(
+            name);
+    };
+    const auto variableDef = definition("Variable");
+    const auto powerDef = definition("Power (a^b)");
+    const auto multiplyDef = definition("Multiply");
+    const auto addDef = definition("Add");
+    const auto derivativeDef = definition("Diffrentiate");
+    ASSERT_NE(variableDef, nullptr);
+    ASSERT_NE(powerDef, nullptr);
+    ASSERT_NE(multiplyDef, nullptr);
+    ASSERT_NE(addDef, nullptr);
+    ASSERT_NE(derivativeDef, nullptr);
+
+    const auto variableId = addMathComponent(driver, variableDef);
+    const auto powerId = addMathComponent(driver, powerDef);
+    const auto multiplyId = addMathComponent(driver, multiplyDef);
+    const auto termsId = addMathComponent(driver, addDef);
+    const auto polynomialId = addMathComponent(driver, addDef);
+    const auto derivativeId = addMathComponent(driver, derivativeDef);
+    ASSERT_NE(variableId, UUID::null);
+    ASSERT_NE(powerId, UUID::null);
+    ASSERT_NE(multiplyId, UUID::null);
+    ASSERT_NE(termsId, UUID::null);
+    ASSERT_NE(polynomialId, UUID::null);
+    ASSERT_NE(derivativeId, UUID::null);
+
+    ASSERT_TRUE(
+        driver.setInputPortState(variableId, 0, PortState::string("x")));
+    ASSERT_TRUE(
+        driver.setInputPortState(variableId, 1, PortState::scalar(3.0)));
+    ASSERT_TRUE(driver.setInputPortState(powerId, 1, PortState::scalar(2.0)));
+    ASSERT_TRUE(
+        driver.setInputPortState(multiplyId, 1, PortState::scalar(2.0)));
+    ASSERT_TRUE(
+        driver.setInputPortState(polynomialId, 1, PortState::scalar(4.0)));
+    ASSERT_TRUE(
+        driver.setInputPortState(derivativeId, 1, PortState::string("x")));
+
+    ASSERT_TRUE(
+        driver.connectPorts(scalarPort(variableId, PortDirection::output, 0),
+                            scalarPort(powerId, PortDirection::input, 0),
+                            false));
+    ASSERT_TRUE(
+        driver.connectPorts(scalarPort(variableId, PortDirection::output, 0),
+                            scalarPort(multiplyId, PortDirection::input, 0),
+                            false));
+    ASSERT_TRUE(
+        driver.connectPorts(scalarPort(powerId, PortDirection::output, 0),
+                            scalarPort(termsId, PortDirection::input, 0),
+                            false));
+    ASSERT_TRUE(
+        driver.connectPorts(scalarPort(multiplyId, PortDirection::output, 0),
+                            scalarPort(termsId, PortDirection::input, 1),
+                            false));
+    ASSERT_TRUE(
+        driver.connectPorts(scalarPort(termsId, PortDirection::output, 0),
+                            scalarPort(polynomialId, PortDirection::input, 0),
+                            false));
+    ASSERT_TRUE(
+        driver.connectPorts(scalarPort(polynomialId, PortDirection::output, 0),
+                            scalarPort(derivativeId, PortDirection::input, 0),
+                            false));
+
+    uint64_t eventId = 30;
+    const auto simulate = [&](const UUID &id) {
+        return driver.simulate({UUID(eventId++), id, UUID::null, TimeNs(0)},
+                               driver.collapseInputs(id));
+    };
+    ASSERT_TRUE(simulate(variableId));
+    ASSERT_TRUE(simulate(powerId));
+    ASSERT_TRUE(simulate(multiplyId));
+    ASSERT_TRUE(simulate(termsId));
+    ASSERT_TRUE(simulate(polynomialId));
+    ASSERT_TRUE(simulate(derivativeId));
+
+    EXPECT_DOUBLE_EQ(
+        driver.getPortState(scalarPort(polynomialId, PortDirection::output, 0))
+            .scalarValue,
+        19.0);
+    EXPECT_DOUBLE_EQ(
+        driver.getPortState(scalarPort(derivativeId, PortDirection::output, 0))
+            .scalarValue,
+        8.0);
+
+    const auto polynomialDefinition =
+        driver.getComponent<MathSimComp>(polynomialId)->getFnDef();
+    EXPECT_DOUBLE_EQ(polynomialDefinition.evaluate(), 19.0);
+    ASSERT_TRUE(polynomialDefinition.variableValues.contains("x"));
+    EXPECT_DOUBLE_EQ(polynomialDefinition.variableValues.at("x"), 3.0);
+
+    ASSERT_TRUE(
+        driver.setInputPortState(variableId, 1, PortState::scalar(4.0)));
+    EXPECT_TRUE(simulate(variableId));
+    EXPECT_TRUE(simulate(powerId));
+    EXPECT_TRUE(simulate(multiplyId));
+    EXPECT_TRUE(simulate(termsId));
+    EXPECT_TRUE(simulate(polynomialId));
+    EXPECT_TRUE(simulate(derivativeId));
+    EXPECT_DOUBLE_EQ(
+        driver.getPortState(scalarPort(polynomialId, PortDirection::output, 0))
+            .scalarValue,
+        28.0);
+    EXPECT_DOUBLE_EQ(
+        driver.getPortState(scalarPort(derivativeId, PortDirection::output, 0))
+            .scalarValue,
+        10.0);
+
+    ASSERT_TRUE(
+        driver.setInputPortState(variableId, 0, PortState::string("y")));
+    EXPECT_TRUE(simulate(variableId));
+    EXPECT_TRUE(simulate(powerId));
+    EXPECT_TRUE(simulate(multiplyId));
+    EXPECT_TRUE(simulate(termsId));
+    EXPECT_TRUE(simulate(polynomialId));
+    EXPECT_TRUE(simulate(derivativeId));
+    EXPECT_DOUBLE_EQ(
+        driver.getPortState(scalarPort(derivativeId, PortDirection::output, 0))
+            .scalarValue,
+        0.0);
+
+    ASSERT_TRUE(
+        driver.setInputPortState(derivativeId, 1, PortState::string("y")));
+    EXPECT_TRUE(simulate(derivativeId));
+    EXPECT_DOUBLE_EQ(
+        driver.getPortState(scalarPort(derivativeId, PortDirection::output, 0))
+            .scalarValue,
+        10.0);
+
+    MathSimDriver restoredDriver;
+    restoredDriver.init();
+    restoredDriver.loadJson(driver.toJson());
+
+    const auto restoredPolynomial =
+        restoredDriver.getComponent<MathSimComp>(polynomialId);
+    const auto restoredDerivative =
+        restoredDriver.getComponent<MathSimComp>(derivativeId);
+    ASSERT_NE(restoredPolynomial, nullptr);
+    ASSERT_NE(restoredDerivative, nullptr);
+    EXPECT_DOUBLE_EQ(restoredPolynomial->getFnDef().evaluate(), 28.0);
+    EXPECT_DOUBLE_EQ(restoredDerivative->getFnDef().evaluate(), 10.0);
+    EXPECT_TRUE(restoredPolynomial->getFnDef().variableValues.contains("y"));
 }
 
 TEST(MathSimDriverTest, RejectsNonScalarPortsAndStates) {

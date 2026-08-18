@@ -10,11 +10,15 @@
 #include "symcalc/symcalc.hpp"
 #include "json/value.h"
 
+#include <cmath>
 #include <functional>
+#include <limits>
 #include <memory>
+#include <set>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace Bess::SimEngine::Drivers::Math {
@@ -27,15 +31,91 @@ namespace Bess::SimEngine::Drivers::Math {
     };
 
     struct FnDef {
-        symcalc::Equation equation = symcalc::Equation("");
+        using VariableValues = symcalc::SYMCALC_VAR_HASH_TYPE;
 
-        std::string toString() const {
-            return equation.copy_eq()->txt();
+        FnDef() : equation("") {
+        }
+
+        explicit FnDef(symcalc::Equation value)
+            : equation(std::move(value)),
+              m_expression(equationText(equation)) {
+        }
+
+        symcalc::Equation equation;
+        VariableValues variableValues;
+        std::set<std::string> conflictingVariables;
+
+        [[nodiscard]] const std::string &toString() const noexcept {
+            return m_expression;
         }
 
         static FnDef empty() {
-            return {symcalc::Equation("")};
+            return FnDef{symcalc::Equation("")};
         }
+
+        void mergeVariableValues(const FnDef &other) {
+            conflictingVariables.insert(other.conflictingVariables.begin(),
+                                        other.conflictingVariables.end());
+            for (const auto &[name, value] : other.variableValues) {
+                const auto [it, inserted] =
+                    variableValues.try_emplace(name, value);
+                if (!inserted && !sameValue(it->second, value)) {
+                    conflictingVariables.insert(name);
+                }
+            }
+        }
+
+        [[nodiscard]] bool equivalentTo(const FnDef &other) const {
+            if (m_expression != other.m_expression ||
+                conflictingVariables != other.conflictingVariables ||
+                variableValues.size() != other.variableValues.size()) {
+                return false;
+            }
+
+            auto lhs = variableValues.begin();
+            auto rhs = other.variableValues.begin();
+            for (; lhs != variableValues.end(); ++lhs, ++rhs) {
+                if (lhs->first != rhs->first ||
+                    !sameValue(lhs->second, rhs->second)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        [[nodiscard]] double
+        evaluate(const VariableValues &fallbackValues = {}) const {
+            auto values = fallbackValues;
+            for (const auto &[name, value] : variableValues) {
+                values.insert_or_assign(name, value);
+            }
+
+            try {
+                for (const auto &name : equation.list_variables_str()) {
+                    if (conflictingVariables.contains(name) ||
+                        !values.contains(name)) {
+                        return std::numeric_limits<double>::quiet_NaN();
+                    }
+                }
+                return equation.eval(std::move(values));
+            } catch (...) {
+                return std::numeric_limits<double>::quiet_NaN();
+            }
+        }
+
+      private:
+        static bool sameValue(double lhs, double rhs) noexcept {
+            return lhs == rhs || (std::isnan(lhs) && std::isnan(rhs));
+        }
+
+        static std::string equationText(const symcalc::Equation &value) {
+            auto *copy = value.copy_eq();
+            const auto text = copy ? copy->txt() : std::string{};
+            symcalc::delete_equation_base(copy);
+            return text;
+        }
+
+        std::string m_expression;
     };
 
     struct BESS_API MathCompSimData : SimFnDataBase {
@@ -271,8 +351,11 @@ namespace Bess::SimEngine::Drivers::Math {
 
         void onInit() override;
 
+        void onBeforeRun() override;
+
       private:
         void rebuildNets();
+        void refreshSymbolicDefinitions();
 
         std::unordered_map<UUID, Net> m_nets;
         bool m_isNetUpdated{false};

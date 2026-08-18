@@ -16,6 +16,7 @@
 #include <ranges>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 
 namespace Bess::SimEngine::Drivers::Math {
 
@@ -238,12 +239,32 @@ namespace Bess::SimEngine::Drivers::Math {
                        port.signalKind;
         }
 
-        std::string differentiationVariable(const PortState &state) {
-            if (!state.isString() || state.stringValue.empty()) {
-                return "t";
+        constexpr size_t kMaxVariableNameLength = 64;
+
+        std::string normalizedVariableName(const PortState &state,
+                                           std::string_view fallback,
+                                           bool allowTimeVariable = true) {
+            if (!state.isString()) {
+                return std::string(fallback);
             }
 
-            const auto &name = state.stringValue;
+            const auto &rawName = state.stringValue;
+            size_t begin = 0;
+            size_t end = rawName.size();
+            while (begin < end &&
+                   std::isspace(static_cast<unsigned char>(rawName[begin]))) {
+                ++begin;
+            }
+            while (end > begin &&
+                   std::isspace(static_cast<unsigned char>(rawName[end - 1]))) {
+                --end;
+            }
+
+            const auto name = rawName.substr(begin, end - begin);
+            if (name.empty() || name.size() > kMaxVariableNameLength) {
+                return std::string(fallback);
+            }
+
             const auto isIdentifierStart = [](unsigned char ch) {
                 return std::isalpha(ch) != 0 || ch == '_';
             };
@@ -252,9 +273,26 @@ namespace Bess::SimEngine::Drivers::Math {
             };
             if (!isIdentifierStart(static_cast<unsigned char>(name.front())) ||
                 !std::ranges::all_of(name.substr(1), isIdentifierPart)) {
-                return "t";
+                return std::string(fallback);
+            }
+            // The math driver already assigns t to global simulation time.
+            if (!allowTimeVariable && name == "t") {
+                return std::string(fallback);
             }
             return name;
+        }
+
+        bool equivalentFnDefs(const std::vector<FnDef> &lhs,
+                              const std::vector<FnDef> &rhs) {
+            if (lhs.size() != rhs.size()) {
+                return false;
+            }
+            for (size_t i = 0; i < lhs.size(); ++i) {
+                if (!lhs[i].equivalentTo(rhs[i])) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         bool isPortResizeAllowed(const MathCompDef &def,
@@ -618,7 +656,10 @@ namespace Bess::SimEngine::Drivers::Math {
         simData->prevState.outputStates = comp->getOutputStates();
         simData->inputStates = inputs;
         simData->outputStates = comp->getOutputStates();
+        const auto previousFnDefs = comp->getFnDefs();
         simData->fnDefs = collapseDefs(evt.compId, &inputs);
+        const bool symbolicDefinitionChanged =
+            !equivalentFnDefs(previousFnDefs, simData->fnDefs);
         simData->fnDef =
             simData->fnDefs.empty() ? FnDef::empty() : simData->fnDefs.front();
         comp->setFnDefs(simData->fnDefs);
@@ -635,6 +676,8 @@ namespace Bess::SimEngine::Drivers::Math {
 
         comp->setInputStates(newData->inputStates);
         comp->setOutputStates(newData->outputStates);
+        newData->simDependants =
+            newData->simDependants || symbolicDefinitionChanged;
 
         if (newData->simDependants) {
             for (const auto &[_, fn] : comp->getOnStateChangeCbs()) {
@@ -1276,6 +1319,11 @@ namespace Bess::SimEngine::Drivers::Math {
             inpDefs, inputs, comp->getOutputStates());
         const auto outputCount = mathDef->getOutputPortDescriptor().portCount();
         collapsed.resize(outputCount, FnDef::empty());
+        for (auto &outputDef : collapsed) {
+            for (const auto &inputDef : inpDefs) {
+                outputDef.mergeVariableValues(inputDef);
+            }
+        }
         return collapsed;
     }
 
@@ -1404,6 +1452,65 @@ namespace Bess::SimEngine::Drivers::Math {
         m_isNetUpdated = true;
     }
 
+    void MathSimDriver::refreshSymbolicDefinitions() {
+        std::unordered_map<UUID, size_t> remainingInputs;
+        std::unordered_map<UUID, std::vector<UUID>> dependants;
+        remainingInputs.reserve(m_components.size());
+        dependants.reserve(m_components.size());
+
+        for (const auto &[compId, _] : m_components) {
+            remainingInputs.emplace(compId, 0);
+        }
+
+        for (const auto &[compId, component] : m_components) {
+            const auto mathComp =
+                std::dynamic_pointer_cast<MathSimComp>(component);
+            if (!mathComp) {
+                continue;
+            }
+
+            for (const auto &inputConnections :
+                 mathComp->getInputConnections()) {
+                for (const auto &[sourceId, _] : inputConnections) {
+                    if (!m_components.contains(sourceId)) {
+                        continue;
+                    }
+                    ++remainingInputs[compId];
+                    dependants[sourceId].push_back(compId);
+                }
+            }
+        }
+
+        std::vector<UUID> ready;
+        ready.reserve(m_components.size());
+        for (const auto &[compId, count] : remainingInputs) {
+            if (count == 0) {
+                ready.push_back(compId);
+            }
+        }
+
+        for (size_t index = 0; index < ready.size(); ++index) {
+            const auto compId = ready[index];
+            const auto comp = getComponent<MathSimComp>(compId);
+            if (comp) {
+                const auto inputs = collapseInputs(compId);
+                comp->setFnDefs(collapseDefs(compId, &inputs));
+            }
+
+            const auto dependantIt = dependants.find(compId);
+            if (dependantIt == dependants.end()) {
+                continue;
+            }
+            for (const auto &dependantId : dependantIt->second) {
+                auto remainingIt = remainingInputs.find(dependantId);
+                if (remainingIt != remainingInputs.end() &&
+                    remainingIt->second > 0 && --remainingIt->second == 0) {
+                    ready.push_back(dependantId);
+                }
+            }
+        }
+    }
+
     Json::Value MathSimDriver::toJson() const {
         Json::Value json = Json::Value(Json::objectValue);
         for (const auto &[id, comp] : m_components) {
@@ -1444,8 +1551,14 @@ namespace Bess::SimEngine::Drivers::Math {
         registerLoadedComponentsForRunStart();
 
         rebuildNets();
+        refreshSymbolicDefinitions();
 
         m_isNetUpdated = false;
+    }
+
+    void MathSimDriver::onBeforeRun() {
+        refreshSymbolicDefinitions();
+        EvtBasedSimDriver::onBeforeRun();
     }
 
     void MathSimDriver::onInit() {
@@ -1567,6 +1680,63 @@ namespace Bess::SimEngine::Drivers::Math {
                 return std::vector<FnDef>(outputs.size(), FnDef::empty());
             });
         catalog.registerComponent(stringInpDef);
+
+        const auto variableDef = std::make_shared<MathCompDef>();
+        variableDef->setName("Variable");
+        variableDef->setGroupName("Maths");
+        variableDef->setInputPortDescriptor(
+            mixedPortDescriptor(PortDirection::input,
+                                {{.name = "Name",
+                                  .signalKind = SignalKind::string,
+                                  .quantityKind = QuantityKind::none,
+                                  .defaultState = PortState::string("x")},
+                                 {.name = "Value",
+                                  .signalKind = SignalKind::scalar,
+                                  .quantityKind = QuantityKind::dimensionless,
+                                  .defaultState = PortState::scalar(0.0)}}));
+        variableDef->setOutputPortDescriptor(scalarPortDescriptor(
+            PortDirection::output, 1, std::vector<std::string>{"Y"}));
+        variableDef->setSimFn([](const std::shared_ptr<MathCompSimData> &data) {
+            if (!data || data->inputStates.size() < 2) {
+                return data;
+            }
+
+            const auto name =
+                normalizedVariableName(data->inputStates[0], "x", false);
+            data->inputStates[0].stringValue = name;
+            data->inputStates[0].lastChangeTime = data->simTime;
+
+            const auto value = data->inputStates[1].isScalar()
+                                   ? data->inputStates[1].scalarValue
+                                   : 0.0;
+            if (data->outputStates.empty()) {
+                data->outputStates.push_back(PortState::scalar(0.0));
+            }
+
+            const auto next = PortState::scalar(value, data->simTime);
+            const auto previous = data->prevState.outputStates.empty()
+                                      ? PortState::scalar(0.0)
+                                      : data->prevState.outputStates.front();
+            data->outputStates[0] = next;
+            data->simDependants = stateChanged(previous, next);
+            return data;
+        });
+        variableDef->setFnDefsCollapse([](const std::vector<FnDef> &,
+                                          const std::vector<PortState> &inputs,
+                                          const std::vector<PortState> &) {
+            const auto name =
+                inputs.empty() ? std::string("x")
+                               : normalizedVariableName(inputs[0], "x", false);
+            const auto value = inputs.size() > 1 && inputs[1].isScalar()
+                                   ? inputs[1].scalarValue
+                                   : 0.0;
+
+            FnDef definition{symcalc::Equation(name)};
+            definition.variableValues.insert_or_assign(name, value);
+            return std::vector<FnDef>{std::move(definition)};
+        });
+        variableDef->setAutoReschedule(false);
+        catalog.registerComponent(variableDef);
 
         const auto outDef = std::make_shared<MathCompDef>();
         outDef->setName("Scalar Output");
@@ -1864,10 +2034,8 @@ namespace Bess::SimEngine::Drivers::Math {
         fnDef = MathCompDef::makeFunction(
             "Diffrentiate",
             "Maths",
-            [](TimeMs t, const std::vector<double> &values, const FnDef &def) {
-                std::map<std::string, double> vars = {};
-                vars["t"] = t.count() / 1000.0;
-                return def.equation.eval(vars);
+            [](TimeMs t, const std::vector<double> &, const FnDef &def) {
+                return def.evaluate({{"t", t.count() / 1000.0}});
             });
 
         fnDef->setInputPortDescriptor(
@@ -1887,8 +2055,9 @@ namespace Bess::SimEngine::Drivers::Math {
             if (defs.empty()) {
                 return std::vector<FnDef>{FnDef::empty()};
             }
-            const auto variable =
-                inputs.size() > 1 ? differentiationVariable(inputs[1]) : "t";
+            const auto variable = inputs.size() > 1
+                                      ? normalizedVariableName(inputs[1], "t")
+                                      : "t";
             return std::vector<FnDef>{FnDef{
                 defs[0].equation.derivative(symcalc::Equation(variable))}};
         });
