@@ -72,7 +72,8 @@ namespace Bess::Pages {
                 isInput ? comp->getInputSlots() : comp->getOutputSlots();
             const auto direction = isInput ? SimEngine::PortDirection::input
                                            : SimEngine::PortDirection::output;
-            const auto signalKind = portDescriptor.signalKind;
+            const auto portCount = portDescriptor.portCount();
+            const auto resizeKind = portDescriptor.resizePortSpec().signalKind;
 
             std::vector<UUID> realSlots;
             realSlots.reserve(slotIds.size());
@@ -94,17 +95,18 @@ namespace Bess::Pages {
                 realSlots.push_back(slotId);
             }
 
-            while (realSlots.size() > portDescriptor.count) {
+            while (realSlots.size() > portCount) {
                 const auto slotId = realSlots.back();
                 realSlots.pop_back();
                 comp->removeChildComponent(slotId);
                 sceneState.removeComponent(slotId, UUID::master);
             }
 
-            while (realSlots.size() < portDescriptor.count) {
+            while (realSlots.size() < portCount) {
                 auto newSlot = std::make_shared<Canvas::SlotSceneComponent>();
                 newSlot->setPortDirection(direction);
-                newSlot->setSignalKind(signalKind);
+                newSlot->setSignalKind(
+                    portDescriptor.signalKindAt(realSlots.size()));
                 newSlot->setResizeTrigger(false);
                 sceneState.addComponent<Canvas::SlotSceneComponent>(newSlot);
                 sceneState.attachChild(
@@ -117,7 +119,7 @@ namespace Bess::Pages {
                     auto resizeSlot =
                         std::make_shared<Canvas::SlotSceneComponent>();
                     resizeSlot->setPortDirection(direction);
-                    resizeSlot->setSignalKind(signalKind);
+                    resizeSlot->setSignalKind(resizeKind);
                     resizeSlot->setResizeTrigger(true);
                     resizeSlot->setIndex(-1);
                     sceneState.addComponent<Canvas::SlotSceneComponent>(
@@ -156,11 +158,12 @@ namespace Bess::Pages {
                 }
 
                 slot->setPortDirection(direction);
-                slot->setSignalKind(signalKind);
+                slot->setSignalKind(portDescriptor.signalKindAt(i));
                 slot->setResizeTrigger(false);
                 slot->setIndex(static_cast<int>(i));
-                if (i < portDescriptor.names.size()) {
-                    slot->setName(portDescriptor.names[i]);
+                const auto name = portDescriptor.nameAt(i);
+                if (!name.empty()) {
+                    slot->setName(name);
                 } else {
                     slot->setName(fallbackSlotName(i, isInput));
                 }
@@ -172,7 +175,7 @@ namespace Bess::Pages {
                         resizeSlotId);
                 if (resizeSlot) {
                     resizeSlot->setPortDirection(direction);
-                    resizeSlot->setSignalKind(signalKind);
+                    resizeSlot->setSignalKind(resizeKind);
                     resizeSlot->setResizeTrigger(true);
                     resizeSlot->setIndex(-1);
                     resizeSlot->setName("");

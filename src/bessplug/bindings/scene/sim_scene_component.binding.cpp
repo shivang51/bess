@@ -213,14 +213,16 @@ void bind_sim_scene_component(py::module_ &m) {
 
         for (const auto &slot : slots) {
             if (slot->isInputSlot()) {
-                if (inpDetails.names.size() > inSlotIdx) {
-                    slot->setName(inpDetails.names[inSlotIdx++]);
+                const auto name = inpDetails.nameAt(inSlotIdx++);
+                if (!name.empty()) {
+                    slot->setName(name);
                 } else {
                     slot->setName(std::string(1, inpCh++));
                 }
             } else {
-                if (outDetails.names.size() > outSlotIdx) {
-                    slot->setName(outDetails.names[outSlotIdx++]);
+                const auto name = outDetails.nameAt(outSlotIdx++);
+                if (!name.empty()) {
+                    slot->setName(name);
                 } else {
                     slot->setName(std::string(1, outCh++));
                 }
@@ -231,7 +233,7 @@ void bind_sim_scene_component(py::module_ &m) {
         if (inpDetails.isResizeable) {
             auto slot = std::make_shared<Bess::Canvas::SlotSceneComponent>();
             slot->setPortDirection(Bess::SimEngine::PortDirection::input);
-            slot->setSignalKind(inpDetails.signalKind);
+            slot->setSignalKind(inpDetails.resizePortSpec().signalKind);
             slot->setResizeTrigger(true);
             slot->setIndex(-1); // assign -1 for resize slots
             comp.addInputSlot(slot->getUuid(), false);
@@ -241,7 +243,7 @@ void bind_sim_scene_component(py::module_ &m) {
         if (outDetails.isResizeable) {
             auto slot = std::make_shared<Bess::Canvas::SlotSceneComponent>();
             slot->setPortDirection(Bess::SimEngine::PortDirection::output);
-            slot->setSignalKind(outDetails.signalKind);
+            slot->setSignalKind(outDetails.resizePortSpec().signalKind);
             slot->setResizeTrigger(true);
             slot->setIndex(-1); // assign -1 for resize slots
             comp.addOutputSlot(slot->getUuid(), false);

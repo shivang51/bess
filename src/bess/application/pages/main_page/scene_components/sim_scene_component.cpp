@@ -1135,20 +1135,20 @@ fn custom_quad_fragment(in: CustomQuadFragmentInput) -> vec4f {
         const SimEngine::PortDescriptor &outputDescriptor) {
         std::vector<std::shared_ptr<SlotSceneComponent>> slots;
 
-        for (size_t i = 0; i < inputDescriptor.count; i++) {
+        for (size_t i = 0; i < inputDescriptor.portCount(); i++) {
             auto slot = std::make_shared<SlotSceneComponent>();
             slot->setPortDirection(SimEngine::PortDirection::input);
-            slot->setSignalKind(inputDescriptor.signalKind);
+            slot->setSignalKind(inputDescriptor.signalKindAt(i));
             slot->setResizeTrigger(false);
             slot->setIndex(static_cast<int>(i));
             m_inputSlots.push_back(slot->getUuid());
             slots.push_back(slot);
         }
 
-        for (size_t i = 0; i < outputDescriptor.count; i++) {
+        for (size_t i = 0; i < outputDescriptor.portCount(); i++) {
             auto slot = std::make_shared<SlotSceneComponent>();
             slot->setPortDirection(SimEngine::PortDirection::output);
-            slot->setSignalKind(outputDescriptor.signalKind);
+            slot->setSignalKind(outputDescriptor.signalKindAt(i));
             slot->setResizeTrigger(false);
             slot->setIndex(static_cast<int>(i));
             m_outputSlots.push_back(slot->getUuid());

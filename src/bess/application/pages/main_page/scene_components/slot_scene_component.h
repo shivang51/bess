@@ -123,6 +123,7 @@ namespace Bess::Canvas {
         std::shared_ptr<UI::ContainerComp> m_container = nullptr;
         std::shared_ptr<UI::EditableLabelComp> m_label = nullptr;
         std::shared_ptr<UI::ScalarInputComp> m_scalarValueTextBox = nullptr;
+        std::shared_ptr<UI::TextBoxComp> m_stringValueTextBox = nullptr;
 
         UI::UINode *m_slotNode = nullptr;
     };

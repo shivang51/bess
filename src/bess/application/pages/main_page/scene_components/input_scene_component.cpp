@@ -85,6 +85,24 @@ namespace Bess::Canvas {
                                           SimEngine::PortState::scalar(value));
             return true;
         }
+
+        bool setStringPortState(const SceneState &state,
+                                const SlotSceneComponent *slotComp,
+                                std::string value) {
+            const auto slotParentComp =
+                state.getComponentByUuid<SimulationSceneComponent>(
+                    slotComp->getParentComponent());
+            auto *simEngine = state.runtime().sim;
+            if (!slotParentComp || !simEngine) {
+                return false;
+            }
+
+            simEngine->setOutputPortState(
+                slotParentComp->getSimEngineId(),
+                slotComp->getIndex(),
+                SimEngine::PortState::string(std::move(value)));
+            return true;
+        }
     } // namespace
 
     InputSceneComponent::InputSceneComponent() {
@@ -132,6 +150,11 @@ namespace Bess::Canvas {
                             slotParentComp->getSimEngineId(),
                             slotComp->getIndex(),
                             SimEngine::PortState::scalar(0.0));
+                    } else if (signalKind == SimEngine::SignalKind::string) {
+                        simEngine->setOutputPortState(
+                            slotParentComp->getSimEngineId(),
+                            slotComp->getIndex(),
+                            SimEngine::PortState::string(""));
                     } else {
                         BESS_WARN("Unsupported signal kind for reset: {}",
                                   (int)signalKind);
@@ -185,6 +208,7 @@ namespace Bess::Canvas {
                 return std::dynamic_pointer_cast<UI::ToggleBtnComp>(control) !=
                        nullptr;
             case SimEngine::SignalKind::scalar:
+            case SimEngine::SignalKind::string:
                 return std::dynamic_pointer_cast<UI::TextBoxComp>(control) !=
                        nullptr;
             default:
@@ -199,6 +223,7 @@ namespace Bess::Canvas {
             case SimEngine::SignalKind::digital:
                 return addToggleBtn(ctx);
             case SimEngine::SignalKind::scalar:
+            case SimEngine::SignalKind::string:
                 return addTextBox(ctx);
             default:
                 BESS_WARN("Unsupported signal kind for input control: {}",
@@ -395,6 +420,33 @@ namespace Bess::Canvas {
                 }
             }
         }
+
+        void
+        setStringTextBoxCb(const std::shared_ptr<UI::UISceneComponent> &comp,
+                           SceneDrawContext &context,
+                           const UUID &slotUuid) {
+            auto textBox = std::dynamic_pointer_cast<UI::TextBoxComp>(comp);
+            const auto state = context.sceneState;
+            BESS_ASSERT(textBox, "Component is not a TextBoxComp");
+
+            textBox->setSubmittedCallback(
+                [state, slotUuid](const std::string &text) {
+                    const auto slotComp =
+                        state->getComponentByUuid<SlotSceneComponent>(slotUuid);
+                    if (slotComp) {
+                        setStringPortState(*state, slotComp, text);
+                    }
+                });
+
+            const auto slotComp =
+                state->getComponentByUuid<SlotSceneComponent>(slotUuid);
+            if (slotComp) {
+                const auto slotState = slotComp->getSlotState(context);
+                if (slotState.isString()) {
+                    textBox->setValue(slotState.stringValue);
+                }
+            }
+        }
     } // namespace
 
     void InputSceneComponent::draw(SceneDrawContext &context) {
@@ -427,6 +479,8 @@ namespace Bess::Canvas {
                     setToggleCb(ctrl, context, slotUuid);
                 } else if (sigType == SimEngine::SignalKind::scalar) {
                     setTextBoxCb(ctrl, context, slotUuid);
+                } else if (sigType == SimEngine::SignalKind::string) {
+                    setStringTextBoxCb(ctrl, context, slotUuid);
                 }
             }
 

@@ -116,7 +116,13 @@ namespace Bess {
 
         enum class PortDirection : uint8_t { none, input, output };
 
-        enum class SignalKind : uint8_t { none, digital, scalar, vector };
+        enum class SignalKind : uint8_t {
+            none,
+            digital,
+            scalar,
+            vector,
+            string
+        };
 
         enum class QuantityKind : uint8_t {
             none,
@@ -166,6 +172,7 @@ namespace Bess {
             LogicState state = LogicState::low;
             double scalarValue = 0.0;
             std::vector<double> vectorValue;
+            std::string stringValue;
             SimTime lastChangeTime{0};
             ConnectionState connState = ConnectionState::driven;
 
@@ -185,12 +192,47 @@ namespace Bess {
                 fromLogicState(logicState, thresholds);
             }
 
+            static PortState none(SimTime time = SimTime{0}) {
+                PortState state;
+                state.signalKind = SignalKind::none;
+                state.state = LogicState::unknown;
+                state.lastChangeTime = time;
+                state.connState = ConnectionState::unknown;
+                return state;
+            }
+
             static PortState scalar(double value, SimTime time = SimTime{0}) {
                 PortState state;
                 state.signalKind = SignalKind::scalar;
                 state.scalarValue = value;
                 state.lastChangeTime = time;
                 return state;
+            }
+
+            static PortState string(const std::string &value,
+                                    SimTime time = SimTime{0}) {
+                PortState state;
+                state.signalKind = SignalKind::string;
+                state.stringValue = value;
+                state.lastChangeTime = time;
+                return state;
+            }
+
+            static PortState defaultFor(SignalKind kind,
+                                        SimTime time = SimTime{0}) {
+                switch (kind) {
+                case SignalKind::digital:
+                    return digital(LogicState::low, time);
+                case SignalKind::scalar:
+                    return scalar(0.0, time);
+                case SignalKind::vector:
+                    return vector({}, time);
+                case SignalKind::string:
+                    return string("", time);
+                case SignalKind::none:
+                    return none(time);
+                }
+                return none(time);
             }
 
             static PortState digital(LogicState value,
@@ -219,6 +261,10 @@ namespace Bess {
                 return signalKind == SignalKind::vector;
             }
 
+            bool isString() const noexcept {
+                return signalKind == SignalKind::string;
+            }
+
             PortState &setScalarValue(double value,
                                       SimTime time = SimTime{0}) noexcept {
                 signalKind = SignalKind::scalar;
@@ -239,6 +285,16 @@ namespace Bess {
                 return *this;
             }
 
+            PortState &setStringValue(std::string value,
+                                      SimTime time = SimTime{0}) {
+                signalKind = SignalKind::string;
+                stringValue = std::move(value);
+                lastChangeTime = time;
+                connState = ConnectionState::driven;
+                state = LogicState::unknown;
+                return *this;
+            }
+
             bool operator==(const PortState &other) const {
                 if (signalKind != other.signalKind) {
                     return false;
@@ -249,6 +305,8 @@ namespace Bess {
                     return scalarValue == other.scalarValue;
                 case SignalKind::vector:
                     return vectorValue == other.vectorValue;
+                case SignalKind::string:
+                    return stringValue == other.stringValue;
                 case SignalKind::digital:
                 case SignalKind::none:
                     return getLogicState() == other.getLogicState() &&
@@ -359,6 +417,14 @@ namespace Bess {
             }
         };
 
+        struct BESS_API PortSpec {
+            std::string name;
+            SignalKind signalKind = SignalKind::none;
+            QuantityKind quantityKind = QuantityKind::none;
+            std::string unit;
+            PortState defaultState = PortState::none();
+        };
+
         struct BESS_API PortDescriptor {
             PortDirection direction = PortDirection::none;
             SignalKind signalKind = SignalKind::none;
@@ -369,33 +435,81 @@ namespace Bess {
             bool isResizeable = false;
             std::vector<PortState> defaultStates;
 
+            // Per-port specifications are authoritative when present. The
+            // homogeneous fields above remain as a compact representation and
+            // keep existing component definitions and saved projects valid.
+            std::vector<PortSpec> ports;
+            PortSpec resizeSpec;
+
+            [[nodiscard]] size_t portCount() const noexcept {
+                return ports.empty() ? count : ports.size();
+            }
+
+            [[nodiscard]] PortSpec portSpec(size_t index) const {
+                if (!ports.empty()) {
+                    return index < ports.size() ? ports[index] : PortSpec{};
+                }
+
+                if (index >= count) {
+                    return {};
+                }
+
+                PortSpec spec{.name = "",
+                              .signalKind = signalKind,
+                              .quantityKind = quantityKind,
+                              .unit = unit,
+                              .defaultState =
+                                  PortState::defaultFor(signalKind)};
+                if (index < names.size()) {
+                    spec.name = names[index];
+                }
+                if (index < defaultStates.size() &&
+                    defaultStates[index].signalKind == signalKind) {
+                    spec.defaultState = defaultStates[index];
+                }
+                return spec;
+            }
+
+            [[nodiscard]] PortSpec resizePortSpec() const {
+                if (resizeSpec.signalKind != SignalKind::none) {
+                    return resizeSpec;
+                }
+                if (!ports.empty()) {
+                    return ports.back();
+                }
+
+                return {.name = "",
+                        .signalKind = signalKind,
+                        .quantityKind = quantityKind,
+                        .unit = unit,
+                        .defaultState = PortState::defaultFor(signalKind)};
+            }
+
+            [[nodiscard]] SignalKind signalKindAt(size_t index) const {
+                if (!ports.empty()) {
+                    return index < ports.size() ? ports[index].signalKind
+                                                : SignalKind::none;
+                }
+                return index < count ? signalKind : SignalKind::none;
+            }
+
+            [[nodiscard]] std::string nameAt(size_t index) const {
+                if (!ports.empty()) {
+                    return index < ports.size() ? ports[index].name
+                                                : std::string{};
+                }
+                return index < names.size() ? names[index] : std::string{};
+            }
+
             [[nodiscard]] std::vector<PortState> makeInitialStates() const {
-                const auto fallbackState = [this]() {
-                    switch (signalKind) {
-                    case SignalKind::digital:
-                        return PortState::digital(LogicState::low);
-                    case SignalKind::scalar:
-                        return PortState::scalar(0.0);
-                    case SignalKind::vector:
-                        return PortState::vector({});
-                    case SignalKind::none:
-                        break;
-                    }
-
-                    auto state = PortState{};
-                    state.signalKind = SignalKind::none;
-                    state.state = LogicState::unknown;
-                    state.connState = ConnectionState::unknown;
-                    return state;
-                }();
-
-                std::vector<PortState> states(count, fallbackState);
-                for (size_t i = 0;
-                     i < states.size() && i < defaultStates.size();
-                     ++i) {
-                    if (defaultStates[i].signalKind == signalKind) {
-                        states[i] = defaultStates[i];
-                    }
+                std::vector<PortState> states;
+                states.reserve(portCount());
+                for (size_t i = 0; i < portCount(); ++i) {
+                    const auto spec = portSpec(i);
+                    states.push_back(
+                        spec.defaultState.signalKind == spec.signalKind
+                            ? spec.defaultState
+                            : PortState::defaultFor(spec.signalKind));
                 }
                 return states;
             }
@@ -534,9 +648,18 @@ REFLECT(Bess::SimEngine::PortState,
         state,
         scalarValue,
         vectorValue,
+        stringValue,
         lastChangeTime,
         connState)
 REFLECT_VECTOR(Bess::SimEngine::PortState)
+
+REFLECT(Bess::SimEngine::PortSpec,
+        name,
+        signalKind,
+        quantityKind,
+        unit,
+        defaultState)
+REFLECT_VECTOR(Bess::SimEngine::PortSpec)
 
 REFLECT(Bess::SimEngine::PortDescriptor,
         direction,
@@ -546,7 +669,9 @@ REFLECT(Bess::SimEngine::PortDescriptor,
         count,
         names,
         isResizeable,
-        defaultStates)
+        defaultStates,
+        ports,
+        resizeSpec)
 
 REFLECT_VECTOR(bool)
 

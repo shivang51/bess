@@ -334,9 +334,9 @@ namespace Bess::Svc {
                     return false;
                 }
 
-                return descriptor->signalKind == slot->getSignalKind() &&
-                       static_cast<size_t>(slot->getIndex()) <
-                           descriptor->count;
+                const auto index = static_cast<size_t>(slot->getIndex());
+                return index < descriptor->portCount() &&
+                       descriptor->signalKindAt(index) == slot->getSignalKind();
             };
 
         const auto endpointA = sceneState.getComponentByUuid(slotAId);
@@ -601,7 +601,8 @@ namespace Bess::Svc {
             return false;
         }
 
-        return (slot->getIndex() + 1) == slotsInfo->count;
+        return static_cast<size_t>(slot->getIndex() + 1) ==
+               slotsInfo->portCount();
     }
 
     bool SvcConnection::removeSlot(

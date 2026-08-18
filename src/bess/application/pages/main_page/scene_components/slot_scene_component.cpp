@@ -71,6 +71,27 @@ namespace Bess::Canvas {
                                          SimEngine::PortState::scalar(value));
             return true;
         }
+
+        bool setStringSlotPortState(const SceneState &state,
+                                    const SlotSceneComponent &slot,
+                                    std::string value) {
+            const auto port = slot.getPortRef(state);
+            if (!port.isValid() || !port.isInput() ||
+                port.signalKind != SimEngine::SignalKind::string) {
+                return false;
+            }
+
+            auto *simEngine = state.runtime().sim;
+            if (!simEngine) {
+                return false;
+            }
+
+            simEngine->setInputPortState(
+                port.componentId,
+                port.index,
+                SimEngine::PortState::string(std::move(value)));
+            return true;
+        }
     } // namespace
 
     std::vector<std::shared_ptr<SceneComponent>>
@@ -89,6 +110,7 @@ namespace Bess::Canvas {
         m_slotNode = nullptr;
         m_container = nullptr;
         m_scalarValueTextBox = nullptr;
+        m_stringValueTextBox = nullptr;
 
         m_isHovered = false;
         m_invalidateCache = true;
@@ -223,6 +245,60 @@ namespace Bess::Canvas {
                 });
         }
 
+        const bool showStringValueTextBox =
+            !isResizeSlot() && isInputSlot() &&
+            m_signalKind == SimEngine::SignalKind::string &&
+            !isSlotConnected(*ctx.sceneState);
+
+        if (showStringValueTextBox && m_stringValueTextBox == nullptr) {
+            m_stringValueTextBox = std::make_shared<UI::TextBoxComp>();
+            m_stringValueTextBox->setPlaceholder("t");
+            m_stringValueTextBox->setTextBoxSize(kScalarSlotTextBoxSize);
+            m_stringValueTextBox->setMaxLength(64);
+            auto &textBoxStyle = m_stringValueTextBox->getStyle();
+            textBoxStyle.margin = Core::Style::Margin::fromSymmetric(3.f, 0.f);
+            textBoxStyle.padding =
+                Core::Style::Padding::fromSymmetric(3.f, 1.f);
+            textBoxStyle.fontSize =
+                std::max(6.f, Styles::simCompStyles.slotLabelSize - 2.f);
+
+            ctx.sceneState->addComponent(m_stringValueTextBox);
+            ctx.sceneState->attachChild(m_container->getUuid(),
+                                        m_stringValueTextBox->getUuid());
+        } else if (!showStringValueTextBox && m_stringValueTextBox != nullptr) {
+            if (ctx.sceneState->isComponentValid(
+                    m_stringValueTextBox->getUuid())) {
+                ctx.sceneState->removeComponent(m_stringValueTextBox->getUuid(),
+                                                UUID::master);
+            }
+            m_stringValueTextBox = nullptr;
+        }
+
+        if (m_stringValueTextBox) {
+            if (!m_stringValueTextBox->getFocused()) {
+                const auto slotState = getSlotState(*ctx.sceneState);
+                if (slotState.isString() &&
+                    m_stringValueTextBox->getValue() != slotState.stringValue) {
+                    m_stringValueTextBox->setValue(slotState.stringValue);
+                }
+            }
+
+            const auto slotUuid = m_uuid;
+            m_stringValueTextBox->setChangedCallback(
+                [sceneState = ctx.sceneState,
+                 slotUuid](const std::string &value) {
+                    if (sceneState == nullptr) {
+                        return;
+                    }
+                    const auto slot =
+                        sceneState->getComponentByUuid<SlotSceneComponent>(
+                            slotUuid);
+                    if (slot) {
+                        setStringSlotPortState(*sceneState, *slot, value);
+                    }
+                });
+        }
+
         m_container->prepareUI(ctx);
 
         auto uiNode = m_container->getUINode();
@@ -243,6 +319,9 @@ namespace Bess::Canvas {
         }
         if (m_scalarValueTextBox) {
             m_scalarValueTextBox->update(frameTime, state);
+        }
+        if (m_stringValueTextBox) {
+            m_stringValueTextBox->update(frameTime, state);
         }
     }
 
@@ -635,6 +714,7 @@ namespace Bess::Canvas {
         m_label = nullptr;
         m_slotNode = nullptr;
         m_scalarValueTextBox = nullptr;
+        m_stringValueTextBox = nullptr;
         m_isUIDirty = true;
         m_invalidateCache = true;
         return removed;

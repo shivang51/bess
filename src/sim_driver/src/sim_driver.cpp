@@ -27,6 +27,8 @@ namespace Bess::SimEngine::Drivers {
                 return lhs.vectorValue.size() == rhs.vectorValue.size() &&
                        std::ranges::equal(
                            lhs.vectorValue, rhs.vectorValue, sameScalar);
+            case SignalKind::string:
+                return lhs.stringValue == rhs.stringValue;
             case SignalKind::digital:
             case SignalKind::none:
                 return lhs.getLogicState() == rhs.getLogicState();

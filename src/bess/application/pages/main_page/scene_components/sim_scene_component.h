@@ -63,10 +63,16 @@ namespace Bess::Canvas {
             const auto inpDetails = compDef->getInputPortDescriptor();
             const auto outDetails = compDef->getOutputPortDescriptor();
 
-            BESS_ASSERT(inpDetails.signalKind != SimEngine::SignalKind::none,
-                        "Input signal kind cannot be none");
-            BESS_ASSERT(outDetails.signalKind != SimEngine::SignalKind::none,
-                        "Output signal kind cannot be none");
+            for (size_t i = 0; i < inpDetails.portCount(); ++i) {
+                BESS_ASSERT(inpDetails.signalKindAt(i) !=
+                                SimEngine::SignalKind::none,
+                            "Input signal kind cannot be none");
+            }
+            for (size_t i = 0; i < outDetails.portCount(); ++i) {
+                BESS_ASSERT(outDetails.signalKindAt(i) !=
+                                SimEngine::SignalKind::none,
+                            "Output signal kind cannot be none");
+            }
 
             int inSlotIdx = 0, outSlotIdx = 0;
             char inpCh = 'A', outCh = 'a';
@@ -75,13 +81,15 @@ namespace Bess::Canvas {
 
             for (const auto &slot : slots) {
                 if (slot->isInputSlot()) {
-                    if (inpDetails.names.size() > inSlotIdx)
-                        slot->setName(inpDetails.names[inSlotIdx++]);
+                    const auto name = inpDetails.nameAt(inSlotIdx++);
+                    if (!name.empty())
+                        slot->setName(name);
                     else
                         slot->setName(std::string(1, inpCh++));
                 } else {
-                    if (outDetails.names.size() > outSlotIdx)
-                        slot->setName(outDetails.names[outSlotIdx++]);
+                    const auto name = outDetails.nameAt(outSlotIdx++);
+                    if (!name.empty())
+                        slot->setName(name);
                     else
                         slot->setName(std::string(1, outCh++));
                 }
@@ -91,7 +99,7 @@ namespace Bess::Canvas {
             if (inpDetails.isResizeable) {
                 auto slot = std::make_shared<SlotSceneComponent>();
                 slot->setPortDirection(SimEngine::PortDirection::input);
-                slot->setSignalKind(inpDetails.signalKind);
+                slot->setSignalKind(inpDetails.resizePortSpec().signalKind);
                 slot->setResizeTrigger(true);
                 slot->setIndex(-1); // assign -1 for resize slots
                 sceneComp->addInputSlot(slot->getUuid(), false);
@@ -101,7 +109,7 @@ namespace Bess::Canvas {
             if (outDetails.isResizeable) {
                 auto slot = std::make_shared<SlotSceneComponent>();
                 slot->setPortDirection(SimEngine::PortDirection::output);
-                slot->setSignalKind(outDetails.signalKind);
+                slot->setSignalKind(outDetails.resizePortSpec().signalKind);
                 slot->setResizeTrigger(true);
                 slot->setIndex(-1); // assign -1 for resize slots
                 sceneComp->addOutputSlot(slot->getUuid(), false);

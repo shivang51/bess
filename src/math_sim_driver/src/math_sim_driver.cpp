@@ -10,6 +10,7 @@
 #include "json/value.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <memory>
 #include <ranges>
@@ -85,6 +86,15 @@ namespace Bess::SimEngine::Drivers::Math {
                     .names = std::move(names),
                     .isResizeable = isResizeable,
                     .defaultStates = std::move(defaultStates)};
+        }
+
+        PortDescriptor mixedPortDescriptor(PortDirection direction,
+                                           std::vector<PortSpec> ports) {
+            PortDescriptor descriptor;
+            descriptor.direction = direction;
+            descriptor.count = ports.size();
+            descriptor.ports = std::move(ports);
+            return descriptor;
         }
 
         std::shared_ptr<MathCompDef> loadDef(const Json::Value &defJson) {
@@ -171,12 +181,6 @@ namespace Bess::SimEngine::Drivers::Math {
                        : PortCountChangeRes::outputsChanged();
         }
 
-        bool isSupportedScalarPort(const PortRef &port) {
-            return port.isValid() && port.signalKind == SignalKind::scalar &&
-                   (port.direction == PortDirection::input ||
-                    port.direction == PortDirection::output);
-        }
-
         void markPortConnection(MathSimComp &comp,
                                 PortDirection direction,
                                 int index,
@@ -221,6 +225,36 @@ namespace Bess::SimEngine::Drivers::Math {
             return direction == PortDirection::input
                        ? def.getInputPortDescriptor()
                        : def.getOutputPortDescriptor();
+        }
+
+        bool portMatchesDescriptor(const MathCompDef &def,
+                                   const PortRef &port) {
+            if (!port.isValid()) {
+                return false;
+            }
+            const auto descriptor = descriptorFor(def, port.direction);
+            return static_cast<size_t>(port.index) < descriptor.portCount() &&
+                   descriptor.signalKindAt(static_cast<size_t>(port.index)) ==
+                       port.signalKind;
+        }
+
+        std::string differentiationVariable(const PortState &state) {
+            if (!state.isString() || state.stringValue.empty()) {
+                return "t";
+            }
+
+            const auto &name = state.stringValue;
+            const auto isIdentifierStart = [](unsigned char ch) {
+                return std::isalpha(ch) != 0 || ch == '_';
+            };
+            const auto isIdentifierPart = [](unsigned char ch) {
+                return std::isalnum(ch) != 0 || ch == '_';
+            };
+            if (!isIdentifierStart(static_cast<unsigned char>(name.front())) ||
+                !std::ranges::all_of(name.substr(1), isIdentifierPart)) {
+                return "t";
+            }
+            return name;
         }
 
         bool isPortResizeAllowed(const MathCompDef &def,
@@ -297,12 +331,14 @@ namespace Bess::SimEngine::Drivers::Math {
     void MathCompDef::setInputPortDescriptor(const PortDescriptor &descriptor) {
         m_inputPorts = descriptor;
         m_inputPorts.direction = PortDirection::input;
+        m_inputPorts.count = m_inputPorts.portCount();
     }
 
     void
     MathCompDef::setOutputPortDescriptor(const PortDescriptor &descriptor) {
         m_outputPorts = descriptor;
         m_outputPorts.direction = PortDirection::output;
+        m_outputPorts.count = m_outputPorts.portCount();
     }
 
     void MathCompDef::setScalarFn(const TScalarFn &scalarFn) {
@@ -317,7 +353,9 @@ namespace Bess::SimEngine::Drivers::Math {
             values.reserve(data->inputStates.size());
 
             for (const auto &input : data->inputStates) {
-                values.push_back(input.isScalar() ? input.scalarValue : 0.0);
+                if (input.isScalar()) {
+                    values.push_back(input.scalarValue);
+                }
             }
 
             if (data->outputStates.empty()) {
@@ -342,6 +380,19 @@ namespace Bess::SimEngine::Drivers::Math {
 
     void MathCompDef::setFnDefCollapse(const TFnDefCollapse &fnDefCollapse) {
         m_fnDefCollapse = fnDefCollapse;
+        m_fnDefsCollapse = [fnDefCollapse](const std::vector<FnDef> &defs,
+                                           const std::vector<PortState> &,
+                                           const std::vector<PortState> &) {
+            if (!fnDefCollapse) {
+                return std::vector<FnDef>{};
+            }
+            return std::vector<FnDef>{fnDefCollapse(defs)};
+        };
+    }
+
+    void MathCompDef::setFnDefsCollapse(const TFnDefsCollapse &fnDefsCollapse) {
+        m_fnDefCollapse = nullptr;
+        m_fnDefsCollapse = fnDefsCollapse;
     }
 
     PortDescriptor MathCompDef::getInputPortDescriptor() const {
@@ -368,6 +419,8 @@ namespace Bess::SimEngine::Drivers::Math {
         if (json.isMember("outputPorts")) {
             JsonConvert::fromJsonValue(json["outputPorts"], m_outputPorts);
         }
+        setInputPortDescriptor(m_inputPorts);
+        setOutputPortDescriptor(m_outputPorts);
         if (json.isMember("opKind") && json["opKind"].isString()) {
             m_opKind = opKindFromString(json["opKind"].asString());
         }
@@ -463,8 +516,18 @@ namespace Bess::SimEngine::Drivers::Math {
         JsonConvert::toJsonValue(m_isOutputConnected,
                                  json["isOutputConnected"]);
         JsonConvert::toJsonValue(m_netUuid, json["netUuid"]);
-        JsonConvert::toJsonValue(m_fnDef.toString(), json["fnDef"]);
+        std::vector<std::string> fnDefs;
+        fnDefs.reserve(m_fnDefs.size());
+        for (const auto &fnDef : m_fnDefs) {
+            fnDefs.push_back(fnDef.toString());
+        }
+        JsonConvert::toJsonValue(fnDefs, json["fnDefs"]);
         return json;
+    }
+
+    FnDef MathSimComp::getFnDef(size_t outputIndex) const {
+        return outputIndex < m_fnDefs.size() ? m_fnDefs[outputIndex]
+                                             : FnDef::empty();
     }
 
     void MathSimComp::loadJson(const Json::Value &json) {
@@ -510,6 +573,17 @@ namespace Bess::SimEngine::Drivers::Math {
         if (json.isMember("netUuid")) {
             JsonConvert::fromJsonValue(json["netUuid"], m_netUuid);
         }
+        if (json.isMember("fnDefs")) {
+            std::vector<std::string> serializedDefs;
+            JsonConvert::fromJsonValue(json["fnDefs"], serializedDefs);
+            m_fnDefs.clear();
+            m_fnDefs.reserve(serializedDefs.size());
+            for (const auto &serialized : serializedDefs) {
+                m_fnDefs.push_back(FnDef{symcalc::Equation(serialized)});
+            }
+        } else if (json.isMember("fnDef") && json["fnDef"].isString()) {
+            m_fnDefs = {FnDef{symcalc::Equation(json["fnDef"].asString())}};
+        }
     }
 
     void MathSimComp::resetRuntimeState(TimeNs startTime) {
@@ -544,9 +618,10 @@ namespace Bess::SimEngine::Drivers::Math {
         simData->prevState.outputStates = comp->getOutputStates();
         simData->inputStates = inputs;
         simData->outputStates = comp->getOutputStates();
-        simData->fnDef = comp->getFnDef();
-
-        comp->setFnDef(collapseDefs(evt.compId));
+        simData->fnDefs = collapseDefs(evt.compId, &inputs);
+        simData->fnDef =
+            simData->fnDefs.empty() ? FnDef::empty() : simData->fnDefs.front();
+        comp->setFnDefs(simData->fnDefs);
 
         auto newData =
             std::dynamic_pointer_cast<MathCompSimData>(comp->simulate(simData));
@@ -577,6 +652,10 @@ namespace Bess::SimEngine::Drivers::Math {
         }
 
         EvtBasedSimDriver::addComponent(comp, scheduleSim);
+        if (const auto mathComp =
+                std::dynamic_pointer_cast<MathSimComp>(comp)) {
+            mathComp->setFnDefs(collapseDefs(mathComp->getUuid()));
+        }
         return comp->getUuid();
     }
 
@@ -678,8 +757,8 @@ namespace Bess::SimEngine::Drivers::Math {
     std::pair<bool, std::string>
     MathSimDriver::canConnectPorts(const PortRef &src,
                                    const PortRef &dst) const {
-        if (!isSupportedScalarPort(src) || !isSupportedScalarPort(dst)) {
-            return {false, "MathSimDriver only supports scalar ports"};
+        if (!src.isValid() || !dst.isValid()) {
+            return {false, "Invalid port reference"};
         }
 
         if (src.direction == dst.direction) {
@@ -692,6 +771,17 @@ namespace Bess::SimEngine::Drivers::Math {
             return {false,
                     "Source or destination component does not exist in "
                     "MathSimDriver"};
+        }
+
+        const auto srcDef = srcComp->getDefinition<MathCompDef>();
+        const auto dstDef = dstComp->getDefinition<MathCompDef>();
+        if (!srcDef || !dstDef || !portMatchesDescriptor(*srcDef, src) ||
+            !portMatchesDescriptor(*dstDef, dst)) {
+            return {false, "Port signal kind does not match its descriptor"};
+        }
+
+        if (src.signalKind != dst.signalKind) {
+            return {false, "Cannot connect ports with different signal kinds"};
         }
 
         const auto &srcPins = connectionsFor(*srcComp, src.direction);
@@ -713,7 +803,7 @@ namespace Bess::SimEngine::Drivers::Math {
                 existing.second == outputPort.index) {
                 return {false, "Connection already exists"};
             }
-            return {false, "Input port already has a scalar driver"};
+            return {false, "Input port already has a driver"};
         }
 
         return {true, ""};
@@ -726,10 +816,9 @@ namespace Bess::SimEngine::Drivers::Math {
         const auto &inputPort = src.isInput() ? src : dst;
         const auto &outputPort = src.isOutput() ? src : dst;
 
-        if (!canConnect &&
-            !(overrideConn &&
-              (errorMsg == "Connection already exists" ||
-               errorMsg == "Input port already has a scalar driver"))) {
+        if (!canConnect && !(overrideConn &&
+                             (errorMsg == "Connection already exists" ||
+                              errorMsg == "Input port already has a driver"))) {
             BESS_WARN("Cannot connect math components: {}", errorMsg);
             return false;
         }
@@ -754,7 +843,7 @@ namespace Bess::SimEngine::Drivers::Math {
             for (const auto &[oldOutputCompId, oldOutputIdx] : oldConnections) {
                 deleteConnection({.componentId = oldOutputCompId,
                                   .direction = PortDirection::output,
-                                  .signalKind = SignalKind::scalar,
+                                  .signalKind = inputPort.signalKind,
                                   .index = oldOutputIdx},
                                  inputPort);
             }
@@ -845,7 +934,8 @@ namespace Bess::SimEngine::Drivers::Math {
     }
 
     PortCountChangeRes MathSimDriver::addPort(const PortRef &port, bool force) {
-        if (!isSupportedScalarPort(port)) {
+        if (!port.isValid() || (port.direction != PortDirection::input &&
+                                port.direction != PortDirection::output)) {
             return PortCountChangeRes::noChange();
         }
 
@@ -860,6 +950,11 @@ namespace Bess::SimEngine::Drivers::Math {
         }
 
         auto descriptor = descriptorFor(*def, port.direction);
+        const auto newPortSpec = descriptor.resizePortSpec();
+        if (newPortSpec.signalKind == SignalKind::none ||
+            newPortSpec.signalKind != port.signalKind) {
+            return PortCountChangeRes::noChange();
+        }
         auto &states = statesFor(*comp, port.direction);
         auto &initialStates = port.direction == PortDirection::input
                                   ? comp->getInitialInputStates()
@@ -868,18 +963,28 @@ namespace Bess::SimEngine::Drivers::Math {
         auto &connected = connectedFor(*comp, port.direction);
         const auto insertIdx =
             std::clamp(port.index, 0, static_cast<int>(states.size()));
+        const auto initialState =
+            newPortSpec.defaultState.signalKind == newPortSpec.signalKind
+                ? newPortSpec.defaultState
+                : PortState::defaultFor(newPortSpec.signalKind);
 
-        if (!descriptor.defaultStates.empty()) {
-            descriptor.defaultStates.resize(states.size(),
-                                            PortState::scalar(0.0));
-            descriptor.defaultStates.insert(descriptor.defaultStates.begin() +
-                                                insertIdx,
-                                            PortState::scalar(0.0));
+        if (!descriptor.ports.empty()) {
+            descriptor.ports.insert(descriptor.ports.begin() + insertIdx,
+                                    newPortSpec);
+        } else if (!descriptor.defaultStates.empty()) {
+            descriptor.defaultStates.resize(
+                states.size(), PortState::defaultFor(descriptor.signalKind));
+            descriptor.defaultStates.insert(
+                descriptor.defaultStates.begin() + insertIdx, initialState);
         }
-        initialStates.resize(states.size(), PortState::scalar(0.0));
-        states.insert(states.begin() + insertIdx, PortState::scalar(0.0));
-        initialStates.insert(initialStates.begin() + insertIdx,
-                             PortState::scalar(0.0));
+        if (descriptor.ports.empty() && !descriptor.names.empty()) {
+            descriptor.names.resize(states.size());
+            descriptor.names.insert(descriptor.names.begin() + insertIdx,
+                                    newPortSpec.name);
+        }
+        initialStates.resize(states.size(), initialState);
+        states.insert(states.begin() + insertIdx, initialState);
+        initialStates.insert(initialStates.begin() + insertIdx, initialState);
         connections.insert(connections.begin() + insertIdx,
                            Connections::value_type{});
         connected.insert(connected.begin() + insertIdx, false);
@@ -921,14 +1026,15 @@ namespace Bess::SimEngine::Drivers::Math {
 
         triggerPortCountChangeCbs(port.componentId,
                                   port.direction,
-                                  SignalKind::scalar,
+                                  newPortSpec.signalKind,
                                   (int)states.size());
         return changeResFor(port.direction);
     }
 
     PortCountChangeRes MathSimDriver::removePort(const PortRef &port,
                                                  bool force) {
-        if (!isSupportedScalarPort(port)) {
+        if (!port.isValid() || (port.direction != PortDirection::input &&
+                                port.direction != PortDirection::output)) {
             return PortCountChangeRes::noChange();
         }
 
@@ -938,9 +1044,14 @@ namespace Bess::SimEngine::Drivers::Math {
         }
 
         const auto def = comp->getDefinition<MathCompDef>();
-        if (!def || !isPortResizeAllowed(*def, port, force)) {
+        if (!def || !portMatchesDescriptor(*def, port) ||
+            !isPortResizeAllowed(*def, port, force)) {
             return PortCountChangeRes::noChange();
         }
+
+        auto descriptor = descriptorFor(*def, port.direction);
+        const auto removedSpec =
+            descriptor.portSpec(static_cast<size_t>(port.index));
 
         auto &states = statesFor(*comp, port.direction);
         auto &initialStates = port.direction == PortDirection::input
@@ -958,7 +1069,7 @@ namespace Bess::SimEngine::Drivers::Math {
             deleteConnection(port,
                              {.componentId = otherId,
                               .direction = oppositeDirection(port.direction),
-                              .signalKind = SignalKind::scalar,
+                              .signalKind = removedSpec.signalKind,
                               .index = otherPortIndex});
         }
 
@@ -997,10 +1108,17 @@ namespace Bess::SimEngine::Drivers::Math {
         connections.erase(connections.begin() + port.index);
         connected.erase(connected.begin() + port.index);
 
-        auto descriptor = descriptorFor(*def, port.direction);
-        if (static_cast<size_t>(port.index) < descriptor.defaultStates.size()) {
+        if (!descriptor.ports.empty() &&
+            static_cast<size_t>(port.index) < descriptor.ports.size()) {
+            descriptor.ports.erase(descriptor.ports.begin() + port.index);
+        } else if (static_cast<size_t>(port.index) <
+                   descriptor.defaultStates.size()) {
             descriptor.defaultStates.erase(descriptor.defaultStates.begin() +
                                            port.index);
+        }
+        if (descriptor.ports.empty() &&
+            static_cast<size_t>(port.index) < descriptor.names.size()) {
+            descriptor.names.erase(descriptor.names.begin() + port.index);
         }
         descriptor.count = states.size();
         if (port.direction == PortDirection::input) {
@@ -1011,7 +1129,7 @@ namespace Bess::SimEngine::Drivers::Math {
 
         triggerPortCountChangeCbs(port.componentId,
                                   port.direction,
-                                  SignalKind::scalar,
+                                  removedSpec.signalKind,
                                   (int)states.size());
         return changeResFor(port.direction);
     }
@@ -1055,16 +1173,27 @@ namespace Bess::SimEngine::Drivers::Math {
 
         auto collapsed = comp->getInputStates();
         const auto &inputConns = comp->getInputConnections();
+        const auto mathDef = comp->getDefinition<MathCompDef>();
+        if (!mathDef) {
+            return collapsed;
+        }
+        const auto descriptor = mathDef->getInputPortDescriptor();
         if (collapsed.size() < inputConns.size()) {
-            collapsed.resize(inputConns.size(), PortState::scalar(0.0));
+            const auto oldSize = collapsed.size();
+            collapsed.resize(inputConns.size());
+            for (size_t i = oldSize; i < collapsed.size(); ++i) {
+                collapsed[i] = PortState::defaultFor(descriptor.signalKindAt(i),
+                                                     getCurrentSimTime());
+            }
         }
 
         for (size_t pinIdx = 0; pinIdx < inputConns.size(); ++pinIdx) {
             const auto &pinConns = inputConns[pinIdx];
+            const auto expectedKind = descriptor.signalKindAt(pinIdx);
             if (pinConns.empty()) {
-                if (!collapsed[pinIdx].isScalar()) {
-                    collapsed[pinIdx] =
-                        PortState::scalar(0.0, getCurrentSimTime());
+                if (collapsed[pinIdx].signalKind != expectedKind) {
+                    collapsed[pinIdx] = PortState::defaultFor(
+                        expectedKind, getCurrentSimTime());
                 }
                 collapsed[pinIdx].connState = ConnectionState::high_z;
                 continue;
@@ -1075,34 +1204,44 @@ namespace Bess::SimEngine::Drivers::Math {
             if (!srcComp || srcSlotIdx < 0 ||
                 static_cast<size_t>(srcSlotIdx) >=
                     srcComp->getOutputStates().size()) {
-                collapsed[pinIdx] = PortState::scalar(0.0, getCurrentSimTime());
+                collapsed[pinIdx] =
+                    PortState::defaultFor(expectedKind, getCurrentSimTime());
                 collapsed[pinIdx].connState = ConnectionState::unknown;
                 continue;
             }
 
             const auto &srcState = srcComp->getOutputStates()[srcSlotIdx];
-            collapsed[pinIdx] =
-                srcState.isScalar() ? srcState : PortState::scalar(0.0);
+            collapsed[pinIdx] = srcState.signalKind == expectedKind
+                                    ? srcState
+                                    : PortState::defaultFor(expectedKind);
+            if (srcState.signalKind != expectedKind) {
+                collapsed[pinIdx].connState = ConnectionState::unknown;
+            }
         }
 
         return collapsed;
     }
 
-    FnDef MathSimDriver::collapseDefs(const UUID &id) {
+    std::vector<FnDef>
+    MathSimDriver::collapseDefs(const UUID &id,
+                                const std::vector<PortState> *inputStates) {
         const auto comp = getComponent<MathSimComp>(id);
         if (!comp) {
-            return FnDef::empty();
+            return {};
         }
 
-        auto collapsed = comp->getFnDef();
         const auto &inputConns = comp->getInputConnections();
         std::vector<FnDef> inpDefs;
         inpDefs.reserve(inputConns.size());
 
         const auto mathDef =
             std::dynamic_pointer_cast<MathCompDef>(comp->getDefinition());
+        if (!mathDef || !mathDef->getFnDefsCollapseFn()) {
+            return comp->getFnDefs();
+        }
 
-        const auto &inputs = comp->getInputStates();
+        const auto &inputs =
+            inputStates ? *inputStates : comp->getInputStates();
 
         for (size_t pinIdx = 0; pinIdx < inputConns.size(); ++pinIdx) {
             const auto &pinConns = inputConns[pinIdx];
@@ -1111,7 +1250,10 @@ namespace Bess::SimEngine::Drivers::Math {
                     inpDefs.emplace_back(FnDef::empty());
                 } else {
                     const PortState &state = inputs[pinIdx];
-                    inpDefs.emplace_back(symcalc::Equation(state.scalarValue));
+                    inpDefs.emplace_back(
+                        state.isScalar()
+                            ? FnDef{symcalc::Equation(state.scalarValue)}
+                            : FnDef::empty());
                 }
 
                 continue;
@@ -1126,11 +1268,15 @@ namespace Bess::SimEngine::Drivers::Math {
                 continue;
             }
 
-            const auto &srcDef = srcComp->getFnDef();
-            inpDefs.emplace_back(srcDef);
+            inpDefs.emplace_back(
+                srcComp->getFnDef(static_cast<size_t>(srcSlotIdx)));
         }
 
-        return mathDef->getFnDefCollapseFn()(inpDefs);
+        auto collapsed = mathDef->getFnDefsCollapseFn()(
+            inpDefs, inputs, comp->getOutputStates());
+        const auto outputCount = mathDef->getOutputPortDescriptor().portCount();
+        collapsed.resize(outputCount, FnDef::empty());
+        return collapsed;
     }
 
     std::vector<PortState>
@@ -1140,13 +1286,14 @@ namespace Bess::SimEngine::Drivers::Math {
 
     PortState MathSimDriver::getPortState(const PortRef &port) const {
         const auto comp = getComponent<MathSimComp>(port.componentId);
-        if (!comp || !isSupportedScalarPort(port) || port.index < 0) {
-            return PortState::scalar(0.0);
+        const auto def = comp ? comp->getDefinition<MathCompDef>() : nullptr;
+        if (!comp || !def || !portMatchesDescriptor(*def, port)) {
+            return PortState::none();
         }
 
         const auto &states = statesFor(*comp, port.direction);
         if (static_cast<size_t>(port.index) >= states.size()) {
-            return PortState::scalar(0.0);
+            return PortState::none();
         }
 
         return states[port.index];
@@ -1156,12 +1303,19 @@ namespace Bess::SimEngine::Drivers::Math {
                                           int pinIdx,
                                           const PortState &state) {
         const auto comp = getComponent<MathSimComp>(uuid);
-        if (!comp || !state.isScalar()) {
+        const auto def = comp ? comp->getDefinition<MathCompDef>() : nullptr;
+        if (!comp || !def) {
             return false;
         }
 
         auto &inputs = comp->getInputStates();
         if (pinIdx < 0 || static_cast<size_t>(pinIdx) >= inputs.size()) {
+            return false;
+        }
+        const auto expectedKind = def->getInputPortDescriptor().signalKindAt(
+            static_cast<size_t>(pinIdx));
+        if (expectedKind == SignalKind::none ||
+            state.signalKind != expectedKind) {
             return false;
         }
 
@@ -1190,12 +1344,19 @@ namespace Bess::SimEngine::Drivers::Math {
                                            int pinIdx,
                                            const PortState &state) {
         const auto comp = getComponent<MathSimComp>(uuid);
-        if (!comp || !state.isScalar()) {
+        const auto def = comp ? comp->getDefinition<MathCompDef>() : nullptr;
+        if (!comp || !def) {
             return false;
         }
 
         auto &outputs = comp->getOutputStates();
         if (pinIdx < 0 || static_cast<size_t>(pinIdx) >= outputs.size()) {
+            return false;
+        }
+        const auto expectedKind = def->getOutputPortDescriptor().signalKindAt(
+            static_cast<size_t>(pinIdx));
+        if (expectedKind == SignalKind::none ||
+            state.signalKind != expectedKind) {
             return false;
         }
 
@@ -1207,6 +1368,7 @@ namespace Bess::SimEngine::Drivers::Math {
                 initialOutputs[pinIdx] = outputs[pinIdx];
             }
         }
+        comp->setFnDefs(collapseDefs(uuid));
         propagateFromComponent(uuid);
         return true;
     }
@@ -1366,7 +1528,45 @@ namespace Bess::SimEngine::Drivers::Math {
                                  },
                                  true));
 
+        inpDef->setFnDefsCollapse([](const std::vector<FnDef> &,
+                                     const std::vector<PortState> &,
+                                     const std::vector<PortState> &outputs) {
+            std::vector<FnDef> defs;
+            defs.reserve(outputs.size());
+            for (const auto &output : outputs) {
+                defs.push_back(output.isScalar() ? FnDef{symcalc::Equation(
+                                                       output.scalarValue)}
+                                                 : FnDef::empty());
+            }
+            return defs;
+        });
+
         catalog.registerComponent(inpDef);
+
+        const auto stringInpDef = std::make_shared<MathCompDef>();
+        stringInpDef->setName("String Input");
+        stringInpDef->setGroupName("IO");
+        stringInpDef->setBehaviorType(ComponentBehaviorType::input);
+        stringInpDef->setInputPortDescriptor(
+            scalarPortDescriptor(PortDirection::input, 0));
+        stringInpDef->setOutputPortDescriptor(
+            mixedPortDescriptor(PortDirection::output,
+                                {{.name = "Y",
+                                  .signalKind = SignalKind::string,
+                                  .quantityKind = QuantityKind::none,
+                                  .defaultState = PortState::string("")}}));
+        stringInpDef->setSimFn(
+            [](const std::shared_ptr<MathCompSimData> &data) {
+                data->simDependants = true;
+                return data;
+            });
+        stringInpDef->setFnDefsCollapse(
+            [](const std::vector<FnDef> &,
+               const std::vector<PortState> &,
+               const std::vector<PortState> &outputs) {
+                return std::vector<FnDef>(outputs.size(), FnDef::empty());
+            });
+        catalog.registerComponent(stringInpDef);
 
         const auto outDef = std::make_shared<MathCompDef>();
         outDef->setName("Scalar Output");
@@ -1650,8 +1850,11 @@ namespace Bess::SimEngine::Drivers::Math {
             return data;
         });
 
-        timeNode->setFnDefCollapse([](const std::vector<FnDef> &defs) {
-            return FnDef(symcalc::Equation("t"));
+        timeNode->setFnDefsCollapse([](const std::vector<FnDef> &,
+                                       const std::vector<PortState> &,
+                                       const std::vector<PortState> &) {
+            const auto t = symcalc::Equation("t");
+            return std::vector<FnDef>{FnDef{t}, FnDef{1000.0 * t}};
         });
 
         timeNode->setAutoReschedule(true);
@@ -1662,23 +1865,32 @@ namespace Bess::SimEngine::Drivers::Math {
             "Diffrentiate",
             "Maths",
             [](TimeMs t, const std::vector<double> &values, const FnDef &def) {
-                std::map<symcalc::Equation, double> vars = {};
-                vars[symcalc::Equation("t")] = t.count() / 1000.0;
+                std::map<std::string, double> vars = {};
+                vars["t"] = t.count() / 1000.0;
                 return def.equation.eval(vars);
             });
 
         fnDef->setInputPortDescriptor(
-            scalarPortDescriptor(PortDirection::input,
-                                 1,
-                                 std::vector<std::string>{
-                                     "X",
-                                 },
-                                 false,
-                                 {PortState::scalar(0.0)}));
+            mixedPortDescriptor(PortDirection::input,
+                                {{.name = "X",
+                                  .signalKind = SignalKind::scalar,
+                                  .quantityKind = QuantityKind::dimensionless,
+                                  .defaultState = PortState::scalar(0.0)},
+                                 {.name = "With respect to",
+                                  .signalKind = SignalKind::string,
+                                  .quantityKind = QuantityKind::none,
+                                  .defaultState = PortState::string("t")}}));
 
-        fnDef->setFnDefCollapse([](const std::vector<FnDef> &defs) {
-            const auto eq = defs[0].equation.derivative(symcalc::Equation("t"));
-            return FnDef{eq};
+        fnDef->setFnDefsCollapse([](const std::vector<FnDef> &defs,
+                                    const std::vector<PortState> &inputs,
+                                    const std::vector<PortState> &) {
+            if (defs.empty()) {
+                return std::vector<FnDef>{FnDef::empty()};
+            }
+            const auto variable =
+                inputs.size() > 1 ? differentiationVariable(inputs[1]) : "t";
+            return std::vector<FnDef>{FnDef{
+                defs[0].equation.derivative(symcalc::Equation(variable))}};
         });
 
         fnDef->setAutoReschedule(false);

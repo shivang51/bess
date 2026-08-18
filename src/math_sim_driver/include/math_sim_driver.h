@@ -42,6 +42,8 @@ namespace Bess::SimEngine::Drivers::Math {
         std::vector<PortState> inputStates;
         std::vector<PortState> outputStates;
         std::vector<FnDef> inpFnDefs;
+        std::vector<FnDef> fnDefs;
+        // Convenience view of output zero for scalar component callbacks.
         FnDef fnDef = FnDef::empty();
         SimTime simTime;
         MathCompState prevState;
@@ -56,6 +58,11 @@ namespace Bess::SimEngine::Drivers::Math {
             TimeMs time, const std::vector<double> &, const FnDef &def)>;
 
         using TFnDefCollapse = std::function<FnDef(const std::vector<FnDef> &)>;
+
+        using TFnDefsCollapse = std::function<std::vector<FnDef>(
+            const std::vector<FnDef> &inputDefs,
+            const std::vector<PortState> &inputStates,
+            const std::vector<PortState> &outputStates)>;
 
         using TMathSimFn = std::function<std::shared_ptr<MathCompSimData>(
             const std::shared_ptr<MathCompSimData> &)>;
@@ -80,12 +87,14 @@ namespace Bess::SimEngine::Drivers::Math {
         MAKE_GETTER_SETTER(MathOpKind, OpKind, m_opKind)
         MAKE_GETTER(TScalarFn, ScalarFn, m_scalarFn)
         MAKE_GETTER(TFnDefCollapse, FnDefCollapseFn, m_fnDefCollapse)
+        MAKE_GETTER(TFnDefsCollapse, FnDefsCollapseFn, m_fnDefsCollapse)
 
         void setInputPortDescriptor(const PortDescriptor &descriptor);
         void setOutputPortDescriptor(const PortDescriptor &descriptor);
         void setSimFn(const TMathSimFn &simFn);
         void setScalarFn(const TScalarFn &scalarFn);
         void setFnDefCollapse(const TFnDefCollapse &fnDefCollapse);
+        void setFnDefsCollapse(const TFnDefsCollapse &fnDefsCollapse);
 
         PortDescriptor getInputPortDescriptor() const override;
         PortDescriptor getOutputPortDescriptor() const override;
@@ -104,6 +113,7 @@ namespace Bess::SimEngine::Drivers::Math {
         MathOpKind m_opKind = MathOpKind::none;
         TScalarFn m_scalarFn = nullptr;
         TFnDefCollapse m_fnDefCollapse = nullptr;
+        TFnDefsCollapse m_fnDefsCollapse = nullptr;
     };
 
     class BESS_API MathSimComp : public EvtBasedSimComp {
@@ -132,8 +142,8 @@ namespace Bess::SimEngine::Drivers::Math {
 
             const auto inputDescriptor = mathDef->getInputPortDescriptor();
             const auto outputDescriptor = mathDef->getOutputPortDescriptor();
-            const auto inputCount = inputDescriptor.count;
-            const auto outputCount = outputDescriptor.count;
+            const auto inputCount = inputDescriptor.portCount();
+            const auto outputCount = outputDescriptor.portCount();
 
             comp->m_inputStates = inputDescriptor.makeInitialStates();
             comp->m_outputStates = outputDescriptor.makeInitialStates();
@@ -143,6 +153,7 @@ namespace Bess::SimEngine::Drivers::Math {
             comp->m_isOutputConnected.resize(outputCount, false);
             comp->m_inputConnections.resize(inputCount);
             comp->m_outputConnections.resize(outputCount);
+            comp->m_fnDefs.resize(outputCount, FnDef::empty());
 
             return comp;
         }
@@ -167,7 +178,9 @@ namespace Bess::SimEngine::Drivers::Math {
                            IsOutputConnected,
                            m_isOutputConnected)
         MAKE_GETTER_SETTER(UUID, NetUuid, m_netUuid)
-        MAKE_GETTER_SETTER(FnDef, FnDef, m_fnDef)
+        MAKE_GETTER_SETTER(std::vector<FnDef>, FnDefs, m_fnDefs)
+
+        [[nodiscard]] FnDef getFnDef(size_t outputIndex = 0) const;
 
         Json::Value toJson() const override;
         void loadJson(const Json::Value &json) override;
@@ -183,7 +196,7 @@ namespace Bess::SimEngine::Drivers::Math {
         std::vector<bool> m_isInputConnected;
         std::vector<bool> m_isOutputConnected;
         UUID m_netUuid = UUID::null;
-        FnDef m_fnDef;
+        std::vector<FnDef> m_fnDefs;
     };
 
     class BESS_API MathSimDriver final : public EvtBasedSimDriver {
@@ -235,7 +248,9 @@ namespace Bess::SimEngine::Drivers::Math {
 
         std::vector<PortState> collapseInputs(const UUID &id) override;
 
-        FnDef collapseDefs(const UUID &id);
+        std::vector<FnDef>
+        collapseDefs(const UUID &id,
+                     const std::vector<PortState> *inputStates = nullptr);
 
         std::vector<PortState> getInputPortStates(const UUID &compId) override;
         PortState getPortState(const PortRef &port) const override;

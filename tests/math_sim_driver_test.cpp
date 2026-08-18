@@ -33,6 +33,14 @@ namespace {
                 .index = index};
     }
 
+    PortRef
+    stringPort(const UUID &componentId, PortDirection direction, int index) {
+        return {.componentId = componentId,
+                .direction = direction,
+                .signalKind = SignalKind::string,
+                .index = index};
+    }
+
     UUID addMathComponent(MathSimDriver &driver,
                           const std::shared_ptr<MathCompDef> &definition,
                           bool scheduleSim = false) {
@@ -144,6 +152,44 @@ TEST(MathSimDriverTest, DefinitionDefaultsInitializeComponentInputStates) {
     EXPECT_DOUBLE_EQ(states[0].scalarValue, 2.5);
     EXPECT_DOUBLE_EQ(states[1].scalarValue, -4.0);
     EXPECT_DOUBLE_EQ(states[2].scalarValue, 0.0);
+}
+
+TEST(MathSimDriverTest,
+     MixedPortDescriptorsPreservePerPortMetadataAndDefaults) {
+    MathCompDef definition;
+    definition.setInputPortDescriptor({
+        .direction = PortDirection::input,
+        .ports = {{.name = "Value",
+                   .signalKind = SignalKind::scalar,
+                   .quantityKind = QuantityKind::dimensionless,
+                   .defaultState = PortState::scalar(2.5)},
+                  {.name = "Variable",
+                   .signalKind = SignalKind::string,
+                   .quantityKind = QuantityKind::none,
+                   .defaultState = PortState::string("t")}},
+    });
+
+    const auto descriptor = definition.getInputPortDescriptor();
+    ASSERT_EQ(descriptor.portCount(), 2u);
+    EXPECT_EQ(descriptor.signalKindAt(0), SignalKind::scalar);
+    EXPECT_EQ(descriptor.signalKindAt(1), SignalKind::string);
+    EXPECT_EQ(descriptor.nameAt(0), "Value");
+    EXPECT_EQ(descriptor.nameAt(1), "Variable");
+
+    const auto states = descriptor.makeInitialStates();
+    ASSERT_EQ(states.size(), 2u);
+    EXPECT_TRUE(states[0].isScalar());
+    EXPECT_DOUBLE_EQ(states[0].scalarValue, 2.5);
+    EXPECT_TRUE(states[1].isString());
+    EXPECT_EQ(states[1].stringValue, "t");
+
+    MathCompDef restored;
+    restored.loadJson(definition.toJson());
+    const auto restoredDescriptor = restored.getInputPortDescriptor();
+    ASSERT_EQ(restoredDescriptor.portCount(), 2u);
+    EXPECT_EQ(restoredDescriptor.signalKindAt(0), SignalKind::scalar);
+    EXPECT_EQ(restoredDescriptor.signalKindAt(1), SignalKind::string);
+    EXPECT_EQ(restoredDescriptor.makeInitialStates()[1].stringValue, "t");
 }
 
 TEST(MathSimDriverTest, AddingComponentImmediatelyStampsItsInitialState) {
@@ -309,6 +355,122 @@ TEST(MathSimDriverTest, ConnectionsCollapseScalarInputsForEventSimulation) {
         driver.getPortState(scalarPort(target, PortDirection::output, 0));
     ASSERT_TRUE(output.isScalar());
     EXPECT_DOUBLE_EQ(output.scalarValue, 7.0);
+}
+
+TEST(MathSimDriverTest, ConnectionsValidateAndPropagateStringPorts) {
+    MathSimDriver driver;
+    driver.init();
+
+    const auto stringDefinition =
+        ComponentCatalog::instance().getComponentDefinition<MathCompDef>(
+            "String Input");
+    const auto derivativeDefinition =
+        ComponentCatalog::instance().getComponentDefinition<MathCompDef>(
+            "Diffrentiate");
+    ASSERT_NE(stringDefinition, nullptr);
+    ASSERT_NE(derivativeDefinition, nullptr);
+
+    const auto stringId = addMathComponent(driver, stringDefinition);
+    const auto derivativeId = addMathComponent(driver, derivativeDefinition);
+    ASSERT_NE(stringId, UUID::null);
+    ASSERT_NE(derivativeId, UUID::null);
+
+    EXPECT_FALSE(
+        driver
+            .canConnectPorts(stringPort(stringId, PortDirection::output, 0),
+                             scalarPort(derivativeId, PortDirection::input, 0))
+            .first);
+    ASSERT_TRUE(
+        driver.connectPorts(stringPort(stringId, PortDirection::output, 0),
+                            stringPort(derivativeId, PortDirection::input, 1),
+                            false));
+    ASSERT_TRUE(
+        driver.setOutputPortState(stringId, 0, PortState::string("theta")));
+
+    const auto collapsed = driver.collapseInputs(derivativeId);
+    ASSERT_EQ(collapsed.size(), 2u);
+    ASSERT_TRUE(collapsed[1].isString());
+    EXPECT_EQ(collapsed[1].stringValue, "theta");
+}
+
+TEST(MathSimDriverTest,
+     DifferentiateUsesTypedVariableInputAndCurrentSymbolicDefinition) {
+    MathSimDriver driver;
+    driver.init();
+
+    const auto timeDefinition =
+        ComponentCatalog::instance().getComponentDefinition<MathCompDef>(
+            "Time Node");
+    const auto derivativeDefinition =
+        ComponentCatalog::instance().getComponentDefinition<MathCompDef>(
+            "Diffrentiate");
+    ASSERT_NE(timeDefinition, nullptr);
+    ASSERT_NE(derivativeDefinition, nullptr);
+
+    const auto derivativeInputs =
+        derivativeDefinition->getInputPortDescriptor();
+    ASSERT_EQ(derivativeInputs.portCount(), 2u);
+    EXPECT_EQ(derivativeInputs.signalKindAt(0), SignalKind::scalar);
+    EXPECT_EQ(derivativeInputs.signalKindAt(1), SignalKind::string);
+    EXPECT_EQ(derivativeInputs.makeInitialStates()[1].stringValue, "t");
+
+    const auto timeId = addMathComponent(driver, timeDefinition);
+    const auto secondsDerivativeId =
+        addMathComponent(driver, derivativeDefinition);
+    const auto millisecondsDerivativeId =
+        addMathComponent(driver, derivativeDefinition);
+    ASSERT_NE(timeId, UUID::null);
+    ASSERT_NE(secondsDerivativeId, UUID::null);
+    ASSERT_NE(millisecondsDerivativeId, UUID::null);
+
+    ASSERT_TRUE(driver.connectPorts(
+        scalarPort(timeId, PortDirection::output, 0),
+        scalarPort(secondsDerivativeId, PortDirection::input, 0),
+        false));
+    ASSERT_TRUE(driver.connectPorts(
+        scalarPort(timeId, PortDirection::output, 1),
+        scalarPort(millisecondsDerivativeId, PortDirection::input, 0),
+        false));
+
+    EXPECT_FALSE(driver.setInputPortState(
+        secondsDerivativeId, 1, PortState::scalar(1.0)));
+    ASSERT_TRUE(driver.setInputPortState(
+        secondsDerivativeId, 1, PortState::string("x")));
+    auto inputs = driver.collapseInputs(secondsDerivativeId);
+    driver.simulate({UUID(10), secondsDerivativeId, UUID::null, TimeNs(0)},
+                    inputs);
+    EXPECT_DOUBLE_EQ(driver
+                         .getPortState(scalarPort(
+                             secondsDerivativeId, PortDirection::output, 0))
+                         .scalarValue,
+                     0.0);
+
+    ASSERT_TRUE(driver.setInputPortState(
+        secondsDerivativeId, 1, PortState::string("t")));
+    inputs = driver.collapseInputs(secondsDerivativeId);
+    driver.simulate({UUID(11), secondsDerivativeId, UUID::null, TimeNs(0)},
+                    inputs);
+    EXPECT_DOUBLE_EQ(driver
+                         .getPortState(scalarPort(
+                             secondsDerivativeId, PortDirection::output, 0))
+                         .scalarValue,
+                     1.0);
+
+    const auto millisecondsInputs =
+        driver.collapseInputs(millisecondsDerivativeId);
+    driver.simulate({UUID(12), millisecondsDerivativeId, UUID::null, TimeNs(0)},
+                    millisecondsInputs);
+    EXPECT_DOUBLE_EQ(
+        driver
+            .getPortState(
+                scalarPort(millisecondsDerivativeId, PortDirection::output, 0))
+            .scalarValue,
+        1000.0);
+
+    const auto variableState = driver.getPortState(
+        stringPort(secondsDerivativeId, PortDirection::input, 1));
+    ASSERT_TRUE(variableState.isString());
+    EXPECT_EQ(variableState.stringValue, "t");
 }
 
 TEST(MathSimDriverTest, RejectsNonScalarPortsAndStates) {

@@ -129,8 +129,8 @@ namespace Bess::SimEngine::Drivers::Digital {
             auto digDef = std::dynamic_pointer_cast<DigCompDef>(clone);
             const auto inputDescriptor = digDef->getInputPortDescriptor();
             const auto outputDescriptor = digDef->getOutputPortDescriptor();
-            const auto inpCount = inputDescriptor.count;
-            const auto outCount = outputDescriptor.count;
+            const auto inpCount = inputDescriptor.portCount();
+            const auto outCount = outputDescriptor.portCount();
 
             comp->m_inputStates = inputDescriptor.makeInitialStates();
             comp->m_outputStates = outputDescriptor.makeInitialStates();

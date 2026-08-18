@@ -43,6 +43,7 @@ void bind_sim_engine_types(py::module_ &m) {
         .value("DIGITAL", SignalKind::digital)
         .value("SCALAR", SignalKind::scalar)
         .value("VECTOR", SignalKind::vector)
+        .value("STRING", SignalKind::string)
         .export_values();
 
     py::enum_<QuantityKind>(m, "QuantityKind")
@@ -88,6 +89,7 @@ void bind_sim_engine_types(py::module_ &m) {
         .def_readwrite("signal_kind", &PortState::signalKind)
         .def_readwrite("scalar_value", &PortState::scalarValue)
         .def_readwrite("vector_value", &PortState::vectorValue)
+        .def_readwrite("string_value", &PortState::stringValue)
         .def_readwrite("conn_state", &PortState::connState)
         .def_property(
             "last_change_time_ns",
@@ -120,9 +122,17 @@ void bind_sim_engine_types(py::module_ &m) {
             },
             py::arg("value"),
             py::arg("last_change_time_ns") = 0)
+        .def_static(
+            "string",
+            [](std::string value, long long last_change_time_ns) {
+                return PortState::string(value, SimTime(last_change_time_ns));
+            },
+            py::arg("value"),
+            py::arg("last_change_time_ns") = 0)
         .def("is_digital", &PortState::isDigital)
         .def("is_scalar", &PortState::isScalar)
         .def("is_vector", &PortState::isVector)
+        .def("is_string", &PortState::isString)
         .def(
             "set_scalar_value",
             [](PortState &self, double value, long long last_change_time_ns) {
@@ -136,6 +146,16 @@ void bind_sim_engine_types(py::module_ &m) {
                std::vector<double> value,
                long long last_change_time_ns) {
                 self.setVectorValue(std::move(value),
+                                    SimTime(last_change_time_ns));
+            },
+            py::arg("value"),
+            py::arg("last_change_time_ns") = 0)
+        .def(
+            "set_string_value",
+            [](PortState &self,
+               std::string value,
+               long long last_change_time_ns) {
+                self.setStringValue(std::move(value),
                                     SimTime(last_change_time_ns));
             },
             py::arg("value"),
@@ -172,6 +192,12 @@ void bind_sim_engine_types(py::module_ &m) {
                        ">";
             }
 
+            if (self.signalKind == SignalKind::string) {
+                return std::string("<PortState string='") + self.stringValue +
+                       "', t_ns=" +
+                       std::to_string(self.lastChangeTime.count()) + ">";
+            }
+
             const char *s = "UNKNOWN";
             switch (self.getLogicState()) {
             case LogicState::low:
@@ -202,6 +228,14 @@ void bind_sim_engine_types(py::module_ &m) {
         .def("is_input", &PortRef::isInput)
         .def("is_output", &PortRef::isOutput);
 
+    py::class_<PortSpec>(m, "PortSpec")
+        .def(py::init<>())
+        .def_readwrite("name", &PortSpec::name)
+        .def_readwrite("signal_kind", &PortSpec::signalKind)
+        .def_readwrite("quantity_kind", &PortSpec::quantityKind)
+        .def_readwrite("unit", &PortSpec::unit)
+        .def_readwrite("default_state", &PortSpec::defaultState);
+
     py::class_<PortDescriptor>(m, "PortDescriptor")
         .def(py::init<>())
         .def_readwrite("direction", &PortDescriptor::direction)
@@ -211,7 +245,13 @@ void bind_sim_engine_types(py::module_ &m) {
         .def_readwrite("count", &PortDescriptor::count)
         .def_readwrite("names", &PortDescriptor::names)
         .def_readwrite("is_resizeable", &PortDescriptor::isResizeable)
-        .def_readwrite("default_states", &PortDescriptor::defaultStates);
+        .def_readwrite("default_states", &PortDescriptor::defaultStates)
+        .def_readwrite("ports", &PortDescriptor::ports)
+        .def_readwrite("resize_spec", &PortDescriptor::resizeSpec)
+        .def_property_readonly("port_count", &PortDescriptor::portCount)
+        .def("port_spec", &PortDescriptor::portSpec)
+        .def("signal_kind_at", &PortDescriptor::signalKindAt)
+        .def("name_at", &PortDescriptor::nameAt);
 
     py::enum_<SlotsGroupType>(m, "SlotsGroupType")
         .value("NONE", SlotsGroupType::none)
